@@ -83,17 +83,6 @@ export async function findPage({ needMarkers }) {
 
 export { CDP }
 
-/** Sortie « non concluant » (code 3) : la mesure était impossible AVANT toute
- *  mesure — Chrome de debug muet, aucune page produit. Ce n'est ni un feu vert
- *  ni un échec du produit : `check-all.mjs` réserve le code 3 au ○, alors qu'un
- *  rouge à ce stade noie les vraies régressions dans le bruit des suites CDP.
- *  Règle : « non concluant » seulement si l'environnement manque AVANT la
- *  première mesure ; après, un échec mesuré reste un échec. */
-export function nonConcluant (raison) {
-  console.error('○ non concluant : ' + raison)
-  process.exit(3)
-}
-
 // ── La session : le cookie persistant, pas le token ────────────────────────
 // Le token de `~/.dsh/logs/dsh-web.url` vieillit MAL : dès que DSH est relancé
 // à la main (il tourne alors dans un terminal et n'écrit plus `dsh-web.out.log`),

@@ -10,7 +10,6 @@ const text = (e) => (e && e.message ? String(e.message) : String(e))
 const GROQ_MODELS = 'https://api.groq.com/openai/v1/models'
 const ELEVEN = 'https://api.elevenlabs.io/v1'
 const LIVEAVATAR = 'https://api.liveavatar.com/v1'
-export const CLONE_MODEL = 'eleven_multilingual_v2'
 
 export function createServices (deps = {}) {
   const doFetch = deps.fetch ?? ((...a) => globalThis.fetch(...a))

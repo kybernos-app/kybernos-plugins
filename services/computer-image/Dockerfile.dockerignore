@@ -1,0 +1,4 @@
+*
+!packages/kybernos-gate
+!packages/kybernos-cloud/index.js
+!services/computer-image

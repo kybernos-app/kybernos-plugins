@@ -14,15 +14,17 @@ routes and the same relay, and the stand-in is kept in step with the server.
 | the computer's half: pairing, paired phones, the relay connection, the replay against DSH | the `/v1/remote/*` routes, the relay, serving `phone/*` from the phone origin, the plan feature `remote`, the owner's number of phones | the phone origin's host name and certificate (the owner's, infrastructure) |
 | the end-to-end channel and its tests | pinned copies of the phone page's files | push notifications, more than one relay replica, a native app |
 | the phone page and its service worker | | |
-| the sidebar panel and Settings › Mobile | | |
+| the sidebar panel and Settings › Remote Control | | |
 | a stand-in relay and server for tests | | |
 
-## Why it is paid
+## Who has it
 
 The value passes through our server: an always-on relay that holds a connection for every computer, carries the
 traffic, and has to be kept available and abuse-proof. Nothing local is taken away: DSH on the computer, and the phone
 layout, stay free. The gate is on the server (a plan that does not list `remote` gets `403 remote_not_in_plan`); the
-plugin carries no licence check, so nothing in the open code can be removed to get the service.
+plugin carries no licence check, so nothing in the open code can be removed to get the service. Which plans list
+`remote` is the owner's data: since 2026-10-15 the Free and Individual plans of the catalogue do (the owner decided the
+phone link is open to free accounts too), so the plugin's texts never say it is reserved to a paid plan.
 
 ## The server's contract
 
@@ -32,7 +34,7 @@ path outside `/v1/remote/`).
 
 | Route | Answer |
 |---|---|
-| `GET /v1/remote/devices` | `200 { configured: boolean, entitled: boolean, max_devices: number, devices: [{ device_id, label, computer_label, created_at, last_seen_at }] }` for any signed-in account (this is how the page knows, before a QR code is asked for, whether to show « included in paid plans » or « this server does not offer it ») |
+| `GET /v1/remote/devices` | `200 { configured: boolean, entitled: boolean, max_devices: number, devices: [{ device_id, label, computer_label, created_at, last_seen_at }] }` for any signed-in account (this is how the page knows, before a QR code is asked for, whether to show « not included in your plan » or « this server does not offer it ») |
 | `POST /v1/remote/pairings` `{ label }` | `201 { pairing_id, sid, phone_url, relay_ws, host_ticket, expires_at, max_devices }`; `403 { error: 'remote_not_in_plan' }`; `429 { error: 'remote_device_limit' }`; `503 { error: 'remote_disabled' }`. It withdraws the person's earlier unfinished pairing |
 | `POST /v1/remote/pairings/{pairing_id}/confirm` `{ label }` | `200 { device_id }` (the pairing's id); makes the pairing a durable device; idempotent; `409 pairing_expired`; `403`/`429` again if the plan lapsed or the limit was reached meanwhile |
 | `DELETE /v1/remote/pairings/{pairing_id}` | `200 { ok: true }`; the sid stops being accepted; idempotent |
@@ -186,3 +188,14 @@ not the phone link's. Only one ngrok session can be online at a time on a free a
 What this still does not prove: Safari on an iPhone and Chrome on an Android phone (the service worker and the WebSocket
 shim are the same code, but the engines are not), a phone that sleeps and wakes on another network, and a real deployment's
 origin (`REMOTE_PHONE_URL` on the platform, one replica).
+
+
+## Frames leave in counter order (2026-10-13)
+
+The channel requires every frame's counter to be exactly the next one (a relay can neither replay, drop nor reorder). The
+computer therefore sends the frames of a link **one at a time, in the order they were asked**, and waits for a backed-up
+socket (`highWater`, 512 KB) *inside* that queue and *before* sealing. A wait after the seal let a frame sealed first leave
+last whenever the computer's uplink was slower than the answers (a real home line, never a loopback): the phone then
+rejected that frame and every later one ("e2e: frame out of order"), and nothing loaded again until the phone reconnected.
+The phone page leaves the connection after three such frames in a row, which starts a new channel (counters at zero).
+`test-remote-host.mjs` backs the socket up (a `bufferedAmount` the test controls) and sends a late burst of small requests.

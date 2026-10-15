@@ -6,10 +6,18 @@ Plugins that turn DSH (the DeepSeek harness) into an agent workspace: crew workf
 
 ## Install
 
+Download the archive of your system from the [latest release](https://github.com/kybernos-app/kybernos-plugins/releases/latest)
+(or clone this repository), extract it in a new folder, and from there:
+
 ```sh
 ./kybernos-install --dry   # shows what would change, touches nothing
 ./kybernos-install         # checks the archive, installs DSH if missing, links the bundles, restores a snapshot if DSH fails to restart
+dsh web --no-open --port 3080   # then open http://127.0.0.1:3080/
 ```
+
+Needs Node.js 22 or later. The first run opens a few welcome pages (your profession, display mode, which models to use, a
+starter kit of skills and agent teams for your profession); each can be skipped and replayed from Settings.
+The full guide (Windows, update, rollback, safe mode, the welcome pages) is [`docs/install.md`](docs/install.md).
 
 ## Install on a server or with Docker
 
@@ -63,6 +71,10 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | [`dsh-media-player`](packages/dsh-media-player/README.md) | Audio/video preview |
 | [`kybernos-cloud`](packages/kybernos-cloud/README.md) | Pairs DSH with a Kybernos Cloud account and imports the cloud model catalog |
 | [`kybernos-usage`](packages/kybernos-usage/README.md) | Usage and cost: a chip under the composer and a Settings page: how much of your plan's window is used (as the server counts it) and what your own keys and local models cost |
+| [`kybernos-dashboards`](packages/kybernos-dashboards/README.md) | Dashboards: a page before Agent Teams, built and changed by chat with the `dashboard-builder` skill (cards, animated charts, calendar, list, kanban, notes, carousel, flow, sankey), your own sources read on this computer, and the dashboard live in the right sidebar |
+| [`kybernos-summary`](packages/kybernos-summary/README.md) | Summary: a tab in the chat's right-hand panel with the agents, the task list, the skills and tools used and the files written, read in the browser from what the chat already holds |
+| [`kybernos-kyber`](packages/kybernos-kyber/README.md) | Kyber: a tab in the chat's right-hand panel with where your assistant answers you (Telegram) and the cloud computer it works on, read from the server |
+| [`kybernos-multi-device`](packages/kybernos-multi-device/README.md) | Workspaces with or without a folder: Create offers a private folder in Documents/Kybernos, and Details shows where a workspace works, with a greyed preview of execution and devices |
 | [`kybernos-changes`](packages/kybernos-changes/README.md) | One chip under the composer: where this chat's work stands (changed, saved, on GitHub, in the project) and what to do next; Simple / Developer view |
 | [`kybernos-call`](packages/kybernos-call/README.md) | Voice calls from any chat session: a LiveKit room, a listening worker, the Call / Video buttons of team members |
 | [`kybernos-composio`](packages/kybernos-composio/README.md) | Composio integration: MCP connection and app catalog |
@@ -70,6 +82,7 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | [`kybernos-language`](packages/kybernos-language/README.md) | Language page: every ISO 639-1 language, Kybernos and DSH screens translated by the configured LLM (progress, pause, resume), right-to-left. Translations are saved on your disk (`~/.dsh/kybernos/i18n/<lang>.json`), the browser keeps a copy |
 | [`kybernos-modeles-locaux`](packages/kybernos-modeles-locaux/README.md) | Local models panel: detects the machine, installs an Ollama model |
 | [`kybernos-refs`](packages/kybernos-refs/README.md) | Markdown links become compact reference chips |
+| [`kybernos-search`](packages/kybernos-search/README.md) | Search everywhere: the content of the chats, skills, memories, lessons, creations, automations and agent teams (⌘K) |
 | [`kybernos-mobile`](packages/kybernos-mobile/README.md) | The phone: DSH usable on a narrow screen (drawer, stacked Settings), and on a paid plan a QR code that links a phone to this computer, end to end encrypted |
 | [`kybernos-websearch`](packages/kybernos-websearch/README.md) | Web search for the agents with or without an API key: free engines out of the box, keyed engines when you add one, one fallback chain |
 | [`kybernos-terminal`](packages/kybernos-terminal/README.md) | Shell fences dressed as terminal windows, with a run button |

@@ -1,4 +1,5 @@
-// Gate configuration, read from the environment. It refuses to start without a password: there is no default.
+// Gate configuration, read from the environment. It refuses to start without a way in: a password (there is no default) or, on a cloud
+// computer, a ticket service (KYBERNOS_GATE_TICKET_URL and _TOKEN): the person arrives with a single-use link that the platform made.
 import { randomBytes } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
@@ -44,6 +45,22 @@ function sessionSecret (env, dshHome, warn) {
 export async function loadConfig (env = process.env, { warn = () => {}, hashParams } = {}) {
   const dshHome = env.DSH_HOME || join(homedir(), '.dsh')
 
+  // A cloud computer is entered with a link the platform made: the gate asks the platform, with the computer's own token, whether the
+  // link is good (ADR 0052 § 11). Both variables or neither; the address is https (http for a loopback address: a test).
+  let ticket = null
+  const ticketUrl = env.KYBERNOS_GATE_TICKET_URL
+  const ticketToken = env.KYBERNOS_GATE_TICKET_TOKEN
+  if ((typeof ticketUrl === 'string' && ticketUrl !== '') || (typeof ticketToken === 'string' && ticketToken !== '')) {
+    if (typeof ticketUrl !== 'string' || ticketUrl === '' || typeof ticketToken !== 'string' || ticketToken === '') {
+      throw new ConfigError('set both KYBERNOS_GATE_TICKET_URL and KYBERNOS_GATE_TICKET_TOKEN, or neither')
+    }
+    let u
+    try { u = new URL(ticketUrl) } catch (e) { throw new ConfigError('KYBERNOS_GATE_TICKET_URL is not a URL') }
+    const loopback = u.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(u.hostname)
+    if (u.protocol !== 'https:' && !loopback) throw new ConfigError('KYBERNOS_GATE_TICKET_URL must be https (http only for a loopback address)')
+    ticket = { url: u.toString(), token: ticketToken }
+  }
+
   let verifier = null
   if (typeof env.KYBERNOS_GATE_PASSWORD_HASH === 'string' && env.KYBERNOS_GATE_PASSWORD_HASH !== '') {
     verifier = env.KYBERNOS_GATE_PASSWORD_HASH
@@ -52,7 +69,7 @@ export async function loadConfig (env = process.env, { warn = () => {}, hashPara
   } else if (typeof env.KYBERNOS_GATE_PASSWORD === 'string' && env.KYBERNOS_GATE_PASSWORD !== '') {
     if (env.KYBERNOS_GATE_PASSWORD.length < 8) throw new ConfigError('KYBERNOS_GATE_PASSWORD must be at least 8 characters')
     verifier = await hashPassword(env.KYBERNOS_GATE_PASSWORD, hashParams)
-  } else {
+  } else if (ticket === null) {
     throw new ConfigError('set KYBERNOS_GATE_PASSWORD (or KYBERNOS_GATE_PASSWORD_HASH): the gate has no default password')
   }
 
@@ -69,6 +86,7 @@ export async function loadConfig (env = process.env, { warn = () => {}, hashPara
     upstream,
     user,
     verifier,
+    ticket,
     trustProxy: flag(env.KYBERNOS_GATE_TRUST_PROXY),
     sessionDays: integer('KYBERNOS_GATE_SESSION_DAYS', env.KYBERNOS_GATE_SESSION_DAYS, 30, 1, 365),
     dshHome,

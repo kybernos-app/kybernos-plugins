@@ -362,7 +362,13 @@ window.__ModuleLoader__.load({
       plug: '<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/>',
       chart: '<line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>',
       broom: '<path d="M14 10 21 3"/><path d="m9 8 7 7-2.2 2.2A4 4 0 0 1 11 18.4L4 20l1.6-7a4 4 0 0 1 1.2-2.8z"/><path d="m9.6 13.6-1.5 6.8"/><path d="m12.6 16.6-1.4 4.2"/>',
-      help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
+      help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+      // A speech bubble for a session no category could be given to: a chat is a conversation, whatever else it is. (The dot it
+      // replaces read as « no icon was created »; the '?' help-circle before it read as an error.) `chatq` is the QUESTION
+      // category: the same bubble with a question mark inside, so the two are never confused.
+      chat: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+      chatq: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+      point: '<circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/>'
     }
     const svg = (n, size, sw) => h('svg', {
       width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor',
@@ -387,7 +393,7 @@ window.__ModuleLoader__.load({
       '\u{1F50C}': 'plug', // 🔌 intégration
       '\u{1F4CA}': 'chart', // 📊 données
       '\u{1F9F9}': 'broom', // 🧹 nettoyage
-      '\u{2753}': 'help' // ❓ question
+      '\u{2753}': 'chatq' // ❓ question
     }
     const MOTS_GLYPHE = {
       '\u{1F6E0}': 'Fonctionnalité', '\u{1F41B}': 'Correctif', '\u{1F3A8}': 'UI/design',
@@ -398,7 +404,7 @@ window.__ModuleLoader__.load({
     // du chantier : gris par défaut, vert quand le travail est committé.
     // Ce que porte une ligne dont le titre n'est pas encore classé : l'icône
     // est là dès le premier nommage, la catégorie viendra au re-titrage.
-    const CATEGORIE_DEFAUT = { ico: 'help', mot: 'Non classé' }
+    const CATEGORIE_DEFAUT = { ico: 'chat', mot: 'Non classé' }
     // The row's mark says its category and whether its work is committed, in the language of the interface: French is the source
     // (the key kept in `data-mot`), English the pair, a translated language is looked up by its French text (same rule as the other plugins).
     const langueUI = () => {
@@ -466,7 +472,7 @@ window.__ModuleLoader__.load({
       integration: { ico: 'plug', mot: 'Intégration' },
       donnees: { ico: 'chart', mot: 'Données' },
       nettoyage: { ico: 'broom', mot: 'Nettoyage' },
-      question: { ico: 'help', mot: 'Question' }
+      question: { ico: 'chatq', mot: 'Question' }
     }
     const CLE_CATEGORIES = 'kybernos.sessions.categories.v1'
     let CATEGORIES = {} // sessionId → slug
@@ -511,7 +517,9 @@ window.__ModuleLoader__.load({
       if (ligne === null || ligne === undefined || typeof ligne.getAttribute !== 'function') return ''
       const cle = String(ligne.getAttribute('data-row-key') || '')
       const i = cle.indexOf('session:')
-      return i === -1 ? '' : cle.slice(8)
+      if (i !== -1) return cle.slice(8)
+      // A row of the Pinned section (kybernos-plugin): a session row, same id, other attribute.
+      return String(ligne.getAttribute('data-kbpin-kind') || '') === 'session' ? String(ligne.getAttribute('data-kbpin-id') || '') : ''
     }
 
     // Catégorie d'une ligne : le REGISTRE d'abord, le pictogramme du titre en
@@ -568,7 +576,8 @@ window.__ModuleLoader__.load({
       const r = await fetch('/kybernos-sessions/decision', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ categorie: titre }) })
       if (!r || r.ok !== true) throw new Error('decision HTTP ' + (r ? r.status : '?'))
       const v = await r.json()
-      const slug = (v !== null && typeof v === 'object' && v.ok === true && v.motif === 'choisi' && CATEGORIE_PAR_SLUG[v.categorie] !== undefined) ? v.categorie : null
+      // `choisi` : le cerveau de décision a tranché ; `local` : il n'a pas répondu et le host a classé sur les mots du titre.
+      const slug = (v !== null && typeof v === 'object' && v.ok === true && (v.motif === 'choisi' || v.motif === 'local') && CATEGORIE_PAR_SLUG[v.categorie] !== undefined) ? v.categorie : null
       AUTOCAT[id] = { titre, slug, ts: Date.now() }
       ecrireAutocatCache()
       if (slug === null) return // cerveau pas sûr : l'icône provisoire reste, réessai prévu
@@ -585,17 +594,22 @@ window.__ModuleLoader__.load({
       if (typeof fetch !== 'function' || typeof localStorage === 'undefined' || localStorage === null) return
       const lignes = document.querySelectorAll('[class*="sessionRow"]')
       for (let i = 0; i < lignes.length; i++) {
-        if (AUTOCAT_FILE.length >= 3) break // trois décisions par passe, jamais une rafale
+        if (AUTOCAT_FILE.length >= 12) break // douze décisions par passe (400 ms entre deux), jamais une rafale
         const ligne = lignes[i]
         const el = ligne.querySelector('[class*="title"]')
         if (el === null || el === undefined) continue
         const provisoire = el.querySelector('.kbs-titre-ico[data-provisoire="1"]')
-        if (provisoire === null || provisoire === undefined) continue // déjà classé
         const id = idDeLigne(ligne)
         if (id === '') continue
         if (CATEGORIES[id] !== undefined && CATEGORIES_AUTO[id] !== true) continue
         const texte = String(el.textContent || '').trim()
         if (texte.length < 4) continue // titre encore vide ou d'accueil
+        if (provisoire === null || provisoire === undefined) {
+          // Déjà classé. Ça ne revient que si la catégorie vient du classement AUTOMATIQUE de cette page et que le titre a
+          // changé depuis (le moteur re-titre après le récapitulatif : « Greeting » devient le vrai sujet).
+          const avant = AUTOCAT[id]
+          if (!(CATEGORIES_AUTO[id] === true && avant !== undefined && avant !== null && String(avant.titre || '') !== texte)) continue
+        }
         if (autocatResolu(id, texte) === true) continue
         AUTOCAT_FILE.push({ id, titre: texte, ligne })
       }
@@ -1133,9 +1147,11 @@ window.__ModuleLoader__.load({
     // nommage la ligne reçoit l'icône « non classé » (❓). Le pictogramme reste
     // la source de la VRAIE catégorie quand il existe, mais l'icône, elle, est
     // posée sans lui — et remplacée dès qu'un titre classé arrive.
+    const elementTitre = (ligne) => ligne.querySelector('.kbpin_open') || ligne.querySelector('[class*="title"]')
+
     const iconeDeLigne = (ligne) => {
       if (ligne === null || ligne === undefined) return false
-      const el = ligne.querySelector('[class*="title"]')
+      const el = elementTitre(ligne)
       if (el === null || el === undefined) return false
       const noeud = noeudTexte(el)
       const texte = noeud === null ? '' : (noeud.nodeValue || '')
@@ -1191,7 +1207,8 @@ window.__ModuleLoader__.load({
 
     const decorerTitres = () => {
       if (typeof document === 'undefined') return 0
-      const lignes = document.querySelectorAll('[class*="sessionRow"]')
+      // The native session rows AND the rows of the Pinned section: one chat, one icon, wherever it is listed.
+      const lignes = document.querySelectorAll('[class*="sessionRow"], .kbpin_row[data-kbpin-kind="session"]')
       let n = 0
       for (let i = 0; i < lignes.length; i++) { try { if (iconeDeLigne(lignes[i])) n++ } catch (e) {} }
       return n
@@ -1231,6 +1248,7 @@ window.__ModuleLoader__.load({
       return false
     }
 
+    let dernierePompe = 0
     const planifier = (mutations) => {
       if (commitDansMutations(mutations) && typeof relire === 'function') {
         LISTE.t = 0
@@ -1242,7 +1260,11 @@ window.__ModuleLoader__.load({
       }
       if (prevu) return
       prevu = true
-      const tic = () => { prevu = false; decorerTitres(); filtrerListe() }
+      const tic = () => {
+        prevu = false; decorerTitres(); filtrerListe()
+        // De nouvelles lignes sans catégorie : on les classe sans attendre le prochain cycle de 30 s (au plus une fois toutes les 5 s).
+        if (typeof Date !== 'undefined' && Date.now() - dernierePompe > 5000) { dernierePompe = Date.now(); setTimeout(() => { try { pomperAutocat() } catch (e) { /* retenté */ } }, 1500) }
+      }
       if (typeof window !== 'undefined' && window.requestAnimationFrame) window.requestAnimationFrame(tic)
       else setTimeout(tic, 16)
     }
@@ -2593,17 +2615,26 @@ window.__ModuleLoader__.load({
         h('div', { className: natif ? natif.row : 'kbr-row', 'data-kbr': 'onboarding-replay' },
           h('div', { className: natif ? natif.rowText : 'kbr-txt' },
             h('div', { className: natif ? natif.title : undefined }, 'Onboarding'),
-            h('div', { className: natif ? natif.desc : undefined }, 'The welcome pages ran when the plugin was installed. Replay them to redo your profession and UI-mode choices.')),
+            h('div', { className: natif ? natif.desc : undefined }, 'The welcome pages ran when the plugin was installed. Replay them to redo your profession, display mode, models and starter kit.')),
           h('button', {
             type: 'button', className: 'kbr-choix on', 'data-kbr': 'onboarding-replay-btn',
             onClick: () => { try { window.dispatchEvent(new CustomEvent('kybernos:onboarding', { detail: { action: 'replay' } })) } catch (e) { /* contexte sans window */ } }
           }, 'Replay')),
+        // The kit alone, later: the wizard's own page opens on the profession saved at the first run.
+        h('div', { className: natif ? natif.row : 'kbr-row', 'data-kbr': 'starter-kit' },
+          h('div', { className: natif ? natif.rowText : 'kbr-txt' },
+            h('div', { className: natif ? natif.title : undefined }, 'Starter kit'),
+            h('div', { className: natif ? natif.desc : undefined }, 'Skills and agent teams that fit your profession. Open it any time to add more, or after a change of work.')),
+          h('button', {
+            type: 'button', className: 'kbr-choix on', 'data-kbr': 'starter-kit-btn',
+            onClick: () => { try { window.dispatchEvent(new CustomEvent('kybernos:onboarding', { detail: { action: 'kit' } })) } catch (e) { /* contexte sans window */ } }
+          }, 'Open')),
         h('p', { className: natif ? natif.desc : 'kbr-intro' }, 'Small switches that change how the Kybernos plugins work with your chats. Saved on this machine, right away.'),
         h('div', { className: natif ? natif.row : 'kbr-row', 'data-kbr': 'rename-after-recap' },
           h('div', { className: natif ? natif.rowText : 'kbr-txt' },
             h('div', { className: natif ? natif.title : undefined }, 'Rename Chat session after each recap'),
             h('div', { className: natif ? natif.desc : undefined }, oui
-              ? 'On: when a chantier ends, the chat is re-titled to match what was actually done. The category icon is an SVG — no emoji is written into the title.'
+              ? 'On: when a work session ends, the chat is re-titled to match what was actually done. The category icon is an SVG — no emoji is written into the title.'
               : 'Off: the title set when the chat started is kept. The category icon is an SVG — no emoji is written into the title.')),
           h('div', { className: 'kbr-oui-non' + (natif && natif.ctrl ? ' ' + natif.ctrl : ''), role: 'group', 'aria-label': 'Rename Chat session after each recap' },
             choix('yes', 'Yes', oui),
@@ -2651,7 +2682,10 @@ window.__ModuleLoader__.load({
                   : ': ' + connusDecision.join(', ') + '.'))),
           h('select', {
             className: natif && natif.sel ? natif.sel : 'kbr-select',
-            style: natif ? { minWidth: '120px', maxWidth: '160px', title: decision || undefined } : undefined, 'data-kbr': 'decision-brain-select', 'aria-label': 'Decision Brain',
+            // Recette 2026-10 (V-C): the decision model ids are long
+            // (provider/model); give the select room and a hover title so the
+            // full id stays reachable where it truncates.
+            style: natif ? { minWidth: '150px', maxWidth: '240px' } : undefined, title: decision || undefined, 'data-kbr': 'decision-brain-select', 'aria-label': 'Decision Brain',
             value: decision,
             onChange: (ev) => changerDecision(ev.target.value)
           },

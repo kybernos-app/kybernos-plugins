@@ -40,6 +40,7 @@ import { readdirSync, statSync, existsSync, readFileSync, writeFileSync, mkdirSy
 import { join, basename, dirname } from 'node:path'
 import { creerSonde } from './brain-health.mjs'
 import { decider, selectionnerKyber, selectionnerCategorie, lireModeleDecision, dshHome, CATEGORIES, MODELES_DECISION_CONNUS, MODELE_DEFAUT } from './decision.mjs'
+import { classerLocalement } from './classement-local.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -1221,6 +1222,9 @@ export function monterRoutes (webServerSvc, opts) {
   const referencesFichier = opts.credentialsPath || join(base, '.credentials.yaml')
   // Le moteur de décision est injectable : le harnais de routes le remplace par
   // un faux — sinon chaque contrôle appellerait vraiment la passerelle.
+  // Le dernier échec du cerveau pour une CATÉGORIE de chat, et jusqu'à quand on ne le rappelle pas (voir la route decision).
+  const DUREE_REPOS_CERVEAU = 5 * 60 * 1000
+  let cerveauAuRepos = null
   const moteurDecision = (opts.decision === null || opts.decision === undefined)
     ? { decider, selectionner: selectionnerKyber, selectionnerCategorie }
     : opts.decision
@@ -1334,15 +1338,39 @@ export function monterRoutes (webServerSvc, opts) {
       const modele = typeof corps.modele === 'string' && corps.modele !== ''
         ? corps.modele
         : (regle.eteint === true ? 'none' : regle.modele)
-      const verdict = (questions !== null && questions !== undefined && typeof questions === 'object' && Array.isArray(questions) === false)
-        ? await moteurDecision.decider(questions, corps.state === undefined ? '' : corps.state,
-          { fichierCredentials: referencesFichier, modele })
-        : (corps.categorie !== undefined && corps.categorie !== null
-            ? await moteurDecision.selectionnerCategorie(corps.categorie,
-              { fichierCredentials: referencesFichier, modele, ...(seuil === undefined ? {} : { seuil }) })
-            : await moteurDecision.selectionner(corps.kybers, corps.demande,
-              { fichierCredentials: referencesFichier, modele, ...(seuil === undefined ? {} : { seuil }) }))
-      envoyer(res, 200, verdict === null || typeof verdict !== 'object' ? { ok: false, code: 'VERDICT-ILLISIBLE', erreur: 'le moteur n’a rien rendu' } : verdict)
+      const voieCategorie = !(questions !== null && questions !== undefined && typeof questions === 'object' && Array.isArray(questions) === false) &&
+        corps.categorie !== undefined && corps.categorie !== null
+      const maintenant = typeof opts.maintenant === 'function' ? Number(opts.maintenant()) : Date.now()
+      // Un cerveau qui vient d'échouer (403 de passerelle, éteint, clé absente) n'est pas rappelé à chaque ligne de la liste :
+      // 5 minutes de repos, pendant lesquelles le classement local répond tout de suite. Une demande qui choisit son propre
+      // modèle ne passe jamais par ce repos.
+      const reposPossible = voieCategorie === true && !(typeof corps.modele === 'string' && corps.modele !== '')
+      const verdict = (reposPossible === true && cerveauAuRepos !== null && maintenant < cerveauAuRepos.jusqua)
+        ? cerveauAuRepos.verdict
+        : ((questions !== null && questions !== undefined && typeof questions === 'object' && Array.isArray(questions) === false)
+          ? await moteurDecision.decider(questions, corps.state === undefined ? '' : corps.state,
+            { fichierCredentials: referencesFichier, modele })
+          : (corps.categorie !== undefined && corps.categorie !== null
+              ? await moteurDecision.selectionnerCategorie(corps.categorie,
+                { fichierCredentials: referencesFichier, modele, ...(seuil === undefined ? {} : { seuil }) })
+              : await moteurDecision.selectionner(corps.kybers, corps.demande,
+                { fichierCredentials: referencesFichier, modele, ...(seuil === undefined ? {} : { seuil }) })))
+      if (reposPossible === true) {
+        if (verdict !== null && typeof verdict === 'object' && verdict.ok === true) cerveauAuRepos = null
+        else if (cerveauAuRepos === null || maintenant >= cerveauAuRepos.jusqua) cerveauAuRepos = { jusqua: maintenant + DUREE_REPOS_CERVEAU, verdict }
+      }
+      // Le cerveau n'a RIEN répondu (erreur de passerelle, éteint, clé absente) : pour une CATÉGORIE de chat, un classement local
+      // prudent sur les mots du titre prend le relais (classement-local.mjs), étiqueté `local`. Un verdict du cerveau — même
+      // « aucun » ou « sous le seuil » — n'est jamais contredit ; sans signal net dans le titre, la réponse reste celle du cerveau.
+      let reponse = verdict
+      if (voieCategorie === true && (verdict === null || typeof verdict !== 'object' || verdict.ok !== true)) {
+        const local = classerLocalement(corps.categorie)
+        if (local.categorie !== null) {
+          reponse = { ok: true, motif: 'local', categorie: local.categorie, source: 'local', score: local.score, ecart: local.ecart, mots: local.mots, ms: 0,
+            cerveau: verdict !== null && typeof verdict === 'object' ? { ok: verdict.ok === true, code: String(verdict.code || verdict.motif || '') } : null }
+        }
+      }
+      envoyer(res, 200, reponse === null || typeof reponse !== 'object' ? { ok: false, code: 'VERDICT-ILLISIBLE', erreur: 'le moteur n’a rien rendu' } : reponse)
     } catch (e) {
       envoyer(res, 200, { ok: false, code: 'MOTEUR-EN-PANNE', erreur: String(e && e.message ? e.message : e) })
     }

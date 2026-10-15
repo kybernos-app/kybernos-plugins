@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "Un onglet Résumé dans le panneau de droite du chat : les agents, la liste des tâches, les compétences et outils utilisés, et les fichiers écrits, sur une seule page.",
+    "en": "A Summary tab in the chat's right-hand panel: the agents, the task list, the skills and tools used and the files written, on one page."
+  },
+  "steps": [
+    {
+      "fr": "Dans un chat, ouvrez le panneau de droite puis le bouton « + » et choisissez Résumé.",
+      "en": "In a chat, open the right-hand panel, press the “+” button and pick Summary."
+    },
+    {
+      "fr": "Suivez la progression, les compétences et outils utilisés, et les fichiers écrits ; cliquez un fichier pour l'ouvrir.",
+      "en": "Follow the progress, the skills and tools used and the files written; click a file to open it."
+    },
+    {
+      "fr": "« Dernier tour » limite compétences, outils et fichiers à la réponse en cours ; un clic le passe à tout le chat.",
+      "en": "“Latest only” limits skills, tools and files to the current answer; one click switches it to the whole chat."
+    }
+  ],
+  "where": {
+    "fr": "Dans un chat, panneau de droite › Résumé",
+    "en": "In a chat, right-hand panel › Summary",
+    "page": false
+  },
+  "good": {
+    "fr": "Tout est lu dans votre navigateur, à partir de ce que le chat contient déjà : rien n'est stocké ni envoyé.",
+    "en": "Everything is read in your browser from what the chat already holds: nothing is stored or sent."
+  }
+}

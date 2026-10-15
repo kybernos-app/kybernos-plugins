@@ -183,6 +183,20 @@ the interceptor). Only client code can be tested this way: host code loads when 
 Traps met while writing it: `page.send` returns the raw message (`{ id, result }`), and two interceptors on the same `Fetch`
 event must each ignore the other's requests (`Fetch.enable` replaces the patterns of an earlier call).
 
+## The Skills panels: `scripts/check-skills-detail-live.mjs`
+
+```bash
+node scripts/check-skills-detail-live.mjs --shots /tmp/shots
+```
+
+On the REAL GUI (`:3080`) and the user's real skills, read-only: this checkout's client of `kybernos-skills` is swapped into the
+page, and the two routes the running host does not have yet (`skill/read`, `preview`) are answered by this checkout's host code run
+in the script (the real folders, then GitHub anonymously). Every other non-GET request to `/kybernos-skills/*` is answered inside
+the check and recorded, so nothing the page does can write, install, delete or open anything. It checks that a Yours card opens a
+panel beside the list with the SKILL.md exactly as it is on disk, the actions the skill allows, that Delete and Install open their
+confirmations (and only ever get Cancel), that two Discover cards have their own repository, folder and text, the publisher by
+repository, and the layout at 900 px.
+
 ## A bundle the user's DSH does not list yet: a second instance (`scripts/sandbox/*.sh`)
 
 A **new** bundle, or any **host** code, cannot be tried on the user's `dsh web`: it is not in their profile and a host change
@@ -225,6 +239,34 @@ kept apart), then opens Settings › Usage and checks the plan block (not signed
 period switch, the budget saved through the real route, a 390 px window and the absence of console errors. The chip is only
 checked to stay absent: a sandbox has no key, so no turn and no `tokenUsage`; the chip drawn from a real turn is seen once on a
 keyed machine. The only thing written is the sandbox's own usage ledger.
+
+## The Dashboards plugin: `scripts/check-dashboards-live.mjs` and `scripts/check-dashboards-render.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-dashboards-live.mjs --shots /tmp/shots
+```
+
+Sandbox only (exit 3 against `:3080`; `setup.sh` adds the bundle to the cloned profile). In the real page it checks the host
+routes through the page's own origin, the **Dashboards** row of the Kybernos menu (it must sit right before Agent Teams and
+open the page the bundle provides), the gallery and a preset drawn with this DSH's real data, that the entrance animations
+exist and finish, and the right-pane tab: a dashboard filed under the chat on screen
+(`POST /kybernos-dashboards/open {id, session}`, the session being `window.__KB_DASHBOARDS__.session()`) opens the tab by
+itself; a note is typed with real editing commands (Enter makes `<div>` in a contenteditable) and must be saved and shown as lines; the flow preset must draw a live number on every node, placed apart. The pane check runs first on purpose: the tab only shows inside a chat, and the menu step leaves the chat. A sandbox has
+no key and no automations, so the widgets show their empty states; the agent writing through its tool during a real
+conversation is not played here (it needs a model). The only thing written is the sandbox's own dashboards folder.
+
+```bash
+KB_NODE_MODULES=<a node_modules with react, react-dom, esbuild, playwright-core> node scripts/check-dashboards-render.mjs
+```
+
+Needs no DSH at all: it bundles React, loads the built `client.js` in headless Chromium and answers the page's `fetch` from
+the real host logic (a temp folder) and fixture answers for the other bundles' routes. It plays what a sandbox cannot:
+screenshots in light, dark, a 480 px pane and a phone; the motion (a rise per bar, a card counting up, every animation of a
+visible widget finishing, nothing moving under reduced motion); editing (a widened widget, a note, a colour, a kanban card
+become revisions by the person); and the agent's tool writing while the page is open (the page picks it up and flashes the
+widget). Four traps met: `fill()` of Playwright sets the text without any Enter, so a note test must type with the keyboard (`textContent` glues the lines of a contenteditable); an SVG node carrying both a `transform` attribute and a CSS-animated transform loses its position (put the position on an outer group); a full-page screenshot enlarges the viewport, so the page must be walked first or the widgets below the
+fold are still at their start frame; and a loaded machine (a test loop running beside it) slows the animations, so it waits for
+them to finish instead of sleeping.
 
 ## The first-run wizard: `scripts/check-onboarding-live.mjs`
 
@@ -629,6 +671,32 @@ the page or in the browser's storage), a refused add that may have gone through 
 second request for an app that is already waiting, removing, the quota, the sign-in shown when the account is not connected
 (and the new token used afterwards) and the mode gone when the server stops offering it. Exit 0 / 1 / 3.
 
+## The sidebar footer: `scripts/check-footer-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-footer-live.mjs --shots /tmp/shots
+```
+
+Sandbox only (exit 3 against `:3080`). It plays the footer on a real page: the signed-out row (« Sign in » and the gear), the gear
+opening **our** menu (Sign in, Appearance, Settings, Help, Feedback) with a real mouse click, Escape / outside click / the gear
+closing it, its Settings entry reaching DSH's dialog, the device-code card from the row and from the menu, the light/dark
+segment, then the connected card (answered in the page) with its menu, Settings and Account entries. In every scene it records any
+popover of **DSH's own account launcher** (« Settings ⌥⌘, / Feedback / Sign in ») that becomes visible, and fails if one does.
+Three scenes cover the guard: a script clicking the launcher the old way (what the language, sessions and call plugins still do),
+a real click on the launcher forced visible (a shell whose class names moved), and React's fiber fields made unreadable (the
+fallback route, which keeps the popover invisible while it picks its first entry). Run against the unmodified clients of
+2026-10-15 it fails 18 checks: that is the bug it was written for.
+
+Why: DSH's settings seat (`sidebar.settings`) renders the **account launcher** (`settings.launcher`, registered by
+`dsh-client-ui-settings-account`) and its trigger opens an account popover, not the Settings dialog. Anything that clicked
+`[class*="settingsArea"] button[class*="trigger"]` to reach Settings got that popover. The seam now lives in the core plugin
+(`window.__kbOpenDshSettings`, `<kb-open-settings>` in `packages/kybernos-plugin/client.js`): it calls the launcher's own
+`openSettings` prop, read from React, and a capture-phase guard on the launcher turns any script's click into the same call. The
+dialog is opened by that seam, never by clicking a trigger: new code should call it, not the old selector.
+
+A fresh instance opens DSH's « Get started » dialog (sign in to a DeepSeek account / add a key) on every load; it swallows every
+click, so the check closes it with its own close button after each reload.
+
 ## The Automations board: `scripts/check-automations-board-live.mjs`
 
 ```bash
@@ -725,7 +793,7 @@ node scripts/check-display-live.mjs --out <dir> [--sizes desktop,narrow] [--sche
 
 A sweep, not a gate (exit 0; `--strict` makes any finding exit 1; 3 when it could not run; it **refuses `:3080`**). It walks the
 home page and its menus, the sidebar pages and their tabs, every Settings section and its tabs and help card, the account card
-(menu, switcher, update reminder, the phone panel in each of its five states, Settings › Mobile) and the first-run wizard, with
+(menu, switcher, update reminder, the phone panel in each of its five states, Settings › Remote Control) and the first-run wizard, with
 real clicks, on a 1400 px window and at 390 px (the width `kybernos-mobile` lays out for), in DSH's dark theme, its light theme
 and the shipped *Neutral violet*. The account, the phone link and the wizard are answered **inside the page** (CDP Fetch on
 `/kybernos-cloud/status`, `/kybernos-mobile/remote/*`, `/kybernos/onboarding`): no server is called, nothing is written.

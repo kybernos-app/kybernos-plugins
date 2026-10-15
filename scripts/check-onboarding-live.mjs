@@ -1,10 +1,13 @@
-// The first-run wizard on a real GUI: the screens, the account path's pairing, a key pasted and saved, a model
-// installed and connected, and the hand-over to Settings. SANDBOX ONLY (`source scripts/sandbox/env.sh`): the key
+// The first-run wizard on a real GUI: the screens, the model question (a Kybernos account or an own key), the account
+// path's pairing, a key pasted and saved, a model installed and connected, the starter kit (skills and agent teams of
+// the profession) and the profession written to memory, a replay that never skips the model step, and the hand-over
+// to Settings. SANDBOX ONLY (`source scripts/sandbox/env.sh`): the key
 // and the model are written for real to the settings of the instance, which is the point; the user's own
 // `dsh web` must never be the target (exit 3).
 //
 // What the check answers itself over CDP, so that nothing leaves the machine and nothing heavy runs:
 //   - the Kybernos Cloud pairing routes (a real pairing would start a request on a real server),
+//   - the cloud memory write and the skills install (a download from GitHub); the team install is the REAL route,
 //   - the key check (a provider's own API would be asked about a made-up key),
 //   - the installer and its progress (a real one runs `brew install ollama` and `ollama pull`).
 // What it reads for real: the onboarding state (the sandbox's own file), the cloud status, the machine probe.
@@ -70,7 +73,7 @@ writeFileSync(join(dshHome, 'kybernos/onboarding.json'), JSON.stringify({ versio
 const live = await openLivePage()
 const page = live.page
 try {
-  const fake = { keyVerdict: 'ok', installPolls: 0, calls: [], accountConnected: false, freeBody: null }
+  const fake = { keyVerdict: 'ok', installPolls: 0, calls: [], accountConnected: false, freeBody: null, statusConnected: false, skillsInstalled: [], skillInstalls: [], memoryBodies: [] }
   const json = (body) => Buffer.from(JSON.stringify(body), 'utf8').toString('base64')
   const answers = (url, method, postData) => {
     const path = new URL(url).pathname
@@ -95,6 +98,22 @@ try {
       fake.calls.push('model-auto')
       return { ok: true, switched: true, provider: 'opencode-free', model: 'mimo-v2.6-flash-free', scope: 'default' }
     }
+    // A connected account, as the status route would say it (the model step shows who is connected and how many models).
+    if (path === '/kybernos-cloud/status' && fake.statusConnected) return { ok: true, connected: true, state: { connected: true, user: { email: 'amina@example.com', plan: 'plus' }, models: { count: 14 } } }
+    if (path === '/kybernos-skills/skills' && method === 'GET') return { ok: true, skills: fake.skillsInstalled.map((name) => ({ name })) }
+    if (path === '/kybernos-skills/install') {
+      let body = {}
+      try { body = JSON.parse(postData || '{}') } catch (e) { body = {} }
+      fake.skillInstalls.push(body.source + ':' + body.name)
+      fake.skillsInstalled.push(body.name)
+      return { ok: true, files: 3 }
+    }
+    if (path === '/kybernos-cloud/memory/add' || path === '/kybernos-cloud/memory/update') {
+      let body = {}
+      try { body = JSON.parse(postData || '{}') } catch (e) { body = {} }
+      fake.memoryBodies.push({ path, body })
+      return { ok: true, memory: { id: 'mem_test_1', content: body.content } }
+    }
     if (path === '/kybernos-cloud/disconnect') { fake.calls.push('cloud-disconnect'); return { ok: true } }
     if (path === '/kybernos-models/key/check') { fake.calls.push('key-check'); return { ok: true, result: fake.keyVerdict } }
     if (path === '/modeles-locaux/installer') { fake.calls.push('install-start'); return { ok: true, demarre: true, cmd: 'ollama pull qwen3.5:9b' } }
@@ -114,7 +133,8 @@ try {
       else await page.send('Fetch.fulfillRequest', { requestId: p.requestId, responseCode: 200, responseHeaders: [{ name: 'content-type', value: 'application/json' }], body: json(body) })
     } catch (e) { /* the page moved on */ }
   })
-  await page.send('Fetch.enable', { patterns: ['kybernos-cloud/start', 'kybernos-cloud/poll', 'kybernos-cloud/disconnect', 'kybernos-models/key/check',
+  await page.send('Fetch.enable', { patterns: ['kybernos-cloud/start', 'kybernos-cloud/poll', 'kybernos-cloud/disconnect', 'kybernos-cloud/status', 'kybernos-cloud/memory/', 'kybernos-models/key/check',
+    'kybernos-skills/skills', 'kybernos-skills/install',
     'modeles-locaux/installer', 'modeles-locaux/installation', 'free-llms/auto-enable', 'kybernos/model/auto'].map((x) => ({ urlPattern: '*/' + x + '*', requestStage: 'Request' })) })
   await page.send('Page.reload', { ignoreCache: true })
 
@@ -135,8 +155,10 @@ try {
     await q(`document.querySelector('.kb-ob-lang-btn').click()`); await sleep(150)
     await q(`document.querySelector('.kb-ob-menu button[lang="en"]').click()`); await sleep(150)
   }
-  const toOfferStep = async () => { await press('Get started'); await press('Continue'); await press('Continue') }
-  const toModelStep = async () => { await toOfferStep(); await press('Use my own model instead') }
+  // welcome → profession → display mode → the model question
+  const toModelStep = async () => { await press('Get started'); await press('Continue'); await press('Continue') }
+  // The kit is left without installing anything: the recap follows.
+  const skipKit = async () => { await seen('Start with these', 8000); await press('Not now') }
   const typeKey = async (value) => q(`(() => { const i = document.querySelector('#kb-ob-key'); i.value = ${JSON.stringify(value)}; i.dispatchEvent(new Event('input', { bubbles: true })); return true })()`)
 
   /* ── 1. the first run, through the sandbox's own host route ─────────────────────────────────────────────── */
@@ -161,35 +183,29 @@ try {
   await page.shot(join(shotDir, 'arabic.png'))
   await goEnglish()
   check('and back to English', (await h1()) === 'Welcome to Kybernos' && (await q(`document.querySelector('.kb-ob').getAttribute('dir')`)) === 'ltr')
-  // the free account is offered right after the display mode, before any technical choice
-  await toOfferStep()
-  check('after the display mode, the free account is offered', (await h1()) === 'Create your free account', String(await h1()))
-  const points = await q(`[...document.querySelectorAll('.kb-ob-pts li b')].map((e) => e.textContent.trim())`)
-  check('it says what it brings in three points, with the partner\'s limits and the prompt notice', Array.isArray(points) && points.length === 3 && /confidential/i.test(points[1]), JSON.stringify(points))
-  check('the offer belongs to the last numbered step', /^Step 3 of 3$/.test(String(await q(`(document.querySelector('.kb-ob-eyebrow') || {}).textContent`))))
-  check('it can be left for another way', (await q(`[...document.querySelectorAll('.kb-ob button')].some((b) => b.textContent.trim() === 'Use my own model instead')`)) === true)
-  await page.shot(join(shotDir, 'offer.png'))
-  await press('Use my own model instead')
-  const step = await q(`(document.querySelector('.kb-ob-eyebrow') || {}).textContent`)
-  check('the model step is numbered', /^Step \d of \d$/.test(String(step)), String(step))
-  const rows = await q(`[...document.querySelectorAll('.kb-ob-row .kb-ob-t')].map((e) => e.textContent.trim())`)
-  console.log('     options offered: ' + JSON.stringify(rows))
-  check('the three ways are offered', Array.isArray(rows) && rows.length === 3, JSON.stringify(rows))
-  await page.shot(join(shotDir, 'model-step.png'))
+  // the model question comes right after the display mode, with two answers
+  await toModelStep()
+  check('after the display mode, the model question is asked', (await h1()) === 'Which models should Kybernos use?', String(await h1()))
+  check('it is the third of four numbered steps', /^Step 3 of 4$/.test(String(await q(`(document.querySelector('.kb-ob-eyebrow') || {}).textContent`))))
+  const answersShown = await q(`[...document.querySelectorAll('.kb-ob-row .kb-ob-t')].map((e) => e.textContent.trim())`)
+  check('two answers, the Kybernos account recommended', Array.isArray(answersShown) && answersShown.length === 2 && /^Kybernos models/.test(answersShown[0]) && /Recommended/.test(answersShown[0]) && /^My own API key/.test(answersShown[1]), JSON.stringify(answersShown))
+  check('the Kybernos account is ticked by default', (await q(`document.querySelector('.kb-ob-row.on .kb-ob-t').textContent`)).startsWith('Kybernos models'))
+  check('the other ways stay one line below', /a model on this computer/.test(String(await q(`(document.querySelector('.kb-ob-others') || {}).textContent`))) && /free community models/.test(String(await q(`(document.querySelector('.kb-ob-others') || {}).textContent`))))
+  check('the question can be left for later', (await q(`[...document.querySelectorAll('.kb-ob button')].some((b) => b.textContent.trim() === 'Decide later')`)) === true)
+  await page.shot(join(shotDir, 'model-question.png'))
 
-  /* ── 2. the account, from the offer: the code is shown, the page is opened, a pending pairing is polled, Cancel cleans up ── */
-  check('Back from the model step returns to the offer', (await press('Back')) === true && (await h1()) === 'Create your free account')
-  await press('Create my free account')
+  /* ── 2. the account: the code is shown, the page is opened, a pending pairing is polled, Cancel cleans up ── */
+  await press('Continue')
   await sleep(500)
   check('the pairing code is shown to be typed on the page', (await q(`(document.querySelector('.kb-ob-code b') || {}).textContent`)) === 'KB4-7QX2')
   await sleep(2600)
   check('the pairing is polled while it is pending', fake.calls.filter((c) => c === 'cloud-poll').length >= 1, JSON.stringify(fake.calls))
   await press('Cancel')
-  check('Cancel clears the pending pairing and returns to the offer', fake.calls.includes('cloud-disconnect') && (await h1()) === 'Create your free account', String(await h1()))
-  await press('Use my own model instead')
+  check('Cancel clears the pending pairing and returns to the question', fake.calls.includes('cloud-disconnect') && (await h1()) === 'Which models should Kybernos use?', String(await h1()))
 
   /* ── 3. another provider: handed over to Settings, in any language ───────────────────────────────────── */
-  await press('I already have an API key')
+  await press('My own API key')
+  await press('Continue')
   check('the paste form is there for a known provider', (await q(`!!document.querySelector('#kb-ob-key')`)) === true)
   await press('Other provider')
   check('another provider has no paste field', (await q(`!!document.querySelector('#kb-ob-key')`)) === false)
@@ -216,7 +232,8 @@ try {
   check('Replay reopens the wizard', await replay())
   await goEnglish()
   await toModelStep()
-  await press('I already have an API key')
+  await press('My own API key')
+  await press('Continue')
   await press('OpenAI')
   fake.keyVerdict = 'invalid'
   await typeKey('sk-test-0123456789abcdefXYZ')
@@ -228,7 +245,7 @@ try {
   check('nothing was stored for it: credentials and settings are byte for byte as they were', read('.credentials.yaml') === credsBefore && read('profiles/web/cordis.patch.yml') === patchBefore)
   fake.keyVerdict = 'ok'
   await press('Check and save')
-  check('an accepted key is saved', (await seen('Key saved')) !== null)
+  check('an accepted key is saved', (await seen('Key saved')) !== null, JSON.stringify([await h1(), await q(`(document.querySelector('.kb-ob-state') || {}).textContent`), fake.calls]))
   const creds = read('.credentials.yaml')
   const patch = read('profiles/web/cordis.patch.yml')
   check('the credential exists, by name', /OPENAI_API_KEY/.test(creds))
@@ -236,6 +253,7 @@ try {
   check('the typed key was never written outside the credential store', !read('kybernos/onboarding.json').includes('sk-test-0123456789abcdefXYZ'))
   await page.shot(join(shotDir, 'key-saved.png'))
   await press('Continue')
+  await skipKit()
   check('the recap names the provider', (await q(`document.querySelector('.kb-ob-recap').textContent`)).includes('OpenAI'))
   const defaultAfterKey = defaultModelOf()
   check('the key\'s provider became the default model (the first message needs no selector)', typeof defaultAfterKey === 'string' && defaultAfterKey.startsWith('openai/'), String(defaultAfterKey))
@@ -247,7 +265,7 @@ try {
   check('Replay reopens the wizard again', await replay())
   await goEnglish()
   await toModelStep()
-  await press('A model on this computer')
+  await press('a model on this computer')
   const reco = await q(`(document.querySelector('.kb-ob-recap') || {}).textContent`)
   check('the machine and the recommendation are shown', typeof reco === 'string' && /qwen3\.5:9b/.test(reco), String(reco))
   fake.installPolls = 0
@@ -265,19 +283,20 @@ try {
   check('and it became the default model', defaultModelOf() === 'ollama-local/qwen3.5:9b', String(defaultModelOf()))
   check('the screen says so', String(await q(`(document.querySelector('.kb-ob') || {}).innerText`)).includes('qwen3.5:9b is now the model of your chats'))
   await press('Continue')
+  await skipKit()
   check('the recap names the model', (await q(`document.querySelector('.kb-ob-recap').textContent`)).includes('qwen3.5:9b'))
   await press('Open Kybernos')
   await backToTheStartingPoint()
 
-  /* ── 5b. the offer, accepted: an account whose plan brings no model gets the free community models, with their notice ── */
+  /* ── 5b. the account, accepted: a plan with no model gets the free community models, with their notice ── */
   fake.accountConnected = true
   fake.calls.length = 0
   fake.freeBody = null
-  check('Replay reopens the wizard for the offer', await replay())
+  check('Replay reopens the wizard for the account', await replay())
   await goEnglish()
-  await toOfferStep()
-  await press('Create my free account')
-  check('the account is made without leaving the wizard', (await seen('You\u2019re connected')) !== null)
+  await toModelStep()
+  await press('Continue')
+  check('the account is made without leaving the wizard', (await seen('You’re connected')) !== null)
   const okLine = String(await q(`(document.querySelector('.kb-ob-state.ok') || {}).innerText`))
   check('it names the Free plan and does not claim models it does not have', /Free/.test(okLine) && !/models ready/.test(okLine), JSON.stringify(okLine))
   await press('Continue')
@@ -287,6 +306,8 @@ try {
   await q(`document.querySelector('.kb-ob-freeack input').click()`)
   await sleep(200)
   await press('Use free models')
+  await skipKit()
+  await press('Open Kybernos')
   check('the wizard closes', (await waitFor(page, `document.querySelector('.kb-ob') === null`, 8000)) === true)
   await sleep(2400)
   check('the host was asked to wire them, with the acknowledgement and no model of the person\'s own', fake.calls.includes('free-enable') && fake.freeBody !== null && fake.freeBody.acknowledged === true && fake.freeBody.hasOwnModel === false, JSON.stringify([fake.calls, fake.freeBody]))
@@ -295,6 +316,74 @@ try {
   try { st5 = JSON.parse(read('kybernos/onboarding.json')) } catch (e) { st5 = null }
   check('the onboarding file records the account as the way', st5 !== null && st5.completed === true && st5.model === 'cloud', JSON.stringify(st5))
   fake.accountConnected = false
+  await backToTheStartingPoint()
+
+  /* ── 5c. a replay on a machine that already works: the model step is still there, and so is the starter kit ── */
+  fake.statusConnected = true
+  fake.skillsInstalled = ['pdf']
+  fake.skillInstalls.length = 0
+  fake.memoryBodies.length = 0
+  check('Replay reopens the wizard on a connected machine', await replay())
+  await goEnglish()
+  await press('Get started')
+  await press('Students / Teaching / Research')
+  check('the profession can be changed in a replay', (await q(`document.querySelector('.kb-ob-chip.on').textContent`)) === 'Students / Teaching / Research')
+  await press('Continue')
+  await press('Continue')
+  check('the model step is NOT skipped although an account is connected', (await h1()) === 'Which models should Kybernos use?', String(await h1()))
+  const line = String(await q(`(document.querySelector('.kb-ob-row.on .kb-ob-st') || {}).textContent`))
+  check('it says who is connected and how many models', /Connected · amina@example\.com · 14 models ready/.test(line), JSON.stringify(line))
+  check('the other answer (an own key) is still there to add', (await q(`[...document.querySelectorAll('.kb-ob-row .kb-ob-t')].some((e) => /^My own API key/.test(e.textContent.trim()))`)) === true)
+  await page.shot(join(shotDir, 'replay-model-question.png'))
+  await press('Keep as is')
+  check('the starter kit follows, named after the profession', (await seen('A starter kit for Students / Teaching / Research')) !== null, String(await h1()))
+  const kitRows = await q(`[...document.querySelectorAll('.kb-ob-kit')].map((r) => r.querySelector('b').textContent + (r.classList.contains('done') ? ':done' : r.classList.contains('on') ? ':on' : r.classList.contains('soon') ? ':soon' : ':off'))`)
+  console.log('     kit rows: ' + JSON.stringify(kitRows))
+  check('what is installed is marked and not ticked again', Array.isArray(kitRows) && kitRows.includes('pdf:done') && kitRows.includes('study-plan:on') && kitRows.includes('flashcards:on') && kitRows.includes('docx:on'), JSON.stringify(kitRows))
+  check('the teams of the marketplace are offered and ticked', Array.isArray(kitRows) && kitRows.includes('Studencik:on') && kitRows.includes('Research Desk:on'), JSON.stringify(kitRows))
+  check('the primary button counts what is ticked', /^Add 5 selected$/.test(String(await q(`document.querySelector('.kb-ob-primary').textContent`))), String(await q(`document.querySelector('.kb-ob-primary').textContent`)))
+  await page.shot(join(shotDir, 'starter-kit.png'))
+  // untick one, then add: only what is ticked is installed
+  await q(`[...document.querySelectorAll('.kb-ob-kit')].find((r) => r.querySelector('b').textContent === 'docx').click()`)
+  await sleep(150)
+  check('a skill can be unticked', /^Add 4 selected$/.test(String(await q(`document.querySelector('.kb-ob-primary').textContent`))))
+  await press('Add 4 selected')
+  check('the recap follows the installation', (await seen('You’re all set', 40000)) !== null, String(await h1()))
+  check('the skills went through the Skills page route, with their GitHub source', JSON.stringify(fake.skillInstalls.sort()) === JSON.stringify(['anthropics/claude-for-legal:flashcards', 'anthropics/claude-for-legal:study-plan']), JSON.stringify(fake.skillInstalls))
+  const recapText = String(await q(`document.querySelector('.kb-ob-recap').textContent`))
+  check('the recap says what was added, without an error', /Starter kit/.test(recapText) && /4 added/.test(recapText) && (await q(`!document.querySelector('.kb-ob-state.err')`)) === true, recapText)
+  check('the profession and display mode were written to memory, once, pinned', fake.memoryBodies.length === 1 && fake.memoryBodies[0].path === '/kybernos-cloud/memory/add' && fake.memoryBodies[0].body.pinned === true && fake.memoryBodies[0].body.kind === 'fact' && /^Works as: Students \/ Teaching \/ Research\./.test(fake.memoryBodies[0].body.content), JSON.stringify(fake.memoryBodies))
+  check('and the recap says so', (await waitFor(page, `document.querySelector('.kb-ob-mem') !== null`, 4000)) === true)
+  await press('Open Kybernos')
+  let st6 = null
+  try { st6 = JSON.parse(read('kybernos/onboarding.json')) } catch (e) { st6 = null }
+  check('the memory id is kept in the onboarding file, so the next replay updates it', st6 !== null && st6.memoryId === 'mem_test_1' && st6.profil === 'etudes', JSON.stringify(st6))
+  // the second replay updates the same memory instead of adding another
+  fake.memoryBodies.length = 0
+  check('a second replay opens', await replay())
+  await goEnglish()
+  await press('Get started'); await press('Continue'); await press('Continue'); await press('Keep as is')
+  await seen('A starter kit for Students / Teaching / Research', 8000)
+  await press('Not now')
+  await waitFor(page, `!!document.querySelector('.kb-ob-recap')`, 8000)
+  await sleep(600)
+  check('and updates that memory', fake.memoryBodies.length === 1 && fake.memoryBodies[0].path === '/kybernos-cloud/memory/update' && fake.memoryBodies[0].body.id === 'mem_test_1', JSON.stringify(fake.memoryBodies))
+  await press('Open Kybernos')
+  fake.statusConnected = false
+  await backToTheStartingPoint()
+
+  /* ── 5d. the kit on its own, later, from Settings ── */
+  fake.skillsInstalled = []
+  fake.skillInstalls.length = 0
+  await page.send('Page.reload', { ignoreCache: true })
+  await waitFor(page, `document.body && document.body.innerText.length > 40`, 30000)
+  await sleep(2500)
+  await q(`window.dispatchEvent(new CustomEvent('kybernos:onboarding', { detail: { action: 'kit' } }))`)
+  check('the starter kit opens on its own', (await waitFor(page, `!!document.querySelector('.kb-ob')`, 20000)) === true)
+  check('with no numbered step and no way back', (await q(`!document.querySelector('.kb-ob-eyebrow') && !document.querySelector('.kb-ob-back')`)) === true)
+  check('it can look at another profession', (await press('Finance / Accounting / Consulting')) === true && (await seen('A starter kit for Finance / Accounting / Consulting')) !== null)
+  check('the teams to come are listed, greyed', (await q(`[...document.querySelectorAll('.kb-ob-kit.soon b')].map((b) => b.textContent).join()`)) === 'Back-office Finance')
+  check('and it closes without touching the onboarding file', (await press('Close')) === true && (await q(`document.querySelector('.kb-ob') === null`)) === true)
   await backToTheStartingPoint()
 
   /* ── 6. the moment of need: a chat whose model has no key ──────────────────────────────────────────── */
@@ -333,14 +422,14 @@ try {
     await page.shot(join(shotDir, 'need-model-card.png'))
 
     check('the card opens the wizard', (await cardButton('Sign in with Kybernos')) === true && (await waitFor(page, `!!document.querySelector('.kb-ob')`, 8000)) === true)
-    check('it opens on the model step, with no numbered steps', (await h1()) === 'Which model do you want to work with?' && (await q(`!document.querySelector('.kb-ob-eyebrow')`)) === true)
+    check('it opens on the model question, with no numbered steps', (await h1()) === 'Which models should Kybernos use?' && (await q(`!document.querySelector('.kb-ob-eyebrow')`)) === true)
     check('it can be closed', (await press('Close')) === true && (await q(`document.querySelector('.kb-ob') === null`)) === true)
     check('it left the onboarding file as it was', read('kybernos/onboarding.json') === stateBefore)
 
     // a model on this computer, from the card: the stand-in installer, then the chat itself takes it
     fake.installPolls = 0
     check('the card opens the wizard again, for a model on this computer', (await cardButton('A model on this computer')) === true && (await waitFor(page, `!!document.querySelector('.kb-ob')`, 8000)) === true)
-    check('the local way is offered', await press('A model on this computer'))
+    check('the local way is offered', await press('a model on this computer'))
     check('and installed', await press('Install qwen3.5:9b'))
     check('the model is connected', (await seen('Model ready', 30000)) !== null)
     await nowTheModel('qwen3.5:9b')

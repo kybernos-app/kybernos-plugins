@@ -1,14 +1,52 @@
 /* kybernos-mobile: the DSH shell on a phone.
  *
- * Everything below is inside one media query (max-width: 700px): above it nothing changes. Selectors use DSH's own
- * stable hooks (data-slot, data-sidebar-collapsed, data-rightbar-*, data-shell-*, role, aria-keyshortcuts), never its
- * hashed class names (they change with every build). Measured on DSH 0.2.1-alpha.2 at 390 px: the sidebar pushes
- * the chat to a 100 px sliver once opened, Settings squeezes its content to one word per line.
+ * The same app, the same organisation: only the layout changes with the width. Everything below is inside one
+ * condition, "a phone": a viewport at most 700 px wide, or a touch device lying down (at most 500 px high with a
+ * coarse pointer: a phone in landscape is 844 px wide and would otherwise get the desktop shell). Above it nothing
+ * changes. Selectors use DSH's own stable hooks (data-slot, data-sidebar-collapsed, data-rightbar-*, data-shell-*,
+ * data-composer-*, data-model-compact, role), never its hashed class names (they change with every build).
+ * Measured on DSH 0.2.1-alpha.2 at 390 px: the sidebar pushed the chat to a 100 px sliver once opened, Settings
+ * squeezed its content to one word per line, the title collapsed to 0 px behind eight header buttons, and the
+ * composer was two rows of 28 px targets with the model name hidden.
  *
  * `!important` is deliberate: this sheet is the first in <head> (index-inject), DSH's own come after it, and the grid
  * template is an inline style.
  */
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (pointer: coarse) {
+  /* 0. Text: the browser's own text scaling, 118 %. DSH draws a lot of its text at 10 to 12 px (tags, counts, hints), in
+   *    px, which no rem trick reaches; this is what Android's and iOS's "font size" settings use. Boxes keep their
+   *    size, text grows. A phone's own font setting is multiplied by it. */
+  html {
+    -webkit-text-size-adjust: 118%;
+    text-size-adjust: 118%;
+  }
+
+  /* A finger on a page's own controls (cards, toolbars, message actions): at least 36 px, in the page. They come first
+   * and have the weight of one element and one attribute: the header, the composer and the drawer say their own sizes
+   * after them (same weight, later), and DSH's own rules for a control (one class) lose. */
+  [data-slot="main"] button,
+  [data-slot="main"] [role="button"],
+  [data-slot="main"] [role="tab"] {
+    min-height: 36px;
+  }
+  /* an icon on its own is that wide; a button with a label keeps the width of its label (a min-width would let a flex row
+   * squeeze it below that, and its text would be cut under the next button) */
+  [data-slot="main"] button:where(:has(> svg:only-child)),
+  [data-slot="main"] [role="button"]:where(:has(> svg:only-child)),
+  [data-slot="main"] .kb6-helpbtn {
+    min-width: 36px;
+  }
+  [data-slot="main"] input:where(:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"])) {
+    min-height: 40px;
+  }
+  /* Nothing in a page is wider than the page: DSH's cards and toolbars are sized for a desktop. A box that sets no
+   * maximum of its own is capped at its container. */
+  :where([data-slot="main"] :is(div, nav, ul, ol, section, header, form, fieldset)) {
+    max-width: 100%;
+  }
+  /* A box is never made narrower than its content (no min-width: 0): two buttons side by side must not squeeze each
+   * other, the row wraps instead (client.js marks it, see data-kbmob-fit below). */
+
   /* 1. The frame: the side columns leave the grid, the main column is the whole screen. */
   [data-slot="root"] > div:has(> [data-shell-overlay]) {
     grid-template-columns: minmax(0, 1fr) !important;
@@ -19,7 +57,7 @@
   [data-slot="root"] > div:has(> [data-shell-overlay]) > div:has(> [data-slot="sidebar"]) {
     position: fixed !important;
     inset: 0 auto 0 0;
-    width: min(86vw, 340px) !important;
+    width: min(84vw, 330px) !important;
     max-width: none !important;
     z-index: 60;
     transform: translateX(-105%);
@@ -28,6 +66,7 @@
     background: var(--dsw-alias-bg-layer-1, #1b1b1d);
     box-shadow: 0 0 32px rgba(0, 0, 0, .35);
     overflow: hidden;
+    padding-top: env(safe-area-inset-top, 0px);
   }
   [data-slot="root"] > div:has(> [data-shell-overlay]):not([data-sidebar-collapsed]) > div:has(> [data-slot="sidebar"]) {
     transform: none;
@@ -42,58 +81,386 @@
     z-index: 55;
     background: rgba(0, 0, 0, .45);
   }
-  /* The conversation's header gives its left corner to the menu button. */
-  [data-slot="conversation.header"] > header {
-    padding-left: 52px !important;
+  /* DSH draws its sidebar 280 px wide whatever its container: fill the drawer (the grey strip was the container). */
+  [data-slot="root"] > div:has(> [data-shell-overlay]) > div:has(> [data-slot="sidebar"]) > [data-slot="sidebar"] > *,
+  [data-slot="root"] > div:has(> [data-shell-overlay]) > div:has(> [data-slot="sidebar"]) > :not([data-slot="sidebar"]) {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+  }
+  /* The drawer is the desktop sidebar, same entries in the same order, at the size of a finger. */
+  [data-slot="sidebar"] button {
+    min-height: 44px;
+  }
+  [data-slot="sidebar"] [data-row-key],
+  [data-slot="sidebar"] [role="button"],
+  [data-slot="sidebar"] a {
+    min-height: 48px;
+  }
+  /* the icon-only buttons of a section header (search, view options, add): a 36 px target, still three in a row. DSH
+   * sized the boxes around them for 28 px icons (28 + 4 + 28 = 60 px, hidden overflow): they follow the icons. */
+  [data-slot="sidebar"] button:has(> svg:only-child) {
+    min-width: 36px;
+  }
+  [data-slot="sidebar"] div:has(> button > svg:only-child),
+  [data-slot="sidebar"] div:has(> span > button > svg:only-child),
+  [data-slot="sidebar"] div:has(> div > button > svg:only-child) {
+    width: auto !important;
+    max-width: none !important;
+  }
+  [data-slot="sidebar"] [data-slot^="sidebar.panellist"] button {
+    min-height: 48px;
   }
 
-  /* 3. The right bar (files, changes, details) is a full-screen layer while it is open. */
-  [data-slot="root"] > div:has(> [data-shell-overlay]):not([data-rightbar-collapsed]) > [data-rightbar-col] {
+  /* 3. The conversation's header: the title and the page-level actions first. Agent Team, share, chat ID, video call
+   *    and call settings are PARKED: out of the header but still rendered, so DSH's popovers keep an anchor and the
+   *    "..." sheet (client.js) can list and click them. "Open in Finder" is of no use on a phone and is dropped.
+   *    The tab row (Chat, Journal, Trajectory) is parked while the first tab (Chat) is the one shown: it comes back
+   *    on the other views, and the sheet lists the views. */
+  /* DSH gives the header 76 px for its two rows (actions, tabs): one row is 56 px, in line with the menu button. */
+  [data-slot="conversation.header"] > header {
+    padding-left: 52px !important;
+    padding-top: calc(6px + env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: 6px !important;
+    min-height: 56px !important;
+    align-items: center;
+  }
+  [data-slot="conversation.session.header.actions"] > [data-team-action],
+  [data-slot="conversation.session.header.actions"] > div:not([data-kb]):not([data-team-action]):not(:has(span)),
+  [data-slot="conversation.session.header.actions"] [data-act="call-video"],
+  [data-slot="conversation.session.header.actions"] [data-act="call-setup"],
+  [role="tablist"][data-conversation-tabs]:has(> [role="tab"]:first-child[aria-selected="true"]) {
+    position: fixed !important;
+    top: 52px !important;
+    left: 50% !important;
+    width: 1px !important;
+    height: 1px !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  [data-slot="conversation.session.header.utilities"] [data-open-target] {
+    display: none !important;
+  }
+  /* The Teams chip keeps its icon and its count, not its label. */
+  [data-slot="conversation.session.header.actions"] button > span:nth-child(2) {
+    display: none !important;
+  }
+  [data-slot="conversation.session.header.actions"] button,
+  [data-slot="conversation.session.header.utilities"] button,
+  [data-slot="conversation.session.header.corner"] button {
+    min-width: 40px;
+    min-height: 40px;
+  }
+  [role="tablist"][data-conversation-tabs] > button {
+    min-height: 44px;
+    font-size: 15px;
+  }
+
+  /* 4. The composer: the field, then ONE row (add, model, access, dictate, send). The "/" button, the artifact button
+   *    and the input-device list are one tap away in the "+" menu (or typed: "/" in the field); the execution
+   *    environment keeps a dot. The model name is readable: DSH hides it in its compact variant. */
+  [data-composer-input],
+  [data-composer-placeholder] {
+    font-size: 16px !important;
+  }
+  [data-composer-card] [data-model-compact] {
+    display: flex !important;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 4px;
+  }
+  [data-composer-card] [data-model-compact] > div {
+    display: contents !important;
+  }
+  /* order: add, model, access, environment, dictate, send */
+  [data-composer-card] [data-model-compact] > :first-child > button:first-of-type { order: 1; }
+  [data-composer-card] [data-model-compact] div:has(> [data-slot="conversation.input.model"]) {
+    order: 2;
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex !important;
+  }
+  [data-composer-card] [data-model-compact] div:has(> [data-slot="conversation.input.permission"]) { order: 3; }
+  [data-composer-card] [data-model-compact] [data-kb="computer-env-selector"] { order: 4; }
+  [data-composer-card] [data-model-compact] div:has(> [data-slot="conversation.input.activity"]) { order: 5; }
+  [data-composer-card] [data-model-compact] > :last-child > button:last-child { order: 6; }
+  [data-composer-card] [data-slot="conversation.input.left"] > :not([data-kb="computer-env-selector"]),
+  [data-composer-card] [data-slot="conversation.input.right"] > * {
+    position: fixed !important;
+    top: 52px !important;
+    left: 50% !important;
+    width: 1px !important;
+    height: 1px !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  [data-composer-card] [data-slot="conversation.input.activity"] button + button {
+    display: none !important;
+  }
+  [data-composer-card] [data-slot="conversation.input.model"] {
+    display: block;
+    min-width: 0;
+    flex: 1 1 0;
+  }
+  [data-composer-card] [data-slot="conversation.input.model"] > div {
+    width: 100%;
+  }
+  [data-composer-card] [data-slot="conversation.input.model"] button {
+    width: 100%;
+    max-width: 100%;
+    justify-content: flex-start;
+    gap: 6px;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+  [data-composer-card] [data-slot="conversation.input.model"] button > span {
+    display: inline !important;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+    font-size: 15px;
+  }
+  /* The execution environment only shows in the row when it is not the default ("This machine"): one dot, then its menu.
+   * Parked otherwise: the "..." sheet lists it. */
+  [data-composer-card] [data-kb="computer-env-selector"]:has([data-kb="computer-env-button"][data-on="false"]) {
+    position: fixed !important;
+    top: 52px !important;
+    left: 50% !important;
+    width: 1px !important;
+    height: 1px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  [data-composer-card] [data-kb="computer-env-button"] {
+    font-size: 0;
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  [data-composer-card] [data-kb="computer-env-button"] > span {
+    width: 10px;
+    height: 10px;
+    margin: 0;
+  }
+  /* The access button keeps its shield, not its chevron; the model keeps its name, not its decorative icon. */
+  [data-composer-card] [data-slot="conversation.input.permission"] button > span:last-child {
+    display: none !important;
+  }
+  [data-composer-card] [data-slot="conversation.input.model"] button > svg:first-child {
+    display: none !important;
+  }
+  [data-composer-card] button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  [data-composer-card] [data-slot="conversation.input.permission"] button,
+  [data-composer-card] [data-slot="conversation.input.activity"] button {
+    min-width: 40px;
+  }
+  /* The stats strip under the card (speed, cache, memory, context) does not belong on a phone. */
+  [data-composer-dock] {
+    display: none !important;
+  }
+  [data-slot="conversation.composer"] {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* 5. The rating card under an answer is one star; a tap opens the five (client.js marks the card open). */
+  .kbq-rating:not([data-kbmob-open]) {
+    width: 44px !important;
+    height: 44px !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    justify-content: center !important;
+    border-radius: 22px !important;
+    overflow: hidden !important;
+    cursor: pointer;
+  }
+  .kbq-rating:not([data-kbmob-open]) > * {
+    display: none !important;
+  }
+  .kbq-rating:not([data-kbmob-open])::before {
+    content: "\2606";
+    font-size: 22px;
+    line-height: 1;
+    color: var(--dsw-alias-label-tertiary, currentColor);
+  }
+  .kbq-rating[data-kbmob-open] .kbq-rating-question {
+    display: none !important;
+  }
+  .kbq-rating[data-kbmob-open] .kbq-rating-etoile {
+    width: 40px !important;
+    height: 40px !important;
+    padding: 8px !important;
+  }
+  .kbq-rating[data-kbmob-open] .kbq-rating-etoile svg {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  /* What client.js marked as wider than the page (a card grid with 330 px columns in a 304 px page, a toolbar of 592 px):
+   * columns that fit, a row that wraps. The marks are its measure, not a guess at DSH's class names. */
+  [data-kbmob-fit~="grid"] {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)) !important;
+  }
+  [data-kbmob-fit~="wrap"] {
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+    row-gap: 8px;
+  }
+  /* a setting (or a card's header): the text keeps 180 px at least, the controls go under it when they do not fit */
+  [data-kbmob-fit~="stack"] {
+    flex-wrap: wrap !important;
+    row-gap: 10px;
+  }
+  [data-kbmob-fit~="stack"] > :first-child {
+    flex: 1 1 180px !important;
+  }
+  /* the title of a page (marked by client.js) starts under the menu button, fixed in the corner: moved below it */
+  [data-kbmob-lead] {
+    margin-top: 30px !important;
+  }
+  [data-kbmob-fit~="keep"] {
+    min-width: min-content !important;
+  }
+  /* a strip of tabs or a segmented control wider than the page slides sideways, as the tab bars of the phone do */
+  [data-kbmob-fit~="scroll"] {
+    overflow-x: auto !important;
+    scrollbar-width: none;
+  }
+  [data-kbmob-fit~="scroll"]::-webkit-scrollbar {
+    display: none;
+  }
+  /* the search field of a wrapped toolbar takes its own line; the buttons share the next ones */
+  [data-kbmob-fit~="wrap"] > :has(input) {
+    flex: 1 1 100%;
+  }
+  /* a menu's rows (DSH draws them 35.6 px high) are rows for a finger */
+  [role="menu"] [role="menuitem"],
+  [role="listbox"] [role="option"] {
+    min-height: 40px;
+  }
+
+  /* 6. The right bar (files, changes, details) is a full-screen layer while it is open. DSH marks that state itself
+   *    (data-rightbar-fullscreen) and, left alone, stacks the bar under the chat at 0 px high on a phone. */
+  [data-slot="root"] > div:has(> [data-shell-overlay]):not([data-rightbar-collapsed]) > [data-rightbar-col],
+  [data-slot="root"] > div:has(> [data-shell-overlay])[data-rightbar-fullscreen] > [data-rightbar-col] {
     position: fixed !important;
     inset: 0 !important;
     width: 100vw !important;
+    height: 100dvh !important;
     max-width: 100vw !important;
     min-width: 0 !important;
     z-index: 70;
     background: var(--dsw-alias-bg-base, #151517);
   }
 
-  /* 4. Settings: the navigation becomes a strip above the page instead of a 248 px column next to it. */
+  [data-rightbar-col] button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* The skill buttons under an answer (summarise, ...) are two icons in a row: the row of actions is crowded on a phone and
+   * squeezed them into a column of two. */
+  .kbsl-acts {
+    flex-wrap: nowrap !important;
+    flex-shrink: 0;
+  }
+
+  /* 7. Settings: a list of pages first, then the page with a "back" bar (client.js sets data-kbmob-page when a page is
+   *    picked and clears it on the bar). DSH draws a 248 px column next to the page, which does not fit a phone. */
   [data-shortcut-modal="settings"] {
     flex-direction: column !important;
   }
-  [data-shortcut-modal="settings"] > nav {
+  /* the header row of a page (a button, the close cross) is 54 px high, its button 40 px lower than its top */
+  [data-shortcut-modal="settings"] > div:nth-child(2) > div:first-child {
+    height: auto !important;
+    min-height: 64px;
+    padding-bottom: 8px;
+    flex-shrink: 0;
+  }
+  [data-shortcut-modal="settings"] button,
+  [data-shortcut-modal="settings"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
+    min-height: 40px;
+  }
+  [data-shortcut-modal="settings"] button {
+    min-width: 40px;
+  }
+  [data-shortcut-modal="settings"]:not([data-kbmob-page]) > nav {
     width: 100% !important;
-    flex: 0 0 auto !important;
+    flex: 1 1 auto !important;
+    min-height: 0;
     max-height: none !important;
+    overflow-y: auto !important;
+  }
+  [data-shortcut-modal="settings"]:not([data-kbmob-page]) > nav + div {
+    display: none !important;
   }
   [data-shortcut-modal="settings"] > nav > div:first-child {
     height: auto !important;
   }
-  [data-shortcut-modal="settings"] > nav > div:last-child {
+  [data-shortcut-modal="settings"]:not([data-kbmob-page]) > nav > div:last-child {
     display: flex !important;
-    flex-direction: row !important;
-    align-items: center;
-    gap: 4px;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    gap: 2px;
     height: auto !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    padding-bottom: 8px;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    overflow: visible !important;
+    padding: 8px 0 24px;
   }
-  [data-shortcut-modal="settings"] > nav > div:last-child > button {
-    flex: 0 0 auto !important;
-    width: auto !important;
-    white-space: nowrap;
+  [data-shortcut-modal="settings"]:not([data-kbmob-page]) > nav > div:last-child > button {
+    flex: none !important;
+    width: 100% !important;
+    min-height: 56px;
+    justify-content: flex-start !important;
+    gap: 14px;
+    padding: 0 14px !important;
+    font-size: 17px;
+    white-space: normal;
   }
-  [data-shortcut-modal="settings"] > nav + div {
+  [data-shortcut-modal="settings"]:not([data-kbmob-page]) > nav > div:last-child > button svg {
+    width: 22px;
+    height: 22px;
+  }
+  [data-shortcut-modal="settings"][data-kbmob-page] > nav {
+    display: none !important;
+  }
+  [data-shortcut-modal="settings"][data-kbmob-page] > nav + div {
     flex: 1 1 0 !important;
     min-width: 0 !important;
+    min-height: 0;
     width: 100% !important;
   }
+  [data-shortcut-modal="settings"][data-kbmob-page] > nav + div::before {
+    content: "\2039\00a0\00a0" attr(data-kbmob-back);
+    flex: none;
+    display: flex;
+    align-items: center;
+    height: 56px;
+    padding: 0 8px;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+  }
 
-  /* 5. Nothing leaves the screen. */
+  /* 8. Nothing leaves the screen. */
   [role="dialog"] {
     max-width: calc(100vw - 16px) !important;
     max-height: 100dvh;
@@ -103,11 +470,34 @@
   }
 }
 
+/* A very narrow phone (320 to 360 px): the model name and the title come first, dictation and the voice call wait. */
+@media (max-width: 360px) {
+  [data-composer-card] [data-slot="conversation.input.activity"],
+  [data-composer-card] div:has(> [data-slot="conversation.input.activity"]) {
+    display: none !important;
+  }
+  [data-slot="conversation.session.header.actions"] [data-act="call-voice"],
+  [data-slot="conversation.session.header.actions"] > div:not([data-kb]):not([data-team-action]):has(span) {
+    position: fixed !important;
+    top: 52px !important;
+    left: 50% !important;
+    width: 1px !important;
+    height: 1px !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+}
+
 /* A finger, not a pointer: bigger targets for the rows DSH draws small, and a 16 px field (below that iOS zooms in
- * on focus and never zooms back). Only on a coarse pointer, and only on a narrow screen. */
-@media (max-width: 700px) and (pointer: coarse) {
+ * on focus and never zooms back). Only on a coarse pointer, and only on a phone. */
+@media (max-width: 700px) and (pointer: coarse), (max-height: 500px) and (pointer: coarse) {
   [role="menuitem"], [role="option"], [role="tab"] {
-    min-height: 40px;
+    min-height: 44px;
   }
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select {
     font-size: 16px !important;
@@ -118,20 +508,20 @@
 .kbmob-menu {
   display: none;
 }
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (pointer: coarse) {
   .kbmob-menu {
     position: fixed;
-    top: 8px;
-    left: 8px;
+    top: calc(6px + env(safe-area-inset-top, 0px));
+    left: 6px;
     z-index: 45;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     padding: 0;
     border: 0;
-    border-radius: 10px;
+    border-radius: 12px;
     background: transparent;
     color: var(--dsw-alias-label-primary, currentColor);
     cursor: pointer;
@@ -144,5 +534,71 @@
    * :has(), so the frame is named by its place: the only child of the root slot.) */
   body:has([data-slot="root"] > div:not([data-sidebar-collapsed])) .kbmob-menu {
     display: none;
+  }
+}
+
+/* The "..." sheet (built by client.js): the header actions a phone has no room for, one tap away. */
+.kbmob-sheet-mask,
+.kbmob-sheet {
+  display: none;
+}
+@media (max-width: 700px), (max-height: 500px) and (pointer: coarse) {
+  .kbmob-sheet-mask {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: block;
+    border: 0;
+    padding: 0;
+    background: rgba(0, 0, 0, .45);
+  }
+  .kbmob-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 81;
+    display: block;
+    max-height: 80dvh;
+    overflow-y: auto;
+    padding: 8px 12px calc(16px + env(safe-area-inset-bottom, 0px));
+    border-radius: 20px 20px 0 0;
+    background: var(--dsw-alias-bg-layer-1, #1b1b1d);
+    color: var(--dsw-alias-label-primary, currentColor);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, .35);
+  }
+  .kbmob-sheet-title {
+    margin: 6px 8px 8px;
+    font-size: 13px;
+    color: var(--dsw-alias-label-caption, currentColor);
+  }
+  .kbmob-sheet-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    min-height: 52px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: inherit;
+    font-size: 16px;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .kbmob-sheet-row:active {
+    background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, .2));
+  }
+  .kbmob-sheet-row svg,
+  .kbmob-sheet-noico {
+    flex: none;
+    width: 22px;
+    height: 22px;
+  }
+  .kbmob-sheet-sep {
+    height: 1px;
+    margin: 6px 8px;
+    background: var(--dsw-alias-border-l1, rgba(127, 127, 127, .2));
   }
 }

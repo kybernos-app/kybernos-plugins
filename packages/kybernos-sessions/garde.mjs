@@ -129,6 +129,7 @@ export const FICHIERS_CHAUDS = [
   'packages/kybernos-modeles-locaux/client.js',
   'packages/kybernos-modeleur/client.js',
   'packages/kybernos-refs/client.js',
+  'packages/kybernos-search/client.js',
   'packages/kybernos-mobile/client.js',
   'packages/kybernos-terminal/client/client.js',
   'packages/kybernos-slides/client.js',
@@ -137,6 +138,10 @@ export const FICHIERS_CHAUDS = [
   'packages/kybernos-call/client.js',
   'packages/kybernos-websearch/client.js',
   'packages/kybernos-usage/client.js',
+  'packages/kybernos-multi-device/client.js',
+  'packages/kybernos-dashboards/client.js',
+  'packages/kybernos-summary/client.js',
+  'packages/kybernos-kyber/client.js',
 ]
 export const TTL_CLAIM_MS = 180 * 1000
 

@@ -48,5 +48,23 @@ console.log('the tile')
   check('the message exists in French and English and says what to do', e !== null && /ollama serve/.test(e[1]) && /ollama serve/.test(e[2]), String(e))
 }
 
+
+console.log('the catalogue')
+{
+  const src2 = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'client.js'), 'utf8')
+  // Every desc in the CATALOGUE must be a key (no spaces, no accents) and each must have a KB_M_T entry with both fr and en sides filled.
+  const descs = [...src2.matchAll(/desc: '([^']+)'/g)].map((m) => m[1])
+  check('the catalogue has desc keys', descs.length > 0, 'descs=' + descs.length)
+  check('no desc is bare text (a key has no spaces or accents)', descs.every((d) => /^[A-Za-z0-9._-]+$/.test(d)), descs.filter((d) => !/^[A-Za-z0-9._-]+$/.test(d)).join(','))
+  // Every key must appear in KB_M_T with a non-empty fr and en side.
+  const kbmt = src2.slice(src2.indexOf('const KB_M_T'), src2.indexOf('let kbLocaleRead'))
+  const missing = descs.filter((d) => !kbmt.includes("'" + d + "':"))
+  check('every desc key has a KB_M_T entry', missing.length === 0, missing.join(','))
+  // Each KB_M_T entry must have both fr: and en: sides non-empty.
+  const entries = [...kbmt.matchAll(/'([^']+)': \{ fr: '([^']*)', en: '([^']*)' \}/g)]
+  check('KB_M_T entries are parsed', entries.length > 0, 'entries=' + entries.length)
+  check('every KB_M_T entry has a non-empty fr and en side', entries.every((e) => e[2].trim() !== '' && e[3].trim() !== ''), entries.filter((e) => e[2].trim() === '' || e[3].trim() === '').map((e) => e[1]).join(','))
+}
+
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)
 process.exit(failed === 0 ? 0 : 1)

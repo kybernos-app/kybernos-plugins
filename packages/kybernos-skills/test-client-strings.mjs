@@ -79,11 +79,19 @@ const built = ['timeout', 'network_unavailable', 'not_github', 'body_too_large']
 for (const w of built) assert.ok(host.includes("'" + w + "'"), w + ' is no longer in the host: drop it from this list')
 const codes = new Set([...literal, ...built])
 // Nobody reads these on the screen: an image route, a method guard of a route the page never gets wrong, a note the page does not show.
-const unseen = new Set(['get_required', 'post_required', 'no_cover', 'cover_unreadable'])
+const unseen = new Set(['get_required', 'post_required', 'no_cover', 'cover_unreadable', 'bad_name', 'bad_root', 'bad_path', 'bad_target'])
 const noHe = [...codes].filter((w) => !unseen.has(w) && !dict.has('he.' + w))
 assert.deepEqual(noHe, [], 'host codes with no sentence on the screen: ' + noHe.join(', '))
 const orphan = [...dict.keys()].filter((k) => k.startsWith('he.') && !codes.has(k.slice(3)))
 assert.deepEqual(orphan, [], 'sentences for a code the host never sends: ' + orphan.join(', '))
 ok('the older routes answer in codes (' + codes.size + '), and every one the page can show has a French and an English sentence')
+
+// 2. The "Yours" card opens its local sheet (UB-13) without hijacking its inner buttons:
+//    the switch and the star must stop propagation, and the keyboard handler must ignore keys
+//    that come from those inner buttons.
+assert.ok(/onClick: \(e\) => \{ e\.stopPropagation\(\); toggle\(s\) \}/.test(src), 'the active switch stops propagation before toggling')
+assert.ok(/onClick: \(e\) => \{ e\.stopPropagation\(\); toggleFeatured\(s\.name\) \}/.test(src), 'the Featured star stops propagation before toggling')
+assert.ok(/onKeyDown: \(e\) => \{ if \(e\.target !== e\.currentTarget\) return;/.test(src), 'the card keyboard handler ignores keys from inner buttons')
+ok('the Yours card opens its sheet without hijacking the inner switch/star (mouse + keyboard)')
 
 console.log('\n' + pass + ' verifications OK')

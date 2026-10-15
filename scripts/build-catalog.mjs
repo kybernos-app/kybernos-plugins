@@ -38,10 +38,14 @@ const FICHE = {
   'kybernos-models': ['models', 'Catalogue de modèles : recherche, comparaison, prix.', 'Model catalogue: search, compare, prices.'],
   'kybernos-modeles-locaux': ['models', 'Modèles locaux détectés et installés depuis les Réglages.', 'Local models detected and installed from Settings.'],
   'kybernos-auto': ['models', 'Routage Auto : choisit un modèle de votre liste selon la classe de la demande.', 'Auto routing: picks a model from your list by request class.'],
-  'kybernos-free-llms': ['models', 'Modèles gratuits OpenCode Zen, sans compte ni clé API.', 'Free OpenCode Zen models, no account or API key.'],
+  'kybernos-free-llms': ['models', 'Modèles gratuits, sans compte ni clé API.', 'Free models, no account or API key.'],
   'kybernos-flow': ['teams', 'Reprise des tours coupés et file d’attente réordonnable.', 'Resume cut turns and a reorderable queue.'],
   'kybernos-call': ['base', 'Parlez à votre assistant ou à un membre de l’équipe, depuis n’importe quelle session : il répond comme dans le chat, dans votre langue, avec sa voix.', 'Talk to your assistant or a team member from any session: it answers as in the chat, in your language, in its own voice.'],
   'kybernos-usage': ['base', 'Ce que votre plan a consommé, et ce que vos propres clés coûtent : une pastille sous la saisie et une page de détail.', 'What your plan has used, and what your own keys cost: a chip under the message box and a detail page.'],
+  'kybernos-multi-device': ['base', 'Des workspaces avec ou sans dossier : Create propose un dossier privé, et Détails montre où le workspace travaille.', 'Workspaces with or without a folder: Create offers a private folder, and Details shows where the workspace works.'],
+  'kybernos-dashboards': ['teams', 'Des dashboards construits par chat, pour suivre vos Agent Teams, automations, usage et livrables : cartes, graphiques animés, calendrier, kanban, notes.', 'Dashboards built by chat to follow your Agent Teams, automations, usage and deliverables: cards, animated charts, calendar, kanban, notes.'],
+  'kybernos-summary': ['base', 'Un onglet Résumé dans le panneau de droite du chat : agents, progression, compétences et outils utilisés, fichiers écrits.', 'A Summary tab in the chat\'s right-hand panel: agents, progress, skills and tools used, files written.'],
+  'kybernos-kyber': ['base', 'Un onglet Kyber dans le panneau de droite du chat : où votre assistant vous répond (Telegram) et l\'ordinateur cloud sur lequel il travaille.', 'A Kyber tab in the chat\'s right-hand panel: where your assistant answers you (Telegram) and the cloud computer it works on.'],
   'kybernos-changes': ['base', 'Où en est votre travail (modifié, sauvegardé, sur GitHub, dans le projet) et quoi faire ensuite.', 'Where your work stands (changed, saved, on GitHub, in the project) and what to do next.'],
   'kybernos-atlas': ['teams', 'La carte de votre espace : projets, Agent Teams, skills, mémoire, et ce qui est cassé.', 'A map of your workspace: projects, agent teams, skills, memory, and what is broken.'],
   'kybernos-slides': ['create', 'Decks écrits en direct dans la barre latérale.', 'Decks written live in the sidebar.'],
@@ -50,7 +54,8 @@ const FICHE = {
   'kybernos-motion': ['create', 'Des animations (titres, graphiques, 3D, personnages, son) créées par le chat et exportées en vidéo.', 'Animations (titles, charts, 3D, characters, sound) made by the chat and exported as video.'],
   'kybernos-miniapps': ['create', '« Install as app » : un panneau devient une app native.', '"Install as app": a panel becomes a native app.'],
   'kybernos-refs': ['create', 'Les liens des messages deviennent des pastilles de référence.', 'Message links become reference chips.'],
-  'kybernos-mobile': ['base', 'DSH sur votre téléphone : l’écran s’adapte, et avec une offre payante un code QR relie le téléphone à cet ordinateur.', 'DSH on your phone: the screen adapts, and with a paid plan a QR code links the phone to this computer.'],
+  'kybernos-search': ['base', 'Une recherche partout : le contenu des chats, les skills, les mémoires, les leçons, les créations.', 'Search everywhere: the content of your chats, skills, memories, lessons and creations.'],
+  'kybernos-mobile': ['base', 'DSH sur votre téléphone : l’écran s’adapte, et un code QR relie le téléphone à cet ordinateur, chiffré de bout en bout.', 'DSH on your phone: the screen adapts, and a QR code links the phone to this computer, end-to-end encrypted.'],
   'kybernos-websearch': ['connect', 'La recherche web des agents, avec ou sans clé : des moteurs gratuits tout de suite, des moteurs à clé quand vous en ajoutez une, et le suivant prend le relais si l’un échoue.', 'Web search for the agents, with or without a key: free engines right away, keyed engines when you add one, and the next one takes over when one fails.'],
   'dsh-mermaid': ['create', 'Diagrammes Mermaid rendus en SVG dans le chat.', 'Mermaid diagrams rendered as SVG in the chat.'],
   'dsh-db-viewer': ['data', 'Visionneuse SQLite en lecture seule, avec graphiques.', 'Read-only SQLite viewer, with charts.'],
@@ -70,17 +75,17 @@ const TITRES = {
   'kybernos-sessions': 'Sessions', 'kybernos-maintenance': 'About & Maintenance', 'kybernos-skills': 'Skills', 'kybernos-slash': 'Slash commands',
   'kybernos-relance': 'Relaunch', 'kybernos-models': 'Models', 'kybernos-modeles-locaux': 'Local models', 'kybernos-auto': 'Auto routing',
   'kybernos-flow': 'Flow', 'kybernos-free-llms': 'Free LLMs', 'kybernos-slides': 'Slides', 'kybernos-bricks': 'Bricks', 'kybernos-modeleur': '3D modeller',
-  'kybernos-motion': 'Motion', 'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'kybernos-mobile': 'Mobile', 'kybernos-websearch': 'Web search', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
+  'kybernos-motion': 'Motion', 'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'kybernos-search': 'Search everywhere', 'kybernos-mobile': 'Remote Control', 'kybernos-websearch': 'Web search', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
   'dsh-media-player': 'Media player', 'kybernos-composio': 'Connectors', 'kybernos-computers': 'Cloud computers', 'kybernos-workers': 'Workers', 'dsh-subagent-maison': 'Agent connectors',
-  'kybernos-cloud': 'Kybernos Cloud', 'kybernos-memory': 'Memory & Lessons', 'kybernos-atlas': 'Atlas', 'kybernos-changes': 'Changes', 'kybernos-usage': 'Usage', 'kybernos-call': 'Calls', 'kybernos-terminal': 'Terminal'
+  'kybernos-cloud': 'Kybernos Cloud', 'kybernos-memory': 'Memory & Lessons', 'kybernos-atlas': 'Atlas', 'kybernos-changes': 'Changes', 'kybernos-usage': 'Usage', 'kybernos-multi-device': 'Workspaces & devices', 'kybernos-call': 'Calls', 'kybernos-terminal': 'Terminal', 'kybernos-dashboards': 'Dashboards', 'kybernos-summary': 'Summary', 'kybernos-kyber': 'Kyber'
 }
 const GLYPHES = {
   'kybernos-plugin': 'cube', 'kybernos-hub': 'suite', 'kybernos-theme': 'palette', 'kybernos-language': 'lang', 'kybernos-sessions': 'chat',
   'kybernos-maintenance': 'info', 'kybernos-skills': 'bolt', 'kybernos-slash': 'slash', 'kybernos-relance': 'refresh', 'kybernos-models': 'cpu',
   'kybernos-modeles-locaux': 'home', 'kybernos-auto': 'route', 'kybernos-flow': 'flow', 'kybernos-free-llms': 'doc', 'kybernos-slides': 'slides', 'kybernos-bricks': 'bricks',
-  'kybernos-modeleur': 'box3d', 'kybernos-motion': 'motion', 'kybernos-miniapps': 'app', 'kybernos-refs': 'link', 'kybernos-mobile': 'mobile', 'kybernos-websearch': 'search', 'dsh-mermaid': 'flowc', 'dsh-db-viewer': 'db',
+  'kybernos-modeleur': 'box3d', 'kybernos-motion': 'motion', 'kybernos-miniapps': 'app', 'kybernos-refs': 'link', 'kybernos-search': 'lens', 'kybernos-mobile': 'mobile', 'kybernos-websearch': 'search', 'dsh-mermaid': 'flowc', 'dsh-db-viewer': 'db',
   'dsh-media-player': 'play', 'kybernos-composio': 'plug', 'kybernos-computers': 'pc', 'kybernos-workers': 'wrench', 'dsh-subagent-maison': 'agent', 'kybernos-cloud': 'cloud',
-  'kybernos-memory': 'brain', 'kybernos-atlas': 'map', 'kybernos-changes': 'branch', 'kybernos-usage': 'gauge', 'kybernos-call': 'phone', 'kybernos-terminal': 'term'
+  'kybernos-memory': 'brain', 'kybernos-atlas': 'map', 'kybernos-changes': 'branch', 'kybernos-usage': 'gauge', 'kybernos-multi-device': 'devices', 'kybernos-call': 'phone', 'kybernos-terminal': 'term', 'kybernos-dashboards': 'dash', 'kybernos-summary': 'summary', 'kybernos-kyber': 'kyber'
 }
 
 // Featured = the most advanced modules; `vedette` is the rank in this list. Each one carries a tagline, a description and the points of what it does, written

@@ -101,6 +101,10 @@ window.__ModuleLoader__.load({
         mobTitle: 'Télécharger l\'app mobile',
         mobScan: 'Scannez le code pour installer Kybernos sur votre téléphone.',
         mobSoon: 'Aperçu — le vrai lien arrivera avec l\'app.',
+        // Help explaining what the phone link really is (asked 13/10): a web app
+        // that opens the same interface and talks to this machine through the
+        // Kybernos relay, which reads nothing (end to end). Not « direct ».
+        mobHelp: 'Kybernos Mobile est une web app : votre téléphone ouvre la même interface que cette application et parle à cette machine par un relais qui ne lit rien (chiffré de bout en bout). Le Mac doit être allumé et connecté à Internet.',
         wsSettingsTitle: 'Réglages d\'équipe',
         wsOpenHosted: 'Ouvrir dans Kybernos',
         wsClose: 'Fermer',
@@ -343,6 +347,10 @@ window.__ModuleLoader__.load({
         mobTitle: 'Get the mobile app',
         mobScan: 'Scan the code to install Kybernos on your phone.',
         mobSoon: 'Preview — the real link will come with the app.',
+        // Help explaining what the phone link really is (asked 13/10): a web app
+        // that opens the same interface and talks to this machine through the
+        // Kybernos relay, which reads nothing (end to end). Not « direct ».
+        mobHelp: 'Kybernos Mobile is a web app: your phone opens the same interface as this application and talks to this machine through a relay that reads nothing (end-to-end encrypted). The Mac must be on and connected to the Internet.',
         wsSettingsTitle: 'Team settings',
         wsOpenHosted: 'Open in Kybernos',
         wsClose: 'Close',
@@ -559,25 +567,7 @@ window.__ModuleLoader__.load({
    fermerait la chaîne et la révision ne parserait plus (incident du 24/09). */
 /* La rangée workspace (carte + engrenage), au-dessus du menu user conservé. */
 .kbf-wsrow{display:flex;align-items:center;gap:4px;width:100%;min-width:0}
-.kbf-wscard{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:9px;height:40px;padding:0 9px;border:1px solid transparent;border-radius:10px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
-.kbf-wscard:hover{border-color:var(--dsw-alias-border-l2,rgba(127,127,127,.35))}
-.kbf-wstile{display:inline-flex;align-items:center;justify-content:center;width:23px;height:23px;flex:none;border-radius:8px;background:var(--dsw-alias-label-primary,#e9e9ee);color:var(--dsw-alias-bg-base,#0f0f12);font-family:ui-monospace,monospace;font-size:9.5px;font-weight:600}
-.kbf-wsname{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kbf-wssub{display:block;font-size:11px;color:var(--dsw-alias-label-tertiary,#8a8a93)}
 .kbf-wsgear{display:inline-flex;align-items:center;justify-content:center;width:23px;height:23px;flex:none;border:1px solid transparent;border-radius:8px;color:var(--dsw-alias-label-tertiary,#8a8a93);background:transparent;color:var(--dsw-alias-label-tertiary,#8a8a93);cursor:pointer}
-/* Rail replié : la maquette passe en colonne (railTight) — la carte ne garde
-   que sa tuile, l'engrenage passe dessous, les libellés disparaissent. Sans
-   cette variante, la rangée (167 px) débordait d'un rail de 60 px. */
-.kbf-tight{flex-direction:column;align-items:center;gap:4px;width:auto;min-width:0;max-width:100%}
-.kbf-tight .kbf-wscard,.kbf-tight .kbf-wsgear{flex:0 0 auto;justify-content:center;padding:6px;width:auto;max-width:100%}
-.kbf-chevrons{display:flex;align-items:center;gap:2px;color:currentColor;opacity:.7}
-.kbf-wsarrow{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;flex:none;padding:0;border:none;border-radius:7px;background:transparent;color:var(--dsw-alias-label-tertiary,#8a8a93);font:inherit;font-size:14px;font-weight:600;line-height:1;cursor:pointer}
-/* Le swap de la rangée d'espace : PLUS généreux que les petites flèches —
-   cible principale du pied, gabarit d'un bouton de barre d'outils. */
-.kbf-wsrow .kbf-wsarrow{width:36px;height:40px;border-radius:10px}
-.kbf-wsarrow:hover:not(:disabled){background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14));color:var(--dsw-alias-label-primary,#e9e9ee)}
-.kbf-wsarrow:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4f7cff);outline-offset:1px}
-.kbf-wsarrow:disabled{opacity:.35;cursor:default}
 /* Les popovers du pied de sidebar (changement d'espace, app mobile) : ancrés
    AU-DESSUS de leur rangée — .kbf-wsrow et .kbf-idrow portent le
    position:relative, parce que .kbf-root est en display:contents dans la
@@ -585,8 +575,6 @@ window.__ModuleLoader__.load({
 .kbf-wsrow,.kbf-idrow{position:relative}
 .kbf-idrow{display:flex;align-items:center;gap:2px;width:100%;min-width:0}
 .kbf-idrow .kbf-profile{flex:1 1 auto;min-width:0}
-.kbf-mobbtn{flex:0 0 auto;width:36px;height:36px;border-radius:10px}
-.kbf-popscrim{position:static}
 .kbf-pop{position:absolute;left:0;bottom:calc(100% + 8px);z-index:61;box-sizing:border-box;width:min(252px,100%);padding:8px;border-radius:13px;background:var(--dsw-alias-bg-layer-2,#191920);border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));box-shadow:0 12px 32px rgba(0,0,0,.4);color:var(--dsw-alias-label-primary,#e9e9ee);font-size:13px}
 .kbf-poptitle{padding:6px 10px 8px;font-size:12px;font-weight:600;color:var(--dsw-alias-label-tertiary,#8a8a93)}
 /* Le QR factice : dessine une grille deterministe (faux modules + 3 carrés de
@@ -594,15 +582,6 @@ window.__ModuleLoader__.load({
 .kbf-qr{display:block;width:150px;height:150px;margin:2px auto 0;background:#fff;border-radius:10px;padding:10px}
 .kbf-qrnote{margin:8px 2px 2px;font-size:11.5px;line-height:1.45;color:var(--dsw-alias-label-tertiary,#8a8a93)}
 .kbf-popcenter{padding:10px 10px 12px}
-/* Separateur vertical entre le bouton profil et les boutons annexes du pied :
-    marque que ce sont des gestes DISTINCTS, pas une seule grande rangee. */
-.kbf-footsep{flex:0 0 1px;align-self:stretch;margin:8px 6px;width:1px;background:var(--dsw-alias-border-l2,rgba(127,127,127,.3))}
-/* Rail replié : le séparateur et le bouton téléphone disparaissent (comme le
-   nom et la formule), la ligne se réduit au seul profil. */
-[class*="collapsed"] .kbf-footsep,[class*="collapsed"] .kbf-mobbtn{display:none}
-.kbf-tight .kbf-wsname,.kbf-tight .kbf-wssub,.kbf-tight .kbf-chevrons{display:none}
-.kbf-tightprofil{justify-content:center;width:auto;min-width:0;max-width:100%;padding:3px}
-.kbf-tightprofil .kbf-name,.kbf-tightprofil .kbf-plan,.kbf-tightprofil .kbf-dev{display:none}
 .kbf-wsgear:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14));color:var(--dsw-alias-label-primary,#e9e9ee)}
 /* Full-frame page (slot main): it lives in the content area, not in an overlay.
    Only the profile page uses it now (the local Team page was removed as unreachable). */
@@ -753,6 +732,7 @@ window.__ModuleLoader__.load({
    Les coordonnées sont posées à l'ouverture, depuis le rect du menu. Pas
    de barre de défilement : hauteur naturelle. */
 .kbfp-sub{position:fixed;width:248px;box-sizing:border-box;padding:8px;border-radius:16px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);box-shadow:var(--dsw-elevation-panel);color:var(--dsw-alias-label-primary);font-size:13px;animation:kbfp-menu-in .14s ease-out;z-index:63}
+.kbfp-menu-off{position:fixed;right:auto;bottom:auto;z-index:70}
 @keyframes kbfp-menu-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion: reduce){.kbfp-menu{animation:none}}
 .kbqn{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);z-index:90;max-width:min(620px,92vw);box-sizing:border-box;display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:var(--dsw-alias-bg-layer-2,#2a2a30);box-shadow:var(--dsw-elevation-panel,0 8px 28px rgba(0,0,0,.35));color:var(--dsw-alias-label-primary,#e9e9ee);font-size:13px;line-height:1.45}
@@ -2071,7 +2051,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                 className: 'kbf-qr', viewBox: '0 0 21 21', shapeRendering: 'crispEdges',
                 'aria-hidden': 'true', role: 'presentation',
               }, h('g', { fill: '#111' }, modules, carre(0, 0), carre(14, 0), carre(0, 14))),
-              h('div', { className: 'kbf-qrnote' }, t('mobScan') + ' ' + t('mobSoon')))
+              h('div', { className: 'kbf-qrnote' }, t('mobScan') + ' ' + t('mobSoon')),
+              h('div', { className: 'kbf-qrnote', 'data-kb': 'mobile-help' }, t('mobHelp')))
         }
 
         // ── LE MENU UNIFIÉ DE LA CARTE (refonte 30/09, maquette « Menu ouvert »)
@@ -2085,6 +2066,124 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             const m = window.__kbUpdate
             return m !== null && m !== undefined && typeof m === 'object' && typeof m.cible === 'string' && m.cible !== '' ? m : null
           } catch (e) { return null }
+        }
+        // DSH's own Settings dialog, opened from our menus. The seam is the core plugin's (`window.__kbOpenDshSettings`: the
+        // launcher's own `openSettings`, read from React, with fallbacks). Clicking the sidebar's trigger is not enough any
+        // more: the first button of that area is DSH's ACCOUNT launcher, whose click opens its account popover (Settings /
+        // Feedback / Sign in), not the dialog. `false` when nothing could be opened.
+        const ouvrirReglagesDsh = () => {
+          try {
+            const seam = window.__kbOpenDshSettings
+            if (typeof seam === 'function' && seam() === true) return true
+          } catch (e) { /* the seam threw: the plain trigger is next */ }
+          try {
+            // The fallback trigger of DSH's shell (rendered when no account launcher is registered) opens a dialog, never a menu.
+            const b = document.querySelector('[data-slot="sidebar.settings"] button[aria-haspopup="dialog"]') || document.querySelector('[class*="settingsArea"] button[class*="trigger"]')
+            if (b !== null && b.getAttribute('aria-haspopup') !== 'menu') { b.click(); return true }
+          } catch (e) { /* trigger not found: nothing breaks */ }
+          return false
+        }
+        const envoyer = (nom) => { try { window.dispatchEvent(new Event('kybernos:menu:' + nom)) } catch (e) { /* Event absent */ } }
+        // One entry of a menu: the menu is closed FIRST (the action may unmount it: navigation, Settings, sign-out).
+        // The Appearance row is not an entry (it leaves the menu open, to show the effect at once).
+        const entreeMenu = (fermer) => (cle, icone, label, action, opts) => h('button', {
+          type: 'button', role: 'menuitem', 'data-kb': 'menu-' + cle,
+          className: 'kbfp-mitem' + (opts !== undefined && opts.danger === true ? ' kbfp-mout' : '') + (opts !== undefined && opts.amber === true ? ' kbfp-mamber' : ''),
+          onClick: (ev) => {
+            if (typeof action !== 'function') return
+            try { fermer() } catch (e) { /* menu déjà fermé */ }
+            action(ev)
+          },
+        }, icone, h('span', { className: 'kbfp-mlab' }, label),
+          opts !== undefined && typeof opts.tail === 'string' ? h('span', { className: 'kbfp-mtail' }, opts.tail) : null,
+          opts !== undefined && opts.ext === true ? h('span', { className: 'kbfp-mext', 'aria-hidden': 'true' }, h(ExtIcon, { size: 16 })) : null)
+        // The light/dark segment of the menus. It follows the scheme the core plugin publishes (attribute + window event) and a
+        // choice applies at once, the menu staying open.
+        const AppearanceRow = () => {
+          const schemaPair = React.useState(() => {
+            try {
+              const v = document.documentElement.getAttribute('data-kb-theme')
+              return v === 'light' ? 'light' : 'dark'
+            } catch (e) { return 'dark' }
+          })
+          const schema = schemaPair[0]
+          const setSchema = schemaPair[1]
+          React.useEffect(() => {
+            const sur = (ev) => {
+              const to = ev !== null && ev !== undefined && ev.detail !== null && ev.detail !== undefined ? ev.detail.to : null
+              if (to === 'light' || to === 'dark') setSchema(to)
+            }
+            window.addEventListener('kybernos:theme', sur)
+            return () => window.removeEventListener('kybernos:theme', sur)
+          }, [])
+          const choisirSchema = (to) => {
+            setSchema(to)
+            try { window.dispatchEvent(new CustomEvent('kybernos:menu:theme', { detail: { to: to } })) } catch (e) { /* CustomEvent absent */ }
+          }
+          return h('div', { className: 'kbfp-mitem', role: 'group', 'aria-label': t('profApparence'), 'data-kb': 'menu-appearance' },
+            h(ContrastIcon, { size: 18 }),
+            h('span', { className: 'kbfp-mlab' }, t('profApparence')),
+            h('span', { className: 'kbfp-seg', role: 'group' },
+              h('button', {
+                type: 'button', 'aria-label': t('themeLight'), 'aria-pressed': schema === 'light' ? 'true' : 'false',
+                className: schema === 'light' ? 'on' : '', onClick: () => choisirSchema('light'),
+              }, h(SunMenuIcon, { size: 15 })),
+              h('button', {
+                type: 'button', 'aria-label': t('themeDark'), 'aria-pressed': schema === 'dark' ? 'true' : 'false',
+                className: schema === 'dark' ? 'on' : '', onClick: () => choisirSchema('dark'),
+              }, h(MoonMenuIcon, { size: 15 }))))
+        }
+
+        // ── The footer's menu while NO account is connected (or while a pairing waits) ──
+        // The row's gear opens it. Same structure as the connected menu: sign in (OUR device-code flow, never DSH's own « Sign
+        // in »), appearance, DSH's Settings, links. DSH's Settings are reached from an entry of this menu — never from DSH's
+        // account popover, which no longer shows. Drawn `fixed` on <body> (like the team switcher's sub-panel): the collapsed
+        // rail is narrower than the menu and the sidebar column clips what overflows it.
+        const OffMenu = (props) => {
+          const posPair = React.useState(null)
+          const pos = posPair[0]
+          const setPos = posPair[1]
+          React.useLayoutEffect(() => {
+            const row = props.anchorRef.current
+            if (row === null || row === undefined) return
+            const r = row.getBoundingClientRect()
+            const w = Math.max(Math.round(r.width), 248)
+            setPos({
+              left: Math.max(8, Math.min(Math.round(r.left), window.innerWidth - w - 8)),
+              bottom: Math.max(8, Math.round(window.innerHeight - r.top) + 10),
+              width: w,
+            })
+          }, [])
+          React.useEffect(() => {
+            const onKey = (ev) => { if (ev.key === 'Escape') props.onClose() }
+            // The gear toggles the menu itself: closing here at mousedown would let its click reopen the menu at once.
+            const dehors = (ev) => {
+              const c = ev.target
+              if (c !== null && typeof c.closest === 'function' && c.closest('.kbfp-menu') !== null) return
+              const gear = props.toggleRef.current
+              if (gear !== null && gear !== undefined && c !== null && gear.contains(c) === true) return
+              props.onClose()
+            }
+            window.addEventListener('keydown', onKey)
+            document.addEventListener('mousedown', dehors)
+            return () => { window.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', dehors) }
+          }, [props.onClose])
+          if (pos === null) return null
+          const entree = entreeMenu(props.onClose)
+          return ReactDOM.createPortal(h('div', {
+            className: 'kbfp-menu kbfp-menu-off', role: 'menu', 'aria-label': t('menu'), 'data-kb': 'off-menu',
+            style: { left: pos.left + 'px', bottom: pos.bottom + 'px', width: pos.width + 'px' },
+          },
+          h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-connect' },
+            entree('connect', h(EnterIcon, { size: 18 }), props.pairing === true ? t('footPairingAction') : t('footConnect'), props.onConnect)),
+          h('div', { className: 'kbfp-msep' }),
+          h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-account' },
+            h(AppearanceRow, null),
+            entree('settings', h(GearIcon, { size: 18 }), t('menuSettingsApp'), ouvrirReglagesDsh)),
+          h('div', { className: 'kbfp-msep' }),
+          h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-links' },
+            entree('help', h(HelpIcon, { size: 18 }), t('menuHelp'), () => envoyer('help')),
+            entree('feedback', h(MsgMenuIcon, { size: 18 }), t('menuFeedback'), () => envoyer('feedback')))), document.body)
         }
         const UserMenu = (props) => {
           React.useEffect(() => {
@@ -2154,58 +2253,11 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             window.addEventListener('kybernos:update', sur)
             return () => window.removeEventListener('kybernos:update', sur)
           }, [])
-          // Schéma ACTIF : attribut publié par le plugin Kybernos, événement
-          // fenêtre à chaque changement — le segment suit le thème réel.
-          const schemaPair = React.useState(() => {
-            try {
-              const v = document.documentElement.getAttribute('data-kb-theme')
-              return v === 'light' ? 'light' : 'dark'
-            } catch (e) { return 'dark' }
-          })
-          const schema = schemaPair[0]
-          const setSchema = schemaPair[1]
-          React.useEffect(() => {
-            const sur = (ev) => {
-              const to = ev !== null && ev !== undefined && ev.detail !== null && ev.detail !== undefined ? ev.detail.to : null
-              if (to === 'light' || to === 'dark') setSchema(to)
-            }
-            window.addEventListener('kybernos:theme', sur)
-            return () => window.removeEventListener('kybernos:theme', sur)
-          }, [])
-          const choisirSchema = (to) => {
-            setSchema(to)
-            try { window.dispatchEvent(new CustomEvent('kybernos:menu:theme', { detail: { to: to } })) } catch (e) { /* CustomEvent absent */ }
-          }
-
-          // ── Fermeture au clic sur une ENTRÉE (correctif 02/10) ──────────────────
-          // Le menu ne se fermait que sur un re-clic de la carte ou un clic
-          // dehors : choisir une entrée laissait le menu ouvert par-dessus la
-          // page qu'on venait d'ouvrir. Quatre entrées n'appelaient jamais
-          // `props.onClose()` (Réglage de l'espace, site, aide, retour) — la
-          // fermeture se pose donc ICI, une fois pour toutes, plutôt que dans
-          // chaque `onClick` où elle s'oublie.
-          // Le segment Apparence N'EST PAS une entrée `entree()` : c'est une rangée
-          // à part, dont les boutons changent le thème et laissent le menu
-          // OUVERT (on veut voir l'effet tout de suite). Il ne passe donc pas
-          // par ce helper, et n'est pas concerné par la fermeture ci-dessous.
-          // `ouvrirWeb` ouvre un onglet : on ferme AVANT, comme les autres.
-          const entree = (cle, icone, label, action, opts) => h('button', {
-            type: 'button', role: 'menuitem', 'data-kb': 'menu-' + cle,
-            className: 'kbfp-mitem' + (opts !== undefined && opts.danger === true ? ' kbfp-mout' : '') + (opts !== undefined && opts.amber === true ? ' kbfp-mamber' : ''),
-            onClick: (ev) => {
-              if (typeof action !== 'function') return
-              // Fermeture D'ABORD : l'action peut démonter ce menu (navigation,
-              // Réglages, déconnexion) — la déclencher ensuite évite d'agir sur
-              // un composant déjà démonté.
-              try { props.onClose() } catch (e) { /* menu déjà fermé */ }
-              action(ev)
-            },
-          }, icone, h('span', { className: 'kbfp-mlab' }, label),
-            opts !== undefined && typeof opts.tail === 'string' ? h('span', { className: 'kbfp-mtail' }, opts.tail) : null,
-            opts !== undefined && opts.ext === true ? h('span', { className: 'kbfp-mext', 'aria-hidden': 'true' }, h(ExtIcon, { size: 16 })) : null)
+          // Closing on an ENTRY click lives in `entreeMenu`, once for all, not in each `onClick` where it gets forgotten.
+          // The Appearance segment is not an entry: it leaves the menu open.
+          const entree = entreeMenu(props.onClose)
 
           const ouvrirWeb = () => { if (web === '') return; try { window.open(web, '_blank', 'noopener') } catch (e) { /* ouverture impossible */ } }
-          const envoyer = (nom) => { try { window.dispatchEvent(new Event('kybernos:menu:' + nom)) } catch (e) { /* Event absent */ } }
 
           // Blocks separated by a rule: Teams (space, plan, team settings) ·
           // Account · Links, then Log out. An available update goes first.
@@ -2240,26 +2292,9 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               entree('account', h(UserIcon, { size: 18 }), t('profCompte'), props.onAccount),
               // Referral: opens the matching Settings section.
               entree('referral', h(GiftMenuIcon, { size: 18 }), t('profParrain'), () => { if (typeof props.onSection === 'function') props.onSection(t('profParrain')) }, { amber: true }),
-              // Apparence : une RANGÉE à segment (pas un bouton) — le choix est immédiat.
-              h('div', { className: 'kbfp-mitem', role: 'group', 'aria-label': t('profApparence'), 'data-kb': 'menu-appearance' },
-                h(ContrastIcon, { size: 18 }),
-                h('span', { className: 'kbfp-mlab' }, t('profApparence')),
-                h('span', { className: 'kbfp-seg', role: 'group' },
-                  h('button', {
-                    type: 'button', 'aria-label': t('themeLight'), 'aria-pressed': schema === 'light' ? 'true' : 'false',
-                    className: schema === 'light' ? 'on' : '', onClick: () => choisirSchema('light'),
-                  }, h(SunMenuIcon, { size: 15 })),
-                  h('button', {
-                    type: 'button', 'aria-label': t('themeDark'), 'aria-pressed': schema === 'dark' ? 'true' : 'false',
-                    className: schema === 'dark' ? 'on' : '', onClick: () => choisirSchema('dark'),
-                  }, h(MoonMenuIcon, { size: 15 })))),
-              // Paramètres de l'APP : clic programmatique sur le déclencheur natif (masqué).
-              entree('settings', h(GearIcon, { size: 18 }), t('menuSettingsApp'), () => {
-                try {
-                  const b = document.querySelector('[class*="settingsArea"] button[class*="trigger"]')
-                  if (b !== null) b.click()
-                } catch (e) { /* declencheur introuvable : rien ne casse */ }
-              })),
+              h(AppearanceRow, null),
+              // DSH's own Settings (the app's): through the core plugin's seam, never through the native account popover.
+              entree('settings', h(GearIcon, { size: 18 }), t('menuSettingsApp'), ouvrirReglagesDsh)),
             h('div', { className: 'kbfp-msep' }),
             h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-links' },
               entree('website', h(GlobeIcon, { size: 18 }), t('menuWebsite'), ouvrirWeb, { ext: true }),
@@ -2357,6 +2392,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             if (rail !== null) ro.observe(rail)
             return () => { clearTimeout(minuteur); ro.disconnect() }
           }, [])
+          const offRowRef = React.useRef(null)
+          const gearRef = React.useRef(null)
           const [autoStart, setAutoStart] = React.useState(false)
           const [phase, setPhase] = React.useState('loading')
           const [state, setState] = React.useState({})
@@ -2441,6 +2478,14 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             return () => window.removeEventListener('kybernos-cloud:switch', ouvrirSelecteur)
           }, [])
 
+          // The core plugin sends a real click on DSH's own account launcher here (it should not be reachable: its area is hidden, but
+          // a shell that renamed its classes would show it): the person lands in OUR menu, connected or not.
+          React.useEffect(() => {
+            const ouvrirMenu = () => { setNotifOpen(false); setMobileOpen(false); setMenuOpen(true) }
+            window.addEventListener('kybernos-cloud:menu', ouvrirMenu)
+            return () => window.removeEventListener('kybernos-cloud:menu', ouvrirMenu)
+          }, [])
+
           // État publié pour les AUTRES plugins du pied : la cloche des
           // notifications est masquée tant qu'il n'y a pas de compte
           // (`data-kb-cloud="off"`). Tant que la lecture est en cours on ne
@@ -2461,14 +2506,6 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           const device = typeof state.device_label === 'string' && state.device_label.trim() !== '' ? state.device_label.trim() : null
 
           let corps = null
-          // L'engrenage natif est masqué (menu unifié) : déconnecté, la carte
-          // n'existe pas — ce bouton rend les Réglages atteignables.
-          const ouvrirParametresPied = () => {
-            try {
-              const b = document.querySelector('[class*="settingsArea"] button[class*="trigger"]')
-              if (b !== null) b.click()
-            } catch (e) { /* declencheur introuvable */ }
-          }
           if (phase === 'connected') {
             // ── La CARTE UNIFIÉE (refonte 30/09, maquette « Menu ouvert ») ──
             // Une seule carte : tuile d'initiales, nom de l'espace, « qui ·
@@ -2509,8 +2546,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             // ── Réglages ▸ Compte (demande du 30/09) ────────────────────────
             // « Compte » (et « Sécurité », même cible) du menu principal va
             // DIRECTEMENT dans la section Compte des Réglages : l'ancienne
-            // page plein cadre est cachée pour le moment. On passe par le
-            // déclencheur natif des Réglages (le même que l'entrée
+            // page plein cadre est cachée pour le moment. On ouvre les
+            // Réglages de DSH (le même geste que l'entrée
             // « Paramètres » du menu), puis on clique la cellule « Compte »
             // du nav dès qu'elle est rendue — le panneau se monte en
             // asynchrone. Réglages déjà ouverts : on se borne à sélectionner
@@ -2530,10 +2567,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               try {
                 const nav = document.querySelector('[class*="navList"]')
                 const dejaOuvert = nav !== null && nav.offsetParent !== null
-                if (dejaOuvert === false) {
-                  const b = document.querySelector('[class*="settingsArea"] button[class*="trigger"]')
-                  if (b !== null) b.click()
-                }
+                if (dejaOuvert === false) ouvrirReglagesDsh()
               } catch (e) { /* declencheur introuvable */ }
               let essais = 0
               const tique = () => {
@@ -2578,7 +2612,9 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                   : null)),
               h('button', {
                 type: 'button', className: 'kbfp-ico',
-                title: t('mobTitle'), 'aria-label': t('mobTitle'),
+                // Tooltip carries the full explanation (web app, direct link to
+                // this machine, Mac must be on and online) — asked 13/10.
+                title: t('mobTitle') + ' — ' + t('mobHelp'), 'aria-label': t('mobTitle') + ' — ' + t('mobHelp'),
                 'aria-expanded': mobileOpen === true ? 'true' : 'false',
                 onClick: () => setMobileOpen(mobileOpen !== true),
               }, h(PhoneIcon, { size: 19 })),
@@ -2616,29 +2652,32 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                 onManage: () => { setMobileOpen(false); ouvrirReglagesCompte('Mobile') },
               })
               : null)
-          } else if (phase === 'pairing') {
-            corps = h('div', { className: 'kbf-off' },
-              ligneMaj,
-              h('p', { className: 'kbm-setform-unavailable', style: { margin: '0' } }, t('footPairing')),
-              h('div', { className: 'kbf-offbtns' },
-                h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', onClick: openCard },
-                  h(EnterIcon, { size: 15 }), h('span', null, t('footPairingAction'))),
-                h('button', {
-                  type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline kbf-gear',
-                  title: t('menuSettingsApp'), 'aria-label': t('menuSettingsApp'), onClick: ouvrirParametresPied,
-                }, h(GearIcon, { size: 16 }))))
           } else {
-            const hint = phase === 'loading' ? t('loading') : t('footHint')
+            // Signed out, or a pairing waiting for its confirmation: the same row; the gear opens OUR menu (connect, appearance, DSH's
+            // Settings, links) — never DSH's account popover, whose « Sign in » is not our device-code flow.
+            const pairing = phase === 'pairing'
+            const hint = pairing ? t('footPairing') : (phase === 'loading' ? t('loading') : t('footHint'))
             corps = h('div', { className: 'kbf-off' },
               ligneMaj,
               h('p', { className: 'kbm-setform-unavailable', style: { margin: '0' } }, hint),
-              h('div', { className: 'kbf-offbtns' },
-                h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', onClick: openAndConnect },
-                  h(EnterIcon, { size: 15 }), h('span', null, t('footConnect'))),
+              h('div', { className: 'kbf-offbtns', ref: offRowRef },
+                h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', onClick: pairing ? openCard : openAndConnect },
+                  h(EnterIcon, { size: 15 }), h('span', null, pairing ? t('footPairingAction') : t('footConnect'))),
                 h('button', {
-                  type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline kbf-gear',
-                  title: t('menuSettingsApp'), 'aria-label': t('menuSettingsApp'), onClick: ouvrirParametresPied,
-                }, h(GearIcon, { size: 16 }))))
+                  type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline kbf-gear', ref: gearRef, 'data-kb': 'foot-gear',
+                  title: t('menuSettingsApp'), 'aria-label': t('menuSettingsApp'), 'aria-haspopup': 'menu',
+                  'aria-expanded': menuOpen === true ? 'true' : 'false',
+                  onClick: () => setMenuOpen(menuOpen !== true),
+                }, h(GearIcon, { size: 16 }))),
+              menuOpen === true
+                ? h(OffMenu, {
+                  pairing: pairing,
+                  anchorRef: offRowRef,
+                  toggleRef: gearRef,
+                  onClose: () => setMenuOpen(false),
+                  onConnect: pairing ? openCard : openAndConnect,
+                })
+                : null)
           }
 
           return h('div', { className: 'kbf-root', ref: racineRef },

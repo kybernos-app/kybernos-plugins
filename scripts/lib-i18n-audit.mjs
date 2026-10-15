@@ -42,7 +42,6 @@ export const collectIn = (rootSelector) => `(() => {
   }
   return JSON.stringify(out)
 })()`
-export const COLLECT = collectIn(null)
 
 // What counts as a leftover worth reporting.
 const FR_WORDS = /\b(le|la|les|des|du|de|un|une|et|ou|pour|avec|sans|dans|sur|par|est|sont|pas|vous|votre|vos|aucun|aucune|ajouter|créer|supprimer|ouvrir|fermer|enregistrer|annuler|modifier|choisir|nouveau|nouvelle|afficher|masquer|chargement|erreur|actif|actifs|lancer|relancer|réglages|paramètres)\b/i

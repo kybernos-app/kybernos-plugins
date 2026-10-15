@@ -10,8 +10,9 @@
 // Reimplementing this scan was the direct cause of flaw A3 (two roots resolving to the
 // same physical folder showed every skill twice, all read-only).
 //
-// The routes below are on the webServer service. TWO outbound NETWORK flows, read-only, to fixed hosts
-// (codeload.github.com to install, the kybernos-skills-index relay for the index) — see the NETWORK section.
+// The routes below are on the webServer service. Outbound NETWORK flows are read-only, to fixed hosts (codeload.github.com to
+// install, the kybernos-skills-index relay for the index, api.github.com and raw.githubusercontent.com for the preview of a
+// Discover card) — see the NETWORK and PREVIEW sections.
 //   GET  /kybernos-skills/skills    : the registry catalogue + the DISABLED skills. ?q= filters.
 //   GET  /kybernos-skills/index     : the PAGINATED public index (?view=all-time|trending|hot&page=&perPage=)
 //   GET  /kybernos-skills/search    : fuzzy search over the whole index (?q=, 2 characters minimum)
@@ -25,6 +26,11 @@
 //                                     <DSH home>/skills (~/.dsh/skills) and ~/.agents/skills (frozen decision).
 //   POST /kybernos-skills/create    : writes a valid SKILL.md into a writable root.
 //   POST /kybernos-skills/install   : downloads a GitHub archive and copies the requested skill.
+//   POST /kybernos-skills/skill/read      : the real SKILL.md of a listed skill, its folder, and the actions the screen may offer.
+//   POST /kybernos-skills/skill/reveal    : opens its folder, or SKILL.md in a text editor, on this machine.
+//   POST /kybernos-skills/skill/duplicate : copies it into the user's own skills folder under a free name.
+//   POST /kybernos-skills/skill/delete    : removes its folder (only inside a writable root, never a link or a root).
+//   GET  /kybernos-skills/preview   : a remote skill's folder, description and start of SKILL.md, read from its repository (?source=&name=)
 //
 // WHAT THIS PACKAGE BRINGS, AND WHAT DSH DOES NOT HAVE:
 //   1. the registry is READ-ONLY — nobody can disable a skill;
@@ -33,11 +39,11 @@
 //   3. the real confinement (flaw A2): writability is decided by the REAL
 //      PATH, never by the rank of the winning root;
 //   4. the interface.
-import { existsSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync, chmodSync, realpathSync, mkdirSync, mkdtempSync, rmdirSync, rmSync, cpSync, createReadStream } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, renameSync, statSync, lstatSync, openSync, readSync, closeSync, writeFileSync, chmodSync, realpathSync, mkdirSync, mkdtempSync, rmdirSync, rmSync, cpSync, createReadStream } from 'node:fs'
 import { createZstdDecompress } from 'node:zlib'
 import { homedir, tmpdir } from 'node:os'
-import { join, dirname, basename, sep, isAbsolute, resolve as resolvePath } from 'node:path'
-import { execFileSync } from 'node:child_process'
+import { join, dirname, basename, relative, sep, isAbsolute, resolve as resolvePath } from 'node:path'
+import { execFileSync, spawn } from 'node:child_process'
 import { validateTeamSkill, skillVersion, frontmatterOfText, TEAM_SKILL_LIMITS } from './team-skills.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
@@ -247,6 +253,8 @@ const disabledInRoot = (rootPath, cfg) => {
     out.push({
       name,
       root: rootPath,
+      folder,
+      file: disabledFile,
       source: sourceOfRootPath(rootPath, cfg),
       rank: SOURCE_RANK[sourceOfRootPath(rootPath, cfg)] ?? UNKNOWN_RANK,
       writable: writableRootFor(folder, writableRootsOf(cfg)) !== null,
@@ -456,6 +464,10 @@ const catalogueOf = async (ctx, config, sessionId) => {
     skills.push({
       name: entry.name,
       root: root === null ? '' : root,
+      // WHERE it lives, from the registry's own path (never from a caller): the screen shows it, and the routes that open, copy or
+      // delete a skill re-find the entry by { root, name } and use THIS folder, not one the caller built.
+      folder,
+      file: entry.path,
       source: typeof entry.source === 'string' ? entry.source : 'runtime',
       rank: SOURCE_RANK[entry.source] ?? UNKNOWN_RANK,
       writable,
@@ -599,6 +611,8 @@ const skillEntryOf = (rootPath, cfg, resolved) => {
   return {
     name,
     root: rootPath,
+    folder,
+    file: carrier,
     source,
     rank: SOURCE_RANK[source] ?? UNKNOWN_RANK,
     writable: writableRootFor(folder, writableRootsOf(cfg)) !== null,
@@ -917,7 +931,7 @@ const cachedDiscover = async (key0, produce) => {
 // Empties the index cache. Needed by the tests to measure a NEW ranking, and in any case
 // indispensable as soon as a "refresh" button is wanted on the interface side: without it an answer
 // stays frozen until DISCOVER_TTL_MS.
-const resetDiscoverCache = () => { discoverCache.clear() }
+const resetDiscoverCache = () => { discoverCache.clear(); previewMemo.clear() }
 
 const clampInt = (v, min, max, fallback) => {
   const n = Number(v)
@@ -1092,6 +1106,8 @@ const installSkill = async ({ ctx, source, name, root, config, sessionId }) => {
     return {
       ok: true,
       files: countFiles(target),
+      // Where the skill sat in the archive (without the archive's own top folder, `<repo>-<sha>`): what the user was told they would get.
+      folder: relative(tmp, found[0]).split(sep).slice(1).join('/'),
       skill: skillEntryOf(dest, cfg, { folder: target, activeFile: join(target, MARKER_ACTIVE), disabledFile: join(target, MARKER_DISABLED), hasActive: true })
     }
   } finally {
@@ -1288,6 +1304,314 @@ const createSkill = async ({ ctx, root, name, description, whenToUse, body, mode
   }
 }
 
+// ── PREVIEW OF A REMOTE SKILL (Discover) ─────────────────────────────────────────────────────────────────────
+// The index knows a skill's repository and name, nothing else: no description, no folder, no text. The panel of a Discover card
+// wants those, so this reads them from the repository itself, anonymously and read-only, on two more FIXED GitHub hosts
+// (api.github.com for the list of files, raw.githubusercontent.com for the one SKILL.md). `source` is validated as owner/repo before
+// any request and the file path comes from that repository's own listing, so no caller URL is followed. The folder cannot be guessed
+// (mattpocock/skills keeps `grill-me` in skills/productivity/), hence the listing. Anonymous GitHub reads are rate-limited (60 an
+// hour per address): the answer is cached per repository for the same five minutes as the index, a failure is never cached, and a
+// limit is reported as such so the screen can say that the facts show at install time.
+const GITHUB_API = 'https://api.github.com'
+const GITHUB_RAW = 'https://raw.githubusercontent.com'
+const PREVIEW_TIMEOUT_MS = 15000
+const MAX_TREE_BYTES = 8 * 1024 * 1024
+const MAX_PREVIEW_FILE_BYTES = 256 * 1024
+const PREVIEW_TEXT_CHARS = 6000
+const PREVIEW_CANDIDATES = 3
+const PREVIEW_MEMO_MAX = 60
+const previewMemo = new Map()
+
+const memoGet = (key) => {
+  const hit = previewMemo.get(key)
+  return hit !== undefined && Date.now() - hit.at < DISCOVER_TTL_MS ? hit.data : undefined
+}
+const memoSet = (key, data) => {
+  if (previewMemo.size >= PREVIEW_MEMO_MAX) previewMemo.delete(previewMemo.keys().next().value)
+  previewMemo.set(key, { at: Date.now(), data })
+}
+
+const githubGet = async (url, accept, max) => {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), PREVIEW_TIMEOUT_MS)
+  try {
+    const res = await fetch(url, { signal: controller.signal, redirect: 'follow', headers: { accept, 'user-agent': 'kybernos-skills' } })
+    if (!res.ok) return { status: res.status }
+    const buf = await readBounded(res, max)
+    if (buf === null) return { status: 413 }
+    return { status: 200, text: buf.toString('utf8') }
+  } catch (e) {
+    return { status: 0, error: e !== null && e !== undefined && e.name === 'AbortError' ? 'timeout' : 'network_unavailable' }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+const githubFail = (res, source) => {
+  if (res.status === 404) return { ok: false, error: 'repo_not_found', source }
+  if (res.status === 403 || res.status === 429) return { ok: false, error: 'github_rate_limited', http: res.status }
+  if (res.status === 0) return { ok: false, error: res.error }
+  return { ok: false, error: 'download_failed', http: res.status }
+}
+
+// The SKILL.md files of a repository, as paths (cached per repository).
+const skillFilesOf = async (source) => {
+  const key = 'tree:' + source
+  const hit = memoGet(key)
+  if (hit !== undefined) return hit
+  const res = await githubGet(GITHUB_API + '/repos/' + source + '/git/trees/HEAD?recursive=1', 'application/vnd.github+json', MAX_TREE_BYTES)
+  if (res.status !== 200) return githubFail(res, source)
+  let tree
+  try { tree = JSON.parse(res.text) } catch (e) { return { ok: false, error: 'download_failed', http: 200 } }
+  const files = (Array.isArray(tree.tree) ? tree.tree : [])
+    .filter((n) => n !== null && typeof n === 'object' && n.type === 'blob' && typeof n.path === 'string' && (n.path === MARKER_ACTIVE || n.path.endsWith('/' + MARKER_ACTIVE)))
+    .map((n) => n.path)
+  const out = { ok: true, files, truncated: tree.truncated === true }
+  memoSet(key, out)
+  return out
+}
+
+// A path comes from the repository's listing, but it is still a path in a URL: plain characters only, no `..`.
+const SAFE_PATH_RE = /^[A-Za-z0-9._ @+-]+(?:\/[A-Za-z0-9._ @+-]+)*$/
+const previewSkill = async (source, name) => {
+  if (typeof source !== 'string' || SOURCE_RE.test(source) === false) {
+    return { ok: false, error: DOMAIN_RE.test(String(source)) ? 'not_github' : 'invalid_source', source: typeof source === 'string' ? source : undefined }
+  }
+  if (typeof name !== 'string' || SLUG_RE.test(name) === false) return { ok: false, error: 'invalid_name' }
+  const listing = await skillFilesOf(source)
+  if (listing.ok !== true) return listing
+  // The folder is the one that carries the skill's name; the repository's root SKILL.md also qualifies (a single-skill repository).
+  const depthHidden = (path) => path.split('/').filter((seg) => seg.startsWith('.')).length
+  const candidates = listing.files
+    .filter((path) => SAFE_PATH_RE.test(path) && path.split('/').indexOf('..') === -1 && (path === MARKER_ACTIVE || basename(dirname(path)) === name))
+    .sort((a, b) => (depthHidden(a) - depthHidden(b)) || (a.length - b.length) || (a < b ? -1 : 1))
+    .slice(0, PREVIEW_CANDIDATES)
+  for (const path of candidates) {
+    const fileKey = 'file:' + source + '/' + path
+    let text = memoGet(fileKey)
+    if (text === undefined) {
+      const res = await githubGet(GITHUB_RAW + '/' + source + '/HEAD/' + path.split('/').map(encodeURIComponent).join('/'), 'text/plain', MAX_PREVIEW_FILE_BYTES)
+      if (res.status === 404) continue
+      if (res.status !== 200) return githubFail(res, source)
+      text = res.text
+      memoSet(fileKey, text)
+    }
+    const fm = frontmatterOfText(text)
+    // The same rule as the install: the frontmatter names the skill. A root SKILL.md of another skill is not this one.
+    if (fm.name !== name) continue
+    const folder = dirname(path) === '.' ? '' : dirname(path)
+    return {
+      ok: true,
+      found: true,
+      source,
+      name,
+      folder,
+      file: path,
+      description: typeof fm.description === 'string' ? fm.description : '',
+      text: text.length > PREVIEW_TEXT_CHARS ? text.slice(0, PREVIEW_TEXT_CHARS) : text,
+      truncated: text.length > PREVIEW_TEXT_CHARS,
+      url: 'https://github.com/' + source + (folder === '' ? '' : '/tree/HEAD/' + folder.split('/').map(encodeURIComponent).join('/'))
+    }
+  }
+  return { ok: true, found: false, source, name, listTruncated: listing.truncated === true }
+}
+
+// ── ONE SKILL OF YOURS: read it, open it, copy it, delete it ─────────────────────────────────────────────────
+// What the detail panel of « Yours » does. Every call re-finds the skill in the catalogue by { root, name }: a caller can only name what
+// the registry (or the disabled-marker sweep) lists, and the folder acted on is the catalogue's own, never a path the caller built.
+// Writes go further: only a skill whose REAL folder sits in one of the two writable roots (`writable`), never a link, never a root.
+const MAX_SKILL_TEXT = 128 * 1024
+const MAX_COUNTED_FILES = 5000
+
+const skillOf = async ({ ctx, root, name, config, sessionId }) => {
+  if (typeof name !== 'string' || SKILL_NAME_RE.test(name) === false) return { ok: false, error: 'bad_name' }
+  if (typeof root !== 'string' || root === '') return { ok: false, error: 'bad_root' }
+  const cat = await catalogueOf(ctx, normalizeConfig(config), sessionId)
+  const entry = cat.skills.find((s) => s.root === root && s.name === name)
+  if (entry === undefined) return { ok: false, error: 'not_found' }
+  return { ok: true, entry }
+}
+
+const isLink = (path) => { try { return lstatSync(path).isSymbolicLink() } catch (e) { return true } }
+
+// A request that does not come through this machine's own address (a hosted DSH reached from elsewhere) must not open anything on the
+// machine the server runs on: the browser is not there.
+const fromThisMachine = (req) => {
+  const host = req !== null && req !== undefined && req.headers !== null && req.headers !== undefined && typeof req.headers.host === 'string' ? req.headers.host : ''
+  return host === '' || /^(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/.test(host)
+}
+
+/** What the screen may offer for this skill, decided here and sent with the content: a screen never shows an action the host would refuse. */
+const actionsOf = (entry, req) => {
+  const folder = typeof entry.folder === 'string' && entry.folder !== ''
+  const link = folder === true && isLink(entry.folder)
+  const here = fromThisMachine(req)
+  return {
+    reveal: here && folder,
+    edit: here && typeof entry.file === 'string' && entry.file !== '',
+    duplicate: folder && link === false,
+    delete: folder && link === false && entry.writable === true
+  }
+}
+
+const countFilesBounded = (dir, depth, state) => {
+  if (depth > MAX_TREE_DEPTH || state.n > MAX_COUNTED_FILES) return
+  let entries
+  try { entries = readdirSync(dir, { withFileTypes: true }) } catch (e) { return }
+  for (const entry of entries) {
+    if (entry.isDirectory()) countFilesBounded(join(dir, entry.name), depth + 1, state)
+    else if (entry.isFile()) state.n += 1
+  }
+}
+
+const readSkill = async ({ ctx, root, name, config, sessionId, req }) => {
+  const found = await skillOf({ ctx, root, name, config, sessionId })
+  if (found.ok !== true) return found
+  const { entry } = found
+  let text = ''
+  let truncated = false
+  try {
+    const size = statSync(entry.file).size
+    const buf = Buffer.alloc(Math.min(size, MAX_SKILL_TEXT))
+    const fd = openSync(entry.file, 'r')
+    try { readSync(fd, buf, 0, buf.length, 0) } finally { closeSync(fd) }
+    text = buf.toString('utf8')
+    truncated = size > MAX_SKILL_TEXT
+  } catch (e) { return { ok: false, error: 'not_found' } }
+  const state = { n: 0 }
+  if (typeof entry.folder === 'string' && entry.folder !== '') countFilesBounded(entry.folder, 0, state)
+  return {
+    ok: true,
+    name: entry.name,
+    root: entry.root,
+    folder: entry.folder ?? null,
+    file: entry.file,
+    active: entry.active === true,
+    text,
+    truncated,
+    files: state.n,
+    filesMore: state.n > MAX_COUNTED_FILES,
+    actions: actionsOf(entry, req)
+  }
+}
+
+/** Opens a folder, or a file in a text editor, on the machine DSH runs on. Never a shell: the path is ONE argument, and it is always an
+ *  absolute path of a skill the catalogue lists. `true` when it was handed over. */
+const openLocal = (target, { edit = false, platform = process.platform, env = process.env, spawnFn = spawn, waitMs = 3000 } = {}) => new Promise((resolve) => {
+  let cmd = null
+  let args = []
+  if (platform === 'darwin') { cmd = 'open'; args = edit ? ['-t', target] : [target] }
+  else if (platform === 'win32') { cmd = edit ? 'notepad' : 'explorer'; args = [target] }
+  else if ((typeof env.DISPLAY === 'string' && env.DISPLAY !== '') || (typeof env.WAYLAND_DISPLAY === 'string' && env.WAYLAND_DISPLAY !== '')) { cmd = 'xdg-open'; args = [target] }
+  if (cmd === null) { resolve(false); return }
+  let done = false
+  let timer = null
+  const finish = (value) => { if (done) return; done = true; if (timer !== null) clearTimeout(timer); resolve(value) }
+  try {
+    const child = spawnFn(cmd, args, { stdio: 'ignore', detached: true, windowsHide: true })
+    child.once('error', () => finish(false))
+    // explorer.exe answers 1 when it worked; the others answer 0.
+    child.once('exit', (code) => finish(platform === 'win32' || code === 0))
+    if (typeof child.unref === 'function') child.unref()
+    timer = setTimeout(() => finish(true), waitMs)
+    if (typeof timer.unref === 'function') timer.unref()
+  } catch (e) { finish(false) }
+})
+
+const revealSkill = async ({ ctx, root, name, target, config, sessionId, req, opener }) => {
+  if (target !== 'folder' && target !== 'file') return { ok: false, error: 'bad_target' }
+  const found = await skillOf({ ctx, root, name, config, sessionId })
+  if (found.ok !== true) return found
+  const acts = actionsOf(found.entry, req)
+  if (fromThisMachine(req) === false) return { ok: false, error: 'not_local' }
+  if (target === 'folder' && acts.reveal !== true) return { ok: false, error: 'not_a_folder' }
+  if (target === 'file' && acts.edit !== true) return { ok: false, error: 'not_found' }
+  const path = target === 'folder' ? found.entry.folder : found.entry.file
+  const opened = await (typeof opener === 'function' ? opener : openLocal)(path, { edit: target === 'file' })
+  return opened === true ? { ok: true, opened: true, target } : { ok: false, error: 'opener_unavailable' }
+}
+
+// A copy lands in the user's own skills folder, under a free name (`<name>-copy`, `-copy-2`…), and the `name:` of its frontmatter is
+// rewritten to that name: two skills with the same name would collide in the registry. What a skill folder carries that is not the
+// skill is left behind: links (never followed), `.git`, `node_modules`, and the Team mark (a copy is not a Team install).
+const COPY_LEFT_BEHIND = new Set(['.git', 'node_modules', '.DS_Store', '.kybernos-team.json'])
+const FRONTMATTER_BLOCK_RE = /^(---[ \t]*\r?\n)([\s\S]*?)(\r?\n---[ \t]*(?:\r?\n|$))/
+
+/** Puts `newName` in the `name:` line of a SKILL.md's frontmatter. True when the file now names `newName` (or names nothing, so the
+ *  folder's name applies); false when the frontmatter could not be read as a block. */
+const renameInFrontmatter = (file, newName) => {
+  const text = readFileSync(file, 'utf8')
+  const m = FRONTMATTER_BLOCK_RE.exec(text)
+  if (m === null) return false
+  const nl = m[2].includes('\r\n') ? '\r\n' : '\n'
+  let hit = false
+  const lines = m[2].split(/\r?\n/).map((line) => {
+    if (hit === false && /^name[ \t]*:/.test(line)) { hit = true; return 'name: ' + newName }
+    return line
+  })
+  if (hit === false) return true
+  writeFileSync(file, text.slice(0, m.index) + m[1] + lines.join(nl) + m[3] + text.slice(m.index + m[0].length))
+  return true
+}
+
+const duplicateSkill = async ({ ctx, root, name, config, sessionId }) => {
+  const found = await skillOf({ ctx, root, name, config, sessionId })
+  if (found.ok !== true) return found
+  const { entry } = found
+  if (typeof entry.folder !== 'string' || entry.folder === '') return { ok: false, error: 'not_a_folder' }
+  if (isLink(entry.folder)) return { ok: false, error: 'is_link' }
+  const cfg = normalizeConfig(config)
+  const dest = join(cfg.dsh, 'skills')
+  let copyName = null
+  for (let i = 1; i <= 99 && copyName === null; i += 1) {
+    const candidate = name + (i === 1 ? '-copy' : '-copy-' + i)
+    if (existsSync(join(dest, candidate)) === false) copyName = candidate
+  }
+  if (copyName === null) return { ok: false, error: 'no_copy_name' }
+  const target = join(dest, copyName)
+  try {
+    mkdirSync(dest, { recursive: true })
+    cpSync(entry.folder, target, {
+      recursive: true,
+      dereference: false,
+      force: false,
+      errorOnExist: true,
+      filter: (src) => COPY_LEFT_BEHIND.has(basename(src)) === false && isLink(src) === false
+    })
+    const active = existsSync(join(target, MARKER_ACTIVE))
+    const carrier = join(target, active ? MARKER_ACTIVE : MARKER_DISABLED)
+    if (existsSync(carrier) === false || renameInFrontmatter(carrier, copyName) === false) throw new Error('copy_incomplete')
+    const fm = frontmatterOf(carrier)
+    if (fm.name !== undefined && fm.name !== copyName) throw new Error('copy_incomplete')
+    invalidateSkills(ctx, sessionId)
+    return { ok: true, name: copyName, skill: skillEntryOf(dest, cfg, { folder: target, activeFile: join(target, MARKER_ACTIVE), disabledFile: join(target, MARKER_DISABLED), hasActive: active }) }
+  } catch (e) {
+    // Only the folder this call just made is removed, never a skill that was already there.
+    try { rmSync(target, { recursive: true, force: true }) } catch (e2) { /* nothing more to do */ }
+    return { ok: false, error: 'copy_incomplete' }
+  }
+}
+
+const deleteSkill = async ({ ctx, root, name, config, sessionId }) => {
+  const found = await skillOf({ ctx, root, name, config, sessionId })
+  if (found.ok !== true) return found
+  const { entry } = found
+  if (entry.writable !== true) return { ok: false, error: 'not_writable' }
+  if (typeof entry.folder !== 'string' || entry.folder === '') return { ok: false, error: 'not_a_folder' }
+  if (isLink(entry.folder)) return { ok: false, error: 'is_link' }
+  let isDir = false
+  try { isDir = statSync(entry.folder).isDirectory() } catch (e) { isDir = false }
+  if (isDir === false) return { ok: false, error: 'not_a_folder' }
+  // Only a folder that IS a skill, only inside a writable root, and never a root itself.
+  if (existsSync(join(entry.folder, MARKER_ACTIVE)) === false && existsSync(join(entry.folder, MARKER_DISABLED)) === false) return { ok: false, error: 'not_a_folder' }
+  const wRoots = writableRootsOf(normalizeConfig(config))
+  const real = realpathSafe(entry.folder)
+  if (real === null || writableRootFor(entry.folder, wRoots) === null || wRoots.some((r) => realpathSafe(r) === real)) return { ok: false, error: 'not_writable' }
+  try { rmSync(entry.folder, { recursive: true, force: false }) } catch (e) { return { ok: false, error: 'delete_failed' } }
+  invalidateSkills(ctx, sessionId)
+  return { ok: true, name: entry.name, root: entry.root, deleted: true }
+}
+
 // ── mounting the routes (mirror of :2728-2729 and :2873-2874, base daed42e) ──────────────────────────────────────
 const mountWebRoutes = (ctx, webServerSvc) => {
   webServerSvc = kbFenced(webServerSvc)
@@ -1302,7 +1626,7 @@ const mountWebRoutes = (ctx, webServerSvc) => {
   const POST = (path, label, fn, cap) => ctx.effect(() => webServerSvc.register({ kind: 'exact', path, handler: async (req, res) => {
     if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'post_required' })
     if (sameOrigin(req) === false) return sendJson(res, 403, { ok: false, error: 'origin_refused' })
-    try { sendJson(res, 200, await fn(await readJsonBody(req, cap))) } catch (e) { sendJson(res, 200, { ok: false, error: e !== null && e !== undefined && e.message === 'body_too_large' ? 'body_too_large' : 'request_failed' }) }
+    try { sendJson(res, 200, await fn(await readJsonBody(req, cap), req)) } catch (e) { sendJson(res, 200, { ok: false, error: e !== null && e !== undefined && e.message === 'body_too_large' ? 'body_too_large' : 'request_failed' }) }
   } }), label)
 
   GET('/kybernos-skills/skills', 'kybernos-skills: route skills', async (req) => {
@@ -1315,6 +1639,25 @@ const mountWebRoutes = (ctx, webServerSvc) => {
       String(s.description).toLowerCase().includes(q) || String(s.whenToUse).toLowerCase().includes(q))
     return { ok: true, ...catalogue, skills, query: q }
   })
+
+  // ── ONE SKILL: its real SKILL.md and what can be done with it ────────────────────────────────────────────────
+  // POST, not GET: the answer carries a skill's CONTENT, and a GET is served before DSH's own authentication with no origin guard.
+  // { root, name } must name a skill the catalogue lists (any root, a read-only one included); the answer carries `actions`, what the
+  // host will accept for this skill, so the screen offers nothing it would refuse.
+  POST('/kybernos-skills/skill/read', 'kybernos-skills: route skill read', async (body, req) => readSkill({
+    ctx, root: body.root, name: body.name, config: configOf(), sessionId: body.sessionId, req
+  }))
+  POST('/kybernos-skills/skill/reveal', 'kybernos-skills: route skill reveal', async (body, req) => revealSkill({
+    ctx, root: body.root, name: body.name, target: body.target, config: configOf(), sessionId: body.sessionId, req
+  }))
+  POST('/kybernos-skills/skill/duplicate', 'kybernos-skills: route skill duplicate', async (body) => duplicateSkill({
+    ctx, root: body.root, name: body.name, config: configOf(), sessionId: body.sessionId
+  }))
+  POST('/kybernos-skills/skill/delete', 'kybernos-skills: route skill delete', async (body) => deleteSkill({
+    ctx, root: body.root, name: body.name, config: configOf(), sessionId: body.sessionId
+  }))
+  // A remote skill, before it is installed: its folder, description and the start of its SKILL.md, read from its repository.
+  GET('/kybernos-skills/preview', 'kybernos-skills: route preview', async (req) => previewSkill(queryParam(req, 'source'), queryParam(req, 'name')))
 
   // ── remote index, through the relay: paginated, 50 per page by default ───────────────────────────────────
   GET('/kybernos-skills/index', 'kybernos-skills: route index', async (req) => indexSkills({
@@ -1464,7 +1807,7 @@ const mountWebRoutes = (ctx, webServerSvc) => {
 }
 
 // ── named exports for the harness (testability: explicit paths, nothing wired) + apply ────────────────
-export { dshHome, catalogueOf, toggleSkill, createSkill, installSkill, indexSkills, searchSkills, curatedSkills, auditSkill, packSkill, installTeamSkill, resetDiscoverCache, configOf, journalPath, resolveInRoot, writableRootFor, layoutOf, SOURCE_RANK, sameOrigin, checkIndexUrl, describeIndexSource, setIndexSource }
+export { dshHome, catalogueOf, toggleSkill, createSkill, installSkill, readSkill, revealSkill, duplicateSkill, deleteSkill, previewSkill, openLocal, indexSkills, searchSkills, curatedSkills, auditSkill, packSkill, installTeamSkill, resetDiscoverCache, configOf, journalPath, resolveInRoot, writableRootFor, layoutOf, SOURCE_RANK, sameOrigin, checkIndexUrl, describeIndexSource, setIndexSource }
 
 export function apply(ctx) {
   // Safety net mirroring kybernos-plugin/index.js:2876-2884 (base): a mount error must not

@@ -141,16 +141,18 @@ export function summarize (ledger, { days = 30, now = new Date() } = {}) {
   const models = {}
   for (const d of daily) for (const k of Object.keys(d.models)) models[k] = add(models[k] === undefined ? zero() : models[k], d.models[k])
   const first = keys[0]
-  const sessions = Object.keys(ledger.sessions)
+  const inPeriod = Object.keys(ledger.sessions)
     .map((id) => ({ id, ...ledger.sessions[id] }))
     .filter((s) => s.seen !== '' && dayKey(s.seen) >= first && Object.keys(s.models).length > 0)
     .sort((a, b) => String(b.seen).localeCompare(String(a.seen)))
+  // the list is cut at 40 for the page; the count is not (a dashboard says how many sessions there were)
+  const sessions = inPeriod
     .slice(0, 40)
     .map((s) => ({ id: s.id, title: s.title, seen: s.seen, models: s.models }))
   const allDays = Object.keys(ledger.days).sort()
   return {
     period: { days: n, from: keys[0], to: keys[keys.length - 1] },
-    daily, models, sessions,
+    daily, models, sessions, sessionCount: inPeriod.length,
     before: ledger.before,
     since: allDays.length > 0 ? allDays[0] : null,
     budget: ledger.budget,

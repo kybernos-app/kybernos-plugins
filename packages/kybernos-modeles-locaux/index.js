@@ -219,6 +219,26 @@ const lancerJob = (cible, chaineMoteur) => {
 // hf.co/… depuis 0.11) — « / » admis, « .. » refusé.
 const ID_VALIDE = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,100}$/
 
+// ── new-model discovery (Refresh button) ────────────────────────────────────
+// The model ids seen by the LAST scan (module state, resets on restart). The
+// first scan seeds the set, so it never reports false "new" for models that
+// were already there; later scans report what appeared since.
+let idsConnus = null
+
+// Ask the Ollama SERVER itself (http://127.0.0.1:11434/api/tags) for the list
+// of models it currently serves — a real interrogation, not a local re-read.
+const listerTagsOllama = async () => {
+  try {
+    const r = await fetch('http://127.0.0.1:11434/api/tags', { signal: AbortSignal.timeout(4000) })
+    if (!r.ok) return null
+    const body = await r.json()
+    if (body === null || !Array.isArray(body.models)) return null
+    return body.models
+      .filter((m) => m && typeof m.name === 'string' && m.name.length > 0)
+      .map((m) => ({ id: m.name, taille: typeof m.size === 'number' ? Math.round(m.size / (1024 ** 3) * 10) / 10 + ' Go' : null }))
+  } catch (e) { return null }
+}
+
 export function apply(ctx) {
   try {
     ctx.inject(['webServer'], (hostCtx) => {
@@ -230,6 +250,22 @@ export function apply(ctx) {
         try { sendJson(res, 200, { ok: true, machine: await lireMachine(force) }) }
         catch (e) { sendJson(res, 200, { ok: false, error: String(e && e.message ? e.message : e) }) }
       }}), 'modeles-locaux: machine')
+
+      // Scan for newly installed compatible models (the "Re-check" button):
+      // interrogate /api/tags, diff against the ids seen last time.
+      hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/modeles-locaux/decouvrir', handler: async (req, res) => {
+        if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
+        if (sameOrigin(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }
+        try {
+          const modeles = await listerTagsOllama()
+          if (modeles === null) { sendJson(res, 200, { ok: false, error: 'serveur-ollama-inaccessible' }); return }
+          const ids = modeles.map((m) => m.id)
+          let nouveaux = []
+          if (idsConnus !== null) nouveaux = modeles.filter((m) => !idsConnus.has(m.id))
+          idsConnus = new Set(ids)
+          sendJson(res, 200, { ok: true, nouveaux, total: ids.length })
+        } catch (e) { sendJson(res, 200, { ok: false, error: String(e && e.message ? e.message : e) }) }
+      }}), 'modeles-locaux: decouvrir (nouveaux modèles)')
 
       // État du job (le client interroge toutes les 600 ms pendant un tirage).
       hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/modeles-locaux/installation', handler: async (req, res) => {

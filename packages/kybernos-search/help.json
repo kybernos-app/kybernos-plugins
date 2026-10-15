@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "Une recherche qui lit le contenu de vos chats, pas seulement leurs titres, et aussi vos skills, mémoires, leçons, créations, automations et équipes.",
+    "en": "A search that reads the content of your chats, not only their titles, and also your skills, memories, lessons, creations, automations and agent teams."
+  },
+  "steps": [
+    {
+      "fr": "Appuyez sur ⌘K (Ctrl+K), ou cliquez la loupe à côté de la recherche de la liste, ou la ligne « Rechercher partout » du menu.",
+      "en": "Press ⌘K (Ctrl+K), or click the search icon next to the list's search, or the “Search everywhere” row of the menu."
+    },
+    {
+      "fr": "Tapez quelques mots : les résultats sont groupés par type, avec l’extrait où ils apparaissent.",
+      "en": "Type a few words: results are grouped by kind, with the passage where they appear."
+    },
+    {
+      "fr": "Activez ou coupez un type avec les pastilles du haut ; ↑ ↓ pour choisir, ↵ pour ouvrir.",
+      "en": "Switch a kind on or off with the chips at the top; ↑ ↓ to choose, ↵ to open."
+    }
+  ],
+  "where": {
+    "fr": "Menu › Rechercher partout, ou ⌘K (aucune page de réglages)",
+    "en": "Menu › Search everywhere, or ⌘K (no settings page)",
+    "page": false
+  },
+  "good": {
+    "fr": "Tout reste sur cet ordinateur. Le premier clic construit l’index des chats (une dizaine de secondes), ensuite seuls les chats modifiés sont relus.",
+    "en": "Everything stays on this computer. The first click builds the chat index (about ten seconds), afterwards only the chats that changed are read."
+  }
+}

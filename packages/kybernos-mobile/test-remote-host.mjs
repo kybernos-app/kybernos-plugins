@@ -2,6 +2,7 @@
 // a real replay against a stand-in DSH, through the stand-in relay. No DSH, no real network, no account.
 //   cd packages/kybernos-mobile && node test-remote-host.mjs
 import http from 'node:http'
+import { randomBytes } from 'node:crypto'
 import { mkdtempSync, readFileSync, rmSync, statSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -42,6 +43,8 @@ const dshServer = http.createServer((req, res) => {
     dshHits.push({ method: req.method, url: req.url, headers: req.headers, body })
     if (req.url === '/') { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'set-cookie': 'dsh=1' }); return res.end('<!doctype html><html><head></head><body>dsh page</body></html>') }
     if (req.url === '/assets/app-abcdef12.js') { res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8' }); return res.end(bigJs) }
+    if (req.url === '/big') { res.writeHead(200, { 'content-type': 'application/octet-stream' }); return res.end(randomBytes(300 * 1024)) }
+    if (req.url === '/small') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end('{"ok":true,"small":true}') }
     if (req.url === '/bin') { res.writeHead(200, { 'content-type': 'application/octet-stream' }); return res.end(Buffer.from([0, 1, 2, 3, 250, 251, 252])) }
     if (req.url === '/redirect') { res.writeHead(302, { location: 'http://127.0.0.1:' + dshServer.address().port + '/final' }); return res.end() }
     if (req.url === '/slow') { setTimeout(() => { try { res.writeHead(200); res.end('late') } catch (e) { /* gone */ } }, 3000); return }
@@ -106,10 +109,13 @@ const bodyOf = async (r) => (r.head !== null && r.head.enc === 'gzip' ? gunzip(r
 // ── the run ─────────────────────────────────────────────────────────────────────────────────────────────────────
 const relay = await startFakeRelay({ maxDevices: 2 })
 const dir = mkdtempSync(join(tmpdir(), 'kb-mobile-remote-'))
+// the computer's own socket as seen by its send buffer: the test says how backed up it is (a slow uplink at home)
+const lag = { value: 0 }
+class LaggyWebSocket extends globalThis.WebSocket { get bufferedAmount () { return lag.value } }
 const makeRemote = () => createRemote({
   dir,
   cloud: () => relay.api,
-  WebSocket: globalThis.WebSocket,
+  WebSocket: LaggyWebSocket,
   fetch: globalThis.fetch,
   local: () => ({ base: dshBase, cookie: 'dsh-auth-test=SESSION' }),
   label: () => 'Test computer',
@@ -201,6 +207,31 @@ try {
   const pairRoute = await phone.request({ t: 'req', id: 'p7', method: 'POST', path: '/kybernos-mobile/remote/pair', headers: {} }, te.encode('{}'))
   ok('a phone cannot manage phones', pairRoute.head.status === 403 && dshHits.length === hitsBefore)
   ok('refusals are counted', (await remote.status()).refused === 2)
+
+  // several answers leave at once while the computer's socket is backed up (a slow uplink): the frames must still leave in
+  // order, since the phone requires the counter to be exactly the next one (measured 2026-10-13: a desynchronised channel
+  // dropped every later frame, and the Skills page stayed a skeleton on a real phone)
+  lag.value = 8 * 1024 * 1024
+  const burst = ['o1', 'o2', 'o3', 'o4']
+  for (const id of burst) await phone.sendEnc({ t: 'req', id, method: 'GET', path: '/big', headers: {} })
+  await sleep(300)
+  lag.value = 0
+  const lateIds = []
+  for (let i = 0; i < 12; i += 1) { lateIds.push('l' + i); await phone.sendEnc({ t: 'req', id: 'l' + i, method: 'GET', path: '/small', headers: {} }) }
+  const sizes = new Map([...burst, ...lateIds].map((id) => [id, { bytes: 0, end: false }]))
+  let broke = null
+  for (let n = 0; n < 600 && [...sizes.values()].some((v) => !v.end); n += 1) {
+    let f = null
+    try { f = await phone.nextEnc() } catch (e) { broke = String(e.message || e); break }
+    if (f === null) break
+    const v = sizes.get(f.header.id)
+    if (v === undefined) continue
+    if (f.header.t === 'chunk') v.bytes += f.body.length
+    else if (f.header.t === 'end') v.end = true
+  }
+  ok('frames leave in order while the socket is backed up (the phone never sees one out of order)', broke === null, broke || '')
+  ok('every answer arrives whole', [...burst].every((id) => sizes.get(id).end && sizes.get(id).bytes === 300 * 1024) && lateIds.every((id) => sizes.get(id).end && sizes.get(id).bytes > 10), JSON.stringify([...sizes].map(([k, v]) => k + ':' + v.bytes + (v.end ? '' : '!'))))
+  lag.value = 0
 
   // a request the phone gives up on
   await phone.sendEnc({ t: 'req', id: 'slow', method: 'GET', path: '/slow', headers: {} })

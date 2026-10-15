@@ -14,7 +14,7 @@
 //
 // Environment: KB_HOST (default 127.0.0.1:3080), KB_CHROME (Chrome binary).
 import { spawn } from 'node:child_process'
-import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -56,6 +56,7 @@ export async function openLivePage(opts = {}) {
     } catch (e) { /* Chrome still starting */ }
   }
   const close = async () => {
+    try { await Promise.race([page.send('Browser.close', {}), sleep(2500)]) } catch (e) { /* already gone */ }
     try { chrome.kill() } catch (e) { /* gone */ }
     await sleep(300)
     try { rmSync(profile, { recursive: true, force: true }) } catch (e) { /* busy */ }
@@ -158,4 +159,40 @@ export async function openSettings(page, opts = {}) {
     await sleep(3500)
   }
   return false
+}
+
+/**
+ * Serve the working tree's `file` in place of the browser half of plugin `id` in the page's combined /plugins/??…
+ * bundle (the response is rewritten in this throw-away browser; nothing on disk or on the server changes). The page
+ * must be reloaded for it to apply. Returns `{ swapped }`, a live counter: 0 after a reload means the bundle did not
+ * hold the plugin's text where expected (the check then runs on what is deployed, and must say so).
+ */
+export async function swapPluginClient(page, id, file) {
+  const mine = readFileSync(file, 'utf8')
+  const open = 'window.__ModuleLoader__.load({'
+  const mineAt = mine.indexOf(open)
+  const state = { swapped: 0 }
+  if (mineAt < 0) return state
+  const text = mine.slice(mineAt).replace(/\s+$/, '')
+  page.on('Fetch.requestPaused', async (p) => {
+    try {
+      if (p.responseStatusCode !== 200) { await page.send('Fetch.continueRequest', { requestId: p.requestId }); return }
+      const got = (await page.send('Fetch.getResponseBody', { requestId: p.requestId })).result || {}
+      if (typeof got.body !== 'string') { await page.send('Fetch.continueRequest', { requestId: p.requestId }); return }
+      const raw = got.base64Encoded ? Buffer.from(got.body, 'base64').toString('utf8') : got.body
+      const at = raw.indexOf("id: '" + id + "'")
+      const start = at < 0 ? -1 : raw.lastIndexOf(open, at)
+      const end = at < 0 ? -1 : raw.indexOf('\n})', at)
+      if (start < 0 || end < 0) { await page.send('Fetch.continueRequest', { requestId: p.requestId }); return }
+      const out = raw.slice(0, start) + text + raw.slice(end + 3)
+      const headers = (p.responseHeaders || []).filter((h) => !/^(content-length|content-encoding|etag)$/i.test(h.name))
+      state.swapped += 1
+      await page.send('Fetch.fulfillRequest', { requestId: p.requestId, responseCode: 200, responseHeaders: headers, body: Buffer.from(out, 'utf8').toString('base64') })
+    } catch (e) { try { await page.send('Fetch.continueRequest', { requestId: p.requestId }) } catch (e2) { /* gone */ } }
+  })
+  // a bundle served from the HTTP cache never reaches the response stage: the page must go to the network
+  await page.send('Network.enable', {})
+  await page.send('Network.setCacheDisabled', { cacheDisabled: true })
+  await page.send('Fetch.enable', { patterns: [{ urlPattern: '*plugins/??*', requestStage: 'Response' }] })
+  return state
 }

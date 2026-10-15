@@ -12,7 +12,7 @@ import * as e2e from '/__kb/remote-e2e.mjs'
 const lang = String(navigator.language || 'en').toLowerCase().startsWith('fr') ? 'fr' : 'en'
 const STR = {
   fr: {
-    scanTitle: 'Scanne le code de ton ordinateur', scanSub: 'Ouvre Réglages › Mobile sur ton ordinateur et vise le code avec l\'appareil photo.',
+    scanTitle: 'Scanne le code de ton ordinateur', scanSub: 'Ouvre Réglages › Remote Control sur ton ordinateur et vise le code avec l\'appareil photo.',
     connecting: 'Connexion à ton poste', verifyTitle: 'Autorise ce téléphone', verifySub: 'Sur ton ordinateur, vérifie que ce code est le même, puis touche Autoriser.',
     saslabel: 'Ce code doit être le même sur l\'ordinateur', waiting: 'Attente de ton accord sur l\'ordinateur…',
     offlineTitle: 'Ton ordinateur est hors ligne', offlineSub: 'Allume-le et ouvre Kybernos : la connexion reprend toute seule.',
@@ -23,7 +23,7 @@ const STR = {
     peerDown: 'Ordinateur hors ligne, reconnexion…', relayDown: 'Connexion perdue, reconnexion…',
   },
   en: {
-    scanTitle: 'Scan the code on your computer', scanSub: 'Open Settings › Mobile on your computer and aim the camera at the code.',
+    scanTitle: 'Scan the code on your computer', scanSub: 'Open Settings › Remote Control on your computer and aim the camera at the code.',
     connecting: 'Connecting to your computer', verifyTitle: 'Allow this phone', verifySub: 'On your computer, check that this code is the same, then click Allow.',
     saslabel: 'This code must be the same on the computer', waiting: 'Waiting for your approval on the computer…',
     offlineTitle: 'Your computer is offline', offlineSub: 'Turn it on and open Kybernos: the connection resumes by itself.',
@@ -197,12 +197,21 @@ async function connectAndHandshake ({ sid, mode, phoneId, hostIdPub, code }) {
   let channel = null
   let peerUp = false
   const early = [] // encrypted frames that arrived before the channel existed
+  let bad = 0
   const handle = async (u8) => {
     try {
       const { header, body } = e2e.unpackFrame(await channel.open(u8))
+      bad = 0
       if (header.t === 'approved' || header.t === 'ready' || header.t === 'denied') mail.put('decision', header)
       else onFrameFromComputer(header, body)
-    } catch (e) { log('frame: ' + String(e.message || e)) }
+    } catch (e) {
+      log('frame: ' + String(e.message || e))
+      // The channel requires every counter to be exactly the next one: once one frame is lost or late, every later one
+      // fails the same way and nothing would ever load again. Three in a row: leave the connection, the resume that follows
+      // starts a new channel (new keys, counters at zero), as for a network that changed.
+      bad += 1
+      if (bad >= 3 && session.ws === ws && kb.state === 'running') { bad = 0; kb.resyncs = (kb.resyncs || 0) + 1; try { ws.close() } catch (err) { /* closed */ } }
+    }
   }
   const handlers = {
     control: (m) => {

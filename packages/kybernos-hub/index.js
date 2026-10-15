@@ -78,6 +78,13 @@ function suiteDeps (dshHome, hub) {
       execFile(process.execPath, [join(racine, 'scripts', 'dsh-lifecycle.mjs'), 'upgrade', '--source', racine], { env: { ...process.env, DSH_HOME: dshHome }, timeout: 20 * 60 * 1000, maxBuffer: 8 * 1024 * 1024 },
         (erreur, sortie, err) => resolve({ code: erreur ? (typeof erreur.code === 'number' ? erreur.code : 1) : 0, sortie: String(sortie ?? '') + String(err ?? '') }))
     }),
+    // The engine zone this plugin was tested with (dsh-compat.json next to the bundle): the only versions the engine route accepts.
+    zoneMoteur: () => {
+      try {
+        const d = JSON.parse(readFileSync(join(racineDepot, 'dsh-compat.json'), 'utf8')).dsh
+        return d !== null && typeof d === 'object' && typeof d.min === 'string' && typeof d.max === 'string' ? { min: d.min, max: d.max } : null
+      } catch { return null }
+    },
     // A git working tree is a development checkout: it is updated with git, never by replacing it with an archive.
     racineDev: () => existsSync(join(racineDepot, '.git')),
     // A server or container deployment is rebuilt, not updated in place (see detecterHebergement).

@@ -12,7 +12,12 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
   (checks, review, merge through `gh`) and `notes` (memory and lessons this chat wrote). A click opens a card with a plain
   sentence, a dry-run plan, then "Confirm & run".
 - **Category icon** before each session title in the list (found through `data-row-key="session:<id>"`). The category is written
-  by the naming CLI (`scripts/session-titre.mjs`) or, when absent, guessed from the title by the decision brain.
+  by the naming CLI (`scripts/session-titre.mjs`) or, when absent, guessed from the title by the decision brain. **When the brain
+  gives no verdict at all** (gateway error such as HTTP 403, brain switched off, key missing) the host falls back to
+  `classement-local.mjs`: a cautious keyword classifier on the title (French and English, accents and case ignored, one hit per
+  word, a minimum score and a lead over the second category, otherwise nothing: the row keeps its neutral speech bubble). The answer is labelled
+  `motif: 'local'` and never contradicts a brain verdict (even « not sure »). A row whose title changes after an automatic
+  classification is judged again (« Greeting » becomes the real subject).
 - **Settings ▸ General ▸ Kybernos Settings** (slot `settings.general.item`, order -30): replay onboarding, *Rename Chat session
   after each recap*, *Study model (brain)*, *Decision Brain*. The bundle also reorders the native Settings navigation into a
   "Kybernos" and a "DSH" group and hides the native Appearance and Font-size rows and the version footer, by position.
@@ -70,6 +75,8 @@ Under `/kybernos-sessions/`. Every action route is a **dry run unless the body h
 `node packages/kybernos-sessions/test-reglages.mjs` covers the settings writer (merge, permissions, atomic write, corrupt and
 unreadable files, symlink, the HTTP route) and checks that the safe-write block matches the one in `kybernos-auto`.
 `node packages/kybernos-sessions/test-origin.mjs` covers the same-origin guard, unit by unit and through every registered route.
+`node packages/kybernos-sessions/test-classement-local.mjs` covers the local fallback classifier (real titles, what it refuses to guess,
+how words are matched, reachability of every category) and the route: it fires only when the brain gave no verdict.
 Nothing else in this bundle has a test file. `node scripts/test-layout.mjs` checks that the hot-file list of `garde.mjs` points at existing files
 and that its LaunchAgent path is right; `node packages/kybernos-sessions/garde.mjs --check` parses every hot client file
 (read-only); `node scripts/smoke-gui.mjs --token <token>` calls `/state`, `/settings`, `/categories`, `/brain/health` on a running

@@ -26,6 +26,8 @@ import * as nodeUtil from 'node:util'
 import { mcpFailure, failureCode, decodeRpc, exchange } from './mcp-http.mjs'
 import { probeHttp, probeStdio, redactDeep } from './mcp-probe.mjs'
 import { readConnector } from './block-read.mjs'
+import { readProvider, writeProvider } from './provider.mjs'
+import { createOpenapi } from './openapi.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -1865,6 +1867,43 @@ export function apply(ctx) {
   try { mountRoutes(ctx, log) } catch (e) { log('[composio] routes not mounted: ' + fsMessage('error', e)) }
 }
 
+// ── Settings › Connectors: the provider choice, and API connectors from an OpenAPI spec ─────────────────────────
+const PROVIDER_ROUTE = '/kybernos/composio/provider'
+const OPENAPI_ROUTE = '/kybernos/composio/openapi'
+
+/** GET: { provider } (null = nothing chosen). POST { provider: 'composio' | 'kybernos' | null }: keeps the choice (provider.mjs). */
+async function serveProvider(ctx, req, res) {
+  if (origineOK(req) !== true) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+  const home = resolveDshHome()
+  if (req.method === 'GET') return sendJson(res, 200, { ok: true, provider: readProvider(home) })
+  if (req.method === 'POST') {
+    const got = await jsonBody(req, res)
+    if (got === null) return
+    const v = got.body.provider
+    if (v !== null && v !== 'composio' && v !== 'kybernos') return sendJson(res, 400, { ok: false, error: 'provider must be composio, kybernos or null' })
+    try { writeProvider(home, v) } catch (e) { return sendJson(res, 500, { ok: false, error: fsMessage('the choice could not be saved', e) }) }
+    return sendJson(res, 200, { ok: true, provider: readProvider(home) })
+  }
+  return sendJson(res, 405, { ok: false, error: 'GET/POST expected' })
+}
+
+/** GET: the saved API connectors (never a key). POST { action: read | add | test | remove, … }: see openapi.mjs. */
+async function serveOpenapi(openapi, req, res) {
+  if (origineOK(req) !== true) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+  if (req.method === 'GET') return sendJson(res, 200, openapi.list())
+  if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET/POST expected' })
+  const got = await jsonBody(req, res)
+  if (got === null) return
+  const b = got.body
+  let out
+  if (b.action === 'read') out = await openapi.read({ url: b.url, auth: b.auth })
+  else if (b.action === 'add') out = await openapi.add({ name: b.name, url: b.url, baseUrl: b.baseUrl, auth: b.auth, key: b.key, operations: b.operations })
+  else if (b.action === 'test') out = await openapi.test({ name: b.name, operationId: b.operationId, args: b.args })
+  else if (b.action === 'remove') out = openapi.remove({ name: b.name })
+  else out = { ok: false, error: 'unknown action' }
+  return sendJson(res, 200, out)
+}
+
 function mountRoutes(ctx, log) {
   // Last-resort net: the read route must never reject towards the web server, or an
   // unexpected request would bring the Connectors page down.
@@ -1886,9 +1925,17 @@ function mountRoutes(ctx, log) {
       try { if (res.headersSent !== true) sendJson(res, 500, { ok: false, error: fsMessage('internal error', e) }) } catch (e2) { /* socket closed */ }
     }
   }
+  const openapi = createOpenapi({ home: resolveDshHome(), log: (m) => log('[composio] api connectors: ' + m) })
+  // The chosen operations of each API connector are native tools: they exist while DSH has the tools service, and follow the store.
+  try {
+    ctx.inject(['tools'], (scope) => { openapi.attach(scope.tools) })
+    ctx.effect(() => () => openapi.detach(), 'kybernos-composio: api connector tools')
+  } catch (e) { log('[composio] api connector tools not attached: ' + fsMessage('error', e)) }
   const mount = (webServerSvc) => {
     if (webServerSvc === null || webServerSvc === undefined || typeof webServerSvc.register !== 'function') return
     webServerSvc = kbFenced(webServerSvc)
+    ctx.effect(() => webServerSvc.register({ kind: 'exact', path: PROVIDER_ROUTE, handler: guarded(serveProvider) }), 'kybernos-composio: provider route')
+    ctx.effect(() => webServerSvc.register({ kind: 'exact', path: OPENAPI_ROUTE, handler: async (req, res) => { try { await serveOpenapi(openapi, req, res) } catch (e) { try { if (res.headersSent !== true) sendJson(res, 500, { ok: false, error: fsMessage('internal error', e) }) } catch (e2) { /* socket closed */ } } } }), 'kybernos-composio: api connectors route')
     ctx.effect(() => webServerSvc.register({ kind: 'exact', path: KEY_ROUTE, handler: guarded(serveKey) }), 'kybernos-composio: key route')
     ctx.effect(() => webServerSvc.register({ kind: 'exact', path: ACCOUNTS_ROUTE, handler: guarded(serveAccounts) }), 'kybernos-composio: accounts route')
     ctx.effect(() => webServerSvc.register({ kind: 'exact', path: CONNECTEURS_TEST_ROUTE, handler: guarded(serveConnecteurTest) }), 'kybernos-composio: connector test route')

@@ -40,7 +40,7 @@ export function pointSandboxAt ({ id, name, api, web, token, user }) {
 
 // ── the stand-in ─────────────────────────────────────────────────────────────────────────────────────────────────
 async function startFake () {
-  const relay = await startFakeRelay({ entitled: true, maxDevices: 4 })
+  const relay = await startFakeRelay({ entitled: true, maxDevices: 4, uplinkBytesPerSecond: Number(process.env.KB_RELAY_UPLINK_BPS) || 0 })
   const restore = pointSandboxAt({ id: 'live-mobile', name: 'Live stand-in', api: relay.url, web: relay.url, token: 'kyd-live-mobile-token', user: { id: 'u1', name: 'Live Tester', plan: 'solo' } })
   return {
     kind: 'fake',

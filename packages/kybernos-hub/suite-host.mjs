@@ -233,3 +233,46 @@ export async function installer ({ catalogue, brut, id, ecrire, executer }) {
   if (r.code !== 0) return { ok: false, error: 'robot-refused', detail: String(r.sortie ?? '').split('\n').slice(-6).join('\n') }
   return { ok: true, relanceRequise: true }
 }
+
+/** Version order, the robot's own rule (scripts/lifecycle-engine.mjs): segment by segment, so 0.1.10 is later than 0.1.7, and a
+ *  pre-release comes before its release. Duplicated on purpose: this bundle reads on its own, with no cross import. */
+export function comparerVersions (a, b) {
+  const decouper = (v) => {
+    const [noyau, ...reste] = String(v).split('-')
+    return { nombres: noyau.split('.').map((x) => parseInt(x, 10) || 0), pre: reste.join('-') }
+  }
+  const x = decouper(a)
+  const y = decouper(b)
+  const n = Math.max(x.nombres.length, y.nombres.length)
+  for (let i = 0; i < n; i += 1) {
+    const dx = x.nombres[i] ?? 0
+    const dy = y.nombres[i] ?? 0
+    if (dx !== dy) return dx < dy ? -1 : 1
+  }
+  if (x.pre === y.pre) return 0
+  if (x.pre === '') return 1
+  if (y.pre === '') return -1
+  const px = x.pre.split('.')
+  const py = y.pre.split('.')
+  const m = Math.max(px.length, py.length)
+  for (let i = 0; i < m; i += 1) {
+    if (px[i] === undefined) return -1
+    if (py[i] === undefined) return 1
+    const nx = /^\d+$/.test(px[i])
+    const ny = /^\d+$/.test(py[i])
+    if (nx && ny) { if (Number(px[i]) !== Number(py[i])) return Number(px[i]) < Number(py[i]) ? -1 : 1; continue }
+    if (nx !== ny) return nx ? -1 : 1
+    if (px[i] !== py[i]) return px[i] < py[i] ? -1 : 1
+  }
+  return 0
+}
+
+/** The shape of an engine version the one-click engine fix accepts (a semver, with an optional pre-release). */
+export const FORME_VERSION_MOTEUR = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?$/
+
+/** Is `version` an engine this plugin has been tested with? `zone` = { min, max } of dsh-compat.json (null = unknown: never). */
+export function versionDansZone (version, zone) {
+  if (typeof version !== 'string' || FORME_VERSION_MOTEUR.test(version) !== true) return false
+  if (zone === null || zone === undefined || typeof zone !== 'object' || typeof zone.min !== 'string' || typeof zone.max !== 'string') return false
+  return comparerVersions(version, zone.min) >= 0 && comparerVersions(version, zone.max) <= 0
+}

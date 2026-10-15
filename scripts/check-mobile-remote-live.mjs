@@ -126,11 +126,11 @@ try {
   if (backend.pairingsAsked() !== null) check('the server was asked for exactly one pairing', backend.pairingsAsked() === 1, backend.pairingsAsked())
 
   // 2. the settings page, reached from the panel
-  console.log('Settings › Mobile')
+  console.log('Settings › Remote Control')
   check('the panel offers « Manage phones »', await exists(D, '[data-kb="mobile-manage"]'))
   await click(D, '[data-kb="mobile-manage"]')
   const pageUp = await until(D, `!!document.querySelector('[data-kb="mobile-page"]')`, 15000)
-  check('it opens Settings › Mobile', pageUp === true)
+  check('it opens Settings › Remote Control', pageUp === true)
   check('the page shows the pairing in progress (same QR, the person did not start another)', await exists(D, '[data-kb="mobile-page"] [data-kb="mobile-qr"] svg'))
   await sleep(600)
   await shot(D, '2-settings')
@@ -235,7 +235,7 @@ try {
   await sleep(300)
   await ev(D, `(() => { const b = document.querySelector('[data-kb="mobile-pair"]'); if (b) b.click(); return !!b })()`)
   const wall = await until(D, `!!document.querySelector('[data-kb="mobile-paywall"]')`, 15000)
-  check('the page says « Included in paid plans »', wall === true)
+  check('the page says « Not included in your plan »', wall === true)
   check('and no QR code is offered', !(await exists(D, '[data-kb="mobile-page"] [data-kb="mobile-qr"]')))
   await shot(D, '7-paywall')
 } catch (e) {

@@ -504,11 +504,16 @@ window.__ModuleLoader__.load({
       branch:'<path class="l" d="M9 10.5v11M23 15.5c0 5-14 3-14 8"/><circle class="b" cx="9" cy="7" r="3.5"/><circle class="b" cx="9" cy="25" r="3.5"/><circle class="a" cx="23" cy="12" r="3.5"/><circle class="l" cx="9" cy="7" r="3.5"/><circle class="l" cx="9" cy="25" r="3.5"/><circle class="l" cx="23" cy="12" r="3.5"/>',
       doc:'<path class="a" d="M7 3h13l6 6v20H7z"/><path class="b" d="M20 3l6 6h-6z"/><path class="l" d="M7 3h13l6 6v20H7zM11.5 15h10M11.5 19h10M11.5 23h6"/><path class="w" d="M11 10.5h3M11 8h6"/>',
       cal:'<rect class="a" x="3" y="6" width="26" height="22" rx="4"/><path class="b" d="M3 10a4 4 0 0 1 4-4h18a4 4 0 0 1 4 4v3H3z"/><path class="l" d="M3 13h26M10 3v6M22 3v6"/><path class="l" d="M10 21l3 3 6-7"/>',
+      summary:'<rect class="a" x="4" y="3" width="24" height="26" rx="4"/><path class="b" d="M4 7a4 4 0 0 1 4-4h16a4 4 0 0 1 4 4v3H4z"/><path class="l" d="M9.5 16.5l1.8 1.8 3.2-3.6M17.5 16.5h6M9.5 23l1.8 1.8 3.2-3.6M17.5 23h6"/>',
+      kyber:'<circle class="a" cx="16" cy="16" r="12"/><path class="l" d="M12 9v14M12 16l8-7M14.5 15l6.5 8"/>',
       phone:'<path class="a" d="M8 4h5l2.5 6.5-3.2 2a16 16 0 0 0 7.2 7.2l2-3.2 6.5 2.5v5a3 3 0 0 1-3 3A21 21 0 0 1 5 7a3 3 0 0 1 3-3z"/><path class="l" d="M8 4h5l2.5 6.5-3.2 2a16 16 0 0 0 7.2 7.2l2-3.2 6.5 2.5v5a3 3 0 0 1-3 3A21 21 0 0 1 5 7a3 3 0 0 1 3-3zM20 5.5a7.5 7.5 0 0 1 6.5 6.5M20 10a3 3 0 0 1 2 2"/>',
       mobile:'<rect class="a" x="9" y="3" width="14" height="26" rx="4"/><rect class="l" x="9" y="3" width="14" height="26" rx="4"/><path class="l" d="M14 7h4"/><path class="w" d="M16 24.5h.01"/>',
       search:'<circle class="a" cx="13.5" cy="13.5" r="10"/><circle class="l" cx="13.5" cy="13.5" r="10"/><path class="b" d="M8 11.5a6 6 0 0 1 6-5"/><path class="l" d="M21 21l8 8"/><path class="l" d="M3.5 13.5h20M13.5 3.5c3 3 4 6 4 10s-1 7-4 10"/>',
+      lens:'<circle class="a" cx="13.5" cy="13.5" r="10"/><circle class="l" cx="13.5" cy="13.5" r="10"/><path class="b" d="M8 11.5a6 6 0 0 1 6-5"/><path class="l" d="M21 21l8 8"/><path class="l" d="M9 11.5h9M9 15.5h6"/>',
       term:'<rect class="a" x="3" y="5" width="26" height="22" rx="4"/><path class="b" d="M3 9a4 4 0 0 1 4-4h18a4 4 0 0 1 4 4v3H3z"/><rect class="l" x="3" y="5" width="26" height="22" rx="4"/><circle class="w" cx="7.5" cy="8.5" r="1.1"/><circle class="w" cx="11" cy="8.5" r="1.1"/><circle class="w" cx="14.5" cy="8.5" r="1.1"/><path class="l" d="M8 17l4 3-4 3M15 23h7"/>',
-      gauge:'<circle class="a" cx="16" cy="16" r="13"/><path class="b" d="M5 18a11 11 0 0 1 22 0z"/><circle class="l" cx="16" cy="16" r="13"/><path class="l" d="M16 18l5.5-6.5M9 23h14"/><circle class="w" cx="16" cy="18" r="1.8"/>'
+      dash:'<rect class="a" x="3" y="4" width="12" height="15" rx="3"/><rect class="b" x="19" y="4" width="10" height="8" rx="3"/><rect class="b" x="3" y="23" width="12" height="6" rx="3"/><rect class="a" x="19" y="16" width="10" height="13" rx="3"/><path class="l" d="M7 14l2.5-3 2 2 2.5-4M22.5 24l2-3 2.5 2"/>',
+      gauge:'<circle class="a" cx="16" cy="16" r="13"/><path class="b" d="M5 18a11 11 0 0 1 22 0z"/><circle class="l" cx="16" cy="16" r="13"/><path class="l" d="M16 18l5.5-6.5M9 23h14"/><circle class="w" cx="16" cy="18" r="1.8"/>',
+      devices:'<rect class="a" x="3" y="7" width="20" height="14" rx="2.5"/><rect class="l" x="3" y="7" width="20" height="14" rx="2.5"/><path class="l" d="M1.5 25h23"/><rect class="b" x="19" y="13" width="9" height="15" rx="2.5"/><rect class="l" x="19" y="13" width="9" height="15" rx="2.5"/><path class="w" d="M23.5 25.5h.01"/>'
 }
 
     // The tile of a plugin, as the Plugins page of the Kybernos web app draws it: a diagonal gradient (one pair of colours per plugin),
@@ -547,7 +552,9 @@ window.__ModuleLoader__.load({
       'kybernos-plugin': 'kybernos-tools', 'kybernos-cloud': 'kybernos-account', 'kybernos-models': 'kybernos-models', 'kybernos-auto': 'kybernos-auto-page',
       'kybernos-modeles-locaux': 'kybernos-ollama', 'kybernos-memory': 'kybernos-memory', 'kybernos-theme': 'kybernos-theme', 'kybernos-language': 'kybernos-language',
       'kybernos-slash': 'kybernos-slash', 'kybernos-atlas': 'kybernos-atlas', 'kybernos-workers': 'kybernos-workers', 'kybernos-maintenance': 'kybernos-maintenance',
-      'kybernos-call': 'kybernos-call'
+      'kybernos-call': 'kybernos-call',
+      'kybernos-websearch': 'kybernos-websearch-page', 'kybernos-free-llms': 'kybernos-free-llms',
+      'kybernos-usage': 'kybernos-usage', 'kybernos-mobile': 'kybernos-mobile'
     }
 
     const ICONES = {
@@ -1119,6 +1126,125 @@ window.__ModuleLoader__.load({
       return { version: 1, actions: true, Help }
     }
 
+    // The Voice Settings page belongs to another bundle (@local/kybernos) that does not mount the
+    // shared help button itself, and the hub cannot edit that page. So the hub watches for the page
+    // in the Settings dialog and pins its own « ? How it works » button in its top-right corner —
+    // the same markup (data-kb="help-button" / "help-panel", data-id="voice"), the same CSS and the
+    // same behaviour as the plugin pages: the card opens on click, closes on ✕, on Escape (the
+    // Settings dialog behind it stays put) and on an outside click.
+    const AIDE_VOIX = {
+      what: {
+        fr: 'Voice ajoute la voix à vos sessions : dictez dans le composer au lieu de taper, et faites lire les réponses à voix haute. L’accès au micro est demandé à la première utilisation ; rien n’est enregistré entre les sessions.',
+        en: 'Voice adds speech to your sessions — dictate into the composer instead of typing, and have replies read aloud. Microphone access is asked the first time; nothing is recorded between sessions.'
+      },
+      steps: [
+        { fr: 'Dans « Réglages › Voice », choisissez le moteur de synthèse, la langue et la voix, puis « Tester » pour écouter.', en: 'In “Settings › Voice”, pick the synthesis engine, the language and the voice, then “Test” to hear it.' },
+        { fr: 'Choisissez le micro du composer (« Kybernos » ou « Native DSH »), puis dictez depuis le micro du composer au lieu de taper.', en: 'Pick the composer microphone (“Kybernos” or “Native DSH”), then dictate from the composer’s microphone instead of typing.' },
+        { fr: 'Faites lire une réponse à voix haute avec « Read aloud », ou activez la lecture automatique des réponses.', en: 'Have a reply read aloud with “Read aloud”, or turn on automatic reading of the replies.' }
+      ],
+      where: { fr: 'Réglages › Voice', en: 'Settings › Voice' }
+    }
+    const installerAideVoix = () => {
+      let carte = null
+      const fermer = () => { if (carte !== null) { carte.remove(); carte = null } }
+      // The card hangs from the “start” edge: the button sits at the right edge of the page, so the
+      // card must grow toward the left to stay on screen (same reasoning as Help's side state).
+      const montrer = (bouton) => {
+        fermer()
+        const c = document.createElement('section')
+        c.className = 'kbhp-pop start'
+        c.id = 'kbhp-voice'
+        c.setAttribute('role', 'dialog')
+        c.setAttribute('aria-label', kt('Voix', 'Voice') + ' — ' + kt('Comment ça marche', 'How it works'))
+        c.setAttribute('data-kb', 'help-panel')
+        c.setAttribute('data-id', 'voice')
+        const x = document.createElement('button')
+        x.type = 'button'
+        x.className = 'kbhp-x'
+        x.setAttribute('aria-label', kt('Fermer', 'Close'))
+        x.addEventListener('click', fermer)
+        const t = document.createElement('h4')
+        t.textContent = kt('Voix', 'Voice')
+        const w = document.createElement('p')
+        w.textContent = kt(AIDE_VOIX.what.fr, AIDE_VOIX.what.en)
+        const hw = document.createElement('h5')
+        hw.textContent = kt('Comment l’utiliser', 'How to use it')
+        const ol = document.createElement('ol')
+        ol.className = 'kbsu-steps'
+        for (const st of AIDE_VOIX.steps) {
+          const li = document.createElement('li')
+          li.textContent = kt(st.fr, st.en)
+          ol.appendChild(li)
+        }
+        const ou = document.createElement('p')
+        ou.className = 'kbsu-where'
+        const ob = document.createElement('b')
+        ob.textContent = kt('Où le trouver : ', 'Where to find it: ')
+        ou.appendChild(ob)
+        ou.appendChild(document.createTextNode(kt(AIDE_VOIX.where.fr, AIDE_VOIX.where.en)))
+        c.appendChild(x); c.appendChild(t); c.appendChild(w); c.appendChild(hw); c.appendChild(ol); c.appendChild(ou)
+        bouton.parentElement.appendChild(c)
+        carte = c
+        bouton.setAttribute('aria-expanded', 'true')
+      }
+      const basculer = (e) => {
+        const bouton = e.currentTarget
+        e.stopPropagation()
+        if (carte !== null) { fermer(); bouton.setAttribute('aria-expanded', 'false') } else montrer(bouton)
+      }
+      const decorer = (page) => {
+        if (page.querySelector('[data-kb="help-button"][data-id="voice"]') !== null) return
+        const wrap = document.createElement('span')
+        wrap.className = 'kbhp-wrap'
+        wrap.setAttribute('data-kb', 'help')
+        wrap.setAttribute('data-id', 'voice')
+        const b = document.createElement('button')
+        b.type = 'button'
+        b.className = 'kbhp-btn'
+        b.setAttribute('data-kb', 'help-button')
+        b.setAttribute('data-id', 'voice')
+        b.setAttribute('aria-expanded', 'false')
+        b.setAttribute('aria-controls', 'kbhp-voice')
+        b.title = kt('Comment ça marche', 'How it works')
+        b.addEventListener('click', basculer)
+        const q = document.createElement('span')
+        q.className = 'kbhp-q'
+        q.setAttribute('aria-hidden', 'true')
+        q.textContent = '?'
+        const l = document.createElement('span')
+        l.textContent = kt('Comment ça marche', 'How it works')
+        b.appendChild(q); b.appendChild(l); wrap.appendChild(b)
+        // The page root is the positioning context: the button floats at its top-right corner,
+        // above the page content but below the help card (z-index 60).
+        if (getComputedStyle(page).position === 'static') page.style.position = 'relative'
+        wrap.style.cssText = 'position:absolute;top:14px;inset-inline-end:18px;z-index:55;'
+        page.appendChild(wrap)
+      }
+      const balayer = () => {
+        try {
+          for (const page of document.querySelectorAll('[data-slot="settings.section"] .kbt-page')) decorer(page)
+          // The page unmounted with the card open (Settings closed, another page picked): close too.
+          if (carte !== null && carte.isConnected === false) carte = null
+        } catch (e) { /* a DOM the hub cannot read: the page then simply has no help button */ }
+      }
+      let observateur = null
+      try {
+        observateur = new MutationObserver(balayer)
+        observateur.observe(document.body, { childList: true, subtree: true })
+        balayer()
+      } catch (e) { /* no MutationObserver: the page then simply has no help button */ }
+      // Listeners installed once: Escape closes the card and only the card (capture, like Help),
+      // an outside click closes it too.
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && carte !== null) { e.stopPropagation(); fermer() }
+      }, true)
+      document.addEventListener('mousedown', (e) => {
+        if (carte === null) return
+        const wrap = carte.parentElement
+        if (wrap === null || (!wrap.contains(e.target) && !carte.contains(e.target))) { fermer() }
+      })
+    }
+
     const monterSuite = (ctx, scope, require) => {
       try {
         const slots = scope.slots
@@ -1126,6 +1252,7 @@ window.__ModuleLoader__.load({
         const React = typeof require === 'function' ? require('react') : null
         if (React == null) return
         try { window.__KB_HELP__ = construireAide(React) } catch (e) { /* the pages then simply have no help button */ }
+        try { installerAideVoix() } catch (e) { /* the Voice page then simply has no help button */ }
         ctx.effect(() => { const s = document.createElement('style'); s.dataset.plugin = '@local/kybernos-hub'; s.textContent = CSS; document.head.appendChild(s); return () => s.remove() }, 'kybernos-hub: suite styles')
         const Panneau = construirePanneau(React, scope, ctx)
         ctx.effect(() => slots.inject('settings.section', () => slots.register(

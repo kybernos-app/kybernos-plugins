@@ -30,6 +30,7 @@ const makeDom = ({ narrow = true, collapsed = true, sheet = true, withToggle = t
   const toggle = el('button')
   const firstInSidebar = el('button')
   const body = el('body'); const head = el('head')
+  const meta = el('meta'); meta.attrs.content = 'width=device-width, initial-scale=1'
   const doc = {
     body, head,
     createElement: (t) => el(t),
@@ -39,13 +40,14 @@ const makeDom = ({ narrow = true, collapsed = true, sheet = true, withToggle = t
       if (sel === '[data-slot="root"] > div') return frame
       if (sel === 'button[aria-keyshortcuts$="+B"]:not([aria-keyshortcuts*="Shift"])') return withToggle ? toggle : null
       if (sel === '[data-slot="sidebar"] button') return firstInSidebar
+      if (sel === 'meta[name="viewport"]') return meta
       return null
     },
     baseURI: 'http://127.0.0.1:3080/',
     addEventListener: (ev, fn, cap) => listeners.push({ ev, fn, cap }),
     removeEventListener: (ev, fn) => { const i = listeners.findIndex((l) => l.ev === ev && l.fn === fn); if (i >= 0) listeners.splice(i, 1) }
   }
-  return { doc, frame, toggle, firstInSidebar, listeners, toggleClicks, body, head }
+  return { doc, frame, toggle, firstInSidebar, listeners, toggleClicks, body, head, meta }
 }
 const load = (dom, { narrow = true, lang = 'fr' } = {}) => {
   let def = null
@@ -70,7 +72,7 @@ console.log('the runner contract')
   globalThis.window = { __ModuleLoader__: { load: (d) => { defB = d } }, matchMedia: () => { throw new Error('boom') } }
   globalThis.document = broken.doc
   const realWarn = console.warn; console.warn = () => {}
-  try { new Function('window', 'document', SOURCE.replace("const MEDIA = '(max-width: 700px)'", "const MEDIA = (() => { throw new Error('init failed') })()"))(globalThis.window, globalThis.document); const p = defB.factory(); broke = p } catch (e) { broke = 'threw' } finally { console.warn = realWarn }
+  try { new Function('window', 'document', SOURCE.replace("const MEDIA = '(max-width: 700px), (max-height: 500px) and (pointer: coarse)'", "const MEDIA = (() => { throw new Error('init failed') })()"))(globalThis.window, globalThis.document); const p = defB.factory(); broke = p } catch (e) { broke = 'threw' } finally { console.warn = realWarn }
   check('a failing initialisation degrades to an inert plugin', broke !== 'threw' && typeof broke.apply === 'function')
 }
 
@@ -175,7 +177,7 @@ console.log('the phone link, mounted apart from the layout')
   const full = run()
   check('it needs no DSH service up front (the layout must always mount)', full.plugin.inject === undefined)
   check('the phone panel is published for the sidebar\'s button', typeof globalThis.window.__KB_MOBILE__ === 'object' && typeof globalThis.window.__KB_MOBILE__.Panel === 'function' && globalThis.window.__KB_MOBILE__.version === 1)
-  check('the Settings section is « Mobile »', full.registered.length === 1 && full.registered[0].name === 'settings.section' && full.registered[0].id === 'kybernos-mobile' && full.registered[0].label === 'Mobile', full.registered)
+  check('the Settings section is « Remote Control »', full.registered.length === 1 && full.registered[0].name === 'settings.section' && full.registered[0].id === 'kybernos-mobile' && full.registered[0].label === 'Remote Control', full.registered)
   check('its styles are its own, under a prefix nobody else uses', full.styles.length === 1 && /\.kbmr-/.test(full.styles[0].textContent) && !/\.kbmob-/.test(full.styles[0].textContent))
   check('every effect is labelled', full.effects.every((l) => /^kybernos-mobile: /.test(l)) && full.effects.length === 4, full.effects)
   full.disposers.forEach((d) => { if (typeof d === 'function') d() })
@@ -199,4 +201,357 @@ console.log('the file')
 }
 
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)
+
+console.log('a phone lying down')
+{
+  const dom = makeDom({ collapsed: false })
+  const t = load(dom).factory().__test
+  check('the phone condition also holds for a touch device at most 500 px high', /max-height: 500px\) and \(pointer: coarse\)/.test(t.MEDIA) && /max-width: 700px/.test(t.MEDIA), t.MEDIA)
+}
+{
+  // DSH leaves its sidebar open above its own breakpoint: on a phone in landscape that is an open drawer over the chat
+  const dom = makeDom({ collapsed: false })
+  const plugin = load(dom).factory()
+  let disposer = null
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  await new Promise((r) => setTimeout(r, 450))
+  check('an open sidebar the person did not ask for is closed once the shell is there', dom.toggleClicks.length === 1 && dom.toggleClicks[0] === dom.toggle, dom.toggleClicks.length)
+  disposer()
+}
+{
+  const dom = makeDom({ collapsed: true })
+  const plugin = load(dom).factory()
+  let disposer = null
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  await new Promise((r) => setTimeout(r, 450))
+  check('a closed drawer is left alone', dom.toggleClicks.length === 0, dom.toggleClicks.length)
+  const button = dom.body.children.find((c) => c.className === 'kbmob-menu')
+  button.listeners.find((l) => l.ev === 'click').fn({ stopPropagation () {} })
+  dom.frame.attrs = {}
+  check('the menu button opened it', dom.toggleClicks.length === 1)
+  disposer()
+}
+{
+  const dom = makeDom({ collapsed: true })
+  const plugin = load(dom).factory()
+  let disposer = null
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  check('the viewport lets the page draw under the notch (env() safe areas)', /viewport-fit=cover/.test(dom.meta.attrs.content) && /width=device-width/.test(dom.meta.attrs.content), dom.meta.attrs.content)
+  disposer()
+  check('and the viewport is put back when the plugin leaves', dom.meta.attrs.content === 'width=device-width, initial-scale=1', dom.meta.attrs.content)
+}
+{
+  const dom = makeDom({ collapsed: false })
+  const plugin = load(dom, { narrow: false }).factory()
+  let disposer = null
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  await new Promise((r) => setTimeout(r, 450))
+  check('on a wide screen the sidebar is never closed for the person', dom.toggleClicks.length === 0, dom.toggleClicks.length)
+  disposer()
+}
+
+
+console.log('the "..." sheet: what a phone parked')
+{
+  // pure helpers, on fake elements
+  const mk = (label, parked, extra) => {
+    const parent = { parentElement: null, st: { position: parked ? 'fixed' : 'static', opacity: parked ? '0' : '1' } }
+    const el = Object.assign({ parentElement: parent, st: { position: 'static', opacity: '1' }, getAttribute: (k) => (k === 'aria-label' ? label : null), closest: () => null, textContent: label }, extra || {})
+    return el
+  }
+  const dom = makeDom({ collapsed: true })
+  const t = load(dom).factory().__test
+  const styleOf = (e) => e.st
+  const parkedEl = mk('Share…', true)
+  const shownEl = mk('More actions', false)
+  const dupEl = mk('Share…', true)
+  const finderEl = mk('Open in Finder', true, { closest: (sel) => (sel === '[data-open-target]' ? {} : null) })
+  const root = { querySelectorAll: () => [parkedEl, shownEl, dupEl, finderEl] }
+  const out = t.parkedActions(root, styleOf)
+  check('only parked actions are listed', out.length === 1 && out[0].label === 'Share…', out.map((x) => x.label))
+  check('"open in Finder" is never offered on a phone', !out.some((x) => /Finder/.test(x.label)))
+  check('an element is parked when an ancestor is fixed and invisible', t.isParked(parkedEl, styleOf) === true && t.isParked(shownEl, styleOf) === false)
+  check('a style that cannot be read means "not parked"', t.isParked({ parentElement: null }, () => { throw new Error('gone') }) === false)
+  const longEl = mk('Commands: browse, run, edit or create slash commands and actions', true)
+  const shortLabels = t.parkedActions({ querySelectorAll: () => [longEl, mk('Share…', true)] }, styleOf).map((x) => x.label)
+  check('a long label is shortened to its name (what comes before the colon)', shortLabels[0] === 'Commands' && shortLabels[1] === 'Share…', shortLabels)
+  check('the selectors name DSH\'s stable slots, not hashed classes', /conversation\.session\.header\.actions/.test(t.ACTION_BUTTONS) && /data-composer-card/.test(t.ACTION_BUTTONS) && !/\._[A-Za-z0-9]{4,}_/.test(t.ACTION_BUTTONS))
+}
+{
+  // the tap on "More actions": the sheet opens, a row clicks the parked action, the last row hands over to DSH's menu
+  const dom = makeDom({ collapsed: true })
+  const clicks = []
+  const parked = { tag: 'button', parentElement: { parentElement: null, st: { position: 'fixed', opacity: '0' } }, st: { position: 'static', opacity: '1' }, getAttribute: (k) => (k === 'aria-label' ? 'Share…' : null), closest: () => null, textContent: 'Share…', querySelector: () => null, click () { clicks.push('share') } }
+  const more = { tag: 'button', closest: (sel) => (sel === '[data-slot="conversation.session.header.utilities"] button' ? more : null), click () { clicks.push('more') } }
+  const realQuery = dom.doc.querySelector
+  dom.doc.querySelectorAll = (sel) => (/conversation\.session\.header\.actions/.test(sel) ? [parked] : [])
+  dom.body.removeChild = undefined
+  const plugin = load(dom).factory()
+  let disposer = null
+  globalThis.window.getComputedStyle = (e) => e.st
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  const watcher = dom.listeners.filter((l) => l.ev === 'click' && l.cap === true)
+  let prevented = false; let stopped = false
+  const ev = { target: more, preventDefault () { prevented = true }, stopPropagation () { stopped = true } }
+  watcher.forEach((l) => l.fn(ev))
+  const panel = dom.body.children.find((c) => c.className === 'kbmob-sheet')
+  check('a tap on "More actions" opens the sheet instead of DSH\'s menu', panel !== undefined && prevented === true && stopped === true)
+  check('the sheet lists the parked action and DSH\'s own menu last', panel !== undefined && panel.children.length >= 4, panel && panel.children.map((c) => c.className))
+  const rows = panel.children.filter((c) => c.className === 'kbmob-sheet-row')
+  await new Promise((r) => { rows[0].listeners.find((l) => l.ev === 'click').fn({ stopPropagation () {} }); setTimeout(r, 120) })
+  check('a row clicks the parked action', clicks.indexOf('share') >= 0, clicks)
+  check('the sheet closed with it', dom.body.children.find((c) => c.className === 'kbmob-sheet') === undefined || dom.body.children.find((c) => c.className === 'kbmob-sheet').removed === true)
+  // second open, last row: DSH's own menu, and our watcher lets that click through
+  watcher.forEach((l) => l.fn({ target: more, preventDefault () {}, stopPropagation () {} }))
+  const panel2 = dom.body.children.filter((c) => c.className === 'kbmob-sheet').pop()
+  const rows2 = panel2.children.filter((c) => c.className === 'kbmob-sheet-row')
+  await new Promise((r) => { rows2[rows2.length - 1].listeners.find((l) => l.ev === 'click').fn({ stopPropagation () {} }); setTimeout(r, 120) })
+  check('the last row clicks DSH\'s own "More actions" button', clicks.indexOf('more') >= 0, clicks)
+  void realQuery
+  disposer()
+}
+{
+  // nothing parked (a page without a conversation): DSH's menu is left alone
+  const dom = makeDom({ collapsed: true })
+  dom.doc.querySelectorAll = () => []
+  const plugin = load(dom).factory()
+  let disposer = null
+  globalThis.window.getComputedStyle = (e) => e.st
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  const more = { closest: (sel) => (/utilities/.test(sel) ? more : null) }
+  let prevented = false
+  dom.listeners.filter((l) => l.ev === 'click' && l.cap === true).forEach((l) => l.fn({ target: more, preventDefault () { prevented = true }, stopPropagation () {} }))
+  check('with nothing parked the tap goes through to DSH', prevented === false && dom.body.children.every((c) => c.className !== 'kbmob-sheet'))
+  disposer()
+}
+{
+  const dom = makeDom({ collapsed: true })
+  dom.doc.querySelectorAll = () => []
+  const plugin = load(dom, { narrow: false }).factory()
+  let disposer = null
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  let prevented = false
+  const more = { closest: (sel) => (/utilities/.test(sel) ? more : null) }
+  dom.listeners.filter((l) => l.ev === 'click' && l.cap === true).forEach((l) => l.fn({ target: more, preventDefault () { prevented = true }, stopPropagation () {} }))
+  check('on a wide screen the sheet never opens', prevented === false)
+  disposer()
+}
+
+
+console.log('views and rating on a phone')
+{
+  const dom = makeDom({ collapsed: true })
+  const t = load(dom).factory().__test
+  const styleOf = (e) => e.st
+  const tab = (label, selected, parked) => ({
+    parentElement: { parentElement: null, st: { position: parked ? 'fixed' : 'static', opacity: parked ? '0' : '1' } }, st: { position: 'static', opacity: '1' },
+    getAttribute: (k) => (k === 'aria-label' ? null : (k === 'aria-selected' ? String(selected) : null)), closest: () => null, textContent: label,
+  })
+  const out = t.parkedActions({ querySelectorAll: () => [tab('Chat', true, true), tab('Journal', false, true), tab('Trajectory', false, true)] }, styleOf).map((x) => x.label)
+  check('the other views are listed, the one shown is not', out.length === 2 && out[0] === 'Journal' && out[1] === 'Trajectory', out)
+  const shown = t.parkedActions({ querySelectorAll: () => [tab('Chat', false, false), tab('Journal', true, false)] }, styleOf)
+  check('with the tab row visible nothing is parked, so nothing is listed', shown.length === 0)
+  check('the tab row is among the candidates', /data-conversation-tabs/.test(t.ACTION_BUTTONS))
+}
+{
+  const dom = makeDom({ collapsed: true })
+  dom.doc.querySelectorAll = () => []
+  const plugin = load(dom).factory()
+  let disposer = null
+  globalThis.window.getComputedStyle = (e) => e.st
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  const attrs = {}
+  const card = { attrs, hasAttribute: (k) => Object.prototype.hasOwnProperty.call(attrs, k), setAttribute: (k, v) => { attrs[k] = String(v) } }
+  const star = { closest: (sel) => (sel === '.kbq-rating' ? card : null) }
+  let prevented = false; let stopped = false
+  const fire = () => dom.listeners.filter((l) => l.ev === 'click' && l.cap === true).forEach((l) => l.fn({ target: star, preventDefault () { prevented = true }, stopPropagation () { stopped = true } }))
+  fire()
+  check('the first tap on the collapsed rating opens the five stars and goes no further', attrs['data-kbmob-open'] === '1' && prevented === true && stopped === true, attrs)
+  prevented = false; stopped = false
+  fire()
+  check('once open, a tap is DSH\'s (it rates)', prevented === false && stopped === false)
+  disposer()
+}
+{
+  const dom = makeDom({ collapsed: true })
+  dom.doc.querySelectorAll = () => []
+  const plugin = load(dom, { narrow: false }).factory()
+  let disposer = null
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  const attrs = {}
+  const card = { hasAttribute: (k) => k in attrs, setAttribute: (k, v) => { attrs[k] = v } }
+  dom.listeners.filter((l) => l.ev === 'click' && l.cap === true).forEach((l) => l.fn({ target: { closest: () => card }, preventDefault () {}, stopPropagation () {} }))
+  check('on a wide screen the rating card is left as it is', Object.keys(attrs).length === 0)
+  disposer()
+}
+
+console.log('a swipe closes the drawer')
+{
+  const t = load(makeDom({ collapsed: false })).factory().__test
+  check('a swipe to the left closes', t.swipeCloses({ x: 200, y: 400 }, { x: 100, y: 410 }) === true)
+  check('a short move does not', t.swipeCloses({ x: 200, y: 400 }, { x: 160, y: 400 }) === false)
+  check('a swipe to the right does not', t.swipeCloses({ x: 100, y: 400 }, { x: 220, y: 400 }) === false)
+  check('a diagonal (a scroll that drifts) does not', t.swipeCloses({ x: 200, y: 300 }, { x: 130, y: 400 }) === false)
+  check('without a start or an end it does not', t.swipeCloses(null, { x: 0, y: 0 }) === false && t.swipeCloses({ x: 0, y: 0 }, undefined) === false)
+
+  const run = (collapsed, from, to) => {
+    const dom = makeDom({ collapsed })
+    const plugin = load(dom).factory()
+    let disposer = null
+    plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+    const start = dom.listeners.find((l) => l.ev === 'touchstart')
+    const end = dom.listeners.find((l) => l.ev === 'touchend')
+    if (start !== undefined) start.fn({ touches: [{ clientX: from.x, clientY: from.y }] })
+    if (end !== undefined) end.fn({ changedTouches: [{ clientX: to.x, clientY: to.y }] })
+    const out = { registered: start !== undefined && end !== undefined, clicks: dom.toggleClicks.length }
+    disposer()
+    out.removed = dom.listeners.filter((l) => l.ev === 'touchstart' || l.ev === 'touchend').length === 0
+    return out
+  }
+  const open = run(false, { x: 250, y: 300 }, { x: 120, y: 310 })
+  check('the touch listeners are registered and removed with the plugin', open.registered && open.removed, open)
+  check('a swipe to the left on an open drawer clicks DSH\'s toggle', open.clicks === 1, open)
+  check('the same swipe with the drawer closed does nothing', run(true, { x: 250, y: 300 }, { x: 120, y: 310 }).clicks === 0)
+}
+
+console.log('the toggle of a phone: DSH draws no keyboard shortcut there')
+{
+  const rect = (l, tp, w, h) => ({ left: l, top: tp, width: w, height: h, right: l + w, bottom: tp + h })
+  const btn = (name, r) => ({ name, getBoundingClientRect: () => r })
+  const withButtons = (collapsed, buttons) => {
+    const dom = makeDom({ collapsed, withToggle: false })
+    dom.doc.querySelectorAll = (sel) => (/data-slot="sidebar"\] button/.test(sel) ? buttons : [])
+    dom.doc.querySelector = ((orig) => (sel) => (/data-slot="sidebar"\] button/.test(sel) ? (buttons[0] || null) : orig(sel)))(dom.doc.querySelector)
+    return dom
+  }
+  const header = [btn('new-session', rect(16, 14, 230, 44)), btn('collapse', rect(254, 14, 36, 44)), btn('start-chat', rect(252, 73, 38, 52)), btn('row-icon', rect(250, 400, 36, 44))]
+  const open = withButtons(false, header)
+  const t = load(open).factory().__test
+  check('open: the collapse button is the narrow one at the end of the first row', t.toggle() !== null && t.toggle().name === 'collapse', t.toggle() && t.toggle().name)
+  check('the wide "new session" button and the narrow ones lower down are not taken for it', t.collapseButton().name === 'collapse')
+  const closed = withButtons(true, [btn('open-sidebar', rect(-309, 14, 36, 44)), btn('kybernos', rect(-309, 66, 36, 366))])
+  const tc = load(closed).factory().__test
+  check('closed: the first button of the sidebar is its open button', tc.toggle() !== null && tc.toggle().name === 'open-sidebar')
+  // a tap on the dimmed chat reaches DSH's collapse button even with no shortcut
+  const plugin = load(open).factory()
+  let disposer = null
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  const clicked = []
+  header.forEach((b) => { b.click = () => clicked.push(b.name) })
+  open.listeners.filter((l) => l.ev === 'click' && l.cap === true).forEach((l) => l.fn({ target: open.frame, stopPropagation () {}, preventDefault () {} }))
+  check('a tap on the dimmed chat clicks that collapse button', clicked.length === 1 && clicked[0] === 'collapse', clicked)
+  disposer()
+  const none = withButtons(false, [])
+  check('with no sidebar button at all, nothing is clicked and nothing throws', load(none).factory().__test.toggle() === null)
+}
+
+console.log('what a page needs to fit a phone')
+{
+  const t = load(makeDom()).factory().__test
+  const box = (o) => ({
+    clientWidth: 304, scrollWidth: 304, children: [], parentElement: null,
+    getAttribute: () => null, getBoundingClientRect: () => ({ left: 0, right: o.clientWidth || 304, width: o.clientWidth || 304 }),
+    ...o
+  })
+  const styles = new Map()
+  const styleOf = (e) => styles.get(e) || { overflowX: 'visible', display: 'block', flexDirection: 'row', flexWrap: 'nowrap', flexGrow: '0', flexBasis: 'auto', flexShrink: '1', minWidth: 'auto' }
+  const st = (e, s) => { styles.set(e, { overflowX: 'visible', display: 'block', flexDirection: 'row', flexWrap: 'nowrap', flexGrow: '0', flexBasis: 'auto', flexShrink: '1', minWidth: 'auto', ...s }); return e }
+
+  const wideGrid = st(box({ scrollWidth: 330 }), { display: 'grid' })
+  check('a card grid wider than its box gets columns that fit', JSON.stringify(t.fitKinds(wideGrid, styleOf)) === '["grid"]')
+  check('a grid that fits is left alone', t.fitKinds(st(box({}), { display: 'grid' }), styleOf).length === 0)
+  const wideRow = st(box({ scrollWidth: 592 }), { display: 'flex' })
+  check('a toolbar wider than its box wraps', t.fitKinds(wideRow, styleOf).indexOf('wrap') >= 0)
+  check('a row that wraps already is left alone', t.fitKinds(st(box({ scrollWidth: 592 }), { display: 'flex', flexWrap: 'wrap' }), styleOf).length === 0)
+  check('a clipped or scrolling box is that on purpose', t.fitKinds(st(box({ scrollWidth: 592 }), { display: 'flex', overflowX: 'auto' }), styleOf).length === 0)
+  const strip = box({ scrollWidth: 604, clientWidth: 304 })
+  strip.getBoundingClientRect = () => ({ left: 0, right: 304, width: 304 })
+  strip.children = [box({ getBoundingClientRect: () => ({ left: 0, right: 300, width: 300 }), querySelector: () => ({}) }), box({ getBoundingClientRect: () => ({ left: 308, right: 608, width: 300 }), querySelector: () => ({}) })]
+  st(strip, { display: 'flex', overflowX: 'hidden' })
+  check('a strip of cards that hides the ones beyond its edge wraps', JSON.stringify(t.fitKinds(strip, styleOf)) === '["wrap"]')
+  const ellipsis = box({ scrollWidth: 604, clientWidth: 304 })
+  ellipsis.getBoundingClientRect = () => ({ left: 0, right: 304, width: 304 })
+  ellipsis.children = [box({ getBoundingClientRect: () => ({ left: 0, right: 600, width: 600 }), querySelector: () => null })]
+  st(ellipsis, { display: 'flex', overflowX: 'hidden' })
+  check('a row of text cut with an ellipsis is left alone', t.fitKinds(ellipsis, styleOf).length === 0)
+  check('a column is not a toolbar', t.fitKinds(st(box({ scrollWidth: 592 }), { display: 'flex', flexDirection: 'column' }), styleOf).length === 0)
+  check('a plain block that is wide (a long word) is left alone', t.fitKinds(st(box({ scrollWidth: 592 }), {}), styleOf).length === 0)
+
+  const tabs = st(box({ scrollWidth: 316, clientWidth: 264, getAttribute: (k) => (k === 'role' ? 'tablist' : null) }), { display: 'flex' })
+  check('a strip of tabs wider than its box slides sideways', JSON.stringify(t.fitKinds(tabs, styleOf)) === '["scroll"]')
+
+  const pushedOut = box({ children: [], scrollWidth: 304 })
+  pushedOut.children = [box({ getBoundingClientRect: () => ({ left: -66, right: -40, width: 26 }) }), box({})]
+  st(pushedOut, { display: 'flex' })
+  check('a row that pushes an item out on the left (justify-content: flex-end) wraps', t.fitKinds(pushedOut, styleOf).indexOf('wrap') >= 0)
+
+  const squeezedText = box({ scrollWidth: 304 })
+  squeezedText.children = [box({ clientWidth: 80, scrollWidth: 134, getBoundingClientRect: () => ({ left: 0, right: 80, width: 80 }) }), box({})]
+  st(squeezedText, { display: 'flex' })
+  check('a row that squeezes an item below its content wraps', t.fitKinds(squeezedText, styleOf).indexOf('wrap') >= 0)
+
+  const search = box({ scrollWidth: 304 })
+  search.children = [box({ clientWidth: 26, scrollWidth: 26, querySelector: () => ({}), getBoundingClientRect: () => ({ left: 0, right: 26, width: 26 }) }), box({})]
+  st(search, { display: 'flex' })
+  check('a search field squeezed to nothing wraps its row', t.fitKinds(search, styleOf).indexOf('wrap') >= 0)
+
+  const setting = box({ scrollWidth: 304 })
+  const text = st(box({}), { display: 'flex', flexDirection: 'column', flexGrow: '1', flexBasis: '0%' })
+  setting.children = [text, box({})]
+  st(setting, { display: 'flex' })
+  check('a setting (text that takes what is left, then its control) stacks', t.fitKinds(setting, styleOf).indexOf('stack') >= 0)
+  const card = box({ scrollWidth: 304 })
+  card.children = [st(box({}), { display: 'block', flexGrow: '0', flexBasis: 'auto' }), box({})]
+  st(card, { display: 'flex' })
+  check('a row that starts with an icon is not a setting', t.fitKinds(card, styleOf).indexOf('stack') < 0)
+
+  const parent = st(box({}), { display: 'flex', flexDirection: 'row' })
+  const squeezed = st(box({ clientWidth: 80, scrollWidth: 134, parentElement: parent }), { display: 'block', minWidth: '0px' })
+  check('an item squeezed below its content keeps its content width', t.fitKinds(squeezed, styleOf).indexOf('keep') >= 0)
+  const inColumn = st(box({ clientWidth: 80, scrollWidth: 134, parentElement: st(box({}), { display: 'flex', flexDirection: 'column' }) }), { display: 'block', minWidth: '0px' })
+  check('an item of a column is not squeezed sideways', t.fitKinds(inColumn, styleOf).indexOf('keep') < 0)
+  check('an element that throws is left alone', t.fitKinds({ get clientWidth () { throw new Error('gone') } }, styleOf).length === 0)
+}
+
+console.log('a page title is not left under the menu button')
+{
+  const t = load(makeDom()).factory().__test
+  const at = (top) => ({ getBoundingClientRect: () => ({ top }), matches: () => false })
+  const title = Object.assign(at(30), {})
+  const row = Object.assign(at(30), {})
+  const head = Object.assign(at(30), {})
+  const page = Object.assign(at(0), {})
+  title.parentElement = row; row.parentElement = head; head.parentElement = page; page.parentElement = null
+  check('the outermost ancestor that starts at the title\'s height is the one to move', t.leadTarget(title, 60) === head)
+  const clear = Object.assign(at(70), { parentElement: null })
+  check('a title that is already clear of the button is left alone', t.leadTarget(clear, 60) === null)
+  check('no title: nothing to do', t.leadTarget(null, 60) === null)
+  const inMain = Object.assign(at(30), {})
+  inMain.parentElement = Object.assign(at(30), { matches: (sel) => /data-slot="main"/.test(sel) })
+  check('the page container is never moved', t.leadTarget(inMain, 60) === inMain)
+}
+
+console.log('Settings on a phone: a list of pages, then a page under a back bar')
+{
+  const dom = makeDom({ collapsed: true })
+  const plugin = load(dom, { lang: 'en' }).factory()
+  let disposer = null
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  const modalAttrs = {}
+  const pageAttrs = {}
+  const page = { setAttribute: (k, v) => { pageAttrs[k] = v }, getBoundingClientRect: () => ({ top: 0 }) }
+  const modal = { children: [{}, page], hasAttribute: (k) => k in modalAttrs, setAttribute: (k, v) => { modalAttrs[k] = v }, removeAttribute: (k) => { delete modalAttrs[k] } }
+  const fire = (target, clientY) => dom.listeners.filter((l) => l.ev === 'click' && l.cap === true).forEach((l) => l.fn({ target, clientY, preventDefault () {}, stopPropagation () {} }))
+  const inModal = (extra) => ({ closest: (sel) => (sel === '[data-shortcut-modal="settings"]' ? modal : (extra && extra[sel]) || null) })
+  fire(inModal({ 'nav > div:last-child > button': {} }), 100)
+  await new Promise((r) => setTimeout(r, 20))
+  check('picking a page in the list shows the page', modalAttrs['data-kbmob-page'] === '1', modalAttrs)
+  check('the back bar is labelled in the page language', pageAttrs['data-kbmob-back'] === 'Settings', pageAttrs)
+  fire(page, 300)
+  check('a tap in the page is the page\'s own', 'data-kbmob-page' in modalAttrs)
+  fire(Object.assign(page, { closest: (sel) => (sel === '[data-shortcut-modal="settings"]' ? modal : null) }), 20)
+  check('a tap on the back bar goes back to the list', !('data-kbmob-page' in modalAttrs), modalAttrs)
+  disposer()
+}
+
 process.exit(failed === 0 ? 0 : 1)

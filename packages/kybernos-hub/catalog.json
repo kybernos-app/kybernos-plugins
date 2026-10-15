@@ -378,16 +378,16 @@
         },
         "steps": [
           {
-            "fr": "Ouvrez « Compétences » : « Yours » liste vos skills (recherche, filtres, interrupteur). « /nom » copie l’appel à coller dans le chat.",
-            "en": "Open “Skills”: “Yours” lists your skills, with search, filters and a switch. “/name” copies the call to paste in the chat."
+            "fr": "« Yours » liste vos skills. Un clic ouvre son SKILL.md à droite, avec : ouvrir le dossier, modifier, dupliquer, supprimer.",
+            "en": "“Yours” lists your skills. A click opens its SKILL.md on the right, with: open the folder, edit, duplicate, delete."
           },
           {
             "fr": "« Créer un skill » (nom, description, contenu) ou « Importer depuis GitHub » (owner/repo et nom du skill).",
             "en": "“Create a skill” (name, description, content) or “Import from GitHub” (owner/repo and the skill’s name)."
           },
           {
-            "fr": "« Discover » classe les skills publics : ouvrez une fiche, lisez ses audits, puis « Installer ». « Source » choisit le serveur.",
-            "en": "“Discover” ranks the public skills: open one, read its audits, then “Install”. “Source” picks the server it reads from."
+            "fr": "« Discover » classe les skills publics : ouvrez une ligne (dépôt, dossier, texte, audits), puis « Installer » demande confirmation.",
+            "en": "“Discover” ranks the public skills: open a row (repository, folder, text, audits), then “Install” asks you to confirm."
           },
           {
             "fr": "« Team » : le catalogue de votre équipe. Proposez un de vos skills, un admin l’approuve, chacun l’installe. Plan Team requis.",
@@ -689,8 +689,8 @@
       "defaut": "actif",
       "poids_ko": 74,
       "promesse": {
-        "fr": "Modèles gratuits OpenCode Zen, sans compte ni clé API.",
-        "en": "Free OpenCode Zen models, no account or API key."
+        "fr": "Modèles gratuits, sans compte ni clé API.",
+        "en": "Free models, no account or API key."
       },
       "aide": {
         "what": {
@@ -716,8 +716,8 @@
           }
         ],
         "where": {
-          "fr": "Réglages › Free LLMs (OpenCode)",
-          "en": "Settings › Free LLMs (OpenCode)",
+          "fr": "Réglages › Free LLMs",
+          "en": "Settings › Free LLMs",
           "page": true
         },
         "good": {
@@ -756,22 +756,22 @@
             "en": "Open Kybernos › Connectors › “Discover”, pick an app, click “Add a connection”, then authorize it in the tab that opens."
           },
           {
-            "fr": "Avec votre compte Kybernos (si votre serveur le propose) : « Connexions Kybernos » au-dessus de la liste, puis « Connecter une app ».",
-            "en": "With your Kybernos account (if your server offers it): “Kybernos connections” above the list, then “Connect an app”."
+            "fr": "Avec votre compte Kybernos (si votre serveur le propose) : « Kybernos Cloud » dans Réglages › Connecteurs, puis « Connecter une app ».",
+            "en": "With your Kybernos account (if your server offers it): “Kybernos Cloud” in Settings › Connectors, then “Connect an app”."
           },
           {
-            "fr": "Un serveur à vous : onglet « Serveurs MCP », « Ajouter », puis un formulaire ou du JSON collé. DSH le charge en quelques secondes.",
-            "en": "A server of your own: the “MCP servers” tab, “Add”, then a form or pasted JSON. DSH loads it within seconds."
+            "fr": "Un serveur ou une API à vous : onglet « Serveurs MCP », « Ajouter » : formulaire, JSON, spec OpenAPI ou « Ajouter avec l'IA ».",
+            "en": "A server or API of your own: “MCP servers” tab, “Add”: a form, JSON, an OpenAPI spec or “Add with AI”."
           }
         ],
         "where": {
-          "fr": "Kybernos (barre latérale) › Connecteurs ; la clé : Réglages › Plugins › kybernos-composio",
-          "en": "Kybernos (sidebar) › Connectors; the key: Settings › Plugins › kybernos-composio",
+          "fr": "Kybernos (barre latérale) › Connecteurs ; le choix du service et la clé : Réglages › Connecteurs",
+          "en": "Kybernos (sidebar) › Connectors; the choice of service and the key: Settings › Connectors",
           "page": true
         },
         "good": {
-          "fr": "Votre clé reste sur votre machine ; une clé changée n'atteint les agents qu'après un redémarrage de DSH. Avec Kybernos, vos apps suivent votre compte et une clé d'app n'est jamais gardée.",
-          "en": "Your key stays on your machine; a changed key reaches the agents only after DSH restarts. With Kybernos, your apps follow your account and an app's key is never kept."
+          "fr": "Un seul service à la fois côté agents : Kybernos Cloud ou votre clé. Votre clé reste sur votre machine ; une clé changée n'atteint les agents qu'après un redémarrage de DSH.",
+          "en": "One service at a time for the agents: Kybernos Cloud or your key. Your key stays on your machine; a changed key reaches the agents only after DSH restarts."
         }
       }
     },
@@ -1373,21 +1373,21 @@
       },
       "aide": {
         "what": {
-          "fr": "Les liens des messages du chat deviennent de petites pastilles grises avec le nom du site, en fin de phrase : les longues adresses ne coupent plus la lecture.",
-          "en": "Links in chat messages become small grey chips with the site name at the end of the sentence, so long addresses stop breaking the reading."
+          "fr": "Les liens d’un message deviennent une seule pastille de source en fin de phrase : le nom du site, une initiale colorée, et « +2 » s’il y a plusieurs sources. Elles ne bougent plus.",
+          "en": "A message’s links become one source chip at the end of the sentence: the site name, a coloured initial, and “+2” when there are several sources. The chips no longer move."
         },
         "steps": [
           {
-            "fr": "Lisez une réponse du chat qui contient des liens : chacun devient une pastille grise, par exemple « llm-stats », au bout de sa phrase.",
-            "en": "Read a chat answer that contains links: each one becomes a grey chip, for example “llm-stats”, at the end of its sentence."
+            "fr": "Lisez une réponse du chat qui contient des liens : chaque phrase porte une seule pastille, par exemple « arxiv +1 », au bout de la phrase.",
+            "en": "Read a chat answer that contains links: each sentence carries one chip, for example “arxiv +1”, at its end."
           },
           {
-            "fr": "Cliquez une pastille : une carte montre le titre du lien, le site et l’adresse complète.",
-            "en": "Click a chip: a card shows the link’s title, the site and the full address."
+            "fr": "Cliquez la pastille : une carte liste toutes les sources de la phrase, avec le texte du lien et le site.",
+            "en": "Click the chip: a card lists every source of the sentence, with the link’s text and the site."
           },
           {
-            "fr": "Cliquez « Ouvrir ↗ » dans la carte pour ouvrir la page dans un nouvel onglet ; Échap ou un clic ailleurs ferme la carte.",
-            "en": "Click “Ouvrir ↗” in the card to open the page in a new tab; Esc or a click elsewhere closes the card."
+            "fr": "Cliquez une source dans la carte pour ouvrir la page dans un nouvel onglet ; Échap ou un clic ailleurs ferme la carte.",
+            "en": "Click a source in the card to open the page in a new tab; Esc or a click elsewhere closes the card."
           }
         ],
         "where": {
@@ -1396,15 +1396,15 @@
           "page": false
         },
         "good": {
-          "fr": "La carte montre le texte du lien, pas le vrai titre de la page : rien n’est téléchargé pour la remplir. Le bouton « Ouvrir ↗ » reste en français.",
-          "en": "The card shows the link’s text, not the page’s real title: nothing is downloaded to fill it. The “Ouvrir ↗” button stays in French."
+          "fr": "La carte montre le texte du lien, pas le vrai titre de la page : rien n’est téléchargé pour la remplir, et aucune icône de site n’est demandée au réseau (l’initiale colorée la remplace).",
+          "en": "The card shows the link’s text, not the page’s real title: nothing is downloaded to fill it, and no site icon is requested from the network (the coloured initial stands in for it)."
         }
       }
     },
     {
       "id": "kybernos-mobile",
       "nom": "@local/kybernos-mobile",
-      "titre": "Mobile",
+      "titre": "Remote Control",
       "glyphe": "mobile",
       "famille": "base",
       "palier": "core",
@@ -1413,13 +1413,13 @@
       "defaut": "actif",
       "poids_ko": 60,
       "promesse": {
-        "fr": "DSH sur votre téléphone : l’écran s’adapte, et avec une offre payante un code QR relie le téléphone à cet ordinateur.",
-        "en": "DSH on your phone: the screen adapts, and with a paid plan a QR code links the phone to this computer."
+        "fr": "DSH sur votre téléphone : l’écran s’adapte, et un code QR relie le téléphone à cet ordinateur, chiffré de bout en bout.",
+        "en": "DSH on your phone: the screen adapts, and a QR code links the phone to this computer, end-to-end encrypted."
       },
       "aide": {
         "what": {
-          "fr": "Pilotez DSH depuis votre téléphone : scannez un code QR et la page de votre ordinateur s’ouvre sur le téléphone, avec un écran adapté. Le lien est chiffré de bout en bout.",
-          "en": "Drive DSH from your phone: scan a QR code and your computer’s page opens on the phone, on a screen made for it. The link is end-to-end encrypted."
+          "fr": "Votre téléphone ouvre une application web qui parle à votre ordinateur par un relais qui ne lit rien : tout est chiffré de bout en bout.",
+          "en": "Your phone opens a web app that talks to your computer through a relay that reads nothing: everything is end-to-end encrypted."
         },
         "steps": [
           {
@@ -1436,13 +1436,13 @@
           }
         ],
         "where": {
-          "fr": "Bouton téléphone en bas de la barre latérale, et Réglages › Mobile pour retirer un téléphone",
-          "en": "Phone button at the bottom of the sidebar, and Settings › Mobile to remove a phone",
+          "fr": "Bouton téléphone en bas de la barre latérale, et Réglages › Remote Control pour retirer un téléphone",
+          "en": "Phone button at the bottom of the sidebar, and Settings › Remote Control to remove a phone",
           "page": true
         },
         "good": {
-          "fr": "Réservé aux offres payantes : le lien passe par un relais Kybernos qui ne peut pas lire vos messages. Sans offre, DSH reste utilisable en local, et l’écran s’adapte quand même.",
-          "en": "Paid plans only: the link goes through a Kybernos relay that cannot read your messages. Without a plan, DSH stays usable locally and the screen still adapts."
+          "fr": "Gardez l’ordinateur allumé et connecté à internet : s’il s’éteint ou perd la connexion, le téléphone ne peut plus l’atteindre. Le relais Kybernos fait passer les messages sans pouvoir les lire.",
+          "en": "Keep the computer switched on and connected to the internet: if it is switched off or loses the connection, the phone can no longer reach it. The Kybernos relay only passes messages along and cannot read them."
         }
       }
     },
@@ -1971,6 +1971,235 @@
         "good": {
           "fr": "Le plan est compté par le serveur, en pourcentage ; le coût de vos clés est calculé sur cet ordinateur, rien n'est envoyé.",
           "en": "The plan is counted by the server, as a percentage; the cost of your keys is worked out on this computer, nothing is sent."
+        }
+      }
+    },
+    {
+      "id": "kybernos-multi-device",
+      "nom": "@local/kybernos-multi-device",
+      "titre": "Workspaces & devices",
+      "glyphe": "devices",
+      "famille": "base",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 48,
+      "promesse": {
+        "fr": "Des workspaces avec ou sans dossier : Create propose un dossier privé, et Détails montre où le workspace travaille.",
+        "en": "Workspaces with or without a folder: Create offers a private folder, and Details shows where the workspace works."
+      },
+      "aide": {
+        "what": {
+          "fr": "Un workspace peut avoir un dossier de votre ordinateur, ou aucun : sans dossier, Kybernos en crée un pour vous dans Documents/Kybernos.",
+          "en": "A workspace can have a folder of your computer, or none: without a folder, Kybernos creates one for you in Documents/Kybernos."
+        },
+        "steps": [
+          {
+            "fr": "Ouvrez Workspaces et cliquez Create : donnez un nom, puis choisissez « Sans dossier » ou un dossier de votre ordinateur.",
+            "en": "Open Workspaces and click Create: give it a name, then pick “No folder” or a folder of your computer."
+          },
+          {
+            "fr": "Le même choix apparaît quand vous ajoutez un workspace depuis la barre latérale ou depuis un nouveau chat.",
+            "en": "The same choice appears when you add a workspace from the sidebar or from a new chat."
+          },
+          {
+            "fr": "Ouvrez un workspace, onglet Détails : le dossier de travail y est affiché, et « Avancé » montre un aperçu de ce qui viendra.",
+            "en": "Open a workspace, Details tab: its working folder is shown there, and “Advanced” previews what is coming."
+          }
+        ],
+        "where": {
+          "fr": "Workspaces › Create, et le « + » de la barre latérale",
+          "en": "Workspaces › Create, and the “+” of the sidebar",
+          "page": false
+        },
+        "good": {
+          "fr": "Le dossier est fixé à la création : pour travailler dans un autre dossier, créez un autre workspace. Le téléphone ouvre toute la page de l'ordinateur, pas un workspace.",
+          "en": "The folder is fixed at creation: to work in another folder, create another workspace. The phone opens the whole page of the computer, not one workspace."
+        }
+      }
+    },
+    {
+      "id": "kybernos-dashboards",
+      "nom": "@local/kybernos-dashboards",
+      "titre": "Dashboards",
+      "glyphe": "dash",
+      "famille": "teams",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 185,
+      "promesse": {
+        "fr": "Des dashboards construits par chat, pour suivre vos Agent Teams, automations, usage et livrables : cartes, graphiques animés, calendrier, kanban, notes.",
+        "en": "Dashboards built by chat to follow your Agent Teams, automations, usage and deliverables: cards, animated charts, calendar, kanban, notes."
+      },
+      "aide": {
+        "what": {
+          "fr": "Une page Dashboards avant Agent Teams : le chat construit vos tableaux de bord (Agent Teams, automations, usage, livrables) avec des graphiques animés, un calendrier, un kanban et des notes.",
+          "en": "A Dashboards page before Agent Teams: the chat builds your dashboards (Agent Teams, automations, usage, deliverables) with animated charts, a calendar, a kanban and notes."
+        },
+        "steps": [
+          {
+            "fr": "Ouvrez « Dashboards » dans le menu, puis « Créer un dashboard avec l’IA », ou partez d’un preset.",
+            "en": "Open “Dashboards” in the menu, then “Create a dashboard with AI”, or start from a preset."
+          },
+          {
+            "fr": "Répondez aux quelques questions du chat : il choisit les widgets adaptés et vous montre le plan avant de construire.",
+            "en": "Answer the chat’s few questions: it picks the right widgets and shows you the plan before building."
+          },
+          {
+            "fr": "Le dashboard s’affiche en direct dans l’onglet « Dashboard » à droite. Demandez n’importe quel changement.",
+            "en": "The dashboard shows live in the “Dashboard” tab on the right. Ask for any change."
+          },
+          {
+            "fr": "« Modifier la mise en page » déplace et redimensionne ; les notes et le kanban manuel se modifient sur place.",
+            "en": "“Edit layout” moves and resizes; notes and the manual kanban are edited in place."
+          }
+        ],
+        "where": {
+          "fr": "Menu Kybernos › Dashboards (avant Agent Teams), barre latérale droite › Dashboard",
+          "en": "Kybernos menu › Dashboards (before Agent Teams), right sidebar › Dashboard",
+          "page": true
+        },
+        "good": {
+          "fr": "Un dashboard est un simple fichier, sans code, qui ne lit que des sources de cet ordinateur. Les tokens sont comptés, pas l’argent.",
+          "en": "A dashboard is a plain file with no code, reading only sources on this computer. Tokens are counted, not money."
+        }
+      }
+    },
+    {
+      "id": "kybernos-summary",
+      "nom": "@local/kybernos-summary",
+      "titre": "Summary",
+      "glyphe": "summary",
+      "famille": "base",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 16,
+      "promesse": {
+        "fr": "Un onglet Résumé dans le panneau de droite du chat : agents, progression, compétences et outils utilisés, fichiers écrits.",
+        "en": "A Summary tab in the chat's right-hand panel: agents, progress, skills and tools used, files written."
+      },
+      "aide": {
+        "what": {
+          "fr": "Un onglet Résumé dans le panneau de droite du chat : les agents, la liste des tâches, les compétences et outils utilisés, et les fichiers écrits, sur une seule page.",
+          "en": "A Summary tab in the chat's right-hand panel: the agents, the task list, the skills and tools used and the files written, on one page."
+        },
+        "steps": [
+          {
+            "fr": "Dans un chat, ouvrez le panneau de droite puis le bouton « + » et choisissez Résumé.",
+            "en": "In a chat, open the right-hand panel, press the “+” button and pick Summary."
+          },
+          {
+            "fr": "Suivez la progression, les compétences et outils utilisés, et les fichiers écrits ; cliquez un fichier pour l'ouvrir.",
+            "en": "Follow the progress, the skills and tools used and the files written; click a file to open it."
+          },
+          {
+            "fr": "« Dernier tour » limite compétences, outils et fichiers à la réponse en cours ; un clic le passe à tout le chat.",
+            "en": "“Latest only” limits skills, tools and files to the current answer; one click switches it to the whole chat."
+          }
+        ],
+        "where": {
+          "fr": "Dans un chat, panneau de droite › Résumé",
+          "en": "In a chat, right-hand panel › Summary",
+          "page": false
+        },
+        "good": {
+          "fr": "Tout est lu dans votre navigateur, à partir de ce que le chat contient déjà : rien n'est stocké ni envoyé.",
+          "en": "Everything is read in your browser from what the chat already holds: nothing is stored or sent."
+        }
+      }
+    },
+    {
+      "id": "kybernos-kyber",
+      "nom": "@local/kybernos-kyber",
+      "titre": "Kyber",
+      "glyphe": "kyber",
+      "famille": "base",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 12,
+      "promesse": {
+        "fr": "Un onglet Kyber dans le panneau de droite du chat : où votre assistant vous répond (Telegram) et l'ordinateur cloud sur lequel il travaille.",
+        "en": "A Kyber tab in the chat's right-hand panel: where your assistant answers you (Telegram) and the cloud computer it works on."
+      },
+      "aide": {
+        "what": {
+          "fr": "Un onglet Kyber dans le panneau de droite : où votre assistant vous répond (Telegram) et l'ordinateur cloud sur lequel il travaille, sur une seule page.",
+          "en": "A Kyber tab in the right-hand panel: where your assistant answers you (Telegram) and the cloud computer it works on, on one page."
+        },
+        "steps": [
+          {
+            "fr": "Ouvrez le panneau de droite d'un chat, le bouton « + », puis choisissez Kyber.",
+            "en": "Open a chat's right-hand panel, press the “+” button and pick Kyber."
+          },
+          {
+            "fr": "Voyez si Telegram est connecté, et si votre ordinateur est en veille ou éveillé.",
+            "en": "See whether Telegram is connected, and whether your computer is asleep or awake."
+          },
+          {
+            "fr": "« Ouvrir le bot » vous mène à Telegram ; « Gérer dans mon compte » à la page de votre compte, où le code se saisit.",
+            "en": "“Open the bot” takes you to Telegram; “Manage in my account” to your account page, where the code is typed."
+          }
+        ],
+        "where": {
+          "fr": "Dans un chat, panneau de droite › Kyber",
+          "en": "In a chat, right-hand panel › Kyber",
+          "page": false
+        },
+        "good": {
+          "fr": "L'onglet lit seulement : il ne connecte ni ne déconnecte rien. Votre ordinateur vous demande l'accord dans Telegram avant d'agir.",
+          "en": "The tab only reads: it connects and disconnects nothing. Your computer asks for your approval in Telegram before it acts."
+        }
+      }
+    },
+    {
+      "id": "kybernos-search",
+      "nom": "@local/kybernos-search",
+      "titre": "Search everywhere",
+      "glyphe": "lens",
+      "famille": "base",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 40,
+      "promesse": {
+        "fr": "Une recherche partout : le contenu des chats, les skills, les mémoires, les leçons, les créations.",
+        "en": "Search everywhere: the content of your chats, skills, memories, lessons and creations."
+      },
+      "aide": {
+        "what": {
+          "fr": "Une recherche qui lit le contenu de vos chats, pas seulement leurs titres, et aussi vos skills, mémoires, leçons, créations, automations et équipes.",
+          "en": "A search that reads the content of your chats, not only their titles, and also your skills, memories, lessons, creations, automations and agent teams."
+        },
+        "steps": [
+          {
+            "fr": "Appuyez sur ⌘K (Ctrl+K), ou cliquez la loupe à côté de la recherche de la liste, ou la ligne « Rechercher partout » du menu.",
+            "en": "Press ⌘K (Ctrl+K), or click the search icon next to the list's search, or the “Search everywhere” row of the menu."
+          },
+          {
+            "fr": "Tapez quelques mots : les résultats sont groupés par type, avec l’extrait où ils apparaissent.",
+            "en": "Type a few words: results are grouped by kind, with the passage where they appear."
+          },
+          {
+            "fr": "Activez ou coupez un type avec les pastilles du haut ; ↑ ↓ pour choisir, ↵ pour ouvrir.",
+            "en": "Switch a kind on or off with the chips at the top; ↑ ↓ to choose, ↵ to open."
+          }
+        ],
+        "where": {
+          "fr": "Menu › Rechercher partout, ou ⌘K (aucune page de réglages)",
+          "en": "Menu › Search everywhere, or ⌘K (no settings page)",
+          "page": false
+        },
+        "good": {
+          "fr": "Tout reste sur cet ordinateur. Le premier clic construit l’index des chats (une dizaine de secondes), ensuite seuls les chats modifiés sont relus.",
+          "en": "Everything stays on this computer. The first click builds the chat index (about ten seconds), afterwards only the chats that changed are read."
         }
       }
     }
