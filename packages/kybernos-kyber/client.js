@@ -47,26 +47,27 @@ window.__ModuleLoader__.load({
         b3h: ['Vous gardez la main', 'You stay in control'], b3p: ['Avant d’agir, il demande : Autoriser, Refuser ou Autoriser pour cette tâche.', 'Before it acts, it asks: Allow, Refuse, or Allow for this task.'],
         stOn: ['Telegram connecté', 'Telegram connected'], stOff: ['Telegram non connecté', 'Telegram not connected'], stWait: ['Telegram en attente', 'Telegram waiting'], stNone: ['Telegram indisponible', 'Telegram unavailable'],
         // the strip
-        channels: ['Canaux', 'Channels'], collapse: ['Replier', 'Fold'], expand: ['Déplier', 'Unfold'],
-       otherChannels: ['Autres canaux', 'Other channels'],
+        channels: ['Canaux', 'Channels'], soon: ['Bientôt', 'Soon'],
         // telegram
         telegram: ['Telegram', 'Telegram'],
-        cH: ['Connecter Telegram', 'Connect Telegram'], cSub: ['Environ une minute, sans mot de passe.', 'About a minute, no password.'],
+        cH: ['Connecter Telegram', 'Connect Telegram'],
         s1: ['Scannez ce code avec l’appareil photo de votre téléphone. Sur le téléphone, touchez « Ouvrir Telegram ».', 'Scan this code with your phone’s camera. On a phone, tap “Open Telegram”.'],
         s2: ['Dans Telegram, touchez Démarrer.', 'In Telegram, tap Start.'],
         s3: ['Touchez « Oui, c’est moi ».', 'Tap “Yes, it’s me”.'],
-        openTg: ['Ouvrir Telegram', 'Open Telegram'], copyLink: ['Copier le lien', 'Copy the link'], copied: ['Lien copié', 'Link copied'],
+        openTg: ['Ouvrir Telegram', 'Open Telegram'],
+        tgNone: ['Pas connecté', 'Not connected'], tgCode: ['Code à scanner', 'Code to scan'], tgWait2: ['En attente de votre accord', 'Waiting for your OK'],
+        tgExp: ['Code expiré', 'Code expired'], tgDec: ['Refusé dans Telegram', 'Refused in Telegram'], tgTak: ['Déjà utilisé par un autre compte', 'Already used by another account'],
+        tgBot: ['Compte déjà créé par le bot', 'Account already made by the bot'],
         noCam: ['Pas de caméra ni d’application ? Utiliser un code', 'No camera or no app? Use a code instead'],
-        once: ['À usage unique · expire dans {t}', 'Single use · expires in {t}'], newCode: ['Nouveau code', 'New code'],
-        lockNote: ['Rien n’est connecté sans votre accord dans Telegram, qui nomme le compte concerné.', 'Nothing is connected until you agree in Telegram, which names the account.'],
+        expiresIn: ['Expire dans {t}', 'Expires in {t}'], newCode: ['Nouveau code', 'New code'],
         preparing: ['Préparation du code…', 'Preparing the code…'],
         scH: ['Presque fini : confirmez dans Telegram', 'Almost done: confirm in Telegram'],
         scP: ['Telegram indique : {who}. Touchez « Oui, c’est moi » dans la conversation avec {NAME}.', 'Telegram says: {who}. Tap “Yes, it’s me” in the chat with {NAME}.'],
         scWait: ['En attente de votre tap…', 'Waiting for your tap…'], notMe: ['Ce n’est pas moi : annuler', 'Not me: cancel'],
-        linked: ['Connecté : {name}', 'Connected: {name}'], since: ['depuis le {date}', 'since {date}'],
+        linked: ['Connecté : {name}', 'Connected: {name}'],
         paused: ['En pause : écrivez /resume au bot pour reprendre.', 'Paused: write /resume to the bot to resume.'],
         blocked: ['Le bot est bloqué dans Telegram : débloquez-le pour recevoir les réponses.', 'The bot is blocked in Telegram: unblock it to receive answers.'],
-        openBot: ['Ouvrir', 'Open'], disc: ['Déconnecter', 'Disconnect'], discQ: ['Déconnecter ?', 'Disconnect?'], confirm: ['Confirmer', 'Confirm'], cancel: ['Annuler', 'Cancel'],
+        openBot: ['Ouvrir', 'Open'], discQ: ['Déconnecter Telegram ?', 'Disconnect Telegram?'], confirm: ['Confirmer', 'Confirm'], cancel: ['Annuler', 'Cancel'],
         exH: ['Ce code a expiré', 'This code has expired'], exP: ['Un code est valable 5 minutes et ne sert qu’une fois.', 'A code is good for 5 minutes and works once.'],
         deH: ['Rien n’a été connecté', 'Nothing was connected'], deP: ['Vous avez touché « Non » dans Telegram.', 'You tapped “No” in Telegram.'],
         taH: ['Ce Telegram est déjà connecté à un autre compte', 'This Telegram is already connected to another account'],
@@ -80,26 +81,22 @@ window.__ModuleLoader__.load({
         peRate: ['Trop d’essais : réessayez dans une minute.', 'Too many tries: try again in a minute.'],
         retry: ['Réessayer', 'Try again'],
         // computer
-        computer: ['Ordinateur de {NAME}', '{NAME}’s computer'],
-        noHome: ['Prêt à la première demande : il est créé à ce moment-là.', 'Ready at the first request: it is made then.'],
+        computer: ['Ordinateur', 'Computer'], acct: ['Compte personnel', 'Personal account'],
+        noHome: ['Créé à votre première demande qui en a besoin.', 'Made at your first request that needs one.'],
         onRequest: ['À la demande', 'On request'],
         pickLead: ['Ordinateur lié à {NAME}', 'Computer linked to {NAME}'],
         err_computer: ['Le choix n’a pas pu être enregistré.', 'The choice could not be saved.'],
         err_computer_old: ['Ce serveur ne sait pas encore enregistrer ce choix.', 'This server cannot save this choice yet.'],
-        soonLead: ['Bientôt :', 'Soon:'],
-        ofLine: ['Telegram n’est pas disponible sur ce serveur.', 'Telegram is not available on this server.'],
-        ofLineS: ['Telegram n’est pas disponible sur le serveur de ce DSH ({server}).', 'Telegram is not available on this DSH’s server ({server}).'],
-        st_running: ['Éveillé', 'Awake'], st_suspended: ['En veille', 'Asleep'], st_creating: ['En création', 'Being made'], st_resuming: ['Se réveille', 'Waking up'],
+        ofSub: ['Pas de bot sur ce serveur', 'No bot on this server'], ofSubS: ['Pas de bot sur ce serveur ({server})', 'No bot on this server ({server})'],
+        st_running: ['Éveillé', 'Awake'], st_suspended: ['En veille', 'Asleep'], st_creating: ['Initialisation', 'Setting up'], st_resuming: ['Se réveille', 'Waking up'],
         st_suspending: ['S’endort', 'Going to sleep'], st_failed: ['En échec', 'Failed'], st_other: ['{state}', '{state}'],
         txt_running: ['Éveillé : {NAME} travaille dessus.', 'Awake: {NAME} is working on it.'],
         txt_suspended: ['En veille. Il se réveille tout seul quand {NAME} a du travail, puis se rendort.', 'Asleep. It wakes by itself when {NAME} has work, then goes back to sleep.'],
-        txt_creating: ['Il est en cours de création.', 'It is being made.'], txt_resuming: ['Il se réveille.', 'It is waking up.'], txt_suspending: ['Il s’endort.', 'It is going to sleep.'],
+        txt_creating: ['Initialisation d’une machine dédiée pour vous. Environ une minute.', 'Setting up a machine dedicated to you. About a minute.'], txt_resuming: ['Il se réveille.', 'It is waking up.'], txt_suspending: ['Il s’endort.', 'It is going to sleep.'],
         txt_failed: ['Il n’a pas démarré. {NAME} réessaiera au prochain message.', 'It did not start. {NAME} will try again at the next message.'],
-       image: ['Image {v}', 'Image {v}'],
-        net_public: ['Réseau : toutes les adresses publiques', 'Network: any public address'], net_closed: ['Réseau : seulement les serveurs Kybernos', 'Network: Kybernos servers only'], net_list: ['Réseau : une liste d’adresses', 'Network: a list of addresses'],
         pr_hours: ['Les heures d’exécution du mois sont utilisées.', 'This month’s run hours are used up.'], pr_other: ['Il est en pause.', 'It is paused.'],
         wake: ['Réveiller', 'Wake up'], sleep: ['Mettre en veille', 'Put to sleep'], openPc: ['Ouvrir', 'Open'],
-        upsell: ['Avec l’offre Free, vous ne pouvez pas le réveiller ni le garder allumé. Une offre payante vous en donne la main.', 'On the Free plan you cannot wake it or keep it on. A paid plan puts you in charge of it.'],
+        upsell: ['Offre Free : réveil automatique seulement.', 'Free plan: automatic wake only.'],
         upgrade: ['Passer à une offre payante', 'Upgrade to a paid plan'],
         manage: ['Gérer dans mon compte', 'Manage in my account'],
         // the native conversation
@@ -116,16 +113,6 @@ window.__ModuleLoader__.load({
 
       // ═══ the model: pure, no DOM, tested without a browser ═══════════════════════════════════════════════════════
       const asObj = (v) => (v !== null && typeof v === 'object' && !Array.isArray(v) ? v : null)
-      const when = (iso) => {
-        const t = Date.parse(String(iso || ''))
-        if (!Number.isFinite(t)) return ''
-        try { return new Date(t).toLocaleString(lang() === 'en' ? 'en' : lang().slice(0, 2), { dateStyle: 'medium', timeStyle: 'short' }) } catch (e) { return new Date(t).toISOString().slice(0, 16).replace('T', ' ') }
-      }
-      const day = (iso) => {
-        const t = Date.parse(String(iso || ''))
-        if (!Number.isFinite(t)) return ''
-        try { return new Date(t).toLocaleDateString(lang() === 'en' ? 'en' : lang().slice(0, 2), { dateStyle: 'medium' }) } catch (e) { return new Date(t).toISOString().slice(0, 10) }
-      }
       const clock = (secs) => { const n = Math.max(0, Math.floor(secs)); return Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0') }
       /** What the page shows, from what the two routes said. `kyber` is the answer of /kybernos-cloud/kyber (or null), `server` the one of /kybernos-cloud/server. */
       const derive = (kyber, server) => {
@@ -177,7 +164,7 @@ window.__ModuleLoader__.load({
       // ═══ the store and its calls ═════════════════════════════════════════════════════════════════════════════════
       const state = {
         loading: true, view: null, at: 0, stripPref: null,
-        pairing: null, starting: false, autoDone: false, copied: false, confirmDisc: false, busy: '',
+        pairing: null, starting: false, confirmDisc: false, busy: '',
         kybySid: null, kybyCwd: null, opening: false, openFailed: false, openError: '', computerError: '',
       }
       try { const v = window.localStorage.getItem('kybernos-kyber.strip'); if (v === '0') state.stripPref = false; else if (v === '1') state.stripPref = true } catch (e) { /* no storage */ }
@@ -206,6 +193,20 @@ window.__ModuleLoader__.load({
         state.loading = false
         state.at = Date.now()
         emit()
+        settle()
+      }
+      // A computer that is being made, woken or put to sleep is read again every few seconds (for about three minutes) until it has settled:
+      // « Setting up… » must turn into « Asleep » or « Awake » by itself.
+      const TRANSIENT = ['creating', 'resuming', 'suspending']
+      let settleTimer = null
+      let settleN = 0
+      const settle = () => {
+        if (settleTimer !== null) { clearTimeout(settleTimer); settleTimer = null }
+        const st = state.view !== null && state.view.kind === 'ok' && state.view.home !== null ? state.view.home.state : ''
+        if (TRANSIENT.indexOf(st) >= 0 && live() && settleN < 60) {
+          settleN += 1
+          settleTimer = setTimeout(() => { settleTimer = null; void load() }, 3000)
+        } else settleN = 0
       }
 
       // — pairing —
@@ -238,9 +239,7 @@ window.__ModuleLoader__.load({
       const pairStart = async () => {
         if (state.starting) return
         state.starting = true
-        state.autoDone = true
         state.pairing = null
-        state.copied = false
         emit()
         const r = await postJson('/kybernos-cloud/telegram/pairing', {})
         state.starting = false
@@ -258,7 +257,6 @@ window.__ModuleLoader__.load({
       const pairCancel = async () => {
         const id = state.pairing !== null ? state.pairing.id : null
         state.pairing = null
-        state.autoDone = true
         emit()
         if (typeof id === 'string') await postJson('/kybernos-cloud/telegram/pairing/cancel', { id })
       }
@@ -275,7 +273,6 @@ window.__ModuleLoader__.load({
       const unlink = async () => {
         state.confirmDisc = false
         const r = await postJson('/kybernos-cloud/telegram/unlink', { confirm: true })
-        state.autoDone = false
         state.pairing = null
         if (r !== null && r.ok === true) await load()
         else emit()
@@ -287,16 +284,8 @@ window.__ModuleLoader__.load({
         state.busy = ''
         if (verb === 'open' && r !== null && r.ok === true && typeof r.url === 'string') { try { window.open(r.url, '_blank', 'noopener,noreferrer') } catch (e) { /* popup refused */ } }
         await load()
-        // A wake or a sleep moves for a few seconds: read it again until it settles.
-        let n = 0
-        const again = async () => {
-          n += 1
-          const s = state.view !== null && state.view.kind === 'ok' && state.view.home !== null ? state.view.home.state : ''
-          if (n > 8 || !live() || ['creating', 'resuming', 'suspending'].indexOf(s) < 0) return
-          await load()
-          setTimeout(again, 3000)
-        }
-        setTimeout(again, 2500)
+        // A wake or a sleep takes a moment to show: one more read, and `settle` follows it from there.
+        setTimeout(() => { if (live()) void load() }, 2500)
       }
       const openAccount = async (section) => {
         const r = await postJson('/kybernos-cloud/console/link', { section, open: true })
@@ -315,20 +304,24 @@ window.__ModuleLoader__.load({
         emit()
       }
 
+      /** Telegram's switch. On asks for a code, now and not when the strip opens; off cancels a code in flight or, for a connected chat, asks to disconnect. */
+      const telegramSwitch = () => {
+        const tg = telegramStateOf()
+        if (tg === 'linked') { state.confirmDisc = true; emit(); return }
+        if (tg !== 'unlinked') return
+        if (state.starting) return
+        if (pairLive()) { void pairCancel(); return }
+        void pairStart()
+      }
+
       // ═══ the views ═══════════════════════════════════════════════════════════════════════════════════════════════
       const PATHS = {
-        send: ['m22 2-7 20-4-9-9-4Z', 'M22 2 11 13'],
-        up: ['m5 12 7-7 7 7', 'M12 19V5'],
         kyby: ['m10.586 5.414-5.172 5.172', 'm18.586 13.414-5.172 5.172', 'M6 12h12', 'M10 20a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z', 'M10 4a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z', 'M18 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z', 'M2 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z'],
         cloud: ['M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z'],
         phone: ['M5 4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z', 'M12 18h.01'],
         shield: ['M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z', 'm9 12 2 2 4-4'],
-        lock: ['M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z', 'M7 11V7a5 5 0 0 1 10 0v4'],
-        check: ['M20 6 9 17l-5-5'],
-        x: ['M18 6 6 18', 'm6 6 12 12'],
-        clock: ['M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0z', 'M12 6v6l4 2'],
-        alert: ['M12 8v4', 'M12 16h.01', 'M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0z'],
         chev: ['m6 9 6 6 6-6'],
+        link: ['M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71', 'M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'],
         ext: ['M15 3h6v6', 'M10 14 21 3', 'M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'],
         star: ['M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'],
       }
@@ -366,111 +359,147 @@ window.__ModuleLoader__.load({
             h('rect', { width: n + 8, height: n + 8, fill: '#FFFFFF' }), h('path', { d, fill: '#000000' })))
       }
 
-      /** The Telegram card: the pairing in all its states, or the one line of a connected chat. */
-      const TelegramCard = (props) => {
-        useTick(1000)
-        const v = props.view
+      const HOME_NAME = 'Home'
+      /** A switch: a button with a role, a state and a name, so that a keyboard and a screen reader reach it like a checkbox. */
+      const Switch = (props) => h('button', { type: 'button', role: 'switch', 'aria-checked': String(props.on === true), 'aria-label': props.label, className: 'kbky-sw' + (props.on ? ' on' : ''), disabled: props.disabled === true, 'data-kb': props.kb, onClick: props.onClick }, h('span', { className: 'kbky-swk' }))
+      const Mark = (props) => h('span', { className: 'kbky-mark' }, props.children)
+      /** One channel, one row: its mark, its name and where it stands, and what the person can do. */
+      const ChanRow = (props) => h('div', { className: 'kbky-crow', 'data-kb': props.kb, 'data-state': props.stateKey },
+        h(Mark, null, props.mark), h('div', { className: 'kbky-ta' }, h('b', null, props.name), h('span', { className: props.warn ? 'warn' : '' }, props.sub)), h('div', { className: 'kbky-ra' }, props.right))
+
+      /** What Telegram's row says of itself: the connection, or the pairing in flight. */
+      const telegramRow = (v) => {
         const tg = v.telegram
-        // The card asks for its code once, when it is on screen and there is no Telegram: expiry or a cancel does not start a loop.
-        React.useEffect(() => { if (props.visible && tg.state === 'unlinked' && state.pairing === null && !state.starting && !state.autoDone) void pairStart() })
-        if (tg.state === 'off') return h('p', { className: 'kbky-off', 'data-kb': 'kybernos-kyber-telegram', 'data-state': 'off' }, BRAND.telegram(16), v.serverId === '' ? L('ofLine') : L('ofLineS', { server: v.serverId }))
-        if (tg.state === 'linked') {
-          return h('section', { className: 'kbky-card slim', 'data-kb': 'kybernos-kyber-telegram' },
-            h('div', { className: 'kbky-kv' }, h('div', { className: 'kbky-row' }, BRAND.telegram(20), h('b', null, L('telegram'))), h('span', { className: 'kbky-badge ok sm' }, Ic('check', 14, 2.6))),
-            h('p', { className: 'kbky-line' }, L('linked', { name: tg.name }), tg.since !== '' ? ' · ' + L('since', { date: day(tg.since) }) : ''),
-            tg.paused ? h('p', { className: 'kbky-warn' }, L('paused')) : null,
-            tg.blocked ? h('p', { className: 'kbky-warn' }, L('blocked')) : null,
-            h('div', { className: 'kbky-actions' },
-              typeof tg.botUrl === 'string' && tg.botUrl !== '' ? h(Btn, { href: tg.botUrl, kb: 'kybernos-kyber-bot' }, Ic('ext', 14), L('openBot')) : null,
-              state.confirmDisc
-                ? [h('span', { key: 'q', className: 'kbky-sub' }, L('discQ')), h(Btn, { key: 'y', danger: true, kb: 'kybernos-kyber-unlink-yes', onClick: () => { void unlink() } }, L('confirm')), h(Btn, { key: 'n', onClick: () => { state.confirmDisc = false; emit() } }, L('cancel'))]
-                : h(Btn, { kb: 'kybernos-kyber-unlink', onClick: () => { state.confirmDisc = true; emit() } }, L('disc'))))
-        }
+        if (tg.state === 'off') return { sub: v.serverId === '' ? L('ofSub') : L('ofSubS', { server: v.serverId }), key: 'off' }
+        if (tg.state === 'linked') return { sub: tg.paused ? L('paused') : tg.blocked ? L('blocked') : tg.name, warn: tg.paused || tg.blocked, key: 'linked' }
+        if (state.starting) return { sub: L('preparing'), key: 'starting' }
         const face = pairingFace(state.pairing, Date.now())
-        const err = (kind, icon, hKey, pKey, retry) => h('section', { className: 'kbky-card', 'data-kb': 'kybernos-kyber-telegram', 'data-state': kind },
-          h('div', { className: 'kbky-big' }, h('span', { className: 'kbky-badge ' + (kind === 'taken' || kind === 'botmade' ? 'err' : kind === 'expired' ? 'warn' : 'info') }, Ic(icon, 20)), h('div', null, h('h3', null, L(hKey)), h('p', null, L(pKey)))),
-          retry ? h('div', { className: 'kbky-actions' }, h(Btn, { primary: true, kb: 'kybernos-kyber-retry', onClick: () => { void pairStart() } }, L('newCode'))) : null)
-        if (face.kind === 'expired') return err('expired', 'clock', 'exH', 'exP', true)
-        if (face.kind === 'declined') {
-          if (face.reason === 'taken') return err('taken', 'alert', 'taH', 'taP', true)
-          if (face.reason === 'botmade') return err('botmade', 'alert', 'bmH', 'bmP', false)
-          return err('declined', 'x', 'deH', 'deP', true)
-        }
-        if (face.kind === 'error') {
-          if (face.code === 'not_found') return err('off', 'alert', 'ofH', 'ofP', false)
-          return h('section', { className: 'kbky-card', 'data-kb': 'kybernos-kyber-telegram', 'data-state': 'error' },
-            h('div', { className: 'kbky-big' }, h('span', { className: 'kbky-badge info' }, Ic('alert', 20)), h('div', null, h('h3', null, L('cH')), h('p', null, L(face.code === 'rate_limited' ? 'peRate' : 'pe')))),
-            h('div', { className: 'kbky-actions' }, h(Btn, { primary: true, kb: 'kybernos-kyber-retry', onClick: () => { void pairStart() } }, L('retry'))))
-        }
-        if (face.kind === 'none') {
-          return h('section', { className: 'kbky-card', 'data-kb': 'kybernos-kyber-telegram', 'data-state': 'starting' }, h('div', { className: 'kbky-big' }, h('span', { className: 'kbky-badge info' }, BRAND.telegram(22)), h('div', null, h('h3', null, L('cH')), h('p', null, L('preparing')))))
-        }
-        const p = state.pairing
-        const scanned = face.kind === 'scanned'
-        const copy = () => {
-          try { void navigator.clipboard.writeText(p.link).then(() => { state.copied = true; emit(); setTimeout(() => { state.copied = false; emit() }, 1800) }).catch(() => { /* refused: the link is on the button */ }) } catch (e) { /* no clipboard */ }
-        }
-        return h('section', { className: 'kbky-card kbky-conn', 'data-kb': 'kybernos-kyber-telegram', 'data-state': scanned ? 'scanned' : 'waiting' },
-          h('div', { className: 'kbky-cardh' }, h('h3', null, L(scanned ? 'scH' : 'cH')), h('p', null, scanned ? L('scP', { who: face.sender === '' ? '…' : face.sender }) : L('cSub'))),
-          h('div', { className: 'kbky-connbody' },
-            h('div', { className: 'kbky-connl' },
-              scanned
-                ? h('div', { className: 'kbky-row' }, h('span', { className: 'kbky-spin', 'aria-hidden': 'true' }), h('span', { className: 'kbky-sub' }, L('scWait')))
-                : h('ol', { className: 'kbky-steps' }, h('li', null, L('s1')), h('li', null, L('s2')), h('li', null, L('s3'))),
-              h('div', { className: 'kbky-actions' },
-                h(Btn, { primary: true, href: p.link, kb: 'kybernos-kyber-open' }, BRAND.telegram(18), L('openTg')),
-                scanned ? h(Btn, { kb: 'kybernos-kyber-cancel', onClick: () => { void pairCancel() } }, L('notMe')) : h(Btn, { kb: 'kybernos-kyber-copy', onClick: copy }, Ic('check', 14), L(state.copied ? 'copied' : 'copyLink'))),
-              !scanned && v.accountUrl !== '' ? h('button', { type: 'button', className: 'kbky-link', 'data-kb': 'kybernos-kyber-code', onClick: () => { void openAccount('account') } }, L('noCam')) : null,
-              h('div', { className: 'kbky-lock' }, Ic('lock', 14), h('span', null, L('lockNote')))),
-            h('div', { className: 'kbky-qrcol' },
-              h(Qr, { qr: p.qr, dim: scanned }),
-              h('div', { className: 'kbky-sub' }, L('once', { t: clock(face.left) })),
-              h('button', { type: 'button', className: 'kbky-link', 'data-kb': 'kybernos-kyber-new', onClick: () => { void pairStart() } }, L('newCode')))))
+        if (face.kind === 'waiting') return { sub: L('tgCode'), key: 'waiting' }
+        if (face.kind === 'scanned') return { sub: L('tgWait2'), key: 'scanned' }
+        if (face.kind === 'expired') return { sub: L('tgExp'), key: 'expired' }
+        if (face.kind === 'declined') return { sub: L(face.reason === 'taken' ? 'tgTak' : face.reason === 'botmade' ? 'tgBot' : 'tgDec'), key: 'declined' }
+        if (face.kind === 'error') return face.code === 'not_found' ? { sub: L('ofSub'), key: 'off' } : { sub: L('pe'), key: 'error' }
+        return { sub: L('tgNone'), key: 'idle' }
       }
 
-      /** The channels that are not there yet: one muted line, with their marks. Nothing is offered. */
-      const SoonLine = () => h('p', { className: 'kbky-soon', 'data-kb': 'kybernos-kyber-others' }, h('span', null, L('soonLead')),
-        [['whatsapp', 'WhatsApp'], ['wechat', 'WeChat']].map((c) => h('span', { key: c[0], className: 'kbky-soonc', 'data-kb': 'kybernos-kyber-chan-' + c[0] }, BRAND[c[0]](16), c[1])))
+      /** The first tile: the channels {NAME} answers from. Telegram can be turned on; WhatsApp and WeChat are marked « soon » and offer nothing. */
+      const ChannelsTile = (props) => {
+        const v = props.view
+        const tg = v.telegram
+        const row = telegramRow(v)
+        const on = tg.state === 'linked' || state.starting || pairLive()
+        const bot = tg.state === 'linked' && typeof tg.botUrl === 'string' && tg.botUrl !== ''
+          ? h('a', { className: 'kbky-iconlink', href: tg.botUrl, target: '_blank', rel: 'noopener noreferrer', 'data-kb': 'kybernos-kyber-bot', 'aria-label': L('openBot') }, Ic('ext', 15)) : null
+        const soon = (id, name) => h(ChanRow, { key: id, kb: 'kybernos-kyber-chan-' + id, stateKey: 'soon', mark: BRAND[id](20), name, sub: L('soon'), right: h('span', { className: 'kbky-chip' }, L('soon')) })
+        return h('div', { className: 'kbky-tile', 'data-kb': 'kybernos-kyber-tile-channels' },
+          h('div', { className: 'kbky-th' }, h(Mark, null, Ic('link', 18)), h('b', null, L('channels'))),
+          h('div', { className: 'kbky-chlist' },
+            h(ChanRow, { kb: 'kybernos-kyber-tg-row', stateKey: row.key, mark: BRAND.telegram(20), name: L('telegram'), sub: row.sub, warn: row.warn === true,
+              right: h(React.Fragment, null, bot, h(Switch, { on, disabled: tg.state === 'off', label: L('telegram'), kb: 'kybernos-kyber-tg-switch', onClick: telegramSwitch })) }),
+            soon('whatsapp', 'WhatsApp'), soon('wechat', 'WeChat')))
+      }
 
-      /** {NAME}'s computer: the one linked to it, its state, what the plan lets the person do with it, and a choice when there are several. */
-      const ComputerRow = (props) => {
+      /** The computer's state as a chip: awake, asleep, being set up, on request. */
+      const computerChip = (hm, kb) => {
+        if (hm === null) return h('span', { className: 'kbky-chip', 'data-kb': kb }, L('onRequest'))
+        const st = hm.state
+        const cls = st === 'running' ? ' ok' : TRANSIENT.indexOf(st) >= 0 ? ' warn' : st === 'failed' ? ' err' : ''
+        return h('span', { className: 'kbky-chip' + cls, 'data-kb': kb }, S['st_' + st] !== undefined ? L('st_' + st) : L('st_other', { state: st }))
+      }
+
+      /** The second tile: {NAME}'s computer, as a select (a real one when there are several), its state, and the one thing the plan lets the person do. */
+      const ComputerTile = (props) => {
         const v = props.view
         const hm = v.home
         const free = hm !== null && hm.manualControl === false
         const st = hm === null ? '' : hm.state
         const busy = state.busy !== ''
-        const several = v.computers.length > 1
-        const chip = hm === null
-          ? h('span', { className: 'kbky-chip' }, L('onRequest'))
-          : h('span', { className: 'kbky-chip' + (st === 'running' ? ' ok' : '') }, S['st_' + st] !== undefined ? L('st_' + st) : L('st_other', { state: st }))
-        const pick = several
-          ? h('label', { className: 'kbky-pick' }, h('span', { className: 'kbky-sub left' }, L('pickLead')),
-            h('select', { className: 'kbky-select', 'data-kb': 'kybernos-kyber-pick', value: hm !== null ? hm.id : '', onChange: (e) => { void setComputer(e.target.value) } },
-              v.computers.map((c) => h('option', { key: c.id, value: c.id }, c.name))))
-          : null
+        const several = hm !== null && v.computers.length > 1
+        const name = hm !== null && hm.name !== '' ? hm.name : HOME_NAME
+        const field = several
+          ? h('label', { className: 'kbky-field' }, h(Mark, null, Ic('cloud', 18)),
+            h('select', { className: 'kbky-fsel', 'aria-label': L('pickLead'), 'data-kb': 'kybernos-kyber-pick', value: hm.id, onChange: (e) => { void setComputer(e.target.value) } },
+              v.computers.map((c) => h('option', { key: c.id, value: c.id }, c.name))),
+            computerChip(hm, 'kybernos-kyber-computer-state'))
+          : h('div', { className: 'kbky-field static', 'data-kb': 'kybernos-kyber-field' }, h(Mark, null, Ic('cloud', 18)),
+            h('span', { className: 'kbky-fv' }, h('b', null, name), h('span', null, L('acct'))), computerChip(hm, 'kybernos-kyber-computer-state'))
+        const line = hm === null ? h('p', { className: 'kbky-line' }, L('noHome'))
+          : st === 'creating' ? h('div', { className: 'kbky-row' }, h('span', { className: 'kbky-spin', 'aria-hidden': 'true' }), h('span', { className: 'kbky-line' }, L('txt_creating')))
+            : h('p', { className: 'kbky-line' }, S['txt_' + st] !== undefined ? L('txt_' + st) : L('st_other', { state: st }))
         const acts = hm === null || free ? null : h('div', { className: 'kbky-actions' },
           st === 'suspended' ? h(Btn, { kb: 'kybernos-kyber-wake', disabled: busy, onClick: () => { void computerAction('resume') } }, L('wake')) : null,
           st === 'running' ? h(Btn, { kb: 'kybernos-kyber-sleep', disabled: busy, onClick: () => { void computerAction('suspend') } }, L('sleep')) : null,
           st === 'running' ? h(Btn, { kb: 'kybernos-kyber-pcopen', disabled: busy, onClick: () => { void computerAction('open') } }, Ic('ext', 14), L('openPc')) : null)
-        return h('section', { className: 'kbky-row2', 'data-kb': 'kybernos-kyber-computer' },
-          h('div', { className: 'kbky-kv' }, h('div', { className: 'kbky-row' }, Ic('cloud', 18), h('b', null, L('computer')), hm !== null && hm.name !== '' && !several ? h('span', { className: 'kbky-sub left' }, hm.name) : null), chip),
-          h('p', { className: 'kbky-line' }, hm === null ? L('noHome') : (S['txt_' + st] !== undefined ? L('txt_' + st) : L('st_other', { state: st }))),
-          hm !== null && hm.paused !== '' ? h('p', { className: 'kbky-warn' }, L(hm.paused === 'hours' ? 'pr_hours' : 'pr_other')) : null,
-          pick,
-          state.computerError !== '' ? h('p', { className: 'kbky-err', role: 'alert', 'data-kb': 'kybernos-kyber-computer-error' }, L(state.computerError)) : null,
-          acts,
-          free && hm !== null ? h('div', { className: 'kbky-upsell', 'data-kb': 'kybernos-kyber-upsell' }, Ic('star', 16), h('div', null, h('div', null, L('upsell')), h('div', { className: 'kbky-actions' }, h(Btn, { primary: true, kb: 'kybernos-kyber-upgrade', onClick: upgrade }, L('upgrade'))))) : null)
+        return h('div', { className: 'kbky-tile', 'data-kb': 'kybernos-kyber-computer' },
+          h('div', { className: 'kbky-th' }, h(Mark, null, Ic('cloud', 18)), h('b', null, L('computer'))),
+          h('div', { className: 'kbky-tb' },
+            field, line,
+            hm !== null && hm.paused !== '' ? h('p', { className: 'kbky-warn' }, L(hm.paused === 'hours' ? 'pr_hours' : 'pr_other')) : null,
+            state.computerError !== '' ? h('p', { className: 'kbky-err', role: 'alert', 'data-kb': 'kybernos-kyber-computer-error' }, L(state.computerError)) : null,
+            free ? h('p', { className: 'kbky-cap', 'data-kb': 'kybernos-kyber-upsell' }, L('upsell')) : null),
+          acts !== null || free
+            ? h('div', { className: 'kbky-tf' }, acts, free ? h(Btn, { kb: 'kybernos-kyber-upgrade', onClick: upgrade }, Ic('star', 14), L('upgrade')) : null)
+            : null)
       }
 
-      /** Everything about the doors and the body, in the order of what matters: {NAME}'s computer, Telegram, what comes later. */
+      /** Under the two tiles, only while there is something to do about Telegram: the code to scan, what happened to it, or the question before disconnecting. */
+      const TelegramPanel = (props) => {
+        useTick(1000)
+        const v = props.view
+        const tg = v.telegram
+        const panel = (kind, ...kids) => h('section', { className: 'kbky-panel', 'data-kb': 'kybernos-kyber-telegram', 'data-state': kind }, ...kids)
+        const note = (kind, hKey, pText, retry) => panel(kind,
+          h('div', { className: 'kbky-pcol' }, h('h3', null, L(hKey)), h('p', { className: 'kbky-sub left' }, pText),
+            retry ? h('div', { className: 'kbky-actions' }, h(Btn, { primary: true, kb: 'kybernos-kyber-retry', onClick: () => { void pairStart() } }, L('newCode'))) : null))
+        if (tg.state === 'off') return null
+        if (tg.state === 'linked') {
+          if (!state.confirmDisc) return null
+          return panel('disconnect', h('div', { className: 'kbky-pcol' }, h('h3', null, L('discQ')),
+            h('div', { className: 'kbky-actions' },
+              h(Btn, { danger: true, kb: 'kybernos-kyber-unlink-yes', onClick: () => { void unlink() } }, L('confirm')),
+              h(Btn, { kb: 'kybernos-kyber-unlink-no', onClick: () => { state.confirmDisc = false; emit() } }, L('cancel')))))
+        }
+        if (state.starting) return panel('starting', h('div', { className: 'kbky-row' }, h('span', { className: 'kbky-spin', 'aria-hidden': 'true' }), h('span', { className: 'kbky-sub left' }, L('preparing'))))
+        const face = pairingFace(state.pairing, Date.now())
+        if (face.kind === 'none' || face.kind === 'done') return null
+        if (face.kind === 'expired') return note('expired', 'exH', L('exP'), true)
+        if (face.kind === 'declined') {
+          if (face.reason === 'taken') return note('taken', 'taH', L('taP'), true)
+          if (face.reason === 'botmade') return note('botmade', 'bmH', L('bmP'), false)
+          return note('declined', 'deH', L('deP'), true)
+        }
+        if (face.kind === 'error') {
+          if (face.code === 'not_found') return note('off', 'ofH', L('ofP'), false)
+          return panel('error', h('div', { className: 'kbky-pcol' }, h('h3', null, L('cH')), h('p', { className: 'kbky-sub left' }, L(face.code === 'rate_limited' ? 'peRate' : 'pe')),
+            h('div', { className: 'kbky-actions' }, h(Btn, { primary: true, kb: 'kybernos-kyber-retry', onClick: () => { void pairStart() } }, L('retry')))))
+        }
+        const p = state.pairing
+        const scanned = face.kind === 'scanned'
+        const cancel = () => { void pairCancel() }
+        return panel(scanned ? 'scanned' : 'waiting',
+          h('div', { className: 'kbky-pbody' },
+            scanned ? null : h('div', { className: 'kbky-pqr' }, h(Qr, { qr: p.qr })),
+            h('div', { className: 'kbky-pcol' },
+              h('h3', null, L(scanned ? 'scH' : 'cH')),
+              scanned
+                ? h(React.Fragment, null, h('p', { className: 'kbky-sub left' }, L('scP', { who: face.sender === '' ? '…' : face.sender })),
+                  h('div', { className: 'kbky-row' }, h('span', { className: 'kbky-spin', 'aria-hidden': 'true' }), h('span', { className: 'kbky-sub left' }, L('scWait'))))
+                : h('ol', { className: 'kbky-steps' }, h('li', null, L('s1')), h('li', null, L('s2')), h('li', null, L('s3'))),
+              h('div', { className: 'kbky-actions' },
+                h(Btn, { primary: !scanned, href: p.link, kb: 'kybernos-kyber-open' }, BRAND.telegram(18), L('openTg')),
+                h('span', { className: 'kbky-sub left', 'data-kb': 'kybernos-kyber-left' }, L('expiresIn', { t: clock(face.left) })),
+                h('button', { type: 'button', className: 'kbky-link', 'data-kb': 'kybernos-kyber-cancel', onClick: cancel }, L(scanned ? 'notMe' : 'cancel'))),
+              !scanned && v.accountUrl !== '' ? h('button', { type: 'button', className: 'kbky-link', 'data-kb': 'kybernos-kyber-code', onClick: () => { void openAccount('account') } }, L('noCam')) : null)))
+      }
+
+      /** Two equal tiles, the channels and the computer, and under them the one thing Telegram may need. */
       const Channels = (props) => {
         const v = state.view
         if (v === null) return h('p', { className: 'kbky-note' }, L('loading'))
         if (v.kind !== 'ok') return h('p', { className: 'kbky-note' }, L(v.kind))
         return h('div', { className: 'kbky-calm', 'data-kb': 'kybernos-kyber-channels' },
-          h(ComputerRow, { view: v }),
-          h(TelegramCard, { view: v, visible: props.visible !== false }),
-          h(SoonLine),
+          h('div', { className: 'kbky-tiles' }, h(ChannelsTile, { view: v }), h(ComputerTile, { view: v })),
+          h(TelegramPanel, { view: v }),
           props.manage === true && v.accountUrl !== '' ? h('div', { className: 'kbky-actions' }, h('button', { type: 'button', className: 'kbky-link', 'data-kb': 'kybernos-kyber-account', onClick: () => { void openAccount('account') } }, L('manage'))) : null)
       }
 
@@ -556,18 +585,21 @@ window.__ModuleLoader__.load({
         return pairingFace(state.pairing, Date.now()).kind === 'scanned' ? ['warn', 'stWait'] : ['', 'stOff']
       }
 
-      /** The collapsible « Channels » strip: {NAME}'s computer, Telegram, what comes later. Open only when there is a code to scan. */
+      /** The collapsible strip: {NAME}'s name, and under it the two tiles. Open only when there is something to turn on; folded, two chips say how things stand. */
       const Strip = () => {
         const v = state.view
         const open = stripIsOpen(state.stripPref, telegramStateOf())
         const chip = statusOf(v)
         const hm = v !== null && v.kind === 'ok' ? v.home : null
+        const chips = !open && v !== null && v.kind === 'ok'
+          ? h('span', { className: 'kbky-stripc' },
+            h('span', { className: 'kbky-chip ' + chip[0], 'data-kb': 'kybernos-kyber-status' }, BRAND.telegram(14), L(chip[1])),
+            h('span', { className: 'kbky-chip' + (hm !== null && hm.state === 'running' ? ' ok' : ''), 'data-kb': 'kybernos-kyber-computer-chip' }, Ic('cloud', 13),
+              (hm !== null && hm.name !== '' ? hm.name : HOME_NAME) + ' · ' + (hm === null ? L('onRequest') : (S['st_' + hm.state] !== undefined ? L('st_' + hm.state) : hm.state))))
+          : null
         return h('div', { className: 'kbky-strip' + (open ? ' open' : ''), 'data-kb': 'kybernos-kyber-strip' },
           h('button', { type: 'button', className: 'kbky-striph', 'aria-expanded': String(open), 'data-kb': 'kybernos-kyber-strip-toggle', onClick: toggleStrip },
-            h('span', { className: 'kbky-car' }, Ic('chev', 14)), h('b', null, L('channels')),
-            h('span', { className: 'kbky-stripc' },
-              v !== null && v.kind === 'ok' ? h('span', { className: 'kbky-chip' + (hm !== null && hm.state === 'running' ? ' ok' : ''), 'data-kb': 'kybernos-kyber-computer-chip' }, Ic('cloud', 13), L('computer') + (hm === null ? '' : ' · ' + (S['st_' + hm.state] !== undefined ? L('st_' + hm.state) : hm.state))) : null,
-              h('span', { className: 'kbky-chip ' + chip[0], 'data-kb': 'kybernos-kyber-status' }, BRAND.telegram(14), L(chip[1])))),
+            h('span', { className: 'kbky-car' }, Ic('chev', 14)), h('b', null, L('title')), chips),
           open ? h('div', { className: 'kbky-stripb' }, h(Channels, { visible: true })) : null)
       }
 
@@ -622,53 +654,28 @@ window.__ModuleLoader__.load({
         '.kbky-row{display:flex;align-items:center;gap:8px}.kbky-row.wrap{flex-wrap:wrap}',
         '.kbky-page h1{margin:0;font-size:23px;line-height:1.2;font-weight:700;letter-spacing:-.01em;text-wrap:balance}',
         '.kbky-lead{margin:0;font-size:15px;line-height:1.55;color:var(--dsw-alias-label-secondary,#666);max-width:62ch}',
-        '.kbky-subline{margin:0;font-size:14px;color:var(--dsw-alias-label-secondary,#666)}',
-        '.kbky-what summary{cursor:pointer;color:var(--dsw-alias-label-secondary,#666);width:max-content;font-size:13px}',
-        '.kbky-what .kbky-lead{margin-top:10px}',
         '.kbky-three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}',
         '.kbky-three>div{padding:12px 14px;border-radius:12px;background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.08));display:flex;flex-direction:column;gap:6px}',
         '.kbky-three span{color:var(--dsw-alias-label-secondary,#666);font-size:13px}',
         '.kbky-chip{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:99px;font-size:12px;white-space:nowrap;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));color:var(--dsw-alias-label-secondary,#666)}',
         '.kbky-chip.ok{border-color:transparent;background:var(--dsw-alias-state-success-bg,rgba(34,197,94,.16));color:var(--dsw-alias-state-success-primary,#15803d)}',
         '.kbky-chip.warn{border-color:transparent;background:var(--dsw-alias-state-warn-bg,rgba(245,158,11,.18));color:var(--dsw-alias-state-warn-label,#a8530a)}',
-        '.kbky-strip{border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.25));border-radius:14px;background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.06))}',
+        // the strip also sits in the chat's dock, which has no `.kbky` ancestor: it sets its own size and colour, like the page and the pane do
+        '.kbky-strip{border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.25));border-radius:14px;background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.06));color:var(--dsw-alias-label-primary,#222);font-size:var(--dsh-content-font-size-secondary,13.5px);line-height:1.5}',
         '.kbky-striph{width:100%;display:flex;gap:10px;align-items:center;padding:9px 14px;border:0;background:none;color:inherit;font:inherit;cursor:pointer;text-align:left;flex-wrap:wrap}',
         '.kbky-car{display:inline-flex;transform:rotate(-90deg);transition:transform .15s;color:var(--dsw-alias-label-secondary,#666)}',
         '.kbky-strip.open .kbky-car{transform:rotate(0)}',
         '.kbky-stripc{display:flex;gap:6px;flex-wrap:wrap}',
         '.kbky-stripb{padding:4px 14px 14px}',
-        '.kbky-card{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.1));border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.2));border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}',
-        '.kbky-card.slim{padding:14px;gap:8px}',
-        '.kbky-cardh h3{margin:0;font-size:16px;font-weight:650}.kbky-cardh p{margin:2px 0 0;color:var(--dsw-alias-label-secondary,#666)}',
-        '.kbky-kv{display:flex;gap:8px;align-items:center;justify-content:space-between}',
-        '.kbky-connbody{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px;align-items:start}',
-        '.kbky-connl{display:flex;flex-direction:column;gap:12px;min-width:0}',
         '.kbky-steps{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px;counter-reset:s}',
         '.kbky-steps li{display:flex;gap:10px;counter-increment:s}',
         '.kbky-steps li::before{content:counter(s);flex:none;width:22px;height:22px;border-radius:99px;display:grid;place-items:center;font-size:12px;font-weight:650;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3))}',
-        '.kbky-qrcol{display:flex;flex-direction:column;align-items:center;gap:8px;width:204px}',
         '.kbky-qr{width:196px;height:196px;border-radius:12px;overflow:hidden;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3))}',
         '.kbky-qr svg{display:block;width:100%;height:100%}.kbky-qr.dim svg{opacity:.18}',
-        '.kbky-lock{display:flex;gap:8px;color:var(--dsw-alias-label-secondary,#666);font-size:12.5px;align-items:flex-start}',
-        '.kbky-spin{width:26px;height:26px;border-radius:99px;border:3px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));border-top-color:var(--dsw-alias-label-primary,#222);animation:kbky-sp 1s linear infinite}',
+        '.kbky-spin{width:22px;height:22px;border-radius:99px;border:3px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));border-top-color:var(--dsw-alias-label-primary,#222);animation:kbky-sp 1s linear infinite}',
         '@keyframes kbky-sp{to{transform:rotate(360deg)}}',
         '@media (prefers-reduced-motion: reduce){.kbky-spin{animation:none}}',
-        '.kbky-big{display:flex;gap:12px;align-items:flex-start}',
-        '.kbky-big h3{margin:0;font-size:15px;font-weight:650}.kbky-big p{margin:2px 0 0;color:var(--dsw-alias-label-secondary,#666)}',
-        '.kbky-badge{width:40px;height:40px;border-radius:99px;display:grid;place-items:center;flex:none;background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.12))}',
-        '.kbky-badge.sm{width:28px;height:28px}',
-        '.kbky-badge.ok{background:var(--dsw-alias-state-success-bg,rgba(34,197,94,.16));color:var(--dsw-alias-state-success-primary,#15803d)}',
-        '.kbky-badge.warn{background:var(--dsw-alias-state-warn-bg,rgba(245,158,11,.18));color:var(--dsw-alias-state-warn-label,#a8530a)}',
-        '.kbky-badge.err{background:var(--dsw-alias-state-error-bg,rgba(236,19,19,.12));color:var(--dsw-alias-state-error-primary,#b91c1c)}',
-        '.kbky-chan{display:flex;gap:10px;align-items:center;padding:4px 0}.kbky-chan b{flex:1;font-weight:600}',
-        '.kbky-opts{display:flex;flex-direction:column;gap:6px}',
-        '.kbky-opt{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));cursor:pointer}',
-        '.kbky-opt.on{border-color:var(--dsw-alias-label-primary,#222);background:var(--dsw-alias-interactive-bg-hover,rgba(127,127,127,.1))}',
-        '.kbky-opt.dis{opacity:.6;cursor:default}',
-        '.kbky-opt input{margin-top:3px}',
-        '.kbky-optt{display:flex;flex-direction:column;gap:1px;flex:1;min-width:0}.kbky-optt span{color:var(--dsw-alias-label-secondary,#666);font-size:12.5px}',
-        '.kbky-upsell{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.1));color:var(--dsw-alias-label-secondary,#666)}',
-        '.kbky-line{margin:0;font-weight:500}',
+        '.kbky-line{margin:0;color:var(--dsw-alias-label-secondary,#666)}',
         '.kbky-sub{margin:0;color:var(--dsw-alias-label-secondary,#666);font-size:12.5px;text-align:center}.kbky-sub.left{text-align:left}',
         '.kbky-note{margin:8px 0;color:var(--dsw-alias-label-secondary,#666)}',
         '.kbky-warn{margin:0;color:var(--dsw-alias-state-warn-label,#a8530a)}',
@@ -679,19 +686,43 @@ window.__ModuleLoader__.load({
         '.kbky-btn.pri{background:var(--dsw-alias-button-primary-fill,#0f1115);border-color:var(--dsw-alias-button-primary-fill,#0f1115);color:var(--dsw-alias-label-primary-foreground,#fff);font-weight:600}',
         '.kbky-btn.danger{color:var(--dsw-alias-state-error-primary,#b91c1c);border-color:var(--dsw-alias-state-error-primary,#b91c1c)}',
         '.kbky-btn[disabled]{opacity:.6;cursor:default}',
-        '.kbky-btn:focus-visible,.kbky-link:focus-visible,.kbky-striph:focus-visible,.kbky-chipb:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4c6ef5);outline-offset:2px}',
+        '.kbky-btn:focus-visible,.kbky-link:focus-visible,.kbky-striph:focus-visible,.kbky-sw:focus-visible,.kbky-fsel:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4c6ef5);outline-offset:2px}',
         '.kbky-link{border:0;background:none;padding:0;font:inherit;font-size:13px;color:var(--dsw-alias-label-secondary,#666);text-decoration:underline;cursor:pointer;text-align:left}',
         '.kbky-dock{margin:0 0 8px}',
         '.kbky-calm{display:flex;flex-direction:column;gap:12px}',
-        '.kbky-row2{display:flex;flex-direction:column;gap:6px}',
-        '.kbky-off{display:flex;gap:8px;align-items:center;margin:0;color:var(--dsw-alias-label-secondary,#666);font-size:13px}',
-        '.kbky-soon{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0;color:var(--dsw-alias-label-secondary,#666);font-size:13px}',
-        '.kbky-soonc{display:inline-flex;gap:6px;align-items:center}',
-        '.kbky-pick{display:flex;gap:8px;align-items:center;flex-wrap:wrap}',
-        '.kbky-select{font:inherit;font-size:13px;color:inherit;background:var(--dsw-alias-bg-base,transparent);border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));border-radius:8px;padding:5px 8px}',
+        '.kbky-chip.err{border-color:transparent;background:var(--dsw-alias-state-error-bg,rgba(236,19,19,.12));color:var(--dsw-alias-state-error-primary,#b91c1c)}',
+        // the two tiles: one grid, one padding, one radius, one anatomy (mark and name on top, the body, one action at the bottom)
+        '.kbky-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}',
+        '.kbky-tile{display:flex;flex-direction:column;gap:10px;min-width:0;padding:14px;border-radius:12px;background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.1));border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.2))}',
+        '.kbky-th{display:flex;align-items:center;gap:10px;min-height:32px}.kbky-th b{font-size:14px;font-weight:600}',
+        '.kbky-mark{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;flex:none;background:var(--dsw-alias-bg-base,rgba(127,127,127,.08));border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.2))}',
+        '.kbky-chlist{display:flex;flex-direction:column}',
+        '.kbky-crow{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:12px;align-items:center;min-height:50px}',
+        '.kbky-crow+.kbky-crow{border-top:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.2))}',
+        '.kbky-ta{display:flex;flex-direction:column;min-width:0}.kbky-ta b{font-size:14px;font-weight:600}',
+        '.kbky-ta span{font-size:12.5px;color:var(--dsw-alias-label-secondary,#666)}.kbky-ta span.warn{color:var(--dsw-alias-state-warn-label,#a8530a)}',
+        '.kbky-ra{display:flex;gap:8px;align-items:center}',
+        '.kbky-iconlink{display:inline-flex;color:var(--dsw-alias-label-secondary,#666)}',
+        '.kbky-sw{position:relative;width:40px;height:24px;flex:none;padding:0;border:0;border-radius:99px;cursor:pointer;background:var(--dsw-alias-border-l2,rgba(127,127,127,.45))}',
+        '.kbky-sw.on{background:var(--dsw-alias-state-success-primary,#22a559)}',
+        '.kbky-swk{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:99px;background:var(--dsw-alias-label-primary-foreground,#fff);transition:transform .15s}',
+        '.kbky-sw.on .kbky-swk{transform:translateX(16px)}',
+        '.kbky-sw[disabled]{opacity:.45;cursor:default}',
+        '@media (prefers-reduced-motion: reduce){.kbky-swk{transition:none}}',
+        '.kbky-tb{display:flex;flex-direction:column;gap:8px;flex:1;min-height:0}',
+        '.kbky-tf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:auto}',
+        '.kbky-field{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:10px;align-items:center;min-height:56px;padding:8px 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));background:var(--dsw-alias-bg-base,transparent)}',
+        '.kbky-fv{display:flex;flex-direction:column;min-width:0}.kbky-fv b{font-size:14px;font-weight:600}.kbky-fv span{font-size:12.5px;color:var(--dsw-alias-label-secondary,#666)}',
+        '.kbky-fsel{font:inherit;font-size:14px;font-weight:600;color:inherit;background:transparent;border:0;min-width:0;width:100%;padding:0;cursor:pointer;text-overflow:ellipsis}',
+        '.kbky-cap{margin:0;font-size:12.5px;color:var(--dsw-alias-label-secondary,#666)}',
+        // the panel under the tiles: the code to scan, what happened to it, or the question before disconnecting
+        '.kbky-panel{padding:14px;border-radius:12px;background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.1));border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3))}',
+        '.kbky-pbody{display:flex;gap:16px;align-items:flex-start}',
+        '.kbky-pqr .kbky-qr{width:132px;height:132px}',
+        '.kbky-pcol{display:flex;flex-direction:column;gap:10px;min-width:0;flex:1}.kbky-pcol h3{margin:0;font-size:14px;font-weight:650}',
         // narrow: one column, and no QR (nobody scans their own screen: the button is the way)
-        '@media (max-width:760px){.kbky-three{grid-template-columns:minmax(0,1fr)}.kbky-qrcol{display:none}.kbky-connbody{grid-template-columns:minmax(0,1fr)}.kbky-page{padding:14px 12px}}',
-        '.kbky .kbky-connbody{grid-template-columns:minmax(0,1fr)}.kbky .kbky-qrcol{width:auto}',
+        '@media (max-width:760px){.kbky-three{grid-template-columns:minmax(0,1fr)}.kbky-pqr{display:none}.kbky-page{padding:14px 12px}}',
+        '.kbky .kbky-pbody{flex-direction:column}',
       ].join('\n')
 
       const TYPE_ID = 'kybernos-kyber'
@@ -706,7 +737,7 @@ window.__ModuleLoader__.load({
         name: 'kybernos-kyber',
         // `sidebarRightTabs` must be declared: ui-sidebar-right provides it, and without this `apply` could run before.
         inject: ['slots', 'sidebarRightTabs', 'sessions', 'workspaces', 'uiWorkspace'],
-        __test: { S, L, kt, derive, pairingFace, clock, stripIsOpen, CSS, TYPE_ID, KIND, state, BRAND, NAME },
+        __test: { S, L, kt, derive, pairingFace, clock, stripIsOpen, CSS, TYPE_ID, KIND, state, BRAND, NAME, views: { Strip, Channels, ChannelsTile, ComputerTile, TelegramPanel, KybyDock, Page }, actions: { load, pairStart, pairCancel, unlink, setComputer, computerAction, telegramSwitch, toggleStrip, telegramRow, settle }, listeners },
         apply (ctx) {
           CTX = ctx
           // The plugin is applied again when a service it asks for comes back: the new scope replaces the sheet, and the old scope's

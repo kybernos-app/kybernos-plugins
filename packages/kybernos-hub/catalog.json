@@ -2135,16 +2135,16 @@
         },
         "steps": [
           {
-            "fr": "Ouvrez « Kaby » dans le menu : c'est une conversation DSH ordinaire, avec le bandeau « Canaux » au-dessus de la zone de saisie.",
-            "en": "Open “Kaby” in the menu: it is an ordinary DSH chat, with the “Channels” strip above the composer."
+            "fr": "Ouvrez « Kaby » dans le menu : une conversation DSH ordinaire, avec deux tuiles au-dessus de la saisie, les canaux et l'ordinateur.",
+            "en": "Open “Kaby” in the menu: an ordinary DSH chat, with two tiles above the composer: the channels and the computer."
           },
           {
-            "fr": "Pour connecter Telegram, scannez le code avec votre téléphone (ou touchez « Ouvrir Telegram »), touchez Démarrer, puis « Oui, c'est moi ».",
-            "en": "To connect Telegram, scan the code with your phone (or tap “Open Telegram”), tap Start, then “Yes, it's me”."
+            "fr": "Activez Telegram dans la tuile des canaux : scannez le code (ou touchez « Ouvrir Telegram »), touchez Démarrer, puis « Oui, c'est moi ».",
+            "en": "Turn Telegram on in the channels tile: scan the code (or tap “Open Telegram”), tap Start, then “Yes, it's me”."
           },
           {
-            "fr": "Si vous avez plusieurs ordinateurs cloud, choisissez celui qui est lié à Kaby ; sinon il n'y a rien à régler.",
-            "en": "If you have several cloud computers, pick the one linked to Kaby; otherwise there is nothing to set."
+            "fr": "La tuile de l'ordinateur montre celui lié à Kaby, créé à votre première demande qui en a besoin ; liste s'il y en a plusieurs.",
+            "en": "The computer tile shows the one linked to Kaby, made at your first request that needs one; a list if there are several."
           }
         ],
         "where": {
