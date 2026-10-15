@@ -23946,7 +23946,14 @@ function renderFit(canvas, model, cam, opts){
         // Hidden for now (KB_SHOW_CLOUD_COMPUTER_ROW): the page and the new-chat card still show the computer.
         (KB_SHOW_CLOUD_COMPUTER_ROW === true && KB_KY === true ? row('cloudcomputer', Icon('monitor', 15), kbt('kbui.cloudcomputer'), null, false, () => openPage({ view: 'kyber' }),
           (kbNcDot(ncCloud.kind) === '' ? null : h('span', { className: 'kb4-dot ' + kbNcDot(ncCloud.kind), 'aria-label': kbt('kbnc.cc.' + ncCloud.kind) }))) : null),
-        (KB_KY === true ? row('kyber', Icon('waypoints', 15), kbt('kbui.kyber'), null, s.view === 'kyber', () => openPage({ view: 'kyber' })) : null),
+        // The Kyby row opens Kyby's own conversation: a native DSH chat (kybernos-kyber makes it the first time and remembers it). Without that
+        // bundle's hook, or when the chat cannot open, it falls back to the page of the same bundle.
+        (KB_KY === true ? row('kyber', Icon('waypoints', 15), kbt('kbui.kyber'), null, s.view === 'kyber', () => {
+          let opened = null
+          try { if (window.__KB_KYBER__ && typeof window.__KB_KYBER__.openChat === 'function') opened = window.__KB_KYBER__.openChat() } catch (e) { opened = null }
+          if (opened === null || typeof opened.then !== 'function') { openPage({ view: 'kyber' }); return }
+          opened.then((ok) => { if (ok !== true) openPage({ view: 'kyber' }) }).catch(() => openPage({ view: 'kyber' }))
+        }) : null),
         (KB_DB === true ? row('dashboards', Icon('layoutDashboard', 15), kbt('kbui.dashboards'), null, s.view === 'dashboards', () => openPage({ view: 'dashboards' })) : null),
         // Search everywhere (kybernos-search) is no longer a menu row: its icon sits at the top of the sidebar, next to « Collapse », and ⌘K opens it.
         row('aiteams', Icon(KB_DEFAULT_ICON, 15), kbt('menu.aiteams'), c.kybers, s.view === 'kybers' || s.view === 'gallery' || s.view === 'teamnew' || s.view === 'teamedit' || s.view === 'teaminfo' || s.view === 'detail' || s.view === 'marketplace' || s.view === undefined || s.view === null, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null })),

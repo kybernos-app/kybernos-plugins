@@ -52,6 +52,7 @@ import { zstdDecompressSync } from 'node:zlib'
 import { activeServer, stateFileName, llmBase, publicProfile } from './server-profile.mjs'
 import { agentsFile, readInstructions, writeInstructions } from './instructions.mjs'
 import { createKybyRoutes } from './kyby.mjs'
+import { createKybyNative, isSessionId, readPointer, writePointer } from './kyby-native.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -4367,6 +4368,39 @@ const computerAction = async (verb) => {
 // Kyby (ADR 0053): the Telegram pairing by QR code or link, where a message runs, and the person's own conversation with their Kyby.
 // The pure half, and what each answer means, is kyby.mjs; the calls are made here with the account's token.
 const kyby = createKybyRoutes({ readState, isConnected, apiCall, deviceLabel })
+// Kyby's own chat is a native DSH conversation (kyby-native.mjs): which session it is, who Kyby is there, and the end of its turns written
+// on the person's thread. The hooks are mounted below (mountKybyNative); the page asks for the session through the two routes under /kyby/native.
+const kybyPointerFile = () => join(dshHome(), 'kybernos-kyby.json')
+const kybyNative = createKybyNative({ pointerFile: kybyPointerFile, readState, isConnected, apiCall })
+// Kyby's own folder: its chat lives in a workspace of its own, so that DSH's « New chat » never reuses it (a chat with no message yet is a
+// blank, and a blank is taken back by the next new chat of its workspace) and it has a home on this machine.
+const kybyFolder = () => join(dshHome(), 'kybernos', 'kyby')
+const kybySessionRoute = (req) => {
+  const cwd = kybyFolder()
+  try { mkdirSync(cwd, { recursive: true }) } catch (e) { return { ok: false, error: 'folder_failed' } }
+  return { ok: true, sessionId: readPointer(kybyPointerFile()), cwd }
+}
+const kybySessionSet = (req, body) => {
+  const id = body !== null && typeof body === 'object' ? body.sessionId : undefined
+  if (id !== null && !isSessionId(id)) return { ok: false, error: 'invalid_session' }
+  const r = writePointer(kybyPointerFile(), id)
+  return r.ok === true ? { ok: true, sessionId: id } : { ok: false, error: r.error }
+}
+const mountKybyNative = (ctx) => {
+  ctx.inject(['systemPrompt'], (scope) => {
+    scope.systemPrompt.context({
+      name: 'kybernos:kyby',
+      order: MEMORY_INJECT_ORDER - 10,
+      text: (context) => kybyNative.promptFor(sessionIdOfContext(context)),
+    })
+  })
+  ctx.on('agent/inbox/claimed', ({ agent }) => {
+    try { kybyNative.noteClaim(agent.session.id) } catch (e) { /* never break a turn */ }
+  })
+  ctx.on('agent/turn-stopping', ({ agent, signal }) => {
+    void kybyNative.mirrorTurn(agent, signal)
+  })
+}
 
 const ROUTES = [
   { path: '/kybernos-cloud/kyber', method: 'GET', guarded: true, run: kyberRoute },
@@ -4376,8 +4410,8 @@ const ROUTES = [
   { path: '/kybernos-cloud/telegram/pairing/cancel', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: (req, body) => kyby.pairingCancel(req, body) },
   { path: '/kybernos-cloud/telegram/settings', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: (req, body) => kyby.settings(req, body) },
   { path: '/kybernos-cloud/telegram/unlink', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: () => kyby.unlink() },
-  { path: '/kybernos-cloud/kyby', method: 'GET', guarded: true, run: (req) => kyby.chat(req) },
-  { path: '/kybernos-cloud/kyby/send', method: 'POST', guarded: true, strict: true, body: true, cap: 200000, run: (req, body) => kyby.send(req, body) },
+  { path: '/kybernos-cloud/kyby/native', method: 'GET', guarded: true, run: kybySessionRoute },
+  { path: '/kybernos-cloud/kyby/native/set', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: kybySessionSet },
   { path: '/kybernos-cloud/computer/resume', method: 'POST', guarded: true, strict: true, run: () => computerAction('resume') },
   { path: '/kybernos-cloud/computer/suspend', method: 'POST', guarded: true, strict: true, run: () => computerAction('suspend') },
   { path: '/kybernos-cloud/computer/open', method: 'POST', guarded: true, strict: true, run: () => computerAction('open') },
@@ -4574,6 +4608,7 @@ export function apply(ctx) {
   // tour. Chaque montage est indépendant et tolère l'absence de son service.
   try { mountTurnGate(ctx) } catch (e) { console.error('[kybernos-cloud] garde des tours: ' + String((e && e.message) || e)) }
   try { mountMemoryPrompt(ctx) } catch (e) { console.error('[kybernos-cloud] prompt mémoire: ' + String((e && e.message) || e)) }
+  try { mountKybyNative(ctx) } catch (e) { console.error('[kybernos-cloud] Kyby natif: ' + String((e && e.message) || e)) }
   try { mountMemoryTools(ctx) } catch (e) { console.error('[kybernos-cloud] outils mémoire: ' + String((e && e.message) || e)) }
   try { connections.mount(ctx) } catch (e) { console.error('[kybernos-cloud] connexions: ' + String((e && e.message) || e)) }
   try { mountMemoryCapture(ctx) } catch (e) { console.error('[kybernos-cloud] capture mémoire: ' + String((e && e.message) || e)) }

@@ -2125,18 +2125,18 @@
       "defaut": "actif",
       "poids_ko": 12,
       "promesse": {
-        "fr": "Kyby, votre assistant : une conversation (la même que sur Telegram), Telegram connecté d'un geste par QR code ou lien, et l'ordinateur cloud sur lequel il travaille.",
-        "en": "Kyby, your assistant: a conversation (the same one as on Telegram), Telegram connected in one move by QR code or link, and the cloud computer it works on."
+        "fr": "Kyby, votre assistant : une vraie conversation DSH avec la mémoire de votre compte, Telegram connecté d'un geste par QR code ou lien, et l'ordinateur cloud sur lequel il travaille.",
+        "en": "Kyby, your assistant: a real DSH chat with your account's memory, Telegram connected in one move by QR code or link, and the cloud computer it works on."
       },
       "aide": {
         "what": {
-          "fr": "Kyby, votre assistant : une conversation ici (la même que sur Telegram), Telegram à connecter d'un geste, et l'ordinateur sur lequel il travaille.",
-          "en": "Kyby, your assistant: a conversation here (the same one as on Telegram), Telegram to connect in one move, and the computer it works on."
+          "fr": "Kyby, votre assistant : une vraie conversation DSH, Telegram à connecter d'un geste, et l'ordinateur sur lequel il travaille.",
+          "en": "Kyby, your assistant: a real DSH chat, Telegram to connect in one move, and the computer it works on."
         },
         "steps": [
           {
-            "fr": "Ouvrez « Kyby » dans le menu : la conversation est en bas, le bandeau « Canaux » en haut.",
-            "en": "Open “Kyby” in the menu: the conversation is at the bottom, the “Channels” strip at the top."
+            "fr": "Ouvrez « Kyby » dans le menu : c'est une conversation DSH ordinaire, avec le bandeau « Canaux » au-dessus de la zone de saisie.",
+            "en": "Open “Kyby” in the menu: it is an ordinary DSH chat, with the “Channels” strip above the composer."
           },
           {
             "fr": "Pour connecter Telegram, scannez le code avec votre téléphone (ou touchez « Ouvrir Telegram »), touchez Démarrer, puis « Oui, c'est moi ».",
@@ -2153,8 +2153,8 @@
           "page": true
         },
         "good": {
-          "fr": "Rien n'est connecté sans votre accord dans Telegram. Avant d'agir sur l'ordinateur de Kyby, il vous demande : Autoriser, Refuser ou Autoriser pour cette tâche.",
-          "en": "Nothing is connected without your approval in Telegram. Before acting on Kyby's computer, it asks you: Allow, Refuse, or Allow for this task."
+          "fr": "Kyby garde la même mémoire ici et sur Telegram. Rien n'est connecté sans votre accord dans Telegram, et avant d'agir sur son ordinateur il vous demande : Autoriser, Refuser ou Autoriser pour cette tâche.",
+          "en": "Kyby keeps the same memory here and on Telegram. Nothing is connected without your approval in Telegram, and before acting on its computer it asks you: Allow, Refuse, or Allow for this task."
         }
       }
     },

@@ -106,16 +106,39 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
 }
 {
   ok('the strip is open until Telegram is connected, folded after, and the person\'s choice wins', T.stripIsOpen(null, false) === true && T.stripIsOpen(null, true) === false && T.stripIsOpen(true, true) === true && T.stripIsOpen(false, false) === false)
-  ok('a refusal code with no words of ours says « could not be sent »', T.chatError('insufficient_quota') === 'err_insufficient_quota' && T.chatError('select_*') === 'err_refused' && T.chatError('unreachable') === 'err_unreachable')
-  ok('a turn is answered by an assistant message after its position, not before', T.answered([{ role: 'assistant', position: 2 }, { role: 'user', position: 3 }], 3) === false && T.answered([{ role: 'assistant', position: 4 }], 3) === true)
   ok('WhatsApp and WeChat have a mark', typeof T.BRAND.whatsapp === 'function' && typeof T.BRAND.wechat === 'function' && typeof T.BRAND.telegram === 'function')
   ok('the assistant has one name, in both languages, and no « Kyber »', T.NAME === 'Kyby' && T.S.title[0] === 'Kyby' && T.S.title[1] === 'Kyby' && !Object.values(T.S).some((p) => /\bKyber\b/.test(p[0] + ' ' + p[1])))
   ok('every other channel says « soon » and is never offered', T.L('soon') === 'Bientôt' && /BRAND\.\w+\(22\)/.test(src) && !/whatsapp[^\n]*onClick/i.test(src))
 }
 
 {
-  ok('a server with no Kyby routes (not_found) is said in words, not as a generic failure', T.chatError('not_found') === 'err_not_found' && T.S.err_not_found !== undefined && T.S.unsupportedH !== undefined)
-  ok('the chat shows no box when the server cannot hold the conversation', /c\.unsupported/.test(src) && /data-state': 'unsupported'/.test(src))
+}
+
+{
+  // Kyby's chat is a native DSH conversation: the page owns no transcript and no composer, only the way in and the strip above it.
+  ok('the page holds no chat of its own: no draft box, no send, no transcript', !/kybernos-kyber-draft|kybernos-kyber-send|kbky-msgs|kybernos-kyber\/kyby\/send|\/kybernos-cloud\/kyby['"]/.test(src.replace(/kyby\/native/g, '')))
+  ok('the way in is the host\'s pointer and DSH\'s own sessions service', /\/kybernos-cloud\/kyby\/native/.test(src) && /uiSvc\.openSession\(sid\)/.test(src) && /sessionsSvc\.create\(state\.kybyCwd === null/.test(src))
+  ok('the strip is registered above the composer, for Kyby\'s session only', /SLOT_DOCK = 'conversation\.input\.dock'/.test(src) && /state\.kybySid !== sid\) return null/.test(src))
+  ok('the diagnostics hook can open the chat', /openChat \(\) \{ return openChat\(\) \}/.test(src))
+  ok('the words for the way in exist in both languages', T.S.openChat !== undefined && T.S.openChatHint !== undefined && T.S.openChatFail !== undefined)
+}
+
+{
+  // A sheet that was lost once (a cleanup of the debug code took the effect with it) and a re-applied plugin must both keep the page styled.
+  ok('the plugin injects its sheet, replacing an older one, and removes only its own', /ctx\.effect\(\(\) => \{\s*const old = document\.getElementById\(STYLE_ID\)\s*if \(old\) old\.remove\(\)/.test(src))
+  const made = []
+  const doc = globalThis.document
+  const store = new Map()
+  globalThis.document = Object.assign({}, doc, {
+    getElementById: (id) => store.get(id) || null,
+    createElement: () => { const el = { setAttribute () {}, remove () { if (store.get(el.id) === el) store.delete(el.id); el.gone = true } }; made.push(el); return el },
+    head: { appendChild: (el) => { store.set(el.id, el) } },
+  })
+  const ctx = { effect: (fn) => fn(), get: () => undefined, slots: { inject: (n, fn) => fn(), register () {} } }
+  const first = plugin.apply(ctx)
+  const second = plugin.apply(ctx)
+  ok('applied twice, one sheet is in the page and it is the second', store.get('kybernos-kyber-styles') === made[1] && made[0].gone === true)
+  globalThis.document = doc
 }
 
 process.exit(fail > 0 ? 1 : 0)

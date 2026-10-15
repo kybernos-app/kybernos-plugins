@@ -1,12 +1,9 @@
 // The Kyby routes (kyby.mjs) against a fake server: what the page may rely on, what a refusal is called, and what never leaves.
-import { createKybyRoutes, codeOf, messagesOf, pairingOf, pairingStateOf } from './kyby.mjs'
+import { createKybyRoutes, codeOf, pairingOf, pairingStateOf } from './kyby.mjs'
 
 let fail = 0
 const ok = (name, cond, detail) => { console.log((cond ? 'ok   ' : 'FAIL ') + name + (cond ? '' : '  ' + JSON.stringify(detail))); if (!cond) fail++ }
 
-// The server's own kyber slug, as GET /v1/me/kyby really answers it (a UUID here hid this once).
-const KYBER = 'kg766524afbe0e'
-const THREAD = '22222222-2222-4222-8222-222222222222'
 const PAIR = '33333333-3333-4333-8333-333333333333'
 const LINK = 'https://t.me/kybernos_bot?start=pair_abcdefghij0123456789wxyz'
 const TOKEN = 'kys-secret-token-never-returned'
@@ -31,14 +28,6 @@ ok('a known code passes', codeOf({ status: 409, body: { error: 'already_linked' 
 ok('an unknown code, or text, becomes refused (the server\'s words never reach the page)', codeOf({ status: 400, body: { error: 'SELECT * FROM users', message: 'x' } }) === 'refused')
 
 // ── shapes ───────────────────────────────────────────────────────────────────
-ok('a message row keeps position, role, words, time; an odd one is dropped', (() => {
-  const m = messagesOf([
-    { position: 2, role: 'assistant', content: 'b', created_at: '2026-10-15T10:00:01Z', crew_meta: { source: 'telegram' } },
-    { position: 1, role: 'user', content: 'a', created_at: '2026-10-15T10:00:00Z', crew_meta: null },
-    { position: 3, role: 'system', content: 'x' }, { position: 'x', role: 'user', content: 'y' }, null, { role: 'user' },
-  ])
-  return m.length === 2 && m[0].position === 1 && m[1].via === 'telegram' && m[0].via === null
-})())
 ok('a pairing is drawn only for the bot\'s own t.me start link', pairingOf({ id: PAIR, link: LINK, expires_at: 'x' }) !== null && pairingOf({ id: PAIR, link: 'https://evil.example/?start=pair_abcdefgh' }) === null && pairingOf({ id: PAIR, link: 'https://t.me/kybernos_bot?start=pair_abc' }) === null && pairingOf({ id: 'nope', link: LINK }) === null)
 ok('a pairing state outside the five is dropped, a reason outside the three is null', pairingStateOf({ state: 'weird' }) === null && pairingStateOf({ state: 'declined', reason: 'taken' }).reason === 'taken' && pairingStateOf({ state: 'declined', reason: 'sql' }).reason === null)
 
@@ -82,33 +71,6 @@ ok('a pairing state outside the five is dropped, a reason outside the three is n
   ok('unlink', (await r.unlink()).ok === true)
   const nl = make({ 'PUT /v1/me/telegram/settings': { status: 404, body: { error: 'not_linked' } } })
   ok('settings: not linked is said', (await nl.r.settings(null, { home_target: 'ask' })).error === 'not_linked')
-}
-
-// ── the conversation ─────────────────────────────────────────────────────────
-{
-  let kybyCalls = 0
-  const answers = {
-    'GET /v1/me/kyby': () => { kybyCalls++; return { status: 200, body: { kyber_id: KYBER, thread_id: THREAD, workspace_id: PAIR, model: 'glm-5.3-flash' } } },
-    ['GET /v1/threads/' + THREAD + '/messages']: (p) => ({ status: 200, body: { thread_id: THREAD, messages: [{ position: 1, role: 'user', content: 'hi', created_at: 't', crew_meta: null }], total: 1, has_older: false, has_newer: false, seenPath: p } }),
-    ['POST /v1/kybers/' + KYBER + '/threads/dispatch']: (p, o) => ({ status: 202, body: { job: {}, thread_id: THREAD, message: { position: 2, id: 9, role: 'user', content: o.body.message }, deduplicated: false } }),
-  }
-  const { r, calls } = make(answers)
-  const c = await r.chat(req('/kybernos-cloud/kyby'))
-  ok('chat: the thread, the model and the messages', c.ok === true && c.thread_id === THREAD && c.model === 'glm-5.3-flash' && c.messages.length === 1, c)
-  const c2 = await r.chat(req('/kybernos-cloud/kyby?after=7'))
-  ok('chat: after= asks the server for what came after, and the identity is not asked again', c2.ok === true && calls.some((x) => x.path.endsWith('&after=7')) && kybyCalls === 1)
-  const s = await r.send(null, { message: 'bonjour', client_turn_id: 'kyby_abcdefgh1234' })
-  ok('send: dispatched on the person\'s kyber and thread with the door\'s model', s.ok === true && s.position === 2 && calls.at(-1).body.thread_id === THREAD && calls.at(-1).body.model === 'glm-5.3-flash', s)
-  ok('send: empty, too long or a bad turn id never reach the server', (await r.send(null, { message: '  ', client_turn_id: 'kyby_abcdefgh1234' })).error === 'invalid_request' && (await r.send(null, { message: 'x'.repeat(100001), client_turn_id: 'kyby_abcdefgh1234' })).error === 'invalid_request' && (await r.send(null, { message: 'x', client_turn_id: '../' })).error === 'invalid_request')
-  const busy = make({ ...answers, ['POST /v1/kybers/' + KYBER + '/threads/dispatch']: { status: 409, body: { error: 'turn_pending' } } })
-  ok('send: a turn still pending is said in a word', (await busy.r.send(null, { message: 'x', client_turn_id: 'kyby_abcdefgh1234' })).error === 'turn_pending')
-  const quota = make({ ...answers, ['POST /v1/kybers/' + KYBER + '/threads/dispatch']: { status: 402, body: { error: 'insufficient_quota', message: 'Your balance is 0.0001' } } })
-  const q = await quota.r.send(null, { message: 'x', client_turn_id: 'kyby_abcdefgh1234' })
-  ok('send: a used-up allowance is said in a word, never in the server\'s text', q.error === 'insufficient_quota' && !JSON.stringify(q).includes('balance'))
-}
-{
-  const nokyby = make({ 'GET /v1/me/kyby': { status: 404, body: { error: 'not_found' } } })
-  ok('chat: no Kyby on this server is a refusal, not a crash', (await nokyby.r.chat(req('/x'))).ok === false)
 }
 
 console.log(fail === 0 ? '\nall good' : '\n' + fail + ' failed')
