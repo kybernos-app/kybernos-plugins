@@ -1,0 +1,18 @@
+{
+  "id": "gemma3:1b",
+  "famille": "g",
+  "initiale": "Gm",
+  "tailleGo": 0.8,
+  "ramMin": 4,
+  "score": "Ollama library · 0.8 GB · 32K ctx",
+  "input": [
+    "text"
+  ],
+  "badges": [],
+  "desc": {
+    "fr": "Gemma 3 (Google), version 1B : texte seul, contexte 32K. Pour 4 Go.",
+    "en": "Gemma 3 (Google), 1B version: text only, 32K context. For 4 GB."
+  },
+  "ajoute": "2026-10-15",
+  "ordre": 106
+}

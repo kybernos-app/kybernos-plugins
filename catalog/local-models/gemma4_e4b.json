@@ -2,9 +2,9 @@
   "id": "gemma4:e4b",
   "famille": "g",
   "initiale": "Gm",
-  "tailleGo": 3.6,
-  "ramMin": 8,
-  "score": "audio natif · embarqué",
+  "tailleGo": 6.6,
+  "ramMin": 16,
+  "score": "Ollama library · 6.6–9.5 GB · 128K ctx",
   "input": [
     "text",
     "image",

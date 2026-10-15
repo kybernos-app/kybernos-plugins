@@ -1,0 +1,23 @@
+{
+  "id": "qwen3-vl:8b",
+  "famille": "q",
+  "initiale": "Qw",
+  "tailleGo": 6.1,
+  "ramMin": 16,
+  "score": "Ollama library · 6.1 GB · 256K ctx",
+  "input": [
+    "text",
+    "image"
+  ],
+  "badges": [
+    "Vision",
+    "Tools",
+    "Thinking"
+  ],
+  "desc": {
+    "fr": "Qwen 3 VL : pensé pour les images, outils et réflexion, contexte 256K.",
+    "en": "Qwen 3 VL: built for images, with tools and thinking, 256K context."
+  },
+  "ajoute": "2026-10-15",
+  "ordre": 86
+}

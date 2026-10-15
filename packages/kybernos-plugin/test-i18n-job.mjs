@@ -14,7 +14,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createI18nStore } from './i18n-store.mjs'
-import { BREAKER, CONCURRENCY, createJobRunner, isFatal, isTestMark, planBatches, sanitizeStart, serveJobs, splitWire } from './i18n-job.mjs'
+import { BREAKER, CONCURRENCY, createJobRunner, hashText, isFatal, isTestMark, planBatches, sanitizeStart, serveJobs, splitWire } from './i18n-job.mjs'
 
 let pass = 0
 let fail = 0
@@ -33,7 +33,7 @@ const fakeModel = (script) => {
   const translate = async (args) => {
     const keys = Object.keys(args.batch)
     const n = calls.length
-    calls.push({ keys, provider: args.provider, model: args.model, signal: args.signal })
+    calls.push({ keys, provider: args.provider, model: args.model, signal: args.signal, hints: args.hints })
     // A model call that is told to stop returns (as the real one does): a never-ending fake must not hang the test.
     const aborted = new Promise((resolve) => { if (args.signal) { if (args.signal.aborted) resolve('p/m : ABORTED — interrompu'); else args.signal.addEventListener('abort', () => resolve('p/m : ABORTED — interrompu'), { once: true }) } })
     const verdict = await Promise.race([script(keys, n, args), aborted])
@@ -230,7 +230,117 @@ try {
     rmSync(dir, { recursive: true, force: true })
   }
 
-  section('one at a time, and the language is the person’s')
+  section('quality: one answer per text, told why it was refused, doubtful ones listed')
+{
+  // three keys with the same source text: the model is asked once, the answer goes to the three
+  const x = make()
+  x.runner.start(startBody('es', [
+    { wire: 'kb:a', text: 'Enregistrer', area: 'core' }, { wire: 'kb:b', text: 'Enregistrer', area: 'core' },
+    { wire: 'dsh:ns::c', text: 'Enregistrer', area: 'more' }, { wire: 'kb:d', text: 'Annuler', area: 'core' },
+  ]))
+  await x.runner.idle()
+  const asked = x.model.calls.flatMap((c) => c.keys)
+  check('a text that is the same under several keys is asked once', asked.length === 2 && asked.includes('kb:d'), asked)
+  const pack = x.store.read('es')
+  check('…and its answer is written under every key (one wording)', pack.kb.a === pack.kb.b && pack.dsh['ns::c'] === pack.kb.a && pack.kb.a === 'T(Enregistrer)', pack)
+  check('the run counts the three keys as done', stateOf(x).done === 4 && stateOf(x).state === 'done')
+  rmSync(x.dir, { recursive: true, force: true })
+}
+{
+  // the checks refuse key « k1 » in the first call; the second pass asks for it alone, is told why, and the answer is kept
+  const seen = []
+  const model = fakeModel((keys, n, args) => {
+    seen.push({ keys: keys.slice(), hints: Object.assign({}, args.hints) })
+    const translations = {}
+    const refused = {}
+    for (const k of keys) {
+      if (k === 'kb:k1' && n === 0) refused[k] = 'placeholder'
+      else translations[k] = 'T(' + args.batch[k] + ')'
+    }
+    return { ok: true, provider: 'prov', model: 'mod', translations, refused, flagged: {} }
+  })
+  const x = make({ model })
+  x.runner.start(startBody('es', items(3)))
+  await x.runner.idle()
+  check('a text the checks refuse is asked again in the second pass, alone, with the reason', seen.length === 2 && seen[1].keys.join() === 'kb:k1' && seen[1].hints['kb:k1'] === 'placeholder', seen)
+  check('…and the corrected answer is kept', stateOf(x).state === 'done' && x.store.read('es').kb.k1 === 'T(Texte k1)')
+  rmSync(x.dir, { recursive: true, force: true })
+}
+{
+  // all refused at once: the failure carries the reasons, and the next ATTEMPT (same pass) is told
+  let n = 0
+  const model = fakeModel((keys, call, args) => {
+    n += 1
+    if (n === 1) return { ok: false, error: 'p/m : toutes les traductions ont été refusées par les contrôles (balises modifiées)', refused: { 'kb:k0': 'tags', 'kb:k1': 'tags' } }
+    return 'ok'
+  })
+  const x = make({ model })
+  x.runner.start(startBody('es', items(2)))
+  await x.runner.idle()
+  check('a batch refused whole is retried with the reason of each key', model.calls.length >= 2 && model.calls[1].hints['kb:k0'] === 'tags' && model.calls[1].hints['kb:k1'] === 'tags', model.calls.map((c) => c.hints))
+  check('…and ends done once the corrected answer is kept', stateOf(x).state === 'done')
+  rmSync(x.dir, { recursive: true, force: true })
+}
+{
+  const model = fakeModel((keys, n, args) => ({ ok: true, provider: 'prov', model: 'mod', translations: Object.fromEntries(keys.map((k) => [k, 'T(' + args.batch[k] + ')'])), refused: {}, flagged: { 'kb:k1': 'unchanged' } }))
+  const x = make({ model })
+  x.runner.start(startBody('es', items(3)))
+  await x.runner.idle()
+  const st = stateOf(x)
+  check('a doubtful text is kept and listed, with its reason', st.state === 'done' && st.flagged.count === 1 && st.flagged.examples[0].wire === 'kb:k1' && st.flagged.examples[0].why === 'unchanged' && x.store.read('es').kb.k1 === 'T(Texte k1)', st.flagged)
+  rmSync(x.dir, { recursive: true, force: true })
+}
+
+section('a source that changed is found, and only that text is translated again')
+{
+  const x = make()
+  x.runner.start(startBody('es', items(4)))
+  await x.runner.idle()
+  const pack = x.store.read('es')
+  check('the host keeps the hash of the source it translated, for each text', Object.keys(pack.src).length === 4 && pack.src['kb:k0'] === hashText('Texte k0'), pack.src)
+  const changed = items(4).map((i, n) => (n === 2 ? { ...i, text: 'Texte k2 — modifié' } : i))
+  const s = x.runner.stale('es', changed)
+  check('stale names the one whose source changed', s.ok === true && s.stale === 1 && s.wires.join() === 'kb:k2', s)
+  check('a text with no recorded hash is not stale (older translations are trusted)', x.runner.stale('es', [{ wire: 'kb:unknown', text: 'x' }]).stale === 0 && x.runner.stale('ar', changed).stale === 0)
+  const second = fakeModel(() => 'ok')
+  const y = make({ dir: x.dir, model: second })
+  y.runner.start({ ...startBody('es', changed), full: true })
+  await y.runner.idle()
+  check('a full plan translates only the stale one', second.calls.length === 1 && second.calls[0].keys.join() === 'kb:k2', second.calls.map((c) => c.keys))
+  check('…and replaces its translation, keeping the others', y.store.read('es').kb.k2 === 'T(Texte k2 — modifié)' && y.store.read('es').kb.k0 === 'T(Texte k0)')
+  check('the new hash is recorded', y.runner.stale('es', changed).stale === 0)
+  rmSync(x.dir, { recursive: true, force: true })
+}
+
+section('a full plan: what the page holds is adopted, and a run with nothing to do is silent')
+{
+  const x = make()
+  const its = items(5).map((i, n) => (n < 3 ? { ...i, have: 'Ya ' + i.text } : i))
+  const r = x.runner.start({ ...startBody('es', its), full: true, total: 999, areas: { core: { total: 1, done: 1 } } })
+  check('a full plan is its own total (the page\'s numbers are not believed)', r.job.total === 5)
+  await x.runner.idle()
+  const asked = x.model.calls.flatMap((c) => c.keys)
+  check('texts the page holds are not asked from the model', asked.sort().join() === 'kb:k3,kb:k4', asked)
+  check('…they are written to the disk as the page had them', x.store.read('es').kb.k0 === 'Ya Texte k0' && x.store.read('es').kb.k3 === 'T(Texte k3)')
+  rmSync(x.dir, { recursive: true, force: true })
+}
+{
+  const x = make()
+  const full = items(4).map((i) => ({ ...i, have: 'Ya ' + i.text }))
+  x.runner.start({ ...startBody('es', full), full: true })
+  await x.runner.idle()
+  const st = stateOf(x)
+  check('everything held and fresh: no model call, « done », nothing to announce', x.model.calls.length === 0 && st.state === 'done' && st.idle === true && st.acked === true && st.done === 4, st)
+  rmSync(x.dir, { recursive: true, force: true })
+}
+{
+  // a full plan that has a bad item is refused whole, like a partial one
+  const x = make()
+  check('an item with a wire that is not a Kybernos or DSH key is refused', x.runner.start({ ...startBody('es', [{ wire: 'live:x', text: 'a', area: 'core' }]), full: true }).ok === false)
+  rmSync(x.dir, { recursive: true, force: true })
+}
+
+section('one at a time, and the language is the person’s')
   {
     const model = fakeModel(() => new Promise(() => {}))
     const x = make({ model })

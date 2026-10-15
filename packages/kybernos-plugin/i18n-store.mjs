@@ -8,10 +8,13 @@
 //
 // One file per language:
 //   { version, id, label, kb: {key: text}, dsh: {"ns::key": text},
-//     live: {fr text: text}, meta: {...}, updatedAt }
+//     live: {fr text: text}, src: {wire: hash}, meta: {...}, updatedAt }
 // `kb` is the Kybernos dictionary, `dsh` DSH's own namespaces, `live` the texts
 // learned while browsing (see kybernos-language). `meta` is the progress record
-// the Language page shows (done / total / complete / at).
+// the Language page shows (done / total / complete / at). `src` is the host's own
+// bookkeeping (the translation job): for each text it translated, a short hash of
+// the SOURCE text it translated, so a source that changed later is found and only
+// that text is translated again. The browser does not know it and never sends it.
 //
 // Removing a language leaves a tombstone (`.removed.json`, id -> time): a browser
 // that still has an older copy sees it and drops its copy instead of pushing the
@@ -25,7 +28,7 @@ export const STORE_VERSION = 1
 // Same shape as the Language page's ids (ISO 639-1, optional region), length-capped:
 // the id becomes a file name, so nothing else may get through.
 export const STORE_ID = /^[a-z]{2,3}(-[A-Za-z0-9]{1,8})?$/
-export const SECTIONS = ['kb', 'dsh', 'live']
+export const SECTIONS = ['kb', 'dsh', 'live', 'src']
 export const LIMITS = { key: 300, value: 6000, label: 80, meta: 4000, packBytes: 24 * 1024 * 1024 }
 const TOMBSTONES = '.removed.json'
 const FORBIDDEN_KEYS = ['__proto__', 'constructor', 'prototype']
@@ -65,6 +68,7 @@ export function createI18nStore(opts) {
         kb: dictOf(raw.kb),
         dsh: dictOf(raw.dsh),
         live: dictOf(raw.live),
+        src: dictOf(raw.src),
         meta: plain(raw.meta) ? raw.meta : {},
         updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : '',
       }
@@ -78,7 +82,7 @@ export function createI18nStore(opts) {
     id: pack.id,
     label: pack.label,
     meta: pack.meta,
-    counts: { kb: sizeOf(pack.kb), dsh: sizeOf(pack.dsh), live: sizeOf(pack.live) },
+    counts: { kb: sizeOf(pack.kb), dsh: sizeOf(pack.dsh), live: sizeOf(pack.live), src: sizeOf(pack.src) },
     bytes,
     updatedAt: pack.updatedAt,
   })
@@ -109,7 +113,7 @@ export function createI18nStore(opts) {
   const write = (id, patch) => {
     if (typeof id !== 'string' || !STORE_ID.test(id)) return { ok: false, error: 'invalid language id' }
     if (!plain(patch)) return { ok: false, error: 'invalid body' }
-    const pack = read(id) || { version: STORE_VERSION, id, label: '', kb: dictOf(null), dsh: dictOf(null), live: dictOf(null), meta: {}, updatedAt: '' }
+    const pack = read(id) || { version: STORE_VERSION, id, label: '', kb: dictOf(null), dsh: dictOf(null), live: dictOf(null), src: dictOf(null), meta: {}, updatedAt: '' }
     let rejected = 0
     for (const sec of SECTIONS) {
       if (patch[sec] === undefined) continue

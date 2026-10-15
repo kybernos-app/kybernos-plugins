@@ -31,28 +31,31 @@ window.__ModuleLoader__.load({
       const BASE_LOCALE = 'http://127.0.0.1:11434/v1'
 
       // ── catalogue : les recommandations, sources citées ──────────────────
-      // tailles/scores : Artificial Analysis « Qwen3.5 small models » (05/03/2026)
-      // + bibliothèque Ollama (27/09/2026). tailleGo null = non mesuré, affiché
-      // tel quel. desc = la ligne affichée sous le nom (ton de la maquette v2).
+      // Last resort only (a host that does not know /modeles-locaux/catalogue yet): the same entries as the shipped
+      // catalogue.json for these ids (a test pins it). Sizes: the Ollama registry's tag pages (15/10/2026); scores:
+      // Artificial Analysis « Qwen3.5 small models » (05/03/2026). desc = the line under the name.
       const CATALOGUE_EMBARQUE = [
-        { id: 'qwen3.5:9b', famille: 'q', initiale: 'Qw', tailleGo: 6.1, ramMin: 16, score: 'II 32 · MMMU-Pro 69 %',
+        { id: 'qwen3.5:9b', famille: 'q', initiale: 'Qw', tailleGo: 6.6, ramMin: 16, score: 'II 32 · MMMU-Pro 69 %',
           input: ['text', 'image'], badges: ['Vision', 'Tools', 'Thinking'],
           desc: 'kml.desc.9b' },
-        { id: 'qwen3.5:4b', famille: 'q', initiale: 'Qw', tailleGo: 3.1, ramMin: 8, score: 'II 27 · MMMU-Pro 65 %',
+        { id: 'qwen3.5:4b', famille: 'q', initiale: 'Qw', tailleGo: 3.3, ramMin: 8, score: 'II 27 · MMMU-Pro 65 %',
           input: ['text', 'image'], badges: ['Vision', 'Tools'],
           desc: 'kml.desc.4b' },
-        { id: 'qwen3.5:2b', famille: 'q', initiale: 'Qw', tailleGo: null, ramMin: 4, score: 'II 16',
+        { id: 'qwen3.5:2b', famille: 'q', initiale: 'Qw', tailleGo: 2.7, ramMin: 8, score: 'II 16',
           input: ['text', 'image'], badges: ['Vision'],
           desc: 'kml.desc.2b' },
-        { id: 'gemma4:e4b', famille: 'g', initiale: 'Gm', tailleGo: 3.6, ramMin: 8, score: 'audio natif · embarqué',
+        { id: 'gemma4:e4b', famille: 'g', initiale: 'Gm', tailleGo: 6.6, ramMin: 16, score: 'audio natif · embarqué',
           input: ['text', 'image', 'audio'], badges: ['Vision', 'Audio'],
           desc: 'kml.desc.gemma' },
-        { id: 'qwen3:14b', famille: 'q', initiale: 'Qw', tailleGo: 9.0, ramMin: 16, score: 'tools · thinking (Q4, Ollama)',
+        { id: 'qwen3:14b', famille: 'q', initiale: 'Qw', tailleGo: 9.3, ramMin: 16, score: 'tools · thinking (Q4, Ollama)',
           input: ['text'], badges: ['Tools', 'Thinking'],
           desc: 'kml.desc.14b' },
-        { id: 'qwen3-coder:30b', famille: 'q', initiale: 'Qw', tailleGo: 18.6, ramMin: 32, score: 'MoE 30B-A3B · code (Q4, Ollama)',
+        { id: 'qwen3-coder:30b', famille: 'q', initiale: 'Qw', tailleGo: 19, ramMin: 32, score: 'MoE 30B-A3B · code (Q4, Ollama)',
           input: ['text'], badges: ['Code', 'Tools'],
           desc: 'kml.desc.coder30' },
+        { id: 'gemma3:1b', famille: 'g', initiale: 'Gm', tailleGo: 0.8, ramMin: 4, score: 'Ollama library · 0.8 GB · 32K ctx',
+          input: ['text'], badges: [],
+          desc: 'kml.desc.gemma1b' },
       ]
       // The list the page works on. It starts as the built-in one above (the last resort: a host that does not know the route
       // yet, or no answer) and is replaced by what /modeles-locaux/catalogue says: the list shipped with this version, or the
@@ -157,9 +160,10 @@ window.__ModuleLoader__.load({
         // (13/10) Catalogue descriptions — i18n wrap (was bare French only).
         'kml.desc.9b': { fr: 'Le meilleur sous 10B — rentre avec DSH + Chrome ouverts (16 Go).', en: 'Best under 10B — fits with DSH + Chrome open (16 GB).' },
         'kml.desc.4b': { fr: 'Marge maximale — le choix des machines à 8 Go.', en: 'Maximum headroom — the pick for 8 GB machines.' },
-        'kml.desc.2b': { fr: 'Pour les petites machines — taille Q4 non mesurée.', en: 'For small machines — Q4 size not measured.' },
+        'kml.desc.2b': { fr: 'Pour les petites machines : le plus petit des Qwen 3.5 avec la vision.', en: 'For small machines: the smallest Qwen 3.5 that does not trade away vision.' },
         'kml.desc.gemma': { fr: 'Alternative on-device si le 9B s\u2019avère lent.', en: 'On-device alternative if the 9B turns out slow.' },
         'kml.desc.14b': { fr: 'Génération précédente — au-dessus du budget avec DSH ouvert.', en: 'Previous generation — over budget with DSH open.' },
+        'kml.desc.gemma1b': { fr: 'Gemma 3 (Google), version 1B : texte seul, contexte 32K. Pour 4 Go.', en: 'Gemma 3 (Google), 1B version: text only, 32K context. For 4 GB.' },
         'kml.desc.coder30': { fr: 'Hors budget sur cette machine — rien ne sera téléchargé.', en: 'Over budget on this machine — nothing will be downloaded.' },
       }
       let kbLocaleRead = () => 'en'
