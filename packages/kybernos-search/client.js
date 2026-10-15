@@ -613,13 +613,24 @@ window.__ModuleLoader__.load({
       // ── the top icon: at the very top of the sidebar, beside « Collapse sidebar » ────────────────────────────────
       // It replaces the menu row. Found by the label of the collapse button (the sidebar's own), borrowing its class so it looks like
       // DSH's own icon buttons; only while the sidebar is open (a collapsed one has no such button, and no room).
+      const isCollapseBtn = (b) => {
+        const label = String((b.getAttribute && (b.getAttribute('aria-label') || b.title)) || '')
+        return /collapse|réduire|replier|masquer/i.test(label) && /sidebar|barre|panneau/i.test(label)
+      }
       const sweepTop = () => {
-        if (document.querySelector('[data-kb="search-top"]') !== null) return
+        // DSH reuses the same row when the sidebar folds: the button there becomes « Open sidebar » and the rail is 56 px wide, with room
+        // for ONE button. Our icon, still in that row, pushed « Open sidebar » out of the rail. So it only lives while the button next
+        // to it is the collapse one, and is taken away the moment it is not (it comes back, in its place, when the sidebar opens).
+        const present = document.querySelector('[data-kb="search-top"]')
+        if (present !== null) {
+          if (present.nextElementSibling !== null && isCollapseBtn(present.nextElementSibling)) return
+          present.remove()
+        }
         let collapse = null
         for (const b of document.querySelectorAll('button')) {
           const r = b.getBoundingClientRect()
           if (r.width === 0 || r.height === 0 || r.top < 0 || r.top > 80 || r.left > 360) continue
-          if (/collapse|réduire|replier|masquer/i.test(String(b.getAttribute('aria-label') || b.title || '')) && /sidebar|barre|panneau/i.test(String(b.getAttribute('aria-label') || b.title || ''))) { collapse = b; break }
+          if (isCollapseBtn(b)) { collapse = b; break }
         }
         if (collapse === null || collapse.parentNode === null) return
         const b = document.createElement('button')
@@ -659,7 +670,7 @@ window.__ModuleLoader__.load({
             scheduled = setTimeout(() => { scheduled = null; try { sweepHeader() } catch (e) { /* the header moved: no icon */ } try { sweepTop() } catch (e) { /* the sidebar top moved: no icon */ } }, 250)
           }
           let observer = null
-          try { observer = new MutationObserver(later); observer.observe(document.body, { childList: true, subtree: true }) } catch (e) { observer = null }
+          try { observer = new MutationObserver(later); observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-label'] }) } catch (e) { observer = null }
           try { sweepHeader() } catch (e) { /* no header yet */ }
           try { sweepTop() } catch (e) { /* no sidebar yet */ }
 
