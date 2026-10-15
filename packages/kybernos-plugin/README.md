@@ -42,7 +42,7 @@ All under `/kybernos/` (plus `/kybernos-technique/{renderer,vendor/three}.js`). 
 | Tools catalog | `tools/state`, `tools/apply` (dry run, dated backup of the profile patch, restore) |
 | Voice, TTS | `voice/{config,transcribe,save}` `voice-sample*` `tts/{config,voices,speak,cache,cache-trim}` (engines: `say`, `piper`, `supertonic`, `edge`, and `models`, the speaking models of the user's own providers) `models/audio` `models/audio/{probe,speak,listen}` (the audio models of the providers set up in Models, how each is asked, and using it) `image-models` (live calls moved to `@local/kybernos-call`, which speaks through `tts/speak`) |
 | Widget, gateway | `widget.js` `widget/api/{config,conversations,message,account,history-delete,reply}` `gateway/{status,approvals,approvals/decision}` |
-| Language, static | `i18n-{translate,models,store,job,quality}` `icons` `icon` `onboarding` `vendor/{xyflow,leaflet}.*` `kb-places.js` |
+| Language, static | `i18n-{translate,models,store,job,quality,packs}` `languages-pubkey.json` `icons` `icon` `onboarding` `vendor/{xyflow,leaflet}.*` `kb-places.js` |
 
 ## The Automations board
 
@@ -258,6 +258,8 @@ node packages/kybernos-plugin/test-i18n-store.mjs      # 60 checks: disk transla
 node packages/kybernos-plugin/test-i18n-translate.mjs  # 57: translate batches against a fake llm.stream, the checks, the correction hints, a stopped run ends the call
 node packages/kybernos-plugin/test-i18n-quality.mjs    # 44: what a translated text must still be (variables, tags, addresses, numbers, script, length, model chatter)
 node packages/kybernos-plugin/test-i18n-job.mjs        # 80: the host-side translation run: retries, breaker, pause, kill and restart, one at a time, one answer per text, stale sources, damaged files, the route
+node packages/kybernos-plugin/test-i18n-packs.mjs       # 48: signed ready-made language packs: the index, a pack against it, what installing does, the route
+node scripts/test-language-packs.mjs                   # 13: export → index → sign → verify → a second machine installs, end to end
 node packages/kybernos-plugin/test-notify.mjs          # 19: the notification store and toast behind the footer bell
 source scripts/sandbox/env.sh && node scripts/check-language-job-live.mjs   # a host-run translation that fails for want of a key: the language, the toast, the note, once (refuses :3080)
 node packages/kybernos-plugin/test-lang-runtime.mjs    # 89: the <kb-lang-runtime> block with fake locale and storage

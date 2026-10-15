@@ -14,12 +14,14 @@
 //  - a partial cache counted as "complete", so a half-translated language could
 //    neither be resumed nor finished;
 //  - progress the browser refused to store was still reported.
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 // The host's own run and store, the real ones: the page and the host are tested together through a fake fetch.
 import { createI18nStore, handleI18nStore } from '../kybernos-plugin/i18n-store.mjs'
 import { createJobRunner, serveJobs } from '../kybernos-plugin/i18n-job.mjs'
+import { forgetPacks, servePacks } from '../kybernos-plugin/i18n-packs.mjs'
+import { createHash, generateKeyPairSync, sign as edSign } from 'node:crypto'
 
 let pass = 0
 let fail = 0
@@ -1020,6 +1022,58 @@ console.log('\n── the run on the host (i18n-job): the page hands it over, wa
     const d = T.doubtful.get('es')
     check('the doubtful texts of the run are kept for the page, with the reason', d !== undefined && d.count >= 1 && d.examples.length >= 1 && d.examples[0].why === 'unchanged', d)
   }
+  await fresh()
+  {
+    // a ready-made translation: the page lists it, installs it through the host, and the texts are in this browser
+    const { publicKey, privateKey } = generateKeyPairSync('ed25519')
+    const keys = [{ keyId: 't', pem: publicKey.export({ type: 'spki', format: 'pem' }) }]
+    const plan = T.buildPlan('es')
+    const kbItems = plan.items.filter((it) => it.store === 'kb').slice(0, 30)
+    const packDoc = { schema: 1, kind: 'kybernos-language-pack', lang: 'es', seq: 4, label: 'Español', kb: Object.fromEntries(kbItems.map((it) => [it.id, 'PK:' + it.text])), dsh: {}, src: {} }
+    const packBytes = Buffer.from(JSON.stringify(packDoc, null, 2) + '\n')
+    const index = Buffer.from(JSON.stringify({ schema: 1, kind: 'kybernos-language-packs', publishedAt: '2026-10-16T00:00:00.000Z', seq: 4, packs: [{ lang: 'es', label: 'Español', file: 'es.pack.json', sha256: createHash('sha256').update(packBytes).digest('hex'), size: packBytes.length, seq: 4, counts: { kb: 30, dsh: 0 }, reviewed: true }] }, null, 2) + '\n')
+    const served = new Map([['languages.catalog.json', index], ['languages.catalog.json.sig', Buffer.from(edSign(null, index, privateKey).toString('base64'))], ['es.pack.json', packBytes]])
+    const BASE = 'http://127.0.0.1:9/langs/'
+    const homeDir = mkdtempSync(join(tmpdir(), 'kb-lang-home-'))
+    mkdirSync(join(homeDir, 'kybernos'), { recursive: true })
+    writeFileSync(join(homeDir, 'kybernos', 'settings.json'), JSON.stringify({ languagePacksUrl: BASE }))
+    forgetPacks()
+    const store = createI18nStore({ dir: join(homeDir, 'kybernos', 'i18n') })
+    const ctx = {
+      home: async () => homeDir, store: () => store, keys: () => keys, sameOriginStrict: () => true, sameOriginLax: () => true,
+      readJson: async (r) => r.body, send: (res, status, body) => { res.out = { status, body } },
+      fetchImpl: async (url) => { const b = served.get(String(url).split('/').pop()); return b === undefined ? { ok: false, status: 404, url, body: null } : { ok: true, status: 200, url, body: new Response(b).body } },
+    }
+    const base = globalThis.fetch
+    globalThis.fetch = async (u, init) => {
+      const str = String(u)
+      if (str.startsWith('/kybernos/i18n-packs')) {
+        const post = init && init.method === 'POST'
+        const res = {}
+        await servePacks({ method: post ? 'POST' : 'GET', body: post ? JSON.parse(init.body) : null }, res, ctx)
+        return { ok: res.out.status < 400, status: res.out.status, json: async () => JSON.parse(JSON.stringify(res.out.body)) }
+      }
+      if (str.startsWith('/kybernos/i18n-store')) {
+        const post = init && init.method === 'POST'
+        const out = handleI18nStore(store, { method: post ? 'POST' : 'GET', id: new URLSearchParams(str.split('?')[1] || '').get('id'), body: post ? JSON.parse(init.body) : null })
+        return { ok: out.status < 400, status: out.status, json: async () => JSON.parse(JSON.stringify(out.body)) }
+      }
+      return base(u, init)
+    }
+    delete globalThis.window.__KB_LANG_RUNTIME__; startRuntime()
+    await RT().disk.idle()
+    const got = await T.loadPacks()
+    check('the page lists the language that has a ready-made translation (it asked the network once: no index yet)', got === true && T.getPacks().has('es') && T.getPacks().get('es').reviewed === true && T.getPacks().get('es').installed === false)
+    const r = await T.installPack('es')
+    check('installing fills the host\'s language from the signed pack', r.ok === true && r.added === 30 && store.read('es').kb[kbItems[0].id] === 'PK:' + kbItems[0].text, r)
+    check('…the texts are in THIS browser right after', T.i18nRead('es')[kbItems[0].id] === 'PK:' + kbItems[0].text && T.registryRead().includes('es'))
+    check('…and the listing says it is installed', T.getPacks().get('es').installed === true)
+    const bad = await T.installPack('de')
+    check('a language without a pack is a plain refusal', bad.ok === false && bad.error === 'no-pack', bad)
+    globalThis.fetch = base
+    rmSync(homeDir, { recursive: true, force: true })
+  }
+
   rmSync(hostDir, { recursive: true, force: true })
   globalThis.window.__KB_I18N_HOST_JOB__ = false
   globalThis.window.__KB_I18N_HOST_STORE__ = false

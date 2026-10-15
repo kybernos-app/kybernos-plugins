@@ -99,6 +99,13 @@ they need a signed-in DSH, the first two switch DSH's language and restore Engli
   product name (`Kybernos`, `DSH`, `Claude`, `Ollama`, …) that vanished. What is NOT checked: that the sense is right, that two
   related texts use the same term, the register.
 - Identical source texts are translated once and written under every key that has them.
+- **Ready-made translations.** The project can publish a language already translated and reviewed, signed, so a machine does
+  not have to translate it again (`kybernos-plugin/i18n-packs.mjs`, `GET|POST /kybernos/i18n-packs`). A language that has one
+  shows « Install the ready-made translation » (and « ready » in the picker): it fills the disk copy at once, with no model and
+  no key, keeping every text the person already has, and the host job then translates only what the pack lacks or what changed
+  since. The pack is checked against a signed index (Ed25519, key `languages-pubkey.json`; empty until the maintainer generates
+  one, and then the network is never asked); a pack whose hash is not the index's is refused before it is parsed. Maintainer side:
+  `scripts/language-packs.mjs` (`export` from a language the job produced, `index`, `sign`, `verify`, `keygen`).
 - For each text it writes, the host keeps a hash of the source text it translated (`src` in `<DSH home>/kybernos/i18n/<lang>.json`).
   After an update of Kybernos or DSH that changed some texts, a complete language shows « N texts changed since this
   translation » with an « Update translation » button: only those texts are translated again. A text translated before the

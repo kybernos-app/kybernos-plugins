@@ -26,6 +26,7 @@ import { translateBatch as i18nTranslateBatch, modelList as i18nModelList } from
 import { wsConsoleKeyReply } from './ws-console-key.mjs'
 import { createI18nStore, serveI18nStore } from './i18n-store.mjs'
 import { createJobRunner, serveJobs } from './i18n-job.mjs'
+import { loadKeys as loadLanguagePackKeys, servePacks } from './i18n-packs.mjs'
 // ── Le plafond de retries (29/09/2026) ──────────────────────────────────────
 // Un subagent « ne répondait plus » des heures : maxRetries 500 × backoff 30 s.
 // Le moteur donne déjà un défaut sain (5 essais) aux fournisseurs sans
@@ -10227,6 +10228,11 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-store', handler: (req, res) => serveI18nStore(req, res, {
         home: dshHomeOrNull, sameOriginStrict, sameOriginLax, readJson: readJsonBody, query: queryOf, send: sendJson,
       }) }), 'kybernos: route i18n-store')
+      // Ready-made translations (signed language packs): which exist, refresh, install one into the on-disk store. i18n-packs.mjs.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-packs', handler: (req, res) => servePacks(req, res, {
+        home: dshHomeOrNull, store: (kybernosDir) => createI18nStore({ dir: joinPath(kybernosDir, 'i18n') }), keys: () => loadLanguagePackKeys(joinPath(pluginDir, 'languages-pubkey.json')),
+        sameOriginStrict, sameOriginLax, readJson: readJsonBody, send: sendJson,
+      }) }), 'kybernos: route i18n-packs')
       // The run itself: start / pause / resume / cancel / acknowledge, and its state. See i18n-job.mjs.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-job', handler: (req, res) => serveJobs(req, res, {
         runner: i18nJobRunner, sameOriginStrict, sameOriginLax, readJson: readJsonBody, query: queryOf, send: sendJson,
