@@ -126,11 +126,11 @@ try {
   if (backend.pairingsAsked() !== null) check('the server was asked for exactly one pairing', backend.pairingsAsked() === 1, backend.pairingsAsked())
 
   // 2. the settings page, reached from the panel
-  console.log('Settings › Mobile')
+  console.log('Settings › Remote Control')
   check('the panel offers « Manage phones »', await exists(D, '[data-kb="mobile-manage"]'))
   await click(D, '[data-kb="mobile-manage"]')
   const pageUp = await until(D, `!!document.querySelector('[data-kb="mobile-page"]')`, 15000)
-  check('it opens Settings › Mobile', pageUp === true)
+  check('it opens Settings › Remote Control', pageUp === true)
   check('the page shows the pairing in progress (same QR, the person did not start another)', await exists(D, '[data-kb="mobile-page"] [data-kb="mobile-qr"] svg'))
   await sleep(600)
   await shot(D, '2-settings')

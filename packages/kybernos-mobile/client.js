@@ -13,7 +13,7 @@
 // not by its label, which is translated). Nothing of the layout runs above 700 px, except on a touch device lying down
 // (a phone in landscape is wider than 700 px but at most 500 px high).
 //
-// The second half of the file is the phone LINK (Settings › Mobile and the sidebar's phone panel): see buildRemoteUi.
+// The second half of the file is the phone LINK (Settings › Remote Control and the sidebar's phone panel): see buildRemoteUi.
 // It is mounted apart, in its own try/catch, and only when DSH offers the `slots` service: whatever happens there, the
 // layout above is already in place.
 //
@@ -508,7 +508,7 @@ window.__ModuleLoader__.load({
       }
 
 
-      // ── the phone link: Settings › Mobile and the sidebar's phone panel ───────────────────────────────────────────
+      // ── the phone link: Settings › Remote Control and the sidebar's phone panel ───────────────────────────────────────────
       // Everything the person sees is decided by the host half (GET /kybernos-mobile/remote/status): this is only a view
       // and five buttons. The QR code is drawn from the modules the host computed; it is black on white on purpose,
       // whatever the theme (a scanner needs the contrast), the only colours this file names.
@@ -694,7 +694,7 @@ window.__ModuleLoader__.load({
               : null)
         }
 
-        // Settings › Mobile.
+        // Settings › Remote Control.
         const Page = () => {
           const r = useRemote()
           // The address of the Kybernos web app (for « See the plans »): the cloud half already knows it.
@@ -714,7 +714,7 @@ window.__ModuleLoader__.load({
           return h('div', { className: 'kbmr-page', 'data-kb': 'mobile-page' },
             h('div', { className: 'kbmr-head' },
               h('div', { className: 'kbmr-headtxt' },
-                h('h1', { className: 'kbmr-title' }, 'Mobile'),
+                h('h1', { className: 'kbmr-title' }, 'Remote Control'),
                 h('p', { className: 'kbmr-sub' }, kt('Pilotez cet ordinateur depuis votre téléphone : scannez le code, c’est tout. Rien à installer, aucun compte à créer.', 'Drive this computer from your phone: scan the code, that is all. Nothing to install, no account to create.'))),
               planChip !== null ? h('span', { className: 'kbmr-chip' }, planChip) : null,
               typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-mobile' }) : null),
@@ -798,7 +798,7 @@ window.__ModuleLoader__.load({
                   }, 'kybernos-mobile: phone link styles')
                   if (slots !== null && slots !== undefined && typeof slots.inject === 'function') {
                     ctx.effect(() => slots.inject('settings.section', () => slots.register(
-                      { name: 'settings.section', id: 'kybernos-mobile', order: 45, label: 'Mobile' },
+                      { name: 'settings.section', id: 'kybernos-mobile', order: 45, label: 'Remote Control' },
                       () => React.createElement(ui.Page))), 'kybernos-mobile: settings section')
                   }
                 } catch (e) { try { console.warn('[kybernos-mobile] phone link not mounted:', e) } catch (e2) { /* no console */ } }

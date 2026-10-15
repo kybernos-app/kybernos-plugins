@@ -3,7 +3,7 @@
 // The DOM result itself is checked against the real GUI (scripts/check-settings-nav-live.mjs).
 //
 //   node packages/kybernos-plugin/test-settings-nav.mjs
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -46,6 +46,38 @@ check('it gets room under the last tab', /\[class\*="navList"\]\[data-kb-setting
 const fs = /\[class\*="navList"\]\[data-kb-settings\] \[class\*="navCell"\]\{font-size:(\d+(?:\.\d+)?)px\}/.exec(SRC)
 check('tab names are smaller than the shell\'s 14px but still readable', fs !== null && Number(fs[1]) < 14 && Number(fs[1]) >= 12, fs && fs[1])
 check('the other navs of the app are not touched (every rule is scoped by data-kb-settings)', !/\[class\*="navList"\]\{[^}]*(padding-bottom|font-size)/.test(SRC))
+
+// ── A page a bundle adds to Settings must be known to the organiser ──────────────────────────────────────────
+// The organiser draws the icon of a cell, and places it in a section, from the cell's TITLE. A bundle that
+// registers a settings page and is not in KB_NAV_KEYS / ICONES / GROUPES gets the shell's gear and falls to the
+// tail of the menu (Skills, Connectors, Free LLMs and Mobile did, and Usage lost its icon outside English).
+console.log('every settings page a bundle adds is known to the organiser')
+const here = dirname(fileURLToPath(import.meta.url))
+const pkgs = join(here, '..')
+const ids = new Set()
+for (const d of readdirSync(pkgs)) {
+  const f = join(pkgs, d, 'client.js')
+  if (!existsSync(f)) continue
+  const txt = readFileSync(f, 'utf8')
+  for (const m of txt.matchAll(/name: 'settings\.section',\s*id: '([^']+)'/g)) ids.add(m[1])
+}
+const keysBlock = /const KB_NAV_KEYS = \{([\s\S]*?)\n\}/.exec(SRC)
+const navKeys = {}
+if (keysBlock !== null) for (const m of keysBlock[1].matchAll(/'?([A-Za-z0-9_-]+)'?:\s*'([^']+)'/g)) navKeys[m[1]] = m[2]
+const iconBlock = /const ICONES = \{([\s\S]*?)\n      \}/.exec(SRC)
+const iconKeys = new Set(iconBlock === null ? [] : [...iconBlock[1].matchAll(/^\s*'([^']+)':/gm)].map((m) => m[1]))
+const groupWords = new Set([...block.matchAll(/mots: \[([^\]]*)\]/g)].flatMap((m) => m[1].split(',').map((w) => w.trim().replace(/^'|'$/g, '')).filter(Boolean)))
+check('some settings pages were found in the bundles', ids.size >= 15, ids.size)
+const unknownIds = [...ids].filter((id) => navKeys[id] === undefined)
+check('every registered settings page has a key in KB_NAV_KEYS (its title is the same in every language)', unknownIds.length === 0, unknownIds)
+const noIcon = [...ids].filter((id) => navKeys[id] !== undefined && !iconKeys.has(navKeys[id]))
+check('every one of them has its own icon in ICONES (no gear)', noIcon.length === 0, noIcon.map((id) => id + ' -> ' + navKeys[id]))
+const noGroup = [...ids].filter((id) => navKeys[id] !== undefined && !groupWords.has(navKeys[id]))
+check('every one of them sits in a section (none falls to the tail of the menu)', noGroup.length === 0, noGroup.map((id) => id + ' -> ' + navKeys[id]))
+const mobile = SRC.length > 0 ? readFileSync(join(pkgs, 'kybernos-mobile', 'client.js'), 'utf8') : ''
+check('the phone page is called « Remote Control » in the nav and as its title', /label: 'Remote Control'/.test(mobile) && /kbmr-title' \}, 'Remote Control'/.test(mobile))
+const free = readFileSync(join(pkgs, 'kybernos-free-llms', 'client.js'), 'utf8')
+check('the free models page does not put a provider name in its title', !/'kfl\.(page\.)?titre': \{[^}]*OpenCode/.test(free))
 
 console.log('\n' + String(pass) + ' verifications, ' + String(fail) + ' failure(s)')
 process.exit(fail === 0 ? 0 : 1)

@@ -99,7 +99,7 @@ ok('empty or bad model ids are dropped and a base override is honoured', () => {
 
 ok('an existing profile keeps its non-model fields on rebuild', () => {
   const p = buildProfile({ models: ['x-free'], existing: { displayName: 'Custom', retryPolicy: { mode: 'normal' } } })
-  assert.equal(p.displayName, 'Free LLMs (OpenCode)', 'display name is ours')
+  assert.equal(p.displayName, 'Free LLMs', 'display name is ours')
   assert.deepEqual(p.retryPolicy, { mode: 'normal' }, 'unrelated field survives')
 })
 

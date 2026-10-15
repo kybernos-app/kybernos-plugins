@@ -14,7 +14,7 @@ routes and the same relay, and the stand-in is kept in step with the server.
 | the computer's half: pairing, paired phones, the relay connection, the replay against DSH | the `/v1/remote/*` routes, the relay, serving `phone/*` from the phone origin, the plan feature `remote`, the owner's number of phones | the phone origin's host name and certificate (the owner's, infrastructure) |
 | the end-to-end channel and its tests | pinned copies of the phone page's files | push notifications, more than one relay replica, a native app |
 | the phone page and its service worker | | |
-| the sidebar panel and Settings › Mobile | | |
+| the sidebar panel and Settings › Remote Control | | |
 | a stand-in relay and server for tests | | |
 
 ## Why it is paid

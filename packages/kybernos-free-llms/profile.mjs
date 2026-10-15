@@ -45,7 +45,7 @@ export const buildProfile = ({ models, baseURL, existing }) => {
   const prior = existing !== null && typeof existing === 'object' ? existing : {}
   return {
     ...prior,
-    displayName: 'Free LLMs (OpenCode)',
+    displayName: 'Free LLMs',
     api: 'openai-completions',
     baseURL: base,
     apiKeyEnv: PLACEHOLDER_ENV,

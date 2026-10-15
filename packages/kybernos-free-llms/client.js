@@ -26,8 +26,8 @@ window.__ModuleLoader__.load({
 
       // ── i18n minimal (fr first, en fallback) ─────────────────────────────
       const KB_M_T = {
-        'kfl.titre': { fr: 'Free LLMs (OpenCode)', en: 'Free LLMs (OpenCode)' },
-        'kfl.soustitre': { fr: 'Des modèles gratuits, sans compte ni clé API, via la couche gratuite d’OpenCode Zen.', en: 'Free models, no account or API key, through OpenCode Zen’s free tier.' },
+        'kfl.titre': { fr: 'Free LLMs', en: 'Free LLMs' },
+        'kfl.soustitre': { fr: 'Des modèles gratuits, sans compte ni clé API.', en: 'Free models, no account or API key.' },
         'kfl.avertis': { fr: 'Ces modèles sont gratuits : les prompts envoyés peuvent être conservés par OpenCode pour améliorer leurs modèles. N’y envoyez rien de sensible.', en: 'These models are free: prompts you send may be retained by OpenCode to improve their models. Do not send anything sensitive.' },
         'kfl.liste': { fr: 'Modèles gratuits disponibles', en: 'Available free models' },
         'kfl.vide': { fr: 'Aucun modèle gratuit détecté pour l’instant.', en: 'No free model detected right now.' },
@@ -44,7 +44,7 @@ window.__ModuleLoader__.load({
         'kfl.relance': { fr: 'Si un modèle n’apparaît pas dans le sélecteur : relancez DSH.', en: 'If a model does not show in the picker: restart DSH.' },
         'kfl.auto': { fr: 'Activé automatiquement au premier lancement.', en: 'Enabled automatically at first run.' },
         'kfl.erreur': { fr: 'Erreur', en: 'Error' },
-        'kfl.page.titre': { fr: 'Free LLMs (OpenCode)', en: 'Free LLMs (OpenCode)' },
+        'kfl.page.titre': { fr: 'Free LLMs', en: 'Free LLMs' },
       }
       let kbLocaleRead = () => 'en'
       // Text separator, locale-aware: French ' : ', English ': '.

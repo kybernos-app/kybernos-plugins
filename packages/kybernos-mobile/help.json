@@ -18,8 +18,8 @@
     }
   ],
   "where": {
-    "fr": "Bouton téléphone en bas de la barre latérale, et Réglages › Mobile pour retirer un téléphone",
-    "en": "Phone button at the bottom of the sidebar, and Settings › Mobile to remove a phone",
+    "fr": "Bouton téléphone en bas de la barre latérale, et Réglages › Remote Control pour retirer un téléphone",
+    "en": "Phone button at the bottom of the sidebar, and Settings › Remote Control to remove a phone",
     "page": true
   },
   "good": {

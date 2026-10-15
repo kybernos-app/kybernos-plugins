@@ -2717,6 +2717,8 @@ const KB_NAV_KEYS = {
   'kbac-support': 'support & legal', plugins: 'built-in plugins', 'kybernos-atlas': 'atlas', 'kybernos-models': 'ai provider & models',
   'agent-presets': 'agent presets', voice: 'voice', 'kybernos-slash': 'commands', 'kybernos-ollama': 'ollama local models',
   'kybernos-suite': 'kybernos suite', 'kybernos-tools': 'tools', 'kybernos-workers': 'workers', 'kybernos-call': 'calls',
+  // The pages the Suite's bundles add (their section id is the cell's key in every language).
+  'kybernos-usage': 'usage', 'kybernos-skills': 'skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'remote control',
 }
 /** The React key of a nav cell, or null (never throws: the internals are not ours). */
 const kbNavKeyOf = (el) => {
@@ -31078,11 +31080,15 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
           'usage',
           'workers',
           'outils', 'tools',
+          'skills',
+          'connectors',
           'web search',
           'calls', 'appels',
+          'remote control',
           'commandes', 'commands',
           'atlas',
           'ollama local models',
+          'free llms',
           'voix', 'voice',
           'langue', 'language',
           'theme'
@@ -31141,6 +31147,10 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         'auto routing': '<path d="M16 3h5v5" ' + trait + '/><path d="M8 3H3v5" ' + trait + '/><path d="M12 22v-8.3a4 4 0 0 0-1.17-2.87L3 3" ' + trait + '/><path d="m15 9 6-6" ' + trait + '/>',
         'kybernos suite': '<path d="M19.44 7.85c-.05.32.06.65.29.88l1.57 1.57c.47.47.7 1.09.7 1.7s-.23 1.23-.7 1.7l-1.61 1.61a.98.98 0 0 1-.84.28c-.47-.07-.8-.48-.97-.93a2.5 2.5 0 1 0-3.21 3.21c.45.17.86.5.93.97a.98.98 0 0 1-.28.84l-1.61 1.61a2.4 2.4 0 0 1-1.7.7 2.4 2.4 0 0 1-1.7-.7l-1.57-1.57a1.03 1.03 0 0 0-.88-.29c-.49.07-.84.5-1.02.97a2.5 2.5 0 1 1-3.24-3.24c.46-.18.89-.53.97-1.02a1.03 1.03 0 0 0-.29-.88l-1.57-1.57A2.4 2.4 0 0 1 2 12c0-.62.24-1.23.7-1.7l1.53-1.53c.24-.24.58-.35.92-.3.52.08.88.53 1.07 1.01a2.5 2.5 0 1 0 3.26-3.26c-.48-.2-.93-.56-1.01-1.07-.05-.34.06-.68.3-.92l1.53-1.53A2.4 2.4 0 0 1 12 2c.62 0 1.23.24 1.7.7l1.57 1.57c.23.23.56.34.88.29.49-.07.84-.5 1.02-.97a2.5 2.5 0 1 1 3.24 3.24c-.46.18-.89.53-.97 1.02z" ' + trait + '/>',
         'workers': '<rect x="4" y="4" width="16" height="16" rx="2" ' + trait + '/><rect x="9" y="9" width="6" height="6" rx="1" ' + trait + '/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2" ' + trait + '/>',
+        'skills': '<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" ' + trait + '/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3" ' + trait + '/>',
+        'connectors': '<path d="M12 22v-5M9 8V2M15 8V2" ' + trait + '/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8z" ' + trait + '/>',
+        'free llms': '<path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" ' + trait + '/><path d="M13 5v2M13 11v2M13 17v2" ' + trait + '/>',
+        'remote control': '<rect x="5" y="2" width="14" height="20" rx="2" ry="2" ' + trait + '/><path d="M12 18h.01" ' + trait + '/>',
         'calls': '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" ' + trait + '/>',
       }
       // Variantes de LANGUE des libellés : sous une langue traduite, le titre

@@ -654,8 +654,8 @@
       "defaut": "actif",
       "poids_ko": 74,
       "promesse": {
-        "fr": "Modèles gratuits OpenCode Zen, sans compte ni clé API.",
-        "en": "Free OpenCode Zen models, no account or API key."
+        "fr": "Modèles gratuits, sans compte ni clé API.",
+        "en": "Free models, no account or API key."
       },
       "aide": {
         "what": {
@@ -681,8 +681,8 @@
           }
         ],
         "where": {
-          "fr": "Réglages › Free LLMs (OpenCode)",
-          "en": "Settings › Free LLMs (OpenCode)",
+          "fr": "Réglages › Free LLMs",
+          "en": "Settings › Free LLMs",
           "page": true
         },
         "good": {
@@ -1369,7 +1369,7 @@
     {
       "id": "kybernos-mobile",
       "nom": "@local/kybernos-mobile",
-      "titre": "Mobile",
+      "titre": "Remote Control",
       "glyphe": "mobile",
       "famille": "base",
       "palier": "core",
@@ -1401,8 +1401,8 @@
           }
         ],
         "where": {
-          "fr": "Bouton téléphone en bas de la barre latérale, et Réglages › Mobile pour retirer un téléphone",
-          "en": "Phone button at the bottom of the sidebar, and Settings › Mobile to remove a phone",
+          "fr": "Bouton téléphone en bas de la barre latérale, et Réglages › Remote Control pour retirer un téléphone",
+          "en": "Phone button at the bottom of the sidebar, and Settings › Remote Control to remove a phone",
           "page": true
         },
         "good": {

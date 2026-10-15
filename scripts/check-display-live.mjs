@@ -562,7 +562,7 @@ const SCENARIOS = [
       await reload(c.page)
       if (await openSettings(c.page, { tries: 3 })) {
         await c.drawer()
-        if (await c.click({ css: 'button[class*="navCell"]', text: 'Mobile' })) await c.audit('settings-mobile', { shot: true, wait: 1500 })
+        if (await c.click({ css: 'button[class*="navCell"]', text: 'Remote Control' })) await c.audit('settings-mobile', { shot: true, wait: 1500 })
       }
       fake.cloud = null
       fake.remote = null
