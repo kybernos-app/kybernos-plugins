@@ -76,10 +76,32 @@ for (const needle of ["entree('space-browser'", "menuTeamsBrowser", "onSpaceBrow
   assert.ok(!clientSource.includes(needle), 'l entree « ouvrir dans le navigateur » ne doit plus exister: ' + needle)
 }
 assert.ok(clientSource.includes("entree('space-settings'"), 'l entree « Teams settings » reste')
-// The ONLY client call to the host's console-link route is the quota notice's button, and it asks the HOST to open the system browser (`open: true`): a tab opened by the
-// page and pointed at the link is « cross-site » and the server refuses it (« link expired »).
-assert.equal((clientSource.match(/callLocal\('\/console\/link'/g) || []).length, 1, 'un seul appel client a /console/link : le bouton de la notice de quota')
-assert.ok(/callLocal\('\/console\/link', 'POST', [^\n]*open: true/.test(clientSource), 'le lien de la console est ouvert par l hote (open: true), jamais par un onglet de la page')
+// Two client calls to the host's console-link route, and only two: the quota notice's button, and the footer's account page (the menu's Account and Referral entries, `section:
+// 'overview'`). Both ask the HOST to open the system browser (`open: true`): a tab opened by the page and pointed at the link is « cross-site » and the server refuses it
+// (« link expired »).
+assert.equal((clientSource.match(/callLocal\('\/console\/link'/g) || []).length, 2, 'deux appels client a /console/link : la notice de quota et la page du compte du pied')
+assert.equal((clientSource.match(/callLocal\('\/console\/link', 'POST', [^\n]*open: true/g) || []).length, 2, 'le lien de la console est ouvert par l hote (open: true), jamais par un onglet de la page')
+assert.ok(/openAccountPage\('overview', actif\)/.test(clientSource) && /section: section, open: true/.test(clientSource), 'Account et Referral demandent la section overview')
+// « Remote control »: the phone link is ONE entry of the connected menu (right after Referral), offered only when the phone link's own status route says the
+// feature is there; the footer's separate phone button is gone. The panel is the same bridge and fallback as the old button's (MobilePanel).
+{
+  assert.ok(/entree\('referral'[^\n]*\n\s*\/\/[^\n]*\n\s*props\.remote !== null && props\.remote !== undefined\s*\? entree\('remote', h\(PhoneIcon/.test(clientSource), 'l entree Remote control vient juste apres Referral')
+  assert.ok(clientSource.includes("'kybernos-mobile/remote/status'"), 'la disponibilite se lit sur la route de kybernos-mobile')
+  assert.ok(!clientSource.includes("title: t('mobTitle') + ' — ' + t('mobHelp')"), 'le bouton telephone autonome du pied n existe plus')
+  assert.equal((clientSource.match(/h\(MobilePanel, \{/g) || []).length, 1, 'un seul panneau telephone')
+  assert.ok(/menuRemote: 'Remote control'/.test(clientSource) && /menuRemote: 'Contrôle à distance'/.test(clientSource), 'fr/en')
+  const m = clientSource.match(/const remoteOffer = \(j\) => \{[\s\S]*?\n        \}\n/)
+  assert.ok(m !== null, 'remoteOffer est la ou le test l attend')
+  const remoteOffer = new Function('return ' + m[0].replace('const remoteOffer = ', '').trim())()
+  const on = { ok: true, available: true, connected: true, configured: true, entitled: true, devices: [{ id: 'a' }, { id: 'b' }] }
+  assert.deepEqual(remoteOffer(on), { devices: 2 }, 'offered, with the phones already linked')
+  assert.deepEqual(remoteOffer(Object.assign({}, on, { devices: undefined })), { devices: 0 })
+  assert.deepEqual(remoteOffer(Object.assign({}, on, { configured: null, entitled: null, connected: null })), { devices: 2 }, 'not told it is off: offered')
+  for (const off of [{ configured: false }, { entitled: false }, { available: false }, { connected: false }, { ok: false }])
+    assert.equal(remoteOffer(Object.assign({}, on, off)), null, 'hidden: ' + JSON.stringify(off))
+  for (const odd of [null, undefined, 'x', 7, []]) assert.equal(remoteOffer(odd), null, 'an answer that is not a status offers nothing')
+  sok('Remote control : une entree apres Referral, lue sur le statut du lien telephone (cachee si non offert, hors forfait, ou illisible), plus de bouton telephone')
+}
 // The words: a shared space is a Team, creating one says so (docs/vocabulary.md in the app repo: workspace = the container incl. the personal one).
 for (const [needle, why] of [["wsNew: 'New team'", 'en: New team'], ["wsNewTitle: 'Create a team'", 'en: Create a team'], ["wsNewName: 'Team name'", 'en: Team name'],
   ["wsNew: 'Nouvelle équipe'", 'fr: Nouvelle équipe'], ["wsNewTitle: 'Créer une équipe'", 'fr: Créer une équipe'], ["wsNewName: 'Nom de l\\'équipe'", 'fr: Nom de l équipe']]) {
@@ -274,9 +296,12 @@ ok('Account and Data & privacy pages open with the shared page head (title + sub
 // ici (les deux autres états sont couverts par le CSS et le câblage ci-dessous).
 const html = renderToStaticMarkup(React.createElement(registered.component, null))
 assert.ok(html.includes('<button'), 'la rangee de pied doit rendre un bouton')
-assert.ok(html.includes('kbf-off') && html.includes('kbm-btn-primary'), 'le CTA de connexion est rendu tant que l etat est inconnu')
-assert.ok(html.includes('kbf-gear'), 'les Reglages restent atteignables meme deconnecte (le declencheur natif est masque)')
-assert.ok(html.includes('<svg'), 'icone de connexion presente')
+// ONE button, in the place and at the size of the profile row (same card, same chevron): « Sign in / Sign up ». No separate gear: the menu it opens reaches DSH's Settings.
+assert.ok(html.includes('kbf-off') && html.includes('data-kb="foot-signin"') && html.includes('kbfp-card') && html.includes('kbfp-chev'), 'le bouton unique de connexion est rendu tant que l etat est inconnu')
+assert.equal((html.match(/<button/g) || []).length, 1, 'le pied deconnecte n a qu un seul bouton')
+assert.equal(html.includes('kbf-gear'), false, 'plus d engrenage separe dans le pied')
+assert.ok(html.includes('aria-haspopup="menu"'), 'le bouton annonce un menu')
+assert.ok(html.includes('<svg'), 'icone presente')
 // La carte n'est pas ouverte au premier rendu : le scrim ne doit pas exister.
 assert.equal(html.includes('kbc-scrim'), false)
 ok('rendu React de la rangee de pied sans erreur (CTA + icone)')

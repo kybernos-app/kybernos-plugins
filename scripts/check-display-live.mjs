@@ -556,7 +556,8 @@ const SCENARIOS = [
         fake.remote = remote
         await reload(c.page)
         await c.drawer()
-        if (await c.click({ css: 'button.kbfp-ico', nth: 0 })) await c.audit('phone-' + name, { shot: true, wait: 1500 })
+        // The phone link is the « Remote control » entry of the profile menu (the footer's own phone button is gone).
+        if (await c.click({ css: '[data-kb="workspace-card"] .kbfp-cardmain' }, { quiet: true }) && await c.click({ css: '[data-kb="menu-remote"]' }, { quiet: true })) await c.audit('phone-' + name, { shot: true, wait: 1500 })
       }
       fake.remote = REMOTE.devices
       await reload(c.page)

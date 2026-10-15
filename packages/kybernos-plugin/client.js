@@ -1276,23 +1276,6 @@ let kbLocaleRead = () => 'en'
       'kbui.search.parser': { kybernos: 'Rechercher — parser, CRM, scraping…', en: 'Search — parser, CRM, scraping…' },
       'kbui.send.feedback': { kybernos: 'Envoyer un retour', en: 'Send feedback' },
       // ── "Help" box of the account menu (04/10) ──
-      'kbui.help.title': { kybernos: 'Aide', en: 'Help' },
-      'kbui.help.sub': { kybernos: 'L’essentiel pour s’y retrouver.', en: 'The essentials to find your way around.' },
-      'kbui.help.start': { kybernos: 'Pour démarrer', en: 'Getting started' },
-      'kbui.help.s1': { kybernos: '« Nouveau chat » ouvre une conversation ; choisissez l’Agent Team à côté du bouton.', en: '“New chat” opens a conversation; pick the Agent Team next to the button.' },
-      'kbui.help.s2': { kybernos: 'Tapez / pour les commandes, @ pour citer un fichier ou une session.', en: 'Type / for commands, @ to mention a file or a session.' },
-      'kbui.help.s3': { kybernos: 'Tout ce que vos Agent Teams produisent arrive dans Créations.', en: 'Everything your Agent Teams produce lands in Creations.' },
-      'kbui.help.map': { kybernos: 'La barre latérale', en: 'The sidebar' },
-      'kbui.help.d.teams': { kybernos: 'vos Agent Teams, chacune avec sa mission', en: 'your Agent Teams, each on a mission' },
-      'kbui.help.d.ws': { kybernos: 'vos projets et leurs conversations', en: 'your projects and their chats' },
-      'kbui.help.d.creations': { kybernos: 'les fichiers produits par vos Agent Teams', en: 'the files your Agent Teams produced' },
-      'kbui.help.d.auto': { kybernos: 'des sessions qui partent à l’heure choisie', en: 'sessions that start at a chosen time' },
-      'kbui.help.d.skills': { kybernos: 'des consignes réutilisables pour vos agents', en: 'reusable instructions for your agents' },
-      'kbui.help.d.conn': { kybernos: 'les applications que vos Agent Teams peuvent utiliser', en: 'the apps your Agent Teams can use' },
-      'kbui.help.more': { kybernos: 'Besoin d’un coup de main ?', en: 'Need a hand?' },
-      'kbui.help.updates': { kybernos: 'Rechercher une mise à jour', en: 'Check for updates' },
-      'kbui.help.website': { kybernos: 'Site web', en: 'Website' },
-      'kbui.help.close': { kybernos: 'Fermer', en: 'Close' },
       // Carte de notation 5 étoiles (remplace les pouces Quality Score).
       // Libellés portés depuis la maquette validée (docs/handoff/notation-agent/
       // maquette-v2) : les libellés EN sont ceux de la source Manus.
@@ -2953,7 +2936,7 @@ const kbInstallLauncherGuard = () => {
       kbOpenDshSettings()
       return
     }
-    if (document.querySelector('[data-kb="foot-gear"], [data-kb="workspace-card"]') === null) return
+    if (document.querySelector('[data-kb="foot-signin"], [data-kb="workspace-card"]') === null) return
     ev.preventDefault()
     ev.stopImmediatePropagation()
     try { window.dispatchEvent(new Event('kybernos-cloud:menu')) } catch (e) { /* no Event */ }
@@ -6503,72 +6486,6 @@ const kbGoalCard = () => {
   }
   const obs = new MutationObserver(relance)
   obs.observe(document.body, { childList: true, subtree: true, characterData: true })
-}
-
-// ── "Help" box (account menu) ──────────────────────────────────────────────────
-// A modal box in plain DOM: it must open even if the panel's React tree
-// is not mounted. Esc / click outside close it; focus returns to where it was.
-const kbHelpOpen = () => {
-  if (typeof document === 'undefined' || document.querySelector('.kbhelp-scrim') !== null) return
-  if (document.querySelector('style[data-kybernos="kbhelp-css"]') === null) {
-    const st = document.createElement('style')
-    st.dataset.kybernos = 'kbhelp-css'
-    st.textContent = [
-      '.kbhelp-scrim{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.5)}',
-      '.kbhelp-dlg{box-sizing:border-box;width:100%;max-width:480px;max-height:calc(100vh - 32px);overflow:auto;padding:22px;border-radius:20px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2,#26262a);color:var(--dsw-alias-label-primary);box-shadow:0 24px 64px rgba(0,0,0,.55);font-size:13.5px;line-height:1.5}',
-      '.kbhelp-h{margin:0;font-size:18px;font-weight:650;letter-spacing:-.01em}',
-      '.kbhelp-sub{margin:2px 0 0;color:var(--dsw-alias-label-secondary)}',
-      '.kbhelp-sec{margin:18px 0 6px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}',
-      '.kbhelp-ul{margin:0;padding:0;list-style:none}',
-      '.kbhelp-ul li{position:relative;margin:0 0 6px;padding-inline-start:16px}',
-      '.kbhelp-ul li::before{content:"";position:absolute;inset-inline-start:2px;top:.62em;width:5px;height:5px;border-radius:50%;background:var(--dsw-alias-label-tertiary)}',
-      '.kbhelp-map{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0}',
-      '.kbhelp-map dt{font-weight:600}',
-      '.kbhelp-map dd{margin:0;color:var(--dsw-alias-label-secondary)}',
-      '.kbhelp-foot{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}',
-      '.kbhelp-b{display:inline-flex;align-items:center;height:34px;padding:0 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;font-weight:550;text-decoration:none;cursor:pointer}',
-      '.kbhelp-b:hover{background:var(--dsw-alias-interactive-bg-hover)}',
-      '.kbhelp-b.main{margin-inline-start:auto;border-color:transparent;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base)}',
-    ].join('')
-    document.head.appendChild(st)
-  }
-  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e }
-  const prev = document.activeElement
-  const scrim = el('div', 'kbhelp-scrim')
-  const dlg = el('div', 'kbhelp-dlg')
-  dlg.setAttribute('role', 'dialog')
-  dlg.setAttribute('aria-modal', 'true')
-  dlg.setAttribute('aria-label', kbt('kbui.help.title'))
-  const close = () => { scrim.remove(); document.removeEventListener('keydown', onKey, true); try { if (prev && prev.focus) prev.focus() } catch (e) { /* unmounted */ } }
-  const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close() } }
-  document.addEventListener('keydown', onKey, true)
-  scrim.addEventListener('mousedown', (e) => { if (e.target === scrim) close() })
-  const btn = (label, cls, fn) => { const b = el('button', 'kbhelp-b' + (cls ? ' ' + cls : ''), label); b.type = 'button'; b.addEventListener('click', fn); return b }
-  dlg.appendChild(el('h2', 'kbhelp-h', kbt('kbui.help.title')))
-  dlg.appendChild(el('p', 'kbhelp-sub', kbt('kbui.help.sub')))
-  dlg.appendChild(el('div', 'kbhelp-sec', kbt('kbui.help.start')))
-  const ul = el('ul', 'kbhelp-ul')
-  for (const k of ['kbui.help.s1', 'kbui.help.s2', 'kbui.help.s3']) ul.appendChild(el('li', null, kbt(k)))
-  dlg.appendChild(ul)
-  dlg.appendChild(el('div', 'kbhelp-sec', kbt('kbui.help.map')))
-  const dl = el('dl', 'kbhelp-map')
-  for (const [name, desc] of [['menu.aiteams', 'kbui.help.d.teams'], ['menu.projects', 'kbui.help.d.ws'], ['menu.deliverables', 'kbui.help.d.creations'], ['menu.tasks', 'kbui.help.d.auto'], ['kbui.skills', 'kbui.help.d.skills'], ['kbui.connecteurs', 'kbui.help.d.conn']]) {
-    dl.appendChild(el('dt', null, kbt(name)))
-    dl.appendChild(el('dd', null, kbt(desc)))
-  }
-  dlg.appendChild(dl)
-  dlg.appendChild(el('div', 'kbhelp-sec', kbt('kbui.help.more')))
-  const foot = el('div', 'kbhelp-foot')
-  foot.appendChild(btn(kbt('kbui.send.feedback'), '', () => { close(); try { window.dispatchEvent(new Event('kybernos:menu:feedback')) } catch (e) { /* Event missing */ } }))
-  foot.appendChild(btn(kbt('kbui.help.updates'), '', () => { close(); try { window.dispatchEvent(new Event('kybernos:update:check')) } catch (e) { /* Event missing */ } }))
-  const site = el('a', 'kbhelp-b', kbt('kbui.help.website'))
-  site.href = 'https://kybernos.app'; site.target = '_blank'; site.rel = 'noopener noreferrer'
-  foot.appendChild(site)
-  foot.appendChild(btn(kbt('kbui.help.close'), 'main', close))
-  dlg.appendChild(foot)
-  scrim.appendChild(dlg)
-  document.body.appendChild(scrim)
-  try { dlg.querySelector('.kbhelp-b.main').focus() } catch (e) { /* focus */ }
 }
 
 // ── Épingles de la sidebar : migration plugin du patch moteur (04/10) ─────────
@@ -27903,7 +27820,15 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
     // a machine that runs the SaaS locally keeps `kybernos.ws.console.url` to
     // point at it. And the page checks that the console answers BEFORE mounting
     // the iframe: otherwise it says why and offers to retry.
+    // These overrides point DSH at a console, a gateway or a cloud of the developer's choosing. They win over the ACTIVE server only behind an
+    // explicit flag (`localStorage['kybernos.dev'] === '1'` or `window.KYBERNOS_DEV === true`): a value left behind by an old test must never
+    // send « Teams settings », the account or the payment to another server than the one the person selected.
+    const kbDevOverrides = () => {
+      try { if (window.localStorage.getItem('kybernos.dev') === '1') return true } catch (e) { /* storage blocked */ }
+      try { return window.KYBERNOS_DEV === true } catch (e) { return false }
+    }
     const kbWsCfg = (k, g, def) => {
+      if (kbDevOverrides() !== true) return def
       try { const v = window.localStorage.getItem(k); if (typeof v === 'string' && v.trim() !== '') return v.trim() } catch (e) { /* stockage bloqué */ }
       try { const w = window[g]; if (typeof w === 'string' && w.trim() !== '') return w.trim() } catch (e) { /* pas de window */ }
       return def
@@ -31371,18 +31296,12 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
           if (typeof kbOpenFeedbackChat === 'function') { kbOpenFeedbackChat(kbt('kbui.feedback.draft')); return }
         } catch (e) { /* on ne flash pas depuis le menu */ }
       }
-      // "Help": a simple box (getting started, the sidebar, a helping hand) instead of
-      // opening the site — the menu's "Website" entry already does that, help was a duplicate.
-      const surAide = () => {
-        try { kbHelpOpen() } catch (e) { /* cosmetic: never blocking */ }
-      }
+      // « Help » is the web help (help.kybernos.app/<lang>/), opened by the footer menu itself: no in-app box any more.
       window.addEventListener('kybernos:menu:theme', surTheme)
       window.addEventListener('kybernos:menu:feedback', surFeedback)
-      window.addEventListener('kybernos:menu:help', surAide)
       return () => {
         window.removeEventListener('kybernos:menu:theme', surTheme)
         window.removeEventListener('kybernos:menu:feedback', surFeedback)
-        window.removeEventListener('kybernos:menu:help', surAide)
       }
     }, 'kybers: gestes du menu unifie du pied')
     ctx.effect(() => styles.insert(`

@@ -49,7 +49,7 @@ const load = (page) => {
       onClick: () => { if (page.menuItem === true) els['[role="menu"] [role="menuitem"]'] = mk('menu-item') },
     })
   }
-  if (page.footer === true) els['[data-kb="foot-gear"], [data-kb="workspace-card"]'] = mk('footer')
+  if (page.footer === true) els['[data-kb="foot-signin"], [data-kb="workspace-card"]'] = mk('footer')
   const document = {
     querySelector: (sel) => els[sel] || null,
     createElement: () => { log.veils += 1; return { textContent: '', remove() { log.removedVeils += 1 } } },

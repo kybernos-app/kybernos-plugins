@@ -194,6 +194,7 @@ window.__ModuleLoader__.load({
         menuFeedback: 'Envoyer un retour',
         menuSettingsApp: 'Paramètres',
         menuTeamsSettings: 'Réglages d\'équipe',
+        menuRemote: 'Contrôle à distance',
         quotaPayment: 'Le dernier paiement de {name} a échoué : les appels IA sont suspendus jusqu\'à son règlement.',
         quotaPaymentAdmin: ' Réglez-le dans Facturation.',
         quotaPaymentMember: ' Demandez à un propriétaire ou à un admin de {name}.',
@@ -284,6 +285,63 @@ window.__ModuleLoader__.load({
         accInstrWhyWrite: 'le fichier n\'a pas pu être écrit',
         themeLight: 'Clair',
         themeDark: 'Sombre',
+        // ── Pied à un seul bouton, menus, fenêtre « Mettre à niveau » ──
+        footSignInUp: 'Se connecter / Créer un compte',
+        footSyncSub: 'Sync de vos sessions',
+        menuSignup: 'Créer un compte',
+        accountOpenFail: 'La page de votre compte n\'a pas pu s\'ouvrir. Réessayez dans un instant.',
+        accountNeedsVerify: 'Confirmez d\'abord votre adresse e-mail, puis réessayez.',
+        upTitle: 'Mettre à niveau',
+        upFor: 'Choisissez la formule de',
+        upLoading: 'Chargement des formules…',
+        upRetry: 'Réessayer',
+        upYearly: 'Annuel',
+        upMonthly: 'Mensuel',
+        upCurrency: 'Devise',
+        upPerMonth: '/ mois',
+        upPerSeatMonth: '/ place / mois',
+        upBilledYearly: 'facturé à l\'année',
+        upBilledMonthly: 'facturé au mois',
+        upUsage: 'Usage',
+        upCredits: 'crédits par 30 jours',
+        upCreditsUnit: 'crédits',
+        upCurrent: 'Formule actuelle',
+        upSubscribe: 'S\'abonner',
+        upSeats: 'Places',
+        upSeatsLess: 'Retirer une place',
+        upSeatsMore: 'Ajouter une place',
+        upTotal: 'Total',
+        upPerYear: 'par an',
+        upPerMonthTotal: 'par mois',
+        upCalculating: 'Calcul du prix…',
+        upQuoteFail: 'Le prix n\'a pas pu être calculé.',
+        upTopup: 'Crédits supplémentaires',
+        upTopupSub: 'Paiement unique, valables pendant',
+        upMonths: 'mois',
+        upBuyCredits: 'Acheter des crédits',
+        upTaxExcl: 'Prix hors taxes.',
+        upTaxIncl: 'Prix toutes taxes comprises.',
+        upOpened: 'La page de paiement est ouverte dans votre navigateur. Revenez ici une fois terminé.',
+        upOpenedRefresh: 'J\'ai payé : actualiser ma formule',
+        upOpenFallback: 'Ouvrir la page de paiement',
+        upErrLoad: 'Les formules n\'ont pas pu être chargées.',
+        upErrDisabled: 'Les paiements ne sont pas disponibles sur ce serveur.',
+        upErrForbidden: 'Seul un propriétaire ou un administrateur peut changer cette formule. Demandez à un propriétaire de le faire.',
+        upErrConflict: 'Cette formule a déjà un abonnement, ou est payée dans une autre devise. Gérez-le depuis le portail de facturation.',
+        upErrInvalid: 'Ce choix n\'est pas possible (par exemple moins de places que de membres). Modifiez-le puis réessayez.',
+        upErrNotFound: 'Cette formule n\'est pas en vente pour le moment.',
+        upErrRate: 'Trop de tentatives. Patientez une minute puis réessayez.',
+        upErrRetry: 'Le paiement n\'a pas pu être lancé pour l\'instant. Rien n\'a été débité : réessayez.',
+        upErrDown: 'Le serveur ne répond pas. Rien n\'a été débité : réessayez.',
+        upPortal: 'Ouvrir le portail de facturation',
+        upFeatByok: 'Vos propres clés',
+        upFeatConnections: 'Connexions',
+        upFeatHostedRuns: 'Exécutions hébergées',
+        upFeatComputers: 'Ordinateurs cloud',
+        upFeatAlwaysOn: 'Ordinateurs toujours actifs',
+        upFeatTeamMembers: 'Membres de l\'équipe',
+        upFeatTeamLessons: 'Leçons partagées',
+        upFeatTeamSkills: 'Compétences partagées',
       },
       en: {
         menu: 'Kybernos Cloud',
@@ -439,6 +497,7 @@ window.__ModuleLoader__.load({
         menuFeedback: 'Send feedback',
         menuSettingsApp: 'Settings',
         menuTeamsSettings: 'Team settings',
+        menuRemote: 'Remote control',
         quotaPayment: 'The last payment for {name} failed: AI calls are paused until it is settled.',
         quotaPaymentAdmin: ' Fix it in Billing.',
         quotaPaymentMember: ' Ask an owner or admin of {name}.',
@@ -527,6 +586,63 @@ window.__ModuleLoader__.load({
         accInstrWhyWrite: 'the file could not be written',
         themeLight: 'Light',
         themeDark: 'Dark',
+        // ── One-button footer, menus, « Upgrade » dialog ──
+        footSignInUp: 'Sign in / Sign up',
+        footSyncSub: 'Sync your sessions',
+        menuSignup: 'Create an account',
+        accountOpenFail: 'Your account page could not be opened. Try again in a moment.',
+        accountNeedsVerify: 'Confirm your e-mail address first, then try again.',
+        upTitle: 'Upgrade',
+        upFor: 'Choose the plan for',
+        upLoading: 'Loading plans…',
+        upRetry: 'Try again',
+        upYearly: 'Yearly',
+        upMonthly: 'Monthly',
+        upCurrency: 'Currency',
+        upPerMonth: '/ month',
+        upPerSeatMonth: '/ seat / month',
+        upBilledYearly: 'billed yearly',
+        upBilledMonthly: 'billed monthly',
+        upUsage: 'Usage',
+        upCredits: 'credits per 30 days',
+        upCreditsUnit: 'credits',
+        upCurrent: 'Current plan',
+        upSubscribe: 'Subscribe',
+        upSeats: 'Seats',
+        upSeatsLess: 'Remove a seat',
+        upSeatsMore: 'Add a seat',
+        upTotal: 'Total',
+        upPerYear: 'per year',
+        upPerMonthTotal: 'per month',
+        upCalculating: 'Calculating the price…',
+        upQuoteFail: 'The price could not be calculated.',
+        upTopup: 'Extra credits',
+        upTopupSub: 'Paid once, valid for',
+        upMonths: 'months',
+        upBuyCredits: 'Buy credits',
+        upTaxExcl: 'Prices exclude tax.',
+        upTaxIncl: 'Prices include tax.',
+        upOpened: 'The payment page is open in your browser. Come back here when you are done.',
+        upOpenedRefresh: 'I have paid: refresh my plan',
+        upOpenFallback: 'Open the payment page',
+        upErrLoad: 'The plans could not be loaded.',
+        upErrDisabled: 'Payments are not available on this server.',
+        upErrForbidden: 'Only an owner or admin can change this plan. Ask an owner to do it.',
+        upErrConflict: 'This plan already has a subscription, or is paid in another currency. Manage it in the billing portal.',
+        upErrInvalid: 'That choice is not possible (for example fewer seats than members). Change it and try again.',
+        upErrNotFound: 'This plan is not on sale right now.',
+        upErrRate: 'Too many attempts. Wait a minute, then try again.',
+        upErrRetry: 'The payment could not be started right now. Nothing was charged: try again.',
+        upErrDown: 'The server did not answer. Nothing was charged: try again.',
+        upPortal: 'Open the billing portal',
+        upFeatByok: 'Your own keys',
+        upFeatConnections: 'Connections',
+        upFeatHostedRuns: 'Hosted runs',
+        upFeatComputers: 'Cloud computers',
+        upFeatAlwaysOn: 'Always-on computers',
+        upFeatTeamMembers: 'Team members',
+        upFeatTeamLessons: 'Shared lessons',
+        upFeatTeamSkills: 'Shared skills',
       },
     }
 
@@ -625,13 +741,6 @@ window.__ModuleLoader__.load({
 .kbf-plan{flex:none;max-width:58px;padding:2px 7px;border-radius:999px;background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14));color:var(--dsw-alias-label-secondary,#8a8a93);font-size:11px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kbf-dev{flex:none;margin-left:auto;display:flex;align-items:center;color:var(--dsw-alias-brand-primary,#4176e6)}
 .kbf-off{display:flex;flex-direction:column;gap:8px;width:100%;min-width:0}
-/* Déconnecté : boutons NATIFS du design system (kbm-btn), le principal
-   prend la largeur, l'engrenage des Réglages reste atteignable à droite. */
-.kbf-offbtns{display:flex;align-items:center;gap:6px;width:100%}
-.kbf-offbtns .kbm-btn-primary{flex:1 1 auto}
-.kbf-gear{flex:0 0 auto}
-[class*="collapsed"] .kbf-offbtns .kbm-btn span{display:none}
-[class*="collapsed"] .kbf-offbtns .kbm-btn{padding:0 10px}
 .kbf-hint{margin:0;font-size:11.5px;line-height:1.4;color:var(--dsw-alias-label-secondary,#8a8a93)}
 .kbf-maj{display:flex;align-items:center;gap:8px;width:100%;min-width:0;height:34px;padding:0 10px;border:1px solid color-mix(in srgb,#f5a524 40%,var(--dsw-alias-border-l2));border-radius:10px;background:color-mix(in srgb,#f5a524 9%,transparent);color:var(--dsw-alias-label-primary);font:inherit;font-size:12.5px;cursor:pointer;text-align:start}
 .kbf-maj:hover{background:color-mix(in srgb,#f5a524 16%,transparent)}
@@ -733,6 +842,51 @@ window.__ModuleLoader__.load({
    de barre de défilement : hauteur naturelle. */
 .kbfp-sub{position:fixed;width:248px;box-sizing:border-box;padding:8px;border-radius:16px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);box-shadow:var(--dsw-elevation-panel);color:var(--dsw-alias-label-primary);font-size:13px;animation:kbfp-menu-in .14s ease-out;z-index:63}
 .kbfp-menu-off{position:fixed;right:auto;bottom:auto;z-index:70}
+/* The row's chevron (the profile row and the signed-out button share it): it goes with the text in the collapsed rail. */
+.kbfp-chev{flex:none;display:flex;align-items:center;margin-inline-start:6px;color:var(--dsw-alias-label-tertiary)}
+.kbfp-cardmain:hover .kbfp-chev{color:var(--dsw-alias-label-secondary)}
+.kbfp-tight2 .kbfp-chev,[class*="collapsed"] .kbfp-chev{display:none}
+/* A line above the footer for what could not be done (a page that did not open): it goes by itself. */
+.kbfp-flash{box-sizing:border-box;width:100%;margin:0 0 6px;padding:8px 10px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font-size:12px;line-height:1.4}
+[class*="collapsed"] .kbfp-flash{display:none}
+/* The Upgrade dialog: DSH's tokens only, the same surfaces as the menus. */
+.kbup-scrim{position:fixed;inset:0;z-index:9998;background:var(--dsw-alias-bg-mask-1,rgba(0,0,0,.45));backdrop-filter:var(--dsw-mask-blur,none);display:flex;align-items:center;justify-content:center;padding:24px}
+.kbup{position:relative;box-sizing:border-box;width:100%;max-width:780px;max-height:min(88vh,760px);overflow:auto;padding:22px 24px 20px;border-radius:18px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);box-shadow:var(--dsw-elevation-prominent,0 18px 48px rgba(0,0,0,.35));font-size:13px;line-height:1.45;outline:none}
+.kbup-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px}
+.kbup-title{margin:0;font-size:18px;font-weight:650;letter-spacing:-.01em}
+.kbup-sub{margin:2px 0 0;color:var(--dsw-alias-label-secondary)}
+.kbup-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px}
+.kbup-seg{display:inline-flex;gap:2px;padding:2px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2)}
+.kbup-seg button{height:28px;padding:0 12px;border:none;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;cursor:pointer}
+.kbup-seg button.on{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary);font-weight:600}
+.kbup-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.kbup-plan{display:flex;flex-direction:column;gap:6px;padding:16px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1)}
+.kbup-plan.cur{border-color:var(--dsw-alias-label-primary)}
+.kbup-name{font-size:15px;font-weight:650}
+.kbup-price{font-size:24px;font-weight:650;letter-spacing:-.02em}
+.kbup-price small{font-size:12px;font-weight:400;letter-spacing:0;color:var(--dsw-alias-label-secondary)}
+.kbup-use{font-weight:600}
+.kbup-muted{color:var(--dsw-alias-label-secondary);font-size:12px}
+.kbup-feats{margin:6px 0 10px;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--dsw-alias-label-secondary)}
+.kbup-go{margin-top:auto;min-height:36px;padding:0 14px;border:none;border-radius:10px;background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground);font:inherit;font-weight:600;cursor:pointer}
+.kbup-go:hover:not(:disabled){background:var(--dsw-alias-button-primary-hover)}
+.kbup-go:disabled{opacity:.55;cursor:default}
+.kbup-go-ghost{margin-top:0;background:transparent;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2)}
+.kbup-go-ghost:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}
+.kbup-seats{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px}
+.kbup-stepper{display:inline-flex;align-items:center;gap:8px}
+.kbup-stepper button{width:28px;height:28px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;cursor:pointer}
+.kbup-stepper button:disabled{opacity:.4;cursor:default}
+.kbup-total{min-height:20px;margin:4px 0 8px}
+.kbup-topup{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:14px;padding:12px 14px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2)}
+.kbup-topup-txt{display:flex;flex-direction:column;flex:1 1 220px;min-width:0}
+.kbup-tax{margin:12px 0 0}
+.kbup-banner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:0 0 14px;padding:10px 12px;border-radius:12px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1)}
+.kbup-banner.err{border-color:var(--dsw-alias-state-error-primary)}
+.kbup-banner.ok{border-color:var(--dsw-alias-state-success-primary)}
+.kbup-actions{display:inline-flex;flex-wrap:wrap;align-items:center;gap:8px}
+.kbup-banner .kbup-go,.kbup-state .kbup-go{margin-top:0}
+.kbup-link{color:var(--dsw-alias-label-primary);text-decoration:underline}
 @keyframes kbfp-menu-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion: reduce){.kbfp-menu{animation:none}}
 .kbqn{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);z-index:90;max-width:min(620px,92vw);box-sizing:border-box;display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:var(--dsw-alias-bg-layer-2,#2a2a30);box-shadow:var(--dsw-elevation-panel,0 8px 28px rgba(0,0,0,.35));color:var(--dsw-alias-label-primary,#e9e9ee);font-size:13px;line-height:1.45}
@@ -1212,7 +1366,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
         }
         const localeSvc = ctx.get('locale')
 
-        const lang = () => {
+        // The active language as DSH names it (« en », « zh-CN », « ar »…), or null: the raw value `lang()` reduces to a base.
+        const langRaw = () => {
           // Active language: the mirror the Language runtime keeps of DSH's shell
           // locale (window.__KB_I18N_ACTIVE__), then the first-paint cache
           // (kybernos.theme.lang), then DSH's own locale service, then the French
@@ -1237,6 +1392,10 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               }
             } catch (e) { /* locale service in flux */ }
           }
+          return act
+        }
+        const lang = () => {
+          const act = langRaw()
           if (act === null || act === '' || act === 'kybernos') return 'fr'
           const base = String(act).split(/[-_]/)[0]
           if (base === 'en') return 'en'
@@ -2067,6 +2226,29 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             return m !== null && m !== undefined && typeof m === 'object' && typeof m.cible === 'string' && m.cible !== '' ? m : null
           } catch (e) { return null }
         }
+        // The product's public pages, from the menus (a tab of the system browser). The help is localised: its folder is the language DSH
+        // shows, among those the help is written in, else English.
+        const WEBSITE_URL = 'https://kybernos.app'
+        /** The phone link's status (GET kybernos-mobile/remote/status) as the menu needs it: `{ devices }` when the entry is offered, else null. A server that does not offer
+         *  the feature (`configured: false`), a plan that does not include it (`entitled: false`), a DSH that cannot (`available: false`) or no account: no entry. */
+        const remoteOffer = (j) => {
+          if (j === null || j === undefined || typeof j !== 'object' || j.ok !== true) return null
+          if (j.available === false || j.configured === false || j.entitled === false || j.connected === false) return null
+          return { devices: Array.isArray(j.devices) ? j.devices.length : 0 }
+        }
+        const HELP_LANGUAGES = ['en', 'fr', 'zh-cn', 'ar']
+        const helpUrl = () => {
+          let l = ''
+          try { l = String(langRaw() || '').toLowerCase().replace(/_/g, '-') } catch (e) { l = '' }
+          if (l === '' || l === 'kybernos') l = 'fr' // the product's source language
+          if (l === 'zh' || l === 'zh-hans' || l.indexOf('zh-hans-') === 0) l = 'zh-cn'
+          if (HELP_LANGUAGES.indexOf(l) < 0) {
+            const base = l.split('-')[0]
+            l = base !== 'zh' && HELP_LANGUAGES.indexOf(base) >= 0 ? base : 'en'
+          }
+          return 'https://help.kybernos.app/' + l + '/'
+        }
+        const openTab = (url) => { try { window.open(url, '_blank', 'noopener,noreferrer') } catch (e) { /* popup refused */ } }
         // DSH's own Settings dialog, opened from our menus. The seam is the core plugin's (`window.__kbOpenDshSettings`: the
         // launcher's own `openSettings`, read from React, with fallbacks). Clicking the sidebar's trigger is not enough any
         // more: the first button of that area is DSH's ACCOUNT launcher, whose click opens its account popover (Settings /
@@ -2175,15 +2357,285 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             style: { left: pos.left + 'px', bottom: pos.bottom + 'px', width: pos.width + 'px' },
           },
           h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-connect' },
-            entree('connect', h(EnterIcon, { size: 18 }), props.pairing === true ? t('footPairingAction') : t('footConnect'), props.onConnect)),
+            entree('connect', h(EnterIcon, { size: 18 }), props.pairing === true ? t('footPairingAction') : t('footConnect'), props.onConnect),
+            // The server's own sign-up page (the account app), in the system browser.
+            props.signupUrl !== undefined && props.signupUrl !== ''
+              ? entree('signup', h(UserIcon, { size: 18 }), t('menuSignup'), () => openTab(props.signupUrl.replace(/\/+$/, '') + '/account'), { ext: true })
+              : null),
           h('div', { className: 'kbfp-msep' }),
           h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-account' },
             h(AppearanceRow, null),
             entree('settings', h(GearIcon, { size: 18 }), t('menuSettingsApp'), ouvrirReglagesDsh)),
           h('div', { className: 'kbfp-msep' }),
           h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-links' },
-            entree('help', h(HelpIcon, { size: 18 }), t('menuHelp'), () => envoyer('help')),
+            entree('website', h(GlobeIcon, { size: 18 }), t('menuWebsite'), () => openTab(WEBSITE_URL), { ext: true }),
+            entree('help', h(HelpIcon, { size: 18 }), t('menuHelp'), () => openTab(helpUrl()), { ext: true }),
             entree('feedback', h(MsgMenuIcon, { size: 18 }), t('menuFeedback'), () => envoyer('feedback')))), document.body)
+        }
+        // ── The « Upgrade » dialog: the pricing table and « Subscribe » ──────────────────────────────────────────────────────────
+        // The catalogue and the quotes are the server's PUBLIC data, read through the host (`/plans`, `/plans/quote`). « Subscribe » asks the
+        // host for the payment page of the ACTIVE workspace (`/billing/checkout`) and the host opens it in the system browser: the device
+        // token never reaches this page. The server decides who may buy (owner or admin) and what is possible; its answer comes back as a
+        // status and a code, and every state below says what happened and what the person can do about it.
+        const UP_FEATURES = {
+          byok: 'upFeatByok', connections: 'upFeatConnections', hosted_runs: 'upFeatHostedRuns', computers: 'upFeatComputers',
+          'computers.always_on': 'upFeatAlwaysOn', 'team.members': 'upFeatTeamMembers', 'team.lessons': 'upFeatTeamLessons', 'team.skills': 'upFeatTeamSkills',
+        }
+        const UP_EURO_REGIONS = ['AT', 'BE', 'CY', 'DE', 'EE', 'ES', 'FI', 'FR', 'GR', 'HR', 'IE', 'IT', 'LT', 'LU', 'LV', 'MT', 'NL', 'PT', 'SI', 'SK']
+        const upLocale = () => { const l = lang(); return l === 'en' ? 'en-US' : l === 'fr' ? 'fr-FR' : l }
+        const upMoney = (amount, currency) => {
+          const n = Number(amount)
+          if (!Number.isFinite(n)) return String(amount)
+          try {
+            return new Intl.NumberFormat(upLocale(), { style: 'currency', currency: currency, minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 }).format(n)
+          } catch (e) { return n.toFixed(2) + ' ' + currency }
+        }
+        /** The currency to start on: the euro for a French-speaking or euro-zone person when it is sold, else the dollar, else the first. */
+        const upDefaultCurrency = (currencies) => {
+          if (currencies.length === 0) return null
+          let region = ''
+          try { const m = /[-_]([A-Za-z]{2})\b/.exec(String(navigator.language || '')); region = m !== null ? m[1].toUpperCase() : '' } catch (e) { region = '' }
+          if ((UP_EURO_REGIONS.indexOf(region) >= 0 || lang() === 'fr') && currencies.indexOf('EUR') >= 0) return 'EUR'
+          if (currencies.indexOf('USD') >= 0) return 'USD'
+          return currencies[0]
+        }
+        /** What a failed call says, and what can be done: `portal` offers the billing portal, `retry` a new attempt. */
+        const upProblem = (status, code) => {
+          if (code === 'billing_disabled' || status === 501) return { text: t('upErrDisabled'), portal: false, retry: false }
+          if (status === 403) return { text: t('upErrForbidden'), portal: false, retry: false }
+          if (status === 409) return { text: t('upErrConflict'), portal: true, retry: false }
+          if (status === 404) return { text: t('upErrNotFound'), portal: false, retry: false }
+          if (status === 429) return { text: t('upErrRate'), portal: false, retry: true }
+          if (status === 422) return { text: t('upErrInvalid'), portal: false, retry: true }
+          if (status === 0 || status === undefined || status === null) return { text: t('upErrDown'), portal: false, retry: true }
+          return { text: t('upErrRetry'), portal: false, retry: true }
+        }
+        const UpgradeDialog = (props) => {
+          const st = props.state !== undefined && props.state !== null ? props.state : {}
+          const spaces = Array.isArray(st.workspaces) ? st.workspaces : []
+          const activeId = typeof st.active_workspace_id === 'string' ? st.active_workspace_id : null
+          const ws = spaces.filter((w) => w !== null && w.id === activeId)[0] || spaces[0] || null
+          const wsId = ws !== null && typeof ws.id === 'string' ? ws.id : null
+          const wsName = ws !== null && ws.name ? nomAffiche(ws, t) : ''
+          // A team workspace buys seats; a personal one, a level. The account says which; unknown is personal.
+          const forTeam = ws !== null && ws.personal === false
+          const sp = st.space_plan !== undefined && st.space_plan !== null && typeof st.space_plan === 'object' ? st.space_plan : {}
+          const here = (c) => (typeof sp.key === 'string' && sp.key !== '' && sp.key === c.key) || (typeof sp.label === 'string' && sp.label !== '' && sp.label.toLowerCase() === String(c.name).toLowerCase())
+
+          const [cat, setCat] = React.useState({ phase: 'loading' })
+          const [currency, setCurrency] = React.useState(null)
+          const [billing, setBilling] = React.useState('year')
+          const [seats, setSeats] = React.useState(null)
+          const [packs, setPacks] = React.useState(1)
+          const [quote, setQuote] = React.useState({ phase: 'idle' })
+          const [action, setAction] = React.useState({ phase: 'idle' })
+          const rootRef = React.useRef(null)
+          const liveRef = React.useRef(true)
+          React.useEffect(() => () => { liveRef.current = false }, [])
+
+          const loadCatalogue = React.useCallback(() => {
+            setCat({ phase: 'loading' })
+            callLocal('/plans', 'GET').then((r) => {
+              if (liveRef.current !== true) return
+              if (r !== null && r !== undefined && r.ok === true && Array.isArray(r.plans)) {
+                setCat({ phase: 'ok', plans: r.plans.filter((p) => p !== null && typeof p === 'object' && Array.isArray(p.components)), tax: r.tax_basis })
+              } else setCat({ phase: 'error', status: r !== null && r !== undefined ? r.status : 0, code: r !== null && r !== undefined ? r.error : '' })
+            }).catch(() => { if (liveRef.current === true) setCat({ phase: 'error', status: 0, code: '' }) })
+          }, [])
+          React.useEffect(() => { loadCatalogue() }, [loadCatalogue])
+          React.useEffect(() => { try { if (rootRef.current !== null) rootRef.current.focus() } catch (e) { /* not focusable */ } }, [])
+          React.useEffect(() => {
+            const onKey = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); props.onClose() } }
+            window.addEventListener('keydown', onKey, true)
+            return () => window.removeEventListener('keydown', onKey, true)
+          }, [props.onClose])
+
+          const plans = cat.phase === 'ok' ? cat.plans : []
+          const ofKind = (k) => plans.filter((p) => p.kind === k)[0] || null
+          const main = forTeam ? ofKind('team') : ofKind('individual')
+          const topup = ofKind('topup')
+          const currencies = main !== null && Array.isArray(main.currencies) ? main.currencies.filter((c) => typeof c === 'string') : []
+          const cur = currency !== null && currencies.indexOf(currency) >= 0 ? currency : upDefaultCurrency(currencies)
+          const priceFor = (c, iv) => (Array.isArray(c.prices) ? c.prices : []).filter((p) => p !== null && p.currency === cur && (iv === null || p.interval === iv))[0] || null
+          const sold = main === null || cur === null ? [] : (Array.isArray(main.intervals) ? main.intervals : []).filter((iv) => main.components.some((c) => priceFor(c, iv) !== null))
+          const interval = sold.indexOf(billing) >= 0 ? billing : (sold[0] || null)
+          const seatMin = main !== null && Number.isInteger(main.min_seats) && main.min_seats > 0 ? main.min_seats : 1
+          const seatMax = main !== null && Number.isInteger(main.max_seats) && main.max_seats >= seatMin ? main.max_seats : 999
+          const seatCount = Math.min(seatMax, Math.max(seatMin, seats === null ? seatMin : seats))
+          const mainKey = main !== null ? main.key : ''
+
+          // The price of the seats, from the server (graduated by band: never computed here).
+          React.useEffect(() => {
+            if (forTeam !== true || mainKey === '' || cur === null || interval === null) { setQuote({ phase: 'idle' }); return undefined }
+            let on = true
+            setQuote({ phase: 'loading' })
+            const id = window.setTimeout(() => {
+              callLocal('/plans/quote?plan=' + encodeURIComponent(mainKey) + '&currency=' + encodeURIComponent(cur) + '&quantity=' + seatCount + '&interval=' + interval, 'GET')
+                .then((r) => { if (on === true) setQuote(r !== null && r !== undefined && r.ok === true && r.quote ? { phase: 'ok', q: r.quote } : { phase: 'error' }) })
+                .catch(() => { if (on === true) setQuote({ phase: 'error' }) })
+            }, 250)
+            return () => { on = false; window.clearTimeout(id) }
+          }, [forTeam, mainKey, cur, interval, seatCount])
+
+          const busy = action.phase === 'busy'
+          // No payment provider on this server: no button can work, and the dialog has already said so.
+          const noPayments = action.phase === 'error' && (action.code === 'billing_disabled' || action.status === 501)
+          const buy = (body, key) => {
+            if (busy === true || wsId === null || cur === null) return
+            setAction({ phase: 'busy', key: key })
+            callLocal('/billing/checkout', 'POST', Object.assign({ workspace_id: wsId, currency: cur, open: true }, body)).then((r) => {
+              if (liveRef.current !== true) return
+              if (r !== null && r !== undefined && r.ok === true) {
+                // A host that could not open a browser hands the address back; the person opens it from here.
+                setAction({ phase: 'opened', url: r.opened === true || typeof r.url !== 'string' ? '' : r.url })
+                return
+              }
+              setAction({ phase: 'error', key: key, status: r !== null && r !== undefined ? r.status : 0, code: r !== null && r !== undefined ? r.error : '', again: () => buy(body, key) })
+            }).catch(() => { if (liveRef.current === true) setAction({ phase: 'error', key: key, status: 0, code: '', again: () => buy(body, key) }) })
+          }
+          const openPortal = () => {
+            if (busy === true || wsId === null) return
+            setAction({ phase: 'busy', key: 'portal' })
+            callLocal('/billing/portal', 'POST', { workspace_id: wsId, open: true }).then((r) => {
+              if (liveRef.current !== true) return
+              if (r !== null && r !== undefined && r.ok === true) { setAction({ phase: 'opened', url: r.opened === true || typeof r.url !== 'string' ? '' : r.url }); return }
+              setAction({ phase: 'error', key: 'portal', status: r !== null && r !== undefined ? r.status : 0, code: r !== null && r !== undefined ? r.error : '', again: openPortal, fromPortal: true })
+            }).catch(() => { if (liveRef.current === true) setAction({ phase: 'error', key: 'portal', status: 0, code: '', again: openPortal, fromPortal: true }) })
+          }
+          // After paying in the browser: read the account again, and close.
+          const refresh = () => {
+            callLocal('/refresh', 'POST').catch(() => null).then(() => { try { props.onChanged() } catch (e) { /* gone */ } props.onClose() })
+          }
+
+          const feats = (c) => (Array.isArray(c.features) ? c.features : []).filter((k) => typeof k === 'string').slice(0, 8)
+          const usageOf = (c) => {
+            const d = c.display !== undefined && c.display !== null ? c.display : (main !== null && main.display !== undefined ? main.display : null)
+            return d !== null && typeof d.usage_multiple === 'number' && d.usage_multiple > 0 ? d.usage_multiple : null
+          }
+          const creditsOf = (c) => {
+            const a = (Array.isArray(c.allowances) ? c.allowances : []).filter((x) => x !== null && typeof x.member_credits === 'number')
+            const month = a.filter((x) => x.window_seconds === 2592000)[0] || a[a.length - 1]
+            return month !== undefined ? month.member_credits : null
+          }
+          const perMonth = (c) => { const p = priceFor(c, interval); return p === null ? null : p }
+          const buyButton = (label, body, key, disabled) => h('button', {
+            type: 'button', className: 'kbup-go', 'data-kb': 'upgrade-subscribe-' + key, disabled: busy === true || noPayments === true || disabled === true || cur === null || (interval === null && key !== 'topup'),
+            onClick: () => buy(body, key),
+          }, busy === true && action.key === key ? t('loading') : label)
+          const featureList = (c) => h('ul', { className: 'kbup-feats' }, feats(c).map((k) => h('li', { key: k }, '✓ ', UP_FEATURES[k] !== undefined ? t(UP_FEATURES[k]) : k.replace(/[._]/g, ' '))))
+
+          const levelCard = (c) => {
+            const p = perMonth(c)
+            const mult = usageOf(c)
+            const credits = creditsOf(c)
+            const current = here(c)
+            return h('div', { key: c.key, className: 'kbup-plan' + (current ? ' cur' : ''), 'data-kb': 'upgrade-plan-' + c.key },
+              h('div', { className: 'kbup-name' }, c.name),
+              h('div', { className: 'kbup-price' }, p !== null ? upMoney(p.amount, cur) : '—', h('small', null, ' ' + t('upPerMonth'))),
+              h('div', { className: 'kbup-muted' }, interval === 'year' ? t('upBilledYearly') + (p !== null ? ' · ' + upMoney(Number(p.amount) * 12, cur) + ' ' + t('upPerYear') : '') : t('upBilledMonthly')),
+              mult !== null ? h('div', { className: 'kbup-use' }, t('upUsage') + ' ×' + mult) : null,
+              credits !== null ? h('div', { className: 'kbup-muted' }, credits.toLocaleString(upLocale()) + ' ' + t('upCredits')) : null,
+              featureList(c),
+              current
+                ? h('button', { type: 'button', className: 'kbup-go', disabled: true }, t('upCurrent'))
+                : buyButton(t('upSubscribe'), { plan: main.key, component: c.key, quantity: 1, interval: interval }, c.key, p === null))
+          }
+          const teamCard = () => {
+            const band = main.components[0]
+            const unit = band !== undefined ? priceFor(band, interval) : null
+            const mult = band !== undefined ? usageOf(band) : null
+            const total = quote.phase === 'ok' ? quote.q : null
+            const payNote = interval === 'year' ? t('upPerYear') : t('upPerMonthTotal')
+            return h('div', { key: 'team', className: 'kbup-plan kbup-team', 'data-kb': 'upgrade-plan-team' },
+              h('div', { className: 'kbup-name' }, main.name),
+              h('div', { className: 'kbup-price' }, unit !== null ? upMoney(unit.amount, cur) : '—', h('small', null, ' ' + t('upPerSeatMonth'))),
+              h('div', { className: 'kbup-muted' }, interval === 'year' ? t('upBilledYearly') : t('upBilledMonthly')),
+              mult !== null ? h('div', { className: 'kbup-use' }, t('upUsage') + ' ×' + mult) : null,
+              band !== undefined ? featureList(band) : null,
+              h('div', { className: 'kbup-seats' },
+                h('span', null, t('upSeats')),
+                h('span', { className: 'kbup-stepper' },
+                  h('button', { type: 'button', 'aria-label': t('upSeatsLess'), 'data-kb': 'upgrade-seats-less', disabled: seatCount <= seatMin, onClick: () => setSeats(seatCount - 1) }, '−'),
+                  h('b', { 'data-kb': 'upgrade-seats' }, String(seatCount)),
+                  h('button', { type: 'button', 'aria-label': t('upSeatsMore'), 'data-kb': 'upgrade-seats-more', disabled: seatCount >= seatMax, onClick: () => setSeats(seatCount + 1) }, '+'))),
+              h('div', { className: 'kbup-total', 'data-kb': 'upgrade-total' },
+                quote.phase === 'ok' && total !== null ? h('span', null, t('upTotal') + ' ', h('b', null, upMoney(total.total, cur)), ' ' + payNote)
+                  : quote.phase === 'error' ? h('span', { className: 'kbup-muted' }, t('upQuoteFail'))
+                    : h('span', { className: 'kbup-muted' }, t('upCalculating'))),
+              buyButton(t('upSubscribe'), { plan: main.key, quantity: seatCount, interval: interval }, 'team', quote.phase !== 'ok'))
+          }
+          const topupCard = () => {
+            if (topup === null || topup.pack === undefined || topup.pack === null) return null
+            const c = topup.components[0]
+            const price = c !== undefined ? priceFor(c, null) : null
+            if (price === null) return null
+            const maxQ = Number.isInteger(topup.pack.max_qty) && topup.pack.max_qty > 0 ? topup.pack.max_qty : 10
+            const n = Math.min(maxQ, Math.max(1, packs))
+            return h('div', { className: 'kbup-topup', 'data-kb': 'upgrade-topup' },
+              h('div', { className: 'kbup-topup-txt' },
+                h('b', null, t('upTopup')),
+                h('span', { className: 'kbup-muted' }, Number(topup.pack.grant_credits).toLocaleString(upLocale()) + ' ' + t('upCreditsUnit') + ' · ' + upMoney(price.amount, cur)
+                  + (Number.isInteger(topup.pack.expires_months) ? ' · ' + t('upTopupSub') + ' ' + topup.pack.expires_months + ' ' + t('upMonths') : ''))),
+              h('span', { className: 'kbup-stepper' },
+                h('button', { type: 'button', 'aria-label': t('upSeatsLess'), disabled: n <= 1, onClick: () => setPacks(n - 1) }, '−'),
+                h('b', null, String(n)),
+                h('button', { type: 'button', 'aria-label': t('upSeatsMore'), disabled: n >= maxQ, onClick: () => setPacks(n + 1) }, '+')),
+              h('button', { type: 'button', className: 'kbup-go kbup-go-ghost', 'data-kb': 'upgrade-subscribe-topup', disabled: busy === true || noPayments === true || cur === null, onClick: () => buy({ plan: topup.key, quantity: n, interval: undefined }, 'topup') },
+                busy === true && action.key === 'topup' ? t('loading') : t('upBuyCredits')))
+          }
+
+          let body = null
+          if (cat.phase === 'loading') body = h('p', { className: 'kbup-muted', 'data-kb': 'upgrade-loading' }, t('upLoading'))
+          else if (cat.phase === 'error') {
+            body = h('div', { className: 'kbup-state', 'data-kb': 'upgrade-load-error', 'data-status': String(cat.status) },
+              h('p', null, t('upErrLoad')),
+              h('div', { className: 'kbup-actions' }, h('button', { type: 'button', className: 'kbup-go', onClick: loadCatalogue }, t('upRetry'))))
+          } else if (main === null) {
+            body = h('p', { className: 'kbup-muted', 'data-kb': 'upgrade-none' }, t('upErrNotFound'))
+          } else {
+            const tax = cat.tax === 'exclusive' ? t('upTaxExcl') : cat.tax === 'inclusive' ? t('upTaxIncl') : ''
+            const premium = typeof main.monthly_premium_pct === 'number' && main.monthly_premium_pct > 0 ? Math.round(main.monthly_premium_pct) : null
+            body = h(React.Fragment, null,
+              h('div', { className: 'kbup-bar' },
+                sold.length > 1
+                  ? h('span', { className: 'kbup-seg', role: 'group', 'data-kb': 'upgrade-interval' },
+                    sold.map((iv) => h('button', { key: iv, type: 'button', className: iv === interval ? 'on' : '', 'aria-pressed': iv === interval ? 'true' : 'false', onClick: () => setBilling(iv) },
+                      iv === 'year' ? t('upYearly') : t('upMonthly') + (premium !== null ? ' +' + premium + '%' : ''))))
+                  : null,
+                currencies.length > 1
+                  ? h('span', { className: 'kbup-seg', role: 'group', 'aria-label': t('upCurrency'), 'data-kb': 'upgrade-currency' },
+                    currencies.map((c) => h('button', { key: c, type: 'button', className: c === cur ? 'on' : '', 'aria-pressed': c === cur ? 'true' : 'false', onClick: () => setCurrency(c) }, c)))
+                  : null),
+              h('div', { className: 'kbup-grid' }, forTeam ? teamCard() : main.components.map(levelCard)),
+              topupCard(),
+              tax !== '' ? h('p', { className: 'kbup-muted kbup-tax' }, tax) : null)
+          }
+
+          let banner = null
+          if (action.phase === 'opened') {
+            banner = h('div', { className: 'kbup-banner ok', role: 'status', 'data-kb': 'upgrade-opened' },
+              h('span', null, t('upOpened')),
+              h('span', { className: 'kbup-actions' },
+                action.url !== '' ? h('a', { className: 'kbup-link', href: action.url, target: '_blank', rel: 'noopener noreferrer' }, t('upOpenFallback')) : null,
+                h('button', { type: 'button', className: 'kbup-go', 'data-kb': 'upgrade-refresh', onClick: refresh }, t('upOpenedRefresh'))))
+          } else if (action.phase === 'error') {
+            const pr = upProblem(action.status, action.code)
+            banner = h('div', { className: 'kbup-banner err', role: 'alert', 'data-kb': 'upgrade-error', 'data-status': String(action.status), 'data-code': String(action.code || '') },
+              h('span', null, pr.text),
+              h('span', { className: 'kbup-actions' },
+                pr.portal === true && action.fromPortal !== true ? h('button', { type: 'button', className: 'kbup-go', 'data-kb': 'upgrade-portal', onClick: openPortal }, t('upPortal')) : null,
+                pr.retry === true && typeof action.again === 'function' ? h('button', { type: 'button', className: 'kbup-go', 'data-kb': 'upgrade-retry', onClick: action.again }, t('upRetry')) : null))
+          }
+
+          return h('div', { className: 'kbup-scrim', 'data-kb': 'upgrade-dialog', onClick: (e) => { if (e.target === e.currentTarget) props.onClose() } },
+            h('div', { className: 'kbup', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('upTitle'), tabIndex: -1, ref: rootRef },
+              h('div', { className: 'kbup-head' },
+                h('div', null,
+                  h('h2', { className: 'kbup-title' }, t('upTitle')),
+                  wsName !== '' ? h('p', { className: 'kbup-sub' }, t('upFor') + ' ' + wsName) : null),
+                h('button', { type: 'button', className: 'kbc-x', 'aria-label': t('close'), 'data-kb': 'upgrade-close', onClick: props.onClose }, '✕')),
+              banner,
+              body))
         }
         const UserMenu = (props) => {
           React.useEffect(() => {
@@ -2219,8 +2671,6 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           const nomEspace = courant !== null && courant.name ? nomAffiche(courant, t) : t('spaceTitle')
           const planInfo = planDeEspace(st, user)
           const plan = planInfo.label !== null ? planInfo.label : t('none')
-          // The host reports the active server's web address in every connected state; with none, nothing is opened (never a literal host).
-          const web = typeof st.web_url === 'string' && st.web_url !== '' ? st.web_url : ''
 
           const switchPair = React.useState(false)
           const switchOpen = switchPair[0]
@@ -2257,8 +2707,6 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           // The Appearance segment is not an entry: it leaves the menu open.
           const entree = entreeMenu(props.onClose)
 
-          const ouvrirWeb = () => { if (web === '') return; try { window.open(web, '_blank', 'noopener') } catch (e) { /* ouverture impossible */ } }
-
           // Blocks separated by a rule: Teams (space, plan, team settings) ·
           // Account · Links, then Log out. An available update goes first.
           // "Security" is no longer in the menu (04/10); the plan moves up under
@@ -2284,21 +2732,25 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                 h('div', { className: 'kbfp-mplanline' },
                   h('span', { className: 'kbfp-mplanname' }, plan),
                   // « Upgrade » only where there is something to upgrade from: a paying person, or a Team, is not offered it.
-                  planInfo.free === true ? h('button', { type: 'button', className: 'kbfp-mcta', 'data-kb': 'menu-plan-cta', onClick: ouvrirWeb }, t('menuPlanCta')) : null)),
+                  planInfo.free === true ? h('button', { type: 'button', className: 'kbfp-mcta', 'data-kb': 'menu-plan-cta', onClick: () => { try { props.onClose() } catch (e) { /* closed */ } props.onUpgrade() } }, t('menuPlanCta')) : null)),
               // "Teams settings" = the former "Workspace settings" (same action).
               entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace)),
             h('div', { className: 'kbfp-msep' }),
             h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-account' },
-              entree('account', h(UserIcon, { size: 18 }), t('profCompte'), props.onAccount),
-              // Referral: opens the matching Settings section.
-              entree('referral', h(GiftMenuIcon, { size: 18 }), t('profParrain'), () => { if (typeof props.onSection === 'function') props.onSection(t('profParrain')) }, { amber: true }),
+              // Account and Referral: the server's account page (its overview holds the referral card), in the system browser.
+              entree('account', h(UserIcon, { size: 18 }), t('profCompte'), props.onAccount, { ext: true }),
+              entree('referral', h(GiftMenuIcon, { size: 18 }), t('profParrain'), props.onReferral, { amber: true, ext: true }),
+              // The phone link (kybernos-mobile): present only when the server offers it and the plan includes it, with the phones already linked.
+              props.remote !== null && props.remote !== undefined
+                ? entree('remote', h(PhoneIcon, { size: 18 }), t('menuRemote'), props.onRemote, props.remote.devices > 0 ? { tail: String(props.remote.devices) } : undefined)
+                : null,
               h(AppearanceRow, null),
               // DSH's own Settings (the app's): through the core plugin's seam, never through the native account popover.
               entree('settings', h(GearIcon, { size: 18 }), t('menuSettingsApp'), ouvrirReglagesDsh)),
             h('div', { className: 'kbfp-msep' }),
             h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-links' },
-              entree('website', h(GlobeIcon, { size: 18 }), t('menuWebsite'), ouvrirWeb, { ext: true }),
-              entree('help', h(HelpIcon, { size: 18 }), t('menuHelp'), () => envoyer('help')),
+              entree('website', h(GlobeIcon, { size: 18 }), t('menuWebsite'), () => openTab(WEBSITE_URL), { ext: true }),
+              entree('help', h(HelpIcon, { size: 18 }), t('menuHelp'), () => openTab(helpUrl()), { ext: true }),
               entree('feedback', h(MsgMenuIcon, { size: 18 }), t('menuFeedback'), () => envoyer('feedback'))),
             h('div', { className: 'kbfp-msep' }),
             h('div', { className: 'kbfp-mitems' },
@@ -2394,9 +2846,51 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           }, [])
           const offRowRef = React.useRef(null)
           const gearRef = React.useRef(null)
+          const [upgradeOpen, setUpgradeOpen] = React.useState(false)
+          // A one-line notice above the footer (a page that could not be opened): it goes by itself.
+          const [flash, setFlash] = React.useState('')
+          React.useEffect(() => {
+            if (flash === '') return undefined
+            const id = window.setTimeout(() => setFlash(''), 7000)
+            return () => window.clearTimeout(id)
+          }, [flash])
+          // The account page of the SERVER, in the system browser: signed in through the single-use console link the host asks for.
+          const openAccountPage = (section, workspaceId) => {
+            callLocal('/console/link', 'POST', Object.assign({ section: section, open: true }, typeof workspaceId === 'string' ? { workspace_id: workspaceId } : {})).then((r) => {
+              if (r !== null && r !== undefined && r.ok === true) {
+                // A host that could not open a browser hands the address back.
+                if (r.opened !== true && typeof r.url === 'string') { try { window.open(r.url, '_blank', 'noopener,noreferrer') } catch (e) { /* popup refused */ } }
+                return
+              }
+              setFlash(r !== null && r !== undefined && r.error === 'email_not_verified' ? t('accountNeedsVerify') : t('accountOpenFail'))
+            }).catch(() => setFlash(t('accountOpenFail')))
+          }
+          // The server this DSH talks to, signed out too: « Create an account » opens ITS sign-up page.
+          const [serverInfo, setServerInfo] = React.useState(null)
+          React.useEffect(() => {
+            let on = true
+            callLocal('/server', 'GET').then((r) => { if (on === true && r !== null && r !== undefined && r.ok === true && r.server !== null && typeof r.server === 'object') setServerInfo(r.server) }).catch(() => null)
+            return () => { on = false }
+          }, [])
           const [autoStart, setAutoStart] = React.useState(false)
           const [phase, setPhase] = React.useState('loading')
           const [state, setState] = React.useState({})
+          // What the phone link says about itself (kybernos-mobile's host route, the same one its panel reads): the menu offers « Remote control »
+          // only when the feature is there for this person. Unknown (not read yet, route absent, a refusal) is « not offered », never a dead entry.
+          const [remote, setRemote] = React.useState(null)
+          React.useEffect(() => {
+            if (phase !== 'connected') { setRemote(null); return undefined }
+            let on = true
+            const url = (() => { try { return new URL('kybernos-mobile/remote/status', document.baseURI).pathname } catch (e) { return '/kybernos-mobile/remote/status' } })()
+            const read = () => {
+              fetch(url, { credentials: 'same-origin', cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (on === true) setRemote(remoteOffer(j)) }).catch(() => { if (on === true) setRemote(null) })
+            }
+            read()
+            const seen = () => { if (document.visibilityState === 'visible') read() }
+            const timer = window.setInterval(read, 60000)
+            document.addEventListener('visibilitychange', seen)
+            return () => { on = false; window.clearInterval(timer); document.removeEventListener('visibilitychange', seen) }
+          }, [phase])
           const liveRef = React.useRef(true)
 
           React.useEffect(() => () => { liveRef.current = false }, [])
@@ -2554,12 +3048,20 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             // la cellule (re-cliquer le déclencheur les refermerait).
             // Cellule introuvable après ~2 s : les Réglages restent sur leur
             // section par défaut, jamais d'erreur bloquante.
-            const ouvrirReglagesCompte = (libelleCible) => {
+            // The section is named by its label AND, when known, by its id (the React key of its cell: the same in every language).
+            const ouvrirReglagesCompte = (libelleCible, cleCible) => {
               const libelle = typeof libelleCible === 'string' && libelleCible !== '' ? libelleCible : t('profCompte')
+              const cleDe = (el) => {
+                try {
+                  const nom = Object.keys(el).find((x) => x.indexOf('__reactFiber$') === 0)
+                  const k = nom === undefined ? null : el[nom].key
+                  return typeof k === 'string' ? k : null
+                } catch (e) { return null }
+              }
               const cliquerCellule = () => {
                 try {
                   const cellules = Array.from(document.querySelectorAll('button[class*="navCell"]'))
-                  const cible = cellules.find((b) => String((b.textContent || '').trim()) === libelle)
+                  const cible = cellules.find((b) => (typeof cleCible === 'string' && cleDe(b) === cleCible) || String((b.textContent || '').trim()) === libelle)
                   if (cible !== undefined && cible !== null) { cible.click(); return true }
                 } catch (e) { /* nav pas encore rendu */ }
                 return false
@@ -2577,13 +3079,12 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               }
               window.setTimeout(tique, 80)
             }
-            const clicProfil = () => {
+            // Account and Referral are pages of the SERVER's account app (the overview holds the referral card): opened in the system
+            // browser, already signed in, through the console link. `section` lands on `#overview` where the server knows it; one that
+            // does not lands on its plan page, which is still its account page.
+            const ouvrirCompteNavigateur = () => {
               setMenuOpen(false)
-              ouvrirReglagesCompte()
-            }
-            const clicSection = (libelle) => {
-              setMenuOpen(false)
-              ouvrirReglagesCompte(libelle)
+              openAccountPage('overview', actif)
             }
             const seDeconnecter = async () => {
               setMenuOpen(false)
@@ -2609,15 +3110,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                   ? h('span', { className: 'kbfp-use', 'data-kb': 'workspace-card-usage', 'data-level': meter.level, 'data-percent': String(meter.percent), title: meter.title },
                     h('span', { className: 'kbfp-usebar', 'aria-hidden': 'true' }, h('span', { className: 'kbfp-usefill', style: { width: meter.percent + '%' } })),
                     h('span', { className: 'kbfp-usepct' }, meter.percent + '%'))
-                  : null)),
-              h('button', {
-                type: 'button', className: 'kbfp-ico',
-                // Tooltip carries the full explanation (web app, direct link to
-                // this machine, Mac must be on and online) — asked 13/10.
-                title: t('mobTitle') + ' — ' + t('mobHelp'), 'aria-label': t('mobTitle') + ' — ' + t('mobHelp'),
-                'aria-expanded': mobileOpen === true ? 'true' : 'false',
-                onClick: () => setMobileOpen(mobileOpen !== true),
-              }, h(PhoneIcon, { size: 19 })),
+                  : null),
+              h('span', { className: 'kbfp-chev', 'aria-hidden': 'true' }, h(SwapIcon, { size: 18 }))),
               h('span', { className: 'kbfp-bellwrap' },
                 h('button', {
                   type: 'button', className: 'kbfp-ico',
@@ -2639,8 +3133,11 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                     setMenuOpen(false)
                     setNewOpen(true)
                   },
-                  onAccount: clicProfil,
-                  onSection: clicSection,
+                  onAccount: ouvrirCompteNavigateur,
+                  onReferral: ouvrirCompteNavigateur,
+                  remote: remote,
+                  onRemote: () => { setMenuOpen(false); setNotifOpen(false); setMobileOpen(true) },
+                  onUpgrade: () => { setMenuOpen(false); setUpgradeOpen(true) },
                   onSpace: ouvrirPageEspace,
                   onLogout: () => { void seDeconnecter() },
                 })
@@ -2649,31 +3146,35 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               ? h(MobilePanel, {
                 onClose: () => setMobileOpen(false),
                 web: typeof state.web_url === 'string' ? state.web_url : '',
-                onManage: () => { setMobileOpen(false); ouvrirReglagesCompte('Mobile') },
+                onManage: () => { setMobileOpen(false); ouvrirReglagesCompte('Remote Control', 'kybernos-mobile') },
               })
               : null)
           } else {
-            // Signed out, or a pairing waiting for its confirmation: the same row; the gear opens OUR menu (connect, appearance, DSH's
-            // Settings, links) — never DSH's account popover, whose « Sign in » is not our device-code flow.
+            // Signed out, or a pairing waiting for its confirmation: ONE button, in the place and at the size of the profile row, with
+            // the same chevron. It opens OUR menu (sign in = the device-code card, create an account, appearance, DSH's Settings,
+            // links) — never DSH's account popover, whose « Sign in » is not our flow.
             const pairing = phase === 'pairing'
-            const hint = pairing ? t('footPairing') : (phase === 'loading' ? t('loading') : t('footHint'))
             corps = h('div', { className: 'kbf-off' },
               ligneMaj,
-              h('p', { className: 'kbm-setform-unavailable', style: { margin: '0' } }, hint),
-              h('div', { className: 'kbf-offbtns', ref: offRowRef },
-                h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', onClick: pairing ? openCard : openAndConnect },
-                  h(EnterIcon, { size: 15 }), h('span', null, pairing ? t('footPairingAction') : t('footConnect'))),
-                h('button', {
-                  type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline kbf-gear', ref: gearRef, 'data-kb': 'foot-gear',
-                  title: t('menuSettingsApp'), 'aria-label': t('menuSettingsApp'), 'aria-haspopup': 'menu',
-                  'aria-expanded': menuOpen === true ? 'true' : 'false',
-                  onClick: () => setMenuOpen(menuOpen !== true),
-                }, h(GearIcon, { size: 16 }))),
+              h('div', { className: 'kbfp-cardwrap ' + (etroit === true ? 'kbfp-tight2' : ''), 'data-kb': 'signin-card', ref: offRowRef },
+                h('div', { className: 'kbfp-card' },
+                  h('button', {
+                    type: 'button', className: 'kbfp-cardmain', ref: gearRef, 'data-kb': 'foot-signin',
+                    title: pairing ? t('footPairing') : t('footHint'), 'aria-label': pairing ? t('pairingTitle') : t('footSignInUp'),
+                    'aria-haspopup': 'menu', 'aria-expanded': menuOpen === true ? 'true' : 'false',
+                    onClick: () => setMenuOpen(menuOpen !== true),
+                  },
+                  h('span', { className: 'kbfp-tile', 'aria-hidden': 'true' }, h(UserIcon, { size: 18 })),
+                  h('span', { className: 'kbfp-cardtxt' },
+                    h('span', { className: 'kbfp-cardname' }, pairing ? t('pairingTitle') : t('footSignInUp')),
+                    h('span', { className: 'kbfp-cardsub' }, pairing ? t('footPairingAction') : (phase === 'loading' ? t('loading') : t('footSyncSub')))),
+                  h('span', { className: 'kbfp-chev', 'aria-hidden': 'true' }, h(SwapIcon, { size: 18 }))))),
               menuOpen === true
                 ? h(OffMenu, {
                   pairing: pairing,
                   anchorRef: offRowRef,
                   toggleRef: gearRef,
+                  signupUrl: (serverInfo !== null && typeof serverInfo.web === 'string' && serverInfo.web !== '' ? serverInfo.web : (serverInfo !== null && typeof serverInfo.api === 'string' ? serverInfo.api : '')),
                   onClose: () => setMenuOpen(false),
                   onConnect: pairing ? openCard : openAndConnect,
                 })
@@ -2681,7 +3182,11 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           }
 
           return h('div', { className: 'kbf-root', ref: racineRef },
+            flash !== '' ? h('div', { className: 'kbfp-flash', role: 'status', 'data-kb': 'foot-flash' }, flash) : null,
             corps,
+            upgradeOpen === true
+              ? h(UpgradeDialog, { state: state, onClose: () => setUpgradeOpen(false), onChanged: () => { void load() } })
+              : null,
             newOpen === true
               ? h(NewSpacePanel, {
                 onClose: () => setNewOpen(false),
