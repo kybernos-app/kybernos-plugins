@@ -1,1 +1,8 @@
-{ "keys": [] }
+{
+  "keys": [
+    {
+      "keyId": "6784b472f886",
+      "pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEARdOO9wtnO8zFGKhqTu8JbAsbf+9l8Nbti8deAM4RO7Q=\n-----END PUBLIC KEY-----\n"
+    }
+  ]
+}
