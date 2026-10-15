@@ -9,6 +9,11 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
 
 - The **Skills** tab of the Kybernos *Resources* page. The bundle fills the slot `main.kybernos-skills`, which
   `@local/kybernos` (core) declares and mounts; with this bundle off, the core falls back to its own skills page.
+- **Featured** (the landing tab): the 24 picks Kybernos proposes, as cards with a cover, the title, a one-line outcome, the creator and the
+  install count on the right of the title, the security verdict of the five skills.sh providers, and what the skill needs (a key, a
+  sign-in). *Install* and *Details* appear on hover and on focus (always on touch); *Install* opens the usual confirmation and the page
+  stays on Featured; *Use* copies `/name`. Categories, search and order come from the shared bar; « Cover background » is Tint or Plain.
+  The data is `featured-picks.json` (below); with a host that does not have the route the tab is hidden and Yours is the landing tab.
 - **Yours**: skills of this profile, with search, state / source filters, sorting, an active toggle on each card (read-only rows
   when the folder is not writable) and a Featured row kept by a star. A click on a card opens a **panel on the right** (the list
   stays): the skill's real `SKILL.md` as it is on disk, its folder (copyable), and the actions the host says it can do for that
@@ -50,6 +55,7 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 | `POST skill/reveal {root,name,target}` | `target` `folder` or `file`: opens it on this machine (`open`, `open -t`, `xdg-open`, `explorer`; one argument, no shell); refused from another address |
 | `POST skill/duplicate {root,name}` | copies a listed skill (a read-only one too) into `<DSH home>/skills/<name>-copy[-n]`, renames `name:` in the frontmatter, leaves links, `.git`, `node_modules` and the Team mark behind |
 | `POST skill/delete {root,name}` | removes the folder of a skill whose real path is inside a writable root; refuses a link, a root, a folder with no `SKILL.md` |
+| `GET picks` | the picks Kybernos proposes (`featured-picks.json`, checked by `featured-picks.mjs`), each with a cover URL only when its file exists |
 | `GET featured` · `POST featured/toggle` · `GET cover/<name>` | Featured list and cover images |
 | `GET index-source` · `POST index-source/set {url}` | which relay the Discover index is read from (`origin`: `default`, `setting` or `env`; `editable: false` while the variable decides), and the setting that names another one (an empty `url` puts the default back) |
 | `POST team/pack {root,name}` | reads a skill of a writable root into a Team proposal: text files only, no hidden file or symlink, secret scan, the SHA-256 version |
@@ -62,7 +68,12 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 - `~/.dsh/kybernos-skills.json`: journal of the last 50 toggles (0600); not a source of truth (active = `SKILL.md` present).
 - `<skill folder>/.kybernos-team.json`: written by a Team install (the approved version and the team skill id, hidden, never part of what a proposal sends); it lets the catalogue say `teamVersion` and `teamModified` and lets Update replace a folder nobody edited.
 - `~/.dsh/kybernos/skills-index.json` (0600): the relay the user named on the Discover tab (`{version, url, updatedAt}`); absent = the Kybernos relay.
-- `~/.dsh/kybernos/skills-featured.json` (0600) and `~/.dsh/kybernos/skills-featured/<name>.{png,webp,jpg,jpeg,svg}` (covers).
+- `~/.dsh/kybernos/skills-featured.json` (0600) and `~/.dsh/kybernos/skills-featured/<name>.{png,webp,jpg,jpeg,svg}` (covers). The covers
+  of the picks live there too, one transparent WebP per pick (`<id>.webp`, about 130 KB). They are **not in the repository** (AGENTS rule 4):
+  a pick without its file draws a tile. How they reach other machines (served by the relay) is not built yet.
+- `featured-picks.json` (shipped with the package): the 24 picks — id, source repository, category, title / outcome / example in English
+  and French, `needs`, install count and audit verdicts read from skills.sh on `asOf`. A pick is only listed if no provider's audit is in
+  failure and if the host's own install route installs it (`test-picks.mjs` guards the first; the second was checked by installing all 24).
 - Reads the first event of `<DSH_HOME or ~/.dsh>/sessions/<project>/<session>/session.v3.jsonl.zstd` to learn an idle session's
   folder (so its project skills show). Temp dir `kybernos-skill-*` during install. Env: `DSH_HOME`, and optionally `KYBERNOS_SKILLS_INDEX_URL` (below).
 
@@ -89,6 +100,9 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
   key read from `~/.dsh/kybernos-models/providers.json`.
 
 ## Tests
+
+`node packages/kybernos-skills/test-picks.mjs` covers the Featured picks: the reader (what it keeps and drops), the shipped file (24 valid picks,
+both languages, no audit in failure), the `picks` route with its cover URLs, and the card on the screen (source level).
 
 `node packages/kybernos-skills/test-origin.mjs` covers the POST same-origin guard, unit by unit and through the eleven POST routes
 mounted on a fake context. `test-skill-routes.mjs` covers the panel's host half on a throw-away home (read, open, duplicate, delete,

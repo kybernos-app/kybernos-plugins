@@ -207,6 +207,41 @@ window.__ModuleLoader__.load({
         'mod.unknown': { fr: 'date inconnue', en: 'unknown date' },
         'card.copyTitle': { fr: 'Copier l\'invocation à coller dans le composeur', en: 'Copy the invocation to paste in the composer' },
         'cover.alt': { fr: 'Illustration de {name}', en: 'Illustration for {name}' },
+        // Featured tab: the picks Kybernos proposes
+        'cap.featured': { fr: 'Les choix de Kybernos : chacun s’installe en un clic et montre ce que disent ses audits de sécurité.', en: 'Picked by Kybernos: each one installs in one click and shows what its security audits said.' },
+        'ph.featured': { fr: 'Chercher un skill, une tâche, un auteur…', en: 'Search a skill, a task, an author…' },
+        'pick.all': { fr: 'Tous', en: 'All' },
+        'sort.editorial': { fr: 'Ordre éditorial', en: 'Editorial order' },
+        'pcat.Documents': { fr: 'Documents', en: 'Documents' },
+        'pcat.Data': { fr: 'Données', en: 'Data' },
+        'pcat.Design': { fr: 'Design', en: 'Design' },
+        'pcat.Media': { fr: 'Médias', en: 'Media' },
+        'pcat.Research': { fr: 'Recherche', en: 'Research' },
+        'pcat.Marketing': { fr: 'Marketing', en: 'Marketing' },
+        'pcat.Automation': { fr: 'Automatisation', en: 'Automation' },
+        'pcat.Build': { fr: 'Construire', en: 'Build' },
+        'pick.audited': { fr: 'Audité · {n}', en: 'Audited · {n}' },
+        'pick.warn1': { fr: '1 alerte', en: '1 warning' },
+        'pick.warnN': { fr: '{n} alertes', en: '{n} warnings' },
+        'pick.auditTip': { fr: 'Verdicts des audits skills.sh', en: 'skills.sh audit verdicts' },
+        'need.firecrawl': { fr: 'Demande une clé Firecrawl', en: 'Needs a Firecrawl key' },
+        'need.tavily': { fr: 'Demande un compte Tavily', en: 'Needs a Tavily account' },
+        'need.google': { fr: 'Demande une connexion Google', en: 'Needs a Google sign-in' },
+        'pick.installed': { fr: 'Installé', en: 'Installed' },
+        'pick.use': { fr: 'Utiliser', en: 'Use' },
+        'pick.details': { fr: 'Détails', en: 'Details' },
+        'pick.by': { fr: 'Créé par {who}', en: 'Created by {who}' },
+        'pick.count': { fr: '{n} installations', en: '{n} installs' },
+        'pick.try': { fr: 'Essayez', en: 'Try asking' },
+        'pick.pinNeedsInstall': { fr: 'Installez ce skill pour l’épingler', en: 'Install this skill to pin it' },
+        'pick.bg': { fr: 'Fond des couvertures', en: 'Cover background' },
+        'pick.bg.tint': { fr: 'Teinte', en: 'Tint' },
+        'pick.bg.plain': { fr: 'Neutre', en: 'Plain' },
+        'pick.loading': { fr: 'Chargement des choix…', en: 'Loading the picks…' },
+        'pick.none': { fr: 'Aucun skill ne correspond', en: 'No skill matches' },
+        'pick.nonehint': { fr: 'Essayez une autre catégorie ou effacez la recherche.', en: 'Try another category or clear the search.' },
+        'pick.asof': { fr: 'Choix et verdicts d’audit relevés le {d}.', en: 'Picks and audit verdicts read on {d}.' },
+        'pick.crumb': { fr: 'Choix de Kybernos', en: 'Featured' },
         'feat.localskill': { fr: 'skill local', en: 'local skill' },
         'row.installed': { fr: 'installé', en: 'installed' },
         'row.offgh': { fr: 'hors GitHub', en: 'off GitHub' },
@@ -937,6 +972,69 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-head .src,.kbs-root .kbs-row .src{display:none}
 .kbs-root .kbs-row.feat .kbs-fdesc{display:none}
 }
+/* — Featured tab: the picks Kybernos proposes. Cover = ONE cut-out per skill (transparent), composed here: a category tint (or the plain
+   card surface), the creator and the count on the right of the title, the actions on hover (always on touch) — */
+.kbs-root .kbsf-t{--cv-bg:#f4e6d6;--cv-bg2:#ecd5ba}
+.kbs-root .kbsf-t[data-cat=Data]{--cv-bg:#dff0e2;--cv-bg2:#c6e4cc}
+.kbs-root .kbsf-t[data-cat=Design]{--cv-bg:#ece4f8;--cv-bg2:#dccff2}
+.kbs-root .kbsf-t[data-cat=Media]{--cv-bg:#fbe0dc;--cv-bg2:#f6c8c2}
+.kbs-root .kbsf-t[data-cat=Research]{--cv-bg:#dde9fa;--cv-bg2:#c4d8f5}
+.kbs-root .kbsf-t[data-cat=Marketing]{--cv-bg:#f9f0c8;--cv-bg2:#f2e29a}
+.kbs-root .kbsf-t[data-cat=Automation]{--cv-bg:#d7f0ed;--cv-bg2:#b9e3de}
+.kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#e4e7f5;--cv-bg2:#cfd4ee}
+body[data-ds-dark-theme] .kbs-root .kbsf-t{--cv-bg:#3a2e24;--cv-bg2:#4a3a2c}
+body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Data]{--cv-bg:#203629;--cv-bg2:#2a4a37}
+body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Design]{--cv-bg:#2d2644;--cv-bg2:#3b3159}
+body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Media]{--cv-bg:#402524;--cv-bg2:#55302e}
+body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Research]{--cv-bg:#202d45;--cv-bg2:#2a3b5c}
+body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Marketing]{--cv-bg:#3a3420;--cv-bg2:#4d4528}
+body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Automation]{--cv-bg:#1c3835;--cv-bg2:#264b47}
+body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-bg2:#343a5c}
+.kbs-root .kbsf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;align-items:stretch}
+.kbs-root .kbsf-card{container-type:inline-size;position:relative;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;transition:transform .16s ease,border-color .16s ease}
+.kbs-root .kbsf-card:hover,.kbs-root .kbsf-card.sel{border-color:var(--dsw-alias-brand-primary)}
+.kbs-root .kbsf-card:hover{transform:translateY(-3px)}
+.kbs-root .kbsf-card:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.kbs-root .kbsf-pic{position:relative;aspect-ratio:16/9;overflow:hidden;background:linear-gradient(135deg,var(--cv-bg),var(--cv-bg2))}
+.kbs-root .kbsf-plain .kbsf-pic{background:var(--dsw-alias-bg-layer-2)}
+.kbs-root .kbsf-pic .kbsf-cut{position:absolute;inset:6%;width:88%;height:88%;object-fit:contain;filter:drop-shadow(0 7px 9px rgba(30,18,6,.30))}
+.kbs-root .kbsf-pic .kb8-tile{position:absolute;inset-inline-start:50%;top:50%;transform:translate(-50%,-50%);width:64px;height:64px}
+.kbs-root .kbsf-tag{position:absolute;inset-block-start:10px;inset-inline-start:10px;font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:999px;background:rgba(255,253,248,.88);color:#26221e}
+.kbs-root .kbsf-star{position:absolute;inset-block-start:6px;inset-inline-end:6px;background:rgba(255,253,248,.88);color:#6b625a;border-color:transparent}
+.kbs-root .kbsf-star:disabled{opacity:.55;cursor:default}
+.kbs-root .kbsf-star.on{color:#c98a00}
+.kbs-root .kbsf-star.on svg{fill:currentColor}
+.kbs-root .kbsf-body{display:flex;flex-direction:column;gap:8px;padding:14px 16px 16px;flex:1;min-width:0}
+.kbs-root .kbsf-trow{display:flex;align-items:flex-start;gap:10px}
+.kbs-root .kbsf-title{flex:1;min-width:0;font-size:16px;font-weight:600;line-height:1.25;color:var(--dsw-alias-label-primary)}
+.kbs-root .kbsf-side{display:flex;align-items:center;gap:10px;flex:none;font-size:12px;color:var(--dsw-alias-label-secondary);padding-top:2px}
+.kbs-root .kbsf-by{display:inline-flex;align-items:center;gap:6px;min-width:0}
+.kbs-root .kbsf-by .nm{display:none;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@container (min-width:330px){.kbs-root .kbsf-by .nm{display:inline}}
+.kbs-root .kbsf-av{width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex:none}
+.kbs-root .kbsf-cnt{display:inline-flex;align-items:center;gap:4px;font-family:ui-monospace,monospace;font-size:11.5px}
+.kbs-root .kbsf-out{margin:0;font-size:13.5px;line-height:1.4;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.8em}
+.kbs-root .kbsf-pills{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:24px}
+.kbs-root .kbsf-pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;line-height:1;padding:5px 9px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l1);white-space:nowrap}
+.kbs-root .kbsf-pill.ok{color:var(--dsw-alias-state-success-primary,#22c55e)}
+.kbs-root .kbsf-pill.warn{color:var(--dsw-alias-state-warn-primary,#f59e0b)}
+.kbs-root .kbsf-pill.need{color:var(--dsw-alias-state-business-primary,#5686fe)}
+.kbs-root .kbsf-acts{display:flex;align-items:center;gap:8px;margin-top:auto;min-height:32px;transition:opacity .14s ease}
+@media (hover:hover){
+.kbs-root .kbsf-card .kbsf-acts{opacity:0}
+.kbs-root .kbsf-card:hover .kbsf-acts,.kbs-root .kbsf-card:focus-within .kbsf-acts{opacity:1}
+}
+.kbs-root .kbsf-acts .kb8-primary{height:32px;padding:0 14px;font-size:13px;border-radius:10px;gap:6px}
+.kbs-root .kbsf-acts .kb8-ghost{height:32px;padding:0 12px;font-size:13px;gap:6px}
+.kbs-root .kbsf-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:2px 0 14px}
+.kbs-root .kbsf-chips .grow{flex:1}
+.kbs-root .kbsf-seg{display:inline-flex;align-items:center;gap:4px;padding:3px;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);font-size:12px}
+.kbs-root .kbsf-seg button{border:0;background:transparent;width:32px;height:28px;padding:0;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.kbs-root .kbsf-seg button.on{background:var(--dsw-alias-bg-layer-1);box-shadow:0 1px 3px rgba(20,20,19,.14)}
+.kbs-root .kbsf-seg .sw{display:block;width:16px;height:16px;border-radius:5px}
+.kbs-root .kbsf-seg .sw.tint{background:linear-gradient(135deg,#f4e6d6 0%,#c4d8f5 100%)}
+.kbs-root .kbsf-seg .sw.plain{background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2)}
+.kbs-root .kbsf-foot{margin-top:18px;font-size:12px;color:var(--dsw-alias-label-secondary)}
 /* — Settings page « Skills » (catalogue): its own scope (.kbss-page), not .kbs-root, so nothing
    here can reach the Skills panel; the shared input/link/note vocabulary is re-stated here because
    the kbs-* rules above are scoped to .kbs-root — */
@@ -1007,10 +1105,11 @@ window.__ModuleLoader__.load({
         // helpers attach it to every call; the loading effect, however, depends on `sid`.
         const sid = (props !== null && props !== undefined && typeof props.sessionId === 'string') ? props.sessionId : ''
         kbSkSid = sid
-        const [mode, setMode] = React.useState('yours')                       // yours | discover | team
-        const [q, setQ] = React.useState({ yours: '', discover: '', team: '' })
-        const [sort, setSort] = React.useState({ yours: 'recent', discover: 'installs' })
-        const [dir, setDir] = React.useState({ yours: -1, discover: -1 })
+        // Featured is the landing tab; a host that has no picks (not restarted yet) sends the screen back to Yours (see `picks` below).
+        const [mode, setMode] = React.useState('featured')                       // featured | yours | discover | team
+        const [q, setQ] = React.useState({ featured: '', yours: '', discover: '', team: '' })
+        const [sort, setSort] = React.useState({ featured: 'editorial', yours: 'recent', discover: 'installs' })
+        const [dir, setDir] = React.useState({ featured: -1, yours: -1, discover: -1 })
         // Cards or list, per tab, kept in this browser: Yours is cards by default (as it was), Discover is the ranking table (as it was).
         const [views, setViews] = React.useState(() => {
           try {
@@ -1089,6 +1188,17 @@ window.__ModuleLoader__.load({
         // Featured: the highlighted list, controlled by the user. `items` follows the order of the
         // file; an item `found:false` (skill gone from the registry) is skipped at render, not erased.
         const [feat, setFeat] = React.useState({ phase: 'idle', items: [] })
+        // The picks Kybernos proposes (GET /kybernos-skills/picks): `absent` = a host that does not have the route, or an empty file.
+        const [picks, setPicks] = React.useState({ phase: 'loading', items: [], asOf: '' })
+        const [pcat, setPcat] = React.useState('all')                            // all | one of the picks' categories
+        // The cover background (the category tint, or the plain card surface), kept in this browser.
+        const [coverBg, setCoverBgState] = React.useState(() => {
+          try { return window.localStorage.getItem('kybernos.skills.coverbg') === 'plain' ? 'plain' : 'tint' } catch (e) { return 'tint' }
+        })
+        const setCoverBg = (v) => {
+          setCoverBgState(v)
+          try { window.localStorage.setItem('kybernos.skills.coverbg', v) } catch (e) { /* a convenience only */ }
+        }
         // Team skills: what the account says about the active workspace (its role and counts, or why the tab is locked), the skill
         // that is open, the sub-view, the propose sheet, and a counter that makes the list read again.
         const [tsum, setTsum] = React.useState({ phase: 'loading' })
@@ -1140,6 +1250,16 @@ window.__ModuleLoader__.load({
             } else setFeat({ phase: 'error', items: [] })
           }).catch(() => { if (alive.current === true) setFeat({ phase: 'error', items: [] }) })
         }, [sid])
+
+        const loadPicks = React.useCallback(() => {
+          getJson('/kybernos-skills/picks').then((j) => {
+            if (alive.current !== true) return
+            if (j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.items) && j.items.length > 0) {
+              setPicks({ phase: 'ready', items: j.items, asOf: typeof j.asOf === 'string' ? j.asOf : '' })
+            } else setPicks({ phase: 'absent', items: [], asOf: '' })
+          }).catch(() => { if (alive.current === true) setPicks({ phase: 'absent', items: [], asOf: '' }) })
+        }, [])
+        React.useEffect(() => { if (picks.phase === 'absent') setMode((m) => (m === 'featured' ? 'yours' : m)) }, [picks.phase])
 
         // Star = feature / unfeature. The response carries the up-to-date list: we follow it as is,
         // without reloading — one round trip less, and the displayed order stays the file's.
@@ -1205,6 +1325,7 @@ window.__ModuleLoader__.load({
         React.useEffect(() => {
           loadCatalogue()
           loadFeatured()
+          loadPicks()
           loadTeam()
           loadSource()
           loadCuratedOwners()
@@ -1549,7 +1670,7 @@ window.__ModuleLoader__.load({
         }
 
         const renderAdd = () => {
-          const isYours = mode === 'yours'
+          const isYours = mode === 'yours' || mode === 'featured'
           return h('div', { className: 'kb-menu-wrap' },
                 h('button', {
                   type: 'button', className: 'kb8-primary',
@@ -1572,16 +1693,17 @@ window.__ModuleLoader__.load({
         }
 
         const renderToolbar = () => {
-          const isYours = mode === 'yours'
+          const isFeat = mode === 'featured'
+          const isYours = mode === 'yours' || isFeat
           return h('div', null,
             h('div', { className: 'kb-toolbar' },
               h('div', { className: 'kb8-search' }, icon('search', 14),
                 h('input', {
-                  placeholder: isYours ? t('ph.yours') : t('ph.discover'),
-                  value: isYours ? q.yours : q.discover,
-                  onChange: (e) => { const v = e.target.value; setQ((m) => isYours ? { ...m, yours: v } : { ...m, discover: v }) }
+                  placeholder: isFeat ? t('ph.featured') : (isYours ? t('ph.yours') : t('ph.discover')),
+                  value: isFeat ? q.featured : (isYours ? q.yours : q.discover),
+                  onChange: (e) => { const v = e.target.value; setQ((m) => isFeat ? { ...m, featured: v } : (isYours ? { ...m, yours: v } : { ...m, discover: v })) }
                 })),
-              h('div', { className: 'kb-menu-wrap' },
+              isFeat ? null : h('div', { className: 'kb-menu-wrap' },
                 h('button', {
                   type: 'button', className: 'kb-tool-lab' + (showFilters ? ' on' : ''), title: isYours ? t('flt.title') : t('flt.viewTitle'),
                   onClick: () => { setShowFilters(!showFilters); setSortOpen(false); setAddOpen(false) }
@@ -1590,7 +1712,7 @@ window.__ModuleLoader__.load({
                   filtresActifs() > 0 ? h('span', { className: 'n' }, String(filtresActifs())) : null,
                   icon('chev', 14)),
                 showFilters ? renderFilters() : null),
-              h('div', { className: 'kb-menu-wrap' },
+              isFeat ? null : h('div', { className: 'kb-menu-wrap' },
                 h('button', { type: 'button', className: 'kb-tool-lab' + (sortOpen ? ' on' : ''), title: t('sort.by'), onClick: () => { setSortOpen(!sortOpen); setAddOpen(false); setShowFilters(false) } }, icon('sort', 16), h('span', null, sortLabel(isYours)), icon('chev', 14)),
                 sortOpen ? renderSortMenu() : null)
             ),
@@ -1799,6 +1921,78 @@ window.__ModuleLoader__.load({
           h('div', { className: 'desc' }, it.description !== '' ? it.description : t('card.nodesc')),
           h('div', { className: 'kb8-pills' }, it.active === false ? h('span', { className: 'kb8-pill warn' }, t('card.disabled')) : h('span', { className: 'kb8-pill ok' }, t('card.active'))))
 
+        // ── Featured tab: the picks Kybernos proposes ─────────────────────────────────────────────────────
+        // A pick is data (title, outcome, creator, count, audits, one cut-out) and nothing else: Install goes through the SAME confirmation
+        // and the same host route as a Discover entry, Details opens the same panel (real SKILL.md, live audits), Use copies `/name`.
+        const frLike = () => { const l = tlang(); return l === 'kybernos' || l.slice(0, 2).toLowerCase() === 'fr' }
+        const pickText = (o) => (o !== null && typeof o === 'object' ? (frLike() ? o.fr : o.en) : '')
+        const pickAsEntry = (p) => ({ id: p.source + '/' + p.id, source: p.source, name: p.id, installs: p.installs, installable: true, official: false, sourceType: 'github', url: '' })
+        const PICK_CATS = ['Documents', 'Data', 'Design', 'Media', 'Research', 'Marketing', 'Automation', 'Build']
+        const pickCounts = () => { const c = {}; picks.items.forEach((p) => { c[p.category] = (c[p.category] || 0) + 1 }); return c }
+        const pickList = () => {
+          let a = picks.items.slice()
+          if (pcat !== 'all') a = a.filter((p) => p.category === pcat)
+          const needle = q.featured.trim().toLowerCase()
+          if (needle !== '') a = a.filter((p) => (pickText(p.title) + ' ' + p.id + ' ' + pickText(p.outcome) + ' ' + t('pcat.' + p.category) + ' ' + p.source).toLowerCase().indexOf(needle) >= 0)
+          if (sort.featured === 'installs') a.sort((x, y) => (dir.featured === -1 ? y.installs - x.installs : x.installs - y.installs))
+          else if (sort.featured === 'name') a.sort((x, y) => pickText(x.title).localeCompare(pickText(y.title)) * (dir.featured === -1 ? -1 : 1))
+          // The user's own pins (the star) come first, whatever the order.
+          return a.filter((p) => featNames.has(p.id)).concat(a.filter((p) => !featNames.has(p.id)))
+        }
+        const pickCard = (p, i) => {
+          const x = pickAsEntry(p)
+          const isIn = installed(x)
+          const pinned = featNames.has(p.id)
+          const openIt = () => { setDetail(x); setLocal(null); setModal(null); setAudit(null) }
+          const warns = p.audits.filter((a) => a[1] !== 'pass').length
+          const owner = String(p.source).split('/')[0]
+          const title = pickText(p.title)
+          return h('article', {
+            key: 'pk:' + p.id, role: 'button', tabIndex: 0, 'data-kb': 'pick-card',
+            className: 'kbsf-card' + (detail !== null && detail.source === p.source && detail.name === p.id ? ' sel' : '') + appear(i),
+            title: t('pick.try') + sep() + pickText(p.prompt), 'aria-label': title + ' — ' + t('cap.detail'),
+            onClick: openIt,
+            onKeyDown: (e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openIt() } }
+          },
+            h('div', { className: 'kbsf-pic kbsf-t', 'data-cat': p.category },
+              p.cover !== null && p.cover !== undefined && p.cover !== ''
+                ? h('img', { className: 'kbsf-cut', src: p.cover, alt: '', loading: 'lazy', onError: (e) => { try { e.target.style.display = 'none' } catch (e2) { /* the tint is enough */ } } })
+                : tile(p.id, 'pkg'),
+              h('span', { className: 'kbsf-tag' }, t('pcat.' + p.category)),
+              h('button', {
+                type: 'button', className: 'kbs-star-btn kbsf-star' + (pinned ? ' on' : ''), disabled: isIn !== true,
+                title: isIn === true ? (pinned ? t('feat.remove') : t('feat.add')) : t('pick.pinNeedsInstall'),
+                'aria-label': (pinned ? t('feat.remove') : t('feat.add')) + ' — ' + title,
+                onClick: (e) => { e.stopPropagation(); toggleFeatured(p.id) }
+              }, icon('star', 14))),
+            h('div', { className: 'kbsf-body' },
+              h('div', { className: 'kbsf-trow' },
+                h('div', { className: 'kbsf-title' }, title),
+                h('div', { className: 'kbsf-side' },
+                  h('span', { className: 'kbsf-by', title: t('pick.by', { who: owner }) },
+                    h('span', { className: 'kbsf-av', style: { background: 'hsl(' + hue(owner) + ' 45% 42%)' }, 'aria-hidden': 'true' }, owner.charAt(0).toUpperCase()),
+                    h('span', { className: 'nm' }, owner)),
+                  h('span', { className: 'kbsf-cnt', title: t('pick.count', { n: p.installs.toLocaleString(isEn() ? 'en-US' : 'fr-FR') }), 'aria-label': t('pick.count', { n: p.installs.toLocaleString(isEn() ? 'en-US' : 'fr-FR') }) },
+                    icon('dl', 13), nf(p.installs)))),
+              h('p', { className: 'kbsf-out' }, pickText(p.outcome)),
+              h('div', { className: 'kbsf-pills' },
+                isIn === true ? h('span', { key: 'in', className: 'kbsf-pill ok' }, icon('check', 12), t('pick.installed')) : null,
+                p.audits.length === 0 ? null : (warns === 0
+                  ? h('span', { key: 'au', className: 'kbsf-pill ok', title: t('pick.auditTip') }, icon('shield', 12), t('pick.audited', { n: p.audits.length }))
+                  : h('span', { key: 'au', className: 'kbsf-pill warn', title: t('pick.auditTip') }, icon('alert', 12), warns === 1 ? t('pick.warn1') : t('pick.warnN', { n: warns }))),
+                p.needs !== null && p.needs !== undefined ? h('span', { key: 'nd', className: 'kbsf-pill need' }, icon('info', 12), t('need.' + p.needs)) : null),
+              // The actions show on hover and on keyboard focus (always on a touch screen); their place is reserved, so the card does not jump.
+              h('div', { className: 'kbsf-acts' },
+                isIn === true
+                  ? h('button', { key: 'use', type: 'button', className: 'kb8-ghost', 'data-kb': 'pick-use', onClick: (e) => { e.stopPropagation(); copy('/' + p.id) } }, icon('code', 14), h('span', null, t('pick.use')))
+                  : h('button', {
+                    key: 'ins', type: 'button', className: 'kb8-primary', 'data-kb': 'pick-install',
+                    onClick: (e) => { e.stopPropagation(); setAskInstall(x); setErrors((m) => { const n = { ...m }; delete n.__modal; return n }) }
+                  }, icon('dl', 14), h('span', null, t('btn.install'))),
+                h('button', { key: 'det', type: 'button', className: 'kb8-ghost', 'data-kb': 'pick-details', onClick: (e) => { e.stopPropagation(); openIt() } }, h('span', null, t('pick.details')))))
+          )
+        }
+
         // Pager based on the SERVER `total`. We no longer load "a bit more" at the bottom of a growing list:
         // we go to the wanted page, and the number of pages is known in advance.
         // `haut` (top): the same pager is rendered ABOVE the table. With fifty rows, the bottom pager
@@ -1832,6 +2026,25 @@ window.__ModuleLoader__.load({
 
         const empty = (title, hint) => h('div', { className: 'kb-empty' }, icon('search', 24),
           h('span', { className: 'kb8-name' }, title), h('span', { className: 'kb8-parent' }, hint))
+
+        const renderFeatured = () => {
+          if (picks.phase === 'loading') return skeletonOf('cards', 6) || h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-mono' }, t('pick.loading')))
+          const counts = pickCounts()
+          const list = pickList()
+          return h('div', null,
+            h('div', { className: 'kbsf-chips' },
+              chip(t('pick.all') + ' ' + picks.items.length, pcat === 'all', () => setPcat('all'), 'all'),
+              PICK_CATS.filter((c) => counts[c] > 0).map((c) => chip(t('pcat.' + c) + ' ' + counts[c], pcat === c, () => setPcat(c), c)),
+              h('span', { className: 'grow' }),
+              // Two small swatches rather than words, so the choice stays on the chips' row: a category tint, or the plain card surface.
+              h('span', { className: 'kbsf-seg', role: 'group', 'aria-label': t('pick.bg') },
+                h('button', { type: 'button', className: coverBg === 'tint' ? 'on' : '', 'aria-pressed': coverBg === 'tint' ? 'true' : 'false', title: t('pick.bg') + sep() + t('pick.bg.tint'), 'aria-label': t('pick.bg') + sep() + t('pick.bg.tint'), 'data-kb': 'pick-bg-tint', onClick: () => setCoverBg('tint') }, h('i', { className: 'sw tint' })),
+                h('button', { type: 'button', className: coverBg === 'plain' ? 'on' : '', 'aria-pressed': coverBg === 'plain' ? 'true' : 'false', title: t('pick.bg') + sep() + t('pick.bg.plain'), 'aria-label': t('pick.bg') + sep() + t('pick.bg.plain'), 'data-kb': 'pick-bg-plain', onClick: () => setCoverBg('plain') }, h('i', { className: 'sw plain' })))),
+            list.length === 0
+              ? empty(t('pick.none'), t('pick.nonehint'))
+              : h('div', { className: 'kbsf-grid' + (coverBg === 'plain' ? ' kbsf-plain' : ''), 'data-kb': 'picks-grid' }, list.map(pickCard)),
+            picks.asOf !== '' ? h('div', { className: 'kbsf-foot' }, t('pick.asof', { d: today(picks.asOf) })) : null)
+        }
 
         const renderYours = () => {
           if (catPhase === 'loading' && cat === null) return skeletonOf('cards', 6) || h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-mono' }, t('y.loading')))
@@ -1965,11 +2178,11 @@ window.__ModuleLoader__.load({
               onClose: () => setLocal(null), onAct: (kind) => { if (kind === 'delete') setAskDelete(s); else skillAct(kind, s) }, onCopy: copy
             })
           }
-          if (mode === 'discover' && detail !== null) {
+          if ((mode === 'discover' || mode === 'featured') && detail !== null) {
             const x = detail
             const c = curatedOf(x)
             return h(DiscoverPanel, {
-              x, preview, audit, dest: installDest, owner: c.owner, curated: c.curated, installed: skills.some((s) => s.name === x.name),
+              x, preview, audit, dest: installDest, crumb: mode === 'featured' ? t('pick.crumb') : 'Discover', owner: c.owner, curated: c.curated, installed: skills.some((s) => s.name === x.name),
               starred: featNames.has(x.name), onClose: () => setDetail(null),
               onInstall: () => { setAskInstall(x); setErrors((m) => { const n = { ...m }; delete n.__modal; return n }) },
               onStar: () => toggleFeatured(x.name)
@@ -2017,8 +2230,10 @@ window.__ModuleLoader__.load({
                 if (alive.current !== true) return
                 setBusy((m) => { const n = { ...m }; delete n.__modal; return n })
                 if (j !== null && typeof j === 'object' && j.ok === true) {
-                  setAskInstall(null); setDetail(null); setMode('yours'); loadCatalogue()
-                  if (j.skill !== null && typeof j.skill === 'object') setLocal(j.skill)
+                  // From Featured we stay on Featured: the card turns to « Installed » in place. From Discover the new skill opens in Yours.
+                  const fromFeatured = mode === 'featured'
+                  setAskInstall(null); setDetail(null); setMode(fromFeatured ? 'featured' : 'yours'); loadCatalogue()
+                  if (fromFeatured !== true && j.skill !== null && typeof j.skill === 'object') setLocal(j.skill)
                   setNotice({ kind: 'ok', text: t('notice.installed', { name: x.name }) + (j.files ? t('notice.files', { n: j.files }) : '') })
                 } else setErrors((m) => ({ ...m, __modal: why(j, t('err.install')) }))
               }).catch(() => {
@@ -2050,14 +2265,16 @@ window.__ModuleLoader__.load({
         }
 
         const panel = renderPanel()
-        const list = h('div', null, mode === 'yours' ? renderYours() : (mode === 'team' ? renderTeam() : renderDiscover()))
+        const list = h('div', null, mode === 'featured' ? renderFeatured() : (mode === 'yours' ? renderYours() : (mode === 'team' ? renderTeam() : renderDiscover())))
         const body = panel === null
           ? list
           : h('div', { className: 'kbs-split open' }, h('div', { className: 'kbs-list' }, list), panel)
 
         // (1 Oct) Same header as "Connections": title + subtitle on the left, main action on the right, then a
         // control row (sub-tabs on the left, search / filter / sort on the right).
-        const capTxt = mode === 'yours'
+        const capTxt = mode === 'featured'
+          ? t('cap.featured')
+          : mode === 'yours'
           ? t('cap.yours', { a: activeCount, n: skills.length })
           : (mode === 'team' ? (tsum.phase === 'ready' ? t('cap.team', { ws: tsum.workspaceName || '…' }) : t('cap.teamLocked')) : (discKind === 'search' ? t('cap.search') : t('cap.rank')))
         // The shared bar (search, filter, order, and the primary action as its trailing item) sits in the header row, where Agent
@@ -2066,6 +2283,9 @@ window.__ModuleLoader__.load({
         const tools = props !== null && props !== undefined && props.toolbar !== null && typeof props.toolbar === 'object' ? props.toolbar : null
         const KbBar = tools !== null && typeof tools.KbToolbar === 'function' ? tools.KbToolbar : null
         const barState = () => {
+          if (mode === 'featured') {
+            return { query: q.featured, sort: sort.featured, dir: dir.featured === -1 ? 'desc' : 'asc', types: pcat === 'all' ? [] : ['cat:' + pcat], period: 'all', fav: false, viewMode: 'cards' }
+          }
           if (mode === 'discover') {
             return { query: q.discover, sort: sort.discover === 'name' ? 'name' : (iview === 'all-time' ? 'installs' : iview), dir: dir.discover === -1 ? 'desc' : 'asc', types: iper === 50 ? [] : ['rows:' + iper], period: 'all', fav: false, viewMode: views.discover }
           }
@@ -2078,6 +2298,21 @@ window.__ModuleLoader__.load({
         // single choices: the one just ticked replaces the previous one of its group.
         const barUpdate = (patch) => {
           if (patch === null || typeof patch !== 'object') return
+          if (mode === 'featured') {
+            if (patch.query !== undefined) { const v = String(patch.query); setQ((m) => ({ ...m, featured: v })) }
+            if (patch.sort !== undefined) {
+              const k2 = ['editorial', 'installs', 'name'].indexOf(patch.sort) >= 0 ? patch.sort : 'editorial'
+              // A new order starts from its natural direction: Most installed high to low, Name A to Z.
+              setSort((m) => ({ ...m, featured: k2 })); setDir((m) => ({ ...m, featured: k2 === 'name' ? 1 : -1 }))
+            }
+            if (patch.dir !== undefined) setDir((m) => ({ ...m, featured: patch.dir === 'asc' ? 1 : -1 }))
+            if (patch.types !== undefined) {
+              const cur = pcat === 'all' ? [] : ['cat:' + pcat]
+              const added = patch.types.filter((x2) => cur.indexOf(x2) < 0)
+              setPcat(added.length > 0 ? String(added[added.length - 1]).slice(4) : 'all')
+            }
+            return
+          }
           if (patch.query !== undefined) { const v = String(patch.query); setQ((m) => ({ ...m, [mode]: v })) }
           if (patch.viewMode !== undefined && (mode === 'yours' || mode === 'discover')) setView(mode, patch.viewMode === 'list' ? 'list' : 'cards')
           if (mode === 'discover') {
@@ -2109,15 +2344,19 @@ window.__ModuleLoader__.load({
             setStateFilter(st); setSourceFilter(so)
           }
         }
-        const barSorts = () => (mode === 'discover'
+        const barSorts = () => (mode === 'featured'
+          ? [{ id: 'editorial', label: t('sort.editorial') }, { id: 'installs', label: t('sort.installs') }, { id: 'name', label: t('sort.name') }]
+          : mode === 'discover'
           ? VUES.map((v) => ({ id: v[0] === 'all-time' ? 'installs' : v[0], label: v[1] })).concat([{ id: 'name', label: t('sort.name') }])
           : [{ id: 'recent', label: t('sort.recent') }, { id: 'name', label: t('sort.name') }])
-        const barFacets = () => (mode === 'discover'
+        const barFacets = () => (mode === 'featured'
+          ? { type: { options: PICK_CATS.filter((c) => pickCounts()[c] > 0).map((c) => ({ id: 'cat:' + c, label: t('pcat.' + c), count: pickCounts()[c] })) } }
+          : mode === 'discover'
           ? { type: { options: [25, 50, 100, 250].map((n) => ({ id: 'rows:' + n, label: t('flt.rows') + ': ' + n })) } }
           : { type: { options: [{ id: 'st:active', label: t('card.active'), count: activeCount }, { id: 'st:disabled', label: t('card.disabled'), count: skills.length - activeCount }]
             .concat(sources.map((s) => ({ id: 'src:' + s, label: s, count: skills.filter((x) => x.source === s).length }))) } })
         const teamBarShown = mode === 'team' && tsum.phase === 'ready' && teamOpen === null
-        const barShown = KbBar !== null && (mode === 'discover' || (mode === 'yours' && skills.length > 0) || teamBarShown)
+        const barShown = KbBar !== null && (mode === 'discover' || (mode === 'featured' && picks.phase === 'ready') || (mode === 'yours' && skills.length > 0) || teamBarShown)
         const teamAction = primary(teamRoleAdmin(tsum.role) ? t('tm.add') : t('tm.propose'), () => setTeamSheet(true), 'plus')
         const headAction = mode === 'team' ? (teamBarShown ? teamAction : null) : renderAdd()
         const helpBtn = (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-skills' }) : null)
@@ -2131,13 +2370,13 @@ window.__ModuleLoader__.load({
                 ? h(KbBar, {
                   state: barState(),
                   onUpdate: barUpdate,
-                  searchPlaceholder: mode === 'team' ? t('tm.search') : (mode === 'yours' ? t('ph.yours') : t('ph.discover')),
+                  searchPlaceholder: mode === 'team' ? t('tm.search') : (mode === 'featured' ? t('ph.featured') : (mode === 'yours' ? t('ph.yours') : t('ph.discover'))),
                   sortOptions: mode === 'team' ? [] : barSorts(),
                   hideSort: mode === 'team',
                   facets: mode === 'team' ? {} : barFacets(),
-                  total: mode === 'yours' ? skills.length : (mode === 'discover' ? discTotal : 0),
-                  shown: mode === 'yours' ? filtered.length : (mode === 'discover' ? discList.length : 0),
-                  hideView: mode === 'team',
+                  total: mode === 'featured' ? picks.items.length : (mode === 'yours' ? skills.length : (mode === 'discover' ? discTotal : 0)),
+                  shown: mode === 'featured' ? pickList().length : (mode === 'yours' ? filtered.length : (mode === 'discover' ? discList.length : 0)),
+                  hideView: mode === 'team' || mode === 'featured',
                   views: ['cards', 'list'],
                   showFav: false,
                   trailing: headAction,
@@ -2153,6 +2392,8 @@ window.__ModuleLoader__.load({
             h('nav', { className: 'kbsub' },
               // Same capsule as the "Connections" sub-tabs (Your connections / Discover): one single language.
               h('div', { className: 'kbsub-group', role: 'tablist' },
+                picks.phase !== 'absent' ? h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'featured' ? 'true' : 'false', className: 'kb-seg' + (mode === 'featured' ? ' on' : ''), 'data-kb': 'seg-featured', onClick: () => { setMode('featured'); setDetail(null); setLocal(null) } },
+                  'Featured ', h('span', { className: 'count' }, picks.phase === 'ready' ? String(picks.items.length) : '—')) : null,
                 h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'yours' ? 'true' : 'false', className: 'kb-seg' + (mode === 'yours' ? ' on' : ''), onClick: () => { setMode('yours'); setDetail(null); setLocal(null) } },
                   'Yours ', h('span', { className: 'count' }, count)),
                 h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'discover' ? 'true' : 'false', className: 'kb-seg' + (mode === 'discover' ? ' on' : ''), onClick: () => { setMode('discover'); setDetail(null); setLocal(null) } },
@@ -2236,7 +2477,7 @@ window.__ModuleLoader__.load({
         else if (p.state === 'none') text = h('div', { className: 'kb-note', 'data-kb': 'preview-none' }, icon('info', 14), h('span', null, x.sourceType === 'well-known' ? t('row.cantInstall.wk') : t('row.cantInstall.ng')))
         return h('aside', { className: 'kbs-panel', 'aria-label': x.name + ' — ' + t('cap.detail'), 'data-kb': 'disc-panel' },
           h('div', { className: 'kbs-panel-top' },
-            h('span', { className: 'kb8-mono kbs-nowrap' }, 'Discover › ' + x.name),
+            h('span', { className: 'kb8-mono kbs-nowrap' }, (props.crumb || 'Discover') + ' › ' + x.name),
             h('button', { type: 'button', className: 'kb-tool', 'aria-label': t('panel.close'), title: t('panel.close'), onClick: props.onClose }, '✕')),
           h('div', { className: 'kb-detail-head' },
             tile(x.name, 'pkg', 'lg'),
