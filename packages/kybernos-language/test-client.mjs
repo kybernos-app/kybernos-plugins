@@ -805,7 +805,9 @@ console.log('\n── the run on the host (i18n-job): the page hands it over, wa
   }
   const fresh = async () => {
     reset(); setSource()
-    for (const f of ['es', 'de', 'ar']) { try { hostStore.remove(f) } catch (e) { /* none */ } }
+    // A clean disk: the files themselves, not a « removed » tombstone (a browser that holds the language would drop it).
+    for (const f of ['es', 'de', 'ar']) { try { rmSync(join(hostDir, f + '.json'), { force: true }) } catch (e) { /* none */ } }
+    try { rmSync(join(hostDir, '.removed.json'), { force: true }) } catch (e) { /* none */ }
     rmSync(join(hostDir, 'jobs'), { recursive: true, force: true })
     globalThis.window.__KB_I18N_HOST_JOB__ = true
     globalThis.window.__KB_I18N_HOST_STORE__ = true
@@ -936,6 +938,87 @@ console.log('\n── the run on the host (i18n-job): the page hands it over, wa
     await runner.idle()
     check('removing the language cancels its run on the host', jobCalls.indexOf('cancel') >= 0 && runner.status('es') === null, jobCalls)
     T.resetRun()
+  }
+  await fresh()
+  {
+    // protocol 2: the page sends the WHOLE plan, with what this browser already holds; the host works out what is missing
+    const seen = []
+    const runner = mkRunner(async (a) => { seen.push(Object.keys(a.batch)); return okTranslate(a) })
+    installJobHost(runner)
+    // half of the language is already in the browser
+    const plan = T.buildPlan('es')
+    const half = {}
+    plan.items.filter((it) => it.store === 'kb').slice(0, 40).forEach((it) => { half[it.id] = 'ES ' + it.text })
+    localStorage.setItem('kybernos.i18n.es', JSON.stringify(half))
+    delete globalThis.window.__KB_LANG_RUNTIME__; startRuntime()
+    await RT().disk.idle()
+    let sent = null
+    const realFetch = globalThis.fetch
+    globalThis.fetch = async (u, init) => { if (String(u).startsWith('/kybernos/i18n-job') && init && init.body) { const b = JSON.parse(init.body); if (b.op === 'start') sent = b } return realFetch(u, init) }
+    T.startRun('es', null)
+    for (let i = 0; i < 200 && sent === null; i += 1) await new Promise((r) => setTimeout(r, 5))
+    await runner.idle()
+    await T.watchOnce()
+    check('a host that speaks protocol 2 is sent the whole plan, flagged full', sent !== null && sent.full === true && sent.items.length === plan.total, sent && sent.items.length)
+    check('…with the translation the browser holds for the texts it holds', sent.items.filter((i) => typeof i.have === 'string').length === 40)
+    check('…and it asked the model only for what the browser lacked', seen.flat().length === plan.total - 40, seen.flat().length)
+    check('the language ends complete', T.getRun().state === 'done' && T.getRun().done === plan.total, T.getRun())
+    // the source of one text changes in a later version: the host says which, the page counts them
+    const changedKey = Object.keys(KB_T)[3]
+    // The tables are replaced, not edited: a new version of the plugin publishes a new object.
+    globalThis.window.__KB_T__ = Object.assign({}, KB_T, { [changedKey]: Object.assign({}, KB_T[changedKey], { kybernos: KB_T[changedKey].kybernos + ' — nouvelle version' }) })
+    T.staleOf.delete('es')
+    const n = await T.checkStale('es')
+    check('a text whose source changed since is counted as stale', n === 1, n)
+    const again = await T.checkStale('es')
+    check('the answer is cached until a run ends', again === 1 && jobCalls.filter((c) => c === 'stale').length === 1, jobCalls)
+    globalThis.window.__KB_T__ = KB_T
+    globalThis.fetch = realFetch
+  }
+
+  await fresh()
+  {
+    // a host from before protocol 2 (no `v`): it is sent the missing texts only, as it always was
+    const runner = mkRunner(okTranslate)
+    installJobHost(runner)
+    const hostFetch = globalThis.fetch
+    let sent = null
+    globalThis.fetch = async (u, init) => {
+      const r = await hostFetch(u, init)
+      if (String(u).startsWith('/kybernos/i18n-job') && init && init.body) { const b = JSON.parse(init.body); if (b.op === 'start') sent = b }
+      if (String(u).startsWith('/kybernos/i18n-job') && !(init && init.body)) { const j = await r.json(); delete j.v; return { ok: r.ok, status: r.status, json: async () => j } }
+      return r
+    }
+    delete globalThis.window.__KB_LANG_RUNTIME__; startRuntime()
+    await RT().disk.idle()
+    const plan = T.buildPlan('es')
+    const half = {}
+    plan.items.filter((it) => it.store === 'kb').slice(0, 40).forEach((it) => { half[it.id] = 'ES ' + it.text })
+    localStorage.setItem('kybernos.i18n.es', JSON.stringify(half))
+    T.startRun('es', null)
+    for (let i = 0; i < 200 && sent === null; i += 1) await new Promise((r) => setTimeout(r, 5))
+    await runner.idle()
+    await T.watchOnce()
+    check('an older host gets the missing texts only (it would translate everything it is sent)', sent !== null && sent.full !== true && sent.items.length === plan.total - 40 && sent.items.every((i) => i.have === undefined), sent && sent.items.length)
+    check('…and the run still ends complete', T.getRun().state === 'done')
+  }
+
+  await fresh()
+  {
+    // doubtful texts come back from the host and are kept for the page to list
+    const runner = mkRunner(async (a) => {
+      const keys = Object.keys(a.batch)
+      return { ok: true, provider: 'p', model: 'm', translations: Object.fromEntries(keys.map((k) => [k, 'AR:' + a.batch[k]])), flagged: { [keys[0]]: 'unchanged' }, refused: {} }
+    })
+    installJobHost(runner)
+    delete globalThis.window.__KB_LANG_RUNTIME__; startRuntime()
+    await RT().disk.idle()
+    T.startRun('es', null)
+    for (let i = 0; i < 100 && runner.running().length === 0 && runner.status('es') === null; i += 1) await new Promise((r) => setTimeout(r, 5))
+    await runner.idle()
+    await T.watchOnce()
+    const d = T.doubtful.get('es')
+    check('the doubtful texts of the run are kept for the page, with the reason', d !== undefined && d.count >= 1 && d.examples.length >= 1 && d.examples[0].why === 'unchanged', d)
   }
   rmSync(hostDir, { recursive: true, force: true })
   globalThis.window.__KB_I18N_HOST_JOB__ = false

@@ -11,7 +11,10 @@
 // raw: "") and the real cause was lost — the page then counted every failed batch
 // as translated.
 
+import { explain, inspect } from './i18n-quality.mjs'
+
 export const I18N_BATCH_MAX = 40
+const REFUSED_LABEL = { placeholder: 'variable perdue ou modifiée', tags: 'balises modifiées', url: 'adresse modifiée', code: 'code modifié', numbers: 'nombres modifiés', meta: 'phrase du modèle ajoutée', script: 'mauvaise écriture', length: 'longueur incohérente', empty: 'vide' }
 const ATTEMPT_TIMEOUT_MS = 120000
 
 const LANG_NAMES = {
@@ -162,6 +165,17 @@ export const translateBatch = async (args, deps) => {
   const routes = candidates({ requested: { provider: req.provider, model: req.model }, brainKey: deps.brainKey, catalog: deps.catalog })
   if (routes.length === 0) return { ok: false, error: 'aucun modele disponible (reglage brain vide, catalogue sans defaut)' }
 
+  // What the checks said about an earlier answer to these same keys (reasons as codes, see i18n-quality.mjs): the model is
+  // told, in a sentence, which key was refused and why. Only keys of this batch, only codes this module knows.
+  const corrections = []
+  if (req.hints !== null && req.hints !== undefined && typeof req.hints === 'object') {
+    for (const [k] of pairs) {
+      const h = req.hints[k]
+      if (typeof h !== 'string' || h === '') continue
+      const why = explain(h.split('+').filter((r) => /^[a-z]{3,12}$/.test(r)))
+      if (why !== '') corrections.push(k + ' : ' + why)
+    }
+  }
   const langName = cleanLangName(req.langName)
   const target = LANG_NAMES[lang] || (langName !== '' ? 'vers la langue « ' + langName + ' » (code ' + lang + ')' : 'vers la langue « ' + lang + ' »')
   // `source: 'auto'` = strings collected from the screens: French from the
@@ -173,6 +187,7 @@ export const translateBatch = async (args, deps) => {
     'Registre : interface utilisateur, libellés courts, ton direct. Ne traduis PAS les clés.',
     'Conserve à l’identique : les variables ({nom}, {{nom}}, %s, %d), les balises HTML ou Markdown, les URL, les chemins, les identifiants, le code, et les noms propres (Kybernos, DSH, Claude, noms de modèles ou de fournisseurs).',
     'Réponds UNIQUEMENT par un objet JSON : { clé: traduction, ... }. Aucun markdown, aucune explication.',
+    ...(corrections.length > 0 ? ['Une réponse précédente a été refusée pour ces clés, corrige-les : ' + corrections.join(' | ')] : []),
     'Objet à traduire :',
     JSON.stringify(Object.fromEntries(pairs)),
   ].join('\n')
@@ -195,19 +210,29 @@ export const translateBatch = async (args, deps) => {
       failures.push(label + ' : réponse inexploitable' + (out.finishKind === null ? '' : ' (fin : ' + out.finishKind + ')') + (out.raw === '' ? ' — réponse vide' : ''))
       break
     }
+    // Every text goes through the checks of i18n-quality.mjs before it is kept: a refused one is reported with its reasons
+    // (`refused`, key → 'placeholder+url'), so the next attempt can be told; a doubtful one is kept and listed (`flagged`).
     const translations = {}
-    let rejected = 0
+    const refused = {}
+    const flagged = {}
     for (const [k, src] of pairs) {
       const v = parsed[k]
       if (typeof v !== 'string' || v.trim().length === 0) continue
-      if (!placeholdersMatch(src, v)) { rejected += 1; continue }
+      const verdict = inspect(src, v.trim(), { lang })
+      if (verdict.hard.length > 0) { refused[k] = verdict.hard.join('+'); continue }
       translations[k] = v.trim()
+      if (verdict.soft.length > 0) flagged[k] = verdict.soft.join('+')
     }
+    const rejected = Object.keys(refused).length
     if (Object.keys(translations).length === 0) {
-      failures.push(label + ' : ' + (rejected > 0 ? 'toutes les traductions ont perdu une variable ({nom}, %s…)' : 'le modèle n’a traduit aucune des clés demandées'))
-      break
+      const reasons = Array.from(new Set(Object.values(refused).flatMap((r) => r.split('+'))))
+      const only = reasons.length === 1 && reasons[0] === 'placeholder'
+      failures.push(label + ' : ' + (rejected > 0
+        ? (only ? 'toutes les traductions ont perdu une variable ({nom}, %s…)' : 'toutes les traductions ont été refusées par les contrôles (' + reasons.map((r) => REFUSED_LABEL[r] || r).join(', ') + ')')
+        : 'le modèle n’a traduit aucune des clés demandées'))
+      return { ok: false, error: failures.join(' ; '), tried: routes.map((r) => r.provider + '/' + r.model), refused }
     }
-    return { ok: true, lang, provider: route.provider, model: route.model, translations, rejected }
+    return { ok: true, lang, provider: route.provider, model: route.model, translations, rejected, refused, flagged }
   }
   return { ok: false, error: failures.join(' ; '), tried: routes.map((r) => r.provider + '/' + r.model) }
 }
