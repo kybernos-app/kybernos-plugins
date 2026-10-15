@@ -1700,7 +1700,7 @@ window.__ModuleLoader__.load({
         id: t.id, name: t.name,
         mode: t.settings.mode === 'light' || t.settings.mode === 'dark' ? t.settings.mode : null,
         acc: t.settings.acc === undefined ? null : t.settings.acc, ov: t.settings.ov || {},
-        fontText: t.settings.fontText, radius: t.settings.radius
+        fontText: t.settings.fontText, radius: t.settings.radius, iconSet: t.settings.iconSet
       })
       const GAL_ONLINE_TEXT = {
         offline: 'Le catalogue en ligne est injoignable : ce sont les thèmes livrés avec Kybernos.',
@@ -2052,6 +2052,7 @@ html[data-kbth-reduced] .kb-ld *{animation:none!important}
 .kbth-card-d{font-size:12px;color:var(--dsw-alias-label-secondary);line-height:1.5}
 .kbth-card-m{font-size:11px;color:var(--dsw-alias-label-tertiary);line-height:1.4}
 .kbth-card-f{display:flex;gap:8px;margin-top:auto;padding-top:8px;flex-wrap:wrap;align-items:center}
+.kbth-card-i{display:flex;flex-direction:column;gap:5px;padding-top:6px}
 .kbth-sk{height:230px;border-radius:14px;background:linear-gradient(100deg,var(--dsw-alias-bg-layer-2) 30%,var(--dsw-alias-bg-layer-3) 50%,var(--dsw-alias-bg-layer-2) 70%);background-size:200% 100%;animation:kbth-sk 1.3s linear infinite}
 @keyframes kbth-sk{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){.kbth-sk{animation:none}}
@@ -3442,6 +3443,9 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
               t.author !== '' ? h('div', { className: 'kbth-card-a' }, 'par ', t.author) : null,
               (t.description[lang] || t.description.fr || t.description.en) !== '' ? h('div', { className: 'kbth-card-d' }, t.description[lang] || t.description.fr || t.description.en) : null,
               h('div', { className: 'kbth-card-m' }, skinMeta(sk)),
+              // A theme that carries an icon set shows it: the nine entries at rest, then in colour (the picker's preview).
+              ICON_SET_IDS.indexOf(t.settings.iconSet) > 0
+                ? h('div', { className: 'kbth-card-i', 'data-kb': 'theme-gal-icons', 'data-id': t.settings.iconSet }, iconeApercu(t.settings.iconSet, false), iconeApercu(t.settings.iconSet, true)) : null,
               h('div', { className: 'kbth-card-f' }, foot)))
         }
         const galBody = () => {

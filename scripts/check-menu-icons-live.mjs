@@ -96,6 +96,18 @@ try {
     check('every card shows nine drawings in two rows (rest, then colour)', await ev(`Array.from(document.querySelectorAll('[data-kb="theme-icset"]')).every((c) => c.querySelectorAll('.kbth-icset-i svg').length === 18)`))
     check('the current set (classic) is the pressed one', await ev(`(() => { const on = Array.from(document.querySelectorAll('[data-kb="theme-icset"]')).filter((c) => c.getAttribute('aria-checked') === 'true'); return on.length === 1 && on[0].getAttribute('data-id') === 'classic' })()`))
     await shot('theme-page', '[data-kb="theme-icons"]')
+
+    // The gallery: the themes that carry an icon set show it. Nothing is installed or tried (that would write the real settings).
+    const tab = (await clickText(page, 'Gallery')) || (await clickText(page, 'Galerie'))
+    check('the Gallery tab opens', tab === true)
+    await waitFor(page, `document.querySelectorAll('[data-kb="theme-gal-card"]').length > 0`, 15000)
+    const gal = await ev(`(() => ({
+      cards: document.querySelectorAll('[data-kb="theme-gal-card"]').length,
+      withIcons: Array.from(document.querySelectorAll('[data-kb="theme-gal-icons"]')).map((e) => e.getAttribute('data-id')),
+      drawn: Array.from(document.querySelectorAll('[data-kb="theme-gal-icons"]')).every((e) => e.querySelectorAll('svg').length === 18),
+    }))()`)
+    check('the gallery has the six new themes, each showing its icon set', gal.cards >= 14 && gal.withIcons.length >= 6 && ['mondrian', 'matrice', 'anneaux', 'iso', 'creatures', 'barres'].every((i) => gal.withIcons.indexOf(i) >= 0) && gal.drawn === true, gal)
+    await shot('gallery', '[data-kb="theme-gal"]')
   }
 } finally {
   await live.close()
