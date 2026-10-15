@@ -41,4 +41,14 @@ assert.ok(!/kbPageHead\(kbt\('kbui\.skills'\)\)/.test(plugin), 'no outer « Skil
 assert.match(plugin, /return h\(first\.component, \{ sessionId: sid, toolbar: toolbar \}\)/, 'the mounted component receives it')
 ok('kybernos-plugin passes the bar down and no longer draws a second title')
 
+// 5. cards or list, per tab, kept; Yours gets a list view, Discover a cards view
+assert.match(src, /kybernos\.skills\.views/, 'the choice is kept in this browser')
+assert.match(src, /yours: j !== null && j\.yours === 'list' \? 'list' : 'cards', discover: j !== null && j\.discover === 'cards' \? 'cards' : 'list'/, 'each tab keeps the view it had: Yours cards, Discover the table')
+assert.match(src, /patch\.viewMode !== undefined && \(mode === 'yours' \|\| mode === 'discover'\)/, 'the bar\'s switch writes the active tab\'s view')
+assert.match(src, /hideView: mode === 'team',\s*views: \['cards', 'list'\]/, 'the switch is offered on Yours and Discover only')
+assert.match(src, /views\.yours === 'list'[\s\S]*kbs-ylist[\s\S]*shownYours\.map\(yourRow\)/, 'Yours has its rows')
+assert.match(src, /views\.discover === 'cards'[\s\S]*discShown\.map\(discCard\)/, 'Discover has its cards')
+assert.match(src, /const featCards = /, 'the featured skills are cards too in that view')
+ok('cards / list: one view per tab, kept, a row for each skill of Yours and a card for each ranking entry of Discover')
+
 console.log('\n' + pass + ' checks passed')
