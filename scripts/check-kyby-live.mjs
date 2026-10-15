@@ -11,9 +11,10 @@
 // nothing is sent to any server.
 //
 // It plays: the row opens a native chat, once (a second click opens the same one); the strip sits above ITS composer and no other chat's;
-// a person with no Telegram on the Free plan (QR, steps, upsell, no wake button), the pairing going waiting -> scanned -> connected by
-// itself (the strip folds), the choice of the computer linked to Kaby, a paid plan (wake and sleep), the strip folding and remembered, a server
-// with no Telegram bot (folded, one line), a phone width,
+// a person with no Telegram on the Free plan (two equal tiles, no code asked for on open, the switch turning it on: QR and steps under the
+// tiles, the same switch cancelling), the pairing going waiting -> scanned -> connected by itself (the strip folds), the choice of the
+// computer linked to Kaby, a paid plan (wake and sleep), a computer being set up that turns into an asleep one by itself, the strip folding
+// and remembered, disconnecting (asked first), a server with no Telegram bot (folded, a disabled switch), a phone width,
 // and the page (what Kaby is, the way into the chat). Exit code 0 / 1 / 3 (not run).
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -94,6 +95,15 @@ try {
   await waitFor(page, 'document.body && document.body.innerText.length > 80', 30000)
   console.log('Kaby — ' + host + ' (the sandbox serves this checkout; the account\'s answers are faked)')
 
+  // The sandbox has no sign-in: its « Get started » dialog sits over the page and hides it in the screenshots. Escape closes it.
+  const closeDialog = async () => {
+    for (let i = 0; i < 3; i++) {
+      if ((await val(`!document.querySelector('[role="dialog"]')`)) === true) return
+      await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
+      await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
+      await sleep(400)
+    }
+  }
   const sessionCount = () => val(`(() => { try { return String(document.querySelectorAll('[data-row-key^="session:"]').length) } catch (e) { return '0' } })()`)
   const pointer = () => val(`fetch('/kybernos-cloud/kyby/native', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => j.sessionId || null)`)
   const kybyRow = `Array.from(document.querySelectorAll('button, a, [role="button"]')).filter((x) => (x.innerText || '').trim().split('\\n')[0] === 'Kaby' && x.getClientRects().length > 0)[0]`
@@ -128,38 +138,64 @@ try {
   await sleep(1500)
   check('a second click opens the same chat, no new one', (await pointer()) === first && (await has('kybernos-kyber-dock')) === true)
 
-  console.log('── 3. not connected, Free plan (in the strip) ──')
-  check('the strip is open with the Channels title, because there is a code to scan', (await val(`(() => { const s = document.querySelector('[data-kb="kybernos-kyber-strip"]'); return !!s && s.classList.contains('open') && /Canaux|Channels/.test(s.innerText) })()`)) === true)
-  check('its line holds two chips only: Kaby\'s computer and Telegram', (await val(`(() => { const t = document.querySelector('[data-kb="kybernos-kyber-strip-toggle"]'); return !!t && t.querySelectorAll('.kbky-chip').length === 2 && /Kaby/.test(t.innerText) && /Telegram/.test(t.innerText) && !/WhatsApp|WeChat/.test(t.innerText) })()`)) === true)
-  check('a QR code is drawn from the pairing', (await poll(() => val(`!!document.querySelector('[data-kb="kybernos-kyber-qr"] svg path')`))) === true)
-  check('the strip asked for exactly one pairing', (await calls('/kybernos-cloud/telegram/pairing')).length === 1, await calls('/kybernos-cloud/telegram/pairing'))
-  check('« Open Telegram » goes to the bot\'s link, in a new tab', (await val(`(() => { const a = document.querySelector('[data-kb="kybernos-kyber-open"]'); return !!a && a.getAttribute('href') === ${JSON.stringify(LINK)} && a.target === '_blank' && /noopener/.test(a.rel) })()`)) === true)
-  check('the three steps are listed', (await val(`document.querySelectorAll('[data-kb="kybernos-kyber-telegram"] ol li').length`)) === 3)
+  const attr = (kb, name) => val(`(() => { const e = document.querySelector('[data-kb="${kb}"]'); return e ? e.getAttribute(${JSON.stringify(name)}) : null })()`)
+  const box = (kb) => val(`(() => { const e = document.querySelector('[data-kb="${kb}"]'); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, b: r.bottom } })()`)
+
+  await closeDialog()
+  console.log('── 3. not connected, Free plan: two tiles ──')
+  check('the strip is open, headed with the assistant\'s name and nothing that files the computer under « Channels »', (await val(`(() => { const s = document.querySelector('[data-kb="kybernos-kyber-strip"]'); const t = document.querySelector('[data-kb="kybernos-kyber-strip-toggle"]'); return !!s && s.classList.contains('open') && !!t && t.innerText.trim() === 'Kaby' && t.querySelectorAll('.kbky-chip').length === 0 })()`)) === true)
+  check('two tiles, Channels and Computer', (await has('kybernos-kyber-tile-channels')) === true && (await has('kybernos-kyber-computer')) === true)
+  const tb1 = await box('kybernos-kyber-tile-channels')
+  const tb2 = await box('kybernos-kyber-computer')
+  check('the two tiles are side by side and as tall as each other', tb1 !== null && tb2 !== null && Math.abs(tb1.h - tb2.h) <= 1 && Math.abs(tb1.y - tb2.y) <= 1 && tb1.x < tb2.x, { tb1, tb2 })
+  check('opening the strip asked for no code: no pairing, no QR', (await calls('/kybernos-cloud/telegram/pairing')).length === 0 && (await has('kybernos-kyber-qr')) === false && (await has('kybernos-kyber-telegram')) === false)
+  check('Telegram is a row with a switch, off, and says it is not connected', (await attr('kybernos-kyber-tg-switch', 'aria-checked')) === 'false' && /Pas connecté|Not connected/.test((await text('kybernos-kyber-tg-row')) || ''))
+  check('WhatsApp and WeChat are rows of the same list, with their mark and « Soon », and nothing to press', (await val(`['whatsapp', 'wechat'].every((c) => { const e = document.querySelector('[data-kb="kybernos-kyber-chan-' + c + '"]'); return !!e && !!e.querySelector('svg path') && /Bientôt|Soon/.test(e.innerText) && e.querySelectorAll('button, a, input').length === 0 })`)) === true)
+  check('there is no « Other channels » group', (await val(`!/Autres canaux|Other channels/.test(document.querySelector('[data-kb="kybernos-kyber-strip"]').innerText)`)) === true)
   const comp = (await text('kybernos-kyber-computer')) || ''
-  check('Kaby\'s computer is there from the start: its name, asleep, and the Free plan says it cannot be woken by hand', /Home/.test(comp) && /En veille|Asleep/.test(comp) && (await has('kybernos-kyber-upsell')) === true && (await has('kybernos-kyber-wake')) === false, comp.slice(0, 200))
-  check('WhatsApp and WeChat are one muted line, with their mark and « Soon »', (await val(`(() => { const l = document.querySelector('[data-kb="kybernos-kyber-others"]'); return !!l && /Bientôt|Soon/.test(l.innerText) && ['whatsapp', 'wechat'].every((c) => { const e = document.querySelector('[data-kb="kybernos-kyber-chan-' + c + '"]'); return !!e && !!e.querySelector('svg path') }) })()`)) === true)
+  check('the computer: its name, asleep, the Free plan says it cannot be woken by hand, an upgrade button and no wake button', /Home/.test(comp) && /En veille|Asleep/.test(comp) && (await has('kybernos-kyber-upsell')) === true && (await has('kybernos-kyber-upgrade')) === true && (await has('kybernos-kyber-wake')) === false, comp.slice(0, 200))
   check('calm: no radio, no settings, no « where it runs »', (await val(`document.querySelectorAll('[data-kb="kybernos-kyber-strip"] input[type="radio"]').length === 0 && !document.querySelector('[data-kb="kybernos-kyber-settings"]')`)) === true)
-  await shot('2-strip-unlinked')
+  await shot('2-strip-two-tiles')
+
+  console.log('── 3b. turning Telegram on: the code, under the two tiles ──')
+  await click('kybernos-kyber-tg-switch')
+  check('the switch asked for exactly one pairing', (await poll(async () => (await calls('/kybernos-cloud/telegram/pairing')).length === 1, 6000)) === true, await calls('/kybernos-cloud/telegram/pairing'))
+  check('a QR code is drawn from the pairing', (await poll(() => val(`!!document.querySelector('[data-kb="kybernos-kyber-qr"] svg path')`))) === true)
+  check('the switch is on and the row says there is a code to scan', (await attr('kybernos-kyber-tg-switch', 'aria-checked')) === 'true' && /Code à scanner|Code to scan/.test((await text('kybernos-kyber-tg-row')) || ''))
+  const pb = await box('kybernos-kyber-telegram')
+  const tbAfter = await box('kybernos-kyber-computer')
+  check('the panel is under the two tiles, as wide as both together', pb !== null && tbAfter !== null && pb.y >= tbAfter.b - 1 && pb.w > tbAfter.w * 1.5, { pb, tbAfter })
+  check('« Open Telegram » goes to the bot\'s link, in a new tab', (await val(`(() => { const a = document.querySelector('[data-kb="kybernos-kyber-open"]'); return !!a && a.getAttribute('href') === ${JSON.stringify(LINK)} && a.target === '_blank' && /noopener/.test(a.rel) })()`)) === true)
+  check('the three steps are listed, with the time left', (await val(`document.querySelectorAll('[data-kb="kybernos-kyber-telegram"] ol li').length`)) === 3 && /\d:\d\d/.test((await text('kybernos-kyber-left')) || ''))
+  const tcA = await box('kybernos-kyber-tile-channels')
+  const tcB = await box('kybernos-kyber-computer')
+  check('both tiles are still as tall as each other while the code is shown', tcA !== null && tcB !== null && Math.abs(tcA.h - tcB.h) <= 1, { tcA, tcB })
+  await shot('2b-code-under-tiles')
+  await click('kybernos-kyber-tg-switch')
+  check('the same switch cancels: the host is told and the panel goes', (await poll(async () => (await calls('/kybernos-cloud/telegram/pairing/cancel')).length === 1 && (await has('kybernos-kyber-telegram')) === false, 6000)) === true)
+  check('and the switch is off again', (await attr('kybernos-kyber-tg-switch', 'aria-checked')) === 'false')
+  await click('kybernos-kyber-tg-switch')
+  check('turned on again: a new code', (await poll(async () => (await calls('/kybernos-cloud/telegram/pairing')).length === 2 && (await has('kybernos-kyber-qr')) === true, 6000)) === true)
 
   console.log('── 4. the pairing goes by itself ──')
   await setMock(`window.__kbMock.pairingState = { ok: true, state: 'scanned', reason: null, sender: 'Miled (@milede)', expires_at: '' }`)
-  check('after the scan the card names who Telegram says it is', (await poll(() => val(`/Miled \\(@milede\\)/.test((document.querySelector('[data-kb="kybernos-kyber-telegram"]') || {}).innerText || '')`), 8000)) === true)
+  check('after the scan the panel names who Telegram says it is', (await poll(() => val(`/Miled \\(@milede\\)/.test((document.querySelector('[data-kb="kybernos-kyber-telegram"]') || {}).innerText || '')`), 8000)) === true)
+  check('and the QR is gone, the row waits for the person\'s OK', (await has('kybernos-kyber-qr')) === false && /En attente|Waiting/.test((await text('kybernos-kyber-tg-row')) || ''))
   await setMock(`window.__kbMock.kyber.telegram.linked = { display: 'Miled (@milede)', linked_at: '2026-10-15T10:00:00.000Z', paused: false, blocked: false }; window.__kbMock.pairingState = { ok: true, state: 'done', reason: null, sender: 'Miled (@milede)', expires_at: '' }`)
   check('on the tap the status becomes connected by itself', (await poll(() => val(`/connecté|connected/i.test((document.querySelector('[data-kb="kybernos-kyber-status"]') || {}).innerText || '') && !/non connect|not connected/i.test((document.querySelector('[data-kb="kybernos-kyber-status"]') || {}).innerText || '')`), 9000)) === true)
   check('the strip folds itself once connected, so the chat is in view', (await val(`!document.querySelector('[data-kb="kybernos-kyber-channels"]')`)) === true)
   await click('kybernos-kyber-strip-toggle')
-  check('opened, the Telegram card is the connected one', (await poll(() => val(`/Connecté : Miled|Connected: Miled/.test((document.querySelector('[data-kb="kybernos-kyber-telegram"]') || {}).innerText || '')`), 5000)) === true)
-  check('the Telegram card is one line, with Open and Disconnect', (await val(`!!document.querySelector('[data-kb="kybernos-kyber-bot"]') && !!document.querySelector('[data-kb="kybernos-kyber-unlink"]')`)) === true)
+  check('opened, Telegram\'s row names the chat, the switch is on, the bot has its link, and no panel is left', (await poll(() => val(`/Miled \\(@milede\\)/.test((document.querySelector('[data-kb="kybernos-kyber-tg-row"]') || {}).innerText || '')`), 5000)) === true && (await attr('kybernos-kyber-tg-switch', 'aria-checked')) === 'true' && (await has('kybernos-kyber-bot')) === true && (await has('kybernos-kyber-telegram')) === false)
   await shot('3-connected')
 
   console.log('── 5. the computer linked to Kaby ──')
-  check('with one computer there is nothing to choose', (await has('kybernos-kyber-pick')) === false)
+  check('with one computer there is nothing to select', (await has('kybernos-kyber-pick')) === false)
   await setMock(`window.__kbMock.kyber.computers = [{ id: '11111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa', name: 'Home', state: 'suspended' }, { id: '22222222-bbbb-4bbb-8bbb-bbbbbbbbbbbb', name: 'Atelier', state: 'running' }]`)
   await val(`window.__KB_KYBER__.refresh()`)
-  check('with several, a plain choice appears', (await poll(() => has('kybernos-kyber-pick'), 6000)) === true)
+  check('with several, the field is a real select', (await poll(() => has('kybernos-kyber-pick'), 6000)) === true && (await val(`document.querySelector('[data-kb="kybernos-kyber-pick"]').tagName`)) === 'SELECT')
   await val(`(() => { const sel = document.querySelector('[data-kb="kybernos-kyber-pick"]'); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(sel, '22222222-bbbb-4bbb-8bbb-bbbbbbbbbbbb'); sel.dispatchEvent(new Event('change', { bubbles: true })); return true })()`)
   check('the choice is sent to the host', (await poll(async () => (await calls('/kybernos-cloud/kyby/computer')).some((c) => c.body && c.body.computer_id === '22222222-bbbb-4bbb-8bbb-bbbbbbbbbbbb'), 5000)) === true)
-  check('and read again: the strip line names the new computer\'s state', (await poll(() => val(`/Atelier|Éveillé|Awake/.test(document.querySelector('[data-kb="kybernos-kyber-computer"]').innerText)`), 6000)) === true)
+  check('and read again: the tile shows the new computer and its state', (await poll(() => val(`(() => { const t = document.querySelector('[data-kb="kybernos-kyber-computer"]'); const s = t.querySelector('select'); return !!s && s.value === '22222222-bbbb-4bbb-8bbb-bbbbbbbbbbbb' && /Éveillé|Awake/.test(t.innerText) })()`), 6000)) === true)
   await setMock(`window.__kbMock.kyber.computers = [{ id: '11111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa', name: 'Home', state: 'suspended' }]; window.__kbMock.kyber.home = Object.assign({}, window.__kbMock.kyber.home, { id: '11111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa', name: 'Home', state: 'suspended' })`)
   await val(`window.__KB_KYBER__.refresh()`)
   await sleep(600)
@@ -167,33 +203,45 @@ try {
   console.log('── 6. a paid plan: the computer can be driven ──')
   await setMock(`window.__kbMock.kyber.home.manual_control = true`)
   await val(`window.__KB_KYBER__.refresh()`)
-  check('the wake button appears and the upsell goes', (await poll(() => val(`!!document.querySelector('[data-kb="kybernos-kyber-wake"]') && !document.querySelector('[data-kb="kybernos-kyber-upsell"]')`), 8000)) === true)
+  check('the wake button appears and the Free note goes', (await poll(() => val(`!!document.querySelector('[data-kb="kybernos-kyber-wake"]') && !document.querySelector('[data-kb="kybernos-kyber-upsell"]') && !document.querySelector('[data-kb="kybernos-kyber-upgrade"]')`), 8000)) === true)
   await click('kybernos-kyber-wake')
   check('a wake is asked of the host', (await poll(async () => (await calls('/kybernos-cloud/computer/resume')).length === 1, 5000)) === true)
-  check('the card then offers to put it to sleep and to open it', (await poll(() => val(`!!document.querySelector('[data-kb="kybernos-kyber-sleep"]') && !!document.querySelector('[data-kb="kybernos-kyber-pcopen"]')`), 8000)) === true)
+  check('the tile then offers to put it to sleep and to open it', (await poll(() => val(`!!document.querySelector('[data-kb="kybernos-kyber-sleep"]') && !!document.querySelector('[data-kb="kybernos-kyber-pcopen"]')`), 8000)) === true)
+
+  console.log('── 6b. a computer being set up turns into a computer by itself ──')
+  await setMock(`window.__kbMock.kyber.home.state = 'creating'; window.__kbMock.kyber.computers = [Object.assign({}, window.__kbMock.kyber.computers[0], { state: 'creating' })]`)
+  await val(`window.__KB_KYBER__.refresh()`)
+  check('the chip says it is being set up, with the sentence for a machine dedicated to the person', (await poll(() => val(`(() => { const t = document.querySelector('[data-kb="kybernos-kyber-computer"]'); return !!t && /Initialisation|Setting up/.test(t.innerText) && /machine dédiée pour vous|machine dedicated to you/.test(t.innerText) && !!t.querySelector('.kbky-spin') })()`), 6000)) === true)
+  await shot('3c-setting-up')
+  await setMock(`window.__kbMock.kyber.home.state = 'suspended'; window.__kbMock.kyber.computers = [Object.assign({}, window.__kbMock.kyber.computers[0], { state: 'suspended' })]`)
+  check('with no refresh from the check, it reads again and becomes « Asleep »', (await poll(() => val(`(() => { const t = document.querySelector('[data-kb="kybernos-kyber-computer"]'); return !!t && /En veille|Asleep/.test(t.innerText) && !/Initialisation|Setting up/.test(t.innerText) })()`), 10000)) === true)
 
   console.log('── 7. the strip folds, and is remembered ──')
   await click('kybernos-kyber-strip-toggle')
-  check('folded: the panel is gone, the two chips stay', (await val(`!document.querySelector('[data-kb="kybernos-kyber-channels"]') && /Telegram/.test(document.querySelector('[data-kb="kybernos-kyber-strip"]').innerText) && /Kaby/.test(document.querySelector('[data-kb="kybernos-kyber-strip"]').innerText)`)) === true)
+  check('folded: the tiles are gone, the two chips say how things stand', (await val(`(() => { const s = document.querySelector('[data-kb="kybernos-kyber-strip"]'); return !document.querySelector('[data-kb="kybernos-kyber-channels"]') && s.querySelectorAll('.kbky-chip').length === 2 && /Telegram/.test(s.innerText) && /Home/.test(s.innerText) })()`)) === true)
   check('the choice is remembered for the next visit', (await val(`window.localStorage.getItem('kybernos-kyber.strip')`)) === '0')
   await val(`window.localStorage.removeItem('kybernos-kyber.strip')`)
   await shot('4-folded')
 
-  console.log('── 8. disconnecting ──')
+  console.log('── 8. disconnecting asks first ──')
   await click('kybernos-kyber-strip-toggle')
-  await click('kybernos-kyber-unlink')
-  check('disconnect asks to confirm first', (await has('kybernos-kyber-unlink-yes')) === true && (await calls('/kybernos-cloud/telegram/unlink')).length === 0)
+  await click('kybernos-kyber-tg-switch')
+  check('turning the switch off does not disconnect: a question appears and nothing is sent', (await has('kybernos-kyber-unlink-yes')) === true && (await calls('/kybernos-cloud/telegram/unlink')).length === 0)
+  await click('kybernos-kyber-unlink-no')
+  check('« Cancel » closes the question, still connected', (await has('kybernos-kyber-unlink-yes')) === false && (await attr('kybernos-kyber-tg-switch', 'aria-checked')) === 'true')
+  await click('kybernos-kyber-tg-switch')
   await click('kybernos-kyber-unlink-yes')
-  check('confirmed: it is sent and the card goes back to the connection', (await poll(async () => (await calls('/kybernos-cloud/telegram/unlink')).length === 1 && (await val(`/Connecter Telegram|Connect Telegram/.test((document.querySelector('[data-kb="kybernos-kyber-telegram"]') || {}).innerText || '')`)) === true, 9000)) === true)
+  check('confirmed: it is sent once and the row goes back to « not connected », the switch off', (await poll(async () => (await calls('/kybernos-cloud/telegram/unlink')).length === 1 && (await attr('kybernos-kyber-tg-switch', 'aria-checked')) === 'false' && /Pas connecté|Not connected/.test((await text('kybernos-kyber-tg-row')) || ''), 9000)) === true)
+  check('and no new code is asked for by itself', (await calls('/kybernos-cloud/telegram/pairing')).length === 2)
 
   console.log('── 8b. a server with no Telegram bot ──')
   await val(`window.__KB_KYBER__.resetStrip()`)
   await setMock(`window.__kbMock.kyber.telegram = { configured: false, enabled: false, bot: null, linked: null }`)
   await val(`window.__KB_KYBER__.refresh()`)
   check('the chip says Telegram is unavailable', (await poll(() => val(`/indisponible|unavailable/i.test(document.querySelector('[data-kb="kybernos-kyber-status"]').innerText)`), 6000)) === true)
-  check('the strip is folded by itself: there is nothing to do in it', (await val(`!document.querySelector('[data-kb="kybernos-kyber-channels"]')`)) === true)
+  check('the strip is folded by itself: there is nothing to turn on', (await val(`!document.querySelector('[data-kb="kybernos-kyber-channels"]')`)) === true)
   await click('kybernos-kyber-strip-toggle')
-  check('opened, it is one muted line, not a card', (await val(`(() => { const e = document.querySelector('[data-kb="kybernos-kyber-telegram"]'); return !!e && e.tagName === 'P' && e.getAttribute('data-state') === 'off' && /server|serveur/.test(e.innerText) })()`)) === true)
+  check('opened: the row says there is no bot on this server and its switch is disabled', (await val(`(() => { const r = document.querySelector('[data-kb="kybernos-kyber-tg-row"]'); const sw = document.querySelector('[data-kb="kybernos-kyber-tg-switch"]'); return !!r && /Pas de bot sur ce serveur|No bot on this server/.test(r.innerText) && !!sw && sw.disabled === true && !document.querySelector('[data-kb="kybernos-kyber-telegram"]') })()`)) === true)
   await shot('4b-no-bot')
   await val(`window.__KB_KYBER__.resetStrip()`)
   await setMock(`window.__kbMock.kyber.telegram = { configured: true, enabled: true, bot: 'kybernos_bot', linked: null }`)
@@ -203,7 +251,10 @@ try {
   console.log('── 9. a phone ──')
   await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 900, deviceScaleFactor: 1, mobile: false })
   await sleep(800)
+  await click('kybernos-kyber-tg-switch')
+  await poll(() => has('kybernos-kyber-open'), 6000)
   check('no sideways scroll', (await val(`document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1`)) === true)
+  check('the two tiles are one under the other', await (async () => { const x = await box('kybernos-kyber-tile-channels'); const y = await box('kybernos-kyber-computer'); return x !== null && y !== null && y.y >= x.b - 1 && Math.abs(x.w - y.w) <= 1 })())
   check('the QR is hidden (nobody scans their own screen), the Telegram button stays', (await val(`(() => { const q = document.querySelector('[data-kb="kybernos-kyber-qr"]'); const o = document.querySelector('[data-kb="kybernos-kyber-open"]'); return (!q || q.getClientRects().length === 0) && !!o && o.getClientRects().length > 0 })()`)) === true)
   await shot('5-phone')
   await page.send('Emulation.clearDeviceMetricsOverride', {})
