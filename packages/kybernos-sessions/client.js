@@ -572,7 +572,8 @@ window.__ModuleLoader__.load({
       const r = await fetch('/kybernos-sessions/decision', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ categorie: titre }) })
       if (!r || r.ok !== true) throw new Error('decision HTTP ' + (r ? r.status : '?'))
       const v = await r.json()
-      const slug = (v !== null && typeof v === 'object' && v.ok === true && v.motif === 'choisi' && CATEGORIE_PAR_SLUG[v.categorie] !== undefined) ? v.categorie : null
+      // `choisi` : le cerveau de décision a tranché ; `local` : il n'a pas répondu et le host a classé sur les mots du titre.
+      const slug = (v !== null && typeof v === 'object' && v.ok === true && (v.motif === 'choisi' || v.motif === 'local') && CATEGORIE_PAR_SLUG[v.categorie] !== undefined) ? v.categorie : null
       AUTOCAT[id] = { titre, slug, ts: Date.now() }
       ecrireAutocatCache()
       if (slug === null) return // cerveau pas sûr : l'icône provisoire reste, réessai prévu
@@ -594,12 +595,17 @@ window.__ModuleLoader__.load({
         const el = ligne.querySelector('[class*="title"]')
         if (el === null || el === undefined) continue
         const provisoire = el.querySelector('.kbs-titre-ico[data-provisoire="1"]')
-        if (provisoire === null || provisoire === undefined) continue // déjà classé
         const id = idDeLigne(ligne)
         if (id === '') continue
         if (CATEGORIES[id] !== undefined && CATEGORIES_AUTO[id] !== true) continue
         const texte = String(el.textContent || '').trim()
         if (texte.length < 4) continue // titre encore vide ou d'accueil
+        if (provisoire === null || provisoire === undefined) {
+          // Déjà classé. Ça ne revient que si la catégorie vient du classement AUTOMATIQUE de cette page et que le titre a
+          // changé depuis (le moteur re-titre après le récapitulatif : « Greeting » devient le vrai sujet).
+          const avant = AUTOCAT[id]
+          if (!(CATEGORIES_AUTO[id] === true && avant !== undefined && avant !== null && String(avant.titre || '') !== texte)) continue
+        }
         if (autocatResolu(id, texte) === true) continue
         AUTOCAT_FILE.push({ id, titre: texte, ligne })
       }

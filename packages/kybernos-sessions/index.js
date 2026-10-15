@@ -40,6 +40,7 @@ import { readdirSync, statSync, existsSync, readFileSync, writeFileSync, mkdirSy
 import { join, basename, dirname } from 'node:path'
 import { creerSonde } from './brain-health.mjs'
 import { decider, selectionnerKyber, selectionnerCategorie, lireModeleDecision, dshHome, CATEGORIES, MODELES_DECISION_CONNUS, MODELE_DEFAUT } from './decision.mjs'
+import { classerLocalement } from './classement-local.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -1342,7 +1343,20 @@ export function monterRoutes (webServerSvc, opts) {
               { fichierCredentials: referencesFichier, modele, ...(seuil === undefined ? {} : { seuil }) })
             : await moteurDecision.selectionner(corps.kybers, corps.demande,
               { fichierCredentials: referencesFichier, modele, ...(seuil === undefined ? {} : { seuil }) }))
-      envoyer(res, 200, verdict === null || typeof verdict !== 'object' ? { ok: false, code: 'VERDICT-ILLISIBLE', erreur: 'le moteur n’a rien rendu' } : verdict)
+      // Le cerveau n'a RIEN répondu (erreur de passerelle, éteint, clé absente) : pour une CATÉGORIE de chat, un classement local
+      // prudent sur les mots du titre prend le relais (classement-local.mjs), étiqueté `local`. Un verdict du cerveau — même
+      // « aucun » ou « sous le seuil » — n'est jamais contredit ; sans signal net dans le titre, la réponse reste celle du cerveau.
+      let reponse = verdict
+      const voieCategorie = !(questions !== null && questions !== undefined && typeof questions === 'object' && Array.isArray(questions) === false) &&
+        corps.categorie !== undefined && corps.categorie !== null
+      if (voieCategorie === true && (verdict === null || typeof verdict !== 'object' || verdict.ok !== true)) {
+        const local = classerLocalement(corps.categorie)
+        if (local.categorie !== null) {
+          reponse = { ok: true, motif: 'local', categorie: local.categorie, source: 'local', score: local.score, ecart: local.ecart, mots: local.mots, ms: 0,
+            cerveau: verdict !== null && typeof verdict === 'object' ? { ok: verdict.ok === true, code: String(verdict.code || verdict.motif || '') } : null }
+        }
+      }
+      envoyer(res, 200, reponse === null || typeof reponse !== 'object' ? { ok: false, code: 'VERDICT-ILLISIBLE', erreur: 'le moteur n’a rien rendu' } : reponse)
     } catch (e) {
       envoyer(res, 200, { ok: false, code: 'MOTEUR-EN-PANNE', erreur: String(e && e.message ? e.message : e) })
     }
