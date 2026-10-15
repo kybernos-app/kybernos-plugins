@@ -90,7 +90,7 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
   ok('a server that does not know manual_control keeps the buttons', k({ state: 'suspended' }).home.manualControl === true)
   ok('manual_control false (the Free plan) is carried', k({ state: 'suspended', manual_control: false }).home.manualControl === false)
   ok('the paused reason is a word of ours, not the server\'s', k({ state: 'suspended', paused_reason: 'hours' }).home.paused === 'hours' && k({ state: 'suspended', paused_reason: 'DROP TABLE' }).home.paused === 'other' && k({ state: 'suspended' }).home.paused === '')
-  ok('the setting is cloud unless the server says ask', k(null).telegram.homeTarget === 'cloud' && k(null, { home_target: 'ask' }).telegram.homeTarget === 'ask' && k(null, { home_target: 'mac' }).telegram.homeTarget === 'cloud')
+  ok('the computers of the account are listed, and the one linked to the assistant is the home', (() => { const v = T.derive({ ok: true, connected: true, telegram: null, computers: [{ id: 'aaaaaaaa-1111', name: 'Home', state: 'suspended' }, { id: 'bbbbbbbb-2222', name: 'Atelier', state: 'running' }, { id: '../x', name: 'bad' }], home: { id: 'bbbbbbbb-2222', name: 'Atelier', state: 'running' } }, server); return v.computers.length === 2 && v.home.id === 'bbbbbbbb-2222' && v.home.name === 'Atelier' })())
 }
 {
   const now = Date.parse('2026-10-15T10:00:00Z')
@@ -105,10 +105,10 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
   ok('the clock reads m:ss', T.clock(0) === '0:00' && T.clock(65) === '1:05' && T.clock(299.9) === '4:59')
 }
 {
-  ok('the strip is open until Telegram is connected, folded after, and the person\'s choice wins', T.stripIsOpen(null, false) === true && T.stripIsOpen(null, true) === false && T.stripIsOpen(true, true) === true && T.stripIsOpen(false, false) === false)
+  ok('the strip is open only when there is a code to scan, and the person\'s choice wins', T.stripIsOpen(null, 'unlinked') === true && T.stripIsOpen(null, 'linked') === false && T.stripIsOpen(null, 'off') === false && T.stripIsOpen(null, null) === false && T.stripIsOpen(true, 'off') === true && T.stripIsOpen(false, 'unlinked') === false)
   ok('WhatsApp and WeChat have a mark', typeof T.BRAND.whatsapp === 'function' && typeof T.BRAND.wechat === 'function' && typeof T.BRAND.telegram === 'function')
   ok('the assistant has one name, said through a token, in both languages, and no « Kyber » or « Kyby » is spelt out', T.NAME === 'Kaby' && T.L('title') === 'Kaby' && T.kt('{NAME}', '{NAME}') === '{NAME}' && !Object.values(T.S).some((p) => /\b(Kyber|Kyby|Kaby)\b/.test(p[0] + ' ' + p[1])) && /\{NAME\}/.test(JSON.stringify(T.S)))
-  ok('every other channel says « soon » and is never offered', T.L('soon') === 'Bientôt' && /BRAND\.\w+\(22\)/.test(src) && !/whatsapp[^\n]*onClick/i.test(src))
+  ok('the channels that are not there yet say « soon » and are never offered', T.L('soonLead') === 'Bientôt :' && /BRAND\.\w+\(16\)/.test(src) && !/whatsapp[^\n]*onClick/i.test(src))
 }
 
 {
@@ -144,11 +144,17 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
 {
   // Calm: what there is to DO, not everything there is.
   ok('Kaby\'s chat is made in a workspace of its own, already chosen, and a chat made without one is made again', /ws\.items\.some\(\(i\) => i !== null && Array\.isArray\(i\.sessionIds\) && i\.sessionIds\.includes\(sid\)\)/.test(src))
-  ok('the strip shows the Telegram card, and the settings only behind a disclosure once connected', /props\.lite === true/.test(src) && /h\('details', \{ className: 'kbky-more'/.test(src) && /Channels, \{ visible: true, lite: true \}/.test(src))
+  ok('the strip is calm: Kaby\'s computer, Telegram, one muted line for what comes later; no settings, no radio', /h\(ComputerRow, \{ view: v \}\)/.test(src) && /h\(SoonLine\)/.test(src) && !/type: 'radio'/.test(src) && !/WhereCard|OtherChannels|kbky-more/.test(src))
   const srv = T.derive({ ok: true, connected: true, telegram: { configured: false, enabled: false, bot: null, linked: null }, home: null }, { ok: true, server: { id: 'kybernos-local', api: 'http://localhost:8791' } })
-  ok('the server\'s name is known, so that « no Telegram bot » can say whose', srv.serverId === 'kybernos-local' && T.L('ofPS', { server: srv.serverId }).includes('kybernos-local'))
+  ok('the server\'s name is known, so that « no Telegram bot » can say whose', (() => { const v = T.derive({ ok: true, connected: true, telegram: { configured: false, enabled: false, bot: null, linked: null }, home: null }, { ok: true, server: { id: 'kybernos-local', api: 'http://localhost:8791' } }); return v.serverId === 'kybernos-local' && T.L('ofLineS', { server: v.serverId }).includes('kybernos-local') })())
   ok('an odd server id is dropped', T.derive({ ok: true, connected: true, telegram: null, home: null }, { ok: true, server: { id: '<b>', api: 'http://x' } }).serverId === '')
   ok('the diagnostics hook tells whether a chat is Kaby\'s (the new-chat cards stay out of it)', /isKybySession \(sid\)/.test(src))
+}
+
+{
+  ok('a computer that does not exist yet is « ready at the first request », not a missing thing', T.L('noHome').startsWith('Prêt') && T.S.onRequest !== undefined)
+  ok('a choice among several computers is a plain select, and it is sent to the host', /'data-kb': 'kybernos-kyber-pick'/.test(src) && /\/kybernos-cloud\/kyby\/computer/.test(src) && /v\.computers\.length > 1/.test(src))
+  ok('no setting of where a message runs is left in the page', !/telegram\/settings|home_target|homeTarget/.test(src))
 }
 
 process.exit(fail > 0 ? 1 : 0)

@@ -1,5 +1,5 @@
-// Kaby, the DSH side of the person's own assistant (kybernos-server ADR 0053): the Telegram pairing by QR code or link, the setting
-// that says where a message runs, and the disconnect. This file holds what is pure: the shapes a page may rely on, what a refusal is
+// Kaby, the DSH side of the person's own assistant (kybernos-server ADR 0053): the Telegram pairing by QR code or link, the choice of
+// the cloud computer linked to it, and the disconnect. This file holds what is pure: the shapes a page may rely on, what a refusal is
 // called, the QR. index.js makes the network calls with the account's token and hands this factory what it needs, so every route is
 // tested without a server. (Kaby's own chat is a native DSH conversation: kyby-native.mjs.)
 //
@@ -11,13 +11,12 @@ import { encodeQr } from './qr.mjs'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const BOT = /^[A-Za-z0-9_]{3,64}$/
 const START = /^https:\/\/t\.me\/([A-Za-z0-9_]{3,64})\?start=pair_[a-z0-9]{8,64}$/
-export const HOME_TARGETS = Object.freeze(['cloud', 'ask'])
 export const PAIRING_STATES = Object.freeze(['waiting', 'scanned', 'done', 'declined', 'expired'])
 export const DECLINE_REASONS = Object.freeze(['user', 'taken', 'botmade'])
 
 /** Codes a page may be told. Anything else the server says is `refused`. */
 const KNOWN = Object.freeze([
-  'not_found', 'already_linked', 'not_linked', 'rate_limited', 'busy', 'turn_pending', 'model_required', 'model_not_in_plan', 'model_not_found',
+  'not_found', 'already_linked', 'not_linked', 'computer_not_found', 'computer_unavailable', 'rate_limited', 'busy', 'turn_pending', 'model_required', 'model_not_in_plan', 'model_not_found',
   'feature_not_in_plan', 'insufficient_quota', 'payment_past_due', 'budget_not_configured', 'job_bud', 'hosted_busy', 'queue_full',
   'thread_full', 'storage_full', 'hosted_runs_disabled', 'no_runner', 'kyber_archived', 'thread_archived', 'client_turn_conflict',
   'mfa_required_by_workspace', 'plan_required', 'computers_off_for_workspace', 'invalid_request', 'thread_limit', 'computer_unavailable',
@@ -111,15 +110,15 @@ export function createKybyRoutes (deps) {
       return res.status === 200 ? { ok: true } : { ok: false, error: codeOf(res) }
     },
 
-    /** POST {home_target}: where a message runs. */
-    async settings (req, body) {
+    /** POST {computer_id}: the cloud computer linked to the assistant (null = the default). */
+    async computer (req, body) {
       const token = session()
       if (token === null) return { ok: false, error: 'not_connected' }
-      const target = body !== null && typeof body === 'object' ? body.home_target : undefined
-      if (!HOME_TARGETS.includes(target)) return { ok: false, error: 'invalid_request' }
-      const res = await deps.apiCall('/v1/me/telegram/settings', { method: 'PUT', token, body: { home_target: target }, timeoutMs: 15000 })
+      const id = body !== null && typeof body === 'object' ? body.computer_id : undefined
+      if (id !== null && !(typeof id === 'string' && UUID.test(id))) return { ok: false, error: 'invalid_request' }
+      const res = await deps.apiCall('/v1/me/kyby/computer', { method: 'PUT', token, body: { computer_id: id }, timeoutMs: 15000 })
       const b = res.status === 200 ? asObj(res.body) : null
-      return b !== null && HOME_TARGETS.includes(b.home_target) ? { ok: true, home_target: b.home_target } : { ok: false, error: codeOf(res) }
+      return b !== null && (b.computer_id === null || typeof b.computer_id === 'string') ? { ok: true, computer_id: b.computer_id } : { ok: false, error: codeOf(res) }
     },
 
     /** POST: disconnects this account's Telegram (the route needs no recent sign-in; the chat can be linked again at once). */

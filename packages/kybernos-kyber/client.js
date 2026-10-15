@@ -39,8 +39,7 @@ window.__ModuleLoader__.load({
         title: ['{NAME}', '{NAME}'],
         tabHint: ['Votre assistant : la conversation, Telegram et l’ordinateur sur lequel il travaille.', 'Your assistant: the conversation, Telegram and the computer it works on.'],
         // header and intro
-        subline: ['Votre assistant : il répond ici et sur Telegram, et travaille sur son propre ordinateur.', 'Your assistant: it answers here and on Telegram, and works on its own computer.'],
-        what: ['Qu’est-ce que {NAME} ?', 'What is {NAME}?'],
+       
         heroH: ['Votre assistant, dans votre poche.', 'Your assistant, in your pocket.'],
         heroP: ['Écrivez à {NAME} ici ou sur Telegram, comme à un ami. Il fait le travail sur son propre ordinateur dans le cloud, même quand le vôtre est éteint, et vous demande votre accord avant de modifier quoi que ce soit.', 'Write to {NAME} here or on Telegram, the way you would to a friend. It does the work on its own computer in the cloud, even when yours is off, and asks you before it changes anything.'],
         b1h: ['Demandez de n’importe où', 'Ask from anywhere'], b1p: ['Ici, ou depuis votre téléphone sur Telegram. C’est la même conversation.', 'Here, or from your phone on Telegram. It is the same conversation.'],
@@ -49,8 +48,7 @@ window.__ModuleLoader__.load({
         stOn: ['Telegram connecté', 'Telegram connected'], stOff: ['Telegram non connecté', 'Telegram not connected'], stWait: ['Telegram en attente', 'Telegram waiting'], stNone: ['Telegram indisponible', 'Telegram unavailable'],
         // the strip
         channels: ['Canaux', 'Channels'], collapse: ['Replier', 'Fold'], expand: ['Déplier', 'Unfold'],
-        soon: ['Bientôt', 'Soon'], otherChannels: ['Autres canaux', 'Other channels'],
-        wChip: ['Ordinateur de {NAME}', '{NAME}’s computer'], wChipAsk: ['Me demander', 'Ask me'],
+       otherChannels: ['Autres canaux', 'Other channels'],
         // telegram
         telegram: ['Telegram', 'Telegram'],
         cH: ['Connecter Telegram', 'Connect Telegram'], cSub: ['Environ une minute, sans mot de passe.', 'About a minute, no password.'],
@@ -77,35 +75,32 @@ window.__ModuleLoader__.load({
         bmP: ['Rattacher ce Telegram à votre compte n’est pas encore possible. En attendant, continuez à utiliser le bot tel quel.', 'Attaching this Telegram to your account is not possible yet. Meanwhile, keep using the bot as it is.'],
         ofH: ['Telegram n’est pas activé sur ce serveur', 'Telegram is not turned on on this server'],
         ofP: ['Ce serveur n’a pas de bot Telegram : il en faut un pour connecter Telegram.', 'This server has no Telegram bot: one is needed to connect Telegram.'],
-        ofPS: ['Le serveur de ce DSH ({server}) n’a pas de bot Telegram : il en faut un pour connecter Telegram.', 'The server this DSH talks to ({server}) has no Telegram bot: one is needed to connect Telegram.'],
-        settings: ['Réglages', 'Settings'],
+       
         pe: ['Impossible de préparer le code pour l’instant.', 'The code cannot be prepared right now.'],
         peRate: ['Trop d’essais : réessayez dans une minute.', 'Too many tries: try again in a minute.'],
         retry: ['Réessayer', 'Try again'],
-        // where {NAME} works
-        whereH: ['Où {NAME} travaille', 'Where {NAME} works'],
-        whereP: ['L’ordinateur que {NAME} utilise quand un message Telegram lui demande d’agir.', 'The computer {NAME} uses when a Telegram message asks it to act.'],
-        wCloud: ['Ordinateur de {NAME} (cloud)', '{NAME}’s computer (cloud)'], wCloudSub: ['Il se réveille quand {NAME} a du travail.', 'It wakes when {NAME} has work.'],
-        wMac: ['Mon Mac', 'My Mac'], wMacSub: ['Seulement quand DSH est ouvert dessus. Pas encore disponible.', 'Only while DSH is open on it. Not available yet.'],
-        wAsk: ['Me demander à chaque fois', 'Ask me each time'], wAskSub: ['{NAME} pose la question avec des boutons avant d’utiliser l’ordinateur.', '{NAME} asks with buttons before it uses the computer.'],
-        whereNeed: ['Disponible quand Telegram est connecté.', 'Available once Telegram is connected.'],
-        whereHint: ['Pour un seul message, écrivez « sur mon Mac » ou « sur l’ordinateur de {NAME} ». Une automatisation s’exécute là où elle vit.', 'For a single message, write “on my Mac” or “on {NAME}’s computer”. An automation runs where it lives.'],
         // computer
         computer: ['Ordinateur de {NAME}', '{NAME}’s computer'],
-        noHome: ['Pas encore d’ordinateur : il est créé au premier message qui demande à {NAME} d’agir.', 'No computer yet: it is made at the first message that asks {NAME} to act.'],
+        noHome: ['Prêt à la première demande : il est créé à ce moment-là.', 'Ready at the first request: it is made then.'],
+        onRequest: ['À la demande', 'On request'],
+        pickLead: ['Ordinateur lié à {NAME}', 'Computer linked to {NAME}'],
+        err_computer: ['Le choix n’a pas pu être enregistré.', 'The choice could not be saved.'],
+        err_computer_old: ['Ce serveur ne sait pas encore enregistrer ce choix.', 'This server cannot save this choice yet.'],
+        soonLead: ['Bientôt :', 'Soon:'],
+        ofLine: ['Telegram n’est pas disponible sur ce serveur.', 'Telegram is not available on this server.'],
+        ofLineS: ['Telegram n’est pas disponible sur le serveur de ce DSH ({server}).', 'Telegram is not available on this DSH’s server ({server}).'],
         st_running: ['Éveillé', 'Awake'], st_suspended: ['En veille', 'Asleep'], st_creating: ['En création', 'Being made'], st_resuming: ['Se réveille', 'Waking up'],
         st_suspending: ['S’endort', 'Going to sleep'], st_failed: ['En échec', 'Failed'], st_other: ['{state}', '{state}'],
         txt_running: ['Éveillé : {NAME} travaille dessus.', 'Awake: {NAME} is working on it.'],
         txt_suspended: ['En veille. Il se réveille tout seul quand {NAME} a du travail, puis se rendort.', 'Asleep. It wakes by itself when {NAME} has work, then goes back to sleep.'],
         txt_creating: ['Il est en cours de création.', 'It is being made.'], txt_resuming: ['Il se réveille.', 'It is waking up.'], txt_suspending: ['Il s’endort.', 'It is going to sleep.'],
         txt_failed: ['Il n’a pas démarré. {NAME} réessaiera au prochain message.', 'It did not start. {NAME} will try again at the next message.'],
-        lastActive: ['Dernière activité : {when}', 'Last active: {when}'], image: ['Image {v}', 'Image {v}'],
+       image: ['Image {v}', 'Image {v}'],
         net_public: ['Réseau : toutes les adresses publiques', 'Network: any public address'], net_closed: ['Réseau : seulement les serveurs Kybernos', 'Network: Kybernos servers only'], net_list: ['Réseau : une liste d’adresses', 'Network: a list of addresses'],
         pr_hours: ['Les heures d’exécution du mois sont utilisées.', 'This month’s run hours are used up.'], pr_other: ['Il est en pause.', 'It is paused.'],
         wake: ['Réveiller', 'Wake up'], sleep: ['Mettre en veille', 'Put to sleep'], openPc: ['Ouvrir', 'Open'],
         upsell: ['Avec l’offre Free, vous ne pouvez pas le réveiller ni le garder allumé. Une offre payante vous en donne la main.', 'On the Free plan you cannot wake it or keep it on. A paid plan puts you in charge of it.'],
         upgrade: ['Passer à une offre payante', 'Upgrade to a paid plan'],
-        approvals: ['Avant d’agir, il vous demande l’accord dans Telegram : Autoriser, Refuser, ou Autoriser pour cette tâche.', 'Before it acts, it asks you in Telegram: Allow, Refuse, or Allow for this task.'],
         manage: ['Gérer dans mon compte', 'Manage in my account'],
         // the native conversation
         openChat: ['Ouvrir la conversation avec {NAME}', 'Open the conversation with {NAME}'],
@@ -140,17 +135,22 @@ window.__ModuleLoader__.load({
         const s = asObj(server) !== null ? asObj(asObj(server).server) : null
         const api = s !== null && typeof s.api === 'string' && /^https?:\/\//.test(s.api) ? s.api.replace(/\/+$/, '') : ''
         const t = asObj(k.telegram)
-        let telegram = { state: 'off', homeTarget: 'cloud' }
+        let telegram = { state: 'off' }
         if (t !== null && t.configured === true && t.enabled === true) {
           const linked = asObj(t.linked)
           const bot = typeof t.bot === 'string' && /^[A-Za-z0-9_]{3,64}$/.test(t.bot) ? t.bot : ''
-          const homeTarget = t.home_target === 'ask' ? 'ask' : 'cloud'
           telegram = linked === null
-            ? { state: 'unlinked', homeTarget, botUrl: bot === '' ? '' : 'https://t.me/' + bot }
-            : { state: 'linked', homeTarget, name: String(linked.display || ''), since: String(linked.linked_at || ''), paused: linked.paused === true, blocked: linked.blocked === true, botUrl: bot === '' ? '' : 'https://t.me/' + bot }
+            ? { state: 'unlinked', botUrl: bot === '' ? '' : 'https://t.me/' + bot }
+            : { state: 'linked', name: String(linked.display || ''), since: String(linked.linked_at || ''), paused: linked.paused === true, blocked: linked.blocked === true, botUrl: bot === '' ? '' : 'https://t.me/' + bot }
         }
         const hm = asObj(k.home)
+        // The person's cloud computers (the one linked to {NAME} is `home`): a few names, to choose among when there are several.
+        const computers = (Array.isArray(k.computers) ? k.computers : [])
+          .filter((c) => asObj(c) !== null && typeof c.id === 'string' && /^[0-9a-fA-F-]{8,40}$/.test(c.id) && typeof c.name === 'string')
+          .slice(0, 20).map((c) => ({ id: c.id, name: c.name.slice(0, 60), state: String(c.state || '').slice(0, 20) }))
         const home = hm === null ? null : {
+          id: typeof hm.id === 'string' && /^[0-9a-fA-F-]{8,40}$/.test(hm.id) ? hm.id : '',
+          name: typeof hm.name === 'string' ? hm.name.slice(0, 60) : '',
           state: String(hm.state || ''),
           version: typeof hm.version === 'string' && hm.version !== '' ? hm.version : '',
           lastActive: typeof hm.last_active_at === 'string' ? hm.last_active_at : '',
@@ -160,7 +160,7 @@ window.__ModuleLoader__.load({
           paused: typeof hm.paused_reason === 'string' && hm.paused_reason !== '' ? (hm.paused_reason === 'hours' ? 'hours' : 'other') : '',
         }
         const serverId = s !== null && typeof s.id === 'string' && /^[A-Za-z0-9._-]{1,40}$/.test(s.id) ? s.id : ''
-        return { kind: 'ok', telegram, home, serverId, accountUrl: api === '' ? '' : api + '/account' }
+        return { kind: 'ok', telegram, home, computers, serverId, accountUrl: api === '' ? '' : api + '/account' }
       }
       /** What the connection card shows for a pairing (null = none yet), at `nowMs`. */
       const pairingFace = (p, nowMs) => {
@@ -178,7 +178,7 @@ window.__ModuleLoader__.load({
       const state = {
         loading: true, view: null, at: 0, stripPref: null,
         pairing: null, starting: false, autoDone: false, copied: false, confirmDisc: false, busy: '',
-        kybySid: null, kybyCwd: null, opening: false, openFailed: false, openError: '',
+        kybySid: null, kybyCwd: null, opening: false, openFailed: false, openError: '', computerError: '',
       }
       try { const v = window.localStorage.getItem('kybernos-kyber.strip'); if (v === '0') state.stripPref = false; else if (v === '1') state.stripPref = true } catch (e) { /* no storage */ }
       const listeners = new Set()
@@ -264,13 +264,13 @@ window.__ModuleLoader__.load({
       }
 
       // — settings, disconnect, computer —
-      const setWhere = async (target) => {
-        if (state.view === null || state.view.kind !== 'ok' || state.view.telegram.state !== 'linked') return
-        const before = state.view.telegram.homeTarget
-        state.view.telegram.homeTarget = target
+      /** The cloud computer linked to {NAME}: asked of the host, which asks the server; the answer is read again from the server. */
+      const setComputer = async (id) => {
+        state.computerError = ''
         emit()
-        const r = await postJson('/kybernos-cloud/telegram/settings', { home_target: target })
-        if (r === null || r.ok !== true) { state.view.telegram.homeTarget = before; emit() }
+        const r = await postJson('/kybernos-cloud/kyby/computer', { computer_id: id === '' ? null : id })
+        if (r === null || r.ok !== true) state.computerError = r !== null && r.error === 'not_found' ? 'err_computer_old' : 'err_computer'
+        await load()
       }
       const unlink = async () => {
         state.confirmDisc = false
@@ -306,11 +306,11 @@ window.__ModuleLoader__.load({
         try { if (window.__KB_UPGRADE__ && typeof window.__KB_UPGRADE__.open === 'function') { window.__KB_UPGRADE__.open(); return } } catch (e) { /* the dialog is not there */ }
         void openAccount('plan')
       }
-      /** The strip is open while there is something to do in it (no Telegram yet), folded once connected, unless the person chose. */
-      const stripIsOpen = (pref, linked) => (pref === true || pref === false ? pref : linked !== true)
-      const isLinked = () => state.view !== null && state.view.kind === 'ok' && state.view.telegram.state === 'linked'
+      /** The strip is open only while there is something to DO in it (a code to scan); folded when connected or when this server has no bot. The person's choice wins. */
+      const stripIsOpen = (pref, telegramState) => (pref === true || pref === false ? pref : telegramState === 'unlinked')
+      const telegramStateOf = () => (state.view !== null && state.view.kind === 'ok' ? state.view.telegram.state : null)
       const toggleStrip = () => {
-        state.stripPref = !stripIsOpen(state.stripPref, isLinked())
+        state.stripPref = !stripIsOpen(state.stripPref, telegramStateOf())
         try { window.localStorage.setItem('kybernos-kyber.strip', state.stripPref ? '1' : '0') } catch (e) { /* no storage */ }
         emit()
       }
@@ -373,7 +373,7 @@ window.__ModuleLoader__.load({
         const tg = v.telegram
         // The card asks for its code once, when it is on screen and there is no Telegram: expiry or a cancel does not start a loop.
         React.useEffect(() => { if (props.visible && tg.state === 'unlinked' && state.pairing === null && !state.starting && !state.autoDone) void pairStart() })
-        if (tg.state === 'off') return h('section', { className: 'kbky-card', 'data-kb': 'kybernos-kyber-telegram', 'data-state': 'off' }, h('div', { className: 'kbky-big' }, h('span', { className: 'kbky-badge info' }, BRAND.telegram(22)), h('div', null, h('h3', null, L('ofH')), h('p', null, v.serverId === '' ? L('ofP') : L('ofPS', { server: v.serverId })))))
+        if (tg.state === 'off') return h('p', { className: 'kbky-off', 'data-kb': 'kybernos-kyber-telegram', 'data-state': 'off' }, BRAND.telegram(16), v.serverId === '' ? L('ofLine') : L('ofLineS', { server: v.serverId }))
         if (tg.state === 'linked') {
           return h('section', { className: 'kbky-card slim', 'data-kb': 'kybernos-kyber-telegram' },
             h('div', { className: 'kbky-kv' }, h('div', { className: 'kbky-row' }, BRAND.telegram(20), h('b', null, L('telegram'))), h('span', { className: 'kbky-badge ok sm' }, Ic('check', 14, 2.6))),
@@ -428,66 +428,50 @@ window.__ModuleLoader__.load({
               h('button', { type: 'button', className: 'kbky-link', 'data-kb': 'kybernos-kyber-new', onClick: () => { void pairStart() } }, L('newCode')))))
       }
 
-      const OtherChannels = () => h('section', { className: 'kbky-card slim', 'data-kb': 'kybernos-kyber-others' },
-        h('div', { className: 'kbky-kv' }, h('b', null, L('otherChannels'))),
-        [['whatsapp', 'WhatsApp'], ['wechat', 'WeChat']].map((c) => h('div', { key: c[0], className: 'kbky-chan', 'data-kb': 'kybernos-kyber-chan-' + c[0] }, BRAND[c[0]](22), h('b', null, c[1]), h('span', { className: 'kbky-chip' }, L('soon')))))
+      /** The channels that are not there yet: one muted line, with their marks. Nothing is offered. */
+      const SoonLine = () => h('p', { className: 'kbky-soon', 'data-kb': 'kybernos-kyber-others' }, h('span', null, L('soonLead')),
+        [['whatsapp', 'WhatsApp'], ['wechat', 'WeChat']].map((c) => h('span', { key: c[0], className: 'kbky-soonc', 'data-kb': 'kybernos-kyber-chan-' + c[0] }, BRAND[c[0]](16), c[1])))
 
-      const WhereCard = (props) => {
-        const linked = props.view.telegram.state === 'linked'
-        const target = props.view.telegram.homeTarget
-        const opt = (id, title, sub, disabled, chip) => h('label', { key: id, className: 'kbky-opt' + (target === id && !disabled ? ' on' : '') + (disabled ? ' dis' : ''), 'data-kb': 'kybernos-kyber-where-' + id },
-          h('input', { type: 'radio', name: 'kybernos-kyber-where', value: id, checked: target === id && !disabled, disabled, onChange: () => { void setWhere(id) } }),
-          h('span', { className: 'kbky-optt' }, h('b', null, title), h('span', null, sub)), chip ? h('span', { className: 'kbky-chip' }, L('soon')) : null)
-        return h('section', { className: 'kbky-card slim', 'data-kb': 'kybernos-kyber-where' },
-          h('div', { className: 'kbky-kv' }, h('b', null, L('whereH'))),
-          h('p', { className: 'kbky-sub left' }, linked ? L('whereP') : L('whereNeed')),
-          h('div', { className: 'kbky-opts' },
-            opt('cloud', L('wCloud'), L('wCloudSub'), !linked, false),
-            opt('mac', L('wMac'), L('wMacSub'), true, true),
-            opt('ask', L('wAsk'), L('wAskSub'), !linked, false)),
-          h('p', { className: 'kbky-sub left' }, L('whereHint')))
-      }
-
-      const ComputerCard = (props) => {
-        const hm = props.view.home
+      /** {NAME}'s computer: the one linked to it, its state, what the plan lets the person do with it, and a choice when there are several. */
+      const ComputerRow = (props) => {
+        const v = props.view
+        const hm = v.home
         const free = hm !== null && hm.manualControl === false
         const st = hm === null ? '' : hm.state
-        const head = h('div', { className: 'kbky-kv' }, h('b', null, L('computer')),
-          hm === null ? null : h('span', { className: 'kbky-chip' + (st === 'running' ? ' ok' : '') }, S['st_' + st] !== undefined ? L('st_' + st) : L('st_other', { state: st })))
-        if (hm === null) return h('section', { className: 'kbky-card slim', 'data-kb': 'kybernos-kyber-computer' }, head, h('p', { className: 'kbky-line' }, L('noHome')), h('p', { className: 'kbky-sub left' }, L('approvals')))
         const busy = state.busy !== ''
-        const acts = free ? null : h('div', { className: 'kbky-actions' },
+        const several = v.computers.length > 1
+        const chip = hm === null
+          ? h('span', { className: 'kbky-chip' }, L('onRequest'))
+          : h('span', { className: 'kbky-chip' + (st === 'running' ? ' ok' : '') }, S['st_' + st] !== undefined ? L('st_' + st) : L('st_other', { state: st }))
+        const pick = several
+          ? h('label', { className: 'kbky-pick' }, h('span', { className: 'kbky-sub left' }, L('pickLead')),
+            h('select', { className: 'kbky-select', 'data-kb': 'kybernos-kyber-pick', value: hm !== null ? hm.id : '', onChange: (e) => { void setComputer(e.target.value) } },
+              v.computers.map((c) => h('option', { key: c.id, value: c.id }, c.name))))
+          : null
+        const acts = hm === null || free ? null : h('div', { className: 'kbky-actions' },
           st === 'suspended' ? h(Btn, { kb: 'kybernos-kyber-wake', disabled: busy, onClick: () => { void computerAction('resume') } }, L('wake')) : null,
           st === 'running' ? h(Btn, { kb: 'kybernos-kyber-sleep', disabled: busy, onClick: () => { void computerAction('suspend') } }, L('sleep')) : null,
           st === 'running' ? h(Btn, { kb: 'kybernos-kyber-pcopen', disabled: busy, onClick: () => { void computerAction('open') } }, Ic('ext', 14), L('openPc')) : null)
-        return h('section', { className: 'kbky-card slim', 'data-kb': 'kybernos-kyber-computer' }, head,
-          h('p', { className: 'kbky-line' }, S['txt_' + st] !== undefined ? L('txt_' + st) : L('st_other', { state: st })),
-          hm.paused !== '' ? h('p', { className: 'kbky-warn' }, L(hm.paused === 'hours' ? 'pr_hours' : 'pr_other')) : null,
-          hm.lastActive !== '' ? h('p', { className: 'kbky-sub left' }, L('lastActive', { when: when(hm.lastActive) })) : null,
+        return h('section', { className: 'kbky-row2', 'data-kb': 'kybernos-kyber-computer' },
+          h('div', { className: 'kbky-kv' }, h('div', { className: 'kbky-row' }, Ic('cloud', 18), h('b', null, L('computer')), hm !== null && hm.name !== '' && !several ? h('span', { className: 'kbky-sub left' }, hm.name) : null), chip),
+          h('p', { className: 'kbky-line' }, hm === null ? L('noHome') : (S['txt_' + st] !== undefined ? L('txt_' + st) : L('st_other', { state: st }))),
+          hm !== null && hm.paused !== '' ? h('p', { className: 'kbky-warn' }, L(hm.paused === 'hours' ? 'pr_hours' : 'pr_other')) : null,
+          pick,
+          state.computerError !== '' ? h('p', { className: 'kbky-err', role: 'alert', 'data-kb': 'kybernos-kyber-computer-error' }, L(state.computerError)) : null,
           acts,
-          free ? h('div', { className: 'kbky-upsell', 'data-kb': 'kybernos-kyber-upsell' }, Ic('star', 16), h('div', null, h('div', null, L('upsell')), h('div', { className: 'kbky-actions' }, h(Btn, { primary: true, kb: 'kybernos-kyber-upgrade', onClick: upgrade }, L('upgrade'))))) : null,
-          h('p', { className: 'kbky-sub left' }, L('approvals')))
+          free && hm !== null ? h('div', { className: 'kbky-upsell', 'data-kb': 'kybernos-kyber-upsell' }, Ic('star', 16), h('div', null, h('div', null, L('upsell')), h('div', { className: 'kbky-actions' }, h(Btn, { primary: true, kb: 'kybernos-kyber-upgrade', onClick: upgrade }, L('upgrade'))))) : null)
       }
 
-      /**
-       * The doors and the body. `lite` (the strip above the chat) shows what there is to DO: the Telegram card, and, once connected, the
-       * settings behind a disclosure. The tab and the page show everything.
-       */
+      /** Everything about the doors and the body, in the order of what matters: {NAME}'s computer, Telegram, what comes later. */
       const Channels = (props) => {
         const v = state.view
         if (v === null) return h('p', { className: 'kbky-note' }, L('loading'))
         if (v.kind !== 'ok') return h('p', { className: 'kbky-note' }, L(v.kind))
-        const linked = v.telegram.state === 'linked'
-        const manage = v.accountUrl !== '' ? h('div', { className: 'kbky-actions' }, h('button', { type: 'button', className: 'kbky-link', 'data-kb': 'kybernos-kyber-account', onClick: () => { void openAccount('account') } }, L('manage'))) : null
-        if (props.lite === true) {
-          return h('div', { className: 'kbky-col', 'data-kb': 'kybernos-kyber-channels' },
-            h(TelegramCard, { view: v, visible: props.visible !== false }),
-            linked ? h('details', { className: 'kbky-more', 'data-kb': 'kybernos-kyber-settings' }, h('summary', null, L('settings')),
-              h('div', { className: 'kbky-chan-grid' }, h(WhereCard, { view: v }), h(ComputerCard, { view: v })), manage) : null)
-        }
-        return h('div', { className: 'kbky-chan-grid', 'data-kb': 'kybernos-kyber-channels' },
-          h('div', { className: 'kbky-col' }, h(TelegramCard, { view: v, visible: props.visible !== false }), h(OtherChannels)),
-          h('div', { className: 'kbky-col' }, h(WhereCard, { view: v }), h(ComputerCard, { view: v }), manage))
+        return h('div', { className: 'kbky-calm', 'data-kb': 'kybernos-kyber-channels' },
+          h(ComputerRow, { view: v }),
+          h(TelegramCard, { view: v, visible: props.visible !== false }),
+          h(SoonLine),
+          props.manage === true && v.accountUrl !== '' ? h('div', { className: 'kbky-actions' }, h('button', { type: 'button', className: 'kbky-link', 'data-kb': 'kybernos-kyber-account', onClick: () => { void openAccount('account') } }, L('manage'))) : null)
       }
 
       // ═══ Kaby's own chat is a native DSH conversation: its session, and how to reach it ═══════════════════════════
@@ -572,20 +556,19 @@ window.__ModuleLoader__.load({
         return pairingFace(state.pairing, Date.now()).kind === 'scanned' ? ['warn', 'stWait'] : ['', 'stOff']
       }
 
-      /** The collapsible « Channels » strip: Telegram, the other channels, where Kaby works, its computer. Open until Telegram is connected. */
+      /** The collapsible « Channels » strip: {NAME}'s computer, Telegram, what comes later. Open only when there is a code to scan. */
       const Strip = () => {
         const v = state.view
-        const open = stripIsOpen(state.stripPref, v !== null && v.kind === 'ok' && v.telegram.state === 'linked')
+        const open = stripIsOpen(state.stripPref, telegramStateOf())
         const chip = statusOf(v)
+        const hm = v !== null && v.kind === 'ok' ? v.home : null
         return h('div', { className: 'kbky-strip' + (open ? ' open' : ''), 'data-kb': 'kybernos-kyber-strip' },
           h('button', { type: 'button', className: 'kbky-striph', 'aria-expanded': String(open), 'data-kb': 'kybernos-kyber-strip-toggle', onClick: toggleStrip },
             h('span', { className: 'kbky-car' }, Ic('chev', 14)), h('b', null, L('channels')),
             h('span', { className: 'kbky-stripc' },
-              h('span', { className: 'kbky-chip ' + chip[0], 'data-kb': 'kybernos-kyber-status' }, BRAND.telegram(14), L(chip[1])),
-              h('span', { className: 'kbky-chip' }, BRAND.whatsapp(14), 'WhatsApp · ' + L('soon')),
-              h('span', { className: 'kbky-chip' }, BRAND.wechat(14), 'WeChat · ' + L('soon')),
-              v !== null && v.kind === 'ok' ? h('span', { className: 'kbky-chip' }, Ic('cloud', 13), L(v.telegram.homeTarget === 'ask' ? 'wChipAsk' : 'wChip')) : null)),
-          open ? h('div', { className: 'kbky-stripb' }, h(Channels, { visible: true, lite: true })) : null)
+              v !== null && v.kind === 'ok' ? h('span', { className: 'kbky-chip' + (hm !== null && hm.state === 'running' ? ' ok' : ''), 'data-kb': 'kybernos-kyber-computer-chip' }, Ic('cloud', 13), L('computer') + (hm === null ? '' : ' · ' + (S['st_' + hm.state] !== undefined ? L('st_' + hm.state) : hm.state))) : null,
+              h('span', { className: 'kbky-chip ' + chip[0], 'data-kb': 'kybernos-kyber-status' }, BRAND.telegram(14), L(chip[1])))),
+          open ? h('div', { className: 'kbky-stripb' }, h(Channels, { visible: true })) : null)
       }
 
       /** The strip, above the composer of Kaby's own conversation and of no other. */
@@ -623,7 +606,7 @@ window.__ModuleLoader__.load({
           h('button', { type: 'button', className: 'kbky-btn', onClick: () => { void load() }, disabled: state.loading, 'data-kb': 'kybernos-kyber-refresh' }, state.loading ? L('loading') : L('refresh')))
         if (v === null) return h('div', { className: 'kbky', 'data-kb': 'kybernos-kyber-pane' }, head, h('p', { className: 'kbky-note' }, L('loading')))
         if (v.kind !== 'ok') return h('div', { className: 'kbky', 'data-kb': 'kybernos-kyber-pane' }, head, h('p', { className: 'kbky-note' }, L(v.kind)))
-        return h('div', { className: 'kbky', 'data-kb': 'kybernos-kyber-pane' }, head, h(Channels, { visible: true }))
+        return h('div', { className: 'kbky', 'data-kb': 'kybernos-kyber-pane' }, head, h(Channels, { visible: true, manage: true }))
       }
 
       // ═══ style: DSH tokens with a fallback, never a hard-coded theme colour ══════════════════════════════════════
@@ -654,8 +637,6 @@ window.__ModuleLoader__.load({
         '.kbky-strip.open .kbky-car{transform:rotate(0)}',
         '.kbky-stripc{display:flex;gap:6px;flex-wrap:wrap}',
         '.kbky-stripb{padding:4px 14px 14px}',
-        '.kbky-chan-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:12px;align-items:start}',
-        '.kbky-col{display:flex;flex-direction:column;gap:12px;min-width:0}',
         '.kbky-card{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.1));border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.2));border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}',
         '.kbky-card.slim{padding:14px;gap:8px}',
         '.kbky-cardh h3{margin:0;font-size:16px;font-weight:650}.kbky-cardh p{margin:2px 0 0;color:var(--dsw-alias-label-secondary,#666)}',
@@ -701,13 +682,16 @@ window.__ModuleLoader__.load({
         '.kbky-btn:focus-visible,.kbky-link:focus-visible,.kbky-striph:focus-visible,.kbky-chipb:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4c6ef5);outline-offset:2px}',
         '.kbky-link{border:0;background:none;padding:0;font:inherit;font-size:13px;color:var(--dsw-alias-label-secondary,#666);text-decoration:underline;cursor:pointer;text-align:left}',
         '.kbky-dock{margin:0 0 8px}',
-        '.kbky-more{margin-top:2px}',
-        '.kbky-more summary{cursor:pointer;width:max-content;color:var(--dsw-alias-label-secondary,#666);font-size:13px;padding:2px 0}',
-        '.kbky-more[open] summary{margin-bottom:8px}',
+        '.kbky-calm{display:flex;flex-direction:column;gap:12px}',
+        '.kbky-row2{display:flex;flex-direction:column;gap:6px}',
+        '.kbky-off{display:flex;gap:8px;align-items:center;margin:0;color:var(--dsw-alias-label-secondary,#666);font-size:13px}',
+        '.kbky-soon{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0;color:var(--dsw-alias-label-secondary,#666);font-size:13px}',
+        '.kbky-soonc{display:inline-flex;gap:6px;align-items:center}',
+        '.kbky-pick{display:flex;gap:8px;align-items:center;flex-wrap:wrap}',
+        '.kbky-select{font:inherit;font-size:13px;color:inherit;background:var(--dsw-alias-bg-base,transparent);border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));border-radius:8px;padding:5px 8px}',
         // narrow: one column, and no QR (nobody scans their own screen: the button is the way)
-        '@container (max-width:760px){.kbky-chan-grid{grid-template-columns:minmax(0,1fr)}}',
-        '@media (max-width:760px){.kbky-chan-grid{grid-template-columns:minmax(0,1fr)}.kbky-three{grid-template-columns:minmax(0,1fr)}.kbky-qrcol{display:none}.kbky-connbody{grid-template-columns:minmax(0,1fr)}.kbky-page{padding:14px 12px}}',
-        '.kbky .kbky-chan-grid{grid-template-columns:minmax(0,1fr)}.kbky .kbky-connbody{grid-template-columns:minmax(0,1fr)}.kbky .kbky-qrcol{width:auto}',
+        '@media (max-width:760px){.kbky-three{grid-template-columns:minmax(0,1fr)}.kbky-qrcol{display:none}.kbky-connbody{grid-template-columns:minmax(0,1fr)}.kbky-page{padding:14px 12px}}',
+        '.kbky .kbky-connbody{grid-template-columns:minmax(0,1fr)}.kbky .kbky-qrcol{width:auto}',
       ].join('\n')
 
       const TYPE_ID = 'kybernos-kyber'
@@ -771,6 +755,8 @@ window.__ModuleLoader__.load({
               isKybySession (sid) { return typeof sid === 'string' && sid !== '' && sid === state.kybySid },
               /** Reads the state again (live checks drive the page's answers; a person has the refresh button of the tab). */
               refresh () { return load() },
+              /** Forgets the person's choice about the strip, in memory and on disk (the live check starts each part from the rule). */
+              resetStrip () { state.stripPref = null; try { window.localStorage.removeItem('kybernos-kyber.strip') } catch (e) { /* no storage */ } emit() },
               /** Opens the tab, the same call the sidebar's « + » guide makes. False when no chat is on screen. */
               open () {
                 try {

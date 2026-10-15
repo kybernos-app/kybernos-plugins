@@ -420,11 +420,11 @@ The routes the **Kaby** page (`kybernos-kyber`) uses; the shapes and the words o
 
 | Route | Does |
 |---|---|
-| `GET /kybernos-cloud/kyber` | the door's state (`telegram.home_target`), the person's Home computer (`manual_control`: false on the Free plan) |
+| `GET /kybernos-cloud/kyber` | the door's state, the person's cloud computers and the one linked to the assistant (`home`; `manual_control`: false on the Free plan) |
 | `POST /kybernos-cloud/telegram/pairing` | asks for a pairing: `{ id, link, bot, expires_at, qr: { size, modules } }` (the QR is computed here, `qr.mjs`) |
 | `GET /kybernos-cloud/telegram/pairing/state?id=` | `{ state: waiting\|scanned\|done\|declined\|expired, reason?, sender? }` |
 | `POST /kybernos-cloud/telegram/pairing/cancel` `{id}` | « it is not me » |
-| `POST /kybernos-cloud/telegram/settings` `{home_target: cloud\|ask}` | where a Telegram message runs |
+| `POST /kybernos-cloud/kyby/computer` `{computer_id}` | the cloud computer linked to the assistant (null = the default Home); `GET /kybernos-cloud/kyber` lists `computers` and gives `home` as the chosen one |
 | `POST /kybernos-cloud/telegram/unlink` | disconnects the account's Telegram |
 | `GET /kybernos-cloud/kyby/native` | which DSH chat is Kaby's (`sessionId`, null before the first time) and its folder (`cwd`, made here) |
 | `POST /kybernos-cloud/kyby/native/set` `{sessionId}` | remembers that chat (null forgets it) |
