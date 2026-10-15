@@ -2,7 +2,7 @@
 // Everything here takes its I/O as arguments (state reader/writer, clock, id
 // generator) so test-host.mjs can play it without DSH, a disk or a browser.
 import { noterCasse, noterChargement, noterDemarrage, noterSante, normaliser, nomsValides, recommandation } from './boot-guard.mjs'
-import { basculer, charge, etatDistant, evaluerCache, installer, mettreAJour, plateformeDe, rafraichir } from './suite-host.mjs'
+import { basculer, charge, etatDistant, evaluerCache, installer, mettreAJour, plateformeDe, rafraichir, versionDansZone } from './suite-host.mjs'
 import { catalogueEffectif } from './catalogue-distant.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
@@ -150,7 +150,9 @@ export function monterRoutes (webServer, hub, liens = {}) {
  *   POST /kybernos-hub/catalogue/refresh → ask the online (signed) catalogue; nothing is believed unless it verifies
  *   POST /kybernos-hub/update     → { confirm: true } — update the WHOLE suite from the verified release (202; poll the status)
  *   GET  /kybernos-hub/update/status → { etat: idle | telechargement | extraction | installation | termine | echec, … }
- * deps: { catalogue, lireActivation(), ecrireActivation(obj), executer(argv), relancer(), hub, hebergement() (optional),
+ *   POST /kybernos-hub/engine     → { confirm: true, version } — put the DSH engine on a version this plugin was TESTED with (the
+ *                                   lifecycle robot, snapshot first, rollback on failure); 202, polled on the same status route
+ * deps: { catalogue, lireActivation(), ecrireActivation(obj), executer(argv), relancer(), hub, hebergement() (optional), zoneMoteur() → { min, max } | null,
  *         cles(), versionSuite(), urlCatalogue(), lireCache(), ecrireCache({octets,signature}), telecharger(url,{max}),
  *         telechargerVers(url,{max}), extraire(fichier), executerArchive(racine), nettoyer(), racineDev(), plateforme }
  */
@@ -237,6 +239,32 @@ export function monterSuite (webServer, deps, liens = {}) {
       (e) => { tache = { etat: 'echec', erreur: 'update-failed', detail: String(e?.message ?? e) } }).finally(() => { occupe = false })
     return envoyer(res, 202, { ok: true, etat: tache.etat })
   }
+  // The DSH engine, put back inside the zone this plugin was tested with, in one click (no terminal). The version comes from the page
+  // but is only ever ACCEPTED when it lies inside the zone of the shipped dsh-compat.json: the route cannot be used to install anything else.
+  const moteurRoute = async (req, res) => {
+    const corps = await corpsJson(req, res)
+    if (corps === undefined) return undefined
+    if (corps.confirm !== true) return envoyer(res, 400, { ok: false, error: 'confirmation-required' })
+    const version = typeof corps.version === 'string' ? corps.version.trim() : ''
+    if (version === '' || /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?$/.test(version) !== true) return envoyer(res, 400, { ok: false, error: 'bad-version' })
+    if (typeof deps.zoneMoteur !== 'function') return envoyer(res, 404, { ok: false, error: 'not-available' })
+    // A server or container is rebuilt, never patched in place (same rule as the suite update).
+    const heberge = typeof deps.hebergement === 'function' ? deps.hebergement() : null
+    if (heberge !== null && heberge !== undefined && heberge.heberge === true) return envoyer(res, 409, { ok: false, error: 'hosted-instance' })
+    let zone = null
+    try { zone = deps.zoneMoteur() } catch { zone = null }
+    if (versionDansZone(version, zone) !== true) return envoyer(res, 409, { ok: false, error: 'outside-tested-zone' })
+    if (occupe) return envoyer(res, 409, { ok: false, error: 'busy' })
+    occupe = true
+    tache = { etat: 'installation', version, moteur: true }
+    // 202: the robot takes minutes; the dialog polls /update/status. `occupe` stays set until it ends.
+    Promise.resolve().then(() => deps.executer(['upgrade', version])).then((r) => {
+      tache = r !== null && r !== undefined && r.code === 0
+        ? { etat: 'termine', version, moteur: true, relanceRequise: true }
+        : { etat: 'echec', moteur: true, erreur: 'engine-update-failed', detail: String(r?.sortie ?? '').slice(-400) }
+    }, (e) => { tache = { etat: 'echec', moteur: true, erreur: 'engine-update-failed', detail: String(e?.message ?? e) } }).finally(() => { occupe = false })
+    return envoyer(res, 202, { ok: true, etat: tache.etat })
+  }
   const etatMiseAJour = (req, res) => {
     if (req.method !== 'GET') return envoyer(res, 405, { ok: false, error: 'method-not-allowed' })
     if (sameOriginLax(req) === false) return envoyer(res, 403, { ok: false, error: 'origin-refused' })
@@ -246,6 +274,7 @@ export function monterSuite (webServer, deps, liens = {}) {
     webServer.register({ kind: 'exact', path: '/kybernos-hub/catalogue/refresh', handler: rafraichirRoute })
     webServer.register({ kind: 'exact', path: '/kybernos-hub/update', handler: mettreAJourRoute })
     webServer.register({ kind: 'exact', path: '/kybernos-hub/update/status', handler: etatMiseAJour })
+    webServer.register({ kind: 'exact', path: '/kybernos-hub/engine', handler: moteurRoute })
     webServer.register({ kind: 'exact', path: '/kybernos-hub/suite', handler: suite })
     webServer.register({ kind: 'exact', path: '/kybernos-hub/module', handler: module_ })
     webServer.register({ kind: 'exact', path: '/kybernos-hub/relaunch', handler: relancer })

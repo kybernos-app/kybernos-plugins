@@ -75,3 +75,12 @@ Run `for t in test*.mjs; do node "$t"; done` in this folder: `test-boot-guard.mj
 `test-host.mjs` (routes, client beacons), `test-suite-host.mjs` (activation, install, routes),
 `test-suite-order.mjs` (order and view helpers), `test-suite-store.mjs` (catalogue sheets, Featured, family filters, the update words and wiring), `test-catalogue-distant.mjs`, `test-telechargement.mjs`, `test-suite-update.mjs` (the signed catalogue and the update). `scripts/test-suite-gui.mjs` renders the real panel in a
 browser (needs Playwright and React 18; skipped otherwise).
+
+## Engine fix route
+
+`POST /kybernos-hub/engine { confirm: true, version }` puts the DSH engine on a version this plugin was TESTED with, in one click (the
+*Fix automatically* button of the update dialog). Strict same-origin JSON POST, explicit confirmation, 202 then the shared
+`GET /kybernos-hub/update/status` (`etat: installation | termine | echec`, `moteur: true`). The version is accepted only when it lies inside
+the `min`..`max` zone of the shipped `dsh-compat.json` (`409 outside-tested-zone` otherwise, nothing runs; `400 bad-version` for anything that is
+not a plain version; `409 hosted-instance` on a server or container; `409 busy`). The work is `deps.executer(['upgrade', version])`: the lifecycle
+robot, snapshot first, rollback on a failed boot. `node packages/kybernos-hub/test-engine-route.mjs`.
