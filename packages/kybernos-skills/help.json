@@ -5,8 +5,8 @@
   },
   "steps": [
     {
-      "fr": "« Yours » liste vos skills. Un clic ouvre son SKILL.md à droite, avec : ouvrir le dossier, modifier, dupliquer, supprimer.",
-      "en": "“Yours” lists your skills. A click opens its SKILL.md on the right, with: open the folder, edit, duplicate, delete."
+      "fr": "« Featured » propose nos choix à installer en un clic ; « Yours » liste vos skills (recherche, filtres, interrupteur).",
+      "en": "“Featured” offers our picks to install in one click; “Yours” lists your skills (search, filters, a switch)."
     },
     {
       "fr": "« Créer un skill » (nom, description, contenu) ou « Importer depuis GitHub » (owner/repo et nom du skill).",

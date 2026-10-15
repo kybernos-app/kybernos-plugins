@@ -44,7 +44,9 @@ import { createZstdDecompress } from 'node:zlib'
 import { homedir, tmpdir } from 'node:os'
 import { join, dirname, basename, relative, sep, isAbsolute, resolve as resolvePath } from 'node:path'
 import { execFileSync, spawn } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import { validateTeamSkill, skillVersion, frontmatterOfText, TEAM_SKILL_LIMITS } from './team-skills.mjs'
+import { readPicks } from './featured-picks.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -565,6 +567,8 @@ const appendJournal = (cfg, entry) => {
 // user put in it (the star on the detail page writes here). A name missing from the registry stays in
 // the file but is rendered `found:false` — the UI skips it without erasing it.
 const FEATURED_VERSION = 1
+// The picks Kybernos proposes (featured-picks.mjs): a file shipped next to this module.
+const PICKS_FILE = join(dirname(fileURLToPath(import.meta.url)), 'featured-picks.json')
 const featuredPath = (cfg) => join(cfg.dsh, 'kybernos', 'skills-featured.json')
 const featuredCoversDir = (cfg) => join(cfg.dsh, 'kybernos', 'skills-featured')
 const COVER_EXTS = ['png', 'webp', 'jpg', 'jpeg', 'svg']
@@ -1762,6 +1766,20 @@ const mountWebRoutes = (ctx, webServerSvc) => {
       }
     })
     return { ok: true, items, path: featuredPath(cfg) }
+  })
+
+  // ── Featured picks: what Kybernos proposes, as data (the screen merges it with what is installed) ──────────────────
+  // Static, read-only, no secret: a cover URL is given only when its file is in the covers folder, so that the screen draws its own tile
+  // otherwise instead of a broken image.
+  GET('/kybernos-skills/picks', 'kybernos-skills: route picks', async () => {
+    const cfg = configOf()
+    const picks = readPicks(PICKS_FILE)
+    return {
+      ok: true,
+      asOf: picks.asOf,
+      categories: picks.categories,
+      items: picks.items.map((it) => ({ ...it, cover: coverFileOf(cfg, it.id) !== null ? '/kybernos-skills/cover/' + it.id : null }))
+    }
   })
 
   // Star of the detail page / of the cards: {name, action?:'toggle'|'add'|'remove', why?}. Only a skill

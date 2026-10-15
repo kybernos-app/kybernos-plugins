@@ -1,0 +1,1090 @@
+{
+  "version": 1,
+  "asOf": "2026-10-15",
+  "categories": [
+    "Documents",
+    "Data",
+    "Design",
+    "Media",
+    "Research",
+    "Marketing",
+    "Automation",
+    "Build"
+  ],
+  "items": [
+    {
+      "id": "pdf",
+      "source": "anthropics/skills",
+      "category": "Documents",
+      "title": {
+        "en": "PDF",
+        "fr": "PDF"
+      },
+      "outcome": {
+        "en": "Read, fill, merge, split and create PDFs, tables and forms included.",
+        "fr": "Lire, remplir, fusionner, découper et créer des PDF, tableaux et formulaires compris."
+      },
+      "prompt": {
+        "en": "Merge these three PDFs and pull the table on page 4 into a spreadsheet.",
+        "fr": "Fusionne ces trois PDF et sors le tableau de la page 4 dans un tableur."
+      },
+      "needs": null,
+      "installs": 211154,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "warn",
+          "MEDIUM"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "LOW"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "NONE"
+        ]
+      ]
+    },
+    {
+      "id": "docx",
+      "source": "anthropics/skills",
+      "category": "Documents",
+      "title": {
+        "en": "Word documents",
+        "fr": "Documents Word"
+      },
+      "outcome": {
+        "en": "Write and edit .docx files with real styles, tables and tracked changes.",
+        "fr": "Écrire et modifier des fichiers .docx avec de vrais styles, des tableaux et le suivi des modifications."
+      },
+      "prompt": {
+        "en": "Turn my notes into a two-page proposal in Word, with a header and a pricing table.",
+        "fr": "Transforme mes notes en proposition de deux pages dans Word, avec un en-tête et un tableau de prix."
+      },
+      "needs": null,
+      "installs": 201726,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "warn",
+          ""
+        ],
+        [
+          "Snyk",
+          "pass",
+          "LOW"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "LOW"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "LOW"
+        ]
+      ]
+    },
+    {
+      "id": "pptx",
+      "source": "anthropics/skills",
+      "category": "Documents",
+      "title": {
+        "en": "Slide decks",
+        "fr": "Présentations"
+      },
+      "outcome": {
+        "en": "Build or restyle a .pptx deck from a brief, with layouts and speaker notes.",
+        "fr": "Construire ou remettre en forme un diaporama .pptx à partir d’un brief, avec mises en page et notes."
+      },
+      "prompt": {
+        "en": "Make a 10-slide deck from this report, one idea per slide, with speaker notes.",
+        "fr": "Fais un diaporama de 10 diapos à partir de ce rapport, une idée par diapo, avec des notes."
+      },
+      "needs": null,
+      "installs": 236409,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "warn",
+          ""
+        ],
+        [
+          "Snyk",
+          "pass",
+          "LOW"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "LOW"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "NONE"
+        ]
+      ]
+    },
+    {
+      "id": "xlsx",
+      "source": "anthropics/skills",
+      "category": "Data",
+      "title": {
+        "en": "Spreadsheets",
+        "fr": "Tableurs"
+      },
+      "outcome": {
+        "en": "Create, clean and analyse Excel files: formulas, formatting and charts.",
+        "fr": "Créer, nettoyer et analyser des fichiers Excel : formules, mise en forme et graphiques."
+      },
+      "prompt": {
+        "en": "Clean this export, add a monthly total per customer and chart the trend.",
+        "fr": "Nettoie cet export, ajoute un total mensuel par client et trace la tendance."
+      },
+      "needs": null,
+      "installs": 182833,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "warn",
+          ""
+        ],
+        [
+          "Snyk",
+          "pass",
+          "LOW"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "LOW"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "NONE"
+        ]
+      ]
+    },
+    {
+      "id": "data-visualization",
+      "source": "anthropics/knowledge-work-plugins",
+      "category": "Data",
+      "title": {
+        "en": "Charts that read well",
+        "fr": "Des graphiques lisibles"
+      },
+      "outcome": {
+        "en": "Pick the right chart for the question and draw it with matplotlib, seaborn or plotly.",
+        "fr": "Choisir le bon graphique pour la question et le dessiner avec matplotlib, seaborn ou plotly."
+      },
+      "prompt": {
+        "en": "Show how revenue split by region changed over the last four quarters.",
+        "fr": "Montre comment la répartition du chiffre d’affaires par région a évolué sur quatre trimestres."
+      },
+      "needs": null,
+      "installs": 13209,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "pass",
+          "LOW"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "NONE"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "LOW"
+        ]
+      ]
+    },
+    {
+      "id": "sql-queries",
+      "source": "anthropics/knowledge-work-plugins",
+      "category": "Data",
+      "title": {
+        "en": "SQL that runs",
+        "fr": "Du SQL qui tourne"
+      },
+      "outcome": {
+        "en": "Write and tune queries across Snowflake, BigQuery, Postgres and the others.",
+        "fr": "Écrire et optimiser des requêtes pour Snowflake, BigQuery, Postgres et les autres."
+      },
+      "prompt": {
+        "en": "Rewrite this slow query for BigQuery and explain what changed.",
+        "fr": "Réécris cette requête lente pour BigQuery et explique ce qui change."
+      },
+      "needs": null,
+      "installs": 4356,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "pass",
+          "LOW"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "LOW"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "NONE"
+        ]
+      ]
+    },
+    {
+      "id": "frontend-design",
+      "source": "anthropics/skills",
+      "category": "Design",
+      "title": {
+        "en": "Interfaces with a point of view",
+        "fr": "Des interfaces avec un parti pris"
+      },
+      "outcome": {
+        "en": "Give a new or existing interface a deliberate look instead of the default one.",
+        "fr": "Donner à une interface neuve ou existante un style délibéré plutôt que celui par défaut."
+      },
+      "prompt": {
+        "en": "Redesign this settings page: calmer, denser, with a clear hierarchy.",
+        "fr": "Redessine cette page de réglages : plus calme, plus dense, avec une hiérarchie claire."
+      },
+      "needs": null,
+      "installs": 990488,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "pass",
+          "LOW"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "NONE"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "NONE"
+        ]
+      ]
+    },
+    {
+      "id": "canvas-design",
+      "source": "anthropics/skills",
+      "category": "Design",
+      "title": {
+        "en": "Posters and visual art",
+        "fr": "Affiches et art visuel"
+      },
+      "outcome": {
+        "en": "Make a poster or an artwork as a PNG or a PDF from a design philosophy.",
+        "fr": "Créer une affiche ou une œuvre en PNG ou PDF à partir d’une philosophie de design."
+      },
+      "prompt": {
+        "en": "A poster for a small jazz night, minimal, two colours.",
+        "fr": "Une affiche pour une petite soirée jazz, minimaliste, deux couleurs."
+      },
+      "needs": null,
+      "installs": 117565,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "pass",
+          "LOW"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "LOW"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "NONE"
+        ]
+      ]
+    },
+    {
+      "id": "design-taste-frontend",
+      "source": "leonxlnx/taste-skill",
+      "category": "Design",
+      "title": {
+        "en": "Anti-slop websites",
+        "fr": "Des sites qui ne font pas « généré »"
+      },
+      "outcome": {
+        "en": "Art direction for websites, drawn from a study of 247 gallery sites.",
+        "fr": "Direction artistique pour sites web, tirée de l’étude de 247 sites de galerie."
+      },
+      "prompt": {
+        "en": "Build a landing page for a ceramics studio that does not look generated.",
+        "fr": "Fais une page d’accueil pour un atelier de céramique qui ne ressemble pas à du généré."
+      },
+      "needs": null,
+      "installs": 615245,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "pass",
+          "LOW"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "LOW"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "NONE"
+        ]
+      ]
+    },
+    {
+      "id": "algorithmic-art",
+      "source": "anthropics/skills",
+      "category": "Media",
+      "title": {
+        "en": "Generative art",
+        "fr": "Art génératif"
+      },
+      "outcome": {
+        "en": "Create algorithmic art with p5.js: seeded randomness and interactive parameters.",
+        "fr": "Créer de l’art algorithmique avec p5.js : aléatoire à graine et paramètres interactifs."
+      },
+      "prompt": {
+        "en": "A flow-field poster in warm colours that I can regenerate with a seed.",
+        "fr": "Une affiche en champ de flux, tons chauds, que je peux régénérer avec une graine."
+      },
+      "needs": null,
+      "installs": 86611,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "pass",
+          "LOW"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "LOW"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "NONE"
+        ]
+      ]
+    },
+    {
+      "id": "baoyu-diagram",
+      "source": "jimliu/baoyu-skills",
+      "category": "Media",
+      "title": {
+        "en": "Diagrams",
+        "fr": "Diagrammes"
+      },
+      "outcome": {
+        "en": "Turn a description into a clean SVG diagram: architecture, flowchart, sequence, mind map.",
+        "fr": "Transformer une description en diagramme SVG net : architecture, organigramme, séquence, carte mentale."
+      },
+      "prompt": {
+        "en": "Draw the architecture of our sign-in flow as an SVG diagram.",
+        "fr": "Dessine l’architecture de notre parcours de connexion en diagramme SVG."
+      },
+      "needs": null,
+      "installs": 15049,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "pass",
+          "LOW"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "NONE"
+        ]
+      ]
+    },
+    {
+      "id": "slack-gif-creator",
+      "source": "anthropics/skills",
+      "category": "Media",
+      "title": {
+        "en": "Animated GIFs",
+        "fr": "GIF animés"
+      },
+      "outcome": {
+        "en": "Make small looping GIFs sized for Slack.",
+        "fr": "Faire de petits GIF en boucle, au format de Slack."
+      },
+      "prompt": {
+        "en": "A celebration GIF for our launch, 128 px, loops forever.",
+        "fr": "Un GIF de célébration pour notre lancement, 128 px, en boucle."
+      },
+      "needs": null,
+      "installs": 73124,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "pass",
+          "LOW"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "NONE"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "NONE"
+        ]
+      ]
+    },
+    {
+      "id": "firecrawl-deep-research",
+      "source": "firecrawl/firecrawl-workflows",
+      "category": "Research",
+      "title": {
+        "en": "Deep research report",
+        "fr": "Rapport de recherche approfondi"
+      },
+      "outcome": {
+        "en": "A cited report with findings, contrarian views and open questions.",
+        "fr": "Un rapport sourcé avec constats, points de vue contraires et questions ouvertes."
+      },
+      "prompt": {
+        "en": "Write a rigorous report on the state of on-device speech models.",
+        "fr": "Rédige un rapport rigoureux sur l’état des modèles de parole embarqués."
+      },
+      "needs": "firecrawl",
+      "installs": 35090,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "warn",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "id": "tavily-research",
+      "source": "tavily-ai/skills",
+      "category": "Research",
+      "title": {
+        "en": "Research with citations",
+        "fr": "Recherche avec citations"
+      },
+      "outcome": {
+        "en": "Searches, reads and synthesises sources into a cited answer in about a minute.",
+        "fr": "Cherche, lit et synthétise des sources en une réponse citée en environ une minute."
+      },
+      "prompt": {
+        "en": "Compare the three leading open-source vector databases, with sources.",
+        "fr": "Compare les trois principales bases vectorielles open source, avec sources."
+      },
+      "needs": "tavily",
+      "installs": 21132,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "warn",
+          "MEDIUM"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "LOW"
+        ]
+      ]
+    },
+    {
+      "id": "firecrawl-competitive-intel",
+      "source": "firecrawl/firecrawl-workflows",
+      "category": "Research",
+      "title": {
+        "en": "Competitor watch",
+        "fr": "Veille concurrentielle"
+      },
+      "outcome": {
+        "en": "Monitor competitor pricing, features and changelogs with Firecrawl.",
+        "fr": "Surveiller prix, fonctionnalités et notes de version des concurrents avec Firecrawl."
+      },
+      "prompt": {
+        "en": "Track how our three closest competitors change their pricing page this month.",
+        "fr": "Suis comment nos trois concurrents les plus proches modifient leur page tarifs ce mois-ci."
+      },
+      "needs": "firecrawl",
+      "installs": 31221,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "warn",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "id": "seo-audit",
+      "source": "coreyhaines31/marketingskills",
+      "category": "Marketing",
+      "title": {
+        "en": "SEO audit",
+        "fr": "Audit SEO"
+      },
+      "outcome": {
+        "en": "Find what holds a site back in search and what to fix first.",
+        "fr": "Trouver ce qui freine un site dans la recherche et quoi corriger en premier."
+      },
+      "prompt": {
+        "en": "Audit kybernos.app and give me the five fixes that matter most.",
+        "fr": "Audite kybernos.app et donne-moi les cinq corrections qui comptent le plus."
+      },
+      "needs": null,
+      "installs": 228561,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "warn",
+          "MEDIUM"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "NONE"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "NONE"
+        ]
+      ]
+    },
+    {
+      "id": "copywriting",
+      "source": "coreyhaines31/marketingskills",
+      "category": "Marketing",
+      "title": {
+        "en": "Copywriting",
+        "fr": "Rédaction publicitaire"
+      },
+      "outcome": {
+        "en": "Write or sharpen homepage, landing-page and pricing copy.",
+        "fr": "Écrire ou affûter les textes d’accueil, de page d’atterrissage et de tarifs."
+      },
+      "prompt": {
+        "en": "Rewrite our pricing page headline and the three plan descriptions.",
+        "fr": "Réécris le titre de notre page tarifs et les descriptions des trois formules."
+      },
+      "needs": null,
+      "installs": 225108,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "pass",
+          "LOW"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "NONE"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "NONE"
+        ]
+      ]
+    },
+    {
+      "id": "cold-email",
+      "source": "coreyhaines31/marketingskills",
+      "category": "Marketing",
+      "title": {
+        "en": "Cold outreach",
+        "fr": "Prospection à froid"
+      },
+      "outcome": {
+        "en": "Cold emails, follow-ups and cadences that get replies.",
+        "fr": "E-mails à froid, relances et séquences qui obtiennent des réponses."
+      },
+      "prompt": {
+        "en": "A three-step outreach sequence to heads of data at mid-size retailers.",
+        "fr": "Une séquence de trois messages pour des responsables data de distributeurs moyens."
+      },
+      "needs": null,
+      "installs": 122552,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "pass",
+          "LOW"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "LOW"
+        ],
+        [
+          "ZeroLeaks",
+          "warn",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "id": "gws-gmail-triage",
+      "source": "googleworkspace/cli",
+      "category": "Automation",
+      "title": {
+        "en": "Inbox triage",
+        "fr": "Tri de la boîte mail"
+      },
+      "outcome": {
+        "en": "A summary of your unread Gmail: sender, subject, date.",
+        "fr": "Un résumé de vos mails Gmail non lus : expéditeur, objet, date."
+      },
+      "prompt": {
+        "en": "What is unread in my inbox, and what needs an answer today?",
+        "fr": "Qu’y a-t-il de non lu dans ma boîte, et qu’est-ce qui demande une réponse aujourd’hui ?"
+      },
+      "needs": "google",
+      "installs": 45768,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "warn",
+          "MEDIUM"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "NONE"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "NONE"
+        ]
+      ]
+    },
+    {
+      "id": "gws-workflow-meeting-prep",
+      "source": "googleworkspace/cli",
+      "category": "Automation",
+      "title": {
+        "en": "Meeting prep",
+        "fr": "Préparer une réunion"
+      },
+      "outcome": {
+        "en": "Agenda, attendees and linked documents for your next meeting.",
+        "fr": "Ordre du jour, participants et documents liés pour votre prochaine réunion."
+      },
+      "prompt": {
+        "en": "Prepare me for my next meeting.",
+        "fr": "Prépare-moi pour ma prochaine réunion."
+      },
+      "needs": "google",
+      "installs": 31351,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "warn",
+          "MEDIUM"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "NONE"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "NONE"
+        ]
+      ]
+    },
+    {
+      "id": "task-management",
+      "source": "anthropics/knowledge-work-plugins",
+      "category": "Automation",
+      "title": {
+        "en": "Task list",
+        "fr": "Liste de tâches"
+      },
+      "outcome": {
+        "en": "Keep a TASKS.md that you and the agent both edit.",
+        "fr": "Tenir un fichier TASKS.md que vous et l’agent modifiez tous les deux."
+      },
+      "prompt": {
+        "en": "Add “send the invoice” to my tasks and show what is due this week.",
+        "fr": "Ajoute « envoyer la facture » à mes tâches et montre ce qui est dû cette semaine."
+      },
+      "needs": null,
+      "installs": 7146,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "pass",
+          "LOW"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "NONE"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "NONE"
+        ]
+      ]
+    },
+    {
+      "id": "grill-me",
+      "source": "mattpocock/skills",
+      "category": "Build",
+      "title": {
+        "en": "Grill me",
+        "fr": "Interroge-moi"
+      },
+      "outcome": {
+        "en": "A relentless interview that finds the holes in your plan.",
+        "fr": "Un entretien implacable qui trouve les trous de votre plan."
+      },
+      "prompt": {
+        "en": "Grill me on this migration plan until nothing is left vague.",
+        "fr": "Interroge-moi sur ce plan de migration jusqu’à ce que plus rien ne soit flou."
+      },
+      "needs": null,
+      "installs": 1363165,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "pass",
+          "LOW"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "NONE"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "NONE"
+        ]
+      ]
+    },
+    {
+      "id": "systematic-debugging",
+      "source": "obra/superpowers",
+      "category": "Build",
+      "title": {
+        "en": "Systematic debugging",
+        "fr": "Débogage méthodique"
+      },
+      "outcome": {
+        "en": "Find the root cause before proposing a fix.",
+        "fr": "Trouver la cause racine avant de proposer un correctif."
+      },
+      "prompt": {
+        "en": "The export job fails on Mondays only. Find out why before you change anything.",
+        "fr": "Le job d’export échoue seulement le lundi. Trouve pourquoi avant de rien changer."
+      },
+      "needs": null,
+      "installs": 293968,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "pass",
+          "LOW"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "LOW"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "NONE"
+        ]
+      ]
+    },
+    {
+      "id": "mcp-builder",
+      "source": "anthropics/skills",
+      "category": "Build",
+      "title": {
+        "en": "MCP server builder",
+        "fr": "Constructeur de serveur MCP"
+      },
+      "outcome": {
+        "en": "Build a connector so an agent can use an external service.",
+        "fr": "Construire un connecteur pour qu’un agent utilise un service externe."
+      },
+      "prompt": {
+        "en": "Build a connector for our invoicing API with read-only tools first.",
+        "fr": "Construis un connecteur pour notre API de facturation, d’abord en lecture seule."
+      },
+      "needs": null,
+      "installs": 126594,
+      "audits": [
+        [
+          "Gen Agent Trust Hub",
+          "pass",
+          "SAFE"
+        ],
+        [
+          "Socket",
+          "pass",
+          ""
+        ],
+        [
+          "Snyk",
+          "warn",
+          "MEDIUM"
+        ],
+        [
+          "Runlayer",
+          "pass",
+          "LOW"
+        ],
+        [
+          "ZeroLeaks",
+          "pass",
+          "NONE"
+        ]
+      ]
+    }
+  ]
+}
