@@ -64,6 +64,8 @@ const SPEC_URL = 'https://api.acme-invoices.com/openapi.json'
   assert.equal(baseUrlOf(SPEC, SPEC_URL), 'https://api.acme-invoices.com/v2')
   assert.equal(baseUrlOf({ servers: [{ url: '/v1' }] }, 'https://x.example/spec.json'), 'https://x.example/v1')
   assert.equal(baseUrlOf({ servers: [{ url: 'http://evil.example/' }] }, SPEC_URL), null, 'plain http to a remote host is refused')
+  assert.equal(baseUrlOf({ paths: {} }, 'https://catfact.ninja/docs?api-docs.json'), 'https://catfact.ninja', 'no servers: the default is « / » of where the spec came from')
+  assert.equal(baseUrlOf({ servers: [] }, 'http://example.com/spec.json'), null, '…and a plain-http origin is still refused')
   assert.equal(baseUrlOf({ servers: [{ url: 'http://localhost:8080/api' }] }, SPEC_URL), 'http://localhost:8080/api')
   assert.equal(safeUrl('https://user:pw@x.example/'), null, 'no credentials in an address')
   assert.equal(safeUrl('file:///etc/passwd'), null)
@@ -150,6 +152,8 @@ const SPEC_URL = 'https://api.acme-invoices.com/openapi.json'
     assert.equal(read.title, 'Acme Invoices')
     assert.equal(read.baseUrl, 'https://api.acme-invoices.com/v2')
     assert.equal(read.total, 4)
+    assert.deepEqual(read.operations.find((o) => o.id === 'get_invoices_id').needs, ['id'], 'what each operation needs is told')
+    assert.deepEqual(read.operations.find((o) => o.id === 'listInvoices').needs, [])
     assert.equal(calls.at(-1).init.headers.authorization, undefined, 'the spec is fetched without the key')
 
     assert.equal((await api.add({ name: 'Bad Name', url: SPEC_URL, auth: { type: 'bearer' }, key: 'k', operations: ['listInvoices'] })).error, 'bad_name')
