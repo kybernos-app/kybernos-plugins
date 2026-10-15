@@ -75,7 +75,12 @@ export function charge ({ catalogue, brut, etatHub, effectif, distant }) {
   return {
     ok: true,
     catalogue: { schema: vu.schema, familles: vu.familles, source: vu.source, suite: vu.suite ?? null },
-    modules: vu.modules.map((m) => ({ ...m, ...(m.aide === undefined && aides.has(m.id) ? { aide: aides.get(m.id) } : {}), voulu: m.socle ? true : actifs.has(m.nom) })),
+    modules: vu.modules.map((m) => {
+      const livree = aides.get(m.id)
+      // An online help written before the page cards existed gets the shipped ones, so a page never loses its own help.
+      const aide = m.aide === undefined ? livree : (livree !== undefined && livree.pages !== undefined && m.aide.pages === undefined ? { ...m.aide, pages: livree.pages } : m.aide)
+      return { ...m, ...(aide === undefined ? {} : { aide }), voulu: m.socle ? true : actifs.has(m.nom) }
+    }),
     activationFichier: act.file,
     hub: etatHub ?? null,
     distant: distant ?? null

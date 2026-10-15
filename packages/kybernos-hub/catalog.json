@@ -91,6 +91,41 @@
         "good": {
           "fr": "Une automation ne part que si DSH est lancé, sur cet ordinateur. Réglée sur « Me demander d’abord » (le choix par défaut), elle attend votre accord avant une action qui modifie quelque chose.",
           "en": "An automation only starts while DSH is running, on this computer. Set to “Ask me first” (the default), it waits for your approval before an action that changes something."
+        },
+        "pages": {
+          "voice": {
+            "title": {
+              "fr": "Voix",
+              "en": "Voice"
+            },
+            "what": {
+              "fr": "Faites lire les réponses de l’assistant à voix haute et dictez vos messages au micro. Pour une conversation orale en direct, utilisez Appels.",
+              "en": "Have the assistant’s replies read aloud and dictate your messages with the microphone. For a live spoken conversation, use Calls."
+            },
+            "steps": [
+              {
+                "fr": "Choisissez un moteur : « Local » reste sur votre machine, « Cloud » envoie le texte à un service.",
+                "en": "Pick an engine: “Local” stays on your machine, “Cloud” sends the text to a service."
+              },
+              {
+                "fr": "Réglez la langue et la voix, puis essayez avec « Tester la voix ».",
+                "en": "Set the language and the voice, then try it with “Test voice”."
+              },
+              {
+                "fr": "Dans le chat, l’icône haut-parleur sous une réponse la lit ; le micro avant Envoyer dicte votre message.",
+                "en": "In the chat, the speaker icon under a reply reads it; the microphone before Send dictates your message."
+              }
+            ],
+            "where": {
+              "fr": "Réglages › Voix · sous chaque réponse du chat",
+              "en": "Settings › Voice · under each reply in the chat",
+              "page": true
+            },
+            "good": {
+              "fr": "Les moteurs « Local » ne font rien sortir de votre ordinateur. edge-tts et « Vos modèles » envoient le texte lu à un service en ligne.",
+              "en": "“Local” engines send nothing off your computer. edge-tts and “Your models” send the text to an online service."
+            }
+          }
         }
       }
     },

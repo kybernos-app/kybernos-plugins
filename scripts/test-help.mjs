@@ -28,6 +28,15 @@ check('a word the user does not know is refused', throwsWith(() => { const g = g
 check('no emoji', throwsWith(() => { const g = good(); g.what.fr = 'Super 🎉'; validerAide('x', g) }, /emoji/))
 check('the error names the bundle', throwsWith(() => validerAide('kybernos-zz', null), /"kybernos-zz"/))
 
+console.log('the card of one page of a bundle (pages)')
+const page = () => ({ title: { fr: 'Voix', en: 'Voice' }, ...good() })
+check('a bundle can carry the card of one of its pages, and it comes back checked', (() => { const a = validerAide('x', { ...good(), pages: { voice: page() } }); return a.pages.voice.title.en === 'Voice' && a.pages.voice.steps.length === 2 && a.pages.voice.where.page === true })())
+check('« pages » is optional', validerAide('x', good()).pages === undefined)
+check('a page card needs a title in both languages', throwsWith(() => { const p = page(); delete p.title; validerAide('x', { ...good(), pages: { voice: p } }) }, /pages\.voice\.title must be/))
+check('a page card is checked like the bundle’s own (a step count, a word, a length)', throwsWith(() => { const p = page(); p.steps = [p.steps[0]]; validerAide('x', { ...good(), pages: { voice: p } }) }, /pages\.voice\.steps must hold 2 to 4/) && throwsWith(() => { const p = page(); p.what.en = 'Register a slot.'; validerAide('x', { ...good(), pages: { voice: p } }) }, /does not know \(slot\)/))
+check('a page card has no « pages » of its own, and no unknown field', throwsWith(() => validerAide('x', { ...good(), pages: { voice: { ...page(), pages: {} } } }), /pages\.voice: unknown field "pages"/) && throwsWith(() => validerAide('x', { ...good(), pages: { voice: { ...page(), tips: [] } } }), /unknown field "tips"/))
+check('a page key is a short lower-case word', throwsWith(() => validerAide('x', { ...good(), pages: { 'Voice Page': page() } }), /pages key "Voice Page"/))
+
 console.log('every bundle has one')
 const lifecycle = JSON.parse(readFileSync(join(REPO, 'scripts', 'lifecycle-packages.json'), 'utf8')).packages
 let catalogue = null
@@ -54,6 +63,8 @@ if (catalogue !== null) {
   const surfaces = /settings\.section|sidebar\.right|plugins\.item|plugins\.bundle\.config|'main'|main\./
   const liar = catalogue.modules.filter((m) => m.aide.where.page === true && !(existsSync(join(REPO, 'packages', m.id, 'client.js')) && surfaces.test(readFileSync(join(REPO, 'packages', m.id, 'client.js'), 'utf8'))) && !(existsSync(join(REPO, 'packages', m.id, 'src', 'plugin.js')) && surfaces.test(readFileSync(join(REPO, 'packages', m.id, 'src', 'plugin.js'), 'utf8')))).map((m) => m.id)
   check('a help that says « it has a page » belongs to a bundle that registers one', liar.length === 0, liar)
+  const core = catalogue.modules.find((m) => m.id === 'kybernos-plugin')
+  check('the Voice page has its own card (it is a page of the core bundle, whose general help is about Agent Teams)', core !== undefined && core.aide.pages !== undefined && core.aide.pages.voice !== undefined && /voice/i.test(core.aide.pages.voice.title.en))
 }
 
 console.log('the « ? How it works » buttons')
@@ -76,7 +87,10 @@ console.log('the « ? How it works » buttons')
   check('the pages that carry the button', ['kybernos-theme', 'kybernos-models', 'kybernos-slash', 'kybernos-workers', 'kybernos-maintenance', 'kybernos-modeles-locaux', 'kybernos-memory', 'kybernos-skills', 'kybernos-sessions', 'kybernos-hub'].every((d) => placed.includes(d + '→' + d)), placed)
   const hub = readFileSync(join(REPO, 'packages', 'kybernos-hub', 'client.js'), 'utf8')
   check('the Suite publishes it (version 1) and shows the same help on a module’s page', /window\.__KB_HELP__ = construireAide\(React\)/.test(hub) && /return \{ version: 1, actions: true, Help \}/.test(hub) && /'data-kb': 'suite-aide'/.test(hub))
-  check('the host keeps the shipped help when the online catalogue lacks it', /aides\.has\(m\.id\)/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'suite-host.mjs'), 'utf8')))
+  check('the host keeps the shipped help when the online catalogue lacks it', /aides\.get\(m\.id\)/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'suite-host.mjs'), 'utf8')))
+  check('a page card that is not there draws nothing (never the bundle’s help on the wrong page)', /const card = page === undefined \? null/.test(hub) && /if \(card === undefined\) return null/.test(hub))
+  check('the host keeps the shipped page cards when the online catalogue lacks them', /livree\.pages !== undefined && m\.aide\.pages === undefined/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'suite-host.mjs'), 'utf8')))
+  check('the Voice page asks for its own card', /Help, \{ id: 'kybernos-plugin', page: 'voice' \}/.test(readFileSync(join(REPO, 'packages', 'kybernos-plugin', 'client.js'), 'utf8')))
   const css = hub.match(/\.kbhp-[a-z]+/g) || []
   const clash = []
   for (const d of dirs) {
