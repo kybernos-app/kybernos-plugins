@@ -657,6 +657,32 @@ the page or in the browser's storage), a refused add that may have gone through 
 second request for an app that is already waiting, removing, the quota, the sign-in shown when the account is not connected
 (and the new token used afterwards) and the mode gone when the server stops offering it. Exit 0 / 1 / 3.
 
+## The sidebar footer: `scripts/check-footer-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-footer-live.mjs --shots /tmp/shots
+```
+
+Sandbox only (exit 3 against `:3080`). It plays the footer on a real page: the signed-out row (« Sign in » and the gear), the gear
+opening **our** menu (Sign in, Appearance, Settings, Help, Feedback) with a real mouse click, Escape / outside click / the gear
+closing it, its Settings entry reaching DSH's dialog, the device-code card from the row and from the menu, the light/dark
+segment, then the connected card (answered in the page) with its menu, Settings and Account entries. In every scene it records any
+popover of **DSH's own account launcher** (« Settings ⌥⌘, / Feedback / Sign in ») that becomes visible, and fails if one does.
+Three scenes cover the guard: a script clicking the launcher the old way (what the language, sessions and call plugins still do),
+a real click on the launcher forced visible (a shell whose class names moved), and React's fiber fields made unreadable (the
+fallback route, which keeps the popover invisible while it picks its first entry). Run against the unmodified clients of
+2026-10-15 it fails 18 checks: that is the bug it was written for.
+
+Why: DSH's settings seat (`sidebar.settings`) renders the **account launcher** (`settings.launcher`, registered by
+`dsh-client-ui-settings-account`) and its trigger opens an account popover, not the Settings dialog. Anything that clicked
+`[class*="settingsArea"] button[class*="trigger"]` to reach Settings got that popover. The seam now lives in the core plugin
+(`window.__kbOpenDshSettings`, `<kb-open-settings>` in `packages/kybernos-plugin/client.js`): it calls the launcher's own
+`openSettings` prop, read from React, and a capture-phase guard on the launcher turns any script's click into the same call. The
+dialog is opened by that seam, never by clicking a trigger: new code should call it, not the old selector.
+
+A fresh instance opens DSH's « Get started » dialog (sign in to a DeepSeek account / add a key) on every load; it swallows every
+click, so the check closes it with its own close button after each reload.
+
 ## The Automations board: `scripts/check-automations-board-live.mjs`
 
 ```bash

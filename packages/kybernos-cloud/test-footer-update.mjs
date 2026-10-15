@@ -20,8 +20,9 @@ check('the footer reads the whole signal (which version), not only that somethin
 check('it follows the kybernos:update event of the maintenance bundle', /addEventListener\('kybernos:update', sur\)/.test(pied) && /removeEventListener\('kybernos:update', sur\)/.test(pied))
 check('the line is absent when there is no update', /const ligneMaj = majInfo === null \? null : h\('button'/.test(pied))
 check('it opens the same dialog as the menu line (kybernos:menu:update)', /ouvrirMaj = \(\) => \{ try \{ window\.dispatchEvent\(new Event\('kybernos:menu:update'\)\)/.test(pied) && /onClick: ouvrirMaj/.test(pied))
-check('the signed-out layout carries it', /const hint = phase === 'loading'[\s\S]*?corps = h\('div', \{ className: 'kbf-off' \},\s*ligneMaj,/.test(pied))
-check('the pairing layout carries it too', /phase === 'pairing'[\s\S]*?corps = h\('div', \{ className: 'kbf-off' \},\s*ligneMaj,/.test(pied))
+// One layout serves « signed out » and « pairing » (the gear opens the same menu in both): it carries the reminder for both.
+check('the signed-out and pairing layout carries it', /const pairing = phase === 'pairing'[\s\S]*?corps = h\('div', \{ className: 'kbf-off' \},\s*ligneMaj,/.test(pied))
+check('and it is the only « kbf-off » layout (no second copy to forget it in)', (pied.match(/className: 'kbf-off'/g) || []).length === 1)
 check('it says "Update available" and the version, with the engine named when it is the engine', /t\('menuUpdate'\)/.test(pied) && /majInfo\.kind === 'moteur' \? 'DSH ' : ''/.test(pied))
 check('the signed-in menu line and the tile dot are still there', /entree\('update', h\(UpdateIcon/.test(source) && /'data-update': majDispo === true \? 'true' : undefined/.test(source))
 const both = (k) => new RegExp("menuUpdate: '[^']+'").test(source) && source.split("menuUpdate: '").length === 3
