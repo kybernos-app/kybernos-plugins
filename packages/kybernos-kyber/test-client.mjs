@@ -33,7 +33,7 @@ const T = plugin.__test
   const pane = regs.find((r) => r.meta.name === 'sidebar.right.pane.tab')
   ok('the tab body is registered under the tab type id', pane !== undefined && pane.meta.key === T.TYPE_ID)
   ok('one tab type, with a guide entry', types.length === 1 && types[0].id === T.TYPE_ID && types[0].kind === T.KIND && types[0].guide.length === 1)
-  ok('the tab title is Kyber', types[0].title() === 'Kyber')
+  ok('the tab title is Kyby', types[0].title() === 'Kyby')
   ok('the pane never throws before anything was read', (() => { try { return pane.comp() !== undefined } catch (e) { return false } })())
   ok('apply tolerates a missing registry', (() => {
     try { plugin.apply({ effect: (fn) => fn(), get () { throw new Error('absent') }, slots: { inject: (n, fn) => fn(), register () {} } }); return true } catch (e) { return false }

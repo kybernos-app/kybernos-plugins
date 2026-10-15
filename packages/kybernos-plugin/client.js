@@ -1309,7 +1309,8 @@ let kbLocaleRead = () => 'en'
       'kbui.skill.repo': { kybernos: 'Dépôt de compétences', en: 'Skill repository' },
       'kbui.skills': { kybernos: 'Compétences', en: 'Skills' },
       'kbui.dashboards': { kybernos: 'Dashboards', en: 'Dashboards' },
-      'kbui.kyber': { kybernos: 'Kyber', en: 'Kyber' },
+      // The name of the person's own assistant, as the sidebar row and its page show it (the packages/kybernos-kyber bundle has its one NAME to match).
+      'kbui.kyber': { kybernos: 'Kyby', en: 'Kyby' },
       'kbui.cloudcomputer': { kybernos: 'Cloud Computer', en: 'Cloud Computer' },
       'kbui.automations.set': { kybernos: 'Automatisations', en: 'Automations' },
       // New chat: Build / Create / Cloud Computer cards
@@ -1411,7 +1412,7 @@ let kbLocaleRead = () => 'en'
       'kbauto.set.where': { kybernos: 'Les automatisations tournent sur cet ordinateur, tant que DSH est ouvert.', en: 'Automations run on this computer, while DSH is open.' },
       'kbauto.set.error': { kybernos: 'Réglage non enregistré. Réessayez.', en: 'Setting not saved. Try again.' },
       'kbauto.set.unavailable': { kybernos: 'Ces réglages ne sont pas encore disponibles : DSH doit être redémarré pour les charger.', en: 'These settings are not available yet: DSH needs a restart to load them.' },
-      'kbui.kyber.off': { kybernos: 'Le module Kyber n’est pas actif. Activez-le dans la Suite.', en: 'The Kyber module is not active. Switch it on in the Suite.' },
+      'kbui.kyber.off': { kybernos: 'Le module Kyby n’est pas actif. Activez-le dans la Suite.', en: 'The Kyby module is not active. Switch it on in the Suite.' },
       'kbui.dashboards.off': { kybernos: 'Le module Dashboards n’est pas actif. Activez-le dans la Suite.', en: 'The Dashboards module is not active. Switch it on in the Suite.' },
       'kbui.sort': { kybernos: 'Trier', en: 'Sort' },
       'kbui.speed': { kybernos: 'Vitesse · ', en: 'Speed · ' },
@@ -6209,6 +6210,9 @@ const KB_SHOW_HOSTED = false
 // de décider où elle vit — `DocumentsPage`, la route hôte et la traduction
 // restent en place. Passer à `true` la remet telle quelle.
 const KB_SHOW_DOCS = false
+// Entrée « Cloud Computer » du menu latéral : masquée pour le moment (demande produit, 15/10/2026). Le point d'état, la carte de
+// la nouvelle conversation et la page Kyby (qui porte les détails de l'ordinateur) restent en place. Passer à `true` la remet.
+const KB_SHOW_CLOUD_COMPUTER_ROW = false
 // Resolu au rendu, pas a la definition : `kbt` est declare plus bas dans le
 // corps de la factory (l'appeler ici donnerait une erreur de zone morte).
 const kbStatusLabel = (k) => kbt('status.' + String(k))
@@ -23855,8 +23859,9 @@ function renderFit(canvas, model, cam, opts){
               onClick: (e) => { try { e.stopPropagation() } catch (e2) { /* pas d'evenement */ } set({ newChatOpen: pickOpen === true ? false : true }) },
             }, h('span', { className: 'kb4-chev' }, Icon('chevronDown', 14)))),
           (pickOpen === true ? kbTeamPicker(teams, sel, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null }), pickAnchor) : null)),
-        // The Cloud Computer, right under « New chat »: its state is the dot. It opens the Kyber page, which holds the computer's details.
-        (KB_KY === true ? row('cloudcomputer', Icon('monitor', 15), kbt('kbui.cloudcomputer'), null, false, () => openPage({ view: 'kyber' }),
+        // The Cloud Computer, right under « New chat »: its state is the dot. It opens the Kyby page, which holds the computer's details.
+        // Hidden for now (KB_SHOW_CLOUD_COMPUTER_ROW): the page and the new-chat card still show the computer.
+        (KB_SHOW_CLOUD_COMPUTER_ROW === true && KB_KY === true ? row('cloudcomputer', Icon('monitor', 15), kbt('kbui.cloudcomputer'), null, false, () => openPage({ view: 'kyber' }),
           (kbNcDot(ncCloud.kind) === '' ? null : h('span', { className: 'kb4-dot ' + kbNcDot(ncCloud.kind), 'aria-label': kbt('kbnc.cc.' + ncCloud.kind) }))) : null),
         (KB_KY === true ? row('kyber', Icon('waypoints', 15), kbt('kbui.kyber'), null, s.view === 'kyber', () => openPage({ view: 'kyber' })) : null),
         (KB_DB === true ? row('dashboards', Icon('layoutDashboard', 15), kbt('kbui.dashboards'), null, s.view === 'dashboards', () => openPage({ view: 'dashboards' })) : null),

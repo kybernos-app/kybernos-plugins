@@ -1,6 +1,6 @@
 # kybernos-kyber
 
-A **Kyber** tab in the chat's right-hand panel (ADR 0053 § 14): where your assistant answers you, and the computer it works on.
+A **Kyby** tab in the chat's right-hand panel (ADR 0053 § 14): where your assistant answers you, and the computer it works on.
 
 - **Telegram**: not set up on this server / not connected yet / connected as *name* since *date* (paused or blocked say so).
   « Open the bot » goes to `t.me/<bot>`; « Manage in my account » to the account page, where the code the bot gives is typed.

@@ -224,7 +224,8 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_BUILD, KB_NC_CREAT
 
 // 7. the menu row and the hiding are wired
 {
-  assert.ok(/KB_KY === true \? row\('cloudcomputer'/.test(src), 'the Cloud Computer row shows with the Kyber satellite')
+  assert.ok(/KB_SHOW_CLOUD_COMPUTER_ROW === true && KB_KY === true \? row\('cloudcomputer'/.test(src), 'the Cloud Computer row is behind its own switch, and shows only with the Kyby satellite')
+  assert.ok(/const KB_SHOW_CLOUD_COMPUTER_ROW = false\n/.test(src), 'the Cloud Computer row is hidden for now (one constant to turn back on)')
   assert.ok(/kbNcIsNativeSchedules\(kbNavKeyOf\(/.test(src), 'the hiding reads the row key with the nav helper')
   assert.ok(/id: 'kybernos-automations'|'kybernos-automations', \d+/.test(src), 'the Automations settings page is registered')
   ok('menu row, hiding and settings page are wired')

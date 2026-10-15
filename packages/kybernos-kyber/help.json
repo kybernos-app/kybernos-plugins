@@ -1,12 +1,12 @@
 {
   "what": {
-    "fr": "Un onglet Kyber dans le panneau de droite : où votre assistant vous répond (Telegram) et l'ordinateur cloud sur lequel il travaille, sur une seule page.",
-    "en": "A Kyber tab in the right-hand panel: where your assistant answers you (Telegram) and the cloud computer it works on, on one page."
+    "fr": "Un onglet Kyby dans le panneau de droite : où votre assistant vous répond (Telegram) et l'ordinateur cloud sur lequel il travaille, sur une seule page.",
+    "en": "A Kyby tab in the right-hand panel: where your assistant answers you (Telegram) and the cloud computer it works on, on one page."
   },
   "steps": [
     {
-      "fr": "Ouvrez le panneau de droite d'un chat, le bouton « + », puis choisissez Kyber.",
-      "en": "Open a chat's right-hand panel, press the “+” button and pick Kyber."
+      "fr": "Ouvrez le panneau de droite d'un chat, le bouton « + », puis choisissez Kyby.",
+      "en": "Open a chat's right-hand panel, press the “+” button and pick Kyby."
     },
     {
       "fr": "Voyez si Telegram est connecté, et si votre ordinateur est en veille ou éveillé.",
@@ -18,8 +18,8 @@
     }
   ],
   "where": {
-    "fr": "Dans un chat, panneau de droite › Kyber",
-    "en": "In a chat, right-hand panel › Kyber",
+    "fr": "Dans un chat, panneau de droite › Kyby",
+    "en": "In a chat, right-hand panel › Kyby",
     "page": false
   },
   "good": {

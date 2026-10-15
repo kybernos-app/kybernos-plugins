@@ -1,6 +1,6 @@
 // kybernos-kyber — browser half.
 //
-// One tab in the right sidebar, « Kyber »: where the person's assistant answers them (Telegram) and the cloud computer it works on.
+// One tab in the right sidebar, « Kyby »: where the person's assistant answers them (Telegram) and the cloud computer it works on.
 // It only READS: `/kybernos-cloud/kyber` (the cloud plugin asks the server with the account's token) and `/kybernos-cloud/server` (where
 // the account page is). A device cannot link or unlink a chat, so the tab sends the person to the bot and to their account.
 //
@@ -27,9 +27,11 @@ window.__ModuleLoader__.load({
         return en
       }
       const fill = (text, p) => (p === undefined ? text : text.replace(/\{(\w+)\}/g, (m, k) => (p[k] !== undefined ? String(p[k]) : m)))
+      // What the person calls their own assistant: the one place to change it here (the sidebar row's label is `kbui.kyber` in kybernos-plugin).
+      const NAME = 'Kyby'
       // [fr, en] pairs, by key, in ONE table so that a test can check both sides of every pair.
       const S = {
-        title: ['Kyber', 'Kyber'],
+        title: [NAME, NAME],
         tabHint: ['Où votre assistant vous répond (Telegram) et l’ordinateur cloud sur lequel il travaille.', 'Where your assistant answers you (Telegram) and the cloud computer it works on.'],
         telegram: ['Telegram', 'Telegram'],
         computer: ['Mon ordinateur', 'My computer'],
@@ -56,7 +58,7 @@ window.__ModuleLoader__.load({
         net_list: ['Réseau : une liste d’adresses', 'Network: a list of addresses'],
         approvals: ['Votre ordinateur vous demande l’accord dans Telegram avant d’agir : Autoriser, Refuser, ou Autoriser pour cette tâche.', 'Your computer asks for your approval in Telegram before it acts: Allow, Refuse, or Allow for this task.'],
         refresh: ['Actualiser', 'Refresh'],
-        signedOut: ['Connectez-vous à Kybernos pour voir votre Kyber.', 'Sign in to Kybernos to see your Kyber.'],
+        signedOut: ['Connectez-vous à Kybernos pour voir votre ' + NAME + '.', 'Sign in to Kybernos to see your ' + NAME + '.'],
         failed: ['Impossible de lire l’état pour l’instant.', 'The state cannot be read right now.'],
         loading: ['Lecture…', 'Reading…'],
       }
