@@ -67,7 +67,7 @@ layer is in place, so the sheet can never outvote a later choice.
 ## My themes
 
 A **theme** is a name plus the settings it retains, grouped so that the person chooses what travels
-with it: colours and accent (always), font, corners, glass and wallpaper, accessibility. Accessibility
+with it: colours and accent (always), font, corners, menu icons, glass and wallpaper, accessibility. Accessibility
 is off by default when saving: contrast, the colour-blind palette and big targets are a need of the
 person, not a style, so a theme never changes them unless it was saved with them.
 
@@ -88,6 +88,29 @@ person, not a style, so a theme never changes them unless it was saved with them
   `PRESET_GROUPS` in `client.js` lists what a theme may retain; `SETTINGS_KEYS` in `preset-store.mjs`
   must stay equal to it (`test-client.mjs` fails when they drift).
 - Up to 100 themes, names up to 40 characters and unique (a name taken by a shipped theme counts).
+
+## Menu icons
+
+The sidebar menu can be drawn by a **set** of icons: grey at rest, in the entry's own colour on the open
+page, flat fills only (no outline). Twelve sets ship: *Classic* (the application's line icons, the
+default), five sober ones (*Flat*, *Duotone*, *Bauhaus*, *Soft gradient*, *Tile*) and six with their
+own drawing language and metaphors (*Matrix* dots, *Mondrian* blocks, *Rings*, *Isometric*
+volumes, *Critters* with two eyes, *Bars* of different lengths).
+
+- **Where**: Settings › Theme › Essentiel › *Icônes du menu*. Each card previews the nine entries, at
+  rest and in colour. The choice is the `iconSet` setting: it is stored with the look, a theme can
+  retain it (its own group in *Save as theme*), and a shipped theme may carry one (`skinPatch`).
+- **How**: the drawings are pure code in `client.js`, between the `icon-sets` markers (cut out and run
+  as it ships by `test-icon-sets.mjs`). `appliquerIcones` publishes the choice on
+  `window.__KB_ICONSETS__` (`current()`, `svg(entry, on, size)`, `sets`) and fires `kb-icons-change`;
+  `kybernos-plugin`'s menu reads it at render and keeps its own line icons when there is no
+  registry or the set is *Classic*. At rest nothing is coloured: the icons follow the row's text colour.
+- **Adding a set**: one drawing per entry in `client.js` (9 entries: `cloud kyber dash teams ws
+  creations auto skills plug`), a line in `ICON_SETS` with its French and English name; the tests
+  require every entry at rest and open, no stroke, inside the 24 × 24 box, and a look that no other set
+  already has.
+- The entry colours are one table (`ICON_HUES`); the *Classic* card is drawn by the application, which
+  lends its line icons through `window.__KB_MENU_CLASSIC__`.
 
 ## The gallery
 

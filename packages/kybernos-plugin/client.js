@@ -3765,6 +3765,32 @@ const KbDynIcon = (props) => {
   }
   return Icon(name, size) || Icon(KB_DEFAULT_ICON, size)
 }
+// Menu icon sets (kybernos-theme). The set the person chose draws the menu entries — grey at rest, in the entry's colour on the
+// open page; « classic », or no registry yet, keeps the line icons above. The theme plugin announces a change with `kb-icons-change`.
+const KB_MENU_ENTRY = { cloudcomputer: 'cloud', kyber: 'kyber', dashboards: 'dash', aiteams: 'teams', projects: 'ws', deliverables: 'creations', tasks: 'auto', skills: 'skills', connectors: 'plug' }
+const KB_MENU_CLASSIC = { cloud: 'monitor', kyber: 'waypoints', dash: 'layoutDashboard', teams: KB_DEFAULT_ICON, ws: 'folderOpen', creations: 'shapes', auto: 'zap', skills: 'sparkles', plug: 'plug' }
+const kbMenuIcon = (rowKey, fallback, on) => {
+  try {
+    const reg = (typeof window !== 'undefined') ? window.__KB_ICONSETS__ : null
+    const entry = KB_MENU_ENTRY[rowKey]
+    if (entry !== undefined && reg !== null && reg !== undefined && typeof reg.svg === 'function') {
+      const svg = reg.svg(entry, on === true, 16)
+      if (typeof svg === 'string') return h('span', { className: 'kb4-isvg', 'data-kb-icons': reg.current(), dangerouslySetInnerHTML: { __html: svg } })
+    }
+  } catch (e) { /* the line icon stays */ }
+  return fallback
+}
+// The line icons, lent to the theme page so its « classic » card shows the real thing.
+try {
+  if (typeof window !== 'undefined') {
+    window.__KB_MENU_CLASSIC__ = (entry, size) => {
+      const d = LUCIDE[KB_MENU_CLASSIC[entry]]
+      if (d === null || d === undefined) return null
+      const px = typeof size === 'number' ? size : 16
+      return '<svg width="' + px + '" height="' + px + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d.map((q) => '<path d="' + q + '"/>').join('') + '</svg>'
+    }
+  }
+} catch (e) { /* outside a browser */ }
 // LA palette du produit, en un seul endroit : la fiche d'une AI Team (COLOUR),
 // les Projects et les suggestions de conversation la lisent. Un ajout ici
 // apparaît partout — c'est ce qui évite trois palettes qui divergent.
@@ -5764,6 +5790,8 @@ const CSS = `
 .kb4-item.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-brand-primary)}
 .kb4-item.on .kb4-lab{font-weight:700}
 .kb4-ico{flex:none;width:16px;height:16px;display:flex;align-items:center;justify-content:center}
+.kb4-isvg{display:inline-flex;width:16px;height:16px;color:var(--dsw-alias-label-secondary)}
+.kb4-isvg svg{display:block}
 .kb4-lab{flex:1;text-align:left}
 .kb4-badge{font-size:13px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}
 [class*="collapsed"] .kb4-menu .kb4-lab,[class*="collapsed"] .kb4-menu .kb4-badge,[class*="collapsed"] .kb4-menu .kb4-ncol,[class*="collapsed"] .kb4-menu .kb4-chev{display:none !important}
@@ -23709,6 +23737,13 @@ function renderFit(canvas, model, cam, opts){
     try { if (typeof window !== 'undefined') window.__KB_OPEN__ = kbOpenPage } catch (e) { /* outside a browser */ }
     const SalesMenu = (p0) => {
       const s = useStore()
+      // A change of menu icon set redraws the rows (the registry is read at render).
+      const icoSetter = React.useState(0)[1]
+      React.useEffect(() => {
+        const onSet = () => icoSetter((n) => n + 1)
+        window.addEventListener('kb-icons-change', onSet)
+        return () => window.removeEventListener('kb-icons-change', onSet)
+      }, [])
       React.useEffect(() => { if (state.data === null && state.loading === false) load() }, [])
       const c = navCounts(s.data)
       const arts = (s.data !== null && s.data !== undefined && Array.isArray(s.data.artifacts) === true) ? s.data.artifacts : []
@@ -23770,7 +23805,7 @@ function renderFit(canvas, model, cam, opts){
           h('div', { className: 'kbp-detail' }, best + ' / ' + bestMax + ' · ' + entries.length + (entries.length > 1 ? kbf(' tentatives') : kbf(' tentative'))))
       }
       const row = (id, ico, label, badge, active, onClick, extra) => h('button', { type: 'button', key: id, className: 'kb4-item' + (active === true ? ' on' : ''), onClick },
-        h('span', { className: 'kb4-ico' }, ico), h('span', { className: 'kb4-lab' }, label),
+        h('span', { className: 'kb4-ico' }, kbMenuIcon(id, ico, active === true)), h('span', { className: 'kb4-lab' }, label),
         (badge !== null && badge !== undefined && badge > 0) ? h('span', { className: 'kb4-badge' }, String(badge)) : null,
         (extra === undefined ? null : extra))
       const ncCloud = useNcCloud()
