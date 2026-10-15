@@ -4271,20 +4271,37 @@ const turnAnswer = async (req, body) => {
 // ── The Kyber tab's data (ADR 0053 § 14): where the person's assistant answers, and the computer it works on ───
 // Read-only, from the active server with the account's token: the Telegram door's state (`GET /v1/me/telegram`) and the person's `Home` computer in their personal workspace. A device
 // cannot link or unlink a chat (the server asks for a signed-in session): this route only says what is, and the tab sends the person to the bot and to their account page for the rest.
+const kybyChosen = { at: 0, token: '', id: null }
 const kyberRoute = async () => {
   const state = readState()
   if (!isConnected(state)) return { ok: true, connected: false }
   const get = (p) => apiCall(p, { method: 'GET', token: state.token, timeoutMs: 15000 })
-  const [tg, ws] = await Promise.all([get('/v1/me/telegram'), get('/v1/workspaces')])
+  // The computer the person linked to their assistant (`GET /v1/me/kyby`, null = the default Home): read at most once a minute, an older server has none.
+  const chosen = async () => {
+    if (kybyChosen.token === state.token && Date.now() - kybyChosen.at < 60000) return kybyChosen.id
+    const r = await get('/v1/me/kyby')
+    const id = r.status === 200 && r.body !== null && typeof r.body === 'object' && typeof r.body.computer_id === 'string' ? r.body.computer_id : null
+    kybyChosen.at = r.status === 200 || r.status === 404 ? Date.now() : 0
+    kybyChosen.token = state.token
+    kybyChosen.id = id
+    return id
+  }
+  const [tg, ws, pick] = await Promise.all([get('/v1/me/telegram'), get('/v1/workspaces'), chosen()])
   const list = ws.status === 200 && ws.body !== null && Array.isArray(ws.body.workspaces) ? ws.body.workspaces : []
   const personal = list.find((w) => w !== null && typeof w === 'object' && w.personal === true)
   let home = null
+  let computers = []
   if (personal !== undefined && typeof personal.id === 'string') {
     const c = await get('/v1/workspaces/' + encodeURIComponent(personal.id) + '/computers')
     const rows = c.status === 200 && c.body !== null && Array.isArray(c.body.computers) ? c.body.computers : []
-    const found = rows.find((r) => r !== null && typeof r === 'object' && String(r.name).toLowerCase() === 'home')
+    const cloud = rows.filter((r) => r !== null && typeof r === 'object' && typeof r.id === 'string' && (r.kind === undefined || r.kind === 'cloud'))
+    computers = cloud.map((r) => ({ id: r.id, name: String(r.name || '').slice(0, 60), state: String(r.state || '') }))
+    const found = (pick !== null ? rows.find((r) => r !== null && typeof r === 'object' && r.id === pick) : undefined)
+      || rows.find((r) => r !== null && typeof r === 'object' && String(r.name).toLowerCase() === 'home')
     if (found !== undefined) {
       home = {
+        id: String(found.id || ''),
+        name: String(found.name || '').slice(0, 60),
         state: String(found.state || ''),
         desired: String(found.desired || ''),
         mode: String(found.mode || ''),
@@ -4310,9 +4327,8 @@ const kyberRoute = async () => {
       linked: t.linked !== null && typeof t.linked === 'object'
         ? { display: String(t.linked.display || ''), linked_at: String(t.linked.linked_at || ''), paused: t.linked.paused === true, blocked: t.linked.blocked === true }
         : null,
-      // Where a Telegram message runs (kyby.mjs HOME_TARGETS); an older server has no such setting.
-      home_target: t.home_target === 'ask' ? 'ask' : 'cloud',
     },
+    computers,
     home,
   }
 }
@@ -4408,7 +4424,7 @@ const ROUTES = [
   { path: '/kybernos-cloud/telegram/pairing', method: 'POST', guarded: true, strict: true, run: () => kyby.pairingStart() },
   { path: '/kybernos-cloud/telegram/pairing/state', method: 'GET', guarded: true, run: (req) => kyby.pairingState(req) },
   { path: '/kybernos-cloud/telegram/pairing/cancel', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: (req, body) => kyby.pairingCancel(req, body) },
-  { path: '/kybernos-cloud/telegram/settings', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: (req, body) => kyby.settings(req, body) },
+  { path: '/kybernos-cloud/kyby/computer', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: async (req, body) => { kybyChosen.at = 0; return kyby.computer(req, body) } },
   { path: '/kybernos-cloud/telegram/unlink', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: () => kyby.unlink() },
   { path: '/kybernos-cloud/kyby/native', method: 'GET', guarded: true, run: kybySessionRoute },
   { path: '/kybernos-cloud/kyby/native/set', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: kybySessionSet },

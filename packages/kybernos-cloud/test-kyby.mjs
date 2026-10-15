@@ -63,14 +63,18 @@ ok('a pairing state outside the five is dropped, a reason outside the three is n
   ok('cancel: a bad id is refused', (await r.pairingCancel(null, { id: 'x' })).error === 'invalid_request')
 }
 
-// ── settings and unlink ──────────────────────────────────────────────────────
+// ── the computer linked to the assistant, and unlink ───────────────────────────
 {
-  const { r, calls } = make({ 'PUT /v1/me/telegram/settings': (p, o) => ({ status: 200, body: { home_target: o.body.home_target } }), 'DELETE /v1/me/telegram': { status: 200, body: { unlinked: true } } })
-  ok('settings: cloud and ask pass', (await r.settings(null, { home_target: 'ask' })).home_target === 'ask' && (await r.settings(null, { home_target: 'cloud' })).home_target === 'cloud')
-  ok('settings: anything else is refused before a call', (await r.settings(null, { home_target: 'mac' })).error === 'invalid_request' && calls.length === 2)
+  const C1 = '44444444-4444-4444-8444-444444444444'
+  const { r, calls } = make({ 'PUT /v1/me/kyby/computer': (p, o) => ({ status: 200, body: { computer_id: o.body.computer_id } }), 'DELETE /v1/me/telegram': { status: 200, body: { unlinked: true } } })
+  ok('computer: an id is sent to the server and echoed', (await r.computer(null, { computer_id: C1 })).computer_id === C1 && calls[0].body.computer_id === C1 && calls[0].token === TOKEN)
+  ok('computer: null goes back to the default', (await r.computer(null, { computer_id: null })).computer_id === null)
+  ok('computer: anything that is not an id is refused before a call', (await r.computer(null, { computer_id: '../x' })).error === 'invalid_request' && (await r.computer(null, {})).error === 'invalid_request' && calls.length === 2)
   ok('unlink', (await r.unlink()).ok === true)
-  const nl = make({ 'PUT /v1/me/telegram/settings': { status: 404, body: { error: 'not_linked' } } })
-  ok('settings: not linked is said', (await nl.r.settings(null, { home_target: 'ask' })).error === 'not_linked')
+  const old = make({ 'PUT /v1/me/kyby/computer': { status: 404, body: { error: 'not_found' } } })
+  ok('computer: a server that does not know the route says not_found', (await old.r.computer(null, { computer_id: C1 })).error === 'not_found')
+  const nope = make({ 'PUT /v1/me/kyby/computer': { status: 404, body: { error: 'computer_not_found' } } })
+  ok('computer: a computer that is not the person\'s is said in a word', (await nope.r.computer(null, { computer_id: C1 })).error === 'computer_not_found')
 }
 
 console.log(fail === 0 ? '\nall good' : '\n' + fail + ' failed')

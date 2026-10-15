@@ -9,20 +9,21 @@ works on.
   Kaby's identity to the system prompt (`kyby-native.mjs` in kybernos-cloud). Each finished turn is also written on the person's thread on
   the server, and the last words said there (Telegram's) are told back in the prompt: one assistant, one memory, one conversation, two
   bodies (this machine here, its cloud computer on Telegram). A server with no Kaby thread is simply left alone.
-- **Channels strip** (collapsible; open until Telegram is connected, folded after, the person's choice wins), in the dock above that
-  chat's composer and above no other's:
-  - **Telegram**: a QR code and an « Open Telegram » link. The person scans or taps, presses Start, taps « Yes, it's me » in Telegram;
-    the strip follows the pairing by itself (waiting, then who Telegram says is asking, then connected). Expired, refused, « already
-    another account's » and « made by the bot » are their own cards. Connected is one line, with Open and Disconnect (confirmed).
-  - **WhatsApp** and **WeChat**: shown with their mark and « Soon ». Nothing is offered.
-  - **Where Kaby works**: which computer answers a Telegram message that asks it to act: Kaby's cloud computer, or « ask me »
-    (Telegram buttons). « My Mac » is shown greyed: DSH must report its presence to the server first (ADR 0053 § 13.4).
-- **Kaby's computer**: asleep / awake, last activity. On the Free plan the server says `manual_control: false`: no wake, sleep or open,
-  only an upgrade button (the footer's Upgrade dialog through `window.__KB_UPGRADE__`, else the plan page). Kaby wakes it itself.
+- **Channels strip** (collapsible, in the dock above that chat's composer and above no other's). It is open only while there is a code
+  to scan; once Telegram is connected, or when the server has no Telegram bot, it is folded to one line (two chips: Kaby's computer and
+  Telegram). Opened, in this order:
+  - **Kaby's computer**: the cloud computer linked to the assistant (every person has one, made at first use: until then it is « ready at
+    the first request »), its state, and, on a plan that allows it, wake / sleep / open. On the Free plan the server says
+    `manual_control: false`: no buttons, an upgrade button (the footer's Upgrade dialog through `window.__KB_UPGRADE__`, else the plan page).
+    With several cloud computers a plain choice appears (`POST /kybernos-cloud/kyby/computer`, kept by the server, used by Telegram too).
+  - **Telegram**: a QR code and an « Open Telegram » link. The person scans or taps, presses Start, taps « Yes, it's me » in Telegram; the
+    strip follows the pairing by itself. Expired, refused, « already another account's » and « made by the bot » are their own cards.
+    Connected is one line, with Open and Disconnect (confirmed). A server with no Telegram bot is one muted line naming the server.
+  - **WhatsApp** and **WeChat**: one muted « Soon » line with their marks. Nothing is offered.
 - The same panel is a tab of the right-hand panel, and the page the new-chat card opens (what Kaby is, the way into the chat).
 
-The bundle talks only to `kybernos-cloud`'s routes (`/kybernos-cloud/kyber`, `/telegram/pairing[...]`, `/telegram/settings`,
-`/telegram/unlink`, `/kyby/native[/set]`, `/computer/*`, `/console/link`), which add the account's token; the QR is computed there.
+The bundle talks only to `kybernos-cloud`'s routes (`/kybernos-cloud/kyber`, `/telegram/pairing[...]`,
+`/telegram/unlink`, `/kyby/computer`, `/kyby/native[/set]`, `/computer/*`, `/console/link`), which add the account's token; the QR is computed there.
 No engine patch. The assistant's name is one constant (`NAME`) here and the label `kbui.kyber` in kybernos-plugin.
 
 Tests, without DSH: `node packages/kybernos-kyber/test-client.mjs`, `node packages/kybernos-kyber/test-host.mjs`, and the host half in
