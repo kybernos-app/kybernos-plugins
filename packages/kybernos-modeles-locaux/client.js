@@ -34,7 +34,7 @@ window.__ModuleLoader__.load({
       // tailles/scores : Artificial Analysis « Qwen3.5 small models » (05/03/2026)
       // + bibliothèque Ollama (27/09/2026). tailleGo null = non mesuré, affiché
       // tel quel. desc = la ligne affichée sous le nom (ton de la maquette v2).
-      const CATALOGUE = [
+      const CATALOGUE_EMBARQUE = [
         { id: 'qwen3.5:9b', famille: 'q', initiale: 'Qw', tailleGo: 6.1, ramMin: 16, score: 'II 32 · MMMU-Pro 69 %',
           input: ['text', 'image'], badges: ['Vision', 'Tools', 'Thinking'],
           desc: 'kml.desc.9b' },
@@ -54,6 +54,20 @@ window.__ModuleLoader__.load({
           input: ['text'], badges: ['Code', 'Tools'],
           desc: 'kml.desc.coder30' },
       ]
+      // The list the page works on. It starts as the built-in one above (the last resort: a host that does not know the route
+      // yet, or no answer) and is replaced by what /modeles-locaux/catalogue says: the list shipped with this version, or the
+      // signed online one. Module-level on purpose: the first-run wizard asks for the recommendation through the same list.
+      let CATALOGUE = CATALOGUE_EMBARQUE
+      let kbCatalogueInfo = { source: 'embarque', publishedAt: null, online: null, nouveaux: [], hote: true }
+      const kbAdopter = (rep) => {
+        if (rep === null || typeof rep !== 'object' || rep.ok !== true || !Array.isArray(rep.models) || rep.models.length === 0) return false
+        CATALOGUE = rep.models.map((x) => ({
+          id: x.id, famille: x.famille, initiale: x.initiale, tailleGo: x.tailleGo, ramMin: x.ramMin, score: x.score === null || x.score === undefined ? '' : x.score,
+          input: x.input, badges: x.badges, desc: x.desc, ajoute: x.ajoute,
+        }))
+        kbCatalogueInfo = { source: rep.source, publishedAt: rep.publishedAt, online: rep.online === undefined ? null : rep.online, nouveaux: Array.isArray(rep.nouveaux) ? rep.nouveaux : [], hote: true }
+        return true
+      }
 
       // ── i18n minimal (fr d'abord, en en repli) ───────────────────────────
       const KB_M_T = {
@@ -69,9 +83,25 @@ window.__ModuleLoader__.load({
         // (13/10) Refresh = real scan for newly installed models, with a
         // visible "Searching…" state and a result line afterwards.
         'kml.scan.encours': { fr: 'Recherche…', en: 'Searching…' },
-        'kml.scan.nouveaux': { fr: '{n} nouveau(x) modèle(s) détecté(s) : {ids}', en: '{n} new model(s) detected: {ids}' },
-        'kml.scan.aucun': { fr: 'Aucun nouveau modèle', en: 'No new models' },
+        'kml.scan.nouveaux': { fr: '{n} nouveau(x) modèle(s) installé(s) dans Ollama depuis la dernière vérification : {ids}', en: '{n} new model(s) installed in Ollama since the last check: {ids}' },
+        'kml.scan.aucun': { fr: 'Aucun nouveau modèle installé dans Ollama depuis la dernière vérification.', en: 'No new model installed in Ollama since the last check.' },
+        'kml.scan.bouton': { fr: 'Rechercher de nouveaux modèles', en: 'Search for new models' },
         'kml.scan.tag': { fr: 'Nouveau', en: 'New' },
+        // (15/10) Refresh also asks the catalogue of models (signed, verified): each step below is a real call, in this order.
+        'kml.scan.etape.ollama': { fr: 'Lecture des modèles installés…', en: 'Reading the installed models…' },
+        'kml.scan.etape.machine': { fr: 'Mesure de cette machine…', en: 'Measuring this machine…' },
+        'kml.scan.etape.catalogue': { fr: 'Recherche de nouveaux modèles compatibles…', en: 'Looking for new compatible models…' },
+        'kml.cat.nouveaux': { fr: '{n} nouveau(x) modèle(s) au catalogue depuis le {date} : {ids}.', en: '{n} new model(s) in the catalogue since {date}: {ids}.' },
+        'kml.cat.tiennent': { fr: '{k} tiennent dans les {ram} Go de cette machine.', en: '{k} fit this machine’s {ram} GB.' },
+        'kml.cat.aucun': { fr: 'Catalogue à jour : publié le {date}, aucun nouveau modèle.', en: 'Catalogue up to date: published {date}, no new model.' },
+        'kml.cat.horsligne': { fr: 'Catalogue en ligne injoignable : la liste du {date} est conservée.', en: 'The online catalogue could not be reached: keeping the list from {date}.' },
+        'kml.cat.refuse': { fr: 'Catalogue en ligne refusé ({raison}) : la liste du {date} est conservée.', en: 'The online catalogue was refused ({raison}): keeping the list from {date}.' },
+        'kml.cat.nokey': { fr: 'La recherche en ligne n’est pas encore activée : liste livrée avec cette version ({date}).', en: 'Online search is not active yet: showing the list shipped with this version ({date}).' },
+        'kml.cat.off': { fr: 'La recherche en ligne est désactivée dans les réglages.', en: 'Online search is turned off in the settings.' },
+        'kml.cat.hote': { fr: 'Redémarrez DSH pour activer la recherche de nouveaux modèles.', en: 'Restart DSH to turn on the search for new models.' },
+        'kml.cat.source.signe': { fr: 'Liste : catalogue signé · {date}', en: 'List: signed catalogue · {date}' },
+        'kml.cat.source.livre': { fr: 'Liste : livrée avec cette version · {date}', en: 'List: shipped with this version · {date}' },
+        'kml.cat.source.embarque': { fr: 'Liste : intégrée à la page (DSH à redémarrer pour la recherche en ligne)', en: 'List: built into the page (restart DSH for the online search)' },
         'kml.tuile.machine': { fr: 'Machine · mesuré (sysctl)', en: 'Machine · measured (sysctl)' },
         'kml.tuile.budget': { fr: 'Budget mémoire modèle · estimé', en: 'Model memory budget · estimated' },
         'kml.budget.note': { fr: '≈ RAM − 5 Go, DSH + Chrome ouverts', en: '≈ RAM − 5 GB, DSH + Chrome open' },
@@ -144,6 +174,18 @@ window.__ModuleLoader__.load({
           for (const k of Object.keys(vars)) text = text.split('{' + k + '}').join(String(vars[k]))
         }
         return text
+      }
+
+      // A built-in entry points at a string above; a catalogue entry carries its own { fr, en }.
+      const descDe = (mod) => {
+        if (typeof mod.desc === 'string') return m(mod.desc)
+        if (mod.desc === null || typeof mod.desc !== 'object') return ''
+        let lang = 'en'
+        try { lang = String(kbLocaleRead()) } catch (e) { lang = 'en' }
+        return typeof mod.desc[lang] === 'string' ? mod.desc[lang] : (typeof mod.desc.en === 'string' ? mod.desc.en : '')
+      }
+      const dateDe = (iso) => {
+        try { return new Date(iso).toLocaleDateString(String(kbLocaleRead()) === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) } catch (e) { return String(iso).slice(0, 10) }
       }
 
       // ── icônes (tracés Lucide, comme les autres plugins) ─────────────────
@@ -302,6 +344,7 @@ window.__ModuleLoader__.load({
         ".kml-rangee-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: auto; }\n" +
         ".kml-rangee-meta .kbm-in-wrap { width: 132px; }\n" +
         ".kml-erreur { margin: 0 0 12px; font-size: 13px; color: var(--dsw-alias-state-error-primary); }\n" +
+        ".kml-scan-source { margin: 0 0 10px; font-size: 12px; color: var(--dsw-alias-label-tertiary); }\n" +
         "@media (max-width: 900px) { .kml-tuiles { grid-template-columns: 1fr; } }\n" +
         "@media (max-width: 720px) { .kml-mod { flex-wrap: wrap; } .kml-mod-etat { align-items: flex-start; } .kml-mod-actions { justify-content: flex-start; } .kml-hf-saisie { min-width: 100%; } }\n"
 
@@ -391,6 +434,10 @@ window.__ModuleLoader__.load({
         // Refresh scan: 'inactif' | 'encours' | 'fini' + the ids found new.
         const [scan, setScan] = React.useState('inactif')
         const [scanNouveaux, setScanNouveaux] = React.useState(null)
+        // Which real call is running (ollama → machine → catalogue), and what the catalogue answered.
+        const [scanEtape, setScanEtape] = React.useState(null)
+        const [catBilan, setCatBilan] = React.useState(null)
+        const [catRev, setCatRev] = React.useState(0)
         const jobVivant = React.useRef(null)
 
         // ── lectures réelles ───────────────────────────────────────────────
@@ -406,15 +453,35 @@ window.__ModuleLoader__.load({
         // The button shows "Searching…" while it runs, then the result.
         const lancerScan = React.useCallback(async () => {
           setScan('encours')
+          setCatBilan(null)
+          setScanEtape('ollama')
           try {
             const r = await jsonPost('/modeles-locaux/decouvrir', {})
-            if (r.ok === true) {
-              setScanNouveaux(Array.isArray(r.nouveaux) ? r.nouveaux : [])
-              await chargerMachine(true)
-            } else setScanNouveaux([])
+            if (r.ok === true) setScanNouveaux(Array.isArray(r.nouveaux) ? r.nouveaux : [])
+            else setScanNouveaux([])
           } catch (e) { setScanNouveaux([]) }
+          setScanEtape('machine')
+          await chargerMachine(true)
+          setScanEtape('catalogue')
+          // The catalogue of models: the host verifies the signature before it believes a word (see modeles-catalogue.mjs).
+          let bilan = null
+          try {
+            const r = await jsonPost('/modeles-locaux/catalogue', { op: 'refresh' })
+            if (r !== null && r.ok === true && kbAdopter(r) === true) bilan = { ok: true, online: r.online, nouveaux: kbCatalogueInfo.nouveaux, depuis: r.depuis, publishedAt: r.publishedAt, source: r.source }
+            else bilan = { ok: false, hote: false }
+          } catch (e) { bilan = { ok: false, hote: false } }
+          if (bilan.ok === false) kbCatalogueInfo = Object.assign({}, kbCatalogueInfo, { hote: false })
+          setCatBilan(bilan)
+          setCatRev((n) => n + 1)
+          setScanEtape(null)
           setScan('fini')
         }, [chargerMachine])
+        // The list on screen at load: what the host holds on disk (no network).
+        React.useEffect(() => {
+          let vivant = true
+          jsonGet('/modeles-locaux/catalogue').then((r) => { if (vivant === true && kbAdopter(r) === true) setCatRev((n) => n + 1) }).catch(() => { /* host without the route: the built-in list stays */ })
+          return () => { vivant = false }
+        }, [])
         const chargerDoc = React.useCallback(async () => {
           const api = kbMApi()
           if (api === null || api.settings === null) return
@@ -523,7 +590,7 @@ window.__ModuleLoader__.load({
         }
         const reco = kbRecommend(ramGo)
         // Ids found by the last Refresh scan: highlighted with a "New" tag.
-        const idsNouveaux = scanNouveaux !== null ? new Set(scanNouveaux.map((x) => x.id)) : new Set()
+        const idsNouveaux = new Set((scanNouveaux !== null ? scanNouveaux.map((x) => x.id) : []).concat(catBilan !== null && catBilan.ok === true ? catBilan.nouveaux : []))
         const visibles = CATALOGUE.filter((mod) => {
           if (budget === 'compatibles') return etatDe(mod) === 'compatible'
           if (budget === 'reco') return mod === reco
@@ -570,7 +637,7 @@ window.__ModuleLoader__.load({
                 mod === reco ? h('span', { className: 'kbm-tag', 'data-tone': 'success' }, m('kml.reco.tag')) : null,
                 idsNouveaux.has(mod.id) ? h('span', { className: 'kbm-tag', 'data-tone': 'warning' }, m('kml.scan.tag')) : null,
                 mod.tailleGo !== null && mod.tailleGo <= 4 ? h('span', { className: 'kbm-tag', 'data-tone': 'quiet' }, m('kml.leger.tag')) : null),
-              h('span', { className: 'kml-mod-desc', title: m(mod.desc) + ' · ' + mod.score }, m(mod.desc) + ' · ' + mod.score)),
+              h('span', { className: 'kml-mod-desc', title: descDe(mod) + (mod.score ? ' · ' + mod.score : '') }, descDe(mod) + (mod.score ? ' · ' + mod.score : ''))),
             h('span', { className: 'kml-mod-etat' },
               h('span', { className: 'kml-etat' },
                 h('span', { className: 'kbm-dot', 'data-state': etat === 'compatible' ? 'done' : (etat === 'juste' ? 'warning' : 'error') }),
@@ -608,10 +675,10 @@ window.__ModuleLoader__.load({
                   h('span', { className: 'kbm-dot', 'data-state': 'done' }),
                   h('b', null, (machine.chip || machine.arch) + (ramGo !== null ? ' · ' + ramGo + ' Go RAM' : '')),
                   h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-ghost', onClick: lancerScan, disabled: scan === 'encours',
-                    'aria-label': scan === 'encours' ? m('kml.scan.encours') : m('kml.reverifier') },
+                    title: m('kml.scan.bouton'), 'aria-label': scan === 'encours' ? m('kml.scan.encours') : m('kml.reverifier') },
                   scan === 'encours'
                     ? h('span', { className: 'kml-scan-btn' }, h('span', { className: 'kml-spin' }, Ic('refresh', 12)), ' ', m('kml.scan.encours'))
-                    : Ic('refresh', 12))), 'm'),
+                    : h('span', { className: 'kml-scan-btn' }, Ic('refresh', 12), ' ', m('kml.scan.bouton')))), 'm'),
             tuile(m('kml.tuile.budget'),
               h('span', { className: 'kml-tuile-ligne' },
                 h('b', null, budgetGo === null ? '—' : '≈ ' + budgetGo + ' Go'),
@@ -630,12 +697,38 @@ window.__ModuleLoader__.load({
                     : (ollamaAbsent === true
                       ? h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-outline', onClick: () => installer('ollama') }, Ic('download', 12), m('kml.installer.ollama'))
                       : null)), 'e')),
+          scan === 'encours' && scanEtape !== null
+            ? h('p', { className: 'kml-scan-result', 'data-etape': scanEtape, role: 'status' }, m('kml.scan.etape.' + scanEtape))
+            : null,
           scan === 'fini' && scanNouveaux !== null
             ? h('p', { className: 'kml-scan-result', 'data-ok': scanNouveaux.length > 0, role: 'status' },
               scanNouveaux.length > 0
                 ? m('kml.scan.nouveaux', { n: String(scanNouveaux.length), ids: scanNouveaux.map((x) => x.id).join(', ') })
                 : m('kml.scan.aucun'))
             : null,
+          scan === 'fini' && catBilan !== null
+            ? h('p', { className: 'kml-scan-result', 'data-cat': catBilan.ok === true ? catBilan.online.state : 'hote', 'data-ok': catBilan.ok === true && catBilan.nouveaux.length > 0, role: 'status' },
+              (() => {
+                if (catBilan.ok !== true) return m('kml.cat.hote')
+                const o = catBilan.online
+                const quand = dateDe(catBilan.publishedAt)
+                if (o.state === 'ok' && catBilan.nouveaux.length > 0) {
+                  const tiennent = catBilan.nouveaux.filter((id) => { const x = CATALOGUE.find((y) => y.id === id); return x !== undefined && (ramGo === null || x.ramMin <= ramGo) }).length
+                  return m('kml.cat.nouveaux', { n: String(catBilan.nouveaux.length), date: dateDe(catBilan.depuis), ids: catBilan.nouveaux.join(', ') }) +
+                    (ramGo !== null ? ' ' + m('kml.cat.tiennent', { k: String(tiennent), ram: String(ramGo) }) : '')
+                }
+                if (o.state === 'ok') return m('kml.cat.aucun', { date: quand })
+                if (o.state === 'offline') return m('kml.cat.horsligne', { date: quand })
+                if (o.state === 'off') return m('kml.cat.off')
+                if (o.state === 'refused' && o.reason === 'no-key') return m('kml.cat.nokey', { date: quand })
+                return m('kml.cat.refuse', { raison: String(o.reason), date: quand })
+              })())
+            : null,
+          // Where the list below comes from, always: a recommendation is only as good as its date.
+          h('p', { className: 'kml-scan-source', 'data-source': kbCatalogueInfo.source, 'data-rev': catRev },
+            kbCatalogueInfo.source === 'embarque'
+              ? m('kml.cat.source.embarque')
+              : m(kbCatalogueInfo.source === 'signed' ? 'kml.cat.source.signe' : 'kml.cat.source.livre', { date: dateDe(kbCatalogueInfo.publishedAt) })),
           erreur !== null ? h('p', { className: 'kml-erreur' }, erreur) : null,
           h('div', { className: 'kml-hf-tete' },
             h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-outline', onClick: () => setHfOuvre(!hfOuvre), 'aria-expanded': hfOuvre === true },

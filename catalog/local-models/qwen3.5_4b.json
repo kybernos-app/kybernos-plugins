@@ -1,0 +1,22 @@
+{
+  "id": "qwen3.5:4b",
+  "famille": "q",
+  "initiale": "Qw",
+  "tailleGo": 3.1,
+  "ramMin": 8,
+  "score": "II 27 · MMMU-Pro 65 %",
+  "input": [
+    "text",
+    "image"
+  ],
+  "badges": [
+    "Vision",
+    "Tools"
+  ],
+  "desc": {
+    "fr": "Marge maximale — le choix des machines à 8 Go.",
+    "en": "Maximum headroom — the pick for 8 GB machines."
+  },
+  "ajoute": "2026-09-27",
+  "ordre": 20
+}

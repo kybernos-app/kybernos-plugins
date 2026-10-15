@@ -1,0 +1,23 @@
+{
+  "id": "gemma4:e4b",
+  "famille": "g",
+  "initiale": "Gm",
+  "tailleGo": 3.6,
+  "ramMin": 8,
+  "score": "audio natif · embarqué",
+  "input": [
+    "text",
+    "image",
+    "audio"
+  ],
+  "badges": [
+    "Vision",
+    "Audio"
+  ],
+  "desc": {
+    "fr": "Alternative on-device si le 9B s’avère lent.",
+    "en": "On-device alternative if the 9B turns out slow."
+  },
+  "ajoute": "2026-09-27",
+  "ordre": 40
+}

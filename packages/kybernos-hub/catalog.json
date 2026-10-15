@@ -1329,8 +1329,8 @@
         },
         "steps": [
           {
-            "fr": "La page affiche votre machine (puce, mémoire) et si Ollama est présent ; « Installer Ollama (brew) » apparaît s’il manque.",
-            "en": "The page shows your machine (chip, memory) and whether Ollama is present; “Install Ollama (brew)” appears if it is missing."
+            "fr": "La page affiche votre machine et Ollama ; « Rechercher de nouveaux modèles » interroge le catalogue des modèles recommandés.",
+            "en": "The page shows your machine and Ollama; “Search for new models” checks the catalogue of recommended models."
           },
           {
             "fr": "Dans « Sélection pour cette machine », choisissez un modèle (le « Recommandé » est le plus grand qui tient) puis « Installer ».",

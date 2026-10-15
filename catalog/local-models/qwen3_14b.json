@@ -1,0 +1,21 @@
+{
+  "id": "qwen3:14b",
+  "famille": "q",
+  "initiale": "Qw",
+  "tailleGo": 9.0,
+  "ramMin": 16,
+  "score": "tools · thinking (Q4, Ollama)",
+  "input": [
+    "text"
+  ],
+  "badges": [
+    "Tools",
+    "Thinking"
+  ],
+  "desc": {
+    "fr": "Génération précédente — au-dessus du budget avec DSH ouvert.",
+    "en": "Previous generation — over budget with DSH open."
+  },
+  "ajoute": "2026-09-27",
+  "ordre": 50
+}

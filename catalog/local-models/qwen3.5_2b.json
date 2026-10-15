@@ -1,0 +1,21 @@
+{
+  "id": "qwen3.5:2b",
+  "famille": "q",
+  "initiale": "Qw",
+  "tailleGo": null,
+  "ramMin": 4,
+  "score": "II 16",
+  "input": [
+    "text",
+    "image"
+  ],
+  "badges": [
+    "Vision"
+  ],
+  "desc": {
+    "fr": "Pour les petites machines — taille Q4 non mesurée.",
+    "en": "For small machines — Q4 size not measured."
+  },
+  "ajoute": "2026-09-27",
+  "ordre": 30
+}

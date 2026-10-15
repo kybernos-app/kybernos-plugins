@@ -12,6 +12,28 @@
 // et ne fait rien d'autre. Aucune écriture de configuration ici.
 // ═══════════════════════════════════════════════════════════════════════════
 import { execFile, spawn } from 'node:child_process'
+import { homedir } from 'node:os'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { loadKeys, loadShipped, serveCatalogue } from './modeles-distant.mjs'
+
+const HERE = dirname(fileURLToPath(import.meta.url))
+export const CATALOGUE_FILE = join(HERE, 'catalogue.json')
+export const KEYS_FILE = join(HERE, 'models-pubkey.json')
+
+// The DSH home, the way DSH resolves it (DSH_HOME when set, `~` expanded, else <home of the OS user>/.dsh): the catalogue
+// the page last verified is cached under it, so an isolated instance never reads or writes the user's own folder.
+export function resolveDshHome(env = process.env, osHome = homedir) {
+  try {
+    const fromEnv = typeof env.DSH_HOME === 'string' ? env.DSH_HOME.trim() : ''
+    if (fromEnv !== '') {
+      if (fromEnv === '~') return osHome()
+      return resolve(fromEnv.startsWith('~/') ? join(osHome(), fromEnv.slice(2)) : fromEnv)
+    }
+    const base = typeof env.HOME === 'string' && env.HOME.length > 0 ? env.HOME : osHome()
+    return typeof base === 'string' && base.length > 0 ? join(base, '.dsh') : null
+  } catch (e) { return null }
+}
 
 // ── petits utilitaires HTTP (mêmes contrats que kybernos-models) ────────────
 const sendJson = (res, status, body) => {
@@ -250,6 +272,18 @@ export function apply(ctx) {
         try { sendJson(res, 200, { ok: true, machine: await lireMachine(force) }) }
         catch (e) { sendJson(res, 200, { ok: false, error: String(e && e.message ? e.message : e) }) }
       }}), 'modeles-locaux: machine')
+
+      // The catalogue of models the page recommends: the one shipped with this bundle, or the signed online one (verified,
+      // cached, never believed without its signature). GET reads the disk only; POST { op: 'refresh' } asks the network.
+      hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/modeles-locaux/catalogue', handler: (req, res) => serveCatalogue(req, res, {
+        home: async () => resolveDshHome(),
+        sameOriginStrict: sameOrigin,
+        sameOriginLax: sameOrigin,
+        readJson: async (r) => { const b = await readBody(r); if (b === null) throw new Error('unreadable body'); return b },
+        send: sendJson,
+        shipped: () => loadShipped(CATALOGUE_FILE),
+        keys: () => loadKeys(KEYS_FILE),
+      }) }), 'modeles-locaux: catalogue (signé)')
 
       // Scan for newly installed compatible models (the "Re-check" button):
       // interrogate /api/tags, diff against the ids seen last time.
