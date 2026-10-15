@@ -428,7 +428,7 @@ section('wallpaper, import, counters, brand colour (found by the live check)')
 section('animation: catalogue')
 {
   const ids = T.LD_PRESETS.map((p) => p.id)
-  check('14 original drawings, unique ids that the host will accept', T.LD_PRESETS.length === 14 && new Set(ids).size === 14 && ids.every((i) => /^[a-z0-9][a-z0-9-]{0,63}$/.test(i)), ids)
+  check('34 original drawings, unique ids that the host will accept', T.LD_PRESETS.length === 34 && new Set(ids).size === 34 && ids.every((i) => /^[a-z0-9][a-z0-9-]{0,63}$/.test(i)), ids)
   check('every drawing is a self-contained <svg> of 48×48, one or many colours, under 8 KB', T.LD_PRESETS.every((p) => p.svg.startsWith('<svg viewBox="0 0 48 48"') && p.svg.length < 8192 && (p.kind === 'mono' || p.kind === 'color')))
   check('no drawing carries a script, a handler, an external reference or a foreign object', T.LD_PRESETS.every((p) => !/<script|<foreignObject|<image|\son[a-z]+\s*=|javascript:|href=|url\(\s*['"]?(https?:|\/\/|data:)/i.test(p.svg)))
   const used = new Set()
@@ -437,7 +437,7 @@ section('animation: catalogue')
   const defined = new Set(cssRules.map((r) => r.slice(8, -1)))
   check('every animation class a drawing uses has a CSS rule (and vb is declared)', [...used].filter((c) => c !== 'vb').every((c) => defined.has(c)) && /\.kb-ld svg \.vb\{/.test(SOURCE), [...used].filter((c) => c !== 'vb' && !defined.has(c)))
   check('mono drawings follow currentColor, colour drawings use the --c1..4 palette', T.LD_PRESETS.filter((p) => p.kind === 'mono').every((p) => /currentColor/.test(p.svg)) && T.LD_PRESETS.filter((p) => p.kind === 'color').every((p) => /var\(--c[1-4]\)/.test(p.svg)))
-  check('every keyframe used by the drawings is declared once', ['spin', 'bounce', 'bar', 'pulse', 'fade', 'jelly', 'flip', 'dash', 'twinkle', 'pop', 'vis', 'sway', 'shim'].every((k) => (SOURCE.match(new RegExp('@keyframes kbk-' + k + '\\{', 'g')) || []).length === 1), 'keyframes')
+  check('every keyframe used by the drawings is declared once', ['spin', 'bounce', 'bar', 'pulse', 'fade', 'jelly', 'flip', 'dash', 'twinkle', 'pop', 'vis', 'sway', 'shim', 'hop', 'rock', 'blink', 'grow', 'float', 'rise', 'drop', 'swim', 'flap', 'shake', 'glow', 'beat', 'boing', 'flame'].every((k) => (SOURCE.match(new RegExp('@keyframes kbk-' + k + '\\{', 'g')) || []).length === 1), 'keyframes')
 }
 section('animation: ambiances')
 {
