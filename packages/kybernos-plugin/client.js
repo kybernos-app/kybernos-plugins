@@ -25821,8 +25821,9 @@ function renderFit(canvas, model, cam, opts){
     // est donc déclarée dans l'aiguillage de `KybersMain`, ET ici pour que le
     // pont ci-dessous la nomme au même endroit que le reste.
     const KB_WS_CONSOLE_VIEW = 'wsconsole'
-    const kbOuvrirWsConsole = () => {
-      try { set({ view: KB_WS_CONSOLE_VIEW }) } catch (e) { /* store indisponible : le panneau reste atteignable */ }
+    // `page` names a page of the console (`account`, `referral`): none opens the console on its own first page (Team settings).
+    const kbOuvrirWsConsole = (page) => {
+      try { set({ view: KB_WS_CONSOLE_VIEW, wsPage: kbConsolePage(page) }) } catch (e) { /* store indisponible : le panneau reste atteignable */ }
       try { layoutSvc.selectPanel('kybers') } catch (e2) { /* layout indisponible */ }
     }
     const kbOpenWorkspace = () => {
@@ -27863,11 +27864,26 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
       } catch (e) { /* document indisponible */ }
       return false
     }
-    const kbConsoleUrl = (dark) => kbWsConsole() + '&theme=' + (dark === true ? 'dark' : 'light')
+    // The language the embedded console is asked to speak (its own default is the browser's): DSH's active language, `en` when unknown.
+    const kbConsoleLang = () => {
+      let l = ''
+      try { l = String(kbLocaleRead() || '') } catch (e) { l = '' }
+      l = l.toLowerCase().replace(/_/g, '-')
+      return /^[a-z]{2,3}(-[a-z0-9]{2,8})?$/.test(l) ? l : 'en'
+    }
+    // A page of the console, by its name (`account`, `referral`…): the address's fragment. Never a path, never an address.
+    const KB_CONSOLE_PAGE_RE = /^[a-z][a-z0-9-]{0,31}$/
+    const kbConsolePage = (page) => (typeof page === 'string' && KB_CONSOLE_PAGE_RE.test(page) ? page : '')
+    // The console of the ACTIVE server, with the theme, the language and (through kbWsConsole) the workspace and the gateway. Built at each use.
+    const kbConsoleUrl = (dark, page) => kbWsConsole() + '&theme=' + (dark === true ? 'dark' : 'light') + '&lang=' + encodeURIComponent(kbConsoleLang())
+      + (kbConsolePage(page) !== '' ? '#' + kbConsolePage(page) : '')
     // La clé admin vient de la route hôte same-origin (settings.json, champ
     // wsAdminKey) — jamais codée en dur ici. Sans clé, l'iframe se charge
     // quand même ; le pont de données ne prompt qu'au 401 réel.
     const KbWsConsole = (props) => {
+      const page = kbConsolePage(props !== null && props !== undefined ? props.page : '')
+      const pageRef = React.useRef(page)
+      pageRef.current = page
       // Le thème courant pilote les deux occurrences de l'URL (src rendue et
       // target du bouton « Ouvrir ») : un seul état, jamais deux vérités.
       const [dark, setDark] = React.useState(kbConsoleDark)
@@ -27956,7 +27972,11 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
         // and this page opens it (a server on the same site as this page accepts that).
         const ouvrirNavigateur = (fr, demande) => {
           const id = typeof demande.id === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(demande.id) ? demande.id : ''
-          fetch('/kybernos-cloud/console/link', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(id === '' ? { open: true } : { workspace_id: id, open: true }) })
+          // The page of the app the link lands on: the one the frame asks for, else the account's overview when this frame IS the account or referral page.
+          const asked = kbConsolePage(demande.section)
+          const section = asked !== '' ? asked : (pageRef.current === 'account' || pageRef.current === 'referral' ? 'overview' : '')
+          const body = Object.assign(id === '' ? {} : { workspace_id: id }, { open: true }, section === '' ? {} : { section: section })
+          fetch('/kybernos-cloud/console/link', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(body) })
             .then((r) => r.json()).catch(() => ({ ok: false, error: 'hote_injoignable' }))
             .then((j) => {
               const ok = j !== null && j.ok === true && (j.opened === true || typeof j.url === 'string')
@@ -28008,6 +28028,36 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
       // Ask the cloud plugin which server is active BEFORE probing its console: opening « Teams settings » after a server switch
       // must reach the new server's console, not the one loaded at startup.
       React.useEffect(() => { kbServerLoad().then(() => { if (kbServer.computer === true) setReach('computer'); else probe() }) }, [])
+      // The server can change while this page stays up (the Select server module, a registry written by hand): the address is read again when the window
+      // comes back, now and then while it is visible, and when the cloud card says so. A different server redraws the frame on ITS console (and probes it).
+      const revPair = React.useState(0)
+      const bumpRev = revPair[1]
+      const seenServer = React.useRef(null)
+      React.useEffect(() => {
+        const identity = () => kbServer.api + '|' + kbServer.console + '|' + String(kbServer.computer)
+        seenServer.current = identity()
+        let vivant = true
+        const again = () => {
+          kbServerLoad().then(() => {
+            if (vivant !== true || identity() === seenServer.current) return
+            seenServer.current = identity()
+            bumpRev((n) => n + 1)
+            if (kbServer.computer === true) setReach('computer'); else probe()
+          })
+        }
+        const seen = () => { if (document.visibilityState === 'visible') again() }
+        window.addEventListener('focus', again)
+        document.addEventListener('visibilitychange', seen)
+        window.addEventListener('kybernos-cloud:server-changed', again)
+        const timer = window.setInterval(seen, 10000)
+        return () => {
+          vivant = false
+          window.clearInterval(timer)
+          window.removeEventListener('focus', again)
+          document.removeEventListener('visibilitychange', seen)
+          window.removeEventListener('kybernos-cloud:server-changed', again)
+        }
+      }, [])
       if (reach !== 'ok') {
         let hote = kbWsConsole()
         try { hote = new URL(kbWsConsole()).host } catch (e) { /* unreadable URL: we display it as is */ }
@@ -28019,7 +28069,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
               h('div', { className: 'kbwsif-downt' }, kbt('kbui.ws.computer.t')),
               h('p', { className: 'kbwsif-downd' }, kbt('kbui.ws.computer.d').replace('{host}', hote)),
               h('div', { className: 'kbwsif-downa' },
-                h('a', { className: 'kb6-btn', href: kbConsoleUrl(dark), target: '_blank', rel: 'noopener noreferrer' }, kbt('kbui.ws.openbrowser')))))
+                h('a', { className: 'kb6-btn', href: kbConsoleUrl(dark, page), target: '_blank', rel: 'noopener noreferrer', 'data-kb': 'ws-open-browser' }, kbt('kbui.ws.openbrowser')))))
         }
         return h('div', { className: 'kbwsif' },
           reach === 'checking'
@@ -28029,7 +28079,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
                 h('p', { className: 'kbwsif-downd' }, kbt('kbui.ws.down.d').replace('{host}', hote)),
                 h('div', { className: 'kbwsif-downa' },
                   h('button', { type: 'button', className: 'kb8-primary', onClick: probe }, kbt('kbui.ws.retry')),
-                  h('a', { className: 'kb6-btn', href: kbConsoleUrl(dark), target: '_blank', rel: 'noopener noreferrer' }, kbt('kbui.ws.openbrowser')))))
+                  h('a', { className: 'kb6-btn', href: kbConsoleUrl(dark, page), target: '_blank', rel: 'noopener noreferrer', 'data-kb': 'ws-open-browser' }, kbt('kbui.ws.openbrowser')))))
       }
       return h('div', { className: 'kbwsif' },
         // Plus AUCUNE barre au-dessus de l'iframe (02/10, demande) : le haut de
@@ -28037,7 +28087,9 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
         // et le bouton « Ouvrir » qui restait ici est retiré — la page occupe
         // donc toute la hauteur du panneau, sans chrome intermédiaire.
         h('iframe', {
-          src: kbConsoleUrl(dark), title: kbt('kbui.ws.row.t'),
+          // `key`: another page of the console is a new document (a fragment alone would not reload it), and a new server a new frame.
+          key: page + '|' + kbServer.console, 'data-kb': 'ws-console', 'data-origin': kbWsOrigin(),
+          src: kbConsoleUrl(dark, page), title: kbt('kbui.ws.row.t'),
           // Cadre et coins ARRONDIS retirés (02/10, demande) : embarquée en plein
 // cadre, la console n'est pas une carte posée dans la page — son propre
 // fond touche celui du panneau, sans liseré ni rayon intermédiaire.
@@ -28058,8 +28110,10 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
     // `wsconsole`, comme Projets / Livrables / Mon espace. Aucun siège de
     // panneau supplémentaire : le panneau `kybers` est le sélecteur commun,
     // et `state.view` choisit la page À L'INTÉRIEUR de ce panneau.
-    const KbWsConsoleMain = () =>
-      h('div', { className: 'kbwsif-main' }, h(KbWsConsole, null))
+    const KbWsConsoleMain = () => {
+      const s = useStore()
+      return h('div', { className: 'kbwsif-main' }, h(KbWsConsole, { page: s.wsPage }))
+    }
     ctx.effect(() => styles.insert(`
 /* La page « Réglage de l'espace » occupe TOUTE la zone de contenu : ni marge
    ni largeur maximale, la hauteur du panneau se transmet à l'iframe. */

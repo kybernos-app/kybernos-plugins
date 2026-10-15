@@ -42,7 +42,7 @@ const route = mod.ROUTES.find((r) => r.path === '/kybernos-cloud/relay')
 
 console.log('what the allowlist names')
 {
-  for (const ok of ['/v1/me', '/v1/workspaces', '/v1/workspaces/' + W1 + '/members', '/v1/workspaces/' + W1 + '/providers', '/v1/workspaces/' + W1 + '/models',
+  for (const ok of ['/v1/me', '/v1/sessions', '/v1/referral', '/v1/workspaces', '/v1/workspaces/' + W1 + '/members', '/v1/workspaces/' + W1 + '/providers', '/v1/workspaces/' + W1 + '/models',
     '/v1/workspaces/' + W1 + '/llm/budget', '/v1/workspaces/' + W2 + '/llm/catalog', '/v1/workspaces/' + W1 + '/llm/billing', '/v1/workspaces/' + W1 + '/llm/usage',
     '/v1/workspaces/' + W1 + '/llm/usage?from=2026-09-01&to=2026-09-25', '/v1/workspaces/' + W1.toUpperCase() + '/llm/models']) {
     check('allowed: ' + ok.replace(W1, 'W1').replace(W2, 'W2'), relayCheck(ok, connected).ok === true, JSON.stringify(relayCheck(ok, connected)))
@@ -62,6 +62,11 @@ console.log('what it refuses')
     if (why !== undefined) check('  … as ' + why, r.error === why, r.error)
   }
   no('another API route (keys)', '/v1/keys')
+  no('the sessions with a query', '/v1/sessions?limit=9')
+  no('a sub-path of the sessions (revoking one is a write)', '/v1/sessions/abc')
+  no('a sub-path of the referral', '/v1/referral/claim')
+  no('the account\'s second factor, next to the profile', '/v1/me/mfa')
+  no('the account\'s Telegram link', '/v1/me/telegram')
   no('device pairing', '/v1/device/start')
   no('the LLM keys', '/v1/workspaces/' + W1 + '/llm/keys')
   no('a member sub-path', '/v1/workspaces/' + W1 + '/llm/members/u-1')
