@@ -3,7 +3,7 @@
 // `<DSH home>/AGENTS.md` (~/.dsh by default) — one file PER MACHINE, never in the
 // package. So that every user of the plugin gets the "Agent Team/skill matching" reflex,
 // the plugin's boot LAYS the section into that file, idempotently: marked, never
-// rewritten, never removed. Same contract as `preset-compaction.mjs`: a boot seam,
+// rewritten, never removed. Same contract as `preset-legacy.mjs`: a boot seam,
 // not an engine patch.
 //
 // Idempotence: an HTML marker opens and closes the section; if the title of the rule
