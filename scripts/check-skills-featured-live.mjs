@@ -4,8 +4,8 @@
 //
 // What is real: the DSH page, the Skills panel in the sidebar, the language the GUI is in, the cover route (the covers are the files in the
 // user's DSH home). What is swapped: the client of kybernos-skills (this checkout's, in a throw-away Chrome, scripts/lib-bundle-swap.mjs).
-// What is answered here: ONE route, GET /kybernos-skills/picks, from this checkout's featured-picks.json, because the running host
-// may not have it yet (host code loads when `dsh web` restarts). Install is opened and CANCELLED: nothing is written anywhere.
+// What is answered here, only when the running host does not have it yet (host code loads when `dsh web` restarts): ONE route,
+// GET /kybernos-skills/picks, from this checkout's featured-picks.json. Install is opened and CANCELLED: nothing is written anywhere.
 //
 // Exit 0 all good, 1 a check failed, 3 not run (no GUI).
 import { existsSync, readFileSync } from 'node:fs'
@@ -32,6 +32,10 @@ const picksAnswer = {
   items: picksFile.items.map((it) => ({ ...it, cover: existsSync(join(coversDir, it.id + '.webp')) ? '/kybernos-skills/cover/' + it.id : null }))
 }
 
+const authority = process.env.KB_HOST || '127.0.0.1:3080'
+const hostHasPicks = await fetch('http://' + authority + '/kybernos-skills/picks').then((r) => r.json()).then((j) => j !== null && j.ok === true && Array.isArray(j.items) && j.items.length > 0, () => false)
+console.log(hostHasPicks ? '(the running host serves the picks route: nothing is faked)' : '(the running host has no picks route yet: it is answered here)')
+
 const live = await openLivePage({ width: 1500, height: 950 }).catch((e) => { console.error('○ not run: ' + e.message); process.exit(3) })
 const { page } = live
 const errors = []
@@ -41,7 +45,7 @@ try {
   page.on('Fetch.requestPaused', (p) => {
     if (p.responseStatusCode !== undefined) return   // the bundle swap's business
     const path = p.request.url.split('?')[0]
-    if (!path.endsWith('/kybernos-skills/picks')) { page.send('Fetch.continueRequest', { requestId: p.requestId }).catch(() => {}); return }
+    if (hostHasPicks === true || !path.endsWith('/kybernos-skills/picks')) { page.send('Fetch.continueRequest', { requestId: p.requestId }).catch(() => {}); return }
     page.send('Fetch.fulfillRequest', {
       requestId: p.requestId, responseCode: 200,
       responseHeaders: [{ name: 'content-type', value: 'application/json' }],
