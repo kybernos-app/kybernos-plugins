@@ -276,34 +276,34 @@ export function optionsOutil (magasin) {
   return {
     name: OUTIL,
     description:
-      'Écrit un deck de slides dans la barre latérale droite du chat (panneau « Slides »), '
-      + 'texte tapé en TEMPS RÉEL, slide après slide. L\'utilisateur peut modifier en live '
-      + '(retaper un texte, dessiner au pinceau) ; relis ses annotations en rappelant l\'outil '
-      + 'SANS `slides`, puis pousse une correction avec `mode: "corriger"` — le panneau souligne '
-      + 'en direct chaque passage corrigé. '
+      'Writes a slide deck in the right sidebar of the chat (the “Slides” panel), '
+      + 'text typed in REAL TIME, slide after slide. The user can edit live '
+      + '(retype a text, draw with the brush); read their annotations by calling the tool again '
+      + 'WITHOUT `slides`, then push a correction with `mode: "corriger"` — the panel underlines '
+      + 'every corrected passage live. '
       + 'Slide : {layout:"titre"|"statement"|"puces"|"chiffre"|"citation"|"fin", '
       + 'kicker, titre, sous, points:[…], grand, legende, citation, auteur, note, accent}. '
-      + 'Thèmes : sombre (défaut), clair, corail, papier. Un appel sans `slides` rend le deck '
-      + 'courant avec les annotations utilisateur (éditions + traits) au lieu d\'écrire.',
+      + 'Themes: sombre (dark, default), clair (light), corail (coral), papier (paper). A call without `slides` returns the current '
+      + 'deck with the user annotations (edits + strokes) instead of writing.',
     parameters: {
-      titre: { type: 'string', description: 'Titre du deck — affiché en en-tête et dans le pied de chaque slide.' },
-      theme: { type: 'string', description: '« sombre » (défaut), « clair », « corail » ou « papier ».' },
+      titre: { type: 'string', description: 'Title of the deck — shown in the header and in the footer of every slide.' },
+      theme: { type: 'string', description: '“sombre” (dark, default), “clair” (light), “corail” (coral) or “papier” (paper).' },
       slides: {
         type: 'array',
-        description: "Les slides, dans l'ordre. Chaque élément : {layout, kicker, titre, sous, points, grand, legende, citation, auteur, note, accent}. Omettre pour LIRE le deck + annotations sans écrire.",
+        description: 'The slides, in order. Each element: {layout, kicker, titre, sous, points, grand, legende, citation, auteur, note, accent}. Leave out to READ the deck + annotations without writing.',
         items: { type: 'object', additionalProperties: true },
       },
-      mode: { type: 'string', description: '« nouveau » (défaut) ou « corriger » : les textes modifiés par rapport au deck précédent sont soulignés en direct dans le panneau.' },
-      effacer_annotations: { type: 'boolean', description: 'Avec mode « corriger » : efface aussi les traits dessinés par l\'utilisateur (défaut : conservés).' },
-      duree_ms: { type: 'number', description: `Durée totale de l'écriture, en millisecondes (défaut ${DUREE_DEFAUT_MS}, borné ${DUREE_MIN_MS}–${DUREE_MAX_MS}).` },
-      prompt: { type: 'string', description: 'Ce que le deck présente, en une phrase — affiché sous les slides. En correction, la consigne de correction.' },
+      mode: { type: 'string', description: '“nouveau” (default) or “corriger”: the texts changed since the previous deck are underlined live in the panel.' },
+      effacer_annotations: { type: 'boolean', description: 'With mode “corriger”: also erases the strokes the user drew (default: kept).' },
+      duree_ms: { type: 'number', description: `Total duration of the writing, in milliseconds (default ${DUREE_DEFAUT_MS}, between ${DUREE_MIN_MS} and ${DUREE_MAX_MS}).` },
+      prompt: { type: 'string', description: 'What the deck presents, in one sentence — shown under the slides. For a correction, the correction instruction.' },
     },
     render: (_args, valeur) => [{ type: 'text', text: typeof valeur === 'string' ? valeur : JSON.stringify(valeur, null, 2) }],
     execute: async (brut, exec) => {
       const options = brut && typeof brut === 'object' ? brut : {}
       const sessionId = exec?.agent?.id
       if (typeof sessionId !== 'string' || sessionId.length === 0) {
-        return { ok: false, raison: 'agent_inconnu', message: "impossible d'identifier la session courante (appel hors tour ?)" }
+        return { ok: false, raison: 'agent_inconnu', message: 'cannot identify the current session (called outside a turn?)' }
       }
 
       // LECTURE : sans `slides`, rendre le deck + les annotations de la session.
@@ -311,7 +311,7 @@ export function optionsOutil (magasin) {
         const deck = magasin.deck(sessionId)
         const a = magasin.annotations(sessionId)
         if (deck === null) {
-          return { ok: true, vide: true, message: 'Aucun deck pour cette session : dépose-le avec `slides`.' }
+          return { ok: true, vide: true, message: 'No deck for this session: hand it over with `slides`.' }
         }
         const parSlide = {}
         for (const s of a?.strokes ?? []) parSlide[s.slide] = (parSlide[s.slide] ?? 0) + 1
@@ -328,7 +328,7 @@ export function optionsOutil (magasin) {
             traits_par_slide: parSlide,
             traits_total: (a?.strokes ?? []).length,
           },
-          message: `Deck « ${deck.titre} » (${deck.slides.length} slides). ${(a?.edits ?? []).length} retouche(s) de texte, ${(a?.strokes ?? []).length} trait(s) dessiné(s).`,
+          message: `Deck “${deck.titre}” (${deck.slides.length} ${deck.slides.length === 1 ? 'slide' : 'slides'}). ${(a?.edits ?? []).length} text ${(a?.edits ?? []).length === 1 ? 'edit' : 'edits'}, ${(a?.strokes ?? []).length} ${(a?.strokes ?? []).length === 1 ? 'stroke' : 'strokes'} drawn.`,
         }
       }
 
@@ -352,8 +352,8 @@ export function optionsOutil (magasin) {
         mode: enregistrement.mode,
         slides: enregistrement.slides.length,
         duree_ms: enregistrement.dureeMs,
-        message: `${enregistrement.slides.length} slide(s) déposée(s) : le panneau « Slides » (barre latérale droite) les écrit en ${(enregistrement.dureeMs / 1000).toFixed(0)} s.`
-          + (enregistrement.mode === 'corriger' ? ' Corrections soulignées en direct.' : ''),
+        message: `${enregistrement.slides.length} ${enregistrement.slides.length === 1 ? 'slide' : 'slides'} handed over: the “Slides” panel (right sidebar) writes them in ${(enregistrement.dureeMs / 1000).toFixed(0)} s.`
+          + (enregistrement.mode === 'corriger' ? ' Corrections underlined live.' : ''),
       }
     },
   }
@@ -365,7 +365,7 @@ export async function enregistrer (tools, magasin) {
   const chargement = await chargerDefineTool()
   const outil = chargement !== undefined ? chargement.defineTool(specDefineTool(definition)) : definitionLiteral(definition)
   tools.register(outil)
-  dire(`outil « ${OUTIL} » enregistré`)
+  dire(`tool “${OUTIL}” registered`)
 }
 
 // ── les routes (pour la moitié client) ──────────────────────────────────────
@@ -397,8 +397,8 @@ const lireCorps = (req) => new Promise((res) => {
 export function monterRoutes (webServerSvc, magasin) {
   webServerSvc = kbFenced(webServerSvc)
   webServerSvc.register({ kind: 'exact', path: ROUTE_STATE, handler: async (req, res) => {
-    if (req.method !== 'GET') { res.writeHead(405); res.end('GET uniquement'); return }
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (req.method !== 'GET') { res.writeHead(405); res.end('GET only'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     const u = new URL(req.url, 'http://127.0.0.1')
     const session = u.searchParams.get('session')
     const deck = magasin.deck(session)
@@ -427,8 +427,8 @@ export function monterRoutes (webServerSvc, magasin) {
   } })
 
   webServerSvc.register({ kind: 'exact', path: ROUTE_PUSH, handler: async (req, res) => {
-    if (req.method !== 'POST') { res.writeHead(405); res.end('POST uniquement'); return }
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     const corps = await lireCorps(req)
     if (corps && typeof corps === 'object' && (Array.isArray(corps.edits) || (corps.strokes && typeof corps.strokes === 'object'))) {
       const a = magasin.pousserAnnotations(corps)
@@ -438,14 +438,14 @@ export function monterRoutes (webServerSvc, magasin) {
     // Ni annotations ni slides : un corps illisible ne doit pas déposer un
     // deck fantôme (« Slides », zéro slide) qui écraserait le vrai.
     if (!corps || typeof corps !== 'object' || !Array.isArray(corps.slides)) {
-      envoyer(res, 400, { ok: false, raison: 'corps_illisible', message: 'POST /push attend des slides (deck) ou des edits/strokes (annotations).' })
+      envoyer(res, 400, { ok: false, raison: 'corps_illisible', message: 'POST /push expects slides (a deck) or edits/strokes (annotations).' })
       return
     }
     const deck = magasin.pousserDeck(corps)
     envoyer(res, 200, { ok: true, version: deck.version, titre: deck.titre, dureeMs: deck.dureeMs })
   } })
 
-  dire(`routes ${ROUTE_STATE} et ${ROUTE_PUSH} enregistrées`)
+  dire(`routes ${ROUTE_STATE} and ${ROUTE_PUSH} registered`)
 }
 
 // ── le plugin hôte ──────────────────────────────────────────────────────────
@@ -458,9 +458,9 @@ export function apply (ctx) {
   const demarrer = (c) => {
     const tools = c.get('tools')
     const webServer = c.get('webServer')
-    if (tools !== undefined) enregistrer(tools, magasin).catch((e) => dire(`outil non enregistré : ${e?.message ?? e}`))
+    if (tools !== undefined) enregistrer(tools, magasin).catch((e) => dire(`tool not registered: ${e?.message ?? e}`))
     if (webServer !== undefined) {
-      try { monterRoutes(webServer, magasin) } catch (e) { dire(`routes non montées : ${e?.message ?? e}`) }
+      try { monterRoutes(webServer, magasin) } catch (e) { dire(`routes not mounted: ${e?.message ?? e}`) }
     }
   }
   if (ctx.get('tools') !== undefined && ctx.get('webServer') !== undefined) demarrer(ctx)

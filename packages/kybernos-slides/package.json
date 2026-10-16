@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Decks de slides pilotés par le chat : outil hôte `creer_slides` + panneau « Slides » dans la barre latérale droite — écriture en temps réel (machine à écrire), édition live par l'utilisateur (texte + pinceau), puis correction IA en direct.",
+  "description": "Slide decks driven by the chat: the `creer_slides` host tool and a “Slides” panel in the right sidebar: real-time typing (typewriter), live editing by the user (text + brush), then live AI correction.",
   "license": "Apache-2.0",
   "main": "index.js",
   "exports": {

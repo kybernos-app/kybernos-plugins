@@ -104,6 +104,24 @@ window.__ModuleLoader__.load({
             const React = require('react')
             const h = React.createElement
         
+            // ── language: French is the source, English the pair; French only for a French UI, a translated language is looked up by its
+            // French text (the dictionary the Language page keeps), and every other language (and a language not known yet) reads English ──
+            const lang = () => {
+              try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
+            }
+            const kt = (fr, en) => {
+              const l = lang()
+              if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
+              if (l === 'en') return en
+              try {
+                const a = window.__KB_I18N_ACTIVE__
+                if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
+              } catch (e) { /* no dictionary: English */ }
+              return en
+            }
+            /** 'fr' for a French UI, 'en' for every other language: what a number format is keyed by. */
+            const langBase = () => { const l = lang(); return l === 'kybernos' || l.slice(0, 2) === 'fr' ? 'fr' : 'en' }
+        
             const TT = TipTap !== null && typeof TipTap === 'object' && typeof TipTap.Editor === 'function' ? TipTap : null
             /** Texte brut d'une valeur de champ (qui peut porter du HTML riche). */
             const plainDe = (t) => String(t ?? '')
@@ -403,18 +421,21 @@ window.__ModuleLoader__.load({
               }
             }
         
+            // The demo deck is read when it is pushed (getters), in the language of the page.
             const DEMOS = [{
-              titre: 'Varde 2.0 — démo',
+              get titre () { return kt('Varde 2.0 — démo', 'Varde 2.0 — demo') },
               theme: 'sombre',
               dureeMs: 9000,
-              prompt: "Deck de démonstration : essaie l'outil Texte, l'outil Pinceau, puis demande une correction au chat.",
-              slides: [
-                { layout: 'titre', kicker: 'La démo', titre: 'Rain is a given.', sous: 'Slides écrites en direct par le chat — modifie-les pendant qu\'il tape.' },
-                { layout: 'statement', kicker: 'The premise', titre: 'Shells should come prepared.' },
-                { layout: 'puces', kicker: 'How it works', titre: 'Trois gestes', points: ['Le chat écrit : machine à écrire, slide après slide.', 'Tu corriges : retape un texte, dessine au pinceau.', 'Le chat relit : tes annotations, puis corrige en soulignant.'] },
-                { layout: 'chiffre', kicker: 'Tempo', grand: '12 s', legende: 'pour un deck complet, tempo réglable' },
-                { layout: 'fin', titre: 'À toi.', sous: 'Demande une correction : l\'agent relit tes retouches et les intègre.' },
-              ],
+              get prompt () { return kt("Deck de démonstration : essayez l'outil Texte, l'outil Pinceau, puis demandez une correction au chat.", 'Demo deck: try the Text tool, the Brush tool, then ask the chat for a correction.') },
+              get slides () {
+                return [
+                  { layout: 'titre', kicker: kt('La démo', 'The demo'), titre: 'Rain is a given.', sous: kt('Slides écrites en direct par le chat — modifiez-les pendant qu\'il tape.', 'Slides written live by the chat — edit them while it types.') },
+                  { layout: 'statement', kicker: 'The premise', titre: 'Shells should come prepared.' },
+                  { layout: 'puces', kicker: 'How it works', titre: kt('Trois gestes', 'Three gestures'), points: [kt('Le chat écrit : machine à écrire, slide après slide.', 'The chat writes: typewriter style, slide after slide.'), kt('Vous corrigez : retapez un texte, dessinez au pinceau.', 'You correct: retype a text, draw with the brush.'), kt('Le chat relit : vos annotations, puis corrige en soulignant.', 'The chat reads back: your annotations, then corrects with underlines.')] },
+                  { layout: 'chiffre', kicker: 'Tempo', grand: '12 s', legende: kt('pour un deck complet, tempo réglable', 'for a whole deck, adjustable pace') },
+                  { layout: 'fin', titre: kt('À vous.', 'Your turn.'), sous: kt('Demandez une correction : l\'agent relit vos retouches et les intègre.', 'Ask for a correction: the agent reads your edits back and works them in.') },
+                ]
+              },
             }]
         
             /* ═══════════════ 5. PANNEAU ═══════════════ */
@@ -693,7 +714,7 @@ window.__ModuleLoader__.load({
                 for (const c of PALETTE) {
                   const p = document.createElement('button')
                   p.type = 'button'
-                  p.title = 'Couleur du texte'
+                  p.title = kt('Couleur du texte', 'Text colour')
                   p.style.cssText = 'width:18px;height:18px;border-radius:9px;border:2px solid rgba(255,255,255,.8);background:' + c + ';cursor:pointer;padding:0'
                   p.onmousedown = (e) => { e.preventDefault(); editeur.chain().focus().setColor(c).run() }
                   barre.appendChild(p)
@@ -885,24 +906,24 @@ window.__ModuleLoader__.load({
         
               const correctionsRecentes = S.corrections.length > 0 && Date.now() - S.corInstant < 8000
               const outils = [
-                ['voir', 'Voir'], ['texte', '✎ Texte'], ['pinceau', '✎ Pinceau'], ['gomme', 'Gomme'],
+                ['voir', kt('Voir', 'View')], ['texte', kt('✎ Texte', '✎ Text')], ['pinceau', kt('✎ Pinceau', '✎ Brush')], ['gomme', kt('Gomme', 'Eraser')],
               ]
         
               return h('div', { className: 'kbsd-root', ref: racineRef },
                 h('div', { className: 'kbsd-head' },
                   h('div', { className: 'kbsd-title' }, S.deck !== null ? S.deck.titre : 'Slides'),
-                  correctionsRecentes ? h('div', { className: 'kbsd-badge ia' }, `IA · ${S.corrections.length} correction${S.corrections.length > 1 ? 's' : ''}`) : null,
-                  h('div', { className: 'kbsd-badge' + (enEcriture ? ' run' : '') }, enEcriture ? `écrit… ${Math.round(p * 100)} %` : (S.deck !== null ? 'live' : 'vide')),
+                  correctionsRecentes ? h('div', { className: 'kbsd-badge ia' }, kt(`IA · ${S.corrections.length} correction${S.corrections.length > 1 ? 's' : ''}`, `AI · ${S.corrections.length} correction${S.corrections.length === 1 ? '' : 's'}`)) : null,
+                  h('div', { className: 'kbsd-badge' + (enEcriture ? ' run' : '') }, enEcriture ? kt(`écrit… ${Math.round(p * 100)} %`, `writing… ${Math.round(p * 100)}%`) : (S.deck !== null ? 'live' : kt('vide', 'empty'))),
                 ),
                 h('div', { className: 'kbsd-scene', ref: sceneRef },
                   S.deck === null
                     ? h('div', { className: 'kbsd-empty' },
-                        h('b', null, 'Demande un deck au chat'),
-                        h('div', null, 'l\'agent l\'écrit ici même, slide après slide — tu peux retaper un texte ou peindre par-dessus pendant qu\'il écrit.'),
+                        h('b', null, kt('Demandez un deck au chat', 'Ask the chat for a deck')),
+                        h('div', null, kt('l\'agent l\'écrit ici même, slide après slide — vous pouvez retaper un texte ou peindre par-dessus pendant qu\'il écrit.', 'the agent writes it right here, slide after slide — you can retype a text or paint over it while it writes.')),
                         h('button', {
                           className: 'kbsd-demo',
                           onClick: () => pousserDeck(DEMOS[0]),
-                        }, 'Voir la démo'))
+                        }, kt('Voir la démo', 'See the demo')))
                     : h('div', { className: 'kbsd-wrap', ref: wrapRef, style: { width: L * S.echelle, height: H * S.echelle } },
                         h('div', {
                           className: 'kbsd-stage kbsd-outil-' + S.outil,
@@ -946,7 +967,7 @@ window.__ModuleLoader__.load({
                                   },
                                 }, PALETTE.map((c) => h('button', {
                                   key: c,
-                                  title: 'Couleur du texte',
+                                  title: kt('Couleur du texte', 'Text colour'),
                                   className: 'kbsd-coul' + (S.edition.couleur === c ? ' on' : ''),
                                   style: { background: c, width: 22, height: 22, borderRadius: 11, border: '2px solid rgba(255,255,255,.75)', cursor: 'pointer', padding: 0 },
                                   onClick: () => choisirCouleur(c),
@@ -969,7 +990,7 @@ window.__ModuleLoader__.load({
                               h('button', {
                                 className: 'kbsd-outil',
                                 onClick: () => { S.traits.set(S.vue, []); pousserTraits(S, S.vue); reveiller() },
-                              }, 'Tout effacer')),
+                              }, kt('Tout effacer', 'Clear all'))),
                       ),
                 ),
                 h('div', { className: 'kbsd-vignettes' },
@@ -983,7 +1004,7 @@ window.__ModuleLoader__.load({
                     : null,
                 ),
                 h('div', { className: 'kbsd-bar' },
-                  h('button', { className: 'kbsd-play', title: 'Rejouer l\'écriture', onClick: rejouer }, '▶'),
+                  h('button', { className: 'kbsd-play', title: kt('Rejouer l\'écriture', 'Replay the writing'), onClick: rejouer }, '▶'),
                   vitesses.map((v) => h('button', {
                     key: v, className: 'kbsd-sp' + ((TICK !== null ? TICK.vitesse : 1) === v ? ' on' : ''),
                     onClick: () => changerVitesse(v),
@@ -1000,11 +1021,11 @@ window.__ModuleLoader__.load({
                 ),
                 h('div', { className: 'kbsd-note-bas' },
                   S.deck === null
-                    ? h('b', null, 'Panneau « Slides » — le chat écrit, tu modifies, il corrige.')
+                    ? h('b', null, kt('Panneau « Slides » — le chat écrit, vous modifiez, il corrige.', 'Slides panel — the chat writes, you edit, it corrects.'))
                     : h('span', null,
                         h('b', null, S.deck.prompt !== '' ? S.deck.prompt : S.deck.titre),
                         S.ann.edits.length > 0 || S.ann.strokes.length > 0
-                          ? ` — tes retouches : ${S.ann.edits.length} texte(s), ${S.ann.strokes.length} trait(s) (relues par l'agent)`
+                          ? kt(` — vos retouches : ${S.ann.edits.length} texte${S.ann.edits.length > 1 ? 's' : ''}, ${S.ann.strokes.length} trait${S.ann.strokes.length > 1 ? 's' : ''} (relues par l'agent)`, ` — your edits: ${S.ann.edits.length} text${S.ann.edits.length === 1 ? '' : 's'}, ${S.ann.strokes.length} stroke${S.ann.strokes.length === 1 ? '' : 's'} (read back by the agent)`)
                           : ''),
                 ),
               )
@@ -1090,12 +1111,12 @@ window.__ModuleLoader__.load({
                   id: TYPE_ID,
                   kind: KIND,
                   title: () => 'Slides',
-                  guide: [{ title: () => 'Slides', description: () => 'Decks écrits en temps réel par le chat : frappe live, retouche et pinceau pour l\'utilisateur, corrections soulignées.' }],
-                }), 'kybernos-slides: type d onglet barre latérale droite')
+                  guide: [{ title: () => 'Slides', description: () => kt('Decks écrits en temps réel par le chat : frappe live, retouche et pinceau pour l\'utilisateur, corrections soulignées.', 'Decks written in real time by the chat: live typing, text edits and a brush for the user, corrections underlined.') }],
+                }), 'kybernos-slides: right sidebar tab type')
               }
         
               ctx.effect(() => ctx.slots.inject(SLOT, () => ctx.slots.register(
-                { name: SLOT, key: TYPE_ID }, PanneauSlides)), 'kybernos-slides: corps de panneau')
+                { name: SLOT, key: TYPE_ID }, PanneauSlides)), 'kybernos-slides: panel body')
         
               ctx.effect(() => {
                 const t = setInterval(() => {
@@ -1106,7 +1127,7 @@ window.__ModuleLoader__.load({
                   } catch { /* garde la dernière clé connue */ }
                 }, 4000)
                 return () => clearInterval(t)
-              }, 'kybernos-slides: clé de session')
+              }, 'kybernos-slides: session key')
         
               // Sonde AU NIVEAU MODULE (motif kybernos-modeleur) : elle ouvre l'onglet
               // quand un deck arrive — le panneau ne peut pas le faire lui-même, son
@@ -1125,7 +1146,7 @@ window.__ModuleLoader__.load({
                 sonder()
                 const t = setInterval(sonder, 1200)
                 return () => clearInterval(t)
-              }, 'kybernos-slides: sonde d ouverture')
+              }, 'kybernos-slides: opening probe')
             }
         
             return {
