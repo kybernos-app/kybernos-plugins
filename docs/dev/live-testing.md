@@ -213,7 +213,8 @@ No credential, key or session is copied, the paid server module and the relaunch
 is set too, because some bundles still write under `~/.dsh` when only DSH_HOME is: with HOME alone changed, the real files
 stay untouched (fingerprint `~/.dsh/.credentials.yaml`, `profiles/web/package.json`, `kybernos/i18n/*.json` before and after).
 Host code is not hot-reloaded: `stop` then `start` after editing an `index.js`; client code is read from the checkout at each
-page load. The first load asks for an API key (« Configure later »); a chat for a git folder only exists once a first message
+page load. DSH's own « Get started » dialog (sign in to a DeepSeek account / add an API key) no longer opens: the core replaces that step
+(`settings.onboarding` › `deepseek-official`), and `live-page.mjs` still presses its Close cross on an engine that shows it. A chat for a git folder only exists once a first message
 was sent (the turn then fails for lack of a key, which is fine): `check-changes-live.mjs` does both by itself.
 
 ## The Changes chip: `scripts/check-changes-live.mjs`
@@ -649,8 +650,9 @@ scripts/sandbox/stop.sh                  # kills only the pid it recorded, after
   instance holds nobody's sessions). `setup.sh` again after the checkout gains a package, `setup.sh --refresh`
   (sandbox stopped) to re-clone the profile.
 - `sandbox.log` holds DSH's token URL: never print it; sign in with the cookie like every script here.
-- A fresh instance asks for a model key in a dialog that covers the page (it swallows mouse events): click
-  "Configure later" first, as `check-connectors-live.mjs` does. The paid module `@local/kybernos-servers` is read
+- A fresh instance used to cover the page with DSH's « Get started » dialog (it swallows mouse events). The core now replaces that
+  step; `live-page.mjs` presses the dialog's Close cross if an engine shows it anyway (pass `keepKeyDialog: true` to see it, as
+  `check-onboarding-live.mjs` does). The paid module `@local/kybernos-servers` is read
   from its private checkout when there is one.
 - With DSH_HOME alone the sandbox would write the real profile: several bundles hard-code `homedir()`, so HOME is
   isolated too.
