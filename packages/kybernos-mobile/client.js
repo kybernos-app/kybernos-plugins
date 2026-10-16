@@ -35,8 +35,21 @@ window.__ModuleLoader__.load({
       // global panels (Automation tasks: the buttons of a nav in the sidebar).
       const PICKS = '[data-row-key^="session:"], .kb4-item, .kb4-newchat, [data-slot^="sidebar.panellist"] button, [data-slot="sidebar"] nav > button'
 
-      const lang = () => { try { return String(window.__KB_LANG_RESOLVE__ ? window.__KB_LANG_RESOLVE__() : '').split(/[-_]/)[0] } catch (e) { return 'fr' } }
-      const kt = (fr, en) => (lang() === 'en' ? en : fr)
+      // ── language: French is the source, English the pair; French only for a French UI, a translated language is looked up by its
+      // French text, and every other language (and a language not known yet) reads English ──
+      const lang = () => {
+        try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
+      }
+      const kt = (fr, en) => {
+        const l = lang()
+        if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
+        if (l === 'en') return en
+        try {
+          const a = window.__KB_I18N_ACTIVE__
+          if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
+        } catch (e) { /* no dictionary: English */ }
+        return en
+      }
 
       const narrow = () => { try { return window.matchMedia(MEDIA).matches === true } catch (e) { return false } }
       const frame = () => { try { return document.querySelector('[data-slot="root"] > div') } catch (e) { return null } }
@@ -282,7 +295,12 @@ window.__ModuleLoader__.load({
         button.type = 'button'
         button.className = MENU_CLASS
         button.setAttribute('data-kb', 'mobile-menu')
-        button.setAttribute('aria-label', kt('Ouvrir le menu', 'Open the menu'))
+        // The label follows the language: it is written now, again when the language changes, and again when the button is
+        // reached (the language is often not known yet at the first paint, and a label written once stayed in the wrong one).
+        const relabel = () => { try { button.setAttribute('aria-label', kt('Ouvrir le menu', 'Open the menu')) } catch (e) { /* the button went away */ } }
+        relabel()
+        for (const ev of ['focus', 'pointerenter', 'touchstart']) button.addEventListener(ev, relabel, { passive: true })
+        try { window.addEventListener('kybernos-lang-change', relabel); undo.push(() => window.removeEventListener('kybernos-lang-change', relabel)) } catch (e) { /* no window */ }
         button.appendChild(menuIcon())
         button.addEventListener('click', (e) => { e.stopPropagation(); opened = !drawerOpen(); flip() })
         document.body.appendChild(button)
@@ -440,6 +458,12 @@ window.__ModuleLoader__.load({
         const fit = () => {
           try {
             if (!narrow()) return
+            // The chat's title is cut when the header is narrow (A5-17): its whole name is one long press away, as a tooltip.
+            const name = document.querySelector('[data-slot="conversation.session.header"] nav[aria-label]')
+            if (name !== null && name !== undefined) {
+              const full = String(name.textContent || '').replace(/\s+/g, ' ').trim()
+              if (full !== '' && name.getAttribute('title') !== full) name.setAttribute('title', full)
+            }
             // a conversation is DSH's own; a page, and the Settings window over anything, are measured
             const chat = document.querySelector('[data-composer-card]') !== null
             const boxes = Array.prototype.slice.call(document.querySelectorAll(chat ? SETTINGS_BOXES : PAGE_BOXES + ', ' + SETTINGS_BOXES), 0, 4000)
@@ -528,17 +552,33 @@ window.__ModuleLoader__.load({
           not_in_plan: () => kt('Votre offre n’inclut pas le mobile.', 'Your plan does not include the phone link.'),
           device_limit: () => kt('Le nombre maximum de téléphones est atteint : retirez-en un.', 'The maximum number of phones is reached: remove one.'),
           not_connected: () => kt('Connectez-vous à votre compte Kybernos.', 'Sign in to your Kybernos account.'),
-          server_unavailable: () => kt('Le serveur Kybernos ne répond pas. Réessayez dans un instant.', 'The Kybernos server does not answer. Try again in a moment.'),
+          // The server that does not answer is named when the host knows which one it is (label and host): with several servers « the Kybernos server » says nothing.
+          server_unavailable: (server) => {
+            const has = (v) => typeof v === 'string' && v !== ''
+            const named = server !== null && typeof server === 'object' && has(server.name)
+            const label = server !== null && typeof server === 'object' ? [named ? '“' + server.name + '”' : '', has(server.host) ? (named ? '(' + server.host + ')' : server.host) : ''].filter((x) => x !== '').join(' ') : ''
+            return label === ''
+              ? kt('Le serveur Kybernos ne répond pas. Réessayez dans un instant.', 'The Kybernos server does not answer. Try again in a moment.')
+              : kt('Le serveur ' + label.replace('“', '« ').replace('”', ' »') + ' ne répond pas. Réessayez dans un instant.', 'The server ' + label + ' does not answer. Try again in a moment.')
+          },
           server_refused: () => kt('Le serveur a refusé l’appairage.', 'The server refused the pairing.'),
           not_offered: () => kt('Ce serveur Kybernos ne propose pas encore le mobile.', 'This Kybernos server does not offer the phone link yet.'),
           network: () => kt('Connexion impossible avec DSH.', 'Cannot reach DSH.'),
         }
-        const errorText = (code) => (ERRORS[code] !== undefined ? ERRORS[code]() : kt('Une erreur est survenue.', 'Something went wrong.'))
+        const errorText = (code, server) => (ERRORS[code] !== undefined ? ERRORS[code](server) : kt('Une erreur est survenue.', 'Something went wrong.'))
+        // « Switch server »: the footer (kybernos-cloud) opens Settings › Servers when it hears this. Nothing listens (no footer, no servers page): nothing happens.
+        const switchServer = () => { try { window.dispatchEvent(new Event('kybernos-cloud:servers')) } catch (e) { /* no window events */ } }
 
         const useRemote = () => {
           const [s, setS] = React.useState(null)
+          // Why the last poll failed (null when it worked): the page keeps the last good status and says so, instead of drawing a status that is not one.
+          const [err, setErr] = React.useState(null)
           const live = React.useRef(true)
-          const load = React.useCallback(async () => { const j = await api('status'); if (live.current && j !== null && typeof j === 'object') setS(j) }, [])
+          const load = React.useCallback(async () => {
+            const j = await api('status')
+            if (!live.current) return
+            if (j !== null && typeof j === 'object' && j.ok === true) { setS(j); setErr(null) } else setErr(j !== null && typeof j === 'object' && typeof j.error === 'string' ? j.error : 'network')
+          }, [])
           React.useEffect(() => {
             live.current = true
             void load()
@@ -546,7 +586,7 @@ window.__ModuleLoader__.load({
             return () => { live.current = false; clearInterval(timer) }
           }, [load])
           const act = React.useCallback(async (name, body) => { const j = await api(name, body === undefined ? {} : body); await load(); return j }, [load])
-          return { s, act, reload: load }
+          return { s, err, act, reload: load }
         }
         const useTick = () => {
           const [n, setN] = React.useState(Date.now())
@@ -646,21 +686,36 @@ window.__ModuleLoader__.load({
           const [error, setError] = React.useState(null)
           const [busy, setBusy] = React.useState(false)
           const started = React.useRef(false)
-          const run = async (name, body) => { setBusy(true); const j = await props.r.act(name, body); setBusy(false); setError(j && j.ok === false ? errorText(j.error) : null); return j }
+          // The way out of a server that does not answer is offered only when the host says there is another server to go to.
+          const [switchable, setSwitchable] = React.useState(false)
+          const run = async (name, body) => {
+            setBusy(true)
+            const j = await props.r.act(name, body)
+            setBusy(false)
+            setError(j && j.ok === false ? errorText(j.error, j.server) : null)
+            setSwitchable(j !== null && j !== undefined && j.ok === false && j.error === 'server_unavailable' && j.server !== null && typeof j.server === 'object' && j.server.can_switch === true)
+            return j
+          }
           const usable = s !== null && s.available !== false && s.connected !== false && s.entitled !== false
           // Opening the panel IS asking for a code: the QR appears without a further click.
           React.useEffect(() => {
-            if (props.autoPair === true && usable && s.pairing === null && started.current === false) { started.current = true; void run('pair') }
-          }, [usable, s === null ? null : s.pairing === null])
-          if (s === null) return h('div', { className: 'kbmr-sub' }, kt('Chargement…', 'Loading…'))
+            if (props.autoPair === true && usable && s.pairing == null && started.current === false) { started.current = true; void run('pair') }
+          }, [usable, s === null ? null : s.pairing == null])
+          // A failed poll keeps what was shown and adds the reason on top; with nothing shown yet it is the whole page until the next good poll.
+          const polled = props.r.err !== null && props.r.err !== undefined ? h('div', { className: 'kbmr-error', role: 'alert', 'data-kb': 'mobile-poll-error' }, errorText(props.r.err)) : null
+          if (s === null) return polled !== null ? polled : h('div', { className: 'kbmr-sub' }, kt('Chargement…', 'Loading…'))
           if (s.available === false) return h('div', { className: 'kbmr-sub' }, kt('Cette version de DSH ne permet pas la connexion mobile.', 'This DSH version cannot do the phone link.'))
           if (s.configured === false) return h('div', { className: 'kbmr-sub', 'data-kb': 'mobile-not-offered' }, kt('Ce serveur Kybernos ne propose pas encore le mobile.', 'This Kybernos server does not offer the phone link yet.'))
           if (s.connected === false) return h('div', { className: 'kbmr-sub', 'data-kb': 'mobile-signin' }, kt('Connectez-vous à votre compte Kybernos pour utiliser le mobile.', 'Sign in to your Kybernos account to use the phone link.'))
           const devices = Array.isArray(s.devices) ? s.devices : []
           if (s.entitled === false) return h('div', null, h(Paywall, { web: props.web }), devices.length > 0 ? h(Devices, { devices, onRevoke: (id) => run('devices/revoke', { id }) }) : null)
           return h('div', { className: 'kbmr-body' },
-            error !== null ? h('div', { className: 'kbmr-error', role: 'alert' }, error) : null,
-            s.pairing !== null
+            polled,
+            error !== null
+              ? h('div', { className: 'kbmr-error', role: 'alert' }, error,
+                switchable === true ? h('button', { type: 'button', className: 'kbmr-link', 'data-kb': 'mobile-switch-server', onClick: typeof props.onSwitchServer === 'function' ? props.onSwitchServer : switchServer }, kt('Changer de serveur', 'Switch server')) : null)
+              : null,
+            s.pairing != null
               ? h(Pairing, { pairing: s.pairing, compact: props.compact, busy, onApprove: () => run('pair/approve'), onDeny: () => run('pair/deny'), onNew: () => run('pair') })
               : h('div', { className: 'kbmr-row kbmr-start' },
                 h('button', { type: 'button', className: 'kbmr-btn kbmr-primary', 'data-kb': 'mobile-pair', disabled: busy, onClick: () => { void run('pair') } }, kt('Ajouter un téléphone', 'Add a phone'))),
@@ -670,7 +725,9 @@ window.__ModuleLoader__.load({
                 s.relay === 'up' ? h('span', { className: 'kbmr-sub kbmr-inline' }, h('span', { className: 'kbmr-dot on', 'aria-hidden': 'true' }), kt('Relais Kybernos joint', 'Kybernos relay reached')) : null),
               h(Devices, { devices, onRevoke: (id) => run('devices/revoke', { id }) }),
               devices.length > 1 ? h('button', { type: 'button', className: 'kbmr-link', 'data-kb': 'mobile-revoke-all', onClick: () => { void run('devices/revoke-all') } }, kt('Tout révoquer', 'Revoke all')) : null,
-              s.refused > 0 ? h('div', { className: 'kbmr-sub' }, kt(s.refused + ' demande(s) refusée(s) depuis un téléphone (réglages, identifiants, extensions).', s.refused + ' request(s) refused from a phone (settings, credentials, plugins).')) : null))
+              s.refused > 0 ? h('div', { className: 'kbmr-sub' }, (s.refused === 1
+                ? kt('1 demande refusée depuis un téléphone (réglages, identifiants, extensions).', '1 request refused from a phone (settings, credentials, plugins).')
+                : kt(s.refused + ' demandes refusées depuis un téléphone (réglages, identifiants, extensions).', s.refused + ' requests refused from a phone (settings, credentials, plugins).'))) : null))
         }
 
         // The « ? How it works » button of this bundle (the Suite publishes it; without the Suite there is none). The card it opens is
@@ -693,6 +750,22 @@ window.__ModuleLoader__.load({
           return h('span', { ref: box, className: 'kbmr-helpbox', onClickCapture: anchor }, helpButton())
         }
 
+        // The animated help of the Settings page (the Suite publishes it): opens the first time the page is visited, and the card of the
+        // « ? How it works » button can bring it back. The words are the ones of the real screen.
+        const introNode = () => (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Intro
+          ? h(window.__KB_HELP__.Intro, {
+            id: 'kybernos-mobile',
+            title: kt('Relier un téléphone en trois étapes', 'Link a phone in three steps'),
+            caption: kt('Le code QR est affiché sur l’ordinateur, scanné avec le téléphone, puis autorisé sur l’ordinateur.', 'The QR code is shown on the computer, scanned with the phone, then allowed on the computer.'),
+            steps: [
+              { t: kt('Affichez le code', 'Show the code'), b: kt('Sur l’ordinateur, ouvrez le menu du compte › « Contrôle à distance » : un code QR s’affiche.', 'On the computer, open the account menu › “Remote control”: a QR code appears.') },
+              { t: kt('Scannez-le', 'Scan it'), b: kt('Sur le téléphone, scannez le code avec l’appareil photo et ouvrez le lien : un code à 4 chiffres s’affiche.', 'On the phone, scan the code with the camera and open the link: a 4-digit code appears.') },
+              { t: kt('Autorisez', 'Allow'), b: kt('Sur l’ordinateur, vérifiez que le code est le même et touchez Autoriser : votre téléphone pilote cet ordinateur.', 'On the computer, check the code is the same and click Allow: your phone now drives this computer.') }
+            ],
+            mock: { bar: 'Remote Control', rows: [kt('Cet ordinateur', 'This computer')], hot: kt('Votre téléphone', 'Your phone'), states: [kt('Pas lié', 'Not linked'), kt('Code : 4821', 'Code: 4821'), kt('Lié', 'Linked')], actions: [kt('Afficher le QR', 'Show the QR'), kt('Scan…', 'Scanning…'), kt('Autoriser', 'Allow')] }
+          })
+          : null)
+
         // The sidebar's phone button opens this (kybernos-cloud renders it inside its popover).
         const Panel = (props) => {
           const r = useRemote()
@@ -710,7 +783,7 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kbmr-pophead' },
               h('div', { className: 'kbf-poptitle' }, kt('Connecter un téléphone', 'Connect a phone')),
               h(PopHelp)),
-            h(Body, { r, compact: true, autoPair: true, web: props.web }),
+            h(Body, { r, compact: true, autoPair: true, web: props.web, onSwitchServer: () => { try { if (typeof props.onClose === 'function') props.onClose() } catch (e) { /* closed already */ } switchServer() } }),
             typeof props.onManage === 'function'
               ? h('button', { type: 'button', className: 'kbmr-link', 'data-kb': 'mobile-manage', onClick: () => { keep.current = true; props.onManage() } }, kt('Gérer les téléphones', 'Manage phones') + (devices > 0 ? ' (' + devices + ')' : ''))
               : null)
@@ -740,6 +813,7 @@ window.__ModuleLoader__.load({
                 h('p', { className: 'kbmr-sub' }, kt('Pilotez cet ordinateur depuis votre téléphone : scannez le code, c’est tout. Rien à installer, aucun compte à créer.', 'Drive this computer from your phone: scan the code, that is all. Nothing to install, no account to create.'))),
               planChip !== null ? h('span', { className: 'kbmr-chip' }, planChip) : null,
               helpButton()),
+            introNode(),
             h(Body, { r, compact: false, autoPair: false, web }))
         }
 
@@ -775,6 +849,7 @@ window.__ModuleLoader__.load({
 .kbmr-lock svg{flex:none;margin-top:2px}
 .kbmr-sas{font-size:40px;font-weight:700;letter-spacing:.2em;padding-left:.2em;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
 .kbmr-error{padding:8px 12px;border-radius:8px;border:1px solid rgb(240,68,55);color:var(--dsw-alias-label-primary, rgb(243,243,245));font-size:13px}
+.kbmr-error .kbmr-link{display:block;margin-top:4px}
 .kbmr-section{display:flex;flex-direction:column;gap:10px}
 .kbmr-sech{display:flex;gap:10px;align-items:center;justify-content:space-between;font-weight:650;font-size:15px;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
 .kbmr-inline{display:inline-flex;gap:6px;align-items:center;margin:0;font-weight:400}

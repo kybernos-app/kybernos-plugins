@@ -5,8 +5,8 @@
   },
   "steps": [
     {
-      "fr": "Appuyez sur ⌘K (Ctrl+K), ou cliquez la loupe à côté de la recherche de la liste, ou la ligne « Rechercher partout » du menu.",
-      "en": "Press ⌘K (Ctrl+K), or click the search icon next to the list's search, or the “Search everywhere” row of the menu."
+      "fr": "Appuyez sur ⌘K (Ctrl+K), ou cliquez la loupe « Rechercher partout », en haut à gauche ou à côté de la recherche de la liste.",
+      "en": "Press ⌘K (Ctrl+K), or click the “Search everywhere” icon, at the top left or next to the list's search."
     },
     {
       "fr": "Tapez quelques mots : les résultats sont groupés par type, avec l’extrait où ils apparaissent.",
@@ -18,8 +18,8 @@
     }
   ],
   "where": {
-    "fr": "Menu › Rechercher partout, ou ⌘K (aucune page de réglages)",
-    "en": "Menu › Search everywhere, or ⌘K (no settings page)",
+    "fr": "⌘K (Ctrl+K), ou la loupe « Rechercher partout » en haut à gauche (aucune page de réglages)",
+    "en": "⌘K (Ctrl+K), or the “Search everywhere” icon at the top left (no settings page)",
     "page": false
   },
   "good": {

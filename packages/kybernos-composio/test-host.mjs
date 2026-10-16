@@ -10,6 +10,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import './lib-proxy-env.mjs'
+import { installSession, browserHeaders } from './lib-session-test.mjs'
 import { apply, upsertEnvSecret, isBootstrapOnlyName, resolveDshHome, envTextWith, TIMEOUTS, splitArgs } from './index.js'
 import { mkdtempSync, rmSync, readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, symlinkSync, statSync, chmodSync } from 'node:fs'
 import { parseEnv } from 'node:util'
@@ -32,6 +33,7 @@ delete process.env.DSH_HOME
 // call time, so setting HOME after the import is enough.
 const HOME = mkdtempSync(join(tmpdir(), 'kb-composio-test-'))
 process.env.HOME = HOME
+installSession(join(HOME, '.dsh')) // the machine secret the write routes check the session cookie against (frais() puts it back)
 
 // ── the DSH engine, when this machine has one (read only) ───────────────────
 // DSH's own boot code is the judge of what we write: loadLayeredEnv refuses the .env
@@ -52,8 +54,8 @@ const engineDirs = () => {
 const ENGINE = process.env.NO_DSH_ENGINE === '1' ? null : (engineDirs()[0] || null)
 const dshBoot = ENGINE === null ? null : await import(join(ENGINE, '@deepseek-ai', 'dsh-app-boot', 'lib', 'index.js'))
 const yaml = ENGINE === null ? null : createRequire(join(ENGINE, '@deepseek-ai', 'dsh-app-boot', 'package.json'))('js-yaml')
-console.log(ENGINE === null ? '(no DSH engine found: the checks that run DSH\'s own loaders are skipped)' : '(DSH engine used as the judge: ' + ENGINE.replace(REAL_HOME, '~') + ')')
-const skipped = (label) => console.log(`- skipped, no DSH engine: ${label}`)
+console.log(ENGINE === null ? 'SKIPPED: the checks that run DSH\'s own loaders — no DSH engine found (each one is listed below)' : '(DSH engine used as the judge: ' + ENGINE.replace(REAL_HOME, '~') + ')')
+const skipped = (label) => console.log(`SKIPPED: ${label} — no DSH engine`)
 
 const routes = {}
 const ctx = {
@@ -68,7 +70,7 @@ ok('connectors route mounted', typeof routes['/kybernos/composio/connecteurs'] =
 
 const requete = (headers, corps) => ({
   method: 'POST',
-  headers: Object.assign({ 'content-type': 'application/json' }, headers || {}),
+  headers: Object.assign({ 'content-type': 'application/json' }, browserHeaders(), headers || {}), // a write is sent as the person's browser sends it
   socket: { localPort: 3080 },
   url: '/kybernos/composio/connecteurs',
   on: (ev, fn) => {
@@ -175,7 +177,7 @@ const ENV_FILE = join(HOME, '.dsh', '.env')
 const lireEnv = () => { try { return readFileSync(ENV_FILE, 'utf8') } catch (e) { return null } }
 const poserEnv = (texte) => { mkdirSync(join(HOME, '.dsh'), { recursive: true }); writeFileSync(ENV_FILE, texte, 'utf8') }
 // DSH itself creates ~/.dsh; upsertEnvSecret does not (it only writes the file).
-const viderDsh = () => { rmSync(join(HOME, '.dsh'), { recursive: true, force: true }); mkdirSync(join(HOME, '.dsh'), { recursive: true }) }
+const viderDsh = () => { rmSync(join(HOME, '.dsh'), { recursive: true, force: true }); mkdirSync(join(HOME, '.dsh'), { recursive: true }); installSession(join(HOME, '.dsh')) }
 const dangereux = ['a$&b', 'k$1v', 'x$$y', 'p$`q', "r$'s", 'n$<name>m', '$&$1$$$`$\'', 'plain-ck_0123456789']
 for (const secret of dangereux) {
   // 1. no line yet: the append path
@@ -237,6 +239,7 @@ const lire = (f) => { try { return readFileSync(f, 'utf8') } catch (e) { return 
 const frais = (avecYaml = true) => {
   rmSync(DSH_DIR, { recursive: true, force: true })
   mkdirSync(join(DSH_DIR, 'profiles', 'web'), { recursive: true })
+  installSession(DSH_DIR) // a real home has the machine secret; the write routes check the session cookie against it
   if (avecYaml === true && ENGINE !== null) {
     mkdirSync(join(DSH_DIR, 'profiles', 'web', 'node_modules'), { recursive: true })
     symlinkSync(join(ENGINE, 'js-yaml'), join(DSH_DIR, 'profiles', 'web', 'node_modules', 'js-yaml'))
@@ -262,7 +265,7 @@ const bootPatch = () => {
 const POST = (corps) => jouer({}, corps)
 const DELETE = async (nom) => {
   const res = reponse()
-  await routes['/kybernos/composio/connecteurs']({ method: 'DELETE', headers: {}, socket: { localPort: 3080 }, url: '/kybernos/composio/connecteurs?nom=' + nom, on: () => {} }, res)
+  await routes['/kybernos/composio/connecteurs']({ method: 'DELETE', headers: browserHeaders(), socket: { localPort: 3080 }, url: '/kybernos/composio/connecteurs?nom=' + nom, on: () => {} }, res)
   return res
 }
 const GET = async () => {
@@ -581,6 +584,19 @@ const BLOC_WORKERS = [
   if (dshBoot !== null) ok('C-03: DSH loads the result', bootPatch() === null)
 }
 {
+  // WP-07: the banner a new patch gets is English, written once; a patch that has the French one (written before) is not given a second
+  frais()
+  await POST(http('first'))
+  await POST(http('second'))
+  const neuf = lire(PATCH_FILE)
+  ok('WP-07: a new patch gets the English banner, once', (neuf.match(/CUSTOM CONNECTORS/g) || []).length === 1 && neuf.includes('CONNECTEURS') === false && neuf.includes('connecteur:first') && neuf.includes('connecteur:second'))
+  frais()
+  writeFileSync(PATCH_FILE, '# ── CONNECTEURS PERSONNALISÉS (géré par le formulaire et la skill connecteur-personnalise) ────\n\n', 'utf8')
+  await POST(http('legacy'))
+  const vieux = lire(PATCH_FILE)
+  ok('WP-07: a patch with the French banner is not given a second banner', vieux.includes('CUSTOM CONNECTORS') === false && (vieux.match(/CONNECTEURS PERSONNALISÉS/g) || []).length === 1 && vieux.includes('connecteur:legacy'))
+}
+{
   // a block that is the last thing of the file and has trailing blank lines
   frais()
   await POST(http('last'))
@@ -637,6 +653,7 @@ const methodeMcp = (rec) => { try { return JSON.parse(rec.body).method } catch (
     writeFileSync(join(DSH_DIR, '.env'), 'COMPOSIO_API_KEY=ck_from_os_home\n', 'utf8')
     process.env.DSH_HOME = ALT
     mkdirSync(join(ALT, 'profiles', 'web'), { recursive: true })
+    installSession(ALT) // the guard looks for the machine secret in $DSH_HOME too
     const res = await POST(http('moved', { secrets: [{ name: 'MOVED_KEY', value: 'v1' }] }))
     ok('C-04: with DSH_HOME set, a connector is saved (200)', res.code === 200, `code=${res.code} ${res.corps.slice(0, 80)}`)
     ok('C-04: the secret goes to $DSH_HOME/.env', lire(join(ALT, '.env')) === 'MOVED_KEY=v1\n')
@@ -738,6 +755,7 @@ const mode = (f) => (statSync(f).mode & 0o777).toString(8)
   // the patch cannot be written (no profile folder): nothing else is left behind, and the reply has no path
   rmSync(DSH_DIR, { recursive: true, force: true })
   mkdirSync(DSH_DIR, { recursive: true })
+  installSession(DSH_DIR)
   const res = await POST(http('half', { headers: [{ name: 'a', value: '$HALF_KEY' }], secrets: [{ name: 'HALF_KEY', value: 'half-secret' }] }))
   ok('C-06: a failed patch write answers 500, and says nothing was changed', res.code === 500 && /nothing was changed/.test(res.corps), `code=${res.code} ${res.corps.slice(0, 120)}`)
   ok('C-06: ...no .env and no sidecar are left, so GET does not list the connector', lire(join(DSH_DIR, '.env')) === null && lire(SIDECAR_FILE) === null && (await GET()).connecteurs.length === 0)
@@ -760,7 +778,7 @@ if (typeof process.getuid === 'function' && process.getuid() !== 0) {
     const del = await DELETE('keep')
     ok('C-06: a failed delete puts back the patch and the .env too', del.code === 500 && lire(PATCH_FILE) === patch0 && lire(join(DSH_DIR, '.env')) === env0 && lire(SIDECAR_FILE) === side0, `code=${del.code} ${del.corps.slice(0, 100)}`)
   } finally { chmodSync(join(DSH_DIR, 'kybernos'), 0o700) }
-} else console.log('- skipped, running as root: C-06 rollback on a read-only folder')
+} else console.log('SKIPPED: C-06 rollback on a read-only folder — running as root')
 
 // ═══ C-07: a secret written to .env is read back by DSH exactly as typed ═════
 {
@@ -1195,7 +1213,7 @@ const proxyOuMcp = (apps, mcpHandler) => (r) => (r.url.includes('kybernos-proxy'
   const envoyer = async (morceaux, headers) => {
     const res = reponse()
     await routes['/kybernos/composio/connecteurs']({
-      method: 'POST', headers: Object.assign({ 'content-type': 'application/json' }, headers || {}), socket: { localPort: 3080 }, url: '/kybernos/composio/connecteurs',
+      method: 'POST', headers: Object.assign({ 'content-type': 'application/json' }, browserHeaders(), headers || {}), socket: { localPort: 3080 }, url: '/kybernos/composio/connecteurs',
       on: (ev, fn) => { if (ev === 'data') for (const m of morceaux) fn(m); if (ev === 'end') setTimeout(() => fn(), 0) },
     }, res)
     return res

@@ -9,12 +9,12 @@
       "en": "The page lists the free models available right now, read straight from OpenCode."
     },
     {
-      "fr": "Cochez « J’ai compris que mes prompts peuvent être conservés », puis « Brancher sur DSH » : le fournisseur et ses modèles sont créés.",
+      "fr": "Coche « J’ai compris que mes prompts peuvent être conservés », puis « Brancher sur DSH » : le fournisseur et ses modèles sont créés.",
       "en": "Tick “I understand my prompts may be retained”, then “Connect to DSH”: the provider and its models are created."
     },
     {
-      "fr": "« Tester un modèle » vérifie que la couche gratuite répond encore, et l’affiche en clair — y compris quand OpenCode la verrouille.",
-      "en": "“Probe a model” checks the free tier still answers, and says so plainly — including when OpenCode locks it."
+      "fr": "« Revérifier » vérifie que la couche gratuite répond encore, et l’affiche en clair — y compris quand OpenCode la verrouille.",
+      "en": "“Re-check” checks the free tier still answers, and says so plainly — including when OpenCode locks it."
     },
     {
       "fr": "« Retirer » enlève le fournisseur sans rien supprimer d’autre.",
@@ -27,7 +27,8 @@
     "page": true
   },
   "good": {
-    "fr": "Rien n’est envoyé sans votre action. Modèles gratuits : les prompts peuvent être conservés, n’y mettez rien de sensible.",
+    "fr": "Rien n’est envoyé sans ton action. Modèles gratuits : les prompts peuvent être conservés, n’y mets rien de sensible.",
     "en": "Nothing is sent without your action. Free models: prompts may be retained, so do not put anything sensitive there."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/models-and-budget/use-free-models/"
 }

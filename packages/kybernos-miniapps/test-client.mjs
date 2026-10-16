@@ -29,6 +29,30 @@ new Function('window', 'document', readFileSync(new URL('./client.js', import.me
 const T = definition.factory(() => { throw new Error('require inattendu') }).__test
 ok('bundle client charge et expose __test', T !== null && typeof T.escTitre === 'function' && typeof T.jsonPourScript === 'function')
 
+// ── A4-28: the App button of a mini-app must not sit over the player's own buttons ─────────────────────────────
+// A mini-app has no head: the button used to float at the top-right corner of its root, exactly where the Quiz and Cards
+// players keep « Check » / « Replay » (a click in the middle of that button installed an app). It now takes its own line above.
+{
+  const el = (tag) => ({
+    tag, style: {}, className: '', textContent: '', title: '', children: [],
+    prepend (n) { this.children.unshift(n) }, appendChild (n) { this.children.push(n) },
+    querySelector (sel) { const m = /^:scope > \.(\S+)$/.exec(sel); return m === null ? null : (this.children.find((c) => c.className === m[1]) || null) },
+  })
+  globalThis.window.document.createElement = el
+  const player = el('div')
+  player.className = 'kbq-player'
+  const root = el('div')
+  root.children.push(player)
+  T.majBouton({ racineDynamique: root, id: 'ma-quiz-demo-quiz', tete: null, defaut: 'quiz-demo', l: 420, h: 480, flottant: true })
+  const btn = root.children[0]
+  ok('A4-28: the button is the first thing of the mini-app, above the player (in the flow)', btn.className === 'kbmini-btn' && root.children[1] === player, root.children.map((c) => c.className).join())
+  ok('A4-28: it does not float: no absolute position, no corner offsets', btn.style.position === undefined && btn.style.top === undefined && btn.style.insetInlineEnd === undefined && btn.style.zIndex === undefined, JSON.stringify(btn.style))
+  ok('A4-28: it is right-aligned on its own line', btn.style.alignSelf === 'flex-end')
+  ok('A4-28: the root is left as it was (no forced position)', root.style.position === undefined)
+  T.majBouton({ racineDynamique: root, id: 'ma-quiz-demo-quiz', tete: null, defaut: 'quiz-demo', l: 420, h: 480, flottant: true })
+  ok('A4-28: a second sweep does not add a second button', root.children.length === 2)
+}
+
 // ── M-04 : escTitre — le titre ne peut pas fermer <title> ───────────────────
 {
   const piege = '</title><script>window.__M04 = "INJECTE"</script>'
@@ -160,6 +184,24 @@ ok('bundle client charge et expose __test', T !== null && typeof T.escTitre === 
   const src = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
   ok('the menu uses it, with its measured size', /placerMenu\(r, menu\.offsetWidth \|\| 190, menu\.offsetHeight \|\| 120/.test(src))
   ok('a sweep skipped by the throttle is replayed once the quiet period is over, not dropped', /balayageDiffere = setTimeout\(\(\) => \{ balayageDiffere = null; balayer\(\) \}, attente\)/.test(src) && !/< 200\) return/.test(src))
+}
+
+// ── la langue (A2-31, A2-08) : français pour le français, anglais pour toute autre langue ──
+{
+  const noms = () => T.PANNEAUX.map((x) => x.defaut).join(' | ')
+  for (const [lg, attendu, interdit] of [
+    ['en', 'Bricks | 3D modeller | Slides', /Briques|Modeleur/],
+    ['kybernos', 'Briques | Modeleur | Slides', /Bricks|3D modeller/],
+    ['es', 'Bricks | 3D modeller | Slides', /Briques|Modeleur/],
+    ['ar', 'Bricks | 3D modeller | Slides', /Briques|Modeleur/],
+  ]) {
+    globalThis.window.__KB_LANG_RESOLVE__ = () => lg
+    ok(`langue « ${lg} » : les noms de panneaux (titre de l'app installée) suivent la langue`, noms() === attendu && !interdit.test(noms()), noms())
+    const mots = [T.kt('Lancer', 'Launch'), T.kt('Démarrage auto', 'Launch at login'), T.kt('Désinstaller', 'Uninstall')].join(' | ')
+    ok(`langue « ${lg} » : le menu de l'app parle la langue`, lg === 'kybernos' ? mots === 'Lancer | Démarrage auto | Désinstaller' : mots === 'Launch | Launch at login | Uninstall', mots)
+  }
+  globalThis.window.__KB_LANG_RESOLVE__ = () => { throw new Error('langue pas encore connue') }
+  ok('langue pas encore connue : anglais', T.kt('Lancer', 'Launch') === 'Launch')
 }
 
 console.log(echecs === 0 ? '\nClient : tout est vert.' : `\n✗ ${echecs} échec(s)`)

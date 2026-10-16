@@ -23,7 +23,6 @@ window.__ModuleLoader__.load({
   factory(require) {
     const React = require('react')
     const h = React.createElement
-    let localeSvc = { current: () => 'kybernos' }
 
     // ── Composio catalog: loaded on demand from the host ──────────────────────
     // The 412 KB of the catalog are no longer inlined in this bundle: the browser only
@@ -134,23 +133,23 @@ window.__ModuleLoader__.load({
       'composio.keysave': { fr: 'Enregistrer', en: 'Save' },
       'composio.keyclear': { fr: 'Effacer', en: 'Clear' },
       'composio.keylabel': { fr: 'Clé Composio', en: 'Composio key' },
-      'composio.keynote': { fr: 'Votre clé personnelle Composio : elle pilote cet onglet ET les agents du chat. Elle reste sur cette machine (~/.dsh/.env) ; les outils sont appelés chez Composio.', en: 'Your personal Composio key: it drives this tab AND the chat agents. It stays on this machine (~/.dsh/.env); the tools are called at Composio.' },
+      'composio.keynote': { fr: 'Ta clé personnelle Composio : elle pilote cet onglet ET les agents du chat. Elle reste sur cette machine (~/.dsh/.env) ; les outils sont appelés chez Composio.', en: 'Your personal Composio key: it drives this tab AND the chat agents. It stays on this machine (~/.dsh/.env); the tools are called at Composio.' },
       'composio.keyhelpq': { fr: 'Comment trouver ma clé Composio ?', en: 'How do I find my Composio key?' },
-      'composio.keyhelp1': { fr: 'Ouvrez dashboard.composio.dev et connectez-vous (compte gratuit).', en: 'Open dashboard.composio.dev and sign in (free account).' },
+      'composio.keyhelp1': { fr: 'Ouvre dashboard.composio.dev et connecte-toi (compte gratuit).', en: 'Open dashboard.composio.dev and sign in (free account).' },
       'composio.keyhelp2': { fr: 'Menu Settings ▸ API Keys, puis Generate new key.', en: 'Menu Settings ▸ API Keys, then Generate new key.' },
-      'composio.keyhelp3': { fr: 'Collez la clé (elle commence par ck_…) ci-dessus : elle est enregistrée sur votre machine.', en: 'Paste the key (it starts with ck_…) above: it is saved on your machine.' },
+      'composio.keyhelp3': { fr: 'Colle la clé (elle commence par ck_…) ci-dessus : elle est enregistrée sur ta machine.', en: 'Paste the key (it starts with ck_…) above: it is saved on your machine.' },
       'kb.cp.title': { fr: 'Connecteurs', en: 'Connectors' },
-      'kb.cp.sub': { fr: 'Les apps, serveurs MCP et API par lesquels vos agents agissent. Les apps passent par Composio (votre clé) ou votre compte Kybernos : plusieurs connexions par app, une par compte.', en: 'The apps, MCP servers and APIs your agents act through. Apps go through Composio (your key) or your Kybernos account: several connections per app, one per account.' },
+      'kb.cp.sub': { fr: 'Les apps, serveurs MCP et API par lesquels tes agents agissent. Les apps passent par Composio (ta clé) ou ton compte Kybernos : plusieurs connexions par app, une par compte.', en: 'The apps, MCP servers and APIs your agents act through. Apps go through Composio (your key) or your Kybernos account: several connections per app, one per account.' },
       'kb.cp.search': { fr: 'Chercher une app — Slack, GitHub, facturation…', en: 'Search an app — Slack, GitHub, billing…' },
       'kb.cp.chipall': { fr: 'Toutes', en: 'All' },
       'kb.cp.chipconn': { fr: 'Connectées', en: 'Connected' },
       // (29/09) the Plugins tab left the Resources page: Settings is the target.
-      'kb.cp.nokey': { fr: "Ajoutez votre clé Composio dans Réglages → Plugins → kybernos-composio pour activer les connexions.", en: 'Add your Composio key under Settings → Plugins → kybernos-composio to enable connections.' },
+      'kb.cp.nokey': { fr: "Ajoute ta clé Composio dans Réglages › Connecteurs pour activer les connexions.", en: 'Add your Composio key in Settings › Connectors to enable connections.' },
       'kb.cp.connected': { fr: 'Connecté', en: 'Connected' },
       'kb.cp.pend': { fr: 'En attente', en: 'Pending' },
       'kb.cp.empty': { fr: 'Aucune app ne correspond.', en: 'No matching app.' },
       'kb.cp.openlink': { fr: 'Ouvrir la page d’autorisation', en: 'Open the authorization page' },
-      'kb.cp.wait': { fr: 'Autorisation en cours — terminez dans l’onglet ouvert, puis attendez la confirmation…', en: 'Authorizing — finish in the opened tab, then wait for confirmation…' },
+      'kb.cp.wait': { fr: 'Autorisation en cours — termine dans l’onglet ouvert, puis attends la confirmation…', en: 'Authorizing — finish in the opened tab, then wait for confirmation…' },
       'kb.cp.accounts': { fr: 'compte(s)', en: 'account(s)' },
       'kb.cp.addconn': { fr: 'Ajouter une connexion', en: 'Add a connection' },
       'kb.cp.remove': { fr: 'Supprimer', en: 'Remove' },
@@ -184,12 +183,20 @@ window.__ModuleLoader__.load({
       'kb.cp.refresh': { fr: 'Rafraîchir', en: 'Refresh' },
       'kbui.sort.az': { fr: 'A → Z', en: 'A → Z' },
       // (29/09) sous-onglets + aide « Connecteurs locaux ».
-      'kb.cp.tab.yours': { fr: 'Vos connexions', en: 'Yours' },
+      'kb.cp.tab.yours': { fr: 'Tes connexions', en: 'Yours' },
       'kb.cp.tab.discover': { fr: 'Découvrir', en: 'Discover' },
-      'kb.cp.info': { fr: 'À propos des connecteurs locaux', en: 'About Local Connectors' },
-      'kb.cp.help.title': { fr: 'Connecteurs locaux — mode d’emploi', en: 'Local Connectors — how it works' },
-      'kb.cp.help': { fr: 'Vos connexions : les apps déjà reliées à vos Agent Teams. Découvrir : le catalogue complet, connexion en un clic. Serveurs MCP : vos propres serveurs (HTTP distant ou commande locale). Les agents du chat lisent la même clé côté machine (~/.dsh/.env).', en: 'Yours: apps already linked to your Agent Teams. Discover: the full catalog, one-click connect. MCP servers: your own servers (remote HTTP or local command). Chat agents read the same key on this machine (~/.dsh/.env).' },
-      'kb.cp.yours.empty': { fr: 'Aucune app connectée pour l’instant — le catalogue vous attend.', en: 'No app connected yet — the catalog is waiting for you.' },
+      'kb.cp.intro.title': { fr: 'Connecter une app en trois étapes', en: 'Connect an app in three steps' },
+      'kb.cp.intro.caption': { fr: 'Une app est choisie dans Découvrir, autorisée dans son propre onglet, puis disponible pour tes agents.', en: 'An app is picked in Discover, authorised in its own tab, then available to your agents.' },
+      'kb.cp.intro.s1t': { fr: 'Choisis une app', en: 'Pick an app' },
+      'kb.cp.intro.s1b': { fr: 'Dans Découvrir, choisis une app et clique « Ajouter une connexion ». Il faut ta clé Composio ou ton compte Kybernos.', en: 'In Discover, pick an app and click “Add a connection”. It needs your Composio key or your Kybernos account.' },
+      'kb.cp.intro.s2t': { fr: 'Autorise-la', en: 'Authorise it' },
+      'kb.cp.intro.s2b': { fr: 'Un onglet de l’app s’ouvre : connecte-toi et autorise l’accès.', en: 'A tab of the app opens: sign in and allow access.' },
+      'kb.cp.intro.s3t': { fr: 'Tes agents s’en servent', en: 'Your agents use it' },
+      'kb.cp.intro.s3b': { fr: 'Elle apparaît dans « Tes connexions » : tes agents peuvent agir dans cette app.', en: 'It appears under Yours: your agents can now act in that app.' },
+      'kb.cp.intro.m.st1': { fr: 'Non connecté', en: 'Not connected' },
+      'kb.cp.intro.m.wait': { fr: 'Autorisation…', en: 'Authorising…' },
+      'kb.cp.intro.m.allow': { fr: 'Autoriser', en: 'Allow' },
+      'kb.cp.yours.empty': { fr: 'Aucune app connectée pour l’instant — le catalogue t’attend.', en: 'No app connected yet — the catalog is waiting for you.' },
       'kb.cp.popular': { fr: 'Populaire', en: 'Popular' },
       // ── Settings page (Settings ▸ Connectors) ──
       'kb.cp.set.nav': { fr: 'Connecteurs', en: 'Connectors' },
@@ -202,12 +209,12 @@ window.__ModuleLoader__.load({
       'kb.cp.set.key.src.setting': { fr: 'enregistrée ici', en: 'saved here' },
       'kb.cp.set.key.src.none': { fr: 'source inconnue', en: 'unknown source' },
       'kb.cp.set.connH': { fr: 'Connexions', en: 'Connections' },
-      'kb.cp.set.connSub': { fr: 'Les apps reliées à votre clé, avec leurs comptes.', en: 'The apps linked to your key, with their accounts.' },
+      'kb.cp.set.connSub': { fr: 'Les apps reliées à ta clé, avec leurs comptes.', en: 'The apps linked to your key, with their accounts.' },
       'kb.cp.set.connNone': { fr: 'Aucune connexion active pour l’instant.', en: 'No active connection yet.' },
       'kb.cp.set.modeH': { fr: 'Mode de composition', en: 'Compose mode' },
-      'kb.cp.set.mode.personal': { fr: 'Votre propre clé', en: 'Your own key' },
+      'kb.cp.set.mode.personal': { fr: 'Ta propre clé', en: 'Your own key' },
       'kb.cp.set.mode.kybernos': { fr: 'Kybernos Cloud', en: 'Kybernos Cloud' },
-      'kb.cp.set.modeSub': { fr: 'Vu en lecture seule : le choix se fait depuis la page Connectors, onglet « Vos connexions ».', en: 'Read-only here: the choice is made on the Connectors page, in the “Yours” tab.' },
+      'kb.cp.set.modeSub': { fr: 'Vu en lecture seule : le choix se fait depuis la page Connectors, onglet « Tes connexions ».', en: 'Read-only here: the choice is made on the Connectors page, in the “Yours” tab.' },
       'kb.cp.set.open': { fr: 'Ouvrir Connectors', en: 'Open Connectors' },
       // (POC) "Kybernos" pill of the engine's Plugins page.
       'kb.cp.kbf.help': { fr: 'Ne montrer que les plugins Kybernos (@local/kybernos-*)', en: 'Show only Kybernos plugins (@local/kybernos-*)' },
@@ -221,12 +228,12 @@ window.__ModuleLoader__.load({
       'kb.cp.card.resource': { fr: 'Ressource', en: 'Resource' },
       'kb.cp.card.all': { fr: 'Tous les connecteurs', en: 'All connectors' },
       // What a failed call says, by code (the host and the MCP client use the same codes).
-      'kb.cp.err.401': { fr: 'Composio a refusé la clé API (401). Vérifiez-la dans ~/.dsh/.env ou dans le panneau de la clé.', en: 'Composio rejected the API key (401). Check it in ~/.dsh/.env or in the key panel.' },
-      'kb.cp.err.429': { fr: 'Composio limite le débit (429) : réessayez dans un instant.', en: 'Composio is rate limiting requests (429): try again in a moment.' },
+      'kb.cp.err.401': { fr: 'Composio a refusé la clé API (401). Vérifie-la dans ~/.dsh/.env ou dans le panneau de la clé.', en: 'Composio rejected the API key (401). Check it in ~/.dsh/.env or in the key panel.' },
+      'kb.cp.err.429': { fr: 'Composio limite le débit (429) : réessaie dans un instant.', en: 'Composio is rate limiting requests (429): try again in a moment.' },
       'kb.cp.err.timeout': { fr: 'Composio n’a pas répondu à temps.', en: 'Composio did not answer in time.' },
       'kb.cp.err.offline': { fr: 'Composio est injoignable (réseau).', en: 'Composio cannot be reached (network).' },
       'kb.cp.err.other': { fr: 'Composio a répondu par une erreur ({code}).', en: 'Composio answered with an error ({code}).' },
-      'kb.cp.err.gateway': { fr: 'Composio a un souci passager ({code}) : réessayez dans un instant.', en: 'Composio has a passing problem ({code}): try again in a moment.' },
+      'kb.cp.err.gateway': { fr: 'Composio a un souci passager ({code}) : réessaie dans un instant.', en: 'Composio has a passing problem ({code}): try again in a moment.' },
       // Key panel: what the HOST (the agents) sees, as opposed to this browser.
       // Card button that sends text into the conversation: the text is shown first.
       'kb.cp.accept.confirm': { fr: 'Envoyer ce message dans la conversation ?', en: 'Send this message in the conversation?' },
@@ -240,12 +247,12 @@ window.__ModuleLoader__.load({
       'composio.unchecked': { fr: 'Composio ne répond pas bien : clé non vérifiée', en: 'Composio is not answering well: key not checked' },
       'composio.agentsSame': { fr: 'Les agents du chat l’utilisent', en: 'The chat agents use it' },
       'composio.agentsLater': { fr: 'Les agents du chat l’utiliseront après un redémarrage de DSH', en: 'The chat agents will use it after DSH restarts' },
-      'composio.hostunknown': { fr: 'État de la clé inconnu : le plugin hôte ne répond pas. S’il vient d’être mis à jour, redémarrez DSH.', en: 'Key state unknown: the host plugin does not answer. If it was just updated, restart DSH.' },
-      'kb.cp.hostold': { fr: 'Le plugin hôte tourne encore dans sa version précédente : redémarrez DSH pour activer les nouveautés. En attendant, la liste est en lecture seule.', en: 'The host plugin is still running its previous version: restart DSH to activate the changes. Meanwhile the list is read only.' },
+      'composio.hostunknown': { fr: 'État de la clé inconnu : le plugin hôte ne répond pas. S’il vient d’être mis à jour, redémarre DSH.', en: 'Key state unknown: the host plugin does not answer. If it was just updated, restart DSH.' },
+      'kb.cp.hostold': { fr: 'Le plugin hôte tourne encore dans sa version précédente : redémarre DSH pour activer les nouveautés. En attendant, la liste est en lecture seule.', en: 'The host plugin is still running its previous version: restart DSH to activate the changes. Meanwhile the list is read only.' },
       'composio.migrate': { fr: 'Une clé de l’ancienne version est dans ce navigateur. L’enregistrer sur cette machine ?', en: 'A key from the previous version is in this browser. Save it on this machine?' },
       'composio.err.invalid': { fr: 'Une clé Composio commence par ck_ et ne contient pas d’espace.', en: 'A Composio key starts with ck_ and has no spaces.' },
       'composio.err.rejected': { fr: 'Composio a refusé cette clé : elle n’a pas été enregistrée.', en: 'Composio rejected this key: it was not saved.' },
-      'composio.err.inherited': { fr: 'La clé vient de l’environnement de lancement de DSH : changez-la là-bas.', en: 'The key comes from the environment DSH was started with: change it there.' },
+      'composio.err.inherited': { fr: 'La clé vient de l’environnement de lancement de DSH : change-la là-bas.', en: 'The key comes from the environment DSH was started with: change it there.' },
       'composio.err.write': { fr: 'La clé n’a pas pu être enregistrée.', en: 'The key could not be saved.' },
       'composio.saved': { fr: 'Clé enregistrée. Les agents l’utiliseront après un redémarrage de DSH.', en: 'Key saved. The agents will use it after DSH restarts.' },
       'composio.savedlive': { fr: 'Clé enregistrée.', en: 'Key saved.' },
@@ -257,37 +264,39 @@ window.__ModuleLoader__.load({
       'kb.cp.add.formhint': { fr: 'HTTP distant ou commande locale', en: 'Remote HTTP or local command' },
       'kb.cp.add.json': { fr: 'Coller du JSON', en: 'Paste JSON' },
       'kb.cp.add.jsonhint': { fr: 'Le bloc « mcpServers » d’une documentation', en: 'The "mcpServers" block of a documentation page' },
-      'kb.cp.mcp.empty': { fr: 'Aucun serveur MCP. Ajoutez-en un avec un formulaire ou en collant du JSON.', en: 'No MCP server yet. Add one with a form or by pasting JSON.' },
+      'kb.cp.mcp.empty': { fr: 'Aucun serveur MCP. Ajoute-en un avec un formulaire ou en collant du JSON.', en: 'No MCP server yet. Add one with a form or by pasting JSON.' },
       'kb.cp.mcp.error': { fr: 'La liste des serveurs n’a pas pu être lue : {why}', en: 'The server list could not be read: {why}' },
       'kb.cp.src.skill': { fr: 'créé par la skill', en: 'made by the skill' },
       'kb.cp.src.ro': { fr: 'lecture seule', en: 'read only' },
       'kb.cp.st.nolive': { fr: 'Configuré', en: 'Configured' },
       'kb.cp.st.loading': { fr: 'Chargement…', en: 'Loading…' },
       'kb.cp.st.active': { fr: 'Actif · {n} outils', en: 'Active · {n} tools' },
+      'kb.cp.st.active.1': { fr: 'Actif · 1 outil', en: 'Active · 1 tool' },
       'kb.cp.st.noTools': { fr: 'Chargé · aucun outil', en: 'Loaded · no tools' },
       'kb.cp.st.failed': { fr: 'Échec du chargement', en: 'Failed to load' },
       'kb.cp.st.off': { fr: 'Désactivé', en: 'Disabled' },
       'kb.cp.st.notloaded': { fr: 'Pas encore chargé', en: 'Not loaded yet' },
-      'kb.cp.st.stale': { fr: 'Non chargé : redémarrez DSH', en: 'Not loaded: restart DSH' },
-      'kb.cp.st.hint.noTools': { fr: 'Le serveur est configuré mais n’a enregistré aucun outil : il n’a sans doute pas pu démarrer. Testez-le pour voir pourquoi.', en: 'The server is configured but registered no tools: it probably could not start. Test it to see why.' },
-      'kb.cp.st.hint.stale': { fr: 'DSH n’a pas rechargé sa configuration. Redémarrez DSH pour que ce serveur soit chargé.', en: 'DSH did not reload its configuration. Restart DSH for this server to load.' },
+      'kb.cp.st.stale': { fr: 'Non chargé : redémarre DSH', en: 'Not loaded: restart DSH' },
+      'kb.cp.st.hint.noTools': { fr: 'Le serveur est configuré mais n’a enregistré aucun outil : il n’a sans doute pas pu démarrer. Teste-le pour voir pourquoi.', en: 'The server is configured but registered no tools: it probably could not start. Test it to see why.' },
+      'kb.cp.st.hint.stale': { fr: 'DSH n’a pas rechargé sa configuration. Redémarre DSH pour que ce serveur soit chargé.', en: 'DSH did not reload its configuration. Restart DSH for this server to load.' },
       'kb.cp.act.test': { fr: 'Tester', en: 'Test' },
       'kb.cp.act.edit': { fr: 'Modifier', en: 'Edit' },
       'kb.cp.act.del': { fr: 'Supprimer', en: 'Delete' },
       'kb.cp.act.toggle': { fr: 'Activer ou désactiver {name}', en: 'Enable or disable {name}' },
       'kb.cp.act.testing': { fr: 'Test en cours : initialisation, puis liste des outils…', en: 'Testing: initialize, then the tool list…' },
       'kb.cp.test.ok': { fr: 'Connecté en {s} s. {n} outils :', en: 'Connected in {s} s. {n} tools:' },
+      'kb.cp.test.ok.1': { fr: 'Connecté en {s} s. 1 outil :', en: 'Connected in {s} s. 1 tool:' },
       'kb.cp.test.none': { fr: 'Connecté en {s} s, mais le serveur n’expose aucun outil.', en: 'Connected in {s} s, but the server exposes no tools.' },
       'kb.cp.test.fail': { fr: 'Échec du test.', en: 'Test failed.' },
       'kb.cp.test.missing': { fr: 'Secret sans valeur : {names}.', en: 'Secret with no value: {names}.' },
       'kb.cp.test.stderr': { fr: 'Dernier message du programme :', en: 'The program’s last words:' },
       'kb.cp.test.noise': { fr: '{n} ligne(s) écrites sur stdout ne sont pas du protocole : le serveur marche, mais écrit ses logs au mauvais endroit.', en: '{n} line(s) written on stdout are not protocol: the server works, but writes its logs in the wrong place.' },
-      'kb.cp.terr.401': { fr: 'Le serveur refuse l’accès (401). Vérifiez l’en-tête et le secret.', en: 'The server refuses access (401). Check the header and the secret.' },
+      'kb.cp.terr.401': { fr: 'Le serveur refuse l’accès (401). Vérifie l’en-tête et le secret.', en: 'The server refuses access (401). Check the header and the secret.' },
       'kb.cp.terr.403': { fr: 'Le serveur interdit l’accès (403).', en: 'The server forbids access (403).' },
-      'kb.cp.terr.404': { fr: 'Adresse introuvable (404). Vérifiez l’URL.', en: 'Address not found (404). Check the URL.' },
+      'kb.cp.terr.404': { fr: 'Adresse introuvable (404). Vérifie l’URL.', en: 'Address not found (404). Check the URL.' },
       'kb.cp.terr.429': { fr: 'Le serveur limite le débit (429).', en: 'The server is rate limiting (429).' },
       'kb.cp.terr.oauth': { fr: 'Ce serveur demande une autorisation OAuth, que DSH ne gère pas : seul un en-tête fixe est possible.', en: 'This server asks for OAuth authorization, which DSH does not handle: only a fixed header is possible.' },
-      'kb.cp.terr.sse': { fr: 'Cette adresse est un ancien point d’accès SSE (/sse) que DSH ne lit pas. Cherchez l’adresse « HTTP streamable » du serveur : souvent la même avec /mcp à la place.', en: 'This address is an old SSE endpoint (/sse) that DSH does not read. Look for the server’s “streamable HTTP” address: often the same with /mcp instead.' },
+      'kb.cp.terr.sse': { fr: 'Cette adresse est un ancien point d’accès SSE (/sse) que DSH ne lit pas. Cherche l’adresse « HTTP streamable » du serveur : souvent la même avec /mcp à la place.', en: 'This address is an old SSE endpoint (/sse) that DSH does not read. Look for the server’s “streamable HTTP” address: often the same with /mcp instead.' },
       'kb.cp.terr.timeout': { fr: 'Pas de réponse à temps.', en: 'No answer in time.' },
       'kb.cp.terr.offline': { fr: 'Serveur injoignable.', en: 'Server unreachable.' },
       'kb.cp.terr.bad-response': { fr: 'La réponse n’est pas du MCP (une page web ? une mauvaise adresse ?).', en: 'The answer is not MCP (a web page? a wrong address?).' },
@@ -308,20 +317,20 @@ window.__ModuleLoader__.load({
       'kb.cp.form.cancel': { fr: 'Annuler', en: 'Cancel' },
       'kb.cp.form.rename': { fr: 'Renommer…', en: 'Rename…' },
       'kb.cp.form.renamehint': { fr: 'Renommer crée un nouveau serveur, retire l’ancien et garde ses secrets.', en: 'Renaming creates a new server, removes the old one and keeps its secrets.' },
-      'kb.cp.form.skillnote': { fr: 'Créé par la skill, pas par ce formulaire. En l’enregistrant, vous le faites passer au format standard : ses commentaires sont perdus, l’ancien fichier est sauvegardé.', en: 'Made by the skill, not by this form. Saving moves it to the standard format: its comments are lost, the old file is backed up.' },
-      'kb.cp.form.ro': { fr: 'Ce serveur ne peut pas être modifié ici ({reason}). Modifiez cordis.patch.yml à la main, ou demandez-le à l’agent.', en: 'This server cannot be edited here ({reason}). Edit cordis.patch.yml by hand, or ask the agent.' },
+      'kb.cp.form.skillnote': { fr: 'Créé par la skill, pas par ce formulaire. En l’enregistrant, tu le fais passer au format standard : ses commentaires sont perdus, l’ancien fichier est sauvegardé.', en: 'Made by the skill, not by this form. Saving moves it to the standard format: its comments are lost, the old file is backed up.' },
+      'kb.cp.form.ro': { fr: 'Ce serveur ne peut pas être modifié ici ({reason}). Modifie cordis.patch.yml à la main, ou demande-le à l’agent.', en: 'This server cannot be edited here ({reason}). Edit cordis.patch.yml by hand, or ask the agent.' },
       'kb.cp.form.test': { fr: 'Tester sans enregistrer', en: 'Test without saving' },
       'kb.cp.form.secretset': { fr: 'défini', en: 'set' },
       'kb.cp.form.secretunset': { fr: 'sans valeur', en: 'no value' },
       'kb.cp.form.secretreplace': { fr: 'Remplacer', en: 'Replace' },
       'kb.cp.form.secretnew': { fr: 'nouvelle valeur', en: 'new value' },
-      'kb.cp.form.secretnone': { fr: 'Aucun secret. Écrivez $NOM dans un en-tête ou une variable pour y faire référence.', en: 'No secret. Write $NAME in a header or a variable to refer to one.' },
+      'kb.cp.form.secretnone': { fr: 'Aucun secret. Écris $NOM dans un en-tête ou une variable pour y faire référence.', en: 'No secret. Write $NAME in a header or a variable to refer to one.' },
       'kb.cp.form.advanced': { fr: 'Avancé', en: 'Advanced' },
       'kb.cp.form.timeout': { fr: 'Délai d’un appel d’outil (secondes)', en: 'Tool call timeout (seconds)' },
-      'kb.cp.form.noname': { fr: 'Donnez un nom au serveur.', en: 'Give the server a name.' },
+      'kb.cp.form.noname': { fr: 'Donne un nom au serveur.', en: 'Give the server a name.' },
       'kb.cp.cmd.use': { fr: 'Utiliser {path}', en: 'Use {path}' },
       'kb.cp.cmd.allow': { fr: 'Autoriser {dir} et utiliser {path}', en: 'Allow {dir} and use {path}' },
-      'kb.cp.cmd.explain': { fr: 'Ce dossier n’est pas dans la liste de confiance. DSH lancera ce programme à chaque démarrage : ne confirmez que si vous le reconnaissez.', en: 'This folder is not on the trusted list. DSH will run this program every time it starts: confirm only if you recognise it.' },
+      'kb.cp.cmd.explain': { fr: 'Ce dossier n’est pas dans la liste de confiance. DSH lancera ce programme à chaque démarrage : ne confirme que si tu le reconnais.', en: 'This folder is not on the trusted list. DSH will run this program every time it starts: confirm only if you recognise it.' },
       'kb.cp.cmd.none': { fr: 'Aucun programme de ce nom n’a été trouvé sur cette machine.', en: 'No program of that name was found on this machine.' },
       // ── pasting JSON ──
       'kb.cp.imp.title': { fr: 'Coller du JSON', en: 'Paste JSON' },
@@ -329,6 +338,8 @@ window.__ModuleLoader__.load({
       'kb.cp.imp.label': { fr: 'Le bloc de configuration', en: 'The configuration block' },
       'kb.cp.imp.invalid': { fr: 'Ce n’est pas du JSON valide : {why}', en: 'This is not valid JSON: {why}' },
       'kb.cp.imp.nomap': { fr: 'Aucun bloc « mcpServers » trouvé.', en: 'No "mcpServers" block found.' },
+      'kb.cp.imp.nocmd': { fr: 'Le bloc est là, mais aucun serveur n’a de commande ni d’adresse.', en: 'The block is there, but no server has a command or an address.' },
+      'kb.cp.imp.badurl': { fr: 'L’adresse n’est pas une adresse http(s) valide.', en: 'The address is not a valid http(s) address.' },
       'kb.cp.imp.go': { fr: 'Importer la sélection', en: 'Import the selection' },
       'kb.cp.imp.hint': { fr: 'Rien n’est écrit avant « Importer ». Les valeurs secrètes ne repassent jamais à l’écran.', en: 'Nothing is written before "Import". Secret values never come back to the screen.' },
       'kb.cp.imp.exists': { fr: 'Un serveur de ce nom existe déjà : l’importer le remplace.', en: 'A server of that name exists: importing replaces it.' },
@@ -344,17 +355,17 @@ window.__ModuleLoader__.load({
       'kb.cp.kc.mode.label': { fr: 'Mode', en: 'Mode' },
       'kb.cp.kc.mode.personal': { fr: 'Ma clé Composio', en: 'My Composio key' },
       'kb.cp.kc.mode.kybernos': { fr: 'Connexions Kybernos', en: 'Kybernos connections' },
-      'kb.cp.kc.mode.hint.personal': { fr: 'Vos comptes Composio, avec votre propre clé, sur cette machine.', en: 'Your Composio accounts, with your own key, on this machine.' },
-      'kb.cp.kc.mode.hint.kybernos': { fr: 'Vos apps reliées à votre compte Kybernos : tous vos agents les utilisent, sans clé sur cette machine.', en: 'Your apps linked to your Kybernos account: all your agents use them, with no key on this machine.' },
+      'kb.cp.kc.mode.hint.personal': { fr: 'Tes comptes Composio, avec ta propre clé, sur cette machine.', en: 'Your Composio accounts, with your own key, on this machine.' },
+      'kb.cp.kc.mode.hint.kybernos': { fr: 'Tes apps reliées à ton compte Kybernos : tous tes agents les utilisent, sans clé sur cette machine.', en: 'Your apps linked to your Kybernos account: all your agents use them, with no key on this machine.' },
       'kb.cp.kc.add': { fr: 'Connecter une app', en: 'Connect an app' },
       'kb.cp.kc.meter': { fr: '{count} sur {limit} connexions', en: '{count} of {limit} connections' },
       'kb.cp.kc.meter.nolimit': { fr: '{count} connexion(s)', en: '{count} connection(s)' },
       'kb.cp.kc.meter.note': { fr: 'Une demande en attente compte aussi.', en: 'A pending request counts too.' },
-      'kb.cp.kc.full': { fr: 'Limite atteinte ({limit} sur {limit}) : retirez une connexion pour en ajouter. Le maximum dépend de votre offre.', en: 'Limit reached ({limit} of {limit}): remove a connection to add one. The maximum depends on your plan.' },
+      'kb.cp.kc.full': { fr: 'Limite atteinte ({limit} sur {limit}) : retire une connexion pour en ajouter. Le maximum dépend de ton offre.', en: 'Limit reached ({limit} of {limit}): remove a connection to add one. The maximum depends on your plan.' },
       'kb.cp.kc.pro.title': { fr: 'Inclus dans les formules payantes', en: 'Included in paid plans' },
-      'kb.cp.kc.pro.body': { fr: 'Les connexions Kybernos font partie des formules payantes : vos apps sont reliées une fois à votre compte et tous vos agents les utilisent. Votre propre clé Composio reste utilisable gratuitement dans l’autre mode.', en: 'Kybernos connections are part of the paid plans: your apps are linked once to your account and all your agents use them. Your own Composio key still works for free in the other mode.' },
+      'kb.cp.kc.pro.body': { fr: 'Les connexions Kybernos font partie des formules payantes : tes apps sont reliées une fois à ton compte et tous tes agents les utilisent. Ta propre clé Composio reste utilisable gratuitement dans l’autre mode.', en: 'Kybernos connections are part of the paid plans: your apps are linked once to your account and all your agents use them. Your own Composio key still works for free in the other mode.' },
       'kb.cp.kc.pro.cta': { fr: 'Voir les formules', en: 'See the plans' },
-      'kb.cp.kc.empty': { fr: 'Aucune app connectée. Connectez Gmail, GitHub ou Slack : vos agents pourront les utiliser aussitôt.', en: 'No app connected. Connect Gmail, GitHub or Slack: your agents can use them right away.' },
+      'kb.cp.kc.empty': { fr: 'Aucune app connectée. Connecte Gmail, GitHub ou Slack : tes agents pourront les utiliser aussitôt.', en: 'No app connected. Connect Gmail, GitHub or Slack: your agents can use them right away.' },
       'kb.cp.kc.st.active': { fr: 'Actif', en: 'Active' },
       'kb.cp.kc.st.pending': { fr: 'En attente', en: 'Pending' },
       'kb.cp.kc.st.failed': { fr: 'Échec', en: 'Failed' },
@@ -363,16 +374,16 @@ window.__ModuleLoader__.load({
       'kb.cp.kc.st.unknown': { fr: 'Inconnu', en: 'Unknown' },
       'kb.cp.kc.type.api_key': { fr: 'clé API', en: 'API key' },
       'kb.cp.kc.default': { fr: 'par défaut', en: 'default' },
-      'kb.cp.kc.pend': { fr: 'Terminez dans l’onglet ouvert chez {app}. Cette ligne se met à jour toute seule.', en: 'Finish in the tab opened at {app}. This row updates by itself.' },
-      'kb.cp.kc.pend.sub': { fr: 'Vérifié toutes les 5 s, pendant 10 minutes au plus. Onglet fermé ? Annulez et recommencez.', en: 'Checked every 5 s, for 10 minutes at most. Tab closed? Cancel and start again.' },
+      'kb.cp.kc.pend': { fr: 'Termine dans l’onglet ouvert chez {app}. Cette ligne se met à jour toute seule.', en: 'Finish in the tab opened at {app}. This row updates by itself.' },
+      'kb.cp.kc.pend.sub': { fr: 'Vérifié toutes les 5 s, pendant 10 minutes au plus. Onglet fermé ? Annule et recommence.', en: 'Checked every 5 s, for 10 minutes at most. Tab closed? Cancel and start again.' },
       'kb.cp.kc.pend.open': { fr: 'Ouvrir la page d’autorisation', en: 'Open the authorization page' },
-      'kb.cp.kc.pend.timeout': { fr: 'Toujours en attente après 10 minutes. Annulez et recommencez.', en: 'Still pending after 10 minutes. Cancel and start again.' },
+      'kb.cp.kc.pend.timeout': { fr: 'Toujours en attente après 10 minutes. Annule et recommence.', en: 'Still pending after 10 minutes. Cancel and start again.' },
       'kb.cp.kc.failed.refused': { fr: '{app} a refusé la connexion.', en: '{app} refused the connection.' },
       'kb.cp.kc.failed.upstream': { fr: '{app} n’a pas répondu.', en: '{app} did not answer.' },
       'kb.cp.kc.failed.unknown': { fr: 'La connexion a échoué.', en: 'The connection failed.' },
-      'kb.cp.kc.failed.hint': { fr: 'Réessayez : la tentative est retirée et une nouvelle commence.', en: 'Try again: the attempt is removed and a new one starts.' },
+      'kb.cp.kc.failed.hint': { fr: 'Réessaie : la tentative est retirée et une nouvelle commence.', en: 'Try again: the attempt is removed and a new one starts.' },
       'kb.cp.kc.expired': { fr: 'L’accord n’est plus valable. Les agents ne peuvent plus utiliser ce compte tant qu’il n’est pas reconnecté.', en: 'The authorization is no longer valid. Agents cannot use this account until it is reconnected.' },
-      'kb.cp.kc.disabled': { fr: 'Ce compte est désactivé chez Composio. Reconnectez-le pour le réutiliser.', en: 'This account is switched off at Composio. Reconnect it to use it again.' },
+      'kb.cp.kc.disabled': { fr: 'Ce compte est désactivé chez Composio. Reconnecte-le pour le réutiliser.', en: 'This account is switched off at Composio. Reconnect it to use it again.' },
       'kb.cp.kc.act.cancel': { fr: 'Annuler', en: 'Cancel' },
       'kb.cp.kc.act.cancelreq': { fr: 'Annuler cette demande', en: 'Cancel that request' },
       'kb.cp.kc.act.retry': { fr: 'Réessayer', en: 'Try again' },
@@ -381,61 +392,61 @@ window.__ModuleLoader__.load({
       'kb.cp.kc.del.confirm': { fr: 'Retirer {name} ? Les agents n’y auront plus accès, et le compte est aussi retiré chez Composio. Il faudra le reconnecter pour le retrouver.', en: 'Remove {name}? Agents lose access to it, and the account is removed at Composio too. You would have to connect it again.' },
       'kb.cp.kc.done.removed': { fr: 'Connexion retirée.', en: 'Connection removed.' },
       'kb.cp.kc.done.active': { fr: '{app} est connecté.', en: '{app} is connected.' },
-      'kb.cp.kc.done.opened': { fr: 'Onglet ouvert chez {app}. Terminez-y votre accord.', en: 'Tab opened at {app}. Finish your authorization there.' },
+      'kb.cp.kc.done.opened': { fr: 'Onglet ouvert chez {app}. Termine-y ton accord.', en: 'Tab opened at {app}. Finish your authorization there.' },
       'kb.cp.kc.m.title': { fr: 'Connecter une app', en: 'Connect an app' },
       'kb.cp.kc.m.search': { fr: 'Chercher une app', en: 'Search an app' },
       'kb.cp.kc.m.more': { fr: 'Afficher la suite ({n} de plus)', en: 'Show more ({n} more)' },
       'kb.cp.kc.m.noapps': { fr: 'Aucune app ne correspond.', en: 'No matching app.' },
       'kb.cp.kc.m.alias': { fr: 'Nom de la connexion (facultatif)', en: 'Connection name (optional)' },
-      'kb.cp.kc.m.alias.hint': { fr: 'Utile si vous connectez deux comptes {app}.', en: 'Useful if you connect two {app} accounts.' },
+      'kb.cp.kc.m.alias.hint': { fr: 'Utile si tu connectes deux comptes {app}.', en: 'Useful if you connect two {app} accounts.' },
       'kb.cp.kc.m.key': { fr: 'Clé API {app}', en: '{app} API key' },
       'kb.cp.kc.m.key.hint': { fr: 'Envoyée une seule fois au serveur Kybernos, qui la transmet à Composio. Elle n’est enregistrée nulle part et n’est plus jamais affichée.', en: 'Sent once to the Kybernos server, which passes it to Composio. It is stored nowhere and never shown again.' },
-      'kb.cp.kc.m.oauth': { fr: 'Vous serez envoyé chez {app} dans un nouvel onglet pour donner votre accord. Revenez ici ensuite : la liste se met à jour toute seule.', en: 'You will be sent to {app} in a new tab to give your authorization. Come back here afterwards: the list updates by itself.' },
+      'kb.cp.kc.m.oauth': { fr: 'Tu seras envoyé chez {app} dans un nouvel onglet pour donner ton accord. Reviens ici ensuite : la liste se met à jour toute seule.', en: 'You will be sent to {app} in a new tab to give your authorization. Come back here afterwards: the list updates by itself.' },
       'kb.cp.kc.m.go': { fr: 'Continuer chez {app}', en: 'Continue at {app}' },
       'kb.cp.kc.m.go.key': { fr: 'Connecter', en: 'Connect' },
       'kb.cp.kc.m.used': { fr: '{count} sur {limit} connexions utilisées.', en: '{count} of {limit} connections used.' },
-      'kb.cp.kc.check': { fr: 'Vérifiez la liste avant de réessayer.', en: 'Check the list before trying again.' },
+      'kb.cp.kc.check': { fr: 'Vérifie la liste avant de réessayer.', en: 'Check the list before trying again.' },
       'kb.cp.kc.check.go': { fr: 'Vérifier la liste', en: 'Check the list' },
       'kb.cp.kc.stale': { fr: 'La liste est peut-être périmée : le serveur n’a pas pu joindre Composio à l’instant, il montre ce qu’il savait.', en: 'The list may be out of date: the server could not reach Composio just now and shows what it knew.' },
       'kb.cp.kc.refresh': { fr: 'Actualiser', en: 'Refresh' },
-      'kb.cp.kc.signin.title': { fr: 'Connectez votre compte Kybernos.', en: 'Connect your Kybernos account.' },
-      'kb.cp.kc.signin.body': { fr: 'Vos apps sont reliées à votre compte, pas à cette machine : une fois connectées, tous vos agents les utilisent, ici comme ailleurs.', en: 'Your apps are linked to your account, not to this machine: once connected, all your agents use them, here and elsewhere.' },
+      'kb.cp.kc.signin.title': { fr: 'Connecte ton compte Kybernos.', en: 'Connect your Kybernos account.' },
+      'kb.cp.kc.signin.body': { fr: 'Tes apps sont reliées à ton compte, pas à cette machine : une fois connectées, tous tes agents les utilisent, ici comme ailleurs.', en: 'Your apps are linked to your account, not to this machine: once connected, all your agents use them, here and elsewhere.' },
       'kb.cp.kc.signin.go': { fr: 'Connecter mon compte Kybernos', en: 'Connect my Kybernos account' },
-      'kb.cp.kc.signin.wait': { fr: 'En attente de votre accord dans l’onglet ouvert…', en: 'Waiting for your approval in the opened tab…' },
+      'kb.cp.kc.signin.wait': { fr: 'En attente de ton accord dans l’onglet ouvert…', en: 'Waiting for your approval in the opened tab…' },
       'kb.cp.kc.signin.code': { fr: 'Code : {code}', en: 'Code: {code}' },
       'kb.cp.kc.signin.open': { fr: 'Ouvrir la page', en: 'Open the page' },
-      'kb.cp.kc.err.signin_failed': { fr: 'La connexion du compte n’a pas abouti : réessayez.', en: 'Connecting the account did not work: try again.' },
-      'kb.cp.kc.err.reconnect_required': { fr: 'Votre session Kybernos a pris fin. Connectez votre compte à nouveau.', en: 'Your Kybernos session has ended. Connect your account again.' },
-      'kb.cp.kc.err.network': { fr: 'Le serveur Kybernos est injoignable. Réessayez dans un instant.', en: 'The Kybernos server cannot be reached. Try again in a moment.' },
-      'kb.cp.kc.err.connection_limit': { fr: 'Limite atteinte ({count} sur {limit}). Retirez une connexion pour en ajouter.', en: 'Limit reached ({count} of {limit}). Remove a connection to add one.' },
-      'kb.cp.kc.err.not_in_plan': { fr: 'Votre formule n’inclut pas les connexions Kybernos.', en: 'Your plan does not include Kybernos connections.' },
-      'kb.cp.kc.err.pending_exists': { fr: 'Une connexion {app} attend déjà votre accord. Terminez-la, ou annulez-la pour en commencer une autre.', en: 'A {app} connection is already waiting for your authorization. Finish it, or cancel it to start another.' },
-      'kb.cp.kc.err.needs_api_key': { fr: 'Cette app se connecte avec une clé API : collez-la dans le champ ci-dessous.', en: 'This app connects with an API key: paste it in the field below.' },
-      'kb.cp.kc.err.upstream_unavailable': { fr: 'Le serveur n’a pas pu joindre Composio. Un instant, puis réessayez.', en: 'The server could not reach Composio. Wait a moment, then try again.' },
+      'kb.cp.kc.err.signin_failed': { fr: 'La connexion du compte n’a pas abouti : réessaie.', en: 'Connecting the account did not work: try again.' },
+      'kb.cp.kc.err.reconnect_required': { fr: 'Ta session Kybernos a pris fin. Connecte ton compte à nouveau.', en: 'Your Kybernos session has ended. Connect your account again.' },
+      'kb.cp.kc.err.network': { fr: 'Le serveur Kybernos est injoignable. Réessaie dans un instant.', en: 'The Kybernos server cannot be reached. Try again in a moment.' },
+      'kb.cp.kc.err.connection_limit': { fr: 'Limite atteinte ({count} sur {limit}). Retire une connexion pour en ajouter.', en: 'Limit reached ({count} of {limit}). Remove a connection to add one.' },
+      'kb.cp.kc.err.not_in_plan': { fr: 'Ta formule n’inclut pas les connexions Kybernos.', en: 'Your plan does not include Kybernos connections.' },
+      'kb.cp.kc.err.pending_exists': { fr: 'Une connexion {app} attend déjà ton accord. Termine-la, ou annule-la pour en commencer une autre.', en: 'A {app} connection is already waiting for your authorization. Finish it, or cancel it to start another.' },
+      'kb.cp.kc.err.needs_api_key': { fr: 'Cette app se connecte avec une clé API : colle-la dans le champ ci-dessous.', en: 'This app connects with an API key: paste it in the field below.' },
+      'kb.cp.kc.err.upstream_unavailable': { fr: 'Le serveur n’a pas pu joindre Composio. Un instant, puis réessaie.', en: 'The server could not reach Composio. Wait a moment, then try again.' },
       'kb.cp.kc.err.upstream_check': { fr: 'Le serveur n’a pas répondu à temps : la connexion a peut-être été créée.', en: 'The server did not answer in time: the connection may have been created.' },
       'kb.cp.kc.err.connections_disabled': { fr: 'Ce serveur n’offre pas les connexions pour le moment.', en: 'This server does not offer connections right now.' },
-      'kb.cp.kc.err.connection_failed': { fr: 'L’app a refusé cette clé : vérifiez-la, puis réessayez.', en: 'The app refused this key: check it, then try again.' },
+      'kb.cp.kc.err.connection_failed': { fr: 'L’app a refusé cette clé : vérifie-la, puis réessaie.', en: 'The app refused this key: check it, then try again.' },
       'kb.cp.kc.err.app_not_found': { fr: 'Cette app n’est pas proposée par le serveur.', en: 'The server does not offer this app.' },
       'kb.cp.kc.err.not_found': { fr: 'Cette connexion n’existe plus.', en: 'This connection no longer exists.' },
-      'kb.cp.kc.err.too_many_requests': { fr: 'Trop de demandes d’un coup. Patientez un instant.', en: 'Too many requests at once. Wait a moment.' },
-      'kb.cp.kc.err.bad_request': { fr: 'Demande refusée : vérifiez l’app et la clé.', en: 'Request refused: check the app and the key.' },
+      'kb.cp.kc.err.too_many_requests': { fr: 'Trop de demandes d’un coup. Patiente un instant.', en: 'Too many requests at once. Wait a moment.' },
+      'kb.cp.kc.err.bad_request': { fr: 'Demande refusée : vérifie l’app et la clé.', en: 'Request refused: check the app and the key.' },
       'kb.cp.kc.err.forbidden': { fr: 'Ce compte ne peut pas utiliser les connexions.', en: 'This account cannot use connections.' },
       'kb.cp.kc.err.other': { fr: 'Réponse inattendue du serveur ({code}).', en: 'Unexpected answer from the server ({code}).' },
       // Discover: the known apps get their own section, same cards.
       'kb.cp.popularH': { fr: 'Populaires', en: 'Popular' },
       'kb.cp.allapps': { fr: 'Toutes les apps', en: 'All apps' },
       // Settings › Connectors: which service connects the apps for the agents.
-      'kb.cp.pv.lead': { fr: 'Quel service relie vos apps (Gmail, Slack, Notion…) pour vos agents. Un seul à la fois : vos agents voient celui que vous choisissez ici.', en: 'Which service connects your apps (Gmail, Slack, Notion…) for your agents. One at a time: your agents see the one you choose here.' },
-      'kb.cp.pv.composio': { fr: 'Composio — votre propre clé', en: 'Composio — your own key' },
-      'kb.cp.pv.composio.sub': { fr: 'Vous apportez votre clé Composio. Vos comptes vivent dans votre projet Composio ; la clé reste sur cet ordinateur.', en: 'You bring your Composio key. Your accounts live in your Composio project; the key stays on this computer.' },
-      'kb.cp.pv.you': { fr: 'Vous le gérez', en: 'You manage it' },
+      'kb.cp.pv.lead': { fr: 'Quel service relie tes apps (Gmail, Slack, Notion…) pour tes agents. Un seul à la fois : tes agents voient celui que tu choisis ici.', en: 'Which service connects your apps (Gmail, Slack, Notion…) for your agents. One at a time: your agents see the one you choose here.' },
+      'kb.cp.pv.composio': { fr: 'Composio — ta propre clé', en: 'Composio — your own key' },
+      'kb.cp.pv.composio.sub': { fr: 'Tu apportes ta clé Composio. Tes comptes vivent dans ton projet Composio ; la clé reste sur cet ordinateur.', en: 'You bring your Composio key. Your accounts live in your Composio project; the key stays on this computer.' },
+      'kb.cp.pv.you': { fr: 'Tu le gères', en: 'You manage it' },
       'kb.cp.pv.kybernos': { fr: 'Kybernos Cloud', en: 'Kybernos Cloud' },
-      'kb.cp.pv.kybernos.sub': { fr: 'Les connexions sont gérées par votre compte Kybernos : pas de clé à gérer, et vos comptes vous suivent d’un appareil à l’autre.', en: 'Connections are handled by your Kybernos account: no key to manage, and your accounts follow you across your devices.' },
+      'kb.cp.pv.kybernos.sub': { fr: 'Les connexions sont gérées par ton compte Kybernos : pas de clé à gérer, et tes comptes te suivent d’un appareil à l’autre.', en: 'Connections are handled by your Kybernos account: no key to manage, and your accounts follow you across your devices.' },
       'kb.cp.pv.paid': { fr: 'Offres payantes', en: 'Paid plans' },
-      'kb.cp.pv.included': { fr: 'Inclus dans votre offre', en: 'Included in your plan' },
+      'kb.cp.pv.included': { fr: 'Inclus dans ton offre', en: 'Included in your plan' },
       'kb.cp.pv.signin': { fr: 'Se connecter à Kybernos', en: 'Sign in to Kybernos' },
       'kb.cp.pv.signedout': { fr: 'Pas connecté', en: 'Not signed in' },
-      'kb.cp.pv.notplan': { fr: 'Non inclus dans votre offre', en: 'Not included in your plan' },
+      'kb.cp.pv.notplan': { fr: 'Non inclus dans ton offre', en: 'Not included in your plan' },
       'kb.cp.pv.plans': { fr: 'Voir les offres', en: 'See plans' },
       'kb.cp.pv.notoffered': { fr: 'Ce serveur Kybernos ne la propose pas encore.', en: 'This Kybernos server does not offer it yet.' },
       'kb.cp.pv.connected': { fr: 'Connecté · {n} app(s)', en: 'Connected · {n} app(s)' },
@@ -447,11 +458,11 @@ window.__ModuleLoader__.load({
       'kb.cp.add.api': { fr: 'API depuis une spec OpenAPI', en: 'API from an OpenAPI spec' },
       'kb.cp.add.apihint': { fr: 'Une adresse de spec et une clé : chaque opération devient un outil', en: 'A spec address and a key: each operation becomes a tool' },
       'kb.cp.add.ai': { fr: 'Ajouter avec l’IA', en: 'Add with AI' },
-      'kb.cp.add.aihint': { fr: 'Dites ce que vous voulez brancher, l’IA cherche comment', en: 'Say what you want to connect, the AI finds how' },
+      'kb.cp.add.aihint': { fr: 'Dis ce que tu veux brancher, l’IA cherche comment', en: 'Say what you want to connect, the AI finds how' },
       'kb.cp.add.new': { fr: 'Nouveau', en: 'New' },
       'kb.cp.api.title': { fr: 'Ajouter une API depuis une spec OpenAPI', en: 'Add an API from an OpenAPI spec' },
-      'kb.cp.api.step1': { fr: 'Étape 1 sur 2 · Kybernos lit la spec et transforme chaque opération en outil que vos agents peuvent appeler.', en: 'Step 1 of 2 · Kybernos reads the spec and turns each operation into a tool your agents can call.' },
-      'kb.cp.api.step2': { fr: 'Étape 2 sur 2 · Choisissez ce que vos agents peuvent faire. Les opérations en lecture sont cochées ; ce qui modifie des données reste décoché tant que vous ne l’activez pas.', en: 'Step 2 of 2 · Choose what your agents may do. Read-only operations are on; anything that changes data stays off until you turn it on.' },
+      'kb.cp.api.step1': { fr: 'Étape 1 sur 2 · Kybernos lit la spec et transforme chaque opération en outil que tes agents peuvent appeler.', en: 'Step 1 of 2 · Kybernos reads the spec and turns each operation into a tool your agents can call.' },
+      'kb.cp.api.step2': { fr: 'Étape 2 sur 2 · Choisis ce que tes agents peuvent faire. Les opérations en lecture sont cochées ; ce qui modifie des données reste décoché tant que tu ne l’actives pas.', en: 'Step 2 of 2 · Choose what your agents may do. Read-only operations are on; anything that changes data stays off until you turn it on.' },
       'kb.cp.api.url': { fr: 'Adresse de la spec (JSON)', en: 'Spec address (JSON)' },
       'kb.cp.api.auth': { fr: 'Authentification', en: 'Authentication' },
       'kb.cp.api.auth.none': { fr: 'Aucune', en: 'None' },
@@ -467,78 +478,65 @@ window.__ModuleLoader__.load({
       'kb.cp.api.name': { fr: 'Nom du connecteur', en: 'Name of the connector' },
       'kb.cp.api.base': { fr: 'Adresse de l’API', en: 'API address' },
       'kb.cp.api.ops': { fr: '{n} opérations', en: '{n} operations' },
+      'kb.cp.api.ops.1': { fr: '1 opération', en: '1 operation' },
       'kb.cp.api.reads': { fr: 'Lectures', en: 'Reads' },
       'kb.cp.api.none': { fr: 'Aucune', en: 'None' },
-      'kb.cp.api.writenote': { fr: 'Une opération qui modifie des données demande quand même votre accord à chaque usage, comme tout outil.', en: 'A write operation still asks for your approval at each use, like any tool.' },
+      'kb.cp.api.writenote': { fr: 'Une opération qui modifie des données demande quand même ton accord à chaque usage, comme tout outil.', en: 'A write operation still asks for your approval at each use, like any tool.' },
       'kb.cp.api.back': { fr: 'Retour', en: 'Back' },
       'kb.cp.api.add': { fr: 'Ajouter · {n} outils', en: 'Add · {n} tools' },
+      'kb.cp.api.add.1': { fr: 'Ajouter · 1 outil', en: 'Add · 1 tool' },
       'kb.cp.api.adding': { fr: 'Ajout…', en: 'Adding…' },
-      'kb.cp.api.added': { fr: 'API ajoutée : {n} outils disponibles pour vos agents.', en: 'API added: {n} tools available to your agents.' },
+      'kb.cp.api.added': { fr: 'API ajoutée : {n} outils disponibles pour tes agents.', en: 'API added: {n} tools available to your agents.' },
+      'kb.cp.api.added.1': { fr: 'API ajoutée : 1 outil disponible pour tes agents.', en: 'API added: 1 tool available to your agents.' },
       'kb.cp.api.tag': { fr: 'API', en: 'API' },
       'kb.cp.api.tools': { fr: 'Actif · {n} outils', en: 'Active · {n} tools' },
+      'kb.cp.api.tools.1': { fr: 'Actif · 1 outil', en: 'Active · 1 tool' },
       'kb.cp.api.test': { fr: 'Tester', en: 'Test' },
       'kb.cp.api.reached': { fr: 'Joignable · HTTP {status}', en: 'Reachable · HTTP {status}' },
       'kb.cp.api.unreached': { fr: 'Pas de réponse utile : {why}', en: 'No useful answer: {why}' },
       'kb.cp.api.notest': { fr: 'Aucune opération en lecture à tester.', en: 'No read operation to test.' },
       'kb.cp.api.remove': { fr: 'Retirer', en: 'Remove' },
-      'kb.cp.api.removeconfirm': { fr: 'Retirer « {name} » ? Ses outils disparaissent pour vos agents.', en: 'Remove “{name}”? Its tools disappear for your agents.' },
+      'kb.cp.api.removeconfirm': { fr: 'Retirer « {name} » ? Ses outils disparaissent pour tes agents.', en: 'Remove “{name}”? Its tools disappear for your agents.' },
       'kb.cp.api.err.bad_address': { fr: 'Adresse refusée : https uniquement (http seulement pour cet ordinateur).', en: 'Address refused: https only (http only for this computer).' },
-      'kb.cp.api.err.bad_auth': { fr: 'Authentification invalide : vérifiez le nom de l’en-tête ou du paramètre.', en: 'Invalid authentication: check the header or parameter name.' },
+      'kb.cp.api.err.bad_auth': { fr: 'Authentification invalide : vérifie le nom de l’en-tête ou du paramètre.', en: 'Invalid authentication: check the header or parameter name.' },
       'kb.cp.api.err.spec_unauthorized': { fr: 'La spec n’est pas lisible sans identifiants. Elle doit être publique : la clé n’est jamais envoyée là où elle est hébergée.', en: 'The spec is not readable without credentials. It must be public: the key is never sent to where it is hosted.' },
       'kb.cp.api.err.spec_http': { fr: 'L’adresse de la spec a répondu par une erreur.', en: 'The spec address answered with an error.' },
       'kb.cp.api.err.spec_too_large': { fr: 'La spec est trop grande (plus de 5 Mo).', en: 'The spec is too large (over 5 MB).' },
-      'kb.cp.api.err.yaml_unsupported': { fr: 'Cette spec est en YAML : pour l’instant seul le JSON est lu. Cherchez l’adresse « openapi.json » de l’API.', en: 'This spec is YAML: only JSON is read for now. Look for the API’s “openapi.json” address.' },
+      'kb.cp.api.err.yaml_unsupported': { fr: 'Cette spec est en YAML : pour l’instant seul le JSON est lu. Cherche l’adresse « openapi.json » de l’API.', en: 'This spec is YAML: only JSON is read for now. Look for the API’s “openapi.json” address.' },
       'kb.cp.api.err.swagger2_unsupported': { fr: 'Swagger 2 n’est pas pris en charge : il faut OpenAPI 3.', en: 'Swagger 2 is not supported: OpenAPI 3 is needed.' },
       'kb.cp.api.err.not_openapi': { fr: 'Ce n’est pas une spec OpenAPI 3.', en: 'This is not an OpenAPI 3 spec.' },
       'kb.cp.api.err.not_json': { fr: 'Ce n’est pas du JSON.', en: 'This is not JSON.' },
       'kb.cp.api.err.no_operations': { fr: 'Aucune opération utilisable dans cette spec.', en: 'No usable operation in this spec.' },
-      'kb.cp.api.err.no_base_url': { fr: 'La spec ne donne pas d’adresse d’API utilisable : renseignez-la.', en: 'The spec gives no usable API address: enter it.' },
+      'kb.cp.api.err.no_base_url': { fr: 'La spec ne donne pas d’adresse d’API utilisable : renseigne-la.', en: 'The spec gives no usable API address: enter it.' },
       'kb.cp.api.err.bad_name': { fr: 'Nom invalide : lettres minuscules, chiffres et tirets (2 à 31 caractères).', en: 'Invalid name: lowercase letters, digits and hyphens (2 to 31 characters).' },
-      'kb.cp.api.err.bad_operations': { fr: 'Choisissez au moins une opération (100 au plus).', en: 'Choose at least one operation (100 at most).' },
+      'kb.cp.api.err.bad_operations': { fr: 'Choisis au moins une opération (100 au plus).', en: 'Choose at least one operation (100 at most).' },
       'kb.cp.api.err.timeout': { fr: 'Pas de réponse à temps.', en: 'No answer in time.' },
       'kb.cp.api.err.network': { fr: 'L’adresse est injoignable.', en: 'The address cannot be reached.' },
       'kb.cp.api.err.store_write_failed': { fr: 'L’enregistrement a échoué sur cet ordinateur.', en: 'Saving failed on this computer.' },
       'kb.cp.api.err.other': { fr: 'Échec ({code}).', en: 'Failed ({code}).' },
       'kb.cp.ai.title': { fr: 'Ajouter avec l’IA', en: 'Add with AI' },
-      'kb.cp.ai.lead': { fr: 'Ouvre un nouveau chat avec la demande déjà écrite, et le skill qui sait brancher un serveur. Rien n’est écrit tant que vous n’avez pas confirmé.', en: 'Opens a new chat with the request already written, and the skill that knows how to connect a server. Nothing is written until you confirm.' },
-      'kb.cp.ai.label': { fr: 'Que voulez-vous brancher ?', en: 'What do you want to connect?' },
+      'kb.cp.ai.lead': { fr: 'Ouvre un nouveau chat avec la demande déjà écrite, et le skill qui sait brancher un serveur. Rien n’est écrit tant que tu n’as pas confirmé.', en: 'Opens a new chat with the request already written, and the skill that knows how to connect a server. Nothing is written until you confirm.' },
+      'kb.cp.ai.label': { fr: 'Que veux-tu brancher ?', en: 'What do you want to connect?' },
       'kb.cp.ai.ph': { fr: 'Linear, Pennylane, ma base interne…', en: 'Linear, Pennylane, my internal tool…' },
       'kb.cp.ai.open': { fr: 'Ouvrir le chat', en: 'Open the chat' },
       'kb.cp.ai.prompt': { fr: 'Utilise le skill connecteur-personnalise : branche-moi sur « {what} ». Cherche le serveur MCP officiel. S’il n’y a qu’une API (spec OpenAPI), donne-moi l’adresse de la spec et le type de clé qu’il faut, pour que je l’ajoute avec « API depuis une spec OpenAPI ». Dis-moi ce qu’il faut (adresse, connexion, droits) et ce que ça permet, puis attends mon accord avant d’ajouter quoi que ce soit.', en: 'Use the connecteur-personnalise skill: connect me to “{what}”. Look for the official MCP server. If there is only an API (an OpenAPI spec), give me the spec address and the kind of key it needs, so I can add it with “API from an OpenAPI spec”. Tell me what it needs (address, sign-in, scopes) and what it can do, then wait for my OK before adding anything.' },
     }
 
+    // The language is what Kybernos resolved: « kybernos » (the French of the product) or fr* is French, every other language
+    // (translated or not) and anything unresolved reads English. Read at call time.
     const kbt = (key) => {
       const row = STR[key]
       if (row === null || row === undefined) return key
-      let lang = 'kybernos'
-      try { if (localeSvc !== null && localeSvc !== undefined && typeof localeSvc.current === 'function') lang = String(localeSvc.current() || '') } catch (e) { }
-      // (01/10) "kybernos" is the theme's DEFAULT, not a choice: with no explicit
-      // language (key kybernos.theme.lang absent) and under an English shell,
-      // serve English, the same policy as kybernos-plugin (kbLangActive),
-      // otherwise the Resources page mixes English titles and French bodies.
-      if (lang === 'kybernos') {
-        try {
-          if (localStorage.getItem('kybernos.theme.lang') === null && localeSvc !== null && localeSvc !== undefined && typeof localeSvc.getLocale === 'function') {
-            const snap = localeSvc.getLocale()
-            if (snap !== null && snap !== undefined && String(snap.active) === 'en') lang = 'en'
-          }
-        } catch (e) { /* storage or service unavailable: default */ }
-        // A translated language (es, de, ar…) is a choice, not the default:
-        // surface it so the row lookup below serves its text (or the English
-        // fallback) instead of the French source.
-        try {
-          const th = localStorage.getItem('kybernos.theme.lang')
-          if (th !== null && th !== '' && th !== 'kybernos' && String(th).split(/[-_]/)[0] !== 'fr') lang = String(th)
-        } catch (e) { /* storage unavailable */ }
-      }
-      if (lang !== 'kybernos' && lang !== 'fr') {
-        const tag = lang.slice(0, 2).toLowerCase()
-        if (row[tag] !== null && row[tag] !== undefined) return row[tag]
-        // A locale this bundle has no text for (de, es...) gets English, not French.
-        if (row.en !== null && row.en !== undefined) return row.en
-      }
-      return row.fr !== null && row.fr !== undefined ? row.fr : row.en
+      let fr = false
+      try {
+        const l = String(window.__KB_LANG_RESOLVE__())
+        fr = l === 'kybernos' || l.split(/[-_]/)[0] === 'fr'
+      } catch (e) { fr = false }
+      if (fr) return row.fr !== null && row.fr !== undefined ? row.fr : row.en
+      return row.en !== null && row.en !== undefined ? row.en : row.fr
     }
+    /** A count sentence: the « .1 » row of the key when it exists and n is 1 (« 1 tool »), the plural row otherwise; {n} is filled. */
+    const kbtN = (key, n) => kbt(n === 1 && STR[key + '.1'] !== undefined ? key + '.1' : key).replace('{n}', String(n))
 
     // Words people type for what a category calls something else. The search box promises "billing",
     // and no app has that word in its name, description or categories.
@@ -650,11 +648,16 @@ window.__ModuleLoader__.load({
       let n = String(raw === null || raw === undefined ? '' : raw).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '')
       if (/^[a-z]/.test(n) === false) n = 'srv-' + n
       n = n.slice(0, 31).replace(/-+$/, '')
-      return n.length >= 2 ? n : 'serveur'
+      return n.length >= 2 ? n : 'server'
+    }
+    /** True for an absolute http(s) address (the host's rule, checked in the preview too). Pure. */
+    const kbCpHttpUrl = (u) => {
+      try { const x = new URL(String(u)); return (x.protocol === 'http:' || x.protocol === 'https:') && x.hostname !== '' } catch (e) { return false }
     }
     /**
      * The servers of a pasted "mcpServers" block, as { source, name, type, url, command, args, cwd, headers, env, sse }.
-     * Returns { error: 'json', why } or { error: 'nomap' } when there is nothing to read. Pure: nothing is resolved or written.
+     * Returns { error: 'json', why }, { error: 'nomap' } when there is no block to read, or { error: 'nocmd' } when there are blocks but
+     * none has a command or an address. Pure: nothing is resolved or written.
      */
     const kbCpImportParse = (text) => {
       let j = null
@@ -663,9 +666,11 @@ window.__ModuleLoader__.load({
       if (map === null || typeof map !== 'object' || Array.isArray(map)) return { error: 'nomap' }
       const rows = (o) => (o !== null && typeof o === 'object' && Array.isArray(o) === false ? Object.keys(o).map((k) => ({ name: k, value: String(o[k]) })) : [])
       const servers = []
+      let blocks = 0
       for (const source of Object.keys(map)) {
         const sv = map[source]
         if (sv === null || typeof sv !== 'object') continue
+        blocks += 1
         const type = typeof sv.url === 'string' ? 'streamable-http' : (typeof sv.command === 'string' ? 'stdio' : null)
         if (type === null) continue
         servers.push({
@@ -676,7 +681,7 @@ window.__ModuleLoader__.load({
           sse: String(sv.type || sv.transport || '').toLowerCase() === 'sse' || (type === 'streamable-http' && /\/sse\/?$/i.test(sv.url)),
         })
       }
-      return servers.length === 0 ? { error: 'nomap' } : { servers: servers }
+      return servers.length === 0 ? { error: blocks > 0 ? 'nocmd' : 'nomap' } : { servers: servers }
     }
     /**
      * The body to send the host for one parsed server: every secret-looking value (an API key in a header, a
@@ -750,7 +755,18 @@ window.__ModuleLoader__.load({
         return { status: res.status, json: json }
       } catch (e) { return { status: 0, json: null } }
     }
-    const kbCpModeGet = () => { try { return localStorage.getItem(KB_CP_MODE) === 'kybernos' ? 'kybernos' : 'personal' } catch (e) { return 'personal' } }
+    /** The person's own choice of mode, or null when they have not made one (the page then takes the default, kbCpModeEffective). */
+    const kbCpModeGet = () => { try { const v = localStorage.getItem(KB_CP_MODE); return v === 'kybernos' || v === 'personal' ? v : null } catch (e) { return null } }
+    /** The mode in force. Kybernos connections only where this server offers them. The person's choice wins; with none, Kybernos
+     *  connections are the default (nothing to paste, no key to keep), except for someone who already saved a Composio key of their
+     *  own (`keyConfigured` true) or whose key is not known yet (null): they stay as they were. Pure. */
+    const kbCpModeEffective = (stored, offered, keyConfigured) => {
+      if (offered !== true) return 'personal'
+      if (stored === 'kybernos' || stored === 'personal') return stored
+      return keyConfigured === false ? 'kybernos' : 'personal'
+    }
+    /** What Settings › Connectors shows as selected: what was chosen, else the default of kbCpModeEffective. Pure. */
+    const kbCpProviderEffective = (chosen, offered, keyConfigured) => (chosen === 'composio' || chosen === 'kybernos' ? chosen : kbCpModeEffective(null, offered, keyConfigured) === 'kybernos' ? 'kybernos' : 'composio')
     const kbCpModeSet = (m) => { try { localStorage.setItem(KB_CP_MODE, m === 'kybernos' ? 'kybernos' : 'personal') } catch (e) { /* a convenience only */ } }
     /**
      * What GET /kybernos-cloud/connections says, as the page uses it. null when the cloud half does not answer in that shape
@@ -860,13 +876,15 @@ window.__ModuleLoader__.load({
     const CSS = `
 .kbcp-config{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border:1px solid rgba(128,128,128,.25);border-radius:12px;max-width:680px}
 .kbcp-config h3{margin:0;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
-.kbcp-logo{width:20px;height:20px;border-radius:6px;background:linear-gradient(135deg,#ff7a1a,#f43f5e);color:#fff;font-weight:800;font-size:11px;display:inline-flex;align-items:center;justify-content:center}
+.kbcp-logo{width:20px;height:20px;border-radius:6px;background:linear-gradient(135deg,#ff7a1a,#f43f5e);color:#0f1115;font-weight:800;font-size:11px;display:inline-flex;align-items:center;justify-content:center}
 .kbcp-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .kbcp-input{flex:1;min-width:200px;height:34px;border-radius:9px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;padding:0 11px;font-size:13px}
+.kbcp-input::placeholder{color:var(--dsw-alias-label-tertiary)}
+body:not([data-ds-dark-theme]) .kbcp-input::placeholder{color:var(--dsw-alias-label-secondary)}
 .kbcp-btn{height:32px;padding:0 13px;border-radius:8px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .kbcp-btn:hover{background:rgba(128,128,128,.12)}
 .kbcp-btn.primary{background:#635bff;border-color:#635bff;color:#fff}
-.kbcp-btn.primary:hover{filter:brightness(1.08)}
+.kbcp-btn.primary:hover{filter:brightness(.92)}
 .kbcp-btn:disabled{opacity:.5;cursor:default}
 /* (Kybernos filter POC) Pill in the header bar of the engine's Plugins page
    (dsh-client-ui-plugin-manager): hides the non-Kybernos groups/cards when it is
@@ -885,13 +903,15 @@ window.__ModuleLoader__.load({
 .kbcp-dot.on{background:#22c55e}
 .kbcp-dot.warn{background:#f59e0b}
 .kbcp-dot.bad{background:#ef4444}
-.kbcp-help{font-size:12px;opacity:.75}
+.kbcp-help{font-size:12px;opacity:.95}
 .kbcp-help summary{cursor:pointer;font-size:12.5px;width:fit-content}
 .kbcp-help ol{margin:8px 0 0;padding-inline-start:20px;display:flex;flex-direction:column;gap:4px}
 .kbcp-help a{color:var(--dsw-alias-label-secondary);text-decoration:underline}
 .kbcp-note{font-size:11.5px;opacity:.65;line-height:1.5}
 .kbcp-code{font-family:ui-monospace,Menlo,monospace;font-size:11px;opacity:.75}
 .kb7-root{display:flex;flex-direction:column;gap:16px;padding:4px 0 24px;position:relative}
+/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
+body:not([data-ds-dark-theme]) .kb7-root{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kb7-head{display:flex;flex-direction:column;gap:4px}
 .kb7-h1{margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em}
 .kb7-sub{margin:0;font-size:13px;opacity:.7;max-width:720px;line-height:1.5}
@@ -921,6 +941,9 @@ window.__ModuleLoader__.load({
 .kb7-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:28px}
 .kb7-pill{font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:rgba(34,197,94,.15);color:#22c55e;white-space:nowrap}
 .kb7-pill.pend{background:rgba(250,204,21,.15);color:#facc15}
+/* The tag inks are the state fills (2.1:1 on their pale tint in the light schemes): there they are pulled toward the text colour (audit A1-11). */
+body:not([data-ds-dark-theme]) .kb7-pill{color:color-mix(in srgb,var(--dsw-alias-state-success-primary,#22c55e) 50%,var(--dsw-alias-label-primary))}
+body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#facc15) 50%,var(--dsw-alias-label-primary))}
 .kb7-bars{display:flex;gap:4px}
 .kb7-bar{height:4px;flex:1;border-radius:2px;background:#22c55e;opacity:.55}
 .kb7-bar.pend{background:#facc15}
@@ -963,12 +986,6 @@ window.__ModuleLoader__.load({
 .kb7-cxtype.http{background:rgba(34,197,94,.14);color:#22c55e}
 /* (29/09) Sub-tabs Yours / Discover + help (i): same language as
    kb4-tab (page tab bar), set here so the page can be mounted without the plugin. */
-.kb7-titlerow{display:flex;align-items:center;gap:8px}
-.kb7-infobtn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;opacity:.65;cursor:pointer;flex:none}
-.kb7-infobtn:hover,.kb7-infobtn.on{opacity:1;border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-brand-primary)}
-.kb7-help{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border:1px dashed rgba(128,128,128,.4);border-radius:12px;font-size:12.5px;line-height:1.55;max-width:720px}
-.kb7-helptitle{font-weight:700;font-size:12.5px}
-.kb7-help .kb7-helptext{margin:0;opacity:.75}
 .kb7-ctlrow{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;position:relative;min-height:44px}
 /* (01/10) Loading, empty and errors ALWAYS take the same place: a box the size of the cards,
    not a bare text that makes the page jump when the data arrive. */
@@ -1093,7 +1110,6 @@ window.__ModuleLoader__.load({
 .kb7-seclab span{font-weight:500;text-transform:none;letter-spacing:0;padding:0 7px;border-radius:7px;background:rgba(128,128,128,.18)}
 .kbcp-pv{display:flex;gap:14px;padding:16px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));background:var(--dsw-alias-bg-layer-2,transparent);margin:0 0 12px}
 .kbcp-pv.sel{border-color:var(--dsw-alias-brand-primary,#6c8cff);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary,#6c8cff)}
-.kbcp-pv.off{opacity:.85}
 .kbcp-pv-rad{flex:none;width:18px;height:18px;border-radius:50%;border:2px solid var(--dsw-alias-border-l2,rgba(128,128,128,.5));margin-top:2px;position:relative;cursor:pointer;background:transparent;padding:0}
 .kbcp-pv.off .kbcp-pv-rad{cursor:default}
 .kbcp-pv.sel .kbcp-pv-rad{border-color:var(--dsw-alias-brand-primary,#6c8cff)}
@@ -1286,7 +1302,7 @@ window.__ModuleLoader__.load({
         const tools = Array.isArray(r.tools) ? r.tools : []
         const secs = String(Math.max(0.1, Math.round(r.ms / 100) / 10))
         return h('div', { className: 'kbcp-note ok' },
-          h('div', null, h('b', null, tools.length > 0 ? kbt('kb.cp.test.ok').replace('{s}', secs).replace('{n}', String(tools.length)) : kbt('kb.cp.test.none').replace('{s}', secs))),
+          h('div', null, h('b', null, tools.length > 0 ? kbtN('kb.cp.test.ok', tools.length).replace('{s}', secs) : kbt('kb.cp.test.none').replace('{s}', secs))),
           tools.length > 0 ? h('div', { className: 'kbcp-tools' }, tools.map((t) => h('code', { key: t.name, title: t.description || '' }, t.name))) : null,
           missing,
           r.noise > 0 ? h('div', { className: 'kbcp-help2' }, kbt('kb.cp.test.noise').replace('{n}', String(r.noise))) : null)
@@ -1463,6 +1479,7 @@ window.__ModuleLoader__.load({
       const blockers = (sv) => {
         const out = []
         if (sv.sse === true) out.push(kbt('kb.cp.imp.sse'))
+        if (sv.type === 'streamable-http' && kbCpHttpUrl(sv.url) === false) out.push(kbt('kb.cp.imp.badurl'))
         if (SERVER_NAME_RE.test(nameOf2(sv)) === false) out.push(kbt('kb.cp.form.noname'))
         const c = cmds[sv.source]
         if (sv.type === 'stdio' && (c === undefined || c.state === 'outside' || c.state === 'notfound')) out.push(c !== undefined && c.state === 'notfound' ? kbt('kb.cp.imp.notfound').replace('{cmd}', sv.command) : kbt('kb.cp.cmd.explain'))
@@ -1503,6 +1520,7 @@ window.__ModuleLoader__.load({
               h('textarea', { className: 'kbcp-textarea', id: 'kbcp-imp-json', value: text, placeholder: SAMPLE, spellCheck: false, onChange: (e) => { setText(e.target.value); setFails([]) } })),
             parsed !== null && parsed.error === 'json' ? h('div', { className: 'kbcp-note bad' }, kbt('kb.cp.imp.invalid').replace('{why}', parsed.why)) : null,
             parsed !== null && parsed.error === 'nomap' ? h('div', { className: 'kbcp-note bad' }, kbt('kb.cp.imp.nomap')) : null,
+            parsed !== null && parsed.error === 'nocmd' ? h('div', { className: 'kbcp-note bad' }, kbt('kb.cp.imp.nocmd')) : null,
             servers.length > 0 ? h('div', { className: 'kbcp-found' }, servers.map((sv) => {
               const bl = blockers(sv)
               const c = cmds[sv.source]
@@ -1600,7 +1618,7 @@ window.__ModuleLoader__.load({
             h('label', { className: 'kb7-flabel', htmlFor: 'kbcp-api-base' }, kbt('kb.cp.api.base')),
             h('input', { className: 'kb7-finput', id: 'kbcp-api-base', value: base, spellCheck: false, onChange: (e) => setBase(e.target.value) }))),
         h('div', { key: 'hd', className: 'kb7-frow', style: { alignItems: 'center' } },
-          h('span', { className: 'kb7-flabel', style: { flex: 1, margin: 0 } }, kbt('kb.cp.api.ops').replace('{n}', String(spec !== null ? spec.total : 0))),
+          h('span', { className: 'kb7-flabel', style: { flex: 1, margin: 0 } }, kbtN('kb.cp.api.ops', spec !== null ? spec.total : 0)),
           h('button', { type: 'button', className: 'kbcp-btn', onClick: () => setAll(true) }, kbt('kb.cp.api.reads')),
           h('button', { type: 'button', className: 'kbcp-btn', onClick: () => setAll(false) }, kbt('kb.cp.api.none'))),
         h('div', { key: 'ops', className: 'kbcp-ops', 'data-kb': 'api-ops' }, ops.map((o) =>
@@ -1625,7 +1643,7 @@ window.__ModuleLoader__.load({
               step === 2 ? h('button', { type: 'button', className: 'kbcp-btn', disabled: busy, onClick: () => { setStep(1); setErr(null) } }, kbt('kb.cp.api.back')) : h('button', { type: 'button', className: 'kbcp-btn', onClick: props.onClose }, kbt('kb.cp.form.cancel')),
               step === 1
                 ? h('button', { type: 'button', className: 'kbcp-btn primary', 'data-act': 'api-read', disabled: busy || url.trim() === '' || (needName && authName.trim() === ''), onClick: read }, busy ? kbt('kb.cp.api.reading') : kbt('kb.cp.api.read'))
-                : h('button', { type: 'button', className: 'kbcp-btn primary', 'data-act': 'api-add', disabled: busy || picked.length === 0 || name === '', onClick: add }, busy ? kbt('kb.cp.api.adding') : kbt('kb.cp.api.add').replace('{n}', String(picked.length)))))))
+                : h('button', { type: 'button', className: 'kbcp-btn primary', 'data-act': 'api-add', disabled: busy || picked.length === 0 || name === '', onClick: add }, busy ? kbt('kb.cp.api.adding') : kbtN('kb.cp.api.add', picked.length))))))
     }
 
     /** The saved API connectors, in the MCP servers tab: same rows, an « API » tag, a test that only ever runs a read, and remove. */
@@ -1653,7 +1671,7 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kbcp-mid' },
               h('div', { className: 'kbcp-mname' }, it.name, h('span', { className: 'kb7-cxtype http' }, kbt('kb.cp.api.tag')), it.hasKey ? null : h('span', { className: 'kbcp-src' }, kbt('kb.cp.api.auth.none'))),
               h('div', { className: 'kbcp-mtarget' }, it.title + ' · ' + it.host)),
-            h('span', { className: 'kbcp-chip ' + (it.live > 0 ? 'ok' : ''), 'data-kb-state': 'api-tools' }, h('i'), kbt('kb.cp.api.tools').replace('{n}', String(it.live))),
+            h('span', { className: 'kbcp-chip ' + (it.live > 0 ? 'ok' : ''), 'data-kb-state': 'api-tools' }, h('i'), kbtN('kb.cp.api.tools', it.live)),
             h('div', { className: 'kbcp-macts' },
               h('button', { type: 'button', className: 'kbcp-btn', disabled: t !== undefined && t.busy === true, onClick: () => runTest(it) }, kbt('kb.cp.api.test')),
               h('button', { type: 'button', className: 'kbcp-btn', 'aria-label': kbt('kb.cp.api.remove') + ' ' + it.name, onClick: () => setConfirmDel(it.name) }, Icon('trash', 13)))),
@@ -1742,7 +1760,7 @@ window.__ModuleLoader__.load({
                 c.source === 'skill' ? h('span', { className: 'kbcp-src', title: 'connecteur-personnalise' }, kbt('kb.cp.src.skill')) : null,
                 ro ? h('span', { className: 'kbcp-src' }, kbt('kb.cp.src.ro')) : null),
               h('div', { className: 'kbcp-mtarget' }, 'mcp__' + c.nom + '__* · ' + kbCpTargetOf(c))),
-            h('span', { className: 'kbcp-chip ' + (st.kind === 'plain' ? '' : st.kind), 'data-kb-state': st.key }, h('i'), kbt(st.key).replace('{n}', String(st.n === undefined ? '' : st.n))),
+            h('span', { className: 'kbcp-chip ' + (st.kind === 'plain' ? '' : st.kind), 'data-kb-state': st.key }, h('i'), (st.n === undefined ? kbt(st.key).replace('{n}', '') : kbtN(st.key, st.n))),
             h('div', { className: 'kbcp-macts' },
               ro || frozen ? null : h('button', { type: 'button', className: 'kbcp-switch', role: 'switch', 'aria-checked': c.disabled === true ? 'false' : 'true', 'aria-label': kbt('kb.cp.act.toggle').replace('{name}', c.nom), disabled: busy === c.nom, onClick: () => toggle(c) }),
               h('button', { type: 'button', className: 'kbcp-btn', disabled: frozen || (t !== undefined && t.busy === true), onClick: () => runTest(c) }, kbt('kb.cp.act.test')),
@@ -2095,13 +2113,10 @@ window.__ModuleLoader__.load({
       const cxNote = p14[0]
       const setCxNote = p14[1]
       // (29/09) Current sub-tab: "yours" (Yours) by default,
-      // "discover" (Discover) for the catalog. Help (i): collapsed at rest.
+      // "discover" (Discover) for the catalog.
       const p15 = React.useState('yours')
       const vtab = p15[0]
       const setVtab = p15[1]
-      const p16 = React.useState(false)
-      const helpOpen = p16[0]
-      const setHelpOpen = p16[1]
       // Whether the host has a Composio key: null until it has answered, so the "add your key" banner never flashes.
       const p17 = React.useState(null)
       const hostCfg = p17[0]
@@ -2485,7 +2500,7 @@ window.__ModuleLoader__.load({
       }
       const appItem = (a, inPop) => (viewMode === 'list' ? appRow(a, inPop) : appCard(a, inPop))
       // The mode in force: Kybernos connections only when this server offers them, else the person's own key, as before.
-      const effMode = kc !== null && kc.offered === true && mode === 'kybernos' ? 'kybernos' : 'personal'
+      const effMode = kbCpModeEffective(mode, kc !== null && kc.offered === true, hostCfg)
       const kcMode = effMode === 'kybernos'
 
       // The add menu is the page's primary action: a value, so the header can put it where the template wants it.
@@ -2501,6 +2516,17 @@ window.__ModuleLoader__.load({
                   h('span', { style: { display: 'flex', width: '100%', alignItems: 'center', gap: 8 } }, kbt('kb.cp.add.ai'), h('span', { className: 'kbcp-new' }, kbt('kb.cp.add.new'))), h('small', null, kbt('kb.cp.add.aihint')))) : null)
       // No items on the tab: no bar (the template), and the action alone keeps its place.
       const barShown = vtab === 'mcp' ? cx.length + apis.length > 0 : (vtab === 'discover' ? apps.length > 0 : (kcMode ? kc.connections.length > 0 : yoursPool.length > 0))
+      // The animated help of the page (the Suite publishes window.__KB_HELP__.Intro): it opens the first time the page is visited, and the card
+      // of the « ? How it works » button can bring it back. The words are the page's own.
+      const introNode = (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Intro
+        ? h(window.__KB_HELP__.Intro, {
+          id: 'kybernos-composio',
+          title: kbt('kb.cp.intro.title'),
+          caption: kbt('kb.cp.intro.caption'),
+          steps: [{ t: kbt('kb.cp.intro.s1t'), b: kbt('kb.cp.intro.s1b') }, { t: kbt('kb.cp.intro.s2t'), b: kbt('kb.cp.intro.s2b') }, { t: kbt('kb.cp.intro.s3t'), b: kbt('kb.cp.intro.s3b') }],
+          mock: { bar: kbt('kb.cp.title'), rows: ['Slack'], hot: 'GitHub', states: [kbt('kb.cp.intro.m.st1'), kbt('kb.cp.pend'), kbt('kb.cp.connected')], actions: [kbt('kb.cp.addconn'), kbt('kb.cp.intro.m.wait'), kbt('kb.cp.intro.m.allow')] }
+        })
+        : null)
       return h('div', { className: 'kb7-root' },
         // ── Header: Agent Teams gabarit (kb6-headrow / kb6-headcol / kb6-titlerow).
         // Same structure as the Kybers page: title + "?" help glued to it, subtitle
@@ -2511,7 +2537,8 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kb6-headcol' },
             h('div', { className: 'kb6-titlerow' },
               h('h1', { className: 'kb6-title' }, kbt('kb.cp.title')),
-              h('button', { type: 'button', className: 'kb6-helpbtn' + (helpOpen === true ? ' on' : ''), 'aria-label': kbt('kb.cp.info'), title: kbt('kb.cp.info'), 'aria-expanded': helpOpen === true ? 'true' : 'false', 'data-kb': 'connectors-help', onClick: () => setHelpOpen(!helpOpen) }, '?')),
+              // The Suite's « ? How it works » button, the one form of the help button on every page (its card is help.json).
+              typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-composio' }) : null),
             h('p', { className: 'kb8-sub', title: kbt('kb.cp.sub') }, kbt('kb.cp.sub'))),
           // Same visual language as "Create with AI" on the other pages (class kb8-primary of the
           // kybernos bundle). It always adds an MCP server: with a form, or by pasting the JSON of a documentation.
@@ -2530,6 +2557,7 @@ window.__ModuleLoader__.load({
             showFav: false,
             trailing: addWrap,
           }) : h('div', { className: 'kb6-headacts' }, addWrap))),
+        introNode,
         // Control row ("Resources" mockup 29/09): pill sub-tabs on the LEFT,
         // search/filters/sort block on the RIGHT: same design
         // and same position as the other pages, the content varies by tab.
@@ -2547,14 +2575,9 @@ window.__ModuleLoader__.load({
             apps.length <= CATALOG.length ? h('button', { type: 'button', className: 'kbcp-btn kb7-more', disabled: loadingAll, onClick: loadAll }, loadingAll ? kbt('kb.cp.loading') : kbt('kb.cp.loadall')) : null) : null),
         // (01/10) The status banners go UNDER the control row: their
         // appearance no longer moves the title or the row (tab parity).
-        // (29/09) small "Local Connectors" help: collapsed at rest, the (i) button
-        // unfolds it (same values for fr/en through kbt).
-        helpOpen === true ? h('div', { className: 'kb7-help', role: 'note' },
-          h('div', { className: 'kb7-helptitle' }, kbt('kb.cp.help.title')),
-          h('p', { className: 'kb7-helptext' }, kbt('kb.cp.help'))) : null,
         (vtab !== 'mcp' && kcMode === false && ready === true && hostCfg === false && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-nokey' }, Icon('key', 15), kbt('kb.cp.nokey')) : null,
         err !== null && (vtab !== 'yours' || kcMode === false) ? h('div', { className: 'kbcp-err', role: 'alert' }, err) : null,
-        // ── Vos connexions ──────────────────────────────────────────────────
+        // ── Tes connexions ──────────────────────────────────────────────────
         vtab === 'yours' ? h('div', { className: 'kb7-panel' },
           kc !== null && kc.offered === true ? h('div', { className: 'kbcp-modebar' },
             h('div', { className: 'kb7-fseg', role: 'group', 'aria-label': kbt('kb.cp.kc.mode.label') },
@@ -2614,7 +2637,7 @@ window.__ModuleLoader__.load({
           onDone: (n, noms) => savedServers(noms, kbt('kb.cp.imp.done').replace('{n}', String(n))),
           onClose: () => setImportOpen(false),
         }) : null,
-        apiOpen === true ? h(ApiModal, { onClose: () => setApiOpen(false), onDone: (n) => { setApiOpen(false); setVtab('mcp'); loadApis(); flash(kbt('kb.cp.api.added').replace('{n}', String(n))) } }) : null,
+        apiOpen === true ? h(ApiModal, { onClose: () => setApiOpen(false), onDone: (n) => { setApiOpen(false); setVtab('mcp'); loadApis(); flash(kbtN('kb.cp.api.added', n)) } }) : null,
         aiOpen === true ? h(AiModal, { onClose: () => setAiOpen(false) }) : null)
     }
 
@@ -2965,7 +2988,8 @@ window.__ModuleLoader__.load({
       const inPlan = signedIn && kc.entitled !== false
       const keyOn = key !== null && key.configured === true
       // Nothing chosen yet: what is in use today is what shows as selected (a saved key first), so the page never claims a change.
-      const effective = provider === 'composio' || provider === 'kybernos' ? provider : (keyOn || inPlan !== true ? 'composio' : 'kybernos')
+      // Nothing chosen yet: Kybernos Cloud, the default, unless a key of their own is saved (then what is in use today shows as selected).
+      const effective = kbCpProviderEffective(provider, offered, key === null ? null : keyOn)
       const choose = (next) => {
         if (next === effective && provider === next) return
         if (next === 'kybernos' && inPlan !== true) return
@@ -3065,7 +3089,6 @@ window.__ModuleLoader__.load({
 
     // ── mount ─────────────────────────────────────────────────────────────────
     function apply(ctx) {
-      localeSvc = ctx.get('locale')
       const slots = ctx.get('slots')
       try { ctx.effect(() => { const s = document.createElement('style'); s.textContent = CSS; document.head.appendChild(s); return () => s.remove() }, 'composio: styles') } catch (e) { }
       carteMontre(ctx)
@@ -3086,14 +3109,14 @@ window.__ModuleLoader__.load({
     }
 
     return {
-      inject: ['timer', 'slots', 'locale'],
+      inject: ['timer', 'slots'],
       // AGENTS.md rule 2: a bundle must never stop DSH from starting. The effects inside are guarded one by one;
       // this net catches whatever else (a missing service) so the failure only costs this bundle's UI.
       apply(ctx) { try { apply(ctx) } catch (e) { try { console.error('[kybernos-composio] client not mounted', e) } catch (e2) { /* console unavailable */ } } },
       // exposed for the Resources tab of the kybernos bundle; the pure parts (webUrl, carteHtml,
       // carteAccepter, errText, hostState) and the MCP timeout are exposed so test-client.mjs can
       // reach them without a DOM.
-      composio: { cloudView: kbCpCloudView, cloudMerge: kbCpCloudMerge, cloudErr: kbCpCloudErr, connState: kbCpConnState, connActions: kbCpConnActions, failedText: kbCpFailedText, appsMatch: kbCpAppsMatch, modeGet: kbCpModeGet, modeSet: kbCpModeSet, page: ComposioPage, hostIsOld: kbCpHostIsOld, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, carteAcceptMax: CARTE_ACCEPT_MAX, match: kbCpMatch, joinArgs: kbCpJoinArgs, t: kbt, errText: kbCpErrText, keyState: kbCpKeyState, testErr: kbCpTestErr, statusOf: kbCpStatusOf, importParse: kbCpImportParse, importBody: kbCpImportBody, safeName: kbCpSafeName, targetOf: kbCpTargetOf, formOf: kbCpFormOf, bodyOf: kbCpBodyOf },
+      composio: { modeEffective: kbCpModeEffective, providerEffective: kbCpProviderEffective, cloudView: kbCpCloudView, cloudMerge: kbCpCloudMerge, cloudErr: kbCpCloudErr, connState: kbCpConnState, connActions: kbCpConnActions, failedText: kbCpFailedText, appsMatch: kbCpAppsMatch, modeGet: kbCpModeGet, modeSet: kbCpModeSet, page: ComposioPage, hostIsOld: kbCpHostIsOld, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, carteAcceptMax: CARTE_ACCEPT_MAX, match: kbCpMatch, joinArgs: kbCpJoinArgs, t: kbt, errText: kbCpErrText, keyState: kbCpKeyState, testErr: kbCpTestErr, statusOf: kbCpStatusOf, importParse: kbCpImportParse, httpUrl: kbCpHttpUrl, tN: kbtN, importBody: kbCpImportBody, safeName: kbCpSafeName, targetOf: kbCpTargetOf, formOf: kbCpFormOf, bodyOf: kbCpBodyOf },
     }
   },
 })

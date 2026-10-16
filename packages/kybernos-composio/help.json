@@ -1,33 +1,34 @@
 {
   "what": {
-    "fr": "Relie vos applications (Slack, GitHub…) à vos agents : avec votre propre clé Composio, ou avec votre compte Kybernos, sans clé sur la machine.",
+    "fr": "Relie tes applications (Slack, GitHub…) à tes agents : avec ta propre clé Composio, ou avec ton compte Kybernos, sans clé sur la machine.",
     "en": "Links your apps (Slack, GitHub…) to your agents: with your own Composio key, or with your Kybernos account, with no key on this machine."
   },
   "steps": [
     {
-      "fr": "Avec votre clé : créez-la sur dashboard.composio.dev, collez-la dans Réglages › Plugins › kybernos-composio, puis « Enregistrer ».",
-      "en": "With your key: create it on dashboard.composio.dev, paste it in Settings › Plugins › kybernos-composio, then click “Save”."
+      "fr": "Avec ta clé : crée-la sur dashboard.composio.dev, colle-la dans Réglages › Connecteurs, puis « Enregistrer ».",
+      "en": "With your key: create it on dashboard.composio.dev, paste it in Settings › Connectors, then click “Save”."
     },
     {
-      "fr": "Ouvrez Kybernos › Connecteurs › « Découvrir », choisissez une app, « Ajouter une connexion », puis autorisez-la dans l'onglet qui s'ouvre.",
-      "en": "Open Kybernos › Connectors › “Discover”, pick an app, click “Add a connection”, then authorize it in the tab that opens."
+      "fr": "Barre latérale › Connecteurs › « Découvrir » : choisis une app, « Ajouter une connexion », puis autorise-la dans l'onglet qui s'ouvre.",
+      "en": "Sidebar › Connectors › “Discover”: pick an app, click “Add a connection”, then authorize it in the tab that opens."
     },
     {
-      "fr": "Avec votre compte Kybernos (si votre serveur le propose) : « Kybernos Cloud » dans Réglages › Connecteurs, puis « Connecter une app ».",
+      "fr": "Avec ton compte Kybernos (si ton serveur le propose) : « Kybernos Cloud » dans Réglages › Connecteurs, puis « Connecter une app ».",
       "en": "With your Kybernos account (if your server offers it): “Kybernos Cloud” in Settings › Connectors, then “Connect an app”."
     },
     {
-      "fr": "Un serveur ou une API à vous : onglet « Serveurs MCP », « Ajouter » : formulaire, JSON, spec OpenAPI ou « Ajouter avec l'IA ».",
+      "fr": "Un serveur ou une API à toi : onglet « Serveurs MCP », « Ajouter » : formulaire, JSON, spec OpenAPI ou « Ajouter avec l'IA ».",
       "en": "A server or API of your own: “MCP servers” tab, “Add”: a form, JSON, an OpenAPI spec or “Add with AI”."
     }
   ],
   "where": {
-    "fr": "Kybernos (barre latérale) › Connecteurs ; le choix du service et la clé : Réglages › Connecteurs",
-    "en": "Kybernos (sidebar) › Connectors; the choice of service and the key: Settings › Connectors",
+    "fr": "Barre latérale › Connecteurs ; le choix du service et la clé : Réglages › Connecteurs",
+    "en": "Sidebar › Connectors; the choice of service and the key: Settings › Connectors",
     "page": true
   },
   "good": {
-    "fr": "Un seul service à la fois côté agents : Kybernos Cloud ou votre clé. Votre clé reste sur votre machine ; une clé changée n'atteint les agents qu'après un redémarrage de DSH.",
+    "fr": "Un seul service à la fois côté agents : Kybernos Cloud ou ta clé. Ta clé reste sur ta machine ; une clé changée n'atteint les agents qu'après un redémarrage de DSH.",
     "en": "One service at a time for the agents: Kybernos Cloud or your key. Your key stays on your machine; a changed key reaches the agents only after DSH restarts."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/features/what-are-app-connections/"
 }

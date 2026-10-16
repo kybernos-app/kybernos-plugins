@@ -8,11 +8,17 @@
 // the hub and in the plugins of the checkout. Refuses :3080. Read-only: nothing here changes a setting.
 // For every page: the button is there, it opens a card with what the plugin does and the steps of packages/<dir>/help.json
 // (the text is read from the file, not copied here), the card closes on Escape, and French shows French.
+// The cards show the signed catalogue downloaded at the last release when this DSH home has one, so a help.json edited since is a card
+// that is one release behind: the check says which source the cards come from (scripts/lib-help-source.mjs) and compares each card with
+// the text the SAME host serves for it (/kybernos-hub/suite: the shipped help.json when nothing was downloaded, the downloaded one
+// otherwise). A card that is one release behind is therefore told, not failed; a card that does not show what the host serves is a bug.
 // Exit code 0 / 1 / 3.
 import { readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { openLivePage } from './live-page.mjs'
+import { dshHome } from './dsh-home.mjs'
+import { helpSource, describeHelpSource } from './lib-help-source.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
@@ -21,7 +27,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 let pass = 0
 let fail = 0
 const check = (name, ok, detail) => { if (ok) { pass += 1; console.log('  ✓ ' + name) } else { fail += 1; console.log('  ✗ ' + name + (detail === undefined ? '' : ' — ' + JSON.stringify(detail))) } }
-const helpOf = (dir) => JSON.parse(readFileSync(join(REPO, 'packages', dir, 'help.json'), 'utf8'))
+const shippedHelp = (dir) => JSON.parse(readFileSync(join(REPO, 'packages', dir, 'help.json'), 'utf8'))
+// What the host serves as each module's help (filled once the page is up): `aide` of GET /kybernos-hub/suite.
+let served = {}
+// The text a card must show: what the host serves for the module, over the shipped help.json for whatever the served one lacks.
+const helpOf = (dir) => Object.assign({}, shippedHelp(dir), served[dir] || {})
 
 const host = process.env.KB_HOST || '127.0.0.1:3080'
 if (host === '127.0.0.1:3080') { console.error('○ inconclusive: this check needs a DSH that serves this checkout (a sandbox instance), not the one on :3080. Set KB_HOST, DSH_HOME and HOME.'); process.exit(3) }
@@ -55,6 +65,7 @@ const goTo = async (label) => {
 const helpButton = (id) => val(`!!document.querySelector('[data-kb="help-button"][data-id="${id}"]')`)
 const panelText = () => val(`(document.querySelector('[data-kb="help-panel"]') || { innerText: '' }).innerText.replace(/\\n+/g, ' | ')`)
 
+let source = null
 try {
   await sleep(3000)
   if ((await val(`/Add an API key to get started/.test(document.body.innerText)`)) === true) {
@@ -62,6 +73,16 @@ try {
     if (typeof pos === 'string') { const { x, y } = JSON.parse(pos); await mouse(x, y); await sleep(700) }
   }
   check('Settings open', (await openSettings()) === true)
+  source = helpSource({ repo: REPO, home: dshHome() })
+  console.log('  ○ ' + describeHelpSource(source))
+  const suiteDoc = await val(`fetch('/kybernos-hub/suite').then((r) => r.json()).catch(() => null)`)
+  const mods = suiteDoc !== null && Array.isArray(suiteDoc.modules) ? suiteDoc.modules : []
+  served = Object.fromEntries(mods.filter((m) => m && typeof m.id === 'string' && m.aide && typeof m.aide === 'object').map((m) => [m.id, m.aide]))
+  const behind = source.differ
+  console.log('  ○ text compared with: ' + (suiteDoc !== null && suiteDoc.catalogue && suiteDoc.catalogue.source === 'signe'
+    ? 'the help the host serves from the signed catalogue (suite ' + String(suiteDoc.catalogue.suite && suiteDoc.catalogue.suite.version) + ')' + (behind.length > 0 ? ', which is behind packages/*/help.json for ' + behind.join(', ') : '')
+    : 'the help.json shipped with this checkout (the host serves no downloaded catalogue)'))
+  check('the host serves a help for the modules this check opens', Object.keys(served).length > 0, { modules: mods.length })
 
   console.log('\n── the button on each page ──')
   for (const [label, dir] of PAGES) {
@@ -138,7 +159,9 @@ try {
   console.log('\n── the Skills page (not in Settings) ──')
   await val(`(() => { const b = Array.from(document.querySelectorAll('button')).find((x) => /Back to workspace/.test(x.innerText)); if (b) b.click() })()`)
   await sleep(1200)
-  const pos = await val(`(() => { const e = Array.from(document.querySelectorAll('*')).filter((e) => e.children.length === 0 && (e.innerText || '').trim() === 'Skills' && e.getBoundingClientRect().width > 3)[0]; if (!e) return null; const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.x + r.width / 2, y: r.y + r.height / 2 }) })()`)
+  // The sidebar row is a button: take the visible « Skills » leaf that sits inside a button in the left part of the window, not the first leaf
+  // of that name anywhere in the DOM (a heading, a hidden page).
+  const pos = await val(`(() => { const hits = Array.from(document.querySelectorAll('*')).filter((e) => e.children.length === 0 && (e.innerText || '').trim() === 'Skills' && e.getBoundingClientRect().width > 3 && e.closest('button, [role=button]') !== null).map((e) => e.closest('button, [role=button]')).filter((b) => b.getBoundingClientRect().x < 400 && b.getBoundingClientRect().height > 3); if (hits.length === 0) return null; const r = hits[0].getBoundingClientRect(); return JSON.stringify({ x: r.x + r.width / 2, y: r.y + r.height / 2 }) })()`)
   if (typeof pos === 'string') { const { x, y } = JSON.parse(pos); await mouse(x, y); await sleep(2500) }
   check('the Skills page carries the button and its card is the skills help', (await poll(() => helpButton('kybernos-skills'), 8000)) === true)
 } catch (e) {
@@ -147,5 +170,6 @@ try {
 } finally {
   await live.close()
 }
+if (fail > 0 && source !== null && source.differ.length > 0) console.log('  ○ ' + describeHelpSource(source))
 console.log('\n' + pass + ' ✓  ' + fail + ' ✗')
 process.exit(fail === 0 ? 0 : 1)

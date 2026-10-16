@@ -1,7 +1,7 @@
 {
   "what": {
-    "fr": "Une page Dashboards avant Agent Teams : le chat construit vos tableaux de bord (Agent Teams, automations, usage, livrables) avec des graphiques animés, un calendrier, un kanban et des notes.",
-    "en": "A Dashboards page before Agent Teams: the chat builds your dashboards (Agent Teams, automations, usage, deliverables) with animated charts, a calendar, a kanban and notes."
+    "fr": "Une page Dashboards avant Agent Teams : le chat construit vos tableaux de bord (Agent Teams, automations, usage, créations) avec des graphiques animés, un calendrier, un kanban et des notes.",
+    "en": "A Dashboards page before Agent Teams: the chat builds your dashboards (Agent Teams, automations, usage, creations) with animated charts, a calendar, a kanban and notes."
   },
   "steps": [
     {
@@ -22,12 +22,13 @@
     }
   ],
   "where": {
-    "fr": "Menu Kybernos › Dashboards (avant Agent Teams), barre latérale droite › Dashboard",
-    "en": "Kybernos menu › Dashboards (before Agent Teams), right sidebar › Dashboard",
+    "fr": "Barre latérale › Dashboards (avant Agent Teams), barre latérale droite › Dashboard",
+    "en": "Sidebar › Dashboards (before Agent Teams), right sidebar › Dashboard",
     "page": true
   },
   "good": {
     "fr": "Un dashboard est un simple fichier, sans code, qui ne lit que des sources de cet ordinateur. Les tokens sont comptés, pas l’argent.",
     "en": "A dashboard is a plain file with no code, reading only sources on this computer. Tokens are counted, not money."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/create-with-kybernos/build-a-dashboard/"
 }

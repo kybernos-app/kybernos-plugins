@@ -280,7 +280,8 @@ try {
     { name: 'Creations (cards)', pattern: '*kybernos/load*', go: async () => { await clickText(page, 'Creations'); await sleep(500); await cardsView() }, first: '.kb6-grid > :first-child' },
     { name: 'Creations (list)', pattern: '*kybernos/load*', go: async () => { await clickText(page, 'Creations'); await sleep(500); await listView() }, first: '.kb6-lrows > :first-child' },
     { name: 'Agent Teams', pattern: '*kybernos/load*', go: async () => { await clickText(page, 'Agent Teams') }, first: '.kb8-grid > :first-child, .kb8-rows > :first-child' },
-    { name: 'Skills › Yours', pattern: '*kybernos-skills/skills*', go: async () => { await clickText(page, 'Skills') }, first: '.kb8-card.static' },
+    // The page opens on Featured, whose data is not this route: the held catalogue is the Yours tab's, so the tab is opened by its name.
+    { name: 'Skills › Yours', pattern: '*kybernos-skills/skills*', go: async () => { await clickText(page, 'Skills'); await waitFor(page, `!!document.querySelector('.kbsub-group [role=tab]')`, 15000); await ev(`(Array.from(document.querySelectorAll('.kbsub-group [role=tab]')).find((b) => /^Yours/.test(b.innerText.trim())) || { click () {} }).click()`) }, first: '.kb8-card.static' },
     { name: 'Skills › Discover', pattern: '*kybernos-skills/index?view*', go: async () => { await clickText(page, 'Skills'); await sleep(2500); await clickText(page, 'Discover') }, first: '.kbs-table:not([data-kb=feat-table]) .kbs-row' },
   ]
   for (const L of lists) {
@@ -334,6 +335,11 @@ try {
     const clicked = opened === true && (await settingsCell(L.nav))
     await sleep(1500)
     const sk = await ev(`(() => { const w = document.querySelector('.kb-sk'); return w ? { bones: w.querySelectorAll('.kb-sk-bone').length, role: w.getAttribute('role'), label: w.getAttribute('aria-label') } : null })()`)
+    // The Memory page of a person who is not signed in is a panel (« Your memories start with your account ») that waits for nothing: it has no bones to look at.
+    if (sk === null && L.nav === 'Memory & Lessons' && (await ev(`/start with your account/i.test(document.body.innerText)`)) === true) {
+      console.log('SKIPPED: ' + L.name + ': bones while the answer is held — this instance is not signed in, so the page is the sign-in panel and waits for no answer (needs a connected account)')
+      await releaseRoute(); await stopHolding(); continue
+    }
     const during = await top(L.row + '.kb-sk-row')
     await shot('skeleton-' + L.nav.replace(/[^a-z]+/gi, '-').toLowerCase())
     await releaseRoute()
@@ -364,10 +370,11 @@ try {
   else {
     for (const t of ['mouseMoved', 'mousePressed', 'mouseReleased']) await page.send('Input.dispatchMouseEvent', { type: t, x: pc.x - 100, y: pc.y - 40, button: 'left', clickCount: 1 })
     await sleep(2000)
-    await clickText(page, 'Threads')
+    // The Threads tab is the project's sessions, which the page already holds; the project's data (documents, goals) is what the held route carries.
+    await clickText(page, 'Documents')
     await sleep(800)
     const pb = await ev(`(() => { const w = document.querySelector('.kb-sk'); return w ? w.querySelectorAll('.kb-sk-bone').length : null })()`)
-    check('Workspace › Threads: bones while the project’s data is read (it was a line of text)', pb !== null && pb >= 8, pb)
+    check('Workspace › Documents: bones while the project’s data is read (it was a line of text)', pb !== null && pb >= 8, pb)
     await releaseRoute()
     await sleep(3000)
     check('…and the real state (rows or the empty message) replaces them', (await ev(`!document.querySelector('.kb-sk')`)) === true)
@@ -397,8 +404,15 @@ try {
   await click('[data-kb=art-more]')
   await sleep(150)
   const motion = await ev(`Array.from(document.querySelectorAll('[data-kb=art-row]')).map((e) => getComputedStyle(e).animationName)`)
-  check('with motion allowed the first rows fade in, and the rows past the twelfth do not (a long list does not animate for seconds)',
-    Array.isArray(motion) && motion.length > 12 && motion.slice(0, 6).every((n) => n === 'kb-in') && motion.slice(12).every((n) => n === 'none'), motion)
+  if (Array.isArray(motion) && motion.length > 12) {
+    check('with motion allowed the first rows fade in, and the rows past the twelfth do not (a long list does not animate for seconds)',
+      motion.slice(0, 6).every((n) => n === 'kb-in') && motion.slice(12).every((n) => n === 'none'), motion)
+  } else {
+    // The step compares the rows past the twelfth with the first ones: it needs more than twelve creations in the active workspace. With fewer there is
+    // nothing to compare, which is not a defect of the page: it is said, not failed. The rows that are there still must fade in.
+    console.log('SKIPPED: the rows past the twelfth do not fade in — this instance lists ' + (Array.isArray(motion) ? motion.length : 0) + ' creation(s) (needs more than 12)')
+    if (Array.isArray(motion) && motion.length > 0) check('with motion allowed the rows that are there fade in', motion.slice(0, 6).every((n) => n === 'kb-in'), motion)
+  }
 } finally {
   await cleanup()
   await live.close()

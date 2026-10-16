@@ -10,11 +10,12 @@
 // to nothing, rows of 44 px in the drawer, a 16 px field, and, above 700 px, that the sheet changed nothing.
 // With --deployed nothing is injected: the page runs what this DSH serves (stylesheet AND client half), which also
 // proves the "..." sheet. Nothing is written to the user's DSH: only a view is emulated and sessions are opened, never sent to.
+// On a sandbox with no conversation yet, a first message is sent to create one (the turn fails without a key: fine); the user's own DSH is never written to.
 // Exit code: 0 all green, 1 a check failed, 3 inconclusive (GUI down).
 import { mkdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { openLivePage, swapPluginClient } from './live-page.mjs'
+import { openLivePage, swapPluginClient, ensureConversation } from './live-page.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const args = process.argv.slice(2)
@@ -110,6 +111,7 @@ const measure = () => ev(`(() => {
 })()`).then((j) => (j === null ? null : JSON.parse(j)))
 
 try {
+  if (await ensureConversation(page) !== true) console.log('  ○ no conversation to open on this DSH (and none could be created): a phone then reports « inconclusive »')
   for (const [name, w, h, phone] of DEVICES) {
     console.log('\n' + name)
     if (!deployed && swap.swapped === 0 && name === DEVICES[0][0]) console.log('  ○ the working tree\'s client.js is NOT in the page yet (swapped on the first reload)')
@@ -159,6 +161,9 @@ try {
       await sleep(900)
     }
     if (shotsDir !== null) await page.shot(join(shotsDir, name + '-2-chat.png'))
+    // Above 700 px the chat fold (kybernos-plugin) keeps the chat's tab row behind its « Show chat tools » toggle. Where the sheet must change nothing, the toggle is
+    // opened the way a person does, so that the row can be measured: a row hidden by that feature is not a row the mobile sheet touched.
+    if (!phone && await ev(`(() => { const t = document.querySelector('[data-kb="chat-fold"] [data-act="toggle"]'); if (t && t.getAttribute('aria-pressed') !== 'true') { t.click(); return true } return false })()`)) await sleep(700)
     const m = await measure()
     if (m === null) { console.error('○ inconclusive: measures unavailable'); process.exit(3) }
 

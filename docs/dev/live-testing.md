@@ -61,6 +61,10 @@ await live.close()                         // kills Chrome, removes the profile
   when the secret is unreadable, or when the GUI never renders.
 - The GUI has no URL routes: pages are reached by clicking. `clickText` matches an
   element's own text, ignoring the `⟦ ⟧` pseudo-translation marks.
+- **Settings has a fold.** Most of our pages (Usage, Workers, Calls, Web Search…) sit under a shut « Advanced » header, and a hidden
+  cell cannot take a real mouse click. `openSettings(page)` opens the fold for you (in the throw-away browser's own storage: nothing of
+  your DSH changes); pass `{ fold: 'keep' }` to leave it as it is (the check of the fold itself does). A script that clicks the cell
+  with `cell.click()` reaches a page either way, and landing on a page inside the fold opens it, as it does for a person.
 - The built-in browser pane of the Claude desktop app cannot be used for this: it
   has no cookie access, so it stops at the 401 page.
 
@@ -183,6 +187,10 @@ the interceptor). Only client code can be tested this way: host code loads when 
 Traps met while writing it: `page.send` returns the raw message (`{ id, result }`), and two interceptors on the same `Fetch`
 event must each ignore the other's requests (`Fetch.enable` replaces the patterns of an earlier call).
 
+On a **sandbox** (`KB_HOST` is not `:3080`) the checkout `dsh web` serves is the one the sandbox was built from, `KB_WORKTREE`, not the
+main tree: the helper looks for that tree's text, so the swap reports `replaced: true` there (the page already runs this client).
+`KB_SHARED_TREE` / `KB_SERVED_TREE` override it.
+
 ## The Skills panels: `scripts/check-skills-detail-live.mjs`
 
 ```bash
@@ -213,7 +221,8 @@ No credential, key or session is copied, the paid server module and the relaunch
 is set too, because some bundles still write under `~/.dsh` when only DSH_HOME is: with HOME alone changed, the real files
 stay untouched (fingerprint `~/.dsh/.credentials.yaml`, `profiles/web/package.json`, `kybernos/i18n/*.json` before and after).
 Host code is not hot-reloaded: `stop` then `start` after editing an `index.js`; client code is read from the checkout at each
-page load. The first load asks for an API key (« Configure later »); a chat for a git folder only exists once a first message
+page load. DSH's own « Get started » dialog (sign in to a DeepSeek account / add an API key) no longer opens: the core replaces that step
+(`settings.onboarding` › `deepseek-official`), and `live-page.mjs` still presses its Close cross on an engine that shows it. A chat for a git folder only exists once a first message
 was sent (the turn then fails for lack of a key, which is fine): `check-changes-live.mjs` does both by itself.
 
 ## The Changes chip: `scripts/check-changes-live.mjs`
@@ -268,6 +277,22 @@ widget). Four traps met: `fill()` of Playwright sets the text without any Enter,
 fold are still at their start frame; and a loaded machine (a test loop running beside it) slows the animations, so it waits for
 them to finish instead of sleeping.
 
+## The language of the creation surfaces: `scripts/check-language-creation-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-language-creation-live.mjs --shots /tmp/shots [--langs en,kybernos,es,ar]
+```
+
+Sandbox only (exit 3 against `:3080`). It never touches DSH's stored language: the language of Kybernos is set in the throw-away
+browser (`localStorage['kybernos.theme.lang']`, the key the Language page writes: `en` removes it, `kybernos` is the French of
+Kybernos, `es` and `ar` are translated languages that have no table of ours), the page is reloaded, and for each language it reads the
+right-sidebar start list, the panels Bricks, Slides, 3D modeller, Summary, Motion and Dashboard, the sidebar's « Search everywhere » row,
+the composer's « where it runs » menu, the phone layout's menu button, and the Atlas page with its help. English, Spanish and Arabic must
+read English; French must read French; no French word in another language, no English phrase of ours in French. The sandbox keeps its
+right pane (and its tabs) from one run to the next: the check asks for a fresh start list. In a right-to-left language the right pane is
+drawn on the left of the window. The offline twin is `scripts/test-no-french-literals.mjs`: French literals outside a dictionary, the
+pair helper (`kt(fr, en)`: French for French, English for everything else), READMEs and descriptions, the French twin that must stay.
+
 ## The first-run wizard: `scripts/check-onboarding-live.mjs`
 
 ```bash
@@ -311,6 +336,40 @@ anything that handles Escape inside it must listen in capture and stop the event
 rewrites French phrases to English on Settings pages while the document language is English (a French test must set
 `document.documentElement.lang` too, or compare without quotation marks).
 
+### The article link, the animation of the first visit, one button: `scripts/check-help-intro-live.mjs`
+
+Three things ride on the same hub seam (`window.__KB_HELP__`):
+
+- **The article.** `help.json` may carry `"url"`: an address on `help.kybernos.app` (`build-catalog.mjs` refuses any other host).
+  `{lang}` as the first part of the path stands for the reader's language (en, fr, ar, zh-cn; any other gets English), the way the
+  site addresses its articles: `https://help.kybernos.app/{lang}/<category>/<article>/`. The card shows it as « Read the article »
+  at its foot, in a new tab with `noopener`; the Suite's module page too. A bundle with no article yet simply has no `url`: nothing is drawn.
+  The host shows the shipped card, link included, whatever the signed catalogue says, so a link needs no release to appear.
+- **The animation of the first visit** (`window.__KB_HELP__.Intro`, the mechanism of the Language page for any page). A page draws it
+  under its header with the words of its own screen: `h(Intro, { id, title, caption, steps: [{ t, b } × 3], mock: { bar, rows,
+  hot, states: [3], actions: [3], done } })`. The mock is CSS only (12 s loop; its base style is the end of the story, which is what
+  `prefers-reduced-motion` shows). It opens until the person closes it (✕, remembered as `closed`) or it has been on screen for 8 s
+  once (`seen`): the first visit, then never by itself. The card of the page's button offers « Watch the animation » to bring it back.
+  The key is the one of the page's button (`kybernos.help.intro.<id>`, in this browser's localStorage). Skills, Connectors and Remote
+  Control have one; adding a page is one call and its strings.
+- **One « ? How it works » button.** The Suite's pill is the only form. The pages that draw their own copy it declaration for
+  declaration (the core's Agent Teams / Automations button `kb6-helpbtn`, the Calls tabs `kbcl-hl`, Language `kbth-help-btn`, Atlas
+  `kbat-help`; each keeps the panel it opens): `scripts/test-help.mjs` compares them.
+
+```bash
+node packages/kybernos-hub/test-help-card.mjs   # no GUI: the link, the card's side, the animation's state and timer, the host's merge
+source scripts/sandbox/env.sh && node scripts/check-help-intro-live.mjs --shots /tmp/shots
+```
+
+The live check starts from a throw-away browser, so its empty localStorage **is** the first visit: it checks the animation opens
+on Skills, Connectors and Remote Control, runs (CSS animations counted; the three steps light in turn, sampled on the loop's own
+clock, not the test's), is marked `seen` after 8 s and does not come back, comes back from the card, and closes for good; the
+article links; one button of the same size and shape on sixteen pages (among them the ones whose own CSS restyles every button); reduced motion (no animation at all, the end of the story
+shown); the lines that say what Usage, Tools, Workers and Commands are for; and French on Remote Control.
+Two traps: the first click on a sidebar entry right after the shell loaded can open nothing (the check clicks again until the page's
+own text is there), and the page behind the Settings dialog stays in the document, so a button is counted only where it is the
+topmost element (`elementFromPoint`).
+
 ## The Agent presets button and the Ollama search: `check-creator-draft-live.mjs`, `check-ollama-search-live.mjs`
 
 ```bash
@@ -329,6 +388,22 @@ Both need a sandbox that serves this checkout and refuse `:3080`; neither writes
   answer is « not active yet »; the signed path is played against a local server by
   `packages/kybernos-modeles-locaux/test-modeles-catalogue.mjs`. Trap: the button is in the machine tile, which is drawn only
   once the machine is measured (a few seconds when Ollama is installed but not serving): wait for it.
+
+## The Study model: `scripts/check-study-model-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-study-model-live.mjs [--shots /tmp/shots]
+```
+
+Kybernos Settings has ONE brain row, the Study model (« Decision Brain » is gone): Automatic — <model> (the empty setting, the
+default), « Choose another… » and None. The check refuses `:3080`, picks each state in the page, reads what the host kept and
+what the decision route does (None: nothing is sent to any model, the word rules still pick the icon), and puts the sandbox back on
+Automatic. It calls no model. The closed question itself is played by `packages/kybernos-sessions/test-decision-llm.mjs` (a stub
+`llm`); to see it through DSH's real `llm` service in a sandbox, point the sandbox's `ollama-local` route (its own
+`cordis.patch.yml`, hot-reloaded) at a local fake OpenAI-compatible server and put `OLLAMA_LOCAL_API_KEY=ollama` in the sandbox's
+`$DSH_HOME/.env` (read at launch: restart the sandbox). Trap: a plugin's host half sees a service with `ctx.get` only when it
+declared it; the sessions bundle reads `credentials` from `ctx.root` (until it did, every provider looked connected, and the Cloud
+was picked on a sandbox with no account).
 
 ## The run, the ring and the test marks: `scripts/check-language-run-live.mjs`
 
@@ -633,8 +708,9 @@ scripts/sandbox/stop.sh                  # kills only the pid it recorded, after
   instance holds nobody's sessions). `setup.sh` again after the checkout gains a package, `setup.sh --refresh`
   (sandbox stopped) to re-clone the profile.
 - `sandbox.log` holds DSH's token URL: never print it; sign in with the cookie like every script here.
-- A fresh instance asks for a model key in a dialog that covers the page (it swallows mouse events): click
-  "Configure later" first, as `check-connectors-live.mjs` does. The paid module `@local/kybernos-servers` is read
+- A fresh instance used to cover the page with DSH's « Get started » dialog (it swallows mouse events). The core now replaces that
+  step; `live-page.mjs` presses the dialog's Close cross if an engine shows it anyway (pass `keepKeyDialog: true` to see it, as
+  `check-onboarding-live.mjs` does). The paid module `@local/kybernos-servers` is read
   from its private checkout when there is one.
 - With DSH_HOME alone the sandbox would write the real profile: several bundles hard-code `homedir()`, so HOME is
   isolated too.
@@ -703,6 +779,9 @@ clicks:
 - **Signed out:** the one button, its menu (Sign in = the device-code card, Create an account, Appearance, Settings, Website, Help, Send
   feedback), Escape / outside click / toggle, the three links (`window.open` is recorded, never followed), the Settings entry reaching DSH's
   dialog, the pairing state, the sun/moon segment.
+- **The keyboard only** (both menus): Enter on the focused button opens the menu with the focus on its first item, ArrowDown / ArrowUp walk it and wrap,
+  Home / End jump, Escape and Tab close it and give the focus back to the button. The keys are real key events (`Input.dispatchKeyEvent`); nothing is
+  focused by the page after the first focus. (The signed-out menu is a portal on `<body>`: without this it was out of the Tab order's reach.)
 - **Connected** (the status route is answered in the page): the profile row, the menu's skeleton, **Team settings, Account and Referral asking
   the host for a console link** (`section: plan`, `overview`, `overview`, on the active workspace, `open: true`; nothing is drawn in DSH's content
   zone; what is said when it is refused), then the embedded console opened through its bridge with a stored `kybernos.ws.console.url` (ignored) and
@@ -735,6 +814,18 @@ clicks:
   feature (`configured: false`), the plan does not include it (`entitled: false`), DSH cannot (`available: false`) or the status cannot be
   read. The footer has no phone button of its own any more: `check-mobile-remote-live.mjs`, `check-mobile-remote-pages.mjs` and
   `check-display-live.mjs` open the panel through this entry.
+- **Upgrade and « See plans »** (every answer is in the page; nothing is bought and no server is called): connected on Plus the menu has « Upgrade »
+  right after the plan and before Team settings, with the arrow that leaves DSH; on Free there is the pill and no entry (it opens the dialog), on Pro (the
+  top level) and on a paid Team plan there is none, and when the catalogue cannot be read the entry stays. Pressing it asks the host for the console link on the
+  active workspace's `plan` page with `open: true` (Team settings' own call), opens no dialog and draws nothing in DSH. Signed out, the menu is Sign in,
+  Create an account, **See plans** (the server's own `/account#plan`, recorded and never followed), Appearance, Settings, Website, Help, Send feedback.
+  Every payment route of the page is answered here as « no payment provider » unless a scene sets it; the phone link's gestures (pair, approve, revoke) are
+  answered too (refused unless a scene sets `fake.pair`). The hosted-page rule (no entry off loopback) is unit-tested (`test-cloud-client.mjs`), not played live.
+- **A server that does not answer** (the host's answer carries `server: { name, host, can_switch }`): the footer's notice names it (“label” and host) and offers
+  « Switch server » when another server exists (Settings opens on Servers; skipped, visibly, in a sandbox without the Servers module), and none when it is the only
+  one; the phone link's panel says the same and its « Switch server » closes the panel first. Three scenes run again at **390 px** (the drawer opened by
+  « Open the menu »: the menu with its entry, the notice and the signed-out menu must fit the window). With the sandbox's registry pointing at a closed local
+  port the REAL host answers the same way (the check does not need it: `POST /kybernos-cloud/console/link` and `/kybernos-mobile/remote/pair` both come back with the server).
 - **DSH's Settings** (connected scene): the navigation lists none of the five account entries that used to be ours (Account, Referral,
   Account security, Account data, Support & legal; matched by the React key each cell is rendered with, and by title for the four that have
   no namesake in DSH) while General, Appearance and Remote Control are still listed and still open. The account's pages are the footer
@@ -743,8 +834,9 @@ clicks:
   (no « Account » header any more) holding Servers (kept first), the section, then the Suite. Signed out the section is there, the two
   server actions say so and are disabled, the instructions field works. Connected: the instructions are saved through the host's file
   routes into the **sandbox's own `<DSH home>/AGENTS.md`** (read back after a reload, removed when emptied, a reserved marker refused;
-  the file is put back as it was at the end), « Import models » and « Send DSH chats » call their host routes (answered in the page) and a
-  refused re-import says so.
+  the file is put back as it was at the end). The models line says the list updates by itself; « Import models » and « Send DSH chats » are
+  under a folded « Advanced » (unfolded by the check): the first calls its host route (answered in the page) and a refused re-import says so,
+  the second asks « Send the list now? » first and calls its route only after « Yes, send » (Cancel sends nothing).
 - **The Upgrade dialog** (the catalogue, quote, checkout and portal are answered in the page; the host routes behind them are proven by
   `packages/kybernos-cloud/test-billing-proxy.mjs`): loading, the levels of a personal workspace, yearly/monthly and currency, Subscribe
   and what the dialog says after it, then every refusal — 501 (no payment provider), 403 (not an owner or admin), 409 (the billing portal is
@@ -803,6 +895,22 @@ mapping from the engine's structures. In a sandbox with no model key a run ends 
 `data-task`), `board-calendar`, `board-week`, `board-day`, `board-event`, `board-month`, `board-mcell`, `board-detail`,
 `board-banner`, `board-action` (`data-act`). Exit 0 / 1 / 3.
 
+## The Automations List and « Edit in chat »: `scripts/check-automations-list-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && scripts/sandbox/start.sh     # restart it after a host edit (the frequent-schedule guard is host code)
+node scripts/check-automations-list-live.mjs [--shots <dir>]
+```
+
+Same guards as the board check (never :3080, only a `.kybernos-sandbox` home; it writes the instance's `kybernos/tasks.json`, eight
+automations, and puts it back). It plays, on real clicks and real routes: the header over its cells (same left edge, every column, every
+row), one card with one border, the line under the name, the actions at the right (hidden at rest, shown on hover and on keyboard focus,
+a starred row keeps its star), the small switch and the one hover band; the schedules in words and their tooltips; no dd/mm date and
+the same style in a card's chip and date line; a schedule in another zone naming it; the Schedule form's time field and the presets
+keeping the time; `POST /kybernos/tasks` refusing `* * * * *` without `confirmFrequent`; « Edit in chat » from a row and from the page
+of an automation (a NEW chat, a draft naming the skill and carrying the definition, nothing sent); 390 px. Chrome cannot emulate
+`(hover: none)`, so « always visible on a touch screen » is the one rule it does not see: the CSS is `@media (hover:none)`. Exit 0 / 1 / 3.
+
 ## The Creations, Agent Teams and Skills pages, and the skeleton screens: `scripts/check-pages-live.mjs`
 
 ```bash
@@ -848,6 +956,12 @@ still renders. It exits 1 on what a bundle can prevent. Measured 2026-10-08 on 3
   (the only place the login URL is printed) never appears. A host half that spins the CPU at load takes the whole process down.
   Neither is fixable from a bundle: do not `await` the network at the top level of an `index.js`.
 
+The core is `packages/kybernos-plugin`, but DSH calls it `@local/kybernos`, it prints its boot lines as `[kybers] …` / `[gateway] …` and it mounts
+`/kybernos/*`: the script reads the log names from each bundle's `package.json` and its boot tags from the bundle's own sources, and it
+attributes `/kybernos/<short name>/*` to that bundle and the rest of `/kybernos/*` to the core. The probe routes must answer 200 on a
+healthy sandbox (a probe that always says 404 sees nothing); it waits up to 12 s for them to come back instead of judging them 2.5 s after the
+banner.
+
 The sandbox does not copy credentials and the script never touches `:3080`. Run it under a profile with no network if you want it
 to be certain that nothing leaves (a `sandbox-exec` profile denying outbound connections to everything but loopback works on macOS).
 
@@ -862,6 +976,18 @@ send (`kybernos-plugin/test-feedback.mjs`, 13), the skills relay (`kybernos-skil
 `ctx.web.fetch` is not used for a request of ours (its HTTP provider kills the whole process when a connect fails at once: no route, a
 firewall answering EPERM); a promise started with `void` carries a `.catch`, because an unhandled rejection ends DSH.
 
+## A skip is never a pass
+
+Every test that cannot run where it is (`test-*.mjs`, `check-*`) prints a line that starts with `SKIPPED:` and says what is not
+covered and why (no playwright, no jsdom, no python livekit, no DSH engine, a platform, root…), and a whole suite that skips ends with
+a summary line (`… 0 assertions run, SKIPPED`). The CI keeps the output of its two test loops and ends with `SKIPPED SUMMARY: N` and the
+list, so a green run states what it did not cover. `scripts/test-live-checks.mjs` fails on a test that prints « skipped » without it.
+`check-display-live.mjs` lists every view it could not measure the same way, and `--strict` fails on them.
+
+`scripts/check-opencode-probe-live.mjs` asks the REAL OpenCode CLI of the machine whether it is signed in. It reports a fact about the
+machine and is not a gate: the logic of that probe is tested hermetically (a stand-in CLI in both states) by
+`packages/dsh-subagent-maison/test-noyau.mjs`.
+
 ## What a person would see wrong: `scripts/check-display-live.mjs`
 
 ```bash
@@ -870,7 +996,8 @@ node scripts/check-display-live.mjs --out <dir> [--sizes desktop,narrow] [--sche
 ```
 
 A sweep, not a gate (exit 0; `--strict` makes any finding exit 1; 3 when it could not run; it **refuses `:3080`**). It walks the
-home page and its menus, the sidebar pages and their tabs, every Settings section and its tabs and help card, the account card
+home page and its menus, the sidebar pages and their tabs, every Settings section and its tabs and help card, the right pane's panels (`--only panels`:
+Slides empty, with its demo deck and its text editor open, Bricks and Modeleur empty), the account card
 (menu, switcher, update reminder, the phone panel in each of its five states, Settings › Remote Control) and the first-run wizard, with
 real clicks, on a 1400 px window and at 390 px (the width `kybernos-mobile` lays out for), in DSH's dark theme, its light theme
 and the shipped *Neutral violet*. The account, the phone link and the wizard are answered **inside the page** (CDP Fetch on
@@ -892,7 +1019,16 @@ where it was seen; findings are grouped across schemes. Keep the output outside 
 service, so each pass sets it through the real Theme page and a run needs its own sandbox (`KB_SANDBOX_ROOT`, a port of its own);
 findings on the DSH shell itself (classes with a hashed prefix such as `VOzbGW_navCell`) are not the plugins' to fix.
 
-The same rules, read from the source, are `scripts/test-display-rules.mjs` (run by CI).
+Two things to know when reading a report. A **panel kept by the host survives from one page to the next** (the right pane, its tabs, the Slides demo deck): the `panels` scenario
+opens a panel that is already there, and shows the empty Slides state only on a fresh host (restart the sandbox to see it again). And a `Leave site?` dialog (a panel with an
+unsaved edit) would hold every later reload for ever: the sweep answers it at once. What the sweep cannot see: a `filter` (kybernos-models draws its capability icons through
+`brightness(.72)` in the light schemes; the sweep reports their raw colour) and an animation caught half-way (the faded steps of an animated help card).
+
+The same rules, read from the source, are `scripts/test-display-rules.mjs` (run by CI). It resolves the colours for real (DSH's token values in
+both schemes, `var()`, `color-mix()`) and holds, for each defect the sweep found, the pair of colours that must not come back: a panel's empty state
+on its fixed light stage, an off switch's knob against its track, a type badge or a tag on its tint, the page roots that lift `label-tertiary` in the
+light schemes. `KB_DISPLAY_KEEP_GOING=1` lists every failing rule instead of stopping at the first; `KB_DISPLAY_ROOT=<another packages folder>` runs
+the same rules on an old tree.
 
 ## Traps
 

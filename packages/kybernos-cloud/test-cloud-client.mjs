@@ -97,6 +97,35 @@ assert.ok(clientSource.includes("onAccount: ouvrirAppli('overview')") && clientS
   for (const odd of [null, undefined, 'x', 7, []]) assert.equal(remoteOffer(odd), null, 'an answer that is not a status offers nothing')
   sok('Remote control : une entree apres Referral, lue sur le statut du lien telephone (cachee si non offert, hors forfait, ou illisible), plus de bouton telephone')
 }
+// A1-29: both footer menus (signed out, and the profile's) work with the keyboard. The focus moves INTO the menu when it opens, ArrowUp/ArrowDown (round the ends), Home and
+// End move between its buttons, Tab and Escape close it and give the focus back to the button that opened it. The signed-out menu is a portal on <body> (the last thing the
+// Tab order reaches), so without this a keyboard user cannot reach Sign in, Settings or Help from the footer.
+{
+  const m = clientSource.match(/\/\/ <menu-keys:begin>[\s\S]*?\/\/ <menu-keys:end>/)
+  assert.ok(m !== null, 'the keyboard contract of the footer menus is a marked block')
+  const menuTarget = new Function(m[0] + '\nreturn menuTarget')()
+  assert.equal(menuTarget('ArrowDown', 5, -1), 0, 'ArrowDown from the trigger enters on the first item')
+  assert.equal(menuTarget('ArrowDown', 5, 0), 1)
+  assert.equal(menuTarget('ArrowDown', 5, 4), 0, 'ArrowDown on the last item wraps to the first')
+  assert.equal(menuTarget('ArrowUp', 5, 3), 2)
+  assert.equal(menuTarget('ArrowUp', 5, 0), 4, 'ArrowUp on the first item wraps to the last')
+  assert.equal(menuTarget('ArrowUp', 5, -1), 4, 'ArrowUp from the trigger enters on the last item')
+  assert.equal(menuTarget('Home', 5, 3), 0)
+  assert.equal(menuTarget('End', 5, 1), 4)
+  for (const k of ['Enter', ' ', 'a', 'Tab', 'Escape', 'ArrowLeft', 'PageDown']) assert.equal(menuTarget(k, 5, 2), -1, k + ' moves nothing here')
+  assert.equal(menuTarget('ArrowDown', 0, -1), -1, 'an empty menu moves nothing')
+  assert.equal(menuTarget('End', 1, 0), 0)
+  for (const [name, from] of [['OffMenu', 'const OffMenu = '], ['UserMenu', 'const UserMenu = ']]) {
+    const i = clientSource.indexOf(from)
+    assert.ok(i > 0, name + ' is there')
+    const body = clientSource.slice(i, clientSource.indexOf('\n        const ', i + 60))
+    assert.ok(/onKeyDown: menuKeyDown\(/.test(body), name + ': the menu element handles the arrow keys')
+    assert.ok(/focusFirstItem\(/.test(body), name + ': the focus moves into the menu when it opens')
+    assert.ok(/focusTrigger\(props\.toggleRef\)/.test(body), name + ': Escape gives the focus back to the button that opened the menu')
+  }
+  assert.ok(/toggleRef: cardRef/.test(clientSource) && /ref: cardRef/.test(clientSource), 'the profile menu knows its button')
+  sok('menus du pied : le focus entre dans le menu, fleches/Home/End, Tab et Echap le ferment et rendent le focus au bouton')
+}
 // The words: a shared space is a Team, creating one says so (docs/vocabulary.md in the app repo: workspace = the container incl. the personal one).
 for (const [needle, why] of [["wsNewTitle: 'Create a team'", 'en: Create a team'], ["wsNewName: 'Team name'", 'en: Team name'],
   ["wsNewTitle: 'Créer une équipe'", 'fr: Créer une équipe'], ["wsNewName: 'Nom de l\\'équipe'", 'fr: Nom de l équipe']]) {
@@ -176,8 +205,10 @@ try {
   React = require('react')
   renderToStaticMarkup = require('react-dom/server').renderToStaticMarkup
 } catch (e) {
-  console.log('SKIP — react/react-dom introuvables. Relancez avec :')
-  console.log('  NODE_PATH=<dossier node_modules contenant react> node ' + join('kybernos-cloud', 'test-cloud-client.mjs'))
+  // A skip is never a pass: only the static checks above ran, the rendered footer and team switcher were not covered.
+  console.log('SKIPPED: the rendered part of the cloud client (footer chip, team switcher) — react / react-dom not found. Re-run with:')
+  console.log('  NODE_PATH=<a node_modules that has react + react-dom> node ' + join('kybernos-cloud', 'test-cloud-client.mjs'))
+  console.log('\nkybernos-cloud client — ' + staticPass + ' static checks OK, the rendered part SKIPPED')
   process.exit(0)
 }
 
@@ -283,6 +314,31 @@ assert.ok(html.includes('<svg'), 'icone presente')
 // La carte n'est pas ouverte au premier rendu : le scrim ne doit pas exister.
 assert.equal(html.includes('kbc-scrim'), false)
 ok('rendu React de la rangee de pied sans erreur (CTA + icone)')
+
+// WP-07 (A2-17): the language is what Kybernos resolved. English by default (nothing resolved), French when it says « kybernos » or fr*,
+// English for another language: the French dictionary is SERVED (it used to sit behind the English one and never showed).
+{
+  const row = () => renderToStaticMarkup(React.createElement(registered.component, null))
+  assert.ok(html.includes('Sign in') && !html.includes('Se connecter'), 'nothing resolved: English')
+  globalThis.window.__KB_LANG_RESOLVE__ = () => 'kybernos'
+  const fr = row()
+  assert.ok(fr.includes('Se connecter') && fr.includes('Créer un compte') && !fr.includes('Sign in'), 'Kybernos in French: the French dictionary is shown')
+  globalThis.window.__KB_LANG_RESOLVE__ = () => 'fr-CA'
+  assert.ok(row().includes('Se connecter'), 'a fr* base: French')
+  for (const other of ['en', 'es', 'ar', 'zh']) {
+    globalThis.window.__KB_LANG_RESOLVE__ = () => other
+    assert.ok(row().includes('Sign in') && !row().includes('Se connecter'), other + ': English (no pack, never French)')
+  }
+  globalThis.window.__KB_LANG_RESOLVE__ = () => { throw new Error('not ready') }
+  assert.ok(row().includes('Sign in'), 'a resolver that throws: English')
+  delete globalThis.window.__KB_LANG_RESOLVE__
+  // the French of the dictionary speaks « tu »; the English uses one verb pair (Sign in / Sign out)
+  const dict = readFileSync(join(here, 'client.js'), 'utf8')
+  const frBlock = dict.slice(dict.indexOf('    const DICT = {'), dict.indexOf('      en: {', dict.indexOf('    const DICT = {')))
+  assert.ok(!/(?<![A-Za-zÀ-ÿ])(vous|votre|vos)(?![A-Za-zÀ-ÿ])/i.test(frBlock), 'the French dictionary says « tu », not « vous »')
+  assert.ok(/profLogout: 'Sign out'/.test(dict) && /disconnect: 'Sign out'/.test(dict) && !/'Log out'/.test(dict), 'English: Sign in / Sign out, one verb pair')
+  ok('langue : anglais par defaut, francais servi pour Kybernos/fr*, anglais pour toute autre langue; « tu »; Sign in / Sign out')
+}
 
 // ── La feuille de style couvre bien les trois états de la carte ─────────────
 // (un composant ne s'appelle pas hors de React : on vérifie donc le CSS qui
@@ -480,27 +536,50 @@ ok('carte : compteur d usage en pourcentage (lu a l hote, ambre des 75 %, phrase
   const r = ReactClient.createRoot(root)
   await act(async () => { r.render(createElement(Section, null)); await new Promise((res) => setTimeout(res, 30)) })
   let html = htmlDe(root)
-  assert.ok(html.includes('data-kb="ky-section"') && html.includes('data-kb="ky-instructions"') && html.includes('data-kb="ky-models"') && html.includes('data-kb="ky-chats"'), 'les trois blocs')
+  assert.ok(html.includes('data-kb="ky-section"') && html.includes('data-kb="ky-instructions"') && html.includes('data-kb="ky-models"') && html.includes('data-kb="ky-advanced"') && !html.includes('data-kb="ky-chats"'), 'the instructions, the models and a folded Advanced')
   assert.ok(html.includes('Kept on this computer, in /home/dev/.dsh/AGENTS.md'), 'la page dit ou sont gardees les instructions : sur cet ordinateur')
   assert.ok(html.includes('data-kb="ky-signed-out"'), 'deconnecte : les actions qui demandent un serveur le disent')
   const tag = (h, k) => { const i = h.indexOf('data-kb="' + k + '"'); return i < 0 ? '' : h.slice(h.lastIndexOf('<', i), h.indexOf('>', i)) }
-  assert.ok(/disabled/.test(tag(html, 'ky-models-run')) && /disabled/.test(tag(html, 'ky-chats-run')), 'deconnecte : les boutons du serveur sont desactives')
+  // N-07: the two developer actions (re-import the models, send the DSH chats) are not on the page a newcomer reads: they sit under a folded « Advanced ».
+  assert.ok(/aria-expanded="false"/.test(tag(html, 'ky-adv-toggle')) && html.includes('>Advanced<'), 'the server actions are behind a folded Advanced')
+  assert.ok(!html.includes('data-kb="ky-models-run"') && !html.includes('data-kb="ky-chats-run"') && !html.includes('Send DSH chats') && !html.includes('Re-import') && !html.includes('Import models'), 'folded: neither Re-import nor Send DSH chats is on screen')
+  assert.ok(html.includes('The list updates by itself when your plan or your server changes.'), 'the models update by themselves, and the page says so')
+  assert.equal(html.includes('Re-reads the active server'), false, 'the button\'s sentence is not on the page as it opens')
   assert.equal(html.includes('kybernos-account') || html.includes('Referral') || html.includes('Security'), false, 'rien du compte dans la section')
   assert.ok(calls.includes('GET /instructions') && !calls.some((c) => c.startsWith('POST /models/sync') || c.startsWith('POST /chats/push')), 'rien n est envoye a la lecture')
   r.unmount()
+  // Unfolded (the page can start open): the two actions, their sentences, and disabled while signed out.
+  const rootAdv = element(doc)
+  const rAdv = ReactClient.createRoot(rootAdv)
+  await act(async () => { rAdv.render(createElement(Section, { advanced: true })); await new Promise((res) => setTimeout(res, 30)) })
+  const htmlAdv = htmlDe(rootAdv)
+  assert.ok(/aria-expanded="true"/.test(tag(htmlAdv, 'ky-adv-toggle')), 'unfolded: the toggle says so')
+  assert.ok(/disabled/.test(tag(htmlAdv, 'ky-models-run')) && /disabled/.test(tag(htmlAdv, 'ky-chats-run')), 'signed out: the server buttons are disabled')
+  assert.ok(htmlAdv.includes('Re-reads the active server') && htmlAdv.includes('Import models'), 'unfolded: the models button and what it does')
+  assert.ok(htmlAdv.includes('Sends the title and date of your DSH chats (never what is said in them) to your Kybernos account, so they appear in the “DSH conversations” list of the web app. Nothing is sent until you confirm.'), 'unfolded: one sentence says what is sent, why, and that nothing goes without a yes')
+  assert.ok(htmlAdv.includes('Send DSH chats') && !htmlAdv.includes('data-kb="ky-chats-confirm"'), 'unfolded: the button is there, the confirmation is not open')
+  rAdv.unmount()
 
   // Signed in: what the last import and the last send did.
   cloud = { ok: true, connected: true, state: { user: { email: 'dev@example.test' }, models: { count: 5, plan: 'free', settings: true, imported_at: '2026-10-14T10:00:00Z' }, chats_last_push: { ok: true, pushed: 2, at: '2026-10-14T11:00:00Z' } } }
   calls.length = 0
   const root2 = element(doc)
   const r2 = ReactClient.createRoot(root2)
-  await act(async () => { r2.render(createElement(Section, null)); await new Promise((res) => setTimeout(res, 30)) })
+  await act(async () => { r2.render(createElement(Section, { advanced: true })); await new Promise((res) => setTimeout(res, 30)) })
   html = htmlDe(root2)
   assert.equal(html.includes('data-kb="ky-signed-out"'), false, 'connecte : aucune note de connexion')
   assert.ok(html.includes('5 models · plan free'), 'le nombre de modeles et la formule du dernier import')
   assert.ok(html.includes('Last send · 2'), 'le dernier envoi des chats')
   assert.ok(html.includes('Re-import'), 'avec des modeles, le bouton dit Re-import')
+  assert.ok(!/disabled/.test(tag(html, 'ky-models-run')) && !/disabled/.test(tag(html, 'ky-chats-run')), 'signed in: both buttons are active')
   r2.unmount()
+  // Folded, signed in: the models line is still the page's, and neither action is.
+  const root3 = element(doc)
+  const r3 = ReactClient.createRoot(root3)
+  await act(async () => { r3.render(createElement(Section, null)); await new Promise((res) => setTimeout(res, 30)) })
+  html = htmlDe(root3)
+  assert.ok(html.includes('5 models · plan free') && !html.includes('Last send') && !html.includes('data-kb="ky-chats-run"') && !html.includes('Re-import'), 'folded: the models line stays, no action')
+  r3.unmount()
   globalThis.fetch = realFetch
 }
 ok('section Kybernos : instructions lues sur l hote, deconnecte (actions serveur desactivees et dites) puis connecte (dernier import, dernier envoi)')

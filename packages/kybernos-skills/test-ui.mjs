@@ -197,7 +197,8 @@ plugin.apply({ get: (n) => (n === 'slots' ? { inject: (name, make) => { if (name
 if (Screen === null) { console.log('  ✗ the screen was not registered'); process.exit(1) }
 
 const open = async (w, lang) => {
-  store.set('kybernos.theme.lang', lang || 'en')
+  // the page reads the language Kybernos resolved (window.__KB_LANG_RESOLVE__), not a storage key
+  globalThis.window.__KB_LANG_RESOLVE__ = () => lang || 'en'
   globalThis.fetch = async (url, init) => { INFLIGHT.n += 1; try { return await w.fetch(url, init) } finally { INFLIGHT.n -= 1 } }
   const root = mount(React.createElement(Screen, { sessionId: '' }))
   await root.settle()
@@ -338,6 +339,37 @@ console.log('Install: a confirmation first, with the facts of the skill in front
   const d = part(root, 'install-confirm')
   check('in French: the same sentence, filled with the skill in front of the user', d.includes('Installer télécharge l’archive du dépôt mattpocock/skills') || d.includes('Installer télécharge l\'archive du dépôt mattpocock/skills'), d)
   check('in French: the skill and the destination are the real ones', d.includes('« tdd »') && d.includes(HOME + '/tdd'), d)
+}
+
+console.log('The first-visit animation and the help button (V-05, V-33)')
+{
+  // The hub publishes window.__KB_HELP__ (Help, Intro); here two stand-ins that only record what the page asks for.
+  const seen = []
+  const Help = (props) => React.createElement('span', { 'data-kb': 'stub-help', 'data-id': props.id })
+  const Intro = (props) => { seen.push(props); return React.createElement('div', { 'data-kb': 'stub-intro', 'data-id': props.id }) }
+  globalThis.window.__KB_HELP__ = { version: 1, actions: true, Help, Intro }
+  try {
+    const root = await open(world(), 'en')
+    const p = seen[seen.length - 1]
+    check('the page draws one animation, keyed by its own bundle', kb(root, 'stub-intro').length === 1 && kb(root, 'stub-intro')[0].props['data-id'] === 'kybernos-skills')
+    check('it sits under the header and before the tabs', all(root, (n) => n.props['data-kb'] === 'stub-intro' || hasClass(n, 'kbs-ctlrow')).map((n) => (n.props['data-kb'] === 'stub-intro' ? 'intro' : 'tabs')).join() === 'intro,tabs')
+    check('three steps, each with a title and a sentence', p !== undefined && p.steps.length === 3 && p.steps.every((x) => x.t.length > 3 && x.b.length > 20), p && p.steps)
+    check('the steps say pick, install, use', p !== undefined && /pick/i.test(p.steps[0].t) && /install/i.test(p.steps[1].t) && /agents/i.test(p.steps[2].t), p && p.steps.map((x) => x.t))
+    check('the mock carries the page’s own words: its name, a skill, the real Install button, three states, three labels', p !== undefined && p.mock.bar === 'Skills' && p.mock.hot === 'PDF' && p.mock.actions[0] === 'Install' && p.mock.states.length === 3 && p.mock.actions.length === 3 && p.mock.rows.length >= 1, p && p.mock)
+    check('a title and a caption for the screen reader', p !== undefined && p.title.length > 5 && p.caption.length > 20)
+    seen.length = 0
+    const fr = await open(world(), 'fr')
+    const q = seen[seen.length - 1]
+    check('in French: the same animation, in French', q !== undefined && /trois étapes/.test(q.title) && q.steps.every((x) => x.t.length > 3) && q.mock.actions[0] === 'Installer', q && q.title)
+    check('« Help » is still drawn once, next to the title (one form of the button)', kb(root, 'stub-help').length === 1 && kb(root, 'stub-help')[0].props['data-id'] === 'kybernos-skills')
+    globalThis.window.__KB_HELP__ = { version: 1, Help }
+    const old = await open(world(), 'en')
+    check('a Suite without the animation (an older hub): the page is the same, without it, and nothing breaks', kb(old, 'stub-intro').length === 0 && kb(old, 'stub-help').length === 1)
+    delete globalThis.window.__KB_HELP__
+    const none = await open(world(), 'en')
+    check('no Suite at all: no help, no animation, the page still renders', kb(none, 'stub-intro').length === 0 && kb(none, 'stub-help').length === 0 && all(none, (n) => hasClass(n, 'kbs-ctlrow')).length === 1)
+    void fr
+  } finally { delete globalThis.window.__KB_HELP__ }
 }
 
 console.log('\n' + pass + ' passed' + (fail > 0 ? ', ' + fail + ' FAILED' : ''))

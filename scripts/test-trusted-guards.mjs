@@ -40,7 +40,9 @@ for (const f of guarded) {
   // every place that tests the host against the loopback list must also ask kbTrusted
   const sites = [...src.matchAll(/(?:indexOf|includes)\(u\.host\)( >= 0)?/g)]
   const bare = sites.filter((m) => !src.slice(m.index, m.index + m[0].length + 30).includes('kbTrusted(u.host)'))
-  ok(rel + ': ' + sites.length + ' host check(s), all ask kbTrusted', sites.length > 0 && bare.length === 0)
+  // A file whose only Origin rule is the shared write guard (`writeGuard` of session-guard.mjs, itself one of the guard files above) has no host check of its own.
+  const viaSharedGuard = /from '\.\/session-guard\.mjs'/.test(src)
+  ok(rel + ': ' + sites.length + ' host check(s), all ask kbTrusted', (sites.length > 0 || viaSharedGuard) && bare.length === 0)
 }
 
 // ── helper semantics, taken from the file itself ──

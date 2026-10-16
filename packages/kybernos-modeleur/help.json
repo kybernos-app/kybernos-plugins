@@ -5,12 +5,12 @@
   },
   "steps": [
     {
-      "fr": "Demandez un modèle au chat, par exemple « dessine un phare en 3D » : l’onglet « Modeleur » s’ouvre seul à droite.",
-      "en": "Ask the chat for a model, for example “draw a lighthouse in 3D”: the “Modeleur” tab opens by itself on the right."
+      "fr": "Demandez un modèle au chat, par exemple « dessinez un phare en 3D » : l’onglet « Modeleur » s’ouvre seul à droite.",
+      "en": "Ask the chat for a model, for example “draw a lighthouse in 3D”: the “3D modeller” tab opens by itself on the right."
     },
     {
-      "fr": "En 3D, faites glisser pour tourner, molette pour zoomer ; « 3/4 », « Front », « Top », « Spin » (en 2D : « Grille », « Ajuster »).",
-      "en": "In 3D, drag to turn and scroll to zoom; “3/4”, “Front”, “Top”, “Spin” change the view (in 2D: “Grille”, “Ajuster”)."
+      "fr": "En 3D, faites glisser pour tourner, molette pour zoomer ; « 3/4 », « Face », « Dessus », « Rotation » (en 2D : « Grille », « Ajuster »).",
+      "en": "In 3D, drag to turn and scroll to zoom; “3/4”, “Front”, “Top”, “Spin” change the view (in 2D: “Grid”, “Fit”)."
     },
     {
       "fr": "Sous la scène, ▶ rejoue la pose, le curseur avance à la main, 0.5× à 4× règlent la vitesse.",
@@ -23,11 +23,12 @@
   ],
   "where": {
     "fr": "Barre latérale droite, onglet « Modeleur » (il s’ouvre seul)",
-    "en": "Right sidebar, “Modeleur” tab (opens by itself)",
+    "en": "Right sidebar, “3D modeller” tab (opens by itself)",
     "page": false
   },
   "good": {
     "fr": "Un modèle n’est pas enregistré : il disparaît quand DSH redémarre. Passer de la 3D à la 2D (ou l’inverse) repart aussi d’un modèle neuf.",
     "en": "A model is not saved: it disappears when DSH restarts. Switching from 3D to 2D (or back) also starts from a new model."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/create-with-kybernos/draw-a-2d-or-3d-model/"
 }

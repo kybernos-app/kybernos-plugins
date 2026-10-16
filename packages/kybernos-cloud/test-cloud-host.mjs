@@ -36,7 +36,7 @@ let kyberPersonal = false
 // What the server answers to POST …/computers/{id}/resume | suspend | ticket (the computers module, ADR 0052): a status and a body.
 let computerActionAnswer = null
 const computerActionSeen = []
-let kyberTelegram = { configured: true, enabled: true, bot_username: 'kybernos_bot', linked: { display: 'Miled @milede', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } }
+let kyberTelegram = { configured: true, enabled: true, bot_username: 'kybernos_bot', linked: { display: 'Miled @alex', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } }
 let kyberHome = { id: 'cmp-home', origin_host: 'cmp-home.computers.test', paused_reason: null, name: 'Home', state: 'suspended', desired: 'suspended', mode: 'sleep', region: 'ams', last_active_at: '2026-10-14T22:50:00.000Z', reported_version: 'p12', network: { mode: 'public', allow: [] } }
 // Profil servi par GET /v1/me : null → 404 (serveur plus ancien que la route),
 // sinon la valeur renvoyée. Il ÉVOLUE en cours de test : c'est l'objet même
@@ -554,6 +554,11 @@ const ctx = {
 }
 
 const mod = await import('./index.js')
+// The routes that DELETE (session: true) need DSH's signed session cookie as well as the right Origin: the machine secret the guard checks it against
+// (test-write-guard.mjs reads it from the file; here the seam gives it).
+const { sessionSource } = await import('./session-guard.mjs')
+const { SESSION_SECRET, browserHeaders } = await import('./lib-session-test.mjs')
+sessionSource.secret = () => SESSION_SECRET
 // Aucun minuteur ne doit tirer sur le faux serveur en arriere-plan : un
 // rechargement non demande fausserait les compteurs de requetes des tests.
 mod.MEMORY_TUNING.writeRefreshMs = -1
@@ -579,11 +584,18 @@ const fakeReq = (method, origin, body, url) => ({
     if (body !== undefined) yield Buffer.from(JSON.stringify(body))
   },
 })
+const SESSION_ROUTES = new Set(['/kybernos-cloud/members/remove', '/kybernos-cloud/memory/delete', '/kybernos-cloud/team/lessons/delete', '/kybernos-cloud/team/skills/delete', '/kybernos-cloud/connections/delete'])
 const hit = async (path, method, origin, body) => {
   const handler = routes.get(path.split('?')[0])
   assert.ok(handler !== undefined, 'route manquante: ' + path)
   const res = fakeRes()
-  await handler(fakeReq(method, origin, body, path), res)
+  const req = fakeReq(method, origin, body, path)
+  // A route that deletes is called the way the person's page calls it: its own Origin (unless the test names another) and DSH's session cookie.
+  if (SESSION_ROUTES.has(path.split('?')[0])) {
+    req.socket = { localPort: 3080 }
+    req.headers = { ...req.headers, cookie: browserHeaders().cookie, ...(origin === undefined ? { origin: browserHeaders().origin } : {}) }
+  }
+  await handler(req, res)
   return res
 }
 
@@ -743,7 +755,7 @@ try {
   assert.equal(noneMarket.body.ok, false)
   assert.equal(noneMarket.body.connected, false)
   assert.deepEqual(noneMarket.body.items, [])
-  assert.match(String(noneMarket.body.motif), /aucun compte lie/)
+  assert.match(String(noneMarket.body.motif), /no account linked/)
   ok('catalogue distant non lie : motif explicite + liste vide (aucune fixture)')
 
   // 2. Appairage.
@@ -1188,7 +1200,7 @@ try {
     const r = await hit('/kybernos-cloud/kyber', 'GET', 'http://127.0.0.1:3080')
     assert.equal(r.status, 200)
     assert.equal(r.body.connected, true)
-    assert.deepEqual(r.body.telegram, { configured: true, enabled: true, bot: 'kybernos_bot', linked: { display: 'Miled @milede', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } })
+    assert.deepEqual(r.body.telegram, { configured: true, enabled: true, bot: 'kybernos_bot', linked: { display: 'Miled @alex', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } })
     // `manual_control` is true when the server does not say (an older server): the buttons stay; false (the Free plan) hides them.
     assert.deepEqual(r.body.home, { id: 'cmp-home', name: 'Home', state: 'suspended', desired: 'suspended', mode: 'sleep', region: 'ams', last_active_at: '2026-10-14T22:50:00.000Z', version: 'p12', network: 'public', paused_reason: null, manual_control: true })
     assert.deepEqual(r.body.computers, [{ id: 'cmp-home', name: 'Home', state: 'suspended' }], 'the person\'s cloud computers, to choose among')
@@ -1637,9 +1649,9 @@ try {
     { role: 'user', content: [{ type: 'text', text: 'je prefere les reponses courtes' }] },
     { role: 'assistant', content: [{ type: 'text', text: 'noted' }] },
   ])
-  assert.ok(soumis.includes('UTILISATEUR :'), 'le texte doit etiqueter l utilisateur')
-  assert.ok(soumis.includes('AGENT :'), 'le texte doit etiqueter l agent')
-  assert.ok(soumis.indexOf('UTILISATEUR :') < soumis.indexOf('AGENT :'))
+  assert.ok(soumis.includes('USER:'), 'le texte doit etiqueter l utilisateur')
+  assert.ok(soumis.includes('AGENT:'), 'le texte doit etiqueter l agent')
+  assert.ok(soumis.indexOf('USER:') < soumis.indexOf('AGENT:'))
   assert.equal(mod.lastTurnText([]), null)
   ok('capture : le texte soumis nomme les roles (utilisateur vs agent)')
 
@@ -1657,15 +1669,15 @@ try {
   assert.equal(soumis3.includes('Time sampled'), false, 'l echantillon d heure de DSH n est pas la personne')
   assert.equal(soumis3.includes('runtime context'), false)
   assert.equal(soumis3.includes('model changed'), false)
-  assert.equal(mod.lastTurnText([dsh('time-context', 'Time sampled while preparing turn 1'), { role: 'assistant', content: [{ type: 'text', text: 'x' }] }]).includes('UTILISATEUR'), false, 'un tour sans mots de la personne n a pas de section utilisateur')
+  assert.equal(mod.lastTurnText([dsh('time-context', 'Time sampled while preparing turn 1'), { role: 'assistant', content: [{ type: 'text', text: 'x' }] }]).includes('USER:'), false, 'un tour sans mots de la personne n a pas de section utilisateur')
   ok('capture : seuls les mots de la personne (source.kind user) sont soumis, pas les messages de DSH au role user')
 
   // 10n-ter. Le bloc injecte est retire avant extraction. Sans ce retrait, la
   // capture relit sa propre injection et reecrit le meme souvenir : boucle de
   // retroaction constatee EN LIVE (souvenir #53, duplicata exact de #51).
-  const bloc = '[KYBERNOS MEMORY] Souvenirs du compte Kybernos :\n- (policy) une politique\n\n'
-    + 'Ces souvenirs viennent du compte. N\'en invente jamais : appelle memory_write pour en ajouter '
-    + '(genre fact|preference|event|policy), memory_search pour en chercher.'
+  const bloc = '[KYBERNOS MEMORY] The user\'s Kybernos account memories:\n- (policy) a policy\n\n'
+    + 'These memories come from the account. Never make any up: call memory_write to add one '
+    + '(kind fact|preference|event|policy), memory_search to look one up.'
   assert.equal(mod.stripMemoryBlock(bloc).trim(), '', 'le bloc seul doit disparaitre')
   const melange = 'je prefere le russe\n\n' + bloc + '\n\nmerci'
   assert.equal(mod.stripMemoryBlock(melange).includes('KYBERNOS MEMORY'), false)
@@ -1806,7 +1818,7 @@ try {
   mod.memoryCache.at = Date.now()
   const real600 = mod.renderMemoryChunk(readState())
   assert.ok(real600.length <= mod.MEMORY_MAX_INJECT_CHARS, 'le chunk (cadre compris) tient dans ' + mod.MEMORY_MAX_INJECT_CHARS + ' : ' + real600.length)
-  assert.ok(real600.indexOf('autres souvenirs non envoyés') >= 0, 'le modele est prevenu que d autres souvenirs existent')
+  assert.ok(real600.indexOf('more memories not sent') >= 0, 'le modele est prevenu que d autres souvenirs existent')
   ok('selection : les plus recents entrent, epingles plafonnes, budget et ordre respectes')
 
   // 11d. Le cache : une lecture refusee GARDE l'ancien contenu (et le dit) ; le TTL
@@ -2352,6 +2364,17 @@ try {
   writeFileSync(tk_settingsFile, JSON.stringify({ brain: '' }))
   const tk_nomodel = await hit(tk_url('/scan'), 'POST')
   assert.deepEqual([llmCalls.length, tk_nomodel.body.brain.error], [0, 'pas_de_modele_detude'], 'no Study model set: no call, and it says why')
+  // Automatic (WP-08): an empty setting is the model kybernos-sessions publishes; `none` is the person's own « no Study model ».
+  const tk_published = Symbol.for('kybernos.studyModel')
+  globalThis[tk_published] = () => 'kybernos/auto'
+  assert.equal(mod.studyModel(), 'kybernos/auto', 'Automatic: the model kybernos-sessions publishes')
+  const tk_autoView = (await hit(tk_url(''), 'GET')).body.brain
+  assert.deepEqual([tk_autoView.model, tk_autoView.auto, tk_autoView.none], ['kybernos/auto', true, false], 'the page is told which model, and that it was picked for the person')
+  writeFileSync(tk_settingsFile, JSON.stringify({ brain: 'none' }))
+  assert.equal(mod.studyModel(), '', 'None wins over the published model')
+  assert.equal((await hit(tk_url(''), 'GET')).body.brain.none, true)
+  delete globalThis[tk_published]
+  writeFileSync(tk_settingsFile, JSON.stringify({ brain: '' }))
   writeFileSync(tk_settingsFile, JSON.stringify({ brain: 'zai-coding-cn/GLM-5.3-Flash' }))
   llmEnabled = false
   assert.equal((await hit(tk_url('/scan'), 'POST')).body.brain.error, 'llm_indisponible', 'no llm service: no call, and it says why')
@@ -2968,11 +2991,11 @@ try {
 
   const sansSlug = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, {})
   assert.equal(sansSlug.body.ok, false)
-  assert.match(String(sansSlug.body.error), /slug manquant/)
+  assert.match(String(sansSlug.body.error), /slug missing/)
 
   const inconnu = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, { slug: 'pas-au-catalogue' })
   assert.equal(inconnu.body.ok, false)
-  assert.match(String(inconnu.body.error), /plus publie/)
+  assert.match(String(inconnu.body.error), /no longer published/)
 
   const poser = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, { slug: 'support-concierge' })
   assert.equal(poser.body.ok, true, JSON.stringify(poser.body))
@@ -2995,7 +3018,7 @@ try {
   const rejoue = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, { slug: 'support-concierge' })
   assert.equal(rejoue.body.ok, false)
   assert.equal(rejoue.body.refuse, true)
-  assert.match(String(rejoue.body.error), /existe deja/)
+  assert.match(String(rejoue.body.error), /already exists/)
   const apres = readFileSync(ymlPath, 'utf8')
   assert.equal(apres, yml)
   ok('un kyber deja la n est JAMAIS ecrase en silence (fichier identique)')
@@ -3015,7 +3038,7 @@ try {
     const mark = seen.marketUrls.length
     const old = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, { slug: 'pas-au-catalogue' })
     assert.deepEqual(urlsSince(mark), ['/v1/marketplace/pas-au-catalogue', '/v1/marketplace'])
-    assert.match(String(old.body.error), /plus publie/)
+    assert.match(String(old.body.error), /no longer published/)
     const cat1 = await hit('/kybernos-cloud/marketplace', 'GET')
     assert.deepEqual([cat1.body.items.length, cat1.body.partiel], [1, undefined])
     assert.deepEqual(urlsSince(mark + 2), ['/v1/marketplace'], 'no has_more: one request, as before')
@@ -3076,7 +3099,7 @@ try {
     market.listCalls = 0
     const nope = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, { slug: 'nope' })
     assert.equal(nope.body.ok, false)
-    assert.equal(nope.body.error, 'cette Agent Team n\'est plus publiee sous l\'id « nope »')
+    assert.equal(nope.body.error, 'this Agent Team is no longer published under the id “nope”')
     assert.deepEqual(urlsSince(mark).slice(0, 2), ['/v1/marketplace/nope', '/v1/marketplace'], 'a 404 on the address: the pages of the list are read before saying it is gone')
     assert.equal(urlsSince(mark).length, 4)
     ok('an item that exists nowhere: the address says 404, the three pages say so too, and only then « plus publie »')
@@ -3089,13 +3112,13 @@ try {
     assert.equal(part.body.ok, true)
     assert.equal(part.body.partiel, true)
     assert.equal(part.body.items.length, 200)
-    assert.match(part.body.motif, /^catalogue incomplet : la page 2 est indisponible \(code 502\), 200 Agent Team\(s\) lue\(s\)$/)
+    assert.match(part.body.motif, /^incomplete catalogue: page 2 is unavailable \(code 502\), 200 Agent Team\(s\) read$/)
     market.listCalls = 0
     const mark = seen.marketUrls.length
     const lost = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, { slug: 'nope' })
     assert.equal(lost.body.ok, false)
-    assert.match(String(lost.body.error), /catalogue incomplet/)
-    assert.equal(/plus publie/.test(String(lost.body.error)), false, 'it never says « no longer published » about a catalogue it could not read to the end')
+    assert.match(String(lost.body.error), /incomplete catalogue/)
+    assert.equal(/no longer published/.test(String(lost.body.error)), false, 'it never says « no longer published » about a catalogue it could not read to the end')
     assert.equal(urlsSince(mark).length, 3)
     market.failPage = null
     ok('a failing second page: the first page and a note (`partiel`, the reason) for the panel; an install that cannot be found says the catalogue is incomplete')
@@ -3105,7 +3128,7 @@ try {
     market.byAddressStatus = 500
     const mark = seen.marketUrls.length
     const bad = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, { slug: 'kyber-9' })
-    assert.deepEqual([bad.body.ok, bad.body.error], [false, 'catalogue indisponible (code 500)'])
+    assert.deepEqual([bad.body.ok, bad.body.error], [false, 'catalogue unavailable (code 500)'])
     assert.deepEqual(urlsSince(mark), ['/v1/marketplace/kyber-9'])
     assert.equal(existsSync(join(kybersFixture, 'kyber-9')), false)
     market.byAddressStatus = null
@@ -3113,7 +3136,7 @@ try {
     const before = seen.marketUrls.length
     for (const slug of ['../escape', 'a/b', '.hidden', 'x y', 'a%2Fb', '-x', 'é', 'x'.repeat(129)]) {
       const refused = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, { slug })
-      assert.deepEqual([refused.body.ok, refused.body.error], [false, 'slug invalide'], slug)
+      assert.deepEqual([refused.body.ok, refused.body.error], [false, 'invalid slug'], slug)
     }
     assert.equal(seen.marketUrls.length, before, 'no request for a refused slug')
     assert.equal(existsSync(join(kybersFixture, '..', 'escape')), false)
@@ -3129,7 +3152,7 @@ try {
     assert.equal(endless.body.partiel, true)
     assert.equal(urlsSince(mark).length, 25)
     assert.equal(endless.body.items.length, 5000)
-    assert.match(endless.body.motif, /limite du plugin/)
+    assert.match(endless.body.motif, /plugin limit/)
     market.endless = false
     ok('a server that always says has_more: the plugin stops at 25 pages / 5000 items, shows them and says it stopped')
   }

@@ -3,10 +3,12 @@
 // read it. No browser, no DSH.
 //
 //   node scripts/test-help.mjs
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { catalogueDuDepot, validerAide } from './build-catalog.mjs'
+import { helpSource, describeHelpSource } from './lib-help-source.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 let pass = 0
@@ -37,6 +39,18 @@ check('a page card is checked like the bundle’s own (a step count, a word, a l
 check('a page card has no « pages » of its own, and no unknown field', throwsWith(() => validerAide('x', { ...good(), pages: { voice: { ...page(), pages: {} } } }), /pages\.voice: unknown field "pages"/) && throwsWith(() => validerAide('x', { ...good(), pages: { voice: { ...page(), tips: [] } } }), /unknown field "tips"/))
 check('a page key is a short lower-case word', throwsWith(() => validerAide('x', { ...good(), pages: { 'Voice Page': page() } }), /pages key "Voice Page"/))
 
+console.log('the link to the article (url, V-06)')
+const ARTICLE = 'https://help.kybernos.app/{lang}/features/what-is-remote-control/'
+check('« url » is optional: a card without one comes back without one', validerAide('x', good()).url === undefined)
+check('a good address comes back as written, with the other fields', (() => { const a = validerAide('x', { ...good(), url: ARTICLE }); return a.url === ARTICLE && a.steps.length === 2 && Object.keys(a).sort().join() === 'good,steps,url,what,where' })())
+check('the form « help.kybernos.app/<slug> » passes too, with or without a trailing slash', validerAide('x', { ...good(), url: 'https://help.kybernos.app/skills' }).url === 'https://help.kybernos.app/skills' && validerAide('x', { ...good(), url: 'https://help.kybernos.app/skills/' }).url === 'https://help.kybernos.app/skills/')
+check('only the help site: another host, http, a look-alike host, a user name, a port are refused', ['https://example.com/skills', 'http://help.kybernos.app/skills', 'https://help.kybernos.app.evil.example/skills', 'https://help.kybernos.app@evil.example/skills', 'https://help.kybernos.app:8443/skills', 'https://evil.example/https://help.kybernos.app/skills'].every((url) => throwsWith(() => validerAide('x', { ...good(), url }), /url must be an address on help\.kybernos\.app/)))
+check('a script, a query, a fragment, a space, an upper-case or empty path are refused', ['javascript:alert(1)', 'https://help.kybernos.app/skills?x=1', 'https://help.kybernos.app/skills#top', 'https://help.kybernos.app/sk ills', 'https://help.kybernos.app/Skills', 'https://help.kybernos.app/', 'https://help.kybernos.app', 'https://help.kybernos.app//skills', 'https://help.kybernos.app/../skills'].every((url) => throwsWith(() => validerAide('x', { ...good(), url }), /url must be an address on help\.kybernos\.app/)))
+check('« {lang} » stands for the language of the reader, and only as the first part of the path', throwsWith(() => validerAide('x', { ...good(), url: 'https://help.kybernos.app/features/{lang}/x' }), /url must be/) && throwsWith(() => validerAide('x', { ...good(), url: 'https://help.kybernos.app/{other}/x' }), /url must be/))
+check('not a string, or empty: refused', throwsWith(() => validerAide('x', { ...good(), url: 12 }), /url must be/) && throwsWith(() => validerAide('x', { ...good(), url: '' }), /url must be/))
+check('the error names the bundle and the field', throwsWith(() => validerAide('kybernos-zz', { ...good(), url: 'https://example.com/a' }), /help\.json of "kybernos-zz": url/))
+check('a page card can carry its own article, checked the same way', validerAide('x', { ...good(), pages: { voice: { ...page(), url: 'https://help.kybernos.app/{lang}/agents-and-tools/talk-to-your-assistant-out-loud/' } } }).pages.voice.url === 'https://help.kybernos.app/{lang}/agents-and-tools/talk-to-your-assistant-out-loud/' && throwsWith(() => validerAide('x', { ...good(), pages: { voice: { ...page(), url: 'https://example.com/a' } } }), /pages\.voice\.url must be an address/))
+
 console.log('every bundle has one')
 const lifecycle = JSON.parse(readFileSync(join(REPO, 'scripts', 'lifecycle-packages.json'), 'utf8')).packages
 let catalogue = null
@@ -64,6 +78,7 @@ if (catalogue !== null) {
   const liar = catalogue.modules.filter((m) => m.aide.where.page === true && !(existsSync(join(REPO, 'packages', m.id, 'client.js')) && surfaces.test(readFileSync(join(REPO, 'packages', m.id, 'client.js'), 'utf8'))) && !(existsSync(join(REPO, 'packages', m.id, 'src', 'plugin.js')) && surfaces.test(readFileSync(join(REPO, 'packages', m.id, 'src', 'plugin.js'), 'utf8')))).map((m) => m.id)
   check('a help that says « it has a page » belongs to a bundle that registers one', liar.length === 0, liar)
   const core = catalogue.modules.find((m) => m.id === 'kybernos-plugin')
+  check('the Agent presets page (a page of DSH itself, drawn by no plugin) has its own card in the core bundle, and the hub asks for exactly that one', core !== undefined && core.aide.pages.presets !== undefined && /preset/i.test(core.aide.pages.presets.title.en) && /Settings › Agent presets/.test(core.aide.pages.presets.where.en) && /id: 'kybernos-plugin', page: 'presets'/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'client.js'), 'utf8')))
   check('the Voice page has its own card (it is a page of the core bundle, whose general help is about Agent Teams)', core !== undefined && core.aide.pages !== undefined && core.aide.pages.voice !== undefined && /voice/i.test(core.aide.pages.voice.title.en))
 }
 
@@ -86,20 +101,56 @@ console.log('the « ? How it works » buttons')
   check('a page asks for the help of its own bundle, and always behind a guard', wrong.length === 0, wrong)
   check('the pages that carry the button', ['kybernos-theme', 'kybernos-models', 'kybernos-slash', 'kybernos-workers', 'kybernos-maintenance', 'kybernos-modeles-locaux', 'kybernos-memory', 'kybernos-skills', 'kybernos-sessions', 'kybernos-hub', 'kybernos-mobile'].every((d) => placed.includes(d + '→' + d)), placed)
   const hub = readFileSync(join(REPO, 'packages', 'kybernos-hub', 'client.js'), 'utf8')
-  check('the Suite publishes it (version 1) and shows the same help on a module’s page', /window\.__KB_HELP__ = construireAide\(React\)/.test(hub) && /return \{ version: 1, actions: true, Help \}/.test(hub) && /'data-kb': 'suite-aide'/.test(hub))
-  check('the host keeps the shipped help when the online catalogue lacks it', /aides\.get\(m\.id\)/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'suite-host.mjs'), 'utf8')))
+  check('the Suite publishes it (version 1) and shows the same help on a module’s page', /aide = construireAide\(React\); window\.__KB_HELP__ = aide/.test(hub) && /return \{ version: 1, actions: true, Help, Intro \}/.test(hub) && /'data-kb': 'suite-aide'/.test(hub))
+  check('the host reads the shipped help of a module by its id', /aides\.get\(m\.id\)/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'suite-host.mjs'), 'utf8')))
   check('a page card that is not there draws nothing (never the bundle’s help on the wrong page)', /const card = page === undefined \? null/.test(hub) && /if \(card === undefined\) return null/.test(hub))
-  check('the host keeps the shipped page cards when the online catalogue lacks them', /livree\.pages !== undefined && m\.aide\.pages === undefined/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'suite-host.mjs'), 'utf8')))
+  check('the host shows the help that shipped (page cards included) for every module this copy holds, whatever the online catalogue says', /const aide = livree !== undefined \? livree : m\.aide/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'suite-host.mjs'), 'utf8')))
   check('one « ? How it works » button on the Voice page: the hub pins no second one over it (it did, with a MutationObserver, and the two overlapped)', !/installerAideVoix|AIDE_VOIX|kbhp-voice/.test(hub))
   check('the Voice page asks for its own card', /Help, \{ id: 'kybernos-plugin', page: 'voice' \}/.test(readFileSync(join(REPO, 'packages', 'kybernos-plugin', 'client.js'), 'utf8')))
+  // One form of the button on every page (A5-19): the pages that draw it themselves (the core's Agent Teams / Automations, the
+  // Calls tabs) copy the Suite's pill declaration for declaration, so the three cannot drift apart unnoticed.
+  {
+    const decls = (src, selector) => { const m = src.match(new RegExp(selector.replace(/[.[\]]/g, '\\$&') + '\\{([^}]*)\\}')); return m === null ? null : m[1].split(';').map((x) => x.trim()).filter(Boolean) }
+    const read = (d) => readFileSync(join(REPO, 'packages', d, 'client.js'), 'utf8')
+    const ref = decls(hub, '.kbhp-btn')
+    const disc = decls(hub, '.kbhp-q')
+    const same = (a, b, extra = []) => a !== null && b !== null && a.every((x) => b.includes(x)) && b.every((x) => a.includes(x) || extra.includes(x))
+    check('the core’s pill (Agent Teams, Automations) has the Suite pill’s declarations', same(ref, decls(read('kybernos-plugin'), '.kb6-helpbtn'), ['flex:0 0 auto']), { ref })
+    check('the Calls tabs’ pill has the Suite pill’s declarations', same(ref, decls(read('kybernos-call'), '.kbcl-hl')), { ref })
+    check('the Language page’s button (it keeps its own panel) has them too', same(ref, decls(read('kybernos-language'), '.kbth-help-btn')), { ref })
+    check('and the Atlas page’s, which used to be a plain « Help » button', same(ref, decls(read('kybernos-atlas'), '.kbat-help')), { ref })
+    check('and the « ? » disc is the same on all of them', [['kybernos-plugin', '.kb6-helpq'], ['kybernos-call', '.kbcl-hq'], ['kybernos-language', '.kbth-help-q'], ['kybernos-atlas', '.kbat-helpq']].every(([d, sel]) => same(disc, decls(read(d), sel))), { disc })
+    const label = (src, re) => re.test(src)
+    check('the label is the same words everywhere: « How it works » / « Comment ça marche »', label(hub, /kt\('Comment ça marche', 'How it works'\)/) && label(read('kybernos-plugin'), /'kbui\.howitworks': \{ kybernos: 'Comment ça marche', en: 'How it works' \}/) && label(read('kybernos-call'), /kt\('Comment ça marche', 'How it works'\)/) && label(read('kybernos-language'), /helpBtn: \['Comment ça marche', 'How it works'\]/) && label(read('kybernos-atlas'), /'How it works'\)/))
+  }
   const css = hub.match(/\.kbhp-[a-z]+/g) || []
   const clash = []
   for (const d of dirs) {
     if (d === 'kybernos-hub') continue
     const f = join(REPO, 'packages', d, 'client.js')
-    if (existsSync(f) && /\.kbhp-/.test(readFileSync(f, 'utf8'))) clash.push(d)
+    if (existsSync(f) && /\.kbh[pi]-/.test(readFileSync(f, 'utf8'))) clash.push(d)
   }
-  check('the kbhp- class prefix is the hub’s alone', css.length > 5 && clash.length === 0, clash)
+  check('the kbhp- and kbhi- class prefixes are the hub’s alone', css.length > 5 && clash.length === 0, clash)
+}
+
+// ── Which text a live check compares a card with (audit 2026-10-16, A3-33) ──
+console.log('which source the cards come from (check-help-live)')
+{
+  const home = mkdtempSync(join(tmpdir(), 'kb-help-source-'))
+  const write = (doc) => { mkdirSync(join(home, 'kybernos'), { recursive: true }); writeFileSync(join(home, 'kybernos', 'catalogue-distant.json'), JSON.stringify(doc)) }
+  try {
+    check('no downloaded catalogue: the cards are the help.json of the checkout', (() => { const x = helpSource({ repo: REPO, home }); return x.cached === false && x.differ.length === 0 && /shipped with this checkout/.test(describeHelpSource(x)) })())
+    const shipped = JSON.parse(readFileSync(join(REPO, 'packages', 'kybernos-models', 'help.json'), 'utf8'))
+    const reordered = { where: shipped.where, what: shipped.what, steps: shipped.steps, ...(shipped.url === undefined ? {} : { url: shipped.url }), ...(shipped.good === undefined ? {} : { good: shipped.good }) }
+    write({ suite: { version: '9.9.9' }, catalogue: { modules: [{ id: 'kybernos-models', aide: reordered }] } })
+    check('a downloaded catalogue with the same help (whatever the order of the keys): cached, nothing differs', (() => { const x = helpSource({ repo: REPO, home }); return x.cached === true && x.version === '9.9.9' && x.differ.length === 0 && /say the same/.test(describeHelpSource(x)) })())
+    write({ suite: { version: '9.9.9' }, catalogue: { modules: [{ id: 'kybernos-models', aide: { ...reordered, steps: [{ fr: 'Ancienne étape.', en: 'An older step.' }, ...shipped.steps.slice(1)] } }, { id: 'kybernos-nowhere', aide: { what: {} } }] } })
+    check('a catalogue one release behind: the module whose help differs is named, with the version', (() => { const x = helpSource({ repo: REPO, home }); const d = describeHelpSource(x); return x.differ.join() === 'kybernos-models' && /9\.9\.9/.test(d) && /kybernos-models/.test(d) && /next signed release/.test(d) })())
+    writeFileSync(join(home, 'kybernos', 'catalogue-distant.json'), 'not json')
+    check('an unreadable file is no catalogue (never an error)', helpSource({ repo: REPO, home }).cached === false)
+  } finally { rmSync(home, { recursive: true, force: true }) }
+  const live = readFileSync(join(REPO, 'scripts', 'check-help-live.mjs'), 'utf8')
+  check('the live check says the source of the cards before it compares them', /describeHelpSource\(source\)/.test(live) && /helpSource\(\{ repo: REPO, home: dshHome\(\) \}\)/.test(live))
 }
 
 console.log('\n' + pass + ' ✓  ' + fail + ' ✗')

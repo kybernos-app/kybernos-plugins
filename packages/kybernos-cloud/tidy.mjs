@@ -10,7 +10,8 @@ import { AUTO_MIN_SCORE, unclearPairs } from './dedupe.mjs'
 //          'ask'   merge nothing without a click
 // schedule when a run starts by itself: never, at DSH start (if the last run is over 3 days old), daily, weekly,
 //          or once 50 more items than at the last run exist
-// brain    let the Study model judge the pairs that look alike but are not duplicates (it is sent their text)
+// brain    let the Study model judge the pairs that look alike but are not duplicates (it is sent their text); the Study model
+//          itself is the Kybernos Settings choice, Automatic by default (see readStudyChoice)
 export const TIDY_DEFAULTS = { mode: 'auto', schedule: 'weekly', brain: false }
 export const TIDY_MODES = ['auto', 'ask']
 export const TIDY_SCHEDULES = ['off', 'start', 'daily', 'weekly', 'n50']
@@ -113,13 +114,32 @@ export const removalChunks = (groups, max = 50) => {
 // ── The Study model ──────────────────────────────────────────────────────────────────────────────────────
 const STUDY_MODEL = /^[A-Za-z0-9._:-]+\/[A-Za-z0-9._:-]+$/
 
-/** The Study model of Kybernos Settings (`brain`, « route/id »), or '' when none is set. Reads a small file, never throws. */
-export const readStudyModel = (read) => {
+/** What kybernos-sessions publishes: the AUTOMATIC Study model (« route/id », or '' when it finds none). That bundle picks it from
+ *  what the person connected and publishes it as a function, since bundles cannot import each other. Never throws. */
+export const publishedStudyModel = () => {
   try {
-    const parsed = JSON.parse(read())
-    const v = parsed !== null && typeof parsed === 'object' ? parsed.brain : ''
+    const published = globalThis[Symbol.for('kybernos.studyModel')]
+    const v = typeof published === 'function' ? published() : ''
     return typeof v === 'string' && v.length <= 200 && STUDY_MODEL.test(v) ? v : ''
   } catch (e) { return '' }
+}
+
+/**
+ * The Study model IN FORCE. `brain` of Kybernos Settings is the person's choice: a « route/id » is their pick, « none » is no
+ * Study model, and empty — or anything else, or no readable file, as the Settings page reads it — is Automatic, the model
+ * kybernos-sessions publishes. `read` gives the text of the settings file; `automatic` gives the automatic model.
+ * Returns { model: « route/id » or '', auto: it was picked for the person, none: they chose none }. Never throws.
+ */
+export const readStudyChoice = (read, automatic = publishedStudyModel) => {
+  let raw = ''
+  try {
+    const parsed = JSON.parse(read())
+    raw = parsed !== null && typeof parsed === 'object' && typeof parsed.brain === 'string' ? parsed.brain.trim() : ''
+  } catch (e) { raw = '' }
+  if (raw === 'none') return { model: '', auto: false, none: true }
+  if (raw !== '' && raw.length <= 200 && STUDY_MODEL.test(raw)) return { model: raw, auto: false, none: false }
+  const model = automatic()
+  return { model, auto: model !== '', none: false }
 }
 
 // FNV-1a: a short stable hash of a text (to notice that a judged pair has changed)

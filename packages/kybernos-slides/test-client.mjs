@@ -15,6 +15,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { readFileSync } from 'node:fs'
+import { assemble } from './scripts/build.mjs'
 
 let echecs = 0
 const ok = (label, condition, detail) => {
@@ -45,8 +46,10 @@ const fauxCanvas = () => ({
 })
 
 let definition = null
+let langue = 'kybernos' // the language the page resolves to: the checks below read the French panel first, then the language block
 globalThis.window = {
   __ModuleLoader__: { load: (d) => { definition = d } },
+  __KB_LANG_RESOLVE__: () => { if (langue === 'throws') throw new Error('langue pas encore connue'); return langue },
   devicePixelRatio: 1,
   addEventListener: () => {},
 }
@@ -101,6 +104,17 @@ const deck = T.normaliserDeck([
 ok('les slides sont normalisées, les déchets écartés', deck.length === 4, String(deck.length))
 ok('les champs manquants valent chaîne vide', deck[0].points.length === 0 && deck[0].note === '')
 ok('la normalisation borne le deck à 60', T.normaliserDeck(Array.from({ length: 80 }, () => ({ titre: 'x' }))).length === 60)
+
+// A4-03: the thumbnail of a « statement » slide shows what the stage shows (its title, and the line under it), not an empty `grand`.
+{
+  const texts = (n, acc = []) => { if (n === null || n === undefined) return acc; if (typeof n === 'string') { acc.push(n); return acc } for (const e of (n.enfants || [])) texts(e, acc); return acc }
+  const th = T.THEMES.sombre
+  const st = T.normaliserDeck([{ layout: 'statement', kicker: 'The premise', titre: 'Shells should come prepared.', sous: 'and say so' }])[0]
+  const t = texts(T.miniature(st, th))
+  ok('A4-03: the thumbnail of a statement slide shows its title (as the stage does)', t.includes('Shells should come prepared.'), t.join(' | '))
+  ok('A4-03: ...and the line under it, with the kicker', t.includes('and say so') && t.includes('The premise'), t.join(' | '))
+  ok('A4-03: the thumbnail of a figure slide still shows its big number', texts(T.miniature(T.normaliserDeck([{ layout: 'chiffre', grand: '12 s', legende: 'x' }])[0], th)).includes('12 s'))
+}
 
 // ── 2. moteur de frappe ─────────────────────────────────────────────────────
 const iv = T.budget(deck)
@@ -273,6 +287,38 @@ ok('in the default state the bar is dimmed, not hidden', barre !== null && barre
   etat = T.pasSonde(etat, { version: 3 }, ouvrir)
   ok('PROBE: the next deck opens the tab again', appels === 3 && etat.dejaOuvert === true && etat.versionVue === 3)
   ok('PROBE: an unreachable host changes nothing', T.pasSonde(etat, null, ouvrir) === etat && appels === 3)
+}
+
+// ── the build and the demo ──────────────────────────────────────────────────
+// client.js is generated from src/plugin.js (scripts/build.mjs). It was edited by hand in four commits and src/plugin.js stayed behind:
+// the next build would have undone the focus fix, the reachable tool bar and the kbsd- selectors (audit 2026-10-16).
+ok('BUILD: client.js is the build of its sources (node packages/kybernos-slides/scripts/build.mjs)', assemble() === source)
+// The demo's caption names what the tool bar offers; it once promised keyboard shortcuts (T) and (B) that did not exist.
+const legende = (lg) => { langue = lg; return T.DEMOS[0].prompt }
+ok('DEMO: its caption names the tools of the bar (French), not shortcuts that do not exist', /outil Texte/.test(legende('kybernos')) && /outil Pinceau/.test(legende('kybernos')) && !/\([A-Z]\)/.test(legende('kybernos')) && source.includes("['texte', kt('✎ Texte', '✎ Text')]") && source.includes("['pinceau', kt('✎ Pinceau', '✎ Brush')]"), legende('kybernos'))
+ok('DEMO: …and in English, the tools of the English bar', /Text tool/.test(legende('en')) && /Brush tool/.test(legende('en')) && !/\([A-Z]\)/.test(legende('en')), legende('en'))
+
+// ── the language (A2-31, A2-08): French for the French UI, English for every other language ──
+{
+  const textes = () => JSON.stringify(panneau()) + ' ' + JSON.stringify(T.DEMOS[0])
+  const avecDeckBarre = (lg) => { langue = lg; deckPourTest = { version: 1, t0: Date.now() - 999_999, dureeMs: 10, titre: 'x', theme: 'sombre', mode: 'nouveau', slides: T.normaliserDeck(T.DEMOS[0].slides) }; const r = JSON.stringify(panneau()); deckPourTest = null; return r }
+  for (const [lg, attendu, interdit] of [
+    ['en', ['Ask the chat for a deck', 'See the demo', 'Slides panel — the chat writes, you edit, it corrects.', 'Three gestures', 'Your turn.'], /Demandez|Voir la démo|Trois gestes|À vous|le chat écrit/],
+    ['kybernos', ['Demandez un deck au chat', 'Voir la démo', 'Trois gestes', 'À vous.', 'vous modifiez'], /Ask the chat|See the demo|Three gestures|Your turn/],
+    ['es', ['Ask the chat for a deck', 'See the demo', 'Three gestures'], /Demandez|Voir la démo|Trois gestes/],
+    ['ar', ['Ask the chat for a deck', 'See the demo'], /Demandez|Voir la démo/],
+    ['throws', ['Ask the chat for a deck', 'See the demo'], /Demandez|Voir la démo/],
+  ]) {
+    langue = lg
+    const t = textes()
+    ok(`language « ${lg} »: the empty panel and the demo deck speak the language of the page`, attendu.every((m) => t.includes(m)) && !interdit.test(t), t.slice(0, 120))
+  }
+  const barreEn = avecDeckBarre('en')
+  ok('English: the tool bar reads View / Text / Brush / Eraser / Clear all', ['"View"', '"✎ Text"', '"✎ Brush"', '"Eraser"', '"Clear all"'].every((m) => barreEn.includes(m)) && !/Gomme|Tout effacer|"Voir"/.test(barreEn))
+  const barreFr = avecDeckBarre('kybernos')
+  ok('French: the same bar reads Voir / Texte / Pinceau / Gomme / Tout effacer', ['"Voir"', '"✎ Texte"', '"✎ Pinceau"', '"Gomme"', '"Tout effacer"'].every((m) => barreFr.includes(m)))
+  ok('Spanish (no table of ours): English, never French', !/Gomme|Tout effacer|"Voir"/.test(avecDeckBarre('es')))
+  langue = 'kybernos'
 }
 
 console.log(echecs === 0 ? '\nClient : tout est vert.' : `\nClient : ${echecs} échec(s).`)

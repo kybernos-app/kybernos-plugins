@@ -154,7 +154,10 @@ export function mountRoutes (webServer, host) {
 
   route('state', ['GET'], async (req, res) => {
     const session = q(req).get('session')
-    const cur = host.getCurrent(session)
+    let cur = host.getCurrent(session)
+    // A remembered scene this session may not read (another workspace's, or a folder that is gone) is not this session's: the panel
+    // shows its empty state, not a red error and a refused request every poll.
+    if (cur !== null && cur !== undefined && !(await host.confineExisting(cur.path, str(session))).ok) cur = null
     send(res, 200, { ok: true, current: cur ? { path: cur.path, title: cur.title, at: cur.at } : null, frame: host.pendingFrame(session), now: Date.now() })
   })
 
@@ -232,7 +235,7 @@ export function mountRoutes (webServer, host) {
     send(res, r.ok ? 200 : 409, r)
   })
 
-  // An exported video, written next to its scene (artifacts/ is where Livrables lists media).
+  // An exported video, written next to its scene (artifacts/ is where Creations lists media).
   route('export', ['POST'], async (req, res) => {
     const p = q(req)
     const ext = { mp4: '.mp4', webm: '.webm' }[p.get('format')]

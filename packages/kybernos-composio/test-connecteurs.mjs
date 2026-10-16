@@ -32,7 +32,7 @@ const SKILL_PATCH = (extraBlocks) => [
   '# connecteur:weird', '- insert:', '    - id: mcp-client-weird', "      name: '@deepseek-ai/dsh-mcp-client'", '      config:', '        serverName: weird', '        transport: stdio', '        command: /usr/bin/true', '        autoApprove: true', '',
   ...(extraBlocks || []), '- id: kybernos-computers', '  disabled: false', ''].join('\n')
 
-if (yaml === null) console.log('(no DSH engine: the cases that read the blocks back are skipped)')
+if (yaml === null) console.log('SKIPPED: the cases that read the blocks back — no DSH engine')
 
 // ── reading what the skill wrote ────────────────────────────────────────────
 {
@@ -98,7 +98,7 @@ if (yaml !== null) {
   ok('deleting a connector removes its block and says so', del.code === 200 && del.json.removed === true && !h.files.read('patch').includes('mcp-client-zcode') && !(await get()).connecteurs.some((c) => c.nom === 'zcode'))
   ok('...the response no longer claims a restart is needed (DSH reloads the patch itself)', del.json.needRestart === undefined && save.json.needRestart === undefined)
   h.stop()
-} else console.log('- skipped, no DSH engine: edit, rename and delete of the skill\'s blocks')
+} else console.log('SKIPPED: edit, rename and delete of the skill\'s blocks — no DSH engine')
 
 // ── what DSH says about each connector ──────────────────────────────────────
 {

@@ -152,7 +152,7 @@ export function monterRoutes (webServer, hub, liens = {}) {
  *   GET  /kybernos-hub/update/status → { etat: idle | telechargement | extraction | installation | termine | echec, … }
  *   POST /kybernos-hub/engine     → { confirm: true, version } — put the DSH engine on a version this plugin was TESTED with (the
  *                                   lifecycle robot, snapshot first, rollback on failure); 202, polled on the same status route
- * deps: { catalogue, lireActivation(), ecrireActivation(obj), executer(argv), relancer(), hub, hebergement() (optional), zoneMoteur() → { min, max } | null,
+ * deps: { catalogue, lireActivation(), ecrireActivation(obj), executer(argv), relancer({ port }), hub, hebergement() (optional), zoneMoteur() → { min, max } | null,
  *         cles(), versionSuite(), urlCatalogue(), lireCache(), ecrireCache({octets,signature}), telecharger(url,{max}),
  *         telechargerVers(url,{max}), extraire(fichier), executerArchive(racine), nettoyer(), racineDev(), plateforme }
  */
@@ -205,7 +205,7 @@ export function monterSuite (webServer, deps, liens = {}) {
     if (corps === undefined) return undefined
     if (corps.confirm !== true) return envoyer(res, 400, { ok: false, error: 'confirmation-required' })
     let r
-    try { r = await deps.relancer() } catch (e) { return envoyer(res, 500, { ok: false, error: 'relaunch-failed', detail: String(e?.message ?? e) }) }
+    try { r = await deps.relancer({ port: req?.socket?.localPort }) } catch (e) { return envoyer(res, 500, { ok: false, error: 'relaunch-failed', detail: String(e?.message ?? e) }) }
     return envoyer(res, r?.ok === true ? 200 : 500, r?.ok === true ? { ok: true } : { ok: false, error: r?.error ?? 'relaunch-failed' })
   }
   const rafraichirRoute = async (req, res) => {

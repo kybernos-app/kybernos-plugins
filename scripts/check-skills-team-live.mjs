@@ -8,7 +8,8 @@
 // (/kybernos-cloud/team/skills*) and the disk half (/kybernos-skills/team/pack and /install), so nothing is written anywhere and no
 // account is needed. Every call the page makes to a faked route is recorded and checked.
 //
-// Needs the GUI running (127.0.0.1:3080) and a signed session (docs/dev/live-testing.md). Exit 0 all good, 1 a check failed, 3 not run.
+// Needs a GUI that serves a kybernos-skills client (the sandbox of scripts/sandbox, or the user's own DSH on :3080) and a signed session (docs/dev/live-testing.md).
+// Exit 0 all good, 1 a check failed, 3 not run.
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
@@ -27,6 +28,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const mine = readFileSync(resolve(here, '..', 'packages', 'kybernos-skills', 'client.js'), 'utf8')
 const mainCheckout = (() => {
   if (process.env.KB_SERVED_TREE) return process.env.KB_SERVED_TREE
+  if ((process.env.KB_HOST || '127.0.0.1:3080') !== '127.0.0.1:3080' && process.env.KB_WORKTREE) return process.env.KB_WORKTREE // a sandbox serves its own checkout
   try { return dirname(resolve(here, '..', execFileSync('git', ['-C', here, 'rev-parse', '--git-common-dir'], { encoding: 'utf8' }).trim())) } catch (e) { return null }
 })()
 const servedPath = mainCheckout === null ? null : join(mainCheckout, 'packages', 'kybernos-skills', 'client.js')
@@ -216,8 +218,12 @@ try {
   check('the Yours and Discover segments are still there', /Yours/.test(seg) && /Discover/.test(seg), seg)
 
   // ── member ──
+  // The page opens on Featured and reads the user's own skills in the background (the Team rows say Install / Installed / Update from them): wait until the
+  // count of Yours is there before going to Team, or the rows are read while the host is still scanning the folders.
+  check('the user\'s own skills are loaded (the Yours segment counts them)', await has('/Yours\\s*[1-9]/.test((' + q('.kbsub-group') + ' || {}).innerText || "")', 30000))
   await clickBtn('.kbs-root .kbsub-group', 'Team')
   check('Team opens on the approved list', await has(q('.kbt') + ' !== null'))
+  await has('document.querySelectorAll(".kbs-root .kbt .kbs-row:not(.kb-sk-row)").length >= 4', 30000) // the rows come from the (faked) server after the table is drawn with its bones
   const names = (await page.evalJs(`JSON.stringify(Array.from(document.querySelectorAll('.kbs-root .kbt .kbs-row .kbt-name .n')).map((e) => e.innerText))`)).val
   check('four approved skills, in the server\'s order', names === JSON.stringify(['release-notes', 'brand-voice', 'sql-review', 'onboarding-checklist']), names)
   const rowsText = (await page.evalJs(`JSON.stringify(Array.from(document.querySelectorAll('.kbs-root .kbt .kbs-row')).map((e) => e.innerText.replace(/\\s+/g, ' ')))`)).val || '[]'
@@ -231,6 +237,10 @@ try {
   await shot('1-member-list')
 
   // install, update
+  // The install goes to the first writable folder the host announces (GET /kybernos-skills/status, read once when the page mounts): press Install once the page has
+  // that answer (a resource entry of the page is the proof), or the folder it sends is still empty.
+  await has(`performance.getEntriesByType('resource').some((e) => e.name.indexOf('/kybernos-skills/status') >= 0)`, 30000)
+  await page.evalJs('new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))')
   fx.calls.length = 0
   await rowButton('release-notes', 'Install')
   await sleep(900)
@@ -302,7 +312,7 @@ try {
   await clickBtn('.kbs-root .kbsub-group', 'Yours'); await sleep(300)
   await clickBtn('.kbs-root .kbsub-group', 'Team'); await sleep(900)
   check('an admin sees a dot on Team when proposals wait', await has(q('.kbsub-group .kbt-dot') + ' !== null'))
-  check('an admin sees Approved, To review and Retired, and the "Add a skill" button', /To review/.test(await text('.kbt-subrow')) && /Retired/.test(await text('.kbt-subrow')) && /Add a skill/.test(await text('.kbs-ctlrow')), await text('.kbt-subrow'))
+  check('an admin sees Approved, To review and Retired, and the "Add a skill" button', /To review/.test(await text('.kbt-subrow')) && /Retired/.test(await text('.kbt-subrow')) && /Add a skill/.test(await text('.kb6-headrow')), await text('.kb6-headrow'))
   await clickBtn('.kbs-root .kbt-subrow', 'To review')
   check('the review queue shows both proposals with their files', await has(q('.kbt-card .kbt-files') + ' !== null') && document_count(await text('.kb8-page'), /Approve/g) >= 2, await text('.kb8-page'))
   const queue = await text('.kb8-page')
@@ -323,8 +333,9 @@ try {
   await sleep(900)
   const appr = lastCall('/kybernos-cloud/team/skills/review')
   check('approving sends only the id and the decision (the files cannot be edited)', appr && appr.body.id === 5 && appr.body.decision === 'approve' && Object.keys(appr.body).sort().join() === 'decision,id', appr)
-  await rowButton('ai-team-creator', 'Approve')
-  await sleep(900)
+  // The third proposal is the one the member made above, whatever skill of this machine that was (the sheet offers the user's own skills): approve it by its name.
+  await rowButton(okOpt[1].split(' · ')[0], 'Approve')
+  await has(q('.kb-empty') + ' !== null', 8000)
   check('the queue is then empty and says so', await has(q('.kb-empty') + ' !== null && /Nothing to review/.test(' + q('.kb-empty') + '.innerText)'), await text('.kb8-page'))
   await shot('6b-queue-empty')
   await clickBtn('.kbs-root .kbt-subrow', 'Approved')
@@ -342,7 +353,7 @@ try {
 
   // ── the other segments still work ──
   await clickBtn('.kbs-root .kbsub-group', 'Yours')
-  check('Yours still lists the user\'s skills as cards, with the Add menu and no Team toolbar', await has(q('.kb8-grid .kb8-card') + ' !== null') && /Create a skill|Créer/.test(await text('.kbs-top')) && !/Propose a skill|Add a skill/.test(await text('.kbs-top') + await text('.kbs-ctlrow')), await text('.kbs-top'))
+  check('Yours still lists the user\'s skills as cards, with the Add menu and no Team toolbar', await has(q('.kb8-grid .kb8-card') + ' !== null') && /Create a skill|Créer/.test(await text('.kb6-headrow')) && !/Propose a skill|Add a skill/.test(await text('.kb6-headrow') + await text('.kbs-ctlrow')), await text('.kb6-headrow'))
   await shot('9-yours')
   await clickBtn('.kbs-root .kbsub-group', 'Discover')
   check('Discover renders (the ranking, or the "unavailable" panel) and no longer offers to reconnect a Vercel token', await has('/Index unavailable|Discover|SKILL|Querying/.test(' + q('.kb8-page') + '.innerText)', 20000) && !/Reconnect the index|Vercel/.test(await text('.kb8-page')), await text('.kb8-page'))
@@ -361,7 +372,8 @@ try {
       await shot('7-locked')
     } else check('"' + code + '" does not send anyone to the plans page', link === null, link)
   }
-  check('the lock shows on the segment', (await page.evalJs(`!!document.querySelector('.kbs-root .kbsub-group .kb-seg:nth-child(3) svg')`)).val === true)
+  // The segment is found by its name, not by its position: Featured was added in front of Yours and moved Team from third to fourth.
+  check('the lock shows on the Team segment', (await page.evalJs(`(() => { const t = Array.from(document.querySelectorAll('.kbs-root .kbsub-group .kb-seg')).find((b) => /^Team/.test((b.innerText || '').trim())); return !!t && !!t.querySelector('svg') })()`)).val === true)
   fx.lock = null
 
   check('no script error was thrown by the page during the run', pageErrors.length === 0, pageErrors)

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "« Install as app » pour les mini-apps de la barre latérale droite : bouton App dans chaque panneau, export en app native macOS flottante (indépendante de DSH) avec démarrage automatique optionnel.",
+  "description": "“Install as app” for the mini-apps of the right sidebar: an App button in each panel, exported as a floating native macOS app (independent of DSH) with optional launch at login.",
   "license": "Apache-2.0",
   "main": "index.js",
   "exports": {

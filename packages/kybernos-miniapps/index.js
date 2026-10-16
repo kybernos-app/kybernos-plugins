@@ -1,20 +1,20 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// kybernos-miniapps — moitié HÔTE.
+// kybernos-miniapps — HOST half.
 //
-// « Install as app » pour les mini-apps de la barre latérale droite
-// (Briques, Modeleur, Slides…) : le panneau s'exporte en page autonome,
-// l'hôte la pose dans une petite app native macOS flottante (template Swift
-// du bundle), avec LaunchAgent optionnel pour le démarrage automatique.
+// « Install as app » for the mini-apps of the right sidebar
+// (Bricks, Modeler, Slides…): the panel is exported as a standalone page,
+// and the host puts it in a small floating native macOS app (the bundle's
+// Swift template), with an optional LaunchAgent to start it automatically.
 //
 //   POST /kybernos-miniapps/install   { id, titre, html, largeur, hauteur, auto }
 //   POST /kybernos-miniapps/uninstall { id }
 //   GET  /kybernos-miniapps/list
 //
-// Le HTML vient du client, qui sérialise le panneau (DOM + styles + canvas
-// figés en images). C'est donc un INSTANTANÉ : une mini-app qui parle au
-// serveur en direct (relecture animée) vivra figée hors DSH — assumé.
+// The HTML comes from the client, which serialises the panel (DOM + styles +
+// canvases frozen as images). It is therefore a SNAPSHOT: a mini-app that talks
+// to the server live (animated replay) will live frozen outside DSH — accepted.
 //
-// macOS uniquement (NSPanel + codesign + launchctl). Ailleurs : refus poli.
+// macOS only (NSPanel + codesign + launchctl). Elsewhere: a polite refusal.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, chmodSync } from 'node:fs'
@@ -22,6 +22,7 @@ import { homedir } from 'node:os'
 import { join, dirname, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
+import { writeGuard } from './session-guard.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -74,30 +75,22 @@ const executer = (cmd, args) => new Promise((resoudre) => {
   } catch (err) { resoudre({ err }) }
 })
 
-// ── garde d'origine (recette 2026-10 M-02/S-03, cf. kybernos-slides) ────────
-// M-03 : install/uninstall écrivent ET lancent une app native — un POST
-// cross-site (drive-by) ne doit jamais y arriver. Hôte EXACT de l'écoute
-// réelle du socket, jamais un préfixe.
-const origineOK = (req) => {
-  const o = String(req.headers.origin || '')
-  if (o === '') return true
-  try {
-    const u = new URL(o)
-    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
-    const port = (req.socket && typeof req.socket.localPort === 'number') ? ':' + req.socket.localPort : ''
-    return (['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0 || kbTrusted(u.host))
-  } catch { return false }
-}
+// ── write guard (2026-10 acceptance M-02/S-03, see kybernos-slides) ─────────
+// M-03: install/uninstall write AND launch a native app — a cross-site (drive-by)
+// POST must never get there, nor a local program that sends no header at all:
+// `writeGuard` (session-guard.mjs, the terminal's rule) requires the EXACT
+// origin of the socket's real listener AND DSH's signed session cookie. Their
+// only caller is the page (a browser).
 
-// M-03 : les POST qui agissent exigent du JSON explicite — un POST text/plain
-// (forme simple cross-site sans préflight) est refusé.
+// M-03: the POSTs that act require explicit JSON — a text/plain POST (the
+// simple cross-site form, no preflight) is refused.
 const jsonSeulement = (req) => {
   const ct = String(req.headers['content-type'] || '').toLowerCase()
   return ct.includes('application/json')
 }
 
-// M-03 : le chemin d'écriture reste SOUS DEST_ROOT — un nom d'app ne doit
-// jamais s'échapper (pas de segment '.', pas de traversal après résolution).
+// M-03: the write path stays UNDER DEST_ROOT — an app name must never escape
+// (no '.' segment, no traversal after resolution).
 const nomAppSur = (nomApp) => {
   if (nomApp.startsWith('.') || nomApp.includes('/')) return false
   const cible = resolve(DEST_ROOT, nomApp + '.app')
@@ -107,28 +100,28 @@ const nomAppSur = (nomApp) => {
 
 // ── install ─────────────────────────────────────────────────────────────────
 async function installer (corps) {
-  if (!MACOS) return { ok: false, erreur: 'L’installation d’app widget est macOS seulement.' }
+  if (!MACOS) return { ok: false, erreur: 'Installing a widget app is macOS only.' }
   const id = slug(corps.id)
   const titre = String(corps.titre || 'MiniApp Kybernos').slice(0, 60)
   const html = String(corps.html || '')
-  if (html.length < 10) return { ok: false, erreur: 'HTML trop court.' }
-  if (html.length > 4_000_000) return { ok: false, erreur: 'HTML trop volumineux.' }
+  if (html.length < 10) return { ok: false, erreur: 'HTML too short.' }
+  if (html.length > 4_000_000) return { ok: false, erreur: 'HTML too large.' }
   const largeur = Math.max(180, Math.min(600, Number(corps.largeur) || 260))
   const hauteur = Math.max(180, Math.min(800, Number(corps.hauteur) || 340))
 
   mkdirSync(DEST_ROOT, { recursive: true })
   const nomApp = `${titre.replace(/[^\p{L}\p{N} .-]/gu, '').trim() || 'MiniApp'} ${id}`.slice(0, 80)
-  if (!nomAppSur(nomApp)) return { ok: false, erreur: 'nom d’app refusé (hors dossier d’installation).' }
+  if (!nomAppSur(nomApp)) return { ok: false, erreur: 'app name refused (outside the install folder).' }
   const appDir = join(DEST_ROOT, `${nomApp}.app`)
 
-  // repartir de zéro si réinstall
+  // start from scratch on a reinstall
   try { rmSync(appDir, { recursive: true, force: true }) } catch { /* absent */ }
   mkdirSync(join(appDir, 'Contents', 'MacOS'), { recursive: true })
   mkdirSync(join(appDir, 'Contents', 'Resources'), { recursive: true })
 
-  // binaire + plist depuis le template du bundle
-  // (chmod 0755 : writeFileSync pose 0644 et sans le bit exécutable
-  // LaunchServices refuse le lancement — spawn error 111)
+  // binary + plist from the bundle's template
+  // (chmod 0755: writeFileSync sets 0644 and without the executable bit
+  // LaunchServices refuses to launch — spawn error 111)
   const binaire = join(appDir, 'Contents', 'MacOS', 'miniapp')
   writeFileSync(binaire, readFileSync(join(TEMPLATE, 'Contents', 'MacOS', 'miniapp')))
   chmodSync(binaire, 0o755)
@@ -152,11 +145,11 @@ async function installer (corps) {
 
   const signature = await executer('/usr/bin/codesign', ['-f', '-s', '-', appDir])
   if (signature.err) {
-    dire(`codesign a échoué : ${signature.err.message ?? signature.err}`)
-    return { ok: false, erreur: 'Signature de l’app impossible (codesign).' }
+    dire(`codesign failed: ${signature.err.message ?? signature.err}`)
+    return { ok: false, erreur: 'Cannot sign the app (codesign).' }
   }
 
-  // LaunchAgent optionnel — « Launch automatically »
+  // optional LaunchAgent — « Launch automatically »
   let auto = false
   if (corps.auto === true) {
     auto = true
@@ -176,9 +169,9 @@ async function installer (corps) {
     await executer('/bin/launchctl', ['load', agentPlist])
   }
 
-  // lancer tout de suite
+  // launch right away
   const lancee = await executer('/usr/bin/open', [appDir])
-  dire(`installée : ${appDir}${auto ? ' (démarrage auto)' : ''}`)
+  dire(`installed: ${appDir}${auto ? ' (launch at login)' : ''}`)
   return { ok: true, chemin: appDir, auto, lancee: !lancee.err }
 }
 
@@ -201,7 +194,7 @@ async function desinstaller (corps) {
     await executer('/bin/launchctl', ['unload', agentPlist])
     try { rmSync(agentPlist, { force: true }); retire.push(`${id}.plist`) } catch { /* rien */ }
   }
-  dire(`désinstallée : ${retire.join(', ') || 'rien'}`)
+  dire(`uninstalled: ${retire.join(', ') || 'nothing'}`)
   return { ok: true, retire }
 }
 
@@ -230,11 +223,11 @@ async function lister () {
 }
 
 // ── plugin ──────────────────────────────────────────────────────────────────
-// Les services sont lus par `ctx.get` (jamais `ctx.<nom>` avant que l'inject
-// n'ait résolu) : la forme qui marche aussi bien dans cordis que dans un
-// contexte de test qui ne porte que `get` (même schéma que kybernos-slides).
-// corps de requête lu à la main (pas de body parser sur ces routes —
-// même lecture par événements que kybernos-slides).
+// Services are read through `ctx.get` (never `ctx.<name>` before the inject
+// has resolved): the form that works in cordis as well as in a test context
+// that only carries `get` (same pattern as kybernos-slides).
+// The request body is read by hand (no body parser on these routes —
+// same event-based reading as kybernos-slides).
 const lireCorps = (req) => new Promise((res) => {
   let corps = ''
   req.on('data', (d) => { corps += d })
@@ -247,16 +240,18 @@ export function apply (ctx) {
       const webServerSvc = kbFenced(c.get('webServer'))
       if (webServerSvc === undefined) return
       webServerSvc.register({ kind: 'exact', path: '/kybernos-miniapps/install', handler: async (req, res) => {
-        // M-03 : écrit + lance une app native — origine exacte et JSON requis.
-        if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
-        if (!jsonSeulement(req)) { res.writeHead(415); res.end('content-type application/json attendu'); return }
+        // M-03: writes + launches a native app — exact origin, signed session and JSON required.
+        const refus = writeGuard(req)
+        if (refus !== null) { res.writeHead(refus.status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: refus.error })); return }
+        if (!jsonSeulement(req)) { res.writeHead(415); res.end('application/json content-type expected'); return }
         const r = await installer(await lireCorps(req))
         res.setHeader('Content-Type', 'application/json')
         res.end(JSON.stringify(r))
       } })
       webServerSvc.register({ kind: 'exact', path: '/kybernos-miniapps/uninstall', handler: async (req, res) => {
-        if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
-        if (!jsonSeulement(req)) { res.writeHead(415); res.end('content-type application/json attendu'); return }
+        const refus = writeGuard(req)
+        if (refus !== null) { res.writeHead(refus.status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: refus.error })); return }
+        if (!jsonSeulement(req)) { res.writeHead(415); res.end('application/json content-type expected'); return }
         const r = await desinstaller(await lireCorps(req))
         res.setHeader('Content-Type', 'application/json')
         res.end(JSON.stringify(r))
@@ -266,9 +261,9 @@ export function apply (ctx) {
         res.setHeader('Content-Type', 'application/json')
         res.end(JSON.stringify(r))
       } })
-      dire('routes install / uninstall / list posées')
+      dire('routes install / uninstall / list mounted')
     } catch (e) {
-      dire(`routes non posées : ${e?.message ?? e}`)
+      dire(`routes not mounted: ${e?.message ?? e}`)
     }
   }
   if (ctx.get('webServer') !== undefined) poser(ctx)

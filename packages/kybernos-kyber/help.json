@@ -1,7 +1,7 @@
 {
   "what": {
-    "fr": "Kaby, votre assistant : une vraie conversation DSH, Telegram à connecter d'un geste, et l'ordinateur sur lequel il travaille.",
-    "en": "Kaby, your assistant: a real DSH chat, Telegram to connect in one move, and the computer it works on."
+    "fr": "Kaby, votre assistant : comme un téléphone avec télécommande, il travaille sur votre ordinateur. Une vraie conversation DSH, Telegram à connecter d'un geste, et l'ordinateur sur lequel il travaille.",
+    "en": "Kaby, your assistant: like a phone with a remote control, it works on your desktop. A real DSH chat, Telegram to connect in one move, and the computer it works on."
   },
   "steps": [
     {
@@ -13,17 +13,18 @@
       "en": "Turn Telegram on in the channels tile: scan the code (or tap “Open Telegram”), tap Start, then “Yes, it's me”."
     },
     {
-      "fr": "La tuile de l'ordinateur montre celui lié à Kaby, créé à votre première demande qui en a besoin ; liste s'il y en a plusieurs.",
-      "en": "The computer tile shows the one linked to Kaby, made at your first request that needs one; a list if there are several."
+      "fr": "La tuile Ordinateur dit où Kaby travaille : cet ordinateur, ou un ordinateur dans le cloud. Votre choix est retenu.",
+      "en": "The computer tile says where Kaby works: this computer, or a cloud computer. Your choice is remembered."
     }
   ],
   "where": {
-    "fr": "Menu › Kaby",
-    "en": "Menu › Kaby",
+    "fr": "Barre latérale › Kaby",
+    "en": "Sidebar › Kaby",
     "page": true
   },
   "good": {
     "fr": "Kaby garde la même mémoire ici et sur Telegram. Rien n'est connecté sans votre accord dans Telegram, et avant d'agir sur son ordinateur il vous demande : Autoriser, Refuser ou Autoriser pour cette tâche.",
     "en": "Kaby keeps the same memory here and on Telegram. Nothing is connected without your approval in Telegram, and before acting on its computer it asks you: Allow, Refuse, or Allow for this task."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/computers/see-where-kyby-answers/"
 }

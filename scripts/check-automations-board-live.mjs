@@ -16,7 +16,8 @@
 //   - the calendar (week and month), the folding of one automation's runs of a day, the dashed planned runs, the
 //     detail strip and its actions, previous / today / next;
 //   - « Run now » end to end: the host starts a real session, the board reads its state from the ENGINE (the same
-//     one its sidebar shows) and never says more than it knows;
+//     one its sidebar shows) and never says more than it knows; a turn that FAILED (the sandbox has no model
+//     credential) is shown failed, not done;
 //   - the host not answering (banner, retry), the loading skeleton, the empty state, French, a phone width;
 //   - with --stub-model: a run that is really RUNNING and a run that really WAITS for an approval, answered from the
 //     board with Refuse and with Approve. It needs a model that does what it is told, so the check starts a stub
@@ -88,15 +89,17 @@ const attrs = (sel, attr) => val(`Array.from(document.querySelectorAll(${JSON.st
 const exceptions = []
 page.on('Runtime.exceptionThrown', (p) => { exceptions.push(String((p.exceptionDetails && (p.exceptionDetails.text + ' ' + ((p.exceptionDetails.exception && p.exceptionDetails.exception.description) || ''))) || '').slice(0, 240)) })
 
-// Intercepts the page's own calls to the tasks routes: 'pass', 'fail' (the host does not answer) or 'hold' (answers late).
+// Intercepts the page's own calls to the tasks routes: 'pass', 'fail' (the host does not answer) or 'hold' (the request is kept back until the check
+// lets it go). A timed hold would be a race with a slow machine; a held request stays held for as long as the check needs to look at the skeleton.
 let mode = 'pass'
-let holdMs = 0
+const held = []
+const releaseHeld = async () => { for (const requestId of held.splice(0)) { try { await page.send('Fetch.continueRequest', { requestId }) } catch (e) { /* the page went away */ } } }
 page.on('Fetch.requestPaused', async (p) => {
   const url = p.request.url
   try {
     if (url.indexOf('/kybernos/tasks') < 0) { await page.send('Fetch.continueRequest', { requestId: p.requestId }); return }
     if (mode === 'fail') { await page.send('Fetch.failRequest', { requestId: p.requestId, errorReason: 'ConnectionRefused' }); return }
-    if (mode === 'hold') { await sleep(holdMs) }
+    if (mode === 'hold') { held.push(p.requestId); return }
     await page.send('Fetch.continueRequest', { requestId: p.requestId })
   } catch (e) { /* the page went away */ }
 })
@@ -255,10 +258,15 @@ try {
   check('four columns: Upcoming, Running, To approve, Done', JSON.stringify(await attrs('[data-kb="board-col"]', 'data-col')) === JSON.stringify(['upcoming', 'running', 'approve', 'done']))
   check('the titles are the page\'s words', JSON.stringify(await texts('[data-kb="board-col"] h3').then((a) => a.map((t) => t.replace(/\s*\d+$/, '')))) === JSON.stringify(['Upcoming', 'Running', 'To approve', 'Done, last 7 days']), await texts('[data-kb="board-col"] h3'))
   const cardsOf = async (col) => JSON.parse(await val(`JSON.stringify(Array.from(document.querySelectorAll('[data-kb="board-card"][data-col="${col}"]')).map((c) => ({ task: c.dataset.task, state: c.dataset.state })))`))
+  const snapBefore = Object.fromEntries(SCHEDULED.map((id) => [id, nextOf(id)]))
   const up = await cardsOf('upcoming')
   check('Upcoming: the next run of each active scheduled automation, and only those (five)', up.length === 5 && SCHEDULED.every((id) => up.some((c) => c.task === id)), up)
-  const want = SCHEDULED.slice().sort((a, b) => nextOf(a) - nextOf(b))
-  check('...soonest first, by the stored next run', JSON.stringify(up.map((c) => c.task)) === JSON.stringify(want), { got: up.map((c) => c.task), want })
+  // The stored next runs are read before AND after the cards: the scheduler may rewrite one between the page's read and ours, so the order must hold under one
+  // of the two snapshots. It is checked as « never later than the next card » (two automations due in the same minute are not an order).
+  const snapshot = () => Object.fromEntries(SCHEDULED.map((id) => [id, nextOf(id)]))
+  const sortedBy = (ids, snap) => ids.every((id, i) => i === 0 || snap[ids[i - 1]] <= snap[id])
+  const snapAfter = snapshot()
+  check('...soonest first, by the stored next run', sortedBy(up.map((c) => c.task), snapBefore) || sortedBy(up.map((c) => c.task), snapAfter), { got: up.map((c) => c.task), before: snapBefore, after: snapAfter })
   check('...no paused automation, no webhook-only one', !up.some((c) => c.task === 'st-board-digest' || c.task === 'st-board-hook'))
   check('Upcoming cards offer Run now', (await q('[data-kb="board-card"][data-col="upcoming"] [data-act="launch"]')) === 5)
   const running = await cardsOf('running')
@@ -393,14 +401,14 @@ try {
 
   console.log('\n── loading ──')
   mode = 'hold'
-  holdMs = 3500
   await page.send('Page.reload', { ignoreCache: true })
-  await sleep(2500)
+  await poll(() => val(`document.readyState === 'complete' && /Automations/.test(document.body.innerText)`), 30000)
   await clickText(page, 'Automations')
-  const skel = await poll(() => q('.kbbd-skel[aria-busy="true"]'), 4000)
+  const skel = await poll(() => q('.kbbd-skel[aria-busy="true"]'), 20000) // held: the skeleton stays up until the check releases the request
   check('a loading skeleton in the shape of the board, announced once', skel === 1 && (await q('.kbbd-skel .kbbd-col')) === 4, skel)
   await shot('automations-skeleton')
   mode = 'pass'
+  await releaseHeld()
   check('...then the board', (await poll(() => q('[data-kb="board-card"]'), 15000)) > 0)
 
   console.log('\n── French ──')
@@ -417,7 +425,8 @@ try {
   await poll(() => q('[data-kb="board-columns"]'))
   const histBefore = (readTasks().find((t) => t.id === 'st-board-watch') || { history: [] }).history.length
   check('Run now is clicked on the Competitive watch card', (await click('[data-kb="board-card"][data-col="upcoming"][data-task="st-board-watch"] [data-act="launch"]')) === true)
-  // Watch the state of the NEW run every 100 ms: it can only be `running` then `ended`, never anything else.
+  // Watch the state of the NEW run every 100 ms: `running`, then `ended` until the host has read the turn's verdict, then `failed`:
+  // the sandbox has no credential for the model, so the turn ends on an error and the engine's own sidebar still says « Completed ».
   const seen = []
   const end = Date.now() + 25000
   let newSession = null
@@ -428,16 +437,16 @@ try {
     const fresh = states.filter((s) => !/:started$/.test(s))
     const tag = fresh.join(',')
     if (tag !== '' && seen[seen.length - 1] !== tag) seen.push(tag)
-    if (/done:ended/.test(tag) && Date.now() > end - 20000) break
+    if (/approve:failed/.test(tag) && Date.now() > end - 20000) break
     await sleep(100)
   }
   check('the host started a REAL session and recorded it on the run', newSession !== null && newSession.status === 'fired' && typeof newSession.sessionId === 'string' && newSession.sessionId.indexOf('seed-session') < 0, newSession)
   console.log('  · states of the new run, as the board showed them: ' + seen.join(' → '))
-  check('the board only said what the engine said: running and/or ended, in that order', seen.length > 0 && seen.every((s) => /^(running:running|done:ended|running:running,done:ended)$/.test(s) || /^(done:ended)$/.test(s)), seen)
-  check('it ended in Done, "ended" (not claimed as success: the session has ended, open it to see)', /done:ended/.test(seen[seen.length - 1] || ''))
+  check('the board only said what the engine said: running, ended, failed, in that order', seen.length > 0 && seen.every((s) => /^(running:running|done:ended|approve:failed)$/.test(s)) && seen.indexOf('approve:failed') === seen.length - 1, seen)
+  check('a turn that failed (no credential) is not filed under Done: it is Failed, in the attention column', /approve:failed/.test(seen[seen.length - 1] || '') && (await q('[data-kb="board-card"][data-col="done"][data-task="st-board-watch"][data-state="ended"]')) === 0)
   const engineSays = await val(`Array.from(document.querySelectorAll('[class*="visuallyHidden"]')).map((e) => e.textContent.trim()).filter(Boolean)`)
   check('the engine\'s own sidebar says the same: that session is "Completed"', Array.isArray(engineSays) && engineSays.includes('Completed'), engineSays)
-  check('the card now offers See session (the page can see that session)', (await q('[data-kb="board-card"][data-col="done"][data-task="st-board-watch"][data-state="ended"] [data-act="session"]')) === 1)
+  check('...with the engine\'s reason, Retry and See journal like a run that could not start', /credential/i.test(await val(`(document.querySelector('[data-kb="board-card"][data-col="approve"][data-task="st-board-watch"][data-state="failed"]') || { innerText: '' }).innerText`)) && (await q('[data-kb="board-card"][data-col="approve"][data-task="st-board-watch"][data-state="failed"] [data-act="retry"]')) === 1 && (await q('[data-kb="board-card"][data-col="approve"][data-task="st-board-watch"][data-state="failed"] [data-act="journal"]')) === 1)
   await shot('automations-after-run')
 
   console.log('\n── an automation that can never fire is said ──')

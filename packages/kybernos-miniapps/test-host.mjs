@@ -1,13 +1,17 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Tests de kybernos-miniapps — moitié HÔTE (cas hostiles M-03/M-04).
+// Tests of kybernos-miniapps — HOST half (hostile cases M-03/M-04).
 //
 //   node kybernos-miniapps/test-host.mjs
 //
-// M-03 : install/uninstall sont des POST qui écrivent et lancent une app
-// native — origine EXACTE + Content-Type JSON requis, nom d'app confiné.
+// M-03: install/uninstall are POSTs that write and launch a native app —
+// EXACT origin + the session cookie + a JSON Content-Type required, app name confined.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { apply } from './index.js'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, browserHeaders } from './lib-session-test.mjs'
+
+sessionSource.secret = () => SESSION_SECRET // the machine secret the guard checks the session cookie against (test-write-guard.mjs reads the file)
 
 let echecs = 0
 const ok = (label, cond, detail) => {
@@ -15,7 +19,7 @@ const ok = (label, cond, detail) => {
   else { console.error(`✗ ${label}${detail === undefined ? '' : ` — ${detail}`}`); echecs += 1 }
 }
 
-// Monte les routes via un ctx factice
+// Mount the routes through a fake ctx
 const routes = {}
 const ctx = {
   get: (nom) => (nom === 'webServer' ? { register: (r) => { routes[r.path] = r.handler } } : undefined),
@@ -24,14 +28,15 @@ const ctx = {
 }
 apply(ctx)
 
-ok('routes install/uninstall/list montées', routes['/kybernos-miniapps/install'] && routes['/kybernos-miniapps/uninstall'] && routes['/kybernos-miniapps/list'])
+ok('install/uninstall/list routes mounted', routes['/kybernos-miniapps/install'] && routes['/kybernos-miniapps/uninstall'] && routes['/kybernos-miniapps/list'])
 
-// Requête factice
+// Fake request
 const requete = (extra, corps) => {
   const body = JSON.stringify(corps ?? {})
   return {
     method: 'POST',
-    headers: Object.assign({ 'content-type': 'application/json' }, extra.headers || {}),
+    // the page itself: its own origin and DSH's session cookie, unless the test says otherwise
+    headers: Object.assign({ 'content-type': 'application/json' }, browserHeaders(), extra.headers || {}),
     socket: { localPort: 3080 },
     on: (ev, fn) => {
       if (ev === 'data') fn(body)
@@ -48,32 +53,31 @@ const reponse = () => {
 }
 const jouer = async (handler, req) => { const res = reponse(); await handler(req, res); return res }
 
-// ── M-03 : origine hostile refusée ──────────────────────────────────────────
+// ── M-03: hostile origin refused ──────────────────────────────────────────
 {
   const res = await jouer(routes['/kybernos-miniapps/install'], requete({ headers: { origin: 'http://evil.example' } }, { id: 'test', html: '<html><body>ok</body></html>' }))
-  ok('M-03 : install depuis origin hostile → 403', res.code === 403, `code=${res.code}`)
+  ok('M-03: install from a hostile origin → 403', res.code === 403, `code=${res.code}`)
 }
 {
   const res = await jouer(routes['/kybernos-miniapps/uninstall'], requete({ headers: { origin: 'http://localhost.evil.example:3080' } }, { id: 'test' }))
-  ok('M-03 : uninstall depuis origin préfixe piégeux → 403', res.code === 403, `code=${res.code}`)
+  ok('M-03: uninstall from a look-alike origin prefix → 403', res.code === 403, `code=${res.code}`)
 }
-// ── M-03 : Content-Type non-JSON refusé (forme simple cross-site) ──────────
+// ── M-03: non-JSON Content-Type refused (simple cross-site form) ──────────
 {
   const res = await jouer(routes['/kybernos-miniapps/install'], requete({ headers: { 'content-type': 'text/plain' } }, { id: 'test', html: '<html><body>ok</body></html>' }))
-  ok('M-03 : install en text/plain → 415', res.code === 415, `code=${res.code}`)
+  ok('M-03: install as text/plain → 415', res.code === 415, `code=${res.code}`)
 }
-// ── M-03 : origine locale acceptée (comportement légitime) ─────────────────
-// NB : on ne lance PAS l'install pour de vrai — macOS seulement et effets de
-// bord réels ; on vérifie juste qu'elle passe les gardes (code ≠ 403/415).
+// ── M-03: local origin accepted (legitimate behaviour) ─────────────────────
+// NB: the install is NOT run for real — macOS only and real side effects;
+// we only check that it passes the guards (code ≠ 401/403/415).
 if (process.platform === 'darwin') {
-  const res = await jouer(routes['/kybernos-miniapps/install'], requete({ headers: { origin: 'http://127.0.0.1:3080' } }, { id: 'garde-test', html: '<html><body>ok</body></html>' }))
+  // An HTML too short: the route answers « HTML trop court » BEFORE writing anything (this test no longer installs an app in ~/Applications).
+  const res = await jouer(routes['/kybernos-miniapps/install'], requete({ headers: { origin: 'http://127.0.0.1:3080' } }, { id: 'garde-test', html: '<b>x</b>' }))
   const j = (() => { try { return JSON.parse(res.corps) } catch { return {} } })()
-  // l'install peut réussir OU échouer (codesign), mais pas sur un refus de garde
-  ok('M-03 : install origine locale passe les gardes (pas 403/415)', res.code !== 403 && res.code !== 415, JSON.stringify(j).slice(0, 60))
-  await jouer(routes['/kybernos-miniapps/uninstall'], requete({}, { id: 'garde-test' }))
+  ok('M-03: install from the local origin passes the guards (not 401/403/415)', res.code !== 401 && res.code !== 403 && res.code !== 415 && j.ok === false, JSON.stringify(j).slice(0, 60))
 } else {
-  console.log('ℹ macOS requis pour l’install réelle — gardes 403/415 testées ci-dessus')
+  console.log('ℹ macOS required for the real install — 403/415 guards tested above')
 }
 
-console.log(echecs === 0 ? '\nHost : tout est vert.' : `\n✗ ${echecs} échec(s)`)
+console.log(echecs === 0 ? '\nHost: all green.' : `\n✗ ${echecs} failure(s)`)
 process.exit(echecs === 0 ? 0 : 1)

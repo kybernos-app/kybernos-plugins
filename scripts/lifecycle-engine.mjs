@@ -79,16 +79,16 @@ export function comparerVersions (a, b) {
 // l'installation). Une tolérance absorbe les quelques secondes qui séparent
 // l'écriture des fichiers du démarrage légitime du serveur.
 export function inspecterFraicheur ({ demarrageServeur, installation, toleranceMs = 10000 }) {
-  if (!Number.isFinite(demarrageServeur)) return { verdict: 'inconnu', perime: false, raison: 'serveur illisible (aucun processus sur le port ?)' }
-  if (!Number.isFinite(installation)) return { verdict: 'inconnu', perime: false, raison: 'date d\'installation illisible' }
+  if (!Number.isFinite(demarrageServeur)) return { verdict: 'inconnu', perime: false, raison: 'server unreadable (no process on the port?)' }
+  if (!Number.isFinite(installation)) return { verdict: 'inconnu', perime: false, raison: 'installation date unreadable' }
   const retardMs = installation - demarrageServeur
   if (retardMs > toleranceMs) {
     return {
       verdict: 'perime', perime: true, retardMs,
-      raison: `le serveur a démarré AVANT la dernière installation (${Math.round(retardMs / 1000)} s plus tôt) : il sert encore l'ancien moteur en mémoire — redémarre DSH`
+      raison: `the server started BEFORE the last installation (${Math.round(retardMs / 1000)} s earlier): it is still serving the old engine from memory — restart DSH`
     }
   }
-  return { verdict: 'frais', perime: false, retardMs, raison: 'le serveur est postérieur à la dernière installation' }
+  return { verdict: 'frais', perime: false, retardMs, raison: 'the server started after the last installation' }
 }
 
 export function testerCompatibilite ({ cible, compat, force = false }) {
@@ -96,14 +96,14 @@ export function testerCompatibilite ({ cible, compat, force = false }) {
   const min = zone.min
   const max = zone.max
   const testees = Array.isArray(zone.testees) ? zone.testees : []
-  if (min === undefined && max === undefined) return { verdict: 'inconnu', bloquant: false, raison: 'aucune zone de compatibilité déclarée — installation autorisée' }
-  if (cible === undefined || cible === null || cible === '') return { verdict: 'refuse', bloquant: true, raison: 'version cible inconnue' }
+  if (min === undefined && max === undefined) return { verdict: 'inconnu', bloquant: false, raison: 'no compatibility range declared — installation allowed' }
+  if (cible === undefined || cible === null || cible === '') return { verdict: 'refuse', bloquant: true, raison: 'target version unknown' }
   const horsZone = (min !== undefined && comparerVersions(cible, min) < 0) || (max !== undefined && comparerVersions(cible, max) > 0)
-  if (!horsZone) return { verdict: 'ok', bloquant: false, raison: `DSH ${cible} est dans la zone testée (${min} … ${max})` }
-  if (force) return { verdict: 'force', bloquant: false, raison: `DSH ${cible} n'a jamais été testé avec ce plugin (zone ${min} … ${max}) — forcé par --force`, avertissement: true }
+  if (!horsZone) return { verdict: 'ok', bloquant: false, raison: `DSH ${cible} is inside the tested range (${min} … ${max})` }
+  if (force) return { verdict: 'force', bloquant: false, raison: `DSH ${cible} has never been tested with this plugin (range ${min} … ${max}) — forced by --force`, avertissement: true }
   return {
     verdict: 'refuse', bloquant: true,
-    raison: `DSH ${cible} n'a jamais été testé avec ce plugin (zone testée : ${min} … ${max}). Rien n'a été modifié. Relance avec --force pour essayer quand même.`
+    raison: `DSH ${cible} has never been tested with this plugin (tested range: ${min} … ${max}). Nothing was changed. Run again with --force to try anyway.`
   }
 }
 
@@ -121,7 +121,7 @@ export function motifDeRetrait (entree, versionMoteur) {
   if (entree.retire !== undefined) return String(entree.retire)
   const seuil = entree.retire_depuis_moteur
   if (typeof seuil === 'string' && typeof versionMoteur === 'string' && versionMoteur !== '' && comparerVersions(versionMoteur, seuil) >= 0) {
-    return typeof entree.retire_motif === 'string' && entree.retire_motif !== '' ? entree.retire_motif : 'plus nécessaire depuis le moteur ' + seuil
+    return typeof entree.retire_motif === 'string' && entree.retire_motif !== '' ? entree.retire_motif : 'no longer needed since engine ' + seuil
   }
   return null
 }
@@ -174,21 +174,21 @@ export async function etatDoctor ({ fs, exec, profilDir, repoDir, packages = [],
 
   // Sans moteur lisible, la compatibilite n'a pas de cible : on ne fait pas
   // dire a un comparateur ce qu'il ne peut pas savoir.
-  const compatVerdict = moteurAbsent ? { verdict: 'inconnu', bloquant: false, raison: 'moteur absent' } : testerCompatibilite({ cible: global, compat })
+  const compatVerdict = moteurAbsent ? { verdict: 'inconnu', bloquant: false, raison: 'engine absent' } : testerCompatibilite({ cible: global, compat })
 
   const problemes = []
   if (moteurAbsent) {
-    problemes.push('le moteur DSH n\'est pas joignable (`dsh` absent du PATH) : lance `./kybernos-install`, il le pose et le vérifie')
+    problemes.push('the DSH engine is not reachable (`dsh` is not on the PATH): run `./kybernos-install`, it puts it in place and checks it')
   } else if (profilAbsent) {
     // Une seule phrase, celle du geste a faire — pas onze « paquet non lie ».
-    problemes.push('aucun profil DSH : lance `dsh web` une fois (il le cree), puis rappelle doctor')
+    problemes.push('no DSH profile: run `dsh web` once (it creates it), then run doctor again')
   }
   // Sans profil, ces trois constats sont TOUS vrais et aucun n'est utile : ils
   // noieraient la seule phrase qui dit quoi faire (dix lignes pour un geste).
   if (!profilAbsent && !moteurAbsent) {
-    if (!alignePins) problemes.push(`le profil épinglé des paquets DSH à une autre version que le moteur (${pinsDivergents[0] || 'divergence'})`)
-    for (const l of liensManquants) problemes.push(`le paquet ${l} n'est pas lié au profil`)
-    for (const b of bundlesManquants) problemes.push(`le bundle ${b} n'est pas déclaré dans le profil`)
+    if (!alignePins) problemes.push(`the profile pins the DSH packages to another version than the engine (${pinsDivergents[0] || 'divergence'})`)
+    for (const l of liensManquants) problemes.push(`the package ${l} is not linked to the profile`)
+    for (const b of bundlesManquants) problemes.push(`the bundle ${b} is not declared in the profile`)
   }
   if (compatVerdict.verdict === 'refuse') problemes.push(compatVerdict.raison)
 
@@ -219,28 +219,28 @@ export async function photographier ({ fs, profilDir, photosDir, horodatage, ver
   for (const f of fichiers) {
     try { fs.copier(join(profilDir, f), join(dossier, f)) } catch (e) { /* absent : la photo n'invente rien */ }
   }
-  fs.ecrire(join(dossier, 'versions.txt'), `moteur ${versions.global}\nplugin ${versions.plugin}\ndate ${maintenant(horloge).toISOString()}\n`)
-  fs.ecrire(join(dossier, 'LISEZ-MOI.txt'), ecrireLisezMoi({ photo: dossier, versions, date: maintenant(horloge).toISOString() }))
+  fs.ecrire(join(dossier, 'versions.txt'), `engine ${versions.global}\nplugin ${versions.plugin}\ndate ${maintenant(horloge).toISOString()}\n`)
+  fs.ecrire(join(dossier, 'README.txt'), ecrireLisezMoi({ photo: dossier, versions, date: maintenant(horloge).toISOString() }))
   return { dossier, fichiers }
 }
 
 export function ecrireLisezMoi ({ photo, versions, date }) {
   return [
-    `Photo de sécurité prise le ${date}.`,
-    `Moteur DSH : ${versions.global} · Plugin : ${versions.plugin}`,
+    `Safety photo taken on ${date}.`,
+    `DSH engine: ${versions.global} · Plugin: ${versions.plugin}`,
     '',
-    'Pour revenir à cet état (une seule commande, depuis le dépôt dsh-kybernos) :',
+    'To come back to this state (one command, from the folder you installed Kybernos from):',
     `  node scripts/dsh-lifecycle.mjs rollback --photo ${photo}`,
     '',
-    'Ou à la main : recopier package.json, pnpm-lock.yaml et cordis.patch.yml de ce',
-    'dossier vers ~/.dsh/profiles/web/, puis : dsh plugin --profile web install',
-    'puis rejouer les patchs (scripts/patch-dsh-*.mjs).'
+    'Or by hand: copy package.json, pnpm-lock.yaml and cordis.patch.yml from this',
+    'folder to ~/.dsh/profiles/web/, then: dsh plugin --profile web install',
+    'then replay the patches (scripts/patch-dsh-*.mjs).'
   ].join('\n')
 }
 
 export async function restaurerPhoto ({ fs, photosDir, photoDossier, profilDir }) {
   const dossier = photoDossier || photoLaPlusRecente({ fs, photosDir })
-  if (dossier === null) throw new Error('aucune photo à restaurer dans ' + photosDir)
+  if (dossier === null) throw new Error('no photo to restore in ' + photosDir)
   const fichiers = ['package.json', 'pnpm-lock.yaml', 'cordis.patch.yml']
   const recopies = []
   for (const f of fichiers) {

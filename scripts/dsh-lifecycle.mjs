@@ -1,18 +1,18 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-// dsh-lifecycle — le robot garagiste (CLI). Voir docs/handoff/lifecycle/DESIGN.md
+// dsh-lifecycle — the garage robot (CLI). See docs/handoff/lifecycle/DESIGN.md
 //
-//   node scripts/dsh-lifecycle.mjs doctor [--json]     état, n'écrit jamais
-//   node scripts/dsh-lifecycle.mjs install              ajoute le plugin à un profil
+//   node scripts/dsh-lifecycle.mjs doctor [--json]     state, never writes
+//   node scripts/dsh-lifecycle.mjs install              adds the plugin to a profile
 //   node scripts/dsh-lifecycle.mjs upgrade [version] [--force] [--dry]
-//   node scripts/dsh-lifecycle.mjs rollback [--photo <dossier>]
-//   node scripts/dsh-lifecycle.mjs uninstall            retire liens+bundle (garder le reste)
-//   node scripts/dsh-lifecycle.mjs verify [--url <url>] boot réel seulement
+//   node scripts/dsh-lifecycle.mjs rollback [--photo <folder>]
+//   node scripts/dsh-lifecycle.mjs uninstall            removes the links + bundle (keeps the rest)
+//   node scripts/dsh-lifecycle.mjs verify [--url <url>] real boot only
 //
-// Invariants tenus par le harnais unitaire + les e2e :
-//   geste n°1 = compatibilité · photo avant toute écriture · journal après
-//   tout · échec boot → rollback automatique.
-// Sortie : 0 = 🟢/succès, 1 = 🟠/échec (lisible, jamais de stack trace nue).
+// Invariants held by the unit harness + the e2e tests:
+//   step 1 = compatibility · photo before any write · journal after
+//   everything · boot failure → automatic rollback.
+// Exit: 0 = 🟢/success, 1 = 🟠/failure (readable, never a bare stack trace).
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { execFile, spawn } from 'node:child_process'
@@ -112,7 +112,7 @@ const horodatage = () => new Date().toISOString().replace(/[-:T]/g, '').slice(0,
 // verrou traînait et le pnpm du robot échouait en silence.)
 const nettoyerVerrousOrphelins = () => {
   const verrou = join(PROFIL_DIR, 'package.json.lock')
-  try { if (existsSync(verrou)) { rmSync(verrou); console.log('  🧹 verrou orphelin retiré (' + verrou + ')') } } catch (e) { /* rien */ }
+  try { if (existsSync(verrou)) { rmSync(verrou); console.log('  🧹 orphaned lock removed (' + verrou + ')') } } catch (e) { /* nothing */ }
 }
 
 // Lier un binaire construit dans NOTRE arbre dans le préfixe GLOBAL de npm : c'est ce dossier qui est déjà
@@ -128,7 +128,7 @@ async function lierDansLePrefixe (vrai, nom, echouer) {
   mkdirSync(bin, { recursive: true })
   const lien = join(bin, win ? nom + '.cmd' : nom)
   rmSync(lien, { force: true })
-  if (existsSync(vrai) === false) echouer('🔴 le binaire ' + nom + ' n\'est pas là où npm l\'a installé : ' + vrai)
+  if (existsSync(vrai) === false) echouer('🔴 the ' + nom + ' binary is not where npm installed it: ' + vrai)
   if (win) {
     // Windows : un lien symbolique demande des droits ; un relais qui appelle
     // le vrai .cmd par chemin ABSOLU marche sans rien supposer.
@@ -148,19 +148,19 @@ async function lierDansLePrefixe (vrai, nom, echouer) {
 async function assurerPnpm () {
   const present = await execReel(['pnpm', '--version'], REPO, 30000)
   if (present.code === 0) return
-  console.log('  ⬇ pnpm n\'est pas sur cette machine (DSH en a besoin pour installer les plugins) : npm le pose …')
+  console.log('  ⬇ pnpm is not on this machine (DSH needs it to install plugins): npm is putting it in place …')
   const dossier = join(dirname(MOTEUR_DIR), 'outils', 'pnpm')
   mkdirSync(dossier, { recursive: true })
   writeFileSync(join(dossier, 'package.json'), JSON.stringify({ name: 'kybernos-outils-pnpm', version: '1.0.0', private: true, dependencies: { pnpm: '^11' } }, null, 2) + '\n')
   const r = await execReel(['npm', 'install', '--no-audit', '--no-fund'], dossier, 600000)
   const vrai = join(dossier, 'node_modules', '.bin', famille() === 'windows' ? 'pnpm.cmd' : 'pnpm')
   if (r.code !== 0 || existsSync(vrai) === false) {
-    throw new Error('pnpm manque et npm n\'a pas pu le poser (' + (r.delaiDepasse === true ? 'délai dépassé' : (r.err || r.sortie || 'code ' + r.code).slice(0, 300)) + '). Installe-le toi-même (npm install -g pnpm) puis relance.')
+    throw new Error('pnpm is missing and npm could not put it in place (' + (r.delaiDepasse === true ? 'timed out' : (r.err || r.sortie || 'code ' + r.code).slice(0, 300)) + '). Install it yourself (npm install -g pnpm), then run this again.')
   }
   const lien = await lierDansLePrefixe(vrai, 'pnpm', (m) => { throw new Error(m) })
   const apres = await execReel(['pnpm', '--version'], REPO, 30000)
-  if (apres.code !== 0) throw new Error('pnpm a été posé' + (lien === null ? '' : ' (' + lien + ')') + ' mais ne répond pas : ouvre un NOUVEAU terminal puis relance.')
-  console.log('  ✓ pnpm ' + apres.sortie.trim() + ' posé' + (lien === null ? '' : ' (lié dans ' + lien + ')'))
+  if (apres.code !== 0) throw new Error('pnpm was put in place' + (lien === null ? '' : ' (' + lien + ')') + ' but does not answer: open a NEW terminal, then run this again.')
+  console.log('  ✓ pnpm ' + apres.sortie.trim() + ' in place' + (lien === null ? '' : ' (linked in ' + lien + ')'))
 }
 
 // install pnpm avec sortie VISIBLE : un échec muet est un échec qu'on
@@ -172,7 +172,7 @@ const installerProfil = async () => {
   if (r.code !== 0) {
     console.log(r.sortie.slice(0, 800))
     console.log(r.err.slice(0, 800))
-    throw new Error('l\'installation du profil (pnpm) a échoué — voir ci-dessus')
+    throw new Error('installing the profile (pnpm) failed — see above')
   }
   return r
 }
@@ -379,10 +379,10 @@ const racineQuiPorte = async (cible) => {
 const annulerRetouches = async (resultats) => {
   const posees = resultats.filter((r) => r.applicable === true && r.conforme === true)
   if (posees.length === 0) return
-  console.log('     ↩ on retire ' + posees.length + ' retouche(s) déjà posée(s)')
+  console.log('     ↩ removing ' + posees.length + ' patch(es) already applied')
   for (const r of posees) {
     const sortie = await execReel(['node', join(ICI, r.script), '--revert', ...avecDsh(r.racine)], REPO)
-    console.log('       ' + (sortie.code === 0 ? '↩ ' + r.id + ' retirée' : '⚠ ' + r.id + ' NON retirée — à reprendre à la main dans ' + r.racine))
+    console.log('       ' + (sortie.code === 0 ? '↩ ' + r.id + ' removed' : '⚠ ' + r.id + ' NOT removed — to undo by hand in ' + r.racine))
   }
 }
 
@@ -402,19 +402,19 @@ const poserPatchs = async ({ tolerance = false } = {}) => {
         const verif = await execReel(['node', join(ICI, p.script), '--check', ...avecDsh(racineRetiree)], REPO)
         if (verif.code === 0) {
           await execReel(['node', join(ICI, p.script), '--revert', ...avecDsh(racineRetiree)], REPO)
-          console.log(`     ↩ ${p.id} — retirée (${motifRetrait})`)
+          console.log(`     ↩ ${p.id} — removed (${motifRetrait})`)
         } else {
-          console.log(`     · ${p.id} — retirée, absente (${motifRetrait})`)
+          console.log(`     · ${p.id} — removed, absent (${motifRetrait})`)
         }
       } else {
-        console.log(`     · ${p.id} — retirée, sans cible sur ce moteur (${motifRetrait})`)
+        console.log(`     · ${p.id} — removed, no target on this engine (${motifRetrait})`)
       }
       resultats.push({ id: p.id, conforme: true, applicable: false, retire: true, racine: racineRetiree, script: p.script })
       continue
     }
     const racineCible = await racineQuiPorte(p.cible)
     if (racineCible === null) {
-      console.log(`     · ${p.id} — non applicable (${p.cible} n'est pas livré par ce moteur)`)
+      console.log(`     · ${p.id} — not applicable (${p.cible} is not shipped by this engine)`)
       resultats.push({ id: p.id, conforme: true, applicable: false })
       continue
     }
@@ -435,7 +435,7 @@ const poserPatchs = async ({ tolerance = false } = {}) => {
   const perdues = resultats.filter((x) => x.conforme === false)
   if (perdues.length > 0 && tolerance === false) {
     await annulerRetouches(resultats)
-    throw new Error('retouche(s) non posable(s) sur ce moteur : ' + perdues.map((x) => x.id).join(', '))
+    throw new Error('patch(es) that cannot be applied on this engine: ' + perdues.map((x) => x.id).join(', '))
   }
   return resultats
 }
@@ -481,13 +481,13 @@ const rapporterLien = (nom, ancien) => { liensReprise.push({ nom, racine: String
 const versionDuDossier = (dossier) => { try { return readFileSync(join(dossier, 'VERSION'), 'utf8').trim() || null } catch (e) { return null } }
 const direLiensReprise = () => {
   if (liensReprise.length === 0) return
-  console.log('     ↪ ' + liensReprise.length + ' lien(s) d\'une installation précédente ré-pointé(s) vers ' + REPO)
+  console.log('     ↪ ' + liensReprise.length + ' link(s) of an earlier installation re-pointed to ' + REPO)
   // A signed catalogue never offers an older suite, but a person can run an older archive's launcher: say so instead of doing it silently.
   const nouvelle = versionDuDossier(REPO)
   for (const racine of new Set(liensReprise.map((l) => l.racine))) {
     const ancienne = versionDuDossier(racine)
     if (nouvelle !== null && ancienne !== null && comparerVersions(nouvelle, ancienne) < 0) {
-      console.log('     ⚠ la suite ' + nouvelle + ' est plus ANCIENNE que celle qui était liée (' + ancienne + ') : c\'est un retour en arrière de version, pas une mise à jour')
+      console.log('     ⚠ suite ' + nouvelle + ' is OLDER than the one that was linked (' + ancienne + '): this is a version downgrade, not an update')
     }
   }
   liensReprise.length = 0
@@ -528,12 +528,12 @@ async function verifierBoot (url, { avant = null } = {}) {
       cwd: REPO, stdio: ['ignore', 'pipe', 'pipe'], detached: false, windowsHide: true, shell: win
     })
   } catch (e) {
-    return { ok: false, sortie: binaire + ' n a pas pu demarrer : ' + e.message, code: -1 }
+    return { ok: false, sortie: binaire + ' could not start: ' + e.message, code: -1 }
   }
   // Un binaire absent doit se LIRE dans le verdict, jamais tuer le robot : sans ce
   // gestionnaire, Node renverse « Unhandled 'error' event » et toute l'installation
   // echoue sur une verification de boot facultative.
-  proc.on('error', (e) => { sortie += binaire + ' introuvable : ' + e.message })
+  proc.on('error', (e) => { sortie += binaire + ' not found: ' + e.message })
   proc.stdout.on('data', (d) => { sortie += d })
   proc.stderr.on('data', (d) => { sortie += d })
   const attendre = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -558,10 +558,10 @@ async function verifierBoot (url, { avant = null } = {}) {
 /** The boot check made BEFORE the first write: the set of failure lines that exist without us (null when there is no profile yet). */
 async function etatDeDepartDuBoot () {
   if (opts.url !== null || !existsSync(join(PROFIL_DIR, 'package.json'))) return null
-  console.log('  🔎 démarrage de référence (ce qui échoue déjà avant nous ne nous sera pas reproché)…')
+  console.log('  🔎 reference start (what already fails before us will not be held against us)…')
   const depart = await verifierBoot(null)
   if (depart.echecs.length > 0) {
-    console.log('     ℹ ' + depart.echecs.length + ' ligne(s) d\'échec déjà là avant l\'installation, non imputées au plugin :')
+    console.log('     ℹ ' + depart.echecs.length + ' failure line(s) already there before the installation, not blamed on the plugin:')
     for (const l of depart.echecs.slice(0, 3)) console.log('       · ' + l.slice(0, 200))
   }
   return new Set(depart.echecs)
@@ -582,11 +582,11 @@ async function relancerDsh (port) {
   const trouve = await pidSurPort(port)
   const plan = planRelance(famille(), { port, pid: trouve.valeur })
   if (plan.arreter !== null) {
-    console.log('  ⏹ arrêt de DSH (pid ' + plan.arreter.pid + ')…')
+    console.log('  ⏹ stopping DSH (pid ' + plan.arreter.pid + ')…')
     try { process.kill(Number(plan.arreter.pid), 'SIGTERM') } catch (e) { /* déjà mort : tant mieux */ }
     for (let i = 0; i < 40; i++) { await attendre(250); if ((await pidSurPort(port)).valeur === null) break }
   }
-  console.log('  ▶ redémarrage : ' + plan.demarrer.cmd + ' ' + plan.demarrer.args.join(' ') + ' (détaché)')
+  console.log('  ▶ restarting: ' + plan.demarrer.cmd + ' ' + plan.demarrer.args.join(' ') + ' (detached)')
   const enfant = spawn(plan.demarrer.cmd, plan.demarrer.args, { cwd: REPO, detached: true, stdio: 'ignore' })
   enfant.unref()
   for (let i = 0; i < 60; i++) {
@@ -594,7 +594,7 @@ async function relancerDsh (port) {
     const p = await pidSurPort(port)
     if (p.valeur !== null && String(p.valeur) !== String(trouve.valeur)) return { ok: true, pid: p.valeur }
   }
-  return { ok: false, raison: 'aucun serveur n\'a répondu sur le port ' + port + ' dans les 30 s' }
+  return { ok: false, raison: 'no server answered on port ' + port + ' within 30 s' }
 }
 
 // ── LA SOURCE : le dépôt, un dossier, ou l'archive reçue par le testeur ───
@@ -653,38 +653,38 @@ const poserDansPaquets = (etape, nom) => {
 }
 
 const refuserArchive = (verdict, etape) => {
-  console.log('🔴 archive NON conforme — ' + verdict.ecarts.length + ' écart(s) :')
+  console.log('🔴 archive NOT conforming — ' + verdict.ecarts.length + ' discrepancy(ies):')
   for (const e of verdict.ecarts.slice(0, 20)) console.log('   · ' + e.type + ' : ' + e.chemin)
   if (etape !== null) rmSync(etape, { recursive: true, force: true })
-  quitter(1, '   rien n\'a été installé (ni modifié). Redemande l\'archive à qui te l\'a envoyée.')
+  quitter(1, '   nothing was installed (nor changed). Ask whoever sent you the archive for a new one.')
 }
 
 async function preparerSource () {
   if (opts.source === null) return { origine: 'dépôt', chemin: REPO, manifest: null }
   const chemin = resolve(opts.source)
-  if (!existsSync(chemin)) quitter(1, '🔴 source introuvable : ' + chemin)
+  if (!existsSync(chemin)) quitter(1, '🔴 source not found: ' + chemin)
   if (statSync(chemin).isDirectory()) {
     const manifest = lireManifestDuDossier(chemin)
     if (manifest === null && existsSync(join(chemin, 'manifest.json'))) {
       // Un manifeste PRÉSENT mais illisible ne vaut pas « pas de manifeste » : sinon il suffirait de l'abîmer pour échapper à la vérification.
       try { JSON.parse(readFileSync(join(chemin, 'manifest.json'), 'utf8')) } catch (e) {
-        quitter(1, '🔴 le manifest.json de ' + chemin + ' est illisible — je refuse d\'installer un dossier que je ne peux pas vérifier.')
+        quitter(1, '🔴 the manifest.json of ' + chemin + ' is unreadable — I refuse to install a folder I cannot verify.')
       }
     }
     if (manifest === null) {
       // Un dépôt de développement (ou tout dossier qui ne vient pas d'une archive) n'a pas de manifeste : rien à rejouer.
       REPO = chemin
       COMPAT_CHEMIN = join(REPO, 'dsh-compat.json')
-      console.log('  Source : dossier ' + REPO)
+      console.log('  Source: folder ' + REPO)
       return { origine: 'dossier', chemin: REPO, manifest: null }
     }
     const verdict = verifierDossier(chemin, manifest)
     if (!verdict.ok) refuserArchive(verdict, null)
-    if (verdict.enTrop.length > 0) console.log('  ⚠ ' + verdict.enTrop.length + ' fichier(s) hors manifeste dans ' + chemin + ' (ex. ' + verdict.enTrop.slice(0, 3).join(', ') + ') — ignorés')
+    if (verdict.enTrop.length > 0) console.log('  ⚠ ' + verdict.enTrop.length + ' file(s) not in the manifest in ' + chemin + ' (e.g. ' + verdict.enTrop.slice(0, 3).join(', ') + ') — ignored')
     REPO = chemin
     if (dossierVolatil(chemin)) {
       const nom = nomInstallation(manifest)
-      if (nom === null) quitter(1, '🔴 le manifeste de ' + chemin + ' ne donne pas un nom d\'installation sûr — je refuse.')
+      if (nom === null) quitter(1, '🔴 the manifest of ' + chemin + ' does not give a safe installation name — I refuse.')
       remettreEnOrdrePaquets()
       mkdirSync(PAQUETS_DIR, { recursive: true })
       const etape = join(PAQUETS_DIR, '.etape-' + process.pid + '-' + Date.now())
@@ -692,16 +692,16 @@ async function preparerSource () {
       const copie = verifierDossier(etape, manifest)
       if (!copie.ok) refuserArchive(copie, etape)
       REPO = poserDansPaquets(etape, nom)
-      console.log('  Source : dossier temporaire ' + chemin + ' → copié dans ' + REPO + ' (il disparaîtra, pas l\'installation)')
+      console.log('  Source: temporary folder ' + chemin + ' → copied into ' + REPO + ' (it will disappear, the installation will not)')
     } else {
-      console.log('  Source : dossier ' + REPO)
+      console.log('  Source: folder ' + REPO)
     }
     COMPAT_CHEMIN = join(REPO, 'dsh-compat.json')
-    console.log('  ' + manifest.total.fichiers + ' fichiers vérifiés, version ' + manifest.version)
+    console.log('  ' + manifest.total.fichiers + ' files verified, version ' + manifest.version)
     return { origine: 'dossier', chemin: REPO, manifest }
   }
   const nom = basename(chemin).replace(/\.tar\.gz$/, '')
-  if (NOM_SUR.test(nom) === false || nom.includes('..')) quitter(1, '🔴 nom d\'archive refusé : ' + basename(chemin))
+  if (NOM_SUR.test(nom) === false || nom.includes('..')) quitter(1, '🔴 archive name refused: ' + basename(chemin))
   remettreEnOrdrePaquets()
   mkdirSync(PAQUETS_DIR, { recursive: true })
   // Jamais dans `paquets/<nom>` directement : cette installation est peut-être celle qui tourne.
@@ -715,17 +715,17 @@ async function preparerSource () {
     dirname(chemin))
   if (detar.code !== 0) {
     rmSync(etape, { recursive: true, force: true })
-    quitter(1, '🔴 archive illisible : ' + (detar.err || detar.sortie).slice(0, 300) + '\n   rien n\'a été installé (ni modifié).')
+    quitter(1, '🔴 archive unreadable: ' + (detar.err || detar.sortie).slice(0, 300) + '\n   nothing was installed (nor changed).')
   }
   let manifest = null
   try { manifest = JSON.parse(readFileSync(join(etape, 'manifest.json'), 'utf8')) } catch (e) {
     rmSync(etape, { recursive: true, force: true })
-    quitter(1, '🔴 aucun manifest.json dans ' + chemin + ' — je refuse d\'installer une archive non vérifiable.')
+    quitter(1, '🔴 no manifest.json in ' + chemin + ' — I refuse to install an archive that cannot be verified.')
   }
   const verdict = verifierManifest({ manifest, lire: (c) => readFileSync(join(etape, c)), presents: cheminer(etape, etape, '') })
   if (!verdict.ok) refuserArchive(verdict, etape)
   const dossier = poserDansPaquets(etape, nom)
-  console.log('  Source : archive ' + nom + ' — ' + manifest.total.fichiers + ' fichiers vérifiés, version ' + manifest.version)
+  console.log('  Source: archive ' + nom + ' — ' + manifest.total.fichiers + ' files verified, version ' + manifest.version)
   REPO = dossier
   COMPAT_CHEMIN = join(REPO, 'dsh-compat.json')
   return { origine: 'archive', chemin: REPO, manifest }
@@ -737,18 +737,18 @@ async function preparerSource () {
 // alors que alpha = 0.1.7-alpha.2 — installer latest aurait RÉGRESSÉ le moteur).
 async function chaineDAssurer () {
   if (opts.versionCible !== null) {
-    console.log('  (version demandée explicitement : ' + opts.versionCible + ')')
+    console.log('  (version asked for explicitly: ' + opts.versionCible + ')')
     return opts.versionCible
   }
   const relever = async (quoi) => {
     const r = await execReel(['npm', 'view', '@deepseek-ai/dsh', quoi, '--json'])
     if (r.code !== 0) {
       const detail = (r.err || r.sortie || '').trim()
-      quitter(1, '🔴 impossible de lire les versions publiées (`npm view @deepseek-ai/dsh ' + quoi + '` a échoué) :\n' +
-        (detail === '' ? '   npm n\'a rien répondu — est-il installé et sur le PATH ?' : '   ' + detail.slice(0, 300)) +
-        '\n   Rien n\'a été installé. Vérifie ta connexion et npm, puis relance.')
+      quitter(1, '🔴 cannot read the published versions (`npm view @deepseek-ai/dsh ' + quoi + '` failed):\n' +
+        (detail === '' ? '   npm said nothing — is it installed and on the PATH?' : '   ' + detail.slice(0, 300)) +
+        '\n   Nothing was installed. Check your connection and npm, then run this again.')
     }
-    try { return JSON.parse(r.sortie) } catch (e) { quitter(1, '🔴 sortie npm illisible pour ' + quoi) }
+    try { return JSON.parse(r.sortie) } catch (e) { quitter(1, '🔴 unreadable npm output for ' + quoi) }
   }
   const tags = await relever('dist-tags') || {}
   const zone = lireCompat({ fs: fsReel, chemin: COMPAT_CHEMIN })?.dsh ?? null
@@ -761,7 +761,7 @@ async function chaineDAssurer () {
   // toute machine neuve. Une étiquette hors zone n'est pas un choix.
   for (const canal of ['alpha', 'next', 'latest']) {
     if (tags[canal] !== undefined && dedans(tags[canal])) {
-      console.log('  (relevé en direct — ' + ligne + ' → on épingle ' + tags[canal] + ', dans la zone éprouvée)')
+      console.log('  (read live — ' + ligne + ' → pinning ' + tags[canal] + ', inside the tested range)')
       return tags[canal]
     }
   }
@@ -769,13 +769,13 @@ async function chaineDAssurer () {
   const candidates = (Array.isArray(versions) ? versions : []).filter(dedans).sort(comparerVersions)
   const choix = candidates[candidates.length - 1]
   if (choix === undefined) {
-    quitter(1, '🔴 aucune version publiée n\'est dans la zone éprouvée' +
+    quitter(1, '🔴 no published version is inside the tested range' +
       (zone === null ? '' : ' (' + zone.min + ' … ' + zone.max + ')') + '.\n' +
-      '   Relevé : ' + ligne + '.\n' +
-      '   Deux issues : attends une version testée, ou force avec --force après avoir lu ce que la zone dit.')
+      '   Read: ' + ligne + '.\n' +
+      '   Two ways out: wait for a tested version, or force with --force after reading what the range says.')
   }
-  console.log('  (relevé en direct — ' + ligne + ' · aucune étiquette alpha/next/latest n\'est dans la zone éprouvée' +
-    (zone === null ? '' : ' ' + zone.min + ' … ' + zone.max) + ' → on épingle la plus haute testée : ' + choix + ')')
+  console.log('  (read live — ' + ligne + ' · no alpha/next/latest tag is inside the tested range' +
+    (zone === null ? '' : ' ' + zone.min + ' … ' + zone.max) + ' → pinning the highest tested: ' + choix + ')')
   return choix
 }
 
@@ -797,8 +797,8 @@ async function installerMoteur (cible, opts = {}) {
     overrides: Object.fromEntries(PAQUETS_EPINGLES.map((p) => ['@deepseek-ai/' + p, cible])),
   }
   writeFileSync(join(projet, 'package.json'), JSON.stringify(manifeste, null, 2) + '\n')
-  console.log('  ⬇ npm install @deepseek-ai/dsh@' + cible + ' épinglé (' + PAQUETS_EPINGLES.length + ' sous-paquets) …')
-  console.log('     (arbre de référence dans ' + projet + ')')
+  console.log('  ⬇ npm install @deepseek-ai/dsh@' + cible + ' pinned (' + PAQUETS_EPINGLES.length + ' sub-packages) …')
+  console.log('     (reference tree in ' + projet + ')')
   // `--allow-scripts` est refusé pour une installation de projet (mesuré :
   // « EALLOWSCRIPTS — not allowed in project-scoped installs »). npm se contente
   // d'un avertissement, et le moteur tourne sans ces scripts post-installation.
@@ -808,12 +808,12 @@ async function installerMoteur (cible, opts = {}) {
   const r = await execReel(['npm', 'install', '--no-audit', '--no-fund'], projet, 600000)
   if (r.code !== 0) {
     const cause = r.delaiDepasse === true
-      ? 'delai depasse (' + Math.round(r.delaiMs / 1000) + ' s) — reseau lent ou machine froide, relance'
-      : 'code ' + r.code + ' · ' + (r.err || r.sortie || '(npm n\'a rien dit)').slice(0, 400)
-    echouer('🔴 npm a échoué : ' + cause)
+      ? 'timed out (' + Math.round(r.delaiMs / 1000) + ' s) — slow network or cold machine, run it again'
+      : 'code ' + r.code + ' · ' + (r.err || r.sortie || '(npm said nothing)').slice(0, 400)
+    echouer('🔴 npm failed: ' + cause)
   }
   const moteur = join(projet, 'node_modules', '@deepseek-ai', 'dsh')
-  if (existsSync(moteur) === false) echouer('🔴 npm n\'a pas posé @deepseek-ai/dsh dans ' + projet)
+  if (existsSync(moteur) === false) echouer('🔴 npm did not put @deepseek-ai/dsh in ' + projet)
 
   // Le binaire est lié dans le préfixe GLOBAL (voir `lierDansLePrefixe`).
   const vrai = join(projet, 'node_modules', '.bin', famille() === 'windows' ? 'dsh.cmd' : 'dsh')
@@ -822,15 +822,15 @@ async function installerMoteur (cible, opts = {}) {
     // Le moteur vient de CHANGER : tout ce qui a été résolu avant (racine des
     // retouches, audit des surfaces) désignait l'ancien arbre.
     RACINE_CACHE = null
-    console.log('  (dsh lié dans ' + lien + ')')
+    console.log('  (dsh linked in ' + lien + ')')
   }
   const vu = await versionDuGlobal({ exec: execReel })
   if (vu === null) {
-    echouer('🔴 le moteur ' + cible + ' est posé, mais `dsh` ne répond toujours pas.\n' +
-      '   Ouvre un NOUVEAU terminal (le PATH de celui-ci date d\'avant l\'installation), puis relance :\n' +
+    echouer('🔴 engine ' + cible + ' is in place, but `dsh` still does not answer.\n' +
+      '   Open a NEW terminal (the PATH of this one predates the installation), then run it again:\n' +
       '     ' + (famille() === 'windows' ? 'kybernos-install' : './kybernos-install'))
   }
-  console.log('  ✓ moteur ' + vu + ' posé et joignable' + (vu === cible ? '' : ' (⚠ attendu ' + cible + ')'))
+  console.log('  ✓ engine ' + vu + ' in place and reachable' + (vu === cible ? '' : ' (⚠ expected ' + cible + ')'))
 }
 
 const source = await preparerSource()
@@ -842,7 +842,7 @@ if (ordre === 'satellites') {
   //   satellites --desactiver <nom>...  → les désactive
   //   satellites --tout                 → active tout (réinitialise)
   const manifeste = LIRE_SATELLITES(REPO)
-  if (manifeste === null) quitter(1, '✗ docs/beta/satellites.json illisible')
+  if (manifeste === null) quitter(1, '✗ docs/beta/satellites.json unreadable')
   const tous = TOUS_LES_SATELLITES(REPO)
   const socle = (manifeste.socle?.bundles ?? []).map((b) => b.nom)
   // An ABSENT activation file means "everything is active" (see lireSatellitesActives).
@@ -872,9 +872,9 @@ if (ordre === 'satellites') {
   if (args.includes('--liste') || args.length === 1) {
     const actives = lireActives()
     const actifsSet = new Set([...socle, ...actives])
-    console.log('Satellites Kybernos — état d\'activation')
+    console.log('Kybernos satellites — activation state')
     console.log('')
-    console.log('SOCLE (toujours actif)')
+    console.log('CORE (always on)')
     for (const s of (manifeste.socle?.bundles ?? [])) {
       console.log('  ✓ ' + s.nom.padEnd(28) + ' tier ' + s.tier + '  ' + s.role)
     }
@@ -882,42 +882,42 @@ if (ordre === 'satellites') {
     console.log('SATELLITES')
     for (const s of (manifeste.satellites?.bundles ?? [])) {
       const actif = actifsSet.has(s.nom)
-      console.log('  ' + (actif ? '✓' : '·') + ' ' + s.nom.padEnd(28) + ' tier ' + s.tier + '  ' + (actif ? 'ACTIF' : 'inactif') + '  ' + s.role)
+      console.log('  ' + (actif ? '✓' : '·') + ' ' + s.nom.padEnd(28) + ' tier ' + s.tier + '  ' + (actif ? 'ACTIVE' : 'inactive') + '  ' + s.role)
     }
     console.log('')
-    console.log('Fichier d\'activation : ' + SATELLITES_ACTIVES_FICHIER)
+    console.log('Activation file: ' + SATELLITES_ACTIVES_FICHIER)
     process.exit(0)
   }
   if (args.includes('--tout')) {
     ecrireActives(tous.map((s) => s.nom))
-    console.log('✓ tous les satellites activés (' + tous.length + ')')
+    console.log('✓ all satellites activated (' + tous.length + ')')
     process.exit(0)
   }
   if (args.includes('--activer')) {
     const noms = argsSat.filter((a) => tous.some((s) => s.nom === a || s.dir === a))
-    if (noms.length === 0) quitter(1, '✗ --activer attend au moins un nom de satellite')
+    if (noms.length === 0) quitter(1, '✗ --activer expects at least one satellite name')
     const actuelles = lireActives()
     const nouvelles = [...new Set([...actuelles, ...noms.map((n) => tous.find((s) => s.nom === n || s.dir === n).nom)])]
     ecrireActives(nouvelles)
-    console.log('✓ activés : ' + noms.join(', '))
-    console.log('  total actif : ' + nouvelles.length + ' satellite(s)')
+    console.log('✓ activated: ' + noms.join(', '))
+    console.log('  total active: ' + nouvelles.length + ' satellite(s)')
     process.exit(0)
   }
   if (args.includes('--desactiver')) {
     const noms = argsSat.filter((a) => tous.some((s) => s.nom === a || s.dir === a))
-    if (noms.length === 0) quitter(1, '✗ --desactiver attend au moins un nom de satellite')
+    if (noms.length === 0) quitter(1, '✗ --desactiver expects at least one satellite name')
     const nomsComplets = noms.map((n) => tous.find((s) => s.nom === n || s.dir === n).nom)
-    // Le socle ne se désactive jamais
+    // The core is never switched off
     const interdits = nomsComplets.filter((n) => socle.includes(n))
-    if (interdits.length > 0) quitter(1, '✗ le socle ne se désactive pas : ' + interdits.join(', '))
+    if (interdits.length > 0) quitter(1, '✗ the core cannot be switched off: ' + interdits.join(', '))
     const actuelles = lireActives()
     const nouvelles = actuelles.filter((n) => !nomsComplets.includes(n))
     ecrireActives(nouvelles)
-    console.log('✓ désactivés : ' + noms.join(', '))
-    console.log('  total actif : ' + nouvelles.length + ' satellite(s)')
+    console.log('✓ deactivated: ' + noms.join(', '))
+    console.log('  total active: ' + nouvelles.length + ' satellite(s)')
     process.exit(0)
   }
-  quitter(1, 'Usage : satellites [--liste | --tout | --activer <nom>… | --desactiver <nom>…]')
+  quitter(1, 'Usage: satellites [--liste | --tout | --activer <name>… | --desactiver <name>…]')
 }
 
 if (ordre === 'safe-mode') {
@@ -1006,11 +1006,11 @@ if (ordre === 'doctor') {
     const motifRetrait = motifDeRetrait(p, versionMoteur)
     if (motifRetrait !== null) {
       retirees.push({ id: p.id, motif: motifRetrait, encorePosee: r.code === 0 })
-      if (r.code === 0) etat.problemes.push(`la retouche « ${p.id} » est retirée mais encore posée dans le moteur — relance l'installation pour la retirer`)
+      if (r.code === 0) etat.problemes.push(`patch « ${p.id} » is removed but still applied in the engine — run the installation again to remove it`)
       continue
     }
     verresPatchs.push({ id: p.id, pose: r.code === 0 })
-    if (r.code !== 0) etat.problemes.push(`la retouche « ${p.id} » n'est pas posée dans le moteur`)
+    if (r.code !== 0) etat.problemes.push(`patch « ${p.id} » is not applied in the engine`)
   }
   etat.retirees = retirees
   // Le serveur qui tourne sert-il le moteur qui est sur le disque ? Un serveur
@@ -1054,38 +1054,38 @@ if (ordre === 'doctor') {
     raison: fraicheur.raison ?? null,
   }
   if (opts.json) { console.log(JSON.stringify({ ...etat, patches: verresPatchs })); process.exit(etat.couleur === 'verte' ? 0 : 1) }
-  console.log(`\n  Moteur DSH : ${etat.global ?? 'absent (pas sur le PATH)'}   Plugin : ${etat.plugin}`)
-  console.log(`  État : ${etat.couleur === 'verte' ? '🟢 tout va bien' : '🟠 à corriger'}`)
+  console.log(`\n  DSH engine: ${etat.global ?? 'absent (not on the PATH)'}   Plugin: ${etat.plugin}`)
+  console.log(`  Status: ${etat.couleur === 'verte' ? '🟢 all good' : '🟠 needs attention'}`)
   // Le PREFLIGHT : ce qui est disponible ICI, et par quoi on a mesuré. Un
   // testeur sous Windows doit pouvoir le lire — pas supposer que c'est `lsof`.
   const fam = famille()
   const par = []
   if (fraicheur.sourcePid !== null && fraicheur.sourcePid !== undefined) par.push(fraicheur.sourcePid)
   if (fraicheur.sourceDemarrage !== null && fraicheur.sourceDemarrage !== undefined) par.push(fraicheur.sourceDemarrage)
-  console.log(`  Plateforme : ${process.platform} (${fam}) — supervision ${nomSuperviseur(fam)}` +
-    (par.length === 0 ? ' — serveur mesuré par aucune source' : ' — serveur mesuré via ' + par.join(' + ')))
-  console.log(`  Serveur : ${fraicheur.verdict === 'frais' ? '✓ postérieur à l\'installation' : (fraicheur.perime === true ? '✗ antérieur à l\'installation' : '○ ' + fraicheur.raison)}`)
-  if (etat.problemes.length > 0) { console.log('  Problèmes :'); for (const p of etat.problemes) console.log('    · ' + p) }
-  console.log(`  Retouches : ${verresPatchs.filter((p) => p.pose).length}/${verresPatchs.length} posées`)
+  console.log(`  Platform: ${process.platform} (${fam}) — supervision ${nomSuperviseur(fam)}` +
+    (par.length === 0 ? ' — server measured by no source' : ' — server measured via ' + par.join(' + ')))
+  console.log(`  Server: ${fraicheur.verdict === 'frais' ? '✓ started after the installation' : (fraicheur.perime === true ? '✗ started before the installation' : '○ ' + fraicheur.raison)}`)
+  if (etat.problemes.length > 0) { console.log('  Problems:'); for (const p of etat.problemes) console.log('    · ' + p) }
+  console.log(`  Patches: ${verresPatchs.filter((p) => p.pose).length}/${verresPatchs.length} applied`)
   for (const r of retirees) {
-    console.log(`    · ${r.id} — retirée${r.encorePosee ? ' (ENCORE POSÉE : relance l\'installation)' : ''} (${r.motif})`)
+    console.log(`    · ${r.id} — removed${r.encorePosee ? ' (STILL APPLIED: run the installation again)' : ''} (${r.motif})`)
   }
-  console.log(`  Surfaces  : ${etat.surfaces.conformes}/${etat.surfaces.total} contrats du moteur conformes` +
-    (etat.surfaces.mesureesSurVierge > 0 ? ` (${etat.surfaces.mesureesSurVierge} mesurés sur une sauvegarde vierge)` : '') +
-    (etat.surfaces.aVerifier.length > 0 ? ` — ${etat.surfaces.aVerifier.length} à vérifier sur un moteur nu (--ref <racine>)` : ''))
+  console.log(`  Surfaces: ${etat.surfaces.conformes}/${etat.surfaces.total} engine contracts compliant` +
+    (etat.surfaces.mesureesSurVierge > 0 ? ` (${etat.surfaces.mesureesSurVierge} measured on a clean backup)` : '') +
+    (etat.surfaces.aVerifier.length > 0 ? ` — ${etat.surfaces.aVerifier.length} to check on a bare engine (--ref <root>)` : ''))
   const livres = etat.surfaces.natifs.filter((n) => n.livre)
-  if (livres.length > 0) console.log(`  Natif     : ${livres.length} capacités livrées par le moteur — ${livres.map((n) => n.quoi.split(' ')[0] + ' ' + n.paquet.replace(/^dsh-(experimental-)?/, '')).join(' ; ')}`)
+  if (livres.length > 0) console.log(`  Native: ${livres.length} capabilities shipped by the engine — ${livres.map((n) => n.quoi.split(' ')[0] + ' ' + n.paquet.replace(/^dsh-(experimental-)?/, '')).join(' ; ')}`)
   for (const d of etat.surfaces.doublons) console.log(`    ↳ ${d}`)
   const j = lireJournal({ fs: fsReel, journal: JOURNAL, limite: 3 })
-  if (j.length > 0) console.log(`  Dernière opération : ${j[0].quoi} ${j[0].de} → ${j[0].vers} (${j[0].resultat})`)
+  if (j.length > 0) console.log(`  Last operation: ${j[0].quoi} ${j[0].de} → ${j[0].vers} (${j[0].resultat})`)
   process.exit(etat.couleur === 'verte' ? 0 : 1)
 }
 
 // ── la porte : geste n°1 de install ET upgrade ────────────────────────────
 async function porteCompat (cible) {
   if (cible === null || cible === undefined) {
-    quitter(1, '🔴 aucun moteur DSH lisible (`dsh --version` ne répond pas).\n' +
-      '   Pose-le d\'abord — `./kybernos-install` s\'en charge — puis relance.')
+    quitter(1, '🔴 no readable DSH engine (`dsh --version` does not answer).\n' +
+      '   Put it in place first — `./kybernos-install` does that — then run this again.')
   }
   const compat = lireCompat({ fs: fsReel, chemin: COMPAT_CHEMIN })
   const v = testerCompatibilite({ cible, compat, force: opts.force })
@@ -1096,7 +1096,7 @@ async function porteCompat (cible) {
 
 async function photoAvantTout (versions) {
   const photo = await photographier({ fs: fsReel, profilDir: PROFIL_DIR, photosDir: PHOTOS_DIR, horodatage: horodatage(), versions, horloge: horlogeReelle })
-  console.log('  📸 photo de sécurité : ' + photo.dossier)
+  console.log('  📸 safety photo: ' + photo.dossier)
   return photo
 }
 
@@ -1107,7 +1107,7 @@ async function faireInstall () {
   const cible = await versionDuGlobal({ exec: execReel })
   await porteCompat(cible)
   if (opts.dry) {
-    quitter(0, '\n  (dry-run : source ' + REPO + ', moteur ' + cible + ' — rien n\'a été modifié)\n' +
+    quitter(0, '\n  (dry-run: source ' + REPO + ', engine ' + cible + ' — nothing was changed)\n' +
       instructionsRedemarrage(famille(), portGui))
   }
   const versions = { global: cible, plugin: await versionDuPlugin({ exec: execReel, repoDir: REPO }) }
@@ -1125,19 +1125,19 @@ async function faireInstall () {
   const abandonner = async (e) => {
     const date = new Date().toISOString()
     console.log('  ❌ ' + e.message)
-    console.log('  ↩ retour à l\'état d\'avant la photo')
+    console.log('  ↩ back to the state before the photo')
     await restaurerPhoto({ fs: fsReel, photosDir: PHOTOS_DIR, photoDossier: photo.dossier, profilDir: PROFIL_DIR })
     await journalOp({ date, quoi: 'plugin', de: '—', vers: versions.plugin, resultat: 'echec', raison: e.message, photo: photo.dossier })
-    quitter(1, '\n🔴 installation interrompue avant la fin — ta machine est revenue à l\'état d\'avant. Rien n\'a changé.')
+    quitter(1, '\n🔴 installation interrupted before the end — your machine is back to how it was. Nothing changed.')
   }
   if (!existsSync(join(PROFIL_DIR, 'package.json'))) {
-    console.log('  🧱 le profil n\'existe pas encore — DSH le crée (cas normal d\'une machine neuve)…')
+    console.log('  🧱 the profile does not exist yet — DSH creates it (the normal case of a new machine)…')
     try { await installerProfil() } catch (e) { await abandonner(e) }
   }
-  console.log('  🔗 liaison des paquets du dépôt vers le profil…')
+  console.log('  🔗 linking the repository packages to the profile…')
   alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: ACTIVES, reprendre: true, rapporter: rapporterLien })
   direLiensReprise()
-  console.log('  📦 installation du profil (pnpm)…')
+  console.log('  📦 installing the profile (pnpm)…')
   try { await installerProfil() } catch (e) { await abandonner(e) }
   // Les retouches touchent les paquets `@deepseek-ai/*` du PROFIL (l'installation
   // globale ne porte que le paquet `dsh` depuis 0.1.7). Les poser avant le pnpm
@@ -1145,7 +1145,7 @@ async function faireInstall () {
   // scenario B isole — `queue-move` et `model-search` ✗ sur un moteur neuf, ✓ sur
   // une machine ou le profil est deja peuple. On patche donc APRES l'installation
   // qui les rend presents.
-  console.log('  🧶 re-pose des retouches du moteur…')
+  console.log('  🧶 re-applying the engine patches…')
   try {
     await poserPatchs()
   } catch (e) {
@@ -1153,29 +1153,30 @@ async function faireInstall () {
     // pas et on ne laisse pas non plus une stack trace au testeur.
     await abandonner(e)
   }
-  console.log('  🔎 vérification du boot…')
+  console.log('  🔎 checking the boot…')
   const boot = await verifierBoot(opts.url, { avant: bootAvant })
   const date = new Date().toISOString()
   if (!boot.ok) {
-    console.log('  ❌ le boot échoue — retour à l\'état d\'avant la photo')
+    console.log('  ❌ the boot fails — back to the state before the photo')
     direEchecBoot(boot)
     await restaurerPhoto({ fs: fsReel, photosDir: PHOTOS_DIR, photoDossier: photo.dossier, profilDir: PROFIL_DIR })
     await poserPatchs({ tolerance: true })
-    await journalOp({ date, quoi: 'plugin', de: '—', vers: versions.plugin, resultat: 'echec', raison: 'boot échoué, photo remise', photo: photo.dossier })
-    quitter(1, '\n🔴 l\'installation a échoué — ta machine est revenue à l\'état d\'avant. Rien n\'a changé.')
+    await journalOp({ date, quoi: 'plugin', de: '—', vers: versions.plugin, resultat: 'echec', raison: 'boot failed, photo put back', photo: photo.dossier })
+    quitter(1, '\n🔴 the installation failed — your machine is back to how it was. Nothing changed.')
   }
   await journalOp({ date, quoi: 'plugin', de: '—', vers: versions.plugin, resultat: 'reussi', raison: 'installation', photo: photo.dossier })
   if (opts.relancer) {
-    if (!opts.force) quitter(1, '\n  --relancer éteint le DSH qui tourne. Ajoute --force si c\'est bien ce que tu veux.')
+    if (!opts.force) quitter(1, '\n  --relancer shuts down the DSH that is running. Add --force if that is what you want.')
     const suite = await relancerDsh(portGui)
     if (!suite.ok) {
-      await journalOp({ date, quoi: 'plugin', de: '—', vers: versions.plugin, resultat: 'reussi', raison: 'installation, redémarrage raté : ' + suite.raison, photo: photo.dossier })
-      quitter(1, '\n🟠 le plugin est installé, mais le redémarrage a échoué : ' + suite.raison +
-        '\n   Relance DSH toi-même, puis recharge la page.')
+      await journalOp({ date, quoi: 'plugin', de: '—', vers: versions.plugin, resultat: 'reussi', raison: 'installation, restart failed: ' + suite.raison, photo: photo.dossier })
+      quitter(1, '\n🟠 the plugin is installed, but the restart failed: ' + suite.raison +
+        '\n   Start DSH yourself (`dsh web --port ' + portGui + '`), then reload the page.')
     }
-    quitter(0, '\n🟢 installation réussie, DSH redémarré (pid ' + suite.pid + '). Recharge la page DSH pour voir Kybernos.')
+    quitter(0, '\n🟢 installation succeeded, DSH restarted (pid ' + suite.pid + '). Reload the DSH page to see Kybernos.\n' +
+      '   (page closed? `dsh web --port ' + portGui + '` opens your browser already signed in.)')
   }
-  quitter(0, '\n🟢 installation réussie.\n' + instructionsRedemarrage(famille(), portGui))
+  quitter(0, '\n🟢 installation succeeded.\n' + instructionsRedemarrage(famille(), portGui))
 }
 
 if (ordre === 'install') await faireInstall()
@@ -1187,25 +1188,25 @@ if (ordre === 'install') await faireInstall()
 // pas avoir à savoir dans quel cas il est.
 if (ordre === 'bootstrap') {
   const global = await versionDuGlobal({ exec: execReel })
-  console.log('\n  Scénario ' + (global === null ? 'B — la machine n\'a pas encore DSH' : 'A — DSH ' + global + ' est déjà installé'))
+  console.log('\n  Scenario ' + (global === null ? 'B — this machine does not have DSH yet' : 'A — DSH ' + global + ' is already installed'))
   if (global === null) {
     const cible = await chaineDAssurer()
     const serv = await pidSurPort(portGui)
     if (serv.valeur !== null) {
       // D7 : refus, puis LA COMMANDE EXACTE. Jamais de sudo, jamais d'escalade.
-      quitter(1, '🔴 un serveur DSH répond sur le port ' + portGui + ' (pid ' + serv.valeur + ') alors que `dsh` n\'est pas sur le PATH.\n' +
-        '   Je ne touche pas à une installation que je ne sais pas lire. Si c\'est bien la tienne, pose le moteur toi-même :\n' +
+      quitter(1, '🔴 a DSH server answers on port ' + portGui + ' (pid ' + serv.valeur + ') although `dsh` is not on the PATH.\n' +
+        '   I do not touch an installation I cannot read. If it is yours, put the engine in place yourself:\n' +
         '     npm i -g @deepseek-ai/dsh@' + cible + ' ' + ALLOW_SCRIPTS + '\n' +
-        '   (et sache qu\'à lui seul, `npm i -g` n\'épingle pas les sous-paquets que le plugin retouche :\n' +
-        '    le robot pose, lui, un arbre épinglé dans ' + MOTEUR_DIR + ')')
+        '   (note that `npm i -g` alone does not pin the sub-packages the plugin patches:\n' +
+        '    the robot puts a pinned tree in ' + MOTEUR_DIR + ')')
     }
     if (opts.dry) {
-      quitter(0, '\n  (dry-run : le moteur ' + cible + ' serait posé, puis le plugin — rien n\'a été modifié)\n' +
+      quitter(0, '\n  (dry-run: engine ' + cible + ' would be put in place, then the plugin — nothing was changed)\n' +
         instructionsRedemarrage(famille(), portGui))
     }
     await installerMoteur(cible)
   } else if (opts.dry) {
-    quitter(0, '\n  (dry-run : le plugin serait greffé sur le moteur ' + global + ' — rien n\'a été modifié)\n' +
+    quitter(0, '\n  (dry-run: the plugin would be grafted onto engine ' + global + ' — nothing was changed)\n' +
       instructionsRedemarrage(famille(), portGui))
   }
   await faireInstall()
@@ -1219,14 +1220,14 @@ if (ordre === 'upgrade') {
   const versions = { global: cible, plugin: await versionDuPlugin({ exec: execReel, repoDir: REPO }) }
   const plan = planUpgrade({ cible, depuis, compatVerdict: v.verdict, aDesBundles: true })
   console.log('\n  Plan : ' + plan.join(' → '))
-  if (opts.dry) quitter(0, '\n  (dry-run : rien n\'a été modifié)')
+  if (opts.dry) quitter(0, '\n  (dry-run: nothing was changed)')
 
   const bootAvant = await etatDeDepartDuBoot()
   const photo = await photoAvantTout({ global: depuis, plugin: versions.plugin })
   const date = new Date().toISOString()
   try {
     if (plan.includes('remplacer-moteur')) {
-      console.log(`  🔄 moteur DSH ${depuis} → ${cible}…`)
+      console.log(`  🔄 DSH engine ${depuis} → ${cible}…`)
       // Par le même chemin que l'installation — arbre épinglé dans le foyer, puis
       // lien dans le préfixe. Mesuré le 23/09/2026 : `npm i -g` ici échouait en
       // EEXIST sur `prefix/bin/dsh` (le lien que NOTRE installation venait de
@@ -1235,40 +1236,40 @@ if (ordre === 'upgrade') {
       // épinglés que le plugin retouche.
       await installerMoteur(cible, { tolere: true })
     }
-    console.log('  📝 alignement de la fiche de réglages (pins @deepseek-ai → ' + cible + ')…')
+    console.log('  📝 aligning the settings sheet (@deepseek-ai pins → ' + cible + ')…')
     const pkgProfil = JSON.parse(fsReel.lire(join(PROFIL_DIR, 'package.json')))
     const nomsDsh = Object.keys(pkgProfil.dependencies || {}).filter((k) => k.startsWith('@deepseek-ai/'))
     const publiees = await versionsPubliees(nomsDsh)
     const alignement = alignerPins({ fs: fsReel, profilDir: PROFIL_DIR, cible, disponibles: publiees })
     for (const r of alignement.retires) {
-      console.log(`     ⚠ ${r.nom} n'est pas publié en ${cible} (dernière : ${r.derniere ?? 'inconnue'}) — retiré du profil`)
+      console.log(`     ⚠ ${r.nom} is not published in ${cible} (latest: ${r.derniere ?? 'unknown'}) — removed from the profile`)
     }
-    for (const b of alignement.bundlesRetires) console.log(`       ↳ bundle retiré : ${b}`)
+    for (const b of alignement.bundlesRetires) console.log(`       ↳ bundle removed: ${b}`)
     alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: ACTIVES, reprendre: true, rapporter: rapporterLien })
     direLiensReprise()
-    console.log('  🧶 re-pose des retouches du moteur…')
+    console.log('  🧶 re-applying the engine patches…')
     await poserPatchs()
-    console.log('  📦 installation du profil (pnpm)…')
+    console.log('  📦 installing the profile (pnpm)…')
     await installerProfil()
-    console.log('  🔎 vérification du boot…')
+    console.log('  🔎 checking the boot…')
     const boot = await verifierBoot(opts.url, { avant: bootAvant })
-    if (!boot.ok) { direEchecBoot(boot); throw new Error('boot échoué') }
+    if (!boot.ok) { direEchecBoot(boot); throw new Error('boot failed') }
     await journalOp({ date, quoi: 'moteur', de: depuis, vers: cible, resultat: 'reussi', photo: photo.dossier })
-    quitter(0, `\n🟢 mise à jour réussie : moteur ${depuis} → ${cible}, plugin ${versions.plugin}. Recharge la page DSH.`)
+    quitter(0, `\n🟢 update succeeded: engine ${depuis} → ${cible}, plugin ${versions.plugin}. Reload the DSH page.`)
   } catch (e) {
-    console.log('\n  ❌ ' + (e.message || e) + ' — retour à la photo')
+    console.log('\n  ❌ ' + (e.message || e) + ' — back to the photo')
     await restaurerPhoto({ fs: fsReel, photosDir: PHOTOS_DIR, photoDossier: photo.dossier, profilDir: PROFIL_DIR })
     // le moteur ET les retouches reviennent à la version d'origine
     if (depuis !== cible) {
       // Retour au moteur d'avant par le même chemin (arbre épinglé + lien).
-      try { await installerMoteur(depuis, { tolere: true }) } catch (e) { console.log('  ⚠ retour du moteur ' + depuis + ' : ' + (e.message || e)) }
+      try { await installerMoteur(depuis, { tolere: true }) } catch (e) { console.log('  ⚠ engine rollback ' + depuis + ': ' + (e.message || e)) }
     }
     await poserPatchs({ tolerance: true })
     // The same pnpm that just failed may fail again (no network): the profile files are already back from the photo, so say so
     // and finish the journal instead of dying here with a stack trace.
-    try { await installerProfil() } catch (e2) { console.log('  ⚠ la remise en ordre du profil (pnpm) a échoué aussi : ' + (e2.message || e2) + ' — package.json et le lockfile sont ceux de la photo ; relance quand pnpm répond') }
+    try { await installerProfil() } catch (e2) { console.log('  ⚠ putting the profile back in order (pnpm) failed too: ' + (e2.message || e2) + ' — package.json and the lockfile are the photo\'s; run again when pnpm answers') }
     await journalOp({ date, quoi: 'moteur', de: cible, vers: depuis, resultat: 'retour-arriere', raison: String(e.message || e).slice(0, 200), photo: photo.dossier })
-    quitter(1, '\n🟠 la mise à jour a échoué — ta machine est revenue à l\'état d\'avant. Rien n\'a changé.')
+    quitter(1, '\n🟠 the update failed — your machine is back to how it was. Nothing changed.')
   }
 }
 
@@ -1276,12 +1277,12 @@ if (ordre === 'upgrade') {
 if (ordre === 'rollback') {
   const avant = await versionDuGlobal({ exec: execReel })
   const r = await restaurerPhoto({ fs: fsReel, photosDir: PHOTOS_DIR, photoDossier: opts.photo, profilDir: PROFIL_DIR })
-  console.log('  📸 photo restaurée : ' + r.dossier + ' (' + r.recopies.join(', ') + ')')
-  try { await installerProfil() } catch (e) { console.log('  ⚠ pnpm a échoué après la restauration : ' + (e.message || e) + ' — package.json, lockfile et cordis.patch.yml sont ceux de la photo ; relance quand pnpm répond') }
+  console.log('  📸 photo restored: ' + r.dossier + ' (' + r.recopies.join(', ') + ')')
+  try { await installerProfil() } catch (e) { console.log('  ⚠ pnpm failed after the restore: ' + (e.message || e) + ' — package.json, the lockfile and cordis.patch.yml are the photo\'s; run again when pnpm answers') }
   await poserPatchs({ tolerance: true })
   const apres = await versionDuGlobal({ exec: execReel })
-  await journalOp({ date: new Date().toISOString(), quoi: 'moteur', de: avant, vers: apres, resultat: 'retour-arriere', raison: 'rollback demandé', photo: r.dossier })
-  quitter(0, '\n🟢 retour arrière terminé. Recharge la page DSH.')
+  await journalOp({ date: new Date().toISOString(), quoi: 'moteur', de: avant, vers: apres, resultat: 'retour-arriere', raison: 'rollback requested', photo: r.dossier })
+  quitter(0, '\n🟢 rollback done. Reload the DSH page.')
 }
 
 // ── UNINSTALL : retirer proprement, sans casser le reste ───────────────────
@@ -1295,15 +1296,15 @@ if (ordre === 'uninstall') {
     if (i >= 0) pkg.dsh.profile.bundles.splice(i, 1)
   }
   fsReel.ecrire(join(PROFIL_DIR, 'package.json'), JSON.stringify(pkg, null, 2) + '\n')
-  console.log('  🧹 liens et bundles retirés du profil (le reste est intact)')
-  await journalOp({ date: new Date().toISOString(), quoi: 'plugin', de: versions.plugin, vers: '—', resultat: 'reussi', raison: 'désinstallation', photo: photo.dossier })
-  quitter(0, '\n🟢 plugin retiré. Relance dsh plugin --profile web install pour finaliser.')
+  console.log('  🧹 links and bundles removed from the profile (the rest is intact)')
+  await journalOp({ date: new Date().toISOString(), quoi: 'plugin', de: versions.plugin, vers: '—', resultat: 'reussi', raison: 'uninstallation', photo: photo.dossier })
+  quitter(0, '\n🟢 plugin removed. Run `dsh plugin --profile web install` to finish.')
 }
 
 // ── VERIFY : boot seul ────────────────────────────────────────────────────
 if (ordre === 'verify') {
   const boot = await verifierBoot(opts.url)
-  quitter(boot.ok ? 0 : 1, boot.ok ? '\n🟢 le boot est sain.' : '\n🔴 le boot échoue.\n' + boot.sortie.slice(0, 600))
+  quitter(boot.ok ? 0 : 1, boot.ok ? '\n🟢 the boot is healthy.' : '\n🔴 the boot fails.\n' + boot.sortie.slice(0, 600))
 }
 
-quitter(64, 'Usage : dsh-lifecycle.mjs doctor|install|upgrade|rollback|uninstall|verify [--force] [--dry] [--json] [--url <url>] [version]')
+quitter(64, 'Usage: dsh-lifecycle.mjs doctor|install|upgrade|rollback|uninstall|verify [--force] [--dry] [--json] [--url <url>] [version]')

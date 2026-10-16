@@ -113,12 +113,20 @@ console.log('\n── the GUI keeps working ──')
   await routes['/kybernos-sessions/settings'](requete('POST', '/kybernos-sessions/settings', { referer: 'http://localhost:' + PORT + '/' }, { brain: 'e/f' }), referer)
   ok('POST /settings with only a same-machine Referer is accepted', referer.code === 200 && referer.corps.ok === true, { code: referer.code })
   // A value the page sent that is not acceptable is the caller's mistake (400), not a failure of the host (500).
-  for (const [nom, corps] of [['brain', { brain: 'x'.repeat(201) }], ['voiceInput', { voiceInput: 'telepathy' }], ['decisionBrain', { decisionBrain: 42 }], ['autoWhitelist', { autoWhitelist: ['a/b', 'a/b'] }]]) {
+  for (const [nom, corps] of [['brain', { brain: 'x'.repeat(201) }], ['brain', { brain: 'None' }], ['voiceInput', { voiceInput: 'telepathy' }], ['autoWhitelist', { autoWhitelist: ['a/b', 'a/b'] }]]) {
     const refus = reponse()
     await routes['/kybernos-sessions/settings'](requete('POST', '/kybernos-sessions/settings', bon, corps), refus)
     ok('POST /settings with an invalid ' + nom + ' answers 400 and says why', refus.code === 400 && refus.corps.ok === false && String(refus.corps.erreur).startsWith(nom), { code: refus.code, corps: refus.corps })
   }
   ok('...and the refused values were not written (brain is still the last accepted one)', JSON.parse(readFileSync(reglages, 'utf8')).brain === 'e/f')
+  // « Decision Brain » is gone (WP-08): a page that still posts the old key is not refused, and nothing is written for it.
+  const vieux = reponse()
+  await routes['/kybernos-sessions/settings'](requete('POST', '/kybernos-sessions/settings', bon, { decisionBrain: 42 }), vieux)
+  ok('POST /settings carrying the retired decisionBrain is accepted (200), not a 400', vieux.code === 200 && vieux.corps.ok === true, { code: vieux.code, corps: vieux.corps })
+  ok('...and the key is not written', !('decisionBrain' in JSON.parse(readFileSync(reglages, 'utf8'))))
+  const aucun = reponse()
+  await routes['/kybernos-sessions/settings'](requete('POST', '/kybernos-sessions/settings', bon, { brain: 'none' }), aucun)
+  ok('POST /settings brain « none » (no Study model) is accepted', aucun.code === 200 && JSON.parse(readFileSync(reglages, 'utf8')).brain === 'none', { code: aucun.code })
   const script = reponse()
   await routes['/kybernos-sessions/categories'](requete('POST', '/kybernos-sessions/categories', { origin: 'http://127.0.0.1:' + PORT, 'sec-fetch-site': 'same-origin', cookie: 'x=1' }, { session: 's1', cat: 'inexistante', titre: 't' }), script)
   ok('the naming script (Node fetch with an explicit origin, as dsh-relance.mjs sends) passes the guard', script.code !== 403, { code: script.code })

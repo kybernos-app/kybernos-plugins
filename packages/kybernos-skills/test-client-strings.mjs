@@ -36,6 +36,13 @@ const missing = [...used].filter((k) => !dict.has(k))
 assert.deepEqual(missing, [], 'keys asked for and not defined: ' + missing.join(', '))
 ok('every t(\'…\') of the client names a defined key (' + used.size + ' used)')
 
+// 2b. the create dialog says a bad name while it is typed (A3-27): the same rule as the host, a sentence for each refusal
+assert.ok(dict.has('he.name_too_long') && dict.has('he.invalid_name'), 'the two name refusals have a sentence')
+assert.ok(/const nameRule = name === '' \? null : \(\/\^\[a-z0-9\]\+\(\?:-\[a-z0-9\]\+\)\*\$\/\.test\(name\) \? \(name\.length > 64 \? 'name_too_long' : null\) : 'invalid_name'\)/.test(src), 'the dialog applies the host rule')
+assert.ok(src.includes("t('he.' + nameRule, { max: 64 })") && src.includes("disabled: props.busy.__modal === true || nameRule !== null"), 'the message is shown under the field and Create waits for a valid name')
+assert.ok(src.includes("t('m.quiet', { n: name !== '' && nameRule === null ? name : t('m.nameWord') })"), 'the « /name » line shows the typed name only when it can be a command')
+ok('the create dialog: the name rule is said while typing, the « /name » hint waits for a valid name')
+
 // 3. the families built at run time: t('tm.lock.' + kind + '.t'), t('tm.st.' + status), t('tm.empty.' + view), t('tm.e.' + word)
 const need = []
 for (const kind of ['plan', 'signin', 'space', 'server', 'reconnect', 'net']) need.push('tm.lock.' + kind + '.t', 'tm.lock.' + kind + '.b')

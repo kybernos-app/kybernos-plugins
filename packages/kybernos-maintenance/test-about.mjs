@@ -124,8 +124,16 @@ let lang = 'en'
 let definition
 const win = { __ModuleLoader__: { load: (def) => { definition = def } }, __KB_LANG_RESOLVE__: () => lang, localStorage: fakeStorage }
 let reponse = null
-let appels = 0
-globalThis.fetch = (url) => {
+let appels = 0 // calls to /state (the switch of the automatic check has its own route, counted apart)
+let reglageReponse = { ok: true, autoCheck: true }
+const appelsReglage = []
+globalThis.fetch = (url, init) => {
+  if (String(url) === '/kybernos-maintenance/settings') {
+    const post = init !== undefined && init !== null && init.method === 'POST'
+    appelsReglage.push(post ? 'POST ' + init.body : 'GET')
+    if (reglageReponse === 'reseau-ko') return Promise.reject(new Error('offline'))
+    return Promise.resolve({ json: async () => (post && reglageReponse.ok === true ? { ok: true, autoCheck: JSON.parse(init.body).autoCheck } : reglageReponse) })
+  }
   appels += 1
   return reponse === 'reseau-ko' ? Promise.reject(new Error('offline')) : Promise.resolve({ json: async () => reponse })
 }
@@ -185,19 +193,16 @@ console.log('── host: the shipped version ──')
   const reel = lireVersion(join(REPO, 'VERSION'))
   check('the repo-root VERSION (shipped in the archive root) is a semver', reel !== null, reel)
   check('the host state exposes it as `version`, next to the git hash `plugin`', /const version = lireVersion\(VERSION_CHEMIN\)/.test(HOST) && /global, plugin, version,/.test(HOST) && /VERSION_CHEMIN = join\(REPO, 'VERSION'\)/.test(HOST))
-  check('the host stays read-only: GET only, no write call', /req\.method !== 'GET'/.test(HOST) && !/writeFile|appendFile|unlink|rmSync|mkdirSync/.test(HOST))
+  check('the host measures, and its only write is the one switch of the automatic check (one atomic file, nothing else deleted or appended)', /req\.method !== 'GET'/.test(HOST) && !/appendFile|unlink|rmSync/.test(HOST) && (HOST.match(/writeFileSync\(/g) || []).length === 1 && /FICHIER_REGLAGE = join\(DSH_HOME, 'kybernos', 'update-check\.json'\)/.test(HOST) && /renameSync\(tmp, fichier\)/.test(HOST))
+  check('a write needs a browser\'s Origin, and a body of { autoCheck: boolean } only', /req\.headers\.origin \|\| ''\) === ''\) \{ envoyer\(res, 403/.test(HOST) && /typeof demande\.autoCheck !== 'boolean'/.test(HOST))
 }
 
 console.log('── pure logic ──')
 {
-  check('1.0.0-beta.1 splits into core / channel / rank', JSON.stringify(T.decouperVersion('1.0.0-beta.1')) === JSON.stringify({ core: '1.0.0', canal: 'beta', rang: '1' }))
-  check('0.2.0-rc.2 and 0.1.6-alpha.2', T.decouperVersion('0.2.0-rc.2').canal === 'rc' && T.decouperVersion('0.1.6-alpha.2').rang === '2')
-  check('a stable version has no channel', T.decouperVersion('1.2.3').canal === '' && T.decouperVersion('1.2.3').rang === '')
-  check('a dev build keeps its channel and drops the date', T.decouperVersion('0.0.0-dev+2026-10-04').canal === 'dev')
-  check('a git hash or nothing is not a semver', T.decouperVersion('a1b2c3d') === null && T.decouperVersion('inconnu') === null && T.decouperVersion(undefined) === null && T.decouperVersion(null) === null)
   lang = 'en'
-  check('line: « Version 1.0.0 · beta 1 »', T.ligneVersion('1.0.0-beta.1') === 'Version 1.0.0 · beta 1', T.ligneVersion('1.0.0-beta.1'))
-  check('line: a stable version carries no channel', T.ligneVersion('2.0.0') === 'Version 2.0.0')
+  // One release, one spelling (audit 2026-10-16: the line said « 1.0.0 · beta 9 », the tile « 1.0.0-beta.9 », the details a git hash).
+  check('line: the exact version, as the tile says it (« Version 1.0.0-beta.1 »), not a rewritten one', T.ligneVersion('1.0.0-beta.1') === 'Version 1.0.0-beta.1', T.ligneVersion('1.0.0-beta.1'))
+  check('line: a stable version, a release candidate and a dev build are shown as they are', T.ligneVersion('2.0.0') === 'Version 2.0.0' && T.ligneVersion('0.2.0-rc.2') === 'Version 0.2.0-rc.2' && T.ligneVersion('0.0.0-dev+2026-10-04') === 'Version 0.0.0-dev+2026-10-04')
   check('line: a hash is shown as it is, an unknown one is translated', T.ligneVersion('a1b2c3d') === 'Version a1b2c3d' && T.ligneVersion('inconnu') === 'Version unknown')
   lang = 'fr'
   check('line (fr): an unknown version stays French', T.ligneVersion('inconnu') === 'Version inconnu')
@@ -257,7 +262,7 @@ console.log('── above the fold ──')
   check('top level: title, identity, status, tiles, links, disclosure — in that order', JSON.stringify(direct) === JSON.stringify(['kbmz-titre', 'kbmz-haut', 'kbmz-status', 'kbmz-tuiles', 'kbmz-liens', '']), direct)
   const marque = texte(parKb(tree, 'maintenance-brand')[0])
   check('without the brand component the wordmark is a plain « Kybernos » (30 px, bold)', marque === 'Kybernos' && parKb(tree, 'maintenance-brand')[0].kids[0].props.style.fontSize === 30 && parKb(tree, 'maintenance-brand')[0].kids[0].props.style.fontWeight === 700)
-  check('version line under the wordmark, exact version on hover', texte(parKb(tree, 'maintenance-version')[0]) === 'Version 1.0.0 · beta 1' && parKb(tree, 'maintenance-version')[0].props.title === '1.0.0-beta.1')
+  check('version line under the wordmark: the exact version, the same string as the Kybernos tile', texte(parKb(tree, 'maintenance-version')[0]) === 'Version 1.0.0-beta.1' && texte(parClasse(tree, 'kbmz-tuile-v').find((t) => texte(t) === '1.0.0-beta.1') || '') === '1.0.0-beta.1')
   const verifier = parKb(tree, 'maintenance-refresh')
   check('exactly one « Check now », in the identity block, enabled', verifier.length === 1 && texte(verifier[0]) === 'Check now' && verifier[0].props.disabled === false && parClasse(tree, 'kbmz-haut')[0].kids.includes(verifier[0]))
   check('« Check now » is a real button of type button', verifier[0].tag === 'button' && verifier[0].props.type === 'button')
@@ -355,6 +360,9 @@ console.log('── nothing is lost: everything the old page showed is in the pa
   check('the update procedure (3 copy buttons) is inside the panel', dansPanneau(tree, 'maintenance-copy') === 3)
   const pan = texte(panneau(tree))
   check('engine card: version, registry note; plugin card: hash and range', pan.includes('0.2.0-rc.2') && pan.includes('up to date with the newest published (next 0.2.0-rc.2)') && pan.includes('a1b2c3d') && pan.includes('Supported engine range : 0.1.6-alpha.2 → 0.2.0-rc.2'))
+  const carte = texte(parKb(tree, 'maintenance-plugin-card')[0])
+  const contratCarte = texte(parKb(tree, 'maintenance-contract-card')[0])
+  check('plugin card: the same version as the line and the tile; the build hash next to it, never instead of it', carte.includes('1.0.0-beta.1') && carte.includes('build a1b2c3d') && contratCarte.includes('1.0.0-beta.1') && !/Contract[^≥]*a1b2c3d/.test(contratCarte), carte)
   check('compatibility card: level, tested version', pan.includes('Perfect') && pan.includes('tested with the plugin: 0.2.0-rc.2'))
   check('update card: level and note', pan.includes('None') && pan.includes('Installed engine = newest published version, all channels.'))
   const dernier = texte(parKb(tree, 'maintenance-last-op')[0])
@@ -373,6 +381,25 @@ console.log('── nothing is lost: everything the old page showed is in the pa
   check('a single entry: no earlier-updates card', parKb(rendrePage(avec({ journal: [ETAT.journal[0]] }), 'en'), 'maintenance-journal').length === 0)
   check('a failed audit is reported, not hidden', texte(parKb(rendrePage(avec({ surfaces: { erreur: 'boom', ruptures: [], aVerifier: [], doublons: [], natifs: [] } }), 'en'), 'maintenance-surfaces')[0]).includes('Audit failed: boom'))
   const fr = texte(panneau(rendrePage(ETAT, 'fr')))
+  // Every sentence the host can write is French on purpose and translated by the client's tables: a sentence with no entry stays French in
+  // an English page (audit 2026-10-16). The frames are read from the host sources, so a new sentence fails here until it has its entry.
+  const SURFACES = readFileSync(join(ICI, 'surfaces.mjs'), 'utf8')
+  const PHRASES = [
+    ['Des paquets DSH du profil sont épinglés à une autre version que le moteur (', HOST, 'Des paquets DSH du profil sont épinglés à une autre version que le moteur (2).'],
+    ["Le paquet ", HOST, "Le paquet @local/x n'est pas lié au profil."],
+    ['Le bundle ', HOST, "Le bundle @local/x n'est pas déclaré."],
+    ["n'a jamais été testée avec ce plugin", HOST, "La version du moteur (0.3.0) n'a jamais été testée avec ce plugin."],
+    ["Le serveur a démarré avant la dernière mise à jour", HOST, "Le serveur a démarré avant la dernière mise à jour : il sert encore l'ancien moteur. Redémarre DSH."],
+    ["Le moteur installé est introuvable : audit des surfaces impossible.", SURFACES, "Le moteur installé est introuvable : audit des surfaces impossible."],
+    ["n'est plus vrai dans le moteur installé", SURFACES, "Notre retouche : « une forme » n'est plus vrai dans le moteur installé (chemin/fichier.js)."],
+    ['DOUBLON — ', SURFACES, 'DOUBLON — Notre retouche : le moteur porte désormais « une forme » (mesuré sur la sauvegarde vierge banc nu /x).'],
+    ['trouvé dans le moteur vivant, mais aucune sauvegarde vierge à côté', SURFACES, 'Notre retouche : « une forme » trouvé dans le moteur vivant, mais aucune sauvegarde vierge à côté — peut venir de notre propre retouche. À confirmer sur un 0.1.x nu.'],
+  ]
+  const hors = PHRASES.filter(([frame, source]) => !source.includes(frame)).map(([frame]) => frame)
+  check('the sentences this test covers are still the ones the host writes', hors.length === 0, hors)
+  const FRANCAIS = /n'est plus vrai|DOUBLON|introuvable|trouvé dans|n'est pas déclaré|n'est pas lié|épinglés|jamais été testée|a démarré avant/
+  const restes = PHRASES.map(([, , phrase]) => [phrase, texte(parClasse(rendrePage(avec({ problemes: [phrase], couleur: 'orange' }), 'en'), 'kbmz-status')[0])]).filter(([, vu]) => FRANCAIS.test(vu)).map(([phrase]) => phrase.slice(0, 50))
+  check('in English, none of the host sentences stays French (problems list and the engine surfaces)', restes.length === 0, restes)
   check('French panel: titles and host sentences', fr.includes('Mises à jour précédentes') && fr.includes('Surfaces du moteur') && fr.includes('Plage de moteurs supportée') && fr.includes('à jour de la plus récente publiée (next 0.2.0-rc.2)'))
 }
 
@@ -414,6 +441,26 @@ console.log('── the container: loading, failing, refreshing ──')
   parKb(s.tree, 'maintenance-refresh')[0].props.onClick()
   await tick(); await tick()
   check('« Check now » fetches again', appels === 2 && parKb(s.tree, 'maintenance-status').length === 1)
+  // the switch of the automatic check (A6-14): shown once the host answered, written on a press, never invented
+  const carte = () => parKb(s.tree, 'maintenance-auto-update')
+  const interrupteur = () => parKb(s.tree, 'maintenance-auto-switch')[0]
+  check('the card of the automatic check is there, with a switch that reads ON (the host\'s default)', carte().length === 1 && interrupteur() !== undefined && interrupteur().props.role === 'switch' && interrupteur().props['aria-checked'] === 'true' && appelsReglage[0] === 'GET', appelsReglage)
+  check('it says what is asked, of whom, and that nothing of the work goes', /GitHub/.test(texte(carte()[0])) && /npm registry/.test(texte(carte()[0])) && /Nothing about your work is sent/.test(texte(carte()[0])) && /every 6 hours/.test(texte(carte()[0])))
+  interrupteur().props.onClick()
+  await tick(); await tick()
+  check('pressing it posts { autoCheck: false } and then reads OFF, from what the host answered', appelsReglage[appelsReglage.length - 1] === 'POST {"autoCheck":false}' && interrupteur().props['aria-checked'] === 'false', appelsReglage)
+  reglageReponse = { ok: false, erreur: 'boom' }
+  interrupteur().props.onClick()
+  await tick(); await tick()
+  check('a refused write puts the switch back where it was (it never shows a state the host did not keep)', interrupteur().props['aria-checked'] === 'false', interrupteur().props['aria-checked'])
+  reglageReponse = { ok: true, autoCheck: true }
+
+  reglageReponse = { erreur: 'not found' }
+  reponse = ETAT; appels = 0
+  s = monter(createElement(Section))
+  await tick(); await tick()
+  check('a host without the route (an older one) shows the page and no card, no switch', parKb(s.tree, 'maintenance-status').length === 1 && carte().length === 0)
+  reglageReponse = { ok: true, autoCheck: true }
 
   reponse = { erreur: 'boom' }; appels = 0
   s = monter(createElement(Section))
@@ -463,8 +510,10 @@ console.log('── source guards ──')
   // The page reads /state; the update notice (own feature, same bundle) reads /update, asks the Suite's signed catalogue and, only
   // when the user presses "Update now", starts and follows the Suite's own update. Nothing else leaves the page.
   const appelsReseau = [...SOURCE.matchAll(/fetch\('([^']+)'/g)].map((m) => m[1].split('?')[0])
-  const attendus = ['/kybernos-hub/catalogue/refresh', '/kybernos-hub/engine', '/kybernos-hub/update', '/kybernos-hub/update/status', '/kybernos-maintenance/state', '/kybernos-maintenance/update']
+  const attendus = ['/kybernos-hub/catalogue/refresh', '/kybernos-hub/engine', '/kybernos-hub/update', '/kybernos-hub/update/status', '/kybernos-maintenance/settings', '/kybernos-maintenance/settings', '/kybernos-maintenance/state', '/kybernos-maintenance/update']
   check('the module only touches the page: no engine patch, and the only network calls are the maintenance reads and the Suite\'s own routes', !/XMLHttpRequest|WebSocket|eval\(|new Function/.test(SOURCE) && appelsReseau.slice().sort().join() === attendus.join(), appelsReseau)
+  // A6-14: the scheduled check (launch, every 6 h, back to the tab) is `auto`; the person's own is not; a « disabled » answer ends it before the hub is asked
+  check('the scheduled check says so (auto=1), the person\'s own never does, and « disabled » stops it before the Suite\'s catalogue is asked', /updFetch\(force, manual !== true\)/.test(SOURCE) && /'\?auto=1' \+ \(force === true/.test(SOURCE) && SOURCE.indexOf("if (j.desactive === true) return null") > 0 && SOURCE.indexOf("if (j.desactive === true) return null") < SOURCE.indexOf("fetch('/kybernos-hub/catalogue/refresh'"))
   check('the writes (refresh, update, engine fix) are POSTs to the Suite, and "Update now" asks for an explicit confirm', /fetch\('\/kybernos-hub\/catalogue\/refresh', \{ method: 'POST'/.test(SOURCE) && /fetch\('\/kybernos-hub\/update', \{ method: 'POST'/.test(SOURCE) && /fetch\('\/kybernos-hub\/engine', \{ method: 'POST'/.test(SOURCE) && /confirm: true/.test(SOURCE))
   // The About page keeps ONE key (the disclosure). The update notice keeps three more: snooze and skip in localStorage
   // (its own lsGet/lsSet helpers) and the once-per-session card flag in sessionStorage; no other code reaches storage.
@@ -483,7 +532,7 @@ console.log('── optional: the same tree through the real React ──')
     serveur = req('react-dom/server')
   } catch (e) { React = null }
   if (React === null || serveur === null) {
-    console.log('  (skipped: react and react-dom are not on NODE_PATH)')
+    console.log('SKIPPED: the About page through the real React — react and react-dom are not on NODE_PATH')
   } else {
     const reel = {}
     const w2 = { __ModuleLoader__: { load: (def) => { reel.def = def } }, __KB_LANG_RESOLVE__: () => 'en', localStorage: undefined }
@@ -493,7 +542,7 @@ console.log('── optional: the same tree through the real React ──')
     check('real React: renders without throwing, title About', html.includes('>About</h1>'))
     check('real React: the disclosure is a collapsed button controlling a hidden panel', /<button[^>]*aria-expanded="false"[^>]*aria-controls="kbmz-details"/.test(html) || /<button[^>]*aria-controls="kbmz-details"[^>]*aria-expanded="false"/.test(html))
     check('real React: the panel is hidden', /id="kbmz-details"[^>]*hidden=""/.test(html) || /hidden=""[^>]*id="kbmz-details"/.test(html))
-    check('real React: wordmark fallback, version line and three tiles', html.includes('>Kybernos</span>') && html.includes('Version 1.0.0 · beta 1') && (html.match(/class="kbmz-tuile"/g) || []).length === 3)
+    check('real React: wordmark fallback, version line and three tiles', html.includes('>Kybernos</span>') && html.includes('Version 1.0.0-beta.1') && (html.match(/class="kbmz-tuile"/g) || []).length === 3)
     w2.__KB_BRAND__ = { Wordmark: ({ size }) => React.createElement('i', { 'data-size': size }, 'KB'), Mark: () => null }
     const html2 = serveur.renderToStaticMarkup(React.createElement(m2.__test.Page, { etat: ETAT, onRafraichir: () => {}, charge: false }))
     check('real React: the shared Wordmark is used with size 30', html2.includes('<i data-size="30">KB</i>'))

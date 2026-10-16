@@ -66,8 +66,11 @@ try {
   check('six reports are accepted', allOk)
   const after = await api('/kybernos-usage/summary?days=7')
   const day = after.body.daily[6].models
-  check('a first sight is a baseline, the next one is a delta on today', day['deepseek/deepseek-chat'] !== undefined && day['deepseek/deepseek-chat'].cr === 600000 && day['deepseek/deepseek-chat'].u === 50000, day)
-  check('the plan model is booked apart from the own keys (same ledger, its own key)', day['kybernos/kybernos-pro'] !== undefined && day['kybernos/kybernos-pro'].cr === 200000)
+  // The ledger is the sandbox's own and keeps today's figures between runs: what this run booked is the difference with what was there before it.
+  const was = before.body.daily[6].models
+  const booked = (key, field) => (day[key] === undefined ? undefined : day[key][field] - (was[key] === undefined ? 0 : was[key][field]))
+  check('a first sight is a baseline, the next one is a delta on today', day['deepseek/deepseek-chat'] !== undefined && booked('deepseek/deepseek-chat', 'cr') === 600000 && booked('deepseek/deepseek-chat', 'u') === 50000, { day, was })
+  check('the plan model is booked apart from the own keys (same ledger, its own key)', day['kybernos/kybernos-pro'] !== undefined && booked('kybernos/kybernos-pro', 'cr') === 200000)
   check('what a session had used before the first report is kept undated', after.body.before['deepseek/deepseek-chat'] !== undefined && after.body.before['deepseek/deepseek-chat'].cr >= 900000)
   const refused = await val(`fetch('/kybernos-usage/observe', { method: 'POST', headers: { 'content-type': 'text/plain' }, body: 'x' }).then((r) => r.status)`)
   check('a body that is not JSON is refused', refused === 415, refused)
@@ -90,7 +93,12 @@ try {
   const listText = await val(`document.querySelector('[data-kb="kybernos-usage-list"]').innerText`)
   check('the plan model is shown as being on the plan, never priced', /via le plan|on the plan/.test(listText), listText)
   check('the local model is shown as free', /gratuit|free/i.test(listText), listText)
-  check(priced ? 'the priced model shows an amount' : 'the model without a price says so', priced ? /\d[,.]\d\d\s*\$/.test(listText) : /prix inconnu|price unknown/.test(listText), listText)
+  // The amount follows the interface language the way the client does (kybernos-usage fmtMoney): « 0,04 $ » in French (and in the
+  // pseudo-language of the language checks), « $0.04 » otherwise; below one cent it is « <0,01 $ » / « <$0.01 ».
+  const uiLang = String((await val(`(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en'))`)) || 'en')
+  const frenchAmounts = uiLang.slice(0, 2) === 'fr' || uiLang === 'kybernos'
+  const amountPattern = frenchAmounts ? /\d,\d\d\s*\$/ : /\$\d\.\d\d/
+  check(priced ? 'the priced model shows an amount (' + (frenchAmounts ? '1,23 $' : '$1.23') + ' for the interface language ' + uiLang + ')' : 'the model without a price says so', priced ? amountPattern.test(listText) : /prix inconnu|price unknown/.test(listText), listText)
   await shot('usage-page')
 
   await clickAct('period-30')

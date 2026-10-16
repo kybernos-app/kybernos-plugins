@@ -30,7 +30,7 @@
 //   Options : --dry · --verbeux · --cdp <url> · --host <127.0.0.1:3080>
 //
 // `--recap` est le nommage de FIN de chantier : il est refusé si le réglage
-// « Rename Chat session after each recap » est à NON (~/.dsh/kybernos/settings.json).
+// « Name each chat when it ends » est à NON (~/.dsh/kybernos/settings.json).
 // Le nommage INITIAL (sans --recap) n'est jamais bloqué par ce réglage.
 //
 // Sortie : SILENCIEUSE quand tout va bien (l'utilisateur n'a pas à lire

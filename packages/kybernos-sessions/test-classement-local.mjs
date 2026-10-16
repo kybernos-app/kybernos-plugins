@@ -1,11 +1,12 @@
 #!/usr/bin/env node
-/** The local fallback classifier of kybernos-sessions (2026-10-15).
+/** The local classifier of kybernos-sessions, and the decision route that puts it first (2026-10-15, reworked in WP-08).
  *
- *  Why: the decision brain (Jev, on the gateway) answered HTTP 403 « Free tier users do not have access to this model », so
- *  no session created since had a category and every row kept the « not classified » dot. When the brain gives NO verdict,
- *  the host now classifies from the words of the title (`classement-local.mjs`), labelled `local`, and only on a clear
- *  signal. This test pins (1) the classifier, (2) its rules against the categories the product knows, (3) the route: the
- *  fallback fires only when the brain did not answer, and never contradicts a verdict.
+ *  Why: no session created while the old decision brain (a model on the gateway's evaluation API) answered HTTP 403 had a
+ *  category, and every row kept the « not classified » dot. A chat title is now classified by the cautious word rules of
+ *  `classement-local.mjs` FIRST, labelled `local`, and only on a clear signal; the Study model is asked only when they say
+ *  nothing. This test pins (1) the classifier, (2) its rules against the categories the product knows, (3) the route: local
+ *  words first, then the Study model through a stub `llm` (an id of the list, or nothing), the rests and the caches, and
+ *  that nothing leaves through the network.
  *
  *  Usage: node packages/kybernos-sessions/test-classement-local.mjs   (exit 0 = all pass) */
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
@@ -72,69 +73,128 @@ console.log('\n── its rules and the product\'s categories agree ──')
   for (const s of connus) ok('the category « ' + s + ' » is reachable', cat(EXEMPLES[s]) === s, classerLocalement(EXEMPLES[s]))
 }
 
-console.log('\n── through the route: the fallback fires only when the brain gave NO verdict ──')
+console.log('\n── through the route: the local words first, the Study model only when they say nothing ──')
 {
   const racine = mkdtempSync(join(tmpdir(), 'ksess-local-'))
   mkdirSync(join(racine, 'kybernos'), { recursive: true })
-  writeFileSync(join(racine, 'kybernos', 'settings.json'), '{}')
-  let reponseCerveau = null
+  const reglages = join(racine, 'kybernos', 'settings.json')
+  const poserReglages = (objet) => writeFileSync(reglages, JSON.stringify(objet))
+  poserReglages({ brain: 'zai-coding-cn/glm-5.3-flash' })
   let horloge = 1_000_000
   const MIN = 60 * 1000
+  // A stub `llm`: the scripted answer of the moment, every call recorded.
   const appels = []
-  const decision = {
-    decider: async () => reponseCerveau,
-    selectionner: async (...a) => { appels.push(['kybers', a[0]]); return reponseCerveau },
-    selectionnerCategorie: async (t) => { appels.push(['categorie', t]); return reponseCerveau }
+  let scene = { texte: 'ui' }
+  const llm = {
+    stream (params) {
+      appels.push(params)
+      const s = scene
+      return (async function * () {
+        if (s.erreur) throw s.erreur
+        yield { type: 'text-delta', text: s.texte }
+        yield { type: 'finish', reason: { kind: 'stop' } }
+      })()
+    }
   }
+  const services = { llm }
+  const reseau = []
+  const fetchReel = globalThis.fetch
+  globalThis.fetch = async (...a) => { reseau.push(String(a[0])); throw new Error('no network in this test') }
   const routes = {}
-  monterRoutes({ register: (r) => { routes[r.path] = r.handler } }, { reglagesPath: join(racine, 'kybernos', 'settings.json'), categoriesPath: join(racine, 'kybernos', 'categories.json'), sessionsHome: join(racine, 'sessions'), decision, maintenant: () => horloge })
+  monterRoutes({ register: (r) => { routes[r.path] = r.handler } }, { reglagesPath: reglages, categoriesPath: join(racine, 'kybernos', 'categories.json'), sessionsHome: join(racine, 'sessions'), ctx: { get: (nom) => services[nom] }, maintenant: () => horloge })
   const PORT = 3080
   const requete = (corps) => ({ method: 'POST', url: '/kybernos-sessions/decision', headers: { origin: 'http://127.0.0.1:' + PORT }, socket: { localPort: PORT }, on (ev, cb) { if (ev === 'data') cb(JSON.stringify(corps)); if (ev === 'end') cb() } })
   const reponse = () => { const r = { code: null, corps: null, writeHead (c) { r.code = c }, end (s) { try { r.corps = JSON.parse(s) } catch (e) { r.corps = s } } }; return r }
   const poser = async (corps) => { const r = reponse(); await routes['/kybernos-sessions/decision'](requete(corps), r); return r }
 
-  reponseCerveau = { ok: false, code: 'HTTP-403', erreur: 'Free tier users do not have access to this model.', ms: 480, seuil: 0.6 }
   let r = await poser({ categorie: 'Nettoyage Docker libérer espace' })
-  ok('the brain errors (403) → a local verdict, labelled', r.code === 200 && r.corps.ok === true && r.corps.motif === 'local' && r.corps.categorie === 'nettoyage' && r.corps.source === 'local', r.corps)
-  ok('...and it says why the brain did not answer', r.corps.cerveau !== null && r.corps.cerveau.code === 'HTTP-403', r.corps)
+  ok('a title the word rules place → a local verdict, labelled, and the model is not asked', r.code === 200 && r.corps.ok === true && r.corps.motif === 'local' && r.corps.categorie === 'nettoyage' && r.corps.source === 'local' && appels.length === 0, { corps: r.corps, appels: appels.length })
   r = await poser({ categorie: 'Projet Mars' })
-  ok('the brain errors and the title says nothing → the brain\'s own answer, unchanged', r.corps.ok === false && r.corps.code === 'HTTP-403', r.corps)
-  reponseCerveau = { ok: false, code: 'CERVEAU-ETEINT', erreur: 'off', ms: 0, seuil: 0.6 }
+  ok('a title they cannot place → the Study model answers, and it is the Study model of the settings', r.corps.ok === true && r.corps.motif === 'choisi' && r.corps.categorie === 'ui' && r.corps.source === 'study' && appels.length === 1 && appels[0].provider === 'zai-coding-cn' && appels[0].model === 'glm-5.3-flash', { corps: r.corps, appels: appels.map((a) => a.provider + '/' + a.model) })
+  r = await poser({ categorie: 'Projet Mars' })
+  ok('the same title again → answered from memory, the model is not asked twice', r.corps.categorie === 'ui' && appels.length === 1, appels.length)
+  r = await poser({ categorie: '  projet   MARS ' })
+  ok('...whatever its spacing and case', r.corps.categorie === 'ui' && appels.length === 1, appels.length)
+
+  scene = { texte: 'bugfix' }
+  r = await poser({ categorie: 'Voyage en Islande' })
+  ok('an answer that is not in the list → answered « not sure » (hors-catalogue), nothing is chosen', r.corps.ok === true && r.corps.categorie === null && r.corps.motif === 'hors-catalogue', r.corps)
+  const avant = appels.length
+  await poser({ categorie: 'Voyage en Islande' })
+  ok('...and that doubt is not asked again at once', appels.length === avant, appels.length)
+  horloge += 31 * MIN
+  scene = { texte: 'question' }
+  r = await poser({ categorie: 'Voyage en Islande' })
+  ok('...but it is, half an hour later', appels.length === avant + 1 && r.corps.categorie === 'question', { n: appels.length, corps: r.corps })
+
+  // The model fails: it is not called again for 5 minutes (the list asks for a dozen rows at once); the local words still answer.
+  appels.length = 0
+  scene = { erreur: Object.assign(new Error('HTTP 403 Free tier users do not have access to this model'), { code: 'SERVER' }) }
+  r = await poser({ categorie: 'Un autre sujet sans signal' })
+  ok('the model fails → the failure is the answer, with its reason', r.corps.ok === false && r.corps.code === 'MODELE-EN-ERREUR' && /403/.test(r.corps.erreur), r.corps)
+  await poser({ categorie: 'Encore un sujet obscur' })
+  ok('a model that just failed is not called again at once (rest period)', appels.length === 1, appels.length)
   r = await poser({ categorie: 'Tendances des agents IA' })
-  ok('the brain is switched off → local verdict (the caller keeps its own rule)', r.corps.motif === 'local' && r.corps.categorie === 'donnees', r.corps)
-
-  // The brain failed: for 5 minutes it is not called again for a category (the list asks for a dozen rows at once), the local
-  // verdict answers at once; after that it is tried again.
-  appels.length = 0
-  reponseCerveau = { ok: false, code: 'HTTP-403', erreur: 'x', ms: 1, seuil: 0.6 }
-  await poser({ categorie: 'Nettoyage Docker libérer espace' })
-  await poser({ categorie: 'Tendances des agents IA' })
-  ok('a brain that just failed is not called again at once (rest period)', appels.length === 0, appels)
-  r = await poser({ categorie: 'Projet Mars' })
-  ok('...and a title with no signal still gets the brain\'s own failure, from the rest period', r.corps.ok === false && r.corps.code === 'HTTP-403', r.corps)
+  ok('...while a title the word rules place is still answered', r.corps.ok === true && r.corps.motif === 'local' && r.corps.categorie === 'donnees', r.corps)
   horloge += 4 * MIN
-  await poser({ categorie: 'Nettoyage Docker libérer espace' })
-  ok('still at rest 4 minutes later', appels.length === 0, appels)
+  await poser({ categorie: 'Encore un sujet obscur' })
+  ok('still at rest 4 minutes later', appels.length === 1, appels.length)
   horloge += 2 * MIN
-  reponseCerveau = { ok: true, categorie: 'ui', confiance: 0.9, motif: 'choisi', seuil: 0.6, probabilites: {} }
-  r = await poser({ categorie: 'Nettoyage Docker libérer espace' })
-  ok('after 5 minutes the brain is asked again, and its answer wins', appels.length === 1 && r.corps.motif === 'choisi' && r.corps.categorie === 'ui', { appels, corps: r.corps })
-  r = await poser({ categorie: 'Nettoyage Docker libérer espace' })
-  ok('the brain chose → its verdict is kept, never replaced by the local one', r.corps.motif === 'choisi' && r.corps.categorie === 'ui', r.corps)
-  reponseCerveau = { ok: true, categorie: null, confiance: 0.4, motif: 'sous-le-seuil', seuil: 0.6, probabilites: {} }
-  r = await poser({ categorie: 'Nettoyage Docker libérer espace' })
-  ok('the brain answered « not sure » → that answer is kept (it did answer)', r.corps.motif === 'sous-le-seuil' && r.corps.categorie === null, r.corps)
+  scene = { texte: 'doc' }
+  r = await poser({ categorie: 'Encore un sujet obscur' })
+  ok('after 5 minutes the model is asked again, and its answer counts', appels.length === 2 && r.corps.ok === true && r.corps.categorie === 'doc', { n: appels.length, corps: r.corps })
 
-  reponseCerveau = { ok: false, code: 'HTTP-403', erreur: 'x', ms: 1, seuil: 0.6 }
+  // What the person chose is read at each request.
   appels.length = 0
+  poserReglages({ brain: 'ollama-local/qwen2.5:3b' })
+  scene = { texte: 'integration' }
+  r = await poser({ categorie: 'Quelque chose de nouveau' })
+  ok('the Study model is read from the settings at each request (no restart)', appels.length === 1 && appels[0].provider === 'ollama-local' && appels[0].model === 'qwen2.5:3b' && r.corps.categorie === 'integration', { appels: appels.map((a) => a.provider + '/' + a.model), corps: r.corps })
+  appels.length = 0
+  poserReglages({ brain: 'none', decisionBrain: 'typesafe-ai/jev' })
+  r = await poser({ categorie: 'Un sujet encore différent' })
+  ok('the Study model set to None → nothing is sent to any model (ETUDE-ABSENTE), whatever else the file says', appels.length === 0 && r.corps.ok === false && r.corps.code === 'ETUDE-ABSENTE', { appels: appels.length, corps: r.corps })
+  r = await poser({ categorie: 'Nettoyage du repo' })
+  ok('...and the word rules still answer', r.corps.ok === true && r.corps.motif === 'local' && r.corps.categorie === 'nettoyage', r.corps)
+  poserReglages({ brain: 'a/b', decisionBrain: 'none' })
+  r = await poser({ categorie: 'Un sujet tout autre' })
+  ok('the old « Decision Brain » key is ignored: only the Study model counts', appels.length === 1 && r.corps.ok === true, { appels: appels.length, corps: r.corps })
+
+  // Automatic: an empty setting.
+  appels.length = 0
+  poserReglages({ brain: '' })
+  r = await poser({ categorie: 'Un sujet sans modèle' })
+  ok('Automatic with no model connected → ETUDE-ABSENTE, nothing is sent', appels.length === 0 && r.corps.ok === false && r.corps.code === 'ETUDE-ABSENTE', { appels: appels.length, corps: r.corps })
+  services.settings = { describe: () => [{ ns: 'llm-pi-ai', value: { providers: { kybernos: { apiKeyEnv: 'KT', models: [{ id: 'auto' }] }, openai: { apiKeyEnv: 'OK', models: [{ id: 'gpt-5-mini' }] } } } }] }
+  services.credentials = { describe: async () => ({ configured: true }) }
   horloge += 10 * MIN
-  await poser({ categorie: 'Nettoyage du repo' })
-  await poser({ categorie: 'Nettoyage du repo', modele: 'typesafe-ai/jev' })
-  ok('a request that names its own model is never held back by the rest period', appels.length === 2, appels)
-  r = await poser({ kybers: [{ id: 'k', mission: 'm' }], demande: 'Nettoyage du repo' })
-  ok('the kyber routing question never gets a local answer', r.corps.ok === false && r.corps.motif === undefined, r.corps)
-  r = await poser({ questions: { q: { type: 'boolean' } }, state: 'Nettoyage du repo' })
-  ok('a free typed question never gets a local answer', r.corps.ok === false && r.corps.motif === undefined, r.corps)
+  scene = { texte: 'ui' }
+  r = await poser({ categorie: 'Un sujet sans modèle' })
+  ok('Automatic with the Cloud connected → the Cloud model answers', appels.length === 1 && appels[0].provider === 'kybernos' && appels[0].model === 'auto' && r.corps.ok === true && r.corps.categorie === 'ui', { appels: appels.map((a) => a.provider + '/' + a.model), corps: r.corps })
+  ok('...and the verdict says which model answered', r.corps.modele === 'kybernos/auto', r.corps)
+
+  // The other closed question: which agent team.
+  appels.length = 0
+  scene = { texte: 'doc-team' }
+  const equipes = [{ id: 'dev-team', mission: 'ships code' }, { id: 'doc-team', mission: 'writes docs' }]
+  r = await poser({ kybers: equipes, demande: 'Nettoyage du repo' })
+  ok('the agent team question goes to the Study model (the word rules do not apply to it)', appels.length === 1 && r.corps.ok === true && r.corps.kyber === 'doc-team' && r.corps.motif === 'choisi', { n: appels.length, corps: r.corps })
+  scene = { texte: 'aucun' }
+  r = await poser({ kybers: equipes, demande: 'Quelle heure est-il' })
+  ok('« aucun » comes back as such', r.corps.ok === true && r.corps.kyber === null && r.corps.motif === 'aucun', r.corps)
+  poserReglages({ brain: 'none' })
+  r = await poser({ kybers: equipes, demande: 'Écris la doc' })
+  ok('with the Study model on None the agent team question is not asked at all', r.corps.ok === false && r.corps.code === 'ETUDE-ABSENTE', r.corps)
+  poserReglages({ brain: 'a/b' })
+  appels.length = 0
+  r = await poser({ state: 'Nettoyage du repo', questions: { q: { type: 'boolean' } } })
+  ok('the old free typed question (it belonged to the evaluation API) is refused, nothing is sent', r.code === 200 && r.corps.ok === false && r.corps.code === 'QUESTION-NON-SUPPORTEE' && r.corps.motif === undefined && appels.length === 0, { corps: r.corps, appels: appels.length })
+
+  r = await poser({ categorie: 'New Session' })
+  ok('a placeholder title (« New Session ») is not worth a call', r.corps.ok === false && r.corps.code === 'SANS-TEXTE' && appels.length === 0, { corps: r.corps, appels: appels.length })
+
+  ok('nothing went through the network: no call to the evaluation API, no key read', reseau.length === 0, reseau)
+  globalThis.fetch = fetchReel
 
   const sans = reponse()
   await routes['/kybernos-sessions/decision']({ method: 'POST', url: '/kybernos-sessions/decision', headers: {}, socket: { localPort: PORT }, on (ev, cb) { if (ev === 'data') cb('{"categorie":"Nettoyage"}'); if (ev === 'end') cb() } }, sans)

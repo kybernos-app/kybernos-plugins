@@ -142,7 +142,7 @@ async function main () {
   const requete = charge.appels.approval[0] ?? {}
   check('l’agent qui demande est transmis', requete.agent?.id === SESS_ME)
   check('le motif nomme les sessions actives', /Le chantier voisin/.test(String(requete.reason ?? '')))
-  check('le motif nomme le redémarrage', /Redémarrage de DSH/.test(String(requete.reason ?? '')))
+  check('le motif nomme le redémarrage', /Restarting DSH/.test(String(requete.reason ?? '')))
   check('le toolName est celui de l’outil', requete.toolName === 'relancer_dsh')
   check('coupe après accord', resultat.coupe === true, JSON.stringify(resultat))
   check('rapporte l’approbation', resultat.approbation === 'allowed-once')
@@ -173,7 +173,7 @@ async function main () {
   check('« never » : pas de coupe', resJamais.coupe === false, JSON.stringify(resJamais))
   check('« never » : raison distincte du refus utilisateur', resJamais.raison === 'politique_never', String(resJamais.raison))
   check('« never » : AUCUNE demande au panneau', jamais.appels.approval.length === 0, `appels=${jamais.appels.approval.length}`)
-  check('« never » : le message ne prétend pas que l’utilisateur a refusé', !/utilisateur a refus/i.test(String(resJamais.message)), String(resJamais.message).slice(0, 120))
+  check('« never » : le message ne prétend pas que l’utilisateur a refusé', !/user refused/i.test(String(resJamais.message)), String(resJamais.message).slice(0, 120))
   check('« never » : le message dit comment tester', /workspace-write|\/permission/.test(String(resJamais.message)), String(resJamais.message).slice(0, 120))
   check('« never » : les sessions actives sont listées', resJamais.sessions_actives?.[0]?.sessionId === SESS_A)
   check('« never » : aucun script lancé', lireArgv().length === 0)

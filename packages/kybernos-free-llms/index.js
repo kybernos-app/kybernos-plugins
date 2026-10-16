@@ -20,6 +20,7 @@ import {
 } from './gateway-contract.mjs'
 import { PROVIDER_ID, CREDENTIAL_REF, buildProfile, profileSummary } from './profile.mjs'
 import { gatewayBase, routeNeedsRepair, ensureFreeKey } from './wiring.mjs'
+import { createProbeCache } from './probe-cache.mjs'
 import {
   defaultFreeLlmState, shouldAutoEnable, recordEnable, recordDisable, publicView,
 } from './free-llm-state.mjs'
@@ -86,6 +87,28 @@ const sameOriginStrict = (req) => {
     const port = (sock !== null && typeof sock.localPort === 'number') ? ':' + sock.localPort : ''
     return ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0 || kbTrusted(u.host)
   } catch (e) { return false }
+}
+
+/**
+ * The gateway's four open routes (chat completions, models, status, health) are called by DSH's ENGINE: a Node program with no Origin, no cookie and no
+ * browser headers, so they cannot ask for a session like a page's routes do. What they refuse is a BROWSER page of another site: before this, a page the
+ * person merely visited could POST text/plain to chat/completions (no preflight) and have the person's machine call opencode.ai, burning the free-tier
+ * quota and the IP's reputation, or load /health (a real chat probe upstream) with a no-cors GET (A6-04). A browser marks such a request: an Origin that
+ * is not this listener's, or Sec-Fetch-Site other than same-origin / none (another origin, another port of localhost, another site). The engine sends neither.
+ */
+const notFromAnotherPage = (req) => {
+  try {
+    const headers = req.headers || {}
+    const site = typeof headers['sec-fetch-site'] === 'string' ? headers['sec-fetch-site'] : ''
+    if (site !== '' && site !== 'same-origin' && site !== 'none') return false
+    if (typeof headers.origin === 'string' && headers.origin !== '' && sameOriginStrict(req) !== true) return false
+    return true
+  } catch (e) { return false }
+}
+const refuseAnotherPage = (req, res) => {
+  if (notFromAnotherPage(req) === true) return false
+  sendJson(res, 403, { ok: false, error: 'origin' })
+  return true
 }
 
 const str = (v) => (typeof v === 'string' && v !== '' ? v : null)
@@ -356,8 +379,10 @@ export function apply(ctx) {
 
       // The gateway itself: OpenAI-compatible chat completions. Loops back to
       // opencode.ai with the free-tier contract applied. Served for DSH's engine,
-      // not for a browser page — no same-origin gate on a machine-local caller.
+      // not for a browser page: the engine sends no Origin and has no session, so the
+      // rule is "not from another page" (notFromAnotherPage), not a cookie.
       scope.effect(() => webServer.register({ kind: 'exact', path: '/free-llms/v1/chat/completions', handler: async (req, res) => {
+        if (refuseAnotherPage(req, res)) return
         if (req.method !== 'POST') { sendJson(res, 405, { error: { message: 'POST expected' } }); return }
         const body = await readBody(req)
         if (body === null || typeof body.model !== 'string') { sendJson(res, 400, { error: { message: 'model required' } }); return }
@@ -366,6 +391,7 @@ export function apply(ctx) {
 
       // The model list, filtered to the free tier, read live from upstream.
       scope.effect(() => webServer.register({ kind: 'exact', path: '/free-llms/v1/models', handler: async (req, res) => {
+        if (refuseAnotherPage(req, res)) return
         const found = await fetchFreeModels()
         sendJson(res, 200, {
           object: 'list',
@@ -376,6 +402,7 @@ export function apply(ctx) {
 
       // Panel status: free list, wired state, and a live health probe.
       scope.effect(() => webServer.register({ kind: 'exact', path: '/free-llms/status', handler: async (req, res) => {
+        if (refuseAnotherPage(req, res)) return
         const [found, state] = await Promise.all([fetchFreeModels(), readState()])
         sendJson(res, 200, {
           ok: true,
@@ -387,13 +414,24 @@ export function apply(ctx) {
       } }), 'free-llms: status')
 
       // Health probe: run the full contract against one model and classify the answer.
-      scope.effect(() => webServer.register({ kind: 'exact', path: '/free-llms/health', handler: async (req, res) => {
-        const q = new URL(req.url || '/', 'http://localhost').searchParams
+      // `?cached=1` (the page, on open) accepts a verdict of the last few minutes and shares one call between pages; without it
+      // (« Re-check ») the call is made again. A probe of a chosen model (`?model=`) is never remembered for another.
+      const probes = createProbeCache({ run: async () => {
         const found = await fetchFreeModels()
-        const model = str(q.get('model')) || found.models[0] || null
-        if (model === null) { sendJson(res, 200, { ok: false, code: 'no_model' }); return }
+        const model = found.models[0] || null
+        if (model === null) return { ok: false, code: 'no_model' }
         const probe = await healthProbe(model)
-        sendJson(res, 200, { ok: probe.ok, model, code: probe.code, status: probe.status })
+        return { ok: probe.ok, model, code: probe.code, status: probe.status }
+      } })
+      scope.effect(() => webServer.register({ kind: 'exact', path: '/free-llms/health', handler: async (req, res) => {
+        if (refuseAnotherPage(req, res)) return
+        const q = new URL(req.url || '/', 'http://localhost').searchParams
+        const chosen = str(q.get('model'))
+        try {
+          if (chosen === null) { sendJson(res, 200, await probes.get({ fresh: q.get('cached') !== '1' })); return }
+          const probe = await healthProbe(chosen)
+          sendJson(res, 200, { ok: probe.ok, model: chosen, code: probe.code, status: probe.status })
+        } catch (e) { sendJson(res, 200, { ok: false, code: 'error' }) }
       } }), 'free-llms: health')
 
       // Enable (wire the route + record the decision). Requires a same-origin POST.

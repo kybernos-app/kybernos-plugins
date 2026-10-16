@@ -27,13 +27,14 @@ window.__ModuleLoader__.load({
       const SEAM = Symbol.for('kybernos.multiDevice')
       const ROUTE = '/kybernos-multi-device'
 
-      // French only when the resolved language IS French (the 'kybernos' default or a fr base); everything else gets English.
+      // French only when the resolved language IS French (the 'kybernos' default or a fr base); everything else, and a language
+      // not known yet, gets English.
       const lang = () => {
         try {
           const l = window.__KB_LANG_RESOLVE__ && window.__KB_LANG_RESOLVE__()
           const s = String(l || '')
-          return (s === '' || s === 'kybernos' || s.split(/[-_]/)[0] === 'fr') ? 'fr' : 'en'
-        } catch (e) { return 'fr' }
+          return (s === 'kybernos' || s.split(/[-_]/)[0] === 'fr') ? 'fr' : 'en'
+        } catch (e) { return 'en' }
       }
 
       // ── strings: [French, English], same placeholders on both sides ──────────────────────────────────────
@@ -420,6 +421,8 @@ window.__ModuleLoader__.load({
 .kbmd-lb{font-size:12.5px;font-weight:500;color:var(--dsw-alias-label-secondary,#a0a0aa)}
 .kbmd-input{width:100%;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:var(--dsw-alias-bg-layer-2,transparent);color:var(--dsw-alias-label-primary,inherit);border-radius:10px;padding:10px 12px;font:inherit}
 .kbmd-input:disabled{opacity:.7}
+.kbmd-input::placeholder{color:var(--dsw-alias-label-tertiary)}
+body:not([data-ds-dark-theme]) .kbmd-input::placeholder{color:var(--dsw-alias-label-secondary)}
 .kbmd-opt{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:start;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));border-radius:12px;padding:12px;background:transparent;color:inherit;cursor:pointer;font:inherit}
 .kbmd-opt[aria-pressed='true']{border-color:var(--dsw-alias-brand-primary,currentColor)}
 .kbmd-link{border:0;background:transparent;padding:0;font:inherit;color:var(--dsw-alias-brand-primary,currentColor);text-decoration:underline;cursor:pointer;font-size:13px}

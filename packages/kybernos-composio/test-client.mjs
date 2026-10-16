@@ -269,7 +269,7 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
       const at = src.indexOf("addEventListener('kb-accept-text'")
       const m = at >= 0 ? /t\.length > (\d+)\) return/.exec(src.slice(at, at + 1200)) : null
       ok('accept: the card limit is not above the one the kybernos bundle enforces', m !== null && max <= Number(m[1]), m === null ? 'listener not found' : 'card ' + max + ' > listener ' + m[1])
-    } else console.log('- accept: drift check skipped (the kybernos bundle is not next to this one)')
+    } else console.log('SKIPPED: the accept drift check — the kybernos bundle is not next to this one')
   }
   ok('accept: a malformed %-escape is passed on as it is (and shown as it is)', carteAccepter('kb:accept:100%', (x) => { montre = x; return true }, (x) => envoi.push(x)) === true && montre === '100%')
 }
@@ -344,16 +344,32 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   ok('form: a typed secret is sent with its name, and a new timeout wins', body2.secrets.length === 1 && body2.secrets[0].name === 'ZTOKEN' && body2.secrets[0].value === 'typed-value' && body2.toolCallTimeoutMs === 90000)
   ok('form: a new server starts empty, http', formOf(null).transport === 'streamable-http' && formOf(null).secrets.length === 0 && bodyOf(formOf(null), null).disabled === undefined)
 
-  // locales: fr stays French, en English, any other locale English (it used to fall back to French)
+  // locales (WP-07): the language is what Kybernos resolved: « kybernos » or fr* is French, every other language English, nothing resolved English
   const tin = (lang) => {
-    plugin.apply({ get: (n) => (n === 'locale' ? { current: () => lang } : (n === 'slots' ? { inject: () => {}, register: () => {} } : undefined)), effect: () => {} })
+    globalThis.window.__KB_LANG_RESOLVE__ = typeof lang === 'function' ? lang : () => lang
     return t('kb.cp.chipall')
   }
-  ok('i18n: fr gives French', tin('fr') === 'Toutes')
+  ok('i18n: fr gives French', tin('fr') === 'Toutes' && tin('fr-CA') === 'Toutes')
   ok('i18n: en gives English', tin('en') === 'All')
-  ok('i18n: de and es give English, not French', tin('de') === 'All' && tin('es-MX') === 'All' && tin('ja') === 'All')
-  ok('i18n: the Kybernos default stays French', tin('kybernos') === 'Toutes')
+  ok('i18n: de and es give English, not French', tin('de') === 'All' && tin('es-MX') === 'All' && tin('ja') === 'All' && tin('ar') === 'All')
+  ok('i18n: « kybernos » (the French of the product) gives French', tin('kybernos') === 'Toutes')
+  ok('i18n: a resolver that throws, or none, gives English', tin(() => { throw new Error('not ready') }) === 'All' && (delete globalThis.window.__KB_LANG_RESOLVE__, t('kb.cp.chipall')) === 'All')
   ok('i18n: an unknown key is returned as it is', t('no.such.key') === 'no.such.key')
+
+  // counts: « 1 tool », not « 1 tools » (A2-12)
+  const { tN, importParse: ip, httpUrl, safeName: sn } = plugin.composio
+  globalThis.window.__KB_LANG_RESOLVE__ = () => 'en'
+  ok('counts: one tool, several tools', tN('kb.cp.st.active', 1) === 'Active · 1 tool' && tN('kb.cp.st.active', 3) === 'Active · 3 tools' && tN('kb.cp.st.active', 0) === 'Active · 0 tools')
+  ok('counts: one operation, one tool added', tN('kb.cp.api.ops', 1) === '1 operation' && tN('kb.cp.api.add', 1) === 'Add · 1 tool' && tN('kb.cp.api.tools', 1) === 'Active · 1 tool' && tN('kb.cp.api.added', 1).indexOf('1 tool available') > 0)
+  globalThis.window.__KB_LANG_RESOLVE__ = () => 'kybernos'
+  ok('counts: the French has its singular too', tN('kb.cp.st.active', 1) === 'Actif · 1 outil' && tN('kb.cp.api.ops', 1) === '1 opération' && tN('kb.cp.api.ops', 2) === '2 opérations')
+  globalThis.window.__KB_LANG_RESOLVE__ = () => 'en'
+
+  // pasting JSON (A3-17): a neutral English name, the real reason for an empty block, the address checked in the analysis
+  ok('paste: a one-letter name becomes « server » (it was « serveur »), one without letters « srv »', sn('a') === 'server' && sn('Z') === 'server' && sn('🙂') === 'srv' && sn('') === 'srv')
+  ok('paste: a block with no command and no address says so (it is not « no block found »)', ip('{"mcpServers":{"a":{}}}').error === 'nocmd' && ip('{"mcpServers":{}}').error === 'nomap' && ip('{"x":1}').error === 'nomap')
+  ok('paste: a good block still reads', ip('{"mcpServers":{"zed":{"url":"https://example.com/mcp"}}}').servers.length === 1)
+  ok('paste: an address is http(s) or it is refused in the preview', httpUrl('https://example.com/mcp') === true && httpUrl('http://127.0.0.1:3000/x') === true && httpUrl('not a url') === false && httpUrl('ftp://example.com') === false && httpUrl('javascript:alert(1)') === false && httpUrl('') === false)
 }
 
 // ── the client keeps the catalog out of its bundle (replaces scripts/inject-catalog.mjs) ──
@@ -387,7 +403,7 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
 // the page decides on its own: when the mode exists at all, what a failed call does to a list it already had, which words become
 // which sentences, and that an API key has nowhere to go but the one call that sends it.
 {
-  const { cloudView, cloudMerge, cloudErr, connState, connActions, failedText, appsMatch, modeGet, modeSet, t } = plugin.composio
+  const { cloudView, cloudMerge, cloudErr, connState, connActions, failedText, appsMatch, modeGet, modeSet, modeEffective, providerEffective, t } = plugin.composio
   const C1 = '0b1c2d3e-aaaa-4bbb-8ccc-1234567890ab'
   const row = (extra) => Object.assign({ id: C1, toolkit: 'gmail', status: 'active', accountType: 'oauth', alias: null, isDefault: true, createdAt: 't', failure: null }, extra || {})
   const view = (status, json) => cloudView({ status: status, json: json })
@@ -455,19 +471,26 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
 
   // the person's choice of mode
   store.clear()
-  ok('the mode is the person\'s own key until they choose otherwise', modeGet() === 'personal')
+  ok('nothing is chosen until the person chooses: the stored mode is null, and the page takes its default (V-34)', modeGet() === null)
   modeSet('kybernos')
   ok('the choice is kept, and read back', modeGet() === 'kybernos')
   modeSet('anything else')
   ok('anything but "kybernos" is the personal key', modeGet() === 'personal')
   store.set('kbcp.mode', '<script>')
-  ok('a stored value that is not ours is the personal key', modeGet() === 'personal')
+  ok('a stored value that is not ours counts as no choice', modeGet() === null)
   const realLs = globalThis.localStorage
   globalThis.localStorage = { getItem: () => { throw new Error('blocked') }, setItem: () => { throw new Error('blocked') } }
   let storageThrew = null
-  try { ok('with storage blocked the mode still reads and writes without a throw', modeGet() === 'personal' && modeSet('kybernos') === undefined) } catch (e) { storageThrew = e }
+  try { ok('with storage blocked the mode still reads and writes without a throw', modeGet() === null && modeSet('kybernos') === undefined) } catch (e) { storageThrew = e }
   globalThis.localStorage = realLs
   ok('(storage blocked) nothing escaped', storageThrew === null)
+
+  // the default mode (V-34): Kybernos Cloud, enabled from the start, for someone who has no key of their own
+  ok('V-34: where the server offers Kybernos connections and no personal key is saved, they are the mode in force until the person chooses', modeEffective(null, true, false) === 'kybernos')
+  ok('someone who already saved a Composio key stays on it (nothing changes under their feet), and so does a key not known yet', modeEffective(null, true, true) === 'personal' && modeEffective(null, true, null) === 'personal')
+  ok('the person\'s choice always wins, in both directions', modeEffective('personal', true, false) === 'personal' && modeEffective('kybernos', true, true) === 'kybernos')
+  ok('a server that does not offer Kybernos connections is always the personal key, whatever was stored', modeEffective(null, false, false) === 'personal' && modeEffective('kybernos', false, false) === 'personal' && modeEffective(null, undefined, false) === 'personal')
+  ok('Settings › Connectors shows the same default selected, and a saved choice as it is', providerEffective(null, true, false) === 'kybernos' && providerEffective(null, true, true) === 'composio' && providerEffective(null, false, false) === 'composio' && providerEffective('composio', true, false) === 'composio' && providerEffective('kybernos', true, true) === 'kybernos' && providerEffective(undefined, true, null) === 'composio')
 
   // strings: every new key in both languages, with the same placeholders
   const { readFileSync } = await import('node:fs')

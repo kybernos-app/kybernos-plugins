@@ -16,12 +16,13 @@ are wrapped in try/catch; a half that fails is skipped (the host logs it).
 
 ## Suite panel
 
-A Settings section (`settings.section`, id `kybernos-suite`, order 29) listing the 26 modules of `catalog.json`
+A Settings section (`settings.section`, id `kybernos-suite`, order 29) listing the modules of `catalog.json`
 in 7 families. Installed state and switches come from DSH's native plugin manager; the DSH version from
 `/kybernos-maintenance/state`, if present. A module with a `plugins.bundle.config` screen gets a Settings button that unfolds it in place.
 
-- **Featured, then the rest.** The default tab is *Featured*: the six most advanced modules (`vedette` = rank in the
-  catalogue) as larger cards with a tagline and the full description. *All*, *Installed*, *Available* and *Updates* follow.
+- **Everything first, Featured one tab away.** The page opens on *All*. *Featured* is the first tab: the six most advanced modules
+  (`vedette` = rank in the catalogue) as larger cards with a tagline and the full description. *All*, *Installed*, *Available*
+  and *Updates* follow.
   Family chips filter (there are no group headings), and the search matches the human title too.
 - **The artwork is the tile of the Plugins page of the web app**: one gradient and one small illustration per plugin (the `ART`
   table of the client, drawn on a 64 grid, injected as drawing elements only: `test-suite-art.mjs` checks that). A module the web

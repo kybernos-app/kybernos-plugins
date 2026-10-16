@@ -5,8 +5,7 @@ agent teams. The native search of the Workspaces list (a title filter) is not to
 
 ## What the user sees
 
-- Three ways in: the **⌘K / Ctrl+K** shortcut, the **Search everywhere** row of the menu (kybernos-plugin calls
-  `window.__KB_SEARCH__.open()`), and an **icon in the Workspaces header**, next to the native search (DSH has no slot there: a DOM sweep that matches
+- Three ways in: the **⌘K / Ctrl+K** shortcut, a **Search everywhere** icon at the top left (it replaced a menu row; `window.__KB_SEARCH__.open()` opens the same dialog for other plugins), and an **icon in the Workspaces header**, next to the native search (DSH has no slot there: a DOM sweep that matches
   `[class*="sectionHeader"]` and `[class*="headerActions"]`; the native search sits in a 28 px slot that clips anything added to it
   and the group of the other icon buttons is 60 px wide, so the icon is a child of the header itself, right before that group; if the
   markup moves the icon is not there and the other two remain).

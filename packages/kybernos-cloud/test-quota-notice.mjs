@@ -114,9 +114,9 @@ console.log('never tokens, never dollars')
   check('the code that builds them never reads an amount of money', !/_usd/.test(block))
   const fx = notice(facts(personal, [out(18000, { resets_at: inH(3) })])) // the same sentence in French, with a non-breaking space before the sign
   const f2 = quotaNoticeText(facts(personal, [out(18000, { resets_at: inH(3) })]), fr, NOW)
-  check('in French the percent sign follows a non-breaking space, and the time reads « dans environ 3 h »', fx !== null && f2 !== null && f2.text.startsWith('100\u00a0% de votre quota de 5 heures est utilis\u00e9 \u2014 il revient dans environ 3\u00a0h.'), f2 && f2.text)
+  check('in French the percent sign follows a non-breaking space, and the time reads « dans environ 3 h »', fx !== null && f2 !== null && f2.text.startsWith('100\u00a0% de ton quota de 5 heures est utilis\u00e9 \u2014 il revient dans environ 3\u00a0h.'), f2 && f2.text)
   const f3 = quotaNoticeText(facts(personal, [win(86400, 82)]), fr, NOW)
-  check('and the gentle word', f3 !== null && f3.text === '82\u00a0% de votre quota de 24 heures est utilis\u00e9.', f3 && f3.text)
+  check('and the gentle word', f3 !== null && f3.text === '82\u00a0% de ton quota de 24 heures est utilis\u00e9.', f3 && f3.text)
 }
 
 console.log('the meter of the card')

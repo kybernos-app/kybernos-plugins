@@ -24,6 +24,24 @@ window.__ModuleLoader__.load({
     const React = require('react')
     const h = React.createElement
 
+    // ── language: French is the source, English the pair; French only for a French UI, a translated language is looked up by its
+    // French text (the dictionary the Language page keeps), and every other language (and a language not known yet) reads English ──
+    const lang = () => {
+      try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
+    }
+    const kt = (fr, en) => {
+      const l = lang()
+      if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
+      if (l === 'en') return en
+      try {
+        const a = window.__KB_I18N_ACTIVE__
+        if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
+      } catch (e) { /* no dictionary: English */ }
+      return en
+    }
+    /** 'fr' for a French UI, 'en' for every other language: what a number format is keyed by. */
+    const langBase = () => { const l = lang(); return l === 'kybernos' || l.slice(0, 2) === 'fr' ? 'fr' : 'en' }
+
     const TYPE_ID = 'kybernos-modeleur'
     const KIND = 'kybernos-modeleur'
     const SLOT = 'sidebar.right.pane.tab'
@@ -54,40 +72,39 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
 .kbm-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kbm-badge{margin-left:auto;flex:none;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:99px;
   background:var(--dsw-alias-bg-module-platform,rgba(0,0,0,.05));color:var(--dsw-alias-label-secondary,#6b6b68)}
-.kbm-badge.run{background:#e1502a;color:#fff}
+.kbm-badge.run{background:#c94522;color:#fff}
 .kbm-view{position:relative;flex:1;min-height:160px;background:#f7f6f3;overflow:hidden}
 .kbm-view canvas{display:block;width:100%;height:100%;cursor:grab}
 .kbm-saisie{position:absolute;min-width:120px;max-width:80%;padding:3px 7px;font:600 14px -apple-system,system-ui,sans-serif;background:rgba(255,255,255,.94);border:1px solid rgba(0,0,0,.25);border-radius:6px;outline:none;box-shadow:0 2px 8px rgba(0,0,0,.12);z-index:3}
 .kbm-view canvas.kbm-drag{cursor:grabbing}
 .kbm-empty{position:absolute;inset:0;display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;
-  padding:22px;text-align:center;color:var(--dsw-alias-label-tertiary,#8a8a87);font-size:12px;line-height:1.5}
-.kbm-empty b{color:var(--dsw-alias-label-secondary,#4a4a47);font-weight:600}
-.kbm-empty code{font-size:11px;background:var(--dsw-alias-bg-module-platform,rgba(0,0,0,.05));padding:1px 5px;border-radius:4px}
+  padding:22px;text-align:center;color:#4a4a47;font-size:12px;line-height:1.5}
+.kbm-empty b{color:#1a1a1a;font-weight:600}
+.kbm-empty code{font-size:11px;background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px}
 .kbm-tools{position:absolute;top:8px;left:8px;display:flex;gap:2px;background:rgba(255,255,255,.92);
   border-radius:9px;padding:3px;box-shadow:0 3px 12px rgba(28,42,28,.12)}
 .kbm-tool{border:0;background:transparent;font:inherit;font-size:10.5px;color:#6b6b68;padding:3px 7px;border-radius:6px;cursor:pointer}
-.kbm-tool.on{background:rgba(0,0,0,.08);color:#1a1a1a}
 .kbm-coul{width:14px;height:14px;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer;flex:none}
 .kbm-coul.on{border-color:#1a1a1a}
 .kbm-tool:hover{background:rgba(0,0,0,.05)}
 .kbm-tool.on{background:#efefec;color:#1a1a1a;font-weight:650}
 .kbm-foot{flex:none;padding:8px 12px 10px;border-top:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.07))}
-.kbm-line{display:flex;align-items:center;gap:7px}
-.kbm-play{flex:none;width:26px;height:26px;border:0;border-radius:50%;background:#e1502a;color:#fff;cursor:pointer;
+.kbm-line{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.kbm-play{flex:none;width:26px;height:26px;border:0;border-radius:50%;background:#c94522;color:#fff;cursor:pointer;
   display:grid;place-items:center;font-size:10px;line-height:1}
-.kbm-play:hover{background:#c94522}
-.kbm-step{flex:none;width:22px;height:22px;border:0;background:transparent;color:#6b6b68;cursor:pointer;border-radius:6px;font-size:11px}
-.kbm-step:hover{background:rgba(0,0,0,.05)}
-.kbm-sp{border:0;background:transparent;font:inherit;font-size:10.5px;color:#8a8a87;padding:3px 5px;border-radius:5px;cursor:pointer}
-.kbm-sp.on{background:rgba(0,0,0,.06);color:#1a1a1a;font-weight:650}
+.kbm-play:hover{background:#b43f1e}
+.kbm-step{flex:none;width:22px;height:22px;border:0;background:transparent;color:var(--dsw-alias-label-secondary,#6b6b68);cursor:pointer;border-radius:6px;font-size:11px}
+.kbm-step:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(0,0,0,.05))}
+.kbm-sp{border:0;background:transparent;font:inherit;font-size:10.5px;color:var(--dsw-alias-label-secondary,#6b6b68);padding:3px 5px;border-radius:5px;cursor:pointer}
+.kbm-sp.on{background:color-mix(in srgb,var(--dsw-alias-label-primary,#1a1a1a) 12%,transparent);color:var(--dsw-alias-label-primary,#1a1a1a);font-weight:650}
 .kbm-track{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-.kbm-lab{font-size:10.5px;color:#7c7c79;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kbm-lab b{color:#2a2a28;font-weight:600}
-.kbm-range{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;background:rgba(0,0,0,.10);outline:0}
+.kbm-lab{font-size:10.5px;color:var(--dsw-alias-label-secondary,#6b6b68);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbm-lab b{color:var(--dsw-alias-label-primary,#1a1a1a);font-weight:600}
+.kbm-range{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;background:color-mix(in srgb,var(--dsw-alias-label-primary,#1a1a1a) 22%,transparent);outline:0}
 .kbm-range::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#e1502a;border:2px solid #fff;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.25)}
-.kbm-note{margin-top:7px;font-size:10.5px;line-height:1.45;color:var(--dsw-alias-label-tertiary,#8a8a87);
+.kbm-note{margin-top:7px;font-size:10.5px;line-height:1.45;color:var(--dsw-alias-label-secondary,#6b6b68);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kbm-note b{color:var(--dsw-alias-label-secondary,#4a4a47);font-weight:600}
+.kbm-note b{color:var(--dsw-alias-label-primary,#1a1a1a);font-weight:600}
 .kbm-chip{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:99px;margin:0 4px 4px 0;
   background:var(--dsw-alias-bg-module-platform,rgba(0,0,0,.05));color:var(--dsw-alias-label-secondary,#6b6b68);cursor:pointer;border:0;font-family:inherit}
 .kbm-chip:hover{background:rgba(0,0,0,.09)}
@@ -504,23 +521,23 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
     function objet3D (o) {
       const facets = []
       const ajouter = (pts, couleur) => facets.push({ pts, color: hexate(couleur, COULEUR_DEFAUT) })
-      switch (o.op) {
-        case 'box': case 'bloc': case 'pave':
+      switch (OP_ALIASES.fr[o.op] ?? o.op) {
+        case 'box':
           primitiveBoite({ x: reel(o.x, 0), y: reel(o.y, 0), z: reel(o.z, 0), w: Math.abs(reel(o.w, 4)), d: Math.abs(reel(o.d, 4)), h: Math.abs(reel(o.h, 4)), color: o.color }, ajouter)
           break
-        case 'cyl': case 'cylindre':
+        case 'cyl':
           primitiveRevolution({ cx: reel(o.cx, 0), cy: reel(o.cy, 0), z: reel(o.z, 0), r: reel(o.r, 3), r2: reel(o.r2, 0), h: reel(o.h, 3), n: o.n, rot: o.rot, fond: o.fond, color: o.color }, ajouter)
           break
-        case 'cone': case 'cône':
+        case 'cone':
           primitiveRevolution({ cx: reel(o.cx, 0), cy: reel(o.cy, 0), z: reel(o.z, 0), r: reel(o.r, 3), r2: 0, h: reel(o.h, 4), n: o.n, rot: o.rot, fond: o.fond, color: o.color }, ajouter)
           break
-        case 'sphere': case 'sphère': case 'boule':
+        case 'sphere':
           primitiveSphere({ cx: reel(o.cx, 0), cy: reel(o.cy, 0), cz: reel(o.cz, reel(o.r, 3)), r: reel(o.r, 3), n: o.n, m: o.m, color: o.color }, ajouter)
           break
-        case 'tube': case 'anneau':
+        case 'tube':
           primitiveTube({ cx: reel(o.cx, 0), cy: reel(o.cy, 0), z: reel(o.z, 0), r: reel(o.r, 4), t: reel(o.t, 1), h: reel(o.h, 3), n: o.n, fond: o.fond, color: o.color }, ajouter)
           break
-        case 'extrude': case 'prisme':
+        case 'extrude':
           primitiveExtrude({ points: o.points, z: reel(o.z, 0), h: reel(o.h, 2), fond: o.fond, color: o.color }, ajouter)
           break
         default:
@@ -529,7 +546,9 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
       return facets.length > 0 ? { group: typeof o.group === 'string' ? o.group : '', facets } : null
     }
 
-    const OPS_3D = new Set(['box', 'bloc', 'pave', 'cyl', 'cylindre', 'cone', 'cône', 'sphere', 'sphère', 'boule', 'tube', 'anneau', 'extrude', 'prisme'])
+    // The 3D ops are named in English. The French names an agent may still write are synonyms, kept in a French table.
+    const OP_ALIASES = { fr: { bloc: 'box', pave: 'box', cylindre: 'cyl', cône: 'cone', sphère: 'sphere', boule: 'sphere', anneau: 'tube', prisme: 'extrude' } }
+    const OPS_3D = new Set(['box', 'cyl', 'cone', 'sphere', 'tube', 'extrude', ...Object.keys(OP_ALIASES.fr)])
 
     /** Normalise les ops 3D en objets (une op = un objet posé). */
     function normaliser3D (ops) {
@@ -661,46 +680,48 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
 
     /* ══════════════════════ DÉMOS (chips de l'état vide) ══════════════════════ */
 
+    // The titles (and the two words drawn inside the 2D demo) are read when the chip is drawn, in the language of the page; the group
+    // names are data, in English.
     const DEMOS = {
       phare: {
-        titre: 'Phare — démo 3D',
+        get titre () { return kt('Phare — démo 3D', 'Lighthouse — 3D demo') },
         espace: '3d',
         ops: [
-          { op: 'cyl', cx: 0, cy: 0, z: 0, r: 7, r2: 6.4, h: 1.2, color: '#C3C8CB', group: 'Socle' },
-          { op: 'sphere', cx: -5.2, cy: 3.4, cz: 0.9, r: 1.7, color: '#7C848A', group: 'Rochers' },
-          { op: 'sphere', cx: 4.6, cy: -4.2, cz: 0.8, r: 1.4, color: '#7C848A', group: 'Rochers' },
-          { op: 'cone', cx: 0, cy: 0, z: 1.2, r: 4.6, h: 15, color: '#EFE4C8', group: 'Tour', n: 26 },
-          { op: 'cyl', cx: 0, cy: 0, z: 16.2, r: 3.6, h: 0.9, color: '#C4291C', group: 'Galerie' },
-          { op: 'tube', cx: 0, cy: 0, z: 17.1, r: 2.5, t: 0.5, h: 2.6, color: '#D9C08C', group: 'Lanterne' },
-          { op: 'sphere', cx: 0, cy: 0, cz: 18.4, r: 1.4, color: '#F2C31A', group: 'Lanterne' },
-          { op: 'cone', cx: 0, cy: 0, z: 19.8, r: 2.9, h: 2.6, color: '#C4291C', group: 'Dôme', n: 24 },
-          { op: 'cyl', cx: 0, cy: 0, z: 22.4, r: 0.16, h: 1.6, color: '#C4291C', group: 'Dôme' },
+          { op: 'cyl', cx: 0, cy: 0, z: 0, r: 7, r2: 6.4, h: 1.2, color: '#C3C8CB', group: 'Base' },
+          { op: 'sphere', cx: -5.2, cy: 3.4, cz: 0.9, r: 1.7, color: '#7C848A', group: 'Rocks' },
+          { op: 'sphere', cx: 4.6, cy: -4.2, cz: 0.8, r: 1.4, color: '#7C848A', group: 'Rocks' },
+          { op: 'cone', cx: 0, cy: 0, z: 1.2, r: 4.6, h: 15, color: '#EFE4C8', group: 'Tower', n: 26 },
+          { op: 'cyl', cx: 0, cy: 0, z: 16.2, r: 3.6, h: 0.9, color: '#C4291C', group: 'Gallery' },
+          { op: 'tube', cx: 0, cy: 0, z: 17.1, r: 2.5, t: 0.5, h: 2.6, color: '#D9C08C', group: 'Lantern' },
+          { op: 'sphere', cx: 0, cy: 0, cz: 18.4, r: 1.4, color: '#F2C31A', group: 'Lantern' },
+          { op: 'cone', cx: 0, cy: 0, z: 19.8, r: 2.9, h: 2.6, color: '#C4291C', group: 'Dome', n: 24 },
+          { op: 'cyl', cx: 0, cy: 0, z: 22.4, r: 0.16, h: 1.6, color: '#C4291C', group: 'Dome' },
         ],
       },
       maison: {
-        titre: 'Maison — démo 3D',
+        get titre () { return kt('Maison — démo 3D', 'House — 3D demo') },
         espace: '3d',
         ops: [
-          { op: 'box', x: -8, y: -7, z: 0, w: 16, d: 14, h: 0.7, color: '#4C9A52', group: 'Terrain' },
-          { op: 'box', x: -5, y: -4, z: 0.7, w: 10, d: 8, h: 4.4, color: '#EFE4C8', group: 'Murs' },
-          { op: 'cone', cx: 0, cy: 0, z: 5.1, r: 7.0, h: 3.4, color: '#8E1B14', group: 'Toit', n: 4, rot: 45 },
-          { op: 'box', x: -1, y: -4.3, z: 0.7, w: 2, d: 0.6, h: 2.6, color: '#7A4E2B', group: 'Porte' },
-          { op: 'box', x: 3.2, y: 1.4, z: 5.4, w: 1.4, d: 1.4, h: 3.2, color: '#9BA3A7', group: 'Cheminée' },
+          { op: 'box', x: -8, y: -7, z: 0, w: 16, d: 14, h: 0.7, color: '#4C9A52', group: 'Ground' },
+          { op: 'box', x: -5, y: -4, z: 0.7, w: 10, d: 8, h: 4.4, color: '#EFE4C8', group: 'Walls' },
+          { op: 'cone', cx: 0, cy: 0, z: 5.1, r: 7.0, h: 3.4, color: '#8E1B14', group: 'Roof', n: 4, rot: 45 },
+          { op: 'box', x: -1, y: -4.3, z: 0.7, w: 2, d: 0.6, h: 2.6, color: '#7A4E2B', group: 'Door' },
+          { op: 'box', x: 3.2, y: 1.4, z: 5.4, w: 1.4, d: 1.4, h: 3.2, color: '#9BA3A7', group: 'Chimney' },
         ],
       },
       schema: {
-        titre: 'Coupe A-A — démo 2D',
+        get titre () { return kt('Coupe A-A — démo 2D', 'Section A-A — 2D demo') },
         espace: '2d',
-        ops: [
+        get ops () { return [
           { op: 'axes', x: 0, y: 0, w: 96, h: 56 },
-          { op: 'rect', x: 8, y: 8, w: 60, h: 40, stroke: '#2A2A28', fill: 'rgba(42,111,214,.06)', group: 'Viro' },
-          { op: 'circle', cx: 38, cy: 28, r: 13, stroke: '#C4291C', fill: 'rgba(196,41,28,.08)', group: 'Axe' },
-          { op: 'line', x1: 38, y1: 8, x2: 38, y2: 48, stroke: '#8a8a87', width: 1, dash: [4, 3], group: 'Axe' },
-          { op: 'arrow', x1: 68, y1: 28, x2: 88, y2: 28, group: 'Flux' },
-          { op: 'text', x: 90, y: 30, text: 'sortie', size: 8, group: 'Flux' },
-          { op: 'text', x: 8, y: 54, text: 'coupe A-A — éch. 1:2', size: 7, anchor: 'start' },
+          { op: 'rect', x: 8, y: 8, w: 60, h: 40, stroke: '#2A2A28', fill: 'rgba(42,111,214,.06)', group: 'Ferrule' },
+          { op: 'circle', cx: 38, cy: 28, r: 13, stroke: '#C4291C', fill: 'rgba(196,41,28,.08)', group: 'Axis' },
+          { op: 'line', x1: 38, y1: 8, x2: 38, y2: 48, stroke: '#8a8a87', width: 1, dash: [4, 3], group: 'Axis' },
+          { op: 'arrow', x1: 68, y1: 28, x2: 88, y2: 28, group: 'Flow' },
+          { op: 'text', x: 90, y: 30, text: kt('sortie', 'outlet'), size: 8, group: 'Flow' },
+          { op: 'text', x: 8, y: 54, text: kt('coupe A-A — éch. 1:2', 'section A-A — scale 1:2'), size: 7, anchor: 'start' },
           { op: 'text', x: 38, y: 29.5, text: 'Ø 26', size: 8, anchor: 'middle', bold: true },
-        ],
+        ] },
       },
     }
 
@@ -709,7 +730,10 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
      * React ne rend que le chrome (titre, compteurs, transport). */
 
     const abonnes = new Set()
-    let ETAT = { titre: 'Modeleur', version: -1, sessionId: '', espace: '3d', total: 0, pose: 0, lots: 0, enCours: false, desc: '', prompt: '', dureeMs: 0 }
+    /** The name the host gives a model that has none (« 3D modeller »; « Modeleur » in older hosts): shown in the language of the page. */
+    const DEFAULT_TITLES = ['Modeleur', '3D modeller']
+    const titleOf = (t) => (typeof t !== 'string' || t === '' || DEFAULT_TITLES.includes(t) ? kt('Modeleur', '3D modeller') : t)
+    let ETAT = { titre: DEFAULT_TITLES[1], version: -1, sessionId: '', espace: '3d', total: 0, pose: 0, lots: 0, enCours: false, desc: '', prompt: '', dureeMs: 0 }
     let MODELE = null
     let POSE = 0, POSE_MIN = 0, T0 = 0, DUREE = 8000, VITESSE = 1, EN_COURS = false
     const OUVERTURES_VUES = new Map() // sessionId → last reopen counter read (each session counts its own)
@@ -721,14 +745,14 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
     // Traits dessinés par-dessus le modèle (pinceau) : normalisés 0..1,
     // renvoyés à l'hôte puis relus par l'agent via `modeliser { relire: true }`.
     let ANN = { version: 0, traits: [] }
-    const PINCEAU = { on: false, coul: '#E1502A', outil: 'trait', trait: null, texte: null }
+    const PINCEAU = { on: false, coul: '#E1502A', outil: 'trait', trait: null, texte: null, texteEnAttente: null }
     const COULEURS_PEN = ['#E1502A', '#2A6FD6', '#F2C31A']
     const OUTILS_PEN = [
-      { id: 'trait', label: '✏', titre: 'Trait libre' },
-      { id: 'rect', label: '▭', titre: 'Rectangle' },
-      { id: 'ellipse', label: '◯', titre: 'Ellipse' },
-      { id: 'fleche', label: '➔', titre: 'Flèche' },
-      { id: 'texte', label: 'A', titre: 'Texte' },
+      { id: 'trait', label: '✏', get titre () { return kt('Trait libre', 'Freehand') } },
+      { id: 'rect', label: '▭', get titre () { return kt('Rectangle', 'Rectangle') } },
+      { id: 'ellipse', label: '◯', get titre () { return kt('Ellipse', 'Ellipse') } },
+      { id: 'fleche', label: '➔', get titre () { return kt('Flèche', 'Arrow') } },
+      { id: 'texte', label: 'A', get titre () { return kt('Texte', 'Text') } },
     ]
 
     /** Graine stable par annotation : le wobble rough.js ne vibre pas d'une frame à l'autre. */
@@ -897,7 +921,7 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
         POSE_MIN = 0
         POSE = 0
         publier({
-          titre: etat.titre || 'Modeleur',
+          titre: etat.titre || DEFAULT_TITLES[1],
           espace: c.espace,
           lots: c.lots,
           desc: c.desc || etat.prompt || '',
@@ -954,7 +978,7 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
         if (etat.version === VERSION_VUE && etat.sessionId === SESSION_VUE) return
         appliquer(etat)
       } catch (e) {
-        if (!enPanne) { enPanne = true; publier({ desc: 'hôte injoignable — ' + String(e?.message ?? e) }) }
+        if (!enPanne) { enPanne = true; publier({ desc: kt('hôte injoignable — ', 'host unreachable — ') + String(e?.message ?? e) }) }
       }
     }
 
@@ -1039,8 +1063,9 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
         if (PINCEAU.on) {
           const p = pointNorm(e)
           if (PINCEAU.outil === 'texte') {
-            PINCEAU.texte = { x: p[0], y: p[1], valeur: '' }
-            maj()
+            // The field opens when the press is RELEASED (onUp): opened here, it was focused and then blurred at once by the
+            // focus move that finishes this very press, and the blur removed it before anyone could type.
+            PINCEAU.texteEnAttente = { x: p[0], y: p[1] }
             return
           }
           PINCEAU.trait = { type: PINCEAU.outil, coul: PINCEAU.coul, pts: [p] }
@@ -1093,7 +1118,16 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
         reveiller()
         maj()
       }
-      const onUp = () => {
+      const onUp = (e) => {
+        if (PINCEAU.texteEnAttente !== null) {
+          const at = PINCEAU.texteEnAttente
+          PINCEAU.texteEnAttente = null
+          if (PINCEAU.on && PINCEAU.outil === 'texte' && !(e && e.type === 'pointercancel')) {
+            PINCEAU.texte = { x: at.x, y: at.y, valeur: '', ouvertA: Date.now() }
+            maj()
+          }
+          return
+        }
         if (PINCEAU.trait !== null) {
           const t = PINCEAU.trait
           PINCEAU.trait = null
@@ -1117,31 +1151,32 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
       const pose = Math.min(total, ETAT.pose || 0)
       const pct = total ? Math.round((100 * pose) / total) : 0
       const en2d = ETAT.espace === '2d'
-      const unite = en2d ? 'traits' : 'objets'
+      const unite = en2d ? kt('traits', 'lines') : kt('objets', 'objects')
+      const nombre = (n) => n.toLocaleString(langBase() === 'fr' ? 'fr-FR' : 'en-US')
 
       const barre = h('div', { className: 'kbm-foot' },
         h('div', { className: 'kbm-line' },
-          h('button', { className: 'kbm-step', title: 'Début', onClick: () => { POSE = 0; EN_COURS = false; publier({ pose: 0, enCours: false }); reveiller() } }, '\u25C0\u25C0'),
+          h('button', { className: 'kbm-step', title: kt('Début', 'Start'), onClick: () => { POSE = 0; EN_COURS = false; publier({ pose: 0, enCours: false }); reveiller() } }, '\u25C0\u25C0'),
           h('button', {
             className: 'kbm-play',
-            title: EN_COURS ? 'Pause' : 'Relire',
+            title: EN_COURS ? 'Pause' : kt('Relire', 'Replay'),
             onClick: () => {
               if (EN_COURS) { EN_COURS = false; publier({ enCours: false }); reveiller(); return }
               POSE_MIN = 0; POSE = 0; T0 = performance.now(); DUREE = DUREE_BUILD; EN_COURS = true
               publier({ enCours: true }); reveiller()
             },
           }, EN_COURS ? '\u23F8' : '\u25B6'),
-          h('button', { className: 'kbm-step', title: 'Fin', onClick: () => { POSE = total; EN_COURS = false; publier({ pose: total, enCours: false }); reveiller() } }, '\u25B6\u25B6'),
+          h('button', { className: 'kbm-step', title: kt('Fin', 'End'), onClick: () => { POSE = total; EN_COURS = false; publier({ pose: total, enCours: false }); reveiller() } }, '\u25B6\u25B6'),
           h('button', { className: 'kbm-sp' + (VITESSE === 0.5 ? ' on' : ''), onClick: () => { VITESSE = 0.5; maj() } }, '0.5\u00D7'),
           h('button', { className: 'kbm-sp' + (VITESSE === 1 ? ' on' : ''), onClick: () => { VITESSE = 1; maj() } }, '1\u00D7'),
           h('button', { className: 'kbm-sp' + (VITESSE === 2 ? ' on' : ''), onClick: () => { VITESSE = 2; maj() } }, '2\u00D7'),
           h('button', { className: 'kbm-sp' + (VITESSE === 4 ? ' on' : ''), onClick: () => { VITESSE = 4; maj() } }, '4\u00D7'),
-          h('span', { className: 'kbm-badge' + (EN_COURS ? ' run' : '') }, total ? (EN_COURS ? pct + ' %' : 'Fini') : '\u2014'),
+          h('span', { className: 'kbm-badge' + (EN_COURS ? ' run' : '') }, total ? (EN_COURS ? pct + (langBase() === 'fr' ? ' %' : '%') : kt('Fini', 'Done')) : '\u2014'),
         ),
         h('div', { className: 'kbm-track', style: { marginTop: '7px' } },
           h('div', { className: 'kbm-lab' },
-            h('b', {}, pose.toLocaleString('fr-FR')),
-            ' / ' + total.toLocaleString('fr-FR') + ' ' + unite + ' \u00B7 ' + (ETAT.lots || 0) + ' lots'),
+            h('b', {}, nombre(pose)),
+            ' / ' + nombre(total) + ' ' + unite + ' \u00B7 ' + (ETAT.lots || 0) + kt(' lots', ' groups')),
           h('input', {
             className: 'kbm-range', type: 'range', min: 0, max: Math.max(1, total), value: pose,
             onChange: (e) => { POSE = Number(e.target.value); EN_COURS = false; publier({ pose: POSE, enCours: false }); reveiller() },
@@ -1149,13 +1184,15 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
         ETAT.desc ? h('div', { className: 'kbm-note', title: ETAT.desc }, ETAT.desc) : null,
         ANN.traits.length > 0
           ? h('div', { className: 'kbm-note' },
-              `✏️ ${ANN.traits.length} trait(s) dessinés par-dessus — demande au chat : « réajuste d'après mes traits »`)
+              ANN.traits.length === 1
+                ? kt('✏️ 1 trait dessiné par-dessus — demandez au chat : « réajuste d\'après mes traits »', '✏️ 1 stroke drawn on top — ask the chat: “readjust from my strokes”')
+                : kt(`✏️ ${ANN.traits.length} traits dessinés par-dessus — demandez au chat : « réajuste d'après mes traits »`, `✏️ ${ANN.traits.length} strokes drawn on top — ask the chat: “readjust from my strokes”`))
           : null,
       )
 
       const vide = h('div', { className: 'kbm-empty' },
-        h('div', {}, h('b', {}, 'Aucun modèle pour le moment')),
-        h('div', {}, 'Demande au chat : ', h('code', {}, 'dessine un phare en 3D')),
+        h('div', {}, h('b', {}, kt('Aucun modèle pour le moment', 'No model yet'))),
+        h('div', {}, kt('Demandez au chat : ', 'Ask the chat: '), h('code', {}, kt('dessinez un phare en 3D', 'draw a lighthouse in 3D'))),
         h('div', { className: 'kbm-chips' }, ...Object.keys(DEMOS).map((cle) => h(Apercu, { key: cle, cle }))),
       )
 
@@ -1163,7 +1200,7 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
       // Models page, so the mini-apps plugin cannot find the Modeleur by it (scripts/test-miniapps-panels.mjs).
       return h('div', { className: 'kbm-root kbmo' },
         h('div', { className: 'kbm-head' },
-          h('span', { className: 'kbm-title', title: ETAT.titre }, ETAT.titre || 'Modeleur'),
+          h('span', { className: 'kbm-title', title: titleOf(ETAT.titre) }, titleOf(ETAT.titre)),
           h('span', { className: 'kbm-badge' }, en2d ? '2D' : '3D')),
         h('div', { className: 'kbm-view' },
           h('canvas', {
@@ -1178,19 +1215,23 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
                 className: 'kbm-saisie',
                 style: { left: `${PINCEAU.texte.x * 100}%`, top: `calc(${PINCEAU.texte.y * 100}% - 22px)`, color: PINCEAU.coul },
                 autoFocus: true,
-                placeholder: 'ton texte…',
+                placeholder: kt('votre texte…', 'your text…'),
                 onInput: (e) => { PINCEAU.texte.valeur = e.currentTarget.value },
                 onKeyDown: (e) => {
                   if (e.key === 'Enter') validerTexte()
                   else if (e.key === 'Escape') { PINCEAU.texte = null; maj() }
                 },
-                onBlur: validerTexte,
+                // A blur in the instant after the field opened is the end of the press that opened it, not the person leaving.
+                onBlur: (e) => {
+                  if (PINCEAU.texte !== null && Date.now() - PINCEAU.texte.ouvertA < 250) { try { e.currentTarget.focus() } catch { /* already gone */ } return }
+                  validerTexte()
+                },
               })
             : null,
           total ? h('div', { className: 'kbm-tools' },
             h('button', {
               className: 'kbm-tool' + (PINCEAU.on ? ' on' : ''),
-              title: 'Dessiner par-dessus — le chat relit tes traits et réajuste',
+              title: kt('Dessiner par-dessus — le chat relit vos traits et réajuste', 'Draw on top — the chat reads your strokes and adjusts the model'),
               onClick: () => { PINCEAU.on = !PINCEAU.on; PINCEAU.trait = null; maj() },
             }, '✏'),
             PINCEAU.on
@@ -1211,25 +1252,25 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
               : null,
             h('button', {
               className: 'kbm-tool',
-              title: 'Effacer tous mes traits',
+              title: kt('Effacer tous mes traits', 'Erase all my strokes'),
               onClick: () => { ANN.traits = []; PINCEAU.trait = null; envoyerTraits(); reveiller(); maj() },
-            }, 'Effacer'),
+            }, kt('Effacer', 'Erase')),
             en2d
               ? [
-                  h('button', { className: 'kbm-tool' + (CANEVAS.grille ? ' on' : ''), onClick: (e) => { CANEVAS.grille = !CANEVAS.grille; e.currentTarget.classList.toggle('on', CANEVAS.grille); reveiller() } }, 'Grille'),
+                  h('button', { className: 'kbm-tool' + (CANEVAS.grille ? ' on' : ''), onClick: (e) => { CANEVAS.grille = !CANEVAS.grille; e.currentTarget.classList.toggle('on', CANEVAS.grille); reveiller() } }, kt('Grille', 'Grid')),
                   h('button', {
                     className: 'kbm-tool',
                     onClick: () => { CANEVAS.cam2d = { zoom: 1, dx: 0, dy: 0 }; reveiller() },
-                  }, 'Ajuster'),
+                  }, kt('Ajuster', 'Fit')),
                 ]
               : [
                   h('button', { className: 'kbm-tool' + (vue === 'iso' ? ' on' : ''), onClick: () => vueCam('iso') }, '3/4'),
-                  h('button', { className: 'kbm-tool' + (vue === 'front' ? ' on' : ''), onClick: () => vueCam('front') }, 'Front'),
-                  h('button', { className: 'kbm-tool' + (vue === 'top' ? ' on' : ''), onClick: () => vueCam('top') }, 'Top'),
+                  h('button', { className: 'kbm-tool' + (vue === 'front' ? ' on' : ''), onClick: () => vueCam('front') }, kt('Face', 'Front')),
+                  h('button', { className: 'kbm-tool' + (vue === 'top' ? ' on' : ''), onClick: () => vueCam('top') }, kt('Dessus', 'Top')),
                   h('button', {
                     className: 'kbm-tool' + (CANEVAS.spin ? ' on' : ''),
                     onClick: (e) => { CANEVAS.spin = !CANEVAS.spin; e.currentTarget.classList.toggle('on', CANEVAS.spin); reveiller() },
-                  }, 'Spin'),
+                  }, kt('Rotation', 'Spin')),
                 ]) : null),
         barre,
       )
@@ -1261,19 +1302,19 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
         ctx.effect(() => registre.register({
           id: TYPE_ID,
           kind: KIND,
-          title: () => 'Modeleur',
-          guide: [{ title: () => 'Modeleur', description: () => 'Modèles 2D et 3D pilotés par le chat : dessin à l\'échelle, solides orbitables, pose en direct puis relecture.' }],
-        }), 'kybernos-modeleur: type d onglet barre latérale droite')
+          title: () => kt('Modeleur', '3D modeller'),
+          guide: [{ title: () => kt('Modeleur', '3D modeller'), description: () => kt('Modèles 2D et 3D pilotés par le chat : dessin à l\'échelle, solides orbitables, pose en direct puis relecture.', '2D and 3D models driven by the chat: scale drawings, orbitable solids, laid live, then replayed.') }],
+        }), 'kybernos-modeleur: right sidebar tab type')
       }
 
       ctx.effect(() => ctx.slots.inject(SLOT, () => ctx.slots.register(
-        { name: SLOT, key: TYPE_ID }, PanneauModeleur)), 'kybernos-modeleur: corps de panneau')
+        { name: SLOT, key: TYPE_ID }, PanneauModeleur)), 'kybernos-modeleur: panel body')
 
       ctx.effect(() => {
         interroger()
         const t = setInterval(interroger, CADENCE_MS)
         return () => clearInterval(t)
-      }, 'kybernos-modeleur: sonde de l hote')
+      }, 'kybernos-modeleur: host probe')
     }
 
     return {
@@ -1283,7 +1324,7 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
       apply,
       // Surface de test : le harnais monte les moteurs et l'exécuteur d'ops
       // sans navigateur — aucun rendu React n'est nécessaire pour les vérifier.
-      __test: { normaliser2D, normaliser3D, bornes2D, bornes3D, dessiner2D, dessiner3D, construire, DEMOS, makeCam, OPS_2D, OPS_3D, parserChemin, ordonnerFacettes, tracerAnnotations, graineDe, traitsAnn: () => ANN.traits, poserTraits: (t) => { ANN.traits = t }, pinceau: PINCEAU },
+      __test: { titleOf, kt, normaliser2D, normaliser3D, bornes2D, bornes3D, dessiner2D, dessiner3D, construire, DEMOS, makeCam, OPS_2D, OPS_3D, parserChemin, ordonnerFacettes, tracerAnnotations, graineDe, traitsAnn: () => ANN.traits, poserTraits: (t) => { ANN.traits = t }, pinceau: PINCEAU },
     }
   }
 })

@@ -141,6 +141,24 @@ try {
   const attr = (kb, name) => val(`(() => { const e = document.querySelector('[data-kb="${kb}"]'); return e ? e.getAttribute(${JSON.stringify(name)}) : null })()`)
   const box = (kb) => val(`(() => { const e = document.querySelector('[data-kb="${kb}"]'); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, b: r.bottom } })()`)
 
+  console.log('── 2a. the sidebar marks the row of what is on screen (V-01) ──')
+  const onRows = () => val(`Array.from(document.querySelectorAll('.kb4-item.on')).map((e) => e.innerText.trim().split('\\n')[0])`)
+  const clickSide = (label) => val(`(() => { const e = Array.from(document.querySelectorAll('.kb4-item')).find((x) => x.innerText.trim().split('\\n')[0] === ${JSON.stringify(label)}); if (!e) return false; e.click(); return true })()`)
+  const onIs = async (names, ms) => (await poll(async () => JSON.stringify(await onRows()) === JSON.stringify(names), ms || 8000)) === true
+  check('on Kaby\'s chat the Kaby row is the selected one and no other', await onIs(['Kaby']), await onRows())
+  if ((await clickSide('Dashboards')) === true) {
+    check('on the Dashboards page Dashboards is selected and Kaby is not', await onIs(['Dashboards']), await onRows())
+    await clickRow()
+    check('back on Kaby, Dashboards is back to the normal style and Kaby is marked', await onIs(['Kaby'], 15000), await onRows())
+    await poll(() => has('kybernos-kyber-dock'), 20000)
+  } else check('the Dashboards row is there to leave', false)
+  if ((await clickSide('Skills')) === true) {
+    check('on another page (Skills) only that row is selected', await onIs(['Skills']), await onRows())
+    await clickRow()
+    await onIs(['Kaby'], 15000)
+    await poll(() => has('kybernos-kyber-dock'), 20000)
+  }
+
   console.log('── 2b. a reload with Kaby\'s chat on screen: nothing to build, lined up with the composer ──')
   // The new-chat cards are drawn before the Kaby bundle has read which chat is Kaby's: on a page load they used to stay, above the strip.
   for (let i = 0; i < 2; i++) {
@@ -164,6 +182,23 @@ try {
   const tb1 = await box('kybernos-kyber-tile-channels')
   const tb2 = await box('kybernos-kyber-computer')
   check('the two tiles are side by side and as tall as each other', tb1 !== null && tb2 !== null && Math.abs(tb1.h - tb2.h) <= 1 && Math.abs(tb1.y - tb2.y) <= 1 && tb1.x < tb2.x, { tb1, tb2 })
+  console.log('── 3a. what Kaby is, a line under each tile, the help pill (V-02, V-03) ──')
+  const intro = (await text('kybernos-kyber-intro')) || ''
+  check('the open card says what Kaby is: a phone with a remote control that works on the desktop', /téléphone avec télécommande|phone with a remote control/.test(intro) && /Kaby/.test(intro), intro.slice(0, 200))
+  const gi = await box('kybernos-kyber-intro')
+  check('it sits inside the card, above the two tiles', gi !== null && tb1 !== null && gi.y < tb1.y && gi.b <= tb1.y, { gi, tb1 })
+  const chHelp = (await text('kybernos-kyber-channels-help')) || ''
+  const coHelp = (await text('kybernos-kyber-computer-help')) || ''
+  check('Channels has one help line: Telegram, WhatsApp and WeChat, and what « Soon » means', /Telegram/.test(chHelp) && /WhatsApp/.test(chHelp) && /WeChat/.test(chHelp) && /Bientôt|Soon/.test(chHelp), chHelp)
+  check('Computer has one help line: the machine Kaby works on, and what « On request » means', /ordinateur|computer/.test(coHelp) && /À la demande|On request/.test(coHelp), coHelp)
+  const hb = [await box('kybernos-kyber-channels-help'), await box('kybernos-kyber-computer-help')]
+  check('each line sits right under its tile\'s title, above the first row', hb.every((b) => b !== null && b.h > 10) && hb[0].y > tb1.y && hb[0].y < tb1.y + 70 && hb[1].y > tb2.y && hb[1].y < tb2.y + 70, { hb, tb1, tb2 })
+  check('the strip carries the Suite\'s « ? How it works » pill, beside the fold button and not inside it', (await poll(() => val(`(() => { const s = document.querySelector('[data-kb="kybernos-kyber-strip"]'); const b = s && s.querySelector('[data-kb="help-button"][data-id="kybernos-kyber"]'); const t = s && s.querySelector('[data-kb="kybernos-kyber-strip-toggle"]'); return !!b && !!t && !t.contains(b) })()`), 8000)) === true)
+  await val(`document.querySelector('[data-kb="kybernos-kyber-strip"] [data-kb="help-button"]').click()`)
+  const card = await poll(() => val(`(() => { const p = document.querySelector('[data-kb="kybernos-kyber-strip"] [data-kb="help-panel"]'); const b = document.querySelector('[data-kb="kybernos-kyber-strip"] [data-kb="help-button"]'); if (!p || !b) return null; const r = p.getBoundingClientRect(); const q = b.getBoundingClientRect(); return { text: p.innerText.slice(0, 400), clear: r.bottom <= q.top + 1 || r.top >= q.bottom - 1, onscreen: r.top >= 0 && r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight } })()`), 6000)
+  check('the card opens on the side that has room, wholly on screen and clear of the pill, and is Kaby\'s', !!card && card.clear === true && card.onscreen === true && /Kaby/.test(card.text), card)
+  await shot('2c-help-card')
+  await val(`document.querySelector('[data-kb="kybernos-kyber-strip"] [data-kb="help-button"]').click()`)
   check('opening the strip asked for no code: no pairing, no QR', (await calls('/kybernos-cloud/telegram/pairing')).length === 0 && (await has('kybernos-kyber-qr')) === false && (await has('kybernos-kyber-telegram')) === false)
   check('Telegram is a row with a switch, off, and says it is not connected', (await attr('kybernos-kyber-tg-switch', 'aria-checked')) === 'false' && /Pas connecté|Not connected/.test((await text('kybernos-kyber-tg-row')) || ''))
   check('WhatsApp and WeChat are rows of the same list, with their mark and « Soon », and nothing to press', (await val(`['whatsapp', 'wechat'].every((c) => { const e = document.querySelector('[data-kb="kybernos-kyber-chan-' + c + '"]'); return !!e && !!e.querySelector('svg path') && /Bientôt|Soon/.test(e.innerText) && e.querySelectorAll('button, a, input').length === 0 })`)) === true)
@@ -198,18 +233,18 @@ try {
   check('turned on again: a new code', (await poll(async () => (await calls('/kybernos-cloud/telegram/pairing')).length === 2 && (await has('kybernos-kyber-qr')) === true, 6000)) === true)
 
   console.log('── 4. the pairing goes by itself ──')
-  await setMock(`window.__kbMock.pairingState = { ok: true, state: 'scanned', reason: null, sender: 'Miled (@milede)', expires_at: '' }`)
-  check('after the scan the panel names who Telegram says it is', (await poll(() => val(`/Miled \\(@milede\\)/.test((document.querySelector('[data-kb="kybernos-kyber-telegram"]') || {}).innerText || '')`), 8000)) === true)
+  await setMock(`window.__kbMock.pairingState = { ok: true, state: 'scanned', reason: null, sender: 'Miled (@alex)', expires_at: '' }`)
+  check('after the scan the panel names who Telegram says it is', (await poll(() => val(`/Miled \\(@alex\\)/.test((document.querySelector('[data-kb="kybernos-kyber-telegram"]') || {}).innerText || '')`), 8000)) === true)
   check('and the QR is gone, the row waits for the person\'s OK', (await has('kybernos-kyber-qr')) === false && /En attente|Waiting/.test((await text('kybernos-kyber-tg-row')) || ''))
-  await setMock(`window.__kbMock.kyber.telegram.linked = { display: 'Miled (@milede)', linked_at: '2026-10-15T10:00:00.000Z', paused: false, blocked: false }; window.__kbMock.pairingState = { ok: true, state: 'done', reason: null, sender: 'Miled (@milede)', expires_at: '' }`)
+  await setMock(`window.__kbMock.kyber.telegram.linked = { display: 'Miled (@alex)', linked_at: '2026-10-15T10:00:00.000Z', paused: false, blocked: false }; window.__kbMock.pairingState = { ok: true, state: 'done', reason: null, sender: 'Miled (@alex)', expires_at: '' }`)
   check('on the tap the status becomes connected by itself', (await poll(() => val(`/connecté|connected/i.test((document.querySelector('[data-kb="kybernos-kyber-status"]') || {}).innerText || '') && !/non connect|not connected/i.test((document.querySelector('[data-kb="kybernos-kyber-status"]') || {}).innerText || '')`), 9000)) === true)
   check('the strip folds itself once connected, so the chat is in view', (await val(`!document.querySelector('[data-kb="kybernos-kyber-channels"]')`)) === true)
   await click('kybernos-kyber-strip-toggle')
-  check('opened, Telegram\'s row names the chat, the switch is on, the bot has its link, and no panel is left', (await poll(() => val(`/Miled \\(@milede\\)/.test((document.querySelector('[data-kb="kybernos-kyber-tg-row"]') || {}).innerText || '')`), 5000)) === true && (await attr('kybernos-kyber-tg-switch', 'aria-checked')) === 'true' && (await has('kybernos-kyber-bot')) === true && (await has('kybernos-kyber-telegram')) === false)
+  check('opened, Telegram\'s row names the chat, the switch is on, the bot has its link, and no panel is left', (await poll(() => val(`/Miled \\(@alex\\)/.test((document.querySelector('[data-kb="kybernos-kyber-tg-row"]') || {}).innerText || '')`), 5000)) === true && (await attr('kybernos-kyber-tg-switch', 'aria-checked')) === 'true' && (await has('kybernos-kyber-bot')) === true && (await has('kybernos-kyber-telegram')) === false)
   await shot('3-connected')
 
   console.log('── 5. the computer linked to Kaby ──')
-  check('with one computer there is nothing to select', (await has('kybernos-kyber-pick')) === false)
+  check('with one cloud computer the select offers this computer and that one', (await val(`(() => { const s = document.querySelector('[data-kb="kybernos-kyber-pick"]'); return !!s && s.tagName === 'SELECT' && s.options.length === 2 && /Cet ordinateur|This computer/.test(s.options[0].text) && /Home/.test(s.options[1].text) && !s.disabled })()`)) === true)
   await setMock(`window.__kbMock.kyber.computers = [{ id: '11111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa', name: 'Home', state: 'suspended' }, { id: '22222222-bbbb-4bbb-8bbb-bbbbbbbbbbbb', name: 'Atelier', state: 'running' }]`)
   await val(`window.__KB_KYBER__.refresh()`)
   check('with several, the field is a real select', (await poll(() => has('kybernos-kyber-pick'), 6000)) === true && (await val(`document.querySelector('[data-kb="kybernos-kyber-pick"]').tagName`)) === 'SELECT')
@@ -218,6 +253,27 @@ try {
   check('and read again: the tile shows the new computer and its state', (await poll(() => val(`(() => { const t = document.querySelector('[data-kb="kybernos-kyber-computer"]'); const s = t.querySelector('select'); return !!s && s.value === '22222222-bbbb-4bbb-8bbb-bbbbbbbbbbbb' && /Éveillé|Awake/.test(t.innerText) })()`), 6000)) === true)
   await setMock(`window.__kbMock.kyber.computers = [{ id: '11111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa', name: 'Home', state: 'suspended' }]; window.__kbMock.kyber.home = Object.assign({}, window.__kbMock.kyber.home, { id: '11111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa', name: 'Home', state: 'suspended' })`)
   await val(`window.__KB_KYBER__.refresh()`)
+  await sleep(600)
+
+  console.log('── 5b. this computer, next to the cloud one (V-04) ──')
+  const pick = (value) => val(`(() => { const sel = document.querySelector('[data-kb="kybernos-kyber-pick"]'); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(sel, ${JSON.stringify(value)}); sel.dispatchEvent(new Event('change', { bubbles: true })); return true })()`)
+  const before = (await calls('/kybernos-cloud/kyby/computer')).length
+  await pick('local')
+  check('choosing this computer: the tile names it, ready, with what it means', (await poll(() => val(`(() => { const t = document.querySelector('[data-kb="kybernos-kyber-computer"]'); const s = t.querySelector('select'); return !!s && s.value === 'local' && /Prêt|Ready/.test(t.innerText) && /travaille sur cet ordinateur|works on this computer/.test(t.innerText) })()`), 5000)) === true)
+  check('no server was asked: the choice needs none', (await calls('/kybernos-cloud/kyby/computer')).length === before)
+  check('no wake, sleep or open for this computer, and no Free-plan note', (await val(`['wake', 'sleep', 'pcopen', 'upsell', 'upgrade'].every((k) => !document.querySelector('[data-kb="kybernos-kyber-' + k + '"]'))`)) === true)
+  check('it is remembered by this browser', (await val(`window.localStorage.getItem('kybernos-kyber.where')`)) === 'local')
+  await shot('3d-this-computer')
+  await pick('11111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
+  check('back to the cloud computer: the host is asked and the tile shows its state again', (await poll(async () => (await calls('/kybernos-cloud/kyby/computer')).length > before && (await val(`/En veille|Asleep/.test(document.querySelector('[data-kb="kybernos-kyber-computer"]').innerText)`)) === true, 6000)) === true)
+  console.log('   with no account and no server')
+  await setMock(`window.__kbKeep = JSON.parse(JSON.stringify(window.__kbMock.kyber)); window.__kbMock.kyber = { ok: true, connected: false }`)
+  await val(`window.__KB_KYBER__.refresh()`)
+  check('signed out: the note, and the computer tile with this computer only, which needs no sign-in', (await poll(() => val(`(() => { const t = document.querySelector('[data-kb="kybernos-kyber-computer"]'); const s = t && t.querySelector('select'); return !!s && s.options.length === 1 && s.value === 'local' && /Prêt|Ready/.test(t.innerText) && !document.querySelector('[data-kb="kybernos-kyber-tile-channels"]') })()`), 6000)) === true)
+  await shot('3e-signed-out')
+  await setMock(`window.__kbMock.kyber = window.__kbKeep`)
+  await val(`window.__KB_KYBER__.refresh()`)
+  await val(`window.localStorage.removeItem('kybernos-kyber.where')`)
   await sleep(600)
 
   console.log('── 6. a paid plan: the computer can be driven ──')
@@ -288,8 +344,17 @@ try {
   console.log('── 11. the page ──')
   const opened = await val(`(async () => { try { return String(await window.__KB_OPEN__({ view: 'kyber' })) } catch (e) { return 'err' } })()`)
   check('the page opens (the new-chat card and the right tab use it)', (await poll(() => has('kybernos-kyber-page'), 12000)) === true, opened)
-  check('it says what Kaby is and offers the way into the chat', /dans votre poche|in your pocket/.test((await text('kybernos-kyber-page')) || '') && (await has('kybernos-kyber-openchat')) === true)
+  check('it says what Kaby is and offers the way into the chat', /dans votre poche|in your pocket/.test((await text('kybernos-kyber-page')) || '') && /téléphone avec télécommande|phone with a remote control/.test((await text('kybernos-kyber-page')) || '') && (await has('kybernos-kyber-openchat')) === true)
   await shot('6-page')
+
+  console.log('── 12. the choice of the computer survives a page load ──')
+  await val(`window.localStorage.setItem('kybernos-kyber.where', 'local')`)
+  await page.send('Page.reload', { ignoreCache: true })
+  await sleep(1200)
+  await closeDialog()
+  await poll(() => has('kybernos-kyber-dock'), 25000)
+  check('after a reload this computer is still the one chosen', (await poll(() => val(`(() => { const s = document.querySelector('[data-kb="kybernos-kyber-pick"]'); return !!s && s.value === 'local' })()`), 8000)) === true)
+  await val(`window.localStorage.removeItem('kybernos-kyber.where')`)
 } catch (e) {
   fail += 1
   console.log('  ✗ the check itself failed: ' + (e && e.message ? e.message : String(e)))

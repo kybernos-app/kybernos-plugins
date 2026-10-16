@@ -25,6 +25,43 @@ window.__ModuleLoader__.load({
       var LANGS = ['bash', 'sh', 'shell', 'zsh', 'console', 'shell-session', 'powershell', 'pwsh']
       var DEBOUNCE_MS = 120
 
+      // ── language: French is the source, English the pair; French only for a French UI, a translated language is looked up by its
+      // French text, and every other language (and a language not known yet) reads English ──
+      const lang = () => {
+        try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
+      }
+      const kt = (fr, en) => {
+        const l = lang()
+        if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
+        if (l === 'en') return en
+        try {
+          const a = window.__KB_I18N_ACTIVE__
+          if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
+        } catch (e) { /* no dictionary: English */ }
+        return en
+      }
+      /* What the host says when it refuses or fails (it has no language of its own): [French, English]. A French page shows the French
+         twin of a sentence it knows; any other text (an error of the system) is shown as it is. */
+      const HOST_SAYS = [
+        ['commande vide, ou plus longue que', 'empty command, or longer than'],
+        ['pas un dossier', 'not a folder'],
+        ['le dossier où exécuter n’existe plus', 'the folder to run in does not exist any more'],
+        ['origine refusée', 'origin refused'],
+        ['POST attendu', 'POST expected'],
+        ['le secret de session de DSH est illisible, le terminal reste donc fermé', 'the DSH session secret cannot be read, so the terminal stays closed'],
+        ['connexion requise', 'sign-in required'],
+        ['corps de requête trop grand', 'request body too large'],
+        ['le dossier de cette session est introuvable : rien n’a été exécuté', 'the folder of this session cannot be found: nothing was run']
+      ]
+      const hostSays = (text) => {
+        const raw = String(text === undefined || text === null ? '' : text)
+        if (lang() !== 'kybernos' && lang().slice(0, 2) !== 'fr') return raw
+        for (let i = 0; i < HOST_SAYS.length; i += 1) {
+          if (raw.indexOf(HOST_SAYS[i][1]) === 0) return HOST_SAYS[i][0] + raw.slice(HOST_SAYS[i][1].length)
+        }
+        return raw
+      }
+
       function injectStyle() {
         var style = document.createElement('style')
         style.dataset.plugin = NAME
@@ -104,13 +141,22 @@ window.__ModuleLoader__.load({
         return text.replace(/^\s*\$\s/, '').trim()
       }
 
-      /** POST the command to the host route, with the page's own session cookie. Never throws. */
-      function lancer(commande) {
+      /** The id of the chat session this page shows ('' when it cannot be told): the host finds the session's folder from it. */
+      function sessionCourante(ctx) {
+        try {
+          var ui = ctx && typeof ctx.get === 'function' ? ctx.get('uiSession') : null
+          var cle = ui && ui.adapter && ui.adapter.current ? ui.adapter.current.getSnapshot().key : ''
+          return typeof cle === 'string' ? cle : ''
+        } catch (e) { return '' }
+      }
+
+      /** POST the command to the host route, with the page's own session cookie, naming the session it runs for. Never throws. */
+      function lancer(commande, session) {
         return fetch('/kybernos-terminal/run', {
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ commande: commande })
+          body: JSON.stringify({ commande: commande, session: session || '' })
         }).then(function (r) {
           return r.json().catch(function () { return { ok: false, erreur: 'HTTP ' + r.status } })
         }).catch(function (e) {
@@ -129,47 +175,55 @@ window.__ModuleLoader__.load({
         return zone
       }
 
+      /** What the output card says for the host's answer: { etat: 'ok' | 'err', texte }. */
+      function carteSortie(r) {
+        if (!r || r.ok !== true) return { etat: 'err', texte: '✗ ' + hostSays((r && r.erreur) || kt('échec', 'failed')) }
+        var sortie = r.stdout || ''
+        if (r.stderr) sortie += (sortie ? '\n' : '') + r.stderr
+        var entete = ''
+        if (r.timedOut === true) entete = kt('— délai dépassé (30 s) —', '— timeout (30 s) —') + (sortie ? '\n' : '')
+        else if (r.code !== 0) {
+          /* A process killed by a signal has no exit code: never print « exit null ». */
+          entete = (r.code === null || r.code === undefined ? kt('interrompu', 'killed') + (r.signal ? ' (' + r.signal + ')' : '') : kt('code de sortie ', 'exit ') + r.code) + (sortie ? '\n' : '')
+        }
+        var pied = r.truncated === true ? '\n' + kt('— sortie coupée ici —', '— output cut here —') : ''
+        var texte = sortie || (r.code === 0 ? kt('(aucune sortie)', '(no output)') : '')
+        return { etat: r.code === 0 && r.timedOut !== true ? 'ok' : 'err', texte: entete + texte + pied }
+      }
+
       function afficherSortie(zone, etat, texte) {
         zone.hidden = false
         zone.dataset.kbTerminalState = etat
         zone.textContent = texte
       }
 
-      function ajouterBoutonRun(block) {
+      function ajouterBoutonRun(block, ctx) {
         var banner = block.querySelector(BANNER_SELECTOR)
         var actions = banner ? banner.lastElementChild : null
         if (!actions) return
         var run = document.createElement('button')
         run.type = 'button'
         run.className = MARK + '-run'
-        run.setAttribute('aria-label', 'Run')
-        run.title = 'Run'
+        run.setAttribute('aria-label', kt('Exécuter', 'Run'))
+        run.title = kt('Exécuter', 'Run')
         run.textContent = '▶'
         run.addEventListener('click', function () {
           var commande = sourceOf(block)
           if (commande === '') return
           /* No confirm: user decision of 08/10 — the click runs it. */
           var zone = zoneSortie(block)
-          afficherSortie(zone, 'pending', '⏳ running…')
+          afficherSortie(zone, 'pending', kt('⏳ exécution…', '⏳ running…'))
           run.disabled = true
-          lancer(commande).then(function (r) {
+          lancer(commande, sessionCourante(ctx)).then(function (r) {
             run.disabled = false
-            if (r && r.ok === true) {
-              var sortie = (r.stdout || '')
-              if (r.stderr) sortie += (sortie ? '\n' : '') + r.stderr
-              var texte = sortie || (r.code === 0 ? '(no output)' : '')
-              var entete = r.timedOut === true ? '— timeout (30 s) —\n' : ''
-              if (r.code !== 0) entete += 'exit ' + r.code + (sortie ? '\n' : '')
-              afficherSortie(zone, r.code === 0 && r.timedOut !== true ? 'ok' : 'err', entete + texte)
-            } else {
-              afficherSortie(zone, 'err', '✗ ' + ((r && r.erreur) || 'failed'))
-            }
+            var carte = carteSortie(r)
+            afficherSortie(zone, carte.etat, carte.texte)
           })
         })
         actions.prepend(run)
       }
 
-      function dress(block) {
+      function dress(block, ctx) {
         var banner = block.querySelector(BANNER_SELECTOR)
         if (!banner) return
         var lang = banner.firstElementChild ? banner.firstElementChild.textContent.trim() : 'sh'
@@ -194,15 +248,15 @@ window.__ModuleLoader__.load({
         var pre = block.querySelector('pre')
         var text = pre ? pre.textContent : ''
         if (pre && /^\s*\$\s/.test(text) === false) block.classList.add(MARK + '-prompt')
-        ajouterBoutonRun(block)
+        ajouterBoutonRun(block, ctx)
       }
 
-      function scan() {
+      function scan(ctx) {
         var blocks = document.querySelectorAll(ROOT_SELECTOR)
         for (var i = 0; i < blocks.length; i += 1) {
           var block = blocks[i]
           if (isDressed(block)) continue
-          if (isShellBlock(block)) dress(block)
+          if (isShellBlock(block)) dress(block, ctx)
         }
       }
 
@@ -216,14 +270,14 @@ window.__ModuleLoader__.load({
 
         function schedule() {
           if (timer) window.clearTimeout(timer)
-          timer = window.setTimeout(function () { timer = 0; scan() }, DEBOUNCE_MS)
+          timer = window.setTimeout(function () { timer = 0; scan(ctx) }, DEBOUNCE_MS)
         }
 
         /* `documentElement`, never `body`: this bundle is evaluated from <head>,
            where `body` is still null (the dsh-mermaid lesson). */
         var observer = new MutationObserver(schedule)
         observer.observe(document.documentElement, { childList: true, subtree: true })
-        scan()
+        scan(ctx)
 
         var dispose = function () {
           if (!window.__KB_TERMINAL_ACTIVE__) return
@@ -248,6 +302,7 @@ window.__ModuleLoader__.load({
       exports.name = NAME
       exports.inject = []
       exports.apply = apply
+      exports.__test = { carteSortie: carteSortie, lancer: lancer, sessionCourante: sessionCourante, kt: kt, hostSays: hostSays }
     } catch (error) {
       // An exception here would break the whole entry ("Failed to load plugins")
       // and leave the GUI unusable: degrade instead, plugin disabled.

@@ -102,9 +102,14 @@ function suiteDeps (dshHome, hub) {
         (erreur, sortie, err) => resolve({ code: erreur ? (typeof erreur.code === 'number' ? erreur.code : 1) : 0, sortie: String(sortie ?? '') + String(err ?? '') }))
     }),
     // Detached, like the relaunch tool: DSH stops itself, the child survives and brings it back.
-    relancer: async () => {
+    // The tool restarts the instance on the port it is given (3080 when none): the page's own port is passed, so a DSH that listens elsewhere
+    // restarts itself and not whatever sits on 3080. The route reads it from the socket; DSH_PORT is the fallback (as in kybernos-relance).
+    relancer: async (instance) => {
       if (!existsSync(relance)) return { ok: false, error: 'relaunch-tool-missing' }
-      const enfant = spawn(process.execPath, [relance, 'relance', '--avec-autres'], { detached: true, stdio: 'ignore', env: { ...process.env, DSH_HOME: dshHome } })
+      const envPort = Number(process.env.DSH_PORT)
+      const port = Number.isInteger(instance?.port) && instance.port > 0 ? instance.port : (Number.isInteger(envPort) && envPort > 0 ? envPort : null)
+      const argv = [relance, 'relance', '--avec-autres', ...(port !== null ? ['--port', String(port)] : [])]
+      const enfant = spawn(process.execPath, argv, { detached: true, stdio: 'ignore', env: { ...process.env, DSH_HOME: dshHome } })
       enfant.unref()
       return { ok: true }
     }

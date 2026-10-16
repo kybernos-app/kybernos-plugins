@@ -22,12 +22,21 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
 - Settings sections **Tools**, **Voice** and Appearance (shortcut to Theme); a first-run **onboarding** wizard (see
   « First-run onboarding » below). The account's own pages (Account, Referral, Security, Data, Support & legal) are not in
   Settings: they are reached from the sidebar footer menu (kybernos-cloud).
-- **The Settings menu is regrouped** (`GROUPES` in `client.js`, by the section id each cell carries, so it holds in every language):
-  *Kybernos* first (the servers entry, the section of what stays on this computer, then the Suite, and on with our plugins' pages by what they bring and how much the
-  rest leans on them: AI Provider & Models, Auto Routing, Memory & Lessons, Workers, Tools, Calls, Commands, Atlas, Ollama Local
-  Models, Voice, Language, Theme), then the shell's own *Settings*, *Desktop settings* and *Third Party Plugins*; About closes the
-  list. To move a page, move its title inside `mots`; a page not listed falls to the tail. An always-on **language runtime** (`<kb-lang-runtime>`) keeps translated languages registered in
+- **The Settings menu is short for a newcomer and ordered for everyone** (`GROUPES` in `client.js`, by the section id each cell carries, so it
+  holds in every language). Three sections: the **essentials**, with no header (General, then AI Provider & Models, Memory & Lessons, Skills,
+  Connectors, and Appearance with Theme and Language one step in under it); **Advanced**, a fold shut at first (Servers, Kybernos, Kybernos Suite, Auto
+  Routing, Usage, Workers, Automations, Tools, Web Search, Calls, Remote Control, Cloud computers, Commands, Atlas, Ollama Local Models, Free LLMs,
+  Voice); **Other settings** (the shell's own Built-in plugins and Agent presets, and the pages a plugin adds later), with About closing the list.
+  The fold opens by itself when the person searches, or lands on a page inside it (a deep link, a help pointer, a click on a row of the Suite), and it
+  remembers what they chose (`kybernos.fold.settings-advanced` in the browser). To move a page, move its title inside `mots`; a page not listed falls
+  to the tail of *Other settings*. One icon table (`ICONES`, keyed by the page's title) draws every entry, and `test-settings-icons.mjs` checks that
+  no two share a drawing. An always-on **language runtime** (`<kb-lang-runtime>`) keeps translated languages registered in
   DSH's locale service even when `kybernos-language` is off.
+- **« A short automatic state + a Customize fold »**, one helper for every settings page (`window.__KB_CUSTOMIZE__`, like `__KB_SKEL__`): a page opens on
+  what already runs by itself (one sentence, one status dot) and keeps its knobs under one fold that is shut until the person opens it and that remembers the
+  choice. `h(window.__KB_CUSTOMIZE__.Fold, { id: 'memory', state: 'Memory is on and tidies itself.', tone: 'on' }, …the knobs…)`;
+  `read(id)` / `write(id, open)` are its store, `toggle(label, open, onToggle, plain)` its button (the Settings menu's Advanced header is one). A page of
+  another bundle falls back to its own markup when the helper is not there.
 
 ## Host routes
 
@@ -37,12 +46,13 @@ All under `/kybernos/` (plus `/kybernos-technique/{renderer,vendor/three}.js`). 
 | Family | Routes |
 | --- | --- |
 | Teams, projects | `load` `yaml` `save` `create` `ui-save` `menu-save` `active-set` `project-data` `workspace-ui-save` `workspace-skills` `pins` `share` `avatar*` `member-*` `team-portraits` `team-cap` `yml-proposer` `yml-appliquer` |
-| Runs, insight | `runs` `runs-index` `calls` `calls-index` `search-content` `insight` `insight-save` `workspace-usage` `quality*` `aa` `ws-console-key` `starters-suggest` `salary-detect` (purpose not verified) |
+| Runs, insight | `runs` `runs-index` `calls` `calls-index` `search-content` `insight` `insight-save` `quality*` `aa` `ws-console-key` `starters-suggest` `salary-detect` (purpose not verified) |
 | Deliverables | `art-origin\|read\|previews\|reveal\|raw\|action\|progress\|load` `doc-raw` |
 | Automations | `tasks` (POST; scheduler ticks every 30 s), `tasks/occurrences` (GET `?from=&to=`, read-only: when the active scheduled automations will run, see "The Automations board"), `hooks` (public webhook: secret + 60/h default limit) |
 | Tools catalog | `tools/state`, `tools/apply` (dry run, dated backup of the profile patch, restore) |
 | Voice, TTS | `voice/{config,transcribe,save}` `voice-sample*` `tts/{config,voices,speak,cache,cache-trim}` (engines: `say`, `piper`, `supertonic`, `edge`, and `models`, the speaking models of the user's own providers) `models/audio` `models/audio/{probe,speak,listen}` (the audio models of the providers set up in Models, how each is asked, and using it) `image-models` (live calls moved to `@local/kybernos-call`, which speaks through `tts/speak`) |
 | Widget, gateway | `widget.js` `widget/api/{config,conversations,message,account,history-delete,reply}` `gateway/{status,approvals,approvals/decision}` |
+| Feedback box | `feedback` (POST: one line appended to `kybernos/feedback.jsonl`), `feedback/export` (GET: the file's content). Strict write guard (same-origin AND DSH's signed session, `session-guard.mjs`); nothing is sent anywhere, see "The feedback box" below |
 | Language, static | `i18n-{translate,models,store,job,quality,packs}` `languages-pubkey.json` `icons` `icon` `onboarding` `vendor/{xyflow,leaflet}.*` `kb-places.js` |
 
 ## The Automations board
@@ -81,6 +91,32 @@ The route is bounded: a window of at most 45 days, 200 runs per automation, 1000
 reported as truncated with the instant the list stops. It reads `tasks.json` and writes nothing; it has the guard of `tasks`
 (same origin, signed browser session) and the Host fence of every route of the bundle. Pure logic: `automation-occurrences.mjs`
 (host) and the `KB-AUTOBOARD` block of `client.js` (browser).
+
+## The List, readable schedules, and « Edit in chat »
+
+- **The List** is one grid: the header and the button of each row share ONE column declaration (`.kba-rowhead`, `.kba-rowbtn`), the
+  row's actions and its switch have the same fixed width in both, so a header always sits over its cells. The card lays itself out by
+  its own width (a container query): five columns, three below 940 px (no origin, no session count), one block per row below 700 px
+  (the header goes, the actions drop under the content below 520 px). The actions (Edit in chat, favorite, clone, export, delete) are at the right, shown on
+  hover and on keyboard focus and always on a touch screen; a starred row keeps its star. The line under the name is how the
+  automation runs (Ask me first / Always allow, notifications): `tasks.json` has no Agent Team field to show.
+- **Schedules in words** (`kbCronHuman`, pure, tested): every N minutes / hours (only steps that divide the hour or the day: « every 5
+  hours » would be 0, 5, 10, 15, 20, then 0 again), hourly, every day, weekdays, any one weekday, a day of the month 1-28. Anything a
+  sentence cannot say exactly stays the cron expression (31st, a month, a list), and the tooltip of every schedule is its expression and
+  its zone. A schedule in ANOTHER zone than the person's names it (`Every day, 08:00 (Kolkata)`); an interval has no wall clock and
+  names none. Dates are one style, the board's own (`Yesterday · 08:00`, `Sat, Oct 17 · 10:00`, the year when it is not this year), in
+  the person's zone and language; `kbFmtWhen` (dd/mm) now only serves the Cloud Computer card.
+- **The Schedule form** has a time field next to the presets; a preset sets the days and keeps the time. A custom expression (every 6
+  hours, a list) has no single time, so it shows no field.
+- **A schedule that runs more often than every 5 minutes** needs a yes: `POST /kybernos/tasks` (create, and update when the cron
+  changes) answers `{ ok: false, error: 'frequent schedule', everyMinutes: N }` unless the task says `confirmFrequent: true`; the
+  `automation-creator` script refuses it unless the specification says `confirmedFrequent: true` (the agent adds it only after the
+  user's yes). One minute stays possible once confirmed.
+- **Edit in chat** (the row, and the page of an automation) opens a NEW chat the way « Create » does (`kbStartChatText`): a draft, never
+  sent, that names the `automation-creator` skill, says this is an edit, and carries the automation as it stands (id, name, words and
+  cron of its schedule, approvals, notifications, steps; never the webhook secret nor the history). The skill's script, given the `id`,
+  replaces that automation in place (history and webhook kept, next run left to the scheduler); an unknown id writes nothing and creates
+  nothing. The form stays the manual way, and is what opens if no chat can be started.
 
 ## Automations settings, and DSH's own « Automation tasks »
 
@@ -134,6 +170,18 @@ the sidebar button; unfolded is DSH's own header. The state is kept per browser 
 - Wide screens only: on a phone the header actions are parked by `kybernos-mobile`.
 - No engine patch: a `conversation.session.header.actions` slot entry plus CSS keyed on `[data-slot]` hooks.
 
+## The feedback box
+
+« Send feedback » in the account menu opens a small form (`KbFeedbackForm` in `client.js`): a type (bug / idea / question), a message and a
+« Add technical details » toggle, **off at every opening** (versions, system, page title, language, window size; no key, no path). *Save*
+POSTs to `/kybernos/feedback`, which appends ONE JSON line (`{v, id, at, type, message, context?}`, secrets masked by the beta report's
+masking) to `<DSH home>/kybernos/feedback.jsonl` (0600, 4 MB at most) and says « Saved on this computer — it is sent only when you export it ».
+*Export feedback* GETs `/kybernos/feedback/export` and copies the file to the clipboard (the newest 1 MB; a text area to copy by hand when the
+clipboard is refused). Nothing leaves the machine: the file is what the owner reads, or what the person pastes into a message. The form
+keeps a link to the older interview (the seeded skill `signaler-retour`, which can reach the Kybernos team through the tool
+`kybernos_signaler_retour`). No screenshot: a page cannot be captured without the screen-capture permission prompt. Code: `feedback-box.mjs`
+(the file), the two routes in `index.js`, `test-feedback-box.mjs`.
+
 ## Files, settings, env
 
 Under `$DSH_HOME` (else `~/.dsh`): `kybers/<id>/{kyber.yml,.kyber-ui.json,.kyber-avatars/,memory/,sessions/}`, `kybers/.active/`,
@@ -142,15 +190,14 @@ Under `$DSH_HOME` (else `~/.dsh`): `kybers/<id>/{kyber.yml,.kyber-ui.json,.kyber
 `skills/automation-creator/SKILL.md`,
 `kybernos-widget/{configs.json,conversations/,accounts/,bridge-state.json}` (accounts hold visitor emails), `beta-reports/`,
 `profiles/<profile>/cordis.patch.yml` (+ `.bak-outils-*`, Tools tab only) and `AGENTS.md`. Reads `kybernos-cloud.json` (token, API
-base) and `.credentials.yaml` (browser-session secret). The art progress file is `<bundle dir>/../.dsh/artifacts/.progress.json`,
-beside the bundle rather than in `~/.dsh`. Env: `DSH_HOME`, `HOME`, `DSH_WEB_PORT` (3080), `DSH_PROFILE`, `DSH_VERSION`,
+base) and `.credentials.yaml` (browser-session secret). The quiz and cards score registry is `kybernos/progress.json`. Env: `DSH_HOME`, `HOME`, `DSH_WEB_PORT` (3080), `DSH_PROFILE`, `DSH_VERSION`,
 `KYBERNOS_CLOUD_STATE`, `AA_API_KEY`, `KB_RETRY_PLAFOND`.
 
 **At boot, unasked** (each step guarded, none blocks the start): registers `kybernos-standard` as a plain copy of the Standard preset
 (« Kybernos compact (legacy) »: DSH compacts natively now, and stored sessions still carry that id, which the registry rejects when
 it is missing) and puts the default of new chats back on Standard when it still pointed at it; turns on the
 `subagent_claude_code` row of every preset definition (in memory); lowers any retry policy above 10 attempts (`settings.update`,
-only on a violation); appends a marked "force de proposition" section to `~/.dsh/AGENTS.md` once; writes the `signaler-retour`
+only on a violation); appends a marked "force de proposition" section to `~/.dsh/AGENTS.md` once (a section it laid in an earlier version, v1, is replaced by the current one unless the person edited it); writes the `signaler-retour`
 skill into `~/.dsh/skills` if its source exists (it does not in this repo); seeds the skills it ships (`skills/<name>/SKILL.md`, today
 `automation-creator`) into `<dsh home>/skills` with `seed-skills.mjs`: absent is written, the shipped text is refreshed only while the file is
 still byte for byte what we wrote (sha-256 in `kybernos/seeded-skills.json`), and a skill the user wrote or edited under the same name, or
@@ -206,8 +253,9 @@ It is a single column in the look of dev.kybernos.app (light or dark, whichever 
   was checked to exist exactly once in its repository (an ambiguous name is refused by the route). A **team** is an id of
   `KB_MARKET_TEAMS` and goes through the same `kybers/create` as the Agent Teams marketplace (so it lands in the
   workspace root, like a marketplace install). The server's templates that the plugin does not have yet are listed greyed
-  (`soon`), never installed. The kit also opens on its own: **Settings → Kybernos Settings → Starter kit → Open**
+  (`soon`), never installed. The kit also opens on its own: **Settings › General › Kybernos Settings › Starter kit › Open**
   (`kybernos:onboarding` with `action: 'kit'`, the profession saved at the first run, another one can be looked at).
+- **What we set up for you** (the end screen, `kbObSetupRows`): under the recap, one row per area, each with a **Change** link that ends the wizard and opens that area's page of Settings (the section id, so it works in every language): Memory (`kybernos-memory`), Auto routing (`kybernos-auto-page`), Connectors (`kybernos-composio`), Web search (`kybernos-websearch-page`) and the Study model (`general`, where the Kybernos Settings block is). What a row says is what the bundle's own read route answered (`/kybernos-memory/settings`, `/kybernos-cloud/status`, `/kybernos-auto/state`, `/kybernos/composio/provider`, `/kybernos-websearch/state`, `/kybernos-sessions/settings`), read once when the screen opens and each on its own: a route that does not answer leaves its row out, and nothing here turns anything on (Auto routing reads « Off » unless the person switched it on).
 - **The profession in memory:** with a Kybernos account, the recap writes ONE pinned `fact` memory (« Works as: … Prefers: … »,
   source `taught`) through `/kybernos-cloud/memory/add`; its id is kept in `onboarding.json` (`memoryId`) so a replay updates
   that memory instead of adding another. Without an account nothing is written: the answers stay in the onboarding file.
@@ -251,6 +299,8 @@ soon as the person sends again; it comes back if that new turn fails the same wa
 ```bash
 node scripts/test-onboarding.mjs                       # KB-OB-CORE block: texts in 4 languages, language choice, steps, theme probe, K artwork
 node packages/kybernos-plugin/test-onboarding-state.mjs  # the state file: version, answers, replay, older files
+node packages/kybernos-plugin/test-feedback-box.mjs    # 20: the feedback box: the file, masking, the technical context off by default, the two routes and their strict write guard
+node packages/kybernos-plugin/test-touch-targets.mjs   # 5: the Settings close cross (40 px) and the main buttons of a page on a phone (44 px)
 node packages/kybernos-plugin/test-default-model.mjs   # which model is chosen after a connection, who is switched, who is left alone
 node packages/kybernos-models/test-key-check.mjs       # the key check: where a key may go, the one-word answer, the route's guards
 node packages/kybernos-modeles-locaux/test-seam.mjs    # the recommendation and the route profile the wizard shares with the panel

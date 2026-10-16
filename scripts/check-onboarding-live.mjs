@@ -16,7 +16,7 @@
 //
 // Named check-* on purpose: it needs a running sandbox and Chrome, so CI must not run it.
 //   source scripts/sandbox/env.sh && node scripts/check-onboarding-live.mjs     (KB_SHOT_DIR=/some/dir keeps screenshots)
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { openLivePage, waitFor } from './live-page.mjs'
@@ -59,6 +59,15 @@ const defaultModelOf = () => {
   const m = /- id: agent-default-model[\s\S]*?config:\s*\n\s*provider: ([^\n]+)\n\s*model: ([^\n]+)/.exec(read('profiles/web/cordis.patch.yml'))
   return m === null ? null : m[1].trim() + '/' + m[2].trim()
 }
+// What the route does when it switches the default model: the profile's `agent-default-model` names the new provider and model. The check's stand-in for a local
+// model's switch (below) leaves exactly that in the sandbox's own profile, so that « it became the default model » is read from the file as before.
+const setDefaultModel = (provider, model) => {
+  try {
+    const text = readFileSync(patchFile, 'utf8')
+    const next = text.replace(/(- id: agent-default-model[\s\S]*?config:\s*\n\s*provider: )([^\n]+)(\n\s*model: )([^\n]+)/, (all, a, p0, b) => a + provider + b + model)
+    if (next !== text) writeFileSync(patchFile, next)
+  } catch (e) { /* the sandbox is nobody's */ }
+}
 const backToTheStartingPoint = async () => {
   // The next section starts from a default model that has no key, as the profile had.
   try { if (credsBackup !== null) writeFileSync(credsFile, credsBackup) } catch (e) { /* the sandbox is nobody's */ }
@@ -66,12 +75,30 @@ const backToTheStartingPoint = async () => {
   await sleep(7000)
 }
 
-// A fresh install: the sandbox's setup writes the file as done; the wizard opens only when it says otherwise.
+// The starter kit installs its two teams into DSH's own home (A6-24), where they stay: a second run would find them installed and tick nothing.
+// The sandbox is this check's own, so they are removed before the run and after it.
+const forgetKitTeams = () => { for (const id of ['studencik', 'research-desk']) { try { rmSync(join(dshHome, 'kybers', id), { recursive: true, force: true }) } catch (e) { /* none */ } } try { rmSync(join(dshHome, 'kybers', '.kyber-ui.json'), { force: true }) } catch (e) { /* none */ } }
+forgetKitTeams()
+
+// A fresh install: the sandbox's setup writes the file as done; the wizard opens only when it says otherwise. What the sandbox had is put back at the end.
 mkdirSync(join(dshHome, 'kybernos'), { recursive: true })
+const onboardingBackup = read('kybernos/onboarding.json') || null
 writeFileSync(join(dshHome, 'kybernos/onboarding.json'), JSON.stringify({ version: 1, completed: false, installedAt: '2026-01-01T00:00:00.000Z', completedAt: null, profil: null, uiMode: null }) + '\n')
 
-const live = await openLivePage()
+// keepKeyDialog: this check must SEE DSH's own « Get started » dialog if it ever comes back over the wizard (A5-34, A6-01); the helper would press it away.
+const live = await openLivePage({ keepKeyDialog: true })
 const page = live.page
+// Back to what the sandbox had: the credentials, the profile's settings, the onboarding state and the teams the kit installed. Run at the end AND when the run is cut.
+const restoreSandbox = () => {
+  try { if (credsBackup !== null) writeFileSync(credsFile, credsBackup) } catch (e) { /* the sandbox is nobody's */ }
+  try { if (patchBackup !== null) writeFileSync(patchFile, patchBackup) } catch (e) { /* the sandbox is nobody's */ }
+  try { if (onboardingBackup !== null) writeFileSync(join(dshHome, 'kybernos/onboarding.json'), onboardingBackup) } catch (e) { /* the sandbox is nobody's */ }
+  forgetKitTeams()
+}
+const verdict = () => console.log(fails === 0 ? '\nall checks passed' : '\n' + fails + ' check(s) FAILED')
+// A run that is cut (Ctrl-C, a kill, an error nobody caught) still puts the sandbox back and still says how it ended: a gate without a verdict is not a gate.
+for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, async () => { fails += 1; console.log('FAIL the run was interrupted (' + sig + ')'); try { await live.close() } catch (e) { /* gone */ } restoreSandbox(); verdict(); process.exit(130) })
+process.on('unhandledRejection', (e) => { fails += 1; console.log('FAIL an error nobody caught: ' + String(e && e.message ? e.message : e).slice(0, 200)) })
 try {
   const fake = { keyVerdict: 'ok', installPolls: 0, calls: [], accountConnected: false, freeBody: null, statusConnected: false, skillsInstalled: [], skillInstalls: [], memoryBodies: [] }
   const json = (body) => Buffer.from(JSON.stringify(body), 'utf8').toString('base64')
@@ -90,10 +117,20 @@ try {
       try { fake.freeBody = JSON.parse(postData || '{}') } catch (e) { fake.freeBody = null }
       return { ok: true, models: ['mimo-v2.6-flash-free'] }
     }
-    // Only the free provider is answered here: the other ways read the REAL route (the default model is checked on disk).
+    // The free provider and the local model are answered here; the other ways (an own key) read the REAL route (the default model is checked on disk).
     if (path === '/kybernos/model/auto') {
       let body = {}
       try { body = JSON.parse(postData || '{}') } catch (e) { body = {} }
+      // A local model: the real route asks THIS machine's Ollama which models it holds, and the stand-in installer pulled nothing, so the answer would be
+      // « no-model » (or another model) on a machine without Ollama and a different one on a machine with it. The stand-in answers as the route does when the
+      // model IS listed (the route's own choices are covered by packages/kybernos-plugin/test-default-model.mjs) and writes what that answer means in the
+      // sandbox's profile: the default model. A chat that asked (a sessionId) gets it for itself, which is also saved as the default, as the engine does.
+      if (body.provider === 'ollama-local') {
+        fake.calls.push('model-auto-local')
+        const model = typeof body.model === 'string' && body.model !== '' ? body.model : 'qwen3.5:9b'
+        setDefaultModel('ollama-local', model)
+        return { ok: true, switched: true, provider: 'ollama-local', model, scope: typeof body.sessionId === 'string' && body.sessionId !== '' ? 'session' : 'default' }
+      }
       if (body.provider !== 'opencode-free') return null
       fake.calls.push('model-auto')
       return { ok: true, switched: true, provider: 'opencode-free', model: 'mimo-v2.6-flash-free', scope: 'default' }
@@ -165,8 +202,15 @@ try {
   check('the wizard opens on a fresh install', (await waitFor(page, `!!document.querySelector('.kb-ob')`, 40000)) === true)
   check('it is a modal dialog with the Kybernos mark', (await q(`(() => { const r = document.querySelector('.kb-ob'); return r.getAttribute('role') === 'dialog' && r.getAttribute('aria-modal') === 'true' && r.querySelectorAll('.kb-ob-wm svg circle').length === 3 })()`)) === true)
   console.log('     theme: ' + ((await q(`document.querySelector('.kb-ob').classList.contains('kb-ob-dark')`)) ? 'dark' : 'light'))
+  // A5-34 / A6-01: the engine's own step ('Sign in to your DeepSeek account or add an API Key') is replaced by the core; it is not over the wizard
+  check('DSH\'s own « Sign in to your DeepSeek account » dialog is not over the wizard', (await q(`[...document.querySelectorAll('[role="dialog"]')].every((d) => !/DeepSeek account|Add API Key/.test(d.innerText || ''))`)) === true)
   await goEnglish()
   check('the wizard speaks English', (await h1()) === 'Welcome to Kybernos')
+  // Escape (A6-03): a stray key never ends the first run (it used to record « later » and a lost profession for good).
+  const escape = async () => { for (const type of ['keyDown', 'keyUp']) await page.send('Input.dispatchKeyEvent', { type, key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 }); await sleep(400) }
+  const onboardingDone = () => { try { return JSON.parse(read('kybernos/onboarding.json') || '{}').completed === true } catch (e) { return null } }
+  await escape()
+  check('Escape on the welcome screen leaves the wizard open and the first run undone', (await q(`!!document.querySelector('.kb-ob')`)) === true && (await h1()) === 'Welcome to Kybernos' && onboardingDone() === false)
   // The language menu: each language changes the texts, Arabic also flips the layout and keeps the logo left-to-right.
   const pickLanguage = async (id) => {
     await q(`document.querySelector('.kb-ob-lang-btn').click()`); await sleep(150)
@@ -191,6 +235,10 @@ try {
   check('two answers, the Kybernos account recommended', Array.isArray(answersShown) && answersShown.length === 2 && /^Kybernos models/.test(answersShown[0]) && /Recommended/.test(answersShown[0]) && /^My own API key/.test(answersShown[1]), JSON.stringify(answersShown))
   check('the Kybernos account is ticked by default', (await q(`document.querySelector('.kb-ob-row.on .kb-ob-t').textContent`)).startsWith('Kybernos models'))
   check('the other ways stay one line below', /a model on this computer/.test(String(await q(`(document.querySelector('.kb-ob-others') || {}).textContent`))) && /free community models/.test(String(await q(`(document.querySelector('.kb-ob-others') || {}).textContent`))))
+  await escape()
+  check('Escape on the model question steps back to the display mode, not out of the wizard', (await q(`!!document.querySelector('.kb-ob')`)) === true && (await h1()) === 'Choose your UI mode' && onboardingDone() === false, String(await h1()))
+  await press('Continue')
+  check('Continue brings the model question back', (await h1()) === 'Which models should Kybernos use?', String(await h1()))
   check('the question can be left for later', (await q(`[...document.querySelectorAll('.kb-ob button')].some((b) => b.textContent.trim() === 'Decide later')`)) === true)
   await page.shot(join(shotDir, 'model-question.png'))
 
@@ -352,8 +400,30 @@ try {
   check('the skills went through the Skills page route, with their GitHub source', JSON.stringify(fake.skillInstalls.sort()) === JSON.stringify(['anthropics/claude-for-legal:flashcards', 'anthropics/claude-for-legal:study-plan']), JSON.stringify(fake.skillInstalls))
   const recapText = String(await q(`document.querySelector('.kb-ob-recap').textContent`))
   check('the recap says what was added, without an error', /Starter kit/.test(recapText) && /4 added/.test(recapText) && (await q(`!document.querySelector('.kb-ob-state.err')`)) === true, recapText)
+  // A6-24: the kit's teams go to DSH's own home; a welcome screen must not add a `kybers/` folder to the project DSH was started in.
+  check('the teams of the kit are in DSH\'s own home (~/.dsh/kybers)', read('kybers/studencik/kyber.yml') !== '' && read('kybers/research-desk/kyber.yml') !== '')
+  check('and none was written into the project the instance was started in', process.env.KB_WORKTREE === undefined || (!existsSync(join(process.env.KB_WORKTREE, 'kybers/studencik')) && !existsSync(join(process.env.KB_WORKTREE, 'kybers/research-desk'))))
   check('the profession and display mode were written to memory, once, pinned', fake.memoryBodies.length === 1 && fake.memoryBodies[0].path === '/kybernos-cloud/memory/add' && fake.memoryBodies[0].body.pinned === true && fake.memoryBodies[0].body.kind === 'fact' && /^Works as: Students \/ Teaching \/ Research\./.test(fake.memoryBodies[0].body.content), JSON.stringify(fake.memoryBodies))
   check('and the recap says so', (await waitFor(page, `document.querySelector('.kb-ob-mem') !== null`, 4000)) === true)
+  // N-09: the end screen lists what is set up, read from the host's own routes, one row per area, each with a Change link
+  check('the end screen lists what we set up: five areas', (await waitFor(page, `document.querySelectorAll('.kb-ob-setup .kb-ob-srow').length === 5`, 8000)) === true, String(await q(`document.querySelectorAll('.kb-ob-setup .kb-ob-srow').length`)))
+  const setupRows = (await q(`[...document.querySelectorAll('.kb-ob-setup .kb-ob-srow')].map((r) => ({ id: r.getAttribute('data-kb-ob-row'), label: r.querySelector('b').textContent, text: r.querySelector('span').textContent, change: (r.querySelector('button') || {}).textContent }))`)) || []
+  const rowText = (id) => (setupRows.find((r) => r.id === id) || {}).text || ''
+  check('memory, auto routing, connectors, web search and study model, in that order', JSON.stringify(setupRows.map((r) => r.id)) === JSON.stringify(['mem', 'auto', 'conn', 'ws', 'study']), JSON.stringify(setupRows))
+  check('under the title « What we set up for you »', /What we set up for you/i.test(String(await q(`(document.querySelector('.kb-ob-setup h2') || {}).textContent`))))
+  check('every row says something and offers Change', setupRows.every((r) => r.text.trim().length > 8 && r.change === 'Change'), JSON.stringify(setupRows))
+  check('with an account the memory line says memories and lessons are on (it is what the host says)', /Memories and lessons are on/.test(rowText('mem')), rowText('mem'))
+  check('Auto routing says what is so on this install, not a promise', /^(Off|On)/.test(rowText('auto')), rowText('auto'))
+  check('no sideways scroll, and the main button is still there', (await q(`document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1 && !!document.querySelector('[data-kb-ob-primary]')`)) === true)
+  await sleep(700)
+  check('the way out (Open Kybernos) stays in view at the foot of the window', (await q(`(() => { const b = document.querySelector('[data-kb-ob-primary]'); if (!b) return false; const r = b.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight + 1 })()`)) === true)
+  await page.shot(join(shotDir, 'end-what-we-set-up.png'))
+  await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false })
+  await sleep(600)
+  check('at 390 px nothing scrolls sideways and the way out is still in view', (await q(`(() => { const b = document.querySelector('[data-kb-ob-primary]'); if (!b) return false; const r = b.getBoundingClientRect(); return document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1 && r.top >= 0 && r.bottom <= innerHeight + 1 })()`)) === true)
+  await page.shot(join(shotDir, 'end-what-we-set-up-390.png'))
+  await page.send('Emulation.clearDeviceMetricsOverride', {})
+  await sleep(300)
   await press('Open Kybernos')
   let st6 = null
   try { st6 = JSON.parse(read('kybernos/onboarding.json')) } catch (e) { st6 = null }
@@ -368,7 +438,16 @@ try {
   await waitFor(page, `!!document.querySelector('.kb-ob-recap')`, 8000)
   await sleep(600)
   check('and updates that memory', fake.memoryBodies.length === 1 && fake.memoryBodies[0].path === '/kybernos-cloud/memory/update' && fake.memoryBodies[0].body.id === 'mem_test_1', JSON.stringify(fake.memoryBodies))
-  await press('Open Kybernos')
+  // A Change link ends the wizard and opens that area's page of Settings (here Web Search), whatever the language.
+  await waitFor(page, `document.querySelectorAll('.kb-ob-setup .kb-ob-srow').length === 5`, 8000)
+  const changed = await q(`(() => { const b = document.querySelector('.kb-ob-srow[data-kb-ob-row="ws"] button'); if (!b) return false; b.click(); return true })()`)
+  check('Change on the web search row is pressed', changed === true)
+  await sleep(1500)
+  check('the wizard is gone', (await q(`document.querySelector('.kb-ob') === null`)) === true)
+  await waitFor(page, `[...document.querySelectorAll('nav button')].some((b) => /web search/i.test(b.textContent))`, 8000)
+  await sleep(1200)
+  const landedWs = await q(`(() => { const sel = document.querySelector('nav button[aria-current], nav button[aria-selected="true"], nav button[class*="active"], nav button[class*="selected"]'); return sel ? sel.textContent.trim() : null })()`)
+  check('it landed on Web Search', landedWs === 'Web Search', JSON.stringify(landedWs))
   fake.statusConnected = false
   await backToTheStartingPoint()
 
@@ -485,17 +564,20 @@ try {
     check('and the card says so', (await q(`document.querySelector('${cardSel}').innerText`)).includes('press Enter'))
   }
 
+  // ...and still not there once the first run is over: a reload (the wizard is done, no model was chosen) shows the home, not DSH's dialog
+  await page.send('Page.reload', { ignoreCache: true })
+  await sleep(6000)
+  check('after the first run and a reload, no DSH sign-in dialog over the home', (await q(`[...document.querySelectorAll('[role="dialog"]')].every((d) => !/DeepSeek account|Add API Key/.test(d.innerText || ''))`)) === true && (await q(`document.body.innerText.length`)) > 200)
+
   check('no page error', page.errs.filter((e) => /kybernos|onboarding|kb-ob|is not defined|is not a function|Cannot read/i.test(e)).length === 0, JSON.stringify(page.errs.slice(0, 3)))
   console.log('     screenshots: ' + shotDir)
 } catch (e) {
   fails += 1
   console.log('FAIL ' + String(e && e.message ? e.message : e))
 } finally {
-  await live.close()
-  // Back to the credentials the instance had before this run.
-  try { if (credsBackup !== null) writeFileSync(credsFile, credsBackup) } catch (e) { /* the sandbox is nobody's */ }
-  try { if (patchBackup !== null) writeFileSync(patchFile, patchBackup) } catch (e) { /* the sandbox is nobody's */ }
+  try { await live.close() } catch (e) { /* gone */ }
+  restoreSandbox()
   await sleep(6000)
+  verdict() // in the finally: whatever happened above, the run ends with its verdict
 }
-console.log(fails === 0 ? '\nall checks passed' : '\n' + fails + ' check(s) FAILED')
 process.exit(fails === 0 ? 0 : 1)

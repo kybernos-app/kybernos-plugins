@@ -31,6 +31,20 @@ const freePort = (from) => new Promise((resolve) => {
   tryPort(from)
 })
 
+// Injected in every page of a throw-away browser on a fresh instance (see openLivePage). DSH 0.2.1-alpha.4 has no « Configure later »
+// button any more: its « Get started » dialog only has a Close cross (aria-label « Close »), pressed first. The older engines' button
+// is still looked for, so a checkout that runs both keeps working. Exported so a test can run it against a stub page.
+export const KEY_DIALOG_SCRIPT = `(() => {
+  const press = () => {
+    const dialog = document.querySelector("[role=dialog][aria-label='Get started']")
+    const cross = dialog ? dialog.querySelector("button[aria-label='Close']") : null
+    if (cross) { cross.click(); return }
+    const e = Array.from(document.querySelectorAll('button, [role=button], a, span, div')).find((x) => x.children.length === 0 && (x.innerText || '').replace(/[⟦⟧]/g, '').trim() === 'Configure later')
+    if (e) (e.closest('button') || e).click()
+  }
+  new MutationObserver(press).observe(document, { childList: true, subtree: true })
+})()`
+
 /** `{ page, close }`, or throws a readable error (no Chrome, GUI down, 401). */
 export async function openLivePage(opts = {}) {
   const authority = opts.authority || process.env.KB_HOST || '127.0.0.1:3080'
@@ -76,14 +90,11 @@ export async function openLivePage(opts = {}) {
   // The checks that translate with the pseudo-translating stub need it to count as real: say so, unless a check
   // is about that very guard (`pseudoOk: false`, and it then sets the flag itself).
   if (opts.pseudoOk !== false) await page.send('Page.addScriptToEvaluateOnNewDocument', { source: 'window.__KB_I18N_PSEUDO_OK__ = true' })
-  // A fresh instance (the sandbox, any host but the user's own :3080) opens on an « Add an API key to get started »
-  // dialog that covers the page after EVERY load and swallows every click. A check that reloads would meet it again,
+  // A fresh instance (the sandbox, any host but the user's own :3080) opens on DSH's « Get started » (sign in or add an
+  // API key) dialog that covers the page after EVERY load and swallows every click. A check that reloads would meet it again,
   // so it is pressed away by the page itself, whenever it shows up. The user's own DSH never shows it: left alone.
   if (authority !== '127.0.0.1:3080' && opts.keepKeyDialog !== true) {
-    await page.send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => {
-      const press = () => { const e = Array.from(document.querySelectorAll('button, [role=button], a, span, div')).find((x) => x.children.length === 0 && (x.innerText || '').replace(/[⟦⟧]/g, '').trim() === 'Configure later'); if (e) (e.closest('button') || e).click() }
-      new MutationObserver(press).observe(document, { childList: true, subtree: true })
-    })()` })
+    await page.send('Page.addScriptToEvaluateOnNewDocument', { source: KEY_DIALOG_SCRIPT })
   }
   if (await poserCookie(page, authority) !== true) { page.close(); await close(); throw new Error('the browser refused the session cookie') }
   await page.send('Page.navigate', { url: 'http://' + authority + '/' })
@@ -144,6 +155,41 @@ export async function clickText(page, text, opts = {}) {
   return true
 }
 
+/**
+ * Make sure the DSH holds at least one conversation, for a check that opens one (the phone tour, the phone measures). A fresh sandbox has none: a first message is
+ * typed into the empty composer and sent (no model is configured there, so the turn fails; what matters is that DSH now holds a real session, titled `text`).
+ * Never on the user's own DSH (:3080): that one has its conversations and a check must not write there. Resolves `true` when a conversation is there.
+ */
+export async function ensureConversation(page, opts = {}) {
+  const text = opts.text || 'Greeting'
+  const authority = opts.authority || process.env.KB_HOST || '127.0.0.1:3080'
+  const rows = async () => (await page.evalJs(`document.querySelectorAll('[data-row-key^="session:"]').length`, 4000)).val
+  // the list of sessions arrives a moment after the page
+  for (let i = 0; i < 20; i += 1) { if ((await rows()) > 0) return true; await sleep(400) }
+  if (authority === '127.0.0.1:3080') return false
+  const pos = (await page.evalJs(`(() => { const e = document.querySelector('[contenteditable="true"], textarea'); if (!e) return null; const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.x + 40, y: r.y + r.height / 2 }) })()`, 4000)).val
+  if (typeof pos !== 'string') return false
+  const { x, y } = JSON.parse(pos)
+  for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) await page.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 })
+  await sleep(300)
+  await page.send('Input.insertText', { text })
+  await sleep(300)
+  await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r' })
+  await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  return (await waitFor(page, `document.body.innerText.indexOf(${JSON.stringify(text)}) >= 0`, 20000)) !== null
+}
+
+/**
+ * Open the Advanced fold of the Settings menu, when the menu has one. It is shut at first (the audit's « short for a newcomer »), and a check
+ * that reaches a page by its cell with a real mouse needs the cell drawn. The choice lands in the throw-away browser's own storage: nothing of
+ * the person's DSH changes. Resolves `true` when the fold is open (or the menu has none: an older core plugin).
+ */
+export async function openAdvancedFold(page) {
+  if ((await waitFor(page, `document.querySelector('[data-kb-fold-toggle]') !== null`, 3000)) === null) return true
+  await page.evalJs(`(() => { const b = document.querySelector('[data-kb-fold-toggle]'); if (b && b.getAttribute('aria-expanded') !== 'true') b.click() })()`, 4000)
+  return (await waitFor(page, `(() => { const l = document.querySelector('[data-kb-fold]'); return l !== null && l.getAttribute('data-kb-fold') === 'open' })()`, 3000)) !== null
+}
+
 /** Open DSH's Settings dialog; resolves `true` once its navigation cells are there.
  *  The signed-in user's DSH has an account chip (« My workspace ») that leads to it; a fresh instance (the
  *  sandbox) has no account, so the dialog opens from the settings trigger of the sidebar instead. */
@@ -157,7 +203,10 @@ export async function openSettings(page, opts = {}) {
     const chip = (await page.evalJs(chipJs, 4000)).val
     if (chip) { await click(chip.x, chip.y); await sleep(1000); await clickText(page, 'Settings') }
     else await page.evalJs(`(() => { const b = document.querySelector('[class*="settingsArea"] button[class*="trigger"]'); if (b) b.click() })()`, 4000)
-    if ((await waitFor(page, `document.querySelectorAll('[class*="navCell"]').length > ${minCells}`, 6000)) !== null) return true
+    if ((await waitFor(page, `document.querySelectorAll('[class*="navCell"]').length > ${minCells}`, 6000)) !== null) {
+      if (opts.fold !== 'keep') await openAdvancedFold(page) // `fold: 'keep'`: the check is about the fold itself
+      return true
+    }
     await page.send('Page.reload', { ignoreCache: true })
     await sleep(3500)
   }

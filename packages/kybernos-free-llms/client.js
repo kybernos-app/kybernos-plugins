@@ -28,7 +28,7 @@ window.__ModuleLoader__.load({
       const KB_M_T = {
         'kfl.titre': { fr: 'Free LLMs', en: 'Free LLMs' },
         'kfl.soustitre': { fr: 'Des modèles gratuits, sans compte ni clé API.', en: 'Free models, no account or API key.' },
-        'kfl.avertis': { fr: 'Ces modèles sont gratuits : les prompts envoyés peuvent être conservés par OpenCode pour améliorer leurs modèles. N’y envoyez rien de sensible.', en: 'These models are free: prompts you send may be retained by OpenCode to improve their models. Do not send anything sensitive.' },
+        'kfl.avertis': { fr: 'Ces modèles sont gratuits : les prompts envoyés peuvent être conservés par OpenCode pour améliorer leurs modèles. N’y envoie rien de sensible.', en: 'These models are free: prompts you send may be retained by OpenCode to improve their models. Do not send anything sensitive.' },
         'kfl.liste': { fr: 'Modèles gratuits disponibles', en: 'Available free models' },
         'kfl.vide': { fr: 'Aucun modèle gratuit détecté pour l’instant.', en: 'No free model detected right now.' },
         'kfl.catalogue.err': { fr: 'Catalogue injoignable : {err}', en: 'Catalog unreachable: {err}' },
@@ -37,16 +37,32 @@ window.__ModuleLoader__.load({
         'kfl.deconnecter': { fr: 'Retirer', en: 'Remove' },
         'kfl.encours': { fr: 'Connexion…', en: 'Connecting…' },
         'kfl.accuse': { fr: 'J’ai compris que mes prompts peuvent être conservés.', en: 'I understand my prompts may be retained.' },
-        'kfl.sonde': { fr: 'Tester un modèle', en: 'Probe a model' },
-        'kfl.sonde.encours': { fr: 'Test…', en: 'Probing…' },
+        'kfl.recheck': { fr: 'Revérifier', en: 'Re-check' },
+        'kfl.recheck.encours': { fr: 'Vérification…', en: 'Checking…' },
+        'kfl.recheck.titre': { fr: 'Interroge de nouveau le palier gratuit et relit la liste, sans utiliser la mémoire de quelques minutes.', en: 'Asks the free tier again and reads the list again, skipping the few minutes the page remembers.' },
+        'kfl.verifie': { fr: 'Dernière vérification {time}', en: 'Last checked {time}' },
         'kfl.sonde.ok': { fr: 'Répond — contrat accepté.', en: 'Answers — contract accepted.' },
-        'kfl.sonde.ko': { fr: 'Verrou refusé : {code}', en: 'Gate refused: {code}' },
-        'kfl.relance': { fr: 'Si un modèle n’apparaît pas dans le sélecteur : relancez DSH.', en: 'If a model does not show in the picker: restart DSH.' },
+        'kfl.sonde.ko': { fr: 'Le test a échoué ({code}).', en: 'The test failed ({code}).' },
+        'kfl.tier.locked': { fr: 'Le palier gratuit est indisponible pour le moment : OpenCode l’a verrouillé, ces modèles ne peuvent pas répondre. Réessaie plus tard.', en: 'The free tier is unavailable right now: OpenCode has locked it, so these models cannot answer. Try again later.' },
+        'kfl.tier.rate': { fr: 'Le palier gratuit est saturé pour le moment. Réessaie dans un instant.', en: 'The free tier is busy right now. Try again in a moment.' },
+        'kfl.tier.network': { fr: 'OpenCode est injoignable. Vérifie la connexion.', en: 'OpenCode cannot be reached. Check the connection.' },
+        'kfl.tier.model': { fr: 'Le modèle testé n’est plus proposé par le palier gratuit.', en: 'The tested model is no longer offered by the free tier.' },
+        'kfl.relance': { fr: 'Si un modèle n’apparaît pas dans le sélecteur : relance DSH.', en: 'If a model does not show in the picker: restart DSH.' },
         'kfl.auto': { fr: 'Activé automatiquement au premier lancement.', en: 'Enabled automatically at first run.' },
         'kfl.erreur': { fr: 'Erreur', en: 'Error' },
+        // The page's host half does not answer (DSH not restarted after an update, a failing route): the same sentence as the other settings pages.
+        'kfl.hote': { fr: 'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarre DSH, puis appuie sur Réessayer.', en: 'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.' },
+        'kfl.reessayer': { fr: 'Réessayer', en: 'Retry' },
         'kfl.page.titre': { fr: 'Free LLMs', en: 'Free LLMs' },
       }
-      let kbLocaleRead = () => 'en'
+      // « fr » for the French of the product (the locale id « kybernos », or any fr*), « en » for every other language, translated
+      // or not: it is what Kybernos resolved (the <html lang> stays « en » under the Language page's French, « kybernos » under DSH's selector).
+      const kbLocaleRead = () => {
+        try {
+          const l = String(window.__KB_LANG_RESOLVE__())
+          return l === 'kybernos' || l.split(/[-_]/)[0] === 'fr' ? 'fr' : 'en'
+        } catch (e) { return 'en' }
+      }
       // Text separator, locale-aware: French ' : ', English ': '.
       const sep = () => (String(kbLocaleRead()).toLowerCase().indexOf('fr') === 0 ? ' : ' : ': ')
       const m = (key, vars) => {
@@ -104,6 +120,9 @@ window.__ModuleLoader__.load({
         ".kbm-tag[data-tone='neutral'] { background: var(--dsw-alias-bg-module-platform); color: var(--dsw-alias-label-secondary); }\n" +
         ".kbm-tag[data-tone='success'] { background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 10%, transparent); color: var(--dsw-alias-state-success-primary); }\n" +
         ".kbm-tag[data-tone='warning'] { background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 12%, transparent); color: var(--dsw-alias-state-warn-primary); }\n" +
+        "/* The tag inks are the state fills (2.1:1 on their pale tint in the light schemes): there they are pulled toward the text colour (audit A1-11). */\n" +
+        "body:not([data-ds-dark-theme]) .kbm-tag[data-tone='success'] { color: color-mix(in srgb, var(--dsw-alias-state-success-primary) 50%, var(--dsw-alias-label-primary)); }\n" +
+        "body:not([data-ds-dark-theme]) .kbm-tag[data-tone='warning'] { color: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 50%, var(--dsw-alias-label-primary)); }\n" +
         ".kbm-dot { position: relative; display: inline-block; flex: none; width: 10px; height: 10px; }\n" +
         ".kbm-dot::after { content: ''; position: absolute; inset: 20%; border-radius: 50%; background: currentColor; }\n" +
         ".kbm-dot[data-state='done'] { color: var(--dsw-alias-state-success-primary); }\n" +
@@ -113,11 +132,18 @@ window.__ModuleLoader__.load({
 
       const KFL_CSS = "/* kfl-* : the Free LLMs panel layout (this bundle only — DSH tokens) */\n" +
         ".kfl-root { border: 1px solid var(--dsw-alias-border-l2); border-radius: 14px; background: var(--dsw-alias-bg-layer-2); padding: 16px; max-width: 720px; margin-bottom: 16px; }\n" +
+        "/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */\n" +
+        "body:not([data-ds-dark-theme]) .kfl-root{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}\n" +
         ".kfl-titre { margin: 0; font-size: 18px; line-height: 1.3; font-weight: 600; letter-spacing: -.01em; color: var(--dsw-alias-label-primary); }\n" +
         ".kfl-soustitre { margin: 6px 0 14px; color: var(--dsw-alias-label-secondary); font-size: 13px; line-height: 1.5; }\n" +
         ".kfl-avertis { margin: 0 0 14px; padding: 10px 12px; border: 0.5px solid color-mix(in srgb, var(--dsw-alias-state-warn-primary) 35%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 8%, transparent); color: var(--dsw-alias-state-warn-label, var(--dsw-alias-state-warn-primary)); font-size: 13px; line-height: 1.5; }\n" +
         "body:not([data-ds-dark-theme]) .kfl-avertis { color: color-mix(in srgb,var(--dsw-alias-state-warn-primary) 50%,var(--dsw-alias-label-primary)); }\n" +
         "body[data-ds-dark-theme] .kfl-avertis { color: var(--dsw-alias-state-warn-primary); }\n" +
+        ".kfl-tete { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin: 0 0 8px; }\n" +
+        ".kfl-tete .kfl-section { margin: 0; flex: 1; min-width: 0; }\n" +
+        ".kfl-verifie { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); white-space: nowrap; }\n" +
+        "@media (pointer: coarse) { .kfl-tete .kbm-btn-sm { height: 40px; } }\n" +
+        "@media (max-width: 520px) { .kfl-tete .kfl-section { flex-basis: 100%; } .kfl-verifie { flex: 1; } }\n" +
         ".kfl-section { margin: 0 0 8px; font-size: 12px; line-height: 18px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--dsw-alias-label-tertiary); }\n" +
         ".kfl-liste { display: flex; flex-direction: column; gap: 6px; margin: 0 0 12px; }\n" +
         ".kfl-mod { display: flex; align-items: center; gap: 12px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 10px; background: var(--dsw-alias-bg-layer-1); padding: 10px 12px; }\n" +
@@ -127,23 +153,30 @@ window.__ModuleLoader__.load({
         ".kfl-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }\n" +
         ".kfl-note { margin: 6px 0 0; font-size: 12px; line-height: 1.5; color: var(--dsw-alias-label-tertiary); }\n" +
         ".kfl-erreur { margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: var(--dsw-alias-state-error-primary); }\n" +
+        ".kfl-bandeau { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; padding: 10px 12px; border: 0.5px solid color-mix(in srgb, var(--dsw-alias-state-warn-primary) 35%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 8%, transparent); font-size: 13px; line-height: 1.5; color: var(--dsw-alias-label-primary); }\n" +
+        ".kfl-bandeau > span { flex: 1; min-width: 220px; }\n" +
         ".kfl-sonde { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 13px; color: var(--dsw-alias-label-secondary); }\n" +
         ".kfl-sonde[data-ok='true'] { color: var(--dsw-alias-state-success-primary); }\n" +
-        ".kfl-sonde[data-ok='false'] { color: var(--dsw-alias-state-error-primary); }\n"
+        ".kfl-sonde[data-ok='false'] { color: var(--dsw-alias-state-error-primary); }\n" +
+        ".kfl-locked { margin: 0 0 10px; font-size: 13px; line-height: 1.5; color: color-mix(in srgb, var(--dsw-alias-state-error-primary) 80%, var(--dsw-alias-label-primary)); }\n"
 
       // ── host calls ───────────────────────────────────────────────────────
+      // A refused connection, a 404 page or any answer that is not JSON is the same thing for the person: the host half does not
+      // answer ('hote'), told by one sentence, never the browser's « Failed to fetch ».
       const jsonGet = async (path) => {
         try {
           const r = await fetch(path, { headers: { accept: 'application/json' }, cache: 'no-store' })
           return await r.json()
-        } catch (e) { return { ok: false, error: String(e && e.message ? e.message : e) } }
+        } catch (e) { return { ok: false, error: 'hote' } }
       }
       const jsonPost = async (path, body) => {
         try {
           const r = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body === undefined ? {} : body) })
           return await r.json()
-        } catch (e) { return { ok: false, error: String(e && e.message ? e.message : e) } }
+        } catch (e) { return { ok: false, error: 'hote' } }
       }
+      // What a failed call says: the sentence for a host that does not answer, « Error: <reason> » otherwise.
+      const erreurDe = (r, repli) => (r && r.error === 'hote' ? m('kfl.hote') : m('kfl.erreur') + sep() + String((r && r.error) || repli))
 
       const skelHelper = () => {
         try {
@@ -152,6 +185,10 @@ window.__ModuleLoader__.load({
         } catch (e) { return null }
       }
 
+      // What a failed probe means, in a sentence: the codes of the gateway are for the host, not for a person.
+      const KFL_REASONS = { free_tier_locked: 'kfl.tier.locked', rate_limited: 'kfl.tier.rate', network: 'kfl.tier.network', model_unknown: 'kfl.tier.model', model_protocol_unsupported: 'kfl.tier.model', no_model: 'kfl.vide' }
+      const reasonOf = (code) => (KFL_REASONS[code] !== undefined ? m(KFL_REASONS[code]) : m('kfl.sonde.ko', { code: String(code || 'error') }))
+
       // ── the panel ────────────────────────────────────────────────────────
       const Panel = () => {
         const [status, setStatus] = React.useState(null)
@@ -159,6 +196,17 @@ window.__ModuleLoader__.load({
         const [ack, setAck] = React.useState(false)
         const [erreur, setErreur] = React.useState(null)
         const [probe, setProbe] = React.useState(null)
+        // Does the free tier answer right now? null until known. Asked on open (the host remembers the verdict for a few minutes),
+        // so the page never offers to connect models that cannot answer.
+        const [tier, setTier] = React.useState(null)
+        // `checkedAt` is the host's own stamp of the probe (ISO): the page never makes up the time of a check it did not get.
+        const verdictOf = (r) => {
+          const checkedAt = r !== null && r !== undefined && typeof r.checkedAt === 'string' ? r.checkedAt : null
+          return r !== null && r !== undefined && r.ok === true ? { ok: true, checkedAt } : { ok: false, code: (r && r.code) || 'error', checkedAt }
+        }
+        const timeOf = (iso) => {
+          try { const d = new Date(iso); return Number.isNaN(d.getTime()) ? null : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) } catch (e) { return null }
+        }
 
         const refresh = React.useCallback(async () => {
           const s = await jsonGet('/free-llms/status')
@@ -167,18 +215,23 @@ window.__ModuleLoader__.load({
             setAck((s.state && s.state.acknowledged === true) || false)
             setErreur(null)
           } else {
-            setErreur(m('kfl.erreur') + sep() + String((s && s.error) || 'status'))
+            setErreur(erreurDe(s, 'status'))
           }
         }, [])
 
         React.useEffect(() => { refresh() }, [refresh])
+        React.useEffect(() => {
+          let dead = false
+          jsonGet('/free-llms/health?cached=1').then((r) => { if (dead !== true && r !== null && typeof r === 'object') setTier(verdictOf(r)) })
+          return () => { dead = true }
+        }, [])
 
         const connecter = async () => {
           setErreur(null); setBusy('connect')
           const r = await jsonPost('/free-llms/enable', { acknowledged: ack === true })
           setBusy(null)
           if (r && r.ok === true) { await refresh() } else {
-            setErreur(m('kfl.erreur') + sep() + String((r && r.error) || 'refus'))
+            setErreur(erreurDe(r, 'refused'))
           }
         }
         const deconnecter = async () => {
@@ -192,12 +245,15 @@ window.__ModuleLoader__.load({
           const r = await jsonGet('/free-llms/health')
           setBusy(null)
           setProbe(r && r.ok === true ? { ok: true, model: r.model } : { ok: false, code: (r && r.code) || 'error' })
+          setTier(verdictOf(r))
           await refresh()
         }
 
         const wired = status !== null && status.state && status.state.wired === true
         const models = status !== null && Array.isArray(status.models) ? status.models : []
         const catalogOk = status !== null && status.catalogOk === true
+        const locked = tier !== null && tier.ok === false && tier.code === 'free_tier_locked'
+        const checkedTime = tier !== null && typeof tier.checkedAt === 'string' ? timeOf(tier.checkedAt) : null
 
         return h('div', { className: 'kfl-root', 'data-kfl': 'panneau' },
           h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } },
@@ -206,10 +262,26 @@ window.__ModuleLoader__.load({
           h('p', { className: 'kfl-soustitre' }, m('kfl.soustitre')),
           h('p', { className: 'kfl-avertis' }, m('kfl.avertis')),
 
-          h('div', { className: 'kfl-section' }, m('kfl.liste')),
+          h('div', { className: 'kfl-tete' },
+            h('div', { className: 'kfl-section' }, m('kfl.liste')),
+            checkedTime !== null ? h('span', { className: 'kfl-verifie', 'data-kfl': 'verifie' }, m('kfl.verifie', { time: checkedTime })) : null,
+            h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-outline', disabled: busy !== null, title: m('kfl.recheck.titre'), 'data-kfl': 'recheck', onClick: sonder },
+              Ic('refresh', 12), busy === 'probe' ? m('kfl.recheck.encours') : m('kfl.recheck'))),
+          // A locked tier already has its sentence just below (the line with `data-kfl="tier-locked"`): the check does not say it twice.
+          (probe !== null && !(locked && probe.ok !== true && probe.code === 'free_tier_locked'))
+            ? h('div', { className: 'kfl-sonde', 'data-ok': probe.ok === true ? 'true' : 'false' },
+              h('span', { className: 'kbm-dot', 'data-state': probe.ok === true ? 'done' : 'error' }),
+              probe.ok === true ? m('kfl.sonde.ok') : reasonOf(probe.code))
+            : null,
+          locked ? h('p', { className: 'kfl-locked', role: 'status', 'data-kfl': 'tier-locked' }, m('kfl.tier.locked')) : null,
           // Not read yet: bones in the rows' own box (the shared skeleton helper of the core plugin, window.__KB_SKEL__), instead of
           // the « no free model » line that then got replaced. Without the helper the line shows, as before.
-          (status === null && erreur === null && skelHelper() !== null)
+          // The first read failed: the reason and a Retry take the list's place (it used to say « No free model detected » above a bare error).
+          (status === null && erreur !== null)
+            ? h('div', { className: 'kfl-bandeau', role: 'alert', 'data-kfl': 'injoignable' },
+              h('span', null, erreur),
+              h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kfl': 'reessayer', onClick: () => { setErreur(null); refresh() } }, m('kfl.reessayer')))
+            : (status === null && erreur === null && skelHelper() !== null)
             ? skelHelper().wrap(m('kfl.liste'), 'kfl-liste', [0, 1, 2].map((i) => h('div', { className: 'kfl-mod kb-sk-row', key: 'sk' + i },
               skelHelper().bone(10, 10, 'round'), skelHelper().bone(i % 2 === 0 ? '46%' : '36%', 13), skelHelper().bone(34, 18, 'pill'))))
             : models.length === 0
@@ -217,7 +289,7 @@ window.__ModuleLoader__.load({
               ? m('kfl.catalogue.err', { err: String(status.catalogError) })
               : m('kfl.vide'))
             : h('div', { className: 'kfl-liste' }, models.map((id) => h('div', { className: 'kfl-mod', key: id },
-              h('span', { className: 'kbm-dot', 'data-state': 'done' }),
+              h('span', { className: 'kbm-dot', 'data-state': locked ? 'error' : 'done' }),
               h('span', { className: 'kfl-mod-nom', title: id }, id),
               h('span', { className: 'kbm-tag', 'data-tone': 'neutral' }, 'free')))),
 
@@ -229,31 +301,18 @@ window.__ModuleLoader__.load({
             wired === true
               ? h('button', { className: 'kbm-btn kbm-btn-md kbm-btn-outline', disabled: busy !== null, onClick: deconnecter },
                 Ic('trash', 14), busy === 'connect' ? m('kfl.encours') : m('kfl.deconnecter'))
-              : h('button', { className: 'kbm-btn kbm-btn-md kbm-btn-primary', disabled: busy !== null || ack !== true || models.length === 0, onClick: connecter },
-                Ic('link', 14), busy === 'connect' ? m('kfl.encours') : m('kfl.connecter')),
-            h('button', { className: 'kbm-btn kbm-btn-md kbm-btn-outline', disabled: busy !== null, onClick: sonder },
-              Ic('refresh', 14), busy === 'probe' ? m('kfl.sonde.encours') : m('kfl.sonde'))),
-
-          probe !== null
-            ? h('div', { className: 'kfl-sonde', 'data-ok': probe.ok === true ? 'true' : 'false' },
-              h('span', { className: 'kbm-dot', 'data-state': probe.ok === true ? 'done' : 'error' }),
-              probe.ok === true ? m('kfl.sonde.ok') : m('kfl.sonde.ko', { code: String(probe.code || 'error') }))
-            : null,
+              : h('button', { className: 'kbm-btn kbm-btn-md kbm-btn-primary', disabled: busy !== null || ack !== true || models.length === 0 || locked, title: locked ? m('kfl.tier.locked') : undefined, 'data-kfl': 'connecter', onClick: connecter },
+                Ic('link', 14), busy === 'connect' ? m('kfl.encours') : m('kfl.connecter'))),
 
           status !== null && status.state && status.state.autoEnabled === true
             ? h('p', { className: 'kfl-note' }, m('kfl.auto')) : null,
           h('p', { className: 'kfl-note' }, m('kfl.relance')),
-          erreur !== null ? h('p', { className: 'kfl-erreur' }, erreur) : null)
+          erreur !== null && status !== null ? h('p', { className: 'kfl-erreur' }, erreur) : null)
       }
 
       return {
-        inject: ['slots', 'remote', 'locale'],
+        inject: ['slots', 'remote'],
         apply(ctx) {
-          try {
-            const svc = ctx.get('locale')
-            const lu = typeof svc === 'string' ? svc : (svc !== null && svc !== undefined ? (svc.locale || svc.current || svc.lang) : null)
-            kbLocaleRead = () => (lu !== null && lu !== undefined && String(lu).toLowerCase().indexOf('fr') === 0) || String(document.documentElement.lang || '').toLowerCase().indexOf('fr') === 0 ? 'fr' : 'en'
-          } catch (e) { kbLocaleRead = () => 'en' }
           styles.insert(KBM_CSS, '@local/kybernos-free-llms')
           styles.insert(KFL_CSS, '@local/kybernos-free-llms')
           // One door: the dedicated Settings section.

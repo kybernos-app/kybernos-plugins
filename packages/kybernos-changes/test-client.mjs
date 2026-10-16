@@ -96,7 +96,9 @@ console.log('the words, in two languages')
   const roleKeys = Object.values(T.ROLES).flatMap((r) => [r[0], r[1]])
   const missing = [...used, ...roleKeys].filter((k) => T.S[k] === undefined)
   check('every key the code asks for exists', missing.length === 0, missing)
-  const unused = Object.keys(T.S).filter((k) => !used.has(k) && !roleKeys.includes(k) && !SOURCE.includes("'" + k + "'") && !/^(chip|t|x)[A-Z]/.test(k) && !/^(step|k[A-Z])/.test(k))
+  // a « …1 » twin is asked for by Lp (one item), through its base key
+  const asked = new Set([...used, ...[...SOURCE.matchAll(/\bLp\('([A-Za-z0-9]+)'/g)].map((m) => m[1])])
+  const unused = Object.keys(T.S).filter((k) => !asked.has(k) && !(/1$/.test(k) && asked.has(k.slice(0, -1))) && !roleKeys.includes(k) && !SOURCE.includes("'" + k + "'") && !/^(chip|t|x)[A-Z]/.test(k) && !/^(step|k[A-Z])/.test(k))
   check('no string is dead (every key is asked for somewhere)', unused.length === 0, unused)
   setLang('kybernos'); check('French shows the French side', T.L('aSave') === 'Sauvegarder mon travail')
   setLang('en'); check('English shows the English side', T.L('aSave') === 'Save my work')
@@ -107,6 +109,45 @@ console.log('the words, in two languages')
   check('a typo shows itself instead of blanking the chip', T.L('noSuchKey') === 'noSuchKey')
   check('the Simple view says no git word in the main labels', Object.values(T.ROLES).every((r) => !/\b(commit|push|fetch|merge|pull request|worktree)\b/i.test(T.S[r[0]][0] + ' ' + T.S[r[0]][1])), Object.values(T.ROLES).map((r) => T.S[r[0]][1]))
   check('every role also carries the git word a developer knows it by', Object.values(T.ROLES).every((r) => typeof r[2] === 'string' && r[2].length > 2))
+}
+
+// ── what the host says (A2-21) and the counts (A2-12) ──────────────────────────────────────
+console.log('the host answers in French; the chip says it in the language of the page')
+{
+  const SAYS = [
+    ['envoyé sur GitHub', 'sent to GitHub'],
+    ['rien à pousser — déjà à jour', 'nothing to send — already up to date'],
+    ['pas un dépôt git', 'not a git repository'],
+    ['mises à jour récupérées — rien de changé sur vos fichiers', 'updates fetched — your files are unchanged'],
+    ['pull request fusionnée dans la branche de base', 'pull request merged into the base branch'],
+    ['fusionné dans la branche locale (aucun envoi)', 'merged into the local branch (nothing sent)'],
+    ['push refusé : remote rejected', 'send refused: remote rejected'],
+    ['git add refusé : fatal: oops', 'git add refused: fatal: oops'],
+    ['gh pr create refusé : no auth', 'gh pr create refused: no auth'],
+    ['rien à examiner — aucun commit au-delà de main', 'nothing to review — no commit beyond main']
+  ]
+  setLang('en')
+  check('English: every sentence the git routes send is read in English', SAYS.every(([fr, en]) => T.hostSays(fr) === en), SAYS.filter(([fr, en]) => T.hostSays(fr) !== en).map((x) => T.hostSays(x[0])))
+  setLang('es')
+  check('Spanish (no table of ours): English too, never the French sentence', SAYS.every(([fr, en]) => T.hostSays(fr) === en))
+  setLang('kybernos')
+  check('French: the host\'s own words', SAYS.every(([fr]) => T.hostSays(fr) === fr))
+  setLang('en')
+  check('a sentence we do not know is shown as it is (a git error, a path), and nothing is not turned into a word', T.hostSays('fatal: not a repository') === 'fatal: not a repository' && T.hostSays('') === '' && T.hostSays(undefined) === '')
+  check('the host\'s apostrophe may be straight or curly', T.hostSays('la branche courante est la branche de base — créez d\'abord une copie isolée').startsWith('the current branch is the base branch'))
+}
+console.log('one is not « 1 updates »')
+{
+  const both = (key, one, many, n) => { setLang('en'); const en = [T.Lp(key, 1), T.Lp(key, n)]; setLang('kybernos'); const fr = [T.Lp(key, 1), T.Lp(key, n)]; return { en, fr, ok: en[0].includes(one) && en[1].includes(many) } }
+  check('« to send »: 1 update, 3 updates', both('xToSend', '1 update ', '3 updates', 3).ok)
+  check('« to fetch »: 1 update, 2 updates', both('xFetch', '1 update arrived', '2 updates arrived', 2).ok)
+  check('« changed elsewhere »: 1 changed file, 4 changed files', both('xElsewhere', '1 changed file,', '4 changed files', 4).ok)
+  check('« and more »: 1 more, 5 more', both('fileMore', '1 more', '5 more', 5).ok)
+  check('« shared folder »: another chat, 2 other chats', (() => { setLang('en'); return T.Lp('xUnsavedShared', 1, { m: 1 }).includes('with another chat') && T.Lp('xUnsavedShared', 2, { m: 2 }).includes('with 2 other chats') })())
+  setLang('kybernos')
+  check('French has its singular too', T.Lp('xFetch', 1).startsWith('1 mise à jour est arrivée') && T.Lp('fileMore', 1) === '… et 1 autre' && T.Lp('xToSend', 1).includes('1 mise à jour que'))
+  check('no « (s) » is left in a sentence', Object.values(T.S).every((p) => !/\(s\)/.test(p[0] + p[1])))
+  setLang('en')
 }
 
 // ── the preference ──────────────────────────────────────────────────────────────────────────────────────────────────

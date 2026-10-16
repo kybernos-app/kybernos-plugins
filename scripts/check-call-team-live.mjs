@@ -98,20 +98,21 @@ const clickText = async (text) => {
 const buttons = () => val(`JSON.stringify(Array.from(document.querySelectorAll('[aria-label^="Voice call with"],[aria-label^="Video call with"]')).map((b) => ({ label: b.getAttribute('aria-label'), shown: getComputedStyle(b.parentElement).display !== 'none' && b.getBoundingClientRect().width > 0 })))`).then((x) => JSON.parse(x || '[]'))
 const panel = () => val(`(() => { const p = document.querySelector('[data-kb="kybernos-call-panel"]'); return p ? p.innerText : null })()`)
 const hangUp = async () => { await val(`(() => { const b = document.querySelector('[data-kb="kybernos-call-panel"] [data-act="hangup"]'); if (b) b.click() })()`); await poll(async () => (await panel()) === null, 4000) }
+// The tab of a team page that holds the member cards (and their call buttons): « Roles » (it was « Team » before the tab row was reorganised).
+const MEMBERS_TAB = 'Roles'
 const openTeamTab = async () => {
-  for (let i = 0; i < 12; i += 1) { await sleep(500); if (await val(`/Add an API key to get started/.test(document.body.innerText)`)) { await clickText('Configure later'); await sleep(600) } else if (i > 3) break }
+  // live-page presses DSH's « Get started » dialog away by itself on a sandbox: wait for the shell, then go to the team.
+  await poll(() => val(`/Agent Teams|Kybers/.test(document.body.innerText)`), 20000)
   if (!(await clickText('Agent Teams')) && !(await clickText('Kybers'))) return false
-  await sleep(2000)
-  if (!(await poll(() => clickText(TEAM), 12000))) return false
-  await sleep(2000)
-  if (!(await poll(() => clickText('Team'), 12000))) return false
+  if (!(await poll(() => clickText(TEAM), 15000))) return false
+  if (!(await poll(() => clickText(MEMBERS_TAB), 15000))) return false
   return poll(async () => (await buttons()).length > 0, 15000)
 }
 
 try {
   console.log('1. the members of a team')
   const reached = await openTeamTab()
-  check('the sandbox shows the team and its Team tab', reached === true)
+  check('the sandbox shows the team and its Roles tab (the member cards)', reached === true)
   await shot('team-cards')
   const b1 = await buttons()
   check('each of the 2 members has a Call and a Video button', b1.length === 4 && b1.filter((b) => /^Voice call with/.test(b.label)).length === 2 && b1.filter((b) => /^Video call with/.test(b.label)).length === 2, b1)
@@ -141,9 +142,9 @@ try {
   console.log('4. without the bundle, no buttons')
   await val(`delete window.__KB_CALL__`)
   await clickText('Workflow')
-  await sleep(1200)
-  await clickText('Team')
-  await sleep(2500)
+  await poll(() => val(`!document.querySelector('[aria-label^="Voice call with"]')`), 5000) // the member cards are gone with their tab
+  await clickText(MEMBERS_TAB)
+  await poll(async () => (await buttons()).length > 0, 15000)
   const b2 = await buttons()
   check('with the seam gone, the buttons that are still on the card are hidden', b2.length > 0 && b2.every((b) => b.shown === false), b2)
   await shot('team-without-bundle')

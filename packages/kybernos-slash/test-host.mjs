@@ -190,7 +190,7 @@ console.log('\n── unreadable file: refused, not treated as empty ──')
   ok('POST is refused and says nothing was saved', p.code === 500 && p.body.state === 'unreadable' && /nothing was saved/.test(String(p.body.error)), p)
   ok('the directory is still a directory and holds nothing new', statSync(f).isDirectory() && readdirSync(f).length === 0 && around(f).join() === 'entries.json')
 }
-if (isRoot) console.log('  (skipped: running as root, permission tests are meaningless)')
+if (isRoot) console.log('SKIPPED: the permission tests of the slash host — running as root, they would be meaningless')
 else {
   const f = fresh()
   put(f, SAVED)
@@ -263,7 +263,7 @@ console.log('\n── atomic write: nothing left behind ──')
   ok('a failing write throws', thrown !== null)
   ok('a failing write removes its temp file', around(f).join() === 'entries.json', around(f))
 }
-if (isRoot) console.log('  (skipped: running as root, read-only folder tests are meaningless)')
+if (isRoot) console.log('SKIPPED: the read-only folder tests of the slash host — running as root, they would be meaningless')
 else {
   const f = fresh()
   put(f, SAVED)

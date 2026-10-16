@@ -7,7 +7,7 @@
  *
  *  Usage: node packages/kybernos-skills/test-host-codes.mjs   (exit 0 = all pass) */
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -44,6 +44,12 @@ try {
   assert.deepEqual([tooLong.error, tooLong.max], ['description_too_long', 1024], 'the limit travels with the code')
   assert.equal(code(await create({ name: 'present' })), 'exists')
   ok('create: folder, name, description (missing, too long, with its limit) and a name already taken')
+  const long65 = await create({ name: 'a'.repeat(65) })
+  assert.deepEqual([long65.error, long65.max], ['name_too_long', 64], 'a 65-character name is refused, with the limit')
+  assert.equal(existsSync(join(root, 'a'.repeat(65))), false, 'and no folder was made for it')
+  assert.equal((await create({ name: 'a'.repeat(64) })).ok, true, 'the limit itself is allowed')
+  assert.equal(code(await create({ name: 'a'.repeat(100) })), 'name_too_long')
+  ok('create: a name over 64 characters is refused with the limit and writes nothing (A3-27); 64 passes')
 
   // search, audit, install
   assert.equal(code(await mod.searchSkills('a', 5)), 'query_too_short')

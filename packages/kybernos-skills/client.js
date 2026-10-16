@@ -101,8 +101,9 @@ window.__ModuleLoader__.load({
         'err.audit': { fr: 'audit indisponible', en: 'audit unavailable' },
         'err.create': { fr: 'création impossible', en: 'creation failed' },
         'err.install': { fr: 'installation impossible', en: 'installation failed' },
-        'he.root_not_allowed': { fr: 'Ce dossier n’est pas l’un de vos dossiers de skills modifiables.', en: 'That folder is not one of your writable skills folders.' },
+        'he.root_not_allowed': { fr: 'Ce dossier n’est pas l’un de tes dossiers de skills modifiables.', en: 'That folder is not one of your writable skills folders.' },
         'he.invalid_name': { fr: 'Nom invalide : minuscules, chiffres et tirets, sans accent.', en: 'Invalid name: lowercase letters, digits and hyphens, no accents.' },
+        'he.name_too_long': { fr: 'Nom trop long ({max} caractères au plus).', en: 'Name too long ({max} characters at most).' },
         'he.active_required': { fr: 'L’état à appliquer (actif ou non) est absent.', en: 'The state to apply (on or off) is missing.' },
         'he.skill_not_found': { fr: 'Skill introuvable.', en: 'Skill not found.' },
         'he.skill_ambiguous': { fr: 'Plusieurs dossiers portent ce nom : impossible de choisir.', en: 'Several folders have this name: cannot choose.' },
@@ -112,18 +113,18 @@ window.__ModuleLoader__.load({
         'he.timeout': { fr: 'Délai dépassé.', en: 'Timed out.' },
         'he.network_unavailable': { fr: 'Réseau indisponible.', en: 'Network unavailable.' },
         'he.index_url_refused': { fr: 'Adresse de l’index refusée : https, ou http sur cette machine ; sans identifiant, sans paramètres.', en: 'Index address refused: https, or http on this machine; no credentials, no parameters.' },
-        'he.index_url_env': { fr: 'L’adresse est imposée par la variable KYBERNOS_SKILLS_INDEX_URL : modifiez-la là.', en: 'The address is set by the KYBERNOS_SKILLS_INDEX_URL variable: change it there.' },
+        'he.index_url_env': { fr: 'L’adresse est imposée par la variable KYBERNOS_SKILLS_INDEX_URL : modifie-la là.', en: 'The address is set by the KYBERNOS_SKILLS_INDEX_URL variable: change it there.' },
         'he.index_unavailable': { fr: 'L’index n’a pas répondu (HTTP {http}).', en: 'The index did not answer (HTTP {http}).' },
         'he.query_too_short': { fr: 'Recherche : au moins 2 caractères.', en: 'Search: at least 2 characters.' },
         'he.invalid_source': { fr: 'Source invalide (attendu : propriétaire/dépôt).', en: 'Invalid source (expected owner/repo).' },
         'he.not_github': { fr: 'Source non GitHub ({source}) : cette route n’installe que depuis un dépôt GitHub.', en: 'Not a GitHub source ({source}): this route only installs from a GitHub repository.' },
-        'he.github_rate_limited': { fr: 'GitHub limite les lectures anonymes (HTTP {http}) : réessayez plus tard.', en: 'GitHub is limiting anonymous reads (HTTP {http}): try again later.' },
-        'he.not_found': { fr: 'Ce skill n\'est plus dans le catalogue : rechargez la liste.', en: 'That skill is no longer in the catalogue: reload the list.' },
-        'he.not_writable': { fr: 'Ce skill n\'est pas dans l\'un de vos dossiers de skills modifiables : il n\'est pas supprimé.', en: 'That skill is not in one of your writable skills folders: it is not deleted.' },
+        'he.github_rate_limited': { fr: 'GitHub limite les lectures anonymes (HTTP {http}) : réessaie plus tard.', en: 'GitHub is limiting anonymous reads (HTTP {http}): try again later.' },
+        'he.not_found': { fr: 'Ce skill n\'est plus dans le catalogue : recharge la liste.', en: 'That skill is no longer in the catalogue: reload the list.' },
+        'he.not_writable': { fr: 'Ce skill n\'est pas dans l\'un de tes dossiers de skills modifiables : il n\'est pas supprimé.', en: 'That skill is not in one of your writable skills folders: it is not deleted.' },
         'he.not_a_folder': { fr: 'Ce skill n\'est pas un dossier (un simple fichier .md) : cette action ne s\'applique pas.', en: 'That skill is not a folder (a single .md file): this action does not apply.' },
         'he.is_link': { fr: 'Ce dossier est un lien : le registre de DSH ignore les liens, et rien n\'est touché.', en: 'That folder is a link: the DSH registry ignores links, and nothing was touched.' },
         'he.delete_failed': { fr: 'Le dossier n\'a pas pu être supprimé (droits ?).', en: 'The folder could not be deleted (permissions?).' },
-        'he.no_copy_name': { fr: 'Il y a déjà trop de copies de ce skill : supprimez-en une.', en: 'There are already too many copies of that skill: delete one.' },
+        'he.no_copy_name': { fr: 'Il y a déjà trop de copies de ce skill : supprime-en une.', en: 'There are already too many copies of that skill: delete one.' },
         'he.opener_unavailable': { fr: 'Aucun programme pour l\'ouvrir sur cet ordinateur.', en: 'No program to open it with on this computer.' },
         'he.not_local': { fr: 'DSH tourne sur une autre machine : rien ne s\'ouvre ici.', en: 'DSH runs on another machine: nothing opens here.' },
         'he.already_installed': { fr: 'Un skill de ce nom est déjà installé dans ce dossier.', en: 'A skill with this name is already installed in this folder.' },
@@ -150,6 +151,7 @@ window.__ModuleLoader__.load({
         'notice.created': { fr: '« {name} » créé et actif', en: '“{name}” created and active' },
         'notice.installed': { fr: '« {name} » installé', en: '“{name}” installed' },
         'notice.files': { fr: ' — {n} fichiers', en: ' — {n} files' },
+        'notice.files.1': { fr: ' — 1 fichier', en: ' — 1 file' },
         'copy.ok': { fr: 'Copié : {text} — colle-le dans le composeur', en: 'Copied: {text} — paste it in the composer' },
         'copy.denied': { fr: 'copie refusée par le navigateur', en: 'copy denied by the browser' },
         'copy.unavail': { fr: 'copie indisponible dans ce navigateur', en: 'copy unavailable in this browser' },
@@ -183,9 +185,11 @@ window.__ModuleLoader__.load({
         'flt.disabled': { fr: 'Désactivés ({n})', en: 'Disabled ({n})' },
         'f.root': { fr: 'Racine', en: 'Root' },
         'src.search': { fr: '{n} résultats affichés sur {total} — API skills.sh, {ms}', en: '{n} results shown of {total} — skills.sh API, {ms}' },
+        'src.search.1': { fr: '1 résultat affiché sur {total} — API skills.sh, {ms}', en: '1 result shown of {total} — skills.sh API, {ms}' },
         'src.unknownDur': { fr: 'durée inconnue', en: 'unknown duration' },
         'src.curated': { fr: '{n} skills first-party répartis sur {o} propriétaires — généré le {d}', en: '{n} first-party skills across {o} owners — generated {d}' },
         'src.index': { fr: '{n} skills classés — API officielle skills.sh, vue « {v} »', en: '{n} skills ranked — official skills.sh API, “{v}” view' },
+        'src.index.1': { fr: '1 skill classé — API officielle skills.sh, vue « {v} »', en: '1 skill ranked — official skills.sh API, “{v}” view' },
         'add.create': { fr: 'Créer un skill', en: 'Create a skill' },
         'add.install': { fr: 'Installer un skill', en: 'Install a skill' },
         'add.github': { fr: 'Importer depuis GitHub', en: 'Import from GitHub' },
@@ -233,14 +237,15 @@ window.__ModuleLoader__.load({
         'pick.details': { fr: 'Détails', en: 'Details' },
         'pick.by': { fr: 'Créé par {who}', en: 'Created by {who}' },
         'pick.count': { fr: '{n} installations', en: '{n} installs' },
-        'pick.try': { fr: 'Essayez', en: 'Try asking' },
-        'pick.pinNeedsInstall': { fr: 'Installez ce skill pour l’épingler', en: 'Install this skill to pin it' },
+        'pick.count.1': { fr: '1 installation', en: '1 install' },
+        'pick.try': { fr: 'Essaie', en: 'Try asking' },
+        'pick.pinNeedsInstall': { fr: 'Installe ce skill pour l’épingler', en: 'Install this skill to pin it' },
         'pick.bg': { fr: 'Fond des couvertures', en: 'Cover background' },
         'pick.bg.tint': { fr: 'Teinte', en: 'Tint' },
         'pick.bg.plain': { fr: 'Neutre', en: 'Plain' },
         'pick.loading': { fr: 'Chargement des choix…', en: 'Loading the picks…' },
         'pick.none': { fr: 'Aucun skill ne correspond', en: 'No skill matches' },
-        'pick.nonehint': { fr: 'Essayez une autre catégorie ou effacez la recherche.', en: 'Try another category or clear the search.' },
+        'pick.nonehint': { fr: 'Essaie une autre catégorie ou efface la recherche.', en: 'Try another category or clear the search.' },
         'pick.asof': { fr: 'Choix et verdicts d’audit relevés le {d}.', en: 'Picks and audit verdicts read on {d}.' },
         'pick.crumb': { fr: 'Choix de Kybernos', en: 'Featured' },
         'pick.back': { fr: 'Retour à Featured', en: 'Back to Featured' },
@@ -270,7 +275,7 @@ window.__ModuleLoader__.load({
         'd.query': { fr: 'Interrogation de l\'index…', en: 'Querying the index…' },
         'd.down': { fr: 'Index indisponible', en: 'Index unavailable' },
         'd.direct': { fr: 'L\'installation directe reste possible par « Importer depuis GitHub ».', en: 'Direct install is still possible via “Import from GitHub”.' },
-        'd.hint': { fr: 'C’est souvent passager : réessayez dans un instant. Vos skills installés et l’onglet Team ne sont pas touchés.', en: 'This is often temporary: try again in a moment. Your installed skills and the Team tab are not affected.' },
+        'd.hint': { fr: 'C’est souvent passager : réessaie dans un instant. Tes skills installés et l’onglet Team ne sont pas touchés.', en: 'This is often temporary: try again in a moment. Your installed skills and the Team tab are not affected.' },
         'd.retry': { fr: 'Réessayer', en: 'Try again' },
         // The source the Discover index is read from (the relay), and the setting that names another one.
         'src.line': { fr: 'Source', en: 'Source' },
@@ -280,10 +285,11 @@ window.__ModuleLoader__.load({
         'src.refused': { fr: 'adresse refusée', en: 'address refused' },
         'src.change': { fr: 'Changer', en: 'Change' },
         'src.title': { fr: 'Source de l’index', en: 'Index source' },
-        'src.sub': { fr: 'L’onglet Discover lit un relais en lecture seule de l’index skills.sh. Aucun identifiant n’est envoyé, et la réponse est bornée en taille.', en: 'The Discover tab reads a read-only relay of the skills.sh index. No credential is sent, and the answer is capped in size.' },
+        'src.what': { fr: 'Une source est l’endroit où l’onglet Discover lit sa liste de skills publics. Par défaut, c’est le relais Kybernos : une copie en lecture seule de l’index skills.sh, rafraîchie environ toutes les heures, donc sans compte ni clé.', en: 'A source is where the Discover tab reads its list of public skills from. The default is the Kybernos relay: a read-only copy of the skills.sh index, refreshed about every hour, so no account or key is needed.' },
+        'src.sub': { fr: 'Aucun identifiant n’est envoyé, et la réponse est bornée en taille.', en: 'No credential is sent, and the answer is capped in size.' },
         'src.field': { fr: 'Adresse du relais', en: 'Relay address' },
-        'src.hint': { fr: 'https://… (ou http://localhost… pour un essai sur cette machine). Laissez vide pour le relais Kybernos.', en: 'https://… (or http://localhost… for a test on this machine). Leave empty for the Kybernos relay.' },
-        'src.envnote': { fr: 'La variable d’environnement KYBERNOS_SKILLS_INDEX_URL décide de l’adresse : elle prime sur ce réglage. Modifiez-la là pour changer de source.', en: 'The KYBERNOS_SKILLS_INDEX_URL environment variable decides the address: it overrides this setting. Change it there to change the source.' },
+        'src.hint': { fr: 'https://… (ou http://localhost… pour un essai sur cette machine). Laisse vide pour le relais Kybernos.', en: 'https://… (or http://localhost… for a test on this machine). Leave empty for the Kybernos relay.' },
+        'src.envnote': { fr: 'La variable d’environnement KYBERNOS_SKILLS_INDEX_URL décide de l’adresse : elle prime sur ce réglage. Modifie-la là pour changer de source.', en: 'The KYBERNOS_SKILLS_INDEX_URL environment variable decides the address: it overrides this setting. Change it there to change the source.' },
         'src.reset': { fr: 'Utiliser le relais Kybernos', en: 'Use the Kybernos relay' },
         'src.save': { fr: 'Enregistrer', en: 'Save' },
         'src.saving': { fr: 'Enregistrement…', en: 'Saving…' },
@@ -292,10 +298,9 @@ window.__ModuleLoader__.load({
         'err.source': { fr: 'enregistrement impossible', en: 'could not save' },
         // ── Settings page « Skills » (catalogue): the routes that decide where skills come from ──
         'set.nav': { fr: 'Compétences', en: 'Skills' },
-        'set.h1': { fr: 'Compétences — catalogue', en: 'Skills — catalogue' },
+        'set.h1': { fr: 'Compétences', en: 'Skills' },
         'set.lead': { fr: 'D’où viennent les skills de ce profil : la source de l’index (Discover) et les dossiers dans lesquels les installations sont écrites.', en: 'Where this profile’s skills come from: the index source (Discover) and the folders installs are written to.' },
         'set.srcH': { fr: 'Source de l’index', en: 'Index source' },
-        'set.srcSub': { fr: 'Le classement de l’onglet Discover est lu à cette adresse (relais en lecture seule de l’index skills.sh).', en: 'The Discover ranking is read at this address (a read-only relay of the skills.sh index).' },
         'set.srcMissing': { fr: 'La route /kybernos-skills/index-source ne répond pas sur cet hôte.', en: 'The /kybernos-skills/index-source route is not answering on this host.' },
         'set.rootsH': { fr: 'Dossiers modifiables', en: 'Writable folders' },
         'set.rootsSub': { fr: 'La création et l’installation de skills s’écrivent uniquement dans ces dossiers.', en: 'Skill creation and installs are written only to these folders.' },
@@ -315,9 +320,9 @@ window.__ModuleLoader__.load({
         'd.empty.page': { fr: 'Cette page est vide.', en: 'This page is empty.' },
         'btn.install': { fr: 'Installer', en: 'Install' },
         'det.unknownSrc': { fr: 'source inconnue', en: 'unknown source' },
-        'det.whatBody': { fr: 'Installer télécharge l\'archive du dépôt {source} depuis GitHub, y trouve le dossier du skill « {name} » (son frontmatter porte name et description), puis le COPIE dans votre dossier de skills ({dest}). Le skill y est actif au prochain tour de vos agents. Aucun lien symbolique : le registre de DSH ignore les liens, un skill lié serait installé sans jamais apparaître. Rien d\'autre n\'est écrit.', en: 'Installing downloads the archive of the {source} repository from GitHub, finds the “{name}” skill folder inside it (its frontmatter carries name and description), then COPIES it into your skills folder ({dest}). The skill is available to your agents on their next turn. No symlinks: the DSH registry ignores links, so a linked skill would be installed without ever showing up. Nothing else is written.' },
-        'det.installTip': { fr: 'Télécharge {source} depuis GitHub et copie le skill « {name} » dans votre dossier de skills ({dest}) : disponible pour vos agents au prochain tour.', en: 'Downloads {source} from GitHub and copies the “{name}” skill into your skills folder ({dest}): available to your agents on their next turn.' },
-        'det.installHelp': { fr: 'Ce bouton télécharge le dépôt {source} depuis GitHub, y trouve le skill « {name} » puis le copie dans votre dossier de skills ({dest}) — disponible pour vos agents au prochain tour.', en: 'This button downloads the {source} repository from GitHub, finds the “{name}” skill inside it and copies it into your skills folder ({dest}) — available to your agents on their next turn.' },
+        'det.whatBody': { fr: 'Installer télécharge l\'archive du dépôt {source} depuis GitHub, y trouve le dossier du skill « {name} » (son frontmatter porte name et description), puis le COPIE dans ton dossier de skills ({dest}). Le skill y est actif au prochain tour de tes agents. Aucun lien symbolique : le registre de DSH ignore les liens, un skill lié serait installé sans jamais apparaître. Rien d\'autre n\'est écrit.', en: 'Installing downloads the archive of the {source} repository from GitHub, finds the “{name}” skill folder inside it (its frontmatter carries name and description), then COPIES it into your skills folder ({dest}). The skill is available to your agents on their next turn. No symlinks: the DSH registry ignores links, so a linked skill would be installed without ever showing up. Nothing else is written.' },
+        'det.installTip': { fr: 'Télécharge {source} depuis GitHub et copie le skill « {name} » dans ton dossier de skills ({dest}) : disponible pour tes agents au prochain tour.', en: 'Downloads {source} from GitHub and copies the “{name}” skill into your skills folder ({dest}): available to your agents on their next turn.' },
+        'det.installHelp': { fr: 'Ce bouton télécharge le dépôt {source} depuis GitHub, y trouve le skill « {name} » puis le copie dans ton dossier de skills ({dest}) — disponible pour tes agents au prochain tour.', en: 'This button downloads the {source} repository from GitHub, finds the “{name}” skill inside it and copies it into your skills folder ({dest}) — available to your agents on their next turn.' },
         'det.row.owner': { fr: 'Publié par', en: 'Published by' },
         'det.row.repo': { fr: 'Dépôt source', en: 'Source repository' },
         'det.row.type': { fr: 'Type de source', en: 'Source type' },
@@ -340,20 +345,21 @@ window.__ModuleLoader__.load({
         'panel.copyPath': { fr: 'Copier le chemin', en: 'Copy the path' },
         'panel.truncated': { fr: 'Fichier long : seul le début est affiché.', en: 'Long file: only the start is shown.' },
         'panel.files': { fr: '{n} fichiers dans le dossier', en: '{n} files in the folder' },
+        'panel.files.1': { fr: '1 fichier dans le dossier', en: '1 file in the folder' },
         'act.reveal': { fr: 'Ouvrir le dossier', en: 'Open folder' },
         'act.reveal.tip': { fr: 'Ouvre le dossier du skill sur cet ordinateur', en: 'Opens the skill\'s folder on this computer' },
         'act.edit': { fr: 'Modifier', en: 'Edit' },
-        'act.edit.tip': { fr: 'Ouvre SKILL.md dans votre éditeur de texte', en: 'Opens SKILL.md in your text editor' },
+        'act.edit.tip': { fr: 'Ouvre SKILL.md dans ton éditeur de texte', en: 'Opens SKILL.md in your text editor' },
         'act.duplicate': { fr: 'Dupliquer', en: 'Duplicate' },
-        'act.duplicate.tip': { fr: 'Crée une copie dans votre dossier de skills, sous un nom libre', en: 'Makes a copy in your skills folder, under a free name' },
+        'act.duplicate.tip': { fr: 'Crée une copie dans ton dossier de skills, sous un nom libre', en: 'Makes a copy in your skills folder, under a free name' },
         'act.delete': { fr: 'Supprimer', en: 'Delete' },
         'act.delete.tip': { fr: 'Supprime le dossier du skill (après confirmation)', en: 'Deletes the skill\'s folder (after you confirm)' },
-        'act.readonly': { fr: 'Ce skill est en lecture seule : vous pouvez l\'ouvrir ou le dupliquer, pas le supprimer.', en: 'This skill is read-only: you can open or duplicate it, not delete it.' },
+        'act.readonly': { fr: 'Ce skill est en lecture seule : tu peux l\'ouvrir ou le dupliquer, pas le supprimer.', en: 'This skill is read-only: you can open or duplicate it, not delete it.' },
         'del.title': { fr: 'Supprimer « {name} » ?', en: 'Delete “{name}”?' },
         'del.body': { fr: 'Le dossier {path} et tout ce qu\'il contient sont supprimés pour de bon. Il n\'y a pas de corbeille : cela ne peut pas être annulé.', en: 'The folder {path} and everything in it are deleted for good. There is no trash: this cannot be undone.' },
         'del.deleting': { fr: 'Suppression…', en: 'Deleting…' },
         'notice.deleted': { fr: '« {name} » supprimé.', en: '“{name}” deleted.' },
-        'notice.duplicated': { fr: '« {name} » dupliqué : « {copy} » est dans votre dossier de skills.', en: '“{name}” duplicated: “{copy}” is in your skills folder.' },
+        'notice.duplicated': { fr: '« {name} » dupliqué : « {copy} » est dans ton dossier de skills.', en: '“{name}” duplicated: “{copy}” is in your skills folder.' },
         'notice.opened': { fr: 'Ouvert sur cet ordinateur.', en: 'Opened on this computer.' },
         'dp.folder': { fr: 'Dossier dans le dépôt', en: 'Folder in the repository' },
         'dp.folderUnknown': { fr: 'trouvé par son frontmatter à l\'installation', en: 'found by its frontmatter when installing' },
@@ -367,7 +373,7 @@ window.__ModuleLoader__.load({
         'ic.repo': { fr: 'Dépôt', en: 'Repository' },
         'ic.folder': { fr: 'Dossier dans l\'archive', en: 'Folder in the archive' },
         'ic.dest': { fr: 'Copié vers', en: 'Copied to' },
-        'ic.after': { fr: 'Vous pourrez le désactiver ou le supprimer depuis « Yours ».', en: 'You can switch it off or delete it from “Yours”.' },
+        'ic.after': { fr: 'Tu pourras le désactiver ou le supprimer depuis « Yours ».', en: 'You can switch it off or delete it from “Yours”.' },
         'cap.detail': { fr: 'fiche du skill', en: 'skill details' },
         'cap.yours': { fr: 'installés dans ce profil · {a} actifs sur {n}', en: 'installed in this profile · {a} of {n} active' },
         'cap.search': { fr: 'index skills.sh · recherche sur nom et description', en: 'skills.sh index · search by name and description' },
@@ -395,13 +401,13 @@ window.__ModuleLoader__.load({
         'm.downloading': { fr: 'Téléchargement…', en: 'Downloading…' },
         // ── Team skills (docs/dev/team-skills-contract.md) ──
         'tm.seg': { fr: 'Team', en: 'Team' },
-        'cap.team': { fr: 'Les skills que votre équipe a approuvés, partagés avec tous les membres de {ws}.', en: 'Skills your team approved, shared with every member of {ws}.' },
+        'cap.team': { fr: 'Les skills que ton équipe a approuvés, partagés avec tous les membres de {ws}.', en: 'Skills your team approved, shared with every member of {ws}.' },
         'tm.v.approved': { fr: 'Approuvés', en: 'Approved' },
         'tm.v.mine': { fr: 'Mes propositions', en: 'My proposals' },
         'tm.v.review': { fr: 'À valider', en: 'To review' },
         'tm.v.retired': { fr: 'Retirés', en: 'Retired' },
-        'tm.who.member': { fr: '{ws} · vous êtes membre · un admin valide ce que vous proposez', en: '{ws} · you are a member · an admin approves what you propose' },
-        'tm.who.admin': { fr: '{ws} · vous êtes admin · ce qui est à valider n’est pas encore disponible pour les membres', en: '{ws} · you are an admin · nothing to review is available to members yet' },
+        'tm.who.member': { fr: '{ws} · tu es membre · un admin valide ce que tu proposes', en: '{ws} · you are a member · an admin approves what you propose' },
+        'tm.who.admin': { fr: '{ws} · tu es admin · les membres ne voient pas encore ce qui est à valider', en: '{ws} · you are an admin · members do not see the review queue yet' },
         'tm.search': { fr: 'Chercher dans les skills de l’équipe', en: 'Search team skills' },
         'tm.propose': { fr: 'Proposer un skill', en: 'Propose a skill' },
         'tm.add': { fr: 'Ajouter un skill', en: 'Add a skill' },
@@ -411,7 +417,7 @@ window.__ModuleLoader__.load({
         'tm.install': { fr: 'Installer', en: 'Install' },
         'tm.update': { fr: 'Mettre à jour', en: 'Update' },
         'tm.installed': { fr: 'Installé', en: 'Installed' },
-        'tm.own': { fr: 'Vous avez le vôtre', en: 'You have your own' },
+        'tm.own': { fr: 'Tu as le tien', en: 'You have your own' },
         'tm.edited': { fr: 'modifié ici', en: 'edited here' },
         'tm.newer': { fr: 'plus récent : {v}', en: 'newer: {v}' },
         'tm.withdraw': { fr: 'Retirer ma proposition', en: 'Withdraw' },
@@ -422,25 +428,25 @@ window.__ModuleLoader__.load({
         'tm.st.retired': { fr: 'Retiré', en: 'Retired' },
         'tm.loading': { fr: 'Chargement des skills de l’équipe…', en: 'Loading the team’s skills…' },
         'tm.empty.approved': { fr: 'Aucun skill approuvé pour l’instant', en: 'No approved skill yet' },
-        'tm.empty.approvedHint': { fr: 'Proposez-en un : un admin le valide, puis tout le monde peut l’installer.', en: 'Propose one: an admin reviews it, then everyone can install it.' },
-        'tm.empty.mine': { fr: 'Vous n’avez rien proposé', en: 'You have not proposed anything' },
-        'tm.empty.mineHint': { fr: 'Choisissez l’un de vos skills et proposez-le à l’équipe.', en: 'Pick one of your skills and propose it to the team.' },
+        'tm.empty.approvedHint': { fr: 'Propose-en un : un admin le valide, puis tout le monde peut l’installer.', en: 'Propose one: an admin reviews it, then everyone can install it.' },
+        'tm.empty.mine': { fr: 'Tu n’as rien proposé', en: 'You have not proposed anything' },
+        'tm.empty.mineHint': { fr: 'Choisis l’un de tes skills et propose-le à l’équipe.', en: 'Pick one of your skills and propose it to the team.' },
         'tm.empty.review': { fr: 'Rien à valider', en: 'Nothing to review' },
         'tm.empty.reviewHint': { fr: 'Les nouvelles propositions apparaissent ici.', en: 'New proposals show up here.' },
         'tm.empty.retired': { fr: 'Rien n’a été retiré', en: 'Nothing has been retired' },
         'tm.empty.retiredHint': { fr: 'Un skill retiré reste dans l’historique, mais plus personne ne peut l’installer.', en: 'A retired skill stays in the history, but nobody can install it any more.' },
         'tm.lock.plan.t': { fr: 'Les skills d’équipe font partie du plan Team', en: 'Team skills are part of the Team plan' },
-        'tm.lock.plan.b': { fr: 'Partagez des skills avec les personnes avec qui vous travaillez : un membre en propose un, un admin l’approuve, tout le monde l’installe. Vos propres skills restent privés dans Yours.', en: 'Share skills with the people you work with: any member proposes one, an admin approves it, everyone installs it. Your own skills stay private in Yours.' },
-        'tm.lock.signin.t': { fr: 'Connectez-vous à Kybernos Cloud pour utiliser les skills d’équipe', en: 'Sign in to Kybernos Cloud to use Team skills' },
-        'tm.lock.signin.b': { fr: 'Les skills d’équipe vivent dans l’espace de votre équipe. Connectez votre compte depuis le menu du compte, puis revenez ici.', en: 'Team skills live in your team’s workspace. Connect your account from the account menu, then come back.' },
-        'tm.lock.space.t': { fr: 'Passez sur un espace d’équipe', en: 'Switch to a team workspace' },
-        'tm.lock.space.b': { fr: 'Les skills d’équipe appartiennent à un espace d’équipe. Votre espace actif n’en est pas un.', en: 'Team skills belong to a team workspace. Your active workspace is not one.' },
+        'tm.lock.plan.b': { fr: 'Partage des skills avec les personnes avec qui tu travailles : un membre en propose un, un admin l’approuve, tout le monde l’installe. Tes propres skills restent privés dans Yours.', en: 'Share skills with the people you work with: any member proposes one, an admin approves it, everyone installs it. Your own skills stay private in Yours.' },
+        'tm.lock.signin.t': { fr: 'Connecte-toi à Kybernos Cloud pour utiliser les skills d’équipe', en: 'Sign in to Kybernos Cloud to use Team skills' },
+        'tm.lock.signin.b': { fr: 'Les skills d’équipe vivent dans l’espace de ton équipe. Connecte ton compte depuis le menu du compte, puis reviens ici.', en: 'Team skills live in your team’s workspace. Connect your account from the account menu, then come back.' },
+        'tm.lock.space.t': { fr: 'Passe sur un espace d’équipe', en: 'Switch to a team workspace' },
+        'tm.lock.space.b': { fr: 'Les skills d’équipe appartiennent à un espace d’équipe. Ton espace actif n’en est pas un.', en: 'Team skills belong to a team workspace. Your active workspace is not one.' },
         'tm.lock.server.t': { fr: 'Indisponible sur ce serveur', en: 'Not available on this server' },
         'tm.lock.server.b': { fr: 'Ce serveur Kybernos ne propose pas les skills d’équipe.', en: 'This Kybernos server does not offer Team skills.' },
-        'tm.lock.reconnect.t': { fr: 'Votre session Kybernos a expiré', en: 'Your Kybernos session has expired' },
-        'tm.lock.reconnect.b': { fr: 'Reconnectez votre compte, puis rouvrez cet onglet.', en: 'Reconnect your account, then reopen this tab.' },
+        'tm.lock.reconnect.t': { fr: 'Ta session Kybernos a expiré', en: 'Your Kybernos session has expired' },
+        'tm.lock.reconnect.b': { fr: 'Reconnecte ton compte, puis rouvre cet onglet.', en: 'Reconnect your account, then reopen this tab.' },
         'tm.lock.net.t': { fr: 'Le serveur de l’équipe est injoignable', en: 'The team server cannot be reached' },
-        'tm.lock.net.b': { fr: 'Vérifiez votre connexion, puis réessayez.', en: 'Check your connection, then try again.' },
+        'tm.lock.net.b': { fr: 'Vérifie ta connexion, puis réessaie.', en: 'Check your connection, then try again.' },
         'tm.lock.other.t': { fr: 'Les skills d’équipe ne répondent pas', en: 'Team skills are not answering' },
         'tm.retry': { fr: 'Réessayer', en: 'Try again' },
         'tm.back': { fr: 'Retour à Yours', en: 'Back to Yours' },
@@ -450,19 +456,20 @@ window.__ModuleLoader__.load({
         'tm.det.proposedBy': { fr: 'Proposé par {a} le {d}.', en: 'Proposed by {a} on {d}.' },
         'tm.det.files': { fr: 'Ce qui sera copié', en: 'What gets copied' },
         'tm.det.count': { fr: '{n} fichiers · {size}', en: '{n} files · {size}' },
-        'cap.teamLocked': { fr: 'Les skills partagés par votre équipe.', en: 'Skills shared by your team.' },
+        'tm.det.count.1': { fr: '1 fichier · {size}', en: '1 file · {size}' },
+        'cap.teamLocked': { fr: 'Les skills partagés par ton équipe.', en: 'Skills shared by your team.' },
         'tm.det.entry': { fr: 'entrée', en: 'entry' },
-        'tm.det.pick': { fr: 'Choisissez un fichier pour le lire.', en: 'Pick a file to read it.' },
+        'tm.det.pick': { fr: 'Choisis un fichier pour le lire.', en: 'Pick a file to read it.' },
         'tm.det.loading': { fr: 'Chargement des fichiers…', en: 'Loading the files…' },
         'tm.det.into': { fr: 'Dans', en: 'Into' },
         'tm.det.checks': { fr: 'Vérifié avant toute écriture', en: 'Checked before anything is written' },
-        'tm.det.chk1': { fr: 'Les fichiers donnent la version {v}, celle que votre admin a approuvée', en: 'The files hash to version {v}, the one your admin approved' },
+        'tm.det.chk1': { fr: 'Les fichiers donnent la version {v}, celle que ton admin a approuvée', en: 'The files hash to version {v}, the one your admin approved' },
         'tm.det.chk2': { fr: 'Chaque chemin reste dans le dossier du skill', en: 'Every path stays inside the skill folder' },
         'tm.det.chk3': { fr: 'Fichiers texte seulement, aucun secret', en: 'Text files only, no secret' },
-        'tm.det.never': { fr: 'Si un skill de ce nom existe déjà à cet endroit, rien n’est écrasé : on vous le dit, et vous choisissez.', en: 'If a skill with this name already exists there, nothing is overwritten: you are told, and you choose.' },
-        'tm.det.updateNote': { fr: 'Cela remplace votre version installée ({old}), car vous ne l’avez pas modifiée.', en: 'This replaces your installed version ({old}), because you have not edited it.' },
-        'tm.det.editedNote': { fr: 'Vous avez modifié ce skill ici : il ne sera pas remplacé. Mettez vos changements de côté, puis mettez à jour.', en: 'You edited this skill here, so it will not be replaced. Move your changes aside, then update.' },
-        'tm.det.ownNote': { fr: 'Vous avez déjà un skill de ce nom qui ne vient pas de l’équipe : il ne sera pas touché. Renommez-le ou supprimez-le pour installer celui de l’équipe.', en: 'You already have a skill with this name that is not from the team: it will not be touched. Rename or remove it to install the team’s.' },
+        'tm.det.never': { fr: 'Si un skill de ce nom existe déjà à cet endroit, rien n’est écrasé : on te le dit, et tu choisis.', en: 'If a skill with this name already exists there, nothing is overwritten: you are told, and you choose.' },
+        'tm.det.updateNote': { fr: 'Cela remplace ta version installée ({old}), car tu ne l’as pas modifiée.', en: 'This replaces your installed version ({old}), because you have not edited it.' },
+        'tm.det.editedNote': { fr: 'Tu as modifié ce skill ici : il ne sera pas remplacé. Mets tes changements de côté, puis mets à jour.', en: 'You edited this skill here, so it will not be replaced. Move your changes aside, then update.' },
+        'tm.det.ownNote': { fr: 'Tu as déjà un skill de ce nom qui ne vient pas de l’équipe : il ne sera pas touché. Renomme-le ou supprime-le pour installer celui de l’équipe.', en: 'You already have a skill with this name that is not from the team: it will not be touched. Rename or remove it to install the team’s.' },
         'tm.det.installedNote': { fr: 'Cette version est déjà installée.', en: 'This version is already installed.' },
         'tm.det.notApproved': { fr: 'Ce skill n’est pas (ou plus) approuvé : il ne peut pas être installé.', en: 'This skill is not (or no longer) approved: it cannot be installed.' },
         'tm.det.retireAsk': { fr: 'Retirer « {name} » ? Ceux qui l’ont installé gardent leur copie, personne d’autre ne pourra l’installer.', en: 'Retire “{name}”? Members who installed it keep their copy, nobody else can install it.' },
@@ -470,11 +477,11 @@ window.__ModuleLoader__.load({
         'tm.script': { fr: 'contient un script', en: 'contains a script' },
         'tm.p.title': { fr: 'Proposer un skill à {ws}', en: 'Propose a skill to {ws}' },
         'tm.p.titleAdmin': { fr: 'Ajouter un skill à {ws}', en: 'Add a skill to {ws}' },
-        'tm.p.sub': { fr: 'Un admin le relit avant que quiconque puisse l’installer. Votre copie reste exactement telle quelle.', en: 'An admin reviews it before anyone can install it. Your own copy stays exactly as it is.' },
-        'tm.p.subAdmin': { fr: 'En tant qu’admin, votre skill est disponible pour tous les membres tout de suite. Votre copie reste exactement telle quelle.', en: 'As an admin, your skill is available to every member right away. Your own copy stays exactly as it is.' },
+        'tm.p.sub': { fr: 'Un admin le relit avant que quiconque puisse l’installer. Ta copie reste exactement telle quelle.', en: 'An admin reviews it before anyone can install it. Your own copy stays exactly as it is.' },
+        'tm.p.subAdmin': { fr: 'En tant qu’admin, ton skill est disponible pour tous les membres tout de suite. Ta copie reste exactement telle quelle.', en: 'As an admin, your skill is available to every member right away. Your own copy stays exactly as it is.' },
         'tm.p.pick': { fr: 'Skill', en: 'Skill' },
-        'tm.p.choose': { fr: 'Choisissez l’un de vos skills', en: 'Choose one of your skills' },
-        'tm.p.none': { fr: 'Aucun de vos skills ne peut être partagé : seuls ceux de vos dossiers (~/.dsh/skills, ~/.agents/skills) peuvent être proposés.', en: 'None of your skills can be shared: only skills of your own folders (~/.dsh/skills, ~/.agents/skills) can be proposed.' },
+        'tm.p.choose': { fr: 'Choisis l’un de tes skills', en: 'Choose one of your skills' },
+        'tm.p.none': { fr: 'Aucun de tes skills ne peut être partagé : seuls ceux de tes dossiers (~/.dsh/skills, ~/.agents/skills) peuvent être proposés.', en: 'None of your skills can be shared: only skills of your own folders (~/.dsh/skills, ~/.agents/skills) can be proposed.' },
         'tm.p.packing': { fr: 'Lecture du skill…', en: 'Reading the skill…' },
         'tm.p.send': { fr: 'Ce qui sera envoyé', en: 'What will be sent' },
         'tm.p.checks': { fr: 'Contrôles', en: 'Checks' },
@@ -488,8 +495,8 @@ window.__ModuleLoader__.load({
         'tm.p.submitAdmin': { fr: 'Ajouter à l’équipe', en: 'Add to the team' },
         'tm.p.sending': { fr: 'Envoi…', en: 'Sending…' },
         'tm.p.foot': { fr: 'Les mêmes contrôles sont refaits sur le serveur : un skill qui passe ici ne sera pas refusé plus tard pour ces raisons.', en: 'The same checks run again on the server, so a skill that passes here cannot be refused later for these reasons.' },
-        'tm.p.bad.secret': { fr: '{file}, ligne {line} : cela ressemble à une clé ou un jeton secret. Retirez-le du fichier, puis proposez à nouveau. La clé elle-même n’est jamais affichée ni envoyée.', en: '{file}, line {line}: this looks like a secret key or token. Remove it from the file, then propose again. The key itself is never shown or sent.' },
-        'tm.p.bad.binary': { fr: '{file} : seuls les fichiers texte peuvent être partagés. Retirez-le, ou mentionnez-le dans SKILL.md.', en: '{file}: only text files can be shared. Remove it, or mention it in SKILL.md instead.' },
+        'tm.p.bad.secret': { fr: '{file}, ligne {line} : cela ressemble à une clé ou un jeton secret. Retire-le du fichier, puis propose à nouveau. La clé elle-même n’est jamais affichée ni envoyée.', en: '{file}, line {line}: this looks like a secret key or token. Remove it from the file, then propose again. The key itself is never shown or sent.' },
+        'tm.p.bad.binary': { fr: '{file} : seuls les fichiers texte peuvent être partagés. Retire-le, ou mentionne-le dans SKILL.md.', en: '{file}: only text files can be shared. Remove it, or mention it in SKILL.md instead.' },
         'tm.p.bad.big': { fr: '{file} dépasse 256 Ko.', en: '{file} is over 256 KB.' },
         'tm.p.bad.many': { fr: 'Plus de 50 fichiers.', en: 'More than 50 files.' },
         'tm.p.bad.total': { fr: 'Plus de 1 Mo au total.', en: 'Over 1 MB in total.' },
@@ -498,11 +505,12 @@ window.__ModuleLoader__.load({
         'tm.p.bad.description': { fr: 'La description de SKILL.md contient un caractère qui ne peut pas être enregistré.', en: 'The description in SKILL.md holds a character that cannot be stored.' },
         'tm.p.bad.name': { fr: 'Le nom du skill n’est pas valide.', en: 'The skill name is not valid.' },
         'tm.p.bad.nofile': { fr: 'Il manque un fichier SKILL.md.', en: 'There is no SKILL.md.' },
-        'tm.p.bad.disabled': { fr: 'Activez d’abord le skill.', en: 'Turn the skill on first.' },
+        'tm.p.bad.disabled': { fr: 'Active d’abord le skill.', en: 'Turn the skill on first.' },
         'tm.p.bad.other': { fr: 'Ce skill ne peut pas être partagé ({code}).', en: 'This skill cannot be shared ({code}).' },
         'tm.n.proposed': { fr: 'Proposé à l’équipe. Un admin relira « {name} ».', en: 'Proposed to the team. An admin will review “{name}”.' },
         'tm.n.added': { fr: '« {name} » est maintenant disponible pour l’équipe.', en: '“{name}” is now available to the team.' },
         'tm.n.installed': { fr: '« {name} » installé ({n} fichiers).', en: '“{name}” installed ({n} files).' },
+        'tm.n.installed.1': { fr: '« {name} » installé (1 fichier).', en: '“{name}” installed (1 file).' },
         'tm.n.updated': { fr: '« {name} » mis à jour.', en: '“{name}” updated.' },
         'tm.n.approved': { fr: '« {name} » approuvé.', en: '“{name}” approved.' },
         'tm.n.rejected': { fr: '« {name} » refusé.', en: '“{name}” rejected.' },
@@ -511,12 +519,12 @@ window.__ModuleLoader__.load({
         'tm.e.admin_required': { fr: 'Seul un admin peut faire cela.', en: 'Only an admin can do that.' },
         'tm.e.duplicate': { fr: 'Ce skill est déjà proposé ou approuvé.', en: 'This skill is already proposed or approved.' },
         'tm.e.team_full': { fr: 'L’équipe a déjà le nombre maximal de skills.', en: 'The team already has the maximum number of skills.' },
-        'tm.e.too_many_proposals': { fr: 'Vous avez déjà le nombre maximal de propositions en attente.', en: 'You already have the maximum number of proposals waiting.' },
+        'tm.e.too_many_proposals': { fr: 'Tu as déjà le nombre maximal de propositions en attente.', en: 'You already have the maximum number of proposals waiting.' },
         'tm.e.too_large': { fr: 'Le skill est trop volumineux.', en: 'The skill is too large.' },
-        'tm.e.not_pending': { fr: 'Quelqu’un a décidé avant vous. La liste a été rafraîchie.', en: 'Someone decided before you. The list has been refreshed.' },
+        'tm.e.not_pending': { fr: 'Quelqu’un a décidé avant toi. La liste a été rafraîchie.', en: 'Someone decided before you. The list has been refreshed.' },
         'tm.e.not_approved': { fr: 'Ce skill n’est plus approuvé.', en: 'It is not approved any more.' },
         'tm.e.skill_not_found': { fr: 'Ce skill n’existe plus.', en: 'This skill no longer exists.' },
-        'tm.e.reconnect_required': { fr: 'Votre session Kybernos a expiré : reconnectez votre compte.', en: 'Your Kybernos session has expired: reconnect your account.' },
+        'tm.e.reconnect_required': { fr: 'Ta session Kybernos a expiré : reconnecte ton compte.', en: 'Your Kybernos session has expired: reconnect your account.' },
         'tm.e.network': { fr: 'Le serveur de l’équipe est injoignable.', en: 'The team server cannot be reached.' },
         'tm.e.workspace_not_found': { fr: 'Cet espace d’équipe n’est plus accessible.', en: 'This team workspace is no longer available.' },
         'tm.e.not_on_this_server': { fr: 'Ce serveur ne propose pas les skills d’équipe.', en: 'This server does not offer Team skills.' },
@@ -526,14 +534,14 @@ window.__ModuleLoader__.load({
         'tm.e.scan_rejected': { fr: 'Le serveur a trouvé un secret dans {file}.', en: 'The server found a secret in {file}.' },
         'tm.e.exists': { fr: 'Un skill de ce nom est déjà dans ce dossier. Rien n’a été modifié.', en: 'A skill with this name is already in this folder. Nothing was changed.' },
         'tm.e.version_mismatch': { fr: 'Les fichiers ne correspondent pas à la version approuvée. Rien n’a été écrit.', en: 'The files do not match the approved version. Nothing was written.' },
-        'tm.e.modified': { fr: 'Vous avez modifié ce skill ici : il n’a pas été remplacé.', en: 'You edited this skill here, so it was not replaced.' },
-        'tm.e.root_not_allowed': { fr: 'Ce dossier n’est pas l’un de vos dossiers de skills.', en: 'That folder is not one of your skills folders.' },
+        'tm.e.modified': { fr: 'Tu as modifié ce skill ici : il n’a pas été remplacé.', en: 'You edited this skill here, so it was not replaced.' },
+        'tm.e.root_not_allowed': { fr: 'Ce dossier n’est pas l’un de tes dossiers de skills.', en: 'That folder is not one of your skills folders.' },
         'tm.e.write_failed': { fr: 'Impossible d’écrire le skill. Rien n’a été modifié.', en: 'Could not write the skill. Nothing was changed.' },
         'tm.e.conflict': { fr: 'Le serveur ne peut pas faire cela maintenant.', en: 'The server cannot do that right now.' },
         'tm.e.bad_request': { fr: 'Le serveur n’a pas compris la demande.', en: 'The server did not understand the request.' },
         'tm.e.skill_ambiguous': { fr: 'Deux skills portent ce nom dans ce dossier.', en: 'Two skills with this name exist in that folder.' },
         'tm.e.other': { fr: 'Échec ({code}).', en: 'Failed ({code}).' },
-        'tm.r.banner': { fr: 'Un skill est une instruction que les agents de vos membres suivront, et il peut venir avec des fichiers. Ouvrez les fichiers avant d’approuver. Une approbation ne se modifie pas : refusez avec une note pour demander un changement.', en: 'A skill is an instruction your members’ agents will follow, and it can come with files. Open the files before you approve. An approval cannot be edited: reject with a note to ask for a change.' },
+        'tm.r.banner': { fr: 'Un skill est une instruction que les agents de tes membres suivront, et il peut venir avec des fichiers. Ouvre les fichiers avant d’approuver. Une approbation ne se modifie pas : refuse avec une note pour demander un changement.', en: 'A skill is an instruction your members’ agents will follow, and it can come with files. Open the files before you approve. An approval cannot be edited: reject with a note to ask for a change.' },
         'tm.r.new': { fr: 'Nouveau', en: 'New' },
         'tm.r.updateOf': { fr: 'Mise à jour', en: 'Update' },
         'tm.r.replaces': { fr: 'Approuver remplace la version que les membres peuvent installer aujourd’hui ({v}). Ceux qui l’ont installée verront « Mettre à jour ».', en: 'Approving replaces the version members can install today ({v}). Members who installed it see “Update”.' },
@@ -546,55 +554,44 @@ window.__ModuleLoader__.load({
         'tm.r.fnew': { fr: 'nouveau', en: 'new' },
         'tm.r.removed': { fr: 'supprimé', en: 'removed' },
         'tm.r.scan': { fr: 'Contrôlé par le serveur : aucun secret · {n} fichiers · {kb} Ko', en: 'Checked by the server: no secret · {n} files · {kb} KB' },
+        'tm.r.scan.1': { fr: 'Contrôlé par le serveur : aucun secret · 1 fichier · {kb} Ko', en: 'Checked by the server: no secret · 1 file · {kb} KB' },
         'tm.r.tooBig': { fr: 'Trop long pour une comparaison ligne à ligne.', en: 'Too long to compare line by line.' },
         'tm.r.rejectedWith': { fr: 'Refusé : {note}', en: 'Rejected: {note}' },
         'tm.r.noNote': { fr: 'Refusé, sans note.', en: 'Rejected, no note.' },
+        // The animated help of the page (window.__KB_HELP__.Intro): what it says, and the words of its little mock.
+        'intro.title': { fr: 'Les skills en trois étapes', en: 'Skills in three steps' },
+        'intro.caption': { fr: 'Un skill est choisi dans Featured, installé en un clic, puis listé dans Yours.', en: 'A skill is picked in Featured, installed with one click, then listed under Yours.' },
+        'intro.s1t': { fr: 'Choisis', en: 'Pick one' },
+        'intro.s1b': { fr: 'Featured montre nos choix et ce que disent leurs audits de sécurité. Discover classe les skills publics.', en: 'Featured shows our picks and what their security audits said. Discover ranks the public ones.' },
+        'intro.s2t': { fr: 'Installe', en: 'Install it' },
+        'intro.s2b': { fr: 'Un clic, puis confirme. Le skill est copié sur cet ordinateur.', en: 'One click, then confirm. The skill is copied to this computer.' },
+        'intro.s3t': { fr: 'Laisse tes agents s’en servir', en: 'Let your agents use it' },
+        'intro.s3b': { fr: 'Il apparaît dans Yours. Tes agents le chargent quand ta demande lui correspond.', en: 'It is listed under Yours. Your agents load it when your request fits it.' },
+        'intro.m.row': { fr: 'Documents Word', en: 'Word documents' },
+        'intro.m.st1': { fr: 'Featured', en: 'Featured' },
+        'intro.m.st2': { fr: 'Installation…', en: 'Installing…' },
+        'intro.m.st3': { fr: 'Installé', en: 'Installed' },
+        'intro.m.open': { fr: 'Ouvrir', en: 'Open' },
       }
-      // Language: same mechanism as kybernos-composio (kbt). The host's `locale` service; “kybernos”
-      // is the theme's default: with no explicit choice (kybernos.theme.lang absent) and under an English
-      // shell, we serve English. Without the service: fall back to localStorage, then <html lang>.
-      let localeSvc = null
+      // Language: what Kybernos resolved. « kybernos » (the French of the product) or fr* is French; every other language, translated
+      // or not, and anything unresolved reads English. Read at call time.
       const tlang = () => {
-        if (localeSvc === null || localeSvc === undefined) {
-          try { const st = localStorage.getItem('kybernos.theme.lang'); if (st === 'en' || st === 'fr') return st } catch (e) { }
-          try { if (String(document.documentElement.lang || '').slice(0, 2).toLowerCase() === 'en') return 'en' } catch (e) { }
-          return 'fr'
-        }
-        let lang = 'kybernos'
-        try { if (typeof localeSvc.current === 'function') lang = String(localeSvc.current() || '') } catch (e) { }
-        if (lang === 'kybernos') {
-          try {
-            if (localStorage.getItem('kybernos.theme.lang') === null && typeof localeSvc.getLocale === 'function') {
-              const snap = localeSvc.getLocale()
-              if (snap !== null && snap !== undefined && String(snap.active) === 'en') lang = 'en'
-            }
-          } catch (e) { /* storage or service unavailable: default */ }
-          // A translated language (es, de, ar…) is a choice, not the default:
-          // surface it so t() can serve its row (or the English fallback) instead
-          // of the French source.
-          try {
-            const th = localStorage.getItem('kybernos.theme.lang')
-            if (th !== null && th !== '' && th !== 'kybernos' && String(th).split(/[-_]/)[0] !== 'fr') return String(th)
-          } catch (e) { /* storage unavailable */ }
-        }
-        return lang
+        try {
+          const l = String(window.__KB_LANG_RESOLVE__())
+          return l === 'kybernos' || l.split(/[-_]/)[0] === 'fr' ? 'fr' : 'en'
+        } catch (e) { return 'en' }
       }
-      const isEn = () => tlang().slice(0, 2).toLowerCase() === 'en'
+      const isEn = () => tlang() === 'en'
       // Text separator, locale-aware: French ' : ', English ': '.
       const sep = () => (isEn() ? ': ' : ' : ')
+      // A row can have a « .1 » twin (« 1 file »): it is used when the count {n} is 1.
       const t = (key, vars) => {
-        const row = STR[key]
+        const k = vars !== null && vars !== undefined && vars.n !== undefined && String(vars.n) === '1' && STR[key + '.1'] !== undefined ? key + '.1' : key
+        const row = STR[k]
         if (row === null || row === undefined) return key
-        const lang = tlang()
-        let out = row.fr
-        if (lang !== 'kybernos' && lang !== 'fr') {
-          const tag = lang.slice(0, 2).toLowerCase()
-          if (row[tag] !== null && row[tag] !== undefined) out = row[tag]
-          // A language the table does not carry falls to English, never French.
-          else if (row.en !== null && row.en !== undefined) out = row.en
-        }
+        const out = tlang() === 'fr' ? row.fr : (row.en !== null && row.en !== undefined ? row.en : row.fr)
         if (vars === null || vars === undefined) return out
-        return out.replace(/\{(\w+)\}/g, (m, k) => (vars[k] === undefined ? m : String(vars[k])))
+        return out.replace(/\{(\w+)\}/g, (m, k2) => (vars[k2] === undefined ? m : String(vars[k2])))
       }
       const PAGE = 6
       // Rows of the Discover ranking per page by default (the user can ask for more in the filters).
@@ -671,7 +668,13 @@ window.__ModuleLoader__.load({
 .kbs-root .kbsub button.kb-seg{display:inline-flex;align-items:center;gap:8px;height:34px;border:0;border-radius:999px;padding:0 16px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .kbs-root .kbsub button.kb-seg:hover{color:var(--dsw-alias-label-primary)}
 .kbs-root .kbsub button.kb-seg.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 1px 3px rgba(20,20,19,.14)}
-.kbs-root .kbsub .count{font-family:ui-monospace,monospace;font-size:11px;color:inherit;opacity:.7}
+.kbs-root .kbsub .count{font-family:ui-monospace,monospace;font-size:11px;color:inherit;opacity:.95}
+/* A phone (A5-05): four tabs with their counts need 395 px in a 332 px strip, and the strip slid sideways with « Team » out of
+   sight and no hint that it was there. Tighter tabs and no counts (they are on the pages) need about 295 px: all four fit. */
+@media (max-width:440px){
+.kbs-root .kbsub button.kb-seg{padding:0 10px;gap:6px}
+.kbs-root .kbsub .count{display:none}
+}
 .kbs-root .kbsub .kb8-mono{flex:1 1 0;min-width:0;text-align:end;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* The panel body is injected INSIDE .kbg-root, which already carries the page
    margins (30/34/40). It was taking those of .kb8-page (30/28/36): all the
@@ -789,9 +792,9 @@ window.__ModuleLoader__.load({
 .kbs-root .kb-pager{display:flex;align-items:center;justify-content:center;gap:16px;padding:6px 0 2px}
 .kbs-root .kb-pager .t{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--dsw-alias-label-caption)}
 .kbs-root .kb-sw{width:36px;height:20px;border-radius:999px;background:var(--dsw-alias-bg-layer-3);position:relative;cursor:pointer;border:none;flex:0 0 auto;transition:background .15s}
-.kbs-root .kb-sw i{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s;display:block}
+.kbs-root .kb-sw i{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--dsw-alias-label-secondary);transition:transform .15s;display:block}
 .kbs-root .kb-sw.on{background:var(--kb-switch-on,#4d7cfe)}
-.kbs-root .kb-sw.on i{transform:translateX(16px)}
+.kbs-root .kb-sw.on i{transform:translateX(16px);background:#fff}
 .kbs-root .kb-back{display:inline-flex;align-items:center;gap:8px;background:none;border:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13.5px;cursor:pointer;padding:0;width:fit-content}
 .kbs-root .kb-back:hover{color:var(--dsw-alias-label-primary)}
 .kbs-root .kb-detail-head{display:flex;align-items:center;gap:16px}
@@ -872,7 +875,7 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-input:focus,.kbs-root .kbs-area:focus,.kbs-root .kbs-select:focus{outline:none;border-color:var(--kb-switch-on,#4d7cfe)}
 .kbs-root .kbs-check{display:flex;align-items:flex-start;gap:9px;font-size:13px;color:var(--dsw-alias-label-secondary);line-height:1.5}
 .kbs-root .kbs-err{font-size:13px;color:var(--dsw-alias-state-error-primary)}
-.kbs-root .kbs-actions{display:flex;align-items:center;gap:10px;justify-content:flex-end}
+.kbs-root .kbs-actions{display:flex;align-items:center;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 .kbs-root .kbs-toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:210;display:flex;align-items:center;gap:9px;padding:11px 16px;border-radius:12px;background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-border-l2);box-shadow:0 14px 34px rgba(0,0,0,.5);font-size:13px;color:var(--dsw-alias-label-primary);max-width:70vw}
 .kbs-root .kbs-toast.err{border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 55%,transparent)}
 .kbs-root .kbs-copy{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-caption);border-radius:999px;padding:3px 9px;font-family:ui-monospace,monospace;font-size:11px;cursor:pointer}
@@ -921,9 +924,11 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-star-btn.on{color:#f7c46c;border-color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 45%,transparent);background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 14%,transparent)}
 /* — Where the index is read from — */
 .kbs-root .kbs-srcline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
-.kbs-root .kbs-srcline svg{flex:0 0 auto;color:var(--dsw-alias-label-caption)}
-.kbs-root .kbs-srcline .k{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-caption)}
+.kbs-root .kbs-srcline svg{flex:0 0 auto;color:var(--dsw-alias-label-secondary)}
+.kbs-root .kbs-srcline .k{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
 .kbs-root .kbs-srcline .v{font-family:ui-monospace,monospace;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.kbs-root .kbs-srcline .w::before{content:'·';margin-right:8px}
+@media (max-width:520px){.kbs-root .kbs-srcline .w::before{display:none}}
 .kbs-root .kbs-link{background:none;border:none;padding:3px 6px;border-radius:7px;color:var(--dsw-alias-brand-primary);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
 .kbs-root .kbs-link:hover{background:var(--dsw-alias-bg-layer-2)}
 /* — Team skills: the table reuses the one from Discover (same tokens), only the columns change — */
@@ -965,7 +970,7 @@ window.__ModuleLoader__.load({
 .kbs-root .kbt-card .grow{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
 .kbs-root .kbt-dot{width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-state-warn-primary);display:inline-block;flex:0 0 auto}
 .kbs-root .kbt-kv{display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px 14px;font-size:13px;color:var(--dsw-alias-label-secondary)}
-.kbs-root .kbt-kv .k{color:var(--dsw-alias-label-caption)}
+.kbs-root .kbt-kv .k{color:var(--dsw-alias-label-secondary)}
 .kbs-root .kbt-cap{font-size:12px;color:var(--dsw-alias-label-caption);line-height:1.5}
 .kbs-root .kbt-sheet{width:660px}
 .kbs-root .kb8-primary[disabled]{opacity:.45;cursor:default}
@@ -1030,6 +1035,12 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
 .kbs-root .kbsf-pill.ok{color:var(--dsw-alias-state-success-primary,#22c55e)}
 .kbs-root .kbsf-pill.warn{color:var(--dsw-alias-state-warn-primary,#f59e0b)}
 .kbs-root .kbsf-pill.need{color:var(--dsw-alias-state-business-primary,#5686fe)}
+/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
+body:not([data-ds-dark-theme]) .kbs-root{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
+/* The state inks are the fills (2.1 to 4.2:1 on white): in the light schemes they are pulled toward the text colour (audit A1-11). */
+body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.ok{color:color-mix(in srgb,var(--dsw-alias-state-success-primary,#22c55e) 50%,var(--dsw-alias-label-primary))}
+body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.warn{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#f59e0b) 50%,var(--dsw-alias-label-primary))}
+body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb,var(--dsw-alias-state-business-primary,#5686fe) 60%,var(--dsw-alias-label-primary))}
 .kbs-root .kbsf-acts{display:flex;align-items:center;gap:8px;margin-top:auto;min-height:32px;transition:opacity .14s ease}
 @media (hover:hover){
 .kbs-root .kbsf-card .kbsf-acts{opacity:0}
@@ -1112,9 +1123,11 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
 .kbss-page .kbss-h2{margin:0;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}
 .kbss-page .kbss-sub{margin:0;font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
 .kbss-page .kbss-srcline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
-.kbss-page .kbss-srcline svg{flex:0 0 auto;color:var(--dsw-alias-label-caption)}
-.kbss-page .kbss-srcline .k{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-caption)}
+.kbss-page .kbss-srcline svg{flex:0 0 auto;color:var(--dsw-alias-label-secondary)}
+.kbss-page .kbss-srcline .k{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
 .kbss-page .kbss-srcline .v{font-family:ui-monospace,monospace;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.kbss-page .kbss-srcline .w::before{content:'·';margin-right:8px}
+@media (max-width:520px){.kbss-page .kbss-srcline .w::before{display:none}}
 .kbss-page .kbss-link{background:none;border:none;padding:3px 6px;border-radius:7px;color:var(--dsw-alias-brand-primary);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
 .kbss-page .kbss-link:hover{background:var(--dsw-alias-bg-layer-2)}
 .kbss-page .kbss-fields{display:flex;flex-direction:column;gap:8px}
@@ -1125,7 +1138,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
 .kbss-page .kbss-err{font-size:13px;color:var(--dsw-alias-state-error-primary)}
 .kbss-page .kbss-note{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--dsw-alias-label-caption)}
 .kbss-page .kbss-root-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-2);font-size:12.5px;color:var(--dsw-alias-label-secondary)}
-.kbss-page .kbss-root-row .p{font-family:ui-monospace,monospace;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1 1 auto}
+.kbss-page .kbss-root-row .p{font-family:ui-monospace,monospace;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1 1 220px}
 .kbss-page .kbss-kpis{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
 .kbss-page .kbss-kpis .n{font-size:17px;font-weight:600;color:var(--dsw-alias-label-primary)}
 .kbss-page .kbss-hint{margin:0;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-caption)}
@@ -2021,7 +2034,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
         const pickBy = (p) => {
           const owner = String(p.source).split('/')[0]
           return h('span', { className: 'kbsf-by', title: t('pick.by', { who: owner }) },
-            h('span', { className: 'kbsf-av', style: { background: 'hsl(' + hue(owner) + ' 45% 42%)' }, 'aria-hidden': 'true' }, owner.charAt(0).toUpperCase()),
+            h('span', { className: 'kbsf-av', style: { background: 'hsl(' + hue(owner) + ' 45% 32%)' }, 'aria-hidden': 'true' }, owner.charAt(0).toUpperCase()),
             h('span', { className: 'nm' }, owner))
         }
         const pickCnt = (p) => {
@@ -2185,7 +2198,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
             src.refused === true
               ? h('span', { className: 'kb8-pill warn' }, t('src.refused'))
               : h('span', { className: 'v', title: src.url !== null ? src.url : undefined }, src.host),
-            h('span', { className: 'w' }, '· ' + where),
+            h('span', { className: 'w' }, where),
             h('button', { type: 'button', className: 'kbs-link', 'data-kb': 'index-source-change', onClick: () => { setSrcErr(''); setSrcOpen(true) } }, t('src.change')))
         }
 
@@ -2556,6 +2569,16 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
         const teamAction = primary(teamRoleAdmin(tsum.role) ? t('tm.add') : t('tm.propose'), () => setTeamSheet(true), 'plus')
         const headAction = mode === 'team' ? (teamBarShown ? teamAction : null) : renderAdd()
         const helpBtn = (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-skills' }) : null)
+        // The animated help: opens the first time the page is visited (the hub remembers it was closed), and the card of the button above can bring it back.
+        const introNode = (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Intro
+          ? h(window.__KB_HELP__.Intro, {
+            id: 'kybernos-skills',
+            title: t('intro.title'),
+            caption: t('intro.caption'),
+            steps: [{ t: t('intro.s1t'), b: t('intro.s1b') }, { t: t('intro.s2t'), b: t('intro.s2b') }, { t: t('intro.s3t'), b: t('intro.s3b') }],
+            mock: { bar: 'Skills', rows: [t('intro.m.row')], hot: 'PDF', states: [t('intro.m.st1'), t('intro.m.st2'), t('intro.m.st3')], actions: [t('btn.install'), t('intro.m.st2'), t('intro.m.open')] }
+          })
+          : null)
         return h('div', { className: 'kbs-root' },
           KbBar !== null
             ? h('div', { className: 'kb6-headrow' },
@@ -2584,6 +2607,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
                 h('h2', { className: 'kbs-h1' }, 'Skills'),
                 h('p', { className: 'kbs-sub', title: capTxt }, capTxt)),
               mode !== 'team' ? renderAdd() : null),
+          introNode,
           h('div', { className: 'kbs-ctlrow' },
             h('nav', { className: 'kbsub' },
               // Same capsule as the "Connections" sub-tabs (Your connections / Discover): one single language.
@@ -2784,6 +2808,9 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
         const [root, setRoot] = React.useState(props.roots.length > 0 ? props.roots[0].path : '')
         const [quiet, setQuiet] = React.useState(false)
         const field = (label, node) => h('div', { className: 'kbs-fields' }, h('span', { className: 'kbs-label' }, label), node)
+        // The same rule as the host's (a lowercase kebab name, 64 characters at most), said while typing: the « /name » line only
+        // promises a command once the name can be one, and a bad name says why under its field (A3-27).
+        const nameRule = name === '' ? null : (/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name) ? (name.length > 64 ? 'name_too_long' : null) : 'invalid_name')
         const select = (value, onChange) => h('select', { className: 'kbs-select', value, onChange: (e) => onChange(e.target.value) },
           props.roots.length === 0
             ? h('option', { value: '' }, t('m.defroot'))
@@ -2793,19 +2820,21 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
             h('div', { className: 'kb-row' }, h('span', { className: 'kb8-h2' }, t('add.create')), h('span', { style: { flex: '1' } }),
               h('button', { type: 'button', className: 'kb-tool', onClick: props.onClose }, '✕')),
             h('p', { className: 'kb8-sub', style: { margin: '0' } }, t('m.createSub')),
-            field(t('m.name'), h('input', { className: 'kbs-input', value: name, placeholder: t('m.nameph'), onChange: (e) => setName(e.target.value) })),
+            field(t('m.name'), h(React.Fragment, null,
+              h('input', { className: 'kbs-input', value: name, placeholder: t('m.nameph'), 'aria-invalid': nameRule !== null ? 'true' : 'false', onChange: (e) => setName(e.target.value) }),
+              nameRule !== null ? h('div', { className: 'kbs-err', role: 'alert', 'data-kb': 'create-name-error' }, t('he.' + nameRule, { max: 64 })) : null)),
             field(t('m.desc'), h('textarea', { className: 'kbs-area', style: { minHeight: '70px' }, value: description, onChange: (e) => setDescription(e.target.value) })),
             field(t('m.when'), h('input', { className: 'kbs-input', value: whenToUse, onChange: (e) => setWhenToUse(e.target.value) })),
             field(t('m.content'), h('textarea', { className: 'kbs-area', value: content, placeholder: t('m.contentph'), onChange: (e) => setContent(e.target.value) })),
             field(t('f.root'), select(root, setRoot)),
             h('label', { className: 'kbs-check' },
               h('input', { type: 'checkbox', checked: quiet, onChange: (e) => setQuiet(e.target.checked) }),
-              h('span', null, t('m.quiet', { n: name || t('m.nameWord') }))),
+              h('span', null, t('m.quiet', { n: name !== '' && nameRule === null ? name : t('m.nameWord') }))),
             props.error ? h('div', { className: 'kbs-err' }, props.error) : null,
             h('div', { className: 'kbs-actions' },
               h('button', { type: 'button', className: 'kb8-ghost', onClick: props.onClose }, t('m.cancel')),
               h('button', {
-                type: 'button', className: 'kb8-primary', disabled: props.busy.__modal === true,
+                type: 'button', className: 'kb8-primary', disabled: props.busy.__modal === true || nameRule !== null,
                 onClick: () => props.onSubmit({ name, description, whenToUse, body: content, root, modelInvocable: quiet !== true })
               }, icon('wand', 15), props.busy.__modal === true ? t('m.creating') : t('m.createBtn')))))
       }
@@ -2826,7 +2855,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
           h('div', { className: 'kb-modal', 'data-kb': 'index-source-modal', role: 'dialog', 'aria-label': t('src.title'), onClick: (e) => e.stopPropagation() },
             h('div', { className: 'kb-row' }, h('span', { className: 'kb8-h2' }, t('src.title')), h('span', { style: { flex: '1' } }),
               h('button', { type: 'button', className: 'kb-tool', 'aria-label': t('m.cancel'), onClick: props.onClose }, '✕')),
-            h('p', { className: 'kb8-sub', style: { margin: '0' } }, t('src.sub')),
+            h('p', { className: 'kb8-sub', style: { margin: '0' } }, t('src.what') + ' ' + t('src.sub')),
             now !== '' ? h('div', { className: 'kb-note' }, icon('globe', 14), h('span', null, now)) : null,
             editable === true
               ? h('div', { className: 'kbs-fields' },
@@ -2837,14 +2866,13 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
                     onChange: (e) => setValue(e.target.value),
                     onKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); props.onSubmit(value) } }
                   }),
-                  h('span', { className: 'kb8-mono' }, t('src.hint')))
+                  h('span', { className: 'kb8-sub', style: { fontSize: '12px', color: 'var(--dsw-alias-label-caption)' } }, t('src.hint')))
               : h('div', { className: 'kb-callout' }, icon('info', 16), h('span', null, t('src.envnote'))),
             props.error ? h('div', { className: 'kbs-err', role: 'alert' }, props.error) : null,
             h('div', { className: 'kbs-actions' },
               editable === true && s0 !== null && s0.origin === 'setting'
-                ? h('button', { type: 'button', className: 'kb8-ghost', 'data-kb': 'index-source-reset', disabled: props.busy === true, onClick: () => props.onSubmit('') }, t('src.reset'))
+                ? h('button', { type: 'button', className: 'kb8-ghost', 'data-kb': 'index-source-reset', style: { marginRight: 'auto' }, disabled: props.busy === true, onClick: () => props.onSubmit('') }, t('src.reset'))
                 : null,
-              h('span', { style: { flex: '1' } }),
               h('button', { type: 'button', className: 'kb8-ghost', onClick: props.onClose }, t('m.cancel')),
               editable === true
                 ? h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'index-source-save', disabled: props.busy === true, onClick: () => props.onSubmit(value) }, props.busy === true ? t('src.saving') : t('src.save'))
@@ -3405,7 +3433,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
           const where = src === null ? '' : (src.origin === 'env' ? t('src.env') : (src.origin === 'setting' ? t('src.custom') : t('src.default')))
           return h('div', { className: 'kbss-card', 'data-kb': 'skills-settings-source' },
             h('h3', { className: 'kbss-h2' }, t('set.srcH')),
-            h('p', { className: 'kbss-sub' }, t('set.srcSub')),
+            h('p', { className: 'kbss-sub' }, t('src.what')),
             src === null
               ? h('p', { className: 'kbss-sub' }, t('set.srcMissing'))
               : h('div', { className: 'kbss-srcline', 'data-kb': 'index-source' },
@@ -3414,7 +3442,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
                   src.refused === true
                     ? h('span', { className: 'kb8-pill warn' }, t('src.refused'))
                     : h('span', { className: 'v', title: src.url !== null ? src.url : undefined }, src.host),
-                  h('span', { className: 'w' }, '\u00b7 ' + where),
+                  h('span', { className: 'w' }, where),
                   h('button', {
                     type: 'button', className: 'kbss-link', 'data-kb': 'index-source-change',
                     disabled: srcBusy === true, onClick: () => { setSrcErr(''); setSrcOpen(true) }
@@ -3498,7 +3526,6 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
         // Styles first: they are needed as soon as the panel is mounted,
         // even if the slot is not available yet.
         kbStyle(CSS)
-        try { const loc = ctx.get('locale'); if (loc !== undefined && loc !== null) localeSvc = loc } catch (e) { /* fallback to localStorage / <html lang> */ }
         const slots = ctx.get('slots')
         if (slots === undefined) {
           console.error('[kybernos-skills] service slots indisponible: pas d interface')
@@ -3524,7 +3551,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
       }
 
       return {
-        inject: ['slots', 'locale'],
+        inject: ['slots'],
         apply(ctx) { apply(ctx) }
       }
     } catch (kbBootError) {

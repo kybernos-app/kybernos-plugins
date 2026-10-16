@@ -59,6 +59,7 @@ window.__ModuleLoader__.load({
       'Moteur installé = plus récente version publiée, tous canaux.': 'Installed engine = newest published version, all channels.',
       'Testée ensemble, retouches posées.': 'Tested together, patches applied.',
       'Zone de compatibilité absente du dépôt.': 'Compatibility range missing from the repository.',
+      'Le moteur installé est introuvable : audit des surfaces impossible.': 'The installed engine cannot be found: the surface audit is not possible.',
       'Plus ancien que le minimum supporté.': 'Older than the supported minimum.',
       'Plus récent que le maximum supporté — ne doit pas tourner.': 'Newer than the supported maximum — must not run.',
       'Dans la zone, pas encore testée avec ce plugin.': 'Within range, not yet tested with this plugin.',
@@ -74,6 +75,9 @@ window.__ModuleLoader__.load({
       [/^Des paquets DSH du profil sont épinglés à une autre version que le moteur \((\d+)\)\.$/, 'DSH profile packages are pinned to a different version than the engine ($1).'],
       [/^Le paquet (.+) n'est pas lié au profil\.$/, 'Package $1 is not linked to the profile.'],
       [/^Le bundle (.+) n'est pas déclaré\.$/, 'Bundle $1 is not declared.'],
+      [/^(.+) : « (.+) » n'est plus vrai dans le moteur installé \((.+)\)\.$/, '$1: “$2” is no longer true in the installed engine ($3).'],
+      [/^DOUBLON — (.+) : le moteur porte désormais « (.+) » \(mesuré sur la sauvegarde vierge (.+)\)\.$/, 'OVERLAP — $1: the engine now carries “$2” (measured on the clean backup $3).'],
+      [/^(.+) : « (.+) » trouvé dans le moteur vivant, mais aucune sauvegarde vierge à côté — peut venir de notre propre retouche\. À confirmer sur un 0\.1\.x nu\.$/, '$1: “$2” found in the live engine, but no clean backup beside it — it may come from our own patch. To be confirmed on a bare 0.1.x.'],
       [/^La version du moteur \((.+)\) n'a jamais été testée avec ce plugin\.$/, 'Engine version ($1) has never been tested with this plugin.'],
       [/^à jour — dernière publiée : (.+)$/, 'up to date — latest published: $1'],
       [/^à jour de la plus récente publiée \((.+)\)$/, 'up to date with the newest published ($1)'],
@@ -93,6 +97,8 @@ window.__ModuleLoader__.load({
 
     const CSS = `
 .kbmz-page{padding:0;max-width:720px;font-size:14px;line-height:normal;display:flex;flex-direction:column;gap:18px}
+/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
+body:not([data-ds-dark-theme]) .kbmz-page{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kbmz-titre{margin:0;font-size:18px;line-height:1.3;font-weight:600;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
 [data-slot="settings.section"]:has(.kbmz-page){width:100%;max-width:none}
 /* Identity: wordmark + version on the left, « Check now » on the right */
@@ -128,6 +134,14 @@ body[data-ds-dark-theme] .kbmz-status[data-tone="warn"]{--kbmz-tc:#f5a524}
 .kbmz-nw{white-space:nowrap}
 /* Links row */
 .kbmz-liens{display:flex;flex-wrap:wrap;gap:4px 20px;font-size:13px;color:var(--dsw-alias-label-secondary)}
+.kbmz-auto{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:12px 14px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-1)}
+.kbmz-auto-txt{display:flex;flex-direction:column;gap:3px;min-width:0}
+.kbmz-auto-t{font-size:13.5px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kbmz-auto-d{font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
+.kbmz-sw{position:relative;flex:none;width:36px;height:20px;margin-top:1px;padding:0;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer}
+.kbmz-sw i{position:absolute;inset-inline-start:2px;top:2px;width:14px;height:14px;border-radius:999px;background:var(--dsw-alias-label-secondary);transition:inset-inline-start .15s ease}
+.kbmz-sw.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}.kbmz-sw.on i{inset-inline-start:18px;background:var(--dsw-alias-label-primary-foreground)}
+.kbmz-sw:disabled{opacity:.6;cursor:default}.kbmz-sw:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
 /* Technical details: ONE disclosure */
 .kbmz-toggle{display:flex;align-items:center;gap:10px;width:100%;padding:12px 2px;border:0;border-top:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;font-weight:600;text-align:start;cursor:pointer}
 .kbmz-toggle-h{font-weight:400;color:var(--dsw-alias-label-tertiary)}
@@ -308,20 +322,9 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
 
     // ── pure logic (exposed through `__test`) ──────────────────────────────
 
-    // « 1.0.0-beta.1 » -> { core: '1.0.0', canal: 'beta', rang: '1' }; a stable
-    // « 1.0.0 » has an empty canal; anything that is not a semver (a git hash,
-    // « inconnu ») returns null and is shown as it is.
-    const decouperVersion = (v) => {
-      const m = /^(\d+\.\d+\.\d+)(?:-([A-Za-z]+)(?:[.-]?(\d+))?[0-9A-Za-z.-]*)?(?:\+[0-9A-Za-z.-]+)?$/.exec(typeof v === 'string' ? v : '')
-      return m === null ? null : { core: m[1], canal: m[2] || '', rang: m[3] || '' }
-    }
-    // The line under the wordmark: « Version 1.0.0 · beta 1 ». The exact string
-    // stays reachable (title attribute, Kybernos tile).
-    const ligneVersion = (v) => {
-      const d = decouperVersion(v)
-      if (d === null) return 'Version ' + hs(String(v))
-      return 'Version ' + d.core + (d.canal !== '' ? ' · ' + d.canal + (d.rang !== '' ? ' ' + d.rang : '') : '')
-    }
+    // The line under the wordmark: « Version 1.0.0-beta.9 ». The exact string, the same one the Kybernos tile and the technical details show:
+    // it used to be rewritten « 1.0.0 · beta 9 » here, so one release was spelled three ways on the page (audit 2026-10-16).
+    const ligneVersion = (v) => 'Version ' + hs(String(v))
     // The version the page shows for the plugin: the shipped semver when the
     // host read one, else what the host state already had (the git hash).
     const versionPlugin = (etat) => (typeof etat.version === 'string' && etat.version !== ''
@@ -379,7 +382,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       return repli
     }
 
-    function Page ({ etat, onRafraichir, charge }) {
+    function Page ({ etat, onRafraichir, charge, reglage, onReglage }) {
       const resTexte = { reussi: kbp('✓ réussi', '✓ succeeded'), echec: kbp('✗ échec', '✗ failed'), 'retour-arriere': kbp('↩ retour arrière', '↩ rolled back') }
       const resCouleur = { reussi: 'reussi', echec: 'echec', 'retour-arriere': 'retour-arriere' }
       const [copie, setCopie] = React.useState(null)
@@ -441,7 +444,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       const entete = h('div', { className: 'kbmz-haut' },
         h('div', { className: 'kbmz-id' },
           h('div', { className: 'kbmz-marque', 'data-kb': 'maintenance-brand' }, marque(30)),
-          h('div', { className: 'kbmz-version', 'data-kb': 'maintenance-version', title: decouperVersion(versionBrute) !== null ? versionBrute : undefined }, ligneVersion(versionBrute))),
+          h('div', { className: 'kbmz-version', 'data-kb': 'maintenance-version' }, ligneVersion(versionBrute))),
         h('button', { type: 'button', className: 'kbmz-bouton', 'data-kb': 'maintenance-refresh', onClick: onRafraichir, disabled: charge }, charge ? '…' : t('verifier')))
 
       // ── status block ───────────────────────────────────────────────────────
@@ -470,6 +473,18 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       const liens = h('div', { className: 'kbmz-liens', 'data-kb': 'maintenance-links' },
         h('span', null, t('licence')), h('span', null, t('marque')), h('span', null, t('modules')))
 
+      // ── the automatic check: what it asks, who sees it, and the switch (A6-14) ──
+      // Shown once the host has answered (an older host has no route: no card, the check then stays as it was).
+      const auto = reglage !== undefined && reglage !== null && typeof reglage.autoCheck === 'boolean' ? reglage : null
+      const titreAuto = kbp('Vérifier les mises à jour automatiquement', 'Check for updates automatically')
+      const carteAuto = auto === null ? null : h('div', { className: 'kbmz-auto', 'data-kb': 'maintenance-auto-update' },
+        h('div', { className: 'kbmz-auto-txt' },
+          h('span', { className: 'kbmz-auto-t' }, titreAuto),
+          h('span', { className: 'kbmz-auto-d' }, kbp(
+            'Kybernos demande à GitHub la version courante de la suite et au registre npm celle de DSH, 15 secondes après l’ouverture puis toutes les 6 heures. Rien de votre travail n’est envoyé : ces serveurs voient votre adresse IP et les en-têtes habituels d’une requête web. Désactivé, rien n’est demandé tant que vous n’appuyez pas sur « Vérifier maintenant ».',
+            'Kybernos asks GitHub which suite version is current and the npm registry which DSH version is, 15 seconds after it opens and then every 6 hours. Nothing about your work is sent: those servers see your IP address and the usual headers of a web request. Switched off, nothing is asked until you press « Check now ».'))),
+        h('button', { type: 'button', role: 'switch', className: 'kbmz-sw' + (auto.autoCheck ? ' on' : ''), 'aria-checked': auto.autoCheck ? 'true' : 'false', 'aria-label': titreAuto, 'data-kb': 'maintenance-auto-switch', disabled: auto.occupe === true, onClick: () => { if (typeof onReglage === 'function') onReglage(!auto.autoCheck) } }, h('i', null)))
+
       // ── technical details: the four stat cards ─────────────────────────────
       const carteMoteur = h('div', { className: 'kbmz-stat', 'data-kb': 'maintenance-engine-card' },
         h('span', { className: 'kbmz-stat-l' }, t('moteur')),
@@ -480,9 +495,11 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         h('span', { className: 'kbmz-stat-n' }, hs(distant.note) || t('registreKo')))
       const cartePlugin = h('div', { className: 'kbmz-stat', 'data-kb': 'maintenance-plugin-card' },
         h('span', { className: 'kbmz-stat-l' }, t('plugin')),
-        h('span', { className: 'kbmz-stat-v' }, h('code', null, hs(etat.plugin))),
-        h('span', { className: 'kbmz-stat-n' }, compat && compat.min !== null
-          ? `${t('zone')} : ${zoneTexte(compat)}` : kbp('zone de compatibilité absente', 'compatibility range missing')))
+        h('span', { className: 'kbmz-stat-v' }, h('code', null, hs(versionBrute))),
+        h('span', { className: 'kbmz-stat-n' }, (compat && compat.min !== null
+          ? `${t('zone')} : ${zoneTexte(compat)}` : kbp('zone de compatibilité absente', 'compatibility range missing'))
+          // The git build, for a bug report, next to the version it belongs to (never instead of it).
+          + (typeof etat.plugin === 'string' && etat.plugin !== '' && etat.plugin !== 'inconnu' && etat.plugin !== versionBrute ? ' · build ' + etat.plugin : '')))
       const carteCompat = h('div', { className: 'kbmz-stat', 'data-kb': 'maintenance-compat-card' },
         h('span', { className: 'kbmz-stat-l' }, t('compat')),
         h('span', { className: 'kbmz-stat-v' },
@@ -496,7 +513,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
 
       // ── technical details: contract + matrix ───────────────────────────────
       const contrat = h('div', { className: 'kbmz-carte', 'data-kb': 'maintenance-contract-card' },
-        h('div', { className: 'kbmz-sec' }, `${t('contract')} ${etat.plugin}`),
+        h('div', { className: 'kbmz-sec' }, `${t('contract')} ${versionBrute}`),
         h('div', { className: 'kbmz-ligne' },
           h('span', { className: 'kbmz-date', style: { width: '190px' } }, t('zone')),
           h('span', { className: 'kbmz-vers' }, compat && compat.min !== null ? `≥ ${compat.min}${compat.max ? '  < ' + compat.max : ''}` : '—')),
@@ -557,6 +574,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         statut,
         tuiles,
         liens,
+        carteAuto,
         h('div', null, bascule, panneau))
     }
 
@@ -566,6 +584,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       const [etat, setEtat] = React.useState(null)
       const [echec, setEchec] = React.useState(false)
       const [charge, setCharge] = React.useState(false)
+      const [reglage, setReglage] = React.useState(null)
       const charger = React.useCallback(() => {
         setCharge(true)
         try {
@@ -577,6 +596,22 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         } catch (e) { setEchec(true); setCharge(false) }
       }, [])
       React.useEffect(() => { poserCss(); charger() }, [charger])
+      // The switch of the automatic check: read once; a host without the route leaves the card out.
+      React.useEffect(() => {
+        try {
+          fetch('/kybernos-maintenance/settings', { cache: 'no-store' }).then((r) => r.json())
+            .then((j) => { if (j !== null && typeof j === 'object' && j.ok === true && typeof j.autoCheck === 'boolean') setReglage({ autoCheck: j.autoCheck, occupe: false }) })
+            .catch(() => { /* an older host: no card */ })
+        } catch (e) { /* no fetch (a test) */ }
+      }, [])
+      const changerReglage = React.useCallback((voulu) => {
+        setReglage({ autoCheck: voulu, occupe: true })
+        try {
+          fetch('/kybernos-maintenance/settings', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ autoCheck: voulu }), cache: 'no-store' }).then((r) => r.json())
+            .then((j) => setReglage(j !== null && typeof j === 'object' && j.ok === true && typeof j.autoCheck === 'boolean' ? { autoCheck: j.autoCheck, occupe: false } : { autoCheck: !voulu, occupe: false }))
+            .catch(() => setReglage({ autoCheck: !voulu, occupe: false }))
+        } catch (e) { setReglage({ autoCheck: !voulu, occupe: false }) }
+      }, [])
       if (etat === null && echec) {
         return h('div', { className: 'kbmz-page' },
           h('h1', { className: 'kbmz-titre' }, t('titre')),
@@ -586,7 +621,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
             h('button', { type: 'button', className: 'kbmz-bouton', 'data-kb': 'maintenance-refresh', onClick: charger, disabled: charge }, charge ? '…' : t('verifier'))))
       }
       if (etat === null) return h('div', { className: 'kbmz-page' }, '…')
-      return h(Page, { etat, onRafraichir: charger, charge })
+      return h(Page, { etat, onRafraichir: charger, charge, reglage, onReglage: changerReglage })
     }
 
 
@@ -655,11 +690,14 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       if (pk.signe === true && pk.applicable === true) return 'suite'
       return pk.git !== true ? 'archive' : 'git'
     }
-    const updFetch = async (force) => {
-      const r = await fetch('/kybernos-maintenance/update' + (force === true ? '?force=1' : ''), { cache: 'no-store' })
+    // `auto`: the scheduled check (launch, every 6 h, back to the tab), which the switch of the About page can turn off; the person's own
+    // « Check now » is never `auto`. Switched off, the host answers `desactive` without asking anybody and nothing more is asked here.
+    const updFetch = async (force, auto) => {
+      const r = await fetch('/kybernos-maintenance/update' + (auto === true ? '?auto=1' + (force === true ? '&force=1' : '') : (force === true ? '?force=1' : '')), { cache: 'no-store' })
       if (r.ok !== true) throw new Error('HTTP ' + String(r.status))
       const j = await r.json()
       if (j === null || typeof j !== 'object' || j.ok !== true) throw new Error('réponse inattendue')
+      if (j.desactive === true) return null
       // The signed catalogue (the Suite's own check). It never blocks or breaks the host's answer.
       try {
         const s = await fetch('/kybernos-hub/catalogue/refresh', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}', cache: 'no-store' })
@@ -942,7 +980,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       if (upd.busy === true) return
       upd.busy = true
       let info = null
-      try { info = await updFetch(force) } catch (e) { info = null }
+      try { info = await updFetch(force, manual !== true) } catch (e) { info = null }
       upd.busy = false
       upd.last = Date.now()
       if (info !== null) updPublish(info)
@@ -975,7 +1013,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         // Update detection: never blocks startup.
         try { updBoot() } catch (e) { try { console.warn('[kybernos-maintenance] detection des mises a jour indisponible', e) } catch (e2) { /* console */ } }
       },
-      __test: { fusionnerSigne, modeMiseAJour, updRelancer, motMaj, decouperVersion, ligneVersion, versionPlugin, zoneTexte, statutDe, etatValide, lireOuvert, ecrireOuvert, CLE_DETAILS, ID_DETAILS, Page, FR, EN }
+      __test: { fusionnerSigne, modeMiseAJour, updRelancer, motMaj, ligneVersion, versionPlugin, zoneTexte, statutDe, etatValide, lireOuvert, ecrireOuvert, CLE_DETAILS, ID_DETAILS, Page, FR, EN }
     }
   }
 })

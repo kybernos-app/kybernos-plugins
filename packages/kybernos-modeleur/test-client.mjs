@@ -44,8 +44,10 @@ function fauxContexte () {
 const faussCanvas = () => ({ width: 0, height: 0, clientWidth: 340, clientHeight: 260, style: {}, getContext: () => fauxContexte(), addEventListener: () => {}, removeEventListener: () => {} })
 
 let definition = null
+let langue = 'kybernos' // the language the page resolves to: the existing checks below read the French panel
 globalThis.window = {
   __ModuleLoader__: { load: (d) => { definition = d } },
+  __KB_LANG_RESOLVE__: () => { if (langue === 'throws') throw new Error('langue pas encore connue'); return langue },
   devicePixelRatio: 1,
   addEventListener: () => {},
 }
@@ -255,6 +257,61 @@ ok('le chrome porte le titre et le badge d\'espace', texte.includes('Modeleur') 
 ok('l\'état vide propose les trois démos',
   texte.includes('"cle":"phare"') && texte.includes('"cle":"maison"') && texte.includes('"cle":"schema"'))
 ok('le transport est là (lecture, vitesses)', texte.includes('0.5×') && texte.includes('4×'))
+
+// ── la langue : français pour le français, anglais pour toute autre langue (A2-31, A2-08) ──
+for (const [lg, attendu, interdit] of [
+  ['en', ['3D modeller', 'No model yet', 'Ask the chat', 'Start', 'Replay', 'End', 'Lighthouse'], /Aucun|Demandez|Modeleur|Début|Relire|Phare/],
+  ['kybernos', ['Modeleur', 'Aucun modèle pour le moment', 'Demandez au chat', 'Début', 'Relire', 'Phare'], /No model|Ask the chat|3D modeller|Replay|Lighthouse/],
+  ['es', ['3D modeller', 'No model yet', 'Ask the chat'], /Aucun|Demandez|Modeleur|Début|Phare/],
+  ['ar', ['3D modeller', 'No model yet'], /Aucun|Modeleur|Phare/],
+  ['throws', ['3D modeller', 'No model yet'], /Aucun|Modeleur|Phare/],
+]) {
+  langue = lg
+  const t = JSON.stringify(composant({})) + ' ' + Object.values(T.DEMOS).map((d) => d.titre).join(' ') + ' ' + slotsInj.filter((r) => r && r.title).map((r) => r.title()).join(' ')
+  ok(`langue « ${lg} » : le panneau, les puces et le titre d'onglet parlent la langue de la page`, attendu.every((m) => t.includes(m)) && !interdit.test(t), t.slice(0, 150))
+}
+langue = 'en'
+ok('la démo schéma : les mots dessinés dans le plan suivent la langue', T.DEMOS.schema.ops.some((o) => o.text === 'outlet') && T.DEMOS.schema.ops.some((o) => o.text === 'section A-A — scale 1:2'))
+langue = 'kybernos'
+ok('…en français aussi', T.DEMOS.schema.ops.some((o) => o.text === 'sortie'))
+ok('les noms de groupes des démos sont des données en anglais (aucun mot français)', Object.values(T.DEMOS).every((d) => d.ops.every((o) => o.group === undefined || /^[A-Za-z]+$/.test(o.group))))
+ok('les synonymes français des ops 3D restent acceptés (bloc, cylindre, cône, sphère, boule, anneau, prisme, pave)',
+  ['bloc', 'pave', 'cylindre', 'cône', 'sphère', 'boule', 'anneau', 'prisme'].every((nom) => T.OPS_3D.has(nom) && T.normaliser3D([{ op: nom, points: [[0, 0], [4, 0], [2, 3]], x: 0, y: 0, z: 0, w: 2, d: 2, h: 2 }]).length === 1))
+langue = 'kybernos'
+
+// ── A4-07: the Text annotation tool ─────────────────────────────────────────────
+// The field used to open on pointerdown, was focused and then blurred at once by the focus move that ends that same press,
+// and its onBlur removed it: nobody could type. It now opens on pointerup, and ignores a blur that follows its opening closely.
+{
+  const find = (n, pred) => {
+    if (n === null || n === undefined || typeof n !== 'object') return null
+    if (pred(n)) return n
+    for (const e of (n.enfants || [])) { const f = find(e, pred); if (f !== null) return f }
+    return null
+  }
+  const canvas = () => find(composant({}), (n) => n.type === 'canvas')
+  const input = () => find(composant({}), (n) => n.props && n.props.className === 'kbm-saisie')
+  const evt = (type) => ({ type, clientX: 100, clientY: 130, pointerId: 1, currentTarget: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 200, height: 260 }), setPointerCapture () {} } })
+  T.pinceau.on = true; T.pinceau.outil = 'texte'; T.pinceau.texte = null; T.pinceau.texteEnAttente = null
+  canvas().props.onPointerDown(evt('pointerdown'))
+  ok('A4-07: pressing does not create the field yet (the press itself would blur it)', T.pinceau.texte === null && input() === null)
+  canvas().props.onPointerUp(evt('pointerup'))
+  const champ = input()
+  ok('A4-07: on release the field opens at the clicked point, focused', champ !== null && champ.props.autoFocus === true && T.pinceau.texte !== null && T.pinceau.texte.x === 0.5 && T.pinceau.texte.y === 0.5)
+  let refocus = 0
+  champ.props.onBlur({ currentTarget: { focus: () => { refocus += 1 } } })
+  ok('A4-07: a blur right after the opening does not remove the field (it is focused again)', T.pinceau.texte !== null && refocus === 1, JSON.stringify(T.pinceau.texte))
+  T.pinceau.texte.valeur = 'hello'
+  const before = T.traitsAnn().length
+  T.pinceau.texte.ouvertA -= 1000
+  champ.props.onBlur({ currentTarget: { focus () {} } })
+  ok('A4-07: leaving the field later files the text as an annotation', T.pinceau.texte === null && T.traitsAnn().length === before + 1 && T.traitsAnn()[before].type === 'texte' && T.traitsAnn()[before].text === 'hello')
+  T.pinceau.outil = 'texte'
+  canvas().props.onPointerDown(evt('pointerdown'))
+  canvas().props.onPointerUp(evt('pointercancel'))
+  ok('A4-07: a cancelled press opens nothing', T.pinceau.texte === null)
+  T.pinceau.on = false; T.pinceau.outil = 'trait'
+}
 
 console.log(echecs === 0 ? '\nclient : tout est vert' : `\nclient : ${echecs} échec(s)`)
 // La sonde de l'hôte (setInterval) garde sinon le processus vivant pour rien.

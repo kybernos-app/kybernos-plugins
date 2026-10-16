@@ -5,7 +5,7 @@ dashboard shown live in the right sidebar like a mini app.
 
 ## What the user sees
 
-- **Menu › Dashboards** (before Agent Teams). It opens your default dashboard, or the gallery:
+- **Sidebar › Dashboards** (before Agent Teams). It opens your default dashboard, or the gallery:
   *My dashboards* (Default, Clone, Archive, Hide, as in Insight) and *Presets* (templates; using one gives you your own copy).
 - **Create a dashboard with AI** / **Improve with AI**: open a normal DSH chat with a ready message that names the
   `dashboard-builder` skill. The agent interviews the person (what to follow, how far back), shows a plan with the widget
@@ -42,7 +42,7 @@ tokens, so a dashboard shows tokens. Connected apps (Stripe, GitHub, …) are **
 
 ## A dashboard is a file, never code
 
-`<dsh home>/kybernos/dashboards/files/<id>.miniapp.json`, the shared livrable format, so the Livrables page, the chat card
+`<dsh home>/kybernos/dashboards/files/<id>.miniapp.json`, the shared creation format, so the Creations page, the chat card
 and the popup can open a copy through the MiniApp door (the `dashboard` player this bundle registers):
 
 ```json

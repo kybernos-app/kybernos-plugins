@@ -12,10 +12,10 @@ import { fileURLToPath } from 'node:url'
 const root = fileURLToPath(new URL('..', import.meta.url))
 const host = readFileSync(root + 'packages/kybernos-plugin/index.js', 'utf8').match(/\/\/ KB-TASKS-CORE-BEGIN([\s\S]*?)\/\/ KB-TASKS-CORE-END/)
 if (host === null) { console.error('KB-TASKS-CORE block not found'); process.exit(1) }
-const core = await import('data:text/javascript,' + encodeURIComponent(host[1] + '\nexport { kbParseCron, kbIsValidTimeZone, kbParseIsoLocal, kbComputeNextRun, kbSanitizeTaskInput }'))
+const core = await import('data:text/javascript,' + encodeURIComponent(host[1] + '\nexport { kbParseCron, kbIsValidTimeZone, kbParseIsoLocal, kbComputeNextRun, kbSanitizeTaskInput, kbCronGapMinutes }'))
 const skill = readFileSync(root + 'packages/kybernos-plugin/skills/automation-creator/SKILL.md', 'utf8')
 const grab = (from, to) => { const a = skill.indexOf(from); const b = skill.indexOf(to, a); if (a < 0 || b < 0) { console.error('cannot find ' + from + ' in SKILL.md'); process.exit(1) } return skill.slice(a, b) }
-const fns = new Function("const text = (v) => (typeof v === 'string' ? v : '');\n" + grab('const validZone', 'const sc = ') + '\n' + grab('const cronOk', 'const schedule = ') + '\nreturn { validZone, cronOk }')()
+const fns = new Function("const text = (v) => (typeof v === 'string' ? v : '');\n" + grab('const validZone', 'const sc = ') + '\n' + grab('const cronOk', 'const schedule = ') + '\nreturn { validZone, cronOk, gapOf }')()
 
 let fails = 0
 const eq = (label, got, want) => { if (got !== want) { fails += 1; console.log('FAIL', label, '| skill', got, '| scheduler', want) } }
@@ -25,6 +25,8 @@ const crons = ['0 8 * * 1', '30 9 * * 1-5', '*/15 * * * *', '5-59/10 * * * *', '
   '0 8 * * 1,', ',5 * * * *', '1,,2 * * * *', '/5 * * * *', '5abc * * * *', '1-5-9 * * * *', '0x10 * * * *', '*/1e9 * * * *', '1#2 * * * *', '*/5/2 * * * *', '*/0 * * * *', '*/-1 * * * *',
   '22-2 * * * *', '* 24 * * *', '60 * * * *', '* * 0 * *', '* * 32 * *', '* * * 13 *', '* * * * 8', 'jan * * * *', '@daily', '* * * *', '* * * * * *', '', '   ', 'banana', '0 8 * * 1-', '-1 * * * *']
 for (const c of crons) { n += 1; eq('cron "' + c + '"', fns.cronOk(c), core.kbParseCron(c) !== null) }
+// A5-24: the skill refuses a schedule under 5 minutes without the user's yes with its own gap; it must be the scheduler's.
+for (const c of crons.concat(['*/2 * * * *', '*/4 * * * *', '0,2 8 * * *', '59,1 0,23 * * *', '0 */2 * * *', '5/2 * * * *', '0 8 * * 1-5', '* * 1 * *', '*/3 5 * * 7'])) { if (core.kbParseCron(c) !== null) { n += 1; eq('gap of "' + c + '"', fns.gapOf(c), core.kbCronGapMinutes(c)) } }
 
 // generated: pieces from a vocabulary that mixes valid and invalid tokens
 let seed = 20261005
@@ -35,6 +37,7 @@ for (let i = 0; i < 600; i += 1) {
   const c = Array.from({ length: pick([4, 5, 5, 5, 5, 6]) }, () => piece()).join(rnd() < 0.05 ? '  ' : ' ')
   n += 1
   eq('generated cron "' + c + '"', fns.cronOk(c), core.kbParseCron(c) !== null)
+  if (core.kbParseCron(c) !== null) { n += 1; eq('generated gap of "' + c + '"', fns.gapOf(c), core.kbCronGapMinutes(c)) }
 }
 
 for (const z of ['Europe/Paris', 'America/New_York', 'Asia/Kolkata', 'UTC', 'Australia/Lord_Howe', 'Mars/Phobos', ' Europe/Paris', '', 'europe/paris', 'Europe/Paris ', 'x'.repeat(65)]) { n += 1; eq('zone "' + z + '"', fns.validZone(z), core.kbIsValidTimeZone(z)) }

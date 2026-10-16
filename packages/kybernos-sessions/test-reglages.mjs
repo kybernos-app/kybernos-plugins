@@ -3,7 +3,7 @@
  *
  *  ~/.dsh/kybernos/settings.json is shared: the core bundle reads `pairingToken`,
  *  `gatewayBase` and `wsAdminKey` from it, kybernos-auto writes its own keys. A save
- *  from the Kybernos Settings page used to rewrite the file with its seven keys only,
+ *  from the Kybernos Settings page used to rewrite the file with its known keys only,
  *  so those keys vanished. This test pins the merge, the atomic write, the file
  *  permissions and the corrupt-file behaviour. Everything runs in a temporary
  *  directory: nothing outside it is read or written.
@@ -28,7 +28,7 @@ const lire = (f) => JSON.parse(readFileSync(f, 'utf8'))
 const fichiersAutour = (f) => readdirSync(join(f, '..'))
 const estRoot = typeof process.getuid === 'function' && process.getuid() === 0
 
-const SEPT = ['renameAfterRecap', 'brain', 'voiceInput', 'decisionBrain', 'autoRouting', 'autoWhitelist', 'autoClassifier']
+const SIX = ['renameAfterRecap', 'brain', 'voiceInput', 'autoRouting', 'autoWhitelist', 'autoClassifier']
 const SECRETS = { pairingToken: 'pt-secret-123', gatewayBase: 'https://gateway.example', wsAdminKey: 'wk-secret-456' }
 
 console.log('\n── the bug: keys of other bundles survive a save ──')
@@ -44,10 +44,10 @@ console.log('\n── the bug: keys of other bundles survive a save ──')
   ok('an unknown future key survives, untouched', JSON.stringify(disque.futureKey) === JSON.stringify({ nested: [1, 2, 3] }))
   ok('the patched key is written', disque.renameAfterRecap === false)
   ok('an unpatched known key keeps its value', disque.brain === 'ollama/qwen')
-  ok('the seven known keys are all on disk', SEPT.every((k) => k in disque), Object.keys(disque))
+  ok('the six known keys are all on disk', SIX.every((k) => k in disque), Object.keys(disque))
   ok('existing keys keep their position (clean diffs)', Object.keys(disque).slice(0, 3).join() === 'pairingToken,gatewayBase,wsAdminKey', Object.keys(disque))
-  ok('the answer to the page holds the seven keys and NO secret', Object.keys(r.reglages).join() === SEPT.join() && !('pairingToken' in r.reglages) && !('wsAdminKey' in r.reglages), r.reglages)
-  ok('reading back still hides the other keys', Object.keys(lireReglages(f)).join() === SEPT.join())
+  ok('the answer to the page holds the six keys and NO secret', Object.keys(r.reglages).join() === SIX.join() && !('pairingToken' in r.reglages) && !('wsAdminKey' in r.reglages), r.reglages)
+  ok('reading back still hides the other keys', Object.keys(lireReglages(f)).join() === SIX.join())
 }
 
 console.log('\n── a second save keeps everything too ──')
@@ -102,7 +102,7 @@ console.log('\n── atomic write: nothing left behind ──')
   ok('no temp file after a successful save', fichiersAutour(f).every((nom) => !nom.includes('.tmp-')), fichiersAutour(f))
   ok('the folder holds only settings.json', fichiersAutour(f).join() === 'settings.json', fichiersAutour(f))
 }
-if (estRoot) console.log('  (skipped: running as root, read-only folder tests are meaningless)')
+if (estRoot) console.log('SKIPPED: the read-only folder tests of the sessions settings — running as root, they would be meaningless')
 else {
   const f = nouveau()
   ecrire(f, { ...SECRETS })
@@ -133,12 +133,40 @@ console.log('\n── invalid patch: refused, file untouched ──')
   const f = nouveau()
   ecrire(f, { ...SECRETS })
   const avant = readFileSync(f, 'utf8')
-  const mauvais = [{ brain: 'pas un id' }, { voiceInput: 'telepathie' }, { decisionBrain: 12 }, { autoWhitelist: ['a/b', 'a/b'] }]
+  const mauvais = [{ brain: 'pas un id' }, { brain: 'NONE ' }, { voiceInput: 'telepathie' }, { autoWhitelist: ['a/b', 'a/b'] }]
   for (const patch of mauvais) {
     const r = ecrireReglages(f, patch)
     ok('refused: ' + JSON.stringify(patch), r.ok === false && typeof r.erreur === 'string', r)
   }
   ok('the file is byte for byte unchanged after the refusals', readFileSync(f, 'utf8') === avant)
+}
+
+console.log('\n── the Study model is the only brain setting: « Decision Brain » is gone (WP-08) ──')
+{
+  const f = nouveau()
+  ecrire(f, { ...SECRETS, brain: 'ollama/qwen', decisionBrain: 'typesafe-ai/jev' })
+  ok('reading no longer exposes decisionBrain', !('decisionBrain' in lireReglages(f)) && !('decisionBrain' in REGLAGES_DEFAUT), lireReglages(f))
+  const r = ecrireReglages(f, { renameAfterRecap: false })
+  ok('a save succeeds on a file that still carries the old key', r.ok === true, r)
+  ok('...and the old key leaves the file at that write, nothing else does', !('decisionBrain' in lire(f)) && lire(f).pairingToken === SECRETS.pairingToken && lire(f).brain === 'ollama/qwen', lire(f))
+  ok('...and the answer to the page does not carry it', !('decisionBrain' in r.reglages), r.reglages)
+  const g = nouveau()
+  ecrire(g, { ...SECRETS })
+  for (const ancien of ['typesafe-ai/jev', 'none', '', 12, null, { a: 1 }]) {
+    const x = ecrireReglages(g, { decisionBrain: ancien, voiceInput: 'native' })
+    ok('an old page posting decisionBrain = ' + JSON.stringify(ancien) + ' is not refused (no 400) and the key is not written', x.ok === true && x.invalide !== true && !('decisionBrain' in lire(g)) && lire(g).voiceInput === 'native', x)
+  }
+}
+{
+  const f = nouveau()
+  ecrire(f, { ...SECRETS })
+  ok('« none » is a valid Study model: the person chose no Study model', ecrireReglages(f, { brain: 'none' }).ok === true && lire(f).brain === 'none' && lireReglages(f).brain === 'none')
+  ok('an empty Study model is valid too: it means Automatic', ecrireReglages(f, { brain: '' }).ok === true && lire(f).brain === '' && lireReglages(f).brain === '')
+  ok('« route/id » stays valid', ecrireReglages(f, { brain: 'a/b' }).ok === true && lire(f).brain === 'a/b')
+  ok('anything else is still refused, and the file keeps its last value', ecrireReglages(f, { brain: 'None' }).invalide === true && ecrireReglages(f, { brain: 'no-slash' }).invalide === true && lire(f).brain === 'a/b')
+  ok('the default is Automatic (empty)', REGLAGES_DEFAUT.brain === '')
+  ecrire(f, { brain: 'rubbish' })
+  ok('a mangled value on disk reads as Automatic', lireReglages(f).brain === '')
 }
 
 console.log('\n── corrupt file: nothing overwritten, one copy kept ──')
@@ -180,7 +208,7 @@ console.log('\n── corrupt file: nothing overwritten, one copy kept ──')
 }
 
 console.log('\n── unreadable file: refused, not treated as empty ──')
-if (estRoot) console.log('  (skipped: running as root)')
+if (estRoot) console.log('SKIPPED: the permission tests of the sessions settings — running as root')
 else {
   const f = nouveau()
   ecrire(f, { ...SECRETS })
@@ -205,12 +233,23 @@ console.log('\n── through the HTTP route (what the Settings page really call
   const reponse = () => { const r = { code: null, corps: null, writeHead (c) { r.code = c }, end (s) { try { r.corps = JSON.parse(s) } catch (e) { r.corps = s } } }; return r }
   const post = reponse()
   await routes['/kybernos-sessions/settings'](requete('POST', { renameAfterRecap: false }), post)
-  ok('POST answers 200 with the seven keys', post.code === 200 && post.corps.ok === true && Object.keys(post.corps.reglages).join() === SEPT.join(), post)
+  ok('POST answers 200 with the six keys', post.code === 200 && post.corps.ok === true && Object.keys(post.corps.reglages).join() === SIX.join(), post)
   ok('POST keeps the secrets on disk', lire(f).pairingToken === SECRETS.pairingToken && lire(f).gatewayBase === SECRETS.gatewayBase && lire(f).wsAdminKey === SECRETS.wsAdminKey, lire(f))
   ok('POST never sends a secret back to the page', !JSON.stringify(post.corps).includes('secret'), post.corps)
   const get = reponse()
   await routes['/kybernos-sessions/settings'](requete('GET'), get)
   ok('GET never sends a secret either', get.code === 200 && !JSON.stringify(get.corps).includes('secret'), get.corps)
+  ok('GET no longer announces a list of decision models', !('modelesDecision' in get.corps) && !('modeleDecisionDefaut' in get.corps), get.corps)
+  ok('GET says which Study model is in force: Automatic with no model connected → none yet', get.corps.etude !== undefined && get.corps.etude.mode === 'aucun' && get.corps.etude.cle === '' && get.corps.etude.actif === false && get.corps.etude.auto === '', get.corps.etude)
+  const lireEtude = async () => { const g = reponse(); await routes['/kybernos-sessions/settings'](requete('GET'), g); return g.corps.etude }
+  const egal = (x, y) => Object.keys(y).every((k) => x[k] === y[k])
+  await routes['/kybernos-sessions/settings'](requete('POST', { brain: 'zai/glm' }), reponse())
+  ok('...the person\'s own choice', egal(await lireEtude(), { actif: true, cle: 'zai/glm', mode: 'choisi', raison: null }), await lireEtude())
+  await routes['/kybernos-sessions/settings'](requete('POST', { brain: 'none' }), reponse())
+  ok('...None', egal(await lireEtude(), { actif: false, cle: '', mode: 'none', raison: null }), await lireEtude())
+  const ancien = reponse()
+  await routes['/kybernos-sessions/settings'](requete('POST', { decisionBrain: 'typesafe-ai/jev', renameAfterRecap: true }), ancien)
+  ok('an old page posting decisionBrain gets a 200 and no such key back', ancien.code === 200 && ancien.corps.ok === true && !('decisionBrain' in ancien.corps.reglages), ancien)
   ecrire(f, '{ cassé')
   const mauvais = reponse()
   await routes['/kybernos-sessions/settings'](requete('POST', { brain: 'a/b' }), mauvais)

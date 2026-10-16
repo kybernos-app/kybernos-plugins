@@ -93,8 +93,29 @@ ok('tool: creates the scene in the session folder', made.ok && made.chemin === j
   ok('restore: brings revision 1 back as revision 3', rs.status === 200 && rs.json.rev === 3, rs.json)
   ok('restore: an unknown revision is 404', (await call('POST', '/kybernos-motion/restore', { body: { session: 's1', path: made.chemin, rev: 99 } })).status === 404)
   const op = await call('POST', '/kybernos-motion/open', { body: { session: 's2', path: made.chemin } })
-  ok('open: Livrables can point the panel at a scene', op.status === 200 && (await call('GET', '/kybernos-motion/state?session=s2')).json.current.path === made.chemin)
+  ok('open: Creations can point the panel at a scene', op.status === 200 && (await call('GET', '/kybernos-motion/state?session=s2')).json.current.path === made.chemin)
   ok('open: a non-scene file is refused', (await call('POST', '/kybernos-motion/open', { body: { session: 's1', path: join(project, 'x.txt') } })).status === 403)
+}
+
+// ── A4-11: a chat shows its own scene, or none ──────────────────────────────
+{
+  const mine = await call('GET', '/kybernos-motion/state?session=s1')
+  ok('state: the session that made a scene still sees it', mine.json.current !== null && mine.json.current.path === made.chemin, mine.json)
+  const other = await call('GET', '/kybernos-motion/state?session=s-new-chat')
+  ok('state: a new chat does not borrow the scene another chat is working on (it used to show it)', other.status === 200 && other.json.current === null, other.json)
+  // The Creations page points the panel at a scene with no session: that one IS shown to a chat that may read it.
+  const pointed = await call('POST', '/kybernos-motion/open', { body: { path: made.chemin } })
+  const seen = await call('GET', '/kybernos-motion/state?session=s-new-chat')
+  ok('state: a scene pointed at from Creations (no session) is shown to a chat that may read it', pointed.status === 200 && seen.json.current !== null && seen.json.current.path === made.chemin, seen.json)
+  // ...and when its folder is gone, or it is another workspace's, the chat gets the empty state, not a path to a refused read.
+  const gone = await tool.execute({ titre: 'Gone', fichier: join(project, 'tmp-gone', 'gone'), scene: SCENE }, exec)
+  ok('the scene to forget is written', gone.ok === true, gone)
+  await call('POST', '/kybernos-motion/open', { body: { path: gone.chemin } })
+  await rm(join(project, 'tmp-gone'), { recursive: true, force: true })
+  const lost = await call('GET', '/kybernos-motion/state?session=s-new-chat')
+  ok('state: a remembered scene whose folder is gone is dropped (no 403 on every poll)', lost.status === 200 && lost.json.current === null, lost.json)
+  // back to the scene the next sections work on
+  await call('POST', '/kybernos-motion/open', { body: { session: 's1', path: made.chemin } })
 }
 
 // ── the origin guard ────────────────────────────────────────────────────────
