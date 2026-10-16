@@ -102,15 +102,15 @@ ok('les slides sont normalisées, les déchets écartés', deck.length === 4, St
 ok('les champs manquants valent chaîne vide', deck[0].points.length === 0 && deck[0].note === '')
 ok('la normalisation borne le deck à 60', T.normaliserDeck(Array.from({ length: 80 }, () => ({ titre: 'x' }))).length === 60)
 
-// A4-03 : the thumbnail of a « statement » slide shows what the stage shows (its title, and the line under it), not an empty `grand`.
+// A4-03: the thumbnail of a « statement » slide shows what the stage shows (its title, and the line under it), not an empty `grand`.
 {
   const texts = (n, acc = []) => { if (n === null || n === undefined) return acc; if (typeof n === 'string') { acc.push(n); return acc } for (const e of (n.enfants || [])) texts(e, acc); return acc }
   const th = T.THEMES.sombre
   const st = T.normaliserDeck([{ layout: 'statement', kicker: 'The premise', titre: 'Shells should come prepared.', sous: 'and say so' }])[0]
   const t = texts(T.miniature(st, th))
-  ok('la vignette d\'une slide « statement » montre son titre (la scène le montre)', t.includes('Shells should come prepared.'), t.join(' | '))
-  ok('...et sa ligne sous le titre, avec le kicker', t.includes('and say so') && t.includes('The premise'), t.join(' | '))
-  ok('la vignette d\'un « chiffre » montre toujours son grand nombre', texts(T.miniature(T.normaliserDeck([{ layout: 'chiffre', grand: '12 s', legende: 'x' }])[0], th)).includes('12 s'))
+  ok('A4-03: the thumbnail of a statement slide shows its title (as the stage does)', t.includes('Shells should come prepared.'), t.join(' | '))
+  ok('A4-03: ...and the line under it, with the kicker', t.includes('and say so') && t.includes('The premise'), t.join(' | '))
+  ok('A4-03: the thumbnail of a figure slide still shows its big number', texts(T.miniature(T.normaliserDeck([{ layout: 'chiffre', grand: '12 s', legende: 'x' }])[0], th)).includes('12 s'))
 }
 
 // ── 2. moteur de frappe ─────────────────────────────────────────────────────
