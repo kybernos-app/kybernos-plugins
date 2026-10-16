@@ -2281,7 +2281,7 @@ window.__ModuleLoader__.load({
             }),
             hint ? h('p', { className: 'kbmt-note', role: 'status', 'data-kb': 'motion-hint' }, kt('Ouvrez un chat : l\'animation s\'ouvrira dans le panneau Motion (barre latérale droite).', 'Open a chat: the animation will open in the Motion panel (right sidebar).')) : null,
             h('div', { className: 'kbmt-scrub' }, h('input', { type: 'range', min: 0, max: scene.format.duration, step: 0.05, value: player.t, 'aria-label': kt('Position', 'Position'), onChange: (e) => { player.pause(); player.seek(Number(e.target.value)) } })),
-            parsed.errors.length ? h('p', { className: 'kbmt-note' }, kt(parsed.errors.length + ' élément(s) ignoré(s) dans ce fichier.', parsed.errors.length + ' item(s) ignored in this file.')) : null)
+            parsed.errors.length ? h('p', { className: 'kbmt-note' }, (parsed.errors.length === 1 ? kt('1 élément ignoré dans ce fichier.', '1 item ignored in this file.') : kt(parsed.errors.length + ' éléments ignorés dans ce fichier.', parsed.errors.length + ' items ignored in this file.'))) : null)
         }
 
         /* ══════════════════════ export ══════════════════════ */
@@ -2657,7 +2657,7 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kbmt-params' },
               h('h3', null, kt('Paramètres', 'Settings')),
               controls.length === 0 ? h('p', { className: 'kbmt-hint' }, kt('Cette animation n\'a pas de réglages : demandez à l\'agent de la modifier.', 'This animation has no settings: ask the agent to change it.')) : controls.map((c) => h(Field, { key: c.id, ctl: c, value: scene.params[c.id], onChange: (v, kind, shown) => setParam(c, v, kind, shown) })),
-              doc.errors && doc.errors.length ? h('p', { className: 'kbmt-note' }, kt(doc.errors.length + ' élément(s) ignoré(s) par le moteur.', doc.errors.length + ' item(s) ignored by the engine.')) : null),
+              doc.errors && doc.errors.length ? h('p', { className: 'kbmt-note' }, (doc.errors.length === 1 ? kt('1 élément ignoré par le moteur.', '1 item ignored by the engine.') : kt(doc.errors.length + ' éléments ignorés par le moteur.', doc.errors.length + ' items ignored by the engine.'))) : null),
             pop === 'revs' ? h('div', { className: 'kbmt-pop', role: 'menu' }, h('h3', null, kt('Révisions', 'Revisions')),
               revs.length === 0 ? h('p', { className: 'kbmt-hint', style: { padding: '4px 8px' } }, kt('Aucune révision conservée.', 'No revision kept.')) : revs.map((v, i) => h('div', { className: 'kbmt-rv', key: v.r },
                 h('span', { className: 'kbmt-r' }, 'r' + v.r), h('span', { className: 'kbmt-w' }, (v.by === 'user' ? kt('Vous', 'You') : v.by === 'agent' ? kt('Agent', 'Agent') : v.by) + ' · ' + v.what, h('small', null, v.at ? new Date(v.at).toLocaleString() : '')),

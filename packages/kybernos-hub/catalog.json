@@ -895,8 +895,8 @@
         },
         "steps": [
           {
-            "fr": "Demandez une maquette au chat, par exemple « construis un château en briques » : l’onglet « Briques » s’ouvre seul à droite.",
-            "en": "Ask the chat for a mockup, for example “build a brick castle”: the “Briques” tab opens by itself on the right."
+            "fr": "Demandez une maquette au chat, par exemple « construisez un château en briques » : l’onglet « Briques » s’ouvre seul à droite.",
+            "en": "Ask the chat for a mockup, for example “build a brick castle”: the “Bricks” tab opens by itself on the right."
           },
           {
             "fr": "Faites glisser la scène pour la tourner, molette pour zoomer ; « 3/4 », « Front », « Top » et « Spin » changent la vue.",
@@ -913,7 +913,7 @@
         ],
         "where": {
           "fr": "Barre latérale droite, onglet « Briques » (il s’ouvre seul)",
-          "en": "Right sidebar, “Briques” tab (opens by itself)",
+          "en": "Right sidebar, “Bricks” tab (opens by itself)",
           "page": false
         },
         "good": {
@@ -1020,12 +1020,12 @@
         },
         "steps": [
           {
-            "fr": "Demandez un modèle au chat, par exemple « dessine un phare en 3D » : l’onglet « Modeleur » s’ouvre seul à droite.",
-            "en": "Ask the chat for a model, for example “draw a lighthouse in 3D”: the “Modeleur” tab opens by itself on the right."
+            "fr": "Demandez un modèle au chat, par exemple « dessinez un phare en 3D » : l’onglet « Modeleur » s’ouvre seul à droite.",
+            "en": "Ask the chat for a model, for example “draw a lighthouse in 3D”: the “3D modeller” tab opens by itself on the right."
           },
           {
             "fr": "En 3D, faites glisser pour tourner, molette pour zoomer ; « 3/4 », « Front », « Top », « Spin » (en 2D : « Grille », « Ajuster »).",
-            "en": "In 3D, drag to turn and scroll to zoom; “3/4”, “Front”, “Top”, “Spin” change the view (in 2D: “Grille”, “Ajuster”)."
+            "en": "In 3D, drag to turn and scroll to zoom; “3/4”, “Front”, “Top”, “Spin” change the view (in 2D: “Grid”, “Fit”)."
           },
           {
             "fr": "Sous la scène, ▶ rejoue la pose, le curseur avance à la main, 0.5× à 4× règlent la vitesse.",
@@ -1038,7 +1038,7 @@
         ],
         "where": {
           "fr": "Barre latérale droite, onglet « Modeleur » (il s’ouvre seul)",
-          "en": "Right sidebar, “Modeleur” tab (opens by itself)",
+          "en": "Right sidebar, “3D modeller” tab (opens by itself)",
           "page": false
         },
         "good": {
@@ -1104,13 +1104,13 @@
             "en": "“Export” gives an MP4 video, a standalone page or a scene file, saved in the project’s artifacts/ folder."
           },
           {
-            "fr": "Retrouvez vos animations dans la page Livrables, ou avec « Animations » en haut du panneau.",
-            "en": "Find your animations on the Livrables page, or with “Animations” at the top of the panel."
+            "fr": "Retrouvez vos animations dans la page Créations, ou avec « Animations » en haut du panneau.",
+            "en": "Find your animations on the Creations page, or with “Animations” at the top of the panel."
           }
         ],
         "where": {
-          "fr": "Barre latérale droite, onglet « Motion » (s’ouvre seul quand une animation arrive), et page Livrables",
-          "en": "Right sidebar, “Motion” tab (opens by itself when an animation arrives), and the Livrables page",
+          "fr": "Barre latérale droite, onglet « Motion » (s’ouvre seul quand une animation arrive), et page Créations",
+          "en": "Right sidebar, “Motion” tab (opens by itself when an animation arrives), and the Creations page",
           "page": false
         },
         "good": {
@@ -1137,7 +1137,7 @@
       "aide": {
         "what": {
           "fr": "Ajoute un bouton « App » aux panneaux Briques, Modeleur et Slides : il en fait une petite app macOS flottante, qui reste ouverte même quand DSH est fermé.",
-          "en": "Adds an “App” button to the Briques, Modeleur and Slides panels: it turns the panel into a small floating macOS app that stays open even when DSH is closed."
+          "en": "Adds an “App” button to the Bricks, 3D modeller and Slides panels: it turns the panel into a small floating macOS app that stays open even when DSH is closed."
         },
         "steps": [
           {
@@ -1155,12 +1155,12 @@
         ],
         "where": {
           "fr": "Dans l’en-tête de chaque panneau Briques, Modeleur ou Slides",
-          "en": "In the header of each Briques, Modeleur or Slides panel",
+          "en": "In the header of each Bricks, 3D modeller or Slides panel",
           "page": false
         },
         "good": {
           "fr": "macOS seulement. Dans l’app, Briques garde sa lecture et sa rotation ; Modeleur et Slides sont figés comme une photo et ne suivent plus le chat.",
-          "en": "macOS only. In the app, Briques keeps its replay and rotation; Modeleur and Slides are frozen like a photo and no longer follow the chat."
+          "en": "macOS only. In the app, Bricks keeps its replay and rotation; the 3D modeller and Slides are frozen like a photo and no longer follow the chat."
         }
       }
     },
@@ -2036,8 +2036,8 @@
       },
       "aide": {
         "what": {
-          "fr": "Une page Dashboards avant Agent Teams : le chat construit vos tableaux de bord (Agent Teams, automations, usage, livrables) avec des graphiques animés, un calendrier, un kanban et des notes.",
-          "en": "A Dashboards page before Agent Teams: the chat builds your dashboards (Agent Teams, automations, usage, deliverables) with animated charts, a calendar, a kanban and notes."
+          "fr": "Une page Dashboards avant Agent Teams : le chat construit vos tableaux de bord (Agent Teams, automations, usage, créations) avec des graphiques animés, un calendrier, un kanban et des notes.",
+          "en": "A Dashboards page before Agent Teams: the chat builds your dashboards (Agent Teams, automations, usage, creations) with animated charts, a calendar, a kanban and notes."
         },
         "steps": [
           {

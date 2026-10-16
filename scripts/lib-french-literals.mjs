@@ -282,7 +282,7 @@ const wordsOf = (text) => text.toLowerCase().split(/[^a-zàâçéèêëîïôù�
 export const isFrench = (raw) => {
   if (typeof raw !== 'string') return false
   // a comment inside a CSS template is not a user-facing string
-  const text = raw.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\$\{\}/g, ' ').trim()
+  const text = raw.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\$\{\}/g, ' ').replace(/\bkybernos-[a-z-]+/g, ' ').trim()
   if (text.length < 2) return false
   if (AUTONYM.test(text)) return false
   // not text at all: a URL, a path, a selector list, a regex source, a JSON/CSS fragment with no sentence
@@ -290,7 +290,7 @@ export const isFrench = (raw) => {
   // Spanish, Portuguese, Italian or German text that happens to carry an é or an à is not French
   if (NOT_FRENCH_MARK.test(text) && !FR_ONLY.test(text)) return false
   // an identifier (id, class, route, event name) is not text: the one-word lexicon rule below needs a bare word
-  const identifierLike = /^[\w$]+(?:[-_.:/][\w$]+)+$/.test(text)
+  const identifierLike = /^[\w$]+(?:[-_.:/][\w$]+)+$/.test(raw.trim())
   if (FR_ACCENT.test(text)) {
     // a lone accented token inside code-like text (a character class « [àé] », an escape table) is not a sentence
     if (/^[\[\]()\\|^$*+?{}\-àâçéèêëîïôùûœ\s]+$/i.test(text) && /[\[\]\\|]/.test(text)) return false
@@ -300,7 +300,8 @@ export const isFrench = (raw) => {
   const fn = new Set(words.filter((w) => FUNCTION_WORDS.has(w)))
   if (fn.size >= 2) return true
   if (ELISION.test(text) && (fn.size >= 1 || words.length >= 3)) return true
-  if (!identifierLike && words.length <= 5 && words.some((w) => LEXICON.has(w))) return true
+  // A lone lowercase word ('texte', 'trait') is a token of the code (a type, an id), not a label: labels are capitalised or phrases.
+  if (!identifierLike && words.length <= 5 && words.some((w) => LEXICON.has(w)) && (words.length >= 2 || /^[A-ZÀ-Ý]/.test(text))) return true
   return false
 }
 

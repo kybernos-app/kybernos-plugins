@@ -369,7 +369,7 @@ window.__ModuleLoader__.load({
             lab.appendChild(el('small', null, kt('gardé sur cet ordinateur', 'kept on this computer')))
             row.append(cb, lab)
             pop.appendChild(row)
-            const info = el('p', 'kbsr-m', S.host.chats + ' ' + kt('chats indexés', 'chats indexed') + (S.host.updatedAt ? ' · ' + fmtWhen(S.host.updatedAt) : ''))
+            const info = el('p', 'kbsr-m', S.host.chats + ' ' + (S.host.chats === 1 ? kt('chat indexé', 'chat indexed') : kt('chats indexés', 'chats indexed')) + (S.host.updatedAt ? ' · ' + fmtWhen(S.host.updatedAt) : ''))
             info.style.margin = '6px 4px'
             pop.appendChild(info)
             const rb = el('button', 'kbsr-btn', kt('Reconstruire l’index', 'Rebuild the index'))
@@ -494,7 +494,7 @@ window.__ModuleLoader__.load({
           foot.appendChild(el('span', 'sp'))
           const total = Object.values(S.counts).reduce((a, b) => a + b, 0)
           foot.appendChild(el('span', null, S.q.trim() !== '' && results.length > 0
-            ? total + ' ' + kt('résultats', 'results') + (S.took !== null ? ' · ' + S.took + ' ms' : '') + ' · ' + kt('local uniquement', 'local only')
+            ? total + ' ' + (total === 1 ? kt('résultat', 'result') : kt('résultats', 'results')) + (S.took !== null ? ' · ' + S.took + ' ms' : '') + ' · ' + kt('local uniquement', 'local only')
             : S.host.chats + ' ' + kt('chats', 'chats') + ' · ' + kt('local uniquement', 'local only')))
         }
 
