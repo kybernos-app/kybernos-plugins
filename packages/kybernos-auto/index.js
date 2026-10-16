@@ -1,18 +1,18 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// kybernos-auto — moitié hôte.
+// kybernos-auto — host half.
 //
-// Le mode Auto, dans UN bundle dédié (02/10/2026, décision utilisateur) :
-//   • état PAR SESSION   → <DSH home>/kybernos/auto-sessions.json  (~/.dsh par défaut)
-//   • whitelist/classifieur (globaux) → <DSH home>/kybernos/settings.json
-//     (mêmes clés que la première itération : autoRouting* y restent lisibles,
-//     la page Settings dédiée du bundle les écrit désormais)
-//   • santé par modèle   → <DSH home>/kybernos/auto-health.json (compteurs locaux
-//     écrits à chaque routage : appels, erreurs, dernière latence)
-//   • le routeur lui-même (règles → classifieur local tev1 → whitelist)
+// Auto mode, in ONE dedicated bundle (02/10/2026, user decision):
+//   • state PER SESSION   → <DSH home>/kybernos/auto-sessions.json  (~/.dsh by default)
+//   • whitelist/classifier (global) → <DSH home>/kybernos/settings.json
+//     (the same keys as the first iteration: autoRouting* stay readable there,
+//     the bundle's own Settings page now writes them)
+//   • health per model    → <DSH home>/kybernos/auto-health.json (local counters
+//     written at each routing: calls, errors, last latency)
+//   • the router itself (rules → local tev1 classifier → whitelist)
 //
-// Le routeur est une COPIE conforme du CLI `~/.dsh/tools/auto-router.mjs`
-// (contrat identique, mêmes classes chat|code|vision|media|agent-task). Le CLI
-// reste autonome pour l'agent ; l'hôte sert la page et la puce du composer.
+// The router is a faithful COPY of the CLI `~/.dsh/tools/auto-router.mjs`
+// (same contract, same classes chat|code|vision|media|agent-task). The CLI
+// stays standalone for the agent; the host serves the page and the composer's chip.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, realpathSync, renameSync, chmodSync, rmSync } from 'node:fs'
@@ -162,7 +162,7 @@ function settingsFileBlocked (read, file) {
 }
 // KB-SETTINGS-FILE-END
 
-// ── réglages (whitelist + classifieur) : mêmes clés que settings.json ───────
+// ── settings (whitelist + classifier): the same keys as settings.json ────────
 export function lireReglagesAuto (fichier) {
   let brut = {}
   try { brut = JSON.parse(readFileSync(fichier, 'utf8')) } catch { brut = {} }
@@ -179,7 +179,7 @@ export function lireReglagesAuto (fichier) {
   }
 }
 
-// ── état PAR SESSION ────────────────────────────────────────────────────────
+// ── state PER SESSION ───────────────────────────────────────────────────────
 export function lireSessions (fichier) {
   let brut = {}
   try { brut = JSON.parse(readFileSync(fichier, 'utf8')) } catch { brut = {} }
@@ -363,14 +363,14 @@ export async function router (demande, opts = {}) {
   }
 }
 
-// ── montage des routes ──────────────────────────────────────────────────────
+// ── mounting the routes ─────────────────────────────────────────────────────
 const envoyer = (res, code, obj) => {
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' })
   res.end(JSON.stringify(obj))
 }
 const origineOK = (req) => {
-  // Recette 2026-10 (M-02/S-03) : hôte EXACT de l'écoute réelle du socket,
-  // jamais un préfixe (« localhost.evil.example » passait).
+  // 2026-10 acceptance (M-02/S-03): the EXACT host of the socket's real listener,
+  // never a prefix (« localhost.evil.example » used to pass).
   const o = String(req.headers.origin || '')
   if (o === '') return true
   try {
@@ -488,7 +488,7 @@ export function monterRoutes (webServerSvc, opts = {}) {
       maj.autoWhitelist = corps.autoWhitelist
     }
     if (corps.autoRouting !== undefined) {
-      // Disjoncteur GLOBAL hérité : true force Auto sur toutes les sessions.
+      // Inherited GLOBAL breaker: true forces Auto on every session.
       if (typeof corps.autoRouting !== 'boolean') { envoyer(res, 400, { ok: false, erreur: 'autoRouting : booléen attendu' }); return }
       maj.autoRouting = corps.autoRouting
     }
@@ -513,9 +513,9 @@ export function monterRoutes (webServerSvc, opts = {}) {
     }
   } })
 
-  // Rapport d'issue d'une délégation : latence réelle, erreur, usage de cache.
-  // C'est l'appelant (workflow, kyber, CLI) qui connaît l'issue — le routeur
-  // seul ne la voit pas. Alimente les colonnes Latence / Erreurs / Cache hit.
+  // Report of a delegation's outcome: real latency, error, cache usage.
+  // It is the caller (workflow, kyber, CLI) that knows the outcome — the router
+  // alone does not see it. Feeds the Latency / Errors / Cache hit columns.
   // LEFT OPEN ON PURPOSE (no session cookie, an Origin is only refused when it is foreign): the caller is `cli/auto-router.mjs` (--report), copied to
   // ~/.dsh/tools/ for the agent, a Node program that sends no Origin and has no browser session. `/router` below has the same caller.
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/report', handler: async (req, res) => {
@@ -575,9 +575,9 @@ export function monterRoutes (webServerSvc, opts = {}) {
     const sessionId = String(corps.sessionId || '')
     const sessions = lireSessions(sessionsFichier)
     const reg = lireReglagesAuto(reglagesFichier)
-    // Activation : PAR SESSION (la puce du composer) — le global hérité de la
-    // première itération reste un disjoncteur (ON force toutes les sessions,
-    // dont le CLI sans sessionId).
+    // Activation: PER SESSION (the composer's chip) — the global inherited from the
+    // first iteration stays a breaker (ON forces every session,
+    // the CLI with no sessionId included).
     const actifPourSession = reg.global === true || (sessionId !== '' && sessions[sessionId] === true)
     if (actifPourSession === false) { envoyer(res, 200, { actif: false, raison: 'auto off pour cette session' }); return }
     // The caller may name models that just failed for this very delegation: the answer is then the NEXT ones.
