@@ -173,6 +173,55 @@ console.log('\n── settings.json partagé : fusion, fichier corrompu, écritu
   writeFileSync(reglagesPath, JSON.stringify({ autoRouting: true, autoWhitelist: ['deepseek-official/deepseek-chat', 'token-plan/wan2.7-image'] }))
 }
 
+console.log('\n── les modèles qu\'Auto peut prendre : tous, gratuits, ma liste (V-30) ──')
+{
+  const home2 = mkdtempSync(join(tmpdir(), 'kauto2-'))
+  const p2 = { reglagesPath: join(home2, 'kybernos', 'settings.json'), sessionsAutoPath: join(home2, 'kybernos', 'auto-sessions.json'), santePath: join(home2, 'kybernos', 'auto-health.json') }
+  const lire2 = () => JSON.parse(readFileSync(p2.reglagesPath, 'utf8'))
+  const M = (route, id, extra = {}) => ({ route, id, cle: route + '/' + id, connecte: true, locale: false, ...extra })
+  let connus = [M('groq', 'llama-3.3-70b'), M('groq', 'gemma-2-9b-flash'), M('opencode-free', 'big-pickle'), M('kybernos', 'auto'), M('anthropic', 'claude-haiku-4', { connecte: false })]
+  const routes2 = {}
+  monterRoutes({ register: (r) => { routes2[r.path] = r.handler } }, { home: home2, ...p2, ollama: 'http://127.0.0.1:1', modeles: async () => connus, horloge: () => Date.now() })
+  const appel = async (path, corps) => { const rr = reponse(); await routes2[path.split('?')[0]](fabriqueRequete(corps === undefined ? 'GET' : 'POST', path, corps), rr); return rr.corps }
+  let st = await appel('/kybernos-auto/state?sessionId=s1')
+  ok('une installation neuve : « tous les modèles », la liste est celle des modèles connectés (sans clé = écarté)', st.scope === 'all' && st.whitelist.join() === 'kybernos/auto,groq/gemma-2-9b-flash,opencode-free/big-pickle,groq/llama-3.3-70b' && st.explicite.length === 0 && st.total === 4, st)
+  st = await appel('/kybernos-auto/settings', { autoScope: 'free' })
+  ok('« modèles gratuits » : seulement les gratuits', st.ok === true && st.scope === 'free' && st.whitelist.join() === 'opencode-free/big-pickle', st)
+  ok('le choix est écrit dans settings.json, avec la liste tapée intacte', lire2().autoScope === 'free')
+  st = await appel('/kybernos-auto/settings', { autoScope: 'tout' })
+  ok('un périmètre inconnu est refusé, avec son code', st.ok === false && st.code === 'scope', st)
+  connus = connus.concat([M('openrouter', 'x/y:free')])
+  await new Promise((r) => setTimeout(r, 5))
+  st = await appel('/kybernos-auto/settings', { autoClassifier: '' })
+  ok('un modèle gratuit branché plus tard est repris sans que personne ne touche une liste (le cache se rafraîchit à la saisie suivante)', st.ok === true, st)
+
+  // A3-24 : ce qui est tapé doit être un modèle de la configuration
+  const junk = ['model-only', 'a b/c d', '../../etc/passwd', '<script>/x', '🙂/🙂', 'x/' + 'y'.repeat(300)]
+  for (const x of junk) {
+    const avant = JSON.stringify(lire2())
+    st = await appel('/kybernos-auto/settings', { autoWhitelist: [x] })
+    ok('« ' + x.slice(0, 22) + ' » est refusé (400) avec une raison, et rien n\'est écrit', st.ok === false && typeof st.erreur === 'string' && /^liste/.test(st.code) && JSON.stringify(lire2()) === avant, st)
+  }
+  st = await appel('/kybernos-auto/settings', { autoWhitelist: ['groq/llama-3.3-70b', 'groq/inconnu-9'] })
+  ok('un « fournisseur/modèle » que la configuration ne connaît pas est refusé : « liste-inconnu », avec le nom fautif', st.ok === false && st.code === 'liste-inconnu' && st.cles.join() === 'groq/inconnu-9', st)
+  st = await appel('/kybernos-auto/settings', { autoWhitelist: ['groq/llama-3.3-70b', 'opencode-free/big-pickle'], autoScope: 'custom' })
+  ok('une liste de modèles connus passe, et « ma liste » la prend telle quelle', st.ok === true && st.scope === 'custom' && st.whitelist.join() === 'groq/llama-3.3-70b,opencode-free/big-pickle' && st.explicite.length === 2, st)
+  st = await appel('/kybernos-auto/settings', { autoScope: 'all' })
+  ok('revenir à « tous » garde la liste tapée de côté (on la retrouve en revenant à « ma liste »)', st.scope === 'all' && st.explicite.length === 2 && lire2().autoWhitelist.length === 2, st)
+
+  // l'hôte ne peut pas lire la configuration : il juge la forme seulement, et la liste vide reste vide
+  const home3 = mkdtempSync(join(tmpdir(), 'kauto3-'))
+  const routes3 = {}
+  monterRoutes({ register: (r) => { routes3[r.path] = r.handler } }, { home: home3, reglagesPath: join(home3, 'kybernos', 'settings.json'), sessionsAutoPath: join(home3, 's.json'), santePath: join(home3, 'h.json') })
+  const appel3 = async (path, corps) => { const rr = reponse(); await routes3[path.split('?')[0]](fabriqueRequete(corps === undefined ? 'GET' : 'POST', path, corps), rr); return rr.corps }
+  st = await appel3('/kybernos-auto/settings', { autoWhitelist: ['whatever/model-x'] })
+  ok('sans service de configuration : la forme est jugée, l\'existence ne l\'est pas (rien n\'est refusé à l\'aveugle)', st.ok === true && st.scope === 'custom', st)
+  st = await appel3('/kybernos-auto/settings', { autoWhitelist: ['model-only'] })
+  ok('…et un identifiant mal formé est refusé quand même', st.ok === false && st.code === 'liste-forme', st)
+  st = await appel3('/kybernos-auto/settings', { autoScope: 'all' })
+  ok('« tous » sans rien de connu : une liste vide, pas inventée', st.ok === true && st.whitelist.length === 0 && st.total === 0, st)
+}
+
 console.log('\n── origin garde ──')
 let brut403 = null
 const rep403 = { writeHead (code) { brut403 = { code } }, end (s) { brut403.corps = s } }

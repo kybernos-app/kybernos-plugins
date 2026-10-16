@@ -290,6 +290,18 @@ window.__ModuleLoader__.load({
     }, 300)
 
     // ── 2. la section Settings dédiée ───────────────────────────────────────
+    // The page shows the first rows of the health table and folds the rest (« all models » can list a hundred).
+    const SANTE_VISIBLE = 8
+    // Why the host refused a typed list, in the person's language (it answers with a code and the entries at fault).
+    const refusTxt = (j) => {
+      const code = j !== null && typeof j === 'object' ? String(j.code || '') : ''
+      const brut = j !== null && typeof j === 'object' && Array.isArray(j.cles) && j.cles.length > 0 ? String(j.cles[0]) : ''
+      const x = brut.length > 60 ? brut.slice(0, 57) + '…' : brut
+      if (code === 'liste-forme') return kt('« ' + x + ' » n’est pas de la forme fournisseur/modèle (par exemple openrouter/anthropic/claude-sonnet-4.5).', '“' + x + '” is not a provider/model name (for example openrouter/anthropic/claude-sonnet-4.5).')
+      if (code === 'liste-inconnu') return kt('« ' + x + ' » n’est pas un modèle que vous avez configuré. Choisissez-en un dans la liste, ou ajoutez-le d’abord dans Fournisseur IA & modèles.', '“' + x + '” is not a model you have configured. Pick one from the list, or add it first in AI Provider & Models.')
+      if (code === 'liste') return kt('La liste est trop longue (64 au plus) ou contient un doublon.', 'The list is too long (64 at most) or has a duplicate.')
+      return j !== null && typeof j === 'object' && j.erreur ? String(j.erreur) : 'Rejected.'
+    }
     const KbAutoSettings = () => {
       const etatPair = React.useState(null)
       const etat = etatPair[0]
@@ -300,6 +312,20 @@ window.__ModuleLoader__.load({
       const msgPair = React.useState('')
       const msg = msgPair[0]
       const setMsg = msgPair[1]
+      // The typed list says why an entry was refused, under its own field (the banner at the bottom of the page is for the rest).
+      const refusPair = React.useState('')
+      const refus = refusPair[0]
+      const setRefus = refusPair[1]
+      // The models of the profile, for the picker and the check of what is typed.
+      const modelesPair = React.useState(null)
+      const modeles = modelesPair[0]
+      const setModeles = modelesPair[1]
+      const avancePair = React.useState(false)
+      const avance = avancePair[0]
+      const setAvance = avancePair[1]
+      const toutPair = React.useState(false)
+      const toutVoir = toutPair[0]
+      const setToutVoir = toutPair[1]
 
       const maintenantPair = React.useState(Date.now())
       const maintenant = maintenantPair[0]
@@ -311,6 +337,7 @@ window.__ModuleLoader__.load({
       // Relecture toutes les 60 s (intervalS) + horloge d'une seconde pour « Last check N s ago ».
       React.useEffect(() => {
         lire()
+        fetch('/kybernos-auto/models').then((r) => r.json()).then((j) => { if (j && j.ok === true && Array.isArray(j.models)) setModeles(j.models) }).catch(() => { /* a host without the route: the picker is empty */ })
         const relecture = setInterval(lire, 60000)
         const horloge = setInterval(() => setMaintenant(Date.now()), 1000)
         return () => { clearInterval(relecture); clearInterval(horloge) }
@@ -325,6 +352,14 @@ window.__ModuleLoader__.load({
           if (j && j.ok === true) { setEtat(j); setMsg('') } else setMsg(j && j.erreur ? String(j.erreur) : 'Rejected.')
         }).catch((e) => setMsg(String(e && e.message ? e.message : e)))
       }
+      // The typed list: the answer comes back to the field that asked, with the host's reason in the person's language.
+      const ecrireListe = (patch) => fetch('/kybernos-auto/settings', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch)
+      }).then((r) => r.json()).then((j) => {
+        if (j && j.ok === true) { setEtat(j); setMsg(''); setRefus(''); return true }
+        setRefus(refusTxt(j))
+        return false
+      }).catch((e) => { setRefus(String(e && e.message ? e.message : e)); return false })
       // "Check now": the host asks every whitelist model a real, tiny question (the verdict cache is bypassed); a model whose
       // problem was fixed (a key, say) comes back at once instead of waiting for its pause to end.
       const sonder = () => {
@@ -336,114 +371,156 @@ window.__ModuleLoader__.load({
           .then((j) => { setSondage(false); if (j && j.ok === true) setEtat(j); else setMsg(j && j.erreur ? String(j.erreur) : 'Rejected.') })
           .catch((e) => { setSondage(false); setMsg(String(e && e.message ? e.message : e)) })
       }
-      const retirer = (m) => ecrire({ autoWhitelist: etat.whitelist.filter((x) => x !== m) })
+      const scope = etat.scope === 'free' || etat.scope === 'custom' ? etat.scope : 'all'
+      const typee = Array.isArray(etat.explicite) ? etat.explicite : (scope === 'custom' ? etat.whitelist : [])
+      const retirer = (m) => ecrireListe({ autoWhitelist: typee.filter((x) => x !== m) })
       const ajouterModele = () => {
         const m = ajouter.trim()
-        if (m === '' || etat.whitelist.indexOf(m) !== -1) return
-        ecrire({ autoWhitelist: etat.whitelist.concat([m]) })
-        setAjouter('')
+        if (m === '') return
+        if (typee.indexOf(m) !== -1) { setRefus(kt('« ' + m + ' » est déjà dans la liste.', '“' + m + '” is already in the list.')); return }
+        // The profile is known: say at once what is not in it, before asking the host (which says the same, and judges the form).
+        if (Array.isArray(modeles) && modeles.length > 0 && modeles.every((x) => x.cle !== m)) { setRefus(refusTxt({ code: 'liste-inconnu', cles: [m] })); return }
+        ecrireListe({ autoWhitelist: typee.concat([m]) }).then((fait) => { if (fait) setAjouter('') })
+      }
+      const choisirScope = (s) => {
+        if (s === scope) return
+        setRefus('')
+        ecrire({ autoScope: s })
       }
 
       const failoverInfo = etat.failover !== undefined && etat.failover !== null ? etat.failover : { enabled: false, last: null }
       const failoverOn = failoverInfo.enabled === true
       const failoverLast = failoverInfo.last !== undefined ? failoverInfo.last : null
+      const total = typeof etat.total === 'number' ? etat.total : etat.sante.length
+      const disponibles = typeof etat.disponibles === 'number' ? etat.disponibles : etat.sante.filter((v) => v.etat !== 'down').length
+      const lignes = toutVoir ? etat.sante : etat.sante.slice(0, SANTE_VISIBLE)
+      const scopes = [['all', kt('Tous les modèles', 'All models')], ['free', kt('Modèles gratuits', 'Free models')], ['custom', kt('Ma liste', 'My list')]]
+      const scopeAide = {
+        all: kt('Tous les modèles des fournisseurs que vous avez connectés. Un modèle ajouté plus tard est pris en compte tout seul.', 'Every model of the providers you connected. A model you add later is included by itself.'),
+        free: kt('Seulement ceux qui ne coûtent rien : les modèles Free LLMs, ceux marqués « :free » et les modèles locaux.', 'Only the ones that cost nothing: the Free LLMs models, the ones marked “:free” and local models.'),
+        custom: kt('Seulement les modèles que vous choisissez ci-dessous. L’ordre de la liste est l’ordre de repli.', 'Only the models you pick below. The list order is the fallback order.')
+      }
+      const etatCourt = scope !== 'custom' && total === 0
+        ? kt('Aucun modèle connecté pour l’instant : connectez Kybernos Cloud ou ajoutez un fournisseur (Fournisseur IA & modèles), Auto s’en servira.', 'No model is connected yet: connect Kybernos Cloud or add a provider (AI Provider & Models) and Auto will use it.')
+        : (total === 0
+          ? kt('Votre liste est vide : le modèle de la session sera utilisé.', 'Your list is empty: the session model will be used.')
+          : total + (total > 1 ? kt(' modèles autorisés', ' models allowed') : kt(' modèle autorisé', ' model allowed')) + ' · ' + disponibles + kt(' répondent', ' answering'))
       return h('div', { className: 'kaa-page', 'data-kb': 'auto-settings' },
-        h('h4', { className: 'kb6-title', style: { fontSize: '26px', fontWeight: 800, letterSpacing: '-.01em' } }, 'Auto routing ', h('span', { className: 'kaa-tag' }, 'session')),
+        h('h4', { className: 'kb6-title', style: { fontSize: '26px', fontWeight: 800, letterSpacing: '-.01em' } }, 'Auto routing'),
         h('p', { className: 'kaa-intro' }, kt(
-          'Chaque étape déléguée part vers le modèle le plus adapté parmi ceux activés ci-dessous — optimisé pour les hits de cache : Auto garde le modèle dont le cache est chaud et ne bascule que sur meilleur choix ou panne.',
-          'Each delegated step goes to the best-fit model among the ones enabled below — optimized for cache hits: Auto keeps the warm-cache model and only switches on a clearly better fit or failure.')),
-        h('div', { className: 'kaa-cache' },
-          h('span', { 'aria-hidden': 'true' }, '⚡ '),
-          h('span', null, kt('Optimisé cache : ', 'Cache-optimized: '), kt(
-            "le modèle de session n'est jamais changé ; seules les délégations sont routées (sauf si le repli du chat, plus bas, est activé).",
-            "the session model is never switched; only delegated work is routed (unless the chat fallback, below, is on)."))),
+          'Auto envoie chaque tâche déléguée au modèle le plus adapté parmi ceux que vous autorisez. Le modèle de votre chat n’est jamais changé.',
+          'Auto sends each delegated task to the best-fit model among the ones you allow. Your chat’s own model is never changed.')),
         h('div', { className: 'kaa-ligne' },
           h('div', { className: 'kaa-ligne-txt' },
-            h('b', null, kt('Toutes les sessions', 'All sessions')),
-            h('span', null, kt('Activé : Auto est forcé dans toutes les sessions (réglage global hérité). Désactivé : chaque session choisit depuis le composer.', 'On: Auto is forced in every session (legacy global setting). Off: each session chooses from the composer.'))),
+            h('b', null, kt('Routage automatique', 'Automatic routing')),
+            h('span', null, kt('Activé : Auto sert dans toutes les sessions. Désactivé : vous l’activez session par session, depuis le menu du modèle dans le composer.', 'On: Auto is used in every session. Off: you turn it on per session, from the model menu in the composer.'))),
           h('button', {
             type: 'button', className: 'kaa-switch-btn' + (etat.global === true ? ' on' : ''), 'data-kb': 'auto-global-toggle',
-            'aria-pressed': String(etat.global === true), 'aria-label': kt('Toutes les sessions', 'All sessions'),
+            'aria-pressed': String(etat.global === true), 'aria-label': kt('Routage automatique', 'Automatic routing'),
             onClick: () => ecrire({ autoRouting: etat.global !== true })
           }, h('span', null))),
-        h('div', { className: 'kaa-ligne' },
+        h('div', { className: 'kaa-ligne kaa-ligne-modeles' },
           h('div', { className: 'kaa-ligne-txt' },
-            h('b', null, kt('Repli du chat', 'Chat fallback')),
-            h('span', null, kt(
-              'Activé : quand le modèle de votre chat ne peut pas répondre (clé refusée, fournisseur en panne), la même étape part vers le modèle suivant de la whitelist, puis le vôtre est réessayé après une pause. Le modèle de repli peut avoir un autre coût ; ni l\'effort de raisonnement ni le plafond de sortie ne sont repris. Désactivé par défaut.',
-              'On: when your chat\'s own model cannot answer (key refused, provider down), the same step goes to the next whitelist model, then yours is tried again after a pause. The fallback model may cost differently; neither the reasoning effort nor the output cap carry over. Off by default.')),
-            failoverOn && failoverLast !== null
-              ? h('span', { className: 'kaa-why', 'data-kb': 'auto-failover-last' },
-                kt('Dernier repli : ', 'Last fallback: '), failoverLast.from, ' → ', failoverLast.to, ' (', failoverLast.code, ') · ',
-                Math.max(0, Math.round((maintenant - failoverLast.at) / 1000)) + ' s', kt(' plus tôt', ' ago'))
-              : null),
-          h('button', {
-            type: 'button', className: 'kaa-switch-btn' + (failoverOn ? ' on' : ''), 'data-kb': 'auto-failover-toggle',
-            'aria-pressed': String(failoverOn), 'aria-label': kt('Repli du chat', 'Chat fallback'),
-            onClick: () => ecrire({ autoFailover: !failoverOn })
-          }, h('span', null))),
-        h('div', { className: 'kaa-ligne' },
-          h('div', { className: 'kaa-ligne-txt' },
-            h('b', null, kt('Whitelist', 'Whitelist')),
-            h('span', null, kt('Les SEULS modèles qu\'Auto peut choisir. Un modèle qui ne répond plus est mis en pause (disjoncteur) puis réessayé ; l\'ordre de la liste est l\'ordre de repli.', 'The ONLY models Auto may pick. A model that stops answering is paused (circuit breaker) and tried again later; the list order is the fallback order.'))),
+            h('b', null, kt('Modèles qu’Auto peut utiliser', 'Models Auto may use')),
+            h('span', { 'data-kb': 'auto-scope-help' }, scopeAide[scope]),
+            h('span', { className: 'kaa-etat', 'data-kb': 'auto-state-line' }, etatCourt)),
           h('div', { className: 'kaa-chips-col' },
-            h('div', { className: 'kaa-chips', 'data-kb': 'auto-whitelist-chips' },
-              etat.whitelist.length === 0
-                ? h('span', { className: 'kaa-vide' }, kt('Aucun modèle — le modèle de session sera utilisé', 'No model — the session model will be used'))
-                : etat.whitelist.map((m) => h('span', { className: 'kaa-chip', key: m },
-                  m, h('button', { type: 'button', 'data-kb': 'auto-whitelist-remove', onClick: () => retirer(m), 'aria-label': 'Remove ' + m }, '×')))),
-            h('div', { className: 'kaa-ajout' },
-              h('input', {
-                className: 'kaa-ajout-in', 'data-kb': 'auto-whitelist-add', type: 'text',
-                placeholder: kt('provider/model', 'provider/model'), value: ajouter,
-                onChange: (ev) => setAjouter(ev.target.value),
-                onKeyDown: (ev) => { if (ev.key === 'Enter') ajouterModele() }
-              }),
-              h('button', { type: 'button', className: 'kaa-ajout-btn', onClick: ajouterModele }, kt('Ajouter', 'Add'))))),
-        h('div', { className: 'kaa-ligne' },
-          h('div', { className: 'kaa-ligne-txt' },
-            h('b', null, kt('Classifieur', 'Classifier')),
-            h('span', null, kt('Le modèle local qui choisit la classe avant routage — il ne voit que le message courant, jamais l\'historique. Défaut : tev1 en local.', 'The local model that picks the class before routing — it only sees the current message, never the history. Default: local tev1.'))),
-          h('input', {
-            className: 'kaa-classifier', 'data-kb': 'auto-classifier-input', type: 'text',
-            placeholder: 'ollama-local/tev1:0.8b', value: etat.classifier,
-            onChange: (ev) => setEtat({ ...etat, classifier: ev.target.value }),
-            onBlur: () => ecrire({ autoClassifier: etat.classifier })
-          })),
-        h('div', { className: 'kaa-sante', 'data-kb': 'auto-health' },
-          h('div', { className: 'kaa-sante-tete' },
-            h('b', null, kt('Santé locale', 'Local health'))),
-          etat.sante.length === 0
-            ? h('p', { className: 'kaa-vide' }, kt('Aucun modèle dans la whitelist.', 'No model in the whitelist.'))
-            : h('table', { className: 'kaa-table' },
-              h('thead', null, h('tr', null,
-                h('th', null, kt('Modèle', 'Model')), h('th', null, kt('Latence', 'Latency')),
-                h('th', null, kt('Erreurs', 'Errors')), h('th', null, kt('Cache hit', 'Cache hit')))),
-              h('tbody', null, etat.sante.map((s) => h('tr', { key: s.modele, className: s.etat === 'down' ? 'out' : '' },
-                h('td', null,
-                  h('span', { className: 'kaa-dot ' + (s.etat === 'down' ? 'down' : (s.etat === 'degrade' ? 'warn' : 'ok')) }),
-                  ' ', s.modele.split('/').pop(),
-                  etat.chaud === s.modele ? h('span', { className: 'kaa-warm', 'data-kb': 'auto-warm-cache' }, kt('cache chaud', 'warm cache')) : null,
-                  h('small', { 'data-kb': 'auto-health-status' },
-                    statutTxt(s, maintenant),
-                    s.calls > 0 ? ' · ' + s.calls + ' ' + (s.calls > 1 ? kt('appels', 'calls') : kt('appel', 'call')) : ''),
-                  s.etat !== 'ok' && s.etat !== 'jamais' && s.lastError && s.lastError.message
-                    ? h('small', { className: 'kaa-why', 'data-kb': 'auto-health-why', title: s.lastError.message }, s.lastError.code + ' — ' + s.lastError.message)
-                    : null),
-                h('td', null, s.lastLatencyMs !== null && s.lastLatencyMs !== undefined ? (s.lastLatencyMs / 1000).toFixed(1) + ' s' : '—'),
-                h('td', null, s.erreurPct !== null ? s.erreurPct + '%' : '—'),
-                h('td', null, s.cacheHitPct !== null && s.cacheHitPct !== undefined
-                  ? h('span', null, s.cacheHitPct + '%', h('span', { className: 'kaa-bar' }, h('i', { style: { width: s.cacheHitPct + '%' } })))
-                  : '—'))))),
-          h('div', { className: 'kaa-meta' },
-            h('span', { 'data-kb': 'auto-last-check' }, kt('Dernière lecture il y a ', 'Last check '),
-              Math.max(0, Math.round((maintenant - (etat.checkedAt || maintenant)) / 1000)) + ' s',
-              kt(' · toutes les ', ' ago · every '), (etat.intervalS || 60) + ' s'),
-            h('button', { type: 'button', className: 'kaa-recheck', 'data-kb': 'auto-health-recheck', disabled: sondage, onClick: sonder }, sondage ? kt('Vérification…', 'Checking…') : kt('Vérifier maintenant', 'Check now'))),
-          h('p', { className: 'kaa-note' }, kt(
-            'Avant de choisir, Auto interroge les candidats (une vraie question minuscule, verdict gardé ' + (etat.ttlSondeS || 60) + ' s) et ne propose que des modèles qui répondent, avec jusqu’à ' + (etat.plafond || 10) + ' replis ordonnés. Latence, erreurs et cache hit viennent des délégations qui rapportent leur issue (POST /kybernos-auto/report) ; « — » tant qu’aucune n’a rapporté.',
-            'Before choosing, Auto asks the candidates a real, tiny question (the verdict is kept for ' + (etat.ttlSondeS || 60) + ' s) and only offers models that answer, with up to ' + (etat.plafond || 10) + ' ordered fallbacks. Latency, errors and cache hit come from delegations that report their outcome (POST /kybernos-auto/report); "—" until one has.')),
-          h('div', { className: 'kaa-foot' }, h('code', null, 'scope: session'))),
+            h('div', { className: 'kaa-seg', role: 'radiogroup', 'aria-label': kt('Modèles qu’Auto peut utiliser', 'Models Auto may use'), 'data-kb': 'auto-scope' },
+              scopes.map((x) => h('button', {
+                key: x[0], type: 'button', role: 'radio', 'aria-checked': String(scope === x[0]), className: 'kaa-seg-btn' + (scope === x[0] ? ' on' : ''),
+                'data-kb': 'auto-scope-' + x[0], onClick: () => choisirScope(x[0])
+              }, x[1]))),
+            scope === 'custom'
+              ? h(React.Fragment, null,
+                h('div', { className: 'kaa-chips', 'data-kb': 'auto-whitelist-chips' },
+                  typee.length === 0
+                    ? h('span', { className: 'kaa-vide' }, kt('Aucun modèle — le modèle de session sera utilisé', 'No model — the session model will be used'))
+                    : typee.map((m) => h('span', { className: 'kaa-chip', key: m },
+                      m, h('button', { type: 'button', 'data-kb': 'auto-whitelist-remove', onClick: () => retirer(m), 'aria-label': 'Remove ' + m }, '×')))),
+                h('div', { className: 'kaa-ajout' },
+                  h('input', {
+                    className: 'kaa-ajout-in', 'data-kb': 'auto-whitelist-add', type: 'text', list: 'kaa-modeles', autoComplete: 'off', spellCheck: false,
+                    'aria-invalid': refus !== '' ? 'true' : 'false', 'aria-describedby': refus !== '' ? 'kaa-refus' : undefined,
+                    placeholder: kt('fournisseur/modèle — choisissez dans la liste', 'provider/model — pick from the list'), value: ajouter,
+                    onChange: (ev) => { setAjouter(ev.target.value); if (refus !== '') setRefus('') },
+                    onKeyDown: (ev) => { if (ev.key === 'Enter') ajouterModele() }
+                  }),
+                  h('datalist', { id: 'kaa-modeles' }, (Array.isArray(modeles) ? modeles : []).filter((x) => typee.indexOf(x.cle) === -1).map((x) => h('option', { key: x.cle, value: x.cle }))),
+                  h('button', { type: 'button', className: 'kaa-ajout-btn', onClick: ajouterModele }, kt('Ajouter', 'Add'))),
+                refus !== '' ? h('p', { className: 'kaa-refus', id: 'kaa-refus', role: 'alert', 'data-kb': 'auto-whitelist-error' }, refus) : null)
+              : null)),
+        h('button', {
+          type: 'button', className: 'kaa-pli', 'data-kb': 'auto-advanced', 'aria-expanded': String(avance), onClick: () => setAvance(!avance)
+        }, h('span', { 'aria-hidden': 'true' }, avance ? '▾ ' : '▸ '), kt('Réglages avancés', 'Advanced settings'), h('small', null, kt(' · repli du chat, classifieur, santé des modèles', ' · chat fallback, classifier, model health'))),
+        avance ? h('div', { className: 'kaa-avance', 'data-kb': 'auto-advanced-body' },
+          h('div', { className: 'kaa-cache' },
+            h('span', { 'aria-hidden': 'true' }, '⚡ '),
+            h('span', null, kt('Optimisé cache : ', 'Cache-optimized: '), kt(
+              "le modèle de session n'est jamais changé ; seules les délégations sont routées (sauf si le repli du chat, plus bas, est activé). Auto garde le modèle dont le cache est chaud et ne bascule que sur meilleur choix ou panne.",
+              "the session model is never switched; only delegated work is routed (unless the chat fallback, below, is on). Auto keeps the warm-cache model and only switches on a clearly better fit or failure."))),
+          h('div', { className: 'kaa-ligne' },
+            h('div', { className: 'kaa-ligne-txt' },
+              h('b', null, kt('Repli du chat', 'Chat fallback')),
+              h('span', null, kt(
+                'Activé : quand le modèle de votre chat ne peut pas répondre (clé refusée, fournisseur en panne), la même étape part vers le modèle suivant de la liste, puis le vôtre est réessayé après une pause. Le modèle de repli peut avoir un autre coût ; ni l\'effort de raisonnement ni le plafond de sortie ne sont repris. Désactivé par défaut.',
+                'On: when your chat\'s own model cannot answer (key refused, provider down), the same step goes to the next model of the list, then yours is tried again after a pause. The fallback model may cost differently; neither the reasoning effort nor the output cap carry over. Off by default.')),
+              failoverOn && failoverLast !== null
+                ? h('span', { className: 'kaa-why', 'data-kb': 'auto-failover-last' },
+                  kt('Dernier repli : ', 'Last fallback: '), failoverLast.from, ' → ', failoverLast.to, ' (', failoverLast.code, ') · ',
+                  Math.max(0, Math.round((maintenant - failoverLast.at) / 1000)) + ' s', kt(' plus tôt', ' ago'))
+                : null),
+            h('button', {
+              type: 'button', className: 'kaa-switch-btn' + (failoverOn ? ' on' : ''), 'data-kb': 'auto-failover-toggle',
+              'aria-pressed': String(failoverOn), 'aria-label': kt('Repli du chat', 'Chat fallback'),
+              onClick: () => ecrire({ autoFailover: !failoverOn })
+            }, h('span', null))),
+          h('div', { className: 'kaa-ligne' },
+            h('div', { className: 'kaa-ligne-txt' },
+              h('b', null, kt('Classifieur', 'Classifier')),
+              h('span', null, kt('Le modèle local qui choisit la classe avant routage — il ne voit que le message courant, jamais l\'historique. Défaut : tev1 en local.', 'The local model that picks the class before routing — it only sees the current message, never the history. Default: local tev1.'))),
+            h('input', {
+              className: 'kaa-classifier', 'data-kb': 'auto-classifier-input', type: 'text',
+              placeholder: 'ollama-local/tev1:0.8b', value: etat.classifier,
+              onChange: (ev) => setEtat({ ...etat, classifier: ev.target.value }),
+              onBlur: () => ecrire({ autoClassifier: etat.classifier })
+            })),
+          h('div', { className: 'kaa-sante', 'data-kb': 'auto-health' },
+            h('div', { className: 'kaa-sante-tete' },
+              h('b', null, kt('Santé locale', 'Local health'))),
+            etat.sante.length === 0
+              ? h('p', { className: 'kaa-vide' }, kt('Aucun modèle dans la liste.', 'No model in the list.'))
+              : h('table', { className: 'kaa-table' },
+                h('thead', null, h('tr', null,
+                  h('th', null, kt('Modèle', 'Model')), h('th', null, kt('Latence', 'Latency')),
+                  h('th', null, kt('Erreurs', 'Errors')), h('th', null, kt('Cache hit', 'Cache hit')))),
+                h('tbody', null, lignes.map((s) => h('tr', { key: s.modele, className: s.etat === 'down' ? 'out' : '' },
+                  h('td', null,
+                    h('span', { className: 'kaa-dot ' + (s.etat === 'down' ? 'down' : (s.etat === 'degrade' ? 'warn' : 'ok')) }),
+                    ' ', s.modele.split('/').pop(),
+                    etat.chaud === s.modele ? h('span', { className: 'kaa-warm', 'data-kb': 'auto-warm-cache' }, kt('cache chaud', 'warm cache')) : null,
+                    h('small', { 'data-kb': 'auto-health-status' },
+                      statutTxt(s, maintenant),
+                      s.calls > 0 ? ' · ' + s.calls + ' ' + (s.calls > 1 ? kt('appels', 'calls') : kt('appel', 'call')) : ''),
+                    s.etat !== 'ok' && s.etat !== 'jamais' && s.lastError && s.lastError.message
+                      ? h('small', { className: 'kaa-why', 'data-kb': 'auto-health-why', title: s.lastError.message }, s.lastError.code + ' — ' + s.lastError.message)
+                      : null),
+                  h('td', null, s.lastLatencyMs !== null && s.lastLatencyMs !== undefined ? (s.lastLatencyMs / 1000).toFixed(1) + ' s' : '—'),
+                  h('td', null, s.erreurPct !== null ? s.erreurPct + '%' : '—'),
+                  h('td', null, s.cacheHitPct !== null && s.cacheHitPct !== undefined
+                    ? h('span', null, s.cacheHitPct + '%', h('span', { className: 'kaa-bar' }, h('i', { style: { width: s.cacheHitPct + '%' } })))
+                    : '—'))))),
+            etat.sante.length > SANTE_VISIBLE
+              ? h('button', { type: 'button', className: 'kaa-recheck', 'data-kb': 'auto-health-more', onClick: () => setToutVoir(!toutVoir) },
+                toutVoir ? kt('Voir moins', 'Show fewer') : kt('Voir les ' + etat.sante.length + ' modèles', 'Show all ' + etat.sante.length + ' models'))
+              : null,
+            h('div', { className: 'kaa-meta' },
+              h('span', { 'data-kb': 'auto-last-check' }, kt('Dernière lecture il y a ', 'Last check '),
+                Math.max(0, Math.round((maintenant - (etat.checkedAt || maintenant)) / 1000)) + ' s',
+                kt(' · toutes les ', ' ago · every '), (etat.intervalS || 60) + ' s'),
+              h('button', { type: 'button', className: 'kaa-recheck', 'data-kb': 'auto-health-recheck', disabled: sondage, onClick: sonder }, sondage ? kt('Vérification…', 'Checking…') : kt('Vérifier maintenant', 'Check now'))),
+            h('p', { className: 'kaa-note' }, kt(
+              'Avant de choisir, Auto interroge les candidats (une vraie question minuscule, verdict gardé ' + (etat.ttlSondeS || 60) + ' s) et ne propose que des modèles qui répondent, avec jusqu’à ' + (etat.plafond || 10) + ' replis ordonnés. « Vérifier maintenant » interroge les ' + (etat.sondeMax || 20) + ' premiers de la liste. Latence, erreurs et cache hit viennent des délégations qui rapportent leur issue (POST /kybernos-auto/report) ; « — » tant qu’aucune n’a rapporté.',
+              'Before choosing, Auto asks the candidates a real, tiny question (the verdict is kept for ' + (etat.ttlSondeS || 60) + ' s) and only offers models that answer, with up to ' + (etat.plafond || 10) + ' ordered fallbacks. “Check now” asks the first ' + (etat.sondeMax || 20) + ' of the list. Latency, errors and cache hit come from delegations that report their outcome (POST /kybernos-auto/report); "—" until one has.')))) : null,
         msg !== '' ? h('p', { className: 'kaa-err' }, msg) : null)
     }
 
@@ -469,13 +546,10 @@ window.__ModuleLoader__.load({
       '.kaa-pop-dispo{display:flex;align-items:center;gap:6px;margin:2px 8px 2px;padding:8px 12px;border-radius:12px;background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 16%,transparent);color:var(--dsw-alias-label-primary);font-size:13px}',
       '.kaa-pop-dispo.ok{background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 12%,transparent)}',
       '.kaa-pop-dispo.down{background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 14%,transparent)}',
-      '.kaa-tag{font-size:11px;font-weight:500;vertical-align:middle;padding:2px 6px;border-radius:6px;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-secondary)}',
       '.kaa-warm{font-size:10.5px;font-weight:500;margin-inline-start:6px;padding:1px 6px;border-radius:6px;white-space:nowrap;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-brand-primary)}',
       '.kaa-bar{display:block;height:6px;margin-top:3px;border-radius:999px;background:var(--dsw-alias-bg-layer-3);overflow:hidden}',
       '.kaa-bar i{display:block;height:100%;border-radius:999px;background:var(--dsw-alias-brand-primary)}',
       '.kaa-meta{display:flex;justify-content:space-between;align-items:center;margin:10px 0 0;font-size:11.5px;color:var(--dsw-alias-label-tertiary)}',
-      '.kaa-foot{margin-top:10px;padding-top:10px;border-top:0.5px solid var(--dsw-alias-border-l2);font-size:12px;color:var(--dsw-alias-label-tertiary)}',
-      '.kaa-foot code{font:12px ui-monospace,Menlo,monospace}',
       '.kaa-dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex:none}',
       '.kaa-dot.ok{background:var(--dsw-alias-state-success-primary)}',
       '.kaa-dot.warn{background:var(--dsw-alias-state-warn-primary)}',
@@ -496,6 +570,16 @@ window.__ModuleLoader__.load({
       '.kaa-chip button{border:0;background:none;color:var(--dsw-alias-label-tertiary);cursor:pointer;font-size:14px;padding:0 4px;line-height:1}',
       '.kaa-chip button:hover{color:var(--dsw-alias-label-primary)}',
       '.kaa-ajout{display:flex;gap:6px}',
+      '.kaa-seg{display:flex;gap:2px;padding:2px;border:0.5px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-layer-1)}',
+      '.kaa-seg-btn{flex:1;min-width:0;height:28px;padding:0 8px;border:0;border-radius:8px;cursor:pointer;font:inherit;font-size:12.5px;color:var(--dsw-alias-label-secondary);background:transparent}',
+      '.kaa-seg-btn:hover{background:var(--dsw-alias-interactive-bg-hover)}',
+      '.kaa-seg-btn.on{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-3);box-shadow:0 0 0 .5px var(--dsw-alias-border-l4)}',
+      '.kaa-seg-btn:focus-visible,.kaa-pli:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
+      '.kaa-etat{font-size:12.5px;color:var(--dsw-alias-label-secondary);margin-top:4px}',
+      '.kaa-refus{margin:0;font-size:12px;line-height:1.4;color:var(--dsw-alias-state-error-primary)}',
+      '.kaa-pli{display:flex;align-items:baseline;gap:2px;width:100%;margin:6px 0 0;padding:14px 0;border:0;border-bottom:0.5px solid var(--dsw-alias-border-l2);background:none;cursor:pointer;font:inherit;font-size:14px;color:var(--dsw-alias-label-primary);text-align:start}',
+      '.kaa-pli small{font-size:12.5px;color:var(--dsw-alias-label-tertiary)}',
+      '.kaa-avance .kaa-cache{margin:14px 0 0}',
       '.kaa-ajout-in{flex:1;min-width:0;height:30px;padding:0 10px;font:500 12.5px ui-monospace,Menlo,monospace;color:var(--dsw-alias-label-primary);',
       'background:var(--dsw-alias-bg-layer-1);border:0.5px solid var(--dsw-alias-border-l2);border-radius:8px}',
       '.kaa-ajout-btn{flex:none;height:30px;padding:0 12px;border:0;border-radius:8px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;',

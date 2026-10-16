@@ -1,6 +1,7 @@
 # `@local/kybernos-auto`
 
-Auto mode: a per-session switch, a whitelist of models and a router that picks one of them for each
+Auto mode: a per-session switch, the models it may use (every connected model by default, the free ones, or a list the person
+types) and a router that picks one of them for each
 delegated request by class (`chat`, `code`, `vision`, `media`, `design`, `agent-task`). The router is **resilient**: it probes
 the candidates before it answers, keeps a circuit breaker per model, and hands back an ordered fallback chain (see
 `docs/dev/auto-resilience.md`). The session's own model is never changed; only the routing decision is served.
@@ -10,11 +11,15 @@ the candidates before it answers, keeps a circuit breaker per model, and hands b
 - **Composer**: an "Auto" row appended to the native model menu (the one with Model and Effort): a
   "This session only" switch, an "N of M models available" pill and a small health table (model, latency,
   errors). While Auto is on, Model and Effort are greyed out and the model chip reads "Auto".
-- **Settings**: a section "Auto routing" (order 14) with an "All sessions" switch (legacy global
-  breaker: on forces Auto everywhere), the whitelist (`provider/model` chips, max 64), the classifier model
-  (placeholder `ollama-local/tev1:0.8b`) and a local health table (latency, errors, cache hit, "warm cache"
-  badge). Each model says WHY it is skipped (cause, retry time, last error). It refreshes every 60 s; "Check now" probes the
-  whitelist for real.
+- **Settings**: a section "Auto routing" (order 14), simple first. It opens on one plain sentence, one switch ("Automatic
+  routing": on forces Auto in every session, off leaves it to the composer's per-session switch) and the choice of the models Auto
+  may use: **All models** (the default: every model of the providers that are connected, the Kybernos Cloud first, cheap ones before
+  costly ones, a local model last, so a model connected tomorrow is included by itself), **Free models** (the Free LLMs route, ids
+  marked `:free` or `-free`, local models) or **My list** (`provider/model` chips, max 64, typed with a picker fed by the profile; an
+  entry that is not a configured model is refused with the reason under the field). Everything else is under one fold, "Advanced
+  settings": the chat fallback, the classifier model (placeholder `ollama-local/tev1:0.8b`) and the local health table (latency,
+  errors, cache hit, "warm cache" badge; eight rows, the rest one click away). Each model says WHY it is skipped (cause, retry time,
+  last error). It refreshes every 60 s; "Check now" probes the first 20 models of the list for real.
 
 ## Chat fallback (main-session failover, opt-in)
 
@@ -43,9 +48,10 @@ JSON; the exact-origin guard answers `403` (an absent `Origin` passes). `POST` r
 
 | Route | Purpose |
 | --- | --- |
-| `GET /kybernos-auto/state?sessionId=` | `{global, whitelist, classifier, sessionOn, sante[], total, disponibles, chaud, failover:{enabled,last}, sondeEnCours, plafond, ttlSondeS, checkedAt, intervalS}`; each `sante` entry: `{modele, etat (jamais\|ok\|degrade\|down), disjoncteur (closed\|open\|half-open), jusqua, cause, consecutive, calls, errors, erreurPct, lastLatencyMs, cacheHitPct, lastError, sonde}` |
+| `GET /kybernos-auto/models` | the configured models, read-only: `{ok, models:[{cle, route, id, connecte, locale}]}` (feeds the picker of « My list ») |
+| `GET /kybernos-auto/state?sessionId=` | `{global, whitelist, scope, explicite, sondeMax, classifier, sessionOn, sante[], total, disponibles, chaud, failover:{enabled,last}, sondeEnCours, plafond, ttlSondeS, checkedAt, intervalS}`; each `sante` entry: `{modele, etat (jamais\|ok\|degrade\|down), disjoncteur (closed\|open\|half-open), jusqua, cause, consecutive, calls, errors, erreurPct, lastLatencyMs, cacheHitPct, lastError, sonde}` |
 | `POST /kybernos-auto/session` | `{sessionId, on}` turns Auto on or off for one session |
-| `POST /kybernos-auto/settings` | any of `autoWhitelist` (unique strings, 200 chars max), `autoRouting` (boolean), `autoFailover` (boolean), `autoClassifier` |
+| `POST /kybernos-auto/settings` | any of `autoWhitelist` (unique `provider/model` strings, 64 max; when the host can read the profile each must be a configured model, otherwise only the form is judged; a refusal answers `400` with a `code` — `liste-forme`, `liste-inconnu`, `liste` — and the entries at fault in `cles`), `autoScope` (`all`, `free` or `custom`), `autoRouting` (boolean), `autoFailover` (boolean), `autoClassifier` |
 | `POST /kybernos-auto/report` | `{modele, latenceMs?, erreur?, code?, message?, inputTokens?, cacheReadTokens?}` outcome of one delegation; an error keeps its reason and feeds the breaker |
 | `POST /kybernos-auto/router` | `{demande, sessionId?, exclure?[], sonde?}` returns `{actif, classe, via, modele, verifie, candidats[], chaine[], ecartes[], sondes, sonde, delai, plafond, raison}` |
 | `POST /kybernos-auto/probe` | `{models?[]}` probes the whitelist (or the whitelist models named; any other is ignored) for real, ignoring the verdict cache; a run that ended under 5 s ago is not repeated; 503 when the llm service is absent |
@@ -54,7 +60,9 @@ JSON; the exact-origin guard answers `403` (an absent `Origin` passes). `POST` r
 
 All under `$DSH_HOME/kybernos/` (default `~/.dsh/kybernos/`):
 
-- `settings.json`: keys `autoRouting`, `autoFailover`, `autoWhitelist`, `autoClassifier`. The file is shared (the core reads
+- `settings.json`: keys `autoRouting`, `autoFailover`, `autoScope`, `autoWhitelist`, `autoClassifier`. `autoScope` absent means « all
+  models », unless a list was typed before scopes existed (then it stays « my list »); `whitelist` in `/state` is always the list Auto
+  really uses, `explicite` the typed one, kept when the person goes back to « all models ». The file is shared (the core reads
   `pairingToken`, `gatewayBase`, `wsAdminKey`; `kybernos-sessions` writes its own keys): a save here merges into what is on
   disk, writes atomically, keeps the file's permissions, and refuses to overwrite a file that is unreadable or not a JSON
   object (a copy of a corrupt one is kept as `settings.json.corrupt-<time>`, and the route answers 500 with the reason).
@@ -70,7 +78,9 @@ All under `$DSH_HOME/kybernos/` (default `~/.dsh/kybernos/`):
 ## DSH seams and network
 
 - Host: `webServer` (`ctx.get`, else `ctx.inject(['webServer'])`), plus the `llm` service read **at call time** through a getter
-  (DSH may publish it after this plugin; with it absent nothing is probed and the answer says so). No `remote.*`.
+  (DSH may publish it after this plugin; with it absent nothing is probed and the answer says so), and the `settings` and
+  `credentials` services, read at call time and cached 15 s, to know the configured models (`modeles.mjs`; only the existence of a
+  key is asked, never its value; with no service the « all » and « free » lists are empty, never made up). No `remote.*`.
 - Client: `inject: ['slots']`, slot `settings.section`. The composer part has no seam: it finds the model menu
   (`[role="menu"]` containing the text "Effort") and the model chip (a button whose text contains "Default") in
   the DOM, polling every 300 ms. `package.json` declares `@deepseek-ai/dsh-client-ui-conversation`.

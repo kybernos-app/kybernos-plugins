@@ -34,5 +34,18 @@ ok('un DSH démarré avant la route /probe (404) reçoit un message clair, pas u
 ok('l’état d’un modèle dit POURQUOI (cause, retour prévu, dernière erreur), dans la page et dans le composer', src.indexOf('const statutTxt') !== -1 && src.indexOf("'data-kb': 'auto-health-why'") !== -1 && (src.match(/statutTxt\(/g) || []).length === 2)
 ok('un clic dans le panneau ne ferme pas le menu natif (pointerdown arrêté)', src.indexOf("'pointerdown'") !== -1 && src.indexOf('stopPropagation') !== -1)
 
+// ── the page of V-30 / A3-24: one plain switch, three scopes, the rest under one fold ─────────────────────────────────
+ok('la page ouvre sur une phrase simple, UN interrupteur « Routage automatique » et le choix des modèles : tous / gratuits / ma liste',
+  aDataKb('auto-global-toggle') && aDataKb('auto-scope') && src.indexOf("'data-kb': 'auto-scope-' + x[0]") !== -1 && src.indexOf("['all', kt('Tous les modèles', 'All models')]") !== -1 && src.indexOf("['free', kt('Modèles gratuits', 'Free models')]") !== -1 && src.indexOf("['custom', kt('Ma liste', 'My list')]") !== -1)
+ok('le choix part en autoScope vers l\'hôte, et « tous » est la valeur par défaut tant que rien n\'est choisi', src.indexOf('ecrire({ autoScope: s })') !== -1 && src.indexOf("etat.scope === 'free' || etat.scope === 'custom' ? etat.scope : 'all'") !== -1)
+ok('la liste tapée n\'apparaît que pour « ma liste » (chips, champ, liste des modèles du profil)', src.indexOf("scope === 'custom'\n              ? h(React.Fragment, null,\n                h('div', { className: 'kaa-chips'") !== -1 && src.indexOf("h('datalist', { id: 'kaa-modeles' }") !== -1)
+ok('repli du chat, classifieur et santé des modèles sont sous UN pli (« Réglages avancés »), fermé au départ',
+  aDataKb('auto-advanced') && aDataKb('auto-advanced-body') && src.indexOf('React.useState(false)') !== -1 && /avance \? h\('div', \{ className: 'kaa-avance'[\s\S]*auto-failover-toggle[\s\S]*auto-classifier-input[\s\S]*auto-health'/.test(src))
+ok('plus de mots de développeur en tête de page : ni « scope: session », ni l\'étiquette « session »', src.indexOf("'scope: session'") === -1 && src.indexOf("h('span', { className: 'kaa-tag' }, 'session')") === -1 && src.indexOf('kaa-foot') === -1 && src.indexOf('kaa-tag') === -1)
+ok('un refus de l\'hôte est dit sous le champ, dans la langue de la personne (forme, modèle inconnu), pas dans le bandeau du bas', aDataKb('auto-whitelist-error') && src.indexOf("code === 'liste-forme'") !== -1 && src.indexOf("code === 'liste-inconnu'") !== -1 && src.indexOf('setRefus(refusTxt(j))') !== -1)
+ok('ce qui n\'est pas dans le profil est dit tout de suite, avant même d\'interroger l\'hôte', src.indexOf("modeles.every((x) => x.cle !== m)") !== -1)
+ok('le tableau de santé en montre huit lignes et propose le reste (« tous » peut en lister une centaine)', src.indexOf('const SANTE_VISIBLE = 8') !== -1 && aDataKb('auto-health-more'))
+ok('un champ de saisie a ses états ARIA (invalide, décrit par son message)', src.indexOf("'aria-invalid': refus !== '' ? 'true' : 'false'") !== -1 && src.indexOf("'aria-describedby': refus !== '' ? 'kaa-refus' : undefined") !== -1)
+
 console.log('\n' + (ko === 0 ? 'HARNAIS CLIENT VERT — ' + ok0 + ' contrôles ✓' : ko + ' échec(s)'))
 process.exit(ko === 0 ? 0 : 1)
