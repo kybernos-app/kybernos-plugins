@@ -84,6 +84,14 @@ for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, async () => { await cle
 
 const marksIn = (key) => val(`(() => { try { const o = JSON.parse(localStorage.getItem(${JSON.stringify(key)}) || '{}'); const v = Object.values(o); return JSON.stringify({ n: v.length, marks: v.filter((t) => typeof t === 'string' && t.charAt(0) === '⟦').length }) } catch (e) { return JSON.stringify({ n: -1, marks: -1 }) } })()`).then((x) => JSON.parse(x))
 const rowText = (id) => flow.rowText(id)
+// The test-marks banner is a collapsed <details data-note="pseudo">: one summary line with the count, and, once opened, the sentence, the button
+// « Translate these texts again » and the examples. A real click on the summary opens it (a button inside a closed fold has no box to click).
+const PSEUDO = '[data-lang="es"] [data-note="pseudo"]'
+const pseudoOpen = () => val(`(() => { const d = document.querySelector(${JSON.stringify(PSEUDO)}); return d ? d.open === true : null })()`)
+const openPseudoFold = async () => {
+  if ((await pseudoOpen()) === false) await clickSel(PSEUDO + ' > summary')
+  return poll(() => pseudoOpen(), 5000)
+}
 const ring = () => val(`(() => { const r = document.querySelector('[data-act="run-ring"]'); return r ? JSON.stringify({ label: r.getAttribute('aria-label'), pct: r.style.getPropertyValue('--p'), shown: r.getBoundingClientRect().width > 0 }) : null })()`).then((x) => (x === null || x === undefined ? null : JSON.parse(x)))
 // Leaves Settings with a real click on « Back to workspace »; false when the dialog is still there afterwards.
 const backToWorkspace = async () => {
@@ -134,19 +142,24 @@ try {
   await sleep(2500)
   await shot('B-marks-detected')
   const rowB = await rowText('es')
-  const banner = await val(`(() => { const b = document.querySelector('[data-lang="es"] [data-note="pseudo"]'); return b ? b.innerText.replace(/\\s+/g, ' ') : null })()`)
-  check('a banner says that texts look like test marks, with their number', typeof banner === 'string' && /\d[\d,.\s]*\s+texts look like test marks/.test(banner), banner)
+  const closedSummary = await val(`(() => { const d = document.querySelector(${JSON.stringify(PSEUDO)}); return d ? JSON.stringify({ open: d.open, text: d.querySelector('summary').innerText.replace(/\\s+/g, ' ') }) : null })()`)
+  const folded = closedSummary === null ? null : JSON.parse(closedSummary)
+  check('a banner folded on one line says how many texts are to check, and that they are test marks', folded !== null && folded.open === false && /\d[\d,.\s]*\s+texts to check · test marks/.test(folded.text), folded)
+  const unfolded = await openPseudoFold()
+  const banner = await val(`(() => { const b = document.querySelector(${JSON.stringify(PSEUDO)}); return b ? b.innerText.replace(/\\s+/g, ' ') : null })()`)
+  check('opened, the banner says that texts look like test marks, with their number', unfolded === true && typeof banner === 'string' && /\d[\d,.\s]*\s+texts look like test marks/.test(banner), banner)
   check('the language is NOT "Ready" any more', !/Ready/.test(String(rowB)), rowB)
   check('"Use" and "Use anyway" are not offered while marks are there (they would show the brackets)', (await val(`!document.querySelector('[data-lang="es"] [data-act="use"]') && !document.querySelector('[data-lang="es"] [data-act="use-now"]')`)) === true)
   check('the progress bar is there, for a language that is not running (grey, with the count)', (await val(`!!document.querySelector('[data-lang="es"] .kbth-bar.stale [style*="width"]') || !!document.querySelector('[data-lang="es"] .kbth-bar.stale > i')`)) === true && /\d+ of [\d,]+ texts/.test(String(await val(`document.querySelector('[data-lang="es"] .kbth-prog-line').innerText.replace(/\\s+/g, ' ')`))))
-  check('the examples can be shown', (await clickSel('[data-lang="es"] [data-act="pseudo-details"]')) === true && /⟦/.test(String(await val(`(document.querySelector('[data-lang="es"] .kbth-ex') || { innerText: '' }).innerText`))))
+  check('the examples are in the opened banner', /⟦/.test(String(await val(`(document.querySelector('[data-lang="es"] .kbth-ex') || { innerText: '' }).innerText`))))
 
   // ═══ C. translating again ══════════════════════════════════════════════════════════
   console.log('\n── C. « Translate these texts again », and the run is visible from everywhere ──')
   await val(`localStorage.setItem('__kb_real_stub', '1')`)
   await val(`window.__KB_REAL__.calls = 0`)
+  await openPseudoFold() // « Translate these texts again » sits inside the fold
   await clickSel('[data-lang="es"] [data-act="repair"]')
-  await sleep(1800)
+  await poll(() => val(`!!document.querySelector('[data-lang="es"] [data-note="in-tab"]')`), 8000) // the run has started: the page says it lives in this tab
   const inTab = await val(`(() => { const b = document.querySelector('[data-lang="es"] [data-note="in-tab"]'); return b ? b.innerText.replace(/\\s+/g, ' ') : null })()`)
   check('while it runs the page says it lives in this tab, and what to do', typeof inTab === 'string' && /this tab/.test(inTab) && /Do not close the tab/.test(inTab), inTab)
   check('the bar is live (not grey) while it runs', (await val(`!!document.querySelector('[data-lang="es"] .kbth-bar') && !document.querySelector('[data-lang="es"] .kbth-bar.stale')`)) === true)
