@@ -1183,7 +1183,7 @@ export function deriveRuns(events, snapshotsById) {
     }
     runs.push({
       runId: 'team-' + box.id,
-      name: str(task.subject) !== null ? str(task.subject) : ('Tâche ' + box.id),
+      name: str(task.subject) !== null ? str(task.subject) : ('Task ' + box.id),
       declaredFrom: 'agent-team',
       startedAt: winStart,
       endedAt: winEnd,
@@ -1250,7 +1250,7 @@ export function deriveRuns(events, snapshotsById) {
     for (let p = 0; p < run.declaredPhases.length; p += 1) {
       const ph = run.declaredPhases[p]
       if (ph.title !== null && obs[ph.title] === undefined) {
-        devs.push({ kind: 'phase-not-run', severity: 'warning', detail: 'phase declaree jamais observee: ' + ph.title, source: 'derived' })
+        devs.push({ kind: 'phase-not-run', severity: 'warning', detail: 'phase declared but never observed: ' + ph.title, source: 'derived' })
       }
     }
     if (run.declaredPhases.length > 0) {
@@ -1515,7 +1515,7 @@ export function deriveCalls(events, kyberIds) {
     const nodes = []
     const wires = []
     const short = callShortOf(str(task.subject), crew)
-    nodes.push({ id: 't', type: 'trigger', x: CALL_X_COLS[0], y: 150, label: str(task.id) === null ? 'Déclencheur' : 'Tâche ' + str(task.id), sub: 'déclencheur', st: completed === true ? 'done' : (status === 'in_progress' ? 'active' : 'pending'), io: ['—', str(task.id)] })
+    nodes.push({ id: 't', type: 'trigger', x: CALL_X_COLS[0], y: 150, label: str(task.id) === null ? 'Déclencheur' : 'Task ' + str(task.id), sub: 'trigger', st: completed === true ? 'done' : (status === 'in_progress' ? 'active' : 'pending'), io: ['—', str(task.id)] })
     // Filtre d'appartenance : quand le crew est connu, l'appel ne montre que
     // SES membres (les spawn/messages d'un autre crew peuvent tomber dans la
     // même fenêtre — deux tâches se créent souvent à la suite).
@@ -1555,7 +1555,7 @@ export function deriveCalls(events, kyberIds) {
     }
     let col = Math.min(1 + agentSeq.length, CALL_X_COLS.length - 1)
     if (ask !== null) {
-      nodes.push({ id: 'h', type: 'human', x: CALL_X_COLS[col], y: 150, label: 'Validation', sub: 'toi', st: askRes === null ? 'waiting' : (gateDecision === 'ko' ? 'rejected' : 'done'), io: [short, gateDecision === 'ko' ? 'rejeté' : 'décision'] })
+      nodes.push({ id: 'h', type: 'human', x: CALL_X_COLS[col], y: 150, label: 'Validation', sub: 'toi', st: askRes === null ? 'waiting' : (gateDecision === 'ko' ? 'rejected' : 'done'), io: [short, gateDecision === 'ko' ? 'rejected' : 'decision'] })
       col = Math.min(col + 1, CALL_X_COLS.length - 1)
     }
     for (let k = 0; k < winConnectors.length; k += 1) {
@@ -1565,7 +1565,7 @@ export function deriveCalls(events, kyberIds) {
     }
     if (completed === true) {
       const lastCol = Math.min(col + winConnectors.length, CALL_X_COLS.length - 1)
-      nodes.push({ id: 'e', type: 'end', x: CALL_X_COLS[lastCol], y: 150, label: 'Fin', sub: 'tâche fermée', st: 'done', io: ['—', '—'] })
+      nodes.push({ id: 'e', type: 'end', x: CALL_X_COLS[lastCol], y: 150, label: 'End', sub: 'task closed', st: 'done', io: ['—', '—'] })
     }
     // 4. Fils : déclencheur → premier agent, kyber → premier agent, chaîne des
     //    agents, gate, connecteurs, fin. Boucle marquée quand la gate a été
@@ -1585,7 +1585,7 @@ export function deriveCalls(events, kyberIds) {
     }
     if (nodeIds.h !== undefined) {
       for (let k = 0; k < winConnectors.length; k += 1) wires.push({ from: k === 0 ? 'h' : 'x' + (k - 1), to: 'x' + k, kind: 'flow' })
-      if (gateDecision === 'ko' && firstAgent !== null) wires.push({ from: 'h', to: firstAgent, kind: 'loop', label: 'retour validation → ' + agentSeq[0].role })
+      if (gateDecision === 'ko' && firstAgent !== null) wires.push({ from: 'h', to: firstAgent, kind: 'loop', label: 'back from review → ' + agentSeq[0].role })
     } else if (winConnectors.length > 0) {
       const from = firstAgent !== null ? 'a' + (agentSeq.length - 1) : 't'
       for (let k = 0; k < winConnectors.length; k += 1) wires.push({ from: k === 0 ? from : 'x' + (k - 1), to: 'x' + k, kind: 'flow' })
@@ -1597,10 +1597,10 @@ export function deriveCalls(events, kyberIds) {
     // 5. Journal : lignes horodatées, puce d'acteur, marque. Ordre chronologique.
     const rows = []
     const row = (seq, time, who, msg, mark) => { rows.push({ seq: seq, t: callClockOf(time), who: who, msg: msg, mark: mark === undefined ? null : mark }) }
-    row(createSeq, createAt, 'T', 'tâche créée : ' + short, '✦')
+    row(createSeq, createAt, 'T', 'task created: ' + short, '✦')
     for (let k = 0; k < memberOrder.length; k += 1) {
       const mem = membersById[memberOrder[k]]
-      if (inWindow(mem.seq) === true && memberOfCall(mem) === true) row(mem.seq, mem.time, 'M', (mem.name !== null ? mem.name : 'membre') + ' ' + (mem.phase !== null ? mem.phase : 'prêt'), '●')
+      if (inWindow(mem.seq) === true && memberOfCall(mem) === true) row(mem.seq, mem.time, 'M', (mem.name !== null ? mem.name : 'membre') + ' ' + (mem.phase !== null ? mem.phase : 'ready'), '●')
     }
     for (let k = 0; k < winMessages.length; k += 1) {
       const m = winMessages[k]
@@ -1610,14 +1610,14 @@ export function deriveCalls(events, kyberIds) {
     }
     for (let k = 0; k < winUpdates.length; k += 1) {
       const act = winUpdates[k].args !== null ? str(winUpdates[k].args.action) : null
-      if (act === 'claim') row(winUpdates[k].seq, winUpdates[k].time, 'M', 'tâche réclamée', '•')
+      if (act === 'claim') row(winUpdates[k].seq, winUpdates[k].time, 'M', 'task claimed', '•')
     }
-    if (ask !== null) row(ask.seq, ask.time, 'V', 'validation posée' + (askRes !== null ? ' — ' + (gateDecision === 'ko' ? 'rejetée' : 'approuvée') : ''), askRes === null ? '◆' : (gateDecision === 'ko' ? '✕' : '✓'))
+    if (ask !== null) row(ask.seq, ask.time, 'V', 'review requested' + (askRes !== null ? ' — ' + (gateDecision === 'ko' ? 'rejected' : 'approved') : ''), askRes === null ? '◆' : (gateDecision === 'ko' ? '✕' : '✓'))
     for (let k = 0; k < winConnectors.length; k += 1) {
       const tc = winConnectors[k]
       row(tc.seq, tc.time, 'X', tc.name.split('_')[0] + ' : ' + tc.name.split('_').slice(1).join(' ').toLowerCase().slice(0, 34), '⇄')
     }
-    if (completed === true && closeSnap !== null) row(closeSnap.seq, closeSnap.time, 'T', 'tâche fermée', '✓')
+    if (completed === true && closeSnap !== null) row(closeSnap.seq, closeSnap.time, 'T', 'task closed', '✓')
     rows.sort((a, b) => (a.seq === null ? -1 : a.seq) - (b.seq === null ? -1 : b.seq))
     for (let k = 0; k < rows.length; k += 1) delete rows[k].seq
     // 6. L'appel, au gabarit de la maquette.
@@ -2375,10 +2375,10 @@ function boot(ctx) {
           // from being laid.
           try {
             const ra = poserForceProposition()
-            if (ra.etat === 'pose') console.log('[kybers] force de proposition posée dans ' + ra.chemin)
-            else if (ra.etat === 'migre') console.log('[kybers] force de proposition v1 remplacée par v2 dans ' + ra.chemin)
-            else if (ra.etat === 'erreur') console.log('[kybers] force de proposition non posée — ' + ra.erreur)
-          } catch (e) { console.log('[kybers] force de proposition — échec silencieux : ' + String(e && e.message ? e.message : e)) }
+            if (ra.etat === 'pose') console.log('[kybers] initiative rule written in ' + ra.chemin)
+            else if (ra.etat === 'migre') console.log('[kybers] initiative rule v1 replaced by v2 in ' + ra.chemin)
+            else if (ra.etat === 'erreur') console.log('[kybers] initiative rule not written — ' + ra.erreur)
+          } catch (e) { console.log('[kybers] initiative rule — silent failure: ' + String(e && e.message ? e.message : e)) }
           const r = await poserPresetLegacy({ agentPresets: service })
           if (r.pose === true) console.log('[kybers] legacy preset registered: ' + r.id + ' (a plain copy of standard)')
           else if (r.deja === true) console.log('[kybers] legacy preset already in place')
@@ -2388,16 +2388,16 @@ function boot(ctx) {
           // registre — plus aucune écriture dans les presets du moteur.
           try {
             const sa = await activerSubagentClaude({ agentPresets: service })
-            if (sa.bascules > 0) console.log('[kybers] subagent claude-code activé dans ' + sa.bascules + ' rangée(s) (' + sa.presets.join(', ') + ')')
+            if (sa.bascules > 0) console.log('[kybers] claude-code subagent turned on in ' + sa.bascules + ' row(s) (' + sa.presets.join(', ') + ')')
             else if (sa.raison !== undefined) console.log('[kybers] subagent claude-code — ' + sa.raison)
-            else console.log('[kybers] subagent claude-code déjà actif partout')
-          } catch (e) { console.log('[kybers] subagent claude-code : échec — ' + errText(e)) }
+            else console.log('[kybers] claude-code subagent already on everywhere')
+          } catch (e) { console.log('[kybers] claude-code subagent: failed — ' + errText(e)) }
           const reglages = await resoudreReglages()
           const repli = await replierSurStandard({ agentPresets: service, settings: reglages })
           if (repli.ecrit === true) console.log('[kybers] default preset put back on ' + repli.id + ' (' + repli.ns + ')')
           else console.log('[kybers] default preset left as it is — ' + repli.raison)
         })
-        .catch((e) => console.log('[kybers] legacy preset : échec — ' + errText(e)))
+        .catch((e) => console.log('[kybers] legacy preset: failed — ' + errText(e)))
     }
     if (presets !== undefined && presets !== null) poserPresetCompactage(presets)
     else {
@@ -2410,11 +2410,11 @@ function boot(ctx) {
       Promise.resolve()
         .then(async () => {
           const r = await appliquerPlafondRetries({ settings: reglages })
-          if (r.corriges > 0) console.log('[kybers] retryPolicy : ' + r.corriges + ' fournisseur(s) ramenés au plafond ' + r.plafond + ' (' + r.noms.join(', ') + ')')
-          else if (r.raison !== undefined) console.log('[kybers] retryPolicy : plafond non appliqué — ' + r.raison)
-          else console.log('[kybers] retryPolicy : plafond ' + r.plafond + ' respecté (' + r.surveillance + ' fournisseurs)')
+          if (r.corriges > 0) console.log('[kybers] retryPolicy : ' + r.corriges + ' provider(s) brought down to the ceiling ' + r.plafond + ' (' + r.noms.join(', ') + ')')
+          else if (r.raison !== undefined) console.log('[kybers] retryPolicy: ceiling not applied — ' + r.raison)
+          else console.log('[kybers] retryPolicy : plafond ' + r.plafond + ' respected (' + r.surveillance + ' fournisseurs)')
         })
-        .catch((e) => console.log('[kybers] retryPolicy : échec — ' + errText(e)))
+        .catch((e) => console.log('[kybers] retryPolicy: failed — ' + errText(e)))
     }
     if (settings !== undefined && settings !== null) poserPlafondRetries(settings)
     else {
@@ -2592,7 +2592,7 @@ function boot(ctx) {
             reason: 'Automation run: ' + gate.what + ' may change something outside this session (send, write, delete, pay). Allow it?',
             displayReason: {
               en: 'Automation run: ' + gate.what + ' may change something outside this session (send, write, delete, pay). Allow it?',
-              fr: 'Automation : ' + gate.what + ' peut modifier quelque chose en dehors de cette session (envoyer, écrire, supprimer, payer). Autoriser ?',
+              fr: `Automation : ${gate.what} peut modifier quelque chose en dehors de cette session (envoyer, écrire, supprimer, payer). Autoriser ?`,
             },
           }
         })
@@ -2617,7 +2617,7 @@ function boot(ctx) {
       // répond en enveloppe Result { ok, value }. On déballe les deux formes.
       const unwrap = (res, field) => {
         if (res === null || typeof res !== 'object') return null
-        if (res.ok === false) throw new Error(res.error !== null && res.error !== undefined && res.error.message !== undefined ? String(res.error.message) : String(res.error || 'refusé'))
+        if (res.ok === false) throw new Error(res.error !== null && res.error !== undefined && res.error.message !== undefined ? String(res.error.message) : String(res.error || 'refused'))
         const v = res.value !== undefined && res.value !== null ? res.value : res
         return typeof v[field] === 'string' ? v[field] : null
       }
@@ -2641,7 +2641,7 @@ function boot(ctx) {
             model: taskModel,
           })
           if (selRes !== null && typeof selRes === 'object' && selRes.ok === false) {
-            const msg = selRes.error !== null && selRes.error !== undefined && selRes.error.message !== undefined ? String(selRes.error.message) : String(selRes.error || 'refusé')
+            const msg = selRes.error !== null && selRes.error !== undefined && selRes.error.message !== undefined ? String(selRes.error.message) : String(selRes.error || 'refused')
             console.error('[kybers] tache ' + String(task.id) + ' : selection modele ' + taskModel + ' refusee (' + msg + ') — tir au modele par defaut')
           }
         } catch (e) {
@@ -2675,7 +2675,7 @@ function boot(ctx) {
         mode: 'queue',
         content: [{ type: 'text', text: String(task.prompt || '') }],
       }, controller.signal)
-      if (ack !== null && typeof ack === 'object' && ack.ok === false) throw new Error(ack.error !== null && ack.error !== undefined && ack.error.message !== undefined ? String(ack.error.message) : 'prompt refusé')
+      if (ack !== null && typeof ack === 'object' && ack.ok === false) throw new Error(ack.error !== null && ack.error !== undefined && ack.error.message !== undefined ? String(ack.error.message) : 'prompt refused')
       return { sessionId }
     }
     // The tick itself (claim, fire, record) is the tested core; this only gives it the real
@@ -2758,7 +2758,7 @@ function boot(ctx) {
         })
         if (frequentUpdate !== null) return frequentUpdate
         if (refusal !== null) return { ok: false, error: refusal }
-        return updated === null ? { ok: false, error: 'tache introuvable' } : { ok: true, task: updated }
+        return updated === null ? { ok: false, error: 'task not found' } : { ok: true, task: updated }
       }
       if (action === 'toggle') {
         const id = str(body.id)
@@ -2780,7 +2780,7 @@ function boot(ctx) {
           }
         })
         if (refusal !== null) return { ok: false, error: refusal }
-        return found === null ? { ok: false, error: 'tache introuvable' } : { ok: true, task: found }
+        return found === null ? { ok: false, error: 'task not found' } : { ok: true, task: found }
       }
       if (action === 'delete') {
         const id = str(body.id)
@@ -2792,7 +2792,7 @@ function boot(ctx) {
             if (t !== null && typeof t === 'object' && t.id === id) { tasks.splice(i, 1); removed = true; break }
           }
         })
-        return removed === true ? { ok: true } : { ok: false, error: 'tache introuvable' }
+        return removed === true ? { ok: true } : { ok: false, error: 'task not found' }
       }
       if (action === 'start-chat') {
         // Ouvre une session VIERGE sans y écrire (contrairement à run-now) :
@@ -2803,7 +2803,7 @@ function boot(ctx) {
         if (sc === undefined || sc === null || typeof sc.create !== 'function') return { ok: false, error: 'sessionController absent' }
         const unwrap = (res, field) => {
           if (res === null || typeof res !== 'object') return null
-          if (res.ok === false) throw new Error(res.error !== null && res.error !== undefined && res.error.message !== undefined ? String(res.error.message) : String(res.error || 'refusé'))
+          if (res.ok === false) throw new Error(res.error !== null && res.error !== undefined && res.error.message !== undefined ? String(res.error.message) : String(res.error || 'refused'))
           const v = res.value !== undefined && res.value !== null ? res.value : res
           return typeof v[field] === 'string' ? v[field] : null
         }
@@ -2821,7 +2821,7 @@ function boot(ctx) {
         if (id === null) return { ok: false, error: 'id requis' }
         const tasks = await kbTasksRead()
         const t = tasks.find((x) => x !== null && typeof x === 'object' && x.id === id)
-        if (t === undefined) return { ok: false, error: 'tache introuvable' }
+        if (t === undefined) return { ok: false, error: 'task not found' }
         try {
           const res = await kbFireTask(t)
           await kbTasksMutate(async (fresh) => {
@@ -2868,7 +2868,7 @@ function boot(ctx) {
             }
           }
         })
-        if (updated === null) return { ok: false, error: 'tache introuvable' }
+        if (updated === null) return { ok: false, error: 'task not found' }
         return { ok: true, hookId, secret }
       }
       if (action === 'hook-revoke') {
@@ -2885,7 +2885,7 @@ function boot(ctx) {
             }
           }
         })
-        return found === true ? { ok: true } : { ok: false, error: 'tache introuvable ou sans webhook' }
+        return found === true ? { ok: true } : { ok: false, error: 'task not found or has no webhook' }
       }
       if (action === 'consume-fire') {
         const id = str(body.id)
@@ -2904,7 +2904,7 @@ function boot(ctx) {
             }
           }
         })
-        return out === null ? { ok: false, error: 'rien a consommer' } : { ok: true, task: out }
+        return out === null ? { ok: false, error: 'nothing to consume' } : { ok: true, task: out }
       }
       return { ok: false, error: 'action inconnue: ' + String(action) }
     }
@@ -3065,7 +3065,7 @@ function boot(ctx) {
         } else if (typeof res.text === 'function') {
           text = await res.text()
         } else return { text: null, reason: 'reponse sans corps' }
-        if (typeof text !== 'string' || text.length === 0) return { text: null, reason: 'corps vide' }
+        if (typeof text !== 'string' || text.length === 0) return { text: null, reason: 'empty body' }
         if (text.length > max) return { text: null, reason: 'corps trop volumineux (' + text.length + ' caracteres)' }
         return { text: text, reason: null }
       } catch (e) { return { text: null, reason: errText(e) } } finally { clearTimeout(timer) }
@@ -3369,7 +3369,7 @@ function boot(ctx) {
         } catch (e) { /* handle deja ferme */ }
       }
       if (events === null) {
-        out.notes.push('aucun evenement lisible pour ' + sessionId)
+        out.notes.push('no readable event for ' + sessionId)
         return out
       }
       // Lignee : une sous-tache (session enfant publiee par un subagent ou un
@@ -3421,7 +3421,7 @@ function boot(ctx) {
       if (needed.length > 0 && resolvedCount === 0) {
         out.notes.push('faits reels: 0/' + needed.length + ' enfants resolus (journal enfant illisible ou vide)')
       } else if (needed.length > 0 && resolvedCount < needed.length) {
-        out.notes.push('faits reels: ' + resolvedCount + '/' + needed.length + ' enfants resolus (degradation partielle: ' + (needed.length - resolvedCount) + ' enfant(s) sans fait lisible)')
+        out.notes.push('faits reels: ' + resolvedCount + '/' + needed.length + ' enfants resolus (degradation partielle: ' + (needed.length - resolvedCount) + ' child session(s) without a readable fact)')
       }
       let runs = []
       try { runs = deriveRuns(events, snapshotsById) } catch (e) { out.notes.push('deriveRuns: ' + errText(e)) }
@@ -3480,7 +3480,7 @@ function boot(ctx) {
         } catch (e) { /* handle deja ferme */ }
       }
       if (events === null) {
-        out.notes.push('aucun evenement lisible pour ' + sessionId)
+        out.notes.push('no readable event for ' + sessionId)
         return out
       }
       const kyberIds = declaredKyberIds()
@@ -3557,7 +3557,7 @@ function boot(ctx) {
     // Tous les journaux de session (v3 sinon v2), tous workspaces, tries par mtime decroissant.
     const listIndexJournals = async () => {
       const dsh = await dshHomeOrNull()
-      if (dsh === null) return { journals: [], notes: ['dsh home introuvable'] }
+      if (dsh === null) return { journals: [], notes: ['DSH home not found'] }
       const root = joinPath(dsh, 'sessions')
       let workspaces = []
       try { workspaces = readdirSync(root, { withFileTypes: true }) } catch (e) { return { journals: [], notes: ['journaux de session illisibles: ' + errText(e)] } }
@@ -3659,13 +3659,13 @@ function boot(ctx) {
         let bytes = 0
         let truncated = false
         for (let i = 0; i < journals.length; i += 1) {
-          if (facts.length >= KB_INSIGHT_JOURNALS_MAX) { truncated = true; notes.push('lecture limitée aux ' + KB_INSIGHT_JOURNALS_MAX + ' journaux les plus récents (sur ' + journals.length + ')'); break }
+          if (facts.length >= KB_INSIGHT_JOURNALS_MAX) { truncated = true; notes.push('reading limited to the ' + KB_INSIGHT_JOURNALS_MAX + ' most recent journals (out of ' + journals.length + ')'); break }
           const j = journals[i]
           if (j === null || j === undefined || typeof j !== 'object') continue
           const rec = insightJournalOf(j.path, j.mtimeMs, j.size, j.sessionId)
           facts.push(rec)
           bytes += rec.decodedBytes
-          if (bytes > KB_INSIGHT_BYTES_MAX) { truncated = true; notes.push('lecture arrêtée au plafond de ' + Math.round(KB_INSIGHT_BYTES_MAX / 1048576) + ' Mo de journaux décompressés'); break }
+          if (bytes > KB_INSIGHT_BYTES_MAX) { truncated = true; notes.push('reading stopped at the ceiling of ' + Math.round(KB_INSIGHT_BYTES_MAX / 1048576) + ' MB of decompressed journals'); break }
         }
         const scan = { at: Date.now(), facts: facts, notes: notes, total: journals.length, truncated: truncated, bytes: bytes }
         insightScan = scan
@@ -3715,7 +3715,7 @@ function boot(ctx) {
           if (existsSync(joinPath(joinPath(roots[i].path, kyberId), 'kyber.yml')) === true) { rootPath = roots[i].path; resolvedRootId = roots[i].id; break }
         }
       }
-      if (rootPath === null) return { ok: false, error: 'Agent Team introuvable dans les racines connues' }
+      if (rootPath === null) return { ok: false, error: 'Agent Team not found in the known roots' }
       const dir = joinPath(rootPath, kyberId)
       if (existsSync(joinPath(dir, 'kyber.yml')) === false) return { ok: false, error: 'kyber.yml absent: ' + dir }
       const to = Date.now()
@@ -3724,10 +3724,10 @@ function boot(ctx) {
       // 1. ledger (une ligne = une exécution de rôle)
       let ledgerText = null
       try { ledgerText = readFileSync(joinPath(joinPath(dir, 'memory'), 'ledger.jsonl'), 'utf8') } catch (e) { ledgerText = null }
-      if (ledgerText === null) notes.push('aucun ledger pour cette Agent Team (memory/ledger.jsonl absent) : « runs » vient alors des seuls workflow tracés dans les journaux')
+      if (ledgerText === null) notes.push('no ledger for this Agent Team (memory/ledger.jsonl is missing): “runs” then comes only from the workflows traced in the journals')
       const ledger = kbInsightLedger(ledgerText, from, to)
-      if (ledger.unreadable > 0) notes.push(ledger.unreadable + ' ligne(s) de ledger illisible(s), ignorée(s)')
-      if (ledger.undated > 0) notes.push(ledger.undated + ' ligne(s) de ledger sans date valide, exclue(s) de la période')
+      if (ledger.unreadable > 0) notes.push(ledger.unreadable + ' unreadable ledger line(s), ignored')
+      if (ledger.undated > 0) notes.push(ledger.undated + ' ledger line(s) without a valid date, left out of the period')
       // 2. versions enregistrées
       const versions = kbInsightVersions(dir)
       // 3. journaux : runs de workflow attribués
@@ -3759,8 +3759,8 @@ function boot(ctx) {
       await refreshPrices()
       const cost = kbInsightCostOf(roll.routes)
       if (roll.routes !== undefined && Object.keys(roll.routes).length > 0) {
-        if (cost.priced === false) notes.push('coût indisponible : aucun tarif models.dev chargé' + (priceError === null || priceError === undefined ? '' : ' (' + priceError + ')'))
-        else if (cost.missing.length > 0) notes.push(cost.missing.length + ' route(s) sans tarif models.dev : les tokens ne sont pas facturés dans ce total')
+        if (cost.priced === false) notes.push('cost unavailable: no models.dev price list loaded' + (priceError === null || priceError === undefined ? '' : ' (' + priceError + ')'))
+        else if (cost.missing.length > 0) notes.push(cost.missing.length + ' route(s) without a models.dev price: their tokens are not billed in this total')
       }
       const ledgerRuns = ledger.total
       const workflowRuns = roll.runs
@@ -3775,8 +3775,8 @@ function boot(ctx) {
       let activations = { sessions: [], all: 0, undated: 0, unreadable: 0 }
       const home = await dshHomeOrNull()
       if (home !== null) activations = kbInsightActive(joinPath(joinPath(home, 'kybers'), '.active'), kyberId, from, to)
-      if (activations.unreadable > 0) notes.push(activations.unreadable + ' marqueur(s) d’activation illisible(s), ignoré(s)')
-      if (activations.undated > 0) notes.push(activations.undated + ' marqueur(s) d’activation sans date valide, exclu(s) de la période')
+      if (activations.unreadable > 0) notes.push(activations.unreadable + ' unreadable activation marker(s), ignored')
+      if (activations.undated > 0) notes.push(activations.undated + ' activation marker(s) without a valid date, left out of the period')
       const userDays = {}
       const userIds = {}
       const addUser = (day, sid) => {
@@ -3799,8 +3799,8 @@ function boot(ctx) {
       }
       for (let i = 0; i < activations.sessions.length; i += 1) addUser(kbInsightDayKey(activations.sessions[i].at), activations.sessions[i].sessionId)
       const sessionCount = Object.keys(userIds).length
-      if (sessionCount > 0 && roll.sessions === 0) notes.push('aucun run étiqueté « ' + kyberId + '-<rôle> » dans les journaux : les messages, tokens et coûts restent vides, mais ' + sessionCount + ' session(s) ont réellement activé cette équipe')
-      else if (sessionCount > 0 && activations.sessions.length > 0) notes.push(activations.sessions.length + ' session(s) ont activé cette équipe sans run étiqueté : leur activité est comptée comme utilisateur, pas comme run')
+      if (sessionCount > 0 && roll.sessions === 0) notes.push('no run tagged “' + kyberId + '-<role>” in the journals: messages, tokens and costs stay empty, but ' + sessionCount + ' session(s) did turn this team on')
+      else if (sessionCount > 0 && activations.sessions.length > 0) notes.push(activations.sessions.length + ' session(s) turned this team on without a tagged run: their activity counts as user activity, not as a run')
       const users = daysOut.map((d) => ({ day: d.day, n: Object.keys(userDays[d.day] === undefined ? {} : userDays[d.day]).length }))
       const messages = daysOut.map((d) => ({ day: d.day, n: d.user + d.bot }))
       return {
@@ -3846,11 +3846,11 @@ function boot(ctx) {
         runNames: roll.runNames,
         top: { skills: roll.skills, connectors: roll.connectors, tools: roll.tools },
         methods: {
-          runs: ledgerRuns > 0 ? 'ledger de l’Agent Team : une ligne = une exécution de rôle' : 'runs de workflow dont un agent est étiqueté ' + kyberId + '-<rôle>',
-          uniqueUsers: 'sessions DSH distinctes qui ont soit porté un run étiqueté « ' + kyberId + '-<rôle> », soit activé cette équipe dans la période (registre ~/.dsh/kybers/.active, horodaté à la dernière activation ; installation locale : une session = une personne au clavier)',
-          versions: 'version courante + sauvegardes kyber.yml.bak-* écrites par l’hôte',
-          engagement: 'messages du journal, dans la fenêtre [run-start, run-end] des runs attribués ; la carte Sessions compte les sessions ayant activé l’équipe ou porté un run',
-          llm: 'assistant/message + usage du journal porteur du run ; tokens/s = tokens de sortie / durée des étapes',
+          runs: ledgerRuns > 0 ? 'ledger de l’Agent Team : une ligne = une exécution de rôle' : 'workflow runs with an agent tagged ' + kyberId + '-<role>',
+          uniqueUsers: 'distinct DSH sessions that either carried a run tagged “' + kyberId + '-<role>”, or turned this team on during the period (registry ~/.dsh/kybers/.active, stamped at the last activation; local install: one session = one person at the keyboard)',
+          versions: 'current version + kyber.yml.bak-* backups written by the host',
+          engagement: 'journal messages, inside the [run-start, run-end] window of the attributed runs; the Sessions card counts the sessions that turned the team on or carried a run',
+          llm: 'assistant/message + usage of the journal that carries the run; tokens/s = output tokens / step duration',
           cost: 'tarifs models.dev (USD/Mtok) au taux ' + usdEur,
         },
         notes: notes,
@@ -3873,7 +3873,7 @@ function boot(ctx) {
         const rootId = str(req.rootId)
         const kyberId = str(req.kyberId)
         if (rootId === null || kyberId === null) return { ok: false, error: 'rootId et kyberId requis' }
-        if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'id d’Agent Team invalide' }
+        if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'invalid Agent Team id' }
         const roots = await rootsFor(str(req.sessionId))
         let rootPath = null
         for (let i = 0; i < roots.length; i += 1) if (roots[i].id === rootId) rootPath = roots[i].path
@@ -4100,7 +4100,7 @@ function boot(ctx) {
                 return segs.length >= 3 && segs[segs.length - 3] === slugCourant
               })
               wsFiltre = { slug: slugCourant, faits: faitsLocaux, avant: scan.facts.length }
-              notes.push('KPIs sessions scopés sur le workspace « ' + slugCourant + ' » : ' + faitsLocaux.length + ' journal(aux) sur ' + scan.facts.length)
+              notes.push('Session KPIs scoped to the workspace “' + slugCourant + ' » : ' + faitsLocaux.length + ' journal(aux) sur ' + scan.facts.length)
             }
           }
         }
@@ -4209,7 +4209,7 @@ function boot(ctx) {
       }).sort((a, b) => b.runs - a.runs).slice(0, 12)
       const crewPct = total > 0 ? kbQualityPercent(total - Math.min(erroredRuns, total), total) : null
       if (equipe.source === null && crewRoles.length > 0) equipe = { source: 'runs', pct: crewPct, total: total, roles: crewRoles }
-      if (equipe.source === null) notes.push(kyberId === null ? 'aucun run de workflow dans la fenêtre : « Efficacité équipe » rend null' : 'aucun ledger (memory/ledger.jsonl) ni run « ' + kyberId + '- » dans la fenêtre : « Efficacité équipe » rend null')
+      if (equipe.source === null) notes.push(kyberId === null ? 'no workflow run in the window: “Team efficiency” is null' : 'aucun ledger (memory/ledger.jsonl) ni run « ' + kyberId + '-” in the window: “Team efficiency” is null')
       // ── complétion : tours finis des sessions ordinaires, sinon les runs ──
       const completionPct = turns > 0 ? kbQualityPercent(turnsEnded, turns) : (total > 0 ? kbQualityPercent(endedRuns, total) : null)
       // ── pertinence skills : appels de skill sans erreur (faits) + runs ──
@@ -4232,7 +4232,7 @@ function boot(ctx) {
       let skillOkCalls = 0
       for (const s of skillRows) { skillCalls += s.calls; skillOkCalls += s.successPct === null ? 0 : Math.round((s.successPct / 100) * s.calls) }
       const skillPct = kbQualityPercent(skillOkCalls, skillCalls)
-      if (skillCalls === 0) notes.push('aucune skill appelée dans la fenêtre : « Pertinence prompts/skills » rend null')
+      if (skillCalls === 0) notes.push('no skill called in the window: “Prompt/skill relevance” is null')
       // ── réactivité : médiane des latences d'étapes (tous journaux confondus)
       latencies.sort((a, b) => a - b)
       const medianMs = latencies.length > 0 ? latencies[Math.floor(latencies.length / 2)] : null
@@ -4266,7 +4266,7 @@ function boot(ctx) {
       let vsum = 0
       for (const p of parts) if (p.value !== null) { wsum += p.weight; vsum += p.weight * p.value }
       const score = wsum > 0 ? Math.round(vsum / wsum) : null
-      if (approvalPct === null) notes.push('aucun pouce capturé dans la fenêtre : les pouces du shell ne sont pas persistés côté hôte, seul le captage Kybernos compte')
+      if (approvalPct === null) notes.push('no thumbs captured in the window: the shell\'s thumbs are not persisted on the host side, only Kybernos\' own capture counts')
       const downRecent = votes.filter((v) => v.vote === -1).slice(-20).reverse()
       const tendance = kbQualityTendance(faitsKpi, runs, votes, ledgerTextMemo, kyberId, days, Date.now())
       return {
@@ -4306,7 +4306,7 @@ function boot(ctx) {
         excerpt: excerpt,
       }
       const okWrite = await kbQualityFeedbackAppend(rec)
-      if (okWrite === false) return { ok: false, error: 'écriture du retour impossible' }
+      if (okWrite === false) return { ok: false, error: 'could not write the feedback' }
       return { ok: true }
     }
     // ── Notation 5 étoiles (carte « How was this result? » du plugin) ──────
@@ -4352,7 +4352,7 @@ function boot(ctx) {
       const mid = str(req.messageId)
       const note = Number(req.note)
       if (mid === null || mid.length > 120) return { ok: false, error: 'messageId invalide' }
-      if (Number.isInteger(note) === false || note < 1 || note > 5) return { ok: false, error: 'note doit valoir 1 à 5' }
+      if (Number.isInteger(note) === false || note < 1 || note > 5) return { ok: false, error: 'rating must be from 1 to 5' }
       const issue = typeof req.issue === 'string' && KB_RATING_ISSUES.includes(req.issue) === true ? req.issue : ''
       const comment = typeof req.comment === 'string' ? req.comment.replace(/\s+/g, ' ').trim().slice(0, 2000) : ''
       const rec = {
@@ -4365,7 +4365,7 @@ function boot(ctx) {
         shared: req.shared === true,
       }
       const okWrite = await kbRatingUpsert(rec)
-      if (okWrite === false) return { ok: false, error: 'écriture de la note impossible' }
+      if (okWrite === false) return { ok: false, error: 'could not write the rating' }
       return { ok: true, rating: rec }
     }
     // Détection de salaire : un VRAI appel LLM (décision utilisateur du 23/09/2026),
@@ -4397,15 +4397,15 @@ function boot(ctx) {
       const def = catalog !== null && catalog !== undefined && catalog.default !== null && typeof catalog.default === 'object' ? catalog.default : null
       const provider = def === null ? null : str(def.provider)
       const model = def === null ? null : str(def.model)
-      if (provider === null || model === null) return { ok: false, error: 'aucun modèle par défaut dans le catalogue de ce profil' }
+      if (provider === null || model === null) return { ok: false, error: 'no default model in this profile\'s catalogue' }
       const prompt = [
-        'Tu estimes un salaire brut mensuel pour calibrer un simulateur d’économie d’un agent IA.',
+        'You estimate a gross monthly salary to calibrate a savings simulator for an AI agent.',
         'Pays : ' + country + '.',
         currency === null ? '' : 'Monnaie attendue : ' + currency.toUpperCase() + '.',
-        role === '' ? '' : 'Poste de référence (contexte, facultatif) : ' + role + '.',
-        'Réponds UNIQUEMENT par un objet JSON, sans texte autour, de la forme :',
-        '{"country":"<pays>","currency":"<code ISO 3 lettres>","monthlyGrossSalary":<nombre>,"rationale":"<une phrase, en français>"}',
-        'Le salaire est un brut mensuel courant pour un poste équivalent, en monnaie locale, sans charges patronales.',
+        role === '' ? '' : 'Reference position (context, optional): ' + role + '.',
+        'Answer ONLY with a JSON object, with no text around it, shaped like this:',
+        '{"country":"<country>","currency":"<3-letter ISO code>","monthlyGrossSalary":<number>,"rationale":"<one sentence, in English>"}',
+        'The salary is a typical gross monthly figure for an equivalent position, in local currency, without employer charges.',
       ].filter((l) => l !== '').join('\n')
       let raw = ''
       const control = new AbortController()
@@ -4423,9 +4423,9 @@ function boot(ctx) {
           if (chunk === null || chunk === undefined || typeof chunk !== 'object') continue
           if (chunk.type === 'text-delta' && typeof chunk.text === 'string') raw += chunk.text
         }
-      } catch (e) { return { ok: false, error: 'appel llm échoué: ' + errText(e) } } finally { clearTimeout(timer) }
+      } catch (e) { return { ok: false, error: 'LLM call failed: ' + errText(e) } } finally { clearTimeout(timer) }
       const parsed = kbSalaryParse(raw)
-      if (parsed === null) return { ok: false, error: 'réponse du modèle inexploitable', raw: raw.slice(0, 400).replace(/\s+/g, ' ') }
+      if (parsed === null) return { ok: false, error: 'unusable model answer', raw: raw.slice(0, 400).replace(/\s+/g, ' ') }
       return { ok: true, provider: provider, model: model, salary: parsed.salary, currency: parsed.currency, country: parsed.country, rationale: parsed.rationale }
     }
     // ── Kybernos Brain : proposer l'apparence des suggestions ───────────────
@@ -4469,49 +4469,49 @@ function boot(ctx) {
     const KB_BRAIN_TARGET = 4
     const kbBrainPrompt = (mode, teamName, mission, existing) => {
       const tete = [
-        'Tu conçois l’apparence des « suggestions de conversation » d’une équipe d’agents IA dans un produit de travail.',
-        'Équipe : ' + (teamName === '' ? '(sans nom)' : teamName) + '.',
-        'Mission de l’équipe : ' + (mission === '' ? '(non renseignée)' : mission) + '.',
-        'Tu réponds en français.',
+        'You design the look of the “conversation suggestions” of a team of AI agents in a work product.',
+        'Team: ' + (teamName === '' ? '(sans nom)' : teamName) + '.',
+        'Team mission: ' + (mission === '' ? '(not given)' : mission) + '.',
+        'Answer in the language of the team\'s mission.',
       ]
       if (mode === 'look') {
         return tete.concat([
-          'Pour CHAQUE suggestion ci-dessous, choisis une icône et une couleur qui évoquent son sujet.',
-          'Les icônes sont des noms Lucide en anglais, en kebab-case (exemples : ' + KB_BRAIN_ICONS.slice(0, 40).join(', ') + ').',
-          'Les couleurs sont des codes hexadécimaux sobres et lisibles (#635bff, #2f6b54, #b3402f, #3f6b8a, #7a3f7a, #c4712c).',
-          'Ne réécris NI le titre, NI la description, NI la demande : seulement l’apparence.',
-          'Saisie (' + existing.length + ' suggestions, dans cet ordre) :',
+          'For EACH suggestion below, pick an icon and a colour that evoke its subject.',
+          'Icons are Lucide names in English, in kebab-case (examples: ' + KB_BRAIN_ICONS.slice(0, 40).join(', ') + ').',
+          'Colours are sober, readable hexadecimal codes (#635bff, #2f6b54, #b3402f, #3f6b8a, #7a3f7a, #c4712c).',
+          'Do NOT rewrite the title, the description or the request: only the look.',
+          'Saisie (' + existing.length + ' suggestions, in this order):',
           existing.map((s, i) => '  ' + (i + 1) + '. « ' + s.title + ' »' + (s.description === '' ? '' : ' — ' + s.description) + ' — demande : ' + s.prompt).join('\n'),
-          'Réponds UNIQUEMENT par un objet JSON, sans texte autour :',
+          'Answer ONLY with a JSON object, with no text around it:',
           '{"looks":[{"icon":"<nom-lucide>","color":"#rrggbb"}]}',
-          'Le tableau « looks » a EXACTEMENT ' + existing.length + ' entrée(s), dans le même ordre que la saisie.',
+          'Le tableau « looks » a EXACTEMENT ' + existing.length + ' entr(ies), in the same order as the input.',
         ]).join('\n')
       }
       // Le reste du gabarit décrit une suggestion COMPLÈTE ; seul le nombre
       // attendu et la liste des sujets déjà pris changent d'un mode à l'autre.
       const reste = [
-        'Chaque suggestion a une icône (nom Lucide en anglais, kebab-case — exemples : ' + KB_BRAIN_ICONS.slice(0, 40).join(', ') + '),',
-        'une couleur hexadécimale sobre, un titre court (≤ 40 caractères), une description d’une ligne (≤ 80 caractères),',
-        'et la demande RÉELLE envoyée au chat (impérative, 1 à 2 phrases, sans « peux-tu »).',
-        'Réponds UNIQUEMENT par un objet JSON, sans texte autour :',
+        'Each suggestion has an icon (a Lucide name in English, kebab-case — examples: ' + KB_BRAIN_ICONS.slice(0, 40).join(', ') + '),',
+        'a sober hexadecimal colour, a short title (≤ 40 characters), a one-line description (≤ 80 characters),',
+        'and the REAL request sent to the chat (imperative, 1 to 2 sentences, without “could you”).',
+        'Answer ONLY with a JSON object, with no text around it:',
       ]
       if (mode === 'complete') {
         const manque = Math.max(0, KB_BRAIN_TARGET - existing.length)
         return tete.concat([
-          'L’équipe a DÉJÀ ' + existing.length + ' suggestion(s) de conversation :',
+          'The team ALREADY has ' + existing.length + ' suggestion(s) de conversation :',
           existing.map((s, i) => '  ' + (i + 1) + '. « ' + s.title + ' »' + (s.prompt === '' ? '' : ' — demande : ' + s.prompt)).join('\n'),
-          'Propose EXACTEMENT ' + manque + ' suggestion(s) NOUVELLE(S), pour arriver à ' + KB_BRAIN_TARGET + ' au total.',
-          'Chaque nouvelle suggestion porte sur un SUJET DIFFÉRENT des précédentes : ni reformulation, ni variante.',
+          'Propose EXACTEMENT ' + manque + ' NEW suggestion(s), to reach ' + KB_BRAIN_TARGET + ' au total.',
+          'Each new suggestion covers a DIFFERENT SUBJECT from the previous ones: no rewording, no variant.',
         ], reste, [
           '{"starters":[{"icon":"<nom-lucide>","color":"#rrggbb","title":"…","description":"…","prompt":"…"}]}',
-          'Le tableau « starters » a EXACTEMENT ' + manque + ' entrée(s).',
+          'Le tableau « starters » a EXACTEMENT ' + manque + ' entr(ies).',
         ]).join('\n')
       }
       return tete.concat([
-        'Propose EXACTEMENT ' + KB_BRAIN_TARGET + ' suggestions de conversation vraiment utiles pour cette équipe, ancrées dans sa mission.',
+        'Propose EXACTEMENT ' + KB_BRAIN_TARGET + ' really useful conversation suggestions for this team, rooted in its mission.',
       ], reste, [
         '{"starters":[{"icon":"<nom-lucide>","color":"#rrggbb","title":"…","description":"…","prompt":"…"}]}',
-        'Le tableau « starters » a EXACTEMENT ' + KB_BRAIN_TARGET + ' entrée(s).',
+        'Le tableau « starters » a EXACTEMENT ' + KB_BRAIN_TARGET + ' entr(ies).',
       ]).join('\n')
     }
     const kbJsonBetween = (raw) => {
@@ -4535,7 +4535,7 @@ function boot(ctx) {
         description: (str(s.description) === null ? '' : str(s.description)).trim().slice(0, 160),
         prompt: (str(s.prompt) === null ? '' : str(s.prompt)).trim().slice(0, 2000),
       })).filter((s) => s.title !== '' || s.prompt !== '')
-      if (mode === 'look' && existing.length === 0) return { ok: false, error: 'aucune suggestion a relire' }
+      if (mode === 'look' && existing.length === 0) return { ok: false, error: 'no suggestion to review' }
       const manque = KB_BRAIN_TARGET - existing.length
       if (mode === 'complete' && manque <= 0) return { ok: false, error: 'l equipe a deja ' + existing.length + ' suggestions (cible ' + KB_BRAIN_TARGET + ')' }
       const llmSvc = ctx.get('llm')
@@ -4549,7 +4549,7 @@ function boot(ctx) {
       const provider = brain !== null ? brain.provider : (def === null ? null : str(def.provider))
       const model = brain !== null ? brain.model : (def === null ? null : str(def.model))
       const source = brain !== null ? 'brain' : 'default'
-      if (provider === null || model === null) return { ok: false, error: 'aucun modele disponible (reglage « brain » vide et catalogue sans defaut)' }
+      if (provider === null || model === null) return { ok: false, error: 'no model available (the “brain” setting is empty and the catalogue has no default)' }
       const prompt = kbBrainPrompt(mode, teamName, mission, existing)
       let raw = ''
       const control = new AbortController()
@@ -4567,9 +4567,9 @@ function boot(ctx) {
           if (chunk === null || chunk === undefined || typeof chunk !== 'object') continue
           if (chunk.type === 'text-delta' && typeof chunk.text === 'string') raw += chunk.text
         }
-      } catch (e) { return { ok: false, error: 'appel llm échoué: ' + errText(e) } } finally { clearTimeout(timer) }
+      } catch (e) { return { ok: false, error: 'LLM call failed: ' + errText(e) } } finally { clearTimeout(timer) }
       const parsed = kbJsonBetween(raw)
-      if (parsed === null) return { ok: false, error: 'réponse du modèle inexploitable', raw: raw.slice(0, 400).replace(/\s+/g, ' ') }
+      if (parsed === null) return { ok: false, error: 'unusable model answer', raw: raw.slice(0, 400).replace(/\s+/g, ' ') }
       if (mode === 'look') {
         const src = Array.isArray(parsed.looks) ? parsed.looks : []
         const looks = existing.map((s, i) => {
@@ -4664,10 +4664,10 @@ function boot(ctx) {
         })
       }
       entries.sort((a, b) => b.lastActivityAt - a.lastActivityAt)
-      if (unreadable > 0) notes.push(unreadable + (unreadable === 1 ? ' journal illisible ignoré' : ' journaux illisibles ignorés'))
+      if (unreadable > 0) notes.push(unreadable + (unreadable === 1 ? ' unreadable journal ignored' : ' unreadable journals ignored'))
       if (capped) {
         const skipped = journals.length - picked.length
-        notes.push('plafond ' + RUNS_INDEX_MAX_JOURNALS + ' journaux: ' + skipped + (skipped === 1 ? ' session ancienne ignorée' : ' sessions anciennes ignorées'))
+        notes.push('plafond ' + RUNS_INDEX_MAX_JOURNALS + ' journaux: ' + skipped + (skipped === 1 ? ' old session ignored' : ' old sessions ignored'))
       }
       if (byteCapped) notes.push('plafond de decompression atteint: index partiel')
       return { at: Date.now(), entries: entries, truncated: capped || byteCapped, notes: notes, scanned: scanned }
@@ -4783,7 +4783,7 @@ function boot(ctx) {
       let limit = Number(a.limit)
       if (Number.isFinite(limit) === false || limit < 1) limit = 25
       if (limit > 50) limit = 50
-      if (q.length < 2) return { ok: true, query: q, sessions: [], total: 0, note: 'requête trop courte (2 caractères minimum)' }
+      if (q.length < 2) return { ok: true, query: q, sessions: [], total: 0, note: 'query too short (2 characters minimum)' }
       const listing = await listIndexJournals()
       const journals = listing.journals.slice(0, CONTENT_SEARCH_TTL_JOURNALS)
       const dsh = await dshHomeOrNull()
@@ -4848,8 +4848,8 @@ function boot(ctx) {
         if (sessions.length >= limit) break
       }
       const notes = listing.notes.slice()
-      if (journals.length < listing.journals.length) notes.push('recherche limitée aux ' + journals.length + ' journaux les plus récents (sur ' + listing.journals.length + ')')
-      if (unreadable > 0) notes.push(unreadable + (unreadable === 1 ? ' journal illisible ignoré' : ' journaux illisibles ignorés'))
+      if (journals.length < listing.journals.length) notes.push('search limited to the ' + journals.length + ' most recent journals (out of ' + listing.journals.length + ')')
+      if (unreadable > 0) notes.push(unreadable + (unreadable === 1 ? ' unreadable journal ignored' : ' unreadable journals ignored'))
       return { ok: true, query: q, sessions: sessions, total: sessions.length, truncated: sessions.length >= limit, notes: notes }
     }
     // ── GET /kybernos/team-cap: plafond reel de membres (reglage, pas constante) ──
@@ -5326,7 +5326,7 @@ function boot(ctx) {
           kyber.docs = extras.docs
           kyber.skills = extras.skills
         } catch (e) { kyber.docs = []; kyber.skills = [] }
-        if (kyber.id !== name) root.notes.push(name + ': id declare "' + kyber.id + '" different du dossier')
+        if (kyber.id !== name) root.notes.push(name + ': id declare "' + kyber.id + '" different from the folder')
         root.kybers.push(kyber)
       }
       try {
@@ -5383,7 +5383,7 @@ function boot(ctx) {
           }
         } catch (e) { warnings.push('agentPresets.list: ' + errText(e)) }
       }
-      if (home === null) warnings.push('home DSH introuvable: les Agent Teams installees hors du depot ne sont pas listees')
+      if (home === null) warnings.push('DSH home not found: the Agent Teams installed outside the repository are not listed')
 
       const roots = []
       // Libelles affiches par la galerie (le client affiche aussi le chemin) :
@@ -5512,7 +5512,7 @@ function boot(ctx) {
           for (const cid of team.childIds) {
             await pushRow({ sessionId: cid }, 'sous-agent', null)
           }
-          team.notes.push(team.childIds.length + ' session(s) enfant(s) listée(s) depuis le journal persistant')
+          team.notes.push(team.childIds.length + ' child session(s) listed from the persisted journal')
         }
         out.team = {
           source: team.source,
@@ -5892,9 +5892,9 @@ function boot(ctx) {
         const rawId = m[2].trim().replace(/^["']|["']$/g, '')
         if (rawId === roleId) { ei = i; eIndent = indentOf(lines[i]); break }
       }
-      if (ei < 0) return { lines, applied: false, note: 'rôle ' + roleId + ' introuvable' }
+      if (ei < 0) return { lines, applied: false, note: 'role ' + roleId + ' introuvable' }
       const rest = lines[ei].replace(/^(\s*)-\s*/, '')
-      if (KEY_RE.exec(rest) === null || rest.indexOf(',') >= 0) return { lines, applied: false, note: 'rôle ' + roleId + ': style inline non pris en charge' }
+      if (KEY_RE.exec(rest) === null || rest.indexOf(',') >= 0) return { lines, applied: false, note: 'role ' + roleId + ': style inline non pris en charge' }
       let eend = send
       for (let i = ei + 1; i < send; i += 1) {
         if (lines[i].trim() === '') continue
@@ -6191,7 +6191,7 @@ function boot(ctx) {
         if (workspaceId === null || workspaceId.length === 0 || workspaceId.length > 120) return { ok: false, error: 'workspaceId requis' }
         if (/^[A-Za-z0-9][A-Za-z0-9 ._:-]*$/.test(workspaceId) === false) return { ok: false, error: 'workspaceId invalide' }
         const home = await dshHome()
-        if (home === null) return { ok: false, error: 'home DSH introuvable' }
+        if (home === null) return { ok: false, error: 'DSH home not found' }
         const name = typeof req.name === 'string' ? req.name.trim().slice(0, 60) : ''
         const icon = typeof req.icon === 'string' ? req.icon.trim().slice(0, 40) : ''
         const color = typeof req.color === 'string' && /^#[0-9a-fA-F]{6}$/.test(req.color.trim()) === true ? req.color.trim().toLowerCase() : ''
@@ -6262,9 +6262,9 @@ function boot(ctx) {
         if (workspaceId === null || workspaceId.length === 0 || workspaceId.length > 120) return { ok: false, error: 'workspaceId requis' }
         if (/^[A-Za-z0-9][A-Za-z0-9 ._:-]*$/.test(workspaceId) === false) return { ok: false, error: 'workspaceId invalide' }
         const skills = sanitizeSkillList(req.skills)
-        if (skills === null) return { ok: false, error: 'skills requis (liste de chaînes)' }
+        if (skills === null) return { ok: false, error: 'skills required (list of strings)' }
         const home = await dshHome()
-        if (home === null) return { ok: false, error: 'home DSH introuvable' }
+        if (home === null) return { ok: false, error: 'DSH home not found' }
         const path = joinPath(home, '.kyber-workspaces.json')
         const data = await readWorkspaceUi()
         const prev = (data[workspaceId] !== null && data[workspaceId] !== undefined && typeof data[workspaceId] === 'object') ? data[workspaceId] : {}
@@ -6301,7 +6301,7 @@ function boot(ctx) {
       try {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
         const home = await dshHomeOrNull()
-        if (home === null) return { ok: false, error: 'home DSH introuvable' }
+        if (home === null) return { ok: false, error: 'DSH home not found' }
         const path = joinPath(home, PINS_FILE)
         // ── Réordonnancement (le seul geste qui n'existe pas en natif) ────────
         if (Array.isArray(req.order) === true) {
@@ -6410,7 +6410,7 @@ function boot(ctx) {
         if (SHARE_KINDS.indexOf(kind) === -1) return { ok: false, error: 'kind invalide (workspace|deliverable|kyber)' }
         if (id === '' || id.length > 200) return { ok: false, error: 'id invalide' }
         const home = await dshHomeOrNull()
-        if (home === null) return { ok: false, error: 'home DSH introuvable' }
+        if (home === null) return { ok: false, error: 'DSH home not found' }
         const path = joinPath(home, SHARE_FILE)
         const data = await readShares()
         const cle = kind + ':' + id
@@ -6654,7 +6654,7 @@ function boot(ctx) {
             docs.push(row)
           }
         }
-        if (readIds.length > 0 && readCount === 0 && docs.length === 0) warnings.push('documents: aucun thread lisible')
+        if (readIds.length > 0 && readCount === 0 && docs.length === 0) warnings.push('documents: no readable thread')
       }
       docs.sort((a, b) => ((b.at === null ? 0 : b.at) - (a.at === null ? 0 : a.at)))
       return { ok: true, sessionIds: ids, active: active, goals: goals, docs: docs, warnings: warnings }
@@ -6669,7 +6669,7 @@ function boot(ctx) {
         const sid = str(req.sessionId)
         if (sid === null || /^[A-Za-z0-9][A-Za-z0-9._:-]{0,120}$/.test(sid) === false) return { ok: false, error: 'sessionId invalide' }
         const home = await dshHome()
-        if (home === null) return { ok: false, error: 'home DSH introuvable' }
+        if (home === null) return { ok: false, error: 'DSH home not found' }
         const since = nowIso()
         const path = joinPath(home, 'kybers/.active/' + names[0])
         // `clear` : un chat simple ne doit rien garder d'une equipe liee au clic
@@ -6715,7 +6715,7 @@ function boot(ctx) {
         const lastTeamId = str(req.lastTeamId)
         if (lastTeamId === null || /^[A-Za-z0-9][A-Za-z0-9._-]{0,60}$/.test(lastTeamId) === false) return { ok: false, error: 'lastTeamId invalide' }
         const home = await dshHome()
-        if (home === null) return { ok: false, error: 'home DSH introuvable' }
+        if (home === null) return { ok: false, error: 'DSH home not found' }
         const data = await readWorkspaceUi()
         const prev = (data[MENU_KEY] !== null && data[MENU_KEY] !== undefined && typeof data[MENU_KEY] === 'object') ? data[MENU_KEY] : {}
         data[MENU_KEY] = Object.assign({}, prev, { lastTeamId: lastTeamId })
@@ -6731,14 +6731,14 @@ function boot(ctx) {
         const path = str(req.path)
         if (path === null || path.length < 4) return { ok: false, error: 'chemin attendu' }
         // garde-fou : le fichier doit vivre sous le workspace courant ou un workspace connu
-        if ((await cheminAutorise(path)) === false) return { ok: false, error: 'fichier hors des workspaces connus' }
+        if ((await cheminAutorise(path)) === false) return { ok: false, error: 'file outside the known workspaces' }
         const target = await fs.resolve(path)
         const info = await fs.stat(target).catch(() => null)
-        if (!isFile(info)) return { ok: false, error: 'fichier introuvable' }
+        if (!isFile(info)) return { ok: false, error: 'file not found' }
         const size = typeof info.size === 'number' ? info.size : null
-        if (size !== null && size > 1200000) return { ok: false, error: 'fichier trop volumineux pour l\'aperçu (max 1,2 Mo)' }
+        if (size !== null && size > 1200000) return { ok: false, error: 'file too large to preview (max 1.2 MB)' }
         let text = ''
-        try { text = await fs.readText(target) } catch (e) { return { ok: false, error: 'fichier binaire ou illisible' } }
+        try { text = await fs.readText(target) } catch (e) { return { ok: false, error: 'file is binary or unreadable' } }
         const truncated = text.length > 400000
         if (truncated === true) text = text.slice(0, 400000)
         return { ok: true, path, size, truncated, text }
@@ -6758,10 +6758,10 @@ function boot(ctx) {
         const action = str(req.action)
         const path = str(req.path)
         if (action === null || path === null || path.length < 4) return { ok: false, error: 'action et chemin requis' }
-        if ((await cheminAutorise(path)) === false) return { ok: false, error: 'fichier hors des workspaces connus' }
+        if ((await cheminAutorise(path)) === false) return { ok: false, error: 'file outside the known workspaces' }
         const target = await fs.resolve(path)
         const info = await fs.stat(target).catch(() => null)
-        if (!isFile(info)) return { ok: false, error: 'fichier introuvable' }
+        if (!isFile(info)) return { ok: false, error: 'file not found' }
         const shellSvc = ctx.get('shell')
         if (shellSvc === undefined || shellSvc === null) return { ok: false, error: 'service shell indisponible' }
         // Recette 2026-10 : le service shell réel (dsh-bash-local, ShellExecutor)
@@ -6847,10 +6847,10 @@ function boot(ctx) {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
         const path = str(req.path)
         if (path === null || path.length < 4) return { ok: false, error: 'chemin attendu' }
-        if ((await cheminAutorise(path)) === false) return { ok: false, error: 'fichier hors des workspaces connus' }
+        if ((await cheminAutorise(path)) === false) return { ok: false, error: 'file outside the known workspaces' }
         const target = await fs.resolve(path)
         const info = await fs.stat(target).catch(() => null)
-        if (!isFile(info)) return { ok: false, error: 'fichier introuvable' }
+        if (!isFile(info)) return { ok: false, error: 'file not found' }
         const shellSvc = ctx.get('shell')
         if (shellSvc === undefined || shellSvc === null) return { ok: false, error: 'service shell indisponible' }
         // Recette 2026-10 : le service shell réel (dsh-bash-local, ShellExecutor)
@@ -6978,7 +6978,7 @@ function boot(ctx) {
         const rootId = str(req.rootId)
         const kyberId = str(req.kyberId)
         if (rootId === null || kyberId === null) return { ok: false, error: 'rootId et kyberId requis' }
-        if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'id d’Agent Team invalide' }
+        if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'invalid Agent Team id' }
         const rootsUi = await rootsFor()
         let rootPath = null
         for (const r of rootsUi) { if (r.id === rootId) rootPath = r.path }
@@ -7075,7 +7075,7 @@ function boot(ctx) {
         let under = false
         let underRoot = null
         for (const r of rootsAll) { if (path.indexOf(r.path + '/') === 0) { under = true; underRoot = r.path } }
-        if (under === false) return { ok: false, error: 'écriture autorisée uniquement sous une racine kybers connue' }
+        if (under === false) return { ok: false, error: 'writing is only allowed under a known kybers root' }
         const target = await fs.resolve(path)
         const original = await fs.readText(target)
         const before = parseKyber(original)
@@ -7086,7 +7086,7 @@ function boot(ctx) {
         const mission = typeof req.mission === 'string' ? req.mission : null
         if (mission !== null && normSpace(mission) !== normSpace(before.mission)) {
           const res = replaceTopLevel(working, 'mission', serializeMission(mission))
-          if (res === null) return { ok: false, error: 'clé mission introuvable dans le fichier' }
+          if (res === null) return { ok: false, error: 'mission key not found in the file' }
           working = res
         }
         if (b !== null) working = applyBudget(working, b)
@@ -7106,22 +7106,22 @@ function boot(ctx) {
           if (provider === '' && model === '' && prompt === undefined && fallback === undefined) continue
           const res = applyRole(working, roleId, provider, model, prompt, fallback)
           working = res.lines
-          if (res.applied === false) roleNotes.push(res.note || ('rôle ' + roleId + ' non modifié'))
+          if (res.applied === false) roleNotes.push(res.note || ('role ' + roleId + ' unchanged'))
         }
         const newText = working.join('\n')
         const after = parseKyber(newText)
-        if (after.id === null || after.id !== before.id) return { ok: false, error: 'validation: document cassé, écriture refusée' }
-        if (mission !== null && normSpace(after.mission) !== normSpace(mission)) return { ok: false, error: 'validation: mission incohérente après édition, écriture refusée' }
+        if (after.id === null || after.id !== before.id) return { ok: false, error: 'validation: broken document, write refused' }
+        if (mission !== null && normSpace(after.mission) !== normSpace(mission)) return { ok: false, error: 'validation: mission inconsistent after the edit, write refused' }
         if (b !== null) {
-          if (after.budget === null) return { ok: false, error: 'validation: budget absent après édition' }
-          if (String(after.budget.total) !== String(b.total) || String(after.budget.usdEur) !== String(b.usdEur)) return { ok: false, error: 'validation: budget incohérent après édition' }
+          if (after.budget === null) return { ok: false, error: 'validation: budget missing after the edit' }
+          if (String(after.budget.total) !== String(b.total) || String(after.budget.usdEur) !== String(b.usdEur)) return { ok: false, error: 'validation: budget inconsistent after the edit' }
         }
         if (skillsReq !== null) {
           // parseKyber expose la liste déclarée sous `skills` (`skillsDeclared`
           // est le renommage de buildKyber pour le client).
           const gotSkills = Array.isArray(after.skills) === true ? after.skills : []
-          if (gotSkills.length !== skillsReq.length) return { ok: false, error: 'validation: skills incohérentes après édition' }
-          for (let i = 0; i < skillsReq.length; i += 1) { if (gotSkills[i] !== skillsReq[i]) return { ok: false, error: 'validation: skills incohérentes après édition' } }
+          if (gotSkills.length !== skillsReq.length) return { ok: false, error: 'validation: skills inconsistent after the edit' }
+          for (let i = 0; i < skillsReq.length; i += 1) { if (gotSkills[i] !== skillsReq[i]) return { ok: false, error: 'validation: skills inconsistent after the edit' } }
         }
         const normPrompt = (x) => String(x === null || x === undefined ? '' : x).replace(/\r/g, '').split('\n').map((s) => s.replace(/[ \t]+$/, '')).join('\n').trim()
         for (const roleId of Object.keys(roles)) {
@@ -7134,11 +7134,11 @@ function boot(ctx) {
           if (rp === '' && rm === '' && rpr === undefined && rfb === undefined) continue
           let found = null
           for (const rr of after.roles) { if (rr.id === roleId) { found = rr; break } }
-          if (found === null) return { ok: false, error: 'validation: rôle ' + roleId + ' introuvable après édition' }
-          if (rp !== '' && found.provider !== rp) return { ok: false, error: 'validation: provider du rôle ' + roleId + ' incohérent' }
-          if (rm !== '' && found.model !== rm) return { ok: false, error: 'validation: modèle du rôle ' + roleId + ' incohérent' }
-          if (rfb !== undefined && String(found.fallback === null || found.fallback === undefined ? '' : found.fallback) !== rfb) return { ok: false, error: 'validation: fallback du rôle ' + roleId + ' incohérent' }
-          if (rpr !== undefined && normPrompt(found.prompt) !== normPrompt(rpr)) return { ok: false, error: 'validation: prompt du rôle ' + roleId + ' incohérent' }
+          if (found === null) return { ok: false, error: 'validation: role ' + roleId + ' not found after the edit' }
+          if (rp !== '' && found.provider !== rp) return { ok: false, error: 'validation: provider of role ' + roleId + ' inconsistent' }
+          if (rm !== '' && found.model !== rm) return { ok: false, error: 'validation: model of role ' + roleId + ' inconsistent' }
+          if (rfb !== undefined && String(found.fallback === null || found.fallback === undefined ? '' : found.fallback) !== rfb) return { ok: false, error: 'validation: fallback of role ' + roleId + ' inconsistent' }
+          if (rpr !== undefined && normPrompt(found.prompt) !== normPrompt(rpr)) return { ok: false, error: 'validation: prompt of role ' + roleId + ' inconsistent' }
         }
         const stamp = nowIso().replace(/[^0-9A-Za-z-]/g, '')
         const bakPath = path + '.bak-' + stamp
@@ -7157,7 +7157,7 @@ function boot(ctx) {
         const rootsAll = await rootsFor()
         const target = kyberTarget(rootsAll, { home: req.home === true })
         const targetRoot = target === null ? null : target.path
-        if (targetRoot === null) return { ok: false, error: 'aucune racine kybers disponible' }
+        if (targetRoot === null) return { ok: false, error: 'no kybers root available' }
         const rolesRaw = Array.isArray(req.roles) === true ? req.roles : []
         const roles = []
         for (const r of rolesRaw) {
@@ -7210,7 +7210,7 @@ function boot(ctx) {
         }
         const text = serializeKyber({ id, topology, mission: typeof req.mission === 'string' ? req.mission : '', roles, skills, stages })
         const parsed = parseKyber(text)
-        if (parsed.id !== id) return { ok: false, error: 'validation: document généré invalide' }
+        if (parsed.id !== id) return { ok: false, error: 'validation: the generated document is invalid' }
         await writeTextScoped(targetRoot, path, text)
         const uiReq = (req.ui !== null && req.ui !== undefined && typeof req.ui === 'object') ? req.ui : null
         if (uiReq !== null) {
@@ -7274,7 +7274,7 @@ function boot(ctx) {
         const rootId = str(req.rootId)
         const kyberId = str(req.kyberId)
         if (rootId === null || kyberId === null) return { ok: false, error: 'rootId et kyberId requis' }
-        if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'id d’Agent Team invalide' }
+        if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'invalid Agent Team id' }
         const dataUrl = str(req.dataUrl)
         if (dataUrl === null || dataUrl.length < 32) return { ok: false, error: 'image requise' }
         const m = /^data:([^;,]+);base64,([A-Za-z0-9+/=\s]+)$/.exec(dataUrl)
@@ -7283,7 +7283,7 @@ function boot(ctx) {
         if (ext === null) return { ok: false, error: 'type d image non supporte (png, jpg, webp, gif, svg)' }
         const b64 = m[2].replace(/\s+/g, '')
         const bytes = Buffer.from(b64, 'base64')
-        if (bytes.length === 0) return { ok: false, error: 'image vide' }
+        if (bytes.length === 0) return { ok: false, error: 'empty image' }
         if (bytes.length > 3145728) return { ok: false, error: 'image trop volumineuse (max 3 Mo)' }
         const rootsUi = await rootsFor()
         let rootPath = null
@@ -7393,7 +7393,7 @@ function boot(ctx) {
         const rootPath = await kbSampleRoot(req.rootId)
         if (rootPath === null) return { ok: false, error: 'racine inconnue' }
         const kyberId = str(req.kyberId)
-        if (kyberId === null || /^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'id d’Agent Team invalide' }
+        if (kyberId === null || /^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'invalid Agent Team id' }
         const name = String(str(req.name) !== null ? req.name : '').trim()
         if (name.length < 1 || name.length > 40) return { ok: false, error: 'nom de voix requis (1 a 40 caracteres)' }
         if (req.consent !== true) return { ok: false, error: 'consentement explicite requis' }
@@ -7405,7 +7405,7 @@ function boot(ctx) {
         if (ext === null) return { ok: false, error: 'format audio non supporte (wav, mp3, m4a, webm, ogg, flac)' }
         const b64 = m[2].replace(/\s+/g, '')
         const bytes = Buffer.from(b64, 'base64')
-        if (bytes.length === 0) return { ok: false, error: 'audio vide' }
+        if (bytes.length === 0) return { ok: false, error: 'empty audio' }
         if (bytes.length > KB_SAMPLE_MAX_BYTES) return { ok: false, error: 'echantillon trop long (max 10 Mo)' }
         const voiceId = 'v-' + Date.now().toString(36) + '-' + randomUUID().replace(/-/g, '').slice(0, 8)
         const rel = kbSampleFileRel(kyberId, voiceId, ext)
@@ -7426,7 +7426,7 @@ function boot(ctx) {
         }
         voices.push(entry)
         await kbSampleIndexWrite(rootPath, voices)
-        return { ok: true, voice: entry, engine: null, ready: false, reason: 'aucun moteur ne synthetise encore une voix clonee' }
+        return { ok: true, voice: entry, engine: null, ready: false, reason: 'no engine synthesizes a cloned voice yet' }
       } catch (e) { return { ok: false, error: errText(e) } }
     }
     const kbSampleList = async (query) => {
@@ -7546,10 +7546,10 @@ function boot(ctx) {
         const out = (stdout === null || stdout === undefined) ? '' : Buffer.from(stdout).toString('utf8').trim()
         if (out.length === 0) {
           const e2 = (stderr === null || stderr === undefined) ? '' : Buffer.from(stderr).toString('utf8')
-          resolve({ ok: false, error: ('découpe impossible: ' + errText(err) + ' ' + e2).slice(0, 300) })
+          resolve({ ok: false, error: ('cropping failed: ' + errText(err) + ' ' + e2).slice(0, 300) })
           return
         }
-        try { resolve(JSON.parse(out)) } catch (e) { resolve({ ok: false, error: 'sortie de découpe illisible: ' + out.slice(0, 200) }) }
+        try { resolve(JSON.parse(out)) } catch (e) { resolve({ ok: false, error: 'unreadable crop output: ' + out.slice(0, 200) }) }
       })
     })
     const kbPeopleRead = (v) => {
@@ -7569,7 +7569,7 @@ function boot(ctx) {
       const rootId = str(req.rootId)
       const kyberId = str(req.kyberId)
       if (rootId === null || kyberId === null) return { ok: false, error: 'rootId et kyberId requis' }
-      if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'id d’Agent Team invalide' }
+      if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'invalid Agent Team id' }
       const rootsUi = await rootsFor()
       let rootPath = null
       for (const r of rootsUi) { if (r.id === rootId) rootPath = r.path }
@@ -7583,12 +7583,12 @@ function boot(ctx) {
       // Mode « un portrait par rôle » : N appels menés 3 par 3 (~1 min la vague),
       // la scène d'équipe n'est ni refaite ni touchée : seuls les portraits changent.
       if (mode === 'person') {
-        if (people.length < 1 || people.length > 9) return { ok: false, error: '1 à 9 portraits par passe' }
+        if (people.length < 1 || people.length > 9) return { ok: false, error: '1 to 9 portraits per pass' }
         const t0p = Date.now()
         const modelP = str(req.model) !== null ? str(req.model) : kbTeamImageModel()
         const res = await kbPar(people, 3, (p) => kbPortraitOne(rootPath, kyberId, p.id, p.look, modelP))
         const reussis = res.filter((x) => x !== null && x !== undefined && x.ok === true)
-        const echecs = res.map((x, i) => (x !== null && x !== undefined && x.ok === true) ? null : (String(people[i].id) + ' : ' + String((x !== null && x !== undefined) ? x.error : 'échec'))).filter((x) => x !== null)
+        const echecs = res.map((x, i) => (x !== null && x !== undefined && x.ok === true) ? null : (String(people[i].id) + ' : ' + String((x !== null && x !== undefined) ? x.error : 'failed'))).filter((x) => x !== null)
         return {
           ok: reussis.length > 0,
           generated: reussis.length > 0,
@@ -7606,7 +7606,7 @@ function boot(ctx) {
           avatar: null,
         }
       }
-      if (people.length < 2 || people.length > 9) return { ok: false, error: recrop === true ? 'planche mémorisée sans casting exploitable' : '2 à 9 personnes par planche' }
+      if (people.length < 2 || people.length > 9) return { ok: false, error: recrop === true ? 'planche mémorisée sans casting exploitable' : '2 to 9 people per sheet' }
       const t0 = Date.now()
       const workDir = joinPath(tmpdir(), 'kb-visages-' + randomUUID())
       let sheetPath = null
@@ -7617,10 +7617,10 @@ function boot(ctx) {
         mkdirSync(workDir, { recursive: true })
         if (recrop === true) {
           const rel = memo !== null ? str(memo.rel) : null
-          if (rel === null || rel.indexOf('.kyber-avatars/') !== 0 || rel.indexOf('..') >= 0) return { ok: false, error: 'aucune planche mémorisée pour cette Agent Team' }
+          if (rel === null || rel.indexOf('.kyber-avatars/') !== 0 || rel.indexOf('..') >= 0) return { ok: false, error: 'no saved sheet for this Agent Team' }
           const t = await fs.resolve(joinPath(rootPath, rel))
           const info = await fs.stat(t).catch(() => null)
-          if (isFile(info) !== true) return { ok: false, error: 'planche mémorisée introuvable' }
+          if (isFile(info) !== true) return { ok: false, error: 'saved sheet not found' }
           const txt = await fs.readText(t)
           sheetPath = joinPath(workDir, kyberId + '.planche.png')
           writeFileSync(sheetPath, Buffer.from(txt.replace(/\s+/g, ''), 'base64'))
@@ -7637,9 +7637,9 @@ function boot(ctx) {
             body: JSON.stringify({ model: model, input: { messages: [{ role: 'user', content: [{ text: prompt }] }] }, parameters: { size: taille, n: 1 } }),
           })
           const corps = await rep.text()
-          if (rep.ok !== true) return { ok: false, error: 'génération refusée (HTTP ' + rep.status + '): ' + corps.slice(0, 220) }
+          if (rep.ok !== true) return { ok: false, error: 'generation refused (HTTP ' + rep.status + '): ' + corps.slice(0, 220) }
           let json = null
-          try { json = JSON.parse(corps) } catch (e) { return { ok: false, error: 'réponse illisible du générateur' } }
+          try { json = JSON.parse(corps) } catch (e) { return { ok: false, error: 'unreadable answer from the generator' } }
           const choix = (json.output !== null && json.output !== undefined && Array.isArray(json.output.choices)) ? json.output.choices : []
           let url = null
           for (const c of choix) {
@@ -7650,17 +7650,17 @@ function boot(ctx) {
             }
             if (url !== null) break
           }
-          if (url === null) return { ok: false, error: 'aucune image dans la réponse du générateur' }
+          if (url === null) return { ok: false, error: 'no image in the generator\'s answer' }
           const img = await fetch(url)
-          if (img.ok !== true) return { ok: false, error: 'téléchargement de l’image refusé (HTTP ' + img.status + ')' }
+          if (img.ok !== true) return { ok: false, error: 'image download refused (HTTP ' + img.status + ')' }
           sheetPath = joinPath(workDir, kyberId + '.planche.png')
           writeFileSync(sheetPath, Buffer.from(await img.arrayBuffer()))
           generated = true
         }
         const dec = await kbDecoupeEquipe({ src: sheetPath, workDir: workDir, prefix: kyberId, count: people.length })
-        if (dec.ok !== true) return { ok: false, error: str(dec.error) || 'découpe impossible' }
+        if (dec.ok !== true) return { ok: false, error: str(dec.error) || 'cropping failed' }
         const scenePath = str(dec.scene)
-        if (scenePath === null) return { ok: false, error: 'scène non produite par la découpe' }
+        if (scenePath === null) return { ok: false, error: 'the crop did not produce the scene' }
         const now = nowIso()
         const avatarRel = avatarRelFor('png', kyberId)
         await writeTextScoped(rootPath, joinPath(rootPath, avatarRel), readFileSync(scenePath).toString('base64'))
@@ -7776,7 +7776,7 @@ function boot(ctx) {
       try {
         const prof = kbVoiceProfile()
         const cle = await kbVoiceKey(prof.ref)
-        if (cle.key === null) return { ok: false, error: cle.error || 'clé du fournisseur introuvable' }
+        if (cle.key === null) return { ok: false, error: cle.error || 'provider key not found' }
         const ctl = new AbortController()
         const minuteur = setTimeout(() => { ctl.abort() }, (typeof timeoutMs === 'number' ? timeoutMs : 180000))
         let rep = null
@@ -7789,9 +7789,9 @@ function boot(ctx) {
           })
         } finally { clearTimeout(minuteur) }
         const corps = await rep.text()
-        if (rep.ok !== true) return { ok: false, error: 'génération refusée (HTTP ' + rep.status + '): ' + corps.slice(0, 220) }
+        if (rep.ok !== true) return { ok: false, error: 'generation refused (HTTP ' + rep.status + '): ' + corps.slice(0, 220) }
         let json = null
-        try { json = JSON.parse(corps) } catch (e) { return { ok: false, error: 'réponse illisible du générateur' } }
+        try { json = JSON.parse(corps) } catch (e) { return { ok: false, error: 'unreadable answer from the generator' } }
         const choix = (json.output !== null && json.output !== undefined && Array.isArray(json.output.choices)) ? json.output.choices : []
         let url = null
         for (const c of choix) {
@@ -7802,9 +7802,9 @@ function boot(ctx) {
           }
           if (url !== null) break
         }
-        if (url === null) return { ok: false, error: 'aucune image dans la réponse du générateur' }
+        if (url === null) return { ok: false, error: 'no image in the generator\'s answer' }
         const img = await fetch(url)
-        if (img.ok !== true) return { ok: false, error: 'téléchargement de l’image refusé (HTTP ' + img.status + ')' }
+        if (img.ok !== true) return { ok: false, error: 'image download refused (HTTP ' + img.status + ')' }
         return { ok: true, bytes: Buffer.from(await img.arrayBuffer()), ms: Date.now() - t0, model: model }
       } catch (e) { return { ok: false, error: errText(e) } }
     }
@@ -7836,13 +7836,13 @@ function boot(ctx) {
         mkdirSync(workDir, { recursive: true })
         const sujet = (look !== null && look.length > 0) ? look : String(memberId).replace(/-/g, ' ')
         const gen = await kbImageGen(kbPortraitPrompt(sujet), model, '1024*1024', 180000)
-        if (gen.ok !== true) return { ok: false, error: gen.error || 'génération en échec' }
+        if (gen.ok !== true) return { ok: false, error: gen.error || 'generation failed' }
         const brut = joinPath(workDir, 'brut.png')
         writeFileSync(brut, gen.bytes)
         const dec = await kbDecoupeEquipe({ src: brut, workDir: workDir, prefix: 'p', count: 1, single: true })
-        if (dec.ok !== true) return { ok: false, error: dec.error || 'découpe en échec' }
+        if (dec.ok !== true) return { ok: false, error: dec.error || 'cropping failed' }
         const av = (Array.isArray(dec.avatars) === true && dec.avatars[0] !== null && dec.avatars[0] !== undefined) ? str(dec.avatars[0].path) : null
-        if (av === null) return { ok: false, error: 'aucun portrait produit' }
+        if (av === null) return { ok: false, error: 'no portrait produced' }
         const rel = await kbPortraitStore(rootPath, kyberId, memberId, av, look, nowIso())
         return { ok: true, ms: gen.ms, model: model, rel: rel, face: (Array.isArray(dec.faces) === true && dec.faces.length > 0) }
       } catch (e) {
@@ -7927,7 +7927,7 @@ function boot(ctx) {
       try {
         const rec = await creds.resolve(ref)
         const key = (rec !== null && rec !== undefined && typeof rec.value === 'string' && rec.value.length > 0) ? rec.value : null
-        if (key === null) return { key: null, error: 'référence ' + ref + ' non configurée' }
+        if (key === null) return { key: null, error: 'reference ' + ref + ' not set' }
         return { key, source: str(rec.source) }
       } catch (e) { return { key: null, error: errText(e) } }
     }
@@ -7942,7 +7942,7 @@ function boot(ctx) {
       const m = /^data:(audio\/[a-z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/i.exec(raw)
       if (m === null) return { error: 'audio attendu en data URL base64 (audio/wav)' }
       const bytes = Buffer.from(m[2].replace(/\s+/g, ''), 'base64')
-      if (bytes.length === 0) return { error: 'audio vide' }
+      if (bytes.length === 0) return { error: 'empty audio' }
       if (bytes.length > KB_VOICE_MAX_BYTES) return { error: 'audio trop long (max 10 Mo, ~5 min)' }
       return { dataUrl: raw, mime: m[1].toLowerCase(), bytes }
     }
@@ -8009,7 +8009,7 @@ function boot(ctx) {
           if (text === null) {
             const msg = json !== null && json !== undefined ? (str(json.message) || str(json.code)) : null
             lastMessage = msg
-            firstError = msg !== null ? msg : ('HTTP ' + res.status + ' (enveloppe native' + (raw.length === 0 ? ', corps vide' : ', ' + raw.slice(0, 120)) + ')')
+            firstError = msg !== null ? msg : ('HTTP ' + res.status + ' (enveloppe native' + (raw.length === 0 ? ', empty body' : ', ' + raw.slice(0, 120)) + ')')
           }
         } catch (e) { firstError = errText(e) }
         if (text === null) {
@@ -8038,7 +8038,7 @@ function boot(ctx) {
           // native dont `sentence.text` est vide, SANS `message` ni `code`. Un
           // 400 porteur d'un message (modèle inconnu, quota…) garde son texte.
           if (lastStatus === 400 && lastMessage === null) {
-            message = 'audio inaudible ou trop court pour le modèle' + (seconds !== null ? ' (' + seconds + ' s envoyées)' : '') + ' — vérifie le micro choisi, et parle au moins une demi-seconde'
+            message = 'audio inaudible or too short for the model' + (seconds !== null ? ' (' + seconds + ' s sent)' : '') + ' — check the chosen microphone, and speak for at least half a second'
           }
           kbAsrState.at = Date.now()
           kbAsrState.status = lastStatus
@@ -8068,7 +8068,7 @@ function boot(ctx) {
         let root = null
         for (const r of roots) { if (r.id === 'workspace') root = r }
         if (root === null) root = roots.length > 0 ? roots[0] : null
-        if (root === null || root === undefined) return { ok: false, error: 'aucune racine d écriture kybers' }
+        if (root === null || root === undefined) return { ok: false, error: 'no kybers root to write to' }
         const m = /^data:audio\/[a-z0-9.+-]+;base64,([A-Za-z0-9+/=\s]+)$/i.exec(str(req.audio))
         const stamp = String(Date.now())
         const rel = 'voice/' + (str(req.name) !== null ? str(req.name) : 'note-' + stamp + '.') + ext + '.b64'
@@ -8226,7 +8226,7 @@ function boot(ctx) {
       const path = await kbTtsConfigPath()
       if (path === null) return { ok: false, error: 'dossier de configuration introuvable (~/.dsh introuvable)' }
       const dir = await kbTtsDirOf(null)
-      if (kbTtsMkdir(dir) === false) return { ok: false, error: 'dossier non creable : ' + dir }
+      if (kbTtsMkdir(dir) === false) return { ok: false, error: 'folder cannot be created: ' + dir }
       const wrote = await kbTtsWriteText(path, JSON.stringify(next, null, 2) + String.fromCharCode(10))
       if (wrote === false) return { ok: false, error: 'ecriture du reglage refusee' }
       return { ok: true, config: next }
@@ -8235,50 +8235,50 @@ function boot(ctx) {
     // ── le script Python des moteurs (écrit une fois, versionné) ─────────────
     const KB_TTS_HELPER = [
       '#!/usr/bin/env python3',
-      '"""Synthese vocale pour le plugin Kybernos. Appele par l hote, jamais par le navigateur.',
+      '"""Speech synthesis for the Kybernos plugin. Called by the host, never by the browser.',
       '',
-      'Le texte arrive par --text-file et la sortie brute par --out : aucune chaine n est',
-      'interpretee par un shell. L hote convertit ensuite le fichier en m4a pour le navigateur.',
+      'The text arrives through --text-file and the raw output through --out: no string is',
+      'interpreted by a shell. The host then converts the file to m4a for the browser.',
       '"""',
       'import argparse, json, sys',
       '',
-      'def lire(p):',
+      'def read_text(p):',
       '    with open(p, "r", encoding="utf-8") as f:',
       '        return f.read().strip()',
       '',
-      'def voix_edge():',
+      'def edge_voices():',
       '    import asyncio, edge_tts',
       '    vs = asyncio.run(edge_tts.list_voices())',
       '    out = []',
       '    for v in vs:',
       '        loc = str(v.get("Locale") or "")',
-      '        nom = str(v.get("ShortName") or "")',
-      '        out.append({"id": nom, "label": nom.replace("Neural", ""), "lang": loc[:2].lower()})',
+      '        name = str(v.get("ShortName") or "")',
+      '        out.append({"id": name, "label": name.replace("Neural", ""), "lang": loc[:2].lower()})',
       '    return out',
       '',
-      'def edge(a, texte):',
+      'def edge(a, text):',
       '    import asyncio, edge_tts',
       '    async def go():',
-      '        c = edge_tts.Communicate(texte, a.voice, rate=a.rate)',
+      '        c = edge_tts.Communicate(text, a.voice, rate=a.rate)',
       '        with open(a.out, "wb") as f:',
       '            async for ch in c.stream():',
       '                if ch["type"] == "audio":',
       '                    f.write(ch["data"])',
       '    asyncio.run(go())',
       '',
-      'def supertonic(a, texte):',
+      'def supertonic(a, text):',
       '    from supertonic import TTS',
       '    t = TTS(auto_download=True)',
       '    st = t.get_voice_style(voice_name=a.voice)',
-      '    wav, _ = t.synthesize(texte, voice_style=st, lang=a.lang)',
+      '    wav, _ = t.synthesize(text, voice_style=st, lang=a.lang)',
       '    t.save_audio(wav, a.out)',
       '',
-      'def piper(a, texte):',
+      'def piper(a, text):',
       '    import subprocess',
       '    argv = [sys.executable, "-m", "piper", "--model", a.model, "--output_file", a.out]',
       '    if a.length_scale > 0:',
       '        argv += ["--length_scale", str(a.length_scale)]',
-      '    p = subprocess.run(argv, input=texte.encode("utf-8"), capture_output=True)',
+      '    p = subprocess.run(argv, input=text.encode("utf-8"), capture_output=True)',
       '    if p.returncode != 0:',
       '        sys.stderr.write(p.stderr.decode("utf-8", "replace")[:400])',
       '        sys.exit(p.returncode)',
@@ -8288,7 +8288,7 @@ function boot(ctx) {
       '    ap.add_argument("--engine", required=True)',
       '    ap.add_argument("--list-voices", action="store_true")',
       '    ap.add_argument("--voice", default="")',
-      '    ap.add_argument("--lang", default="fr")',
+      '    ap.add_argument("--lang", default="en")',
       '    ap.add_argument("--model", default="")',
       '    ap.add_argument("--rate", default="+0%")',
       '    ap.add_argument("--length-scale", dest="length_scale", type=float, default=0.0)',
@@ -8299,20 +8299,20 @@ function boot(ctx) {
       '        if a.engine != "edge":',
       '            print(json.dumps([]))',
       '            return 0',
-      '        print(json.dumps(voix_edge()))',
+      '        print(json.dumps(edge_voices()))',
       '        return 0',
-      '    texte = lire(a.text_file)',
-      '    if texte == "":',
-      '        sys.stderr.write("texte vide")',
+      '    text = read_text(a.text_file)',
+      '    if text == "":',
+      '        sys.stderr.write("empty text")',
       '        return 2',
       '    if a.engine == "edge":',
-      '        edge(a, texte)',
+      '        edge(a, text)',
       '    elif a.engine == "supertonic":',
-      '        supertonic(a, texte)',
+      '        supertonic(a, text)',
       '    elif a.engine == "piper":',
-      '        piper(a, texte)',
+      '        piper(a, text)',
       '    else:',
-      '        sys.stderr.write("moteur inconnu: " + a.engine)',
+      '        sys.stderr.write("unknown engine: " + a.engine)',
       '        return 2',
       '    return 0',
       '',
@@ -8458,10 +8458,10 @@ function boot(ctx) {
           for (const g of audioModelsOf(kbModelsProviders())) for (const m of g.models) if (m.kind === 'speak' && /voiceclone|voicedesign/i.test(m.id) === false) found.push({ id: g.provider + ':' + m.id, label: m.id + ' · ' + g.provider, lang: '' })
           item.voices = found
           item.ready = found.length > 0
-          item.reason = found.length > 0 ? null : 'aucun modele de voix dans vos fournisseurs'
+          item.reason = found.length > 0 ? null : 'no voice model among your providers'
           item.size = '0 Mo'
           item.sizeBytes = 0
-          item.note = 'utilise la cle deja configuree pour le fournisseur du modele'
+          item.note = 'uses the key already set for the model\'s provider'
         } else if (cat.id === 'edge') {
           item.ready = edgeOk === true
           item.reason = item.ready === true ? null : 'module python edge_tts absent'
@@ -8519,7 +8519,7 @@ function boot(ctx) {
         }
         found = parts.join(String.fromCharCode(10))
       }
-      if (found === null) return { ok: false, error: 'message introuvable dans ce thread' }
+      if (found === null) return { ok: false, error: 'message not found in this thread' }
       if (found.trim() === '') return { ok: false, error: 'ce message ne contient pas de texte a lire' }
       return { ok: true, text: found }
     }
@@ -8544,13 +8544,13 @@ function boot(ctx) {
     // 5 s pese 160 Ko, le meme en m4a 30 Ko, ce qui compte pour un data: URI.
     const kbTtsRenderOne = async (engine, voiceId, lang, speed, text, destM4a) => {
       const tmpDir = kbTtsTmpRoot()
-      if (kbTtsMkdir(tmpDir) === false) return { ok: false, error: 'dossier temporaire non creable : ' + tmpDir }
+      if (kbTtsMkdir(tmpDir) === false) return { ok: false, error: 'temporary folder cannot be created: ' + tmpDir }
       const stamp = String(Date.now()) + '-' + String(Math.floor(Math.random() * 100000))
       const textFile = joinPath(tmpDir, 'txt-' + stamp + '.txt')
       // say n'ecrit que dans un format qu'il sait deduire de l'extension : .aiff
       // (un .wav sans --data-format est refuse par « Opening output file failed: fmt? »).
       const rawFile = joinPath(tmpDir, 'raw-' + stamp + (engine === 'edge' ? '.mp3' : (engine === 'say' ? '.aiff' : '.wav')))
-      try { writeFileSync(textFile, text, 'utf8') } catch (e) { return { ok: false, error: 'texte temporaire non ecrit : ' + errText(e) } }
+      try { writeFileSync(textFile, text, 'utf8') } catch (e) { return { ok: false, error: 'temporary text not written: ' + errText(e) } }
       let res = null
       const started = Date.now()
       try {
@@ -8588,7 +8588,7 @@ function boot(ctx) {
       try { info = statSync(rawFile) } catch (e) { info = null }
       if (info === null || info.size < 512) {
         try { rmSync(rawFile, { force: true }) } catch (e) { /* rien a effacer */ }
-        return { ok: false, error: 'le moteur n a produit aucun son (' + (info === null ? 'fichier absent' : info.size + ' octets') + ')' }
+        return { ok: false, error: 'le moteur n a produit aucun son (' + (info === null ? 'file missing' : info.size + ' octets') + ')' }
       }
       // Conversion en m4a : le navigateur la lit partout et le poids est divise par 5.
       const conv = await kbTtsExec('afconvert', ['-f', 'm4af', '-d', 'aac', '-b', '48000', '-c', '1', rawFile, destM4a], { timeoutMs: 20000 })
@@ -8629,7 +8629,7 @@ function boot(ctx) {
           if (source.ok !== true) return source
         }
         const cleaned = kbTtsCleanText(source.text)
-        if (cleaned.text.length === 0) return { ok: false, error: 'rien a lire apres nettoyage (le message ne contient que du code ?)' }
+        if (cleaned.text.length === 0) return { ok: false, error: 'nothing to read after cleaning (does the message only hold code?)' }
         const engines = await kbTtsEngines()
         const ready = {}
         const byId = {}
@@ -8650,7 +8650,7 @@ function boot(ctx) {
           const voices = byId[id] === undefined ? [] : byId[id].voices
           const voiceId = kbTtsPickVoice(id, voices, lang, wantedVoice)
           const cacheDir = await kbTtsCacheDir()
-          if (cacheDir === null) return { ok: false, error: 'dossier de cache non creable' }
+          if (cacheDir === null) return { ok: false, error: 'cache folder cannot be created' }
           const key = kbTtsHash([id, voiceId, lang, String(speed), cleaned.text].join('|'))
           if (key === null) return { ok: false, error: 'empreinte de cache indisponible' }
           const file = joinPath(cacheDir, key + '.m4a')
@@ -8669,7 +8669,7 @@ function boot(ctx) {
           let bytes = null
           try { bytes = readFileSync(file) } catch (e) { bytes = null }
           if (bytes === null || bytes.length < 512) {
-            attempts.push({ engine: id, error: 'fichier de cache illisible' })
+            attempts.push({ engine: id, error: 'unreadable cache file' })
             continue
           }
           done = {
@@ -9143,7 +9143,7 @@ function boot(ctx) {
       let kbRpcCookie = null
       const kbRpc = async (method, args, timeoutMs) => {
         let base = null
-        try { base = readFileSync(nodePathJoin(await dshHome(), 'logs', 'dsh-web.url'), 'utf8').trim().split('?')[0].replace(/\/$/, '') } catch (e) { throw new Error('url DSH introuvable') }
+        try { base = readFileSync(nodePathJoin(await dshHome(), 'logs', 'dsh-web.url'), 'utf8').trim().split('?')[0].replace(/\/$/, '') } catch (e) { throw new Error('DSH url not found') }
         if (kbRpcCookie === null) {
           // Les credentials DSH vivent DANS le home DSH (~/.dsh/.credentials.yaml).
           const credPath = nodePathJoin(await dshHome(), '.credentials.yaml')
@@ -9151,7 +9151,7 @@ function boot(ctx) {
           const at = raw.indexOf('client-connection/browser-session')
           if (at === -1) throw new Error('secret navigateur absent des credentials')
           const m = raw.slice(at).match(/secret:\s*(\S+)/)
-          if (m === null) throw new Error('secret du cookie introuvable')
+          if (m === null) throw new Error('cookie secret not found')
           const secret = Buffer.from(m[1].replaceAll('-', '+').replaceAll('_', '/'), 'base64')
           const b64url = (b) => Buffer.from(b).toString('base64').replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
           const authority = base.replaceAll('http://', '').replaceAll('https://', '').replace(/\/$/, '')
@@ -9228,7 +9228,7 @@ function boot(ctx) {
             const visites = reels.filter((m) => m.role === 'visitor')
             const texte = visites[visites.length - 1].text
             try {
-              await kbRpc('session/prompt', { request: { requestId: 'kbw-' + convId + '-' + visites.length, sessionId: s.sessionId, mode: 'queue', content: [{ type: 'text', text: '[Widget] Un visiteur de votre site public écrit : « ' + String(texte).slice(0, 1800) + ' »' }] } })
+              await kbRpc('session/prompt', { request: { requestId: 'kbw-' + convId + '-' + visites.length, sessionId: s.sessionId, mode: 'queue', content: [{ type: 'text', text: '[Widget] A visitor on your public site writes: “' + String(texte).slice(0, 1800) + ' »' }] } })
               s.dispatched = visites.length; sale = true
             } catch (e) {
               // Session morte : on la recréera au prochain tick.
@@ -9294,9 +9294,9 @@ function boot(ctx) {
         try {
           const p = args !== null && args !== undefined && typeof args.path === 'string' ? args.path : ''
           const base = (p.split('/').pop() || '').trim()
-          if (base.length < 3) return { ok: false, found: false, error: 'nom de fichier trop court' }
+          if (base.length < 3) return { ok: false, found: false, error: 'file name too short' }
           const dsh = await dshHomeOrNull()
-          if (dsh === null || dsh === undefined) return { ok: false, found: false, error: 'dsh home introuvable' }
+          if (dsh === null || dsh === undefined) return { ok: false, found: false, error: 'DSH home not found' }
           const root = joinPath(dsh, 'sessions')
           let workspaces = []
           try { workspaces = readdirSync(root, { withFileTypes: true }) } catch (e) { return { ok: false, found: false, error: 'journaux illisibles' } }
@@ -9451,7 +9451,7 @@ function boot(ctx) {
             res.writeHead(200, { 'content-type': type, 'cache-control': 'no-store', 'content-length': String(bytes.length) })
             res.end(bytes)
           } catch (e) {
-            sendJson(res, 404, { ok: false, error: 'fichier absent: ' + relatif })
+            sendJson(res, 404, { ok: false, error: 'file missing: ' + relatif })
           }
         } }), 'kybernos: route technique ' + relatif)
       }
@@ -9660,7 +9660,7 @@ function boot(ctx) {
           const text = readFileSync(resolved, 'utf8')
           return sendJson(res, 200, { ok: true, text: text, path: resolved })
         } catch (e) {
-          return sendJson(res, 404, { ok: false, error: 'fichier non trouvé: ' + filePath })
+          return sendJson(res, 404, { ok: false, error: 'file not found: ' + filePath })
         }
       } }), 'kybernos: route art-load')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspace-ui-save', handler: async (req, res) => {
@@ -9857,7 +9857,7 @@ function boot(ctx) {
             res.end(req.method === 'HEAD' ? '' : src)
           } catch (e) {
             res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' })
-            res.end('introuvable: kb-places.js')
+            res.end('not found: kb-places.js')
           }
         } }), 'kybernos: route kb-places')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/avatar-save', handler: async (req, res) => {
@@ -10088,7 +10088,7 @@ function boot(ctx) {
         const ready = cred.key !== null && quota === false
         const raison = cred.key === null
           ? cred.error
-          : (quota === true ? ('dernier essai refuse (' + (kbAsrState.status === null ? 'quota' : 'HTTP ' + kbAsrState.status) + ') : ' + String(kbAsrState.error === null ? 'quota epuise' : kbAsrState.error)) : null)
+          : (quota === true ? ('last attempt refused (' + (kbAsrState.status === null ? 'quota' : 'HTTP ' + kbAsrState.status) + ') : ' + String(kbAsrState.error === null ? 'quota epuise' : kbAsrState.error)) : null)
         sendJson(res, 200, { ok: true, asr: { model: prof.asrModel, ready: ready, ref: prof.ref, baseUrl: prof.baseUrl, maxBytes: KB_VOICE_MAX_BYTES, reason: raison, quota: { exhausted: quota, status: kbAsrState.status, at: kbAsrState.at === null ? null : new Date(kbAsrState.at).toISOString(), message: kbAsrState.error } } })
       } }), 'kybernos: route voice/config')
       // The audio models of the providers already set up in Models (names and kinds only): a call can reuse them without a new key.
@@ -10114,7 +10114,7 @@ function boot(ctx) {
         let body = {}
         try { body = await readJsonBody(req, 8192) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         const said = str(body.text)
-        if (said === null || said.trim() === '' || said.length > 1500) return sendJson(res, 400, { ok: false, error: 'texte de 1 a 1500 caracteres attendu' })
+        if (said === null || said.trim() === '' || said.length > 1500) return sendJson(res, 400, { ok: false, error: 'text of 1 to 1500 characters expected' })
         const made = await kbModelsAudio.speak({ provider: str(body.provider) ?? '', model: str(body.model) ?? '', text: said })
         sendJson(res, 200, made.ok === true ? { ok: true, family: made.family, audio: 'data:audio/wav;base64,' + made.audio.toString('base64') } : { ok: false, code: made.code, error: made.error })
       } }), 'kybernos: route models/audio/speak')
@@ -10148,18 +10148,18 @@ function boot(ctx) {
       // l'aller-retour AVANT l'écriture ; l'hôte ne fait que parler au modèle
       // et écrire sous <DSH home>/kybers/<id>/ avec sauvegarde .bak.
       const KB_YML_TOPOLOGIES = ['pool', 'pipeline', 'adversarial', 'mapreduce', 'loop']
-      const kbYmlSystem = () => 'Tu transformes une description en francais d\'un workflow d\'equipe en un fichier kyber.yml VALIDE. Reponds UNIQUEMENT par le contenu YAML, sans balise de code, sans commentaire.\n'
+      const kbYmlSystem = () => 'You turn a description of a team workflow, written in any language, into a VALID kyber.yml file. Answer ONLY with the YAML content, without a code fence, without comments.\n'
         + 'Format:\n'
-        + '- 1re ligne: `topology: <t>` avec t ∈ {' + KB_YML_TOPOLOGIES.join(', ') + '}\n'
-        + '- puis `mission: <une phrase>`\n'
-        + '- puis `stages:` (liste) ; chaque etape:\n'
-        + '  - `id: <slug-court>` (minuscules, tirets)\n'
-        + '  - `roles: [role1, role2]` (1 a 3 rôles)\n'
-        + '  - `mode: once` (defaut) | `forEach` | `untilConverged`\n'
-        + '  - `inputs: [id-etape]` = ce que l\'etape recoit ; la premiere etape n\'a pas d\'inputs\n'
-        + '  - l\'etape qui critique une autre porte `adversarial: true`\n'
-        + '- boucle: la derniere etape porte `mode: untilConverged` + `maxRounds: <n>`\n'
-        + 'Aucun autre champ. Description:\n'
+        + '- first line: `topology: <t>` with t ∈ {' + KB_YML_TOPOLOGIES.join(', ') + '}\n'
+        + '- then `mission: <one sentence>`\n'
+        + '- then `stages:` (a list); each stage:\n'
+        + '  - `id: <short-slug>` (lowercase, dashes)\n'
+        + '  - `roles: [role1, role2]` (1 to 3 roles)\n'
+        + '  - `mode: once` (default) | `forEach` | `untilConverged`\n'
+        + '  - `inputs: [stage-id]` = what the stage receives; the first stage has no inputs\n'
+        + '  - the stage that criticises another one carries `adversarial: true`\n'
+        + '- loop: the last stage carries `mode: untilConverged` + `maxRounds: <n>`\n'
+        + 'No other field. Description:\n'
       const kbYmlStripFences = (texte) => {
         const m = /```(?:ya?ml)?\s*\n([\s\S]*?)```/.exec(texte)
         return (m !== null ? m[1] : texte).trim()
@@ -10198,7 +10198,7 @@ function boot(ctx) {
           const yml = essai.yml
           if (yml === null || yml.length === 0) {
             const msg = (essai.json !== null && essai.json !== undefined) ? (str(essai.json.message) || str(essai.json.code)) : null
-            return { ok: false, error: msg !== null ? msg : ('HTTP ' + essai.res.status + (essai.raw.length === 0 ? ' (corps vide)' : ': ' + essai.raw.slice(0, 160))) }
+            return { ok: false, error: msg !== null ? msg : ('HTTP ' + essai.res.status + (essai.raw.length === 0 ? ' (empty body)' : ': ' + essai.raw.slice(0, 160))) }
           }
           return { ok: true, yml: yml, modele: modele }
         } catch (e) { return { ok: false, error: errText(e) } }
@@ -10207,7 +10207,7 @@ function boot(ctx) {
         const req = (args !== null && args !== undefined && typeof args === 'object') ? args : {}
         const kyberId = str(req.kyberId).trim()
         const yml = str(req.yml)
-        if (/^[a-z0-9][a-z0-9-]{1,62}$/.test(kyberId) === false) return { ok: false, error: 'id d’Agent Team invalide (minuscules, chiffres, tirets)' }
+        if (/^[a-z0-9][a-z0-9-]{1,62}$/.test(kyberId) === false) return { ok: false, error: 'invalid Agent Team id (lowercase letters, digits, dashes)' }
         if (yml.length === 0 || yml.length > 60000) return { ok: false, error: 'yml absent ou trop long' }
         if (yml.indexOf('topology:') !== 0) return { ok: false, error: 'yml refuse: doit commencer par topology:' }
         try {
@@ -10459,7 +10459,7 @@ function boot(ctx) {
       const kbToolsProfiles = () => {
         try {
           const dir = kbToolsProfilesDir()
-          if (dir === null) { kbToolsProfilesError = 'dossier des profils introuvable'; return [] }
+          if (dir === null) { kbToolsProfilesError = 'profiles folder not found'; return [] }
           // `isDir` est l'helper DSH (`.type === 'directory'`) : un Dirent Node
           // n'a que `isDirectory()`. `isDir(statSync(...))` d'abord, puis
           // `isDir(dirent)` — les deux rendaient FAUX pour les huit profils, et
@@ -10510,7 +10510,7 @@ function boot(ctx) {
         { id: 'browser-use', group: 'exp', label: 'Browser Use',
           registry: { id: 'browser-use', name: '@deepseek-ai/dsh-browser-use' },
           slot: 'browserUse', prefix: 'mcp__playwright-mcp__', toolCount: 24,
-          needs: 'Rien côté système — le navigateur est lancé par le pilote, dans un profil temporaire.',
+          needs: 'Nothing on the system side — the browser is started by the driver, in a temporary profile.',
           drivers: [
             { id: 'browser-use-playwright', name: '@deepseek-ai/dsh-experimental-browser-use-playwright-mcp', label: 'Playwright MCP', def: true,
               config: { mode: 'launch', headless: false, executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' } },
@@ -10519,16 +10519,16 @@ function boot(ctx) {
         { id: 'computer-use', group: 'exp', label: 'Computer Use',
           registry: { id: 'computer-use', name: '@deepseek-ai/dsh-computer-use' },
           slot: 'computerUse', prefix: 'cua_driver_native__', toolCount: 55,
-          needs: 'Enregistrement de l’écran + Accessibilité (Réglages système > Confidentialité).',
+          needs: 'Screen recording + Accessibility (System Settings > Privacy).',
           drivers: [
             { id: 'computer-use-cua-native', name: '@deepseek-ai/dsh-experimental-computer-use-cua-driver-native', label: 'Cua Driver natif', def: true },
             { id: 'computer-use-cua-mcp', name: '@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp', label: 'Cua Driver MCP' } ] },
         { id: 'auto-review', group: 'exp', label: 'Auto review', known: false,
-          why: 'Capacité du moteur (le modèle courant relit son travail) : aucun paquet à monter depuis ce plugin.' },
+          why: 'Engine capability (the current model reviews its own work): no package to mount from this plugin.' },
         { id: 'codex', group: 'ext', label: 'Codex', connection: '@deepseek-ai/dsh-subagent-codex',
           why: 'Connexion officielle : sous-agent Codex par le protocole app-server.' },
         { id: 'claude-code', group: 'ext', label: 'Claude Code', connection: '@deepseek-ai/dsh-subagent-claude-code',
-          why: 'Connexion officielle : sous-agent Claude Code via le SDK natif. Exige une authentification CLI — l’app Desktop ne suffit pas.' },
+          why: 'Official connection: Claude Code subagent through the native SDK. Needs CLI sign-in — the Desktop app is not enough.' },
         // ZCode n’est pas un paquet npm : c’est un connecteur MCP personnalisé
         // (dsh-mcp-client + un serveur local). `mcp` porte donc de quoi écrire le
         // bloc ET reconnaître qu’il est déjà monté — sinon la page proposerait de
@@ -10536,10 +10536,10 @@ function boot(ctx) {
         { id: 'zcode', group: 'ext', label: 'ZCode', mcp: { id: 'mcp-client-zcode', serverName: 'zcode',
             file: nodePathJoin(dshHomeSync(), 'mcp', 'zcode-mcp-server.mjs'), command: process.execPath, toolCallTimeoutMs: 600000 },
           prefix: 'mcp__zcode__', toolCount: 3,
-          needs: 'L’application ZCode installée et connectée à un compte Z.ai — le connecteur lit son propre coffre de credentials, aucune clé n’est recopiée dans le patch.',
-          why: 'Connecteur personnalisé (MCP) : pilote l’agent de code Z.ai — GLM-5.3 / GLM-5.3-Flash du forfait — par son app-server, le chemin « -p » échouant en 0.16.9.' },
+          needs: 'The ZCode app installed and signed in to a Z.ai account — the connector reads its own credential store, no key is copied into the patch.',
+          why: 'Custom connector (MCP): drives the Z.ai code agent — the plan\'s GLM-5.3 / GLM-5.3-Flash — through its app-server, the “-p” path failing in 0.16.9.' },
         { id: 'workbuddy', group: 'ext', label: 'WorkBuddy', known: false,
-          why: 'Plugin communautaire : aucun paquet vérifié de notre côté, donc aucune installation proposée ici.' },
+          why: 'Community plugin: no package verified on our side, so no install is offered here.' },
         { id: 'hermes', group: 'ext', label: 'Hermes', supported: false,
           why: 'Harness ne publie pas de fournisseur de sous-agent pour Hermes.' }
       ]
@@ -10635,7 +10635,7 @@ function boot(ctx) {
           L.push('      config:')
           L.push('        serverName: ' + entry.mcp.serverName)
           L.push('        transport: stdio')
-          L.push('        command: ' + entry.mcp.command + ' # DSH lance avec un env nettoye : ne pas compter sur PATH')
+          L.push('        command: ' + entry.mcp.command + ' # DSH starts with a clean env: do not rely on PATH')
           L.push('        args:')
           L.push('          - ' + entry.mcp.file)
           L.push('        toolCallTimeoutMs: ' + String(entry.mcp.toolCallTimeoutMs))
@@ -10662,7 +10662,7 @@ function boot(ctx) {
         if (b.action === 'revert') {
           const want = 'cordis.patch.yml.bak-outils-' + entry.id + '-'
           const list = kbToolsBackups(cur.profile).filter((n) => n.indexOf(want) === 0)
-          if (list.length === 0) return { ok: false, error: 'aucune sauvegarde pour ' + entry.label + ' dans ' + cur.profile }
+          if (list.length === 0) return { ok: false, error: 'no backup for ' + entry.label + ' dans ' + cur.profile }
           const name = list[0]
           const backDir = kbToolsProfilesDir()
           if (backDir === null) return { ok: false, error: 'profil illisible' }
@@ -10940,12 +10940,12 @@ export function applyPinOrder(pins, change) {
   return { ok: true, changed: changed, error: null, pins: Object.assign({}, state, { [field]: next }) }
 }
 // KB-PINS-CORE-END
-// ─── Retours bêta : outil DSH `kybernos_signaler_retour` ───────────────────
-// Le testeur clique sur « Envoyer un retour » → un chat s'ouvre sur la skill
-// `signaler-retour` → la skill mène l'entretien puis appelle CET outil. L'agent
-// n'a donc ni jeton, ni curl, ni écriture hors de son espace de travail : la
-// moitié hôte fait le seul travail privilégié (lire le jeton de session du
-// plugin Cloud, poster, tracer la boîte d'envoi locale).
+// ─── Beta feedback: the DSH tool `kybernos_report_feedback` ────────────────
+// The tester clicks « Send feedback » → a chat opens on the skill
+// `report-feedback` → the skill runs the interview, then calls THIS tool. The
+// agent therefore has no token, no curl, no write outside its workspace: the
+// host half does the only privileged work (reading the Cloud plugin's session
+// token, posting, writing the local outbox).
 //
 // KB-FEEDBACK-CORE-BEGIN
 const KB_FEEDBACK_KINDS = ['bug', 'feature']
@@ -11090,7 +11090,7 @@ const kbFeedbackPlainText = (report) => {
  *  acceptée partout ; « copier le rapport complet » prend le reste. Pur. */
 const kbFeedbackMailto = (report, limit) => {
   const cap = typeof limit === 'number' ? limit : KB_FEEDBACK_MAILTO_MAX
-  const subject = kbFeedbackMask('Retour beta : ' + String(report === null || report === undefined ? '' : report.title))
+  const subject = kbFeedbackMask('Beta feedback: ' + String(report === null || report === undefined ? '' : report.title))
   const body = kbFeedbackClip(kbFeedbackPlainText(report), cap)
   return 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body)
 }
@@ -11187,7 +11187,7 @@ const kbFeedbackPost = async (url, token, report) => {
     redirect: 'manual',
     signal: AbortSignal.timeout(Number.isFinite(wait) && wait > 0 ? wait : KB_FEEDBACK_TIMEOUT_MS),
   })
-  if (res === null || res === undefined) throw new Error('reponse vide')
+  if (res === null || res === undefined) throw new Error('empty response')
   if (res.status >= 300 && res.status < 400) throw new Error('redirection refusee')
   return { status: res.status, text: await kbFeedbackAnswerText(res) }
 }
@@ -11398,17 +11398,22 @@ const kbFeedbackToolText = (value) => {
   return out.join('\n') + cutNote
 }
 
-const kbFeedbackRegisterTool = (harnessRef, args) => {
+const kbFeedbackToolName = 'kybernos_report_feedback'
+// The tool and the skill used to carry French names. A copy of the old skill that the person edited is left alone (it is theirs) and still
+// calls the old tool name, so that name stays registered as long as that copy exists.
+const KB_FEEDBACK_TOOL_LEGACY = 'kybernos_signaler_retour'
+const KB_FEEDBACK_SKILL_LEGACY = 'signaler-retour'
+const kbFeedbackRegisterTool = (harnessRef, args, name = kbFeedbackToolName) => {
   if (typeof harnessRef.defineTool !== 'function' || typeof harnessRef.registerTool !== 'function') return false
   const tool = harnessRef.defineTool({
-    name: 'kybernos_signaler_retour',
-    description: "Envoie un retour beta (bug ou amelioration) a l'equipe : le rapport plus le contexte technique, sans jeton GitHub et sans acces reseau de l'agent. Appelle-le UNIQUEMENT apres un consentement explicite, avec le titre et le corps montres dans l'apercu.",
+    name: name,
+    description: 'Sends beta feedback (a bug or an improvement) to the team: the report plus the technical context, with no GitHub token and no network access for the agent. Call it ONLY after explicit consent, with the title and the body shown in the preview.',
     parameters: {
-      kind: { type: 'string', required: true, description: "Type de retour : 'bug' ou 'feature'." },
-      title: { type: 'string', required: true, description: 'Titre court, une ligne, 160 caracteres maximum.' },
-      body: { type: 'string', required: true, description: "Corps du rapport : le geste, ce qui etait attendu, ce qui s'est passe, l'impact." },
-      reporter: { type: 'string', description: "Contact laisse volontairement par l'utilisateur (vide si aucun)." },
-      errors: { type: 'array', items: { type: 'string' }, description: "Messages d'erreur exacts donnes par l'utilisateur (facultatif)." },
+      kind: { type: 'string', required: true, description: "Kind of feedback: 'bug' or 'feature'." },
+      title: { type: 'string', required: true, description: 'Short title, one line, 160 characters at most.' },
+      body: { type: 'string', required: true, description: 'Body of the report: what was done, what was expected, what happened, the impact.' },
+      reporter: { type: 'string', description: 'Contact the user chose to leave (empty if none).' },
+      errors: { type: 'array', items: { type: 'string' }, description: 'Exact error messages given by the user (optional).' },
     },
     output: {
       schema: {
@@ -11434,17 +11439,42 @@ const kbFeedbackRegisterTool = (harnessRef, args) => {
   return true
 }
 
-/** Puts the skill `signaler-retour` into <DSH home>/skills. Without it the « Send feedback » button would open a chat on an unknown
+/** Puts the skill `report-feedback` into <DSH home>/skills. Without it the « Send feedback » button would open a chat on an unknown
  *  command. It goes through the same careful seeding as every skill this plugin ships (seed-skills.mjs): absent → written, ours and
  *  outdated → refreshed, and a skill the person wrote or edited under that name is NEVER overwritten (the shipped copy used to replace any
- *  file that differed). True when the skill is there (ours or the person's). */
-const KB_FEEDBACK_SKILL = 'signaler-retour'
+ *  file that differed). True when the skill is there (ours or the person's). The skill used to be called `signaler-retour`: the copy this
+ *  plugin seeded under that name (still byte for byte ours) is removed, a copy the person edited stays. */
+const KB_FEEDBACK_SKILL = 'report-feedback'
 const kbFeedbackEnsureSkill = (dsh) => {
   try {
     const sourceDir = joinPath(dirname(fileURLToPath(import.meta.url)), 'skills')
     const r = seedSkills({ home: String(dsh), sourceDir, names: [KB_FEEDBACK_SKILL] })[0]
+    try { kbFeedbackRetireLegacySkill(dsh) } catch (e) { /* the old copy stays: harmless */ }
     return r !== undefined && (r.action === 'created' || r.action === 'current' || r.action === 'updated' || r.action === 'kept')
   } catch (e) { return false }
+}
+
+/** Removes the French-named skill this plugin seeded in an earlier version, but only when it is still exactly what we wrote (its sha-256 is the
+ *  one kept in <dsh home>/kybernos/seeded-skills.json). A copy the person edited, or one we cannot prove ours, is theirs and is left alone.
+ *  Returns 'removed', 'kept' (there, not ours) or 'absent'. */
+const kbFeedbackRetireLegacySkill = (dsh) => {
+  const home = String(dsh)
+  const dir = nodePathJoin(home, 'skills', KB_FEEDBACK_SKILL_LEGACY)
+  const file = nodePathJoin(dir, 'SKILL.md')
+  if (existsSync(file) === false) return 'absent'
+  const stateFile = nodePathJoin(home, 'kybernos', 'seeded-skills.json')
+  let state = null
+  try { state = JSON.parse(readFileSync(stateFile, 'utf8')) } catch (e) { return 'kept' }
+  const ours = state !== null && typeof state === 'object' && state.skills !== null && typeof state.skills === 'object' ? state.skills[KB_FEEDBACK_SKILL_LEGACY] : undefined
+  if (typeof ours !== 'string') return 'kept'
+  const disk = createHash('sha256').update(readFileSync(file)).digest('hex')
+  if (disk !== ours) return 'kept'
+  // the folder holds our SKILL.md and nothing else of the person's: remove the file, then the folder only if it is empty
+  rmSync(file, { force: true })
+  try { if (readdirSync(dir).length === 0) rmSync(dir, { recursive: true, force: true }) } catch (e) { /* the person added files next to it: the folder stays */ }
+  delete state.skills[KB_FEEDBACK_SKILL_LEGACY]
+  try { writeFileSync(stateFile, JSON.stringify(state, null, 2) + '\n') } catch (e) { /* the entry is dropped at the next seeding */ }
+  return 'removed'
 }
 
 /** Skills this plugin ships under <dsh home>/skills (folders in ./skills): the Automations page
@@ -11469,7 +11499,10 @@ const kbFeedbackInstallTool = (ctx) => {
     ? harness
     : null
   if (harnessRef === null || typeof harnessRef.registerTool !== 'function') return false
-  return kbFeedbackRegisterTool(harnessRef, {})
+  const ok = kbFeedbackRegisterTool(harnessRef, {})
+  // an old copy of the skill that the person edited (see kbFeedbackRetireLegacySkill) still calls the old tool name
+  try { if (existsSync(nodePathJoin(dshHomeSync(), 'skills', KB_FEEDBACK_SKILL_LEGACY, 'SKILL.md'))) kbFeedbackRegisterTool(harnessRef, {}, KB_FEEDBACK_TOOL_LEGACY) } catch (e) { /* no alias: the old copy says the tool is missing */ }
+  return ok
 }
 
 export function apply(ctx) {
@@ -11505,7 +11538,7 @@ export function apply(ctx) {
         ctx.inject(['sessionProjections'], (projCtx) => {
             if (projCtx === null || projCtx === undefined || projCtx.sessionProjections === null ||
                 typeof projCtx.sessionProjections !== 'object' || typeof projCtx.sessionProjections.register !== 'function') {
-                console.error('[kybers] registre sessionProjections absent — push kybernos.calls non posé, client sur polling')
+                console.error('[kybers] sessionProjections registry missing — kybernos.calls push not set, client on polling')
                 return
             }
             const kbRevSchema = {
@@ -11531,22 +11564,22 @@ export function apply(ctx) {
                 },
                 wire: { viewSchema: kbRevSchema, view: (state) => state },
             })
-            console.log('[kybers] projection kybernos.calls enregistrée (push rev, wire client)')
+            console.log('[kybers] kybernos.calls projection registered (push rev, wire client)')
         })
     } catch (kbProjError) {
         try {
-            console.error('[kybers] projection kybernos.calls non enregistrée — client sur polling', kbProjError)
+            console.error('[kybers] kybernos.calls projection not registered — client on polling', kbProjError)
         } catch (e4) { /* console indisponible */ }
     }
-    // Outil agent `kybernos_signaler_retour` (skill `signaler-retour`). En
-    // dehors du bloc ci-dessus : c'est une capacité OPTIONNELLE (elle demande
-    // le global `harness` de la moitié hôte sandboxée), et son absence ne doit
-    // pas emporter le reste du plugin — la skill a un repli explicite.
+    // Agent tool `kybernos_report_feedback` (skill `report-feedback`). Outside
+    // the block above: it is an OPTIONAL capability (it needs the `harness`
+    // global of the sandboxed host half), and its absence must not take the rest
+    // of the plugin down — the skill has an explicit fallback.
     try {
         kbFeedbackInstallTool(ctx)
     } catch (kbToolError) {
         try {
-            console.error('[kybers] outil signaler_retour indisponible', kbToolError)
+            console.error('[kybers] report_feedback tool unavailable', kbToolError)
         } catch (e3) { /* console indisponible */ }
     }
     // La skill que ce bouton lance doit exister dans <DSH home>/skills, sinon le
@@ -11556,7 +11589,7 @@ export function apply(ctx) {
         kbFeedbackEnsureSkill(dshHomeSync())
     } catch (kbSkillError) {
         try {
-            console.error('[kybers] skill signaler-retour non installee', kbSkillError)
+            console.error('[kybers] skill report-feedback not installed', kbSkillError)
         } catch (e4) { /* console indisponible */ }
     }
     // The skills this plugin ships (automation-creator): optional, and never allowed to stop the plugin.
@@ -11583,6 +11616,7 @@ export {
     kbFeedbackOutboxDir,
     kbFeedbackExecute,
     kbFeedbackEnsureSkill,
+    kbFeedbackRetireLegacySkill,
     kbFeedbackSuiteVersion,
     kbFeedbackToolText,
 }

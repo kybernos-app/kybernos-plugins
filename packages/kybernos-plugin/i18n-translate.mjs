@@ -14,15 +14,15 @@
 import { explain, inspect } from './i18n-quality.mjs'
 
 export const I18N_BATCH_MAX = 40
-const REFUSED_LABEL = { placeholder: 'variable perdue ou modifiée', tags: 'balises modifiées', url: 'adresse modifiée', code: 'code modifié', numbers: 'nombres modifiés', meta: 'phrase du modèle ajoutée', script: 'mauvaise écriture', length: 'longueur incohérente', empty: 'vide' }
+const REFUSED_LABEL = { placeholder: 'variable lost or changed', tags: 'tags changed', url: 'address changed', code: 'code changed', numbers: 'numbers changed', meta: 'model sentence added', script: 'wrong script', length: 'inconsistent length', empty: 'vide' }
 const ATTEMPT_TIMEOUT_MS = 120000
 
 const LANG_NAMES = {
-  ar: 'en arabe (العربية, sens de lecture droite-à-gauche)',
+  ar: 'into Arabic (العربية, right-to-left reading direction)',
   es: 'en espagnol', de: 'en allemand', it: 'en italien', pt: 'en portugais',
-  nl: 'en néerlandais', ja: 'en japonais', ko: 'en coréen', zh: 'en chinois',
-  he: 'en hébreu (sens droite-à-gauche)', fa: 'en persan (sens droite-à-gauche)',
-  ur: 'en ourdou (sens droite-à-gauche)', ru: 'en russe', tr: 'en turc', hi: 'en hindi',
+  nl: 'into Dutch', ja: 'en japonais', ko: 'into Korean', zh: 'en chinois',
+  he: 'into Hebrew (right-to-left)', fa: 'into Persian (right-to-left)',
+  ur: 'into Urdu (right-to-left)', ru: 'en russe', tr: 'en turc', hi: 'en hindi',
 }
 
 // "This model cannot be used from here": the next candidate may work. Anything
@@ -153,7 +153,7 @@ const attempt = async ({ llm, route, prompt, maxTokens, timeoutMs, outer }) => {
 export const translateBatch = async (args, deps) => {
   const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
   const lang = typeof req.lang === 'string' ? req.lang.trim().toLowerCase().slice(0, 10) : ''
-  if (/^[a-z]{2,3}([-_][a-z0-9]{2,8})?$/.test(lang) !== true || lang === 'kybernos') return { ok: false, error: 'code de langue invalide' }
+  if (/^[a-z]{2,3}([-_][a-z0-9]{2,8})?$/.test(lang) !== true || lang === 'kybernos') return { ok: false, error: 'invalid language code' }
   const batchIn = req.batch !== null && req.batch !== undefined && typeof req.batch === 'object' ? req.batch : null
   if (batchIn === null) return { ok: false, error: 'lot batch manquant' }
   const pairs = Object.entries(batchIn)
@@ -177,18 +177,18 @@ export const translateBatch = async (args, deps) => {
     }
   }
   const langName = cleanLangName(req.langName)
-  const target = LANG_NAMES[lang] || (langName !== '' ? 'vers la langue « ' + langName + ' » (code ' + lang + ')' : 'vers la langue « ' + lang + ' »')
+  const target = LANG_NAMES[lang] || (langName !== '' ? 'into the language “' + langName + '” (code ' + lang + ')' : 'into the language “' + lang + '”')
   // `source: 'auto'` = strings collected from the screens: French from the
   // Kybernos plugins, English from DSH, so each value says its own language.
-  const from = req.source === 'auto' ? 'du français ou de l’anglais (chaque valeur porte sa langue)' : 'du français'
+  const from = req.source === 'auto' ? 'French or English (each value carries its own language)' : 'French'
   const prompt = [
-    'Tu es un traducteur professionnel d’interface logicielle.',
-    'Traduis chaque valeur ' + from + ' ' + target + '.',
-    'Registre : interface utilisateur, libellés courts, ton direct. Ne traduis PAS les clés.',
-    'Conserve à l’identique : les variables ({nom}, {{nom}}, %s, %d), les balises HTML ou Markdown, les URL, les chemins, les identifiants, le code, et les noms propres (Kybernos, DSH, Claude, noms de modèles ou de fournisseurs).',
-    'Réponds UNIQUEMENT par un objet JSON : { clé: traduction, ... }. Aucun markdown, aucune explication.',
-    ...(corrections.length > 0 ? ['Une réponse précédente a été refusée pour ces clés, corrige-les : ' + corrections.join(' | ')] : []),
-    'Objet à traduire :',
+    'You are a professional translator of software interfaces.',
+    'Translate every value from ' + from + ' ' + target + '.',
+    'Register: user interface, short labels, direct tone. Do NOT translate the keys.',
+    'Keep exactly as they are: variables ({name}, {{name}}, %s, %d), HTML or Markdown tags, URLs, paths, identifiers, code, and proper names (Kybernos, DSH, Claude, model or provider names).',
+    'Answer ONLY with a JSON object: { key: translation, ... }. No markdown, no explanation.',
+    ...(corrections.length > 0 ? ['A previous answer was refused for these keys, fix them: ' + corrections.join(' | ')] : []),
+    'Object to translate:',
     JSON.stringify(Object.fromEntries(pairs)),
   ].join('\n')
   // 40 short labels fit in 4k output tokens; a batch of long paragraphs can
@@ -207,7 +207,7 @@ export const translateBatch = async (args, deps) => {
     }
     const parsed = deps.jsonBetween(out.raw)
     if (parsed === null) {
-      failures.push(label + ' : réponse inexploitable' + (out.finishKind === null ? '' : ' (fin : ' + out.finishKind + ')') + (out.raw === '' ? ' — réponse vide' : ''))
+      failures.push(label + ': unusable answer' + (out.finishKind === null ? '' : ' (finish: ' + out.finishKind + ')') + (out.raw === '' ? ' — empty answer' : ''))
       break
     }
     // Every text goes through the checks of i18n-quality.mjs before it is kept: a refused one is reported with its reasons
@@ -228,8 +228,8 @@ export const translateBatch = async (args, deps) => {
       const reasons = Array.from(new Set(Object.values(refused).flatMap((r) => r.split('+'))))
       const only = reasons.length === 1 && reasons[0] === 'placeholder'
       failures.push(label + ' : ' + (rejected > 0
-        ? (only ? 'toutes les traductions ont perdu une variable ({nom}, %s…)' : 'toutes les traductions ont été refusées par les contrôles (' + reasons.map((r) => REFUSED_LABEL[r] || r).join(', ') + ')')
-        : 'le modèle n’a traduit aucune des clés demandées'))
+        ? (only ? 'every translation lost a variable ({name}, %s…)' : 'every translation was refused by the checks (' + reasons.map((r) => REFUSED_LABEL[r] || r).join(', ') + ')')
+        : 'the model translated none of the requested keys'))
       return { ok: false, error: failures.join(' ; '), tried: routes.map((r) => r.provider + '/' + r.model), refused }
     }
     return { ok: true, lang, provider: route.provider, model: route.model, translations, rejected, refused, flagged }

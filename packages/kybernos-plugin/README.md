@@ -41,7 +41,7 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
 ## Host routes
 
 All under `/kybernos/` (plus `/kybernos-technique/{renderer,vendor/three}.js`). Most writes check `sameOriginStrict` (loopback
-`Origin`/`Referer` against the real socket port). Also an agent tool `kybernos_signaler_retour` and the projection `kybernos.calls`.
+`Origin`/`Referer` against the real socket port). Also an agent tool `kybernos_report_feedback` and the projection `kybernos.calls`.
 
 | Family | Routes |
 | --- | --- |
@@ -178,8 +178,8 @@ POSTs to `/kybernos/feedback`, which appends ONE JSON line (`{v, id, at, type, m
 masking) to `<DSH home>/kybernos/feedback.jsonl` (0600, 4 MB at most) and says « Saved on this computer — it is sent only when you export it ».
 *Export feedback* GETs `/kybernos/feedback/export` and copies the file to the clipboard (the newest 1 MB; a text area to copy by hand when the
 clipboard is refused). Nothing leaves the machine: the file is what the owner reads, or what the person pastes into a message. The form
-keeps a link to the older interview (the seeded skill `signaler-retour`, which can reach the Kybernos team through the tool
-`kybernos_signaler_retour`). No screenshot: a page cannot be captured without the screen-capture permission prompt. Code: `feedback-box.mjs`
+keeps a link to the older interview (the seeded skill `report-feedback` (called `signaler-retour` before: the copy we seeded is retired at boot, one the person edited stays), which can reach the Kybernos team through the tool
+`kybernos_report_feedback`). No screenshot: a page cannot be captured without the screen-capture permission prompt. Code: `feedback-box.mjs`
 (the file), the two routes in `index.js`, `test-feedback-box.mjs`.
 
 ## Files, settings, env
@@ -197,7 +197,7 @@ base) and `.credentials.yaml` (browser-session secret). The quiz and cards score
 (« Kybernos compact (legacy) »: DSH compacts natively now, and stored sessions still carry that id, which the registry rejects when
 it is missing) and puts the default of new chats back on Standard when it still pointed at it; turns on the
 `subagent_claude_code` row of every preset definition (in memory); lowers any retry policy above 10 attempts (`settings.update`,
-only on a violation); appends a marked "force de proposition" section to `~/.dsh/AGENTS.md` once (a section it laid in an earlier version, v1, is replaced by the current one unless the person edited it); writes the `signaler-retour`
+only on a violation); appends a marked "force de proposition" section to `~/.dsh/AGENTS.md` once (a section it laid in an earlier version, v1, is replaced by the current one unless the person edited it); writes the `report-feedback`
 skill into `~/.dsh/skills` if its source exists (it does not in this repo); seeds the skills it ships (`skills/<name>/SKILL.md`, today
 `automation-creator`) into `<dsh home>/skills` with `seed-skills.mjs`: absent is written, the shipped text is refreshed only while the file is
 still byte for byte what we wrote (sha-256 in `kybernos/seeded-skills.json`), and a skill the user wrote or edited under the same name, or

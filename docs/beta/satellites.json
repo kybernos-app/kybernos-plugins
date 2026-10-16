@@ -9,7 +9,7 @@
         "nom": "@local/kybernos",
         "tier": 1,
         "obligatoire": true,
-        "role": "master : 20 modules client, 30+ routes hôte, outil kybernos_signaler_retour",
+        "role": "master : 20 modules client, 30+ routes hôte, outil kybernos_report_feedback",
         "poids_ko": 8090
       },
       {
@@ -208,7 +208,7 @@
         "tier": 2,
         "obligatoire": false,
         "defaut": "actif",
-        "role": "Agent connectors: the DSH subagent providers for OpenCode, Gemini CLI, Qwen Code and Hermes, turned on from the Workers page",
+        "role": "Workers connectors: the DSH subagent providers for OpenCode, Gemini CLI, Qwen Code and Hermes, turned on from the Workers page",
         "poids_ko": 28,
         "lib_vendor": null
       },

@@ -105,7 +105,7 @@ console.log('\n── translateBatch ──')
   })
   const r = await translateBatch({ lang: 'ar', provider: 'ollama-cloud', model: 'deepseek-v4.1-flash', batch }, deps(llm))
   check('tous en échec → ok:false', r.ok === false, r)
-  check('la VRAIE cause remonte (code + message, par modèle), plus « réponse inexploitable »', /MISSING_CREDENTIAL — OLLAMA_CLOUD_API_KEY is not set/.test(r.error) && /AUTH — bad key/.test(r.error) && /NO_ADAPTER/.test(r.error) && !/inexploitable/.test(r.error), r.error)
+  check('la VRAIE cause remonte (code + message, par modèle), plus « unusable answer »', /MISSING_CREDENTIAL — OLLAMA_CLOUD_API_KEY is not set/.test(r.error) && /AUTH — bad key/.test(r.error) && /NO_ADAPTER/.test(r.error) && !/unusable answer/.test(r.error), r.error)
   check('les modèles essayés sont listés', Array.isArray(r.tried) && r.tried.length === 3, r.tried)
 }
 {
@@ -116,12 +116,12 @@ console.log('\n── translateBatch ──')
 {
   const llm = fakeLlm({ 'zai-coding-cn/glm-5.3-flash': [{ type: 'text-delta', text: 'désolé, je ne peux pas' }, { type: 'finish', reason: { kind: 'stop' } }] })
   const r = await translateBatch({ lang: 'ar', batch }, deps(llm))
-  check('texte sans JSON → ok:false, motif lisible', r.ok === false && /inexploitable/.test(r.error), r)
+  check('texte sans JSON → ok:false, motif lisible', r.ok === false && /unusable answer/.test(r.error), r)
 }
 {
   const llm = fakeLlm({ 'zai-coding-cn/glm-5.3-flash': ok({ 'autre.cle': 'x' }) })
   const r = await translateBatch({ lang: 'ar', batch }, deps(llm))
-  check('JSON valide mais aucune clé demandée → ok:false (jamais un faux succès)', r.ok === false && /aucune des clés/.test(r.error), r)
+  check('JSON valide mais aucune clé demandée → ok:false (jamais un faux succès)', r.ok === false && /none of the requested keys/.test(r.error), r)
 }
 {
   const llm = fakeLlm({ 'zai-coding-cn/glm-5.3-flash': ok({ 'tb.filters': 'x', 'tb.reset': '   ' }) })
@@ -155,10 +155,10 @@ check('nom de langue : injection de prompt neutralisée', !/[\n"{}<>]/.test(clea
   await translateBatch({ lang: 'sw', langName: 'Swahili', batch }, deps(llm))
   check('langue sans entrée dédiée : le nom envoyé par la page entre dans le prompt', /Swahili/.test(prompts[0]) && /code sw/.test(prompts[0]), prompts[0].slice(0, 300))
   await translateBatch({ lang: 'ar', batch }, deps(llm))
-  check('langue connue (ar) : libellé de la table interne', /arabe/.test(prompts[1]))
+  check('langue connue (ar) : libellé de la table interne', /Arabic/.test(prompts[1]))
   await translateBatch({ lang: 'ar', batch, source: 'auto' }, deps(llm))
-  check('source auto : le prompt dit français OU anglais', /français ou de l’anglais/.test(prompts[2]) && !/du français ar/.test(prompts[2]), prompts[2].slice(0, 300))
-  check('le prompt exige de garder les variables', /\{nom\}/.test(prompts[0]))
+  check('source auto : le prompt dit français OU anglais', /French or English/.test(prompts[2]) && !/from French ar/.test(prompts[2]), prompts[2].slice(0, 300))
+  check('le prompt exige de garder les variables', /\{name\}/.test(prompts[0]))
 }
 {
   const llm = fakeLlm({ 'zai-coding-cn/glm-5.3-flash': ok({ a: 'A {count}', b: 'B perdue', c: 'C %s' }) })
@@ -182,13 +182,13 @@ console.log('\n── les contrôles de qualité (i18n-quality.mjs) ──')
 {
   const llm = fakeLlm({ 'zai-coding-cn/glm-5.3-flash': ok({ a: 'Here is the translation: Guardar' }) })
   const r = await translateBatch({ lang: 'es', batch: { a: 'Enregistrer' } }, deps(llm))
-  check('tout refusé : un échec qui nomme la cause, et les motifs par clé pour la reprise', r.ok === false && /phrase du modèle/.test(r.error) && r.refused.a === 'meta', r)
+  check('tout refusé : un échec qui nomme la cause, et les motifs par clé pour la reprise', r.ok === false && /model sentence/.test(r.error) && r.refused.a === 'meta', r)
 }
 {
   const prompts = []
   const llm = { stream(p) { prompts.push(p.messages[0].content[0].text); return (async function* () { yield { type: 'text-delta', text: JSON.stringify({ a: 'Guardar' }) } })() } }
   await translateBatch({ lang: 'es', batch: { a: 'Enregistrer' }, hints: { a: 'placeholder+url', zzz: 'meta', a2: '<script>' } }, deps(llm))
-  check('une reprise dit au modèle quelle clé a été refusée et pourquoi, en une phrase', /a : .*variable.*adresse/.test(prompts[0]) && !/zzz/.test(prompts[0]), prompts[0].slice(-400))
+  check('une reprise dit au modèle quelle clé a été refusée et pourquoi, en une phrase', /a : .*variable.*address/.test(prompts[0]) && !/zzz/.test(prompts[0]), prompts[0].slice(-400))
   await translateBatch({ lang: 'es', batch: { a: 'Enregistrer' }, hints: { a: 'rm -rf /' } }, deps(llm))
   check('un motif qui n’est pas un code connu ne passe jamais dans le prompt', !/rm -rf/.test(prompts[1]) && !/Une réponse précédente/.test(prompts[1]), prompts[1].slice(-300))
 }

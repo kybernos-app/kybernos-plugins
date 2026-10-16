@@ -11,7 +11,7 @@
 // The scheduled-tasks store is out of scope here (it resolves through dshHome() already).
 //
 // The plugin is loaded from a scratch copy of its folder (without client.js and the tests)
-// because the feedback skill it installs at boot is read from `skills/signaler-retour/`
+// because the feedback skill it installs at boot is read from `skills/report-feedback/`
 // next to it, a source this repository does not carry: the copy gets a stand-in.
 //
 //   node kybernos-plugin/test-dsh-home.mjs
@@ -123,9 +123,9 @@ for (const file of readdirSync(here)) {
   if (file === 'client.js' || file.startsWith('test-') || statSync(join(here, file)).isFile() === false) continue
   copyFileSync(join(here, file), join(copy, file))
 }
-mkdirSync(join(copy, 'skills', 'signaler-retour'), { recursive: true })
-const SKILL_TEXT = '---\nname: signaler-retour\ndescription: a stand-in for the test\n---\n'
-writeFileSync(join(copy, 'skills', 'signaler-retour', 'SKILL.md'), SKILL_TEXT)
+mkdirSync(join(copy, 'skills', 'report-feedback'), { recursive: true })
+const SKILL_TEXT = '---\nname: report-feedback\ndescription: a stand-in for the test\n---\n'
+writeFileSync(join(copy, 'skills', 'report-feedback', 'SKILL.md'), SKILL_TEXT)
 const load = (file) => import(pathToFileURL(join(copy, file)).href)
 
 try {
@@ -201,7 +201,7 @@ try {
     return { code: res.code, json, raw: res.raw }
   }
 
-  const skill = join(iso.dshHome, 'skills', 'signaler-retour', 'SKILL.md')
+  const skill = join(iso.dshHome, 'skills', 'report-feedback', 'SKILL.md')
   assert.equal(existsSync(skill), true, 'the feedback skill must be installed under $DSH_HOME/skills at boot')
   assert.equal(readFileSync(skill, 'utf8'), SKILL_TEXT)
   ok('the feedback skill is installed under $DSH_HOME/skills at boot')
