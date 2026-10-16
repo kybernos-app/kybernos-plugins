@@ -187,6 +187,7 @@ let kbLocaleRead = () => 'en'
       'deliv.fam.images': { kybernos: 'Images', en: 'Images' },
       'deliv.fam.images.desc': { kybernos: 'Visuels, captures et schémas générés.', en: 'Generated visuals, captures and diagrams.' },
       'deliv.fam.av': { kybernos: 'Audio & vidéo', en: 'Audio & Video' },
+      'deliv.type.media': { kybernos: 'Audio / Vidéo', en: 'Audio / Video' },
       'deliv.fam.av.desc': { kybernos: 'Extraits sonores et clips vidéo produits par vos Agent Teams.', en: 'Sound bites and video clips produced by your Agent Teams.' },
       'tasks.form.title': { kybernos: 'Planifier une automation', en: 'Schedule an automation' },
       'tasks.name': { kybernos: 'Nom', en: 'Name' },
@@ -1254,6 +1255,29 @@ let kbLocaleRead = () => 'en'
       'kbui.search.everywhere': { kybernos: 'Rechercher partout…', en: 'Search everywhere…' },
       'kbui.search.parser': { kybernos: 'Rechercher — parser, CRM, scraping…', en: 'Search — parser, CRM, scraping…' },
       'kbui.send.feedback': { kybernos: 'Envoyer un retour', en: 'Send feedback' },
+      // The feedback form (V-10): a note is saved on this computer, and goes nowhere until the person exports it.
+      'kbui.fb.type': { kybernos: 'Type', en: 'Type' },
+      'kbui.fb.type.bug': { kybernos: 'Bug', en: 'Bug' },
+      'kbui.fb.type.idea': { kybernos: 'Idée', en: 'Idea' },
+      'kbui.fb.type.question': { kybernos: 'Question', en: 'Question' },
+      'kbui.fb.message': { kybernos: 'Votre message', en: 'Your message' },
+      'kbui.fb.placeholder': { kybernos: 'Que s’est-il passé, ou que souhaiteriez-vous ?', en: 'What happened, or what would you like?' },
+      'kbui.fb.context': { kybernos: 'Ajouter les détails techniques', en: 'Add technical details' },
+      'kbui.fb.context.hint': { kybernos: 'Désactivé par défaut. Versions, système, titre de la page, langue et taille de la fenêtre : aucune clé, aucun chemin, aucun nom de fichier.', en: 'Off by default. Versions, system, page title, language and window size: no key, no path, no file name.' },
+      'kbui.fb.save': { kybernos: 'Enregistrer', en: 'Save feedback' },
+      'kbui.fb.saving': { kybernos: 'Enregistrement…', en: 'Saving…' },
+      'kbui.fb.saved': { kybernos: 'Enregistré sur cet ordinateur — il n’est envoyé que lorsque vous l’exportez.', en: 'Saved on this computer — it is sent only when you export it.' },
+      'kbui.fb.export': { kybernos: 'Exporter les retours', en: 'Export feedback' },
+      'kbui.fb.exporting': { kybernos: 'Export…', en: 'Exporting…' },
+      'kbui.fb.copied.one': { kybernos: 'Copié : 1 retour. Collez-le dans un message à l’équipe Kybernos.', en: 'Copied: 1 entry. Paste it into a message to the Kybernos team.' },
+      'kbui.fb.copied.many': { kybernos: 'Copié : {n} retours. Collez-les dans un message à l’équipe Kybernos.', en: 'Copied: {n} entries. Paste them into a message to the Kybernos team.' },
+      'kbui.fb.empty': { kybernos: 'Aucun retour enregistré pour l’instant.', en: 'No feedback saved yet.' },
+      'kbui.fb.copyfail': { kybernos: 'Copie impossible ici : sélectionnez le texte ci-dessous.', en: 'Could not copy here: select the text below.' },
+      'kbui.fb.fail': { kybernos: 'Enregistrement impossible. Rien n’a été écrit.', en: 'Could not save. Nothing was written.' },
+      'kbui.fb.full': { kybernos: 'La boîte de retours est pleine : exportez-la, puis supprimez le fichier.', en: 'The feedback box is full: export it, then delete the file.' },
+      'kbui.fb.signin': { kybernos: 'Session expirée : rechargez la page, puis réessayez.', en: 'Your session expired: reload the page, then try again.' },
+      'kbui.fb.assistant': { kybernos: 'Préférez-vous que l’assistant vous pose trois questions ?', en: 'Prefer to be asked three questions by the assistant?' },
+      'kbui.fb.close': { kybernos: 'Fermer', en: 'Close' },
       // ── "Help" box of the account menu (04/10) ──
       // Carte de notation 5 étoiles (remplace les pouces Quality Score).
       // Libellés portés depuis la maquette validée (docs/handoff/notation-agent/
@@ -3362,6 +3386,7 @@ const KB_FR_EN = {
   'Aucun appel connecteur sur la période.': 'No connector calls over the period.',
   'workflows-v2: onglet journal d exécution': 'workflows-v2: execution journal tab',
   '[workflows-v2] onglet désactivé': '[workflows-v2] tab disabled',
+  'Autre': 'Other',
 }
 const kbf = (fr) => {
   if (typeof fr !== 'string' || fr.length === 0) return fr
@@ -10952,7 +10977,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const docsReels = (projData !== null && projData !== undefined && Array.isArray(projData.docs) === true) ? projData.docs : []
       const goalsReels = (projData !== null && projData !== undefined && Array.isArray(projData.goals) === true) ? projData.goals : []
       const warnsReels = (projData !== null && projData !== undefined && Array.isArray(projData.warnings) === true) ? projData.warnings : []
-      const tailleTxt = (o) => (typeof o === 'number' ? o.toLocaleString('fr-FR') + ' o' : (typeof o === 'string' ? o : '—'))
+      const tailleTxt = (o) => (typeof o === 'number' ? kbFmtSize(o) : (typeof o === 'string' ? o : '—'))
       const docsM = kbiMeubler(docsReels.map((d) => [String(d.title !== undefined && d.title !== null ? d.title : (d.name !== undefined && d.name !== null ? d.name : '—')), tailleTxt(d.size)]), KBI_EXEMPLES.docs)
       const goalsM = kbiMeubler(goalsReels.map((g) => [String(g !== null && g !== undefined ? g : '—')]), KBI_EXEMPLES.goals)
       const warnsM = kbiMeubler(warnsReels.map((w) => [String(w !== null && w !== undefined ? w : '—')]), KBI_EXEMPLES.warnings)
@@ -16395,8 +16420,12 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       { id: 'engine', label: 'Diagram', exts: ['engine'], ico: 'zap', tint: 'rgba(132,204,22,0.16)', color: '#bef264' },
       { id: 'data', label: 'Data', exts: ['json', 'yaml', 'yml', 'toml', 'lock', 'sha256', 'csv'], ico: 'settings', tint: 'rgba(20,184,166,0.16)', color: '#5eead4' },
       { id: 'image', label: 'Image', exts: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'avif', 'bmp', 'ico'], ico: 'image', tint: 'rgba(236,72,153,0.16)', color: '#f9a8d4' },
-      { id: 'other', label: 'Autre', exts: [], ico: 'package', tint: 'rgba(148,163,184,0.16)', color: '#cbd5e1' },
+      { id: 'other', label: kbf('Autre'), exts: [], ico: 'package', tint: 'rgba(148,163,184,0.16)', color: '#cbd5e1' },
     ]
+    // Audio and video files used to read « Other » (Autre): the badge now says what they are. Not in KB_ART_TYPES on purpose: the
+    // Audio & Video FAMILY already is the filter tile, so this type must not add a second row to the type picker. Its label is read
+    // when drawn (a getter), so it follows the language like the tile does.
+    const KB_ART_TYPE_MEDIA = { id: 'media', get label() { return kbt('deliv.type.media') }, exts: [], ico: 'play', tint: 'rgba(14,165,233,0.16)', color: '#7dd3fc' }
     // Un artefact produit par un agent conforme au contrat partage déclare son
     // genre DANS le fichier (« un kind, un titre, des items ») et se nomme donc
     // `<sujet>-quiz.json`. Or l'extension `.json` n'a pas de genre à elle : sans
@@ -16543,6 +16572,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         }
       }
       for (const t of KB_ART_TYPES) { if (t.exts.indexOf(ext) >= 0) return t }
+      if (KB_FAM_EXTS.av.indexOf(ext) >= 0) return KB_ART_TYPE_MEDIA
       return KB_ART_TYPES[KB_ART_TYPES.length - 1]
     }
     // Nom de fichier → id d'icône du jeu (miniapp, genre dans un .json, extension, type DSH).
@@ -16561,7 +16591,16 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       if (KB_TI.ext[ext] !== undefined) return KB_TI.ext[ext]
       return KB_TI.type[kbArtType(name).id] || 'other'
     }
-    const kbFmtSize = (s) => (typeof s === 'number' && s >= 0 ? (s > 1048576 ? (s / 1048576).toFixed(1) + ' Mo' : (s > 1024 ? Math.round(s / 1024) + ' Ko' : s + ' o')) : '')
+    // One size style per language, the same as Motion and the media player: English « 86 KB », « 5.0 MB », « 880 B »; French « 86 Ko »,
+    // « 5,0 Mo », « 880 o ». It used to say « Ko » / « Mo » / « o » in every language.
+    const kbFmtSize = (s) => {
+      if (typeof s !== 'number' || s < 0) return ''
+      const lang = kbLangResolve()
+      const fr = lang === 'kybernos' || String(lang).split(/[-_]/)[0] === 'fr'
+      if (s >= 1048576) { const v = (s / 1048576).toFixed(1); return (fr ? v.replace('.', ',') + ' Mo' : v + ' MB') }
+      if (s >= 1024) return Math.round(s / 1024) + (fr ? ' Ko' : ' KB')
+      return s + (fr ? ' o' : ' B')
+    }
     // ── familles de livrables (demande 26/09 : « en haut de la sélection ») ─
     // Six familles GRAND PUBLIC passées en tête de la bande, devant les types
     // fins : Slides, Sites web, Documents, Tableurs, Images, Audio & vidéo.
@@ -25860,6 +25899,10 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
    libellé reprend toute la place restante de sa cellule. */
 [role="dialog"]:has(nav [class$="_navCell"]) nav{width:248px;flex:none}
 [role="dialog"]:has(nav [class$="_navCell"]) nav [class$="_navLabel"]{flex:1 1 auto}
+/* V-39: the close cross of the Settings dialog is DSH's own icon button, 28 px with a 14 px icon (the owner asked for a bigger
+   one): a 40 px target with an 18 px icon, anchored on the class suffix like the rules above. */
+[role="dialog"]:has(nav [class$="_navCell"]) [class$="_close"]{min-width:40px;min-height:40px}
+[role="dialog"]:has(nav [class$="_navCell"]) [class$="_close"] svg{width:18px;height:18px}
 .kbs-search input::placeholder{color:var(--dsw-alias-label-tertiary)}
 .kbsb:hover{color:var(--dsw-alias-brand-primary)}
 .kbsb:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
@@ -29877,6 +29920,130 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
         carte)
     }
 
+    // ── The feedback form (V-10) ─────────────────────────────────────────────────────────────────────
+    // « Send feedback » of the footer menu opens a small form: a type, a message, and an optional technical context (off by
+    // default). It POSTs to /kybernos/feedback, which appends one line to <DSH home>/kybernos/feedback.jsonl and sends NOTHING
+    // anywhere: the person reads « Saved on this computer — it is sent only when you export it ». « Export feedback » copies the
+    // file to the clipboard. The interview with the assistant (the skill signaler-retour, which can reach the Kybernos team) stays one
+    // click away. A screenshot is not offered: the page cannot be captured without the screen-capture permission prompt.
+    const KB_FB_TYPES = ['bug', 'idea', 'question']
+    const KbFeedbackForm = () => {
+      const [open, setOpen] = React.useState(false)
+      const [type, setType] = React.useState('bug')
+      const [message, setMessage] = React.useState('')
+      const [withContext, setWithContext] = React.useState(false)
+      const [busy, setBusy] = React.useState('')
+      const [note, setNote] = React.useState(null)
+      const [manual, setManual] = React.useState('')
+      React.useEffect(() => {
+        // The technical details are off at every opening: a person who ticked them once is not asked to remember to untick.
+        const ouvrir = () => { setNote(null); setManual(''); setWithContext(false); setOpen(true) }
+        window.addEventListener('kybernos:menu:feedback', ouvrir)
+        return () => window.removeEventListener('kybernos:menu:feedback', ouvrir)
+      }, [])
+      React.useEffect(() => {
+        if (open !== true) return undefined
+        // Captured, because the Settings dialog beneath also closes on Escape.
+        const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); setOpen(false) } }
+        window.addEventListener('keydown', onKey, true)
+        return () => window.removeEventListener('keydown', onKey, true)
+      }, [open])
+      const why = (status, out) => {
+        if (status === 507 || (out !== null && out.error === 'full')) return kbt('kbui.fb.full')
+        if (status === 401 || status === 403 || status === 503) return kbt('kbui.fb.signin')
+        return kbt('kbui.fb.fail')
+      }
+      const save = async () => {
+        const text = message.trim()
+        if (text === '' || busy !== '') return
+        setBusy('save'); setNote(null); setManual('')
+        let out = null
+        let status = 0
+        try {
+          const page = withContext === true
+            ? { title: String(document.title || ''), lang: String(document.documentElement.lang || navigator.language || ''), width: window.innerWidth, height: window.innerHeight }
+            : undefined
+          const r = await fetch('/kybernos/feedback', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ type: type, message: text, context: withContext === true, page: page }) })
+          status = r.status
+          out = await r.json().catch(() => null)
+        } catch (e) { out = null }
+        setBusy('')
+        if (out !== null && out.ok === true) { setMessage(''); setNote({ tone: 'ok', text: kbt('kbui.fb.saved') }) } else setNote({ tone: 'err', text: why(status, out) })
+      }
+      const exporter = async () => {
+        if (busy !== '') return
+        setBusy('export'); setNote(null); setManual('')
+        let out = null
+        let status = 0
+        try {
+          const r = await fetch('/kybernos/feedback/export', { headers: { accept: 'application/json' } })
+          status = r.status
+          out = await r.json().catch(() => null)
+        } catch (e) { out = null }
+        setBusy('')
+        if (out === null || out.ok !== true) { setNote({ tone: 'err', text: why(status, out) }); return }
+        if (out.count === 0) { setNote({ tone: 'ok', text: kbt('kbui.fb.empty') }); return }
+        let copied = false
+        try { await navigator.clipboard.writeText(out.text); copied = true } catch (e) { copied = false }
+        if (copied === true) setNote({ tone: 'ok', text: out.count === 1 ? kbt('kbui.fb.copied.one') : kbt('kbui.fb.copied.many').replace('{n}', String(out.count)) })
+        else { setManual(out.text); setNote({ tone: 'err', text: kbt('kbui.fb.copyfail') }) }
+      }
+      const withAssistant = () => {
+        setOpen(false)
+        try { if (typeof kbOpenFeedbackChat === 'function') kbOpenFeedbackChat(kbt('kbui.feedback.draft')) } catch (e) { /* the form stays the way in */ }
+      }
+      if (open !== true) return null
+      const title = kbt('kbui.send.feedback')
+      return kbPortalDe(h('div', { className: 'kbfb-overlay', onMouseDown: (e) => { if (e.target === e.currentTarget) setOpen(false) } },
+        h('div', { className: 'kbfb-card', role: 'dialog', 'aria-modal': 'true', 'aria-label': title, 'data-kb': 'feedback-form' },
+          h('div', { className: 'kbfb-head' },
+            h('b', null, title),
+            h('button', { type: 'button', className: 'kbfb-x', 'aria-label': kbt('kbui.fb.close'), title: kbt('kbui.fb.close'), onClick: () => setOpen(false) }, Icon('x', 16))),
+          h('div', { className: 'kbfb-types', role: 'radiogroup', 'aria-label': kbt('kbui.fb.type') },
+            KB_FB_TYPES.map((k) => h('button', { key: k, type: 'button', role: 'radio', 'aria-checked': type === k ? 'true' : 'false', className: 'kbfb-type' + (type === k ? ' on' : ''), 'data-type': k, onClick: () => setType(k) }, kbt('kbui.fb.type.' + k)))),
+          h('label', { className: 'kbfb-lab', htmlFor: 'kbfb-msg' }, kbt('kbui.fb.message')),
+          h('textarea', { id: 'kbfb-msg', className: 'kbfb-msg', rows: 6, maxLength: 4000, value: message, placeholder: kbt('kbui.fb.placeholder'), autoFocus: true, onChange: (e) => { setMessage(e.target.value); if (note !== null) setNote(null) } }),
+          h('label', { className: 'kbfb-ctx' },
+            h('input', { type: 'checkbox', checked: withContext, onChange: (e) => setWithContext(e.target.checked), 'data-kb': 'feedback-context' }),
+            h('span', null, h('b', null, kbt('kbui.fb.context')), h('i', null, kbt('kbui.fb.context.hint')))),
+          note === null ? null : h('div', { className: 'kbfb-note', 'data-tone': note.tone, role: 'status', 'data-kb': 'feedback-note' }, note.text),
+          manual === '' ? null : h('textarea', { className: 'kbfb-manual', readOnly: true, rows: 6, value: manual, onFocus: (e) => { try { e.target.select() } catch (er) { /* no selection */ } } }),
+          h('div', { className: 'kbfb-acts' },
+            h('button', { type: 'button', className: 'kbfb-btn kbfb-primary', 'data-kb': 'feedback-save', disabled: busy !== '' || message.trim() === '', onClick: save }, busy === 'save' ? kbt('kbui.fb.saving') : kbt('kbui.fb.save')),
+            h('button', { type: 'button', className: 'kbfb-btn', 'data-kb': 'feedback-export', disabled: busy !== '', onClick: exporter }, busy === 'export' ? kbt('kbui.fb.exporting') : kbt('kbui.fb.export'))),
+          h('button', { type: 'button', className: 'kbfb-link', 'data-kb': 'feedback-assistant', onClick: withAssistant }, kbt('kbui.fb.assistant')))))
+    }
+    ctx.effect(() => styles.insert(`
+.kbfb-overlay{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.5)}
+.kbfb-card{box-sizing:border-box;width:min(480px,100%);max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:12px;padding:20px;border:1px solid var(--dsw-alias-border-l2);border-radius:16px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 24px 60px rgba(0,0,0,.45);font-size:14px;line-height:1.45}
+.kbfb-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.kbfb-head b{font-size:16px;font-weight:600}
+.kbfb-x{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;margin:-8px -8px -8px 0;border:none;border-radius:10px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.kbfb-x:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.kbfb-types{display:flex;gap:6px;flex-wrap:wrap}
+.kbfb-type{height:36px;padding:0 14px;border:1px solid var(--dsw-alias-border-l2);border-radius:18px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;cursor:pointer}
+.kbfb-type.on{background:var(--dsw-alias-button-primary-fill);border-color:transparent;color:var(--dsw-alias-label-primary-foreground)}
+.kbfb-lab{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+.kbfb-msg,.kbfb-manual{box-sizing:border-box;width:100%;resize:vertical;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:14px}
+.kbfb-msg:focus,.kbfb-manual:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
+.kbfb-manual{font-family:var(--ds-font-family-code,monospace);font-size:12px}
+.kbfb-ctx{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
+.kbfb-ctx input{flex:none;width:18px;height:18px;margin:2px 0 0;accent-color:var(--dsw-alias-brand-primary);cursor:pointer}
+.kbfb-ctx span{display:flex;flex-direction:column;gap:2px}
+.kbfb-ctx i{font-style:normal;font-size:12px;color:var(--dsw-alias-label-tertiary)}
+.kbfb-note{padding:8px 12px;border-radius:10px;font-size:13px;background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 12%,transparent);color:var(--dsw-alias-label-primary)}
+.kbfb-note[data-tone="err"]{background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 12%,transparent)}
+.kbfb-acts{display:flex;gap:8px;flex-wrap:wrap}
+.kbfb-btn{height:40px;padding:0 16px;border:1px solid var(--dsw-alias-border-l2);border-radius:20px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-weight:500;cursor:pointer}
+.kbfb-btn:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}
+.kbfb-btn:disabled{opacity:.4;cursor:not-allowed}
+.kbfb-primary{border-color:transparent;background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground)}
+.kbfb-primary:hover:not(:disabled){background:var(--dsw-alias-button-primary-hover)}
+.kbfb-link{align-self:flex-start;padding:4px 0;border:none;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer}
+.kbfb-link:hover{color:var(--dsw-alias-brand-primary)}
+@media (pointer:coarse){.kbfb-btn,.kbfb-type{height:44px}.kbfb-link{min-height:44px}}
+`), 'kybers: formulaire de retour')
+
     // ── barre d'outils du pied de sidebar (thème, notifications, feedback, aide) ──
     const KbUtilButton = (props) => h('button', {
       type: 'button', title: props.title, 'aria-label': props.title,
@@ -29963,12 +30130,10 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
       }
       const flash = (msg) => { try { window.alert(msg) } catch (e) { /* pas d alerte */ } }
       const startFeedback = () => {
-        // Un chat neuf, prérempli : la skill `signaler-retour` mène l'entretien,
-        // puis appelle l'outil `kybernos_signaler_retour` (côté hôte). Le
-        // testeur n'a jamais de jeton GitHub, et rien ne part sans son « oui ».
-        try {
-          if (typeof kbOpenFeedbackChat === 'function') { kbOpenFeedbackChat(kbt('kbui.feedback.draft')); return }
-        } catch (e) { /* on retombe sur le message */ }
+        // The form (KbFeedbackForm, mounted below) opens on the same event as the footer menu's entry. It keeps the way to the
+        // older interview: a fresh chat prefilled with the skill `signaler-retour`, which then calls the tool
+        // `kybernos_signaler_retour` (host side). The tester never holds a GitHub token, and nothing leaves without a « yes ».
+        try { window.dispatchEvent(new Event('kybernos:menu:feedback')); return } catch (e) { /* no Event: the message below */ }
         flash(kbt('kbui.feedback.flash'))
       }
       return h('div', { className: 'kbu-row' },
@@ -29988,7 +30153,8 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
         // « (i) » branché sur kybernos.app — l'alerte flash ne disait rien
         // d'utile (demande du 27/09/2026).
         h(KbUtilButton, { title: kbt('kbui.helpdocs'), onClick: () => { try { window.open('https://kybernos.app', '_blank', 'noopener') } catch (e) { flash(kbt('kbui.help.flash')) } } }, Icon('info', 16)),
-        h(KbReferralGift, null))
+        h(KbReferralGift, null),
+        h(KbFeedbackForm, null))
     }
     ctx.effect(() => slots.inject('sidebar.footer.action', () => slots.register(
       { name: 'sidebar.footer.action', id: 'kybernos-utils', order: 20 }, SidebarUtils)), 'kybers: barre d utils sidebar')
@@ -30006,17 +30172,11 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
         } catch (e) { /* theme indisponible */ }
         try { document.documentElement.setAttribute('data-kb-theme', to) } catch (e) { /* document indisponible */ }
       }
-      const surFeedback = () => {
-        try {
-          if (typeof kbOpenFeedbackChat === 'function') { kbOpenFeedbackChat(kbt('kbui.feedback.draft')); return }
-        } catch (e) { /* on ne flash pas depuis le menu */ }
-      }
       // « Help » is the web help (help.kybernos.app/<lang>/), opened by the footer menu itself: no in-app box any more.
+      // « Send feedback » is handled by KbFeedbackForm (the same event opens the form), not here.
       window.addEventListener('kybernos:menu:theme', surTheme)
-      window.addEventListener('kybernos:menu:feedback', surFeedback)
       return () => {
         window.removeEventListener('kybernos:menu:theme', surTheme)
-        window.removeEventListener('kybernos:menu:feedback', surFeedback)
       }
     }, 'kybers: gestes du menu unifie du pied')
     ctx.effect(() => styles.insert(`

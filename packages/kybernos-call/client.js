@@ -198,11 +198,32 @@ window.__ModuleLoader__.load({
       }
 
       const messageOf = (e) => String((e !== null && e !== undefined && e.message !== undefined) ? e.message : e)
+      // When the host half does not answer, there are two different things to say. A 404 means the routes are not mounted (DSH was
+      // not restarted after an update): « relaunch DSH once » is right, and only then. Anything else (a refused connection while DSH
+      // restarts, a 500, a page that is not JSON, ok:false) is a service that cannot be reached right now: try again.
+      const hostFailure = (down) => ({
+        ok: false, down: down,
+        error: down === 'absent'
+          ? kt('les routes d’appel ne sont pas chargées — relancez DSH une fois', 'the call routes are not loaded — relaunch DSH once')
+          : kt('Impossible de joindre le service d’appel — réessayez', 'Cannot reach the call service — try again')
+      })
+      // A POST to the host: its JSON answer, or a hostFailure (ok:false, down:'absent'|'unreachable', error: the sentence).
       const post = async (path, body) => {
         try {
           const r = await fetch(API + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+          if (r.status === 404) return hostFailure('absent')
           return await r.json()
-        } catch (e) { return null }
+        } catch (e) { return hostFailure('unreachable') }
+      }
+      // GET /status for a call that is starting: { kind: 'ok', body } or { kind: 'absent' | 'unreachable' }.
+      const readStatus = async () => {
+        try {
+          const r = await fetch(API + '/status', { headers: { accept: 'application/json' } })
+          if (r.status === 404) return { kind: 'absent' }
+          if (r.status >= 500) return { kind: 'unreachable' }
+          const body = await r.json()
+          return body !== null && typeof body === 'object' && body.ok === true ? { kind: 'ok', body: body } : { kind: 'unreachable' }
+        } catch (e) { return { kind: 'unreachable' } }
       }
       // Why a recording is not spoken in its own voice, said where the user looks (the panel).
       const cloneNote = (c) => {
@@ -215,8 +236,10 @@ window.__ModuleLoader__.load({
       }
       const AGENT_STATES = { listening: ['à l’écoute', 'listening'], thinking: ['réfléchit', 'thinking'], speaking: ['parle', 'speaking'], initializing: ['démarre', 'starting'] }
 
+      let lastOpen = null // what the last call was asked with: « Try again » opens it again
       const open = async (opts) => {
         const o = (opts !== null && typeof opts === 'object') ? opts : {}
+        lastOpen = o
         if (live !== null) await hangUp() // one call at a time
         view.full = false
         setState({
@@ -227,15 +250,13 @@ window.__ModuleLoader__.load({
         })
         audioContext() // created inside the click, or the browser keeps it silent
         // 1) The machine's secrets: without them we say so, we do not invent a call.
-        let status = null
-        try {
-          const r = await fetch(API + '/status', { headers: { accept: 'application/json' } })
-          status = await r.json()
-        } catch (e) { status = null }
-        if (status === null || status.ok !== true) {
-          patch({ phase: 'error', note: kt('les routes d’appel ne sont pas chargées — relancez DSH une fois', 'the call routes are not loaded — relaunch DSH once') })
+        const got = await readStatus()
+        if (got.kind !== 'ok') {
+          // 404 = the routes are not mounted (relaunch DSH); anything else is transient: say so, and offer to try again.
+          patch({ phase: 'error', note: hostFailure(got.kind).error, retry: got.kind !== 'absent' })
           return
         }
+        const status = got.body
         if (status.secrets !== 'posee') {
           // Nothing to call with yet: say so, with a button to the one page where everything is set up (Settings › Calls).
           patch({ phase: 'error', fix: true, note: kt('les appels ne sont pas encore prêts : il manque des clés', 'calls are not ready yet: some keys are missing') })
@@ -262,7 +283,9 @@ window.__ModuleLoader__.load({
           { voice: voice, identity: 'moi' })
         const token = await post('/token', body)
         if (token === null || token.ok !== true) {
-          patch({ phase: 'error', fix: true, note: (token !== null && typeof token.error === 'string') ? token.error : kt('pas de jeton d’appel', 'no call token') })
+          // A host that does not answer is « try again »; one that answers with a reason (a missing key…) points at the settings.
+          const down = token !== null && token.down !== undefined
+          patch({ phase: 'error', fix: !down, retry: down && token.down !== 'absent', note: (token !== null && typeof token.error === 'string') ? token.error : kt('pas de jeton d’appel', 'no call token') })
           return
         }
         const agent = (token.agent !== null && token.agent !== undefined) ? token.agent : null
@@ -453,9 +476,11 @@ window.__ModuleLoader__.load({
               h('span', { key: 'p', className: 'kbcl-status', 'data-state': mood[0], role: 'status', 'aria-live': 'polite' }, [h('i', { key: 'd', className: 'kbcl-dot' }), mood[1] + (isLive ? ' · ' + clock(seconds(s)) : '')])
             ]),
             video ? h('button', { key: 'full', type: 'button', className: 'kbcl-hbtn', 'data-act': 'panel-full', 'aria-pressed': full ? 'true' : 'false', 'aria-label': full ? kt('Réduire la fenêtre', 'Make the window smaller') : kt('Plein écran', 'Full screen'), title: full ? kt('Réduire la fenêtre (Échap)', 'Make the window smaller (Esc)') : kt('Plein écran', 'Full screen'), onClick: toggleFull }, Ico(full ? 'shrink' : 'expand', 16)) : null,
-            h('button', { key: 'hang', type: 'button', 'data-act': 'hangup', 'aria-label': kt('Raccrocher', 'Hang up'), onClick: () => hangUp(), style: css.hangUp }, kt('Raccrocher', 'Hang up'))
+            // A call that never started has nothing to hang up: the same button closes the panel, and says so.
+            h('button', { key: 'hang', type: 'button', 'data-act': 'hangup', 'aria-label': s.phase === 'error' ? kt('Fermer', 'Close') : kt('Raccrocher', 'Hang up'), onClick: () => hangUp(), style: css.hangUp }, s.phase === 'error' ? kt('Fermer', 'Close') : kt('Raccrocher', 'Hang up'))
           ]),
           note !== '' ? h('span', { key: 'note', style: css.note }, note) : null,
+          s.retry === true ? h('button', { key: 'retry', type: 'button', className: 'kbcl-btn kbcl-pri', 'data-act': 'retry', style: { alignSelf: 'flex-start' }, onClick: () => open(lastOpen) }, kt('Réessayer', 'Try again')) : null,
           s.fix === true ? h('button', { key: 'fix', type: 'button', className: 'kbcl-btn kbcl-pri', 'data-act': 'open-settings', style: { alignSelf: 'flex-start' }, onClick: () => { setState(null); openCallSettings({ tab: 'overview' }) } }, kt('Ouvrir Réglages › Appels', 'Open Settings › Calls')) : null,
           // Once the call is live: what the microphone hears (left), and what the assistant is doing (right).
           isLive ? h('div', { key: 'act', className: 'kbcl-activity', 'data-state': mood[0] }, [
@@ -640,6 +665,14 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
       // ── Settings › Calls ──
       const LANGUAGES = [['fr', 'Français'], ['en', 'English'], ['es', 'Español'], ['de', 'Deutsch'], ['it', 'Italiano'], ['pt', 'Português'], ['nl', 'Nederlands'], ['ar', 'العربية'], ['zh', '中文'], ['ja', '日本語'], ['ko', '한국어'], ['ru', 'Русский'], ['tr', 'Türkçe'], ['pl', 'Polski'], ['hi', 'हिन्दी']]
       const getJson = async (url) => { try { const r = await fetch(url, { headers: { accept: 'application/json' } }); return await r.json() } catch (e) { return null } }
+      // The Calls settings: the host's JSON, or a hostFailure that says whether the routes are absent (404) or just not answering.
+      const getSettings = async () => {
+        try {
+          const r = await fetch(API + '/settings', { headers: { accept: 'application/json' } })
+          if (r.status === 404) return hostFailure('absent')
+          return await r.json()
+        } catch (e) { return hostFailure('unreachable') }
+      }
       const Chip = (kind, text) => h('span', { className: 'kbcl-chip' + (kind ? ' kbcl-' + kind : '') }, [h('i', { key: 'i' }), text])
       // Small line icons (24 grid, 2 px stroke; after the Lucide set, ISC). The app does not ship an icon font, so they are drawn here.
       const ICONS = {
@@ -697,8 +730,8 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
         const [notice, setNotice] = React.useState(null) // { bad, text }
         const [busy, setBusy] = React.useState(false)
         const load = async () => {
-          const [d, v, m] = await Promise.all([getJson(API + '/settings'), getJson('/kybernos/tts/voices'), getJson('/kybernos/models/audio')])
-          setData(d !== null && d.ok === true ? d : { ok: false })
+          const [d, v, m] = await Promise.all([getSettings(), getJson('/kybernos/tts/voices'), getJson('/kybernos/models/audio')])
+          setData(d !== null && d.ok === true ? d : { ok: false, down: d !== null ? d.down : undefined })
           setVoices(v !== null && v.ok === true ? v : null)
           setModels(m !== null && m.ok === true && Array.isArray(m.providers) ? m.providers : [])
         }
@@ -710,7 +743,8 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
           const r = await post('/settings', { patch: patch })
           setBusy(false)
           if (r !== null && r.ok === true) { await load(); setNotice(null); return true }
-          say(true, kt('Réglage refusé — ', 'Setting refused — ') + (reasons(r) || (r && r.error) || kt('l’hôte ne répond pas (relancez DSH une fois)', 'the host does not answer (relaunch DSH once)')))
+          // A host that does not answer did not refuse anything: say that, not « refused ».
+          say(true, (r !== null && r.down !== undefined) ? r.error : kt('Réglage refusé — ', 'Setting refused — ') + (reasons(r) || (r && r.error) || hostFailure('unreachable').error))
           return false
         }
         const saveKeys = async (patch) => {
@@ -718,7 +752,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
           const r = await post('/keys', { patch: patch })
           setBusy(false)
           if (r !== null && r.ok === true) { await load(); setNotice(null); return true }
-          say(true, kt('Valeur refusée — ', 'Value refused — ') + (reasons(r) || (r && r.error) || kt('l’hôte ne répond pas', 'the host does not answer')))
+          say(true, (r !== null && r.down !== undefined) ? r.error : kt('Valeur refusée — ', 'Value refused — ') + (reasons(r) || (r && r.error) || hostFailure('unreachable').error))
           return false
         }
         // A preset fills several slots: the page is "busy" until what it shows is what was saved (a Continue clicked too soon would read the old choice).
@@ -777,7 +811,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
             const got = await getJson('/kybernos/voice/config')
             r = got === null ? null : (got.ok === true && got.asr && got.asr.ready === true ? { ok: true, detail: got.asr.model } : { ok: false, error: (got.asr && got.asr.reason) || kt('la dictée n’est pas prête', 'dictation is not ready') })
           } else r = await post('/test', { service: p.test })
-          setTest(r === null ? { ok: false, error: kt('l’hôte ne répond pas', 'the host does not answer') } : r)
+          setTest(r === null ? { ok: false, error: hostFailure('unreachable').error } : r)
         }
         const useIt = () => {
           if (p.slot === 'listen') return c.save({ use: { listen: p.id } })
@@ -1038,7 +1072,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
           const hostDone = post('/health', {}).then((host) => {
             const next = {}
             if (host !== null && host.ok === true) for (const ck of host.checks) next[ck.id] = ck
-            else for (const id of HEALTH_ORDER) if (id !== 'mic') next[id] = { id: id, status: 'bad', code: 'failed', detail: (host && host.error) || kt('l’hôte ne répond pas (relancez DSH une fois)', 'the host does not answer (relaunch DSH once)') }
+            else for (const id of HEALTH_ORDER) if (id !== 'mic') next[id] = { id: id, status: 'bad', code: 'failed', detail: (host && host.error) || hostFailure('unreachable').error }
             merge(next)
           })
           const micDone = Promise.race([micCheck(), new Promise((resolve) => setTimeout(() => resolve({ id: 'mic', status: 'warn', code: 'no-answer' }), 12000))]).then((m) => merge({ mic: m }))
@@ -1056,7 +1090,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
         const install = async () => {
           const r = await post('/engine', { action: 'install' })
           if (!mounted.current) return
-          if (r === null || r.ok === false) { setInst({ state: 'failed', code: (r && r.code) || 'failed', error: (r && r.error) || kt('l’hôte ne répond pas', 'the host does not answer') }); return }
+          if (r === null || r.ok === false) { setInst({ state: 'failed', code: (r && r.code) || 'failed', error: (r && r.error) || hostFailure('unreachable').error }); return }
           setInst(r)
           setTimeout(follow, 1500)
         }
@@ -1091,7 +1125,13 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
           return () => { subscribers.delete(take) }
         }, [])
         if (c.data === null) return h('div', { className: 'kbcl-page', 'data-kb': 'kybernos-call-settings' }, h('div', { className: 'kbcl-sub' }, kt('Lecture des réglages…', 'Reading the settings…')))
-        if (c.data.ok !== true) return h('div', { className: 'kbcl-page', 'data-kb': 'kybernos-call-settings' }, h('div', { className: 'kbcl-notice kbcl-bad' }, kt('Les routes d’appel ne sont pas chargées — relancez DSH une fois.', 'The call routes are not loaded — relaunch DSH once.')))
+        if (c.data.ok !== true) {
+          // 404: the routes are not mounted (relaunch DSH). Anything else: the service could not be reached just now, so try again.
+          const absent = c.data.down === 'absent'
+          return h('div', { className: 'kbcl-page', 'data-kb': 'kybernos-call-settings' }, h('div', { className: 'kbcl-notice kbcl-bad', 'data-kb': 'kybernos-call-down' },
+            hostFailure(absent ? 'absent' : 'unreachable').error.replace(/^./, (ch) => ch.toUpperCase()) + '.',
+            absent ? null : h('button', { type: 'button', className: 'kbcl-btn', 'data-act': 'retry', style: { marginLeft: '12px' }, onClick: () => c.load() }, kt('Réessayer', 'Try again'))))
+        }
         const helps = HELP()
         const tabs = [['overview', kt('Vue d’ensemble', 'Overview')], ['providers', kt('Fournisseurs', 'Providers')], ['health', kt('Bilan de santé', 'Health')]]
         const toggle = (id) => () => setOpen((o) => Object.assign({}, o, { [id]: !o[id] }))
