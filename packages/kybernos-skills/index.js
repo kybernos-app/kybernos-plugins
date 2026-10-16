@@ -126,6 +126,9 @@ const readJsonBody = async (req, maxBytes) => {
 
 // ── contract constants ────────────────────────────────────────────────────────────────────────────────────
 const SKILL_NAME_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/ // dsh-skill/lib/index.js:17
+// The Agent Skills convention caps a name at 64 characters. It binds the skills this page CREATES, not the ones it reads: a skill
+// that is already on the disk with a longer name keeps showing (SKILL_NAME_RE stays the reading rule).
+const SKILL_NAME_MAX = 64
 const MARKER_ACTIVE = 'SKILL.md'
 const MARKER_DISABLED = 'SKILL.md.disabled'
 const JOURNAL_VERSION = 1
@@ -1338,6 +1341,7 @@ const createSkill = async ({ ctx, root, name, description, whenToUse, body, mode
   const dest = typeof root === 'string' && root !== '' ? root : join(cfg.dsh, 'skills')
   if (wRoots.includes(dest) === false) return { ok: false, error: 'root_not_allowed' }
   if (typeof name !== 'string' || !SKILL_NAME_RE.test(name)) return { ok: false, error: 'invalid_name' }
+  if (name.length > SKILL_NAME_MAX) return { ok: false, error: 'name_too_long', max: SKILL_NAME_MAX }
   if (typeof description !== 'string' || description.trim() === '') return { ok: false, error: 'description_required' }
   if (description.trim().length > 1024) return { ok: false, error: 'description_too_long', max: 1024 }
   const target = join(dest, name)
