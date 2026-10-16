@@ -672,7 +672,7 @@ window.__ModuleLoader__.load({
 .kbs-root .kbsub button.kb-seg{display:inline-flex;align-items:center;gap:8px;height:34px;border:0;border-radius:999px;padding:0 16px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .kbs-root .kbsub button.kb-seg:hover{color:var(--dsw-alias-label-primary)}
 .kbs-root .kbsub button.kb-seg.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 1px 3px rgba(20,20,19,.14)}
-.kbs-root .kbsub .count{font-family:ui-monospace,monospace;font-size:11px;color:inherit;opacity:.7}
+.kbs-root .kbsub .count{font-family:ui-monospace,monospace;font-size:11px;color:inherit;opacity:.9}
 .kbs-root .kbsub .kb8-mono{flex:1 1 0;min-width:0;text-align:end;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* The panel body is injected INSIDE .kbg-root, which already carries the page
    margins (30/34/40). It was taking those of .kb8-page (30/28/36): all the
@@ -1031,6 +1031,10 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
 .kbs-root .kbsf-pill.ok{color:var(--dsw-alias-state-success-primary,#22c55e)}
 .kbs-root .kbsf-pill.warn{color:var(--dsw-alias-state-warn-primary,#f59e0b)}
 .kbs-root .kbsf-pill.need{color:var(--dsw-alias-state-business-primary,#5686fe)}
+/* The state inks are the fills (2.1 to 4.2:1 on white): in the light schemes they are pulled toward the text colour (audit A1-11). */
+body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.ok{color:color-mix(in srgb,var(--dsw-alias-state-success-primary,#22c55e) 50%,var(--dsw-alias-label-primary))}
+body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.warn{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#f59e0b) 50%,var(--dsw-alias-label-primary))}
+body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb,var(--dsw-alias-state-business-primary,#5686fe) 60%,var(--dsw-alias-label-primary))}
 .kbs-root .kbsf-acts{display:flex;align-items:center;gap:8px;margin-top:auto;min-height:32px;transition:opacity .14s ease}
 @media (hover:hover){
 .kbs-root .kbsf-card .kbsf-acts{opacity:0}
@@ -2022,7 +2026,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
         const pickBy = (p) => {
           const owner = String(p.source).split('/')[0]
           return h('span', { className: 'kbsf-by', title: t('pick.by', { who: owner }) },
-            h('span', { className: 'kbsf-av', style: { background: 'hsl(' + hue(owner) + ' 45% 42%)' }, 'aria-hidden': 'true' }, owner.charAt(0).toUpperCase()),
+            h('span', { className: 'kbsf-av', style: { background: 'hsl(' + hue(owner) + ' 45% 32%)' }, 'aria-hidden': 'true' }, owner.charAt(0).toUpperCase()),
             h('span', { className: 'nm' }, owner))
         }
         const pickCnt = (p) => {

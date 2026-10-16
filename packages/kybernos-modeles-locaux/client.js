@@ -333,6 +333,10 @@ window.__ModuleLoader__.load({
         ".kbm-tag[data-tone='success'] { background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 10%, transparent); color: var(--dsw-alias-state-success-primary); }\n" +
         ".kbm-tag[data-tone='warning'] { background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 12%, transparent); color: var(--dsw-alias-state-warn-primary); }\n" +
         ".kbm-tag[data-tone='danger'] { background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent); color: var(--dsw-alias-state-error-primary); }\n" +
+        "/* The tag inks are the state fills (2.1:1 on their pale tint in the light schemes): there they are pulled toward the text colour (audit A1-11). */\n" +
+        "body:not([data-ds-dark-theme]) .kbm-tag[data-tone='success'] { color: color-mix(in srgb, var(--dsw-alias-state-success-primary) 50%, var(--dsw-alias-label-primary)); }\n" +
+        "body:not([data-ds-dark-theme]) .kbm-tag[data-tone='warning'] { color: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 50%, var(--dsw-alias-label-primary)); }\n" +
+        "body:not([data-ds-dark-theme]) .kbm-tag[data-tone='danger'] { color: color-mix(in srgb, var(--dsw-alias-state-error-primary) 80%, var(--dsw-alias-label-primary)); }\n" +
         ".kml-scan-btn { display: inline-flex; align-items: center; gap: 4px; }\n" +
         ".kml-spin { display: inline-flex; animation: kml-rot 0.9s linear infinite; }\n" +
         "@keyframes kml-rot { to { transform: rotate(360deg); } }\n" +

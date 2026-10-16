@@ -364,6 +364,9 @@ window.__ModuleLoader__.load({
       '.kbsu-chip.warn{background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 16%,transparent);color:var(--dsw-alias-state-warn-primary)}',
       '.kbsu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}',
       '.kbsu-card{display:flex;flex-direction:column;gap:9px;padding:18px;border-radius:18px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);min-width:0}',
+      // the state inks are the fills: 2 to 2.5:1 on their tint in the light schemes, where they are pulled toward the text colour (audit A1-11)
+      'body:not([data-ds-dark-theme]) .kbsu-chip.ok{color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 50%,var(--dsw-alias-label-primary))}',
+      'body:not([data-ds-dark-theme]) .kbsu-chip.warn{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 50%,var(--dsw-alias-label-primary))}',
       '.kbsu-card.open{grid-column:1/-1}',
       '.kbsu-card.dim{opacity:.85}',
       '.kbsu-top{display:flex;gap:12px;align-items:center}',

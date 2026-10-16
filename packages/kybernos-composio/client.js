@@ -871,7 +871,7 @@ window.__ModuleLoader__.load({
     const CSS = `
 .kbcp-config{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border:1px solid rgba(128,128,128,.25);border-radius:12px;max-width:680px}
 .kbcp-config h3{margin:0;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
-.kbcp-logo{width:20px;height:20px;border-radius:6px;background:linear-gradient(135deg,#ff7a1a,#f43f5e);color:#fff;font-weight:800;font-size:11px;display:inline-flex;align-items:center;justify-content:center}
+.kbcp-logo{width:20px;height:20px;border-radius:6px;background:linear-gradient(135deg,#ff7a1a,#f43f5e);color:#0f1115;font-weight:800;font-size:11px;display:inline-flex;align-items:center;justify-content:center}
 .kbcp-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .kbcp-input{flex:1;min-width:200px;height:34px;border-radius:9px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;padding:0 11px;font-size:13px}
 .kbcp-btn{height:32px;padding:0 13px;border-radius:8px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
@@ -934,6 +934,9 @@ window.__ModuleLoader__.load({
 .kb7-pill.pend{background:rgba(250,204,21,.15);color:#facc15}
 .kb7-bars{display:flex;gap:4px}
 .kb7-bar{height:4px;flex:1;border-radius:2px;background:#22c55e;opacity:.55}
+/* The tag inks are the state fills (2.1:1 on their pale tint in the light schemes): there they are pulled toward the text colour (audit A1-11). */
+body:not([data-ds-dark-theme]) .kb7-pill{color:color-mix(in srgb,var(--dsw-alias-state-success-primary,#22c55e) 50%,var(--dsw-alias-label-primary))}
+body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#facc15) 50%,var(--dsw-alias-label-primary))}
 .kb7-bar.pend{background:#facc15}
 .kb7-nokey{display:flex;align-items:center;gap:8px;padding:12px 14px;border:1px dashed rgba(128,128,128,.4);border-radius:12px;font-size:12.5px;opacity:.8;max-width:620px}
 /* Own class: kb7-err is also a rule of the kybernos bundle's sheet for this tab, and in the dark theme
@@ -1104,7 +1107,6 @@ window.__ModuleLoader__.load({
 .kb7-seclab span{font-weight:500;text-transform:none;letter-spacing:0;padding:0 7px;border-radius:7px;background:rgba(128,128,128,.18)}
 .kbcp-pv{display:flex;gap:14px;padding:16px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));background:var(--dsw-alias-bg-layer-2,transparent);margin:0 0 12px}
 .kbcp-pv.sel{border-color:var(--dsw-alias-brand-primary,#6c8cff);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary,#6c8cff)}
-.kbcp-pv.off{opacity:.85}
 .kbcp-pv-rad{flex:none;width:18px;height:18px;border-radius:50%;border:2px solid var(--dsw-alias-border-l2,rgba(128,128,128,.5));margin-top:2px;position:relative;cursor:pointer;background:transparent;padding:0}
 .kbcp-pv.off .kbcp-pv-rad{cursor:default}
 .kbcp-pv.sel .kbcp-pv-rad{border-color:var(--dsw-alias-brand-primary,#6c8cff)}

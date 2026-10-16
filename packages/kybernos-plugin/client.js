@@ -5995,7 +5995,9 @@ const CSS = `
 /* Nom du fichier sur UNE ligne, même en 4 colonnes (demande 26/09 : cartes
    plus compactes) — sans ça, un nom long cassait la hauteur de la rangée. */
 .kb6-cname .kbg-name{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;font-weight:600}
-.kb6-type{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.05em;flex:none}
+.kb6-type{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.05em;flex:none;color:var(--kb6-ink)}
+/* the type pastels are made for the dark scheme: 1.2 to 2.1:1 on a light card (audit A4-12). In the light schemes the ink is pulled 60% toward the text colour. */
+body:not([data-ds-dark-theme]) .kb6-type{color:color-mix(in srgb,var(--kb6-ink) 40%,var(--dsw-alias-label-primary))}
 .kb6-cbtn{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border:none;border-radius:7px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;flex:none;padding:0}
 .kb6-cbtn:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
 .kb6-cbtn:disabled{opacity:.4;cursor:default}
@@ -17002,7 +17004,7 @@ return {
           h('div', { className: 'kb6-ico kb6-ico-ti', style: { background: 'var(--dsw-alias-interactive-bg-hover)' } }, kbTiSvg(kbTiOfName(a.name), 16)),
           h('div', { className: 'kb6-cname' },
             h('div', { className: 'kbg-name' }, a.name || '—')),
-          h('span', { className: 'kb6-type', style: { background: t.tint, color: t.color } }, t.label),
+          h('span', { className: 'kb6-type', style: { background: t.tint, '--kb6-ink': t.color } }, t.label),
           h('button', { type: 'button', className: 'kb6-cbtn', 'data-kb': 'art-locate', title: kbt('kbui.localiser') + a.path, onClick: (e) => { e.stopPropagation(); if (typeof onAction === 'function') onAction('reveal', a) } }, Icon('folderOpen', 13)),
           h('button', {
             type: 'button', className: 'kb6-cbtn kb6-pinbtn' + (pinned === true ? ' on' : ''), 'data-kb': 'art-pin',
@@ -18897,7 +18899,7 @@ function renderFit(canvas, model, cam, opts){
               onClick: () => { try { kbMiniAppOpen(name, load.text, 'sidebar', path) } catch (e) {} },
             }, Icon('panelRight', 13), ' Sidebar')
             : null),
-          h('span', { className: 'kb6-type', style: { background: kind.tint, color: kind.color } }, kind.label)),
+          h('span', { className: 'kb6-type', style: { background: kind.tint, '--kb6-ink': kind.color } }, kind.label)),
         h(ArtBody, { name: name, load: load, path: path }))
     }
 
@@ -19464,7 +19466,7 @@ function renderFit(canvas, model, cam, opts){
           h('div', { className: 'kb6-lmain' },
             h('div', { className: 'kb6-ltop' },
               h('div', { className: 'kb6-lrowname' }, a.name),
-              h('span', { className: 'kb6-type', style: { background: a.type.tint, color: a.type.color } }, a.type.label)),
+              h('span', { className: 'kb6-type', style: { background: a.type.tint, '--kb6-ink': a.type.color } }, a.type.label)),
             h('div', { className: 'kb6-lrowsub', title: dateTip }, metaBits.slice(1).join(' · ')),
             (snippet !== '' ? h('div', { className: 'kb6-snip' }, snippet) : null)),
           h('div', { className: 'kb6-lacts' },
@@ -23820,6 +23822,9 @@ function renderFit(canvas, model, cam, opts){
 .kb7-foot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:6px}
 .kb7-pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:99px;background:var(--dsw-alias-state-success-tertiary, rgba(34,197,94,.16));color:var(--dsw-alias-state-success-primary, #22c55e);font-size:11.5px;font-weight:600}
 .kb7-pill.pend{background:var(--dsw-alias-state-warn-tertiary, rgba(250,180,60,.16));color:var(--dsw-alias-state-warn-label, var(--dsw-alias-state-warn-primary, #f0a030))}
+/* The tag inks are the state fills (2.1:1 on their pale tint in the light schemes): there they are pulled toward the text colour (audit A1-11). */
+body:not([data-ds-dark-theme]) .kb7-pill{color:color-mix(in srgb,var(--dsw-alias-state-success-primary, #22c55e) 50%,var(--dsw-alias-label-primary))}
+body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary, #f0a030) 50%,var(--dsw-alias-label-primary))}
 .kb7-empty{opacity:.5;font-size:13px}
 `
       document.head.appendChild(s)
@@ -24165,10 +24170,10 @@ function renderFit(canvas, model, cam, opts){
               h('button', { type: 'button', className: 'kb8-nc-x', 'aria-label': kbt('kbnc.close'), title: kbt('kbnc.close'), onClick: () => setOpen(null) }, Icon('x', 14))),
             h('div', { className: 'kb8-nc-tiles' }, group.map((t) =>
               h('button', { type: 'button', key: t.id, className: 'kb8-nc-tile', 'data-kb': 'newchat-template', onClick: () => prefill(t.id) },
-                h('span', { className: 'kb8-nc-ico', style: { background: kbNcTint(t.hue, 0.16), color: t.hue } }, Icon(t.icon, 18)), h('span', { className: 'kb8-nc-t' }, kbt('kbnc.t.' + t.id)))))))
+                h('span', { className: 'kb8-nc-ico', style: { background: kbNcTint(t.hue, 0.16), '--kb8-ink': t.hue } }, Icon(t.icon, 18)), h('span', { className: 'kb8-nc-t' }, kbt('kbnc.t.' + t.id)))))))
       }
       const card = (id, icon, title, sub, onClick, dot) => h('button', { type: 'button', key: id, className: 'kb8-nc-card', 'data-kb': 'newchat-' + id, onClick },
-        h('span', { className: 'kb8-nc-ico', style: { background: kbNcTint(KB_NC_HUES[id], 0.16), color: KB_NC_HUES[id] } }, Icon(icon, 18)),
+        h('span', { className: 'kb8-nc-ico', style: { background: kbNcTint(KB_NC_HUES[id], 0.16), '--kb8-ink': KB_NC_HUES[id] } }, Icon(icon, 18)),
         h('span', { className: 'kb8-nc-body' },
           h('span', { className: 'kb8-nc-t' }, dot === undefined || dot === '' ? null : h('i', { className: 'kb8-nc-dot ' + dot }), title),
           h('span', { className: 'kb8-nc-d' }, sub)))
@@ -24214,7 +24219,7 @@ function renderFit(canvas, model, cam, opts){
           (cloud.kind === 'unknown' ? null
             : h('div', { key: 'cloud', className: 'kb8-nc-card kb8-nc-cloud', 'data-kb': 'newchat-cloud' },
               h('button', { type: 'button', className: 'kb8-nc-main', 'data-kb': 'newchat-cloud-open', onClick: openKyber },
-                h('span', { className: 'kb8-nc-ico', style: { background: kbNcTint(KB_NC_HUES.cloud, 0.16), color: KB_NC_HUES.cloud } }, Icon('monitor', 18)),
+                h('span', { className: 'kb8-nc-ico', style: { background: kbNcTint(KB_NC_HUES.cloud, 0.16), '--kb8-ink': KB_NC_HUES.cloud } }, Icon('monitor', 18)),
                 h('span', { className: 'kb8-nc-body' },
                   h('span', { className: 'kb8-nc-t' }, kbNcDot(cloud.kind) === '' ? null : h('i', { className: 'kb8-nc-dot ' + kbNcDot(cloud.kind) }), kbt('kbui.cloudcomputer')),
                   h('span', { className: 'kb8-nc-d', role: act.note !== null ? 'alert' : undefined, title: act.note !== null ? act.note : undefined },
@@ -24240,7 +24245,7 @@ function renderFit(canvas, model, cam, opts){
 .kb8-nc-act{height:26px;padding:0 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground);font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
 .kb8-nc-act.ghost{background:transparent;color:var(--dsw-alias-label-secondary);font-weight:500}
 .kb8-nc-act:disabled{opacity:.5;cursor:default}
-.kb8-nc-ico{width:36px;height:36px;flex:none;border-radius:11px;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
+.kb8-nc-ico{width:36px;height:36px;flex:none;border-radius:11px;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-bg-layer-3);color:color-mix(in srgb,var(--kb8-ink,var(--dsw-alias-label-primary)) 60%,var(--dsw-alias-label-primary))}
 .kb8-nc-body{display:flex;flex-direction:column;gap:2px;min-width:0}
 .kb8-nc-t{font-size:13.5px;font-weight:600;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kb8-nc-d{font-size:12px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -25204,7 +25209,7 @@ function renderFit(canvas, model, cam, opts){
           h('div', { className: 'kas-menu-title' }, kbt('art.selector.create')),
           h('div', { className: 'kas-grid' }, KB_ARTIFACT_CATALOG.map((t) =>
             h('button', { type: 'button', key: t.type, className: 'kas-item', title: kba(t.label) + ' — ' + kba(t.desc), onClick: () => pickType(t) },
-              h('div', { className: 'kas-icon', style: { background: (t.tint !== undefined ? t.tint : t.color + '22'), color: (t.ink !== undefined ? t.ink : t.color) } },
+              h('div', { className: 'kas-icon', style: { background: (t.tint !== undefined ? t.tint : t.color + '22'), '--kas-ink': (t.ink !== undefined ? t.ink : t.color) } },
                 h('svg', { width: 17, height: 17, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: t.iconSvg }))),
               h('div', { className: 'kas-info' }, h('span', { className: 'kas-label' }, kba(t.label)), h('span', { className: 'kas-desc' }, kba(t.desc))))))
         ) : null,
@@ -25216,7 +25221,7 @@ function renderFit(canvas, model, cam, opts){
         (taskSaved !== null && activeType === null) ? h('div', { className: 'kas-form-panel', style: { width: 'auto', padding: '10px 14px', fontSize: '13px', color: 'var(--dsw-alias-state-success-primary)' } }, '✓ ' + taskSaved) : null)
     }
 
-    const KB_ARTIFACT_SELECTOR_CSS = '.kas-root{position:relative;display:inline-flex;align-items:center}.kas-btn{width:28px;height:28px;border-radius:8px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;padding:0}.kas-btn:hover,.kas-btn.kas-open{border-color:var(--dsw-alias-brand-primary,#5563d6);background:color-mix(in srgb,#5563d6 14%,transparent)}.kas-menu{position:absolute;left:0;bottom:calc(100% + 8px);box-sizing:border-box;width:460px;padding:10px 10px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 12px 32px rgba(0,0,0,.24);display:flex;flex-direction:column;z-index:20;animation:kas-rise .18s ease}@keyframes kas-rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}.kas-menu-title{padding:4px 8px 10px;font-size:12.5px;font-weight:500;color:var(--dsw-alias-label-secondary)}.kas-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 6px;padding:0 2px}.kas-item{display:flex;align-items:center;gap:11px;padding:6px 8px;border-radius:10px;border:none;background:transparent;text-align:left;width:100%;cursor:pointer;transition:background .12s;color:var(--dsw-alias-label-primary)}.kas-item:hover{background:var(--dsw-alias-bg-layer-2)}.kas-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex:none}body:not([data-ds-dark-theme]) .kas-icon svg{filter:brightness(.5)}.kas-info{display:flex;flex-direction:column;gap:1px;min-width:0}.kas-label{font-size:14px;font-weight:600;line-height:17px}.kas-desc{font-size:12.5px;line-height:14px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    const KB_ARTIFACT_SELECTOR_CSS = '.kas-root{position:relative;display:inline-flex;align-items:center}.kas-btn{width:28px;height:28px;border-radius:8px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;padding:0}.kas-btn:hover,.kas-btn.kas-open{border-color:var(--dsw-alias-brand-primary,#5563d6);background:color-mix(in srgb,#5563d6 14%,transparent)}.kas-menu{position:absolute;left:0;bottom:calc(100% + 8px);box-sizing:border-box;width:460px;padding:10px 10px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 12px 32px rgba(0,0,0,.24);display:flex;flex-direction:column;z-index:20;animation:kas-rise .18s ease}@keyframes kas-rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}.kas-menu-title{padding:4px 8px 10px;font-size:12.5px;font-weight:500;color:var(--dsw-alias-label-secondary)}.kas-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 6px;padding:0 2px}.kas-item{display:flex;align-items:center;gap:11px;padding:6px 8px;border-radius:10px;border:none;background:transparent;text-align:left;width:100%;cursor:pointer;transition:background .12s;color:var(--dsw-alias-label-primary)}.kas-item:hover{background:var(--dsw-alias-bg-layer-2)}.kas-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex:none;color:var(--kas-ink)}body:not([data-ds-dark-theme]) .kas-icon{color:color-mix(in srgb,var(--kas-ink) 40%,var(--dsw-alias-label-primary))}body:not([data-ds-dark-theme]) .kas-icon svg{filter:brightness(.5)}.kas-info{display:flex;flex-direction:column;gap:1px;min-width:0}.kas-label{font-size:14px;font-weight:600;line-height:17px}.kas-desc{font-size:12.5px;line-height:14px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
       // Panneau formulaire
       '.kas-form-panel{position:absolute;left:0;bottom:calc(100% + 8px);width:380px;max-height:420px;overflow-y:auto;padding:16px;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:20;animation:kas-rise .18s ease}' +
       '.kaf-root{display:flex;flex-direction:column;gap:14px}' +

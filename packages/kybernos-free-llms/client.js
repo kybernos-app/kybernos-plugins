@@ -108,6 +108,9 @@ window.__ModuleLoader__.load({
         ".kbm-tag[data-tone='neutral'] { background: var(--dsw-alias-bg-module-platform); color: var(--dsw-alias-label-secondary); }\n" +
         ".kbm-tag[data-tone='success'] { background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 10%, transparent); color: var(--dsw-alias-state-success-primary); }\n" +
         ".kbm-tag[data-tone='warning'] { background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 12%, transparent); color: var(--dsw-alias-state-warn-primary); }\n" +
+        "/* The tag inks are the state fills (2.1:1 on their pale tint in the light schemes): there they are pulled toward the text colour (audit A1-11). */\n" +
+        "body:not([data-ds-dark-theme]) .kbm-tag[data-tone='success'] { color: color-mix(in srgb, var(--dsw-alias-state-success-primary) 50%, var(--dsw-alias-label-primary)); }\n" +
+        "body:not([data-ds-dark-theme]) .kbm-tag[data-tone='warning'] { color: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 50%, var(--dsw-alias-label-primary)); }\n" +
         ".kbm-dot { position: relative; display: inline-block; flex: none; width: 10px; height: 10px; }\n" +
         ".kbm-dot::after { content: ''; position: absolute; inset: 20%; border-radius: 50%; background: currentColor; }\n" +
         ".kbm-dot[data-state='done'] { color: var(--dsw-alias-state-success-primary); }\n" +
