@@ -156,6 +156,30 @@ export async function clickText(page, text, opts = {}) {
 }
 
 /**
+ * Make sure the DSH holds at least one conversation, for a check that opens one (the phone tour, the phone measures). A fresh sandbox has none: a first message is
+ * typed into the empty composer and sent (no model is configured there, so the turn fails; what matters is that DSH now holds a real session, titled `text`).
+ * Never on the user's own DSH (:3080): that one has its conversations and a check must not write there. Resolves `true` when a conversation is there.
+ */
+export async function ensureConversation(page, opts = {}) {
+  const text = opts.text || 'Greeting'
+  const authority = opts.authority || process.env.KB_HOST || '127.0.0.1:3080'
+  const rows = async () => (await page.evalJs(`document.querySelectorAll('[data-row-key^="session:"]').length`, 4000)).val
+  // the list of sessions arrives a moment after the page
+  for (let i = 0; i < 20; i += 1) { if ((await rows()) > 0) return true; await sleep(400) }
+  if (authority === '127.0.0.1:3080') return false
+  const pos = (await page.evalJs(`(() => { const e = document.querySelector('[contenteditable="true"], textarea'); if (!e) return null; const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.x + 40, y: r.y + r.height / 2 }) })()`, 4000)).val
+  if (typeof pos !== 'string') return false
+  const { x, y } = JSON.parse(pos)
+  for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) await page.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 })
+  await sleep(300)
+  await page.send('Input.insertText', { text })
+  await sleep(300)
+  await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r' })
+  await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  return (await waitFor(page, `document.body.innerText.indexOf(${JSON.stringify(text)}) >= 0`, 20000)) !== null
+}
+
+/**
  * Open the Advanced fold of the Settings menu, when the menu has one. It is shut at first (the audit's « short for a newcomer »), and a check
  * that reaches a page by its cell with a real mouse needs the cell drawn. The choice lands in the throw-away browser's own storage: nothing of
  * the person's DSH changes. Resolves `true` when the fold is open (or the menu has none: an older core plugin).

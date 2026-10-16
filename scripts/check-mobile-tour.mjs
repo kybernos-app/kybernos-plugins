@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // A tour of every screen of the real DSH GUI on a phone: the new-chat page, a conversation, each page of the
-// sidebar (Kybers, Workspaces, Creations, Automations, Skills, Connectors, Automation tasks), Settings (the list and
+// sidebar (Kybers, Workspaces, Creations, Automations, Skills, Connectors), Settings (the list and
 // a page), the right bar, and the composer's menus. On each screen it measures what a person would trip on:
 //
 //   - the page scrolling sideways, or a control leaving the screen;
@@ -19,7 +19,7 @@
 import { mkdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { openLivePage, openSettings, swapPluginClient } from './live-page.mjs'
+import { openLivePage, openSettings, swapPluginClient, ensureConversation } from './live-page.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const args = process.argv.slice(2)
@@ -152,6 +152,8 @@ const escape = () => page.send('Input.dispatchKeyEvent', { type: 'keyDown', key:
 
 try {
   console.log('device ' + W + 'x' + H + (light ? ' (light)' : '') + (deployed ? ' (deployed)' : ' (working-tree stylesheet)'))
+  // A fresh sandbox holds no conversation: send a first message from the empty composer (never on the user's own DSH), so that the tour has one to open.
+  if (await ensureConversation(page) !== true) console.log('  ○ no conversation to open on this DSH (and none could be created): the conversation screens will report it')
   await boot()
 
   if (!deployed) console.log(swap.swapped > 0 ? '  (the working tree\'s client.js is in the page)' : '  ○ the working tree\'s client.js was NOT swapped in: this tour ran on the deployed one')
@@ -195,7 +197,8 @@ try {
 
   console.log('pages of the sidebar')
   // (the first entry is "Kybers" or "Agent Teams", after the profile's wording)
-  for (const label of ['Kybers', 'Workspaces', 'Creations', 'Automations', 'Skills', 'Connectors', 'Automation tasks']) {
+  // (DSH's own « Automation tasks » row is gone: the Kybernos Automations page replaces it and hides DSH's list, so the drawer has no such row to tap.)
+  for (const label of ['Kybers', 'Workspaces', 'Creations', 'Automations', 'Skills', 'Connectors']) {
     await openDrawer()
     // a finger: the row is tapped where it is, and the drawer must go by itself (the page is then the whole screen)
     const at = await rowCenter(label) || (label === 'Kybers' ? await rowCenter('Agent Teams') : null)
