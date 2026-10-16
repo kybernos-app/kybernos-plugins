@@ -233,6 +233,8 @@ window.__ModuleLoader__.load({
         .kbsd-demo{border:1px solid rgba(0,0,0,.45);background:transparent;font:inherit;font-size:11px;
           padding:5px 12px;border-radius:99px;cursor:pointer;color:#1a1a1a}
         .kbsd-demo:hover{background:rgba(0,0,0,.05)}
+        /* Reduced motion (audit A1-15): the writing caret, the correction flash and the editor's gap cursor (its blink comes from TipTap's own sheet, hence the extra specificity) stop. */
+        @media (prefers-reduced-motion:reduce){.kbsd-cor,.kbsd-caret,html .ProseMirror-gapcursor:after{animation:none}}
         `
         
             /* ═══════════════ 2. MOTEUR DE FRAPPE ═══════════════
