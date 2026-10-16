@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const EN = 'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.'
-const FR = 'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarrez DSH, puis appuyez sur Réessayer.'
+const FR = 'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarre DSH, puis appuie sur Réessayer.'
 
 // [package, where the sentence lives (a key, or the kt() pair), the Retry control]
 const PAGES = [

@@ -1,33 +1,33 @@
 {
   "what": {
-    "fr": "Une page pour voir et corriger ce que Kybernos retient : vos souvenirs (dans votre compte) et les leçons que les agents tirent de leur travail, par Agent Team.",
+    "fr": "Une page pour voir et corriger ce que Kybernos retient : tes souvenirs (dans ton compte) et les leçons que les agents tirent de leur travail, par Agent Team.",
     "en": "One page to see and fix what Kybernos remembers: your memories (kept in your account) and the lessons agents learn from their work, per agent team."
   },
   "steps": [
     {
-      "fr": "Ouvrez la page : une ligne dit ce qui est actif et le dernier rangement, puis la liste (onglets « Memories » et « Lessons learned »).",
+      "fr": "Ouvre la page : une ligne dit ce qui est actif et le dernier rangement, puis la liste (onglets « Souvenirs » et « Leçons apprises »).",
       "en": "Open the page: one line says what is on and the last tidy-up, then the list (“Memories” and “Lessons learned” tabs)."
     },
     {
-      "fr": "Filtrez avec « Filter », cliquez une ligne pour la modifier ou l’oublier ; « Add » écrit un souvenir de votre main.",
+      "fr": "Affine avec « Filtrer », clique une ligne pour la modifier ou l’oublier ; « Ajouter » écrit un souvenir de ta main.",
       "en": "Narrow down with “Filter” and click a row to edit or forget it; “Add” writes a memory of your own."
     },
     {
-      "fr": "« Customize » ouvre les réglages, déjà faits pour vous : enregistrement, envoi au modèle, capture, recherche par sens, rangement.",
+      "fr": "« Personnaliser » ouvre les réglages, déjà faits pour toi : enregistrement, envoi au modèle, capture, recherche par sens, rangement.",
       "en": "“Customize” opens the settings, already set for you: saving, sending to the model, capture, search by meaning, tidy-up."
     },
     {
-      "fr": "Sous la zone de saisie, la pastille « Memory & Lessons » montre ce que le modèle reçoit, avec un lien vers la page.",
+      "fr": "Sous la zone de saisie, la pastille « Mémoire & Leçons » montre ce que le modèle reçoit, avec un lien vers la page.",
       "en": "Under the message box, the “Memory & Lessons” pill shows what the model receives, with a link to the page."
     }
   ],
   "where": {
-    "fr": "Réglages › Memory & Lessons, et la pastille du même nom sous la saisie",
+    "fr": "Réglages › Mémoire & Leçons, et la pastille du même nom sous la saisie",
     "en": "Settings › Memory & Lessons, and the pill of the same name under the message box",
     "page": true
   },
   "good": {
-    "fr": "Les souvenirs vivent dans votre compte Kybernos Cloud (même Free) ; les leçons restent sur cet ordinateur, par Agent Team, sans compte. Les doublons sont fusionnés seuls, annulables 30 jours.",
+    "fr": "Les souvenirs vivent dans ton compte Kybernos Cloud (même Free) ; les leçons restent sur cet ordinateur, par Agent Team, sans compte. Les quasi-doublons fusionnent seuls, avec 30 jours pour revenir en arrière.",
     "en": "Memories live in your Kybernos Cloud account (any plan, Free too); lessons stay on this computer, per agent team, no account needed. Near-duplicates merge by themselves, undoable for 30 days."
   },
   "url": "https://help.kybernos.app/{lang}/features/what-are-skills-and-memory/"

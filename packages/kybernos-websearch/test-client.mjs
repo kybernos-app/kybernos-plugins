@@ -146,5 +146,20 @@ ok('only this plugin\'s own routes are called', (src.match(/'\/[a-z-]+\/[a-z]+'/
 ok('the style tag is removed with the plugin', /tag\.remove\(\)/.test(src))
 ok('the CSS prefix is private to this bundle', (src.match(/\.kwse-/g) || []).length > 20 && !/\.kbws-|\.kws-/.test(src))
 
+// ── the language (WP-07): English when nothing says French, the French speaks « tu » ──────────────────
+{
+  const i = src.indexOf('      const lang = () => {')
+  const j = src.indexOf('      // the name (one word')
+  const run = (resolve) => new Function('window', src.slice(i, j) + '\nreturn kt("UN", "ONE")')({ __KB_LANG_RESOLVE__: resolve })
+  ok('the page is French for « kybernos » and fr*, English for every other language', run(() => 'kybernos') === 'UN' && run(() => 'fr-CA') === 'UN' && run(() => 'en') === 'ONE' && run(() => 'es') === 'ONE' && run(() => 'ar') === 'ONE')
+  ok('a resolver that throws, or none, reads English (it used to read French)', run(() => { throw new Error('not ready') }) === 'ONE' && run(undefined) === 'ONE')
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n')
+  ok('no « vous », « votre », « vos » in the page', !/(?<![A-Za-zÀ-ÿ])(vous|votre|vos)(?![A-Za-zÀ-ÿ])/i.test(code))
+  ok('an engine row is { name, fr, en }, the name being one word or { fr, en }', /deepseek: \{ name: \{ fr: /.test(src) && /searxng: \{ name: 'SearXNG', fr: /.test(src))
+}
+
+// The Settings menu draws the label the section is registered with: a fixed English string would stay English under the French.
+ok('the nav label follows the language (Recherche web / Web Search)', /label: kt\('Recherche web', 'Web Search'\) \}/.test(src))
+
 console.log('\n' + (fail === 0 ? 'ALL CHECKS OK' : fail + ' check(s) FAILED'))
 process.exit(fail === 0 ? 0 : 1)

@@ -226,7 +226,7 @@ export function lireSessions (fichier) {
 
 export function ecrireSession (fichier, sessionId, on) {
   const id = String(sessionId || '').trim()
-  if (id === '' || id.length > 200) return { ok: false, erreur: 'sessionId attendu' }
+  if (id === '' || id.length > 200) return { ok: false, erreur: 'sessionId expected' }
   const sessions = lireSessions(fichier)
   if (on === true) sessions[id] = true
   else delete sessions[id]
@@ -353,7 +353,7 @@ export async function router (demande, opts = {}) {
   const reg = opts.reglages || { whitelist: [], classifier: '', global: false }
   const whitelist = reg.whitelist
   if (reg.global !== true) return { actif: false, raison: 'autoRouting off' }
-  if (whitelist.length === 0) return { actif: true, classe: null, modele: null, raison: 'whitelist vide' }
+  if (whitelist.length === 0) return { actif: true, classe: null, modele: null, raison: 'whitelist empty' }
 
   let classe = regle(demande)
   let via = 'regle'
@@ -362,7 +362,7 @@ export async function router (demande, opts = {}) {
       classe = await classifie(demande, reg.classifier, opts.ollama)
       via = 'classifieur'
     } catch (e) {
-      via = 'classifieur en échec (' + (e && e.message ? e.message : e) + ')'
+      via = 'classifier failed (' + (e && e.message ? e.message : e) + ')'
     }
   }
   if (classe === null) classe = 'chat'
@@ -504,21 +504,21 @@ export function monterRoutes (webServerSvc, opts = {}) {
   }
 
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/state', handler: async (req, res) => {
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     envoyer(res, 200, await etatComplet(new URL(req.url, 'http://x').searchParams.get('sessionId') || ''))
   } })
 
   // The configured models, for the picker of the typed list (read-only: `route/id` and whether the provider is connected).
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/models', handler: async (req, res) => {
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     univers.oublier()
     const connus = await univers.lire()
     envoyer(res, 200, { ok: true, models: (connus === null ? [] : connus).map((x) => ({ cle: x.cle, route: x.route, id: x.id, connecte: x.connecte === true, locale: x.locale === true })) })
   } })
 
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/session', handler: async (req, res) => {
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
-    if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    if (req.method !== 'POST') { res.writeHead(405); res.end('POST expected'); return }
     if (!ecritureAutorisee(req, res)) return
     const corps = await lireCorps(req)
     const r = ecrireSession(sessionsFichier, corps.sessionId, corps.on === true)
@@ -528,8 +528,8 @@ export function monterRoutes (webServerSvc, opts = {}) {
   } })
 
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/settings', handler: async (req, res) => {
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
-    if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    if (req.method !== 'POST') { res.writeHead(405); res.end('POST expected'); return }
     if (!ecritureAutorisee(req, res)) return
     const corps = await lireCorps(req)
     // Whitelist and classifier: the same global keys as settings.json — the
@@ -540,7 +540,7 @@ export function monterRoutes (webServerSvc, opts = {}) {
         corps.autoWhitelist.every((x) => typeof x === 'string' && x.length <= 200) &&
         new Set(corps.autoWhitelist).size === corps.autoWhitelist.length
       if (valide !== true) {
-        envoyer(res, 400, { ok: false, code: 'liste', erreur: 'autoWhitelist : tableau d identifiants sans doublon attendu' }); return
+        envoyer(res, 400, { ok: false, code: 'liste', erreur: 'autoWhitelist: an array of unique ids was expected' }); return
       }
       // A list of models is a list of `provider/model` the profile knows (A3-24): « model-only », « a b/c d » or « <script>/x »
       // used to be saved and then « really asked » by the health check. The existence is judged only when the host can read the
@@ -550,27 +550,27 @@ export function monterRoutes (webServerSvc, opts = {}) {
       const refus = refuserListe(corps.autoWhitelist, connus === null ? null : new Set(connus.map((x) => x.cle)))
       if (refus !== null) {
         envoyer(res, 400, { ok: false, code: 'liste-' + refus.code, cles: refus.cles.slice(0, 5), erreur: (refus.code === 'forme'
-          ? 'autoWhitelist : « ' + refus.cles[0] + ' » n est pas de la forme fournisseur/modèle'
-          : 'autoWhitelist : « ' + refus.cles[0] + ' » n est pas un modèle configuré') }); return
+          ? 'autoWhitelist: “' + refus.cles[0] + '” is not a provider/model name'
+          : 'autoWhitelist: “' + refus.cles[0] + '” is not a configured model') }); return
       }
       maj.autoWhitelist = corps.autoWhitelist
     }
     if (corps.autoScope !== undefined) {
-      if (SCOPES.indexOf(corps.autoScope) < 0) { envoyer(res, 400, { ok: false, code: 'scope', erreur: 'autoScope : all, free ou custom attendu' }); return }
+      if (SCOPES.indexOf(corps.autoScope) < 0) { envoyer(res, 400, { ok: false, code: 'scope', erreur: 'autoScope: all, free or custom expected' }); return }
       maj.autoScope = corps.autoScope
     }
     if (corps.autoRouting !== undefined) {
       // Inherited GLOBAL breaker: true forces Auto on every session.
-      if (typeof corps.autoRouting !== 'boolean') { envoyer(res, 400, { ok: false, erreur: 'autoRouting : booléen attendu' }); return }
+      if (typeof corps.autoRouting !== 'boolean') { envoyer(res, 400, { ok: false, erreur: 'autoRouting: a boolean was expected' }); return }
       maj.autoRouting = corps.autoRouting
     }
     if (corps.autoFailover !== undefined) {
-      if (typeof corps.autoFailover !== 'boolean') { envoyer(res, 400, { ok: false, erreur: 'autoFailover : booléen attendu' }); return }
+      if (typeof corps.autoFailover !== 'boolean') { envoyer(res, 400, { ok: false, erreur: 'autoFailover: a boolean was expected' }); return }
       maj.autoFailover = corps.autoFailover
     }
     if (corps.autoClassifier !== undefined) {
       if (typeof corps.autoClassifier !== 'string' || corps.autoClassifier.length > 200) {
-        envoyer(res, 400, { ok: false, erreur: 'autoClassifier : chaîne attendue' }); return
+        envoyer(res, 400, { ok: false, erreur: 'autoClassifier: a string was expected' }); return
       }
       maj.autoClassifier = corps.autoClassifier
     }
@@ -591,13 +591,13 @@ export function monterRoutes (webServerSvc, opts = {}) {
   // LEFT OPEN ON PURPOSE (no session cookie, an Origin is only refused when it is foreign): the caller is `cli/auto-router.mjs` (--report), copied to
   // ~/.dsh/tools/ for the agent, a Node program that sends no Origin and has no browser session. `/router` below has the same caller.
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/report', handler: async (req, res) => {
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
-    if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    if (req.method !== 'POST') { res.writeHead(405); res.end('POST expected'); return }
     const c = await lireCorps(req)
-    if (typeof c.modele !== 'string' || c.modele === '' || c.modele.length > 200) { envoyer(res, 400, { ok: false, erreur: 'modele attendu' }); return }
-    if (c.latenceMs !== undefined && !(Number.isFinite(c.latenceMs) && c.latenceMs >= 0)) { envoyer(res, 400, { ok: false, erreur: 'latenceMs : nombre >= 0 attendu' }); return }
-    if (c.code !== undefined && (typeof c.code !== 'string' || c.code.length > 100)) { envoyer(res, 400, { ok: false, erreur: 'code : chaîne de 100 caractères max attendue' }); return }
-    if (c.message !== undefined && typeof c.message !== 'string') { envoyer(res, 400, { ok: false, erreur: 'message : chaîne attendue' }); return }
+    if (typeof c.modele !== 'string' || c.modele === '' || c.modele.length > 200) { envoyer(res, 400, { ok: false, erreur: 'model expected' }); return }
+    if (c.latenceMs !== undefined && !(Number.isFinite(c.latenceMs) && c.latenceMs >= 0)) { envoyer(res, 400, { ok: false, erreur: 'latenceMs: a number >= 0 was expected' }); return }
+    if (c.code !== undefined && (typeof c.code !== 'string' || c.code.length > 100)) { envoyer(res, 400, { ok: false, erreur: 'code: a string of 100 characters at most was expected' }); return }
+    if (c.message !== undefined && typeof c.message !== 'string') { envoyer(res, 400, { ok: false, erreur: 'message: a string was expected' }); return }
     // The outcome keeps its reason (code, message, when): the page says WHY a model is skipped, and the breaker learns from it.
     const issue = issueDeRapport({ erreur: c.erreur === true, code: c.code, message: c.message })
     noterIssue(santeFichier, c.modele, issue, { rapport: true, latenceMs: c.latenceMs, usage: { inputTokens: c.inputTokens, cacheReadTokens: c.cacheReadTokens }, maintenant: horloge() })
@@ -607,8 +607,8 @@ export function monterRoutes (webServerSvc, opts = {}) {
   // "Re-check now": probe the whitelist (or the models named) for real, bypassing the verdict cache. A success closes a
   // model's breaker, a failure counts against it. One run at a time: a second call waits for the first.
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/probe', handler: async (req, res) => {
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
-    if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    if (req.method !== 'POST') { res.writeHead(405); res.end('POST expected'); return }
     if (!ecritureAutorisee(req, res)) return
     const corps = await lireCorps(req)
     if (!llmDispo()) { envoyer(res, 503, { ok: false, erreur: 'llm service unavailable: nothing can be probed' }); return }
@@ -640,11 +640,11 @@ export function monterRoutes (webServerSvc, opts = {}) {
 
   // LEFT OPEN ON PURPOSE, like /report: `cli/auto-router.mjs` (the agent's reflex before a delegation) calls it with no Origin and no cookie.
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/router', handler: async (req, res) => {
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
-    if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    if (req.method !== 'POST') { res.writeHead(405); res.end('POST expected'); return }
     const corps = await lireCorps(req)
     const demande = String(corps.demande || '').trim()
-    if (demande === '') { envoyer(res, 400, { ok: false, erreur: 'demande attendue' }); return }
+    if (demande === '') { envoyer(res, 400, { ok: false, erreur: 'request expected' }); return }
     const sessionId = String(corps.sessionId || '')
     const sessions = lireSessions(sessionsFichier)
     const reg = await reglagesEffectifs()
@@ -652,11 +652,11 @@ export function monterRoutes (webServerSvc, opts = {}) {
     // first iteration stays a breaker (ON forces every session,
     // the CLI with no sessionId included).
     const actifPourSession = reg.global === true || (sessionId !== '' && sessions[sessionId] === true)
-    if (actifPourSession === false) { envoyer(res, 200, { actif: false, raison: 'auto off pour cette session' }); return }
+    if (actifPourSession === false) { envoyer(res, 200, { actif: false, raison: 'auto off for this session' }); return }
     // The caller may name models that just failed for this very delegation: the answer is then the NEXT ones.
     const exclure = corps.exclure === undefined ? [] : corps.exclure
     if (!Array.isArray(exclure) || exclure.length > 64 || !exclure.every((x) => typeof x === 'string' && x.length <= 200)) {
-      envoyer(res, 400, { ok: false, erreur: 'exclure : tableau de 64 identifiants max attendu' }); return
+      envoyer(res, 400, { ok: false, erreur: 'exclure: an array of 64 ids at most was expected' }); return
     }
     // The route has already decided the activation: the router must not veto it again. A caller that cannot wait for
     // probes says `sonde: false`; with no llm service nothing can be probed, and the chain is told so.

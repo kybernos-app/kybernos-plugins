@@ -1,11 +1,11 @@
 {
   "what": {
-    "fr": "Choisit, pour chaque étape déléguée, le meilleur modèle parmi ceux que vous autorisez, après avoir vérifié qu’il répond, avec des modèles de repli.",
+    "fr": "Choisit, pour chaque étape déléguée, le meilleur modèle parmi ceux que tu autorises, après avoir vérifié qu’il répond, avec des modèles de repli.",
     "en": "Picks, for each delegated step, the best model among the ones you allow, after checking it answers, with fallback models if one goes down."
   },
   "steps": [
     {
-      "fr": "Choisissez les modèles qu’Auto peut utiliser : tous (défaut), les gratuits, ou « Ma liste » (fournisseur/modèle ; l’ordre est le repli).",
+      "fr": "Choisis les modèles qu’Auto peut utiliser : tous (défaut), les gratuits, ou « Ma liste » (fournisseur/modèle ; l’ordre est le repli).",
       "en": "Choose the models Auto may use: all (default), the free ones, or “My list” (provider/model; the list order is the fallback order)."
     },
     {
@@ -27,7 +27,7 @@
     "page": true
   },
   "good": {
-    "fr": "Auto ne change jamais le modèle de votre session : il conseille un modèle pour les étapes déléguées, parmi ceux que vous autorisez. « Ma liste » vide : le modèle de la session est gardé.",
+    "fr": "Auto ne change jamais le modèle de ta session : il conseille un modèle pour les étapes déléguées, parmi ceux que tu autorises. « Ma liste » vide : le modèle de la session est gardé.",
     "en": "Auto never changes your session’s model: it advises a model for the delegated steps, among the ones you allow. An empty “My list”: the session’s model is kept."
   },
   "url": "https://help.kybernos.app/{lang}/models-and-budget/let-kybernos-pick-the-model/"

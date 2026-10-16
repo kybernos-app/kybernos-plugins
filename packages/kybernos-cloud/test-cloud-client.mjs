@@ -284,6 +284,31 @@ assert.ok(html.includes('<svg'), 'icone presente')
 assert.equal(html.includes('kbc-scrim'), false)
 ok('rendu React de la rangee de pied sans erreur (CTA + icone)')
 
+// WP-07 (A2-17): the language is what Kybernos resolved. English by default (nothing resolved), French when it says « kybernos » or fr*,
+// English for another language: the French dictionary is SERVED (it used to sit behind the English one and never showed).
+{
+  const row = () => renderToStaticMarkup(React.createElement(registered.component, null))
+  assert.ok(html.includes('Sign in') && !html.includes('Se connecter'), 'nothing resolved: English')
+  globalThis.window.__KB_LANG_RESOLVE__ = () => 'kybernos'
+  const fr = row()
+  assert.ok(fr.includes('Se connecter') && fr.includes('Créer un compte') && !fr.includes('Sign in'), 'Kybernos in French: the French dictionary is shown')
+  globalThis.window.__KB_LANG_RESOLVE__ = () => 'fr-CA'
+  assert.ok(row().includes('Se connecter'), 'a fr* base: French')
+  for (const other of ['en', 'es', 'ar', 'zh']) {
+    globalThis.window.__KB_LANG_RESOLVE__ = () => other
+    assert.ok(row().includes('Sign in') && !row().includes('Se connecter'), other + ': English (no pack, never French)')
+  }
+  globalThis.window.__KB_LANG_RESOLVE__ = () => { throw new Error('not ready') }
+  assert.ok(row().includes('Sign in'), 'a resolver that throws: English')
+  delete globalThis.window.__KB_LANG_RESOLVE__
+  // the French of the dictionary speaks « tu »; the English uses one verb pair (Sign in / Sign out)
+  const dict = readFileSync(join(here, 'client.js'), 'utf8')
+  const frBlock = dict.slice(dict.indexOf('    const DICT = {'), dict.indexOf('      en: {', dict.indexOf('    const DICT = {')))
+  assert.ok(!/(?<![A-Za-zÀ-ÿ])(vous|votre|vos)(?![A-Za-zÀ-ÿ])/i.test(frBlock), 'the French dictionary says « tu », not « vous »')
+  assert.ok(/profLogout: 'Sign out'/.test(dict) && /disconnect: 'Sign out'/.test(dict) && !/'Log out'/.test(dict), 'English: Sign in / Sign out, one verb pair')
+  ok('langue : anglais par defaut, francais servi pour Kybernos/fr*, anglais pour toute autre langue; « tu »; Sign in / Sign out')
+}
+
 // ── La feuille de style couvre bien les trois états de la carte ─────────────
 // (un composant ne s'appelle pas hors de React : on vérifie donc le CSS qui
 // porte les états appairé / appairage / connecté, et le rendu ci-dessus qui
