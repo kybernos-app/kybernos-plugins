@@ -100,6 +100,21 @@ const ev = async (js) => { const r = await page.evalJs(js, 10000); return r.err 
 const answered = []
 await page.send('Network.enable', {})
 page.on('Network.responseReceived', (p) => { if (p.response && /\/(kybernos-auto|kybernos-memory|kybernos-computers)\//.test(p.response.url)) answered.push({ url: new URL(p.response.url).pathname, status: p.response.status }) })
+// The headers Chrome really puts on the wire for the page's own requests (CDP's ExtraInfo carries them, cookies included).
+const wire = new Map()
+const urlOf = new Map()
+page.on('Network.requestWillBeSent', (p) => { if (p.request) urlOf.set(p.requestId, p.request.url) })
+page.on('Network.requestWillBeSentExtraInfo', (p) => { wire.set(p.requestId, p.headers || {}) })
+const wireHeaders = (path, method) => {
+  for (const [id, url] of [...urlOf.entries()].reverse()) {
+    if (new URL(url).pathname === path && wire.has(id)) {
+      const h = {}
+      for (const [k, v] of Object.entries(wire.get(id))) h[k.toLowerCase()] = v
+      return method === undefined || h[':method'] === undefined || h[':method'] === method ? h : null
+    }
+  }
+  return null
+}
 const lastStatus = (path) => { const hits = answered.filter((a) => a.url === path); return hits.length === 0 ? null : hits[hits.length - 1].status }
 const q = (x) => JSON.stringify(x)
 const shot = async (name) => { if (shotsDir !== null) await page.shot(join(shotsDir, name + '.png')).catch(() => {}) }
@@ -125,6 +140,15 @@ try {
     const p = await fromPage(method, path, body)
     check(method + ' ' + path + ': the signed-in page is answered (' + p + ')', p !== 401 && p !== 403 && p > 0 && p < 500, p)
   }
+
+  console.log('what the browser itself puts on the wire (the free-models gateway keys on it)')
+  await fromPage('GET', '/kybernos-auto/state')
+  await fromPage('POST', '/kybernos-auto/session', { sessionId: '', on: true })
+  await sleep(500)
+  const got = wireHeaders('/kybernos-auto/state')
+  check('a same-origin GET from the page carries Sec-Fetch-Site: same-origin and no Origin', got !== null && got['sec-fetch-site'] === 'same-origin' && got.origin === undefined, got && { site: got['sec-fetch-site'], origin: got.origin })
+  const post = wireHeaders('/kybernos-auto/session')
+  check('a same-origin POST from the page carries the right Origin and DSH\'s session cookie', post !== null && post.origin === origin && /(^|;\s*)dsh-auth-/.test(post.cookie || ''), post && { origin: post.origin, cookie: post.cookie ? '(present)' : '(absent)' })
 
   console.log('left open on purpose, still answered to the caller that has no browser')
   const router = await ask('POST', '/kybernos-auto/router', {}, { demande: 'fix the pagination bug', sonde: false })
