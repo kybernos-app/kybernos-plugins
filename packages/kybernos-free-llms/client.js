@@ -50,6 +50,9 @@ window.__ModuleLoader__.load({
         'kfl.relance': { fr: 'Si un modèle n’apparaît pas dans le sélecteur : relancez DSH.', en: 'If a model does not show in the picker: restart DSH.' },
         'kfl.auto': { fr: 'Activé automatiquement au premier lancement.', en: 'Enabled automatically at first run.' },
         'kfl.erreur': { fr: 'Erreur', en: 'Error' },
+        // The page's host half does not answer (DSH not restarted after an update, a failing route): the same sentence as the other settings pages.
+        'kfl.hote': { fr: 'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarrez DSH, puis appuyez sur Réessayer.', en: 'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.' },
+        'kfl.reessayer': { fr: 'Réessayer', en: 'Retry' },
         'kfl.page.titre': { fr: 'Free LLMs', en: 'Free LLMs' },
       }
       let kbLocaleRead = () => 'en'
@@ -138,24 +141,30 @@ window.__ModuleLoader__.load({
         ".kfl-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }\n" +
         ".kfl-note { margin: 6px 0 0; font-size: 12px; line-height: 1.5; color: var(--dsw-alias-label-tertiary); }\n" +
         ".kfl-erreur { margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: var(--dsw-alias-state-error-primary); }\n" +
+        ".kfl-bandeau { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; padding: 10px 12px; border: 0.5px solid color-mix(in srgb, var(--dsw-alias-state-warn-primary) 35%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 8%, transparent); font-size: 13px; line-height: 1.5; color: var(--dsw-alias-label-primary); }\n" +
+        ".kfl-bandeau > span { flex: 1; min-width: 220px; }\n" +
         ".kfl-sonde { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 13px; color: var(--dsw-alias-label-secondary); }\n" +
         ".kfl-sonde[data-ok='true'] { color: var(--dsw-alias-state-success-primary); }\n" +
         ".kfl-sonde[data-ok='false'] { color: var(--dsw-alias-state-error-primary); }\n" +
         ".kfl-locked { margin: 0 0 10px; font-size: 13px; line-height: 1.5; color: var(--dsw-alias-state-error-primary); }\n"
 
       // ── host calls ───────────────────────────────────────────────────────
+      // A refused connection, a 404 page or any answer that is not JSON is the same thing for the person: the host half does not
+      // answer ('hote'), told by one sentence, never the browser's « Failed to fetch ».
       const jsonGet = async (path) => {
         try {
           const r = await fetch(path, { headers: { accept: 'application/json' }, cache: 'no-store' })
           return await r.json()
-        } catch (e) { return { ok: false, error: String(e && e.message ? e.message : e) } }
+        } catch (e) { return { ok: false, error: 'hote' } }
       }
       const jsonPost = async (path, body) => {
         try {
           const r = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body === undefined ? {} : body) })
           return await r.json()
-        } catch (e) { return { ok: false, error: String(e && e.message ? e.message : e) } }
+        } catch (e) { return { ok: false, error: 'hote' } }
       }
+      // What a failed call says: the sentence for a host that does not answer, « Error: <reason> » otherwise.
+      const erreurDe = (r, repli) => (r && r.error === 'hote' ? m('kfl.hote') : m('kfl.erreur') + sep() + String((r && r.error) || repli))
 
       const skelHelper = () => {
         try {
@@ -194,7 +203,7 @@ window.__ModuleLoader__.load({
             setAck((s.state && s.state.acknowledged === true) || false)
             setErreur(null)
           } else {
-            setErreur(m('kfl.erreur') + sep() + String((s && s.error) || 'status'))
+            setErreur(erreurDe(s, 'status'))
           }
         }, [])
 
@@ -210,7 +219,7 @@ window.__ModuleLoader__.load({
           const r = await jsonPost('/free-llms/enable', { acknowledged: ack === true })
           setBusy(null)
           if (r && r.ok === true) { await refresh() } else {
-            setErreur(m('kfl.erreur') + sep() + String((r && r.error) || 'refus'))
+            setErreur(erreurDe(r, 'refus'))
           }
         }
         const deconnecter = async () => {
@@ -255,7 +264,12 @@ window.__ModuleLoader__.load({
           locked ? h('p', { className: 'kfl-locked', role: 'status', 'data-kfl': 'tier-locked' }, m('kfl.tier.locked')) : null,
           // Not read yet: bones in the rows' own box (the shared skeleton helper of the core plugin, window.__KB_SKEL__), instead of
           // the « no free model » line that then got replaced. Without the helper the line shows, as before.
-          (status === null && erreur === null && skelHelper() !== null)
+          // The first read failed: the reason and a Retry take the list's place (it used to say « No free model detected » above a bare error).
+          (status === null && erreur !== null)
+            ? h('div', { className: 'kfl-bandeau', role: 'alert', 'data-kfl': 'injoignable' },
+              h('span', null, erreur),
+              h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kfl': 'reessayer', onClick: () => { setErreur(null); refresh() } }, m('kfl.reessayer')))
+            : (status === null && erreur === null && skelHelper() !== null)
             ? skelHelper().wrap(m('kfl.liste'), 'kfl-liste', [0, 1, 2].map((i) => h('div', { className: 'kfl-mod kb-sk-row', key: 'sk' + i },
               skelHelper().bone(10, 10, 'round'), skelHelper().bone(i % 2 === 0 ? '46%' : '36%', 13), skelHelper().bone(34, 18, 'pill'))))
             : models.length === 0
@@ -281,7 +295,7 @@ window.__ModuleLoader__.load({
           status !== null && status.state && status.state.autoEnabled === true
             ? h('p', { className: 'kfl-note' }, m('kfl.auto')) : null,
           h('p', { className: 'kfl-note' }, m('kfl.relance')),
-          erreur !== null ? h('p', { className: 'kfl-erreur' }, erreur) : null)
+          erreur !== null && status !== null ? h('p', { className: 'kfl-erreur' }, erreur) : null)
       }
 
       return {

@@ -17,6 +17,11 @@ Settings › **Web Search**:
 - how long an answer is kept (5 minutes by default) and the timeout per engine;
 - *Search the way an agent does*: one search through DSH's seam, which proves DSH really uses this list.
 
+When the host half does not answer (DSH was not restarted after an update, a route fails, a proxy answers with a page)
+the page keeps its title and its explanation and says "This page's helper is not answering. If DSH was just updated,
+restart DSH, then press Retry." with a **Retry** button. Never the browser's own "Failed to fetch". The same sentence
+is used by Auto routing, AI Provider & Models, Free LLMs and Ollama Local Models (`scripts/test-host-down.mjs` pins it).
+
 An engine that fails is **paused** for a time that fits the cause (a refused key one hour, a captcha ten minutes, a
 rate limit five, a timeout one) and the next one answers. The row says why and until when. A search only fails when
 every engine did, and then the model is told which ones and what to do, not what the page said.

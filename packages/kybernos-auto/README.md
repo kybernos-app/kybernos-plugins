@@ -19,7 +19,9 @@ the candidates before it answers, keeps a circuit breaker per model, and hands b
   entry that is not a configured model is refused with the reason under the field). Everything else is under one fold, "Advanced
   settings": the chat fallback, the classifier model (placeholder `ollama-local/tev1:0.8b`) and the local health table (latency,
   errors, cache hit, "warm cache" badge; eight rows, the rest one click away). Each model says WHY it is skipped (cause, retry time,
-  last error). It refreshes every 60 s; "Check now" probes the first 20 models of the list for real.
+  last error). It refreshes every 60 s; "Check now" probes the first 20 models of the list for real. If the state cannot be read (the host
+  half does not answer) the page keeps its title and says "This page's helper is not answering. If DSH was just updated, restart
+  DSH, then press Retry." with a Retry button, instead of staying on a bare "…".
 
 ## Chat fallback (main-session failover, opt-in)
 

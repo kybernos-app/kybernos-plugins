@@ -19,6 +19,14 @@ const kt = (fr, en) => (lang() === 'en' ? en : fr)
 const sep = () => (lang() === 'en' ? ': ' : ' : ')
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
 const fmtT = (t) => { const m = Math.floor(t / 60); const s = (t % 60).toFixed(1); return m + ':' + (s.length < 4 ? '0' + s : s) }
+// One size style per language, the same as Creations and the media player: English « 86 KB », « 5.0 MB » (a decimal point), French
+// « 86 Ko », « 5,0 Mo ». It used to mix « 5,0 MB » (a French comma on an English unit) and « 31 Ko » in one dialog.
+const fmtBytes = (n) => {
+  const fr = kt(true, false)
+  if (n >= 1048576) { const v = (n / 1048576).toFixed(1); return fr ? v.replace('.', ',') + ' Mo' : v + ' MB' }
+  if (n >= 1024) return Math.round(n / 1024) + (fr ? ' Ko' : ' KB')
+  return n + (fr ? ' o' : ' B')
+}
 const slugOf = (s) => String(s || 'animation').toLowerCase().normalize('NFD').replace(/\p{M}+/gu, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'animation'
 
 let CTX = null
@@ -574,7 +582,8 @@ function ExportModal ({ doc, player, onClose, onToast }) {
   const cancelled = React.useRef(false)
   const base = slugOf(doc.title)
   const heights = Array.from(new Set([Math.min(1080, scene.format.height), Math.min(720, scene.format.height), Math.min(480, scene.format.height)]))
-  const est = (scene.format.duration * (Number(res) / 1080) * (fps === '60' ? 1.5 : 1)).toFixed(1).replace('.', ',')
+  // A rough ceiling (one megabyte per second at 1080p): a simple scene encodes far smaller (31 KB for 5 s), so it says « up to ».
+  const est = fmtBytes(scene.format.duration * (Number(res) / 1080) * (fps === '60' ? 1.5 : 1) * 1048576)
   const inlineMedia = () => gatherMedia(player.assets, scene)
   const go = async () => {
     cancelled.current = false
@@ -613,7 +622,7 @@ function ExportModal ({ doc, player, onClose, onToast }) {
     foot = h('button', { type: 'button', className: 'kbmt-btn', 'data-act': 'cancel', onClick: () => { cancelled.current = true } }, kt('Annuler l\'export', 'Cancel export'))
   } else if (phase === 'done') {
     body = h('div', { className: 'kbmt-done' }, h('span', { className: 'kbmt-big' }, Ic('check', 20)), h('b', null, result.name),
-      h('span', { className: 'kbmt-hint' }, result.app ? kt('Installée dans ', 'Installed in ') + result.where : (Math.max(1, Math.round(result.size / 1024)) + ' Ko') + (result.saved ? kt(' · enregistré dans le projet (artifacts/)', ' · saved in the project (artifacts/)') : '')))
+      h('span', { className: 'kbmt-hint' }, result.app ? kt('Installée dans ', 'Installed in ') + result.where : fmtBytes(result.size) + (result.saved ? kt(' · enregistré dans le projet (artifacts/)', ' · saved in the project (artifacts/)') : '')))
     foot = [h('button', { type: 'button', className: 'kbmt-btn', key: 'c', onClick: onClose }, kt('Fermer', 'Close')),
       result.blob ? h('button', { type: 'button', className: 'kbmt-btn pri', key: 'd', 'data-act': 'download', onClick: () => downloadBlob(result.name, result.blob) }, Ic('up', 14), kt('Télécharger', 'Download')) : null]
   } else if (phase === 'error') {
@@ -628,7 +637,7 @@ function ExportModal ({ doc, player, onClose, onToast }) {
     fmt === 'mp4' ? h('div', { className: 'kbmt-sub', key: 's' },
       h('div', { className: 'kbmt-fld' }, h('span', { className: 'kbmt-lbl' }, kt('Hauteur', 'Height')), seg('res', res, setRes, heights.map((x) => [x + 'p', String(x)]))),
       h('div', { className: 'kbmt-fld' }, h('span', { className: 'kbmt-lbl' }, kt('Images par seconde', 'Frames per second')), seg('fps', fps, setFps, [['30', '30'], ['60', '60']])),
-      h('p', { className: 'kbmt-hint' }, kt('Environ ' + est + ' Mo. Rien n\'est envoyé hors de cette machine.', 'About ' + est + ' MB. Nothing leaves this machine.'))) : null]
+      h('p', { className: 'kbmt-hint' }, kt('Jusqu\'à environ ' + est + '. Rien n\'est envoyé hors de cette machine.', 'Up to about ' + est + '. Nothing leaves this machine.'))) : null]
     foot = [h('button', { type: 'button', className: 'kbmt-btn', key: 'c', onClick: onClose }, kt('Annuler', 'Cancel')),
       h('button', { type: 'button', className: 'kbmt-btn pri', key: 'g', 'data-act': 'export-go', onClick: go }, fmt === 'mp4' ? kt('Exporter en MP4', 'Export MP4') : fmt === 'app' ? kt('Installer l\'app', 'Install the app') : kt('Enregistrer le fichier', 'Save the file'))]
   }
@@ -985,5 +994,5 @@ return {
   // `sidebarRightTabs` must be declared: ui-sidebar-right provides it, and without this `apply` could run before.
   inject: ['slots', 'sidebarRightTabs'],
   apply,
-  __test: { parseDoc, controlsOf, standaloneHTML, fmtT, slugOf, q, PALETTE },
+  __test: { parseDoc, controlsOf, standaloneHTML, fmtT, fmtBytes, slugOf, q, PALETTE },
 }
