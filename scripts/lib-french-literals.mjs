@@ -251,12 +251,15 @@ export const literals = (src) => {
         arrayLen: -1,
         arrayIndex: -1,
         arraySecondStr: false,
+        rowMixed: false,
       }
       if (e !== undefined && e.open === '[') {
         const items = arrayInfo.get(e.k) ?? []
         rec.arrayLen = items.length
         rec.arrayIndex = items.findIndex((it) => it.k === k)
         rec.arraySecondStr = items.length === 2 && items[0].isStr && items[1].isStr
+        // a row of languages ([en, fr, es, ar]): two to six bare strings of which at least one is not French
+        rec.rowMixed = items.length >= 2 && items.length <= 6 && items.every((it) => it.isStr) && items.some((it) => !isFrench(it.tok.value))
       }
       out.push(rec)
     }
@@ -341,7 +344,10 @@ export const pairHelpers = (src) => {
   const note = (name, params) => {
     const list = params.split(',').map((p) => p.trim().replace(/\s*=.*$/, ''))
     const at = list.findIndex((p, i) => /^(?:fr|francais)$/.test(p) && /^(?:en|anglais)$/.test(list[i + 1] ?? ''))
-    if (at >= 0) names.set(name, at)
+    if (at >= 0) { names.set(name, at); return }
+    // …or (en, fr): `const kbObSkill = (name, source, en, fr) =>`
+    const back = list.findIndex((p, i) => /^(?:en|anglais)$/.test(p) && /^(?:fr|francais)$/.test(list[i + 1] ?? ''))
+    if (back >= 0) names.set(name, back + 1)
   }
   for (const m of src.matchAll(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\(([^()]*)\)\s*=>/g)) note(m[1], m[2])
   for (const m of src.matchAll(/function\s+([A-Za-z_$][\w$]*)\s*\(([^()]*)\)/g)) note(m[1], m[2])
@@ -354,6 +360,7 @@ export const inDictionary = (lit, helpers) => {
   if (lit.labels.some((l) => FR_LABEL.test(l))) return true
   if (lit.callee !== null && helpers.has(lit.callee) && lit.argIndex === helpers.get(lit.callee)) return true
   if (lit.arrayLen === 2 && lit.arrayIndex === 0 && lit.arraySecondStr) return true
+  if (lit.rowMixed) return true
   return false
 }
 
