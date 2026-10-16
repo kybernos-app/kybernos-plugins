@@ -1007,9 +1007,9 @@ const marketplacePage = (state) => (before) => apiCall('/v1/marketplace' + (befo
  */
 const marketplaceRoute = async () => {
   const state = readState()
-  if (isConnected(state) !== true) return { ok: false, connected: false, items: [], motif: 'aucun compte lie a kybernos.app' }
+  if (isConnected(state) !== true) return { ok: false, connected: false, items: [], motif: 'aucun compte lie a kybernos.app', raison: 'not-linked' }
   const cat = await lireCatalogue(marketplacePage(state))
-  if (cat.echec === true) return { ok: false, connected: true, items: [], motif: cat.motif }
+  if (cat.echec === true) return { ok: false, connected: true, items: [], motif: cat.motif, raison: cat.raison }
   return Object.assign({ connected: true }, cat)
 }
 
@@ -1570,7 +1570,7 @@ const routeAbsent = (res) => res !== null && res !== undefined && res.status ===
 const CHATS_PUSH_MAX = 100
 
 const projetDuSlug = (slug) => {
-  // « --Users-miled-dyad-apps-kybernos-- » → « kybernos » ; « ~0020 » = espace.
+  // « --Users-me-dev-kybernos-- » → « kybernos » ; « ~0020 » = espace.
   const segments = String(slug || '').split('-').filter((s) => s !== '')
   const dernier = segments.length > 0 ? segments[segments.length - 1] : ''
   return dernier.split('~').join(' ').trim()

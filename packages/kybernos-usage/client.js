@@ -65,7 +65,7 @@ window.__ModuleLoader__.load({
         noCostTitle: ['Pas encore de coût', 'No cost yet'],
         noCostLine: ['Le coût apparaît après le premier échange avec une de vos clés.', 'The cost appears after the first exchange with one of your keys.'],
         signIn: ['Connectez un compte Kybernos pour voir les limites de votre plan.', 'Sign in to a Kybernos account to see your plan’s limits.'],
-        detailHint: ['Détail : Réglages › Kybernos › Usage', 'Detail: Settings › Kybernos › Usage'],
+        detailHint: ['Détail : Réglages › Usage', 'Detail: Settings › Usage'],
         window5h: ['Fenêtre glissante de {n} h', 'Rolling {n} h window'],
         windowDays: ['{n} jours', '{n} days'],
         windowDays1: ['{n} jour', '{n} day'],

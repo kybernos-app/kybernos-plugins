@@ -302,13 +302,13 @@ else console.log('  - skipped: no js-yaml of the DSH engine on this machine (the
 // ── 4. what a catalogue answer is made of (the page of the catalogue: the same before and after) ──
 console.log('the catalogue answer')
 {
-  const unreadable = { ok: false, items: [], motif: 'reponse illisible' }
+  const unreadable = { ok: false, items: [], motif: 'reponse illisible', raison: 'unreadable' }
   assert.deepEqual(normaliserCatalogue(null), unreadable)
   assert.deepEqual(normaliserCatalogue(3), unreadable)
-  assert.deepEqual(normaliserCatalogue({}), { ok: false, items: [], motif: 'aucun champ « items »' })
-  assert.deepEqual(normaliserCatalogue({ items: 5 }), { ok: false, items: [], motif: 'aucun champ « items »' })
-  assert.deepEqual(normaliserCatalogue({ items: [] }), { ok: false, items: [], motif: 'catalogue vide' })
-  assert.deepEqual(normaliserCatalogue({ items: [null, 1, {}, { slug: 'a' }, { name: 'n' }] }), { ok: false, items: [], motif: 'aucune entree exploitable (5 ecartee(s))' })
+  assert.deepEqual(normaliserCatalogue({}), { ok: false, items: [], motif: 'aucun champ « items »', raison: 'unreadable' })
+  assert.deepEqual(normaliserCatalogue({ items: 5 }), { ok: false, items: [], motif: 'aucun champ « items »', raison: 'unreadable' })
+  assert.deepEqual(normaliserCatalogue({ items: [] }), { ok: false, items: [], motif: 'catalogue vide', raison: 'empty' })
+  assert.deepEqual(normaliserCatalogue({ items: [null, 1, {}, { slug: 'a' }, { name: 'n' }] }), { ok: false, items: [], motif: 'aucune entree exploitable (5 ecartee(s))', raison: 'empty' })
   assert.deepEqual(normaliserCatalogue({ items: [{ slug: 'a', name: 'A', manifest: { price: 3, data_schemas: {}, source_kyber_id: 'x', agents: [null, { role_key: 'r' }] }, version: '4', published_at: 'd' }] }), {
     ok: true, motif: null,
     items: [{ id: 'a', slug: 'a', name: 'A', cat: '', pitch: '', glyph: '', color: '', version: 4, publishedAt: 'd', agents: [{ role_key: 'r' }], manifest: { agents: [null, { role_key: 'r' }] }, origine: 'kybernos.app' }],
@@ -401,6 +401,7 @@ const slugsOf = (r) => r.items.map((i) => i.slug)
     assert.equal(r.partiel, true, label)
     assert.equal(r.items.length, 200, label + ': the first page is kept, never an empty catalogue')
     assert.match(r.motif, /^catalogue incomplet : /, label)
+    assert.equal(r.raison, 'partial', label + ': the page says it in its own words, from the code')
     assert.match(r.motif, motif, label)
     assert.match(r.motif, /200 Agent Team\(s\) lue\(s\)$/, label)
     assert.equal(srv.calls.length, 2, label + ': nothing is asked after a failure')
@@ -411,21 +412,22 @@ const slugsOf = (r) => r.items.map((i) => i.slug)
 }
 {
   // the first page failing is the old « catalogue indisponible »: nothing to show
-  for (const [failure, motif] of [
-    [{ status: 500, body: { error: 'x' } }, 'catalogue indisponible (code 500)'],
-    [{ status: 401, body: { error: 'invalid session' } }, 'catalogue indisponible (code 401)'],
-    [{ status: 0, body: null, error: 'fetch failed' }, 'catalogue indisponible (code 0)'],
-    [{ status: 200, body: null }, 'catalogue indisponible (code 200)'],
-    [null, 'catalogue indisponible (code inconnu)'],
-    ['throw', 'catalogue injoignable : boom'],
+  // `raison` is the same reason as a code the page translates; « code 0 » is no HTTP answer at all, so it is a connection that is missing
+  for (const [failure, motif, raison] of [
+    [{ status: 500, body: { error: 'x' } }, 'catalogue indisponible (code 500)', 'unavailable'],
+    [{ status: 401, body: { error: 'invalid session' } }, 'catalogue indisponible (code 401)', 'unavailable'],
+    [{ status: 0, body: null, error: 'fetch failed' }, 'catalogue indisponible (code 0)', 'no-connection'],
+    [{ status: 200, body: null }, 'catalogue indisponible (code 200)', 'unavailable'],
+    [null, 'catalogue indisponible (code inconnu)', 'no-connection'],
+    ['throw', 'catalogue injoignable : boom', 'no-connection'],
   ]) {
     const r = await lireCatalogue(pager(makeItems(3), { fail: { 1: failure } }).read)
-    assert.deepEqual(r, { ok: false, items: [], motif, echec: true }, JSON.stringify(failure))
+    assert.deepEqual(r, { ok: false, items: [], motif, echec: true, raison }, JSON.stringify(failure))
   }
-  assert.deepEqual(await lireCatalogue(async () => ({ status: 200, body: {} })), { ok: false, items: [], motif: 'aucun champ « items »' })
-  assert.deepEqual(await lireCatalogue(async () => ({ status: 200, body: [] })), { ok: false, items: [], motif: 'aucun champ « items »' })
-  assert.deepEqual(await lireCatalogue(async () => ({ status: 200, body: { items: [] } })), { ok: false, items: [], motif: 'catalogue vide' })
-  assert.deepEqual(await lireCatalogue(async () => ({ status: 200, body: { items: [null, {}] } })), { ok: false, items: [], motif: 'aucune entree exploitable (2 ecartee(s))' })
+  assert.deepEqual(await lireCatalogue(async () => ({ status: 200, body: {} })), { ok: false, items: [], motif: 'aucun champ « items »', raison: 'unreadable' })
+  assert.deepEqual(await lireCatalogue(async () => ({ status: 200, body: [] })), { ok: false, items: [], motif: 'aucun champ « items »', raison: 'unreadable' })
+  assert.deepEqual(await lireCatalogue(async () => ({ status: 200, body: { items: [] } })), { ok: false, items: [], motif: 'catalogue vide', raison: 'empty' })
+  assert.deepEqual(await lireCatalogue(async () => ({ status: 200, body: { items: [null, {}] } })), { ok: false, items: [], motif: 'aucune entree exploitable (2 ecartee(s))', raison: 'empty' })
   ok('the first page failing, or not being a catalogue, says what it always said (same words as before the paging)')
 }
 {
@@ -525,6 +527,24 @@ console.log('the item of an install')
   assert.equal(normaliserItem({ slug: 'a' }), null)
   assert.equal(normaliserItem({ slug: 'a', name: 'A' }).origine, 'kybernos.app')
   ok('a slug that may go in a URL and a folder name: letters, digits, `.`, `_`, `-`; never a path, a dot-file or a separator')
+}
+
+// ── 6. what the person reads when the kybernos.app catalogue shows nothing ──
+// The host says WHY as a code (`raison`), the French `motif` is for the logs; the page owns the sentence, in the person's language
+// (audit 2026-10-16: « catalogue indisponible (code 0) » and « aucun compte lie a kybernos.app » stood next to English text).
+console.log('the reason the page shows')
+{
+  const page = readFileSync(new URL('../kybernos-plugin/client.js', import.meta.url), 'utf8')
+  const hostSrc = readFileSync(new URL('./marketplace-kyber.mjs', import.meta.url), 'utf8') + '\n' + readFileSync(new URL('./index.js', import.meta.url), 'utf8')
+  const codes = new Set([...hostSrc.matchAll(/raison: '([a-z-]+)'/g)].map((m) => m[1]).concat([...hostSrc.matchAll(/codePanne = '([a-z-]+)'/g)].map((m) => m[1]), [...hostSrc.matchAll(/'(no-connection|unavailable)' : '(no-connection|unavailable)'/g)].flatMap((m) => [m[1], m[2]])))
+  assert.ok(codes.size >= 6, 'the codes were read from the host: ' + [...codes].join(', '))
+  const without = [...codes].filter((c) => !new RegExp("'kbui\\.market\\.cloud\\.r\\." + c + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(page))
+  assert.deepEqual(without, [], 'every reason code has a French and an English sentence in the page')
+  const known = /\['not-linked', 'no-connection', 'unavailable', 'unreadable', 'empty', 'partial'\]/.exec(page)
+  assert.ok(known !== null && [...codes].every((c) => known[0].includes("'" + c + "'")), 'the page lists the codes it can say')
+  assert.ok(!/marketCloud\.motif/.test(page), 'the page never prints the host\'s French motif')
+  assert.ok(!/motif: kbf\(/.test(page) && !/motif: 'route \/kybernos-cloud\/marketplace/.test(page), 'the page makes up codes of its own, not French sentences, when the host cannot be read')
+  ok('every reason code of the marketplace has a sentence in the page (French and English), « code 0 » has no number, and the French motif is never shown')
 }
 
 console.log('\n' + pass + ' verifications OK')

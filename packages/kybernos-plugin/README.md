@@ -206,7 +206,7 @@ It is a single column in the look of dev.kybernos.app (light or dark, whichever 
   was checked to exist exactly once in its repository (an ambiguous name is refused by the route). A **team** is an id of
   `KB_MARKET_TEAMS` and goes through the same `kybers/create` as the Agent Teams marketplace (so it lands in the
   workspace root, like a marketplace install). The server's templates that the plugin does not have yet are listed greyed
-  (`soon`), never installed. The kit also opens on its own: **Settings → Kybernos Settings → Starter kit → Open**
+  (`soon`), never installed. The kit also opens on its own: **Settings › General › Kybernos Settings › Starter kit › Open**
   (`kybernos:onboarding` with `action: 'kit'`, the profession saved at the first run, another one can be looked at).
 - **The profession in memory:** with a Kybernos account, the recap writes ONE pinned `fact` memory (« Works as: … Prefers: … »,
   source `taught`) through `/kybernos-cloud/memory/add`; its id is kept in `onboarding.json` (`memoryId`) so a replay updates
