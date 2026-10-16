@@ -97,7 +97,7 @@ const c1 = testerCompatibilite({ cible: '0.1.6-alpha.2', compat })
 ok('0.1.6 dans la zone → compatible', c1.verdict === 'ok' && c1.bloquant === false, JSON.stringify(c1))
 const c2 = testerCompatibilite({ cible: '0.1.7-alpha.1', compat })
 ok('0.1.7 hors zone → refus bloquant', c2.verdict === 'refuse' && c2.bloquant === true, JSON.stringify(c2))
-ok('le refus s\'explique en français', /jamais|test|compat/i.test(c2.raison), c2.raison)
+ok('le refus s\'explique, en anglais (A6-18)', /never been tested|tested range/i.test(c2.raison) && !/jamais|testé/i.test(c2.raison), c2.raison)
 const c3 = testerCompatibilite({ cible: '0.1.7-alpha.1', compat, force: true })
 ok('--force passe le refus avec avertissement', c3.verdict === 'force' && c3.bloquant === false, JSON.stringify(c3))
 const c4 = testerCompatibilite({ cible: '0.1.5-rc.9', compat })
@@ -124,7 +124,7 @@ const fsDiverge = { ...fsFixe, lire: (p) => {
 const execV17 = execFixe({ '--version': { code: 0, sortie: '0.1.7-alpha.1\n' } })
 const doctorDiverge = await etatDoctor({ fs: fsDiverge, exec: execV17, profilDir: PROFIL, repoDir: R, patches: [{ id: 'p1', script: 'patch-x.mjs', cible: '@deepseek-ai/dsh-api-session-controller' }], compatChemin: join(R, 'dsh-compat.json') })
 ok('doctor : global 0.1.7 vs pins 0.1.6 → orange', doctorDiverge.couleur === 'orange' && doctorDiverge.alignePins === false, doctorDiverge.problemes.join(' | '))
-ok('doctor : le problème est dit en français', doctorDiverge.problemes.some((p) => /profil|épingl/.test(p)), doctorDiverge.problemes[0])
+ok('doctor : le problème est dit en anglais (A6-18)', doctorDiverge.problemes.some((p) => /profile pins/.test(p)) && !doctorDiverge.problemes.some((p) => /épingl|profil /.test(p)), doctorDiverge.problemes[0])
 
 // lien manquant + bundle manquant
 const fsLienManque = { ...fsFixe, lire: (p) => {
@@ -150,9 +150,9 @@ ecrits = []
 const photo = await photographier({ fs: fsFixe, profilDir: PROFIL, photosDir: PHOTOS, horodatage: '20260922-1200', versions: { global: '0.1.6-alpha.2', plugin: 'abc1234' }, exec: execV })
 ok('photo : tout est dans le dossier horodaté', photo.dossier.startsWith(PHOTOS) && photo.dossier.includes('20260922-1200'))
 const chemins = ecrits.map((e) => e.p)
-ok('photo : contient package.json, lock, cordis, LISEZ-MOI, versions', ['package.json', 'pnpm-lock.yaml', 'cordis.patch.yml', 'LISEZ-MOI.txt', 'versions.txt'].every((f) => chemins.some((p) => p.endsWith(f))), chemins.join(','))
-const lisez = ecrits.find((e) => e.p.endsWith('LISEZ-MOI.txt'))
-ok('photo : le LISEZ-MOI dit comment revenir en arrière', /rollback|revenir/i.test(lisez.c))
+ok('photo : contient package.json, lock, cordis, README, versions', ['package.json', 'pnpm-lock.yaml', 'cordis.patch.yml', 'README.txt', 'versions.txt'].every((f) => chemins.some((p) => p.endsWith(f))), chemins.join(','))
+const lisez = ecrits.find((e) => e.p.endsWith('README.txt'))
+ok('photo : le README dit comment revenir en arrière, en anglais', /rollback/.test(lisez.c) && /To come back to this state/.test(lisez.c) && !/Pour revenir|Photo de sécurité/.test(lisez.c))
 
 // restauration : la photo relit ses fichiers et les recopie dans le profil
 ecrits = []

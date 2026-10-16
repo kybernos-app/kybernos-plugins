@@ -119,14 +119,14 @@ try {
   mkdirSync(join(HOME, 'kybernos'), { recursive: true })
   writeFileSync(join(HOME, 'kybernos', 'satellites-actives.json'), JSON.stringify({ actives: sansLanguage, maj: 'legacy' }))   // no `desactives` key: written by an older robot
   r = cliSat('--liste')
-  ok('legacy file: every new satellite reads as ACTIF', nouveaux.every((n) => new RegExp(n.replace(/[/@]/g, '.') + '\\s+tier \\d+\\s+ACTIF').test(r.out)), r.out.split('\n').filter((l) => /inactif/.test(l)).join(' | '))
-  ok('legacy file: a satellite the user left out stays inactif', /kybernos-language\s+tier \d+\s+inactif/.test(r.out), r.out)
+  ok('legacy file: every new satellite reads as ACTIVE (the list is in English, A6-18)', nouveaux.every((n) => new RegExp(n.replace(/[/@]/g, '.') + '\\s+tier \\d+\\s+ACTIVE').test(r.out)), r.out.split('\n').filter((l) => /inactive/.test(l)).join(' | '))
+  ok('legacy file: a satellite the user left out stays inactive', /kybernos-language\s+tier \d+\s+inactive/.test(r.out), r.out)
   r = cliSat('--desactiver', 'kybernos-slides')
   ok('deactivating a default-on satellite works', r.code === 0, r.out)
   const brutApres = JSON.parse(readFileSync(join(HOME, 'kybernos', 'satellites-actives.json'), 'utf8'))
   ok('it is recorded in `desactives` (else the next read would switch it back on)', Array.isArray(brutApres.desactives) && brutApres.desactives.includes('@local/kybernos-slides'), JSON.stringify(brutApres.desactives))
   r = cliSat('--liste')
-  ok('slides is inactif, the other new satellites are still ACTIF', /kybernos-slides\s+tier \d+\s+inactif/.test(r.out) && /kybernos-flow\s+tier \d+\s+ACTIF/.test(r.out), r.out)
+  ok('slides is inactive, the other new satellites are still ACTIVE', /kybernos-slides\s+tier \d+\s+inactive/.test(r.out) && /kybernos-flow\s+tier \d+\s+ACTIVE/.test(r.out), r.out)
   ok('and slides is out of the profile while flow is in', !bundles().includes('@local/kybernos-slides') && bundles().includes('@local/kybernos-flow'), bundles().join())
   r = cli('on'); const avantSafe = etat().safe.activesAvant
   ok('safe mode keeps the exact list (flow in, slides out)', avantSafe.includes('@local/kybernos-flow') && !avantSafe.includes('@local/kybernos-slides'), JSON.stringify(avantSafe))

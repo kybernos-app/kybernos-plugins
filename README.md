@@ -12,11 +12,14 @@ Download the archive of your system from the [latest release](https://github.com
 ```sh
 ./kybernos-install --dry   # shows what would change, touches nothing
 ./kybernos-install         # checks the archive, installs DSH if missing, links the bundles, restores a snapshot if DSH fails to restart
-dsh web --no-open --port 3080   # then open http://127.0.0.1:3080/
+dsh web --port 3080        # opens your browser, already signed in
 ```
 
+No browser opened (a server, a window you closed)? Open the address that `dsh web` prints: it looks like `http://127.0.0.1:3080/?token=…`
+and carries your sign-in. The bare `http://127.0.0.1:3080/` answers 401 on purpose.
+
 Needs Node.js 22 or later. The first run opens a few welcome pages (your profession, display mode, which models to use, a
-starter kit of skills and agent teams for your profession); each can be skipped and replayed from Settings.
+starter kit of skills and agent teams for your profession); each can be skipped and replayed from Settings. What leaves your machine, and the one switch for it: [`docs/privacy.md`](docs/privacy.md).
 The full guide (Windows, update, rollback, safe mode, the welcome pages) is [`docs/install.md`](docs/install.md).
 
 ## Install on a server or with Docker

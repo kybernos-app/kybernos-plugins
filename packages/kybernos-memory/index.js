@@ -20,10 +20,11 @@
 
 import { chmodSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { LESSON_MAX_CHARS, activeKyber, addLesson, deleteLesson, dshHome, isKyberId, listKybers, listLessons, markUsed, readLessons, searchLessons, updateLesson, restoreLessons, retouchLesson, lessonId, parseLessonId } from './lessons-store.mjs'
+import { LESSONS_NEAR_COUNT, LESSON_MAX_CHARS, activeKyber, addLesson, deleteLesson, dshHome, isKyberId, listKybers, listLessons, markUsed, readLessons, searchLessons, updateLesson, restoreLessons, retouchLesson, lessonId, parseLessonId } from './lessons-store.mjs'
 import { findDuplicateGroups, unclearPairs } from './dedupe.mjs'
 import { rank } from './relevance.mjs'
-import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyChoice, brainGroups } from './tidy.mjs'
+import { writeGuard } from './session-guard.mjs'
+import { TIDY_SCHEDULES, normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyChoice, brainGroups } from './tidy.mjs'
 
 export const name = 'kybernos-memory'
 
@@ -501,6 +502,29 @@ const liveLessons = () => {
   return live
 }
 
+/** How many lessons the fullest agent team holds (the cap is per agent team, not a total). */
+const fullestTeam = (live) => {
+  const counts = new Map()
+  for (const { kyber } of live.values()) counts.set(kyber, (counts.get(kyber) || 0) + 1)
+  return Math.max(0, ...counts.values())
+}
+
+/**
+ * Is a look due because an agent team nears its cap (WP-10)? Not before the team holds LESSONS_NEAR_COUNT lessons; then once when
+ * it has grown since the last run (`last.peak`, the size of the fullest team after that run) and otherwise once a day, so a team
+ * that stays near the cap is not scanned every ten minutes. « Run automatically: Off » is respected: the person said never by
+ * themselves. What the run may merge is still the mode's business (`pickAuto`).
+ */
+export const capDue = ({ schedule, peak, last, now, retryAt }) => {
+  if (schedule === 'off' || TIDY_SCHEDULES.indexOf(schedule) < 0) return false
+  if (typeof retryAt === 'number' && now < retryAt) return false
+  if (!(peak >= LESSONS_NEAR_COUNT)) return false
+  const lastAt = last === null || last === undefined ? NaN : Date.parse(last.at)
+  if (!Number.isFinite(lastAt)) return true
+  const seen = Number.isFinite(last.peak) ? last.peak : 0
+  return peak > seen || now - lastAt >= 86400000
+}
+
 const tidyView = () => {
   const t = tidyState()
   const a = forgetOldArchive()
@@ -568,7 +592,7 @@ const tidyRun = async (trigger, now = Date.now()) => {
       }
     }
     const after = tidyState()
-    after.last = { at: new Date(now).toISOString(), trigger, total: items.length - auto.removed, found: local.length + suggestions.length, autoGroups: auto.groups, autoRemoved: auto.removed, brainAsked: brain.asked, brainError: brain.error, ok: true }
+    after.last = { at: new Date(now).toISOString(), trigger, total: items.length - auto.removed, peak: fullestTeam(liveLessons()), found: local.length + suggestions.length, autoGroups: auto.groups, autoRemoved: auto.removed, brainAsked: brain.asked, brainError: brain.error, ok: true }
     writeTidy(after)
     return { ...tidyView(), auto, brain }
   } finally {
@@ -591,13 +615,16 @@ export const tidyTick = async (now = Date.now()) => {
   try {
     if (readSettings().lessons !== true) return { ran: false, why: 'lecons_desactivees' }
     const t = tidyState()
-    const count = liveLessons().size
+    const live = liveLessons()
+    const count = live.size
     const due = tidyDue({ schedule: t.settings.schedule, last: t.last, now, total: count > 0 ? count : null, bootDone: tidyFlags.bootDone, retryAt: tidyFlags.retryAt })
     if (t.settings.schedule === 'start') tidyFlags.bootDone = true
-    if (!due) return { ran: false, why: 'pas_echu' }
-    const res = await tidyRun('schedule', now)
+    // the week (or day, or launch) is not over, but an agent team is nearly full: look now, before the cap does the choosing
+    const trigger = due ? 'schedule' : (capDue({ schedule: t.settings.schedule, peak: fullestTeam(live), last: t.last, now, retryAt: tidyFlags.retryAt }) ? 'cap' : null)
+    if (trigger === null) return { ran: false, why: 'pas_echu' }
+    const res = await tidyRun(trigger, now)
     if (res.ok !== true) { tidyFlags.retryAt = now + 3600000; return { ran: false, why: res.error } }
-    return { ran: true, auto: res.auto }
+    return { ran: true, trigger, auto: res.auto }
   } catch (e) {
     tidyFlags.retryAt = now + 3600000
     return { ran: false, why: 'erreur' }
@@ -768,20 +795,23 @@ const settingsSetRoute = async (req, body) => {
 
 // One path per route: the web server indexes by path only, so a GET and a POST can
 // never share one (kybernos-cloud's host suite caught that once).
+// `session: true` is a route that WRITES: besides the same-origin rule it needs DSH's signed browser-session cookie (session-guard.mjs, the terminal's
+// rule). Plugin routes are served before DSH's own login and an Origin header is forgeable by any local program, so before this a `curl -X POST` with
+// no header at all deleted a lesson. Every caller is the Memory page (a browser): the agent's tools call the store in-process, not these routes.
 export const ROUTES = [
   { path: '/kybernos-memory/lessons', method: 'GET', guarded: true, run: lessonsListRoute },
   { path: '/kybernos-memory/kybers', method: 'GET', guarded: true, run: lessonsKybersRoute },
-  { path: '/kybernos-memory/lessons/add', method: 'POST', guarded: true, body: true, run: lessonsAddRoute },
-  { path: '/kybernos-memory/lessons/update', method: 'POST', guarded: true, body: true, run: lessonsUpdateRoute },
-  { path: '/kybernos-memory/lessons/delete', method: 'POST', guarded: true, body: true, run: lessonsDeleteRoute },
+  { path: '/kybernos-memory/lessons/add', method: 'POST', guarded: true, session: true, body: true, run: lessonsAddRoute },
+  { path: '/kybernos-memory/lessons/update', method: 'POST', guarded: true, session: true, body: true, run: lessonsUpdateRoute },
+  { path: '/kybernos-memory/lessons/delete', method: 'POST', guarded: true, session: true, body: true, run: lessonsDeleteRoute },
   { path: '/kybernos-memory/tidy', method: 'GET', guarded: true, run: tidyRoute },
-  { path: '/kybernos-memory/tidy/scan', method: 'POST', guarded: true, run: tidyScanRoute },
-  { path: '/kybernos-memory/tidy/apply', method: 'POST', guarded: true, body: true, cap: 65536, run: tidyApplyRoute },
-  { path: '/kybernos-memory/tidy/dismiss', method: 'POST', guarded: true, body: true, cap: 16384, run: tidyDismissRoute },
-  { path: '/kybernos-memory/tidy/undo', method: 'POST', guarded: true, body: true, cap: 4096, run: tidyUndoRoute },
-  { path: '/kybernos-memory/tidy/settings', method: 'POST', guarded: true, body: true, cap: 4096, run: tidySettingsRoute },
+  { path: '/kybernos-memory/tidy/scan', method: 'POST', guarded: true, session: true, run: tidyScanRoute },
+  { path: '/kybernos-memory/tidy/apply', method: 'POST', guarded: true, session: true, body: true, cap: 65536, run: tidyApplyRoute },
+  { path: '/kybernos-memory/tidy/dismiss', method: 'POST', guarded: true, session: true, body: true, cap: 16384, run: tidyDismissRoute },
+  { path: '/kybernos-memory/tidy/undo', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: tidyUndoRoute },
+  { path: '/kybernos-memory/tidy/settings', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: tidySettingsRoute },
   { path: '/kybernos-memory/settings', method: 'GET', guarded: true, run: settingsRoute },
-  { path: '/kybernos-memory/settings/set', method: 'POST', guarded: true, body: true, run: settingsSetRoute },
+  { path: '/kybernos-memory/settings/set', method: 'POST', guarded: true, session: true, body: true, run: settingsSetRoute },
 ]
 
 const mountRoutes = (ctx, webServer) => {
@@ -790,6 +820,10 @@ const mountRoutes = (ctx, webServer) => {
     const handler = async (req, res) => {
       if (req.method !== route.method) return sendJson(res, 405, { ok: false, error: route.method + ' expected' })
       if (route.guarded === true && sameOrigin(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+      if (route.session === true) {
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
+      }
       try {
         const body = route.body === true ? await readJsonBody(req, route.cap) : null
         sendJson(res, 200, await route.run(req, body))

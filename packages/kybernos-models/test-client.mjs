@@ -640,5 +640,20 @@ ok('the enable switch of the drawer reads as the state it is in: « Enabled », 
 ok('...a switch is named by what it controls, never by the action it would do', has("'aria-label': m('kb.pv.sw.aria', { slug: route })") && !has("title: why, 'aria-label': why"))
 ok('Escape closes the confirmation and not the drawer behind it (window capture, ahead of the drawer\'s own document capture)', has('const confirming = ui.dlg !== null') && has("window.addEventListener('keydown', key, true)") && has("setUi((u) => ({ ...u, dlg: null, typed: '' }))"))
 
+console.log('\n── provider logos never ask a third party (A6-13) ──')
+{
+  const lBegin = src.indexOf('// KB-LOGO-PURE-BEGIN')
+  const lEnd = src.indexOf('// KB-LOGO-PURE-END')
+  ok('the logo block is delimited', lBegin > 0 && lEnd > lBegin)
+  const { kbLogoLocalId } = new Function(src.slice(lBegin, lEnd) + '\nreturn { kbLogoLocalId }')()
+  const cat = [{ id: 'google', logo: true }, { id: 'alibaba', logo: true }, { id: 'ollama-cloud', logo: true }, { id: 'anthropic', logo: true }, { id: 'acme', logo: false }, { id: 'mistral', logo: 'mistralai' }]
+  ok('a slug that is a local logo id keeps it', kbLogoLocalId('anthropic', cat) === 'anthropic')
+  ok('simple-icons names map to the logos the bundle ships (gemini → google, qwen → alibaba, ollama → ollama-cloud)', ['googlegemini', 'qwen', 'ollama'].map((x) => kbLogoLocalId(x, cat)).join() === 'google,alibaba,ollama-cloud')
+  ok('a provider without a shipped logo gets none (its initial is shown, nothing is fetched)', kbLogoLocalId('acme', cat) === null && kbLogoLocalId('unknown', cat) === null && kbLogoLocalId('mistralai', cat) === null)
+  ok('only a catalogue entry that says logo:true counts (the short built-in list carries slugs, not files)', kbLogoLocalId('mistral', cat) === null)
+  ok('a missing catalogue or a hostile slug is no logo, not an error', kbLogoLocalId('google', null) === null && kbLogoLocalId('__proto__', cat) === null && kbLogoLocalId('constructor', cat) === null && kbLogoLocalId(undefined, cat) === null)
+  ok('no third-party image host is left in the page', !/cdn\.simpleicons\.org/.test(src.replace(/\/\/[^\n]*/g, '')), (src.match(/cdn\.simpleicons\.org[^\n]{0,40}/) || [])[0])
+}
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed')
 process.exit(fail === 0 ? 0 : 1)

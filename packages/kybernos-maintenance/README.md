@@ -21,7 +21,7 @@ stored state and tests keep working; only the visible label and title changed.
   earlier updates, the update procedure, the plugin contract, the per-version compatibility matrix and the
   engine surfaces audit.
 
-## Host route (read-only)
+## Host routes
 
 `GET /kybernos-maintenance/state` (`index.js`). Other methods get 405; an `Origin` header that is not the
 local host and port gets 403.
@@ -29,6 +29,16 @@ It measures, and never writes: `dsh --version`, `git rev-parse --short HEAD`, `n
 `npm view @deepseek-ai/dsh version dist-tags` (cached for 10 minutes). The answer carries `global` (engine),
 `plugin` (git hash), `version` (shipped semver or null), `problemes`, `niveau`, `compat`, `maj`, `distant`,
 `versions`, `surfaces`, `serveur`, `journal`. Sentences are French; the client translates them.
+
+`GET /kybernos-maintenance/update` is the update notice: the Kybernos version published on GitHub (cached 1 h) and the DSH
+engine measure above. The page asks it ~15 s after it opens, every 6 h and when the tab comes back (`?auto=1`), and the person
+asks it with **Check now** (no `auto`).
+
+`GET|POST /kybernos-maintenance/settings` is the one switch of this bundle, **Check for updates automatically** (card on the
+About page, ON by default): `{ autoCheck: boolean }` in `$DSH_HOME/kybernos/update-check.json`, written atomically, nothing else.
+A POST needs the browser's `Origin`. OFF, a scheduled check (`auto=1`) answers `{ ok: true, desactive: true }` without asking
+anybody and the page then skips the Suite's catalogue refresh too; **Check now** and the Suite's own button always ask. What leaves
+the machine, and when: [`docs/privacy.md`](../../docs/privacy.md).
 
 ## Files it reads
 

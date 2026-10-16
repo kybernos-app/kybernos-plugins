@@ -39,7 +39,7 @@ its own microVMs without touching the machine. Left: the composer selector.
   (`~/.dsh/.credentials.yaml`, 0600) under the reference
   `E2B_API_KEY` — never in the client, never logged, never returned by
   a route (only a `keyPresent` boolean comes out).
-- Every route is same-origin (`guarded: true`), never cross-origin.
+- Every route is same-origin (`guarded: true`), never cross-origin. The routes that write or spend (the key, start, exec, write, stop, pause, resume, the environment switch) also need DSH's signed session cookie (`session-guard.mjs`, `test-write-guard.mjs`): an Origin header is forgeable by any local program, and these run on the person's key and bill.
 - Default cap: **4 simultaneous sandboxes**, default TTL **15 min**
   (max 2 h, deadline adjustable per sandbox). The TTL sweeper stops (kills)
   any sandbox whose deadline has passed, even if the process restarted.

@@ -1,29 +1,29 @@
 @echo off
-rem ── Kybernos : installation (Windows) ─────────────────────────────────────
-rem   Ouvre une console DANS le dossier de l'archive extraite, puis :
+rem -- Kybernos: installation (Windows) -------------------------------------
+rem   Open a console IN the folder of the extracted archive, then:
 rem     kybernos-install
 rem     kybernos-install --dry
 setlocal
 set "ICI=%~dp0"
 if "%ICI:~-1%"=="\" set "ICI=%ICI:~0,-1%"
-rem  %~dp0 finit par un antislash : `--source "%ICI%"` deviendrait `"...\"` et la
-rem  quote fermante serait avalee par l'antislash. Mesure du 23/09/2026 sur un
-rem  coureur Windows neuf : « source introuvable : D:\a\_temp\kb-ci-windows" ».
+rem  %~dp0 ends with a backslash: `--source "%ICI%"` would become `"...\"` and the
+rem  closing quote would be swallowed by the backslash. Measured on 23/09/2026 on a
+rem  new Windows runner: "source not found: D:\a\_temp\kb-ci-windows"".
 
 where node >nul 2>&1
 if errorlevel 1 (
-  echo Node.js est absent. Kybernos tourne sur Node :
-  echo   https://nodejs.org/fr/download
+  echo Node.js is missing. Kybernos runs on Node:
+  echo   https://nodejs.org/en/download
   exit /b 1
 )
 
-rem Pas de version minimale inventee : DSH n'en declare aucune (engines absent).
-rem On eprouve ce dont le robot a besoin — les modules ESM — et on affiche la version.
+rem No invented minimum version: DSH declares none (engines absent).
+rem We test what the robot needs -- ES modules -- and display the version.
 for /f "delims=" %%v in ('node --version 2^>nul') do set "VNOEUD=%%v"
 node --input-type=module -e "await import('node:child_process')" >nul 2>&1
 if errorlevel 1 (
-  echo Node %VNOEUD% ne sait pas executer le robot ^(modules ESM indisponibles^).
-  echo Installe une version recente : https://nodejs.org/fr/download
+  echo Node %VNOEUD% cannot run the robot ^(ES modules unavailable^).
+  echo Install a recent version: https://nodejs.org/en/download
   exit /b 1
 )
 echo Node %VNOEUD%

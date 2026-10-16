@@ -7,8 +7,18 @@ page reaches it through that plugin's routes; the account token never leaves the
 
 ## The page
 
-Settings → **Memory & Lessons** (in the Kybernos group, after Auto Routing). It opens straight on the data; the switches live
-one click away.
+Settings → **Memory & Lessons** (in the Kybernos group, after Auto Routing). It opens as **« Memory looks after itself »**: the
+defaults below are already on, so the first screen is one line of status and the data, and every switch is folded under one
+**Customize** button.
+
+- **The status line** (under the title): what is on and when it last tidied itself, e.g. « Memories and lessons are on · Last tidied
+  3 days ago » (or « Tidies itself every week » before the first run). It never reads « Off » while something works: without an
+  account the lessons still do (« Lessons are on and stay on this computer · Memories need your account »). The only word « off » on the
+  page is what the person switched off themselves (« Memory is off » when both halves are). `selfStatus` in `client.js` is the pure
+  function (tested), the line is empty until the status, the switches and the tidy-up state are read, so it never flashes a wrong word.
+- **The one step: the account.** With no account the status line carries a **Connect your account** button (it opens the cloud card
+  through the `kybernos-cloud:open` window event, the same one the Models page sends) and the Memories tab says why instead of
+  drawing a toolbar nobody can use. Nothing else is asked.
 
 - **Memories** (account): list, search by words, filters (Show: all / pinned / sent to the model ·
   Source: auto-capture / agent / you / sync · Added: last minute / hour / today / 7 days), pages of 25,
@@ -17,7 +27,7 @@ one click away.
   pages, edit (text, tags) and delete — a deleted lesson goes to the agent team's `lessons.archive.jsonl`.
 - **Team lessons** (Lessons learned → *Team*, on a Team workspace only; locked with the reason otherwise): the lessons an owner or
   admin of the workspace approved, which every agent of the team reads. See « Team lessons » below.
-- **Options**: a classic settings page (breadcrumb + rows like General's) with the two switch groups —
+- **Customize**: a classic settings page (breadcrumb + rows like General's) with the two switch groups —
   Memories / Memory system context / Automatic capture / Search by meaning, and Lessons learned /
   Lessons system context — each dependent row locks with the reason when its parent is off. The last
   capture's outcome is shown.
@@ -27,7 +37,7 @@ one click away.
   It cannot link words that share no letters ("voiture" / "bagnole") nor French and English: that is
   what search by meaning is for. The ranking is `packages/kybernos-cloud/relevance.mjs` (pure, 3 ms over
   2000 memories).
-- **Pick by relevance** (Options, on by default, local): besides the pinned and the newest memories, the
+- **Pick by relevance** (Customize, on by default, local): besides the pinned and the newest memories, the
   prompt also carries the memories that clearly match what the user just asked, even old ones — on a
   640-memory account the one about Docker on this Mac is nine days old and the base selection never sends it.
   The question is the human's latest message of the session (`agent/inbox/claimed`, `source.kind: 'user'`),
@@ -37,7 +47,7 @@ one click away.
   memories match equally). It costs nothing to the history: the engine appends a new « runtime context »
   snapshot whenever the text changes, so the pick is made once per message, kept while the topic is the
   same, and not changed again for 3 turns. The page's counts and « Sent » chips stay the base selection.
-- **Pick by relevance, for the lessons** (Options → Lessons learned, on by default, local): an agent team holds up to 50
+- **Pick by relevance, for the lessons** (Customize → Lessons learned, on by default, local): an agent team holds up to 50
   lessons and the block fits about a third of them, so the base selection (most used, then newest) never sends an old,
   never-used lesson. The same picker as the memories' ranks the lessons of the chat's agent team and `default` against the human's
   latest message (`agent/inbox/claimed`, `source.kind: 'user'`; tags count as text) and sends the clear matches first — at most
@@ -52,8 +62,8 @@ one click away.
   never a memory); then « Index my memories » embeds them in batches and the rows show « NN% match ».
   When it cannot be done — switch off, plan too low (the embeddings model needs the Solo plan on the
   dev tier: `model-not-available-plan`), a server without pgvector or that predates the routes, no
-  credits — the page shows the relevance matches and says why, with a link to Options.
-- **Tidy up** (Options → *Clean up now*, the schedule, then a banner on the page): finds near-duplicates among the
+  credits — the page shows the relevance matches and says why, with a link to Customize.
+- **Tidy up** (Customize → *Clean up now*, the schedule, then a banner on the page): finds near-duplicates among the
   memories and among the lessons, on this machine. Suggestions are groups (« Merge 3 into 1 », « Remove the outdated
   one »): the most complete item stays, or the one you pick, optionally with edited text; pinned memories are never
   removed; lessons only meet inside their own agent team. **A group that is 80 % alike or more is merged by itself**
@@ -64,7 +74,8 @@ one click away.
   inherits the tags and the uses of the others. A negation (« do not X » vs « X ») or another number (« port 3000 »
   vs « 3080 ») is never « the same fact », whatever the word overlap.
   *Run automatically* (Off / When DSH starts / Daily / Weekly (default) / Every 50 new) starts a run while DSH runs:
-  a look, then what the mode allows; a failed run waits an hour. *Study model judges the unclear cases* (off by
+  a look, then what the mode allows; a failed run waits an hour. **An agent team that nears its cap is looked at too, whatever
+  the schedule says** (see « The cap » below), unless the schedule is Off. *Study model judges the unclear cases* (off by
   default; uses the Study model of Kybernos Settings, which is picked automatically unless you chose one or None, and the
   row says which one): the pairs that look alike but are not duplicates are sent to
   it — their text only, never the whole list — and it answers « same » (with a merged wording), « replaces » (the
@@ -78,9 +89,9 @@ one click away.
   The page only draws; the positions come from the cloud host (`GET /kybernos-cloud/memory/meaning-map`, same-origin
   guarded), which works them out on this machine from the embedding vectors (`packages/kybernos-cloud/mapproj.mjs`: the first two
   principal components, dots spread so none sits on another, k-means for the clusters, deterministic: the same memories
-  give the same picture). It needs **Search by meaning** (Options): the vectors are the same embeddings, so turning the
+  give the same picture). It needs **Search by meaning** (Customize): the vectors are the same embeddings, so turning the
   switch on is what lets the text of the memories drawn go to the Kybernos embedding model; with it off, or on a plan
-  without the embeddings model, the Map view says so in words and offers Options or the list. The vectors are kept in a
+  without the embeddings model, the Map view says so in words and offers Customize or the list. The vectors are kept in a
   private side file next to the cloud state (`kybernos-cloud-memory-vectors.json`: int8 + a scale, keyed by a hash of the
   text, no memory text, at most 800, dropped when the memory goes), filled by the indexing too, so opening the map is usually
   free and an edited memory costs one embedding. No server route is involved. The choice List | Map is kept in the
@@ -110,7 +121,7 @@ every rewrite is atomic, and a deletion goes to the archive too.
 | **Prompt** | chunk `kybernos:lessons` (order 135, ≤ 2 400 chars **frame included**): the lessons of the agent team the session runs (`~/.dsh/kybers/.active/<sessionId>`) get 70 % of the budget, `default` the rest. Most used first, then newest; a lesson too long for what is left is skipped. Never the lessons of another agent team. The chunk says when lessons were left out. |
 | **Tools** | `lesson_write` (text, kyber, tags — validated, deduplicated) and `lesson_search`. A lesson that a search returns counts as used: it is the only use this bundle can see, and the signal the cap relies on (1 lesson in 212 had `uses > 0` before). |
 | **Switches** | `lessons` (agents may save and look lessons up), `context` (lessons are injected) and `relevant` (the lessons that match the latest message go first), all on by default, in `kybernos-memory.json` (0600). `lessons = off` injects one line telling agents not to record lessons — a global rule or the `memory.cjs` habit would otherwise go on. A patch with an unknown key or a non-boolean applies nothing. |
-| **Routes** | `GET /kybernos-memory/lessons` (limit, offset, kyber, used, added, q), `GET /kybernos-memory/kybers`, `POST …/lessons/add`, `…/lessons/update`, `…/lessons/delete`, `GET …/settings`, `POST …/settings/set`. Same-origin only, one path per route (the web server indexes by path). |
+| **Routes** | `GET /kybernos-memory/lessons` (limit, offset, kyber, used, added, q), `GET /kybernos-memory/kybers`, `POST …/lessons/add`, `…/lessons/update`, `…/lessons/delete`, `GET …/settings`, `POST …/settings/set`. Same-origin only, one path per route (the web server indexes by path); every POST also needs DSH's signed session cookie (`session-guard.mjs`, `test-write-guard.mjs`). |
 
 Agent Team ids and session ids end up in paths: only plain names pass (`^[A-Za-z0-9][A-Za-z0-9._-]*$`,
 no `..`), and a typo never creates an agent team.
@@ -174,7 +185,21 @@ removal, and the answer only ever produces suggestions (`by: 'brain'`) for the r
 Both hosts: `apply` needs `confirm: true`, checks every group against what is stored *now* (a changed or vanished item
 makes its group `a_change`, never a guess), writes the archive before the first delete and refuses a request that
 removes more than 50 items. `dismiss` remembers a pair the user kept apart (`restore: true` takes it back).
-Same-origin guard, POST for everything that writes.
+Same-origin guard, POST for everything that writes, and DSH's session cookie on every POST.
+
+## The cap: tidied before it bites
+
+An agent team holds 50 lessons at most; at the 51st the least useful one (fewest uses, then oldest) leaves into
+`lessons.archive.jsonl`, and a tidy-up Undo refuses (`kyber_plein`) when it would pass 50. So the tidy-up does not wait for the cap:
+**from 40 lessons in one agent team** (`LESSONS_NEAR_COUNT`, per team, not the total) the scheduler's ten-minute look (`tidyTick`)
+starts a run with `trigger: 'cap'`, even when the week (or the day) is not over. It then follows the person's settings like any other
+run: in « Merge close matches by itself » it merges what is 80 % alike, in « Ask me first » it only proposes (the banner on the page),
+and with *Run automatically: Off*, or Lessons switched off, it does nothing. It is not repeated every ten minutes: once when the
+fullest team has grown since the last run (`last.peak`, the size of the fullest team after that run), otherwise once a day while a
+team stays near the cap. A run that was started this way and merged something is announced on the page like a scheduled one, with its
+Undo. The Lessons tab also says, in one note, which team is near, how full it is and what happens at 50 (the archive, never a delete).
+What the tidy-up cannot do is invent room: 45 lessons that are all different stay 45, and the 51st still pushes the least useful one
+into the archive.
 
 ## Team lessons
 
@@ -184,7 +209,7 @@ from the platform's own lessons (server-side, global).
 
 - **Who may use it**: a connected account whose plan starts with `team` and whose active workspace is in its list. The plugin
   decides this (`packages/kybernos-cloud/team-lessons.mjs`, `teamWorkspace`); the server only enforces membership. Anyone else sees the
-  Team scope and the two Options rows locked, with the reason (« Team plan », « Team workspace », « Connect a Kybernos Cloud account »).
+  Team scope and the two Customize rows locked, with the reason (« Team plan », « Team workspace », « Connect a Kybernos Cloud account »).
 - **Propose, approve**: a member proposes a lesson (the *Propose a lesson* button, or *Propose to team* on a personal lesson, which
   fills the sheet). Until an owner or admin decides, nobody else can read it — the proposer sees it under *My proposals*, « Waiting for
   review », and a rejection comes back with its reason. An owner or admin sees a banner with the number waiting and a review queue
@@ -198,7 +223,7 @@ from the platform's own lessons (server-side, global).
   and a failed read keeps the last good list (it is tried again a minute later), so a network error never empties the block or stops a turn;
   only a workspace that no longer exists empties it. It is off when *Use your
   team's lessons* is off, when Lessons system context is off, or when the account is not on a Team workspace.
-- **Options**: *Use your team's lessons* (`team_use`) and *Share lessons with your team* (`team_share`, hides the Propose entries when
+- **Customize**: *Use your team's lessons* (`team_use`) and *Share lessons with your team* (`team_share`, hides the Propose entries when
   off). Both are kept by the cloud plugin next to the memory switches (`GET /kybernos-cloud/memory/settings`).
 - **The Memory pill** (Sessions) adds « From your team: 3 lessons sent (1 that match your latest message) » to its Lessons tab.
 - **The server half**: `GET/POST /v1/workspaces/{id}/lessons[/…]` over the table `kybernos.team_lessons` (a proposal is
@@ -222,6 +247,8 @@ node scripts/check-memory-live.mjs --shots /tmp/mem  # a live GUI (KB_HOST: the 
 
 On an instance with nothing to list (a fresh sandbox is not connected to Kybernos Cloud and has no lesson) the
 live check SKIPs the row and count checks and asserts the empty state instead; it never seeds data.
+Its last section loads the page again as a 390 px phone (DSH's mobile layer reads the device at load) and checks that no toolbar
+control sits on another one and that every button stays inside the pill that holds it (A3-21).
 
 The page itself (React) was driven end to end in a real browser while it was built — filters, pages,
 add / edit / forget / undo, lessons edit / delete, both switch groups, not-connected, revoked session —

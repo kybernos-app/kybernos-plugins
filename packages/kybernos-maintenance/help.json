@@ -27,7 +27,7 @@
     "page": true
   },
   "good": {
-    "fr": "Rien ne s’installe tout seul : une carte « Mise à jour disponible » peut s’afficher, mais toute mise à jour prend d’abord une photo de votre installation et revient en arrière si elle échoue.",
-    "en": "Nothing installs by itself: an “Update available” card may appear, but any update first takes a snapshot of your installation and rolls back if it fails."
+    "fr": "Rien ne s’installe tout seul ; une mise à jour prend d’abord une photo de votre installation. Kybernos cherche les mises à jour sur GitHub et npm (rien de votre travail) : l’interrupteur de la page l’arrête.",
+    "en": "Nothing installs by itself; an update first snapshots your installation. Kybernos looks for updates on GitHub and npm (nothing about your work): the switch on this page turns that off."
   }
 }

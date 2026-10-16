@@ -25,6 +25,9 @@ import { rank } from './relevance.mjs'
 
 export const LESSON_MAX_CHARS = 500
 export const LESSONS_MAX_COUNT = 50
+// An agent team that holds this many lessons is « nearly full »: the tidy-up looks at it by itself (index.js, tidyTick) so that the
+// cap never has to be dealt with by hand. 40 of 50 leaves room for ten more lessons between two looks.
+export const LESSONS_NEAR_COUNT = 40
 export const LESSON_TAGS_MAX = 5
 const ARCHIVE = 'lessons.archive.jsonl'
 

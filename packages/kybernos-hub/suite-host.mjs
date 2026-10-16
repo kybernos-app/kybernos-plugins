@@ -69,18 +69,15 @@ export function charge ({ catalogue, brut, etatHub, effectif, distant }) {
   const act = lireActivation({ catalogue, brut })
   const actifs = new Set(act.actifs)
   const vu = avecLesModulesDeCetteCopie({ catalogue, effectif: effectif ?? { ...catalogue, source: 'embarque' } })
-  // The help of a module ships with the suite: the signed online catalogue carries the versions and the promises, and a module it
-  // describes without a help keeps the one that shipped.
+  // The help of a module ships with the suite and describes the code that RUNS: the signed online catalogue carries the versions and the
+  // promises, and its help only fills a module this copy does not hold (A6-26: the release described an older Ollama page than the checkout).
   const aides = new Map(catalogue.modules.filter((m) => m.aide !== undefined).map((m) => [m.id, m.aide]))
   return {
     ok: true,
     catalogue: { schema: vu.schema, familles: vu.familles, source: vu.source, suite: vu.suite ?? null },
     modules: vu.modules.map((m) => {
       const livree = aides.get(m.id)
-      // An online help written before the page cards existed gets the shipped ones, so a page never loses its own help; the same for the
-      // link to the article, which an older release does not carry (its own text stays).
-      let aide = m.aide === undefined ? livree : (livree !== undefined && livree.pages !== undefined && m.aide.pages === undefined ? { ...m.aide, pages: livree.pages } : m.aide)
-      if (livree !== undefined && livree.url !== undefined && aide !== undefined && aide.url === undefined) aide = { ...aide, url: livree.url }
+      const aide = livree !== undefined ? livree : m.aide
       return { ...m, ...(aide === undefined ? {} : { aide }), voulu: m.socle ? true : actifs.has(m.nom) }
     }),
     activationFichier: act.file,

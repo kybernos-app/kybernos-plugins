@@ -13,7 +13,7 @@ const brand = src.match(/\/\/ KB-BRAND-CORE-BEGIN([\s\S]*?)\/\/ KB-BRAND-CORE-EN
 const core = src.match(/\/\/ KB-OB-CORE-BEGIN([\s\S]*?)\/\/ KB-OB-CORE-END/)
 const ui = src.match(/\/\/ KB-OB-UI-BEGIN([\s\S]*?)\/\/ KB-OB-UI-END/)
 if (core === null || ui === null) { console.error('BLOCKS KB-OB-CORE / KB-OB-UI NOT FOUND in packages/kybernos-plugin/client.js'); process.exit(1) }
-const names = 'KB_OB_LANGS, KB_OB_PROFILES, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, KB_OB_KITS, kbObKitFor, kbObKitDefaults, kbObMemoryText, kbObSkillText'
+const names = 'KB_OB_LANGS, KB_OB_PROFILES, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObBackOf, kbObEscape, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, KB_OB_KITS, kbObKitFor, kbObKitDefaults, kbObMemoryText, kbObSkillText'
 const mod = await import('data:text/javascript,' + encodeURIComponent(core[1] + '\nexport { ' + names + ' }'))
 
 let fails = 0
@@ -84,6 +84,17 @@ eq('back goes one screen up', ['job', 'mode', 'model', 'kit', 'key', 'local', 'l
 eq('the removed screens (the separate account offer, the « later » page) lead nowhere', [mod.kbObBack('offer'), mod.kbObStepOf('offer'), mod.kbObStepOf('later')], [null, null, null])
 eq('there is no back from welcome, from the end, mid-download, or once something is connected',
   ['welcome', 'done', 'cloud-ok', 'key-done', 'local-install', 'local-done'].map((s) => mod.kbObBack(s)), Array(6).fill(null))
+/* Escape (A6-03): on a first run it never ends the wizard (leaving records « later » for good) */
+const first = (screen, extra) => ({ screen, standalone: false, menu: false, fromAccount: false, ...extra })
+const alone = (screen, extra) => ({ screen, standalone: true, menu: false, fromAccount: false, ...extra })
+eq('first run: Escape on the welcome screen does nothing (there is nowhere back, and leaving is « Skip »)', mod.kbObEscape(first('welcome')), 'none')
+eq('first run: Escape steps back where « Back » exists', ['job', 'mode', 'model', 'kit', 'key', 'local', 'cloud-wait'].map((s) => mod.kbObEscape(first(s))), Array(7).fill('back'))
+eq('first run: nowhere to go back to (end, mid-download, connected) means nothing happens, never a close', ['done', 'cloud-ok', 'key-done', 'local-install', 'local-done'].map((s) => mod.kbObEscape(first(s))), Array(5).fill('none'))
+eq('first run: the free step that came right after an account has no back, so Escape does nothing there', mod.kbObEscape(first('free', { fromAccount: true })), 'none')
+eq('first run: an open language menu is closed first, on any screen', ['welcome', 'job', 'model'].map((s) => mod.kbObEscape(first(s, { menu: true }))), Array(3).fill('menu'))
+eq('opened on its own (replay, the chat card, the kit), nothing is recorded: Escape closes it', ['model', 'kit', 'key', 'local'].map((s) => mod.kbObEscape(alone(s))), Array(4).fill('close'))
+eq('opened on its own, the menu still goes first', mod.kbObEscape(alone('model', { menu: true })), 'menu')
+eq('the Back button and Escape share one rule: no back from the model or kit step when opened alone', ['model', 'kit'].map((s) => mod.kbObBackOf(alone(s))), [null, null])
 eq('every string of the model question exists in the four languages', ['m.t', 'm.s', 'm.k', 'm.rec', 'm.kd', 'm.o', 'm.od', 'm.other', 'm.local', 'm.free', 'm.conn', 'm.later', 'm.keep'].map((k) => (Array.isArray(mod.KB_OB_T[k]) && mod.KB_OB_T[k].length === 4 && mod.KB_OB_T[k].every((v) => typeof v === 'string' && v.length > 0))), Array(13).fill(true))
 eq('the removed texts are gone from the dictionary', Object.keys(mod.KB_OB_T).filter((k) => /^(offer\.|v\.(cloud|key|free)|brain\.)/.test(k)), [])
 

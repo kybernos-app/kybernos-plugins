@@ -256,7 +256,7 @@ console.log('a page of DSH itself: the animation on the native Agent presets pag
   check('a host of a page that has no content draws nothing', Natives() === null)
 }
 
-console.log('the host keeps the shipped link when the signed catalogue is one release behind')
+console.log('the host shows the shipped card, link included, whatever the signed catalogue says')
 {
   // The shipped catalogue as it is, and a copy of it with no link anywhere (what an older release looks like).
   const real = JSON.parse(readFileSync(new URL('./catalog.json', import.meta.url), 'utf8'))
@@ -269,11 +269,11 @@ console.log('the host keeps the shipped link when the signed catalogue is one re
   const aideOf = (p) => p.modules.find((m) => m.id === 'kybernos-mobile').aide
   const old = signed((m) => (m.id === 'kybernos-mobile' ? { ...m, aide: { ...shipped.aide, what: { fr: 'Ancien texte.', en: 'An older text.' } } } : m))
   const got = aideOf(charge({ catalogue: ship, brut: null, etatHub: null, effectif: old }))
-  check('an online help written before the links existed gets the shipped link, and keeps its own text', got.url === ARTICLE && got.what.en === 'An older text.', got)
-  const newer = signed((m) => (m.id === 'kybernos-mobile' ? { ...m, aide: { ...shipped.aide, url: 'https://help.kybernos.app/{lang}/features/another/' } } : m))
-  check('an online link wins over the shipped one', aideOf(charge({ catalogue: ship, brut: null, etatHub: null, effectif: newer })).url === 'https://help.kybernos.app/{lang}/features/another/')
+  check('a signed catalogue written before the links existed: the card is the shipped one, with its link and its text (the help describes the code that runs)', got.url === ARTICLE && got.what.en === shipped.aide.what.en, got)
+  const other = signed((m) => (m.id === 'kybernos-mobile' ? { ...m, aide: { ...shipped.aide, url: 'https://help.kybernos.app/{lang}/features/another/' } } : m))
+  check('a link in the signed catalogue does not replace the shipped one', aideOf(charge({ catalogue: ship, brut: null, etatHub: null, effectif: other })).url === ARTICLE)
   check('a module with no link anywhere stays without one', aideOf(charge({ catalogue, brut: null, etatHub: null, effectif: old })).url === undefined)
-  check('the shipped help alone (no online catalogue) carries the link as it is', aideOf(charge({ catalogue: ship, brut: null, etatHub: null, effectif: null })).url === ARTICLE)
+  check('the shipped help alone (no signed catalogue) carries the link as it is', aideOf(charge({ catalogue: ship, brut: null, etatHub: null, effectif: null })).url === ARTICLE)
   check('the catalogue of this checkout ships the links of help.json (Remote Control has its article)', real.modules.find((m) => m.id === 'kybernos-mobile').aide.url === ARTICLE)
 }
 
