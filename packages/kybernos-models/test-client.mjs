@@ -706,6 +706,19 @@ console.log('\n── why a model is not answering, and the first view (V-29, V-
   ok('the fold is a button that names the count, opens by itself for a provider just added, and keeps the old cards intact', has("'data-kbm': 'prov-wait-toggle'") && has("m('kb.pv.wait.n', { n: fold.waiting })") && has('patch({ drawer: null, busy: false, waitOpen: true,') && has('const renderDsCard = (c) => {'))
 }
 
+console.log('\n── a score on each model, a filter and a sort on it (V-37) ──')
+{
+  const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
+  const { kbScoreRank, kbScoreSteps } = new Function(bl('KB-SCORE-PURE') + '\nreturn { kbScoreRank, kbScoreSteps }')()
+  ok('a model with a score sorts by it, one without goes after them all', kbScoreRank(52.3) > kbScoreRank(32) && kbScoreRank(0) > kbScoreRank(undefined) && kbScoreRank(null) === -1 && kbScoreRank('x') === -1 && kbScoreRank(NaN) === -1)
+  ok('the filter offers steps only up to what the list reaches', JSON.stringify(kbScoreSteps({ a: 32, b: 52.3 })) === JSON.stringify([10, 20, 30, 40, 50]) && JSON.stringify(kbScoreSteps({ a: 9 })) === JSON.stringify([]) && kbScoreSteps({}).length === 0 && kbScoreSteps(null).length === 0)
+  const has = (frag) => src.includes(frag)
+  ok('the badge reads « II 32 » with the source in its tooltip, and sits in the model cell', has("'data-kbm': 'row-score'") && has("'II ' + String(KBM.scoreOf[mo.route + '/' + mo.id])") && has("m('kb.models.score.badge', { n: KBM.scoreOf[mo.route + '/' + mo.id] })"))
+  ok('the Score filter and the Score sort exist only once a score is known, and the filter is part of « reset »', has("kbScoreSteps(KBM.scoreOf).length > 0 ? h(Menu, { id: 'score', field: 'score'") && has("Object.keys(KBM.scoreOf).length > 0 ? [{ v: 'score'") && has("UI.statut !== 'any' || UI.score !== 'any'") && has("UI.score = 'any'"))
+  ok('the whole list is scored in ONE call, when the Models tab is up, and again for a newer snapshot — never on every render', has("fetch('/kybernos-models/scores/list'") && has("React.useEffect(() => { if (UI.tab !== 'providers') kbMScoreListLoad(false) })") && has('if (KBM.scoreLoaded === true && force !== true) return false') && has('if (KBM.scoreAtSeen !== KBM.scoresAt) { KBM.scoreAtSeen = KBM.scoresAt; KBM.scoreLoaded = false }'))
+  ok('the score strings exist in French and English', ['kb.models.tri.score', 'kb.models.filter.score', 'kb.models.score.any', 'kb.models.score.min', 'kb.models.score.badge'].every((k) => new RegExp("'" + k.replace(/\./g, '\\.') + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src)))
+}
+
 console.log('\n── strings: every new key in French and English ──')
 const keys = [...src.matchAll(/'(kb\.(?:prov\.(?:off|on)\.[a-z.]+|prov\.add\.err\.parque|pv\.[a-z.]+|nat\.[a-z.]+|health\.[a-z.]+|fetch\.[a-z.]+|ds\.[a-z.]+))': \{ kybernos: '((?:[^'\\]|\\.)*)', en: '((?:[^'\\]|\\.)*)' \}/g)]
 ok('the new keys are all declared', keys.length >= 70, keys.length)

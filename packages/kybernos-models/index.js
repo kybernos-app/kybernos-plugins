@@ -861,6 +861,15 @@ export const kbScoreMatch = (snapshot, route, id, name) => {
   }
 }
 
+/** The one number the Models tab shows, filters and sorts on: Artificial Analysis' intelligence index (a single scale, the one the
+ *  local models' catalogue quotes too). BenchLM's overall score is another scale and stays in the model's own sheet; mixing the two in
+ *  one column would rank them against each other. null when the model is not in AA's list. */
+export const kbScoreHeadline = (match) => {
+  const e = match !== null && match !== undefined && match.aa !== null && match.aa !== undefined ? match.aa.entry : null
+  const n = e === null || e === undefined ? NaN : Number(e.intelligenceIndex)
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 10) / 10 : null
+}
+
 /** Les intitulés lisibles des épreuves employées par CE modèle, et rien d'autre :
  *  la fiche n'a pas besoin des 447 épreuves du catalogue pour en afficher dix. */
 const kbScoreLabels = (snapshot, match) => {
@@ -1047,6 +1056,28 @@ export function apply(ctx) {
           aa: match.aa, benchlm: match.benchlm,
         })
       }}), 'kybernos-models: notes externes (lecture)')
+
+      // The headline score of many models at once (the Score badge, filter and sort of the Models tab): { models: [{ key, name? }] } →
+      // { scores: { "route/id": 32.1 } }, only for the models the snapshot knows. A POST so a long list never lands in an URL.
+      hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/kybernos-models/scores/list', handler: async (req, res) => {
+        if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
+        if (sameOrigin(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }
+        const body = await readBody(req)
+        if (body === null || typeof body !== 'object' || !Array.isArray(body.models)) { sendJson(res, 400, { ok: false, error: 'bad-json' }); return }
+        const snapshot = kbScoresRead(false)
+        const scores = {}
+        if (snapshot !== null) {
+          for (const m of body.models.slice(0, 800)) {
+            const key = m !== null && typeof m === 'object' && typeof m.key === 'string' ? m.key : ''
+            const slash = key.indexOf('/')
+            if (key.length > 300 || slash <= 0 || slash === key.length - 1) continue
+            const n = kbScoreHeadline(kbScoreMatch(snapshot, key.slice(0, slash), key.slice(slash + 1), typeof m.name === 'string' ? m.name.slice(0, 200) : ''))
+            if (n !== null) scores[key] = n
+          }
+        }
+        const stale = snapshot === null || typeof snapshot.at !== 'number' ? true : (Date.now() - snapshot.at) >= SCORES_TTL_MS
+        sendJson(res, 200, { ok: true, version: SCORES_VERSION, at: snapshot === null ? null : snapshot.at, stale, scores })
+      }}), 'kybernos-models: notes externes (liste des scores)')
 
       // Le déclenchement : la réponse part TOUT DE SUITE, le scrape continue.
       // Un scrape à jour ne se relance pas — il coûte ~4 Mo et deux requêtes.

@@ -363,6 +363,11 @@ window.__ModuleLoader__.load({
         'kb.models.filter.prov': { kybernos: 'Fournisseur', en: 'Provider' },
         'kb.models.filter.type': { kybernos: 'Type', en: 'Type' },
         'kb.models.filter.statut': { kybernos: 'État', en: 'Status' },
+        'kb.models.tri.score': { kybernos: 'Score (le plus haut d’abord)', en: 'Score (highest first)' },
+        'kb.models.filter.score': { kybernos: 'Score', en: 'Score' },
+        'kb.models.score.any': { kybernos: 'Tous', en: 'Any' },
+        'kb.models.score.min': { kybernos: '{n} et plus', en: '{n}+' },
+        'kb.models.score.badge': { kybernos: 'Indice d’intelligence {n} — Artificial Analysis (plus haut = mieux)', en: 'Intelligence index {n} — Artificial Analysis (higher is better)' },
         'kb.models.tri.name': { kybernos: 'Nom', en: 'Name' },
         'kb.models.tri.context': { kybernos: 'Contexte', en: 'Context' },
         'kb.models.tri.provider': { kybernos: 'Fournisseur', en: 'Provider' },
@@ -684,6 +689,9 @@ window.__ModuleLoader__.load({
         // Les notes externes : l'instant global (pour dire la fraîcheur) et
         // l'état du relevé de fond (pour n'en déclencher qu'un à la fois).
         scoresAt: null,
+        // The headline score of each model ("route/id" → number), read in one call for the whole list.
+        scoreOf: {},
+        scoreLoaded: false,
         scoresRunning: false,
         scoresAskedAt: null,
         listeners: new Set(),
@@ -1282,7 +1290,7 @@ window.__ModuleLoader__.load({
       // change. L'état d'écran (onglet, recherche, filtres, tri) ne se persiste
       // pas et n'écrit rien.
 
-      const UI = { tab: 'providers', q: '', prov: 'all', type: 'all', statut: 'any', tri: 'name', caps: {}, menu: null, page: 1, edit: null, showDown: false }
+      const UI = { tab: 'providers', q: '', prov: 'all', type: 'all', statut: 'any', tri: 'name', score: 'any', caps: {}, menu: null, page: 1, edit: null, showDown: false }
       // Changer un filtre (ou d'onglet) ramène à la première page : rester à
       // une page qui n'existe plus afficherait une liste vide.
       const uiSet = (k, v) => { UI[k] = v; if (k !== 'page') UI.page = 1; kbmNotify() }
@@ -1298,11 +1306,12 @@ window.__ModuleLoader__.load({
         UI.type = 'all'
         UI.statut = 'any'
         UI.tri = 'name'
+        UI.score = 'any'
         UI.caps = {}
         kbmNotify()
       }
       const uiFiltre = () => {
-        if (UI.q.trim() !== '' || UI.prov !== 'all' || UI.type !== 'all' || UI.statut !== 'any') return true
+        if (UI.q.trim() !== '' || UI.prov !== 'all' || UI.type !== 'all' || UI.statut !== 'any' || UI.score !== 'any') return true
         for (const k of Object.keys(UI.caps)) if (UI.caps[k] === true) return true
         return false
       }
@@ -1326,6 +1335,7 @@ window.__ModuleLoader__.load({
           if (UI.statut === 'ov' && kbmCountOv(mo) === 0) return false
           if (UI.statut === 'sync' && mo.synced !== true) return false
           if (UI.statut === 'pending' && mo.synced === true) return false
+          if (UI.score !== 'any' && !(typeof KBM.scoreOf[mo.route + '/' + mo.id] === 'number' && KBM.scoreOf[mo.route + '/' + mo.id] >= Number(UI.score))) return false
           if (down !== null && down[mo.route + '/' + mo.id] !== true) return false
           for (const c of caps) if (kbmVal(mo, c.k) !== true) return false
           if (cherche !== '') {
@@ -1335,9 +1345,19 @@ window.__ModuleLoader__.load({
           return true
         })
         if (UI.tri === 'context') return rows.sort((a, b) => uiNombre(b, 'context') - uiNombre(a, 'context'))
+        if (UI.tri === 'score') return rows.sort((a, b) => kbScoreRank(KBM.scoreOf[b.route + '/' + b.id]) - kbScoreRank(KBM.scoreOf[a.route + '/' + a.id]) || String(a.name || a.id).localeCompare(String(b.name || b.id)))
         if (UI.tri === 'provider') return rows.sort((a, b) => (a.route + ' ' + a.id).localeCompare(b.route + ' ' + b.id))
         return rows.sort((a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id)))
       }
+      // KB-SCORE-PURE-BEGIN
+      /** A sort key: the score, and a model without one after every model that has one. Pure. */
+      const kbScoreRank = (n) => (typeof n === 'number' && Number.isFinite(n) ? n : -1)
+      /** The « Score ≥ » steps of the filter, only up to what the list reaches (no « 60+ » when nothing scores above 45). Pure. */
+      const kbScoreSteps = (scores) => {
+        const top = Math.max(0, ...Object.keys(scores || {}).map((k) => Number(scores[k])).filter((n) => Number.isFinite(n)))
+        return [10, 20, 30, 40, 50, 60, 70].filter((n) => n <= top)
+      }
+      // KB-SCORE-PURE-END
       const uiCaps = (mo) => CAPS.filter((c) => kbmVal(mo, c.k) === true)
       /** L'infobulle d'une icône de capacité : le libellé PUIS le maillon —
        *  une icône seule ne dit ni ce qu'elle nomme, ni si la donnée est
@@ -1371,7 +1391,7 @@ window.__ModuleLoader__.load({
         { v: 'name', t: m('kb.models.tri.name') },
         { v: 'context', t: m('kb.models.tri.context') },
         { v: 'provider', t: m('kb.models.tri.provider') },
-      ]
+      ].concat(Object.keys(KBM.scoreOf).length > 0 ? [{ v: 'score', t: m('kb.models.tri.score') }] : [])
 
       const Loupe = () => h('svg', { className: 'kbmp-loupe', viewBox: '0 0 16 16', width: 14, height: 14, 'aria-hidden': 'true' },
         h('circle', { cx: 7, cy: 7, r: 4.6, fill: 'none', stroke: 'currentColor', strokeWidth: 1.4 }),
@@ -1470,6 +1490,7 @@ window.__ModuleLoader__.load({
             type === null ? null : h('span', { className: 'kbmp-mtype', key: 'ty' }, h('span', { className: 'kbmp-tyi', style: { color: type.tint } }, Ic(type.icon, 12)), m(type.t)),
             prix === null ? null : h('span', { className: 'kbmp-msep kbmp-sep2', key: 'sp' }, '·'),
             prix === null ? null : h('span', { className: 'kbmp-mprix', key: 'pr', title: m('kb.models.col.price') }, prix),
+            typeof KBM.scoreOf[mo.route + '/' + mo.id] === 'number' ? h('span', { className: 'kbmp-score', key: 'sc', 'data-kbm': 'row-score', title: m('kb.models.score.badge', { n: KBM.scoreOf[mo.route + '/' + mo.id] }) }, 'II ' + String(KBM.scoreOf[mo.route + '/' + mo.id])) : null,
             props.down !== undefined ? h('span', { className: 'kbmp-why', 'data-kbm': 'row-why', title: props.down.code }, m('kb.health.rowwhy', { why: m(kbHealthWhy(props.down, kbHealthFree(props.down.route, mo.id, Object.keys(FREE_LINKS)))) })) : null,
             h('span', { className: 'kbmp-nar', key: 'nar' },
               KBM.live === true ? h('span', { className: 'kbmp-msep' }, '·') : null,
@@ -2337,6 +2358,7 @@ window.__ModuleLoader__.load({
               h(Menu, { id: 'prov', field: 'prov', defaut: 'all', label: m('kb.models.filter.prov'), options: optsProv }),
               h(Menu, { id: 'type', field: 'type', defaut: 'all', label: m('kb.models.filter.type'), options: optsType }),
               h(Menu, { id: 'statut', field: 'statut', defaut: 'any', label: m('kb.models.filter.statut'), options: OPT_STATUT() }),
+              kbScoreSteps(KBM.scoreOf).length > 0 ? h(Menu, { id: 'score', field: 'score', defaut: 'any', label: m('kb.models.filter.score'), options: [{ v: 'any', t: m('kb.models.score.any') }].concat(kbScoreSteps(KBM.scoreOf).map((n) => ({ v: String(n), t: m('kb.models.score.min', { n }) }))) }) : null,
               h(Menu, { id: 'tri', field: 'tri', defaut: 'name', label: m('kb.models.sort'), options: OPT_TRI() }))),
           h('div', { className: 'kbmp-capsbar' + (kbmChipsOn() === true ? ' kbmp-capsbar-on' : '') }, h('span', { className: 'kbmp-caps' }, capFiltres
             .map((k) => CAPS.filter((c) => c.k === k)[0])
@@ -2548,6 +2570,8 @@ window.__ModuleLoader__.load({
           sec.setAttribute('data-kbm-tab', UI.tab === 'providers' ? 'providers' : 'models')
           return () => { sec.removeAttribute('data-kbm-tab') }
         })
+        // The Score column is read once the Models tab is up and the models are known (and again after a newer snapshot).
+        React.useEffect(() => { if (UI.tab !== 'providers') kbMScoreListLoad(false) })
         React.useEffect(() => {
           const fermerMenu = () => { if (UI.menu !== null) { UI.menu = null; kbmNotify() } }
           // Escape closes the menu or the details sheet and nothing else: capturing it first, and stopping it when we
@@ -2679,6 +2703,7 @@ window.__ModuleLoader__.load({
         '.kbmp-thar{display:inline-flex;transform:rotate(90deg)}',
         '.kbmp-ovline{font-size:11px;color:var(--dsw-alias-state-warn-primary);white-space:nowrap}',
         '.kbmp-why{flex:1 0 100%;font-size:11.5px;line-height:16px;color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 62%,var(--dsw-alias-label-primary))}',
+        '.kbmp-score{display:inline-flex;align-items:center;height:16px;padding:0 6px;border-radius:999px;background:var(--dsw-alias-bg-layer-3);border:.5px solid var(--dsw-alias-border-l3);font-size:10.5px;font-weight:600;color:var(--dsw-alias-label-secondary);white-space:nowrap;font-variant-numeric:tabular-nums}',
         '.kbmp-resbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;font-size:12px;color:var(--dsw-alias-label-tertiary)}',
         '.kbmp-grow{flex:1}',
         '.kbmp-link{border:0;background:transparent;padding:2px 4px;font-size:12px;color:var(--dsw-alias-label-secondary);text-decoration:underline;text-underline-offset:2px;cursor:pointer}',
@@ -4416,6 +4441,8 @@ window.__ModuleLoader__.load({
           }
           KBM.scoresAt = body.at === undefined ? null : body.at
           KBM.scoresRunning = body.running === true
+          // A newer snapshot than the one the Score column was read from: read the column again.
+          if (KBM.scoreAtSeen !== KBM.scoresAt) { KBM.scoreAtSeen = KBM.scoresAt; KBM.scoreLoaded = false }
           kbmNotify()
           return true
         } catch (e) {
@@ -4430,6 +4457,26 @@ window.__ModuleLoader__.load({
        *  part tout de suite : un scrape de ~4 Mo ne fait jamais attendre l'écran.
        *  Appelée par la synchronisation d'une ligne, elle se coalesce — le bouton
        *  « Synchroniser N » la sollicite N fois, le réseau une seule. */
+      /** The headline score of every listed model, in ONE call (the badge, the filter and the sort of the Models tab). Best-effort: a host
+       *  without the route, or with no snapshot yet, leaves the column empty. */
+      const kbMScoreListLoad = async (force) => {
+        if (KBM.live !== true || KBM.models.length === 0) return false
+        if (KBM.scoreLoaded === true && force !== true) return false
+        KBM.scoreLoaded = true
+        try {
+          const res = await fetch('/kybernos-models/scores/list', {
+            method: 'POST', headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ models: KBM.models.filter((mo) => mo.route !== '' && mo.id !== '').map((mo) => ({ key: mo.route + '/' + mo.id, name: mo.name })) }),
+          })
+          const body = await res.json()
+          // A host without the route (not restarted) or an unreadable answer: no column, and no new try on every render.
+          if (body === null || body.ok !== true || body.scores === null || typeof body.scores !== 'object') return false
+          KBM.scoreOf = body.scores
+          KBM.scoreAtSeen = body.at === undefined ? null : body.at
+          kbmNotify()
+          return true
+        } catch (e) { return false }
+      }
       const kbMScoresRefresh = async (force) => {
         if (force !== true) {
           if (KBM.scoresRunning === true) return null
