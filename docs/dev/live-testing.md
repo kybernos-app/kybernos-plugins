@@ -821,6 +821,22 @@ mapping from the engine's structures. In a sandbox with no model key a run ends 
 `data-task`), `board-calendar`, `board-week`, `board-day`, `board-event`, `board-month`, `board-mcell`, `board-detail`,
 `board-banner`, `board-action` (`data-act`). Exit 0 / 1 / 3.
 
+## The Automations List and « Edit in chat »: `scripts/check-automations-list-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && scripts/sandbox/start.sh     # restart it after a host edit (the frequent-schedule guard is host code)
+node scripts/check-automations-list-live.mjs [--shots <dir>]
+```
+
+Same guards as the board check (never :3080, only a `.kybernos-sandbox` home; it writes the instance's `kybernos/tasks.json`, eight
+automations, and puts it back). It plays, on real clicks and real routes: the header over its cells (same left edge, every column, every
+row), one card with one border, the line under the name, the actions at the right (hidden at rest, shown on hover and on keyboard focus,
+a starred row keeps its star), the small switch and the one hover band; the schedules in words and their tooltips; no dd/mm date and
+the same style in a card's chip and date line; a schedule in another zone naming it; the Schedule form's time field and the presets
+keeping the time; `POST /kybernos/tasks` refusing `* * * * *` without `confirmFrequent`; « Edit in chat » from a row and from the page
+of an automation (a NEW chat, a draft naming the skill and carrying the definition, nothing sent); 390 px. Chrome cannot emulate
+`(hover: none)`, so « always visible on a touch screen » is the one rule it does not see: the CSS is `@media (hover:none)`. Exit 0 / 1 / 3.
+
 ## The Creations, Agent Teams and Skills pages, and the skeleton screens: `scripts/check-pages-live.mjs`
 
 ```bash
