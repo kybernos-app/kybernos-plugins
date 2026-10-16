@@ -82,7 +82,7 @@ console.log('\n── client : le geste sur un DOM de QueueDock ──')
 let JSDOM
 try { ({ JSDOM } = await import(process.env.KYBERNOS_JSDOM ?? 'jsdom')) } catch { JSDOM = undefined }
 if (JSDOM === undefined) {
-  console.log('  · non jouée — jsdom introuvable (KYBERNOS_JSDOM=<chemin de l’entrée jsdom> pour la jouer)')
+  console.log('SKIPPED: the DOM pass of the queue gesture — jsdom not found (KYBERNOS_JSDOM=<path of its entry> plays it)')
 } else {
   const attendre = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
   const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://127.0.0.1:3080/' })

@@ -29,6 +29,7 @@ import { cleanBoot, renderBootCss } from './boot-store.mjs'
 
 let pass = 0
 let fail = 0
+let skipped = 0
 const check = (name, ok, detail) => {
   if (ok === true) { pass += 1; console.log('  ✓ ' + name) } else { fail += 1; console.log('  ✗ ' + name + (detail === undefined ? '' : ' — ' + JSON.stringify(detail))) }
 }
@@ -1250,7 +1251,8 @@ try {
   React = req('react'); renderToStaticMarkup = req('react-dom/server').renderToStaticMarkup
 } catch (e) { /* skipped below */ }
 if (React === null) {
-  console.log('  SKIP — react / react-dom not found. Re-run with:')
+  skipped++
+  console.log('SKIPPED: the page render of the Theme client (react-dom/server) — react / react-dom not found. Re-run with:')
   console.log('    NODE_PATH=<a node_modules that has react + react-dom> node packages/kybernos-theme/test-client.mjs')
 } else {
   // A second instance wired to the REAL react, with useState steerable by initial value.
@@ -1483,5 +1485,5 @@ section('every control has a stored key that something reads')
   check('...and each of the 20 newly wired keys is read by an applier', unread.length === 0, unread)
 }
 
-console.log('\n' + (fail === 0 ? '✓ ' : '✗ ') + pass + ' passed, ' + fail + ' failed')
+console.log('\n' + (fail === 0 ? '✓ ' : '✗ ') + pass + ' passed, ' + fail + ' failed' + (skipped > 0 ? ', ' + skipped + ' part SKIPPED (not covered)' : ''))
 process.exit(fail === 0 ? 0 : 1)

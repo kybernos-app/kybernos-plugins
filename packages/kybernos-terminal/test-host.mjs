@@ -147,7 +147,7 @@ console.log('the runner')
     const e = await executer({ commande: 'exit 3' })
     check('reports a non-zero exit code', e.ok === true && e.code === 3)
   } else {
-    console.log('  - /bin/zsh is not installed here: the two runs are skipped')
+    console.log('SKIPPED: the two zsh runs of the terminal host — /bin/zsh is not installed here')
   }
   check('an empty command is refused', (await executer({ commande: '   ' })).ok === false)
   check('a command over 500 characters is refused', (await executer({ commande: 'x'.repeat(501) })).ok === false)

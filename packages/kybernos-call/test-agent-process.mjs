@@ -13,7 +13,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createCall } from './call-host.mjs'
 
-if (process.platform === 'win32') { console.log('kybernos-call process: skipped on Windows (pgrep / kill / shell script)'); process.exit(0) }
+if (process.platform === 'win32') { console.log('SKIPPED: the kybernos-call worker process tests — Windows has no pgrep / kill / shell script'); process.exit(0) }
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }

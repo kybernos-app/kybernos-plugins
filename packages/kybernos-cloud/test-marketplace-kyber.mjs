@@ -284,7 +284,7 @@ for (const h of HOSTILE) {
 }
 ok('round trip, ' + HOSTILE.length + ' hostile values in every field: the same keys and no more, and both readers give back the name, category, glyph, colour, route, tools, mission and prompt')
 if (engine !== null) ok('js-yaml (the DSH engine\'s) reads the same ' + judged + ' files the same way: every scalar exact, the texts equal once the folding of the block is applied')
-else console.log('  - skipped: no js-yaml of the DSH engine on this machine (the plugin\'s reader above is the only judge here)')
+else console.log('SKIPPED: the comparison with the DSH engine\'s YAML reader — no js-yaml of the DSH engine on this machine (the plugin\'s reader above is the only judge here)')
 
 // The kyber of the dsh-compat check (a name and a crew full of `:` and `#`): one value per line, a file a parser can read.
 {

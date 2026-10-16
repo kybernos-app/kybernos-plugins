@@ -269,7 +269,7 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
       const at = src.indexOf("addEventListener('kb-accept-text'")
       const m = at >= 0 ? /t\.length > (\d+)\) return/.exec(src.slice(at, at + 1200)) : null
       ok('accept: the card limit is not above the one the kybernos bundle enforces', m !== null && max <= Number(m[1]), m === null ? 'listener not found' : 'card ' + max + ' > listener ' + m[1])
-    } else console.log('- accept: drift check skipped (the kybernos bundle is not next to this one)')
+    } else console.log('SKIPPED: the accept drift check — the kybernos bundle is not next to this one')
   }
   ok('accept: a malformed %-escape is passed on as it is (and shown as it is)', carteAccepter('kb:accept:100%', (x) => { montre = x; return true }, (x) => envoi.push(x)) === true && montre === '100%')
 }

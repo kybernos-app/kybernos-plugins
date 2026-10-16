@@ -532,7 +532,7 @@ console.log('── optional: the same tree through the real React ──')
     serveur = req('react-dom/server')
   } catch (e) { React = null }
   if (React === null || serveur === null) {
-    console.log('  (skipped: react and react-dom are not on NODE_PATH)')
+    console.log('SKIPPED: the About page through the real React — react and react-dom are not on NODE_PATH')
   } else {
     const reel = {}
     const w2 = { __ModuleLoader__: { load: (def) => { reel.def = def } }, __KB_LANG_RESOLVE__: () => 'en', localStorage: undefined }

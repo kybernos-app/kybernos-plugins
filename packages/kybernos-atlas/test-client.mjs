@@ -264,7 +264,7 @@ check('the page degrades when the main plugin does not expose the seam', /typeof
   // contract with the main plugin: the seam exists, and every page it advertises is a page its sidebar can open
   let master = null
   try { master = readFileSync(new URL('../kybernos-plugin/client.js', import.meta.url), 'utf8') } catch (e) { master = null }
-  if (master === null) console.log('  ○ main plugin source not found: contract checks skipped')
+  if (master === null) console.log('SKIPPED: the contract checks with the main plugin — its source (../kybernos-plugin/client.js) was not found')
   else {
     check('main plugin exposes window.__KB_OPEN__ and says which pages it has', /window\.__KB_OPEN__ = kbOpenPage/.test(master) && /Object\.defineProperty\(kbOpenPage, 'views'/.test(master))
     const adv = (master.match(/Object\.defineProperty\(kbOpenPage, 'views', \{ get: \(\) => ([^\n]*)\}\)\n/) || [null, ''])[1]

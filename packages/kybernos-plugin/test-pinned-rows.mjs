@@ -23,7 +23,7 @@ const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
 const here = dirname(fileURLToPath(import.meta.url))
 const plugin = readFileSync(process.env.KB_PLUGIN_CLIENT || join(here, 'client.js'), 'utf8')
 const sessionsFile = process.env.KB_SESSIONS_CLIENT || join(here, '..', 'kybernos-sessions', 'client.js')
-if (!existsSync(sessionsFile)) { console.log('  - kybernos-sessions is not next to this bundle: the two-sided checks are skipped'); process.exit(0) }
+if (!existsSync(sessionsFile)) { console.log('SKIPPED: the two-sided pinned-rows checks — kybernos-sessions is not next to this bundle'); process.exit(0) }
 const sessions = readFileSync(sessionsFile, 'utf8')
 
 // The CSS rule of a selector, as the Pinned section injects it (one array entry per rule).
