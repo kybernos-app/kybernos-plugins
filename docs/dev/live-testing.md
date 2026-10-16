@@ -863,8 +863,13 @@ mapping from the engine's structures. In a sandbox with no model key a run ends 
 
 ```bash
 source scripts/sandbox/env.sh && scripts/sandbox/start.sh     # restart it after a host edit (the frequent-schedule guard is host code)
-node scripts/check-automations-list-live.mjs [--shots <dir>]
+node scripts/check-automations-list-live.mjs [--shots <dir>] [--at HH:MM]
 ```
+
+The page says « Today » / « Tomorrow » / « Yesterday » from its own clock, so the check never writes those words: it seeds from « now »,
+works the expected words out from the page's clock in the same read, and waits for the board to have its cards (it takes up to ~10 s
+after the file has a next run). `--at HH:MM` (or `KB_CLOCK`) proves it: the page's `Date` and the seeds move to that time of today
+(`--at 08:00` and `--at 23:55` are both green); the host's scheduler keeps the real clock. Exit 0 / 1 / 2 (bad arguments) / 3.
 
 Same guards as the board check (never :3080, only a `.kybernos-sandbox` home; it writes the instance's `kybernos/tasks.json`, eight
 automations, and puts it back). It plays, on real clicks and real routes: the header over its cells (same left edge, every column, every
