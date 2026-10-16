@@ -9,7 +9,7 @@ reach this bundle through one seam.
 
 ## Where to find it
 
-- **The phone and camera buttons at the top right of the chat** of every session (the header, next to the app's own controls): the call belongs to the session, not to a team.
+- **The phone and camera buttons in the chat header** of every session (next to the app's own controls; when the chat header is folded, open « Show chat tools » first): the call belongs to the session, not to a team.
   The phone starts a voice call, the camera a video call (off, with the reason, until a LiveAvatar key is set). During a call they become one red "Hang up".
   It calls the session's assistant, with the voice, language and mode of Settings › Calls.
 - **Call / Video on a team member's card** (the crew view of `@local/kybernos`): that member, with its own voice. These two buttons
@@ -52,7 +52,7 @@ once if it stops working.
 
 ## First call
 
-1. Click the phone at the top right of a chat. On a machine with nothing set up the panel says so and opens Settings › Calls: the Overview lists what is missing, each with a "Set up" button.
+1. Click the phone in the chat header (open « Show chat tools » first if the header is folded). On a machine with nothing set up the panel says so and opens Settings › Calls: the Overview lists what is missing, each with a "Set up" button.
    By hand, the same things are in Settings › Calls › Providers: the LiveKit address, key and secret (a free LiveKit Cloud project is
    enough), and the Groq key (listening). Each has a **Test** button. Keys are written to `kybernos/livekit.env` (private file) and are
    never shown again.
