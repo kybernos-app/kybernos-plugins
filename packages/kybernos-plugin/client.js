@@ -35730,6 +35730,26 @@ html.wv2-actif [data-composer-seat]{display:none !important}
     ].join(String.fromCharCode(10))
     ctx.effect(() => styles.insert(KB_OB_CSS), 'kybernos: onboarding styles')
 
+    // <kb-engine-signin-step>
+    // ── The engine's own first-screen step, replaced ──────────────────────────────────────────────────────
+    // On a new chat with no model key DSH opens « Get started — Sign in to your DeepSeek account or add an API Key »
+    // (slot `settings.onboarding`, step `deepseek-official`). A person of Kybernos has no DeepSeek account, the wizard above
+    // has just asked the same question in this product's words (a Kybernos account, a key, a model on this computer), and « later »
+    // was an answer: the dialog came back after every reload, over the wizard, and a second « Sign in » sat beside the Kybernos
+    // one. The slot's contract: a registrant that reuses a shipped `id` takes that cell, and the lowest priority renders (the shipped
+    // entry has 0; the same priority is refused, measured on DSH 0.2.1-alpha.4). This one paints nothing and says at once that the step
+    // is done, so the shell moves on. Whoever has no model yet is told by the card in the chat (below), at the moment it matters.
+    const KbEngineSignInStep = (props) => {
+      const complete = props !== null && props !== undefined && typeof props.complete === 'function' ? props.complete : null
+      React.useEffect(() => { if (complete !== null) complete() }, [])
+      return null
+    }
+    try {
+      ctx.effect(() => slots.inject('settings.onboarding', () => slots.register(
+        { name: 'settings.onboarding', id: 'deepseek-official', order: 0, priority: -1 }, KbEngineSignInStep)), 'kybernos: the engine sign-in step, replaced')
+    } catch (kbEngineStepError) { /* an engine without this slot keeps its own dialog: nothing to replace */ }
+    // </kb-engine-signin-step>
+
     // ── « This chat can't answer yet »: the moment the person needs a model ───────────────────────────────
     // The engine's own sentence for a model whose key is missing (`MISSING_CREDENTIAL`) is a developer's: it stays
     // where it is, in the failed turn. Right above the box, this card says it in a person's words and offers the
