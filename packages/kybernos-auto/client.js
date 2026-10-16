@@ -1,16 +1,16 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// kybernos-auto — moitié client.
+// kybernos-auto — client half.
 //
-// DEUX surfaces, branchées sur /kybernos-auto/* (maquette composer-auto-c-health) :
-//   1. panneau « Auto » ancré au menu du sélecteur de modèle du composer :
-//      toggle PAR SESSION, Model/Effort verrouillés quand Auto est actif,
-//      pastille « N of M models available » ;
-//   2. section Settings « Auto routing » : whitelist, classifieur, santé locale
-//      par modèle (latence, erreurs, cache hit, « warm cache »), relecture
-//      automatique toutes les 60 s + « Re-check now ».
+// TWO surfaces, wired to /kybernos-auto/* (mock-up composer-auto-c-health):
+//   1. an « Auto » panel anchored in the composer's model-picker menu:
+//      PER-SESSION toggle, Model/Effort locked while Auto is on,
+//      « N of M models available » pill;
+//   2. the « Auto routing » Settings section: the models Auto may use, the classifier, the local health
+//      per model (latency, errors, cache hit, « warm cache »), automatic
+//      re-read every 60 s + « Re-check now ».
 //
-// i18n : le pont kbt/kbf vit dans @local/kybernos, qui expose
-// window.__KB_LANG_RESOLVE__ — on le réutilise (en/fr, repli fr).
+// i18n: the kbt/kbf bridge lives in @local/kybernos, which exposes
+// window.__KB_LANG_RESOLVE__ — reused here (en/fr, falls back to fr).
 // ═══════════════════════════════════════════════════════════════════════════
 
 window.__ModuleLoader__.load({
@@ -47,8 +47,8 @@ window.__ModuleLoader__.load({
       return kt('Sain', 'Healthy') + (age !== null ? kt(' · a répondu il y a ', ' · answered ') + age + (lang() === 'en' ? ' s ago' : ' s') : '')
     }
 
-    // L'app ne met PAS l'id de session dans l'URL : elle le garde dans
-    // localStorage « dsh.sessions.current ». L'URL ne sert que de repli.
+        // The app does NOT put the session id in the URL: it keeps it in
+        // localStorage « dsh.sessions.current ». The URL is only a fallback.
     const sessionIdCourante = () => {
       try {
         const j = JSON.parse(localStorage.getItem('dsh.sessions.current') || 'null')
@@ -61,14 +61,14 @@ window.__ModuleLoader__.load({
     const lireEtat = (sessionId) => fetch('/kybernos-auto/state?sessionId=' + encodeURIComponent(sessionId || ''))
       .then((r) => r.json()).catch(() => null)
 
-    // ── 1. la rangée Auto DANS le menu du sélecteur de modèle ───────────────
-    // Le menu natif (role=menu, position:fixed, géré par React) porte Model et
-    // Effort. On y ajoute NOTRE rangée comme dernier enfant : séparateur, Auto +
-    // toggle « Cette session seulement », pastille « N of M models available ».
-    // Le menu est ancré par son bord HAUT : en grandissant il passerait sur la
-    // puce du composer, donc on le remonte d'autant (transform, que le menu
-    // natif ne touche pas). Un enfant étranger survit aux rendus React ; le tick
-    // le repose si le menu a été recréé.
+        // ── 1. the Auto row INSIDE the model picker's menu ───────────────
+        // The native menu (role=menu, position:fixed, managed by React) holds Model and
+        // Effort. OUR row is added as its last child: separator, Auto +
+        // « This session only » toggle, « N of M models available » pill.
+        // The menu is anchored by its TOP edge: growing, it would cover the composer's
+        // chip, so it is moved up by the same amount (transform, which the native menu
+        // does not touch). A foreign child survives React renders; the tick
+        // puts it back if the menu was recreated.
     let panneau = null
     let etatPanneau = null
     let chargement = false
@@ -84,8 +84,8 @@ window.__ModuleLoader__.load({
       return null
     }
 
-    // Verrou : seuls Model et Effort (role=menuitem) sont grisés tant qu'Auto
-    // est actif — notre rangée reste active pour pouvoir le couper.
+        // Lock: only Model and Effort (role=menuitem) are greyed out while Auto
+        // is on — our row stays active so that it can be switched off.
     const verrouiller = (menu, on) => {
       for (const it of menu.querySelectorAll('[role="menuitem"]')) {
         it.style.opacity = on ? '0.4' : ''
@@ -102,8 +102,8 @@ window.__ModuleLoader__.load({
       const el = document.createElement('div')
       el.setAttribute('data-kb', 'auto-popover')
       el.className = 'kaa-pop'
-      // Le menu natif réagit au pointeur / clavier : rien de ce qui se passe
-      // dans notre rangée ne doit remonter jusqu'à lui.
+            // The native menu reacts to pointer / keyboard: nothing that happens
+            // in our row must bubble up to it.
       for (const ev of ['pointerdown', 'mousedown', 'touchstart', 'keydown']) el.addEventListener(ev, (e) => e.stopPropagation())
       el.addEventListener('click', (e) => {
         e.stopPropagation()
@@ -114,8 +114,8 @@ window.__ModuleLoader__.load({
           body: JSON.stringify({ sessionId: sessionIdCourante(), on: suivant })
         }).then((r) => r.json())
         const global = etatPanneau !== null && etatPanneau.global === true
-        // Réglage global actif (forcé partout) : l'éteindre ICI le coupe pour de bon,
-        // sinon le toggle resterait bloqué sur « On ». Puis l'état de la session.
+                // Global setting on (forced everywhere): switching it off HERE really turns it off,
+                // otherwise the toggle would stay stuck on « On ». Then the session's state.
         const suite = global
           ? fetch('/kybernos-auto/settings', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -134,9 +134,9 @@ window.__ModuleLoader__.load({
       return el
     }
 
-    // La rangée est construite UNE fois puis mise à jour sur place : reconstruire
-    // le DOM retirait le bouton qui avait le focus, et le menu natif se fermait
-    // (perte de focus). Les nœuds sont gardés dans `refs`.
+        // The row is built ONCE then updated in place: rebuilding
+        // the DOM removed the button that had the focus, and the native menu closed
+        // (focus lost). The nodes are kept in `refs`.
     let refs = null
     const construireRangee = () => {
       panneau.textContent = ''
@@ -157,7 +157,7 @@ window.__ModuleLoader__.load({
       sw.setAttribute('data-kb', 'auto-chip-toggle')
       sw.setAttribute('aria-label', 'Auto')
       sw.append(document.createElement('span'))
-      // Le bouton ne doit pas prendre le focus à la souris : le focus reste dans le menu.
+            // The button must not take the focus on a mouse press: the focus stays in the menu.
       sw.addEventListener('mousedown', (e) => e.preventDefault())
       ligne.append(txt, sw)
       const pastille = document.createElement('div')
@@ -177,7 +177,7 @@ window.__ModuleLoader__.load({
     const rendrePanneau = () => {
       if (panneau === null || etatPanneau === null) return
       if (refs === null || panneau.contains(refs.sw) === false) construireRangee()
-      // Tolérant à un hôte plus ancien (avant restart) : total/disponibles se recalculent.
+            // Tolerant of an older host (before a restart): total/available are recomputed.
       const etat = etatPanneau
       const sante = Array.isArray(etat.sante) ? etat.sante : []
       const total = typeof etat.total === 'number' ? etat.total : sante.length
@@ -194,7 +194,7 @@ window.__ModuleLoader__.load({
       refs.ptxt.textContent = total === 0
         ? kt('Aucun modèle dans la whitelist', 'No model in the whitelist')
         : disponibles + kt(' sur ', ' of ') + total + (total > 1 ? kt(' modèles disponibles', ' models available') : kt(' modèle disponible', ' model available'))
-      // Carte santé compacte (maquette c-health) : état, latence, erreurs.
+            // Compact health card (mock-up c-health): state, latency, errors.
       refs.sante.textContent = ''
       if (sante.length === 0) {
         const vide = document.createElement('div')
@@ -227,16 +227,16 @@ window.__ModuleLoader__.load({
           refs.sante.append(ligneS)
         }
       }
-      // Le sélecteur natif affiche « Auto » quand le mode est actif pour la
-      // session (le texte d'origine est gardé et restitué à l'extinction).
+            // The native picker shows « Auto » when the mode is on for the
+            // session (the original text is kept and restored when it is switched off).
       appliquerChipAuto(on)
       const menu = menuOuvert()
       if (menu !== null) decaler(menu)
     }
 
-    // Label « Auto » sur la puce native : le texte d'origine est mémorisé dans
-    // un dataset et restitué à l'extinction. Un re-render React peut restaurer
-    // le nom du modèle — la réapplication est périodique (tick du composer).
+        // « Auto » label on the native chip: the original text is remembered in
+        // a dataset and restored when switched off. A React re-render can bring back
+        // the model's name — so it is re-applied periodically (composer tick).
     let chipOriginal = null
     const appliquerChipAuto = (on) => {
       const b = [...document.querySelectorAll('button')].find((x) => {
@@ -264,8 +264,8 @@ window.__ModuleLoader__.load({
         if (etatPanneau !== null) appliquerChipAuto(actif(etatPanneau))
         const menu = menuOuvert()
         if (menu === null) { if (panneau !== null) retirerPanneau(); return }
-        // Dédoublonnage : plusieurs instances du client (hot reloads) peuvent
-        // chacune attacher leur panneau — on ne garde que le nôtre.
+                // De-duplication: several instances of the client (hot reloads) may
+                // each attach their panel — only ours is kept.
         for (const ex of menu.querySelectorAll('[data-kb="auto-popover"], [data-kb="auto-menu-row"]')) {
           if (ex !== panneau) ex.remove()
         }
@@ -289,7 +289,7 @@ window.__ModuleLoader__.load({
       } catch (e) { /* DOM en transition : réessai au prochain tick */ }
     }, 300)
 
-    // ── 2. la section Settings dédiée ───────────────────────────────────────
+        // ── 2. the dedicated Settings section ───────────────────────────────
     // The page shows the first rows of the health table and folds the rest (« all models » can list a hundred).
     const SANTE_VISIBLE = 8
     // Why the host refused a typed list, in the person's language (it answers with a code and the entries at fault).
@@ -334,7 +334,7 @@ window.__ModuleLoader__.load({
       const sondage = sondagePair[0]
       const setSondage = sondagePair[1]
       const lire = () => lireEtat('').then((j) => { if (j && j.ok === true) setEtat(j) })
-      // Relecture toutes les 60 s (intervalS) + horloge d'une seconde pour « Last check N s ago ».
+            // Re-read every 60 s (intervalS) + a one-second clock for « Last check N s ago ».
       React.useEffect(() => {
         lire()
         fetch('/kybernos-auto/models').then((r) => r.json()).then((j) => { if (j && j.ok === true && Array.isArray(j.models)) setModeles(j.models) }).catch(() => { /* a host without the route: the picker is empty */ })
@@ -614,8 +614,8 @@ window.__ModuleLoader__.load({
           try { console.error('[kybernos-auto] service slots indisponible : pas d interface') } catch (e) { /* */ }
           return
         }
-        // CSS : un tag dédié (pas de service styles requis — même technique que
-        // les autres bundles qui possèdent leur feuille).
+                // CSS: a dedicated tag (no styles service required — same technique as
+                // the other bundles that own their stylesheet).
         try {
           const tag = document.createElement('style')
           tag.dataset.plugin = '@local/kybernos-auto'
@@ -626,8 +626,8 @@ window.__ModuleLoader__.load({
             slots.inject('settings.section', () => slots.register(
             { name: 'settings.section', id: 'kybernos-auto-page', order: 14, label: 'Auto Routing' },
             () => h(KbAutoSettings)))
-        // Label « Auto » dès le montage : l'état de la session courante est lu
-        // sans attendre l'ouverture du menu (défaut T6 de la passée du 02/10).
+                // « Auto » label from the mount: the current session's state is read
+                // without waiting for the menu to open (defect T6 of the 02/10 pass).
         try {
           const appliquerAuMontage = () => {
             let sid = 'home'

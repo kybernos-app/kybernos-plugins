@@ -1,23 +1,23 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// @local/kybernos-modeles-locaux — client : le panneau « Modèles locaux », porté
-// par UNE seule porte : la section dédiée « Ollama Local Models » des Réglages.
-// Depuis le 02/10, ni le pied de la page Models native (`settings.models.footer`)
-// ni la page « AI Provider & Models » (ancienne monture) ne le répètent.
+// @local/kybernos-modeles-locaux — client: the « Local models » panel, carried
+// by ONE door only: the dedicated « Ollama Local Models » section of Settings.
+// Since 02/10, neither the foot of the native Models page (`settings.models.footer`)
+// nor the « AI Provider & Models » page (the old mount) repeat it.
 //
-// Le parcours (maquette v1 validée, docs/handoff/modeles-locaux) :
-//   1. DÉTECTER  — GET /modeles-locaux/machine (sysctl, ollama --version,
-//                  ollama list) : la machine, Ollama, les modèles déjà tirés.
-//   2. RECOMMANDER — catalogue local (sources citées) filtré par la RAM mesurée.
-//   3. INSTALLER — POST /modeles-locaux/installer : `ollama pull <id>` (ou
-//                  `brew install ollama` d'abord, explicitement), progression
-//                  lue sur la sortie du processus, annulable.
-//   4. BRANCHER  — remote.settings.mutate('llm-pi-ai', …) : déclare la route
-//                  `ollama-local` (baseURL http://127.0.0.1:11434/v1) et ses
-//                  modèles — LE même canal que la page Models native. Chaque
-//                  écriture porte un maillon ; si le modèle n'apparaît pas dans
-//                  le sélecteur, le panneau le dit : relance de DSH.
+// The path (mock-up v1, validated, docs/handoff/modeles-locaux):
+//   1. DETECT    — GET /modeles-locaux/machine (sysctl, ollama --version,
+//                  ollama list): the machine, Ollama, the models already pulled.
+//   2. RECOMMEND — local catalogue (sources cited) filtered by the measured RAM.
+//   3. INSTALL   — POST /modeles-locaux/installer: `ollama pull <id>` (or
+//                  `brew install ollama` first, explicitly), progress
+//                  read from the process output, cancellable.
+//   4. WIRE      — remote.settings.mutate('llm-pi-ai', …): declares the
+//                  `ollama-local` route (baseURL http://127.0.0.1:11434/v1) and its
+//                  models — the SAME channel as the native Models page. Every
+//                  write carries a link; if the model does not show up in
+//                  the picker, the panel says so: restart DSH.
 //
-// Honnêteté : rien n'est simulé ici. Une donnée absente s'affiche absente.
+// Honesty: nothing is simulated here. A missing datum is shown missing.
 // ═══════════════════════════════════════════════════════════════════════════
 window.__ModuleLoader__.load({
   id: '@local/kybernos-modeles-locaux',
@@ -30,7 +30,7 @@ window.__ModuleLoader__.load({
       const ROUTE_LOCALE = 'ollama-local'
       const BASE_LOCALE = 'http://127.0.0.1:11434/v1'
 
-      // ── catalogue : les recommandations, sources citées ──────────────────
+            // ── catalogue: the recommendations, sources cited ──────────────────
       // Last resort only (a host that does not know /modeles-locaux/catalogue yet): the same entries as the shipped
       // catalogue.json for these ids (a test pins it). Sizes: the Ollama registry's tag pages (15/10/2026); scores:
       // Artificial Analysis « Qwen3.5 small models » (05/03/2026). desc = the line under the name.
@@ -143,8 +143,8 @@ window.__ModuleLoader__.load({
         'kml.resync.tip': { fr: 'Re-synchroniser la déclaration (niveaux de thinking…)', en: 'Re-sync the declaration (thinking levels…)' },
         'kml.branches.count': { fr: '{n} branché(s) sur DSH', en: '{n} wired into DSH' },
         'kml.section': { fr: 'Branché sur DSH', en: 'Wired into DSH' },
-        // (01/10) Section Réglages dédiée — le panneau quitte le pied de la
-        // page Models native pour sa propre entrée de navigation.
+                // (01/10) Dedicated Settings section — the panel leaves the foot of the
+                // native Models page for its own navigation entry.
         'kml.page.titre': { fr: 'Modèles locaux Ollama', en: 'Ollama Local Models' },
         'kml.vide': { fr: 'Aucun modèle local branché — installe une recommandation ci-dessus.', en: 'No local model wired yet — install a recommendation above.' },
         'kml.relance': { fr: 'relance DSH si absent du sélecteur', en: 'restart DSH if missing from the picker' },
@@ -246,7 +246,7 @@ window.__ModuleLoader__.load({
       }
       // KB-KML-PURE-END
 
-      // ── icônes (tracés Lucide, comme les autres plugins) ─────────────────
+            // ── icons (Lucide paths, like the other plugins) ─────────────────
       const ICONS = {
         download: ['M12 3v12', 'M7 10l5 5 5-5', 'M4 21h16'],
         check: ['M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z', 'M8 12l3 3 5-6'],
@@ -263,8 +263,8 @@ window.__ModuleLoader__.load({
           d.map((p, i) => h('path', { d: p, key: i })))
       }
 
-      // ── Hugging Face : analyse du lien, estimation mémoire (leur logique,
-      // honnêteté inchangée : une donnée estimée s'affiche « estimée ») ─────
+            // ── Hugging Face: link analysis, memory estimate (their logic,
+            // honesty unchanged: an estimated datum is shown « estimated ») ─────
       const HF_QUANT_BITS = { Q2: 3.2, Q3: 3.6, IQ3: 3.4, IQ4: 4.25, Q4: 4.83, Q5: 5.5, Q6: 6.6, Q8: 8.5, BF16: 16, F16: 16, F32: 32 }
       const bitsDe = (quant) => {
         if (quant === null) return 4.83
@@ -290,9 +290,9 @@ window.__ModuleLoader__.load({
         return { ok: true, org, repo, quant, params, poidsGo, enChargeGo, cible: 'hf.co/' + org + '/' + repo + (quant !== null ? ':' + quant : '') }
       }
 
-      // ── styles : contrôles kbm-* (contrat partagé) + mise en page kml-* ──
-      // Si kybernos-models a déjà injecté le jeu kbm-* (mêmes classes, même
-      // contrat), on ne réinjecte que notre mise en page.
+            // ── styles: kbm-* controls (shared contract) + kml-* layout ──
+            // If kybernos-models has already injected the kbm-* set (same classes, same
+            // contract), only our own layout is injected again.
       const styles = (() => {
         const tags = new Set()
         return {
@@ -420,22 +420,22 @@ window.__ModuleLoader__.load({
         "@media (max-width: 900px) { .kml-tuiles { grid-template-columns: 1fr; } }\n" +
         "@media (max-width: 720px) { .kml-mod { flex-wrap: wrap; } .kml-mod-etat { align-items: flex-start; } .kml-mod-actions { justify-content: flex-start; } .kml-hf-saisie { min-width: 100%; } }\n"
 
-      // ── le profil de la route locale, et ce que le premier lancement de Kybernos en utilise ──
-      // Le panneau (brancher) et l'assistant de premier lancement (window.__KB_LOCAL__, plus bas) construisent
-      // la route de la même façon : un seul endroit.
+            // ── the local route's profile, and what Kybernos's first run uses of it ──
+            // The panel (wire) and the first-run wizard (window.__KB_LOCAL__, further down) build
+            // the route the same way: one place.
       const kbBuildProfile = (existing, mod) => {
         const prof = existing !== null && existing !== undefined ? JSON.parse(JSON.stringify(existing)) : {}
         if (typeof prof.api !== 'string' || prof.api.length === 0) prof.api = 'openai-completions'
         if (typeof prof.baseURL !== 'string' || prof.baseURL.length === 0) prof.baseURL = BASE_LOCALE
-        // pi-ai refuse un fournisseur sans clé (« No API key », mesuré 27/09)
-        // même pour un moteur local qui l'ignore : clé factice au coffre.
+                // pi-ai refuses a provider without a key (« No API key », measured 27/09)
+                // even for a local engine that ignores it: a dummy key in the vault.
         if (typeof prof.apiKeyEnv !== 'string' || prof.apiKeyEnv.length === 0) prof.apiKeyEnv = 'OLLAMA_LOCAL_API_KEY'
         const modeles = Array.isArray(prof.models) ? prof.models.filter((x) => x && x.id !== mod.id) : []
-        // Les qwen3.5 « pensent » par défaut et l'endpoint OpenAI d'Ollama ne
-        // coupe ça que par reasoning_effort (mesuré 27/09 : « think:false »
-        // ignoré, « reasoning_effort:'none' » → réponse immédiate). On déclare
-        // donc les niveaux (off→none, low, medium, high) et le compat qui
-        // laisse pi-ai envoyer le paramètre — le sélecteur apparaît dans DSH.
+                // The qwen3.5 « think » by default and Ollama's OpenAI endpoint only
+                // switches that off through reasoning_effort (measured 27/09: « think:false »
+                // ignored, « reasoning_effort:'none' » → immediate answer). So the levels
+                // (off→none, low, medium, high) and the compat that lets pi-ai send the
+                // parameter are declared — the selector shows up in DSH.
         const pense = /^(qwen3([.\-_]|$)|qwen3\.5|deepseek-r1|qwq)/.test(mod.id)
         const entree = { id: mod.id, name: mod.id, contextWindow: 32768, input: (mod.input || ['text', 'image']).slice() }
         if (pense === true) {
@@ -446,15 +446,15 @@ window.__ModuleLoader__.load({
         prof.models = modeles
         return prof
       }
-      // La recommandation : le PLUS GRAND modèle qui tient dans la RAM mesurée. Le catalogue est trié du plus
-      // grand au plus petit : le premier qui passe le filtre EST le plus grand qui convient (mesuré 27/09 :
-      // prendre le DERNIER faisait porter « Recommandé » à gemma4:e4b au lieu du 9B).
+            // The recommendation: the LARGEST model that fits the measured RAM. The catalogue is sorted from the
+            // largest to the smallest: the first one that passes the filter IS the largest that fits (measured 27/09:
+            // taking the LAST one gave « Recommended » to gemma4:e4b instead of the 9B).
       const kbRecommend = (ramGo) => {
         const possibles = CATALOGUE.filter((mod) => ramGo === null || ramGo === undefined || mod.ramMin <= ramGo)
         return possibles.length > 0 ? possibles[0] : null
       }
 
-      // ── accès services ───────────────────────────────────────────────────
+            // ── service access ───────────────────────────────────────────────────
       let kbCtx = null
       const kbMApi = () => {
         const c = kbCtx
@@ -518,7 +518,7 @@ window.__ModuleLoader__.load({
         const [detailOuvert, setDetailOuvert] = React.useState(false)
         const jobVivant = React.useRef(null)
 
-        // ── lectures réelles ───────────────────────────────────────────────
+                // ── real reads ─────────────────────────────────────────────────────
         const chargerMachine = React.useCallback(async (force) => {
           try {
             const r = await jsonGet('/modeles-locaux/machine' + (force === true ? '?force=1' : ''))
@@ -578,7 +578,7 @@ window.__ModuleLoader__.load({
           } catch (e) { /* le panneau reste sur son état — Revérifier relit */ }
         }, [])
 
-        // ── le job d'installation, interrogé toutes les 600 ms ─────────────
+                // ── the install job, polled every 600 ms ───────────────────────────
         React.useEffect(() => {
           if (job === null || job.running !== true) return undefined
           const t = setInterval(async () => {
@@ -651,13 +651,13 @@ window.__ModuleLoader__.load({
           await muter([{ op: 'set', path: ['providers', ROUTE_LOCALE], value: prof }])
         }
 
-        // ── dérivés ────────────────────────────────────────────────────────
+                // ── derived values ─────────────────────────────────────────────────
         const ramGo = machine !== null && machine.ramGo !== null ? machine.ramGo : null
         const budgetGo = ramGo === null ? null : Math.max(1, ramGo - 5)
         const installees = machine !== null && Array.isArray(machine.ollama.models) ? machine.ollama.models : []
         const branchees = ollamaLocal !== null && Array.isArray(ollamaLocal.models) ? ollamaLocal.models : []
-        // En charge ≈ taille du fichier × 1,25 (KV-cache + runtime) — estimé,
-        // affiché comme tel. État : Compatible ≤ budget, Juste ≤ RAM, sinon lourd.
+                // Loaded ≈ file size × 1.25 (KV cache + runtime) — estimated,
+                // shown as such. State: Fits ≤ budget, Tight ≤ RAM, otherwise too heavy.
         const enChargeDe = (mod) => (mod.tailleGo === null ? null : Math.round(mod.tailleGo * 1.25 * 10) / 10)
         const etatDe = (mod) => {
           const ec = enChargeDe(mod)
@@ -702,8 +702,8 @@ window.__ModuleLoader__.load({
               h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-outline', key: 'a', onClick: annuler, title: 'Annuler', 'aria-label': 'Annuler' }, '✕'),
             ]
           } else if (estBranche === true) {
-            // L'étiquette est cliquable : re-brancher resynchronise la
-            // déclaration (niveaux de thinking, fenêtre…) sans désinstaller.
+                        // The tag is clickable: wiring again re-syncs the
+                        // declaration (thinking levels, window…) without uninstalling.
             actions = [h('button', { className: 'kbm-tag kbm-resync', 'data-tone': 'success', key: 'ok',
               title: m('kml.resync.tip'), onClick: () => brancher(mod) }, Ic('check', 11), ' ', m('kml.branche.tag'))]
           } else if (estInstalle === true) {
@@ -917,9 +917,9 @@ window.__ModuleLoader__.load({
                   : null))))
       }
 
-      // Brancher un modèle déjà tiré, hors du panneau : ce que l'assistant de premier lancement fait quand son
-      // téléchargement est fini. Même profil que le bouton « Brancher » (kbBuildProfile), même canal (settings.mutate).
-      /** @returns {Promise<{ok:true}|{ok:false,reason:string}>} reason est un code */
+            // Wire a model that is already pulled, from outside the panel: what the first-run wizard does when its
+            // download is done. Same profile as the « Wire into DSH » button (kbBuildProfile), same channel (settings.mutate).
+            /** @returns {Promise<{ok:true}|{ok:false,reason:string}>} reason is a code */
       const kbConnect = async (id) => {
         const mod = CATALOGUE.find((x) => x.id === id)
         if (mod === undefined) return { ok: false, reason: 'unknown_model' }
@@ -960,10 +960,10 @@ window.__ModuleLoader__.load({
           } catch (e) { kbLocaleRead = () => 'en' }
           styles.insert(KBM_CSS, '@local/kybernos-modeles-locaux')
           styles.insert(KML_CSS, '@local/kybernos-modeles-locaux')
-          // (02/10) Une seule porte : la section dédiée ci-dessous. Le pied de la
-          // page Models native et la monture de « AI Provider & Models » sont retirés.
-          // ── Section Réglages DÉDIÉE ────────────────────────────────────────
-          // Même composant Panel, siège à lui dans la navigation des Réglages.
+                    // (02/10) One door only: the dedicated section below. The foot of the
+                    // native Models page and the mount in « AI Provider & Models » are removed.
+                    // ── DEDICATED Settings section ─────────────────────────────────────
+                    // Same Panel component, with its own seat in the Settings navigation.
           ctx.effect(() => {
             const slots2 = ctx.get('slots')
             if (slots2 === undefined || slots2 === null) return undefined
@@ -971,8 +971,8 @@ window.__ModuleLoader__.load({
               { name: 'settings.section', id: 'kybernos-ollama', order: 28, label: m('kml.page.titre') },
               Panel))
           }, 'modeles-locaux: section Réglages dédiée')
-          // (02/10) La monture dans la page « AI Provider & Models » est retirée :
-          // le panneau n'existe plus que dans la section dédiée ci-dessus.
+                    // (02/10) The mount in the « AI Provider & Models » page is removed:
+                    // the panel now only exists in the dedicated section above.
         },
       }
     } catch (bootError) {

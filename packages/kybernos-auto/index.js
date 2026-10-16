@@ -1,18 +1,18 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// kybernos-auto — moitié hôte.
+// kybernos-auto — host half.
 //
-// Le mode Auto, dans UN bundle dédié (02/10/2026, décision utilisateur) :
-//   • état PAR SESSION   → <DSH home>/kybernos/auto-sessions.json  (~/.dsh par défaut)
-//   • whitelist/classifieur (globaux) → <DSH home>/kybernos/settings.json
-//     (mêmes clés que la première itération : autoRouting* y restent lisibles,
-//     la page Settings dédiée du bundle les écrit désormais)
-//   • santé par modèle   → <DSH home>/kybernos/auto-health.json (compteurs locaux
-//     écrits à chaque routage : appels, erreurs, dernière latence)
-//   • le routeur lui-même (règles → classifieur local tev1 → whitelist)
+// Auto mode, in ONE dedicated bundle (02/10/2026, user decision):
+//   • PER-SESSION state   → <DSH home>/kybernos/auto-sessions.json  (~/.dsh by default)
+//   • the models Auto may use / classifier (global) → <DSH home>/kybernos/settings.json
+//     (same keys as the first iteration: autoRouting* stay readable there,
+//     the bundle's dedicated Settings page now writes them)
+//   • health per model   → <DSH home>/kybernos/auto-health.json (local counters
+//     written at every routing: calls, errors, last latency)
+//   • the router itself (rules → local tev1 classifier → whitelist)
 //
-// Le routeur est une COPIE conforme du CLI `~/.dsh/tools/auto-router.mjs`
-// (contrat identique, mêmes classes chat|code|vision|media|agent-task). Le CLI
-// reste autonome pour l'agent ; l'hôte sert la page et la puce du composer.
+// The router is a faithful COPY of the CLI `~/.dsh/tools/auto-router.mjs`
+// (same contract, same classes chat|code|vision|media|agent-task). The CLI
+// stays standalone for the agent; the host serves the page and the composer chip.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, realpathSync, renameSync, chmodSync, rmSync } from 'node:fs'
@@ -154,7 +154,7 @@ function settingsFileBlocked (read, file) {
 }
 // KB-SETTINGS-FILE-END
 
-// ── réglages (whitelist + classifieur) : mêmes clés que settings.json ───────
+// ── settings (the models Auto may use + classifier): same keys as settings.json ───────
 export function lireReglagesAuto (fichier) {
   let brut = {}
   try { brut = JSON.parse(readFileSync(fichier, 'utf8')) } catch { brut = {} }
@@ -206,7 +206,7 @@ const modelesDeLHote = (ctx) => async () => {
   return modelesConnus({ settings: service('settings'), credentials: service('credentials') })
 }
 
-// ── état PAR SESSION ────────────────────────────────────────────────────────
+// ── PER-SESSION state ──────────────────────────────────────────────────
 export function lireSessions (fichier) {
   let brut = {}
   try { brut = JSON.parse(readFileSync(fichier, 'utf8')) } catch { brut = {} }
@@ -400,8 +400,8 @@ const envoyer = (res, code, obj) => {
 // `silencieuxOk`: the two routes the command line calls (POST /router and /report, cli/auto-router.mjs) stay open to a caller that
 // says nothing — they write nothing a page could not, and a CLI sends no Origin. Every other route refuses it on a write.
 const origineOK = (req, silencieuxOk = false) => {
-  // Recette 2026-10 (M-02/S-03) : hôte EXACT de l'écoute réelle du socket,
-  // jamais un préfixe (« localhost.evil.example » passait).
+    // Acceptance 2026-10 (M-02/S-03): the EXACT host of the socket's real listening address,
+    // never a prefix (« localhost.evil.example » used to pass).
   const o = String(req.headers.origin || req.headers.referer || '')
   if (o === '') return silencieuxOk === true || ['GET', 'HEAD'].indexOf(String(req.method || '').toUpperCase()) >= 0
   try {
@@ -551,7 +551,7 @@ export function monterRoutes (webServerSvc, opts = {}) {
       maj.autoScope = corps.autoScope
     }
     if (corps.autoRouting !== undefined) {
-      // Disjoncteur GLOBAL hérité : true force Auto sur toutes les sessions.
+            // Legacy GLOBAL breaker: true forces Auto on every session.
       if (typeof corps.autoRouting !== 'boolean') { envoyer(res, 400, { ok: false, erreur: 'autoRouting : booléen attendu' }); return }
       maj.autoRouting = corps.autoRouting
     }
@@ -576,9 +576,9 @@ export function monterRoutes (webServerSvc, opts = {}) {
     }
   } })
 
-  // Rapport d'issue d'une délégation : latence réelle, erreur, usage de cache.
-  // C'est l'appelant (workflow, kyber, CLI) qui connaît l'issue — le routeur
-  // seul ne la voit pas. Alimente les colonnes Latence / Erreurs / Cache hit.
+    // Outcome report of a delegation: real latency, error, cache usage.
+    // It is the caller (workflow, kyber, CLI) that knows the outcome — the router
+    // alone does not see it. Feeds the Latency / Errors / Cache hit columns.
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/report', handler: async (req, res) => {
     if (!origineOK(req, true)) { res.writeHead(403); res.end('origine refusee'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }
@@ -635,9 +635,9 @@ export function monterRoutes (webServerSvc, opts = {}) {
     const sessionId = String(corps.sessionId || '')
     const sessions = lireSessions(sessionsFichier)
     const reg = await reglagesEffectifs()
-    // Activation : PAR SESSION (la puce du composer) — le global hérité de la
-    // première itération reste un disjoncteur (ON force toutes les sessions,
-    // dont le CLI sans sessionId).
+        // Activation: PER SESSION (the composer's chip) — the legacy global of the
+        // first iteration stays a breaker (ON forces every session,
+        // the CLI with no sessionId included).
     const actifPourSession = reg.global === true || (sessionId !== '' && sessions[sessionId] === true)
     if (actifPourSession === false) { envoyer(res, 200, { actif: false, raison: 'auto off pour cette session' }); return }
     // The caller may name models that just failed for this very delegation: the answer is then the NEXT ones.
