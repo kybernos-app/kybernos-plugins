@@ -333,7 +333,7 @@ export function applyMutation(store, body) {
 
     if (b.replace !== undefined) {
       const next = asArray(b.replace).map((e) => canonicalize(e)).filter((e) => idOf(e) !== null)
-      if (next.length > MAX_ENTRIES) return { ok: false, error: 'trop d entrées', entries: list }
+      if (next.length > MAX_ENTRIES) return { ok: false, error: 'too many entries', entries: list }
       // Merge onto an empty base: two entries with the same id in the batch
       // produce one row only, exactly like an upsert.
       const dedup = mergeEntries([], next).entries
@@ -350,7 +350,7 @@ export function applyMutation(store, body) {
       ? body
       : (b.entry !== undefined ? b.entry : (b.entries !== undefined ? b.entries : (idOf(b) !== null ? b : [])))
     const raws = asArray(incoming)
-    if (raws.length === 0) return { ok: false, error: 'aucune entree fournie', entries: list }
+    if (raws.length === 0) return { ok: false, error: 'no entry given', entries: list }
 
     const canon = []
     for (const raw of raws) {
@@ -359,7 +359,7 @@ export function applyMutation(store, body) {
       canon.push(entry)
     }
     const out = mergeEntries(list, canon)
-    if (out.entries.length > MAX_ENTRIES) return { ok: false, error: 'trop d entrées', entries: list }
+    if (out.entries.length > MAX_ENTRIES) return { ok: false, error: 'too many entries', entries: list }
     return { ok: true, entries: out.entries, added: out.added, updated: out.updated, removed: 0 }
   } catch (e) {
     return { ok: false, error: e && e.message ? String(e.message) : 'mutation impossible' }
@@ -455,7 +455,7 @@ const mountWebRoutes = (ctx, webServerSvc) => {
   // The text of a received message: an action whose template contains `{message}`
   // needs it, and the action bar only knows its identifier. Same path as the
   // voice synthesis (sessionPersistence).
-  GET('/kybernos/slash/message', 'kybernos-slash: texte d un message', async (req) => {
+  GET('/kybernos/slash/message', 'kybernos-slash: text of a message', async (req) => {
     const sessionId = queryParam(req, 'sessionId')
     const messageId = queryParam(req, 'messageId')
     if (sessionId === null || messageId === null) return { ok: false, error: 'sessionId et messageId requis' }
@@ -507,7 +507,7 @@ export async function messageText(ctx, sessionId, messageId) {
     }
     return { ok: true, text: parts.join('\n') }
   }
-  return { ok: false, error: 'message introuvable' }
+  return { ok: false, error: 'message not found' }
 }
 
 export function apply(ctx) {

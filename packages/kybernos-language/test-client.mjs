@@ -1116,5 +1116,26 @@ check('the link under General › Language is a slot item (order 1, between Lang
 check('no flag emoji (a language is not a country)', !/[\u{1F1E6}-\u{1F1FF}]/u.test(SOURCE))
 check('the internal read of DSH (dicts) is guarded by a shape test', /instanceof Map/.test(SOURCE))
 
+// ── WP-07: the page speaks the language it was resolved in, in the singular too, and « Show details » is English ──
+{
+  const setLang = (l) => { globalThis.window.__KB_LANG_RESOLVE__ = typeof l === 'function' ? l : () => l }
+  setLang('en')
+  check('English: « 1 text changed », « 2 texts changed » (A2-12)', T.L('staleSummary', { n: '1' }) === '1 text changed since this translation' && T.L('staleSummary', { n: '2' }) === '2 texts changed since this translation' && T.L('doubtSummary', { n: '1' }) === '1 text to double-check')
+  check('English: the other counts have a singular too', T.L('gaps', { n: '1' }).startsWith('1 text couldn’t') && T.L('readyOn', { date: 'x', n: '1' }) === 'Ready · translated on x · 1 text' && T.L('partialMeta', { pct: 50, n: '1' }) === '50% translated · 1 text left')
+  setLang('kybernos')
+  check('French: « 1 texte a changé », « 2 textes ont changé »', T.L('staleSummary', { n: '1' }) === '1 texte a changé depuis cette traduction' && T.L('staleSummary', { n: '2' }) === '2 textes ont changé depuis cette traduction')
+  setLang('fr-CA')
+  check('French also for a fr* base', T.L('title') === 'Langue')
+  setLang('es')
+  check('a translated language without a dictionary reads English', T.L('title') === 'Language')
+  setLang('en')
+  // the technical cause under « Show details » is English, with its machine code first (A2-10)
+  const causes = [...SOURCE.matchAll(/(?:error: |stop = \{ error: |lastError \|\| |result\.error \|\| |job\.error \|\| )'([^']+)'/g)].map((m) => m[1])
+  check('the causes handed to « Show details » are English', causes.length >= 8 && causes.every((c) => !/[éèêàçùîô]/.test(c) && !/\b(route hôte|échec|aucune|annulée|introuvable|inattendue)\b/.test(c)), causes)
+  check('…and keep their machine codes, which the page matches on', /ROUTE_ABSENT: host route missing/.test(SOURCE) && /UNREACHABLE: host route unreachable/.test(SOURCE) && /SOURCE_MISSING: source strings not found/.test(SOURCE) && /STORAGE_FULL: local storage full/.test(SOURCE))
+  const code = SOURCE.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n')
+  check('the French of the page speaks « tu »: no « vous », « votre », « vos »', !/(?<![A-Za-zÀ-ÿ])(vous|votre|vos)(?![A-Za-zÀ-ÿ])/i.test(code), (code.match(/.{30}(?<![A-Za-zÀ-ÿ])(vous|votre|vos)(?![A-Za-zÀ-ÿ]).{20}/i) || [''])[0])
+}
+
 console.log('\n' + pass + ' ✓  ' + fail + ' ✗')
 process.exit(fail === 0 ? 0 : 1)

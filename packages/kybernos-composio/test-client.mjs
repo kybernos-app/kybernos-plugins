@@ -344,16 +344,32 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   ok('form: a typed secret is sent with its name, and a new timeout wins', body2.secrets.length === 1 && body2.secrets[0].name === 'ZTOKEN' && body2.secrets[0].value === 'typed-value' && body2.toolCallTimeoutMs === 90000)
   ok('form: a new server starts empty, http', formOf(null).transport === 'streamable-http' && formOf(null).secrets.length === 0 && bodyOf(formOf(null), null).disabled === undefined)
 
-  // locales: fr stays French, en English, any other locale English (it used to fall back to French)
+  // locales (WP-07): the language is what Kybernos resolved: « kybernos » or fr* is French, every other language English, nothing resolved English
   const tin = (lang) => {
-    plugin.apply({ get: (n) => (n === 'locale' ? { current: () => lang } : (n === 'slots' ? { inject: () => {}, register: () => {} } : undefined)), effect: () => {} })
+    globalThis.window.__KB_LANG_RESOLVE__ = typeof lang === 'function' ? lang : () => lang
     return t('kb.cp.chipall')
   }
-  ok('i18n: fr gives French', tin('fr') === 'Toutes')
+  ok('i18n: fr gives French', tin('fr') === 'Toutes' && tin('fr-CA') === 'Toutes')
   ok('i18n: en gives English', tin('en') === 'All')
-  ok('i18n: de and es give English, not French', tin('de') === 'All' && tin('es-MX') === 'All' && tin('ja') === 'All')
-  ok('i18n: the Kybernos default stays French', tin('kybernos') === 'Toutes')
+  ok('i18n: de and es give English, not French', tin('de') === 'All' && tin('es-MX') === 'All' && tin('ja') === 'All' && tin('ar') === 'All')
+  ok('i18n: « kybernos » (the French of the product) gives French', tin('kybernos') === 'Toutes')
+  ok('i18n: a resolver that throws, or none, gives English', tin(() => { throw new Error('not ready') }) === 'All' && (delete globalThis.window.__KB_LANG_RESOLVE__, t('kb.cp.chipall')) === 'All')
   ok('i18n: an unknown key is returned as it is', t('no.such.key') === 'no.such.key')
+
+  // counts: « 1 tool », not « 1 tools » (A2-12)
+  const { tN, importParse: ip, httpUrl, safeName: sn } = plugin.composio
+  globalThis.window.__KB_LANG_RESOLVE__ = () => 'en'
+  ok('counts: one tool, several tools', tN('kb.cp.st.active', 1) === 'Active · 1 tool' && tN('kb.cp.st.active', 3) === 'Active · 3 tools' && tN('kb.cp.st.active', 0) === 'Active · 0 tools')
+  ok('counts: one operation, one tool added', tN('kb.cp.api.ops', 1) === '1 operation' && tN('kb.cp.api.add', 1) === 'Add · 1 tool' && tN('kb.cp.api.tools', 1) === 'Active · 1 tool' && tN('kb.cp.api.added', 1).indexOf('1 tool available') > 0)
+  globalThis.window.__KB_LANG_RESOLVE__ = () => 'kybernos'
+  ok('counts: the French has its singular too', tN('kb.cp.st.active', 1) === 'Actif · 1 outil' && tN('kb.cp.api.ops', 1) === '1 opération' && tN('kb.cp.api.ops', 2) === '2 opérations')
+  globalThis.window.__KB_LANG_RESOLVE__ = () => 'en'
+
+  // pasting JSON (A3-17): a neutral English name, the real reason for an empty block, the address checked in the analysis
+  ok('paste: a one-letter name becomes « server » (it was « serveur »), one without letters « srv »', sn('a') === 'server' && sn('Z') === 'server' && sn('🙂') === 'srv' && sn('') === 'srv')
+  ok('paste: a block with no command and no address says so (it is not « no block found »)', ip('{"mcpServers":{"a":{}}}').error === 'nocmd' && ip('{"mcpServers":{}}').error === 'nomap' && ip('{"x":1}').error === 'nomap')
+  ok('paste: a good block still reads', ip('{"mcpServers":{"zed":{"url":"https://example.com/mcp"}}}').servers.length === 1)
+  ok('paste: an address is http(s) or it is refused in the preview', httpUrl('https://example.com/mcp') === true && httpUrl('http://127.0.0.1:3000/x') === true && httpUrl('not a url') === false && httpUrl('ftp://example.com') === false && httpUrl('javascript:alert(1)') === false && httpUrl('') === false)
 }
 
 // ── the client keeps the catalog out of its bundle (replaces scripts/inject-catalog.mjs) ──

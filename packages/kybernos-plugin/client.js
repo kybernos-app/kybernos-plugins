@@ -5688,6 +5688,8 @@ const CSS = `
 [class*="collapsed"] .kb4-menu .kb4-newchat .kb4-plus{width:36px;height:36px;background:transparent}
 [class*="collapsed"] .kb4-menu .kb4-item{width:36px;height:36px;margin:1px auto;padding:0;justify-content:center;gap:0;border-radius:12px}
 [class*="collapsed"] .kb4-menu .kb4-ico{width:auto}
+/* The goal-progress card is text in a card: in the 44 px icon rail only clipped fragments of it showed (A5-29). */
+[class*="collapsed"] .kbp-bar{display:none}
 .kb4-pagehead{font-size:14px;font-weight:700;letter-spacing:.02em;color:var(--dsw-alias-label-primary);padding:2px 0 12px}
 /* (28/09, audit) Onglets unifiés sur le système kb8 (Agent Teams) : même
    pilule contour, même état actif à bordure de marque. kb4-tab n'est plus
@@ -5991,14 +5993,16 @@ const CSS = `
 .kb6-prev:has(.kb6-live),
 .kb6-prev:has(.kb6-minivis){padding:0}
 .kb6-minivis{position:relative;height:100%;min-height:0;border-radius:8px;overflow:hidden;background:var(--dsw-alias-bg-base);pointer-events:none;display:flex;align-items:center}
-.kb6-minivis-in{width:1200px;flex:none;transform:scale(.25);transform-origin:0 50%}
+/* max-width:none: the phone sheet caps every box of a page at its container (max-width:100%); this one is 1200 px on purpose, and
+   is scaled down into the card: capped at the card's 332 px it was scaled to a 92 px stamp (A4-31). */
+.kb6-minivis-in{width:1200px;max-width:none;flex:none;transform:scale(.25);transform-origin:0 50%}
 /* ── Rendu vivant (html / markdown) : le livrable TEL QU'IL S'AFFICHE — une
    iframe sandboxée (aucun script, aucune navigation) du vrai document,
    réduite à l'échelle de la carte. Le code coloré n'est plus que le repli de
    lecture. pointer-events:none : le clic ouvre la popup, comme les autres
    cartes. ── */
 .kb6-live{position:relative;height:100%;min-height:0;border-radius:0;overflow:hidden;background:var(--dsw-alias-bg-base);display:flex;align-items:flex-start;pointer-events:none}
-.kb6-live-in{width:1200px;flex:none;transform:scale(.25);transform-origin:0 0}
+.kb6-live-in{width:1200px;max-width:none;flex:none;transform:scale(.25);transform-origin:0 0}
 .kb6-live-frame{width:1200px;height:440px;border:0;background:#fff;display:block;pointer-events:none}
 .kb6-more{display:flex;align-items:center;gap:9px;margin:16px auto 4px;padding:9px 20px;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .kb6-more:hover{border-color:var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2)}
@@ -9666,37 +9670,34 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         const tags = Array.isArray(ui.tags) ? ui.tags : []
         const hosted = ui.hosted === true
         const isActive = activeIds.indexOf(k.id) >= 0
-        return h('div', { className: 'kb8-card kb8-kyber' + kbIn(ci), key: rootPath + '/' + k.id, 'data-kb': 'kyber-card', 'data-root': rootPath, onClick: () => open({ rootId, k, rootLabel }) },
-          h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px' } },
-            h('span', { className: 'kb8-tile', style: Object.assign({ width: '46px', height: '46px', borderRadius: '15px', position: 'relative', overflow: 'hidden' }, color !== null ? { background: color, color: kbOnColor(color) } : null) },
+        return h('div', { className: 'kb8-card kb8-cmp kb8-kyber' + kbIn(ci), key: rootPath + '/' + k.id, 'data-kb': 'kyber-card', 'data-root': rootPath, onClick: () => open({ rootId, k, rootLabel }) },
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } },
+            h('span', { className: 'kb8-tile', style: Object.assign({ width: '38px', height: '38px', borderRadius: '13px', position: 'relative', overflow: 'hidden' }, color !== null ? { background: color, color: kbOnColor(color) } : null) },
               h('img', { src: kbAvatarUrl(rootId, k.id) + (ui.avatarAt ? '&v=' + encodeURIComponent(ui.avatarAt) : ''), alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e) { /* img */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }),
-              h(KbDynIcon, { name: ui.icon ? ui.icon : KB_DEFAULT_ICON, size: 24 })),
+              h(KbDynIcon, { name: ui.icon ? ui.icon : KB_DEFAULT_ICON, size: 22 })),
             h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, gap: '2px', flex: 1 } },
               h('span', { className: 'kb8-name' }, name),
               h('span', { style: { display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flexWrap: 'wrap' } },
                 h('span', { className: 'kb8-parent' }, kbt('kbui.kyber.dot') + kbPlural(agentCount, 'agent')),
                 isActive === true ? h('span', { className: 'kb8-pill kb8-pill-active', title: kbt('kbui.chat.bound') }, kbt('kbui.in.this.chat')) : null)),
             livePill(lv.status)),
-          // Description courte : l'amorce de la mission. La mission entiere vit
-          // dans la fiche du Kyber (un clic sur la carte), pas sur la carte.
-          h('p', { className: 'kb8-desc' }, kbShortDesc(k.mission, kbt('kbui.no.mission'))),
-          // Le badge hosted/local vivait dans la rangee d'actions, donc il
-          // n'apparaissait qu'au survol : impossible de comparer deux cartes
-          // d'un coup d'oeil. Il est maintenant toujours la, en tete des
-          // pastilles, et colore (marque) quand le kyber existe aussi en Hosted.
-          h('div', { className: 'kb8-pills' },
-            h('span', { className: 'kb8-pill kb8-pill-host' + (hosted === true ? ' on' : ''), 'data-kb': 'kyber-card-host', 'data-hosted': hosted === true ? 'yes' : 'no', title: hosted === true ? kbt('kbui.hosted.alsoexists') : kbt('kbui.runs.locally') },
-              Icon(hosted === true ? 'cloud' : 'monitor', 13), hosted === true ? kbt('kbui.hosted') : kbt('kbui.local')),
-            catOf !== null ? h('span', { className: 'kb8-pill kb8-pill-cat', title: kbt('kbui.category') }, catOf) : null,
-            tags.map((t) => h('span', { className: 'kb8-pill kb8-pill-tag', key: t, title: kbt('kbui.tag') }, '#' + t))),
-          // Actions : elles ne se montrent qu'au survol (le bouton « Edit » a
-          // disparu — un clic sur la carte ouvre deja la fiche complete).
-          h('div', { className: 'kb8-cardacts kb8-foot', 'data-kb': 'kyber-card-actions' },
-            h('button', { type: 'button', className: 'kb-favbtn' + (kyFavOf(entry) === true ? ' on' : ''), 'data-kb': 'favorite-star', 'data-scope': 'kybers', 'data-id': rootPath + '/' + k.id, title: kbt(kyFavOf(entry) === true ? 'kbui.unfav' : 'kbui.fav'), 'aria-label': kbt(kyFavOf(entry) === true ? 'kbui.unfav' : 'kbui.fav'), onClick: (e2) => { e2.stopPropagation(); kyFavToggle(rootPath + '/' + k.id) } }, Icon('star', 13)),
-            h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-share', title: kbt('kbui.share'), 'aria-label': kbt('kbui.share'), onClick: (e2) => { e2.stopPropagation(); partagerKyber(entry, kbAncreDe(e2.currentTarget)) } }, Icon('share', 13)),
-            h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-clone', title: kbt('kbui.action.clone'), 'aria-label': kbt('kbui.action.clone'), onClick: (e2) => { e2.stopPropagation(); cloneKyber(entry) } }, Icon('copy', 13)),
-            h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-export', title: kbt('kbui.action.export'), 'aria-label': kbt('kbui.action.export'), onClick: (e2) => { e2.stopPropagation(); exportKyber(entry) } }, Icon('download', 13)),
-            h('span', { className: 'kb8-act kb8-more' }, kbt('kbui.open'), Icon('chevronRight', 14))))
+          // Short description: the start of the mission, two lines at most. The whole mission lives in the Kyber's sheet (a click
+          // on the card), not on the card; an absent one is one muted line.
+          h('p', { className: 'kb8-desc' + (kbShortDesc(k.mission, '') === '' ? ' kb8-none' : '') }, kbShortDesc(k.mission, kbt('kbui.no.mission'))),
+          // The foot: the hosted/local badge is always there (it used to live in the actions row and only showed on hover, so two
+          // cards could not be compared at a glance), coloured (brand) when the kyber also exists as Hosted; the actions are drawn
+          // over it on hover or keyboard focus (the « Edit » button is gone: a click on the card already opens the whole sheet).
+          h('div', { className: 'kb8-cardfoot' },
+            h('div', { className: 'kb8-pills' },
+              h('span', { className: 'kb8-pill kb8-pill-host' + (hosted === true ? ' on' : ''), 'data-kb': 'kyber-card-host', 'data-hosted': hosted === true ? 'yes' : 'no', title: hosted === true ? kbt('kbui.hosted.alsoexists') : kbt('kbui.runs.locally') },
+                Icon(hosted === true ? 'cloud' : 'monitor', 13), hosted === true ? kbt('kbui.hosted') : kbt('kbui.local')),
+              catOf !== null ? h('span', { className: 'kb8-pill kb8-pill-cat', title: kbt('kbui.category') }, catOf) : null,
+              tags.map((t) => h('span', { className: 'kb8-pill kb8-pill-tag', key: t, title: kbt('kbui.tag') }, '#' + t))),
+            h('div', { className: 'kb8-cardacts', 'data-kb': 'kyber-card-actions' },
+              h('button', { type: 'button', className: 'kb-favbtn' + (kyFavOf(entry) === true ? ' on' : ''), 'data-kb': 'favorite-star', 'data-scope': 'kybers', 'data-id': rootPath + '/' + k.id, title: kbt(kyFavOf(entry) === true ? 'kbui.unfav' : 'kbui.fav'), 'aria-label': kbt(kyFavOf(entry) === true ? 'kbui.unfav' : 'kbui.fav'), onClick: (e2) => { e2.stopPropagation(); kyFavToggle(rootPath + '/' + k.id) } }, Icon('star', 13)),
+              h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-share', title: kbt('kbui.share'), 'aria-label': kbt('kbui.share'), onClick: (e2) => { e2.stopPropagation(); partagerKyber(entry, kbAncreDe(e2.currentTarget)) } }, Icon('share', 13)),
+              h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-clone', title: kbt('kbui.action.clone'), 'aria-label': kbt('kbui.action.clone'), onClick: (e2) => { e2.stopPropagation(); cloneKyber(entry) } }, Icon('copy', 13)),
+              h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-export', title: kbt('kbui.action.export'), 'aria-label': kbt('kbui.action.export'), onClick: (e2) => { e2.stopPropagation(); exportKyber(entry) } }, Icon('download', 13)))))
       }
       // Vue liste des Kybers : le bouton « Liste » de la barre n'avait JAMAIS
       // eu de rendu (uniquement la grille groupée) — il persistait le viewMode
@@ -9778,37 +9779,38 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         return ['not-linked', 'no-connection', 'unavailable', 'unreadable', 'empty', 'partial'].indexOf(code) >= 0 ? kbt('kbui.market.cloud.r.' + code) : ''
       }
       const marketCloudItems = (marketCloud !== null && marketCloud.ok === true && Array.isArray(marketCloud.items)) ? marketCloud.items : []
-      const cloudTile = (it) => h('span', { className: 'kb8-tile', style: { width: '44px', height: '44px', borderRadius: '14px', flex: '0 0 auto', background: it.color === '' ? 'var(--dsw-alias-bg-layer-1)' : it.color, color: kbOnColor(it.color === '' ? '#888888' : it.color), display: 'flex', alignItems: 'center', justifyContent: 'center' } }, String(it.glyph === '' ? it.name.slice(0, 2) : it.glyph))
+      const cloudTile = (it) => h('span', { className: 'kb8-tile', style: { width: '38px', height: '38px', borderRadius: '13px', flex: '0 0 auto', background: it.color === '' ? 'var(--dsw-alias-bg-layer-1)' : it.color, color: kbOnColor(it.color === '' ? '#888888' : it.color), display: 'flex', alignItems: 'center', justifyContent: 'center' } }, String(it.glyph === '' ? it.name.slice(0, 2) : it.glyph))
       // While the kybernos.app catalogue is being read the block draws bones the size of its cards (it used to be absent, and
       // then appear above the local templates and push them down).
       const marketCloudBloc = hubTab !== 'marketplace' ? null
         : marketCloud === null
           ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: '10px' }, 'data-kb': 'market-cloud' },
             h('div', { style: { display: 'flex', alignItems: 'baseline', gap: '10px' } }, h('span', { className: 'kb8-name' }, kbt('kbui.market.cloud.title'))),
-            kbSkelWrap(kbt('kbui.loading'), '', h('div', { className: 'kb8-grid' }, [0, 1, 2].map((i) => h('div', { className: 'kb8-card kb-sk-row', key: 'mc' + i },
-              h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px' } },
-                kbBone(44, 44, null, 14),
-                h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '6px' } }, kbBone('55%', 14), kbBone('40%', 11)),
-                kbBone(56, 22, 'pill')),
-              kbBone('92%', 10), kbBone('70%', 10),
-              h('div', { style: { display: 'flex', gap: '9px', marginTop: 'auto' } }, kbBone(96, 38, null, 12)))))))
+            kbSkelWrap(kbt('kbui.loading'), '', h('div', { className: 'kb8-grid kb8-cmp' }, [0, 1, 2].map((i) => h('div', { className: 'kb8-card kb8-cmp kb-sk-row', key: 'mc' + i },
+              h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } },
+                kbBone(38, 38, null, 13),
+                h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '6px' } }, kbBone('55%', 14), kbBone('40%', 11))),
+              h('div', { style: { display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '8px', height: 36 } }, kbBone('92%', 10), kbBone('70%', 10)),
+              h('div', { className: 'kb8-pills', style: { height: 26, alignItems: 'center' } }, kbBone(56, 22, 'pill')))))))
         : h('div', { style: { display: 'flex', flexDirection: 'column', gap: '10px' }, 'data-kb': 'market-cloud' },
             h('div', { style: { display: 'flex', alignItems: 'baseline', gap: '10px' } },
               h('span', { className: 'kb8-name' }, kbt('kbui.market.cloud.title')),
               h('span', { className: 'kb8-parent' }, marketCloudItems.length > 0 ? String(marketCloudItems.length) + (marketCloud.partiel === true ? ' · ' + marketReason(marketCloud) : '') : marketReason(marketCloud))),
             (marketCloudItems.length === 0
               ? h('span', { className: 'kb8-parent' }, kbt('kbui.market.cloud.none'))
-              : h('div', { className: 'kb8-grid' }, marketCloudItems.map((it) => h('div', { className: 'kb8-card', key: it.slug, style: { cursor: 'default' } },
-                  h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px' } },
+              : h('div', { className: 'kb8-grid kb8-cmp' }, marketCloudItems.map((it) => h('div', { className: 'kb8-card kb8-cmp', key: it.slug, 'data-kb': 'market-card', style: { cursor: 'default' } },
+                  h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } },
                     cloudTile(it),
                     h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '2px' } },
                       h('span', { className: 'kb8-name' }, it.name),
-                      h('span', { className: 'kb8-parent' }, String(it.cat === '' ? 'kybernos.app' : it.cat) + ' · v' + String(it.version))),
-                    h('span', { className: 'kb8-pill', title: kbt('kbui.agents.declares') }, String(Array.isArray(it.agents) ? it.agents.length : 0) + ' agents')),
-                  h('span', { className: 'kb8-sub' }, it.pitch),
-                  h('div', { style: { display: 'flex', gap: '9px', marginTop: 'auto' } },
-                    h('button', { type: 'button', className: 'kb8-primary', disabled: marketBusy === it.slug, onClick: () => installRemote(it) },
-                      marketBusy === it.slug ? kbt('kbui.installing') : kbt('kbui.market.cloud.install'))))))))
+                      h('span', { className: 'kb8-parent' }, String(it.cat === '' ? 'kybernos.app' : it.cat) + ' · v' + String(it.version)))),
+                  h('p', { className: 'kb8-desc' }, it.pitch),
+                  h('div', { className: 'kb8-cardfoot' },
+                    h('div', { className: 'kb8-pills' },
+                      h('span', { className: 'kb8-pill', title: kbt('kbui.agents.declares') }, String(Array.isArray(it.agents) ? it.agents.length : 0) + ' agents')),
+                    h('div', { className: 'kb8-cardacts', 'data-kb': 'market-card-actions' },
+                      h('button', { type: 'button', className: 'kb8-primary', disabled: marketBusy === it.slug, onClick: () => installRemote(it) },
+                        marketBusy === it.slug ? kbt('kbui.installing') : kbt('kbui.market.cloud.install')))))))))
 
       const installTemplate = async (tpl) => {
         if (marketBusy !== null) return
@@ -10020,18 +10022,23 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                   h('button', { type: 'button', className: 'kb8-primary', disabled: installed || marketBusy === tpl.id, style: installed ? { opacity: .6 } : null, onClick: () => installTemplate(tpl) },
                     installed ? kbt('kbui.installed') : (marketBusy === tpl.id ? kbt('kbui.installing') : kbt('kbui.install'))),
                   h('button', { type: 'button', className: 'kb8-chip', onClick: () => setPreview(tpl) }, kbt('kbui.preview')))))
-                : h('div', { className: 'kb8-grid' }, marketVisible.map(({ tpl, installed, tileStyle, meta }) => h('div', { className: 'kb8-card', key: tpl.id, style: { cursor: 'default' } },
-                h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px' } },
-                  h('span', { className: 'kb8-tile', style: tileStyle }, KbDynIcon({ name: tpl.icon, size: 22 })),
+                : h('div', { className: 'kb8-grid kb8-cmp' }, marketVisible.map(({ tpl, installed, tileStyle, meta }) => h('div', { className: 'kb8-card kb8-cmp', key: tpl.id, 'data-kb': 'market-card', style: { cursor: 'default' } },
+                h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } },
+                  h('span', { className: 'kb8-tile', style: Object.assign({}, tileStyle, { width: '38px', height: '38px', borderRadius: '13px' }) }, KbDynIcon({ name: tpl.icon, size: 20 })),
                   h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '2px' } },
                     h('span', { className: 'kb8-name' }, tpl.name),
-                    h('span', { className: 'kb8-parent' }, meta)),
-                  h('span', { className: 'kb8-pill', 'data-kb': 'market-agents', title: kbt('kbui.agents.declares') }, kbPlural(Array.isArray(tpl.roles) ? tpl.roles.length : 0, 'agent'))),
-                h('span', { className: 'kb8-sub' }, tpl.desc),
-                h('div', { style: { display: 'flex', gap: '9px', marginTop: 'auto' } },
-                  h('button', { type: 'button', className: 'kb8-primary', disabled: installed || marketBusy === tpl.id, style: installed ? { opacity: .6 } : (marketBusy === tpl.id ? { opacity: .7 } : null), onClick: () => installTemplate(tpl) },
-                    installed ? kbt('kbui.installed') : (marketBusy === tpl.id ? kbt('kbui.installing') : kbt('kbui.install'))),
-                  h('button', { type: 'button', className: 'kb8-chip', onClick: () => setPreview(tpl) }, kbt('kbui.preview'))))))))
+                    h('span', { className: 'kb8-parent' }, meta))),
+                h('p', { className: 'kb8-desc' }, tpl.desc),
+                // The foot says what the template is (its agents, and « Installed » once it is: a visible state, not a greyed
+                // button); Install and Preview show on hover or keyboard focus, and always without a hover device (V-16).
+                h('div', { className: 'kb8-cardfoot' },
+                  h('div', { className: 'kb8-pills' },
+                    h('span', { className: 'kb8-pill', 'data-kb': 'market-agents', title: kbt('kbui.agents.declares') }, kbPlural(Array.isArray(tpl.roles) ? tpl.roles.length : 0, 'agent')),
+                    installed ? h('span', { className: 'kb8-pill kb8-pill-cat', 'data-kb': 'market-installed' }, kbt('kbui.installed')) : null),
+                  h('div', { className: 'kb8-cardacts', 'data-kb': 'market-card-actions' },
+                    installed ? null : h('button', { type: 'button', className: 'kb8-primary', disabled: marketBusy === tpl.id, style: marketBusy === tpl.id ? { opacity: .7 } : null, onClick: () => installTemplate(tpl) },
+                      marketBusy === tpl.id ? kbt('kbui.installing') : kbt('kbui.install')),
+                    h('button', { type: 'button', className: 'kb8-chip', onClick: () => setPreview(tpl) }, kbt('kbui.preview')))))))))
           : (s.data === null || s.data === undefined)
             ? h(React.Fragment, null,
               h('p', { className: 'kb8-sub', 'data-kb': 'kybers-sub' }, kbt('kbui.teams.sub')),
@@ -10045,13 +10052,12 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                     kbBone(36, 36, null, 12),
                     h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '6px' } }, kbBone(i % 2 === 0 ? '30%' : '22%', 13), kbBone('55%', 10)),
                     kbBone(70, 20, 'pill'))))
-                  : h('div', { className: 'kb8-grid' }, [0, 1, 2].map((i) => h('div', { className: 'kb8-card kb8-kyber kb-sk-row', key: 'sc' + i },
-                    h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px' } },
-                      kbBone(46, 46, null, 15),
+                  : h('div', { className: 'kb8-grid kb8-cmp' }, [0, 1, 2].map((i) => h('div', { className: 'kb8-card kb8-cmp kb8-kyber kb-sk-row', key: 'sc' + i },
+                    h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } },
+                      kbBone(38, 38, null, 13),
                       h('span', { style: { display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, minWidth: 0 } }, kbBone(i % 2 === 0 ? '50%' : '38%', 14), kbBone('35%', 11))),
-                    h('div', { style: { display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '8px', height: 57 } }, kbBone('96%', 10), kbBone('88%', 10), kbBone('52%', 10)),
-                    h('div', { className: 'kb8-pills', style: { height: 54, alignContent: 'flex-start' } }, kbBone(64, 24, 'pill'), kbBone(72, 24, 'pill'), kbBone(52, 24, 'pill')),
-                    h('div', { style: { height: 28, display: 'flex', alignItems: 'center', gap: '8px' } }, kbBone(18, 18, 'round'), kbBone(18, 18, 'round'), kbBone(18, 18, 'round'))))))))
+                    h('div', { style: { display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '8px', height: 36 } }, kbBone('96%', 10), kbBone('60%', 10)),
+                    h('div', { className: 'kb8-pills', style: { height: 26, alignItems: 'center' } }, kbBone(64, 22, 'pill'), kbBone(72, 22, 'pill'), kbBone(52, 22, 'pill'))))))))
             : h(React.Fragment, null,
               h('p', { className: 'kb8-sub', 'data-kb': 'kybers-sub' }, kbt('kbui.teams.sub')),
               (shown.length === 0 ? h('div', { className: 'kb9-empty' }, kbt('kbui.no.kyber')) : null),
@@ -10069,7 +10075,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                 let ci = 0
                 for (const entry of pageShown) {
                   if (entry.rootPath !== curRoot) {
-                    if (kids !== null) out.push(h('div', { className: 'kb8-grid', key: 'grid-' + curRoot }, kids))
+                    if (kids !== null) out.push(h('div', { className: 'kb8-grid kb8-cmp', key: 'grid-' + curRoot }, kids))
                     curRoot = entry.rootPath
                     kids = []
                     // L'en-tete de racine (« Installes · dossier DSH » suivi du chemin
@@ -10080,7 +10086,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                   kids.push(cardOf(entry, ci))
                 ci += 1
                 }
-                if (kids !== null) out.push(h('div', { className: 'kb8-grid', key: 'grid-' + curRoot }, kids))
+                if (kids !== null) out.push(h('div', { className: 'kb8-grid kb8-cmp', key: 'grid-' + curRoot }, kids))
                 return out
               })())),
               h(KbPager, { page: vp.page, setPage: vp.setPage, pages: vp.pages }))),
@@ -15381,24 +15387,18 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         const label = (typeof u.name === 'string' && u.name.length > 0) ? u.name : (w.title || w.workspaceId)
         const nThreads = threadsOfProject(w)
         const nArts = artsOfProject(w)
-        return h('div', { className: 'kb8-card kb8-project' + kbIn(i), key: w.workspaceId, 'data-kb': 'project-card', onClick: () => openProject(w) },
-          h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px' } },
-            projectTile(w, 46),
+        return h('div', { className: 'kb8-card kb8-cmp kb8-cmp-top kb8-project' + kbIn(i), key: w.workspaceId, 'data-kb': 'project-card', onClick: () => openProject(w) },
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } },
+            projectTile(w, 38),
             h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '2px' } },
               h('span', { className: 'kb8-name' }, label),
-              h('span', { className: 'kb8-parent' }, kbt('kbui.project.toplevel')))),
-          h('p', { className: 'kb8-desc' }, kbShortDesc(u.desc, kbt('ui.nodescription'))),
-          // Deux compteurs seulement, tous les deux verifiables depuis la charge
-          // utile : le nombre de threads du projet et ses livrables. Les compteurs
-          // « docs » et « goals » etaient inventes — ils vivent maintenant dans
-          // l'onglet correspondant, a partir des donnees du host.
-          h('div', { className: 'kb8-pills' },
-            h('span', { className: 'kb8-pill' }, pillThreads(nThreads)),
-            h('span', { className: 'kb8-pill' }, pillDelivs(nArts))),
-          // L'action « Open › » n'apparaissait qu'au survol d'une carte qui
-          // s'ouvre deja d'un clic n'importe ou : elle ne disait rien de plus
-          // que la carte. Le conteneur reste (les suites le mesurent) et garde
-          // sa hauteur, mais ne peint plus rien.
+              // Two counters only, both checkable from the payload: the project's threads and its deliverables (the « docs » and
+              // « goals » counters were invented: they live in their own tab, from the host's data). They sit on the subtitle
+              // line: « Top-level project » was the same on every card and said nothing.
+              h('span', { className: 'kb8-parent kb8-count', 'data-kb': 'project-counts' }, pillThreads(nThreads) + ' · ' + pillDelivs(nArts)))),
+          // An empty description is one muted line, not a block of three reserved ones.
+          (() => { const d = kbShortDesc(u.desc, ''); return h('p', { className: 'kb8-desc' + (d === '' ? ' kb8-none' : '') }, d === '' ? kbt('ui.nodescription') : d) })(),
+          // The actions (star, share, export) show on hover or keyboard focus, and always without a hover device.
           h('div', { className: 'kb8-cardacts kb8-foot', 'data-kb': 'project-card-actions' },
             h('button', { type: 'button', className: 'kb-favbtn' + (wsFavOf(w) === true ? ' on' : ''), 'data-kb': 'favorite-star', 'data-scope': 'workspaces', 'data-id': w.workspaceId, title: kbt(wsFavOf(w) === true ? 'kbui.unfav' : 'kbui.fav'), 'aria-label': kbt(wsFavOf(w) === true ? 'kbui.unfav' : 'kbui.fav'), onClick: (e2) => { e2.stopPropagation(); wsFavToggle(w.workspaceId) } }, Icon('star', 13)),
             h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-share', title: kbt('kbui.share'), 'aria-label': kbt('kbui.share'), onClick: (e2) => { e2.stopPropagation(); setWsShare({ kind: 'workspace', id: w.workspaceId, titre: label, anchor: kbAncreDe(e2.currentTarget) }) } }, Icon('share', 13)),
@@ -15522,19 +15522,17 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               kbBone(36, 36, null, 12),
               h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '6px' } }, kbBone(i % 2 === 0 ? '28%' : '20%', 13), kbBone('18%', 10)),
               kbBone(150, 22, 'pill'))))
-            : h('div', { className: 'kb8-grid' }, [0, 1, 2].map((i) => h('div', { className: 'kb8-card kb8-project kb-sk-row', key: 'pc' + i },
-              h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px' } },
-                kbBone(46, 46, null, 15),
+            : h('div', { className: 'kb8-grid kb8-cmp' }, [0, 1, 2].map((i) => h('div', { className: 'kb8-card kb8-cmp kb8-project kb-sk-row', key: 'pc' + i },
+              h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } },
+                kbBone(38, 38, null, 13),
                 h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '6px' } }, kbBone(i % 2 === 0 ? '50%' : '38%', 14), kbBone('30%', 11))),
-              h('div', { style: { display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '8px', height: 57 } }, kbBone('92%', 10), kbBone('78%', 10), kbBone('44%', 10)),
-              h('div', { className: 'kb8-pills', style: { height: 26, alignItems: 'center' } }, kbBone(78, 22, 'pill'), kbBone(86, 22, 'pill')),
-              h('div', { style: { height: 28, display: 'flex', alignItems: 'center', gap: '8px' } }, kbBone(18, 18, 'round'), kbBone(18, 18, 'round'), kbBone(18, 18, 'round'))))))
+              h('div', { style: { display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '8px', height: 36 } }, kbBone('92%', 10), kbBone('60%', 10))))))
           : null),
         (items.length === 0 && wsFailed === false && wsUnread === false ? h('div', { className: 'kb9-empty' }, kbt('ui.noworkspace')) : null),
         (items.length > 0 && projectsVisible.length === 0 ? h('div', { className: 'kb9-empty' }, kbt('kbui.no.project.match') + pq + '\u201d.') : null),
         (vp.mode === 'list'
           ? h('div', { className: 'kb8-rows', 'data-kb': 'project-rows' }, shown.map((w, i) => projectRow(w, i)))
-          : h('div', { className: 'kb8-grid' }, shown.map((w, i) => projectCard(w, i)))),
+          : h('div', { className: 'kb8-grid kb8-cmp' }, shown.map((w, i) => projectCard(w, i)))),
         // Section « trouvé dans les chats » : elle vit sous la grille de
         // projets, visible seulement quand une requête de ≥ 3 caractères est
         // en vol ou servie. Chaque ligne ouvre VRAIMENT le chat
@@ -18808,7 +18806,10 @@ function renderFit(canvas, model, cam, opts){
         }
         calc()
         const t = setTimeout(calc, 150)
-        return () => { clearTimeout(t) }
+        // the card changes width without being remounted (a window resized, a phone turned, a sidebar opened): follow it
+        let ro = null
+        try { if (typeof ResizeObserver === 'function') { ro = new ResizeObserver(calc); ro.observe(box) } } catch (e) { ro = null }
+        return () => { clearTimeout(t); if (ro !== null) { try { ro.disconnect() } catch (e) { /* gone */ } } }
       }, [texte])
       React.useEffect(() => {
         let mort = false
@@ -18844,7 +18845,10 @@ function renderFit(canvas, model, cam, opts){
         const calc = () => { const w = box.clientWidth; if (w > 40) setScale(w / 1200) }
         calc()
         const t = setTimeout(calc, 150)
-        return () => { clearTimeout(t) }
+        // the card changes width without being remounted (a window resized, a phone turned, a sidebar opened): follow it
+        let ro = null
+        try { if (typeof ResizeObserver === 'function') { ro = new ResizeObserver(calc); ro.observe(box) } } catch (e) { ro = null }
+        return () => { clearTimeout(t); if (ro !== null) { try { ro.disconnect() } catch (e) { /* gone */ } } }
       }, [texte])
       React.useEffect(() => {
         let mort = false
@@ -23855,7 +23859,9 @@ function renderFit(canvas, model, cam, opts){
             h('div', { className: 'kbp-fill', style: { width: pct + '%' } })),
           h('div', { className: 'kbp-detail' }, best + ' / ' + bestMax + ' · ' + entries.length + (entries.length > 1 ? kbf(' tentatives') : kbf(' tentative'))))
       }
-      const row = (id, ico, label, badge, active, onClick, extra) => h('button', { type: 'button', key: id, className: 'kb4-item' + (active === true ? ' on' : ''), onClick },
+      // In the icon rail the label is hidden: the row names itself (a screen reader, and a tooltip of its own, instead of the
+      // group's « Kybernos » for all eight pages).
+      const row = (id, ico, label, badge, active, onClick, extra) => h('button', { type: 'button', key: id, className: 'kb4-item' + (active === true ? ' on' : ''), 'aria-label': label, title: label, onClick },
         h('span', { className: 'kb4-ico' }, kbMenuIcon(id, ico, active === true)), h('span', { className: 'kb4-lab' }, label),
         (badge !== null && badge !== undefined && badge > 0) ? h('span', { className: 'kb4-badge' }, String(badge)) : null,
         (extra === undefined ? null : extra))
@@ -24321,7 +24327,7 @@ function renderFit(canvas, model, cam, opts){
         h('span', { className: 'kb8-nc-ico', style: { background: kbNcTint(KB_NC_HUES[id], 0.16), color: KB_NC_HUES[id] } }, Icon(icon, 18)),
         h('span', { className: 'kb8-nc-body' },
           h('span', { className: 'kb8-nc-t' }, dot === undefined || dot === '' ? null : h('i', { className: 'kb8-nc-dot ' + dot }), title),
-          h('span', { className: 'kb8-nc-d' }, sub)))
+          h('span', { className: 'kb8-nc-d', title: sub }, sub)))
       const openKyber = () => { try { if (typeof window.__KB_OPEN__ === 'function') window.__KB_OPEN__({ view: 'kyber' }) } catch (e) { /* no page to open */ } }
       // One action: the host acts on the person's own Home computer (it is never named here). « Open » gets its tab at the click
       // (a popup blocker lets only that through) and the address is put in it once the server has answered.
@@ -24393,7 +24399,7 @@ function renderFit(canvas, model, cam, opts){
 .kb8-nc-ico{width:36px;height:36px;flex:none;border-radius:11px;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
 .kb8-nc-body{display:flex;flex-direction:column;gap:2px;min-width:0}
 .kb8-nc-t{font-size:13.5px;font-weight:600;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kb8-nc-d{font-size:12px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kb8-nc-d{font-size:12px;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .kb8-nc-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-inline-end:6px;background:var(--dsw-alias-label-tertiary)}
 .kb8-nc-dot.on,.kb4-dot.on{background:var(--dsw-alias-state-success-primary)}
 .kb8-nc-dot.busy,.kb4-dot.busy{background:var(--dsw-alias-state-warn-primary)}
@@ -26353,7 +26359,9 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
       }
       const stChip = (st) => h('span', { className: 'kbtg-st ' + (typeof st === 'string' ? st : 'pending') }, kbt('kbtg.st.' + (typeof st === 'string' ? st : 'pending')))
       const mono = (name) => (typeof name === 'string' ? name.replace(/[^a-z0-9]/gi, '').slice(0, 2).toUpperCase() : '?')
-      return h('div', { className: 'kbtg-root', ref: racine },
+      // `data-empty`: no team in this chat and nothing to validate. The phone sheet parks the chip then (72 px of a 390 px header
+      // for « Teams 0 », while the title kept 80): it is still in the « … » list.
+      return h('div', { className: 'kbtg-root', ref: racine, 'data-empty': crews.length === 0 && gateCalls.length === 0 ? '1' : undefined },
         h('button', {
           type: 'button',
           className: 'kbtg-btn' + (open === true ? ' on' : ''),
@@ -27082,7 +27090,7 @@ html [class$="_options"] .kbth-head>.kbth-sub+*{margin-top:20px}
       if (st.state === 'loading' && st.data === null) {
         return h('div', { className: 'kbt2-sec', 'aria-busy': 'true' }, entete(),
           kbSkelWrap(kbf('Lecture de l’état réel…'), 'kbt2-sec', [
-            h('section', { key: 'prof', className: 'kbt2-stat kb-sk-row', style: { flexDirection: 'column', alignItems: 'stretch', gap: 12, minHeight: 106, boxSizing: 'border-box' } },
+            h('section', { key: 'prof', className: 'kbt2-stat kb-sk-row', style: { flexDirection: 'column', flexWrap: 'nowrap', alignItems: 'stretch', gap: 12, minHeight: 106, boxSizing: 'border-box' } },
               h('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } }, kbBone(150, 30, null, 9), kbBone('40%', 12)),
               h('div', { style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, paddingTop: 12, borderTop: '1px solid var(--dsw-alias-border-l1)' } }, kbBone(84, 24, 'pill'), kbBone(104, 24, 'pill'), kbBone(170, 24, 'pill'))),
             h('section', { key: 'preset', className: 'kbt2-stat kb-sk-row', style: { minHeight: 116, boxSizing: 'border-box' } },
@@ -27157,7 +27165,9 @@ html [class$="_options"] .kbth-head>.kbth-sub+*{margin-top:20px}
         entete(),
         // ① Profil ciblé : sélecteur + fichier de config écrit (les deux vont
         // ensemble — changer de profil change le fichier), puis le bilan chiffré.
-        h('section', { className: 'kbt2-stat', 'data-kb': 'tool-profile', 'aria-busy': st.state === 'loading' ? 'true' : 'false', style: { flexDirection: 'column', alignItems: 'stretch', gap: 12 } },
+        // (a column that wraps stretches its rows to their content width, not to its own: the config path pushed the copy
+        // button 36 px past the card on a phone and the page scrolled sideways: no wrap here.)
+        h('section', { className: 'kbt2-stat', 'data-kb': 'tool-profile', 'aria-busy': st.state === 'loading' ? 'true' : 'false', style: { flexDirection: 'column', flexWrap: 'nowrap', alignItems: 'stretch', gap: 12 } },
           h('div', { style: { display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', minWidth: 0 } },
             h('label', { className: 'kbt2-profil' }, kbf('Profil'),
               h('select', { value: prof === null ? '' : prof, onChange: (ev) => setProf(ev.target.value === '' ? null : ev.target.value) },
@@ -28455,22 +28465,40 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
    (288 px rendus pour une ligne de 250). */
 :is(.kb8-card,.kb6-card,.kb9-card,.kba-card,.kb7-card,.kbf-card,.kb2-card){box-sizing:border-box}
 .kb8-card{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px;cursor:pointer;height:100%;min-height:212px;transition:transform .16s ease,border-color .16s ease}
-/* Description courte : 3 lignes TOUJOURS reservees, meme quand le texte est
-   court. C'est ce qui rend toutes les cartes de la grille strictement de la
-   meme hauteur (releve capture : 3 hauteurs differentes dans la meme page). */
-.kb8-desc{margin:0;font-size:13.5px;line-height:1.4;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:4.2em}
+/* Short description of a card: two lines at most, and only the room it needs (it used to reserve three lines, even for the
+   « No description yet » placeholder). */
+.kb8-desc{margin:0;font-size:13px;line-height:1.4;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .kb8-card .kb8-pills{min-height:26px;align-items:center}
 .kb8-card .kb8-foot{margin-top:auto}
-.kb8-act{margin-left:auto;flex:0 0 auto;display:inline-flex;align-items:center;gap:2px;color:var(--dsw-alias-label-secondary)}
-.kb8-act-ico{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9px}
-/* Les actions d'une carte ne s'affichent qu'au survol (et au focus clavier,
-   pour ne pas les rendre inaccessibles). Ecran tactile : toujours visibles. */
+/* The actions of a card only show on hover (and on keyboard focus, so that they stay reachable). Touch screen: always visible. */
 .kb8-cardacts{display:flex;align-items:center;gap:6px;transition:opacity .14s ease}
 @media (hover:hover){
 .kb8-card .kb8-cardacts{opacity:0;min-height:18px}
 .kb8-card:hover .kb8-cardacts,.kb8-card:focus-within .kb8-cardacts{opacity:1}
 }
 .kb8-card:hover{transform:translateY(-3px);border-color:var(--dsw-alias-brand-primary)}
+/* Compact cards (V-15, V-16). Workspaces, Agent Teams and the Marketplace carry the .kb8-cmp modifier (the other users of
+   .kb8-card, such as the Skills page, keep their size): about 110-140 px, no forced height, a description of two lines at most
+   (an empty one is one muted line, not a reserved block), the counters on the subtitle line, and the actions drawn over the
+   foot only on hover or keyboard focus. Without a hover device, and below 480 px, the actions stay visible in the flow. */
+.kb8-grid.kb8-cmp{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.kb8-card.kb8-cmp{position:relative;min-height:0;height:auto;padding:12px 14px;gap:7px}
+.kb8-cmp .kb8-desc.kb8-none{display:block;white-space:nowrap;text-overflow:ellipsis;font-size:12.5px;color:var(--dsw-alias-label-tertiary)}
+.kb8-cmp .kb8-parent{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kb8-parent.kb8-count{font-family:ui-monospace,monospace;font-size:10.5px;letter-spacing:.04em}
+.kb8-cmp .kb8-cardfoot{position:relative;display:flex;align-items:center;gap:8px;min-width:0;min-height:26px;margin-top:auto}
+.kb8-cmp .kb8-cardfoot .kb8-pills{flex:1 1 auto;min-width:0;min-height:0;max-height:28px;overflow:hidden}
+.kb8-cmp .kb8-cardfoot .kb8-cardacts{flex:0 0 auto;margin-inline-start:auto}
+.kb8-cmp .kb8-cardacts .kb8-primary{padding:5px 12px;border-radius:9px;font-size:12.5px;gap:6px}
+.kb8-cmp .kb8-cardacts .kb8-chip{padding:5px 12px;font-size:12.5px}
+@media (hover:hover){
+.kb8-cmp .kb8-cardacts{position:absolute;inset-inline-end:0;top:50%;transform:translateY(-50%);z-index:1;min-height:0;padding:2px 3px;border-radius:10px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 0 0 5px var(--dsw-alias-bg-layer-1);pointer-events:none}
+.kb8-cmp.kb8-cmp-top .kb8-cardacts{inset-inline-end:10px;top:10px;transform:none}
+.kb8-card.kb8-cmp:hover .kb8-cardacts,.kb8-card.kb8-cmp:focus-within .kb8-cardacts{pointer-events:auto}
+}
+@media (max-width:480px){
+.kb8-card.kb8-cmp .kb8-cardacts{position:static;transform:none;opacity:1;pointer-events:auto;box-shadow:none;padding:0;background:none}
+}
 /* Étoile « favori » partagée par Projets, Kybers et Automations : bouton
    discret transparent, marque ambre quand active, gris sinon, survol léger.
    Bidi-sûr : aucune position left/right dure, tout reste dans le flux inline. */
@@ -28588,7 +28616,15 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 /* (28/09, audit) La rangée de tuiles passe en multi-ligne : la scrollbar
    brute du scroll horizontal cachait la dernière tuile (« Audio & vi… ») ;
    en flex-wrap les tuiles restent lisibles à toute largeur. */
-.kb-typerow{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;padding:2px 2px 6px}
+/* A grid of equal tiles (A4-10): with ten kinds the last ones of a wrapped flex row stretched to half the width each. 96 px
+   at least keeps ten tiles on one row at 1400 px (a page of 1064 px); fewer tiles share the row, as before. On a phone the row
+   is one strip that slides sideways (A4-31): ten tiles in a wrapping grid took 460 px and pushed the first creation 976 px down. */
+.kb-typerow{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));align-items:stretch;gap:8px;padding:2px 2px 6px}
+@media (max-width:480px){
+.kb-typerow{display:flex;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none}
+.kb-typerow::-webkit-scrollbar{display:none}
+.kb-typerow>.kb-type{flex:0 0 108px;scroll-snap-align:start}
+}
 /* Jetons de texte de la maquette (--dsw-alias-fg / --dsw-alias-fg-muted) : ils
    N'EXISTENT PAS dans DSH. Le navigateur retombait donc sur la valeur de repli,
    pensée pour le thème clair (#1c1c1e), y compris en sombre — libellés des
@@ -28599,7 +28635,7 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 /* Tuiles RESPONSIVE sur UNE ligne (demande 26/09) : flex:1 partage la largeur
    de la rangée — jamais de débord ni de retour à la ligne ; les libellés longs
    éllipsent. compactes : scène 44px, padding 8/10. */
-.kb-type{flex:1 1 112px;min-width:112px;display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:8px 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-1);cursor:pointer;text-align:left;transition:border-color .15s,box-shadow .15s;color:var(--dsw-alias-label-primary);position:relative}
+.kb-type{min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:8px 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-1);cursor:pointer;text-align:left;transition:border-color .15s,box-shadow .15s;color:var(--dsw-alias-label-primary);position:relative}
 .kb-type:hover{border-color:var(--dsw-alias-border-l2)}
 .kb-type-sel{border-color:var(--dsw-alias-brand-primary,#5563d6);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary,#5563d6)}
 /* Bande d'aperçu des tuiles de type (fidèle à la maquette demos/deliverables) :

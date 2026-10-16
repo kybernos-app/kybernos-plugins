@@ -24,10 +24,19 @@
   /* A finger on a page's own controls (cards, toolbars, message actions): at least 36 px, in the page. They come first
    * and have the weight of one element and one attribute: the header, the composer and the drawer say their own sizes
    * after them (same weight, later), and DSH's own rules for a control (one class) lose. */
-  [data-slot="main"] button,
+  [data-slot="main"] button:where(:not([role="switch"], [role="radio"]:empty, [role="checkbox"])),
   [data-slot="main"] [role="button"],
   [data-slot="main"] [role="tab"] {
     min-height: 36px;
+  }
+  /* A switch, a checkbox and a round radio (a button with role="radio" and no label: a segmented option has one and keeps
+   * its size) keep the shape their page gave them, a 34 x 20 pill or an 18 px dot: a minimum size flattened them into 40 px
+   * rounded squares (A3-20, A3-23). Their touch target grows around them instead, with a transparent pseudo-element at zero
+   * specificity, so a control that draws its own knob there is left alone. */
+  :where(:is([data-slot="main"], [data-shortcut-modal="settings"], [data-rightbar-col]) :is(button[role="switch"], button[role="radio"]:empty, button[role="checkbox"]):not(:disabled))::before {
+    content: "";
+    position: absolute;
+    inset: -10px -6px;
   }
   /* an icon on its own is that wide; a button with a label keeps the width of its label (a min-width would let a flex row
    * squeeze it below that, and its text would be cut under the next button) */
@@ -101,9 +110,12 @@
   [data-slot="sidebar"] button:has(> svg:only-child) {
     min-width: 36px;
   }
-  [data-slot="sidebar"] div:has(> button > svg:only-child),
-  [data-slot="sidebar"] div:has(> span > button > svg:only-child),
-  [data-slot="sidebar"] div:has(> div > button > svg:only-child) {
+  /* (not the expanded session search: it holds its field between two of those buttons, and `auto` made the box 80 px wide
+   * and the field 4 px: nothing could be typed or read (A1-20). Its field is there collapsed too, with tabindex -1; only the
+   * expanded one can be reached, so a box that holds a reachable field is the expanded search.) */
+  [data-slot="sidebar"] div:where(:not(:has(> input:not([tabindex="-1"])))):has(> button > svg:only-child),
+  [data-slot="sidebar"] div:where(:not(:has(> input:not([tabindex="-1"])))):has(> span > button > svg:only-child),
+  [data-slot="sidebar"] div:where(:not(:has(> input:not([tabindex="-1"])))):has(> div > button > svg:only-child) {
     width: auto !important;
     max-width: none !important;
   }
@@ -128,6 +140,7 @@
   [data-slot="conversation.session.header.actions"] > div:not([data-kb]):not([data-team-action]):not(:has(span)),
   [data-slot="conversation.session.header.actions"] [data-act="call-video"],
   [data-slot="conversation.session.header.actions"] [data-act="call-setup"],
+  [data-slot="conversation.session.header.actions"] .kbtg-root[data-empty="1"],
   [role="tablist"][data-conversation-tabs]:has(> [role="tab"]:first-child[aria-selected="true"]) {
     position: fixed !important;
     top: 52px !important;
@@ -370,7 +383,7 @@
     background: var(--dsw-alias-bg-base, #151517);
   }
 
-  [data-rightbar-col] button {
+  [data-rightbar-col] button:where(:not([role="switch"], [role="radio"]:empty, [role="checkbox"])) {
     min-width: 44px;
     min-height: 44px;
   }
@@ -394,11 +407,11 @@
     padding-bottom: 8px;
     flex-shrink: 0;
   }
-  [data-shortcut-modal="settings"] button,
+  [data-shortcut-modal="settings"] button:where(:not([role="switch"], [role="radio"]:empty, [role="checkbox"])),
   [data-shortcut-modal="settings"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
     min-height: 40px;
   }
-  [data-shortcut-modal="settings"] button {
+  [data-shortcut-modal="settings"] button:where(:not([role="switch"], [role="radio"]:empty, [role="checkbox"])) {
     min-width: 40px;
   }
   [data-shortcut-modal="settings"]:not([data-kbmob-page]) > nav {

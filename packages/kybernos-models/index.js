@@ -445,10 +445,10 @@ const kbMdLoad = async (web, force) => {
             // No network: the read fails, the cache is served, even an old one — the route will say « stale » rather than let
             // anyone believe in a fresh index.
       const raw = await kbMdFetchDirect('https://models.dev/api.json')
-      if (raw === null) throw new Error('reponse vide')
+      if (raw === null) throw new Error('empty answer')
       const data = JSON.parse(raw)
-      // Index par « provider/modele » ET par id nu : la maquette cherche par id,
-      // les routes pi-ai nomment souvent « provider/modele ».
+      // Indexed by « provider/model » AND by bare id: the mock-up looks up by id,
+      // the pi-ai routes often name « provider/model ».
       const byKey = {}
       const byId = {}
       for (const provider of Object.keys(data)) {
@@ -593,7 +593,7 @@ const kbScoreObjects = (blob, ancre, num) => {
     try {
       const o = JSON.parse(txt)
       if (typeof o[ancre] === 'string' && typeof o[num] === 'number') out.push(o)
-    } catch (e) { /* objet tronqué : ignoré */ }
+    } catch (e) { /* truncated object: ignored */ }
   }
   return out
 }
@@ -622,7 +622,7 @@ const AA_EVAL_LABELS = {
   scicode: 'SciCode', terminalBench40: 'Terminal-Bench 4.0', terminalBench21: 'Terminal-Bench 2.1',
   terminalbenchHard: 'Terminal-Bench Hard', hle: 'Humanity\u2019s Last Exam', gpqa: 'GPQA Diamond',
   critpt: 'CritPt', lcr: 'AA-LCR', tau2: '\u03c4\u00b2-bench', tauBanking: '\u03c4\u00b2-bench Banking',
-  mmmuPro: 'MMMU-Pro', ifbench: 'IFBench', gdpvalNormalized: 'GDPval (normalis\u00e9)',
+  mmmuPro: 'MMMU-Pro', ifbench: 'IFBench', gdpvalNormalized: 'GDPval (normalized)',
   analystAgent: 'Analyst Agent', apexAgents: 'APEX-Agents', itbenchSre: 'ITBench SRE', omniscience: 'Omniscience',
 }
 /** An identifier with no known label, made readable rather than left raw. */
@@ -1022,7 +1022,7 @@ export function apply(ctx) {
         const id = new URL('http://x' + (req.url || '/')).searchParams.get('id') || ''
         const fichier = join(pluginDir, 'logos', id + '.svg')
         if (/^[a-z0-9][a-z0-9._-]{0,60}$/.test(id) !== true || id.includes('..') || existsSync(fichier) !== true) {
-          try { res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' }); res.end('not found') } catch (e) { /* socket fermé */ }
+          try { res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' }); res.end('not found') } catch (e) { /* socket closed */ }
           return
         }
         try {
@@ -1033,7 +1033,7 @@ export function apply(ctx) {
             'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'",
           })
           res.end(readFileSync(fichier))
-        } catch (e) { try { res.end() } catch (e2) { /* socket fermé */ } }
+        } catch (e) { try { res.end() } catch (e2) { /* socket closed */ } }
       }}), 'kybernos-models: logos de fournisseurs')
 
             // ── External scores: read, served, never merged ────────────────

@@ -124,4 +124,4 @@ const srv = createServer(async (req, res) => {
       : { id: 'poc', object: 'chat.completion', model: modeleId, choices: [{ index: 0, message: { role: 'assistant', content: texte }, finish_reason: 'stop' }], usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }, _poc: { thinking: pense } }))
   } catch (e) { res.writeHead(500); res.end(JSON.stringify({ error: String(e && e.message ? e.message : e) })) }
 })
-srv.listen(8848, '127.0.0.1', () => console.log('poc prêt sur http://127.0.0.1:8848/v1/chat/completions'))
+srv.listen(8848, '127.0.0.1', () => console.log('poc ready on http://127.0.0.1:8848/v1/chat/completions'))

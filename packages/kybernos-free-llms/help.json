@@ -9,7 +9,7 @@
       "en": "The page lists the free models available right now, read straight from OpenCode."
     },
     {
-      "fr": "Cochez « J’ai compris que mes prompts peuvent être conservés », puis « Brancher sur DSH » : le fournisseur et ses modèles sont créés.",
+      "fr": "Coche « J’ai compris que mes prompts peuvent être conservés », puis « Brancher sur DSH » : le fournisseur et ses modèles sont créés.",
       "en": "Tick “I understand my prompts may be retained”, then “Connect to DSH”: the provider and its models are created."
     },
     {
@@ -27,7 +27,7 @@
     "page": true
   },
   "good": {
-    "fr": "Rien n’est envoyé sans votre action. Modèles gratuits : les prompts peuvent être conservés, n’y mettez rien de sensible.",
+    "fr": "Rien n’est envoyé sans ton action. Modèles gratuits : les prompts peuvent être conservés, n’y mets rien de sensible.",
     "en": "Nothing is sent without your action. Free models: prompts may be retained, so do not put anything sensitive there."
   },
   "url": "https://help.kybernos.app/{lang}/models-and-budget/use-free-models/"

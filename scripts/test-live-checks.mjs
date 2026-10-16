@@ -139,5 +139,15 @@ console.log('a skip is never mistaken for a pass: every test that skips says « 
   }
 }
 
+console.log('the Featured cover check expects what the host serves, not what is on this disk (A3-05)')
+{
+  // On a sandbox the host serves a cover for picks that have no file in the sandbox's home (24 drawn, 15 on disk): the check compared the
+  // drawn covers with the files on disk and failed there. It expects the covers the picks answer lists (the host's own when it has the route).
+  const src = read('scripts/check-skills-featured-live.mjs')
+  const m = /const withCover = ([^\n]*)\n/.exec(src)
+  check('the number of covers to expect is read from the picks answer the page is shown', m !== null && /shownPicks\.items\.filter/.test(m[1]), m === null ? null : m[1])
+  check('...and the answer is the host\'s own when the host serves the route', /const shownPicks = hostHasPicks === true \? hostPicks : picksAnswer/.test(src))
+}
+
 console.log('\n' + (failed === 0 ? 'ALL GREEN' : String(failed) + ' FAILED'))
 process.exit(failed === 0 ? 0 : 1)
