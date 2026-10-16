@@ -490,7 +490,7 @@ console.log('\n── Fetch available models (the engine lists what a provider s
 {
   const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
   ok('the fetch blocks are delimited', bl('KB-FETCH-PURE').length > 100 && bl('KB-FETCH-ACTIONS').length > 100)
-  const fx = new Function(bl('KB-FETCH-PURE') + '\nreturn { kbFetchProbe, kbFetchAskable, kbFetchCandidates, kbFetchOutcome, kbFetchAdopt, kbFetchPreselect, kbFetchFilter, kbFetchApply, kbFetchSize }')()
+  const fx = new Function(bl('KB-CAP-PURE') + bl('KB-FETCH-PURE') + '\nreturn { kbFetchProbe, kbFetchAskable, kbFetchCandidates, kbFetchOutcome, kbFetchAdopt, kbFetchPreselect, kbFetchFilter, kbFetchApply, kbFetchSize }')()
   const pv = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvRows, kbPvMergeModels, kbPvEditProfile, kbPvNewProfile }')()
 
   console.log('  — the request')
@@ -515,7 +515,7 @@ console.log('\n── Fetch available models (the engine lists what a provider s
   const applied = fx.kbFetchApply(rows, cands, { 'gpt-a': true, 'claude-x': true })
   ok('adopting appends the ticked models, keeps a row already there exactly as it was, drops the empty placeholder', applied.length === 2 && applied[0].name === 'Mine' && applied[0].contextWindow === 999 && applied[1].id === 'claude-x' && applied[1].name === 'Claude X' && applied[1].input.join() === 'text,image', applied)
   ok('nothing ticked adds nothing', fx.kbFetchApply([{ id: 'x', name: '' }], cands, {}).length === 1)
-  ok('sizes read the way the native page writes them', fx.kbFetchSize(262144) === '256K' && fx.kbFetchSize(1048576) === '1M' && fx.kbFetchSize(131072) === '128K' && fx.kbFetchSize(200000) === '200K' && fx.kbFetchSize(8192) === '8K' && fx.kbFetchSize(1500) === '1500')
+  ok('sizes read like the Context column: K is 1000, so a label reads back as itself (A3-11)', fx.kbFetchSize(256000) === '256K' && fx.kbFetchSize(262144) === '262.1K' && fx.kbFetchSize(1048576) === '1M' && fx.kbFetchSize(131072) === '131.1K' && fx.kbFetchSize(200000) === '200K' && fx.kbFetchSize(8192) === '8.2K' && fx.kbFetchSize(1500) === '1.5K' && fx.kbFetchSize(512) === '512')
 
   console.log('  — what lands in the profile')
   const written = pv.kbPvMergeModels([{ id: 'old', name: 'Old', contextWindow: 8000 }], applied.concat([{ id: 'old', name: 'Old' }]))
@@ -612,6 +612,21 @@ console.log('\n── a count typed in the model sheet (context window, max outp
   ok('zero and negatives are refused', kbMNum(0) === null && kbMNum('0') === null && kbMNum('-5') === null && kbMNum(-5) === null)
   ok('an absurd size is refused (12 800 064 000 was accepted as a max output)', kbMNum('12800064000') === null && kbMNum(12800064000) === null && kbMNum('100M') === 1e8 && kbMNum('101M') === null)
   ok('NaN and Infinity are refused', kbMNum(NaN) === null && kbMNum(Infinity) === null)
+}
+
+console.log('\n── a count and its label agree both ways (A3-11) ──')
+{
+  const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
+  const { kbCapLabel, kbCapExact, kbMNum } = new Function(bl('KB-CAP-PURE') + bl('KB-DS-PURE') + bl('KB-NUM-PURE') + '\nreturn { kbCapLabel, kbCapExact, kbMNum }')()
+  ok('typing 256K shows 256K (it showed 250K)', kbCapLabel(kbMNum('256K')) === '256K', kbCapLabel(kbMNum('256K')))
+  ok('a window of 128000 reads 128K (it read 125K) and 200000 reads 200K', kbCapLabel(128000) === '128K' && kbCapLabel(200000) === '200K')
+  ok('a window that is not a whole thousand does not pretend to be one: 262144 is 262.1K, not 256K', kbCapLabel(262144) === '262.1K' && kbCapLabel(131072) === '131.1K')
+  ok('every whole thousand reads back as itself', [1000, 8000, 32000, 64000, 128000, 200000, 256000, 1000000, 1500000, 2000000].every((n) => kbMNum(kbCapLabel(n)) === n), [1000, 64000, 256000, 1500000].map((n) => kbCapLabel(n)).join())
+  ok('the edges: just under a million rounds up to 1M, small counts are plain, blanks and junk are empty', kbCapLabel(999960) === '1M' && kbCapLabel(999949) === '999.9K' && kbCapLabel(512) === '512' && kbCapLabel('') === '' && kbCapLabel(null) === '' && kbCapLabel(0) === '' && kbCapLabel(-5) === '' && kbCapLabel('abc') === '')
+  ok('the exact count sits behind the label', kbCapExact(262144) === '262,144' && kbCapExact('1048576') === '1,048,576' && kbCapExact(512) === '512' && kbCapExact('') === '' && kbCapExact(0) === '')
+  const has = (frag) => src.includes(frag)
+  ok('the Context column and the field badge carry the exact count as a tooltip', has("h('span', { title: kbCapExact(ctx) !== '' ? kbCapExact(ctx) : undefined }") && has("className: 'kbm-suffix', title: def.pretty === true && kbCapExact(value)"))
+  ok('the fetch list uses the same words as the table (one convention)', has('const kbFetchSize = (n) => kbCapLabel(n)') && has('const pretty = kbCapLabel'))
 }
 
 console.log('\n── a refused value is shown, and taken back ──')

@@ -895,18 +895,27 @@ window.__ModuleLoader__.load({
       if (KBM.live !== true) KBM.models = SAMPLE.map((s, i) => kbmMakeModel(s, 'ech-' + String(i + 1)))
 
       // ── rendu : les briques de la maquette ───────────────────────────────
-      const pretty = (v) => {
+      // KB-CAP-PURE-BEGIN
+      // ── a context size as a short label ──
+      // K is 1 000 and M is 1 000 000 on the way in (kbDsParseCapacity: "256K" is 256000) and on the way out, so a label
+      // reads back as itself: 256000 is "256K", and 262144 is "262.1K", never "256K" (typed back, that would be 256000).
+      // The exact count goes in the tooltip (kbCapExact). It used to read a multiple of 1024 as binary: 256000 showed
+      // "250K" and 128000 "125K" (A3-11). Pure.
+      const kbCapLabel = (v) => {
         const n = Number(v)
-        if (v === '' || v === null || v === undefined || isFinite(n) !== true || n === 0) return ''
-        const court = (x) => String(Math.round(x * 10) / 10)
-        if (n >= 1048576 && n % 1048576 === 0) return String(n / 1048576) + 'M'
-        if (n >= 1024 && n % 1024 === 0) return String(n / 1024) + 'K'
-        // Les routes déclarent aussi des fenêtres rondes (1000000, 200000) :
-        // la maquette les écrit 1M / 200K.
-        if (n >= 1000000) return court(n / 1000000) + 'M'
-        if (n >= 1000) return court(n / 1000) + 'K'
+        if (v === '' || v === null || v === undefined || Number.isFinite(n) !== true || n <= 0) return ''
+        const one = (x) => String(Math.round(x * 10) / 10)
+        if (n >= 999950) return one(n / 1e6) + 'M'
+        if (n >= 1000) return one(n / 1e3) + 'K'
         return String(n)
       }
+      /** "262,144" — the exact count behind a label, or '' when there is none. Pure. */
+      const kbCapExact = (v) => {
+        const n = Number(v)
+        return v !== '' && v !== null && v !== undefined && Number.isFinite(n) && n > 0 ? String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''
+      }
+      // KB-CAP-PURE-END
+      const pretty = kbCapLabel
       const Dot = (props) => h('span', { className: 'kbm-dot ' + (props.src === 'ov' ? 'ov' : 'sync'), title: m(props.src === 'ov' ? 'kb.models.ov.src' : 'kb.models.sync.src') })
       /** Marqueur « appliqué au harnais » ou « annotation Kybernos ». */
       const Mark = (props) => h('span', {
@@ -1031,7 +1040,7 @@ window.__ModuleLoader__.load({
                 id: inputId, className: 'kbm-finput' + (ov === true ? ' ov' : ''), value: value,
                 placeholder: def.ph === undefined ? '—' : def.ph, 'data-kbm': 'field-' + def.k,
               }, useDraft(value, (v) => kbmSet(mo, def.k, v)))),
-            suffix === '' ? null : h('span', { className: 'kbm-suffix' }, suffix)))
+            suffix === '' ? null : h('span', { className: 'kbm-suffix', title: def.pretty === true && kbCapExact(value) !== '' ? kbCapExact(value) : undefined }, suffix)))
       }
 
       // ── notes externes : ce que les deux catalogues disent de CE modèle ────
@@ -1458,7 +1467,7 @@ window.__ModuleLoader__.load({
             h('span', { className: 'kbmp-mxc', key: 'x' }, mx.extras.length === 0 ? null
               : h(Tip, { text: mx.extras.map((k) => m(CAPS.filter((c) => c.k === k)[0].t)).join(' · ') }, h('span', { className: 'kbmp-plus' }, '+' + String(mx.extras.length)))))))
         colonnes.push(h('div', { className: 'kbmp-c kbmp-cctx', key: 'x' },
-          ctx === '' ? h('span', { className: 'kbmp-vide' }, '—') : h('span', null, pretty(ctx) === '' ? ctx : pretty(ctx))))
+          ctx === '' ? h('span', { className: 'kbmp-vide' }, '—') : h('span', { title: kbCapExact(ctx) !== '' ? kbCapExact(ctx) : undefined }, pretty(ctx) === '' ? ctx : pretty(ctx))))
         // ── SOURCE: where the values come from, then how many are yours (amber text, only when there are some:
         //    a pill on every row said nothing).
         colonnes.push(h('div', { className: 'kbmp-c kbmp-csrc', key: 's' },
@@ -4088,13 +4097,8 @@ window.__ModuleLoader__.load({
         for (const c of cands) if (picked[c.id] === true && !have.has(c.id)) out.push(kbFetchAdopt(c))
         return out
       }
-      /** 262144 → "256K", 1048576 → "1M", anything else as it is. Pure. */
-      const kbFetchSize = (n) => {
-        if (n >= 1048576 && n % 1048576 === 0) return String(n / 1048576) + 'M'
-        if (n >= 1024 && n % 1024 === 0) return String(n / 1024) + 'K'
-        if (n >= 1000 && n % 1000 === 0) return String(n / 1000) + 'K'
-        return String(n)
-      }
+      /** The size of a fetched model, in the same words as the Context column (kbCapLabel): 256000 is "256K", 262144 "262.1K". Pure. */
+      const kbFetchSize = (n) => kbCapLabel(n)
       // KB-FETCH-PURE-END
       // KB-FETCH-ACTIONS-BEGIN
       /** Ask the engine. Never throws: a service this DSH lacks, a refusal and a timeout all come back as `refused`. */
