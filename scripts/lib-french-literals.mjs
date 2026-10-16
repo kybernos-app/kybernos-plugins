@@ -232,15 +232,22 @@ export const literals = (src) => {
       const next = toks[k + 1]
       const isKey = isPunct(next, ':') && e !== undefined && e.open === '{'
       const key = isKey ? null : (isPunct(prev, ':') && (toks[k - 2] !== undefined && (toks[k - 2].type === 'id' || toks[k - 2].type === 'str')) && e !== undefined && e.open === '{' ? (toks[k - 2].type === 'id' ? toks[k - 2].text : toks[k - 2].value) : null)
+      let callOf = null
+      for (let q = stack.length - 1; q >= 0; q -= 1) {
+        const st = stack[q]
+        if (st.open !== '(') break
+        if (st.isCall) { callOf = st; break }
+      }
       const rec = {
         text: t.value,
         line: t.line,
         isKey,
         key,
         labels: stack.map((s) => s.label).filter((l) => l !== null && l !== undefined),
-        // the call this literal is an argument of, even when it sits inside the argument's expression (`kt('il y a ' + n, …)`)
-        callee: e !== undefined && e.open === '(' && e.isCall ? e.label : null,
-        argIndex: e !== undefined && e.open === '(' ? e.argIndex : -1,
+        // the call this literal is an argument of, even when it sits inside the argument's expression (`kt('il y a ' + n, …)`),
+        // also through grouping parentheses (`kt('' + (n > 1 ? 's' : ''), …)`); a bracket or a brace in between makes it part of that structure
+        callee: callOf !== null ? callOf.label : null,
+        argIndex: callOf !== null ? callOf.argIndex : (e !== undefined && e.open === '(' ? e.argIndex : -1),
         arrayLen: -1,
         arrayIndex: -1,
         arraySecondStr: false,
@@ -282,7 +289,7 @@ const wordsOf = (text) => text.toLowerCase().split(/[^a-zàâçéèêëîïôù�
 export const isFrench = (raw) => {
   if (typeof raw !== 'string') return false
   // a comment inside a CSS template is not a user-facing string
-  const text = raw.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\$\{\}/g, ' ').trim()
+  const text = raw.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\$\{\}/g, ' ').replace(/\bkybernos-[a-z-]+/g, ' ').trim()
   if (text.length < 2) return false
   if (AUTONYM.test(text)) return false
   // not text at all: a URL, a path, a selector list, a regex source, a JSON/CSS fragment with no sentence
@@ -290,7 +297,7 @@ export const isFrench = (raw) => {
   // Spanish, Portuguese, Italian or German text that happens to carry an é or an à is not French
   if (NOT_FRENCH_MARK.test(text) && !FR_ONLY.test(text)) return false
   // an identifier (id, class, route, event name) is not text: the one-word lexicon rule below needs a bare word
-  const identifierLike = /^[\w$]+(?:[-_.:/][\w$]+)+$/.test(text)
+  const identifierLike = /^[\w$]+(?:[-_.:/][\w$]+)+$/.test(raw.trim())
   if (FR_ACCENT.test(text)) {
     // a lone accented token inside code-like text (a character class « [àé] », an escape table) is not a sentence
     if (/^[\[\]()\\|^$*+?{}\-àâçéèêëîïôùûœ\s]+$/i.test(text) && /[\[\]\\|]/.test(text)) return false
@@ -300,7 +307,8 @@ export const isFrench = (raw) => {
   const fn = new Set(words.filter((w) => FUNCTION_WORDS.has(w)))
   if (fn.size >= 2) return true
   if (ELISION.test(text) && (fn.size >= 1 || words.length >= 3)) return true
-  if (!identifierLike && words.length <= 5 && words.some((w) => LEXICON.has(w))) return true
+  // A lone lowercase word ('texte', 'trait') is a token of the code (a type, an id), not a label: labels are capitalised or phrases.
+  if (!identifierLike && words.length <= 5 && words.some((w) => LEXICON.has(w)) && (words.length >= 2 || /^[A-ZÀ-Ý]/.test(text))) return true
   return false
 }
 

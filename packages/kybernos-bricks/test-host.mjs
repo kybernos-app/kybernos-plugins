@@ -104,7 +104,7 @@ ok('une origine étrangère est refusée',
   const avantR = await lireEtat(SES)
   const r = await definition.execute({}, { agent: { id: SES } })
   const apresR = await lireEtat(SES)
-  ok('an empty call answers ok and says the panel was reopened', r.ok === true && /rouvert/.test(r.message), r.message)
+  ok('an empty call answers ok and says the panel was reopened', r.ok === true && /reopened/.test(r.message), r.message)
   ok('it keeps the model, its title, its prompt and its version', apresR.titre === 'A garder' && apresR.prompt === 'un phare sur des rochers' && apresR.version === avantR.version, JSON.stringify([apresR.titre, apresR.prompt, apresR.version, avantR.version]))
   ok('it raises the reopen counter the panel watches', apresR.ouverture === avantR.ouverture + 1, `${avantR.ouverture} → ${apresR.ouverture}`)
   ok('a call with only a prompt is still a real deposit (new version)', (await definition.execute({ prompt: 'un château' }, { agent: { id: SES } })).version === avantR.version + 1)

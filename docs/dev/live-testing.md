@@ -273,6 +273,22 @@ widget). Four traps met: `fill()` of Playwright sets the text without any Enter,
 fold are still at their start frame; and a loaded machine (a test loop running beside it) slows the animations, so it waits for
 them to finish instead of sleeping.
 
+## The language of the creation surfaces: `scripts/check-language-creation-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-language-creation-live.mjs --shots /tmp/shots [--langs en,kybernos,es,ar]
+```
+
+Sandbox only (exit 3 against `:3080`). It never touches DSH's stored language: the language of Kybernos is set in the throw-away
+browser (`localStorage['kybernos.theme.lang']`, the key the Language page writes: `en` removes it, `kybernos` is the French of
+Kybernos, `es` and `ar` are translated languages that have no table of ours), the page is reloaded, and for each language it reads the
+right-sidebar start list, the panels Bricks, Slides, 3D modeller, Summary, Motion and Dashboard, the sidebar's « Search everywhere » row,
+the composer's « where it runs » menu, the phone layout's menu button, and the Atlas page with its help. English, Spanish and Arabic must
+read English; French must read French; no French word in another language, no English phrase of ours in French. The sandbox keeps its
+right pane (and its tabs) from one run to the next: the check asks for a fresh start list. In a right-to-left language the right pane is
+drawn on the left of the window. The offline twin is `scripts/test-no-french-literals.mjs`: French literals outside a dictionary, the
+pair helper (`kt(fr, en)`: French for French, English for everything else), READMEs and descriptions, the French twin that must stay.
+
 ## The first-run wizard: `scripts/check-onboarding-live.mjs`
 
 ```bash

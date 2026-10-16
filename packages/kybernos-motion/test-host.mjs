@@ -93,7 +93,7 @@ ok('tool: creates the scene in the session folder', made.ok && made.chemin === j
   ok('restore: brings revision 1 back as revision 3', rs.status === 200 && rs.json.rev === 3, rs.json)
   ok('restore: an unknown revision is 404', (await call('POST', '/kybernos-motion/restore', { body: { session: 's1', path: made.chemin, rev: 99 } })).status === 404)
   const op = await call('POST', '/kybernos-motion/open', { body: { session: 's2', path: made.chemin } })
-  ok('open: Livrables can point the panel at a scene', op.status === 200 && (await call('GET', '/kybernos-motion/state?session=s2')).json.current.path === made.chemin)
+  ok('open: Creations can point the panel at a scene', op.status === 200 && (await call('GET', '/kybernos-motion/state?session=s2')).json.current.path === made.chemin)
   ok('open: a non-scene file is refused', (await call('POST', '/kybernos-motion/open', { body: { session: 's1', path: join(project, 'x.txt') } })).status === 403)
 }
 

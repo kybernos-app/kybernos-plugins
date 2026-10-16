@@ -111,10 +111,10 @@ export function installerAutoContinue (ctx, options = {}) {
           if (agent.inbox?.hasPending === true) { e.siens.delete(message.id); e.chaine -= 1; return }
           agent.followup(message)
           total += 1
-          log('tour coupé par la limite de sortie — reprise automatique ' + e.chaine + '/' + plafond + ' (session ' + session.id + ')')
+          log('turn cut by the output limit — automatic continuation ' + e.chaine + '/' + plafond + ' (session ' + session.id + ')')
         } catch (erreur) {
           e.siens.delete(message.id)
-          log('reprise impossible (session ' + session.id + ') : ' + String(erreur?.message ?? erreur))
+          log('continuation failed (session ' + session.id + '): ' + String(erreur?.message ?? erreur))
         }
       })
     } catch { /* idem */ }

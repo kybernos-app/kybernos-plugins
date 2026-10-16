@@ -100,18 +100,18 @@ const nomAppSur = (nomApp) => {
 
 // ── install ─────────────────────────────────────────────────────────────────
 async function installer (corps) {
-  if (!MACOS) return { ok: false, erreur: 'L’installation d’app widget est macOS seulement.' }
+  if (!MACOS) return { ok: false, erreur: 'Installing a widget app is macOS only.' }
   const id = slug(corps.id)
   const titre = String(corps.titre || 'MiniApp Kybernos').slice(0, 60)
   const html = String(corps.html || '')
-  if (html.length < 10) return { ok: false, erreur: 'HTML trop court.' }
-  if (html.length > 4_000_000) return { ok: false, erreur: 'HTML trop volumineux.' }
+  if (html.length < 10) return { ok: false, erreur: 'HTML too short.' }
+  if (html.length > 4_000_000) return { ok: false, erreur: 'HTML too large.' }
   const largeur = Math.max(180, Math.min(600, Number(corps.largeur) || 260))
   const hauteur = Math.max(180, Math.min(800, Number(corps.hauteur) || 340))
 
   mkdirSync(DEST_ROOT, { recursive: true })
   const nomApp = `${titre.replace(/[^\p{L}\p{N} .-]/gu, '').trim() || 'MiniApp'} ${id}`.slice(0, 80)
-  if (!nomAppSur(nomApp)) return { ok: false, erreur: 'nom d’app refusé (hors dossier d’installation).' }
+  if (!nomAppSur(nomApp)) return { ok: false, erreur: 'app name refused (outside the install folder).' }
   const appDir = join(DEST_ROOT, `${nomApp}.app`)
 
   // start from scratch on a reinstall
@@ -145,8 +145,8 @@ async function installer (corps) {
 
   const signature = await executer('/usr/bin/codesign', ['-f', '-s', '-', appDir])
   if (signature.err) {
-    dire(`codesign a échoué : ${signature.err.message ?? signature.err}`)
-    return { ok: false, erreur: 'Signature de l’app impossible (codesign).' }
+    dire(`codesign failed: ${signature.err.message ?? signature.err}`)
+    return { ok: false, erreur: 'Cannot sign the app (codesign).' }
   }
 
   // optional LaunchAgent — « Launch automatically »
@@ -171,7 +171,7 @@ async function installer (corps) {
 
   // launch right away
   const lancee = await executer('/usr/bin/open', [appDir])
-  dire(`installée : ${appDir}${auto ? ' (démarrage auto)' : ''}`)
+  dire(`installed: ${appDir}${auto ? ' (launch at login)' : ''}`)
   return { ok: true, chemin: appDir, auto, lancee: !lancee.err }
 }
 
@@ -194,7 +194,7 @@ async function desinstaller (corps) {
     await executer('/bin/launchctl', ['unload', agentPlist])
     try { rmSync(agentPlist, { force: true }); retire.push(`${id}.plist`) } catch { /* rien */ }
   }
-  dire(`désinstallée : ${retire.join(', ') || 'rien'}`)
+  dire(`uninstalled: ${retire.join(', ') || 'nothing'}`)
   return { ok: true, retire }
 }
 
@@ -243,7 +243,7 @@ export function apply (ctx) {
         // M-03: writes + launches a native app — exact origin, signed session and JSON required.
         const refus = writeGuard(req)
         if (refus !== null) { res.writeHead(refus.status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: refus.error })); return }
-        if (!jsonSeulement(req)) { res.writeHead(415); res.end('content-type application/json attendu'); return }
+        if (!jsonSeulement(req)) { res.writeHead(415); res.end('application/json content-type expected'); return }
         const r = await installer(await lireCorps(req))
         res.setHeader('Content-Type', 'application/json')
         res.end(JSON.stringify(r))
@@ -251,7 +251,7 @@ export function apply (ctx) {
       webServerSvc.register({ kind: 'exact', path: '/kybernos-miniapps/uninstall', handler: async (req, res) => {
         const refus = writeGuard(req)
         if (refus !== null) { res.writeHead(refus.status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: refus.error })); return }
-        if (!jsonSeulement(req)) { res.writeHead(415); res.end('content-type application/json attendu'); return }
+        if (!jsonSeulement(req)) { res.writeHead(415); res.end('application/json content-type expected'); return }
         const r = await desinstaller(await lireCorps(req))
         res.setHeader('Content-Type', 'application/json')
         res.end(JSON.stringify(r))
@@ -261,9 +261,9 @@ export function apply (ctx) {
         res.setHeader('Content-Type', 'application/json')
         res.end(JSON.stringify(r))
       } })
-      dire('routes install / uninstall / list posées')
+      dire('routes install / uninstall / list mounted')
     } catch (e) {
-      dire(`routes non posées : ${e?.message ?? e}`)
+      dire(`routes not mounted: ${e?.message ?? e}`)
     }
   }
   if (ctx.get('webServer') !== undefined) poser(ctx)

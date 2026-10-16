@@ -18,26 +18,23 @@ window.__ModuleLoader__.load({
     const CLASSE_BOUTON = 'kbmini-btn'
     const CLASSE_MENU = 'kbmini-menu'
 
-    // ── i18n (règle du 28/09 : toute chaîne affichée passe par kbf) ──────────
-    const KB_FR_EN = {
-      'App': 'App',
-      'Installation…': 'Installing…',
-      'Mini-app installée — elle vit hors de DSH.': 'Mini-app installed — it lives outside DSH.',
-      'L’installation a échoué.': 'Installation failed.',
-      'Lancer': 'Launch',
-      'Démarrage auto': 'Launch at login',
-      'Désinstaller': 'Uninstall',
-      'Désinstallée.': 'Uninstalled.',
-      'Petite fenêtre autonome, toujours au-dessus, qui survit à la fermeture de DSH.': 'A standalone little window, always on top, that survives closing DSH.',
-      'Relancer avec démarrage auto…': 'Reinstalling with auto-launch…',
-      'Retirer le démarrage auto…': 'Removing auto-launch…',
+    // ── language: French is the source, English the pair; French only for a French UI, a translated language is looked up by its
+    // French text (the dictionary the Language page keeps), and every other language (and a language not known yet) reads English ──
+    const lang = () => {
+      try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
     }
-    const kbf = (fr) => {
-      if (typeof fr !== 'string' || fr.length === 0) return fr
-      const lang = String(window.document?.documentElement?.lang || 'fr').slice(0, 2)
-      if (lang !== 'en') return fr
-      return KB_FR_EN[fr] !== undefined ? KB_FR_EN[fr] : fr
+    const kt = (fr, en) => {
+      const l = lang()
+      if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
+      if (l === 'en') return en
+      try {
+        const a = window.__KB_I18N_ACTIVE__
+        if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
+      } catch (e) { /* no dictionary: English */ }
+      return en
     }
+    /** 'fr' for a French UI, 'en' for every other language: what a number format is keyed by. */
+    const langBase = () => { const l = lang(); return l === 'kybernos' || l.slice(0, 2) === 'fr' ? 'fr' : 'en' }
 
     const CSS = `
   .${CLASSE_BOUTON}{display:inline-flex;align-items:center;gap:4px;margin-inline-start:auto;
@@ -61,10 +58,10 @@ window.__ModuleLoader__.load({
 
     // ── les panneaux reconnus : sélecteur racine + où poser le bouton ─────────
     const PANNEAUX = [
-      { racine: '.kbb-root', id: 'briques', tete: '.kbb-head', defaut: 'Briques', l: 260, h: 380 },
+      { racine: '.kbb-root', id: 'briques', tete: '.kbb-head', get defaut () { return kt('Briques', 'Bricks') }, l: 260, h: 380 },
       // `.kbm-root` is shared by three bundles: this panel, kybernos-models (its Settings page is `.kbm-root.kbmp`: the button once landed twice on
       // AI Provider & Models) and the core's own Models page (a bare `.kbm-root`, which `:not(.kbmp)` did not exclude). The Modeleur says `kbmo` on its root.
-      { racine: '.kbm-root.kbmo', id: 'modeleur', tete: '.kbm-head', defaut: 'Modeleur', l: 320, h: 420 },
+      { racine: '.kbm-root.kbmo', id: 'modeleur', tete: '.kbm-head', get defaut () { return kt('Modeleur', '3D modeller') }, l: 320, h: 420 },
       // Slides renders `.kbsd-root` / `.kbsd-head`. This entry used to say `.kbs-root`, which is the root of the SKILLS page (and `.kbs-` is also
       // the prefix of the sessions and cloud bundles): the button landed on Skills, and Slides, whose classes had been renamed, got none.
       // test-miniapps-panels.mjs fails when a selector here matches a panel of another bundle.
@@ -228,9 +225,9 @@ window.__ModuleLoader__.load({
       if (source === null || rEtat === null || rEtat.vide) return null
       const etat = JSON.stringify(rEtat)
       const LIBELLES = JSON.stringify({
-        rejouer: kbf('Rejouer'), pause: kbf('Pause'),
-        vues: { iso: '3/4', front: kbf('Face'), top: kbf('Dessus') }, spin: kbf('Tourner'),
-        pieces: kbf('pièces'),
+        rejouer: kt('Rejouer', 'Replay'), pause: 'Pause',
+        vues: { iso: '3/4', front: kt('Face', 'Front'), top: kt('Dessus', 'Top') }, spin: kt('Rotation', 'Spin'),
+        pieces: kt('pièces', 'pieces'),
       })
       // Le moteur embarqué : stub React (la fabrique n'en a besoin qu'à la
       // définition des composants, jamais pour __test), shim ModuleLoader,
@@ -320,7 +317,7 @@ window.__ModuleLoader__.load({
         '  })\n' +
         '  document.getElementById("spin").addEventListener("click", function (e) { SPIN = !SPIN; e.currentTarget.classList.toggle("on", SPIN); reveiller() })\n' +
         '  majBoutons(); dessiner()\n' +
-        '  // rejouer la pose à l’ouverture\n' +
+        '  // replay the laying on open\n' +
         '  POSE = 0; T0 = performance.now(); EN_COURS = true; majBoutons(); reveiller()\n' +
         '})()\n' +
         '</script></body></html>'
@@ -352,7 +349,7 @@ window.__ModuleLoader__.load({
     function toast (texte) {
       const t = window.document.createElement('div')
       t.className = 'kbmini-toast'
-      t.textContent = kbf(texte)
+      t.textContent = texte
       window.document.body.appendChild(t)
       setTimeout(() => t.remove(), 3800)
     }
@@ -384,29 +381,29 @@ window.__ModuleLoader__.load({
         c.className = 'kbmini-coche'
         c.textContent = coche ? '✓' : ''
         b.appendChild(c)
-        b.appendChild(window.document.createTextNode(kbf(label)))
+        b.appendChild(window.document.createTextNode(label))
         b.addEventListener('click', () => { action(); fermer() })
         menu.appendChild(b)
       }
-      opt('Lancer', async () => {
+      opt(kt('Lancer', 'Launch'), async () => {
         // relancer = réinstaller la vue courante (l'hôte ouvre l'app)
         const ex = await pageExport(conf)
         const html = ex.html
         await post('/kybernos-miniapps/install', { id: conf.id, titre: ex.titre, html, largeur: conf.l, hauteur: conf.h, auto: etat.auto })
       })
-      opt('Démarrage auto', async () => {
+      opt(kt('Démarrage auto', 'Launch at login'), async () => {
         const ex = await pageExport(conf)
         const html = ex.html
-        toast(etat.auto ? 'Retirer le démarrage auto…' : 'Relancer avec démarrage auto…')
+        toast(etat.auto ? kt('Retirer le démarrage auto…', 'Removing auto-launch…') : kt('Relancer avec démarrage auto…', 'Reinstalling with auto-launch…'))
         etat.auto = !etat.auto
         await post('/kybernos-miniapps/install', { id: conf.id, titre: ex.titre, html, largeur: conf.l, hauteur: conf.h, auto: etat.auto })
         installe.set(conf.id, etat)
       }, etat.auto)
-      opt('Désinstaller', async () => {
+      opt(kt('Désinstaller', 'Uninstall'), async () => {
         await post('/kybernos-miniapps/uninstall', { id: conf.id })
         installe.delete(conf.id)
         majBouton(conf)
-        toast('Désinstallée.')
+        toast(kt('Désinstallée.', 'Uninstalled.'))
       })
       window.document.body.appendChild(menu)
       const r = ancre.getBoundingClientRect()
@@ -425,7 +422,7 @@ window.__ModuleLoader__.load({
       if (btn === null) {
         btn = window.document.createElement('button')
         btn.className = CLASSE_BOUTON
-        btn.title = kbf('Petite fenêtre autonome, toujours au-dessus, qui survit à la fermeture de DSH.')
+        btn.title = kt('Petite fenêtre autonome, toujours au-dessus, qui survit à la fermeture de DSH.', 'A standalone little window, always on top, that survives closing DSH.')
         if (conf.flottant === true) {
           // A mini-app has no head of its own: the button is a strip of its own ABOVE the player, right-aligned, in the flow. Floated
           // over the corner (top 8 px, right 8 px) it covered the primary button of the Quiz and Cards players (« Check », « Replay »):
@@ -436,22 +433,22 @@ window.__ModuleLoader__.load({
         } else tete.appendChild(btn)
       }
       const etat = installe.get(conf.id)
-      const libelle = kbf('App') + (etat ? ' ⚙' : ' ⤓')
+      const libelle = 'App' + (etat ? ' ⚙' : ' ⤓')
       if (btn.textContent !== libelle) btn.textContent = libelle
       // ⚠ ne JAMAIS écrire le DOM inconditionnellement ici : balayer() tourne
       // dans un MutationObserver — réécrire textContent à l'identique crée une
       // mutation → reboucle → crash du renderer (mesuré : page tuée en ~1 s).
       btn.onclick = async () => {
         if (installe.has(conf.id)) { ouvrirMenu(conf, btn); return }
-        btn.textContent = kbf('Installation…')
+        btn.textContent = kt('Installation…', 'Installing…')
         btn.disabled = true
         try {
           const ex = await pageExport(conf)
           const html = ex.html
           const r = await post('/kybernos-miniapps/install', { id: conf.id, titre: ex.titre, html, largeur: conf.l, hauteur: conf.h, auto: false })
-          if (r && r.ok === true) { installe.set(conf.id, { auto: false }); toast('Mini-app installée — elle vit hors de DSH.') }
-          else toast('L’installation a échoué.')
-        } catch { toast('L’installation a échoué.') }
+          if (r && r.ok === true) { installe.set(conf.id, { auto: false }); toast(kt('Mini-app installée — elle vit hors de DSH.', 'Mini-app installed — it lives outside DSH.')) }
+          else toast(kt('L’installation a échoué.', 'Installation failed.'))
+        } catch { toast(kt('L’installation a échoué.', 'Installation failed.')) }
         btn.disabled = false
         majBouton(conf)
       }
@@ -515,7 +512,7 @@ window.__ModuleLoader__.load({
     return {
       apply,
       inject: [],
-      __test: { majBouton, kbf, KB_FR_EN, serialiser, reglesApplicables, PANNEAUX, escTitre, jsonPourScript, sourceModule, placerMenu, pageExport, exporterExterne, interfaceExterne },
+      __test: { majBouton, kt, serialiser, reglesApplicables, PANNEAUX, escTitre, jsonPourScript, sourceModule, placerMenu, pageExport, exporterExterne, interfaceExterne },
     }
   },
 })

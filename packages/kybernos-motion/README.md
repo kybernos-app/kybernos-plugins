@@ -10,7 +10,7 @@ user change its settings, and exports it as an MP4 video, a standalone page or a
   as a new revision and the agent sees it the next time it reads the scene.
 - **Export**: MP4 (H.264 + AAC, WebM when the browser cannot write H.264), a standalone `.html` page, the scene file, or a
   Mac app (macOS only, through `kybernos-miniapps`). Video is encoded in the browser; nothing leaves the machine.
-- The animation is a `<name>.miniapp.json` file in the project's `artifacts/` folder, so the **Livrables** page, the chat card
+- The animation is a `<name>.miniapp.json` file in the project's `artifacts/` folder, so the **Creations** page, the chat card
   and the popup open it too (the `motion` player is added through the MiniApp door of the core).
 
 ## A scene is data, never code
@@ -28,7 +28,7 @@ user change its settings, and exports it as an MP4 video, a standalone page or a
 Every property is a number, a `$param`, or keyframes `{ "k": [[time, value, ease?], ...] }`. Layers are components
 written in `engine.mjs` (`rect`, `circle`, `line`, `text`, `number`, `image`, `path`, `morph`, `chart`, `particles`,
 `scene3d`, `lottie`, `group`); each has a table of known properties with ranges, and anything else is dropped and reported. Nothing in a file
-is executed, so opening a file from anywhere is as safe as opening any other livrable. `describeComponents()` lists the
+is executed, so opening a file from anywhere is as safe as opening any other creation. `describeComponents()` lists the
 components for the agent's tool description, generated from the same tables.
 
 ## 3D, characters, particles, sound
@@ -110,5 +110,5 @@ node test-motion-host.mjs && node test-host.mjs && node test-client.mjs
 node scripts/build.mjs --check
 ```
 
-Real pixels, a real MP4 decoded by ffmpeg, the Livrables page, 3D with WebGL, a glTF clip and a Lottie, in a real Chrome against a
+Real pixels, a real MP4 decoded by ffmpeg, the Creations page, 3D with WebGL, a glTF clip and a Lottie, in a real Chrome against a
 sandbox DSH: `source scripts/sandbox/env.sh && node scripts/check-motion-live.mjs` (see `docs/dev/live-testing.md`).

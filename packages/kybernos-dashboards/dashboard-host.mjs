@@ -1,8 +1,8 @@
 // kybernos-dashboards, host logic: the dashboards on disk, their revisions, and the agent's tool. No `ctx`, no DSH import:
 // every effect is injected, so the whole thing runs in a test against a temp folder.
 //
-// A dashboard is a file in `<dsh home>/kybernos/dashboards/files/<id>.miniapp.json`, the shared livrable format, so the
-// Livrables page, the chat card and the popup can open a copy of it too:
+// A dashboard is a file in `<dsh home>/kybernos/dashboards/files/<id>.miniapp.json`, the shared creation format, so the
+// Creations page, the chat card and the popup can open a copy of it too:
 //
 //   { "kind": "dashboard", "renderer": "dashboard", "title": "...",
 //     "meta": { "version": 1, "rev": 7, "history": [ { "r": 7, "by": "agent", "at": "...", "what": "..." } ] },

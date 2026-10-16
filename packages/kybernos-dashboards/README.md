@@ -42,7 +42,7 @@ tokens, so a dashboard shows tokens. Connected apps (Stripe, GitHub, …) are **
 
 ## A dashboard is a file, never code
 
-`<dsh home>/kybernos/dashboards/files/<id>.miniapp.json`, the shared livrable format, so the Livrables page, the chat card
+`<dsh home>/kybernos/dashboards/files/<id>.miniapp.json`, the shared creation format, so the Creations page, the chat card
 and the popup can open a copy through the MiniApp door (the `dashboard` player this bundle registers):
 
 ```json
