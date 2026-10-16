@@ -1,17 +1,17 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// dsh-db-viewer — moitié hôte.
+// dsh-db-viewer — host half.
 //
-// Sert au panneau sidebar droite la lecture des petites bases SQLite des
-// kybers (`~/.dsh/kybers/<id>/donnees.sqlite`, contrôles `crm.cjs`). QUATRE
-// routes en lecture SEULE — aucune écriture n'existe ici, par conception : la
-// base se remplit par le kyber (crm.cjs exec), pas par la page.
+// Serves the right sidebar panel a read of the small SQLite databases of the kybers
+// (`~/.dsh/kybers/<id>/donnees.sqlite`, checked by `crm.cjs`). FOUR read-ONLY routes —
+// no write exists here, by design: the database is filled by the kyber (crm.cjs exec),
+// not by the page.
 //
 //   GET /dsh-db-viewer/bases            → [{ id, tables: [{nom, compte}] }]
-//   GET /dsh-db-viewer/schema?base=     → tables, colonnes, relations
+//   GET /dsh-db-viewer/schema?base=     → tables, columns, relations
 //   GET /dsh-db-viewer/rows?base=&table=&limit=
-//   GET /dsh-db-viewer/query?base=&sql= → SELECT/WITH/PRAGMA uniquement
+//   GET /dsh-db-viewer/query?base=&sql=&limit= → SELECT/WITH/PRAGMA only, 500 rows (5 000 at most)
 //
-// Les fonctions pures sont exportées pour le harnais test/test-host.mjs.
+// The pure functions are exported for test/test-host.mjs and test-cap.mjs.
 // ═══════════════════════════════════════════════════════════════════════════
 import { existsSync, readdirSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
@@ -54,9 +54,9 @@ export const name = 'dsh-db-viewer'
 const ID_VALIDE = /^[a-z0-9][a-z0-9-]*$/
 const TABLE_VALIDE = /^[A-Za-z_][A-Za-z0-9_]*$/
 
-// ── fonctions pures ─────────────────────────────────────────────────────────
+// ── pure functions ──────────────────────────────────────────────────────────
 
-/** Les bases trouvées : un kyber = un dossier = au plus une `donnees.sqlite`. */
+/** The databases found: one kyber = one folder = at most one `donnees.sqlite`. */
 export function listerBases (kybersHome) {
   if (!existsSync(kybersHome)) return []
   const bases = []
@@ -97,7 +97,7 @@ const corpsCreate = (sql) => {
   return parts.map((p) => p.trim()).filter(Boolean)
 }
 
-/** Schéma vivant : colonnes réelles + relations lues dans les REFERENCES. */
+/** Live schema: the real columns + the relations read from the REFERENCES. */
 export function lireSchema (dbPath) {
   const db = new DatabaseSync(dbPath, { readOnly: true })
   try {
@@ -143,26 +143,53 @@ export function lireLignes (dbPath, table, limite) {
   } finally { db.close() }
 }
 
-/** Lecture seule DECLARÉE : toute écriture est refusée avant la base. */
-export function executerSelect (dbPath, sql) {
+// Rows of a query sent to the page: 500 by default, 5 000 at most (a 200 000-row result used to be 54 MB of JSON
+// and a million DOM nodes: the page froze for ~14 s). The real size is counted, up to a bound, so the page can say
+// « the first 500 of 200 000 rows ».
+export const LIMITE_REQUETE = 500
+export const LIMITE_REQUETE_MAX = 5000
+export const COMPTE_MAX = 1000000
+
+/** Declared read-only: every write is refused before it reaches the database. */
+export function executerSelect (dbPath, sql, limite) {
   const texte = String(sql || '').trim()
   if (texte === '') throw new Error('requête vide')
   if (!/^(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(texte)) {
     throw new Error('lecture seule : SELECT / WITH / PRAGMA uniquement')
   }
   if (/;\s*\S/.test(texte)) throw new Error('une seule requête à la fois')
+  const max = Math.min(Math.max(parseInt(limite, 10) || LIMITE_REQUETE, 1), LIMITE_REQUETE_MAX)
   const db = new DatabaseSync(dbPath, { readOnly: true })
   try {
-    const lignes = db.prepare(texte).all()
+    const stmt = db.prepare(texte)
+    const lignes = []
+    let total = 0
+    let borne = false
+    if (typeof stmt.iterate === 'function') {
+      // Keep the first `max` rows and only count the others: nothing big stays in memory.
+      for (const ligne of stmt.iterate()) {
+        if (total < max) lignes.push(ligne)
+        total += 1
+        if (total >= COMPTE_MAX) { borne = true; break }
+      }
+    } else {
+      // A Node without StatementSync.iterate: read everything, keep the first rows.
+      const toutes = stmt.all()
+      total = toutes.length
+      lignes.push(...toutes.slice(0, max))
+    }
     return {
       colonnes: lignes.length > 0 ? Object.keys(lignes[0]) : [],
       lignes,
       compte: lignes.length,
+      total,
+      tronque: total > lignes.length,
+      borne,
     }
   } finally { db.close() }
 }
 
-// ── montage des routes (webServer) ─────────────────────────────────────────
+// ── route mounting (webServer) ──────────────────────────────────────────────
 
 const envoyer = (res, code, obj) => {
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' })
@@ -170,8 +197,8 @@ const envoyer = (res, code, obj) => {
 }
 
 const origineOK = (req) => {
-  // Recette 2026-10 (M-02/S-03) : hôte EXACT de l'écoute réelle du socket,
-  // jamais un préfixe (« localhost.evil.example » passait).
+  // Acceptance campaign 2026-10 (M-02/S-03): the EXACT host of the socket's real listener,
+  // never a prefix (« localhost.evil.example » used to pass).
   const o = String(req.headers.origin || '')
   if (o === '') return true
   try {
@@ -182,7 +209,7 @@ const origineOK = (req) => {
   } catch { return false }
 }
 
-/** base=<id> → chemin contrôlé, ou null. Jamais de chemin entré par la page. */
+/** base=<id> → a controlled path, or null. A path typed by the page is never used. */
 function resoudreBase (kybersHome, id) {
   if (typeof id !== 'string' || !ID_VALIDE.test(id)) return null
   const fichier = join(kybersHome, id, 'donnees.sqlite')
@@ -221,7 +248,7 @@ export function monterRoutes (webServerSvc, opts = {}) {
   lecture('/dsh-db-viewer/query', (p) => {
     const fichier = resoudreBase(kybersHome, p.get('base'))
     if (fichier === null) throw new Error('base inconnue')
-    return executerSelect(fichier, p.get('sql') || '')
+    return executerSelect(fichier, p.get('sql') || '', p.get('limit'))
   })
 
   if (opts.silencieux !== true) {
