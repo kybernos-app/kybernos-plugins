@@ -10,7 +10,7 @@
     "kybernos-bricks": "pending",
     "kybernos-call": "pending",
     "kybernos-changes": "pending",
-    "kybernos-cloud": "pending",
+    "kybernos-cloud": [],
     "kybernos-composio": ["CONNECTEURS PERSONNALISÉS"],
     "kybernos-computers": "pending",
     "kybernos-dashboards": "pending",
