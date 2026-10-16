@@ -407,6 +407,8 @@ const mountWebRoutes = (ctx, webServerSvc) => {
     if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET ou POST attendu' })
     // Guards in this order: method first, origin next. No POST request touches
     // the disk before both.
+    // LEFT OPEN ON PURPOSE (no session cookie, no required Origin): the `slash-msgaction-creator` skill, run by the agent, writes entries through this
+    // route (README: "Create with AI"), a Node-or-curl caller with no browser session. A foreign Origin is still refused.
     if (sameOrigin(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
     let body = null
     try { body = await readJsonBody(req) } catch (e) { return sendJson(res, 400, { ok: false, error: 'corps JSON invalide' }) }

@@ -287,6 +287,7 @@ const getRows = rows.filter((r) => r.methods.GET !== undefined)
 out(rows.length + ' routes mounted by ' + new Set(rows.map((r) => r.bundle)).size + ' bundles; ' + writeRows.length + ' answer a write method (POST, PUT, PATCH, DELETE), ' +
   rows.filter(anyMethod).length + ' answer every method alike, ' + getRows.length + ' answer GET')
 out('write routes by guard level (the weakest of their write methods): ' + JSON.stringify(count(writeRows, rowLevel)))
+out('every-method routes by guard level (judged on POST):            ' + JSON.stringify(count(rows.filter(anyMethod), (r) => r.methods.POST.level)))
 out('GET routes by guard level:                                       ' + JSON.stringify(count(getRows, (r) => r.methods.GET.level)))
 for (const p of problems) out('! ' + p)
 
