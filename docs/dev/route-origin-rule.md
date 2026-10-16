@@ -81,7 +81,7 @@ Of the 67 left at the last two levels: 4 have a documented non-browser caller (a
 
 Two GET routes left the table afterwards, with the read-only account frame (WP-24, `docs/dev/frame-removal.md`): `/kybernos-cloud/relay` and `/kybernos/ws-console-key`, both
 strict (an Origin or Referer of this server was required). The routes are now 386 (388 before), 183 of them answering GET, 11 of those at the strict level; no write route is
-concerned, so the table above does not change. Both existed only to hand the account's data (or a key) to the framed console through the DSH page; neither answers any more.
+concerned by this removal. Both existed only to hand the account's data (or a key) to the framed console through the DSH page; neither answers any more.
 
 ## The reads (A6-05), not changed
 
