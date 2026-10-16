@@ -7,7 +7,10 @@ import assert from 'node:assert/strict'
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, browserHeaders } from './lib-session-test.mjs'
 
+sessionSource.secret = () => SESSION_SECRET // the machine secret the write routes check the session cookie against
 const home = mkdtempSync(join(tmpdir(), 'kbm-journal-'))
 process.env.DSH_HOME = home
 const { apply, STORE_DIR, JOURNAL_FILE } = await import('./index.js')
@@ -20,7 +23,7 @@ apply(ctx)
 const PORT = 3080
 const call = async (method, body) => {
   const text = body === undefined ? '' : JSON.stringify(body)
-  const req = { method, url: '/kybernos-models/journal', socket: { localPort: PORT }, headers: { origin: 'http://127.0.0.1:' + PORT, host: '127.0.0.1:' + PORT },
+  const req = { method, url: '/kybernos-models/journal', socket: { localPort: PORT }, headers: { ...browserHeaders(), host: '127.0.0.1:' + PORT },
     on (ev, cb) { if (ev === 'data' && text !== '') cb(text); if (ev === 'end') cb() } }
   const res = { status: 0, body: null, writeHead (s) { this.status = s }, end (s) { try { this.body = JSON.parse(s) } catch (e) { this.body = s } } }
   await routes.get('/kybernos-models/journal')(req, res)
