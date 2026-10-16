@@ -689,7 +689,9 @@ let kbLocaleRead = () => 'en'
       'ui.due.today': { kybernos: 'échéance aujourd\'hui', en: 'due today' },
       'ui.due.overdue': { kybernos: 'échéance dépassée', en: 'overdue' },
       'ui.hostresponse': { kybernos: 'réponse Host invalide', en: 'invalid host response' },
-      'ui.allotted': { kybernos: ' alloués', en: ' allotted' },
+      'ui.budget.of': { kybernos: 'sur {total} alloués', en: 'of {total} allotted' },
+      'ui.budget.pill': { kybernos: 'budget {amount}', en: 'budget {amount}' },
+      'ui.tok': { kybernos: ' jetons', en: ' tokens' },
       'ui.budget.declared': { kybernos: 'budget déclaré par l’Agent Team « ', en: 'budget declared by the agent team “' },
       'ui.budget.rates': { kybernos: ' » · tarifs models.dev en USD × ', en: '” · models.dev pricing in USD × ' },
       'ui.budget.spent': { kybernos: ' consommés (tarifs models.dev)', en: ' consumed (models.dev pricing)' },
@@ -907,6 +909,10 @@ let kbLocaleRead = () => 'en'
       'voice.dictate.stop': { kybernos: 'Arrêter et dicter', en: 'Stop and dictate' },
       'voice.dictate.start': { kybernos: 'Dicter (le texte arrive dans le brouillon)', en: 'Dictate (text lands in the draft)' },
       'voice.dictate.unavailable': { kybernos: 'Dictée indisponible — ', en: 'Dictation unavailable — ' },
+      'voice.reason.nocreds': { kybernos: 'le service d’identifiants n’est pas disponible dans ce profil', en: 'the credentials service is not available in this profile' },
+      'voice.reason.nokey': { kybernos: 'la clé Qwen n’est pas configurée', en: 'the Qwen key is not set' },
+      'voice.reason.credserror': { kybernos: 'la clé n’a pas pu être lue', en: 'the key could not be read' },
+      'voice.reason.quota': { kybernos: 'le dernier essai a été refusé (quota)', en: 'the last attempt was refused (quota)' },
       'voice.no.key': { kybernos: 'clé du fournisseur absente', en: 'provider key missing' },
       'voice.device': { kybernos: 'Périphérique d\'entrée', en: 'Input device' },
       'art.selector.create': { kybernos: 'Créer un artefact', en: 'Create an artifact' },
@@ -3611,6 +3617,7 @@ const KB_FR_EN = {
   'Maquette': 'Brick model',
   'Maquette illisible : ': 'Unreadable brick model: ',
   ' pièces': ' pieces',
+  'Reste ': 'Remaining ',
 }
 // kbe(en[, fr]) — text whose BASE is English (decision D1). The call site holds the ENGLISH text; its French twin is the KB_FR_EN key whose value it is
 // (two keys that share one English text are told apart by the explicit `fr` argument: `kbe(' answered', ' répondues')`). Rendering follows kbt:
@@ -3635,6 +3642,13 @@ const kbLocaleTag = () => {
 /** A number formatted for the interface language ('1 249' in French, '1,249' in English). */
 const kbFmtNum = (n, opts) => {
   try { return new Intl.NumberFormat(kbLocaleTag(), opts).format(n) } catch (e) { return String(n) }
+}
+/** An amount in its currency, formatted for the interface language ('50,00 €' in French, '€50.00' in English); a code Intl does not know falls back to « 50.00 CODE ». */
+const kbFmtMoney = (v, currency, digits) => {
+  if (v === null || v === undefined || typeof v !== 'number' || !Number.isFinite(v)) return '—'
+  const cur = (typeof currency === 'string' && /^[A-Za-z]{3}$/.test(currency)) ? currency.toUpperCase() : 'EUR'
+  const d = typeof digits === 'number' ? digits : 2
+  try { return new Intl.NumberFormat(kbLocaleTag(), { style: 'currency', currency: cur, minimumFractionDigits: d, maximumFractionDigits: d }).format(v) } catch (e) { return kbFmtNum(v, { minimumFractionDigits: d, maximumFractionDigits: d }) + ' ' + cur }
 }
 const kbe = (en, fr) => {
   if (typeof en !== 'string' || en.length === 0) return en
@@ -6344,20 +6358,14 @@ const KB_SHOW_CLOUD_COMPUTER_ROW = false
 // corps de la factory (l'appeler ici donnerait une erreur de zone morte).
 const kbStatusLabel = (k) => kbt('status.' + String(k))
 
-const fmtEur = (v) => {
-  if (v === null || v === undefined || typeof v !== 'number' || !Number.isFinite(v)) return '—'
-  let s = null
-  try { s = v.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) } catch (e) { s = null }
-  if (s === null) s = String(Math.round(v * 100) / 100).replace('.', ',')
-  return s + ' €'
-}
+// An amount WITH its currency sign, once, formatted for the interface language ('50,00 €' in French, '€50.00' in English). The currency is the one the
+// kyber.yml declares (EUR by default). Callers add nothing after it.
+const fmtEur = (v, currency) => kbFmtMoney(v, currency)
+// A token count: '12,5k tokens' in French, '12.5k tokens' in English.
 const fmtTok = (n) => {
   if (n === null || n === undefined || typeof n !== 'number' || !Number.isFinite(n)) return '—'
   if (n < 1000) return String(n)
-  const k = Math.round((n / 1000) * 10) / 10
-  let s = null
-  try { s = k.toLocaleString('fr-FR', { maximumFractionDigits: 1 }) } catch (e) { s = String(k).replace('.', ',') }
-  return s + 'k tok'
+  return kbFmtNum(Math.round((n / 1000) * 10) / 10, { maximumFractionDigits: 1 }) + 'k' + kbt('ui.tok')
 }
 // Un document de projet est une PIECE JOINTE : ses octets ne sont servis que par
 // la route `doc-raw` du host (le magasin content-addressed de DSH). Elle repond
@@ -7801,12 +7809,7 @@ return {
     // meme hauteur) et la mission entiere reste lisible dans la fiche.
     // Montant lisible : deux decimales, devise collee. Aucun symbole invente :
     // la devise vient du kyber.yml (EUR par defaut), comme le reste du budget.
-    const kbMoney = (n, currency) => {
-      if (typeof n !== 'number' || Number.isFinite(n) === false) return '—'
-      const v = Math.round(n * 100) / 100
-      const cur = (typeof currency === 'string' && currency.length > 0) ? currency : 'EUR'
-      return v.toFixed(2) + ' ' + cur
-    }
+    const kbMoney = (n, currency) => kbFmtMoney(n, currency)
     const kbShortDesc = (text, fallback) => {
       const flat = String(text === null || text === undefined ? '' : text).replace(/\s+/g, ' ').trim()
       if (flat === '') return String(fallback === undefined ? '' : fallback)
@@ -7983,8 +7986,8 @@ return {
         const spentPct = remainingPct === null ? null : Math.max(0, Math.min(100, 100 - remainingPct));
         const over = budget.overBudget === true;
         bits.push(h('div', { className: 'kb2-amount', key: 'amt' },
-          h('span', { className: 'kb2-big' }, fmtEur(spent)),
-          h('span', { className: 'kb2-total' }, 'sur ' + fmtEur(budget.total) + kbt('ui.allotted'))));
+          h('span', { className: 'kb2-big' }, fmtEur(spent, budget.currency)),
+          h('span', { className: 'kb2-total' }, kbt('ui.budget.of').replace('{total}', fmtEur(budget.total, budget.currency)))));
         if (spentPct !== null) {
           bits.push(h('div', { className: 'kb2-bar', key: 'bar', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': Math.round(spentPct) },
             h('div', { className: 'kb2-fill' + (over ? ' kb2-fill-over' : ''), style: { width: Math.max(spentPct, spent > 0 ? 2 : 0) + '%' } })));
@@ -8114,7 +8117,7 @@ return {
       if (k.topology) badges.push(h('span', { className: 'kb2-badge2 kb2-badge2-brand', key: 'topo' }, k.topology));
       badges.push(h('span', { className: 'kb2-badge2', key: 'st' }, k.stages.length + kbt('ui.steps')));
       badges.push(h('span', { className: 'kb2-badge2', key: 'ro' }, total + ' agents'));
-      if (k.budget !== null && k.budget !== undefined && typeof k.budget.total === 'number') badges.push(h('span', { className: 'kb2-badge2', key: 'bud' }, 'budget ' + fmtEur(k.budget.total)));
+      if (k.budget !== null && k.budget !== undefined && typeof k.budget.total === 'number') badges.push(h('span', { className: 'kb2-badge2', key: 'bud' }, kbt('ui.budget.pill').replace('{amount}', fmtEur(k.budget.total, k.budget.currency))));
       const shape = [];
       if (k.elucidation) shape.push('elucidation: ' + k.elucidation);
       if (k.maxDepth !== null) shape.push('maxDepth: ' + k.maxDepth);
@@ -8833,7 +8836,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { className: 'kbg-roleok' + (r.probeOk === true ? ' ok' : '') }, r.probeOk === true ? 'sonde OK' : (r.declared === false ? kbt('ui.notdeclared') : kbt('ui.notprobed')))));
           }
         }
-        const budgetPill = (k.budget !== null && k.budget !== undefined && typeof k.budget.total === 'number' ? h('span', { className: 'kbg-pill' }, 'budget ' + fmtEur(k.budget.total) + ' €') : null);
+        const budgetPill = (k.budget !== null && k.budget !== undefined && typeof k.budget.total === 'number' ? h('span', { className: 'kbg-pill' }, kbt('ui.budget.pill').replace('{amount}', fmtEur(k.budget.total, k.budget.currency))) : null);
         const openTeam = () => { set({ view: 'teaminfo', detailPath: k.file, detailRoot: it.rootId }); try { if (layoutSvc !== undefined && layoutSvc !== null && typeof layoutSvc.selectPanel === 'function') layoutSvc.selectPanel('kybers') } catch (e) { } }
         kids.push(h('div', { className: 'kbg-card', key: key, onClick: openTeam, title: kbt('ui.showteam'), style: { cursor: 'pointer' } },
           h('div', { className: 'kbg-cardhead', onClick: openTeam, title: kbt('ui.viewedit'), style: { cursor: 'pointer' } },
@@ -9101,7 +9104,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               : h('div', { className: 'kbg-empty' }, kbt('ui.notools'))) : null),
           h('button', { type: 'button', className: 'kbg-menurow', onClick: () => secT('budget') },
             h('span', { className: 'kbg-mico' }, '💰'), h('span', { className: 'kbg-mlab' }, kbt('kbui.budget')),
-            h('span', { className: 'kbg-mval' }, (kyber.budget !== null && kyber.budget !== undefined && typeof kyber.budget.total === 'number') ? fmtEur(kyber.budget.total) + ' €' : kbt('ui.unset'))),
+            h('span', { className: 'kbg-mval' }, (kyber.budget !== null && kyber.budget !== undefined && typeof kyber.budget.total === 'number') ? fmtEur(kyber.budget.total, kyber.budget.currency) : kbt('ui.unset'))),
           (sec.budget === true ? h('div', { className: 'kbg-msec' },
             h('div', { className: 'kbg-fieldrow' },
               h('label', { className: 'kbg-field' }, kbt('ui.budgettotal'),
@@ -9170,7 +9173,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       let okCount = 0
       for (const r of roles) { if (r.probeOk === true) okCount += 1 }
       const b = (kyber.budget !== null && kyber.budget !== undefined) ? kyber.budget : {}
-      const budgetTxt = (typeof b.total === 'number') ? (fmtEur(b.total) + ' ' + (b.currency || 'EUR')) : null
+      const budgetTxt = (typeof b.total === 'number') ? fmtEur(b.total, b.currency) : null
       const stages = (kyber.stages || []).map((st) => st.id).join(', ')
       const sid = sessionForKyber(null, kyber)
       const livePair = React.useState({ state: 'init', members: null })
@@ -10904,12 +10907,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     const kbiLocale = () => {
       // Locale de formatage (dates, nombres) : suit la langue active du thème
       // quand elle porte un code BCP47 (ar, es…), sinon la locale hôte.
-      try {
-        const l = kbLangActive() || String(kbLocaleRead())
-        if (l === 'kybernos') return 'fr-FR'
-        if (l === 'en') return 'en-US'
-        return /^[a-z]{2,3}([-_][A-Za-z0-9]{2,8})?$/.test(l) ? l.replace('_', '-') : 'en-US'
-      } catch (e) { return 'en-US' }
+      return kbLocaleTag()
     }
     const kbiMoney = (n, currency, digits) => {
       if (typeof n !== 'number' || Number.isFinite(n) === false) return '—'
@@ -16614,7 +16612,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             h('div', { style: cardBoxB },
               h('span', { className: 'kb8-parent' }, kbe('USAGE OF THIS SESSION')),
               h('span', { className: 'kb8-h1' }, spentNow === null ? '—' : (kbMoney(spentNow, budgetCurrency))),
-              h('span', { className: 'kb8-parent' }, spentNow === null ? kbe('The host does not report any usage for this session yet.') : (budgetTotal > 0 ? ('Reste ' + kbMoney(remaining, budgetCurrency) + kbe(' of the declared budget')) : kbe('No declared budget to report this spend against.'))),
+              h('span', { className: 'kb8-parent' }, spentNow === null ? kbe('The host does not report any usage for this session yet.') : (budgetTotal > 0 ? (kbe('Remaining ') + kbMoney(remaining, budgetCurrency) + kbe(' of the declared budget')) : kbe('No declared budget to report this spend against.'))),
               h('span', { className: 'kb8-parent' }, usageNow !== null && typeof usageNow.spentUsd === 'number' ? kbMoney(usageNow.spentUsd, 'USD') : ''))),
           h('div', { style: { background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '10px' } },
             h('span', { className: 'kb8-name' }, kbe('Detail by agent team')),
@@ -20711,8 +20709,8 @@ function renderFit(canvas, model, cam, opts){
         let r = 0
         if (tbAuto[0].sort === 'sessions') r = x.sessions - y.sessions
         else if (tbAuto[0].sort === 'recent') r = auRecency(x) - auRecency(y)
-        else r = String(x.name).localeCompare(String(y.name), 'fr')
-        if (r === 0) r = String(x.name).localeCompare(String(y.name), 'fr')
+        else r = String(x.name).localeCompare(String(y.name), kbLocaleTag())
+        if (r === 0) r = String(x.name).localeCompare(String(y.name), kbLocaleTag())
         return r * (autoDir === 'asc' ? 1 : -1)
       })
 
@@ -22354,7 +22352,7 @@ function renderFit(canvas, model, cam, opts){
           const r = await kbttsAppel('/speak', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ text: kbttsTexte((v.lang !== null && v.lang !== undefined && v.lang !== '') ? v.lang : 'fr'), engine: v.engine, voice: v.voice, lang: ((v.lang !== null && v.lang !== undefined) ? v.lang : undefined), speed: 1 })
+            body: JSON.stringify({ text: kbttsTexte((v.lang !== null && v.lang !== undefined && v.lang !== '') ? v.lang : kbttsLangueUi()), engine: v.engine, voice: v.voice, lang: ((v.lang !== null && v.lang !== undefined) ? v.lang : undefined), speed: 1 })
           })
           const b = r.corps
           if (b === null || b.ok !== true) {
@@ -25240,7 +25238,7 @@ function renderFit(canvas, model, cam, opts){
         ? kbt('voice.cap.checking')
         : (ready === true
           ? (state === 'recording' ? kbt('voice.dictate.stop') : kbt('voice.dictate.start'))
-          : (kbt('voice.dictate.unavailable') + String(cap.reason === undefined || cap.reason === null ? kbt('voice.no.key') : cap.reason)))
+          : (kbt('voice.dictate.unavailable') + kbvReasonText(cap, kbt('voice.no.key'))))
       // Le système expose DÉJÀ une entrée « Default - <micro> » (deviceId
       // `default`) : inventer la nôtre la dupliquait à l'écran. On n'affiche que
       // ce que `enumerateDevices()` rend, et quand rien n'est mémorisé on coche
@@ -27485,9 +27483,21 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
       if (v < 1048576) return Math.round(v / 1024) + ' KB'
       return (v / 1048576).toFixed(v < 10485760 ? 1 : 0) + ' MB'
     }
+    // Why the dictation is not ready, in the language of the page (A2-05). The host sends a CODE (`reasonCode`) and an English `reason`; the page words the
+    // code itself, so no host sentence, internal key name or environment variable reaches the screen. An unknown code shows the English reason.
+    const kbvReasonText = (asr, fallback) => {
+      if (asr === null || asr === undefined) return fallback
+      const key = ({ 'no-credentials-service': 'voice.reason.nocreds', 'no-key': 'voice.reason.nokey', 'credentials-error': 'voice.reason.credserror', quota: 'voice.reason.quota' })[asr.reasonCode]
+      if (key !== undefined) return kbt(key)
+      return typeof asr.reason === 'string' && asr.reason !== '' ? asr.reason : fallback
+    }
+    // Every call tells the host the interface language (2 letters), so a voice nobody chose yet speaks the language the person reads in (A2-04).
+    const kbttsLangueUi = () => kbLocaleTag().split('-')[0]
     const kbttsAppel = async (chemin, options) => {
       try {
-        const res = await fetch(KBTTS_ROUTE + chemin, options)
+        const o = Object.assign({}, options)
+        o.headers = Object.assign({}, options !== undefined && options !== null ? options.headers : undefined, { 'x-kb-ui-lang': kbttsLangueUi() })
+        const res = await fetch(KBTTS_ROUTE + chemin, o)
         let corps = null
         try { corps = await res.json() } catch (e) { corps = null }
         return { status: res.status, corps: corps, reseau: null }
@@ -27674,7 +27684,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
     const KbttsReglages = () => {
       const [vue, setVue] = React.useState({ etat: 'chargement', engines: [], cache: null, erreur: null })
       const [moteur, setMoteur] = React.useState(null)
-      const [langue, setLangue] = React.useState('fr')
+      const [langue, setLangue] = React.useState(kbttsLangueUi())
       const [voix, setVoix] = React.useState(null)
       const [texte, setTexte] = React.useState(null)
       const [vitesse, setVitesse] = React.useState(1)
@@ -27704,7 +27714,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
           if (choisi === undefined) choisi = moteurs.filter((e) => e.ready === true)[0]
           if (choisi === undefined) choisi = moteurs[0]
           const ls = kbttsLangues(choisi)
-          const lg = ls.indexOf(cfg.lang) >= 0 ? cfg.lang : (ls.length > 0 ? ls[0] : 'fr')
+          const lg = ls.indexOf(cfg.lang) >= 0 ? cfg.lang : (ls.length > 0 ? ls[0] : kbttsLangueUi())
           const vs = kbttsVoix(choisi, lg)
           const vx = vs.filter((v) => v.id === cfg.voice)[0]
           setVue({ etat: r.ok === true ? 'ok' : 'erreur', engines: moteurs, cache: r.cache, erreur: r.erreur })
@@ -27892,7 +27902,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
               ? kbt('kbui.mic.kybernos')
               : kbt('kbui.mic.native')),
             (micro.value === 'kybernos' && micro.known === true && (micro.asr === null || micro.asr.ready !== true))
-              ? h('span', { className: 'kbt-micro-warn' }, kbt('kbui.mic.notready') + (micro.asr !== null && micro.asr.reason ? ' (' + micro.asr.reason + ')' : ''))
+              ? h('span', { className: 'kbt-micro-warn' }, kbt('kbui.mic.notready') + (micro.asr !== null && kbvReasonText(micro.asr, '') !== '' ? ' (' + kbvReasonText(micro.asr, '') + ')' : ''))
               : null),
           h('div', { className: 'kbt-micro-btns', role: 'group', 'aria-label': kbt('kbui.mic.title') },
             h('button', { type: 'button', className: 'kbt-micro-b' + (micro.value === 'kybernos' ? ' on' : ''), 'aria-pressed': String(micro.value === 'kybernos'), onClick: () => { kbvSrcSet('kybernos') } }, 'Kybernos'),

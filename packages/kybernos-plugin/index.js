@@ -8187,13 +8187,24 @@ function boot(ctx) {
     })
 
     // ── configuration ────────────────────────────────────────────────────────
-    const kbTtsDefaultConfig = () => ({ engine: 'say', lang: 'fr', voice: '', speed: 1, autoRead: false, fallback: 'say' })
+    // The language of the voice defaults to the language of the INTERFACE (A2-04): the page tells the host its language in the `x-kb-ui-lang` header of
+    // every TTS call (2 letters; « kybernos » is French), and a person who never chose a voice language is read to in the language they read in.
+    // Without the header (a script, an older page) the default is English, never French.
+    const kbTtsUiLangOf = (req) => {
+      try {
+        const raw = req !== null && req !== undefined && req.headers !== undefined ? req.headers['x-kb-ui-lang'] : undefined
+        const v = (Array.isArray(raw) ? raw[0] : raw)
+        const base = typeof v === 'string' ? v.trim().toLowerCase().split(/[-_]/)[0] : ''
+        return /^[a-z]{2}$/.test(base) ? base : 'en'
+      } catch (e) { return 'en' }
+    }
+    const kbTtsDefaultConfig = (ui) => ({ engine: 'say', lang: typeof ui === 'string' && /^[a-z]{2}$/.test(ui) ? ui : 'en', voice: '', speed: 1, autoRead: false, fallback: 'say' })
     const kbTtsConfigPath = async () => {
       const dir = await kbTtsDirOf(null)
       return dir === null ? null : joinPath(dir, 'tts.json')
     }
-    const kbTtsGetConfig = async () => {
-      const out = kbTtsDefaultConfig()
+    const kbTtsGetConfig = async (ui) => {
+      const out = kbTtsDefaultConfig(ui)
       const path = await kbTtsConfigPath()
       if (path === null) return out
       const raw = await kbTtsReadText(path)
@@ -8208,8 +8219,8 @@ function boot(ctx) {
       if (typeof saved.autoRead === 'boolean') out.autoRead = saved.autoRead
       return out
     }
-    const kbTtsSetConfig = async (patch) => {
-      const cur = await kbTtsGetConfig()
+    const kbTtsSetConfig = async (patch, ui) => {
+      const cur = await kbTtsGetConfig(ui)
       const next = Object.assign({}, cur)
       const p = (patch !== null && patch !== undefined && typeof patch === 'object') ? patch : {}
       const engineIds = KB_TTS_CATALOG.map((e) => e.id)
@@ -8605,10 +8616,10 @@ function boot(ctx) {
       if (dir === null) return null
       return kbTtsMkdir(dir) === true ? dir : null
     }
-    const kbTtsSpeak = async (args) => {
+    const kbTtsSpeak = async (args, ui) => {
       try {
         const req = (args !== null && args !== undefined && typeof args === 'object') ? args : {}
-        const cfg = await kbTtsGetConfig()
+        const cfg = await kbTtsGetConfig(ui)
         // m7 : ce que le client a DEMANDE, pour pouvoir lui dire que sa demande a
         // ete ajustee (moteur inconnu, voix inconnue) au lieu d un repli muet.
         const askedEngine = str(req.engine)
@@ -10245,18 +10256,18 @@ function boot(ctx) {
       // Le réglage est un simple fichier JSON relu à chaque appel : aucune
       // synchronisation à maintenir entre le client et l'hôte.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tts/config', handler: async (req, res) => {
-        if (req.method === 'GET') return sendJson(res, 200, { ok: true, config: await kbTtsGetConfig() })
+        if (req.method === 'GET') return sendJson(res, 200, { ok: true, config: await kbTtsGetConfig(kbTtsUiLangOf(req)) })
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET ou POST attendu' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
         let body = {}
         try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         const patch = (body !== null && body !== undefined && typeof body === 'object') ? body.patch : null
-        sendJson(res, 200, await kbTtsSetConfig(patch))
+        sendJson(res, 200, await kbTtsSetConfig(patch, kbTtsUiLangOf(req)))
       } }), 'kybernos: route tts/config')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tts/voices', handler: async (req, res) => {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
         const engines = await kbTtsEngines()
-        const config = await kbTtsGetConfig()
+        const config = await kbTtsGetConfig(kbTtsUiLangOf(req))
         const cache = await kbTtsCacheStats()
         sendJson(res, 200, { ok: true, engines: engines, config: config, cache: cache, os: process.platform })
       } }), 'kybernos: route tts/voices')
@@ -10265,7 +10276,7 @@ function boot(ctx) {
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
         let body = {}
         try { body = await readJsonBody(req, 262144) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
-        sendJson(res, 200, await kbTtsSpeak(body))
+        sendJson(res, 200, await kbTtsSpeak(body, kbTtsUiLangOf(req)))
       } }), 'kybernos: route tts/speak')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tts/cache', handler: async (req, res) => {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
