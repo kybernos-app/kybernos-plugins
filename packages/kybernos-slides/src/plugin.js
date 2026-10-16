@@ -161,7 +161,9 @@
         if (s.titre !== '') noeuds.push(T(s.titre, 110, 320, 92, { gras: 750, k: 't' }))
         if (s.sous !== '') noeuds.push(T(s.sous, 110, 500, 40, { coul: th.muted, gras: 500, k: 's' }))
       } else if (s.layout === 'statement') {
-        if (s.grand !== '') noeuds.push(T(s.grand, 110, 310, 124, { coul: ac, gras: 780, lh: 1.1, k: 'g' }))
+        // Same fields as the stage: the statement is the TITLE (in the accent colour), with an optional line under it.
+        if (s.titre !== '') noeuds.push(T(s.titre, 110, 300, 88, { coul: ac, gras: 780, lh: 1.1, k: 't' }))
+        if (s.sous !== '') noeuds.push(T(s.sous, 110, 620, 30, { gras: 500, k: 's' }))
       } else if (s.layout === 'puces') {
         if (s.titre !== '') noeuds.push(T(s.titre, 110, 150, 58, { gras: 700, k: 't' }))
         s.points.slice(0, 5).forEach((p, j) =>
@@ -512,6 +514,9 @@
         const noeud = e.currentTarget
         const wrap = wrapRef.current
         if (noeud === null || wrap === null) return
+        // One editor at a time: the one that is open is committed and closed before another is mounted (a second
+        // double-click used to stack a second editor, which nothing could close and which hid the tool bar).
+        if (S.edition !== null || S.editeurRiche !== null) fermerEdition(true, null)
         const r = noeud.getBoundingClientRect()
         const w = wrap.getBoundingClientRect()
         const k = S.echelle
@@ -603,6 +608,9 @@
           content: ed.avant.includes('<')
             ? ed.avant
             : '<p>' + ed.avant.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</p>',
+          // Clicking away commits the text, as the plain box does (the format buttons swallow their mousedown, so using
+          // them does not blur). Deferred: the editor must not be destroyed from inside its own blur.
+          onBlur: () => { setTimeout(() => { if (S.editeurRiche !== null && S.editeurRiche.editeur === editeur) fermerEdition(true, null) }, 0) },
           editorProps: {
             attributes: { style: 'outline:none;font:inherit;color:inherit' },
             handleKeyDown: (view, event) => {
@@ -1029,6 +1037,6 @@
       __test: {
         normaliserDeck, normaliserSlide, budget, segments, texteVisible,
         slideActive, diffSlides, hitStroke, dessinerTraits, cleChamp,
-        progression, appliquerAnnotations, THEMES, DEMOS, poidsSlide, pasSonde,
+        progression, appliquerAnnotations, THEMES, DEMOS, poidsSlide, pasSonde, miniature,
       },
     }
