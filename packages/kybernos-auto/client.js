@@ -340,8 +340,13 @@ window.__ModuleLoader__.load({
       const sondagePair = React.useState(false)
       const sondage = sondagePair[0]
       const setSondage = sondagePair[1]
-      const lire = () => lireEtat('').then((j) => { if (j && j.ok === true) setEtat(j) })
-            // Re-read every 60 s (intervalS) + a one-second clock for « Last check N s ago ».
+      // The state could not be read (the host half does not answer: DSH not restarted after an update, a route that fails):
+      // the page used to stay on a bare « … » for ever. `echec` turns it into a sentence with a Retry.
+      const echecPair = React.useState(false)
+      const echec = echecPair[0]
+      const setEchec = echecPair[1]
+      const lire = () => lireEtat('').then((j) => { if (j && j.ok === true) { setEtat(j); setEchec(false) } else setEchec(true) })
+      // Re-read every 60 s (intervalS) + a one-second clock for « Last check N s ago ».
       React.useEffect(() => {
         lire()
         fetch('/kybernos-auto/models').then((r) => r.json()).then((j) => { if (j && j.ok === true && Array.isArray(j.models)) setModeles(j.models) }).catch(() => { /* a host without the route: the picker is empty */ })
@@ -350,6 +355,22 @@ window.__ModuleLoader__.load({
         return () => { clearInterval(relecture); clearInterval(horloge) }
       }, [])
 
+      // The page's head, the same on the page and on its failure state (the title stays: only the body is missing).
+      const entete = () => [
+        h('h4', { key: 'h', className: 'kb6-title', style: { fontSize: '26px', fontWeight: 800, letterSpacing: '-.01em' } }, kt('Routage Auto', 'Auto Routing')),
+        h('p', { key: 'i', className: 'kaa-intro' }, kt(
+          'Auto envoie chaque tâche déléguée au modèle le plus adapté parmi ceux que tu autorises. Le modèle de ton chat n’est jamais changé.',
+          'Auto sends each delegated task to the best-fit model among the ones you allow. Your chat’s own model is never changed.'))
+      ]
+      if (etat === null && echec === true) {
+        return h('div', { className: 'kaa-page', 'data-kb': 'auto-settings' },
+          ...entete(),
+          h('div', { className: 'kaa-down', 'data-kb': 'auto-down', role: 'alert' },
+            h('span', null, kt(
+              'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarre DSH, puis appuie sur Réessayer.',
+              'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.')),
+            h('button', { type: 'button', className: 'kaa-ajout-btn', 'data-kb': 'auto-retry', onClick: () => { setEchec(false); lire() } }, kt('Réessayer', 'Retry'))))
+      }
       if (etat === null) return h('div', { className: 'kaa-page', 'data-kb': 'auto-settings' }, '…')
 
       const ecrire = (patch) => {
@@ -413,10 +434,7 @@ window.__ModuleLoader__.load({
           ? kt('Ta liste est vide : le modèle de la session sera utilisé.', 'Your list is empty: the session model will be used.')
           : total + (total > 1 ? kt(' modèles autorisés', ' models allowed') : kt(' modèle autorisé', ' model allowed')) + ' · ' + disponibles + kt(' répondent', ' answering'))
       return h('div', { className: 'kaa-page', 'data-kb': 'auto-settings' },
-        h('h4', { className: 'kb6-title', style: { fontSize: '26px', fontWeight: 800, letterSpacing: '-.01em' } }, kt('Routage Auto', 'Auto Routing')),
-        h('p', { className: 'kaa-intro' }, kt(
-          'Auto envoie chaque tâche déléguée au modèle le plus adapté parmi ceux que tu autorises. Le modèle de ton chat n’est jamais changé.',
-          'Auto sends each delegated task to the best-fit model among the ones you allow. Your chat’s own model is never changed.')),
+        ...entete(),
         h('div', { className: 'kaa-ligne' },
           h('div', { className: 'kaa-ligne-txt' },
             h('b', null, kt('Routage automatique', 'Automatic routing')),
@@ -610,6 +628,9 @@ window.__ModuleLoader__.load({
       '.kaa-note{margin:8px 0 0;font-size:12px;color:var(--dsw-alias-label-tertiary)}',
       '.kaa-vide{font-size:12.5px;color:var(--dsw-alias-label-tertiary)}',
       '.kaa-err{margin:10px 0 0;font-size:12px;color:var(--dsw-alias-state-error-primary)}',
+      // The page cannot reach its host half: one sentence and a Retry, in the place of the body.
+      '.kaa-down{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;border-radius:10px;font-size:12.5px;background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 16%,transparent);color:var(--dsw-alias-label-primary)}',
+      '.kaa-down span{flex:1;min-width:200px}',
       '@media (max-width:640px){.kaa-ligne{flex-direction:column;gap:8px}.kaa-chips-col,.kaa-classifier{width:100%}}'
     ].join('\n')
 

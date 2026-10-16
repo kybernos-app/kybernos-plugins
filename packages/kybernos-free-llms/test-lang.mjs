@@ -29,7 +29,7 @@ check('a resolver that throws, or none, reads English', lang(() => { throw new E
 console.log('\n── the words ──')
 const en = make(() => 'en')
 const fr = make(() => 'kybernos')
-check('the French page speaks French and the English page English', fr.m('kfl.sonde') === 'Tester un modèle' && en.m('kfl.sonde') === 'Probe a model')
+check('the French page speaks French and the English page English', fr.m('kfl.sonde.ok') === 'Répond — contrat accepté.' && en.m('kfl.sonde.ok') === 'Answers — contract accepted.')
 check('the separator follows the language', fr.sep() === ' : ' && en.sep() === ': ')
 const keys = [...src.matchAll(/\bm\('(kfl\.[A-Za-z0-9_.-]+)'/g)].map((x) => x[1])
 check('every m(\'kfl.…\') key used by the page exists in the table', keys.length > 15 && keys.every((k) => en.KB_M_T[k] !== undefined), keys.filter((k) => en.KB_M_T[k] === undefined))

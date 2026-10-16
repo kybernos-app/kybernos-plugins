@@ -27,13 +27,14 @@ window.__ModuleLoader__.load({
       const SEAM = Symbol.for('kybernos.multiDevice')
       const ROUTE = '/kybernos-multi-device'
 
-      // French only when the resolved language IS French (the 'kybernos' default or a fr base); everything else gets English.
+      // French only when the resolved language IS French (the 'kybernos' default or a fr base); everything else, and a language
+      // not known yet, gets English.
       const lang = () => {
         try {
           const l = window.__KB_LANG_RESOLVE__ && window.__KB_LANG_RESOLVE__()
           const s = String(l || '')
-          return (s === '' || s === 'kybernos' || s.split(/[-_]/)[0] === 'fr') ? 'fr' : 'en'
-        } catch (e) { return 'fr' }
+          return (s === 'kybernos' || s.split(/[-_]/)[0] === 'fr') ? 'fr' : 'en'
+        } catch (e) { return 'en' }
       }
 
       // ── strings: [French, English], same placeholders on both sides ──────────────────────────────────────

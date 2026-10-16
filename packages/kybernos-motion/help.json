@@ -17,13 +17,13 @@
       "en": "“Export” gives an MP4 video, a standalone page or a scene file, saved in the project’s artifacts/ folder."
     },
     {
-      "fr": "Retrouvez vos animations dans la page Livrables, ou avec « Animations » en haut du panneau.",
-      "en": "Find your animations on the Livrables page, or with “Animations” at the top of the panel."
+      "fr": "Retrouvez vos animations dans la page Créations, ou avec « Animations » en haut du panneau.",
+      "en": "Find your animations on the Creations page, or with “Animations” at the top of the panel."
     }
   ],
   "where": {
-    "fr": "Barre latérale droite, onglet « Motion » (s’ouvre seul quand une animation arrive), et page Livrables",
-    "en": "Right sidebar, “Motion” tab (opens by itself when an animation arrives), and the Livrables page",
+    "fr": "Barre latérale droite, onglet « Motion » (s’ouvre seul quand une animation arrive), et page Créations",
+    "en": "Right sidebar, “Motion” tab (opens by itself when an animation arrives), and the Creations page",
     "page": false
   },
   "good": {

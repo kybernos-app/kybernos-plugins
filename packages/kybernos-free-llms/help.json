@@ -13,8 +13,8 @@
       "en": "Tick “I understand my prompts may be retained”, then “Connect to DSH”: the provider and its models are created."
     },
     {
-      "fr": "« Tester un modèle » vérifie que la couche gratuite répond encore, et l’affiche en clair — y compris quand OpenCode la verrouille.",
-      "en": "“Probe a model” checks the free tier still answers, and says so plainly — including when OpenCode locks it."
+      "fr": "« Revérifier » vérifie que la couche gratuite répond encore, et l’affiche en clair — y compris quand OpenCode la verrouille.",
+      "en": "“Re-check” checks the free tier still answers, and says so plainly — including when OpenCode locks it."
     },
     {
       "fr": "« Retirer » enlève le fournisseur sans rien supprimer d’autre.",

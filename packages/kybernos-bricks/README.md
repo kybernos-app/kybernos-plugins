@@ -4,7 +4,7 @@
 brick by brick, live, then read back.**
 
 ```
-DSH chat ──(tool `animer_briques`)──▶ host ──(GET /kybernos-bricks/state)──▶ « Briques » panel
+DSH chat ──(tool `animer_briques`)──▶ host ──(GET /kybernos-bricks/state)──▶ “Bricks” panel (“Briques” in French)
 ```
 
 ## What it does
@@ -57,10 +57,10 @@ ln -s <your checkout>/packages/kybernos-bricks \
 # then add "@local/kybernos-bricks" to dsh.profile.bundles and restart DSH
 ```
 
-The panel opens **by itself** when a mockup arrives, and the **Briques** tab type
+The panel opens **by itself** when a mockup arrives, and the **Bricks** tab type
 stays offered at all times by the selector (the `+`) of the right
 sidebar. No button is put in the footer of the sidebar: a permanent
-"▦ Briques" used to sit there for nothing.
+"▦ Bricks" used to sit there for nothing.
 
 ## Tests
 

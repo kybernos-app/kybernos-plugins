@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Modèles 2D et 3D pilotés par le chat : outil hôte `modeliser` + panneau « Modeleur » dans la barre latérale droite (dessin 2D à l'échelle, solides 3D orbitables, pose en direct objet par objet, relecture).",
+  "description": "2D and 3D models driven by the chat: the `modeliser` host tool and a “3D modeller” panel in the right sidebar (scale drawings, orbitable 3D solids, laid live object by object, then replayed).",
   "license": "Apache-2.0",
   "main": "index.js",
   "exports": {

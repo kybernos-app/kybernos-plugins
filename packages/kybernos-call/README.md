@@ -61,6 +61,11 @@ once if it stops working.
    install). The host starts the worker itself at the first call.
 3. Click Call. Allow the microphone. Speak. With several microphones (a laptop and a headset) the panel lets you switch to the right one during the call. If the worker could not start, the panel says why (for instance a missing worker environment) instead of staying silent.
 
+When the host half does not answer, the panel tells the two cases apart. A refused connection (DSH restarting), a 500, a page that is
+not JSON or `ok:false` say "Cannot reach the call service — try again" with a **Try again** button that re-runs the same call; only a
+404 (the routes are not mounted: DSH was not restarted after an update) says "the call routes are not loaded — relaunch DSH once". The
+panel of a call that never started closes with "Close", not "Hang up". Settings › Calls saves say the same instead of "refused".
+
 A face (a `video` call) needs the LiveAvatar provider chosen, with its key and avatar id (Providers › Face); without them, or with "No face", the call stays voice only. A member's own voice
 needs nothing: it is the one chosen on its card. A voice made from a recording needs an ElevenLabs key and the switch on its provider page.
 

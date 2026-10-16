@@ -55,10 +55,16 @@ window.__ModuleLoader__.load({
       const hhmm = (ts) => { try { return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) } catch (e) { return '' } }
       const secs = (ms) => (ms === null || ms === undefined ? '' : (ms / 1000).toFixed(1).replace('.', kt(',', '.')) + ' s')
 
+      // Every way the host half can fail to answer (refused connection, 404 because DSH was not restarted after an update, a 500,
+      // an HTML page instead of JSON) is told the same way: a sentence, never the browser's « Failed to fetch ».
+      const hostDown = () => Object.assign(new Error(kt(
+        'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarre DSH, puis appuie sur Réessayer.',
+        'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.')), { kbDown: true })
       const api = (path, body) => fetch(path, body === undefined
         ? { headers: { Accept: 'application/json' } }
         : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-        .then((r) => (r.status === 404 ? Promise.reject(new Error(kt('Le serveur DSH n’a pas encore chargé cette version : redémarre-le.', 'The DSH server has not loaded this version yet: restart it.'))) : r.json()))
+        .then((r) => (r.status === 404 || r.status >= 500 ? Promise.reject(hostDown()) : r.json()))
+        .catch((e) => Promise.reject(e && e.kbDown === true ? e : hostDown()))
 
       // The address rule of the host (settings.mjs drops a value it does not accept without a word); said here before saving.
       const httpUrlOk = (text) => {
@@ -228,14 +234,22 @@ window.__ModuleLoader__.load({
         const [showMore, setShowMore] = React.useState(false)
         const [seam, setSeam] = React.useState(null)
         const [seamBusy, setSeamBusy] = React.useState(false)
-        const read = () => api('/kybernos-websearch/state').then((j) => { if (j && j.ok === true) setState(j) }).catch((err) => setMsg(String((err && err.message) || err)))
+        // A later read that works again clears the « helper is not answering » line, and only that line.
+        const read = () => api('/kybernos-websearch/state').then((j) => { if (j && j.ok === true) { setState(j); setMsg((old) => (old === hostDown().message ? '' : old)) } else setMsg(String((j && j.error) || 'Rejected.')) }).catch((err) => setMsg(String((err && err.message) || err)))
         React.useEffect(() => {
           read()
           const t = setInterval(read, 20000)
           return () => clearInterval(t)
         }, [])
         if (state === null) {
-          if (msg !== '') return h('div', { className: 'kwse-page', 'data-kb': 'websearch-page' }, h('p', { className: 'kwse-err' }, msg))
+          // First read failed: the page's own head stays, then the reason and a Retry (it used to be one bare red line).
+          if (msg !== '') {
+            return h('div', { className: 'kwse-page', 'data-kb': 'websearch-page' },
+              pageHead(),
+              h('div', { className: 'kwse-down', 'data-kb': 'websearch-down', role: 'alert' },
+                h('span', null, msg),
+                h('button', { type: 'button', className: 'kwse-btn', 'data-act': 'retry', onClick: () => { setMsg(''); read() } }, kt('Réessayer', 'Retry'))))
+          }
           // First read: bones in the engine rows' own box (the shared skeleton helper of the core plugin, window.__KB_SKEL__);
           // a bare « … » without it, as before.
           let k = null
@@ -343,6 +357,9 @@ window.__ModuleLoader__.load({
         '.kwse-page h4{margin:0 0 2px;font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1.25}',
         '.kwse-intro{margin:0 0 14px;color:var(--dsw-alias-label-secondary,#666);font-size:13px;line-height:1.45}',
         '.kwse-banner{margin:0 0 12px;padding:9px 12px;border-radius:10px;font-size:12.5px;background:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#c80) 16%,transparent);color:var(--dsw-alias-label-primary,inherit)}',
+        // The page cannot reach its host half: one sentence and a Retry, under the page's own head.
+        '.kwse-down{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;border-radius:10px;font-size:12.5px;background:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#c80) 16%,transparent);color:var(--dsw-alias-label-primary,inherit)}',
+        '.kwse-down span{flex:1;min-width:200px}',
         '.kwse-list{border:0.5px solid var(--dsw-alias-border-l2,#ddd);border-radius:12px;background:var(--dsw-alias-bg-layer-1,transparent);overflow:hidden}',
         '.kwse-row{border-bottom:0.5px solid var(--dsw-alias-border-l2,#ddd)}',
         '.kwse-row:last-child{border-bottom:0}',
@@ -421,7 +438,7 @@ window.__ModuleLoader__.load({
             }, 'kybernos-websearch: settings page')
           } catch (e) { console.warn('[kybernos-websearch] page not mounted', e) }
         },
-        __test: { statusOf, accessBadge, nameOf, addressProblem, testDetail, defaultEngine }
+        __test: { statusOf, accessBadge, nameOf, addressProblem, testDetail, defaultEngine, api, hostDown }
       }
     } catch (e) {
       console.warn('[kybernos-websearch] disabled:', e)

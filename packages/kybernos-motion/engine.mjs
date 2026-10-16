@@ -7,7 +7,7 @@
 //
 // A scene is DATA. Nothing in it is ever executed: every layer has a `type` that names a component written
 // here, and every property is checked against that component's table (known keys only, clamped numbers,
-// bounded strings). The same file is therefore safe to open from anywhere, like any other livrable.
+// bounded strings). The same file is therefore safe to open from anywhere, like any other creation.
 //
 // The renderers (render2d.mjs, later others) only know the primitives that `evaluate` returns:
 //   rect, circle, line, poly, text, image

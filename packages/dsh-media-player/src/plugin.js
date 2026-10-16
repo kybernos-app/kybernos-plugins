@@ -1,29 +1,27 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// dsh-media-player — corps du plugin (source lisible, encapsulée par
-// scripts/build.mjs dans une fabrique `(React) => { name, inject, apply }`).
+// dsh-media-player — body of the plugin (readable source, wrapped by
+// scripts/build.mjs in a factory `(React) => { name, inject, apply }`).
 //
-// PROBLÈME RÉSOLU
-// L'aperçu de documents de la barre latérale DSH sait afficher texte, code,
-// markdown, images, PDF, HTML et Office — mais pas le média. `mp3`, `wav`,
-// `mp4`, `webm`… figurent dans UNVIEWABLE_BINARY_EXTENSIONS, donc un .mp3
-// ouvert dans la barre latérale répond « Preview is not available for this
-// file type yet. ».
+// THE PROBLEM
+// The document preview of DSH's sidebar can show text, code, markdown, images,
+// PDF, HTML and Office, but not media. `mp3`, `wav`, `mp4`, `webm`… are in
+// UNVIEWABLE_BINARY_EXTENSIONS, so an .mp3 opened in the sidebar answers
+// « Preview is not available for this file type yet. ».
 //
-// SOLUTION
-// Un renderer d'aperçu supplémentaire, déclaré par le registre PUBLIC du
-// paquet ui-sidebar-documentpreview (aucun patch du paquet amont) :
+// THE SOLUTION
+// One more preview renderer, declared through the PUBLIC registry of the
+// ui-sidebar-documentpreview package (no patch of the upstream package):
 //
 //   ctx.documentPreviews.register({ id, extensions, binaryExtensions,
 //                                   priority, title, loading, wrap })
 //   ctx.slots.register({ name: 'sidebar.right.tab.document', key: id,
 //                        locale }, Body)      // Body({ content, resourceAddress, t })
 //
-// `loading: 'bytes-complete'` : le propriétaire de l'onglet lit lui-même le
-// fichier complet (plafonné par maxFileBytes) et remet `content =
-// { kind: 'bytes', data: Uint8Array }`. On en fait une Blob URL et on la
-// donne au <audio>/<video> natif : aucun codec vendoré, le navigateur fait
-// tout, et les formats qu'il ne décode pas tombent dans un message clair au
-// lieu d'un écran vide.
+// `loading: 'bytes-complete'`: the owner of the tab reads the whole file itself
+// (capped by maxFileBytes) and hands over `content = { kind: 'bytes', data: Uint8Array }`.
+// We turn it into a Blob URL and give it to the native <audio>/<video>: no
+// vendored codec, the browser does everything, and the formats it cannot
+// decode end in a clear message instead of an empty screen.
 // ═══════════════════════════════════════════════════════════════════════════
 
 const NAME = 'dsh-media-player'
@@ -33,7 +31,7 @@ const STYLE_ID = 'dsh-media-player-styles'
 const SLOT = 'sidebar.right.tab.document'
 const ADDRESS_PREFIX = 'dsh-resource://file/session/'
 
-/** Conteneurs audio confiés au décodeur du navigateur. */
+/** Audio containers handed to the browser's decoder. */
 const AUDIO_EXTENSIONS = [
   'mp3',
   'wav',
@@ -49,7 +47,7 @@ const AUDIO_EXTENSIONS = [
   'wma'
 ]
 
-/** Conteneurs vidéo confiés au décodeur du navigateur. */
+/** Video containers handed to the browser's decoder. */
 const VIDEO_EXTENSIONS = [
   'mp4',
   'm4v',
@@ -69,10 +67,10 @@ const VIDEO_EXTENSIONS = [
 const EXTENSIONS = [...AUDIO_EXTENSIONS, ...VIDEO_EXTENSIONS]
 
 /**
- * Type MIME remis à la Blob. La liste suit ce que les navigateurs décodent
- * réellement : mkv/avi/wmv sont déclarés (le média est reconnu, le sélecteur
- * s'ouvre) même quand Chrome ne sait pas les décoder — c'est le message
- * d'échec du renderer qui le dit, pas une absence de lecteur.
+ * MIME type given to the Blob. The list follows what browsers really decode:
+ * mkv/avi/wmv are declared (the media is recognised, the picker opens) even
+ * when Chrome cannot decode them: it is the failure message of the renderer
+ * that says so, not an absent player.
  */
 const MEDIA_TYPES = {
   mp3: 'audio/mpeg',
@@ -102,8 +100,20 @@ const MEDIA_TYPES = {
   ts: 'video/mp2t'
 }
 
+// The dictionaries are DSH locale dictionaries of the namespace above. English is the base; DSH's own second language is
+// Chinese; the French of Kybernos is registered under its locale id « kybernos » (the id DSH knows it by, not « fr »).
 const ZH = {
-  title: ' média',
+  title: '媒体',
+  loading: '正在读取文件…',
+  unsupported: '此文件不是可播放的媒体文件。',
+  failed: '此浏览器无法解码该媒体（不支持的编解码器或容器）。',
+  openExternal: '单独打开',
+  audio: '音频播放器',
+  video: '视频播放器'
+}
+
+const FR = {
+  title: 'Média',
   loading: 'Lecture du fichier…',
   unsupported: "Ce fichier n'est pas un média lisible.",
   failed:
@@ -140,18 +150,18 @@ const CSS = `
 audio.dsh-media-el{display:block;width:100%}
 video.dsh-media-el{display:block;width:100%;max-height:70vh;border-radius:8px;
   background:#000}
-/* Les contrôles natifs <audio>/<video> suivent le thème : DSH marque son
-   document en sombre (html[data-ds-theme-source='dark']). Sans cette règle le
-   lecteur reste blanc au milieu d'une interface sombre. */
+/* The native <audio>/<video> controls follow the theme: DSH marks its document
+   dark (html[data-ds-theme-source='dark']). Without this rule the player stays
+   white in the middle of a dark interface. */
 html[data-ds-theme-source='dark'] .dsh-media-el{color-scheme:dark}
 .dsh-media-status{margin:0;font-size:13px;line-height:20px;
   color:var(--dsw-alias-label-secondary,currentColor)}
 .dsh-media-status[data-state='failed']{color:var(--dsw-alias-state-warn-primary,currentColor)}
 `
 
-// ── helpers purs (exposés au banc d'essai via plugin.__test) ────────────────
+// ── pure helpers (exposed to the test bench through plugin.__test) ──────────
 
-/** Chemin décodé d'une adresse `dsh-resource://file/session/<id>/<chemin>`. */
+/** Decoded path of an address `dsh-resource://file/session/<id>/<path>`. */
 function filePathOf(address) {
   if (typeof address !== 'string' || !address.startsWith(ADDRESS_PREFIX)) return ''
   const rest = address.slice(ADDRESS_PREFIX.length)
@@ -165,13 +175,13 @@ function filePathOf(address) {
   }
 }
 
-/** Dernier segment du chemin (nom de fichier), `\` accepté comme séparateur. */
+/** Last segment of the path (the file name), `\` accepted as a separator. */
 function fileBaseName(path) {
   const normalized = String(path ?? '').replaceAll('\\', '/')
   return normalized.slice(normalized.lastIndexOf('/') + 1)
 }
 
-/** Suffixe normalisé (sans point, minuscules) du nom de fichier. */
+/** Normalised suffix (no dot, lower case) of the file name. */
 function extensionOf(path) {
   const name = fileBaseName(path).toLowerCase()
   const dot = name.lastIndexOf('.')
@@ -179,8 +189,8 @@ function extensionOf(path) {
 }
 
 /**
- * Média reconnu pour un chemin : `{ kind: 'audio' | 'video', mime }`, ou rien.
- * @param path - chemin décodé du fichier.
+ * Media recognised for a path: `{ kind: 'audio' | 'video', mime }`, or nothing.
+ * @param path - decoded path of the file.
  */
 function mediaFor(path) {
   const extension = extensionOf(path)
@@ -189,7 +199,7 @@ function mediaFor(path) {
   return { kind: mime.startsWith('audio/') ? 'audio' : 'video', mime }
 }
 
-/** Taille lisible par un humain. */
+/** Size a human can read. */
 function humanBytes(bytes) {
   if (!Number.isFinite(bytes) || bytes < 0) return ''
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
@@ -199,13 +209,28 @@ function humanBytes(bytes) {
 
 // ── renderer ────────────────────────────────────────────────────────────────
 
+/** True when the Kybernos language is French: chosen on the Language page (DSH itself then stays in English) or in DSH's selector. */
+function kybernosFrench() {
+  try {
+    const l = String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en'))
+    return l === 'kybernos' || l.slice(0, 2) === 'fr'
+  } catch {
+    return false
+  }
+}
+
+/** The label function the player draws with: the French table for a French Kybernos, otherwise DSH's own (English, Chinese). */
+function localized(base) {
+  return (key) => (kybernosFrench() && FR[key] !== undefined ? FR[key] : base(key))
+}
+
 /**
- * Corps d'aperçu : octets complets du fichier → Blob URL → <audio>/<video>.
- * @param props - `content` (octets), `resourceAddress`, `t` (libellés).
+ * Preview body: the whole bytes of the file → Blob URL → <audio>/<video>.
+ * @param props - `content` (bytes), `resourceAddress`, `t` (labels).
  */
 function MediaBody(props) {
   const content = props.content
-  const t = props.t
+  const t = localized(props.t)
   const path = React.useMemo(
     () => filePathOf(props.resourceAddress),
     [props.resourceAddress]
@@ -311,12 +336,12 @@ function MediaBody(props) {
 
 // ── plugin ──────────────────────────────────────────────────────────────────
 
-/** Métadonnées du renderer, séparées de son corps (contrat du registre). */
+/** Metadata of the renderer, kept apart from its body (contract of the registry). */
 function mediaDefinition(t) {
   return {
     id: BODY_ID,
     extensions: EXTENSIONS,
-    // Tout le média est binaire : jamais proposé en « texte brut ».
+    // All media is binary: never offered as “plain text”.
     binaryExtensions: EXTENSIONS,
     priority: 'extension',
     title: () => t('title'),
@@ -326,17 +351,22 @@ function mediaDefinition(t) {
 }
 
 /**
- * Enregistre les métadonnées et le corps dès que le registre d'aperçus est là.
- * Le registre est fourni par ui-sidebar-documentpreview ; sur un profil qui ne
- * le monte pas, on ne fait rien plutôt que de casser l'entrée client.
- * @param ctx - contexte du plugin client.
+ * Registers the metadata and the body as soon as the preview registry is there.
+ * The registry is provided by ui-sidebar-documentpreview; on a profile that
+ * does not mount it, nothing is done rather than breaking the client entry.
+ * @param ctx - context of the client plugin.
  */
 function apply(ctx) {
-  const t = ctx.locale.bind(NS)
-  ctx.effect(
-    () => ctx.locale.register(NS, { zh: ZH, en: EN }),
-    'dsh-media-player: dictionaries'
-  )
+  const t = localized(ctx.locale.bind(NS))
+  ctx.effect(() => {
+    // English and Chinese first and alone if the French locale of Kybernos is not known yet: a failed French registration must
+    // never lose the others.
+    try {
+      return ctx.locale.register(NS, { zh: ZH, en: EN, kybernos: FR })
+    } catch {
+      return ctx.locale.register(NS, { zh: ZH, en: EN })
+    }
+  }, 'dsh-media-player: dictionaries')
   ctx.effect(() => {
     const style = document.createElement('style')
     style.id = STYLE_ID
@@ -372,18 +402,18 @@ function apply(ctx) {
     )
   }
 
-  // 1. le cas courant : le registre est déjà fourni quand on s'applique.
+  // 1. the usual case: the registry is already provided when we apply.
   activate(ctx)
-  // 2. cordis natif, si le service devient disponible plus tard.
+  // 2. native cordis, if the service becomes available later.
   if (!active && typeof ctx.inject === 'function') {
     try {
       ctx.inject(['documentPreviews'], (inner) => activate(inner))
     } catch {
-      /* on garde le sondage ci-dessous */
+      /* we keep the polling below */
     }
   }
-  // 3. filet : sondage borné (le registre est fourni à l'apply d'un autre
-  //    plugin, pas par le conteneur de services).
+  // 3. safety net: bounded polling (the registry is provided by the apply of
+  //    another plugin, not by the service container).
   if (!active) {
     let tries = 0
     const timer = setInterval(() => {
@@ -399,6 +429,6 @@ return {
   name: NAME,
   inject: ['slots', 'locale'],
   apply,
-  // Surface de test : le banc d'essai hors GUI vérifie les helpers purs.
-  __test: { filePathOf, fileBaseName, extensionOf, mediaFor, humanBytes, BODY_ID, EXTENSIONS }
+  // Test surface: the bench outside the GUI checks the pure helpers.
+  __test: { filePathOf, fileBaseName, extensionOf, mediaFor, humanBytes, BODY_ID, EXTENSIONS, localized, locales: { zh: ZH, en: EN, kybernos: FR } }
 }

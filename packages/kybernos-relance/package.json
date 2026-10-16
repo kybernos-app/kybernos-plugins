@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Hôte : outil `relancer_dsh` (panneau d'approbation natif puis relance détachée qui réveille toutes les sessions). Client : recharge la page DSH une seule fois quand l'hôte redémarre, au lieu de laisser l'interface noire jusqu'au F5.",
+  "description": "Restarts DSH without losing work: the host tool `relancer_dsh` (native approval panel when other sessions are running, then a detached restart that wakes every session) and a client that reloads the DSH page once when the host restarts, instead of leaving the interface black until F5.",
   "license": "Apache-2.0",
   "main": "index.js",
   "exports": {

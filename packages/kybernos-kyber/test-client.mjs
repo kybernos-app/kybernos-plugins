@@ -153,7 +153,7 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
 
 {
   ok('a computer that does not exist yet is « made at your first request that needs one », not a missing thing', T.L('noHome').startsWith('Créé') && T.S.onRequest !== undefined)
-  ok('a choice among several computers is a plain select, and it is sent to the host', /'data-kb': 'kybernos-kyber-pick'/.test(src) && /\/kybernos-cloud\/kyby\/computer/.test(src) && /v\.computers\.length > 1/.test(src))
+  ok('the computer is always a plain select (this computer and the cloud ones), and a cloud choice is sent to the host', /'data-kb': 'kybernos-kyber-pick'/.test(src) && /\/kybernos-cloud\/kyby\/computer/.test(src) && /whereOf\(state\.where, v\)/.test(src))
   ok('no setting of where a message runs is left in the page', !/telegram\/settings|home_target|homeTarget/.test(src))
 }
 
@@ -196,7 +196,7 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
   const press = async (tree, kb, arg) => { const n = one(tree, kb); if (n === undefined) throw new Error('no ' + kb); await n.props.onClick(arg); await flush() }
 
   const reset = () => {
-    Object.assign(T.state, { view: null, pairing: null, starting: false, confirmDisc: false, busy: '', computerError: '', stripPref: null, kybySid: null })
+    Object.assign(T.state, { view: null, pairing: null, starting: false, confirmDisc: false, busy: '', computerError: '', stripPref: null, kybySid: null, where: null })
     calls.length = 0; timers.length = 0; stored.clear(); opened.length = 0; answer = () => ({ ok: true })
     T.listeners.clear()
   }
@@ -317,7 +317,10 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
   const computer = (home, computers, o) => { reset(); set(Object.assign({ home, computers: computers || [] }, o || {})); return ui(T.views.ComputerTile, { view: T.state.view }) }
   {
     const none = computer(null)
-    ok('no computer yet: a select-like field named Home, « on request », made at the first request that needs one, no button', textOf(one(none, 'kybernos-kyber-field')).includes('Home') && textOf(one(none, 'kybernos-kyber-computer-state')) === 'À la demande' && said(none).includes('Créé à votre première demande') && byKb(none, 'kybernos-kyber-wake').length === 0 && byKb(none, 'kybernos-kyber-upsell').length === 0 && nodes(none).every((n) => n.tag !== 'select'))
+    ok('no cloud computer yet and no choice made: this computer, ready, no button', textOf(one(none, 'kybernos-kyber-field')).includes('Cet ordinateur') && textOf(one(none, 'kybernos-kyber-computer-state')) === 'Prêt' && byKb(none, 'kybernos-kyber-wake').length === 0 && byKb(none, 'kybernos-kyber-upsell').length === 0)
+    T.state.where = 'cloud'
+    const cloudNone = ui(T.views.ComputerTile, { view: T.state.view })
+    ok('the cloud one chosen before it exists: named Home, « on request », made at the first request that needs one, no button', textOf(one(cloudNone, 'kybernos-kyber-field')).includes('Home') && textOf(one(cloudNone, 'kybernos-kyber-computer-state')) === 'À la demande' && said(cloudNone).includes('Créé à votre première demande') && byKb(cloudNone, 'kybernos-kyber-wake').length === 0 && byKb(cloudNone, 'kybernos-kyber-upsell').length === 0)
     const asleep = computer({ id: 'aaaaaaaa-1111', name: 'Home', state: 'suspended', manual_control: true })
     ok('asleep, on a paid plan: the chip says so and the person may wake it', textOf(one(asleep, 'kybernos-kyber-computer-state')) === 'En veille' && one(asleep, 'kybernos-kyber-wake') !== undefined && byKb(asleep, 'kybernos-kyber-sleep').length === 0)
     await press(asleep, 'kybernos-kyber-wake')
@@ -347,7 +350,7 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
     const many = computer({ id: 'bbbbbbbb-2222', name: 'Atelier', state: 'running', manual_control: true },
       [{ id: 'aaaaaaaa-1111', name: 'Home', state: 'suspended' }, { id: 'bbbbbbbb-2222', name: 'Atelier', state: 'running' }])
     const sel = one(many, 'kybernos-kyber-pick')
-    ok('several computers: a real select, the linked one selected, named for a screen reader', sel !== undefined && sel.tag === 'select' && sel.props.value === 'bbbbbbbb-2222' && sel.kids.length === 2 && textOf(sel.kids[0]) === 'Home' && /Ordinateur lié à Kaby/.test(sel.props['aria-label']))
+    ok('several computers: a real select, this computer first, the linked cloud one selected, named for a screen reader', sel !== undefined && sel.tag === 'select' && sel.props.value === 'bbbbbbbb-2222' && sel.kids.length === 3 && textOf(sel.kids[0]) === 'Cet ordinateur' && textOf(sel.kids[1]) === 'Home (cloud)' && /Ordinateur lié à Kaby/.test(sel.props['aria-label']))
     answer = (u) => (u.endsWith('/kyby/computer') ? { ok: true, computer_id: 'aaaaaaaa-1111' } : { ok: true })
     await sel.props.onChange({ target: { value: 'aaaaaaaa-1111' } }); await flush()
     ok('choosing sends the id to the host, then reads the state again', calls[0].url === '/kybernos-cloud/kyby/computer' && calls[0].body.computer_id === 'aaaaaaaa-1111' && calls.some((c) => c.url === '/kybernos-cloud/kyber'))
@@ -355,7 +358,73 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
     answer = (u) => (u.endsWith('/kyby/computer') ? { ok: false, error: 'not_found' } : (u === '/kybernos-cloud/kyber' ? kyberAnswer : { ok: true }))
     await sel.props.onChange({ target: { value: 'aaaaaaaa-1111' } }); await flush()
     ok('an older server that cannot keep the choice says so, in words', T.state.computerError === 'err_computer_old' && said(ui(T.views.ComputerTile, { view: T.state.view })).includes('Ce serveur ne sait pas encore enregistrer ce choix'))
-    ok('one computer: nothing to select', nodes(computer({ id: 'aaaaaaaa-1111', name: 'Home', state: 'suspended', manual_control: true }, [{ id: 'aaaaaaaa-1111', name: 'Home', state: 'suspended' }])).every((n) => n.tag !== 'select'))
+    ok('one cloud computer: this computer and that one', (() => { const s = one(computer({ id: 'aaaaaaaa-1111', name: 'Home', state: 'suspended', manual_control: true }, [{ id: 'aaaaaaaa-1111', name: 'Home', state: 'suspended' }]), 'kybernos-kyber-pick'); return s.kids.length === 2 && s.props.value === 'aaaaaaaa-1111' && s.props.disabled === false })())
+  }
+
+  // ── « this computer » (V-04): selectable next to the cloud one, remembered, and needing no server ──
+  {
+    const home = { id: 'aaaaaaaa-1111', name: 'Home', state: 'suspended', manual_control: true }
+    const tile = computer(home, [{ id: 'aaaaaaaa-1111', name: 'Home', state: 'suspended' }])
+    ok('with a cloud computer already made, it is the one shown until the person says otherwise', one(tile, 'kybernos-kyber-pick').props.value === 'aaaaaaaa-1111' && one(tile, 'kybernos-kyber-wake') !== undefined)
+    calls.length = 0
+    one(tile, 'kybernos-kyber-pick').props.onChange({ target: { value: 'local' } }); await flush()
+    ok('choosing this computer calls no server at all', calls.length === 0 && timers.length === 0, JSON.stringify(calls))
+    ok('and is remembered, in memory and on disk', T.state.where === 'local' && stored.get('kybernos-kyber.where') === 'local')
+    const local = ui(T.views.ComputerTile, { view: T.state.view })
+    ok('the tile then names this computer, ready, with what it means and no wake / sleep / open', one(local, 'kybernos-kyber-pick').props.value === 'local' && textOf(one(local, 'kybernos-kyber-computer-state')) === 'Prêt' && /Kaby travaille sur cet ordinateur/.test(textOf(one(local, 'kybernos-kyber-local-line'))) && ['wake', 'sleep', 'pcopen', 'upgrade', 'upsell'].every((k) => byKb(local, 'kybernos-kyber-' + k).length === 0))
+    ok('the folded strip says it too', (() => { T.state.stripPref = false; const c = one(ui(T.views.Strip), 'kybernos-kyber-computer-chip'); T.state.stripPref = null; return textOf(c) === 'Cet ordinateur · Prêt' && /ok/.test(c.props.className) })())
+    one(local, 'kybernos-kyber-pick').props.onChange({ target: { value: 'aaaaaaaa-1111' } }); await flush()
+    ok('going back to the cloud computer asks the host and is remembered', T.state.where === 'cloud' && stored.get('kybernos-kyber.where') === 'cloud' && calls[0].url === '/kybernos-cloud/kyby/computer' && calls[0].body.computer_id === 'aaaaaaaa-1111')
+    // remembered across a page load: a second copy of the bundle reads it back
+    const saved = captured
+    stored.set('kybernos-kyber.where', 'local')
+    new Function(src)()
+    const again = captured.factory((n) => (n === 'react' ? React : undefined))
+    ok('a new page load starts from the remembered choice', again.__test.state.where === 'local')
+    stored.set('kybernos-kyber.where', 'nonsense')
+    new Function(src)()
+    ok('a stored value that is not a choice is ignored', captured.factory((n) => (n === 'react' ? React : undefined)).__test.state.where === null)
+    captured = saved
+    // the pure rule
+    const okView = { kind: 'ok', home: null }
+    ok('no choice and no cloud computer: this computer; with one: that one; a choice wins', T.whereOf(null, okView) === 'local' && T.whereOf(null, { kind: 'ok', home: {} }) === 'cloud' && T.whereOf('local', { kind: 'ok', home: {} }) === 'local' && T.whereOf('cloud', okView) === 'cloud')
+    ok('with no account or no readable server it can only be this computer, whatever was remembered', T.whereOf('cloud', { kind: 'signedOut' }) === 'local' && T.whereOf('cloud', { kind: 'failed' }) === 'local' && T.whereOf('cloud', null) === 'local')
+  }
+  {
+    // no account, no server: the strip still offers the one choice that needs neither, and calls nobody
+    for (const kind of ['signedOut', 'failed']) {
+      reset(); T.state.view = { kind }
+      const ch = ui(T.views.Channels, { intro: true })
+      const sel = one(ch, 'kybernos-kyber-pick')
+      ok(kind + ': the note, the intro and the computer tile with this computer only (a select with nothing else to pick)', byKb(ch, 'kybernos-kyber-intro').length === 1 && byKb(ch, 'kybernos-kyber-tile-channels').length === 0 && sel !== undefined && sel.kids.length === 1 && sel.props.disabled === true && textOf(one(ch, 'kybernos-kyber-computer-state')) === 'Prêt' && calls.length === 0)
+    }
+  }
+
+  // ── what Kaby is, and a help line under each tile (V-02, V-03) ──
+  {
+    reset(); set({ home: { id: 'aaaaaaaa-1111', name: 'Home', state: 'suspended', manual_control: true } })
+    const open = ui(T.views.Strip)
+    const intro = one(open, 'kybernos-kyber-intro')
+    ok('the open card says what Kaby is: a phone with a remote control, in French here', intro !== undefined && /téléphone avec télécommande/.test(textOf(intro)) && /Kaby/.test(textOf(intro)))
+    ok('and in English: a phone with a remote control that works on the desktop', /phone with a remote control/.test(T.S.intro[1]) && /works on your desktop/.test(T.S.intro[1]))
+    ok('the intro comes before the tiles', (() => { const order = nodes(open).map((n) => n.props['data-kb']); return order.indexOf('kybernos-kyber-intro') >= 0 && order.indexOf('kybernos-kyber-intro') < order.indexOf('kybernos-kyber-tile-channels') })())
+    ok('one help line under each tile title: channels (what « soon » means) and computer (what « on request » means)', /WhatsApp/.test(textOf(one(open, 'kybernos-kyber-channels-help'))) && /Bientôt/.test(textOf(one(open, 'kybernos-kyber-channels-help'))) && /À la demande/.test(textOf(one(open, 'kybernos-kyber-computer-help'))) && /cet ordinateur/.test(textOf(one(open, 'kybernos-kyber-computer-help'))))
+    ok('the help lines are in English too, with the same words', /Soon/.test(T.S.channelsHelp[1]) && /On request/.test(T.S.computerHelp[1]) && /this computer/.test(T.S.computerHelp[1]))
+    ok('the folded card has no intro (it is not in the way once Telegram is on)', (() => { T.state.stripPref = false; const folded = ui(T.views.Strip); T.state.stripPref = null; return byKb(folded, 'kybernos-kyber-intro').length === 0 })())
+  }
+  {
+    // the « ? How it works » pill: the Suite's own, called by id, beside the fold button and never inside it; nothing where the Suite does not offer it
+    reset(); set({ home: null })
+    const had = globalThis.window.__KB_HELP__
+    globalThis.window.__KB_HELP__ = { Help: (p) => React.createElement('span', { 'data-kb': 'help-stub', 'data-id': p.id }) }
+    const strip = ui(T.views.Strip)
+    const pill = one(strip, 'help-stub')
+    ok('the strip carries the Suite\'s help pill for this bundle', pill !== undefined && pill.props['data-id'] === 'kybernos-kyber')
+    ok('beside the fold button, not inside it', walk(one(strip, 'kybernos-kyber-strip-toggle')).every((n) => n.props['data-kb'] !== 'help-stub'))
+    ok('the page carries it too', byKb(ui(T.views.Page), 'help-stub').length === 1)
+    delete globalThis.window.__KB_HELP__
+    ok('without the Suite\'s help nothing is drawn and nothing throws', byKb(ui(T.views.Strip), 'help-stub').length === 0 && byKb(ui(T.views.Page), 'help-stub').length === 0)
+    if (had !== undefined) globalThis.window.__KB_HELP__ = had
   }
 
   // ── a computer that is being set up is read again until it has settled ──

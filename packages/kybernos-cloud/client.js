@@ -238,8 +238,13 @@ window.__ModuleLoader__.load({
         kyReimport: 'Réimporter',
         kyImporting: 'Import…',
         kyChatsTitle: 'Chats DSH',
-        kyChatsNote: 'Envoie la liste de tes sessions DSH (projet et date, jamais le contenu) à Kybernos.',
+        kyChatsNote: 'Envoie le titre et la date de tes conversations DSH (jamais leur contenu) à ton compte Kybernos, pour qu’elles apparaissent dans la liste « Conversations DSH » de l’application web. Rien n’est envoyé sans ta confirmation.',
         kyChatsSend: 'Envoyer les chats DSH',
+        kyChatsAsk: 'Envoyer la liste maintenant ?',
+        kyChatsYes: 'Oui, envoyer',
+        kyChatsNo: 'Annuler',
+        kyAdvanced: 'Avancé',
+        kyModelsAuto: 'La liste se met à jour toute seule quand ta formule ou ton serveur change.',
         kyChatsSending: 'Envoi…',
         kyChatsLast: 'Dernier envoi',
         kyChatsFail: 'Envoi impossible — réessaie.',
@@ -441,8 +446,13 @@ window.__ModuleLoader__.load({
         kyReimport: 'Re-import',
         kyImporting: 'Importing…',
         kyChatsTitle: 'DSH chats',
-        kyChatsNote: 'Sends the list of your DSH sessions (project and date, never the content) to Kybernos.',
+        kyChatsNote: 'Sends the title and date of your DSH chats (never what is said in them) to your Kybernos account, so they appear in the “DSH conversations” list of the web app. Nothing is sent until you confirm.',
         kyChatsSend: 'Send DSH chats',
+        kyChatsAsk: 'Send the list now?',
+        kyChatsYes: 'Yes, send',
+        kyChatsNo: 'Cancel',
+        kyAdvanced: 'Advanced',
+        kyModelsAuto: 'The list updates by itself when your plan or your server changes.',
         kyChatsSending: 'Sending…',
         kyChatsLast: 'Last send',
         kyChatsFail: 'Send failed — try again.',
@@ -743,6 +753,13 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
 .kbl-line{margin:0;font-size:14px;color:var(--dsw-alias-label-primary)}
 .kbl-note{margin:0}
 .kbl-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.kbl-advb{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;padding:6px 4px;border:0;background:none;font:inherit;font-size:13px;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.kbl-advb:hover{color:var(--dsw-alias-label-primary)}
+.kbl-advb:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4f7cff);outline-offset:2px;border-radius:6px}
+.kbl-advc{display:inline-flex;transform:rotate(-90deg);transition:transform .15s}.kbl-advc.open{transform:rotate(0)}
+.kbl-adv{display:flex;flex-direction:column;gap:10px}
+.kbl-advbody{display:flex;flex-direction:column;gap:14px}
+@media (prefers-reduced-motion: reduce){.kbl-advc{transition:none}}
 .kbl-ok{font-size:13px;color:var(--dsw-alias-label-secondary)}
 `
 
@@ -839,6 +856,10 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
 
     const CheckIcon = (props) => svgIcon(() => [
       h('path', { key: 'a', d: 'M5 12.5l4.5 4.5L19 7', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' }),
+    ], props)
+
+    const ChevronIcon = (props) => svgIcon(() => [
+      h('path', { key: 'a', d: 'M6 9l6 6 6-6', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' }),
     ], props)
 
     const PlusIcon = (props) => svgIcon(() => [
@@ -2563,7 +2584,10 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
         // security, devices, data, support) are the server's embedded pages, opened from the footer menu: nothing of them is here. The section shows whether
         // the person is connected or not: the instructions need no server, the two other actions say so when signed out.
         const KY_INSTR_MAX = 2000
-        const KybernosSection = () => {
+        const KybernosSection = (props) => {
+          // « Advanced » (the two actions for a person who knows what they do) starts folded; a page may start it open (tests, and a link that points at it).
+          const [adv, setAdv] = React.useState(props !== null && props !== undefined && props.advanced === true)
+          const [ask, setAsk] = React.useState(false)
           const [conn, setConn] = React.useState('loading')
           const [models, setModels] = React.useState(null)
           const [lastPush, setLastPush] = React.useState(null)
@@ -2687,30 +2711,49 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                 count > 0
                   ? quotaCount(t, 'kyModelsCount', count, { plan: (models !== null && models.plan) || t('none') }) + (when !== null ? ' · ' + quotaFill(t('kyLastOn'), { date: when }) : '')
                   : (signedOut ? '—' : t('kyModelsNone'))),
-              h('p', { className: 'kbm-setform-unavailable kbl-note' }, t('kyModelsNote')),
-              count > 0 && models.settings !== true ? h('p', { className: 'kbm-setfield-invalid kbl-note' }, t('kyModelsWarn')) : null,
-              fail.models === true ? h('p', { className: 'kbm-setfield-invalid kbl-note', 'data-kb': 'ky-models-error' }, t('kyModelsFail')) : null,
-              needSignIn,
-              h('div', { className: 'kbl-actions' },
-                h('button', {
-                  type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', disabled: conn !== 'in' || busy !== '', 'data-kb': 'ky-models-run',
-                  onClick: () => { void run('models', '/models/sync') },
-                }, busy === 'models' ? t('kyImporting') : (count > 0 ? t('kyReimport') : t('kyImport'))))),
+              // The list keeps itself up to date (the host re-imports at the connection, at a server switch and when the catalogue changes): nothing to press here.
+              h('p', { className: 'kbm-setform-unavailable kbl-note', 'data-kb': 'ky-models-auto' }, t('kyModelsAuto')),
+              count > 0 && models.settings !== true ? h('p', { className: 'kbm-setfield-invalid kbl-note', 'data-kb': 'ky-models-warn' }, t('kyModelsWarn')) : null,
+              needSignIn),
 
-            h('div', { className: 'kbl-card', 'data-kb': 'ky-chats' },
-              h('div', { className: 'kbl-sect' }, t('kyChatsTitle')),
-              h('p', { className: 'kbl-line', 'data-kb': 'ky-chats-state' },
-                lastPush !== null && lastPush.ok === true
-                  ? t('kyChatsLast') + ' · ' + String(lastPush.pushed === undefined ? 0 : lastPush.pushed) + (fmtDate(lastPush.at) !== null ? ' · ' + fmtDate(lastPush.at) : '')
-                  : (lastPush !== null && lastPush.ok === false ? t('kyChatsFail') : '—')),
-              h('p', { className: 'kbm-setform-unavailable kbl-note' }, t('kyChatsNote')),
-              fail.chats === true ? h('p', { className: 'kbm-setfield-invalid kbl-note', 'data-kb': 'ky-chats-error' }, t('kyChatsFail')) : null,
-              needSignIn,
-              h('div', { className: 'kbl-actions' },
-                h('button', {
-                  type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', disabled: conn !== 'in' || busy !== '', 'data-kb': 'ky-chats-run',
-                  onClick: () => { void run('chats', '/chats/push') },
-                }, busy === 'chats' ? t('kyChatsSending') : t('kyChatsSend')))))
+            // The two actions that are for a person who knows what they do (re-reading the catalogue by hand, sending the chat directory) sit under a folded « Advanced ».
+            h('div', { className: 'kbl-adv', 'data-kb': 'ky-advanced' },
+              h('button', { type: 'button', className: 'kbl-advb', 'aria-expanded': adv ? 'true' : 'false', 'aria-controls': 'ky-adv-body', 'data-kb': 'ky-adv-toggle', onClick: () => { setAdv(!adv); setAsk(false) } },
+                h('span', { className: 'kbl-advc' + (adv ? ' open' : '') }, ChevronIcon({ size: 14 })), h('span', null, t('kyAdvanced'))),
+              adv ? h('div', { className: 'kbl-advbody', id: 'ky-adv-body' },
+                h('div', { className: 'kbl-card', 'data-kb': 'ky-models-adv' },
+                  h('div', { className: 'kbl-sect' }, t('kyModelsTitle')),
+                  h('p', { className: 'kbm-setform-unavailable kbl-note' }, t('kyModelsNote')),
+                  fail.models === true ? h('p', { className: 'kbm-setfield-invalid kbl-note', 'data-kb': 'ky-models-error' }, t('kyModelsFail')) : null,
+                  h('div', { className: 'kbl-actions' },
+                    h('button', {
+                      type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', disabled: conn !== 'in' || busy !== '', 'data-kb': 'ky-models-run',
+                      onClick: () => { void run('models', '/models/sync') },
+                    }, busy === 'models' ? t('kyImporting') : (count > 0 ? t('kyReimport') : t('kyImport'))))),
+
+                h('div', { className: 'kbl-card', 'data-kb': 'ky-chats' },
+                  h('div', { className: 'kbl-sect' }, t('kyChatsTitle')),
+                  h('p', { className: 'kbl-line', 'data-kb': 'ky-chats-state' },
+                    lastPush !== null && lastPush.ok === true
+                      ? t('kyChatsLast') + ' · ' + String(lastPush.pushed === undefined ? 0 : lastPush.pushed) + (fmtDate(lastPush.at) !== null ? ' · ' + fmtDate(lastPush.at) : '')
+                      : (lastPush !== null && lastPush.ok === false ? t('kyChatsFail') : '—')),
+                  // What is sent, and why, in one sentence; and nothing is sent until the person has said yes to THAT.
+                  h('p', { className: 'kbm-setform-unavailable kbl-note', 'data-kb': 'ky-chats-note' }, t('kyChatsNote')),
+                  fail.chats === true ? h('p', { className: 'kbm-setfield-invalid kbl-note', 'data-kb': 'ky-chats-error' }, t('kyChatsFail')) : null,
+                  needSignIn,
+                  ask === true && busy !== 'chats'
+                    ? h('div', { className: 'kbl-actions', 'data-kb': 'ky-chats-confirm', role: 'group', 'aria-label': t('kyChatsAsk') },
+                      h('span', { className: 'kbl-line' }, t('kyChatsAsk')),
+                      h('button', {
+                        type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', disabled: conn !== 'in' || busy !== '', 'data-kb': 'ky-chats-yes',
+                        onClick: () => { setAsk(false); void run('chats', '/chats/push') },
+                      }, t('kyChatsYes')),
+                      h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', 'data-kb': 'ky-chats-no', onClick: () => setAsk(false) }, t('kyChatsNo')))
+                    : h('div', { className: 'kbl-actions' },
+                      h('button', {
+                        type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', disabled: conn !== 'in' || busy !== '', 'data-kb': 'ky-chats-run',
+                        onClick: () => { setAsk(true) },
+                      }, busy === 'chats' ? t('kyChatsSending') : t('kyChatsSend'))))) : null))
         }
         ctx.effect(() => slots.inject('settings.section', () => slots.register(
           { name: 'settings.section', id: 'kybernos-local', order: 11, label: t('kyNav') }, KybernosSection)),

@@ -132,6 +132,7 @@ console.log('the allow-list names every bundle once')
   check('every bundle is listed (a new bundle must choose: "pending" or strict)', bundles.every((b) => names.includes(b)), bundles.filter((b) => !names.includes(b)))
   check('no entry names a bundle that is gone', names.every((n) => bundles.includes(n)), names.filter((n) => !bundles.includes(n)))
   check('an entry is "pending" or a list of strings', names.every((n) => ALLOW.bundles[n] === 'pending' || (Array.isArray(ALLOW.bundles[n]) && ALLOW.bundles[n].every((s) => typeof s === 'string'))))
+  check('a French twin is only required of a strict bundle', Object.keys(ALLOW.needFrench).filter((n) => n !== '_doc').every((n) => Array.isArray(ALLOW.bundles[n])), Object.keys(ALLOW.needFrench))
 }
 
 // ── the scanner itself, on small cases (it must not flag English, identifiers, or a dictionary) ───
@@ -145,6 +146,7 @@ console.log('the scanner')
   check('…but not the English argument position of an unrelated call', f("alert('Fermer la fenêtre')").length === 1)
   check('a [fr, en] row is a dictionary', f("const S = { close: ['Fermer la fenêtre', 'Close the window'] }").length === 0)
   check('a fr table is a dictionary, its neighbour is not', f("const D = { fr: { a: 'Fermer la fenêtre' }, en: { a: 'Close' } }\nconst bad = 'Fermer la fenêtre'").length === 1)
+  check('a French literal in a grouping parenthesis of a pair call is in the dictionary', f("const kt = (fr, en) => en\nconst x = kt('' + n + (n > 1 ? ' leçons' : ' leçon'), 'lessons')").length === 0)
   check('a { fr, en } pair is a dictionary', f("const x = { fr: 'Fermer la fenêtre', en: 'Close the window' }").length === 0)
   check('French inside a comment or a regex is not a literal', f("// Fermer la fenêtre\n/* Ouvrir la porte */ const r = /é|è/g").length === 0)
   check('a template literal is read, its expressions are code', f('const t = `${a} fichiers sont dans le dossier`').length === 1)
@@ -170,7 +172,7 @@ for (const b of bundles) {
   }
   if (entry === 'pending') {
     pendingCount += 1
-    console.log('  · ' + b + ' (pending): ' + found.length + ' French literal(s), ' + readme.length + ' French README line(s)' + (descFrench ? ', French description' : '') + (helperProblems.length > 0 ? ', helper falls back to French' : ''))
+    console.log('  · ' + b + ' (pending): ' + found.length + ' French literal(s), ' + readme.length + ' French README line(s)' + (descFrench ? ', French description' : '') + (helperProblems.length > 0 ? ', helper falls back to French' : '') + (pkg.exports && pkg.exports['./package.json'] === './package.json' ? '' : ', no description on the Built-in plugins page'))
     continue
   }
   strictCount += 1
@@ -181,7 +183,15 @@ for (const b of bundles) {
   check('every allowed exception still exists (no stale entry)', entry.every((s) => found.some((o) => o.text === s)), entry.filter((s) => !found.some((o) => o.text === s)))
   check('README.md is English', readme.length === 0, readme.slice(0, 3).map((o) => o.line + ' ' + JSON.stringify(o.text.slice(0, 50))))
   check('the package description is English and present', typeof pkg.description === 'string' && pkg.description.length > 10 && !descFrench, pkg.description)
+  // The Built-in plugins page reads a bundle's description through `require.resolve('<id>/package.json')`: a package that does not
+  // export it shows its raw id and no description (measured on a sandbox, 2026-10-16: with the export the description appears).
+  check('the package exports ./package.json (the Built-in plugins page reads its description through it)', pkg.exports !== null && typeof pkg.exports === 'object' && pkg.exports['./package.json'] === './package.json', pkg.exports)
   check('the pair helper answers French for French, English for every other language', helperProblems.length === 0, helperProblems)
+  const need = ALLOW.needFrench[b]
+  if (need !== undefined) {
+    const twin = codeFiles(join(PACKAGES, b)).filter((f) => /(^|\/)(client|plugin)\.js$/.test(f)).reduce((n, f) => n + frenchEverywhere(readFileSync(f, 'utf8')).length, 0)
+    check('the French twin is there (at least ' + need + ' French dictionary literals in the client)', twin >= need, twin)
+  }
 }
 console.log('\n' + strictCount + ' strict bundle(s), ' + pendingCount + ' pending (the allow-list tightens as bundles are cleaned)')
 console.log(pass + ' ✓  ' + fail + ' ✗')

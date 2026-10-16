@@ -2,7 +2,7 @@
 // In scope from the assembler: `require` (DSH module loader), `engine`, `audio`, `render2d`, `renderExt`, `Mediabunny`, `RUNTIME_SRC`.
 //
 // Two things live here:
-//   MotionPlayer  plays a motion scene; registered as the "motion" player of the Livrables page, the chat card and the popup
+//   MotionPlayer  plays a motion scene; registered as the "motion" player of the Creations page, the chat card and the popup
 //   MotionPanel   the right-sidebar tab: play, scrub, change the scene's settings, export (MP4, standalone page, app)
 const React = require('react')
 const h = React.createElement
@@ -13,12 +13,37 @@ const SLOT = 'sidebar.right.pane.tab'
 const STYLE_ID = 'kybernos-motion-styles'
 const R = '/kybernos-motion/'
 
-const lang = () => { try { return String(window.__KB_LANG_RESOLVE__?.() || '').split(/[-_]/)[0] } catch (e) { return 'fr' } }
-const kt = (fr, en) => (lang() === 'en' ? en : fr)
-// Text separator, locale-aware: French ' : ', English ': '.
-const sep = () => (lang() === 'en' ? ': ' : ' : ')
+// French is the source, English the pair; French only for a French UI, a translated language is looked up by its French text,
+// and every other language (and a language not known yet) reads English.
+const lang = () => {
+  try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
+}
+const kt = (fr, en) => {
+  const l = lang()
+  if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
+  if (l === 'en') return en
+  try {
+    const a = window.__KB_I18N_ACTIVE__
+    if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
+  } catch (e) { /* no dictionary: English */ }
+  return en
+}
+/** True for a French UI only: the typography below (the space before a colon, the guillemets) is French. */
+const isFr = () => { const l = lang(); return l === 'kybernos' || l.slice(0, 2) === 'fr' }
+// Text separator, locale-aware: French ' : ', every other language ': '.
+const sep = () => (isFr() ? ' : ' : ': ')
+/** A name or a text between quotes, in the typography of the language. */
+const quoted = (s) => (isFr() ? '« ' + s + ' »' : '“' + s + '”')
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
 const fmtT = (t) => { const m = Math.floor(t / 60); const s = (t % 60).toFixed(1); return m + ':' + (s.length < 4 ? '0' + s : s) }
+// One size style per language, the same as Creations and the media player: English « 86 KB », « 5.0 MB » (a decimal point), French
+// « 86 Ko », « 5,0 Mo ». It used to mix « 5,0 MB » (a French comma on an English unit) and « 31 Ko » in one dialog.
+const fmtBytes = (n) => {
+  const fr = kt(true, false)
+  if (n >= 1048576) { const v = (n / 1048576).toFixed(1); return fr ? v.replace('.', ',') + ' Mo' : v + ' MB' }
+  if (n >= 1024) return Math.round(n / 1024) + (fr ? ' Ko' : ' KB')
+  return n + (fr ? ' o' : ' B')
+}
 const slugOf = (s) => String(s || 'animation').toLowerCase().normalize('NFD').replace(/\p{M}+/gu, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'animation'
 
 let CTX = null
@@ -47,7 +72,7 @@ function openTab () {
   } catch (e) { /* no session mounted */ }
 }
 
-// The tab can only show inside a chat. When someone asks for it elsewhere (the Livrables page), keep trying for a minute
+// The tab can only show inside a chat. When someone asks for it elsewhere (the Creations page), keep trying for a minute
 // so it appears as soon as a chat is on screen.
 let WANT_OPEN_UNTIL = 0
 function requestOpen () {
@@ -377,7 +402,7 @@ function Transport ({ scene, player, extra }) {
     extra || null)
 }
 
-/* ══════════════════════ the player (Livrables, chat card, popup) ══════════════════════ */
+/* ══════════════════════ the player (Creations, chat card, popup) ══════════════════════ */
 
 function MotionPlayer (props) {
   const parsed = React.useMemo(() => parseDoc(props.text), [props.text])
@@ -400,7 +425,7 @@ function MotionPlayer (props) {
     }),
     hint ? h('p', { className: 'kbmt-note', role: 'status', 'data-kb': 'motion-hint' }, kt('Ouvrez un chat : l\'animation s\'ouvrira dans le panneau Motion (barre latérale droite).', 'Open a chat: the animation will open in the Motion panel (right sidebar).')) : null,
     h('div', { className: 'kbmt-scrub' }, h('input', { type: 'range', min: 0, max: scene.format.duration, step: 0.05, value: player.t, 'aria-label': kt('Position', 'Position'), onChange: (e) => { player.pause(); player.seek(Number(e.target.value)) } })),
-    parsed.errors.length ? h('p', { className: 'kbmt-note' }, kt(parsed.errors.length + ' élément(s) ignoré(s) dans ce fichier.', parsed.errors.length + ' item(s) ignored in this file.')) : null)
+    parsed.errors.length ? h('p', { className: 'kbmt-note' }, (parsed.errors.length === 1 ? kt('1 élément ignoré dans ce fichier.', '1 item ignored in this file.') : kt(parsed.errors.length + ' éléments ignorés dans ce fichier.', parsed.errors.length + ' items ignored in this file.'))) : null)
 }
 
 /* ══════════════════════ export ══════════════════════ */
@@ -574,7 +599,8 @@ function ExportModal ({ doc, player, onClose, onToast }) {
   const cancelled = React.useRef(false)
   const base = slugOf(doc.title)
   const heights = Array.from(new Set([Math.min(1080, scene.format.height), Math.min(720, scene.format.height), Math.min(480, scene.format.height)]))
-  const est = (scene.format.duration * (Number(res) / 1080) * (fps === '60' ? 1.5 : 1)).toFixed(1).replace('.', ',')
+  // A rough ceiling (one megabyte per second at 1080p): a simple scene encodes far smaller (31 KB for 5 s), so it says « up to ».
+  const est = fmtBytes(scene.format.duration * (Number(res) / 1080) * (fps === '60' ? 1.5 : 1) * 1048576)
   const inlineMedia = () => gatherMedia(player.assets, scene)
   const go = async () => {
     cancelled.current = false
@@ -613,7 +639,7 @@ function ExportModal ({ doc, player, onClose, onToast }) {
     foot = h('button', { type: 'button', className: 'kbmt-btn', 'data-act': 'cancel', onClick: () => { cancelled.current = true } }, kt('Annuler l\'export', 'Cancel export'))
   } else if (phase === 'done') {
     body = h('div', { className: 'kbmt-done' }, h('span', { className: 'kbmt-big' }, Ic('check', 20)), h('b', null, result.name),
-      h('span', { className: 'kbmt-hint' }, result.app ? kt('Installée dans ', 'Installed in ') + result.where : (Math.max(1, Math.round(result.size / 1024)) + ' Ko') + (result.saved ? kt(' · enregistré dans le projet (artifacts/)', ' · saved in the project (artifacts/)') : '')))
+      h('span', { className: 'kbmt-hint' }, result.app ? kt('Installée dans ', 'Installed in ') + result.where : fmtBytes(result.size) + (result.saved ? kt(' · enregistré dans le projet (artifacts/)', ' · saved in the project (artifacts/)') : '')))
     foot = [h('button', { type: 'button', className: 'kbmt-btn', key: 'c', onClick: onClose }, kt('Fermer', 'Close')),
       result.blob ? h('button', { type: 'button', className: 'kbmt-btn pri', key: 'd', 'data-act': 'download', onClick: () => downloadBlob(result.name, result.blob) }, Ic('up', 14), kt('Télécharger', 'Download')) : null]
   } else if (phase === 'error') {
@@ -628,13 +654,13 @@ function ExportModal ({ doc, player, onClose, onToast }) {
     fmt === 'mp4' ? h('div', { className: 'kbmt-sub', key: 's' },
       h('div', { className: 'kbmt-fld' }, h('span', { className: 'kbmt-lbl' }, kt('Hauteur', 'Height')), seg('res', res, setRes, heights.map((x) => [x + 'p', String(x)]))),
       h('div', { className: 'kbmt-fld' }, h('span', { className: 'kbmt-lbl' }, kt('Images par seconde', 'Frames per second')), seg('fps', fps, setFps, [['30', '30'], ['60', '60']])),
-      h('p', { className: 'kbmt-hint' }, kt('Environ ' + est + ' Mo. Rien n\'est envoyé hors de cette machine.', 'About ' + est + ' MB. Nothing leaves this machine.'))) : null]
+      h('p', { className: 'kbmt-hint' }, kt('Jusqu\'à environ ' + est + '. Rien n\'est envoyé hors de cette machine.', 'Up to about ' + est + '. Nothing leaves this machine.'))) : null]
     foot = [h('button', { type: 'button', className: 'kbmt-btn', key: 'c', onClick: onClose }, kt('Annuler', 'Cancel')),
       h('button', { type: 'button', className: 'kbmt-btn pri', key: 'g', 'data-act': 'export-go', onClick: go }, fmt === 'mp4' ? kt('Exporter en MP4', 'Export MP4') : fmt === 'app' ? kt('Installer l\'app', 'Install the app') : kt('Enregistrer le fichier', 'Save the file'))]
   }
   return h('div', { className: 'kbmt-mask', onClick: (e) => { if (e.target === e.currentTarget && phase !== 'work') onClose() } },
     h('div', { className: 'kbmt-modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': kt('Exporter', 'Export') },
-      h('div', { className: 'kbmt-mh' }, h('h2', null, kt('Exporter « ', 'Export "') + doc.title + (lang() === 'en' ? '"' : ' »')), phase === 'work' ? null : h('button', { type: 'button', className: 'kbmt-ibtn', 'aria-label': kt('Fermer', 'Close'), onClick: onClose }, Ic('x', 16))),
+      h('div', { className: 'kbmt-mh' }, h('h2', null, kt('Exporter ', 'Export ') + quoted(doc.title)), phase === 'work' ? null : h('button', { type: 'button', className: 'kbmt-ibtn', 'aria-label': kt('Fermer', 'Close'), onClick: onClose }, Ic('x', 16))),
       h('div', { className: 'kbmt-mb' }, body), h('div', { className: 'kbmt-mf' }, foot)))
 }
 
@@ -647,7 +673,7 @@ function MotionPanel () {
   const [list, setList] = React.useState([])
   const [modal, setModal] = React.useState(false)
   const [toast, setToast] = React.useState('')
-  const [arrival, setArrival] = React.useState(0) // counts the scenes the HOST handed us (the agent wrote, Livrables pointed here), not our own edits
+  const [arrival, setArrival] = React.useState(0) // counts the scenes the HOST handed us (the agent wrote, Creations pointed here), not our own edits
   const draft = React.useRef(null)
   const timer = React.useRef(null)
   const seenAt = React.useRef(0)
@@ -680,7 +706,7 @@ function MotionPanel () {
     setArrival((n) => n + 1)
   }, [])
 
-  // follow what the host says is current (the agent wrote, Livrables pointed here); answer frame requests
+  // follow what the host says is current (the agent wrote, Creations pointed here); answer frame requests
   React.useEffect(() => {
     let dead = false
     const poll = async () => {
@@ -733,7 +759,7 @@ function MotionPanel () {
     draft.current = next
     setDoc({ ...d, scene: engine.validate(next).scene })
     clearTimeout(timer.current)
-    const what = ctl.label + sep() + (kind === 'text' ? '« ' + String(value).slice(0, 40) + ' »' : shown || String(value))
+    const what = ctl.label + sep() + (kind === 'text' ? quoted(String(value).slice(0, 40)) : shown || String(value))
     if (kind === 'text') timer.current = setTimeout(() => save(what), 700)
     else save(what)
   }
@@ -776,7 +802,7 @@ function MotionPanel () {
     h('div', { className: 'kbmt-params' },
       h('h3', null, kt('Paramètres', 'Settings')),
       controls.length === 0 ? h('p', { className: 'kbmt-hint' }, kt('Cette animation n\'a pas de réglages : demandez à l\'agent de la modifier.', 'This animation has no settings: ask the agent to change it.')) : controls.map((c) => h(Field, { key: c.id, ctl: c, value: scene.params[c.id], onChange: (v, kind, shown) => setParam(c, v, kind, shown) })),
-      doc.errors && doc.errors.length ? h('p', { className: 'kbmt-note' }, kt(doc.errors.length + ' élément(s) ignoré(s) par le moteur.', doc.errors.length + ' item(s) ignored by the engine.')) : null),
+      doc.errors && doc.errors.length ? h('p', { className: 'kbmt-note' }, (doc.errors.length === 1 ? kt('1 élément ignoré par le moteur.', '1 item ignored by the engine.') : kt(doc.errors.length + ' éléments ignorés par le moteur.', doc.errors.length + ' items ignored by the engine.'))) : null),
     pop === 'revs' ? h('div', { className: 'kbmt-pop', role: 'menu' }, h('h3', null, kt('Révisions', 'Revisions')),
       revs.length === 0 ? h('p', { className: 'kbmt-hint', style: { padding: '4px 8px' } }, kt('Aucune révision conservée.', 'No revision kept.')) : revs.map((v, i) => h('div', { className: 'kbmt-rv', key: v.r },
         h('span', { className: 'kbmt-r' }, 'r' + v.r), h('span', { className: 'kbmt-w' }, (v.by === 'user' ? kt('Vous', 'You') : v.by === 'agent' ? kt('Agent', 'Agent') : v.by) + ' · ' + v.what, h('small', null, v.at ? new Date(v.at).toLocaleString() : '')),
@@ -902,7 +928,7 @@ const CSS = `
 
 /* ══════════════════════ wiring ══════════════════════ */
 
-/** The door of the Livrables page: the "motion" player, and the exporter the Mac app install uses. */
+/** The door of the Creations page: the "motion" player, and the exporter the Mac app install uses. */
 function registerPlayer () {
   try {
     if (window.__KB_MINIAPP__ && typeof window.__KB_MINIAPP__.register === 'function') window.__KB_MINIAPP__.register('motion', MotionPlayer)
@@ -985,5 +1011,5 @@ return {
   // `sidebarRightTabs` must be declared: ui-sidebar-right provides it, and without this `apply` could run before.
   inject: ['slots', 'sidebarRightTabs'],
   apply,
-  __test: { parseDoc, controlsOf, standaloneHTML, fmtT, slugOf, q, PALETTE },
+  __test: { parseDoc, controlsOf, standaloneHTML, fmtT, fmtBytes, slugOf, q, PALETTE },
 }
