@@ -28498,6 +28498,7 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 .kb8-grid.kb8-cmp{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
 .kb8-card.kb8-cmp{position:relative;min-height:0;height:auto;padding:12px 14px;gap:7px}
 .kb8-cmp .kb8-desc.kb8-none{display:block;white-space:nowrap;text-overflow:ellipsis;font-size:12.5px;color:var(--dsw-alias-label-tertiary)}
+body:not([data-ds-dark-theme]) .kb8-cmp .kb8-desc.kb8-none{color:var(--dsw-alias-label-secondary)}
 .kb8-cmp .kb8-parent{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kb8-parent.kb8-count{font-family:ui-monospace,monospace;font-size:10.5px;letter-spacing:.04em}
 .kb8-cmp .kb8-cardfoot{position:relative;display:flex;align-items:center;gap:8px;min-width:0;min-height:26px;margin-top:auto}

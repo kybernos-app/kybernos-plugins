@@ -910,6 +910,8 @@ body:not([data-ds-dark-theme]) .kbcp-input::placeholder{color:var(--dsw-alias-la
 .kbcp-note{font-size:11.5px;opacity:.65;line-height:1.5}
 .kbcp-code{font-family:ui-monospace,Menlo,monospace;font-size:11px;opacity:.75}
 .kb7-root{display:flex;flex-direction:column;gap:16px;padding:4px 0 24px;position:relative}
+/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
+body:not([data-ds-dark-theme]) .kb7-root{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kb7-head{display:flex;flex-direction:column;gap:4px}
 .kb7-h1{margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em}
 .kb7-sub{margin:0;font-size:13px;opacity:.7;max-width:720px;line-height:1.5}

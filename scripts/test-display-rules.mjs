@@ -365,6 +365,8 @@ const PAGE_ROOTS = [
   ['kybernos-cloud/client.js', ':is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-poptitle,.kbl-page)'],
   ['kybernos-models/client.js', '.kbm-root.kbmp'],
   ['kybernos-plugin/client.js', ':is(.kbt2-sec,.kba-onboard,.kbv-pop,.kb4-pick)'],
+  ['kybernos-skills/client.js', '.kbs-root'],
+  ['kybernos-composio/client.js', '.kb7-root'],
 ]
 ok('every plugin page lifts label-tertiary to label-secondary inside its own root in the light schemes, which is 4.5:1 on every layer (A1-05)', () => {
   for (const [file, roots] of PAGE_ROOTS) {
@@ -474,6 +476,16 @@ ok('the Composio help text and its link keep 4.5:1 under the help block\'s opaci
   const opacity = Number(/opacity:\s*([\d.]+)/.exec(rule('kybernos-composio/client.js', '.kbcp-help').body)[1])
   const ink = colour(lastDecl(rule('kybernos-composio/client.js', '.kbcp-help a').body, 'color'), 'light')
   for (const layer of ['var(--dsw-alias-bg-layer-1)', 'var(--dsw-alias-bg-module-platform)', '#f5f5f5']) atLeast('help link on ' + layer, contrast([ink[0], ink[1], ink[2], opacity], colour(layer, 'light')), 4.5)
+})
+
+
+ok('the empty description of a compact card and the Skills source icon are readable in the light schemes (A1-05)', () => {
+  const none = rule('kybernos-plugin/client.js', 'body:not([data-ds-dark-theme]) .kb8-cmp .kb8-desc.kb8-none')
+  atLeast('no-description line', contrast(colour(lastDecl(none.body, 'color'), 'light'), colour('var(--dsw-alias-bg-layer-1)', 'light')), 4.5)
+  for (const sel of ['.kbs-root .kbs-srcline svg', '.kbss-page .kbss-srcline svg']) {
+    const r = rule('kybernos-skills/client.js', sel)
+    atLeast(sel + ' (icon, 3:1)', contrast(colour(lastDecl(r.body, 'color'), 'light'), colour('var(--dsw-alias-bg-layer-1)', 'light')), 3)
+  }
 })
 
 console.log('\n' + count + ' tests passed')

@@ -924,7 +924,7 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-star-btn.on{color:#f7c46c;border-color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 45%,transparent);background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 14%,transparent)}
 /* — Where the index is read from — */
 .kbs-root .kbs-srcline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
-.kbs-root .kbs-srcline svg{flex:0 0 auto;color:var(--dsw-alias-label-caption)}
+.kbs-root .kbs-srcline svg{flex:0 0 auto;color:var(--dsw-alias-label-secondary)}
 .kbs-root .kbs-srcline .k{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
 .kbs-root .kbs-srcline .v{font-family:ui-monospace,monospace;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .kbs-root .kbs-srcline .w::before{content:'·';margin-right:8px}
@@ -1035,6 +1035,8 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
 .kbs-root .kbsf-pill.ok{color:var(--dsw-alias-state-success-primary,#22c55e)}
 .kbs-root .kbsf-pill.warn{color:var(--dsw-alias-state-warn-primary,#f59e0b)}
 .kbs-root .kbsf-pill.need{color:var(--dsw-alias-state-business-primary,#5686fe)}
+/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
+body:not([data-ds-dark-theme]) .kbs-root{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 /* The state inks are the fills (2.1 to 4.2:1 on white): in the light schemes they are pulled toward the text colour (audit A1-11). */
 body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.ok{color:color-mix(in srgb,var(--dsw-alias-state-success-primary,#22c55e) 50%,var(--dsw-alias-label-primary))}
 body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.warn{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#f59e0b) 50%,var(--dsw-alias-label-primary))}
@@ -1121,7 +1123,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb
 .kbss-page .kbss-h2{margin:0;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}
 .kbss-page .kbss-sub{margin:0;font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
 .kbss-page .kbss-srcline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
-.kbss-page .kbss-srcline svg{flex:0 0 auto;color:var(--dsw-alias-label-caption)}
+.kbss-page .kbss-srcline svg{flex:0 0 auto;color:var(--dsw-alias-label-secondary)}
 .kbss-page .kbss-srcline .k{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
 .kbss-page .kbss-srcline .v{font-family:ui-monospace,monospace;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .kbss-page .kbss-srcline .w::before{content:'·';margin-right:8px}
