@@ -121,6 +121,13 @@ export function createRemote (deps) {
 
   const computerLabel = () => { try { return cleanLabel(deps.label(), 'Computer') } catch (e) { return 'Computer' } }
   const cloud = () => { try { return deps.cloud() } catch (e) { return null } }
+  /** The server a failed call names (label, host, whether another one could be chosen), cut to what the page may show; null when the seam named none. */
+  const cleanServer = (v) => {
+    if (v === null || typeof v !== 'object') return null
+    const text = (x) => (typeof x === 'string' ? x.replace(/[\u0000-\u001f\u007f]/gu, ' ').trim().slice(0, 80) : '')
+    const out = { name: text(v.name), host: text(v.host), can_switch: v.can_switch === true }
+    return out.name === '' && out.host === '' ? null : out
+  }
   const call = async (path, options) => {
     const c = cloud()
     if (c === null || c === undefined || typeof c.call !== 'function') return { status: 0, body: null, error: 'not_connected' }
@@ -451,7 +458,13 @@ export function createRemote (deps) {
     if (r.status === 429) { changed(); return { ok: false, error: 'device_limit' } }
     if (r.status === 503) { serverConfigured = false; changed(); return { ok: false, error: 'not_offered' } }
     const b = r.body
-    if (r.status !== 200 && r.status !== 201) { changed(); return { ok: false, error: r.error === 'not_connected' ? 'not_connected' : 'server_unavailable' } }
+    if (r.status !== 200 && r.status !== 201) {
+      changed()
+      if (r.error === 'not_connected') return { ok: false, error: 'not_connected' }
+      // The server that does not answer is named, so the page can say WHICH one (and offer another) instead of a sentence that fits any server.
+      const named = r.status === 0 ? cleanServer(r.server) : null
+      return { ok: false, error: 'server_unavailable', ...(named !== null ? { server: named } : {}) }
+    }
     if (b === null || typeof b.sid !== 'string' || typeof b.phone_url !== 'string' || typeof b.relay_ws !== 'string' || typeof b.host_ticket !== 'string' || typeof b.pairing_id !== 'string') return { ok: false, error: 'bad_server_answer' }
     const link = newLink({
       sid: b.sid, relayWs: b.relay_ws, ticket: b.host_ticket, pairingId: b.pairing_id, code: e2e.randomToken(16),
