@@ -63,7 +63,7 @@ const src = readFileSync(join(here, 'client.js'), 'utf8')
 // 5. the hint under the address field is a sentence, not code
 {
   const field = src.slice(src.indexOf("'index-source-input'"), src.indexOf("'index-source-reset'"))
-  assert.ok(/className: 'kb8-sub'[^)]*t\('src\.hint'\)/.test(field) && !/kb8-mono[^)]*t\('src\.hint'\)/.test(field), 'the hint is set as text')
+  assert.ok(/className: 'kb8-sub'[^\n]*t\('src\.hint'\)/.test(field) && !/kb8-mono[^\n]*t\('src\.hint'\)/.test(field), 'the hint is set as text')
   ok('the hint under the address field is text, not a monospace line')
 }
 
