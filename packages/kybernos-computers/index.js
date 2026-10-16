@@ -30,6 +30,7 @@ import { homedir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { spawnSync } from 'node:child_process'
+import { writeGuard } from './session-guard.mjs'
 
 const BUNDLE_DIR = dirname(fileURLToPath(import.meta.url))
 const DSH_HOME = process.env.DSH_HOME || join(homedir(), '.dsh')
@@ -698,20 +699,24 @@ const mountEnvPrompt = (ctx) => {
   })
 }
 
+// `session: true` is a route that WRITES or SPENDS: besides the same-origin rule it needs DSH's signed browser-session cookie (session-guard.mjs, the
+// terminal's rule). Plugin routes are served before DSH's own login and an Origin header is forgeable by any local program, so before this a
+// `curl -X POST .../sandboxes/exec` with no header at all ran a command in the person's E2B sandbox, on the person's key and bill. Every caller is a page
+// (Settings > Cloud computers, the composer's selector); the agent's computer_* tools call the same functions in-process, not these routes.
 export const ROUTES = [
   { path: '/kybernos-computers/status', method: 'GET', guarded: true, run: statusRoute },
-  { path: '/kybernos-computers/key/set', method: 'POST', guarded: true, body: true, cap: 4096, run: keySetRoute },
-  { path: '/kybernos-computers/key/clear', method: 'POST', guarded: true, run: keyClearRoute },
+  { path: '/kybernos-computers/key/set', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: keySetRoute },
+  { path: '/kybernos-computers/key/clear', method: 'POST', guarded: true, session: true, run: keyClearRoute },
   { path: '/kybernos-computers/sandboxes', method: 'GET', guarded: true, run: sandboxesRoute },
-  { path: '/kybernos-computers/sandboxes/start', method: 'POST', guarded: true, body: true, cap: 4096, run: startRoute },
-  { path: '/kybernos-computers/sandboxes/exec', method: 'POST', guarded: true, body: true, cap: 131_072, run: execRoute },
-  { path: '/kybernos-computers/sandboxes/write', method: 'POST', guarded: true, body: true, cap: LIMITS.writeMaxBytes + 65_536, run: writeRoute },
+  { path: '/kybernos-computers/sandboxes/start', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: startRoute },
+  { path: '/kybernos-computers/sandboxes/exec', method: 'POST', guarded: true, session: true, body: true, cap: 131_072, run: execRoute },
+  { path: '/kybernos-computers/sandboxes/write', method: 'POST', guarded: true, session: true, body: true, cap: LIMITS.writeMaxBytes + 65_536, run: writeRoute },
   { path: '/kybernos-computers/sandboxes/read', method: 'GET', guarded: true, run: readRoute },
-  { path: '/kybernos-computers/sandboxes/stop', method: 'POST', guarded: true, body: true, cap: 4096, run: stopRoute },
-  { path: '/kybernos-computers/sandboxes/pause', method: 'POST', guarded: true, body: true, cap: 4096, run: pauseRoute },
-  { path: '/kybernos-computers/sandboxes/resume', method: 'POST', guarded: true, body: true, cap: 4096, run: resumeRoute },
+  { path: '/kybernos-computers/sandboxes/stop', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: stopRoute },
+  { path: '/kybernos-computers/sandboxes/pause', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: pauseRoute },
+  { path: '/kybernos-computers/sandboxes/resume', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: resumeRoute },
   { path: '/kybernos-computers/env', method: 'GET', guarded: true, run: envGetRoute },
-  { path: '/kybernos-computers/env/set', method: 'POST', guarded: true, body: true, cap: 256, run: envSetRoute },
+  { path: '/kybernos-computers/env/set', method: 'POST', guarded: true, session: true, body: true, cap: 256, run: envSetRoute },
 ]
 
 const mountWebRoutes = (ctx, webServer) => {
@@ -720,6 +725,10 @@ const mountWebRoutes = (ctx, webServer) => {
     const handler = async (req, res) => {
       if (req.method !== route.method) return sendJson(res, 405, { ok: false, error: route.method + ' attendu' })
       if (sameOrigin(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+      if (route.session === true) {
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
+      }
       try {
         const body = route.body === true ? await readJsonBody(req, route.cap) : null
         sendJson(res, 200, await route.run(req, body))
