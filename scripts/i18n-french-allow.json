@@ -41,7 +41,7 @@
     "kybernos-terminal": "pending",
     "kybernos-theme": "pending",
     "kybernos-usage": "pending",
-    "kybernos-websearch": "pending",
+    "kybernos-websearch": [],
     "kybernos-workers": [],
     "messaging": "pending"
   }

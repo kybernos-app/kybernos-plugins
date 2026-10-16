@@ -1,19 +1,19 @@
 {
   "what": {
-    "fr": "Donne la recherche web à vos agents, avec ou sans clé : des moteurs gratuits marchent tout de suite, et si l’un échoue le suivant prend le relais.",
+    "fr": "Donne la recherche web à tes agents, avec ou sans clé : des moteurs gratuits marchent tout de suite, et si l’un échoue le suivant prend le relais.",
     "en": "Gives your agents web search, with or without a key: free engines work right away, and when one fails the next one takes over."
   },
   "steps": [
     {
-      "fr": "Ouvrez Réglages › Web Search : la liste montre les moteurs dans l’ordre où ils sont essayés, avec « sans clé » ou « clé ».",
+      "fr": "Ouvre Réglages › Web Search : la liste montre les moteurs dans l’ordre où ils sont essayés, avec « sans clé » ou « clé ».",
       "en": "Open Settings › Web Search: the list shows the engines in the order they are tried, marked “no key” or “key”."
     },
     {
-      "fr": "Pour un moteur à clé, cliquez son nom, collez la clé, enregistrez, puis « Tester ». Montez-le avec les flèches pour qu’il passe en premier.",
+      "fr": "Pour un moteur à clé, clique son nom, colle la clé, enregistre, puis « Tester ». Monte-le avec les flèches pour qu’il passe en premier.",
       "en": "For a keyed engine, click its name, paste the key, save, then “Test”. Move it up with the arrows so it goes first."
     },
     {
-      "fr": "Pour une recherche privée, mettez l’adresse de votre SearXNG. « Sites » garde ou exclut des sites précis.",
+      "fr": "Pour une recherche privée, mets l’adresse de ton SearXNG. « Sites » garde ou exclut des sites précis.",
       "en": "For a private search, enter the address of your SearXNG. “Sites” keeps or excludes specific websites."
     }
   ],
@@ -23,7 +23,7 @@
     "page": true
   },
   "good": {
-    "fr": "Les moteurs sans clé passent par des pages publiques : ils peuvent demander une vérification anti-robot. Un moteur à clé ou votre SearXNG est plus fiable.",
+    "fr": "Les moteurs sans clé passent par des pages publiques : ils peuvent demander une vérification anti-robot. Un moteur à clé ou ton SearXNG est plus fiable.",
     "en": "Engines without a key use public pages: they may ask for an anti-bot check. A keyed engine or your own SearXNG is more reliable."
   },
   "url": "https://help.kybernos.app/{lang}/agents-and-tools/search-the-web/"

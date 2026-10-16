@@ -24,11 +24,11 @@ import { statSync, accessSync, constants } from 'node:fs'
 /** Un seul nom de produit dans les diagnostics — jamais un modèle/provider en dur. */
 export const diagnostique = (produit, fait) => {
   const champs = [`produit: ${produit}`]
-  if (fait.stage) champs.push(`étape: ${fait.stage}`)
-  if (fait.categorie) champs.push(`catégorie: ${fait.categorie}`)
-  if (fait.code != null) champs.push(`code de sortie: ${fait.code}`)
+  if (fait.stage) champs.push(`stage: ${fait.stage}`)
+  if (fait.categorie) champs.push(`category: ${fait.categorie}`)
+  if (fait.code != null) champs.push(`exit code: ${fait.code}`)
   if (fait.signal != null) champs.push(`signal: ${fait.signal}`)
-  return `Échec sous-agent produit (${champs.join(' ; ')})`
+  return `Subagent product failure (${champs.join('; ')})`
 }
 
 /** Erreur typée d'un run de provider maison (message sans détail sensible). */
@@ -42,13 +42,13 @@ export class RunFailure extends Error {
 
 /** Valide qu'une tâche one-shot ne contient que du texte non vide. */
 export function texteTache (prompt) {
-  if (!Array.isArray(prompt) || prompt.length === 0) throw new Error('la tâche one-shot doit contenir des blocs de texte')
+  if (!Array.isArray(prompt) || prompt.length === 0) throw new Error('the one-shot task must contain text blocks')
   const textes = []
   for (const bloc of prompt) {
-    if (bloc == null || bloc.type !== 'text' || typeof bloc.text !== 'string') throw new Error('la tâche one-shot doit contenir uniquement des blocs texte')
+    if (bloc == null || bloc.type !== 'text' || typeof bloc.text !== 'string') throw new Error('the one-shot task must contain text blocks only')
     textes.push(bloc.text)
   }
-  if (textes.every((t) => t.trim() === '')) throw new Error('la tâche one-shot ne doit pas être vide')
+  if (textes.every((t) => t.trim() === '')) throw new Error('the one-shot task must not be empty')
   return textes
 }
 
@@ -119,7 +119,7 @@ export async function trouverModeleFree (baseUrl, { choisir, env = process.env }
  */
 export async function sonder (spec, env = process.env) {
   const chemin = await Promise.resolve(trouverBinaire(spec.binaire, env))
-  if (chemin == null) return { pret: false, raison: 'binaire-absent', message: `${spec.binaire} introuvable dans le PATH` }
+  if (chemin == null) return { pret: false, raison: 'binaire-absent', message: `${spec.binaire} not found in the PATH` }
   const v = await executer(spec.binaire, spec.versionArgs ?? ['--version'], { env })
   const version = (v.sortie || '').trim().split('\n')[0]
   const a = await executer(spec.binaire, spec.authArgs ?? ['--version'], { env })
@@ -129,7 +129,7 @@ export async function sonder (spec, env = process.env) {
     raison: connecte ? 'pret' : 'non-connecte',
     chemin,
     version,
-    message: connecte ? `${spec.produit} prêt` : `${spec.produit} : lancez l'authentification de la CLI dans un terminal`
+    message: connecte ? `${spec.produit} ready` : `${spec.produit}: run the CLI's sign-in in a terminal`
   }
 }
 
