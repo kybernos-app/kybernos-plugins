@@ -4,10 +4,13 @@
 import { mkdtempSync, statSync, existsSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { sessionSource } from './session-guard.mjs'
+import { OTHER_SECRET, SESSION_SECRET, browserHeaders, sessionCookie } from './lib-session-test.mjs'
+sessionSource.secret = () => SESSION_SECRET // the machine secret the write routes check the session cookie against
 
 const home = mkdtempSync(join(tmpdir(), 'kbm-host-'))
 process.env.DSH_HOME = home
-const { kbPkMount, kbPkRead, kbPkPublic, kbPkPark, kbPkTake, kbPkForget, kbSameOriginStrict, PARKED_VERSION } = await import('./index.js')
+const { kbPkMount, kbPkRead, kbPkPublic, kbPkPark, kbPkTake, kbPkForget, PARKED_VERSION } = await import('./index.js')
 
 let pass = 0
 let fail = 0
@@ -24,7 +27,7 @@ const request = (method, path, body, headers) => {
   const text = body === undefined ? '' : JSON.stringify(body)
   return {
     method, url: path, socket: { localPort: PORT },
-    headers: headers === undefined ? { origin: 'http://127.0.0.1:' + PORT } : headers,
+    headers: headers === undefined ? browserHeaders() : headers,
     on (ev, cb) { if (ev === 'data' && text !== '') cb(text); if (ev === 'end') cb() },
   }
 }
@@ -72,19 +75,23 @@ r = await call('/kybernos-models/providers/forget', 'POST', { slug: 'acme' })
 ok('forget twice is harmless', r.status === 200 && r.body.removed === false, r.body)
 
 console.log('\n── guards ──')
-ok('POST without Origin or Referer is refused', (await call('/kybernos-models/providers/park', 'POST', { slug: 'g1', profile: PROFILE }, {})).status === 403)
+ok('POST without Origin or Referer is refused (403)', (await call('/kybernos-models/providers/park', 'POST', { slug: 'g1', profile: PROFILE }, {})).status === 403)
 ok('POST from a foreign origin is refused', (await call('/kybernos-models/providers/park', 'POST', { slug: 'g1', profile: PROFILE }, { origin: 'http://evil.example' })).status === 403)
 ok('a forged Host header does not help', (await call('/kybernos-models/providers/park', 'POST', { slug: 'g1', profile: PROFILE }, { origin: 'http://evil.example', host: 'evil.example' })).status === 403)
-ok('the Referer is accepted when Origin is absent', (await call('/kybernos-models/providers/park', 'POST', { slug: 'g1', profile: PROFILE }, { referer: 'http://localhost:' + PORT + '/x' })).status === 200)
-ok('take from a foreign origin is refused', (await call('/kybernos-models/providers/take', 'POST', { slug: 'g1' }, { origin: 'http://evil.example' })).status === 403)
+ok('the right Origin without the session cookie is refused (401): what a local program can send', (await call('/kybernos-models/providers/park', 'POST', { slug: 'g1', profile: PROFILE }, { origin: 'http://127.0.0.1:' + PORT })).status === 401)
+ok('a Referer alone, without the cookie, is refused too (401)', (await call('/kybernos-models/providers/park', 'POST', { slug: 'g1', profile: PROFILE }, { referer: 'http://localhost:' + PORT + '/x' })).status === 401)
+ok('a forged cookie is refused (401)', (await call('/kybernos-models/providers/park', 'POST', { slug: 'g1', profile: PROFILE }, { origin: 'http://127.0.0.1:' + PORT, cookie: sessionCookie(undefined, { secret: OTHER_SECRET }) })).status === 401)
+ok('...and nothing was parked by the refused requests', kbPkRead(file).providers.g1 === undefined)
+ok('the page\'s real pair is accepted (Origin and session cookie)', (await call('/kybernos-models/providers/park', 'POST', { slug: 'g1', profile: PROFILE })).status === 200)
+ok('take from a foreign origin is refused, even with the real cookie', (await call('/kybernos-models/providers/take', 'POST', { slug: 'g1' }, { ...browserHeaders(), origin: 'http://evil.example' })).status === 403)
 ok('forget without Origin is refused', (await call('/kybernos-models/providers/forget', 'POST', { slug: 'g1' }, {})).status === 403)
 ok('GET list from a foreign origin is refused', (await call('/kybernos-models/providers/parked', 'GET', undefined, { origin: 'http://evil.example' })).status === 403)
 ok('GET list with no Origin passes (direct navigation)', (await call('/kybernos-models/providers/parked', 'GET', undefined, {})).status === 200)
 ok('wrong method is a 405', (await call('/kybernos-models/providers/park', 'GET')).status === 405)
-ok('wrong port in the Origin is refused', kbSameOriginStrict({ headers: { origin: 'http://127.0.0.1:9999' }, socket: { localPort: PORT } }) === false)
-ok('IPv6 loopback is accepted', kbSameOriginStrict({ headers: { origin: 'http://[::1]:' + PORT }, socket: { localPort: PORT } }) === true)
+ok('wrong port in the Origin is refused', (await call('/kybernos-models/providers/forget', 'POST', { slug: 'g1' }, { ...browserHeaders(), origin: 'http://127.0.0.1:9999' })).status === 403)
+ok('IPv6 loopback is this listener too (the guard reads the cookie under [::1] as well)', (await call('/kybernos-models/providers/parked', 'GET', undefined, { origin: 'http://[::1]:' + PORT })).status === 200)
 r = response()
-await routes['/kybernos-models/providers/park']({ method: 'POST', url: '/', socket: { localPort: PORT }, headers: { origin: 'http://127.0.0.1:' + PORT }, on (ev, cb) { if (ev === 'data') cb('{not json'); if (ev === 'end') cb() } }, r)
+await routes['/kybernos-models/providers/park']({ method: 'POST', url: '/', socket: { localPort: PORT }, headers: browserHeaders(), on (ev, cb) { if (ev === 'data') cb('{not json'); if (ev === 'end') cb() } }, r)
 ok('malformed JSON is a 400, never a crash', r.status === 400, r.body)
 
 console.log('\n── a corrupt store reads as empty and recovers ──')

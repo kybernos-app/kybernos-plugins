@@ -5,6 +5,9 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, browserHeaders } from './lib-session-test.mjs'
+sessionSource.secret = () => SESSION_SECRET // the machine secret the write routes check the session cookie against
 
 const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'client.js'), 'utf8')
 
@@ -76,7 +79,7 @@ console.log('\n── the actions, run against the REAL host routes and a fake s
       const handler = routes[path]
       if (handler === undefined) return { status: 404, json: async () => { throw new Error('not json') } }
       const text = init && init.body ? init.body : ''
-      const req = { method: (init && init.method) || 'GET', url: path, socket: { localPort: 3080 }, headers: { origin: 'http://127.0.0.1:3080' },
+      const req = { method: (init && init.method) || 'GET', url: path, socket: { localPort: 3080 }, headers: browserHeaders(),
         on (ev, cb) { if (ev === 'data' && text !== '') cb(text); if (ev === 'end') cb() } }
       const r = { status: 0, body: null, writeHead (st) { r.status = st }, end (t) { r.body = t } }
       await handler(req, r)
@@ -227,7 +230,7 @@ console.log('\n── provider writes: the actions, against a fake settings and 
       const handler = routes[String(url).split('?')[0]]
       if (handler === undefined) return { status: 404, json: async () => { throw new Error('x') } }
       const text = init && init.body ? init.body : ''
-      const req = { method: (init && init.method) || 'GET', url, socket: { localPort: 3080 }, headers: { origin: 'http://127.0.0.1:3080' }, on (ev, cb) { if (ev === 'data' && text !== '') cb(text); if (ev === 'end') cb() } }
+      const req = { method: (init && init.method) || 'GET', url, socket: { localPort: 3080 }, headers: browserHeaders(), on (ev, cb) { if (ev === 'data' && text !== '') cb(text); if (ev === 'end') cb() } }
       const r = { status: 0, body: null, writeHead (st) { r.status = st }, end (t) { r.body = t } }
       await handler(req, r)
       return { status: r.status, json: async () => JSON.parse(r.body) }

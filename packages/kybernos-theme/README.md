@@ -64,6 +64,15 @@ layer is in place, so the sheet can never outvote a later choice.
 - Without the seam (a DSH that does not emit `webserver/index-inject`) nothing is injected and the page
   behaves as before.
 
+## The Kybernos accent (orange unless the look has its own colour)
+
+The Suite, Workers, the core's switches and the Composio filter pill draw their switches, active tabs, accent buttons and kicker lines with one token,
+`--kybernos-accent` (and `--kybernos-on-accent` for the ink and the ON knob), declared once in `kybernos-plugin` (`KB_ACCENT_CSS`): the brand orange by
+default, a darker orange on the light schemes (3:1 on white). A look that sets its own brand colour (an accent, or a `<scheme>:brand` override, as Neutral
+violet and Ember do) says so by writing `<html data-kbth-brand="light dark">` (the schemes that have one; `accentsPropres` in `client.js`, applied with the
+token layer, removed with it): the accent is then the brand token. OLED, Clair and "DSH default" set no brand, so the orange stays.
+`scripts/check-accent-live.mjs` measures it in four looks; `scripts/test-display-rules.mjs` pins the declaration and fails when a literal `#ff7a1a` comes back.
+
 ## My themes
 
 A **theme** is a name plus the settings it retains, grouped so that the person chooses what travels
