@@ -292,6 +292,8 @@ window.__ModuleLoader__.load({
         'kb.pv.key.ok': { kybernos: 'Clé API configurée', en: 'API key configured' },
         'kb.pv.key.missing': { kybernos: 'Clé API absente', en: 'API key missing' },
         'kb.pv.key.unknown': { kybernos: 'État de la clé inconnu', en: 'Key state unknown' },
+        'kb.pv.empty.nokey': { kybernos: 'Pas encore de clé : ajoutez-la, puis récupérez les modèles.', en: 'No key yet: add it, then fetch the models.' },
+        'kb.pv.empty.fetch': { kybernos: 'Aucun modèle pour l’instant : récupérez-les chez le fournisseur.', en: 'No model yet: fetch them from the provider.' },
         'kb.pv.key.ph.set': { kybernos: 'Configurée — saisissez une nouvelle valeur pour la remplacer', en: 'Configured — enter a new value to replace' },
         'kb.pv.key.ph.blank': { kybernos: 'Saisissez une clé, ou laissez vide pour l’authentification par environnement', en: 'Enter an API key, or leave blank to use environment authentication' },
         'kb.pv.customized': { kybernos: 'Réglages personnalisés', en: 'Customized settings' },
@@ -741,6 +743,10 @@ window.__ModuleLoader__.load({
           .catch(() => { /* kbMPersist ne rejette pas */ })
         return true
       }
+      /** The refusal that belongs to field `k` (drawn under it, inside the sheet), or null. It stays attached only while it is still
+       *  the model's current message: a later error of another kind is drawn at the top of the sheet instead (A3-10). */
+      const kbmFieldError = (mo, k) => (mo.error !== null && mo.error !== undefined && mo.errorAt !== null && mo.errorAt !== undefined && mo.errorAt.k === k && mo.errorAt.text === mo.error ? mo.error : null)
+      const kbmFieldOwned = (mo) => mo.error !== null && mo.error !== undefined && mo.errorAt !== null && mo.errorAt !== undefined && mo.errorAt.text === mo.error
       const kbmSet = (mo, k, v) => {
         const had = Object.prototype.hasOwnProperty.call(mo.ov, k)
         const previous = mo.ov[k]
@@ -1040,7 +1046,8 @@ window.__ModuleLoader__.load({
                 id: inputId, className: 'kbm-finput' + (ov === true ? ' ov' : ''), value: value,
                 placeholder: def.ph === undefined ? '—' : def.ph, 'data-kbm': 'field-' + def.k,
               }, useDraft(value, (v) => kbmSet(mo, def.k, v)))),
-            suffix === '' ? null : h('span', { className: 'kbm-suffix', title: def.pretty === true && kbCapExact(value) !== '' ? kbCapExact(value) : undefined }, suffix)))
+            suffix === '' ? null : h('span', { className: 'kbm-suffix', title: def.pretty === true && kbCapExact(value) !== '' ? kbCapExact(value) : undefined }, suffix)),
+          kbmFieldError(mo, def.k) !== null ? h('div', { className: 'kbm-ferr', 'data-kbm': 'field-error', role: 'alert' }, kbmFieldError(mo, def.k)) : null)
       }
 
       // ── notes externes : ce que les deux catalogues disent de CE modèle ────
@@ -1494,7 +1501,8 @@ window.__ModuleLoader__.load({
         },
         h('div', { className: 'kbmp-cols' }, colonnes),
         KBM.live === true && mo.kind === 'local' ? h('div', { className: 'kbmp-note', 'data-kbm': 'row-local' }, m('kb.models.local')) : null,
-        mo.error !== null && mo.error !== undefined ? h('div', { className: 'kbmp-err', 'data-kbm': 'row-error', role: 'status' }, String(mo.error)) : null,
+        // While the sheet is open its mask covers the row: the message is drawn inside the sheet then (A3-10).
+        ouvert !== true && mo.error !== null && mo.error !== undefined ? h('div', { className: 'kbmp-err', 'data-kbm': 'row-error', role: 'status' }, String(mo.error)) : null,
         ouvert === true
           ? h('div', {
             className: 'kbm-mdl-root', 'data-kbm': 'modal',
@@ -1514,7 +1522,9 @@ window.__ModuleLoader__.load({
               type: 'button', className: 'kbm-mdl-close', 'data-kbm': 'close',
               'aria-label': m('kb.models.hide') + ' ' + mo.id, onClick: () => kbmOpen(mo.key),
             }, h('span', { className: 'kbmp-x' }, '×'))),
-          h('div', { className: 'kbm-mdl-body kbmp-mdlbody' }, h(Details, { mo: mo }))))
+          h('div', { className: 'kbm-mdl-body kbmp-mdlbody' },
+            mo.error !== null && mo.error !== undefined && kbmFieldOwned(mo) !== true ? h('div', { className: 'kbmp-err kbmp-err-mdl', 'data-kbm': 'modal-error', role: 'alert' }, String(mo.error)) : null,
+            h(Details, { mo: mo }))))
           : null)
       }
 
@@ -1826,16 +1836,45 @@ window.__ModuleLoader__.load({
           h('div', null, h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kbm': 'ds-model-add', onClick: () => setRows(rows.concat([{ id: '', inputModalities: ['text'] }])) }, Ic('plus', 13), m('kb.pv.model.add'))))
       }
 
+      // KB-TRAP-PURE-BEGIN
+      /** Where Tab goes inside a dialog, so the focus never leaves it (A3-40): the element to focus, or null to let the
+       *  browser take the next step by itself. `items` are the tabbable elements in order; an `active` that is not among
+       *  them (focus outside the dialog, or on its frame) is brought back in at the end the key is heading for. Pure. */
+      const kbTrapTarget = (items, active, shift) => {
+        if (!Array.isArray(items) || items.length === 0) return null
+        const i = items.indexOf(active)
+        if (shift === true) return i <= 0 ? items[items.length - 1] : null
+        return i === -1 || i === items.length - 1 ? items[0] : null
+      }
+      // KB-TRAP-PURE-END
+      const KB_TABBABLE = 'a[href],button,input,select,textarea,[tabindex]'
+      const kbTabbables = (box) => Array.from(box.querySelectorAll(KB_TABBABLE)).filter((el) => el.disabled !== true && el.tabIndex >= 0 && el.type !== 'hidden' && el.getClientRects().length > 0)
       const PvDrawer = ({ label, onClose, children, footer, head }) => {
+        const boxRef = React.useRef(null)
         React.useEffect(() => {
-          // Captured first so that DSH, which also listens for Escape, does not close Settings under the panel.
-          const key = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); onClose() } }
+          // Captured first so that DSH, which also listens for Escape, does not close Settings under the panel. Tab stays
+          // inside the panel: its overlay is modal, and the page behind it must not be reachable from the keyboard.
+          const key = (ev) => {
+            if (ev.key === 'Escape') { ev.stopPropagation(); onClose() }
+            else if (ev.key === 'Tab' && boxRef.current !== null) {
+              const to = kbTrapTarget(kbTabbables(boxRef.current), document.activeElement, ev.shiftKey)
+              if (to !== null) { ev.preventDefault(); to.focus() }
+            }
+          }
           document.addEventListener('keydown', key, true)
           return () => document.removeEventListener('keydown', key, true)
         }, [onClose])
+        // The element that had the focus before the panel opened (read during the first render, before the panel's own
+        // autofocus): the focus goes back to it when the panel closes.
+        const openerRef = React.useRef(undefined)
+        if (openerRef.current === undefined) openerRef.current = document.activeElement
+        React.useEffect(() => () => {
+          const opener = openerRef.current
+          try { if (opener !== null && opener !== undefined && typeof opener.focus === 'function' && document.contains(opener)) opener.focus() } catch (e) { /* focus is a courtesy */ }
+        }, [])
         return h('div', { className: 'kbpv-layer', 'data-kbm': 'pv-drawer' },
           h('div', { className: 'kbpv-mask', onMouseDown: onClose }),
-          h('div', { className: 'kbpv-drawer', role: 'dialog', 'aria-modal': 'true', 'aria-label': label },
+          h('div', { className: 'kbpv-drawer', role: 'dialog', 'aria-modal': 'true', 'aria-label': label, tabIndex: -1, ref: boxRef },
             h('header', null, head, h('button', { type: 'button', className: 'kbpv-ib', 'aria-label': m('kb.pv.close'), onClick: onClose }, Ic('x', 16))),
             h('div', { className: 'kbpv-body' }, children),
             h('footer', null, footer)))
@@ -1885,15 +1924,13 @@ window.__ModuleLoader__.load({
         const ro = KBM.writable !== true
         const countOf = (route) => KBM.models.filter((mo) => mo.route === route).length
         const keyOf = (route) => {
-          const prof = kbMOBJ(KBM.userProviders)[route]
-          const ref = kbPvIsObj(prof) && typeof prof.apiKeyEnv === 'string' ? prof.apiKeyEnv : null
-          if (ref === null) return 'none'
-          const st = KBM.keys[ref]
-          return st === true ? 'ok' : (st === false ? 'missing' : 'unknown')
+          const entry = catDe(route)
+          return kbPvKeyState(kbMOBJ(KBM.userProviders)[route], entry !== null ? entry.env : null, KBM.keys)
         }
         const closeAll = () => { setDr(null); setUi((u) => ({ ...u, drawer: null, dlg: null, menu: null, busy: false, err: null, typed: '' })) }
-        const openEdit = (route, addModel) => {
+        const openEdit = (route, addModel, showModels) => {
           const d = pvEditDraft(route)
+          if (showModels === true) d.adv = true // the folded block holds the "Fetch available models" panel
           if (addModel === true) { d.adv = true; d.models = d.models.concat([{ id: '', name: '' }]); d.touched = true }
           setDr(d); patch({ drawer: { mode: 'edit', id: route }, menu: null, err: null, note: null })
         }
@@ -1981,6 +2018,10 @@ window.__ModuleLoader__.load({
                 custom ? h('span', { className: 'kbpv-tag' }, m('kb.pv.custom')) : null,
                 off !== true && kbPvIsObj(KBM.dir[route]) && KBM.dir[route].error !== '' ? h('span', { className: 'kbpv-tag kbpv-tag-warn', title: KBM.dir[route].error, 'data-kbm': 'prov-diag' }, m('kb.pv.diag')) : null,
                 h('span', null, String(count) + ' ' + m(count === 1 ? 'kb.models.prov.model1' : 'kb.models.prov.modelN'))),
+              // A route with no model serves nothing: say what to do next instead of leaving a silent card (A3-32).
+              count === 0 && off !== true && bloc === null && ro !== true
+                ? h('button', { type: 'button', className: 'kbpv-next', 'data-kbm': 'prov-next', onClick: () => openEdit(route, false, true) }, m(ks === 'missing' ? 'kb.pv.empty.nokey' : 'kb.pv.empty.fetch'))
+                : null,
               free ? h(BadgeFree, { slug: route, petit: true }) : null),
             h('div', { className: 'kbpv-right' },
               off === true ? h('span', { className: 'kbpv-rest' }, h('span', { className: 'kbpv-tag', 'data-kbm': 'prov-off-badge' }, m('kb.prov.off.badge'))) : null,
@@ -2634,6 +2675,7 @@ window.__ModuleLoader__.load({
         '.kbpv-link:focus-visible::after{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:-2px}',
         '.kbpv-static{cursor:default}',
         '.kbpv-static::after{display:none}',
+        '.kbpv-next{align-self:flex-start;margin-top:3px;padding:0;border:0;background:none;font:inherit;font-size:12px;line-height:18px;color:var(--dsw-alias-state-warn-primary);text-align:left;text-decoration:underline;text-underline-offset:2px;cursor:pointer}',
         '.kbpv-meta{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}',
         '.kbpv-tag{font-size:11px;line-height:16px;padding:0 7px;border-radius:999px;background:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary);white-space:nowrap}',
         '.kbpv-tag-warn{color:var(--dsw-alias-state-warn-primary);border-color:var(--dsw-alias-state-warn-primary)}',
@@ -2891,6 +2933,8 @@ window.__ModuleLoader__.load({
         '.kbmp-chev.open{transform:rotate(90deg)}',
         '.kbmp-danger{color:var(--dsw-alias-state-error-primary)}',
         '.kbmp-err{margin:0 12px 8px;font-size:12px;color:var(--dsw-alias-state-error-primary)}',
+        '.kbmp-err-mdl{margin:0 0 12px;padding:8px 10px;border-radius:8px;background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 10%,transparent);font-size:13px}',
+        '.kbm-ferr{margin-top:4px;font-size:12px;line-height:17px;color:var(--dsw-alias-state-error-primary)}',
         // Lignes du catalogue DANS une carte fournisseur : le modèle et sa
         // ligne de contexte suffisent, l'en-tête de la carte dit la route.
         // DEUX colonnes (modèle + actions) : une seule ferait passer les
@@ -3257,7 +3301,7 @@ window.__ModuleLoader__.load({
           let wire = null
           if (del !== true) {
             wire = kbMWireValue(mo, k, v)
-            if (wire === KB_REFUS) { mo.error = m(k === 'context' || k === 'outputLimit' ? 'kb.models.error.number' : 'kb.models.error.wire'); kbmNotify(); return false }
+            if (wire === KB_REFUS) { mo.error = m(k === 'context' || k === 'outputLimit' ? 'kb.models.error.number' : 'kb.models.error.wire'); mo.errorAt = { k, text: mo.error }; kbmNotify(); return false }
             // Un retour à la valeur de la couche inférieure s'écrit en retirant la
             // clé : on ne redéclare pas ce que le harnais applique déjà.
             if ((k === 'textIn' || k === 'vision') && Array.isArray(mo.raw.input) !== true && kbMSameList(wire, kbMInputBase(mo)) === true) del = true
@@ -3502,7 +3546,9 @@ window.__ModuleLoader__.load({
         const refs = []
         for (const route of Object.keys(kbMOBJ(userProviders))) {
           const prof = kbMOBJ(userProviders)[route]
-          if (kbPvIsObj(prof) && typeof prof.apiKeyEnv === 'string' && refs.indexOf(prof.apiKeyEnv) < 0) refs.push(prof.apiKeyEnv)
+          const entry = catDe(route)
+          const ref = kbPvKeyRefOf(prof, entry !== null ? entry.env : null)
+          if (kbPvIsObj(prof) && ref !== null && refs.indexOf(ref) < 0) refs.push(ref)
         }
         const keys = {}
         const cr = api.credentials
@@ -3802,6 +3848,18 @@ window.__ModuleLoader__.load({
       /** A parseable http(s) URL without an unfilled `${…}` template. Pure. */
       const kbPvUrlOk = (url) => /^https?:\/\/[^\s]+$/.test(String(url).trim()) && String(url).indexOf('${') < 0
       const kbPvIsObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
+      /** The credential reference a route reads its key from: the one its profile names, else the one the catalogue gives that
+       *  provider (a catalog add with the key left blank writes no `apiKeyEnv` yet), else null (a route that names no key at
+       *  all, such as a local endpoint: nothing to say about it). Pure. */
+      const kbPvKeyRefOf = (prof, catEnv) => (kbPvIsObj(prof) && typeof prof.apiKeyEnv === 'string' && prof.apiKeyEnv !== '' ? prof.apiKeyEnv : (typeof catEnv === 'string' && catEnv !== '' ? catEnv : null))
+      /** 'ok' | 'missing' | 'unknown' for a route that has a key reference, 'none' for one that has not. A catalog provider added
+       *  without its key is 'missing', like every other provider without one (it showed no dot at all: A3-32). Pure. */
+      const kbPvKeyState = (prof, catEnv, keys) => {
+        const ref = kbPvKeyRefOf(prof, catEnv)
+        if (ref === null) return 'none'
+        const st = keys !== null && typeof keys === 'object' ? keys[ref] : undefined
+        return st === true ? 'ok' : (st === false ? 'missing' : 'unknown')
+      }
       /** Model rows (id + optional name) from a draft: drops blank ids, keeps the first of a duplicate. Pure. */
       const kbPvRows = (rows) => {
         const seen = new Set()

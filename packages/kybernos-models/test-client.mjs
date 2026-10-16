@@ -160,8 +160,11 @@ console.log('\n── the actions, run against the REAL host routes and a fake s
 console.log('\n── provider writes: pure rules ──')
 {
   const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
-  const pv = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvKeyRef, kbPvUrlOk, kbPvRows, kbPvMergeModels, kbPvDiffOps, kbPvEditProfile, kbPvNewProfile, kbPvAddBlock }')()
+  const pv = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvKeyRef, kbPvKeyRefOf, kbPvKeyState, kbPvUrlOk, kbPvRows, kbPvMergeModels, kbPvDiffOps, kbPvEditProfile, kbPvNewProfile, kbPvAddBlock }')()
   ok('the key reference is <ROUTE>_API_KEY, like the native page', pv.kbPvKeyRef('zai-coding-cn') === 'ZAI_CODING_CN_API_KEY' && pv.kbPvKeyRef('groq') === 'GROQ_API_KEY')
+  ok('a catalog provider added with the key left blank is « key missing », not a silent card (A3-32)', pv.kbPvKeyState({ baseURL: 'https://api.mistral.ai/v1' }, 'MISTRAL_API_KEY', { MISTRAL_API_KEY: false }) === 'missing' && pv.kbPvKeyState({}, 'MISTRAL_API_KEY', {}) === 'unknown')
+  ok('the key dot follows the credential: the profile reference wins over the catalogue one, set is ok', pv.kbPvKeyState({ apiKeyEnv: 'MY_KEY' }, 'MISTRAL_API_KEY', { MY_KEY: true, MISTRAL_API_KEY: false }) === 'ok' && pv.kbPvKeyRefOf({ apiKeyEnv: 'MY_KEY' }, 'X') === 'MY_KEY' && pv.kbPvKeyRefOf({}, 'MISTRAL_API_KEY') === 'MISTRAL_API_KEY')
+  ok('a hand-declared route that names no key stays without a dot (a local endpoint)', pv.kbPvKeyState({ baseURL: 'http://127.0.0.1:11434/v1' }, null, {}) === 'none' && pv.kbPvKeyState(undefined, undefined, undefined) === 'none')
   ok('http(s) URLs pass, templates and junk do not', pv.kbPvUrlOk('https://a.example/v1') === true && pv.kbPvUrlOk('http://127.0.0.1:11434/v1') === true && pv.kbPvUrlOk('https://x.${ACCOUNT}.example') === false && pv.kbPvUrlOk('ftp://x') === false && pv.kbPvUrlOk('') === false && pv.kbPvUrlOk('https://a b') === false)
   ok('model rows: blanks dropped, first duplicate kept, ids trimmed', JSON.stringify(pv.kbPvRows([{ id: ' a ', name: 'A' }, { id: '', name: 'x' }, { id: 'a', name: 'dup' }, { id: 'b' }])) === JSON.stringify([{ id: 'a', name: 'A' }, { id: 'b', name: '' }]))
   const existing = [{ id: 'm1', name: 'Old', contextWindow: 8000, maxTokens: 2000, input: ['text', 'image'] }, { id: 'm2' }]
@@ -629,6 +632,29 @@ console.log('\n── a count and its label agree both ways (A3-11) ──')
   ok('the fetch list uses the same words as the table (one convention)', has('const kbFetchSize = (n) => kbCapLabel(n)') && has('const pretty = kbCapLabel'))
 }
 
+console.log('\n── a provider card with no model says what to do (A3-32) ──')
+{
+  const has = (frag) => src.includes(frag)
+  ok('the key dot reads the credential of the catalogue provider when the profile names none', has('return kbPvKeyState(kbMOBJ(KBM.userProviders)[route], entry !== null ? entry.env : null, KBM.keys)') && has('const ref = kbPvKeyRefOf(prof, entry !== null ? entry.env : null)'))
+  ok('a card with 0 models and no managed block offers the next step, which opens the panel on the models block', has("count === 0 && off !== true && bloc === null && ro !== true") && has("'data-kbm': 'prov-next', onClick: () => openEdit(route, false, true)") && has("if (showModels === true) d.adv = true"))
+  ok('the hint says "add the key" while the key is missing, "fetch the models" otherwise', has("m(ks === 'missing' ? 'kb.pv.empty.nokey' : 'kb.pv.empty.fetch')"))
+}
+
+console.log('\n── the provider panel keeps the keyboard inside (A3-40) ──')
+{
+  const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
+  const { kbTrapTarget } = new Function(bl('KB-TRAP-PURE') + '\nreturn { kbTrapTarget }')()
+  const [a, b, c] = ['a', 'b', 'c']
+  ok('Tab on the last control comes back to the first (it used to leave for the page behind)', kbTrapTarget([a, b, c], c, false) === a)
+  ok('Shift+Tab on the first control goes to the last', kbTrapTarget([a, b, c], a, true) === c)
+  ok('inside the list the browser moves on by itself', kbTrapTarget([a, b, c], b, false) === null && kbTrapTarget([a, b, c], b, true) === null && kbTrapTarget([a, b, c], a, false) === null && kbTrapTarget([a, b, c], c, true) === null)
+  ok('a focus outside the panel (or on its frame) is brought back in at the end the key is heading for', kbTrapTarget([a, b, c], 'x', false) === a && kbTrapTarget([a, b, c], 'x', true) === c)
+  ok('nothing tabbable, or junk, changes nothing', kbTrapTarget([], a, false) === null && kbTrapTarget(null, a, false) === null)
+  const has = (frag) => src.includes(frag)
+  ok('the panel handles Tab in its captured key handler and the frame can take focus', has("ev.key === 'Tab' && boxRef.current !== null") && has("kbTrapTarget(kbTabbables(boxRef.current), document.activeElement, ev.shiftKey)") && has("'aria-modal': 'true', 'aria-label': label, tabIndex: -1, ref: boxRef"))
+  ok('the focus goes back to what opened the panel, read before the panel autofocuses (not on every render)', has('if (openerRef.current === undefined) openerRef.current = document.activeElement') && /React\.useEffect\(\(\) => \(\) => \{\s*const opener = openerRef\.current/.test(src))
+}
+
 console.log('\n── a refused value is shown, and taken back ──')
 {
   const fn = (name) => { const i = src.indexOf('const ' + name + ' = '); return i < 0 ? '' : src.slice(i, i + 1400) }
@@ -636,6 +662,16 @@ console.log('\n── a refused value is shown, and taken back ──')
   ok('kbmSet clears the error BEFORE saving (a synchronous refusal used to be wiped right after)', /mo\.error = null[\s\S]*?kbmSave\(mo, k, v, takeBack\)/.test(set) && !/kbmSave\(mo, k, v, takeBack\) !== true\) \{[^}]*\}\s*mo\.error = null/.test(set))
   ok('a refused value is taken back: the previous override comes back, or the key goes', /takeBack = \(\) =>[\s\S]*?if \(had\) back\[k\] = previous[\s\S]*?else delete back\[k\]/.test(set))
   ok('a refused count says what a count is', /wire === KB_REFUS\) \{ mo\.error = m\(k === 'context' \|\| k === 'outputLimit' \? 'kb\.models\.error\.number'/.test(src))
+  const rowSrc = fn('Row').length > 0 ? src.slice(src.indexOf('const Row = '), src.indexOf('const ROWS_PAR_PAGE')) : ''
+  ok('the row draws the message only while the sheet is closed: the sheet\'s mask covers the row (A3-10)', /ouvert !== true && mo\.error !== null && mo\.error !== undefined \? h\('div', \{ className: 'kbmp-err', 'data-kbm': 'row-error'/.test(rowSrc))
+  ok('the open sheet draws a message that belongs to no field as an alert at the top of its own body (A3-10)', /kbmp-mdlbody' \},\s*mo\.error !== null && mo\.error !== undefined && kbmFieldOwned\(mo\) !== true \? h\('div', \{ className: 'kbmp-err kbmp-err-mdl', 'data-kbm': 'modal-error', role: 'alert' \}[\s\S]*?h\(Details, \{ mo: mo \}\)/.test(rowSrc))
+  ok('a refused count is attached to its field and drawn under it, inside the sheet, as an alert (A3-10)', src.includes("mo.errorAt = { k, text: mo.error }") && src.includes("kbmFieldError(mo, def.k) !== null ? h('div', { className: 'kbm-ferr', 'data-kbm': 'field-error', role: 'alert' }"))
+  {
+    const body = src.slice(src.indexOf('const kbmFieldError = '), src.indexOf('const kbmSet = '))
+    const { kbmFieldError, kbmFieldOwned } = new Function(body + '\nreturn { kbmFieldError, kbmFieldOwned }')()
+    const mo = { error: 'enter a positive count', errorAt: { k: 'context', text: 'enter a positive count' } }
+    ok('the message stays with the field that was refused, and only while it is the current message', kbmFieldError(mo, 'context') === 'enter a positive count' && kbmFieldError(mo, 'outputLimit') === null && kbmFieldOwned(mo) === true && kbmFieldError({ ...mo, error: 'another error' }, 'context') === null && kbmFieldOwned({ ...mo, error: 'another error' }) === false && kbmFieldError({ error: null }, 'context') === null && kbmFieldOwned({ error: 'x' }) === false)
+  }
   const num = /'kb\.models\.error\.number': \{ kybernos: '([^']+)', en: '([^']+)' \}/.exec(src)
   ok('that message exists in French and English and names the K / M spelling', num !== null && /256K/.test(num[1]) && /256K/.test(num[2]))
 }
