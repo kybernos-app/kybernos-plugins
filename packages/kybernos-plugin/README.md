@@ -32,6 +32,15 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
   to the tail of *Other settings*. One icon table (`ICONES`, keyed by the page's title) draws every entry, and `test-settings-icons.mjs` checks that
   no two share a drawing. An always-on **language runtime** (`<kb-lang-runtime>`) keeps translated languages registered in
   DSH's locale service even when `kybernos-language` is off.
+- **Language policy (decision D1).** English is the base of every string; French lives only in French dictionaries and speaks « tu ». The core says a phrase
+  with `kbe('English text')`: the French is the key of `KB_FR_EN` (French → English) whose value it is, a translated language reads its pack by that French
+  key and shows English for a phrase its pack lacks, and any shell language the tables do not serve (zh…) resolves to English, never French
+  (`test-kbe-dictionary.mjs` checks that every call has exactly one French twin; two keys that share an English text are told apart by
+  `kbe(en, fr)`). Table rows (`KB_T`: `{ kybernos, en }`; the wizard's `KB_OB_T`: `[en, fr, es, ar]`, with a `<key>1` twin when a count can be 1) are
+  the other dictionaries. The host speaks English: it sends codes and English text, and the page words the code (dictation: `reasonCode`; git routes of
+  `kybernos-sessions`: `code`). Numbers, amounts and sorts follow the interface language (`kbLocaleTag`, `kbFmtNum`, `kbFmtMoney`). `<html lang>`
+  is kept a real tag (`<kb-html-lang>`) and, in a right-to-left page, a text block that has no translation keeps its own direction (`<kb-rtl-bidi>`).
+  The language gate is `scripts/test-no-french-literals.mjs`.
 - **« A short automatic state + a Customize fold »**, one helper for every settings page (`window.__KB_CUSTOMIZE__`, like `__KB_SKEL__`): a page opens on
   what already runs by itself (one sentence, one status dot) and keeps its knobs under one fold that is shut until the person opens it and that remembers the
   choice. `h(window.__KB_CUSTOMIZE__.Fold, { id: 'memory', state: 'Memory is on and tidies itself.', tone: 'on' }, …the knobs…)`;
@@ -197,7 +206,7 @@ base) and `.credentials.yaml` (browser-session secret). The quiz and cards score
 (« Kybernos compact (legacy) »: DSH compacts natively now, and stored sessions still carry that id, which the registry rejects when
 it is missing) and puts the default of new chats back on Standard when it still pointed at it; turns on the
 `subagent_claude_code` row of every preset definition (in memory); lowers any retry policy above 10 attempts (`settings.update`,
-only on a violation); appends a marked "force de proposition" section to `~/.dsh/AGENTS.md` once (a section it laid in an earlier version, v1, is replaced by the current one unless the person edited it); writes the `report-feedback`
+only on a violation); appends a marked "initiative" section (English, v3) to `~/.dsh/AGENTS.md` once (the French v1 and v2 it laid in earlier versions are replaced by it unless the person edited them; their text is data in `agents-proposition-legacy.json`); writes the `report-feedback`
 skill into `~/.dsh/skills` if its source exists (it does not in this repo); seeds the skills it ships (`skills/<name>/SKILL.md`, today
 `automation-creator`) into `<dsh home>/skills` with `seed-skills.mjs`: absent is written, the shipped text is refreshed only while the file is
 still byte for byte what we wrote (sha-256 in `kybernos/seeded-skills.json`), and a skill the user wrote or edited under the same name, or
@@ -314,6 +323,10 @@ node scripts/test-language-packs.mjs                   # 13: export → index �
 node packages/kybernos-plugin/test-notify.mjs          # 19: the notification store and toast behind the footer bell
 source scripts/sandbox/env.sh && node scripts/check-language-job-live.mjs   # a host-run translation that fails for want of a key: the language, the toast, the note, once (refuses :3080)
 node packages/kybernos-plugin/test-lang-runtime.mjs    # 89: the <kb-lang-runtime> block with fake locale and storage
+node packages/kybernos-plugin/test-kbe-dictionary.mjs   # every kbe('English') phrase has exactly one French twin in KB_FR_EN
+node packages/kybernos-plugin/test-format.mjs           # amounts, token counts and numbers in the interface language; the currency once
+node packages/kybernos-plugin/test-html-lang.mjs        # <html lang> stays a tag; the RTL text-block rule
+node packages/kybernos-plugin/test-page-names.mjs       # one name for the models page in the wizard; the Creations quick actions
 node scripts/test-pins-host.mjs                        # KB-PINS-CORE block of index.js
 node scripts/test-scheduled-tasks-host.mjs             # KB-TASKS-CORE block: cron, validation, store, trigger
 node packages/kybernos-plugin/test-automation-creator.mjs  # 64: the shipped skill's script, run with sh on a temp DSH_HOME (lock, stale lock, ten writers at once)

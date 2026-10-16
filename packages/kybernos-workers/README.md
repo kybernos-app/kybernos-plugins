@@ -118,7 +118,7 @@ nothing runs before the confirmation, that the key never appears on the page, an
 - The per-agent presentation (logo, "vendor · account" line, sign-in wording, why Gemini and Qwen take a key) lives in
   `client.js`. An agent added to the host's `WORKERS` shows up on its own with the terminal glyph and without those words
   until the page gets its entries (`LOGO_OF`, `IDENTITY`, the sign-in sentences) and the logo symbol of its own.
-- The four home-made connections ship as one Suite module, **Agent connectors** (`packages/dsh-subagent-maison/`). When that
+- The four home-made connections ship as one Suite module, **Workers connectors** (`packages/dsh-subagent-maison/`). When that
   module is switched off in the Suite (or an install is broken), *Turn on* says so and writes nothing.
 - A saved API key only reaches the provider at the next DSH start (DSH reads its environment at launch); the page says so.
 - The patch is read line by line, not with a YAML parser; unknown forms are ignored, and a tool line this module did not

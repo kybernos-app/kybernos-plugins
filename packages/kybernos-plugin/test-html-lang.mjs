@@ -74,7 +74,7 @@ console.log('text blocks in a right-to-left page (A2-26)')
   const css = added.length === 1 ? String(added[0].textContent) : ''
   check('one style is added, with the isolation of each text block', added.length === 1 && /unicode-bidi:\s*plaintext/.test(css), css.slice(0, 80))
   check('…only under a right-to-left page', /^html\[dir="rtl"\]/.test(css))
-  check('…never on code, inputs or buttons', /:not\(pre, code, input, textarea, select, button\)/.test(css))
+  check('…never on code, inputs or buttons, and only on a block with nothing inside it', /:not\(pre, code, input, textarea, select, button, svg, svg \*\)/.test(css) && /:not\(:has\(\*\)\)/.test(css))
 }
 
 console.log('\n' + String(pass) + ' verifications, ' + String(fail) + ' failure(s)')

@@ -165,7 +165,7 @@ window.__ModuleLoader__.load({
 
     /** Pure. The answer of a refused route, in words. */
     const REFUSALS = {
-      'package-missing': ['Le module « Agent connectors » n’est pas installé : active-le dans Kybernos Suite, ou mets la Suite à jour.', 'The "Agent connectors" module is not installed: turn it on in Kybernos Suite, or update the Suite.'],
+      'package-missing': ['Le module « Workers connectors » n’est pas installé : active-le dans Kybernos Suite, ou mets la Suite à jour.', 'The "Workers connectors" module is not installed: turn it on in Kybernos Suite, or update the Suite.'],
       'command-changed': ['La commande a changé depuis l’affichage : recharge la page et recommence.', 'The command changed since it was shown: reload the page and try again.'],
       busy: ['Une autre opération est en cours : réessaie dans un instant.', 'Another operation is running: try again in a moment.'],
       'already-installed': ['Déjà installé : DSH le revérifie.', 'Already installed: DSH is checking it again.'],

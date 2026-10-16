@@ -4,6 +4,7 @@
 //   node scripts/audit-i18n-live.mjs                  # a real translated language (ar, RTL)
 //   node scripts/audit-i18n-live.mjs --lang es        # another language id
 //   node scripts/audit-i18n-live.mjs --baseline       # no language switch: measure the GUI as it is now
+//   node scripts/audit-i18n-live.mjs --french         # the built-in French (Language page › Français › Use): « EN left » = English a plugin left in the French UI
 //   node scripts/audit-i18n-live.mjs --only "Suite,Thème"  # only the pages whose name contains one of these
 //   node scripts/audit-i18n-live.mjs --json out.json  # + the full machine-readable report
 //
@@ -27,13 +28,14 @@
 import { writeFileSync } from 'node:fs'
 import { openLivePage, clickText, waitFor } from './live-page.mjs'
 import { collectIn, analyse } from './lib-i18n-audit.mjs'
-import { createFlow, assertEnglishStored, storedLocale } from './lib-language-flow.mjs'
+import { createFlow, assertEnglishStored, storedLocale, LANGUAGE } from './lib-language-flow.mjs'
 
 const args = process.argv.slice(2)
 const argOf = (name, dflt) => { const i = args.indexOf(name); return i >= 0 && args[i + 1] !== undefined ? args[i + 1] : dflt }
 const LANG = argOf('--lang', 'ar')
 const JSON_OUT = argOf('--json', null)
 const BASELINE = args.includes('--baseline')
+const FRENCH = args.includes('--french')
 const ONLY = argOf('--only', null)
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -50,7 +52,14 @@ const SECTION = '[data-slot="settings.section"]'
 const report = []
 let size = null
 try {
-  if (!BASELINE) {
+  if (FRENCH) {
+    // The French of Kybernos is built in: nothing to translate, just « Use » on its row (DSH goes back to English at the end, see the `finally`).
+    await flow.openSettings(LANGUAGE)
+    await flow.clickSel('[data-lang="kybernos"] [data-act="use"]')
+    await sleep(2500)
+    await waitFor(page, `document.documentElement.lang === 'fr'`, 20000)
+    await reload()
+  } else if (!BASELINE) {
     await flow.installStub()
     const hasTables = await val(`!!(window.__KB_T__ && window.__KB_FR_EN__)`)
     if (!hasTables) { console.error('○ inconclusive: window.__KB_T__ is not published (is @local/kybernos loaded?)'); await live.close(); process.exit(3) }
@@ -131,7 +140,7 @@ try {
   }
 
   // Pass 1: let the live translation see every page; then wait for it to settle.
-  if (!BASELINE) {
+  if (!BASELINE && !FRENCH) {
     await visitAll(false)
     let last = -1
     for (let i = 0; i < 30; i += 1) {
@@ -153,7 +162,7 @@ await live.close()
 
 // ── output ───────────────────────────────────────────────────────────────────
 const pad = (s, n) => (String(s) + ' '.repeat(n)).slice(0, n)
-console.log('\nTranslation coverage — ' + (BASELINE ? 'the GUI as it is now (no language switch)' : 'language "' + LANG + '" (' + size + ' texts translated by the stub)') + '\n')
+console.log('\nTranslation coverage — ' + (FRENCH ? 'the built-in French' : BASELINE ? 'the GUI as it is now (no language switch)' : 'language "' + LANG + '" (' + size + ' texts translated by the stub)') + '\n')
 console.log(pad('page', 34) + pad('✓ ok', 7) + pad('FR left', 9) + pad('EN left', 9) + 'share ok')
 let tOk = 0, tFr = 0, tEn = 0
 for (const r of report) {

@@ -2618,9 +2618,11 @@ try {
 // right-to-left page (A2-26): in the RTL paragraph its final full stop jumped to the start of the line (« .and forms included »). `unicode-bidi:
 // plaintext` gives each text block the direction of its first strong letter — what `dir="auto"` does — without touching the page's own direction
 // (the layout, the alignment and the mirrored controls stay as they are). Only text blocks of Kybernos' own surfaces; code, inputs and DSH's chat are left alone.
+// A text block is an element with no element inside it (« :not(:has(*)) »): its text is the whole of its content.
 const KB_RTL_BIDI_CSS = [
-  'html[dir="rtl"] :is([data-slot="settings.section"], [class*="-root"], [class$="-page"], [class*="kb-page"], [data-kb="skills"], [data-kb="connectors"])',
-  ' :is(p, li, dd, dt, h1, h2, h3, h4, h5, h6, figcaption, [class*="desc"], [class*="blurb"], [class*="-sub"], [class*="title"], [class*="-name"], [class*="note"], [class*="hint"]):not(pre, code, input, textarea, select, button)',
+  'html[dir="rtl"] :is([data-slot="settings.section"], [class*="-root"], [class$="-page"], [data-kb$="-page"], [data-kb="changes-card"], [data-kb="kybernos-usage-card"], .kbsm-card)',
+  ' :is(p, li, dd, dt, h1, h2, h3, h4, h5, h6, figcaption, blockquote, div, span[class*="desc"], span[class*="-sub"], span[class*="help"], span[class*="note"], span[class*="hint"], span[class*="blurb"])',
+  ':not(:has(*)):not(pre, code, input, textarea, select, button, svg, svg *)',
   '{unicode-bidi:plaintext}',
 ].join('')
 try {
