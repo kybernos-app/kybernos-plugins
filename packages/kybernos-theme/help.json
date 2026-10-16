@@ -5,7 +5,7 @@
   },
   "steps": [
     {
-      "fr": "Dans « Essentiel » (ouvert par défaut), choisissez un mode, un thème (livré ou à vous), un accent, un fond et une police.",
+      "fr": "Dans « Essentiel » (ouvert par défaut), choisis un mode, un thème (livré ou à toi), un accent, un fond et une police.",
       "en": "In “Essentials” (open by default), pick a mode, a theme (shipped or your own), an accent color, a background and a font."
     },
     {
@@ -13,11 +13,11 @@
       "en": "“Glass and background” sets transparency and blur once a background is chosen; “Colors”, “Text and shape” and “Accessibility” refine."
     },
     {
-      "fr": "« Animation » : choisissez le dessin et les mots affichés en bas du chat pendant que l’agent travaille.",
+      "fr": "« Animation » : choisis le dessin et les mots affichés en bas du chat pendant que l’agent travaille.",
       "en": "“Animation”: choose the drawing and the words shown at the bottom of the chat while the agent works."
     },
     {
-      "fr": "« Partage » garde vos thèmes (enregistrer, importer, exporter) ; « Galerie » en propose d’autres à essayer et installer.",
+      "fr": "« Partage » garde tes thèmes (enregistrer, importer, exporter) ; « Galerie » en propose d’autres à essayer et installer.",
       "en": "“Sharing” keeps your themes (save, import, export); “Gallery” offers more to try and install."
     }
   ],
