@@ -40,7 +40,11 @@ window.__ModuleLoader__.load({
         'kfl.sonde': { fr: 'Tester un modèle', en: 'Probe a model' },
         'kfl.sonde.encours': { fr: 'Test…', en: 'Probing…' },
         'kfl.sonde.ok': { fr: 'Répond — contrat accepté.', en: 'Answers — contract accepted.' },
-        'kfl.sonde.ko': { fr: 'Verrou refusé : {code}', en: 'Gate refused: {code}' },
+        'kfl.sonde.ko': { fr: 'Le test a échoué ({code}).', en: 'The test failed ({code}).' },
+        'kfl.tier.locked': { fr: 'Le palier gratuit est indisponible pour le moment : OpenCode l’a verrouillé, ces modèles ne peuvent pas répondre. Réessayez plus tard.', en: 'The free tier is unavailable right now: OpenCode has locked it, so these models cannot answer. Try again later.' },
+        'kfl.tier.rate': { fr: 'Le palier gratuit est saturé pour le moment. Réessayez dans un instant.', en: 'The free tier is busy right now. Try again in a moment.' },
+        'kfl.tier.network': { fr: 'OpenCode est injoignable. Vérifiez la connexion.', en: 'OpenCode cannot be reached. Check the connection.' },
+        'kfl.tier.model': { fr: 'Le modèle testé n’est plus proposé par le palier gratuit.', en: 'The tested model is no longer offered by the free tier.' },
         'kfl.relance': { fr: 'Si un modèle n’apparaît pas dans le sélecteur : relancez DSH.', en: 'If a model does not show in the picker: restart DSH.' },
         'kfl.auto': { fr: 'Activé automatiquement au premier lancement.', en: 'Enabled automatically at first run.' },
         'kfl.erreur': { fr: 'Erreur', en: 'Error' },
@@ -129,7 +133,8 @@ window.__ModuleLoader__.load({
         ".kfl-erreur { margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: var(--dsw-alias-state-error-primary); }\n" +
         ".kfl-sonde { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 13px; color: var(--dsw-alias-label-secondary); }\n" +
         ".kfl-sonde[data-ok='true'] { color: var(--dsw-alias-state-success-primary); }\n" +
-        ".kfl-sonde[data-ok='false'] { color: var(--dsw-alias-state-error-primary); }\n"
+        ".kfl-sonde[data-ok='false'] { color: var(--dsw-alias-state-error-primary); }\n" +
+        ".kfl-locked { margin: 0 0 10px; font-size: 13px; line-height: 1.5; color: var(--dsw-alias-state-error-primary); }\n"
 
       // ── host calls ───────────────────────────────────────────────────────
       const jsonGet = async (path) => {
@@ -152,6 +157,10 @@ window.__ModuleLoader__.load({
         } catch (e) { return null }
       }
 
+      // What a failed probe means, in a sentence: the codes of the gateway are for the host, not for a person.
+      const KFL_REASONS = { free_tier_locked: 'kfl.tier.locked', rate_limited: 'kfl.tier.rate', network: 'kfl.tier.network', model_unknown: 'kfl.tier.model', model_protocol_unsupported: 'kfl.tier.model', no_model: 'kfl.vide' }
+      const reasonOf = (code) => (KFL_REASONS[code] !== undefined ? m(KFL_REASONS[code]) : m('kfl.sonde.ko', { code: String(code || 'error') }))
+
       // ── the panel ────────────────────────────────────────────────────────
       const Panel = () => {
         const [status, setStatus] = React.useState(null)
@@ -159,6 +168,10 @@ window.__ModuleLoader__.load({
         const [ack, setAck] = React.useState(false)
         const [erreur, setErreur] = React.useState(null)
         const [probe, setProbe] = React.useState(null)
+        // Does the free tier answer right now? null until known. Asked on open (the host remembers the verdict for a few minutes),
+        // so the page never offers to connect models that cannot answer.
+        const [tier, setTier] = React.useState(null)
+        const verdictOf = (r) => (r !== null && r !== undefined && r.ok === true ? { ok: true } : { ok: false, code: (r && r.code) || 'error' })
 
         const refresh = React.useCallback(async () => {
           const s = await jsonGet('/free-llms/status')
@@ -172,6 +185,11 @@ window.__ModuleLoader__.load({
         }, [])
 
         React.useEffect(() => { refresh() }, [refresh])
+        React.useEffect(() => {
+          let dead = false
+          jsonGet('/free-llms/health?cached=1').then((r) => { if (dead !== true && r !== null && typeof r === 'object') setTier(verdictOf(r)) })
+          return () => { dead = true }
+        }, [])
 
         const connecter = async () => {
           setErreur(null); setBusy('connect')
@@ -192,12 +210,14 @@ window.__ModuleLoader__.load({
           const r = await jsonGet('/free-llms/health')
           setBusy(null)
           setProbe(r && r.ok === true ? { ok: true, model: r.model } : { ok: false, code: (r && r.code) || 'error' })
+          setTier(verdictOf(r))
           await refresh()
         }
 
         const wired = status !== null && status.state && status.state.wired === true
         const models = status !== null && Array.isArray(status.models) ? status.models : []
         const catalogOk = status !== null && status.catalogOk === true
+        const locked = tier !== null && tier.ok === false && tier.code === 'free_tier_locked'
 
         return h('div', { className: 'kfl-root', 'data-kfl': 'panneau' },
           h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } },
@@ -207,6 +227,7 @@ window.__ModuleLoader__.load({
           h('p', { className: 'kfl-avertis' }, m('kfl.avertis')),
 
           h('div', { className: 'kfl-section' }, m('kfl.liste')),
+          locked ? h('p', { className: 'kfl-locked', role: 'status', 'data-kfl': 'tier-locked' }, m('kfl.tier.locked')) : null,
           // Not read yet: bones in the rows' own box (the shared skeleton helper of the core plugin, window.__KB_SKEL__), instead of
           // the « no free model » line that then got replaced. Without the helper the line shows, as before.
           (status === null && erreur === null && skelHelper() !== null)
@@ -217,7 +238,7 @@ window.__ModuleLoader__.load({
               ? m('kfl.catalogue.err', { err: String(status.catalogError) })
               : m('kfl.vide'))
             : h('div', { className: 'kfl-liste' }, models.map((id) => h('div', { className: 'kfl-mod', key: id },
-              h('span', { className: 'kbm-dot', 'data-state': 'done' }),
+              h('span', { className: 'kbm-dot', 'data-state': locked ? 'error' : 'done' }),
               h('span', { className: 'kfl-mod-nom', title: id }, id),
               h('span', { className: 'kbm-tag', 'data-tone': 'neutral' }, 'free')))),
 
@@ -229,7 +250,7 @@ window.__ModuleLoader__.load({
             wired === true
               ? h('button', { className: 'kbm-btn kbm-btn-md kbm-btn-outline', disabled: busy !== null, onClick: deconnecter },
                 Ic('trash', 14), busy === 'connect' ? m('kfl.encours') : m('kfl.deconnecter'))
-              : h('button', { className: 'kbm-btn kbm-btn-md kbm-btn-primary', disabled: busy !== null || ack !== true || models.length === 0, onClick: connecter },
+              : h('button', { className: 'kbm-btn kbm-btn-md kbm-btn-primary', disabled: busy !== null || ack !== true || models.length === 0 || locked, title: locked ? m('kfl.tier.locked') : undefined, 'data-kfl': 'connecter', onClick: connecter },
                 Ic('link', 14), busy === 'connect' ? m('kfl.encours') : m('kfl.connecter')),
             h('button', { className: 'kbm-btn kbm-btn-md kbm-btn-outline', disabled: busy !== null, onClick: sonder },
               Ic('refresh', 14), busy === 'probe' ? m('kfl.sonde.encours') : m('kfl.sonde'))),
@@ -237,7 +258,7 @@ window.__ModuleLoader__.load({
           probe !== null
             ? h('div', { className: 'kfl-sonde', 'data-ok': probe.ok === true ? 'true' : 'false' },
               h('span', { className: 'kbm-dot', 'data-state': probe.ok === true ? 'done' : 'error' }),
-              probe.ok === true ? m('kfl.sonde.ok') : m('kfl.sonde.ko', { code: String(probe.code || 'error') }))
+              probe.ok === true ? m('kfl.sonde.ok') : reasonOf(probe.code))
             : null,
 
           status !== null && status.state && status.state.autoEnabled === true

@@ -537,8 +537,14 @@ window.__ModuleLoader__.load({
 
         const useRemote = () => {
           const [s, setS] = React.useState(null)
+          // Why the last poll failed (null when it worked): the page keeps the last good status and says so, instead of drawing a status that is not one.
+          const [err, setErr] = React.useState(null)
           const live = React.useRef(true)
-          const load = React.useCallback(async () => { const j = await api('status'); if (live.current && j !== null && typeof j === 'object') setS(j) }, [])
+          const load = React.useCallback(async () => {
+            const j = await api('status')
+            if (!live.current) return
+            if (j !== null && typeof j === 'object' && j.ok === true) { setS(j); setErr(null) } else setErr(j !== null && typeof j === 'object' && typeof j.error === 'string' ? j.error : 'network')
+          }, [])
           React.useEffect(() => {
             live.current = true
             void load()
@@ -546,7 +552,7 @@ window.__ModuleLoader__.load({
             return () => { live.current = false; clearInterval(timer) }
           }, [load])
           const act = React.useCallback(async (name, body) => { const j = await api(name, body === undefined ? {} : body); await load(); return j }, [load])
-          return { s, act, reload: load }
+          return { s, err, act, reload: load }
         }
         const useTick = () => {
           const [n, setN] = React.useState(Date.now())
@@ -650,17 +656,20 @@ window.__ModuleLoader__.load({
           const usable = s !== null && s.available !== false && s.connected !== false && s.entitled !== false
           // Opening the panel IS asking for a code: the QR appears without a further click.
           React.useEffect(() => {
-            if (props.autoPair === true && usable && s.pairing === null && started.current === false) { started.current = true; void run('pair') }
-          }, [usable, s === null ? null : s.pairing === null])
-          if (s === null) return h('div', { className: 'kbmr-sub' }, kt('Chargement…', 'Loading…'))
+            if (props.autoPair === true && usable && s.pairing == null && started.current === false) { started.current = true; void run('pair') }
+          }, [usable, s === null ? null : s.pairing == null])
+          // A failed poll keeps what was shown and adds the reason on top; with nothing shown yet it is the whole page until the next good poll.
+          const polled = props.r.err !== null && props.r.err !== undefined ? h('div', { className: 'kbmr-error', role: 'alert', 'data-kb': 'mobile-poll-error' }, errorText(props.r.err)) : null
+          if (s === null) return polled !== null ? polled : h('div', { className: 'kbmr-sub' }, kt('Chargement…', 'Loading…'))
           if (s.available === false) return h('div', { className: 'kbmr-sub' }, kt('Cette version de DSH ne permet pas la connexion mobile.', 'This DSH version cannot do the phone link.'))
           if (s.configured === false) return h('div', { className: 'kbmr-sub', 'data-kb': 'mobile-not-offered' }, kt('Ce serveur Kybernos ne propose pas encore le mobile.', 'This Kybernos server does not offer the phone link yet.'))
           if (s.connected === false) return h('div', { className: 'kbmr-sub', 'data-kb': 'mobile-signin' }, kt('Connectez-vous à votre compte Kybernos pour utiliser le mobile.', 'Sign in to your Kybernos account to use the phone link.'))
           const devices = Array.isArray(s.devices) ? s.devices : []
           if (s.entitled === false) return h('div', null, h(Paywall, { web: props.web }), devices.length > 0 ? h(Devices, { devices, onRevoke: (id) => run('devices/revoke', { id }) }) : null)
           return h('div', { className: 'kbmr-body' },
+            polled,
             error !== null ? h('div', { className: 'kbmr-error', role: 'alert' }, error) : null,
-            s.pairing !== null
+            s.pairing != null
               ? h(Pairing, { pairing: s.pairing, compact: props.compact, busy, onApprove: () => run('pair/approve'), onDeny: () => run('pair/deny'), onNew: () => run('pair') })
               : h('div', { className: 'kbmr-row kbmr-start' },
                 h('button', { type: 'button', className: 'kbmr-btn kbmr-primary', 'data-kb': 'mobile-pair', disabled: busy, onClick: () => { void run('pair') } }, kt('Ajouter un téléphone', 'Add a phone'))),

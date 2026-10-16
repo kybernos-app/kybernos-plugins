@@ -5282,7 +5282,9 @@ const kbTaskError = (message, tr) => (Object.prototype.hasOwnProperty.call(KB_TA
 //  - a run is an entry of an automation's history (the host keeps the last 20): a day with no entry has no run
 //    here, whatever its cron says, and a past slot is never drawn as « done » by itself;
 //  - « running » and « waiting » come from the engine's own session status, and only for a session this page
-//    can see; a session it cannot see is `started`, an outcome not claimed.
+//    can see; a session it cannot see is `started`, an outcome not claimed;
+//  - a session the engine lists as done can still have ended on a failed turn: that comes from the engine's own
+//    `turn/end` reason, read by the host (GET /kybernos/tasks/outcomes), and from nothing else.
 const KB_BOARD_WINDOW_DAYS = 7
 const KB_BOARD_DONE_MAX = 20
 // The tick is 30 s: three minutes late is a scheduler that is not running, not a busy tick.
@@ -5386,17 +5388,20 @@ const kbBoardLiveOf = (listSnap, statusMap) => {
     return { running: running === true, waiting: kind, pending: kind === 'approval' ? pending : null }
   }
 }
-// The state of one run: 'failed' (it did not start: the reason is on the entry), 'waiting' (the engine holds a
-// question for the person), 'running', 'ended' (the engine lists the session and it is neither running nor
-// waiting), 'started' (the run began and this page cannot see its session: the outcome is not claimed).
-const kbBoardRunState = (status, live) => {
+// The state of one run: 'failed' (it did not start: the reason is on the entry; or its last turn ended with an error,
+// which the host read from the engine's own `turn/end` reason), 'waiting' (the engine holds a question for the
+// person), 'running', 'ended' (the engine lists the session and it is neither running nor waiting, and no failed
+// turn is known), 'started' (the run began and this page cannot see its session: the outcome is not claimed).
+// `outcome` is the host's verdict on the last turn ({ failed, message }) or null when it has none: no verdict, no claim.
+const kbBoardRunState = (status, live, outcome) => {
   if (status === 'error') return 'failed'
   if (live === null || live === undefined) return 'started'
   if (live.waiting !== null) return 'waiting'
-  return live.running === true ? 'running' : 'ended'
+  if (live.running === true) return 'running'
+  return outcome !== null && outcome !== undefined && outcome.failed === true ? 'failed' : 'ended'
 }
 // Every run of every automation, from the histories: { key, taskId, atMs, state, sessionId, via, error, last, live }.
-const kbBoardRuns = (tasks, liveOf, nowMs) => {
+const kbBoardRuns = (tasks, liveOf, nowMs, outcomeOf) => {
   const out = []
   for (const t of Array.isArray(tasks) ? tasks : []) {
     if (t === null || typeof t !== 'object' || typeof t.id !== 'string') continue
@@ -5409,7 +5414,10 @@ const kbBoardRuns = (tasks, liveOf, nowMs) => {
       const sessionId = typeof e.sessionId === 'string' && e.sessionId.length > 0 ? e.sessionId : null
       const status = e.status === 'error' ? 'error' : (e.status === 'queued' ? 'queued' : 'fired')
       const live = status === 'fired' && sessionId !== null && typeof liveOf === 'function' ? liveOf(sessionId) : null
-      out.push({ key: t.id + '@' + String(e.at) + '#' + String(i), taskId: t.id, atMs, state: kbBoardRunState(status, live), sessionId, via: e.via === 'webhook' ? 'webhook' : 'schedule', error: typeof e.error === 'string' ? e.error : '', last: i === hist.length - 1, live: live === undefined ? null : live })
+      const outcome = live !== null && live !== undefined && typeof outcomeOf === 'function' ? outcomeOf(sessionId) : null
+      const state = kbBoardRunState(status, live, outcome)
+      const why = typeof e.error === 'string' && e.error !== '' ? e.error : (state === 'failed' && outcome !== null && outcome !== undefined && typeof outcome.message === 'string' ? outcome.message : '')
+      out.push({ key: t.id + '@' + String(e.at) + '#' + String(i), taskId: t.id, atMs, state, sessionId, via: e.via === 'webhook' ? 'webhook' : 'schedule', error: why, last: i === hist.length - 1, live: live === undefined ? null : live })
     }
   }
   return out
@@ -8522,6 +8530,12 @@ return {
       const setSearchOpen = searchPair[1]
       const searchShown = searchOpen === true || query.trim().length > 0
       const wrapRef = React.useRef(null)
+      // The field is not displayed until the magnifier is pressed: once it is, it takes the focus, so typing goes into it.
+      const searchInputRef = React.useRef(null)
+      React.useEffect(() => {
+        if (searchOpen !== true) return
+        try { if (searchInputRef.current !== null) searchInputRef.current.focus() } catch (e) { /* no focus API: the person clicks the field */ }
+      }, [searchOpen])
       React.useEffect(() => {
         if (menu === null) return undefined
         const onDown = (e) => {
@@ -8597,7 +8611,7 @@ return {
             (searchShown === false ? h('button', { type: 'button', 'data-kb': 'toggle-search', className: 'kb6-tb-ghost', title: kbt('tb.search.toggle'), 'aria-label': kbt('tb.search.toggle'), 'aria-expanded': 'false', onClick: () => setSearchOpen(true) }, Icon('search', 17)) : null),
             h('div', { className: 'kb6-search kb6-search-inline kb6-tb-search' + (searchShown === true ? '' : ' closed'), role: 'search' },
               Icon('search', 14),
-              h('input', { type: 'search', value: query, onChange: (e) => upd({ query: e.target.value }), placeholder: props.searchPlaceholder || 'Search\u2026', 'aria-label': props.searchPlaceholder || 'Search' }),
+              h('input', { ref: searchInputRef, type: 'search', value: query, onChange: (e) => upd({ query: e.target.value }), placeholder: props.searchPlaceholder || 'Search\u2026', 'aria-label': props.searchPlaceholder || 'Search' }),
               (searchShown === true ? h('button', { type: 'button', className: 'kb6-tb-clear', 'aria-label': query.length > 0 ? kbt('tb.clear.search') : kbt('tb.search.toggle'), title: query.length > 0 ? kbt('tb.clear.search') : kbt('tb.search.toggle'), onClick: () => { if (query.length > 0) upd({ query: '' }); else setSearchOpen(false) } }, Icon('x', 12)) : null)),
             (showFav === true ? h('button', { type: 'button', 'data-kb': 'toggle-favorites', className: 'kb6-tb-ghost' + (fav === true ? ' on' : ''), title: fav === true ? kbt('kbui.showall') : kbt('kbui.favorites.only'), 'aria-label': kbt('kbui.toggle.favorites'), 'aria-pressed': fav === true ? 'true' : 'false', onClick: () => upd({ fav: !(fav === true) }) }, Icon('star', 17)) : null),
             (hideView === true ? null : h('div', { className: 'kb6-tb-viewgrp', role: 'group', 'aria-label': kbt('tb.view') },
@@ -17599,7 +17613,7 @@ return {
     }
 
     // ── Registre de progression ─────────────────────────────────────────
-    // Stocke les scores par artifact dans .dsh/artifacts/.progress.json
+    // Keeps the scores per artifact in <DSH_HOME>/kybernos/progress.json
     // via fetch direct (host.call passe par routeMap qui peut être en cache).
     const kbProgressStore = { data: null, loaded: false, subs: [] }
     const kbProgressFetch = (body) => fetch('/kybernos/art-progress', {
@@ -19985,6 +19999,16 @@ function renderFit(canvas, model, cam, opts){
         return { ok: false, error: 'HTTP ' + String(res.status) }
       } catch (e) { return { ok: false, error: errText(e) } }
     }
+    // How the last turn of some sessions ended (the host reads the engine's own `turn/end` reason). Same own-fetch rule as above;
+    // a host without the route, or any failure, gives {} : no verdict is claimed.
+    const kbBoardFetchOutcomes = async (ids) => {
+      try {
+        const res = await fetch(kbApiBase() + '/tasks/outcomes?ids=' + encodeURIComponent(ids.join(',')), { method: 'GET' })
+        if (res.ok !== true) return {}
+        const json = await res.json()
+        return json !== null && typeof json === 'object' && json.ok === true && json.outcomes !== null && typeof json.outcomes === 'object' ? json.outcomes : {}
+      } catch (e) { return {} }
+    }
     const kbBoardBones = (rows) => h('div', { className: 'kbbd-cols' }, [0, 1, 2, 3].map((c) => h('div', { key: c, className: 'kbbd-col' },
       h('div', { className: 'kbbd-colhead' }, kbBone('46%', 13)),
       h('div', { className: 'kbbd-cards' }, [0, 1].slice(0, rows === undefined ? 2 : rows).map((i) => h('div', { key: i, className: 'kbbd-card' },
@@ -20080,7 +20104,25 @@ function renderFit(canvas, model, cam, opts){
       const liveOf = kbBoardLiveOf(listSnap, statusMap)
       const byId = new Map()
       for (const t of tasks) byId.set(t.id, t)
-      const runs = kbBoardRuns(tasks, liveOf, nowMs)
+      // Sessions the engine lists as done: did their last turn fail? Asked once per session (a session that runs again is forgotten, to be
+      // asked again when it ends). No answer for a session means no verdict, and the run stays `ended` without a claim of success.
+      const verdicts = React.useRef(new Map())
+      const settled = kbBoardRuns(tasks, liveOf, nowMs, null)
+      for (const r of settled) { if ((r.state === 'running' || r.state === 'waiting') && r.sessionId !== null) verdicts.current.delete(r.sessionId) }
+      const toAsk = settled.filter((r) => r.state === 'ended' && r.sessionId !== null && verdicts.current.has(r.sessionId) !== true && nowMs - r.atMs <= KB_BOARD_WINDOW_DAYS * KB_BOARD_DAY_MS).map((r) => r.sessionId)
+      const askKey = toAsk.slice(0, 20).join(',')
+      React.useEffect(() => {
+        if (askKey === '') return undefined
+        let dead = false
+        const ids = askKey.split(',')
+        kbBoardFetchOutcomes(ids).then((got) => {
+          if (dead === true) return
+          for (const id of ids) verdicts.current.set(id, Object.prototype.hasOwnProperty.call(got, id) === true ? got[id] : null)
+          bump((n) => n + 1)
+        })
+        return () => { dead = true }
+      }, [askKey])
+      const runs = kbBoardRuns(tasks, liveOf, nowMs, (sid) => (verdicts.current.has(sid) === true ? verdicts.current.get(sid) : null))
       const C = kbBoardColumns(tasks, runs, plan, nowMs)
       const nameOf = (id) => { const t = byId.get(id); return t !== undefined ? String(t.name || t.id) : String(id) }
       const openSession = (sid) => { if (typeof sid === 'string' && sid.length > 0) props.openSession(sid) }
@@ -30040,7 +30082,8 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 .kb6-helpbtn{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;font-weight:700;line-height:1;cursor:pointer}
 .kb6-helpbtn:hover,.kb6-helpbtn.on{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-brand-primary);background:var(--dsw-alias-bg-layer-2)}
 .kb6-headacts{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;margin-inline-start:auto;padding-top:6px}
-.kb6-tb-tools{margin-inline-start:auto;display:flex;align-items:center;gap:2px;flex-wrap:wrap;justify-content:flex-end;padding-top:6px}
+/* No wrap: the search field shrinks (min-width:0) instead of dropping the view switch and the menu to a second line, which pushed the whole page down when the magnifier was pressed. */
+.kb6-tb-tools{margin-inline-start:auto;display:flex;align-items:center;gap:2px;flex-wrap:nowrap;justify-content:flex-end;padding-top:6px}
 .kb6-tb-tools .kb6-tb-search{flex:0 1 280px;min-width:0;margin-inline-end:6px}
 .kb6-tb-ghost{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:38px;height:var(--kb6-tb-h);border-radius:999px;border:0;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;position:relative;padding:0}
 .kb6-tb-ghost:hover,.kb6-tb-ghost.open{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}

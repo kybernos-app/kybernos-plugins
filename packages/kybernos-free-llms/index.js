@@ -20,6 +20,7 @@ import {
 } from './gateway-contract.mjs'
 import { PROVIDER_ID, CREDENTIAL_REF, buildProfile, profileSummary } from './profile.mjs'
 import { gatewayBase, routeNeedsRepair, ensureFreeKey } from './wiring.mjs'
+import { createProbeCache } from './probe-cache.mjs'
 import {
   defaultFreeLlmState, shouldAutoEnable, recordEnable, recordDisable, publicView,
 } from './free-llm-state.mjs'
@@ -387,13 +388,23 @@ export function apply(ctx) {
       } }), 'free-llms: status')
 
       // Health probe: run the full contract against one model and classify the answer.
+      // `?cached=1` (the page, on open) accepts a verdict of the last few minutes and shares one call between pages; without it
+      // (« Probe a model ») the call is made again. A probe of a chosen model (`?model=`) is never remembered for another.
+      const probes = createProbeCache({ run: async () => {
+        const found = await fetchFreeModels()
+        const model = found.models[0] || null
+        if (model === null) return { ok: false, code: 'no_model' }
+        const probe = await healthProbe(model)
+        return { ok: probe.ok, model, code: probe.code, status: probe.status }
+      } })
       scope.effect(() => webServer.register({ kind: 'exact', path: '/free-llms/health', handler: async (req, res) => {
         const q = new URL(req.url || '/', 'http://localhost').searchParams
-        const found = await fetchFreeModels()
-        const model = str(q.get('model')) || found.models[0] || null
-        if (model === null) { sendJson(res, 200, { ok: false, code: 'no_model' }); return }
-        const probe = await healthProbe(model)
-        sendJson(res, 200, { ok: probe.ok, model, code: probe.code, status: probe.status })
+        const chosen = str(q.get('model'))
+        try {
+          if (chosen === null) { sendJson(res, 200, await probes.get({ fresh: q.get('cached') !== '1' })); return }
+          const probe = await healthProbe(chosen)
+          sendJson(res, 200, { ok: probe.ok, model: chosen, code: probe.code, status: probe.status })
+        } catch (e) { sendJson(res, 200, { ok: false, code: 'error' }) }
       } }), 'free-llms: health')
 
       // Enable (wire the route + record the decision). Requires a same-origin POST.

@@ -256,6 +256,40 @@ ok('l\'état vide propose les trois démos',
   texte.includes('"cle":"phare"') && texte.includes('"cle":"maison"') && texte.includes('"cle":"schema"'))
 ok('le transport est là (lecture, vitesses)', texte.includes('0.5×') && texte.includes('4×'))
 
+// ── A4-07: the Text annotation tool ─────────────────────────────────────────────
+// The field used to open on pointerdown, was focused and then blurred at once by the focus move that ends that same press,
+// and its onBlur removed it: nobody could type. It now opens on pointerup, and ignores a blur that follows its opening closely.
+{
+  const find = (n, pred) => {
+    if (n === null || n === undefined || typeof n !== 'object') return null
+    if (pred(n)) return n
+    for (const e of (n.enfants || [])) { const f = find(e, pred); if (f !== null) return f }
+    return null
+  }
+  const canvas = () => find(composant({}), (n) => n.type === 'canvas')
+  const input = () => find(composant({}), (n) => n.props && n.props.className === 'kbm-saisie')
+  const evt = (type) => ({ type, clientX: 100, clientY: 130, pointerId: 1, currentTarget: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 200, height: 260 }), setPointerCapture () {} } })
+  T.pinceau.on = true; T.pinceau.outil = 'texte'; T.pinceau.texte = null; T.pinceau.texteEnAttente = null
+  canvas().props.onPointerDown(evt('pointerdown'))
+  ok('A4-07: pressing does not create the field yet (the press itself would blur it)', T.pinceau.texte === null && input() === null)
+  canvas().props.onPointerUp(evt('pointerup'))
+  const champ = input()
+  ok('A4-07: on release the field opens at the clicked point, focused', champ !== null && champ.props.autoFocus === true && T.pinceau.texte !== null && T.pinceau.texte.x === 0.5 && T.pinceau.texte.y === 0.5)
+  let refocus = 0
+  champ.props.onBlur({ currentTarget: { focus: () => { refocus += 1 } } })
+  ok('A4-07: a blur right after the opening does not remove the field (it is focused again)', T.pinceau.texte !== null && refocus === 1, JSON.stringify(T.pinceau.texte))
+  T.pinceau.texte.valeur = 'hello'
+  const before = T.traitsAnn().length
+  T.pinceau.texte.ouvertA -= 1000
+  champ.props.onBlur({ currentTarget: { focus () {} } })
+  ok('A4-07: leaving the field later files the text as an annotation', T.pinceau.texte === null && T.traitsAnn().length === before + 1 && T.traitsAnn()[before].type === 'texte' && T.traitsAnn()[before].text === 'hello')
+  T.pinceau.outil = 'texte'
+  canvas().props.onPointerDown(evt('pointerdown'))
+  canvas().props.onPointerUp(evt('pointercancel'))
+  ok('A4-07: a cancelled press opens nothing', T.pinceau.texte === null)
+  T.pinceau.on = false; T.pinceau.outil = 'trait'
+}
+
 console.log(echecs === 0 ? '\nclient : tout est vert' : `\nclient : ${echecs} échec(s)`)
 // La sonde de l'hôte (setInterval) garde sinon le processus vivant pour rien.
 process.exit(echecs === 0 ? 0 : 1)

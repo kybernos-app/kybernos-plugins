@@ -72,8 +72,8 @@ window.__ModuleLoader__.load({
     ]
 
     // Racines SANS en-tête dédié (livrable mini-app ouvert depuis la page
-    // Livrables, panneau sidebar, popup) : le bouton se pose en flottant dans
-    // le coin du rendu. L'id dérive du fichier — chaque mini-app s'installe
+    // Livrables, panneau sidebar, popup) : le bouton prend sa propre ligne au-dessus
+    // du rendu, aligné à droite. L'id dérive du fichier — chaque mini-app s'installe
     // séparément.
     const slugId = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'miniapp'
     function panneauxDynamiques () {
@@ -427,14 +427,13 @@ window.__ModuleLoader__.load({
         btn.className = CLASSE_BOUTON
         btn.title = kbf('Petite fenêtre autonome, toujours au-dessus, qui survit à la fermeture de DSH.')
         if (conf.flottant === true) {
-          if (getComputedStyle(tete).position === 'static') tete.style.position = 'relative'
-          btn.style.position = 'absolute'
-          btn.style.top = '8px'
-          btn.style.insetInlineEnd = '8px'
-          btn.style.marginInlineStart = '0'
-          btn.style.zIndex = '5'
-        }
-        tete.appendChild(btn)
+          // A mini-app has no head of its own: the button is a strip of its own ABOVE the player, right-aligned, in the flow. Floated
+          // over the corner (top 8 px, right 8 px) it covered the primary button of the Quiz and Cards players (« Check », « Replay »):
+          // a click in the middle of that button installed an app instead.
+          btn.style.alignSelf = 'flex-end'
+          btn.style.margin = '0 0 6px'
+          tete.prepend(btn)
+        } else tete.appendChild(btn)
       }
       const etat = installe.get(conf.id)
       const libelle = kbf('App') + (etat ? ' ⚙' : ' ⤓')
@@ -516,7 +515,7 @@ window.__ModuleLoader__.load({
     return {
       apply,
       inject: [],
-      __test: { kbf, KB_FR_EN, serialiser, reglesApplicables, PANNEAUX, escTitre, jsonPourScript, sourceModule, placerMenu, pageExport, exporterExterne, interfaceExterne },
+      __test: { majBouton, kbf, KB_FR_EN, serialiser, reglesApplicables, PANNEAUX, escTitre, jsonPourScript, sourceModule, placerMenu, pageExport, exporterExterne, interfaceExterne },
     }
   },
 })

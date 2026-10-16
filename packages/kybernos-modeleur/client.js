@@ -721,7 +721,7 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
     // Traits dessinés par-dessus le modèle (pinceau) : normalisés 0..1,
     // renvoyés à l'hôte puis relus par l'agent via `modeliser { relire: true }`.
     let ANN = { version: 0, traits: [] }
-    const PINCEAU = { on: false, coul: '#E1502A', outil: 'trait', trait: null, texte: null }
+    const PINCEAU = { on: false, coul: '#E1502A', outil: 'trait', trait: null, texte: null, texteEnAttente: null }
     const COULEURS_PEN = ['#E1502A', '#2A6FD6', '#F2C31A']
     const OUTILS_PEN = [
       { id: 'trait', label: '✏', titre: 'Trait libre' },
@@ -1039,8 +1039,9 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
         if (PINCEAU.on) {
           const p = pointNorm(e)
           if (PINCEAU.outil === 'texte') {
-            PINCEAU.texte = { x: p[0], y: p[1], valeur: '' }
-            maj()
+            // The field opens when the press is RELEASED (onUp): opened here, it was focused and then blurred at once by the
+            // focus move that finishes this very press, and the blur removed it before anyone could type.
+            PINCEAU.texteEnAttente = { x: p[0], y: p[1] }
             return
           }
           PINCEAU.trait = { type: PINCEAU.outil, coul: PINCEAU.coul, pts: [p] }
@@ -1093,7 +1094,16 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
         reveiller()
         maj()
       }
-      const onUp = () => {
+      const onUp = (e) => {
+        if (PINCEAU.texteEnAttente !== null) {
+          const at = PINCEAU.texteEnAttente
+          PINCEAU.texteEnAttente = null
+          if (PINCEAU.on && PINCEAU.outil === 'texte' && !(e && e.type === 'pointercancel')) {
+            PINCEAU.texte = { x: at.x, y: at.y, valeur: '', ouvertA: Date.now() }
+            maj()
+          }
+          return
+        }
         if (PINCEAU.trait !== null) {
           const t = PINCEAU.trait
           PINCEAU.trait = null
@@ -1184,7 +1194,11 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
                   if (e.key === 'Enter') validerTexte()
                   else if (e.key === 'Escape') { PINCEAU.texte = null; maj() }
                 },
-                onBlur: validerTexte,
+                // A blur in the instant after the field opened is the end of the press that opened it, not the person leaving.
+                onBlur: (e) => {
+                  if (PINCEAU.texte !== null && Date.now() - PINCEAU.texte.ouvertA < 250) { try { e.currentTarget.focus() } catch { /* already gone */ } return }
+                  validerTexte()
+                },
               })
             : null,
           total ? h('div', { className: 'kbm-tools' },

@@ -29,6 +29,30 @@ new Function('window', 'document', readFileSync(new URL('./client.js', import.me
 const T = definition.factory(() => { throw new Error('require inattendu') }).__test
 ok('bundle client charge et expose __test', T !== null && typeof T.escTitre === 'function' && typeof T.jsonPourScript === 'function')
 
+// ── A4-28: the App button of a mini-app must not sit over the player's own buttons ─────────────────────────────
+// A mini-app has no head: the button used to float at the top-right corner of its root, exactly where the Quiz and Cards
+// players keep « Check » / « Replay » (a click in the middle of that button installed an app). It now takes its own line above.
+{
+  const el = (tag) => ({
+    tag, style: {}, className: '', textContent: '', title: '', children: [],
+    prepend (n) { this.children.unshift(n) }, appendChild (n) { this.children.push(n) },
+    querySelector (sel) { const m = /^:scope > \.(\S+)$/.exec(sel); return m === null ? null : (this.children.find((c) => c.className === m[1]) || null) },
+  })
+  globalThis.window.document.createElement = el
+  const player = el('div')
+  player.className = 'kbq-player'
+  const root = el('div')
+  root.children.push(player)
+  T.majBouton({ racineDynamique: root, id: 'ma-quiz-demo-quiz', tete: null, defaut: 'quiz-demo', l: 420, h: 480, flottant: true })
+  const btn = root.children[0]
+  ok('A4-28: the button is the first thing of the mini-app, above the player (in the flow)', btn.className === 'kbmini-btn' && root.children[1] === player, root.children.map((c) => c.className).join())
+  ok('A4-28: it does not float: no absolute position, no corner offsets', btn.style.position === undefined && btn.style.top === undefined && btn.style.insetInlineEnd === undefined && btn.style.zIndex === undefined, JSON.stringify(btn.style))
+  ok('A4-28: it is right-aligned on its own line', btn.style.alignSelf === 'flex-end')
+  ok('A4-28: the root is left as it was (no forced position)', root.style.position === undefined)
+  T.majBouton({ racineDynamique: root, id: 'ma-quiz-demo-quiz', tete: null, defaut: 'quiz-demo', l: 420, h: 480, flottant: true })
+  ok('A4-28: a second sweep does not add a second button', root.children.length === 2)
+}
+
 // ── M-04 : escTitre — le titre ne peut pas fermer <title> ───────────────────
 {
   const piege = '</title><script>window.__M04 = "INJECTE"</script>'
