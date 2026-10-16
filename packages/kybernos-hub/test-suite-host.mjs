@@ -61,6 +61,12 @@ console.log('── a signed release older in content than this copy ──')
   ok('the release\'s modules come first, in its order', p.modules.slice(0, sansLesNouveaux.length).map((m) => m.id).join() === sansLesNouveaux.map((m) => m.id).join())
   ok('a listed local module can be switched like any other (voulu follows the activation file)', p.modules.find((m) => m.id === 'kybernos-mobile').voulu === true && charge({ catalogue, brut: { actives: [], desactives: [nomDe('kybernos-mobile')] }, etatHub: null, effectif: signe }).modules.find((m) => m.id === 'kybernos-mobile').voulu === false)
   ok('the release stays the source of the entries it knows (its version wins)', charge({ catalogue, brut: null, effectif: { ...signe, modules: signe.modules.map((m) => (m.id === 'kybernos-models' ? { ...m, version: '9.9.9' } : m)) } }).modules.find((m) => m.id === 'kybernos-models').version === '9.9.9')
+  // A6-26: the help describes the code that RUNS. A release written before a help was reworded must not put its older text over the checkout's.
+  const ancienneAide = { ...catalogue.modules.find((m) => m.id === 'kybernos-models').aide, steps: [{ en: 'an older sentence of the release', fr: 'une ancienne phrase de la release' }] }
+  const ecrit = charge({ catalogue, brut: null, effectif: { ...signe, modules: signe.modules.map((m) => (m.id === 'kybernos-models' ? { ...m, aide: ancienneAide } : m)) } })
+  ok('the help of a module this copy holds is the one that shipped, not the release\'s', JSON.stringify(ecrit.modules.find((m) => m.id === 'kybernos-models').aide) === JSON.stringify(catalogue.modules.find((m) => m.id === 'kybernos-models').aide))
+  const inconnu = { id: 'kybernos-from-the-future', nom: '@local/kybernos-from-the-future', famille: catalogue.familles[0].id, promesse: { fr: 'x', en: 'x' }, aide: { steps: [{ en: 'its own help', fr: 'son aide' }] } }
+  ok('a module the release adds (this copy does not hold it) keeps its own help', charge({ catalogue, brut: null, effectif: { ...signe, modules: signe.modules.concat([inconnu]) } }).modules.find((m) => m.id === 'kybernos-from-the-future').aide.steps[0].en === 'its own help')
   // A strictly newer release is what an update would bring: a module it dropped does not come back from the old copy.
   const plusRecent = { ...signe, suite: { ...signe.suite, plusRecent: true } }
   ok('a strictly newer release is shown as it is', charge({ catalogue, brut: null, effectif: plusRecent }).modules.length === sansLesNouveaux.length)
