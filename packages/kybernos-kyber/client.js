@@ -58,7 +58,8 @@ window.__ModuleLoader__.load({
         tgNone: ['Pas connecté', 'Not connected'], tgCode: ['Code à scanner', 'Code to scan'], tgWait2: ['En attente de votre accord', 'Waiting for your OK'],
         tgExp: ['Code expiré', 'Code expired'], tgDec: ['Refusé dans Telegram', 'Refused in Telegram'], tgTak: ['Déjà utilisé par un autre compte', 'Already used by another account'],
         tgBot: ['Compte déjà créé par le bot', 'Account already made by the bot'],
-        noCam: ['Pas de caméra ni d’application ? Utiliser un code', 'No camera or no app? Use a code instead'],
+        noCam: ['Pas de caméra ni d’application ? Écrire un code à la place', 'No camera or no app? Write a code instead'],
+        codeIntro: ['Dans Telegram, ouvrez {bot} et écrivez :', 'In Telegram, open {bot} and write:'], codeCopy: ['Copier', 'Copy'], codeCopied: ['Copié', 'Copied'],
         expiresIn: ['Expire dans {t}', 'Expires in {t}'], newCode: ['Nouveau code', 'New code'],
         preparing: ['Préparation du code…', 'Preparing the code…'],
         scH: ['Presque fini : confirmez dans Telegram', 'Almost done: confirm in Telegram'],
@@ -164,7 +165,7 @@ window.__ModuleLoader__.load({
       // ═══ the store and its calls ═════════════════════════════════════════════════════════════════════════════════
       const state = {
         loading: true, view: null, at: 0, stripPref: null,
-        pairing: null, starting: false, confirmDisc: false, busy: '',
+        pairing: null, starting: false, confirmDisc: false, showCode: false, copied: false, busy: '',
         kybySid: null, kybyCwd: null, opening: false, openFailed: false, openError: '', computerError: '',
       }
       try { const v = window.localStorage.getItem('kybernos-kyber.strip'); if (v === '0') state.stripPref = false; else if (v === '1') state.stripPref = true } catch (e) { /* no storage */ }
@@ -240,6 +241,7 @@ window.__ModuleLoader__.load({
         if (state.starting) return
         state.starting = true
         state.pairing = null
+        state.showCode = false
         emit()
         const r = await postJson('/kybernos-cloud/telegram/pairing', {})
         state.starting = false
@@ -257,6 +259,7 @@ window.__ModuleLoader__.load({
       const pairCancel = async () => {
         const id = state.pairing !== null ? state.pairing.id : null
         state.pairing = null
+        state.showCode = false
         emit()
         if (typeof id === 'string') await postJson('/kybernos-cloud/telegram/pairing/cancel', { id })
       }
@@ -476,6 +479,11 @@ window.__ModuleLoader__.load({
         const p = state.pairing
         const scanned = face.kind === 'scanned'
         const cancel = () => { void pairCancel() }
+        const tokenOf = /pair_([A-Za-z0-9]+)$/u.exec(typeof p.link === 'string' ? p.link : '')
+        const typed = tokenOf === null || typeof p.bot !== 'string' || p.bot === '' ? '' : '/start pair_' + tokenOf[1]
+        const copyCode = () => {
+          try { void navigator.clipboard.writeText(typed).then(() => { state.copied = true; emit(); setTimeout(() => { state.copied = false; emit() }, 1800) }).catch(() => { /* refused: it is on the screen */ }) } catch (e) { /* no clipboard */ }
+        }
         return panel(scanned ? 'scanned' : 'waiting',
           h('div', { className: 'kbky-pbody' },
             scanned ? null : h('div', { className: 'kbky-pqr' }, h(Qr, { qr: p.qr })),
@@ -489,7 +497,15 @@ window.__ModuleLoader__.load({
                 h(Btn, { primary: !scanned, href: p.link, kb: 'kybernos-kyber-open' }, BRAND.telegram(18), L('openTg')),
                 h('span', { className: 'kbky-sub left', 'data-kb': 'kybernos-kyber-left' }, L('expiresIn', { t: clock(face.left) })),
                 h('button', { type: 'button', className: 'kbky-link', 'data-kb': 'kybernos-kyber-cancel', onClick: cancel }, L(scanned ? 'notMe' : 'cancel'))),
-              !scanned && v.accountUrl !== '' ? h('button', { type: 'button', className: 'kbky-link', 'data-kb': 'kybernos-kyber-code', onClick: () => { void openAccount('account') } }, L('noCam')) : null)))
+              !scanned && typed !== '' ? h('button', { type: 'button', className: 'kbky-link', 'data-kb': 'kybernos-kyber-code', 'aria-expanded': String(state.showCode), onClick: () => { state.showCode = !state.showCode; emit() } }, L('noCam')) : null,
+              // The same single-use token, written by hand: the person opens the bot in Telegram (any device, any app) and writes it. Nothing leaves DSH.
+              !scanned && typed !== '' && state.showCode
+                ? h('div', { className: 'kbky-codebox', 'data-kb': 'kybernos-kyber-code-box' },
+                  h('span', { className: 'kbky-sub left' }, L('codeIntro', { bot: '@' + p.bot })),
+                  h('div', { className: 'kbky-row' },
+                    h('code', { className: 'kbky-cmd', 'data-kb': 'kybernos-kyber-code-text' }, typed),
+                    h(Btn, { kb: 'kybernos-kyber-code-copy', onClick: copyCode }, L(state.copied ? 'codeCopied' : 'codeCopy'))))
+                : null)))
       }
 
       /** Two equal tiles, the channels and the computer, and under them the one thing Telegram may need. */
@@ -728,6 +744,8 @@ window.__ModuleLoader__.load({
         '.kbky-pbody{display:flex;gap:16px;align-items:flex-start}',
         '.kbky-pqr .kbky-qr{width:132px;height:132px}',
         '.kbky-pcol{display:flex;flex-direction:column;gap:10px;min-width:0;flex:1}.kbky-pcol h3{margin:0;font-size:14px;font-weight:650}',
+        '.kbky-codebox{display:flex;flex-direction:column;gap:6px}',
+        '.kbky-cmd{flex:1;min-width:0;padding:6px 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.2));background:var(--dsw-alias-bg-base,rgba(127,127,127,.08));font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;overflow-wrap:anywhere;user-select:all}',
         // narrow: one column, and no QR (nobody scans their own screen: the button is the way)
         '@media (max-width:760px){.kbky-three{grid-template-columns:minmax(0,1fr)}.kbky-pqr{display:none}.kbky-page{padding:14px 12px}}',
         '.kbky .kbky-pbody{flex-direction:column}',

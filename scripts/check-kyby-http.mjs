@@ -71,7 +71,7 @@ try {
   check('the switch asks the real server for a code: a QR and the bot\'s link appear', (await poll(() => has('kybernos-kyber-qr'), 10000)) === true)
   const href = (await attr('kybernos-kyber-open', 'href')) || ''
   const token = /pair_([a-z0-9]{24})$/.exec(href)
-  check('the link is the bot\'s, with a single-use token', /^https:\/\/t\.me\/kybernos_live_bot\?start=pair_[a-z0-9]{24}$/.test(href), href)
+  check('the link is the bot\'s, with a single-use token', /^https:\/\/t\.me\/kybernos_bot\?start=pair_[a-z0-9]{24}$/.test(href), href)
 
   const r1 = await say('/start pair_' + (token ? token[1] : 'x'))
   check('Telegram posts « /start pair_<token> » (HTTP): the server answers 200', r1.status === 200, r1.status)

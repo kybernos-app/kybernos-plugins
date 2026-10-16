@@ -25,7 +25,8 @@ works on.
     « on request »; once made, « Setting up a machine dedicated to you » turns into « Asleep » by itself (the page reads again every few
     seconds while a computer is being made, woken or put to sleep). On the Free plan the server says `manual_control: false`: no wake
     button, the short note and an upgrade button (the footer's Upgrade dialog through `window.__KB_UPGRADE__`, else the plan page).
-  - **The panel under the tiles**: the code (QR, three steps, « Open Telegram », the time left, « Cancel »), then who Telegram says it is
+  - **The panel under the tiles**: the code (QR, three steps, « Open Telegram », the time left, « Cancel », and « no camera or no app? »: the same token as a
+    command to write to the bot by hand, `/start pair_<token>`, with a copy button; it never leaves DSH for the console), then who Telegram says it is
     while the person confirms there; expired, refused, « already another account's », « made by the bot » and « too many tries » are
     its own cards; and the question before disconnecting. The tiles keep their height while it is open.
 - The same panel is a tab of the right-hand panel, and the page the new-chat card opens (what Kaby is, the way into the chat).
