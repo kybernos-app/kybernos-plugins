@@ -187,6 +187,10 @@ the interceptor). Only client code can be tested this way: host code loads when 
 Traps met while writing it: `page.send` returns the raw message (`{ id, result }`), and two interceptors on the same `Fetch`
 event must each ignore the other's requests (`Fetch.enable` replaces the patterns of an earlier call).
 
+On a **sandbox** (`KB_HOST` is not `:3080`) the checkout `dsh web` serves is the one the sandbox was built from, `KB_WORKTREE`, not the
+main tree: the helper looks for that tree's text, so the swap reports `replaced: true` there (the page already runs this client).
+`KB_SHARED_TREE` / `KB_SERVED_TREE` override it.
+
 ## The Skills panels: `scripts/check-skills-detail-live.mjs`
 
 ```bash
@@ -940,6 +944,12 @@ still renders. It exits 1 on what a bundle can prevent. Measured 2026-10-08 on 3
   (the only place the login URL is printed) never appears. A host half that spins the CPU at load takes the whole process down.
   Neither is fixable from a bundle: do not `await` the network at the top level of an `index.js`.
 
+The core is `packages/kybernos-plugin`, but DSH calls it `@local/kybernos`, it prints its boot lines as `[kybers] …` / `[gateway] …` and it mounts
+`/kybernos/*`: the script reads the log names from each bundle's `package.json` and its boot tags from the bundle's own sources, and it
+attributes `/kybernos/<short name>/*` to that bundle and the rest of `/kybernos/*` to the core. The probe routes must answer 200 on a
+healthy sandbox (a probe that always says 404 sees nothing); it waits up to 12 s for them to come back instead of judging them 2.5 s after the
+banner.
+
 The sandbox does not copy credentials and the script never touches `:3080`. Run it under a profile with no network if you want it
 to be certain that nothing leaves (a `sandbox-exec` profile denying outbound connections to everything but loopback works on macOS).
 
@@ -953,6 +963,18 @@ send (`kybernos-plugin/test-feedback.mjs`, 13), the skills relay (`kybernos-skil
 **Rules these tests pin:** a bundle's network read is bounded in size and time; a redirect is not followed; the engine's
 `ctx.web.fetch` is not used for a request of ours (its HTTP provider kills the whole process when a connect fails at once: no route, a
 firewall answering EPERM); a promise started with `void` carries a `.catch`, because an unhandled rejection ends DSH.
+
+## A skip is never a pass
+
+Every test that cannot run where it is (`test-*.mjs`, `check-*`) prints a line that starts with `SKIPPED:` and says what is not
+covered and why (no playwright, no jsdom, no python livekit, no DSH engine, a platform, root…), and a whole suite that skips ends with
+a summary line (`… 0 assertions run, SKIPPED`). The CI keeps the output of its two test loops and ends with `SKIPPED SUMMARY: N` and the
+list, so a green run states what it did not cover. `scripts/test-live-checks.mjs` fails on a test that prints « skipped » without it.
+`check-display-live.mjs` lists every view it could not measure the same way, and `--strict` fails on them.
+
+`scripts/check-opencode-probe-live.mjs` asks the REAL OpenCode CLI of the machine whether it is signed in. It reports a fact about the
+machine and is not a gate: the logic of that probe is tested hermetically (a stand-in CLI in both states) by
+`packages/dsh-subagent-maison/test-noyau.mjs`.
 
 ## What a person would see wrong: `scripts/check-display-live.mjs`
 

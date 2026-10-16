@@ -13,6 +13,16 @@ import { openLivePage, waitFor, clickText } from './live-page.mjs'
 import { swapBundles } from './lib-bundle-swap.mjs'
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+// The Skills page opens on Featured; the catalogue of the user's own skills (and the refusals of its host route) belong to the Yours segment.
+const openYours = async (page, waitFor) => {
+  await waitFor(page, "!!document.querySelector('.kbsub-group [role=tab]')", 20000)
+  // Pressed until it is the selected segment: the page may still be settling (it picks its first tab when its lists arrive) and take an early click back.
+  for (let i = 0; i < 40; i += 1) {
+    const on = (await page.evalJs("(() => { const t = Array.from(document.querySelectorAll('.kbsub-group [role=tab]')).find((b) => /^Yours/.test(b.innerText.trim())); if (!t) return false; if (t.getAttribute('aria-selected') === 'true') return true; t.click(); return false })()")).val
+    if (on === true) return
+    await sleep(250)
+  }
+}
 let pass = 0
 const failures = []
 const check = (label, cond, detail) => {
@@ -48,7 +58,10 @@ try {
     await waitFor(page, 'document.body && document.body.innerText.length > 80', 30000)
     await clickText(page, 'Skills')
     await waitFor(page, "!!document.querySelector('.kbs-root')", 20000)
-    await sleep(2500)
+    await openYours(page, waitFor)
+    // the host route is asked once Yours is open; give the page two frames to draw what it answered
+    for (let i = 0; i < 80 && fx.calls === 0; i += 1) await sleep(250)
+    await page.evalJs('new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 150))))')
     return (await page.evalJs("(document.querySelector('.kbs-root') || document.body).innerText")).val || ''
   }
 
@@ -61,8 +74,8 @@ try {
   console.log('  (the GUI is in ' + (en ? 'English' : 'French') + ')')
 
   const cases = [
-    { name: 'a code with facts', answer: { ok: false, error: 'index_unavailable', http: 503 }, fr: 'Index indisponible (HTTP 503).', en: 'Index unavailable (HTTP 503).' },
-    { name: 'a code with the relay\'s own words', answer: { ok: false, error: 'index_unavailable', http: 502, detail: 'relay down' }, fr: 'Index indisponible (HTTP 502). — relay down', en: 'Index unavailable (HTTP 502). — relay down' },
+    { name: 'a code with facts', answer: { ok: false, error: 'index_unavailable', http: 503 }, fr: 'L’index n’a pas répondu (HTTP 503).', en: 'The index did not answer (HTTP 503).' },
+    { name: 'a code with the relay\'s own words', answer: { ok: false, error: 'index_unavailable', http: 502, detail: 'relay down' }, fr: 'L’index n’a pas répondu (HTTP 502). — relay down', en: 'The index did not answer (HTTP 502). — relay down' },
     { name: 'a refused folder', answer: { ok: false, error: 'root_not_allowed' }, fr: 'Ce dossier n’est pas l’un de vos dossiers de skills modifiables.', en: 'That folder is not one of your writable skills folders.' }
   ]
   for (const c of cases) {

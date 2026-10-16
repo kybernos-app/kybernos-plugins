@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 /**
- * Harnais de la moitié CLIENTE de `kybernos-flow` (la poignée de la file).
+ * Harness of the CLIENT half of `kybernos-flow` (the queue handle).
  *
- *   1. toujours : les fonctions pures (couture de dépôt, confrontation avec la
- *      file de l'hôte, aperçus) — aucun navigateur, aucune dépendance ;
- *   2. si `jsdom` est résolvable (ou KYBERNOS_JSDOM=<chemin de l'entrée>) : le
- *      geste rejoué sur un DOM qui reproduit le `QueueDock` natif (attribut
- *      `data-queue-dock`, `ul > li`, classes hachées à suffixe), avec un `fetch`
- *      factice qui note les requêtes. Sinon la passe est annoncée « non jouée ».
+ *   1. always: the pure functions (drop seam, comparison with the host's queue,
+ *      previews), with no browser and no dependency;
+ *   2. if `jsdom` can be resolved (or KYBERNOS_JSDOM=<path of its entry>): the
+ *      gesture replayed on a DOM that reproduces the native `QueueDock` (attribute
+ *      `data-queue-dock`, `ul > li`, hashed classes with a suffix), with a fake
+ *      `fetch` that records the requests. Otherwise the pass says SKIPPED.
  *
- * Usage : node kybernos-flow/test-client.mjs
+ * Usage: node kybernos-flow/test-client.mjs
  */
 import { readFileSync } from 'node:fs'
 
@@ -26,37 +26,37 @@ new Function('window', SOURCE)(globalThis.window)
 const modele = definition.factory()
 const T = modele.__test
 
-console.log('\n── client : le chargeur ──')
+console.log('\n── client: the loader ──')
 check('id = @local/kybernos-flow', definition.id === '@local/kybernos-flow')
-check('déclare le service uiWorkspace', Array.isArray(modele.inject) && modele.inject.includes('uiWorkspace'))
+check('declares the uiWorkspace service', Array.isArray(modele.inject) && modele.inject.includes('uiWorkspace'))
 {
   let leve = false
-  try { modele.apply({ effect () { throw new Error('ne doit pas être appelé') }, get () {} }) } catch { leve = true }
-  check('apply hors navigateur (pas de document) : sans effet, sans lever', leve === false)
+  try { modele.apply({ effect () { throw new Error('must not be called') }, get () {} }) } catch { leve = true }
+  check('apply outside a browser (no document): no effect, does not throw', leve === false)
 }
 
-console.log('\n── client : fonctions pures ──')
-check('aperçu identique', T.memeApercu('Bonjour  le monde', 'bonjour le monde') === true)
-check('aperçu : préfixe de 12 caractères', T.memeApercu('message numéro 1 — suite tronquée…', 'message numéro 1') === true)
-check('aperçu différent → faux', T.memeApercu('autre chose', 'message numéro 1') === false)
-check('aperçu vide d’un côté (pièce jointe seule) : on ne tranche pas', T.memeApercu('', 'texte') === true && T.memeApercu('texte', '') === true)
+console.log('\n── client: pure functions ──')
+check('same preview', T.memeApercu('Bonjour  le monde', 'bonjour le monde') === true)
+check('preview: 12-character prefix', T.memeApercu('message numéro 1 — suite tronquée…', 'message numéro 1') === true)
+check('different preview → false', T.memeApercu('autre chose', 'message numéro 1') === false)
+check('preview empty on one side (attachment only): no verdict', T.memeApercu('', 'texte') === true && T.memeApercu('texte', '') === true)
 const rects = [{ top: 100, height: 36 }, { top: 136, height: 36 }]
-check('dépôt : au-dessus de la liste → avant la 1re', T.cibleDeDepot(rects, 90) === 0)
-check('dépôt : moitié haute de la 1re → avant elle', T.cibleDeDepot(rects, 110) === 0)
-check('dépôt : moitié basse de la 1re → avant la 2e (pas de bande morte)', T.cibleDeDepot(rects, 120) === 1)
-check('dépôt : moitié haute de la 2e → avant elle', T.cibleDeDepot(rects, 150) === 1)
-check('dépôt : moitié basse de la dernière → fin de file', T.cibleDeDepot(rects, 160) === 2)
-check('dépôt : très bas → fin de file', T.cibleDeDepot(rects, 900) === 2)
+check('drop: above the list → before the 1st', T.cibleDeDepot(rects, 90) === 0)
+check('drop: upper half of the 1st → before it', T.cibleDeDepot(rects, 110) === 0)
+check('drop: lower half of the 1st → before the 2nd (no dead band)', T.cibleDeDepot(rects, 120) === 1)
+check('drop: upper half of the 2nd → before it', T.cibleDeDepot(rects, 150) === 1)
+check('drop: lower half of the last → end of queue', T.cibleDeDepot(rects, 160) === 2)
+check('drop: very low → end of queue', T.cibleDeDepot(rects, 900) === 2)
 {
   let toutesDefinies = true
   for (let y = 0; y < 300; y += 1) if (typeof T.cibleDeDepot(rects, y) !== 'number') toutesDefinies = false
-  check('dépôt : TOUTE ordonnée porte une cible (le défaut du 23/09 ne peut pas revenir)', toutesDefinies)
+  check('drop: EVERY ordinate carries a target (the 23/09 defect cannot come back)', toutesDefinies)
 }
-check('déplacement inutile : sur soi (de=0,cible=0)', T.deplacementUtile(0, 0) === false)
-check('déplacement inutile : juste après soi (de=0,cible=1)', T.deplacementUtile(0, 1) === false)
-check('déplacement utile : 0 → 2', T.deplacementUtile(0, 2) === true)
-check('déplacement utile : 2 → 0', T.deplacementUtile(2, 0) === true)
-check('déplacement inutile : dernière → fin', T.deplacementUtile(2, 3) === false)
+check('useless move: onto itself (from=0,target=0)', T.deplacementUtile(0, 0) === false)
+check('useless move: right after itself (from=0,target=1)', T.deplacementUtile(0, 1) === false)
+check('useful move: 0 → 2', T.deplacementUtile(0, 2) === true)
+check('useful move: 2 → 0', T.deplacementUtile(2, 0) === true)
+check('useless move: last → end', T.deplacementUtile(2, 3) === false)
 
 const hote = [
   { id: 'a', lane: 'next-turn', index: 0, preview: 'premier' },
@@ -65,24 +65,24 @@ const hote = [
   { id: 'z', lane: 'next-step', index: 0, preview: 'ailleurs' },
 ]
 let v = T.resoudre(hote, ['premier', 'deuxième', 'troisième'], 2, 0)
-check('résoudre : 3e avant la 1re → ids (c, a)', v.ok === true && v.messageId === 'c' && v.beforeId === 'a', v)
+check('resolve: 3rd before the 1st → ids (c, a)', v.ok === true && v.messageId === 'c' && v.beforeId === 'a', v)
 v = T.resoudre(hote, ['premier', 'deuxième', 'troisième'], 0, 3)
-check('résoudre : 1re en fin de file → beforeId null', v.ok === true && v.messageId === 'a' && v.beforeId === null, v)
+check('resolve: 1st to the end of the queue → null beforeId', v.ok === true && v.messageId === 'a' && v.beforeId === null, v)
 v = T.resoudre(hote, ['premier', 'deuxième'], 0, 2)
-check('résoudre : file périmée (3 côté hôte, 2 à l’écran) → refus', v.ok === false && v.raison.startsWith('stale-queue'), v)
+check('resolve: stale queue (3 on the host, 2 on screen) → refusal', v.ok === false && v.raison.startsWith('stale-queue'), v)
 v = T.resoudre(hote, ['premier', 'autre', 'troisième'], 1, 0)
-check('résoudre : aperçu de la ligne tenue différent → refus', v.ok === false && v.raison === 'preview-differs', v)
+check('resolve: preview of the held row differs → refusal', v.ok === false && v.raison === 'preview-differs', v)
 v = T.resoudre(hote, ['premier', 'deuxième', 'troisième'], 5, 0)
-check('résoudre : indice hors file → refus', v.ok === false && v.raison === 'indices-out-of-queue', v)
+check('resolve: index outside the queue → refusal', v.ok === false && v.raison === 'indices-out-of-queue', v)
 v = T.resoudre(undefined, [], 0, 0)
-check('résoudre : réponse de l’hôte illisible → refus sans lever', v.ok === false)
+check('resolve: unreadable host answer → refusal, no throw', v.ok === false)
 
-// ═══ Passe DOM (jsdom, facultative) ═════════════════════════════════════════
-console.log('\n── client : le geste sur un DOM de QueueDock ──')
+// ═══ DOM pass (jsdom, optional) ═════════════════════════════════════════════
+console.log('\n── client: the gesture on a QueueDock DOM ──')
 let JSDOM
 try { ({ JSDOM } = await import(process.env.KYBERNOS_JSDOM ?? 'jsdom')) } catch { JSDOM = undefined }
 if (JSDOM === undefined) {
-  console.log('  · non jouée — jsdom introuvable (KYBERNOS_JSDOM=<chemin de l’entrée jsdom> pour la jouer)')
+  console.log('SKIPPED: the DOM pass of the queue gesture — jsdom not found (KYBERNOS_JSDOM=<path of its entry> plays it)')
 } else {
   const attendre = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
   const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://127.0.0.1:3080/' })
@@ -93,7 +93,7 @@ if (JSDOM === undefined) {
   globalThis.document = w.document
   globalThis.MutationObserver = w.MutationObserver
 
-  // Réseau factice : la file « vue par l'hôte » est pilotée par le test.
+  // Fake network: the queue « seen by the host » is driven by the test.
   const requetes = []
   let hote = { supported: true, items: [] }
   globalThis.fetch = async (url, opts = {}) => {
@@ -129,8 +129,8 @@ if (JSDOM === undefined) {
 
   hote = { supported: false, items: [], reason: 'mutate-absente' }
   await attendre(200)
-  check('hôte sans la capacité : AUCUNE poignée (l’UI ne promet pas un geste vain)', poignees().length === 0)
-  check('…et la sonde a bien interrogé la route', requetes.some((r) => r.methode === 'GET' && r.url.includes('/kybernos/queue-move?sessionId=' + sessionId)))
+  check('host without the capability: NO handle (the UI does not promise a useless gesture)', poignees().length === 0)
+  check('…and the probe did ask the route', requetes.some((r) => r.methode === 'GET' && r.url.includes('/kybernos/queue-move?sessionId=' + sessionId)))
 
   // Le verdict est mis en cache 10 s : on repart d'une instance neuve pour la suite.
   effets.forEach((off) => { if (typeof off === 'function') off() })
@@ -139,51 +139,51 @@ if (JSDOM === undefined) {
   inst2.apply({ effect: (fn) => { effets.push(fn()) }, get: (cle) => (cle === 'uiWorkspace' ? { mainReference: { sessionId: 's-dom-2' } } : undefined) })
   w.document.body.appendChild(w.document.createElement('i')) // provoque un balayage
   await attendre(250)
-  check('hôte capable : une poignée par message admis (3), aucune sur la bande « en cours d’envoi »', poignees().length === 3, poignees().length)
-  check('poignée : accessible (role=button, tabindex=0, aria-label)', poignees().every((p) => p.getAttribute('role') === 'button' && p.getAttribute('tabindex') === '0' && p.getAttribute('aria-label').length > 10))
-  check('poignée en tête de ligne', dock.querySelectorAll('li')[0].firstChild === poignees()[0])
+  check('capable host: one handle per admitted message (3), none on the « being sent » band', poignees().length === 3, poignees().length)
+  check('handle: accessible (role=button, tabindex=0, aria-label)', poignees().every((p) => p.getAttribute('role') === 'button' && p.getAttribute('tabindex') === '0' && p.getAttribute('aria-label').length > 10))
+  check('handle at the head of the row', dock.querySelectorAll('li')[0].firstChild === poignees()[0])
   const avant = poignees().length
   w.document.body.appendChild(w.document.createElement('i'))
   await attendre(200)
   check('idempotent : un second balayage ne duplique rien', poignees().length === avant)
 
-  // Clavier : Alt+↓ sur la 1re → avant la 3e (de+2).
+  // Keyboard: Alt+↓ on the 1st → before the 3rd (from+2).
   requetes.length = 0
   poignees()[0].dispatchEvent(new w.KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true, cancelable: true }))
   await attendre(120)
   let post = requetes.find((r) => r.methode === 'POST')
-  check('Alt+↓ : lit la file puis POSTe (a avant c)', requetes[0]?.methode === 'GET' && post?.corps.messageId === 'ida' && post?.corps.beforeId === 'idc' && post?.corps.sessionId === 's-dom-2', requetes)
+  check('Alt+↓: reads the queue then POSTs (a before c)', requetes[0]?.methode === 'GET' && post?.corps.messageId === 'ida' && post?.corps.beforeId === 'idc' && post?.corps.sessionId === 's-dom-2', requetes)
   requetes.length = 0
   poignees()[0].dispatchEvent(new w.KeyboardEvent('keydown', { key: 'ArrowUp', altKey: true, bubbles: true, cancelable: true }))
   await attendre(80)
-  check('Alt+↑ sur la 1re : rien à faire, aucune requête', requetes.length === 0)
+  check('Alt+↑ on the 1st: nothing to do, no request', requetes.length === 0)
   poignees()[0].dispatchEvent(new w.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }))
   await attendre(80)
-  check('↓ sans Alt : ignoré', requetes.length === 0)
+  check('↓ without Alt: ignored', requetes.length === 0)
 
   // Glisser : la 3e jusqu'au-dessus de la 1re.
   requetes.length = 0
   const lignes = () => Array.from(dock.querySelectorAll('li')).slice(0, 3)
   poignees()[2].dispatchEvent(evt('pointerdown', { clientY: 190 }))
-  check('pointerdown : ligne tenue estompée + dock en « dragging »', lignes()[2].hasAttribute('data-kb-held') && dock.hasAttribute('data-kb-dragging'))
+  check('pointerdown: held row dimmed + dock in « dragging »', lignes()[2].hasAttribute('data-kb-held') && dock.hasAttribute('data-kb-dragging'))
   poignees()[2].dispatchEvent(evt('pointermove', { clientY: 105 }))
-  check('pointermove : indicateur posé sur la couture de la 1re ligne', lignes()[0].getAttribute('data-kb-drop') === 'before' && lignes()[0].style.boxShadow.includes('inset 0 2px 0'), lignes()[0].style.boxShadow)
-  check('…aucune requête avant le dépôt', requetes.length === 0)
+  check('pointermove: indicator set on the seam of the 1st row', lignes()[0].getAttribute('data-kb-drop') === 'before' && lignes()[0].style.boxShadow.includes('inset 0 2px 0'), lignes()[0].style.boxShadow)
+  check('…no request before the drop', requetes.length === 0)
   poignees()[2].dispatchEvent(evt('pointerup', { clientY: 105 }))
   await attendre(120)
   post = requetes.find((r) => r.methode === 'POST')
   check('pointerup : POST (c avant a)', post?.corps.messageId === 'idc' && post?.corps.beforeId === 'ida', requetes)
-  check('…indicateurs et états nettoyés', lignes().every((li) => !li.hasAttribute('data-kb-drop') && !li.hasAttribute('data-kb-held') && li.style.boxShadow === '') && !dock.hasAttribute('data-kb-dragging'))
+  check('…indicators and states cleaned up', lignes().every((li) => !li.hasAttribute('data-kb-drop') && !li.hasAttribute('data-kb-held') && li.style.boxShadow === '') && !dock.hasAttribute('data-kb-dragging'))
 
   // Glisser en fin de file.
   requetes.length = 0
   poignees()[0].dispatchEvent(evt('pointerdown', { clientY: 118 }))
   poignees()[0].dispatchEvent(evt('pointermove', { clientY: 900 }))
-  check('fin de file : indicateur sous la dernière ligne', lignes()[2].getAttribute('data-kb-drop') === 'end' && lignes()[2].style.boxShadow.includes('inset 0 -2px 0'))
+  check('end of queue: indicator under the last row', lignes()[2].getAttribute('data-kb-drop') === 'end' && lignes()[2].style.boxShadow.includes('inset 0 -2px 0'))
   poignees()[0].dispatchEvent(evt('pointerup', { clientY: 900 }))
   await attendre(120)
   post = requetes.find((r) => r.methode === 'POST')
-  check('…POST (a, beforeId null)', post?.corps.messageId === 'ida' && post?.corps.beforeId === null, requetes)
+  check('…POST (a, null beforeId)', post?.corps.messageId === 'ida' && post?.corps.beforeId === null, requetes)
 
   // Annulation : pointercancel n'envoie rien.
   requetes.length = 0
@@ -191,30 +191,30 @@ if (JSDOM === undefined) {
   poignees()[1].dispatchEvent(evt('pointermove', { clientY: 5 }))
   poignees()[1].dispatchEvent(evt('pointercancel', {}))
   await attendre(80)
-  check('pointercancel : rien envoyé, tout nettoyé', requetes.length === 0 && lignes().every((li) => !li.hasAttribute('data-kb-drop')))
-  // Dépôt à sa propre place : aucune requête.
+  check('pointercancel: nothing sent, everything cleaned up', requetes.length === 0 && lignes().every((li) => !li.hasAttribute('data-kb-drop')))
+  // Drop on its own place: no request.
   poignees()[1].dispatchEvent(evt('pointerdown', { clientY: 150 }))
   poignees()[1].dispatchEvent(evt('pointermove', { clientY: 140 }))
   poignees()[1].dispatchEvent(evt('pointerup', {}))
   await attendre(80)
-  check('dépôt sur sa propre place : aucune requête', requetes.length === 0)
+  check('drop on its own place: no request', requetes.length === 0)
 
-  // File périmée : l'hôte voit 4 messages, l'écran 3 → on n'envoie rien.
+  // Stale queue: the host sees 4 messages, the screen 3 → nothing is sent.
   hote = file(4)
   poignees()[2].dispatchEvent(evt('pointerdown', { clientY: 190 }))
   poignees()[2].dispatchEvent(evt('pointermove', { clientY: 105 }))
   poignees()[2].dispatchEvent(evt('pointerup', {}))
   await attendre(120)
-  check('file périmée (4 côté hôte, 3 à l’écran) : AUCUN POST', !requetes.some((r) => r.methode === 'POST'))
+  check('stale queue (4 on the host, 3 on screen): NO POST', !requetes.some((r) => r.methode === 'POST'))
 
-  // Une seule ligne : plus de poignée.
+  // A single row: no handle any more.
   monter(1)
   w.document.body.appendChild(w.document.createElement('i'))
   await attendre(250)
-  check('une seule ligne : les poignées disparaissent', poignees().length === 0)
+  check('a single row: the handles disappear', poignees().length === 0)
 
   effets.forEach((off) => { if (typeof off === 'function') off() })
 }
 
-console.log('\n' + (fail === 0 ? '✓' : '✗') + ' kybernos-flow client — ' + pass + ' vérifications, ' + fail + ' échec(s)')
+console.log('\n' + (fail === 0 ? '✓' : '✗') + ' kybernos-flow client — ' + pass + ' checks, ' + fail + ' failure(s)')
 process.exit(fail === 0 ? 0 : 1)

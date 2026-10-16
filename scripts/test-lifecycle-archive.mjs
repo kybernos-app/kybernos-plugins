@@ -133,7 +133,7 @@ function appendTexte (chemin, texte) { writeFileSync(chemin, readFileSync(chemin
 // C. the real robot, end to end, against fake dsh/npm/pnpm
 // ═════════════════════════════════════════════════════════════════════════
 if (process.platform === 'win32') {
-  console.log('C. skipped on Windows (the fake dsh/npm/pnpm are shebang scripts)')
+  console.log('SKIPPED: section C of the lifecycle archive tests — Windows (the fake dsh/npm/pnpm are shebang scripts)')
 } else {
   console.log('C. install, update, panel flow, refusal (real robot, fake dsh)')
   const BIN = join(RACINE, 'bin')

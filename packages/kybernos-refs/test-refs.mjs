@@ -75,7 +75,7 @@ const link = (href, text) => ({ href, textContent: text === undefined ? '' : tex
 let JSDOM = null
 try { ({ JSDOM } = await import(process.env.KYBERNOS_JSDOM ?? 'jsdom')) } catch (e) { JSDOM = null }
 if (JSDOM === null) {
-  console.log('  - jsdom is not importable: the DOM part is skipped (set KYBERNOS_JSDOM=<path to jsdom/lib/api.js>)')
+  console.log('SKIPPED: the DOM part of the references card — jsdom is not importable (set KYBERNOS_JSDOM=<path to jsdom/lib/api.js>)')
 } else {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
   const html = '<!doctype html><body>' +

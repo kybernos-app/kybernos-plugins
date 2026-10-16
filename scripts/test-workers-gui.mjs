@@ -22,7 +22,9 @@ try {
   reactJs = readFileSync(join(dirname(req.resolve('react/package.json')), 'umd', 'react.development.js'), 'utf8')
   reactDomJs = readFileSync(join(dirname(req.resolve('react-dom/package.json')), 'umd', 'react-dom.development.js'), 'utf8')
 } catch (e) {
-  console.log('WORKERS GUI — SKIPPED (needs playwright, react@18 and react-dom@18: ' + String(e.message).split('\n')[0] + ')')
+  // A skip is never a pass: the line starts with SKIPPED: and says what is not covered (CI installs none of these).
+  console.log('SKIPPED: the Workers page GUI suite — needs playwright, react@18 and react-dom@18 (' + String(e.message).split('\n')[0] + ')')
+  console.log('WORKERS GUI — 0 assertions run, SKIPPED (the Workers page has no GUI coverage in this run)')
   process.exit(0)
 }
 

@@ -180,7 +180,7 @@ console.log('\n── how the file is written ──')
   writeFileSync(f, V1_POSE)
   const dossier = join(f, '..')
   const estRoot = typeof process.getuid === 'function' && process.getuid() === 0
-  if (estRoot) console.log('  (skipped: running as root, read-only folder tests are meaningless)')
+  if (estRoot) console.log('SKIPPED: the read-only folder tests of the agents proposition — running as root, they would be meaningless')
   else {
     chmodSync(dossier, 0o555)
     let r

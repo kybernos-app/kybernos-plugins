@@ -107,13 +107,25 @@ try {
   await dismissKeyModal()
   const there = await poll(() => val(`!!document.querySelector('[data-kb="kybernos-call-header"]')`), 20000)
   check('the chat header holds the voice and video buttons of the bundle', there === true)
-  await sleep(800)
+  // Since the chat fold (kybernos-plugin), a chat's header keeps its title, the pin, the rename and ONE toggle at 701 px and above; the call buttons are among the
+  // « chat tools » that toggle unfolds. The check opens them the way a person does, then measures where they sit (A5-14: that they are behind a toggle by default is
+  // a product choice the README and the help describe, not something this check can call right or wrong).
+  const folded = await val(`(() => { const v = document.querySelector('[data-act="call-voice"]'); return !!v && v.getBoundingClientRect().width === 0 })()`)
+  if (folded === true) {
+    console.log('  ○ the call buttons are behind the chat-tools toggle of the chat fold: opening it')
+    await val(`(() => { const t = document.querySelector('[data-kb="chat-fold"] [data-act="toggle"]'); if (t && t.getAttribute('aria-pressed') !== 'true') t.click() })()`)
+  }
+  await poll(() => val(`(() => { const v = document.querySelector('[data-act="call-voice"]'); return !!v && v.getBoundingClientRect().width > 0 })()`), 8000)
   const geo = JSON.parse((await val(`(() => { const v = document.querySelector('[data-act="call-voice"]'); const c = document.querySelector('[data-act="call-video"]'); if (!v || !c) return 'null'; const a = v.getBoundingClientRect(); const b = c.getBoundingClientRect(); const own = Array.from(document.querySelectorAll('header button')).filter((x) => !x.closest('[data-kb="kybernos-call-header"]')).map((x) => x.getBoundingClientRect()).filter((r) => r.width > 0 && r.y < 60); const right = own.length ? Math.min(...own.filter((r) => r.x > b.x).map((r) => r.x)) : null; return JSON.stringify({ vx: a.x, vy: a.y, cx: b.x, cw: b.width, w: innerWidth, nextRight: Number.isFinite(right) ? right : null, label: v.getAttribute('aria-label'), video: c.getAttribute('aria-label') }) })()`)) || 'null')
   await shot('call-header')
-  check('they sit in the top bar of the chat, on the right side of the window, left of the app\'s own right-hand controls', geo !== null && geo.vy < 60 && geo.cx > geo.w * 0.55 && (geo.nextRight === null || geo.cx + geo.cw <= geo.nextRight + 1), geo)
+  check('once the chat tools are shown they sit in the top bar of the chat, on the right side of the window, left of the app\'s own right-hand controls', geo !== null && geo.vy < 60 && geo.cx > geo.w * 0.55 && (geo.nextRight === null || geo.cx + geo.cw <= geo.nextRight + 1), geo)
   check('named for screen readers: "Voice call" and "Video call"', geo !== null && geo.label === 'Voice call' && geo.video === 'Video call', geo)
   check('the old pill in the composer is gone', (await val(`!document.querySelector('[data-kb="kybernos-call-pill"]')`)) === true)
-  const videoOff = await val(`(() => { const c = document.querySelector('[data-act="call-video"]'); return JSON.stringify({ disabled: c.disabled, title: c.title }) })()`)
+  // Whether a face exists is read once from the host's status when the header mounts: until it has answered, the video button is on (« the assistant has a face »).
+  // On a slow host that is a second or more after the buttons appear, so the button is read once the status has been drawn, not at a fixed time.
+  const videoState = () => val(`(() => { const c = document.querySelector('[data-act="call-video"]'); return JSON.stringify({ disabled: c.disabled, title: c.title }) })()`)
+  await poll(async () => /"disabled":true/.test(await videoState()), 12000)
+  const videoOff = await videoState()
   check('with no face provider in the sandbox the video button is off and says to add a LiveAvatar key', /"disabled":true/.test(videoOff) && /LiveAvatar/.test(videoOff), videoOff)
   const defaultsAtStart = await getSettings() // before the assistant's preset changes anything
   // The video window: wide enough to see a face, with a 16:9 picture, a grip to drag it wider and a button to fill the window.

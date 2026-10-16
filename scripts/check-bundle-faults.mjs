@@ -88,6 +88,56 @@ const clientOf = (b) => {
   if (typeof c === 'string') return c.replace(/^\.\//, '')
   return existsSync(join(PRISTINE, b, 'client.js')) ? 'client.js' : null
 }
+// How a bundle shows itself in DSH's log and on the wire. The directory is not the whole story: the core is packages/kybernos-plugin,
+// but DSH calls it « @local/kybernos », it prints its boot lines as « [kybers] … » and « [gateway] … », and it mounts /kybernos/*
+// (not /kybernos-plugin/*). Reading those from the bundle itself keeps the script from blaming a bundle for lines it never wrote.
+const escapeRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const dirTail = (b) => b.split('/').pop()
+const shortName = (b) => dirTail(b).replace(/^(kybernos|dsh)-/, '')
+const packageName = (b) => (typeof pkgOf(b).name === 'string' ? pkgOf(b).name : dirTail(b))
+// Names the log may use for the bundle: the directory, the package name (with and without its scope) and the short name.
+const logNames = (b) => [...new Set([dirTail(b), packageName(b), packageName(b).replace(/^@[^/]+\//, '')])]
+// The « [tag] » prefixes the bundle's own source prints (string literals that start with « [tag] »), minus the names of the other bundles.
+const sourceTags = (b) => {
+  const tags = new Set()
+  const walk = (dir, depth) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name === 'node_modules' || e.name === 'vendor' || e.name.startsWith('test')) continue
+      const f = join(dir, e.name)
+      if (e.isDirectory()) { if (depth < 3) walk(f, depth + 1); continue }
+      if (!/\.(m?js|cjs)$/.test(e.name)) continue
+      try { for (const m of readFileSync(f, 'utf8').matchAll(/['"`]\[([a-z][a-z0-9-]*)\] /g)) tags.add(m[1]) } catch (e2) { /* unreadable */ }
+    }
+  }
+  try { walk(join(PRISTINE, b), 0) } catch (e) { /* no sources */ }
+  return tags
+}
+// Does the log name this bundle next to an error? DSH writes « kybernos (@local/kybernos): failed to import: … » for the core; a throw
+// at apply() shows the file path in a stack frame a few lines below the message, hence the window around each mention.
+const ERROR_WORDS = /INJECTED|Cannot find|SyntaxError|ERR_|Unexpected|did not activate|failed|skipping profile bundle|cannot resolve/i
+const namedIn = (b, log) => {
+  const res = logNames(b).flatMap((n) => [new RegExp('(?<![\\w@/-])' + escapeRe(n) + '(?![\\w-])'), new RegExp('@local/' + escapeRe(n) + '(?![\\w-])')])
+  const lines = log.split('\n')
+  return lines.some((l, i) => res.some((r) => r.test(l)) && ERROR_WORDS.test(lines.slice(Math.max(0, i - 2), i + 8).join('\n')))
+}
+let ALL_BUNDLE_NAMES = null
+const ownTags = (b) => {
+  ALL_BUNDLE_NAMES ??= new Set(listBundles().flatMap((x) => [dirTail(x), shortName(x)]))
+  const own = new Set([dirTail(b), shortName(b), packageName(b).replace(/^@[^/]+\//, '')])
+  for (const t of sourceTags(b)) if (!ALL_BUNDLE_NAMES.has(t) || own.has(t)) own.add(t)
+  return own
+}
+const tagOf = (line) => ((/^\[([a-z0-9-]+)\]/i.exec(line) || [])[1] || '')
+// A route is the bundle's own when its first path segment is the bundle's directory or package name, or when it sits under the shared
+// /kybernos/ prefix: /kybernos/<short name>/… belongs to that bundle (kybernos-slash), every other /kybernos/* path to the core.
+let SHORT_NAMES = null
+const ownRoute = (p, b) => {
+  SHORT_NAMES ??= new Set(listBundles().filter((x) => dirTail(x) !== 'kybernos-plugin').map(shortName))
+  const [, seg, sub] = p.split('/')
+  if (seg === dirTail(b) || seg === packageName(b).replace(/^@[^/]+\//, '')) return true
+  if (seg !== 'kybernos') return false
+  return sub === shortName(b) || (dirTail(b) === 'kybernos-plugin' && !SHORT_NAMES.has(sub))
+}
 const APPLY_RE = /export\s+(?:async\s+)?function\s+apply\s*\([^)]*\)\s*\{/
 
 const inject = (b, fault) => {
@@ -144,7 +194,11 @@ const stopDsh = async () => {
 }
 const readLog = () => { try { return readFileSync(LOG, 'utf8') } catch (e) { return '' } }
 const norm = (l) => l.replace(/\/Users\/[^\s'")\]]+/g, '<path>').replace(/\d+/g, '#').trim()
-const tagged = (log) => new Set(log.split('\n').filter((l) => /^\[[a-z0-9-]+\] /i.test(l)).map(norm))
+// The hub warns when several boots in a row ended without a working GUI. That line depends on the HISTORY of the boots of the sandbox (this script starts DSH
+// dozens of times and does not always open the GUI), not on the bundle that is broken: it is left out of what is compared, or it is « lost » by whichever run
+// comes after the GUI was last opened.
+const BOOT_HISTORY = /consecutive boots ended without a working GUI|See the exact action with:/
+const tagged = (log) => new Set(log.split('\n').filter((l) => /^\[[a-z0-9-]+\] /i.test(l) && !BOOT_HISTORY.test(l)).map(norm))
 
 // A signed request to a host route (the sandbox's own session cookie, never printed).
 const get = async (path) => {
@@ -152,9 +206,13 @@ const get = async (path) => {
   if (session === null) return 0
   try { return (await fetch('http://127.0.0.1:' + PORT + path, { headers: { cookie: session.nom + '=' + session.valeur }, signal: AbortSignal.timeout(8000) })).status } catch (e) { return 0 }
 }
-const PROBES = ['/kybernos-cloud/status', '/kybernos-hub/suite', '/kybernos-auto/state', '/kybernos-sessions/state', '/kybernos-skills/catalogue', '/kybernos-memory/state',
-  '/kybernos-workers/state', '/kybernos-call/state', '/kybernos-slash/status', '/kybernos-bricks/state', '/kybernos-slides/state', '/kybernos-modeleur/state',
-  '/dsh-db-viewer/bases', '/kybernos-miniapps/list', '/kybernos-computers/status', '/kybernos/state', '/kybernos-composio/status', '/kybernos-flow/state']
+// GET routes that answer 200 on a healthy sandbox, one or two per bundle (a probe that always answers 404 proves nothing: the core's
+// own « /kybernos/state » was one). Prefer paths whose first segment is the bundle's directory name, so ownRoute() can attribute them.
+const PROBES = ['/kybernos-cloud/status', '/kybernos-hub/suite', '/kybernos-auto/state', '/kybernos-sessions/state', '/kybernos-skills/skills', '/kybernos-memory/lessons',
+  '/kybernos-workers/state', '/kybernos-call/status', '/kybernos-bricks/state', '/kybernos-slides/state', '/kybernos-modeleur/state',
+  '/dsh-db-viewer/bases', '/kybernos-miniapps/list', '/kybernos-computers/status', '/kybernos-usage/summary', '/kybernos-search/status',
+  '/kybernos-motion/list', '/kybernos-dashboards/list', '/kybernos-maintenance/state', '/kybernos-websearch/state',
+  '/kybernos/onboarding', '/kybernos/i18n-store']
 const probeRoutes = async () => { const o = {}; await Promise.all(PROBES.map(async (p) => { o[p] = await get(p) })); return o }
 
 let livePage = null
@@ -201,17 +259,23 @@ for (const b of bundles) {
       await stopDsh(); restore(b); continue
     }
     if (!s.ready) { failures.push(`${b} / ${f}: DSH did not start ${JSON.stringify(s.exited || { timeout: true })}`); note(`${b} / ${f}: NOT STARTED ${JSON.stringify(s.exited || 'timeout')}`); await stopDsh(); restore(b); continue }
-    await sleep(2500)
+    // The banner comes before every route is up on a slow machine: wait (up to 12 s) until the routes that answered at the baseline
+    // and are not the broken bundle's own answer again, instead of judging them after a fixed delay.
+    await sleep(1500)
+    let routes = await probeRoutes()
+    for (const t0 = Date.now(); Date.now() - t0 < 12000;) {
+      if (Object.entries(BASE_ROUTES).every(([p, st]) => st !== 200 || routes[p] === 200 || ownRoute(p, b))) break
+      await sleep(500); routes = await probeRoutes()
+    }
     const log = readLog()
     const lost = [...BASE].filter((l) => !tagged(log).has(l))
-    const tag = b.split('/').pop().replace(/^(kybernos|dsh)-/, '')
-    const lostOther = lost.filter((l) => !((/^\[([a-z0-9-]+)\]/i.exec(l) || [])[1] || '').includes(tag))
-    const routes = await probeRoutes()
+    const mine = ownTags(b)
+    const lostOther = lost.filter((l) => !mine.has(tagOf(l)))
     const routesLost = Object.entries(BASE_ROUTES).filter(([p, st]) => st === 200 && routes[p] !== 200).map(([p]) => p)
-    const named = log.includes(b.split('/').pop()) && /INJECTED|Cannot find|SyntaxError|ERR_|Unexpected|did not activate|failed/i.test(log)
+    const named = namedIn(b, log)
     const gui = GUI ? await guiText() : null
     // Routes of another bundle that vanished because of THIS bundle are a failure; the broken one's own are expected.
-    const foreign = routesLost.filter((p) => !p.slice(1).startsWith(b.split('/').pop().replace(/^kybernos-plugin$/, 'kybernos')))
+    const foreign = routesLost.filter((p) => !ownRoute(p, b))
     row.lostOther = lostOther.length; row.routesLost = routesLost.length
     note(`${b} / ${f}: started in ${s.ms} ms, other bundles' boot lines lost ${lostOther.length}, own routes lost ${routesLost.length - foreign.length}, foreign routes lost ${foreign.length}, failure named in the log ${named ? 'yes' : 'NO'}${gui ? ', GUI ' + (gui.ok && !/Failed to load plugins/.test(gui.text) ? 'renders' : 'BROKEN') : ''}`)
     if (lostOther.length > 0) failures.push(`${b} / ${f}: other bundles lost boot lines: ${lostOther.slice(0, 3).join(' | ')}`)

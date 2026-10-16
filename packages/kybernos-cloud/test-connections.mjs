@@ -363,7 +363,7 @@ try {
   if (typeof process.env.DSH_TOOLS_PATH === 'string' && existsSync(process.env.DSH_TOOLS_PATH)) toolsPaths.push(process.env.DSH_TOOLS_PATH)
   const engines = join(process.env.HOME ?? '', '.dsh', 'kybernos', 'moteur')
   if (existsSync(engines)) for (const v of readdirSync(engines)) { const p = join(engines, v, 'node_modules', '@deepseek-ai', 'dsh-tools', 'lib', 'index.js'); if (existsSync(p)) toolsPaths.push(p) }
-  if (process.env.NO_DSH_ENGINE === '1' || toolsPaths.length === 0) console.log('  · no DSH engine on this machine (or NO_DSH_ENGINE=1): the schemas are not checked against its rules, and this is not counted')
+  if (process.env.NO_DSH_ENGINE === '1' || toolsPaths.length === 0) console.log('SKIPPED: the connection tool schemas against the DSH engine\'s rules — no DSH engine on this machine (or NO_DSH_ENGINE=1)')
   else {
     for (const path of toolsPaths) {
       const { assertSupportedJsonSchema } = await import(path)

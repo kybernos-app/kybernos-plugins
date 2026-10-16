@@ -38,27 +38,31 @@ const read = async () => JSON.parse(await ev(`(() => {
 })()`))
 const visible = (m) => m.cells.filter((c) => c.shown).sort((a, b) => a.y - b.y).map((c) => c.t)
 const store = async () => ev(`(() => { try { return window.localStorage.getItem('kybernos.fold.settings-advanced') } catch (e) { return 'unreadable' } })()`)
+// Waiting is by event, not by a fixed delay: on a sandbox that has just started, the page needs longer, and a delay that fits a warm one reads an empty page.
+const NAV = `[...document.querySelectorAll('[class*="navList"]')].find(l => l.querySelector('[class*="navCell"]'))`
+const foldState = () => ev(`(() => { const l = ${NAV}; return l ? (l.dataset.kbFold || null) : null })()`)
+// The organiser (a debounced observer) draws the fold button and the headers a moment after the cells: the page is ready when they are all there.
+const navReady = () => waitFor(page, `[...document.querySelectorAll('[class*="navCell"]')].some(e => e.textContent.trim() === 'About') && document.querySelector('[data-kb-fold-toggle]') !== null && document.querySelectorAll('[data-kb="settings-group"]').length >= 2`, 20000)
 const toggle = async () => {
+  const before = await foldState()
   const p = JSON.parse(await ev(`(() => { const b = document.querySelector('[data-kb-fold-toggle]'); const r = b.getBoundingClientRect(); return JSON.stringify({ x: r.left + 40, y: r.top + r.height / 2 }) })()`))
   await click(p.x, p.y)
-  await sleep(300)
+  await waitFor(page, `(() => { const l = ${NAV}; return l !== undefined && (l.dataset.kbFold || null) !== ${JSON.stringify(before)} })()`, 5000)
 }
 const reopen = async () => {
   await page.send('Page.reload', { ignoreCache: true })
-  await sleep(3500)
+  await waitFor(page, `document.readyState === 'complete' && document.querySelector('[class*="settingsArea"] button[class*="trigger"]') !== null`, 30000)
   const ok = await openSettings(page, { minCells: 3, fold: 'keep' })
-  await waitFor(page, `[...document.querySelectorAll('[class*="navCell"]')].some(e => e.textContent.trim() === 'About') && document.querySelector('[data-kb-fold-toggle]') !== null`, 12000)
-  await sleep(800)
+  await navReady()
   return ok
 }
 
 try {
   await page.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] })
-  await waitFor(page, `document.readyState === 'complete'`, 15000); await sleep(2500)
+  await waitFor(page, `document.readyState === 'complete' && document.querySelector('[class*="settingsArea"] button[class*="trigger"]') !== null`, 30000)
   const open = await openSettings(page, { minCells: 3, fold: 'keep' })
   if (open !== true) { console.error('○ inconclusive: the Settings dialog did not open (is the GUI loaded?)'); process.exit(3) }
-  await waitFor(page, `[...document.querySelectorAll('[class*="navCell"]')].some(e => e.textContent.trim() === 'About') && document.querySelector('[data-kb-fold-toggle]') !== null`, 12000)
-  await sleep(1200)
+  await navReady()
 
   console.log('a newcomer: the essentials, then a fold')
   let m = await read()
@@ -110,7 +114,7 @@ try {
   const box = JSON.parse(await ev(`(() => { const i = document.querySelector('input[type="search"]'); const r = i.getBoundingClientRect(); return JSON.stringify({ x: r.left + 30, y: r.top + r.height / 2 }) })()`))
   await click(box.x, box.y)
   await page.send('Input.insertText', { text: 'voice' })
-  await sleep(700)
+  await waitFor(page, `(() => { const l = ${NAV}; return l !== undefined && l.hasAttribute('data-kb-searching') })()`, 5000)
   m = await read(); vis = visible(m)
   check('a word that only an Advanced entry has shows that entry, though the fold is shut', vis.includes('Voice') && m.searching === true && !vis.includes('Workers'), vis)
   check('the header of a section with nothing left under it is gone, the one over the match stays', m.heads.find((h) => h.t === 'Advanced').shown === true && m.heads.find((h) => h.t === 'Other settings').shown === false, m.heads)
@@ -118,18 +122,17 @@ try {
   await ev(`(() => { const i = document.querySelector('input[type="search"]'); i.focus(); i.select() })()`)
   await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8 })
   await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8 })
-  await sleep(700)
+  await waitFor(page, `(() => { const l = ${NAV}; return l !== undefined && !l.hasAttribute('data-kb-searching') })()`, 5000)
   m = await read(); vis = visible(m)
   check('cleared, the fold is shut again as the person left it, and every header is back', m.searching === false && m.fold === 'shut' && !vis.includes('Voice') && m.heads.every((h) => h.shown === true), { searching: m.searching, fold: m.fold, vis: vis.length })
 
   console.log('a pointer to a page inside it opens it (the cell is hidden when it is clicked)')
   await ev(`(() => { const c = [...document.querySelectorAll('[class*="navCell"]')].find(e => e.textContent.trim() === 'Workers'); c.click() })()`)
-  await sleep(1200)
+  await waitFor(page, `(() => { const l = ${NAV}; return l !== undefined && l.dataset.kbFold === 'open' })()`, 5000)
   m = await read(); vis = visible(m)
   check('landing on Workers opens the fold, shows the entry and remembers it', m.fold === 'open' && vis.includes('Workers') && (await store()) === '1', { fold: m.fold, store: await store() })
   check('the page that opened is the one that was asked for', m.cells.find((c) => c.active) !== undefined && m.cells.find((c) => c.active).t === 'Workers')
   await toggle()
-  await sleep(900)
   m = await read(); vis = visible(m)
   check('shutting the fold while on one of its pages is respected: the page stays in view, the others go', m.fold === 'shut' && vis.includes('Workers') && !vis.includes('Voice'), { fold: m.fold, vis })
   await shot('nav-on-advanced-page')
@@ -165,9 +168,8 @@ try {
   for (const label of labels) {
     if (label === 'General' || label === 'Models') continue // DSH's own page / the shell's hidden cell
     await ev(`(() => { const c = [...document.querySelectorAll('[class*="navCell"]')].find(e => e.textContent.trim() === ${JSON.stringify(label)}); if (c) c.click() })()`)
-    await sleep(900)
     // The title: the top-most bold text at the page's left edge (the « How it works » pill is on the right, a sub-title is lighter).
-    const title = await ev(`(() => {
+    const titleScript = `(() => {
       const list = [...document.querySelectorAll('[class*="navList"]')].find(l => l.querySelector('[class*="navCell"]'))
       const nr = list.getBoundingClientRect().right
       const sec = document.querySelector('[data-slot="settings.section"]')
@@ -183,7 +185,16 @@ try {
       const left = Math.min(...nodes.map(o => o.x))
       const heads = nodes.filter(o => o.fw >= 600 && o.x <= left + 4 && o.fs >= 14).sort((a, b) => a.y - b.y)
       return heads.length ? heads[0].s : null
-    })()`)
+    })()`
+    // A page is drawn some time after its cell is clicked (longer on a sandbox that has just started): the heading is read once it is there and has
+    // stopped changing (three equal reads), up to 10 s. A page that never shows its own name in that time is a page with another heading, not a slow one.
+    let title = null
+    let same = 0
+    for (const end = Date.now() + 10000; Date.now() < end;) {
+      await sleep(150)
+      const now = await ev(titleScript)
+      if (now !== null && now === title) { same += 1; if (same >= 3) break } else { title = now; same = 0 }
+    }
     looked += 1
     if (title !== label) odd.push(label + ' → ' + JSON.stringify(title))
   }

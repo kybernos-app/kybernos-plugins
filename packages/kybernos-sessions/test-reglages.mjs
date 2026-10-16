@@ -102,7 +102,7 @@ console.log('\n── atomic write: nothing left behind ──')
   ok('no temp file after a successful save', fichiersAutour(f).every((nom) => !nom.includes('.tmp-')), fichiersAutour(f))
   ok('the folder holds only settings.json', fichiersAutour(f).join() === 'settings.json', fichiersAutour(f))
 }
-if (estRoot) console.log('  (skipped: running as root, read-only folder tests are meaningless)')
+if (estRoot) console.log('SKIPPED: the read-only folder tests of the sessions settings — running as root, they would be meaningless')
 else {
   const f = nouveau()
   ecrire(f, { ...SECRETS })
@@ -208,7 +208,7 @@ console.log('\n── corrupt file: nothing overwritten, one copy kept ──')
 }
 
 console.log('\n── unreadable file: refused, not treated as empty ──')
-if (estRoot) console.log('  (skipped: running as root)')
+if (estRoot) console.log('SKIPPED: the permission tests of the sessions settings — running as root')
 else {
   const f = nouveau()
   ecrire(f, { ...SECRETS })

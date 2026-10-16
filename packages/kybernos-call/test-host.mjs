@@ -25,7 +25,10 @@ const decodeJwt = (jwt, secret) => {
   const expected = createHmac('sha256', secret).update(h + '.' + p).digest('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
   return { header: b64urlDecode(h), payload: b64urlDecode(p), signatureOk: s === expected }
 }
-const base = (over = {}) => createCall(Object.assign({ env: { DSH_WEB_PORT: '1' }, dshHome: async () => home }, over))
+// The host asks `pgrep` whether a call worker is running. The real answer depends on the machine (a worker of this very
+// checkout, or another session's, makes it true), so every case starts from « no process »; a case that needs one passes its own execFile.
+const noProcess = (cmd, args, opts, cb) => { setImmediate(() => cb(Object.assign(new Error('none'), { code: 1 }), '', '')); return undefined }
+const base = (over = {}) => createCall(Object.assign({ env: { DSH_WEB_PORT: '1' }, dshHome: async () => home, execFile: noProcess }, over))
 
 try {
   console.log('kybernos-call: secrets and status')

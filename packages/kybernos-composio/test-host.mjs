@@ -54,8 +54,8 @@ const engineDirs = () => {
 const ENGINE = process.env.NO_DSH_ENGINE === '1' ? null : (engineDirs()[0] || null)
 const dshBoot = ENGINE === null ? null : await import(join(ENGINE, '@deepseek-ai', 'dsh-app-boot', 'lib', 'index.js'))
 const yaml = ENGINE === null ? null : createRequire(join(ENGINE, '@deepseek-ai', 'dsh-app-boot', 'package.json'))('js-yaml')
-console.log(ENGINE === null ? '(no DSH engine found: the checks that run DSH\'s own loaders are skipped)' : '(DSH engine used as the judge: ' + ENGINE.replace(REAL_HOME, '~') + ')')
-const skipped = (label) => console.log(`- skipped, no DSH engine: ${label}`)
+console.log(ENGINE === null ? 'SKIPPED: the checks that run DSH\'s own loaders — no DSH engine found (each one is listed below)' : '(DSH engine used as the judge: ' + ENGINE.replace(REAL_HOME, '~') + ')')
+const skipped = (label) => console.log(`SKIPPED: ${label} — no DSH engine`)
 
 const routes = {}
 const ctx = {
@@ -778,7 +778,7 @@ if (typeof process.getuid === 'function' && process.getuid() !== 0) {
     const del = await DELETE('keep')
     ok('C-06: a failed delete puts back the patch and the .env too', del.code === 500 && lire(PATCH_FILE) === patch0 && lire(join(DSH_DIR, '.env')) === env0 && lire(SIDECAR_FILE) === side0, `code=${del.code} ${del.corps.slice(0, 100)}`)
   } finally { chmodSync(join(DSH_DIR, 'kybernos'), 0o700) }
-} else console.log('- skipped, running as root: C-06 rollback on a read-only folder')
+} else console.log('SKIPPED: C-06 rollback on a read-only folder — running as root')
 
 // ═══ C-07: a secret written to .env is read back by DSH exactly as typed ═════
 {
