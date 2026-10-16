@@ -28728,9 +28728,9 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 .kba-kdot.fail{background:var(--dsw-alias-state-error-primary)}
 .kba-td-num{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--dsw-alias-label-secondary)}
 .kba-toggle{display:inline-block;width:44px;height:26px;border-radius:13px;background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-border-l2);position:relative;cursor:pointer;flex:none}
-.kba-toggle-knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:9px;background:var(--dsw-alias-bg-base);transition:left .12s;box-shadow:var(--dsw-elevation-soft,0 1px 2px rgba(0,0,0,.2))}
+.kba-toggle-knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:9px;background:var(--dsw-alias-label-secondary);transition:left .12s;box-shadow:var(--dsw-elevation-soft,0 1px 2px rgba(0,0,0,.2))}
 .kba-toggle.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}
-.kba-toggle.on .kba-toggle-knob{left:21px}
+.kba-toggle.on .kba-toggle-knob{left:21px;background:var(--dsw-alias-label-primary-foreground)}
 .kba-empty{padding:34px 16px;font-size:14px;color:var(--dsw-alias-label-secondary);line-height:1.6}
 .kba-empty b{color:var(--dsw-alias-label-primary)}
 /* ── Automations board: the Columns and Calendar views (prefix kbbd-) ─────────────────────────────────

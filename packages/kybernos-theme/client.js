@@ -2060,8 +2060,8 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 /* The off track is a tint of the text colour: layer-3 is white in the light scheme, so a white knob sat on an invisible track. */
 .kbth-toggle{appearance:none;border:0;width:40px;height:22px;border-radius:11px;background:color-mix(in srgb,var(--dsw-alias-label-primary) 22%,transparent);cursor:pointer;position:relative;transition:background .15s;flex:none}
 .kbth-toggle.on{background:var(--dsw-alias-brand-primary)}
-.kbth-toggle-knob{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--dsw-alias-bg-layer-1);transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
-.kbth-toggle.on .kbth-toggle-knob{transform:translateX(18px)}
+.kbth-toggle-knob{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--dsw-alias-label-secondary);transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.kbth-toggle.on .kbth-toggle-knob{transform:translateX(18px);background:var(--dsw-alias-label-primary-foreground)}
 /* ── Rampe de couleurs ───────────────────────────────────────────────── */
 .kbth-ramp{display:flex;gap:0;border-radius:8px;overflow:hidden;margin-top:8px}
 /* min-width:0 so eleven steps shrink to a 330 px column instead of leaving the ramp's box by 10 px (390 px window) */
