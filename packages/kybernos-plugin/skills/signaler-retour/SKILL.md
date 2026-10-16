@@ -1,6 +1,6 @@
 ---
 name: signaler-retour
-description: Collects a beta tester's feedback (a bug or an improvement) in three questions, gathers the technical evidence, has the report approved, then sends it through the plugin's tool. Use when the user presses "Send feedback" or asks to report a problem or suggest an improvement.
+description: Collects a beta tester's feedback (a bug or an improvement) in three questions, gathers the technical evidence, has the report approved, then sends it through the plugin's tool. Use when the user asks to report a problem or suggest an improvement through the assistant (the "Send feedback" form offers it).
 whenToUse: The user wants to report a bug or suggest an improvement to the Kybernos team.
 ---
 

@@ -739,8 +739,8 @@
             "en": "Tick “I understand my prompts may be retained”, then “Connect to DSH”: the provider and its models are created."
           },
           {
-            "fr": "« Tester un modèle » vérifie que la couche gratuite répond encore, et l’affiche en clair — y compris quand OpenCode la verrouille.",
-            "en": "“Probe a model” checks the free tier still answers, and says so plainly — including when OpenCode locks it."
+            "fr": "« Revérifier » vérifie que la couche gratuite répond encore, et l’affiche en clair — y compris quand OpenCode la verrouille.",
+            "en": "“Re-check” checks the free tier still answers, and says so plainly — including when OpenCode locks it."
           },
           {
             "fr": "« Retirer » enlève le fournisseur sans rien supprimer d’autre.",
@@ -1638,8 +1638,8 @@
             "en": "Turn Atlas on in Settings › Kybernos Suite (off by default), then open Settings › Atlas."
           },
           {
-            "fr": "Cliquez « Update » : rien n’est lu avant, et l’en-tête dit depuis combien de temps la carte a été lue.",
-            "en": "Click “Update”: nothing is read before you do, and the header says how long ago the map was read."
+            "fr": "Cliquez « Update » : rien n’est lu avant ; ensuite la page s’ouvre sur la dernière lecture, et l’en-tête dit depuis combien de temps.",
+            "en": "Click “Update”: nothing is read before you do. Next time the page opens on the last reading, and the header says how long ago it was read."
           },
           {
             "fr": "Dans « Around », choisissez un projet ou une Agent Team dans « Start from » : quatre colonnes montrent qui y travaille et ce qu’il utilise.",
@@ -1656,8 +1656,8 @@
           "page": true
         },
         "good": {
-          "fr": "Atlas ne fait que lire : rien n’est modifié ni enregistré. La page est en anglais, d’où les noms d’onglets cités ici.",
-          "en": "Atlas only reads: nothing is changed or stored. The page is in English, hence the tab names quoted here."
+          "fr": "Atlas ne fait que lire : rien n’est modifié. Sa dernière lecture est gardée dans ce navigateur, la page s’ouvre donc dessus. La page est en anglais, d’où les noms d’onglets cités ici.",
+          "en": "Atlas only reads: nothing is changed. Its last reading is kept in this browser so the page opens on it. The page is in English, hence the tab names quoted here."
         }
       }
     },
