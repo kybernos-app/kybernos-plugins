@@ -56,5 +56,30 @@ console.log('the Memory page check follows the Settings nav grouping')
   }
 }
 
+console.log('the live-page helper clears the engine\'s first-screen dialog (A3-03)')
+{
+  // A fresh sandbox opens DSH's « Get started » dialog over every page. DSH 0.2.1-alpha.4 dropped its « Configure later »
+  // button: the dialog only has a Close cross, labelled « Close ». The helper's injected script is run here against a stub page.
+  const { KEY_DIALOG_SCRIPT } = await import('./live-page.mjs')
+  check('the helper exports the script it injects', typeof KEY_DIALOG_SCRIPT === 'string' && KEY_DIALOG_SCRIPT.length > 0)
+  // A stub page: the helper asks for the dialog, then for its Close button; `withDialog` says whether the page has one.
+  const run = (withDialog) => {
+    const clicked = []
+    const cross = { click: () => clicked.push('close') }
+    const dialog = { querySelector: (sel) => (sel === "button[aria-label='Close']" ? cross : null) }
+    let tick = null
+    const doc = {
+      querySelector: (sel) => (withDialog && sel === "[role=dialog][aria-label='Get started']" ? dialog : null),
+      querySelectorAll: () => [],
+    }
+    new Function('document', 'MutationObserver', KEY_DIALOG_SCRIPT)(doc, class { constructor(cb) { tick = cb } observe() { tick() } })
+    return clicked
+  }
+  const engineNow = run(true)
+  check('DSH 0.2.1-alpha.4: the Close cross of the « Get started » dialog is pressed', engineNow.length === 1 && engineNow[0] === 'close', engineNow)
+  const none = run(false)
+  check('nothing on the page, nothing pressed', none.length === 0, none)
+}
+
 console.log('\n' + (failed === 0 ? 'ALL GREEN' : String(failed) + ' FAILED'))
 process.exit(failed === 0 ? 0 : 1)
