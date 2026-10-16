@@ -1,22 +1,23 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// kybernos-sessions — client v3 « status light » (fidèle à la maquette).
+// kybernos-sessions — client v3 « status light » (faithful to the mockup).
 //
-// Redesign de la rangée d'état du composer DSH (slot `conversation.composer.dock`)
-// d'après docs/handoff/session-status/maquette-session-status-light.html :
-//   • 5 pilules à libellé d'ÉTAT (mêmes mots que la maquette) :
+// Redesign of the status row of the DSH composer (slot `conversation.composer.dock`)
+// after docs/handoff/session-status/maquette-session-status-light.html:
+//   • 5 pills with a STATE label (the same words as the mockup):
 //       💻 local   : Unsaved / Shared / In review / Add to project / Saved
 //       ☁️  sync    : Up to date / To send / To fetch / Sync needed / No remote
 //       🔀 review  : No review / Checks running / Check failed / Changes asked /
 //                    Waiting for review / Ready to merge / Merged
-//       📖 Memory N   (runs du ledger du kyber)
-//       💡 Lessons N   (leçons apprises)
-//   • clic = carte flottante : titre + phrase simple + visuel (stepper 2 ou 4
-//     étapes, schéma d'ordinateur↔GitHub) + action (dry-run → Confirm & run)
-//     + section « Details » dépliable.
-//   • Données réelles : GET /kybernos-sessions/state (sync = dossier principal
-//     quand on est en worktree ; pr = gh pr view, en cache côté host).
-//   • Actions : POST /kybernos-sessions/{isolate,commit,close,push,fetch,sync,pr}.
-// UI en anglais, phrases compréhensibles sans être développeur.
+//       📖 Memory N   (ledger runs of the agent team)
+//       💡 Lessons N   (lessons learned)
+//   • a click opens a floating card: title + plain sentence + visual (2- or
+//     4-step stepper, computer↔GitHub diagram) + action (dry run → Confirm & run)
+//     + a collapsible « Details » section.
+//   • Real data: GET /kybernos-sessions/state (sync = the main folder when we
+//     are in a worktree; pr = gh pr view, cached host side).
+//   • Actions: POST /kybernos-sessions/{isolate,commit,close,push,fetch,sync,pr}.
+// The pills are English, in sentences anyone can follow without being a developer. The « Kybernos Settings » block of
+// Settings › General has an English base and a French twin (a pair helper `kt(fr, en)`, French in « tu »).
 // ═══════════════════════════════════════════════════════════════════════════
 
 window.__ModuleLoader__.load({
@@ -24,24 +25,24 @@ window.__ModuleLoader__.load({
   factory (require) {
     const React = require('react')
     const h = React.createElement
-    // CSS des contrôles DSH, inliné (le chargeur navigateur ne résout pas les
-    // require relatifs — même schéma que kybernos-models/client.js ; source :
-    // kybernos-sessions/dsh-css.js, régénéré par scripts/build-model-catalog-css.mjs).
-    const DSH_CONTROLS_CSS = "/* ── Button — les actions (capsule h36 r18, variantes primary/ghost/outline/toolbar) ─────────────────────────────── */\n/* Capsule geometry from the figma Button component (1:155 instances:\n * h36, pad 14/7, gap 4, r18; the wide New Session form is r24 at h38 —\n * owners with the wide form set their own radius/width). */\n.kbm-btn {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: 4px;\n  border: none;\n  border-radius: 18px;\n  cursor: pointer;\n  font-size: 14px;\n  line-height: 22px;\n  color: var(--dsw-alias-label-primary);\n  background: transparent;\n  padding: 0 14px;\n}\n\n.kbm-btn:disabled {\n  cursor: not-allowed;\n  opacity: 0.4;\n}\n\n.kbm-btn-md {\n  height: 36px;\n}\n\n/* Compact height for dense rows; no dedicated figma node (Icon_container\n * 28x28 is the icon-only form) — geometry is ours. */\n.kbm-btn-sm {\n  height: 28px;\n  font-size: 12px;\n  line-height: 18px;\n  padding: 0 10px;\n  border-radius: 14px;\n}\n\n.kbm-btn-primary {\n  background: var(--dsw-alias-button-primary-fill);\n  color: var(--dsw-alias-label-primary-foreground);\n}\n\n.kbm-btn-primary:hover:not(:disabled) {\n  background: var(--dsw-alias-button-primary-hover);\n}\n\n.kbm-btn-ghost:hover:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n.kbm-btn-ghost:active:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-active);\n}\n\n/* Dialog Cancel (figma 451:18655): bordered capsule on transparent fill. */\n.kbm-btn-outline {\n  border: 0.5px solid var(--dsw-alias-border-l3);\n  background: transparent;\n}\n\n.kbm-btn-outline:hover:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n.kbm-btn-toolbar {\n  background: var(--dsw-alias-button-tool-bar-fill);\n}\n\n.kbm-btn-toolbar:hover:not(:disabled) {\n  background: var(--dsw-alias-button-tool-bar-hover);\n}\n\n.kbm-btn-icon {\n  display: inline-flex;\n  width: 16px;\n  height: 16px;\n  align-items: center;\n  justify-content: center;\n}\n\n/* ── Input — le champ de recherche (wrap + icône + input) ─────────────────────────────── */\n.kbm-in-wrap {\n  display: inline-flex;\n  align-items: center;\n  gap: 6px;\n  height: 32px;\n  padding: 0 8px;\n  border: 0.5px solid var(--dsw-alias-border-l4);\n  border-radius: 8px;\n  background: var(--dsw-alias-bg-layer-1);\n}\n\n.kbm-in-wrap:focus-within {\n  border-color: var(--dsw-alias-brand-primary);\n}\n\n.kbm-in-icon {\n  display: inline-flex;\n  width: 16px;\n  height: 16px;\n  align-items: center;\n  justify-content: center;\n  color: var(--dsw-alias-label-tertiary);\n}\n\n.kbm-in-input {\n  flex: 1;\n  min-width: 0;\n  border: none;\n  outline: none;\n  background: transparent;\n  font-size: 14px;\n  line-height: 22px;\n  color: var(--dsw-alias-label-primary);\n}\n\n.kbm-in-input::placeholder {\n  color: var(--dsw-alias-label-dimmed);\n}\n\n/* ── Pill — les puces de filtre sélectionnables ─────────────────────────────── */\n.kbm-pill {\n  display: inline-flex;\n  align-items: center;\n  gap: 4px;\n  height: 24px;\n  padding: 0 8px;\n  border: none;\n  border-radius: 12px;\n  font-size: 12px;\n  line-height: 18px;\n  color: var(--dsw-alias-label-secondary);\n  background: var(--dsw-alias-bg-layer-2);\n}\n\n.kbm-pill-interactive {\n  cursor: pointer;\n}\n\n.kbm-pill-interactive:hover {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n.kbm-pill-active {\n  color: var(--dsw-alias-label-primary);\n  background: var(--dsw-alias-button-ghost-active-fill);\n  box-shadow: inset 0 0 0 1px var(--dsw-alias-button-ghost-active-border);\n}\n\n/* ── Tag — les étiquettes en lecture seule (8 tons) ─────────────────────────────── */\n/* Capsule geometry is fixed: a tag reads as one size everywhere, and only its\n * palette varies. Tone colors ride background/border/color so a render site can\n * still position the tag with its own class without touching the palette. */\n.kbm-tag {\n  display: inline-flex;\n  align-items: center;\n  border-radius: 999px;\n  corner-shape: round;\n  padding: 1px 8px;\n  font-size: 11px;\n  line-height: 17px;\n  font-weight: 500;\n  white-space: nowrap;\n}\n\n.kbm-tag[data-tone='outline'] {\n  border: 0.5px solid var(--dsw-alias-border-l4);\n  color: var(--dsw-alias-label-tertiary);\n}\n\n.kbm-tag[data-tone='solid'] {\n  background: var(--dsw-alias-label-primary);\n  color: var(--dsw-alias-bg-layer-3);\n}\n\n.kbm-tag[data-tone='neutral'] {\n  background: var(--dsw-alias-bg-module-platform);\n  color: var(--dsw-alias-label-secondary);\n}\n\n.kbm-tag[data-tone='quiet'] {\n  color: var(--dsw-alias-label-tertiary);\n}\n\n/* Status tones tint their own color for the fill, so a palette change moves\n * fill and text together and neither needs a second token. The tint is 10%,\n * except `warning`, which keeps the 12% the plugin inventory's conditional\n * tag shipped with — matching it is what makes this a pure consolidation. */\n.kbm-tag[data-tone='success'] {\n  background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 10%, transparent);\n  color: var(--dsw-alias-state-success-primary);\n}\n\n.kbm-tag[data-tone='info'] {\n  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 10%, transparent);\n  color: var(--dsw-alias-state-business-primary);\n}\n\n.kbm-tag[data-tone='warning'] {\n  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 12%, transparent);\n  color: var(--dsw-alias-state-warn-primary);\n}\n\n.kbm-tag[data-tone='danger'] {\n  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent);\n  color: var(--dsw-alias-state-error-primary);\n}\n\n/* ── StateDot — les pastilles d'état (done/warning/error/idle) ─────────────────────────────── */\n/* Ongoing blue has no alias token (state-business-primary is the 500 step,\n * not this 450) — component-level var pinned to the static scale instead. */\n.kbm-dot,\n.kbm-dot-matrix {\n  --dsh-state-ongoing: var(--dsw-static-deepseek-450);\n}\n\n/* Solid states: same-color halo via a 0.10-opacity outer layer (::before)\n * with a 6/10-scale solid core. Layer color rides currentColor set per state. */\n.kbm-dot {\n  position: relative;\n  display: inline-block;\n  flex: none;\n}\n\n.kbm-dot::before {\n  content: '';\n  position: absolute;\n  inset: 0;\n  border-radius: 50%;\n  corner-shape: round;\n  background: currentColor;\n  opacity: 0.1;\n}\n\n.kbm-dot::after {\n  content: '';\n  position: absolute;\n  inset: 20%;\n  border-radius: 50%;\n  corner-shape: round;\n  background: currentColor;\n}\n\n.kbm-dot[data-state='done'] {\n  color: var(--dsw-alias-state-success-primary);\n}\n\n.kbm-dot[data-state='warning'] {\n  color: var(--dsw-alias-state-warn-primary);\n}\n\n.kbm-dot[data-state='error'] {\n  color: var(--dsw-alias-state-error-primary);\n}\n\n/* Idle is the absence of activity, not a fourth outcome: it stays on the\n * tertiary label color so it recedes beside the three outcome colors. */\n.kbm-dot[data-state='idle'] {\n  color: var(--dsw-alias-label-tertiary);\n}\n\n/* Pixel chase: each outer cell holds a discrete brightness step (flat keyframe\n * holds, no tweening — the retro feel), peaking when the chase hits it and\n * decaying over the next three cells. Phase offsets come from per-rect\n * animation-delay (index * -125ms) set inline by the component. */\n.kbm-dot-matrix {\n  flex: none;\n  color: var(--dsh-state-ongoing);\n}\n\n.kbm-dot-cell {\n  fill: currentColor;\n  opacity: 0.15;\n  animation: kbm-dsh-state-dot-chase 1s infinite;\n}\n\n@keyframes kbm-dsh-state-dot-chase {\n  0%, 12.4% { opacity: 1; }\n  12.5%, 24.9% { opacity: 0.6; }\n  25%, 37.4% { opacity: 0.35; }\n  37.5%, 100% { opacity: 0.15; }\n}\n\n/* ── Switch — les bascules ─────────────────────────────── */\n/* The on/off appearance keys off aria-checked rather than a parallel class, so\n * the visual state cannot disagree with the state assistive technology reads.\n *\n * The track is a capsule: its radius is half its height, so the corners consume\n * the whole side and the global superellipse would square the ends off against\n * the round thumb inside it. `corner-shape: round` opts the track out, the way\n * every full-round radius does. The corner-shape spec does not catch this one —\n * it recognizes 50%, 100%, and radii at or above 99px, not a radius that is\n * full-round only relative to its own box. */\n.kbm-sw {\n  box-sizing: border-box;\n  position: relative;\n  flex: 0 0 auto;\n  width: 36px;\n  height: 20px;\n  padding: 2px;\n  border: 0;\n  border-radius: 10px;\n  corner-shape: round;\n  background: var(--dsw-alias-border-l3);\n  cursor: pointer;\n}\n\n.kbm-sw[aria-checked='true'] {\n  background: var(--dsw-alias-brand-primary);\n}\n\n.kbm-sw:disabled {\n  cursor: default;\n  opacity: 0.5;\n}\n\n.kbm-sw:focus-visible {\n  outline: 2px solid var(--dsw-alias-brand-primary);\n  outline-offset: 2px;\n}\n\n.kbm-sw-thumb {\n  display: block;\n  width: 16px;\n  height: 16px;\n  border-radius: 50%;\n  corner-shape: round;\n  background: var(--dsw-alias-label-primary-foreground);\n  transition: transform 120ms ease;\n}\n\n.kbm-sw[aria-checked='true'] .kbm-sw-thumb {\n  transform: translateX(16px);\n}\n\n/* ── Checkbox — les cases à cocher ─────────────────────────────── */\n.kbm-ck {\n  display: inline-flex;\n  align-items: center;\n  gap: 6px;\n  font-size: 14px;\n  line-height: 20px;\n  color: var(--dsw-alias-label-primary);\n  cursor: pointer;\n}\n\n.kbm-ck input {\n  flex: 0 0 auto;\n  width: 16px;\n  height: 16px;\n  margin: 0;\n  accent-color: var(--dsw-alias-brand-primary);\n  cursor: inherit;\n}\n\n.kbm-ck input:focus-visible {\n  outline: 2px solid var(--dsw-alias-brand-primary);\n  outline-offset: 2px;\n}\n\n.kbm-ck:has(input:disabled) {\n  cursor: default;\n  opacity: 0.5;\n}\n\n/* ── Menu — les menus déroulants (routes, tri) ─────────────────────────────── */\n.kbm-menu-root {\n  position: relative;\n  display: inline-flex;\n}\n\n/* Dropdown card (figma MenuDropdown 122:9481 / 419:16920): menu surface,\n * r12, elevation-prominent (hairline stroke in shadow), 4px inset padding. */\n.kbm-menu-list,\n.kbm-menu-submenu {\n  /* min-widths below are the design's outer card widths — include the pad. */\n  box-sizing: border-box;\n  padding: 4px;\n  display: flex;\n  flex-direction: column;\n  gap: 0;\n  border: 0;\n  border-radius: 20px;\n  background: var(--dsw-specific-menu);\n  --dsw-elevation-stroke-color: var(--dsw-alias-border-l1);\n  box-shadow: var(--dsw-elevation-prominent);\n  /* Elevated surface: the scrollbar thumb takes the l2 elevation tokens. The\n     declaration sits on the card rather than on `.scrollable .viewport`\n     because the elevation is a property of this surface, and the custom\n     properties inherit down to whichever descendant actually scrolls (see\n     ui-theme styles/scrollbar.css for the rebinding contract). */\n  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);\n  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);\n}\n\n/* Primary card is 218 wide in the design across both hosts. */\n.kbm-menu-list {\n  position: absolute;\n  top: calc(100% + 4px);\n  left: 0;\n  z-index: 100;\n  min-width: 218px;\n  max-width: 360px;\n}\n\n/* Portal mode: fixed in the viewport, coordinates supplied inline from the\n * anchor rect (side/align resolved in JS, the in-place offset rules above\n * don't apply). Portaled lists must layer above modal overlays (z 1000) —\n * an anchor inside a dialog still expects its menu on top. */\n.kbm-menu-portal {\n  position: fixed;\n  top: auto;\n  left: auto;\n  z-index: 1100;\n}\n\n/* Open above the anchor (empty-state workspace chip: figma 122:9481). */\n.kbm-menu-sideTop {\n  top: auto;\n  bottom: calc(100% + 4px);\n}\n\n.kbm-menu-alignEnd {\n  left: auto;\n  right: 0;\n}\n\n/* Viewport fit: the card stops 12px short of the viewport's top/bottom edges\n * (24 = 2 × the portal MARGIN in Menu.tsx) and taller content scrolls inside\n * .viewport, so a pinned .footer stays visible. Menus with submenu rows skip\n * this class — the overflow clip would crop the side card, so they rely on\n * staying short. */\n.kbm-menu-scrollable {\n  max-height: calc(100vh - 24px);\n}\n\n.kbm-menu-viewport {\n  display: flex;\n  flex-direction: column;\n  min-height: 0;\n}\n\n.kbm-menu-scrollable .kbm-menu-viewport {\n  overflow-y: auto;\n}\n\n/* Pinned rows below the scroll region; l2 hairline (l1 is near-invisible on\n * the menu surface) mirrors the .separator spacing. */\n.kbm-menu-footer {\n  flex: none;\n  display: flex;\n  flex-direction: column;\n  margin-top: 4px;\n  padding-top: 4px;\n  border-top: 0.5px solid var(--dsw-alias-border-l2);\n}\n\n.kbm-menu-itemWrap {\n  position: relative;\n}\n\n/* Menu cell (figma .Menu_cell): min-h 40, r10, pad 10/8, 14/22 primary,\n * gap 8 between leading icon / label / trailing check. */\n.kbm-menu-item {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  width: 100%;\n  min-height: 40px;\n  padding: 8px 10px;\n  border: none;\n  border-radius: 10px;\n  background: transparent;\n  cursor: pointer;\n  font-size: 14px;\n  line-height: 22px;\n  color: var(--dsw-alias-label-primary);\n  text-align: left;\n}\n\n.kbm-menu-item:hover:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n/* Arrow navigation moves real focus, so the row the keyboard is on carries the\n   same fill the pointer gets: the fill is the row's focus indication, and the\n   browser's default ring would double it. */\n.kbm-menu-item:focus-visible:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-hover);\n  outline: none;\n}\n\n.kbm-menu-denseList .kbm-menu-item {\n  min-height: 34px;\n  padding-block: 5px;\n}\n\n.kbm-menu-denseList .kbm-menu-label {\n  padding-block: 4px;\n}\n\n.kbm-menu-list.kbm-menu-compactList,\n.kbm-menu-submenu.kbm-menu-compactList {\n  min-width: 164px;\n  padding: 2px;\n  border-radius: 7px;\n}\n\n.kbm-menu-compactList .kbm-menu-item {\n  min-height: 26px;\n  gap: 6px;\n  padding: 3px 7px;\n  border-radius: 5px;\n  font-size: 12px;\n  line-height: 18px;\n}\n\n.kbm-menu-compactList .kbm-menu-itemIcon {\n  width: 14px;\n  height: 14px;\n}\n\n.kbm-menu-compactList .kbm-menu-separator {\n  margin: 2px;\n}\n\n.kbm-menu-compactList .kbm-menu-label {\n  padding: 4px 7px;\n  font-size: 11px;\n  line-height: 16px;\n}\n\n.kbm-menu-item:disabled {\n  opacity: 0.4;\n  cursor: not-allowed;\n}\n\n.kbm-menu-itemIcon {\n  display: inline-flex;\n  flex: none;\n  width: 16px;\n  height: 16px;\n  align-items: center;\n  justify-content: center;\n  color: var(--dsw-alias-label-tertiary);\n}\n\n.kbm-menu-itemLabel {\n  flex: 1;\n  min-width: 0;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.kbm-menu-check {\n  flex: none;\n  color: var(--dsw-alias-label-primary);\n}\n\n/* Selected cell keeps the plain fill (marker is the trailing check); the\n * class remains as a hook for owner-side emphasis. */\n.kbm-menu-selected {\n  background: transparent;\n}\n\n/* Fill-mode selection: the row holds the hover fill instead of a check. */\n.kbm-menu-selectedFill {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n/* Destructive row: error text/icon, danger hover fill. */\n.kbm-menu-danger {\n  color: var(--dsw-alias-state-error-primary);\n}\n\n.kbm-menu-danger .kbm-menu-itemIcon {\n  color: var(--dsw-alias-state-error-primary);\n}\n\n.kbm-menu-danger:hover:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-hover-danger);\n}\n\n.kbm-menu-danger:focus-visible:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-hover-danger);\n  outline: none;\n}\n\n/* Heading row: non-interactive small grey text, padding aligned with items. */\n.kbm-menu-label {\n  padding: 8px 10px;\n  font-size: 12px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-tertiary);\n}\n\n/* Separator cell (figma 122:9481): py 4 / px 2 around the hairline. */\n.kbm-menu-separator {\n  height: 0.5px;\n  margin: 4px 2px;\n  background: var(--dsw-alias-border-l1);\n}\n\n/* Nested card to the right of the parent row (figma 419:16920).\n * Bottom-aligned with the parent menu card (grows upward): itemWrap sits in\n * .list's 4px pad, so bottom: -4px matches the list's outer bottom edge.\n * Horizontal: list pad (4px) + 6px card gap = 10px past itemWrap — plain\n * `100% + 6px` collapses to ~2px between outer card edges.\n * ::before bridges the full gap so the pointer can cross without mouseLeave. */\n.kbm-menu-submenu {\n  position: absolute;\n  top: auto;\n  bottom: -4px;\n  left: calc(100% + 10px);\n  z-index: 101;\n  min-width: 163px;\n}\n\n.kbm-menu-submenu::before {\n  content: '';\n  position: absolute;\n  top: 0;\n  bottom: 0;\n  left: -10px;\n  width: 10px;\n}\n\n/* ── Modal — la surface de détail ─────────────────────────────── */\n/* Full-viewport layer (figma Mask + Dialog 451:18655): mask + centered card. */\n.kbm-mdl-root {\n  position: fixed;\n  inset: 0;\n  z-index: 1000;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  padding: 24px;\n}\n\n/* User/spec mask: rgba(0,0,0,0.24) + blur(2px) via --dsw-alias-bg-mask-1 /\n   --dsw-mask-blur (light); dark theme raises mask opacity. */\n.kbm-mdl-mask {\n  position: absolute;\n  inset: 0;\n  background: var(--dsw-alias-bg-mask-1);\n  backdrop-filter: var(--dsw-mask-blur);\n}\n\n/* Dialog card: r24, elevation-prominent, layer-2 fill, pb 24. */\n.kbm-mdl-dialog {\n  position: relative;\n  z-index: 1;\n  display: flex;\n  flex-direction: column;\n  gap: 20px;\n  width: min(380px, 100%);\n  padding: 0 0 24px;\n  overflow: hidden;\n  border: 0;\n  border-radius: 24px;\n  background: var(--dsw-alias-bg-layer-2);\n  box-shadow: var(--dsw-elevation-prominent);\n}\n\n.kbm-mdl-content {\n  display: flex;\n  flex-direction: column;\n  width: 100%;\n}\n\n/* Header row (figma Title row): pad l24/t22/r14/b12, SPACE_BETWEEN —\n * title left, close button right. */\n.kbm-mdl-header {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  padding: 22px 14px 12px 24px;\n}\n\n.kbm-mdl-title {\n  margin: 0;\n  font-size: 16px;\n  line-height: 24px;\n  font-weight: 500; /* figma wt510, rendered 500 */\n  color: var(--dsw-alias-label-primary);\n}\n\n.kbm-mdl-close {\n  flex: none;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  width: 28px;\n  height: 28px;\n  border: none;\n  border-radius: 8px;\n  background: transparent;\n  cursor: pointer;\n  color: var(--dsw-alias-label-secondary);\n}\n\n.kbm-mdl-close:hover {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n/* Description and body share the 332px content column (24px side pads). */\n.kbm-mdl-description {\n  margin: 0;\n  padding: 0 24px;\n  font-size: 14px;\n  line-height: 22px;\n  font-weight: 400;\n  color: var(--dsw-alias-label-primary);\n}\n\n.kbm-mdl-body {\n  display: flex;\n  flex-direction: column;\n  min-width: 0;\n  margin-top: 20px;\n  padding: 0 24px;\n}\n\n.kbm-mdl-footer {\n  display: flex;\n  align-items: center;\n  justify-content: flex-end;\n  gap: 8px;\n  padding: 0 24px;\n}\n\n/* ── Tooltip — les bulles d'aide ─────────────────────────────── */\n.kbm-tip-bubble {\n  position: fixed;\n  z-index: 100;\n  /* Fixed-position shrink-to-fit measures only the space from `left` to the\n     viewport edge, so anchors near the right edge would wrap early;\n     max-content sizes by the label alone, capped at half the viewport. */\n  width: max-content;\n  max-width: 50vw;\n  padding: 3px 7px;\n  border-radius: 8px;\n  background: var(--dsw-alias-tooltip-bg);\n  color: var(--dsw-static-neutral-bluish-00);\n  font-size: 13px;\n  line-height: 20px;\n  white-space: pre-line;\n  /* Unbreakable tokens (URLs, paths) must not push past max-width. */\n  overflow-wrap: break-word;\n  pointer-events: none;\n  animation: kbm-tooltip-in 150ms var(--ds-ease-in-out);\n}\n\n.kbm-tip-bubble[data-side='right'] {\n  transform: translateY(-50%);\n}\n\n.kbm-tip-bubble[data-side='bottom'] {\n  transform: translateX(-50%);\n}\n\n.kbm-tip-bubble[data-side='top'] {\n  transform: translate(-50%, -100%);\n}\n\n@keyframes kbm-tooltip-in {\n  from { opacity: 0; }\n}\n\n@media (prefers-reduced-motion: reduce) {\n  .kbm-tip-bubble {\n    animation: none;\n  }\n}\n\n/* ── DisclosureRow — la ligne dépliable (titre + contenu côte à côte) ─────────────────────────────── */\n/* Shared disclosure header: [16px leading] gap 6 [title 13/24] at the default\n   size. The Settings font-size preference moves the row through the\n   body-published axis: title size follows the secondary tier\n   (--dsh-content-font-size-secondary: one step under the body — setting −1 at\n   ≤14, setting −2 above), and the row height, leading box, and glyph edge\n   shift by the body px delta so the icon keeps its optical share of the\n   line. */\n\n.kbm-dr-root {\n  display: flex;\n  flex-direction: column;\n  width: 100%;\n  min-width: 0;\n}\n\n.kbm-dr-row {\n  position: relative;\n  overflow: hidden;\n  display: flex;\n  align-items: center;\n  height: calc(24px + var(--dsh-content-font-delta, 0px));\n  min-width: 0;\n}\n\n.kbm-dr-row[data-expandable] {\n  cursor: pointer;\n}\n\n.kbm-dr-leading {\n  position: relative;\n  flex: none;\n  width: calc(16px + var(--dsh-content-font-delta, 0px));\n  height: calc(16px + var(--dsh-content-font-delta, 0px));\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  margin-right: 6px;\n  padding: 0;\n  border: none;\n  background: none;\n  color: var(--dsw-alias-label-tertiary);\n}\n\n/* Flow-row glyphs render at 14px inside the 16px box; the CSS edge overrides\n   each svg's own width/height attributes so every registered icon scales\n   without a per-callsite size prop. StateDot (its svg carries data-state)\n   stays at its fixed figma size — it is a status mark, not text furniture. */\n.kbm-dr-leading svg:not([data-state]) {\n  width: calc(14px + var(--dsh-content-font-delta, 0px));\n  height: calc(14px + var(--dsh-content-font-delta, 0px));\n}\n\nbutton.kbm-dr-leading {\n  cursor: pointer;\n}\n\n.kbm-dr-iconIdle {\n  display: inline-flex;\n  opacity: 1;\n  transition: opacity 100ms ease;\n}\n\n.kbm-dr-chevronHover {\n  position: absolute;\n  inset: 0;\n  margin: auto;\n  opacity: 0;\n  transition: opacity 100ms ease;\n}\n\n.kbm-dr-row:hover .kbm-dr-iconIdle {\n  opacity: 0;\n}\n\n.kbm-dr-row:hover .kbm-dr-chevronHover {\n  opacity: 1;\n}\n\n.kbm-dr-title {\n  flex: none;\n  font-size: var(--dsh-content-font-size-secondary, 13px);\n  line-height: calc(24px + var(--dsh-content-font-delta, 0px));\n  color: var(--dsw-alias-label-secondary);\n}"
+    // DSH controls CSS, inlined (the browser loader does not resolve relative
+    // requires — the same scheme as kybernos-models/client.js; source:
+    // kybernos-sessions/dsh-css.js, a frozen extract whose generator is gone).
+    const DSH_CONTROLS_CSS = "/* ── Button — the actions (capsule h36 r18, primary/ghost/outline/toolbar variants) ─────────────────────────────── */\n/* Capsule geometry from the figma Button component (1:155 instances:\n * h36, pad 14/7, gap 4, r18; the wide New Session form is r24 at h38 —\n * owners with the wide form set their own radius/width). */\n.kbm-btn {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: 4px;\n  border: none;\n  border-radius: 18px;\n  cursor: pointer;\n  font-size: 14px;\n  line-height: 22px;\n  color: var(--dsw-alias-label-primary);\n  background: transparent;\n  padding: 0 14px;\n}\n\n.kbm-btn:disabled {\n  cursor: not-allowed;\n  opacity: 0.4;\n}\n\n.kbm-btn-md {\n  height: 36px;\n}\n\n/* Compact height for dense rows; no dedicated figma node (Icon_container\n * 28x28 is the icon-only form) — geometry is ours. */\n.kbm-btn-sm {\n  height: 28px;\n  font-size: 12px;\n  line-height: 18px;\n  padding: 0 10px;\n  border-radius: 14px;\n}\n\n.kbm-btn-primary {\n  background: var(--dsw-alias-button-primary-fill);\n  color: var(--dsw-alias-label-primary-foreground);\n}\n\n.kbm-btn-primary:hover:not(:disabled) {\n  background: var(--dsw-alias-button-primary-hover);\n}\n\n.kbm-btn-ghost:hover:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n.kbm-btn-ghost:active:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-active);\n}\n\n/* Dialog Cancel (figma 451:18655): bordered capsule on transparent fill. */\n.kbm-btn-outline {\n  border: 0.5px solid var(--dsw-alias-border-l3);\n  background: transparent;\n}\n\n.kbm-btn-outline:hover:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n.kbm-btn-toolbar {\n  background: var(--dsw-alias-button-tool-bar-fill);\n}\n\n.kbm-btn-toolbar:hover:not(:disabled) {\n  background: var(--dsw-alias-button-tool-bar-hover);\n}\n\n.kbm-btn-icon {\n  display: inline-flex;\n  width: 16px;\n  height: 16px;\n  align-items: center;\n  justify-content: center;\n}\n\n/* ── Input — the search field (wrap + icon + input) ─────────────────────────────── */\n.kbm-in-wrap {\n  display: inline-flex;\n  align-items: center;\n  gap: 6px;\n  height: 32px;\n  padding: 0 8px;\n  border: 0.5px solid var(--dsw-alias-border-l4);\n  border-radius: 8px;\n  background: var(--dsw-alias-bg-layer-1);\n}\n\n.kbm-in-wrap:focus-within {\n  border-color: var(--dsw-alias-brand-primary);\n}\n\n.kbm-in-icon {\n  display: inline-flex;\n  width: 16px;\n  height: 16px;\n  align-items: center;\n  justify-content: center;\n  color: var(--dsw-alias-label-tertiary);\n}\n\n.kbm-in-input {\n  flex: 1;\n  min-width: 0;\n  border: none;\n  outline: none;\n  background: transparent;\n  font-size: 14px;\n  line-height: 22px;\n  color: var(--dsw-alias-label-primary);\n}\n\n.kbm-in-input::placeholder {\n  color: var(--dsw-alias-label-dimmed);\n}\n\n/* ── Pill — the selectable filter chips ─────────────────────────────── */\n.kbm-pill {\n  display: inline-flex;\n  align-items: center;\n  gap: 4px;\n  height: 24px;\n  padding: 0 8px;\n  border: none;\n  border-radius: 12px;\n  font-size: 12px;\n  line-height: 18px;\n  color: var(--dsw-alias-label-secondary);\n  background: var(--dsw-alias-bg-layer-2);\n}\n\n.kbm-pill-interactive {\n  cursor: pointer;\n}\n\n.kbm-pill-interactive:hover {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n.kbm-pill-active {\n  color: var(--dsw-alias-label-primary);\n  background: var(--dsw-alias-button-ghost-active-fill);\n  box-shadow: inset 0 0 0 1px var(--dsw-alias-button-ghost-active-border);\n}\n\n/* ── Tag — the read-only labels (8 tones) ─────────────────────────────── */\n/* Capsule geometry is fixed: a tag reads as one size everywhere, and only its\n * palette varies. Tone colors ride background/border/color so a render site can\n * still position the tag with its own class without touching the palette. */\n.kbm-tag {\n  display: inline-flex;\n  align-items: center;\n  border-radius: 999px;\n  corner-shape: round;\n  padding: 1px 8px;\n  font-size: 11px;\n  line-height: 17px;\n  font-weight: 500;\n  white-space: nowrap;\n}\n\n.kbm-tag[data-tone='outline'] {\n  border: 0.5px solid var(--dsw-alias-border-l4);\n  color: var(--dsw-alias-label-tertiary);\n}\n\n.kbm-tag[data-tone='solid'] {\n  background: var(--dsw-alias-label-primary);\n  color: var(--dsw-alias-bg-layer-3);\n}\n\n.kbm-tag[data-tone='neutral'] {\n  background: var(--dsw-alias-bg-module-platform);\n  color: var(--dsw-alias-label-secondary);\n}\n\n.kbm-tag[data-tone='quiet'] {\n  color: var(--dsw-alias-label-tertiary);\n}\n\n/* Status tones tint their own color for the fill, so a palette change moves\n * fill and text together and neither needs a second token. The tint is 10%,\n * except `warning`, which keeps the 12% the plugin inventory's conditional\n * tag shipped with — matching it is what makes this a pure consolidation. */\n.kbm-tag[data-tone='success'] {\n  background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 10%, transparent);\n  color: var(--dsw-alias-state-success-primary);\n}\n\n.kbm-tag[data-tone='info'] {\n  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 10%, transparent);\n  color: var(--dsw-alias-state-business-primary);\n}\n\n.kbm-tag[data-tone='warning'] {\n  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 12%, transparent);\n  color: var(--dsw-alias-state-warn-primary);\n}\n\n.kbm-tag[data-tone='danger'] {\n  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent);\n  color: var(--dsw-alias-state-error-primary);\n}\n\n/* ── StateDot — the state dots (done/warning/error/idle) ─────────────────────────────── */\n/* Ongoing blue has no alias token (state-business-primary is the 500 step,\n * not this 450) — component-level var pinned to the static scale instead. */\n.kbm-dot,\n.kbm-dot-matrix {\n  --dsh-state-ongoing: var(--dsw-static-deepseek-450);\n}\n\n/* Solid states: same-color halo via a 0.10-opacity outer layer (::before)\n * with a 6/10-scale solid core. Layer color rides currentColor set per state. */\n.kbm-dot {\n  position: relative;\n  display: inline-block;\n  flex: none;\n}\n\n.kbm-dot::before {\n  content: '';\n  position: absolute;\n  inset: 0;\n  border-radius: 50%;\n  corner-shape: round;\n  background: currentColor;\n  opacity: 0.1;\n}\n\n.kbm-dot::after {\n  content: '';\n  position: absolute;\n  inset: 20%;\n  border-radius: 50%;\n  corner-shape: round;\n  background: currentColor;\n}\n\n.kbm-dot[data-state='done'] {\n  color: var(--dsw-alias-state-success-primary);\n}\n\n.kbm-dot[data-state='warning'] {\n  color: var(--dsw-alias-state-warn-primary);\n}\n\n.kbm-dot[data-state='error'] {\n  color: var(--dsw-alias-state-error-primary);\n}\n\n/* Idle is the absence of activity, not a fourth outcome: it stays on the\n * tertiary label color so it recedes beside the three outcome colors. */\n.kbm-dot[data-state='idle'] {\n  color: var(--dsw-alias-label-tertiary);\n}\n\n/* Pixel chase: each outer cell holds a discrete brightness step (flat keyframe\n * holds, no tweening — the retro feel), peaking when the chase hits it and\n * decaying over the next three cells. Phase offsets come from per-rect\n * animation-delay (index * -125ms) set inline by the component. */\n.kbm-dot-matrix {\n  flex: none;\n  color: var(--dsh-state-ongoing);\n}\n\n.kbm-dot-cell {\n  fill: currentColor;\n  opacity: 0.15;\n  animation: kbm-dsh-state-dot-chase 1s infinite;\n}\n\n@keyframes kbm-dsh-state-dot-chase {\n  0%, 12.4% { opacity: 1; }\n  12.5%, 24.9% { opacity: 0.6; }\n  25%, 37.4% { opacity: 0.35; }\n  37.5%, 100% { opacity: 0.15; }\n}\n\n/* ── Switch — the switches ─────────────────────────────── */\n/* The on/off appearance keys off aria-checked rather than a parallel class, so\n * the visual state cannot disagree with the state assistive technology reads.\n *\n * The track is a capsule: its radius is half its height, so the corners consume\n * the whole side and the global superellipse would square the ends off against\n * the round thumb inside it. `corner-shape: round` opts the track out, the way\n * every full-round radius does. The corner-shape spec does not catch this one —\n * it recognizes 50%, 100%, and radii at or above 99px, not a radius that is\n * full-round only relative to its own box. */\n.kbm-sw {\n  box-sizing: border-box;\n  position: relative;\n  flex: 0 0 auto;\n  width: 36px;\n  height: 20px;\n  padding: 2px;\n  border: 0;\n  border-radius: 10px;\n  corner-shape: round;\n  background: var(--dsw-alias-border-l3);\n  cursor: pointer;\n}\n\n.kbm-sw[aria-checked='true'] {\n  background: var(--dsw-alias-brand-primary);\n}\n\n.kbm-sw:disabled {\n  cursor: default;\n  opacity: 0.5;\n}\n\n.kbm-sw:focus-visible {\n  outline: 2px solid var(--dsw-alias-brand-primary);\n  outline-offset: 2px;\n}\n\n.kbm-sw-thumb {\n  display: block;\n  width: 16px;\n  height: 16px;\n  border-radius: 50%;\n  corner-shape: round;\n  background: var(--dsw-alias-label-primary-foreground);\n  transition: transform 120ms ease;\n}\n\n.kbm-sw[aria-checked='true'] .kbm-sw-thumb {\n  transform: translateX(16px);\n}\n\n/* ── Checkbox — the checkboxes ─────────────────────────────── */\n.kbm-ck {\n  display: inline-flex;\n  align-items: center;\n  gap: 6px;\n  font-size: 14px;\n  line-height: 20px;\n  color: var(--dsw-alias-label-primary);\n  cursor: pointer;\n}\n\n.kbm-ck input {\n  flex: 0 0 auto;\n  width: 16px;\n  height: 16px;\n  margin: 0;\n  accent-color: var(--dsw-alias-brand-primary);\n  cursor: inherit;\n}\n\n.kbm-ck input:focus-visible {\n  outline: 2px solid var(--dsw-alias-brand-primary);\n  outline-offset: 2px;\n}\n\n.kbm-ck:has(input:disabled) {\n  cursor: default;\n  opacity: 0.5;\n}\n\n/* ── Menu — the dropdown menus (routes, sort) ─────────────────────────────── */\n.kbm-menu-root {\n  position: relative;\n  display: inline-flex;\n}\n\n/* Dropdown card (figma MenuDropdown 122:9481 / 419:16920): menu surface,\n * r12, elevation-prominent (hairline stroke in shadow), 4px inset padding. */\n.kbm-menu-list,\n.kbm-menu-submenu {\n  /* min-widths below are the design's outer card widths — include the pad. */\n  box-sizing: border-box;\n  padding: 4px;\n  display: flex;\n  flex-direction: column;\n  gap: 0;\n  border: 0;\n  border-radius: 20px;\n  background: var(--dsw-specific-menu);\n  --dsw-elevation-stroke-color: var(--dsw-alias-border-l1);\n  box-shadow: var(--dsw-elevation-prominent);\n  /* Elevated surface: the scrollbar thumb takes the l2 elevation tokens. The\n     declaration sits on the card rather than on `.scrollable .viewport`\n     because the elevation is a property of this surface, and the custom\n     properties inherit down to whichever descendant actually scrolls (see\n     ui-theme styles/scrollbar.css for the rebinding contract). */\n  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);\n  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);\n}\n\n/* Primary card is 218 wide in the design across both hosts. */\n.kbm-menu-list {\n  position: absolute;\n  top: calc(100% + 4px);\n  left: 0;\n  z-index: 100;\n  min-width: 218px;\n  max-width: 360px;\n}\n\n/* Portal mode: fixed in the viewport, coordinates supplied inline from the\n * anchor rect (side/align resolved in JS, the in-place offset rules above\n * don't apply). Portaled lists must layer above modal overlays (z 1000) —\n * an anchor inside a dialog still expects its menu on top. */\n.kbm-menu-portal {\n  position: fixed;\n  top: auto;\n  left: auto;\n  z-index: 1100;\n}\n\n/* Open above the anchor (empty-state workspace chip: figma 122:9481). */\n.kbm-menu-sideTop {\n  top: auto;\n  bottom: calc(100% + 4px);\n}\n\n.kbm-menu-alignEnd {\n  left: auto;\n  right: 0;\n}\n\n/* Viewport fit: the card stops 12px short of the viewport's top/bottom edges\n * (24 = 2 × the portal MARGIN in Menu.tsx) and taller content scrolls inside\n * .viewport, so a pinned .footer stays visible. Menus with submenu rows skip\n * this class — the overflow clip would crop the side card, so they rely on\n * staying short. */\n.kbm-menu-scrollable {\n  max-height: calc(100vh - 24px);\n}\n\n.kbm-menu-viewport {\n  display: flex;\n  flex-direction: column;\n  min-height: 0;\n}\n\n.kbm-menu-scrollable .kbm-menu-viewport {\n  overflow-y: auto;\n}\n\n/* Pinned rows below the scroll region; l2 hairline (l1 is near-invisible on\n * the menu surface) mirrors the .separator spacing. */\n.kbm-menu-footer {\n  flex: none;\n  display: flex;\n  flex-direction: column;\n  margin-top: 4px;\n  padding-top: 4px;\n  border-top: 0.5px solid var(--dsw-alias-border-l2);\n}\n\n.kbm-menu-itemWrap {\n  position: relative;\n}\n\n/* Menu cell (figma .Menu_cell): min-h 40, r10, pad 10/8, 14/22 primary,\n * gap 8 between leading icon / label / trailing check. */\n.kbm-menu-item {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  width: 100%;\n  min-height: 40px;\n  padding: 8px 10px;\n  border: none;\n  border-radius: 10px;\n  background: transparent;\n  cursor: pointer;\n  font-size: 14px;\n  line-height: 22px;\n  color: var(--dsw-alias-label-primary);\n  text-align: left;\n}\n\n.kbm-menu-item:hover:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n/* Arrow navigation moves real focus, so the row the keyboard is on carries the\n   same fill the pointer gets: the fill is the row's focus indication, and the\n   browser's default ring would double it. */\n.kbm-menu-item:focus-visible:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-hover);\n  outline: none;\n}\n\n.kbm-menu-denseList .kbm-menu-item {\n  min-height: 34px;\n  padding-block: 5px;\n}\n\n.kbm-menu-denseList .kbm-menu-label {\n  padding-block: 4px;\n}\n\n.kbm-menu-list.kbm-menu-compactList,\n.kbm-menu-submenu.kbm-menu-compactList {\n  min-width: 164px;\n  padding: 2px;\n  border-radius: 7px;\n}\n\n.kbm-menu-compactList .kbm-menu-item {\n  min-height: 26px;\n  gap: 6px;\n  padding: 3px 7px;\n  border-radius: 5px;\n  font-size: 12px;\n  line-height: 18px;\n}\n\n.kbm-menu-compactList .kbm-menu-itemIcon {\n  width: 14px;\n  height: 14px;\n}\n\n.kbm-menu-compactList .kbm-menu-separator {\n  margin: 2px;\n}\n\n.kbm-menu-compactList .kbm-menu-label {\n  padding: 4px 7px;\n  font-size: 11px;\n  line-height: 16px;\n}\n\n.kbm-menu-item:disabled {\n  opacity: 0.4;\n  cursor: not-allowed;\n}\n\n.kbm-menu-itemIcon {\n  display: inline-flex;\n  flex: none;\n  width: 16px;\n  height: 16px;\n  align-items: center;\n  justify-content: center;\n  color: var(--dsw-alias-label-tertiary);\n}\n\n.kbm-menu-itemLabel {\n  flex: 1;\n  min-width: 0;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.kbm-menu-check {\n  flex: none;\n  color: var(--dsw-alias-label-primary);\n}\n\n/* Selected cell keeps the plain fill (marker is the trailing check); the\n * class remains as a hook for owner-side emphasis. */\n.kbm-menu-selected {\n  background: transparent;\n}\n\n/* Fill-mode selection: the row holds the hover fill instead of a check. */\n.kbm-menu-selectedFill {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n/* Destructive row: error text/icon, danger hover fill. */\n.kbm-menu-danger {\n  color: var(--dsw-alias-state-error-primary);\n}\n\n.kbm-menu-danger .kbm-menu-itemIcon {\n  color: var(--dsw-alias-state-error-primary);\n}\n\n.kbm-menu-danger:hover:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-hover-danger);\n}\n\n.kbm-menu-danger:focus-visible:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-hover-danger);\n  outline: none;\n}\n\n/* Heading row: non-interactive small grey text, padding aligned with items. */\n.kbm-menu-label {\n  padding: 8px 10px;\n  font-size: 12px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-tertiary);\n}\n\n/* Separator cell (figma 122:9481): py 4 / px 2 around the hairline. */\n.kbm-menu-separator {\n  height: 0.5px;\n  margin: 4px 2px;\n  background: var(--dsw-alias-border-l1);\n}\n\n/* Nested card to the right of the parent row (figma 419:16920).\n * Bottom-aligned with the parent menu card (grows upward): itemWrap sits in\n * .list's 4px pad, so bottom: -4px matches the list's outer bottom edge.\n * Horizontal: list pad (4px) + 6px card gap = 10px past itemWrap — plain\n * `100% + 6px` collapses to ~2px between outer card edges.\n * ::before bridges the full gap so the pointer can cross without mouseLeave. */\n.kbm-menu-submenu {\n  position: absolute;\n  top: auto;\n  bottom: -4px;\n  left: calc(100% + 10px);\n  z-index: 101;\n  min-width: 163px;\n}\n\n.kbm-menu-submenu::before {\n  content: '';\n  position: absolute;\n  top: 0;\n  bottom: 0;\n  left: -10px;\n  width: 10px;\n}\n\n/* ── Modal — the detail surface ─────────────────────────────── */\n/* Full-viewport layer (figma Mask + Dialog 451:18655): mask + centered card. */\n.kbm-mdl-root {\n  position: fixed;\n  inset: 0;\n  z-index: 1000;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  padding: 24px;\n}\n\n/* User/spec mask: rgba(0,0,0,0.24) + blur(2px) via --dsw-alias-bg-mask-1 /\n   --dsw-mask-blur (light); dark theme raises mask opacity. */\n.kbm-mdl-mask {\n  position: absolute;\n  inset: 0;\n  background: var(--dsw-alias-bg-mask-1);\n  backdrop-filter: var(--dsw-mask-blur);\n}\n\n/* Dialog card: r24, elevation-prominent, layer-2 fill, pb 24. */\n.kbm-mdl-dialog {\n  position: relative;\n  z-index: 1;\n  display: flex;\n  flex-direction: column;\n  gap: 20px;\n  width: min(380px, 100%);\n  padding: 0 0 24px;\n  overflow: hidden;\n  border: 0;\n  border-radius: 24px;\n  background: var(--dsw-alias-bg-layer-2);\n  box-shadow: var(--dsw-elevation-prominent);\n}\n\n.kbm-mdl-content {\n  display: flex;\n  flex-direction: column;\n  width: 100%;\n}\n\n/* Header row (figma Title row): pad l24/t22/r14/b12, SPACE_BETWEEN —\n * title left, close button right. */\n.kbm-mdl-header {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  padding: 22px 14px 12px 24px;\n}\n\n.kbm-mdl-title {\n  margin: 0;\n  font-size: 16px;\n  line-height: 24px;\n  font-weight: 500; /* figma wt510, rendered 500 */\n  color: var(--dsw-alias-label-primary);\n}\n\n.kbm-mdl-close {\n  flex: none;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  width: 28px;\n  height: 28px;\n  border: none;\n  border-radius: 8px;\n  background: transparent;\n  cursor: pointer;\n  color: var(--dsw-alias-label-secondary);\n}\n\n.kbm-mdl-close:hover {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n/* Description and body share the 332px content column (24px side pads). */\n.kbm-mdl-description {\n  margin: 0;\n  padding: 0 24px;\n  font-size: 14px;\n  line-height: 22px;\n  font-weight: 400;\n  color: var(--dsw-alias-label-primary);\n}\n\n.kbm-mdl-body {\n  display: flex;\n  flex-direction: column;\n  min-width: 0;\n  margin-top: 20px;\n  padding: 0 24px;\n}\n\n.kbm-mdl-footer {\n  display: flex;\n  align-items: center;\n  justify-content: flex-end;\n  gap: 8px;\n  padding: 0 24px;\n}\n\n/* ── Tooltip — the help bubbles ─────────────────────────────── */\n.kbm-tip-bubble {\n  position: fixed;\n  z-index: 100;\n  /* Fixed-position shrink-to-fit measures only the space from `left` to the\n     viewport edge, so anchors near the right edge would wrap early;\n     max-content sizes by the label alone, capped at half the viewport. */\n  width: max-content;\n  max-width: 50vw;\n  padding: 3px 7px;\n  border-radius: 8px;\n  background: var(--dsw-alias-tooltip-bg);\n  color: var(--dsw-static-neutral-bluish-00);\n  font-size: 13px;\n  line-height: 20px;\n  white-space: pre-line;\n  /* Unbreakable tokens (URLs, paths) must not push past max-width. */\n  overflow-wrap: break-word;\n  pointer-events: none;\n  animation: kbm-tooltip-in 150ms var(--ds-ease-in-out);\n}\n\n.kbm-tip-bubble[data-side='right'] {\n  transform: translateY(-50%);\n}\n\n.kbm-tip-bubble[data-side='bottom'] {\n  transform: translateX(-50%);\n}\n\n.kbm-tip-bubble[data-side='top'] {\n  transform: translate(-50%, -100%);\n}\n\n@keyframes kbm-tooltip-in {\n  from { opacity: 0; }\n}\n\n@media (prefers-reduced-motion: reduce) {\n  .kbm-tip-bubble {\n    animation: none;\n  }\n}\n\n/* ── DisclosureRow — the expandable row (title + content side by side) ─────────────────────────────── */\n/* Shared disclosure header: [16px leading] gap 6 [title 13/24] at the default\n   size. The Settings font-size preference moves the row through the\n   body-published axis: title size follows the secondary tier\n   (--dsh-content-font-size-secondary: one step under the body — setting −1 at\n   ≤14, setting −2 above), and the row height, leading box, and glyph edge\n   shift by the body px delta so the icon keeps its optical share of the\n   line. */\n\n.kbm-dr-root {\n  display: flex;\n  flex-direction: column;\n  width: 100%;\n  min-width: 0;\n}\n\n.kbm-dr-row {\n  position: relative;\n  overflow: hidden;\n  display: flex;\n  align-items: center;\n  height: calc(24px + var(--dsh-content-font-delta, 0px));\n  min-width: 0;\n}\n\n.kbm-dr-row[data-expandable] {\n  cursor: pointer;\n}\n\n.kbm-dr-leading {\n  position: relative;\n  flex: none;\n  width: calc(16px + var(--dsh-content-font-delta, 0px));\n  height: calc(16px + var(--dsh-content-font-delta, 0px));\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  margin-right: 6px;\n  padding: 0;\n  border: none;\n  background: none;\n  color: var(--dsw-alias-label-tertiary);\n}\n\n/* Flow-row glyphs render at 14px inside the 16px box; the CSS edge overrides\n   each svg's own width/height attributes so every registered icon scales\n   without a per-callsite size prop. StateDot (its svg carries data-state)\n   stays at its fixed figma size — it is a status mark, not text furniture. */\n.kbm-dr-leading svg:not([data-state]) {\n  width: calc(14px + var(--dsh-content-font-delta, 0px));\n  height: calc(14px + var(--dsh-content-font-delta, 0px));\n}\n\nbutton.kbm-dr-leading {\n  cursor: pointer;\n}\n\n.kbm-dr-iconIdle {\n  display: inline-flex;\n  opacity: 1;\n  transition: opacity 100ms ease;\n}\n\n.kbm-dr-chevronHover {\n  position: absolute;\n  inset: 0;\n  margin: auto;\n  opacity: 0;\n  transition: opacity 100ms ease;\n}\n\n.kbm-dr-row:hover .kbm-dr-iconIdle {\n  opacity: 0;\n}\n\n.kbm-dr-row:hover .kbm-dr-chevronHover {\n  opacity: 1;\n}\n\n.kbm-dr-title {\n  flex: none;\n  font-size: var(--dsh-content-font-size-secondary, 13px);\n  line-height: calc(24px + var(--dsh-content-font-delta, 0px));\n  color: var(--dsw-alias-label-secondary);\n}"
 
-    // ── styles propres (kbs-*) — géométrie et tokens de la maquette ────────
+    // ── own styles (kbs-*) — geometry and tokens of the mockup ───────────────
     const CSS = `
-/* Géométrie alignée sur la capsule native de DSH (mesurée dans la GUI :
-   h22 · r24 · padding 1px 8px · 12px/400 · gap 6) — la nôtre était h28, plus
-   haute et plus grasse que la ligne qu'elle accompagne, ce qui faisait
-   « chargé » à elle seule. Icône 15 px : 24 − 2 de bordure lui laisse l'air. */
+/* Geometry aligned on the native DSH capsule (measured in the GUI:
+   h22 · r24 · padding 1px 8px · 12px/400 · gap 6) — ours was h28, taller
+   and bolder than the line it goes with, which looked « busy » on its own.
+   15 px icon: 24 − 2 of border leaves it room to breathe. */
 .kbs-pill{position:relative;display:inline-flex;align-items:center;gap:5px;height:24px;
   padding:0 8px;border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.10));
   border-radius:24px;background:transparent;color:var(--dsw-alias-label-secondary,#cfd3d6);
   font:inherit;font-size:12.5px;font-weight:500;line-height:1;cursor:pointer;white-space:nowrap}
-/* L'étiquette n'est plus peinte : la rangée est faite d'icônes (et de leur
-   nombre). Le mot reste dans le DOM — lecteurs d'écran, bulle au survol et
-   harnais continuent de le lire mot pour mot. */
+/* The label is no longer painted: the row is made of icons (and their
+   count). The word stays in the DOM — screen readers, the hover bubble and
+   the test harness keep reading it word for word. */
 .kbs-lib{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
   clip-path:inset(50%);white-space:nowrap;border:0}
 /* The Memory & Lessons pill states its name (the others are icon + count): it is the one people could
@@ -57,50 +58,50 @@ window.__ModuleLoader__.load({
 .kbs-pill:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
 .kbs-pill[aria-expanded="true"]{border-color:var(--acc);color:var(--dsw-alias-label-primary,#e8eaec);
   background:color-mix(in srgb,var(--acc) 10%,transparent)}
-/* L'icône est neutre par défaut : la couleur ne dit plus « quelle puce suis-je »
-   mais « celle-ci demande quelque chose ». L'accent revient sur le geste
-   (kbs-pill--act) et sur la puce dont la carte est ouverte. */
+/* The icon is neutral by default: the colour no longer says « which pill am I »
+   but « this one asks for something ». The accent comes back on the gesture
+   (kbs-pill--act) and on the pill whose card is open. */
 .kbs-pill .kbs-ico{display:inline-flex;color:var(--dsw-alias-label-tertiary,#8a9096)}
 .kbs-pill[aria-expanded="true"] .kbs-ico{color:var(--acc)}
-/* P6 — le nombre prend la couleur de l'état (--acc) : « 22 » violet se repère
-   sans survivre à la rangée, et la règle 1 tient (les icônes restent neutres). */
+/* P6 — the number takes the colour of the state (--acc): a purple « 22 » stands
+   out without outliving the row, and rule 1 holds (the icons stay neutral). */
 .kbs-pill .kbs-n{color:var(--acc,var(--dsw-alias-label-secondary,#cfd3d6));font-weight:600;font-variant-numeric:tabular-nums}
-/* Une puce qui n'a rien à dire passe en retrait (sans rien perdre : icône,
-   bulle, carte et clic restent). Le survol et la carte ouverte la rallument. */
+/* A pill with nothing to say steps back (losing nothing: icon, bubble, card
+   and click stay). Hover and an open card light it up again. */
 .kbs-pill{transition:opacity 120ms var(--ds-ease-in-out,ease)}
 .kbs-pill--calme{opacity:.55}
 .kbs-pill--calme:hover,.kbs-pill--calme:focus-visible,.kbs-pill--calme[aria-expanded="true"]{opacity:1}
 .kbs-pill[aria-expanded="true"] .kbs-tip{display:none}
-/* Le positionnement est porté par .kbs-pill .kbs-tip (0,2,0) et non .kbs-tip :
-   le même nom de classe .kbm-tip-bubble vit dans la feuille de l'application,
-   chargée APRÈS la nôtre — à spécificité égale elle gagnait, et position:fixed
-   avec notre bottom:calc(100% + 8px) (100 % de la FENÊTRE) posait la bulle
-   74 px au-dessus du viewport : les bulles du composer étaient invisibles.
-   Constaté le 22/09 au soir en filmant le survol. */
+/* The positioning is carried by .kbs-pill .kbs-tip (0,2,0) and not .kbs-tip:
+   the same class name .kbm-tip-bubble lives in the application's sheet,
+   loaded AFTER ours — at equal specificity it won, and position:fixed
+   with our bottom:calc(100% + 8px) (100 % of the WINDOW) put the bubble
+   74 px above the viewport: the composer bubbles were invisible.
+   Seen on the evening of 22/09 while filming the hover. */
 .kbs-pill .kbs-tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
   pointer-events:none;opacity:0;transition:opacity 120ms var(--ds-ease-in-out,ease)}
 .kbs-pill:hover .kbs-tip,.kbs-pill:focus .kbs-tip{opacity:1}
-/* Les deux puces qui collent au bord droit ancrent leur bulle à droite : centrée,
-   la bulle de « Lessons » (437 px) sortait de la fenêtre sous 1400 px — mesuré à
-   1000 px (droite 1049 pour 1000) et à 760 px (833 pour 760). */
+/* The two pills that stick to the right edge anchor their bubble on the right:
+   centred, the « Lessons » bubble (437 px) left the window below 1400 px —
+   measured at 1000 px (right edge 1049 for 1000) and at 760 px (833 for 760). */
 .kbs-pill--bordDroit .kbs-tip{left:auto;right:0;transform:none}
-/* P4 — une carte « Notes » à deux sections (Memory puis Lessons) : la carte
-   remplace les deux anciennes, le contenu est intact. */
+/* P4 — a « Notes » card with two sections (Memory then Lessons): the card
+   replaces the two old ones, the content is intact. */
 .kbs-memwrap{display:flex;flex-direction:column;gap:12px}
 .kbs-note-sec{display:flex;flex-direction:column;gap:6px}
 .kbs-note-t{margin:0;font-size:11px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;
   color:var(--dsw-alias-label-tertiary,#8a9096)}
-/* La CARTE des deux dernières puces suit la même règle (même cause, deux
-   surfaces) : centrée, elle sortait de la fenêtre à 900 px — 902 px pour
-   memory, 960 px pour lessons. */
+/* The CARD of the last two pills follows the same rule (same cause, two
+   surfaces): centred, it left the window at 900 px — 902 px for
+   memory, 960 px for lessons. */
 .kbs-popwrap.kbs-bordDroit .kbs-pop{left:auto;right:0;transform:none}
 
 .kbs-popwrap{position:relative;display:inline-flex}
-/* Le jeton de menu du shell est SEMI-TRANSPARENT (#30313680 dans le thème
-   sombre) : posée telle quelle, la carte laissait lire le composer au travers
-   (« Commit & merge locally » par-dessus « DeepSeek V4.1 Flash »). On garde le
-   jeton — il suit le thème — mais composité sur le fond opaque de base, donc
-   la carte est lisible partout. */
+/* The shell's menu token is SEMI-TRANSPARENT (#30313680 in the dark theme):
+   used as it is, the card let the composer show through
+   (« Commit & merge locally » over « DeepSeek V4.1 Flash »). We keep the
+   token — it follows the theme — but composited over the opaque base
+   background, so the card is readable everywhere. */
 .kbs-pop{position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);z-index:70;
   width:min(340px,calc(100vw - 48px));max-height:min(560px,calc(100vh - 180px));overflow-y:auto;
   text-align:left;background:linear-gradient(var(--dsw-specific-menu,#1c1c1f),var(--dsw-specific-menu,#1c1c1f)),
@@ -123,7 +124,7 @@ window.__ModuleLoader__.load({
 .kbs-note-line{margin:8px 0 0;font-size:12.5px;line-height:1.45;color:var(--dsw-alias-label-tertiary,#8a9096)}
 .kbs-code-in{font:12px/1.5 ui-monospace,Menlo,monospace;overflow-wrap:anywhere}
 
-/* stepper (maquette .steps) — 2 étapes (Saved → In the project) ou 4 (PR) */
+/* stepper (mockup .steps) — 2 steps (Saved → In the project) or 4 (PR) */
 .kbs-steps{display:grid;margin-top:16px}
 .kbs-step{display:flex;flex-direction:column;align-items:center;gap:5px}
 .kbs-rail{width:100%;height:20px;display:flex;align-items:center}
@@ -140,7 +141,7 @@ window.__ModuleLoader__.load({
 .kbs-sl.todo{color:var(--dsw-alias-label-tertiary,#8a9096)}
 .kbs-sl.next,.kbs-sl.blocked{font-weight:600}
 
-/* schéma d'ordinateur ↔ GitHub (maquette .sync) */
+/* computer ↔ GitHub diagram (mockup .sync) */
 .kbs-sync{margin-top:14px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px}
 .kbs-node{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11.5px;
   color:var(--dsw-alias-label-secondary,#cfd3d6);white-space:nowrap}
@@ -155,7 +156,7 @@ window.__ModuleLoader__.load({
 .kbs-arr.r .kbs-line::after{right:0;transform:rotate(45deg)}
 .kbs-arr.l .kbs-line::after{left:0;transform:rotate(-135deg)}
 
-/* action principale + plan dry-run */
+/* main action + dry-run plan */
 .kbs-act{margin-top:14px}
 .kbs-btn{width:100%;height:40px;border:0;border-radius:12px;background:var(--acc);color:#0f1115;
   font:inherit;font-size:14.5px;font-weight:600;cursor:pointer;padding:0 14px}
@@ -174,7 +175,7 @@ window.__ModuleLoader__.load({
   overflow-wrap:anywhere}
 .kbs-done{margin:6px 0 0;font-size:12.5px;line-height:1.45;color:var(--dsw-alias-state-success-primary,#22c55e)}
 
-/* pied + détails */
+/* footer + details */
 .kbs-pied{margin-top:12px;border-top:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.07));padding-top:2px}
 .kbs-more{display:flex;align-items:center;gap:6px;width:100%;min-height:32px;padding:0;border:0;
   background:none;color:var(--dsw-alias-label-tertiary,#8a9096);font:inherit;font-size:13px;cursor:pointer}
@@ -217,7 +218,7 @@ window.__ModuleLoader__.load({
   background:transparent;color:var(--dsw-alias-label-secondary,#cfd3d6);font:inherit;font-size:11.5px;cursor:pointer}
 .kbs-minibtn:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.06))}
 .kbs-copie{font-size:11px;color:var(--dsw-alias-state-success-primary,#22c55e)}
-/* gestes de mémoire de CETTE session (record / lesson / used) */
+/* memory gestures of THIS session (record / lesson / used) */
 .kbs-memo{margin-top:8px;display:flex;flex-direction:column}
 .kbs-memo-row{padding:8px 0;border-top:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.07))}
 .kbs-memo-row:first-child{border-top:0}
@@ -225,24 +226,24 @@ window.__ModuleLoader__.load({
   color:var(--dsw-alias-label-tertiary,#8a9096);font-variant-numeric:tabular-nums}
 .kbs-memo-kind{font-weight:600;color:var(--acc)}
 .kbs-memo-row p{margin:2px 0 0;font-size:13px;line-height:1.45;color:var(--dsw-alias-label-primary,#e8eaec)}
-/* Icône de catégorie devant le titre d'une session : le glyphe du titre
-   (🎨…) n'est pas rendu comme un caractère, il devient ce SVG. Sa forme dit
-   la catégorie, sa couleur dit l'état du chantier : gris tant que le travail
-   n'est pas committé, vert dès que le dernier geste de la session sur son
-   dossier a été un commit. */
+/* Category icon before the title of a session: the glyph of the title
+   (🎨…) is not rendered as a character, it becomes this SVG. Its shape says
+   the category, its colour says the state of the work: grey as long as the
+   work is not committed, green as soon as the session's last gesture on its
+   folder was a commit. */
 .kbs-titre-ico{display:inline-flex;flex:none;align-items:center;justify-content:center;
   width:15px;height:15px;margin:0 5px 0 0;vertical-align:-3px;
   color:var(--kbs-ico,var(--dsw-alias-label-tertiary,#8a9096))}
 .kbs-titre-ico svg{display:block}
 .kbs-titre-ico--fait{color:var(--dsw-alias-state-success-primary,#22c55e)}
-/* Liste des chats — affichage par défaut : les lignes qui sortent du filtre
-   (travail committé au-delà des 2 lignes garanties) sont masquées par
-   ATTRIBUT, jamais par la classe ni par le style : React réécrit className à
-   chaque rendu, et un DOM sans objet style (le harnais) doit rester
-   utilisable. L'attribut survit aux passes, donc la règle est idempotente. */
+/* Chat list — default display: the rows that fall out of the filter
+   (work committed beyond the 2 guaranteed rows) are hidden by
+   ATTRIBUTE, never by class nor by style: React rewrites className at
+   every render, and a DOM without a style object (the test harness) must stay
+   usable. The attribute survives the passes, so the rule is idempotent. */
 [data-kbv="0"]{display:none!important}
-/* Récapitulatif de session : fait / pas fait / clôturable, et le geste local
-   (commit & merge sur la machine, sans envoi GitHub). */
+/* Session summary: done / not done / can be closed, and the local gesture
+   (commit & merge on the machine, no GitHub send). */
 .kbs-bilan{margin-top:10px;display:flex;flex-direction:column;gap:2px}
 .kbs-recap-row{display:flex;gap:10px;align-items:baseline;padding:7px 0;
   border-top:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.07))}
@@ -253,21 +254,21 @@ window.__ModuleLoader__.load({
 .kbs-recap-v b{font-weight:600}
 .kbs-recap-att{color:var(--dsw-alias-label-tertiary,#8a9096);font-size:12px}
 .kbs-pill--act{border-color:var(--acc)}
-/* La pilule « commit & merge » : c'est un geste, pas seulement un état — elle
-   se distingue au premier regard quand il reste du travail sur la machine. */
+/* The « commit & merge » pill: it is a gesture, not only a state — it stands
+   out at first glance when work is left on the machine. */
 .kbs-pill--act{background:color-mix(in srgb,var(--acc) 12%,transparent)}
 .kbs-pill--act .kbs-ico{color:var(--acc)}
-/* Page « Kybernos Settings » (popup Paramètres) : un interrupteur Oui/Non par
-   réglage, écrit côté host (l'agent lit le même fichier). */
-/* (29/09) Borné à 720px comme Maintenance : la section ne s'étire pas sur
-   toute la largeur du volet Réglages — les rangées restent lisibles. */
+/* « Kybernos Settings » page (Settings popup): a Yes/No switch per
+   setting, written host side (the agent reads the same file). */
+/* (29/09) Capped at 720px like Maintenance: the section does not stretch over
+   the whole width of the Settings pane — the rows stay readable. */
 .kbr-page{padding:0;max-width:720px;font-size:14px;line-height:normal}
-/* (29/09) UNIFORMITÉ du volet : les sections DSH hôtes (Permission, Language,
-   Font size…) partagent la page Générale avec notre bloc 720px et restaient
-   pleine largeur — deux largeurs sur une même page se lisent comme un CSS
-   cassé. On borne toutes les sections du dialog, hôtes comprises. Le suffixe
-   _section vient du nom de classe source du shell (stable entre builds, seul
-   le préfixe haché change). */
+/* (29/09) UNIFORMITY of the pane: the host DSH sections (Permission, Language,
+   Font size…) share the General page with our 720px block and stayed
+   full width — two widths on one page read as broken CSS. All the sections of
+   the dialog are capped, host ones included. The _section suffix comes from the
+   shell's source class name (stable across builds, only the hashed prefix
+   changes). */
 [role="dialog"] [class$="_section"]{max-width:720px}
 .kbr-page h4{margin:0 0 2px}
 .kbr-intro{margin:0 0 8px;color:var(--dsw-alias-label-secondary,#cfd3d6);font-size:13px}
@@ -295,7 +296,7 @@ window.__ModuleLoader__.load({
 .kbr-ok{margin:10px 0 0;font-size:12px;color:var(--dsw-alias-state-success-primary,#22c55e)}
 .kbr-err{margin:10px 0 0;font-size:12px;color:var(--dsw-alias-state-error-primary,#ef4444)}
 .kbr-warn{display:block;margin-top:4px;font-size:12px;color:var(--dsw-alias-state-warn-primary,#f59e0b)}
-/* ── routage Auto (02/10) : puces de la whitelist + menu de choix ── */
+/* ── Auto routing (02/10): whitelist chips + choice menu ── */
 `
     let cssPose = false
     const poserCss = () => {
@@ -313,8 +314,8 @@ window.__ModuleLoader__.load({
       cssPose = true
     }
 
-    // ── accents — tokens DSH pour les états git, teintes de la maquette pour
-    // memory/lessons/review (icônes seules, lisibles sur fond sombre aussi) ──
+    // ── accents — DSH tokens for the git states, mockup tints for
+    // memory/lessons/review (icons only, readable on a dark background too) ──
     const ACC = {
       error: 'var(--dsw-alias-state-error-primary,#ef4444)',
       warn: 'var(--dsw-alias-state-warn-primary,#f59e0b)',
@@ -340,7 +341,7 @@ window.__ModuleLoader__.load({
       return Math.floor(hh / 24) + ' d ago'
     }
 
-    // ── icônes (trait 2px, hérite de currentColor) ──────────────────────────
+    // ── icons (2px stroke, inherits currentColor) ───────────────────────────
     const ICONS = {
       laptop: '<path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16"/>',
       cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
@@ -355,7 +356,7 @@ window.__ModuleLoader__.load({
       close: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
       folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
       copy: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
-      // ── glyphes de catégorie de session (voir GLYPHES) ───────────────────
+      // ── session category glyphs (see GLYPHES) ────────────────────────────
       wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
       bug: '<path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M6.53 15C4.6 15.2 3 16.9 3 19"/><path d="M17.47 9c1.93-.2 3.53-1.9 3.53-4"/><path d="M18 13h4"/><path d="M17.47 15c1.93.2 3.53 1.9 3.53 4"/>',
       palette: '<circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>',
@@ -376,42 +377,46 @@ window.__ModuleLoader__.load({
       dangerouslySetInnerHTML: { __html: ICONS[n] }
     })
 
-    // ── icône de catégorie devant le titre d'une session ───────────────────
-    // Le titre d'une session commence par un glyphe de catégorie (règle de
-    // nommage : 🛠️ fonctionnalité, 🐛 correctif, 🎨 UI/design, 📚 doc,
-    // 🔌 intégration, 📊 données, 🧹 nettoyage, ❓ question). Dans la liste,
-    // ce glyphe n'est pas rendu comme un caractère : il devient un vrai SVG,
-    // teinté par catégorie. Le glyphe reste dans le titre lui-même (il classe
-    // la session partout : recherche, export, autres clients) et c'est ici
-    // qu'on le masque — le shell DSH n'expose aucun slot pour l'en-tête d'une
-    // ligne de session, donc la décoration se fait sur le DOM rendu.
+    // ── category icon before the title of a session ────────────────────────
+    // The title of a session starts with a category glyph (naming rule:
+    // 🛠️ feature, 🐛 fix, 🎨 UI/design, 📚 doc, 🔌 integration, 📊 data,
+    // 🧹 cleanup, ❓ question). In the list, this glyph is not rendered as a
+    // character: it becomes a real SVG, tinted by category. The glyph stays in
+    // the title itself (it classifies the session everywhere: search, export,
+    // other clients) and it is here that it is hidden — the DSH shell exposes no
+    // slot for the header of a session row, so the decoration is done on the
+    // rendered DOM.
     const GLYPHES = {
-      '\u{1F6E0}': 'wrench', // 🛠 fonctionnalité
-      '\u{1F41B}': 'bug', // 🐛 correctif
+      '\u{1F6E0}': 'wrench', // 🛠 feature
+      '\u{1F41B}': 'bug', // 🐛 fix
       '\u{1F3A8}': 'palette', // 🎨 UI/design
       '\u{1F4DA}': 'book', // 📚 doc
-      '\u{1F50C}': 'plug', // 🔌 intégration
-      '\u{1F4CA}': 'chart', // 📊 données
-      '\u{1F9F9}': 'broom', // 🧹 nettoyage
+      '\u{1F50C}': 'plug', // 🔌 integration
+      '\u{1F4CA}': 'chart', // 📊 data
+      '\u{1F9F9}': 'broom', // 🧹 cleanup
       '\u{2753}': 'chatq' // ❓ question
     }
+    // The word a category icon carries (its aria-label and tooltip): English is the base, kept in `data-mot`; the French twin is in MOTS_FR.
     const MOTS_GLYPHE = {
-      '\u{1F6E0}': 'Fonctionnalité', '\u{1F41B}': 'Correctif', '\u{1F3A8}': 'UI/design',
-      '\u{1F4DA}': 'Documentation', '\u{1F50C}': 'Intégration', '\u{1F4CA}': 'Données',
-      '\u{1F9F9}': 'Nettoyage', '\u{2753}': 'Question'
+      '\u{1F6E0}': 'Feature', '\u{1F41B}': 'Fix', '\u{1F3A8}': 'UI/design',
+      '\u{1F4DA}': 'Documentation', '\u{1F50C}': 'Integration', '\u{1F4CA}': 'Data',
+      '\u{1F9F9}': 'Cleanup', '\u{2753}': 'Question'
     }
-    // La couleur ne dit plus la catégorie (la forme s'en charge) mais l'état
-    // du chantier : gris par défaut, vert quand le travail est committé.
-    // Ce que porte une ligne dont le titre n'est pas encore classé : l'icône
-    // est là dès le premier nommage, la catégorie viendra au re-titrage.
-    const CATEGORIE_DEFAUT = { ico: 'chat', mot: 'Non classé' }
-    // The row's mark says its category and whether its work is committed, in the language of the interface: French is the source
-    // (the key kept in `data-mot`), English the pair, a translated language is looked up by its French text (same rule as the other plugins).
-    const langueUI = () => {
+    // The colour no longer says the category (the shape does) but the state
+    // of the work: grey by default, green when the work is committed.
+    // What a row carries whose title is not classified yet: the icon is
+    // there from the first naming, the category will come with the re-titling.
+    const CATEGORIE_DEFAUT = { ico: 'chat', mot: 'Uncategorised' }
+    // ── language: English is the base, French the twin (decision D1) ───────
+    // The mark of a row says its category and whether its work is committed, and the « Kybernos Settings » block says its
+    // labels, in the language of the interface: `kt(fr, en)` gives the French side for French (`kybernos` or an fr* tag)
+    // and the English side for everything else; a translated language (es, ar…) is looked up by its French text in the
+    // dictionary the language layer serves, and falls back to English. A resolver that throws or is absent gives English.
+    const lang = () => {
       try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
     }
-    const ktMarque = (fr, en) => {
-      const l = langueUI()
+    const kt = (fr, en) => {
+      const l = lang()
       if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
       if (l === 'en') return en
       try {
@@ -420,19 +425,19 @@ window.__ModuleLoader__.load({
       } catch (e) { /* no dictionary: English */ }
       return en
     }
-    const MOTS_EN = {
-      'Non classé': 'Uncategorised', 'Fonctionnalité': 'Feature', 'Correctif': 'Fix', 'UI/design': 'UI/design', 'Documentation': 'Documentation',
-      'Intégration': 'Integration', 'Données': 'Data', 'Nettoyage': 'Cleanup', 'Question': 'Question', 'Catégorie': 'Category'
+    const MOTS_FR = {
+      Uncategorised: 'Non classé', Feature: 'Fonctionnalité', Fix: 'Correctif', 'UI/design': 'UI/design', Documentation: 'Documentation',
+      Integration: 'Intégration', Data: 'Données', Cleanup: 'Nettoyage', Question: 'Question', Category: 'Catégorie'
     }
-    const motAffiche = (fr) => ktMarque(fr, MOTS_EN[fr] !== undefined ? MOTS_EN[fr] : fr)
+    const motAffiche = (en) => kt(MOTS_FR[en] !== undefined ? MOTS_FR[en] : en, en)
     const TEINTE_GRISE = 'var(--dsw-alias-label-tertiary,#8a9096)'
     const TEINTE_VERTE = 'var(--dsw-alias-state-success-primary,#22c55e)'
     const SVG_GLYPHE = (n, size) => '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24"' +
       ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"' +
       ' stroke-linejoin="round" aria-hidden="true">' + ICONS[n] + '</svg>'
 
-    // Premier graphème du titre, réduit à sa catégorie — sans le sélecteur de
-    // variante (🛠️ = U+1F6E0 U+FE0F) qui ne fait pas partie du glyphe.
+    // First grapheme of the title, reduced to its category — without the variation
+    // selector (🛠️ = U+1F6E0 U+FE0F) which is not part of the glyph.
     const glypheDe = (texte) => {
       if (typeof texte !== 'string' || texte.length === 0) return null
       let graphe = null
@@ -455,28 +460,28 @@ window.__ModuleLoader__.load({
       return null
     }
 
-    // ── catégories de session : le titre ne porte plus d'emoji ──────────────
-    // Le nommage (~/.dsh/tools/session-titre.mjs) n'écrit plus de pictogramme
-    // dans le titre : il range la catégorie dans le registre du host
-    // (~/.dsh/kybernos/categories.json), indexé par identifiant de session. La
-    // ligne de session porte `data-row-key="session:<id>"`, donc la
-    // correspondance est EXACTE — pas de devinette sur le texte du titre.
-    // Les titres encore préfixés d'un emoji (sessions nommées avant ce
-    // changement) restent reconnus : le pictogramme est le repli, et il est
-    // toujours retiré du texte rendu.
+    // ── session categories: the title no longer carries an emoji ────────────
+    // The naming (~/.dsh/tools/session-titre.mjs) no longer writes a pictogram
+    // into the title: it files the category in the host's registry
+    // (~/.dsh/kybernos/categories.json), indexed by session id. The session
+    // row carries `data-row-key="session:<id>"`, so the match is EXACT — no
+    // guessing on the text of the title. Titles still prefixed with an emoji
+    // (sessions named before this change) stay recognised: the pictogram is the
+    // fallback, and it is always removed from the rendered text. (The slugs are
+    // the host's, decision.mjs; the word is English, its French twin is in MOTS_FR.)
     const CATEGORIE_PAR_SLUG = {
-      fonctionnalite: { ico: 'wrench', mot: 'Fonctionnalité' },
-      correctif: { ico: 'bug', mot: 'Correctif' },
+      fonctionnalite: { ico: 'wrench', mot: 'Feature' },
+      correctif: { ico: 'bug', mot: 'Fix' },
       ui: { ico: 'palette', mot: 'UI/design' },
       doc: { ico: 'book', mot: 'Documentation' },
-      integration: { ico: 'plug', mot: 'Intégration' },
-      donnees: { ico: 'chart', mot: 'Données' },
-      nettoyage: { ico: 'broom', mot: 'Nettoyage' },
+      integration: { ico: 'plug', mot: 'Integration' },
+      donnees: { ico: 'chart', mot: 'Data' },
+      nettoyage: { ico: 'broom', mot: 'Cleanup' },
       question: { ico: 'chatq', mot: 'Question' }
     }
     const CLE_CATEGORIES = 'kybernos.sessions.categories.v1'
     let CATEGORIES = {} // sessionId → slug
-    let CATEGORIES_AUTO = {} // sessionId → true quand la catégorie vient du classement automatique
+    let CATEGORIES_AUTO = {} // sessionId → true when the category comes from the automatic classification
     let CATEGORIES_LUES = 0
 
     const lireCategoriesCache = () => {
@@ -486,7 +491,7 @@ window.__ModuleLoader__.load({
         if (!brut) return
         const o = JSON.parse(brut)
         if (o !== null && typeof o === 'object') CATEGORIES = o
-      } catch (e) { /* cache illisible : on repart du registre */ }
+      } catch (e) { /* unreadable cache: start again from the registry */ }
     }
 
     const lireCategories = async () => {
@@ -508,11 +513,11 @@ window.__ModuleLoader__.load({
         CATEGORIES_LUES = Date.now()
         try {
           if (typeof localStorage !== 'undefined' && localStorage !== null) localStorage.setItem(CLE_CATEGORIES, JSON.stringify(map))
-        } catch (e) { /* quota : sans importance */ }
-      } catch (e) { /* registre injoignable : repli sur le pictogramme */ }
+        } catch (e) { /* quota: no matter */ }
+      } catch (e) { /* registry unreachable: fall back on the pictogram */ }
     }
 
-    // Identifiant de session lu sur la ligne (`data-row-key="session:<id>"`).
+    // Session id read from the row (`data-row-key="session:<id>"`).
     const idDeLigne = (ligne) => {
       if (ligne === null || ligne === undefined || typeof ligne.getAttribute !== 'function') return ''
       const cle = String(ligne.getAttribute('data-row-key') || '')
@@ -522,24 +527,24 @@ window.__ModuleLoader__.load({
       return String(ligne.getAttribute('data-kbpin-kind') || '') === 'session' ? String(ligne.getAttribute('data-kbpin-id') || '') : ''
     }
 
-    // Catégorie d'une ligne : le REGISTRE d'abord, le pictogramme du titre en
-    // secours (sessions nommées avant que l'emoji ne soit retiré).
+    // Category of a row: the REGISTRY first, the pictogram of the title as
+    // a fallback (sessions named before the emoji was removed).
     const categorieDeLigne = (ligne, legacy) => {
       const slug = CATEGORIES[idDeLigne(ligne)]
       if (slug !== undefined && CATEGORIE_PAR_SLUG[slug] !== undefined) return CATEGORIE_PAR_SLUG[slug]
       return legacy
     }
 
-    // ── classement automatique du titre initial : le SVG dès le premier nommage ─
-    // Le moteur nomme le chat dès le premier message ; sans catégorie enregistrée,
-    // la ligne garde son icône « non classé » jusqu'à ce qu'un agent pose --cat.
+    // ── automatic classification of the initial title: the SVG from the first naming ─
+    // The engine names the chat from the first message; with no recorded category,
+    // the row keeps its « uncategorised » icon until an agent sets --cat.
     // The page therefore does the work itself: the title goes to the decision route (/kybernos-sessions/decision), where
     // the word rules answer first and the Study model only when they say nothing, and a settled verdict is recorded with
     // `auto:true`. An agent's naming (POST without `auto`) always replaces it, and is never re-classified here.
     const CLE_AUTOCAT = 'kybernos.sessions.autocat.v1'
-    const DUREE_REESSAI_AUTOCAT = 10 * 60 * 1000 // un verdict négatif est retenté après 10 min, ou si le titre change
-    let AUTOCAT = {} // sessionId → { titre, slug (null = verdict non tranché), ts }
-    let AUTOCAT_FILE = [] // décisions en attente — une seule requête à la fois
+    const DUREE_REESSAI_AUTOCAT = 10 * 60 * 1000 // a negative verdict is retried after 10 min, or if the title changes
+    let AUTOCAT = {} // sessionId → { titre, slug (null = undecided verdict), ts }
+    let AUTOCAT_FILE = [] // pending decisions — one request at a time
     let AUTOCAT_EN_COURS = false
 
     const lireAutocatCache = () => {
@@ -549,18 +554,18 @@ window.__ModuleLoader__.load({
         if (!brut) return
         const o = JSON.parse(brut)
         if (o !== null && typeof o === 'object') AUTOCAT = o
-      } catch (e) { /* cache illisible : on re-classe, sans gravité */ }
+      } catch (e) { /* unreadable cache: we classify again, no harm */ }
     }
 
     const ecrireAutocatCache = () => {
       try {
         if (typeof localStorage === 'undefined' || localStorage === null) return
         localStorage.setItem(CLE_AUTOCAT, JSON.stringify(AUTOCAT))
-      } catch (e) { /* quota : sans importance */ }
+      } catch (e) { /* quota: no matter */ }
     }
 
-    // Déjà répondu pour CE titre, et la réponse tient encore ? (positif pour de
-    // bon, négatif le temps du réessai.)
+    // Already answered for THIS title, and does the answer still hold? (a positive one for
+    // good, a negative one until the retry.)
     const autocatResolu = (id, titre) => {
       const cache = AUTOCAT[id]
       if (cache === undefined || cache === null) return false
@@ -570,7 +575,7 @@ window.__ModuleLoader__.load({
 
     const classerUneAutomatique = async (entree) => {
       const { id, titre, ligne } = entree
-      if (CATEGORIES[id] !== undefined && CATEGORIES_AUTO[id] !== true) return // nommage d'agent : sacré
+      if (CATEGORIES[id] !== undefined && CATEGORIES_AUTO[id] !== true) return // an agent's naming: untouchable
       if (autocatResolu(id, titre) === true) return
       const r = await fetch('/kybernos-sessions/decision', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ categorie: titre }) })
       if (!r || r.ok !== true) throw new Error('decision HTTP ' + (r ? r.status : '?'))
@@ -581,10 +586,10 @@ window.__ModuleLoader__.load({
       ecrireAutocatCache()
       if (slug === null) return // not sure (or no Study model): the provisional icon stays, a retry is planned
       const w = await fetch('/kybernos-sessions/categories', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ session: id, cat: slug, titre, auto: true }) })
-      if (!w || w.ok !== true) return // registre refuse : retenté au prochain cycle
+      if (!w || w.ok !== true) return // the registry refuses: retried on the next cycle
       CATEGORIES[id] = slug
       CATEGORIES_AUTO[id] = true
-      try { if (ligne !== null && ligne !== undefined && ligne.isConnected === true) iconeDeLigne(ligne) } catch (e) { /* ligne rendue entre-temps : la passe suivante peindra */ }
+      try { if (ligne !== null && ligne !== undefined && ligne.isConnected === true) iconeDeLigne(ligne) } catch (e) { /* row rendered in the meantime: the next pass will paint it */ }
     }
 
     const pomperAutocat = () => {
@@ -593,7 +598,7 @@ window.__ModuleLoader__.load({
       if (typeof fetch !== 'function' || typeof localStorage === 'undefined' || localStorage === null) return
       const lignes = document.querySelectorAll('[class*="sessionRow"]')
       for (let i = 0; i < lignes.length; i++) {
-        if (AUTOCAT_FILE.length >= 12) break // douze décisions par passe (400 ms entre deux), jamais une rafale
+        if (AUTOCAT_FILE.length >= 12) break // twelve decisions per pass (400 ms apart), never a burst
         const ligne = lignes[i]
         const el = ligne.querySelector('[class*="title"]')
         if (el === null || el === undefined) continue
@@ -602,10 +607,10 @@ window.__ModuleLoader__.load({
         if (id === '') continue
         if (CATEGORIES[id] !== undefined && CATEGORIES_AUTO[id] !== true) continue
         const texte = String(el.textContent || '').trim()
-        if (texte.length < 4) continue // titre encore vide ou d'accueil
+        if (texte.length < 4) continue // title still empty or a welcome one
         if (provisoire === null || provisoire === undefined) {
-          // Déjà classé. Ça ne revient que si la catégorie vient du classement AUTOMATIQUE de cette page et que le titre a
-          // changé depuis (le moteur re-titre après le récapitulatif : « Greeting » devient le vrai sujet).
+          // Already classified. It only comes back if the category comes from this page's AUTOMATIC classification and the title has
+          // changed since (the engine re-titles after the recap: « Greeting » becomes the real subject).
           const avant = AUTOCAT[id]
           if (!(CATEGORIES_AUTO[id] === true && avant !== undefined && avant !== null && String(avant.titre || '') !== texte)) continue
         }
@@ -624,26 +629,26 @@ window.__ModuleLoader__.load({
       suivante()
     }
 
-    // ── état du chantier : le travail de la session est-il committé ? ───────
-    // La liste des sessions et le journal de chacune sont lisibles par l'API
-    // du harnais (les routes que la GUI utilise elle-même). On y cherche le
-    // dernier geste de la session qui touche son dossier :
-    //   • un commit (ou une fusion) réussi        → vert ;
-    //   • une écriture dans le dossier            → gris (chantier en cours) ;
-    //   • rien de concluant dans la fenêtre lue   → gris (par défaut).
-    // Le verdict est mémoïsé par session et recalculé quand sa révision
-    // (`updatedAt`) change, donc un cycle ordinaire ne relit que les sessions
-    // qui viennent de bouger.
+    // ── state of the work: is the session's work committed? ───────
+    // The list of the sessions and the journal of each are readable through the
+    // harness API (the routes the GUI itself uses). We look in them for the
+    // last gesture of the session that touches its folder:
+    //   • a successful commit (or merge)        → green;
+    //   • a write in the folder                  → grey (work in progress);
+    //   • nothing conclusive in the window read  → grey (the default).
+    // The verdict is memoised per session and recomputed when its revision
+    // (`updatedAt`) changes, so an ordinary cycle only re-reads the sessions
+    // that have just moved.
     const OUTILS_ECRITURE = { write: 1, edit: 1, multiedit: 1, multi_edit: 1, apply_patch: 1, str_replace: 1, notebook_write: 1, notebook_edit: 1 }
-    // Redirection shell : `> fichier`, `>> "mon fichier"`. Le regard négatif
-    // écarte ce qui n'est PAS un fichier — `2>&1`, `> =`, et surtout les
-    // comparaisons du code passé à `node -e '… if (i > 0) …'`. Le préfixe
-    // exclut `=` pour ne pas lire la flèche `=>` d'une fonction comme une
+    // Shell redirection: `> file`, `>> "my file"`. The negative lookahead
+    // drops what is NOT a file — `2>&1`, `> =`, and above all the
+    // comparisons of the code passed to `node -e '… if (i > 0) …'`. The prefix
+    // excludes `=` so as not to read the `=>` arrow of a function as a
     // redirection vers un chemin relatif.
     const ECRITURE_BASH = /(^|[^|&>=])>{1,2}\s*(?![0-9=&])(?:"[^"]*"|'[^']*'|[^\s;|&)]+)|\btee\b|\bsed -i|\bcp\b|\bmv\b|\brm\b|\bmkdir\b|\bgit add\b|\bgit apply\b|\bpatch -p/
-    // Le CORPS d'un heredoc est une donnée, pas du shell : `cat > /tmp/x.mjs
-    // <<'EOF'` suivi de code JavaScript ne doit pas être relu comme une suite
-    // de redirections. On retire ces corps avant d'analyser la commande.
+    // The BODY of a heredoc is data, not shell: `cat > /tmp/x.mjs
+    // <<'EOF'` followed by JavaScript code must not be re-read as a series
+    // of redirections. These bodies are removed before the command is analysed.
     const sansHeredoc = (cmd) => {
       const lignes = String(cmd).split('\n')
       const gardees = []
@@ -657,7 +662,7 @@ window.__ModuleLoader__.load({
       }
       return gardees.join('\n')
     }
-    // Cibles visibles des redirections d'une commande (`> /tmp/x.mjs`).
+    // Visible targets of the redirections of a command (`> /tmp/x.mjs`).
     const ciblesRedirection = (cmd) => {
       const re = /(^|[^|&>=])>{1,2}\s*(?![0-9=&])("[^"]*"|'[^']*'|[^\s;|&)]+)/g
       const out = []
@@ -665,12 +670,12 @@ window.__ModuleLoader__.load({
       while (m !== null) { out.push(String(m[2]).replace(/^["']|["']$/g, '')); m = re.exec(cmd) }
       return out
     }
-    // Une écriture shell DANS le dossier, pas seulement une commande qui le
-    // MENTIONNE : `cd <dossier> && cat > /tmp/script.mjs` n'ouvre pas le
-    // chantier. Les cibles RELATIVES tournent dans le workdir de la commande
-    // — le défaut du harnais étant le dossier du chantier, elles comptent ;
-    // un workdir explicite hors du dossier, ou des redirections toutes
-    // absolues et hors du dossier, écartent l'écriture.
+    // A shell write INSIDE the folder, not only a command that
+    // MENTIONS it: `cd <folder> && cat > /tmp/script.mjs` does not open the
+    // work. RELATIVE targets run in the command's workdir
+    // — the harness default being the work's folder, they count;
+    // an explicit workdir outside the folder, or redirections that are all
+    // absolute and outside the folder, rule the write out.
     const ecritureBashDansDossier = (cmd, dossier, wd) => {
       const rep = String(wd || '')
       if (rep !== '' && rep !== dossier && rep.indexOf(dossier + '/') !== 0) return false
@@ -680,29 +685,29 @@ window.__ModuleLoader__.load({
       if (cibles.length > 0 && cibles.every((c) => c.charAt(0) === '/' && dansDossier(c, dossier) === false)) return false
       return true
     }
-    // `git commit` peut être précédé d'options globales (`-c clé=valeur`, `-C dir`,
-    // `--no-pager`) : `git -c user.name=me commit` n'était PAS reconnu, donc un
-    // chantier pourtant committé restait affiché « non sauvegardé ». Et `\bgit merge\b`
-    // matchait `git merge-base` — une simple lecture d'ascendance passait pour un
-    // commit, ce qui refermait le chantier à tort. Une seule expression, deux faux
-    // verdicts, dans les deux sens.
+    // `git commit` can be preceded by global options (`-c key=value`, `-C dir`,
+    // `--no-pager`): `git -c user.name=me commit` was NOT recognised, so a
+    // piece of work that was committed stayed shown as « not saved ». And `\bgit merge\b`
+    // matched `git merge-base` — a plain ancestry read passed for a
+    // commit, which closed the work wrongly. One expression, two false
+    // verdicts, in both directions.
     const COMMIT_BASH = /\bgit(?:\s+(?:-c\s+\S+|-C\s+\S+|--?[A-Za-z][\w-]*(?:=\S+)?))*\s+(?:commit|merge|cherry-pick)\b(?!-)|\bgit rebase --continue\b/
     const ANNULATION_BASH = /\bgit (checkout --|restore\b|stash\b|reset\b)/
-    // v4 : le mémo suit maintenant `asOfSeq` en plus de `updatedAt` — la clé
-    // change pour que les verdicts déjà en cache soient recalculés une fois.
+    // v4: the memo now follows `asOfSeq` as well as `updatedAt` — the key
+    // changes so that the verdicts already cached are recomputed once.
     const CLE_CACHE = 'kybernos.sessions.commits.v4'
     const CACHE_ETATS = new Map() // titre nu → { id, updatedAt, fait, quoi }
-    // Fenêtre de lecture du journal quand on juge l'état d'une session.
-    // Elle était de 24 messages : un commit suivi de beaucoup d'activité qui
-    // n'écrit rien (lectures, greps, tests) sortait de la fenêtre et la ligne
-    // retombait en gris alors que le chantier ÉTAIT committé. On lit désormais
-    // la même fenêtre que `lireJournalSession` — le classement ne change pas,
-    // seule la profondeur de lecture change.
+    // Window of the journal read when the state of a session is judged.
+    // It was 24 messages: a commit followed by a lot of activity that
+    // writes nothing (reads, greps, tests) left the window and the row
+    // fell back to grey although the work WAS committed. We now read
+    // the same window as `lireJournalSession` — the classification does not change,
+    // only the depth of the read does.
     const JOURNAL_LU = 400
     let LISTE = { t: 0, items: [] }
 
-    // Le titre enregistré porte son glyphe (🎨 …), celui rendu dans la ligne
-    // ne l'a plus : on compare les deux sous la même forme.
+    // The recorded title carries its glyph (🎨 …), the one rendered in the row
+    // no longer does: we compare the two in the same form.
     const titreNu = (texte) => String(texte === null || texte === undefined ? '' : texte)
       .replace(/^[\p{Extended_Pictographic}\uFE0E\uFE0F\u200D\s]+/u, '')
       .replace(/\s+/g, ' ')
@@ -727,9 +732,9 @@ window.__ModuleLoader__.load({
       } catch (e) { return null }
     }
 
-    // Les chemins cités par une commande tombent-ils dans le dossier de la
-    // session ? Hors du dossier (scripts jetables dans /tmp, par exemple) une
-    // écriture ne concerne pas le chantier.
+    // Do the paths a command names fall inside the folder of the
+    // session? Outside the folder (throwaway scripts in /tmp, for example) a
+    // write does not concern the work.
     const dansDossier = (texte, dossier) => {
       if (dossier === '' || dossier === undefined) return true
       const chemins = String(texte).match(/\/[A-Za-z0-9._/-]{3,}/g) || []
@@ -739,9 +744,9 @@ window.__ModuleLoader__.load({
       return false
     }
 
-    // Verdict de chaque appel, indexé par callId (un `tool/result` en échec
-    // porte `[exit code: N]`). Sert au classement du journal ET à la lecture
-    // des gestes de mémoire.
+    // Verdict of each call, indexed by callId (a failed `tool/result`
+    // carries `[exit code: N]`). Used by the classification of the journal AND by the reading
+    // of the memory gestures.
     const resultatsAppels = (events) => {
       const resultats = new Map()
       for (let i = 0; i < events.length; i++) {
@@ -757,11 +762,11 @@ window.__ModuleLoader__.load({
       try { return JSON.parse(d.arguments || '{}') } catch (err) { return {} }
     }
 
-    // Classe le journal d'une session : le premier geste qui compte en partant
-    // de la fin décide. Fonction pure — testée hors navigateur.
-    // `ecritures` compte les gestes d'écriture DANS le dossier depuis le
-    // dernier commit : c'est le travail non sauvegardé de CETTE session, par
-    // opposition à l'état du dossier (que d'autres chats partagent).
+    // Classifies the journal of a session: the first gesture that counts, going
+    // from the end, decides. A pure function — tested outside the browser.
+    // `ecritures` counts the write gestures INSIDE the folder since the
+    // last commit: it is the unsaved work of THIS session, as
+    // opposed to the state of the folder (which other chats share).
     const classerJournal = (events, dossier) => {
       const resultats = resultatsAppels(events)
       let ecritures = 0
@@ -774,17 +779,17 @@ window.__ModuleLoader__.load({
         const nom = String(d.name || '')
         const args = argsAppel(d)
         const cmd = String(args.command || '')
-        // Un heredoc peut CONTENIR « git commit » : on ne juge que la commande.
+        // A heredoc can CONTAIN « git commit »: only the command is judged.
         const utile = nom === 'bash' ? sansHeredoc(cmd) : ''
         if (nom === 'bash' && COMMIT_BASH.test(utile)) {
-          // Un commit lancé DEPUIS le dossier du chantier est un commit DU
-          // chantier — même sans chemin absolu dans le texte : `git add … &&
-          // git commit` via workdir (le défaut du harnais EST le dossier de
-          // la session) était invisible, et tout le chantier restait affiché
-          // « non sauvegardé ». Trois façons de désigner un AUTRE dossier :
+          // A commit run FROM the work's folder is a commit OF the
+          // work — even with no absolute path in the text: `git add … &&
+          // git commit` via workdir (the harness default IS the session's
+          // folder) was invisible, and all the work stayed shown as
+          // « not saved ». Three ways to point at ANOTHER folder:
           // `--workdir`, `git -C <ailleurs>`, et `cd <ailleurs> && git commit`.
-          // Seul un chemin ABSOLU est informatif : un `cd .` ou un `-C .`
-          // relatif ne dit rien et reste compté comme le chantier.
+          // Only an ABSOLUTE path is informative: a relative `cd .` or `-C .`
+          // says nothing and is still counted as the work.
           const absolu = (p) => p !== undefined && p !== '' && p.charAt(0) === '/'
           const wd = String(args.workdir || '')
           const gitC = (/(?:^|\s)-C\s+(\S+)/.exec(utile) || [])[1]
@@ -808,20 +813,20 @@ window.__ModuleLoader__.load({
       }
       const verdict = (quoi) => ({ fait: quoi === 'commit', quoi: quoi, ecritures: ecritures, chemins: chemins })
       if (commit && ecritures === 0) return verdict('commit')
-      if (commit) return verdict('écriture après un commit')
-      return verdict(ecritures > 0 ? 'écriture' : 'rien de concluant')
+      if (commit) return verdict('write after a commit')
+      return verdict(ecritures > 0 ? 'write' : 'nothing conclusive')
     }
 
-    // ── mémoire écrite DANS cette session ───────────────────────────────────
-    // Le protocole kyber-memory écrit par `memory.cjs` (record / lesson /
-    // used). On lit ces appels dans le journal de la session : c'est la seule
-    // source qui dise ce que CETTE session a écrit ou mis à jour en mémoire,
-    // par opposition au ledger du kyber — qui, lui, additionne toutes les
-    // sessions de la machine.
+    // ── memory written INSIDE this session ───────────────────────────────────
+    // The kyber-memory protocol written by `memory.cjs` (record / lesson /
+    // used). These calls are read in the session's journal: it is the only
+    // source that says what THIS session wrote or updated in memory,
+    // as opposed to the agent team's ledger — which adds up all the
+    // sessions of the machine.
     const SOUS_COMMANDES_MEMOIRE = { record: 1, lesson: 1, used: 1 }
 
-    // Découpe une commande shell en jetons en respectant les guillemets (les
-    // notes et les leçons en contiennent).
+    // Splits a shell command into tokens, respecting the quotes (the
+    // notes and the lessons contain some).
     const jetons = (cmd) => {
       const mots = []
       const re = /"([^"]*)"|'([^']*)'|(\S+)/g
@@ -841,7 +846,7 @@ window.__ModuleLoader__.load({
       return null
     }
 
-    // Fonction pure : gestes de mémoire d'un journal de session.
+    // A pure function: the memory gestures of a session journal.
     const memoireDuJournal = (events) => {
       const resultats = resultatsAppels(events)
       const entrees = []
@@ -902,14 +907,14 @@ window.__ModuleLoader__.load({
       return { entrees, kybers, records: garde('record'), lessons: garde('lesson'), used: garde('used'), souvenirs }
     }
 
-    // ── journal de la session courante (ce que CETTE session a fait) ───────
-    // Lu par l'API du harnais, comme le fait la liste des sessions : pas de
-    // route hôte supplémentaire, donc pas de redémarrage serveur.
-    // La liste porte l'`updatedAt` qui décide si une ligne doit être relue :
-    // gardée 2 minutes, elle faisait patienter une ligne committée jusqu'au
-    // cycle suivant (icône verte en retard de plusieurs minutes). 20 s suffit à
-    // éviter la mitraille d'appels, et la passe de 30 s relit alors chaque
-    // ligne au plus tard dans la demi-minute.
+    // ── journal of the current session (what THIS session did) ───────
+    // Read through the harness API, as the list of sessions is: no
+    // extra host route, so no server restart.
+    // The list carries the `updatedAt` that decides whether a row must be re-read:
+    // kept for 2 minutes, it made a committed row wait until the
+    // next cycle (a green icon several minutes late). 20 s is enough to
+    // avoid the hail of calls, and the 30 s pass then re-reads every
+    // row within half a minute at the latest.
     const listerSessions = async (maintenant) => {
       if (LISTE.items.length === 0 || maintenant - LISTE.t > 20000) {
         const v = await appelApi('session/list', { _request: {} })
@@ -944,7 +949,7 @@ window.__ModuleLoader__.load({
         if (!brut) return
         const o = JSON.parse(brut)
         for (const t of Object.keys(o)) if (CACHE_ETATS.has(t) === false) CACHE_ETATS.set(t, o[t])
-      } catch (e) { /* cache illisible : on repart de zéro */ }
+      } catch (e) { /* unreadable cache: we start from zero */ }
     }
 
     const ecrireCache = () => {
@@ -954,17 +959,17 @@ window.__ModuleLoader__.load({
         let n = 0
         CACHE_ETATS.forEach((v, k) => { if (n < 200) { o[k] = v; n++ } })
         localStorage.setItem(CLE_CACHE, JSON.stringify(o))
-      } catch (e) { /* quota : sans importance */ }
+      } catch (e) { /* quota: no matter */ }
     }
 
-    // Peint une icône selon l'état connu du chantier.
+    // Paints an icon according to the known state of the work.
     const peindre = (marque, fait) => {
       if (marque.getAttribute('data-fait') === (fait ? '1' : '0')) return false
       marque.setAttribute('data-fait', fait ? '1' : '0')
       marque.setAttribute('style', '--kbs-ico:' + (fait ? TEINTE_VERTE : TEINTE_GRISE))
       marque.setAttribute('class', 'kbs-titre-ico' + (fait ? ' kbs-titre-ico--fait' : ''))
-      const mot = motAffiche(marque.getAttribute('data-mot') || 'Catégorie')
-      const etat = fait ? ktMarque('travail committé', 'work committed') : ktMarque('travail non committé', 'work not committed')
+      const mot = motAffiche(marque.getAttribute('data-mot') || 'Category')
+      const etat = fait ? kt('travail committé', 'work committed') : kt('travail non committé', 'work not committed')
       marque.setAttribute('aria-label', mot + ' — ' + etat)
       marque.setAttribute('title', mot + ' — ' + etat)
       return true
@@ -987,28 +992,28 @@ window.__ModuleLoader__.load({
 
     const etatSession = (titre) => CACHE_ETATS.get(titreNu(titre)) || null
 
-    // ── liste des chats : l'affichage PAR DÉFAUT ────────────────────────────
-    // Règle statuée le 2026-09-21 : par défaut le menu des chats ne montre que
-    // les chats dont le travail n'est PAS committé (l'icône grise), plafonnés à
-    // 6 lignes ; jamais moins de 2 lignes, et la ligne ouverte reste toujours
-    // visible. Déplier le groupe (« Show N more sessions ») lève le filtre :
-    // c'est le seul geste qui montre tout.
+    // ── chat list: the DEFAULT display ────────────────────────────
+    // Rule decided on 2026-09-21: by default the chat menu only shows
+    // the chats whose work is NOT committed (the grey icon), capped at
+    // 6 rows; never fewer than 2 rows, and the open row always stays
+    // visible. Expanding the group (« Show N more sessions ») lifts the filter:
+    // it is the only gesture that shows everything.
     const LIGNES_MAX = 6
     const LIGNES_MIN = 2
     const CLE_VU = 'data-kbv'
-    // Le geste « Show N more » ne se lit PAS dans `aria-expanded` : DSH ne le
-    // passe à vrai qu'au DERNIER cran (quand sa limite devient infinie). Avec
-    // 99 chats cachés il faut donc dix-neuf clics pour que le filtre daigne se
-    // lever — et entre-temps chaque clic ajoute 5 lignes que le filtre remasque
-    // aussitôt : l'utilisateur clique et il ne se passe rien. On retient donc le
-    // GESTE sur la section elle-même (`data-kbs-tout`), posé par le clic.
+    // The « Show N more » gesture is NOT read in `aria-expanded`: DSH only sets it
+    // to true at the LAST notch (when its limit becomes infinite). With
+    // 99 hidden chats it takes nineteen clicks for the filter to deign to
+    // lift — and meanwhile every click adds 5 rows that the filter hides again
+    // at once: the user clicks and nothing happens. So we remember the
+    // GESTURE on the section itself (`data-kbs-tout`), set by the click.
     const CLE_TOUT = 'data-kbs-tout'
 
-    // Fonction pure — testée hors navigateur (check-kybernos-session-icones).
-    // Entrée : les lignes d'UN groupe, dans l'ordre rendu, `{ fait, ouvert }`.
-    // `fait` = travail committé ; `null` = état pas encore connu, et on ne
-    // masque jamais sur une ignorance (la ligne reste visible).
-    // Sortie : les indices à garder, dans l'ordre rendu.
+    // A pure function — tested outside the browser (check-kybernos-session-icones).
+    // Input: the rows of ONE group, in rendered order, `{ fait, ouvert }`.
+    // `fait` = work committed; `null` = state not known yet, and we never
+    // hide on ignorance (the row stays visible).
+    // Output: the indexes to keep, in rendered order.
     const choisirLignes = (lignes) => {
       const n = lignes.length
       const garder = []
@@ -1021,13 +1026,13 @@ window.__ModuleLoader__.load({
       return garder
     }
 
-    // La section de groupe d'une ligne : son plus proche ancêtre `groupSection`
-    // (structure du shell, vérifiée en vrai) :
+    // The group section of a row: its nearest `groupSection` ancestor
+    // (shell structure, checked for real):
     //   div.groupSection > [span(div.projectRow), span(div.sessionRow)…, button.sessionOverflow…]
-    // Comme `sessionRow` et `title`, le nom est haché par le bundler DSH : on
-    // matche le suffixe, et si DSH renomme un jour, le filtre cesse de
-    // s'appliquer au lieu de masquer au hasard. `parentNode` (pas
-    // `parentElement`) : c'est le seul des deux que le DOM du harnais expose.
+    // Like `sessionRow` and `title`, the name is hashed by the DSH bundler: we
+    // match the suffix, and if DSH renames it one day, the filter stops
+    // applying instead of hiding at random. `parentNode` (not
+    // `parentElement`): it is the only one of the two the test harness DOM exposes.
     const sectionDeLigne = (ligne) => {
       let p = ligne.parentNode
       while (p !== null && p !== undefined) {
@@ -1042,7 +1047,7 @@ window.__ModuleLoader__.load({
       return el === null || el === undefined ? '' : titreNu(el.textContent || '')
     }
 
-    // État de CETTE ligne : committé (true), en cours (false), inconnu (null).
+    // State of THIS row: committed (true), in progress (false), unknown (null).
     const etatDeLigne = (ligne) => {
       const e = CACHE_ETATS.get(titreDeLigne(ligne))
       return e === undefined ? null : e.fait
@@ -1050,8 +1055,8 @@ window.__ModuleLoader__.load({
 
     const ligneOuverte = (ligne) => String(ligne.className || '').indexOf('selected') !== -1
 
-    // Applique la règle à toutes les sections rendues. Renvoie le nombre de
-    // lignes dont la visibilité a changé (0 = rien à faire, aucune écriture).
+    // Applies the rule to every rendered section. Returns the number of
+    // rows whose visibility changed (0 = nothing to do, no write).
     const filtrerListe = () => {
       if (typeof document === 'undefined') return 0
       const lignes = document.querySelectorAll('[class*="sessionRow"]')
@@ -1059,8 +1064,8 @@ window.__ModuleLoader__.load({
       const groupes = new Map()
       for (let i = 0; i < lignes.length; i++) {
         const section = sectionDeLigne(lignes[i])
-        // Hors d'une section de projet (liste plate, résultats de recherche) :
-        // la règle ne s'applique pas — ces listes-là montrent tout.
+        // Outside a project section (flat list, search results):
+        // the rule does not apply — those lists show everything.
         if (section === null || section === undefined) continue
         if (groupes.has(section) === false) groupes.set(section, [])
         groupes.get(section).push(lignes[i])
@@ -1072,10 +1077,10 @@ window.__ModuleLoader__.load({
         const section = sections[s][0]
         const rows = sections[s][1]
         const bouton = section.querySelector('[class*="sessionOverflowButton"]')
-        // Groupe déplié : le filtre est levé (« Show N more » = voir tout). Deux
-        // sources : DSH l'annonce (dernier cran, aria-expanded) ou l'utilisateur
-        // a cliqué le bouton de CE groupe (CLE_TOUT, posé par surClicDeplier —
-        // sans lui, les 5 lignes dépliées par un clic restaient masquées).
+        // Group expanded: the filter is lifted (« Show N more » = see all). Two
+        // sources: DSH announces it (last notch, aria-expanded) or the user
+        // clicked the button of THIS group (CLE_TOUT, set by surClicDeplier —
+        // without it, the 5 rows expanded by a click stayed hidden).
         const deplie = (bouton !== null && bouton !== undefined && bouton.getAttribute('aria-expanded') === 'true') ||
           section.getAttribute(CLE_TOUT) === '1'
         let garder = null
@@ -1116,11 +1121,11 @@ window.__ModuleLoader__.load({
         if (titre === '') continue
         const it = parTitre.get(titre)
         if (it === undefined || it.parentSessionId) continue
-        // Le mémo est le garde-fou : on ne relit pas un journal pour rien. Mais
-        // `updatedAt` N'AVANCE PAS quand l'agent travaille (il ne bouge que sur
-        // certaines actions) : un verdict calculé tôt restait alors figé, et la
-        // ligne gardait son gris après un commit. On suit donc AUSSI le numéro
-        // de séquence de la session (`asOfSeq`), qui avance à chaque événement.
+        // The memo is the safeguard: a journal is not re-read for nothing. But
+        // `updatedAt` does NOT ADVANCE while the agent works (it only moves on
+        // certain actions): a verdict computed early then stayed frozen, and the
+        // row kept its grey after a commit. So we ALSO follow the sequence
+        // number of the session (`asOfSeq`), which advances at every event.
         const seq = ((it.projections || {}).asOfSeq) || 0
         const deja = CACHE_ETATS.get(titre)
         if (deja !== undefined && deja.updatedAt === it.updatedAt && deja.asOfSeq === seq) continue
@@ -1128,7 +1133,7 @@ window.__ModuleLoader__.load({
         const records = v && Array.isArray(v.records) ? v.records : []
         const events = []
         for (let k = 0; k < records.length; k++) if (records[k].event) events.push(records[k].event)
-        const c = events.length > 0 ? classerJournal(events, String(it.cwd || '')) : { fait: false, quoi: 'journal illisible' }
+        const c = events.length > 0 ? classerJournal(events, String(it.cwd || '')) : { fait: false, quoi: 'unreadable journal' }
         CACHE_ETATS.set(titre, { id: it.sessionId, updatedAt: it.updatedAt, asOfSeq: seq, fait: c.fait, quoi: c.quoi })
         n++
       }
@@ -1138,14 +1143,14 @@ window.__ModuleLoader__.load({
       return n
     }
 
-    // Rend une ligne : icône posée devant le titre, glyphe retiré du texte.
-    // Idempotent — React réécrit le texte quand le titre change, le glyphe
-    // réapparaît alors et la passe suivante le masque à nouveau.
+    // Renders a row: icon placed before the title, glyph removed from the text.
+    // Idempotent — React rewrites the text when the title changes, the glyph
+    // then reappears and the next pass hides it again.
     //
-    // Un titre encore SANS pictogramme n'est plus laissé nu : dès le premier
-    // nommage la ligne reçoit l'icône « non classé » (❓). Le pictogramme reste
-    // la source de la VRAIE catégorie quand il existe, mais l'icône, elle, est
-    // posée sans lui — et remplacée dès qu'un titre classé arrive.
+    // A title still WITHOUT a pictogram is no longer left bare: from the first
+    // naming the row gets the « uncategorised » icon (❓). The pictogram stays
+    // the source of the REAL category when it exists, but the icon is
+    // placed without it — and replaced as soon as a classified title arrives.
     const elementTitre = (ligne) => ligne.querySelector('.kbpin_open') || ligne.querySelector('[class*="title"]')
 
     const iconeDeLigne = (ligne) => {
@@ -1158,8 +1163,8 @@ window.__ModuleLoader__.load({
       const trouve = categorieDeLigne(ligne, legacy)
       const deja = el.querySelector('.kbs-titre-ico')
       if (trouve === null) {
-        // Pas de nom : rien à habiller (la session vient d'être créée, le
-        // premier nommage n'est pas encore arrivé).
+        // No name: nothing to dress (the session has just been created, the
+        // first naming has not arrived yet).
         if (String(texte).trim() === '') return false
         if (deja !== null && deja !== undefined) return false
         const provisoire = document.createElement('span')
@@ -1174,14 +1179,14 @@ window.__ModuleLoader__.load({
         peindre(provisoire, inconnu !== null && inconnu.fait === true)
         return true
       }
-      // Le pictogramme du titre (s'il en reste un) n'est jamais rendu : la
-      // catégorie s'affiche en SVG, pas en emoji.
+      // The pictogram of the title (if one is left) is never rendered: the
+      // category is shown as an SVG, not as an emoji.
       const retirerGlyphe = () => { if (legacy !== null && noeud !== null) noeud.nodeValue = texte.slice(legacy.graphe.length) }
       if (deja !== null && deja !== undefined) {
         retirerGlyphe()
-        // Catégorie classée côté registre après une première passe, ou titre
-        // reclassé : l'icône provisoire cède la place à la vraie catégorie
-        // (sans quoi la ligne garderait son ❓ à vie).
+        // Category classified on the registry side after a first pass, or title
+        // re-classified: the provisional icon gives way to the real category
+        // (otherwise the row would keep its ❓ for life).
         if (deja.getAttribute('data-mot') !== trouve.mot) {
           deja.removeAttribute('data-provisoire')
           deja.setAttribute('data-mot', trouve.mot)
@@ -1215,14 +1220,14 @@ window.__ModuleLoader__.load({
 
     let prevu = false
 
-    // ── bascule au vert dès le commit ────────────────────────────────────────
-    // Sans ça, une ligne restait grise jusqu'à 2 minutes après le commit : la
-    // liste en cache portait encore l'`updatedAt` d'avant, donc la passe de
-    // relecture sautait la ligne (`deja.updatedAt === it.updatedAt`). Dès qu'un
-    // geste de commit apparaît dans le fil (la commande est rendue dans la
-    // conversation), on périme la liste et on relit une seconde plus tard — le
-    // temps que le journal du harnais projette le commit.
-    let relire = null // la passe de relecture installée par `suivreTitres`
+    // ── switch to green as soon as the commit is made ────────────────────────────────────────
+    // Without this, a row stayed grey for up to 2 minutes after the commit: the
+    // cached list still carried the old `updatedAt`, so the re-read pass
+    // skipped the row (`deja.updatedAt === it.updatedAt`). As soon as a
+    // commit gesture appears in the thread (the command is rendered in the
+    // conversation), the list is expired and re-read a second later — the
+    // time for the harness journal to project the commit.
+    let relire = null // the re-read pass installed by `suivreTitres`
     let relirePrevue = 0
 
     const texteNoeud = (n) => {
@@ -1232,10 +1237,10 @@ window.__ModuleLoader__.load({
       return ''
     }
 
-    // Ne regarde que ce qui vient d'arriver : le texte d'un nœud ajouté, ou la
-    // donnée d'un nœud texte modifié. Jamais le `target` d'une mutation
-    // childList — sur le corps de page, son textContent est toute la page, et
-    // le relire à chaque mutation coûterait cher.
+    // Looks only at what has just arrived: the text of an added node, or the
+    // data of a modified text node. Never the `target` of a childList
+    // mutation — on the page body its textContent is the whole page, and
+    // re-reading it at every mutation would be expensive.
     const commitDansMutations = (mutations) => {
       if (mutations === null || mutations === undefined || typeof mutations.length !== 'number') return false
       for (let i = 0; i < mutations.length; i++) {
@@ -1261,16 +1266,16 @@ window.__ModuleLoader__.load({
       prevu = true
       const tic = () => {
         prevu = false; decorerTitres(); filtrerListe()
-        // De nouvelles lignes sans catégorie : on les classe sans attendre le prochain cycle de 30 s (au plus une fois toutes les 5 s).
-        if (typeof Date !== 'undefined' && Date.now() - dernierePompe > 5000) { dernierePompe = Date.now(); setTimeout(() => { try { pomperAutocat() } catch (e) { /* retenté */ } }, 1500) }
+        // New rows with no category: they are classified without waiting for the next 30 s cycle (at most once every 5 s).
+        if (typeof Date !== 'undefined' && Date.now() - dernierePompe > 5000) { dernierePompe = Date.now(); setTimeout(() => { try { pomperAutocat() } catch (e) { /* tried again later */ } }, 1500) }
       }
       if (typeof window !== 'undefined' && window.requestAnimationFrame) window.requestAnimationFrame(tic)
       else setTimeout(tic, 16)
     }
 
-    // Remonte d'un nœud cliqué jusqu'au bouton « Show N more » (le clic peut
-    // tomber sur le texte du bouton). `parentNode`, jamais `closest` : le
-    // harnais hors navigateur n'expose que le premier.
+    // Climbs from a clicked node up to the « Show N more » button (the click can
+    // land on the text of the button). `parentNode`, never `closest`: the
+    // harness outside a browser only exposes the first.
     const boutonDe = (noeud) => {
       let p = noeud
       while (p !== null && p !== undefined) {
@@ -1280,11 +1285,11 @@ window.__ModuleLoader__.load({
       return null
     }
 
-    // Clic sur « Show N more sessions » : c'est LE geste qui demande à voir le
-    // groupe entier. On le retient sur la section, et on relance la passe pour
-    // que le filtre se lève tout de suite.
-    // `aria-expanded` dit l'état AVANT ce clic : vrai = ce clic REPLIE, et le
-    // groupe doit revenir au filtre par défaut.
+    // Click on « Show N more sessions »: it is THE gesture that asks to see the
+    // whole group. It is remembered on the section, and the pass is run again so
+    // that the filter lifts at once.
+    // `aria-expanded` says the state BEFORE this click: true = this click FOLDS, and the
+    // group must go back to the default filter.
     const surClicDeplier = (ev) => {
       const bouton = boutonDe(ev === null || ev === undefined ? null : ev.target)
       if (bouton === null) return
@@ -1295,8 +1300,8 @@ window.__ModuleLoader__.load({
       planifier()
     }
 
-    // Suit la liste des sessions : les lignes apparaissent, disparaissent et se
-    // re-rendent sans prévenir (groupes repliés, filtre de recherche, renommage).
+    // Follows the list of sessions: the rows appear, disappear and
+    // re-render without warning (folded groups, search filter, renaming).
     const suivreTitres = () => {
       if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return () => {}
       poserCss()
@@ -1306,9 +1311,9 @@ window.__ModuleLoader__.load({
       decorerTitres()
       appliquerTeintes()
       filtrerListe()
-      // Le registre des catégories arrive par le host : on décore, PUIS on
-      // relit les états de chantier. Un titre renommé sans emoji reçoit ainsi
-      // son SVG au cycle suivant (30 s), sans jamais rester sans icône.
+      // The category registry comes from the host: we decorate, THEN we
+      // re-read the states of the work. A title renamed with no emoji thus gets
+      // its SVG on the next cycle (30 s), without ever staying without an icon.
       const revoir = () => {
         lireCategories()
           .then(() => { decorerTitres(); pomperAutocat(); return rafraichirEtats() })
@@ -1320,8 +1325,8 @@ window.__ModuleLoader__.load({
       if (typeof setInterval === 'function') minuteur = setInterval(revoir, 30000)
       const surVisibilite = () => { if (typeof document !== 'undefined' && document.hidden === false) revoir() }
       if (typeof document.addEventListener === 'function') document.addEventListener('visibilitychange', surVisibilite)
-      // En CAPTURE : le filtre doit être levé avant que React ne rende les lignes
-      // du clic, sinon la passe du MutationObserver les masque aussitôt.
+      // In CAPTURE: the filter must be lifted before React renders the rows
+      // of the click, otherwise the MutationObserver pass hides them at once.
       if (typeof document.addEventListener === 'function') document.addEventListener('click', surClicDeplier, true)
       const observateur = new MutationObserver(planifier)
       observateur.observe(document.body, { childList: true, subtree: true, characterData: true })
@@ -1353,7 +1358,7 @@ window.__ModuleLoader__.load({
         }))
     }
 
-    // ── ordinateur ↔ GitHub (maquette .sync) ────────────────────────────────
+    // ── computer ↔ GitHub (mockup .sync) ────────────────────────────────
     function SyncVisual ({ toSend, toFetch }) {
       const arr = (dir, n, color, on, off) => h('div', { className: 'kbs-arr ' + dir, style: { '--c': n ? color : 'var(--dsw-alias-label-tertiary,#8a9096)' } },
         h('span', { className: 'kbs-arr-l' }, n ? on : off), h('span', { className: 'kbs-line' }))
@@ -1366,7 +1371,7 @@ window.__ModuleLoader__.load({
         h('div', { className: 'kbs-node' }, svg('cloud', 20), h('span', null, 'GitHub')))
     }
 
-    // ── action à plan (dry-run puis confirmation) ───────────────────────────
+    // ── action with a plan (dry run, then confirmation) ───────────────────────────
     function PlanAction ({ url, corps, label, hint }) {
       const [st, setSt] = React.useState(null)
       const lancer = (exec) =>
@@ -1391,13 +1396,13 @@ window.__ModuleLoader__.load({
         st === null && hint ? h('p', { className: 'kbs-hint' }, hint) : null)
     }
 
-    // ── carte flottante (maquette .pop) ─────────────────────────────────────
+    // ── floating card (mockup .pop) ─────────────────────────────────────
     function Pop ({ idCarte, name, icon, accent, titre, texte, visuel, nav, action, details, onClose }) {
       const [det, setDet] = React.useState(false)
-      // P2 — au clavier, la carte doit être atteignable : à l'ouverture le focus
-      // entre dedans (motif WAI-ARIA du dialogue), et il revient sur la puce en
-      // se refermant. Avant, la carte portait role="dialog" sans jamais recevoir
-      // le focus : « Confirm & run » n'existait pas pour qui ne souris pas.
+      // P2 — by keyboard, the card must be reachable: on opening, the focus
+      // goes inside it (the WAI-ARIA dialog pattern), and it goes back to the pill when
+      // it closes. Before, the card carried role="dialog" without ever receiving
+      // the focus: « Confirm & run » did not exist for anyone who does not use a mouse.
       React.useEffect(() => {
         const carte = document.getElementById('kbs-carte-' + idCarte)
         if (carte && carte.focus) carte.focus()
@@ -1456,8 +1461,8 @@ window.__ModuleLoader__.load({
         copie ? h('span', { className: 'kbs-copie' }, 'copied ✓') : null)
     }
 
-    // ── pilule locale → état de CETTE session (les autres chats du dossier
-    //    ne sont plus un libellé : ils sont dits au clic, dans la carte) ─────
+    // ── local pill → state of THIS session (the other chats of the folder
+    //    are no longer a label: they are said on click, in the card) ─────
     const nomDeChemin = (p) => {
       const t = String(p || '').replace(/\/+$/, '')
       const i = t.lastIndexOf('/')
@@ -1469,9 +1474,9 @@ window.__ModuleLoader__.load({
         texte: 'This chat has no project folder yet — its state will appear here once it runs in a workspace.',
         steps: null, action: null, details: null }
       const g = s.git
-      // Hors git, la question reste posée : « ce dossier est-il un dépôt ? »
-      // et « est-ce une copie isolée ? » — deux OUI/NON explicites, pas une
-      // absence d'information.
+      // Outside git, the question is still asked: « is this folder a repository? »
+      // and « is it an isolated copy? » — two explicit YES/NO answers, not an
+      // absence of information.
       if (!g.git) return { accent: ACC.idle, label: 'Outside git', titre: 'Outside git',
         texte: 'This folder is not a git project: there is nothing to save, push or isolate here.',
         steps: null, action: null,
@@ -1485,19 +1490,19 @@ window.__ModuleLoader__.load({
       const n = g.modifications > 0 ? g.modifications : 0
       const autres = Math.max(0, (s.sessionsActives || 0) - 1)
       const partage = autres > 0
-      // Le travail non sauvegardé de CETTE session vient de son journal. Sans
-      // journal lisible, on retombe sur l'état du dossier — au mieux.
+      // The unsaved work of THIS session comes from its journal. Without a
+      // readable journal, we fall back on the state of the folder — at best.
       const mesEcritures = travail === null ? n : travail.ecritures
-      // Le disque tranche quand il peut : si les fichiers de ce chat ne sont
-      // plus sales, il n'y a plus rien à sauver — même quand le commit est
-      // passé par le bouton (aucun outil de l'agent dans le journal).
+      // The disk decides when it can: if this chat's files are no
+      // longer dirty, there is nothing left to save — even when the commit
+      // went through the button (no agent tool in the journal).
       const restes = restesDuChat(s, travail)
       const nonSauvees = restes !== null ? restes : (mesEcritures === null ? n : mesEcritures)
       const attribue = travail !== null
-      // Les fichiers que CE chat a écrits depuis son dernier commit. Le dossier,
-      // lui, est partagé : son compte ne dit rien de ce chat — « 5 fichiers » était
-      // présenté comme le travail de la session alors qu'ils appartenaient à sept
-      // autres chats. On nomme donc ce chat, et on ne parle du dossier qu'à part.
+      // The files THIS chat wrote since its last commit. The folder,
+      // for its part, is shared: its count says nothing about this chat — « 5 files » was
+      // presented as the session's work while they belonged to seven
+      // other chats. So we name this chat, and speak of the folder only apart.
       const mesChemins = attribue && Array.isArray(travail.chemins) ? travail.chemins : []
       const noms = mesChemins.slice(0, 3).map(nomDeChemin).join(', ')
       const ailleurs = partage && n > 0
@@ -1520,8 +1525,8 @@ window.__ModuleLoader__.load({
         Ligne('Active chats', s.sessionsActives + ' now (1 h) · ' + s.sessionsTotal + ' total (24 h)', 'ch'),
         Ligne('Isolated copies', (s.worktrees || 0) > 0 ? s.worktrees + ' in .worktrees/ next door' : 'None', 'wts')
       ]
-      // Travail non sauvegardé DE CETTE session (le dossier partagé n'en fait
-      // plus un état à lui seul : il est dit dans la carte).
+      // Unsaved work OF THIS session (the shared folder no longer makes
+      // a state of it on its own: it is said in the card).
       if (nonSauvees > 0) {
         const mesFichiers = (restes !== null ? nonSauvees + ' file' + pl(nonSauvees, '', 's') : nonSauvees + ' write' + pl(nonSauvees, '', 's')) + ' from this chat ' +
           (noms !== '' ? '(' + noms + (mesChemins.length > 3 ? ', …' : '') + ') ' : '') +
@@ -1547,7 +1552,7 @@ window.__ModuleLoader__.load({
             hint: 'Saves only the files this chat wrote, then pushes. Other chats’ files are left alone.' }),
           details: detailCommun }
       }
-      // copie isolée en cours de revue.
+      // isolated copy under review.
       if (wt && pr && pr.etat === 'open') {
         return { accent: ACC.business, label: 'In review',
           titre: 'Your work is being reviewed',
@@ -1555,7 +1560,7 @@ window.__ModuleLoader__.load({
           steps: ['done', 'next'],
           action: null, details: detailCommun }
       }
-      // copie isolée avec des commits non fusionnés.
+      // isolated copy with unmerged commits.
       if (wt && g.nonFusionnes > 0) {
         return { accent: ACC.business, label: 'Add to project',
           titre: 'Saved, but not in the project yet',
@@ -1566,8 +1571,8 @@ window.__ModuleLoader__.load({
             hint: 'Your copy gets combined with the main version. Dry-run first.' }),
           details: detailCommun }
       }
-      // rien de non sauvegardé pour ce chat — éventuellement du travail
-      // laissé par les autres chats du même dossier.
+      // nothing unsaved for this chat — possibly work
+      // left by the other chats of the same folder.
       if (ailleurs !== '') {
         return { accent: ACC.business, label: 'Saved',
           titre: 'This chat has nothing to save',
@@ -1579,7 +1584,7 @@ window.__ModuleLoader__.load({
             hint: 'Creates .worktrees/<name> on a NEW branch. Refuses a dirty tree.' }),
           details: detailCommun }
       }
-      // tout est à sa place.
+      // everything is in its place.
       return { accent: ACC.success, label: 'Saved',
         titre: wt ? 'Everything is in the project' : 'Everything is saved',
         texte: wt ? 'Your copy is identical to the project. You can close it.' : 'You’re working directly on the project. Nothing to do.',
@@ -1591,15 +1596,15 @@ window.__ModuleLoader__.load({
         details: detailCommun }
     }
 
-    // ── récapitulatif : fait / pas fait / clôturable + geste LOCAL ───────────
-    // Le geste « commit & merge dans le repo local » ne pousse RIEN : il
-    // committe les seuls fichiers de CE chat, puis ramène la branche dans la
-    // base locale. Il vit dans la rangée (pilule), pas au fond d'une carte :
-    // c'est le geste qu'on veut à un clic.
-    // Le worktree n'écrit pas tout à fait comme le host : ici les chemins du
-    // journal peuvent être absolus (l'agent nomme ses fichiers en absolu) ou
-    // relatifs (outil lancé depuis le dossier). On les ramène au dossier de la
-    // session avant de les confronter à la liste des fichiers sales.
+    // ── summary: done / not done / can be closed + LOCAL gesture ───────────
+    // The « commit & merge into the local repo » gesture pushes NOTHING: it
+    // commits only THIS chat's files, then brings the branch back into the
+    // local base. It lives in the row (a pill), not at the bottom of a card:
+    // it is the gesture one wants a click away.
+    // The worktree does not write quite like the host: here the paths of the
+    // journal can be absolute (the agent names its files in absolute form) or
+    // relative (a tool run from the folder). They are brought back to the session's
+    // folder before being compared with the list of dirty files.
     const relatifAuDossier = (p, dossier) => {
       const c = String(p || '').trim()
       if (c === '') return null
@@ -1613,26 +1618,26 @@ window.__ModuleLoader__.load({
       const t = brut.replace(/\/+$/, '')
       return t === p || (brut.charAt(brut.length - 1) === '/' && p.indexOf(t + '/') === 0)
     })
-    // Combien de fichiers de CE chat restent à enregistrer, d'après le disque.
-    // `null` quand le host ne donne pas la liste (version antérieure) : on
-    // retombe alors sur le verdict du journal, comme avant.
+    // How many of THIS chat's files are left to save, according to the disk.
+    // `null` when the host does not give the list (an earlier version): we
+    // then fall back on the journal's verdict, as before.
     const restesDuChat = (s, travail) => {
       const g = s && s.git
       if (!g || !g.git || !Array.isArray(g.sale)) return null
       const mes = travail !== null && Array.isArray(travail.chemins) ? travail.chemins : []
       const dedans = mes.map((p) => relatifAuDossier(p, s.chemin)).filter((p) => p !== null)
-      // Aucun fichier du chat DANS ce dossier : ses écritures visibles sont
-      // ailleurs (outils hors dépôt), on ne peut donc rien conclure du disque.
-      // Répondre « 0 reste » ferait dire « tout est enregistré » à un chat qui a
-      // cinq fichiers modifiés dans le dépôt — constaté en vrai le 22/09, la
-      // fenêtre de journal ne remontait plus assez loin pour les voir.
+      // No file of the chat INSIDE this folder: its visible writes are
+      // elsewhere (tools outside the repository), so nothing can be concluded from the disk.
+      // Answering « 0 left » would say « everything is saved » to a chat that has
+      // five modified files in the repository — seen for real on 22/09, the
+      // journal window no longer went back far enough to see them.
       if (dedans.length === 0) return null
       return dedans.filter((p) => encoreSale(g.sale, p)).length
     }
-    // Le travail de ce chat est-il enregistré ? Le journal ne voit que les
-    // commits lancés par un OUTIL de l'agent ; le bouton « Commit & merge »
-    // committe côté host, donc la ligne restait « non sauvegardée » juste après
-    // un commit réussi (constaté en vrai le 22/09). Le disque, lui, ne ment pas.
+    // Is this chat's work saved? The journal only sees the
+    // commits run by an agent TOOL; the « Commit & merge » button
+    // commits host side, so the row stayed « not saved » just after
+    // a successful commit (seen for real on 22/09). The disk does not lie.
     const travailEnregistre = (s, travail) => {
       if (travail !== null && travail.fait === true) return true
       const restes = restesDuChat(s, travail)
@@ -1651,9 +1656,9 @@ window.__ModuleLoader__.load({
         ? restes
         : (travail === null ? n : (travail.ecritures === null ? n : travail.ecritures))
       const nonFusionnes = g.nonFusionnes > 0 ? g.nonFusionnes : 0
-      // P7 — le chat peut être propre alors que le dépôt ne l'est pas : sans
-      // cette ligne, « Nothing pending » faisait croire que tout était rangé
-      // (43 fichiers et 21 commits d'avance au moment de la mesure).
+      // P7 — the chat can be clean while the repository is not: without
+      // this line, « Nothing pending » made people think everything was tidy
+      // (43 files and 21 commits ahead at the time of the measurement).
       const salesTotal = Array.isArray(g.sale) ? g.sale.length : 0
       const autresSales = restes !== null && salesTotal > restes ? salesTotal - restes : 0
       if (nonSauvees > 0) return { accent: ACC.warn, label: 'Commit & merge', act: true,
@@ -1672,9 +1677,9 @@ window.__ModuleLoader__.load({
                 : (nonFusionnes > 0 ? nonFusionnes + ' local commit' + pl(nonFusionnes, '', 's') + ' not pushed' : (g.worktree ? 'The isolated copy can be closed' : 'You work in the main folder')))] }
     }
 
-    // La carte : les trois phrases du récap (fait / pas fait / clôturable) et le
-    // plan en dry-run. « Clôturable » vient du host (mêmes gardes que la
-    // fermeture) : la GUI ne promet pas ce que le geste refuserait.
+    // The card: the three sentences of the recap (done / not done / can be closed) and the
+    // dry-run plan. « Can be closed » comes from the host (the same guards as
+    // the closing): the GUI does not promise what the gesture would refuse.
     function RecapCard ({ s, sessionId, travail }) {
       const [cloture, setCloture] = React.useState(null)
       React.useEffect(() => {
@@ -1695,7 +1700,7 @@ window.__ModuleLoader__.load({
         : (travail === null ? n : (travail.ecritures === null ? n : travail.ecritures)))
       const mesChemins = travail !== null && Array.isArray(travail.chemins) ? travail.chemins : []
       const nonFusionnes = git && g.nonFusionnes > 0 ? g.nonFusionnes : 0
-      // P7 — les fichiers du dépôt qui ne sont pas ceux de ce chat.
+      // P7 — the files of the repository that are not this chat's.
       const salesTotal = git && Array.isArray(g.sale) ? g.sale.length : 0
       const autresSales = restes !== null && salesTotal > restes ? salesTotal - restes : 0
       const fait = !git
@@ -1742,7 +1747,7 @@ window.__ModuleLoader__.load({
           : null)
     }
 
-    // ── pilule sync (GitHub) — décrit le PROJET, pas la copie isolée ────────
+    // ── sync pill (GitHub) — describes the PROJECT, not the isolated copy ────────
     function vueSync (s) {
       if (!s || !s.sync) return null
       const y = s.sync
@@ -1787,13 +1792,12 @@ window.__ModuleLoader__.load({
         visuel: h(SyncVisual, base), act: null, details }
     }
 
-    // ── pilule review (pull request réelle via gh) ──────────────────────────
+    // ── review pill (a real pull request through gh) ──────────────────────────
     function vuePr (s) {
       if (!s || !s.git || !s.git.git) return null
       const g = s.git
       const pr = s.pr
-      const quatre = { labels: ['Sent', 'Checks', 'Approved', 'Merged'] }
-      // sur la branche de base : la revue ne s'applique pas (information)
+      // on the base branch: the review does not apply (information)
       if (g.branche === g.base) {
         return { accent: ACC.violet, label: 'No review',
           titre: 'Reviews are for separate copies',
@@ -1858,15 +1862,15 @@ window.__ModuleLoader__.load({
         details }
     }
 
-    // ── la lecture que le plugin « Changes » consomme ───────────────────────────
-    // Les MÊMES faits que les quatre pilules git (local, recap, GitHub, review), sans leur texte ni leurs
-    // nœuds : le plugin voisin en fait une seule phrase. Les gestes sortent comme descripteurs
-    // `{ url, corps, label, hint }` — ce que `PlanAction` reçoit — rangés par RÔLE, pour que ce plugin ne
-    // doive jamais lire une URL pour savoir ce qu'un bouton fait. Rien n'est recalculé : les vues ci-dessus
-    // restent la seule source, et ce que ce plugin affiche ne peut donc pas contredire les pilules.
+    // ── the reading the « Changes » plugin consumes ───────────────────────────
+    // The SAME facts as the four git pills (local, recap, GitHub, review), without their text or their
+    // nodes: the neighbouring plugin makes one sentence of them. The gestures come out as descriptors
+    // `{ url, corps, label, hint }` — what `PlanAction` receives — filed by ROLE, so that this plugin never
+    // has to read a URL to know what a button does. Nothing is recomputed: the views above
+    // stay the only source, so what that plugin shows cannot contradict the pills.
     const descripteur = (el) => (el !== null && el !== undefined && el.props !== undefined && el.props !== null && typeof el.props.url === 'string')
       ? { url: el.props.url, corps: el.props.corps || {}, label: el.props.label || '', hint: el.props.hint || '' } : null
-    // `git status --porcelain` : « ?? » = nouveau, « D » = supprimé, « R » = renommé, « U »/« AA »/« DD » = conflit.
+    // `git status --porcelain` : « ?? » = new, « D » = deleted, « R » = renamed, « U »/« AA »/« DD » = conflict.
     const genreDeCode = (code) => {
       const c = String(code || '')
       if (c.indexOf('U') >= 0 || /^(AA|DD)$/.test(c)) return 'conflict'
@@ -1889,8 +1893,8 @@ window.__ModuleLoader__.load({
       const aRecevoir = y !== null && y.commitsRecus > 0 ? y.commitsRecus : 0
       const github = !!(g.distant && /github\.com/i.test(g.distant))
       const autres = Math.max(0, (s.sessionsActives || 0) - 1)
-      // Les fichiers sales, avec leur genre quand le host le donne (champ additif `fichiers`), et ce qui revient à CE
-      // chat quand le disque permet de le dire (`restes` n'est pas nul).
+      // The dirty files, with their kind when the host gives it (additive field `fichiers`), and what belongs to THIS
+      // chat when the disk can say so (`restes` is not null).
       const miens = restes !== null
         ? new Set(mesChemins.map((p) => relatifAuDossier(p, s.chemin)).filter((p) => p !== null && encoreSale(g.sale, p)))
         : null
@@ -1901,7 +1905,7 @@ window.__ModuleLoader__.load({
         return { path: String(p), kind: genres.get(chemin) || null, mine: miens === null ? null : miens.has(chemin) }
       })
       const conflits = fichiers.filter((f) => f.kind === 'conflict').length
-      // Les gestes, par rôle : celui que `vueLocal`, `vueSync` et `vuePr` proposeraient, plus le geste local du récap.
+      // The gestures, by role: the one `vueLocal`, `vueSync` and `vuePr` would offer, plus the recap's local gesture.
       const actions = {}
       const poser = (role, d) => { if (d !== null && actions[role] === undefined) actions[role] = d }
       const w = vueLocal(s, sessionId, travail)
@@ -1944,8 +1948,8 @@ window.__ModuleLoader__.load({
         actions
       }
     }
-    // Le plugin « Changes » lit ceci à chaque ouverture : l'état du dossier ET le journal de la session (qui dit ce
-    // que CE chat a écrit), comme les pilules. `null` quand la route est muette.
+    // The « Changes » plugin reads this at every opening: the state of the folder AND the journal of the session (which says what
+    // THIS chat wrote), like the pills. `null` when the route is silent.
     const lireChangements = async (sessionId) => {
       let etat = null
       try { etat = await fetch('/kybernos-sessions/state?session=' + encodeURIComponent(sessionId || '') + '&window=1').then((r) => r.json()) } catch (e) { return null }
@@ -1957,10 +1961,10 @@ window.__ModuleLoader__.load({
     }
     try { window.__KB_SESSIONS_VIEW__ = { version: 1, read: lireChangements } } catch (e) { /* no window: the Changes plugin then shows nothing and the four pills stay */ }
 
-    // ── la rangée des pilules ───────────────────────────────────────────────
+    // ── the row of pills ───────────────────────────────────────────────
     function Pills ({ sessionId }) {
-      // Le plugin « Changes » dit la même chose en une pastille : tant qu'il est actif, les quatre pilules git se
-      // taisent (Memory & Lessons reste). Il le signale par `window.__KB_CHANGES_ACTIVE__` et par un événement.
+      // The « Changes » plugin says the same thing in one chip: as long as it is active, the four git pills
+      // keep quiet (Memory & Lessons stays). It signals this with `window.__KB_CHANGES_ACTIVE__` and with an event.
       const [changesOn, setChangesOn] = React.useState(() => typeof window !== 'undefined' && window.__KB_CHANGES_ACTIVE__ === true)
       React.useEffect(() => {
         const on = () => setChangesOn(window.__KB_CHANGES_ACTIVE__ === true)
@@ -1973,9 +1977,9 @@ window.__ModuleLoader__.load({
       const [ouverte, setOuverte] = React.useState(null) // 'local' | 'recap' | 'sync' | 'pr' | 'notes' | null
       const [kyberChoisi, setKyberChoisi] = React.useState(null)
       const [onglet, setOnglet] = React.useState('mem') // 'mem' | 'les' : l'onglet de la carte Memory & Lessons
-      // Ce que le modèle reçoit du compte (X sur N), lu aux routes du plugin cloud — deux appels sans réseau
-      // distant (le cache de l'hôte). `null` quand le plugin cloud est absent ou le compte déconnecté : la
-      // pastille retombe alors sur ce que le journal de CE chat sait.
+      // What the model gets from the account (X of N), read from the cloud plugin's routes — two calls with no remote
+      // network (the host's cache). `null` when the cloud plugin is absent or the account disconnected: the
+      // pill then falls back on what the journal of THIS chat knows.
       const [memInfo, setMemInfo] = React.useState(null)
       const lireMem = React.useCallback(async () => {
         try {
@@ -2021,9 +2025,9 @@ window.__ModuleLoader__.load({
         fetch('/kybernos-sessions/state?session=' + encodeURIComponent(sessionId || '') + '&window=1')
           .then((r) => r.json()).then((j) => setEtat(j)).catch(() => setEtat(null))
       }, [sessionId])
-      // Le journal de la session dit ce que le dossier ne peut pas dire : ce
-      // que CETTE session a écrit (non sauvegardé) et ce qu'elle a écrit ou
-      // mis à jour en mémoire. Lu par l'API du harnais — pas de route hôte.
+      // The session journal says what the folder cannot say: what
+      // THIS session wrote (unsaved) and what it wrote or
+      // updated in memory. Read through the harness API — no host route.
       const lireJournal = React.useCallback(() => {
         lireJournalSession(sessionId).then((j) => setJournal(j)).catch(() => setJournal(null))
       }, [sessionId])
@@ -2040,7 +2044,7 @@ window.__ModuleLoader__.load({
       const s = etat.session
         ? Object.assign({}, etat.session, { session: sessionId })
         : null
-      // état du travail de CETTE session (journal) + sa mémoire (memory.cjs)
+      // state of THIS session's work (journal) + its memory (memory.cjs)
       const travail = journal !== null ? classerJournal(journal.events, journal.cwd) : null
       const memoire = journal !== null
         ? memoireDuJournal(journal.events)
@@ -2054,9 +2058,9 @@ window.__ModuleLoader__.load({
         if (p) p.focus({ preventScroll: true })
       }
 
-      // ── local : l'état de CETTE session (pas celui du dossier partagé) ──
+      // ── local: the state of THIS session (not that of the shared folder) ──
       const w = vueLocal(s, sessionId, travail)
-      // ── recap : fait / pas fait / clôturable + le geste local ──
+      // ── recap: done / not done / can be closed + the local gesture ──
       const rec = vueRecap(s, travail)
       const g = s && s.git
       const wTip = s === null
@@ -2067,9 +2071,9 @@ window.__ModuleLoader__.load({
           s.sessionsActives + ' chat' + pl(s.sessionsActives, '', 's') + ' active (1 h)' +
             ((s.worktrees || 0) > 0 ? ' · ' + s.worktrees + ' ' + pl(s.worktrees, 'copy', 'copies') + ' next door' : '')]
 
-      // Les deux pilules distantes n'ont de sens que si le dossier est lié à
-      // un dépôt GitHub : sans remote GitHub, ni envoi ni revue — on n'affiche
-      // alors aucune des deux.
+      // The two remote pills only make sense if the folder is linked to
+      // a GitHub repository: with no GitHub remote there is neither send nor review — neither is
+      // shown then.
       const github = !!(g && g.git && g.distant && /github\.com/i.test(g.distant))
 
       // ── sync ──
@@ -2081,9 +2085,9 @@ window.__ModuleLoader__.load({
 
       // ── review ──
       const r = github ? vuePr(s) : null
-      // P5 — un état qui a un nombre le peint : « To send » sans son compte
-      // obligeait à survoler pour savoir combien. Les deux autres puces
-      // affichaient déjà le leur, c'était la seule incohérence de la rangée.
+      // P5 — a state that has a number paints it: « To send » without its count
+      // forced a hover to know how many. The two other pills
+      // already showed theirs, it was the only inconsistency of the row.
       const vBadge = !v || !sync ? null
         : v.label === 'To send' ? (sync.commitsNonPousses > 0 ? sync.commitsNonPousses : null)
           : v.label === 'To fetch' ? (sync.commitsRecus > 0 ? sync.commitsRecus : null)
@@ -2095,7 +2099,7 @@ window.__ModuleLoader__.load({
         s && s.pr ? ('#' + s.pr.numero + ' · checks ' + s.pr.checks + ' · review ' + s.pr.revue)
           : (s && s.git && s.git.git ? s.git.branche + ' → ' + s.git.base : '')]
 
-      // ── sélecteur de kyber : seulement ceux que cette session a touchés ──
+      // ── agent team selector: only those this session touched ──
       const switcher = kybers.length > 1
         ? h('div', { className: 'kbs-kybers' },
             kybers.map((k) => h('button', { key: k,
@@ -2103,9 +2107,9 @@ window.__ModuleLoader__.load({
               onClick: () => setKyberChoisi(k) }, k)))
         : null
 
-      // ── memory : ce que CETTE session a écrit ou mis à jour (memory.cjs) ──
-      // Le ledger du kyber additionne toutes les sessions de la machine : on
-      // ne lit donc pas les fichiers de mémoire, on lit les gestes du journal.
+      // ── memory: what THIS session wrote or updated (memory.cjs) ──
+      // The agent team's ledger adds up all the sessions of the machine: so we
+      // do not read the memory files, we read the gestures of the journal.
       const entKyber = kyber === null ? [] : memoire.entrees.filter((x) => x.kyber === kyber)
       const memFaites = entKyber.filter((x) => x.ok === true)
       const libelleMemo = (x) => x.type === 'record' ? 'run recorded' : (x.type === 'lesson' ? 'lesson written' : 'lesson reused')
@@ -2118,8 +2122,8 @@ window.__ModuleLoader__.load({
           h('span', null, (x.kyber || '?') + (x.ts ? ' · ' + court(x.ts) : '')),
           x.ok === true ? null : h('span', { className: 'kbs-memo-kind', style: { color: 'var(--dsw-alias-state-error-primary,#ef4444)' } }, 'failed')),
         h('p', null, texteMemo(x) || '—'))
-      // ── lessons : écrites ou réutilisées DANS cette session ───────────────
-      // (la définition a suivi sa consommatrice : le bloc Notes lit les deux.)
+      // ── lessons: written or reused INSIDE this session ───────────────
+      // (the definition followed its consumer: the Notes block reads both.)
       const leconsSession = entKyber.filter((x) => (x.type === 'lesson' || x.type === 'used') && x.ok === true)
       const ligneLecon = (l, i) => h('div', { className: 'kbs-lesson', key: i },
         h('time', null, libelleMemo(l) + (l.ts ? ' · ' + court(l.ts) : '')),
@@ -2127,11 +2131,11 @@ window.__ModuleLoader__.load({
         (l.tags && l.tags.length) ? h('div', { className: 'kbs-tags' },
           l.tags.map((t, j) => h('span', { className: 'kbs-tag', key: j }, t))) : null)
 
-      // ── Memory & Lessons : une pastille qui dit son nom ───────────────────
-      // Avant : « Notes », un livre sans mot (P4 : une puce pour deux sujets), qui ne comptait que ce que CE chat
-      // avait écrit et ne menait nulle part. Maintenant : le mot, ce que le modèle reçoit du compte, ce que ce chat
-      // a laissé, et le lien vers la page des Réglages. Les compteurs ne se mélangent pas : à gauche la mémoire du
-      // compte (envoyée au modèle), à droite les leçons de ce chat ; « +N » = ce que CE chat a écrit.
+      // ── Memory & Lessons: a pill that says its name ───────────────────
+      // Before: « Notes », a book with no word (P4: one pill for two subjects), which only counted what THIS chat
+      // had written and led nowhere. Now: the word, what the model gets from the account, what this chat
+      // left, and the link to the Settings page. The counters do not get mixed: on the left the account's memory
+      // (sent to the model), on the right the lessons of this chat; « +N » = what THIS chat wrote.
       const ecritsMem = memoire.souvenirs.length
       const nbLecons = leconsSession.length
       const ecritsLecons = leconsSession.filter((l) => l.type === 'lesson').length
@@ -2219,27 +2223,27 @@ window.__ModuleLoader__.load({
       }
 
       const pill = (id, icon, accent, label, badge, tip, act, calme, opts) => {
-        // La puce qui colle au bord droit ancre bulle ET carte à droite : centrée,
-        // sa carte sortait de la fenêtre (960 px pour un viewport de 900 — mesuré).
+        // The pill that sticks to the right edge anchors bubble AND card on the right: centred,
+        // its card left the window (960 px for a viewport of 900 — measured).
         const bordDroit = id === 'notes'
         const props = {
           className: 'kbs-pill' + (act === true ? ' kbs-pill--act' : '') + (calme === true ? ' kbs-pill--calme' : '') +
             (bordDroit ? ' kbs-pill--bordDroit' : ''),
           style: { '--acc': accent }, 'data-kbs-pill': id,
-          // Le nom accessible porte le mot que l'œil ne voit plus, plus le
-          // nombre quand il y en a un (sans lui, un lecteur d'écran n'aurait
-          // qu'un « 21 » sans sujet).
+          // The accessible name carries the word the eye no longer sees, plus the
+          // number when there is one (without it, a screen reader would only have
+          // a « 21 » with no subject).
           'aria-label': badge === null || badge === undefined ? label : label + ' · ' + badge,
           'aria-haspopup': 'dialog', 'aria-expanded': String(ouverte === id),
           'aria-controls': 'kbs-carte-' + id,
           onClick: () => bascule(id)
         }
-        // Le geste local est marqué comme tel : « commit & merge » n'est pas un
-        // état de plus, c'est un bouton — la rangée le dit à qui la lit.
+        // The local gesture is marked as such: « commit & merge » is not one more
+        // state, it is a button — the row says so to whoever reads it.
         if (act === true) props['data-kbs-quick'] = 'commit-merge'
-        // Le mot de la puce revient en tête de bulle : c'est là qu'on regarde
-        // quand on survole, et l'étiquette n'est plus peinte sur la rangée.
-        // Aucune ligne n'est perdue — la première est préfixée, pas remplacée.
+        // The word of the pill comes back at the head of the bubble: that is where one looks
+        // on hover, and the label is no longer painted on the row.
+        // No line is lost — the first one is prefixed, not replaced.
         const lignes = tip.slice(0)
         if (lignes.length === 0) lignes.push(label)
         else if (lignes[0] !== label) lignes[0] = label + ' · ' + lignes[0]
@@ -2255,9 +2259,9 @@ window.__ModuleLoader__.load({
           ouverte === id ? carte(id) : null)
       }
 
-      // Ce qui n'a rien à dire se tait : la puce passe en retrait au lieu de
-      // peindre son état. Liste blanche des états « rien à faire » — un état
-      // nouveau n'est donc jamais éteint par accident.
+      // What has nothing to say keeps quiet: the pill steps back instead of
+      // painting its state. Whitelist of the « nothing to do » states — a new
+      // state is therefore never switched off by accident.
       const MUETTES = new Set(['Saved', 'Outside git', 'No folder', 'Up to date', 'No remote', 'Recap', 'No review'])
       const calme = (o, badge) => o !== null && o !== undefined &&
         (badge === null || badge === undefined) && MUETTES.has(o.label)
@@ -2272,18 +2276,18 @@ window.__ModuleLoader__.load({
             delta > 0 ? h('span', { className: 'kbs-d' }, '+' + delta) : null) }))
     }
 
-    // ── page « Kybernos Settings » (popup Paramètres) ──────────────────────
-    // Deux réglages, écrits côté host dans ~/.dsh/kybernos/settings.json — le
-    // fichier que lisent la CLI de nommage et le contrôle de santé. Sans lui,
-    // un interrupteur ne serait qu'un décor de la GUI.
+    // ── « Kybernos Settings » page (Settings popup) ──────────────────────
+    // Settings, written host side in ~/.dsh/kybernos/settings.json — the
+    // file read by the naming CLI and the health check. Without it,
+    // a switch would only be GUI decoration.
     let kbCtx = null
 
-    /** Les modèles CONFIGURÉS, lus du service de réglages du harnais — la même
-     *  source que la page Models, donc jamais recopiée ici. Chaque route porte
-     *  SOIT `models[]`, SOIT `modelOverrides.<id>` : le harnais refuse les deux
-     *  ensemble. Rend `null` si la liste est illisible (et non `[]`, qui veut
-     *  dire « aucun modèle configuré ») : confondre les deux ferait croire à un
-     *  harnais vide. */
+    /** The CONFIGURED models, read from the harness settings service — the same
+     *  source as the Models page, so never copied here. Each route carries
+     *  EITHER `models[]` OR `modelOverrides.<id>`: the harness refuses both
+     *  together. Returns `null` if the list is unreadable (and not `[]`, which means
+     *  « no model configured »): mixing the two up would make people think of an
+     *  empty harness. */
     const kbModeles = () => {
       try {
         const svc = (kbCtx === null || typeof kbCtx.get !== 'function') ? null : kbCtx.get('remote.settings')
@@ -2296,9 +2300,9 @@ window.__ModuleLoader__.load({
           const prov = (ns.value !== null && ns.value !== undefined && typeof ns.value.providers === 'object') ? ns.value.providers : {}
           const vus = {}
           const out = []
-          // `entree` : les modalités déclarées (champ câblé du catalogue). La
-          // sonde de santé s'en sert pour ne pas pinger un modèle d'image en
-          // texte — le réglage du modèle d'étude, lui, ignore ce champ.
+          // `entree`: the declared modalities (a wired field of the catalogue). The
+          // health probe uses it so as not to ping an image model with
+          // text — the Study model setting ignores this field.
           const ajouter = (route, id, entree) => {
             if (typeof route !== 'string' || route.length === 0 || typeof id !== 'string' || id.length === 0) return
             const cle = route + '/' + id
@@ -2325,36 +2329,35 @@ window.__ModuleLoader__.load({
       } catch (e) { return Promise.resolve(null) }
     }
 
-    // ── Organisation « Kybernos seul » de la modale Réglages (variante D) ──
-    // Zéro patch du core : la nav est remise en ordre DANS le DOM (l'observa-
-    // teur cicatrise quand le shell la redessine), « Mon espace » est masqué
-    // (il a sa page dédiée du panneau), et les rangées du volet Général déjà
-    // couvertes par Thème ne se doublent pas.
-    // MULTILINGUE par construction : la locale de l'hôte (fr, en, arabe RTL,
-    // langues ajoutées…) décide des textes — la reconnaissance ne lit donc
-    // AUCUN libellé, elle raisonne en POSITIONS de la liste native, stables
-    // (l'ordre vient du registre des slots, pas de la langue). MESURE du
-    // shell 0.2.0-rc.2 (01/10, nav native lue au DOM, 13 boutons) :
-    // MESURE réelle au DOM (01/10, première pose corrigée par la lecture du
-    // rendu — l'ordre supposé était décalé) :
+    // ── « Kybernos only » organisation of the Settings dialog (variant D) ──
+    // Zero core patch: the nav is put back in order INSIDE the DOM (the observ-
+    // er heals it when the shell redraws it), « My space » is hidden
+    // (it has its own page in the panel), and the rows of the General pane already
+    // covered by Theme are not doubled.
+    // MULTILINGUAL by construction: the host's locale (fr, en, Arabic RTL,
+    // added languages…) decides the texts — so the recognition reads
+    // NO label, it reasons in POSITIONS of the native list, which are stable
+    // (the order comes from the slot registry, not from the language). MEASUREMENT of the
+    // 0.2.0-rc.2 shell (01/10, native nav read in the DOM, 13 buttons):
+    // REAL measurement in the DOM (01/10, first placement corrected by reading the
+    // render — the assumed order was off):
     // 0 General · 1 Models · 2 Account · 3 Privacy · 4 Appearance ·
     // 5 Maintenance · 6 Built-in plugins · 7 Provider & models ·
-    // 8 Agent presets · 9 Voix · 10 Commands · 11 Tools · 12 Plugins.
-    // L'ancien plan (Mon espace caché, entête Extensions avec IM bots)
-    // ne matchait plus : entêtes orphelins et boutons mal répartis.
-    const KB_VERSION = '1.0.0' // miroir de kybernos-sessions/package.json
+    // 8 Agent presets · 9 Voice · 10 Commands · 11 Tools · 12 Plugins.
+    // The old plan (My space hidden, Extensions header with IM bots)
+    // no longer matched: orphan headers and badly distributed buttons.
     const RG_NB = 13
-    // Kybernos : General(bloc) · Account · Privacy · Appearance · Provider ·
-    // Voix · Maintenance — DSH : Commands · Models · Built-in · Plugins ·
+    // Kybernos: General (block) · Account · Privacy · Appearance · Provider ·
+    // Voice · Maintenance — DSH: Commands · Models · Built-in · Plugins ·
     // Tools · Agent presets.
-    const RG_TRI = [0, 2, 3, 4, 7, 9, 5, 10, 1, 6, 12, 11, 8] // ordre D en positions natives
-    const RG_ENTETES = [[0, 'Kybernos'], [7, 'DSH']] // dans l'ordre TRIÉ
-    const RG_CACHEE = -1 // rc.2 : plus d'item à cacher (Mon espace a quitté la nav)
-    // Rangées du volet Général masquées (positions, liste de 10 enfants dont
-    // la première est NOTRE bloc marqué data-kbr="bloc") :
-    // 2 Language · 3 Appearance · 4 Font size · 9 pied de version.
+    const RG_TRI = [0, 2, 3, 4, 7, 9, 5, 10, 1, 6, 12, 11, 8] // order D in native positions
+    const RG_ENTETES = [[0, 'Kybernos'], [7, 'DSH']] // in the SORTED order
+    const RG_CACHEE = -1 // rc.2: no item left to hide (My space left the nav)
+    // Rows of the General pane that are hidden (positions, a list of 10 children of which
+    // the first is OUR block marked data-kbr="bloc"):
+    // 2 Language · 3 Appearance · 4 Font size · 9 version footer.
     const RG_VOLET_CACHEES = [3, 4, 9]
-    const rgTries = new WeakMap() // liste → boutons triés (détection de re-tri React)
+    const rgTries = new WeakMap() // list → sorted buttons (detection of a React re-sort)
     const RG_STYLE_ID = 'kbr-reglages-style'
 
     function rgStyle () {
@@ -2367,19 +2370,21 @@ window.__ModuleLoader__.load({
 
     function rgRenommerGeneral (bouton) {
       if (bouton.dataset.kbRenomme === '1') return
-      // La langue du shell décide : DSH en English garde « General » —
-      // ne pas repeindre l'onglet en français quand l'utilisateur a choisi
-      // l'anglais (remonté 01/10).
-      try { if ((document.documentElement.getAttribute('lang') || 'fr').slice(0, 2) !== 'fr') { bouton.dataset.kbRenomme = '1'; return } } catch (e) { /* document absent : repli fr */ }
+      // The language of the interface decides (the same resolver as every label here): only a French UI gets « Général »;
+      // English, and any language without a French twin, keep the shell's own « General » (reported 01/10: do not repaint
+      // the tab in French when the user chose English — and no language at all is English, never French).
+      const GENERAL = ['Général', 'General'] // [fr, en]
+      const general = kt(GENERAL[0], GENERAL[1])
+      if (general !== GENERAL[0]) { bouton.dataset.kbRenomme = '1'; return }
       const marche = [...bouton.childNodes].find((n) => n.nodeType === 3 && n.nodeValue !== null && n.nodeValue.trim() === 'General')
       if (marche === undefined) {
-        // Le libellé peut vivre dans un descendant : dernier texte nu égal.
+        // The label may live in a descendant: the last bare text that is equal.
         const tous = [...bouton.querySelectorAll('*')].flatMap((e) => [...e.childNodes])
         const profond = tous.find((n) => n.nodeType === 3 && n.nodeValue !== null && n.nodeValue.trim() === 'General')
         if (profond === undefined) return
-        profond.nodeValue = profond.nodeValue.replace('General', 'Général')
+        profond.nodeValue = profond.nodeValue.replace('General', general)
       } else {
-        marche.nodeValue = marche.nodeValue.replace('General', 'Général')
+        marche.nodeValue = marche.nodeValue.replace('General', general)
       }
       bouton.dataset.kbRenomme = '1'
     }
@@ -2397,7 +2402,7 @@ window.__ModuleLoader__.load({
 
     function rgAppliquerNav (liste) {
       const boutons = [...liste.querySelectorAll(':scope > button')]
-      if (boutons.length !== RG_NB) return // structure inattendue : ne rien défaire
+      if (boutons.length !== RG_NB) return // unexpected structure: undo nothing
       if (liste.dataset.kbReglages === '1' && rgEnOrdre(liste)) return
       const tries = RG_TRI.map((pos) => boutons[pos])
       for (const vieux of [...liste.querySelectorAll('[data-kb-groupe]')]) vieux.remove()
@@ -2424,9 +2429,9 @@ window.__ModuleLoader__.load({
     }
 
     function rgAppliquerVolet (dialogue) {
-      // (29/09) Le pied « Current version: … » vit désormais dans la page
-      // Maintenance : on le masque par son texte, SANS la garde des 10 enfants
-      // (la structure du shell évolue et faisait échapper la ligne).
+      // (29/09) The « Current version: … » footer now lives in the
+      // Maintenance page: it is hidden by its text, WITHOUT the guard of the 10 children
+      // (the shell's structure evolves and let the line escape).
       dialogue.querySelectorAll('div').forEach((d) => {
         const t = (d.textContent || '').trim()
         if (/^Current version:/.test(t) === true && t.length < 40 && d.style.display !== 'none') d.style.display = 'none'
@@ -2434,15 +2439,15 @@ window.__ModuleLoader__.load({
       const volet = dialogue.querySelector('[data-slot="settings.section"]')
       if (volet === null) return
       const bloc = volet.querySelector('[data-kbr="bloc"]')
-      if (bloc === null) return // le volet Général n'est pas monté (ou pas encore)
+      if (bloc === null) return // the General pane is not mounted (or not yet)
       const liste = bloc.parentElement
-      // La liste doit faire exactement 10 enfants, le nôtre en tête — sinon
-      // (autre version du shell) on ne masque rien, par prudence.
+      // The list must have exactly 10 children, ours first — otherwise
+      // (another version of the shell) nothing is hidden, to be safe.
       if (liste === null || liste.children.length !== 10 || liste.children[0] !== bloc) return
       const pied = liste.children[9]
-      // (29/09) Le pied natif « Current version » reste masqué (ligne 9) ; sa
-      // valeur vit dans la page Maintenance (carte État : Moteur · Plugin) —
-      // plus de recopie dans un span de Général.
+      // (29/09) The native « Current version » footer stays hidden (row 9); its
+      // value lives in the Maintenance page (State card: Engine · Plugin) —
+      // no more copying into a span of General.
       if (pied !== undefined && pied !== null && pied.style.display !== 'none') pied.style.display = 'none'
       for (const pos of RG_VOLET_CACHEES) {
         const rangee = liste.children[pos]
@@ -2463,7 +2468,7 @@ window.__ModuleLoader__.load({
           const liste = dialogue.querySelector('[class*="navList"]')
           if (liste !== null) rgAppliquerNav(liste)
           rgAppliquerVolet(dialogue)
-        } catch (e) { /* la modale bouge sous nos pieds : la passe suivante raffermira */ }
+        } catch (e) { /* the dialog moves under our feet: the next pass will firm it up */ }
       }
       const demander = () => {
         if (programmé) return
@@ -2472,11 +2477,31 @@ window.__ModuleLoader__.load({
       }
       const observateur = new MutationObserver(demander)
       observateur.observe(document.body, { childList: true, subtree: true })
-      // Gardien : le shell peut re-trier sa nav à un commit qui suit notre
-      // passe — sans mutation ultérieure, l'observateur ne repartirait pas.
-      // Une passe par seconde tant qu'un dialogue est ouvert (14 nœuds : négligeable).
+      // Guardian: the shell may re-sort its nav at a commit following our
+      // pass — with no later mutation, the observer would not start again.
+      // One pass per second while a dialog is open (14 nodes: negligible).
       const gardien = setInterval(passe, 1000)
       return () => { observateur.disconnect(); clearInterval(gardien) }
+    }
+
+    /** What the settings route refuses with, by its stable `code` ([fr, en]): the page words a refusal itself, in its own
+     *  language, and never prints the host's sentence raw. A code it does not know shows the host's English sentence. */
+    const ERR_REGLAGES = {
+      'invalid-brain': ['Le modèle d’étude doit être un identifiant « fournisseur/modèle », « none » ou vide.', 'The Study model must be a “provider/model” identifier, “none” or empty.'],
+      'invalid-voice-input': ['La source du micro doit être « native » ou « kybernos ».', 'The microphone source must be “native” or “kybernos”.'],
+      'invalid-auto-whitelist': ['La liste Auto doit être un tableau d’identifiants « fournisseur/modèle », sans doublon.', 'The Auto list must be an array of “provider/model” identifiers, without duplicates.'],
+      'settings-unreadable': ['settings.json est illisible : rien n’a été enregistré.', 'settings.json cannot be read, so nothing was saved.'],
+      'settings-corrupt': ['settings.json n’est pas un objet JSON valide : rien n’a été enregistré. Corrige ou supprime le fichier, puis enregistre à nouveau.', 'settings.json is not a valid JSON object, so nothing was saved. Fix or remove the file, then save again.'],
+      'settings-not-written': ['Le fichier de réglages n’a pas pu être écrit', 'The settings file could not be written']
+    }
+    const direErreur = (j) => {
+      const code = j !== null && typeof j === 'object' && typeof j.code === 'string' ? j.code : ''
+      if (Object.prototype.hasOwnProperty.call(ERR_REGLAGES, code)) {
+        const paire = ERR_REGLAGES[code]
+        // The system's own words (the reason a file could not be written) follow, untranslated.
+        return kt(paire[0], paire[1]) + (code === 'settings-not-written' && typeof j.erreur === 'string' ? ' (' + j.erreur + ')' : '')
+      }
+      return j !== null && typeof j === 'object' && j.erreur ? String(j.erreur) : kt('Refusé par l’hôte.', 'Rejected by the host.')
     }
 
     /** The Study model row: what the select shows and says. Pure (the tests run it without a browser).
@@ -2488,39 +2513,46 @@ window.__ModuleLoader__.load({
       const mode = brain === 'none' ? 'none' : (brain === '' ? 'auto' : 'choisi')
       const info = etude !== null && etude !== undefined && typeof etude === 'object' ? etude : {}
       const cleAuto = typeof info.auto === 'string' && info.auto !== '' ? info.auto : (mode === 'auto' && typeof info.cle === 'string' ? info.cle : '')
-      const libelleAuto = cleAuto !== '' ? 'Automatic — ' + cleAuto : (info.mode !== undefined ? 'Automatic — no model is connected yet' : 'Automatic')
+      const libelleAuto = cleAuto !== ''
+        ? kt('Automatique — ', 'Automatic — ') + cleAuto
+        : (info.mode !== undefined ? kt('Automatique — aucun modèle n’est encore connecté', 'Automatic — no model is connected yet') : kt('Automatique', 'Automatic'))
       const introuvable = mode === 'choisi' && Array.isArray(modeles) && !modeles.some((mo) => mo.cle === brain)
-      const role = 'It checks that your models still answer, helps tidy your memory, and decides which agent team and which chat icon fit. '
-      const envoi = 'A chat title goes to it only when the word rules cannot place it, and stays on this machine if it is a local model.'
+      const role = kt('Il vérifie que tes modèles répondent toujours, aide à ranger ta mémoire, et décide quelle équipe d’agents et quelle icône de conversation conviennent. ',
+        'It checks that your models still answer, helps tidy your memory, and decides which agent team and which chat icon fit. ')
+      const envoi = kt('Le titre d’une conversation ne lui est envoyé que si les règles de mots ne savent pas la classer, et il reste sur cet ordinateur si c’est un modèle local.',
+        'A chat title goes to it only when the word rules cannot place it, and stays on this machine if it is a local model.')
       let description
-      if (mode === 'none') description = 'None: no model is watched, no health warning is raised, and nothing is sent to a model for those questions — the word rules alone pick chat icons.'
-      else if (mode === 'auto') {
+      if (mode === 'none') {
+        description = kt('Aucun : aucun modèle n’est surveillé, aucune alerte de santé n’est levée, et rien n’est envoyé à un modèle pour ces questions — les règles de mots choisissent seules les icônes de conversation.',
+          'None: no model is watched, no health warning is raised, and nothing is sent to a model for those questions — the word rules alone pick chat icons.')
+      } else if (mode === 'auto') {
         description = cleAuto !== ''
-          ? 'Automatic: using ' + cleAuto + ', picked from what you connected. ' + role + envoi
-          : 'Automatic: no model is connected yet, so nothing is watched and the word rules alone pick chat icons. Connect the Kybernos Cloud, a model of yours or a local one, and it starts by itself.'
-      } else description = 'Your pick. ' + role + envoi
+          ? kt('Automatique : utilise ' + cleAuto + ', choisi parmi ce que tu as connecté. ', 'Automatic: using ' + cleAuto + ', picked from what you connected. ') + role + envoi
+          : kt('Automatique : aucun modèle n’est encore connecté, donc rien n’est surveillé et les règles de mots choisissent seules les icônes de conversation. Connecte Kybernos Cloud, un de tes modèles ou un modèle local, et ça démarre tout seul.',
+            'Automatic: no model is connected yet, so nothing is watched and the word rules alone pick chat icons. Connect the Kybernos Cloud, a model of yours or a local one, and it starts by itself.')
+      } else description = kt('Ton choix. ', 'Your pick. ') + role + envoi
       return { mode, valeur: brain, libelleAuto, introuvable, description }
     }
 
     function ReglagesKybernos (...args) {
       try { return ReglagesCorps.apply(this, args) }
-      catch (e) { window.__kbrPile = String((e && e.stack) || e).slice(0, 900); return h('div', { className: 'kbr-page', 'data-kbr': 'bloc' }, 'erreur: ' + String(e).slice(0, 140)) }
+      catch (e) { window.__kbrPile = String((e && e.stack) || e).slice(0, 900); return h('div', { className: 'kbr-page', 'data-kbr': 'bloc' }, kt('Erreur : ', 'Error: ') + String(e).slice(0, 140)) }
     }
     function ReglagesCorps () {
       const [reglages, setReglages] = React.useState(null)
       const [erreur, setErreur] = React.useState(null)
       const [enregistre, setEnregistre] = React.useState(false)
-      // `undefined` = liste en cours ; `null` = liste illisible ; tableau = les modèles.
+      // `undefined` = list loading; `null` = list unreadable; array = the models.
       const [modeles, setModeles] = React.useState(undefined)
       // The Study model in force, as the host says it (`{actif, cle, mode, auto}`); `null` when the host does not say (an older
       // build) or cannot be reached.
       const [etude, setEtude] = React.useState(null)
       const autoDefauts = () => ({ renameAfterRecap: true, brain: '', voiceInput: 'kybernos' })
       // `undefined` = sonde en cours ; `null` = configuration illisible ; objet = `asr`.
-      // Sert UNIQUEMENT à dire la vérité quand Kybernos est choisi mais que sa
-      // dictée n'est pas prête : dans ce cas le micro natif reste affiché.
-      // (29/09) Le réglage micro vit dans la page Voix du bundle plugin —
-      // cette sonde n'est plus consommée ici.
+      // Used ONLY to tell the truth when Kybernos is chosen but its
+      // dictation is not ready: in that case the native microphone stays shown.
+      // (29/09) The microphone setting lives in the Voice page of the plugin bundle —
+      // this probe is no longer consumed here.
       React.useEffect(() => {
         poserCss()
         fetch('/kybernos-sessions/settings')
@@ -2529,13 +2561,13 @@ window.__ModuleLoader__.load({
             setReglages(j && j.reglages && typeof j.reglages === 'object' ? j.reglages : autoDefauts())
             setEtude(j && j.etude && typeof j.etude === 'object' ? j.etude : null)
           })
-          .catch(() => { setReglages(autoDefauts()); setErreur('Settings route unreachable — the value shown is the default.') })
+          .catch(() => { setReglages(autoDefauts()); setErreur(kt('Route des réglages injoignable — la valeur affichée est celle par défaut.', 'Settings route unreachable — the value shown is the default.')) })
         kbModeles().then((l) => setModeles(l))
       }, [])
-      // Classes NATIVES du shell, copiées à chaud depuis une rangée voisine du
-      // même volet : nos rangées héritent du CSS natif exact (typo, largeur,
-      // alignement, RTL, thème) sans rien recoder — et sans casser si DSH
-      // renomme ses classes, puisqu'on recopie à chaque montage.
+      // NATIVE classes of the shell, copied live from a neighbouring row of the
+      // same pane: our rows inherit the exact native CSS (typography, width,
+      // alignment, RTL, theme) without recoding anything — and without breaking if DSH
+      // renames its classes, since we copy again at every mount.
       const [natif, setNatif] = React.useState(null)
       React.useEffect(() => {
         try {
@@ -2554,7 +2586,7 @@ window.__ModuleLoader__.load({
             sel: sel && typeof sel.className === 'string' ? sel.className : ''
           }
           if (carte.row && carte.rowText && carte.title && carte.desc) setNatif(carte)
-        } catch (e) { /* hors volet : on garde le repli kbr */ }
+        } catch (e) { /* outside the pane: the kbr fallback stays */ }
       }, [])
       if (reglages === null) return h('div', { className: 'kbr-page', 'data-kbr': 'bloc' }, '…')
       const oui = reglages.renameAfterRecap !== false
@@ -2570,22 +2602,23 @@ window.__ModuleLoader__.load({
         }).then((r) => r.json()).then((j) => {
           if (j && j.ok === true && j.reglages) {
             setReglages(j.reglages)
-            // Un hôte plus ANCIEN ignore un réglage qu'il ne connaît pas : le dire,
-            // au lieu d'afficher « Enregistré » sur un fichier qui n'a rien pris
-            // (le réglage ne survivrait pas au rechargement de la page).
+            // An OLDER host ignores a setting it does not know: say so, instead of
+            // showing « Saved » on a file that took nothing (the setting would not
+            // survive a reload of the page).
             const perdus = Object.keys(patch).filter((k) => j.reglages[k] === undefined)
             if (perdus.length > 0) {
-              setErreur('The host did not take this setting (' + perdus.join(', ') + ') — it is running an older build: restart DSH to apply it for good.')
+              setErreur(kt('L’hôte n’a pas pris ce réglage (' + perdus.join(', ') + ') — il tourne sur une ancienne version : redémarre DSH pour l’appliquer pour de bon.',
+                'The host did not take this setting (' + perdus.join(', ') + ') — it is running an older build: restart DSH to apply it for good.'))
             } else {
               setEnregistre(true)
               setTimeout(() => setEnregistre(false), 1600)
             }
-            // Le composer vit dans un AUTRE paquet client (`@local/kybernos`) :
-            // sans cette annonce, changer la source du micro ici ne se verrait
-            // qu'après un rechargement de page. Même fenêtre, même origine.
-            try { window.dispatchEvent(new CustomEvent('kybernos:settings', { detail: j.reglages })) } catch (e) { /* contexte sans window */ }
+            // The composer lives in ANOTHER client bundle (`@local/kybernos`):
+            // without this announcement, changing the microphone source here would
+            // only show after a page reload. Same window, same origin.
+            try { window.dispatchEvent(new CustomEvent('kybernos:settings', { detail: j.reglages })) } catch (e) { /* context without a window */ }
             if (patch.brain !== undefined) relireEtude()
-          } else setErreur(j && j.erreur ? String(j.erreur) : 'Rejected by the host.')
+          } else setErreur(direErreur(j))
         }).catch((e) => setErreur(String(e && e.message ? e.message : e)))
       }
       const changer = (v) => { setReglages(Object.assign({}, reglages, { renameAfterRecap: v })); ecrire({ renameAfterRecap: v }) }
@@ -2608,55 +2641,59 @@ window.__ModuleLoader__.load({
         }
       }
       return h('div', { className: 'kbr-page', 'data-kbr': 'bloc' },
-        // (28/09, audit) Titre de page 26px comme Thème/Maintenance/Outils —
-        // le h4 natif (16px) était le seul petit titre de page du dialog.
+        // (28/09, audit) 26px page title like Theme/Maintenance/Tools —
+        // the native h4 (16px) was the only small page title of the dialog.
         h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-sessions' }) : null)),
-        h('h4', { className: 'kb6-title', style: { fontSize: natif ? undefined : '26px' } }, 'Kybernos Settings'),
-        // ── tout en haut : rejouer l'onboarding ──────────────────────────────
-        // Le wizard vit dans le bundle @local/kybernos : on ne fait qu'émettre
-        // l'événement fenêtre qu'il écoute — lui POSTe {action:'replay'} à
-        // l'hôte et rouvre ses pages. Zéro CSS neuf : les classes kbr-row /
-        // kbr-choix de cette page suffisent.
+        h('h4', { className: 'kb6-title', style: { fontSize: natif ? undefined : '26px' } }, kt('Réglages Kybernos', 'Kybernos Settings')),
+        // ── at the very top: replay the onboarding ───────────────────────────
+        // The wizard lives in the @local/kybernos bundle: we only emit the
+        // window event it listens to — it POSTs {action:'replay'} to the host
+        // and reopens its pages. No new CSS: the kbr-row / kbr-choix classes of
+        // this page are enough.
         h('div', { className: natif ? natif.row : 'kbr-row', 'data-kbr': 'onboarding-replay' },
           h('div', { className: natif ? natif.rowText : 'kbr-txt' },
-            h('div', { className: natif ? natif.title : undefined }, 'Onboarding'),
-            h('div', { className: natif ? natif.desc : undefined }, 'The welcome pages ran when the plugin was installed. Replay them to redo your profession, display mode, models and starter kit.')),
+            h('div', { className: natif ? natif.title : undefined }, kt('Premiers pas', 'Onboarding')),
+            h('div', { className: natif ? natif.desc : undefined }, kt('Les pages d’accueil sont passées à l’installation du plugin. Rejoue-les pour refaire ta profession, ton mode d’affichage, tes modèles et ton kit de départ.',
+              'The welcome pages ran when the plugin was installed. Replay them to redo your profession, display mode, models and starter kit.'))),
           h('button', {
             type: 'button', className: 'kbr-choix on', 'data-kbr': 'onboarding-replay-btn',
-            onClick: () => { try { window.dispatchEvent(new CustomEvent('kybernos:onboarding', { detail: { action: 'replay' } })) } catch (e) { /* contexte sans window */ } }
-          }, 'Replay')),
+            onClick: () => { try { window.dispatchEvent(new CustomEvent('kybernos:onboarding', { detail: { action: 'replay' } })) } catch (e) { /* context without a window */ } }
+          }, kt('Rejouer', 'Replay'))),
         // The kit alone, later: the wizard's own page opens on the profession saved at the first run.
         h('div', { className: natif ? natif.row : 'kbr-row', 'data-kbr': 'starter-kit' },
           h('div', { className: natif ? natif.rowText : 'kbr-txt' },
-            h('div', { className: natif ? natif.title : undefined }, 'Starter kit'),
-            h('div', { className: natif ? natif.desc : undefined }, 'Skills and agent teams that fit your profession. Open it any time to add more, or after a change of work.')),
+            h('div', { className: natif ? natif.title : undefined }, kt('Kit de départ', 'Starter kit')),
+            h('div', { className: natif ? natif.desc : undefined }, kt('Des skills et des équipes d’agents qui vont avec ton métier. Ouvre-le quand tu veux pour en ajouter, ou si tu changes de travail.',
+              'Skills and agent teams that fit your profession. Open it any time to add more, or after a change of work.'))),
           h('button', {
             type: 'button', className: 'kbr-choix on', 'data-kbr': 'starter-kit-btn',
-            onClick: () => { try { window.dispatchEvent(new CustomEvent('kybernos:onboarding', { detail: { action: 'kit' } })) } catch (e) { /* contexte sans window */ } }
-          }, 'Open')),
-        h('p', { className: natif ? natif.desc : 'kbr-intro' }, 'Small switches that change how the Kybernos plugins work with your chats. Saved on this machine, right away.'),
+            onClick: () => { try { window.dispatchEvent(new CustomEvent('kybernos:onboarding', { detail: { action: 'kit' } })) } catch (e) { /* context without a window */ } }
+          }, kt('Ouvrir', 'Open'))),
+        h('p', { className: natif ? natif.desc : 'kbr-intro' }, kt('De petits interrupteurs qui changent la façon dont les plugins Kybernos travaillent avec tes conversations. Enregistrés sur cet ordinateur, tout de suite.',
+          'Small switches that change how the Kybernos plugins work with your chats. Saved on this machine, right away.')),
         h('div', { className: natif ? natif.row : 'kbr-row', 'data-kbr': 'rename-after-recap' },
           h('div', { className: natif ? natif.rowText : 'kbr-txt' },
-            h('div', { className: natif ? natif.title : undefined }, 'Name each chat when it ends'),
+            h('div', { className: natif ? natif.title : undefined }, kt('Nommer chaque conversation à sa fin', 'Name each chat when it ends')),
             h('div', { className: natif ? natif.desc : undefined }, oui
-              ? 'On: when a work session ends, the chat gets a short title that says what was done, and an icon that fits.'
-              : 'Off: a chat keeps the title it was given when it started.')),
-          h('div', { className: 'kbr-oui-non' + (natif && natif.ctrl ? ' ' + natif.ctrl : ''), role: 'group', 'aria-label': 'Name each chat when it ends' },
-            choix('yes', 'Yes', oui),
-            choix('no', 'No', !oui))),
-        /* (29/09) « Composer microphone » vit désormais dans la page Voix du
-           bundle plugin (même réglage, même route /kybernos-sessions/settings)
-           — à côté du moteur de synthèse, là où on va le chercher. */
+              ? kt('Activé : quand une session de travail se termine, la conversation reçoit un titre court qui dit ce qui a été fait, et une icône qui lui va.',
+                'On: when a work session ends, the chat gets a short title that says what was done, and an icon that fits.')
+              : kt('Désactivé : une conversation garde le titre qu’elle a reçu au départ.', 'Off: a chat keeps the title it was given when it started.'))),
+          h('div', { className: 'kbr-oui-non' + (natif && natif.ctrl ? ' ' + natif.ctrl : ''), role: 'group', 'aria-label': kt('Nommer chaque conversation à sa fin', 'Name each chat when it ends') },
+            choix('yes', kt('Oui', 'Yes'), oui),
+            choix('no', kt('Non', 'No'), !oui))),
+        /* (29/09) « Composer microphone » now lives in the Voice page of the
+           plugin bundle (same setting, same route /kybernos-sessions/settings)
+           — next to the speech engine, where people go to look for it. */
         h('div', { className: natif ? natif.row : 'kbr-row', 'data-kbr': 'brain' },
           h('div', { className: natif ? natif.rowText : 'kbr-txt' },
-            h('div', { className: natif ? natif.title : undefined }, 'Study model'),
+            h('div', { className: natif ? natif.title : undefined }, kt('Modèle d’étude', 'Study model')),
             h('div', { className: natif ? natif.desc : undefined }, vue.description)),
           h('select', {
             className: natif && natif.sel ? natif.sel : 'kbr-select',
-            // Recette 2026-10 (C-13/B6) : 160px tronquait les noms de modèles
-            // (pire en RTL), et le title vivait DANS style — jamais appliqué.
-            // title en attribut (infobulle = nom complet), largeur relevée.
-            style: natif ? { minWidth: '150px', maxWidth: '240px' } : undefined, 'data-kbr': 'brain-select', 'aria-label': 'Study model',
+            // Recette 2026-10 (C-13/B6): 160px truncated the model names
+            // (worse in RTL), and the title lived INSIDE style — never applied.
+            // title as an attribute (tooltip = full name), width raised.
+            style: natif ? { minWidth: '150px', maxWidth: '240px' } : undefined, 'data-kbr': 'brain-select', 'aria-label': kt('Modèle d’étude', 'Study model'),
             title: brain === '' ? vue.libelleAuto : brain,
             value: brain,
             disabled: modeles === undefined,
@@ -2666,20 +2703,22 @@ window.__ModuleLoader__.load({
             h('option', { value: '' }, vue.libelleAuto),
             // A saved pick that is NOT configured anymore stays shown: otherwise the list would show Automatic while the file
             // says something else — the screen would lie about its own content.
-            vue.introuvable ? h('option', { value: brain }, brain + ' — not configured anymore') : null,
-            groupes.length > 0 ? h('option', { value: '__autre', disabled: true }, 'Choose another…') : null,
+            vue.introuvable ? h('option', { value: brain }, brain + kt(' — n’est plus configuré', ' — not configured anymore')) : null,
+            groupes.length > 0 ? h('option', { value: '__autre', disabled: true }, kt('Choisir un autre…', 'Choose another…')) : null,
             groupes,
-            h('option', { value: 'none' }, 'None'))),
+            h('option', { value: 'none' }, kt('Aucun', 'None')))),
         Array.isArray(modeles) && modeles.length === 0
-          ? h('p', { className: 'kbr-note' }, 'No model is configured in Models yet: add one there, and it will show up in this list.')
+          ? h('p', { className: 'kbr-note' }, kt('Aucun modèle n’est encore configuré dans Modèles : ajoute-en un là-bas et il apparaîtra dans cette liste.',
+            'No model is configured in Models yet: add one there, and it will show up in this list.'))
           : null,
         modeles === null
-          ? h('p', { className: 'kbr-note' }, 'The model list could not be read from the harness — only “Automatic” and “None” can be chosen right now.')
+          ? h('p', { className: 'kbr-note' }, kt('La liste des modèles n’a pas pu être lue — seuls « Automatique » et « Aucun » peuvent être choisis pour le moment.',
+            'The model list could not be read from the harness — only “Automatic” and “None” can be chosen right now.'))
           : null,
         erreur !== null ? h('p', { className: 'kbr-err' }, erreur) : null,
-        enregistre ? h('p', { className: 'kbr-ok' }, 'Saved ✓') : null)
-        // (29/09) Les versions (DSH + Plugin) vivent dans la page Maintenance
-        // (carte État : « Moteur X · Plugin Y ») — plus de doublon ici.
+        enregistre ? h('p', { className: 'kbr-ok' }, kt('Enregistré ✓', 'Saved ✓')) : null)
+        // (29/09) The versions (DSH + Plugin) live in the Maintenance page
+        // (State card: « Engine X · Plugin Y ») — no duplicate here.
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -2904,10 +2943,10 @@ window.__ModuleLoader__.load({
       }
     }
 
-    // ── montage : le dock du composer reçoit { sessionId } ─────────────────
+    // ── mounting: the composer dock receives { sessionId } ─────────────────
     function apply (ctx) {
-      // Capturé pour la liste des modèles, lu par `kbCtx.get` DANS un try/catch :
-      // l'ajouter à `inject` ferait échouer tout le montage si le service manque.
+      // Captured for the list of models, read by `kbCtx.get` INSIDE a try/catch:
+      // adding it to `inject` would fail the whole mount if the service is missing.
       kbCtx = ctx
       ctx.effect(() => ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register(
         { name: 'conversation.composer.dock', id: 'kybernos-sessions', order: 5 },
@@ -2915,32 +2954,32 @@ window.__ModuleLoader__.load({
           try { return React.createElement(Pills, { sessionId }) } catch (e) { return null }
         }
       )), 'kybernos-sessions: pills composer.dock')
-      // La page de réglages vit dans le popup Paramètres : c'est le même
-      // fichier de réglages que la CLI de nommage lit. Depuis la variante D
-      // (maquette réglages v2), le bloc Kybernos s'enregistre dans le slot du
-      // volet General natif (`settings.general.item`, ordre -30 = premier) :
-      // ce panneau devient « Général » fusionné — nos rangées, puis les
-      // rangées natives SANS équivalent Kybernos (Permission, Work details,
-      // Performance & usage, Outils de développement, Comportement de
-      // l'envoi), celles qui ont un équivalent (Language, Apparence, Taille
-      // du texte — elles vivent dans Thème) étant masquées par
-      // l'orchestrateur ci-dessous. Aucun patch du core.
+      // The settings page lives in the Settings popup: it is the same
+      // settings file the naming CLI reads. Since variant D
+      // (settings mockup v2), the Kybernos block registers in the slot of the
+      // native General pane (`settings.general.item`, order -30 = first):
+      // this panel becomes a merged « General » — our rows, then the
+      // native rows WITH NO Kybernos equivalent (Permission, Work details,
+      // Performance & usage, Developer tools, Send
+      // behaviour), the ones that have an equivalent (Language, Appearance, Font
+      // size — they live in Theme) being hidden by
+      // the orchestrator below. No core patch.
       ctx.effect(() => ctx.slots.inject('settings.general.item', () => ctx.slots.register(
         { name: 'settings.general.item', id: 'kybernos-general', order: -30 },
-        () => h(ReglagesKybernos))), 'kybernos-sessions: bloc Kybernos dans Général')
-      ctx.effect(() => orchestrerReglages(), 'kybernos-sessions: orchestrateur de la modale Réglages')
-      // Indépendant du slot : la liste des sessions vit dans le shell.
-      ctx.effect(() => suivreTitres(), 'kybernos-sessions: icône de catégorie devant le titre')
+        () => h(ReglagesKybernos))), 'kybernos-sessions: Kybernos block in General')
+      ctx.effect(() => orchestrerReglages(), 'kybernos-sessions: orchestrator of the Settings dialog')
+      // Independent of the slot: the list of sessions lives in the shell.
+      ctx.effect(() => suivreTitres(), 'kybernos-sessions: category icon before the title')
       // Model health (the `brain` setting): the probe and the public bus the Models tab chip reads.
       ctx.effect(() => suivreSante(), 'kybernos-sessions: model health probe and bus')
     }
     return {
-      // Le contrat d'export d'une entrée cordis : les services que le contexte
-      // DOIT exposer. Sans `slots`, le garde de ctx refuse `ctx.slots` et
-      // l'entrée reste « loading » (même contrat que kybernos/kybernos-theme).
+      // The export contract of a cordis entry: the services the context
+      // MUST expose. Without `slots`, the ctx guard refuses `ctx.slots` and
+      // the entry stays « loading » (the same contract as kybernos/kybernos-theme).
       inject: ['slots'],
-      // Pure pieces, exposed for test-journal.mjs.
-      __test: { memoireDuJournal, santeVue, santeCause, suivreSante, faitsChangements, genreDeCode, descripteur, etudeVue },
+      // Pure pieces, exposed for test-journal.mjs, test-sante.mjs and test-language.mjs.
+      __test: { memoireDuJournal, santeVue, santeCause, suivreSante, faitsChangements, genreDeCode, descripteur, etudeVue, kt, direErreur, ERR_REGLAGES, motAffiche, CATEGORIE_PAR_SLUG, MOTS_FR, ReglagesKybernos, rgRenommerGeneral },
       apply
     }
   }

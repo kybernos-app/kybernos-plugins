@@ -46,6 +46,10 @@ check('the totals ride along', v.total === 5 && v.tousEnEchec === false && v.ver
 const nu = santeVue(verdict({ alertes: [{ cle: 'vercel-ai-gateway/typesafe-ai/jev', code: 'INVALID_REQUEST' }] }), 0, 1)
 check('route and id come from the key when the host omits them (a model id may hold slashes)', nu.alertes[0].route === 'vercel-ai-gateway' && nu.alertes[0].id === 'typesafe-ai/jev', nu)
 check('nothing answered at all is told as a general failure', santeVue(verdict({ tousEnEchec: true }), 0, 1).tousEnEchec === true)
+// A2-22: the probe's own sentence (the host makes up two of them, « timeout » and « no answer ») never reaches the page: the view keeps the
+// code and a cause id, and whoever draws it (the Models tab chip) words the cause itself, in the language of the page.
+const sentence = santeVue(verdict({ alertes: [{ cle: 'a/b', code: 'TIMEOUT', message: 'aucune réponse dans le délai' }, { cle: 'a/c', code: 'SANS-REPONSE', message: 'le flux s’est terminé sans verdict' }, { cle: 'a/d', code: 'AUTH', message: 'invalid api key' }] }), 0, 1)
+check('a probe sentence is never passed through: only the code and the cause id reach the view', sentence.alertes.length === 3 && sentence.alertes.every((a) => a.message === undefined) && !/aucune|flux|invalid api key/.test(JSON.stringify(sentence)) && sentence.alertes.map((a) => a.cause).join() === 'silent,silent,key', sentence)
 check('a total below the failing count is repaired, never trusted', santeVue(verdict({ total: 0 }), 0, 1).total === 1)
 
 console.log('the causes')

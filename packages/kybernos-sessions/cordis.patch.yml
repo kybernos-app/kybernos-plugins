@@ -1,6 +1,6 @@
-# Insertion du plugin « kybernos-sessions » dans l'arbre Cordis du profil.
-# Les deux pastilles (mémoire + session) se chargent dans le dock du composer ;
-# les routes hôtes /kybernos-sessions/* sont en lecture seule.
+# Insertion of the « kybernos-sessions » plugin into the Cordis tree of the profile.
+# The pills (memory + session) load into the composer dock; the host routes /kybernos-sessions/* serve the
+# state, the settings and the categories, and run the git / gh actions (a dry run unless the body has exec:true).
 - insert:
     - id: kybernos-sessions
       name: '@local/kybernos-sessions'

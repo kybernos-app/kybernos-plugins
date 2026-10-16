@@ -75,11 +75,11 @@ const kbFenced = (service) => {
   return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => target.register(fence(route)) : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
 }
 
-// ── slug du magasin de sessions ⇄ chemin ───────────────────────────────────
-// Le slug encode le chemin ('/Users/me/projects/x' → '--Users-me-projects-x--')
-// mais le tiret est ambigu (il séparateur ET caractère légal d'un dossier).
-// On résout donc par existence : toutes les coupures possibles, on ne garde
-// que les chemins qui existent, le plus profond gagne.
+// ── slug of the session store ⇄ path ───────────────────────────────────────
+// The slug encodes the path ('/Users/me/projects/x' → '--Users-me-projects-x--')
+// but the dash is ambiguous (it is the separator AND a legal character of a folder name).
+// So it is resolved by existence: every possible cut, only the paths that exist are
+// kept, the deepest wins.
 
 export function slugSegments (slug) {
   const corps = slug.replace(/^--/, '').replace(/--$/, '')
@@ -105,11 +105,11 @@ export function decodeSlugPath (slug, exists = existsSync) {
   return existants.sort((a, b) => b.length - a.length)[0]
 }
 
-// ── magasin de sessions (~/.dsh/sessions) ───────────────────────────────────
+// ── session store (~/.dsh/sessions) ─────────────────────────────────────────
 
-// macOS dépose un .DS_Store (fichier) à la racine du magasin : un slug de
-// dossier est TOUJOURS un répertoire, sinon `ls(join(home, slug))` jette
-// ENOTDIR et toute la route répond 500.
+// macOS drops a .DS_Store (a file) at the root of the store: the slug of a
+// folder is ALWAYS a directory, otherwise `ls(join(home, slug))` throws
+// ENOTDIR and the whole route answers 500.
 function estDossier (chemin) {
   try { return statSync(chemin).isDirectory() } catch (e) { return false }
 }
@@ -122,7 +122,7 @@ export function sessionsDuDossier (sessionsHome, slug, fenetreMs, maintenant = D
     const sdir = join(dir, nom)
     const log = join(sdir, 'session.v3.jsonl.zstd')
     let logStat = null
-    try { logStat = st(log) } catch (e) { continue /* pas un dossier de session */ }
+    try { logStat = st(log) } catch (e) { continue /* not a session folder */ }
     sessions.push({
       id: nom.replace(/^session-/, ''),
       mtime: logStat.mtimeMs,
@@ -161,36 +161,106 @@ export function dossierDeSession (sessionsHome, sessionId, ls = readdirSync) {
   return null
 }
 
-// ── git (exécution, jamais d'écriture) ─────────────────────────────────────
+// ── git (execution; the reads never write) ──────────────────────────────────
 
 const gitRun = (args, cwd) => new Promise((res) => {
   execFile('git', args, { cwd, timeout: 15000 }, (err, stdout, stderr) =>
     res({ ok: !err, out: String(stdout || ''), err: String(stderr || '') }))
 })
 
-// v3 « status light » — même contrat pour gh (pull requests).
+// v3 « status light » — the same contract for gh (pull requests).
 const ghRun = (args, cwd) => new Promise((res) => {
   execFile('gh', args, { cwd, timeout: 20000 }, (err, stdout, stderr) =>
     res({ ok: !err, out: String(stdout || ''), err: String(stderr || (err && err.message) || '') }))
 })
 
-// Cache des lectures gh (la GUI interroge l'état toutes les 30 s ; gh prend
-// quelques centaines de ms et n'apporte rien en boucle).
-const cachePr = new Map() // chemin -> { t, val }
+// Cache of the gh reads (the page asks for the state every 30 s; gh takes a few
+// hundred ms and adds nothing in a loop).
+const cachePr = new Map() // path -> { t, val }
 const git = gitRun
 
-// Les chemins d'un `git status --porcelain` : « M fichier », « ?? dossier/ »,
-// « R  ancien -> nouveau ». Un dossier non suivi est rendu AINSI, avec son
-// slash final — d'où `estSale`, qui reconnaît aussi les fichiers qu'il
-// contient : sans cela, un fichier neuf dans un dossier neuf passait pour
-// « déjà enregistré » et le commit était sauté en silence.
+// ── What the git routes say ─────────────────────────────────────────────────
+// Every reply of the git routes (isolate, reclaim, commit, close-check, close, push, fetch, sync, pr) keeps its JSON shape and
+// carries a stable `code` (kebab-case). `erreur`, `message` and `note` are plain ENGLISH sentences built from the table below;
+// what git or gh said itself travels apart, untranslated, in `detail` (a count in `count`, a branch in `base`). A client words
+// the reply from its `code`, in its own language (kybernos-changes does), and falls back to the English sentence for a code it
+// does not know. A code is added HERE and in the client table: kybernos-changes/test-client.mjs fails when the two drift.
+export const GIT_TEXTS = {
+  // the folder and the repository
+  'folder-not-found': 'folder not found',
+  'not-a-repo': 'not a git repository',
+  'not-in-git': 'not in git — nothing to merge',
+  'no-remote': 'no remote repository (origin) is set up',
+  'no-github-remote': 'no GitHub remote (origin)',
+  'not-a-copy': 'this folder is not a separate copy (worktree)',
+  'is-a-copy': 'this folder is a separate copy (worktree) — reclaim runs from the main checkout',
+  // saving
+  'nothing-to-save': 'nothing to save — the folder is clean',
+  'no-chat-files': 'no file belongs to this chat — the folder is changed by other chats, nothing to save here',
+  'already-saved': 'already saved — nothing new in this chat’s files',
+  'saved-local': 'saved on this computer (nothing sent)',
+  'saved-merged-local': 'saved and merged into the local branch (nothing sent)',
+  'saved-push-failed': 'saved on this computer — sending FAILED, the save still has to be sent',
+  'saved-sent': 'saved and sent',
+  'saved-sent-merged': 'saved, sent and merged into the base branch',
+  'merged-local': 'merged into the local branch (nothing sent)',
+  // GitHub
+  'nothing-to-send': 'nothing to send — already up to date',
+  'sent': 'sent to GitHub',
+  'fetched': 'updates fetched — your files are unchanged',
+  'synced': 'fetched, then sent — in sync',
+  'current-is-base': 'the current branch is the base branch — give this chat its own copy first',
+  'nothing-to-review': 'nothing to review — no commit beyond {base}',
+  'pr-opened': 'pull request opened',
+  'pr-merged': 'pull request merged into the base branch',
+  // the separate copy (worktree)
+  'already-isolated': 'already isolated — this folder is a worktree',
+  'copy-created': 'copy created — open the NEXT chat in this folder to work in it',
+  'copy-reused': 'a copy is already there and has no work — reused, nothing created',
+  'copy-held': 'the copy is held by an open session',
+  'copy-has-work': 'the existing copy has unsaved changes or work of its own',
+  'merged-removed': 'merged and the separate copy removed',
+  'copy-not-removed': 'copy not removed: {detail}',
+  'clean-copy': 'clean copy — it can be merged, then removed',
+  'main-folder': 'main folder — the session can be closed',
+  'reclaimed': '{copies} without work removed',
+  // what stands in the way
+  'tree-dirty': 'unsaved changes ({files}) — save them first',
+  'ignored-entries': 'closing would destroy {things} that cannot be regenerated ({entries})',
+  'no-upstream': 'this branch was never sent to GitHub — send it first',
+  'unpushed-commits': 'send first — {commits} not sent to GitHub yet',
+  // what git or gh refused (their own words are in `detail`)
+  'git-refused': 'git {step} refused: {detail}',
+  'push-refused': 'push refused: {detail}',
+  'fetch-refused': 'fetch refused: {detail}',
+  'merge-refused': 'merge refused: {detail}',
+  'gh-pr-create-refused': 'gh pr create refused: {detail}',
+  'gh-pr-merge-refused': 'gh pr merge refused: {detail}'
+}
+const gitText = (code, p = {}) => String(GIT_TEXTS[code]).replace(/\{(\w+)\}/g, (m, k) => (p[k] !== undefined ? String(p[k]) : m))
+// The fields of `p` that ride along in the reply (the others only fill the sentence).
+const gitExtras = (p) => Object.fromEntries(['detail', 'count', 'base', 'entries'].filter((k) => p[k] !== undefined).map((k) => [k, p[k]]))
+const gitFail = (code, p = {}, extra = {}) => ({ ok: false, code, erreur: gitText(code, p), ...gitExtras(p), ...extra })
+const gitDone = (code, p = {}, extra = {}) => ({ ok: true, ...extra, code, message: gitText(code, p), ...gitExtras(p) })
+const countOf = (n, one, many) => n + ' ' + (n === 1 ? one : many)
+const filesOf = (n) => ({ count: n, files: countOf(n, 'file', 'files') })
+const commitsOf = (n) => ({ count: n, commits: countOf(n, 'commit', 'commits') })
+const ignoredOf = (liste) => ({ count: liste.length, things: countOf(liste.length, 'ignored entry', 'ignored entries'), entries: liste.slice(0, 3).join(', ') })
+// The words of a refusal, cut to a length a card can show.
+const said = (r, n = 200) => String((r && r.err) || '').trim().slice(0, n)
+
+// The paths of a `git status --porcelain`: « M file », « ?? folder/ »,
+// « R  old -> new ». An untracked folder is rendered THAT way, with its trailing
+// slash — hence `estSale`, which also recognises the files it holds: without it,
+// a new file in a new folder passed for « already saved » and the commit was
+// skipped in silence.
 export function cheminsSales (out) {
   return String(out || '').split('\n').map((l) => l.replace(/\s+$/, '')).filter((l) => l.trim() !== '')
     .map((l) => l.slice(3).trim().replace(/^"/, '').replace(/"$/, '').split(' -> ').pop())
     .filter((p) => p !== '')
 }
-// Les mêmes chemins AVEC leur code `XY` (« M », « ?? », « UU »…), pour dire ce qui a changé et non seulement où :
-// le plugin « Changes » les range en modifié / nouveau / supprimé / en conflit. Champ additif de l'état.
+// The same paths WITH their `XY` code (« M », « ?? », « UU »…), to say what changed and not only where:
+// the « Changes » plugin sorts them into modified / new / deleted / in conflict. An additive field of the state.
 export function fichiersSales (out) {
   return String(out || '').split('\n').map((l) => l.replace(/\s+$/, '')).filter((l) => l.trim() !== '')
     .map((l) => ({ code: l.slice(0, 2).trim(), chemin: l.slice(3).trim().replace(/^"/, '').replace(/"$/, '').split(' -> ').pop() }))
@@ -215,8 +285,8 @@ export async function etatGit (chemin, run = git) {
   if (!branche.ok) return { git: false }
   const gitdir = worktrees.out.trim()
   const estWorktree = /\.git\/worktrees\//.test(gitdir)
-  // ── v3 « status light » : état GitHub (recu), copie non fusionnée, base,
-  // remote et dernier fetch — champs additifs, les anciens restent identiques.
+  // ── v3 « status light »: GitHub state (received), unmerged copy, base,
+  // remote and last fetch — additive fields, the old ones stay identical.
   const [recul, distant, baseR] = await Promise.all([
     run(['rev-list', '--count', 'HEAD..@{upstream}'], chemin),
     run(['remote', 'get-url', 'origin'], chemin),
@@ -230,16 +300,15 @@ export async function etatGit (chemin, run = git) {
     : { ok: true, out: '0' }
   let dernierFetch = null
   for (const fd of [join(chemin, '.git', 'FETCH_HEAD'), join(gitdir, 'FETCH_HEAD')]) {
-    try { dernierFetch = statSync(fd).mtime.toISOString(); break } catch (e) { /* pas de fetch */ }
+    try { dernierFetch = statSync(fd).mtime.toISOString(); break } catch (e) { /* no fetch yet */ }
   }
   return {
     git: true,
     branche: branche.out.trim(),
     modifications: sale.ok ? sale.out.split('\n').filter((l) => l.trim() !== '').length : -1,
-    // La LISTE des chemins sales, pas seulement leur nombre : la carte Recap
-    // peut alors dire « le travail de ce chat est enregistré » en regardant le
-    // disque, même quand le commit est passé par le bouton (le journal, lui, ne
-    // voit que les commits lancés par un outil de l'agent).
+    // The LIST of the dirty paths, not only their number: the Recap card can then
+    // say « this chat's work is saved » by looking at the disk, even when the commit
+    // went through the button (the journal only sees the commits an agent tool ran).
     sale: sale.ok ? cheminsSales(sale.out).slice(0, 200) : [],
     fichiers: sale.ok ? fichiersSales(sale.out).slice(0, 200) : [],
     commitsNonPousses: avance.ok ? avance.out.split('\n').filter((l) => l.trim() !== '').length : -1,
@@ -270,21 +339,21 @@ export async function etatGit (chemin, run = git) {
 
 export const REGLAGES_DEFAUT = { renameAfterRecap: true, brain: '', voiceInput: 'kybernos', autoRouting: false, autoWhitelist: [], autoClassifier: '' }
 
-/** La whitelist Auto : un tableau d'identifiants « route/id » (ou route/clé),
- *  sans doublon, plafonné à 64 entrées — les seuls modèles que le routage Auto
- *  a le droit de choisir pour une délégation. */
+/** The Auto whitelist: an array of « route/id » identifiers (or route/key),
+ *  without duplicates, capped at 64 entries — the only models Auto routing
+ *  may pick for a delegation. */
 const whitelistValide = (v) => Array.isArray(v) && v.length <= 64 &&
   v.every((x) => brainValide(x) === true) && new Set(v).size === v.length
 
-/** Les deux sources de dictée admises. Toute autre valeur retombe sur le défaut
- *  plutôt que d'écrire un mot que le client ne saurait pas rendre. */
+/** The two dictation sources accepted. Any other value falls back to the default
+ *  rather than writing a word the client could not render. */
 export const VOICE_SOURCES = ['native', 'kybernos']
 const voiceSourceValide = (v) => VOICE_SOURCES.indexOf(v) !== -1
 
-/** Un identifiant `route/id` plausible, ou la chaîne vide. Volontairement LARGE :
- *  l'hôte ne connaît PAS la liste des modèles (elle vit dans le client, qui l'a
- *  lue du service de réglages), il refuse donc seulement ce qui ne peut pas être
- *  un identifiant — pas ce qui n'est pas *le bon*. */
+/** A plausible `route/id` identifier, or the empty string. Deliberately WIDE:
+ *  the host does NOT know the list of models (it lives in the client, which read
+ *  it from the settings service), so it only refuses what cannot be an
+ *  identifier — not what is not *the right one*. */
 const brainValide = (v) => typeof v === 'string' && v.length <= 200
   && (v === '' || /^[A-Za-z0-9._:-]+\/[A-Za-z0-9._:-]+$/.test(v))
 
@@ -404,22 +473,22 @@ export { readRawSettings }
 // never a replacement of the keys other bundles keep in the same file.
 export function ecrireReglages (fichier, patch) {
   const p = (patch !== null && typeof patch === 'object') ? patch : {}
-  // Un modèle d'étude refusé se DIT : l'ignorer en silence ferait croire à la
-  // page que le choix est enregistré alors que le fichier garde l'ancien.
+  // A refused Study model is SAID: ignoring it in silence would let the page believe
+  // the choice is saved while the file keeps the old one.
   // `invalide: true` marks a refusal of what was sent (the route answers 400); the others (a blocked or unwritable
-  // settings.json) are the host's own trouble (500).
+  // settings.json) are the host's own trouble (500). `code` is the stable key a client words in its own language.
   if (p.brain !== undefined && etudeValide(p.brain) !== true) {
-    return { ok: false, invalide: true, erreur: 'brain : identifiant « route/id », « none » ou chaîne vide attendu' }
+    return { ok: false, invalide: true, code: 'invalid-brain', erreur: 'brain: expected a “route/id” identifier, “none” or an empty string' }
   }
   if (p.voiceInput !== undefined && voiceSourceValide(p.voiceInput) !== true) {
-    return { ok: false, invalide: true, erreur: 'voiceInput : « native » ou « kybernos » attendu' }
+    return { ok: false, invalide: true, code: 'invalid-voice-input', erreur: 'voiceInput: expected “native” or “kybernos”' }
   }
   if (p.autoWhitelist !== undefined && whitelistValide(p.autoWhitelist) !== true) {
-    return { ok: false, invalide: true, erreur: 'autoWhitelist : tableau d identifiants « route/id » sans doublon attendu' }
+    return { ok: false, invalide: true, code: 'invalid-auto-whitelist', erreur: 'autoWhitelist: expected an array of “route/id” identifiers without duplicates' }
   }
   const lu = readRawSettings(fichier)
   const bloque = settingsFileBlocked(lu, fichier)
-  if (bloque !== null) return { ok: false, erreur: bloque }
+  if (bloque !== null) return { ok: false, code: lu.error !== undefined ? 'settings-unreadable' : 'settings-corrupt', erreur: bloque }
   const avant = normalizeSettings(lu.raw)
   const apres = {
     renameAfterRecap: p.renameAfterRecap === undefined
@@ -436,15 +505,15 @@ export function ecrireReglages (fichier, patch) {
     const reste = { ...lu.raw }
     delete reste.decisionBrain
     writeFileAtomically(fichier, JSON.stringify({ ...reste, ...apres }, null, 2) + '\n')
-  } catch (e) { return { ok: false, erreur: String(e && e.message ? e.message : e) } }
+  } catch (e) { return { ok: false, code: 'settings-not-written', erreur: String(e && e.message ? e.message : e) } }
   return { ok: true, reglages: apres }
 }
 
-// ── catégories de session (~/.dsh/kybernos/categories.json) ────────────────
-// Le titre d'une session ne porte PLUS d'emoji : la catégorie (fonctionnalité,
-// correctif, UI/design…) vit à part, indexée par identifiant de session, et
-// c'est elle que la liste rend en SVG. La CLI de nommage l'écrit ; le client la
-// lit ici. Le fichier est un simple objet `{ "<sessionId>": { cat, titre, ts } }`.
+// ── session categories (~/.dsh/kybernos/categories.json) ────────────────────
+// The title of a session carries NO emoji any more: the category (feature, fix,
+// UI/design…) lives apart, indexed by session id, and the list draws it as an
+// SVG. The naming CLI writes it; the client reads it here. The file is a plain
+// object `{ "<sessionId>": { cat, titre, ts } }`.
 
 // The accepted slugs — DERIVED from the table of the closed lists (decision.mjs), the only place where their MEANING is
 // written (the criteria the Study model reads): a category added there is offered to the model and accepted by the route,
@@ -461,9 +530,9 @@ export function lireCategories (fichier) {
     if (e === null || typeof e !== 'object') continue
     const cat = String(e.cat || '')
     if (CATEGORIES_CONNUES.indexOf(cat) === -1) continue
-    // `auto` : catégorie posée par le CLIENT (classement automatique du titre
-    // initial), pas par l'agent qui nomme. L'agent peut la remplacer à tout
-    // moment ; l'auto ne re-classe jamais par-dessus un nommage explicite.
+    // `auto`: a category set by the CLIENT (automatic classification of the initial
+    // title), not by the naming agent. The agent can replace it at any time; auto
+    // never re-classifies over an explicit naming.
     propre[id] = { cat, titre: String(e.titre || '').slice(0, 200), ts: String(e.ts || ''), auto: e.auto === true }
   }
   return propre
@@ -471,20 +540,20 @@ export function lireCategories (fichier) {
 
 export function ecrireCategorie (fichier, sessionId, cat, titre, auto) {
   const id = String(sessionId || '').trim()
-  if (id === '') return { ok: false, erreur: 'session vide' }
+  if (id === '') return { ok: false, code: 'empty-session', erreur: 'empty session' }
   if (CATEGORIES_CONNUES.indexOf(String(cat)) === -1) {
-    return { ok: false, erreur: 'catégorie inconnue : ' + String(cat) + ' (attendu : ' + CATEGORIES_CONNUES.join(', ') + ')' }
+    return { ok: false, code: 'unknown-category', erreur: 'unknown category: ' + String(cat) + ' (expected: ' + CATEGORIES_CONNUES.join(', ') + ')' }
   }
   const toutes = lireCategories(fichier)
   toutes[id] = { cat: String(cat), titre: String(titre || '').slice(0, 200), ts: new Date().toISOString(), auto: auto === true }
   try {
     mkdirSync(dirname(fichier), { recursive: true })
     writeFileSync(fichier, JSON.stringify(toutes, null, 2) + '\n')
-  } catch (e) { return { ok: false, erreur: String(e && e.message ? e.message : e) } }
+  } catch (e) { return { ok: false, code: 'categories-not-written', erreur: String(e && e.message ? e.message : e) } }
   return { ok: true, id, categorisation: toutes[id] }
 }
 
-// ── mémoire des kybers (~/.dsh/kybers/<kyber>/memory) ──────────────────────
+// ── memory of the agent teams (~/.dsh/kybers/<kyber>/memory) ────────────────
 
 export function lignesJsonl (chemin) {
   if (!existsSync(chemin)) return []
@@ -527,7 +596,7 @@ export function etatMemoire (kybersHome, ls = readdirSync) {
   return kybers.sort((a, b) => String(b.derniereActivite || '').localeCompare(String(a.derniereActivite || '')))
 }
 
-// ── réponse complète ────────────────────────────────────────────────────────
+// ── the full answer ─────────────────────────────────────────────────────────
 
 export async function construireEtat ({ sessionsHome, kybersHome, sessionId, fenetreMs = 24 * 3600 * 1000, horloge = Date.now, run = git, ls = readdirSync, st = statSync, avecPr = false, gh = ghRun, cachePr: prCache = cachePr }) {
   const slug = sessionId ? dossierDeSession(sessionsHome, sessionId, ls) : null
@@ -537,8 +606,8 @@ export async function construireEtat ({ sessionsHome, kybersHome, sessionId, fen
     const chemin = decodeSlugPath(slug)
     const dos = repartition[slug] || { sessionsActives: 0, sessionsTotal: 0, derniereActivite: 0 }
     const g = chemin ? await etatGit(chemin, run) : { git: false }
-    // worktrees d'isolation présents dans ce dossier (un chat « né » ici peut
-    // y être isolé : son activité ne menace plus le dossier principal)
+    // isolation worktrees present in this folder (a chat « born » here can be
+    // isolated in one: its activity no longer threatens the main folder)
     let nbWorktrees = 0
     if (chemin !== null) {
       const wdir = join(chemin, '.worktrees')
@@ -557,9 +626,9 @@ export async function construireEtat ({ sessionsHome, kybersHome, sessionId, fen
         : 'idle',
       git: g
     }
-    // ── v3 « status light » : état GitHub du PROJET (en worktree, la pilule
-    // sync décrit le dossier principal — une copie isolée reste sur l'ordinateur)
-    // et pull request de la branche courante (gh, en cache 60 s).
+    // ── v3 « status light »: GitHub state of the PROJECT (in a worktree, the sync
+    // pill describes the main folder — an isolated copy stays on the computer)
+    // and pull request of the current branch (gh, cached for 60 s).
     if (g.git) {
       const sd = g.worktree
         ? await etatGit(String(chemin).replace(/\/\.worktrees\/[^/]+$/, ''), run)
@@ -574,50 +643,51 @@ export async function construireEtat ({ sessionsHome, kybersHome, sessionId, fen
 }
 
 
-// ── « la session peut-elle être clôturée ? » — LECTURE seule ────────────────
-// Mêmes gardes que `cloturer`, mais sans aucune écriture : le récapitulatif de
-// la pilule locale dit ce qui reste à faire au lieu de le découvrir au clic.
-//   · hors git, ou dossier principal → clôturable (rien à fusionner) ;
-//   · copie isolée → il faut un arbre propre, une branche poussée, et aucune
-//     entrée ignorée non régénérable (`.env`, base locale…) que la fermeture
-//     détruirait.
+// ── « can the session be closed? » — READ only ──────────────────────────────
+// The same guards as `cloturer`, but with no write at all: the summary of the
+// local pill says what is left to do instead of letting a click find out.
+//   · outside git, or main folder → can be closed (nothing to merge);
+//   · isolated copy → it needs a clean tree, a pushed branch, and no ignored
+//     entry that cannot be regenerated (`.env`, local database…) which closing
+//     would destroy.
+// `code` is the reply's stable key (the first problem's, or the good news'); `raison` and `erreurs` are English sentences.
 export async function sondeCloture ({ chemin, run = gitRun, forceIgnores = false }) {
-  if (!chemin || !existsSync(chemin)) return { ok: false, cloturable: false, worktree: false, raison: 'dossier introuvable', erreurs: ['dossier introuvable'] }
+  if (!chemin || !existsSync(chemin)) { const t = gitText('folder-not-found'); return { ok: false, cloturable: false, worktree: false, code: 'folder-not-found', raison: t, erreurs: [t] } }
   const g = await etatGit(chemin, run)
-  if (!g.git) return { ok: true, cloturable: true, worktree: false, branche: null, raison: 'hors git — rien à fusionner', erreurs: [] }
+  if (!g.git) return { ok: true, cloturable: true, worktree: false, branche: null, code: 'not-in-git', raison: gitText('not-in-git'), erreurs: [] }
   const gd = await run(['rev-parse', '--git-dir'], chemin)
   const estWt = /\.git\/worktrees\//.test(String(gd.out))
-  if (!estWt) return { ok: true, cloturable: true, worktree: false, branche: g.branche, raison: 'dossier principal — la session peut être fermée', erreurs: [] }
-  const erreurs = []
-  if (g.modifications > 0) erreurs.push('arbre sale (' + g.modifications + ' fichier' + (g.modifications === 1 ? '' : 's') + ') — committer d’abord')
+  if (!estWt) return { ok: true, cloturable: true, worktree: false, branche: g.branche, code: 'main-folder', raison: gitText('main-folder'), erreurs: [] }
+  const problemes = [] // [code, parameters]
+  if (g.modifications > 0) problemes.push(['tree-dirty', filesOf(g.modifications)])
   const ig = await run(['status', '--porcelain', '--ignored=matching'], chemin)
   const precieux = ig.ok ? ignoresPrecieux(String(ig.out)) : []
-  if (precieux.length > 0 && forceIgnores !== true) {
-    erreurs.push(precieux.length + ' entrée(s) ignorée(s) non régénérable(s) (' + precieux.slice(0, 3).join(', ') + ') — fermer les détruirait')
-  }
+  if (precieux.length > 0 && forceIgnores !== true) problemes.push(['ignored-entries', ignoredOf(precieux)])
   const pousse = await run(['rev-list', '--count', '@{upstream}..' + g.branche], chemin)
-  if (!pousse.ok) erreurs.push('branche sans upstream (jamais poussée) — pousser d’abord')
-  else if (String(pousse.out).trim() !== '0') erreurs.push(String(pousse.out).trim() + ' commit(s) non poussé(s) — pousser d’abord')
+  if (!pousse.ok) problemes.push(['no-upstream', {}])
+  else if (String(pousse.out).trim() !== '0') problemes.push(['unpushed-commits', commitsOf(parseInt(String(pousse.out).trim(), 10) || 0)])
+  const erreurs = problemes.map(([code, p]) => gitText(code, p))
   return {
     ok: true,
     cloturable: erreurs.length === 0,
     worktree: true,
     branche: g.branche,
     nonFusionnes: g.nonFusionnes,
-    raison: erreurs.length === 0 ? 'copie isolée propre — elle peut être fusionnée puis retirée' : erreurs[0],
+    code: problemes.length === 0 ? 'clean-copy' : problemes[0][0],
+    raison: erreurs.length === 0 ? gitText('clean-copy') : erreurs[0],
     erreurs
   }
 }
 
-// ── actions protégées (dry-run par défaut, exec uniquement sur confirmation) ─
+// ── protected actions (dry run by default, exec only on confirmation) ───────
 
-// ── isolation : cycle de vie des worktrees ──────────────────────────────────
-// Un arbre créé doit pouvoir être RÉUTILISÉ (jamais deux fois le même nom),
-// MARQUÉ (but + date, écrit À CÔTÉ de l'arbre pour ne pas le salir) et RAMASSÉ
-// (retiré dès qu'il est propre et sans travail). Sans ces trois propriétés une
-// garde automatique fabrique des arbres morts à chaque appel — constaté le
-// 21/09/2026 : deux arbres `.worktrees/s-mub*` à 0 commit d'avance, 0 de retard,
-// arbre propre, et un troisième déjà signalé « resté, redondant ».
+// ── isolation: life cycle of the worktrees ──────────────────────────────────
+// A tree that was created must be REUSABLE (never twice the same name), MARKED
+// (purpose + date, written NEXT TO the tree so as not to dirty it) and
+// RECLAIMABLE (removed as soon as it is clean and has no work). Without these
+// three properties an automatic guard makes dead trees on every call — seen on
+// 21/09/2026: two `.worktrees/s-mub*` trees at 0 commits ahead, 0 behind, clean
+// tree, and a third already reported « left, redundant ».
 
 const normaliserSlug = (nom) => (nom || ('s-' + Date.now().toString(36)))
   .replace(/[^a-z0-9-]/gi, '-').slice(0, 40)
@@ -632,15 +702,15 @@ function ecrireMarqueur (chemin, slug, data) {
   try {
     mkdirSync(dossierMarqueur(chemin), { recursive: true })
     writeFileSync(cheminMarqueur(chemin, slug), JSON.stringify({ version: 1, ...data }) + '\n')
-  } catch (e) { /* un marqueur manquant ne bloque pas l'isolation */ }
+  } catch (e) { /* a missing marker does not block the isolation */ }
 }
 function effacerMarqueur (chemin, slug) {
-  try { rmSync(cheminMarqueur(chemin, slug), { force: true }) } catch (e) { /* déjà absent */ }
+  try { rmSync(cheminMarqueur(chemin, slug), { force: true }) } catch (e) { /* already gone */ }
 }
 
-// `.worktrees/` entre dans l'exclusion LOCALE du dépôt (info/exclude, jamais
-// committée) : sans elle le dossier d'arbres compte comme non suivi et la garde
-// « arbre sale » d'isoler se déclencherait sur sa propre production.
+// `.worktrees/` goes into the repository's LOCAL exclusion (info/exclude, never
+// committed): without it the folder of trees counts as untracked and the
+// « dirty tree » guard of the isolation would trigger on its own product.
 export async function exclureWorktrees ({ chemin, run = gitRun }) {
   const gd = await run(['rev-parse', '--path-format=absolute', '--git-common-dir'], chemin)
   const dir = gd.ok && String(gd.out).trim() !== '' ? String(gd.out).trim() : join(chemin, '.git')
@@ -655,14 +725,14 @@ export async function exclureWorktrees ({ chemin, run = gitRun }) {
   } catch (e) { return { ok: false, erreur: String(e && e.message ? e.message : e) } }
 }
 
-// L'encodage du magasin est une CONVENTION de DSH, pas un contrat : tout
-// caractère hors [a-zA-Z0-9-] devient `~XXXX` (espace → ~0020, point → ~002e) et
-// chaque « / » devient « - ». Le construire à la main ratait toute session dont
-// le dossier contient un caractère encodé : le magasin réel porte
-// `--Users-me-Library-Application~0020Support-Open~0020Design-…--`. Une session
-// « non vue » = un arbre TENU pris pour un arbre libre, donc supprimé par le
-// ramassage. On encode, et on se replie sur le décodage du magasin si le nom
-// direct n'existe pas.
+// The encoding of the store is a DSH CONVENTION, not a contract: every character
+// outside [a-zA-Z0-9-] becomes `~XXXX` (space → ~0020, dot → ~002e) and every
+// « / » becomes « - ». Building it by hand missed every session whose folder
+// holds an encoded character: the real store carries
+// `--Users-me-Library-Application~0020Support-Open~0020Design-…--`. A « not
+// seen » session = a HELD tree taken for a free tree, hence removed by the
+// reclaim. So we encode, and fall back on decoding the store if the direct name
+// does not exist.
 export function encoderSlugChemin (chemin) {
   const corps = String(chemin).replace(/^\/+/, '').split('/')
     .map((seg) => seg.replace(/[^a-zA-Z0-9-]/g, (c) => '~' + c.codePointAt(0).toString(16).padStart(4, '0')))
@@ -677,21 +747,21 @@ export function slugsDeChemin (sessionsHome, chemin, ls = readdirSync) {
   try { return ls(sessionsHome).filter((n) => decodeSlugPath(n) === chemin) } catch (e) { return [] }
 }
 
-// Une session ouverte sur cet arbre interdit de le ramasser : on ne retire
-// jamais un dossier où un chat écrit en ce moment (même règle que la fermeture).
+// A session open on this tree forbids reclaiming it: a folder where a chat is
+// writing right now is never removed (the same rule as the closing).
 export function estTenue (sessionsHome, chemin, fenetreMs = 3600 * 1000, maintenant = Date.now(), st = statSync, ls = readdirSync) {
   if (!sessionsHome || !chemin) return false
   return slugsDeChemin(sessionsHome, chemin, ls)
     .some((slug) => sessionsDuDossier(sessionsHome, slug, fenetreMs, maintenant, st, ls).some((s) => s.actif))
 }
 
-// Toutes les entrées ignorées ne se valent pas. `node_modules/`, `dist/`,
-// `.DS_Store` sont REGÉNÉRABLES : les traiter comme du travail rendrait le
-// ramassage inutile — tout arbre où l'on a lancé un `npm install` resterait à
-// jamais, et un SEUL `.DS_Store` (effet de bord de Finder) suffisait à bloquer la
-// récupération (mesuré le 21/09/2026). `.env`, un brouillon ou une base locale,
-// non : ceux-là ne se reconstruisent pas. C'est donc une liste de REGÉNÉRABLES, et
-// tout ce qui n'y figure pas est réputé PRÉCIEUX — le défaut est conservateur.
+// Not every ignored entry is worth the same. `node_modules/`, `dist/`,
+// `.DS_Store` are REGENERABLE: treating them as work would make the reclaim
+// useless — any tree where `npm install` was run would stay forever, and a SINGLE
+// `.DS_Store` (a Finder side effect) was enough to block the recovery (measured
+// on 21/09/2026). `.env`, a draft or a local database are not: those cannot be
+// rebuilt. So this is a list of REGENERABLE entries, and everything not in it is
+// presumed PRECIOUS — the default is conservative.
 const IGNORES_REGENERABLES = new Set([
   'node_modules', 'dist', 'build', 'out', 'target', 'coverage', 'vendor',
   '.cache', '.parcel-cache', '.next', '.nuxt', '.turbo', '.svelte-kit',
@@ -712,10 +782,10 @@ export function ignoresPrecieux (porcelainIgnore) {
     })
 }
 
-// La base d'un tronc n'est pas toujours `main` : `origin/HEAD` d'abord (ce que le
-// dépôt déclare), puis les noms usuels, puis la branche courante. Sans cela un
-// dépôt sur `master` gardait TOUS ses arbres (« base main introuvable ») et le
-// ramassage ne ramassait rien — exactement le mal qu'il doit réparer.
+// The base of a trunk is not always `main`: `origin/HEAD` first (what the
+// repository declares), then the usual names, then the current branch. Without
+// this a repository on `master` kept ALL its trees (« base main not found ») and
+// the reclaim reclaimed nothing — exactly the harm it is meant to repair.
 export async function baseDuDepot (chemin, run = gitRun) {
   const tete = await run(['symbolic-ref', '--quiet', 'refs/remotes/origin/HEAD'], chemin)
   if (tete.ok) {
@@ -741,19 +811,19 @@ export async function worktreesEnregistres (chemin, run = gitRun) {
     if (p === '') continue
     out.push({
       chemin: p,
-      branche: (l.find((x) => x.startsWith('branch ')) || 'branch (détaché)').slice(7).trim(),
+      branche: (l.find((x) => x.startsWith('branch ')) || 'branch (detached)').slice(7).trim(),
       slug: p.includes('/.worktrees/') ? p.split('/.worktrees/').pop() : null
     })
   }
   return out
 }
 
-// Lecture seule : que ferait l'isolation ? La garde s'en sert AVANT d'écrire,
-// pour ne jamais créer un second arbre quand le premier est encore libre.
+// Read only: what would the isolation do? The guard uses it BEFORE writing,
+// never to create a second tree while the first is still free.
 export async function sondeIsolation ({ chemin, nom, run = gitRun, sessionsHome = null, fenetreMs = 3600 * 1000 }) {
-  if (!chemin || !existsSync(chemin)) return { ok: false, git: false, erreur: 'dossier introuvable' }
+  if (!chemin || !existsSync(chemin)) return gitFail('folder-not-found', {}, { ok: false, git: false })
   const g = await etatGit(chemin, run)
-  if (!g.git) return { ok: false, git: false, erreur: 'pas un dépôt git' }
+  if (!g.git) return gitFail('not-a-repo', {}, { ok: false, git: false })
   if (g.worktree) return { ok: true, git: true, dejaIsole: true, cible: chemin, branche: g.branche }
   const slug = normaliserSlug(nom)
   const cible = join(chemin, '.worktrees', slug)
@@ -765,40 +835,40 @@ export async function sondeIsolation ({ chemin, nom, run = gitRun, sessionsHome 
     return {
       ok: libre, git: true, dejaIsole: false, reutilisable: libre, cible,
       branche: r.git ? r.branche : branche,
-      ...(libre ? {} : { erreur: tenue ? 'arbre tenu par une session ouverte' : 'arbre existant sale ou porteur de travail' })
+      ...(libre ? {} : gitFail(tenue ? 'copy-held' : 'copy-has-work'))
     }
   }
-  // Le tronc doit être propre POUR CRÉER : un arbre naît de HEAD et laisserait
-  // les modifications non committées derrière lui. Cela ne concerne pas la
-  // réutilisation d'un arbre déjà en place (traitée juste au-dessus).
+  // The trunk must be clean TO CREATE: a tree is born from HEAD and would leave
+  // the uncommitted changes behind. This does not concern reusing a tree that is
+  // already in place (handled just above).
   //
-  // `.worktrees/` est filtré ICI, en lecture seule : le dossier d'arbres est la
-  // production de ce module, il ne doit pas faire refuser la création. L'ancienne
-  // version obtenait le même effet en écrivant dans `info/exclude` AVANT de
-  // sonder — donc même en dry-run (contrat rompu). L'exclusion reste écrite, mais
-  // seulement quand on exécute réellement.
+  // `.worktrees/` is filtered HERE, read only: the folder of trees is the product
+  // of this module, it must not make the creation refuse. The old version got the
+  // same effect by writing into `info/exclude` BEFORE probing — so even in a dry
+  // run (a broken contract). The exclusion is still written, but only when we
+  // really execute.
   const brut = await run(['status', '--porcelain'], chemin)
   const lignes = brut.ok ? String(brut.out).split('\n').filter((l) => l.trim() !== '') : []
   const horsArbres = lignes.filter((l) => !/(^|\s)\.worktrees\//.test(l))
-  if (horsArbres.length > 0) return { ok: false, git: true, sale: true, cible, branche, erreur: 'arbre sale (' + horsArbres.length + ' fichiers) — committer d\'abord' }
+  if (horsArbres.length > 0) return gitFail('tree-dirty', filesOf(horsArbres.length), { ok: false, git: true, sale: true, cible, branche })
   return { ok: true, git: true, dejaIsole: false, reutilisable: false, cible, branche }
 }
 
 export async function isoler ({ chemin, nom, but, exec = false, run = gitRun, sessionsHome = null, fenetreMs = 3600 * 1000 }) {
-  if (!chemin || !existsSync(chemin)) return { ok: false, erreur: 'dossier introuvable' }
+  if (!chemin || !existsSync(chemin)) return gitFail('folder-not-found')
   const s = await sondeIsolation({ chemin, nom, run, sessionsHome, fenetreMs })
-  if (s.dejaIsole) return { ok: true, dejaIsole: true, cible: s.cible, branche: s.branche, message: 'déjà isolé — ce dossier est un worktree' }
-  if (!s.ok) return { ok: false, erreur: s.erreur }
-  // L'exclusion n'est écrite qu'APRÈS une sonde favorable : une isolation REFUSÉE
-  // (tronc sale) ne doit pas laisser de trace dans le dépôt.
+  if (s.dejaIsole) return gitDone('already-isolated', {}, { dejaIsole: true, cible: s.cible, branche: s.branche })
+  if (!s.ok) return { ok: false, code: s.code, erreur: s.erreur, ...(s.count !== undefined ? { count: s.count } : {}) }
+  // The exclusion is only written AFTER a favourable probe: a REFUSED isolation
+  // (dirty trunk) must leave no trace in the repository.
   if (exec) await exclureWorktrees({ chemin, run })
   if (s.reutilisable) {
     if (!exec) return { ok: true, dry: true, reutilise: true, cible: s.cible, branche: s.branche, commandes: [] }
-    return { ok: true, reutilise: true, cible: s.cible, branche: s.branche, message: 'worktree déjà en place et sans travail — réutilisé, rien créé' }
+    return gitDone('copy-reused', {}, { reutilise: true, cible: s.cible, branche: s.branche })
   }
-  // Une branche `feature/<slug>` peut survivre au ramassage de son arbre : la
-  // réutiliser au lieu de la recréer (`-b`) est ce qui garde `isoler` idempotent
-  // à la frontière du ramassage, sans supposer que le ramassage a tout nettoyé.
+  // A `feature/<slug>` branch can outlive the reclaim of its tree: reusing it
+  // instead of re-creating it (`-b`) is what keeps `isoler` idempotent at the
+  // border of the reclaim, without assuming the reclaim cleaned everything.
   const existe = await run(['show-ref', '--verify', '--quiet', 'refs/heads/' + s.branche], chemin)
   const brancheExistante = existe.ok
   const commandes = [brancheExistante
@@ -808,52 +878,53 @@ export async function isoler ({ chemin, nom, but, exec = false, run = gitRun, se
     return { ok: true, dry: true, commandes: commandes.map((c) => 'git ' + c.join(' ')), cible: s.cible, branche: s.branche, brancheExistante }
   }
   const r = await run(commandes[0], chemin)
-  if (!r.ok) return { ok: false, erreur: 'git a refusé : ' + r.err.trim().slice(0, 200) }
+  if (!r.ok) return gitFail('git-refused', { step: 'worktree add', detail: said(r) })
   const g = await etatGit(chemin, run)
   const base = await baseDuDepot(chemin, run)
   ecrireMarqueur(chemin, normaliserSlug(nom), {
     but: but || null, branche: s.branche, base: base || g.base || null,
     ne: new Date().toISOString(), par: 'kybernos-sessions/isoler'
   })
-  return { ok: true, cible: s.cible, branche: s.branche, message: 'worktree créé — ouvre le PROCHAIN chat dans ce dossier pour qu\'il y soit isolé' }
+  return gitDone('copy-created', {}, { cible: s.cible, branche: s.branche })
 }
 
-// Ramasse les arbres d'isolation PROPRES et SANS TRAVAIL (0 commit au-delà de
-// la base). Ne touche jamais : un arbre sale, un arbre en avance, un arbre tenu
-// par une session ouverte, un dossier hors `.worktrees/`. Dry-run par défaut.
+// Reclaims the CLEAN isolation trees with NO WORK (0 commits beyond the base).
+// Never touches: a dirty tree, a tree that is ahead, a tree held by an open
+// session, a folder outside `.worktrees/`. Dry run by default.
+// `gardes[].raison` and `candidats[].raison` are English sentences for a person or an agent to read.
 export async function ramasser ({ chemin, exec = false, run = gitRun, sessionsHome = null, fenetreMs = 3600 * 1000, base = null, forceIgnores = false }) {
-  if (!chemin || !existsSync(chemin)) return { ok: false, erreur: 'dossier introuvable' }
+  if (!chemin || !existsSync(chemin)) return gitFail('folder-not-found')
   const g = await etatGit(chemin, run)
-  if (!g.git) return { ok: false, erreur: 'pas un dépôt git' }
-  if (g.worktree) return { ok: false, erreur: 'ce dossier est un worktree — ramasser se lance depuis le checkout principal' }
+  if (!g.git) return gitFail('not-a-repo')
+  if (g.worktree) return gitFail('is-a-copy')
   const b = base || (await baseDuDepot(chemin, run)) || g.base || 'main'
   const candidats = []
   const gardes = []
   for (const w of await worktreesEnregistres(chemin, run)) {
     if (w.chemin.replace(/\/+$/, '') === String(chemin).replace(/\/+$/, '')) continue
-    if (w.slug === null) { gardes.push({ chemin: w.chemin, raison: 'hors .worktrees/' }); continue }
+    if (w.slug === null) { gardes.push({ chemin: w.chemin, raison: 'outside .worktrees/' }); continue }
     const branche = String(w.branche || '').replace(/^refs\/heads\//, '')
     if (!existsSync(w.chemin)) {
-      candidats.push({ chemin: w.chemin, slug: w.slug, branche, brancheRetirable: await brancheRetirable(chemin, branche, b, run), raison: 'dossier absent' })
+      candidats.push({ chemin: w.chemin, slug: w.slug, branche, brancheRetirable: await brancheRetirable(chemin, branche, b, run), raison: 'folder absent' })
       continue
     }
-    if (estTenue(sessionsHome, w.chemin, fenetreMs)) { gardes.push({ chemin: w.chemin, raison: 'tenu par une session ouverte' }); continue }
+    if (estTenue(sessionsHome, w.chemin, fenetreMs)) { gardes.push({ chemin: w.chemin, raison: 'held by an open session' }); continue }
     const st = await run(['status', '--porcelain'], w.chemin)
-    if (!st.ok || String(st.out).trim() !== '') { gardes.push({ chemin: w.chemin, raison: 'arbre sale' }); continue }
-    // `--porcelain` NE COMPTE PAS les fichiers ignorés : un arbre dont le seul
-    // contenu non committé est ignoré (brouillon, base locale, `.env`) paraît
-    // propre, `worktree remove` réussit, et ce contenu est DÉTRUIT. On garde —
-    // mais seulement pour ce qui n'est pas régénérable, sinon le ramassage ne
-    // ramasserait plus rien (voir `IGNORES_REGENERABLES`).
+    if (!st.ok || String(st.out).trim() !== '') { gardes.push({ chemin: w.chemin, raison: 'dirty tree' }); continue }
+    // `--porcelain` does NOT count ignored files: a tree whose only uncommitted
+    // content is ignored (a draft, a local database, `.env`) looks clean,
+    // `worktree remove` succeeds, and that content is DESTROYED. So we keep it —
+    // but only for what cannot be regenerated, otherwise the reclaim would
+    // reclaim nothing any more (see `IGNORES_REGENERABLES`).
     const ig = await run(['status', '--porcelain', '--ignored=matching'], w.chemin)
     const precieux = ig.ok ? ignoresPrecieux(String(ig.out)) : []
     if (precieux.length > 0 && forceIgnores !== true) {
-      gardes.push({ chemin: w.chemin, raison: precieux.length + ' entrée(s) ignorée(s) non régénérable(s) — --force-ignores pour les détruire', ignores: precieux.slice(0, 5) })
+      gardes.push({ chemin: w.chemin, raison: countOf(precieux.length, 'ignored entry', 'ignored entries') + ' that cannot be regenerated — --force-ignores to destroy them', ignores: precieux.slice(0, 5) })
       continue
     }
     const av = await run(['rev-list', '--count', b + '..HEAD'], w.chemin)
     const n = av.ok ? (parseInt(String(av.out).trim(), 10) || 0) : -1
-    if (n !== 0) { gardes.push({ chemin: w.chemin, raison: n < 0 ? 'base « ' + b + ' » introuvable' : n + ' commit(s) au-delà de ' + b }); continue }
+    if (n !== 0) { gardes.push({ chemin: w.chemin, raison: n < 0 ? 'base “' + b + '” not found' : countOf(n, 'commit', 'commits') + ' beyond ' + b }); continue }
     candidats.push({ chemin: w.chemin, slug: w.slug, branche, brancheRetirable: await brancheRetirable(chemin, branche, b, run), but: lireMarqueur(chemin, w.slug).but || null })
   }
   const commandes = candidats.flatMap((c) => ['git worktree remove ' + c.chemin]
@@ -864,7 +935,7 @@ export async function ramasser ({ chemin, exec = false, run = gitRun, sessionsHo
   for (const c of candidats) {
     const r = await run(['worktree', 'remove', c.chemin], chemin)
     if (!r.ok && existsSync(c.chemin)) {
-      gardes.push({ chemin: c.chemin, raison: 'remove refusé : ' + String(r.err || '').trim().slice(0, 120) })
+      gardes.push({ chemin: c.chemin, raison: 'remove refused: ' + said(r, 120) })
       continue
     }
     retires.push(c.chemin)
@@ -875,15 +946,14 @@ export async function ramasser ({ chemin, exec = false, run = gitRun, sessionsHo
     }
   }
   const pr = await run(['worktree', 'prune'], chemin)
-  return { ok: true, base: b, retires, branchesRetirees, gardes, prune: pr.ok,
-    message: retires.length + ' arbre(s) sans travail retiré(s)' }
+  return gitDone('reclaimed', { copies: countOf(retires.length, 'copy', 'copies'), count: retires.length }, { base: b, retires, branchesRetirees, gardes, prune: pr.ok })
 }
 
-// Une branche `feature/<slug>` n'est supprimable que si elle ne porte AUCUN
-// commit au-delà de la base : tout est déjà dans la base, on ne retire qu'une
-// référence. Sans ce nettoyage, `isoler` du même nom échouait après un
-// ramassage (« a branch named … already exists ») — l'idempotence cassait
-// exactement à la frontière du ramassage.
+// A `feature/<slug>` branch can only be deleted if it carries NO commit beyond
+// the base: everything is already in the base, only a reference is removed.
+// Without this cleaning, an `isoler` of the same name failed after a reclaim
+// (« a branch named … already exists ») — the idempotence broke exactly at the
+// border of the reclaim.
 async function brancheRetirable (chemin, branche, base, run) {
   if (branche === '' || branche === base) return false
   const cnt = await run(['rev-list', '--count', base + '..' + branche], chemin)
@@ -891,24 +961,22 @@ async function brancheRetirable (chemin, branche, base, run) {
 }
 
 export async function cloturer ({ chemin, exec = false, run = gitRun, forceIgnores = false }) {
-  if (!chemin || !existsSync(chemin)) return { ok: false, erreur: 'dossier introuvable' }
+  if (!chemin || !existsSync(chemin)) return gitFail('folder-not-found')
   const g = await etatGit(chemin, run)
-  if (!g.git) return { ok: false, erreur: 'pas un dépôt git' }
+  if (!g.git) return gitFail('not-a-repo')
   const gd = await run(['rev-parse', '--git-dir'], chemin)
-  if (!/\.git\/worktrees\//.test(String(gd.out))) return { ok: false, erreur: 'ce dossier n\'est pas un worktree' }
-  if (g.modifications > 0) return { ok: false, erreur: 'arbre sale (' + g.modifications + ' fichiers) — committer d\'abord' }
-  // Fermer DÉTRUIT l'arbre : les entrées ignorées non régénérables (`.env`, base
-  // locale) disparaîtraient sans que `git status` ait rien signalé. Même garde que
-  // le ramassage, même soupape explicite.
+  if (!/\.git\/worktrees\//.test(String(gd.out))) return gitFail('not-a-copy')
+  if (g.modifications > 0) return gitFail('tree-dirty', filesOf(g.modifications))
+  // Closing DESTROYS the tree: the ignored entries that cannot be regenerated (`.env`, local
+  // database) would disappear without `git status` having signalled anything. The same guard as
+  // the reclaim, the same explicit valve (`forceIgnores: true` in the request).
   const ig = await run(['status', '--porcelain', '--ignored=matching'], chemin)
   const precieux = ig.ok ? ignoresPrecieux(String(ig.out)) : []
-  if (precieux.length > 0 && forceIgnores !== true) {
-    return { ok: false, erreur: precieux.length + ' entrée(s) ignorée(s) non régénérable(s) (' + precieux.slice(0, 3).join(', ') + ') — fermer les détruirait ; `forceIgnores` pour l\'assumer' }
-  }
+  if (precieux.length > 0 && forceIgnores !== true) return gitFail('ignored-entries', ignoredOf(precieux))
   const branche = g.branche
   const pousse = await run(['rev-list', '--count', '@{upstream}..' + branche], chemin)
-  if (!pousse.ok) return { ok: false, erreur: 'branche sans upstream (jamais poussée) — pousser d\'abord' }
-  if (String(pousse.out).trim() !== '0') return { ok: false, erreur: String(pousse.out).trim() + ' commit(s) non poussé(s) — pousser d\'abord' }
+  if (!pousse.ok) return gitFail('no-upstream')
+  if (String(pousse.out).trim() !== '0') return gitFail('unpushed-commits', commitsOf(parseInt(String(pousse.out).trim(), 10) || 0))
   const racine = await run(['rev-parse', '--show-toplevel'], chemin)
   const principal = String(racine.out).trim().replace(/\/.worktrees\/[^/]+$/, '')
   const commandes = [
@@ -920,24 +988,24 @@ export async function cloturer ({ chemin, exec = false, run = gitRun, forceIgnor
       commandes: ['cd ' + principal + ' && git ' + commandes[0].join(' '), 'git ' + commandes[1].join(' ')] }
   }
   const m = await run(commandes[0], principal)
-  if (!m.ok) return { ok: false, erreur: 'merge refusé : ' + m.err.trim().slice(0, 200) }
+  if (!m.ok) return gitFail('merge-refused', { detail: said(m) })
   const w = await run(commandes[1], principal)
-  if (!w.ok) return { ok: false, erreur: 'worktree non retiré : ' + w.err.trim().slice(0, 200) }
+  if (!w.ok) return gitFail('copy-not-removed', { detail: said(w) })
   if (chemin.startsWith(join(principal, '.worktrees') + '/')) effacerMarqueur(principal, basename(chemin))
-  return { ok: true, branche, message: 'fusionné et worktree retiré' }
+  return gitDone('merged-removed', {}, { branche })
 }
 
 
-// commit (+ push, + merge si worktree) — dry-run par défaut, gardes identiques
-// `chemins` : la liste des fichiers écrits PAR CE CHAT (son journal la connaît).
-// Fournie, elle remplace `git add -A` — sur un dossier partagé par huit chats,
-// `-A` embarque le travail en cours des autres dans le commit et le pousse.
-// Fournie ET VIDE, elle signifie « ce chat n'a rien écrit » : on refuse, au lieu
-// de committer le dossier d'autrui.
+// commit (+ push, + merge if in a worktree) — dry run by default, identical guards
+// `chemins`: the list of the files written BY THIS CHAT (its journal knows it).
+// When given, it replaces `git add -A` — on a folder shared by eight chats,
+// `-A` takes the others' work in progress into the commit and pushes it.
+// Given AND EMPTY, it means « this chat wrote nothing »: we refuse, instead of
+// committing somebody else's folder.
 export async function commiter ({ chemin, message, exec = false, run = gitRun, chemins = null, pousser: pousserAussi = true }) {
-  if (!chemin || !existsSync(chemin)) return { ok: false, erreur: 'dossier introuvable' }
+  if (!chemin || !existsSync(chemin)) return gitFail('folder-not-found')
   const g = await etatGit(chemin, run)
-  if (!g.git) return { ok: false, erreur: 'pas un dépôt git' }
+  if (!g.git) return gitFail('not-a-repo')
   const gd = await run(['rev-parse', '--git-dir'], chemin)
   const estWt = /\.git\/worktrees\//.test(String(gd.out))
   let principal = null
@@ -945,33 +1013,32 @@ export async function commiter ({ chemin, message, exec = false, run = gitRun, c
     const racine = await run(['rev-parse', '--show-toplevel'], chemin)
     principal = String(racine.out).trim().replace(/\/.worktrees\/[^/]+$/, '')
   }
-  // Mode LOCAL (`pousser:false`) : rien ne part sur GitHub. Un arbre propre n'est
-  // alors pas une impasse — s'il reste des commits à ramener dans la branche de
-  // base, « commit & merge local » fait la fusion seule. C'est le geste du
-  // bouton rapide : le travail reste sur la machine, le dossier principal le voit.
+  // LOCAL mode (`pousser:false`): nothing goes to GitHub. A clean tree is then not
+  // a dead end — if commits are left to bring back into the base branch,
+  // « local commit & merge » does the merge alone. This is the gesture of the quick
+  // button: the work stays on the machine, the main folder sees it.
   if (g.modifications <= 0) {
     if (pousserAussi === false && estWt && g.nonFusionnes > 0) {
       const commandes = [['merge', '--no-ff', '-m', 'merge: ' + g.branche, g.branche]]
       if (!exec) {
         return { ok: true, dry: true, local: true, mergeSeul: true, worktree: true, branche: g.branche,
-          message: 'fusion locale de ' + g.branche, commandes: ['git ' + commandes[0].join(' ')] }
+          message: 'local merge of ' + g.branche, commandes: ['git ' + commandes[0].join(' ')] }
       }
       const m = await run(commandes[0], principal)
-      if (!m.ok) return { ok: false, erreur: 'merge refusé : ' + m.err.trim().slice(0, 200) }
-      return { ok: true, local: true, mergeSeul: true, worktree: true, branche: g.branche,
-        message: 'fusionné dans la branche locale (aucun envoi)' }
+      if (!m.ok) return gitFail('merge-refused', { detail: said(m) })
+      return gitDone('merged-local', {}, { local: true, mergeSeul: true, worktree: true, branche: g.branche })
     }
-    return { ok: false, erreur: 'rien à committer — arbre propre' }
+    return gitFail('nothing-to-save')
   }
-  const msg = (message && message.trim() !== '') ? message.trim().slice(0, 200) : 'livraison ' + new Date().toISOString().slice(0, 16).replace('T', ' ')
+  const msg = (message && message.trim() !== '') ? message.trim().slice(0, 200) : 'delivery ' + new Date().toISOString().slice(0, 16).replace('T', ' ')
   const scope = Array.isArray(chemins)
-  // Les chemins viennent du journal de la session : ils y sont écrits comme
-  // l'outil les a reçus — donc SOUVENT en absolu (`/Users/…/scripts/foo.mjs`),
-  // puisque c'est ainsi que l'agent nomme ses fichiers. Les refuser en bloc
-  // faisait répondre « aucun fichier attribué à ce chat » à un chat qui venait
-  // d'en écrire cinquante-huit. On les ramène donc RELATIFS quand ils sont sous
-  // la racine du dépôt, et on écarte le reste : hors dépôt (fichiers de
-  // configuration de la machine) ou tentative de remontée (`..`).
+  // The paths come from the session's journal: they are written there as the
+  // tool received them — so OFTEN absolute (`/Users/…/scripts/foo.mjs`), since
+  // that is how the agent names its files. Refusing them wholesale made a chat
+  // that had just written fifty-eight of them answer « no file attributed to
+  // this chat ». So they are brought back RELATIVE when they are under the root
+  // of the repository, and the rest is dropped: outside the repository (the
+  // machine's configuration files) or an attempt to climb up (`..`).
   const racine = (await run(['rev-parse', '--show-toplevel'], chemin)).out
   const brut = String(racine || '').trim().replace(/\/$/, '')
   const reelDe = (p) => { try { return realpathSync(p) } catch (e) { return null } }
@@ -979,10 +1046,10 @@ export async function commiter ({ chemin, message, exec = false, run = gitRun, c
   const relatif = (c) => {
     if (c === '') return null
     if (c.charAt(0) !== '/') return c.split('/').includes('..') ? null : c
-    // macOS : /var est un lien vers /private/var. Le journal peut nommer le
-    // chemin par le lien quand git rend la racine résolue (ou l'inverse) : on
-    // compare donc le texte ET les chemins réels. Aucune base n'étant un
-    // symlink vers l'extérieur, on ne peut pas sortir du dépôt par ce biais.
+    // macOS: /var is a link to /private/var. The journal may name the path
+    // through the link when git gives the resolved root (or the reverse): so we
+    // compare the text AND the real paths. No base being a symlink to the
+    // outside, we cannot get out of the repository this way.
     const bases = [brut, reelDe(brut)].filter((b) => b !== null && b !== '')
     const formes = [c, reelDe(c)].filter((p) => p !== null)
     for (const base of bases) for (const p of formes) { const s = sous(base, p); if (s !== null) return s }
@@ -994,20 +1061,17 @@ export async function commiter ({ chemin, message, exec = false, run = gitRun, c
         .filter((c, i, t) => t.indexOf(c) === i)
         .slice(0, 200)
     : []
-  if (scope && retenus.length === 0) {
-    return { ok: false, erreur: 'aucun fichier attribué à ce chat — le dossier est modifié par d’autres chats, rien à committer ici' }
-  }
+  if (scope && retenus.length === 0) return gitFail('no-chat-files')
   const sales = Array.isArray(g.sale) ? g.sale : []
-  // Déjà enregistré : le bouton a servi, ou un commit est passé par un autre
-  // chemin. Le dire, au lieu de laisser `git commit` échouer sur « nothing
-  // added to commit » — c'est ce que faisait le second clic.
+  // Already saved: the button was used, or a commit went through another path.
+  // Say so, instead of letting `git commit` fail on « nothing added to commit »
+  // — which is what the second click did.
   if (scope && retenus.length > 0 && retenus.every((p) => estSale(sales, p) === false)) {
-    return { ok: true, deja: true, message: 'déjà enregistré — rien de nouveau dans les fichiers de ce chat',
-      chemins: retenus, laisses: sales }
+    return gitDone('already-saved', {}, { deja: true, chemins: retenus, laisses: sales })
   }
   const commandes = [scope ? ['add', '--', ...retenus] : ['add', '-A'], ['commit', '-m', msg]]
   if (pousserAussi !== false) commandes.push(['push'])
-  // Ce que le `add` laisse de côté : c'est le travail des autres, dit noir sur blanc.
+  // What the `add` leaves aside: the others' work, said in black and white.
   const st = await run(['status', '--porcelain'], chemin)
   const tous = st.ok ? cheminsSales(st.out) : sales
   const laisses = scope ? tous.filter((p) => estSale(retenus, p) === false) : []
@@ -1018,72 +1082,72 @@ export async function commiter ({ chemin, message, exec = false, run = gitRun, c
     return { ok: true, dry: true, local: pousserAussi === false, message: msg, worktree: estWt, scope, chemins: retenus, laisses,
       commandes: commandes.map((c) => 'git ' + c.join(' ')) }
   }
-  // S-02 : un échec de `git push` n'est plus AVALÉ — le commit local a
-  // réussi (ok:true) mais l'état du push est rendu, pas tu.
+  // S-02: a failure of `git push` is no longer SWALLOWED — the local commit
+  // succeeded (ok:true) but the state of the push is returned, not kept quiet.
+  // On success `message` is the commit message (what was typed, or the default one); the sentence is `note`, with its `code`.
   let pushRate = null
   for (const c of commandes) {
     if (c[0] === 'merge') {
       const m = await run(c, principal)
-      if (!m.ok) return { ok: false, erreur: 'merge refusé : ' + m.err.trim().slice(0, 200) }
+      if (!m.ok) return gitFail('merge-refused', { detail: said(m) })
     } else {
       const r = await run(c, chemin)
-      if (!r.ok && c[0] !== 'push') return { ok: false, erreur: 'git ' + c[0] + ' refusé : ' + r.err.trim().slice(0, 200) }
-      if (!r.ok && c[0] === 'push') pushRate = r.err.trim().slice(0, 200)
+      if (!r.ok && c[0] !== 'push') return gitFail('git-refused', { step: c[0], detail: said(r) })
+      if (!r.ok && c[0] === 'push') pushRate = said(r)
     }
   }
   if (pousserAussi === false) {
-    return { ok: true, local: true, message: msg, worktree: estWt,
-      note: estWt ? 'committé et fusionné dans la branche locale (aucun envoi)' : 'committé localement (aucun envoi)' }
+    const code = estWt ? 'saved-merged-local' : 'saved-local'
+    return { ok: true, code, local: true, message: msg, worktree: estWt, note: gitText(code) }
   }
   if (pushRate !== null) {
-    return { ok: true, pousse: false, message: msg, worktree: estWt, erreurPush: pushRate,
-      note: 'committé localement — le push a ÉCHOUÉ (voir erreurPush), le commit reste à envoyer' }
+    return { ok: true, code: 'saved-push-failed', pousse: false, message: msg, worktree: estWt, erreurPush: pushRate, note: gitText('saved-push-failed') }
   }
-  return { ok: true, pousse: true, message: msg, worktree: estWt,
-    note: estWt ? 'committé, poussé et fusionné dans la branche de base' : 'committé et poussé' }
+  const code = estWt ? 'saved-sent-merged' : 'saved-sent'
+  return { ok: true, code, pousse: true, message: msg, worktree: estWt, note: gitText(code) }
 }
 
-// ── GitHub : pousser / rapatrier / pull requests (gh) ───────────────────────
-// Mêmes contrats que isoler/commiter/cloturer : dry-run d'abord (plan de
-// commandes), exécution sur exec:true. Lecture seule côté state.
+// ── GitHub: push / fetch / pull requests (gh) ───────────────────────────────
+// The same contracts as isoler/commiter/cloturer: dry run first (plan of
+// commands), execution on exec:true. Read only on the state side.
 
 export async function pousser ({ chemin, exec = false, run = gitRun }) {
-  if (!chemin || !existsSync(chemin)) return { ok: false, erreur: 'dossier introuvable' }
+  if (!chemin || !existsSync(chemin)) return gitFail('folder-not-found')
   const g = await etatGit(chemin, run)
-  if (!g.git) return { ok: false, erreur: 'pas un dépôt git' }
-  if (!g.distant) return { ok: false, erreur: 'aucun dépôt distant (origin) configuré' }
-  if (g.commitsNonPousses === 0) return { ok: false, erreur: 'rien à pousser — déjà à jour' }
+  if (!g.git) return gitFail('not-a-repo')
+  if (!g.distant) return gitFail('no-remote')
+  if (g.commitsNonPousses === 0) return gitFail('nothing-to-send')
   if (!exec) return { ok: true, dry: true, commandes: ['git push'] }
   const r = await run(['push'], chemin)
-  if (!r.ok) return { ok: false, erreur: 'push refusé : ' + String(r.err || '').trim().slice(0, 200) }
-  return { ok: true, message: 'envoyé sur GitHub' }
+  if (!r.ok) return gitFail('push-refused', { detail: said(r) })
+  return gitDone('sent')
 }
 
 export async function rapatrier ({ chemin, exec = false, run = gitRun }) {
-  if (!chemin || !existsSync(chemin)) return { ok: false, erreur: 'dossier introuvable' }
+  if (!chemin || !existsSync(chemin)) return gitFail('folder-not-found')
   const g = await etatGit(chemin, run)
-  if (!g.git) return { ok: false, erreur: 'pas un dépôt git' }
-  if (!g.distant) return { ok: false, erreur: 'aucun dépôt distant (origin) configuré' }
+  if (!g.git) return gitFail('not-a-repo')
+  if (!g.distant) return gitFail('no-remote')
   if (!exec) return { ok: true, dry: true, commandes: ['git fetch'] }
   const r = await run(['fetch'], chemin)
-  if (!r.ok) return { ok: false, erreur: 'fetch refusé : ' + String(r.err || '').trim().slice(0, 200) }
-  return { ok: true, message: 'mises à jour récupérées — rien de changé sur vos fichiers' }
+  if (!r.ok) return gitFail('fetch-refused', { detail: said(r) })
+  return gitDone('fetched')
 }
 
 export async function synchroniser ({ chemin, exec = false, run = gitRun }) {
-  if (!chemin || !existsSync(chemin)) return { ok: false, erreur: 'dossier introuvable' }
+  if (!chemin || !existsSync(chemin)) return gitFail('folder-not-found')
   const g = await etatGit(chemin, run)
-  if (!g.git) return { ok: false, erreur: 'pas un dépôt git' }
-  if (!g.distant) return { ok: false, erreur: 'aucun dépôt distant (origin) configuré' }
+  if (!g.git) return gitFail('not-a-repo')
+  if (!g.distant) return gitFail('no-remote')
   if (!exec) return { ok: true, dry: true, commandes: ['git fetch', 'git push'] }
   const f = await run(['fetch'], chemin)
-  if (!f.ok) return { ok: false, erreur: 'fetch refusé : ' + String(f.err || '').trim().slice(0, 200) }
+  if (!f.ok) return gitFail('fetch-refused', { detail: said(f) })
   const p = await run(['push'], chemin)
-  if (!p.ok) return { ok: false, erreur: 'push refusé : ' + String(p.err || '').trim().slice(0, 200) }
-  return { ok: true, message: 'récupéré puis envoyé — synchronisé' }
+  if (!p.ok) return gitFail('push-refused', { detail: said(p) })
+  return gitDone('synced')
 }
 
-// ── pull requests via gh (CLI, lecture + actions) ───────────────────────────
+// ── pull requests through gh (CLI, reads + actions) ─────────────────────────
 
 export async function etatPr (chemin, { gh = ghRun, cache = cachePr, duree = 60000, horloge = Date.now } = {}) {
   if (!chemin || !existsSync(chemin)) return null
@@ -1117,31 +1181,33 @@ export async function etatPr (chemin, { gh = ghRun, cache = cachePr, duree = 600
 }
 
 export async function prCreer ({ chemin, exec = false, run = gitRun, gh = ghRun }) {
-  if (!chemin || !existsSync(chemin)) return { ok: false, erreur: 'dossier introuvable' }
+  if (!chemin || !existsSync(chemin)) return gitFail('folder-not-found')
   const g = await etatGit(chemin, run)
-  if (!g.git) return { ok: false, erreur: 'pas un dépôt git' }
-  if (g.branche === g.base) return { ok: false, erreur: 'la branche courante est la branche de base — créez d’abord une copie isolée' }
-  if (!g.distant || !/github\.com/.test(g.distant)) return { ok: false, erreur: 'pas de remote GitHub (origin)' }
-  if (g.nonFusionnes <= 0 && g.modifications <= 0) return { ok: false, erreur: 'rien à examiner — aucun commit au-delà de ' + g.base }
+  if (!g.git) return gitFail('not-a-repo')
+  if (g.branche === g.base) return gitFail('current-is-base')
+  if (!g.distant || !/github\.com/.test(g.distant)) return gitFail('no-github-remote')
+  if (g.nonFusionnes <= 0 && g.modifications <= 0) return gitFail('nothing-to-review', { base: g.base })
   const commandes = ['git push', 'gh pr create --fill']
   if (!exec) return { ok: true, dry: true, commandes, branche: g.branche, cible: g.base }
   const p = await run(['push'], chemin)
-  if (!p.ok) return { ok: false, erreur: 'push refusé : ' + String(p.err || '').trim().slice(0, 200) }
+  if (!p.ok) return gitFail('push-refused', { detail: said(p) })
   const c = await gh(['pr', 'create', '--fill'], chemin)
-  if (!c.ok) return { ok: false, erreur: 'gh pr create refusé : ' + String(c.err || '').trim().slice(0, 200) }
-  return { ok: true, message: String(c.out || '').trim().split('\n').filter(Boolean).pop() || 'pull request créée' }
+  if (!c.ok) return gitFail('gh-pr-create-refused', { detail: said(c) })
+  // gh prints the address of the new request on its last line: it is the `message` (as before) and rides along as `url`.
+  const last = String(c.out || '').trim().split('\n').filter(Boolean).pop()
+  return { ok: true, code: 'pr-opened', message: last || gitText('pr-opened'), ...(last !== undefined && /^https?:\/\//.test(last) ? { url: last } : {}) }
 }
 
 export async function prFusionner ({ chemin, exec = false, gh = ghRun }) {
-  if (!chemin || !existsSync(chemin)) return { ok: false, erreur: 'dossier introuvable' }
+  if (!chemin || !existsSync(chemin)) return gitFail('folder-not-found')
   const commandes = ['gh pr merge --merge']
   if (!exec) return { ok: true, dry: true, commandes }
   const c = await gh(['pr', 'merge', '--merge'], chemin)
-  if (!c.ok) return { ok: false, erreur: 'gh pr merge refusé : ' + String(c.err || '').trim().slice(0, 200) }
-  return { ok: true, message: 'pull request fusionnée dans la branche de base' }
+  if (!c.ok) return gitFail('gh-pr-merge-refused', { detail: said(c) })
+  return gitDone('pr-merged')
 }
 
-// ── montage des routes (webServer, GET uniquement) ─────────────────────────
+// ── mounting of the routes (webServer) ──────────────────────────────────────
 
 const envoyer = (res, code, obj) => {
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' })
@@ -1178,12 +1244,12 @@ const lireCorps = (req) => new Promise((res) => {
   req.on('end', () => { try { res(JSON.parse(corps || '{}')) } catch (e) { res({}) } })
 })
 
-// ── S-01 : confinement des chemins libres ──────────────────────────────────
-// Un `chemin` fourni par le client n'est accepté que s'il est CONNU des
-// sessions (un slug de ce chemin existe sous sessionsHome : une session y a
-// réellement travaillé). Le slug dérivé de `corps.session` reste toujours
-// valable. Tout autre chemin (ex. /tmp, /etc) est refusé avant d'atteindre
-// git/gh — l'exécution reste confinée aux racines des chantiers enregistrés.
+// ── S-01: confinement of free paths ─────────────────────────────────────────
+// A `chemin` supplied by the client is only accepted if the sessions KNOW it (a
+// slug of that path exists under sessionsHome: a session really worked there).
+// The slug derived from `corps.session` always stays valid. Any other path
+// (e.g. /tmp, /etc) is refused before it reaches git/gh — execution stays
+// confined to the roots of the registered work.
 const cheminConfine = (sessionsHome, corps, slug) => {
   if (corps.chemin === undefined || corps.chemin === null || corps.chemin === '') {
     return slug !== null ? decodeSlugPath(slug) : null
@@ -1193,9 +1259,9 @@ const cheminConfine = (sessionsHome, corps, slug) => {
   return libre
 }
 
-// ── santé des modèles : ce que le « modèle d'étude » surveille ─────────────
-// La sonde vit dans son propre module (brain-health.mjs) : elle se teste hors
-// DSH avec un service `llm` factice, sans réseau ni clé.
+// ── model health: what the « Study model » watches ──────────────────────────
+// The probe lives in its own module (brain-health.mjs): it is tested outside
+// DSH with a fake `llm` service, with no network and no key.
 export function monterRoutes (webServerSvc, opts) {
   webServerSvc = kbFenced(webServerSvc)
   const sessionsHome = opts.sessionsHome
@@ -1271,8 +1337,8 @@ export function monterRoutes (webServerSvc, opts) {
   }
 
   webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/state', handler: async (req, res) => {
-    if (req.method !== 'GET') { res.writeHead(405); res.end('POST attendu non — GET uniquement'); return }
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (req.method !== 'GET') { res.writeHead(405); res.end('GET only'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     try {
       const u = new URL(req.url, 'http://127.0.0.1')
       const sessionId = u.searchParams.get('session') || ''
@@ -1288,29 +1354,28 @@ export function monterRoutes (webServerSvc, opts) {
     }
   } })
   webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/isolate', handler: async (req, res) => {
-    if (req.method !== 'POST') { res.writeHead(405); res.end('GET non supporté — POST attendu'); return }
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     const corps = await lireCorps(req)
     const slug = dossierDeSession(sessionsHome, corps.session || '')
     const chemin = slug !== null ? decodeSlugPath(slug) : null
     envoyer(res, 200, await isoler({ chemin, nom: corps.nom, but: corps.but, exec: corps.exec === true, sessionsHome }))
   } })
   webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/commit', handler: async (req, res) => {
-    if (req.method !== 'POST') { res.writeHead(405); res.end('GET non supporté — POST attendu'); return }
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     const corps = await lireCorps(req)
     const slug = dossierDeSession(sessionsHome, corps.session || '')
     const chemin = cheminConfine(sessionsHome, corps, slug)
     envoyer(res, 200, await commiter({ chemin, message: corps.message, exec: corps.exec === true, chemins: Array.isArray(corps.chemins) ? corps.chemins : null, pousser: corps.local !== true }))
   } })
-  // ── « commit & merge dans le repo local » : aucune écriture distante ───────
-  // Même route que /commit avec `local:true` (pousser:false) : add des seuls
-  // fichiers de ce chat, commit, puis fusion dans la branche de base locale.
-  // L'arbre propre + des commits non fusionnés restent un cas utile (fusion
-  // seule) — voir `commiter`.
+  // ── « commit & merge into the local repo »: no remote write ────────────────
+  // The same route as /commit with `local:true` (pousser:false): add only this
+  // chat's files, commit, then merge into the local base branch. A clean tree
+  // plus unmerged commits stays a useful case (merge alone) — see `commiter`.
   webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/close-check', handler: async (req, res) => {
-    if (req.method !== 'POST') { res.writeHead(405); res.end('GET non supporté — POST attendu'); return }
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     const corps = await lireCorps(req)
     const slug = dossierDeSession(sessionsHome, corps.session || '')
     const chemin = cheminConfine(sessionsHome, corps, slug)
@@ -1320,16 +1385,16 @@ export function monterRoutes (webServerSvc, opts) {
       envoyer(res, 500, { ok: false, cloturable: false, erreur: String(e && e.message ? e.message : e) })
     }
   } })
-  // ── santé des modèles (le « modèle d'étude ») ─────────────────────────────
-  // Le client envoie la liste des modèles configurés — lui seul la connaît, elle
-  // vient du service settings. L'hôte sonde chacun par un appel RÉEL minuscule.
+  // ── model health (the « Study model ») ────────────────────────────────────
+  // The client sends the list of configured models — only it knows it, it comes
+  // from the settings service. The host probes each one with a tiny REAL call.
   // Study model on None (or Automatic with nothing connected): nobody watches, nothing is probed, and the answer says so.
   webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/brain/health', handler: async (req, res) => {
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
-    // GET : le dernier relevé, sans rien relancer — c'est ce que lit le bandeau
-    // au chargement, pour ne pas re-sonder à chaque ouverture de chat.
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    // GET: the last reading, without relaunching anything — this is what the banner
+    // reads at load, so as not to probe again every time a chat opens.
     if (req.method === 'GET') { envoyer(res, 200, { ok: true, dernier: sondeSante.dernier() }); return }
-    if (req.method !== 'POST') { res.writeHead(405); res.end('GET ou POST attendu'); return }
+    if (req.method !== 'POST') { res.writeHead(405); res.end('GET or POST only'); return }
     const corps = await lireCorps(req)
     try {
       const etude = await etudeEnVigueur()
@@ -1392,8 +1457,8 @@ export function monterRoutes (webServerSvc, opts) {
     return selectionnerKyber(corps.kybers, corps.demande, optionsDecision(etude.cle))
   }
   webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/decision', handler: async (req, res) => {
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
-    if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
+    if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
     const corps = await lireCorps(req)
     try {
       let reponse
@@ -1405,32 +1470,32 @@ export function monterRoutes (webServerSvc, opts) {
       } else {
         reponse = await trancherKyber(corps)
       }
-      envoyer(res, 200, reponse === null || typeof reponse !== 'object' ? { ok: false, code: 'VERDICT-ILLISIBLE', erreur: 'le moteur n’a rien rendu' } : reponse)
+      envoyer(res, 200, reponse === null || typeof reponse !== 'object' ? { ok: false, code: 'VERDICT-ILLISIBLE', erreur: 'the engine returned nothing' } : reponse)
     } catch (e) {
       envoyer(res, 200, { ok: false, code: 'MOTEUR-EN-PANNE', erreur: String(e && e.message ? e.message : e) })
     }
   } })
-  // ── réglages Kybernos : ce que la page Paramètres lit et écrit ─────────────
+  // ── Kybernos settings: what the Settings page reads and writes ──────────────
   webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/settings', handler: async (req, res) => {
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     if (req.method === 'GET') {
       // `auto`: the model Automatic uses (or ''), always, so the select can name it whatever is in force.
       const etude = await etudeEnVigueur()
       envoyer(res, 200, { ok: true, reglages: lireReglages(reglagesFichier), etude: { ...etude, auto: (await etudeAuto()).cle } })
       return
     }
-    if (req.method !== 'POST') { res.writeHead(405); res.end('GET ou POST attendu'); return }
+    if (req.method !== 'POST') { res.writeHead(405); res.end('GET or POST only'); return }
     try {
       const corps = await lireCorps(req)
       const r = ecrireReglages(reglagesFichier, corps)
-      envoyer(res, r.ok === false ? (r.invalide === true ? 400 : 500) : 200, r.ok === false ? { ok: false, erreur: r.erreur } : { ok: true, reglages: r.reglages })
+      envoyer(res, r.ok === false ? (r.invalide === true ? 400 : 500) : 200, r.ok === false ? { ok: false, code: r.code, erreur: r.erreur } : { ok: true, reglages: r.reglages })
     } catch (e) {
       envoyer(res, 500, { ok: false, erreur: String(e && e.message ? e.message : e) })
     }
   } })
-  // ── catégories de session : la liste les rend en SVG (plus d'emoji) ────────
+  // ── session categories: the list draws them as SVG (no more emoji) ──────────
   webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/categories', handler: async (req, res) => {
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     if (req.method === 'GET') {
       try {
         envoyer(res, 200, { ok: true, categories: lireCategories(categoriesFichier), connues: CATEGORIES_CONNUES })
@@ -1439,33 +1504,33 @@ export function monterRoutes (webServerSvc, opts) {
       }
       return
     }
-    if (req.method !== 'POST') { res.writeHead(405); res.end('GET ou POST attendu'); return }
-    // SEUL écrivain du registre : la CLI de nommage ET le classement automatique
-    // du client passent par ici — un format, un validateur. `auto:true` marque
-    // la catégorie posée sans nommage d'agent (remplaçable, re-classable).
+    if (req.method !== 'POST') { res.writeHead(405); res.end('GET or POST only'); return }
+    // The ONLY writer of the registry: the naming CLI AND the client's automatic
+    // classification come through here — one format, one validator. `auto:true`
+    // marks the category set without an agent naming (replaceable, re-classifiable).
     const corps = await lireCorps(req)
     const r = ecrireCategorie(categoriesFichier, String(corps.session || ''), String(corps.cat || ''), String(corps.titre || ''), corps.auto === true)
     envoyer(res, r.ok === true ? 200 : 400, r)
   } })
   webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/close', handler: async (req, res) => {
-    if (req.method !== 'POST') { res.writeHead(405); res.end('GET non supporté — POST attendu'); return }
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     const corps = await lireCorps(req)
     const slugC = dossierDeSession(sessionsHome, corps.session || '')
     envoyer(res, 200, await cloturer({ chemin: cheminConfine(sessionsHome, corps, slugC), exec: corps.exec === true, forceIgnores: corps.forceIgnores === true }))
   } })
   webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/reclaim', handler: async (req, res) => {
-    if (req.method !== 'POST') { res.writeHead(405); res.end('GET non supporté — POST attendu'); return }
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     const corps = await lireCorps(req)
     const slug = dossierDeSession(sessionsHome, corps.session || '')
     const chemin = cheminConfine(sessionsHome, corps, slug)
     envoyer(res, 200, await ramasser({ chemin, exec: corps.exec === true, sessionsHome, forceIgnores: corps.forceIgnores === true }))
   } })
-  // ── v3 « status light » : sync GitHub + pull requests (dry-run d'abord) ────
+  // ── v3 « status light »: GitHub sync + pull requests (dry run first) ────────
   const routeAction = (path, faire, extra = () => ({})) => webServerSvc.register({ kind: 'exact', path, handler: async (req, res) => {
-    if (req.method !== 'POST') { res.writeHead(405); res.end('GET non supporté — POST attendu'); return }
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     const corps = await lireCorps(req)
     const slug = dossierDeSession(sessionsHome, corps.session || '')
     const chemin = cheminConfine(sessionsHome, corps, slug)
@@ -1489,11 +1554,11 @@ export function apply (ctx) {
         reglagesPath: join(home, 'kybernos', 'settings.json'),
         categoriesPath: join(home, 'kybernos', 'categories.json')
       })
-      console.log('[kybernos-sessions] routes webServer /kybernos-sessions/* enregistrees (etat, reglages, categories, actions)')
+      console.log('[kybernos-sessions] webServer routes /kybernos-sessions/* registered (state, settings, categories, actions)')
     }
     if (ctx.get('webServer') !== undefined) demarrer(ctx)
     else ctx.inject(['webServer'], demarrer)
   } catch (e) {
-    console.error('[kybernos-sessions] demarrage impossible', e)
+    console.error('[kybernos-sessions] cannot start', e)
   }
 }

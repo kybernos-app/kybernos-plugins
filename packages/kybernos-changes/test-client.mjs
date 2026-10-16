@@ -112,29 +112,52 @@ console.log('the words, in two languages')
 }
 
 // ── what the host says (A2-21) and the counts (A2-12) ──────────────────────────────────────
-console.log('the host answers in French; the chip says it in the language of the page')
+// The git routes of Sessions answer with a stable `code` and an English sentence; the chip words the code in the language of
+// the page. The host's list of codes is read from the host itself (GIT_TEXTS), so a code added there without a sentence here fails.
+console.log('the host answers with a code; the chip says it in the language of the page')
 {
-  const SAYS = [
-    ['envoyé sur GitHub', 'sent to GitHub'],
-    ['rien à pousser — déjà à jour', 'nothing to send — already up to date'],
-    ['pas un dépôt git', 'not a git repository'],
-    ['mises à jour récupérées — rien de changé sur vos fichiers', 'updates fetched — your files are unchanged'],
-    ['pull request fusionnée dans la branche de base', 'pull request merged into the base branch'],
-    ['fusionné dans la branche locale (aucun envoi)', 'merged into the local branch (nothing sent)'],
-    ['push refusé : remote rejected', 'send refused: remote rejected'],
-    ['git add refusé : fatal: oops', 'git add refused: fatal: oops'],
-    ['gh pr create refusé : no auth', 'gh pr create refused: no auth'],
-    ['rien à examiner — aucun commit au-delà de main', 'nothing to review — no commit beyond main']
-  ]
+  const { GIT_TEXTS } = await import('../kybernos-sessions/index.js')
+  const hostCodes = Object.keys(GIT_TEXTS)
+  const rows = Object.keys(T.S).filter((k) => k.startsWith('host:')).map((k) => k.slice(5))
+  const twins = rows.filter((c) => /1$/.test(c) && rows.includes(c.slice(0, -1)))
+  const clientCodes = rows.filter((c) => !twins.includes(c))
+  check('every code the host can send has a sentence here, and none here is unknown to the host', hostCodes.every((c) => clientCodes.includes(c)) && clientCodes.every((c) => hostCodes.includes(c)),
+    { missing: hostCodes.filter((c) => !clientCodes.includes(c)), unknown: clientCodes.filter((c) => !hostCodes.includes(c)) })
+  check('the codes are stable kebab-case words', hostCodes.every((c) => /^[a-z]+(?:-[a-z]+)*$/.test(c)), hostCodes.filter((c) => !/^[a-z]+(?:-[a-z]+)*$/.test(c)))
+  check('the host text is English: no accent, no French word', hostCodes.every((c) => !/[àâçéèêëîïôùûœ]|\b(le|la|les|des|pas|dans|avec|pour|est)\b/i.test(GIT_TEXTS[c])), hostCodes.filter((c) => /[àâçéèêëîïôùûœ]/i.test(GIT_TEXTS[c])))
+  check('every sentence has an English side with no French accent, and a French side', rows.every((c) => !/[àâçéèêëîïôùûœ]/i.test(T.S['host:' + c][1]) && T.S['host:' + c][0].length > 0 && T.S['host:' + c][0] !== T.S['host:' + c][1]), rows.filter((c) => /[àâçéèêëîïôùûœ]/i.test(T.S['host:' + c][1])))
+  // a reply as the host sends it: the code, an English sentence, and what rides along
+  const reply = (code, over) => Object.assign({ ok: false, code, erreur: GIT_TEXTS[code], detail: 'fatal: remote said no', count: 3, base: 'main', entries: '.env, db' }, over)
   setLang('en')
-  check('English: every sentence the git routes send is read in English', SAYS.every(([fr, en]) => T.hostSays(fr) === en), SAYS.filter(([fr, en]) => T.hostSays(fr) !== en).map((x) => T.hostSays(x[0])))
+  const en = hostCodes.map((c) => T.hostSays(reply(c)))
+  check('English: every code is said in English, with its details filled and no placeholder left', en.every((t, i) => t.length > 0 && !/\{\w+\}/.test(t) && !/[àâçéèêëîïôùûœ]/i.test(t)), en.filter((t) => /\{\w+\}|[àâçéèêëîïôùûœ]/i.test(t)))
+  check('English: the details are the host’s own words, untranslated', T.hostSays(reply('push-refused')) === 'send refused: fatal: remote said no' && T.hostSays(reply('git-refused')) === 'git refused: fatal: remote said no' && T.hostSays(reply('nothing-to-review')) === 'nothing to review — no commit beyond main')
+  check('English: the sentences the chip always had', T.hostSays(reply('sent', { ok: true })) === 'sent to GitHub' && T.hostSays(reply('not-a-repo')) === 'not a git repository' && T.hostSays(reply('nothing-to-send')) === 'nothing to send — already up to date' && T.hostSays(reply('fetched', { ok: true })) === 'updates fetched — your files are unchanged')
   setLang('es')
-  check('Spanish (no table of ours): English too, never the French sentence', SAYS.every(([fr, en]) => T.hostSays(fr) === en))
+  check('Spanish (no table of ours): English too, never the French sentence', hostCodes.every((c, i) => T.hostSays(reply(c)) === en[i]))
   setLang('kybernos')
-  check('French: the host\'s own words', SAYS.every(([fr]) => T.hostSays(fr) === fr))
+  const fr = hostCodes.map((c) => T.hostSays(reply(c)))
+  check('French: every code is said in French, with its details filled and no placeholder left', fr.every((t, i) => t.length > 0 && t !== en[i] && !/\{\w+\}/.test(t)), hostCodes.filter((c, i) => fr[i] === en[i] || /\{\w+\}/.test(fr[i])))
+  check('French: « tu », never « vous »', Object.keys(T.S).filter((k) => k.startsWith('host:')).every((k) => !/\b(vous|votre|vos)\b/i.test(T.S[k][0])), Object.keys(T.S).filter((k) => k.startsWith('host:') && /\b(vous|votre|vos)\b/i.test(T.S[k][0])))
+  check('French: the details stay git’s own words', T.hostSays(reply('push-refused')) === 'envoi refusé : fatal: remote said no')
   setLang('en')
-  check('a sentence we do not know is shown as it is (a git error, a path), and nothing is not turned into a word', T.hostSays('fatal: not a repository') === 'fatal: not a repository' && T.hostSays('') === '' && T.hostSays(undefined) === '')
-  check('the host\'s apostrophe may be straight or curly', T.hostSays('la branche courante est la branche de base — créez d\'abord une copie isolée').startsWith('the current branch is the base branch'))
+  // A reply the chip does not know: the host’s English sentence, as it is — never the old French lookup, never a guess
+  check('an unknown code shows the host’s English sentence', T.hostSays({ ok: false, code: 'brand-new', erreur: 'something new went wrong' }) === 'something new went wrong')
+  check('a reply with no code (an older host) shows its text as it is, and a French text is not translated by a guess', T.hostSays({ ok: false, erreur: 'pas un dépôt git' }) === 'pas un dépôt git' && T.hostSays({ ok: true, message: 'fake: done' }) === 'fake: done')
+  check('nothing is not turned into a word', T.hostSays(undefined) === '' && T.hostSays(null) === '' && T.hostSays({}) === '' && T.hostSays(undefined, 'refused') === 'refused')
+  check('the commit message that rides in `message` is not the sentence: the code says what happened', T.hostSays({ ok: true, code: 'saved-sent', message: 'Fix the menu', note: 'saved and sent' }) === 'saved and sent')
+  check('what follows « Done ✓ »: the sentence, then the address of a new pull request', T.doneWords({ reply: { ok: true, code: 'pr-opened', message: 'https://github.com/o/r/pull/7', url: 'https://github.com/o/r/pull/7' }, message: 'https://github.com/o/r/pull/7' }) === ' pull request opened https://github.com/o/r/pull/7' && T.doneWords({ reply: { ok: true, code: 'sent' }, message: '' }) === ' sent to GitHub' && T.doneWords({ reply: { ok: true }, message: '' }) === '')
+  check('a count is right for one: « 1 file », « 1 commit », « 1 copy »', (() => {
+    const say = (code, n) => T.hostSays(reply(code, { count: n }))
+    return say('tree-dirty', 1).includes('(1 file)') && say('tree-dirty', 4).includes('(4 files)') && say('unpushed-commits', 1).startsWith('1 commit not sent') && say('unpushed-commits', 2).startsWith('2 commits not sent') &&
+      say('ignored-entries', 1).includes('1 ignored entry') && say('ignored-entries', 2).includes('2 ignored entries') && say('reclaimed', 1) === '1 copy without work removed' && say('reclaimed', 2) === '2 copies without work removed'
+  })())
+  setLang('kybernos')
+  check('…and in French', (() => {
+    const say = (code, n) => T.hostSays(reply(code, { count: n }))
+    return say('tree-dirty', 1).includes('(1 fichier)') && say('unpushed-commits', 1).startsWith('1 commit pas encore') && say('unpushed-commits', 2).startsWith('2 commits pas encore') && say('reclaimed', 1) === '1 copie sans travail supprimée'
+  })())
+  setLang('en')
 }
 console.log('one is not « 1 updates »')
 {

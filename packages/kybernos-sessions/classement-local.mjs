@@ -13,9 +13,13 @@
 // only counts as a whole word (« =memo »: not « memory »). Accents and case are ignored.
 // Weights: 3 = the word names the domain, 2 = typical, 1 = weak hint (never enough alone).
 
-/** Score minimal du vainqueur, et avance minimale sur le suivant. */
+/** Minimum score of the winner, and minimum lead over the next category. */
 export const SEUIL_LOCAL = 2
 export const ECART_LOCAL = 1
+
+// The rules below mix English and French stems (accents removed). The French ones that read as a sentence are kept apart in this
+// French table, so that the rest of the file holds no French text.
+const PHRASES_FR = { doc: ['compte rendu'], question: ['est ce que'] }
 
 const REGLES = {
   correctif: [
@@ -30,7 +34,7 @@ const REGLES = {
   ],
   doc: [
     [3, ['readme', 'documentation', 'changelog', 'tutoriel', 'tuto', 'mode d emploi', 'manuel', 'guide', 'passation', 'handoff']],
-    [2, ['doc', 'rapport', 'redig', 'redact', 'article', 'adr', 'specification', '=spec', 'procedure', 'faq', '=memo', 'compte rendu']],
+    [2, ['doc', 'rapport', 'redig', 'redact', 'article', 'adr', 'specification', '=spec', 'procedure', 'faq', '=memo', ...PHRASES_FR.doc]],
     [1, ['ecrire', 'ecris', 'write', 'skill', 'resume']]
   ],
   integration: [
@@ -50,7 +54,7 @@ const REGLES = {
   ],
   question: [
     [3, ['pourquoi', 'why', '=comment', 'how']],
-    [2, ['=quel', '=quelle', '=quels', '=quelles', 'which', 'what', 'est ce que', 'peux tu', 'can you', 'explique', 'explain', 'difference', 'vs', '=avis', 'conseil', 'recommand', 'compar', 'faut il', 'should', '=quoi', 'greeting', 'hello', 'hi', 'hey', 'salut', 'bonjour', 'bonsoir', 'coucou', 'merci', 'thanks', 'recherche', 'research', 'derniers', 'dernieres', 'latest', 'actualite', 'news', 'actu', 'match', 'matchs', 'meteo', 'weather', 'comparatif', 'comparaison', 'resultat']],
+    [2, ['=quel', '=quelle', '=quels', '=quelles', 'which', 'what', ...PHRASES_FR.question, 'peux tu', 'can you', 'explique', 'explain', 'difference', 'vs', '=avis', 'conseil', 'recommand', 'compar', 'faut il', 'should', '=quoi', 'greeting', 'hello', 'hi', 'hey', 'salut', 'bonjour', 'bonsoir', 'coucou', 'merci', 'thanks', 'recherche', 'research', 'derniers', 'dernieres', 'latest', 'actualite', 'news', 'actu', 'match', 'matchs', 'meteo', 'weather', 'comparatif', 'comparaison', 'resultat']],
     [1, []]
   ],
   fonctionnalite: [
