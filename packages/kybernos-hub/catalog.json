@@ -1732,8 +1732,8 @@
         },
         "steps": [
           {
-            "fr": "Dans une session, clique le téléphone (voix) ou la caméra (vidéo) en haut à droite du chat. Pour un membre : Call ou Video sur sa carte.",
-            "en": "In a session, click the phone (voice) or the camera (video) at the top right of the chat. For a team member: Call or Video on its card."
+            "fr": "Clique le téléphone (voix) ou la caméra (vidéo) dans l’en-tête du chat (replié : « Afficher les outils du chat »). Membre : Call ou Video.",
+            "en": "Click the phone (voice) or camera (video) in the chat header (folded: “Show chat tools”). For a member: Call or Video on its card."
           },
           {
             "fr": "Autorise le micro dans le navigateur. Le panneau d'appel s'ouvre en bas à droite : parle, il répond à voix haute.",
@@ -1745,8 +1745,8 @@
           }
         ],
         "where": {
-          "fr": "En haut à droite du chat de toute session · Réglages › Appels",
-          "en": "Top right of the chat of any session · Settings › Calls",
+          "fr": "Dans l’en-tête du chat de toute session (« Afficher les outils du chat ») · Réglages › Appels",
+          "en": "In the header of the chat of any session (“Show chat tools”) · Settings › Calls",
           "page": true
         },
         "good": {
