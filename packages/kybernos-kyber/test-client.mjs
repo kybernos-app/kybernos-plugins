@@ -382,6 +382,31 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
     ok('and above no other chat, nor with no session', ui(T.views.KybyDock, { sessionId: 'sid-other' }).length === 0 && ui(T.views.KybyDock, {}).length === 0)
   }
 
+
+  // ── what the strip tells the page about Kaby's chat, and how it sits above the composer ──
+  {
+    reset()
+    const events = []
+    const realDispatch = globalThis.window.dispatchEvent
+    const realCustom = globalThis.CustomEvent
+    globalThis.CustomEvent = class { constructor (type, init) { this.type = type; this.detail = init && init.detail } }
+    globalThis.window.dispatchEvent = (e) => { events.push({ type: e.type, sid: e.detail && e.detail.sessionId }); return true }
+    answer = (u) => (u === '/kybernos-cloud/kyby/native' ? { ok: true, sessionId: 'sid-kaby', cwd: '/home/x/kyby' } : { ok: true })
+    await T.actions.readSessionPointer()
+    ok('when Kaby\'s chat becomes known, the page is told by an event (the new-chat cards render before it is read on a load)', events.length === 1 && events[0].type === 'kb-kyby-session' && events[0].sid === 'sid-kaby', events)
+    await T.actions.readSessionPointer()
+    ok('read again, unchanged: no second event', events.length === 1)
+    answer = (u) => (u === '/kybernos-cloud/kyby/native' ? { ok: true, sessionId: null } : { ok: true })
+    await T.actions.readSessionPointer()
+    ok('and told again when it is forgotten', events.length === 2 && events[1].sid === null)
+    globalThis.window.dispatchEvent = realDispatch
+    globalThis.CustomEvent = realCustom
+    ok('a window with no dispatch does not break the read', await (async () => { try { globalThis.window.dispatchEvent = undefined; answer = (u) => (u === '/kybernos-cloud/kyby/native' ? { ok: true, sessionId: 'another' } : { ok: true }); await T.actions.readSessionPointer(); return T.state.kybySid === 'another' } finally { globalThis.window.dispatchEvent = realDispatch } })())
+    const css = T.CSS
+    ok('in the dock the strip is as wide as the composer\'s card (16 px in on each side) and has its radius (28 px)', /\.kbky-dock\{[^}]*padding:0 16px/.test(css) && /\.kbky-strip\{[^}]*border-radius:28px/.test(css))
+    ok('the tiles and the panel have the radius that nests in it (16 px), the same one', /\.kbky-tile\{[^}]*border-radius:16px/.test(css) && /\.kbky-panel\{[^}]*border-radius:16px/.test(css))
+  }
+
   globalThis.setTimeout = realTimeout
 }
 

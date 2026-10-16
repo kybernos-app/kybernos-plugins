@@ -9,10 +9,13 @@ works on.
   Kaby's identity to the system prompt (`kyby-native.mjs` in kybernos-cloud). Each finished turn is also written on the person's thread on
   the server, and the last words said there (Telegram's) are told back in the prompt: one assistant, one memory, one conversation, two
   bodies (this machine here, its cloud computer on Telegram). A server with no Kaby thread is simply left alone.
+- **Nothing else sits above Kaby's composer.** The new-chat cards and the templates row (Build / Create / Cloud Computer, Slides… Dashboard) are
+  not drawn in that chat: the Kaby bundle tells the window (`kb-kyby-session`) the moment the chat that is Kaby's becomes known, because on a page
+  load the cards are drawn before it has read the pointer.
 - **The strip** (collapsible, in the dock above that chat's composer and above no other's) is **two equal tiles** and, under them, one
   panel that exists only while Telegram needs something. It is open while Telegram is not connected; once it is, or when the server has
   no Telegram bot, it is folded to its header (the name, and two chips: Telegram and the computer). The person's choice wins, and is
-  remembered. Nothing above the tiles files the computer under « Channels ».
+  remembered. Nothing above the tiles files the computer under « Channels ». In the dock it lines up with the composer's card (same left and right edge, same 28 px radius; the tiles and the panel have the radius that nests in it, 16 px).
   - **Channels tile**: Telegram, WhatsApp and WeChat, one row each, with their marks. Telegram has a **switch**: turning it on asks for a
     code (never when the strip opens), turning it off cancels a code in flight or, for a connected chat, asks before disconnecting.
     WhatsApp and WeChat say « Soon » and offer nothing. The person may turn on several, as they come.
@@ -35,3 +38,7 @@ Tests, without DSH: `node packages/kybernos-kyber/test-client.mjs` (the model, a
 `node packages/kybernos-kyber/test-host.mjs`, and the host half in
 `node packages/kybernos-cloud/test-kyby.mjs` and `test-kyby-native.mjs`. In a real GUI (the sandbox instance, the account's answers
 faked): `source scripts/sandbox/env.sh && node scripts/check-kyby-live.mjs [--shots <dir>]`.
+Against a REAL server, with Telegram played by HTTP (nothing on this side faked; the server's Telegram is a small HTTP server of ours): start
+`node scripts/telegram-live.ts --serve <file.json>` in kybernos-server, then
+`source scripts/sandbox/env.sh && node scripts/check-kyby-http.mjs <file.json> [--shots <dir>]` here. The page's switch asks for the code, the script
+posts the webhook updates Telegram would post, and the page follows by itself (scanned, connected, disconnected); the server is asked who is linked.

@@ -237,4 +237,22 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_BUILD, KB_NC_CREAT
   ok('menu row, hiding and settings page are wired')
 }
 
+// 8. the cards go when Kaby's chat becomes known (measured on a page load: they were drawn before its bundle had read which chat is Kaby's, and stayed)
+{
+  const fs = await import('node:fs')
+  const path = await import('node:path')
+  const url = await import('node:url')
+  const kyberSrc = fs.readFileSync(path.join(path.dirname(url.fileURLToPath(import.meta.url)), '..', 'kybernos-kyber', 'client.js'), 'utf8')
+  const evt = /new CustomEvent\('([a-z-]+)'/.exec(kyberSrc)
+  assert.ok(evt !== null, 'the Kaby bundle announces its chat by a window event')
+  const listens = /window\.addEventListener\('([a-z-]+)', again\)/.exec(src)
+  assert.ok(listens !== null && listens[1] === evt[1], 'the cards listen to the very event the Kaby bundle sends')
+  const at = src.indexOf("window.addEventListener('" + evt[1] + "', again)")
+  const early = src.indexOf("if (blank !== '1') return null", at)
+  const cardsStart = src.indexOf('const KbNewChatCards = (props) => {')
+  assert.ok(cardsStart > 0 && at > cardsStart && early > at, 'the listener is set before the component\'s early return (hooks keep their order)')
+  assert.ok(/removeEventListener\('kb-kyby-session', again\)/.test(src), 'and it is removed with the component')
+  ok('the new-chat cards are told when Kaby\'s chat becomes known')
+}
+
 console.log('\n' + pass + ' checks passed')
