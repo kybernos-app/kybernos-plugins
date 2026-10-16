@@ -232,7 +232,7 @@ mangled markup the cloud repo carries, checks every logo and stops on a defect.
   with a profile). If a DSH does not reload, the row says "Not loaded: restart DSH" after 12 s instead of waiting.
 - A stdio server that writes logs on stdout still works in DSH's client, but the test counts those lines and says so.
 - The state of a server needs DSH's `pluginInventory` service; without it the row only says "Configured".
-- `catalog` and `connections` have no `Origin` check; the routes that write do.
+- `catalog` and `connections` have no `Origin` check; the routes that write do, and a write that says nothing about where it comes from (no `Origin`, no `Referer`) is refused (`403`).
 - The local catalog is 100 apps (the Airparser logo cannot be rebuilt from the cloud repo: it shows the app's
   initial); "Load the full catalog" fetches the rest of the names from the Kybernos proxy.
 - UI strings exist in French and English only; French is the default for `kybernos` and `fr`, English for every

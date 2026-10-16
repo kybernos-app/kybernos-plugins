@@ -30,7 +30,7 @@ type liste rendu juste avant les rangées.
 
 ## Contrat host (routes)
 
-Toutes répondent en JSON ; les écritures exigent la même origine (`Origin` égal à `Host`).
+Toutes répondent en JSON ; les écritures exigent la même origine : `Origin` (à défaut `Referer`) du même hôte ; une écriture qui ne dit pas d'où elle vient est refusée (`403`).
 
 | Route | Réponse |
 | --- | --- |

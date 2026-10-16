@@ -147,10 +147,13 @@ const readBody = (req) => new Promise((resolve) => {
   } catch (e) { resolve(null) }
 })
 
+// A request that says nothing about where it comes from (no Origin, no Referer: a script, another local user) may read; it may not
+// write. A page of this DSH always says it on a write, so this refuses no one the person can see (A3-29).
 const sameOrigin = (req) => {
   try {
-    const origin = req.headers && typeof req.headers.origin === 'string' ? req.headers.origin : ''
-    if (origin === '') return true
+    const h = req.headers || {}
+    const origin = typeof h.origin === 'string' && h.origin !== '' ? h.origin : (typeof h.referer === 'string' ? h.referer : '')
+    if (origin === '') return ['GET', 'HEAD'].indexOf(String(req.method || '').toUpperCase()) >= 0
     const u = new URL(origin)
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
     const sock = req.socket !== null && req.socket !== undefined ? req.socket : null

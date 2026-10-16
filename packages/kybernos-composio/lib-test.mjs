@@ -75,7 +75,7 @@ export async function startHost({ before, services = {} } = {}) {
     const text = raw !== undefined ? raw : (body === undefined ? '' : JSON.stringify(body))
     const req = {
       method, url: path, socket: { localPort: 3080 },
-      headers: Object.assign(method === 'GET' || method === 'DELETE' ? {} : { 'content-type': 'application/json' }, headers),
+      headers: Object.assign(method === 'GET' ? {} : { origin: 'http://127.0.0.1:3080' }, method === 'GET' || method === 'DELETE' ? {} : { 'content-type': 'application/json' }, headers),
       on: (ev, fn) => { if (ev === 'data' && text.length > 0) fn(Buffer.from(text)); if (ev === 'end') setTimeout(() => fn(), 0) },
     }
     const res = { code: null, body: '', headers: {}, headersSent: false, setHeader() {}, writeHead(c, h) { this.code = c; this.headers = h || {} }, end(b) { this.body = String(b === undefined ? '' : b) } }

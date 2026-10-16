@@ -633,9 +633,11 @@ const TOKEN_RE = /\$([A-Z_][A-Z0-9_]*)/g
 // ── K-01: guards on the routes that act ─────────────────────────────────────
 // EXACT origin of the real socket (2026-10 acceptance M-02/S-03): a cross-site (drive-by)
 // POST must never register a stdio connector, it would be launched when DSH restarts.
+// A request that says nothing about where it comes from (no Origin, no Referer: a script, another local user) may read; it may not
+// write. A page of this DSH always says it on a write, so this refuses no one the person can see (A3-29).
 function origineOK(req) {
-  const o = String(req.headers.origin || '')
-  if (o === '') return true
+  const o = String(req.headers.origin || req.headers.referer || '')
+  if (o === '') return ['GET', 'HEAD'].indexOf(String(req.method || '').toUpperCase()) >= 0
   try {
     const u = new URL(o)
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return false

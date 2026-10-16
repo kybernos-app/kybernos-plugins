@@ -68,7 +68,7 @@ ok('connectors route mounted', typeof routes['/kybernos/composio/connecteurs'] =
 
 const requete = (headers, corps) => ({
   method: 'POST',
-  headers: Object.assign({ 'content-type': 'application/json' }, headers || {}),
+  headers: Object.assign({ 'content-type': 'application/json', origin: 'http://127.0.0.1:3080' }, headers || {}),
   socket: { localPort: 3080 },
   url: '/kybernos/composio/connecteurs',
   on: (ev, fn) => {
@@ -262,7 +262,7 @@ const bootPatch = () => {
 const POST = (corps) => jouer({}, corps)
 const DELETE = async (nom) => {
   const res = reponse()
-  await routes['/kybernos/composio/connecteurs']({ method: 'DELETE', headers: {}, socket: { localPort: 3080 }, url: '/kybernos/composio/connecteurs?nom=' + nom, on: () => {} }, res)
+  await routes['/kybernos/composio/connecteurs']({ method: 'DELETE', headers: { origin: 'http://127.0.0.1:3080' }, socket: { localPort: 3080 }, url: '/kybernos/composio/connecteurs?nom=' + nom, on: () => {} }, res)
   return res
 }
 const GET = async () => {
@@ -1195,7 +1195,7 @@ const proxyOuMcp = (apps, mcpHandler) => (r) => (r.url.includes('kybernos-proxy'
   const envoyer = async (morceaux, headers) => {
     const res = reponse()
     await routes['/kybernos/composio/connecteurs']({
-      method: 'POST', headers: Object.assign({ 'content-type': 'application/json' }, headers || {}), socket: { localPort: 3080 }, url: '/kybernos/composio/connecteurs',
+      method: 'POST', headers: Object.assign({ 'content-type': 'application/json', origin: 'http://127.0.0.1:3080' }, headers || {}), socket: { localPort: 3080 }, url: '/kybernos/composio/connecteurs',
       on: (ev, fn) => { if (ev === 'data') for (const m of morceaux) fn(m); if (ev === 'end') setTimeout(() => fn(), 0) },
     }, res)
     return res

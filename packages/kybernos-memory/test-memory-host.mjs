@@ -285,9 +285,16 @@ try {
   assert.equal((await hit('/kybernos-memory/lessons', 'GET', { origin: 'https://evil.example' })).status, 403, 'cross-origin refused')
   assert.equal((await hit('/kybernos-memory/lessons/add', 'POST', { origin: 'https://evil.example' }, { text: 'x' })).status, 403)
   assert.equal((await hit('/kybernos-memory/lessons', 'GET', { origin: 'http://127.0.0.1:3080' })).status, 200, 'same-origin accepted')
-  const http = await hit('/kybernos-memory/lessons/add', 'POST', {}, { text: 'through the real handler', kyber: 'default' })
+  const http = await hit('/kybernos-memory/lessons/add', 'POST', { origin: 'http://127.0.0.1:3080' }, { text: 'through the real handler', kyber: 'default' })
   assert.equal(http.status, 200)
   assert.equal(http.body.ok, true)
+  // A3-29: a request that says nothing about where it comes from may read, it may not write (lessons, settings, tidy-up)
+  for (const path of ['/kybernos-memory/lessons/add', '/kybernos-memory/lessons/delete', '/kybernos-memory/settings/set', '/kybernos-memory/tidy/apply']) {
+    assert.equal((await hit(path, 'POST', {}, { text: 'silent', kyber: 'default', id: 'l1', mode: 'ask', confirm: true })).status, 403, path + ' refuses a write that says nothing about where it comes from')
+  }
+  assert.equal((await hit('/kybernos-memory/lessons', 'GET', {})).status, 200, 'a silent read still reads')
+  assert.equal((await hit('/kybernos-memory/lessons/add', 'POST', { referer: 'http://127.0.0.1:3080/settings' }, { text: 'through a referer', kyber: 'default' })).status, 200, 'a Referer of this DSH is enough')
+  assert.equal((await hit('/kybernos-memory/lessons/add', 'POST', { referer: 'https://evil.example/x' }, { text: 'x', kyber: 'default' })).status, 403, 'a Referer of another site is refused')
   assert.doesNotThrow(() => mod.apply({ get: () => undefined, inject: () => { throw new Error('no service') }, effect: () => {} }), 'a missing service never stops DSH from starting')
   assert.doesNotThrow(() => mod.apply({ get: () => { throw new Error('boom') }, inject: () => {}, effect: () => {} }))
   ok('wiring: every route mounted once, method and same-origin guards, a failing ctx never throws')
@@ -516,7 +523,7 @@ try {
     assert.equal((await hit(path, 'GET')).status, 405, path + ' is POST only')
   }
   assert.equal((await hit('/kybernos-memory/tidy', 'GET', { origin: 'http://127.0.0.1:3080' })).status, 200)
-  assert.equal((await hit('/kybernos-memory/tidy/apply', 'POST', {}, { confirm: true, groups: [{ id: 'nope' }] })).body.results[0].error, 'groupe_inconnu', 'the real handler reaches the apply code')
+  assert.equal((await hit('/kybernos-memory/tidy/apply', 'POST', { origin: 'http://127.0.0.1:3080' }, { confirm: true, groups: [{ id: 'nope' }] })).body.results[0].error, 'groupe_inconnu', 'the real handler reaches the apply code')
   ok('tidy: routes are same-origin guarded, POST where they write')
 
   // the store's restore: as-is, never beyond the cap, text already there is skipped

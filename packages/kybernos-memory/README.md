@@ -174,7 +174,7 @@ removal, and the answer only ever produces suggestions (`by: 'brain'`) for the r
 Both hosts: `apply` needs `confirm: true`, checks every group against what is stored *now* (a changed or vanished item
 makes its group `a_change`, never a guess), writes the archive before the first delete and refuses a request that
 removes more than 50 items. `dismiss` remembers a pair the user kept apart (`restore: true` takes it back).
-Same-origin guard, POST for everything that writes.
+Same-origin guard, POST for everything that writes. A request with no `Origin` falls back to its `Referer`; with neither it may read but not write (`403`).
 
 ## Team lessons
 

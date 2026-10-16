@@ -395,11 +395,15 @@ const envoyer = (res, code, obj) => {
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' })
   res.end(JSON.stringify(obj))
 }
-const origineOK = (req) => {
+// A request that says nothing about where it comes from (no Origin, no Referer: a script, another local user) may read; it may not
+// write. A page of this DSH always says it on a write, so this refuses no one the person can see (A3-29).
+// `silencieuxOk`: the two routes the command line calls (POST /router and /report, cli/auto-router.mjs) stay open to a caller that
+// says nothing — they write nothing a page could not, and a CLI sends no Origin. Every other route refuses it on a write.
+const origineOK = (req, silencieuxOk = false) => {
   // Recette 2026-10 (M-02/S-03) : hôte EXACT de l'écoute réelle du socket,
   // jamais un préfixe (« localhost.evil.example » passait).
-  const o = String(req.headers.origin || '')
-  if (o === '') return true
+  const o = String(req.headers.origin || req.headers.referer || '')
+  if (o === '') return silencieuxOk === true || ['GET', 'HEAD'].indexOf(String(req.method || '').toUpperCase()) >= 0
   try {
     const u = new URL(o)
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
@@ -576,7 +580,7 @@ export function monterRoutes (webServerSvc, opts = {}) {
   // C'est l'appelant (workflow, kyber, CLI) qui connaît l'issue — le routeur
   // seul ne la voit pas. Alimente les colonnes Latence / Erreurs / Cache hit.
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/report', handler: async (req, res) => {
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (!origineOK(req, true)) { res.writeHead(403); res.end('origine refusee'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }
     const c = await lireCorps(req)
     if (typeof c.modele !== 'string' || c.modele === '' || c.modele.length > 200) { envoyer(res, 400, { ok: false, erreur: 'modele attendu' }); return }
@@ -623,7 +627,7 @@ export function monterRoutes (webServerSvc, opts = {}) {
   } })
 
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/router', handler: async (req, res) => {
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (!origineOK(req, true)) { res.writeHead(403); res.end('origine refusee'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }
     const corps = await lireCorps(req)
     const demande = String(corps.demande || '').trim()

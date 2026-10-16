@@ -222,6 +222,36 @@ console.log('\n── les modèles qu\'Auto peut prendre : tous, gratuits, ma li
   ok('« tous » sans rien de connu : une liste vide, pas inventée', st.ok === true && st.whitelist.length === 0 && st.total === 0, st)
 }
 
+console.log('\n── une requête qui ne dit pas d\'où elle vient lit, elle n\'écrit pas (A3-29) ──')
+{
+  const silencieuse = (method, path, corps) => {
+    const body = corps === undefined ? '' : JSON.stringify(corps)
+    return { method, url: path, headers: {}, socket: { localPort: 3080 }, on (ev, cb) { if (ev === 'data') cb(body); if (ev === 'end') cb() } }
+  }
+  const avant = readFileSync(reglagesPath, 'utf8')
+  for (const [path, corps] of [['/kybernos-auto/settings', { autoRouting: false, autoClassifier: 'x/y' }], ['/kybernos-auto/session', { sessionId: 's9', on: true }], ['/kybernos-auto/probe', {}]]) {
+    let code = null
+    const rep = { writeHead (c) { code = c }, end () {} }
+    await routes[path](silencieuse('POST', path, corps), rep)
+    ok(path + ' : refus (403) sans Origin ni Referer', code === 403, code)
+  }
+  ok('...et rien n\'a été écrit', readFileSync(reglagesPath, 'utf8') === avant && lireSessions(sessionsAutoPath).s9 === undefined)
+  let r2 = reponse()
+  await routes['/kybernos-auto/state'](silencieuse('GET', '/kybernos-auto/state'), r2)
+  ok('la lecture sans Origin passe toujours (une page n\'en envoie pas sur un GET de même origine)', r2.corps !== null && r2.corps.ok === true)
+  r2 = reponse()
+  await routes['/kybernos-auto/router'](silencieuse('POST', '/kybernos-auto/router', { demande: 'corrige ce bug', sessionId: 's2' }), r2)
+  ok('le routeur reste ouvert à la ligne de commande (cli/auto-router.mjs ne parle pas depuis une page)', r2.corps !== null && r2.corps.actif !== undefined, r2.corps)
+  r2 = reponse()
+  await routes['/kybernos-auto/report'](silencieuse('POST', '/kybernos-auto/report', { modele: 'deepseek-official/deepseek-chat', latenceMs: 900 }), r2)
+  ok('le rapport d\'issue aussi', r2.corps !== null && r2.corps.ok === true, r2.corps)
+  r2 = reponse()
+  const refReq = silencieuse('POST', '/kybernos-auto/session', { sessionId: 's9', on: true })
+  refReq.headers = { referer: 'http://127.0.0.1:3080/settings' }
+  await routes['/kybernos-auto/session'](refReq, r2)
+  ok('un Referer de ce DSH suffit pour écrire', r2.corps !== null && r2.corps.ok === true, r2.corps)
+}
+
 console.log('\n── origin garde ──')
 let brut403 = null
 const rep403 = { writeHead (code) { brut403 = { code } }, end (s) { brut403.corps = s } }
