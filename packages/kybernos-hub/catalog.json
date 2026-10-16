@@ -125,6 +125,35 @@
               "fr": "Les moteurs « Local » ne font rien sortir de votre ordinateur ; edge-tts et « Vos modèles » envoient le texte à un service en ligne. Le micro est demandé à la première dictée.",
               "en": "“Local” engines send nothing off your computer; edge-tts and “Your models” send the text to an online service. The microphone is asked for the first time you dictate."
             }
+          },
+          "presets": {
+            "title": {
+              "fr": "Presets d’agent",
+              "en": "Agent presets"
+            },
+            "what": {
+              "fr": "Un preset est une façon de travailler de l’agent : ses outils et ses habitudes. Choisissez-en un pour une nouvelle tâche, ou créez le vôtre.",
+              "en": "A preset is a way for the agent to work: its tools and its habits. Pick one for a new task, or create your own."
+            },
+            "steps": [
+              {
+                "fr": "Lisez les modes livrés : Standard pour le quotidien ; PTC, Minimal et Creator pour d’autres besoins.",
+                "en": "Read the built-in modes: Standard for everyday tasks; PTC, Minimal and Creator for other needs."
+              },
+              {
+                "fr": "Pour créer le vôtre, demandez de l’aide à l’agent (bouton en bas de la page) : il vous interroge, puis écrit le preset.",
+                "en": "To create your own, ask the agent for help (the button at the bottom of the page): it asks you questions, then writes the preset."
+              },
+              {
+                "fr": "À chaque nouvelle tâche vous pouvez changer de preset. Celui marqué « New task default » sert quand vous ne choisissez pas.",
+                "en": "You can change the preset for each new task. The one marked “New task default” is used when you do not choose."
+              }
+            ],
+            "where": {
+              "fr": "Réglages › Agent presets",
+              "en": "Settings › Agent presets",
+              "page": true
+            }
           }
         }
       }

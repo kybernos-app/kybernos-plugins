@@ -78,6 +78,7 @@ if (catalogue !== null) {
   const liar = catalogue.modules.filter((m) => m.aide.where.page === true && !(existsSync(join(REPO, 'packages', m.id, 'client.js')) && surfaces.test(readFileSync(join(REPO, 'packages', m.id, 'client.js'), 'utf8'))) && !(existsSync(join(REPO, 'packages', m.id, 'src', 'plugin.js')) && surfaces.test(readFileSync(join(REPO, 'packages', m.id, 'src', 'plugin.js'), 'utf8')))).map((m) => m.id)
   check('a help that says « it has a page » belongs to a bundle that registers one', liar.length === 0, liar)
   const core = catalogue.modules.find((m) => m.id === 'kybernos-plugin')
+  check('the Agent presets page (a page of DSH itself, drawn by no plugin) has its own card in the core bundle, and the hub asks for exactly that one', core !== undefined && core.aide.pages.presets !== undefined && /preset/i.test(core.aide.pages.presets.title.en) && /Settings › Agent presets/.test(core.aide.pages.presets.where.en) && /id: 'kybernos-plugin', page: 'presets'/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'client.js'), 'utf8')))
   check('the Voice page has its own card (it is a page of the core bundle, whose general help is about Agent Teams)', core !== undefined && core.aide.pages !== undefined && core.aide.pages.voice !== undefined && /voice/i.test(core.aide.pages.voice.title.en))
 }
 
@@ -100,7 +101,7 @@ console.log('the « ? How it works » buttons')
   check('a page asks for the help of its own bundle, and always behind a guard', wrong.length === 0, wrong)
   check('the pages that carry the button', ['kybernos-theme', 'kybernos-models', 'kybernos-slash', 'kybernos-workers', 'kybernos-maintenance', 'kybernos-modeles-locaux', 'kybernos-memory', 'kybernos-skills', 'kybernos-sessions', 'kybernos-hub', 'kybernos-mobile'].every((d) => placed.includes(d + '→' + d)), placed)
   const hub = readFileSync(join(REPO, 'packages', 'kybernos-hub', 'client.js'), 'utf8')
-  check('the Suite publishes it (version 1) and shows the same help on a module’s page', /window\.__KB_HELP__ = construireAide\(React\)/.test(hub) && /return \{ version: 1, actions: true, Help, Intro \}/.test(hub) && /'data-kb': 'suite-aide'/.test(hub))
+  check('the Suite publishes it (version 1) and shows the same help on a module’s page', /aide = construireAide\(React\); window\.__KB_HELP__ = aide/.test(hub) && /return \{ version: 1, actions: true, Help, Intro \}/.test(hub) && /'data-kb': 'suite-aide'/.test(hub))
   check('the host keeps the shipped help when the online catalogue lacks it', /aides\.get\(m\.id\)/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'suite-host.mjs'), 'utf8')))
   check('a page card that is not there draws nothing (never the bundle’s help on the wrong page)', /const card = page === undefined \? null/.test(hub) && /if \(card === undefined\) return null/.test(hub))
   check('the host keeps the shipped page cards when the online catalogue lacks them', /livree\.pages !== undefined && m\.aide\.pages === undefined/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'suite-host.mjs'), 'utf8')))

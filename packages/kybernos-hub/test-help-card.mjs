@@ -60,6 +60,21 @@ console.log('the address of an article (adresseAide)')
   check('anything that is not an address on the help site is refused, whatever the catalogue says', ['javascript:alert(1)', 'https://evil.example/{lang}/x', 'http://help.kybernos.app/x', 'https://help.kybernos.app.evil.example/x', 'https://help.kybernos.app/x?y=1', 'data:text/html,x', '', null, undefined, 12, {}].every((u) => T.adresseAide(u, 'en') === null))
 }
 
+console.log('which edge of the button the card hangs from (coteDeLaCarte)')
+{
+  const W = 420
+  const win = { left: 0, right: 1500 }
+  check('a button far from the left edge: the card hangs from its end and runs back toward the page', T.coteDeLaCarte({ left: 1000, right: 1100 }, win, W, false) === 'end')
+  check('a button near the left edge of the window: it hangs from its start', T.coteDeLaCarte({ left: 40, right: 140 }, win, W, false) === 'start')
+  // The Skills page: the title row starts at x=348, its pill ends at 543, and the sidebar (to 280) clips whatever goes under it.
+  check('a button whose card would run under the sidebar that clips it (the page’s own box starts at 280): start, not end', T.coteDeLaCarte({ left: 423, right: 543 }, { left: 280, right: 1500 }, W, false) === 'start')
+  check('the same button with room on its left inside the page: end', T.coteDeLaCarte({ left: 900, right: 1020 }, { left: 280, right: 1500 }, W, false) === 'end')
+  check('right to left: the card hangs from the end edge (its left side) and runs toward the right', T.coteDeLaCarte({ left: 100, right: 200 }, win, W, true) === 'end' && T.coteDeLaCarte({ left: 1300, right: 1400 }, win, W, true) === 'start')
+  check('right to left under a clipping box: start when the end side would leave the box', T.coteDeLaCarte({ left: 1100, right: 1200 }, { left: 0, right: 1300 }, W, true) === 'start')
+  check('nothing fits (a narrow box): start, as before', T.coteDeLaCarte({ left: 100, right: 200 }, { left: 90, right: 330 }, W, false) === 'start')
+  check('the margin from the window or the box is 16 px, as it was', T.coteDeLaCarte({ left: 400, right: 436 }, win, W, false) === 'end' && T.coteDeLaCarte({ left: 400, right: 435 }, win, W, false) === 'start' && T.coteDeLaCarte({ left: 0, right: 436 }, { left: 0, right: 1500 }, W, false) === 'end')
+}
+
 console.log('the card of a page: the link at its foot')
 {
   const aide = (extra = {}) => ({ what: { fr: 'Fait une chose.', en: 'Does a thing.' }, steps: [{ fr: 'Un.', en: 'One.' }, { fr: 'Deux.', en: 'Two.' }], where: { fr: 'Ici', en: 'Here', page: true }, ...extra })
@@ -185,6 +200,60 @@ console.log('the animated help of a page (Intro)')
     const store = memory({ [KEY]: 'closed' })
     return withStorage(store, () => { const h = hub(); h.next([false]); h.api.Intro(props); h.state.effects.find((e) => Array.isArray(e.deps) && e.deps[0] === 'kybernos-x').fn(); h.next([true, mod, 'end']); replayOf(h.api.Help({ id: 'kybernos-x' }))[0].props.onClick(); return store.dump()[KEY] === 'closed' })
   })())
+}
+
+console.log('a page of DSH itself: the animation on the native Agent presets page')
+{
+  const FIBER = '__reactFiber$test'
+  const node = (attrs = {}) => ({ attrs, inserted: null, getAttribute (n) { return n in this.attrs ? this.attrs[n] : null }, setAttribute (n, v) { this.attrs[n] = v }, insertAdjacentElement (pos, e) { this.inserted = [pos, e]; return e } })
+  const cell = (key) => Object.assign(node({ 'aria-current': 'true' }), { [FIBER]: { key } })
+  // A document that answers the three questions the finder asks, by their selector.
+  const docWith = ({ active = null, intro = node(), host = null, throws = false } = {}) => {
+    const made = []
+    return { made, querySelector: (sel) => { if (throws) throw new Error('hostile'); return sel === T.NATIVE_SEL.cell ? active : sel === T.NATIVE_SEL.intro ? intro : sel === T.NATIVE_SEL.host ? host : null }, createElement: (tag) => { const e = node(); e.tag = tag; made.push(e); return e } }
+  }
+  const presets = cell('agent-presets')
+  check('the page is told by the React key of the open Settings cell, not by its words (it works in every language)', T.nativeKeyOf(presets) === 'agent-presets' && T.nativeKeyOf(node()) === null && T.nativeKeyOf(null) === null)
+  const d1 = docWith({ active: presets })
+  const got = T.findNativeHost(d1)
+  check('on the Agent presets page, a host is made right after its introduction, once', got !== null && got.key === 'agent-presets' && d1.made.length === 1 && d1.made[0].tag === 'div' && d1.made[0].attrs['data-kb'] === 'native-intro-host' && d1.made[0].attrs['data-native'] === 'agent-presets')
+  const introNode = d1.querySelector(T.NATIVE_SEL.intro)
+  check('…placed after the introduction paragraph, not inside the cards', introNode.inserted !== null && introNode.inserted[0] === 'afterend' && introNode.inserted[1] === got.el)
+  const existing = node({ 'data-native': 'agent-presets' })
+  const d2 = docWith({ active: presets, host: existing })
+  const again = T.findNativeHost(d2)
+  check('a second look finds the same host and makes none', again !== null && again.el === existing && d2.made.length === 0)
+  check('another page of Settings: nothing', T.findNativeHost(docWith({ active: cell('general') })) === null && T.findNativeHost(docWith({ active: cell('models') })) === null)
+  check('no open cell, an unreadable key, or no introduction on the page: nothing', T.findNativeHost(docWith({ active: null })) === null && T.findNativeHost(docWith({ active: node() })) === null && T.findNativeHost(docWith({ active: presets, intro: null })) === null)
+  check('a page the shell no longer draws like this never throws', T.findNativeHost(docWith({ throws: true })) === null && T.findNativeHost(null) === null && T.findNativeHost(undefined) === null)
+
+  const content = (lang) => { win.__KB_LANG_RESOLVE__ = () => lang; return T.nativeContent('agent-presets') }
+  const en = content('en')
+  check('the page has its content: the key of its card (a page of the core bundle), three steps, a mock', en !== null && en.help.id === 'kybernos-plugin' && en.help.page === 'presets' && en.intro.id === 'kybernos-plugin-presets' && en.intro.steps.length === 3 && en.intro.mock.states.length === 3 && en.intro.mock.actions.length === 3)
+  check('it says what a preset is, and the three things to do: know the modes, create one with the agent, start a task with it', en !== null && /preset/i.test(en.intro.caption) && /modes/i.test(en.intro.steps[0].t) && /Standard/.test(en.intro.steps[0].b) && /agent/i.test(en.intro.steps[1].b) && /task/i.test(en.intro.steps[2].b), en && en.intro.steps)
+  check('the mock uses the page’s own mode name', en !== null && /Standard mode/.test(JSON.stringify(en.intro.mock.rows)))
+  const fr = content('kybernos')
+  check('in French: the same, in French', fr !== null && /trois étapes/.test(fr.intro.title) && /modes/i.test(fr.intro.steps[0].t) && fr.intro.title !== en.intro.title)
+  check('a page that is not listed has no content', T.nativeContent('general') === null && T.nativeContent(null) === null)
+
+  // The component: a portal into the host, the shared button and the animation inside.
+  const portals = []
+  const ReactDOM = { createPortal: (child, el) => { const p = { portal: true, child, el }; portals.push(p); return p } }
+  const hubReact = fakeReact()
+  const api = T.construireAide(hubReact.React)
+  const Natives = T.construireNatifs(hubReact.React, ReactDOM, api)
+  const hostEl = node()
+  hubReact.next([{ el: hostEl, key: 'agent-presets' }])
+  win.__KB_LANG_RESOLVE__ = () => 'en'
+  const out = Natives()
+  check('with a host, the animation is drawn into it through a portal, with the page’s own « ? How it works » card', out !== null && out.portal === true && out.el === hostEl && find(out.child, (n) => n.type === api.Intro).length === 1 && find(out.child, (n) => n.type === api.Help).length === 1)
+  const helpProps = find(out.child, (n) => n.type === api.Help)[0].props
+  const introProps = find(out.child, (n) => n.type === api.Intro)[0].props
+  check('the button asks for the card « presets » of the core bundle, and the animation is keyed the same way (so the card can bring it back)', helpProps.id === 'kybernos-plugin' && helpProps.page === 'presets' && introProps.id === 'kybernos-plugin-presets')
+  hubReact.next([null])
+  check('without a host (another page): nothing is drawn', Natives() === null)
+  hubReact.next([{ el: hostEl, key: 'general' }])
+  check('a host of a page that has no content draws nothing', Natives() === null)
 }
 
 console.log('the host keeps the shipped link when the signed catalogue is one release behind')

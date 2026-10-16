@@ -117,6 +117,71 @@ window.__ModuleLoader__.load({
     }
     /** Pure. The address a card links to, or null when the field is not an address on the help site (the catalogue is data: a card never links anywhere else). */
     const adresseAide = (url, code) => (typeof url === 'string' && HELP_ADRESSE.test(url) ? url.replace('{lang}', langueDuSite(code)) : null)
+    /**
+     * Pure. Which edge of the button a help card hangs from: `end` (the card runs back from the button's end edge) unless that leaves the
+     * visible box by less than 16 px, then `start`. `box` is the window narrowed by every ancestor that clips (the page's own area, which
+     * ends at the sidebar), `r` the button's rectangle, `w` the card's width.
+     */
+    const coteDeLaCarte = (r, box, w, rtl) => ((rtl ? r.left + w <= box.right - 16 : r.right - w >= box.left + 16) ? 'end' : 'start')
+    /** The part of the window an element can show in: the window, narrowed by each ancestor that clips its overflow. */
+    const boiteVisible = (el) => {
+      let box = { left: 0, right: window.innerWidth }
+      try {
+        for (let p = el.parentElement; p !== null && p !== document.body; p = p.parentElement) {
+          if (/(auto|hidden|scroll|clip)/.test(window.getComputedStyle(p).overflowX)) { const b = p.getBoundingClientRect(); box = { left: Math.max(box.left, b.left), right: Math.min(box.right, b.right) } }
+        }
+      } catch (e) { /* the window alone */ }
+      return box
+    }
+    // ── The animation on a page of DSH itself ────────────────────────────────────────────────────────────────────────
+    // A few Settings pages are DSH's own (« Agent presets »): no plugin draws them, so the animation cannot be put in their code. It is
+    // drawn into a host node made right after the page's introduction paragraph, through a portal, when the open Settings cell is that
+    // page. The page is known by the React key of the cell (« agent-presets »), the same in every language, never by its words. Nothing
+    // here may throw: a shell that no longer looks like this simply gets no animation.
+    const NATIVE_SEL = { cell: 'button[class*="navCell"][aria-current="true"]', intro: '[data-slot="settings.section"] p[class*="_intro"]', host: '[data-kb="native-intro-host"]' }
+    const NATIVE_PAGES = ['agent-presets']
+    /** The React key of a DOM node (the id of the Settings section a cell stands for), or null. */
+    const nativeKeyOf = (el) => {
+      try {
+        const name = Object.keys(el).find((x) => x.indexOf('__reactFiber$') === 0)
+        const key = name === undefined ? null : el[name].key
+        return typeof key === 'string' ? key : null
+      } catch (e) { return null }
+    }
+    /** The host of the animation on the open native page, made when it is not there yet: `{ el, key }`, or null (another page, or a page not drawn yet). */
+    const findNativeHost = (doc) => {
+      try {
+        const key = nativeKeyOf(doc.querySelector(NATIVE_SEL.cell))
+        if (key === null || NATIVE_PAGES.indexOf(key) < 0) return null
+        const have = doc.querySelector(NATIVE_SEL.host)
+        if (have !== null && have.getAttribute('data-native') === key) return { el: have, key }
+        const intro = doc.querySelector(NATIVE_SEL.intro)
+        if (intro === null) return null
+        const el = doc.createElement('div')
+        el.setAttribute('data-kb', 'native-intro-host')
+        el.setAttribute('data-native', key)
+        intro.insertAdjacentElement('afterend', el)
+        return { el, key }
+      } catch (e) { return null }
+    }
+    /** What the animation of a native page says: the card of its button (a page of the core bundle) and its own animation. */
+    const nativeContent = (key) => {
+      if (key !== 'agent-presets') return null
+      return {
+        help: { id: 'kybernos-plugin', page: 'presets' },
+        intro: {
+          id: 'kybernos-plugin-presets',
+          title: kt('Les presets d’agent en trois étapes', 'Agent presets in three steps'),
+          caption: kt('Un preset est choisi parmi ceux livrés, ou écrit avec l’aide de l’agent, puis utilisé pour une nouvelle tâche.', 'A preset is picked from the built-in ones, or written with the agent’s help, then used for a new task.'),
+          steps: [
+            { t: kt('Connaissez les modes', 'Know the modes'), b: kt('Standard pour le quotidien ; PTC, Minimal et Creator pour d’autres besoins : chacun a ses outils et ses habitudes.', 'Standard for everyday tasks; PTC, Minimal and Creator for other needs: each has its own tools and habits.') },
+            { t: kt('Créez le vôtre', 'Create your own'), b: kt('Demandez de l’aide à l’agent (le bouton en bas de la page) : il vous interroge, puis écrit le preset.', 'Ask the agent for help (the button at the bottom of the page): it asks you questions, then writes the preset.') },
+            { t: kt('Lancez une tâche avec', 'Start a task with it'), b: kt('Choisissez le preset à la nouvelle tâche. Celui marqué « New task default » sert quand vous ne choisissez pas.', 'Pick the preset when you start a task. The one marked “New task default” is used when you do not choose.') }
+          ],
+          mock: { bar: 'Agent presets', rows: ['Standard mode'], hot: kt('Mon preset', 'My preset'), states: [kt('À créer', 'To create'), kt('L’agent écrit…', 'The agent writes…'), kt('Prêt', 'Ready')], actions: [kt('Créer avec l’agent', 'Create with the agent'), kt('Écriture…', 'Writing…'), kt('Utiliser', 'Use')] }
+        }
+      }
+    }
     const INTRO_SEEN_MS = 8000 // on screen this long once: the animation has had its first visit and does not come back by itself
     const introKey = (id) => 'kybernos.help.intro.' + id
     /** Pure. Does the animation of a page open now? Yes until the person closed it, or it has been on screen once for a while. A storage that fails says yes. */
@@ -498,6 +563,10 @@ window.__ModuleLoader__.load({
       '@keyframes kbhi-k-s2{0%,33%{opacity:.45}36%,64%{opacity:1}67%,100%{opacity:.45}}',
       '@keyframes kbhi-k-s3{0%,65%{opacity:.45}68%,95%{opacity:1}98%,100%{opacity:.45}}',
       '@media (prefers-reduced-motion:reduce){.kbhi-mm *,.kbhi-step{animation:none !important}.kbhi-step{opacity:1}}',
+      // The animation on a page of DSH itself: the button on the right, then the animation, in the host node made after the page's introduction.
+      '.kbni{display:flex;flex-direction:column;gap:10px;margin-top:6px}',
+      '.kbni-row{display:flex;justify-content:flex-end}',
+      '.kbni .kbhi{margin:0}',
       '.kbsu-right{display:inline-flex;flex-wrap:wrap;gap:8px;align-items:center}',
       '.kbsu-sw{position:relative;flex:none;width:36px;height:20px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);padding:0}',
       '.kbsu-sw i{position:absolute;inset-inline-start:2px;top:2px;width:14px;height:14px;border-radius:999px;background:var(--dsw-alias-label-secondary);transition:inset-inline-start .15s ease}',
@@ -1191,8 +1260,8 @@ window.__ModuleLoader__.load({
             const r = wrap.current.getBoundingClientRect()
             const w = Math.min(420, window.innerWidth - 32)
             const rtl = document.documentElement.dir === 'rtl'
-            // Hang from the end edge (toward the right) unless the card would run out of the window there.
-            setSide((rtl ? r.left + w > window.innerWidth - 16 : r.right - w < 16) ? 'start' : 'end')
+            // Hang from the end edge (toward the right) unless the card would run out of the window, or of the page that clips it, there.
+            setSide(coteDeLaCarte(r, boiteVisible(wrap.current), w, rtl))
           }
           const esc = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false) } }
           const away = (e) => { if (wrap.current !== null && !wrap.current.contains(e.target)) setOpen(false) }
@@ -1277,15 +1346,46 @@ window.__ModuleLoader__.load({
       return { version: 1, actions: true, Help, Intro }
     }
 
+    // The component that draws the animation into the host of a native page (see findNativeHost): always mounted (shell overlay slot),
+    // it draws nothing unless the open Settings page is one of them. A look costs three queries and runs once per frame at most.
+    const construireNatifs = (React, ReactDOM, api) => {
+      const h = React.createElement
+      return function NativeIntros () {
+        const [host, setHost] = React.useState(null)
+        React.useEffect(() => {
+          let frame = 0
+          const look = () => { frame = 0; const next = findNativeHost(document); setHost((cur) => (cur !== null && next !== null && cur.el === next.el ? cur : next)) }
+          const later = () => { if (frame === 0) frame = window.requestAnimationFrame(look) }
+          look()
+          let obs = null
+          try { obs = new MutationObserver(later); obs.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-current'] }) } catch (e) { obs = null }
+          return () => { if (obs !== null) obs.disconnect(); if (frame !== 0) window.cancelAnimationFrame(frame) }
+        }, [])
+        if (host === null) return null
+        const c = nativeContent(host.key)
+        if (c === null) return null
+        return ReactDOM.createPortal(h('div', { className: 'kbni', 'data-kb': 'native-intro' }, h('div', { className: 'kbni-row' }, h(api.Help, c.help)), h(api.Intro, c.intro)), host.el)
+      }
+    }
+
     const monterSuite = (ctx, scope, require) => {
       try {
         const slots = scope.slots
         if (slots == null || typeof slots.inject !== 'function') return
         const React = typeof require === 'function' ? require('react') : null
         if (React == null) return
-        try { window.__KB_HELP__ = construireAide(React) } catch (e) { /* the pages then simply have no help button */ }
+        let aide = null
+        try { aide = construireAide(React); window.__KB_HELP__ = aide } catch (e) { /* the pages then simply have no help button */ }
         ctx.effect(() => { const s = document.createElement('style'); s.dataset.plugin = '@local/kybernos-hub'; s.textContent = CSS; document.head.appendChild(s); return () => s.remove() }, 'kybernos-hub: suite styles')
         const Panneau = construirePanneau(React, scope, ctx)
+        // The animation on the pages of DSH itself (Agent presets): a portal into a node made on the page, from an always-mounted overlay.
+        try {
+          const ReactDOM = typeof require === 'function' ? require('react-dom') : null
+          if (aide !== null && ReactDOM !== null && typeof ReactDOM.createPortal === 'function') {
+            const Natifs = construireNatifs(React, ReactDOM, aide)
+            ctx.effect(() => slots.inject('shell.overlay', () => slots.register({ name: 'shell.overlay', id: 'kybernos-hub-native-intro', order: 40 }, Natifs)), 'kybernos-hub: animation on DSH pages')
+          }
+        } catch (e) { /* DSH's own pages simply get no animation */ }
         ctx.effect(() => slots.inject('settings.section', () => slots.register(
           { name: 'settings.section', id: 'kybernos-suite', order: 29, label: 'Kybernos Suite' },
           () => React.createElement(Panneau))), 'kybernos-hub: suite section')
@@ -1307,6 +1407,6 @@ window.__ModuleLoader__.load({
 
     const demarrer = (ctx) => { apply(ctx); try { appliquerSuite(ctx) } catch (e) { /* optional */ } }
 
-    return { name: NAME, inject: [], apply: demarrer, __test: { messageCatalogue, raisonMiseAJour, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView, construireAide, adresseAide, langueDuSite, introKey, introOuverte, INTRO_SEEN_MS } }
+    return { name: NAME, inject: [], apply: demarrer, __test: { messageCatalogue, raisonMiseAJour, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView, construireAide, construireNatifs, NATIVE_SEL, nativeKeyOf, findNativeHost, nativeContent, coteDeLaCarte, adresseAide, langueDuSite, introKey, introOuverte, INTRO_SEEN_MS } }
   }
 })
