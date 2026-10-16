@@ -95,6 +95,10 @@ def main() -> int:
         page.wait_for_selector("#huge .dsh-mermaid-error", timeout=30000)
         report["empty"] = page.evaluate(STATE_JS, "empty")
         report["huge"] = page.evaluate(STATE_JS, "huge")
+        # The reason sits ABOVE the source: under a 5 000-line source it would be out of sight.
+        report["huge_card_above_source"] = page.evaluate(
+            "() => { const b = document.getElementById('huge'); const c = b.querySelector('.dsh-mermaid'); const p = b.querySelector('pre'); return !!(c.compareDocumentPosition(p) & Node.DOCUMENT_POSITION_FOLLOWING) }"
+        )
         report["error_bar_hidden"] = page.evaluate(
             "() => getComputedStyle(document.querySelector('#invalid .dsh-mermaid-bar')).display === 'none'"
         )
@@ -177,7 +181,8 @@ def main() -> int:
         "5 000-edge chain → « too large » card, no pink mermaid box, source visible": report["huge"]["cardState"] == "error"
         and "too large" in report["huge"]["errorText"]
         and report["huge"]["svgCount"] == 0
-        and report["huge"]["preHidden"] is False,
+        and report["huge"]["preHidden"] is False
+        and bool(report["huge_card_above_source"]),
         "highlighted fence (pre.shiki) left alone, even if its text opens like a diagram": py["cards"] == 0
         and py["ready"] is None
         and py["preHidden"] is False,

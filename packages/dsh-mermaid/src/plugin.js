@@ -364,6 +364,8 @@ function apply(ctx) {
       // data is injected into it.
       holder.innerHTML = svg
       card.insertBefore(holder, card.firstChild)
+      // (An error card sits above the source: back under the block once there is a diagram to show.)
+      if (card.parentNode === block && block.lastElementChild !== card) block.append(card)
       card.dataset.dshMermaidState = 'ok'
       block.setAttribute(READY_ATTR, 'ready')
       current.inflight = ''
@@ -386,6 +388,8 @@ function apply(ctx) {
     detail.textContent = problem.detail
     node.append(title, detail)
     card.append(node)
+    // The reason goes ABOVE the source: under a 5 000-line source it would be out of sight.
+    if (card.parentNode === block) block.insertBefore(card, block.firstChild)
     card.dataset.dshMermaidState = 'error'
     // Source left visible: the reader sees the faulty code.
     block.classList.add(SOURCE_ATTR)
