@@ -118,6 +118,18 @@ console.log('the slash name')
   check('the editor refuses such a name, with its own sentence', /KB_DSH_COMMANDS\.indexOf\(kbCleanSlug\(d\.slug\)\) !== -1\) return \{ msg: '\/' \+ kbCleanSlug\(d\.slug\) \+ ' is one of DSH/.test(src))
 }
 
+console.log('the animated help of the Commands page (V-36)')
+{
+  const guard = "typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__"
+  const at = src.indexOf("id: 'kybernos-slash',\n")
+  const call = at < 0 ? '' : src.slice(at, at + 3000)
+  check('the page asks the Suite for the animation, keyed by its bundle, behind a guard', src.includes(guard + '.Intro') && /h\(window\.__KB_HELP__\.Intro, \{\s*id: 'kybernos-slash'/.test(src))
+  check('three steps with a title and a sentence each, in both languages', (call.match(/\{ t: L\(\{ fr: '[^']+', en: '[^']+' \}\), b: L\(\{ fr: '[^']+', en: '[^']+' \}\) \}/g) || []).length === 3, call.slice(0, 200))
+  check('they say what to do: save a prompt, call it with « / », or run it on a reply', /Save a prompt/.test(call) && /Call it with \//.test(call) && /run it on a reply/i.test(call))
+  check('the mock names the page and shows a command with its three states and three labels', /bar: L\(\{ fr: 'Commandes', en: 'Commands' \}\)/.test(call) && /hot: '\/summary'/.test(call) && /states: \[L\(/.test(call) && /actions: \[L\(/.test(call))
+  check('it sits under the header and above the tabs', src.indexOf('introNode,') > src.indexOf("className: 'kbsl-head'") && src.indexOf('introNode,') < src.indexOf("className: 'kbsl-tabs'"))
+}
+
 console.log('the page says what each tab is for (V-36)')
 {
   const line = src.match(/className: 'kbsl-sub kbsl-tabfor'[^\n]*\n?/)

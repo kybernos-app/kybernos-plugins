@@ -340,7 +340,7 @@ source scripts/sandbox/env.sh && node scripts/check-help-intro-live.mjs --shots 
 The live check starts from a throw-away browser, so its empty localStorage **is** the first visit: it checks the animation opens
 on Skills, Connectors and Remote Control, runs (CSS animations counted; the three steps light in turn, sampled on the loop's own
 clock, not the test's), is marked `seen` after 8 s and does not come back, comes back from the card, and closes for good; the
-article links; one button of the same size and shape on ten pages; reduced motion (no animation at all, the end of the story
+article links; one button of the same size and shape on sixteen pages (among them the ones whose own CSS restyles every button); reduced motion (no animation at all, the end of the story
 shown); the lines that say what Usage, Tools, Workers and Commands are for; and French on Remote Control.
 Two traps: the first click on a sidebar entry right after the shell loaded can open nothing (the check clicks again until the page's
 own text is there), and the page behind the Settings dialog stays in the document, so a button is counted only where it is the

@@ -284,6 +284,9 @@ console.log('the styles')
   check('the base style is the end of the story: the last state and the end label show, the others wait for their turn', /\.kbhi-mm-st>\.t3\{opacity:1/.test(SOURCE) && /\.kbhi-mm-done\{[^}]*opacity:1/.test(SOURCE) && /\.kbhi-mm-go,\.kbhi-mm-us\{[^}]*opacity:0/.test(SOURCE))
   check('the loop is 12 s, like the Language page’s', /kbhi-k-hot 12s infinite/.test(SOURCE) && /kbhi-k-s3 12s infinite/.test(SOURCE))
   check('the link of the card is drawn as a link (not a second button)', /\.kbhp-link\{/.test(SOURCE) && /\.kbhp-foot\{/.test(SOURCE))
+  // A page that styles every button of its own (« .kbwk button », « .kbsl-scope :where(button) », « .kbsu button » set font:inherit) must not
+  // resize the pill: its rules come under the wrapper, one class more than any of them (measured: 16 px on Commands, 13.5 px on Workers).
+  check('the pill’s rules sit under its wrapper, so a page’s own button rule cannot resize it', /'\.kbhp-wrap \.kbhp-btn\{/.test(SOURCE) && /'\.kbhp-wrap \.kbhp-btn:hover,\.kbhp-wrap \.kbhp-btn\[aria-expanded="true"\]\{/.test(SOURCE) && !/'\.kbhp-btn\{/.test(SOURCE))
 }
 
 console.log('\n' + (total - failed) + ' ✓  ' + failed + ' ✗')

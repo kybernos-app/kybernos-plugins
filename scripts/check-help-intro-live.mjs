@@ -160,8 +160,10 @@ try {
   await looks('Agent presets', await goTo('Agent presets'), pills)
   await looks('Language', await goTo('Language'), pills)
   await looks('Atlas', await goTo('Atlas'), pills)
+  // The pages that style every button of their own (« button{font:inherit} »): the pill must not follow them.
+  for (const label of ['Commands', 'Workers', 'Theme', 'Web Search', 'Kybernos Suite']) await looks(label, await goTo(label), pills)
   const shapes = new Set(forms.map((f) => f.split(':')[1]))
-  check('the same size, round ends, border and font on all of them (' + forms.length + ' pages)', forms.length >= 10 && shapes.size === 1 && [...shapes][0].startsWith('30/16px/1px/12.5px'), forms)
+  check('the same size, round ends, border and font on all of them (' + forms.length + ' pages)', forms.length >= 15 && shapes.size === 1 && [...shapes][0].startsWith('30/16px/1px/12.5px'), forms)
 
   // ═══ Remote Control ═══
   console.log('\n── Remote Control ──')
@@ -240,6 +242,10 @@ try {
   check('Workers names Tools as the other door', /Settings › Tools is the other door/.test(wt), wt.slice(0, 200))
   await goTo('Commands')
   await sleep(1500)
+  check('Commands: an animated help opens at the first visit, with the page’s words', (await poll(() => hasIntro('kybernos-slash'), 8000)) === true && /Save a prompt/.test(await introText('kybernos-slash')) && /Call it with \//.test(await introText('kybernos-slash')) && /run it on a reply/i.test(await introText('kybernos-slash')))
+  await shot('intro-commands')
+  const cpills = await pills()
+  check('Commands: one « ? How it works » button', Array.isArray(cpills) && cpills.length === 1, cpills)
   const c1 = await val(`(() => { const e = document.querySelector('.kbsl-tabfor'); return e ? e.innerText : null })()`)
   check('Commands: the slash tab says what a slash command is', c1 !== null && /A slash command is a saved prompt/.test(c1), c1)
   await press('.kbsl-tabs button:nth-of-type(2)')
