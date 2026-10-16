@@ -30,7 +30,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { racineDeclaree, resoudreCopie, refuserRacine } from './racine-dsh.mjs'
+import { racineDeclaree, resoudreCopie, refuserRacine, versionDuMoteur } from './racine-dsh.mjs'
+import { motifDeRetrait } from './lifecycle-engine.mjs'
 
 // La racine est DÉCLARÉE, jamais devinée : un contrôle qui retombe sur
 // l'installation Homebrew mesure une copie que DSH ne charge peut-être pas, et
@@ -39,6 +40,20 @@ const racine = racineDeclaree(process.argv.slice(2))
 const resolution = resoudreCopie(racine, '@deepseek-ai/dsh-agent-loop')
 if (resolution.copie === null) refuserRacine(resolution.motif, 'check-queue-move.mjs')
 const P = (p) => join(resolution.base, 'node_modules/@deepseek-ai', p)
+
+// Ce contrôle mesure la RETOUCHE `queue-move` (scripts/patch-dsh-queue-move.mjs). Depuis le moteur 0.2.0-rc.2 elle n'est plus posée (kybernos-flow suffit,
+// scripts/patches.json › retire_depuis_moteur) : sur un tel moteur la classe de la file n'a pas l'action `move` et chaque ligne rougirait pour une raison qui
+// n'est pas un défaut du produit. Le contrôle est donc SAUTÉ, dit pourquoi et rend 0 ; il garde tout son code pour un moteur plus ancien de la zone de compatibilité.
+{
+  const version = versionDuMoteur(resolution.moteur)
+  const entree = JSON.parse(readFileSync(new URL('./patches.json', import.meta.url), 'utf8')).find((x) => x.id === 'queue-move')
+  const retire = motifDeRetrait(entree, version)
+  if (retire !== null) {
+    console.log('SKIPPED: the queue-move engine patch check — the patch is retired on engine ' + version + ' (' + retire + ')')
+    console.log('check-queue-move — 0 checks run, SKIPPED (an engine older than the retirement threshold still carries the patch and is measured by this script)')
+    process.exit(0)
+  }
+}
 
 let total = 0
 const ok = (nom, condition, detail = '') => {
