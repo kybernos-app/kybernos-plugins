@@ -81,7 +81,7 @@ ok('apply survives a context whose effect throws', (() => { try { plugin.apply({
   window.__KB_LANG_RESOLVE__ = undefined
   ok('no resolver at all: English', T.L('create') === 'Create workspace')
   window.__KB_LANG_RESOLVE__ = () => 'kybernos'
-  ok('placeholders are filled', T.L('noneSub', { path: '~/x' }) === 'Un dossier privé est créé pour vous : ~/x')
+  ok('placeholders are filled', T.L('noneSub', { path: '~/x' }) === 'Un dossier privé est créé pour toi : ~/x')
 }
 
 // ── styles: tokens, not colours ────────────────────────────────────────────────────────────────────────

@@ -1,19 +1,19 @@
 {
   "what": {
-    "fr": "Un workspace peut avoir un dossier de votre ordinateur, ou aucun : sans dossier, Kybernos en crée un pour vous dans Documents/Kybernos.",
+    "fr": "Un workspace peut avoir un dossier de ton ordinateur, ou aucun : sans dossier, Kybernos en crée un pour toi dans Documents/Kybernos.",
     "en": "A workspace can have a folder of your computer, or none: without a folder, Kybernos creates one for you in Documents/Kybernos."
   },
   "steps": [
     {
-      "fr": "Ouvrez Workspaces et cliquez Create : donnez un nom, puis choisissez « Sans dossier » ou un dossier de votre ordinateur.",
+      "fr": "Ouvre Workspaces et clique Create : donne un nom, puis choisis « Sans dossier » ou un dossier de ton ordinateur.",
       "en": "Open Workspaces and click Create: give it a name, then pick “No folder” or a folder of your computer."
     },
     {
-      "fr": "Le même choix apparaît quand vous ajoutez un workspace depuis la barre latérale ou depuis un nouveau chat.",
+      "fr": "Le même choix apparaît quand tu ajoutes un workspace depuis la barre latérale ou depuis un nouveau chat.",
       "en": "The same choice appears when you add a workspace from the sidebar or from a new chat."
     },
     {
-      "fr": "Ouvrez un workspace, onglet Détails : le dossier de travail y est affiché, et « Avancé » montre un aperçu de ce qui viendra.",
+      "fr": "Ouvre un workspace, onglet Détails : le dossier de travail y est affiché, et « Avancé » montre un aperçu de ce qui viendra.",
       "en": "Open a workspace, Details tab: its working folder is shown there, and “Advanced” previews what is coming."
     }
   ],
@@ -23,7 +23,7 @@
     "page": false
   },
   "good": {
-    "fr": "Le dossier est fixé à la création : pour travailler dans un autre dossier, créez un autre workspace. Le téléphone ouvre toute la page de l'ordinateur, pas un workspace.",
+    "fr": "Le dossier est fixé à la création : pour travailler dans un autre dossier, crée un autre workspace. Le téléphone ouvre toute la page de l'ordinateur, pas un workspace.",
     "en": "The folder is fixed at creation: to work in another folder, create another workspace. The phone opens the whole page of the computer, not one workspace."
   },
   "url": "https://help.kybernos.app/{lang}/computers/choose-a-working-folder/"

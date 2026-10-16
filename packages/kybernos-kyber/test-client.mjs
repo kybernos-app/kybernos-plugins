@@ -260,7 +260,7 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
     reset(); set({ home: null })
     T.state.pairing = Object.assign(WAITING(), { state: 'scanned', sender: 'Miled (@alex)' })
     const strip = ui(T.views.Strip)
-    ok('scanned: the sender is named, the person is asked to confirm in Telegram, and can say it is not them', one(strip, 'kybernos-kyber-telegram').props['data-state'] === 'scanned' && /Miled \(@alex\)/.test(said(strip)) && byKb(strip, 'kybernos-kyber-qr').length === 0 && one(strip, 'kybernos-kyber-cancel') !== undefined && textOf(one(strip, 'kybernos-kyber-tg-row')).includes('En attente de votre accord'))
+    ok('scanned: the sender is named, the person is asked to confirm in Telegram, and can say it is not them', one(strip, 'kybernos-kyber-telegram').props['data-state'] === 'scanned' && /Miled \(@alex\)/.test(said(strip)) && byKb(strip, 'kybernos-kyber-qr').length === 0 && one(strip, 'kybernos-kyber-cancel') !== undefined && textOf(one(strip, 'kybernos-kyber-tg-row')).includes('En attente de ton accord'))
   }
   for (const [name, pairing, state, retry, row] of [
     ['expired', { id: 'x', state: 'expired' }, 'expired', true, 'Code expiré'],
@@ -320,7 +320,7 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
     ok('no cloud computer yet and no choice made: this computer, ready, no button', textOf(one(none, 'kybernos-kyber-field')).includes('Cet ordinateur') && textOf(one(none, 'kybernos-kyber-computer-state')) === 'Prêt' && byKb(none, 'kybernos-kyber-wake').length === 0 && byKb(none, 'kybernos-kyber-upsell').length === 0)
     T.state.where = 'cloud'
     const cloudNone = ui(T.views.ComputerTile, { view: T.state.view })
-    ok('the cloud one chosen before it exists: named Home, « on request », made at the first request that needs one, no button', textOf(one(cloudNone, 'kybernos-kyber-field')).includes('Home') && textOf(one(cloudNone, 'kybernos-kyber-computer-state')) === 'À la demande' && said(cloudNone).includes('Créé à votre première demande') && byKb(cloudNone, 'kybernos-kyber-wake').length === 0 && byKb(cloudNone, 'kybernos-kyber-upsell').length === 0)
+    ok('the cloud one chosen before it exists: named Home, « on request », made at the first request that needs one, no button', textOf(one(cloudNone, 'kybernos-kyber-field')).includes('Home') && textOf(one(cloudNone, 'kybernos-kyber-computer-state')) === 'À la demande' && said(cloudNone).includes('Créé à ta première demande') && byKb(cloudNone, 'kybernos-kyber-wake').length === 0 && byKb(cloudNone, 'kybernos-kyber-upsell').length === 0)
     const asleep = computer({ id: 'aaaaaaaa-1111', name: 'Home', state: 'suspended', manual_control: true })
     ok('asleep, on a paid plan: the chip says so and the person may wake it', textOf(one(asleep, 'kybernos-kyber-computer-state')) === 'En veille' && one(asleep, 'kybernos-kyber-wake') !== undefined && byKb(asleep, 'kybernos-kyber-sleep').length === 0)
     await press(asleep, 'kybernos-kyber-wake')
@@ -340,7 +340,7 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
     const free = computer({ id: 'aaaaaaaa-1111', name: 'Home', state: 'suspended', manual_control: false })
     ok('Free plan: no wake, no sleep; the short note and the upgrade button instead', byKb(free, 'kybernos-kyber-wake').length === 0 && byKb(free, 'kybernos-kyber-sleep').length === 0 && textOf(one(free, 'kybernos-kyber-upsell')) === 'Offre Free : réveil automatique seulement.' && one(free, 'kybernos-kyber-upgrade') !== undefined)
     const creating = computer({ id: 'aaaaaaaa-1111', name: 'Home', state: 'creating', manual_control: true })
-    ok('being set up: « Initialisation », a spinner and the sentence for a machine dedicated to the person', textOf(one(creating, 'kybernos-kyber-computer-state')) === 'Initialisation' && /warn/.test(one(creating, 'kybernos-kyber-computer-state').props.className) && nodes(creating).some((n) => /kbky-spin/.test(n.props.className || '')) && said(creating).includes('Initialisation d’une machine dédiée pour vous. Environ une minute.'))
+    ok('being set up: « Initialisation », a spinner and the sentence for a machine dedicated to the person', textOf(one(creating, 'kybernos-kyber-computer-state')) === 'Initialisation' && /warn/.test(one(creating, 'kybernos-kyber-computer-state').props.className) && nodes(creating).some((n) => /kbky-spin/.test(n.props.className || '')) && said(creating).includes('Initialisation d’une machine dédiée pour toi. Environ une minute.'))
     const failed = computer({ id: 'aaaaaaaa-1111', name: 'Home', state: 'failed', manual_control: true })
     ok('a failure is a red chip, with its sentence', /err/.test(one(failed, 'kybernos-kyber-computer-state').props.className) && said(failed).includes('Il n’a pas démarré'))
     const paused = computer({ id: 'aaaaaaaa-1111', name: 'Home', state: 'suspended', manual_control: true, paused_reason: 'hours' })

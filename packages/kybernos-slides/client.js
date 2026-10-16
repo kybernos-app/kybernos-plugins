@@ -426,14 +426,14 @@ window.__ModuleLoader__.load({
               get titre () { return kt('Varde 2.0 — démo', 'Varde 2.0 — demo') },
               theme: 'sombre',
               dureeMs: 9000,
-              get prompt () { return kt("Deck de démonstration : essayez l'outil Texte, l'outil Pinceau, puis demandez une correction au chat.", 'Demo deck: try the Text tool, the Brush tool, then ask the chat for a correction.') },
+              get prompt () { return kt("Deck de démonstration : essaie l'outil Texte, l'outil Pinceau, puis demande une correction au chat.", 'Demo deck: try the Text tool, the Brush tool, then ask the chat for a correction.') },
               get slides () {
                 return [
-                  { layout: 'titre', kicker: kt('La démo', 'The demo'), titre: 'Rain is a given.', sous: kt('Slides écrites en direct par le chat — modifiez-les pendant qu\'il tape.', 'Slides written live by the chat — edit them while it types.') },
+                  { layout: 'titre', kicker: kt('La démo', 'The demo'), titre: 'Rain is a given.', sous: kt('Slides écrites en direct par le chat — modifie-les pendant qu\'il tape.', 'Slides written live by the chat — edit them while it types.') },
                   { layout: 'statement', kicker: 'The premise', titre: 'Shells should come prepared.' },
-                  { layout: 'puces', kicker: 'How it works', titre: kt('Trois gestes', 'Three gestures'), points: [kt('Le chat écrit : machine à écrire, slide après slide.', 'The chat writes: typewriter style, slide after slide.'), kt('Vous corrigez : retapez un texte, dessinez au pinceau.', 'You correct: retype a text, draw with the brush.'), kt('Le chat relit : vos annotations, puis corrige en soulignant.', 'The chat reads back: your annotations, then corrects with underlines.')] },
+                  { layout: 'puces', kicker: 'How it works', titre: kt('Trois gestes', 'Three gestures'), points: [kt('Le chat écrit : machine à écrire, slide après slide.', 'The chat writes: typewriter style, slide after slide.'), kt('Tu corriges : retape un texte, dessine au pinceau.', 'You correct: retype a text, draw with the brush.'), kt('Le chat relit : tes annotations, puis corrige en soulignant.', 'The chat reads back: your annotations, then corrects with underlines.')] },
                   { layout: 'chiffre', kicker: 'Tempo', grand: '12 s', legende: kt('pour un deck complet, tempo réglable', 'for a whole deck, adjustable pace') },
-                  { layout: 'fin', titre: kt('À vous.', 'Your turn.'), sous: kt('Demandez une correction : l\'agent relit vos retouches et les intègre.', 'Ask for a correction: the agent reads your edits back and works them in.') },
+                  { layout: 'fin', titre: kt('À toi.', 'Your turn.'), sous: kt('Demande une correction : l\'agent relit tes retouches et les intègre.', 'Ask for a correction: the agent reads your edits back and works them in.') },
                 ]
               },
             }]
@@ -918,8 +918,8 @@ window.__ModuleLoader__.load({
                 h('div', { className: 'kbsd-scene', ref: sceneRef },
                   S.deck === null
                     ? h('div', { className: 'kbsd-empty' },
-                        h('b', null, kt('Demandez un deck au chat', 'Ask the chat for a deck')),
-                        h('div', null, kt('l\'agent l\'écrit ici même, slide après slide — vous pouvez retaper un texte ou peindre par-dessus pendant qu\'il écrit.', 'the agent writes it right here, slide after slide — you can retype a text or paint over it while it writes.')),
+                        h('b', null, kt('Demande un deck au chat', 'Ask the chat for a deck')),
+                        h('div', null, kt('l\'agent l\'écrit ici même, slide après slide — tu peux retaper un texte ou peindre par-dessus pendant qu\'il écrit.', 'the agent writes it right here, slide after slide — you can retype a text or paint over it while it writes.')),
                         h('button', {
                           className: 'kbsd-demo',
                           onClick: () => pousserDeck(DEMOS[0]),
@@ -1021,11 +1021,11 @@ window.__ModuleLoader__.load({
                 ),
                 h('div', { className: 'kbsd-note-bas' },
                   S.deck === null
-                    ? h('b', null, kt('Panneau « Slides » — le chat écrit, vous modifiez, il corrige.', 'Slides panel — the chat writes, you edit, it corrects.'))
+                    ? h('b', null, kt('Panneau « Slides » — le chat écrit, tu modifies, il corrige.', 'Slides panel — the chat writes, you edit, it corrects.'))
                     : h('span', null,
                         h('b', null, S.deck.prompt !== '' ? S.deck.prompt : S.deck.titre),
                         S.ann.edits.length > 0 || S.ann.strokes.length > 0
-                          ? kt(` — vos retouches : ${S.ann.edits.length} texte${S.ann.edits.length > 1 ? 's' : ''}, ${S.ann.strokes.length} trait${S.ann.strokes.length > 1 ? 's' : ''} (relues par l'agent)`, ` — your edits: ${S.ann.edits.length} text${S.ann.edits.length === 1 ? '' : 's'}, ${S.ann.strokes.length} stroke${S.ann.strokes.length === 1 ? '' : 's'} (read back by the agent)`)
+                          ? kt(` — tes retouches : ${S.ann.edits.length} texte${S.ann.edits.length > 1 ? 's' : ''}, ${S.ann.strokes.length} trait${S.ann.strokes.length > 1 ? 's' : ''} (relues par l'agent)`, ` — your edits: ${S.ann.edits.length} text${S.ann.edits.length === 1 ? '' : 's'}, ${S.ann.strokes.length} stroke${S.ann.strokes.length === 1 ? '' : 's'} (read back by the agent)`)
                           : ''),
                 ),
               )

@@ -303,11 +303,11 @@ ok('DEMO: …and in English, the tools of the English bar', /Text tool/.test(leg
   const textes = () => JSON.stringify(panneau()) + ' ' + JSON.stringify(T.DEMOS[0])
   const avecDeckBarre = (lg) => { langue = lg; deckPourTest = { version: 1, t0: Date.now() - 999_999, dureeMs: 10, titre: 'x', theme: 'sombre', mode: 'nouveau', slides: T.normaliserDeck(T.DEMOS[0].slides) }; const r = JSON.stringify(panneau()); deckPourTest = null; return r }
   for (const [lg, attendu, interdit] of [
-    ['en', ['Ask the chat for a deck', 'See the demo', 'Slides panel — the chat writes, you edit, it corrects.', 'Three gestures', 'Your turn.'], /Demandez|Voir la démo|Trois gestes|À vous|le chat écrit/],
-    ['kybernos', ['Demandez un deck au chat', 'Voir la démo', 'Trois gestes', 'À vous.', 'vous modifiez'], /Ask the chat|See the demo|Three gestures|Your turn/],
-    ['es', ['Ask the chat for a deck', 'See the demo', 'Three gestures'], /Demandez|Voir la démo|Trois gestes/],
-    ['ar', ['Ask the chat for a deck', 'See the demo'], /Demandez|Voir la démo/],
-    ['throws', ['Ask the chat for a deck', 'See the demo'], /Demandez|Voir la démo/],
+    ['en', ['Ask the chat for a deck', 'See the demo', 'Slides panel — the chat writes, you edit, it corrects.', 'Three gestures', 'Your turn.'], /Demande|Voir la démo|Trois gestes|À toi|le chat écrit/],
+    ['kybernos', ['Demande un deck au chat', 'Voir la démo', 'Trois gestes', 'À toi.', 'tu modifies'], /Ask the chat|See the demo|Three gestures|Your turn/],
+    ['es', ['Ask the chat for a deck', 'See the demo', 'Three gestures'], /Demande|Voir la démo|Trois gestes/],
+    ['ar', ['Ask the chat for a deck', 'See the demo'], /Demande|Voir la démo/],
+    ['throws', ['Ask the chat for a deck', 'See the demo'], /Demande|Voir la démo/],
   ]) {
     langue = lg
     const t = textes()

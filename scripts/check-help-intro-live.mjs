@@ -261,7 +261,7 @@ try {
   await goTo('Remote Control')
   await poll(() => hasIntro('kybernos-mobile'), 8000)
   const ft = await introText('kybernos-mobile')
-  check('the Remote Control animation speaks French', /Relier un téléphone en trois étapes/.test(ft) && /Affichez le code/.test(ft) && /Autoriser/.test(ft), ft)
+  check('the Remote Control animation speaks French', /Relier un téléphone en trois étapes/.test(ft) && /Affiche le code/.test(ft) && /Autoriser/.test(ft), ft)
   await press('[data-kb="help-button"][data-id="kybernos-mobile"]')
   const fl = await val(`(() => { const a = document.querySelector('[data-kb="help-panel"] [data-kb="help-link"]'); return a ? { href: a.href, text: a.innerText.trim() } : null })()`)
   check('the card’s link says « Lire l’article » and goes to the French article', fl !== null && /Lire l’article/.test(fl.text) && fl.href === 'https://help.kybernos.app/fr/features/what-is-remote-control/', fl)

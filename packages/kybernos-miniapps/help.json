@@ -5,7 +5,7 @@
   },
   "steps": [
     {
-      "fr": "Quand la maquette ou le deck est prêt, cliquez « App ⤓ » dans l’en-tête du panneau.",
+      "fr": "Quand la maquette ou le deck est prêt, clique « App ⤓ » dans l’en-tête du panneau.",
       "en": "Once the mockup or deck is ready, click “App ⤓” in the panel header."
     },
     {
@@ -13,7 +13,7 @@
       "en": "A message confirms and the app opens: a small borderless window, always on top, kept in Applications › Kybernos."
     },
     {
-      "fr": "Recliquez « App » (avec une roue) : « Lancer » rouvre l’app, « Démarrage auto » l’ouvre à la connexion, « Désinstaller » la retire.",
+      "fr": "Reclique « App » (avec une roue) : « Lancer » rouvre l’app, « Démarrage auto » l’ouvre à la connexion, « Désinstaller » la retire.",
       "en": "Click “App” again (it now shows a gear): “Launch” reopens the app, “Launch at login” starts it at sign-in, “Uninstall” removes it."
     }
   ],

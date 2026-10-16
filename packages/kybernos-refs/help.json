@@ -5,15 +5,15 @@
   },
   "steps": [
     {
-      "fr": "Lisez une réponse du chat qui contient des liens : chaque phrase porte une seule pastille, par exemple « arxiv +1 », au bout de la phrase.",
+      "fr": "Lis une réponse du chat qui contient des liens : chaque phrase porte une seule pastille, par exemple « arxiv +1 », au bout de la phrase.",
       "en": "Read a chat answer that contains links: each sentence carries one chip, for example “arxiv +1”, at its end."
     },
     {
-      "fr": "Cliquez la pastille : une carte liste toutes les sources de la phrase, avec le texte du lien et le site.",
+      "fr": "Clique la pastille : une carte liste toutes les sources de la phrase, avec le texte du lien et le site.",
       "en": "Click the chip: a card lists every source of the sentence, with the link’s text and the site."
     },
     {
-      "fr": "Cliquez une source dans la carte pour ouvrir la page dans un nouvel onglet ; Échap ou un clic ailleurs ferme la carte.",
+      "fr": "Clique une source dans la carte pour ouvrir la page dans un nouvel onglet ; Échap ou un clic ailleurs ferme la carte.",
       "en": "Click a source in the card to open the page in a new tab; Esc or a click elsewhere closes the card."
     }
   ],

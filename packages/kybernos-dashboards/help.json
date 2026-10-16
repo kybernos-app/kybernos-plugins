@@ -1,19 +1,19 @@
 {
   "what": {
-    "fr": "Une page Dashboards avant Agent Teams : le chat construit vos tableaux de bord (Agent Teams, automations, usage, créations) avec des graphiques animés, un calendrier, un kanban et des notes.",
+    "fr": "Une page Dashboards avant Agent Teams : le chat construit tes tableaux de bord (Agent Teams, automations, usage, créations) avec des graphiques animés, un calendrier, un kanban et des notes.",
     "en": "A Dashboards page before Agent Teams: the chat builds your dashboards (Agent Teams, automations, usage, creations) with animated charts, a calendar, a kanban and notes."
   },
   "steps": [
     {
-      "fr": "Ouvrez « Dashboards » dans le menu, puis « Créer un dashboard avec l’IA », ou partez d’un preset.",
+      "fr": "Ouvre « Dashboards » dans le menu, puis « Créer un dashboard avec l’IA », ou pars d’un preset.",
       "en": "Open “Dashboards” in the menu, then “Create a dashboard with AI”, or start from a preset."
     },
     {
-      "fr": "Répondez aux quelques questions du chat : il choisit les widgets adaptés et vous montre le plan avant de construire.",
+      "fr": "Réponds aux quelques questions du chat : il choisit les widgets adaptés et te montre le plan avant de construire.",
       "en": "Answer the chat’s few questions: it picks the right widgets and shows you the plan before building."
     },
     {
-      "fr": "Le dashboard s’affiche en direct dans l’onglet « Dashboard » à droite. Demandez n’importe quel changement.",
+      "fr": "Le dashboard s’affiche en direct dans l’onglet « Dashboard » à droite. Demande n’importe quel changement.",
       "en": "The dashboard shows live in the “Dashboard” tab on the right. Ask for any change."
     },
     {

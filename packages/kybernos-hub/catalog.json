@@ -62,7 +62,7 @@
       },
       "aide": {
         "what": {
-          "fr": "Le cœur de Kybernos : des Agent Teams (des équipes d’agents sur une mission) que vous lancez depuis un chat, leurs créations, des automations, la voix et le choix des outils.",
+          "fr": "Le cœur de Kybernos : des Agent Teams (des équipes d’agents sur une mission) que tu lances depuis un chat, leurs créations, des automations, la voix et le choix des outils.",
           "en": "The heart of Kybernos: Agent Teams (teams of agents on a mission) you start from a chat, what they create, automations, voice and tool choices."
         },
         "steps": [
@@ -71,7 +71,7 @@
             "en": "In the sidebar, “New chat” opens a conversation; the arrow next to it picks the Agent Team."
           },
           {
-            "fr": "« Agent Teams » : parcourez, créez et modifiez vos Agent Teams. « Workspaces » rassemble vos projets et leurs conversations.",
+            "fr": "« Agent Teams » : parcours, crée et modifie tes Agent Teams. « Workspaces » rassemble tes projets et leurs conversations.",
             "en": "“Agent Teams”: browse, create and edit your Agent Teams. “Workspaces” gathers your projects and their chats."
           },
           {
@@ -89,7 +89,7 @@
           "page": true
         },
         "good": {
-          "fr": "Une automation ne part que si DSH est lancé, sur cet ordinateur. Réglée sur « Me demander d’abord » (le choix par défaut), elle attend votre accord avant une action qui modifie quelque chose.",
+          "fr": "Une automation ne part que si DSH est lancé, sur cet ordinateur. Réglée sur « Me demander d’abord » (le choix par défaut), elle attend ton accord avant une action qui modifie quelque chose.",
           "en": "An automation only starts while DSH is running, on this computer. Set to “Ask me first” (the default), it waits for your approval before an action that changes something."
         },
         "pages": {
@@ -99,20 +99,20 @@
               "en": "Voice"
             },
             "what": {
-              "fr": "Faites lire les réponses de l’assistant à voix haute et dictez vos messages au micro. Pour une conversation orale en direct, utilisez Appels.",
+              "fr": "Fais lire les réponses de l’assistant à voix haute et dicte tes messages au micro. Pour une conversation orale en direct, utilise Appels.",
               "en": "Have the assistant’s replies read aloud and dictate your messages with the microphone. For a live spoken conversation, use Calls."
             },
             "steps": [
               {
-                "fr": "Choisissez un moteur : « Local » reste sur votre machine, « Cloud » envoie le texte à un service.",
+                "fr": "Choisis un moteur : « Local » reste sur ta machine, « Cloud » envoie le texte à un service.",
                 "en": "Pick an engine: “Local” stays on your machine, “Cloud” sends the text to a service."
               },
               {
-                "fr": "Réglez la langue et la voix, puis essayez avec « Tester la voix ».",
+                "fr": "Règle la langue et la voix, puis essaie avec « Tester la voix ».",
                 "en": "Set the language and the voice, then try it with “Test voice”."
               },
               {
-                "fr": "Dans le chat, l’icône haut-parleur sous une réponse la lit ; le micro avant Envoyer dicte votre message.",
+                "fr": "Dans le chat, l’icône haut-parleur sous une réponse la lit ; le micro avant Envoyer dicte ton message.",
                 "en": "In the chat, the speaker icon under a reply reads it; the microphone before Send dictates your message."
               }
             ],
@@ -122,7 +122,7 @@
               "page": true
             },
             "good": {
-              "fr": "Les moteurs « Local » ne font rien sortir de votre ordinateur ; edge-tts et « Vos modèles » envoient le texte à un service en ligne. Le micro est demandé à la première dictée.",
+              "fr": "Les moteurs « Local » ne font rien sortir de ton ordinateur ; edge-tts et « Tes modèles » envoient le texte à un service en ligne. Le micro est demandé à la première dictée.",
               "en": "“Local” engines send nothing off your computer; edge-tts and “Your models” send the text to an online service. The microphone is asked for the first time you dictate."
             }
           },
@@ -132,20 +132,20 @@
               "en": "Agent presets"
             },
             "what": {
-              "fr": "Un preset est une façon de travailler de l’agent : ses outils et ses habitudes. Choisissez-en un pour une nouvelle tâche, ou créez le vôtre.",
+              "fr": "Un preset est une façon de travailler de l’agent : ses outils et ses habitudes. Choisis-en un pour une nouvelle tâche, ou crée le tien.",
               "en": "A preset is a way for the agent to work: its tools and its habits. Pick one for a new task, or create your own."
             },
             "steps": [
               {
-                "fr": "Lisez les modes livrés : Standard pour le quotidien ; PTC, Minimal et Creator pour d’autres besoins.",
+                "fr": "Lis les modes livrés : Standard pour le quotidien ; PTC, Minimal et Creator pour d’autres besoins.",
                 "en": "Read the built-in modes: Standard for everyday tasks; PTC, Minimal and Creator for other needs."
               },
               {
-                "fr": "Pour créer le vôtre, demandez de l’aide à l’agent (bouton en bas de la page) : il vous interroge, puis écrit le preset.",
+                "fr": "Pour créer le tien, demande de l’aide à l’agent (bouton en bas de la page) : il t’interroge, puis écrit le preset.",
                 "en": "To create your own, ask the agent for help (the button at the bottom of the page): it asks you questions, then writes the preset."
               },
               {
-                "fr": "À chaque nouvelle tâche vous pouvez changer de preset. Celui marqué « New task default » sert quand vous ne choisissez pas.",
+                "fr": "À chaque nouvelle tâche tu peux changer de preset. Celui marqué « New task default » sert quand tu ne choisis pas.",
                 "en": "You can change the preset for each new task. The one marked “New task default” is used when you do not choose."
               }
             ],
@@ -360,7 +360,7 @@
         "en": "Providers and models in one place"
       },
       "description": {
-        "fr": "Une page pour chaque fournisseur et chaque modèle que vos agents peuvent appeler. Ajoutez un fournisseur comme dans DSH, désactivez-en un sans le supprimer, demandez à un fournisseur quels modèles il propose, et comparez les modèles dans un tableau : capacités, prix, scores. La page native de DSH reste à un clic.",
+        "fr": "Une page pour chaque fournisseur et chaque modèle que tes agents peuvent appeler. Ajoute un fournisseur comme dans DSH, désactives-en un sans le supprimer, demande à un fournisseur quels modèles il propose, et compare les modèles dans un tableau : capacités, prix, scores. La page native de DSH reste à un clic.",
         "en": "One page for every provider and every model your agents can call. Add a provider the way DSH does, switch one off without deleting it, ask a provider which models it serves, and compare models in a table: capabilities, prices, scores. DSH’s native page stays one click away."
       },
       "points": [
@@ -546,7 +546,7 @@
       "defaut": "actif",
       "poids_ko": 76,
       "promesse": {
-        "fr": "Routage Auto : choisit un modèle de votre liste selon la classe de la demande.",
+        "fr": "Routage Auto : choisit un modèle de ta liste selon la classe de la demande.",
         "en": "Auto routing: picks a model from your list by request class."
       },
       "aide": {
@@ -589,7 +589,7 @@
         "en": "Picks a model that answers"
       },
       "description": {
-        "fr": "Le routage Auto envoie chaque étape déléguée vers le meilleur modèle de votre liste. Il pose d’abord une vraie question minuscule aux candidats, écarte ceux qui échouent et garde une chaîne de repli : une délégation n’attend jamais un modèle en panne. Chaque modèle écarté dit pourquoi et quand il sera réessayé.",
+        "fr": "Le routage Auto envoie chaque étape déléguée vers le meilleur modèle de ta liste. Il pose d’abord une vraie question minuscule aux candidats, écarte ceux qui échouent et garde une chaîne de repli : une délégation n’attend jamais un modèle en panne. Chaque modèle écarté dit pourquoi et quand il sera réessayé.",
         "en": "Auto routing sends each delegated step to the best model of your list. It asks the candidates a real, tiny question first, skips the ones that fail and keeps a fallback chain, so a delegation never waits on a model that is down. Every skipped model says why and when it will be tried again."
       },
       "points": [
@@ -602,7 +602,7 @@
           "en": "A circuit breaker per model: a refused key pauses it, a flaky one after three failures"
         },
         {
-          "fr": "Une chaîne de repli de 10 modèles au plus, dans l’ordre de votre liste",
+          "fr": "Une chaîne de repli de 10 modèles au plus, dans l’ordre de ta liste",
           "en": "A fallback chain of at most 10 models, in the order of your list"
         },
         {
@@ -637,7 +637,7 @@
         },
         "steps": [
           {
-            "fr": "Demandez à l’agent de relancer DSH, par exemple après l’ajout d’un plugin ou un changement de réglage.",
+            "fr": "Demande à l’agent de relancer DSH, par exemple après l’ajout d’un plugin ou un changement de réglage.",
             "en": "Ask the agent to restart DSH, for example after adding a plugin or changing a setting."
           },
           {
@@ -659,7 +659,7 @@
           "page": false
         },
         "good": {
-          "fr": "Si d’autres sessions travaillent et que votre session est en accès complet (approbation « never »), aucun panneau ne peut s’ouvrir : l’agent refuse de relancer plutôt que de couper.",
+          "fr": "Si d’autres sessions travaillent et que ta session est en accès complet (approbation « never »), aucun panneau ne peut s’ouvrir : l’agent refuse de relancer plutôt que de couper.",
           "en": "If other sessions are working and yours has full access (approval “never”), no panel can open: the agent declines to restart rather than cut anything."
         }
       }
@@ -686,11 +686,11 @@
         },
         "steps": [
           {
-            "fr": "Envoyez plusieurs messages pendant que l’agent travaille : ils attendent dans la file d’attente de DSH.",
+            "fr": "Envoie plusieurs messages pendant que l’agent travaille : ils attendent dans la file d’attente de DSH.",
             "en": "Send several messages while the agent is working: they wait in DSH’s queue."
           },
           {
-            "fr": "Survolez un message en attente : une poignée à six points apparaît. Glissez-la, ou, au clavier, utilisez Alt + ↑ et Alt + ↓ dessus.",
+            "fr": "Survole un message en attente : une poignée à six points apparaît. Glisse-la, ou, au clavier, utilise Alt + ↑ et Alt + ↓ dessus.",
             "en": "Hover a queued message: a six-dot handle appears. Drag it, or, with the keyboard, press Alt + ↑ and Alt + ↓ on it."
           },
           {
@@ -924,16 +924,16 @@
       },
       "aide": {
         "what": {
-          "fr": "Le chat construit une maquette en briques dans la barre latérale droite, brique par brique et en direct. Vous la tournez, la rejouez, et le chat peut la continuer.",
+          "fr": "Le chat construit une maquette en briques dans la barre latérale droite, brique par brique et en direct. Tu la tournes, la rejoues, et le chat peut la continuer.",
           "en": "The chat builds a brick mockup in the right sidebar, brick by brick, live. You can turn it, replay it, and the chat can keep building on it."
         },
         "steps": [
           {
-            "fr": "Demandez une maquette au chat, par exemple « construisez un château en briques » : l’onglet « Briques » s’ouvre seul à droite.",
+            "fr": "Demande une maquette au chat, par exemple « construis un château en briques » : l’onglet « Briques » s’ouvre seul à droite.",
             "en": "Ask the chat for a mockup, for example “build a brick castle”: the “Bricks” tab opens by itself on the right."
           },
           {
-            "fr": "Faites glisser la scène pour la tourner, molette pour zoomer ; « 3/4 », « Face », « Dessus » et « Rotation » changent la vue.",
+            "fr": "Fais glisser la scène pour la tourner, molette pour zoomer ; « 3/4 », « Face », « Dessus » et « Rotation » changent la vue.",
             "en": "Drag the scene to turn it and scroll to zoom; “3/4”, “Front”, “Top” and “Spin” change the view."
           },
           {
@@ -941,7 +941,7 @@
             "en": "At the bottom, ▶ replays the build, ◀◀ and ▶▶ jump to the start or the end, 0.5× to 4× set the speed."
           },
           {
-            "fr": "Demandez d’en ajouter : le chat continue la maquette, et seules les briques neuves s’animent.",
+            "fr": "Demande d’en ajouter : le chat continue la maquette, et seules les briques neuves s’animent.",
             "en": "Ask for more: the chat carries on with the same mockup, and only the new bricks are animated."
           }
         ],
@@ -974,24 +974,24 @@
       },
       "aide": {
         "what": {
-          "fr": "Le chat écrit un deck de slides en direct dans la barre latérale droite. Vous retapez un texte à la main, puis il relit vos retouches et corrige.",
+          "fr": "Le chat écrit un deck de slides en direct dans la barre latérale droite. Tu retapes un texte à la main, puis il relit tes retouches et corrige.",
           "en": "The chat writes a slide deck live in the right sidebar. You retype any text by hand, then it reads your edits back and corrects the deck."
         },
         "steps": [
           {
-            "fr": "Demandez un deck au chat : l’onglet « Slides » s’ouvre seul à droite et le texte se tape slide après slide.",
+            "fr": "Demande un deck au chat : l’onglet « Slides » s’ouvre seul à droite et le texte se tape slide après slide.",
             "en": "Ask the chat for a deck: the “Slides” tab opens by itself on the right and the text is typed out slide after slide."
           },
           {
-            "fr": "Revoyez-le avec ▶ (rejouer l’écriture), ×0.5 / ×1 / ×2 (vitesse) et les vignettes pour changer de slide.",
+            "fr": "Revois-le avec ▶ (rejouer l’écriture), ×0.5 / ×1 / ×2 (vitesse) et les vignettes pour changer de slide.",
             "en": "Look back with ▶ (replay the writing), ×0.5 / ×1 / ×2 (speed) and the thumbnails to jump between slides."
           },
           {
-            "fr": "Double-cliquez sur un texte pour le retaper : barre G / I / S et couleurs, Entrée valide, Échap annule.",
+            "fr": "Double-clique sur un texte pour le retaper : barre G / I / S et couleurs, Entrée valide, Échap annule.",
             "en": "Double-click a text to retype it: a G / I / S bar and colours, Enter confirms, Esc cancels."
           },
           {
-            "fr": "Dites au chat de relire vos retouches : il corrige, et les passages corrigés s’illuminent en vert quelques secondes.",
+            "fr": "Dis au chat de relire tes retouches : il corrige, et les passages corrigés s’illuminent en vert quelques secondes.",
             "en": "Tell the chat to read your edits back: it corrects the deck, and the corrected passages glow green for a few seconds."
           }
         ],
@@ -1008,11 +1008,11 @@
       },
       "vedette": 5,
       "accroche": {
-        "fr": "Un deck écrit sous vos yeux",
+        "fr": "Un deck écrit sous tes yeux",
         "en": "A deck written before your eyes"
       },
       "description": {
-        "fr": "L’agent écrit un deck de slides en temps réel dans la barre latérale, caractère par caractère. Vous retouchez à la main (texte, pinceau), l’agent relit vos retouches et corrige, et chaque passage corrigé est souligné à l’écran.",
+        "fr": "L’agent écrit un deck de slides en temps réel dans la barre latérale, caractère par caractère. Tu retouches à la main (texte, pinceau), l’agent relit tes retouches et corrige, et chaque passage corrigé est souligné à l’écran.",
         "en": "The agent writes a slide deck in real time in the right sidebar, character by character. You touch it up by hand (text, brush), the agent reads your edits back and corrects, and every corrected passage is highlighted on screen."
       },
       "points": [
@@ -1025,7 +1025,7 @@
           "en": "Four themes: dark, light, coral, paper"
         },
         {
-          "fr": "Vos retouches (texte et pinceau) sont relues par l’agent",
+          "fr": "Tes retouches (texte et pinceau) sont relues par l’agent",
           "en": "Your edits (text and brush) are read back by the agent"
         },
         {
@@ -1051,16 +1051,16 @@
       },
       "aide": {
         "what": {
-          "fr": "Le chat dessine un modèle 2D (plan à l’échelle) ou 3D (solides qu’on fait tourner) dans la barre latérale droite, objet par objet. Vous pouvez dessiner par-dessus.",
+          "fr": "Le chat dessine un modèle 2D (plan à l’échelle) ou 3D (solides qu’on fait tourner) dans la barre latérale droite, objet par objet. Tu peux dessiner par-dessus.",
           "en": "The chat draws a 2D model (a scaled drawing) or a 3D one (solids you can turn) in the right sidebar, object by object. You can draw on top of it."
         },
         "steps": [
           {
-            "fr": "Demandez un modèle au chat, par exemple « dessinez un phare en 3D » : l’onglet « Modeleur » s’ouvre seul à droite.",
+            "fr": "Demande un modèle au chat, par exemple « dessine un phare en 3D » : l’onglet « Modeleur » s’ouvre seul à droite.",
             "en": "Ask the chat for a model, for example “draw a lighthouse in 3D”: the “3D modeller” tab opens by itself on the right."
           },
           {
-            "fr": "En 3D, faites glisser pour tourner, molette pour zoomer ; « 3/4 », « Face », « Dessus », « Rotation » (en 2D : « Grille », « Ajuster »).",
+            "fr": "En 3D, fais glisser pour tourner, molette pour zoomer ; « 3/4 », « Face », « Dessus », « Rotation » (en 2D : « Grille », « Ajuster »).",
             "en": "In 3D, drag to turn and scroll to zoom; “3/4”, “Front”, “Top”, “Spin” change the view (in 2D: “Grid”, “Fit”)."
           },
           {
@@ -1068,7 +1068,7 @@
             "en": "Under the scene, ▶ replays the drawing, the slider moves it by hand, 0.5× to 4× set the speed."
           },
           {
-            "fr": "Le bouton crayon dessine par-dessus (trait, rectangle, ellipse, flèche, texte) ; dites ensuite « réajuste d’après mes traits ».",
+            "fr": "Le bouton crayon dessine par-dessus (trait, rectangle, ellipse, flèche, texte) ; dis ensuite « réajuste d’après mes traits ».",
             "en": "The pencil button draws on top (freehand, rectangle, ellipse, arrow, text); then tell the chat to readjust from your marks."
           }
         ],
@@ -1124,16 +1124,16 @@
       },
       "aide": {
         "what": {
-          "fr": "Le chat crée des animations : titres, graphiques, compteurs, particules, 3D, personnages animés, formes qui changent, avec du son. Vous les lisez, les réglez et les exportez en vidéo.",
+          "fr": "Le chat crée des animations : titres, graphiques, compteurs, particules, 3D, personnages animés, formes qui changent, avec du son. Tu les lis, les règles et les exportes en vidéo.",
           "en": "The chat creates animations: titles, charts, counters, particles, 3D, animated characters, shapes that morph, with sound. You play them, adjust them and export them as video."
         },
         "steps": [
           {
-            "fr": "Demandez une animation au chat (« un titre animé, fond sombre ») : l’onglet « Motion » s’ouvre seul à droite.",
+            "fr": "Demande une animation au chat (« un titre animé, fond sombre ») : l’onglet « Motion » s’ouvre seul à droite.",
             "en": "Ask the chat for an animation (“an animated title, dark background”): the “Motion” tab opens by itself on the right."
           },
           {
-            "fr": "Lisez-la avec ▶ et déplacez le curseur sur la frise. Changez textes, couleurs ou nombres dans « Paramètres » : le chat voit vos retouches.",
+            "fr": "Lis-la avec ▶ et déplace le curseur sur la frise. Change textes, couleurs ou nombres dans « Paramètres » : le chat voit tes retouches.",
             "en": "Play it with ▶ and drag the cursor on the timeline. Change texts, colours or numbers under “Settings”: the chat sees your edits."
           },
           {
@@ -1141,7 +1141,7 @@
             "en": "“Export” gives an MP4 video, a standalone page or a scene file, saved in the project’s artifacts/ folder."
           },
           {
-            "fr": "Retrouvez vos animations dans la page Créations, ou avec « Animations » en haut du panneau.",
+            "fr": "Retrouve tes animations dans la page Créations, ou avec « Animations » en haut du panneau.",
             "en": "Find your animations on the Creations page, or with “Animations” at the top of the panel."
           }
         ],
@@ -1151,7 +1151,7 @@
           "page": false
         },
         "good": {
-          "fr": "Une animation est un simple fichier .miniapp.json du projet : copiez-le, versionnez-le, partagez-le. L’export vidéo se fait dans votre navigateur, rien n’est envoyé ailleurs.",
+          "fr": "Une animation est un simple fichier .miniapp.json du projet : copie-le, versionne-le, partage-le. L’export vidéo se fait dans ton navigateur, rien n’est envoyé ailleurs.",
           "en": "An animation is a plain .miniapp.json file in the project: copy it, version it, share it. Video export happens in your browser, nothing is sent elsewhere."
         },
         "url": "https://help.kybernos.app/{lang}/create-with-kybernos/make-an-animation/"
@@ -1179,7 +1179,7 @@
         },
         "steps": [
           {
-            "fr": "Quand la maquette ou le deck est prêt, cliquez « App ⤓ » dans l’en-tête du panneau.",
+            "fr": "Quand la maquette ou le deck est prêt, clique « App ⤓ » dans l’en-tête du panneau.",
             "en": "Once the mockup or deck is ready, click “App ⤓” in the panel header."
           },
           {
@@ -1187,7 +1187,7 @@
             "en": "A message confirms and the app opens: a small borderless window, always on top, kept in Applications › Kybernos."
           },
           {
-            "fr": "Recliquez « App » (avec une roue) : « Lancer » rouvre l’app, « Démarrage auto » l’ouvre à la connexion, « Désinstaller » la retire.",
+            "fr": "Reclique « App » (avec une roue) : « Lancer » rouvre l’app, « Démarrage auto » l’ouvre à la connexion, « Désinstaller » la retire.",
             "en": "Click “App” again (it now shows a gear): “Launch” reopens the app, “Launch at login” starts it at sign-in, “Uninstall” removes it."
           }
         ],
@@ -1215,29 +1215,29 @@
       "defaut": "actif",
       "poids_ko": 128,
       "promesse": {
-        "fr": "Ordinateurs cloud pour les agents (votre clé E2B).",
+        "fr": "Ordinateurs cloud pour les agents (ta clé E2B).",
         "en": "Cloud computers for agents (your E2B key)."
       },
       "aide": {
         "what": {
-          "fr": "Laisse l'agent exécuter du code dans un ordinateur cloud jetable (E2B) plutôt que sur votre poste. Votre propre clé E2B est nécessaire : l'usage est facturé sur votre compte E2B.",
+          "fr": "Laisse l'agent exécuter du code dans un ordinateur cloud jetable (E2B) plutôt que sur ton poste. Ta propre clé E2B est nécessaire : l'usage est facturé sur ton compte E2B.",
           "en": "Lets the agent run code in a throwaway cloud computer (E2B) instead of on your machine. Your own E2B key is required: usage is billed to your E2B account."
         },
         "steps": [
           {
-            "fr": "Créez un compte sur e2b.dev et copiez votre clé API.",
+            "fr": "Crée un compte sur e2b.dev et copie ta clé API.",
             "en": "Create an account on e2b.dev and copy your API key."
           },
           {
-            "fr": "Collez-la dans Réglages › Ordinateurs cloud (champ « Clé API »), puis « Enregistrer ».",
+            "fr": "Colle-la dans Réglages › Ordinateurs cloud (champ « Clé API »), puis « Enregistrer ».",
             "en": "Paste it in Settings › Cloud computers (“API key” field), then click “Save”."
           },
           {
-            "fr": "Dans le chat, ouvrez le menu « Ce poste ▾ » à gauche de la zone de saisie et choisissez « E2B ».",
+            "fr": "Dans le chat, ouvre le menu « Ce poste ▾ » à gauche de la zone de saisie et choisis « E2B ».",
             "en": "In the chat, open the “This machine ▾” menu next to the message box and choose “E2B”."
           },
           {
-            "fr": "Demandez à l'agent d'exécuter du code : il démarre un ordinateur cloud, y travaille, puis l'arrête.",
+            "fr": "Demande à l'agent d'exécuter du code : il démarre un ordinateur cloud, y travaille, puis l'arrête.",
             "en": "Ask the agent to run some code: it starts a cloud computer, works in it, then stops it."
           }
         ],
@@ -1247,7 +1247,7 @@
           "page": true
         },
         "good": {
-          "fr": "Le code et les fichiers que l'agent y envoie partent chez E2B. Chaque ordinateur est jetable, s'arrête seul après 15 min (2 h au plus), 4 à la fois. Sans clé, l'agent reste sur votre poste.",
+          "fr": "Le code et les fichiers que l'agent y envoie partent chez E2B. Chaque ordinateur est jetable, s'arrête seul après 15 min (2 h au plus), 4 à la fois. Sans clé, l'agent reste sur ton poste.",
           "en": "The code and files the agent sends there go to E2B. Each computer is disposable, stops by itself after 15 min (2 h at most), 4 at a time. With no key, the agent stays on your machine."
         },
         "url": "https://help.kybernos.app/{lang}/computers/run-code-in-a-cloud-sandbox/"
@@ -1420,15 +1420,15 @@
         },
         "steps": [
           {
-            "fr": "Lisez une réponse du chat qui contient des liens : chaque phrase porte une seule pastille, par exemple « arxiv +1 », au bout de la phrase.",
+            "fr": "Lis une réponse du chat qui contient des liens : chaque phrase porte une seule pastille, par exemple « arxiv +1 », au bout de la phrase.",
             "en": "Read a chat answer that contains links: each sentence carries one chip, for example “arxiv +1”, at its end."
           },
           {
-            "fr": "Cliquez la pastille : une carte liste toutes les sources de la phrase, avec le texte du lien et le site.",
+            "fr": "Clique la pastille : une carte liste toutes les sources de la phrase, avec le texte du lien et le site.",
             "en": "Click the chip: a card lists every source of the sentence, with the link’s text and the site."
           },
           {
-            "fr": "Cliquez une source dans la carte pour ouvrir la page dans un nouvel onglet ; Échap ou un clic ailleurs ferme la carte.",
+            "fr": "Clique une source dans la carte pour ouvrir la page dans un nouvel onglet ; Échap ou un clic ailleurs ferme la carte.",
             "en": "Click a source in the card to open the page in a new tab; Esc or a click elsewhere closes the card."
           }
         ],
@@ -1455,25 +1455,25 @@
       "defaut": "actif",
       "poids_ko": 60,
       "promesse": {
-        "fr": "DSH sur votre téléphone : l’écran s’adapte, et un code QR relie le téléphone à cet ordinateur, chiffré de bout en bout.",
+        "fr": "DSH sur ton téléphone : l’écran s’adapte, et un code QR relie le téléphone à cet ordinateur, chiffré de bout en bout.",
         "en": "DSH on your phone: the screen adapts, and a QR code links the phone to this computer, end-to-end encrypted."
       },
       "aide": {
         "what": {
-          "fr": "Votre téléphone ouvre une application web qui parle à votre ordinateur par un relais qui ne lit rien : tout est chiffré de bout en bout.",
+          "fr": "Ton téléphone ouvre une application web qui parle à ton ordinateur par un relais qui ne lit rien : tout est chiffré de bout en bout.",
           "en": "Your phone opens a web app that talks to your computer through a relay that reads nothing: everything is end-to-end encrypted."
         },
         "steps": [
           {
-            "fr": "Sur l’ordinateur, ouvrez le menu du compte (en bas de la barre latérale) › « Contrôle à distance » : un code QR s’affiche.",
+            "fr": "Sur l’ordinateur, ouvre le menu du compte (en bas de la barre latérale) › « Contrôle à distance » : un code QR s’affiche.",
             "en": "On the computer, open the account menu (bottom of the sidebar) › “Remote control”: a QR code appears."
           },
           {
-            "fr": "Sur le téléphone, scannez le code avec l’appareil photo et ouvrez le lien. Un code à 4 chiffres s’affiche.",
+            "fr": "Sur le téléphone, scanne le code avec l’appareil photo et ouvre le lien. Un code à 4 chiffres s’affiche.",
             "en": "On the phone, scan the code with the camera and open the link. A 4-digit code appears."
           },
           {
-            "fr": "Sur l’ordinateur, vérifiez que le code est le même et touchez Autoriser : DSH s’ouvre sur le téléphone.",
+            "fr": "Sur l’ordinateur, vérifie que le code est le même et touche Autoriser : DSH s’ouvre sur le téléphone.",
             "en": "On the computer, check the code is the same and click Allow: DSH opens on the phone."
           }
         ],
@@ -1483,7 +1483,7 @@
           "page": true
         },
         "good": {
-          "fr": "Gardez l’ordinateur allumé et connecté à internet : s’il s’éteint ou perd la connexion, le téléphone ne peut plus l’atteindre. Le relais Kybernos fait passer les messages sans pouvoir les lire.",
+          "fr": "Garde l’ordinateur allumé et connecté à internet : s’il s’éteint ou perd la connexion, le téléphone ne peut plus l’atteindre. Le relais Kybernos fait passer les messages sans pouvoir les lire.",
           "en": "Keep the computer switched on and connected to the internet: if it is switched off or loses the connection, the phone can no longer reach it. The Kybernos relay only passes messages along and cannot read them."
         },
         "url": "https://help.kybernos.app/{lang}/features/what-is-remote-control/"
@@ -1501,7 +1501,7 @@
       "defaut": "actif",
       "poids_ko": 60,
       "promesse": {
-        "fr": "La recherche web des agents, avec ou sans clé : des moteurs gratuits tout de suite, des moteurs à clé quand vous en ajoutez une, et le suivant prend le relais si l’un échoue.",
+        "fr": "La recherche web des agents, avec ou sans clé : des moteurs gratuits tout de suite, des moteurs à clé quand tu en ajoutes une, et le suivant prend le relais si l’un échoue.",
         "en": "Web search for the agents, with or without a key: free engines right away, keyed engines when you add one, and the next one takes over when one fails."
       },
       "aide": {
@@ -1624,25 +1624,25 @@
       "defaut": null,
       "poids_ko": 168,
       "promesse": {
-        "fr": "La carte de votre espace : projets, Agent Teams, skills, mémoire, et ce qui est cassé.",
+        "fr": "La carte de ton espace : projets, Agent Teams, skills, mémoire, et ce qui est cassé.",
         "en": "A map of your workspace: projects, agent teams, skills, memory, and what is broken."
       },
       "aide": {
         "what": {
-          "fr": "Une carte en lecture seule de votre espace : projets, Agent Teams, skills, mémoire, leçons, automatisations et applications, comment ils se relient, et ce qui est cassé.",
+          "fr": "Une carte en lecture seule de ton espace : projets, Agent Teams, skills, mémoire, leçons, automatisations et applications, comment ils se relient, et ce qui est cassé.",
           "en": "A read-only map of your workspace: projects, agent teams, skills, memory, lessons, automations and apps, how they connect, and what is broken."
         },
         "steps": [
           {
-            "fr": "Activez Atlas dans Réglages › Kybernos Suite (désactivé par défaut), puis ouvrez Réglages › Atlas.",
+            "fr": "Active Atlas dans Réglages › Kybernos Suite (désactivé par défaut), puis ouvre Réglages › Atlas.",
             "en": "Turn Atlas on in Settings › Kybernos Suite (off by default), then open Settings › Atlas."
           },
           {
-            "fr": "Cliquez « Mettre à jour » : rien n’est lu avant ; ensuite la page s’ouvre sur la dernière lecture, et l’en-tête dit depuis combien de temps.",
+            "fr": "Clique « Mettre à jour » : rien n’est lu avant ; ensuite la page s’ouvre sur la dernière lecture, et l’en-tête dit depuis combien de temps.",
             "en": "Click “Update”: nothing is read before you do. Next time the page opens on the last reading, and the header says how long ago it was read."
           },
           {
-            "fr": "Dans « Autour », choisissez un projet ou une Agent Team dans « Partir de » : quatre colonnes montrent qui y travaille et ce qu’il utilise.",
+            "fr": "Dans « Autour », choisis un projet ou une Agent Team dans « Partir de » : quatre colonnes montrent qui y travaille et ce qu’il utilise.",
             "en": "In “Around”, pick a project or an agent team in “Start from”: four columns show who works there and what they use."
           },
           {
@@ -1673,7 +1673,7 @@
       "defaut": "actif",
       "poids_ko": 40,
       "promesse": {
-        "fr": "Où en est votre travail (modifié, sauvegardé, sur GitHub, dans le projet) et quoi faire ensuite.",
+        "fr": "Où en est ton travail (modifié, sauvegardé, sur GitHub, dans le projet) et quoi faire ensuite.",
         "en": "Where your work stands (changed, saved, on GitHub, in the project) and what to do next."
       },
       "aide": {
@@ -1683,15 +1683,15 @@
         },
         "steps": [
           {
-            "fr": "Lisez la pastille : vert = rien à faire, orange = quelque chose vous attend, bleu = information, rouge = bloqué.",
+            "fr": "Lis la pastille : vert = rien à faire, orange = quelque chose t’attend, bleu = information, rouge = bloqué.",
             "en": "Read the chip: green = nothing to do, amber = something is waiting on you, blue = information, red = blocked."
           },
           {
-            "fr": "Cliquez-la : la carte montre « Modifié », « Sauvegardé », « Sur GitHub », « Dans le projet » et les fichiers concernés.",
+            "fr": "Clique-la : la carte montre « Modifié », « Sauvegardé », « Sur GitHub », « Dans le projet » et les fichiers concernés.",
             "en": "Click it: the card shows “Changed”, “Saved”, “On GitHub”, “In the project” and the files concerned."
           },
           {
-            "fr": "Cliquez le bouton principal, par ex. « Sauvegarder mon travail » : l’encadré « Avant de continuer » permet de valider ou « Retour ».",
+            "fr": "Clique le bouton principal, par ex. « Sauvegarder mon travail » : l’encadré « Avant de continuer » permet de valider ou « Retour ».",
             "en": "Click the main button, e.g. “Save my work”: a “Before going on” box lets you confirm or press “Back”."
           },
           {
@@ -1722,21 +1722,21 @@
       "defaut": "actif",
       "poids_ko": 960,
       "promesse": {
-        "fr": "Parlez à votre assistant ou à un membre de l’équipe, depuis n’importe quelle session : il répond comme dans le chat, dans votre langue, avec sa voix.",
+        "fr": "Parle à ton assistant ou à un membre de l’équipe, depuis n’importe quelle session : il répond comme dans le chat, dans ta langue, avec sa voix.",
         "en": "Talk to your assistant or a team member from any session: it answers as in the chat, in your language, in its own voice."
       },
       "aide": {
         "what": {
-          "fr": "Parlez à votre assistant, ou à un membre de votre équipe, à voix haute, depuis n'importe quelle session. L'assistant répond comme dans le chat, et ce qui se dit entre dans la discussion.",
+          "fr": "Parle à ton assistant, ou à un membre de ton équipe, à voix haute, depuis n'importe quelle session. L'assistant répond comme dans le chat, et ce qui se dit entre dans la discussion.",
           "en": "Talk to your assistant, or to a team member, out loud, from any session. The assistant answers as it does in the chat, and what is said enters the conversation."
         },
         "steps": [
           {
-            "fr": "Dans une session, cliquez le téléphone (voix) ou la caméra (vidéo) en haut à droite du chat. Pour un membre : Call ou Video sur sa carte.",
+            "fr": "Dans une session, clique le téléphone (voix) ou la caméra (vidéo) en haut à droite du chat. Pour un membre : Call ou Video sur sa carte.",
             "en": "In a session, click the phone (voice) or the camera (video) at the top right of the chat. For a team member: Call or Video on its card."
           },
           {
-            "fr": "Autorisez le micro dans le navigateur. Le panneau d'appel s'ouvre en bas à droite : parlez, il répond à voix haute.",
+            "fr": "Autorise le micro dans le navigateur. Le panneau d'appel s'ouvre en bas à droite : parle, il répond à voix haute.",
             "en": "Allow the microphone in the browser. The call panel opens at the bottom right: speak, it answers out loud."
           },
           {
@@ -1750,7 +1750,7 @@
           "page": true
         },
         "good": {
-          "fr": "Tout se règle dans Réglages › Appels : préréglage, clés, puis « Tout vérifier ». Si un appel ne peut pas démarrer, le panneau vous y conduit. Une voix enregistrée n'est clonée que si vous l'autorisez.",
+          "fr": "Tout se règle dans Réglages › Appels : préréglage, clés, puis « Tout vérifier ». Si un appel ne peut pas démarrer, le panneau t'y conduit. Une voix enregistrée n'est clonée que si tu l'autorises.",
           "en": "Everything is set up in Settings › Calls: a preset, each provider's keys, then “Check everything”. If a call cannot start, the panel takes you there. A recorded voice is only cloned if you allow it."
         },
         "url": "https://help.kybernos.app/{lang}/agents-and-tools/talk-to-your-assistant-out-loud/"
@@ -1778,7 +1778,7 @@
         },
         "steps": [
           {
-            "fr": "Dans la barre latérale droite, ouvrez l'onglet « Files » et cliquez un fichier son ou vidéo (mp3, wav, mp4, webm…).",
+            "fr": "Dans la barre latérale droite, ouvre l'onglet « Files » et clique un fichier son ou vidéo (mp3, wav, mp4, webm…).",
             "en": "In the right sidebar, open the “Files” tab and click a sound or video file (mp3, wav, mp4, webm…)."
           },
           {
@@ -1786,7 +1786,7 @@
             "en": "The player opens in place, with the file's name and size."
           },
           {
-            "fr": "Utilisez les commandes habituelles : lecture, pause, position, volume.",
+            "fr": "Utilise les commandes habituelles : lecture, pause, position, volume.",
             "en": "Use the usual controls: play, pause, position, volume."
           },
           {
@@ -1795,7 +1795,7 @@
           }
         ],
         "where": {
-          "fr": "Barre latérale droite › onglet « Files » : cliquez un fichier audio ou vidéo",
+          "fr": "Barre latérale droite › onglet « Files » : clique un fichier audio ou vidéo",
           "en": "Right sidebar › “Files” tab: click an audio or video file",
           "page": false
         },
@@ -1827,11 +1827,11 @@
         },
         "steps": [
           {
-            "fr": "Demandez un schéma à l'agent (au besoin, précisez « en Mermaid »).",
+            "fr": "Demande un schéma à l'agent (au besoin, précise « en Mermaid »).",
             "en": "Ask the agent for a diagram (if needed, say “in Mermaid”)."
           },
           {
-            "fr": "Sous le bloc de code Mermaid, le schéma s'affiche aux couleurs de votre thème ; le code brut est masqué.",
+            "fr": "Sous le bloc de code Mermaid, le schéma s'affiche aux couleurs de ton thème ; le code brut est masqué.",
             "en": "Under the Mermaid code block, the diagram appears in your theme's colours; the raw code is hidden."
           },
           {
@@ -1876,19 +1876,19 @@
         },
         "steps": [
           {
-            "fr": "Ouvrez l'onglet « Base de données » dans la barre latérale droite : le titre « Base de l’Agent Team » et une liste de bases apparaissent.",
+            "fr": "Ouvre l'onglet « Base de données » dans la barre latérale droite : le titre « Base de l’Agent Team » et une liste de bases apparaissent.",
             "en": "Open the “Base de données” tab in the right sidebar: the title “Base de l’Agent Team” and a list of databases appear."
           },
           {
-            "fr": "Choisissez la base d'une Agent Team dans la liste ; le bouton « ↻ » la relit si elle vient de changer.",
+            "fr": "Choisis la base d'une Agent Team dans la liste ; le bouton « ↻ » la relit si elle vient de changer.",
             "en": "Pick an agent team's database in the list; the “↻” button reads it again if it just changed."
           },
           {
-            "fr": "Passez d'une vue à l'autre : « Diagramme », « Graphiques », « Données » (un tableau à la fois) ou « SQL ».",
+            "fr": "Passe d'une vue à l'autre : « Diagramme », « Graphiques », « Données » (un tableau à la fois) ou « SQL ».",
             "en": "Switch views: “Diagramme” (diagram), “Graphiques” (charts), “Données” (one table at a time) or “SQL”."
           },
           {
-            "fr": "Dans « SQL », écrivez une requête de lecture (SELECT…) et cliquez « Exécuter » pour voir le résultat.",
+            "fr": "Dans « SQL », écris une requête de lecture (SELECT…) et clique « Exécuter » pour voir le résultat.",
             "en": "In “SQL”, write a read query (SELECT…) and click “Exécuter” (run) to see the result."
           }
         ],
@@ -1952,11 +1952,11 @@
         },
         "steps": [
           {
-            "fr": "Demandez à l'agent une commande à lancer : son bloc de code prend l'allure d'un terminal.",
+            "fr": "Demande à l'agent une commande à lancer : son bloc de code prend l'allure d'un terminal.",
             "en": "Ask the agent for a command: its code block looks like a terminal window."
           },
           {
-            "fr": "Le bouton vert « Exécuter » en haut du bloc exécute la commande sur votre ordinateur, sans demander confirmation.",
+            "fr": "Le bouton vert « Exécuter » en haut du bloc exécute la commande sur ton ordinateur, sans demander confirmation.",
             "en": "The green “Run” button at the top of the block runs the command on your computer, without asking first."
           },
           {
@@ -1970,7 +1970,7 @@
           "page": false
         },
         "good": {
-          "fr": "La commande s'exécute vraiment, avec vos droits, comme si vous la tapiez dans un terminal : relisez-la avant de cliquer. Le bouton ne marche que depuis votre session DSH ouverte.",
+          "fr": "La commande s'exécute vraiment, avec tes droits, comme si tu la tapais dans un terminal : relis-la avant de cliquer. Le bouton ne marche que depuis ta session DSH ouverte.",
           "en": "The command really runs, with your own rights, as if you typed it in a terminal: read it before you click. The button only works from your own signed-in DSH session."
         }
       }
@@ -1987,7 +1987,7 @@
       "defaut": "actif",
       "poids_ko": 40,
       "promesse": {
-        "fr": "Ce que votre plan a consommé, et ce que vos propres clés coûtent : une pastille sous la saisie et une page de détail.",
+        "fr": "Ce que ton plan a consommé, et ce que tes propres clés coûtent : une pastille sous la saisie et une page de détail.",
         "en": "What your plan has used, and what your own keys cost: a chip under the message box and a detail page."
       },
       "aide": {
@@ -2038,20 +2038,20 @@
       },
       "aide": {
         "what": {
-          "fr": "Un workspace peut avoir un dossier de votre ordinateur, ou aucun : sans dossier, Kybernos en crée un pour vous dans Documents/Kybernos.",
+          "fr": "Un workspace peut avoir un dossier de ton ordinateur, ou aucun : sans dossier, Kybernos en crée un pour toi dans Documents/Kybernos.",
           "en": "A workspace can have a folder of your computer, or none: without a folder, Kybernos creates one for you in Documents/Kybernos."
         },
         "steps": [
           {
-            "fr": "Ouvrez Workspaces et cliquez Create : donnez un nom, puis choisissez « Sans dossier » ou un dossier de votre ordinateur.",
+            "fr": "Ouvre Workspaces et clique Create : donne un nom, puis choisis « Sans dossier » ou un dossier de ton ordinateur.",
             "en": "Open Workspaces and click Create: give it a name, then pick “No folder” or a folder of your computer."
           },
           {
-            "fr": "Le même choix apparaît quand vous ajoutez un workspace depuis la barre latérale ou depuis un nouveau chat.",
+            "fr": "Le même choix apparaît quand tu ajoutes un workspace depuis la barre latérale ou depuis un nouveau chat.",
             "en": "The same choice appears when you add a workspace from the sidebar or from a new chat."
           },
           {
-            "fr": "Ouvrez un workspace, onglet Détails : le dossier de travail y est affiché, et « Avancé » montre un aperçu de ce qui viendra.",
+            "fr": "Ouvre un workspace, onglet Détails : le dossier de travail y est affiché, et « Avancé » montre un aperçu de ce qui viendra.",
             "en": "Open a workspace, Details tab: its working folder is shown there, and “Advanced” previews what is coming."
           }
         ],
@@ -2061,7 +2061,7 @@
           "page": false
         },
         "good": {
-          "fr": "Le dossier est fixé à la création : pour travailler dans un autre dossier, créez un autre workspace. Le téléphone ouvre toute la page de l'ordinateur, pas un workspace.",
+          "fr": "Le dossier est fixé à la création : pour travailler dans un autre dossier, crée un autre workspace. Le téléphone ouvre toute la page de l'ordinateur, pas un workspace.",
           "en": "The folder is fixed at creation: to work in another folder, create another workspace. The phone opens the whole page of the computer, not one workspace."
         },
         "url": "https://help.kybernos.app/{lang}/computers/choose-a-working-folder/"
@@ -2079,25 +2079,25 @@
       "defaut": null,
       "poids_ko": 185,
       "promesse": {
-        "fr": "Des dashboards construits par chat, pour suivre vos Agent Teams, automations, usage et livrables : cartes, graphiques animés, calendrier, kanban, notes.",
+        "fr": "Des dashboards construits par chat, pour suivre tes Agent Teams, automations, usage et livrables : cartes, graphiques animés, calendrier, kanban, notes.",
         "en": "Dashboards built by chat to follow your Agent Teams, automations, usage and deliverables: cards, animated charts, calendar, kanban, notes."
       },
       "aide": {
         "what": {
-          "fr": "Une page Dashboards avant Agent Teams : le chat construit vos tableaux de bord (Agent Teams, automations, usage, créations) avec des graphiques animés, un calendrier, un kanban et des notes.",
+          "fr": "Une page Dashboards avant Agent Teams : le chat construit tes tableaux de bord (Agent Teams, automations, usage, créations) avec des graphiques animés, un calendrier, un kanban et des notes.",
           "en": "A Dashboards page before Agent Teams: the chat builds your dashboards (Agent Teams, automations, usage, creations) with animated charts, a calendar, a kanban and notes."
         },
         "steps": [
           {
-            "fr": "Ouvrez « Dashboards » dans le menu, puis « Créer un dashboard avec l’IA », ou partez d’un preset.",
+            "fr": "Ouvre « Dashboards » dans le menu, puis « Créer un dashboard avec l’IA », ou pars d’un preset.",
             "en": "Open “Dashboards” in the menu, then “Create a dashboard with AI”, or start from a preset."
           },
           {
-            "fr": "Répondez aux quelques questions du chat : il choisit les widgets adaptés et vous montre le plan avant de construire.",
+            "fr": "Réponds aux quelques questions du chat : il choisit les widgets adaptés et te montre le plan avant de construire.",
             "en": "Answer the chat’s few questions: it picks the right widgets and shows you the plan before building."
           },
           {
-            "fr": "Le dashboard s’affiche en direct dans l’onglet « Dashboard » à droite. Demandez n’importe quel changement.",
+            "fr": "Le dashboard s’affiche en direct dans l’onglet « Dashboard » à droite. Demande n’importe quel changement.",
             "en": "The dashboard shows live in the “Dashboard” tab on the right. Ask for any change."
           },
           {
@@ -2139,11 +2139,11 @@
         },
         "steps": [
           {
-            "fr": "Dans un chat, ouvrez le panneau de droite puis le bouton « + » et choisissez Résumé.",
+            "fr": "Dans un chat, ouvre le panneau de droite puis le bouton « + » et choisis Résumé.",
             "en": "In a chat, open the right-hand panel, press the “+” button and pick Summary."
           },
           {
-            "fr": "Suivez la progression, les compétences et outils utilisés, et les fichiers écrits ; cliquez un fichier pour l'ouvrir.",
+            "fr": "Suis la progression, les compétences et outils utilisés, et les fichiers écrits ; clique un fichier pour l'ouvrir.",
             "en": "Follow the progress, the skills and tools used and the files written; click a file to open it."
           },
           {
@@ -2157,7 +2157,7 @@
           "page": false
         },
         "good": {
-          "fr": "Tout est lu dans votre navigateur, à partir de ce que le chat contient déjà : rien n'est stocké ni envoyé.",
+          "fr": "Tout est lu dans ton navigateur, à partir de ce que le chat contient déjà : rien n'est stocké ni envoyé.",
           "en": "Everything is read in your browser from what the chat already holds: nothing is stored or sent."
         }
       }
@@ -2174,25 +2174,25 @@
       "defaut": "actif",
       "poids_ko": 12,
       "promesse": {
-        "fr": "Kaby, votre assistant : une vraie conversation DSH avec la mémoire de votre compte, Telegram connecté d'un geste par QR code ou lien, et l'ordinateur cloud sur lequel il travaille.",
+        "fr": "Kaby, ton assistant : une vraie conversation DSH avec la mémoire de ton compte, Telegram connecté d'un geste par QR code ou lien, et l'ordinateur cloud sur lequel il travaille.",
         "en": "Kaby, your assistant: a real DSH chat with your account's memory, Telegram connected in one move by QR code or link, and the cloud computer it works on."
       },
       "aide": {
         "what": {
-          "fr": "Kaby, votre assistant : comme un téléphone avec télécommande, il travaille sur votre ordinateur. Une vraie conversation DSH, Telegram à connecter d'un geste, et l'ordinateur sur lequel il travaille.",
+          "fr": "Kaby, ton assistant : comme un téléphone avec télécommande, il travaille sur ton ordinateur. Une vraie conversation DSH, Telegram à connecter d'un geste, et l'ordinateur sur lequel il travaille.",
           "en": "Kaby, your assistant: like a phone with a remote control, it works on your desktop. A real DSH chat, Telegram to connect in one move, and the computer it works on."
         },
         "steps": [
           {
-            "fr": "Ouvrez « Kaby » dans le menu : une conversation DSH ordinaire, avec deux tuiles au-dessus de la saisie, les canaux et l'ordinateur.",
+            "fr": "Ouvre « Kaby » dans le menu : une conversation DSH ordinaire, avec deux tuiles au-dessus de la saisie, les canaux et l'ordinateur.",
             "en": "Open “Kaby” in the menu: an ordinary DSH chat, with two tiles above the composer: the channels and the computer."
           },
           {
-            "fr": "Activez Telegram dans la tuile des canaux : scannez le code (ou touchez « Ouvrir Telegram »), touchez Démarrer, puis « Oui, c'est moi ».",
+            "fr": "Active Telegram dans la tuile des canaux : scanne le code (ou touche « Ouvrir Telegram »), touche Démarrer, puis « Oui, c'est moi ».",
             "en": "Turn Telegram on in the channels tile: scan the code (or tap “Open Telegram”), tap Start, then “Yes, it's me”."
           },
           {
-            "fr": "La tuile Ordinateur dit où Kaby travaille : cet ordinateur, ou un ordinateur dans le cloud. Votre choix est retenu.",
+            "fr": "La tuile Ordinateur dit où Kaby travaille : cet ordinateur, ou un ordinateur dans le cloud. Ton choix est retenu.",
             "en": "The computer tile says where Kaby works: this computer, or a cloud computer. Your choice is remembered."
           }
         ],
@@ -2202,7 +2202,7 @@
           "page": true
         },
         "good": {
-          "fr": "Kaby garde la même mémoire ici et sur Telegram. Rien n'est connecté sans votre accord dans Telegram, et avant d'agir sur son ordinateur il vous demande : Autoriser, Refuser ou Autoriser pour cette tâche.",
+          "fr": "Kaby garde la même mémoire ici et sur Telegram. Rien n'est connecté sans ton accord dans Telegram, et avant d'agir sur son ordinateur il te demande : Autoriser, Refuser ou Autoriser pour cette tâche.",
           "en": "Kaby keeps the same memory here and on Telegram. Nothing is connected without your approval in Telegram, and before acting on its computer it asks you: Allow, Refuse, or Allow for this task."
         },
         "url": "https://help.kybernos.app/{lang}/computers/see-where-kyby-answers/"
@@ -2225,20 +2225,20 @@
       },
       "aide": {
         "what": {
-          "fr": "Une recherche qui lit le contenu de vos chats, pas seulement leurs titres, et aussi vos skills, mémoires, leçons, créations, automations et équipes.",
+          "fr": "Une recherche qui lit le contenu de tes chats, pas seulement leurs titres, et aussi tes skills, mémoires, leçons, créations, automations et équipes.",
           "en": "A search that reads the content of your chats, not only their titles, and also your skills, memories, lessons, creations, automations and agent teams."
         },
         "steps": [
           {
-            "fr": "Appuyez sur ⌘K (Ctrl+K), ou cliquez la loupe « Rechercher partout », en haut à gauche ou à côté de la recherche de la liste.",
+            "fr": "Appuie sur ⌘K (Ctrl+K), ou clique la loupe « Rechercher partout », en haut à gauche ou à côté de la recherche de la liste.",
             "en": "Press ⌘K (Ctrl+K), or click the “Search everywhere” icon, at the top left or next to the list's search."
           },
           {
-            "fr": "Tapez quelques mots : les résultats sont groupés par type, avec l’extrait où ils apparaissent.",
+            "fr": "Tape quelques mots : les résultats sont groupés par type, avec l’extrait où ils apparaissent.",
             "en": "Type a few words: results are grouped by kind, with the passage where they appear."
           },
           {
-            "fr": "Activez ou coupez un type avec les pastilles du haut ; ↑ ↓ pour choisir, ↵ pour ouvrir.",
+            "fr": "Active ou coupe un type avec les pastilles du haut ; ↑ ↓ pour choisir, ↵ pour ouvrir.",
             "en": "Switch a kind on or off with the chips at the top; ↑ ↓ to choose, ↵ to open."
           }
         ],
