@@ -26830,8 +26830,8 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
 .kbu-sw:hover{border-color:var(--dsw-alias-border-l3)}
 .kbu-sw:disabled{opacity:.45;cursor:default}
 .kbu-sw-dot{position:absolute;inset-inline-start:2px;top:2px;width:14px;height:14px;border-radius:999px;background:var(--dsw-alias-label-secondary);transition:inset-inline-start .15s ease,background .15s ease}
-.kbu-sw.on{background:#ff7a1a;border-color:#ff7a1a}
-.kbu-sw.on .kbu-sw-dot{inset-inline-start:18px;background:var(--dsw-static-neutral-bluish-00)}
+.kbu-sw.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}
+.kbu-sw.on .kbu-sw-dot{inset-inline-start:18px;background:var(--dsw-alias-label-primary-foreground)}
 /* Nom technique (paquet + version) en petit sous le nom commercial. */
 .kbu-tech{font-family:var(--ds-font-family-code,ui-monospace,Menlo,monospace);font-size:11px;color:var(--dsw-alias-label-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kbu-cfgbtn{flex:none;height:28px;padding:0 11px;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}

@@ -308,6 +308,43 @@ ok('the knob of an ON switch stays visible on the brand fill too: the label pair
   }
 })
 
+// A1-01: the Suite, Workers and the core's switch typed the brand orange as a literal (#ff7a1a), so a preset (Neutral violet) recoloured the Connectors page and
+// left these ones orange. Every accent control draws from the theme's brand token, with its label pair for the ink and for the ON knob (a white knob on the
+// near-white brand fill of the dark scheme would vanish). The Composio logo mark keeps its own gradient: it is a logo, not an accent.
+ok('A1-01: no literal brand orange #ff7a1a in the Suite, Workers, the core switch or the Composio filter pill: a preset recolours them', () => {
+  const ours = (r) => /^(kybernos-hub|kybernos-workers)\//.test(r.file) || (r.file.startsWith('kybernos-plugin/') && /^\.kbu-sw/.test(r.selector)) || (r.file.startsWith('kybernos-composio/') && /kbfpill/.test(r.selector))
+  assert.deepEqual(rules.filter((r) => ours(r) && /#ff7a1a/i.test(r.body)).map(where), [])
+})
+ok('A1-01: the ON knob of the Suite, Workers and core switches is the label pair of the brand fill, 3:1 on it in both schemes', () => {
+  for (const [file, track, knob] of [
+    ['kybernos-hub/client.js', '.kbsu-sw.on', '.kbsu-sw.on i'],
+    ['kybernos-workers/client.js', '.kbwk-sw.on', '.kbwk-sw.on i'],
+    ['kybernos-plugin/client.js', '.kbu-sw.on', '.kbu-sw.on .kbu-sw-dot'],
+  ]) {
+    const t = rule(file, track), k = rule(file, knob)
+    assert.match(lastDecl(t.body, 'background'), /^var\(--dsw-alias-brand-primary\)$/, track + ' fill')
+    assert.match(lastDecl(k.body, 'background'), /^var\(--dsw-alias-label-primary-foreground\)$/, knob)
+    for (const scheme of ['light', 'dark']) {
+      atLeast(knob + ' on its track (' + scheme + ')', contrast(colour(lastDecl(k.body, 'background'), scheme), colour(lastDecl(t.body, 'background'), scheme)), 3)
+    }
+  }
+})
+ok('A1-01: the accent buttons and the numbered step discs of the Suite and Workers are the brand fill with its label pair, 4.5:1 in both schemes', () => {
+  for (const [file, selector] of [
+    ['kybernos-hub/client.js', '.kbsu-btn.accent'],
+    ['kybernos-workers/client.js', '.kbwk-btn.accent'],
+    ['kybernos-workers/client.js', '.kbwk-todo>li.cur .kbwk-n'],
+    ['kybernos-workers/client.js', '.kbwk-tabs button[aria-current="step"] .kbwk-n'],
+  ]) {
+    const r = rule(file, selector)
+    assert.match(lastDecl(r.body, 'background'), /^var\(--dsw-alias-brand-primary\)$/, selector + ' fill')
+    assert.match(lastDecl(r.body, 'color'), /^var\(--dsw-alias-label-primary-foreground\)$/, selector + ' ink')
+    for (const scheme of ['light', 'dark']) {
+      atLeast(selector + ' (' + scheme + ')', contrast(colour(lastDecl(r.body, 'color'), scheme), colour(lastDecl(r.body, 'background'), scheme)), 4.5)
+    }
+  }
+})
+
 // The type colours of the Creations page, the artifact menu and the new-chat tiles are pastels made for the dark scheme: pale text on a pale tint is 1.2 to 2.7:1 in the light ones (A4-12, A1-11).
 // Each rule keeps the pastel in a custom property and the light schemes mix it toward the text colour, so a type keeps its hue and gains its contrast.
 ok('the type badges of Creations read 4.5:1 in both schemes (A4-12)', () => {

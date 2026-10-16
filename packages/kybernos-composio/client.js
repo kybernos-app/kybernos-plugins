@@ -892,10 +892,10 @@ body:not([data-ds-dark-theme]) .kbcp-input::placeholder{color:var(--dsw-alias-la
    stable despite the hashed classes. */
 .kbcp-kbfpill{height:28px;padding:0 11px;border-radius:999px;border:1px solid rgba(128,128,128,.35);background:transparent;color:inherit;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .kbcp-kbfpill:hover{background:rgba(128,128,128,.12)}
-/* Ink on the literal orange: white on #ff7a1a is 2.6:1, #0f1115 is 7.2:1. */
-.kbcp-kbfpill.on{background:#ff7a1a;border-color:#ff7a1a;color:#0f1115;font-weight:600}
+/* The selected pill follows the theme's brand token with its label pair as ink (A1-01), as the chips of the page do. */
+.kbcp-kbfpill.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground);font-weight:600}
 .kbcp-kbfbadge{min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:rgba(128,128,128,.25);font-size:10.5px;line-height:16px;text-align:center}
-.kbcp-kbfpill.on .kbcp-kbfbadge{background:rgba(255,255,255,.3)}
+.kbcp-kbfpill.on .kbcp-kbfbadge{background:color-mix(in srgb,var(--dsw-alias-label-primary-foreground) 24%,transparent)}
 [data-plugin-panel].kbcp-kbf-on [data-plugin-group="official"]{display:none !important}
 [data-plugin-panel].kbcp-kbf-on [data-plugin-group="bundles"] li[data-plugin-package]:not([data-plugin-package^="@local/kybernos"]){display:none !important}
 .kbcp-state{display:inline-flex;align-items:center;gap:6px;font-size:12px}
