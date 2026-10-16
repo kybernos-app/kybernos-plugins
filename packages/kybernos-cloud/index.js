@@ -3794,7 +3794,10 @@ const lastTurnText = (messages) => {
     if (m === null || typeof m !== 'object' || Array.isArray(m.content) === false) return ''
     return m.content.filter((block) => block !== null && typeof block === 'object' && block.type === 'text' && typeof block.text === 'string').map((block) => block.text).join('\n')
   }
-  const user = messages.filter((m) => m.role === 'user').slice(-1)[0]
+  // DSH writes messages of its own with the user role (the runtime-context snapshot, the time sample, the skill catalogue, a model-switch note). They carry
+  // `source.kind`, `user` for what the person typed: only those are the person's words (measured in a session log of DSH 0.2.1-alpha.4).
+  const theirs = (m) => !(m.source !== null && typeof m.source === 'object' && typeof m.source.kind === 'string' && m.source.kind !== 'user')
+  const user = messages.filter((m) => m.role === 'user' && theirs(m)).slice(-1)[0]
   const assistant = messages.filter((m) => m.role === 'assistant').slice(-1)[0]
   const left = stripMemoryBlock(user === undefined ? '' : text(user))
   const right = stripMemoryBlock(assistant === undefined ? '' : text(assistant))
