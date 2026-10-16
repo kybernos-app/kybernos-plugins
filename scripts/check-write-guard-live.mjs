@@ -172,26 +172,25 @@ try {
   await sleep(2000)
   if (await openSettings(page, { minCells: 0 }) !== true) check('the Settings dialog opens', false)
   else {
-    // Auto Routing: add a model to the whitelist (POST /kybernos-auto/settings), then take it out through the same page route.
+    // Auto Routing: choose « Free models » (POST /kybernos-auto/settings from the page's own click), then put the scope back.
     await gotoNav('Auto Routing')
-    check('Auto Routing: the whitelist field is there', await typeInto('input[placeholder="provider/model"]', 'zz-guard/live') === true)
-    await sleep(300)
-    check('Auto Routing: "Add" is clicked', await clickButton('Add') === true)
-    await waitFor(page, `document.body.innerText.includes('zz-guard/live')`, 8000)
-    await sleep(500)
+    const autoBefore = await readJson('/kybernos-auto/state')
+    await waitFor(page, `!!document.querySelector('[data-kb="auto-scope-free"]')`, 10000)
+    check('Auto Routing: the « Free models » choice is there and is clicked', await ev(`(() => { const b = document.querySelector('[data-kb="auto-scope-free"]'); if (!b) return false; b.click(); return true })()`) === true)
+    await sleep(1200)
     const auto = await readJson('/kybernos-auto/state')
     check('Auto Routing: the browser\'s own POST to /kybernos-auto/settings was answered 200', lastStatus('/kybernos-auto/settings') === 200, lastStatus('/kybernos-auto/settings'))
-    check('Auto Routing: the host stored the whitelist entry the page sent', auto !== null && Array.isArray(auto.whitelist) && auto.whitelist.includes('zz-guard/live'), auto && auto.whitelist)
+    check('Auto Routing: the host stored the scope the page sent', auto !== null && auto.scope === 'free', auto && auto.scope)
     await shot('write-guard-auto-routing')
-    await fromPage('POST', '/kybernos-auto/settings', { autoWhitelist: [] })
+    await fromPage('POST', '/kybernos-auto/settings', { autoScope: (autoBefore && autoBefore.scope) || 'all' })
 
-    // Memory & Lessons > Options: the Lessons system context switch (POST /kybernos-memory/settings/set), No then Yes.
+    // Memory & Lessons > Customize: the Lessons system context switch (POST /kybernos-memory/settings/set), No then Yes.
     await gotoNav('Memory & Lessons')
-    await waitFor(page, `!!document.querySelector('[data-act=options]')`, 10000)
-    await ev(`document.querySelector('[data-act=options]').click()`)
+    await waitFor(page, `!!document.querySelector('[data-act=customize]')`, 10000)
+    await ev(`document.querySelector('[data-act=customize]').click()`)
     await waitFor(page, `document.querySelectorAll('.kbmem-srow').length > 5`, 10000)
     const lessonsRow = await ev(`(() => { const rows = [...document.querySelectorAll('.kbmem-srow')]; const i = rows.findIndex(r => r.textContent.startsWith('Lessons system context')); return i < 0 ? -1 : i })()`)
-    check('Memory & Lessons: the "Lessons system context" row is on the Options page', typeof lessonsRow === 'number' && lessonsRow >= 0, lessonsRow)
+    check('Memory & Lessons: the "Lessons system context" row is on the Customize page', typeof lessonsRow === 'number' && lessonsRow >= 0, lessonsRow)
     const press = (label) => ev(`(() => { const r = [...document.querySelectorAll('.kbmem-srow')][${Number(lessonsRow)}]; const b = r && [...r.querySelectorAll('button')].find(x => x.textContent.trim() === ${q(label)}); if (!b) return false; b.click(); return true })()`)
     check('Memory & Lessons: clicking No is sent to the host', await press('No') === true)
     await sleep(1200)

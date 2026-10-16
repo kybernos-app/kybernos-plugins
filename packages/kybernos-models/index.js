@@ -1,30 +1,29 @@
-// ── Plugin hôte « kybernos-models » ─────────────────────────────────────────
-// Le catalogue de modèles personnalisé : une surcouche de la page
-// « Settings → Models » qui préremplit les caractéristiques d'un modèle depuis
-// models.dev et laisse l'utilisateur les surcharger.
+// ── Host plugin « kybernos-models » ─────────────────────────────────────────
+// The custom model catalogue: an overlay on the « Settings → Models » page
+// that prefills a model's characteristics from models.dev and lets the
+// user override them.
 //
-// DEUX NIVEAUX, et c'est le cœur du contrat :
+// TWO LEVELS, and that is the heart of the contract:
 //
-//   · APPLIQUÉ AU HARNAIS — six champs seulement sont acceptés par `llm-pi-ai`
-//     pour un modèle installé (`providers.<route>.modelOverrides.<id>`) :
+//   · APPLIED TO THE HARNESS — only six fields are accepted by `llm-pi-ai`
+//     for an installed model (`providers.<route>.modelOverrides.<id>`):
 //     `name`, `contextWindow`, `maxTokens`, `input`, `reasoningEfforts`,
-//     `compat`. Écrits dans `settings.yaml`, ils changent réellement les appels
-//     suivants, sans redémarrage (le profil est relu à chaque opération).
+//     `compat`. Written to `settings.yaml`, they really change the calls
+//     that follow, with no restart (the profile is re-read at every operation).
 //
-//   · ANNOTATION KYBERNOS — tout le reste de la maquette (pricing, type, family,
-//     knowledge, release, weights, sorties TTS/image/vidéo, `search`, `s2s`,
-//     max input) n'a AUCUN équivalent dans la configuration du harnais : le
-//     service de modèles ne lit pas le coût (« the absence of a fact, not a
-//     configurable rate ») et ne connaît que deux modalités d'entrée, `text` et
-//     `image`. Ces valeurs vivent donc dans un fichier du plugin et servent les
-//     vues Kybernos (coût, lisibilité) — jamais les appels.
+//   · KYBERNOS ANNOTATION — everything else in the mock-up (pricing, type, family,
+//     knowledge, release, weights, TTS/image/video outputs, `search`, `s2s`,
+//     max input) has NO equivalent in the harness configuration: the
+//     model service does not read the cost (« the absence of a fact, not a
+//     configurable rate ») and only knows two input modalities, `text` and
+//     `image`. These values therefore live in a plugin file and serve the
+//     Kybernos views (cost, readability) — never the calls.
 //
-// Ce fichier est la moitié HOST : elle possède le fichier d'annotations et
-// l'index models.dev mis en cache (4,7 Mo : un seul téléchargement pour tout le
-// monde, jamais par navigateur). L'écriture des champs appliqués, elle, passe
-// par `remote.settings.mutate` côté client — exactement le chemin qu'emprunte
-// la page Models native — pour que la validation du service settings soit la
-// même des deux côtés.
+// This file is the HOST half: it owns the annotations file and the cached
+// models.dev index (4.7 MB: one download for everyone, never per browser).
+// Writing the applied fields goes through `remote.settings.mutate` on the
+// client side — exactly the path the native Models page takes — so that the settings
+// service's validation is the same on both sides.
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -64,16 +63,16 @@ const kbFenced = (service) => {
 
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 
-/** Version du contrat de données exposé au client. */
+/** Version of the data contract exposed to the client. */
 export const MODEL_CATALOG_VERSION = 1
 
-/** Les six champs qu'un profil `llm-pi-ai` accepte PAR MODÈLE (source : schéma
- *  `modelFields` de dsh-llm-pi-ai — `models` et `modelOverrides` partagent ces
- *  clés, seul l'emplacement de l'`id` change). */
+/** The six fields an `llm-pi-ai` profile accepts PER MODEL (source: the
+  *  `modelFields` schema of dsh-llm-pi-ai — `models` and `modelOverrides` share these
+  *  keys, only the place of the `id` changes). */
 export const WIRED_FIELDS = ['name', 'contextWindow', 'maxTokens', 'input', 'reasoningEfforts', 'compat']
 
-/** Tous les autres champs de la maquette : conservés, jamais écrits dans
- *  `settings.yaml` parce que le harnais ne les lit pas. */
+/** Every other field of the mock-up: kept, never written to
+  *  `settings.yaml` because the harness does not read them. */
 export const ANNOTATION_FIELDS = [
   'textIn', 'vision', 'video', 'audioIn', 'textOut', 'tts', 'imageGen', 'videoGen',
   'tools', 'search', 's2s', 'reasoning', 'structured', 'temperature', 'type',
@@ -82,8 +81,8 @@ export const ANNOTATION_FIELDS = [
   'family', 'knowledge', 'release', 'weights',
 ]
 
-// La racine du harnais : `$DSH_HOME` quand il est posé (comme le reste de DSH),
-// sinon `~/.dsh`. Le dossier du plugin est le même dans les deux cas.
+// The harness root: `$DSH_HOME` when it is set (like the rest of DSH),
+// otherwise `~/.dsh`. The plugin's folder is the same in both cases.
 const HOME = (() => {
   const env = process.env.DSH_HOME
   if (typeof env === 'string' && env.trim() !== '') return env
@@ -93,13 +92,13 @@ const STORE_DIR = join(HOME, 'kybernos-models')
 const ANNOTATIONS_FILE = join(STORE_DIR, 'catalog.json')
 const MODELSDEV_CACHE = join(STORE_DIR, 'modelsdev.json')
 const JOURNAL_FILE = join(STORE_DIR, 'journal.ndjson')
-/** Taille au-delà de laquelle un index models.dev est considéré comme périmé. */
+/** Age beyond which a models.dev index is considered stale. */
 const MODELSDEV_TTL_MS = 6 * 60 * 60 * 1000
 
-// ── Les notes externes : deux sources lues, aucune clé d'API ─────────────────
+// ── External scores: two sources read, no API key ─────────────────
 const SCORES_FILE = join(STORE_DIR, 'scores.json')
 const SCORES_VERSION = 1
-/** Les deux sources publient un instantané quotidien : 24 h de fraîcheur. */
+/** Both sources publish a daily snapshot: 24 h of freshness. */
 const SCORES_TTL_MS = 24 * 60 * 60 * 1000
 const AA_LB_URL = 'https://artificialanalysis.ai/leaderboards/models'
 const BENCHLM_URL = 'https://benchlm.ai/data/models.json'
@@ -113,7 +112,7 @@ let scoresCache = null
 let scoresInflight = null
 let scoresJob = null
 
-// ── JSON sûr : aucune écriture ne doit pouvoir casser le profil ──────────────
+// ── Safe JSON: no write must be able to break the profile ──────────────
 const readJson = (path, fallback) => {
   try {
     if (existsSync(path) !== true) return fallback
@@ -147,10 +146,13 @@ const readBody = (req) => new Promise((resolve) => {
   } catch (e) { resolve(null) }
 })
 
+// A request that says nothing about where it comes from (no Origin, no Referer: a script, another local user) may read; it may not
+// write. A page of this DSH always says it on a write, so this refuses no one the person can see (A3-29).
 const sameOrigin = (req) => {
   try {
-    const origin = req.headers && typeof req.headers.origin === 'string' ? req.headers.origin : ''
-    if (origin === '') return true
+    const h = req.headers || {}
+    const origin = typeof h.origin === 'string' && h.origin !== '' ? h.origin : (typeof h.referer === 'string' ? h.referer : '')
+    if (origin === '') return ['GET', 'HEAD'].indexOf(String(req.method || '').toUpperCase()) >= 0
     const u = new URL(origin)
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
     const sock = req.socket !== null && req.socket !== undefined ? req.socket : null
@@ -162,7 +164,7 @@ const sameOrigin = (req) => {
   } catch (e) { return false }
 }
 
-// ── Annotations : un seul fichier, fusion par clé `route/id` ─────────────────
+// ── Annotations: one file, merged by `route/id` key ─────────────────
 const kbMaRead = () => {
   if (annotationsCache !== null) return annotationsCache
   const raw = readJson(ANNOTATIONS_FILE, {})
@@ -202,14 +204,14 @@ const kbMaWrite = (key, fields) => {
   return next
 }
 
-// ── Journal : une ligne JSON par tentative d'écriture (preuve locale) ───────
+// ── Journal: one JSON line per write attempt (local proof) ───────
 const kbJournalAppend = (entry) => {
   const line = Object.assign({ at: new Date().toISOString() }, entry)
   let text = ''
   try { text = readFileSync(JOURNAL_FILE, 'utf8') } catch (e) { text = '' }
   const rows = text.split('\n').filter((l) => l.trim().length > 0)
   rows.push(JSON.stringify(line))
-  // On garde les 200 dernières lignes : un journal, pas une archive.
+    // The last 200 lines are kept: a journal, not an archive.
   const kept = rows.slice(Math.max(0, rows.length - 200))
   // The store folder does not exist on a fresh install (writeJsonAtomic makes it for the other files; this one writes directly).
   mkdirSync(dirname(JOURNAL_FILE), { recursive: true })
@@ -380,21 +382,21 @@ export const kbPkMount = (register, file = PARKED_FILE) => {
   } })
 }
 
-// ── Index models.dev : un fetch pour tous, cache disque 6 h ──────────────────
-/** Le cache disque vit sous la forme `{ at, data }` ; les fichiers écrits par
- *  une version antérieure portaient l'index à la racine. On lit les deux. */
+// ── models.dev index: one fetch for everyone, 6 h disk cache ──────────────────
+/** The disk cache lives in the form `{ at, data }`; files written by
+  *  an earlier version carried the index at the root. Both are read. */
 const kbMdUnwrap = (disk) => {
   if (disk === null || typeof disk !== 'object') return null
   const payload = disk.data !== null && typeof disk.data === 'object' ? disk.data : (disk.byKey !== undefined ? disk : null)
   if (payload === null) return null
-  // L'horodatage de l'enveloppe fait foi : c'est lui qui porte l'âge du cache.
+    // The envelope's timestamp is authoritative: it carries the age of the cache.
   if (typeof payload.at !== 'number' && typeof disk.at === 'number') return Object.assign({}, payload, { at: disk.at })
   return payload
 }
-/** Lecture directe, hors service web du moteur : ce dernier tronque le corps à 100 000 caractères alors que l'index pèse ~4,7 Mo
- *  (JSON.parse échouait à 100000) et, surtout, il peut faire mourir tout le processus quand une connexion échoue sur-le-champ
- *  (pas de route, pare-feu : son dispatcher est fermé pendant qu'une seconde tentative est encore armée). Le `fetch` global rejette
- *  normalement. Le corps est lu par morceaux et coupé à `cap` octets : un tiers qui répond sans fin ne remplit pas la mémoire. */
+/** Direct read, outside the engine's web service: the latter truncates the body to 100 000 characters while the index weighs ~4.7 MB
+  *  (JSON.parse failed at 100000) and, above all, it can kill the whole process when a connection fails at once
+  *  (no route, firewall: its dispatcher is closed while a second attempt is still armed). The global `fetch` rejects
+  *  normally. The body is read in chunks and cut at `cap` bytes: a third party that answers endlessly does not fill the memory. */
 const kbMdFetchDirect = async (url, cap = 12000000, extra = null) => {
   try {
     const control = new AbortController()
@@ -427,8 +429,8 @@ const kbMdFetchDirect = async (url, cap = 12000000, extra = null) => {
 const kbMdLoad = async (web, force) => {
   if (force !== true && modelsDevCache !== null && (Date.now() - modelsDevCache.at) < MODELSDEV_TTL_MS) return modelsDevCache
   if (force !== true) {
-    // Sans cette lecture, la fenêtre de 6 h ne servait à rien et chaque session
-    // retéléchargeait tout l'index.
+        // Without this read, the 6 h window was useless and every session
+        // downloaded the whole index again.
     const disk = readJson(MODELSDEV_CACHE, null)
     const payload = kbMdUnwrap(disk)
     if (payload !== null && typeof disk.at === 'number' && (Date.now() - disk.at) < MODELSDEV_TTL_MS) {
@@ -437,11 +439,11 @@ const kbMdLoad = async (web, force) => {
     }
   }
   if (modelsDevInflight !== null) return modelsDevInflight
-  // `web` (le service du moteur) n'est plus appelé : voir kbMdFetchDirect. Le paramètre reste pour les appelants.
+    // `web` (the engine's service) is no longer called: see kbMdFetchDirect. The parameter stays for the callers.
   modelsDevInflight = (async () => {
     try {
-      // Pas de réseau : la lecture échoue, on sert le cache, même ancien — la route le dira « périmé » plutôt que de faire croire à
-      // un index frais.
+            // No network: the read fails, the cache is served, even an old one — the route will say « stale » rather than let
+            // anyone believe in a fresh index.
       const raw = await kbMdFetchDirect('https://models.dev/api.json')
       if (raw === null) throw new Error('reponse vide')
       const data = JSON.parse(raw)
@@ -473,8 +475,8 @@ const kbMdLoad = async (web, force) => {
   return modelsDevInflight
 }
 
-/** Une entrée models.dev → les clés de la maquette (sans invention : seules les
- *  clés présentes dans la réponse sont posées). */
+/** A models.dev entry → the mock-up's keys (no invention: only the
+  *  keys present in the answer are set). */
 export const kbMdNormalize = (provider, id, entry) => {
   const modalities = (entry.modalities !== null && typeof entry.modalities === 'object') ? entry.modalities : {}
   const input = Array.isArray(modalities.input) ? modalities.input : []
@@ -529,35 +531,35 @@ const findModelsDev = (index, route, id) => {
   return null
 }
 
-// ── Notes externes : Artificial Analysis + BenchLM, par lecture de pages ─────
-// Les deux sources publient l'équivalent d'un catalogue dans UNE page chacune :
+// ── External scores: Artificial Analysis + BenchLM, by reading pages ─────
+// Both sources publish the equivalent of a catalogue in ONE page each:
 //
-//   · Artificial Analysis — le classement embarque, pour ses ~660 modèles, la
-//     note d'intelligence ET les scores d'évaluation qui la composent (SciCode,
-//     Terminal-Bench, HLE, GPQA, MMMU-Pro…), plus les prix et la vitesse. Aucune
-//     clé n'est nécessaire : la clé n'ouvre que l'API, et l'API gratuite ne
-//     donne pas plus que cette page.
-//   · BenchLM — `/data/models.json` est un jeu publié qui porte ses propres
-//     indices de catégorie (coding, agentic, knowledge…). Licence CC BY-NC 4.0 :
-//     l'attribution est due, et l'usage commercial demande un accord.
+//   · Artificial Analysis — the ranking embeds, for its ~660 models, the
+//     intelligence score AND the evaluation scores that make it up (SciCode,
+//     Terminal-Bench, HLE, GPQA, MMMU-Pro…), plus prices and speed. No
+//     key is needed: the key only opens the API, and the free API gives
+//     no more than this page.
+//   · BenchLM — `/data/models.json` is a published set that carries its own
+//     category indices (coding, agentic, knowledge…). CC BY-NC 4.0 licence:
+//     attribution is due, and commercial use needs an agreement.
 //
-// Ce sont deux provenances DISTINCTES : on ne les fond jamais en une note, et
-// l'écart entre elles est une information — sur MiMo-V2.5-Pro, AA compte 21,3
-// d'agentic là où BenchLM compte 58,9. Fusionner ces deux nombres fabriquerait
-// une conclusion que ni l'une ni l'autre des sources ne soutient.
+// These are two DISTINCT provenances: they are never merged into one score, and
+// the gap between them is information — on MiMo-V2.5-Pro, AA counts 21.3
+// of agentic where BenchLM counts 58.9. Merging these two numbers would manufacture
+// a conclusion that neither source supports.
 
-/** Normalisation pour rapprocher un modèle du harnais d'un slug de source. */
+/** Normalisation to match a harness model to a source slug. */
 export const kbScoreNorm = (v) => String(v === null || v === undefined ? '' : v)
   .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 
-/** Le nom sans ses qualificatifs : « X (Reasoning, Max Effort) » → « x ». */
+/** The name without its qualifiers: « X (Reasoning, Max Effort) » → « x ». */
 const kbScoreBase = (v) => kbScoreNorm(String(v === null || v === undefined ? '' : v).replace(/\([^)]*\)/g, ' '))
 
-/** Les morceaux RSC d'une page Next.js App Router, recollés. Les guillemets y
- *  sont échappés (`\"slug\"`) : chercher la clé en clair ne trouve rien alors
- *  que la donnée est à deux mètres — c'est le piège qui fait croire à tort que
- *  la page ne porte pas les scores. */
+/** The RSC chunks of a Next.js App Router page, glued back together. Quotation marks
+  *  are escaped in them (`\"slug\"`): looking for the key in clear finds nothing
+  *  while the data is two metres away — the trap that wrongly makes one believe
+  *  the page does not carry the scores. */
 const kbScoreRsc = (html) => {
   const parts = []
   const re = /self\.__next_f\.push\(\[1,("(?:[^"\\]|\\.)*")\]\)/g
@@ -568,8 +570,8 @@ const kbScoreRsc = (html) => {
   return parts.join('')
 }
 
-/** Les objets d'une charge qui portent `"<ancre>": "…"` ET `"<num>": nombre`.
- *  L'objet englobant est délimité par équilibrage d'accolades. */
+/** The objects of a payload that carry `"<anchor>": "…"` AND `"<num>": number`.
+  *  The enclosing object is delimited by balancing braces. */
 const kbScoreObjects = (blob, ancre, num) => {
   const out = []
   const re = new RegExp('"' + ancre + '":"([A-Za-z0-9][A-Za-z0-9.\\-_]{0,80})"', 'g')
@@ -596,8 +598,8 @@ const kbScoreObjects = (blob, ancre, num) => {
   return out
 }
 
-/** Ce qu'on garde d'un modèle du classement AA : la note, ses ingrédients, le
- *  prix, la vitesse. Une clé absente de la source reste absente ici. */
+/** What is kept of a model of the AA ranking: the score, its ingredients, the
+  *  price, the speed. A key absent from the source stays absent here. */
 const AA_KEEP = [
   'slug', 'name', 'shortName', 'deprecated', 'isReasoning', 'isOpenWeights', 'paramClass', 'priceClass',
   'modelCreatorName', 'modelCreatorColor', 'contextWindowTokens',
@@ -609,13 +611,13 @@ const AA_KEEP = [
   'medianOutputTokensPerSecond', 'medianTimeToFirstTokenSeconds', 'medianTimeToFirstAnswerTokenSeconds',
   'medianEndToEndResponseTimeSeconds', 'medianReasoningTimeSeconds',
 ]
-/** Les épreuves d'AA — celles pour lesquelles on cherche un intitulé lisible. */
+/** AA's evaluations — the ones for which a readable label is looked for. */
 const AA_EVAL_KEYS = [
   'scicode', 'terminalBench40', 'terminalBench21', 'terminalbenchHard', 'hle', 'gpqa', 'critpt', 'lcr',
   'tau2', 'tauBanking', 'mmmuPro', 'ifbench', 'gdpvalNormalized', 'analystAgent', 'apexAgents', 'itbenchSre', 'omniscience',
 ]
-/** Les intitulés d'AA : le catalogue de BenchLM ne couvre pas ses clés (il écrit
- *  `terminalBench4` là où AA écrit `terminalBench40`), donc on les nomme ici. */
+/** AA's labels: BenchLM's catalogue does not cover its keys (it writes
+  *  `terminalBench4` where AA writes `terminalBench40`), so they are named here. */
 const AA_EVAL_LABELS = {
   scicode: 'SciCode', terminalBench40: 'Terminal-Bench 4.0', terminalBench21: 'Terminal-Bench 2.1',
   terminalbenchHard: 'Terminal-Bench Hard', hle: 'Humanity\u2019s Last Exam', gpqa: 'GPQA Diamond',
@@ -623,7 +625,7 @@ const AA_EVAL_LABELS = {
   mmmuPro: 'MMMU-Pro', ifbench: 'IFBench', gdpvalNormalized: 'GDPval (normalis\u00e9)',
   analystAgent: 'Analyst Agent', apexAgents: 'APEX-Agents', itbenchSre: 'ITBench SRE', omniscience: 'Omniscience',
 }
-/** Un identifiant sans intitulé connu, rendu lisible plutôt que brut. */
+/** An identifier with no known label, made readable rather than left raw. */
 const kbScorePretty = (k) => String(k)
   .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
   .replace(/([a-zA-Z])(\d)/g, '$1 $2')
@@ -634,11 +636,11 @@ const kbScoreFromAa = (o) => {
   return out
 }
 
-/** Ce qu'on garde d'un modèle BenchLM : ses indices de catégorie (dont coding et
- *  agentic), sa position, sa couverture, et les valeurs par benchmark qui les
- *  nourrissent. Le jeu publié ne porte PAS les sources ligne à ligne — celles-ci
- *  vivent sur la page HTML, et c'est écrit dans la note du panneau plutôt que
- *  laissé croire ici. */
+/** What is kept of a BenchLM model: its category indices (coding and
+  *  agentic among them), its position, its coverage, and the per-benchmark values that
+  *  feed them. The published set does NOT carry the sources line by line — these
+  *  live on the HTML page, and that is written in the panel's note rather than
+  *  implied here. */
 const kbScoreFromBenchlm = (it) => {
   const scores = (it.scores !== null && typeof it.scores === 'object') ? it.scores : {}
   const ranking = (it.ranking !== null && typeof it.ranking === 'object') ? it.ranking : {}
@@ -679,7 +681,7 @@ const kbScoreLoadAa = async () => {
   const objs = kbScoreObjects(kbScoreRsc(html), 'slug', 'intelligenceIndex')
   const bySlug = {}
   for (const o of objs) {
-    // Le même slug apparaît dans plusieurs objets : le plus riche gagne.
+        // The same slug appears in several objects: the richest wins.
     const precedent = bySlug[o.slug]
     if (precedent === undefined || Object.keys(o).length > Object.keys(precedent).length) bySlug[o.slug] = kbScoreFromAa(o)
   }
@@ -697,9 +699,9 @@ const kbScoreLoadBenchlm = async () => {
   return Object.keys(bySlug).length === 0 ? null : bySlug
 }
 
-/** Le catalogue des épreuves : il donne un nom lisible à chaque clé employée par
- *  les modèles (`terminalBench21` → « Terminal-Bench 2.1 »), sans quoi la fiche
- *  afficherait des identifiants internes à la place d'un intitulé. */
+/** The catalogue of evaluations: it gives a readable name to each key used by
+  *  the models (`terminalBench21` → « Terminal-Bench 2.1 »), without which the sheet
+  *  would show internal identifiers in place of a label. */
 const kbScoreLoadBenchlmCatalog = async () => {
   const raw = await kbMdFetchDirect(BENCHLM_CATALOG_URL, 12000000, kbScoreUa)
   if (raw === null) return null
@@ -723,9 +725,9 @@ const kbScoreLoadBenchlmCatalog = async () => {
   return Object.keys(byKey).length === 0 ? null : byKey
 }
 
-/** Rafraîchit les deux sources, en arrière-plan. Une source injoignable ne doit
- *  JAMAIS effacer celle qu'on avait déjà : on garde l'ancienne et le statut le
- *  dit, plutôt que de rendre l'écran vide sur une coupure réseau. */
+/** Refreshes both sources, in the background. An unreachable source must
+  *  NEVER erase the one already held: the old one is kept and the status says
+  *  so, rather than leaving the screen empty on a network cut. */
 const kbScoresRefresh = async () => {
   if (scoresInflight !== null) return scoresInflight
   scoresJob = { running: true, startedAt: Date.now(), finishedAt: null, error: null, sources: {} }
@@ -767,7 +769,7 @@ const kbScoresRefresh = async () => {
   try { return await scoresInflight } finally { scoresInflight = null }
 }
 
-/** L'instantané sur disque, relu si le cache mémoire est froid. */
+/** The snapshot on disk, re-read if the memory cache is cold. */
 const kbScoresRead = (force) => {
   if (force !== true && scoresCache !== null && typeof scoresCache.at === 'number' && (Date.now() - scoresCache.at) < SCORES_TTL_MS) return scoresCache
   const disk = readJson(SCORES_FILE, null)
@@ -778,20 +780,20 @@ const kbScoresRead = (force) => {
   return scoresCache
 }
 
-/** Un identifiant à variante (`glm-5.2:free`, `minimax-m3:nitro`) désigne le même
- *  modèle servi autrement : les catalogues ne connaissent que le nom de base, et
- *  sans ce retrait deux modèles sur cinq ne se rapprochaient pas. */
+/** An identifier with a variant (`glm-5.2:free`, `minimax-m3:nitro`) names the same
+  *  model served otherwise: the catalogues only know the base name, and
+  *  without this stripping two models in five did not match. */
 const kbScoreSansVariante = (v) => String(v === null || v === undefined ? '' : v).replace(/:[a-zA-Z0-9._-]+$/, '')
 
-/** Les règles de rapprochement, de la plus sûre à la plus faible.
- *
- *  Le « nom court » d'AA est une ABRÉVIATION d'affichage, pas un nom : elle perd
- *  le mot qui distingue (« Llama 3.1 8B Instruct » s'y écrit « Llama 3.1 8B »).
- *  Il n'est donc employé QUE sur les identifiants, jamais sur un nom affiché —
- *  sans quoi « Llama 3.1 8B Instant » recevait les notes du modèle « Instruct »,
- *  c'est-à-dire une valeur fausse présentée comme un fait. Et chaque règle doit
- *  désigner un seul modèle : une hésitation qui se tait serait pire qu'une
- *  absence, laquelle est visible. */
+/** The matching rules, from the surest to the weakest.
+  *
+  *  AA's « short name » is a display ABBREVIATION, not a name: it loses
+  *  the word that distinguishes (« Llama 3.1 8B Instruct » is written « Llama 3.1 8B » there).
+  *  It is therefore used ONLY on identifiers, never on a displayed name —
+  *  otherwise « Llama 3.1 8B Instant » received the scores of the « Instruct » model,
+  *  that is a wrong value presented as a fact. And each rule must
+  *  designate a single model: a hesitation that stays silent would be worse than an
+  *  absence, which is visible. */
 const kbMatchIn = (catalogue, nameKey, cibles, bases, ciblesId) => {
   const etapes = [
     ['slug', (slug) => cibles.indexOf(kbScoreNorm(slug)) >= 0],
@@ -812,10 +814,10 @@ const kbMatchIn = (catalogue, nameKey, cibles, bases, ciblesId) => {
   return null
 }
 
-/** Les mêmes mots dans un autre ordre désignent le même modèle : AA écrit
- *  « Claude 4.5 Sonnet », le harnais « Claude Sonnet 4.5 ». Deux candidats
- *  possibles ⇒ on ne choisit PAS : une hésitation qui se tait serait pire qu'une
- *  absence, qui elle est visible. */
+/** The same words in another order designate the same model: AA writes
+  *  « Claude 4.5 Sonnet », the harness « Claude Sonnet 4.5 ». Two possible
+  *  candidates ⇒ nothing is chosen: a hesitation that stays silent would be worse than an
+  *  absence, which is visible. */
 const kbScoreJetons = (v) => kbScoreBase(v).split('-').filter((x) => x.length > 0).sort().join('-')
 const kbMatchEnDesordre = (catalogue, nameKey, bases) => {
   const jetons = bases.map(kbScoreJetons).filter((x) => x.length > 0)
@@ -829,9 +831,9 @@ const kbMatchEnDesordre = (catalogue, nameKey, bases) => {
   return trouve.length === 1 ? { slug: trouve[0], method: 'nom-en-desordre', entry: catalogue[trouve[0]] } : null
 }
 
-/** Rapproche un modèle du harnais des deux catalogues. La méthode de
- *  rapprochement est rendue avec la donnée : une correspondance approximative
- *  qui se tait est exactement ce qu'il ne faut pas construire. */
+/** Matches a harness model with the two catalogues. The matching method
+  *  is returned with the data: an approximate match that stays
+  *  silent is exactly what must not be built. */
 export const kbScoreMatch = (snapshot, route, id, name) => {
   const aa = (snapshot !== null && snapshot !== undefined && snapshot.aa !== null && typeof snapshot.aa === 'object') ? snapshot.aa : {}
   const bl = (snapshot !== null && snapshot !== undefined && snapshot.benchlm !== null && typeof snapshot.benchlm === 'object') ? snapshot.benchlm : {}
@@ -860,8 +862,17 @@ export const kbScoreMatch = (snapshot, route, id, name) => {
   }
 }
 
-/** Les intitulés lisibles des épreuves employées par CE modèle, et rien d'autre :
- *  la fiche n'a pas besoin des 447 épreuves du catalogue pour en afficher dix. */
+/** The one number the Models tab shows, filters and sorts on: Artificial Analysis' intelligence index (a single scale, the one the
+ *  local models' catalogue quotes too). BenchLM's overall score is another scale and stays in the model's own sheet; mixing the two in
+ *  one column would rank them against each other. null when the model is not in AA's list. */
+export const kbScoreHeadline = (match) => {
+  const e = match !== null && match !== undefined && match.aa !== null && match.aa !== undefined ? match.aa.entry : null
+  const n = e === null || e === undefined ? NaN : Number(e.intelligenceIndex)
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 10) / 10 : null
+}
+
+/** The readable labels of the evaluations used by THIS model, and nothing else:
+  *  the sheet does not need the catalogue's 447 evaluations to show ten. */
 const kbScoreLabels = (snapshot, match) => {
   const cat = (snapshot !== null && snapshot !== undefined && snapshot.catalogue !== null && typeof snapshot.catalogue === 'object') ? snapshot.catalogue : {}
   const out = {}
@@ -901,7 +912,7 @@ export function apply(ctx) {
       const webServer = kbFenced(hostCtx.get('webServer'))
       const web = hostCtx.get('web')
 
-      // Diagnostic : prouve que la moitié host tourne et expose le contrat.
+            // Diagnostic: proves that the host half is running and exposes the contract.
       hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/kybernos-models/status', handler: async (req, res) => {
         const annotations = kbMaRead()
         const snap = kbScoresRead(false)
@@ -924,13 +935,13 @@ export function apply(ctx) {
         })
       }}), 'kybernos-models: statut')
 
-      // Lecture des annotations (une entrée par « route/id »).
+            // Reading the annotations (one entry per « route/id »).
       hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/kybernos-models/annotations', handler: async (req, res) => {
         sendJson(res, 200, { ok: true, version: MODEL_CATALOG_VERSION, models: kbMaRead().models })
       }}), 'kybernos-models: annotations (lecture)')
 
-      // Écriture : un patch de champs d'annotation pour un modèle. `null` purge
-      // l'entrée entière (c'est le chemin du revert global).
+            // Writing: a patch of annotation fields for a model. `null` purges
+            // the whole entry (it is the path of the global revert).
       hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/kybernos-models/annotations/save', handler: async (req, res) => {
         if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
         if (sameOrigin(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }
@@ -954,9 +965,9 @@ export function apply(ctx) {
       // The first-run wizard asks the provider whether a pasted key is accepted, before saving it.
       kbKeyMount((route) => hostCtx.effect(() => webServer.register(route), 'kybernos-models: ' + route.path))
 
-      // Journal des écritures : chaque tentative du panneau (champ réel ou
-      // annotation) y laisse une ligne, avec la réponse du harnais. C'est la
-      // preuve lisible de ce qui s'est passé — et ça ne quitte pas la machine.
+            // Journal of the writes: every attempt of the panel (real field or
+            // annotation) leaves a line there, with the harness's answer. It is the
+            // readable proof of what happened — and it does not leave the machine.
       hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/kybernos-models/journal', handler: async (req, res) => {
         const url = new URL('http://x' + (req.url || '/'))
         if (req.method === 'GET') {
@@ -978,7 +989,7 @@ export function apply(ctx) {
         }
       }}), 'kybernos-models: journal des ecritures')
 
-      // Préremplissage : l'index models.dev, un fetch pour tout le monde.
+            // Prefill: the models.dev index, one fetch for everyone.
       hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/kybernos-models/modelsdev', handler: async (req, res) => {
         const url = new URL('http://x' + (req.url || '/'))
         const route = url.searchParams.get('route') || ''
@@ -996,9 +1007,9 @@ export function apply(ctx) {
         sendJson(res, 200, { ok: true, version: MODEL_CATALOG_VERSION, at: index.at, stale, id, route, match: hit === null ? null : hit })
       }}), 'kybernos-models: index models.dev')
 
-      // ── Catalogue de fournisseurs (models.dev) et leurs logos ─────────────
-      // Générés par `scripts/build-provider-catalog.mjs` : un fichier JSON et un
-      // SVG nettoyé par fournisseur, lus sur disque — aucun appel réseau.
+            // ── Provider catalogue (models.dev) and their logos ─────────────
+            // Generated by `scripts/build-provider-catalog.mjs`: a JSON file and a
+            // cleaned SVG per provider, read from disk — no network call.
       hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/kybernos-models/providers', handler: async (req, res) => {
         try {
           const txt = readFileSync(join(pluginDir, 'provider-catalog.json'), 'utf8')
@@ -1025,9 +1036,9 @@ export function apply(ctx) {
         } catch (e) { try { res.end() } catch (e2) { /* socket fermé */ } }
       }}), 'kybernos-models: logos de fournisseurs')
 
-      // ── Notes externes : lues, servies, jamais fusionnées ────────────────
-      // La provenance voyage avec la donnée : `method` dit comment le modèle a
-      // été rapproché, `sources` dit quand chaque catalogue a été lu.
+            // ── External scores: read, served, never merged ────────────────
+            // The provenance travels with the data: `method` says how the model was
+            // matched, `sources` says when each catalogue was read.
       hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/kybernos-models/scores', handler: async (req, res) => {
         const url = new URL('http://x' + (req.url || '/'))
         const key = url.searchParams.get('key') || ''
@@ -1048,8 +1059,30 @@ export function apply(ctx) {
         })
       }}), 'kybernos-models: notes externes (lecture)')
 
-      // Le déclenchement : la réponse part TOUT DE SUITE, le scrape continue.
-      // Un scrape à jour ne se relance pas — il coûte ~4 Mo et deux requêtes.
+      // The headline score of many models at once (the Score badge, filter and sort of the Models tab): { models: [{ key, name? }] } →
+      // { scores: { "route/id": 32.1 } }, only for the models the snapshot knows. A POST so a long list never lands in an URL.
+      hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/kybernos-models/scores/list', handler: async (req, res) => {
+        if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
+        if (sameOrigin(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }
+        const body = await readBody(req)
+        if (body === null || typeof body !== 'object' || !Array.isArray(body.models)) { sendJson(res, 400, { ok: false, error: 'bad-json' }); return }
+        const snapshot = kbScoresRead(false)
+        const scores = {}
+        if (snapshot !== null) {
+          for (const m of body.models.slice(0, 800)) {
+            const key = m !== null && typeof m === 'object' && typeof m.key === 'string' ? m.key : ''
+            const slash = key.indexOf('/')
+            if (key.length > 300 || slash <= 0 || slash === key.length - 1) continue
+            const n = kbScoreHeadline(kbScoreMatch(snapshot, key.slice(0, slash), key.slice(slash + 1), typeof m.name === 'string' ? m.name.slice(0, 200) : ''))
+            if (n !== null) scores[key] = n
+          }
+        }
+        const stale = snapshot === null || typeof snapshot.at !== 'number' ? true : (Date.now() - snapshot.at) >= SCORES_TTL_MS
+        sendJson(res, 200, { ok: true, version: SCORES_VERSION, at: snapshot === null ? null : snapshot.at, stale, scores })
+      }}), 'kybernos-models: notes externes (liste des scores)')
+
+            // The trigger: the answer leaves RIGHT AWAY, the scrape goes on.
+            // An up-to-date scrape is not started again — it costs ~4 MB and two requests.
       hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/kybernos-models/scores/sync', handler: async (req, res) => {
         if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
         if (sameOrigin(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }

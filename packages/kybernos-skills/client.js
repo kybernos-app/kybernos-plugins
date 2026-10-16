@@ -103,6 +103,7 @@ window.__ModuleLoader__.load({
         'err.install': { fr: 'installation impossible', en: 'installation failed' },
         'he.root_not_allowed': { fr: 'Ce dossier n’est pas l’un de vos dossiers de skills modifiables.', en: 'That folder is not one of your writable skills folders.' },
         'he.invalid_name': { fr: 'Nom invalide : minuscules, chiffres et tirets, sans accent.', en: 'Invalid name: lowercase letters, digits and hyphens, no accents.' },
+        'he.name_too_long': { fr: 'Nom trop long ({max} caractères au plus).', en: 'Name too long ({max} characters at most).' },
         'he.active_required': { fr: 'L’état à appliquer (actif ou non) est absent.', en: 'The state to apply (on or off) is missing.' },
         'he.skill_not_found': { fr: 'Skill introuvable.', en: 'Skill not found.' },
         'he.skill_ambiguous': { fr: 'Plusieurs dossiers portent ce nom : impossible de choisir.', en: 'Several folders have this name: cannot choose.' },
@@ -2784,6 +2785,9 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
         const [root, setRoot] = React.useState(props.roots.length > 0 ? props.roots[0].path : '')
         const [quiet, setQuiet] = React.useState(false)
         const field = (label, node) => h('div', { className: 'kbs-fields' }, h('span', { className: 'kbs-label' }, label), node)
+        // The same rule as the host's (a lowercase kebab name, 64 characters at most), said while typing: the « /name » line only
+        // promises a command once the name can be one, and a bad name says why under its field (A3-27).
+        const nameRule = name === '' ? null : (/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name) ? (name.length > 64 ? 'name_too_long' : null) : 'invalid_name')
         const select = (value, onChange) => h('select', { className: 'kbs-select', value, onChange: (e) => onChange(e.target.value) },
           props.roots.length === 0
             ? h('option', { value: '' }, t('m.defroot'))
@@ -2793,19 +2797,21 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
             h('div', { className: 'kb-row' }, h('span', { className: 'kb8-h2' }, t('add.create')), h('span', { style: { flex: '1' } }),
               h('button', { type: 'button', className: 'kb-tool', onClick: props.onClose }, '✕')),
             h('p', { className: 'kb8-sub', style: { margin: '0' } }, t('m.createSub')),
-            field(t('m.name'), h('input', { className: 'kbs-input', value: name, placeholder: t('m.nameph'), onChange: (e) => setName(e.target.value) })),
+            field(t('m.name'), h(React.Fragment, null,
+              h('input', { className: 'kbs-input', value: name, placeholder: t('m.nameph'), 'aria-invalid': nameRule !== null ? 'true' : 'false', onChange: (e) => setName(e.target.value) }),
+              nameRule !== null ? h('div', { className: 'kbs-err', role: 'alert', 'data-kb': 'create-name-error' }, t('he.' + nameRule, { max: 64 })) : null)),
             field(t('m.desc'), h('textarea', { className: 'kbs-area', style: { minHeight: '70px' }, value: description, onChange: (e) => setDescription(e.target.value) })),
             field(t('m.when'), h('input', { className: 'kbs-input', value: whenToUse, onChange: (e) => setWhenToUse(e.target.value) })),
             field(t('m.content'), h('textarea', { className: 'kbs-area', value: content, placeholder: t('m.contentph'), onChange: (e) => setContent(e.target.value) })),
             field(t('f.root'), select(root, setRoot)),
             h('label', { className: 'kbs-check' },
               h('input', { type: 'checkbox', checked: quiet, onChange: (e) => setQuiet(e.target.checked) }),
-              h('span', null, t('m.quiet', { n: name || t('m.nameWord') }))),
+              h('span', null, t('m.quiet', { n: name !== '' && nameRule === null ? name : t('m.nameWord') }))),
             props.error ? h('div', { className: 'kbs-err' }, props.error) : null,
             h('div', { className: 'kbs-actions' },
               h('button', { type: 'button', className: 'kb8-ghost', onClick: props.onClose }, t('m.cancel')),
               h('button', {
-                type: 'button', className: 'kb8-primary', disabled: props.busy.__modal === true,
+                type: 'button', className: 'kb8-primary', disabled: props.busy.__modal === true || nameRule !== null,
                 onClick: () => props.onSubmit({ name, description, whenToUse, body: content, root, modelInvocable: quiet !== true })
               }, icon('wand', 15), props.busy.__modal === true ? t('m.creating') : t('m.createBtn')))))
       }

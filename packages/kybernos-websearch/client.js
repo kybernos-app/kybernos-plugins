@@ -60,6 +60,43 @@ window.__ModuleLoader__.load({
         : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
         .then((r) => (r.status === 404 ? Promise.reject(new Error(kt('Le serveur DSH n’a pas encore chargé cette version : redémarrez-le.', 'The DSH server has not loaded this version yet: restart it.'))) : r.json()))
 
+      // The address rule of the host (settings.mjs drops a value it does not accept without a word); said here before saving.
+      const httpUrlOk = (text) => {
+        try { const u = new URL(text); return text.length <= 2048 && (u.protocol === 'http:' || u.protocol === 'https:') && u.username === '' && u.password === '' && u.hostname !== '' } catch (e) { return false }
+      }
+      /** The sentence that says why `text` cannot be saved in the field `key`, or null (a blank clears the field: allowed). */
+      const addressProblem = (key, text) => {
+        const t = String(text === undefined || text === null ? '' : text).trim()
+        if (t === '') return null
+        if (key === 'searxngUrl' || key === 'customUrl') return httpUrlOk(t) ? null : kt('Saisissez une adresse http(s), par exemple http://127.0.0.1:8080.', 'Enter an http(s) address such as http://127.0.0.1:8080.')
+        if (key === 'googleCx') return /^[A-Za-z0-9:_-]{1,100}$/.test(t) ? null : kt('Lettres, chiffres, « : », « _ » et « - » seulement.', 'Letters, digits, “:”, “_” and “-” only.')
+        if (key === 'wikiLang') return /^[a-z]{2,3}(-[a-z]+)?$/.test(t) ? null : kt('Un code de langue, par exemple en ou fr.', 'A language code, such as en or fr.')
+        return null
+      }
+      // What a failed connection ran into, in words (the host sends a code, router.mjs networkReason).
+      const REASON_TXT = {
+        refused: ['Rien n’écoute à cette adresse (connexion refusée).', 'Nothing is listening at this address (connection refused).'],
+        notfound: ['Ce nom d’hôte est introuvable.', 'This host name could not be found.'],
+        reset: ['La connexion a été coupée par l’autre côté.', 'The connection was cut by the other side.'],
+        tls: ['Le certificat de ce serveur n’est pas accepté.', 'This server’s certificate is not accepted.'],
+        badport: ['Ce port est interdit pour une requête web : choisissez-en un autre.', 'This port is not allowed for a web request: pick another one.']
+      }
+      /** What follows the kind of a failed test: the sentence for its reason, never the raw « fetch failed ». */
+      const testDetail = (test) => {
+        if (test === null || test === undefined || test.kind === 'missing' || test.kind === 'empty') return ''
+        if (test.kind === 'network') {
+          const r = REASON_TXT[test.reason]
+          if (r !== undefined) return kt(r[0], r[1])
+          if (test.message === undefined || test.message === '' || test.message === 'fetch failed') return kt('Rien n’a répondu à cette adresse.', 'Nothing answered at this address.')
+        }
+        return test.message || ''
+      }
+      /** The default engine: the first one of the list that is switched on and can answer (a key or an address is there). It is the
+       *  one agents try first; the next ones only take over when it fails. null when none is. */
+      const defaultEngine = (engines) => {
+        const e = (Array.isArray(engines) ? engines : []).find((x) => x !== null && typeof x === 'object' && x.enabled === true && x.configured === true)
+        return e === undefined ? null : e
+      }
       const accessBadge = (e) => (e.access === 'free'
         ? { cls: 'free', txt: kt('SANS CLÉ', 'NO KEY') }
         : (e.access === 'key' ? { cls: 'key', txt: kt('CLÉ', 'KEY') } : { cls: 'url', txt: kt('ADRESSE', 'ADDRESS') }))
@@ -70,6 +107,8 @@ window.__ModuleLoader__.load({
         if (!e.configured) return { cls: 'warn', txt: e.access === 'key' ? kt('Clé manquante', 'Key missing') : kt('Adresse manquante', 'Address missing') }
         if (hl.pausedUntil) return { cls: 'down', txt: kt('En pause · ', 'Paused · ') + kindTxt(hl.kind) + kt(' · réessai à ', ' · retry at ') + hhmm(hl.pausedUntil) }
         if (hl.lastOkAt) return { cls: 'ok', txt: kt('A répondu à ', 'Answered at ') + hhmm(hl.lastOkAt) + (hl.lastCount !== null && hl.lastCount !== undefined ? ' · ' + hl.lastCount + kt(' résultats', ' results') : '') + (hl.lastMs !== null && hl.lastMs !== undefined ? ' · ' + secs(hl.lastMs) : '') }
+        // An address is only a string until something answered at it: do not call it ready (A3-26).
+        if (e.access === 'url') return { cls: 'idle', txt: kt('Adresse enregistrée · pas encore testée', 'Address saved · not tested yet') }
         return { cls: 'ok', txt: kt('Prêt', 'Ready') }
       }
 
@@ -85,6 +124,7 @@ window.__ModuleLoader__.load({
         const st = statusOf(e)
         const addrKey = ['searxngUrl', 'customUrl', 'googleCx', 'wikiLang'].indexOf(e.field) !== -1 ? e.field : null
         const addrValue = addr !== null ? addr : (addrKey ? (s[addrKey] || '') : '')
+        const addrBad = addr !== null && addrKey !== null ? addressProblem(addrKey, addr) : null
         const secretRef = e.refs.length > 0 ? e.refs[0] : null
 
         const runTest = () => {
@@ -107,7 +147,7 @@ window.__ModuleLoader__.load({
             .catch((err) => props.onMsg(String((err && err.message) || err)))
         }
         const saveAddr = () => {
-          if (addrKey === null || addr === null) return
+          if (addrKey === null || addr === null || addrBad !== null) return
           props.onPatch({ [addrKey]: addr.trim() })
           setAddr(null)
         }
@@ -123,7 +163,8 @@ window.__ModuleLoader__.load({
                   placeholder: addrKey === 'searxngUrl' ? 'http://127.0.0.1:8080' : (addrKey === 'customUrl' ? 'https://search.example.com/query' : (addrKey === 'wikiLang' ? 'en' : 'a1b2c3d4e5')),
                   value: addrValue, onChange: (ev) => setAddr(ev.target.value), onKeyDown: (ev) => { if (ev.key === 'Enter') saveAddr() }
                 }),
-                h('button', { type: 'button', className: 'kwse-btn', 'data-act': 'save-address', disabled: addr === null, onClick: saveAddr }, kt('Enregistrer', 'Save')))
+                h('button', { type: 'button', className: 'kwse-btn', 'data-act': 'save-address', disabled: addr === null || addrBad !== null, onClick: saveAddr }, kt('Enregistrer', 'Save')),
+                addrBad !== null ? h('p', { className: 'kwse-err kwse-addr-err', role: 'alert', 'data-kb': 'websearch-address-error' }, addrBad) : null)
               : null,
             secretRef !== null
               ? h('div', { className: 'kwse-field' },
@@ -148,7 +189,7 @@ window.__ModuleLoader__.load({
                 ? h('span', { className: 'kwse-test ' + (test.ok ? 'ok' : 'ko'), 'data-kb': 'websearch-test-result' },
                   test.ok
                     ? '✓ ' + test.count + kt(' résultats · ', ' results · ') + secs(test.ms) + (test.sample && test.sample[0] ? ' · ' + (test.sample[0].title || test.sample[0].url) : '')
-                    : '✗ ' + kindTxt(test.kind) + (test.message && test.kind !== 'missing' && test.kind !== 'empty' ? ' — ' + test.message : ''))
+                    : '✗ ' + kindTxt(test.kind) + (testDetail(test) !== '' ? ' — ' + testDetail(test) : ''))
                 : null))
           : null
 
@@ -160,6 +201,7 @@ window.__ModuleLoader__.load({
             h('button', { type: 'button', className: 'kwse-name', 'data-act': 'open', 'aria-expanded': String(open), onClick: () => props.onToggle(e.id) },
               h('b', null, nameOf(e.id)),
               h('span', { className: 'kwse-badge ' + badge.cls }, badge.txt),
+              props.isDefault === true ? h('span', { className: 'kwse-badge def', 'data-kb': 'websearch-default', title: kt('Agents cherchent d’abord avec ce moteur ; le suivant prend le relais s’il échoue.', 'Agents search with this engine first; the next one takes over if it fails.') }, kt('PAR DÉFAUT', 'DEFAULT')) : null,
               h('small', { className: 'kwse-status ' + st.cls }, h('i', { className: 'kwse-dot ' + st.cls }), st.txt)),
             h('button', {
               type: 'button', className: 'kwse-switch' + (e.enabled ? ' on' : ''), 'data-kb': 'websearch-switch', role: 'switch',
@@ -236,9 +278,10 @@ window.__ModuleLoader__.load({
         const s = state.settings
         const used = state.engines.filter((e) => e.configured)
         const more = state.engines.filter((e) => !e.configured)
+        const defaultId = defaultEngine(state.engines) === null ? null : defaultEngine(state.engines).id
         const toggle = (id) => setOpenId(openId === id ? null : id)
         const rowOf = (e, i, list, fixed) => h(Row, {
-          key: e.id, engine: e, settings: s, open: openId === e.id, onToggle: toggle,
+          key: e.id, engine: e, settings: s, open: openId === e.id, onToggle: toggle, isDefault: fixed !== true && defaultId === e.id,
           first: fixed || i === 0, last: fixed || i === list.length - 1, onMove: move, onPatch: patch, onState: setState, onMsg: setMsg
         })
         const wrongPin = state.pinned !== null && state.pinned !== state.provider
@@ -246,6 +289,9 @@ window.__ModuleLoader__.load({
 
         return h('div', { className: 'kwse-page', 'data-kb': 'websearch-page' },
           pageHead(),
+          h('p', { className: 'kwse-default', 'data-kb': 'websearch-default-line' }, defaultId === null
+            ? kt('Aucun moteur n’est activé : les agents ne peuvent pas chercher sur le web.', 'No engine is switched on: agents cannot search the web.')
+            : kt('Moteur par défaut : ', 'Default engine: ') + nameOf(defaultId) + kt(' — les agents l’essaient en premier.', ' — agents try it first.')),
           wrongPin
             ? h('p', { className: 'kwse-banner', 'data-kb': 'websearch-banner' }, kt(
               'DSH est réglé sur un autre fournisseur (« ' + state.pinned + ' ») : cette liste n’est pas utilisée tant que la ligne « web » du profil n’est pas revenue à « ' + state.provider + ' ».',
@@ -310,6 +356,8 @@ window.__ModuleLoader__.load({
         '.kwse-name b{font-size:14px;font-weight:500;color:var(--dsw-alias-label-primary,inherit)}',
         '.kwse-badge{font-size:9.5px;font-weight:600;letter-spacing:.05em;padding:1px 6px;border-radius:5px;background:var(--dsw-alias-bg-layer-3,#eee);color:var(--dsw-alias-label-secondary,#555)}',
         '.kwse-badge.free{color:var(--dsw-alias-state-success-primary,#0a7)}',
+        '.kwse-badge.def{color:var(--dsw-alias-brand-primary,#36c);background:color-mix(in srgb,var(--dsw-alias-brand-primary,#36c) 14%,transparent)}',
+        '.kwse-default{margin:0 0 10px;font-size:12.5px;color:var(--dsw-alias-label-secondary,#555)}',
         '.kwse-badge.key{color:var(--dsw-alias-state-warn-primary,#a60)}',
         // Light scheme: the state tokens are fills (green 2.3:1, amber 2.2:1 on white); the ink is mixed toward the text colour.
         'body:not([data-ds-dark-theme]) .kwse-badge.free{color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 55%,var(--dsw-alias-label-primary))}body:not([data-ds-dark-theme]) .kwse-badge.key{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 50%,var(--dsw-alias-label-primary))}',
@@ -373,7 +421,7 @@ window.__ModuleLoader__.load({
             }, 'kybernos-websearch: settings page')
           } catch (e) { console.warn('[kybernos-websearch] page not mounted', e) }
         },
-        __test: { statusOf, accessBadge, nameOf }
+        __test: { statusOf, accessBadge, nameOf, addressProblem, testDetail, defaultEngine }
       }
     } catch (e) {
       console.warn('[kybernos-websearch] disabled:', e)

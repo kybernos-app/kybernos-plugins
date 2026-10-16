@@ -137,6 +137,9 @@ window.__ModuleLoader__.load({
     }
 
     /** Pure. The one line under the name: it follows the status so the next step reads at a glance. */
+    /** The word for the connection step and its row button: « Sign in » only for an agent that signs in with an account; one that
+     *  takes an API key says « Add the key » (Gemini CLI, Qwen Code), so the same word never names two actions (A3-48). */
+    const authLabel = (w) => (w !== null && w !== undefined && w.connect != null && w.connect.mode === 'key' ? kt('Ajouter la clé', 'Add the key') : kt('Se connecter', 'Sign in'))
     const sublineOf = (w, status) => {
       if (status === 'binaire-absent') return kt('Le programme n’est pas encore sur cet ordinateur.', 'The program is not on this computer yet.')
       if (status === 'non-connecte') {
@@ -780,7 +783,7 @@ window.__ModuleLoader__.load({
               }
             }
             items.push({
-              done: authOk, t: kt('Se connecter', 'Sign in'),
+              done: authOk, t: authLabel(w),
               d: authOk ? (w.connect != null && w.connect.mode === 'key' ? kt('Clé API trouvée.', 'API key found.') : kt('Connecté.', 'Signed in.')) : (authKo ? '' : kt('Votre compte ou votre clé, jamais ceux de DSH.', 'Your account or your key, never DSH’s.')), extra: authExtra
             })
           }
@@ -838,7 +841,7 @@ window.__ModuleLoader__.load({
               mine && changed ? h('button', { type: 'button', className: 'kbwk-btn accent', 'data-kb': 'wk-apply-row-' + w.id, onClick: () => apply(w, draft) }, kt('Enregistrer', 'Save'))
                 : h('button', { type: 'button', className: 'kbwk-btn ghost ico', 'data-kb': 'wk-recheck-' + w.id, title: kt('Revérifier', 'Check again'), 'aria-label': kt('Revérifier', 'Check again'), onClick: () => checkOne(w.id) }, ic('refresh')))
           } else if (status === 'binaire-absent') ctl = toDetail(h(React.Fragment, null, ic('download'), kt('Installer', 'Install')), 'wk-todo-row-' + w.id)
-          else if (status === 'non-connecte') ctl = toDetail(kt('Se connecter', 'Sign in'), 'wk-todo-row-' + w.id)
+          else if (status === 'non-connecte') ctl = toDetail(authLabel(w), 'wk-todo-row-' + w.id)
           else ctl = toDetail(kt('Que faire ?', 'What to do?'), 'wk-todo-row-' + w.id)
 
           return h('li', { key: w.id, className: 'kbwk-item', 'data-kb': 'wk-card-' + w.id, 'data-ouvert': isOpen ? '1' : '0' },
@@ -916,6 +919,6 @@ window.__ModuleLoader__.load({
       } catch (e) { /* optional */ }
     }
 
-    return { name: NAME, inject: [], apply: start, __test: { STATUS, statusOf, stepsOf, controlLabel, currentPolicy, sublineOf, failureText, refusalText, identityLine, PACK_STRINGS, kt } }
+    return { name: NAME, inject: [], apply: start, __test: { STATUS, statusOf, stepsOf, controlLabel, currentPolicy, sublineOf, authLabel, failureText, refusalText, identityLine, PACK_STRINGS, kt } }
   }
 })

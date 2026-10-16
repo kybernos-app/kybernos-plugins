@@ -14,7 +14,7 @@ const cut = (from, to) => {
   assert.ok(a >= 0 && b > a, 'cannot find ' + from + ' … ' + to)
   return src.slice(a, b)
 }
-const code = cut("const KB_NS = ", '// ── i18n minimal') + '\n' + cut('const kbBuildProfile = ', '// ── accès services') +
+const code = cut("const KB_NS = ", '// ── i18n minimal') + '\n' + cut('const kbBuildProfile = ', '// ── service access') +
   '\nexport { CATALOGUE, ROUTE_LOCALE, BASE_LOCALE, kbBuildProfile, kbRecommend }'
 const mod = await import('data:text/javascript,' + encodeURIComponent(code))
 
