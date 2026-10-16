@@ -30,7 +30,7 @@ globalThis.CustomEvent = class { constructor (type) { this.type = type } }
 globalThis.document = { createElement: () => ({ style: {} }), head: { append() {} }, querySelector: () => null, querySelectorAll: () => [], addEventListener() {} }
 new Function('window', SOURCE)(win)
 const mod = definition.factory((spec) => { if (spec === 'react') return React; throw new Error('unexpected require ' + spec) })
-const { santeVue, santeCause, suivreSante } = mod.__test
+const { santeVue, santeCause, suivreSante, etudeVue } = mod.__test
 
 console.log('the view')
 const verdict = (over) => ({ actif: true, total: 5, tousEnEchec: false, verifieA: '2026-10-05T09:00:00Z', alertes: [{ cle: 'groq/llama-3.1-8b', route: 'groq', modele: 'llama-3.1-8b', code: 'AUTH' }], ...over })
@@ -55,9 +55,9 @@ check('an unknown code is "other", never undefined', santeCause('WHATEVER') === 
 check('a prototype name is not a cause', santeCause('constructor') === 'other' && santeCause('__proto__') === 'other' && santeCause('toString') === 'other')
 
 console.log('the bus')
-const probe = { settings: 0, health: 0, body: null, answer: null }
+const probe = { settings: 0, health: 0, body: null, answer: null, reglages: { reglages: { brain: 'groq/llama-3.1-8b' } } }
 globalThis.fetch = async (url, opts) => {
-  if (String(url) === '/kybernos-sessions/settings') { probe.settings += 1; return { ok: true, json: async () => ({ reglages: { brain: 'groq/llama-3.1-8b' } }) } }
+  if (String(url) === '/kybernos-sessions/settings') { probe.settings += 1; return { ok: true, json: async () => probe.reglages } }
   if (String(url) === '/kybernos-sessions/brain/health') {
     probe.health += 1
     probe.body = JSON.parse(opts.body)
@@ -100,6 +100,40 @@ const second = bus.recheck()
 const during = bus.get()
 check('a check running shows `checking` on a standing alert', during !== null && during.checking === true, during)
 await second
+
+console.log('who is watching: the Study model IN FORCE, not the raw setting')
+{
+  const demande = async (reglages) => { probe.reglages = reglages; probe.answer = verdict(); const avant = probe.health; await bus.recheck(); return probe.health - avant }
+  check('Automatic with a model found (the setting is empty): the models are probed', await demande({ reglages: { brain: '' }, etude: { actif: true, cle: 'kybernos/auto', mode: 'auto' } }) === 1)
+  check('Automatic with nothing connected: nobody watches, no probe', await demande({ reglages: { brain: '' }, etude: { actif: false, cle: '', mode: 'aucun' } }) === 0)
+  check('None: no probe', await demande({ reglages: { brain: 'none' }, etude: { actif: false, cle: '', mode: 'none' } }) === 0)
+  check('the person\'s own pick: probed', await demande({ reglages: { brain: 'groq/llama-3.1-8b' }, etude: { actif: true, cle: 'groq/llama-3.1-8b', mode: 'choisi' } }) === 1)
+  check('an older host that says nothing of the Study model in force: the old rule (a pick is watching, empty is not)', await demande({ reglages: { brain: 'groq/llama-3.1-8b' } }) === 1 && await demande({ reglages: { brain: '' } }) === 0 && await demande({ reglages: { brain: 'none' } }) === 0)
+  probe.reglages = { reglages: { brain: 'groq/llama-3.1-8b' } }
+}
+
+console.log('the Study model row')
+{
+  const MODELES = [{ cle: 'groq/llama-3.1-8b', route: 'groq', id: 'llama-3.1-8b' }]
+  const auto = etudeVue({ brain: '' }, { mode: 'auto', cle: 'kybernos/auto', auto: 'kybernos/auto', raison: 'cloud' }, MODELES)
+  check('Automatic: the select reads « Automatic — <model> » and stays on the empty value', auto.valeur === '' && auto.libelleAuto === 'Automatic — kybernos/auto' && auto.mode === 'auto', auto)
+  check('...and the row says which model it uses', /kybernos\/auto/.test(auto.description), auto.description)
+  const rien = etudeVue({ brain: '' }, { mode: 'aucun', cle: '', auto: '' }, MODELES)
+  check('Automatic with nothing connected says so, and that nothing is watched', /no model is connected yet/.test(rien.libelleAuto) && /nothing is watched/i.test(rien.description) && rien.mode === 'auto', rien)
+  const pas = etudeVue({ brain: 'none' }, { mode: 'none', cle: '', auto: 'kybernos/auto' }, MODELES)
+  check('None: the value is « none », the label of Automatic still names what it would use, nothing is sent', pas.valeur === 'none' && pas.mode === 'none' && pas.libelleAuto === 'Automatic — kybernos/auto' && /nothing is sent/i.test(pas.description), pas)
+  const pick = etudeVue({ brain: 'groq/llama-3.1-8b' }, { mode: 'choisi', cle: 'groq/llama-3.1-8b', auto: 'kybernos/auto' }, MODELES)
+  check('a pick that is still configured: shown as it is', pick.valeur === 'groq/llama-3.1-8b' && pick.introuvable === false && pick.mode === 'choisi', pick)
+  const parti = etudeVue({ brain: 'old/gone' }, { mode: 'choisi', cle: 'old/gone', auto: '' }, MODELES)
+  check('a pick that is no longer configured stays visible, flagged (the screen must not lie about the file)', parti.introuvable === true && parti.valeur === 'old/gone', parti)
+  check('...but an unreadable model list claims nothing', etudeVue({ brain: 'old/gone' }, { mode: 'choisi', cle: 'old/gone' }, null).introuvable === false && etudeVue({ brain: 'old/gone' }, { mode: 'choisi', cle: 'old/gone' }, undefined).introuvable === false)
+  const vieux = etudeVue({ brain: '' }, undefined, MODELES)
+  check('an older host that sends no Study model in force: the row still reads as Automatic, without inventing a model', vieux.mode === 'auto' && vieux.libelleAuto === 'Automatic' && vieux.valeur === '', vieux)
+  const tous = [auto, rien, pas, pick, parti, vieux]
+  check('no row mentions the retired « Decision Brain », the evaluation API or a probability', tous.every((v) => !/decision brain|evaluation|\/v1\/|probabilit/i.test(v.description + v.libelleAuto)), tous.map((v) => v.description))
+  check('the row says what leaves the machine: a title only when the word rules cannot place it, and nothing for a local model', [auto, pick].every((v) => /word rules/i.test(v.description) && /local model/i.test(v.description)), [auto.description, pick.description])
+  check('plain English, no French word', tous.every((v) => !/\b(le|la|les|des|une?|pour|avec|aucun)\b|[éèêàùç]/i.test(v.description + v.libelleAuto)), tous.map((v) => v.description))
+}
 
 console.log('hide for one hour')
 events.length = 0

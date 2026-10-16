@@ -5,6 +5,8 @@
 // and its settings file, and the fallbacks of the routes (which even pointed at
 // <os home>/kybernos, with no .dsh at all, when no session store was given). With
 // DSH_HOME set, the brain used the user's real key, or none when only DSH_HOME had one.
+// The closed questions are now answered by the Study model (no gateway key any more), but the same rule holds: the
+// Study model, the categories and the settings come from $DSH_HOME, never from <HOME>/.dsh.
 //
 //   node kybernos-sessions/test-dsh-home.mjs
 import assert from 'node:assert/strict'
@@ -98,7 +100,10 @@ let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
 
 const PORT = 3080
-const creds = (key) => 'providers:\n  gateway:\n    VERCEL_AI_GATEWAY_API_KEY: ' + key + '\n'
+// A stub `llm`: it records the model every closed question was put to, and answers with an id of the list.
+const asked = []
+const llm = { stream: (p) => { asked.push(p.provider + '/' + p.model); return (async function * () { yield { type: 'text-delta', text: 'ui' }; yield { type: 'finish', reason: { kind: 'stop' } } })() } }
+const ctxLlm = { get: (name) => (name === 'llm' ? llm : undefined) }
 const requete = (method, path, corps) => ({
   method, url: path, headers: { origin: 'http://127.0.0.1:' + PORT }, socket: { localPort: PORT },
   on (ev, cb) { if (ev === 'data' && corps !== undefined) cb(JSON.stringify(corps)); if (ev === 'end') cb() },
@@ -128,27 +133,14 @@ try {
   ok('the resolver follows the DSH rule (blank = unset, ~ expanded, trimmed)')
 
   // DSH_HOME set, HOME elsewhere with a decoy full of canaries.
-  iso.seedDecoy('.credentials.yaml', creds('decoy-key'))
-  iso.seedDecoy('kybernos/settings.json', JSON.stringify({ decisionBrain: 'none', brain: 'decoy/brain' }))
+  iso.seedDecoy('kybernos/settings.json', JSON.stringify({ brain: 'decoy/brain' }))
   iso.seedDecoy('kybernos/categories.json', JSON.stringify({ 'sess-decoy': { cat: 'ui', titre: 'Decoy', ts: '2026-09-20T10:00:00Z' } }))
-  iso.seedDshHome('.credentials.yaml', creds('real-key'))
-  iso.seedDshHome('kybernos/settings.json', JSON.stringify({ decisionBrain: 'typesafe-ai/jev', brain: 'real/brain' }))
+  iso.seedDshHome('kybernos/settings.json', JSON.stringify({ brain: 'real/brain' }))
   iso.seedDshHome('kybernos/categories.json', JSON.stringify({ 'sess-real': { cat: 'doc', titre: 'Real', ts: '2026-09-20T10:00:00Z' } }))
   iso.freezeDecoy()
 
-  // 1. The decision brain's own defaults (what callers get when they pass no path).
-  assert.equal(decision.lireCle({ env: {} }), 'real-key', 'the gateway key must come from DSH_HOME')
-  assert.deepEqual(decision.lireModeleDecision(), { eteint: false, modele: 'typesafe-ai/jev' }, 'the decision model must come from DSH_HOME')
-  const seen = []
-  const verdict = await decision.decider({ q: { type: 'choice', criteria: { a: 'x' } } }, 'hello', {
-    fetchImpl: async (url, init) => { seen.push(init.headers.authorization); return { ok: true, text: async () => JSON.stringify({ answers: {} }) } },
-  })
-  assert.equal(verdict.ok, true, JSON.stringify(verdict))
-  assert.deepEqual(seen, ['Bearer real-key'])
-  ok('the decision brain reads its key and its settings from $DSH_HOME')
-
-  // 2. The routes with no path at all: the fallbacks must resolve to the DSH home.
-  const bare = monter(mod, { decision: { decider: async (q, s, o) => { seen.push(o.fichierCredentials); return { ok: true } } } })
+  // 1. The routes with no path at all: the fallbacks must resolve to the DSH home.
+  const bare = monter(mod, { ctx: ctxLlm })
   const got = await bare('GET', '/kybernos-sessions/settings')
   assert.equal(got.corps.reglages.brain, 'real/brain', 'settings fall back to DSH_HOME/kybernos/settings.json')
   const saved = await bare('POST', '/kybernos-sessions/settings', { brain: 'new/brain' })
@@ -159,18 +151,19 @@ try {
   const named = await bare('POST', '/kybernos-sessions/categories', { session: 'sess-new', cat: 'correctif', titre: 'Fixed' })
   assert.equal(named.code, 200, JSON.stringify(named.corps))
   assert.deepEqual(Object.keys(JSON.parse(readFileSync(join(iso.dshHome, 'kybernos', 'categories.json'), 'utf8'))).sort(), ['sess-new', 'sess-real'])
-  await bare('POST', '/kybernos-sessions/decision', { state: 'x', questions: { q: { type: 'choice', criteria: { a: 'x' } } } })
-  assert.equal(seen[seen.length - 1], join(iso.dshHome, '.credentials.yaml'), 'the route hands the DSH_HOME credentials file to the brain')
-  ok('routes mounted with no explicit path fall back to $DSH_HOME (settings, categories, credentials)')
+  const closed = await bare('POST', '/kybernos-sessions/decision', { categorie: 'Projet Mars' })
+  assert.equal(closed.corps.ok, true, JSON.stringify(closed.corps))
+  assert.deepEqual(asked, ['new/brain'], 'the closed question is put to the Study model of $DSH_HOME, not to the decoy\'s')
+  ok('routes mounted with no explicit path fall back to $DSH_HOME (settings, categories, the Study model of the closed questions)')
 
-  // 3. Routes mounted with a session store only: everything is derived from its parent.
-  const derived = monter(mod, { sessionsHome: join(iso.dshHome, 'sessions'), decision: { decider: async (q, s, o) => { seen.push(o.fichierCredentials); return { ok: true } } } })
+  // 2. Routes mounted with a session store only: everything is derived from its parent.
+  const derived = monter(mod, { sessionsHome: join(iso.dshHome, 'sessions'), ctx: ctxLlm })
   assert.equal((await derived('GET', '/kybernos-sessions/settings')).corps.reglages.brain, 'new/brain')
-  await derived('POST', '/kybernos-sessions/decision', { state: 'x', questions: { q: { type: 'choice', criteria: { a: 'x' } } } })
-  assert.equal(seen[seen.length - 1], join(iso.dshHome, '.credentials.yaml'), 'the credentials follow the session store, not <HOME>/.dsh')
-  ok('routes mounted with a session store derive settings, categories and credentials from its parent')
+  await derived('POST', '/kybernos-sessions/decision', { categorie: 'Un sujet encore différent' })
+  assert.deepEqual(asked, ['new/brain', 'new/brain'], 'the Study model follows the session store, not <HOME>/.dsh')
+  ok('routes mounted with a session store derive settings, categories and the Study model from its parent')
 
-  // 4. apply(), the way DSH calls it.
+  // 3. apply(), the way DSH calls it.
   const registered = {}
   const ws = { register: (r) => { registered[r.path] = r.handler } }
   const ctx = { get: (name) => (name === 'webServer' ? ws : undefined), webServer: ws, inject: (_l, cb) => cb(ctx) }
@@ -183,12 +176,13 @@ try {
   iso.assertDecoyUntouched('the sessions bundle')
   ok('nothing was read or written under <HOME>/.dsh (canaries and listing unchanged)')
 
-  // 5. DSH_HOME unset: the default location is unchanged.
+  // 4. DSH_HOME unset: the default location is unchanged.
   iso.useDefaultHome()
-  assert.equal(decision.lireCle({ env: {} }), 'decoy-key')
-  assert.deepEqual(decision.lireModeleDecision(), { eteint: true, modele: 'typesafe-ai/jev' })
-  const dflt = monter(mod, {})
+  asked.length = 0
+  const dflt = monter(mod, { ctx: ctxLlm })
   assert.equal((await dflt('GET', '/kybernos-sessions/settings')).corps.reglages.brain, 'decoy/brain')
+  await dflt('POST', '/kybernos-sessions/decision', { categorie: 'Projet Mars' })
+  assert.deepEqual(asked, ['decoy/brain'], 'with DSH_HOME unset the Study model comes from <HOME>/.dsh')
   const registered2 = {}
   const ws2 = { register: (r) => { registered2[r.path] = r.handler } }
   const ctx2 = { get: (name) => (name === 'webServer' ? ws2 : undefined), webServer: ws2, inject: (_l, cb) => cb(ctx2) }
@@ -196,7 +190,7 @@ try {
   const viaApply2 = reponse()
   await registered2['/kybernos-sessions/settings'](requete('GET', '/kybernos-sessions/settings'), viaApply2)
   assert.equal(viaApply2.corps.reglages.brain, 'decoy/brain')
-  ok('with DSH_HOME unset, key, settings and routes still use <HOME>/.dsh')
+  ok('with DSH_HOME unset, the Study model, settings and routes still use <HOME>/.dsh')
 
   console.log('\n' + pass + ' verifications OK')
 } finally {

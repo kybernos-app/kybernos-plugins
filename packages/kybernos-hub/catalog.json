@@ -484,8 +484,8 @@
             "en": "Under the chat box, the “Memory” pill counts the memories sent to the model and this chat’s lessons; click it for details."
           },
           {
-            "fr": "Dans « Kybernos Settings », réglez « Rename Chat session after each recap » (Yes/No), « Study model (brain) » et « Decision Brain ».",
-            "en": "In “Kybernos Settings”, set “Rename Chat session after each recap” (Yes/No), “Study model (brain)” and “Decision Brain”."
+            "fr": "Dans « Kybernos Settings », réglez « Rename Chat session after each recap » (Yes/No) et « Study model » (Automatic, votre choix ou None).",
+            "en": "In “Kybernos Settings”, set “Rename Chat session after each recap” (Yes/No) and “Study model” (Automatic, your pick, or None)."
           },
           {
             "fr": "Sans le module Changes, quatre pastilles de plus montrent où en est le travail de ce chat (enregistré, GitHub, relecture).",
@@ -498,8 +498,8 @@
           "page": false
         },
         "good": {
-          "fr": "Pour choisir l’icône d’un chat sans catégorie, son titre (pas son contenu) est envoyé à un service en ligne ; rien ne part sans clé configurée, ni si « Decision Brain » est sur « None ».",
-          "en": "To pick the icon of a chat with no category, its title (not its content) is sent to an online service; nothing is sent without a configured key, or when “Decision Brain” is set to “None”."
+          "fr": "L’icône d’un chat se choisit d’abord sur les mots de son titre, sur votre machine. S’ils ne disent rien, le titre seul part vers le modèle d’étude (nulle part s’il est local) ; jamais s’il est sur « None ».",
+          "en": "The icon of a chat is picked from its title’s words on your machine. If they say nothing, the title alone goes to the Study model (nowhere if it is local); never if it is “None”."
         }
       }
     },

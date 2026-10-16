@@ -533,10 +533,9 @@ window.__ModuleLoader__.load({
     // ── classement automatique du titre initial : le SVG dès le premier nommage ─
     // Le moteur nomme le chat dès le premier message ; sans catégorie enregistrée,
     // la ligne garde son icône « non classé » jusqu'à ce qu'un agent pose --cat.
-    // La page fait donc le travail elle-même : le titre part au cerveau de décision
-    // (route /kybernos-sessions/decision — LE même réglage que categoriser.mjs),
-    // et un verdict tranché est enregistré avec `auto:true`. Un nommage d'agent
-    // (POST sans `auto`) remplace toujours, et n'est jamais re-classé ici.
+    // The page therefore does the work itself: the title goes to the decision route (/kybernos-sessions/decision), where
+    // the word rules answer first and the Study model only when they say nothing, and a settled verdict is recorded with
+    // `auto:true`. An agent's naming (POST without `auto`) always replaces it, and is never re-classified here.
     const CLE_AUTOCAT = 'kybernos.sessions.autocat.v1'
     const DUREE_REESSAI_AUTOCAT = 10 * 60 * 1000 // un verdict négatif est retenté après 10 min, ou si le titre change
     let AUTOCAT = {} // sessionId → { titre, slug (null = verdict non tranché), ts }
@@ -576,11 +575,11 @@ window.__ModuleLoader__.load({
       const r = await fetch('/kybernos-sessions/decision', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ categorie: titre }) })
       if (!r || r.ok !== true) throw new Error('decision HTTP ' + (r ? r.status : '?'))
       const v = await r.json()
-      // `choisi` : le cerveau de décision a tranché ; `local` : il n'a pas répondu et le host a classé sur les mots du titre.
+      // `choisi`: the Study model settled it; `local`: the host classified it from the words of the title.
       const slug = (v !== null && typeof v === 'object' && v.ok === true && (v.motif === 'choisi' || v.motif === 'local') && CATEGORIE_PAR_SLUG[v.categorie] !== undefined) ? v.categorie : null
       AUTOCAT[id] = { titre, slug, ts: Date.now() }
       ecrireAutocatCache()
-      if (slug === null) return // cerveau pas sûr : l'icône provisoire reste, réessai prévu
+      if (slug === null) return // not sure (or no Study model): the provisional icon stays, a retry is planned
       const w = await fetch('/kybernos-sessions/categories', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ session: id, cat: slug, titre, auto: true }) })
       if (!w || w.ok !== true) return // registre refuse : retenté au prochain cycle
       CATEGORIES[id] = slug
@@ -618,7 +617,7 @@ window.__ModuleLoader__.load({
       const suivante = async () => {
         const entree = AUTOCAT_FILE.shift()
         if (entree === undefined || entree === null) { AUTOCAT_EN_COURS = false; return }
-        try { await classerUneAutomatique(entree) } catch (e) { /* cerveau injoignable : retenté au prochain cycle */ }
+        try { await classerUneAutomatique(entree) } catch (e) { /* host unreachable: retried at the next cycle */ }
         if (typeof setTimeout === 'function') setTimeout(suivante, 400)
         else suivante()
       }
@@ -2480,6 +2479,29 @@ window.__ModuleLoader__.load({
       return () => { observateur.disconnect(); clearInterval(gardien) }
     }
 
+    /** The Study model row: what the select shows and says. Pure (the tests run it without a browser).
+     *  `etude` is what the host says is in force (`mode`: choisi, auto, none or aucun; `auto`: the model Automatic uses, or
+     *  ''); an older host sends none, and the row then reads from the setting alone. `modeles` is the configured list
+     *  (null/undefined when unreadable: then nothing is claimed about a saved pick). */
+    const etudeVue = (reglages, etude, modeles) => {
+      const brain = reglages !== null && reglages !== undefined && typeof reglages.brain === 'string' ? reglages.brain : ''
+      const mode = brain === 'none' ? 'none' : (brain === '' ? 'auto' : 'choisi')
+      const info = etude !== null && etude !== undefined && typeof etude === 'object' ? etude : {}
+      const cleAuto = typeof info.auto === 'string' && info.auto !== '' ? info.auto : (mode === 'auto' && typeof info.cle === 'string' ? info.cle : '')
+      const libelleAuto = cleAuto !== '' ? 'Automatic — ' + cleAuto : (info.mode !== undefined ? 'Automatic — no model is connected yet' : 'Automatic')
+      const introuvable = mode === 'choisi' && Array.isArray(modeles) && !modeles.some((mo) => mo.cle === brain)
+      const role = 'It checks that your models still answer, judges the unclear cases of the Memory tidy-up and answers closed questions (which agent team, which chat icon). '
+      const envoi = 'A chat title goes to it only when the word rules cannot place it, and stays on this machine if it is a local model.'
+      let description
+      if (mode === 'none') description = 'None: no model is watched, no health warning is raised, and nothing is sent to a model for those questions — the word rules alone pick chat icons.'
+      else if (mode === 'auto') {
+        description = cleAuto !== ''
+          ? 'Automatic: using ' + cleAuto + ', picked from what you connected. ' + role + envoi
+          : 'Automatic: no model is connected yet, so nothing is watched and the word rules alone pick chat icons. Connect the Kybernos Cloud, a model of yours or a local one, and it starts by itself.'
+      } else description = 'Your pick. ' + role + envoi
+      return { mode, valeur: brain, libelleAuto, introuvable, description }
+    }
+
     function ReglagesKybernos (...args) {
       try { return ReglagesCorps.apply(this, args) }
       catch (e) { window.__kbrPile = String((e && e.stack) || e).slice(0, 900); return h('div', { className: 'kbr-page', 'data-kbr': 'bloc' }, 'erreur: ' + String(e).slice(0, 140)) }
@@ -2490,15 +2512,10 @@ window.__ModuleLoader__.load({
       const [enregistre, setEnregistre] = React.useState(false)
       // `undefined` = liste en cours ; `null` = liste illisible ; tableau = les modèles.
       const [modeles, setModeles] = React.useState(undefined)
-      // Ce que l'hôte annonce pour le cerveau de DÉCISION : les modèles connus de
-      // l'API d'évaluation et le défaut. Il n'est PAS dans `modeles` — Jev n'est
-      // pas un modèle configuré du harnais, il vient de la passerelle, et
-      // l'écrire ici une seconde fois ferait diverger les deux listes.
-      const [cerveau, setCerveau] = React.useState({ modeles: [], defaut: '' })
-      // Le routage Auto (02/10) : On/Off, la whitelist des modèles autorisés
-      // (menu à puces) et le classifieur local qui choisit la classe. Le menu
-      // de la whitelist est un état local d'ouverture, rien de persisté.
-      const autoDefauts = () => ({ renameAfterRecap: true, brain: '', voiceInput: 'kybernos', decisionBrain: '' })
+      // The Study model in force, as the host says it (`{actif, cle, mode, auto}`); `null` when the host does not say (an older
+      // build) or cannot be reached.
+      const [etude, setEtude] = React.useState(null)
+      const autoDefauts = () => ({ renameAfterRecap: true, brain: '', voiceInput: 'kybernos' })
       // `undefined` = sonde en cours ; `null` = configuration illisible ; objet = `asr`.
       // Sert UNIQUEMENT à dire la vérité quand Kybernos est choisi mais que sa
       // dictée n'est pas prête : dans ce cas le micro natif reste affiché.
@@ -2510,10 +2527,7 @@ window.__ModuleLoader__.load({
           .then((r) => r.json())
           .then((j) => {
             setReglages(j && j.reglages && typeof j.reglages === 'object' ? j.reglages : autoDefauts())
-            setCerveau({
-              modeles: j && Array.isArray(j.modelesDecision) ? j.modelesDecision : [],
-              defaut: j && typeof j.modeleDecisionDefaut === 'string' ? j.modeleDecisionDefaut : ''
-            })
+            setEtude(j && j.etude && typeof j.etude === 'object' ? j.etude : null)
           })
           .catch(() => { setReglages(autoDefauts()); setErreur('Settings route unreachable — the value shown is the default.') })
         kbModeles().then((l) => setModeles(l))
@@ -2544,8 +2558,10 @@ window.__ModuleLoader__.load({
       }, [])
       if (reglages === null) return h('div', { className: 'kbr-page', 'data-kbr': 'bloc' }, '…')
       const oui = reglages.renameAfterRecap !== false
-      // L'écriture est la même pour les TROIS réglages : un seul chemin, donc un
-      // seul endroit où lire un refus.
+      // One writing path for every setting, so one place to read a refusal.
+      const relireEtude = () => {
+        fetch('/kybernos-sessions/settings').then((r) => r.json()).then((j) => { if (j && j.etude && typeof j.etude === 'object') setEtude(j.etude) }).catch(() => { /* the row keeps what it had */ })
+      }
       const ecrire = (patch) => {
         setErreur(null)
         fetch('/kybernos-sessions/settings', {
@@ -2568,31 +2584,20 @@ window.__ModuleLoader__.load({
             // sans cette annonce, changer la source du micro ici ne se verrait
             // qu'après un rechargement de page. Même fenêtre, même origine.
             try { window.dispatchEvent(new CustomEvent('kybernos:settings', { detail: j.reglages })) } catch (e) { /* contexte sans window */ }
+            if (patch.brain !== undefined) relireEtude()
           } else setErreur(j && j.erreur ? String(j.erreur) : 'Rejected by the host.')
         }).catch((e) => setErreur(String(e && e.message ? e.message : e)))
       }
       const changer = (v) => { setReglages(Object.assign({}, reglages, { renameAfterRecap: v })); ecrire({ renameAfterRecap: v }) }
       const changerBrain = (v) => { setReglages(Object.assign({}, reglages, { brain: v })); ecrire({ brain: v }) }
-      // Le cerveau de décision : `''` = le défaut de l'hôte, `none` = éteint
-      // (l'appelant garde sa propre règle), sinon un identifiant de modèle.
-      const changerDecision = (v) => { setReglages(Object.assign({}, reglages, { decisionBrain: v })); ecrire({ decisionBrain: v }) }
       const choix = (valeur, mot, actif) => h('button', {
         type: 'button', className: 'kbr-choix' + (actif ? ' on' : ''),
         'data-valeur': valeur, 'aria-pressed': String(actif),
         onClick: () => changer(valeur === 'yes')
       }, mot)
-      // Même dessin, action choisie par l'appelant : le réglage du micro n'a pas
-      // de « oui/non », il a deux valeurs nommées.
-      const brain = typeof reglages.brain === 'string' ? reglages.brain : ''
-      const connu = Array.isArray(modeles) && modeles.some((mo) => mo.cle === brain)
-      // Le cerveau de DÉCISION — un second réglage, indépendant du modèle
-      // d'étude. La liste vient de l'hôte (`modelesDecision`) : elle est vide
-      // tant qu'il tourne sur une révision d'avant ce réglage, et la ligne le dit
-      // plutôt que d'inventer des modèles.
-      const decision = typeof reglages.decisionBrain === 'string' ? reglages.decisionBrain : ''
-      const connusDecision = Array.isArray(cerveau.modeles) ? cerveau.modeles : []
-      const defautDecision = typeof cerveau.defaut === 'string' ? cerveau.defaut : ''
-      const decisionConnue = decision === '' || decision === 'none' || connusDecision.indexOf(decision) !== -1
+      // The Study model row: three states (Automatic, a pick, None), read by the pure `etudeVue`.
+      const vue = etudeVue(reglages, etude, modeles)
+      const brain = vue.valeur
       const groupes = []
       if (Array.isArray(modeles)) {
         const parRoute = {}
@@ -2644,65 +2649,32 @@ window.__ModuleLoader__.load({
            — à côté du moteur de synthèse, là où on va le chercher. */
         h('div', { className: natif ? natif.row : 'kbr-row', 'data-kbr': 'brain' },
           h('div', { className: natif ? natif.rowText : 'kbr-txt' },
-            h('div', { className: natif ? natif.title : undefined }, 'Study model (brain)'),
-            h('div', { className: natif ? natif.desc : undefined }, brain.length === 0
-              ? 'None: no model is watched, and no health warning is raised. Pick the model that should report on the others.'
-              : 'The brain checks every configured model; when one stops answering, a chip on the AI Provider & Models tab says which ones, why, and lets you fix the key or change the model.')),
+            h('div', { className: natif ? natif.title : undefined }, 'Study model'),
+            h('div', { className: natif ? natif.desc : undefined }, vue.description)),
           h('select', {
             className: natif && natif.sel ? natif.sel : 'kbr-select',
             // Recette 2026-10 (C-13/B6) : 160px tronquait les noms de modèles
             // (pire en RTL), et le title vivait DANS style — jamais appliqué.
             // title en attribut (infobulle = nom complet), largeur relevée.
-            style: natif ? { minWidth: '150px', maxWidth: '220px' } : undefined, 'data-kbr': 'brain-select', 'aria-label': 'Study model (brain)',
-            title: brain || undefined,
+            style: natif ? { minWidth: '150px', maxWidth: '240px' } : undefined, 'data-kbr': 'brain-select', 'aria-label': 'Study model',
+            title: brain === '' ? vue.libelleAuto : brain,
             value: brain,
             disabled: modeles === undefined,
             onChange: (ev) => changerBrain(ev.target.value)
           },
-            // Un modèle d'étude enregistré qui n'est PLUS configuré reste
-            // affiché : sinon la liste montrerait « None » alors que le fichier
-            // dit autre chose — l'écran mentirait sur son propre contenu.
-            (brain.length > 0 && connu !== true) ? h('option', { value: brain }, brain + ' — not configured anymore') : null,
-            h('option', { value: '' }, modeles === undefined ? 'Reading the model list…' : '— None —'),
-            groupes)),
-        // ── le cerveau de DÉCISION (Jev) ─────────────────────────────────────
-        // Juste après le modèle d'étude, et indépendant de lui : c'est le modèle
-        // qui RÉPOND à une question fermée (quel kyber, quelle catégorie), pas
-        // celui qui surveille. Il ne vient pas de la liste des modèles
-        // configurés — il doit vivre sur l'API d'évaluation de la passerelle, et
-        // c'est l'hôte qui annonce lesquels.
-        h('div', { className: natif ? natif.row : 'kbr-row', 'data-kbr': 'decision-brain' },
-          h('div', { className: natif ? natif.rowText : 'kbr-txt' },
-            h('div', { className: natif ? natif.title : undefined }, 'Decision Brain'),
-            h('div', { className: natif ? natif.desc : undefined }, decision === 'none'
-              ? 'Off: nothing else classifies. The decision route answers “brain off”, and every caller keeps its own rule.'
-              : 'Answers one closed question at a time — which agent team runs a request, which category (so which icon) a chat gets. It needs a model served by the evaluation API (/v1/evaluate), not a chat model'
-                + (connusDecision.length === 0
-                  ? ' — the host did not announce its list: restart DSH to get it.'
-                  : ': ' + connusDecision.join(', ') + '.'))),
-          h('select', {
-            className: natif && natif.sel ? natif.sel : 'kbr-select',
-            // Recette 2026-10 (V-C): the decision model ids are long
-            // (provider/model); give the select room and a hover title so the
-            // full id stays reachable where it truncates.
-            style: natif ? { minWidth: '150px', maxWidth: '240px' } : undefined, title: decision || undefined, 'data-kbr': 'decision-brain-select', 'aria-label': 'Decision Brain',
-            value: decision,
-            onChange: (ev) => changerDecision(ev.target.value)
-          },
-            // Un cerveau enregistré que l'hôte n'annonce pas reste affiché : la
-            // ligne ne doit pas se contredire en silence.
-            decisionConnue === false ? h('option', { value: decision }, decision + ' — not in the known list') : null,
-            h('option', { value: '' }, defautDecision === '' ? '— Default —' : '— Default (' + defautDecision + ') —'),
-            h('option', { value: 'none' }, '— None (each caller decides) —'),
-            connusDecision.length > 0
-              ? h('optgroup', { key: 'decision', label: 'evaluation models' },
-                connusDecision.map((id) => h('option', { key: id, value: id }, id)))
-              : null)),
+            // Automatic first: it is the default, and it names the model it uses.
+            h('option', { value: '' }, vue.libelleAuto),
+            // A saved pick that is NOT configured anymore stays shown: otherwise the list would show Automatic while the file
+            // says something else — the screen would lie about its own content.
+            vue.introuvable ? h('option', { value: brain }, brain + ' — not configured anymore') : null,
+            groupes.length > 0 ? h('option', { value: '__autre', disabled: true }, 'Choose another…') : null,
+            groupes,
+            h('option', { value: 'none' }, 'None'))),
         Array.isArray(modeles) && modeles.length === 0
           ? h('p', { className: 'kbr-note' }, 'No model is configured in Models yet: add one there, and it will show up in this list.')
           : null,
         modeles === null
-          ? h('p', { className: 'kbr-note' }, 'The model list could not be read from the harness — only “None” can be chosen right now.')
+          ? h('p', { className: 'kbr-note' }, 'The model list could not be read from the harness — only “Automatic” and “None” can be chosen right now.')
           : null,
         erreur !== null ? h('p', { className: 'kbr-err' }, erreur) : null,
         enregistre ? h('p', { className: 'kbr-ok' }, 'Saved ✓') : null)
@@ -2813,8 +2785,13 @@ window.__ModuleLoader__.load({
           const lire = await fetch('/kybernos-sessions/settings', { method: 'GET' })
           if (!lire.ok) return null
           const reg = await lire.json()
+          // Nobody is watching when the Study model in force is none (set to None, or Automatic with nothing connected): no probe.
+          // An older host does not say what is in force: then the old rule, a model picked by the person is watching.
           const brain = (reg !== null && typeof reg === 'object' && reg.reglages !== undefined && typeof reg.reglages.brain === 'string') ? reg.reglages.brain : ''
-          if (brain === '') return null // nobody is watching: no probe
+          const actif = reg !== null && typeof reg === 'object' && reg.etude !== null && typeof reg.etude === 'object'
+            ? reg.etude.actif === true
+            : (brain !== '' && brain !== 'none')
+          if (!actif) return null
           const tous = await kbModeles()
           if (tous === null || tous.length === 0) return null
           // Only models that can answer a TEXT message are probed: an image, audio or video model declared without
@@ -2963,7 +2940,7 @@ window.__ModuleLoader__.load({
       // l'entrée reste « loading » (même contrat que kybernos/kybernos-theme).
       inject: ['slots'],
       // Pure pieces, exposed for test-journal.mjs.
-      __test: { memoireDuJournal, santeVue, santeCause, suivreSante, faitsChangements, genreDeCode, descripteur },
+      __test: { memoireDuJournal, santeVue, santeCause, suivreSante, faitsChangements, genreDeCode, descripteur, etudeVue },
       apply
     }
   }
