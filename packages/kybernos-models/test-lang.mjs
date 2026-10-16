@@ -53,5 +53,10 @@ console.log('\n── nothing French outside the table ──')
 check('the error codes the page hands out are English (« empty », « refused »)', !/code: 'vide'|'refus'/.test(src) && /code: 'empty'/.test(src))
 check('the dead generated CSS file is gone (nothing imported it)', !existsSync(fileURLToPath(new URL('./dsh-css.js', import.meta.url))))
 
+console.log('\n── one model is « its model », not « its 1 models » (A3-08) ──')
+check('the delete dialog asks for the singular sentence when the provider has exactly one model', /m\(n === 1 \? 'kb\.pv\.del\.body1' : 'kb\.pv\.del\.body', \{ n \}\)/.test(src))
+check('the singular sentence says « its model, » and « son modèle, » (no count)', /its model, its overrides/.test(en.KB_M_T['kb.pv.del.body1'] && en.KB_M_T['kb.pv.del.body1'].en || '') && /son modèle, ses surcharges/.test(en.KB_M_T['kb.pv.del.body1'] && en.KB_M_T['kb.pv.del.body1'].kybernos || ''))
+check('the plural sentence keeps its count', en.m('kb.pv.del.body', { n: 3 }).includes('its 3 models') && kyb.m('kb.pv.del.body', { n: 3 }).includes('ses 3 modèles'))
+
 console.log('\n' + pass + ' ✓  ' + fail + ' ✗')
 process.exit(fail === 0 ? 0 : 1)

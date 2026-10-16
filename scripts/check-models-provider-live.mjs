@@ -102,6 +102,9 @@ try {
 
   console.log('\n── A3-09 · Escape in the delete confirmation ──')
   check('Delete… opens the confirmation', (await click('[data-kbm="pv-delete"]')) === true && (await poll(() => q('[data-kbm="prov-del-dialog"]'))) !== null)
+  // A3-08: this provider has exactly one model: the sentence says « its model », not « its 1 models »
+  const delText = await val(`(document.querySelector('[data-kbm="prov-del-dialog"] .kbmp-off-dlg-body p') || { innerText: '' }).innerText`)
+  check('the confirmation of a provider with ONE model says « its model », not « its 1 models » (A3-08)', /\bits model,/.test(delText) && !/\b1 models\b/.test(delText), delText)
   await key('Escape', 'Escape', 27)
   await sleep(500)
   check('one Escape closes the confirmation', (await q('[data-kbm="prov-del-dialog"]')) === 0)
