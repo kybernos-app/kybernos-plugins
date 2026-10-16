@@ -23,7 +23,8 @@ const sandbox = {
     __ModuleLoader__: { load: (m) => { loaded = m } }
   },
   document: { createElement: () => ({ dataset: {}, remove () {} }), head: { append () {} } },
-  console
+  console,
+  URL
 }
 vm.createContext(sandbox)
 vm.runInContext(src, sandbox)
@@ -59,6 +60,18 @@ ok('status: switched off, key missing, paused, answered, ready', [
   statusOf(base).txt === 'Ready'
 ].every(Boolean))
 ok('badge: free engines say NO KEY, keyed ones KEY', accessBadge({ access: 'free' }).txt === 'NO KEY' && accessBadge({ access: 'key' }).txt === 'KEY')
+
+// ── an address that cannot be saved says so; a failed test says why (A3-26) ──────────────────────────────
+const { addressProblem, testDetail } = plugin.__test
+const bad = ['not a url', 'javascript:alert(1)', 'ftp://x.example', '127.0.0.1:8080', 'http://', 'http://user:pw@host.example/', 'a b']
+ok('an address that is not http(s) is refused with a sentence, for SearXNG and for the custom address', bad.every((t) => typeof addressProblem('searxngUrl', t) === 'string' && addressProblem('customUrl', t) !== null), bad.filter((t) => addressProblem('searxngUrl', t) === null).join())
+ok('a good address, and a blank one (which clears the field), pass', addressProblem('searxngUrl', 'http://127.0.0.1:8080') === null && addressProblem('customUrl', 'https://search.example.com/query') === null && addressProblem('searxngUrl', '   ') === null && addressProblem('searxngUrl', '') === null)
+ok('the sentence shows an example', /http:\/\/127\.0\.0\.1:8080/.test(addressProblem('searxngUrl', 'nope')))
+ok('the search engine id and the language code are checked too (the host drops them silently)', addressProblem('googleCx', 'a b!') !== null && addressProblem('googleCx', 'a1b2c3:d_e-f') === null && addressProblem('wikiLang', 'English') !== null && addressProblem('wikiLang', 'fr') === null && addressProblem('wikiLang', 'pt-br') === null)
+ok('a failed test names the cause, never the raw « fetch failed »', testDetail({ ok: false, kind: 'network', message: 'fetch failed', reason: 'refused' }) === 'Nothing is listening at this address (connection refused).' && testDetail({ ok: false, kind: 'network', message: 'fetch failed' }) === 'Nothing answered at this address.' && !/fetch failed/.test(testDetail({ ok: false, kind: 'network', message: 'fetch failed', reason: 'tls' })))
+ok('other failures keep their own message, and « missing » / « empty » say nothing more', testDetail({ ok: false, kind: 'server', message: 'HTTP 502' }) === 'HTTP 502' && testDetail({ ok: false, kind: 'missing', message: 'x' }) === '' && testDetail({ ok: false, kind: 'empty', message: 'x' }) === '')
+ok('an address engine nobody has asked is not « Ready » (it is only a saved string)', statusOf({ ...base, access: 'url', health: {} }).txt === 'Address saved · not tested yet' && statusOf({ ...base, access: 'url', health: { lastOkAt: Date.now(), lastCount: 3, lastMs: 100 } }).cls === 'ok')
+ok('Save waits for a valid address and the reason is drawn under the field', /disabled: addr === null \|\| addrBad !== null/.test(src) && /data-kb': 'websearch-address-error'/.test(src))
 
 // ── hygiene (same rules as the other bundles) ───────────────────────────────────────────────────────
 const hook = (id) => src.indexOf("'data-kb': '" + id + "'") !== -1

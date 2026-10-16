@@ -190,6 +190,21 @@ console.log('— abort, forget, probe')
   const good = await router.probe('a', 'hello')
   ok('probe asks an engine that is switched off, and returns a sample', good.ok === true && good.count === 2 && good.sample.length === 2)
   eq('probe of an unknown engine', (await router.probe('nope', 'x')).ok, false)
+  // A3-26: « fetch failed » is all Node says; the cause underneath says whether nothing listens, the name is wrong, or the certificate.
+  const refusedErr = Object.assign(new Error('fetch failed'), { cause: Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:1'), { code: 'ECONNREFUSED' }) })
+  const { router: rr } = make([engine('u', 'url', [refusedErr])])
+  const refused = await rr.probe('u', 'x')
+  ok('a refused connection says so: the probe carries a reason, and the health record keeps it', refused.ok === false && refused.kind === 'network' && refused.reason === 'refused' && rr.health('u').reason === 'refused', JSON.stringify(refused))
+  const named = async (code) => {
+    const e = Object.assign(new Error('fetch failed'), { cause: { code } })
+    const { router: r2 } = make([engine('u', 'url', [e])])
+    return (await r2.probe('u', 'x')).reason
+  }
+  ok('an unknown host, a cut connection and a refused certificate each get their word', (await named('ENOTFOUND')) === 'notfound' && (await named('ECONNRESET')) === 'reset' && (await named('DEPTH_ZERO_SELF_SIGNED_CERT')) === 'tls' && (await named('SOMETHING_ELSE')) === undefined)
+  const plain = await make([engine('u', 'url', [new Error('boom')])]).router.probe('u', 'x')
+  ok('a plain error has no reason field (nothing invented)', plain.kind === 'network' && plain.reason === undefined && plain.message === 'boom')
+  rr.forget('u')
+  ok('forgetting an engine clears the reason', rr.health('u').reason === null)
   const nokey = await make([engine('k', 'key', [[item(1)]])]).router.probe('k', 'x')
   ok('probe of a keyed engine with no key says it is missing', nokey.ok === false && nokey.kind === 'missing')
 }
