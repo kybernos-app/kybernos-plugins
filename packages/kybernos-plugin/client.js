@@ -187,6 +187,7 @@ let kbLocaleRead = () => 'en'
       'deliv.fam.images': { kybernos: 'Images', en: 'Images' },
       'deliv.fam.images.desc': { kybernos: 'Visuels, captures et schémas générés.', en: 'Generated visuals, captures and diagrams.' },
       'deliv.fam.av': { kybernos: 'Audio & vidéo', en: 'Audio & Video' },
+      'deliv.type.media': { kybernos: 'Audio / Vidéo', en: 'Audio / Video' },
       'deliv.fam.av.desc': { kybernos: 'Extraits sonores et clips vidéo produits par vos Agent Teams.', en: 'Sound bites and video clips produced by your Agent Teams.' },
       'tasks.form.title': { kybernos: 'Planifier une automation', en: 'Schedule an automation' },
       'tasks.name': { kybernos: 'Nom', en: 'Name' },
@@ -3362,6 +3363,7 @@ const KB_FR_EN = {
   'Aucun appel connecteur sur la période.': 'No connector calls over the period.',
   'workflows-v2: onglet journal d exécution': 'workflows-v2: execution journal tab',
   '[workflows-v2] onglet désactivé': '[workflows-v2] tab disabled',
+  'Autre': 'Other',
 }
 const kbf = (fr) => {
   if (typeof fr !== 'string' || fr.length === 0) return fr
@@ -10952,7 +10954,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const docsReels = (projData !== null && projData !== undefined && Array.isArray(projData.docs) === true) ? projData.docs : []
       const goalsReels = (projData !== null && projData !== undefined && Array.isArray(projData.goals) === true) ? projData.goals : []
       const warnsReels = (projData !== null && projData !== undefined && Array.isArray(projData.warnings) === true) ? projData.warnings : []
-      const tailleTxt = (o) => (typeof o === 'number' ? o.toLocaleString('fr-FR') + ' o' : (typeof o === 'string' ? o : '—'))
+      const tailleTxt = (o) => (typeof o === 'number' ? kbFmtSize(o) : (typeof o === 'string' ? o : '—'))
       const docsM = kbiMeubler(docsReels.map((d) => [String(d.title !== undefined && d.title !== null ? d.title : (d.name !== undefined && d.name !== null ? d.name : '—')), tailleTxt(d.size)]), KBI_EXEMPLES.docs)
       const goalsM = kbiMeubler(goalsReels.map((g) => [String(g !== null && g !== undefined ? g : '—')]), KBI_EXEMPLES.goals)
       const warnsM = kbiMeubler(warnsReels.map((w) => [String(w !== null && w !== undefined ? w : '—')]), KBI_EXEMPLES.warnings)
@@ -16395,8 +16397,12 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       { id: 'engine', label: 'Diagram', exts: ['engine'], ico: 'zap', tint: 'rgba(132,204,22,0.16)', color: '#bef264' },
       { id: 'data', label: 'Data', exts: ['json', 'yaml', 'yml', 'toml', 'lock', 'sha256', 'csv'], ico: 'settings', tint: 'rgba(20,184,166,0.16)', color: '#5eead4' },
       { id: 'image', label: 'Image', exts: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'avif', 'bmp', 'ico'], ico: 'image', tint: 'rgba(236,72,153,0.16)', color: '#f9a8d4' },
-      { id: 'other', label: 'Autre', exts: [], ico: 'package', tint: 'rgba(148,163,184,0.16)', color: '#cbd5e1' },
+      { id: 'other', label: kbf('Autre'), exts: [], ico: 'package', tint: 'rgba(148,163,184,0.16)', color: '#cbd5e1' },
     ]
+    // Audio and video files used to read « Other » (Autre): the badge now says what they are. Not in KB_ART_TYPES on purpose: the
+    // Audio & Video FAMILY already is the filter tile, so this type must not add a second row to the type picker. Its label is read
+    // when drawn (a getter), so it follows the language like the tile does.
+    const KB_ART_TYPE_MEDIA = { id: 'media', get label() { return kbt('deliv.type.media') }, exts: [], ico: 'play', tint: 'rgba(14,165,233,0.16)', color: '#7dd3fc' }
     // Un artefact produit par un agent conforme au contrat partage déclare son
     // genre DANS le fichier (« un kind, un titre, des items ») et se nomme donc
     // `<sujet>-quiz.json`. Or l'extension `.json` n'a pas de genre à elle : sans
@@ -16543,6 +16549,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         }
       }
       for (const t of KB_ART_TYPES) { if (t.exts.indexOf(ext) >= 0) return t }
+      if (KB_FAM_EXTS.av.indexOf(ext) >= 0) return KB_ART_TYPE_MEDIA
       return KB_ART_TYPES[KB_ART_TYPES.length - 1]
     }
     // Nom de fichier → id d'icône du jeu (miniapp, genre dans un .json, extension, type DSH).
@@ -16561,7 +16568,16 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       if (KB_TI.ext[ext] !== undefined) return KB_TI.ext[ext]
       return KB_TI.type[kbArtType(name).id] || 'other'
     }
-    const kbFmtSize = (s) => (typeof s === 'number' && s >= 0 ? (s > 1048576 ? (s / 1048576).toFixed(1) + ' Mo' : (s > 1024 ? Math.round(s / 1024) + ' Ko' : s + ' o')) : '')
+    // One size style per language, the same as Motion and the media player: English « 86 KB », « 5.0 MB », « 880 B »; French « 86 Ko »,
+    // « 5,0 Mo », « 880 o ». It used to say « Ko » / « Mo » / « o » in every language.
+    const kbFmtSize = (s) => {
+      if (typeof s !== 'number' || s < 0) return ''
+      const lang = kbLangResolve()
+      const fr = lang === 'kybernos' || String(lang).split(/[-_]/)[0] === 'fr'
+      if (s >= 1048576) { const v = (s / 1048576).toFixed(1); return (fr ? v.replace('.', ',') + ' Mo' : v + ' MB') }
+      if (s >= 1024) return Math.round(s / 1024) + (fr ? ' Ko' : ' KB')
+      return s + (fr ? ' o' : ' B')
+    }
     // ── familles de livrables (demande 26/09 : « en haut de la sélection ») ─
     // Six familles GRAND PUBLIC passées en tête de la bande, devant les types
     // fins : Slides, Sites web, Documents, Tableurs, Images, Audio & vidéo.

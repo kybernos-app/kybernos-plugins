@@ -174,5 +174,16 @@ ok('every route used is one the host mounts', [...body.matchAll(/api\('(?:GET|PO
 const host = readFileSync(new URL('./index.js', import.meta.url), 'utf8')
 for (const m of body.matchAll(/api\('(?:GET|POST)', '([a-z]+)/g)) ok(`the host mounts route ${m[1]}`, host.includes(`route('${m[1]}'`))
 
+// ── A4-19: one size style per language (the export dialog said « About 5,0 MB » then « 31 Ko ») ──
+{
+  const keep = win.__KB_LANG_RESOLVE__
+  win.__KB_LANG_RESOLVE__ = () => 'en'
+  ok('English: bytes, KB and MB, with a decimal point', T.fmtBytes(549) === '549 B' && T.fmtBytes(31 * 1024) === '31 KB' && T.fmtBytes(5 * 1048576) === '5.0 MB' && T.fmtBytes(86 * 1024 + 300) === '86 KB', [T.fmtBytes(549), T.fmtBytes(31 * 1024), T.fmtBytes(5 * 1048576)])
+  win.__KB_LANG_RESOLVE__ = () => 'fr'
+  ok('French: o, Ko and Mo, with a decimal comma', T.fmtBytes(549) === '549 o' && T.fmtBytes(31 * 1024) === '31 Ko' && T.fmtBytes(5 * 1048576) === '5,0 Mo', [T.fmtBytes(549), T.fmtBytes(31 * 1024), T.fmtBytes(5 * 1048576)])
+  win.__KB_LANG_RESOLVE__ = keep
+  ok('the export hint and the result card both go through it (no hard-coded unit left beside it)', !/Math\.round\(result\.size \/ 1024\)/.test(src) && !/\(\)\.toFixed\(1\)\.replace\('\.', ','\)/.test(src) && /fmtBytes\(result\.size\)/.test(src) && /'Up to about ' \+ est/.test(src))
+}
+
 console.log(`${n - fail}/${n} checks passed`)
 process.exit(fail ? 1 : 0)
