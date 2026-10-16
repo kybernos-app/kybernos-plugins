@@ -158,7 +158,10 @@ window.__ModuleLoader__.load({
         footSignInUp: 'Se connecter / Créer un compte',
         footSyncSub: 'Sync de tes sessions',
         menuSignup: 'Créer un compte',
+        menuSeePlans: 'Voir les offres',
         accountOpenFail: 'La page de ton compte n\'a pas pu s\'ouvrir. Réessaie dans un instant.',
+        srvDownOpen: 'La page de ton compte n\'a pas pu s\'ouvrir : le serveur « {name} » ({host}) ne répond pas.',
+        srvSwitch: 'Changer de serveur',
         accountNeedsVerify: 'Confirme d\'abord ton adresse e-mail, puis réessaie.',
         upTitle: 'Mettre à niveau',
         upFor: 'Choisis la formule de',
@@ -366,7 +369,10 @@ window.__ModuleLoader__.load({
         footSignInUp: 'Sign in / Sign up',
         footSyncSub: 'Sync your sessions',
         menuSignup: 'Create an account',
+        menuSeePlans: 'See plans',
         accountOpenFail: 'Your account page could not be opened. Try again in a moment.',
+        srvDownOpen: 'Your account page could not be opened: the server “{name}” ({host}) does not answer.',
+        srvSwitch: 'Switch server',
         accountNeedsVerify: 'Confirm your e-mail address first, then try again.',
         upTitle: 'Upgrade',
         upFor: 'Choose the plan for',
@@ -637,6 +643,7 @@ body:not([data-ds-dark-theme]) :is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-
 .kbfp-cardmain:hover .kbfp-chev{color:var(--dsw-alias-label-secondary)}
 .kbfp-tight2 .kbfp-chev,[class*="collapsed"] .kbfp-chev{display:none}
 /* A line above the footer for what could not be done (a page that did not open): it goes by itself. */
+.kbfp-flashact{display:block;margin:4px 0 0;padding:2px 0;border:0;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;text-decoration:underline;cursor:pointer}
 .kbfp-flash{box-sizing:border-box;width:100%;margin:0 0 6px;padding:8px 10px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font-size:12px;line-height:1.4}
 [class*="collapsed"] .kbfp-flash{display:none}
 /* The Upgrade dialog: DSH's tokens only, the same surfaces as the menus. */
@@ -861,6 +868,11 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
       h('path', { key: 'a', d: 'M5 12.5l4.5 4.5L19 7', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' }),
     ], props)
 
+    const UpgradeIcon = (props) => svgIcon(() => [
+      h('circle', { key: 'a', cx: 12, cy: 12, r: 9, stroke: 'currentColor', strokeWidth: 1.75 }),
+      h('path', { key: 'b', d: 'M12 16.5v-9M8.5 11l3.5-3.5 3.5 3.5', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' }),
+    ], props)
+
     const ChevronIcon = (props) => svgIcon(() => [
       h('path', { key: 'a', d: 'M6 9l6 6 6-6', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' }),
     ], props)
@@ -898,6 +910,50 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
       const brut = user !== null && user !== undefined && typeof user.plan === 'string' ? user.plan.trim() : ''
       return { label: cap(brut), free: brut.toLowerCase() === 'free' }
     }
+
+    // <plan-top:begin> « Upgrade » is for a plan that has something above it, and it only opens a page: it is only offered where that page can open
+    /** True only when the catalogue PROVES nothing is above the active space's plan: a paid Team plan (its seats are bought on the plan page) or the highest level of the
+     *  individual plan. Anything not proven (no catalogue, a plan it does not list, Free) is false: the entry then stays. */
+    const planIsTop = (sp, plans) => {
+      if (sp === null || sp === undefined || typeof sp !== 'object' || Array.isArray(plans) !== true) return false
+      const plan = plans.filter((p) => p !== null && typeof p === 'object' && p.key === sp.key)[0]
+      if (plan === undefined) return false
+      if (plan.kind === 'team') return true
+      if (plan.kind !== 'individual' || Array.isArray(plan.components) !== true || plan.components.length === 0) return false
+      const highest = plan.components[plan.components.length - 1]
+      if (highest === null || typeof highest !== 'object') return false
+      const same = (a, b) => typeof a === 'string' && typeof b === 'string' && a.trim() !== '' && a.trim().toLowerCase() === b.trim().toLowerCase()
+      return same(sp.level, highest.key) || same(sp.level, highest.name) || same(sp.label, highest.name)
+    }
+    /** Whether the page is on this machine's own address (the core's rule, DSH's own): only then is the host's system browser the person's browser. */
+    const loopbackHost = (hostname) => {
+      if (typeof hostname !== 'string' || hostname === '') return false
+      const h = hostname.toLowerCase()
+      if (h === 'localhost' || h === '[::1]') return true
+      const parts = h.split('.')
+      return parts.length === 4 && parts[0] === '127' && parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255)
+    }
+    // <plan-top:end>
+    const pageHost = () => { try { return String(window.location.hostname) } catch (e) { return '' } }
+    // The plan catalogue (public), read once for the menu and kept for ten minutes: only it says whether a plan is the top one.
+    let plansMemo = null
+    const readPlans = () => {
+      if (plansMemo !== null && Date.now() - plansMemo.at < 600000) return Promise.resolve(plansMemo.plans)
+      return callLocal('/plans', 'GET').then((r) => {
+        if (r === null || r === undefined || r.ok !== true || Array.isArray(r.plans) !== true) return null
+        plansMemo = { at: Date.now(), plans: r.plans }
+        return r.plans
+      }).catch(() => null)
+    }
+    // <server-down:begin> a server that does not answer is NAMED (the host says which one: its label and host), and the way to another one is offered when there is one
+    /** The notice for a host route that failed because the server did not answer: `{ text, canSwitch }`, or null when the answer names no server (the caller keeps its own sentence). */
+    const serverDownNote = (r, t) => {
+      if (r === null || r === undefined || typeof r !== 'object' || r.error !== 'injoignable') return null
+      const sv = r.server
+      if (sv === null || sv === undefined || typeof sv !== 'object' || typeof sv.name !== 'string' || sv.name.trim() === '' || typeof sv.host !== 'string' || sv.host.trim() === '') return null
+      return { text: String(t('srvDownOpen')).replace(/\{(name|host)\}/g, (m, k) => sv[k].trim()), canSwitch: sv.can_switch === true }
+    }
+    // <server-down:end>
 
     const initiales = (nom, email) => {
       const nomPropre = typeof nom === 'string' ? nom.trim() : ''
@@ -1593,6 +1649,44 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           } catch (e) { /* trigger not found: nothing breaks */ }
           return false
         }
+        // ── DSH's Settings, on one page ────────────────────────────────────
+        // Used by the phone panel's « Manage phones » (Remote Control) and by « Switch server » (Servers). We open DSH's Settings (the same
+        // gesture as the « Settings » menu entry), then click the cell of the nav that names the page as soon as it is rendered — the panel
+        // mounts asynchronously. Settings already open: we just select the cell (clicking the trigger again would close them).
+        // Cell not found after ~2 s: Settings stay on their default section, never a blocking error.
+        // The section is named by its label AND, when known, by its id (the React key of its cell: the same in every language).
+        const ouvrirReglagesCompte = (libelleCible, cleCible) => {
+          const libelle = typeof libelleCible === 'string' ? libelleCible : ''
+          const cleDe = (el) => {
+            try {
+              const nom = Object.keys(el).find((x) => x.indexOf('__reactFiber$') === 0)
+              const k = nom === undefined ? null : el[nom].key
+              return typeof k === 'string' ? k : null
+            } catch (e) { return null }
+          }
+          const cliquerCellule = () => {
+            try {
+              const cellules = Array.from(document.querySelectorAll('button[class*="navCell"]'))
+              const cible = cellules.find((b) => (typeof cleCible === 'string' && cleDe(b) === cleCible) || String((b.textContent || '').trim()) === libelle)
+              if (cible !== undefined && cible !== null) { cible.click(); return true }
+            } catch (e) { /* nav not rendered yet */ }
+            return false
+          }
+          try {
+            const nav = document.querySelector('[class*="navList"]')
+            const dejaOuvert = nav !== null && nav.offsetParent !== null
+            if (dejaOuvert === false) ouvrirReglagesDsh()
+          } catch (e) { /* trigger not found */ }
+          let essais = 0
+          const tique = () => {
+            essais += 1
+            if (cliquerCellule() === true) return
+            if (essais < 40) window.setTimeout(tique, 50)
+          }
+          window.setTimeout(tique, 80)
+        }
+        // Settings › Servers: the page the Servers module registers (its cell's key is `kybernos-servers`; a DSH without that module just stays on Settings' first page).
+        const openServersPage = () => ouvrirReglagesCompte('Servers', 'kybernos-servers')
         const envoyer = (nom) => { try { window.dispatchEvent(new Event('kybernos:menu:' + nom)) } catch (e) { /* Event absent */ } }
         // One entry of a menu: the menu is closed FIRST (the action may unmount it: navigation, Settings, sign-out).
         // The Appearance row is not an entry (it leaves the menu open, to show the effect at once).
@@ -1721,6 +1815,10 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             // The server's own sign-up page (the account app), in the system browser.
             props.signupUrl !== undefined && props.signupUrl !== ''
               ? entree('signup', h(UserIcon, { size: 18 }), t('menuSignup'), () => openTab(props.signupUrl.replace(/\/+$/, '') + '/account'), { ext: true })
+              : null,
+            // The server's own plan page, without an account: the app signs the person in, then shows the plans.
+            props.signupUrl !== undefined && props.signupUrl !== ''
+              ? entree('plans', h(UpgradeIcon, { size: 18 }), t('menuSeePlans'), () => openTab(props.signupUrl.replace(/\/+$/, '') + '/account#plan'), { ext: true })
               : null),
           h('div', { className: 'kbfp-msep' }),
           h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-account' },
@@ -2032,6 +2130,18 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           const nomEspace = courant !== null && courant.name ? nomAffiche(courant, t) : t('spaceTitle')
           const planInfo = planDeEspace(st, user)
           const plan = planInfo.label !== null ? planInfo.label : t('none')
+          // The catalogue says whether the plan is the top one; until it is read (or when the server does not answer) nothing proves it is, and the entry stays.
+          const cataloguePair = React.useState(() => (plansMemo !== null ? plansMemo.plans : null))
+          const catalogue = cataloguePair[0]
+          const setCatalogue = cataloguePair[1]
+          React.useEffect(() => {
+            let on = true
+            void readPlans().then((p) => { if (on === true && p !== null) setCatalogue(p) })
+            return () => { on = false }
+          }, [])
+          // « Upgrade »: a plan that is not Free (Free has its pill, with the dialog), that has something above it, where the page can open (on a hosted DSH the host is not the
+          // person's machine and the single-use link refuses a page-started navigation). It opens the plan page of the app, like Team settings: nothing is bought here.
+          const upgradeEntry = planInfo.free !== true && typeof props.onUpgradePage === 'function' && loopbackHost(pageHost()) && planIsTop(st.space_plan, catalogue) !== true
 
           const switchPair = React.useState(false)
           const switchOpen = switchPair[0]
@@ -2094,6 +2204,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                   h('span', { className: 'kbfp-mplanname' }, plan),
                   // « Upgrade » only where there is something to upgrade from: a paying person, or a Team, is not offered it.
                   planInfo.free === true ? h('button', { type: 'button', className: 'kbfp-mcta', 'data-kb': 'menu-plan-cta', onClick: () => { try { props.onClose() } catch (e) { /* closed */ } props.onUpgrade() } }, t('menuPlanCta')) : null)),
+              upgradeEntry ? entree('upgrade', h(UpgradeIcon, { size: 18 }), t('menuPlanCta'), props.onUpgradePage, { ext: true }) : null,
               // "Teams settings" = the former "Workspace settings" (same action).
               entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace)),
             h('div', { className: 'kbfp-msep' }),
@@ -2221,9 +2332,11 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           }, [])
           // A one-line notice above the footer (a page that could not be opened): it goes by itself.
           const [flash, setFlash] = React.useState('')
+          // The notice of a server that does not answer carries « Switch server » (and stays a little longer: there is something to press).
+          const [flashSwitch, setFlashSwitch] = React.useState(false)
           React.useEffect(() => {
             if (flash === '') return undefined
-            const id = window.setTimeout(() => setFlash(''), 7000)
+            const id = window.setTimeout(() => { setFlash(''); setFlashSwitch(false) }, flashSwitch === true ? 12000 : 7000)
             return () => window.clearTimeout(id)
           }, [flash])
           // The account page of the SERVER, in the system browser: signed in through the single-use console link the host asks for.
@@ -2234,8 +2347,11 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                 if (r.opened !== true && typeof r.url === 'string') { try { window.open(r.url, '_blank', 'noopener,noreferrer') } catch (e) { /* popup refused */ } }
                 return
               }
-              setFlash(r !== null && r !== undefined && r.error === 'email_not_verified' ? t('accountNeedsVerify') : t('accountOpenFail'))
-            }).catch(() => setFlash(t('accountOpenFail')))
+              // The server does not answer: say WHICH one, and offer to go to another when there is one.
+              const down = serverDownNote(r, t)
+              setFlashSwitch(down !== null && down.canSwitch === true)
+              setFlash(down !== null ? down.text : (r !== null && r !== undefined && r.error === 'email_not_verified' ? t('accountNeedsVerify') : t('accountOpenFail')))
+            }).catch(() => { setFlashSwitch(false); setFlash(t('accountOpenFail')) })
           }
           // The server this DSH talks to, signed out too: « Create an account » opens ITS sign-up page.
           const [serverInfo, setServerInfo] = React.useState(null)
@@ -2329,12 +2445,22 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             }
           }, [quotaSpace])
 
+          // The plan catalogue (public) is read as soon as the account is there: the menu then knows whether the plan is the top one when it opens (no « Upgrade » that shows and goes).
+          React.useEffect(() => { if (phase === 'connected') void readPlans() }, [phase])
+
           // The sheet can be opened from another plugin (Models page):
           // same window event as the former button, nothing new.
           React.useEffect(() => {
             const ouvrir = () => setOpen(true)
             window.addEventListener('kybernos-cloud:open', ouvrir)
             return () => window.removeEventListener('kybernos-cloud:open', ouvrir)
+          }, [])
+
+          // The phone link (kybernos-mobile) asks for Settings › Servers when its server does not answer: a window event, like the other bundles' requests.
+          React.useEffect(() => {
+            const ouvrirServeurs = () => { setMenuOpen(false); setNotifOpen(false); setMobileOpen(false); openServersPage() }
+            window.addEventListener('kybernos-cloud:servers', ouvrirServeurs)
+            return () => window.removeEventListener('kybernos-cloud:servers', ouvrirServeurs)
           }, [])
 
           // Another plugin can open the team switcher (same seam as the account card).
@@ -2394,48 +2520,6 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             }
             const shownName = displayName(user)
             const qui = shownName.value !== '' ? shownName.value : (user.email || t('none'))
-            // ── Settings ▸ Account (request of 30/09) ────────────────────────
-            // « Account » (and « Security », same target) in the main menu goes
-            // DIRECTLY to the Account section of Settings: the former
-            // full-frame page is hidden for the moment. We open DSH's
-            // Settings (the same gesture as the
-            // « Settings » menu entry), then click the « Account » cell
-            // of the nav as soon as it is rendered — the panel mounts
-            // asynchronously. Settings already open: we just select
-            // the cell (clicking the trigger again would close them).
-            // Cell not found after ~2 s: Settings stay on their
-            // default section, never a blocking error.
-            // The section is named by its label AND, when known, by its id (the React key of its cell: the same in every language).
-            const ouvrirReglagesCompte = (libelleCible, cleCible) => {
-              const libelle = typeof libelleCible === 'string' ? libelleCible : ''
-              const cleDe = (el) => {
-                try {
-                  const nom = Object.keys(el).find((x) => x.indexOf('__reactFiber$') === 0)
-                  const k = nom === undefined ? null : el[nom].key
-                  return typeof k === 'string' ? k : null
-                } catch (e) { return null }
-              }
-              const cliquerCellule = () => {
-                try {
-                  const cellules = Array.from(document.querySelectorAll('button[class*="navCell"]'))
-                  const cible = cellules.find((b) => (typeof cleCible === 'string' && cleDe(b) === cleCible) || String((b.textContent || '').trim()) === libelle)
-                  if (cible !== undefined && cible !== null) { cible.click(); return true }
-                } catch (e) { /* nav not rendered yet */ }
-                return false
-              }
-              try {
-                const nav = document.querySelector('[class*="navList"]')
-                const dejaOuvert = nav !== null && nav.offsetParent !== null
-                if (dejaOuvert === false) ouvrirReglagesDsh()
-              } catch (e) { /* trigger not found */ }
-              let essais = 0
-              const tique = () => {
-                essais += 1
-                if (cliquerCellule() === true) return
-                if (essais < 40) window.setTimeout(tique, 50)
-              }
-              window.setTimeout(tique, 80)
-            }
             const seDeconnecter = async () => {
               setMenuOpen(false)
               try { await callLocal('/disconnect', 'POST', { confirm: true }) } catch (e) { /* already gone */ }
@@ -2508,6 +2592,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                   onRemote: () => { setMenuOpen(false); setNotifOpen(false); setMobileOpen(true) },
                   onUpgrade: () => { setMenuOpen(false); setUpgradeOpen(true) },
                   onSpace: ouvrirAppli('plan'),
+                  onUpgradePage: ouvrirAppli('plan'),
                   onLogout: () => { void seDeconnecter() },
                 })
                 : null),
@@ -2551,7 +2636,10 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           }
 
           return h('div', { className: 'kbf-root', ref: racineRef },
-            flash !== '' ? h('div', { className: 'kbfp-flash', role: 'status', 'data-kb': 'foot-flash' }, flash) : null,
+            flash !== ''
+              ? h('div', { className: 'kbfp-flash', role: 'status', 'data-kb': 'foot-flash' }, flash,
+                flashSwitch === true ? h('button', { type: 'button', className: 'kbfp-flashact', 'data-kb': 'foot-switch-server', onClick: () => { setFlash(''); setFlashSwitch(false); openServersPage() } }, t('srvSwitch')) : null)
+              : null,
             corps,
             upgradeOpen === true
               ? h(UpgradeDialog, { state: state, onClose: () => setUpgradeOpen(false), onChanged: () => { void load() } })

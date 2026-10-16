@@ -40,6 +40,8 @@ const good = () => ({ status: 200, body: { url: origin + '/api/auth/magic-link/v
 const dir = mkdtempSync(join(tmpdir(), 'kb-console-link-'))
 process.env.KYBERNOS_CLOUD_API = origin
 process.env.KYBERNOS_CLOUD_STATE = join(dir, 'state.json')
+// No registry: the owner's own servers.json (a machine that has one) must not decide what the test sees.
+process.env.KYBERNOS_SERVERS_FILE = join(dir, 'no-servers.json')
 const writeState = (state) => writeFileSync(process.env.KYBERNOS_CLOUD_STATE, JSON.stringify(state))
 const connected = { token: TOKEN, user: { email: 'a@b.test' }, workspaces: [{ id: W1, name: 'Acme' }], active_workspace_id: W1 }
 
@@ -92,6 +94,18 @@ console.log('what it will not hand to a browser')
   check('a refusal by the server comes back as a refusal', refused.ok === false && refused.status === 403 && refused.url === undefined, JSON.stringify(refused))
   answer = () => ({ status: 200, body: null })
   check('an empty answer is a refusal, not a crash', (await mod.consoleLink({}, {})).ok === false)
+  check('a refusal by the server does not name a server (it answered)', refused.server === undefined)
+
+  // The server does not answer at all (a closed port): the answer names the server, so the footer can say WHICH one does not answer (audit V-41). It is the active
+  // server's name and host, never its address in full and never anything of the token.
+  const closed = await new Promise((r) => { const s = createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)) }) })
+  process.env.KYBERNOS_CLOUD_API = 'http://127.0.0.1:' + closed
+  const down = await mod.consoleLink({}, {})
+  check('the server does not answer: « injoignable » with status 0', down.ok === false && down.status === 0 && down.error === 'injoignable', JSON.stringify(down))
+  check('and the answer names the server: its label and its host', down.server !== undefined && down.server.name === 'Kybernos Cloud' && down.server.host === '127.0.0.1:' + closed, JSON.stringify(down))
+  check('and says whether there is another server to switch to (none here: only the built-in one)', down.server !== undefined && down.server.can_switch === false, JSON.stringify(down))
+  check('the token is nowhere in it', JSON.stringify(down).indexOf(TOKEN) < 0)
+  process.env.KYBERNOS_CLOUD_API = origin
 }
 
 console.log('opening the system browser (the server only accepts a link a person\'s OS opens)')

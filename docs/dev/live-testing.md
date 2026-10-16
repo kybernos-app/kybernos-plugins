@@ -814,6 +814,18 @@ clicks:
   feature (`configured: false`), the plan does not include it (`entitled: false`), DSH cannot (`available: false`) or the status cannot be
   read. The footer has no phone button of its own any more: `check-mobile-remote-live.mjs`, `check-mobile-remote-pages.mjs` and
   `check-display-live.mjs` open the panel through this entry.
+- **Upgrade and « See plans »** (every answer is in the page; nothing is bought and no server is called): connected on Plus the menu has « Upgrade »
+  right after the plan and before Team settings, with the arrow that leaves DSH; on Free there is the pill and no entry (it opens the dialog), on Pro (the
+  top level) and on a paid Team plan there is none, and when the catalogue cannot be read the entry stays. Pressing it asks the host for the console link on the
+  active workspace's `plan` page with `open: true` (Team settings' own call), opens no dialog and draws nothing in DSH. Signed out, the menu is Sign in,
+  Create an account, **See plans** (the server's own `/account#plan`, recorded and never followed), Appearance, Settings, Website, Help, Send feedback.
+  Every payment route of the page is answered here as « no payment provider » unless a scene sets it; the phone link's gestures (pair, approve, revoke) are
+  answered too (refused unless a scene sets `fake.pair`). The hosted-page rule (no entry off loopback) is unit-tested (`test-cloud-client.mjs`), not played live.
+- **A server that does not answer** (the host's answer carries `server: { name, host, can_switch }`): the footer's notice names it (“label” and host) and offers
+  « Switch server » when another server exists (Settings opens on Servers; skipped, visibly, in a sandbox without the Servers module), and none when it is the only
+  one; the phone link's panel says the same and its « Switch server » closes the panel first. Three scenes run again at **390 px** (the drawer opened by
+  « Open the menu »: the menu with its entry, the notice and the signed-out menu must fit the window). With the sandbox's registry pointing at a closed local
+  port the REAL host answers the same way (the check does not need it: `POST /kybernos-cloud/console/link` and `/kybernos-mobile/remote/pair` both come back with the server).
 - **DSH's Settings** (connected scene): the navigation lists none of the five account entries that used to be ours (Account, Referral,
   Account security, Account data, Support & legal; matched by the React key each cell is rendered with, and by title for the four that have
   no namesake in DSH) while General, Appearance and Remote Control are still listed and still open. The account's pages are the footer

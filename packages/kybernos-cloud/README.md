@@ -117,6 +117,20 @@ to every new chat (user-global file first, then the project's):
   reason when the write fails. Without the route (an older host) the field stays browser-side.
 - Applies to **new** chats: DSH loads the file for the first request of a conversation.
 
+## The footer menu: Upgrade, See plans, a server that does not answer
+
+- **Upgrade** (connected): an entry after the plan row, for a plan that has something above it. It asks the host for the console link on the active
+  workspace's plan page (`section: plan`, the call Team settings makes) and the host opens the system browser: nothing is bought from the menu. It is
+  not offered on Free (that plan keeps its pill, which opens the in-DSH Upgrade dialog), on the top level of the individual plan or on a paid Team plan
+  (the public catalogue, `GET /kybernos-cloud/plans`, says which is the top; not read = the entry stays), nor on a page that is not on loopback (a hosted
+  DSH: the host is not the person's machine, and the server refuses a single-use link that a page started).
+- **See plans** (signed out): opens the server's own `/account#plan` in a tab (the app signs the person in, then shows the plans).
+- **A server that does not answer** (`status: 0`): `POST /kybernos-cloud/console/link` and the seam
+  (`globalThis[Symbol.for('kybernos.cloud')].call`) answer with `server: { name, host, can_switch }`: the active server's label and host, and whether the
+  registry names another one. The footer's notice and kybernos-mobile's panel then say « the server “X” (host) does not answer » and, when `can_switch`,
+  offer « Switch server »: Settings › Servers (the Servers module's page, cell key `kybernos-servers`; the phone link asks the footer for it with the window
+  event `kybernos-cloud:servers`). Tests: `test-console-link.mjs`, `test-cloud-seam.mjs`, `test-cloud-client.mjs`; live: `scripts/check-footer-live.mjs`.
+
 ## Account memory (cloud feature no. 2)
 
 DSH has **no native memory**: its instruction plan is capped at
