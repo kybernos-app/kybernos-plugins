@@ -93,7 +93,7 @@ console.log('the pages that must never get the button')
   check('the Skills page root matches no panel', !anyEntryMatches(['kbs-root']) && skills !== null)
   check('the AI Provider & Models page root matches no panel', !anyEntryMatches(['kbm-root', 'kbmp']) && models !== null)
   check('the core\'s own Models page (a bare .kbm-root) matches no panel either', !anyEntryMatches(['kbm-root']))
-  check('only the Modeleur\'s root (kbm-root kbmo) matches the Modeleur entry', anyEntryMatches(['kbm-root', 'kbmo']))
+  check('only the Modeleur\'s root (kbmo-root, its own prefix) matches the Modeleur entry', anyEntryMatches(['kbmo-root', 'kbmo']))
   check('Slides\' old class names are gone from its bundle (it keeps one prefix, kbsd-)', !/(?<![\w-])kbs-/.test(readFileSync(join(PACKAGES, 'kybernos-slides', 'client.js'), 'utf8').replace(/--kbs-/g, '')))
 }
 

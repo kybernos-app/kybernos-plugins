@@ -290,7 +290,7 @@ langue = 'kybernos'
     return null
   }
   const canvas = () => find(composant({}), (n) => n.type === 'canvas')
-  const input = () => find(composant({}), (n) => n.props && n.props.className === 'kbm-saisie')
+  const input = () => find(composant({}), (n) => n.props && n.props.className === 'kbmo-saisie')
   const evt = (type) => ({ type, clientX: 100, clientY: 130, pointerId: 1, currentTarget: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 200, height: 260 }), setPointerCapture () {} } })
   T.pinceau.on = true; T.pinceau.outil = 'texte'; T.pinceau.texte = null; T.pinceau.texteEnAttente = null
   canvas().props.onPointerDown(evt('pointerdown'))

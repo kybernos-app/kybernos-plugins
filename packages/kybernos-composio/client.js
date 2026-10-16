@@ -892,10 +892,10 @@ body:not([data-ds-dark-theme]) .kbcp-input::placeholder{color:var(--dsw-alias-la
    stable despite the hashed classes. */
 .kbcp-kbfpill{height:28px;padding:0 11px;border-radius:999px;border:1px solid rgba(128,128,128,.35);background:transparent;color:inherit;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .kbcp-kbfpill:hover{background:rgba(128,128,128,.12)}
-/* Ink on the literal orange: white on #ff7a1a is 2.6:1, #0f1115 is 7.2:1. */
-.kbcp-kbfpill.on{background:#ff7a1a;border-color:#ff7a1a;color:#0f1115;font-weight:600}
+/* The selected pill follows the theme's brand token with its label pair as ink (A1-01), as the chips of the page do. */
+.kbcp-kbfpill.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground);font-weight:600}
 .kbcp-kbfbadge{min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:rgba(128,128,128,.25);font-size:10.5px;line-height:16px;text-align:center}
-.kbcp-kbfpill.on .kbcp-kbfbadge{background:rgba(255,255,255,.3)}
+.kbcp-kbfpill.on .kbcp-kbfbadge{background:color-mix(in srgb,var(--dsw-alias-label-primary-foreground) 24%,transparent)}
 [data-plugin-panel].kbcp-kbf-on [data-plugin-group="official"]{display:none !important}
 [data-plugin-panel].kbcp-kbf-on [data-plugin-group="bundles"] li[data-plugin-package]:not([data-plugin-package^="@local/kybernos"]){display:none !important}
 .kbcp-state{display:inline-flex;align-items:center;gap:6px;font-size:12px}
@@ -909,19 +909,22 @@ body:not([data-ds-dark-theme]) .kbcp-input::placeholder{color:var(--dsw-alias-la
 .kbcp-help a{color:var(--dsw-alias-label-secondary);text-decoration:underline}
 .kbcp-note{font-size:11.5px;opacity:.65;line-height:1.5}
 .kbcp-code{font-family:ui-monospace,Menlo,monospace;font-size:11px;opacity:.75}
-.kb7-root{display:flex;flex-direction:column;gap:16px;padding:4px 0 24px;position:relative}
+.kb7-root{display:flex;flex-direction:column;gap:14px;padding:6px 0 40px;position:relative}
 /* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
 body:not([data-ds-dark-theme]) .kb7-root{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kb7-head{display:flex;flex-direction:column;gap:4px}
 .kb7-h1{margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em}
-.kb7-sub{margin:0;font-size:13px;opacity:.7;max-width:720px;line-height:1.5}
-.kb7-search{height:38px;border-radius:10px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;padding:0 12px;font-size:13.5px;max-width:620px}
-.kb7-chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.kb7-chip{height:30px;padding:0 12px;border-radius:999px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;font-size:12.5px;cursor:pointer}
+.kb7-sub{margin:6px 0 0;font-size:13px;opacity:.68;max-width:640px;line-height:1.55}
+.kb7-search{height:46px;border-radius:12px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;padding:0 16px;font-size:13.5px;max-width:100%;width:100%;box-sizing:border-box}
+.kb7-search:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
+.kb7-chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.kb7-chips::-webkit-scrollbar{display:none}
+.kb7-chip{height:32px;padding:0 14px;border-radius:99px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;font-size:12.5px;cursor:pointer;flex:none;white-space:nowrap}
+.kb7-chip:hover{background:rgba(128,128,128,.1)}
 /* The brand colour is near white in the dark theme: the text on it is the theme's own "foreground"
    token (a fixed #fff was invisible on it). */
-.kb7-chip.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff)}
-.kb7-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;max-width:1180px}
+.kb7-chip.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground)}
+.kb7-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;max-width:1180px}
 .kb7-list{display:flex;flex-direction:column;gap:8px;max-width:1180px}
 .kb7-discact{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-inline-start:auto}
 .kb7-row{display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;border:1px solid rgba(128,128,128,.25);border-radius:12px;background:transparent;cursor:pointer;color:inherit;font:inherit;text-align:left}
@@ -930,30 +933,30 @@ body:not([data-ds-dark-theme]) .kb7-root{--dsw-alias-label-tertiary:var(--dsw-al
 .kb7-rowid .kb7-name,.kb7-rowid .kb7-cat{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kb7-rowdesc{flex:1 1 0;min-width:0;font-size:12.5px;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kb7-rowend{display:flex;align-items:center;gap:6px;flex:none}
-.kb7-card{display:flex;flex-direction:column;gap:8px;padding:14px;border:1px solid rgba(128,128,128,.25);border-radius:14px;background:transparent;cursor:pointer;text-align:left;color:inherit;font:inherit}
+.kb7-card{display:flex;flex-direction:column;gap:8px;padding:18px;border:1px solid rgba(128,128,128,.22);border-radius:16px;background:var(--kb-surface,transparent);cursor:pointer;text-align:left;color:inherit;font:inherit;min-height:170px}
 .kb7-card:hover{background:rgba(128,128,128,.07);border-color:rgba(128,128,128,.45)}
-.kb7-lr{display:flex;align-items:center;gap:10px}
+.kb7-lr{display:flex;align-items:center;gap:12px}
 .kb7-applogo svg{width:74%;height:74%;display:block}
 .kb7-mhead .kb7-applogo svg{width:72%;height:72%}
-.kb7-name{font-size:14px;font-weight:600}
-.kb7-cat{font-size:11.5px;opacity:.6}
-.kb7-desc{font-size:12.5px;opacity:.75;line-height:1.45;min-height:36px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.kb7-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:28px}
-.kb7-pill{font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:rgba(34,197,94,.15);color:#22c55e;white-space:nowrap}
-.kb7-pill.pend{background:rgba(250,204,21,.15);color:#facc15}
+.kb7-name{font-size:15px;font-weight:650}
+.kb7-cat{font-size:11px;opacity:.55;margin-top:2px}
+.kb7-desc{font-size:12.5px;opacity:.78;line-height:1.5;min-height:36px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.kb7-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:28px;margin-top:auto;padding-top:6px}
+.kb7-pill{font-size:11.5px;font-weight:600;padding:0 10px;border-radius:99px;background:var(--dsw-alias-state-success-tertiary, rgba(34,197,94,.16));color:var(--dsw-alias-state-success-primary, #22c55e);white-space:nowrap;display:inline-flex;align-items:center;gap:6px;height:24px}
+.kb7-pill.pend{background:var(--dsw-alias-state-warn-tertiary, rgba(250,180,60,.16));color:var(--dsw-alias-state-warn-label, var(--dsw-alias-state-warn-primary, #f0a030))}
 /* The tag inks are the state fills (2.1:1 on their pale tint in the light schemes): there they are pulled toward the text colour (audit A1-11). */
-body:not([data-ds-dark-theme]) .kb7-pill{color:color-mix(in srgb,var(--dsw-alias-state-success-primary,#22c55e) 50%,var(--dsw-alias-label-primary))}
-body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#facc15) 50%,var(--dsw-alias-label-primary))}
+body:not([data-ds-dark-theme]) .kb7-pill{color:color-mix(in srgb,var(--dsw-alias-state-success-primary, #22c55e) 50%,var(--dsw-alias-label-primary))}
+body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary, #f0a030) 50%,var(--dsw-alias-label-primary))}
 .kb7-bars{display:flex;gap:4px}
 .kb7-bar{height:4px;flex:1;border-radius:2px;background:#22c55e;opacity:.55}
 .kb7-bar.pend{background:#facc15}
-.kb7-nokey{display:flex;align-items:center;gap:8px;padding:12px 14px;border:1px dashed rgba(128,128,128,.4);border-radius:12px;font-size:12.5px;opacity:.8;max-width:620px}
+.kb7-nokey{display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid rgba(250,180,60,.4);border-radius:10px;font-size:12.5px;opacity:.8;max-width:620px;background:rgba(250,180,60,.14)}
 /* Own class: kb7-err is also a rule of the kybernos bundle's sheet for this tab, and in the dark theme
    its fill and its text are the same red. The banner is a tint of the theme's error colour, readable on
    both; the first declarations are the fallback for a browser without color-mix. */
 .kbcp-err{font-size:12px;line-height:1.5;max-width:620px;padding:9px 13px;border-radius:9px;color:var(--dsw-alias-state-error-primary,#f25a5a);background:rgba(242,90,90,.12);border:1px solid rgba(242,90,90,.35)}
 @supports (color:color-mix(in srgb,red 10%,transparent)){.kbcp-err{background:color-mix(in srgb,var(--dsw-alias-state-error-primary,#f25a5a) 12%,transparent);border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary,#f25a5a) 35%,transparent)}}
-.kb7-empty{font-size:12.5px;opacity:.6}
+.kb7-empty{font-size:13px;opacity:.5}
 .kb7-more{align-self:flex-start}
 .kb7-auth{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border:1px solid rgba(99,91,255,.5);border-radius:12px;max-width:620px;font-size:12.5px}
 .kb7-authrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}

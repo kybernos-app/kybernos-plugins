@@ -41,7 +41,7 @@ const centre = async (js) => { const p = await val(`(() => { const e = (${js}); 
 const click = async (js) => { const c = await centre(js); if (c === null) return false; await press(c.x, c.y); await sleep(300); return true }
 const key = async (k, code, vk) => { await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: k, code, windowsVirtualKeyCode: vk }); await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: k, code, windowsVirtualKeyCode: vk }) }
 const dismissGetStarted = () => val(`(() => { const b = Array.from(document.querySelectorAll('button[aria-label="Close"]')).find((x) => /Get started/.test(((x.closest('[class*="_root_"]') || x.parentElement || {}).innerText) || '')); if (!b) return false; b.click(); return true })()`)
-const count = () => val(`(() => { const n = document.querySelector('.kbmo .kbm-note'); const m = n ? /(\\d+) (?:trait|stroke)s?\\b/.exec(n.innerText) : null; return m ? Number(m[1]) : 0 })()`)
+const count = () => val(`(() => { const n = document.querySelector('.kbmo .kbmo-note'); const m = n ? /(\\d+) (?:trait|stroke)s?\\b/.exec(n.innerText) : null; return m ? Number(m[1]) : 0 })()`)
 
 try {
   await sleep(2500)
@@ -57,29 +57,29 @@ try {
     await openTab()
   }
   check('the Modeleur panel is open', (await poll(() => q('.kbmo'))) !== null)
-  if ((await q('.kbmo .kbm-tools')) === 0) await click(`Array.from(document.querySelectorAll('.kbmo .kbm-chip')).find((b) => /House|Maison/.test(b.innerText))`)
-  check('the demo model is there (the drawing tools appear)', (await poll(() => q('.kbmo .kbm-tools'), 20000)) !== null)
+  if ((await q('.kbmo .kbmo-tools')) === 0) await click(`Array.from(document.querySelectorAll('.kbmo .kbmo-chip')).find((b) => /House|Maison/.test(b.innerText))`)
+  check('the demo model is there (the drawing tools appear)', (await poll(() => q('.kbmo .kbmo-tools'), 20000)) !== null)
   await sleep(3000)
 
   console.log('\n── A4-07 · the Text tool ──')
   const before = await count()
-  check('the pen opens its tools', (await click(`Array.from(document.querySelectorAll('.kbmo .kbm-tool')).find((b) => /Draw on top|Dessiner par-dessus/.test(b.title))`)) === true && (await q('.kbmo .kbm-tool[title="Text"], .kbmo .kbm-tool[title="Texte"]')) === 1)
-  check('the A (Text) tool is chosen', (await click(`document.querySelector('.kbmo .kbm-tool[title="Text"], .kbmo .kbm-tool[title="Texte"]')`)) === true)
+  check('the pen opens its tools', (await click(`Array.from(document.querySelectorAll('.kbmo .kbmo-tool')).find((b) => /Draw on top|Dessiner par-dessus/.test(b.title))`)) === true && (await q('.kbmo .kbmo-tool[title="Text"], .kbmo .kbmo-tool[title="Texte"]')) === 1)
+  check('the A (Text) tool is chosen', (await click(`document.querySelector('.kbmo .kbmo-tool[title="Text"], .kbmo .kbmo-tool[title="Texte"]')`)) === true)
   // Pressing the model with the real mouse is what moves the focus off the new field.
-  check('a click on the model opens the text field', (await click(`document.querySelector('.kbmo canvas')`)) === true && (await q('.kbmo input.kbm-saisie')) === 1)
+  check('a click on the model opens the text field', (await click(`document.querySelector('.kbmo canvas')`)) === true && (await q('.kbmo input.kbmo-saisie')) === 1)
   await sleep(700)
-  check('the field is still there 700 ms later (it was removed within 100 ms)', (await q('.kbmo input.kbm-saisie')) === 1)
-  check('...and it has the focus', (await val(`document.activeElement && document.activeElement.classList.contains('kbm-saisie')`)) === true)
+  check('the field is still there 700 ms later (it was removed within 100 ms)', (await q('.kbmo input.kbmo-saisie')) === 1)
+  check('...and it has the focus', (await val(`document.activeElement && document.activeElement.classList.contains('kbmo-saisie')`)) === true)
   await shot('modeleur-text-field')
   await page.send('Input.insertText', { text: 'toit' })
   await sleep(200)
   await key('Enter', 'Enter', 13)
   await sleep(700)
-  check('Enter closes the field', (await q('.kbmo input.kbm-saisie')) === 0)
+  check('Enter closes the field', (await q('.kbmo input.kbmo-saisie')) === 0)
   check('...and the text is filed as an annotation', (await count()) === before + 1, { before, after: await count() })
   await shot('modeleur-text-filed')
   // Leave the sandbox as it was: “Erase all my strokes”.
-  await click(`document.querySelector('.kbmo .kbm-tool[title="Erase all my strokes"], .kbmo .kbm-tool[title="Effacer tous mes traits"]')`)
+  await click(`document.querySelector('.kbmo .kbmo-tool[title="Erase all my strokes"], .kbmo .kbmo-tool[title="Effacer tous mes traits"]')`)
   check('the annotations are cleared again', (await poll(async () => (await count()) === 0, 5000)) !== null)
 } catch (e) {
   fail += 1

@@ -371,6 +371,7 @@ window.__ModuleLoader__.load({
         ".kml-scan-btn { display: inline-flex; align-items: center; gap: 4px; }\n" +
         ".kml-spin { display: inline-flex; animation: kml-rot 0.9s linear infinite; }\n" +
         "@keyframes kml-rot { to { transform: rotate(360deg); } }\n" +
+        "@media (prefers-reduced-motion: reduce) { .kml-spin { animation: none; } }\n" +
         ".kml-scan-result { margin: 6px 0 0; font-size: 12px; }\n" +
         ".kml-scan-result[data-ok='true'] { color: var(--dsw-alias-state-success-primary); }\n" +
         ".kml-scan-result[data-ok='false'] { color: var(--dsw-alias-label-tertiary); }\n" +

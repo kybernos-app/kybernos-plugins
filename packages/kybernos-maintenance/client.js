@@ -717,42 +717,42 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
     const upEl = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined && txt !== null) e.textContent = txt; return e }
     const upBtn = (label, cls, fn) => { const b = upEl('button', cls, label); b.type = 'button'; b.addEventListener('click', fn); return b }
     const upCss = () => {
-      if (document.querySelector('style[data-kybernos="kbup-css"]') !== null) return
+      if (document.querySelector('style[data-kybernos="kbmu-css"]') !== null) return
       const st = document.createElement('style')
-      st.dataset.kybernos = 'kbup-css'
+      st.dataset.kybernos = 'kbmu-css'
       st.textContent = [
-        '.kbup-card{position:fixed;left:12px;bottom:84px;z-index:2147482000;box-sizing:border-box;width:256px;padding:14px;border-radius:16px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2,#26262a);color:var(--dsw-alias-label-primary);box-shadow:0 16px 40px rgba(0,0,0,.45);font-size:13px;line-height:1.45;animation:kbup-in .18s ease-out}',
-        '@keyframes kbup-in{from{opacity:0;transform:translateY(8px)}}@media (prefers-reduced-motion:reduce){.kbup-card{animation:none}}',
-        '.kbup-head{display:flex;align-items:center;gap:8px;font-weight:650;font-size:14px}',
-        '.kbup-dot{flex:none;width:8px;height:8px;border-radius:50%;background:#f5a524}',
-        '.kbup-sub{margin:6px 0 0;color:var(--dsw-alias-label-secondary)}',
-        '.kbup-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}',
-        '.kbup-b{height:30px;padding:0 12px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:12.5px;font-weight:550;cursor:pointer}',
-        '.kbup-b:hover{background:var(--dsw-alias-interactive-bg-hover)}',
-        '.kbup-b.main{border-color:transparent;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base)}',
-        '.kbup-b.main:hover{opacity:.9;background:var(--dsw-alias-label-primary)}',
-        '.kbup-link{border:none;background:none;padding:0;color:var(--dsw-alias-label-tertiary);font:inherit;font-size:12px;text-decoration:underline;text-underline-offset:2px;cursor:pointer}',
-        '.kbup-scrim{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5);padding:16px}',
-        '.kbup-dlg{box-sizing:border-box;width:100%;max-width:460px;max-height:calc(100vh - 32px);overflow:auto;padding:20px;border-radius:20px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2,#26262a);color:var(--dsw-alias-label-primary);box-shadow:0 24px 64px rgba(0,0,0,.55);font-size:13.5px;line-height:1.5}',
-        '.kbup-title{display:flex;align-items:center;gap:10px;margin:0;font-size:17px;font-weight:650;letter-spacing:-.01em}',
-        '.kbup-ico{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:10px;background:var(--dsw-alias-interactive-bg-hover)}',
-        '.kbup-rows{display:flex;flex-direction:column;gap:6px;margin:14px 0 0;padding:10px 12px;border-radius:12px;background:var(--dsw-alias-bg-base,rgba(0,0,0,.2))}',
-        '.kbup-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}',
-        '.kbup-row span:first-child{color:var(--dsw-alias-label-secondary)}',
-        '.kbup-row b{font-variant-numeric:tabular-nums;font-weight:600;text-align:end}',
-        '.kbup-note{margin:12px 0 0;color:var(--dsw-alias-label-secondary)}',
-        '.kbup-steps{margin:14px 0 0;padding:0;list-style:none;counter-reset:s}',
-        '.kbup-steps li{position:relative;margin:0 0 8px;padding-inline-start:26px;counter-increment:s}',
-        '.kbup-steps li::before{content:counter(s);position:absolute;inset-inline-start:0;top:1px;width:18px;height:18px;border-radius:50%;background:var(--dsw-alias-interactive-bg-hover);font-size:11px;font-weight:650;display:flex;align-items:center;justify-content:center}',
-        '.kbup-dev{margin:12px 0 0;color:var(--dsw-alias-label-secondary);font-size:12.5px}.kbup-dev summary{cursor:pointer}',
-        '.kbup-cmd{display:flex;align-items:center;gap:8px;margin-top:6px;padding:7px 8px 7px 10px;border-radius:10px;background:var(--dsw-alias-bg-base,rgba(0,0,0,.25));font-family:ui-monospace,Menlo,monospace;font-size:12px}',
-        '.kbup-cmd code{flex:1 1 auto;min-width:0;overflow-x:auto;white-space:nowrap}',
-        '.kbup-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:16px}',
-        '.kbup-foot .grow{flex:1 1 auto}',
+        '.kbmu-card{position:fixed;left:12px;bottom:84px;z-index:2147482000;box-sizing:border-box;width:256px;padding:14px;border-radius:16px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2,#26262a);color:var(--dsw-alias-label-primary);box-shadow:0 16px 40px rgba(0,0,0,.45);font-size:13px;line-height:1.45;animation:kbmu-in .18s ease-out}',
+        '@keyframes kbmu-in{from{opacity:0;transform:translateY(8px)}}@media (prefers-reduced-motion:reduce){.kbmu-card{animation:none}}',
+        '.kbmu-head{display:flex;align-items:center;gap:8px;font-weight:650;font-size:14px}',
+        '.kbmu-dot{flex:none;width:8px;height:8px;border-radius:50%;background:#f5a524}',
+        '.kbmu-sub{margin:6px 0 0;color:var(--dsw-alias-label-secondary)}',
+        '.kbmu-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}',
+        '.kbmu-b{height:30px;padding:0 12px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:12.5px;font-weight:550;cursor:pointer}',
+        '.kbmu-b:hover{background:var(--dsw-alias-interactive-bg-hover)}',
+        '.kbmu-b.main{border-color:transparent;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base)}',
+        '.kbmu-b.main:hover{opacity:.9;background:var(--dsw-alias-label-primary)}',
+        '.kbmu-link{border:none;background:none;padding:0;color:var(--dsw-alias-label-tertiary);font:inherit;font-size:12px;text-decoration:underline;text-underline-offset:2px;cursor:pointer}',
+        '.kbmu-scrim{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5);padding:16px}',
+        '.kbmu-dlg{box-sizing:border-box;width:100%;max-width:460px;max-height:calc(100vh - 32px);overflow:auto;padding:20px;border-radius:20px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2,#26262a);color:var(--dsw-alias-label-primary);box-shadow:0 24px 64px rgba(0,0,0,.55);font-size:13.5px;line-height:1.5}',
+        '.kbmu-title{display:flex;align-items:center;gap:10px;margin:0;font-size:17px;font-weight:650;letter-spacing:-.01em}',
+        '.kbmu-ico{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:10px;background:var(--dsw-alias-interactive-bg-hover)}',
+        '.kbmu-rows{display:flex;flex-direction:column;gap:6px;margin:14px 0 0;padding:10px 12px;border-radius:12px;background:var(--dsw-alias-bg-base,rgba(0,0,0,.2))}',
+        '.kbmu-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}',
+        '.kbmu-row span:first-child{color:var(--dsw-alias-label-secondary)}',
+        '.kbmu-row b{font-variant-numeric:tabular-nums;font-weight:600;text-align:end}',
+        '.kbmu-note{margin:12px 0 0;color:var(--dsw-alias-label-secondary)}',
+        '.kbmu-steps{margin:14px 0 0;padding:0;list-style:none;counter-reset:s}',
+        '.kbmu-steps li{position:relative;margin:0 0 8px;padding-inline-start:26px;counter-increment:s}',
+        '.kbmu-steps li::before{content:counter(s);position:absolute;inset-inline-start:0;top:1px;width:18px;height:18px;border-radius:50%;background:var(--dsw-alias-interactive-bg-hover);font-size:11px;font-weight:650;display:flex;align-items:center;justify-content:center}',
+        '.kbmu-dev{margin:12px 0 0;color:var(--dsw-alias-label-secondary);font-size:12.5px}.kbmu-dev summary{cursor:pointer}',
+        '.kbmu-cmd{display:flex;align-items:center;gap:8px;margin-top:6px;padding:7px 8px 7px 10px;border-radius:10px;background:var(--dsw-alias-bg-base,rgba(0,0,0,.25));font-family:ui-monospace,Menlo,monospace;font-size:12px}',
+        '.kbmu-cmd code{flex:1 1 auto;min-width:0;overflow-x:auto;white-space:nowrap}',
+        '.kbmu-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:16px}',
+        '.kbmu-foot .grow{flex:1 1 auto}',
       ].join('')
       document.head.appendChild(st)
     }
-    const updCloseCard = () => { const c = document.querySelector('.kbup-card'); if (c !== null) c.remove(); upd.cardUp = false }
+    const updCloseCard = () => { const c = document.querySelector('.kbmu-card'); if (c !== null) c.remove(); upd.cardUp = false }
     const updCopy = (txt, btn) => {
       const done = () => { const o = btn.textContent; btn.textContent = kbp('Copié ✓', 'Copied ✓'); setTimeout(() => { btn.textContent = o }, 1400) }
       try { navigator.clipboard.writeText(txt).then(done, () => { /* clipboard denied: the command stays visible */ }) } catch (e) { /* no clipboard */ }
@@ -827,12 +827,12 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
     const updDialog = (info, opts) => {
       upCss()
       updCloseCard()
-      const old = document.querySelector('.kbup-scrim')
+      const old = document.querySelector('.kbmu-scrim')
       if (old !== null) old.remove()
       const p = info !== null && info.pending !== null && info.pending !== undefined ? info.pending : null
       const prevFocus = document.activeElement
-      const scrim = upEl('div', 'kbup-scrim')
-      const dlg = upEl('div', 'kbup-dlg')
+      const scrim = upEl('div', 'kbmu-scrim')
+      const dlg = upEl('div', 'kbmu-dlg')
       dlg.setAttribute('role', 'dialog')
       dlg.setAttribute('aria-modal', 'true')
       const close = () => { scrim.remove(); document.removeEventListener('keydown', onKey, true); try { if (prevFocus && prevFocus.focus) prevFocus.focus() } catch (e) { /* unmounted */ } }
@@ -840,16 +840,16 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       document.addEventListener('keydown', onKey, true)
       scrim.addEventListener('mousedown', (e) => { if (e.target === scrim) close() })
 
-      const title = upEl('h2', 'kbup-title')
+      const title = upEl('h2', 'kbmu-title')
       dlg.setAttribute('aria-label', p !== null ? kbp('Mise à jour disponible', 'Update available') : kbp('Vous êtes à jour', 'You are up to date'))
-      const ico = upEl('span', 'kbup-ico', p !== null ? '↓' : '✓')
+      const ico = upEl('span', 'kbmu-ico', p !== null ? '↓' : '✓')
       ico.setAttribute('aria-hidden', 'true')
       title.appendChild(ico)
       title.appendChild(document.createTextNode(p !== null ? kbp('Mise à jour disponible', 'Update available') : kbp('Vous êtes à jour', 'You are up to date')))
       dlg.appendChild(title)
 
-      const rows = upEl('div', 'kbup-rows')
-      const row = (k, v) => { const r = upEl('div', 'kbup-row'); r.appendChild(upEl('span', null, k)); r.appendChild(upEl('b', null, v)); rows.appendChild(r) }
+      const rows = upEl('div', 'kbmu-rows')
+      const row = (k, v) => { const r = upEl('div', 'kbmu-row'); r.appendChild(upEl('span', null, k)); r.appendChild(upEl('b', null, v)); rows.appendChild(r) }
       if (info !== null) {
         const pk = info.pack || {}
         row('Kybernos', pk.installee === null || pk.installee === undefined ? kbp('inconnue', 'unknown')
@@ -865,14 +865,14 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       let viaMoteur = false
       let statutMaj = null
       if (p !== null) {
-        if (p.kind === 'moteur' && p.note) dlg.appendChild(upEl('p', 'kbup-note', hs(p.note)))
-        if (p.requis === true) dlg.appendChild(upEl('p', 'kbup-note', kbp('Cette mise à jour est requise : le moteur installé est sous le minimum que ce plugin supporte.', 'This update is required: the installed engine is below the minimum this plugin supports.')))
-        const steps = upEl('ol', 'kbup-steps')
+        if (p.kind === 'moteur' && p.note) dlg.appendChild(upEl('p', 'kbmu-note', hs(p.note)))
+        if (p.requis === true) dlg.appendChild(upEl('p', 'kbmu-note', kbp('Cette mise à jour est requise : le moteur installé est sous le minimum que ce plugin supporte.', 'This update is required: the installed engine is below the minimum this plugin supports.')))
+        const steps = upEl('ol', 'kbmu-steps')
         const step = (txt, cmd) => {
           const li = upEl('li'); li.appendChild(upEl('span', null, txt))
           if (cmd !== undefined) {
-            const c = upEl('div', 'kbup-cmd'); c.appendChild(upEl('code', null, cmd))
-            const b = upBtn(kbp('Copier', 'Copy'), 'kbup-b', () => updCopy(cmd, b)); c.appendChild(b); li.appendChild(c)
+            const c = upEl('div', 'kbmu-cmd'); c.appendChild(upEl('code', null, cmd))
+            const b = upBtn(kbp('Copier', 'Copy'), 'kbmu-b', () => updCopy(cmd, b)); c.appendChild(b); li.appendChild(c)
           }
           steps.appendChild(li)
         }
@@ -880,13 +880,13 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         const mode = modeMiseAJour(info)
         if (mode === 'heberge') {
           // A server or container deployment is rebuilt. Replacing files in a running container would be lost at the next redeploy.
-          dlg.appendChild(upEl('p', 'kbup-note', kbp('Cette instance tourne sur un serveur ou dans un conteneur (Coolify, Docker…). Elle ne se met pas à jour sur place : elle se reconstruit.', 'This instance runs on a server or in a container (Coolify, Docker…). It is not updated in place: it is rebuilt.')))
+          dlg.appendChild(upEl('p', 'kbmu-note', kbp('Cette instance tourne sur un serveur ou dans un conteneur (Coolify, Docker…). Elle ne se met pas à jour sur place : elle se reconstruit.', 'This instance runs on a server or in a container (Coolify, Docker…). It is not updated in place: it is rebuilt.')))
           step(kbp('Redéployez ou redémarrez l’instance pour qu’elle reparte de la dernière version du Dockerfile. Si la construction réutilise son cache, forcez-la sans cache : sinon l’ancienne version est conservée.', 'Redeploy or restart the instance so that it starts from the latest version of the Dockerfile. If the build reuses its cache, force it without cache: otherwise the old version is kept.'))
           step(kbp('Gardez le volume de données attaché s’il y en a un : vos sessions et réglages y vivent. Sans volume, un redéploiement repart d’une instance vide.', 'Keep the data volume attached if there is one: your sessions and settings live in it. Without a volume, a redeploy starts from an empty instance.'))
         } else if (mode === 'suite') {
           viaSuite = true
-          dlg.appendChild(upEl('p', 'kbup-note', kbp('Kybernos télécharge l’archive signée, vérifie son empreinte, prend une photo de votre installation puis installe. En cas d’échec, tout revient à l’état d’avant. Ensuite DSH redémarre tout seul ; les sessions en cours reprennent après le redémarrage.', 'Kybernos downloads the signed archive, checks its hash, snapshots your install, then installs. If anything fails, everything goes back to how it was. Then DSH restarts by itself; running sessions pick up again after the restart.')))
-          statutMaj = upEl('p', 'kbup-note'); statutMaj.setAttribute('role', 'status'); statutMaj.setAttribute('data-kb', 'upd-status')
+          dlg.appendChild(upEl('p', 'kbmu-note', kbp('Kybernos télécharge l’archive signée, vérifie son empreinte, prend une photo de votre installation puis installe. En cas d’échec, tout revient à l’état d’avant. Ensuite DSH redémarre tout seul ; les sessions en cours reprennent après le redémarrage.', 'Kybernos downloads the signed archive, checks its hash, snapshots your install, then installs. If anything fails, everything goes back to how it was. Then DSH restarts by itself; running sessions pick up again after the restart.')))
+          statutMaj = upEl('p', 'kbmu-note'); statutMaj.setAttribute('role', 'status'); statutMaj.setAttribute('data-kb', 'upd-status')
           dlg.appendChild(statutMaj)
         } else if (p.kind === 'kybernos' && pk.git !== true) {
           step(kbp('Téléchargez la dernière archive du dépôt et décompressez-la.', 'Download the latest archive of the repository and extract it.'))
@@ -897,14 +897,14 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         } else if (p.kind === 'moteur' && pk.heberge !== true && typeof p.cible === 'string' && p.cible !== '') {
           // The engine is outside what this plugin was tested with: no terminal, one click. The terminal command stays, folded, for developers.
           viaMoteur = true
-          dlg.appendChild(upEl('p', 'kbup-note', kbp('Kybernos peut remettre DSH sur la version qu’il a testée (' + p.cible + '). Une photo de votre installation est prise avant, DSH redémarre tout seul, et en cas d’échec tout revient à l’état d’avant.',
+          dlg.appendChild(upEl('p', 'kbmu-note', kbp('Kybernos peut remettre DSH sur la version qu’il a testée (' + p.cible + '). Une photo de votre installation est prise avant, DSH redémarre tout seul, et en cas d’échec tout revient à l’état d’avant.',
             'Kybernos can put DSH back on the version it was tested with (' + p.cible + '). A snapshot of your installation is taken first, DSH restarts by itself, and if anything fails everything goes back to how it was.')))
-          statutMaj = upEl('p', 'kbup-note'); statutMaj.setAttribute('role', 'status'); statutMaj.setAttribute('data-kb', 'upd-status')
+          statutMaj = upEl('p', 'kbmu-note'); statutMaj.setAttribute('role', 'status'); statutMaj.setAttribute('data-kb', 'upd-status')
           dlg.appendChild(statutMaj)
-          const dev = upEl('details', 'kbup-dev')
+          const dev = upEl('details', 'kbmu-dev')
           dev.appendChild(upEl('summary', null, kbp('Pour les développeurs', 'For developers')))
-          const c = upEl('div', 'kbup-cmd'); c.appendChild(upEl('code', null, 'node scripts/dsh-lifecycle.mjs upgrade ' + p.cible))
-          const cb = upBtn(kbp('Copier', 'Copy'), 'kbup-b', () => updCopy('node scripts/dsh-lifecycle.mjs upgrade ' + p.cible, cb)); c.appendChild(cb)
+          const c = upEl('div', 'kbmu-cmd'); c.appendChild(upEl('code', null, 'node scripts/dsh-lifecycle.mjs upgrade ' + p.cible))
+          const cb = upBtn(kbp('Copier', 'Copy'), 'kbmu-b', () => updCopy('node scripts/dsh-lifecycle.mjs upgrade ' + p.cible, cb)); c.appendChild(cb)
           dev.appendChild(c)
           dlg.appendChild(dev)
         } else {
@@ -915,61 +915,61 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       } else if (info !== null && info.checkedAt) {
         let quand = ''
         try { quand = new Date(info.checkedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) } catch (e) { quand = '' }
-        dlg.appendChild(upEl('p', 'kbup-note', kbp('Dernière vérification à ', 'Last checked at ') + quand + '.'))
+        dlg.appendChild(upEl('p', 'kbmu-note', kbp('Dernière vérification à ', 'Last checked at ') + quand + '.'))
       } else {
-        dlg.appendChild(upEl('p', 'kbup-note', kbp('La vérification n’a pas abouti. Réessayez dans un instant.', 'The check did not complete. Try again in a moment.')))
+        dlg.appendChild(upEl('p', 'kbmu-note', kbp('La vérification n’a pas abouti. Réessayez dans un instant.', 'The check did not complete. Try again in a moment.')))
       }
 
-      const foot = upEl('div', 'kbup-foot')
+      const foot = upEl('div', 'kbmu-foot')
       if (p !== null && p.requis !== true) {
-        foot.appendChild(upBtn(kbp('Plus tard', 'Later'), 'kbup-b', () => { lsSet(KB_UPD_SNOOZE, JSON.stringify({ cible: p.cible, until: Date.now() + 24 * 3600 * 1000 })); close() }))
-        foot.appendChild(upBtn(kbp('Ignorer cette version', 'Skip this version'), 'kbup-b', () => { lsSet(KB_UPD_SKIP, p.cible); updSignal(); close() }))
+        foot.appendChild(upBtn(kbp('Plus tard', 'Later'), 'kbmu-b', () => { lsSet(KB_UPD_SNOOZE, JSON.stringify({ cible: p.cible, until: Date.now() + 24 * 3600 * 1000 })); close() }))
+        foot.appendChild(upBtn(kbp('Ignorer cette version', 'Skip this version'), 'kbmu-b', () => { lsSet(KB_UPD_SKIP, p.cible); updSignal(); close() }))
       }
       const grow = upEl('span', 'grow'); foot.appendChild(grow)
-      const again = upBtn(kbp('Vérifier à nouveau', 'Check again'), 'kbup-link', () => { again.textContent = kbp('Vérification…', 'Checking…'); void updCheck(true, true) })
+      const again = upBtn(kbp('Vérifier à nouveau', 'Check again'), 'kbmu-link', () => { again.textContent = kbp('Vérification…', 'Checking…'); void updCheck(true, true) })
       foot.appendChild(again)
       if (viaSuite === true || viaMoteur === true) {
         // Once installed the dialog has nothing left to postpone or skip: only "Close" stays.
         const fin = () => {
-          foot.querySelectorAll('.kbup-b').forEach((b) => { if (b !== go) b.remove() })
+          foot.querySelectorAll('.kbmu-b').forEach((b) => { if (b !== go) b.remove() })
           go.textContent = kbp('Fermer', 'Close'); go.disabled = false; go.removeAttribute('data-kb'); go.onclick = close
         }
-        const go = upBtn(viaMoteur === true ? kbp('Corriger automatiquement', 'Fix automatically') : kbp('Mettre à jour maintenant', 'Update now'), 'kbup-b main',
+        const go = upBtn(viaMoteur === true ? kbp('Corriger automatiquement', 'Fix automatically') : kbp('Mettre à jour maintenant', 'Update now'), 'kbmu-b main',
           () => { void updRun(go, statutMaj, fin, viaMoteur === true ? p.cible : undefined) })
         go.setAttribute('data-kb', 'upd-go')
         foot.appendChild(go)
       } else if (p !== null && p.kind === 'kybernos' && info.pack && info.pack.depot) {
-        const a = upEl('a', 'kbup-b main', modeMiseAJour(info) === 'heberge' ? kbp('Voir cette version', 'See this release') : kbp('Ouvrir la page de téléchargement', 'Open the download page'))
+        const a = upEl('a', 'kbmu-b main', modeMiseAJour(info) === 'heberge' ? kbp('Voir cette version', 'See this release') : kbp('Ouvrir la page de téléchargement', 'Open the download page'))
         a.href = info.pack.depot + (modeMiseAJour(info) === 'heberge' && /github\.com/.test(info.pack.depot) ? '/releases/latest' : ''); a.target = '_blank'; a.rel = 'noopener noreferrer'; a.style.textDecoration = 'none'; a.style.display = 'inline-flex'; a.style.alignItems = 'center'
         foot.appendChild(a)
       } else {
-        foot.appendChild(upBtn(kbp('Fermer', 'Close'), 'kbup-b main', close))
+        foot.appendChild(upBtn(kbp('Fermer', 'Close'), 'kbmu-b main', close))
       }
       dlg.appendChild(foot)
       scrim.appendChild(dlg)
       document.body.appendChild(scrim)
-      try { (dlg.querySelector('.kbup-b.main') || dlg).focus() } catch (e) { /* focus */ }
+      try { (dlg.querySelector('.kbmu-b.main') || dlg).focus() } catch (e) { /* focus */ }
       void opts
     }
 
     /** The launch card: discreet, once per version and per session. */
     const updCard = (info) => {
       const p = info.pending
-      if (upd.cardUp === true || document.querySelector('.kbup-scrim') !== null) return
+      if (upd.cardUp === true || document.querySelector('.kbmu-scrim') !== null) return
       let vue = null
       try { vue = window.sessionStorage.getItem('kybernos.update.card') } catch (e) { vue = null }
       if (vue === p.cible) return
       try { window.sessionStorage.setItem('kybernos.update.card', p.cible) } catch (e) { /* no session: at worst, the card comes back at the next check */ }
       upCss()
       upd.cardUp = true
-      const card = upEl('div', 'kbup-card')
+      const card = upEl('div', 'kbmu-card')
       card.setAttribute('role', 'status')
-      const head = upEl('div', 'kbup-head'); head.appendChild(upEl('span', 'kbup-dot')); head.appendChild(document.createTextNode(kbp('Mise à jour disponible', 'Update available')))
+      const head = upEl('div', 'kbmu-head'); head.appendChild(upEl('span', 'kbmu-dot')); head.appendChild(document.createTextNode(kbp('Mise à jour disponible', 'Update available')))
       card.appendChild(head)
-      card.appendChild(upEl('p', 'kbup-sub', updLabel(p) + ' — ' + kbp('vous avez ', 'you have ') + p.installee + '.'))
-      const acts = upEl('div', 'kbup-actions')
-      acts.appendChild(upBtn(kbp('Voir comment', 'See how'), 'kbup-b main', () => updDialog(upd.info)))
-      if (p.requis !== true) acts.appendChild(upBtn(kbp('Plus tard', 'Later'), 'kbup-b', () => { lsSet(KB_UPD_SNOOZE, JSON.stringify({ cible: p.cible, until: Date.now() + 24 * 3600 * 1000 })); updCloseCard() }))
+      card.appendChild(upEl('p', 'kbmu-sub', updLabel(p) + ' — ' + kbp('vous avez ', 'you have ') + p.installee + '.'))
+      const acts = upEl('div', 'kbmu-actions')
+      acts.appendChild(upBtn(kbp('Voir comment', 'See how'), 'kbmu-b main', () => updDialog(upd.info)))
+      if (p.requis !== true) acts.appendChild(upBtn(kbp('Plus tard', 'Later'), 'kbmu-b', () => { lsSet(KB_UPD_SNOOZE, JSON.stringify({ cible: p.cible, until: Date.now() + 24 * 3600 * 1000 })); updCloseCard() }))
       card.appendChild(acts)
       document.body.appendChild(card)
     }

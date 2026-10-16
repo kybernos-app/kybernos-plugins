@@ -353,7 +353,7 @@ Three things ride on the same hub seam (`window.__KB_HELP__`):
   The key is the one of the page's button (`kybernos.help.intro.<id>`, in this browser's localStorage). Skills, Connectors and Remote
   Control have one; adding a page is one call and its strings.
 - **One « ? How it works » button.** The Suite's pill is the only form. The pages that draw their own copy it declaration for
-  declaration (the core's Agent Teams / Automations button `kb6-helpbtn`, the Calls tabs `kbcl-hl`, Language `kbth-help-btn`, Atlas
+  declaration (the core's Agent Teams / Automations button `kb6-helpbtn`, the Calls tabs `kbcl-hl`, Language `kbln-help-btn`, Atlas
   `kbat-help`; each keeps the panel it opens): `scripts/test-help.mjs` compares them.
 
 ```bash
@@ -1057,8 +1057,9 @@ the same rules on an old tree.
   there: start from a clean page (`flow.openSettings` reloads first).
 - A 401 from your script, with a valid cookie, usually means the *authority* is
   wrong (`KB_HOST` must be exactly `host:port` as `dsh web` listens).
-- **The Theme page and the Language page share the `kbth-` class prefix.** `.kbth-page` is true on both: a test that asks
-  « is the Language page shown? » must use `[data-kb="language-page"]` or `[data-act="add-language"]`. (A first version of the
-  ring's click handler stopped at « the page is already there » while Settings still showed Theme.)
+- **A class prefix belongs to one bundle.** The Language page used to share `kbth-` with the Theme page (`.kbth-page` was true on both, and
+  the later stylesheet restyled the other's page); it is `kbln-` now. `scripts/test-consistency-guards.mjs` fails when two bundles declare the
+  same selector differently, and `node scripts/audit-css-prefixes.mjs` lists them. To ask « is the Language page shown? » use
+  `[data-kb="language-page"]` or `[data-act="add-language"]` all the same: they do not depend on a class.
 - **A click on a position hits what is on top.** With Settings open, the sidebar footer is covered by the nav: clicking the
   ring's coordinates selected « Theme ». Close Settings with a real click on « Back to workspace » first, and check it closed.

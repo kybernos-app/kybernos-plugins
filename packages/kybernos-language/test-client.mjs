@@ -1092,15 +1092,15 @@ console.log('\n── help and tooltips ──')
   check('both the French AND English text are filled in everywhere (never an empty pair)', (() => { const pairs = [...SOURCE.matchAll(/^\s{8}(\w+): \['((?:[^'\\]|\\.)*)', '((?:[^'\\]|\\.)*)'\],?$/gm)]; return pairs.length > 80 && pairs.every((m) => m[2].trim() !== '' && m[3].trim() !== '') })())
   check('the {x} variables of a text are found in its English version (nothing is lost in translation)', (() => { const v = (x) => (x.match(/\{\w+\}/g) || []).sort().join(); return [...SOURCE.matchAll(/^\s{8}(\w+): \['((?:[^'\\]|\\.)*)', '((?:[^'\\]|\\.)*)'\],?$/gm)].every((m) => v(m[2]) === v(m[3])) })())
   const css = SOURCE.slice(SOURCE.indexOf('const css = `'), SOURCE.indexOf('\n`', SOURCE.indexOf('const css = `')))
-  const used2 = [...new Set([...css.matchAll(/animation:(kbth-k-[\w-]+)/g)].map((m) => m[1]))]
-  const keyframes = new Set([...css.matchAll(/@keyframes (kbth-k-[\w-]+)/g)].map((m) => m[1]))
+  const used2 = [...new Set([...css.matchAll(/animation:(kbln-k-[\w-]+)/g)].map((m) => m[1]))]
+  const keyframes = new Set([...css.matchAll(/@keyframes (kbln-k-[\w-]+)/g)].map((m) => m[1]))
   check('every animation of the mockup has its @keyframes (a typo would freeze it without an error)', used2.length >= 15 && used2.every((n) => keyframes.has(n)), used2.filter((n) => !keyframes.has(n)))
-  check('all the mockup animations last 12 s (the steps stay in sync with the mockup)', [...css.matchAll(/animation:kbth-k-[\w-]+ (\d+)s/g)].every((m) => m[1] === '12'))
+  check('all the mockup animations last 12 s (the steps stay in sync with the mockup)', [...css.matchAll(/animation:kbln-k-[\w-]+ (\d+)s/g)].every((m) => m[1] === '12'))
   check('reduced motion: animations stop and the mockup shows the final state', /prefers-reduced-motion:reduce\)\{[^}]*animation:none !important/.test(css))
   check('the stylesheet contains NO backtick (it would close the template and break the whole plugin)', !css.slice(css.indexOf('`') + 1).includes('`'))
-  check('the mockup is hidden from screen readers behind its caption, and captures no click', /\.kbth-mm\{[^}]*pointer-events:none/.test(css) && /role: 'img', 'aria-label': L\('mockCaption'\)/.test(SOURCE))
-  check('the mockup uses no data-lang attribute (it must not pass for a real row)', !/kbth-mm[^\n]*'data-lang'/.test(SOURCE))
-  check('the help button is a real collapse/expand button (aria-expanded, aria-controls)', /'data-act': 'help', 'aria-expanded'[^\n]*'aria-controls': 'kbth-help'/.test(SOURCE))
+  check('the mockup is hidden from screen readers behind its caption, and captures no click', /\.kbln-mm\{[^}]*pointer-events:none/.test(css) && /role: 'img', 'aria-label': L\('mockCaption'\)/.test(SOURCE))
+  check('the mockup uses no data-lang attribute (it must not pass for a real row)', !/kbln-mm[^\n]*'data-lang'/.test(SOURCE))
+  check('the help button is a real collapse/expand button (aria-expanded, aria-controls)', /'data-act': 'help', 'aria-expanded'[^\n]*'aria-controls': 'kbln-help'/.test(SOURCE))
   check('help opens by itself only while nothing is translated, then respects the choice', /managedIds\(\)\.length === 0/.test(SOURCE) && /I18N_HELP_KEY/.test(SOURCE))
   const titled = ['tipHelp', 'tipStart', 'tipResume', 'tipRetry', 'tipPause', 'tipUse', 'tipUseNow', 'tipInUse', 'tipRtl', 'tipProgress', 'tipAreaCore', 'tipAreaMore', 'tipAreaPhrases', 'tipEstimate', 'tipAdd', 'tipAddLang', 'tipModel', 'tipAdvanced', 'tipAgain', 'tipRemove', 'tipChooseModel', 'tipDetails']
   const code = SOURCE.replace(/^\s{8}\w+: \[.*$/gm, '') // the code, without the text catalogue
