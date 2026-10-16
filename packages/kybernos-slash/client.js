@@ -157,6 +157,8 @@ window.__ModuleLoader__.load({
         } catch (e) { return 'en' }
       }
       const L = (v) => (v === null || v === undefined ? '' : (typeof v === 'object' ? (v[kbslLang()] || v.en || v.fr || '') : String(v)))
+      // A count with its noun, one or many: « 1 field », « 2 fields » (`one` and `many` are { fr, en } labels).
+      const kbslCount = (n, one, many) => String(n) + ' ' + L(n === 1 ? one : many)
 
       // ── Accès aux entrées du hôte ─────────────────────────────────────────
       const API = '/kybernos/slash/entries'
@@ -257,7 +259,7 @@ window.__ModuleLoader__.load({
             notify()
             return { ok: true }
           }
-          return { ok: false, error: String((body !== null && body.error) ? body.error : 'écriture refusée') }
+          return { ok: false, error: String((body !== null && body.error) ? body.error : 'write refused') }
         } catch (e) {
           return { ok: false, error: String(e !== null && e.message ? e.message : e) }
         }
@@ -293,14 +295,14 @@ window.__ModuleLoader__.load({
       // Entrée (adjudication, transaction, sink par défaut). Rien de simulé.
       const kbEnvoyer = (sid) => {
         const shell = kbShell(sid)
-        if (shell === null) { diag.envoi = 'composeur introuvable'; return { ok: false, error: 'composeur introuvable' } }
-        if (typeof shell.submit !== 'function') { diag.envoi = 'submit absent'; return { ok: false, error: 'envoi indisponible' } }
+        if (shell === null) { diag.envoi = 'composer not found'; return { ok: false, error: 'composer not found' } }
+        if (typeof shell.submit !== 'function') { diag.envoi = 'submit missing'; return { ok: false, error: 'sending unavailable' } }
         try {
           shell.submit('queue')
-          diag.envoi = 'envoye'
+          diag.envoi = 'sent'
           return { ok: true }
         } catch (e) {
-          diag.envoi = 'erreur: ' + String(e !== null && e.message !== undefined ? e.message : e)
+          diag.envoi = 'error: ' + String(e !== null && e.message !== undefined ? e.message : e)
           return { ok: false, error: 'envoi refuse' }
         }
       }
@@ -317,7 +319,7 @@ window.__ModuleLoader__.load({
         const pret = text === '' || temoin === '' || brouillon.indexOf(temoin) >= 0
         if (pret === true || n >= 20) {
           if (pret !== true) {
-            diag.envoi = 'texte absent'
+            diag.envoi = 'text missing'
             kbFlash('Could not send automatically — the text is in the composer.')
             return
           }
@@ -331,7 +333,7 @@ window.__ModuleLoader__.load({
       // révision COURANTE (sinon `insertText` refuse — CAS documenté).
       const kbInsertAt = (sid, text, at) => {
         const shell = kbShell(sid)
-        if (shell === null) return { ok: false, error: 'composeur introuvable' }
+        if (shell === null) return { ok: false, error: 'composer not found' }
         let pos = at
         if (typeof pos !== 'number' || pos < 0) {
           try { pos = shell.caretSpan().start } catch (e) { pos = 0 }
@@ -466,7 +468,7 @@ window.__ModuleLoader__.load({
           return { ok: true }
         }
         const text = render(entry.template, {}, { message: message })
-        if (text === '') return { ok: false, error: 'gabarit vide' }
+        if (text === '') return { ok: false, error: 'empty template' }
         const out = kbInsertAt(sid, text, null)
         // L'étape 4 vaut pour les deux familles : une action marquée « Send it
         // right away » part toute seule, comme une commande. Sans cela elle
@@ -1233,7 +1235,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         if (entry.id === undefined || entry.id === '') delete entry.id
         kbPatchEditor({ saving: true, error: null })
         const out = await kbWrite({ entry: entry })
-        if (out.ok !== true) { kbPatchEditor({ saving: false, error: String(out.error || 'refusé') }); return }
+        if (out.ok !== true) { kbPatchEditor({ saving: false, error: String(out.error || 'refused') }); return }
         const isNew = ed.mode === 'create'
         const isCmd = entry.kind !== 'action'
         ui.editor = null
@@ -1252,7 +1254,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         ui.confirmId = null
         ui.editor = null
         const out = await kbWrite({ delete: idOf(entry) })
-        if (out.ok !== true) { kbPatchEditor({ error: String(out.error || 'suppression refusée') }); kbFlash('Delete failed: ' + String(out.error || ''), null); return }
+        if (out.ok !== true) { kbPatchEditor({ error: String(out.error || 'delete refused') }); kbFlash('Delete failed: ' + String(out.error || ''), null); return }
         kbRetenirEnvoi(idOf(entry), 'insert')
         if (quiet !== true) kbFlash('Deleted ' + (L(entry.label) || nameOf(entry)), { entry: backup })
       }
@@ -2097,9 +2099,9 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
             title: L({ fr: 'Les commandes en trois étapes', en: 'Commands in three steps' }),
             caption: L({ fr: 'Un prompt est enregistré comme commande, appelé avec « / » dans la zone de message, ou lancé depuis le bouton sous une réponse.', en: 'A prompt is saved as a command, called with “/” in the message box, or run from the button under a reply.' }),
             steps: [
-              { t: L({ fr: 'Enregistrez un prompt', en: 'Save a prompt' }), b: L({ fr: 'Écrivez-le ici avec « Nouvelle commande », ou enregistrez ce que vous avez tapé avec le bouton signet de la zone de message.', en: 'Write it here with “New command”, or save what you typed with the bookmark button in the message box.' }) },
-              { t: L({ fr: 'Appelez-le avec /', en: 'Call it with /' }), b: L({ fr: 'Tapez « / » dans la zone de message : vos commandes s’affichent après celles de DSH. Choisissez-en une, remplissez son formulaire s’il y en a un.', en: 'Type “/” in the message box: your commands show after DSH’s own. Pick one and fill in its form, if it has one.' }) },
-              { t: L({ fr: 'Ou lancez-le sur une réponse', en: 'Or run it on a reply' }), b: L({ fr: 'Sous une réponse de l’assistant, un bouton lance une action de message sur ce message ; « + » en ajoute une, le clic droit la modifie.', en: 'Under an assistant reply, a button runs a message action on that message; “+” adds one, right-click edits it.' }) }
+              { t: L({ fr: 'Enregistre un prompt', en: 'Save a prompt' }), b: L({ fr: 'Écris-le ici avec « Nouvelle commande », ou enregistre ce que tu as tapé avec le bouton signet de la zone de message.', en: 'Write it here with “New command”, or save what you typed with the bookmark button in the message box.' }) },
+              { t: L({ fr: 'Appelle-le avec /', en: 'Call it with /' }), b: L({ fr: 'Tape « / » dans la zone de message : tes commandes s’affichent après celles de DSH. Choisis-en une, remplis son formulaire s’il y en a un.', en: 'Type “/” in the message box: your commands show after DSH’s own. Pick one and fill in its form, if it has one.' }) },
+              { t: L({ fr: 'Ou lance-le sur une réponse', en: 'Or run it on a reply' }), b: L({ fr: 'Sous une réponse de l’assistant, un bouton lance une action de message sur ce message ; « + » en ajoute une, le clic droit la modifie.', en: 'Under an assistant reply, a button runs a message action on that message; “+” adds one, right-click edits it.' }) }
             ],
             mock: {
               bar: L({ fr: 'Commandes', en: 'Commands' }),
@@ -2123,7 +2125,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
           // What the open tab is for, in one line: a slash command is called from the message box, an action works on a reply.
           h('span', { className: 'kbsl-sub kbsl-tabfor' }, tab === 'action'
             ? L({ fr: 'Une action de message est un bouton sous chaque réponse de l’assistant : il applique un prompt enregistré à cette réponse.', en: 'A message action is a button under each assistant reply: it applies a saved prompt to that reply.' })
-            : L({ fr: 'Une commande slash est un prompt enregistré : tapez “/” dans la zone de message et choisissez-la. Son texte est inséré, ou un petit formulaire s’ouvre d’abord.', en: 'A slash command is a saved prompt: type “/” in the message box and pick it. Its text is inserted, or a small form opens first.' })),
+            : L({ fr: 'Une commande slash est un prompt enregistré : tape “/” dans la zone de message et choisis-la. Son texte est inséré, ou un petit formulaire s’ouvre d’abord.', en: 'A slash command is a saved prompt: type “/” in the message box and pick it. Its text is inserted, or a small form opens first.' })),
           h('div', { style: { display: 'flex', flexDirection: 'column', gap: '2px' } },
             rows.length === 0 ? h('span', { className: 'kbsl-help' }, needle !== '' ? L({ fr: 'Aucune commande ne correspond à « ' + q + ' ».', en: 'No command matches “' + q + '”.' }) : (tab === 'slash' ? L({ fr: 'Aucune commande slash pour l’instant.', en: 'No slash command yet.' }) : L({ fr: 'Aucune action de message pour l’instant.', en: 'No message action yet.' }))) : null,
             rows.map((e) => h(KbSettingsRow, { key: idOf(e), entry: e }))),
@@ -2156,7 +2158,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
               e.kind === 'action' ? null : h('span', { className: 'kbsl-mono', style: { color: 'var(--kb-accent)', fontWeight: 500, fontSize: '13.5px' } }, '/' + nameOf(e)),
               h('span', null, title)),
             h('span', { className: 'kbsl-desc kbsl-clip', style: { fontSize: '12.5px', color: 'var(--kb-muted)' } }, L(e.description))),
-          h('span', { className: 'kbsl-chip kbsl-tt b', 'data-tip': runOf(e) === 'form' ? L({ fr: 'Demande ' + String((e.fields || []).length) + ' réponse(s) via un formulaire avant de lancer', en: 'Asks for ' + String((e.fields || []).length) + ' answer(s) in a form before running' }) : L({ fr: 'Se lance directement, sans formulaire', en: 'Runs directly, no form' }) }, runOf(e) === 'form' ? String((e.fields || []).length) + ' ' + L({ fr: 'champs', en: 'fields' }) : L({ fr: 'direct', en: 'direct' })),
+          h('span', { className: 'kbsl-chip kbsl-tt b', 'data-tip': runOf(e) === 'form' ? L({ fr: 'Demande', en: 'Asks for' }) + ' ' + kbslCount((e.fields || []).length, { fr: 'réponse', en: 'answer' }, { fr: 'réponses', en: 'answers' }) + ' ' + L({ fr: 'via un formulaire avant de lancer', en: 'in a form before running' }) : L({ fr: 'Se lance directement, sans formulaire', en: 'Runs directly, no form' }) }, runOf(e) === 'form' ? kbslCount((e.fields || []).length, { fr: 'champ', en: 'field' }, { fr: 'champs', en: 'fields' }) : L({ fr: 'direct', en: 'direct' })),
           h('button', { type: 'button', 'data-kb-edit': id, className: 'kbsl-ibtn sm kbsl-tt lf', 'data-tip': L({ fr: 'Modifier', en: 'Edit' }), 'aria-label': L({ fr: 'Modifier', en: 'Edit' }) + ' ' + title, onClick: () => kbOpenEditor('edit', e.kind === 'action' ? 'action' : 'slash', e) }, h(KbIcon, { name: 'square-pen', size: 15 })),
           h('button', { type: 'button', className: 'kbsl-ibtn sm kbsl-tt lf', 'data-tip': L({ fr: 'Dupliquer', en: 'Duplicate' }), 'aria-label': L({ fr: 'Dupliquer', en: 'Duplicate' }) + ' ' + title, onClick: () => kbDuplicate(e) }, h(KbIcon, { name: 'copy', size: 15 })),
           h('button', { type: 'button', className: 'kbsl-ibtn sm danger kbsl-tt lf', 'data-tip': L({ fr: 'Supprimer', en: 'Delete' }), 'aria-label': L({ fr: 'Supprimer', en: 'Delete' }) + ' ' + title, onClick: () => { ui.confirmId = id; notify() } }, h(KbIcon, { name: 'trash', size: 15 })))
