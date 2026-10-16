@@ -14,9 +14,10 @@
 // portal calls of the Upgrade dialog (the host routes themselves are proven by packages/kybernos-cloud/test-billing-proxy.mjs), the console
 // link, and `window.open` (recorded, never followed).
 //
-// The embedded console (Team settings, Account, Referral) is checked against REAL servers: small HTTP stand-ins on loopback ports that the
-// sandbox's own registry (<DSH home>/kybernos/servers.json, put back at the end) names as the active server, so the address comes from the
-// host's route and the frame really loads. The frame's own stand-in page posts the message the real console posts (« open in browser »).
+// The menu's Team settings, Account and Referral open the APP in the browser (the console link, section plan / overview, asked of the host which opens the
+// system browser): no frame. The embedded console (still in the core, no menu entry opens it any more: `window.__kbOpenWsConsole`) is checked against REAL
+// servers: small HTTP stand-ins on loopback ports that the sandbox's own registry (<DSH home>/kybernos/servers.json, put back at the end) names as the active
+// server, so the address comes from the host's route and the frame really loads. The frame's own stand-in page posts the message the real console posts.
 //
 // The account's own pages of that frame (Security, Devices, My data, Support & legal; the server's ADR 0054) read through the host's relay: the scene
 // « the frame's account pages are not refused by the relay » drives the REAL relay route of the sandbox's host (a connected state is written for the
@@ -409,16 +410,45 @@ try {
     await reload()
     await openProfileMenu()
 
-    // Account and Referral are read-only pages of the active server's console, in DSH's content zone (`#account`, `#referral`) — the same frame as Team
+    // Team settings, Account and Referral open the app in the browser: the host is asked for a single-use console link on the active workspace (section plan,
+    // overview, overview) and opens the system browser itself; nothing is drawn in DSH's content zone.
+    console.log('Team settings, Account and Referral — the app, in the browser')
+    // The menu was left open by the scenes above and a press on the card toggles it: start from a closed one.
+    if (await exists('.kbfp-menu')) await openProfileMenu()
+    for (const [entry, section] of [['space-settings', 'plan'], ['account', 'overview'], ['referral', 'overview']]) {
+      fake.bodies.length = 0
+      await openProfileMenu()
+      await press('[data-kb="menu-' + entry + '"]'); await sleep(600)
+      const asked = fake.bodies.filter((b) => b.path === '/kybernos-cloud/console/link')
+      check(entry + ': asks the host for a console link on section ' + section + ', for the active workspace, opened by the host',
+        asked.length === 1 && asked[0].body.section === section && asked[0].body.open === true && asked[0].body.workspace_id === W_PERSONAL, asked)
+      check(entry + ': nothing is drawn in DSH\'s content zone and the menu is closed', !(await exists('[data-kb="ws-console"]')) && !(await exists('.kbfp-menu')))
+    }
+    // The workspace the person switched to is the one asked for.
+    fake.status = CLOUD(W_TEAM)
+    await reload()
+    fake.bodies.length = 0
+    await openProfileMenu()
+    await press('[data-kb="menu-space-settings"]'); await sleep(600)
+    const teamLink = fake.bodies.filter((b) => b.path === '/kybernos-cloud/console/link')
+    check('Team settings follows the active workspace (the team the person switched to)', teamLink.length === 1 && teamLink[0].body.workspace_id === W_TEAM && teamLink[0].body.section === 'plan', teamLink)
+    fake.status = CLOUD(W_PERSONAL)
+    fake.bodies.length = 0
+    await reload()
+    await openProfileMenu()
+
+    // The core's embedded console is no longer reachable from the menu; its own scenes below open it through its bridge, as any other caller would.
+    // Account and Referral were read-only pages of the active server's console, in DSH's content zone (`#account`, `#referral`) — the same frame as Team
     // settings. The registry names a console stand-in as the active server, so the address really comes from the host and the frame really loads.
-    console.log('Account, Referral and Team settings — the ACTIVE server\'s console, embedded')
+    console.log('The core\'s embedded console (through its bridge) — the ACTIVE server\'s console')
     const A = await startConsole()
     setRegistry('stub-1', [A])
     await reload()
     const frame = async () => val(`(() => { const f = document.querySelector('[data-kb="ws-console"]'); const a = document.querySelector('[data-kb="ws-open-browser"]'); return f ? { kind: 'iframe', url: f.src } : a ? { kind: 'link', url: a.href } : null })()`)
     const frameUrl = async () => { const f = await frame(); return f === null ? null : new URL(f.url) }
     const waitFrame = async () => waitFor(page, `document.querySelector('[data-kb="ws-console"], [data-kb="ws-open-browser"]') !== null`, 8000)
-    const openPage = async (entry) => { await openProfileMenu(); await press('[data-kb="menu-' + entry + '"]'); await waitFrame(); await sleep(400) }
+    const PAGE_OF = { 'space-settings': '', account: 'account', referral: 'referral' }
+    const openPage = async (entry) => { await val(`window.__kbOpenWsConsole(${JSON.stringify(PAGE_OF[entry])})`); await waitFrame(); await sleep(400) }
 
     await openPage('space-settings')
     let u = await frameUrl()
@@ -591,7 +621,7 @@ try {
     await val(`localStorage.removeItem('kybernos.dev'); localStorage.removeItem('kybernos.ws.console.url')`)
     await reload()
 
-    // Without the core plugin's bridge (an older core) Account falls back to the account page in the system browser, through the console link.
+    // Account asks the host for the console link itself: the core's bridge is not involved (it is deleted here to prove it), and a refusal is said above the footer.
     await reload()
     await val(`delete window.__kbOpenWsConsole`)
     fake.bodies.length = 0
