@@ -128,10 +128,10 @@ try {
         const atlas = await waitFor(page, `(() => { const e = document.querySelector('[data-kb="atlas"]'); return e ? e.innerText : '' })()`, 8000)
         check('the Atlas page opens', atlas !== null)
         if (atlas !== null) {
-          check('the Atlas page speaks the language (A2-19)', french ? /Rien n’a encore été lu/.test(atlas) && /Mettre à jour/.test(atlas) && /Aide/.test(atlas) : /Nothing read yet/.test(atlas) && /Update/.test(atlas) && /Help/.test(atlas), atlas.slice(0, 200))
-          check('…and nothing of the other language', french ? !/Nothing read yet|Update\b/.test(atlas) : !/Rien n’a|Mettre à jour|Aide/.test(atlas), atlas.slice(0, 200))
+          check('the Atlas page speaks the language (A2-19)', french ? /Rien n’a encore été lu/.test(atlas) && /Mettre à jour/.test(atlas) && /Comment ça marche/.test(atlas) : /Nothing read yet/.test(atlas) && /Update/.test(atlas) && /How it works/.test(atlas), atlas.slice(0, 200))
+          check('…and nothing of the other language', french ? !/Nothing read yet|Update\b/.test(atlas) : !/Rien n’a|Mettre à jour|Comment ça marche/.test(atlas), atlas.slice(0, 200))
           await shot('atlas-' + lang)
-          if (await clickText(page, french ? 'Aide' : 'Help')) {
+          if (await clickText(page, french ? 'Comment ça marche' : 'How it works')) {
             await sleep(600)
             const help = await text('[role="dialog"][aria-labelledby="kbat-help-t"]')
             check('the Atlas help dialog speaks the language', french ? /Comment lire l’Atlas/.test(help) && /Compris/.test(help) : /How to read the Atlas/.test(help) && /Got it/.test(help), help.slice(0, 120))
