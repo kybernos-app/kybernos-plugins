@@ -1050,7 +1050,14 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
 
       // ── Pont entre la forme de la maquette (brouillon) et celle du modèle ──
       const kbSlugify = (s) => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
-      const kbCleanSlug = (s) => String(s).toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9_-]/g, '')
+      // <kbsl-slug> — the name typed after the slash: pure, no DOM (test-client.mjs cuts this block out and runs it)
+      // DSH's own slash commands (what its command plugins register: goal, compact, plan, feedback, and help). A command of ours with one of
+      // these names would sit under the engine's in the menu and never run, so the editor refuses it.
+      const KB_DSH_COMMANDS = ['goal', 'compact', 'plan', 'feedback', 'help']
+      const KB_SLUG_MAX = 32
+      // Accents are transliterated (« été » is « ete », not « t »); the name starts with a letter or a digit and is at most KB_SLUG_MAX long.
+      const kbCleanSlug = (s) => String(s).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/\s+/g, '-').replace(/[^a-z0-9_-]/g, '').replace(/^[-_]+/, '').slice(0, KB_SLUG_MAX)
+      // </kbsl-slug>
       const kbCleanName = (s) => String(s).toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
       const kbOptList = (str) => String(str || '').split(',').map((x) => x.trim()).filter((x) => x !== '')
       const kbTitleCase = (n) => { const t = String(n).replace(/[_-]+/g, ' ').trim(); return t.charAt(0).toUpperCase() + t.slice(1) }
@@ -1205,6 +1212,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         if (String(d.title).trim() === '') return { msg: 'Give it a name to save', go: 'title' }
         if (d.kind === 'slash') {
           if (kbCleanSlug(d.slug) === '') return { msg: 'Choose what you will type after /', go: 'slug' }
+          if (KB_DSH_COMMANDS.indexOf(kbCleanSlug(d.slug)) !== -1) return { msg: '/' + kbCleanSlug(d.slug) + ' is one of DSH’s own commands', go: 'slug' }
           if (kbSlugTaken(d)) return { msg: '/' + kbCleanSlug(d.slug) + ' is already used', go: 'slug' }
         }
         if (String(d.template).trim() === '') return { msg: 'Write the prompt', go: 'tpl' }

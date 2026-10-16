@@ -102,5 +102,21 @@ console.log('non-regression: __KB_I18N_ACTIVE__ is read in client.js')
   check('client.js references kbslLang', src.includes('kbslLang'), 'not found in source')
 }
 
+// The name typed after the slash (audit 2026-10-16: « ÉTÉ » became « t », « goal » was accepted, so was « -x » and an 80-letter name).
+console.log('the slash name')
+{
+  const a = src.indexOf('// <kbsl-slug>')
+  const b = src.indexOf('// </kbsl-slug>', a)
+  check('the name helpers can be cut out of client.js', a > 0 && b > a)
+  const { kbCleanSlug, KB_DSH_COMMANDS, KB_SLUG_MAX } = new Function(src.slice(a, b) + '\nreturn { kbCleanSlug, KB_DSH_COMMANDS, KB_SLUG_MAX }')()
+  check('accents are transliterated, not dropped (« ÉTÉ » is « ete », « Crème brûlée » is « creme-brulee »)', kbCleanSlug('ÉTÉ') === 'ete' && kbCleanSlug('Crème brûlée') === 'creme-brulee', [kbCleanSlug('ÉTÉ'), kbCleanSlug('Crème brûlée')])
+  check('a space becomes a dash, a slash and other signs are dropped', kbCleanSlug('a b') === 'a-b' && kbCleanSlug('a/b') === 'ab' && kbCleanSlug('a.b!') === 'ab')
+  check('the name starts with a letter or a digit (a leading dash or underscore goes), and keeps its inner ones', kbCleanSlug('-x') === 'x' && kbCleanSlug('__x') === 'x' && kbCleanSlug('9lives') === '9lives' && kbCleanSlug('a-b_c') === 'a-b_c')
+  check('a name is bounded', kbCleanSlug('a'.repeat(80)).length === KB_SLUG_MAX && KB_SLUG_MAX >= 16 && KB_SLUG_MAX <= 64)
+  check('typing stays possible: a trailing dash is kept so « a-b » can be typed', kbCleanSlug('a-') === 'a-')
+  check('DSH\'s own commands are known (goal, compact, help, plan, feedback)', ['goal', 'compact', 'help', 'plan', 'feedback'].every((c) => KB_DSH_COMMANDS.indexOf(c) !== -1))
+  check('the editor refuses such a name, with its own sentence', /KB_DSH_COMMANDS\.indexOf\(kbCleanSlug\(d\.slug\)\) !== -1\) return \{ msg: '\/' \+ kbCleanSlug\(d\.slug\) \+ ' is one of DSH/.test(src))
+}
+
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)
 process.exit(failed === 0 ? 0 : 1)
