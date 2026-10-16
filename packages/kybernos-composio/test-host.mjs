@@ -584,6 +584,19 @@ const BLOC_WORKERS = [
   if (dshBoot !== null) ok('C-03: DSH loads the result', bootPatch() === null)
 }
 {
+  // WP-07: the banner a new patch gets is English, written once; a patch that has the French one (written before) is not given a second
+  frais()
+  await POST(http('first'))
+  await POST(http('second'))
+  const neuf = lire(PATCH_FILE)
+  ok('WP-07: a new patch gets the English banner, once', (neuf.match(/CUSTOM CONNECTORS/g) || []).length === 1 && neuf.includes('CONNECTEURS') === false && neuf.includes('connecteur:first') && neuf.includes('connecteur:second'))
+  frais()
+  writeFileSync(PATCH_FILE, '# ── CONNECTEURS PERSONNALISÉS (géré par le formulaire et la skill connecteur-personnalise) ────\n\n', 'utf8')
+  await POST(http('legacy'))
+  const vieux = lire(PATCH_FILE)
+  ok('WP-07: a patch with the French banner is not given a second banner', vieux.includes('CUSTOM CONNECTORS') === false && (vieux.match(/CONNECTEURS PERSONNALISÉS/g) || []).length === 1 && vieux.includes('connecteur:legacy'))
+}
+{
   // a block that is the last thing of the file and has trailing blank lines
   frais()
   await POST(http('last'))
