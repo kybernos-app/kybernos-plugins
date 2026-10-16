@@ -78,6 +78,10 @@ Measured on 2026-10-16, 384 routes of 31 bundles, 249 of them answering a write 
 Of the 67 left at the last two levels: 4 have a documented non-browser caller (above), 4 are public by design, 14 answer every method alike and are reads
 (the handler never looks at the method), 45 are the writes the audit does not name.
 
+Two GET routes left the table afterwards, with the read-only account frame (WP-24, `docs/dev/frame-removal.md`): `/kybernos-cloud/relay` and `/kybernos/ws-console-key`, both
+strict (an Origin or Referer of this server was required). The routes are now 386 (388 before), 183 of them answering GET, 11 of those at the strict level; no write route is
+concerned, so the table above does not change. Both existed only to hand the account's data (or a key) to the framed console through the DSH page; neither answers any more.
+
 ## The reads (A6-05), not changed
 
 The 70-odd data GET routes send no CORS header (the widget routes apart), so a foreign page cannot read them; what remains is a local process or another OS user

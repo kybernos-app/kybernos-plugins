@@ -640,8 +640,8 @@ try {
     '/kybernos-cloud/members', '/kybernos-cloud/members/invite', '/kybernos-cloud/members/remove',
     // Chats DSH → webapp : annuaire de sessions (métadonnées seulement).
     '/kybernos-cloud/chats', '/kybernos-cloud/chats/push', '/kybernos-cloud/chats/detail',
-    // Console Team: the read-only relay (test-relay.mjs) and the active server (test-server-switch.mjs).
-    '/kybernos-cloud/relay', '/kybernos-cloud/server', '/kybernos-cloud/server/apply',
+    // The active server (test-server-switch.mjs).
+    '/kybernos-cloud/server', '/kybernos-cloud/server/apply',
     // The terms and privacy addresses of the active server (test-unplug-host.mjs).
     '/kybernos-cloud/legal',
     // The console in the user's browser: a single-use link from the server (test-console-link.mjs).
@@ -663,6 +663,8 @@ try {
   ]
   for (const path of expectedPaths) assert.ok(routes.has(path), 'route attendue absente: ' + path)
   assert.equal(routes.size, expectedPaths.length)
+  // The read-only relay went with the account frame (docs/dev/frame-removal.md): nothing answers there, so DSH's web server answers 404.
+  assert.equal(routes.has('/kybernos-cloud/relay'), false, 'the Team console relay must stay gone')
   ok(String(expectedPaths.length) + ' routes /kybernos-cloud/* montees (catalogue + artefacts + memoire)')
 
   // Custom instructions → <DSH home>/AGENTS.md. The write is strict: a request that names no origin of this server is refused.

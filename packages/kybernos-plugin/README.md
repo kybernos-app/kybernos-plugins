@@ -55,7 +55,7 @@ All under `/kybernos/` (plus `/kybernos-technique/{renderer,vendor/three}.js`). 
 | Family | Routes |
 | --- | --- |
 | Teams, projects | `load` `yaml` `save` `create` `ui-save` `menu-save` `active-set` `project-data` `workspace-ui-save` `workspace-skills` `pins` `share` `avatar*` `member-*` `team-portraits` `team-cap` `yml-proposer` `yml-appliquer` |
-| Runs, insight | `runs` `runs-index` `calls` `calls-index` `search-content` `insight` `insight-save` `quality*` `aa` `ws-console-key` `starters-suggest` `salary-detect` (purpose not verified) |
+| Runs, insight | `runs` `runs-index` `calls` `calls-index` `search-content` `insight` `insight-save` `quality*` `aa` `starters-suggest` `salary-detect` (purpose not verified) |
 | Deliverables | `art-origin\|read\|previews\|reveal\|raw\|action\|progress\|load` `doc-raw` |
 | Automations | `tasks` (POST; scheduler ticks every 30 s), `tasks/occurrences` (GET `?from=&to=`, read-only: when the active scheduled automations will run, see "The Automations board"), `hooks` (public webhook: secret + 60/h default limit) |
 | Tools catalog | `tools/state`, `tools/apply` (dry run, dated backup of the profile patch, restore) |
@@ -364,8 +364,8 @@ derivation, widget bridge, gateway watcher, voice and TTS, tools catalog, preset
   Not covered: built-in tools (the sandbox owns them), and any tool whose name hides what it does.
 - **Public surface.** DSH serves plugin routes before its own auth (comment in `index.js`). `widget.js`, `widget/api/config`
   (GET), `message`, `account` and `history-delete` are public with CORS `*`; with a widget enabled, visitor text becomes a
-  `session/prompt` in a live DSH session (5 s bridge tick). The webhook secret travels in the query string, and `ws-console-key`
-  hands `wsAdminKey` to the page, which passes it as `?key=` to an iframe.
+  `session/prompt` in a live DSH session (5 s bridge tick). The webhook secret travels in the query string. (The `ws-console-key` route, which handed
+  `wsAdminKey` to the page for an iframe, is gone with the account frame: `docs/dev/frame-removal.md`; the field is no longer read by anything.)
 - Legacy engine patches `workspace-pins` and `goal-affichage` (`scripts/patches.json`) are still applied below DSH 0.2.0-rc.2;
   on 0.2.0-rc.2 the plugin does the job (the Goal-card part was not measured live).
 - Dead or stale: `shared-ui.css` (86 KB, read by nothing: `scripts/build-shared-ui.mjs`, which is meant to inline it into `SHARED_UI_CSS` in

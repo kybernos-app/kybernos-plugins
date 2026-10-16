@@ -31,7 +31,7 @@ console.log('the built-in server is the new one')
   const template = read('packages/kybernos-computers/template-dsh/settings.yaml').match(/^\s*baseURL:\s*(\S+)\s*$/m)
   check('the E2B template points at BUILTIN_API/v1 (edit packages/kybernos-computers/template-dsh/settings.yaml)', template !== null && template[1] === BUILTIN_API + '/v1', template === null ? 'baseURL not found' : template[1] + ' <> ' + BUILTIN_API + '/v1')
   const defaultsInPage = read('packages/kybernos-plugin/client.js').match(/const kbServer = \{[^}]*\}/)
-  check('the page starts on that address for api, web and console, with no gateway', defaultsInPage !== null && /api: KB_BUILTIN_API, web: KB_BUILTIN_API, console: KB_BUILTIN_API \+ '\/workspace-console', gateway: ''/.test(defaultsInPage[0]), defaultsInPage === null ? 'not found' : defaultsInPage[0])
+  check('the page starts on that address for its web app', defaultsInPage !== null && /^const kbServer = \{ web: KB_BUILTIN_API \}$/.test(defaultsInPage[0]), defaultsInPage === null ? 'not found' : defaultsInPage[0])
 }
 
 console.log('no old-stack hostname in shipped code')

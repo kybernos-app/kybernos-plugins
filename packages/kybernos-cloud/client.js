@@ -2412,14 +2412,6 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', again); window.removeEventListener('focus', again) }
           }, [load])
 
-          // The team console (an iframe of another page) changed the active space through the host: re-read it, so the card and the
-          // console never show two different teams.
-          React.useEffect(() => {
-            const relire = () => { void load() }
-            window.addEventListener('kybernos-cloud:space-changed', relire)
-            return () => window.removeEventListener('kybernos-cloud:space-changed', relire)
-          }, [load])
-
           // The meter of the card: how much of the allowance is used in the ACTIVE team (a percentage, never tokens or money), read from the host (it asks the
           // server) when the card appears, when the active team changes, when the window comes back into view, every two minutes, and as soon as the quota notice
           // has read a refusal. A failed read keeps the last figure; changing team clears it, so one team's percent is never shown under another's name.
@@ -2512,8 +2504,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             const meter = quota !== null ? quotaMeterOf(quota, t) : null
             // « Team settings », « Account » and « Referral » open the APP, in the person's browser, signed in (the single-use console link, section `plan` or
             // `overview`, on the active workspace). They used to open a read-only copy of it in DSH's content zone, and every change in that copy sent the person
-            // to the browser anyway (ADR 0054, decision of 2026-10-16): the way in now says where the work happens. The embedded console's code is still in the
-            // core bundle (its console bridge); nothing in this bundle calls it.
+            // to the browser anyway (ADR 0054, decision of 2026-10-16): the way in now says where the work happens. The copy is gone from the core bundle too
+            // (docs/dev/frame-removal.md).
             const ouvrirAppli = (section) => () => {
               setMenuOpen(false)
               openAccountPage(section, actif)
@@ -2746,8 +2738,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           React.useEffect(() => {
             const again = () => { void readStatus() }
             window.addEventListener('focus', again)
-            window.addEventListener('kybernos-cloud:space-changed', again)
-            return () => { window.removeEventListener('focus', again); window.removeEventListener('kybernos-cloud:space-changed', again) }
+            return () => { window.removeEventListener('focus', again) }
           }, [readStatus])
 
           React.useEffect(() => {
