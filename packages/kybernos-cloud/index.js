@@ -52,6 +52,7 @@ import { zstdDecompressSync } from 'node:zlib'
 import { activeServer, stateFileName, llmBase, publicProfile } from './server-profile.mjs'
 import { agentsFile, readInstructions, writeInstructions } from './instructions.mjs'
 import { createKybyRoutes } from './kyby.mjs'
+import { writeGuard } from './session-guard.mjs'
 import { createKybyNative, isSessionId, readPointer, writePointer } from './kyby-native.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
@@ -4459,6 +4460,10 @@ const mountKybyNative = (ctx) => {
   })
 }
 
+// `session: true` is a route that DELETES the person's data (a memory, a team lesson or skill, a connection, a member): besides the same-origin rule it needs DSH's
+// signed browser-session cookie (session-guard.mjs, the terminal's rule). Plugin routes are served before DSH's own login and an Origin header is forgeable by any
+// local program, so before this a `curl -X POST .../memory/delete` with no header at all deleted a memory. Their callers are pages (Memory, Skills, Connectors,
+// the Share card). The other writes keep the rule of their row: they are not named by the origin-rule audit (docs/dev/route-origin-rule.md says what is next).
 const ROUTES = [
   { path: '/kybernos-cloud/kyber', method: 'GET', guarded: true, run: kyberRoute },
   // A pairing creates a link that, once opened in Telegram and confirmed there, connects the chat: same origin, strictly.
@@ -4539,7 +4544,7 @@ const ROUTES = [
   { path: '/kybernos-cloud/instructions', method: 'GET', guarded: true, run: instructionsRead },
   { path: '/kybernos-cloud/instructions/save', method: 'POST', guarded: true, strict: true, body: true, cap: 16384, run: instructionsSave },
   { path: '/kybernos-cloud/members/invite', method: 'POST', guarded: true, body: true, cap: 8192, run: membersInvite },
-  { path: '/kybernos-cloud/members/remove', method: 'POST', guarded: true, body: true, cap: 8192, run: membersRemove },
+  { path: '/kybernos-cloud/members/remove', method: 'POST', guarded: true, session: true, body: true, cap: 8192, run: membersRemove },
   // Mémoire du compte (fonctionnalité cloud n°2) : lecture, écriture, recherche,
   // correspondance kybers locaux ↔ cloud, et poussée des leçons.
   // Chaque chemin est DISTINCT (le routeur indexe par chemin : deux routes sur
@@ -4547,7 +4552,7 @@ const ROUTES = [
   { path: '/kybernos-cloud/memory', method: 'GET', guarded: true, run: memoryRoute },
   { path: '/kybernos-cloud/memory/add', method: 'POST', guarded: true, body: true, run: memoryCreateRoute },
   { path: '/kybernos-cloud/memory/update', method: 'POST', guarded: true, body: true, run: memoryUpdateRoute },
-  { path: '/kybernos-cloud/memory/delete', method: 'POST', guarded: true, body: true, run: memoryDeleteRoute },
+  { path: '/kybernos-cloud/memory/delete', method: 'POST', guarded: true, session: true, body: true, run: memoryDeleteRoute },
   { path: '/kybernos-cloud/memory/search', method: 'GET', guarded: true, run: memorySearchRoute },
   { path: '/kybernos-cloud/memory/map', method: 'POST', guarded: true, body: true, run: memoryMapRoute },
   // `dryRun` par défaut : la poussée des leçons écrit dans le compte, elle ne
@@ -4568,21 +4573,21 @@ const ROUTES = [
   { path: '/kybernos-cloud/team/lessons/add', method: 'POST', guarded: true, body: true, cap: 16384, run: teamAddRoute },
   { path: '/kybernos-cloud/team/lessons/review', method: 'POST', guarded: true, body: true, cap: 16384, run: teamReviewRoute },
   { path: '/kybernos-cloud/team/lessons/retire', method: 'POST', guarded: true, body: true, cap: 4096, run: teamRetireRoute },
-  { path: '/kybernos-cloud/team/lessons/delete', method: 'POST', guarded: true, body: true, cap: 4096, run: teamDeleteRoute },
+  { path: '/kybernos-cloud/team/lessons/delete', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: teamDeleteRoute },
   // Team skills: the server half only (files are read and written by kybernos-skills). A proposal carries up to 1 MiB of files.
   { path: '/kybernos-cloud/team/skills', method: 'GET', guarded: true, run: teamSkillsListRoute },
   { path: '/kybernos-cloud/team/skills/item', method: 'GET', guarded: true, run: teamSkillsItemRoute },
   { path: '/kybernos-cloud/team/skills/add', method: 'POST', guarded: true, body: true, cap: 4 * 1024 * 1024, run: teamSkillsAddRoute },
   { path: '/kybernos-cloud/team/skills/review', method: 'POST', guarded: true, body: true, cap: 4096, run: teamSkillsReviewRoute },
   { path: '/kybernos-cloud/team/skills/retire', method: 'POST', guarded: true, body: true, cap: 4096, run: teamSkillsRetireRoute },
-  { path: '/kybernos-cloud/team/skills/delete', method: 'POST', guarded: true, body: true, cap: 4096, run: teamSkillsDeleteRoute },
+  { path: '/kybernos-cloud/team/skills/delete', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: teamSkillsDeleteRoute },
   // Kybernos connections: the account's connected apps. The routes sit here (the token does) and the connectors page calls them. A
   // link may carry the API key of a toolkit that has no OAuth, so its body is small and its handler never logs or echoes it.
   { path: '/kybernos-cloud/connections', method: 'GET', guarded: true, run: connections.listRoute },
   { path: '/kybernos-cloud/connections/apps', method: 'GET', guarded: true, run: connections.appsRoute },
   { path: '/kybernos-cloud/connections/item', method: 'GET', guarded: true, run: connections.itemRoute },
   { path: '/kybernos-cloud/connections/link', method: 'POST', guarded: true, body: true, cap: 16384, run: connections.linkRoute },
-  { path: '/kybernos-cloud/connections/delete', method: 'POST', guarded: true, body: true, cap: 4096, run: connections.deleteRoute },
+  { path: '/kybernos-cloud/connections/delete', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: connections.deleteRoute },
   { path: '/kybernos-cloud/memory/tidy', method: 'GET', guarded: true, run: memoryTidyRoute },
   { path: '/kybernos-cloud/memory/tidy/scan', method: 'POST', guarded: true, run: memoryTidyScanRoute },
   { path: '/kybernos-cloud/memory/tidy/apply', method: 'POST', guarded: true, body: true, cap: 65536, run: memoryTidyApplyRoute },
@@ -4608,6 +4613,10 @@ const mountWebRoutes = (ctx, webServer) => {
       if (req.method !== route.method) return sendJson(res, 405, { ok: false, error: route.method + ' attendu' })
       if (route.guarded === true && sameOrigin(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
       if (route.strict === true && sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+      if (route.session === true) {
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
+      }
       if (route.confirm === true) {
         const body = await readJsonBody(req)
         if (body.confirm !== true) return sendJson(res, 400, { ok: false, error: 'confirmation requise : POST avec {"confirm":true}' })

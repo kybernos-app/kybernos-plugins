@@ -39,7 +39,7 @@ waterfalls (`failover.mjs`).
 
 ## Host routes
 
-JSON; the exact-origin guard answers `403` (an absent `Origin` passes). `POST` routes answer `405` otherwise.
+JSON; the exact-origin guard answers `403` (an absent `Origin` passes). `POST` routes answer `405` otherwise. `/session`, `/settings` and `/probe` also need DSH's signed session cookie (`session-guard.mjs`, `test-write-guard.mjs`: a 401 without it). `/router` and `/report` do not: `cli/auto-router.mjs`, which the agent runs, sends no Origin and has no browser session.
 
 | Route | Purpose |
 | --- | --- |

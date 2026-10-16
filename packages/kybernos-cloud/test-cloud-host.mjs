@@ -554,6 +554,11 @@ const ctx = {
 }
 
 const mod = await import('./index.js')
+// The routes that DELETE (session: true) need DSH's signed session cookie as well as the right Origin: the machine secret the guard checks it against
+// (test-write-guard.mjs reads it from the file; here the seam gives it).
+const { sessionSource } = await import('./session-guard.mjs')
+const { SESSION_SECRET, browserHeaders } = await import('./lib-session-test.mjs')
+sessionSource.secret = () => SESSION_SECRET
 // Aucun minuteur ne doit tirer sur le faux serveur en arriere-plan : un
 // rechargement non demande fausserait les compteurs de requetes des tests.
 mod.MEMORY_TUNING.writeRefreshMs = -1
@@ -579,11 +584,18 @@ const fakeReq = (method, origin, body, url) => ({
     if (body !== undefined) yield Buffer.from(JSON.stringify(body))
   },
 })
+const SESSION_ROUTES = new Set(['/kybernos-cloud/members/remove', '/kybernos-cloud/memory/delete', '/kybernos-cloud/team/lessons/delete', '/kybernos-cloud/team/skills/delete', '/kybernos-cloud/connections/delete'])
 const hit = async (path, method, origin, body) => {
   const handler = routes.get(path.split('?')[0])
   assert.ok(handler !== undefined, 'route manquante: ' + path)
   const res = fakeRes()
-  await handler(fakeReq(method, origin, body, path), res)
+  const req = fakeReq(method, origin, body, path)
+  // A route that deletes is called the way the person's page calls it: its own Origin (unless the test names another) and DSH's session cookie.
+  if (SESSION_ROUTES.has(path.split('?')[0])) {
+    req.socket = { localPort: 3080 }
+    req.headers = { ...req.headers, cookie: browserHeaders().cookie, ...(origin === undefined ? { origin: browserHeaders().origin } : {}) }
+  }
+  await handler(req, res)
   return res
 }
 

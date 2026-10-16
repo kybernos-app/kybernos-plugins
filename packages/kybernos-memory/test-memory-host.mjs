@@ -9,7 +9,10 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, browserHeaders } from './lib-session-test.mjs'
 
+sessionSource.secret = () => SESSION_SECRET // the machine secret the write routes check the session cookie against (the guard's own test reads the file)
 const root = mkdtempSync(join(tmpdir(), 'kybernos-memory-test-'))
 const kybers = join(root, 'kybers')
 mkdirSync(kybers, { recursive: true })
@@ -277,7 +280,8 @@ try {
   const res = () => ({ status: 0, body: null, writeHead(s) { this.status = s }, end(p) { this.body = p === undefined ? null : JSON.parse(p) } })
   const hit = async (path, method, headers, body) => {
     const r = res()
-    const req = { method, url: path, headers: { host: '127.0.0.1:3080', ...headers }, async *[Symbol.asyncIterator]() { if (body !== undefined) yield Buffer.from(JSON.stringify(body)) } }
+    // A write is sent the way the person's browser sends it (the right Origin and DSH's session cookie) unless the test says otherwise.
+    const req = { method, url: path, headers: { host: '127.0.0.1:3080', ...(method === 'GET' ? {} : browserHeaders()), ...headers }, socket: { localPort: 3080 }, async *[Symbol.asyncIterator]() { if (body !== undefined) yield Buffer.from(JSON.stringify(body)) } }
     await registered.get(path.split('?')[0])(req, r)
     return r
   }

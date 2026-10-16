@@ -1,10 +1,14 @@
 #!/usr/bin/env node
-/** Harnais hôte de kybernos-auto : routes sur un webServer FACTICE, home
- *  temporaire — aucun réseau, aucune écriture hors du home de test. */
+/** Host harness of kybernos-auto: routes on a FAKE webServer, a temporary home
+ *  — no network, no write outside the test home. */
 import { mkdtempSync, readFileSync, writeFileSync, existsSync, readdirSync, statSync, chmodSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { monterRoutes, lireSessions, lireSante } from './index.js'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, browserHeaders } from './lib-session-test.mjs'
+
+sessionSource.secret = () => SESSION_SECRET // the machine secret the write routes check the session cookie against (the guard's own test reads the file)
 
 let ok0 = 0
 let ko = 0
@@ -17,17 +21,17 @@ const reglagesPath = join(home, 'kybernos', 'settings.json')
 const sessionsAutoPath = join(home, 'kybernos', 'auto-sessions.json')
 const santePath = join(home, 'kybernos', 'auto-health.json')
 
-// webServer factice : capture les handlers par chemin
+// fake webServer: captures the handlers by path
 const routes = {}
 const webServerSvc = { register: (r) => { routes[r.path] = r.handler } }
 monterRoutes(webServerSvc, { home, reglagesPath, sessionsAutoPath, santePath, ollama: 'http://127.0.0.1:1' })
 
-const requete = (method, path, corps) => ({ method, url: path, headers: { origin: 'http://127.0.0.1:3080' }, socket: { localPort: 3080 }, on: ('data', (d) => {}), ...{} , __corps: corps })
-// petite fabrique conforme à lireCorps (events)
+const requete = (method, path, corps) => ({ method, url: path, headers: browserHeaders(), socket: { localPort: 3080 }, on: ('data', (d) => {}), ...{} , __corps: corps })
+// a small factory that matches lireCorps (events)
 const fabriqueRequete = (method, path, corps) => {
   const body = corps === undefined ? '' : JSON.stringify(corps)
   return {
-    method, url: path, headers: { origin: 'http://127.0.0.1:3080' }, socket: { localPort: 3080 },
+    method, url: path, headers: browserHeaders(), socket: { localPort: 3080 },
     on (ev, cb) { if (ev === 'data') cb(body); if (ev === 'end') cb() }
   }
 }
@@ -88,7 +92,7 @@ r = reponse()
 await routes['/kybernos-auto/settings'](fabriqueRequete('POST', '/kybernos-auto/settings', { autoRouting: 'oui' }), r)
 ok('autoRouting non booléen refusé', r.corps.ok === false, r.corps)
 
-// Repli du chat (failover.mjs) : un réglage opt-in, désactivé par défaut, exposé dans l'état de la page.
+// Chat fallback (failover.mjs): an opt-in setting, off by default, exposed in the page's state.
 r = reponse()
 await routes['/kybernos-auto/settings'](fabriqueRequete('POST', '/kybernos-auto/settings', { autoFailover: 'oui' }), r)
 ok('autoFailover non booléen refusé', r.corps.ok === false, r.corps)

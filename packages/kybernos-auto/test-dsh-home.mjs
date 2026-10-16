@@ -9,6 +9,8 @@
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, browserHeaders } from './lib-session-test.mjs'
 // DSH-HOME-HARNESS-BEGIN
 import * as kbAssert from 'node:assert/strict'
 import * as kbFs from 'node:fs'
@@ -97,10 +99,11 @@ let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
 
 const PORT = 3080
+sessionSource.secret = () => SESSION_SECRET // the machine secret the write routes check the session cookie against
 const requete = (method, path, corps) => {
   const body = corps === undefined ? '' : JSON.stringify(corps)
   return {
-    method, url: path, headers: { origin: 'http://127.0.0.1:' + PORT }, socket: { localPort: PORT },
+    method, url: path, headers: browserHeaders(), socket: { localPort: PORT },
     on (ev, cb) { if (ev === 'data') cb(body); if (ev === 'end') cb() },
   }
 }
