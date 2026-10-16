@@ -712,6 +712,8 @@ function TabBody () {
     if (baseId === null) return
     let vivant = true
     setSchema(null)
+    // The error of a database that could not be read belongs to that database: the one chosen now starts without it.
+    setErreur(null)
     api('/dsh-db-viewer/schema', { base: baseId })
       .then((s) => { if (vivant) setSchema(s) })
       .catch((e) => { if (vivant) setErreur(String(e.message || e)) })
@@ -758,7 +760,8 @@ function TabBody () {
     else if (onglet === 'graphiques') kids.push(h(Graphiques, { key: 'v', baseId, schema }))
     else if (onglet === 'donnees') kids.push(h(Donnees, { key: 'v', baseId, schema, packEntites }))
     else kids.push(h(Sql, { key: 'v', baseId }))
-  } else if (baseId !== null) {
+  } else if (baseId !== null && erreur === null) {
+    // Only while it is being read: a schema that failed to load is not « being read » any more (the error says so above).
     kids.push(h('div', { className: 'dshdb-note', key: 'load' }, 'lecture du schéma…'))
   }
 
