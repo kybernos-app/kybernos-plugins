@@ -174,7 +174,7 @@ eq('a paused webhook test is explained', mod.kbTaskError('automation paused', en
 /* ── Every key the page uses exists, in both languages ───────────────────── */
 {
   const keys = new Set(Object.values(mod.KB_TASK_ERRORS))
-  for (const k of ['tasks.weekdays8', 'tasks.everyday8', 'tasks.every.minute', 'tasks.every.minutes', 'tasks.every.hour', 'tasks.every.hour.at', 'tasks.every.hours', 'tasks.every.hours.at', 'tasks.every.dow', 'tasks.every.month', 'tasks.edit.chat', 'tasks.edit.chat.ask', 'tasks.edit.chat.act', 'tasks.edit.chat.aria', 'tasks.err.frequent', 'tasks.time', 'tasks.prompt.max', 'tasks.cron', 'tasks.onetime', 'tasks.trigger.webhook', 'tasks.ask', 'tasks.auto', 'tasks.name.placeholder', 'tasks.timezone']) keys.add(k)
+  for (const k of ['tasks.weekdays8', 'tasks.everyday8', 'tasks.every.minute', 'tasks.every.minutes', 'tasks.every.hour', 'tasks.every.hour.at', 'tasks.every.hours', 'tasks.every.hours.at', 'tasks.every.dow', 'tasks.every.month', 'tasks.edit.chat', 'tasks.edit.chat.ask', 'tasks.edit.chat.act', 'tasks.edit.chat.aria', 'tasks.err.frequent', 'tasks.time', 'tasks.prompt.max', 'tasks.cron', 'tasks.onetime', 'tasks.trigger.webhook', 'tasks.ask', 'tasks.auto', 'tasks.name.placeholder', 'tasks.timezone', 'tasks.row.toggle', 'tasks.row.fav', 'tasks.row.unfav', 'tasks.row.clone', 'tasks.row.export', 'tasks.row.delete']) keys.add(k)
   const missing = [...keys].filter((k) => table[k] === undefined || typeof table[k].en !== 'string' || table[k].en === '' || typeof table[k].kybernos !== 'string' || table[k].kybernos === '')
   eq('every translation key of the new code exists in both languages', missing.join(',') || 'none', 'none')
   const unreferenced = Object.keys(table).filter((k) => /^tasks\.(filter\.fromchat|origin\.(chat|template)|waiting|newautomation|desc|new|approvals|pausednodate|none|fire\.now|monday8|friday16)$/.test(k))
@@ -212,6 +212,17 @@ eq('a paused webhook test is explained', mod.kbTaskError('automation paused', en
   eq('« Edit in chat » is on the row and on the page of an automation', page.indexOf("'data-kb': 'action-edit-chat'") >= 0 && page.indexOf("'data-kb': 'detail-edit-chat'") >= 0 && (page.match(/editInChat\(/g) || []).length >= 2, true)
   eq('...it opens the chat the way « Create » does (kbStartChatText) and falls back to the form', /const editInChat = \(t\) => \{\s*try \{ kbStartChatText\(kbEditChatText\(t, kbt, kbBoardLocale\(\)\)\) \} catch \(e\) \{ setModal\(t\) \}/.test(page), true)
   eq('...and the row\x27s button is named for its row', page.indexOf("kbt('tasks.edit.chat.aria').replace('{name}', () => a.name)") >= 0, true)
+  // A5-21: a screen-reader list of controls must tell the rows apart: every control of a row carries the automation's name.
+  {
+    const rowBlock = page.slice(page.indexOf("className: 'kba-rowline'"), page.indexOf("className: 'kba-rowline'") + 6000)
+    const named = (call) => rowBlock.indexOf(call + ".replace('{name}', () => a.name)") >= 0
+    eq('the row names its switch, clone, export and delete controls for the automation', named("kbt('tasks.row.toggle')") && named("kbt('tasks.row.clone')") && named("kbt('tasks.row.export')") && named("kbt('tasks.row.delete')"), true)
+    eq('...and its favourite star, whichever way it points', named("kbt(auFavOf(a) === true ? 'tasks.row.unfav' : 'tasks.row.fav')"), true)
+    for (const k of ['toggle', 'fav', 'unfav', 'clone', 'export', 'delete']) eq('tasks.row.' + k + ' says where the name goes, in both languages', en('tasks.row.' + k).includes('{name}') && fr('tasks.row.' + k).includes('{name}'), true)
+    eq('the generic labels are no longer the accessible names of a row control', !/'aria-label': kbt\('(tasks\.toggle\.aria|tasks\.delete|kbui\.action\.clone|kbui\.action\.export)'\)/.test(rowBlock) && !/'aria-label': kbt\(auFavOf\(a\) === true \? 'kbui\.unfav' : 'kbui\.fav'\)/.test(rowBlock), true)
+    eq('« Delete Weekly sales report » and « Enable Weekly sales report » read as a sentence', en('tasks.row.delete').replace('{name}', 'Weekly sales report') === 'Delete Weekly sales report' && en('tasks.row.toggle').replace('{name}', 'Weekly sales report') === 'Enable Weekly sales report', true)
+    eq('the thin 1px focus ring of the icon buttons is the 2px ring of the other buttons', /\.kb-favbtn:focus-visible\{outline:2px solid/.test(src), true)
+  }
   // A5-31: presets keep the time, a time field edits it, the prompt says where it stops.
   eq('a preset sets the days and keeps the time, and the form has a time field', page.indexOf('kbCronOnDays(cron, pr.days)') >= 0 && page.indexOf("type: 'time'") >= 0 && page.indexOf('kbCronAt(cron, Number(m[1]), Number(m[2]))') >= 0, true)
   eq('the prompt field shows a counter near its 8000 characters', page.indexOf("'data-kb': 'prompt-count'") >= 0 && page.indexOf('maxLength: 8000') >= 0, true)

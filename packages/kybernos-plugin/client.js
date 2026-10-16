@@ -357,6 +357,12 @@ let kbLocaleRead = () => 'en'
       'tasks.edit.chat.ask': { kybernos: 'Ce que je veux changer : ', en: 'What I want to change: ' },
       'tasks.edit.chat.act': { kybernos: 'Modifier dans le chat', en: 'Edit in chat' },
       'tasks.edit.chat.aria': { kybernos: 'Modifier {name} dans le chat', en: 'Edit {name} in chat' },
+      'tasks.row.toggle': { kybernos: 'Activer {name}', en: 'Enable {name}' },
+      'tasks.row.fav': { kybernos: 'Ajouter {name} aux favoris', en: 'Add {name} to favorites' },
+      'tasks.row.unfav': { kybernos: 'Retirer {name} des favoris', en: 'Remove {name} from favorites' },
+      'tasks.row.clone': { kybernos: 'Cloner {name}', en: 'Clone {name}' },
+      'tasks.row.export': { kybernos: 'Exporter {name}', en: 'Export {name}' },
+      'tasks.row.delete': { kybernos: 'Supprimer {name}', en: 'Delete {name}' },
       // A schedule that runs more often than every 5 minutes needs an explicit confirmation: the host refuses it without one.
       'tasks.err.frequent': { kybernos: 'Ce planning se déclenche très souvent (plus d’une fois toutes les 5 minutes) et chaque déclenchement ouvre une vraie session du modèle : il faut le confirmer explicitement.', en: 'This schedule runs very often (more than once every 5 minutes) and each run starts a real model session: it needs an explicit confirmation.' },
       // The Columns and Calendar views of the Automations page.
@@ -20731,11 +20737,11 @@ function renderFit(canvas, model, cam, opts){
               // left of the name and push it away from its column.
               h('span', { className: 'kba-lacts' },
                 h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-edit-chat', title: kbt('tasks.edit.chat.act'), 'aria-label': kbt('tasks.edit.chat.aria').replace('{name}', () => a.name), onClick: (e2) => { e2.stopPropagation(); editInChat(a._t) } }, Icon('messageSquare', 13)),
-                h('button', { type: 'button', className: 'kb-favbtn' + (auFavOf(a) === true ? ' on' : ''), 'data-kb': 'favorite-star', 'data-scope': 'automations', 'data-id': a.id, title: kbt(auFavOf(a) === true ? 'kbui.unfav' : 'kbui.fav'), 'aria-label': kbt(auFavOf(a) === true ? 'kbui.unfav' : 'kbui.fav'), onClick: (e2) => { e2.stopPropagation(); auFavToggle(a.id) } }, Icon('star', 13)),
-                h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-clone', title: kbt('kbui.action.clone'), 'aria-label': kbt('kbui.action.clone'), onClick: (e2) => { e2.stopPropagation(); cloneTask(a) } }, Icon('copy', 13)),
-                h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-export', title: kbt('kbui.action.export'), 'aria-label': kbt('kbui.action.export'), onClick: (e2) => { e2.stopPropagation(); exportTask(a) } }, Icon('download', 13)),
-                h('button', { type: 'button', className: 'kb-favbtn kba-trash', 'data-kb': 'action-delete', title: kbt('tasks.delete'), 'aria-label': kbt('tasks.delete'), onClick: (e2) => { e2.stopPropagation(); askDelete(a.id, a.name) } }, Icon('trash', 13))),
-              h('span', { role: 'switch', 'aria-checked': a.active === true ? 'true' : 'false', 'aria-label': kbt('tasks.toggle.aria'), className: 'kba-toggle' + (a.active === true ? ' on' : ''), tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act('toggle', a._t.id, { active: a._t.active === false }) } }, onClick: () => act('toggle', a._t.id, { active: a._t.active === false }) },
+                h('button', { type: 'button', className: 'kb-favbtn' + (auFavOf(a) === true ? ' on' : ''), 'data-kb': 'favorite-star', 'data-scope': 'automations', 'data-id': a.id, title: kbt(auFavOf(a) === true ? 'kbui.unfav' : 'kbui.fav'), 'aria-label': kbt(auFavOf(a) === true ? 'tasks.row.unfav' : 'tasks.row.fav').replace('{name}', () => a.name), onClick: (e2) => { e2.stopPropagation(); auFavToggle(a.id) } }, Icon('star', 13)),
+                h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-clone', title: kbt('kbui.action.clone'), 'aria-label': kbt('tasks.row.clone').replace('{name}', () => a.name), onClick: (e2) => { e2.stopPropagation(); cloneTask(a) } }, Icon('copy', 13)),
+                h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-export', title: kbt('kbui.action.export'), 'aria-label': kbt('tasks.row.export').replace('{name}', () => a.name), onClick: (e2) => { e2.stopPropagation(); exportTask(a) } }, Icon('download', 13)),
+                h('button', { type: 'button', className: 'kb-favbtn kba-trash', 'data-kb': 'action-delete', title: kbt('tasks.delete'), 'aria-label': kbt('tasks.row.delete').replace('{name}', () => a.name), onClick: (e2) => { e2.stopPropagation(); askDelete(a.id, a.name) } }, Icon('trash', 13))),
+              h('span', { role: 'switch', 'aria-checked': a.active === true ? 'true' : 'false', 'aria-label': kbt('tasks.row.toggle').replace('{name}', () => a.name), className: 'kba-toggle' + (a.active === true ? ' on' : ''), tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act('toggle', a._t.id, { active: a._t.active === false }) } }, onClick: () => act('toggle', a._t.id, { active: a._t.active === false }) },
                 h('span', { className: 'kba-toggle-knob' }))))))),
         (msg !== null ? h('div', { className: 'kba-toast', role: 'status' }, h('span', { className: 'kba-kdot ok' }), h('span', { style: { flex: 1 } }, msg), h('button', { type: 'button', 'aria-label': kbt('tasks.dismiss'), onClick: () => setMsg(null) }, '\u2715')) : null),
         (confirmAsk !== null ? h(KbConfirm, { title: confirmAsk.title, body: confirmAsk.body, confirmLabel: confirmAsk.confirmLabel, onConfirm: confirmAsk.onConfirm, onClose: () => setConfirm(null) }) : null),
@@ -28401,7 +28407,7 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 .kb-favbtn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;flex:0 0 auto;border:0;border-radius:9px;background:transparent;color:var(--dsw-alias-label-tertiary);cursor:pointer;padding:0;transition:color .14s ease,background .14s ease}
 .kb-favbtn:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary)}
 .kb-favbtn.on{color:var(--dsw-alias-state-warn-primary)}
-.kb-favbtn:focus-visible{outline:1px solid var(--dsw-alias-brand-primary);outline-offset:1px}
+.kb-favbtn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
 .kb8-tile{flex:0 0 auto;width:38px;height:38px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary)}
 .kb8-name{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--dsw-alias-label-primary)}
 .kb8-parent{font-size:12px;color:var(--dsw-alias-label-secondary)}
