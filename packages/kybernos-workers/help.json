@@ -1,23 +1,23 @@
 {
   "what": {
-    "fr": "Des assistants de code (Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes…) que votre agent principal peut appeler. DSH vérifie qu'ils sont prêts et peut les installer.",
-    "en": "Coding assistants (Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes…) your main agent can call. DSH checks they are ready and can install them."
+    "fr": "Des workers : des assistants de code (Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes…) que ton agent principal peut appeler. DSH vérifie qu'ils sont prêts et peut les installer.",
+    "en": "Workers: coding assistants (Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes…) your main agent can call. DSH checks they are ready and can install them."
   },
   "steps": [
     {
-      "fr": "Ouvrez Réglages › Workers : une ligne par assistant, avec son état (« Prêt », « À installer », « À connecter »…).",
+      "fr": "Ouvre Réglages › Workers : une ligne par assistant, avec son état (« Prêt », « À installer », « À connecter »…).",
       "en": "Open Settings › Workers: one row per assistant, with its state (“Ready”, “To install”, “To connect”…)."
     },
     {
-      "fr": "Cliquez le bouton de la ligne : Activer, Vérifier, Installer (DSH montre la commande et attend votre accord) ou Se connecter.",
+      "fr": "Clique le bouton de la ligne : Activer, Vérifier, Installer (DSH montre la commande et attend ton accord) ou Se connecter.",
       "en": "Click the row's button: Turn on, Check, Install (DSH shows the command and waits for your OK) or Sign in."
     },
     {
-      "fr": "Connectez-vous avec votre compte dans le navigateur, ou collez votre clé API pour Gemini et Qwen.",
+      "fr": "Connecte-toi avec ton compte dans le navigateur, ou colle ta clé API pour Gemini et Qwen.",
       "en": "Sign in with your account in the browser, or paste your API key for Gemini and Qwen."
     },
     {
-      "fr": "Quand la ligne dit « Prêt », activez « Autorisé » et enregistrez : DSH l'applique en quelques secondes.",
+      "fr": "Quand la ligne dit « Prêt », active « Autorisé » et enregistre : DSH l'applique en quelques secondes.",
       "en": "When the row says “Ready”, turn on “Allowed” and save: DSH applies it in a few seconds."
     }
   ],

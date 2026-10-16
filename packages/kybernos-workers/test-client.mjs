@@ -28,7 +28,7 @@ console.log('── language ──')
   ok('French only for the Kybernos default or a French base', fr('kybernos') && fr('fr') && fr('fr-CA') && fr('fr_FR'))
   ok('every other language, translated or not, gets English — never French', !fr('es') && !fr('de-DE') && !fr('en') && !fr('zh-Hans'))
   globalThis.window.__KB_LANG_RESOLVE__ = () => { throw new Error('resolver not ready') }
-  ok('a language resolver that throws falls back on French (the product default)', T.kt('un', 'one') === 'un')
+  ok('a language resolver that throws falls back on English (WP-07: English is the base)', T.kt('un', 'one') === 'one')
   globalThis.window.__KB_LANG_RESOLVE__ = () => resolved
   resolved = 'kybernos'
 }
@@ -44,9 +44,9 @@ console.log('── the status of a row ──')
   ok('the host’s "connection missing" is the same thing as not mounted', T.statusOf(w({ dernier: dernier('a-connecter') }), undefined) === 'inactive')
   for (const statut of ['pret', 'incomplet', 'a-relancer', 'binaire-absent', 'non-connecte', 'ecriture-impossible', 'serveur-absent']) {
     const s = T.statusOf(w({ dernier: dernier(statut) }), undefined)
-    ok('host status "' + statut + '" has a row status with a dot, a French and an English word', Array.isArray(T.STATUS[s]) && T.STATUS[s].length === 3 && T.STATUS[s][1] !== T.STATUS[s][2], s)
+    ok('host status "' + statut + '" has a row status with a dot, a French and an English word', typeof T.STATUS[s] === 'object' && typeof T.STATUS[s].dot === 'string' && T.STATUS[s].fr !== T.STATUS[s].en, s)
   }
-  ok('only "ready" is green, only the two real problems are red', Object.entries(T.STATUS).filter(([, v]) => v[0] === 'ok').map(([k]) => k).join() === 'pret' && Object.entries(T.STATUS).filter(([, v]) => v[0] === 'bad').map(([k]) => k).sort().join() === 'ecriture-impossible,serveur-absent')
+  ok('only "ready" is green, only the two real problems are red', Object.entries(T.STATUS).filter(([, v]) => v.dot === 'ok').map(([k]) => k).join() === 'pret' && Object.entries(T.STATUS).filter(([, v]) => v.dot === 'bad').map(([k]) => k).sort().join() === 'ecriture-impossible,serveur-absent')
 }
 
 console.log('── the connection word (A3-48) ──')
@@ -77,7 +77,7 @@ console.log('── the sentences ──')
 {
   const key = { id: 'gemini', nom: 'Gemini CLI', genre: 'connexion', connect: { mode: 'key', env: 'GEMINI_API_KEY' } }
   const cli = { id: 'codex', nom: 'Codex', genre: 'connexion', connect: { mode: 'cli', cmd: 'codex' } }
-  ok('the line under the name follows the status: install, then sign in, then key', /pas encore sur cet ordinateur/.test(T.sublineOf(cli, 'binaire-absent')) && /connecter à votre compte/.test(T.sublineOf(cli, 'non-connecte')) && /clé API/.test(T.sublineOf(key, 'non-connecte')))
+  ok('the line under the name follows the status: install, then sign in, then key', /pas encore sur cet ordinateur/.test(T.sublineOf(cli, 'binaire-absent')) && /te connecter à ton compte/.test(T.sublineOf(cli, 'non-connecte')) && /clé API/.test(T.sublineOf(key, 'non-connecte')))
   ok('otherwise the line says who it is: vendor · what it signs in with (also before the worker is turned on)', T.sublineOf(cli, 'pret') === 'OpenAI · compte ChatGPT' && T.sublineOf(key, 'pret') === 'Google · clé API Google' && T.sublineOf(cli, 'inactive') === 'OpenAI · compte ChatGPT')
   ok('a worker the page does not know still renders (no logo identity, no crash)', T.sublineOf({ id: 'new-one', nom: 'New', genre: 'connexion' }, 'pret') === '' && T.sublineOf({ id: 'new-one', nom: 'New', genre: 'connexion' }, 'inactive') === '')
   resolved = 'en'
@@ -142,8 +142,23 @@ console.log('── what the page may talk to ──')
 // Tools and Workers list some of the same assistants (V-32): each page says what it is for and names the other.
 {
   const lead = source.slice(source.indexOf("h('h4', null, 'Workers')"), source.indexOf("h('h4', null, 'Workers')") + 1800)
-  ok('the lead says what the page is for: coding assistants the main agent can hand tasks to', /Coding assistants installed on your computer/.test(lead) && /Des assistants de code installés/.test(lead))
+  ok('the lead says what the page is for, with the one noun: workers are the coding assistants the main agent can hand tasks to', /Workers are the coding assistants installed on your computer/.test(lead) && /Les workers sont les assistants de code installés/.test(lead))
   ok('…and names Settings › Tools as the other door, in both languages', /Settings › Tools/.test(lead) && /Réglages › Tools/.test(lead) && /mounts tools in a profile/.test(lead) && /monte des outils dans un profil/.test(lead), lead.slice(0, 300))
+}
+
+// The French of the page speaks « tu » (WP-07, A2-25), the row words are objects with a French and an English word, and
+// the status chip and the refusal prefixes go through the pair helper (no French outside it).
+{
+  const code = source.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n')
+  ok('no « vous », « votre », « vos » in the page', !/(?<![A-Za-zÀ-ÿ])(vous|votre|vos)(?![A-Za-zÀ-ÿ])/i.test(code), (code.match(/.{30}(?<![A-Za-zÀ-ÿ])(vous|votre|vos)(?![A-Za-zÀ-ÿ]).{20}/i) || [''])[0])
+  const helpFr = JSON.parse(readFileSync(new URL('./help.json', import.meta.url), 'utf8'))
+  const frTexts = [helpFr.what.fr, ...helpFr.steps.map((x) => x.fr), helpFr.good && helpFr.good.fr].filter(Boolean)
+  ok('…nor in the French help', frTexts.length >= 4 && !frTexts.some((t) => /(?<![A-Za-zÀ-ÿ])(vous|votre|vos)(?![A-Za-zÀ-ÿ])/i.test(t) || /(?<![A-Za-zÀ-ÿ])(?!chez|assez)[a-zà-ÿ]{3,}ez(?![A-Za-zÀ-ÿ])/i.test(t)))
+  resolved = 'en'
+  globalThis.window.__KB_LANG_RESOLVE__ = () => resolved
+  ok('a write refusal is said in English, and in French for the French page', T.refusalText({ error: 'whatever' }, 'Écriture refusée : ', 'Write refused: ') === 'Write refused: whatever' && (resolved = 'kybernos', T.refusalText({ error: 'whatever' }, 'Écriture refusée : ', 'Write refused: ')) === 'Écriture refusée : whatever')
+  ok('the status words are objects: a dot, a French word, an English word', Object.values(T.STATUS).every((v) => typeof v.dot === 'string' && v.fr.length > 1 && v.en.length > 1))
+  resolved = 'kybernos'
 }
 
 console.log('\n' + (failures === 0 ? '✓ ' : '✗ ') + (total - failures) + '/' + total + ' checks')

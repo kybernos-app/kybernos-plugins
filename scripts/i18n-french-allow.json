@@ -42,7 +42,7 @@
     "kybernos-theme": "pending",
     "kybernos-usage": "pending",
     "kybernos-websearch": "pending",
-    "kybernos-workers": "pending",
+    "kybernos-workers": [],
     "messaging": "pending"
   }
 }
