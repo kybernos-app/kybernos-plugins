@@ -2,9 +2,7 @@
 
 Dresses the shell code fences of the DSH chat as terminal windows: mac traffic-light dots + `~ zsh` title on the left, language badge and the NATIVE buttons (wrap lines, copy) kept on the right. v2 adds a green ▶ run button: on click the fence's command is executed by the host route (user decision: no confirmation dialog) and its output appears in a card under the code.
 
-Which fences: on DSH 0.2 the banner names a language only when DSH can highlight it (`bash`, `sh`, `zsh`, `shell`…), so those are recognised by their label. Any other fence reads "Code block" with no class, so `console` and `shell-session` are recognised by their source instead: a first line that is a `$ ` prompt (a transcript). A transcript runs only its `# kybernos-terminal
-
- lines, never the output between them. `pwsh` has no such trace and is not dressed.
+Which fences: on DSH 0.2 the banner names a language only when DSH can highlight it (`bash`, `sh`, `zsh`, `shell`…), so those are recognised by their label. Any other fence reads "Code block" with no class, so `console` and `shell-session` are recognised by their source instead: a first line that is a `$ ` prompt (a transcript). A transcript runs only its `$ ` lines, never the output between them. `pwsh` has no such trace and is not dressed.
 
 ## How it works
 
@@ -12,21 +10,7 @@ Pure DOM decoration on the stable markers the chat already renders (same contrac
 
 - `div.md-code-block` — gets the `kbtrm` class;
 - `[data-code-block-banner]` — receives a `.kbtrm-bar` title bar prepended; the native language label is hidden by CSS, nothing is removed;
-- the `# kybernos-terminal
-
-Dresses the shell code fences of the DSH chat as terminal windows: mac traffic-light dots + `~ zsh` title on the left, language badge and the NATIVE buttons (wrap lines, copy) kept on the right. v2 adds a green ▶ run button: on click the fence's command is executed by the host route (user decision: no confirmation dialog) and its output appears in a card under the code.
-
-Which fences: on DSH 0.2 the banner names a language only when DSH can highlight it (`bash`, `sh`, `zsh`, `shell`…), so those are recognised by their label. Any other fence reads "Code block" with no class, so `console` and `shell-session` are recognised by their source instead: a first line that is a `$ ` prompt (a transcript). A transcript runs only its `# kybernos-terminal
-
- lines, never the output between them. `pwsh` has no such trace and is not dressed.
-
-## How it works
-
-Pure DOM decoration on the stable markers the chat already renders (same contract dsh-mermaid relies on):
-
-- `div.md-code-block` — gets the `kbtrm` class;
-- `[data-code-block-banner]` — receives a `.kbtrm-bar` title bar prepended; the native language label is hidden by CSS, nothing is removed;
- prompt is a CSS `::before` on the first line of the `<code>` (inline text, so the `<pre>`'s overflow cannot clip it), added only when the source does not already start with one (`kbtrm-prompt`). It is not part of the text, so copy and run never see it.
+- the `$` prompt is a CSS `::before` on the first line of the `<code>` (inline text, so the `<pre>`'s overflow cannot clip it), added only when the source does not already start with one (`kbtrm-prompt`). It is not part of the text, so copy and run never see it.
 
 Styling uses `--dsw-*` tokens only, so light/dark theme switches repaint for free. A debounced `MutationObserver` on `document.documentElement` (never `body` — evaluated from `<head>`) picks up newly streamed messages; disposal removes the style, the bars and the classes.
 

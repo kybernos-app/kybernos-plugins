@@ -682,7 +682,7 @@ window.__ModuleLoader__.load({
       return true
     }
     // `git commit` peut être précédé d'options globales (`-c clé=valeur`, `-C dir`,
-    // `--no-pager`) : `git -c user.name=miled commit` n'était PAS reconnu, donc un
+    // `--no-pager`) : `git -c user.name=me commit` n'était PAS reconnu, donc un
     // chantier pourtant committé restait affiché « non sauvegardé ». Et `\bgit merge\b`
     // matchait `git merge-base` — une simple lecture d'ascendance passait pour un
     // commit, ce qui refermait le chantier à tort. Une seule expression, deux faux

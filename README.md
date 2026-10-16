@@ -90,6 +90,8 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | [`kybernos-sessions`](packages/kybernos-sessions/README.md) | Session and agent team memory status per folder |
 | [`kybernos-skills`](packages/kybernos-skills/README.md) | Skills catalog backed by DSH's native skill registry |
 | [`kybernos-slash`](packages/kybernos-slash/README.md) | Slash commands and message actions |
+| [`kybernos-atlas`](packages/kybernos-atlas/README.md) | Atlas: a read-only map of how your projects, agent teams, skills, memory, lessons, automations and apps fit together |
+| [`kybernos-free-llms`](packages/kybernos-free-llms/README.md) | Free LLMs: connects the free language models of OpenCode Zen to DSH, with no account and no API key |
 
 `kybernos-install` links **all** of these bundles in one go. Switch any satellite on or off afterwards with `node scripts/dsh-lifecycle.mjs satellites --desactiver <name>` / `--activer <name>`; the socle (`kybernos-plugin`, `-hub`, `-theme`, `-sessions`, `-skills`) is always on.
 

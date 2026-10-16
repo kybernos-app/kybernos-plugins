@@ -8,6 +8,7 @@
 //
 // Usage : node scripts/test-plateforme.mjs   (0 = tout vert)
 import { existsSync as existSync, readFileSync as readFichier } from 'node:fs'
+import { homedir } from 'node:os'
 import {
   famille, estWindows, estMac, estLinux, PROVENANCE,
   parsePidLsof, parsePidSs, parsePidNetstat,
@@ -179,8 +180,8 @@ verifie('instructions : le port vient de l\'appelant', instructionsRedemarrage('
 // S'il n'est pas là (autre poste), on le DIT — on ne fait pas passer une
 // absence pour un succès.
 const os = {
-  home: '/Users/essai', node: '/usr/local/bin/node', dsh: '/usr/local/bin/dsh',
-  port: 3080, travail: '/Users/essai/dsh-kybernos', journaux: '/Users/essai/.dsh/logs', uid: 501,
+  home: '/Users/me', node: '/usr/local/bin/node', dsh: '/usr/local/bin/dsh',
+  port: 3080, travail: '/Users/me/dsh-kybernos', journaux: '/Users/me/.dsh/logs', uid: 501,
 }
 const mac = planSupervision('mac', os)
 const linux = planSupervision('linux', os)
@@ -192,8 +193,8 @@ verifie('supervision : chaque famille a son nom de superviseur',
   mac.nom.includes('launchd') && linux.nom.includes('systemd') && win.nom.includes('Planificateur'))
 verifie('supervision : chaque famille dit sa provenance',
   mac.provenance === PROVENANCE_SUPERVISION.mac && linux.provenance === PROVENANCE_SUPERVISION.linux)
-verifie('supervision : macOS écrit dans ~/Library/LaunchAgents', mac.chemin === '/Users/essai/Library/LaunchAgents/com.kybernos.dsh-web.plist')
-verifie('supervision : Linux écrit dans ~/.config/systemd/user', linux.chemin === '/Users/essai/.config/systemd/user/com.kybernos.dsh-web.service')
+verifie('supervision : macOS écrit dans ~/Library/LaunchAgents', mac.chemin === '/Users/me/Library/LaunchAgents/com.kybernos.dsh-web.plist')
+verifie('supervision : Linux écrit dans ~/.config/systemd/user', linux.chemin === '/Users/me/.config/systemd/user/com.kybernos.dsh-web.service')
 verifie('supervision : le port vient de l\'appelant',
   planSupervision('mac', Object.assign({}, os, { port: 4444 })).contenu.includes('<string>4444</string>'))
 
@@ -205,7 +206,7 @@ verifie('plist : KeepAlive est vrai (DSH redémarre seul)', mac.contenu.includes
 verifie('plist : RunAtLoad est vrai', mac.contenu.includes('<key>RunAtLoad</key>\n  <true/>'))
 verifie('plist : la sortie et l\'erreur vont dans deux journaux distincts',
   mac.contenu.includes('dsh-web.out.log') && mac.contenu.includes('dsh-web.err.log'))
-verifie('plist : le dossier de travail est celui du dépôt', mac.contenu.includes('<string>/Users/essai/dsh-kybernos</string>'))
+verifie('plist : le dossier de travail est celui du dépôt', mac.contenu.includes('<string>/Users/me/dsh-kybernos</string>'))
 verifie('plist : l\'unité se termine par une nouvelle ligne',
   mac.contenu.endsWith('</plist>\n'))
 verifie('plist : installer passe par launchctl bootstrap', mac.installer[0][0] === 'launchctl' && mac.installer[0][1] === 'bootstrap')
@@ -219,7 +220,7 @@ verifie('systemd : ExecStart lance la commande web complète',
   linux.contenu.includes('ExecStart=/usr/local/bin/node /usr/local/bin/dsh web --no-open --port 3080'))
 verifie('systemd : Restart=always, avec un délai', linux.contenu.includes('Restart=always') && linux.contenu.includes('RestartSec=10'))
 verifie('systemd : WantedBy=default.target (c\'est un service utilisateur)', linux.contenu.includes('WantedBy=default.target'))
-verifie('systemd : WorkingDirectory est posé', linux.contenu.includes('WorkingDirectory=/Users/essai/dsh-kybernos'))
+verifie('systemd : WorkingDirectory est posé', linux.contenu.includes('WorkingDirectory=/Users/me/dsh-kybernos'))
 verifie('systemd : installer recharge le démon puis active',
   linux.installer.length === 2 && linux.installer[0].includes('daemon-reload') && linux.installer[1].includes('enable'))
 verifie('systemd : désinstaller désactive et arrête', linux.desinstaller[0].includes('disable') && linux.desinstaller[0].includes('--now'))
@@ -244,11 +245,13 @@ verifie('D7 : Windows ne demande pas SYSTEM (qui exigerait des droits)',
   win.contenu.indexOf('SYSTEM') < 0)
 
 // Le cas MESURÉ : reproduire le plist réellement chargé sur cette machine.
-const plistReel = '/Users/miled/Library/LaunchAgents/com.kybernos.dsh-web.plist'
+// The plist that is really loaded, when this machine has one (the home folder of whoever runs the test).
+const MAISON = homedir()
+const plistReel = MAISON + '/Library/LaunchAgents/com.kybernos.dsh-web.plist'
 if (existSync(plistReel)) {
   const planReel = planSupervision('mac', {
-    home: '/Users/miled', node: '/opt/homebrew/bin/node', dsh: '/opt/homebrew/bin/dsh',
-    port: 3080, travail: '/Users/miled/dyad-apps/dsh-kybernos', journaux: '/Users/miled/.dsh/logs', uid: 501,
+    home: MAISON, node: '/opt/homebrew/bin/node', dsh: '/opt/homebrew/bin/dsh',
+    port: 3080, travail: MAISON + '/dyad-apps/dsh-kybernos', journaux: MAISON + '/.dsh/logs', uid: 501,
   })
   const reel = readFichier(plistReel, 'utf8')
   if (planReel.contenu !== reel) {

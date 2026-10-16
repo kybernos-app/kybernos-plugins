@@ -198,14 +198,14 @@ try {
   check('turned on again: a new code', (await poll(async () => (await calls('/kybernos-cloud/telegram/pairing')).length === 2 && (await has('kybernos-kyber-qr')) === true, 6000)) === true)
 
   console.log('── 4. the pairing goes by itself ──')
-  await setMock(`window.__kbMock.pairingState = { ok: true, state: 'scanned', reason: null, sender: 'Miled (@milede)', expires_at: '' }`)
-  check('after the scan the panel names who Telegram says it is', (await poll(() => val(`/Miled \\(@milede\\)/.test((document.querySelector('[data-kb="kybernos-kyber-telegram"]') || {}).innerText || '')`), 8000)) === true)
+  await setMock(`window.__kbMock.pairingState = { ok: true, state: 'scanned', reason: null, sender: 'Miled (@alex)', expires_at: '' }`)
+  check('after the scan the panel names who Telegram says it is', (await poll(() => val(`/Miled \\(@alex\\)/.test((document.querySelector('[data-kb="kybernos-kyber-telegram"]') || {}).innerText || '')`), 8000)) === true)
   check('and the QR is gone, the row waits for the person\'s OK', (await has('kybernos-kyber-qr')) === false && /En attente|Waiting/.test((await text('kybernos-kyber-tg-row')) || ''))
-  await setMock(`window.__kbMock.kyber.telegram.linked = { display: 'Miled (@milede)', linked_at: '2026-10-15T10:00:00.000Z', paused: false, blocked: false }; window.__kbMock.pairingState = { ok: true, state: 'done', reason: null, sender: 'Miled (@milede)', expires_at: '' }`)
+  await setMock(`window.__kbMock.kyber.telegram.linked = { display: 'Miled (@alex)', linked_at: '2026-10-15T10:00:00.000Z', paused: false, blocked: false }; window.__kbMock.pairingState = { ok: true, state: 'done', reason: null, sender: 'Miled (@alex)', expires_at: '' }`)
   check('on the tap the status becomes connected by itself', (await poll(() => val(`/connecté|connected/i.test((document.querySelector('[data-kb="kybernos-kyber-status"]') || {}).innerText || '') && !/non connect|not connected/i.test((document.querySelector('[data-kb="kybernos-kyber-status"]') || {}).innerText || '')`), 9000)) === true)
   check('the strip folds itself once connected, so the chat is in view', (await val(`!document.querySelector('[data-kb="kybernos-kyber-channels"]')`)) === true)
   await click('kybernos-kyber-strip-toggle')
-  check('opened, Telegram\'s row names the chat, the switch is on, the bot has its link, and no panel is left', (await poll(() => val(`/Miled \\(@milede\\)/.test((document.querySelector('[data-kb="kybernos-kyber-tg-row"]') || {}).innerText || '')`), 5000)) === true && (await attr('kybernos-kyber-tg-switch', 'aria-checked')) === 'true' && (await has('kybernos-kyber-bot')) === true && (await has('kybernos-kyber-telegram')) === false)
+  check('opened, Telegram\'s row names the chat, the switch is on, the bot has its link, and no panel is left', (await poll(() => val(`/Miled \\(@alex\\)/.test((document.querySelector('[data-kb="kybernos-kyber-tg-row"]') || {}).innerText || '')`), 5000)) === true && (await attr('kybernos-kyber-tg-switch', 'aria-checked')) === 'true' && (await has('kybernos-kyber-bot')) === true && (await has('kybernos-kyber-telegram')) === false)
   await shot('3-connected')
 
   console.log('── 5. the computer linked to Kaby ──')
