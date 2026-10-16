@@ -159,7 +159,7 @@ try {
   const offered = await waitFor(page, `!!document.querySelector('[data-kb="mode-kybernos"]')`, 10000)
   check('the server offers connections: the switch is there, next to the person\'s own key', offered !== null && (await exists('[data-kb="mode-personal"]')))
   await shot('01-mode')
-  check('the personal key is the mode until the person chooses', (await ev(`document.querySelector('[data-kb="mode-personal"]').getAttribute('aria-pressed')`)) === 'true')
+  check('Kybernos connections are the mode until the person chooses (no personal key saved: V-34)', (await ev(`document.querySelector('[data-kb="mode-kybernos"]').getAttribute('aria-pressed')`)) === 'true')
   await clickJs('[data-kb="mode-kybernos"]')
   const listed = await waitFor(page, `document.querySelectorAll('[data-kb-conn]').length >= 3`, 10000)
   check('Kybernos connections: the account\'s three connections are listed', listed !== null, await rows())

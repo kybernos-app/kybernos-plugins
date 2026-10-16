@@ -750,7 +750,18 @@ window.__ModuleLoader__.load({
         return { status: res.status, json: json }
       } catch (e) { return { status: 0, json: null } }
     }
-    const kbCpModeGet = () => { try { return localStorage.getItem(KB_CP_MODE) === 'kybernos' ? 'kybernos' : 'personal' } catch (e) { return 'personal' } }
+    /** The person's own choice of mode, or null when they have not made one (the page then takes the default, kbCpModeEffective). */
+    const kbCpModeGet = () => { try { const v = localStorage.getItem(KB_CP_MODE); return v === 'kybernos' || v === 'personal' ? v : null } catch (e) { return null } }
+    /** The mode in force. Kybernos connections only where this server offers them. The person's choice wins; with none, Kybernos
+     *  connections are the default (nothing to paste, no key to keep), except for someone who already saved a Composio key of their
+     *  own (`keyConfigured` true) or whose key is not known yet (null): they stay as they were. Pure. */
+    const kbCpModeEffective = (stored, offered, keyConfigured) => {
+      if (offered !== true) return 'personal'
+      if (stored === 'kybernos' || stored === 'personal') return stored
+      return keyConfigured === false ? 'kybernos' : 'personal'
+    }
+    /** What Settings › Connectors shows as selected: what was chosen, else the default of kbCpModeEffective. Pure. */
+    const kbCpProviderEffective = (chosen, offered, keyConfigured) => (chosen === 'composio' || chosen === 'kybernos' ? chosen : kbCpModeEffective(null, offered, keyConfigured) === 'kybernos' ? 'kybernos' : 'composio')
     const kbCpModeSet = (m) => { try { localStorage.setItem(KB_CP_MODE, m === 'kybernos' ? 'kybernos' : 'personal') } catch (e) { /* a convenience only */ } }
     /**
      * What GET /kybernos-cloud/connections says, as the page uses it. null when the cloud half does not answer in that shape
@@ -2485,7 +2496,7 @@ window.__ModuleLoader__.load({
       }
       const appItem = (a, inPop) => (viewMode === 'list' ? appRow(a, inPop) : appCard(a, inPop))
       // The mode in force: Kybernos connections only when this server offers them, else the person's own key, as before.
-      const effMode = kc !== null && kc.offered === true && mode === 'kybernos' ? 'kybernos' : 'personal'
+      const effMode = kbCpModeEffective(mode, kc !== null && kc.offered === true, hostCfg)
       const kcMode = effMode === 'kybernos'
 
       // The add menu is the page's primary action: a value, so the header can put it where the template wants it.
@@ -2965,7 +2976,8 @@ window.__ModuleLoader__.load({
       const inPlan = signedIn && kc.entitled !== false
       const keyOn = key !== null && key.configured === true
       // Nothing chosen yet: what is in use today is what shows as selected (a saved key first), so the page never claims a change.
-      const effective = provider === 'composio' || provider === 'kybernos' ? provider : (keyOn || inPlan !== true ? 'composio' : 'kybernos')
+      // Nothing chosen yet: Kybernos Cloud, the default, unless a key of their own is saved (then what is in use today shows as selected).
+      const effective = kbCpProviderEffective(provider, offered, key === null ? null : keyOn)
       const choose = (next) => {
         if (next === effective && provider === next) return
         if (next === 'kybernos' && inPlan !== true) return
@@ -3093,7 +3105,7 @@ window.__ModuleLoader__.load({
       // exposed for the Resources tab of the kybernos bundle; the pure parts (webUrl, carteHtml,
       // carteAccepter, errText, hostState) and the MCP timeout are exposed so test-client.mjs can
       // reach them without a DOM.
-      composio: { cloudView: kbCpCloudView, cloudMerge: kbCpCloudMerge, cloudErr: kbCpCloudErr, connState: kbCpConnState, connActions: kbCpConnActions, failedText: kbCpFailedText, appsMatch: kbCpAppsMatch, modeGet: kbCpModeGet, modeSet: kbCpModeSet, page: ComposioPage, hostIsOld: kbCpHostIsOld, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, carteAcceptMax: CARTE_ACCEPT_MAX, match: kbCpMatch, joinArgs: kbCpJoinArgs, t: kbt, errText: kbCpErrText, keyState: kbCpKeyState, testErr: kbCpTestErr, statusOf: kbCpStatusOf, importParse: kbCpImportParse, importBody: kbCpImportBody, safeName: kbCpSafeName, targetOf: kbCpTargetOf, formOf: kbCpFormOf, bodyOf: kbCpBodyOf },
+      composio: { modeEffective: kbCpModeEffective, providerEffective: kbCpProviderEffective, cloudView: kbCpCloudView, cloudMerge: kbCpCloudMerge, cloudErr: kbCpCloudErr, connState: kbCpConnState, connActions: kbCpConnActions, failedText: kbCpFailedText, appsMatch: kbCpAppsMatch, modeGet: kbCpModeGet, modeSet: kbCpModeSet, page: ComposioPage, hostIsOld: kbCpHostIsOld, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, carteAcceptMax: CARTE_ACCEPT_MAX, match: kbCpMatch, joinArgs: kbCpJoinArgs, t: kbt, errText: kbCpErrText, keyState: kbCpKeyState, testErr: kbCpTestErr, statusOf: kbCpStatusOf, importParse: kbCpImportParse, importBody: kbCpImportBody, safeName: kbCpSafeName, targetOf: kbCpTargetOf, formOf: kbCpFormOf, bodyOf: kbCpBodyOf },
     }
   },
 })

@@ -387,7 +387,7 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
 // the page decides on its own: when the mode exists at all, what a failed call does to a list it already had, which words become
 // which sentences, and that an API key has nowhere to go but the one call that sends it.
 {
-  const { cloudView, cloudMerge, cloudErr, connState, connActions, failedText, appsMatch, modeGet, modeSet, t } = plugin.composio
+  const { cloudView, cloudMerge, cloudErr, connState, connActions, failedText, appsMatch, modeGet, modeSet, modeEffective, providerEffective, t } = plugin.composio
   const C1 = '0b1c2d3e-aaaa-4bbb-8ccc-1234567890ab'
   const row = (extra) => Object.assign({ id: C1, toolkit: 'gmail', status: 'active', accountType: 'oauth', alias: null, isDefault: true, createdAt: 't', failure: null }, extra || {})
   const view = (status, json) => cloudView({ status: status, json: json })
@@ -455,19 +455,26 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
 
   // the person's choice of mode
   store.clear()
-  ok('the mode is the person\'s own key until they choose otherwise', modeGet() === 'personal')
+  ok('nothing is chosen until the person chooses: the stored mode is null, and the page takes its default (V-34)', modeGet() === null)
   modeSet('kybernos')
   ok('the choice is kept, and read back', modeGet() === 'kybernos')
   modeSet('anything else')
   ok('anything but "kybernos" is the personal key', modeGet() === 'personal')
   store.set('kbcp.mode', '<script>')
-  ok('a stored value that is not ours is the personal key', modeGet() === 'personal')
+  ok('a stored value that is not ours counts as no choice', modeGet() === null)
   const realLs = globalThis.localStorage
   globalThis.localStorage = { getItem: () => { throw new Error('blocked') }, setItem: () => { throw new Error('blocked') } }
   let storageThrew = null
-  try { ok('with storage blocked the mode still reads and writes without a throw', modeGet() === 'personal' && modeSet('kybernos') === undefined) } catch (e) { storageThrew = e }
+  try { ok('with storage blocked the mode still reads and writes without a throw', modeGet() === null && modeSet('kybernos') === undefined) } catch (e) { storageThrew = e }
   globalThis.localStorage = realLs
   ok('(storage blocked) nothing escaped', storageThrew === null)
+
+  // the default mode (V-34): Kybernos Cloud, enabled from the start, for someone who has no key of their own
+  ok('V-34: where the server offers Kybernos connections and no personal key is saved, they are the mode in force until the person chooses', modeEffective(null, true, false) === 'kybernos')
+  ok('someone who already saved a Composio key stays on it (nothing changes under their feet), and so does a key not known yet', modeEffective(null, true, true) === 'personal' && modeEffective(null, true, null) === 'personal')
+  ok('the person\'s choice always wins, in both directions', modeEffective('personal', true, false) === 'personal' && modeEffective('kybernos', true, true) === 'kybernos')
+  ok('a server that does not offer Kybernos connections is always the personal key, whatever was stored', modeEffective(null, false, false) === 'personal' && modeEffective('kybernos', false, false) === 'personal' && modeEffective(null, undefined, false) === 'personal')
+  ok('Settings › Connectors shows the same default selected, and a saved choice as it is', providerEffective(null, true, false) === 'kybernos' && providerEffective(null, true, true) === 'composio' && providerEffective(null, false, false) === 'composio' && providerEffective('composio', true, false) === 'composio' && providerEffective('kybernos', true, true) === 'kybernos' && providerEffective(undefined, true, null) === 'composio')
 
   // strings: every new key in both languages, with the same placeholders
   const { readFileSync } = await import('node:fs')

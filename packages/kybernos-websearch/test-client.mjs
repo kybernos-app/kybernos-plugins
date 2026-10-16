@@ -73,6 +73,14 @@ ok('other failures keep their own message, and « missing » / « empty » say n
 ok('an address engine nobody has asked is not « Ready » (it is only a saved string)', statusOf({ ...base, access: 'url', health: {} }).txt === 'Address saved · not tested yet' && statusOf({ ...base, access: 'url', health: { lastOkAt: Date.now(), lastCount: 3, lastMs: 100 } }).cls === 'ok')
 ok('Save waits for a valid address and the reason is drawn under the field', /disabled: addr === null \|\| addrBad !== null/.test(src) && /data-kb': 'websearch-address-error'/.test(src))
 
+// ── which engine is the default (V-35) ─────────────────────────────────────────────────────────────────
+const { defaultEngine } = plugin.__test
+const eng = (id, over = {}) => ({ id, enabled: true, configured: true, access: 'free', ...over })
+ok('the default is the first engine of the list that is switched on and ready', defaultEngine([eng('a', { enabled: false }), eng('b', { configured: false }), eng('c'), eng('d')]).id === 'c')
+ok('the order of the list is the priority: moving an engine up makes it the default', defaultEngine([eng('d'), eng('c')]).id === 'd')
+ok('no engine on, or none ready: no default (the page says so)', defaultEngine([eng('a', { enabled: false })]) === null && defaultEngine([]) === null && defaultEngine(undefined) === null)
+ok('the default is marked on its row and named under the title', /isDefault: fixed !== true && defaultId === e\.id/.test(src) && src.includes("'data-kb': 'websearch-default'") && src.includes("'data-kb': 'websearch-default-line'"))
+
 // ── hygiene (same rules as the other bundles) ───────────────────────────────────────────────────────
 const hook = (id) => src.indexOf("'data-kb': '" + id + "'") !== -1
 ok('stable data-kb hooks for tests and live scripts', ['websearch-page', 'websearch-list', 'websearch-engine', 'websearch-switch', 'websearch-key-input', 'websearch-test-result', 'websearch-domains', 'websearch-last'].every(hook))

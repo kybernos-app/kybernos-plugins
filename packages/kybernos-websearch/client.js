@@ -90,6 +90,12 @@ window.__ModuleLoader__.load({
         }
         return test.message || ''
       }
+      /** The default engine: the first one of the list that is switched on and can answer (a key or an address is there). It is the
+       *  one agents try first; the next ones only take over when it fails. null when none is. */
+      const defaultEngine = (engines) => {
+        const e = (Array.isArray(engines) ? engines : []).find((x) => x !== null && typeof x === 'object' && x.enabled === true && x.configured === true)
+        return e === undefined ? null : e
+      }
       const accessBadge = (e) => (e.access === 'free'
         ? { cls: 'free', txt: kt('SANS CLÉ', 'NO KEY') }
         : (e.access === 'key' ? { cls: 'key', txt: kt('CLÉ', 'KEY') } : { cls: 'url', txt: kt('ADRESSE', 'ADDRESS') }))
@@ -194,6 +200,7 @@ window.__ModuleLoader__.load({
             h('button', { type: 'button', className: 'kwse-name', 'data-act': 'open', 'aria-expanded': String(open), onClick: () => props.onToggle(e.id) },
               h('b', null, nameOf(e.id)),
               h('span', { className: 'kwse-badge ' + badge.cls }, badge.txt),
+              props.isDefault === true ? h('span', { className: 'kwse-badge def', 'data-kb': 'websearch-default', title: kt('Agents cherchent d’abord avec ce moteur ; le suivant prend le relais s’il échoue.', 'Agents search with this engine first; the next one takes over if it fails.') }, kt('PAR DÉFAUT', 'DEFAULT')) : null,
               h('small', { className: 'kwse-status ' + st.cls }, h('i', { className: 'kwse-dot ' + st.cls }), st.txt)),
             h('button', {
               type: 'button', className: 'kwse-switch' + (e.enabled ? ' on' : ''), 'data-kb': 'websearch-switch', role: 'switch',
@@ -270,9 +277,10 @@ window.__ModuleLoader__.load({
         const s = state.settings
         const used = state.engines.filter((e) => e.configured)
         const more = state.engines.filter((e) => !e.configured)
+        const defaultId = defaultEngine(state.engines) === null ? null : defaultEngine(state.engines).id
         const toggle = (id) => setOpenId(openId === id ? null : id)
         const rowOf = (e, i, list, fixed) => h(Row, {
-          key: e.id, engine: e, settings: s, open: openId === e.id, onToggle: toggle,
+          key: e.id, engine: e, settings: s, open: openId === e.id, onToggle: toggle, isDefault: fixed !== true && defaultId === e.id,
           first: fixed || i === 0, last: fixed || i === list.length - 1, onMove: move, onPatch: patch, onState: setState, onMsg: setMsg
         })
         const wrongPin = state.pinned !== null && state.pinned !== state.provider
@@ -280,6 +288,9 @@ window.__ModuleLoader__.load({
 
         return h('div', { className: 'kwse-page', 'data-kb': 'websearch-page' },
           pageHead(),
+          h('p', { className: 'kwse-default', 'data-kb': 'websearch-default-line' }, defaultId === null
+            ? kt('Aucun moteur n’est activé : les agents ne peuvent pas chercher sur le web.', 'No engine is switched on: agents cannot search the web.')
+            : kt('Moteur par défaut : ', 'Default engine: ') + nameOf(defaultId) + kt(' — les agents l’essaient en premier.', ' — agents try it first.')),
           wrongPin
             ? h('p', { className: 'kwse-banner', 'data-kb': 'websearch-banner' }, kt(
               'DSH est réglé sur un autre fournisseur (« ' + state.pinned + ' ») : cette liste n’est pas utilisée tant que la ligne « web » du profil n’est pas revenue à « ' + state.provider + ' ».',
@@ -344,6 +355,8 @@ window.__ModuleLoader__.load({
         '.kwse-name b{font-size:14px;font-weight:500;color:var(--dsw-alias-label-primary,inherit)}',
         '.kwse-badge{font-size:9.5px;font-weight:600;letter-spacing:.05em;padding:1px 6px;border-radius:5px;background:var(--dsw-alias-bg-layer-3,#eee);color:var(--dsw-alias-label-secondary,#555)}',
         '.kwse-badge.free{color:var(--dsw-alias-state-success-primary,#0a7)}',
+        '.kwse-badge.def{color:var(--dsw-alias-brand-primary,#36c);background:color-mix(in srgb,var(--dsw-alias-brand-primary,#36c) 14%,transparent)}',
+        '.kwse-default{margin:0 0 10px;font-size:12.5px;color:var(--dsw-alias-label-secondary,#555)}',
         '.kwse-badge.key{color:var(--dsw-alias-state-warn-primary,#a60)}',
         // Light scheme: the state tokens are fills (green 2.3:1, amber 2.2:1 on white); the ink is mixed toward the text colour.
         'body:not([data-ds-dark-theme]) .kwse-badge.free{color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 55%,var(--dsw-alias-label-primary))}body:not([data-ds-dark-theme]) .kwse-badge.key{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 50%,var(--dsw-alias-label-primary))}',
@@ -407,7 +420,7 @@ window.__ModuleLoader__.load({
             }, 'kybernos-websearch: settings page')
           } catch (e) { console.warn('[kybernos-websearch] page not mounted', e) }
         },
-        __test: { statusOf, accessBadge, nameOf, addressProblem, testDetail }
+        __test: { statusOf, accessBadge, nameOf, addressProblem, testDetail, defaultEngine }
       }
     } catch (e) {
       console.warn('[kybernos-websearch] disabled:', e)
