@@ -15,6 +15,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { readFileSync } from 'node:fs'
+import { assemble } from './scripts/build.mjs'
 
 let echecs = 0
 const ok = (label, condition, detail) => {
@@ -274,6 +275,14 @@ ok('in the default state the bar is dimmed, not hidden', barre !== null && barre
   ok('PROBE: the next deck opens the tab again', appels === 3 && etat.dejaOuvert === true && etat.versionVue === 3)
   ok('PROBE: an unreachable host changes nothing', T.pasSonde(etat, null, ouvrir) === etat && appels === 3)
 }
+
+// ── the build and the demo ──────────────────────────────────────────────────
+// client.js is generated from src/plugin.js (scripts/build.mjs). It was edited by hand in four commits and src/plugin.js stayed behind:
+// the next build would have undone the focus fix, the reachable tool bar and the kbsd- selectors (audit 2026-10-16).
+ok('BUILD: client.js is the build of its sources (node packages/kybernos-slides/scripts/build.mjs)', assemble() === source)
+// The demo's caption names what the tool bar offers; it once promised keyboard shortcuts (T) and (B) that did not exist.
+const caption = /prompt: "(Deck de démonstration[^"]*)"/.exec(source)
+ok('DEMO: its caption names the tools of the bar, not shortcuts that do not exist', caption !== null && /outil Texte/.test(caption[1]) && /outil Pinceau/.test(caption[1]) && !/\([A-Z]\)/.test(caption[1]) && source.includes("['texte', '✎ Texte']") && source.includes("['pinceau', '✎ Pinceau']"), caption && caption[1])
 
 console.log(echecs === 0 ? '\nClient : tout est vert.' : `\nClient : ${echecs} échec(s).`)
 process.exit(echecs === 0 ? 0 : 1)
