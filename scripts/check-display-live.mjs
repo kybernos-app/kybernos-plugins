@@ -19,7 +19,8 @@
 // It refuses to run against :3080: it clicks, it switches DSH's theme mode and it fakes an account answer inside the
 // page. Use the isolated instance (scripts/sandbox, docs/dev/live-testing.md). The account, the phone link and the
 // notification states are answered INSIDE the page (CDP Fetch), so no server is ever called. Not run by CI.
-// Exit 0 (it measures), 1 with --strict when something fails, 3 when it could not run.
+// Exit 0 (it measures), 1 with --strict when something fails or a view was skipped, 3 when it could not run. Every view it could not reach is listed as
+// « SKIPPED: <size/scheme/scenario> — <why> » at the end.
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -359,7 +360,11 @@ function makeCtx(page, size, scheme) {
     page, size, scheme, sleep,
     /** Click the first visible element matching {css, text, label, nth}; false when none (and it is listed as missing). */
     async click(spec, opts = {}) {
-      const r = await page.evalJs(`(() => {
+      // An element that is about to be drawn (a card after a reload, a cell a plugin renames) is waited for: `patience` ms (2.5 s unless the click is `quiet`,
+      // i.e. for a control that may legitimately be absent) before the step is listed as one that could not be done.
+      const patience = opts.patience !== undefined ? opts.patience : (opts.quiet === true ? 0 : 2500)
+      const deadline = Date.now() + patience
+      const lookup = `(() => {
         const sp = ${JSON.stringify(spec)}
         const norm = (s) => String(s || '').replace(/[⟦⟧]/g, '').replace(/\\s+/g, ' ').trim().toLowerCase()
         const els = Array.from(document.querySelectorAll(sp.css || '*')).filter((e) => {
@@ -378,7 +383,9 @@ function makeCtx(page, size, scheme) {
         e.scrollIntoView({ block: 'nearest' })
         const r = e.getBoundingClientRect()
         return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
-      })()`, 8000)
+      })()`
+      let r = await page.evalJs(lookup, 8000)
+      while (!r.val && Date.now() < deadline) { await sleep(250); r = await page.evalJs(lookup, 8000) }
       if (!r.val) { if (opts.quiet !== true) missing.push({ size, scheme, scenario: current, why: 'not found: ' + JSON.stringify(spec) }); return false }
       await mouse(page, r.val.x, r.val.y)
       await sleep(opts.wait === undefined ? 700 : opts.wait)
@@ -407,8 +414,12 @@ function makeCtx(page, size, scheme) {
     },
     async drawer() { // at 390 px the sidebar is a drawer
       if (size !== 'narrow') return
-      const open = (await page.evalJs(`document.querySelector('[data-sidebar-collapsed]') === null && document.querySelector('[data-shell-overlay]') !== null`)).val
-      if (open !== true) await ctx.click({ css: '[data-kb="mobile-menu"]' }, { wait: 600 })
+      const isOpen = async () => (await page.evalJs(`document.querySelector('[data-sidebar-collapsed]') === null && document.querySelector('[data-shell-overlay]') !== null`)).val === true
+      // Right after a load the menu button may not be drawn yet and the shell has no state to read: wait for the button before deciding.
+      await waitFor(page, `document.querySelector('[data-kb="mobile-menu"]') !== null`, 8000)
+      if (await isOpen()) return
+      await ctx.click({ css: '[data-kb="mobile-menu"]' }, { wait: 300 })
+      await waitFor(page, `document.querySelector('[data-sidebar-collapsed]') === null && document.querySelector('[data-shell-overlay]') !== null`, 4000)
     },
     /** Measure the page as it is now, outline the offenders on a screenshot. */
     async audit(label, opts = {}) {
@@ -461,7 +472,8 @@ async function setScheme(ctx, scheme) {
 }
 
 // ── what is walked ──────────────────────────────────────────────────────────────────────────────────────────────
-const SIDEBAR_PAGES = ['Agent Teams', 'Workspaces', 'Creations', 'Automations', 'Skills', 'Connectors', 'Automation tasks']
+// (DSH's own « Automation tasks » list is hidden by the Kybernos Automations page: the sidebar has no such row any more, so it is not walked.)
+const SIDEBAR_PAGES = ['Agent Teams', 'Workspaces', 'Creations', 'Automations', 'Skills', 'Connectors']
 const COMPOSER = [
   { label: 'Add files or run commands' }, { label: 'Commands: browse' }, { label: 'Access mode' }, { label: 'Execution environment' },
   { label: 'Select model' }, { label: 'Create an artifact' }, { label: 'Input device' }, { label: 'Choose workspace' },
@@ -513,12 +525,21 @@ const SCENARIOS = [
     async run(c) {
       if (!(await openSettings(c.page, { tries: 3 }))) { missing.push({ size: c.size, scheme: c.scheme, scenario: 'settings', why: 'did not open' }); return }
       await c.drawer()
-      const cells = (await c.page.evalJs(`Array.from(document.querySelectorAll('button[class*="navCell"]')).map((b) => (b.innerText || '').trim())`)).val || []
+      // Only the cells a person can see: DSH's own « Models » cell is hidden by the Kybernos « AI Provider & Models » page that replaces it (there is nothing to click).
+      const readCells = async () => (await c.page.evalJs(`Array.from(document.querySelectorAll('button[class*="navCell"]')).filter((b) => { const r = b.getBoundingClientRect(); return r.width > 4 && r.height > 4 && getComputedStyle(b).visibility === 'visible' }).map((b) => (b.innerText || '').trim())`)).val || []
+      // Plugins retitle some cells a moment after the dialog opens (« Models » becomes « AI Provider & Models »): take the list once it has stopped moving.
+      let cells = await readCells()
+      for (let i = 0; i < 12; i += 1) { await sleep(500); const again = await readCells(); if (JSON.stringify(again) === JSON.stringify(cells)) break; cells = again }
       for (const name of cells) {
         if (CELLS !== null && !CELLS.some((x) => name.toLowerCase().includes(x))) continue
         await ensureSettings(c)
         await c.drawer()
-        if (!(await c.click({ css: 'button[class*="navCell"]', text: name }, { wait: 1200 }))) continue
+        // After a reload the cell may carry its final title: look for the name as read, then for the cell that contains it.
+        if (!(await c.click({ css: 'button[class*="navCell"]', text: name }, { wait: 1200, quiet: true }))) {
+          const now = await readCells()
+          const alias = now.find((t) => t.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(t.toLowerCase()))
+          if (alias === undefined || !(await c.click({ css: 'button[class*="navCell"]', text: alias }, { wait: 1200 }))) { missing.push({ size: c.size, scheme: c.scheme, scenario: 'settings.' + slug(name), why: 'the cell « ' + name + ' » was not found again (cells now: ' + now.join(' | ').slice(0, 120) + ')' }); continue }
+        }
         await c.audit(slug(name), { wait: 1500 })
         // The page's own tabs (role=tab, or the theme page's vertical tabs).
         const tabs = (await c.page.evalJs(`Array.from(document.querySelectorAll('[role="tab"], .kbth-adv-tab')).filter((e) => !e.closest('[class*="navList"]') && e.getBoundingClientRect().width > 4 && getComputedStyle(e).visibility === 'visible').map((e) => (e.innerText || e.getAttribute('aria-label') || '').trim()).filter(Boolean).slice(0, 10)`)).val || []
@@ -546,7 +567,7 @@ const SCENARIOS = [
       }
       await reload(c.page)
       await c.drawer()
-      if (await c.click({ css: '.kbfp-cardmain' })) {
+      if (await c.click({ css: '.kbfp-cardmain' }, { patience: 8000 })) {
         await c.audit('menu', { shot: true })
         if (await c.click({ css: '[data-kb="menu-switch"]' }, { quiet: true })) await c.audit('switcher', { shot: true })
       }
@@ -615,7 +636,8 @@ for (const r of results) {
 }
 const findings = [...groups.values()].sort((a, b) => (a.cat === b.cat ? (a.cat === 'contrast' ? a.worst - b.worst : b.worst - a.worst) : a.cat.localeCompare(b.cat)))
 writeFileSync(join(OUT, 'report.json'), JSON.stringify({ host, sizes: SIZES, schemes: SCHEMES, missing, findings: findings.map((g) => ({ cat: g.cat, worst: g.worst, ...g.first, seen: g.where.length, where: g.where.slice(0, 6), shot: g.shot })), results }, null, 1))
-console.log('\n' + results.length + ' views measured, ' + findings.length + ' distinct findings, ' + missing.length + ' step(s) that could not be done')
-for (const m of missing.slice(0, 12)) console.log('  ? ' + m.size + '/' + m.scheme + '/' + m.scenario + ' ' + m.why)
+console.log('\n' + results.length + ' views measured, ' + findings.length + ' distinct findings, ' + missing.length + ' step(s) SKIPPED (a view that was not measured is not a view that passed)')
+for (const m of missing) console.log('SKIPPED: ' + m.size + '/' + m.scheme + '/' + m.scenario + ' — ' + m.why)
 console.log('report: ' + join(OUT, 'report.json'))
-process.exit(STRICT && findings.length > 0 ? 1 : 0)
+// --strict turns a finding AND a skipped view into a failure: a sweep that quietly measured less than it was asked to is not green.
+process.exit(STRICT && (findings.length > 0 || missing.length > 0) ? 1 : 0)
