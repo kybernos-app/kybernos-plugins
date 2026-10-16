@@ -1541,14 +1541,24 @@ window.__ModuleLoader__.load({
         const trouvée = LOGO_SLUGS.find((p) => r.indexOf(p[0]) >= 0)
         return trouvée === undefined ? null : trouvée[1]
       }
-      // ── catalogue de fournisseurs (source : https://models.dev/providers/) ──
-      // Entrées : { id, nom, env, url, logo, libre }. `libre` marque les
-      // fournisseurs qui proposent des modèles GRATUITS sous quota
-      // (OpenRouter : openrouter.ai/collections/free-models ; NVIDIA NIM
-      // preview : build.nvidia.com/models → nim_type_preview). Le slug
-      // `logo` vise cdn.simpleicons.org ; absent ou en échec → puce-initiale.
-      // Un préremplissage n'écrit rien tout seul : il propose slug, baseURL
-      // et nom de variable d'env, l'utilisateur confirme avec « Ajouter ».
+      // KB-LOGO-PURE-BEGIN
+      // A provider logo comes from this bundle (logos/, served by /kybernos-models/logo), never from a third-party CDN: a page that shows
+      // twenty logos must not tell a CDN which providers a person looks at (it used to ask an icon CDN). The slugs above are
+      // simple-icons names; each maps to the models.dev logo the bundle ships, and a provider without one shows its initial.
+      const LOGO_ALIAS = { googlegemini: 'google', qwen: 'alibaba', ollama: 'ollama-cloud', mistralai: 'mistral', together: 'togetherai', ovh: 'ovhcloud', alibabacloud: 'alibaba' }
+      const kbLogoLocalId = (slug, catalogue) => {
+        const s = String(slug === null || slug === undefined ? '' : slug)
+        const id = Object.prototype.hasOwnProperty.call(LOGO_ALIAS, s) ? LOGO_ALIAS[s] : s
+        const list = Array.isArray(catalogue) ? catalogue : []
+        const found = list.find((p) => p !== null && typeof p === 'object' && p.id === id && p.logo === true)
+        return found === undefined ? null : found.id
+      }
+      // KB-LOGO-PURE-END
+      // ── provider catalogue (source: https://models.dev/providers/) ──
+      // Entries: { id, nom, env, url, logo, libre }. `libre` marks the providers that offer FREE models under a quota
+      // (OpenRouter: openrouter.ai/collections/free-models; NVIDIA NIM preview: build.nvidia.com/models → nim_type_preview).
+      // The `logo` slug is a simple-icons name, turned into the logo the bundle ships by kbLogoLocalId; none → the initial.
+      // A prefill writes nothing by itself: it proposes slug, baseURL and env variable name, and the person confirms with « Add ».
       const PROV_CATALOG = [
         { id: 'openrouter', nom: 'OpenRouter', env: 'OPENROUTER_API_KEY', url: 'https://openrouter.ai/api/v1', logo: 'openrouter', libre: true },
         { id: 'nvidia', nom: 'NVIDIA NIM', env: 'NVIDIA_API_KEY', url: 'https://integrate.api.nvidia.com/v1', logo: 'nvidia', libre: true },
@@ -1630,15 +1640,13 @@ window.__ModuleLoader__.load({
         }
         return best
       }
-      /** Puce logo par slug de catalogue (simpleicons) — repli initiale. */
+      /** Puce logo par slug de catalogue : le logo local qui lui correspond, sinon l'initiale. */
       const LogoSlug = ({ slug, nom, taille }) => {
-        const [echec, setEchec] = React.useState(false)
         const t = taille || 18
-        if (!slug || echec === true) {
-          return h('span', { className: 'kbmp-logo kbmp-logo-chip', style: { width: t + 6, height: t + 6, fontSize: Math.max(9, t - 6) } },
-            String(nom || slug || '?').charAt(0).toUpperCase())
-        }
-        return h('img', { className: 'kbmp-logo', src: 'https://cdn.simpleicons.org/' + slug, width: t, height: t, alt: '', loading: 'lazy', onError: () => setEchec(true) })
+        const local = slug ? kbLogoLocalId(slug, KB_CATALOGUE) : null
+        if (local !== null) return h(LogoMd, { id: local, nom: nom || slug, taille: t })
+        return h('span', { className: 'kbmp-logo kbmp-logo-chip', style: { width: t + 6, height: t + 6, fontSize: Math.max(9, t - 6) } },
+          String(nom || slug || '?').charAt(0).toUpperCase())
       }
       /** Logo models.dev servi par l'hôte, peint en masque : il prend la couleur du thème (clair/sombre). */
       const LogoMd = ({ id, nom, taille }) => {
@@ -1665,16 +1673,14 @@ window.__ModuleLoader__.load({
         return h('span', { className: cls, title: m('kb.prov.free.titre'), 'data-kbm': 'prov-free' }, contenu)
       }
       const LogoProv = ({ route, taille }) => {
-        const [echec, setEchec] = React.useState(false)
         const t = taille || 18
-        const slug = logoSlugDe(route)
         const ent = kbLogoEntree(route)
         if (ent !== null) return h(LogoMd, { id: ent.id, nom: route, taille: t })
-        if (slug === null || echec === true) {
-          return h('span', { className: 'kbmp-logo kbmp-logo-chip', style: { width: t + 6, height: t + 6, fontSize: Math.max(9, t - 6) } },
-            String(route).charAt(0).toUpperCase())
-        }
-        return h('img', { className: 'kbmp-logo', src: 'https://cdn.simpleicons.org/' + slug, width: t, height: t, alt: '', loading: 'lazy', onError: () => setEchec(true) })
+        const slug = logoSlugDe(route)
+        const local = slug === null ? null : kbLogoLocalId(slug, KB_CATALOGUE)
+        if (local !== null) return h(LogoMd, { id: local, nom: route, taille: t })
+        return h('span', { className: 'kbmp-logo kbmp-logo-chip', style: { width: t + 6, height: t + 6, fontSize: Math.max(9, t - 6) } },
+          String(route).charAt(0).toUpperCase())
       }
 
       // ═══ Providers tab ═══════════════════════════════════════════════════════════════

@@ -1,8 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// kybernos-maintenance — host. Read-only.
+// kybernos-maintenance — host. Measures; its only write is the one switch above.
 //
-// Route exposed (webServer, GET only):
-//   GET /kybernos-maintenance/state
+// Routes exposed (webServer):
+//   GET  /kybernos-maintenance/state
+//   GET  /kybernos-maintenance/update   (?auto=1 = the scheduled check: it asks nothing while the switch below is off)
+//   GET|POST /kybernos-maintenance/settings   the switch « Check for updates automatically »: { autoCheck }, nothing else
 //
 // Answers the lifecycle state — the SAME reads as `doctor`: versions (engine,
 // plugin), pin alignment, missing links/bundles, applied patches,
@@ -12,7 +14,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { execFile } from 'node:child_process'
-import { existsSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -167,6 +169,32 @@ function lireVersionPack () {
     const v = readFileSync(join(REPO, 'VERSION'), 'utf8').trim()
     return FORME_VERSION.test(v) ? v : null
   } catch (e) { return null }
+}
+// ── the switch « Check for updates automatically » (A6-14, A6-26) ────────────
+// The page asks for an update ~15 s after it opens, then every 6 h: the published VERSION on GitHub (raw.githubusercontent.com), the
+// latest DSH on the npm registry (`npm view`), and the signed catalogue of the Suite (github.com release asset, asked through the hub).
+// Nothing about the person's work goes with those requests, but their address and the standard headers of a web request do: so there
+// is a switch, ON by default (a security fix has to be announced), kept next to the other Kybernos state. OFF, the scheduled check
+// answers at once and asks nobody; « Check now » and the Suite's own button are the person's action and always ask. See docs/privacy.md.
+const FICHIER_REGLAGE = join(DSH_HOME, 'kybernos', 'update-check.json')
+export function lireReglage (fichier = FICHIER_REGLAGE) {
+  try { return { autoCheck: JSON.parse(readFileSync(fichier, 'utf8')).autoCheck !== false } } catch (e) { return { autoCheck: true } }
+}
+export function ecrireReglage (autoCheck, fichier = FICHIER_REGLAGE) {
+  mkdirSync(dirname(fichier), { recursive: true })
+  const tmp = fichier + '.tmp-' + process.pid
+  writeFileSync(tmp, JSON.stringify({ autoCheck: autoCheck === true }, null, 2) + '\n')
+  renameSync(tmp, fichier)
+  return { autoCheck: autoCheck === true }
+}
+/** The answer of GET /update, from its query. `dep` lets a test stand in for the switch and the measure. A scheduled check (`auto=1`)
+ *  never reaches the network while the switch is off; a manual one (no `auto`) always does. */
+export async function repondreMaj (url, dep = {}) {
+  const requete = String(url || '')
+  const auto = /[?&]auto=1(?:&|$)/.test(requete)
+  const force = /[?&]force=1(?:&|$)/.test(requete)
+  if (auto && (dep.reglage ?? lireReglage)().autoCheck !== true) return { ok: true, desactive: true }
+  return (dep.mesurer ?? mesurerMaj)(force)
 }
 /** Builds the response: pure, so testable without network or DSH. `pending` =
  *  what the GUI must announce (null = nothing to do): a new pack version
@@ -397,12 +425,24 @@ export function apply (ctx) {
     webServer.register({ kind: 'exact', path: '/kybernos-maintenance/update', handler: async (req, res) => {
       if (req.method !== 'GET') { res.writeHead(405); res.end(); return }
       if (!origineOK(req)) { res.writeHead(403); res.end(); return }
+      try { envoyer(res, 200, await repondreMaj(req.url)) } catch (e) { envoyer(res, 500, { ok: false, erreur: String(e && e.message ? e.message : e) }) }
+    } })
+    webServer.register({ kind: 'exact', path: '/kybernos-maintenance/settings', handler: async (req, res) => {
+      if (!origineOK(req)) { res.writeHead(403); res.end(); return }
       try {
-        const force = String(req.url || '').indexOf('force=1') >= 0
-        envoyer(res, 200, await mesurerMaj(force))
+        if (req.method === 'GET') { envoyer(res, 200, { ok: true, ...lireReglage() }); return }
+        if (req.method !== 'POST') { res.writeHead(405); res.end(); return }
+        // A write needs a browser's Origin (already checked above when there is one): a bare request from another program is refused.
+        if (String(req.headers.origin || '') === '') { envoyer(res, 403, { ok: false, erreur: 'origin required' }); return }
+        let corps = ''
+        for await (const morceau of req) { corps += morceau; if (corps.length > 2000) { envoyer(res, 413, { ok: false, erreur: 'too large' }); return } }
+        let demande = null
+        try { demande = JSON.parse(corps) } catch (e) { demande = null }
+        if (demande === null || typeof demande !== 'object' || typeof demande.autoCheck !== 'boolean') { envoyer(res, 400, { ok: false, erreur: '{ autoCheck: boolean } expected' }); return }
+        envoyer(res, 200, { ok: true, ...ecrireReglage(demande.autoCheck) })
       } catch (e) { envoyer(res, 500, { ok: false, erreur: String(e && e.message ? e.message : e) }) }
     } })
-    console.log('[kybernos-maintenance] webServer routes /kybernos-maintenance/state and /update registered (read-only)')
+    console.log('[kybernos-maintenance] webServer routes /kybernos-maintenance/state, /update and /settings registered')
   }
   if (ctx.get('webServer') !== undefined) demarrer(ctx)
   else ctx.inject(['webServer'], demarrer)

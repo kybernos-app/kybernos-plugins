@@ -124,8 +124,16 @@ let lang = 'en'
 let definition
 const win = { __ModuleLoader__: { load: (def) => { definition = def } }, __KB_LANG_RESOLVE__: () => lang, localStorage: fakeStorage }
 let reponse = null
-let appels = 0
-globalThis.fetch = (url) => {
+let appels = 0 // calls to /state (the switch of the automatic check has its own route, counted apart)
+let reglageReponse = { ok: true, autoCheck: true }
+const appelsReglage = []
+globalThis.fetch = (url, init) => {
+  if (String(url) === '/kybernos-maintenance/settings') {
+    const post = init !== undefined && init !== null && init.method === 'POST'
+    appelsReglage.push(post ? 'POST ' + init.body : 'GET')
+    if (reglageReponse === 'reseau-ko') return Promise.reject(new Error('offline'))
+    return Promise.resolve({ json: async () => (post && reglageReponse.ok === true ? { ok: true, autoCheck: JSON.parse(init.body).autoCheck } : reglageReponse) })
+  }
   appels += 1
   return reponse === 'reseau-ko' ? Promise.reject(new Error('offline')) : Promise.resolve({ json: async () => reponse })
 }
@@ -185,7 +193,8 @@ console.log('── host: the shipped version ──')
   const reel = lireVersion(join(REPO, 'VERSION'))
   check('the repo-root VERSION (shipped in the archive root) is a semver', reel !== null, reel)
   check('the host state exposes it as `version`, next to the git hash `plugin`', /const version = lireVersion\(VERSION_CHEMIN\)/.test(HOST) && /global, plugin, version,/.test(HOST) && /VERSION_CHEMIN = join\(REPO, 'VERSION'\)/.test(HOST))
-  check('the host stays read-only: GET only, no write call', /req\.method !== 'GET'/.test(HOST) && !/writeFile|appendFile|unlink|rmSync|mkdirSync/.test(HOST))
+  check('the host measures, and its only write is the one switch of the automatic check (one atomic file, nothing else deleted or appended)', /req\.method !== 'GET'/.test(HOST) && !/appendFile|unlink|rmSync/.test(HOST) && (HOST.match(/writeFileSync\(/g) || []).length === 1 && /FICHIER_REGLAGE = join\(DSH_HOME, 'kybernos', 'update-check\.json'\)/.test(HOST) && /renameSync\(tmp, fichier\)/.test(HOST))
+  check('a write needs a browser\'s Origin, and a body of { autoCheck: boolean } only', /req\.headers\.origin \|\| ''\) === ''\) \{ envoyer\(res, 403/.test(HOST) && /typeof demande\.autoCheck !== 'boolean'/.test(HOST))
 }
 
 console.log('── pure logic ──')
@@ -432,6 +441,26 @@ console.log('── the container: loading, failing, refreshing ──')
   parKb(s.tree, 'maintenance-refresh')[0].props.onClick()
   await tick(); await tick()
   check('« Check now » fetches again', appels === 2 && parKb(s.tree, 'maintenance-status').length === 1)
+  // the switch of the automatic check (A6-14): shown once the host answered, written on a press, never invented
+  const carte = () => parKb(s.tree, 'maintenance-auto-update')
+  const interrupteur = () => parKb(s.tree, 'maintenance-auto-switch')[0]
+  check('the card of the automatic check is there, with a switch that reads ON (the host\'s default)', carte().length === 1 && interrupteur() !== undefined && interrupteur().props.role === 'switch' && interrupteur().props['aria-checked'] === 'true' && appelsReglage[0] === 'GET', appelsReglage)
+  check('it says what is asked, of whom, and that nothing of the work goes', /GitHub/.test(texte(carte()[0])) && /npm registry/.test(texte(carte()[0])) && /Nothing about your work is sent/.test(texte(carte()[0])) && /every 6 hours/.test(texte(carte()[0])))
+  interrupteur().props.onClick()
+  await tick(); await tick()
+  check('pressing it posts { autoCheck: false } and then reads OFF, from what the host answered', appelsReglage[appelsReglage.length - 1] === 'POST {"autoCheck":false}' && interrupteur().props['aria-checked'] === 'false', appelsReglage)
+  reglageReponse = { ok: false, erreur: 'boom' }
+  interrupteur().props.onClick()
+  await tick(); await tick()
+  check('a refused write puts the switch back where it was (it never shows a state the host did not keep)', interrupteur().props['aria-checked'] === 'false', interrupteur().props['aria-checked'])
+  reglageReponse = { ok: true, autoCheck: true }
+
+  reglageReponse = { erreur: 'not found' }
+  reponse = ETAT; appels = 0
+  s = monter(createElement(Section))
+  await tick(); await tick()
+  check('a host without the route (an older one) shows the page and no card, no switch', parKb(s.tree, 'maintenance-status').length === 1 && carte().length === 0)
+  reglageReponse = { ok: true, autoCheck: true }
 
   reponse = { erreur: 'boom' }; appels = 0
   s = monter(createElement(Section))
@@ -481,8 +510,10 @@ console.log('── source guards ──')
   // The page reads /state; the update notice (own feature, same bundle) reads /update, asks the Suite's signed catalogue and, only
   // when the user presses "Update now", starts and follows the Suite's own update. Nothing else leaves the page.
   const appelsReseau = [...SOURCE.matchAll(/fetch\('([^']+)'/g)].map((m) => m[1].split('?')[0])
-  const attendus = ['/kybernos-hub/catalogue/refresh', '/kybernos-hub/engine', '/kybernos-hub/update', '/kybernos-hub/update/status', '/kybernos-maintenance/state', '/kybernos-maintenance/update']
+  const attendus = ['/kybernos-hub/catalogue/refresh', '/kybernos-hub/engine', '/kybernos-hub/update', '/kybernos-hub/update/status', '/kybernos-maintenance/settings', '/kybernos-maintenance/settings', '/kybernos-maintenance/state', '/kybernos-maintenance/update']
   check('the module only touches the page: no engine patch, and the only network calls are the maintenance reads and the Suite\'s own routes', !/XMLHttpRequest|WebSocket|eval\(|new Function/.test(SOURCE) && appelsReseau.slice().sort().join() === attendus.join(), appelsReseau)
+  // A6-14: the scheduled check (launch, every 6 h, back to the tab) is `auto`; the person's own is not; a « disabled » answer ends it before the hub is asked
+  check('the scheduled check says so (auto=1), the person\'s own never does, and « disabled » stops it before the Suite\'s catalogue is asked', /updFetch\(force, manual !== true\)/.test(SOURCE) && /'\?auto=1' \+ \(force === true/.test(SOURCE) && SOURCE.indexOf("if (j.desactive === true) return null") > 0 && SOURCE.indexOf("if (j.desactive === true) return null") < SOURCE.indexOf("fetch('/kybernos-hub/catalogue/refresh'"))
   check('the writes (refresh, update, engine fix) are POSTs to the Suite, and "Update now" asks for an explicit confirm', /fetch\('\/kybernos-hub\/catalogue\/refresh', \{ method: 'POST'/.test(SOURCE) && /fetch\('\/kybernos-hub\/update', \{ method: 'POST'/.test(SOURCE) && /fetch\('\/kybernos-hub\/engine', \{ method: 'POST'/.test(SOURCE) && /confirm: true/.test(SOURCE))
   // The About page keeps ONE key (the disclosure). The update notice keeps three more: snooze and skip in localStorage
   // (its own lsGet/lsSet helpers) and the once-per-session card flag in sessionStorage; no other code reaches storage.

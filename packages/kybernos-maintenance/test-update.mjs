@@ -68,5 +68,38 @@ verifie('mesurerMaj answers instead of throwing', mesure.ok === true, mesure)
 verifie('it reads this checkout\'s VERSION and says whether a git checkout', typeof mesure.pack?.installee === 'string' && typeof mesure.pack?.git === 'boolean', mesure.pack)
 serveur2.close()
 
+console.log('the switch « Check for updates automatically » (A6-14, A6-26)')
+{
+  const { mkdtempSync, readFileSync, writeFileSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const { lireReglage, ecrireReglage, repondreMaj } = await import('./index.js')
+  const dossier = mkdtempSync(join(tmpdir(), 'kb-upd-'))
+  const fichier = join(dossier, 'kybernos', 'update-check.json')
+  verifie('no file: ON by default (a security fix has to be announced)', lireReglage(fichier).autoCheck === true)
+  ecrireReglage(false, fichier)
+  verifie('written OFF, it reads OFF, and the file holds nothing else', lireReglage(fichier).autoCheck === false && JSON.stringify(Object.keys(JSON.parse(readFileSync(fichier, 'utf8')))) === '["autoCheck"]')
+  writeFileSync(fichier, '{broken')
+  verifie('an unreadable file reads ON, not an error', lireReglage(fichier).autoCheck === true)
+  verifie('a value that is not exactly true is written OFF', ecrireReglage('yes', fichier).autoCheck === false && lireReglage(fichier).autoCheck === false)
+  let appels = 0
+  let derniere = null
+  const mesurer = async (force) => { appels += 1; derniere = force; return { ok: true, force } }
+  const off = () => ({ autoCheck: false })
+  const on = () => ({ autoCheck: true })
+  let r = await repondreMaj('/kybernos-maintenance/update?auto=1', { reglage: off, mesurer })
+  verifie('OFF: the scheduled check answers « disabled » and asks nobody', r.ok === true && r.desactive === true && appels === 0, [r, appels])
+  r = await repondreMaj('/kybernos-maintenance/update?auto=1&force=1', { reglage: off, mesurer })
+  verifie('...even when forced: only the person\'s own button forces', r.desactive === true && appels === 0)
+  r = await repondreMaj('/kybernos-maintenance/update', { reglage: off, mesurer })
+  verifie('OFF: « Check now » (no auto) still measures: it is the person\'s action', r.ok === true && r.desactive === undefined && appels === 1, [r, appels])
+  r = await repondreMaj('/kybernos-maintenance/update?force=1', { reglage: off, mesurer })
+  verifie('...and forced', appels === 2 && derniere === true, [appels, derniere])
+  r = await repondreMaj('/kybernos-maintenance/update?auto=1', { reglage: on, mesurer })
+  verifie('ON: the scheduled check measures', appels === 3 && derniere === false && r.desactive === undefined, [appels, derniere])
+  r = await repondreMaj('/kybernos-maintenance/update?auto=10', { reglage: off, mesurer })
+  verifie('only auto=1 is the scheduled check (auto=10 is not)', appels === 4, appels)
+}
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗')
 process.exit(ko === 0 ? 0 : 1)

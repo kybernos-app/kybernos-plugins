@@ -194,17 +194,17 @@ export const planRelance = (fam, { port, pid = null }) => ({
   demarrer: { cmd: binaireDsh(fam), args: ['web', '--no-open', '--port', String(port)] },
 })
 
-// Ce qu'on DIT au testeur quand on ne redémarre pas à sa place : la commande
-// exacte pour son OS, pas « relance DSH ».
+// What we TELL the person when we do not restart DSH for them: the exact command for their OS, not « restart DSH ». The address matters as
+// much as the command: `dsh web` signs the browser in through the URL it prints (…/?token=…) and answers a bare address with a
+// plain-text 401, which is what the page said to everybody who followed the old instructions and typed http://127.0.0.1:3080/ (A6-17).
 export const instructionsRedemarrage = (fam, port) => {
-  if (fam === 'windows') {
-    return '  Pour voir Kybernos : Ctrl-C dans la console de DSH, puis :\n' +
-      '    dsh web --no-open --port ' + port + '\n' +
-      '  (ou relance « kybernos-install --relancer » : le robot s\'en charge)'
-  }
-  return '  Pour voir Kybernos : Ctrl-C là où DSH tourne, puis :\n' +
-    '    ' + binaireDsh(fam) + ' web --no-open --port ' + port + '\n' +
-    '  (ou relance « ./kybernos-install --relancer » : le robot s\'en charge)'
+  const ou = fam === 'windows' ? 'in the DSH console' : 'where DSH runs'
+  const robot = (fam === 'windows' ? '' : './') + 'kybernos-install --relancer --force'
+  return '  To see Kybernos: press Ctrl-C ' + ou + ', then:\n' +
+    '    dsh web --port ' + port + '\n' +
+    '  DSH opens your browser already signed in. If no browser opens (or you added --no-open), open the address that dsh web prints:\n' +
+    '  it looks like http://127.0.0.1:' + port + '/?token=… and carries your sign-in; the bare http://127.0.0.1:' + port + '/ answers 401.\n' +
+    '  (or run « ' + robot + ' »: the robot restarts DSH for you)'
 }
 
 // La ligne de commande d'un processus : elle sert à VÉRIFIER qu'un pid est bien

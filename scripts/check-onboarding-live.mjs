@@ -16,7 +16,7 @@
 //
 // Named check-* on purpose: it needs a running sandbox and Chrome, so CI must not run it.
 //   source scripts/sandbox/env.sh && node scripts/check-onboarding-live.mjs     (KB_SHOT_DIR=/some/dir keeps screenshots)
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { openLivePage, waitFor } from './live-page.mjs'
@@ -66,11 +66,17 @@ const backToTheStartingPoint = async () => {
   await sleep(7000)
 }
 
+// The starter kit installs its two teams into DSH's own home (A6-24), where they stay: a second run would find them installed and tick nothing.
+// The sandbox is this check's own, so they are removed before the run and after it.
+const forgetKitTeams = () => { for (const id of ['studencik', 'research-desk']) { try { rmSync(join(dshHome, 'kybers', id), { recursive: true, force: true }) } catch (e) { /* none */ } } try { rmSync(join(dshHome, 'kybers', '.kyber-ui.json'), { force: true }) } catch (e) { /* none */ } }
+forgetKitTeams()
+
 // A fresh install: the sandbox's setup writes the file as done; the wizard opens only when it says otherwise.
 mkdirSync(join(dshHome, 'kybernos'), { recursive: true })
 writeFileSync(join(dshHome, 'kybernos/onboarding.json'), JSON.stringify({ version: 1, completed: false, installedAt: '2026-01-01T00:00:00.000Z', completedAt: null, profil: null, uiMode: null }) + '\n')
 
-const live = await openLivePage()
+// keepKeyDialog: this check must SEE DSH's own « Get started » dialog if it ever comes back over the wizard (A5-34, A6-01); the helper would press it away.
+const live = await openLivePage({ keepKeyDialog: true })
 const page = live.page
 try {
   const fake = { keyVerdict: 'ok', installPolls: 0, calls: [], accountConnected: false, freeBody: null, statusConnected: false, skillsInstalled: [], skillInstalls: [], memoryBodies: [] }
@@ -165,8 +171,15 @@ try {
   check('the wizard opens on a fresh install', (await waitFor(page, `!!document.querySelector('.kb-ob')`, 40000)) === true)
   check('it is a modal dialog with the Kybernos mark', (await q(`(() => { const r = document.querySelector('.kb-ob'); return r.getAttribute('role') === 'dialog' && r.getAttribute('aria-modal') === 'true' && r.querySelectorAll('.kb-ob-wm svg circle').length === 3 })()`)) === true)
   console.log('     theme: ' + ((await q(`document.querySelector('.kb-ob').classList.contains('kb-ob-dark')`)) ? 'dark' : 'light'))
+  // A5-34 / A6-01: the engine's own step ('Sign in to your DeepSeek account or add an API Key') is replaced by the core; it is not over the wizard
+  check('DSH\'s own « Sign in to your DeepSeek account » dialog is not over the wizard', (await q(`[...document.querySelectorAll('[role="dialog"]')].every((d) => !/DeepSeek account|Add API Key/.test(d.innerText || ''))`)) === true)
   await goEnglish()
   check('the wizard speaks English', (await h1()) === 'Welcome to Kybernos')
+  // Escape (A6-03): a stray key never ends the first run (it used to record « later » and a lost profession for good).
+  const escape = async () => { for (const type of ['keyDown', 'keyUp']) await page.send('Input.dispatchKeyEvent', { type, key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 }); await sleep(400) }
+  const onboardingDone = () => { try { return JSON.parse(read('kybernos/onboarding.json') || '{}').completed === true } catch (e) { return null } }
+  await escape()
+  check('Escape on the welcome screen leaves the wizard open and the first run undone', (await q(`!!document.querySelector('.kb-ob')`)) === true && (await h1()) === 'Welcome to Kybernos' && onboardingDone() === false)
   // The language menu: each language changes the texts, Arabic also flips the layout and keeps the logo left-to-right.
   const pickLanguage = async (id) => {
     await q(`document.querySelector('.kb-ob-lang-btn').click()`); await sleep(150)
@@ -191,6 +204,10 @@ try {
   check('two answers, the Kybernos account recommended', Array.isArray(answersShown) && answersShown.length === 2 && /^Kybernos models/.test(answersShown[0]) && /Recommended/.test(answersShown[0]) && /^My own API key/.test(answersShown[1]), JSON.stringify(answersShown))
   check('the Kybernos account is ticked by default', (await q(`document.querySelector('.kb-ob-row.on .kb-ob-t').textContent`)).startsWith('Kybernos models'))
   check('the other ways stay one line below', /a model on this computer/.test(String(await q(`(document.querySelector('.kb-ob-others') || {}).textContent`))) && /free community models/.test(String(await q(`(document.querySelector('.kb-ob-others') || {}).textContent`))))
+  await escape()
+  check('Escape on the model question steps back to the display mode, not out of the wizard', (await q(`!!document.querySelector('.kb-ob')`)) === true && (await h1()) === 'Choose your UI mode' && onboardingDone() === false, String(await h1()))
+  await press('Continue')
+  check('Continue brings the model question back', (await h1()) === 'Which models should Kybernos use?', String(await h1()))
   check('the question can be left for later', (await q(`[...document.querySelectorAll('.kb-ob button')].some((b) => b.textContent.trim() === 'Decide later')`)) === true)
   await page.shot(join(shotDir, 'model-question.png'))
 
@@ -352,6 +369,9 @@ try {
   check('the skills went through the Skills page route, with their GitHub source', JSON.stringify(fake.skillInstalls.sort()) === JSON.stringify(['anthropics/claude-for-legal:flashcards', 'anthropics/claude-for-legal:study-plan']), JSON.stringify(fake.skillInstalls))
   const recapText = String(await q(`document.querySelector('.kb-ob-recap').textContent`))
   check('the recap says what was added, without an error', /Starter kit/.test(recapText) && /4 added/.test(recapText) && (await q(`!document.querySelector('.kb-ob-state.err')`)) === true, recapText)
+  // A6-24: the kit's teams go to DSH's own home; a welcome screen must not add a `kybers/` folder to the project DSH was started in.
+  check('the teams of the kit are in DSH\'s own home (~/.dsh/kybers)', read('kybers/studencik/kyber.yml') !== '' && read('kybers/research-desk/kyber.yml') !== '')
+  check('and none was written into the project the instance was started in', process.env.KB_WORKTREE === undefined || (!existsSync(join(process.env.KB_WORKTREE, 'kybers/studencik')) && !existsSync(join(process.env.KB_WORKTREE, 'kybers/research-desk'))))
   check('the profession and display mode were written to memory, once, pinned', fake.memoryBodies.length === 1 && fake.memoryBodies[0].path === '/kybernos-cloud/memory/add' && fake.memoryBodies[0].body.pinned === true && fake.memoryBodies[0].body.kind === 'fact' && /^Works as: Students \/ Teaching \/ Research\./.test(fake.memoryBodies[0].body.content), JSON.stringify(fake.memoryBodies))
   check('and the recap says so', (await waitFor(page, `document.querySelector('.kb-ob-mem') !== null`, 4000)) === true)
   await press('Open Kybernos')
@@ -485,6 +505,11 @@ try {
     check('and the card says so', (await q(`document.querySelector('${cardSel}').innerText`)).includes('press Enter'))
   }
 
+  // ...and still not there once the first run is over: a reload (the wizard is done, no model was chosen) shows the home, not DSH's dialog
+  await page.send('Page.reload', { ignoreCache: true })
+  await sleep(6000)
+  check('after the first run and a reload, no DSH sign-in dialog over the home', (await q(`[...document.querySelectorAll('[role="dialog"]')].every((d) => !/DeepSeek account|Add API Key/.test(d.innerText || ''))`)) === true && (await q(`document.body.innerText.length`)) > 200)
+
   check('no page error', page.errs.filter((e) => /kybernos|onboarding|kb-ob|is not defined|is not a function|Cannot read/i.test(e)).length === 0, JSON.stringify(page.errs.slice(0, 3)))
   console.log('     screenshots: ' + shotDir)
 } catch (e) {
@@ -495,6 +520,7 @@ try {
   // Back to the credentials the instance had before this run.
   try { if (credsBackup !== null) writeFileSync(credsFile, credsBackup) } catch (e) { /* the sandbox is nobody's */ }
   try { if (patchBackup !== null) writeFileSync(patchFile, patchBackup) } catch (e) { /* the sandbox is nobody's */ }
+  forgetKitTeams()
   await sleep(6000)
 }
 console.log(fails === 0 ? '\nall checks passed' : '\n' + fails + ' check(s) FAILED')
