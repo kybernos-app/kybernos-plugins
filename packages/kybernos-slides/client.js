@@ -173,7 +173,7 @@ window.__ModuleLoader__.load({
         .kbsd-puces li{position:relative;padding-left:44px;margin-bottom:.55em;line-height:1.4}
         .kbsd-puces li::before{content:'';position:absolute;left:0;top:.52em;width:18px;height:6px;border-radius:3px;background:var(--kbsd-accent)}
         .kbsd-champ.kbsd-sel{outline:2px solid var(--kbsd-accent);outline-offset:5px;border-radius:2px}
-        .kbsd-ebox{position:absolute;z-index:30;margin:0;border:1.5px solid #37B5C4;border-radius:4px;padding:0;background:transparent;
+        .kbsd-ebox{position:absolute;z-index:30;margin:0;border:1.5px solid #37B5C4;border-radius:4px;padding:0;
           background:rgba(255,255,255,.92);color:#111;resize:none;overflow:hidden;outline:none;box-shadow:0 4px 18px rgba(0,0,0,.25)}
         .kbsd-trait{position:absolute;inset:0;z-index:20;touch-action:none}
         .kbsd-trait.off{pointer-events:none}
@@ -186,34 +186,34 @@ window.__ModuleLoader__.load({
         .kbsd-vign:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(0,0,0,.10)}
         .kbsd-vign.on{border-color:#4C8DFF;box-shadow:0 0 0 2px #4C8DFF}
         .kbsd-vign i{position:absolute;left:5px;bottom:5px;z-index:2;font-style:normal;font-weight:700;font-size:9px;
-          width:15px;height:15px;border-radius:4px;display:grid;place-items:center;background:rgba(0,0,0,.5);color:#fff}
+          width:15px;height:15px;border-radius:4px;display:grid;place-items:center;background:rgba(0,0,0,.72);color:#fff}
         .kbsd-mini{position:absolute;top:0;left:0;width:1600px;height:900px;transform-origin:top left;pointer-events:none;overflow:hidden}
         .kbsd-bar{flex:none;display:flex;align-items:center;gap:7px;padding:7px 12px 10px;border-top:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.07))}
-        .kbsd-play{flex:none;width:26px;height:26px;border:0;border-radius:50%;background:#e1502a;color:#fff;cursor:pointer;
+        .kbsd-play{flex:none;width:26px;height:26px;border:0;border-radius:50%;background:#c94522;color:#fff;cursor:pointer;
           display:grid;place-items:center;font-size:10px;line-height:1}
-        .kbsd-play:hover{background:#c94522}
-        .kbsd-sp{border:0;background:transparent;font:inherit;font-size:10.5px;color:#8a8a87;padding:3px 5px;border-radius:5px;cursor:pointer}
-        .kbsd-sp.on{background:rgba(0,0,0,.06);color:#1a1a1a;font-weight:650}
-        .kbsd-range{-webkit-appearance:none;appearance:none;flex:1;min-width:40px;height:4px;border-radius:2px;background:rgba(0,0,0,.10);outline:0}
+        .kbsd-play:hover{background:#b43f1e}
+        .kbsd-sp{border:0;background:transparent;font:inherit;font-size:10.5px;color:var(--dsw-alias-label-secondary,#6b6b68);padding:3px 5px;border-radius:5px;cursor:pointer}
+        .kbsd-sp.on{background:color-mix(in srgb,var(--dsw-alias-label-primary,#1a1a1a) 12%,transparent);color:var(--dsw-alias-label-primary,#1a1a1a);font-weight:650}
+        .kbsd-range{-webkit-appearance:none;appearance:none;flex:1;min-width:40px;height:4px;border-radius:2px;background:color-mix(in srgb,var(--dsw-alias-label-primary,#1a1a1a) 22%,transparent);outline:0}
         .kbsd-range::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#e1502a;border:2px solid #fff;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.25)}
         .kbsd-outils{position:absolute;top:10px;left:10px;z-index:25;display:flex;gap:2px;background:rgba(255,255,255,.94);
           border-radius:9px;padding:3px;box-shadow:0 3px 12px rgba(28,42,28,.16)}
-        .kbsd-outils-idle{opacity:.55;transition:opacity .15s}
+        .kbsd-outils-idle{opacity:.85;transition:opacity .15s}
         .kbsd-outils-idle:hover,.kbsd-outils-idle:focus-within{opacity:1}
-        .kbsd-outil{border:0;background:transparent;font:inherit;font-size:10.5px;color:#6b6b68;padding:3px 8px;border-radius:6px;cursor:pointer}
+        .kbsd-outil{border:0;background:transparent;font:inherit;font-size:10.5px;color:#4a4a47;padding:3px 8px;border-radius:6px;cursor:pointer}
         .kbsd-outil:hover{background:rgba(0,0,0,.05)}
         .kbsd-outil.on{background:#efefec;color:#1a1a1a;font-weight:650}
         .kbsd-coul{width:15px;height:15px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
         .kbsd-coul.on{border-color:#1a1a1a}
-        .kbsd-note-bas{flex:none;padding:4px 12px 8px;font-size:10.5px;line-height:1.45;color:var(--dsw-alias-label-tertiary,#8a8a87);
+        .kbsd-note-bas{flex:none;padding:4px 12px 8px;font-size:10.5px;line-height:1.45;color:var(--dsw-alias-label-secondary,#6b6b68);
           white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .kbsd-note-bas b{color:var(--dsw-alias-label-secondary,#4a4a47);font-weight:600}
+        .kbsd-note-bas b{color:var(--dsw-alias-label-primary,#1a1a1a);font-weight:600}
         .kbsd-empty{position:absolute;inset:0;display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;
-          padding:24px;text-align:center;color:var(--dsw-alias-label-tertiary,#8a8a87);font-size:12px;line-height:1.55;z-index:5}
-        .kbsd-empty b{color:var(--dsw-alias-label-secondary,#4a4a47);font-weight:600}
-        .kbsd-empty code{font-size:11px;background:var(--dsw-alias-bg-module-platform,rgba(0,0,0,.05));padding:1px 5px;border-radius:4px}
-        .kbsd-demo{border:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.12));background:transparent;font:inherit;font-size:11px;
-          padding:5px 12px;border-radius:99px;cursor:pointer;color:var(--dsw-alias-label-secondary,#4a4a47)}
+          padding:24px;text-align:center;color:#4a4a47;font-size:12px;line-height:1.55;z-index:5}
+        .kbsd-empty b{color:#1a1a1a;font-weight:600}
+        .kbsd-empty code{font-size:11px;background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px}
+        .kbsd-demo{border:1px solid rgba(0,0,0,.45);background:transparent;font:inherit;font-size:11px;
+          padding:5px 12px;border-radius:99px;cursor:pointer;color:#1a1a1a}
         .kbsd-demo:hover{background:rgba(0,0,0,.05)}
         `
         
@@ -675,14 +675,14 @@ window.__ModuleLoader__.load({
                 barre.style.cssText = 'display:flex;gap:4px;align-items:center;background:rgba(255,255,255,.96);border:1px solid rgba(0,0,0,.18);border-radius:6px;padding:4px 8px;box-shadow:0 2px 8px rgba(0,0,0,.18)'
                 const zone = document.createElement('div')
                 zone.className = 'kbsd-ebox'
-                zone.style.cssText = 'position:static;background:transparent;border:none;min-width:200px;max-width:520px;min-height:1.2em;padding:0'
+                zone.style.cssText = 'position:static;border:none;min-width:200px;max-width:520px;min-height:1.2em;padding:0'
                 host.appendChild(barre)
                 host.appendChild(zone)
                 const bouton = (label, cmd, style) => {
                   const btn = document.createElement('button')
                   btn.type = 'button'
                   btn.textContent = label
-                  btn.style.cssText = (style || '') + ';font-size:11px;padding:1px 7px;border-radius:4px;border:1px solid rgba(0,0,0,.25);background:#fff;cursor:pointer'
+                  btn.style.cssText = (style || '') + ';font-size:11px;padding:1px 7px;border-radius:4px;border:1px solid rgba(0,0,0,.25);background:#fff;color:#111;cursor:pointer'
                   btn.onmousedown = (e) => { e.preventDefault(); cmd() }
                   return btn
                 }

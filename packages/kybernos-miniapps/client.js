@@ -41,10 +41,10 @@ window.__ModuleLoader__.load({
 
     const CSS = `
   .${CLASSE_BOUTON}{display:inline-flex;align-items:center;gap:4px;margin-inline-start:auto;
-    padding:2px 9px;border-radius:9px;border:1px solid #3a4356;background:#20263338;
-    color:#c6d0e2;font:600 11px/1.6 ui-rounded,-apple-system,system-ui,sans-serif;
+    padding:2px 9px;border-radius:9px;border:1px solid var(--dsw-alias-border-l3);background:transparent;
+    color:var(--dsw-alias-label-secondary);font:600 11px/1.6 ui-rounded,-apple-system,system-ui,sans-serif;
     cursor:pointer;white-space:nowrap}
-  .${CLASSE_BOUTON}:hover{background:#2a3346;border-color:#4a5870}
+  .${CLASSE_BOUTON}:hover{background:var(--dsw-alias-interactive-bg-hover);border-color:var(--dsw-alias-border-l4)}
   .${CLASSE_BOUTON}:disabled{opacity:.6;cursor:wait}
   .${CLASSE_MENU}{position:fixed;z-index:99999;min-width:170px;padding:6px;
     border-radius:12px;border:1px solid #3a4356;background:#161c27f2;
