@@ -247,11 +247,24 @@ window.__ModuleLoader__.load({
         'kb.health.cause.silent': { kybernos: 'muet (aucune réponse)', en: 'silent (no answer)' },
         'kb.health.cause.other': { kybernos: 'échec pour une autre raison', en: 'fails for another reason' },
         'kb.health.more': { kybernos: '+ {n} autres', en: '+ {n} more' },
-        'kb.health.fixkey': { kybernos: 'Corriger la clé', en: 'Fix key' },
+        'kb.health.fixkey': { kybernos: 'Vérifier la clé', en: 'Check key' },
         'kb.health.fixkey.t': { kybernos: 'Ouvrir {slug} pour changer sa clé API', en: 'Open {slug} to change its API key' },
         'kb.health.recheck': { kybernos: 'Revérifier', en: 'Recheck' },
         'kb.health.checking': { kybernos: 'Vérification…', en: 'Checking…' },
-        'kb.health.show': { kybernos: 'Les afficher', en: 'Show them' },
+        'kb.health.show': { kybernos: 'Afficher les indisponibles ({n})', en: 'Show unavailable ({n})' },
+        'kb.health.why.cloud': { kybernos: 'Hors de votre formule Kybernos, ou compte non connecté', en: 'Not in your Kybernos plan, or account not connected' },
+        'kb.health.why.free': { kybernos: 'Refusé : n’est peut-être plus gratuit, ou quota épuisé', en: 'Refused: may no longer be free, or quota used up' },
+        'kb.health.why.key': { kybernos: 'Clé refusée, ou votre formule ici n’inclut pas ce modèle', en: 'Key refused, or your plan here does not include this model' },
+        'kb.health.why.gone': { kybernos: 'Le fournisseur ne propose plus ce modèle', en: 'The provider no longer offers this model' },
+        'kb.health.why.refused': { kybernos: 'Le fournisseur a refusé la requête (réglages du modèle invalides)', en: 'The provider refused the request (invalid model settings)' },
+        'kb.health.why.text': { kybernos: 'Ne prend pas de message texte (modèle d’image, d’audio ou autre)', en: 'Cannot take a text message (an image, audio or other kind of model)' },
+        'kb.health.why.silent': { kybernos: 'Pas de réponse dans le délai', en: 'No answer in time' },
+        'kb.health.why.other': { kybernos: 'Échec pour une autre raison', en: 'Fails for another reason' },
+        'kb.health.hidden': { kybernos: '{n} modèles indisponibles sont masqués', en: '{n} unavailable models are hidden' },
+        'kb.health.hidden.one': { kybernos: '1 modèle indisponible est masqué', en: '1 unavailable model is hidden' },
+        'kb.health.showdown': { kybernos: 'Afficher les indisponibles ({n})', en: 'Show unavailable ({n})' },
+        'kb.health.hidedown': { kybernos: 'Masquer les indisponibles', en: 'Hide unavailable' },
+        'kb.health.rowwhy': { kybernos: 'Indisponible : {why}', en: 'Unavailable: {why}' },
         'kb.health.hide': { kybernos: 'Masquer 1 h', en: 'Hide for 1 hour' },
         'kb.models.statut.down': { kybernos: 'Ne répondent pas', en: 'Not answering' },
         'kb.models.prov.empty': { kybernos: 'Aucun fournisseur exposé pour le moment.', en: 'No provider exposed yet.' },
@@ -292,6 +305,8 @@ window.__ModuleLoader__.load({
         'kb.pv.key.ok': { kybernos: 'Clé API configurée', en: 'API key configured' },
         'kb.pv.key.missing': { kybernos: 'Clé API absente', en: 'API key missing' },
         'kb.pv.key.unknown': { kybernos: 'État de la clé inconnu', en: 'Key state unknown' },
+        'kb.pv.wait.n': { kybernos: 'Fournisseurs sans clé ou désactivés ({n})', en: 'Providers with no key or switched off ({n})' },
+        'kb.pv.wait.hint': { kybernos: 'Ils ne répondent à rien tant que leur clé n’est pas posée : ajoutez-la, ou activez-les.', en: 'They answer nothing until their key is set: add it, or switch them on.' },
         'kb.pv.empty.nokey': { kybernos: 'Pas encore de clé : ajoutez-la, puis récupérez les modèles.', en: 'No key yet: add it, then fetch the models.' },
         'kb.pv.empty.fetch': { kybernos: 'Aucun modèle pour l’instant : récupérez-les chez le fournisseur.', en: 'No model yet: fetch them from the provider.' },
         'kb.pv.key.ph.set': { kybernos: 'Configurée — saisissez une nouvelle valeur pour la remplacer', en: 'Configured — enter a new value to replace' },
@@ -405,7 +420,8 @@ window.__ModuleLoader__.load({
         'kb.hero.badge': { kybernos: 'Recommandé', en: 'Recommended' },
         'kb.hero.connected': { kybernos: 'Connecté', en: 'Connected' },
         'kb.hero.title.free': { kybernos: 'Commencez gratuitement', en: 'Start for free' },
-        'kb.hero.title.in': { kybernos: '{n} modèles sélectionnés, inclus', en: '{n} curated models, included' },
+        'kb.hero.title.in': { kybernos: '{n} modèles inclus', en: '{n} models included' },
+        'kb.hero.title.in.one': { kybernos: '1 modèle inclus', en: '1 model included' },
         'kb.hero.pitch.free': { kybernos: 'Utilisez notre liste de LLM sélectionnés — aucune clé d\u2019API à mettre à jour.', en: 'Use our curated list of LLMs — no API keys to update.' },
         'kb.hero.pitch.in': { kybernos: 'Importés depuis votre abonnement Kybernos — aucune clé d\u2019API à mettre à jour.', en: 'Imported from your Kybernos subscription — no API keys to update.' },
         'kb.hero.f.fallback': { kybernos: 'Repli automatique', en: 'Auto-fallback' },
@@ -1266,7 +1282,7 @@ window.__ModuleLoader__.load({
       // change. L'état d'écran (onglet, recherche, filtres, tri) ne se persiste
       // pas et n'écrit rien.
 
-      const UI = { tab: 'providers', q: '', prov: 'all', type: 'all', statut: 'any', tri: 'name', caps: {}, menu: null, page: 1, edit: null }
+      const UI = { tab: 'providers', q: '', prov: 'all', type: 'all', statut: 'any', tri: 'name', caps: {}, menu: null, page: 1, edit: null, showDown: false }
       // Changer un filtre (ou d'onglet) ramène à la première page : rester à
       // une page qui n'existe plus afficherait une liste vide.
       const uiSet = (k, v) => { UI[k] = v; if (k !== 'page') UI.page = 1; kbmNotify() }
@@ -1301,7 +1317,10 @@ window.__ModuleLoader__.load({
         const cherche = UI.q.trim().toLowerCase()
         const caps = CAPS.filter((c) => UI.caps[c.k] === true)
         const down = UI.statut === 'down' ? kbHealthDown(kbHealthGet()) : null
+        // The models that do not answer are folded away until asked for: a list of 126 where 74 fail first shows the 52 that work.
+        const hidden = UI.statut !== 'down' && UI.showDown !== true ? kbHealthDown(kbHealthGet()) : null
         const rows = KBM.models.filter((mo) => {
+          if (hidden !== null && hidden[mo.route + '/' + mo.id] === true) return false
           if (UI.prov !== 'all' && mo.route !== UI.prov) return false
           if (UI.type !== 'all' && String(kbmVal(mo, 'type')) !== UI.type) return false
           if (UI.statut === 'ov' && kbmCountOv(mo) === 0) return false
@@ -1451,6 +1470,7 @@ window.__ModuleLoader__.load({
             type === null ? null : h('span', { className: 'kbmp-mtype', key: 'ty' }, h('span', { className: 'kbmp-tyi', style: { color: type.tint } }, Ic(type.icon, 12)), m(type.t)),
             prix === null ? null : h('span', { className: 'kbmp-msep kbmp-sep2', key: 'sp' }, '·'),
             prix === null ? null : h('span', { className: 'kbmp-mprix', key: 'pr', title: m('kb.models.col.price') }, prix),
+            props.down !== undefined ? h('span', { className: 'kbmp-why', 'data-kbm': 'row-why', title: props.down.code }, m('kb.health.rowwhy', { why: m(kbHealthWhy(props.down, kbHealthFree(props.down.route, mo.id, Object.keys(FREE_LINKS)))) })) : null,
             h('span', { className: 'kbmp-nar', key: 'nar' },
               KBM.live === true ? h('span', { className: 'kbmp-msep' }, '·') : null,
               KBM.live === true ? h('span', { className: 'kbmp-mcellroute' }, mo.route === '' ? null : h(LogoProv, { route: mo.route, taille: 14 }), h('span', { className: 'kbmp-mroute', title: m('kb.models.route') + ' ' + mo.route }, label)) : null,
@@ -1882,7 +1902,7 @@ window.__ModuleLoader__.load({
 
       const ProviderList = () => {
         const [, forcer] = React.useReducer((x) => x + 1, 0)
-        const [ui, setUi] = React.useState({ drawer: null, dlg: null, menu: null, busy: false, err: null, note: null, typed: '' })
+        const [ui, setUi] = React.useState({ drawer: null, dlg: null, menu: null, busy: false, err: null, note: null, typed: '', waitOpen: false })
         const [dr, setDr] = React.useState(null)
         const patch = (o) => setUi((u) => ({ ...u, ...o }))
         const setD = (o) => setDr((d) => ({ ...d, ...o }))
@@ -1975,7 +1995,7 @@ window.__ModuleLoader__.load({
           const out = await run(() => kbPvCreate(d), 'kb.pv.add.err', d.id)
           if (out === undefined) return
           setDr(null); uiSet('prov', out.slug)
-          patch({ drawer: null, busy: false, note: m(out.keyOk === false ? 'kb.prov.add.fait.cleko' : (out.keyOk === true ? 'kb.prov.add.fait.cleok' : 'kb.prov.add.fait'), { slug: out.slug }) })
+          patch({ drawer: null, busy: false, waitOpen: true, note: m(out.keyOk === false ? 'kb.prov.add.fait.cleko' : (out.keyOk === true ? 'kb.prov.add.fait.cleok' : 'kb.prov.add.fait'), { slug: out.slug }) })
         }
         const doDisable = async (route) => {
           patch({ dlg: null })
@@ -2238,6 +2258,27 @@ window.__ModuleLoader__.load({
           return h('div', { className: 'kbmp-empty', 'data-kbm': 'prov-empty' }, m('kb.models.prov.empty'),
             h('div', { className: 'kbmp-prov-addct' }, h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'prov-add', disabled: ro, onClick: openAdd }, Ic('plus', 14), m('kb.prov.add'))))
         }
+        // ── a built-in DeepSeek card ──
+        const renderDsCard = (c) => {
+              const official = c.ns === 'llm-deepseek'
+              const count = Array.isArray(KBM.ds[c.ns].value.models) ? KBM.ds[c.ns].value.models.length : 0
+              const ks = official ? (KBM.dsKey.configured === true ? 'ok' : (KBM.dsKey.configured === false ? 'missing' : 'unknown')) : 'none'
+              return h('div', { key: c.ns, className: 'kbpv-card', 'data-kbm': 'prov-card', 'data-prov': c.provider },
+                h('span', { className: 'kbpv-logo' }, h(LogoProv, { route: 'deepseek', taille: 20 })),
+                h('div', { className: 'kbpv-cbody' },
+                  h('span', { className: 'kbpv-nm' }, h('span', { className: 'kbpv-link kbpv-static' }, c.name),
+                    ks === 'none' ? null : h('i', { className: 'kbpv-kd kbpv-kd-' + ks, title: m(ks === 'ok' ? 'kb.pv.key.ok' : (ks === 'missing' ? 'kb.pv.key.missing' : 'kb.pv.key.unknown')) })),
+                  h('span', { className: 'kbpv-meta', 'data-kbm': 'prov-name' }, h('span', { className: 'kbpv-tag' }, m('kb.pv.builtin')), h('span', null, String(count) + ' ' + m(count === 1 ? 'kb.models.prov.model1' : 'kb.models.prov.modelN')))),
+                h('div', { className: 'kbpv-right' }, h('div', { className: 'kbpv-acts' },
+                  h('button', { type: 'button', className: 'kbpv-ib', 'data-kbm': 'prov-edit', disabled: ro, title: m('kb.pv.edit', { slug: c.provider }), 'aria-label': m('kb.pv.edit', { slug: c.provider }), onClick: (ev) => { ev.stopPropagation(); openDs(c.ns) } }, Ic('pencil', 15)))))
+            }
+        // The cards in the order they have always had, each with whether it waits (no key yet, or switched off).
+        const cards = dsCards.map((c) => ({ node: renderDsCard(c), waiting: c.ns === 'llm-deepseek' && KBM.dsKey.configured === false }))
+          .concat(routes.map((route) => ({ node: renderCard({ route }), waiting: keyOf(route) === 'missing' })))
+          .concat(parkedShown.map((p) => ({ node: renderCard({ route: p.slug, off: true }), waiting: true })))
+        const fold = kbPvFold(cards.map((x) => x.waiting))
+        const ready = cards.filter((x) => !x.waiting)
+        const waiting = cards.filter((x) => x.waiting)
         return h('div', { className: 'kbpv', 'data-kbm': 'prov-list' },
           h('div', { className: 'kbpv-head' },
             h('span', { className: 'kbpv-grow' }),
@@ -2252,21 +2293,11 @@ window.__ModuleLoader__.load({
           ui.err !== null && ui.drawer === null ? h('div', { className: 'kbpv-fail', role: 'alert', 'data-kbm': 'prov-off-err' }, ui.err) : null,
           KBM.parkHost !== true ? h('div', { className: 'kbpv-hostnote', role: 'status', 'data-kbm': 'park-host-note' }, Ic('info', 14), m('kb.pv.hostnote')) : null,
           h('div', { className: 'kbpv-cards', 'data-kbm': 'prov-cards' },
-            dsCards.map((c) => {
-              const official = c.ns === 'llm-deepseek'
-              const count = Array.isArray(KBM.ds[c.ns].value.models) ? KBM.ds[c.ns].value.models.length : 0
-              const ks = official ? (KBM.dsKey.configured === true ? 'ok' : (KBM.dsKey.configured === false ? 'missing' : 'unknown')) : 'none'
-              return h('div', { key: c.ns, className: 'kbpv-card', 'data-kbm': 'prov-card', 'data-prov': c.provider },
-                h('span', { className: 'kbpv-logo' }, h(LogoProv, { route: 'deepseek', taille: 20 })),
-                h('div', { className: 'kbpv-cbody' },
-                  h('span', { className: 'kbpv-nm' }, h('span', { className: 'kbpv-link kbpv-static' }, c.name),
-                    ks === 'none' ? null : h('i', { className: 'kbpv-kd kbpv-kd-' + ks, title: m(ks === 'ok' ? 'kb.pv.key.ok' : (ks === 'missing' ? 'kb.pv.key.missing' : 'kb.pv.key.unknown')) })),
-                  h('span', { className: 'kbpv-meta', 'data-kbm': 'prov-name' }, h('span', { className: 'kbpv-tag' }, m('kb.pv.builtin')), h('span', null, String(count) + ' ' + m(count === 1 ? 'kb.models.prov.model1' : 'kb.models.prov.modelN')))),
-                h('div', { className: 'kbpv-right' }, h('div', { className: 'kbpv-acts' },
-                  h('button', { type: 'button', className: 'kbpv-ib', 'data-kbm': 'prov-edit', disabled: ro, title: m('kb.pv.edit', { slug: c.provider }), 'aria-label': m('kb.pv.edit', { slug: c.provider }), onClick: (ev) => { ev.stopPropagation(); openDs(c.ns) } }, Ic('pencil', 15)))))
-            }),
-            routes.map((route) => renderCard({ route })),
-            parkedShown.map((p) => renderCard({ route: p.slug, off: true }))),
+            (fold.fold && !ui.waitOpen ? ready : cards).map((x) => x.node)),
+          fold.fold ? h('button', { type: 'button', className: 'kbpv-fold', 'data-kbm': 'prov-wait-toggle', 'aria-expanded': ui.waitOpen ? 'true' : 'false', onClick: () => patch({ waitOpen: !ui.waitOpen }) },
+            h('span', { className: 'kbpv-fold-chev' + (ui.waitOpen ? ' open' : ''), 'aria-hidden': 'true' }, Ic('chevron', 13)), m('kb.pv.wait.n', { n: fold.waiting })) : null,
+          fold.fold && ui.waitOpen ? h('p', { className: 'kbpv-fold-hint', 'data-kbm': 'prov-wait-hint' }, m('kb.pv.wait.hint')) : null,
+          fold.fold && ui.waitOpen ? h('div', { className: 'kbpv-cards kbpv-cards-wait', 'data-kbm': 'prov-cards-wait' }, waiting.map((x) => x.node)) : null,
           ui.drawer !== null && ui.drawer.mode === 'edit' && dr !== null ? renderEdit() : null,
           ui.drawer !== null && ui.drawer.mode === 'add' && dr !== null ? renderAdd() : null,
           ui.drawer !== null && ui.drawer.mode === 'ds' && dr !== null ? renderDsEdit() : null,
@@ -2289,6 +2320,8 @@ window.__ModuleLoader__.load({
         const debut = (page - 1) * ROWS_PAR_PAGE
         const pageRows = rows.slice(debut, debut + ROWS_PAR_PAGE)
         const toutes = KBM.models
+        const downIdx = kbHealthIndex(kbHealthGet())
+        const downN = toutes.filter((mo) => downIdx[mo.route + '/' + mo.id] !== undefined).length
         const capFiltres = ['vision', 'audioIn', 'imageGen', 'video', 'search', 'tools', 's2s', 'reasoning']
         const optsProv = [{ v: 'all', t: m('kb.models.allprov'), c: m('kb.models.opt.allprov') }].concat(uiProvs().map((r) => ({ v: r, t: r })))
         const optsType = [{ v: 'all', t: m('kb.models.alltypes'), c: m('kb.models.opt.alltypes') }].concat(TYPES.map((t) => ({ v: t.id, t: m(t.t) })))
@@ -2313,6 +2346,11 @@ window.__ModuleLoader__.load({
             h('span', { 'data-kbm': 'count' }, m('kb.models.count', { a: rows.length, b: toutes.length })),
             uiFiltre() === true
               ? h('button', { type: 'button', className: 'kbmp-link', 'data-kbm': 'reset', onClick: uiReset }, m('kb.models.reset'))
+              : null,
+            // The failing ones are folded away; this brings them back, each with its reason on the row.
+            downN > 0 && UI.statut !== 'down'
+              ? h('button', { type: 'button', className: 'kbmp-link', 'data-kbm': 'toggle-down', 'aria-pressed': UI.showDown === true ? 'true' : 'false', onClick: () => uiSet('showDown', UI.showDown !== true) },
+                UI.showDown === true ? m('kb.health.hidedown') : m('kb.health.showdown', { n: downN }))
               : null,
             h('span', { className: 'kbmp-grow' }),
             h('button', {
@@ -2356,7 +2394,7 @@ window.__ModuleLoader__.load({
             rows.length === 0 && toutes.length > 0
               ? h('div', { className: 'kbmp-vide kbmp-empty', 'data-kbm': 'novide' }, m('kb.models.empty'))
               : null,
-            pageRows.map((mo) => h(Row, { mo: mo, key: mo.key })),
+            pageRows.map((mo) => h(Row, { mo: mo, key: mo.key, down: downIdx[mo.route + '/' + mo.id] })),
             rows.length > ROWS_PAR_PAGE
               ? h('div', { className: 'kbmp-pager', 'data-kbm': 'pager' },
                   h('span', { className: 'kbmp-pageinfo', 'data-kbm': 'pageinfo' },
@@ -2398,18 +2436,32 @@ window.__ModuleLoader__.load({
       // le flux natif « Add provider » de la page, qui reste le seul chemin
       // vers une clé personnelle. En mode figé (?kybernos-models=sample),
       // aucune lecture réseau : la carte rend l'état découvert de la maquette.
+      // KB-HERO-PURE-BEGIN
+      /** The plan key of the connected account (`space_plan.key`, else `user.plan`), lower case, or null when the status does not say. Pure. */
+      const kbHeroPlan = (res) => {
+        const o = res !== null && typeof res === 'object' ? res : {}
+        const sp = o.space_plan !== null && typeof o.space_plan === 'object' ? o.space_plan.key : undefined
+        if (typeof sp === 'string' && sp !== '') return sp.toLowerCase()
+        const u = o.user !== null && typeof o.user === 'object' ? o.user.plan : undefined
+        return typeof u === 'string' && u !== '' ? u.toLowerCase() : null
+      }
+      /** « Add your API key » next to Kybernos Cloud: offered while the account is not connected, and on a Free account. A connected
+       *  paid account has nothing to paste (V-28). Pure. */
+      const kbHeroShowKey = (connected, plan) => connected !== true || plan === 'free'
+      // KB-HERO-PURE-END
       const HERO_MODELS_FALLBACK = 19 // la maquette : « 19 curated models » (le catalogue de la formule gratuite)
       const kbmHeroModels = () => KBM.models.filter((mo) => mo.route === 'kybernos')
       const KybernosHero = () => {
         kbmUse()
         const mine = KBM.live === true ? kbmHeroModels() : []
-        const [cloud, setCloud] = React.useState(null) // null = inconnu · false = déconnecté · true = couplé
+        const [cloud, setCloud] = React.useState(null) // null = unknown · false = disconnected · true = connected
+        const [plan, setPlan] = React.useState(null) // the account's plan key ('free', …); null when the status does not say
         React.useEffect(() => {
           if (KBM.live !== true) return undefined
           let mort = false
           fetch('/kybernos-cloud/status', { headers: { 'content-type': 'application/json' } })
             .then((r) => r.json())
-            .then((res) => { if (mort !== true) setCloud(res !== null && typeof res === 'object' && res.connected === true) })
+            .then((res) => { if (mort !== true) { setCloud(res !== null && typeof res === 'object' && res.connected === true); setPlan(kbHeroPlan(res)) } })
             .catch(() => {})
           return () => { mort = true }
         }, [])
@@ -2432,13 +2484,14 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kbmh-hero-brand' },
               h('span', { className: 'kbmh-hero-logo', 'aria-hidden': 'true' }, 'K'),
               h('span', { className: 'kbmh-hero-name' }, 'Kybernos Cloud'),
-              h('span', { className: 'kbmh-hero-pill', 'data-kbmh': 'badge' }, m('kb.hero.badge')),
+              // « Recommended » is an invitation to connect: once connected there is nothing left to recommend.
+              connecte === true ? null : h('span', { className: 'kbmh-hero-pill', 'data-kbmh': 'badge' }, m('kb.hero.badge')),
               connecte === true
                 ? h('span', { className: 'kbmh-hero-pill kbmh-hero-pill-on', 'data-kbmh': 'badge-on' },
                   h('span', { className: 'kbmh-hero-pill-dot', 'aria-hidden': 'true' }), m('kb.hero.connected'))
                 : null),
             h('div', { className: 'kbmh-hero-title', 'data-kbmh': 'title' },
-              connecte === true ? m('kb.hero.title.in', { n }) : m('kb.hero.title.free')),
+              connecte === true ? m(n === 1 ? 'kb.hero.title.in.one' : 'kb.hero.title.in', { n }) : m('kb.hero.title.free')),
             h('div', { className: 'kbmh-hero-pitch', 'data-kbmh': 'pitch' },
               connecte === true ? m('kb.hero.pitch.in') : m('kb.hero.pitch.free')),
             h('div', { className: 'kbmh-hero-feats', 'data-kbmh': 'feats' },
@@ -2457,16 +2510,16 @@ window.__ModuleLoader__.load({
             },
               h('span', { className: 'kbmh-hero-btn-i' }, Ic(connecte === true ? 'cloud' : 'arrowright', 15)),
               h('span', null, connecte === true ? m('kb.hero.manage') : m('kb.hero.connect'))),
-            h('div', { className: 'kbmh-hero-or', 'aria-hidden': 'true' },
+            kbHeroShowKey(connecte, plan) ? h('div', { className: 'kbmh-hero-or', 'aria-hidden': 'true' },
               h('span', { className: 'kbmh-hero-or-line' }),
               h('span', { className: 'kbmh-hero-or-txt' }, m('kb.hero.or')),
-              h('span', { className: 'kbmh-hero-or-line' })),
-            h('button', {
+              h('span', { className: 'kbmh-hero-or-line' })) : null,
+            kbHeroShowKey(connecte, plan) ? h('button', {
               type: 'button', className: 'kbmh-hero-btn kbmh-hero-btn-ghost', 'data-kbmh': 'addkey',
               title: m('kb.hero.addkey.tip'), onClick: ajouterCle,
             },
               h('span', { className: 'kbmh-hero-btn-i' }, Ic('key', 15)),
-              h('span', null, m('kb.hero.addkey')))))
+              h('span', null, m('kb.hero.addkey'))) : null))
       }
 
       // ── le marqueur d'ordre de la rangée kybernos (siège provider-card) ──
@@ -2625,6 +2678,7 @@ window.__ModuleLoader__.load({
         '.kbmp-thb:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px;border-radius:4px}',
         '.kbmp-thar{display:inline-flex;transform:rotate(90deg)}',
         '.kbmp-ovline{font-size:11px;color:var(--dsw-alias-state-warn-primary);white-space:nowrap}',
+        '.kbmp-why{flex:1 0 100%;font-size:11.5px;line-height:16px;color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 62%,var(--dsw-alias-label-primary))}',
         '.kbmp-resbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;font-size:12px;color:var(--dsw-alias-label-tertiary)}',
         '.kbmp-grow{flex:1}',
         '.kbmp-link{border:0;background:transparent;padding:2px 4px;font-size:12px;color:var(--dsw-alias-label-secondary);text-decoration:underline;text-underline-offset:2px;cursor:pointer}',
@@ -2676,6 +2730,11 @@ window.__ModuleLoader__.load({
         '.kbpv-static{cursor:default}',
         '.kbpv-static::after{display:none}',
         '.kbpv-next{align-self:flex-start;margin-top:3px;padding:0;border:0;background:none;font:inherit;font-size:12px;line-height:18px;color:var(--dsw-alias-state-warn-primary);text-align:left;text-decoration:underline;text-underline-offset:2px;cursor:pointer}',
+        '.kbpv-fold{display:flex;align-items:center;gap:6px;margin:12px 0 0;padding:6px 2px;border:0;background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;cursor:pointer}',
+        '.kbpv-fold:hover{color:var(--dsw-alias-label-primary)}',
+        '.kbpv-fold:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px;border-radius:6px}',
+        '.kbpv-fold-chev{display:inline-flex;transition:transform .12s}.kbpv-fold-chev.open{transform:rotate(90deg)}',
+        '.kbpv-fold-hint{margin:2px 0 10px;font-size:12px;color:var(--dsw-alias-label-tertiary)}',
         '.kbpv-meta{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}',
         '.kbpv-tag{font-size:11px;line-height:16px;padding:0 7px;border-radius:999px;background:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary);white-space:nowrap}',
         '.kbpv-tag-warn{color:var(--dsw-alias-state-warn-primary);border-color:var(--dsw-alias-state-warn-primary)}',
@@ -3652,7 +3711,8 @@ window.__ModuleLoader__.load({
           alertes.push({
             cle: a.cle,
             route: typeof a.route === 'string' && a.route !== '' ? a.route : (cut < 0 ? a.cle : a.cle.slice(0, cut)),
-            cause: KB_HEALTH_CAUSES.indexOf(a.cause) >= 0 ? a.cause : 'other'
+            cause: KB_HEALTH_CAUSES.indexOf(a.cause) >= 0 ? a.cause : 'other',
+            code: typeof a.code === 'string' ? a.code.slice(0, 40) : ''
           })
         }
         if (alertes.length === 0) return null
@@ -3672,6 +3732,21 @@ window.__ModuleLoader__.load({
         if (vue !== null) for (const a of vue.alertes) out[a.cle] = true
         return out
       }
+      /** The failing models as a lookup by "route/id" to what is known about them (the page words the cause on the row). Pure. */
+      const kbHealthIndex = (vue) => {
+        const out = {}
+        if (vue !== null) for (const a of vue.alertes) out[a.cle] = a
+        return out
+      }
+      /** Is this model free to call? The Free LLMs route, an id that says so, or a provider known for a free quota. Pure. */
+      const kbHealthFree = (route, id, freeRoutes) => route === 'opencode-free' || /(:free|-free)$/i.test(String(id)) || (Array.isArray(freeRoutes) && freeRoutes.indexOf(route) >= 0)
+      /** The sentence (a key under kb.health.why.*) that says WHY a model is not answering, for the person to act on: a key problem is
+       *  « not in your Kybernos plan » for a Kybernos Cloud model, « may no longer be free » for a free one, « the key is refused » for the
+       *  rest (V-29). Pure. */
+      const kbHealthWhy = (alerte, free) => {
+        if (alerte.cause === 'key') return alerte.route === 'kybernos' ? 'kb.health.why.cloud' : (free === true ? 'kb.health.why.free' : 'kb.health.why.key')
+        return 'kb.health.why.' + alerte.cause
+      }
       // KB-HEALTH-PURE-END
       /** The published view, or null: no bundle, no study model, nothing failing, or the hour of silence is running. */
       const kbHealthGet = () => {
@@ -3690,7 +3765,8 @@ window.__ModuleLoader__.load({
         kbmUse()
         const [, tick] = React.useState(0)
         React.useEffect(() => {
-          const on = () => tick((n) => n + 1)
+          // The whole panel re-reads the verdict: the Models tab folds the failing models away, it must hear of a new one too.
+          const on = () => { tick((n) => n + 1); kbmNotify() }
           window.addEventListener('kybernos-health', on)
           return () => window.removeEventListener('kybernos-health', on)
         }, [])
@@ -3701,7 +3777,7 @@ window.__ModuleLoader__.load({
         const all = vue.tousEnEchec === true
         const label = all ? m('kb.health.chip.all') : (n === 1 ? m('kb.health.chip.one') : m('kb.health.chip.many', { n }))
         const lines = kbHealthRows(vue.alertes, 6)
-        const showThem = () => { UI.menu = null; UI.tab = 'models'; UI.q = ''; UI.prov = 'all'; UI.type = 'all'; UI.caps = {}; UI.statut = 'down'; UI.page = 1; kbmNotify() }
+        const showThem = () => { UI.menu = null; UI.tab = 'models'; UI.q = ''; UI.prov = 'all'; UI.type = 'all'; UI.caps = {}; UI.statut = 'down'; UI.page = 1; UI.showDown = true; kbmNotify() }
         const hide = () => { kbHealthCall('hide'); UI.menu = null; if (UI.statut === 'down') UI.statut = 'any'; kbmNotify() }
         const fixKey = (route) => { UI.menu = null; UI.tab = 'providers'; UI.edit = route; kbmNotify() }
         return h('span', { className: 'kbhc', 'data-kbm': 'health' },
@@ -3719,13 +3795,13 @@ window.__ModuleLoader__.load({
                 h('ul', { key: 'l', className: 'kbhc-list', 'data-kbm': 'health-list' },
                   lines.rows.map((a) => h('li', { key: a.cle, 'data-kbm': 'health-row', 'data-kbm-key': a.cle },
                     h('code', { title: a.cle }, a.cle),
-                    h('span', { className: 'kbhc-cause' }, m('kb.health.cause.' + a.cause)),
+                    h('span', { className: 'kbhc-cause', 'data-kbm': 'health-why', title: a.code }, m(kbHealthWhy(a, kbHealthFree(a.route, a.cle.slice(a.route.length + 1), Object.keys(FREE_LINKS))))),
                     a.cause === 'key' ? h('button', { type: 'button', className: 'kbhc-btn', 'data-kbm': 'health-fix', title: m('kb.health.fixkey.t', { slug: a.route }), onClick: () => fixKey(a.route) }, m('kb.health.fixkey')) : null)),
                   lines.more > 0 ? h('li', { key: 'more', className: 'kbhc-detail' }, m('kb.health.more', { n: lines.more })) : null),
                 h('div', { key: 'i', className: 'kbhc-detail' }, m('kb.health.impact'))],
             h('div', { className: 'kbhc-acts' },
               h('button', { type: 'button', className: 'kbhc-btn', 'data-kbm': 'health-recheck', disabled: vue.checking === true, onClick: () => kbHealthCall('recheck') }, vue.checking === true ? m('kb.health.checking') : m('kb.health.recheck')),
-              h('button', { type: 'button', className: 'kbhc-btn', 'data-kbm': 'health-show', onClick: showThem }, m('kb.health.show')),
+              h('button', { type: 'button', className: 'kbhc-btn', 'data-kbm': 'health-show', onClick: showThem }, m('kb.health.show', { n })),
               h('button', { type: 'button', className: 'kbhc-btn kbhc-btn-quiet', 'data-kbm': 'health-hide', onClick: hide }, m('kb.health.hide')))) : null)
       }
 
@@ -3859,6 +3935,14 @@ window.__ModuleLoader__.load({
         if (ref === null) return 'none'
         const st = keys !== null && typeof keys === 'object' ? keys[ref] : undefined
         return st === true ? 'ok' : (st === false ? 'missing' : 'unknown')
+      }
+      /** Which cards wait under a fold. A provider with no key (or switched off) answers nothing, so once at least one provider works they
+       *  fold away and the first view is the ones that do; with none working everything stays in view (a fold over the whole page would
+       *  hide the page). `flags` is one boolean per card, true = waiting. Pure. */
+      const kbPvFold = (flags) => {
+        const list = Array.isArray(flags) ? flags : []
+        const waiting = list.filter((x) => x === true).length
+        return { fold: waiting > 0 && waiting < list.length, waiting }
       }
       /** Model rows (id + optional name) from a draft: drops blank ids, keeps the first of a duplicate. Pure. */
       const kbPvRows = (rows) => {

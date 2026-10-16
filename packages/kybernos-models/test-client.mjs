@@ -560,7 +560,7 @@ console.log('\n── the model health chip (the alert of the study model, on th
   const hb = src.indexOf('// KB-HEALTH-PURE-BEGIN')
   const he = src.indexOf('// KB-HEALTH-PURE-END')
   ok('the health block is delimited', hb > 0 && he > hb)
-  const { KB_HEALTH_CAUSES, kbHealthView, kbHealthCauses, kbHealthRows, kbHealthDown } = new Function(src.slice(hb, he) + '\nreturn { KB_HEALTH_CAUSES, kbHealthView, kbHealthCauses, kbHealthRows, kbHealthDown }')()
+  const { KB_HEALTH_CAUSES, kbHealthView, kbHealthCauses, kbHealthRows, kbHealthDown, kbHealthIndex, kbHealthFree, kbHealthWhy } = new Function(src.slice(hb, he) + '\nreturn { KB_HEALTH_CAUSES, kbHealthView, kbHealthCauses, kbHealthRows, kbHealthDown, kbHealthIndex, kbHealthFree, kbHealthWhy }')()
   const raw = (over) => ({ total: 9, tousEnEchec: false, checking: false, alertes: [{ cle: 'groq/a', route: 'groq', id: 'a', cause: 'key' }], ...over })
   ok('anything that is not a view reads as nothing to say, never a throw', kbHealthView(null) === null && kbHealthView(undefined) === null && kbHealthView('x') === null && kbHealthView({}) === null && kbHealthView({ alertes: 'x' }) === null)
   ok('no failing model: nothing to say', kbHealthView(raw({ alertes: [] })) === null)
@@ -674,6 +674,36 @@ console.log('\n── a refused value is shown, and taken back ──')
   }
   const num = /'kb\.models\.error\.number': \{ kybernos: '([^']+)', en: '([^']+)' \}/.exec(src)
   ok('that message exists in French and English and names the K / M spelling', num !== null && /256K/.test(num[1]) && /256K/.test(num[2]))
+}
+
+console.log('\n── why a model is not answering, and the first view (V-29, V-28, N-06) ──')
+{
+  const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
+  const hb = src.indexOf('// KB-HEALTH-PURE-BEGIN')
+  const he = src.indexOf('// KB-HEALTH-PURE-END')
+  const { kbHealthView, kbHealthIndex, kbHealthFree, kbHealthWhy } = new Function(src.slice(hb, he) + '\nreturn { kbHealthView, kbHealthIndex, kbHealthFree, kbHealthWhy }')()
+  const al = (cle, cause, code = '') => ({ cle, route: cle.slice(0, cle.indexOf('/')), cause, code })
+  ok('a key problem says what it is for a Kybernos Cloud model, a free model and any other', kbHealthWhy(al('kybernos/x', 'key')) === 'kb.health.why.cloud' && kbHealthWhy(al('openrouter/a:free', 'key'), true) === 'kb.health.why.free' && kbHealthWhy(al('groq/a', 'key'), false) === 'kb.health.why.key')
+  ok('every other cause has its own sentence', ['gone', 'refused', 'text', 'silent', 'other'].every((c) => kbHealthWhy(al('groq/a', c)) === 'kb.health.why.' + c))
+  ok('a model is free when it comes from the Free LLMs route, says so in its id, or sits with a provider that gives a free quota', kbHealthFree('opencode-free', 'big-pickle', []) === true && kbHealthFree('openrouter', 'x/y:free', []) === true && kbHealthFree('p', 'model-free', []) === true && kbHealthFree('nvidia', 'nv', ['nvidia', 'openrouter']) === true && kbHealthFree('groq', 'llama', ['nvidia']) === false)
+  const view = kbHealthView({ alertes: [{ cle: 'groq/a', cause: 'key', code: 'AUTH' }, { cle: 'groq/b', cause: 'gone', code: 'x'.repeat(100) }, { cle: 'groq/c', cause: 'silent' }], total: 9 })
+  ok('the failure code rides along (a tooltip), capped, and is empty when the bus has none', view.alertes[0].code === 'AUTH' && view.alertes[1].code.length === 40 && view.alertes[2].code === '')
+  ok('the failing models are indexed by route/id', Object.keys(kbHealthIndex(view)).join() === 'groq/a,groq/b,groq/c' && kbHealthIndex(view)['groq/a'].cause === 'key' && Object.keys(kbHealthIndex(null)).length === 0)
+  ok('each reason sentence exists in French and English', ['cloud', 'free', 'key', 'gone', 'refused', 'text', 'silent', 'other'].every((c) => new RegExp("'kb\\.health\\.why\\." + c + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src)))
+  const has = (frag) => src.includes(frag)
+  ok('the popover words each row with its own reason and the button says what it does (« Check key »)', has("'data-kbm': 'health-why'") && has("m(kbHealthWhy(a, kbHealthFree(a.route, a.cle.slice(a.route.length + 1), Object.keys(FREE_LINKS))))") && /'kb\.health\.fixkey': \{ kybernos: 'Vérifier la clé', en: 'Check key' \}/.test(src))
+  ok('« Show unavailable (n) » brings the failing models back, on the Models tab, and the chip hears the bus so the tab re-reads it', has("m('kb.health.show', { n })") && has('UI.statut = \'down\'; UI.page = 1; UI.showDown = true') && has("const on = () => { tick((n) => n + 1); kbmNotify() }"))
+  ok('the Models tab folds the failing models away until asked, with a toggle that counts them, and each shown row says why', has("hidden !== null && hidden[mo.route + '/' + mo.id] === true") && has("'data-kbm': 'toggle-down'") && has("'data-kbm': 'row-why'") && has("m('kb.health.showdown', { n: downN })"))
+
+  const { kbHeroPlan, kbHeroShowKey } = new Function(bl('KB-HERO-PURE') + '\nreturn { kbHeroPlan, kbHeroShowKey }')()
+  ok('the plan comes from the active space, else from the account, lower case; nothing known is null', kbHeroPlan({ space_plan: { key: 'Free' }, user: { plan: 'team' } }) === 'free' && kbHeroPlan({ user: { plan: 'PLUS' } }) === 'plus' && kbHeroPlan({ space_plan: { key: '' }, user: { plan: 'pro' } }) === 'pro' && kbHeroPlan(null) === null && kbHeroPlan({}) === null && kbHeroPlan({ space_plan: 5, user: 7 }) === null)
+  ok('V-28: « Add your API key » is offered while not connected and on a Free account, not on a connected paid one', kbHeroShowKey(false, null) === true && kbHeroShowKey(null, null) === true && kbHeroShowKey(true, 'free') === true && kbHeroShowKey(true, 'plus') === false && kbHeroShowKey(true, null) === false)
+  ok('the hero hides the key button, its « or » and the « Recommended » pill once connected, and says it in one line (« N models included »)', has('kbHeroShowKey(connecte, plan) ? h(\'div\', { className: \'kbmh-hero-or\'') && has("connecte === true ? null : h('span', { className: 'kbmh-hero-pill', 'data-kbmh': 'badge' }") && has("m(n === 1 ? 'kb.hero.title.in.one' : 'kb.hero.title.in', { n })") && /'kb\.hero\.title\.in': \{ kybernos: '\{n\} modèles inclus', en: '\{n\} models included' \}/.test(src))
+
+  const { kbPvFold } = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvFold }')()
+  ok('N-06: once one provider works, the ones with no key or switched off fold away and are counted', JSON.stringify(kbPvFold([false, true, true, true])) === JSON.stringify({ fold: true, waiting: 3 }))
+  ok('...but with none working, or none waiting, nothing folds (a fold over the whole page would hide the page)', kbPvFold([true, true]).fold === false && kbPvFold([false, false]).fold === false && kbPvFold([]).fold === false && kbPvFold(null).waiting === 0)
+  ok('the fold is a button that names the count, opens by itself for a provider just added, and keeps the old cards intact', has("'data-kbm': 'prov-wait-toggle'") && has("m('kb.pv.wait.n', { n: fold.waiting })") && has('patch({ drawer: null, busy: false, waitOpen: true,') && has('const renderDsCard = (c) => {'))
 }
 
 console.log('\n── strings: every new key in French and English ──')
