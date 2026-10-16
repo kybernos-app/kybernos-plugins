@@ -687,6 +687,12 @@ window.__ModuleLoader__.load({
 .kbs-root .kbsub button.kb-seg:hover{color:var(--dsw-alias-label-primary)}
 .kbs-root .kbsub button.kb-seg.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 1px 3px rgba(20,20,19,.14)}
 .kbs-root .kbsub .count{font-family:ui-monospace,monospace;font-size:11px;color:inherit;opacity:.7}
+/* A phone (A5-05): four tabs with their counts need 395 px in a 332 px strip, and the strip slid sideways with « Team » out of
+   sight and no hint that it was there. Tighter tabs and no counts (they are on the pages) need about 295 px: all four fit. */
+@media (max-width:440px){
+.kbs-root .kbsub button.kb-seg{padding:0 10px;gap:6px}
+.kbs-root .kbsub .count{display:none}
+}
 .kbs-root .kbsub .kb8-mono{flex:1 1 0;min-width:0;text-align:end;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* The panel body is injected INSIDE .kbg-root, which already carries the page
    margins (30/34/40). It was taking those of .kb8-page (30/28/36): all the

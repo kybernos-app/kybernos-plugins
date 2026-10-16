@@ -3182,7 +3182,9 @@ window.__ModuleLoader__.load({
         '.kbmh-hero-btn{height:28px;padding:0 10px;font-size:12px;border-radius:8px}',
         '.kbmh-hero-or{display:none}',
         // Narrow: the CTA column goes under the text and spreads on a line.
-        '@container (max-width: 520px){.kbmh-hero{flex-direction:column;align-items:stretch;gap:14px;padding:18px}.kbmh-hero-cta{flex-basis:auto}}',
+        // In a column the « flex: 1 1 300px » of the text block is a HEIGHT: it made the banner 390 px tall on a phone (A3-18). The
+        // block takes the height of its content; the buttons share a line and wrap rather than squeezing.
+        '@container (max-width: 520px){.kbmh-hero{flex-direction:column;align-items:stretch;gap:14px;padding:18px}.kbmh-hero-main{flex:0 0 auto}.kbmh-hero-cta{flex:0 0 auto;flex-wrap:wrap}}',
         // ── the « Kybernos Cloud » row at the head of the native list ─────────
         // The native list (ul of the ModelsSection module) is already a flex
         // column: `order:-1` lifts the marked row without touching the DOM nor
