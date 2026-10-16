@@ -80,7 +80,7 @@ check('mode=meaning is sent only with a query, only for memories', T.listUrl('me
 console.log('search by meaning')
 check('every fallback reason has its own sentence', ['sens_desactive', 'offre_requise', 'sens_indisponible', 'serveur_ancien', 'credits_epuises', 'embedding_invalide'].every((c) => T.meaningWhy(c).length > 10 && T.meaningWhy(c).indexOf('Something went wrong') < 0))
 check('the plan reason names the tier the host sent, Solo by default', /Solo plan/.test(T.meaningWhy('offre_requise')) && /Team plan/.test(T.meaningWhy('offre_requise', 'team')) && /Solo plan/.test(T.meaningWhy('offre_requise', 'unheard-of')))
-check('the switch reason points to Options', /Options/.test(T.meaningWhy('sens_desactive')))
+check('the switch reason points to Customize', /Customize/.test(T.meaningWhy('sens_desactive')))
 check('an unknown code falls back to the generic words, never to undefined', typeof T.meaningWhy('zzz') === 'string' && /zzz/.test(T.meaningWhy('zzz')) && T.meaningWhy(undefined).length > 0)
 check('« N of M words » only when some of several words were missing', T.wordsLabel(2, 3) === '2 of 3 words' && T.wordsLabel(1, 2) === '1 of 2 words' && T.wordsLabel(3, 3) === null && T.wordsLabel(1, 1) === null && T.wordsLabel(undefined, undefined) === null && T.wordsLabel(0, 3) === null && T.wordsLabel('2', 3) === null)
 check('closeness is « NN% match », clamped, and only for a real number', T.closenessLabel(82) === '82% match' && T.closenessLabel(81.6) === '82% match' && T.closenessLabel(140) === '100% match' && T.closenessLabel(-3) === '0% match'
@@ -317,6 +317,96 @@ console.log('tidy up')
   check('the modes and schedules offered are exactly the ones the hosts accept', JSON.stringify(T.TIDY_MODES.map((x) => x[0])) === JSON.stringify(listOf('TIDY_MODES')) && JSON.stringify(T.TIDY_SCHEDULES.map((x) => x[0])) === JSON.stringify(listOf('TIDY_SCHEDULES')))
   check('the host codes of the Study model have words', ['deja_en_cours', 'pas_de_modele_detude', 'llm_indisponible', 'delai_depasse', 'modele_en_erreur', 'valeur_invalide'].every((c) => T.friendlyError(c).indexOf('Something went wrong') < 0))
   check('the limits agree with the host sources', /const TIDY_MAX_REMOVALS = 50/.test(readFileSync(join(HERE, '..', 'kybernos-cloud', 'index.js'), 'utf8')) && /const TIDY_MAX_REMOVALS = 50/.test(readFileSync(join(HERE, 'index.js'), 'utf8')) && /MEMORY_MAX_CONTENT = 2000/.test(readFileSync(join(HERE, '..', 'kybernos-cloud', 'index.js'), 'utf8')) && /LESSON_MAX_CHARS = 500/.test(readFileSync(join(HERE, 'lessons-store.mjs'), 'utf8')))
+}
+
+// ── « Memory looks after itself »: the one-line status, the account step, the cap note (WP-10: N-04, N-05)
+console.log('looks after itself')
+{
+  const now = Date.parse('2026-10-16T12:00:00.000Z')
+  const ago = (min) => new Date(now - min * 60000).toISOString()
+  const connected = (yes) => ({ loaded: true, connected: yes, plan: 'free', raw: null })
+  const MEM = { memories: true, context: true, capture: true, relevant: true, meaning: false }
+  const LES = { lessons: true, context: true, relevant: true }
+  const sw = (memory, lessons) => ({ loaded: true, memory, lessons, capture: null })
+  const cfg = (extra) => Object.assign({ mode: 'auto', schedule: 'weekly', brain: false }, extra)
+  const view = (settings, last) => ({ ok: true, groups: [], saves: 0, scannedAt: null, total: 0, log: [], settings, last: last === undefined ? null : last })
+  const tidyOf = (settings, last) => ({ loaded: true, mem: null, les: view(settings, last) })
+  const S = (c, s, t) => T.selfStatus({ status: c, settings: s, tidy: t, now })
+
+  check('while anything is still loading, the line is empty and never says Off', ['status', 'settings', 'tidy'].every((k) => {
+    const all = { status: connected(true), settings: sw(MEM, LES), tidy: tidyOf(cfg()) }
+    all[k] = Object.assign({}, all[k], { loaded: false })
+    const r = T.selfStatus(Object.assign(all, { now }))
+    return r.tone === 'wait' && r.text === ''
+  }))
+  const happy = S(connected(true), sw(MEM, LES), tidyOf(cfg(), { at: ago(3 * 1440), trigger: 'schedule', autoGroups: 0, found: 0 }))
+  check('the defaults working: one line, what is on and when it last tidied', happy.tone === 'ok' && happy.text === 'Memories and lessons are on · Last tidied 3 days ago' && happy.connect === false, happy)
+  check('never tidied yet: it says it tidies itself, and how often', S(connected(true), sw(MEM, LES), tidyOf(cfg())).text === 'Memories and lessons are on · Tidies itself every week'
+    && S(connected(true), sw(MEM, LES), tidyOf(cfg({ schedule: 'daily' }))).text.endsWith('Tidies itself every day')
+    && S(connected(true), sw(MEM, LES), tidyOf(cfg({ schedule: 'start' }))).text.endsWith('Tidies itself when DSH starts')
+    && S(connected(true), sw(MEM, LES), tidyOf(cfg({ schedule: 'n50' }))).text.endsWith('Tidies itself every 50 new items'))
+  check('automatic tidy-up switched off by the person: the line says so, still not « Off »', S(connected(true), sw(MEM, LES), tidyOf(cfg({ schedule: 'off' }))).text === 'Memories and lessons are on · Automatic tidy-up is off')
+
+  // The audit's state (N-04): no account, nothing else touched. Lessons work; the one step is the account.
+  const bare = S(connected(false), sw(MEM, LES), tidyOf(cfg()))
+  check('no account: lessons still work and the line says so, the one step is connecting, and the chip is never Off', bare.tone === 'step' && bare.connect === true
+    && bare.text === 'Lessons are on and stay on this computer · Memories need your account · Tidies itself every week' && !/\bOff\b/i.test(bare.text), bare)
+  check('no account, the cloud plugin silent (memory null): lessons on is still the line', S(connected(false), sw(null, LES), tidyOf(cfg())).text.startsWith('Lessons are on and stay on this computer'))
+
+  check('one half switched off by the person: it is named, the other half is still on', S(connected(true), sw(MEM, Object.assign({}, LES, { lessons: false })), tidyOf(cfg())).text === 'Memories are on · Lessons are off · Tidies itself every week'
+    && S(connected(true), sw(Object.assign({}, MEM, { memories: false }), LES), tidyOf(cfg())).text === 'Lessons are on · Memories are off · Tidies itself every week')
+  check('kept but not sent to the model is said, per half', /Saved memories are not sent to the model/.test(S(connected(true), sw(Object.assign({}, MEM, { context: false }), LES), tidyOf(cfg())).text)
+    && /Lessons are not sent to the model/.test(S(connected(true), sw(MEM, Object.assign({}, LES, { context: false })), tidyOf(cfg())).text))
+  const dead = S(connected(true), sw(Object.assign({}, MEM, { memories: false }), Object.assign({}, LES, { lessons: false })), tidyOf(cfg()))
+  check('everything switched off by the person is the only « off » state', dead.tone === 'off' && dead.text === 'Memory is off' && dead.connect === false, dead)
+  check('…and with no account as well, the step is still there', S(connected(false), sw(MEM, Object.assign({}, LES, { lessons: false })), tidyOf(cfg())).connect === true)
+  check('hosts that say nothing about the tidy-up: no tidy part, no crash', S(connected(true), sw(MEM, LES), { loaded: true, mem: null, les: null }).text === 'Memories and lessons are on')
+  check('garbage in, a line out (never throws)', (() => { try { return typeof T.selfStatus({}).text === 'string' && typeof T.selfStatus(null).text === 'string' && typeof T.selfStatus({ status: connected(true), settings: sw(MEM, LES), tidy: { loaded: true, mem: 5, les: { last: 'x' } }, now }).text === 'string' } catch (e) { return false } })())
+  check('the chip is only « Off » when nothing works, for every combination of the switches', (() => {
+    for (const c of [true, false]) for (const m of [true, false]) for (const l of [true, false]) {
+      const r = S(connected(c), sw(Object.assign({}, MEM, { memories: m }), Object.assign({}, LES, { lessons: l })), tidyOf(cfg()))
+      const works = (c && m) || l
+      if (works && (r.tone === 'off' || /\bOff\b/.test(r.text))) return false
+      if (!works && r.tone !== 'off') return false
+    }
+    return true
+  })())
+
+  // Connecting is the host page's own event (the Models page uses it too): never a hard failure when the card is not mounted.
+  {
+    const sent = []
+    const saved = globalThis.window.dispatchEvent
+    globalThis.window.dispatchEvent = (e) => { sent.push(e.type) }
+    globalThis.CustomEvent = function (type) { this.type = type }
+    T.connectAccount()
+    globalThis.window.dispatchEvent = () => { throw new Error('no card') }
+    let threw = false
+    try { T.connectAccount() } catch (e) { threw = true }
+    globalThis.window.dispatchEvent = saved
+    check('« Connect your account » opens the cloud card through the shared window event, and never throws', sent.join() === 'kybernos-cloud:open' && threw === false, sent)
+  }
+
+  // The cap (N-05): a team nearing 50 lessons is tidied by itself; the page says why and what happens at 50.
+  const K = (id, count) => ({ id, count })
+  check('the cap and the near-cap line agree with the host store', T.LESSONS_CAP === 50 && T.LESSONS_NEAR === 40 && /LESSONS_MAX_COUNT = 50/.test(readFileSync(join(HERE, 'lessons-store.mjs'), 'utf8')) && /LESSONS_NEAR_COUNT = 40/.test(readFileSync(join(HERE, 'lessons-store.mjs'), 'utf8')))
+  check('no note while every agent team is under 40 lessons (39 is not near)', T.capNote([K('default', 12), K('dev-team', 39)], cfg()) === null && T.capNote([], cfg()) === null && T.capNote(null, cfg()) === null)
+  check('40 is near: the fullest team is named with its count, and what happens by itself', T.capNote([K('default', 12), K('dev-team', 40)], cfg()) === 'dev-team holds 40 of 50 lessons. Close matches are merged by themselves; when it is full, the least useful lesson goes to the archive, never deleted.')
+  check('two teams near: the fullest first, the other one counted', /^dev-team holds 47 of 50 lessons \(1 other agent team is close\)\./.test(T.capNote([K('default', 41), K('dev-team', 47)], cfg())) && /\(2 other agent teams are close\)/.test(T.capNote([K('a', 41), K('b', 47), K('c', 44)], cfg())))
+  check('a full team says it is full', /^default holds 50 of 50 lessons/.test(T.capNote([K('default', 50)], cfg())) && /when it is full/.test(T.capNote([K('default', 50)], cfg())))
+  check('« Ask me first »: the close matches wait for the person; automatic tidy-up off: the note says where to do it', /Close matches wait for your review\./.test(T.capNote([K('default', 44)], cfg({ mode: 'ask' }))) && /Automatic tidy-up is off: use Clean up now in Customize\./.test(T.capNote([K('default', 44)], cfg({ schedule: 'off' }))))
+  const capView = (trigger, autoGroups) => ({ mem: null, les: view(cfg(), { at: ago(3), trigger, autoGroups, autoRemoved: 3, found: 2 }) })
+  const capLog = [{ id: 'a', at: ago(3), by: 'auto', canUndo: true, src: 'les' }]
+  const capRan = (trigger) => { const v = capView(trigger, 2); v.les.log = capLog; return T.tidyRanNotice(v, '') }
+  check('a run started because a team was nearly full is announced like a scheduled one, with its Undo', capRan('cap') !== null && capRan('cap').groups === 2 && capRan('cap').entries.length === 1 && capRan('manual') === null)
+  check('the last run in words names the reason', T.lastWords({ at: ago(120), trigger: 'cap', autoGroups: 1, found: 1 }, now) === 'Last run 2 hours ago (an agent team was nearly full): merged 1 group by itself.')
+
+  // The stylesheet (A3-21): at a phone width DSH's mobile layer grows every button to a finger's height. A pill with a fixed height
+  // then lets its buttons run out of it onto the next row. The pills grow with their buttons, the search field wraps its modes.
+  const rule = (selector) => { const m = new RegExp('(?:^|\\})\\s*' + selector.replace(/[.\[\]]/g, '\\$&') + '\\s*\\{([^}]*)\\}', 'm').exec(T.css); return m === null ? null : m[1] }
+  const seg = rule('.kbmem-seg'), segSm = rule('.kbmem-seg.sm'), field = rule('.kbmem-field'), modes = rule('.kbmem-modes')
+  check('the segmented pills have a minimum height, never a fixed one', seg !== null && /min-height:38px/.test(seg) && !/(^|;)height:/.test(seg) && segSm !== null && /min-height:32px/.test(segSm) && !/(^|;)height:/.test(segSm), { seg, segSm })
+  check('the search field has a minimum height, never a fixed one, and its modes wrap under the input instead of over the next control', field !== null && /min-height:36px/.test(field) && !/(^|;)height:/.test(field) && /flex-wrap:wrap/.test(field) && modes !== null, { field })
+  check('the search field asks for room (a flex basis) so the toolbar wraps instead of squeezing it', /flex:1 1 \d+px/.test(field || ''), field)
 }
 
 console.error = realError
