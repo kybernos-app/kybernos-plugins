@@ -177,14 +177,18 @@ const VEDETTES = {
 // Suite shows it on the module's page and the « ? How it works » button of any plugin page shows the same text, so it is
 // written once, here, and read from the catalogue. A bundle without a valid help.json fails the build (and CI).
 const AIDE_LIMITES = { what: 200, step: 140, good: 220, where: 120, title: 40 }
+// The article a card links to (« Read the article »): an address on the help site, never anywhere else. The path is made of
+// lower-case words; « {lang} » as its first part stands for the language of the reader (en, fr, ar, zh-cn), the way the site
+// addresses its articles (https://help.kybernos.app/<lang>/<category>/<article>/); a bare https://help.kybernos.app/<slug> passes too.
+const AIDE_ADRESSE = /^https:\/\/help\.kybernos\.app\/(\{lang\}\/)?[a-z0-9]+(-[a-z0-9]+)*(\/[a-z0-9]+(-[a-z0-9]+)*){0,3}\/?$/
 // Words a person who is not a developer does not know: the help is for them.
 const JARGON = /\b(slot|bundle|endpoint|DOM|settings\.section|webServer)\b/i
 
-/** Pure: one help card ({ what, steps, where, good? }, plus a title for a page card), checked. */
+/** Pure: one help card ({ what, steps, where, good?, url? }, plus a title for a page card), checked. */
 function validerFiche (dir, brut, champ, { titre }) {
   const faute = (m) => { throw new Error('help.json of "' + dir + '": ' + m) }
   if (brut === null || typeof brut !== 'object' || Array.isArray(brut)) faute(champ + ' is not an object')
-  const permis = titre ? ['title', 'what', 'steps', 'where', 'good'] : ['what', 'steps', 'where', 'good', 'pages']
+  const permis = titre ? ['title', 'what', 'steps', 'where', 'good', 'url'] : ['what', 'steps', 'where', 'good', 'url', 'pages']
   for (const k of Object.keys(brut)) if (!permis.includes(k)) faute((champ === '' ? '' : champ + ': ') + 'unknown field "' + k + '" (expected ' + permis.join(', ') + ')')
   const nom = (f) => (champ === '' ? f : champ + '.' + f)
   const paire = (v, f, max) => {
@@ -208,6 +212,10 @@ function validerFiche (dir, brut, champ, { titre }) {
   if (typeof brut.where.page !== 'boolean') faute(nom('where.page') + ' must be true or false')
   out.where = { ...w, page: brut.where.page }
   if (brut.good !== undefined) out.good = paire(brut.good, 'good', AIDE_LIMITES.good)
+  if (brut.url !== undefined) {
+    if (typeof brut.url !== 'string' || AIDE_ADRESSE.test(brut.url) !== true) faute(nom('url') + ' must be an address on help.kybernos.app (https://help.kybernos.app/<article>, or https://help.kybernos.app/{lang}/<category>/<article>/)')
+    out.url = brut.url
+  }
   return out
 }
 

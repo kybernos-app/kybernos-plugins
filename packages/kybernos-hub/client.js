@@ -100,6 +100,27 @@ window.__ModuleLoader__.load({
       } catch (e) { return 'fr' }
     }
     const kt = (fr, en) => (lang() === 'fr' ? fr : en)
+    const rawLang = () => { try { return window.__KB_LANG_RESOLVE__ ? window.__KB_LANG_RESOLVE__() : '' } catch (e) { return '' } }
+
+    // ── The link of a help card to its article, and the first-visit animation of a page ──────────────────────────────
+    // The help site answers in these languages (the footer menu's « Help » picks the same way); the French of the product is « kybernos ».
+    const HELP_LANGS = ['en', 'fr', 'zh-cn', 'ar']
+    const HELP_ADRESSE = /^https:\/\/help\.kybernos\.app\/(\{lang\}\/)?[a-z0-9]+(-[a-z0-9]+)*(\/[a-z0-9]+(-[a-z0-9]+)*){0,3}\/?$/
+    /** Pure. The help site's language for a DSH language (« kybernos » is the French of the product): never French by default. */
+    const langueDuSite = (code) => {
+      let l = String(code == null ? '' : code).toLowerCase().replace(/_/g, '-')
+      if (l === 'kybernos') l = 'fr'
+      if (l === 'zh' || l === 'zh-hans' || l.indexOf('zh-hans-') === 0) return 'zh-cn'
+      if (HELP_LANGS.indexOf(l) >= 0) return l
+      const base = l.split('-')[0]
+      return base !== 'zh' && HELP_LANGS.indexOf(base) >= 0 ? base : 'en'
+    }
+    /** Pure. The address a card links to, or null when the field is not an address on the help site (the catalogue is data: a card never links anywhere else). */
+    const adresseAide = (url, code) => (typeof url === 'string' && HELP_ADRESSE.test(url) ? url.replace('{lang}', langueDuSite(code)) : null)
+    const INTRO_SEEN_MS = 8000 // on screen this long once: the animation has had its first visit and does not come back by itself
+    const introKey = (id) => 'kybernos.help.intro.' + id
+    /** Pure. Does the animation of a page open now? Yes until the person closed it, or it has been on screen once for a while. A storage that fails says yes. */
+    const introOuverte = (store, key) => { try { const v = store.getItem(key); return v !== 'closed' && v !== 'seen' } catch (e) { return true } }
 
     /** Pure. "1.2.0" vs "1.10.0" → -1 | 0 | 1. Non-numeric parts compare as 0. */
     const comparerVersions = (a, b) => {
@@ -420,6 +441,63 @@ window.__ModuleLoader__.load({
       '.kbhp-x{position:absolute;inset-inline-end:10px;top:10px;width:26px;height:26px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-tertiary);cursor:pointer;font-size:14px}',
       '.kbhp-x:hover{background:var(--dsw-alias-interactive-bg-hover)}',
       '.kbhp-act{appearance:none;align-self:flex-start;display:inline-flex;align-items:center;height:30px;padding:0 14px;border-radius:9px;border:0;font:inherit;font-size:13px;font-weight:600;cursor:pointer;background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground)}',
+      // The foot of the card: the article of the help site, and « Watch the animation ».
+      '.kbhp-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding-top:10px;border-top:1px solid var(--dsw-alias-border-l1)}',
+      '.kbhp-link{color:var(--dsw-alias-brand-primary);font-size:13px;font-weight:600;text-decoration:none}',
+      '.kbhp-link:hover{text-decoration:underline}',
+      '.kbhp-link:focus-visible,.kbhp-replay:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px;border-radius:4px}',
+      '.kbhp-replay{appearance:none;border:0;background:transparent;padding:0;font:inherit;font-size:13px;font-weight:600;color:var(--dsw-alias-label-secondary);cursor:pointer}',
+      '.kbhp-replay:hover{color:var(--dsw-alias-label-primary);text-decoration:underline}',
+      // The animated help of a page (window.__KB_HELP__.Intro): a CSS mock of three steps on a 12 s loop, beside the steps, which light
+      // up in turn. The BASE style of every animated part is the end of the story, which is also what reduced motion shows.
+      '.kbhi{position:relative;display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;padding:16px;border-radius:12px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);align-items:center;margin:0 0 14px}',
+      '@media (max-width:700px){.kbhi{grid-template-columns:minmax(0,1fr)}}',
+      '.kbhi-text{display:flex;flex-direction:column;gap:12px;min-width:0}',
+      '.kbhi-h{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary);padding-inline-end:28px}',
+      '.kbhi-x{position:absolute;inset-inline-end:8px;top:8px;width:26px;height:26px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-tertiary);cursor:pointer;font-size:14px}',
+      '.kbhi-x:hover{background:var(--dsw-alias-interactive-bg-hover)}',
+      '.kbhi-x:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}',
+      '.kbhi-steps{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}',
+      '.kbhi-step{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:start}',
+      '.kbhi-step>b{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff)}',
+      '.kbhi-step-t{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}',
+      '.kbhi-step-b{font-size:12px;line-height:1.5;color:var(--dsw-alias-label-secondary)}',
+      '.kbhi-step.s1{animation:kbhi-k-s1 12s infinite}.kbhi-step.s2{animation:kbhi-k-s2 12s infinite}.kbhi-step.s3{animation:kbhi-k-s3 12s infinite}',
+      '.kbhi-mm{direction:ltr;position:relative;width:300px;max-width:100%;height:176px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);overflow:hidden;font-size:10px;color:var(--dsw-alias-label-primary);user-select:none;pointer-events:none}',
+      '.kbhi-mm-bar{position:absolute;left:0;right:0;top:0;height:26px;display:flex;align-items:center;padding:0 10px;border-bottom:1px solid var(--dsw-alias-border-l2);font-weight:600}',
+      '.kbhi-mm-row{position:absolute;left:8px;right:8px;height:32px;display:flex;align-items:center;gap:7px;padding:0 8px;border-radius:8px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);box-sizing:border-box}',
+      '.kbhi-mm-row.r0{top:34px}.kbhi-mm-row.r1{top:118px}',
+      '.kbhi-mm-row.hot{top:72px;height:40px;animation:kbhi-k-hot 12s infinite}',
+      '.kbhi-mm-b{width:18px;height:18px;flex:none;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-secondary)}',
+      '.kbhi-mm-i{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;position:relative}',
+      '.kbhi-mm-n{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+      '.kbhi-mm-st{position:relative;height:11px;color:var(--dsw-alias-label-secondary);font-size:9px}',
+      '.kbhi-mm-st>span{position:absolute;left:0;top:0;white-space:nowrap;opacity:0}',
+      '.kbhi-mm-st>.t3{opacity:1;animation:kbhi-k-st3 12s infinite}.kbhi-mm-st>.t1{animation:kbhi-k-st1 12s infinite}.kbhi-mm-st>.t2{animation:kbhi-k-st2 12s infinite}',
+      '.kbhi-mm-acts{position:relative;width:92px;height:20px;flex:none}',
+      '.kbhi-mm-acts>*{position:absolute;right:0;top:0;height:20px;box-sizing:border-box;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;padding:0 7px;font-size:9px;font-weight:600;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}',
+      '.kbhi-mm-go,.kbhi-mm-us{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff);opacity:0}',
+      '.kbhi-mm-go{animation:kbhi-k-go 12s infinite}.kbhi-mm-us{animation:kbhi-k-us 12s infinite}',
+      '.kbhi-mm-pa{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-3);opacity:0;animation:kbhi-k-pa 12s infinite}',
+      '.kbhi-mm-done{border-radius:999px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff);opacity:1;animation:kbhi-k-done 12s infinite}',
+      '.kbhi-mm-track{position:absolute;left:34px;right:104px;bottom:4px;height:3px;border-radius:99px;background:var(--dsw-alias-bg-layer-3);opacity:0;animation:kbhi-k-track 12s infinite}',
+      '.kbhi-mm-fill{display:block;height:100%;width:100%;border-radius:99px;background:var(--dsw-alias-brand-primary);animation:kbhi-k-fill 12s linear infinite}',
+      '.kbhi-mm-cur{position:absolute;left:150px;top:130px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:11px solid var(--dsw-alias-label-primary);transform-origin:50% 100%;opacity:0;animation:kbhi-k-cur 12s infinite;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}',
+      '@keyframes kbhi-k-hot{0%,14%{opacity:0;transform:translateY(8px)}20%,93%{opacity:1;transform:none}98%,100%{opacity:0;transform:translateY(8px)}}',
+      '@keyframes kbhi-k-st1{0%,19%{opacity:0}21%,32%{opacity:1}34%,100%{opacity:0}}',
+      '@keyframes kbhi-k-st2{0%,33%{opacity:0}35%,62%{opacity:1}64%,100%{opacity:0}}',
+      '@keyframes kbhi-k-st3{0%,63%{opacity:0}65%,94%{opacity:1}98%,100%{opacity:0}}',
+      '@keyframes kbhi-k-go{0%,19%{opacity:0}21%,32%{opacity:1;transform:none}33%{opacity:1;transform:scale(.92)}35%,100%{opacity:0}}',
+      '@keyframes kbhi-k-pa{0%,34%{opacity:0}36%,62%{opacity:1}64%,100%{opacity:0}}',
+      '@keyframes kbhi-k-us{0%,63%{opacity:0}65%,71%{opacity:1;transform:none}73%{opacity:1;transform:scale(.92)}76%,100%{opacity:0}}',
+      '@keyframes kbhi-k-done{0%,76%{opacity:0}79%,94%{opacity:1}98%,100%{opacity:0}}',
+      '@keyframes kbhi-k-track{0%,33%{opacity:0}35%,76%{opacity:1}79%,100%{opacity:0}}',
+      '@keyframes kbhi-k-fill{0%,34%{width:0}62%,100%{width:100%}}',
+      '@keyframes kbhi-k-cur{0%{left:150px;top:130px;opacity:0;transform:rotate(-30deg) scale(1)}4%{left:150px;top:130px;opacity:1}28%{left:150px;top:130px}32%{left:238px;top:92px}33%{transform:rotate(-30deg) scale(1)}34%{transform:rotate(-30deg) scale(.8)}36%{transform:rotate(-30deg) scale(1)}70%{left:238px;top:92px}72%{transform:rotate(-30deg) scale(.8)}74%{transform:rotate(-30deg) scale(1)}90%{left:238px;top:92px;opacity:1}94%,100%{opacity:0}}',
+      '@keyframes kbhi-k-s1{0%,32%{opacity:1}35%,96%{opacity:.45}99%,100%{opacity:1}}',
+      '@keyframes kbhi-k-s2{0%,33%{opacity:.45}36%,64%{opacity:1}67%,100%{opacity:.45}}',
+      '@keyframes kbhi-k-s3{0%,65%{opacity:.45}68%,95%{opacity:1}98%,100%{opacity:.45}}',
+      '@media (prefers-reduced-motion:reduce){.kbhi-mm *,.kbhi-step{animation:none !important}.kbhi-step{opacity:1}}',
       '.kbsu-right{display:inline-flex;flex-wrap:wrap;gap:8px;align-items:center}',
       '.kbsu-sw{position:relative;flex:none;width:36px;height:20px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);padding:0}',
       '.kbsu-sw i{position:absolute;inset-inline-start:2px;top:2px;width:14px;height:14px;border-radius:999px;background:var(--dsw-alias-label-secondary);transition:inset-inline-start .15s ease}',
@@ -914,7 +992,8 @@ window.__ModuleLoader__.load({
               m.aide !== undefined && m.aide !== null ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 }, 'data-kb': 'suite-aide' },
                 h('div', null, h('h5', { style: { marginBottom: 10 } }, kt('Comment l’utiliser', 'How to use it')), h('ol', { className: 'kbsu-steps' }, m.aide.steps.map((st, i) => h('li', { key: i }, kt(st.fr, st.en))))),
                 h('p', { className: 'kbsu-where' }, h('b', null, kt('Où le trouver : ', 'Where to find it: ')), kt(m.aide.where.fr, m.aide.where.en)),
-                m.aide.good ? h('p', { className: 'kbsu-good' }, kt(m.aide.good.fr, m.aide.good.en)) : null) : null,
+                m.aide.good ? h('p', { className: 'kbsu-good' }, kt(m.aide.good.fr, m.aide.good.en)) : null,
+                adresseAide(m.aide.url, rawLang()) !== null ? h('p', { className: 'kbsu-where' }, h('a', { className: 'kbhp-link', 'data-kb': 'suite-aide-link', href: adresseAide(m.aide.url, rawLang()), target: '_blank', rel: 'noopener noreferrer' }, kt('Lire l’article', 'Read the article'), ' ↗')) : null) : null,
               Array.isArray(m.notes) && m.notes.length > 0 ? h('div', null, h('h5', { style: { marginBottom: 10 } }, kt('Nouveautés de la version ', 'What’s new in ') + m.version), h('ul', { className: 'kbsu-ticks' }, m.notes.map((nt, i) => h('li', { key: i }, kt(nt.fr, nt.en))))) : null,
               m.socle ? h('p', { className: 'kbsu-st' }, kt('Fait partie du socle : il est livré sur chaque poste et ne s’éteint pas.', 'Part of the base: it ships on every machine and cannot be switched off.')) : null)
           return h('div', { className: 'kbsu-fiche', 'data-kb': 'suite-fiche', 'data-id': m.id, style: { display: 'flex', flexDirection: 'column', gap: 14 } },
@@ -1074,6 +1153,9 @@ window.__ModuleLoader__.load({
     const construireAide = (React) => {
       const h = React.createElement
       const cache = { map: null, pending: null }
+      // The pages that draw an animation (Intro) register how to open it again: the card of their « ? How it works » button then
+      // offers « Watch the animation », so a page that was closed, or seen once, can always be explained again.
+      const intros = new Map()
       const lireAides = () => {
         if (cache.map !== null) return Promise.resolve(cache.map)
         if (cache.pending === null) {
@@ -1124,6 +1206,12 @@ window.__ModuleLoader__.load({
         const a = card === null ? mod.aide : card
         const titre = card === null ? (mod.titre || id) : kt(card.title.fr, card.title.en)
         const key = page === undefined ? id : id + '-' + page
+        // The foot of the card: the article of the help site (when the card has one), and the animation of the page (when it has one).
+        const href = adresseAide(a.url, rawLang())
+        const replay = intros.get(key)
+        const foot = []
+        if (href !== null) foot.push(h('a', { key: 'l', className: 'kbhp-link', 'data-kb': 'help-link', href, target: '_blank', rel: 'noopener noreferrer' }, kt('Lire l’article', 'Read the article'), ' ↗'))
+        if (typeof replay === 'function') foot.push(h('button', { key: 'r', type: 'button', className: 'kbhp-replay', 'data-kb': 'help-replay', onClick: () => { setOpen(false); replay() } }, kt('Revoir l’animation', 'Watch the animation')))
         return h('span', { className: 'kbhp-wrap', ref: wrap, 'data-kb': 'help', 'data-id': id, 'data-page': page },
           h('button', { type: 'button', className: 'kbhp-btn', 'data-kb': 'help-button', 'data-id': id, 'data-page': page, 'aria-expanded': open ? 'true' : 'false', 'aria-controls': 'kbhp-' + key, title: kt('Comment ça marche', 'How it works'), onClick: () => setOpen(!open) },
             h('span', { className: 'kbhp-q', 'aria-hidden': 'true' }, '?'), kt('Comment ça marche', 'How it works')),
@@ -1134,9 +1222,59 @@ window.__ModuleLoader__.load({
             h('div', null, h('h5', null, kt('Comment l’utiliser', 'How to use it')), h('ol', { className: 'kbsu-steps' }, a.steps.map((st, i) => h('li', { key: i }, kt(st.fr, st.en))))),
             h('p', { className: 'kbsu-where' }, h('b', null, kt('Où le trouver : ', 'Where to find it: ')), kt(a.where.fr, a.where.en)),
             a.good ? h('p', { className: 'kbsu-good' }, kt(a.good.fr, a.good.en)) : null,
-            action != null && typeof action.onClick === 'function' ? h('button', { type: 'button', className: 'kbhp-act', 'data-kb': 'help-action', onClick: () => { setOpen(false); action.onClick() } }, action.label) : null) : null)
+            action != null && typeof action.onClick === 'function' ? h('button', { type: 'button', className: 'kbhp-act', 'data-kb': 'help-action', onClick: () => { setOpen(false); action.onClick() } }, action.label) : null,
+            foot.length > 0 ? h('div', { className: 'kbhp-foot' }, foot) : null) : null)
       }
-      return { version: 1, actions: true, Help }
+
+      // The animated help of a page: a small CSS mock of three steps that plays on a loop beside the steps themselves, which light up in
+      // turn — the mechanism of the Language page, for any page. It opens the first time the page is visited, and a close (✕) is
+      // remembered; see introOuverte. Everything on it is given by the page, already in its language:
+      //   window.__KB_HELP__ && h(window.__KB_HELP__.Intro, { id: '<bundle folder>', title, caption, steps: [{ t, b } × 3],
+      //     mock: { bar, rows: [other rows, up to 2], hot, states: [3], actions: [3], done } })
+      // `id` is the key of the page's « ? How it works » card (the bundle folder, or `<folder>-<page>`). It draws nothing when the
+      // call is incomplete. The animation is CSS only and stops under prefers-reduced-motion (the end of the story stays on screen).
+      function Intro ({ id, title, caption, steps, mock }) {
+        const key = typeof id === 'string' && id !== '' ? introKey(id) : null
+        const [open, setOpen] = React.useState(() => key !== null && introOuverte(browserStore(), key))
+        React.useEffect(() => {
+          if (key === null) return undefined
+          const reopen = () => setOpen(true)
+          intros.set(id, reopen)
+          return () => { if (intros.get(id) === reopen) intros.delete(id) }
+        }, [id])
+        React.useEffect(() => {
+          if (open !== true || key === null) return undefined
+          const t = setTimeout(() => {
+            try { const store = browserStore(); if (store !== null && store.getItem(key) !== 'closed') store.setItem(key, 'seen') } catch (e) { /* storage unavailable: it simply opens again */ }
+          }, INTRO_SEEN_MS)
+          return () => clearTimeout(t)
+        }, [open])
+        const m = mock !== null && typeof mock === 'object' ? mock : null
+        if (open !== true || key === null || m === null || !Array.isArray(steps) || steps.length !== 3 || !Array.isArray(m.states) || m.states.length !== 3 || !Array.isArray(m.actions) || m.actions.length !== 3) return null
+        const close = () => {
+          setOpen(false)
+          try { const store = browserStore(); if (store !== null) store.setItem(key, 'closed') } catch (e) { /* storage unavailable: closed for now */ }
+        }
+        const others = Array.isArray(m.rows) ? m.rows.slice(0, 2) : []
+        const row = (name, i) => h('div', { key: 'r' + i, className: 'kbhi-mm-row r' + i }, h('span', { className: 'kbhi-mm-b' }, String(name).charAt(0).toUpperCase()), h('div', { className: 'kbhi-mm-i' }, h('span', { className: 'kbhi-mm-n' }, name)))
+        return h('section', { className: 'kbhi', 'data-kb': 'help-intro', 'data-id': id, 'aria-label': title },
+          h('div', { className: 'kbhi-mm', role: 'img', 'aria-label': caption },
+            h('div', { className: 'kbhi-mm-bar' }, h('span', null, m.bar)),
+            others[0] !== undefined ? row(others[0], 0) : null,
+            h('div', { className: 'kbhi-mm-row hot' }, h('span', { className: 'kbhi-mm-b' }, String(m.hot).charAt(0).toUpperCase()),
+              h('div', { className: 'kbhi-mm-i' }, h('span', { className: 'kbhi-mm-n' }, m.hot),
+                h('div', { className: 'kbhi-mm-st' }, h('span', { className: 't1' }, m.states[0]), h('span', { className: 't2' }, m.states[1]), h('span', { className: 't3' }, m.states[2]))),
+              h('div', { className: 'kbhi-mm-acts' }, h('span', { className: 'kbhi-mm-go' }, m.actions[0]), h('span', { className: 'kbhi-mm-pa' }, m.actions[1]), h('span', { className: 'kbhi-mm-us' }, m.actions[2]), h('span', { className: 'kbhi-mm-done' }, m.done != null ? m.done : m.states[2])),
+              h('div', { className: 'kbhi-mm-track' }, h('i', { className: 'kbhi-mm-fill' }))),
+            others[1] !== undefined ? row(others[1], 1) : null,
+            h('div', { className: 'kbhi-mm-cur' })),
+          h('div', { className: 'kbhi-text' },
+            h('div', { className: 'kbhi-h' }, title),
+            h('ol', { className: 'kbhi-steps' }, steps.map((st, i) => h('li', { key: i, className: 'kbhi-step s' + (i + 1) },
+              h('b', { 'aria-hidden': 'true' }, String(i + 1)), h('div', null, h('div', { className: 'kbhi-step-t' }, st.t), h('div', { className: 'kbhi-step-b' }, st.b)))))),
+          h('button', { type: 'button', className: 'kbhi-x', 'data-kb': 'help-intro-close', 'aria-label': kt('Fermer', 'Close'), title: kt('Fermer', 'Close'), onClick: close }, '✕'))
+      }
+      return { version: 1, actions: true, Help, Intro }
     }
 
     const monterSuite = (ctx, scope, require) => {
@@ -1169,6 +1307,6 @@ window.__ModuleLoader__.load({
 
     const demarrer = (ctx) => { apply(ctx); try { appliquerSuite(ctx) } catch (e) { /* optional */ } }
 
-    return { name: NAME, inject: [], apply: demarrer, __test: { messageCatalogue, raisonMiseAJour, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView } }
+    return { name: NAME, inject: [], apply: demarrer, __test: { messageCatalogue, raisonMiseAJour, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView, construireAide, adresseAide, langueDuSite, introKey, introOuverte, INTRO_SEEN_MS } }
   }
 })

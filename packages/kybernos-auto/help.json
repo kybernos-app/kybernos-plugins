@@ -29,5 +29,6 @@
   "good": {
     "fr": "Auto ne change jamais le modèle de votre session : il ne conseille un modèle à l’agent que pour les étapes qu’il délègue, toujours dans votre liste. Liste vide : le modèle de la session est gardé.",
     "en": "Auto never changes your session’s model: it only advises the agent on a model for the steps it delegates, always from your list. Empty list: the session’s model is kept."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/models-and-budget/let-kybernos-pick-the-model/"
 }

@@ -29,5 +29,6 @@
   "good": {
     "fr": "Les souvenirs vivent dans votre compte Kybernos Cloud (à connecter, même en offre Free) ; les leçons restent sur cet ordinateur, rangées par Agent Team.",
     "en": "Memories live in your Kybernos Cloud account (connect it first, any plan including Free); lessons stay on this computer, kept per agent team."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/features/what-are-skills-and-memory/"
 }
