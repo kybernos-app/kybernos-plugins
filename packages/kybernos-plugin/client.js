@@ -3786,6 +3786,10 @@ const KB_FR_EN = {
   'module python supertonic absent': 'python module supertonic missing',
   'module python edge_tts absent': 'python module edge_tts missing',
   'aucun modèle de voix chez tes fournisseurs': 'no voice model among your providers',
+  ' bloc': ' block',
+  ' blocs': ' blocks',
+  'Δ 7 j : ': 'Δ 7d: ',
+  ' j': ' d',
 }
 // kbe(en[, fr]) — text whose BASE is English (decision D1). The call site holds the ENGLISH text; its French twin is the KB_FR_EN key whose value it is
 // (two keys that share one English text are told apart by the explicit `fr` argument: `kbe(' answered', ' répondues')`). Rendering follows kbt:
@@ -11431,8 +11435,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           h('div', { className: 'kbi-card-hd' },
             h('span', { className: 'kbi-type-ico', style: { '--kbi-c': kbiVueCouleur2(v.cle) }, dangerouslySetInnerHTML: { __html: kbiVueIcone2(v.cle) } }),
             h('span', { className: 'kbi-type-lab' }, v.nom),
-            h('span', { className: 'kbi-type-cnt' }, String(v.blocs.length) + ' blocs')),
-          h('div', { className: 'kbi-vue-d' }, v.blocs.join(', ')),
+            h('span', { className: 'kbi-type-cnt' }, String(v.blocs.length) + (v.blocs.length === 1 ? kbe(' block') : kbe(' blocks')))),
+          h('div', { className: 'kbi-vue-d' }, v.blocs.map((b) => (b === 'cles' ? kbe('keys') : (b === 'llm' ? 'LLM' : (b === 'roi' ? 'ROI' : b)))).join(', ')),
           h('div', { className: 'kbi-card-ft' },
             h('div', { className: 'kbi-vue-etats' },
               (defaut ? h('span', { className: 'kbm-tag', style: { fontSize: '10px' } }, kbe('Default')) : null),
@@ -11742,7 +11746,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         h('button', { type: 'button', className: 'kbi-card-hd', 'data-choisir': v.cle, onClick: () => choisirVue(v.cle) },
           h('span', { className: 'kbi-type-ico', dangerouslySetInnerHTML: { __html: iconeDe(v.cle) } }),
           h('span', { className: 'kbi-type-lab' }, kbe('View ') + v.nom),
-          h('span', { className: 'kbi-type-cnt' }, v.blocs.length + ' blocs')),
+          h('span', { className: 'kbi-type-cnt' }, v.blocs.length + (v.blocs.length === 1 ? kbe(' block') : kbe(' blocks')))),
         h('div', { className: 'kbi-vue-d' }, v.blocs.map((b) => KBI_LIB_BLOCS[b] !== undefined ? KBI_LIB_BLOCS[b] : b).join(', ')),
         h('div', { className: 'kbi-card-ft' },
           h('div', { className: 'kbi-vue-etats' },
@@ -12275,7 +12279,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('svg', { className: 'kbq-spark', width: spark.W, height: spark.H, viewBox: '0 0 ' + spark.W + ' ' + spark.H, 'aria-hidden': 'true' },
                 h('polyline', { points: spark.pts, fill: 'none', stroke: 'currentColor', strokeWidth: 1.5 }))) : null)),
         h('div', { style: { marginLeft: 'auto', display: 'flex', gap: '6px' }, role: 'tablist', 'aria-label': kbe('Window') },
-          KB_QUALITY_DAYS.map((d) => h('button', { key: 'd' + d, type: 'button', className: 'kbm-pill kbm-pill-interactive' + (days === d ? ' kbm-pill-active' : ''), 'data-kb': 'quality-days-' + d, onClick: () => setDays(d) }, d + ' j'))))
+          KB_QUALITY_DAYS.map((d) => h('button', { key: 'd' + d, type: 'button', className: 'kbm-pill kbm-pill-interactive' + (days === d ? ' kbm-pill-active' : ''), 'data-kb': 'quality-days-' + d, onClick: () => setDays(d) }, d + kbe(' d', ' j')))))
       const roleLigne = (r) => h('div', { className: 'kbq-row', key: r.role },
         h('span', { className: 'kbq-clip' }, r.role),
         h('span', { className: 'kbq-kpisub' }, (r.successPct === null || r.successPct === undefined ? '—' : r.successPct + ' %') + ' · ' + r.runs + ' runs'))
@@ -18018,7 +18022,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { 'data-kb': 'score-maitrise', style: { fontWeight: '700', fontSize: '18px', fontVariantNumeric: 'tabular-nums', color: couleur } }, m === null ? '—' : m.toFixed(1)),
               h('span', { 'data-kb': 'score-niveau', style: { fontSize: '11px', fontWeight: '600', color: '#fff', background: couleur, borderRadius: '6px', padding: '2px 8px' } }, String(t.niveau || '—')),
               h('span', { 'data-kb': 'score-progression', style: { marginLeft: 'auto', fontSize: '12px', fontWeight: '600', color: prog === null ? 'var(--dsw-alias-label-tertiary, #9ca3af)' : (prog >= 0 ? '#16a34a' : '#dc2626') } },
-                prog === null ? kbe('Δ 7d: too early') : 'Δ 7 j : ' + (prog >= 0 ? '+' : '') + prog.toFixed(1))),
+                prog === null ? kbe('Δ 7d: too early') : kbe('Δ 7d: ') + (prog >= 0 ? '+' : '') + prog.toFixed(1))),
             h('div', { style: { height: '8px', borderRadius: '4px', background: 'var(--dsw-alias-interactive-bg-active, rgba(127,127,127,.18))', overflow: 'hidden' } },
               h('div', { 'data-kb': 'score-barre', style: { height: '100%', width: (m === null ? 0 : Math.max(2, Math.round(m))) + '%', background: couleur, borderRadius: '4px' } })),
             h('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' } },

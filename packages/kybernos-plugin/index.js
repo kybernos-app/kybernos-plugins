@@ -6640,7 +6640,7 @@ function boot(ctx) {
               try { if (handle !== null && handle !== undefined && typeof handle.close === 'function') await handle.close() } catch (e) { /* deja ferme */ }
             }
           } catch (e) {
-            warnings.push('documents: thread ' + sid.slice(0, 12) + ' illisible')
+            warnings.push('documents: thread ' + sid.slice(0, 12) + ' unreadable')
             continue
           }
           // Un thread de sous-agent herite des messages du parent : ses pieces
