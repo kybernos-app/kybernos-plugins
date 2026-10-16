@@ -1,23 +1,42 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// dsh-db-viewer — corps du plugin client (source lisible).
+// dsh-db-viewer — client plugin body (readable source).
 //
-// Un ONGLET de la sidebar droite qui visualise la petite base SQLite d'un
-// kyber, style drawdb, en trois vues internes :
-//   • Diagramme — cartes d'entités colorées + liens en patte-de-corbeau ;
-//   • Données   — une table, ses lignes ;
-//   • SQL       — une requête SELECT, son résultat.
+// A TAB of the right sidebar that shows the small SQLite database of a kyber,
+// drawdb style, in four internal views:
+//   • Diagram — coloured entity cards + crow's-foot links;
+//   • Charts  — counters and ECharts cards built from the data;
+//   • Data    — one table, its rows;
+//   • SQL     — one SELECT query, its result.
 //
-// scripts/build.mjs enveloppe ce fichier dans une fabrique `(React) => {…}`
-// concaténée après l'en-tête du chargeur de modules DSH : `client/client.js`
-// est GÉNÉRÉ, jamais édité. Les données viennent des routes hôte
-// `/dsh-db-viewer/*` (lecture seule) ; aucune écriture n'existe côté page.
+// scripts/build.mjs wraps this file in a factory `(React) => {…}` concatenated
+// after the DSH module-loader header: `client/client.js` is GENERATED, never
+// edited. The data comes from the host routes `/dsh-db-viewer/*` (read-only);
+// nothing can be written from the page.
 // ═══════════════════════════════════════════════════════════════════════════
+
+// ── language ──
+// English is the base of every string. French is given to a French UI only (Kybernos's own « kybernos », or an fr tag); a language the
+// Language page translated is looked up by its French text in the dictionary the page keeps; any other language (and a language not
+// known yet) reads English.
+const lang = () => {
+  try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
+}
+const kt = (fr, en) => {
+  const l = lang()
+  if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
+  if (l === 'en') return en
+  try {
+    const a = window.__KB_I18N_ACTIVE__
+    if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
+  } catch (e) { /* no dictionary: English */ }
+  return en
+}
 
 const NAME = 'dsh-db-viewer'
 const KIND = 'dsh-db-viewer'
 const TYPE_ID = 'dsh-db-viewer-panel'
 
-/** Couleurs d'en-tête de carte — palette pastel façon drawdb, indexée par table. */
+/** Card header colours — a drawdb-style pastel palette, indexed by table. */
 const PALETTE = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#ef4444', '#14b8a6']
 
 const HAUT_ENTETE = 34
@@ -26,19 +45,19 @@ const LARG_CARTE = 220
 const DX = 260
 const DY = 48
 
-// ── helpers purs (exposés au banc d'essai via plugin.__test) ────────────────
+// ── pure helpers (exposed to the test bench through plugin.__test) ──────────
 
 /**
- * Place les cartes : une colonne par profondeur de clé étrangère (les tables
- * racines à gauche), empilées verticalement. Déterministe — deux rendus du
- * même schéma donnent la même image.
+ * Lays out the cards: one column per foreign-key depth (the root tables on
+ * the left), stacked vertically. Deterministic — two renders of the same
+ * schema give the same picture.
  */
 function calculerDisposition (schema) {
   const tables = Array.isArray(schema && schema.tables) ? schema.tables : []
   const relations = Array.isArray(schema && schema.relations) ? schema.relations : []
   const profondeur = {}
   for (const t of tables) profondeur[t.nom] = 0
-  // itérations bornées : le plus long chemin, pas une boucle infinie
+  // bounded iterations: the longest path, not an endless loop
   for (let i = 0; i < tables.length + 1; i++) {
     for (const r of relations) {
       const d = (profondeur[r.parent] || 0) + 1
@@ -65,7 +84,7 @@ function calculerDisposition (schema) {
   }
 }
 
-/** Les deux ancres d'un lien : bord droit du parent → bord gauche de l'enfant. */
+/** The two anchors of a link: the parent's right edge → the child's left edge. */
 function ancresRelation (rel, pos) {
   const p = pos[rel.parent]
   const e = pos[rel.enfant]
@@ -83,7 +102,7 @@ function cheminLien (a) {
   return `M ${a.x1} ${a.y1} C ${a.x1 + b} ${a.y1}, ${a.x2 - b} ${a.y2}, ${a.x2} ${a.y2}`
 }
 
-// ── appels hôte ─────────────────────────────────────────────────────────────
+// ── host calls ──────────────────────────────────────────────────────────────
 
 async function api (path, params) {
   const u = new URL(path, window.location.origin)
@@ -92,12 +111,33 @@ async function api (path, params) {
   }
   const r = await window.fetch(u)
   const j = await r.json().catch(() => ({}))
-  if (!r.ok || j.erreur) throw new Error(j.erreur || ('hôte : ' + r.statusText))
+  if (!r.ok || j.erreur) {
+    // The host words its own refusals in English with a code (index.js, Refus): the code is kept, so the page can word it for the person.
+    const e = new Error(j.erreur || (kt('Réponse de l’hôte : ', 'Host answered: ') + r.statusText))
+    if (typeof j.code === 'string') e.code = j.code
+    throw e
+  }
   return j
 }
 
-// ── fabrique du plugin ──────────────────────────────────────────────────────
-// Le corps ci-dessous reçoit React de la fabrique générée par build.mjs.
+// What the host refuses is worded here, in the language of the person; the SQL engine's own messages (no code) are shown as they came.
+const REFUS = {
+  'empty-query': ['Requête vide', 'Empty query'],
+  'read-only': ['Lecture seule : SELECT / WITH / PRAGMA / EXPLAIN uniquement', 'Read-only: SELECT / WITH / PRAGMA / EXPLAIN only'],
+  'one-statement': ['Une seule requête à la fois', 'One statement at a time'],
+  'unknown-base': ['Base inconnue', 'Unknown database'],
+  'bad-table': ['Nom de table invalide', 'Invalid table name'],
+}
+function explain (e) {
+  const message = String(e && e.message ? e.message : e)
+  const code = e && typeof e.code === 'string' ? e.code : ''
+  if (code === 'unknown-table') return kt('Table inconnue : ' + message.replace(/^Unknown table:\s*/, ''), message)
+  const row = Object.prototype.hasOwnProperty.call(REFUS, code) ? REFUS[code] : null
+  return row === null ? message : kt(row[0], row[1])
+}
+
+// ── plugin factory ──────────────────────────────────────────────────────────
+// The body below receives React from the factory generated by build.mjs.
 
 const h = React.createElement
 
@@ -182,7 +222,7 @@ const CSS = `
 .dshdb-cal-plus{opacity:.6;text-align:center}
 `
 
-/** Carte d'entité façon drawdb : en-tête coloré, lignes type + colonne + clé. */
+/** drawdb-style entity card: coloured header, type + column + key rows. */
 function Carte (props) {
   const t = props.table
   const p = props.pos
@@ -203,9 +243,9 @@ function Carte (props) {
 }
 
 /**
- * Disposition finale = placement auto + déplacements de l'utilisateur (drag).
- * Le canvas s'agrandit au besoin et se décale pour ne jamais rogner une carte
- * déplacée hors des bords.
+ * Final layout = automatic placement + the user's moves (drag).
+ * The canvas grows when needed and shifts so that a card moved past the
+ * edges is never clipped.
  */
 function positionsFinales (dispo, depl) {
   const pos = {}
@@ -233,13 +273,13 @@ function positionsFinales (dispo, depl) {
   }
 }
 
-/** Vue Diagramme : cartes déplaçables + liens en patte-de-corbeau. */
+/** Diagram view: draggable cards + crow's-foot links. */
 function Diagramme (props) {
   const schema = props.schema
   const [depl, setDepl] = React.useState({})
   const glisse = React.useRef(null)
   const dispo = positionsFinales(calculerDisposition(schema), depl)
-  // souris globale : le glissé survit au survol hors carte / hors canvas
+  // global mouse: the drag survives leaving the card / the canvas
   React.useEffect(() => {
     const bouger = (e) => {
       const g = glisse.current
@@ -262,7 +302,7 @@ function Diagramme (props) {
   const liens = schema.relations.map((rel, i) => {
     const a = ancresRelation(rel, dispo.pos)
     if (a === null) return null
-    // patte-de-corbeau côté enfant (le « N »), barre courte côté parent (le « 1 »)
+    // crow's foot on the child side (the “N”), short bar on the parent side (the “1”)
     return h('g', { key: 'l' + i },
       h('path', { d: cheminLien(a), fill: 'none', stroke: 'rgba(128,128,128,.75)', 'stroke-width': 1.6 }),
       h('line', { x1: a.x1, y1: a.y1 - 7, x2: a.x1, y2: a.y1 + 7, stroke: 'rgba(128,128,128,.9)', 'stroke-width': 2 }),
@@ -278,18 +318,22 @@ function Diagramme (props) {
   return h('div', { className: 'dshdb-view' },
     h('div', { className: 'dshdb-canvas', style: { width: dispo.largeur + 'px', height: dispo.hauteur + 'px' } },
       nbDeplaces > 0 ? h('button', {
-        type: 'button', className: 'dshdb-hbtn dshdb-reset', title: 'Réinitialiser la disposition',
+        type: 'button', className: 'dshdb-hbtn dshdb-reset', title: kt('Réinitialiser la disposition', 'Reset the layout'),
         onClick: () => setDepl({}),
       }, '⟲') : null,
       h('svg', { className: 'dshdb-liens', width: dispo.largeur, height: dispo.hauteur }, liens),
       cartes))
 }
 
-const NOMS_VUES = { liste: 'Liste', cartes: 'Cartes', calendrier: 'Calendrier' }
+/** The name of a view of the Data tab (the keys come from the pack: liste, cartes, calendrier). */
+const nomVue = (v) => ({ liste: kt('Liste', 'List'), cartes: kt('Cartes', 'Cards'), calendrier: kt('Calendrier', 'Calendar') })[v] || v
 const pad2 = (n) => (n < 10 ? '0' + n : String(n))
-const MOIS_FR = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
+/** The locale of the dates and numbers shown: French for a French UI, English for every other language. */
+const localeDate = () => kt('fr-FR', 'en-US')
+/** The week starts on Monday (2024-01-01 was one); the day letters come from the language. */
+const initialesJours = () => [0, 1, 2, 3, 4, 5, 6].map((i) => new Date(2024, 0, 1 + i).toLocaleDateString(localeDate(), { weekday: 'narrow' }))
 
-/** Grille mensuelle (lundi en tête) : cases + entrées du champ date. */
+/** Month grid (Monday first): cells + the entries of the date field. */
 function construireCalendrier (lignes, dateCol, annee, mois) {
   const depart = (new Date(annee, mois, 1).getDay() + 6) % 7
   const nbJours = new Date(annee, mois + 1, 0).getDate()
@@ -305,10 +349,10 @@ function construireCalendrier (lignes, dateCol, annee, mois) {
       entrees: dedans ? lignes.filter((l) => String(l[dateCol] ?? '').slice(0, 10) === cle) : [],
     })
   }
-  return { jours: ['L', 'M', 'M', 'J', 'V', 'S', 'D'], cases }
+  return { jours: initialesJours(), cases }
 }
 
-/** Ondes audio : décodage Web Audio → barres SVG (sans dépendance). */
+/** Audio waveform: Web Audio decoding → SVG bars (no dependency). */
 function Ondes (props) {
   const [points, setPoints] = React.useState(null)
   React.useEffect(() => {
@@ -340,7 +384,7 @@ function Ondes (props) {
     })))
 }
 
-/** Vue Cartes : logo, champs du pack, lecteur audio + ondes. */
+/** Cards view: logo, the pack's fields, audio player + waveform. */
 function VueCartes (props) {
   const e = props.entite
   const noms = props.data.colonnes.map((c) => c.name)
@@ -365,11 +409,11 @@ function VueCartes (props) {
         : null)))
 }
 
-/** Vue Calendrier : mois navigable, entrées du champ date par jour. */
+/** Calendar view: a month you can move through, the date field's entries per day. */
 function VueCalendrier (props) {
   const e = props.entite
   const [pos, setPos] = React.useState(() => {
-    // dernier mois porteur de données, sinon le mois courant
+    // the last month that holds data, else the current month
     let d = new Date()
     for (const l of props.data.lignes) {
       const s = String(l[e.date] ?? '').slice(0, 10)
@@ -386,7 +430,7 @@ function VueCalendrier (props) {
   return h('div', { className: 'dshdb-cal' },
     h('div', { className: 'dshdb-cal-nav' },
       h('button', { type: 'button', className: 'dshdb-hbtn', onClick: () => bouger(-1) }, '‹'),
-      h('b', null, MOIS_FR[pos.mois] + ' ' + pos.annee),
+      h('b', null, new Date(pos.annee, pos.mois, 1).toLocaleDateString(localeDate(), { month: 'long', year: 'numeric' })),
       h('button', { type: 'button', className: 'dshdb-hbtn', onClick: () => bouger(1) }, '›')),
     h('div', { className: 'dshdb-cal-head' }, g.jours.map((j, i) => h('span', { key: 'j' + i }, j))),
     h('div', { className: 'dshdb-cal-grille' }, g.cases.map((c, i) =>
@@ -399,20 +443,20 @@ function VueCalendrier (props) {
         c.entrees.length > 2 ? h('span', { className: 'dshdb-cal-plus', key: 'p' }, '+' + (c.entrees.length - 2)) : null))))
 }
 
-/** Vue Liste : le tableau brut (ancienne vue Données). */
+/** List view: the raw table (the former Data view). */
 function VueListe (props) {
   const d = props.data
   const out = [h('table', { className: 'dshdb-table', key: 'tab' },
     h('thead', null, h('tr', null, d.colonnes.map((c) => h('th', { key: c.name }, c.name)))),
     h('tbody', null, d.lignes.map((l, i) => h('tr', { key: 'r' + i },
       d.colonnes.map((c) => h('td', { key: c.name, title: String(l[c.name] ?? '') }, String(l[c.name] ?? '')))))))]
-  if (d.compte > d.lignes.length) out.push(h('div', { className: 'dshdb-note', key: 'plus' }, d.lignes.length + ' premières lignes sur ' + d.compte))
+  if (d.compte > d.lignes.length) out.push(h('div', { className: 'dshdb-note', key: 'plus' }, kt(d.lignes.length + ' premières lignes sur ' + d.compte, 'First ' + d.lignes.length + ' of ' + d.compte + ' rows')))
   return out
 }
 
 /**
- * Vue Données : entités déclarées par le pack (table `pack` de la base) +
- * vues Liste · Cartes · Calendrier. Sans pack : liste plate des tables.
+ * Data view: the entities declared by the pack (the database's `pack` table) +
+ * List · Cards · Calendar views. Without a pack: a flat list of the tables.
  */
 function Donnees (props) {
   const entites = props.packEntites !== null && props.packEntites !== undefined
@@ -428,7 +472,7 @@ function Donnees (props) {
     setEtat({ chargement: true, data: null, erreur: null })
     api('/dsh-db-viewer/rows', { base: props.baseId, table, limit: 200 })
       .then((data) => { if (vivant) setEtat({ chargement: false, data, erreur: null }) })
-      .catch((e) => { if (vivant) setEtat({ chargement: false, data: null, erreur: String(e.message || e) }) })
+      .catch((e) => { if (vivant) setEtat({ chargement: false, data: null, erreur: explain(e) }) })
     return () => { vivant = false }
   }, [table, props.baseId])
   const vues = (courante !== null && courante.vues) || ['liste']
@@ -445,10 +489,10 @@ function Donnees (props) {
         type: 'button', key: v,
         className: 'dshdb-mode' + (v === vueActive ? ' on' : ''),
         onClick: () => setVue(v),
-      }, NOMS_VUES[v] || v))))
+      }, nomVue(v)))))
   }
   if (etat.erreur !== null) corps.push(h('div', { className: 'dshdb-err', key: 'err' }, etat.erreur))
-  if (etat.chargement) corps.push(h('div', { className: 'dshdb-note', key: 'load' }, 'chargement…'))
+  if (etat.chargement) corps.push(h('div', { className: 'dshdb-note', key: 'load' }, kt('Chargement…', 'Loading…')))
   if (etat.data !== null) {
     const d = etat.data
     if (vueActive === 'cartes') corps.push(h(VueCartes, { key: 'v', entite: courante, data: d }))
@@ -466,14 +510,15 @@ const PAGE_SQL_MAX = 5000
 /** « Showing the first 500 of 200,000 rows. » for a result the host cut, null for a whole one. */
 function noteSql (d) {
   if (d === null || d === undefined || d.tronque !== true) return null
-  const n = (x) => Number(x).toLocaleString('en-US')
-  return 'Showing the first ' + n(d.compte) + ' of ' + (d.borne === true ? 'more than ' : '') + n(d.total) + ' rows.'
+  const n = (x) => Number(x).toLocaleString(localeDate())
+  return kt('Affichage des ' + n(d.compte) + ' premières lignes sur ' + (d.borne === true ? 'plus de ' : '') + n(d.total) + '.',
+    'Showing the first ' + n(d.compte) + ' of ' + (d.borne === true ? 'more than ' : '') + n(d.total) + ' rows.')
 }
 
 /** The size asked next: twice the last one, never more than the host would give. */
 function limiteSqlSuivante (limite) { return Math.min(limite * 2, PAGE_SQL_MAX) }
 
-/** Vue SQL : une requête SELECT, son résultat. Rien d'écrit ne passe. */
+/** SQL view: one SELECT query, its result. Nothing written gets through. */
 function Sql (props) {
   const [sql, setSql] = React.useState('SELECT * FROM societes LIMIT 20')
   const [etat, setEtat] = React.useState({ lance: false, data: null, erreur: null, limite: PAGE_SQL })
@@ -482,27 +527,27 @@ function Sql (props) {
     setEtat((avant) => ({ lance: true, data: limite > PAGE_SQL ? avant.data : null, erreur: null, limite }))
     api('/dsh-db-viewer/query', { base: props.baseId, sql, limit: limite })
       .then((data) => setEtat({ lance: false, data, erreur: null, limite }))
-      .catch((e) => setEtat({ lance: false, data: null, erreur: String(e.message || e), limite }))
+      .catch((e) => setEtat({ lance: false, data: null, erreur: explain(e), limite }))
   }
   const corps = [h('textarea', {
     key: 'sql', value: sql, spellCheck: false,
     onChange: (e) => setSql(e.target.value),
   }),
-  h('button', { type: 'button', className: 'dshdb-run', key: 'run', onClick: () => lancer(PAGE_SQL) }, 'Exécuter')]
+  h('button', { type: 'button', className: 'dshdb-run', key: 'run', onClick: () => lancer(PAGE_SQL) }, kt('Exécuter', 'Run'))]
   if (etat.erreur !== null) corps.push(h('div', { className: 'dshdb-err', key: 'err' }, etat.erreur))
   if (etat.data !== null) {
     const d = etat.data
-    if (d.colonnes.length === 0) corps.push(h('div', { className: 'dshdb-note', key: 'vide' }, 'aucune ligne'))
+    if (d.colonnes.length === 0) corps.push(h('div', { className: 'dshdb-note', key: 'vide' }, kt('Aucune ligne', 'No rows')))
     else {
       // The note sits above the table AND under it: 500 rows is a long scroll.
       const note = noteSql(d)
       const encore = d.compte < PAGE_SQL_MAX
       const bandeau = (cle) => h('div', { className: 'dshdb-note dshdb-cut', key: cle, 'data-dshdb': 'cut' },
-        note + (encore ? '' : ' Narrow the query (WHERE or LIMIT) to see the others.'),
+        note + (encore ? '' : kt(' Affine la requête (WHERE ou LIMIT) pour voir les autres.', ' Narrow the query (WHERE or LIMIT) to see the others.')),
         encore ? h('button', {
           type: 'button', className: 'dshdb-more', 'data-dshdb': 'more', disabled: etat.lance,
           onClick: () => lancer(limiteSqlSuivante(etat.limite)),
-        }, etat.lance ? 'Loading…' : 'Show more rows') : null)
+        }, etat.lance ? kt('Chargement…', 'Loading…') : kt('Afficher plus de lignes', 'Show more rows')) : null)
       if (note !== null) corps.push(bandeau('cut-haut'))
       corps.push(h('table', { className: 'dshdb-table', key: 'tab' },
         h('thead', null, h('tr', null, d.colonnes.map((c) => h('th', { key: c }, c)))),
@@ -514,15 +559,15 @@ function Sql (props) {
   return h('div', { className: 'dshdb-view' }, h('div', { className: 'dshdb-sql' }, corps))
 }
 
-// ── Graphiques : analyse des colonnes + options ECharts (pures, testées) ────
+// ── Charts: column analysis + ECharts options (pure, tested) ────────────────
 
-/** rgba() depuis un hex #rrggbb — dégradés lisibles sans dépendance echarts. */
+/** rgba() from a #rrggbb hex — readable gradients without depending on echarts. */
 function avecAlpha (hex, a) {
   const n = parseInt(hex.slice(1), 16)
   return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'
 }
 
-/** L'app est-elle en thème sombre ? Luminance du fond du body. */
+/** Is the app in a dark theme? Luminance of the body background. */
 function themeSombre () {
   try {
     const m = String(getComputedStyle(document.body).backgroundColor).match(/\d+(\.\d+)?/g) || [255, 255, 255]
@@ -530,7 +575,7 @@ function themeSombre () {
   } catch (e) { return false }
 }
 
-/** Profil d'une table d'après ses lignes : catégories, nombres, dates. */
+/** Profile of a table from its rows: categories, numbers, dates. */
 function profiler (table, lignes) {
   const prof = { cats: [], nums: [], dates: [] }
   for (const c of table.colonnes) {
@@ -550,8 +595,8 @@ function profiler (table, lignes) {
 }
 
 /**
- * Cartes de graphiques auto-construites : donut global + au mieux une carte
- * par table (nombre par catégorie, puis courbe temporelle, puis catégories).
+ * Auto-built chart cards: a global donut + at best one card per table
+ * (count per category, then a time curve, then categories).
  */
 function construireGraphiques (schema, donnees, sombre) {
   const texte = sombre ? 'rgba(249,250,251,.74)' : 'rgba(15,17,21,.68)'
@@ -560,10 +605,10 @@ function construireGraphiques (schema, donnees, sombre) {
   const grille = { left: 6, right: 14, top: 10, bottom: 2, containLabel: true }
   const sortie = []
   sortie.push({
-    titre: 'Lignes par table',
+    titre: kt('Lignes par table', 'Rows per table'),
     options: {
       backgroundColor: 'transparent',
-      tooltip: { trigger: 'item', formatter: '{b} : {c} ({d} %)' },
+      tooltip: { trigger: 'item', formatter: kt('{b} : {c} ({d} %)', '{b}: {c} ({d}%)') },
       legend: { bottom: 0, icon: 'roundRect', itemWidth: 9, itemHeight: 9, textStyle: { color: texte, fontSize: 10 } },
       series: [{
         type: 'pie', radius: ['44%', '70%'], center: ['50%', '45%'],
@@ -590,7 +635,7 @@ function construireGraphiques (schema, donnees, sombre) {
       })
       const entrees = [...sommes.entries()].sort((a, b) => a[1] - b[1])
       sortie.push({
-        titre: '« ' + num.col + ' » par « ' + cat.col + ' » — ' + t.nom,
+        titre: kt('« ' + num.col + ' » par « ' + cat.col + ' » — ' + t.nom, '“' + num.col + '” by “' + cat.col + '” — ' + t.nom),
         options: {
           backgroundColor: 'transparent',
           tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -609,7 +654,7 @@ function construireGraphiques (schema, donnees, sombre) {
       lignes.forEach((l) => { const k = String(l[date.col]).slice(0, 10); parJour.set(k, (parJour.get(k) || 0) + 1) })
       const jours = [...parJour.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1))
       sortie.push({
-        titre: t.nom + ' dans le temps — « ' + date.col + ' »',
+        titre: kt(t.nom + ' dans le temps — « ' + date.col + ' »', t.nom + ' over time — “' + date.col + '”'),
         options: {
           backgroundColor: 'transparent',
           tooltip: { trigger: 'axis' },
@@ -625,7 +670,7 @@ function construireGraphiques (schema, donnees, sombre) {
       })
     } else if (cat !== undefined) {
       sortie.push({
-        titre: '« ' + cat.col + ' » — ' + t.nom,
+        titre: kt('« ' + cat.col + ' » — ' + t.nom, '“' + cat.col + '” — ' + t.nom),
         options: {
           backgroundColor: 'transparent',
           tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -642,7 +687,7 @@ function construireGraphiques (schema, donnees, sombre) {
     } else if (num !== undefined) {
       const vals = lignes.slice(0, 20).map((l) => Number(l[num.col]) || 0)
       sortie.push({
-        titre: '« ' + num.col + ' » — ' + t.nom,
+        titre: kt('« ' + num.col + ' » — ' + t.nom, '“' + num.col + '” — ' + t.nom),
         options: {
           backgroundColor: 'transparent',
           tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -660,7 +705,7 @@ function construireGraphiques (schema, donnees, sombre) {
   return sortie
 }
 
-/** Une carte graphique : instancie ECharts, suit les redimensionnements, se jette. */
+/** One chart card: creates the ECharts instance, follows resizes, disposes itself. */
 function Graphique (props) {
   const ref = React.useRef(null)
   React.useEffect(() => {
@@ -675,7 +720,7 @@ function Graphique (props) {
   return h('div', { className: 'dshdb-chartbox', ref })
 }
 
-/** Vue Graphiques : bandeau KPI + cartes ECharts auto-construites. */
+/** Charts view: KPI strip + auto-built ECharts cards. */
 function Graphiques (props) {
   const [sombre] = React.useState(themeSombre)
   const [etat, setEtat] = React.useState({ chargement: true, donnees: null, erreur: null })
@@ -691,20 +736,20 @@ function Graphiques (props) {
       const donnees = {}
       paires.forEach(([nom, lignes]) => { donnees[nom] = lignes })
       setEtat({ chargement: false, donnees, erreur: null })
-    }).catch((e) => { if (vivant) setEtat({ chargement: false, donnees: null, erreur: String(e.message || e) }) })
+    }).catch((e) => { if (vivant) setEtat({ chargement: false, donnees: null, erreur: explain(e) }) })
     return () => { vivant = false }
   }, [props.baseId, props.schema])
 
   const s = props.schema
   const kpis = [
     [s.tables.length, 'tables'],
-    [s.tables.reduce((n, t) => n + t.compte, 0), 'lignes'],
+    [s.tables.reduce((n, t) => n + t.compte, 0), kt('lignes', 'rows')],
     [s.relations.length, 'relations'],
-    [s.tables.reduce((n, t) => n + t.colonnes.length, 0), 'colonnes'],
+    [s.tables.reduce((n, t) => n + t.colonnes.length, 0), kt('colonnes', 'columns')],
   ]
   const kids = [h('div', { className: 'dshdb-kpis', key: 'kpis' }, kpis.map(([v, l], i) =>
     h('div', { className: 'dshdb-kpi', key: 'k' + i }, h('b', null, String(v)), h('span', null, l))))]
-  if (echarts === null) kids.push(h('div', { className: 'dshdb-note', key: 'novendor' }, 'Graphiques indisponibles : module ECharts non chargé.'))
+  if (echarts === null) kids.push(h('div', { className: 'dshdb-note', key: 'novendor' }, kt('Graphiques indisponibles : le module ECharts n’est pas chargé.', 'Charts unavailable: the ECharts module did not load.')))
   else if (etat.erreur !== null) kids.push(h('div', { className: 'dshdb-err', key: 'err' }, etat.erreur))
   else if (etat.donnees !== null) {
     const cartes = construireGraphiques(s, etat.donnees, sombre)
@@ -713,12 +758,12 @@ function Graphiques (props) {
         h('h4', null, c.titre),
         h(Graphique, { key: 'g' + i, options: c.options, sombre })))))
   } else {
-    kids.push(h('div', { className: 'dshdb-note', key: 'load' }, 'lecture des données…'))
+    kids.push(h('div', { className: 'dshdb-note', key: 'load' }, kt('Lecture des données…', 'Reading the data…')))
   }
   return h('div', { className: 'dshdb-view' }, kids)
 }
 
-/** Corps de l'onglet sidebar droite : sélection de base + vues internes. */
+/** Body of the right-sidebar tab: database picker + internal views. */
 function TabBody () {
   const [bases, setBases] = React.useState(null)
   const [baseId, setBaseId] = React.useState(null)
@@ -734,7 +779,7 @@ function TabBody () {
         setBases(d.bases)
         if (d.bases.length > 0) setBaseId((courant) => (courant === null ? d.bases[0].id : courant))
       })
-      .catch((e) => setErreur(String(e.message || e)))
+      .catch((e) => setErreur(explain(e)))
   }
   React.useEffect(chargerBases, [])
 
@@ -746,12 +791,12 @@ function TabBody () {
     setErreur(null)
     api('/dsh-db-viewer/schema', { base: baseId })
       .then((s) => { if (vivant) setSchema(s) })
-      .catch((e) => { if (vivant) setErreur(String(e.message || e)) })
+      .catch((e) => { if (vivant) setErreur(explain(e)) })
     return () => { vivant = false }
   }, [baseId])
 
-  // Le « pack mini-app » vit dans la base (table `pack`, JSON manifeste) :
-  // entités, champs, vues autorisées, colonnes logo/audio/date.
+  // The “mini-app pack” lives in the database (`pack` table, JSON manifest):
+  // entities, fields, allowed views, logo/audio/date columns.
   React.useEffect(() => {
     if (baseId === null) return undefined
     let vivant = true
@@ -759,7 +804,7 @@ function TabBody () {
     api('/dsh-db-viewer/query', { base: baseId, sql: 'SELECT contenu FROM pack LIMIT 1' })
       .then((d) => {
         if (!vivant || d.lignes.length === 0) return
-        try { setPackEntites(JSON.parse(String(d.lignes[0].contenu)).entites || null) } catch (e) { /* pack illisible : repli liste plate */ }
+        try { setPackEntites(JSON.parse(String(d.lignes[0].contenu)).entites || null) } catch (e) { /* unreadable pack: fall back to the flat list */ }
       })
       .catch(() => {})
     return () => { vivant = false }
@@ -767,15 +812,15 @@ function TabBody () {
 
   const kids = []
   kids.push(h('div', { className: 'dshdb-bar', key: 'bar' },
-    h('span', { className: 'dshdb-title' }, 'Base de l’Agent Team'),
+    h('span', { className: 'dshdb-title' }, kt('Base de l’Agent Team', 'Agent Team database')),
     h('select', {
       className: 'dshdb-select', value: baseId === null ? '' : baseId,
       onChange: (e) => setBaseId(e.target.value),
     }, (bases || []).map((b) => h('option', { key: b.id, value: b.id }, b.id))),
-    h('button', { type: 'button', className: 'dshdb-hbtn', title: 'Relire la base', onClick: chargerBases }, '↻')))
+    h('button', { type: 'button', className: 'dshdb-hbtn', title: kt('Relire la base', 'Reload the database'), onClick: chargerBases }, '↻')))
 
   kids.push(h('div', { className: 'dshdb-pills', key: 'pills' },
-    [['diagramme', 'Diagramme'], ['graphiques', 'Graphiques'], ['donnees', 'Données'], ['sql', 'SQL']].map(([cle, label]) =>
+    [['diagramme', kt('Diagramme', 'Diagram')], ['graphiques', kt('Graphiques', 'Charts')], ['donnees', kt('Données', 'Data')], ['sql', 'SQL']].map(([cle, label]) =>
       h('button', {
         type: 'button', key: cle,
         className: 'dshdb-pill' + (onglet === cle ? ' on' : ''),
@@ -784,7 +829,7 @@ function TabBody () {
 
   if (erreur !== null) kids.push(h('div', { className: 'dshdb-err', key: 'err' }, erreur))
   if (bases !== null && bases.length === 0) {
-    kids.push(h('div', { className: 'dshdb-note', key: 'vide' }, 'Aucune base pour l’instant — une Agent Team la crée avec « crm.cjs init ».'))
+    kids.push(h('div', { className: 'dshdb-note', key: 'vide' }, kt('Aucune base pour l’instant — une Agent Team la crée avec « crm.cjs init ».', 'No database yet — an Agent Team creates one with “crm.cjs init”.')))
   } else if (baseId !== null && schema !== null) {
     if (onglet === 'diagramme') kids.push(h(Diagramme, { key: 'v', schema }))
     else if (onglet === 'graphiques') kids.push(h(Graphiques, { key: 'v', baseId, schema }))
@@ -792,29 +837,29 @@ function TabBody () {
     else kids.push(h(Sql, { key: 'v', baseId }))
   } else if (baseId !== null && erreur === null) {
     // Only while it is being read: a schema that failed to load is not « being read » any more (the error says so above).
-    kids.push(h('div', { className: 'dshdb-note', key: 'load' }, 'lecture du schéma…'))
+    kids.push(h('div', { className: 'dshdb-note', key: 'load' }, kt('Lecture du schéma…', 'Reading the schema…')))
   }
 
   return h('div', { className: 'dshdb-root' }, kids)
 }
 
 function apply (ctx) {
-  // Diagnostic fin : chaque bloc est isolé pour logguer l'exception exacte au
-  // lieu de laisser la fibre passer en « failed » muet.
+  // Fine-grained diagnostics: each block is isolated so that the exact exception
+  // is logged instead of letting the fiber go silently to « failed ».
   const tenter = (label, fn) => {
-    try { return fn() } catch (e) { console.error('[dsh-db-viewer] échec ' + label, e); return null }
+    try { return fn() } catch (e) { console.error('[dsh-db-viewer] failed: ' + label, e); return null }
   }
   const slots = tenter('slots', () => (ctx.slots !== undefined && ctx.slots !== null ? ctx.slots : ctx.get('slots')))
   if (slots === undefined || slots === null || typeof slots.register !== 'function') {
-    console.error('[dsh-db-viewer] service slots indisponible: pas d interface')
+    console.error('[dsh-db-viewer] slots service unavailable: no interface')
     return
   }
   const sidebarTabs = tenter('get sidebarRightTabs', () => ctx.get('sidebarRightTabs'))
 
-  // Styles : injection one-shot SANS nettoyage. Mesuré : le cleanup de
-  // ctx.effect finit par retirer le <style> alors que le panneau reste monté
-  // (CSS perdu → grilles en bloc, canvas ECharts à 0). Une feuille par page,
-  // idempotente, survit à tout cycle de vie du fiber.
+  // Styles: one-shot injection WITHOUT cleanup. Measured: the cleanup of
+  // ctx.effect ends up removing the <style> while the panel is still mounted
+  // (CSS lost → block grids, ECharts canvas at 0). One sheet per page,
+  // idempotent, survives any lifecycle of the fiber.
   tenter('styles', () => {
     if (document.getElementById('dsh-db-viewer-styles') === null) {
       const s = document.createElement('style')
@@ -828,30 +873,33 @@ function apply (ctx) {
     tenter('sidebarTabs.register', () => ctx.effect(() => sidebarTabs.register({
       id: TYPE_ID,
       kind: KIND,
-      title: () => 'Base de données',
-      // L'hôte du guide appelle title()/description() : des chaînes nues font
-      // crasher l'entrée de slot (cf. leçon kybers : « entry.title is not a function »).
-      guide: [{ title: () => 'Base de données', description: () => 'Diagramme, graphiques, données et SQL des petites bases SQLite des Agent Teams' }],
-    }), 'dsh-db-viewer: type d onglet sidebar droite'))
+      title: () => kt('Base de données', 'Databases'),
+      // The guide host calls title()/description(): bare strings crash the slot
+      // entry (see the kybers lesson: « entry.title is not a function »).
+      guide: [{
+        title: () => kt('Base de données', 'Databases'),
+        description: () => kt('Diagramme, graphiques, données et SQL des petites bases SQLite des Agent Teams', 'Diagram, charts, data and SQL of the small SQLite databases of Agent Teams'),
+      }],
+    }), 'dsh-db-viewer: right sidebar tab type'))
   }
-  // `slots.inject` (contrat du runner) est CONSCIENT de la déclaration : le
-  // trou `sidebar.right.pane.tab` est déclaré par ui-sidebar-right, dont
-  // l'activation n'est pas ordonnée avec la nôtre — un `register` direct
-  // mourrait sur « slot is not declared ». L'injector se rejoue quand le trou
-  // revient (cf. ARB-1 kybernos).
-  tenter('slots.inject', () => ctx.effect(() => slots.inject('sidebar.right.pane.tab', () => slots.register({ name: 'sidebar.right.pane.tab', key: TYPE_ID }, TabBody)), 'dsh-db-viewer: corps d onglet sidebar droite'))
+  // `slots.inject` (the runner's contract) is AWARE of the declaration: the
+  // `sidebar.right.pane.tab` hole is declared by ui-sidebar-right, whose
+  // activation is not ordered with ours — a direct `register` would die on
+  // « slot is not declared ». The injector replays when the hole comes back
+  // (see ARB-1 kybernos).
+  tenter('slots.inject', () => ctx.effect(() => slots.inject('sidebar.right.pane.tab', () => slots.register({ name: 'sidebar.right.pane.tab', key: TYPE_ID }, TabBody)), 'dsh-db-viewer: right sidebar tab body'))
 }
 
 return {
   name: NAME,
-  // Le contrat d'export d'une entrée cordis : les services que le contexte DOIT
-  // exposer. `apply` lit `ctx.slots` (le garde de ctx REFUSE tout ctx.<service>
-  // non déclaré et l'entrée échoue au boot — mesuré le 24/09 : « cannot get
-  // property "slots" without inject »). `sidebarRightTabs` est fourni par
-  // ui-sidebar-right : le déclarer fait passer la fibre en « pending » jusqu'à
-  // la fourniture du service — sans ça, notre apply tournait AVANT le provide
-  // et `ctx.get('sidebarRightTabs')` renvoyait undefined (type d'onglet jamais
-  // enregistré, entrée absente du guide).
+  // The export contract of a cordis entry: the services the context MUST
+  // expose. `apply` reads `ctx.slots` (the ctx guard REFUSES any undeclared
+  // ctx.<service> and the entry fails at boot — measured on 24/09: « cannot
+  // get property "slots" without inject »). `sidebarRightTabs` is provided by
+  // ui-sidebar-right: declaring it puts the fiber in « pending » until the
+  // service is provided — without it, our apply ran BEFORE the provide and
+  // `ctx.get('sidebarRightTabs')` returned undefined (tab type never
+  // registered, entry missing from the guide).
   inject: ['slots', 'sidebarRightTabs'],
   apply,
   __test: { calculerDisposition, ancresRelation, cheminLien, PALETTE, profiler, construireGraphiques, construireCalendrier, positionsFinales, noteSql, limiteSqlSuivante, PAGE_SQL, PAGE_SQL_MAX },
