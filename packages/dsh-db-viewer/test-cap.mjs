@@ -65,21 +65,22 @@ try {
 
   assert.equal(executerSelect(file, 'PRAGMA table_info(events)').lignes.length, 4)
   assert.equal(executerSelect(file, 'EXPLAIN QUERY PLAN SELECT * FROM events').compte > 0, true)
-  assert.throws(() => executerSelect(file, 'DELETE FROM events'), /lecture seule/)
-  assert.throws(() => executerSelect(file, 'SELECT 1; DROP TABLE events'), /une seule requête/)
+  assert.throws(() => executerSelect(file, 'DELETE FROM events'), /Read-only/)
+  assert.throws(() => executerSelect(file, 'SELECT 1; DROP TABLE events'), /One statement at a time/)
   ok('PRAGMA and EXPLAIN still work; writes and stacked statements are still refused')
 
   // ── the route the page calls ─────────────────────────────────────────────
   const routes = {}
   monterRoutes({ register: (r) => { routes[r.path] = r.handler } }, { kybersHome: home, silencieux: true })
-  const appel = async (params) => {
+  const appelRoute = async (route, params) => {
     let corps = ''
     let code = 0
     const res = { writeHead: (c) => { code = c }, end: (s) => { corps = s } }
     // The origin guard compares with the socket's own port: a request without a socket is refused.
-    await routes['/dsh-db-viewer/query']({ method: 'GET', url: '/dsh-db-viewer/query?' + new URLSearchParams(params), headers: { origin: 'http://127.0.0.1:3080' }, socket: { localPort: 3080 } }, res)
+    await routes[route]({ method: 'GET', url: route + '?' + new URLSearchParams(params), headers: { origin: 'http://127.0.0.1:3080' }, socket: { localPort: 3080 } }, res)
     return { code, bytes: corps.length, json: JSON.parse(corps) }
   }
+  const appel = (params) => appelRoute('/dsh-db-viewer/query', params)
   const def = await appel({ base: 'a4-big', sql: 'SELECT * FROM events' })
   assert.equal(def.code, 200)
   assert.equal(def.json.lignes.length, 500)
@@ -89,6 +90,28 @@ try {
   assert.equal(more.json.lignes.length, 5000, 'the route clamps the limit too')
   assert.ok(more.bytes < 3000000, 'even the largest page stays under 3 MB (' + more.bytes + ' bytes)')
   ok('GET /dsh-db-viewer/query?limit= answers ' + def.bytes + ' bytes by default and ' + more.bytes + ' at the cap')
+
+  // ── A2-02: what the host refuses is said in English, with a code the page maps to the language of the person ──
+  const refus = [
+    ['an empty query', await appel({ base: 'a4-big', sql: '   ' }), 'empty-query', /^Empty query/],
+    ['a write', await appel({ base: 'a4-big', sql: 'DELETE FROM events' }), 'read-only', /^Read-only: SELECT/],
+    ['stacked statements', await appel({ base: 'a4-big', sql: 'SELECT 1; SELECT 2' }), 'one-statement', /^One statement at a time/],
+    ['an unknown database', await appel({ base: 'nope', sql: 'SELECT 1' }), 'unknown-base', /^Unknown database/],
+    ['a booby-trapped table name', await appelRoute('/dsh-db-viewer/rows', { base: 'a4-big', table: 'events"; DROP' }), 'bad-table', /^Invalid table name/],
+    ['an unknown table', await appelRoute('/dsh-db-viewer/rows', { base: 'a4-big', table: 'nothing' }), 'unknown-table', /^Unknown table: nothing/],
+  ]
+  for (const [what, r, code, texte] of refus) {
+    assert.equal(r.code, 400, what + ': HTTP 400')
+    assert.equal(r.json.code, code, what + ': code ' + code + ' (got ' + r.json.code + ')')
+    assert.match(r.json.erreur, texte, what + ': English sentence (got ' + r.json.erreur + ')')
+    assert.doesNotMatch(r.json.erreur, /[éèêàçù]|requête|inconnue|invalide/, what + ': no French')
+  }
+  // An error that is not one of ours (the engine's own message) travels without a code: the page prints it as it is.
+  const moteur = await appel({ base: 'a4-big', sql: 'SELECT * FROM table_that_does_not_exist' })
+  assert.equal(moteur.code, 400)
+  assert.equal(moteur.json.code, undefined, 'the engine message carries no code of ours')
+  assert.match(moteur.json.erreur, /no such table/)
+  ok('the six refusals answer in English with their code; an engine error keeps its own message and no code')
 } finally {
   rmSync(home, { recursive: true, force: true })
 }

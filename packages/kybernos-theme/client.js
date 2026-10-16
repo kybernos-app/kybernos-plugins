@@ -998,6 +998,10 @@ window.__ModuleLoader__.load({
       const estNaturel = (S) => S.skin === 'dsh' && S.acc === null && S.wp === 'none'
         && Object.keys(S.ov).length === 0 && S.contrastMode === 'standard' && S.radius === 'standard' && S.cbSafe === false
 
+      /** The schemes in which the look sets its OWN brand colour: an accent (every scheme) or a `<scheme>:brand` override (Ember, the Advanced editor). The
+       *  Kybernos accent (kybernos-plugin, `--kybernos-accent`) is the brand orange unless the look says otherwise; this is how it says so (makeTheme: the same test). */
+      const accentsPropres = (S) => (estNaturel(S) ? [] : ['light', 'dark'].filter((mode) => Boolean(S.acc) || Boolean(S.ov && S.ov[mode + ':brand'])))
+
       // ── Wallpaper: filters, fit (also used by the glass preview) ─────────────
       const filtreFond = (S) => {
         const f = []
@@ -1084,6 +1088,12 @@ window.__ModuleLoader__.load({
 
       const appliquerJetons = (themeSvc, S) => {
         if (layerDispose !== null) { try { layerDispose() } catch (e) { /* already removed */ } layerDispose = null }
+        // The Kybernos accent follows this look's brand colour when it has one (see accentsPropres; the rule is the core's KB_ACCENT_CSS).
+        try {
+          const own = accentsPropres(S)
+          if (own.length > 0) document.documentElement.setAttribute('data-kbth-brand', own.join(' '))
+          else document.documentElement.removeAttribute('data-kbth-brand')
+        } catch (e) { /* not in a browser */ }
         const jetons = jetonsDe(S)
         if (jetons === null) { retirerFeuilleBoot(); return }
         try { layerDispose = themeSvc.overrideTokens('kybernos-theme', jetons); retirerFeuilleBoot() } catch (e) { layerDispose = null }
@@ -1912,7 +1922,7 @@ window.__ModuleLoader__.load({
         const settings = presetSettings(framed ? raw.settings : raw)
         if (settings === null) return { ok: false, error: 'empty' }
         const name = framed ? presetName(raw.name) : ''
-        return { ok: true, name: name === '' ? 'Thème importé' : name, settings, legacy: !framed, author: framed && typeof raw.author === 'string' ? raw.author : undefined }
+        return { ok: true, name: name === '' ? kt('Thème importé', 'Imported theme') : name, settings, legacy: !framed, author: framed && typeof raw.author === 'string' ? raw.author : undefined }
       }
 
       // “Modified” = a setting this theme retains has moved. The mode is left out on purpose: DSH's own
@@ -3928,7 +3938,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
                 h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-theme' }) : null)),
                 h('div', { className: 'kbth-title' }, kt('Thème', 'Theme')),
                 h('div', { className: 'kbth-sub' },
-                  kt('Personnalise l’apparence de DeepSeek Harness. Les réglages de base sont dans Essentiel.', 'Customize the look of DeepSeek Harness. The basic settings are in Essentials.'))),
+                  kt('Personnalise l’apparence de Kybernos. Les réglages de base sont dans Essentiel.', 'Customize the look of Kybernos. The basic settings are in Essentials.'))),
               h('div', null, reglages),
               h('div', { className: 'kbth-foot' },
                 h('span', { className: 'kbth-pill' }, estNaturel(S) ? kt('DSH natif — aucune couche posée', 'Native DSH — no layer applied') : kt('17 jetons · {light, dark}', '17 tokens · {light, dark}')),
@@ -3952,7 +3962,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         // Read-only handles for test-client.mjs (same convention as kybernos-language).
         __test: {
           makeTheme, ratio, HEX, toHex, mix, SKINS, WPS, WPCATS, FONTS, ACCS, TOKMAP, DEF, STORE_KEY,
-          skinPatch, skinAccent, legacyAdopt, readState, writeState, estNaturel, surprendre, sanitiserImport, schemeSombre, effetsCss, exportTexte, filtreFond, ajustementFond, avecAlpha, valeursValides, appliquerEffets, ENUMS, RANGES, BOOLS, RADIUS_DEF, jetonsRetouches, tailleNative, appliquerTaille,
+          skinPatch, skinAccent, legacyAdopt, readState, writeState, estNaturel, accentsPropres, surprendre, sanitiserImport, schemeSombre, effetsCss, exportTexte, filtreFond, ajustementFond, avecAlpha, valeursValides, appliquerEffets, ENUMS, RANGES, BOOLS, RADIUS_DEF, jetonsRetouches, tailleNative, appliquerTaille,
           LD_PRESETS, LD_PACKS, LD_DEF, LD_SIZES, LD_KEY, ld, ldClean, ldRead, ldSet, ldHash, ldChoose, ldChooseWord, ldWordList, ldById, ldPackById, ldNode, ldDestroy, ldCleanSvg, ldImport,
           ldDecorate, ldStart, ldStop, ldApplyText, ldPull, ldAddRecord, ldDelRecord, ldPutWords, ldCacheRead, AnimationPane, LdSummary, LdView,
           appliquerBoot, appliquerTout, appliquerJetons, appliquerFond, appliquerPolice, Page, bootSnapshot, posterBoot, retirerFeuilleBoot, jetonsDe, BOOT_ID,

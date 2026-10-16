@@ -52,7 +52,7 @@ const F = {
 verifie('darwin → mac', famille('darwin') === 'mac')
 verifie('win32 → windows', famille('win32') === 'windows')
 verifie('linux → linux', famille('linux') === 'linux')
-verifie('freebsd → autre', famille('freebsd') === 'autre')
+verifie('freebsd → other', famille('freebsd') === 'other')
 verifie('estWindows/estMac/estLinux cohérents', estWindows('win32') && estMac('darwin') && estLinux('linux'))
 verifie('les trois provenances sont déclarées', Object.keys(PROVENANCE).length === 3)
 
@@ -119,10 +119,10 @@ verifie('windows : PowerShell d\'abord', planDemarrage('windows', 42)[0].cmd[0] 
 verifie('windows : wmic en secours', planDemarrage('windows', 42)[1].cmd[0] === 'wmic')
 verifie('windows : le pid est dans la commande PowerShell', planDemarrage('windows', 4242)[0].cmd[3].includes('4242'))
 verifie('linux : /proc d\'abord, ps ensuite', planDemarrage('linux', 42)[0].fichier === '/proc/42/stat' && planDemarrage('linux', 42)[1].cmd[0] === 'ps')
-verifie('autre OS : aucun plan', planPid('autre', 3080).length === 0 && planDemarrage('autre', 1).length === 0)
+verifie('autre OS : aucun plan', planPid('other', 3080).length === 0 && planDemarrage('other', 1).length === 0)
 
 verifie('supervision : launchd sur mac', nomSuperviseur('mac') === 'launchd (LaunchAgent)')
-verifie('supervision : Planificateur sur windows', nomSuperviseur('windows').includes('Planificateur'))
+verifie('supervision : Task Scheduler sur windows', nomSuperviseur('windows').includes('Task Scheduler'))
 verifie('supervision : systemd sur linux', nomSuperviseur('linux') === 'systemd --user')
 
 // ── 5. `mesurer` : le premier plan qui répond gagne ─────────────────────────
@@ -156,7 +156,7 @@ verifie('commande : mac et linux passent par ps', planCommande('mac', 42)[0].cmd
 const planCmdWin = planCommande('windows', 4242)
 verifie('commande : windows passe par Win32_Process', planCmdWin[0].cmd.join(' ').includes('Win32_Process'))
 verifie('commande : le pid est dans la requête windows', planCmdWin[0].cmd.join(' ').includes('4242'))
-verifie('commande : autre OS → aucun plan', planCommande('autre', 1).length === 0)
+verifie('commande : autre OS → aucun plan', planCommande('other', 1).length === 0)
 
 // ── 8. le redémarrage (le geste qui charge le code hôte) ────────────────────
 verifie('binaire : `dsh` sous mac et linux', binaireDsh('mac') === 'dsh' && binaireDsh('linux') === 'dsh')
@@ -192,7 +192,7 @@ const win = planSupervision('windows', os)
 verifie('supervision : trois familles savent écrire une unité', famillesSupervisables().length === 3)
 verifie('supervision : une famille inconnue ne rend rien', planSupervision('beos', os) === null)
 verifie('supervision : chaque famille a son nom de superviseur',
-  mac.nom.includes('launchd') && linux.nom.includes('systemd') && win.nom.includes('Planificateur'))
+  mac.nom.includes('launchd') && linux.nom.includes('systemd') && win.nom.includes('Task Scheduler'))
 verifie('supervision : chaque famille dit sa provenance',
   mac.provenance === PROVENANCE_SUPERVISION.mac && linux.provenance === PROVENANCE_SUPERVISION.linux)
 verifie('supervision : macOS écrit dans ~/Library/LaunchAgents', mac.chemin === '/Users/me/Library/LaunchAgents/com.kybernos.dsh-web.plist')

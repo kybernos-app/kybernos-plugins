@@ -1,6 +1,6 @@
 {
   "what": {
-    "fr": "Met de l’ordre dans vos conversations : une icône de catégorie devant chaque titre, la pastille « Memory » sous la zone de saisie et le bloc « Kybernos Settings ».",
+    "fr": "Met de l’ordre dans tes conversations : une icône de catégorie devant chaque titre, la pastille « Memory » sous la zone de saisie et le bloc « Réglages Kybernos ».",
     "en": "Tidies your chats: a category icon before each title, the “Memory” pill under the chat box, and the “Kybernos Settings” block."
   },
   "steps": [
@@ -9,25 +9,25 @@
       "en": "In the chat list, a small icon before each title shows the kind of work: fix, question, documentation…"
     },
     {
-      "fr": "Sous la zone de saisie, la pastille « Memory » compte les souvenirs envoyés au modèle et les leçons de ce chat ; cliquez pour le détail.",
+      "fr": "Sous la zone de saisie, la pastille « Memory » compte les souvenirs envoyés au modèle et les leçons de cette conversation. Clique dessus.",
       "en": "Under the chat box, the “Memory” pill counts the memories sent to the model and this chat’s lessons; click it for details."
     },
     {
-      "fr": "Dans « Kybernos Settings », réglez « Name each chat when it ends » (Yes/No) et « Study model » (Automatic, votre choix ou None).",
+      "fr": "Dans « Réglages Kybernos », règle « Nommer chaque conversation à sa fin » (Oui/Non) et « Modèle d’étude » (Automatique, ton choix ou Aucun).",
       "en": "In “Kybernos Settings”, set “Name each chat when it ends” (Yes/No) and “Study model” (Automatic, your pick, or None)."
     },
     {
-      "fr": "Sans le module Changes, quatre pastilles de plus montrent où en est le travail de ce chat (enregistré, GitHub, relecture).",
+      "fr": "Sans le module Changes, quatre pastilles de plus montrent où en est le travail de cette conversation (enregistré, GitHub, relecture).",
       "en": "Without the Changes module, four more pills show where this chat’s work stands (saved, GitHub, review)."
     }
   ],
   "where": {
-    "fr": "Sous la zone de saisie du chat, et Réglages › Général › Kybernos Settings",
+    "fr": "Sous la zone de saisie de la conversation, et Réglages › Général › Réglages Kybernos",
     "en": "Under the chat box, and Settings › General › Kybernos Settings",
     "page": false
   },
   "good": {
-    "fr": "L’icône d’un chat se choisit d’abord sur les mots de son titre, sur votre machine. S’ils ne disent rien, le titre seul part vers le modèle d’étude (nulle part s’il est local) ; jamais s’il est sur « None ».",
+    "fr": "L’icône d’une conversation se choisit d’abord sur les mots de son titre, sur ton ordinateur. S’ils ne disent rien, le titre seul part vers le modèle d’étude (nulle part s’il est local) ; jamais s’il est sur « Aucun ».",
     "en": "The icon of a chat is picked from its title’s words on your machine. If they say nothing, the title alone goes to the Study model (nowhere if it is local); never if it is “None”."
   }
 }

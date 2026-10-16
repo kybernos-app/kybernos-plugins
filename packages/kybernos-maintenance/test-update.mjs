@@ -35,7 +35,7 @@ p = await lirePackDistant(true)
 verifie('unreachable server: joignable=false, without throwing', p.joignable === false && p.latest === null, p)
 
 console.log('composing the response')
-const moteurRien = { global: '0.2.0-rc.2', distant: { derniere: '0.2.0-rc.2' }, maj: { niveau: 'Aucune', cible: null, note: 'x' } }
+const moteurRien = { global: '0.2.0-rc.2', distant: { derniere: '0.2.0-rc.2' }, maj: { niveau: 'None', cible: null, note: 'x' } }
 let r = composerMaj({ pack: { joignable: true, latest: '1.0.0-beta.2' }, installee: '1.0.0-beta.1', etat: moteurRien, git: false, quand: 'T' })
 verifie('newer pack: announced first', r.pending !== null && r.pending.kind === 'kybernos' && r.pending.cible === '1.0.0-beta.2' && r.pack.disponible === true, r.pending)
 r = composerMaj({ pack: { joignable: true, latest: '1.0.0-beta.1' }, installee: '1.0.0-beta.1', etat: moteurRien, git: false, quand: 'T' })
@@ -49,10 +49,10 @@ verifie('installed version unreadable: nothing is announced', r.pending === null
 const moteurPossible = { global: '0.2.0-rc.2', distant: { derniere: '0.2.0' }, maj: { niveau: 'Possible', cible: '0.2.0', note: 'ok' } }
 r = composerMaj({ pack: { joignable: true, latest: '1.0.0-beta.1' }, installee: '1.0.0-beta.1', etat: moteurPossible, git: true, quand: 'T' })
 verifie('recommended engine upgrade: announced', r.pending !== null && r.pending.kind === 'moteur' && r.pending.cible === '0.2.0' && r.pending.requis === false && r.pack.git === true, r.pending)
-const moteurRequis = { global: '0.1.0', distant: { derniere: '0.2.0' }, maj: { niveau: 'Requise', cible: '0.2.0-rc.2', note: 'min' } }
+const moteurRequis = { global: '0.1.0', distant: { derniere: '0.2.0' }, maj: { niveau: 'Required', cible: '0.2.0-rc.2', note: 'min' } }
 r = composerMaj({ pack: { joignable: true, latest: '1.0.0-beta.1' }, installee: '1.0.0-beta.1', etat: moteurRequis, git: false, quand: 'T' })
 verifie('engine below the minimum: marked required', r.pending !== null && r.pending.requis === true, r.pending)
-const moteurHors = { global: '0.2.0-rc.2', distant: { derniere: '0.2.1-alpha.1' }, maj: { niveau: 'Aucune', cible: null, note: 'hors zone' } }
+const moteurHors = { global: '0.2.0-rc.2', distant: { derniere: '0.2.1-alpha.1' }, maj: { niveau: 'None', cible: null, note: 'out of range' } }
 r = composerMaj({ pack: { joignable: true, latest: '1.0.0-beta.1' }, installee: '1.0.0-beta.1', etat: moteurHors, git: false, quand: 'T' })
 verifie('engine published OUTSIDE the supported range: never offered', r.pending === null && r.moteur.latest === '0.2.1-alpha.1', r)
 verifie('comparerVersions : beta.10 > beta.2', comparerVersions('1.0.0-beta.2', '1.0.0-beta.10') < 0)

@@ -67,7 +67,7 @@ console.log('soft: kept, and listed for a second look')
 console.log('the pieces')
 {
   check('what a person reads: variables, tags, addresses and code taken out', visibleText('Ouvrez <b>{name}</b> : https://a.b/c et `x`') === 'Ouvrez : et')
-  check('reasons are explained to the model in a sentence', /variable/.test(explain(['placeholder'])) && /écriture/.test(explain(['script'])))
+  check('reasons are explained to the model in a sentence', /variable/.test(explain(['placeholder'])) && /script/.test(explain(['script'])))
   check('reasons travel as a short string and back', JSON.stringify(splitReasons(joinReasons(['placeholder', 'url']))) === JSON.stringify(['placeholder', 'url']))
   check('the protected terms are product names and formats, not words', PROTECTED_TERMS.includes('Kybernos') && PROTECTED_TERMS.includes('DSH') && !PROTECTED_TERMS.includes('Menu'))
   check('the region of a language is ignored (pt-BR is pt, zh-TW is zh)', hard('Ouvrir les réglages avancés du modèle', 'Ouvrir les réglages avancés du modèle', 'zh-TW').includes('script'))

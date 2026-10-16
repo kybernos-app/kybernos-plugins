@@ -1,4 +1,4 @@
-// ── "Force de proposition": the global rule of the Kybernos agents ──────────
+// ── "Initiative": the global rule of the Kybernos agents ────────────────────
 // (02/10/2026) The shared "system prompt" of the DSH agents lives in
 // `<DSH home>/AGENTS.md` (~/.dsh by default) — one file PER MACHINE, never in the
 // package. So that every user of the plugin gets the "Agent Team/skill matching" reflex,
@@ -9,62 +9,44 @@
 // ALREADY exists outside the markers (the author's machine), nothing is touched —
 // overwriting a user's own text would be a regression.
 //
-// Versions: the marker carries the version of the text. v2 (2026-10-16) names the Study
-// model instead of the retired « Decision Brain ». A machine that holds v1 gets v2 at the
-// next boot: the v1 section is REPLACED in place, but only when it is byte for byte the
-// one this plugin laid (a person's own edit of it is never overwritten), and once — the
-// next boot finds v2 and does nothing.
-// The SECTION below is the text the agents read, so it stays in French, as written.
+// Versions: the marker carries the version of the text. v2 (2026-10-16) named the Study
+// model instead of the retired « Decision Brain ». v3 (2026-10-16, decision D1: English is the
+// base of every text) is the same rule written in English. A machine that holds v1 or v2 gets v3
+// at the next boot: the old section is REPLACED in place, but only when it is byte for byte the
+// one this plugin laid (a person's own edit of it is never overwritten), and once — the next boot
+// finds v3 and does nothing. The French text of v1 and v2 lives in agents-proposition-legacy.json,
+// as data: it is only what an installed section is compared with.
 import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, unlinkSync, writeFileSync, appendFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { dshHomeSync } from './dsh-home.mjs'
 
-export const MARQUEUR_OUVERT = '<!-- kybernos:force-proposition v2 -->'
+export const MARQUEUR_OUVERT = '<!-- kybernos:force-proposition v3 -->'
 export const MARQUEUR_FERME = '<!-- /kybernos:force-proposition -->'
-const MARQUEUR_V1 = '<!-- kybernos:force-proposition v1 -->'
-const TITRE_EXISTANT = 'Force de proposition dès l\'ouverture d\'un chat'
 
-// The two bodies, markers included, joined with \n (a file with other line endings is compared and written in its own).
-const BLOC_V1 = [
-  MARQUEUR_V1,
-  '## Force de proposition — matching systématique Agent Team/skill (posée par le plugin Kybernos)',
-  '',
-  'À chaque demande (et à chaque changement de sujet), AVANT de proposer une',
-  'ressource, passer la demande dans le double étage — jamais au flair :',
-  '',
-  '1. **Score lexical en front** : confronter les 1-2 phrases de la demande aux',
-  '   missions des Agent Teams installées (`~/.dsh/kybers/`) et aux descriptions',
-  '   des skills du catalogue ; garder les 2 meilleurs de chaque.',
-  '2. **Arbitre** si le lexical hésite (scores proches ou aucun net) : une',
-  '   question fermée au Decision Brain (réglage `decisionBrain`, défaut',
-  '   typesafe-ai/jev) : « demande X → Agent Team/skill parmi A, B, aucun ?',
-  '   réponds un seul mot ».',
-  '',
-  'Ne proposer QUE les gagnants — nommés, en une phrase de mission, avec une',
-  'question fermée (« je le lance ? »). Une skill se propose, elle ne se charge',
-  'qu\'après un oui. Rien de ce qui n\'existe pas ne se propose.',
-  '',
-  MARQUEUR_FERME
-].join('\n')
+/** The sections laid by earlier versions, newest first: [{ version, marker, state, text }], and the title of the author's hand-written variant. */
+const LEGACY = (() => {
+  try { return JSON.parse(readFileSync(new URL('./agents-proposition-legacy.json', import.meta.url), 'utf8')) } catch (e) { return { title: '', sections: [] } }
+})()
 
-const BLOC_V2 = [
+// The body, markers included, joined with \n (a file with other line endings is compared and written in its own).
+const BLOC = [
   MARQUEUR_OUVERT,
-  '## Force de proposition — matching systématique Agent Team/skill (posée par le plugin Kybernos)',
+  '## Initiative — systematic Agent Team/skill matching (laid by the Kybernos plugin)',
   '',
-  'À chaque demande (et à chaque changement de sujet), AVANT de proposer une',
-  'ressource, passer la demande dans le double étage — jamais au flair :',
+  'For every request (and every change of subject), BEFORE suggesting a',
+  'resource, run the request through the two-stage check — never by gut feeling:',
   '',
-  '1. **Score lexical en front** : confronter les 1-2 phrases de la demande aux',
-  '   missions des Agent Teams installées (`~/.dsh/kybers/`) et aux descriptions',
-  '   des skills du catalogue ; garder les 2 meilleurs de chaque.',
-  '2. **Arbitre** si le lexical hésite (scores proches ou aucun net) : une',
-  '   question fermée au Study model (le modèle d\'étude de Kybernos Settings,',
-  '   choisi automatiquement par défaut) : « demande X → Agent Team/skill parmi',
-  '   A, B, aucun ? réponds un seul mot ».',
+  '1. **Lexical score first**: compare the 1-2 sentences of the request with the',
+  '   missions of the installed Agent Teams (`~/.dsh/kybers/`) and with the',
+  '   descriptions of the catalogue skills; keep the 2 best of each.',
+  '2. **Referee** if the lexical score hesitates (close scores or no clear winner): a',
+  '   closed question to the Study model (the study model of Kybernos Settings,',
+  '   chosen automatically by default): "request X → Agent Team/skill among',
+  '   A, B, none? answer with one word".',
   '',
-  'Ne proposer QUE les gagnants — nommés, en une phrase de mission, avec une',
-  'question fermée (« je le lance ? »). Une skill se propose, elle ne se charge',
-  'qu\'après un oui. Rien de ce qui n\'existe pas ne se propose.',
+  'Suggest ONLY the winners — named, with a one-sentence mission and a',
+  'closed question ("shall I run it?"). A skill is suggested, it is only loaded',
+  'after a yes. Nothing that does not exist is ever suggested.',
   '',
   MARQUEUR_FERME
 ].join('\n')
@@ -86,21 +68,23 @@ function ecrireAtomique (chemin, texte) {
   }
 }
 
-/** Lays the section into `<DSH home>/AGENTS.md` if absent, or replaces an untouched v1 section by v2. Idempotent,
- *  reversible (the markers allow a clean removal). Returns a readable state: `pose`, `deja` (v2 is there), `migre` (v1
- *  replaced), `v1-modifiee` (a v1 section the person edited, or damaged: left alone), `variante-locale`, `erreur`. */
+/** Lays the section into `<DSH home>/AGENTS.md` if absent, or replaces an untouched v1/v2 section by v3. Idempotent,
+ *  reversible (the markers allow a clean removal). Returns a readable state: `pose`, `deja` (v3 is there), `migre` (an older
+ *  section replaced), `v1-modifiee` / `v2-modifiee` (an older section the person edited, or damaged: left alone),
+ *  `variante-locale`, `erreur`. */
 export function poserForceProposition (chemin = join(dshHomeSync(), 'AGENTS.md')) {
   const brut = existsSync(chemin) ? readFileSync(chemin, 'utf8') : ''
   if (brut.includes(MARQUEUR_OUVERT)) return { etat: 'deja', chemin }
-  const debut = brut.indexOf(MARQUEUR_V1)
-  if (debut >= 0) {
+  for (const ancien of LEGACY.sections) {
+    const debut = brut.indexOf(ancien.marker)
+    if (debut < 0) continue
     const fin = brut.indexOf(MARQUEUR_FERME, debut)
-    if (fin < 0) return { etat: 'v1-modifiee', chemin }
+    if (fin < 0) return { etat: ancien.state, chemin }
     const finBloc = fin + MARQUEUR_FERME.length
-    if (brut.slice(debut, finBloc).replace(/\r\n/g, '\n') !== BLOC_V1) return { etat: 'v1-modifiee', chemin }
+    if (brut.slice(debut, finBloc).replace(/\r\n/g, '\n') !== ancien.text) return { etat: ancien.state, chemin }
     const eol = brut.includes('\r\n') ? '\r\n' : '\n'
     try {
-      ecrireAtomique(chemin, brut.slice(0, debut) + BLOC_V2.replace(/\n/g, eol) + brut.slice(finBloc))
+      ecrireAtomique(chemin, brut.slice(0, debut) + BLOC.replace(/\n/g, eol) + brut.slice(finBloc))
       return { etat: 'migre', chemin }
     } catch (e) {
       return { etat: 'erreur', chemin, erreur: String(e && e.message ? e.message : e) }
@@ -108,9 +92,9 @@ export function poserForceProposition (chemin = join(dshHomeSync(), 'AGENTS.md')
   }
   // The author's machine carries the rule written by hand: same title, same
   // spirit — do not double it.
-  if (brut.includes(TITRE_EXISTANT)) return { etat: 'variante-locale', chemin }
+  if (LEGACY.title !== '' && brut.includes(LEGACY.title)) return { etat: 'variante-locale', chemin }
   try {
-    appendFileSync(chemin, '\n' + BLOC_V2 + '\n', 'utf8')
+    appendFileSync(chemin, '\n' + BLOC + '\n', 'utf8')
     return { etat: 'pose', chemin }
   } catch (e) {
     return { etat: 'erreur', chemin, erreur: String(e && e.message ? e.message : e) }

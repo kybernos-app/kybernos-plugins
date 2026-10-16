@@ -1,15 +1,15 @@
 {
   "what": {
-    "fr": "Le chat crée des animations : titres, graphiques, compteurs, particules, 3D, personnages animés, formes qui changent, avec du son. Vous les lisez, les réglez et les exportez en vidéo.",
+    "fr": "Le chat crée des animations : titres, graphiques, compteurs, particules, 3D, personnages animés, formes qui changent, avec du son. Tu les lis, les règles et les exportes en vidéo.",
     "en": "The chat creates animations: titles, charts, counters, particles, 3D, animated characters, shapes that morph, with sound. You play them, adjust them and export them as video."
   },
   "steps": [
     {
-      "fr": "Demandez une animation au chat (« un titre animé, fond sombre ») : l’onglet « Motion » s’ouvre seul à droite.",
+      "fr": "Demande une animation au chat (« un titre animé, fond sombre ») : l’onglet « Motion » s’ouvre seul à droite.",
       "en": "Ask the chat for an animation (“an animated title, dark background”): the “Motion” tab opens by itself on the right."
     },
     {
-      "fr": "Lisez-la avec ▶ et déplacez le curseur sur la frise. Changez textes, couleurs ou nombres dans « Paramètres » : le chat voit vos retouches.",
+      "fr": "Lis-la avec ▶ et déplace le curseur sur la frise. Change textes, couleurs ou nombres dans « Paramètres » : le chat voit tes retouches.",
       "en": "Play it with ▶ and drag the cursor on the timeline. Change texts, colours or numbers under “Settings”: the chat sees your edits."
     },
     {
@@ -17,7 +17,7 @@
       "en": "“Export” gives an MP4 video, a standalone page or a scene file, saved in the project’s artifacts/ folder."
     },
     {
-      "fr": "Retrouvez vos animations dans la page Créations, ou avec « Animations » en haut du panneau.",
+      "fr": "Retrouve tes animations dans la page Créations, ou avec « Animations » en haut du panneau.",
       "en": "Find your animations on the Creations page, or with “Animations” at the top of the panel."
     }
   ],
@@ -27,7 +27,7 @@
     "page": false
   },
   "good": {
-    "fr": "Une animation est un simple fichier .miniapp.json du projet : copiez-le, versionnez-le, partagez-le. L’export vidéo se fait dans votre navigateur, rien n’est envoyé ailleurs.",
+    "fr": "Une animation est un simple fichier .miniapp.json du projet : copie-le, versionne-le, partage-le. L’export vidéo se fait dans ton navigateur, rien n’est envoyé ailleurs.",
     "en": "An animation is a plain .miniapp.json file in the project: copy it, version it, share it. Video export happens in your browser, nothing is sent elsewhere."
   },
   "url": "https://help.kybernos.app/{lang}/create-with-kybernos/make-an-animation/"

@@ -20,7 +20,7 @@ export const FAMILLES = [
   { id: 'teams', fr: 'Agent Teams', en: 'Agent Teams', couleur: '#1a9a8a' },
   { id: 'create', fr: 'Créer dans le chat', en: 'Create in the chat', couleur: '#e8630a' },
   { id: 'data', fr: 'Données', en: 'Data', couleur: '#0f8fb5' },
-  { id: 'connect', fr: 'Connecteurs et machines', en: 'Connectors and machines', couleur: '#d6458a' },
+  { id: 'connect', fr: 'Connexions', en: 'Connections', couleur: '#d6458a' },
   { id: 'cloud', fr: 'Cloud', en: 'Cloud', couleur: '#3b8be0' }
 ]
 
@@ -37,17 +37,17 @@ const FICHE = {
   'kybernos-relance': ['base', 'Relancer DSH sans couper l’agent qui travaille.', 'Restart DSH without cutting the working agent.'],
   'kybernos-models': ['models', 'Catalogue de modèles : recherche, comparaison, prix.', 'Model catalogue: search, compare, prices.'],
   'kybernos-modeles-locaux': ['models', 'Modèles locaux détectés et installés depuis les Réglages.', 'Local models detected and installed from Settings.'],
-  'kybernos-auto': ['models', 'Routage Auto : choisit un modèle de votre liste selon la classe de la demande.', 'Auto routing: picks a model from your list by request class.'],
+  'kybernos-auto': ['models', 'Routage Auto : choisit un modèle de ta liste selon la classe de la demande.', 'Auto routing: picks a model from your list by request class.'],
   'kybernos-free-llms': ['models', 'Modèles gratuits, sans compte ni clé API.', 'Free models, no account or API key.'],
   'kybernos-flow': ['teams', 'Reprise des tours coupés et file d’attente réordonnable.', 'Resume cut turns and a reorderable queue.'],
-  'kybernos-call': ['base', 'Parlez à votre assistant ou à un membre de l’équipe, depuis n’importe quelle session : il répond comme dans le chat, dans votre langue, avec sa voix.', 'Talk to your assistant or a team member from any session: it answers as in the chat, in your language, in its own voice.'],
-  'kybernos-usage': ['base', 'Ce que votre plan a consommé, et ce que vos propres clés coûtent : une pastille sous la saisie et une page de détail.', 'What your plan has used, and what your own keys cost: a chip under the message box and a detail page.'],
+  'kybernos-call': ['base', 'Parle à ton assistant ou à un membre de l’équipe, depuis n’importe quelle session : il répond comme dans le chat, dans ta langue, avec sa voix.', 'Talk to your assistant or a team member from any session: it answers as in the chat, in your language, in its own voice.'],
+  'kybernos-usage': ['base', 'Ce que ton plan a consommé, et ce que tes propres clés coûtent : une pastille sous la saisie et une page de détail.', 'What your plan has used, and what your own keys cost: a chip under the message box and a detail page.'],
   'kybernos-multi-device': ['base', 'Des workspaces avec ou sans dossier : Create propose un dossier privé, et Détails montre où le workspace travaille.', 'Workspaces with or without a folder: Create offers a private folder, and Details shows where the workspace works.'],
-  'kybernos-dashboards': ['teams', 'Des dashboards construits par chat, pour suivre vos Agent Teams, automations, usage et livrables : cartes, graphiques animés, calendrier, kanban, notes.', 'Dashboards built by chat to follow your Agent Teams, automations, usage and deliverables: cards, animated charts, calendar, kanban, notes.'],
+  'kybernos-dashboards': ['teams', 'Des dashboards construits par chat, pour suivre tes Agent Teams, automations, usage et livrables : cartes, graphiques animés, calendrier, kanban, notes.', 'Dashboards built by chat to follow your Agent Teams, automations, usage and deliverables: cards, animated charts, calendar, kanban, notes.'],
   'kybernos-summary': ['base', 'Un onglet Résumé dans le panneau de droite du chat : agents, progression, compétences et outils utilisés, fichiers écrits.', 'A Summary tab in the chat\'s right-hand panel: agents, progress, skills and tools used, files written.'],
-  'kybernos-kyber': ['base', 'Kaby, votre assistant : une vraie conversation DSH avec la mémoire de votre compte, Telegram connecté d\'un geste par QR code ou lien, et l\'ordinateur cloud sur lequel il travaille.', 'Kaby, your assistant: a real DSH chat with your account\'s memory, Telegram connected in one move by QR code or link, and the cloud computer it works on.'],
-  'kybernos-changes': ['base', 'Où en est votre travail (modifié, sauvegardé, sur GitHub, dans le projet) et quoi faire ensuite.', 'Where your work stands (changed, saved, on GitHub, in the project) and what to do next.'],
-  'kybernos-atlas': ['teams', 'La carte de votre espace : projets, Agent Teams, skills, mémoire, et ce qui est cassé.', 'A map of your workspace: projects, agent teams, skills, memory, and what is broken.'],
+  'kybernos-kyber': ['base', 'Kaby, ton assistant : une vraie conversation DSH avec la mémoire de ton compte, Telegram connecté d\'un geste par QR code ou lien, et l\'ordinateur cloud sur lequel il travaille.', 'Kaby, your assistant: a real DSH chat with your account\'s memory, Telegram connected in one move by QR code or link, and the cloud computer it works on.'],
+  'kybernos-changes': ['base', 'Où en est ton travail (modifié, sauvegardé, sur GitHub, dans le projet) et quoi faire ensuite.', 'Where your work stands (changed, saved, on GitHub, in the project) and what to do next.'],
+  'kybernos-atlas': ['teams', 'La carte de ton espace : projets, Agent Teams, skills, mémoire, et ce qui est cassé.', 'A map of your workspace: projects, agent teams, skills, memory, and what is broken.'],
   'kybernos-slides': ['create', 'Decks écrits en direct dans la barre latérale.', 'Decks written live in the sidebar.'],
   'kybernos-bricks': ['create', 'Maquettes en briques, animées brique par brique.', 'Brick mockups, animated brick by brick.'],
   'kybernos-modeleur': ['create', 'Modèles 2D et 3D pilotés par le chat.', '2D and 3D models driven by the chat.'],
@@ -55,15 +55,15 @@ const FICHE = {
   'kybernos-miniapps': ['create', '« Install as app » : un panneau devient une app native.', '"Install as app": a panel becomes a native app.'],
   'kybernos-refs': ['create', 'Les liens des messages deviennent des pastilles de référence.', 'Message links become reference chips.'],
   'kybernos-search': ['base', 'Une recherche partout : le contenu des chats, les skills, les mémoires, les leçons, les créations.', 'Search everywhere: the content of your chats, skills, memories, lessons and creations.'],
-  'kybernos-mobile': ['base', 'DSH sur votre téléphone : l’écran s’adapte, et un code QR relie le téléphone à cet ordinateur, chiffré de bout en bout.', 'DSH on your phone: the screen adapts, and a QR code links the phone to this computer, end-to-end encrypted.'],
-  'kybernos-websearch': ['connect', 'La recherche web des agents, avec ou sans clé : des moteurs gratuits tout de suite, des moteurs à clé quand vous en ajoutez une, et le suivant prend le relais si l’un échoue.', 'Web search for the agents, with or without a key: free engines right away, keyed engines when you add one, and the next one takes over when one fails.'],
+  'kybernos-mobile': ['base', 'DSH sur ton téléphone : l’écran s’adapte, et un code QR relie le téléphone à cet ordinateur, chiffré de bout en bout.', 'DSH on your phone: the screen adapts, and a QR code links the phone to this computer, end-to-end encrypted.'],
+  'kybernos-websearch': ['connect', 'La recherche web des agents, avec ou sans clé : des moteurs gratuits tout de suite, des moteurs à clé quand tu en ajoutes une, et le suivant prend le relais si l’un échoue.', 'Web search for the agents, with or without a key: free engines right away, keyed engines when you add one, and the next one takes over when one fails.'],
   'dsh-mermaid': ['create', 'Diagrammes Mermaid rendus en SVG dans le chat.', 'Mermaid diagrams rendered as SVG in the chat.'],
   'dsh-db-viewer': ['data', 'Visionneuse SQLite en lecture seule, avec graphiques.', 'Read-only SQLite viewer, with charts.'],
   'dsh-media-player': ['create', 'Lecteur audio et vidéo dans la barre latérale.', 'Audio and video player in the sidebar.'],
   'kybernos-terminal': ['create', 'Les blocs de commandes du chat en fenêtres de terminal, avec un bouton pour les lancer.', 'Command blocks in the chat as terminal windows, with a button to run them.'],
   'kybernos-composio': ['connect', 'Des centaines de connecteurs en cartes prêtes pour l’agent.', 'Hundreds of connectors as ready-made cards for the agent.'],
-  'kybernos-computers': ['connect', 'Ordinateurs cloud pour les agents (votre clé E2B).', 'Cloud computers for agents (your E2B key).'],
-  'dsh-subagent-maison': ['connect', 'Les connecteurs d’OpenCode, Gemini, Qwen et Hermes que la page Workers allume.', 'The OpenCode, Gemini, Qwen and Hermes connectors that the Workers page turns on.'],
+  'kybernos-computers': ['connect', 'Ordinateurs cloud pour les agents (ta clé E2B).', 'Cloud computers for agents (your E2B key).'],
+  'dsh-subagent-maison': ['connect', 'Les connecteurs de workers (OpenCode, Gemini, Qwen, Hermes) que la page Workers allume.', 'The Workers connectors (OpenCode, Gemini, Qwen, Hermes) that the Workers page turns on.'],
   'kybernos-workers': ['connect', 'Installe, vérifie et expose à l’agent principal Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes et ZCode.', 'Installs, checks and exposes to the main agent Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes and ZCode.'],
   'kybernos-cloud': ['cloud', 'Compte Kybernos, modèles du proxy, mémoire du compte.', 'Kybernos account, proxy models, account memory.'],
   'kybernos-memory': ['cloud', 'La page Memory & Lessons : mémoire du compte et leçons par Agent Team, filtres, interrupteurs.', 'The Memory & Lessons page: account memory and lessons per agent team, filters, on/off switches.']
@@ -76,7 +76,7 @@ const TITRES = {
   'kybernos-relance': 'Relaunch', 'kybernos-models': 'AI Provider & Models', 'kybernos-modeles-locaux': 'Ollama Local Models', 'kybernos-auto': 'Auto Routing',
   'kybernos-flow': 'Flow', 'kybernos-free-llms': 'Free LLMs', 'kybernos-slides': 'Slides', 'kybernos-bricks': 'Bricks', 'kybernos-modeleur': '3D modeller',
   'kybernos-motion': 'Motion', 'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'kybernos-search': 'Search everywhere', 'kybernos-mobile': 'Remote Control', 'kybernos-websearch': 'Web Search', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
-  'dsh-media-player': 'Media player', 'kybernos-composio': 'Connectors', 'kybernos-computers': 'Cloud computers', 'kybernos-workers': 'Workers', 'dsh-subagent-maison': 'Agent connectors',
+  'dsh-media-player': 'Media player', 'kybernos-composio': 'Connectors', 'kybernos-computers': 'Cloud computers', 'kybernos-workers': 'Workers', 'dsh-subagent-maison': 'Workers connectors',
   'kybernos-cloud': 'Kybernos Cloud', 'kybernos-memory': 'Memory & Lessons', 'kybernos-atlas': 'Atlas', 'kybernos-changes': 'Changes', 'kybernos-usage': 'Usage', 'kybernos-multi-device': 'Workspaces & devices', 'kybernos-call': 'Calls', 'kybernos-terminal': 'Terminal', 'kybernos-dashboards': 'Dashboards', 'kybernos-summary': 'Summary', 'kybernos-kyber': 'Kaby'
 }
 const GLYPHES = {
@@ -94,7 +94,7 @@ const VEDETTES = {
   'kybernos-models': {
     accroche: { fr: 'Fournisseurs et modèles au même endroit', en: 'Providers and models in one place' },
     description: {
-      fr: 'Une page pour chaque fournisseur et chaque modèle que vos agents peuvent appeler. Ajoutez un fournisseur comme dans DSH, désactivez-en un sans le supprimer, demandez à un fournisseur quels modèles il propose, et comparez les modèles dans un tableau : capacités, prix, scores. La page native de DSH reste à un clic.',
+      fr: 'Une page pour chaque fournisseur et chaque modèle que tes agents peuvent appeler. Ajoute un fournisseur comme dans DSH, désactives-en un sans le supprimer, demande à un fournisseur quels modèles il propose, et compare les modèles dans un tableau : capacités, prix, scores. La page native de DSH reste à un clic.',
       en: 'One page for every provider and every model your agents can call. Add a provider the way DSH does, switch one off without deleting it, ask a provider which models it serves, and compare models in a table: capabilities, prices, scores. DSH’s native page stays one click away.'
     },
     points: [
@@ -108,13 +108,13 @@ const VEDETTES = {
   'kybernos-auto': {
     accroche: { fr: 'Choisit un modèle qui répond', en: 'Picks a model that answers' },
     description: {
-      fr: 'Le routage Auto envoie chaque étape déléguée vers le meilleur modèle de votre liste. Il pose d’abord une vraie question minuscule aux candidats, écarte ceux qui échouent et garde une chaîne de repli : une délégation n’attend jamais un modèle en panne. Chaque modèle écarté dit pourquoi et quand il sera réessayé.',
+      fr: 'Le routage Auto envoie chaque étape déléguée vers le meilleur modèle de ta liste. Il pose d’abord une vraie question minuscule aux candidats, écarte ceux qui échouent et garde une chaîne de repli : une délégation n’attend jamais un modèle en panne. Chaque modèle écarté dit pourquoi et quand il sera réessayé.',
       en: 'Auto routing sends each delegated step to the best model of your list. It asks the candidates a real, tiny question first, skips the ones that fail and keeps a fallback chain, so a delegation never waits on a model that is down. Every skipped model says why and when it will be tried again.'
     },
     points: [
       { fr: 'Sonde d’abord : un modèle doit répondre avant d’être choisi (verdict gardé 60 s)', en: 'Probe first: a model must answer before it is chosen (verdict kept 60 s)' },
       { fr: 'Un disjoncteur par modèle : une clé refusée le met en pause, un modèle instable après trois échecs', en: 'A circuit breaker per model: a refused key pauses it, a flaky one after three failures' },
-      { fr: 'Une chaîne de repli de 10 modèles au plus, dans l’ordre de votre liste', en: 'A fallback chain of at most 10 models, in the order of your list' },
+      { fr: 'Une chaîne de repli de 10 modèles au plus, dans l’ordre de ta liste', en: 'A fallback chain of at most 10 models, in the order of your list' },
       { fr: 'Des raisons lisibles : clé refusée, modèle retiré, muet, limite de débit', en: 'Readable reasons: key refused, model gone, silent, rate limited' },
       { fr: 'La commande de l’agent est livrée avec le module', en: 'The agent’s command ships with the module' }
     ]
@@ -146,15 +146,15 @@ const VEDETTES = {
     ]
   },
   'kybernos-slides': {
-    accroche: { fr: 'Un deck écrit sous vos yeux', en: 'A deck written before your eyes' },
+    accroche: { fr: 'Un deck écrit sous tes yeux', en: 'A deck written before your eyes' },
     description: {
-      fr: 'L’agent écrit un deck de slides en temps réel dans la barre latérale, caractère par caractère. Vous retouchez à la main (texte, pinceau), l’agent relit vos retouches et corrige, et chaque passage corrigé est souligné à l’écran.',
+      fr: 'L’agent écrit un deck de slides en temps réel dans la barre latérale, caractère par caractère. Tu retouches à la main (texte, pinceau), l’agent relit tes retouches et corrige, et chaque passage corrigé est souligné à l’écran.',
       en: 'The agent writes a slide deck in real time in the right sidebar, character by character. You touch it up by hand (text, brush), the agent reads your edits back and corrects, and every corrected passage is highlighted on screen.'
     },
     points: [
       { fr: 'Six mises en page : titre, statement, puces, chiffre, citation, fin', en: 'Six layouts: title, statement, bullets, figure, quote, end' },
       { fr: 'Quatre thèmes : sombre, clair, corail, papier', en: 'Four themes: dark, light, coral, paper' },
-      { fr: 'Vos retouches (texte et pinceau) sont relues par l’agent', en: 'Your edits (text and brush) are read back by the agent' },
+      { fr: 'Tes retouches (texte et pinceau) sont relues par l’agent', en: 'Your edits (text and brush) are read back by the agent' },
       { fr: 'Les passages corrigés par l’agent reçoivent un halo vert', en: 'Passages corrected by the agent get a green halo' }
     ]
   },

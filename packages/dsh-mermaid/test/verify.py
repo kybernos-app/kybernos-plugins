@@ -109,6 +109,21 @@ def main() -> int:
         page.click("#valid .dsh-mermaid-bar button")
         report["after_toggle_back"] = page.evaluate(STATE_JS, "valid")
 
+        # A2-01: the button is English, French for a French UI, English again for any other language, and it follows the
+        # language when it changes after the card was drawn (the scan rewrites the label, so a DOM change wakes it).
+        page.click("#valid .dsh-mermaid-bar button")  # source shown: the button offers the diagram
+        report["lang_en"] = page.evaluate(STATE_JS, "valid")["toggleLabel"]
+        page.evaluate("window.__KB_LANG_RESOLVE__ = () => 'kybernos'")
+        page.evaluate("document.querySelector('.wrap').append(document.createElement('i'))")
+        page.wait_for_timeout(600)
+        report["lang_fr"] = page.evaluate(STATE_JS, "valid")["toggleLabel"]
+        page.evaluate("window.__KB_LANG_RESOLVE__ = () => 'es'")
+        page.evaluate("document.querySelector('.wrap').append(document.createElement('i'))")
+        page.wait_for_timeout(600)
+        report["lang_es"] = page.evaluate(STATE_JS, "valid")["toggleLabel"]
+        page.evaluate("delete window.__KB_LANG_RESOLVE__")
+        page.click("#valid .dsh-mermaid-bar button")  # diagram back
+
         # Theme change: must redraw without duplicating.
         page.evaluate(
             "document.documentElement.style.setProperty('--dsw-alias-bg-base', '#ffffff')"
@@ -165,7 +180,8 @@ def main() -> int:
         "real DOM: source hidden but intact": bool(v["preHidden"]) and "flowchart TD" in (v["preText"] or ""),
         "real DOM: diagram label rendered": bool(v["labelInSvg"]),
         "real DOM: toggle shows the code": report["after_toggle"]["preHidden"] is False
-        and report["after_toggle"]["toggleLabel"] == "Diagramme",
+        and report["after_toggle"]["toggleLabel"] == "Diagram",
+        "the toggle follows the language: English, then French, then English for Spanish": (report["lang_en"], report["lang_fr"], report["lang_es"]) == ("Diagram", "Diagramme", "Diagram"),
         "real DOM: toggle back hides it again": bool(report["after_toggle_back"]["preHidden"]),
         "real DOM: invalid fence → error card": inv["cardState"] == "error" and len(inv["errorText"]) > 10,
         "real DOM: invalid fence → source left visible": inv["preHidden"] is False,

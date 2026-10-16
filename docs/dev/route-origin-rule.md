@@ -38,6 +38,7 @@ request left the files and the outside world as they were.
 | `kybernos-memory` | the nine POST routes: lessons add, update, delete, the tidy-up, the switches |
 | `kybernos-auto` | `/session`, `/settings`, `/probe` (a probe spends tokens) |
 | `kybernos-modeles-locaux` | `/installer` (`brew install ollama`, `ollama pull`), `/annuler` |
+| `kybernos-models` | the eight POST routes: the notes (`annotations/save`), the journal, the pasted-key check (`key/check`: it spends a call on the provider), park / take / forget a provider, `scores/list`, `scores/sync`; and `modelsdev?force=1` (a forced 4.7 MB download). The reads stay open behind the Host fence |
 | `kybernos-computers` | the nine POST routes: the E2B key, start, exec, write, stop, pause, resume, the environment switch (they run on the person's key and bill) |
 | `kybernos-cloud` | the five deletes: `memory/delete`, `members/remove`, `team/lessons/delete`, `team/skills/delete`, `connections/delete` |
 | `kybernos-miniapps` | `/install` (writes a native app and launches it), `/uninstall` |
@@ -58,7 +59,7 @@ requests with `Origin` and the machine's cookie, so it passes too.
 - **Public by design:** `/kybernos/widget/api/*` and `/kybernos/hooks` (a website's widget and the webhook receiver; their own secret is their fence).
 - **Not named by the audit, so unchanged (D3):** the other writes of `kybernos-cloud` (memory add / update / index / settings / tidy-up, team lessons and skills
   add / review / retire, shares, members invite, marketplace install, space, artifacts and chats push, `connections/link`, `disconnect`, `server/apply`, `start`,
-  `poll`, `refresh`, `models/sync`), `kybernos-models` (annotations, journal, scores), `kybernos-motion` (export, frame), `kybernos-modeleur` and
+  `poll`, `refresh`, `models/sync`), `kybernos-motion` (export, frame), `kybernos-modeleur` and
   `kybernos-bricks` and `kybernos-slides` (push), `kybernos-modeles-locaux` (`/decouvrir`, the catalogue refresh). All have a page as their caller (the table says
   which), so they are the next candidates; each keeps the same-origin rule of its bundle (a foreign page is refused, a local program with no header is not).
 
@@ -77,6 +78,10 @@ Measured on 2026-10-16, 384 routes of 31 bundles, 249 of them answering a write 
 
 Of the 67 left at the last two levels: 4 have a documented non-browser caller (above), 4 are public by design, 14 answer every method alike and are reads
 (the handler never looks at the method), 45 are the writes the audit does not name.
+
+Two GET routes left the table afterwards, with the read-only account frame (WP-24, `docs/dev/frame-removal.md`): `/kybernos-cloud/relay` and `/kybernos/ws-console-key`, both
+strict (an Origin or Referer of this server was required). The routes are now 386 (388 before), 183 of them answering GET, 11 of those at the strict level; no write route is
+concerned by this removal. Both existed only to hand the account's data (or a key) to the framed console through the DSH page; neither answers any more.
 
 ## The reads (A6-05), not changed
 

@@ -37,70 +37,74 @@ window.__ModuleLoader__.load({
       // [fr, en] pairs, by key, in ONE table so that a test can check both sides of every pair.
       const S = {
         title: ['{NAME}', '{NAME}'],
-        tabHint: ['Votre assistant : la conversation, Telegram et l’ordinateur sur lequel il travaille.', 'Your assistant: the conversation, Telegram and the computer it works on.'],
+        tabHint: ['Ton assistant : la conversation, Telegram et l’ordinateur sur lequel il travaille.', 'Your assistant: the conversation, Telegram and the computer it works on.'],
         // header and intro
        
-        heroH: ['Votre assistant, dans votre poche.', 'Your assistant, in your pocket.'],
+        heroH: ['Ton assistant, dans ta poche.', 'Your assistant, in your pocket.'],
         // What {NAME} is, in one picture (the owner's): a phone with a remote control, working on the desktop. Said on the page, above the tiles of the strip, and by the help card.
-        intro: ['{NAME}, c’est comme un téléphone avec télécommande : vous lui parlez d’ici ou depuis Telegram, et il travaille sur votre ordinateur. Un ordinateur dans le cloud peut prendre le relais quand le vôtre est éteint. Avant de modifier quoi que ce soit, il vous demande.', '{NAME} is like a phone with a remote control: you talk to it from here or from Telegram, and it works on your desktop. A cloud computer can take over when yours is off. Before it changes anything, it asks you.'],
+        intro: ['{NAME}, c’est comme un téléphone avec télécommande : tu lui parles d’ici ou depuis Telegram, et il travaille sur ton ordinateur. Un ordinateur dans le cloud peut prendre le relais quand le tien est éteint. Avant de modifier quoi que ce soit, il te demande.', '{NAME} is like a phone with a remote control: you talk to it from here or from Telegram, and it works on your desktop. A cloud computer can take over when yours is off. Before it changes anything, it asks you.'],
         // One help line under each tile's title.
-        channelsHelp: ['Reliez Telegram, WhatsApp et WeChat pour que {NAME} puisse vous joindre là. « Bientôt » : pas encore disponible.', 'Link Telegram, WhatsApp and WeChat so {NAME} can reach you there. “Soon” means it is not available yet.'],
-        computerHelp: ['La machine sur laquelle {NAME} travaille : cet ordinateur, ou un ordinateur dans le cloud qui continue quand le vôtre est éteint. « À la demande » : il est créé la première fois que vous demandez quelque chose qui en a besoin.', 'The machine {NAME} works on: this computer (your desktop), or a cloud computer that keeps going when yours is off. “On request” means it is made the first time you ask for something that needs it.'],
-        b1h: ['Demandez de n’importe où', 'Ask from anywhere'], b1p: ['Ici, ou depuis votre téléphone sur Telegram. C’est la même conversation.', 'Here, or from your phone on Telegram. It is the same conversation.'],
-        b2h: ['Il travaille pendant votre absence', 'It keeps working while you are away'], b2p: ['Il a son propre ordinateur, qui se réveille quand il a du travail.', 'It has its own computer, which wakes up when it has work to do.'],
-        b3h: ['Vous gardez la main', 'You stay in control'], b3p: ['Avant d’agir, il demande : Autoriser, Refuser ou Autoriser pour cette tâche.', 'Before it acts, it asks: Allow, Refuse, or Allow for this task.'],
+        channelsHelp: ['Relie Telegram, WhatsApp et WeChat pour que {NAME} puisse te joindre là. « Bientôt » : pas encore disponible.', 'Link Telegram, WhatsApp and WeChat so {NAME} can reach you there. “Soon” means it is not available yet.'],
+        computerHelp: ['La machine sur laquelle {NAME} travaille : cet ordinateur, ou un ordinateur dans le cloud qui continue quand le tien est éteint. « À la demande » : il est créé la première fois que tu demandes quelque chose qui en a besoin.', 'The machine {NAME} works on: this computer (your desktop), or a cloud computer that keeps going when yours is off. “On request” means it is made the first time you ask for something that needs it.'],
+        b1h: ['Demande de n’importe où', 'Ask from anywhere'], b1p: ['Ici, ou depuis ton téléphone sur Telegram. C’est la même conversation.', 'Here, or from your phone on Telegram. It is the same conversation.'],
+        b2h: ['Il travaille pendant ton absence', 'It keeps working while you are away'], b2p: ['Il a son propre ordinateur, qui se réveille quand il a du travail.', 'It has its own computer, which wakes up when it has work to do.'],
+        b3h: ['Tu gardes la main', 'You stay in control'], b3p: ['Avant d’agir, il demande : Autoriser, Refuser ou Autoriser pour cette tâche.', 'Before it acts, it asks: Allow, Refuse, or Allow for this task.'],
         stOn: ['Telegram connecté', 'Telegram connected'], stOff: ['Telegram non connecté', 'Telegram not connected'], stWait: ['Telegram en attente', 'Telegram waiting'], stNone: ['Telegram indisponible', 'Telegram unavailable'],
         // the strip
         channels: ['Canaux', 'Channels'], soon: ['Bientôt', 'Soon'],
         // telegram
         telegram: ['Telegram', 'Telegram'],
         cH: ['Connecter Telegram', 'Connect Telegram'],
-        s1: ['Scannez ce code avec l’appareil photo de votre téléphone. Sur le téléphone, touchez « Ouvrir Telegram ».', 'Scan this code with your phone’s camera. On a phone, tap “Open Telegram”.'],
-        s2: ['Dans Telegram, touchez Démarrer.', 'In Telegram, tap Start.'],
-        s3: ['Touchez « Oui, c’est moi ».', 'Tap “Yes, it’s me”.'],
+        s1: ['Scanne ce code avec l’appareil photo de ton téléphone. Sur le téléphone, touche « Ouvrir Telegram ».', 'Scan this code with your phone’s camera. On a phone, tap “Open Telegram”.'],
+        s2: ['Dans Telegram, touche Démarrer.', 'In Telegram, tap Start.'],
+        s3: ['Touche « Oui, c’est moi ».', 'Tap “Yes, it’s me”.'],
         openTg: ['Ouvrir Telegram', 'Open Telegram'],
-        tgNone: ['Pas connecté', 'Not connected'], tgCode: ['Code à scanner', 'Code to scan'], tgWait2: ['En attente de votre accord', 'Waiting for your OK'],
+        tgNone: ['Pas connecté', 'Not connected'], tgCode: ['Code à scanner', 'Code to scan'], tgWait2: ['En attente de ton accord', 'Waiting for your OK'],
         tgExp: ['Code expiré', 'Code expired'], tgDec: ['Refusé dans Telegram', 'Refused in Telegram'], tgTak: ['Déjà utilisé par un autre compte', 'Already used by another account'],
         tgBot: ['Compte déjà créé par le bot', 'Account already made by the bot'],
         noCam: ['Pas de caméra ni d’application ? Écrire un code à la place', 'No camera or no app? Write a code instead'],
-        codeIntro: ['Dans Telegram, ouvrez {bot} et écrivez :', 'In Telegram, open {bot} and write:'], codeCopy: ['Copier', 'Copy'], codeCopied: ['Copié', 'Copied'],
+        codeIntro: ['Dans Telegram, ouvre {bot} et écris :', 'In Telegram, open {bot} and write:'], codeCopy: ['Copier', 'Copy'], codeCopied: ['Copié', 'Copied'],
         expiresIn: ['Expire dans {t}', 'Expires in {t}'], newCode: ['Nouveau code', 'New code'],
         preparing: ['Préparation du code…', 'Preparing the code…'],
-        scH: ['Presque fini : confirmez dans Telegram', 'Almost done: confirm in Telegram'],
-        scP: ['Telegram indique : {who}. Touchez « Oui, c’est moi » dans la conversation avec {NAME}.', 'Telegram says: {who}. Tap “Yes, it’s me” in the chat with {NAME}.'],
-        scWait: ['En attente de votre tap…', 'Waiting for your tap…'], notMe: ['Ce n’est pas moi : annuler', 'Not me: cancel'],
+        scH: ['Presque fini : confirme dans Telegram', 'Almost done: confirm in Telegram'],
+        scP: ['Telegram indique : {who}. Touche « Oui, c’est moi » dans la conversation avec {NAME}.', 'Telegram says: {who}. Tap “Yes, it’s me” in the chat with {NAME}.'],
+        scWait: ['En attente de ton tap…', 'Waiting for your tap…'], notMe: ['Ce n’est pas moi : annuler', 'Not me: cancel'],
         linked: ['Connecté : {name}', 'Connected: {name}'],
-        paused: ['En pause : écrivez /resume au bot pour reprendre.', 'Paused: write /resume to the bot to resume.'],
-        blocked: ['Le bot est bloqué dans Telegram : débloquez-le pour recevoir les réponses.', 'The bot is blocked in Telegram: unblock it to receive answers.'],
+        paused: ['En pause : écris /resume au bot pour reprendre.', 'Paused: write /resume to the bot to resume.'],
+        blocked: ['Le bot est bloqué dans Telegram : débloque-le pour recevoir les réponses.', 'The bot is blocked in Telegram: unblock it to receive answers.'],
         openBot: ['Ouvrir', 'Open'], discQ: ['Déconnecter Telegram ?', 'Disconnect Telegram?'], confirm: ['Confirmer', 'Confirm'], cancel: ['Annuler', 'Cancel'],
         exH: ['Ce code a expiré', 'This code has expired'], exP: ['Un code est valable 5 minutes et ne sert qu’une fois.', 'A code is good for 5 minutes and works once.'],
-        deH: ['Rien n’a été connecté', 'Nothing was connected'], deP: ['Vous avez touché « Non » dans Telegram.', 'You tapped “No” in Telegram.'],
+        deH: ['Rien n’a été connecté', 'Nothing was connected'], deP: ['Tu as touché « Non » dans Telegram.', 'You tapped “No” in Telegram.'],
         taH: ['Ce Telegram est déjà connecté à un autre compte', 'This Telegram is already connected to another account'],
-        taP: ['Déconnectez-le d’abord dans l’autre compte (écrivez /unlink à {NAME} dans Telegram), puis revenez ici.', 'Disconnect it from the other account first (write /unlink to {NAME} in Telegram), then come back here.'],
+        taP: ['Déconnecte-le d’abord dans l’autre compte (écris /unlink à {NAME} dans Telegram), puis reviens ici.', 'Disconnect it from the other account first (write /unlink to {NAME} in Telegram), then come back here.'],
         bmH: ['Ce Telegram a déjà un compte créé par le bot', 'This Telegram already has an account made by the bot'],
-        bmP: ['Rattacher ce Telegram à votre compte n’est pas encore possible. En attendant, continuez à utiliser le bot tel quel.', 'Attaching this Telegram to your account is not possible yet. Meanwhile, keep using the bot as it is.'],
+        bmP: ['Rattacher ce Telegram à ton compte n’est pas encore possible. En attendant, continue à utiliser le bot tel quel.', 'Attaching this Telegram to your account is not possible yet. Meanwhile, keep using the bot as it is.'],
+        // The Telegram row says WHY it cannot be turned on, and what to do about it (a bot there, no bot on this server, a server too old for the pairing routes).
+        offWhy: ['Ce serveur n’a pas de bot Telegram. Passe sur un serveur qui en a un, comme Kybernos Cloud.', 'This server has no Telegram bot. Switch to a server that has one, such as Kybernos Cloud.'],
+        oldWhy: ['Ce serveur ne sait pas encore relier Telegram.', 'This server does not support linking Telegram yet.'],
+        oldH: ['Ce serveur ne relie pas encore Telegram', 'This server cannot link Telegram yet'],
+        switchServer: ['Changer de serveur', 'Switch server'],
         ofH: ['Telegram n’est pas activé sur ce serveur', 'Telegram is not turned on on this server'],
         ofP: ['Ce serveur n’a pas de bot Telegram : il en faut un pour connecter Telegram.', 'This server has no Telegram bot: one is needed to connect Telegram.'],
        
         pe: ['Impossible de préparer le code pour l’instant.', 'The code cannot be prepared right now.'],
-        peRate: ['Trop d’essais : réessayez dans une minute.', 'Too many tries: try again in a minute.'],
+        peRate: ['Trop d’essais : réessaie dans une minute.', 'Too many tries: try again in a minute.'],
         retry: ['Réessayer', 'Try again'],
         // computer
         computer: ['Ordinateur', 'Computer'],
         // « This computer » is the machine that runs Kybernos: a choice that needs no server and no account.
         thisComputer: ['Cet ordinateur', 'This computer'], ready: ['Prêt', 'Ready'], cloudName: ['{name} (cloud)', '{name} (cloud)'],
-        txt_local: ['{NAME} travaille sur cet ordinateur quand vous lui écrivez ici. Gardez Kybernos ouvert.', '{NAME} works on this computer when you write to it here. Keep Kybernos open.'],
-        noHome: ['Créé à votre première demande qui en a besoin.', 'Made at your first request that needs one.'],
+        txt_local: ['{NAME} travaille sur cet ordinateur quand tu lui écris ici. Garde Kybernos ouvert.', '{NAME} works on this computer when you write to it here. Keep Kybernos open.'],
+        noHome: ['Créé à ta première demande qui en a besoin.', 'Made at your first request that needs one.'],
         onRequest: ['À la demande', 'On request'],
         pickLead: ['Ordinateur lié à {NAME}', 'Computer linked to {NAME}'],
         err_computer: ['Le choix n’a pas pu être enregistré.', 'The choice could not be saved.'],
         err_computer_old: ['Ce serveur ne sait pas encore enregistrer ce choix.', 'This server cannot save this choice yet.'],
-        ofSub: ['Pas de bot sur ce serveur', 'No bot on this server'], ofSubS: ['Pas de bot sur ce serveur ({server})', 'No bot on this server ({server})'],
         st_running: ['Éveillé', 'Awake'], st_suspended: ['En veille', 'Asleep'], st_creating: ['Initialisation', 'Setting up'], st_resuming: ['Se réveille', 'Waking up'],
         st_suspending: ['S’endort', 'Going to sleep'], st_failed: ['En échec', 'Failed'], st_other: ['{state}', '{state}'],
         txt_running: ['Éveillé : {NAME} travaille dessus.', 'Awake: {NAME} is working on it.'],
         txt_suspended: ['En veille. Il se réveille tout seul quand {NAME} a du travail, puis se rendort.', 'Asleep. It wakes by itself when {NAME} has work, then goes back to sleep.'],
-        txt_creating: ['Initialisation d’une machine dédiée pour vous. Environ une minute.', 'Setting up a machine dedicated to you. About a minute.'], txt_resuming: ['Il se réveille.', 'It is waking up.'], txt_suspending: ['Il s’endort.', 'It is going to sleep.'],
+        txt_creating: ['Initialisation d’une machine dédiée pour toi. Environ une minute.', 'Setting up a machine dedicated to you. About a minute.'], txt_resuming: ['Il se réveille.', 'It is waking up.'], txt_suspending: ['Il s’endort.', 'It is going to sleep.'],
         txt_failed: ['Il n’a pas démarré. {NAME} réessaiera au prochain message.', 'It did not start. {NAME} will try again at the next message.'],
         pr_hours: ['Les heures d’exécution du mois sont utilisées.', 'This month’s run hours are used up.'], pr_other: ['Il est en pause.', 'It is paused.'],
         wake: ['Réveiller', 'Wake up'], sleep: ['Mettre en veille', 'Put to sleep'], openPc: ['Ouvrir', 'Open'],
@@ -109,11 +113,11 @@ window.__ModuleLoader__.load({
         manage: ['Gérer dans mon compte', 'Manage in my account'],
         // the native conversation
         openChat: ['Ouvrir la conversation avec {NAME}', 'Open the conversation with {NAME}'],
-        openChatHint: ['Une vraie conversation DSH : même composeur, même rendu, avec la mémoire de votre compte. Ce qui s’y dit va aussi sur le fil que {NAME} partage avec Telegram.', 'A real DSH chat: same composer, same rendering, with your account’s memory. What is said there also goes on the thread {NAME} shares with Telegram.'],
+        openChatHint: ['Une vraie conversation DSH : même composeur, même rendu, avec la mémoire de ton compte. Ce qui s’y dit va aussi sur le fil que {NAME} partage avec Telegram.', 'A real DSH chat: same composer, same rendering, with your account’s memory. What is said there also goes on the thread {NAME} shares with Telegram.'],
         openChatFail: ['La conversation n’a pas pu s’ouvrir.', 'The conversation could not be opened.'],
         // states of the whole
         refresh: ['Actualiser', 'Refresh'],
-        signedOut: ['Connectez-vous à Kybernos pour voir votre {NAME}.', 'Sign in to Kybernos to see your {NAME}.'],
+        signedOut: ['Connecte-toi à Kybernos pour voir ton {NAME}.', 'Sign in to Kybernos to see your {NAME}.'],
         failed: ['Impossible de lire l’état pour l’instant.', 'The state cannot be read right now.'],
         loading: ['Lecture…', 'Reading…'],
       }
@@ -130,8 +134,12 @@ window.__ModuleLoader__.load({
         const s = asObj(server) !== null ? asObj(asObj(server).server) : null
         const api = s !== null && typeof s.api === 'string' && /^https?:\/\//.test(s.api) ? s.api.replace(/\/+$/, '') : ''
         const t = asObj(k.telegram)
-        let telegram = { state: 'off' }
-        if (t !== null && t.configured === true && t.enabled === true) {
+        // Three states of the door: a bot there (offered), no bot on this server (« off »), or a server too old for the pairing routes (« old »: the host saw a 404 on
+        // them). No bot is the answer that tells where to go, so it wins when both are true. A host that does not say claims nothing (the door is read as before).
+        const noBot = t !== null && !(t.configured === true && t.enabled === true)
+        const tooOld = k.pairing === 'unsupported'
+        let telegram = { state: noBot || !tooOld ? 'off' : 'old' }
+        if (!noBot && !tooOld && t !== null && t.configured === true && t.enabled === true) {
           const linked = asObj(t.linked)
           const bot = typeof t.bot === 'string' && /^[A-Za-z0-9_]{3,64}$/.test(t.bot) ? t.bot : ''
           telegram = linked === null
@@ -154,8 +162,10 @@ window.__ModuleLoader__.load({
           manualControl: hm.manual_control !== false,
           paused: typeof hm.paused_reason === 'string' && hm.paused_reason !== '' ? (hm.paused_reason === 'hours' ? 'hours' : 'other') : '',
         }
-        const serverId = s !== null && typeof s.id === 'string' && /^[A-Za-z0-9._-]{1,40}$/.test(s.id) ? s.id : ''
-        return { kind: 'ok', telegram, home, computers, serverId, accountUrl: api === '' ? '' : api + '/account' }
+        // Which server this is, as the host names it (the footer's helper): for the words under the Telegram row, and whether there is another to switch to.
+        const sv = asObj(k.server)
+        const named = { name: sv !== null && typeof sv.name === 'string' ? sv.name.slice(0, 60) : '', host: sv !== null && typeof sv.host === 'string' ? sv.host.slice(0, 80) : '', canSwitch: sv !== null && sv.can_switch === true }
+        return { kind: 'ok', telegram, home, computers, server: named, accountUrl: api === '' ? '' : api + '/account' }
       }
       /** Which computer {NAME} works on, as the tile shows it: the person's choice (`pref`), else the cloud computer when one is already there (made at an
        *  earlier request), else this one. A view with no account or no readable server can only say « this computer »: that choice needs neither. */
@@ -285,7 +295,7 @@ window.__ModuleLoader__.load({
         state.computerError = ''
         emit()
         const r = await postJson('/kybernos-cloud/kyby/computer', { computer_id: id === '' ? null : id })
-        if (r === null || r.ok !== true) state.computerError = r !== null && r.error === 'not_found' ? 'err_computer_old' : 'err_computer'
+        if (r === null || r.ok !== true) state.computerError = r !== null && (r.error === 'not_found' || r.error === 'unsupported') ? 'err_computer_old' : 'err_computer'
         await load()
       }
       /** « This computer » or the cloud one: remembered by this browser, with no call to any server (the cloud computer itself is chosen with `setComputer`). */
@@ -319,11 +329,15 @@ window.__ModuleLoader__.load({
         try { if (window.__KB_UPGRADE__ && typeof window.__KB_UPGRADE__.open === 'function') { window.__KB_UPGRADE__.open(); return } } catch (e) { /* the dialog is not there */ }
         void openAccount('plan')
       }
-      /** The strip is open only while there is something to DO in it (a code to scan); folded when connected or when this server has no bot. The person's choice wins. */
-      const stripIsOpen = (pref, telegramState) => (pref === true || pref === false ? pref : telegramState === 'unlinked')
+      /** The strip is open only while there is something to DO in it (a code to scan, or another server to switch to when this one has no bot or is too old for Telegram);
+       *  folded when connected or when there is nothing to do. The person's choice wins. */
+      const stripIsOpen = (pref, telegramState, canSwitch) => (pref === true || pref === false ? pref : telegramState === 'unlinked' || ((telegramState === 'off' || telegramState === 'old') && canSwitch === true))
       const telegramStateOf = () => (state.view !== null && state.view.kind === 'ok' ? state.view.telegram.state : null)
+      const canSwitchOf = () => state.view !== null && state.view.kind === 'ok' && state.view.server.canSwitch === true
+      /** Settings › Servers, the way the footer and the phone link ask for it: a window event the Kybernos Cloud bundle answers. */
+      const openServers = () => { try { window.dispatchEvent(new Event('kybernos-cloud:servers')) } catch (e) { /* no window events: nothing opens */ } }
       const toggleStrip = () => {
-        state.stripPref = !stripIsOpen(state.stripPref, telegramStateOf())
+        state.stripPref = !stripIsOpen(state.stripPref, telegramStateOf(), canSwitchOf())
         try { window.localStorage.setItem('kybernos-kyber.strip', state.stripPref ? '1' : '0') } catch (e) { /* no storage */ }
         emit()
       }
@@ -409,12 +423,13 @@ window.__ModuleLoader__.load({
       const Mark = (props) => h('span', { className: 'kbky-mark' }, props.children)
       /** One channel, one row: its mark, its name and where it stands, and what the person can do. */
       const ChanRow = (props) => h('div', { className: 'kbky-crow', 'data-kb': props.kb, 'data-state': props.stateKey },
-        h(Mark, null, props.mark), h('div', { className: 'kbky-ta' }, h('b', null, props.name), h('span', { className: props.warn ? 'warn' : '' }, props.sub)), h('div', { className: 'kbky-ra' }, props.right))
+        h(Mark, null, props.mark), h('div', { className: 'kbky-ta' }, h('b', null, props.name), h('span', { className: props.warn ? 'warn' : '' }, props.sub), props.extra === undefined ? null : props.extra), h('div', { className: 'kbky-ra' }, props.right))
 
       /** What Telegram's row says of itself: the connection, or the pairing in flight. */
       const telegramRow = (v) => {
         const tg = v.telegram
-        if (tg.state === 'off') return { sub: v.serverId === '' ? L('ofSub') : L('ofSubS', { server: v.serverId }), key: 'off' }
+        if (tg.state === 'off') return { sub: L('offWhy'), key: 'off' }
+        if (tg.state === 'old') return { sub: L('oldWhy'), key: 'old' }
         if (tg.state === 'linked') return { sub: tg.paused ? L('paused') : tg.blocked ? L('blocked') : tg.name, warn: tg.paused || tg.blocked, key: 'linked' }
         if (state.starting) return { sub: L('preparing'), key: 'starting' }
         const face = pairingFace(state.pairing, Date.now())
@@ -422,7 +437,7 @@ window.__ModuleLoader__.load({
         if (face.kind === 'scanned') return { sub: L('tgWait2'), key: 'scanned' }
         if (face.kind === 'expired') return { sub: L('tgExp'), key: 'expired' }
         if (face.kind === 'declined') return { sub: L(face.reason === 'taken' ? 'tgTak' : face.reason === 'botmade' ? 'tgBot' : 'tgDec'), key: 'declined' }
-        if (face.kind === 'error') return face.code === 'not_found' ? { sub: L('ofSub'), key: 'off' } : { sub: L('pe'), key: 'error' }
+        if (face.kind === 'error') return face.code === 'not_found' ? { sub: L('offWhy'), key: 'off' } : (face.code === 'unsupported' ? { sub: L('oldWhy'), key: 'old' } : { sub: L('pe'), key: 'error' })
         return { sub: L('tgNone'), key: 'idle' }
       }
 
@@ -440,7 +455,9 @@ window.__ModuleLoader__.load({
           h('p', { className: 'kbky-help', 'data-kb': 'kybernos-kyber-channels-help' }, L('channelsHelp')),
           h('div', { className: 'kbky-chlist' },
             h(ChanRow, { kb: 'kybernos-kyber-tg-row', stateKey: row.key, mark: BRAND.telegram(20), name: L('telegram'), sub: row.sub, warn: row.warn === true,
-              right: h(React.Fragment, null, bot, h(Switch, { on, disabled: tg.state === 'off', label: L('telegram'), kb: 'kybernos-kyber-tg-switch', onClick: telegramSwitch })) }),
+              // No bot here, or a server too old: the way out is on the row, when the registry names another server.
+              extra: (row.key === 'off' || row.key === 'old') && v.server.canSwitch === true ? h(Btn, { kb: 'kybernos-kyber-tg-switch-server', onClick: openServers }, L('switchServer')) : undefined,
+              right: h(React.Fragment, null, bot, h(Switch, { on, disabled: tg.state === 'off' || tg.state === 'old', label: L('telegram'), kb: 'kybernos-kyber-tg-switch', onClick: telegramSwitch })) }),
             soon('whatsapp', 'WhatsApp'), soon('wechat', 'WeChat')))
       }
 
@@ -508,7 +525,7 @@ window.__ModuleLoader__.load({
         const note = (kind, hKey, pText, retry) => panel(kind,
           h('div', { className: 'kbky-pcol' }, h('h3', null, L(hKey)), h('p', { className: 'kbky-sub left' }, pText),
             retry ? h('div', { className: 'kbky-actions' }, h(Btn, { primary: true, kb: 'kybernos-kyber-retry', onClick: () => { void pairStart() } }, L('newCode'))) : null))
-        if (tg.state === 'off') return null
+        if (tg.state === 'off' || tg.state === 'old') return null
         if (tg.state === 'linked') {
           if (!state.confirmDisc) return null
           return panel('disconnect', h('div', { className: 'kbky-pcol' }, h('h3', null, L('discQ')),
@@ -527,6 +544,7 @@ window.__ModuleLoader__.load({
         }
         if (face.kind === 'error') {
           if (face.code === 'not_found') return note('off', 'ofH', L('ofP'), false)
+          if (face.code === 'unsupported') return note('old', 'oldH', L('oldWhy'), false)
           return panel('error', h('div', { className: 'kbky-pcol' }, h('h3', null, L('cH')), h('p', { className: 'kbky-sub left' }, L(face.code === 'rate_limited' ? 'peRate' : 'pe')),
             h('div', { className: 'kbky-actions' }, h(Btn, { primary: true, kb: 'kybernos-kyber-retry', onClick: () => { void pairStart() } }, L('retry')))))
         }
@@ -660,14 +678,14 @@ window.__ModuleLoader__.load({
       const statusOf = (v) => {
         const tg = v !== null && v.kind === 'ok' ? v.telegram.state : null
         if (tg === 'linked') return ['ok', 'stOn']
-        if (tg === null || tg === 'off') return ['', 'stNone']
+        if (tg === null || tg === 'off' || tg === 'old') return ['', 'stNone']
         return pairingFace(state.pairing, Date.now()).kind === 'scanned' ? ['warn', 'stWait'] : ['', 'stOff']
       }
 
       /** The collapsible strip: {NAME}'s name, and under it the two tiles. Open only when there is something to turn on; folded, two chips say how things stand. */
       const Strip = () => {
         const v = state.view
-        const open = stripIsOpen(state.stripPref, telegramStateOf())
+        const open = stripIsOpen(state.stripPref, telegramStateOf(), canSwitchOf())
         const chip = statusOf(v)
         const hm = v !== null && v.kind === 'ok' ? v.home : null
         const local = whereOf(state.where, v) === 'local'
@@ -795,6 +813,7 @@ window.__ModuleLoader__.load({
         '.kbky-crow{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:12px;align-items:center;min-height:50px}',
         '.kbky-crow+.kbky-crow{border-top:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.2))}',
         '.kbky-ta{display:flex;flex-direction:column;min-width:0}.kbky-ta b{font-size:14px;font-weight:600}',
+        '.kbky-ta .kbky-btn{align-self:flex-start;margin-top:8px}',
         '.kbky-ta span{font-size:12.5px;color:var(--dsw-alias-label-secondary,#666)}.kbky-ta span.warn{color:var(--dsw-alias-state-warn-label,#a8530a)}',
         '.kbky-ra{display:flex;gap:8px;align-items:center}',
         '.kbky-iconlink{display:inline-flex;color:var(--dsw-alias-label-secondary,#666)}',

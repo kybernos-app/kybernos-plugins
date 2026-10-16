@@ -1,19 +1,19 @@
 {
   "what": {
-    "fr": "Une recherche qui lit le contenu de vos chats, pas seulement leurs titres, et aussi vos skills, mémoires, leçons, créations, automations et équipes.",
+    "fr": "Une recherche qui lit le contenu de tes chats, pas seulement leurs titres, et aussi tes skills, mémoires, leçons, créations, automations et équipes.",
     "en": "A search that reads the content of your chats, not only their titles, and also your skills, memories, lessons, creations, automations and agent teams."
   },
   "steps": [
     {
-      "fr": "Appuyez sur ⌘K (Ctrl+K), ou cliquez la loupe « Rechercher partout », en haut à gauche ou à côté de la recherche de la liste.",
+      "fr": "Appuie sur ⌘K (Ctrl+K), ou clique la loupe « Rechercher partout », en haut à gauche ou à côté de la recherche de la liste.",
       "en": "Press ⌘K (Ctrl+K), or click the “Search everywhere” icon, at the top left or next to the list's search."
     },
     {
-      "fr": "Tapez quelques mots : les résultats sont groupés par type, avec l’extrait où ils apparaissent.",
+      "fr": "Tape quelques mots : les résultats sont groupés par type, avec l’extrait où ils apparaissent.",
       "en": "Type a few words: results are grouped by kind, with the passage where they appear."
     },
     {
-      "fr": "Activez ou coupez un type avec les pastilles du haut ; ↑ ↓ pour choisir, ↵ pour ouvrir.",
+      "fr": "Active ou coupe un type avec les pastilles du haut ; ↑ ↓ pour choisir, ↵ pour ouvrir.",
       "en": "Switch a kind on or off with the chips at the top; ↑ ↓ to choose, ↵ to open."
     }
   ],

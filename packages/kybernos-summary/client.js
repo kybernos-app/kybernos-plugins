@@ -52,7 +52,7 @@ window.__ModuleLoader__.load({
         tools: ['MCP et outils', 'MCP & tools'],
         files: ['Fichiers', 'Files'],
         empty: ['Rien à résumer pour l’instant : le travail du chat apparaît ici dès qu’il commence.', 'Nothing to sum up yet: the chat’s work shows up here as soon as it starts.'],
-        noChat: ['Ouvrez une conversation pour voir son résumé.', 'Open a conversation to see its summary.'],
+        noChat: ['Ouvre une conversation pour voir son résumé.', 'Open a conversation to see its summary.'],
         more: ['+ {n} autres', '+ {n} more'],
         calls: ['{n} appels', '{n} calls'],
         open: ['Ouvrir {name}', 'Open {name}'],

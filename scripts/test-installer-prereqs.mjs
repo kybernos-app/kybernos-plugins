@@ -14,9 +14,9 @@ const check = (name, ok, detail) => {
 }
 
 const SRC = readFileSync(new URL('./dsh-lifecycle.mjs', import.meta.url), 'utf8')
-const profil = SRC.slice(SRC.indexOf('const installerProfil = async () => {'), SRC.indexOf('// ── l\'environnement réel, injecté dans le moteur'))
+const profil = SRC.slice(SRC.indexOf('const installerProfil = async () => {'), SRC.indexOf('// ── the real environment, injected into the engine'))
 check('installerProfil provides pnpm before it asks DSH to install the profile', profil.indexOf('await assurerPnpm()') >= 0 && profil.indexOf('await assurerPnpm()') < profil.indexOf("['dsh', 'plugin', '--profile', 'web', 'install']"))
-const pnpm = SRC.slice(SRC.indexOf('async function assurerPnpm'), SRC.indexOf('// install pnpm avec sortie VISIBLE'))
+const pnpm = SRC.slice(SRC.indexOf('async function assurerPnpm'), SRC.indexOf('// pnpm install with VISIBLE output'))
 check('it first asks whether pnpm answers, and does nothing when it does', /execReel\(\['pnpm', '--version'\][^)]*\)\s*\n\s*if \(present\.code === 0\) return/.test(pnpm))
 check('otherwise it installs pnpm with npm in the installer\'s own tree and links it where dsh is linked', pnpm.includes("['npm', 'install'") && pnpm.includes("lierDansLePrefixe(vrai, 'pnpm'"))
 check('a pnpm that cannot be provided stops with a sentence that says what to do', pnpm.includes('npm install -g pnpm'))

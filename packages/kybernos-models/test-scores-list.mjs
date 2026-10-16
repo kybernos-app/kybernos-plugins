@@ -6,7 +6,10 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, browserHeaders } from './lib-session-test.mjs'
 
+sessionSource.secret = () => SESSION_SECRET // the machine secret the write routes check the session cookie against
 const home = mkdtempSync(join(tmpdir(), 'kbm-scores-'))
 process.env.DSH_HOME = home
 const { apply, SCORES_FILE, kbScoreHeadline } = await import('./index.js')
@@ -42,7 +45,7 @@ const post = async (headers, body) => {
   await routes['/kybernos-models/scores/list'](req, { writeHead (s) { out.status = s }, end (b) { try { out.body = JSON.parse(String(b)) } catch (e) { out.body = b } } })
   return out
 }
-const SAME = { origin: 'http://127.0.0.1:3080' }
+const SAME = browserHeaders() // the page's own pair: the right Origin and DSH's signed session cookie
 
 check('the headline is Artificial Analysis\' intelligence index, one decimal', kbScoreHeadline({ aa: { entry: { intelligenceIndex: 52.34 } } }) === 52.3 && kbScoreHeadline({ aa: { entry: { intelligenceIndex: '32' } } }) === 32)
 check('no AA entry, or none with an index: no score (BenchLM is another scale and is not mixed in)', kbScoreHeadline({ aa: null, benchlm: { entry: { displayScore: 88 } } }) === null && kbScoreHeadline({ aa: { entry: {} } }) === null && kbScoreHeadline(null) === null && kbScoreHeadline({ aa: { entry: { intelligenceIndex: -1 } } }) === null)
@@ -60,7 +63,8 @@ check('a model whose id differs only in punctuation matches too (qwen3.5-9b → 
 check('a model with no index, one only BenchLM knows, an unknown one and junk entries get nothing (never a made-up zero)', Object.keys(r.body.scores).length === 2, r.body.scores)
 check('the answer says when the snapshot was read and whether it is old', typeof r.body.at === 'number' && r.body.stale === false)
 check('a request that says nothing about where it comes from is refused (403): it is a POST', (await post({}, { models: [] })).status === 403)
-check('another origin is refused', (await post({ origin: 'https://evil.example' }, { models: [] })).status === 403)
+check('another origin is refused, even with the real cookie', (await post({ ...SAME, origin: 'https://evil.example' }, { models: [] })).status === 403)
+check('the right Origin and no session cookie is refused (401)', (await post({ origin: SAME.origin }, { models: [] })).status === 401)
 check('a body without a list of models is a 400, not a crash', (await post(SAME, { nope: 1 })).status === 400)
 const big = await post(SAME, { models: Array.from({ length: 2000 }, (x, i) => ({ key: 'openrouter/deepseek/deepseek-v4-pro-' + i })) })
 check('a huge list is cut, never refused or slow', big.status === 200)

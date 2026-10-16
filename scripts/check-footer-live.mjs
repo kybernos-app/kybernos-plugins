@@ -15,15 +15,8 @@
 // link, and `window.open` (recorded, never followed).
 //
 // The menu's Team settings, Account and Referral open the APP in the browser (the console link, section plan / overview, asked of the host which opens the
-// system browser): no frame. The embedded console (still in the core, no menu entry opens it any more: `window.__kbOpenWsConsole`) is checked against REAL
-// servers: small HTTP stand-ins on loopback ports that the sandbox's own registry (<DSH home>/kybernos/servers.json, put back at the end) names as the active
-// server, so the address comes from the host's route and the frame really loads. The frame's own stand-in page posts the message the real console posts.
-//
-// The account's own pages of that frame (Security, Devices, My data, Support & legal; the server's ADR 0054) read through the host's relay: the scene
-// « the frame's account pages are not refused by the relay » drives the REAL relay route of the sandbox's host (a connected state is written for the
-// stand-in server and removed at the end) and fails on any « chemin refuse ». The host half is NOT hot-reloaded: restart the sandbox after editing
-// packages/kybernos-cloud/index.js (relay rules). By default the stand-in page makes the reads the real frame makes; `--console-file <html>` serves the
-// server's real console page instead (node -e "import('<server>/src/modules/app/pages.ts').then((m) => require('fs').writeFileSync('console.html', m.EMBEDDED_PAGE))").
+// system browser): no frame. The read-only copy of the account pages that DSH used to draw (an iframe of the server's console, with a relay and a key hand-off)
+// is gone from the core too, and so are its scenes here (docs/dev/frame-removal.md).
 //
 // The menus are also driven with the KEYBOARD ONLY (audit A1-29): Enter opens one with the focus on its first item, the arrows walk it round the ends, Home / End jump, Escape and
 // Tab close it and give the focus back to the button that opened it. The keys are real key events (CDP Input.dispatchKeyEvent), nothing is focused by the page after the first focus.
@@ -35,7 +28,6 @@
 //
 // Sandbox only: it refuses :3080 (exit 3). It presses DSH's light/dark switch of the sandbox's own profile and puts it back.
 // Exit 0 all good, 1 a check failed, 3 not run.
-import { createServer } from 'node:http'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { openLivePage, waitFor, openAdvancedFold } from './live-page.mjs'
@@ -45,7 +37,6 @@ if (host.endsWith(':3080')) { console.error('○ not run: this check must run ag
 const DSH_HOME = process.env.DSH_HOME || ''
 if (!DSH_HOME.includes('.kybernos-sandbox')) { console.error('○ not run: DSH_HOME is not an isolated instance (' + (DSH_HOME || 'unset') + '): source scripts/sandbox/env.sh'); process.exit(3) }
 const shotsAt = process.argv.includes('--shots') ? process.argv[process.argv.indexOf('--shots') + 1] : null
-const consoleFile = process.argv.includes('--console-file') ? process.argv[process.argv.indexOf('--console-file') + 1] : null
 if (shotsAt !== null) mkdirSync(shotsAt, { recursive: true })
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -82,74 +73,7 @@ const REMOTE_OFFERED = { ok: true, available: true, running: true, connected: tr
 const fake = { status: null, calls: [], bodies: [], pair: null, plans: null, plansDelay: 0, checkout: null, portal: null, quote: null, link: null, pairingPending: false, remote: REMOTE_OFFERED, sync: null, push: null }
 const body64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64')
 
-// The GETs the real frame makes for each page of the account group (what the server's console asks its parent for): Overview and the two entries DSH's footer
-// opens (`#account`, `#referral`), Security, Devices, My data (none), Support & legal (`#support`); and, for the team on screen (`{ws}`), the team's pages
-// (Plan, Usage, Members, Models, Billing, API keys, Team security, Computers): ADR 0054 §§ 16-17.
-const FRAME_READS = {
-  account: ['/v1/me', '/v1/sessions', '/v1/referral'], referral: ['/v1/me', '/v1/sessions', '/v1/referral'], overview: ['/v1/me', '/v1/sessions', '/v1/referral'],
-  security: ['/v1/me/mfa'], devices: ['/v1/sessions'], data: [], support: ['/v1/public/legal'],
-  computers: ['/v1/workspaces/{ws}/computers', '/v1/workspaces/{ws}/computers/usage'],
-  keys: ['/v1/keys?limit=200&workspace_id={ws}'],
-  tsecurity: ['/v1/workspaces/{ws}/security', '/v1/workspaces/{ws}/llm/provider-policy', '/v1/workspaces/{ws}/llm/provider-acceptances'],
-  members: ['/v1/workspaces/{ws}/members', '/v1/workspaces/{ws}/invitations', '/v1/workspaces/{ws}/llm/member-limits', '/v1/workspaces/{ws}/audit?limit=50'],
-  providers: ['/v1/workspaces/{ws}/llm/models', '/v1/workspaces/{ws}/llm/byok', '/v1/workspaces/{ws}/llm/byok/credentials', '/v1/workspaces/{ws}/llm/byok/models'],
-  billing: ['/v1/workspaces/{ws}/llm/billing'],
-  usage: ['/v1/workspaces/{ws}/llm/usage?group_by=detail'],
-  plan: ['/v1/workspaces/{ws}/llm/billing', '/v1/workspaces/{ws}/llm/budget', '/v1/workspaces/{ws}/members'],
-}
-// What the stand-in server answers on its API side (the host's relay calls it with the device token); a team's reads answer by the name they end on.
-const API_BODIES = {
-  '/v1/me': { id: 'u-1', email: 'dev@example.test', name: 'Dev Person', plan: 'free' },
-  '/v1/sessions': { sessions: [] },
-  '/v1/referral': { code: 'AB12CD', share_url: 'https://example.invalid/r/AB12CD' },
-  '/v1/me/mfa': { enabled: false, methods: [] },
-  '/v1/public/legal': { terms: null, privacy: null },
-  '/v1/workspaces': { workspaces: [{ id: W_PERSONAL, name: 'Personal', personal: true, role: 'owner' }, { id: W_TEAM, name: 'Studio', personal: false, role: 'owner' }] },
-  '/v1/keys': { keys: [], has_more: false },
-}
-const TEAM_BODIES = {
-  members: { members: [{ user_id: 'u-1', name: 'Dev Person', email: 'dev@example.test', role: 'owner' }] },
-  billing: { plan: null, invoices: [], provider_available: true }, budget: { windows: [] }, models: { models: [] }, usage: { rows: [], truncated: false },
-  invitations: { invitations: [] }, 'member-limits': { caps: [] }, byok: { allowed: true, reason: null, custom_endpoints: false, providers: [] }, credentials: { credentials: [] },
-  'provider-policy': {}, 'provider-acceptances': { items: [] }, security: { require_mfa: false, grace_days: 0 }, computers: { computers: [], policy: null, standing: null }, audit: { entries: [] },
-}
-// A console of its own, on its own loopback port: it counts what is asked of it and, when the frame is clicked, posts the message the real console posts. Its page
-// also makes the reads the real frame makes for the page the address names (through the parent's relay), and its API side answers them and records the Authorization it saw.
-const consoles = []
-const startConsole = async (opts = {}) => {
-  const hits = []
-  const api = []
-  const srv = createServer((req, res) => {
-    hits.push(req.url)
-    const path = req.url.split('?')[0]
-    if (path === '/workspace-console') {
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
-      if (opts.file !== undefined && opts.file !== null) { res.end(readFileSync(opts.file, 'utf8')); return }
-      res.end('<!doctype html><title>console stand-in</title><body style="margin:0;height:100vh;background:#fff" onclick="parent.postMessage({kbOpenBrowser:{id:\'' + W_PERSONAL + '\'}},\'*\')"><p>console stand-in</p>'
-        + '<script>var reads=' + JSON.stringify(FRAME_READS) + ';var page=String(location.hash||"").slice(1).split("&")[0];var ws=new URLSearchParams(location.search).get("ws")||"";'
-        + 'addEventListener("message",function(ev){if(ev.source===parent&&ev.data&&ev.data.kbApiReady===true)(reads[page]||[]).forEach(function(p,i){parent.postMessage({kbApi:{id:"r"+i,method:"GET",path:p.split("{ws}").join(ws)}},"*")})});'
-        + 'parent.postMessage({kbConsoleReady:true},"*")</script>')
-      return
-    }
-    const team = /^\/v1\/workspaces\/[0-9a-f-]{36}\/(?:llm\/(?:byok\/)?)?(?:computers\/)?([a-z-]+)$/.exec(path)
-    const body = API_BODIES[path] !== undefined ? API_BODIES[path] : (team !== null && TEAM_BODIES[team[1]] !== undefined ? TEAM_BODIES[team[1]] : null)
-    if (body !== null && req.method === 'GET') {
-      api.push({ url: req.url, auth: req.headers.authorization || null })
-      res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify(body))
-      return
-    }
-    res.writeHead(404); res.end()
-  })
-  await new Promise((r) => srv.listen(0, '127.0.0.1', r))
-  const c = { origin: 'http://127.0.0.1:' + srv.address().port, hits, api, server: srv, close: () => new Promise((r) => { try { srv.closeAllConnections() } catch (e) { /* none */ } srv.close(() => r()) }) }
-  consoles.push(c)
-  return c
-}
-const REGISTRY = join(DSH_HOME, 'kybernos', 'servers.json')
 const agentsBefore = existsSync(join(DSH_HOME, 'AGENTS.md')) ? readFileSync(join(DSH_HOME, 'AGENTS.md'), 'utf8') : null
-const registryBefore = existsSync(REGISTRY) ? readFileSync(REGISTRY, 'utf8') : null
-const setRegistry = (active, list) => { mkdirSync(join(DSH_HOME, 'kybernos'), { recursive: true }); writeFileSync(REGISTRY, JSON.stringify({ active, servers: list.map((c, i) => ({ id: 'stub-' + (i + 1), name: 'Stand-in ' + (i + 1), api: c.origin })) })) }
-const restoreRegistry = () => { try { if (registryBefore === null) rmSync(REGISTRY, { force: true }); else writeFileSync(REGISTRY, registryBefore) } catch (e) { /* the sandbox is throw-away */ } }
 
 const live = await openLivePage({ width: 1400, height: 860 }).catch((e) => { console.error('○ not run: ' + e.message); process.exit(3) })
 const { page } = live
@@ -194,16 +118,6 @@ const WATCH = `(() => {
   window.__kbNative = []
   window.__kbOpened = []
   window.open = (u) => { window.__kbOpened.push(String(u)); return null }
-  // The calls the page's broker makes to the host's relay, with what the host answered (the relay's own verdict: « chemin refuse » for a path off its allowlist).
-  window.__kbRelay = []
-  const realFetch = window.fetch.bind(window)
-  window.fetch = (input, init) => {
-    const url = typeof input === 'string' ? input : (input && input.url) || ''
-    const p = url.indexOf('/kybernos-cloud/relay?p=') >= 0 ? decodeURIComponent(url.split('?p=')[1] || '') : null
-    const out = realFetch(input, init)
-    if (p !== null) out.then((r) => r.clone().json()).then((j) => window.__kbRelay.push({ p, ok: j && j.ok === true, status: j && typeof j.status === 'number' ? j.status : null, error: j && j.error ? String(j.error) : null })).catch(() => window.__kbRelay.push({ p, ok: false, status: null, error: 'unreadable' }))
-    return out
-  }
   const seen = () => {
     for (const m of document.querySelectorAll('[role="menu"]')) {
       if (m.matches('[data-kb="off-menu"], .kbfp-menu, .kbfp-sub')) continue
@@ -664,207 +578,8 @@ try {
     await reload()
     await openProfileMenu()
 
-    // The core's embedded console is no longer reachable from the menu; its own scenes below open it through its bridge, as any other caller would.
-    // Account and Referral were read-only pages of the active server's console, in DSH's content zone (`#account`, `#referral`) — the same frame as Team
-    // settings. The registry names a console stand-in as the active server, so the address really comes from the host and the frame really loads.
-    console.log('The core\'s embedded console (through its bridge) — the ACTIVE server\'s console')
-    const A = await startConsole()
-    setRegistry('stub-1', [A])
+    // Account asks the host for the console link itself, and a refusal is said above the footer.
     await reload()
-    const frame = async () => val(`(() => { const f = document.querySelector('[data-kb="ws-console"]'); const a = document.querySelector('[data-kb="ws-open-browser"]'); return f ? { kind: 'iframe', url: f.src } : a ? { kind: 'link', url: a.href } : null })()`)
-    const frameUrl = async () => { const f = await frame(); return f === null ? null : new URL(f.url) }
-    const waitFrame = async () => waitFor(page, `document.querySelector('[data-kb="ws-console"], [data-kb="ws-open-browser"]') !== null`, 8000)
-    const PAGE_OF = { 'space-settings': '', account: 'account', referral: 'referral' }
-    const openPage = async (entry) => { await val(`window.__kbOpenWsConsole(${JSON.stringify(PAGE_OF[entry])})`); await waitFrame(); await settle() }
-
-    await openPage('space-settings')
-    let u = await frameUrl()
-    check('Team settings: the frame is the active server\'s console (origin of the registry\'s server, /workspace-console)', u !== null && u.origin === A.origin && u.pathname === '/workspace-console', u && u.href)
-    check('with the workspace, the theme and the language, and no page', u !== null && u.searchParams.get('ws') === W_PERSONAL && ['light', 'dark'].indexOf(u.searchParams.get('theme')) >= 0 && u.searchParams.get('lang') === 'en' && u.hash === '', u && u.href)
-    check('and the frame really loaded it from that server', A.hits.some((h) => h.startsWith('/workspace-console')), A.hits)
-    await shot('13-team-settings-embedded')
-
-    await openPage('account')
-    u = await frameUrl()
-    check('Account: the same console, on #account, with the same parameters', u !== null && u.origin === A.origin && u.pathname === '/workspace-console' && u.hash === '#account' && u.searchParams.get('ws') === W_PERSONAL && ['light', 'dark'].indexOf(u.searchParams.get('theme')) >= 0 && u.searchParams.get('lang') === 'en', u && u.href)
-    check('nothing opened a browser', fake.bodies.filter((b) => b.path === '/kybernos-cloud/console/link').length === 0 && (await opened()).length === 0, fake.bodies)
-    // The frame's « Open in browser » (its stand-in page posts what the real one posts): the host is asked for the link on the account's overview.
-    fake.bodies.length = 0
-    const box = await rect('[data-kb="ws-console"]')
-    await mouse(box.x + box.w / 2, box.y + box.h / 2)
-    await until(() => linkAsks().length >= 1, 5000)
-    await settle()
-    const link = fake.bodies.filter((b) => b.path === '/kybernos-cloud/console/link')
-    check('its « Open in browser » asks the host for a console link on section overview, opened by the host', link.length === 1 && link[0].body.section === 'overview' && link[0].body.open === true && link[0].body.workspace_id === W_PERSONAL, link)
-    await shot('14-account-embedded')
-
-    await openPage('referral')
-    u = await frameUrl()
-    check('Referral: #referral', u !== null && u.origin === A.origin && u.hash === '#referral', u && u.href)
-    await mouse(box.x + box.w / 2, box.y + box.h / 2)
-    await until(() => linkAsks().length >= 2, 5000)
-    await settle()
-    check('and its « Open in browser » is on the overview too', fake.bodies.filter((b) => b.path === '/kybernos-cloud/console/link').length === 2 && fake.bodies[fake.bodies.length - 1].body.section === 'overview', fake.bodies)
-    await openPage('space-settings')
-    u = await frameUrl()
-    check('Team settings after Referral is the console\'s first page again', u !== null && u.hash === '' && u.origin === A.origin, u && u.href)
-    fake.bodies.length = 0
-
-    // ── The account's own pages of the frame read through the REAL relay route of the sandbox's host ─────────────────────────────────────────────────────────
-    // (the server's ADR 0054: Overview, Security, Devices, My data, Support & legal.) A connected state is written for the stand-in server (the sandbox host reads
-    // its state file at each call) so the relay is not « non connecte »; it is removed at the end. A page whose read the relay refuses would show an error in the
-    // frame: what is asserted is the relay's verdict (« chemin refuse » never), the path that reached the server and the token going out as Authorization only.
-    console.log('The frame\'s account pages — their reads are not refused by the relay')
-    // With `--console-file` the page is the server's REAL console (built from its source), served by a stand-in of its own that is the active server for
-    // this scene only; without it, the stand-in page makes the reads the real frame makes.
-    const S = consoleFile !== null ? await startConsole({ file: consoleFile }) : A
-    if (S !== A) { setRegistry('stub-1', [S]); await reload() }
-    const stateFile = join(DSH_HOME, 'kybernos-cloud-stub-1.json')
-    writeFileSync(stateFile, JSON.stringify({ token: 'kys-live-check-0123456789', api: S.origin, user: { id: 'u-1', email: 'dev@example.test', name: 'Dev Person', plan: 'free' },
-      workspaces: [{ id: W_PERSONAL, name: 'Personal', personal: true, role: 'owner' }], active_workspace_id: W_PERSONAL }), { mode: 0o600 })
-    // `want`: how many reads the page makes at least; `ready(relay)`: a stricter condition when the paths are known. Then the page is left to go quiet
-    // (no new read for 400 ms) so a read that follows is in the answer too. `want` 0 asserts that the page reads NOTHING: that one is a window of time.
-    const relayList = async () => (await val('window.__kbRelay')) || []
-    const relayAfter = async (slug, want, ready = null) => {
-      await val(`window.__kbRelay = []`)
-      S.api.length = 0
-      await val(`window.__kbOpenWsConsole(${JSON.stringify(slug)})`)
-      await waitFrame()
-      if (want === 0) await sleep(700)
-      else {
-        await waitFor(page, `window.__kbRelay.length >= ${want}`, 10000)
-        if (ready !== null) await until(async () => ready(await relayList()), 10000)
-        let n = -1
-        await until(async () => { const now = (await relayList()).length; const quiet = now === n; n = now; if (!quiet) await sleep(360); return quiet }, 8000)
-      }
-      return { relay: await relayList(), api: S.api.slice() }
-    }
-    const notRefused = (r) => r.relay.every((x) => x.error !== 'chemin refuse' && x.error !== 'non connecte')
-    const security = await relayAfter('security', 1)
-    check('Security: the frame\'s read of the account\'s second factor (/v1/me/mfa) is not refused by the relay', security.relay.some((x) => x.p === '/v1/me/mfa') && notRefused(security), security.relay)
-    check('… and it reached the server as a GET with the device token in Authorization', security.api.some((x) => x.url === '/v1/me/mfa' && x.auth === 'Bearer kys-live-check-0123456789'), security.api)
-    const support = await relayAfter('support', 1)
-    check('Support & legal: the read of the server\'s legal page (/v1/public/legal) is not refused by the relay', support.relay.some((x) => x.p === '/v1/public/legal') && notRefused(support), support.relay)
-    check('… and it reached the server as a GET with the device token in Authorization', support.api.some((x) => x.url === '/v1/public/legal' && x.auth === 'Bearer kys-live-check-0123456789'), support.api)
-    const devices = await relayAfter('devices', 1)
-    check('Devices: the read of the sessions is not refused', devices.relay.some((x) => x.p === '/v1/sessions') && notRefused(devices), devices.relay)
-    const over = await relayAfter('overview', 3)
-    check('Overview: the profile, the sessions and the referral card are not refused', ['/v1/me', '/v1/sessions', '/v1/referral'].every((p) => over.relay.some((x) => x.p === p)) && notRefused(over), over.relay)
-    const data = await relayAfter('data', 0)
-    // The page itself reads nothing; the real frame's shell reads the profile and the teams list on every page (both are on the allowlist).
-    check('My data: nothing the relay refuses' + (consoleFile === null ? ' (and the page reads nothing at all)' : ''), notRefused(data) && (consoleFile !== null || data.relay.length === 0), data.relay)
-    console.log('    reads seen by the relay: ' + JSON.stringify({ security: security.relay.map((x) => x.p), support: support.relay.map((x) => x.p), devices: devices.relay.map((x) => x.p), overview: over.relay.map((x) => x.p), data: data.relay.map((x) => x.p) }))
-    // The writes of the second factor and anything else under /v1/me/mfa stay off the allowlist (the unit test pins the rule; here the real route).
-    const refusedLive = await val(`fetch('/kybernos-cloud/relay?p=' + encodeURIComponent('/v1/me/mfa/setup')).then((r) => r.json())`)
-    check('a sub-path of the second factor (a write) is still refused by the real route', refusedLive !== null && refusedLive.ok === false && refusedLive.error === 'chemin refuse', refusedLive)
-    check('no token anywhere in what the page saw of the relay', JSON.stringify([security.relay, support.relay, devices.relay, over.relay]).indexOf('kys-live-check') < 0)
-    await shot('16-frame-security')
-    // The frame's team pages (ADR 0054 §§ 16-17): the team on screen is the active one, the account's own. Every read these pages make must get through the relay,
-    // the most personal two (the person's API keys, the team's trail) included: a refusal would show as « could not load » on the page.
-    console.log('The frame\'s team pages — their reads are not refused by the relay')
-    writeFileSync(stateFile, JSON.stringify({ token: 'kys-live-check-0123456789', api: S.origin, user: { id: 'u-1', email: 'dev@example.test', name: 'Dev Person', plan: 'free' },
-      workspaces: [{ id: W_PERSONAL, name: 'Personal', personal: true, role: 'owner' }, { id: W_TEAM, name: 'Studio', personal: false, role: 'owner' }], active_workspace_id: W_TEAM }), { mode: 0o600 })
-    fake.status = CLOUD(W_TEAM)
-    await reload()
-    const teamPaths = (r) => r.relay.map((x) => x.p)
-    const sawTeam = (r, suffix) => teamPaths(r).some((p) => p.toLowerCase().startsWith('/v1/workspaces/' + W_TEAM + suffix))
-    const TEAM_PAGES = [
-      ['computers', 'Computers', ['/computers', '/computers/usage']],
-      ['keys', 'API keys', null],
-      ['tsecurity', 'Team security', ['/security']],
-      ['members', 'Members', ['/members', '/invitations']],
-      ['providers', 'Models', ['/llm/models', '/llm/byok']],
-      ['billing', 'Billing', ['/llm/billing']],
-      ['usage', 'Usage', ['/llm/usage']],
-    ]
-    const teamSeen = {}
-    const teamApi = {}
-    // Runs a script INSIDE the frame (CDP: an isolated world of the framed document, whatever its origin): the Members page loads the trail only when its
-    // « Activity » tab is shown, which is a click in the frame.
-    const frameEval = async (js) => {
-      const tree = await page.send('Page.getFrameTree', {})
-      const ft = tree && tree.result ? tree.result.frameTree : null
-      const kids = (ft && ft.childFrames) || []
-      const fr = kids.find((c) => String(c.frame.url).indexOf(S.origin) === 0)
-      if (fr === undefined) return null
-      const w = await page.send('Page.createIsolatedWorld', { frameId: fr.frame.id, worldName: 'kb-check' })
-      const ctx = w && w.result ? w.result.executionContextId : undefined
-      if (ctx === undefined) return null
-      const r = await page.send('Runtime.evaluate', { contextId: ctx, expression: js, returnByValue: true })
-      return r && r.result && r.result.result ? r.result.result.value : null
-    }
-    for (const [slug, label, suffixes] of TEAM_PAGES) {
-      const want = suffixes === null ? ['/v1/keys?limit=200&workspace_id=' + W_TEAM] : suffixes.map((x) => '/v1/workspaces/' + W_TEAM + x)
-      const got = await relayAfter(slug, 1, (list) => want.every((w) => list.some((x) => x.p.toLowerCase().startsWith(w.toLowerCase()))))
-      teamSeen[slug] = teamPaths(got)
-      teamApi[slug] = got.api
-      check(label + ': its reads are not refused by the relay and the ones the page makes got through (' + want.map((x) => x.replace('/v1/workspaces/' + W_TEAM, '…')).join(', ') + ')',
-        notRefused(got) && want.every((w) => teamPaths(got).some((p) => p.toLowerCase().startsWith(w.toLowerCase()))), got.relay.map((x) => (x.error !== null ? '[' + x.error + '] ' : '') + x.p.replace('/v1/workspaces/' + W_TEAM, '…')))
-    }
-    // The two personal ones are named on their own, with what the server saw. The trail is read when the Members page's « Activity » tab is shown: in the
-    // real page that is a click in the frame (the stand-in page reads it with the page itself).
-    await val(`window.__kbRelay = []`)
-    await val(`window.__kbOpenWsConsole('members')`)
-    await waitFrame()
-    const trailSeen = async () => (await relayList()).some((x) => /\/audit\?limit=\d+/.test(x.p))
-    if (consoleFile !== null) {
-      // The real console builds its tabs after it loads: press « Activity » as soon as it exists.
-      let clicked = null
-      await until(async () => { clicked = await frameEval(`(() => { const b = document.querySelector('#subTabs button[data-s="act"]'); if (b) b.click(); return !!b })()`); return clicked === true }, 10000)
-      check('the frame\'s « Activity » tab was there to press (the trail is read when it is shown)', clicked === true, clicked)
-    }
-    await until(trailSeen, 10000)
-    const trail = { relay: (await val('window.__kbRelay')) || [] }
-    check('the team\'s trail (the audit, owners and admins) is read through the relay with a bounded page size, and not refused',
-      trail.relay.some((x) => /\/audit\?limit=\d+/.test(x.p)) && notRefused(trail), trail.relay.map((x) => (x.error !== null ? '[' + x.error + '] ' : '') + x.p.replace('/v1/workspaces/' + W_TEAM, '…')))
-    check('the keys list reached the server with the token in Authorization and the workspace named',
-      (teamApi.keys || []).some((x) => x.url === '/v1/keys?limit=200&workspace_id=' + W_TEAM && x.auth === 'Bearer kys-live-check-0123456789'), teamApi.keys)
-    console.log('    team reads seen by the relay: ' + JSON.stringify(teamSeen))
-    // With the switches off the same two reads would be refused — pinned by test-relay.mjs (both ways); here only the shipped list answers.
-    fake.status = CLOUD(W_PERSONAL)
-    rmSync(stateFile, { force: true })
-    if (S !== A) { setRegistry('stub-1', [A]); await reload() }
-    await openPage('space-settings')
-    fake.bodies.length = 0
-
-    // A server that has no #account page yet shows its console, never an error: the frame is the same document, whose own code ignores the fragment.
-    // The server's address follows the registry when it changes while the page is up (no reload).
-    const B = await startConsole()
-    setRegistry('stub-2', [A, B])
-    await val(`window.dispatchEvent(new Event('focus'))`)
-    await waitFor(page, `(() => { const f = document.querySelector('[data-kb="ws-console"]'); return f !== null && f.src.indexOf(${JSON.stringify(B.origin)}) === 0 })()`, 8000)
-    u = await frameUrl()
-    check('another server selected while the page is up: the frame follows it (no reload of DSH)', u !== null && u.origin === B.origin, u && u.href)
-    check('and loaded from it', B.hits.some((h) => h.startsWith('/workspace-console')), B.hits)
-
-    // The same address is the fallback's: when the console does not answer, « Open in browser » goes to the SAME origin.
-    await B.close()
-    await reload()
-    await openPage('space-settings')
-    const down = await frame()
-    const du = down === null ? null : new URL(down.url)
-    check('a console that does not answer: the card says so and its « Open in browser » link is on the SAME origin', down !== null && down.kind === 'link' && du.origin === B.origin && du.pathname === '/workspace-console', down)
-    check('and it names that host', (await text('.kbwsif-down')) !== null && String(await text('.kbwsif-down')).indexOf(new URL(B.origin).host) >= 0, await text('.kbwsif-down'))
-    await shot('15-console-down')
-
-    // The registry back on A; a console URL left in localStorage no longer wins, but with the developer flag it does.
-    setRegistry('stub-1', [A])
-    await val(`localStorage.setItem('kybernos.ws.console.url', 'http://override.example.test/old-test')`)
-    await reload()
-    await openPage('space-settings')
-    u = await frameUrl()
-    check('a console URL left in localStorage does not win over the active server', u !== null && u.origin === A.origin, u && u.href)
-    await val(`localStorage.setItem('kybernos.dev', '1')`)
-    await reload()
-    await openPage('space-settings')
-    u = await frameUrl()
-    check('behind the developer flag the stored override wins again', u !== null && u.origin === 'http://override.example.test', u && u.href)
-    await val(`localStorage.removeItem('kybernos.dev'); localStorage.removeItem('kybernos.ws.console.url')`)
-    await reload()
-
-    // Account asks the host for the console link itself: the core's bridge is not involved (it is deleted here to prove it), and a refusal is said above the footer.
-    await reload()
-    await val(`delete window.__kbOpenWsConsole`)
     fake.bodies.length = 0
     await openProfileMenu()
     await press('[data-kb="menu-account"]')
@@ -1153,9 +868,6 @@ try {
 } finally {
   // The Kybernos section writes the sandbox's own AGENTS.md: put it back as it was.
   try { if (agentsBefore === null) rmSync(join(DSH_HOME, 'AGENTS.md'), { force: true }); else writeFileSync(join(DSH_HOME, 'AGENTS.md'), agentsBefore) } catch (e) { /* the sandbox is throw-away */ }
-  try { rmSync(join(DSH_HOME, 'kybernos-cloud-stub-1.json'), { force: true }) } catch (e) { /* none */ }
-  restoreRegistry()
-  for (const c of consoles) { try { await c.close() } catch (e) { /* closed */ } }
   await live.close()
 }
 if (notRun !== null) { console.error('○ not run: ' + notRun); process.exit(3) }

@@ -84,7 +84,7 @@ await settle()
 const banner = () => findAll(tree, (n) => n.props && n.props.className === 'dshdb-err').map((n) => textOf(n))
 const select = findAll(tree, (n) => n.tag === 'select')[0]
 ok('the first database is read first and its failure is shown', banner().some((t) => /file is not a database/.test(t)), JSON.stringify(banner()))
-ok('...and the bar does not go on saying it is reading the schema of that broken database', !/lecture du sch/.test(textOf(tree)), textOf(tree))
+ok('...and the bar does not go on saying it is reading the schema of that broken database', !/Reading the schema/.test(textOf(tree)), textOf(tree))
 
 select.props.onChange({ target: { value: 'a4-crm' } })
 await settle()

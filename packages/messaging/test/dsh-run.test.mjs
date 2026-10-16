@@ -23,53 +23,53 @@ function run(options = {}) {
   });
 }
 
-test('createEventParser assemble les lignes incomplètes et ignore le non-JSON', () => {
+test('createEventParser assembles incomplete lines and ignores non-JSON', () => {
   const seen = [];
   const parser = createEventParser((e) => seen.push(e));
   parser.feed('{"type":"text","text":"a"}\n{"type":"te');
-  parser.feed('xt","text":"b"}\npas du json\n');
+  parser.feed('xt","text":"b"}\nnot json\n');
   parser.flush();
   assert.deepEqual(seen.map((e) => e.type), ['text', 'text']);
   assert.equal(parser.state.nonJsonLines, 1);
 });
 
-test('runHeadless capture la session, la réponse finale et les événements', async () => {
+test('runHeadless captures the session, the final answer and the events', async () => {
   const events = [];
   const result = await run({ task: 'bonjour', onEvent: (e) => events.push(e.type) });
   assert.equal(result.ok, true);
   assert.equal(result.exitCode, 0);
   assert.equal(result.sessionId, 'session-fake-0001');
-  assert.equal(result.final, 'écho: bonjour');
+  assert.equal(result.final, 'echo: bonjour');
   assert.equal(result.usage.totalTokens, 42);
   assert.ok(events.includes('tool_call'));
   assert.ok(events.includes('final'));
 });
 
-test('runHeadless adopte une session existante', async () => {
+test('runHeadless adopts an existing session', async () => {
   const result = await run({ task: 'suite', sessionId: 'session-fake-0001' });
   assert.equal(result.ok, true);
   assert.equal(result.sessionId, 'session-fake-0001');
 });
 
-test('runHeadless signale un échec de tour', async () => {
-  const result = await run({ task: 'ÉCHEC' });
+test('runHeadless reports a failed turn', async () => {
+  const result = await run({ task: 'FAIL' });
   assert.equal(result.ok, false);
   assert.equal(result.exitCode, 1);
   assert.equal(result.turnEnd.reason.kind, 'aborted');
-  assert.match(result.stderr, /tour interrompu/);
+  assert.match(result.stderr, /turn interrupted/);
 });
 
-test('runHeadless respecte le délai et tue le processus', async () => {
+test('runHeadless respects the timeout and kills the process', async () => {
   const started = Date.now();
-  const result = await run({ task: 'LENT', timeoutMs: 700 });
+  const result = await run({ task: 'SLOW', timeoutMs: 700 });
   assert.equal(result.timedOut, true);
   assert.equal(result.ok, false);
-  assert.ok(Date.now() - started < 5000, 'le processus aurait dû être tué rapidement');
+  assert.ok(Date.now() - started < 5000, 'the process should have been killed quickly');
 });
 
-test('runHeadless s’arrête sur un signal d’abandon', async () => {
+test('runHeadless stops on an abort signal', async () => {
   const controller = new AbortController();
-  const promise = run({ task: 'LENT', signal: controller.signal });
+  const promise = run({ task: 'SLOW', signal: controller.signal });
   setTimeout(() => controller.abort(), 200);
   const result = await promise;
   assert.equal(result.aborted, true);

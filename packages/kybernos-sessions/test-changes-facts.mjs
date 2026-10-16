@@ -33,7 +33,7 @@ const sess = (git, extra) => Object.assign({
   sync: { distant: 'git@github.com:acme/proj.git', branche: 'main', commitsNonPousses: 0, commitsRecus: 0, dernierFetch: null },
   pr: null
 }, extra)
-const travail = (chemins, extra) => Object.assign({ fait: false, quoi: 'écriture', ecritures: chemins.length, chemins }, extra)
+const travail = (chemins, extra) => Object.assign({ fait: false, quoi: 'write', ecritures: chemins.length, chemins }, extra)
 
 console.log('not a project')
 check('no folder: not git, and why', JSON.stringify(faitsChangements(null, 'sid', null)) === JSON.stringify({ git: false, pourquoi: 'dossier' }))

@@ -1017,7 +1017,7 @@ function NoteBody ({ wd, onPatch }) {
           h('button', { type: 'button', 'aria-label': kt('Cocher', 'Toggle'), 'aria-pressed': c[1] === 1, onClick: () => setCheck(i, (row) => { row[1] = row[1] ? 0 : 1 }) }, c[1] ? Ic('check', 12) : null),
           h('span', { contentEditable: true, suppressContentEditableWarning: true, onKeyDown: enterLeaves, onPaste: pastePlain(true), onBlur: (e) => { const t = leaveBox(e.currentTarget, true); setCheck(i, (row) => { row[0] = t }) } }, c[0]))),
         h('button', { type: 'button', className: 'kbdb-addi', onClick: () => save({ check: wd.check.concat([[kt('Nouvel élément', 'New item'), 0]]) }) }, '+ ' + kt('Ajouter un élément', 'Add an item')))
-      : h('div', { className: 'kbdb-nbody', contentEditable: true, suppressContentEditableWarning: true, 'data-ph': kt('Écrivez ici', 'Write something'), onPaste: pastePlain(false), onBlur: (e) => save({ text: leaveBox(e.currentTarget, false) }) }, wd.text || ''))
+      : h('div', { className: 'kbdb-nbody', contentEditable: true, suppressContentEditableWarning: true, 'data-ph': kt('Écris ici', 'Write something'), onPaste: pastePlain(false), onBlur: (e) => save({ text: leaveBox(e.currentTarget, false) }) }, wd.text || ''))
 }
 
 /* ── carousel ── */
@@ -1128,7 +1128,7 @@ function Widget ({ wd, index, tick, edit, flash, onPatch, onRemove, onMove, onWi
   const footLabel = liveFlow
     ? (() => { const ls = Array.from(new Set(model.flowSources(wd).map((x) => (model.PROVIDERS[x.source.provider] ? model.PROVIDERS[x.source.provider].label : x.source.provider)))); return ls.length > 2 ? ls.length + ' ' + kt('sources', 'sources') : ls.join(' + ') })()
     : label
-  const noteFoot = ((isNote || !bound) && !liveFlow) ? h('div', { className: 'kbdb-wf' }, h('span', { className: 'sp' }, Ic('pencil', 12), ' ', isNote ? kt('Écrit ici, enregistré dans ce dashboard', 'Written here, saved in this dashboard') : (wd.type === 'flow' ? kt('Dessiné ici, enregistré dans ce dashboard', 'Drawn here, saved in this dashboard') : kt('Cartes à vous, enregistrées dans ce dashboard', 'Cards are yours, saved in this dashboard')))) : null
+  const noteFoot = ((isNote || !bound) && !liveFlow) ? h('div', { className: 'kbdb-wf' }, h('span', { className: 'sp' }, Ic('pencil', 12), ' ', isNote ? kt('Écrit ici, enregistré dans ce dashboard', 'Written here, saved in this dashboard') : (wd.type === 'flow' ? kt('Dessiné ici, enregistré dans ce dashboard', 'Drawn here, saved in this dashboard') : kt('Tes cartes, enregistrées dans ce dashboard', 'Cards are yours, saved in this dashboard')))) : null
   const foot = noteFoot !== null ? noteFoot : h('div', { className: 'kbdb-wf' },
     h('span', { className: 'kbdb-dot' + (status.state === 'error' ? ' err' : (status.partial || status.state === 'refreshing' ? ' warn' : '')) }),
     h('span', { className: 'sp', title: status.table && status.table.meta.note ? status.table.meta.note : '' }, footLabel + ' · ' + (status.state === 'error' ? kt('illisible', 'unreadable') : (status.at ? kt('lu ', 'read ') + ago(status.at) : kt('lecture…', 'reading…'))) + (status.table && status.table.meta.note ? ' · ⓘ' : '')))
@@ -1424,7 +1424,7 @@ function DashboardsPage () {
         h('h1', { className: 'kbdb-title' }, h('span', { className: 'kbdb-rel' },
           h('button', { type: 'button', 'aria-haspopup': 'listbox', 'aria-expanded': pop === 'switch', onClick: () => setPop(pop === 'switch' ? '' : 'switch') }, D.name, Ic('chev', 16)),
           pop === 'switch' ? h('div', { className: 'kbdb-pop', role: 'listbox' },
-            h('span', { className: 'hd' }, kt('Vos dashboards', 'Your dashboards')),
+            h('span', { className: 'hd' }, kt('Tes dashboards', 'Your dashboards')),
             items.filter((d) => !d.archived && !d.hidden).map((d) => h('button', { key: d.id, type: 'button', className: 'o', role: 'option', 'aria-current': d.id === dash.id, onClick: async () => { await flush(); open(d.id) } }, d.name, h('span', { className: 'sub' }, d.widgets + ' ' + kt('widgets', 'widgets')))),
             h('button', { type: 'button', className: 'o', onClick: toGallery }, kt('Tout voir et presets', 'See all and presets'))) : null)),
         D.desc !== '' ? h('p', { className: 'kbdb-sub' }, D.desc) : null),
@@ -1434,7 +1434,7 @@ function DashboardsPage () {
           h('button', { type: 'button', className: 'kbdb-btn', 'aria-haspopup': 'dialog', 'aria-expanded': pop === 'sources', onClick: () => setPop(pop === 'sources' ? '' : 'sources') }, Ic('db', 14), kt('Sources', 'Sources'), h('span', { style: { color: 'var(--kbdb-t3)' } }, sources.length)),
           pop === 'sources' ? h('div', { className: 'kbdb-pop r' },
             h('span', { className: 'hd' }, kt('Sources lues par ce dashboard', 'Sources this dashboard reads')),
-            sources.length === 0 ? h('span', { className: 'foot' }, kt('Aucune : ce dashboard ne contient que vos notes.', 'None: this dashboard only holds your notes.')) : sources.map((s) => h('div', { key: s.provider, className: 'src' }, h('span', { className: 'kbdb-dot', style: { marginTop: 6 } }), h('span', { className: 'tx' }, h('b', { style: { fontWeight: 500 } }, s.label), h('i', null, s.provider + ' · ' + s.widgets.length + ' widget' + (s.widgets.length > 1 ? 's' : ''))))),
+            sources.length === 0 ? h('span', { className: 'foot' }, kt('Aucune : ce dashboard ne contient que tes notes.', 'None: this dashboard only holds your notes.')) : sources.map((s) => h('div', { key: s.provider, className: 'src' }, h('span', { className: 'kbdb-dot', style: { marginTop: 6 } }), h('span', { className: 'tx' }, h('b', { style: { fontWeight: 500 } }, s.label), h('i', null, s.provider + ' · ' + s.widgets.length + ' widget' + (s.widgets.length > 1 ? 's' : ''))))),
             h('span', { className: 'foot' }, kt('Les sources sont lues sur cet ordinateur. Un fichier dashboard ne peut lire que ces sources.', 'Sources are read on this computer. A dashboard file can only read these sources.'))) : null),
         h('button', { type: 'button', className: 'kbdb-btn' + (busy ? ' busy' : ''), 'data-act': 'refresh', onClick: refresh }, h('span', { className: 'kbdb-spin' }, Ic('refresh', 14)), kt('Actualiser', 'Refresh')),
         h('span', { className: 'kbdb-rel' },
@@ -1442,7 +1442,7 @@ function DashboardsPage () {
           pop === 'history' ? h('div', { className: 'kbdb-pop r' },
             h('span', { className: 'hd' }, kt('Révisions', 'Revisions')),
             revs.length === 0 ? h('span', { className: 'foot' }, kt('Aucune révision.', 'No revisions.')) : revs.map((rv) => h('button', { key: rv.r, type: 'button', className: 'o', disabled: rv.r === dash.rev, onClick: async () => { setPop(''); const r = await api('POST', 'restore', { id: dash.id, rev: rv.r }); if (r.ok) { await load(dash.id); setTick((x) => x + 1); say(kt('Révision ', 'Revision ') + rv.r + kt(' restaurée.', ' restored.')) } } },
-              'r' + rv.r + ' · ' + (rv.by === 'agent' ? kt('IA', 'AI') : (rv.by === 'preset' ? 'preset' : kt('vous', 'you'))), h('span', { className: 'sub' }, rv.what || '')))) : null),
+              'r' + rv.r + ' · ' + (rv.by === 'agent' ? kt('IA', 'AI') : (rv.by === 'preset' ? 'preset' : kt('toi', 'you'))), h('span', { className: 'sub' }, rv.what || '')))) : null),
         h('button', { type: 'button', className: 'kbdb-btn', 'aria-pressed': edit, 'data-act': 'edit', onClick: () => setEdit((v) => !v) }, Ic('pencil', 14), edit ? kt('Terminé', 'Done') : kt('Modifier la mise en page', 'Edit layout')),
         h('button', { type: 'button', className: 'kbdb-btn primary', 'data-act': 'improve', onClick: askImprove }, Ic('spark', 14), kt('Améliorer avec l’IA', 'Improve with AI'))))
     // The gallery's header is the template of the other listing pages (title and sentence on the left, the primary action on
@@ -1452,7 +1452,7 @@ function DashboardsPage () {
     : h('header', { className: 'kbdb-gal-head kb6-headrow' },
       h('div', { className: 'kb6-headcol' },
         h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, kt('Dashboards', 'Dashboards'))),
-        h('p', { className: 'kb8-sub' }, kt('Vos dashboards sont des fichiers. Partez d’un preset, ou demandez à l’IA d’en construire un.', 'Your dashboards are files. Start from a preset, or ask the AI to build one.'))),
+        h('p', { className: 'kb8-sub' }, kt('Tes dashboards sont des fichiers. Pars d’un preset, ou demande à l’IA d’en construire un.', 'Your dashboards are files. Start from a preset, or ask the AI to build one.'))),
       h('div', { className: 'kb6-headacts' },
         hiddenCount > 0 ? h('button', { type: 'button', className: 'kbdb-btn', 'aria-pressed': showHidden, onClick: () => setShowHidden((v) => !v) }, Ic('eyeoff', 14), kt('Masqués', 'Hidden'), h('span', { style: { color: 'var(--kbdb-t3)' } }, hiddenCount)) : null,
         h('button', { type: 'button', className: 'kb8-primary', 'data-act': 'create', onClick: askCreate }, Ic('spark', 14), kt('Créer un dashboard avec l’IA', 'Create a dashboard with AI'))))
@@ -1464,7 +1464,7 @@ function DashboardsPage () {
     h('div', { className: 'gh' }, h('h3', null, d.name), d.isDefault ? h('span', { className: 'kbdb-pill def' }, kt('Par défaut', 'Default')) : null,
       h('button', { type: 'button', className: 'kbdb-ib', 'data-more': '1', 'aria-label': kt('Actions', 'Actions'), 'aria-haspopup': 'menu', onClick: (e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setMenu(menu !== null && menu.id === d.id ? null : { id: d.id, x: Math.max(8, Math.min(window.innerWidth - 228, r.right - 220)), y: r.bottom + 6 }) } }, Ic('more', 16))),
     d.desc !== '' ? h('p', null, d.desc) : null,
-    h('span', { className: 'kbdb-gmeta' }, h('span', { className: 'kbdb-pill' }, d.widgets + ' widgets'), h('span', { className: 'kbdb-pill' }, d.sources.length + ' ' + kt('sources', 'sources')), h('span', { className: 'kbdb-pill' }, d.by === 'agent' ? kt('par l’IA', 'by AI') : (d.by === 'preset' ? kt('depuis un preset', 'from a preset') : kt('par vous', 'by you'))), d.hidden ? h('span', { className: 'kbdb-pill' }, kt('masqué', 'hidden')) : null))
+    h('span', { className: 'kbdb-gmeta' }, h('span', { className: 'kbdb-pill' }, d.widgets + ' widgets'), h('span', { className: 'kbdb-pill' }, d.sources.length + ' ' + kt('sources', 'sources')), h('span', { className: 'kbdb-pill' }, d.by === 'agent' ? kt('par l’IA', 'by AI') : (d.by === 'preset' ? kt('depuis un preset', 'from a preset') : kt('par toi', 'by you'))), d.hidden ? h('span', { className: 'kbdb-pill' }, kt('masqué', 'hidden')) : null))
   const presetCard = (p, i) => h('article', { key: p.id, className: 'kbdb-gcard', style: { '--i': Math.min(i, 8) }, 'data-kb': 'dashboards-preset', 'data-id': p.id },
     h(Mini, { shape: p.shape }), h('div', { className: 'gh' }, h('h3', null, p.name)), h('p', null, p.desc),
     h('span', { className: 'kbdb-gmeta' }, h('span', { className: 'kbdb-pill' }, p.widgets + ' widgets'), h('span', { className: 'kbdb-pill' }, p.sources.length + ' ' + kt('sources', 'sources'))),
@@ -1472,22 +1472,22 @@ function DashboardsPage () {
 
   let body
   if (screen === 'boot' || (failed === false && list === null)) body = h('div', { className: 'kbdb-gal' }, [0, 1, 2].map((i) => h('div', { key: i, className: 'kbdb-gcard' }, bone('100%', 96), bone('50%', 16), bone('80%', 12))))
-  else if (failed) body = h('div', { className: 'kbdb-banner' }, h('span', { className: 'kbdb-dot warn' }), h('span', { className: 'sp' }, kt('Le serveur local ne répond pas aux dashboards. Réessayez dans un instant.', 'The local server is not answering for dashboards. Try again in a moment.')), h('button', { type: 'button', className: 'kbdb-btn sm', onClick: () => { setScreen('boot'); refreshList().then(() => setScreen('gallery')) } }, kt('Réessayer', 'Try again')))
+  else if (failed) body = h('div', { className: 'kbdb-banner' }, h('span', { className: 'kbdb-dot warn' }), h('span', { className: 'sp' }, kt('Le serveur local ne répond pas aux dashboards. Réessaie dans un instant.', 'The local server is not answering for dashboards. Try again in a moment.')), h('button', { type: 'button', className: 'kbdb-btn sm', onClick: () => { setScreen('boot'); refreshList().then(() => setScreen('gallery')) } }, kt('Réessayer', 'Try again')))
   else if (screen === 'gallery') {
     body = h(React.Fragment, null,
       h('div', { className: 'kbdb-sec-h' }, h('h2', null, kt('Mes dashboards', 'My dashboards')), h('span', null, mine.length)),
       mine.length === 0
-        ? h('div', { className: 'kbdb-gempty' }, h('b', null, kt('Aucun dashboard pour l’instant', 'No dashboard yet')), h('span', null, kt('Demandez à l’IA ce que vous voulez suivre, ou partez d’un preset ci-dessous.', 'Ask the AI what you want to follow, or start from a preset below.')), h('button', { type: 'button', className: 'kbdb-btn primary', onClick: askCreate }, Ic('spark', 14), kt('Créer un dashboard avec l’IA', 'Create a dashboard with AI')))
+        ? h('div', { className: 'kbdb-gempty' }, h('b', null, kt('Aucun dashboard pour l’instant', 'No dashboard yet')), h('span', null, kt('Demande à l’IA ce que tu veux suivre, ou pars d’un preset ci-dessous.', 'Ask the AI what you want to follow, or start from a preset below.')), h('button', { type: 'button', className: 'kbdb-btn primary', onClick: askCreate }, Ic('spark', 14), kt('Créer un dashboard avec l’IA', 'Create a dashboard with AI')))
         : h('div', { className: 'kbdb-gal' }, mine.map(card)),
-      h('div', { className: 'kbdb-sec-h' }, h('h2', null, 'Presets'), h('span', null, kt('Des modèles : en utiliser un vous donne votre propre copie.', 'Templates: using one gives you your own copy.'))),
+      h('div', { className: 'kbdb-sec-h' }, h('h2', null, 'Presets'), h('span', null, kt('Des modèles : en utiliser un te donne ta propre copie.', 'Templates: using one gives you your own copy.'))),
       h('div', { className: 'kbdb-gal' }, presets.map(presetCard)),
       archived.length > 0 ? h(React.Fragment, null,
         h('div', { className: 'kbdb-sec-h' }, h('h2', null, kt('Archivés', 'Archived')), h('span', null, archived.length), h('span', { className: 'sp' }), h('button', { type: 'button', className: 'kbdb-chip', 'aria-pressed': showArchived, onClick: () => setShowArchived((v) => !v) }, showArchived ? kt('Masquer', 'Hide') : kt('Afficher', 'Show'))),
         showArchived ? h('div', { className: 'kbdb-gal' }, archived.map((d, i) => h('article', { key: d.id, className: 'kbdb-gcard dim', style: { '--i': Math.min(i, 8) } }, h(Mini, { shape: d.shape }), h('div', { className: 'gh' }, h('h3', null, d.name)), d.desc !== '' ? h('p', null, d.desc) : null, h('div', { className: 'acts' }, h('button', { type: 'button', className: 'kbdb-btn sm', onClick: () => act('flags', { id: d.id, archived: false }, kt('Restauré.', 'Restored.')) }, kt('Restaurer', 'Restore')))))) : null) : null)
   } else if (D !== null) {
     body = h(React.Fragment, null,
-      conflict ? h('div', { className: 'kbdb-banner' }, h('span', { className: 'kbdb-dot warn' }), h('span', { className: 'sp' }, kt('Ce dashboard a changé ailleurs (l’IA, un autre onglet). Vos dernières retouches ne sont pas enregistrées.', 'This dashboard changed elsewhere (the AI, another tab). Your last edits were not saved.')), h('button', { type: 'button', className: 'kbdb-btn sm', onClick: async () => { await load(dash.id); setTick((x) => x + 1) } }, kt('Recharger', 'Reload'))) : null,
-      D.widgets.length === 0 ? h('div', { className: 'kbdb-gempty' }, h('b', null, kt('Ce dashboard est vide', 'This dashboard is empty')), h('span', null, kt('Dites à l’IA ce que vous voulez y voir.', 'Tell the AI what you want to see here.')), h('button', { type: 'button', className: 'kbdb-btn primary', onClick: askImprove }, Ic('spark', 14), kt('Améliorer avec l’IA', 'Improve with AI')))
+      conflict ? h('div', { className: 'kbdb-banner' }, h('span', { className: 'kbdb-dot warn' }), h('span', { className: 'sp' }, kt('Ce dashboard a changé ailleurs (l’IA, un autre onglet). Tes dernières retouches ne sont pas enregistrées.', 'This dashboard changed elsewhere (the AI, another tab). Your last edits were not saved.')), h('button', { type: 'button', className: 'kbdb-btn sm', onClick: async () => { await load(dash.id); setTick((x) => x + 1) } }, kt('Recharger', 'Reload'))) : null,
+      D.widgets.length === 0 ? h('div', { className: 'kbdb-gempty' }, h('b', null, kt('Ce dashboard est vide', 'This dashboard is empty')), h('span', null, kt('Dis à l’IA ce que tu veux y voir.', 'Tell the AI what you want to see here.')), h('button', { type: 'button', className: 'kbdb-btn primary', onClick: askImprove }, Ic('spark', 14), kt('Améliorer avec l’IA', 'Improve with AI')))
         : h(DashboardView, { dash: D, tick, edit, flashIds: flash, onChange: change, onAsk: (kind) => { if (kind === 'add') askAdd() }, onRetry: refresh }))
   } else body = null
 
@@ -1497,7 +1497,7 @@ function DashboardsPage () {
     menuItem('def', 'star', menuFor.isDefault ? kt('Dashboard par défaut', 'Default dashboard') : kt('Définir par défaut', 'Set as default'), () => act('flags', { id: menuFor.id, default: !menuFor.isDefault }, menuFor.isDefault ? kt('Plus de dashboard par défaut.', 'No default dashboard any more.') : kt('Ouvert en premier depuis le menu.', 'Opens first from the menu.'))),
     menuItem('clone', 'copy', kt('Cloner', 'Clone'), async () => { const r = await act('clone', { id: menuFor.id }, null); if (r !== null) say(kt('Cloné : ', 'Cloned: ') + r.id) }),
     menuItem('arch', 'archive', kt('Archiver', 'Archive'), () => act('flags', { id: menuFor.id, archived: true }, kt('Archivé.', 'Archived.'))),
-    menuItem('hide', 'eyeoff', menuFor.hidden ? kt('Afficher à nouveau', 'Show again') : kt('Masquer', 'Hide'), () => act('flags', { id: menuFor.id, hidden: !menuFor.hidden }, menuFor.hidden ? kt('Visible à nouveau.', 'Visible again.') : kt('Masqué. Utilisez « Masqués » pour le retrouver.', 'Hidden. Use “Hidden” to bring it back.'))))
+    menuItem('hide', 'eyeoff', menuFor.hidden ? kt('Afficher à nouveau', 'Show again') : kt('Masquer', 'Hide'), () => act('flags', { id: menuFor.id, hidden: !menuFor.hidden }, menuFor.hidden ? kt('Visible à nouveau.', 'Visible again.') : kt('Masqué. Utilise « Masqués » pour le retrouver.', 'Hidden. Use “Hidden” to bring it back.'))))
 
   return h('div', { ref: rootRef, className: 'kbdb kbdb-page' + (edit && screen === 'dash' ? ' kbdb-editing' : ''), 'data-kb': 'dashboards-page', 'data-screen': screen },
     header, body, fpop, toast !== '' ? h('div', { className: 'kbdb-toast', role: 'status' }, toast) : null)
@@ -1538,7 +1538,7 @@ function DashboardsPane () {
   }, [])
   const full = () => { try { window.__KB_DASHBOARDS__.open(curId) } catch (e) { /* the page is not available */ } }
   useInView(rootRef)
-  if (dash === null) return h('div', { ref: rootRef, className: 'kbdb kbdb-pane', 'data-kb': 'dashboards-pane' }, h('div', { className: 'kbdb-empty', style: { padding: 24 } }, h('b', null, kt('Pas encore de dashboard', 'No dashboard yet')), kt('Demandez-en un au chat : il apparaîtra ici.', 'Ask the chat for one: it will show up here.')))
+  if (dash === null) return h('div', { ref: rootRef, className: 'kbdb kbdb-pane', 'data-kb': 'dashboards-pane' }, h('div', { className: 'kbdb-empty', style: { padding: 24 } }, h('b', null, kt('Pas encore de dashboard', 'No dashboard yet')), kt('Demandes-en un au chat : il apparaîtra ici.', 'Ask the chat for one: it will show up here.')))
   return h('div', { ref: rootRef, className: 'kbdb kbdb-pane', 'data-kb': 'dashboards-pane' },
     h('div', { className: 'kbdb-pane-h' }, h('span', { className: 'kbdb-dot live' }), h('span', { className: 'nm' }, dash.dashboard.name), h('span', { className: 'sp' }),
       h('button', { type: 'button', className: 'kbdb-ib', 'aria-label': kt('Actualiser', 'Refresh'), onClick: () => { clearRoutes(); setTick((x) => x + 1) } }, Ic('refresh', 14)),

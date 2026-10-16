@@ -292,6 +292,10 @@ read English; French must read French; no French word in another language, no En
 right pane (and its tabs) from one run to the next: the check asks for a fresh start list. In a right-to-left language the right pane is
 drawn on the left of the window. The offline twin is `scripts/test-no-french-literals.mjs`: French literals outside a dictionary, the
 pair helper (`kt(fr, en)`: French for French, English for everything else), READMEs and descriptions, the French twin that must stay.
+A bundle listed under `"unaccented"` in `scripts/i18n-french-allow.json` is also read for French typed without its accent (« indisponible »,
+« Discuter »): the gate used to count accented French only, so error messages, log lines and labels written on a keyboard without é got through.
+The live twin of that reading is `node scripts/audit-i18n-live.mjs --baseline`: in English the « FR left » column must be 0 (the language picker's
+« Français » is the one allowed word).
 
 ## The first-run wizard: `scripts/check-onboarding-live.mjs`
 
@@ -353,7 +357,7 @@ Three things ride on the same hub seam (`window.__KB_HELP__`):
   The key is the one of the page's button (`kybernos.help.intro.<id>`, in this browser's localStorage). Skills, Connectors and Remote
   Control have one; adding a page is one call and its strings.
 - **One « ? How it works » button.** The Suite's pill is the only form. The pages that draw their own copy it declaration for
-  declaration (the core's Agent Teams / Automations button `kb6-helpbtn`, the Calls tabs `kbcl-hl`, Language `kbth-help-btn`, Atlas
+  declaration (the core's Agent Teams / Automations button `kb6-helpbtn`, the Calls tabs `kbcl-hl`, Language `kbln-help-btn`, Atlas
   `kbat-help`; each keeps the panel it opens): `scripts/test-help.mjs` compares them.
 
 ```bash
@@ -606,57 +610,40 @@ The plugin drives DSH's own theme service: every change calls `setTheme(mode)` a
   *language* reloads every open page and flips labels mid-run: each section compares `<html lang>` at its
   start and end and prints `! the interface language changed…` — read the failures of that section as invalid.
 
-## The Team surfaces, read-only: `scripts/check-team-live.mjs`
+## The hosted Team console page, read-only: `scripts/check-team-live.mjs`
 
 ```bash
-node scripts/check-team-live.mjs --shots /tmp/shots      # + screenshots of the menu, the iframe, Members, Providers
-node scripts/check-team-live.mjs --capture-labels        # re-freeze the label baseline (see below)
-node scripts/check-team-live.mjs --console-file <path>/workspace-console.html   # test the console you are editing
+node scripts/check-team-live.mjs --console-url <url> --shots /tmp/shots       # + screenshots of Members, Providers
+node scripts/check-team-live.mjs --console-file <path>/workspace-console.html  # test the console you are editing
+node scripts/check-team-live.mjs --console-file <path> --capture-labels        # re-freeze the label baseline (see below)
 ```
 
-It writes nothing: no setting, no key, no language, and DSH is not restarted. It opens the account menu, opens the core's
-embedded console through its bridge (the menu's « Teams settings » opens the app in the browser now), reads the iframe, then loads the hosted console (the iframe's own address) in the throw-away Chrome
-at the iframe's width and reads each of its pages (the list comes from the page, not from the script).
+DSH no longer frames this page: the account menu's Team settings, Account and Referral open the app in the browser, and the read-only account frame (the
+iframe, its relay, its key hand-off) is gone from the core (`docs/dev/frame-removal.md`). The script is kept for whoever edits the console page itself; it needs
+the page's address given (`--console-url` or `--console-file`) and exits 3 without one. It writes nothing: no setting, no key, no language, and DSH is not
+restarted (it only uses the page of `dsh web` as a Chrome to drive). It loads the console in the throw-away Chrome at the width DSH used to give the frame and
+reads each of its pages (the list comes from the page, not from the script).
 
-- **menu**: the entry exists; it opens the console in an iframe whose URL carries the gateway and DSH's theme and **no key**;
-  the iframe fills the content area; an outside caller (no `Origin`, or a foreign one) gets 403 from
-  `/kybernos/ws-console-key`. The key itself is never read by the script: only whether the host has one.
 - **console**: every page opens without a script error, shows no `undefined` / `NaN`, and has no element wider than its
   column. The Members table is 101 px too wide today, so this check is red until that is fixed.
 - **labels**: `scripts/team-console-labels.json` freezes the static labels of each page (headings, buttons, tabs,
   columns, field labels, helper lines; no numbers, no names). A rework may not lose one silently: a label that is meant
   to go is listed in `allowRemoved` with the owner's approval. The baseline does not protect sentences outside those
   elements. Re-freeze with `--capture-labels` only on a console you trust.
-
-- **bridge** (only with `--console-file`): the file is served on a free local port instead of reading the hosted console; after
-  the page-by-page reading it is loaded **with a key** against `scripts/lib-fake-team-gateway.mjs`, a stand-in for the gateway
-  and the team API that answers with the shapes the real services return (read-only). It proves the console's data bridge still
-  turns those answers into the right screens: the team's id and creation date, the plan and balance, the two members and the
-  side panel, Kybernos as one provider card then the team's own, the models, the usage total, the Stripe invoice. When the
-  console is rewired to other routes, change the stand-in's table: a drift there is the test doing its job. Run it on the
-  previous console file and it fails (10 checks), which is how you know it is not vacuous.
-
-- **relay** (only with `--console-file`): the console the way DSH runs it, with no key anywhere. `scripts/lib-fake-relay-host.mjs`
-  serves a host page holding the console in an iframe, with **the broker cut out of `packages/kybernos-plugin/client.js`** (what
-  ships, not a copy) and a `/kybernos-cloud/relay` route that applies **the real allowlist, `relayCheck()` of
-  `packages/kybernos-cloud/index.js`**, then answers with main-API and LLM-service shapes. It proves the console announces itself,
-  asks only for paths the allowlist names (a path outside it is listed and fails the check), calls no gateway of its own, names
-  the signed-in person from `/v1/me` and shows other members as a short id rather than an invented name, refuses a write and an
-  unknown route in the page, and says « Sign in » when the host is not connected. One thing is stand-in: the page and the console
-  share an origin so the test can read the iframe; the origin check itself is `packages/kybernos-plugin/test-console-broker.mjs`.
+- **`--console-file`**: the file is served on a free local port instead of reading the hosted console.
 
 Every dialog or side panel a page owns is opened and read (Plan: Compare plans; Members: a member's details and the filters;
 Usage: the filters), the segments that swap a view are pressed (Usage: group by), and every inner tab is checked for overflow,
 so a label that moved behind a click still counts as reachable and nothing hides a table wider than its column.
 
-Printed, never failing: whether the host has an admin key (without one the console shows **demo data**), the number of
-controls and the scroll height of each page. The count is one rule for the console and for any mockup (visible fields plus
+Printed, never failing: the number of controls and the scroll height of each page. The count is one rule for the console and for any mockup (visible fields plus
 the outermost clickable elements), so a before / after comparison is fair.
 
-Needs the network (the console is hosted) and a connected account; exit 3 when either is missing.
+Needs the network when the console is the hosted one; exit 3 when it cannot be reached.
 
-The host half of the key hand-off is unit-tested in `packages/kybernos-plugin/test-ws-console-key.mjs` (who may ask, what the
-answer carries, where the page posts it). The cloud client's React render half runs only where `react` and `react-dom`
+The data bridge with a key against a stand-in gateway, and the console run through a relay host page (the way DSH ran it), were checked here too; they went with the
+frame, together with `lib-fake-team-gateway.mjs`, `lib-fake-relay-host.mjs` and `scripts/check-relay-real.mjs` (what stays of that one is `scripts/check-server-real.mjs`:
+the open `GET /kybernos-cloud/server` route of the running host). The cloud client's React render half runs only where `react` and `react-dom`
 resolve (`NODE_PATH=<a node_modules with them> node packages/kybernos-cloud/test-cloud-client.mjs`); CI has none, so it
 skips there: run it by hand after touching the footer card or the account menu.
 
@@ -784,31 +771,12 @@ clicks:
   focused by the page after the first focus. (The signed-out menu is a portal on `<body>`: without this it was out of the Tab order's reach.)
 - **Connected** (the status route is answered in the page): the profile row, the menu's skeleton, **Team settings, Account and Referral asking
   the host for a console link** (`section: plan`, `overview`, `overview`, on the active workspace, `open: true`; nothing is drawn in DSH's content
-  zone; what is said when it is refused), then the embedded console opened through its bridge with a stored `kybernos.ws.console.url` (ignored) and
-  with `kybernos.dev = 1` (it wins again).
-- **The core's embedded console** (no menu entry opens it since 2026-10-16: the footer's three entries open the app in the browser; the scenes open
-  it through `window.__kbOpenWsConsole(<page>)`): the frame is the ACTIVE server's `/workspace-console` with `ws`, `theme`, `lang` and,
-  for the two account pages, the fragment `#account` / `#referral` (the server's embedded shell reads it; a server that has no such page shows its
-  console's first page, never an error). The check writes small console stand-ins on loopback ports into the sandbox's own registry
-  (`<DSH home>/kybernos/servers.json`, put back at the end), so the address comes from the host's route and the frame really loads from that
-  server: it asserts the frame's origin, that the server was hit, that the frame follows a registry change while the page is up (focus event),
-  that the « Open in browser » link of a console that does not answer is on the same origin, that a stored `kybernos.ws.console.url` does not win
-  (but wins behind `kybernos.dev = 1`), and that the frame's own « Open in browser » (the stand-in page posts what the real console posts) asks the
-  host for a console link on `section: overview` from the Account and Referral pages. The menu's Account entry asks the host for the console link
-  itself (the core's bridge is deleted in that scene to prove it is not involved). The notification bell is hidden behind `SHOW_BELL` in the cloud client and the check
-  asserts it is absent.
-- **The frame's account pages** (the server's ADR 0054 rail: Overview, Security, Devices, My data, Support & legal): the scene opens each one
-  through `window.__kbOpenWsConsole(<page>)` against the stand-in server and drives the sandbox host's REAL relay route (a connected state
-  file for the stand-in server is written into `<DSH home>` and removed at the end). It asserts that the reads of Security (`/v1/me/mfa`)
-  and Support & legal (`/v1/public/legal`) and the other pages' are never answered « chemin refuse », that they reach the server as GETs
-  with the device token in `Authorization` only, and that a sub-path of the second factor is still refused. **The relay rules live in the
-  host half: restart the sandbox after editing `packages/kybernos-cloud/index.js`.** By default the stand-in page makes the reads the real
-  frame makes; `--console-file <html>` serves the server's real console page instead (render it with
-  `node -e "import('<server>/src/modules/app/pages.ts').then((m) => require('fs').writeFileSync('console.html', m.EMBEDDED_PAGE))"`).
-  The same scene then makes the team on screen the active one and opens the frame's **team pages** (Computers, API keys, Team security, Members, Models,
-  Billing, Usage): every read must get through the relay, the two personal ones included (`/v1/keys?limit=200&workspace_id=…` with the token in
-  `Authorization`, and the trail `…/audit?limit=…`, which the real page reads when its Members « Activity » tab is shown: the check presses that tab INSIDE the
-  frame through CDP, an isolated world of the framed document). The stand-in server's team answers are only as thin as the page needs to ask for the next read.
+  zone; what is said when it is refused).
+- **No frame** (the read-only copy of the account pages that DSH used to draw in its content zone is gone: `docs/dev/frame-removal.md`): the scenes that opened it
+  through `window.__kbOpenWsConsole(<page>)`, against console stand-ins and the sandbox host's relay route, are gone with it. What stays is the proof that nothing is
+  drawn: no `[data-kb="ws-console"]` after Team settings, Account or Referral. The menu's Account entry asks the host for the console link itself, a refusal is said above
+  the footer, and a host that could not open a browser hands the address back for the page to open. The notification bell is hidden behind `SHOW_BELL` in the cloud client
+  and the check asserts it is absent.
 - **Remote control** (the phone link's status route, `kybernos-mobile/remote/status`, is answered in the page): the entry sits right after
   Referral with the number of phones already linked, opens kybernos-mobile's own panel, and is absent when the server does not offer the
   feature (`configured: false`), the plan does not include it (`entitled: false`), DSH cannot (`available: false`) or the status cannot be
@@ -857,10 +825,6 @@ dialog is opened by that seam, never by clicking a trigger: new code should call
 A fresh instance opens DSH's « Get started » dialog (sign in to a DeepSeek account / add a key) on every load; it swallows every
 click, so the check closes it with its own close button after each reload.
 
-**Developer overrides.** `kybernos.ws.console.url`, `kybernos.ws.gateway` (and their `window` globals) no longer
-win over the ACTIVE server: they apply only behind `localStorage['kybernos.dev'] === '1'` (or `window.KYBERNOS_DEV === true`). A value
-left by an old test used to send « Teams settings » to another server.
-
 **A real run against the local replica** (the Kybernos server on `http://localhost:8791`; write `{"active":"kybernos-local",…}` in the
 sandbox's `kybernos/servers.json`): press « Sign in », approve the code with `POST /v1/device/approve` (the demo account's session),
 then Account, Upgrade and Subscribe return the replica's real answers (the stand-in payment page at `/pay/cs_N`). Strip `open` from the
@@ -899,8 +863,13 @@ mapping from the engine's structures. In a sandbox with no model key a run ends 
 
 ```bash
 source scripts/sandbox/env.sh && scripts/sandbox/start.sh     # restart it after a host edit (the frequent-schedule guard is host code)
-node scripts/check-automations-list-live.mjs [--shots <dir>]
+node scripts/check-automations-list-live.mjs [--shots <dir>] [--at HH:MM]
 ```
+
+The page says « Today » / « Tomorrow » / « Yesterday » from its own clock, so the check never writes those words: it seeds from « now »,
+works the expected words out from the page's clock in the same read, and waits for the board to have its cards (it takes up to ~10 s
+after the file has a next run). `--at HH:MM` (or `KB_CLOCK`) proves it: the page's `Date` and the seeds move to that time of today
+(`--at 08:00` and `--at 23:55` are both green); the host's scheduler keeps the real clock. Exit 0 / 1 / 2 (bad arguments) / 3.
 
 Same guards as the board check (never :3080, only a `.kybernos-sandbox` home; it writes the instance's `kybernos/tasks.json`, eight
 automations, and puts it back). It plays, on real clicks and real routes: the header over its cells (same left edge, every column, every
@@ -1057,8 +1026,9 @@ the same rules on an old tree.
   there: start from a clean page (`flow.openSettings` reloads first).
 - A 401 from your script, with a valid cookie, usually means the *authority* is
   wrong (`KB_HOST` must be exactly `host:port` as `dsh web` listens).
-- **The Theme page and the Language page share the `kbth-` class prefix.** `.kbth-page` is true on both: a test that asks
-  « is the Language page shown? » must use `[data-kb="language-page"]` or `[data-act="add-language"]`. (A first version of the
-  ring's click handler stopped at « the page is already there » while Settings still showed Theme.)
+- **A class prefix belongs to one bundle.** The Language page used to share `kbth-` with the Theme page (`.kbth-page` was true on both, and
+  the later stylesheet restyled the other's page); it is `kbln-` now. `scripts/test-consistency-guards.mjs` fails when two bundles declare the
+  same selector differently, and `node scripts/audit-css-prefixes.mjs` lists them. To ask « is the Language page shown? » use
+  `[data-kb="language-page"]` or `[data-act="add-language"]` all the same: they do not depend on a class.
 - **A click on a position hits what is on top.** With Settings open, the sidebar footer is covered by the nav: clicking the
   ring's coordinates selected « Theme ». Close Settings with a real click on « Back to workspace » first, and check it closed.

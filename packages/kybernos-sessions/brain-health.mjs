@@ -25,13 +25,13 @@
 
 import { randomUUID } from 'node:crypto'
 
-/** Délai par modèle : au-delà, il est « muet ». */
+/** Timeout per model: beyond it, the model is « silent ». */
 export const DELAI_DEFAUT = 8000
-/** Modèles sondés en parallèle. Mesuré : au-delà, on se fait limiter soi-même. */
+/** Models probed in parallel. Measured: beyond that, we rate-limit ourselves. */
 export const CONCURRENCE_DEFAUT = 4
-/** Durée de validité d'un relevé — cinq heures. Un relevé réel coûte un appel
- *  par modèle : le garder long est ce qui rend la surveillance gratuite. Le host
- *  le règle par `KB_BRAIN_TTL`. */
+/** How long a reading stays valid — five hours. A real reading costs one call
+ *  per model: keeping it long is what makes the watch free. The host sets it
+ *  with `KB_BRAIN_TTL`. */
 export const TTL_DEFAUT = 18000000
 
 // KB-PROBE-BEGIN — the SAME text lives in packages/kybernos-auto/sonde.mjs (bundles ship one by one and cannot
@@ -169,7 +169,7 @@ export function creerSonde ({ llm, delaiMs = DELAI_DEFAUT, concurrence = CONCURR
     // No Study model in force (None, or Automatic with nothing connected): nobody watches. We SAY so, we do not probe.
     if (brain === '') return { ok: true, actif: false, raison: 'aucun-modele-detude', brain: '' }
     if (llm === null || llm === undefined || typeof llm.stream !== 'function') {
-      return { ok: false, actif: true, brain, erreur: 'service llm indisponible' }
+      return { ok: false, actif: true, brain, erreur: 'llm service unavailable' }
     }
     const liste = normaliserListe(modeles)
     const signature = liste.join(',')

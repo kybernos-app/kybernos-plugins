@@ -260,9 +260,9 @@ ok('le transport est là (lecture, vitesses)', texte.includes('0.5×') && texte.
 
 // ── la langue : français pour le français, anglais pour toute autre langue (A2-31, A2-08) ──
 for (const [lg, attendu, interdit] of [
-  ['en', ['3D modeller', 'No model yet', 'Ask the chat', 'Start', 'Replay', 'End', 'Lighthouse'], /Aucun|Demandez|Modeleur|Début|Relire|Phare/],
-  ['kybernos', ['Modeleur', 'Aucun modèle pour le moment', 'Demandez au chat', 'Début', 'Relire', 'Phare'], /No model|Ask the chat|3D modeller|Replay|Lighthouse/],
-  ['es', ['3D modeller', 'No model yet', 'Ask the chat'], /Aucun|Demandez|Modeleur|Début|Phare/],
+  ['en', ['3D modeller', 'No model yet', 'Ask the chat', 'Start', 'Replay', 'End', 'Lighthouse'], /Aucun|Demande|Modeleur|Début|Relire|Phare/],
+  ['kybernos', ['Modeleur', 'Aucun modèle pour le moment', 'Demande au chat', 'Début', 'Relire', 'Phare'], /No model|Ask the chat|3D modeller|Replay|Lighthouse/],
+  ['es', ['3D modeller', 'No model yet', 'Ask the chat'], /Aucun|Demande|Modeleur|Début|Phare/],
   ['ar', ['3D modeller', 'No model yet'], /Aucun|Modeleur|Phare/],
   ['throws', ['3D modeller', 'No model yet'], /Aucun|Modeleur|Phare/],
 ]) {
@@ -290,7 +290,7 @@ langue = 'kybernos'
     return null
   }
   const canvas = () => find(composant({}), (n) => n.type === 'canvas')
-  const input = () => find(composant({}), (n) => n.props && n.props.className === 'kbm-saisie')
+  const input = () => find(composant({}), (n) => n.props && n.props.className === 'kbmo-saisie')
   const evt = (type) => ({ type, clientX: 100, clientY: 130, pointerId: 1, currentTarget: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 200, height: 260 }), setPointerCapture () {} } })
   T.pinceau.on = true; T.pinceau.outil = 'texte'; T.pinceau.texte = null; T.pinceau.texteEnAttente = null
   canvas().props.onPointerDown(evt('pointerdown'))

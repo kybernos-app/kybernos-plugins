@@ -230,7 +230,7 @@ console.log('\n── the page: it takes a local verdict, and re-judges a row wh
   ok('an auto-classified row comes back to the queue when its title changed (« Greeting » becomes the real subject)',
     /CATEGORIES_AUTO\[id\] === true && avant !== undefined && avant !== null && String\(avant\.titre \|\| ''\) !== texte/.test(client))
   ok('a session no category fits shows a speech bubble, not a dot (« no icon was created »), and the question category a bubble with a « ? »',
-    /const CATEGORIE_DEFAUT = \{ ico: 'chat', mot: 'Non classé' \}/.test(client) && /question: \{ ico: 'chatq', mot: 'Question' \}/.test(client) &&
+    /const CATEGORIE_DEFAUT = \{ ico: 'chat', mot: 'Uncategorised' \}/.test(client) && /question: \{ ico: 'chatq', mot: 'Question' \}/.test(client) &&
     /\n\s+chat: '<path d="M7\.9 20A9 9 0 1 0 4 16\.1L2 22Z"\/>',/.test(client) && /'\\u\{2753\}': 'chatq'/.test(client))
   ok('a dozen rows are classified per pass, and a pass runs soon after new rows appear (it was 3 per 30 s: a long list took minutes)',
     /AUTOCAT_FILE\.length >= 12/.test(client) && /Date\.now\(\) - dernierePompe > 5000/.test(client))

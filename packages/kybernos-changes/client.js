@@ -33,8 +33,6 @@ window.__ModuleLoader__.load({
         } catch (e) { /* no dictionary: English */ }
         return en
       }
-      /** 'fr' for a French UI, 'en' for every other language. */
-      const langBase = () => { const l = lang(); return l === 'kybernos' || l.slice(0, 2) === 'fr' ? 'fr' : 'en' }
       const fill = (text, p) => (p === undefined ? text : text.replace(/\{(\w+)\}/g, (m, k) => (p[k] !== undefined ? String(p[k]) : m)))
       // [fr, en] pairs, by key. Kept in ONE table so that a test can check both sides of every pair.
       const S = {
@@ -46,7 +44,7 @@ window.__ModuleLoader__.load({
         chipToSend: ['Sauvegardé · pas en ligne', 'Saved · not online'],
         chipNotInProject: ['Sauvegardé · pas dans le projet', 'Saved · not in the project'],
         chipReadyReview: ['Prêt à être relu', 'Ready for review'],
-        chipChecks: ['GitHub vérifie votre travail', 'GitHub is checking your work'],
+        chipChecks: ['GitHub vérifie ton travail', 'GitHub is checking your work'],
         chipWaiting: ['En attente de relecture', 'Waiting for review'],
         chipChanges: ['Des changements sont demandés', 'Changes were asked'],
         chipCheckFailed: ['Un contrôle a échoué', 'A check failed'],
@@ -63,39 +61,39 @@ window.__ModuleLoader__.load({
         xUnsavedShared: [' Le dossier est partagé avec {m} autres conversations : seuls les fichiers de celle-ci seront sauvegardés.', ' The folder is shared with {m} other chats: only this chat’s files will be saved.'],
         xUnsavedShared1: [' Le dossier est partagé avec une autre conversation : seuls les fichiers de celle-ci seront sauvegardés.', ' The folder is shared with another chat: only this chat’s files will be saved.'],
         tToSend: ['Pas encore en ligne', 'Not online yet'],
-        xToSend: ['Votre projet a {n} mises à jour que GitHub n’a pas. Les envoyer garde une copie en lieu sûr.', 'Your project has {n} updates GitHub does not have. Sending them keeps a safe copy.'],
-        xToSend1: ['Votre projet a 1 mise à jour que GitHub n’a pas. L’envoyer garde une copie en lieu sûr.', 'Your project has 1 update GitHub does not have. Sending it keeps a safe copy.'],
-        xToSendCopy: ['Le projet principal a {n} mises à jour que GitHub n’a pas. Votre copie séparée reste sur votre ordinateur (c’est normal).', 'The main project has {n} updates GitHub does not have. Your separate copy stays on your computer (that is normal).'],
-        xToSendCopy1: ['Le projet principal a 1 mise à jour que GitHub n’a pas. Votre copie séparée reste sur votre ordinateur (c’est normal).', 'The main project has 1 update GitHub does not have. Your separate copy stays on your computer (that is normal).'],
-        tSync: ['Vous et GitHub avez chacun du nouveau', 'You and GitHub both have news'],
+        xToSend: ['Ton projet a {n} mises à jour que GitHub n’a pas. Les envoyer garde une copie en lieu sûr.', 'Your project has {n} updates GitHub does not have. Sending them keeps a safe copy.'],
+        xToSend1: ['Ton projet a 1 mise à jour que GitHub n’a pas. L’envoyer garde une copie en lieu sûr.', 'Your project has 1 update GitHub does not have. Sending it keeps a safe copy.'],
+        xToSendCopy: ['Le projet principal a {n} mises à jour que GitHub n’a pas. Ta copie séparée reste sur ton ordinateur (c’est normal).', 'The main project has {n} updates GitHub does not have. Your separate copy stays on your computer (that is normal).'],
+        xToSendCopy1: ['Le projet principal a 1 mise à jour que GitHub n’a pas. Ta copie séparée reste sur ton ordinateur (c’est normal).', 'The main project has 1 update GitHub does not have. Your separate copy stays on your computer (that is normal).'],
+        tSync: ['Toi et GitHub avez chacun du nouveau', 'You and GitHub both have news'],
         xSync: ['{n} à envoyer, {m} à récupérer. On récupère d’abord, puis on envoie.', '{n} to send, {m} to fetch. We fetch first, then send.'],
         tNotInProject: ['Sauvegardé, mais pas encore dans le projet', 'Saved, but not in the project yet'],
-        xNotInProject: ['Votre copie séparée est en sécurité, mais les autres conversations ne la voient pas encore.', 'Your separate copy is safe, but other chats cannot see it yet.'],
+        xNotInProject: ['Ta copie séparée est en sécurité, mais les autres conversations ne la voient pas encore.', 'Your separate copy is safe, but other chats cannot see it yet.'],
         tReadyReview: ['Prêt à être relu', 'Ready for review'],
-        xReadyReview: ['Votre travail est sur votre copie. Demandez à quelqu’un de le relire avant qu’il entre dans le projet.', 'Your work is in your copy. Ask someone to review it before it goes into the project.'],
-        tChecks: ['GitHub vérifie votre travail', 'GitHub is checking your work'],
+        xReadyReview: ['Ton travail est sur ta copie. Demande à quelqu’un de le relire avant qu’il entre dans le projet.', 'Your work is in your copy. Ask someone to review it before it goes into the project.'],
+        tChecks: ['GitHub vérifie ton travail', 'GitHub is checking your work'],
         xChecks: ['Des tests automatiques tournent. Cela prend en général quelques minutes.', 'Automatic tests are running. This usually takes a few minutes.'],
         tWaiting: ['En attente de l’accord d’un collègue', 'Waiting for a teammate’s OK'],
-        xWaiting: ['Les contrôles sont passés. Quelqu’un doit maintenant relire votre travail et l’approuver.', 'The checks passed. Someone now has to look at your work and approve it.'],
+        xWaiting: ['Les contrôles sont passés. Quelqu’un doit maintenant relire ton travail et l’approuver.', 'The checks passed. Someone now has to look at your work and approve it.'],
         tChanges: ['Des changements sont demandés', 'Changes were asked'],
-        xChanges: ['Un collègue a laissé des commentaires. Demandez à l’agent de les traiter, puis GitHub revérifie.', 'A teammate left comments. Ask the agent to address them, then GitHub checks again.'],
+        xChanges: ['Un collègue a laissé des commentaires. Demande à l’agent de les traiter, puis GitHub revérifie.', 'A teammate left comments. Ask the agent to address them, then GitHub checks again.'],
         tCheckFailed: ['Un contrôle automatique a échoué', 'An automatic check failed'],
-        xCheckFailed: ['GitHub a testé votre travail et un test n’est pas passé. Demandez à l’agent de regarder.', 'GitHub tested your work and one test did not pass. Ask the agent to look at it.'],
+        xCheckFailed: ['GitHub a testé ton travail et un test n’est pas passé. Demande à l’agent de regarder.', 'GitHub tested your work and one test did not pass. Ask the agent to look at it.'],
         tReadyMerge: ['Validé, prêt à être intégré', 'Approved, ready to merge'],
-        xReadyMerge: ['Les contrôles passent et un collègue a approuvé. Vous pouvez l’ajouter au projet.', 'The checks pass and a teammate approved. You can add it to the project.'],
-        tMerged: ['Votre travail est dans le projet', 'Your work is in the project'],
-        xMerged: ['La relecture est finie et GitHub a votre travail. Récupérez la mise à jour pour la voir sur votre ordinateur.', 'The review is done and GitHub has your work. Fetch the update to see it on your computer.'],
+        xReadyMerge: ['Les contrôles passent et un collègue a approuvé. Tu peux l’ajouter au projet.', 'The checks pass and a teammate approved. You can add it to the project.'],
+        tMerged: ['Ton travail est dans le projet', 'Your work is in the project'],
+        xMerged: ['La relecture est finie et GitHub a ton travail. Récupère la mise à jour pour la voir sur ton ordinateur.', 'The review is done and GitHub has your work. Fetch the update to see it on your computer.'],
         tFetch: ['GitHub a du nouveau', 'GitHub has news'],
-        xFetch: ['{n} mises à jour sont arrivées en ligne. Récupérez-les pour rester à jour.', '{n} updates arrived online. Fetch them to stay up to date.'],
-        xFetch1: ['1 mise à jour est arrivée en ligne. Récupérez-la pour rester à jour.', '1 update arrived online. Fetch it to stay up to date.'],
+        xFetch: ['{n} mises à jour sont arrivées en ligne. Récupère-les pour rester à jour.', '{n} updates arrived online. Fetch them to stay up to date.'],
+        xFetch1: ['1 mise à jour est arrivée en ligne. Récupère-la pour rester à jour.', '1 update arrived online. Fetch it to stay up to date.'],
         tConflict: ['Des fichiers sont en conflit', 'Some files are in conflict'],
-        xConflict: ['Quelqu’un a modifié les mêmes lignes. Il faut choisir quelle version garder : demandez à l’agent de vous aider à résoudre.', 'Someone changed the same lines. A version has to be chosen: ask the agent to help you resolve it.'],
+        xConflict: ['Quelqu’un a modifié les mêmes lignes. Il faut choisir quelle version garder : demande à l’agent de t’aider à résoudre.', 'Someone changed the same lines. A version has to be chosen: ask the agent to help you resolve it.'],
         tElsewhere: ['Rien à sauvegarder pour cette conversation', 'Nothing to save for this chat'],
         xElsewhere: ['Le dossier a {n} fichiers modifiés, mais ils viennent d’autres conversations. Le travail de celle-ci est sauvegardé.', 'The folder has {n} changed files, but they come from other chats. This chat’s work is saved.'],
         xElsewhere1: ['Le dossier a 1 fichier modifié, mais il vient d’une autre conversation. Le travail de celle-ci est sauvegardé.', 'The folder has 1 changed file, but it comes from another chat. This chat’s work is saved.'],
         tOk: ['Tout est sauvegardé', 'Everything is saved'],
         xOk: ['Rien à faire pour le moment.', 'Nothing to do right now.'],
-        xOkCopy: ['Votre copie est identique au projet : vous pouvez la fermer.', 'Your copy is identical to the project: you can close it.'],
+        xOkCopy: ['Ta copie est identique au projet : tu peux la fermer.', 'Your copy is identical to the project: you can close it.'],
 
         stepChanged: ['Modifié', 'Changed'],
         stepSaved: ['Sauvegardé', 'Saved'],
@@ -114,17 +112,17 @@ window.__ModuleLoader__.load({
         aSaveLocal: ['Sauvegarder sur cet ordinateur seulement', 'Save on this computer only'],
         hSaveLocal: ['Rien n’est envoyé sur Internet.', 'Nothing is sent to the internet.'],
         aAddToProject: ['Ajouter au projet (sur cet ordinateur)', 'Add to the project (on this computer)'],
-        hAddToProject: ['Votre copie séparée est combinée à la version principale, sur cet ordinateur.', 'Your separate copy is combined with the main version, on this computer.'],
+        hAddToProject: ['Ta copie séparée est combinée à la version principale, sur cet ordinateur.', 'Your separate copy is combined with the main version, on this computer.'],
         aPush: ['Envoyer sur GitHub', 'Send to GitHub'],
-        hPush: ['Met une copie en ligne. Rien ne change pour vous.', 'Puts a copy online. Nothing changes for you.'],
+        hPush: ['Met une copie en ligne. Rien ne change pour toi.', 'Puts a copy online. Nothing changes for you.'],
         aFetch: ['Récupérer les nouveautés', 'Get the latest'],
-        hFetch: ['Votre propre travail n’est pas touché.', 'Your own work is not touched.'],
+        hFetch: ['Ton propre travail n’est pas touché.', 'Your own work is not touched.'],
         aSync: ['Récupérer, puis envoyer', 'Get the latest, then send'],
-        hSync: ['Votre travail n’est pas perdu.', 'Your work is not lost.'],
+        hSync: ['Ton travail n’est pas perdu.', 'Your work is not lost.'],
         aAskReview: ['Demander une relecture', 'Ask for a review'],
-        hAskReview: ['Ouvre une demande que l’équipe peut lire et valider. Vous pouvez continuer à travailler.', 'Opens a request the team can read and approve. You can keep working.'],
+        hAskReview: ['Ouvre une demande que l’équipe peut lire et valider. Tu peux continuer à travailler.', 'Opens a request the team can read and approve. You can keep working.'],
         aMerge: ['Intégrer au projet (sur GitHub)', 'Add to the project (on GitHub)'],
-        hMerge: ['Le projet reçoit votre travail. C’est visible de toute l’équipe.', 'The project gets your work. The whole team sees it.'],
+        hMerge: ['Le projet reçoit ton travail. C’est visible de toute l’équipe.', 'The project gets your work. The whole team sees it.'],
         aIsolate: ['Donner à cette conversation sa propre copie', 'Give this chat its own copy'],
         hIsolate: ['Crée une copie séparée sur une nouvelle branche, pour ne plus marcher sur les autres conversations.', 'Creates a separate copy on a new branch, so chats stop stepping on each other.'],
         aCloseCopy: ['Fermer cette copie', 'Close this copy'],
@@ -134,7 +132,7 @@ window.__ModuleLoader__.load({
         running: ['En cours…', 'Working…'],
         before: ['Avant de continuer', 'Before going on'],
         commands: ['Commandes exactes', 'Exact commands'],
-        msgLabel: ['Décrivez en une ligne ce que vous avez fait (facultatif)', 'Describe in one line what you did (optional)'],
+        msgLabel: ['Décris en une ligne ce que tu as fait (facultatif)', 'Describe in one line what you did (optional)'],
         confirm: ['Confirmer', 'Confirm'],
         confirmRun: ['Confirmer et exécuter', 'Confirm and run'],
         back: ['Retour', 'Back'],
@@ -154,7 +152,59 @@ window.__ModuleLoader__.load({
         lastFetch: ['Dernière vérification', 'Last checked'],
         chats: ['Autres conversations', 'Other chats'],
         none: ['aucune', 'none'],
-        never: ['jamais', 'never']
+        never: ['jamais', 'never'],
+
+        // What the git routes of Sessions say, by their stable `code` (see GIT_TEXTS in kybernos-sessions/index.js: a test keeps
+        // the two lists identical). `{n}` is the reply's `count`, `{detail}` what git or gh said itself (untranslated), `{base}` a
+        // branch. A key with a « 1 » twin is used for a count of exactly one.
+        'host:folder-not-found': ['dossier introuvable', 'folder not found'],
+        'host:not-a-repo': ['pas un dépôt git', 'not a git repository'],
+        'host:not-in-git': ['hors git — rien à fusionner', 'not in git — nothing to merge'],
+        'host:no-remote': ['aucun dépôt distant (origin) configuré', 'no remote repository (origin) is set up'],
+        'host:no-github-remote': ['pas de dépôt GitHub (origin)', 'no GitHub remote (origin)'],
+        'host:not-a-copy': ['ce dossier n’est pas une copie séparée (worktree)', 'this folder is not a separate copy (worktree)'],
+        'host:is-a-copy': ['ce dossier est une copie séparée (worktree) — le ramassage se lance depuis le dossier principal', 'this folder is a separate copy (worktree) — reclaim runs from the main checkout'],
+        'host:nothing-to-save': ['rien à sauvegarder — le dossier est propre', 'nothing to save — the folder is clean'],
+        'host:no-chat-files': ['aucun fichier n’appartient à cette conversation — le dossier est modifié par d’autres conversations, rien à sauvegarder ici', 'no file belongs to this chat — the folder is changed by other chats, nothing to save here'],
+        'host:already-saved': ['déjà sauvegardé — rien de nouveau dans les fichiers de cette conversation', 'already saved — nothing new in this chat’s files'],
+        'host:saved-local': ['sauvegardé sur cet ordinateur (rien n’est envoyé)', 'saved on this computer (nothing sent)'],
+        'host:saved-merged-local': ['sauvegardé et fusionné dans la branche locale (rien n’est envoyé)', 'saved and merged into the local branch (nothing sent)'],
+        'host:saved-push-failed': ['sauvegardé sur cet ordinateur — l’envoi a ÉCHOUÉ, la sauvegarde reste à envoyer', 'saved on this computer — sending FAILED, the save still has to be sent'],
+        'host:saved-sent': ['sauvegardé et envoyé', 'saved and sent'],
+        'host:saved-sent-merged': ['sauvegardé, envoyé et fusionné dans la branche de base', 'saved, sent and merged into the base branch'],
+        'host:merged-local': ['fusionné dans la branche locale (rien n’est envoyé)', 'merged into the local branch (nothing sent)'],
+        'host:nothing-to-send': ['rien à envoyer — déjà à jour', 'nothing to send — already up to date'],
+        'host:sent': ['envoyé sur GitHub', 'sent to GitHub'],
+        'host:fetched': ['mises à jour récupérées — tes fichiers ne changent pas', 'updates fetched — your files are unchanged'],
+        'host:synced': ['récupéré puis envoyé — synchronisé', 'fetched, then sent — in sync'],
+        'host:current-is-base': ['la branche courante est la branche de base — donne d’abord sa propre copie à cette conversation', 'the current branch is the base branch — give this chat its own copy first'],
+        'host:nothing-to-review': ['rien à relire — aucun commit au-delà de {base}', 'nothing to review — no commit beyond {base}'],
+        'host:pr-opened': ['demande de relecture ouverte', 'pull request opened'],
+        'host:pr-merged': ['demande fusionnée dans la branche de base', 'pull request merged into the base branch'],
+        'host:already-isolated': ['déjà isolé — ce dossier est une copie séparée', 'already isolated — this folder is a worktree'],
+        'host:copy-created': ['copie créée — ouvre la PROCHAINE conversation dans ce dossier pour y travailler', 'copy created — open the NEXT chat in this folder to work in it'],
+        'host:copy-reused': ['une copie existe déjà et n’a pas de travail — réutilisée, rien n’a été créé', 'a copy is already there and has no work — reused, nothing created'],
+        'host:copy-held': ['la copie est utilisée par une session ouverte', 'the copy is held by an open session'],
+        'host:copy-has-work': ['la copie existante a des changements non sauvegardés ou un travail à elle', 'the existing copy has unsaved changes or work of its own'],
+        'host:merged-removed': ['fusionné et copie séparée supprimée', 'merged and the separate copy removed'],
+        'host:copy-not-removed': ['copie non supprimée : {detail}', 'copy not removed: {detail}'],
+        'host:clean-copy': ['copie propre — elle peut être fusionnée puis supprimée', 'clean copy — it can be merged, then removed'],
+        'host:main-folder': ['dossier principal — la session peut être fermée', 'main folder — the session can be closed'],
+        'host:reclaimed': ['{n} copies sans travail supprimées', '{n} copies without work removed'],
+        'host:reclaimed1': ['1 copie sans travail supprimée', '1 copy without work removed'],
+        'host:tree-dirty': ['changements non sauvegardés ({n} fichiers) — sauvegarde-les d’abord', 'unsaved changes ({n} files) — save them first'],
+        'host:tree-dirty1': ['changements non sauvegardés (1 fichier) — sauvegarde-les d’abord', 'unsaved changes (1 file) — save them first'],
+        'host:ignored-entries': ['fermer détruirait {n} éléments ignorés non régénérables ({entries})', 'closing would destroy {n} ignored entries that cannot be regenerated ({entries})'],
+        'host:ignored-entries1': ['fermer détruirait 1 élément ignoré non régénérable ({entries})', 'closing would destroy 1 ignored entry that cannot be regenerated ({entries})'],
+        'host:no-upstream': ['cette branche n’a jamais été envoyée sur GitHub — envoie-la d’abord', 'this branch was never sent to GitHub — send it first'],
+        'host:unpushed-commits': ['{n} commits pas encore envoyés sur GitHub — envoie-les d’abord', '{n} commits not sent to GitHub yet — send them first'],
+        'host:unpushed-commits1': ['1 commit pas encore envoyé sur GitHub — envoie-le d’abord', '1 commit not sent to GitHub yet — send it first'],
+        'host:git-refused': ['git a refusé : {detail}', 'git refused: {detail}'],
+        'host:push-refused': ['envoi refusé : {detail}', 'send refused: {detail}'],
+        'host:fetch-refused': ['récupération refusée : {detail}', 'fetch refused: {detail}'],
+        'host:merge-refused': ['fusion refusée : {detail}', 'merge refused: {detail}'],
+        'host:gh-pr-create-refused': ['gh pr create a refusé : {detail}', 'gh pr create refused: {detail}'],
+        'host:gh-pr-merge-refused': ['gh pr merge a refusé : {detail}', 'gh pr merge refused: {detail}']
       }
       const L = (key, p) => {
         const pair = S[key]
@@ -165,50 +215,27 @@ window.__ModuleLoader__.load({
       const Lp = (key, n, p) => L(n === 1 && S[key + '1'] !== undefined ? key + '1' : key, Object.assign({ n }, p))
 
       // ── what the host says after an action ─────────────────────────────────────────────────────────────
-      // The git routes of Sessions answer with a French sentence (`message`, `erreur`). A French UI shows it as it is; any other
-      // language gets the English twin of the sentences we know, and the host's own words (a git error, a path) after the colon.
-      // [host sentence, English]: a sentence ending in « : » or « de » is a prefix, the rest is the host's detail.
-      const HOST_SAYS = [
-        ['dossier introuvable', 'folder not found'],
-        ['pas un dépôt git', 'not a git repository'],
-        ['hors git — rien à fusionner', 'not in git — nothing to merge'],
-        ['aucun dépôt distant (origin) configuré', 'no remote repository (origin) is set up'],
-        ['rien à pousser — déjà à jour', 'nothing to send — already up to date'],
-        ['rien à committer — arbre propre', 'nothing to save — the folder is clean'],
-        ['aucun fichier attribué à ce chat — le dossier est modifié par d’autres chats, rien à committer ici', 'no file belongs to this chat — the folder is changed by other chats, nothing to save here'],
-        ['déjà enregistré — rien de nouveau dans les fichiers de ce chat', 'already saved — nothing new in this chat’s files'],
-        ['committé localement (aucun envoi)', 'saved on this computer (nothing sent)'],
-        ['committé localement — le push a ÉCHOUÉ (voir erreurPush), le commit reste à envoyer', 'saved on this computer — sending FAILED, the save still has to be sent'],
-        ['committé et poussé', 'saved and sent'],
-        ['fusionné dans la branche locale (aucun envoi)', 'merged into the local branch (nothing sent)'],
-        ['fusionné et worktree retiré', 'merged and the separate copy removed'],
-        ['envoyé sur GitHub', 'sent to GitHub'],
-        ['mises à jour récupérées — rien de changé sur vos fichiers', 'updates fetched — your files are unchanged'],
-        ['récupéré puis envoyé — synchronisé', 'fetched, then sent — in sync'],
-        ['la branche courante est la branche de base — créez d’abord une copie isolée', 'the current branch is the base branch — give this chat its own copy first'],
-        ['pull request créée', 'pull request opened'],
-        ['pull request fusionnée dans la branche de base', 'pull request merged into the base branch'],
-        ['worktree créé — ouvre le PROCHAIN chat dans ce dossier pour qu’il y soit isolé', 'copy created — open the NEXT chat in this folder to work in it'],
-        ['worktree déjà en place et sans travail — réutilisé, rien créé', 'a copy is already there and has no work — reused, nothing created'],
-        ['push refusé : ', 'send refused: '],
-        ['fetch refusé : ', 'fetch refused: '],
-        ['merge refusé : ', 'merge refused: '],
-        ['git a refusé : ', 'git refused: '],
-        ['gh pr create refusé : ', 'gh pr create refused: '],
-        ['gh pr merge refusé : ', 'gh pr merge refused: '],
-        ['rien à examiner — aucun commit au-delà de ', 'nothing to review — no commit beyond ']
-      ]
-      const hostSays = (raw) => {
-        const text = String(raw === undefined || raw === null ? '' : raw)
-        if (text === '' || langBase() === 'fr') return text
-        const apostrophe = text.replace(/'/g, '’')
-        for (const [fr, en] of HOST_SAYS) {
-          if (apostrophe === fr.replace(/'/g, '’')) return en
-          if (/(?: : |au-delà de )$/.test(fr) && apostrophe.startsWith(fr.replace(/'/g, '’'))) return en + text.slice(fr.length)
+      // The git routes of Sessions answer with a stable `code` (kebab-case: `sent`, `not-a-repo`, `push-refused`…) next to an
+      // English sentence. The chip words the CODE itself, in the language of the page (the « host: » rows of S): a count rides in
+      // `count`, what git or gh said in `detail` (shown as it is), a branch in `base`. A code it does not know shows the
+      // host's English sentence (`erreur`, `error` or `message`), then `fallback`: never a guess.
+      const hostSays = (reply, fallback) => {
+        const r = reply !== null && typeof reply === 'object' ? reply : {}
+        const code = typeof r.code === 'string' ? r.code : ''
+        const key = 'host:' + code
+        if (code !== '' && S[key] !== undefined) {
+          const p = { detail: typeof r.detail === 'string' ? r.detail : '', base: typeof r.base === 'string' ? r.base : '', entries: typeof r.entries === 'string' ? r.entries : '' }
+          return typeof r.count === 'number' ? Lp(key, r.count, p) : L(key, p)
         }
-        const refused = /^((?:git|gh) [\w -]+?|\w+) refusé : /.exec(text)
-        if (refused !== null) return refused[1] + ' refused: ' + text.slice(refused[0].length)
-        return text
+        const text = r.erreur || r.error || r.message || fallback
+        return String(text === undefined || text === null ? '' : text)
+      }
+      /** What follows « Done ✓ »: the host's sentence in the page language, then the address of a new pull request when the host gave one. */
+      const doneWords = (run) => {
+        const text = hostSays(run.reply, run.message)
+        const url = run.reply !== null && typeof run.reply === 'object' && typeof run.reply.url === 'string' ? run.reply.url : ''
+        const words = url !== '' && !text.includes(url) ? text + ' ' + url : text
+        return words === '' ? '' : ' ' + words
       }
 
       // ── the pure part: what the facts mean ─────────────────────────────────────────────────────────────────
@@ -458,7 +485,7 @@ html[dir="rtl"] .kbch-card{left:auto;right:0;text-align:right}
           try {
             const plan = await post(d.url, Object.assign({}, d.corps, { exec: false }))
             if (plan !== null && typeof plan === 'object' && plan.ok === true) setRun({ role, phase: 'confirm', plan })
-            else setRun({ role, phase: 'error', error: String((plan && (plan.erreur || plan.error)) || 'refused') })
+            else setRun({ role, phase: 'error', reply: plan, error: String((plan && (plan.erreur || plan.error)) || 'refused') })
           } catch (e) { setRun({ role, phase: 'error', error: String(e && e.message ? e.message : e) }) }
         }
         const confirm = async () => {
@@ -471,12 +498,12 @@ html[dir="rtl"] .kbch-card{left:auto;right:0;text-align:right}
             if ((role === 'save' || role === 'saveLocal') && msg.trim() !== '') body.message = msg.trim().slice(0, 200)
             const res = await post(d.url, body)
             if (res !== null && typeof res === 'object' && res.ok === true) {
-              setRun({ role, phase: 'done', message: String(res.message || '') })
+              setRun({ role, phase: 'done', reply: res, message: String(res.message || '') })
               setMsg('')
               load()
               setTimeout(load, 1500)
               setTimeout(() => { if (alive.current) setRun((r) => (r !== null && r.phase === 'done' ? null : r)) }, 6000)
-            } else setRun({ role, phase: 'error', error: String((res && (res.erreur || res.error)) || 'refused') })
+            } else setRun({ role, phase: 'error', reply: res, error: String((res && (res.erreur || res.error)) || 'refused') })
           } catch (e) { setRun({ role, phase: 'error', error: String(e && e.message ? e.message : e) }) }
         }
         const roleLabel = (role) => h(React.Fragment, null, L(ROLES[role][0]), dev ? h('span', { className: 'kbch-git' }, ROLES[role][2]) : null)
@@ -509,8 +536,8 @@ html[dir="rtl"] .kbch-card{left:auto;right:0;text-align:right}
           action = h('div', { className: 'kbch-act' },
             primary !== null ? h('button', { className: 'kbch-go', type: 'button', 'data-act': 'primary', 'data-role': primary, onClick: () => begin(primary) }, roleLabel(primary)) : null,
             primary !== null ? h('p', { className: 'kbch-why' }, L(ROLES[primary][1])) : null,
-            run !== null && run.phase === 'error' ? h('p', { className: 'kbch-err-t', role: 'alert', 'data-kb': 'changes-error' }, L('failed') + ' — ' + hostSays(run.error)) : null,
-            run !== null && run.phase === 'done' ? h('p', { className: 'kbch-ok-t', role: 'status', 'data-kb': 'changes-done' }, L('done') + (run.message !== '' ? ' ' + hostSays(run.message) : '')) : null)
+            run !== null && run.phase === 'error' ? h('p', { className: 'kbch-err-t', role: 'alert', 'data-kb': 'changes-error' }, L('failed') + ' — ' + hostSays(run.reply, run.error)) : null,
+            run !== null && run.phase === 'done' ? h('p', { className: 'kbch-ok-t', role: 'status', 'data-kb': 'changes-done' }, L('done') + doneWords(run)) : null)
         }
         const secondary = (run !== null && (run.phase === 'confirm' || run.phase === 'running' || run.phase === 'plan')) ? [] : m.secondary
         const extra = h('div', { className: 'kbch-row2' },
@@ -552,7 +579,7 @@ html[dir="rtl"] .kbch-card{left:auto;right:0;text-align:right}
       return {
         name: 'kybernos-changes',
         inject: ['slots'],
-        __test: { classify, wording, stepStates, ROLES, S, L, Lp, kt, hostSays, readMode, writeMode, CSS, STEP_KEYS },
+        __test: { classify, wording, stepStates, ROLES, S, L, Lp, kt, hostSays, doneWords, readMode, writeMode, CSS, STEP_KEYS },
         apply (ctx) {
           // Before the sessions pills (order 5): the chip is the first thing on the row.
           ctx.effect(() => ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register(

@@ -2,7 +2,7 @@
 // The List of the Automations page, its words and its « Edit → chat » button, in a real GUI: the real client, the real host
 // routes and the real scheduler adopting what is seeded.
 //
-//   source scripts/sandbox/env.sh && node scripts/check-automations-list-live.mjs [--shots <dir>]
+//   source scripts/sandbox/env.sh && node scripts/check-automations-list-live.mjs [--shots <dir>] [--at HH:MM]
 //
 // Needs a DSH that serves this checkout (scripts/sandbox/start.sh). Refuses :3080 and any DSH home that is not a sandbox's.
 // It WRITES the sandbox's kybernos/tasks.json (eight automations) and puts the file back as it was. Nothing leaves the machine
@@ -21,7 +21,13 @@
 //   - V-19   « Edit in chat », from a row and from the page of an automation, puts a draft that names the automation-creator
 //            skill and carries the automation as it stands in the composer of a NEW chat; the form is still there;
 //   - at 390 px nothing overflows sideways and each row is a readable block.
-// Exit code 0 / 1 / 3 (3 = inconclusive: no sandbox).
+//
+// The clock. The page says « Today », « Tomorrow », « Yesterday » from its own clock, so what it shows depends on the hour the check is
+// started at, and on whether midnight falls inside the run. Nothing here is a date written down: the seeds are a function of « now »,
+// the words that are expected are worked out from the page's clock at the instant they are read, and the cards are awaited, not read
+// once. `--at HH:MM` (or KB_CLOCK=HH:MM) proves it: it sets the page's clock AND the seeds' to that time of today (running on from
+// there; the page's Date is replaced before any script of the page runs). The host's scheduler keeps the real clock.
+// Exit code 0 / 1 / 2 (bad arguments) / 3 (inconclusive: no sandbox).
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { openLivePage, clickText } from './live-page.mjs'
@@ -29,6 +35,15 @@ import { openLivePage, clickText } from './live-page.mjs'
 const args = process.argv.slice(2)
 const shotDir = args.includes('--shots') ? args[args.indexOf('--shots') + 1] : null
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+const atArg = args.includes('--at') ? String(args[args.indexOf('--at') + 1]) : (process.env.KB_CLOCK || '')
+const atMatch = /^(\d{1,2}):(\d{2})$/.exec(atArg)
+if (atArg !== '' && (atMatch === null || Number(atMatch[1]) > 23 || Number(atMatch[2]) > 59)) { console.error('usage: --at HH:MM (00:00 to 23:59)'); process.exit(2) }
+// The simulated clock is the real one, moved by a constant: the same here (the seeds) and in the page (its Date).
+const offset = atMatch === null ? 0 : (() => { const t = new Date(); t.setHours(Number(atMatch[1]), Number(atMatch[2]), 0, 0); return t.getTime() - Date.now() })()
+const nowMs = () => Date.now() + offset
+const clockShim = (ms) => '(() => { const R = Date; const off = ' + ms + '; const F = function Date(...a) { if (!new.target) return new R(R.now() + off).toString(); return a.length === 0 ? new R(R.now() + off) : new R(...a) }; F.prototype = R.prototype; F.now = () => R.now() + off; F.parse = R.parse; F.UTC = R.UTC; Object.setPrototypeOf(F, R); window.Date = F })()'
+// « Yesterday », « Today », « Tomorrow » for a moment against another one (calendar days of this machine), as the page words them.
+const dayWord = (ms, against) => { const day = (x) => { const d = new Date(x); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() }; return { '-1': 'Yesterday', 0: 'Today', 1: 'Tomorrow' }[String(Math.round((day(ms) - day(against)) / 86400000))] }
 let pass = 0
 let fail = 0
 const check = (name, ok, detail) => { if (ok) { pass += 1; console.log('  ✓ ' + name) } else { fail += 1; console.log('  ✗ ' + name + (detail === undefined ? '' : ' — ' + JSON.stringify(detail))) } }
@@ -46,7 +61,7 @@ const restore = () => { try { if (original === null) rmSync(file, { force: true 
 
 // ── Eight automations; their dates are a function of today, never of a date written here ─────────────────────
 const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-const local = (d, h, m) => { const x = new Date(); x.setDate(x.getDate() + d); x.setHours(h, m || 0, 0, 0); return x }
+const local = (d, h, m) => { const x = new Date(nowMs()); x.setDate(x.getDate() + d); x.setHours(h, m || 0, 0, 0); return x }
 const ymdHm = (x) => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0') + 'T' + String(x.getHours()).padStart(2, '0') + ':' + String(x.getMinutes()).padStart(2, '0')
 const stamp = new Date().toISOString()
 let n = 0
@@ -56,6 +71,7 @@ const mk = (id, name, schedule, extra) => {
   if (t.history.length > 0) t.lastRun = t.history[t.history.length - 1].at
   return t
 }
+const ONCE_AT = local(1, 10, 0)
 const other = tz === 'Asia/Kolkata' ? 'America/New_York' : 'Asia/Kolkata'
 const otherCity = other.split('/').pop().replace(/_/g, ' ')
 const SEED = [
@@ -64,7 +80,7 @@ const SEED = [
   mk('wp18-31', 'End of month close', { mode: 'cron', cron: '30 23 31 * *', tz }),
   mk('wp18-zone', 'Morning brief abroad', { mode: 'cron', cron: '0 8 * * *', tz: other }, { approvals: 'auto', history: [ran(-2, 8, 0), ran(-1, 8, 0)] }),
   mk('wp18-weekdays', 'Weekdays 9:15', { mode: 'cron', cron: '15 9 * * 1-5', tz }, { history: [ran(-1, 9, 15)] }),
-  mk('wp18-once', 'Launch review', { mode: 'once', at: ymdHm(local(1, 10, 0)), tz }),
+  mk('wp18-once', 'Launch review', { mode: 'once', at: ymdHm(ONCE_AT), tz }),
   mk('wp18-hook', 'New support ticket', { mode: 'webhook', tz }, { trigger: { type: 'webhook', hookId: 'hk_000000000001', secret: 'seed-secret-0123456789abcdef0123' } }),
   // Paused, so the scheduler never starts a session for it: it holds the schedule that the host refuses without a yes.
   mk('wp18-freq', 'Every two minutes', { mode: 'cron', cron: '*/2 * * * *', tz }, { active: false }),
@@ -106,6 +122,14 @@ const leftEdges = (sel) => val(`(() => { const r = document.querySelector(${JSON
 
 try {
   await page.send('Runtime.enable', {})
+  if (atMatch !== null) {
+    console.log('\n── the clock is set to ' + atArg + ' today (the page\'s Date and the seeds) ──')
+    await page.send('Page.addScriptToEvaluateOnNewDocument', { source: clockShim(offset) })
+    await page.send('Page.reload', { ignoreCache: true })
+    await sleep(2500)
+    const said = await poll(async () => { const v = await val('Date.now()'); return typeof v === 'number' && Math.abs(v - nowMs()) < 5000 ? v : null }, 15000)
+    check('the page\'s clock reads ' + atArg + ' (not the real time)', typeof said === 'number', { page: await val('new Date().toString()'), want: new Date(nowMs()).toString() })
+  }
   console.log('\n── seeding eight automations ──')
   writeAtomic(JSON.stringify(SEED, null, 2))
   check('the Automations page opens on the List', (await openAutomations()) === true && (await view('list')) === true && (await poll(() => q('.kba-rowline:not(.kba-rowline-head)'))) === SEED.length)
@@ -163,7 +187,10 @@ try {
   const pageText = await val(`document.querySelector('[data-kb="page-automations"]').innerText`)
   check('no dd/mm date on the List (« 15/10 08:00 »)', /\b\d{1,2}\/\d{1,2}\b/.test(pageText) === false, pageText.match(/.{0,20}\b\d{1,2}\/\d{1,2}\b.{0,10}/g))
   const lasts = await texts('.kba-rowline:not(.kba-rowline-head) .kba-last .kba-ell')
-  check('the last session reads « Yesterday · 08:00 · ok », the board\'s own words', lasts.some((t) => /^Yesterday · \d\d:\d\d · ok$/.test(t)), lasts)
+  const listNow = await val('Date.now()')
+  const seededLast = (id) => { const t = SEED.find((x) => x.id === id); return Date.parse(t.history[t.history.length - 1].at) }
+  const lastWords = (id, hm) => dayWord(seededLast(id), listNow) + ' · ' + hm + ' · ok'
+  check('the last session reads « Yesterday · 08:00 · ok », the board\'s own words (the day word worked out from the page\'s clock)', lasts.includes(lastWords('wp18-month', '08:00')) && lasts.includes(lastWords('wp18-weekdays', '09:15')), { want: [lastWords('wp18-month', '08:00'), lastWords('wp18-weekdays', '09:15')], lasts })
   check('one automation has no session yet and one is paused, in words', lasts.includes('No session yet') && lasts.includes('Paused'), lasts)
 
   console.log('\n── Columns: the chip and the date line of a card agree ──')
@@ -171,9 +198,16 @@ try {
   const adopted = await poll(async () => { const t = readTasks(); return SCHEDULED.every((id) => { const x = t.find((y) => y.id === id); return x !== undefined && typeof x.nextRun === 'string' }) }, 70000)
   check('the scheduler gave a next run to the scheduled automations (about 30 s)', adopted === true)
   check('Columns opens', (await view('columns')) === true && (await poll(() => q('[data-kb="board-columns"]'))) === 1)
-  const cards = JSON.parse(await val(`JSON.stringify(Array.from(document.querySelectorAll('[data-kb="board-card"]')).map((c) => ({ task: c.dataset.task, col: c.dataset.col, chip: c.querySelector('.kbbd-chip-t').innerText, when: c.querySelector('.kbbd-when').innerText, tip: c.querySelector('.kbbd-chip').getAttribute('title') })))`))
+  // The board draws what its page last loaded, and the file has a next run (checked above) before the page does: read until each
+  // scheduled automation has its card in the first column, with the page's clock taken in the same read (the day words come from it).
+  const readBoard = async () => JSON.parse(await val(`JSON.stringify({ now: Date.now(), cards: Array.from(document.querySelectorAll('[data-kb="board-card"]')).map((c) => ({ task: c.dataset.task, col: c.dataset.col, chip: c.querySelector('.kbbd-chip-t').innerText, when: c.querySelector('.kbbd-when').innerText, tip: c.querySelector('.kbbd-chip').getAttribute('title') })) })`))
+  const boardAt = Date.now()
+  let board = await readBoard()
+  while (!SCHEDULED.every((id) => board.cards.some((c) => c.task === id && c.col === 'upcoming')) && Date.now() - boardAt < 40000) { await sleep(300); board = await readBoard() }
+  console.log('  · the board had its cards after ' + (Date.now() - boardAt) + ' ms')
+  const cards = board.cards
   const cardOf = (id) => cards.find((c) => c.task === id && c.col === 'upcoming')
-  check('the one-time card: « One time · Sat, Oct 17 · 10:00 » over « Tomorrow · 10:00 », never « 17/10 10:00 »', cardOf('wp18-once') !== undefined && /^One time · \w{3}, \w{3} \d{1,2} · 10:00$/.test(cardOf('wp18-once').chip) && cardOf('wp18-once').when === 'Tomorrow · 10:00', cardOf('wp18-once'))
+  check('the one-time card: « One time · Sat, Oct 17 · 10:00 » over « Tomorrow · 10:00 » (the day word worked out from the page\'s clock), never « 17/10 10:00 »', cardOf('wp18-once') !== undefined && /^One time · \w{3}, \w{3} \d{1,2} · 10:00$/.test(cardOf('wp18-once').chip) && cardOf('wp18-once').when === dayWord(ONCE_AT.getTime(), board.now) + ' · 10:00', { card: cardOf('wp18-once'), cards: cards.length })
   check('every 2 hours is a sentence on its card too, its tooltip the expression', cardOf('wp18-2h') !== undefined && cardOf('wp18-2h').chip === 'Every 2 hours' && /0 \*\/2 \* \* \*/.test(cardOf('wp18-2h').tip), cardOf('wp18-2h'))
   console.log('\n── A5-25: another zone is named ──')
   check('« Every day, 08:00 (' + otherCity + ') » on the card, in this person\'s own clock below it', cardOf('wp18-zone') !== undefined && cardOf('wp18-zone').chip === 'Every day, 08:00 (' + otherCity + ')' && /^(Today|Tomorrow|\w{3}, \w{3} \d{1,2}) · \d\d:\d\d$/.test(cardOf('wp18-zone').when), cardOf('wp18-zone'))

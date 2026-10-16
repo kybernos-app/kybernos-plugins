@@ -3,51 +3,51 @@ import assert from 'node:assert/strict';
 
 import { extractFileMarkers, safeFileName, splitMessage, TELEGRAM_TEXT_LIMIT } from '../core/text.mjs';
 
-test('splitMessage laisse intact un texte court', () => {
+test('splitMessage leaves a short text intact', () => {
   assert.deepEqual(splitMessage('bonjour'), ['bonjour']);
   assert.deepEqual(splitMessage(''), []);
 });
 
-test('splitMessage découpe sous la limite et préfère les frontières', () => {
+test('splitMessage splits under the limit and prefers boundaries', () => {
   const paragraph = 'a'.repeat(2000);
   const text = [paragraph, paragraph, paragraph].join('\n\n');
   const chunks = splitMessage(text, 2500);
   assert.ok(chunks.length >= 2);
-  for (const chunk of chunks) assert.ok(chunk.length <= 2500, `morceau trop long: ${chunk.length}`);
+  for (const chunk of chunks) assert.ok(chunk.length <= 2500, `chunk too long: ${chunk.length}`);
   assert.equal(chunks.join('').replace(/\s+/g, '').length, text.replace(/\s+/g, '').length);
 });
 
-test('splitMessage referme un bloc de code ouvert', () => {
+test('splitMessage closes an open code block', () => {
   const text = '```\n' + 'ligne de code\n'.repeat(400) + '```\n';
   const chunks = splitMessage(text, 600);
   assert.ok(chunks.length > 1);
   for (const chunk of chunks.slice(0, -1)) {
     const fences = (chunk.match(/```/g) || []).length;
-    assert.equal(fences % 2, 0, 'bloc de code laissé ouvert');
+    assert.equal(fences % 2, 0, 'code block left open');
   }
   for (const chunk of chunks) assert.ok(chunk.length <= 600);
 });
 
-test('splitMessage respecte toujours la limite Telegram par défaut', () => {
+test('splitMessage always respects the default Telegram limit', () => {
   const chunks = splitMessage('x'.repeat(10000));
   assert.ok(chunks.length >= 3);
   for (const chunk of chunks) assert.ok(chunk.length <= TELEGRAM_TEXT_LIMIT);
 });
 
-test('extractFileMarkers retire les marqueurs et résout les chemins relatifs', () => {
-  const { text, files } = extractFileMarkers('voici le rapport\n[[send-file:./rapport.txt]]\net voilà', '/tmp/ws');
-  assert.deepEqual(files, ['/tmp/ws/rapport.txt']);
-  assert.equal(text, 'voici le rapport\n\net voilà');
+test('extractFileMarkers removes the markers and resolves relative paths', () => {
+  const { text, files } = extractFileMarkers('here is the report\n[[send-file:./report.txt]]\nand that is all', '/tmp/ws');
+  assert.deepEqual(files, ['/tmp/ws/report.txt']);
+  assert.equal(text, 'here is the report\n\nand that is all');
   assert.ok(!text.includes('send-file'));
 });
 
-test('extractFileMarkers garde les chemins absolus tels quels', () => {
+test('extractFileMarkers keeps absolute paths as they are', () => {
   const { files } = extractFileMarkers('[[send-file: /tmp/a b.pdf ]]');
   assert.deepEqual(files, ['/tmp/a b.pdf']);
 });
 
-test('safeFileName bloque la traversée de dossier', () => {
+test('safeFileName blocks directory traversal', () => {
   assert.equal(safeFileName('../../etc/passwd'), 'passwd');
   assert.equal(safeFileName('C:\\Users\\x\\photo.jpg'), 'photo.jpg');
-  assert.equal(safeFileName(''), 'fichier');
+  assert.equal(safeFileName(''), 'file');
 });

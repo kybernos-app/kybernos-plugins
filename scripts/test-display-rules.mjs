@@ -208,7 +208,7 @@ const atLeast = (label, got, min) => assert.ok(got >= min, label + ': ' + (Math.
 const PANELS = [
   { name: 'Slides', file: 'kybernos-slides/client.js', p: 'kbsd', stage: '.kbsd-scene', empty: '.kbsd-empty', root: '.kbsd-root', note: '.kbsd-note-bas' },
   { name: 'Bricks', file: 'kybernos-bricks/client.js', p: 'kbb', stage: '.kbb-view', empty: '.kbb-empty', root: '.kbb-root', note: '.kbb-note' },
-  { name: 'Modeleur', file: 'kybernos-modeleur/client.js', p: 'kbm', stage: '.kbm-view', empty: '.kbm-empty', root: '.kbm-root', note: '.kbm-note' },
+  { name: 'Modeleur', file: 'kybernos-modeleur/client.js', p: 'kbmo', stage: '.kbmo-view', empty: '.kbmo-empty', root: '.kbmo-root', note: '.kbmo-note' },
 ]
 for (const P of PANELS) {
   ok(P.name + ': the empty state reads 4.5:1 on the fixed light stage, in both schemes (A4-01, A4-24)', () => {
@@ -305,6 +305,110 @@ ok('the knob of an ON switch stays visible on the brand fill too: the label pair
   for (const [file, onKnob] of [['kybernos-maintenance/client.js', '.kbmz-sw.on i'], ['kybernos-plugin/client.js', '.kba-toggle.on .kba-toggle-knob'], ['kybernos-theme/client.js', '.kbth-toggle.on .kbth-toggle-knob']]) {
     const k = rule(file, onKnob)
     assert.match(lastDecl(k.body, 'background'), /label-primary-foreground/, onKnob)
+  }
+})
+
+// A1-01: the Suite, Workers and the core's switch typed the brand orange as a literal (#ff7a1a), so a preset (Neutral violet) recoloured the Connectors page and
+// left these ones orange. The owner then decided that the orange STAYS the default accent: ONE token, `--kybernos-accent` (with `--kybernos-on-accent` for the ink and the
+// ON knob), declared once by the core (KB_ACCENT_CSS), is what every accent control reads. It is the orange by default (a darker orange in the light schemes, which
+// need 3:1 on white), and the theme's brand token when the active look has its own (kybernos-theme says so on <html data-kbth-brand>). The Composio logo mark keeps its
+// own gradient: it is a logo, not an accent.
+const coreSrc = srcOf('kybernos-plugin/client.js')
+const accentSheet = /const KB_ACCENT_CSS = `([\s\S]*?)`/.exec(coreSrc)
+const accentRules = accentSheet === null ? [] : [...accentSheet[1].matchAll(RULE)].map((m) => ({ selector: m[1].trim(), body: m[2] }))
+const ACC = 'var(--kybernos-accent,var(--dsw-alias-brand-primary))'
+const ON = 'var(--kybernos-on-accent,var(--dsw-alias-label-primary-foreground))'
+/** The custom properties the token declaration gives a scheme, the way the cascade does (a look with its own brand: `preset`). */
+const accentVars = (scheme, preset = false) => {
+  const base = accentRules.find((r) => r.selector === 'body')
+  const light = accentRules.find((r) => r.selector === 'body:not([data-ds-dark-theme])')
+  const own = accentRules.find((r) => r.selector.includes('data-kbth-brand~="' + scheme + '"'))
+  const vars = {}
+  for (const r of [base, scheme === 'light' ? light : null, preset ? own : null]) {
+    if (r) for (const name of ['--kybernos-accent', '--kybernos-on-accent']) { const v = lastDecl(r.body, name); if (v !== null) vars[name] = v }
+  }
+  return vars
+}
+const accentCases = [['dark', false], ['light', false], ['dark', true], ['light', true]] // default dark, default light, a look with a brand in each scheme
+const caseName = ([scheme, preset]) => scheme + (preset ? ' with a look that has its own brand' : ' default')
+
+ok('A1-01: the core declares the Kybernos accent once: orange, a darker orange on the light schemes, the brand token when a look says so', () => {
+  assert.equal(accentRules.length, 4, 'four rules in KB_ACCENT_CSS')
+  const dflt = accentRules.find((r) => r.selector === 'body'), light = accentRules.find((r) => r.selector === 'body:not([data-ds-dark-theme])')
+  const ownLight = accentRules.find((r) => r.selector === 'html[data-kbth-brand~="light"] body:not([data-ds-dark-theme])'), ownDark = accentRules.find((r) => r.selector === 'html[data-kbth-brand~="dark"] body[data-ds-dark-theme]')
+  assert.ok(dflt && light && ownLight && ownDark, 'the default, the light and the two own-brand rules (one per scheme) are there')
+  assert.equal(lastDecl(dflt.body, '--kybernos-accent'), '#ff7a1a')
+  assert.equal(lastDecl(dflt.body, '--kybernos-on-accent'), '#0f1115')
+  assert.equal(lastDecl(light.body, '--kybernos-accent'), 'color-mix(in srgb,#ff7a1a 86%,#000)')
+  // a look with its own brand: the brand token (light); in the dark scheme the token is only lifted to 3:1 on layer 1, so the accent is it mixed 10 % toward white
+  assert.equal(lastDecl(ownLight.body, '--kybernos-accent'), 'var(--dsw-alias-brand-primary)')
+  assert.equal(lastDecl(ownDark.body, '--kybernos-accent'), 'color-mix(in srgb,var(--dsw-alias-brand-primary) 90%,#fff)')
+  for (const r of [ownLight, ownDark]) assert.equal(lastDecl(r.body, '--kybernos-on-accent'), 'var(--dsw-alias-label-primary-foreground)')
+  assert.match(coreSrc, /ctx\.effect\(\(\) => styles\.insert\(KB_ACCENT_CSS\)/, 'the core inserts it')
+  // the own-brand rule must outrank both defaults whatever the order: (0,2,2) against (0,0,1) and (0,1,1)
+  assert.ok([ownLight, ownDark].every((r) => /^html\[[^\]]+\] body/.test(r.selector)), 'they are scoped by html[...] body, more specific than the defaults')
+})
+ok('A1-01: the theme writes the attribute the core reads, and only the schemes the look has a brand for', () => {
+  const theme = srcOf('kybernos-theme/client.js')
+  assert.match(theme, /setAttribute\('data-kbth-brand', own\.join\(' '\)\)/)
+  assert.match(theme, /const accentsPropres = \(S\) => \(estNaturel\(S\) \? \[\] : \['light', 'dark'\]\.filter/)
+})
+ok('A1-01: no literal brand orange #ff7a1a outside the token declaration (and the Composio logo mark): the accent is the token, so a look can recolour it', () => {
+  const bad = []
+  for (const file of files) {
+    let text = readFileSync(file, 'utf8')
+    if (file.endsWith(join('kybernos-plugin', 'client.js'))) {
+      // the token declaration, with the comment that explains it, is the one place the literal lives
+      const from = text.indexOf('// The Kybernos accent: ONE place for the brand orange'), to = text.indexOf("styles.insert(KB_ACCENT_CSS), 'kybernos: accent token')")
+      assert.ok(from > 0 && to > from, 'the token declaration is found in the core')
+      text = text.slice(0, from) + text.slice(to)
+    }
+    text.split('\n').forEach((line, i) => {
+      if (/#ff7a1a/i.test(line) && !/\.kbcp-logo\{/.test(line)) bad.push(relative(ROOT, file) + ':' + (i + 1) + ' ' + line.trim().slice(0, 80))
+    })
+  }
+  assert.deepEqual(bad, [])
+})
+ok('A1-01: every accent control of the Suite, Workers, the core switch and the Composio pill reads the token, never the brand token alone', () => {
+  const read = (file, selector, prop, want) => assert.equal(lastDecl(rule(file, selector).body, prop), want, selector + ' ' + prop)
+  read('kybernos-hub/client.js', '.kbsu-sw.on', 'background', ACC)
+  read('kybernos-hub/client.js', '.kbsu-sw.on i', 'background', ON)
+  read('kybernos-hub/client.js', '.kbsu-tabs button[aria-selected="true"]', 'border-color', ACC)
+  read('kybernos-hub/client.js', '.kbsu-btn.accent', 'background', ACC)
+  read('kybernos-hub/client.js', '.kbsu-btn.accent', 'color', ON)
+  read('kybernos-hub/client.js', '.kbsu-tag', 'color', ACC)
+  read('kybernos-workers/client.js', '.kbwk-sw.on', 'background', ACC)
+  read('kybernos-workers/client.js', '.kbwk-sw.on i', 'background', ON)
+  read('kybernos-workers/client.js', '.kbwk-btn.accent', 'background', ACC)
+  read('kybernos-workers/client.js', '.kbwk-btn.accent', 'color', ON)
+  read('kybernos-workers/client.js', '.kbwk-todo>li.cur .kbwk-n', 'background', ACC)
+  read('kybernos-workers/client.js', '.kbwk-tabs button[aria-current="step"] .kbwk-n', 'background', ACC)
+  read('kybernos-workers/client.js', '.kbwk-prog i', 'background', ACC)
+  read('kybernos-plugin/client.js', '.kbu-sw.on', 'background', ACC)
+  read('kybernos-plugin/client.js', '.kbu-sw.on .kbu-sw-dot', 'background', ON)
+  read('kybernos-composio/client.js', '.kbcp-kbfpill.on', 'background', ACC)
+  read('kybernos-composio/client.js', '.kbcp-kbfpill.on', 'color', ON)
+})
+ok('A1-01: a switch, a tab underline and the focus ring in the accent are 3:1 on every layer they sit on, and the ink on a fill is 4.5:1: dark, light, and a look with its own brand', () => {
+  const layers = (scheme) => (scheme === 'dark' ? ['bg-base', 'bg-layer-1', 'bg-layer-2'] : ['bg-base', 'bg-layer-1', 'bg-module-platform'])
+  for (const [scheme, preset] of accentCases) {
+    const vars = accentVars(scheme, preset)
+    const accent = colour(ACC, scheme, vars), ink = colour(ON, scheme, vars)
+    for (const layer of layers(scheme)) atLeast('accent on ' + layer + ' (' + caseName([scheme, preset]) + ')', contrast(accent, colour('var(--dsw-alias-' + layer + ')', scheme)), 3)
+    atLeast('ink on the accent fill (' + caseName([scheme, preset]) + ')', contrast(ink, accent), 4.5)
+    atLeast('ON knob on its switch track (' + caseName([scheme, preset]) + ')', contrast(ink, accent), 3)
+  }
+})
+ok('A1-01: the Suite kicker line, written in the accent, is 4.5:1 on its layers (the light schemes mix it toward the text colour)', () => {
+  const dark = rule('kybernos-hub/client.js', '.kbsu-tag'), light = rule('kybernos-hub/client.js', 'body:not([data-ds-dark-theme]) .kbsu-tag')
+  const darkOwn = rule('kybernos-hub/client.js', 'html[data-kbth-brand~="dark"] body[data-ds-dark-theme] .kbsu-tag')
+  for (const [scheme, preset] of accentCases) {
+    const vars = accentVars(scheme, preset)
+    const css = scheme === 'light' ? lastDecl(light.body, 'color') : lastDecl((preset ? darkOwn : dark).body, 'color')
+    for (const layer of ['bg-layer-1', 'bg-layer-2', 'bg-module-platform']) {
+      if (scheme === 'dark' && layer === 'bg-module-platform') continue // the light schemes' grey; in the dark scheme it is layer 3
+      atLeast('kicker on ' + layer + ' (' + caseName([scheme, preset]) + ')', contrast(colour(css, scheme, vars), colour('var(--dsw-alias-' + layer + ')', scheme)), 4.5)
+    }
   }
 })
 
@@ -422,10 +526,9 @@ ok('the tags and pills are 4.5:1 on their tint in the light schemes, and unchang
     ['kybernos-skills/client.js', 'body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.ok', 'var(--dsw-alias-bg-layer-2)'],
     ['kybernos-skills/client.js', 'body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.warn', 'var(--dsw-alias-bg-layer-2)'],
     ['kybernos-skills/client.js', 'body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need', 'var(--dsw-alias-bg-layer-2)'],
-    ['kybernos-plugin/client.js', 'body:not([data-ds-dark-theme]) .kb7-pill', 'var(--dsw-alias-state-success-tertiary, rgba(34,197,94,.16))'],
-    ['kybernos-plugin/client.js', 'body:not([data-ds-dark-theme]) .kb7-pill.pend', 'var(--dsw-alias-state-warn-tertiary, rgba(250,180,60,.16))'],
-    ['kybernos-composio/client.js', 'body:not([data-ds-dark-theme]) .kb7-pill', 'rgba(34,197,94,.15)'],
-    ['kybernos-composio/client.js', 'body:not([data-ds-dark-theme]) .kb7-pill.pend', 'rgba(250,204,21,.15)'],
+    // the Connectors pills: the bundle's own rules, which carry the tint the page has always drawn (the core's copy of this sheet is gone, A1-04)
+    ['kybernos-composio/client.js', 'body:not([data-ds-dark-theme]) .kb7-pill', 'var(--dsw-alias-state-success-tertiary, rgba(34,197,94,.16))'],
+    ['kybernos-composio/client.js', 'body:not([data-ds-dark-theme]) .kb7-pill.pend', 'var(--dsw-alias-state-warn-tertiary, rgba(250,180,60,.16))'],
   ]
   for (const [file, sel, bg] of cases) {
     const r = rule(file, sel)
@@ -449,7 +552,7 @@ ok('the Composio logo mark and the three panels\' play buttons keep their ink 4.
   const stops = [...lastDecl(logo.body, 'background').matchAll(/#[0-9a-f]{6}/gi)].map((m) => m[0])
   assert.ok(stops.length >= 2)
   for (const stop of stops) atLeast('logo on ' + stop, contrast(colour(lastDecl(logo.body, 'color'), 'light'), colour(stop, 'light')), 4.5)
-  for (const [file, sel] of [['kybernos-slides/client.js', '.kbsd-play'], ['kybernos-bricks/client.js', '.kbb-play'], ['kybernos-modeleur/client.js', '.kbm-play'], ['kybernos-bricks/client.js', '.kbb-badge.run'], ['kybernos-modeleur/client.js', '.kbm-badge.run']]) {
+  for (const [file, sel] of [['kybernos-slides/client.js', '.kbsd-play'], ['kybernos-bricks/client.js', '.kbb-play'], ['kybernos-modeleur/client.js', '.kbmo-play'], ['kybernos-bricks/client.js', '.kbb-badge.run'], ['kybernos-modeleur/client.js', '.kbmo-badge.run']]) {
     const r = rule(file, sel)
     atLeast(sel, contrast(colour(lastDecl(r.body, 'color'), 'light'), colour(lastDecl(r.body, 'background'), 'light')), 4.5)
     if (sel.endsWith('-play')) { const h = rule(file, sel + ':hover'); atLeast(sel + ':hover', contrast(colour(lastDecl(r.body, 'color'), 'light'), colour(lastDecl(h.body, 'background'), 'light')), 4.5) }

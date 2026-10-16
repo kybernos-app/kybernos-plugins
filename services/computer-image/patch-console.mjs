@@ -4,8 +4,9 @@
 // platform named the machine's id in its environment).
 //
 // The release the image is cloned from does not have it. Each replacement must find its anchor exactly once, or the BUILD FAILS: a release
-// that changed these lines is a release to look at, not one to patch blind. A file that already has the change is left alone (the day a
-// release carries it, this script and its line in the Dockerfile go).
+// that changed these lines is a release to look at, not one to patch blind. A file that already has the change is left alone, and so is one that
+// no longer frames the console at all (the read-only account frame left the page bundle: docs/dev/frame-removal.md). The day the image is cloned from such a
+// release, this script, its line in the Dockerfile and the `computer` flag of the cloud plugin's `/kybernos-cloud/server` go.
 //
 //   node patch-console.mjs <path of client.js>
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -14,6 +15,7 @@ const file = process.argv[2]
 if (file === undefined) { console.error('usage: node patch-console.mjs <client.js>'); process.exit(2) }
 let s = readFileSync(file, 'utf8')
 if (s.includes("'kbui.ws.computer.t'")) { console.log('[patch-console] already there: nothing to do'); process.exit(0) }
+if (!s.includes('const KbWsConsole = ')) { console.log('[patch-console] this release no longer frames the console: nothing to do'); process.exit(0) }
 
 const once = (anchor, replacement, what) => {
   const parts = s.split(anchor)

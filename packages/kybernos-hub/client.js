@@ -97,9 +97,12 @@ window.__ModuleLoader__.load({
         // or a fr base); every other language — translated (es…) or not — gets
         // English, never French.
         return (s === 'kybernos' || s.split(/[-_]/)[0] === 'fr') ? 'fr' : 'en'
-      } catch (e) { return 'fr' }
+      } catch (e) { return 'en' }
     }
     const kt = (fr, en) => (lang() === 'fr' ? fr : en)
+    // A [fr, en] row whose sentences are built from a value (a version, an error code): the French is the first argument of a pair helper,
+    // so it sits in a dictionary like every other row.
+    const pair = (fr, en) => [fr, en]
     const rawLang = () => { try { return window.__KB_LANG_RESOLVE__ ? window.__KB_LANG_RESOLVE__() : '' } catch (e) { return '' } }
 
     // ── The link of a help card to its article, and the first-visit animation of a page ──────────────────────────────
@@ -174,9 +177,9 @@ window.__ModuleLoader__.load({
           title: kt('Les presets d’agent en trois étapes', 'Agent presets in three steps'),
           caption: kt('Un preset est choisi parmi ceux livrés, ou écrit avec l’aide de l’agent, puis utilisé pour une nouvelle tâche.', 'A preset is picked from the built-in ones, or written with the agent’s help, then used for a new task.'),
           steps: [
-            { t: kt('Connaissez les modes', 'Know the modes'), b: kt('Standard pour le quotidien ; PTC, Minimal et Creator pour d’autres besoins : chacun a ses outils et ses habitudes.', 'Standard for everyday tasks; PTC, Minimal and Creator for other needs: each has its own tools and habits.') },
-            { t: kt('Créez le vôtre', 'Create your own'), b: kt('Demandez de l’aide à l’agent (le bouton en bas de la page) : il vous interroge, puis écrit le preset.', 'Ask the agent for help (the button at the bottom of the page): it asks you questions, then writes the preset.') },
-            { t: kt('Lancez une tâche avec', 'Start a task with it'), b: kt('Choisissez le preset à la nouvelle tâche. Celui marqué « New task default » sert quand vous ne choisissez pas.', 'Pick the preset when you start a task. The one marked “New task default” is used when you do not choose.') }
+            { t: kt('Connais les modes', 'Know the modes'), b: kt('Standard pour le quotidien ; PTC, Minimal et Creator pour d’autres besoins : chacun a ses outils et ses habitudes.', 'Standard for everyday tasks; PTC, Minimal and Creator for other needs: each has its own tools and habits.') },
+            { t: kt('Crée le tien', 'Create your own'), b: kt('Demande de l’aide à l’agent (le bouton en bas de la page) : il t’interroge, puis écrit le preset.', 'Ask the agent for help (the button at the bottom of the page): it asks you questions, then writes the preset.') },
+            { t: kt('Lance une tâche avec', 'Start a task with it'), b: kt('Choisis le preset à la nouvelle tâche. Celui marqué « New task default » sert quand tu ne choisis pas.', 'Pick the preset when you start a task. The one marked “New task default” is used when you do not choose.') }
           ],
           mock: { bar: 'Agent presets', rows: ['Standard mode'], hot: kt('Mon preset', 'My preset'), states: [kt('À créer', 'To create'), kt('L’agent écrit…', 'The agent writes…'), kt('Prêt', 'Ready')], actions: [kt('Créer avec l’agent', 'Create with the agent'), kt('Écriture…', 'Writing…'), kt('Utiliser', 'Use')] }
         }
@@ -254,11 +257,11 @@ window.__ModuleLoader__.load({
     const messageCatalogue = (r) => {
       if (r === null || r === undefined || typeof r !== 'object') return ['Réponse illisible.', 'Unreadable answer.']
       // A DSH started before this version answers 404 (not JSON): `post` reports it as bad-response.
-      if (r.error === 'bad-response' || r.error === 'network') return ['Le serveur DSH n’a pas encore chargé cette version : redémarrez-le.', 'The DSH server has not loaded this version yet: restart it.']
+      if (r.error === 'bad-response' || r.error === 'network') return ['Le serveur DSH n’a pas encore chargé cette version : redémarre-le.', 'The DSH server has not loaded this version yet: restart it.']
       if (r.ok === true) {
         return r.etat === 'nouveau'
-          ? ['La suite ' + r.suite + ' est disponible (catalogue signé du ' + String(r.publieLe || '').slice(0, 10) + ').', 'Suite ' + r.suite + ' is available (signed catalogue of ' + String(r.publieLe || '').slice(0, 10) + ').']
-          : ['Catalogue signé à jour (suite ' + r.suite + ').', 'Signed catalogue up to date (suite ' + r.suite + ').']
+          ? pair('La suite ' + r.suite + ' est disponible (catalogue signé du ' + String(r.publieLe || '').slice(0, 10) + ').', 'Suite ' + r.suite + ' is available (signed catalogue of ' + String(r.publieLe || '').slice(0, 10) + ').')
+          : pair('Catalogue signé à jour (suite ' + r.suite + ').', 'Signed catalogue up to date (suite ' + r.suite + ').')
       }
       const t = {
         'pas-de-cle': ['Aucune clé de signature n’est installée : le catalogue en ligne ne peut pas être vérifié, il n’est donc pas demandé.', 'No signing key is installed: the online catalogue cannot be verified, so it is not asked for.'],
@@ -271,18 +274,18 @@ window.__ModuleLoader__.load({
         cache: ['Impossible d’enregistrer le catalogue vérifié sur le disque.', 'Could not save the verified catalogue to disk.'],
         busy: ['Une opération est déjà en cours.', 'Another operation is already running.']
       }
-      return t[r.erreur] || ['Catalogue en ligne refusé (' + String(r.erreur) + ').', 'Online catalogue refused (' + String(r.erreur) + ').']
+      return t[r.erreur] || pair('Catalogue en ligne refusé (' + String(r.erreur) + ').', 'Online catalogue refused (' + String(r.erreur) + ').')
     }
 
     /** Pure. Why an update cannot be applied from this page. [fr, en] or null when it can. */
     const raisonMiseAJour = (distant) => {
       if (distant === null || distant === undefined || distant.miseAJour === undefined || distant.miseAJour.possible === true) return null
       const t = {
-        'development-checkout': ['Ce poste est une copie de développement (git) : mettez-la à jour avec git, pas avec une archive.', 'This machine is a development checkout (git): update it with git, not with an archive.'],
+        'development-checkout': ['Ce poste est une copie de développement (git) : mets-la à jour avec git, pas avec une archive.', 'This machine is a development checkout (git): update it with git, not with an archive.'],
         'no-archive-for-platform': ['Cette version n’a pas d’archive pour ce système.', 'This release has no archive for this system.'],
         'hosted-instance': ['Cette instance est hébergée : elle se met à jour en la reconstruisant, pas depuis cette page.', 'This instance is hosted: it is updated by rebuilding it, not from this page.'],
         'no-key': ['Aucune clé de signature n’est installée.', 'No signing key is installed.'],
-        'no-release': ['Aucun catalogue en ligne vérifié : cherchez les mises à jour d’abord.', 'No verified online catalogue: check for updates first.'],
+        'no-release': ['Aucun catalogue en ligne vérifié : cherche les mises à jour d’abord.', 'No verified online catalogue: check for updates first.'],
         'up-to-date': ['La suite est à jour.', 'The suite is up to date.']
       }
       return t[distant.miseAJour.raison] || [String(distant.miseAJour.raison), String(distant.miseAJour.raison)]
@@ -293,22 +296,22 @@ window.__ModuleLoader__.load({
       if (t === null || t === undefined) return null
       const etapes = { telechargement: ['Téléchargement de l’archive…', 'Downloading the archive…'], extraction: ['Vérification et extraction…', 'Verifying and extracting…'], installation: ['Installation : photo de sécurité, liaison, contrôle du démarrage…', 'Installing: safety snapshot, link, boot check…'] }
       if (etapes[t.etat] !== undefined) return etapes[t.etat]
-      if (t.etat === 'termine') return ['Suite ' + t.version + ' installée. Relancez DSH pour l’activer.', 'Suite ' + t.version + ' installed. Restart DSH to turn it on.']
+      if (t.etat === 'termine') return pair('Suite ' + t.version + ' installée. Relance DSH pour l’activer.', 'Suite ' + t.version + ' installed. Restart DSH to turn it on.')
       if (t.etat === 'echec') {
-        const e = { 'digest-mismatch': ['L’archive téléchargée ne correspond pas à l’empreinte signée : rien n’a été installé.', 'The downloaded archive does not match the signed digest: nothing was installed.'], 'robot-refused': ['L’installation a été refusée et annulée : votre installation actuelle est intacte.', 'The install was refused and rolled back: your current install is intact.'], 'bad-archive': ['L’archive est invalide : rien n’a été installé.', 'The archive is invalid: nothing was installed.'],
+        const e = { 'digest-mismatch': ['L’archive téléchargée ne correspond pas à l’empreinte signée : rien n’a été installé.', 'The downloaded archive does not match the signed digest: nothing was installed.'], 'robot-refused': ['L’installation a été refusée et annulée : ton installation actuelle est intacte.', 'The install was refused and rolled back: your current install is intact.'], 'bad-archive': ['L’archive est invalide : rien n’a été installé.', 'The archive is invalid: nothing was installed.'],
           'hosted-instance': ['Cette instance est hébergée : elle se met à jour en la reconstruisant, pas depuis cette page.', 'This instance is hosted: it is updated by rebuilding it, not from this page.'],
-          'development-checkout': ['Ce poste est une copie de développement (git) : mettez-la à jour avec git, pas avec une archive.', 'This machine is a development checkout (git): update it with git, not with an archive.'],
+          'development-checkout': ['Ce poste est une copie de développement (git) : mets-la à jour avec git, pas avec une archive.', 'This machine is a development checkout (git): update it with git, not with an archive.'],
           'nothing-to-update': ['Il n’y a rien à mettre à jour : la suite est à jour.', 'There is nothing to update: the suite is up to date.'],
           'no-archive-for-platform': ['Cette version n’a pas d’archive pour ce système : rien n’a été installé.', 'This release has no archive for this system: nothing was installed.'],
           'robot-failed': ['L’installateur n’a pas pu démarrer : rien n’a été installé.', 'The installer could not start: nothing was installed.'],
-          'engine-update-failed': ['La mise à jour du moteur a échoué : votre moteur actuel n’a pas changé.', 'The engine update failed: your current engine has not changed.'],
+          'engine-update-failed': ['La mise à jour du moteur a échoué : ton moteur actuel n’a pas changé.', 'The engine update failed: your current engine has not changed.'],
           url: ['L’adresse de téléchargement n’est pas valable (https seulement) : rien n’a été installé.', 'The download address is not valid (https only): nothing was installed.'],
           http: ['Le serveur de téléchargement a refusé la demande : rien n’a été installé.', 'The download server refused the request: nothing was installed.'],
           vide: ['Le téléchargement est arrivé vide : rien n’a été installé.', 'The download came back empty: nothing was installed.'],
           'trop-gros': ['L’archive est plus grosse que prévu : rien n’a été installé.', 'The archive is bigger than announced: nothing was installed.'],
-          busy: ['Une autre opération est déjà en cours : attendez qu’elle se termine.', 'Another operation is already running: wait until it ends.'],
-          'update-failed': ['La mise à jour a échoué. Réessayez, ou relancez DSH.', 'The update failed. Try again, or restart DSH.'] }
-        return e[t.erreur] || ['Mise à jour échouée (' + String(t.erreur) + ').', 'Update failed (' + String(t.erreur) + ').']
+          busy: ['Une autre opération est déjà en cours : attends qu’elle se termine.', 'Another operation is already running: wait until it ends.'],
+          'update-failed': ['La mise à jour a échoué. Réessaie, ou relance DSH.', 'The update failed. Try again, or restart DSH.'] }
+        return e[t.erreur] || pair('Mise à jour échouée (' + String(t.erreur) + ').', 'Update failed (' + String(t.erreur) + ').')
       }
       return null
     }
@@ -421,8 +424,8 @@ window.__ModuleLoader__.load({
       '.kbsu-dot.warn{background:var(--dsw-alias-state-warn-primary)}',
       '.kbsu-btn{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 13px;border-radius:10px;border:0;font-weight:600;background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground)}',
       '.kbsu-btn.ghost{background:transparent;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);font-weight:500}',
-      // Ink on the literal orange: white on #ff7a1a is 2.6:1, #0f1115 is 7.2:1.
-      '.kbsu-btn.accent{background:#ff7a1a;color:#0f1115}',
+      // The accent follows the theme's brand token (a preset recolours the page, A1-01), with the label pair of that fill as ink.
+      '.kbsu-btn.accent{background:var(--kybernos-accent,var(--dsw-alias-brand-primary));color:var(--kybernos-on-accent,var(--dsw-alias-label-primary-foreground))}',
       '.kbsu-btn.sm{height:28px;padding:0 11px;border-radius:8px;font-size:12.5px}',
       '.kbsu svg.i{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}',
       '.kbsu .spin{animation:kbsuspin .9s linear infinite}@keyframes kbsuspin{to{transform:rotate(360deg)}}',
@@ -430,7 +433,7 @@ window.__ModuleLoader__.load({
       '.kbsu-banner{display:flex;flex-direction:column;gap:6px;padding:11px 14px;border-radius:12px;border:1px solid var(--dsw-alias-state-warn-primary);background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 12%,transparent)}',
       '.kbsu-banner strong{display:flex;gap:8px;align-items:center}',
       '.kbsu-banner code,.kbsu code{font:12px ui-monospace,Menlo,monospace;background:var(--dsw-alias-bg-layer-3);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}',
-      '.kbsu-relance{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:12px;border:1px solid #ff7a1a;background:color-mix(in srgb,#ff7a1a 14%,transparent)}',
+      '.kbsu-relance{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:12px;border:1px solid var(--dsw-alias-state-warn-primary);background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 14%,transparent)}',
       '.kbsu-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}',
       '.kbsu-seg{display:inline-flex;flex-wrap:wrap;max-width:100%;box-sizing:border-box;padding:3px;border-radius:10px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1)}',
       '.kbsu-seg button{border:0;border-radius:7px;padding:5px 11px;background:transparent;color:var(--dsw-alias-label-secondary)}',
@@ -480,7 +483,7 @@ window.__ModuleLoader__.load({
       // Featured: the same cards, larger, with the tagline and the full description
       '.kbsu-fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}',
       '.kbsu-vedette{padding:16px;gap:12px}',
-      '.kbsu-tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#ff7a1a;font-weight:700}',
+      '.kbsu-tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--kybernos-accent,var(--dsw-alias-brand-primary));font-weight:700}',
       '.kbsu-vedette .kbsu-promise{font-size:13.5px;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}',
       '.kbsu-promise{margin:0;color:var(--dsw-alias-label-secondary);font-size:13px}',
       '.kbsu-card .kbsu-promise{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;line-height:1.45;min-height:4.35em}',
@@ -490,7 +493,9 @@ window.__ModuleLoader__.load({
       '.kbsu-st{font-size:12.5px;color:var(--dsw-alias-label-tertiary);display:inline-flex;gap:6px;align-items:center;min-width:0}',
       '.kbsu-st.ok{color:var(--dsw-alias-state-success-primary)}.kbsu-st.warn{color:var(--dsw-alias-state-warn-primary)}.kbsu-st.bad{color:var(--dsw-alias-state-error-primary)}',
       // Light scheme: the state tokens are fills (green 2.3:1, amber 2.2:1, the orange tagline 2.6:1 on white); the ink is mixed toward the text colour.
-      'body:not([data-ds-dark-theme]) .kbsu-st.ok{color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 55%,var(--dsw-alias-label-primary))}body:not([data-ds-dark-theme]) .kbsu-st.warn{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 50%,var(--dsw-alias-label-primary))}body:not([data-ds-dark-theme]) .kbsu-st.bad{color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 70%,var(--dsw-alias-label-primary))}body:not([data-ds-dark-theme]) .kbsu-tag{color:color-mix(in srgb,#ff7a1a 55%,var(--dsw-alias-label-primary))}',
+      'body:not([data-ds-dark-theme]) .kbsu-st.ok{color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 55%,var(--dsw-alias-label-primary))}body:not([data-ds-dark-theme]) .kbsu-st.warn{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 50%,var(--dsw-alias-label-primary))}body:not([data-ds-dark-theme]) .kbsu-st.bad{color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 70%,var(--dsw-alias-label-primary))}body:not([data-ds-dark-theme]) .kbsu-tag{color:color-mix(in srgb,var(--kybernos-accent,var(--dsw-alias-brand-primary)) 55%,var(--dsw-alias-label-primary))}',
+      // A look's own brand colour is only lifted to 3:1 on the dark layers (violet 3.45:1 as text): its kicker line is mixed toward the text colour there too. The orange (6:1) stays pure.
+      'html[data-kbth-brand~="dark"] body[data-ds-dark-theme] .kbsu-tag{color:color-mix(in srgb,var(--kybernos-accent,var(--dsw-alias-brand-primary)) 60%,var(--dsw-alias-label-primary))}',
       '.kbsu-steps{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px;counter-reset:kbsu-s}',
       '.kbsu-steps li{display:flex;gap:10px;align-items:flex-start;color:var(--dsw-alias-label-secondary);counter-increment:kbsu-s}',
       '.kbsu-steps li::before{content:counter(kbsu-s);flex:none;width:20px;height:20px;border-radius:50%;margin-top:0;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}',
@@ -575,7 +580,7 @@ window.__ModuleLoader__.load({
       '.kbsu-right{display:inline-flex;flex-wrap:wrap;gap:8px;align-items:center}',
       '.kbsu-sw{position:relative;flex:none;width:36px;height:20px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);padding:0}',
       '.kbsu-sw i{position:absolute;inset-inline-start:2px;top:2px;width:14px;height:14px;border-radius:999px;background:var(--dsw-alias-label-secondary);transition:inset-inline-start .15s ease}',
-      '.kbsu-sw.on{background:#ff7a1a;border-color:#ff7a1a}.kbsu-sw.on i{inset-inline-start:18px;background:#fff}',
+      '.kbsu-sw.on{background:var(--kybernos-accent,var(--dsw-alias-brand-primary));border-color:var(--kybernos-accent,var(--dsw-alias-brand-primary))}.kbsu-sw.on i{inset-inline-start:18px;background:var(--kybernos-on-accent,var(--dsw-alias-label-primary-foreground))}',
       '.kbsu-note{margin:0;font-size:12.5px;color:var(--dsw-alias-label-tertiary);overflow-wrap:anywhere;white-space:pre-line}',
       '.kbsu-cfg{border-top:1px solid var(--dsw-alias-border-l1);padding-top:12px}',
       // the module's own page
@@ -589,7 +594,7 @@ window.__ModuleLoader__.load({
       '.kbsu-panel{border-radius:14px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);min-width:0}',
       '.kbsu-tabs{display:flex;gap:4px;padding:0 14px;border-bottom:1px solid var(--dsw-alias-border-l1)}',
       '.kbsu-tabs button{border:0;background:none;height:42px;padding:0 10px;color:var(--dsw-alias-label-secondary);border-bottom:2px solid transparent;font:inherit}',
-      '.kbsu-tabs button[aria-selected="true"]{color:var(--dsw-alias-label-primary);border-color:#ff7a1a}',
+      '.kbsu-tabs button[aria-selected="true"]{color:var(--dsw-alias-label-primary);border-color:var(--kybernos-accent,var(--dsw-alias-brand-primary))}',
       '.kbsu-body{padding:18px;display:flex;flex-direction:column;gap:16px}',
       '.kbsu-body p{margin:0;color:var(--dsw-alias-label-secondary);max-width:68ch}',
       '.kbsu-body h5{margin:0;font-size:14px}',
@@ -609,7 +614,7 @@ window.__ModuleLoader__.load({
       '.kbsu-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}',
       '.kbsu-row{position:relative;min-width:0;border-radius:14px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1)}',
       '.kbsu-row.dim{opacity:.85}.kbsu-row.dragging{opacity:.45}',
-      '.kbsu-row.drop-before::before,.kbsu-row.drop-after::after{content:"";position:absolute;inset-inline:8px;height:3px;border-radius:3px;background:#ff7a1a;pointer-events:none}',
+      '.kbsu-row.drop-before::before,.kbsu-row.drop-after::after{content:"";position:absolute;inset-inline:8px;height:3px;border-radius:3px;background:var(--kybernos-accent,var(--dsw-alias-brand-primary));pointer-events:none}',
       '.kbsu-row.drop-before::before{top:-6px}.kbsu-row.drop-after::after{bottom:-6px}',
       '.kbsu-rowmain{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:9px 12px}',
       '.kbsu-grip{display:grid;place-items:center;flex:none;width:18px;height:34px;color:var(--dsw-alias-label-tertiary);cursor:grab}',
@@ -866,7 +871,7 @@ window.__ModuleLoader__.load({
           if (k === null || k === undefined || typeof k.bone !== 'function' || typeof k.wrap !== 'function') return h('div', { className: 'kbsu' }, h('div', { className: 'kbsu-empty' }, kt('Chargement de la suite…', 'Loading the suite…')))
           return h('div', { className: 'kbsu', 'data-kb': 'suite' },
             h('div', { className: 'kbsu-head' },
-              h('div', null, h('h4', null, 'Kybernos Suite'), h('p', null, kt('Les modules Kybernos de ce poste. Activez, installez ou ouvrez les paramètres sans quitter les Réglages.', 'The Kybernos modules on this machine. Switch, install or open settings without leaving Settings.'))),
+              h('div', null, h('h4', null, 'Kybernos Suite'), h('p', null, kt('Les modules Kybernos de ce poste. Active, installe ou ouvre les paramètres sans quitter les Réglages.', 'The Kybernos modules on this machine. Switch, install or open settings without leaving Settings.'))),
               h('div', { className: 'kbsu-headr' },
                 h('span', { className: 'kbsu-right' }, k.bone(150, 34, null, 10), k.bone(190, 34, null, 10)),
                 h('div', { className: 'kbsu-meta' }, k.bone(240, 12)))),
@@ -887,7 +892,7 @@ window.__ModuleLoader__.load({
           return h('div', { className: 'kbsu' },
             h('div', { className: 'kbsu-head' }, h('div', null, h('h4', null, 'Kybernos Suite'))),
             h('div', { className: 'kbsu-banner', role: 'alert' }, h('strong', null, ic('alert'), kt('Le catalogue de la suite est injoignable.', 'The suite catalogue cannot be reached.')),
-              h('span', null, kt('Le serveur DSH ne répond pas sur /kybernos-hub/suite. Relancez DSH, ou utilisez le gestionnaire de plugins natif de DSH.', 'The DSH server does not answer on /kybernos-hub/suite. Restart DSH, or use DSH’s native plugin manager.'))),
+              h('span', null, kt('Le serveur DSH ne répond pas sur /kybernos-hub/suite. Relance DSH, ou utilise le gestionnaire de plugins natif de DSH.', 'The DSH server does not answer on /kybernos-hub/suite. Restart DSH, or use DSH’s native plugin manager.'))),
             h('div', null, h('button', { type: 'button', className: 'kbsu-btn ghost', onClick: () => { setCharge({ etat: 'loading', suite: null, bundles: null, maint: null }); recharger() } }, ic('refresh'), kt('Réessayer', 'Retry'))))
         }
 
@@ -1019,7 +1024,7 @@ window.__ModuleLoader__.load({
         const chipFamille = (fam) => h('span', { className: 'kbsu-chip fam', style: { '--c': fam.couleur } }, h('i', null), kt(fam.fr, fam.en))
         // Compatibility speaks up on a card only when something is wrong; the full verdict is on the module's page.
         const chipCompat = (pleine) => verdict === 'hors'
-          ? h('span', { className: 'kbsu-chip warn', title: kt('Cette version de DSH n’est pas dans la zone testée.', 'This DSH version is not in the tested range.') }, kt('Non testé sur votre DSH', 'Not tested on your DSH'))
+          ? h('span', { className: 'kbsu-chip warn', title: kt('Cette version de DSH n’est pas dans la zone testée.', 'This DSH version is not in the tested range.') }, kt('Non testé sur ton DSH', 'Not tested on your DSH'))
           : (pleine && verdict === 'ok' ? h('span', { className: 'kbsu-chip ok' }, kt('Compatible avec DSH ', 'Works with DSH ') + (charge.maint && charge.maint.global ? charge.maint.global : '')) : null)
 
         // What waits for the hover: the module's own Settings page (when it has one and it is there), and its page here.
@@ -1056,7 +1061,7 @@ window.__ModuleLoader__.load({
           const corps = ongletFiche === 'compat'
             ? h('div', { className: 'kbsu-body' },
               h('dl', { className: 'kbsu-dl' },
-                h('dt', null, kt('Votre DSH', 'Your DSH')), h('dd', null, dsh),
+                h('dt', null, kt('Ton DSH', 'Your DSH')), h('dd', null, dsh),
                 h('dt', null, kt('Zone testée', 'Tested range')), h('dd', null, compatLue !== null ? (compatLue.min || '?') + kt(' à ', ' to ') + (compatLue.max || '?') : kt('inconnue', 'unknown')),
                 h('dt', null, kt('Verdict', 'Verdict')), h('dd', null, verdict === 'ok' ? h('span', { className: 'kbsu-chip ok' }, kt('Compatible', 'Works with your DSH')) : verdict === 'hors' ? chipCompat(true) : kt('Inconnu', 'Unknown'))),
               h('p', null, kt('Cette zone est celle de toute la suite : elle vient de dsh-compat.json, le contrat que le testeur de compatibilité applique à chaque installation et mise à jour.', 'This range is the whole suite’s: it comes from dsh-compat.json, the contract the compatibility check applies to every install and update.')))
@@ -1169,7 +1174,7 @@ window.__ModuleLoader__.load({
 
         return h('div', { className: 'kbsu', 'data-kb': 'suite', ref: rootRef },
           detail !== null ? null : h('div', { className: 'kbsu-head' },
-            h('div', null, h('h4', null, 'Kybernos Suite'), h('p', null, kt('Les modules Kybernos de ce poste. Activez, installez ou ouvrez les paramètres sans quitter les Réglages.', 'The Kybernos modules on this machine. Switch, install or open settings without leaving Settings.'))),
+            h('div', null, h('h4', null, 'Kybernos Suite'), h('p', null, kt('Les modules Kybernos de ce poste. Active, installe ou ouvre les paramètres sans quitter les Réglages.', 'The Kybernos modules on this machine. Switch, install or open settings without leaving Settings.'))),
             h('div', { className: 'kbsu-headr' },
               h('span', { className: 'kbsu-right' },
                 typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-hub' }) : null,
@@ -1190,13 +1195,13 @@ window.__ModuleLoader__.load({
             tacheMaj !== null && tacheMaj.etat === 'echec' ? h('span', { className: 'kbsu-st bad', role: 'alert' }, (() => { const m = messageMiseAJour(tacheMaj); return m === null ? '' : kt(m[0], m[1]) })()) : null) : null,
           tacheMaj !== null && tacheMaj.etat !== 'echec' && tacheMaj.etat !== 'termine' ? h('div', { className: 'kbsu-relance', role: 'status', 'data-kb': 'suite-maj-en-cours' }, h('span', { className: 'kbsu-st' }, ic('refresh', 'spin'), (() => { const m = messageMiseAJour(tacheMaj); return m === null ? '' : kt(m[0], m[1]) })())) : null,
           nbEnAttente > 0 ? h('div', { className: 'kbsu-relance', role: 'status' },
-            h('span', null, h('b', null, nbEnAttente + (nbEnAttente > 1 ? kt(' changements en attente. ', ' changes pending. ') : kt(' changement en attente. ', ' change pending. '))), enAttente.__suite === true ? kt('La suite est installée. Relancez DSH pour l’activer.', 'The suite is installed. Restart DSH to turn it on.') : kt('Relancez DSH pour les activer.', 'Restart DSH to turn them on.')),
+            h('span', null, h('b', null, nbEnAttente + (nbEnAttente > 1 ? kt(' changements en attente. ', ' changes pending. ') : kt(' changement en attente. ', ' change pending. '))), enAttente.__suite === true ? kt('La suite est installée. Relance DSH pour l’activer.', 'The suite is installed. Restart DSH to turn it on.') : kt('Relance DSH pour les activer.', 'Restart DSH to turn them on.')),
             relance === 'running' ? h('span', { className: 'kbsu-st' }, ic('refresh', 'spin'), kt('Relance en cours… la page va se recharger.', 'Restarting… the page will reload.'))
               : confirmerRelance ? h('span', { className: 'kbsu-right' }, h('span', { className: 'kbsu-st warn' }, kt('Les sessions en cours seront interrompues, puis reprises.', 'Running sessions will be interrupted, then resumed.')),
                 h('button', { type: 'button', className: 'kbsu-btn sm accent', onClick: relancer }, kt('Relancer maintenant', 'Restart now')),
                 h('button', { type: 'button', className: 'kbsu-btn sm ghost', onClick: () => setConfirmerRelance(false) }, kt('Annuler', 'Cancel')))
                 : h('button', { type: 'button', className: 'kbsu-btn sm accent', onClick: () => setConfirmerRelance(true) }, kt('Relancer DSH', 'Restart DSH')),
-            relance === 'error' ? h('span', { className: 'kbsu-st bad' }, kt('Relance impossible depuis ici : arrêtez « dsh web » dans votre terminal, puis relancez-le.', 'Cannot restart from here: stop “dsh web” in your terminal, then start it again.')) : null) : null,
+            relance === 'error' ? h('span', { className: 'kbsu-st bad' }, kt('Relance impossible depuis ici : arrête « dsh web » dans ton terminal, puis relance-le.', 'Cannot restart from here: stop “dsh web” in your terminal, then start it again.')) : null) : null,
           mgr === null ? h('div', { className: 'kbsu-banner', role: 'status' }, h('strong', null, ic('alert'), kt('Gestionnaire de plugins indisponible.', 'Plugin manager unavailable.')), h('span', null, kt('Le catalogue s’affiche, mais l’état installé et les interrupteurs ne sont pas disponibles sur cette version de DSH.', 'The catalogue shows, but installed state and switches are unavailable on this DSH version.'))) : null,
           detail !== null ? null : h('div', { className: 'kbsu-bar' },
             h('div', { className: 'kbsu-seg', role: 'group', 'aria-label': kt('Filtre', 'Filter') },
@@ -1412,6 +1417,6 @@ window.__ModuleLoader__.load({
 
     const demarrer = (ctx) => { apply(ctx); try { appliquerSuite(ctx) } catch (e) { /* optional */ } }
 
-    return { name: NAME, inject: [], apply: demarrer, __test: { messageCatalogue, raisonMiseAJour, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView, construireAide, construireNatifs, NATIVE_SEL, nativeKeyOf, findNativeHost, nativeContent, coteDeLaCarte, adresseAide, langueDuSite, introKey, introOuverte, INTRO_SEEN_MS } }
+    return { name: NAME, inject: [], apply: demarrer, __test: { lang, kt, pair, messageCatalogue, raisonMiseAJour, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView, construireAide, construireNatifs, NATIVE_SEL, nativeKeyOf, findNativeHost, nativeContent, coteDeLaCarte, adresseAide, langueDuSite, introKey, introOuverte, INTRO_SEEN_MS } }
   }
 })

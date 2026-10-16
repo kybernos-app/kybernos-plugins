@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url'
 const here = dirname(fileURLToPath(import.meta.url))
 const files = [
   ['Briques', process.env.KB_BRICKS_CLIENT || join(here, 'client.js'), '.kbb-line'],
-  ['Modeleur', process.env.KB_MODELEUR_CLIENT || join(here, '..', 'kybernos-modeleur', 'client.js'), '.kbm-line'],
+  ['Modeleur', process.env.KB_MODELEUR_CLIENT || join(here, '..', 'kybernos-modeleur', 'client.js'), '.kbmo-line'],
 ]
 for (const [name, file, sel] of files) {
   const src = readFileSync(file, 'utf8')

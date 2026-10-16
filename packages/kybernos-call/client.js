@@ -208,8 +208,8 @@ window.__ModuleLoader__.load({
       const hostFailure = (down) => ({
         ok: false, down: down,
         error: down === 'absent'
-          ? kt('les routes d’appel ne sont pas chargées — relancez DSH une fois', 'the call routes are not loaded — relaunch DSH once')
-          : kt('Impossible de joindre le service d’appel — réessayez', 'Cannot reach the call service — try again')
+          ? kt('les routes d’appel ne sont pas chargées — relance DSH une fois', 'the call routes are not loaded — relaunch DSH once')
+          : kt('Impossible de joindre le service d’appel — réessaie', 'Cannot reach the call service — try again')
       })
       // A POST to the host: its JSON answer, or a hostFailure (ok:false, down:'absent'|'unreachable', error: the sentence).
       const post = async (path, body) => {
@@ -457,7 +457,7 @@ window.__ModuleLoader__.load({
           : ((s.agent !== null && s.agent !== undefined && s.agent.dispatched === false && s.agent.dispatchError !== undefined)
             ? ('agent not dispatched: ' + String(s.agent.dispatchError))
             : ((isLive && s.joined !== true && s.agent !== null && s.agent !== undefined && s.agent.dispatched === true && seconds(s) >= 15)
-              ? kt('personne n’a rejoint l’appel : le worker est peut-être saturé ou arrêté. Raccrochez et rappelez ; sinon voir kybernos/logs/appel-agent.log', 'nobody joined the call: the worker may be busy or stopped. Hang up and call again; if it repeats, see kybernos/logs/appel-agent.log')
+              ? kt('personne n’a rejoint l’appel : le worker est peut-être saturé ou arrêté. Raccroche et rappelle ; sinon voir kybernos/logs/appel-agent.log', 'nobody joined the call: the worker may be busy or stopped. Hang up and call again; if it repeats, see kybernos/logs/appel-agent.log')
               : ((typeof s.note === 'string') ? s.note : '')))
         const mood = moodOf(s)
         const video = s.mode === 'video'
@@ -488,7 +488,7 @@ window.__ModuleLoader__.load({
           s.fix === true ? h('button', { key: 'fix', type: 'button', className: 'kbcl-btn kbcl-pri', 'data-act': 'open-settings', style: { alignSelf: 'flex-start' }, onClick: () => { setState(null); openCallSettings({ tab: 'overview' }) } }, kt('Ouvrir Réglages › Appels', 'Open Settings › Calls')) : null,
           // Once the call is live: what the microphone hears (left), and what the assistant is doing (right).
           isLive ? h('div', { key: 'act', className: 'kbcl-activity', 'data-state': mood[0] }, [
-            h('span', { key: 'w', className: 'kbcl-who' }, kt('Vous', 'You')),
+            h('span', { key: 'w', className: 'kbcl-who' }, kt('Toi', 'You')),
             h('span', { key: 'm', className: 'kbcl-meter', 'aria-hidden': 'true' }, h('span', { className: 'kbcl-meter-fill', ref: (el) => { meterEl = el } })),
             h('span', { key: 'b', className: 'kbcl-bars', 'aria-hidden': 'true' }, [h('i', { key: 1 }), h('i', { key: 2 }), h('i', { key: 3 }), h('i', { key: 4 })])
           ]) : null,
@@ -661,7 +661,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
         const noFace = headerStatus.provider === 'none'
         return h('div', { className: 'kbcl-hdr', 'data-kb': 'kybernos-call-header' }, [
           h('button', { key: 'v', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-voice', title: kt('Appel vocal : parler à l’assistant de cette session', 'Voice call: talk to this session’s assistant'), 'aria-label': kt('Appel vocal', 'Voice call'), onClick: () => start('voice') }, PHONE(17)),
-          h('button', { key: 'c', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-video', disabled: noFace, title: noFace ? kt('Appel vidéo : ajoutez une clé LiveAvatar (Réglages › Appels › Service)', 'Video call: add a LiveAvatar key (Settings › Calls › Service)') : kt('Appel vidéo : l’assistant a un visage', 'Video call: the assistant has a face'), 'aria-label': kt('Appel vidéo', 'Video call'), onClick: () => start('video') }, CAMERA(17)),
+          h('button', { key: 'c', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-video', disabled: noFace, title: noFace ? kt('Appel vidéo : ajoute une clé LiveAvatar (Réglages › Appels › Service)', 'Video call: add a LiveAvatar key (Settings › Calls › Service)') : kt('Appel vidéo : l’assistant a un visage', 'Video call: the assistant has a face'), 'aria-label': kt('Appel vidéo', 'Video call'), onClick: () => start('video') }, CAMERA(17)),
           h('button', { key: 's', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-setup', title: kt('Réglages des appels : micro, voix, visage, clés', 'Call settings: microphone, voice, face, keys'), 'aria-label': kt('Réglages des appels', 'Call settings'), onClick: () => { openCallSettings({ tab: 'overview' }) } }, Ico('sliders', 17))
         ])
       }
@@ -702,13 +702,13 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
       // What the page says in its "?" helps: what it is, what it is for. One place, so the help and the page cannot drift apart.
       const HELP = () => ({
         overview: [
-          [kt('Ce que c’est.', 'What it is.'), kt('Un appel est une chaîne de cinq maillons : votre voix, Écoute, Cerveau, Voix, Visage, le tout porté par la Ligne. Chaque maillon a un fournisseur.', 'A call is a chain of five slots: your voice, Listen, Think, Speak, Face, all carried by the Line. Each slot has one provider.')],
-          [kt('Préréglages.', 'Presets.'), kt('Ils remplissent les maillons d’un coup. Vous pouvez ensuite changer chacun.', 'They fill the slots at once. You can change each one afterwards.')],
+          [kt('Ce que c’est.', 'What it is.'), kt('Un appel est une chaîne de cinq maillons : ta voix, Écoute, Cerveau, Voix, Visage, le tout porté par la Ligne. Chaque maillon a un fournisseur.', 'A call is a chain of five slots: your voice, Listen, Think, Speak, Face, all carried by the Line. Each slot has one provider.')],
+          [kt('Préréglages.', 'Presets.'), kt('Ils remplissent les maillons d’un coup. Tu peux ensuite changer chacun.', 'They fill the slots at once. You can change each one afterwards.')],
           [kt('Casque.', 'Headphones.'), kt('Un casque ou des écouteurs sont conseillés : sinon l’assistant entend sa propre voix et se coupe la parole.', 'Headphones are recommended: without them the assistant hears its own voice and cuts itself off.')]
         ],
         providers: [
           [kt('Ce que c’est.', 'What it is.'), kt('Une page par fournisseur, avec la même disposition : prix, lien pour obtenir une clé, réglages propres, test.', 'One page per provider, same layout: price, where to get a key, its own settings, a test.')],
-          [kt('Mode d’emploi.', 'How to use.'), kt('Collez la clé, appuyez sur Tester, puis sur Utiliser pour les appels.', 'Paste the key, press Test, then Use for calls.')],
+          [kt('Mode d’emploi.', 'How to use.'), kt('Colle la clé, appuie sur Tester, puis sur Utiliser pour les appels.', 'Paste the key, press Test, then Use for calls.')],
           [kt('Sécurité.', 'Safety.'), kt('Les clés restent sur cet ordinateur, dans un fichier privé, et ne sont jamais réaffichées. Si un fournisseur de voix échoue, la voix du Mac prend le relais.', 'Keys stay on this computer, in a private file, and are never shown again. If a voice provider fails, the Mac voice takes over.')]
         ],
         health: [
@@ -780,8 +780,8 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
       // The audio models found in the user's Models, flat: [{ provider, id, kind }].
       const foundModels = (c, want) => (c.models || []).flatMap((g) => g.models.filter((m) => m.kind === want && !/voiceclone|voicedesign/i.test(m.id)).map((m) => ({ provider: g.provider, id: m.id, kind: m.kind })))
       const noModels = (c, p) => p.source === 'models' && ((p.id === 'models-asr' && foundModels(c, 'listen').length === 0) || (p.id === 'models-tts' && foundModels(c, 'speak').length === 0))
-      const stateChip = (p, c) => (p.available !== true ? Chip('warn', kt('Bientôt', 'Coming soon')) : (c && noModels(c, p) ? Chip('warn', kt('Pas trouvé dans vos Modèles', 'Not found in your Models')) : (p.ready === true ? Chip('ok', kt('Prêt', 'Ready')) : Chip('warn', kt('Clé manquante', 'Needs a key')))))
-      const SAMPLES = { fr: 'Bonjour, je suis votre assistant. Comment puis-je vous aider ?', en: 'Hello, I am your assistant. How can I help you?', es: 'Hola, soy tu asistente. ¿En qué puedo ayudarte?', de: 'Hallo, ich bin dein Assistent. Wie kann ich dir helfen?', it: 'Ciao, sono il tuo assistente. Come posso aiutarti?', pt: 'Olá, sou o seu assistente. Como posso ajudar?' }
+      const stateChip = (p, c) => (p.available !== true ? Chip('warn', kt('Bientôt', 'Coming soon')) : (c && noModels(c, p) ? Chip('warn', kt('Pas trouvé dans tes Modèles', 'Not found in your Models')) : (p.ready === true ? Chip('ok', kt('Prêt', 'Ready')) : Chip('warn', kt('Clé manquante', 'Needs a key')))))
+      const SAMPLES = { fr: 'Bonjour, je suis ton assistant. Comment puis-je t’aider ?', en: 'Hello, I am your assistant. How can I help you?', es: 'Hola, soy tu asistente. ¿En qué puedo ayudarte?', de: 'Hallo, ich bin dein Assistent. Wie kann ich dir helfen?', it: 'Ciao, sono il tuo assistente. Come posso aiutarti?', pt: 'Olá, sou o seu assistente. Como posso ajudar?' }
       // Six languages have a sentence of ours. For any other voice language the test does not pretend: it counts from 1 to 5 in that voice
       // (a neutral text every engine reads in its own language) and the page says so.
       const NEUTRAL_SAMPLE = '1, 2, 3, 4, 5.'
@@ -818,7 +818,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
           if (p.test === 'models') {
             // The app itself asks the model, with real speech a speaking model of the same provider makes: the real proof.
             const chosenModel = (p.config || {}).model || ''
-            if (chosenModel === '') { setTest({ ok: false, error: kt('Choisissez d’abord un modèle', 'Choose a model first') }); return }
+            if (chosenModel === '') { setTest({ ok: false, error: kt('Choisis d’abord un modèle', 'Choose a model first') }); return }
             const sep = chosenModel.indexOf(':')
             const got = await fetch('/kybernos/models/audio/probe', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: chosenModel.slice(0, sep), model: chosenModel.slice(sep + 1) }) }).then((x) => x.json()).catch(() => null)
             const last = got && Array.isArray(got.tried) && got.tried.length > 0 ? got.tried[got.tried.length - 1] : null
@@ -866,7 +866,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
             const cur = (p.config || {})[f.name] || ''
             const inList = list.some((m) => m.provider + ':' + m.id === cur)
             return h('div', { key: f.name, className: 'kbcl-f' }, [label, list.length === 0
-              ? h('div', { key: 'n', className: 'kbcl-notice', 'data-kb': 'kybernos-call-no-models' }, kt('Aucun modèle de ce genre dans vos fournisseurs. Ajoutez-en un dans Réglages › Fournisseur IA & modèles.', 'No model of this kind in your providers. Add one in Settings › AI Provider & Models.'))
+              ? h('div', { key: 'n', className: 'kbcl-notice', 'data-kb': 'kybernos-call-no-models' }, kt('Aucun modèle de ce genre dans tes fournisseurs. Ajoutes-en un dans Réglages › Fournisseur IA & modèles.', 'No model of this kind in your providers. Add one in Settings › AI Provider & Models.'))
               : h('select', { key: 's', id: 'kbcl-f-' + f.name, 'data-field': f.name, className: 'kbcl-in', value: inList ? cur : '', disabled: c.busy, onChange: (e) => c.save({ providers: { [p.id]: { [f.name]: e.target.value } } }) }, [h('option', { key: '', value: '' }, kt('Choisir un modèle…', 'Choose a model…'))].concat(list.map((m) => h('option', { key: m.provider + ':' + m.id, value: m.provider + ':' + m.id }, m.id + ' · ' + m.provider))))])
           }
           if (f.kind === 'switch') {
@@ -877,18 +877,18 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
           const st = keys[f.name] || {}
           const typed = typeof draft[f.name] === 'string' ? draft[f.name] : ''
           return h('div', { key: f.name, className: 'kbcl-f' }, [label, h('div', { key: 'r', className: 'kbcl-row', style: { flexWrap: 'nowrap' } }, [
-            h('input', { key: 'i', id: 'kbcl-f-' + f.name, 'data-field': f.name, className: 'kbcl-in kbcl-grow', type: isSecret ? 'password' : 'text', autoComplete: 'off', spellCheck: false, placeholder: st.set ? (isSecret ? kt('Défini : saisissez pour remplacer', 'Set: type to replace') : String(st.value || '')) : (isSecret ? kt('Collez la clé ici', 'Paste the key here') : ''), value: typed, onChange: (e) => setDraft((old) => Object.assign({}, old, { [f.name]: e.target.value })) }),
+            h('input', { key: 'i', id: 'kbcl-f-' + f.name, 'data-field': f.name, className: 'kbcl-in kbcl-grow', type: isSecret ? 'password' : 'text', autoComplete: 'off', spellCheck: false, placeholder: st.set ? (isSecret ? kt('Défini : saisis pour remplacer', 'Set: type to replace') : String(st.value || '')) : (isSecret ? kt('Colle la clé ici', 'Paste the key here') : ''), value: typed, onChange: (e) => setDraft((old) => Object.assign({}, old, { [f.name]: e.target.value })) }),
             h('button', { key: 's', type: 'button', className: 'kbcl-btn', 'data-act': 'save-' + f.name, disabled: c.busy || typed.trim() === '', onClick: async () => { if (await c.saveKeys({ [f.name]: typed })) setDraft((old) => Object.assign({}, old, { [f.name]: '' })) } }, kt('Enregistrer', 'Save')),
             isSecret && st.set ? h('button', { key: 'x', type: 'button', className: 'kbcl-btn', 'data-act': 'remove-' + f.name, disabled: c.busy, onClick: () => { if (window.confirm(kt('Retirer cette clé ?', 'Remove this key?'))) c.saveKeys({ [f.name]: '' }) } }, kt('Retirer', 'Remove')) : null
           ]),
           f.avatars && keys.LIVEAVATAR_API_KEY && keys.LIVEAVATAR_API_KEY.set ? h('div', { key: 'av', className: 'kbcl-row' }, [
             h('button', { key: 'b', type: 'button', className: 'kbcl-btn', 'data-act': 'list-avatars', disabled: c.busy, onClick: async () => { const r = await post('/avatars', {}); if (r !== null && r.ok === true) setAvatars(r.avatars); else c.say(true, (r && r.error) || kt('liste indisponible', 'list unavailable')) } }, kt('Choisir un visage', 'Choose a face')),
-            avatars !== null ? h('select', { key: 's', className: 'kbcl-in kbcl-grow', 'data-field': 'avatar-pick', value: st.value || '', onChange: (e) => { if (e.target.value !== '') c.saveKeys({ LIVEAVATAR_AVATAR_ID: e.target.value }) } }, [h('option', { key: '', value: '' }, kt('Choisir…', 'Choose…'))].concat(avatars.map((a) => h('option', { key: a.id, value: a.id }, a.name + (a.source === 'yours' ? kt(' · à vous', ' · yours') : '') + (a.type === 'IMAGE' ? kt(' · photo', ' · photo') : ''))))) : null
+            avatars !== null ? h('select', { key: 's', className: 'kbcl-in kbcl-grow', 'data-field': 'avatar-pick', value: st.value || '', onChange: (e) => { if (e.target.value !== '') c.saveKeys({ LIVEAVATAR_AVATAR_ID: e.target.value }) } }, [h('option', { key: '', value: '' }, kt('Choisir…', 'Choose…'))].concat(avatars.map((a) => h('option', { key: a.id, value: a.id }, a.name + (a.source === 'yours' ? kt(' · à toi', ' · yours') : '') + (a.type === 'IMAGE' ? kt(' · photo', ' · photo') : ''))))) : null
           ]) : null])
         }
         const clones = Array.isArray(d.clones) ? d.clones : []
         return h('section', { className: 'kbcl-prov', 'data-kb': 'kybernos-call-provider', 'data-provider': p.id }, [
-          h('div', { key: 'hd', className: 'kbcl-row' }, [h('div', { key: 'n', style: { fontSize: '17px', fontWeight: 700 } }, tx(p.name)), Chip('', tx(d.slots.find((s) => s.id === p.slot).name)), p.source === 'models' && !noModels(c, p) ? Chip('ok', kt('Dans vos Modèles', 'In your Models')) : null, stateChip(p, c), used && props.compact !== true ? Chip('ok', kt('Utilisé pour les appels', 'Used for calls')) : null]),
+          h('div', { key: 'hd', className: 'kbcl-row' }, [h('div', { key: 'n', style: { fontSize: '17px', fontWeight: 700 } }, tx(p.name)), Chip('', tx(d.slots.find((s) => s.id === p.slot).name)), p.source === 'models' && !noModels(c, p) ? Chip('ok', kt('Dans tes Modèles', 'In your Models')) : null, stateChip(p, c), used && props.compact !== true ? Chip('ok', kt('Utilisé pour les appels', 'Used for calls')) : null]),
           h('div', { key: 'nt', className: 'kbcl-sub' }, tx(p.note)),
           h('div', { key: 'pr', className: 'kbcl-row kbcl-sub' }, [h('span', { key: 'p' }, tx(p.price)), p.url ? h('a', { key: 'u', href: p.url, target: '_blank', rel: 'noreferrer noopener' }, kt('Obtenir une clé ↗', 'Get a key ↗')) : null]),
           p.available !== true ? h('div', { key: 'soon', className: 'kbcl-notice' }, kt('Ce fournisseur est listé pour montrer ce qui est prévu. Il ne peut pas encore être utilisé.', 'This provider is listed to show what is planned. It cannot be used yet.')) : [
@@ -913,7 +913,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
               (p.slot === 'listen' || p.slot === 'face' || p.slot === 'speak') && !p.clone ? h('button', { key: 'u', type: 'button', className: 'kbcl-btn kbcl-pri', style: { marginLeft: 'auto' }, 'data-act': 'use-' + p.id, disabled: c.busy || (used && typeof p.engine !== 'string') || (p.id === 'models-asr' && !(p.config && p.config.model)), onClick: useIt }, used ? (typeof p.engine === 'string' ? kt('Utiliser cette voix', 'Use this voice') : kt('Utilisé', 'In use')) : kt('Utiliser pour les appels', 'Use for calls')) : null
             ]),
             p.slot === 'speak' && !p.clone ? h('div', { key: 'fb', className: 'kbcl-sub' }, kt('Si ce fournisseur échoue, la voix du Mac prend le relais : l’appel n’est jamais muet.', 'If this provider fails, the Mac voice takes over: a call is never silent.')) : null,
-            p.clone ? h('div', { key: 'cn', className: 'kbcl-sub' }, kt('Sert quand la voix d’une Agent Team est un enregistrement. Créez la voix depuis la carte de l’Agent Team.', 'Used when an Agent Team’s voice is a recording. Create the voice from the Agent Team’s card.')) : null
+            p.clone ? h('div', { key: 'cn', className: 'kbcl-sub' }, kt('Sert quand la voix d’une Agent Team est un enregistrement. Crée la voix depuis la carte de l’Agent Team.', 'Used when an Agent Team’s voice is a recording. Create the voice from the Agent Team’s card.')) : null
           ]
         ])
       }
@@ -966,15 +966,15 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
           h('span', { key: 'n', style: { fontWeight: 600 } }, tx(x.sl.name) + ' · ' + tx(x.p.name)), stateChip(x.p, c), h('span', { key: 'g', className: 'kbcl-grow' }),
           h('button', { key: 'b', type: 'button', className: 'kbcl-btn kbcl-pri', 'data-act': 'fix-' + x.sl.id, onClick: () => props.onChange(x.sl.id, x.p.id) }, kt('Régler', 'Set up'))])
         const ready = h('div', { key: 'ready', className: 'kbcl-slot', 'data-kb': 'kybernos-call-ready', 'data-ready': lacking.length === 0 ? 'true' : 'false' }, lacking.length === 0
-          ? [h('div', { key: 'r', className: 'kbcl-row' }, [Chip('ok', kt('Prêt à appeler', 'Ready to call')), h('span', { key: 't', className: 'kbcl-sub kbcl-grow' }, kt('Cliquez sur le téléphone en haut à droite d’une session.', 'Click the phone at the top right of a session.')),
+          ? [h('div', { key: 'r', className: 'kbcl-row' }, [Chip('ok', kt('Prêt à appeler', 'Ready to call')), h('span', { key: 't', className: 'kbcl-sub kbcl-grow' }, kt('Clique sur le téléphone en haut à droite d’une session.', 'Click the phone at the top right of a session.')),
             h('button', { key: 'h', type: 'button', className: 'kbcl-btn', 'data-act': 'goto-health', onClick: props.onHealth }, kt('Tout vérifier', 'Check everything'))])]
             .concat(noFace ? [h('div', { key: 'v', className: 'kbcl-sub' }, kt('Pour les appels vidéo, il manque encore un visage : ', 'For video calls, a face is still missing: ')), fixRow({ sl: d.slots.find((x) => x.id === 'face'), p: faceP })] : [])
           : [h('div', { key: 'r', className: 'kbcl-row' }, [Chip('warn', kt('Pas encore prêt', 'Not ready yet')), h('span', { key: 't', className: 'kbcl-sub kbcl-grow' }, kt('Il manque une clé ou un réglage :', 'A key or a setting is missing:'))])].concat(lacking.map(fixRow)))
         return [
           ready,
           audio.length > 0 ? h('div', { key: 'found', className: 'kbcl-found', 'data-kb': 'kybernos-call-found-models' }, [
-            h('div', { key: 't', style: { fontWeight: 600 } }, kt('Trouvé dans vos Modèles : ', 'Found in your Models: ') + audio.map((g) => g.provider).join(', ')),
-            h('div', { key: 'd', className: 'kbcl-sub' }, kt('Déjà payé par votre offre, sans nouvelle clé. Les modèles de voix et d’écoute s’utilisent dans Fournisseurs ; les modèles temps réel sont détectés, pas encore utilisés dans les appels.', 'Already paid by your plan, no new key. Voice and listening models are used in Providers; realtime models are detected, not used in calls yet.')),
+            h('div', { key: 't', style: { fontWeight: 600 } }, kt('Trouvé dans tes Modèles : ', 'Found in your Models: ') + audio.map((g) => g.provider).join(', ')),
+            h('div', { key: 'd', className: 'kbcl-sub' }, kt('Déjà payé par ton offre, sans nouvelle clé. Les modèles de voix et d’écoute s’utilisent dans Fournisseurs ; les modèles temps réel sont détectés, pas encore utilisés dans les appels.', 'Already paid by your plan, no new key. Voice and listening models are used in Providers; realtime models are detected, not used in calls yet.')),
             h('div', { key: 'm', className: 'kbcl-row' }, audio.flatMap((g) => g.models.map((m) => h('span', { key: modelKey(g, m), 'data-model': modelKey(g, m) }, modelChip(g, m))))),
             h('div', { key: 'b', className: 'kbcl-row' }, [h('button', { key: 'c', type: 'button', className: 'kbcl-btn', 'data-act': 'check-models', disabled: checking, onClick: checkAll }, checking ? kt('Vérification…', 'Checking…') : kt('Vérifier ces modèles', 'Check these models')), h('span', { key: 's', className: 'kbcl-sub' }, kt('Envoie quelques mots à chacun, avec la clé déjà configurée.', 'Sends a few words to each one, with the key already set up.'))])
           ]) : null,
@@ -1002,7 +1002,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
             h('h3', { key: 'h' }, kt('Options', 'Options')),
             h('div', { key: 'lang', className: 'kbcl-row' }, [
               h('label', { key: 'l', className: 'kbcl-lab', htmlFor: 'kbcl-lang' }, kt('Langue de l’appel', 'Call language')),
-              h('select', { key: 's', id: 'kbcl-lang', 'data-field': 'language', className: 'kbcl-in', value: s.language, disabled: c.busy, onChange: (e) => c.save({ language: e.target.value }) }, [h('option', { key: 'auto', value: 'auto' }, kt('Automatique : suit ce que vous dites', 'Automatic: follows what you say'))].concat(LANGUAGES.map((l) => h('option', { key: l[0], value: l[0] }, l[1]))))
+              h('select', { key: 's', id: 'kbcl-lang', 'data-field': 'language', className: 'kbcl-in', value: s.language, disabled: c.busy, onChange: (e) => c.save({ language: e.target.value }) }, [h('option', { key: 'auto', value: 'auto' }, kt('Automatique : suit ce que tu dis', 'Automatic: follows what you say'))].concat(LANGUAGES.map((l) => h('option', { key: l[0], value: l[0] }, l[1]))))
             ]),
             h('label', { key: 'snd', className: 'kbcl-check' }, [h('input', { key: 'i', type: 'checkbox', 'data-field': 'sounds', checked: sound, onChange: (e) => { try { window.localStorage.setItem(SOUND_KEY, e.target.checked ? '1' : '0') } catch (x) { /* storage blocked */ } setSound(e.target.checked) } }), h('span', { key: 't' }, kt('Petits sons pendant l’appel (sur ce navigateur)', 'Small sounds during a call (on this browser)'))]),
             h('div', { key: 'lim', className: 'kbcl-row' }, [
@@ -1065,11 +1065,11 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
         const k = r.id + ':' + r.code
         const detail = r.detail ? ' ' + String(r.detail) : ''
         const T = {
-          'mic:ok': kt('Il vous entend.', 'It hears you.'), 'mic:quiet': kt('Aucun son détecté. Parlez, ou choisissez un autre micro.', 'No sound detected. Speak, or pick another microphone.'),
-          'mic:no-answer': kt('Pas de réponse du navigateur : autorisez le micro.', 'No answer from the browser: allow the microphone.'), 'mic:blocked': kt('Le navigateur bloque le micro.', 'The browser blocks the microphone.') + detail, 'mic:no-api': kt('Ce navigateur n’a pas accès au micro.', 'This browser has no microphone access.'),
-          'listen:ok': kt('La clé fonctionne.', 'The key works.'), 'listen:no-key': kt('Aucune clé enregistrée.', 'No key saved.'), 'listen:refused': kt('La clé est refusée : collez-la de nouveau.', 'The key is refused: paste it again.'), 'listen:failed': detail, 'listen:no-model': kt('Aucun modèle d’écoute choisi.', 'No listening model chosen.'), 'listen:no-address': kt('L’adresse de ce fournisseur est inconnue.', 'The address of this provider is unknown.'), 'listen:unknown-model': kt('Ce modèle n’est plus dans vos Modèles.', 'This model is no longer in your Models.'), 'listen:not-wired': kt('Ce fournisseur n’est pas encore branché.', 'This provider is not wired yet.'),
+          'mic:ok': kt('Il t’entend.', 'It hears you.'), 'mic:quiet': kt('Aucun son détecté. Parle, ou choisis un autre micro.', 'No sound detected. Speak, or pick another microphone.'),
+          'mic:no-answer': kt('Pas de réponse du navigateur : autorise le micro.', 'No answer from the browser: allow the microphone.'), 'mic:blocked': kt('Le navigateur bloque le micro.', 'The browser blocks the microphone.') + detail, 'mic:no-api': kt('Ce navigateur n’a pas accès au micro.', 'This browser has no microphone access.'),
+          'listen:ok': kt('La clé fonctionne.', 'The key works.'), 'listen:no-key': kt('Aucune clé enregistrée.', 'No key saved.'), 'listen:refused': kt('La clé est refusée : colle-la de nouveau.', 'The key is refused: paste it again.'), 'listen:failed': detail, 'listen:no-model': kt('Aucun modèle d’écoute choisi.', 'No listening model chosen.'), 'listen:no-address': kt('L’adresse de ce fournisseur est inconnue.', 'The address of this provider is unknown.'), 'listen:unknown-model': kt('Ce modèle n’est plus dans tes Modèles.', 'This model is no longer in your Models.'), 'listen:not-wired': kt('Ce fournisseur n’est pas encore branché.', 'This provider is not wired yet.'),
           'speak:ok': kt('La voix répond en ', 'The voice answers in ') + (r.ms / 1000).toFixed(1) + ' s.', 'speak:fell-back': kt('Cette voix n’a pas pu parler, une autre a pris le relais.', 'That voice could not speak, another took over.') + detail, 'speak:failed': detail,
-          'face:ok': kt('Le compte répond', 'The account answers') + (r.detail ? ' · ' + r.detail + kt(' crédits', ' credits') : '') + '.', 'face:voice-only': kt('Pas de visage choisi : appels à la voix seule.', 'No face chosen: calls are voice only.'), 'face:no-key': kt('Pas de clé : l’appel se fera à la voix seule.', 'No key: the call will be voice only.'), 'face:refused': kt('La clé est refusée : collez-la de nouveau.', 'The key is refused: paste it again.'), 'face:failed': detail,
+          'face:ok': kt('Le compte répond', 'The account answers') + (r.detail ? ' · ' + r.detail + kt(' crédits', ' credits') : '') + '.', 'face:voice-only': kt('Pas de visage choisi : appels à la voix seule.', 'No face chosen: calls are voice only.'), 'face:no-key': kt('Pas de clé : l’appel se fera à la voix seule.', 'No key: the call will be voice only.'), 'face:refused': kt('La clé est refusée : colle-la de nouveau.', 'The key is refused: paste it again.'), 'face:failed': detail,
           'line:ok': kt('La connexion est bonne.', 'The connection is good.'), 'line:no-key': kt('Adresse, clé ou secret manquants.', 'Address, key or secret missing.'), 'line:refused': kt('La clé ou le secret sont refusés.', 'The key or the secret is refused.'), 'line:failed': detail,
           'engine:installed': kt('Installé sur cet ordinateur.', 'Installed on this computer.'), 'engine:running': kt('Installé et démarré.', 'Installed and running.'), 'engine:not-installed': kt('Le moteur d’appel n’est pas installé sur cet ordinateur.', 'The call engine is not installed on this computer.'), 'engine:broken': kt('Le moteur d’appel est abîmé.', 'The call engine is damaged.') + detail
         }
@@ -1157,7 +1157,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
           : tab === 'providers' ? h(Providers, { calls: c, slot: slot, prov: prov, onSlot: (s) => { setSlot(s); setProv(null) }, onProv: setProv })
             : h(Health, { onFix: (id) => goProvider(id === 'line' ? 'line' : id, null) })
         return h('div', { className: 'kbcl-page', 'data-kb': 'kybernos-call-settings' }, [
-          h('div', { key: 'top' }, [h('h2', { key: 'h' }, kt('Appels', 'Calls')), h('div', { key: 's', className: 'kbcl-sub' }, kt('Parler en direct à votre assistant ou à un membre de votre équipe, à voix haute, depuis n’importe quelle session. Pour faire lire une réponse ou dicter un message, voir Voix.', 'Talk live to your assistant, or to a team member, out loud, from any session. To have a reply read aloud or to dictate a message, see Voice.'))]),
+          h('div', { key: 'top' }, [h('h2', { key: 'h' }, kt('Appels', 'Calls')), h('div', { key: 's', className: 'kbcl-sub' }, kt('Parler en direct à ton assistant ou à un membre de ton équipe, à voix haute, depuis n’importe quelle session. Pour faire lire une réponse ou dicter un message, voir Voix.', 'Talk live to your assistant, or to a team member, out loud, from any session. To have a reply read aloud or to dictate a message, see Voice.'))]),
           h('div', { key: 'tabs', className: 'kbcl-tabs', role: 'tablist' }, tabs.map((t) => h('button', { key: t[0], type: 'button', role: 'tab', className: 'kbcl-tab', 'data-act': 'tab-' + t[0], 'aria-selected': tab === t[0] ? 'true' : 'false', onClick: () => setTab(t[0]) }, t[1]))),
           h('div', { key: 'help' }, h(Help, { id: tab, title: tabs.find((t) => t[0] === tab)[1], lines: helps[tab], open: open[tab] === true, onToggle: toggle(tab) })),
           c.notice !== null ? h('div', { key: 'n', className: 'kbcl-notice' + (c.notice.bad ? ' kbcl-bad' : ''), role: 'status', 'data-kb': 'kybernos-call-notice' }, c.notice.text) : null,

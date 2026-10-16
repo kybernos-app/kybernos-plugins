@@ -1,19 +1,19 @@
 {
   "what": {
-    "fr": "Les quatre petits connecteurs qui permettent à votre agent principal de confier une tâche à OpenCode, Gemini, Qwen ou Hermes. Ils ne font rien tant que vous ne les allumez pas.",
-    "en": "The four small connectors that let your main agent hand a task to OpenCode, Gemini, Qwen or Hermes. They do nothing until you turn them on."
+    "fr": "Les quatre petits connecteurs de workers qui permettent à ton agent principal de confier une tâche à OpenCode, Gemini, Qwen ou Hermes. Ils ne font rien tant que tu ne les allumes pas.",
+    "en": "The four small Workers connectors that let your main agent hand a task to OpenCode, Gemini, Qwen or Hermes. They do nothing until you turn them on."
   },
   "steps": [
     {
-      "fr": "Laissez ce module actif : il n'a pas de page, la page Workers s'en sert.",
+      "fr": "Laisse ce module actif : il n'a pas de page, la page Workers s'en sert.",
       "en": "Leave this module on: it has no page of its own, the Workers page uses it."
     },
     {
-      "fr": "Ouvrez Réglages › Workers et cliquez « Activer » sur la ligne de l'agent voulu.",
+      "fr": "Ouvre Réglages › Workers et clique « Activer » sur la ligne de l'agent voulu.",
       "en": "Open Settings › Workers and click “Turn on” on the row of the agent you want."
     },
     {
-      "fr": "Installez le programme de l'agent et connectez-vous, toujours depuis la page Workers.",
+      "fr": "Installe le programme de l'agent et connecte-toi, toujours depuis la page Workers.",
       "en": "Install the agent's program and sign in, still from the Workers page."
     }
   ],

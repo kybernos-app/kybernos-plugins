@@ -1,0 +1,281 @@
+{
+  "note": "Written by scripts/test-consistency-guards.mjs --update. A value may leave this file at any time; it may only enter it in a reviewed diff.",
+  "cssPrefixes": {
+    "kb": [
+      "kybernos-composio",
+      "kybernos-plugin",
+      "kybernos-sessions",
+      "kybernos-skills",
+      "kybernos-theme"
+    ],
+    "kb6": [
+      "kybernos-composio",
+      "kybernos-plugin"
+    ],
+    "kb7": [
+      "kybernos-composio",
+      "kybernos-plugin"
+    ],
+    "kb8": [
+      "kybernos-dashboards",
+      "kybernos-mobile",
+      "kybernos-plugin",
+      "kybernos-skills"
+    ],
+    "kbc": [
+      "kybernos-cloud",
+      "kybernos-plugin"
+    ],
+    "kbf": [
+      "kybernos-cloud",
+      "kybernos-mobile",
+      "kybernos-plugin"
+    ],
+    "kbfp": [
+      "kybernos-cloud",
+      "kybernos-plugin"
+    ],
+    "kbln": [
+      "kybernos-language",
+      "kybernos-plugin"
+    ],
+    "kbm": [
+      "kybernos-free-llms",
+      "kybernos-modeles-locaux",
+      "kybernos-models",
+      "kybernos-plugin"
+    ],
+    "kbmh": [
+      "kybernos-models",
+      "kybernos-plugin"
+    ],
+    "kbmp": [
+      "kybernos-models",
+      "kybernos-plugin"
+    ],
+    "kbmz": [
+      "kybernos-maintenance",
+      "kybernos-plugin"
+    ],
+    "kbq": [
+      "kybernos-mobile",
+      "kybernos-plugin"
+    ],
+    "kbr": [
+      "kybernos-plugin",
+      "kybernos-sessions"
+    ],
+    "kbs": [
+      "kybernos-mobile",
+      "kybernos-plugin",
+      "kybernos-sessions",
+      "kybernos-skills"
+    ],
+    "kbsl": [
+      "kybernos-mobile",
+      "kybernos-plugin",
+      "kybernos-slash"
+    ],
+    "kbt": [
+      "kybernos-plugin",
+      "kybernos-skills"
+    ],
+    "kbth": [
+      "kybernos-plugin",
+      "kybernos-theme"
+    ],
+    "kml": [
+      "kybernos-modeles-locaux",
+      "kybernos-plugin"
+    ]
+  },
+  "statusColours": {
+    "dsh-db-viewer": [
+      "#10b981",
+      "#3ba272",
+      "#47b262",
+      "#54ea92",
+      "#91cc75",
+      "#9fe6b8",
+      "#bf444c",
+      "#d88273",
+      "#eb5454",
+      "#ee6666",
+      "#f59e0b",
+      "#f64e56",
+      "#f6efa6",
+      "#fac858",
+      "#fb7293",
+      "#fc8452",
+      "#fd7b5f",
+      "#ff9f7f",
+      "#ffd85c",
+      "#ffdb5c"
+    ],
+    "dsh-mermaid": [
+      "#decc93",
+      "#f66"
+    ],
+    "kybernos-bricks": [
+      "#b43f1e",
+      "#c94522",
+      "#e1502a"
+    ],
+    "kybernos-call": [
+      "#dc2626"
+    ],
+    "kybernos-cloud": [
+      "#e0a33e",
+      "#e56a6a",
+      "#f5a524"
+    ],
+    "kybernos-composio": [
+      "#22c55e",
+      "#d63b40",
+      "#e5484d",
+      "#ef4444",
+      "#f43f5e",
+      "#f59e0b",
+      "#f87171",
+      "#facc15",
+      "#ff7a1a"
+    ],
+    "kybernos-kyber": [
+      "#07c160",
+      "#25d366"
+    ],
+    "kybernos-maintenance": [
+      "#2fae52",
+      "#d98a0b",
+      "#e5484d",
+      "#f5a524",
+      "#ff9f0a"
+    ],
+    "kybernos-miniapps": [
+      "#ff8a3d"
+    ],
+    "kybernos-modeleur": [
+      "#7a4e2b",
+      "#8e1b14",
+      "#b43f1e",
+      "#c4291c",
+      "#c94522",
+      "#d9c08c",
+      "#e1502a",
+      "#f2c31a"
+    ],
+    "kybernos-models": [
+      "#0b7a3b",
+      "#34c759",
+      "#7ce3a4"
+    ],
+    "kybernos-motion": [
+      "#1f8f5f",
+      "#d64545"
+    ],
+    "kybernos-plugin": [
+      "#15803d",
+      "#16a34a",
+      "#2f9e63",
+      "#34d399",
+      "#6ee7b7",
+      "#78cc9a",
+      "#7fc98a",
+      "#86efac",
+      "#8a6a2e",
+      "#92400e",
+      "#9b1c1c",
+      "#b45309",
+      "#b91c1c",
+      "#bef264",
+      "#c33543",
+      "#c4712c",
+      "#c93b4c",
+      "#c94522",
+      "#c9a45c",
+      "#dc2626",
+      "#e08a2e",
+      "#e1502a",
+      "#e2cdae",
+      "#e4d9bd",
+      "#e5b567",
+      "#e8b85c",
+      "#e9a197",
+      "#f0bd70",
+      "#f59e0b",
+      "#fb923c",
+      "#fbbf24",
+      "#fcd34d",
+      "#fdba74",
+      "#fde047"
+    ],
+    "kybernos-search": [
+      "#ffc53d"
+    ],
+    "kybernos-skills": [
+      "#c98a00",
+      "#f7c46c"
+    ],
+    "kybernos-slides": [
+      "#1f9d57",
+      "#b43f1e",
+      "#c94522",
+      "#e1502a"
+    ],
+    "kybernos-workers": [
+      "#28c840",
+      "#4ade80",
+      "#febc2e",
+      "#ff5f57"
+    ]
+  },
+  "fontSizes": [
+    "0",
+    "0.875em",
+    "10.5px",
+    "10px",
+    "11.5px",
+    "11px",
+    "12.5px",
+    "12px",
+    "13.5px",
+    "13px",
+    "14.5px",
+    "14px",
+    "15.5px",
+    "15px",
+    "16px",
+    "17px",
+    "18px",
+    "19px",
+    "1em",
+    "20px",
+    "21px",
+    "22px",
+    "23px",
+    "24px",
+    "25px",
+    "26px",
+    "28px",
+    "30px",
+    "32px",
+    "38px",
+    "40px",
+    "48px",
+    "54px",
+    "67.75px",
+    "8.5px",
+    "8px",
+    "9.5px",
+    "9px",
+    "clamp(26px,3.2vw,34px)",
+    "inherit",
+    "var(--dsh-content-font-size-secondary, 13px)",
+    "var(--dsh-content-font-size-secondary,13.5px)",
+    "var(--dsh-content-font-size-secondary,13px)",
+    "var(--kb-fs-11,11px)",
+    "var(--kb-fs-12,12px)",
+    "var(--kb-fs-13,13px)",
+    "var(--kb-fs-14,14px)"
+  ]
+}

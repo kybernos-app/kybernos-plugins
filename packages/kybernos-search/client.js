@@ -404,7 +404,7 @@ window.__ModuleLoader__.load({
             if (S.error) e.appendChild(el('h3', null, kt('La recherche n’a pas répondu', 'The search did not answer')))
             else if (building) { e.appendChild(el('h3', null, kt('Indexation des chats… ', 'Indexing your chats… ') + S.host.done + ' / ' + S.host.total)); e.appendChild(el('span', null, kt('Les résultats arrivent au fur et à mesure.', 'Results appear as they are read.'))) } else {
               e.appendChild(el('h3', null, kt('Aucun résultat pour « ' + S.q.trim() + ' »', 'No result for “' + S.q.trim() + '”')))
-              e.appendChild(el('span', null, kt('Essayez moins de mots, ou activez d’autres portées.', 'Try fewer words, or turn on other scopes.')))
+              e.appendChild(el('span', null, kt('Essaie moins de mots, ou active d’autres portées.', 'Try fewer words, or turn on other scopes.')))
             }
             body.appendChild(e)
           } else {
@@ -462,7 +462,7 @@ window.__ModuleLoader__.load({
               prev.appendChild(h)
               cur.hits.forEach((m, k) => {
                 const box2 = el('div', 'kbsr-msg' + (k === 0 ? ' hit' : ''))
-                if (m.r === 'u' || m.r === 'a') box2.appendChild(el('b', null, m.r === 'u' ? kt('Vous', 'You') : kt('Assistant', 'Assistant')))
+                if (m.r === 'u' || m.r === 'a') box2.appendChild(el('b', null, m.r === 'u' ? kt('Toi', 'You') : kt('Assistant', 'Assistant')))
                 if (m.pre) box2.appendChild(document.createTextNode('… '))
                 appendMarked(box2, m.text, m.marks)
                 if (m.post) box2.appendChild(document.createTextNode(' …'))

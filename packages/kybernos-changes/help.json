@@ -5,15 +5,15 @@
   },
   "steps": [
     {
-      "fr": "Lisez la pastille : vert = rien à faire, orange = quelque chose vous attend, bleu = information, rouge = bloqué.",
+      "fr": "Lis la pastille : vert = rien à faire, orange = quelque chose t’attend, bleu = information, rouge = bloqué.",
       "en": "Read the chip: green = nothing to do, amber = something is waiting on you, blue = information, red = blocked."
     },
     {
-      "fr": "Cliquez-la : la carte montre « Modifié », « Sauvegardé », « Sur GitHub », « Dans le projet » et les fichiers concernés.",
+      "fr": "Clique-la : la carte montre « Modifié », « Sauvegardé », « Sur GitHub », « Dans le projet » et les fichiers concernés.",
       "en": "Click it: the card shows “Changed”, “Saved”, “On GitHub”, “In the project” and the files concerned."
     },
     {
-      "fr": "Cliquez le bouton principal, par ex. « Sauvegarder mon travail » : l’encadré « Avant de continuer » permet de valider ou « Retour ».",
+      "fr": "Clique le bouton principal, par ex. « Sauvegarder mon travail » : l’encadré « Avant de continuer » permet de valider ou « Retour ».",
       "en": "Click the main button, e.g. “Save my work”: a “Before going on” box lets you confirm or press “Back”."
     },
     {

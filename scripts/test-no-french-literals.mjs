@@ -20,6 +20,8 @@ import { frenchEverywhere, frenchLinesOfMarkdown, frenchOutsideDictionary, isFre
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const PACKAGES = join(REPO, 'packages')
 const ALLOW = JSON.parse(readFileSync(join(REPO, 'scripts', 'i18n-french-allow.json'), 'utf8'))
+// bundles in which a French word written without its accent (« indisponible », « Discuter ») counts as French too: the gate tightens bundle by bundle
+const UNACCENTED = new Set(Array.isArray(ALLOW.unaccented) ? ALLOW.unaccented : [])
 const bundles = readdirSync(PACKAGES).filter((d) => statSync(join(PACKAGES, d)).isDirectory() && existsSync(join(PACKAGES, d, 'package.json'))).sort()
 
 let pass = 0
@@ -51,7 +53,7 @@ const findings = (bundle) => {
   const dir = join(PACKAGES, bundle)
   const out = []
   for (const f of codeFiles(dir)) {
-    for (const o of frenchOutsideDictionary(readFileSync(f, 'utf8'))) out.push({ file: relative(dir, f), line: o.line, text: o.text })
+    for (const o of frenchOutsideDictionary(readFileSync(f, 'utf8'), { unaccented: UNACCENTED.has(bundle) })) out.push({ file: relative(dir, f), line: o.line, text: o.text })
   }
   return out
 }
@@ -148,8 +150,14 @@ console.log('the scanner')
   check('a fr table is a dictionary, its neighbour is not', f("const D = { fr: { a: 'Fermer la fenêtre' }, en: { a: 'Close' } }\nconst bad = 'Fermer la fenêtre'").length === 1)
   check('a French literal in a grouping parenthesis of a pair call is in the dictionary', f("const kt = (fr, en) => en\nconst x = kt('' + n + (n > 1 ? ' leçons' : ' leçon'), 'lessons')").length === 0)
   check('a { fr, en } pair is a dictionary', f("const x = { fr: 'Fermer la fenêtre', en: 'Close the window' }").length === 0)
+  check('a row of languages [en, fr, es, ar] is a dictionary', f("const T = { skip: ['Skip', 'Passer la fenêtre', 'Omitir', 'تخطي'] }").length === 0)
+  check('…but a list of French only is not', f("const T = ['Fermer la fenêtre', 'Ouvrir la porte', 'Annuler l’action']").length === 3)
+  check('a helper written (en, fr) puts its French argument in a dictionary', f("const sk = (name, en, fr) => ({ name, en, fr })\nsk('a', 'Close the window', 'Fermer la fenêtre')").length === 0)
   check('French inside a comment or a regex is not a literal', f("// Fermer la fenêtre\n/* Ouvrir la porte */ const r = /é|è/g").length === 0)
   check('a template literal is read, its expressions are code', f('const t = `${a} fichiers sont dans le dossier`').length === 1)
+  check('an accent-less French label is found where the bundle asks for it, and only there', frenchOutsideDictionary("h('b', null, 'Discuter'); log('service indisponible, lancement impossible')", { unaccented: true }).length === 2 && frenchOutsideDictionary("h('b', null, 'Discuter'); log('service indisponible, lancement impossible')").length === 0)
+  check('an accent-less word inside a pair helper or a [fr, en] row is a dictionary', frenchOutsideDictionary("const kt = (fr, en) => en\nkt('Discuter', 'Chat'); const R = ['aucun', 'none']", { unaccented: true }).length === 0)
+  check('English that looks like a French word is not French', frenchOutsideDictionary("log('Export the table'); const a = 'Lecture notes'; const p = 'preset'", { unaccented: true }).length === 0)
   check('a language picker name is not French text', f("const l = 'Français'").length === 0)
   check('a README line of French prose is found, English with a quoted label is not', frenchLinesOfMarkdown('Le panneau affiche les briques de la maquette.\nThe « Briques » panel shows the bricks.\n').length === 1)
 }

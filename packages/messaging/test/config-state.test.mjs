@@ -11,12 +11,12 @@ function tmpdir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-bridge-'));
 }
 
-test('parseEnvFile lit KEY=VALUE, ignore commentaires et gère les quotes', () => {
+test('parseEnvFile reads KEY=VALUE, ignores comments and handles quotes', () => {
   const env = parseEnvFile('# commentaire\nA=1\nB="deux mots"\nC=\nD=espaces  \ninvalid\n');
   assert.deepEqual(env, { A: '1', B: 'deux mots', C: '', D: 'espaces' });
 });
 
-test('loadConfig résout token, chat par défaut et allowlist depuis le .env', () => {
+test('loadConfig resolves the token, the default chat and the allowlist from the .env', () => {
   const dir = tmpdir();
   const envFile = path.join(dir, '.env');
   fs.writeFileSync(envFile, 'TELEGRAM_BOT_TOKEN=123:ABC\nTELEGRAM_CHAT_ID=4242\n');
@@ -30,7 +30,7 @@ test('loadConfig résout token, chat par défaut et allowlist depuis le .env', (
   assert.equal(cfg.dshProfile, 'headless');
 });
 
-test('loadConfig donne la priorité à process.env sur le fichier .env', () => {
+test('loadConfig gives process.env priority over the .env file', () => {
   const dir = tmpdir();
   const envFile = path.join(dir, '.env');
   fs.writeFileSync(envFile, 'TELEGRAM_BOT_TOKEN=fichier\nTELEGRAM_CHAT_ID=1\n');
@@ -41,7 +41,7 @@ test('loadConfig donne la priorité à process.env sur le fichier .env', () => {
   assert.equal(cfg.token, 'process');
 });
 
-test('loadConfig accepte des chats autorisés supplémentaires', () => {
+test('loadConfig accepts extra allowed chats', () => {
   const dir = tmpdir();
   const envFile = path.join(dir, '.env');
   fs.writeFileSync(envFile, 'TELEGRAM_BOT_TOKEN=t\nTELEGRAM_CHAT_ID=1\nTELEGRAM_ALLOWED_CHATS=7, 8\n');
@@ -49,14 +49,14 @@ test('loadConfig accepte des chats autorisés supplémentaires', () => {
   assert.deepEqual([...cfg.allowedChats].sort(), ['1', '7', '8']);
 });
 
-test('loadConfig signale un .env absent sans échouer', () => {
+test('loadConfig reports a missing .env without failing', () => {
   const dir = tmpdir();
   const cfg = loadConfig({ configPath: path.join(dir, 'config.json'), env: { TELEGRAM_ENV_FILE: path.join(dir, 'absent.env') } });
   assert.equal(cfg.token, null);
-  assert.ok(cfg.notes.some((n) => n.includes('illisible')));
+  assert.ok(cfg.notes.some((n) => n.includes('unreadable or missing')));
 });
 
-test('l’état se relit à l’identique et reste en 0600', () => {
+test('the state reads back identically and stays 0600', () => {
   const dir = tmpdir();
   const file = path.join(dir, 'state.json');
   const state = emptyState();
@@ -74,7 +74,7 @@ test('l’état se relit à l’identique et reste en 0600', () => {
   assert.deepEqual(back.allowlist, ['42']);
 });
 
-test('isAllowed obéit à l’allowlist, au .env et à allowAll', () => {
+test('isAllowed obeys the allowlist, the .env and allowAll', () => {
   const state = emptyState();
   const cfg = { allowAll: false, allowedChats: new Set(['7']) };
   assert.equal(isAllowed(state, '7', cfg), true);
@@ -84,10 +84,10 @@ test('isAllowed obéit à l’allowlist, au .env et à allowAll', () => {
   assert.equal(isAllowed(state, '999', { allowAll: true, allowedChats: new Set() }), true);
 });
 
-test('loadState tolère un fichier corrompu', () => {
+test('loadState tolerates a corrupted file', () => {
   const dir = tmpdir();
   const file = path.join(dir, 'state.json');
-  fs.writeFileSync(file, '{ ce n’est pas du JSON');
+  fs.writeFileSync(file, '{ this is not JSON');
   const state = loadState(file);
   assert.deepEqual(state.chats, {});
   assert.equal(state.offset, 0);

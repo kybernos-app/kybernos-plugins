@@ -549,17 +549,17 @@ window.__ModuleLoader__.load({
           } catch (e) { return { ok: false, error: 'network' } }
         }
         const ERRORS = {
-          not_in_plan: () => kt('Votre offre n’inclut pas le mobile.', 'Your plan does not include the phone link.'),
-          device_limit: () => kt('Le nombre maximum de téléphones est atteint : retirez-en un.', 'The maximum number of phones is reached: remove one.'),
-          not_connected: () => kt('Connectez-vous à votre compte Kybernos.', 'Sign in to your Kybernos account.'),
+          not_in_plan: () => kt('Ton offre n’inclut pas le mobile.', 'Your plan does not include the phone link.'),
+          device_limit: () => kt('Le nombre maximum de téléphones est atteint : retires-en un.', 'The maximum number of phones is reached: remove one.'),
+          not_connected: () => kt('Connecte-toi à ton compte Kybernos.', 'Sign in to your Kybernos account.'),
           // The server that does not answer is named when the host knows which one it is (label and host): with several servers « the Kybernos server » says nothing.
           server_unavailable: (server) => {
             const has = (v) => typeof v === 'string' && v !== ''
             const named = server !== null && typeof server === 'object' && has(server.name)
             const label = server !== null && typeof server === 'object' ? [named ? '“' + server.name + '”' : '', has(server.host) ? (named ? '(' + server.host + ')' : server.host) : ''].filter((x) => x !== '').join(' ') : ''
             return label === ''
-              ? kt('Le serveur Kybernos ne répond pas. Réessayez dans un instant.', 'The Kybernos server does not answer. Try again in a moment.')
-              : kt('Le serveur ' + label.replace('“', '« ').replace('”', ' »') + ' ne répond pas. Réessayez dans un instant.', 'The server ' + label + ' does not answer. Try again in a moment.')
+              ? kt('Le serveur Kybernos ne répond pas. Réessaie dans un instant.', 'The Kybernos server does not answer. Try again in a moment.')
+              : kt('Le serveur ' + label.replace('“', '« ').replace('”', ' »') + ' ne répond pas. Réessaie dans un instant.', 'The server ' + label + ' does not answer. Try again in a moment.')
           },
           server_refused: () => kt('Le serveur a refusé l’appairage.', 'The server refused the pairing.'),
           not_offered: () => kt('Ce serveur Kybernos ne propose pas encore le mobile.', 'This Kybernos server does not offer the phone link yet.'),
@@ -617,9 +617,9 @@ window.__ModuleLoader__.load({
         }
 
         const Steps = () => h('ol', { className: 'kbmr-steps' },
-          h('li', null, kt('Ouvrez l’appareil photo de votre téléphone.', 'Open your phone’s camera.')),
-          h('li', null, kt('Visez ce code et ouvrez le lien.', 'Aim at this code and open the link.')),
-          h('li', null, kt('Vérifiez que le code à 4 chiffres est le même ici et sur le téléphone.', 'Check that the 4-digit code is the same here and on the phone.')))
+          h('li', null, kt('Ouvre l’appareil photo de ton téléphone.', 'Open your phone’s camera.')),
+          h('li', null, kt('Vise ce code et ouvre le lien.', 'Aim at this code and open the link.')),
+          h('li', null, kt('Vérifie que le code à 4 chiffres est le même ici et sur le téléphone.', 'Check that the 4-digit code is the same here and on the phone.')))
 
         const Lock = () => h('div', { className: 'kbmr-lock' },
           h('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' },
@@ -635,7 +635,7 @@ window.__ModuleLoader__.load({
             const left = typeof p.verify_until === 'number' ? p.verify_until - now : null
             return h('div', { className: 'kbmr-verify', 'data-kb': 'mobile-verify' },
               h('div', { className: 'kbmr-h' }, kt('Un téléphone demande l’accès', 'A phone asks for access')),
-              h('div', { className: 'kbmr-sub' }, (p.phone_label || '') + (p.phone_label ? ' · ' : '') + kt('vérifiez que ce code est le même sur son écran', 'check that this code is the same on its screen')),
+              h('div', { className: 'kbmr-sub' }, (p.phone_label || '') + (p.phone_label ? ' · ' : '') + kt('vérifie que ce code est le même sur son écran', 'check that this code is the same on its screen')),
               h('div', { className: 'kbmr-sas', 'data-kb': 'mobile-sas' }, p.sas),
               left !== null ? h('div', { className: 'kbmr-sub' }, kt('Expire dans ', 'Expires in ') + clock(left)) : null,
               h('div', { className: 'kbmr-row' },
@@ -646,7 +646,7 @@ window.__ModuleLoader__.load({
           const expired = left <= 0
           return h('div', { className: 'kbmr-pairing', 'data-kb': 'mobile-pairing' },
             expired ? h('div', { className: 'kbmr-qr kbmr-qr-off' }, h('span', null, kt('Code expiré', 'Code expired'))) : h(Qr, { qr: p.qr }),
-            h('div', { className: 'kbmr-sub kbmr-center' }, expired ? kt('Faites un nouveau code.', 'Make a new code.') : kt('À usage unique · expire dans ', 'Single use · expires in ') + clock(left)),
+            h('div', { className: 'kbmr-sub kbmr-center' }, expired ? kt('Fais un nouveau code.', 'Make a new code.') : kt('À usage unique · expire dans ', 'Single use · expires in ') + clock(left)),
             props.compact ? null : h(Steps),
             h('div', { className: 'kbmr-row' },
               h('button', { type: 'button', className: 'kbmr-btn', 'data-kb': 'mobile-new-code', disabled: props.busy, onClick: props.onNew }, kt('Nouveau code', 'New code')),
@@ -660,7 +660,7 @@ window.__ModuleLoader__.load({
           const [confirm, setConfirm] = React.useState(null)
           const list = props.devices
           if (list.length === 0) return h('div', { className: 'kbmr-sub' }, kt('Aucun téléphone appairé pour l’instant.', 'No phone paired yet.'))
-          const stateText = (d) => (d.state === 'locked' ? kt('Verrouillé : hors de votre offre', 'Locked: not in your plan') : d.online ? kt('Connecté maintenant', 'Connected now') : kt('Hors ligne', 'Offline') + ' · ' + ago(d.last_seen_at))
+          const stateText = (d) => (d.state === 'locked' ? kt('Verrouillé : hors de ton offre', 'Locked: not in your plan') : d.online ? kt('Connecté maintenant', 'Connected now') : kt('Hors ligne', 'Offline') + ' · ' + ago(d.last_seen_at))
           return h('div', { className: 'kbmr-devices', 'data-kb': 'mobile-devices' },
             list.map((d) => h('div', { key: d.id, className: 'kbmr-device', 'data-kb': 'mobile-device' },
               h('span', { className: 'kbmr-dot' + (d.online ? ' on' : ''), 'aria-hidden': 'true' }),
@@ -674,8 +674,8 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kbmr-lockbox', 'aria-hidden': 'true' },
             h('svg', { width: 36, height: 36, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round' },
               h('rect', { x: 4, y: 11, width: 16, height: 10, rx: 2 }), h('path', { d: 'M8 11V7a4 4 0 0 1 8 0v4' }))),
-          h('div', { className: 'kbmr-h' }, kt('Non inclus dans votre offre', 'Not included in your plan')),
-          h('div', { className: 'kbmr-sub' }, kt('Votre offre actuelle n’inclut pas le lien téléphone. Avec une offre qui l’inclut, vous scannez un code et votre téléphone pilote cet ordinateur, où que vous soyez, sans rien ouvrir sur votre box ni créer de compte en plus. Votre poste reste utilisable en local, comme avant.', 'Your current plan does not include the phone link. With a plan that does, you scan a code and your phone drives this computer from anywhere, with nothing to open on your router and no extra account. Your computer stays usable locally, as before.')),
+          h('div', { className: 'kbmr-h' }, kt('Non inclus dans ton offre', 'Not included in your plan')),
+          h('div', { className: 'kbmr-sub' }, kt('Ton offre actuelle n’inclut pas le lien téléphone. Avec une offre qui l’inclut, tu scannes un code et ton téléphone pilote cet ordinateur, où que tu sois, sans rien ouvrir sur ta box ni créer de compte en plus. Ton poste reste utilisable en local, comme avant.', 'Your current plan does not include the phone link. With a plan that does, you scan a code and your phone drives this computer from anywhere, with nothing to open on your router and no extra account. Your computer stays usable locally, as before.')),
           typeof props.web === 'string' && props.web !== ''
             ? h('button', { type: 'button', className: 'kbmr-btn kbmr-primary', 'data-kb': 'mobile-plans', onClick: () => { try { window.open(props.web, '_blank', 'noopener') } catch (e) { /* cannot open */ } } }, kt('Voir les offres', 'See the plans'))
             : null)
@@ -706,7 +706,7 @@ window.__ModuleLoader__.load({
           if (s === null) return polled !== null ? polled : h('div', { className: 'kbmr-sub' }, kt('Chargement…', 'Loading…'))
           if (s.available === false) return h('div', { className: 'kbmr-sub' }, kt('Cette version de DSH ne permet pas la connexion mobile.', 'This DSH version cannot do the phone link.'))
           if (s.configured === false) return h('div', { className: 'kbmr-sub', 'data-kb': 'mobile-not-offered' }, kt('Ce serveur Kybernos ne propose pas encore le mobile.', 'This Kybernos server does not offer the phone link yet.'))
-          if (s.connected === false) return h('div', { className: 'kbmr-sub', 'data-kb': 'mobile-signin' }, kt('Connectez-vous à votre compte Kybernos pour utiliser le mobile.', 'Sign in to your Kybernos account to use the phone link.'))
+          if (s.connected === false) return h('div', { className: 'kbmr-sub', 'data-kb': 'mobile-signin' }, kt('Connecte-toi à ton compte Kybernos pour utiliser le mobile.', 'Sign in to your Kybernos account to use the phone link.'))
           const devices = Array.isArray(s.devices) ? s.devices : []
           if (s.entitled === false) return h('div', null, h(Paywall, { web: props.web }), devices.length > 0 ? h(Devices, { devices, onRevoke: (id) => run('devices/revoke', { id }) }) : null)
           return h('div', { className: 'kbmr-body' },
@@ -758,11 +758,11 @@ window.__ModuleLoader__.load({
             title: kt('Relier un téléphone en trois étapes', 'Link a phone in three steps'),
             caption: kt('Le code QR est affiché sur l’ordinateur, scanné avec le téléphone, puis autorisé sur l’ordinateur.', 'The QR code is shown on the computer, scanned with the phone, then allowed on the computer.'),
             steps: [
-              { t: kt('Affichez le code', 'Show the code'), b: kt('Sur l’ordinateur, ouvrez le menu du compte › « Contrôle à distance » : un code QR s’affiche.', 'On the computer, open the account menu › “Remote control”: a QR code appears.') },
-              { t: kt('Scannez-le', 'Scan it'), b: kt('Sur le téléphone, scannez le code avec l’appareil photo et ouvrez le lien : un code à 4 chiffres s’affiche.', 'On the phone, scan the code with the camera and open the link: a 4-digit code appears.') },
-              { t: kt('Autorisez', 'Allow'), b: kt('Sur l’ordinateur, vérifiez que le code est le même et touchez Autoriser : votre téléphone pilote cet ordinateur.', 'On the computer, check the code is the same and click Allow: your phone now drives this computer.') }
+              { t: kt('Affiche le code', 'Show the code'), b: kt('Sur l’ordinateur, ouvre le menu du compte › « Contrôle à distance » : un code QR s’affiche.', 'On the computer, open the account menu › “Remote control”: a QR code appears.') },
+              { t: kt('Scanne-le', 'Scan it'), b: kt('Sur le téléphone, scanne le code avec l’appareil photo et ouvre le lien : un code à 4 chiffres s’affiche.', 'On the phone, scan the code with the camera and open the link: a 4-digit code appears.') },
+              { t: kt('Autorise', 'Allow'), b: kt('Sur l’ordinateur, vérifie que le code est le même et touche Autoriser : ton téléphone pilote cet ordinateur.', 'On the computer, check the code is the same and click Allow: your phone now drives this computer.') }
             ],
-            mock: { bar: 'Remote Control', rows: [kt('Cet ordinateur', 'This computer')], hot: kt('Votre téléphone', 'Your phone'), states: [kt('Pas lié', 'Not linked'), kt('Code : 4821', 'Code: 4821'), kt('Lié', 'Linked')], actions: [kt('Afficher le QR', 'Show the QR'), kt('Scan…', 'Scanning…'), kt('Autoriser', 'Allow')] }
+            mock: { bar: 'Remote Control', rows: [kt('Cet ordinateur', 'This computer')], hot: kt('Ton téléphone', 'Your phone'), states: [kt('Pas lié', 'Not linked'), kt('Code : 4821', 'Code: 4821'), kt('Lié', 'Linked')], actions: [kt('Afficher le QR', 'Show the QR'), kt('Scan…', 'Scanning…'), kt('Autoriser', 'Allow')] }
           })
           : null)
 
@@ -805,12 +805,12 @@ window.__ModuleLoader__.load({
             })()
             return () => { live = false }
           }, [])
-          const planChip = r.s !== null && r.s.entitled === true ? kt('Inclus dans votre offre', 'Included in your plan') : null
+          const planChip = r.s !== null && r.s.entitled === true ? kt('Inclus dans ton offre', 'Included in your plan') : null
           return h('div', { className: 'kbmr-page', 'data-kb': 'mobile-page' },
             h('div', { className: 'kbmr-head' },
               h('div', { className: 'kbmr-headtxt' },
                 h('h1', { className: 'kbmr-title' }, 'Remote Control'),
-                h('p', { className: 'kbmr-sub' }, kt('Pilotez cet ordinateur depuis votre téléphone : scannez le code, c’est tout. Rien à installer, aucun compte à créer.', 'Drive this computer from your phone: scan the code, that is all. Nothing to install, no account to create.'))),
+                h('p', { className: 'kbmr-sub' }, kt('Pilote cet ordinateur depuis ton téléphone : scanne le code, c’est tout. Rien à installer, aucun compte à créer.', 'Drive this computer from your phone: scan the code, that is all. Nothing to install, no account to create.'))),
               planChip !== null ? h('span', { className: 'kbmr-chip' }, planChip) : null,
               helpButton()),
             introNode(),

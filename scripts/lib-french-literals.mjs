@@ -230,7 +230,8 @@ export const literals = (src) => {
       const e = topInfo()
       const prev = toks[k - 1]
       const next = toks[k + 1]
-      const isKey = isPunct(next, ':') && e !== undefined && e.open === '{'
+      // a property key follows « { » or « , »; a literal before a colon after « ? » is the middle of a ternary (« c ? 'Fermer' : 'Close' »)
+      const isKey = isPunct(next, ':') && e !== undefined && e.open === '{' && (isPunct(prev, '{') || isPunct(prev, ',') || prev === undefined)
       const key = isKey ? null : (isPunct(prev, ':') && (toks[k - 2] !== undefined && (toks[k - 2].type === 'id' || toks[k - 2].type === 'str')) && e !== undefined && e.open === '{' ? (toks[k - 2].type === 'id' ? toks[k - 2].text : toks[k - 2].value) : null)
       let callOf = null
       for (let q = stack.length - 1; q >= 0; q -= 1) {
@@ -251,12 +252,15 @@ export const literals = (src) => {
         arrayLen: -1,
         arrayIndex: -1,
         arraySecondStr: false,
+        rowMixed: false,
       }
       if (e !== undefined && e.open === '[') {
         const items = arrayInfo.get(e.k) ?? []
         rec.arrayLen = items.length
         rec.arrayIndex = items.findIndex((it) => it.k === k)
         rec.arraySecondStr = items.length === 2 && items[0].isStr && items[1].isStr
+        // a row of languages ([en, fr, es, ar]): two to six bare strings of which at least one is not French
+        rec.rowMixed = items.length >= 2 && items.length <= 6 && items.every((it) => it.isStr) && items.some((it) => !isFrench(it.tok.value))
       }
       out.push(rec)
     }
@@ -276,7 +280,15 @@ const LEXICON = new Set(('début fin relire briques maquette maquettes aucun auc
   'démarrage rejouer couleur texte vide lancer arrêter réessayer chargement erreur échec terminé bientôt ajouter retirer renommer dupliquer copier coller effacer choisir choisissez ' +
   'demande demandez retour suivant précédent aujourd hui hier demain jamais toujours merci bonjour ordinateur serveur connexion compte langue réglages paramètres compétences créations ' +
   'livrables rechercher résultats épinglés modeleur maintenant ensuite rien plusieurs prochain dernier derniers première cliquez appuyez introuvable lancez créez ajoutez mettez relancez ' +
-  'patientez attendez pièces rendu élément éléments enregistré enregistrée envoyer envoyé afficher masquer actualiser rafraîchir').split(' '))
+  'patientez attendez pièces rendu élément éléments enregistré enregistrée envoyer envoyé afficher masquer actualiser rafraîchir ' +
+  'diagramme diagrammes graphiques').split(' '))
+// French words written WITHOUT their accent (a host log, an error message, a label typed on a keyboard that has no é): the accent rule cannot see them.
+// Only words that are not English words. Checked in the bundles listed under "unaccented" in the allow-list (the gate tightens bundle by bundle).
+const UNACCENTED = new Set(('indisponible indisponibles injoignable illisible illisibles inconnu inconnue invalide invalides manquant manquante requis requise attendu attendue refusee refusees ' +
+  'discuter cacher archiver cloner rejeter approuver recentrer graphe chronologie orchestrateur connecteur connecteurs galerie favoris sonde membres outil outils ' +
+  'objectif actif initiale composants acteur sortie attente ecriture ecrit reglage reglages demarrage lancement parrainage reponse octets ' +
+  'etape etapes equipe equipes modele modeles cle cles tache taches fichier fichiers apercu echec reussi termine bientot rien jamais toujours demain aujourd ' +
+  'vide chargement erreur introuvable aucun aucune').split(' '))
 const ELISION = /(?:^|[^A-Za-z0-9])(?:l|d|qu|n|s|j|c|m|t|jusqu)['’][a-zàâçéèêëîïôùûœ]/i
 // Language names written in their own language, and a few proper names, are not « French text » (a language picker lists them).
 const AUTONYM = /^(?:Français|Español|Deutsch|Português|Italiano|Nederlands|Türkçe|Polski|Русский|日本語|한국어|中文|العربية|हिन्दी|Svenska|Čeština|Română|Magyar|Ελληνικά|עברית|Bahasa|Tiếng Việt|Amélie|Zoé|Aurélie|Gérard|Hélène|Cécile|Frédéric|Valérie|Rénald)(?:\s*\(.*\))?$/
@@ -286,11 +298,14 @@ const FR_ONLY = /[èêëâçîïôûœÈÊËÂÇÎÏÔÛŒ]/
 const wordsOf = (text) => text.toLowerCase().split(/[^a-zàâçéèêëîïôùûœ]+/).filter((w) => w.length > 0)
 
 /** Does this literal read as French text? (the decision is about the text alone, not about where it sits) */
-export const isFrench = (raw) => {
+export const isFrench = (raw, opts) => {
   if (typeof raw !== 'string') return false
+  let unaccented = opts !== undefined && opts !== null && opts.unaccented === true
   // a comment inside a CSS template is not a user-facing string
   const text = raw.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\$\{\}/g, ' ').replace(/\bkybernos-[a-z-]+/g, ' ').trim()
   if (text.length < 2) return false
+  // CSS (class names such as .kbi-vide are not words) and code-like text: the accent-less rule is about sentences and labels
+  if (/[{};]/.test(text)) unaccented = false
   if (AUTONYM.test(text)) return false
   // not text at all: a URL, a path, a selector list, a regex source, a JSON/CSS fragment with no sentence
   if (/^(?:https?:|\/|\.{1,2}\/|[#.][\w-]+$|@[\w-]+\/)/.test(text)) return false
@@ -308,7 +323,9 @@ export const isFrench = (raw) => {
   if (fn.size >= 2) return true
   if (ELISION.test(text) && (fn.size >= 1 || words.length >= 3)) return true
   // A lone lowercase word ('texte', 'trait') is a token of the code (a type, an id), not a label: labels are capitalised or phrases.
-  if (!identifierLike && words.length <= 5 && words.some((w) => LEXICON.has(w)) && (words.length >= 2 || /^[A-ZÀ-Ý]/.test(text))) return true
+  if (!identifierLike && words.length <= 5 && words.some((w) => LEXICON.has(w) || (unaccented && UNACCENTED.has(w))) && (words.length >= 2 || /^[A-ZÀ-Ý]/.test(text))) return true
+  // a longer text (a log line, an error message) with two of the accent-less words in it
+  if (unaccented && !identifierLike && words.filter((w) => UNACCENTED.has(w)).length >= 2) return true
   return false
 }
 
@@ -341,7 +358,10 @@ export const pairHelpers = (src) => {
   const note = (name, params) => {
     const list = params.split(',').map((p) => p.trim().replace(/\s*=.*$/, ''))
     const at = list.findIndex((p, i) => /^(?:fr|francais)$/.test(p) && /^(?:en|anglais)$/.test(list[i + 1] ?? ''))
-    if (at >= 0) names.set(name, at)
+    if (at >= 0) { names.set(name, at); return }
+    // …or (en, fr): `const kbObSkill = (name, source, en, fr) =>`
+    const back = list.findIndex((p, i) => /^(?:en|anglais)$/.test(p) && /^(?:fr|francais)$/.test(list[i + 1] ?? ''))
+    if (back >= 0) names.set(name, back + 1)
   }
   for (const m of src.matchAll(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\(([^()]*)\)\s*=>/g)) note(m[1], m[2])
   for (const m of src.matchAll(/function\s+([A-Za-z_$][\w$]*)\s*\(([^()]*)\)/g)) note(m[1], m[2])
@@ -354,17 +374,18 @@ export const inDictionary = (lit, helpers) => {
   if (lit.labels.some((l) => FR_LABEL.test(l))) return true
   if (lit.callee !== null && helpers.has(lit.callee) && lit.argIndex === helpers.get(lit.callee)) return true
   if (lit.arrayLen === 2 && lit.arrayIndex === 0 && lit.arraySecondStr) return true
+  if (lit.rowMixed) return true
   return false
 }
 
 /** Every French literal of a source that is NOT in a dictionary: [{ line, text }]. */
-export const frenchOutsideDictionary = (src) => {
+export const frenchOutsideDictionary = (src, opts) => {
   const helpers = pairHelpers(src)
   const { literals: lits } = literals(src)
   const out = []
   for (const lit of lits) {
     if (lit.isKey) continue
-    if (!isFrench(lit.text)) continue
+    if (!isFrench(lit.text, opts)) continue
     if (inDictionary(lit, helpers)) continue
     out.push({ line: lit.line, text: lit.text })
   }

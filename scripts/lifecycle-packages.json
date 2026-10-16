@@ -1,5 +1,5 @@
 {
-  "commentaire": "Paquets @local/* du dépôt que le cycle de vie lie au profil. Ordre = ordre des bundles.",
+  "commentaire": "@local/* packages of the repository that the lifecycle links to the profile. Order = order of the bundles.",
   "packages": [
     {
       "dir": "kybernos-plugin",

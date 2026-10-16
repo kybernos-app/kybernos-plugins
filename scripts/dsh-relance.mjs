@@ -1,24 +1,25 @@
 #!/usr/bin/env node
 /**
- * dsh-relance — relancer DSH web sans se couper soi-même, récupérer l'URL
- * (token), et faire repartir la conversation sans attendre un message humain.
+ * dsh-relance — restart DSH web without cutting yourself off, recover the URL
+ * (token), and get the conversation going again without waiting for a human
+ * message.
  *
- * Le problème résolu : l'agent tourne DANS le processus `dsh web`. S'il tue ce
- * processus pour le relancer, il se tue lui-même et ne peut plus rien démarrer ;
- * et au redémarrage le token change et la session reste « froide », donc c'est
- * l'utilisateur qui doit réécrire pour réveiller le travail.
+ * The problem solved: the agent runs INSIDE the `dsh web` process. If it kills
+ * that process to restart it, it kills itself and can no longer start anything;
+ * and after the restart the token changes and the session stays "cold", so the
+ * user has to write again to wake the work up.
  *
- * Trois idées :
- *   1. le redémarrage est fait par un PROCESSUS DÉTACHÉ (ou par launchd) qui
- *      survit à la mort de DSH — `relance` se ré-exécute donc en enfant détaché ;
- *   2. l'URL/token se récupère dans le log de sortie de `dsh web` (le plist
- *      launchd l'y écrit), ou s'ignore complètement (voir 3) ;
- *   3. la reprise passe par l'API HTTP locale avec un cookie signé DÉRIVÉ DU
- *      SECRET PERSISTANT (~/.dsh/.credentials.yaml) : il survit aux
- *      redémarrages, contrairement au token de lancement. On peut alors
- *      `session/prompt` sur une session froide et l'agent repart.
+ * Three ideas:
+ *   1. the restart is done by a DETACHED PROCESS (or by launchd) that survives
+ *      the death of DSH — so `relance` re-executes itself as a detached child;
+ *   2. the URL/token is recovered from the output log of `dsh web` (the launchd
+ *      plist writes it there), or ignored altogether (see 3);
+ *   3. the resume goes through the local HTTP API with a signed cookie DERIVED
+ *      FROM THE PERSISTENT SECRET (~/.dsh/.credentials.yaml): it survives
+ *      restarts, unlike the launch token. We can then `session/prompt` a cold
+ *      session and the agent starts again.
  *
- * Usage :
+ * Usage:
  *   node ~/.dsh/tools/dsh-relance.mjs status
  *   node ~/.dsh/tools/dsh-relance.mjs url [--open]
  *   node ~/.dsh/tools/dsh-relance.mjs actives [--json] [--all]
@@ -28,26 +29,25 @@
  *   node ~/.dsh/tools/dsh-relance.mjs supervise [--once] [--interval 15] | supervise install | supervise uninstall | supervise status
  *   node ~/.dsh/tools/dsh-relance.mjs install [--force] | uninstall
  *
- * `relance` rend la main immédiatement : c'est l'enfant détaché qui coupe DSH,
- * attend que le port réponde, récupère l'URL et envoie le message de reprise.
- * Journal : ~/.dsh/logs/dsh-relance.log
+ * `relance` returns immediately: the detached child cuts DSH, waits for the
+ * port to answer, recovers the URL and sends the resume message.
+ * Log: ~/.dsh/logs/dsh-relance.log
  *
- * GARDE D'APPROBATION (22/09/2026) : si d'autres sessions tournent au moment de
- * la demande, `relance` REFUSE (code 3) tant que `--avec-autres` n'est pas
- * passé. C'est à l'agent — pas au script — de demander l'accord à l'utilisateur
- * (outil d'hôte `relancer_dsh` → panneau d'approbation natif
- * `dsh-client-ui-approval`, ou question dans le chat). Avec `--avec-autres`,
- * TOUTES les sessions qui tournaient à l'instant de la coupe sont journalisées
- * puis réveillées après le redémarrage (une seule fois chacune, via le fichier
- * de réservations `dsh-relance-claims.json`).
+ * APPROVAL GUARD (2026-09-22): if other sessions are running when the request
+ * is made, `relance` REFUSES (exit code 3) unless `--avec-autres` is passed. It
+ * is up to the agent — not the script — to ask the user for approval (host tool
+ * `relancer_dsh` → native approval panel `dsh-client-ui-approval`, or a
+ * question in the chat). With `--avec-autres`, ALL the sessions that were
+ * running at the moment of the cut are journalled, then woken up after the
+ * restart (once each, through the reservations file
+ * `dsh-relance-claims.json`).
  *
- * SUPERVISION (`supervise`) : boucle détachée (LaunchAgent
- * `com.kybernos.dsh-relance`) qui échantillonne les sessions actives, surveille
- * le serveur ET le réseau, et reprend les sessions dont le tour est mort après
- * un retour de l'un ou de l'autre. Le cas « simple coupure réseau » est déjà
- * couvert nativement par `dsh-client-connection` (reconnexion backoff) et
- * `dsh-llm-retry` (réessais au pas de l'agent) ; la supervision est le filet
- * pour ce qui a réellement échoué.
+ * SUPERVISION (`supervise`): detached loop (LaunchAgent
+ * `com.kybernos.dsh-relance`) that samples the active sessions, watches the
+ * server AND the network, and resumes the sessions whose turn died after either
+ * one comes back. The "plain network cut" case is already covered natively by
+ * `dsh-client-connection` (backoff reconnection) and `dsh-llm-retry` (retries
+ * at the agent's pace); supervision is the safety net for what really failed.
  */
 import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, openSync, statSync, rmSync } from 'node:fs'
 import { createHash, createHmac, randomUUID } from 'node:crypto'
@@ -56,8 +56,8 @@ import { connect } from 'node:net'
 import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-// La couche portable : trouver le serveur et lire sa ligne de commande ne
-// passent plus par `lsof`/`ps` en dur (absents sous Windows).
+// The portable layer: finding the server and reading its command line no
+// longer go through hard-coded `lsof`/`ps` (absent on Windows).
 import { pidSurPortSync, commandeProcessusSync, demarrageProcessusSync, famille, nomSuperviseur } from './plateforme.mjs'
 
 const SELF = fileURLToPath(import.meta.url)
@@ -74,21 +74,22 @@ const CLAIM_WINDOW_MS = 180_000
 const CREDENTIALS = join(HOME, '.credentials.yaml')
 const DOMAIN = `gui/${process.getuid?.() ?? ''}`
 
+// Wake-up prompts sent INTO a DSH session: they are addressed to the model.
 const DEFAULT_MESSAGE =
-  "🔁 Reprise automatique : le serveur DSH vient d'être relancé. Reprends le travail " +
-  "interrompu là où il s'est arrêté, sans attendre un message de l'utilisateur."
+  '🔁 Automatic resume: the DSH server has just been restarted. Pick the interrupted work back up ' +
+  'where it stopped, without waiting for a message from the user.'
 
-/** Message envoyé aux AUTRES sessions actives reprises par la relance (elles n'ont pas d'intention notée). */
+/** Message sent to the OTHER active sessions resumed by the relaunch (they have no recorded intent). */
 const DEFAULT_MESSAGE_AUTRES =
-  "🔁 Reprise automatique : le serveur DSH a redémarré pendant que cette session travaillait. " +
-  "Reprends le travail interrompu là où il s'est arrêté, sans attendre un message de l'utilisateur. " +
-  "Si le tour précédent était terminé, réponds simplement que la session est de nouveau disponible."
+  '🔁 Automatic resume: the DSH server restarted while this session was working. ' +
+  'Pick the interrupted work back up where it stopped, without waiting for a message from the user. ' +
+  'If the previous turn had already finished, simply reply that the session is available again.'
 
 // ---------------------------------------------------------------- arguments
 
 /**
- * Drapeaux sans valeur. Sans cette liste, `--dry "le titre"` mange le titre
- * (le parseur croit qu'il est la valeur de `--dry`) — un piège silencieux.
+ * Flags without a value. Without this list, `--dry "the title"` swallows the
+ * title (the parser takes it for the value of `--dry`) — a silent trap.
  */
 const BOOLEENS = new Set(['dry', 'simuler', 'json', 'all', 'open', 'force', 'once', 'run', 'avec-autres', 'start-only', 'launchd', 'verbeux', 'aide', 'help'])
 
@@ -121,30 +122,32 @@ const say = (...a) => console.log(...a)
 const log = (line) => {
   try { mkdirSync(LOGS, { recursive: true }); appendFileSync(RELANCE_LOG, `[${new Date().toISOString()}] ${line}\n`) } catch {}
 }
+/** "1 session", "2 other sessions": a count with the noun in the right number. */
+const plural = (n, noun) => `${n} ${noun}${n === 1 ? '' : 's'}`
 
-/** Les logs sont nommés par port : une instance de test ne touche pas ceux de 3080. */
+/** The logs are named by port: a test instance does not touch those of 3080. */
 const webOut = port === '3080' ? join(LOGS, 'dsh-web.out.log') : join(LOGS, `dsh-web-${port}.out.log`)
 const webErr = port === '3080' ? join(LOGS, 'dsh-web.err.log') : join(LOGS, `dsh-web-${port}.err.log`)
 const webUrlFile = port === '3080' ? join(LOGS, 'dsh-web.url') : join(LOGS, `dsh-web-${port}.url`)
 
-// ------------------------------------------------------------ authentification
+// ------------------------------------------------------------ authentication
 
 const b64url = (b) => Buffer.from(b).toString('base64').replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/u, '')
 
-/** Secret de signature du cookie navigateur, persisté par DSH (survit aux redémarrages). */
+/** Signing secret of the browser cookie, persisted by DSH (survives restarts). */
 function browserSessionSecret() {
-  if (!existsSync(CREDENTIALS)) throw new Error(`credentials introuvables: ${CREDENTIALS}`)
+  if (!existsSync(CREDENTIALS)) throw new Error(`credentials not found: ${CREDENTIALS}`)
   const raw = readFileSync(CREDENTIALS, 'utf8')
   const at = raw.indexOf('client-connection/browser-session')
-  if (at === -1) throw new Error('enregistrement client-connection/browser-session absent des credentials')
+  if (at === -1) throw new Error('record client-connection/browser-session missing from the credentials')
   const m = raw.slice(at).match(/secret:\s*(\S+)/)
-  if (!m) throw new Error('secret du cookie navigateur introuvable')
+  if (!m) throw new Error('browser cookie secret not found')
   const secret = Buffer.from(m[1].replaceAll('-', '+').replaceAll('_', '/'), 'base64')
-  if (secret.byteLength !== 32) throw new Error(`secret de taille inattendue (${secret.byteLength})`)
+  if (secret.byteLength !== 32) throw new Error(`unexpected secret size (${secret.byteLength})`)
   return secret
 }
 
-/** Cookie `dsh-auth-<hash(authority)>` signé HMAC-SHA256, valable 24 h. */
+/** Cookie `dsh-auth-<hash(authority)>` signed HMAC-SHA256, valid for 24 h. */
 function authCookie(maxAgeMs = 86_400_000) {
   const secret = browserSessionSecret()
   const name = 'dsh-auth-' + b64url(createHash('sha256').update(authority).digest())
@@ -154,7 +157,7 @@ function authCookie(maxAgeMs = 86_400_000) {
   return `${name}=v1.${body}.${sig}`
 }
 
-/** Un appel RPC unary sur le canal /api de DSH. */
+/** A unary RPC call on DSH's /api channel. */
 async function rpc(method, argObject, { cookie, timeoutMs = 20_000, sessionHeader } = {}) {
   const rpcId = randomUUID()
   const res = await fetch(`${base}/api/${method}`, {
@@ -172,7 +175,7 @@ async function rpc(method, argObject, { cookie, timeoutMs = 20_000, sessionHeade
   const text = await res.text()
   let body
   try { body = JSON.parse(text) } catch { body = { raw: text } }
-  if (res.status !== 200) throw new Error(`HTTP ${res.status} sur ${method}: ${text.trim().slice(0, 200)}`)
+  if (res.status !== 200) throw new Error(`HTTP ${res.status} on ${method}: ${text.trim().slice(0, 200)}`)
   if (body?.result && body.result.ok === false) throw new Error(`${method}: ${body.result.error?.code} — ${body.result.error?.message}`)
   return body?.result?.value
 }
@@ -184,19 +187,19 @@ async function serverAlive(timeoutMs = 1500) {
   } catch { return false }
 }
 
-// ------------------------------------------------------- sessions actives (natif)
+// ------------------------------------------------------- active sessions (native)
 
 /**
- * `session/list` : DSH expose nativement `running` par session (« l'Agent est en
- * train de tourner »), `agentAvailable`, `parentSessionId`/`origin: 'subagent'`.
- * C'est la seule source de vérité — on n'invente aucun état.
+ * `session/list`: DSH natively exposes `running` per session ("the Agent is
+ * currently running"), `agentAvailable`, `parentSessionId`/`origin: 'subagent'`.
+ * It is the only source of truth — no state is invented.
  */
 async function sessionsList(timeoutMs = 8_000) {
   const value = await rpc('session/list', { _request: {} }, { cookie: authCookie(), timeoutMs })
   return Array.isArray(value?.items) ? value.items : []
 }
 
-/** Une session d'enfant subagent ne se réveille pas par `session/prompt` (session/agent-busy). */
+/** A subagent child session cannot be woken by `session/prompt` (session/agent-busy). */
 function isSubagentSession(row) {
   return row?.origin === 'subagent' || row?.parentSessionId !== undefined && row.parentSessionId !== null
 }
@@ -204,18 +207,18 @@ function isSubagentSession(row) {
 function sessionTitle(row) {
   const v = row?.projections?.values
   const title = v && typeof v.title === 'string' ? v.title : ''
-  return title.length > 0 ? title : '(sans titre)'
+  return title.length > 0 ? title : '(untitled)'
 }
 
-/** Identifiant de la session courante : argument explicite, sinon $DSH_SESSION_ID. */
+/** Identifier of the current session: explicit argument, otherwise $DSH_SESSION_ID. */
 function currentSessionId() {
   return args.session ?? args['session-id'] ?? process.env.DSH_SESSION_ID
 }
 
 /**
- * Sessions qui tournent VRAIMENT, hors enfants subagents.
- * @param exclude - session à ne pas compter (la session courante, en général).
- * @param includeSubagents - garder les enfants (diagnostic seulement).
+ * Sessions that are REALLY running, leaving out subagent children.
+ * @param exclude - session not to count (usually the current one).
+ * @param includeSubagents - keep the children (diagnostics only).
  */
 async function runningSessions({ exclude, includeSubagents = false } = {}) {
   const items = await sessionsList()
@@ -228,7 +231,7 @@ function describeSession(row) {
   return `${row.sessionId}  ${sessionTitle(row)}`
 }
 
-// -------------------------------------------------- journal et réservations
+// -------------------------------------------------- journal and reservations
 
 function readJson(file, fallback) {
   if (!existsSync(file)) return fallback
@@ -239,21 +242,21 @@ function writeJson(file, value) {
   try {
     mkdirSync(LOGS, { recursive: true })
     writeFileSync(file, JSON.stringify(value, null, 2) + '\n')
-  } catch (error) { log(`écriture ${file} impossible — ${error?.message ?? error}`) }
+  } catch (error) { log(`writing ${file} failed — ${error?.message ?? error}`) }
 }
 
 /**
- * Photographie les sessions actives AVANT la coupe : c'est cette liste, et elle
- * seule, qui sera réveillée après le redémarrage.
+ * Snapshots the active sessions BEFORE the cut: this list, and only this list,
+ * is what gets woken up after the restart.
  */
 async function snapshotActives(primary) {
   const sessions = []
-  if (primary) sessions.push({ id: primary, title: '(session courante)', primary: true })
+  if (primary) sessions.push({ id: primary, title: '(current session)', primary: true })
   let observed = []
   try {
     observed = await runningSessions({ exclude: primary })
   } catch (error) {
-    log(`snapshot: session/list indisponible — ${error?.message ?? error}`)
+    log(`snapshot: session/list unavailable — ${error?.message ?? error}`)
   }
   for (const row of observed) sessions.push({ id: row.sessionId, title: sessionTitle(row), updatedAt: row.updatedAt })
   return sessions
@@ -262,12 +265,12 @@ async function snapshotActives(primary) {
 function writeJournal({ primary, sessions, reason }) {
   const journal = {
     at: new Date().toISOString(),
-    reason: reason ?? 'relance demandée',
+    reason: reason ?? 'relaunch requested',
     primary: primary ?? null,
     sessions: sessions.filter((s) => typeof s?.id === 'string' && s.id.length > 0),
   }
   writeJson(JOURNAL_FILE, journal)
-  log(`journal: ${journal.sessions.length} session(s) à reprendre — ${journal.sessions.map((s) => s.id).join(', ')}`)
+  log(`journal: ${plural(journal.sessions.length, 'session')} to resume — ${journal.sessions.map((s) => s.id).join(', ')}`)
   return journal
 }
 
@@ -288,25 +291,25 @@ function claimedRecently(sessionId, windowMs = CLAIM_WINDOW_MS) {
 }
 
 /**
- * Réveille les sessions journalisées (et, à défaut, celles du dernier
- * échantillon de supervision). Chaque session n'est réveillée qu'une fois par
- * fenêtre de réservation — l'enfant de relance et le superviseur peuvent donc
- * appeler cette fonction tous les deux sans doubler les messages.
+ * Wakes the journalled sessions (and, failing that, those of the last
+ * supervision sample). Each session is woken only once per reservation window —
+ * the relaunch child and the supervisor can therefore both call this function
+ * without doubling the messages.
  *
- * @param reason - motif inscrit dans les réservations et le journal.
- * @param targets - liste explicite d'identifiants (le superviseur passe la sienne,
- *   gardée en mémoire) ; sinon le journal récent et le dernier échantillon.
- * @returns compteurs : `kicked` (messages envoyés), `skipped` (déjà réservées ou encore actives), `failed` (refus définitif).
+ * @param reason - reason recorded in the reservations and the journal.
+ * @param targets - explicit list of identifiers (the supervisor passes its own,
+ *   kept in memory); otherwise the recent journal and the last sample.
+ * @returns counters: `kicked` (messages sent), `skipped` (already reserved or still active), `failed` (definitive refusal).
  */
-async function resumeActives({ reason, sessionId, message, targets: imposés } = {}) {
+async function resumeActives({ reason, sessionId, message, targets: explicitTargets } = {}) {
   const journal = readJournal()
   const frais = journal && Date.parse(journal.at) > Date.now() - 3_600_000 ? journal : undefined
   const samples = readJson(SUPERVISE_STATE, undefined)
   const primary = sessionId ?? frais?.primary ?? sessionIdFromArgs()
 
   const targets = new Map()
-  if (Array.isArray(imposés)) {
-    for (const id of imposés) if (typeof id === 'string' && id.length > 0) targets.set(id, { id })
+  if (Array.isArray(explicitTargets)) {
+    for (const id of explicitTargets) if (typeof id === 'string' && id.length > 0) targets.set(id, { id })
   } else {
     if (primary) targets.set(primary, { id: primary, primary: true })
     for (const row of frais?.sessions ?? []) {
@@ -317,7 +320,7 @@ async function resumeActives({ reason, sessionId, message, targets: imposés } =
     }
   }
   if (primary && targets.has(primary)) targets.get(primary).primary = true
-  if (targets.size === 0) { log('reprise: aucune session à réveiller'); return { kicked: 0, skipped: 0, failed: 0 } }
+  if (targets.size === 0) { log('resume: no session to wake up'); return { kicked: 0, skipped: 0, failed: 0 } }
 
   let live = new Set()
   try { live = new Set((await runningSessions()).map((row) => row.sessionId)) } catch {}
@@ -327,21 +330,21 @@ async function resumeActives({ reason, sessionId, message, targets: imposés } =
   let failed = 0
   for (const target of targets.values()) {
     const id = target.id
-    if (claimedRecently(id)) { log(`reprise: ${id} déjà réveillée récemment — ignorée`); skipped++; continue }
-    if (live.has(id)) { log(`reprise: ${id} tourne encore — inutile de la réveiller`); skipped++; continue }
+    if (claimedRecently(id)) { log(`resume: ${id} was already woken recently — skipped`); skipped++; continue }
+    if (live.has(id)) { log(`resume: ${id} is still running — no need to wake it`); skipped++; continue }
     const text = target.primary
       ? (message && message !== true ? String(message) : composeMessage(message))
       : DEFAULT_MESSAGE_AUTRES
     if (await kickSession(id, text, 6)) {
-      claim(id, reason ?? 'reprise')
+      claim(id, reason ?? 'resume')
       kicked++
-      log(`reprise: envoyée à ${id}${target.primary ? ' (session courante)' : ''}`)
+      log(`resume: sent to ${id}${target.primary ? ' (current session)' : ''}`)
     } else {
       failed++
-      log(`reprise: ÉCHEC pour ${id} (voir les tentatives ci-dessus)`)
+      log(`resume: FAILED for ${id} (see the attempts above)`)
     }
   }
-  log(`reprise: ${kicked} relancée(s), ${skipped} ignorée(s), ${failed} échec(s) — motif: ${reason ?? 'manuel'}`)
+  log(`resume: ${kicked} woken, ${skipped} skipped, ${failed} failed — reason: ${reason ?? 'manual'}`)
   return { kicked, skipped, failed }
 }
 
@@ -351,7 +354,7 @@ async function cmdActives() {
   try {
     rows = await runningSessions({ exclude: sessionId, includeSubagents: flag('all') })
   } catch (error) {
-    say(`✗ lecture des sessions impossible : ${error?.message ?? error}`)
+    say(`✗ cannot read the sessions: ${error?.message ?? error}`)
     return 1
   }
   const journal = readJournal()
@@ -365,33 +368,33 @@ async function cmdActives() {
     return 0
   }
   if (rows.length === 0) {
-    say(`aucune autre session en cours${sessionId ? ` (courante : ${sessionId})` : ''}`)
+    say(`no other session running${sessionId ? ` (current: ${sessionId})` : ''}`)
   } else {
-    say(`${rows.length} autre(s) session(s) en cours :`)
+    say(`${plural(rows.length, 'other session')} running:`)
     for (const row of rows) say(`  · ${describeSession(row)}`)
   }
-  if (journal) say(`journal de reprise : ${journal.sessions.length} session(s) — ${journal.at} (${journal.reason})`)
+  if (journal) say(`resume journal: ${plural(journal.sessions.length, 'session')} — ${journal.at} (${journal.reason})`)
   return rows.length > 0 ? 3 : 0
 }
 
-// ---------------------------------------------------------------------- nommage
+// ---------------------------------------------------------------------- naming
 
 /**
- * Appel RPC générique sur le canal local — la porte de secours quand aucune
- * commande dédiée n'existe (`commands/execute`, `session/list`, …). Le cookie
- * est forgé depuis le secret persistant : ça marche sans token et sans
- * navigateur, même sandbox fermé (aucun fichier touché).
+ * Generic RPC call on the local channel — the escape hatch when no dedicated
+ * command exists (`commands/execute`, `session/list`, …). The cookie is forged
+ * from the persistent secret: it works without a token and without a browser,
+ * even with the sandbox closed (no file touched).
  */
 async function cmdRpc() {
   const methode = args._[1] ?? (typeof args.method === 'string' ? args.method : undefined)
   if (methode === undefined) {
-    say('usage: rpc <méthode> [json]  — ex. rpc commands/list \'{"agentId":"session-…"}\'')
+    say('usage: rpc <method> [json]  — e.g. rpc commands/list \'{"agentId":"session-…"}\'')
     return 2
   }
   const brut = args._[2] ?? (typeof args.json === 'string' ? args.json : '{}')
   let charge
   try { charge = JSON.parse(brut) } catch (e) {
-    say(`✗ JSON invalide : ${e?.message ?? e}`)
+    say(`✗ invalid JSON: ${e?.message ?? e}`)
     return 2
   }
   const valeur = await rpc(methode, charge, { cookie: authCookie() })
@@ -399,19 +402,19 @@ async function cmdRpc() {
   return 0
 }
 
-/** Slugs de catégorie connus du plugin (la liste de référence vit dans `kybernos-sessions`). */
+/** Category slugs known to the plugin (the reference list lives in `kybernos-sessions`). */
 const CATEGORIES = ['fonctionnalite', 'correctif', 'ui', 'doc', 'integration', 'donnees', 'nettoyage', 'question']
 
 /**
- * Nomme une session SANS navigateur — l'outil de nommage habituel
- * (`session-titre.mjs`) exige le Chrome de debug et une page ouverte sur la
- * session, donc il ne sert à rien après un redémarrage ou dans un terminal nu.
+ * Names a session WITHOUT a browser — the usual naming tool
+ * (`session-titre.mjs`) needs the debug Chrome and a page open on the session,
+ * so it is useless after a restart or in a bare terminal.
  *
- * Deux écritures, les mêmes que la GUI :
- *   1. `session/rename` — l'événement `session/title` source « user », celui qui
- *      épingle le titre et supprime la génération automatique ;
- *   2. `POST /kybernos-sessions/categories` — SEUL écrivain du registre de
- *      catégories : c'est lui qui fait peindre l'icône SVG devant la ligne.
+ * Two writes, the same as the GUI:
+ *   1. `session/rename` — the `session/title` event with source "user", the one
+ *      that pins the title and suppresses the automatic generation;
+ *   2. `POST /kybernos-sessions/categories` — the ONLY writer of the category
+ *      registry: it is what makes the SVG icon paint in front of the row.
  */
 async function cmdTitre() {
   const titre = typeof args.titre === 'string' ? args.titre : (args._[1] ?? '')
@@ -419,27 +422,27 @@ async function cmdTitre() {
   const sienne = process.env.DSH_SESSION_ID
   const sessionId = args.session ?? args['session-id'] ?? sienne
   if (typeof titre !== 'string' || titre.trim().length === 0 || cat.length === 0) {
-    say('usage: titre "Le titre de la session" --cat <slug> [--session <id>] [--dry]')
-    say(`  catégories : ${CATEGORIES.join(' · ')}`)
+    say('usage: titre "The session title" --cat <slug> [--session <id>] [--dry]')
+    say(`  categories: ${CATEGORIES.join(' · ')}`)
     return 2
   }
   if (sessionId === undefined) {
-    say('✗ aucune session cible : $DSH_SESSION_ID absent et --session non fourni')
+    say('✗ no target session: $DSH_SESSION_ID is not set and --session was not given')
     return 1
   }
   if (sienne !== undefined && args.session !== undefined && args.session !== sienne) {
-    say(`⚠ tu renommes une AUTRE session (${sessionId}) que la tienne (${sienne})`)
+    say(`⚠ you are renaming ANOTHER session (${sessionId}) than your own (${sienne})`)
   }
   if (flag('dry')) {
-    say(`(simulation) titre « ${titre} » — catégorie ${cat} — session ${sessionId}`)
+    say(`(dry run) title "${titre}" — category ${cat} — session ${sessionId}`)
     return 0
   }
   const cookie = authCookie()
   try {
     const r = await rpc('session/rename', { request: { sessionId, title: titre } }, { cookie })
-    say(`titre posé : « ${r?.title ?? titre} » (seq ${r?.seq ?? '?'})`)
+    say(`title set: "${r?.title ?? titre}" (seq ${r?.seq ?? '?'})`)
   } catch (error) {
-    say(`✗ renommage refusé : ${error?.message ?? error}`)
+    say(`✗ rename refused: ${error?.message ?? error}`)
     return 1
   }
   try {
@@ -451,25 +454,26 @@ async function cmdTitre() {
     })
     const corps = await res.json().catch(() => ({}))
     if (!res.ok || corps?.ok === false) {
-      say(`✗ catégorie non enregistrée (HTTP ${res.status}) : ${JSON.stringify(corps).slice(0, 200)}`)
-      say('  le titre est posé, mais aucune icône ne sera peinte')
+      say(`✗ category not saved (HTTP ${res.status}): ${JSON.stringify(corps).slice(0, 200)}`)
+      say('  the title is set, but no icon will be painted')
       return 1
     }
-    say(`catégorie « ${cat} » enregistrée — l'icône SVG apparaît devant la ligne`)
+    say(`category "${cat}" saved — the SVG icon appears in front of the row`)
   } catch (error) {
-    say(`✗ catégorie non enregistrée : ${error?.message ?? error}`)
+    say(`✗ category not saved: ${error?.message ?? error}`)
     return 1
   }
-  log(`titre: « ${titre} » (${cat}) sur ${sessionId}`)
+  log(`title: "${titre}" (${cat}) on ${sessionId}`)
   return 0
 }
 
 // ------------------------------------------------------------------- services
 
 /**
- * Dernière URL du log. `sinceOffset` restreint la lecture à ce qui a été écrit
- * APRÈS le redémarrage : sans ça on relit le token du processus précédent, qui
- * ne vaut plus rien (le nouveau `dsh web` publie son URL après avoir écouté).
+ * Last URL of the log. `sinceOffset` restricts the read to what was written
+ * AFTER the restart: without it we re-read the token of the previous process,
+ * which is worthless (the new `dsh web` publishes its URL after it started
+ * listening).
  */
 function webUrlFromLog(sinceOffset = 0) {
   if (!existsSync(webOut)) return undefined
@@ -482,7 +486,7 @@ function webUrlFromLog(sinceOffset = 0) {
   return undefined
 }
 
-/** Millisecondes de démarrage du processus qui écoute sur le port. */
+/** Start time (ms) of the process listening on the port. */
 function processStartTime(pid) {
   try {
     const raw = execFileSync('ps', ['-o', 'lstart=', '-p', String(pid)], { encoding: 'utf8' }).trim()
@@ -492,9 +496,9 @@ function processStartTime(pid) {
 }
 
 /**
- * L'URL du log est-elle celle du processus COURANT ? Un `dsh web` lancé à la
- * main dans un terminal n'écrit rien dans le log : l'URL qu'on y lit est alors
- * périmée, et le token qui va avec ne vaut plus rien.
+ * Is the URL in the log that of the CURRENT process? A `dsh web` started by
+ * hand in a terminal writes nothing to the log: the URL read there is then
+ * stale, and its token is worthless.
  */
 function urlIsFresh() {
   const url = webUrlFromLog()
@@ -524,10 +528,10 @@ function dshBinary() {
   for (const candidate of [process.env.DSH_BIN, '/opt/homebrew/bin/dsh', '/usr/local/bin/dsh']) {
     if (candidate && existsSync(candidate)) return candidate
   }
-  try { return execFileSync('which', ['dsh'], { encoding: 'utf8' }).trim() } catch { throw new Error('binaire dsh introuvable') }
+  try { return execFileSync('which', ['dsh'], { encoding: 'utf8' }).trim() } catch { throw new Error('dsh binary not found') }
 }
 
-// ------------------------------------------------------------------ commandes
+// ------------------------------------------------------------------ commands
 
 function sessionIdFromArgs() {
   return args.session ?? args['session-id'] ?? process.env.DSH_SESSION_ID
@@ -543,29 +547,29 @@ function composeMessage(explicit) {
   const intent = readIntent()
   const parts = [DEFAULT_MESSAGE]
   if (intent?.message) parts.push(intent.message)
-  if (intent?.note) parts.push(`Note laissée avant la relance : ${intent.note}`)
+  if (intent?.note) parts.push(`Note left before the restart: ${intent.note}`)
   return parts.join('\n\n')
 }
 
 async function cmdKick() {
   const sessionId = sessionIdFromArgs()
-  if (!sessionId) throw new Error('session inconnue : passe --session <id> (ou lance depuis DSH pour hériter de $DSH_SESSION_ID)')
+  if (!sessionId) throw new Error('unknown session: pass --session <id> (or run from inside DSH to inherit $DSH_SESSION_ID)')
   const message = composeMessage(args.message)
-  if (!(await serverAlive())) throw new Error(`le serveur ${base} ne répond pas`)
-  if (!(await apiReady())) throw new Error(`l'API ${base} répond mais ses services ne sont pas montés`)
+  if (!(await serverAlive())) throw new Error(`the server ${base} is not answering`)
+  if (!(await apiReady())) throw new Error(`the API ${base} answers but its services are not mounted`)
   await kickSession(sessionId, message, 1, true)
   log(`kick ok session=${sessionId}`)
-  say(`✓ reprise envoyée à ${sessionId}`)
-  say(`  message : ${message.split('\n')[0].slice(0, 90)}…`)
+  say(`✓ resume sent to ${sessionId}`)
+  say(`  message: ${message.split('\n')[0].slice(0, 90)}…`)
   return 0
 }
 
 /**
- * Envoie un message de reprise à UNE session, avec réessais.
- * @param sessionId - session à réveiller.
- * @param message - texte exact envoyé.
- * @param attempts - nombre de tentatives.
- * @param loud - dire à l'écran ce qui se passe (mode `kick`).
+ * Sends a resume message to ONE session, with retries.
+ * @param sessionId - session to wake.
+ * @param message - exact text sent.
+ * @param attempts - number of attempts.
+ * @param loud - say on screen what is happening (`kick` mode).
  */
 async function kickSession(sessionId, message, attempts = 6, loud = false) {
   for (let i = 1; i <= attempts; i++) {
@@ -573,12 +577,12 @@ async function kickSession(sessionId, message, attempts = 6, loud = false) {
       const value = await rpc('session/prompt', {
         request: { requestId: randomUUID(), sessionId, mode: args.mode === 'steer' ? 'steer' : 'queue', content: [{ type: 'text', text: message }] },
       }, { cookie: authCookie() })
-      if (loud) say(`  accepté: ${value?.accepted === true ? 'oui' : JSON.stringify(value)}`)
+      if (loud) say(`  accepted: ${value?.accepted === true ? 'yes' : JSON.stringify(value)}`)
       return true
     } catch (error) {
       const text = String(error?.message ?? error)
-      log(`reprise: tentative ${i}/${attempts} pour ${sessionId} refusée — ${text}`)
-      // Une session qui n'existe pas ne se réveillera pas en réessayant.
+      log(`resume: attempt ${i}/${attempts} for ${sessionId} refused — ${text}`)
+      // A session that does not exist will not wake up by retrying.
       if (text.includes('session/not-found')) return false
       await sleep(2000)
     }
@@ -596,8 +600,8 @@ function cmdIntent() {
   }
   mkdirSync(LOGS, { recursive: true })
   writeFileSync(INTENT_FILE, JSON.stringify(payload, null, 2) + '\n')
-  say(`✓ intention de reprise écrite : ${INTENT_FILE}`)
-  if (payload.sessionId) say(`  session : ${payload.sessionId}`)
+  say(`✓ resume intent written: ${INTENT_FILE}`)
+  if (payload.sessionId) say(`  session: ${payload.sessionId}`)
   return 0
 }
 
@@ -609,24 +613,24 @@ function cmdStatus() {
   const fresh = urlIsFresh()
   const sessionId = sessionIdFromArgs()
   say(`DSH_HOME        : ${HOME}`)
-  say(`API             : ${base} ${serverAliveSync() ? '(répond)' : '(ne répond pas)'}`)
-  say(`launchd         : ${loaded ? `chargé (${LABEL})` : 'NON chargé — DSH tourne sans supervision'}`)
-  say(`port ${port}        : ${pid ? `pid ${pid} → ${processCommand(pid).slice(0, 70)}` : 'rien qui écoute'}`)
-  say(`log web         : ${existsSync(webOut) ? webOut : 'absent (sortie non redirigée : le token sera perdu)'}`)
-  say(`URL (token)     : ${url ?? 'introuvable dans le log'}${url && !fresh ? '  ⚠️ PÉRIMÉE (le processus courant n\'écrit pas dans ce log)' : ''}`)
-  say(`cookie API      : ${fileHasSecret() ? 'secret persistant trouvé → cookie forgeable sans token' : 'secret ABSENT (API inaccessible en externe)'}`)
-  say(`session courante: ${sessionId ?? '(hors DSH : passe --session <id>)'}`)
-  let actives = 'serveur muet'
+  say(`API             : ${base} ${serverAliveSync() ? '(answering)' : '(not answering)'}`)
+  say(`launchd         : ${loaded ? `loaded (${LABEL})` : 'NOT loaded — DSH runs without supervision'}`)
+  say(`port ${port}       : ${pid ? `pid ${pid} → ${processCommand(pid).slice(0, 70)}` : 'nothing listening'}`)
+  say(`web log         : ${existsSync(webOut) ? webOut : 'absent (output not redirected: the token will be lost)'}`)
+  say(`URL (token)     : ${url ?? 'not found in the log'}${url && !fresh ? '  ⚠️ STALE (the current process does not write to this log)' : ''}`)
+  say(`API cookie      : ${fileHasSecret() ? 'persistent secret found → cookie can be forged without a token' : 'secret MISSING (API unreachable from outside)'}`)
+  say(`current session : ${sessionId ?? '(outside DSH: pass --session <id>)'}`)
+  let actives = 'server silent'
   if (serverAliveSync()) {
     try {
       const rows = await runningSessions({ exclude: sessionId })
-      actives = rows.length === 0 ? 'aucune autre' : `${rows.length} autre(s) — ${rows.map((r) => r.sessionId).join(', ')}`
-    } catch (error) { actives = `illisible (${String(error?.message ?? error).slice(0, 60)})` }
+      actives = rows.length === 0 ? 'no other' : `${plural(rows.length, 'other session')} — ${rows.map((r) => r.sessionId).join(', ')}`
+    } catch (error) { actives = `unreadable (${String(error?.message ?? error).slice(0, 60)})` }
   }
-  say(`sessions actives: ${actives}`)
-  say(`supervision     : ${isSuperviseLoaded() ? `chargée (${SUPERVISE_LABEL})` : 'NON chargée (relance non surveillée)'}`)
+  say(`active sessions : ${actives}`)
+  say(`supervision     : ${isSuperviseLoaded() ? `loaded (${SUPERVISE_LABEL})` : 'NOT loaded (relaunch not supervised)'}`)
   const journal = readJournal()
-  say(`journal reprise : ${journal ? `${journal.sessions.length} session(s) — ${journal.at} (${journal.reason})` : 'aucun'}`)
+  say(`resume journal  : ${journal ? `${plural(journal.sessions.length, 'session')} — ${journal.at} (${journal.reason})` : 'none'}`)
   return 0
   })()
 }
@@ -645,13 +649,13 @@ function fileHasSecret() {
 function cmdUrl() {
   const url = webUrlFromLog()
   if (!url) {
-    say(`aucune URL dans ${webOut}`, 'stderr:')
-    say(existsSync(webErr) ? readFileSync(webErr, 'utf8').split('\n').slice(-10).join('\n') : '(pas de log d\'erreur)')
+    say(`no URL in ${webOut}`, 'stderr:')
+    say(existsSync(webErr) ? readFileSync(webErr, 'utf8').split('\n').slice(-10).join('\n') : '(no error log)')
     return 1
   }
   say(url)
-  if (!urlIsFresh()) say(`⚠️  URL probablement périmée : le processus qui écoute sur ${port} n'écrit pas dans ${webOut}.`)
-  if (args.open) { spawn('open', [url], { detached: true, stdio: 'ignore' }).unref(); say('→ ouverture dans le navigateur') }
+  if (!urlIsFresh()) say(`⚠️  URL probably stale: the process listening on ${port} does not write to ${webOut}.`)
+  if (args.open) { spawn('open', [url], { detached: true, stdio: 'ignore' }).unref(); say('→ opening in the browser') }
   return 0
 }
 
@@ -660,17 +664,17 @@ function launchdPlistPath() {
 }
 
 /**
- * Bascule DSH sous le LaunchAgent (plist déjà présent, KeepAlive). `force` coupe
- * l'instance non supervisée qui occupe le port — sans ça launchd boucle sur
- * EADDRINUSE.
+ * Switches DSH under the LaunchAgent (plist already present, KeepAlive).
+ * `force` cuts the unsupervised instance that holds the port — without it
+ * launchd loops on EADDRINUSE.
  */
 async function ensureLaunchdAgent({ force = false } = {}) {
   const plist = launchdPlistPath()
-  if (!existsSync(plist)) throw new Error(`plist absent : ${plist}`)
+  if (!existsSync(plist)) throw new Error(`plist missing: ${plist}`)
   const pid = pidOnPort()
   if (pid && !isLaunchdLoaded()) {
-    if (!force) throw new Error(`un DSH non supervisé écoute sur ${port} (pid ${pid}) ; relance avec --force`)
-    log(`relance: arrêt du pid ${pid} non supervisé`)
+    if (!force) throw new Error(`an unsupervised DSH is listening on ${port} (pid ${pid}); run again with --force`)
+    log(`relaunch: stopping unsupervised pid ${pid}`)
     try { process.kill(pid, 'SIGTERM') } catch {}
     const until = Date.now() + 15_000
     while (Date.now() < until && pidOnPort()) await sleep(500)
@@ -685,65 +689,66 @@ async function cmdInstall() {
     await ensureLaunchdAgent({ force: flag('force') })
   } catch (error) {
     say(`✗ ${error?.message ?? error}`)
-    if (String(error?.message ?? '').includes('non supervisé')) {
-      say(`   Relance avec --force : cela COUPE la session en cours, puis launchd reprend la main`)
-      say(`   et l'enfant détaché réveille la conversation tout seul.`)
+    // Reader of the "unsupervised" marker written by ensureLaunchdAgent above.
+    if (String(error?.message ?? '').includes('unsupervised')) {
+      say(`   Run again with --force: this CUTS the current session, then launchd takes over`)
+      say(`   and the detached child wakes the conversation up on its own.`)
     }
     return 1
   }
-  say(`✓ launchd a repris DSH (${LABEL}) ; l'URL/token arrivera dans ${webOut}`)
+  say(`✓ launchd has taken DSH over (${LABEL}); the URL/token will arrive in ${webOut}`)
   return 0
 }
 
 function cmdUninstall() {
-  try { execFileSync('launchctl', ['bootout', `${DOMAIN}/${LABEL}`], { stdio: 'ignore' }); say(`✓ launchd déchargé (${LABEL})`) }
-  catch { say('(déjà déchargé)') }
-  say(`le plist reste en place : ${launchdPlistPath()}`)
+  try { execFileSync('launchctl', ['bootout', `${DOMAIN}/${LABEL}`], { stdio: 'ignore' }); say(`✓ launchd unloaded (${LABEL})`) }
+  catch { say('(already unloaded)') }
+  say(`the plist stays in place: ${launchdPlistPath()}`)
   return 0
 }
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)) }
 
-// ---- `relance` : se détache, coupe, attend, récupère l'URL, réveille ---------
+// ---- `relance`: detaches, cuts, waits, recovers the URL, wakes up ------------
 
 /**
- * GARDE D'APPROBATION. Si d'autres sessions tournent, la relance refuse : c'est
- * à l'agent de demander l'accord (panneau d'approbation natif ou question dans
- * le chat), puis de repasser avec `--avec-autres`.
- * @returns 0 si la voie est libre, 3 si l'accord manque.
+ * APPROVAL GUARD. If other sessions are running, the relaunch refuses: it is up
+ * to the agent to ask for approval (native approval panel or a question in the
+ * chat), then to come back with `--avec-autres`.
+ * @returns 0 if the way is clear, 3 if the approval is missing.
  */
 async function guardOtherSessions(phase) {
   if (flag('avec-autres')) return 0
   const sessionId = sessionIdFromArgs()
-  if (!(await serverAlive()) || !(await apiReady())) return 0 // serveur déjà à terre : rien à interrompre
+  if (!(await serverAlive()) || !(await apiReady())) return 0 // server already down: nothing to interrupt
   let others = []
   try {
     others = await runningSessions({ exclude: sessionId })
   } catch (error) {
-    log(`garde (${phase}): session/list illisible — ${error?.message ?? error} ; on laisse passer`)
+    log(`guard (${phase}): session/list unreadable — ${error?.message ?? error}; letting it through`)
     return 0
   }
   if (others.length === 0) return 0
-  log(`garde (${phase}): ${others.length} autre(s) session(s) active(s) — refus sans --avec-autres`)
-  say(`✗ ${others.length} autre(s) session(s) en cours — redémarrage NON lancé :`)
+  log(`guard (${phase}): ${plural(others.length, 'other session')} active — refused without --avec-autres`)
+  say(`✗ ${plural(others.length, 'other session')} running — restart NOT started:`)
   for (const row of others) say(`   · ${describeSession(row)}`)
   say('')
-  say("Demande l'accord à l'utilisateur, puis relance avec `--avec-autres` :")
+  say('Ask the user for approval, then run again with `--avec-autres`:')
   say('   node ~/.dsh/tools/dsh-relance.mjs relance --avec-autres')
-  say('Toutes les sessions ci-dessus seront réveillées après le redémarrage.')
+  say('All the sessions above will be woken up after the restart.')
   return 3
 }
 
 function cmdRelance() {
-  if (flag('run')) return cmdRelanceRun() // déjà dans l'enfant détaché
+  if (flag('run')) return cmdRelanceRun() // already inside the detached child
   return (async () => {
-    const gate = await guardOtherSessions('demande')
+    const gate = await guardOtherSessions('request')
     if (gate !== 0) return gate
     if (flag('dry') || flag('simuler')) {
       const sessionId = sessionIdFromArgs()
       const sessions = await snapshotActives(sessionId)
-      say(`✓ voie libre — simulation, RIEN n'a été coupé.`)
-      say(`seraient reprises après redémarrage (${sessions.length}) :`)
+      say(`✓ way clear — dry run, NOTHING was cut.`)
+      say(`would be resumed after the restart (${sessions.length}):`)
       for (const s of sessions) say(`   · ${s.id}  ${s.title ?? ''}`)
       return 0
     }
@@ -758,9 +763,9 @@ function cmdRelance() {
       cwd: args.cwd && args.cwd !== true ? String(args.cwd) : process.cwd(),
     })
     child.unref()
-    log(`relance détachée lancée (pid ${child.pid}) session=${sessionIdFromArgs() ?? '?'}`)
-    say(`✓ relance détachée (pid ${child.pid}) — elle survit à la coupure de DSH`)
-    say(`  journal : ${RELANCE_LOG}`)
+    log(`detached relaunch started (pid ${child.pid}) session=${sessionIdFromArgs() ?? '?'}`)
+    say(`✓ detached relaunch (pid ${child.pid}) — it survives the cut of DSH`)
+    say(`  log: ${RELANCE_LOG}`)
     return 0
   })()
 }
@@ -769,71 +774,71 @@ async function cmdRelanceRun() {
   const sessionId = sessionIdFromArgs()
   const waitMs = Number(args['wait-ms'] ?? 120_000)
   const launchd = isLaunchdLoaded()
-  if (Number(args.delay) > 0) { log(`relance: attente de ${Number(args.delay)} s avant la coupure`); await sleep(Number(args.delay) * 1000) }
-  log(`— relance: début (session=${sessionId ?? '?'}, launchd=${launchd}, port=${port}, avec-autres=${flag('avec-autres')})`)
+  if (Number(args.delay) > 0) { log(`relaunch: waiting ${Number(args.delay)} s before the cut`); await sleep(Number(args.delay) * 1000) }
+  log(`— relaunch: start (session=${sessionId ?? '?'}, launchd=${launchd}, port=${port}, avec-autres=${flag('avec-autres')})`)
 
-  // Seconde garde, dans l'enfant : l'état a pu changer depuis la demande.
+  // Second guard, inside the child: the state may have changed since the request.
   if (!flag('start-only')) {
-    const gate = await guardOtherSessions('enfant')
+    const gate = await guardOtherSessions('child')
     if (gate !== 0) return gate
   }
 
-  // Ce qui compte est écrit APRÈS la coupure : on repart de la taille actuelle du log.
+  // What matters is written AFTER the cut: start from the current size of the log.
   const sinceOffset = !flag('start-only') && existsSync(webOut) ? statSync(webOut).size : 0
-  // Photographie AVANT la coupe : c'est la liste des sessions à réveiller.
+  // Snapshot BEFORE the cut: this is the list of sessions to wake up.
   const sessions = await snapshotActives(sessionId)
-  writeJournal({ primary: sessionId, sessions, reason: args.motif && args.motif !== true ? String(args.motif) : 'relance demandée' })
-  say(`→ ${sessions.length} session(s) seront reprises après le redémarrage.`)
+  writeJournal({ primary: sessionId, sessions, reason: args.motif && args.motif !== true ? String(args.motif) : 'relaunch requested' })
+  say(`→ ${plural(sessions.length, 'session')} will be resumed after the restart.`)
 
   try {
     if (!flag('start-only')) {
-      if (!(await restartAndWait(waitMs))) { log("relance: le serveur n'est pas revenu prêt à temps"); return 1 }
+      if (!(await restartAndWait(waitMs))) { log('relaunch: the server did not come back ready in time'); return 1 }
     } else {
-      log('relance: --start-only, aucun redémarrage demandé')
-      if (!(await apiReady()) && !(await waitForNewServer(pidOnPort(), 15_000))) { log('relance: API non prête'); return 1 }
+      log('relaunch: --start-only, no restart requested')
+      if (!(await apiReady()) && !(await waitForNewServer(pidOnPort(), 15_000))) { log('relaunch: API not ready'); return 1 }
     }
-    log('relance: API prête')
+    log('relaunch: API ready')
     const url = await waitForUrl(20_000, sinceOffset)
     if (url) {
       writeFileSync(webUrlFile, url + '\n')
-      log(`relance: URL récupérée${urlIsFresh() ? '' : ' (périmée ?)'} → ${webUrlFile}`)
+      log(`relaunch: URL recovered${urlIsFresh() ? '' : ' (stale?)'} → ${webUrlFile}`)
       if (flag('open')) spawn('open', [url], { detached: true, stdio: 'ignore' }).unref()
-    } else log('relance: URL introuvable dans le log (sortie non redirigée ?)')
-    if (sessions.length === 0) { log('relance: aucune session cible, rien à réveiller'); return 0 }
-    const resumed = await resumeActives({ reason: 'relance', sessionId, message: args.message })
+    } else log('relaunch: URL not found in the log (output not redirected?)')
+    if (sessions.length === 0) { log('relaunch: no target session, nothing to wake up'); return 0 }
+    const resumed = await resumeActives({ reason: 'relaunch', sessionId, message: args.message })
     return resumed.failed > 0 ? 1 : 0
   } catch (error) {
-    log(`relance: échec — ${error?.message ?? error}`)
+    log(`relaunch: failed — ${error?.message ?? error}`)
     return 1
   }
 }
 
-/** Coupe puis relance, et attend que l'API soit RÉELLEMENT servie (services montés). */
+/** Cuts then relaunches, and waits for the API to be REALLY served (services mounted). */
 async function restartAndWait(timeoutMs) {
   const before = pidOnPort()
   if (flag('launchd')) {
-    log('relance: bascule vers launchd (agent KeepAlive)')
-    try { await ensureLaunchdAgent({ force: true }) } catch (error) { log(`relance: install launchd échoué — ${error?.message ?? error}`) }
+    log('relaunch: switching to launchd (KeepAlive agent)')
+    try { await ensureLaunchdAgent({ force: true }) } catch (error) { log(`relaunch: launchd install failed — ${error?.message ?? error}`) }
     if (await waitForNewServer(before, Math.min(45_000, timeoutMs))) return true
-    log('relance: launchd n\'a pas rendu un serveur prêt, repli sur un démarrage détaché')
+    log('relaunch: launchd did not bring back a ready server, falling back to a detached start')
   }
   if (isLaunchdLoaded()) {
-    log('relance: launchctl kickstart -k')
+    log('relaunch: launchctl kickstart -k')
     try { execFileSync('launchctl', ['kickstart', '-k', `${DOMAIN}/${LABEL}`], { stdio: 'ignore' }) } catch (error) {
-      log(`relance: kickstart a échoué — ${error?.message ?? error}`)
+      log(`relaunch: kickstart failed — ${error?.message ?? error}`)
     }
     if (await waitForNewServer(before, Math.min(45_000, timeoutMs))) return true
-    log('relance: launchd n\'a pas rendu un serveur prêt, repli sur un démarrage détaché')
+    log('relaunch: launchd did not bring back a ready server, falling back to a detached start')
   }
   const pid = pidOnPort()
   if (pid) {
-    log(`relance: kill ${pid} (${processCommand(pid).slice(0, 60)})`)
+    log(`relaunch: kill ${pid} (${processCommand(pid).slice(0, 60)})`)
     try { process.kill(pid, 'SIGTERM') } catch {}
     const until = Date.now() + 15_000
     while (Date.now() < until && pidOnPort()) await sleep(400)
     const still = pidOnPort()
-    if (still) { log(`relance: SIGTERM insuffisant, SIGKILL ${still}`); try { process.kill(still, 'SIGKILL') } catch {} }
-  } else log('relance: rien sur le port, démarrage direct')
+    if (still) { log(`relaunch: SIGTERM not enough, SIGKILL ${still}`); try { process.kill(still, 'SIGKILL') } catch {} }
+  } else log('relaunch: nothing on the port, starting directly')
   startDetachedWeb()
   return await waitForNewServer(before, timeoutMs)
 }
@@ -848,18 +853,18 @@ function startDetachedWeb() {
     cwd: args.cwd && args.cwd !== true ? String(args.cwd) : process.cwd(),
   })
   child.unref()
-  log(`relance: dsh web démarré détaché (pid ${child.pid}), sortie → ${webOut}`)
+  log(`relaunch: dsh web started detached (pid ${child.pid}), output → ${webOut}`)
 }
 
-/** Le port répond ET l'API dispatche : un simple TCP ouvert ne suffit pas
- *  (`dsh web` publie son URL bien après avoir écouté). */
+/** The port answers AND the API dispatches: a plain open TCP is not enough
+ *  (`dsh web` publishes its URL well after it started listening). */
 async function apiReady(timeoutMs = 3_000) {
   try {
     await rpc('session/list', { _request: {} }, { cookie: authCookie(), timeoutMs })
     return true
   } catch (error) {
     const message = String(error?.message ?? error)
-    // une erreur MÉTIER prouve que le service tourne ; les autres disent « pas encore ».
+    // a BUSINESS error proves the service is running; the others mean "not yet".
     return !/unavailable|fetch failed|ECONNREFUSED|ECONNRESET|aborted|timeout|socket/i.test(message)
   }
 }
@@ -884,7 +889,7 @@ async function waitForUrl(timeoutMs, sinceOffset = 0) {
   return undefined
 }
 
-// ---- `supervise` : veille serveur + réseau, reprise après retour ------------
+// ---- `supervise`: watches server + network, resumes after the return ---------
 
 function supervisePlistPath() {
   return join(homedir(), 'Library', 'LaunchAgents', `${SUPERVISE_LABEL}.plist`)
@@ -894,7 +899,7 @@ function isSuperviseLoaded() {
   try { execFileSync('launchctl', ['print', `${DOMAIN}/${SUPERVISE_LABEL}`], { stdio: 'ignore' }); return true } catch { return false }
 }
 
-/** Un TCP ouvert sur une IP publique suffit : pas de TLS, pas de DNS, pas d'API tierce. */
+/** An open TCP connection to a public IP is enough: no TLS, no DNS, no third-party API. */
 function tcpAlive(host, tport, timeoutMs = 3_000) {
   return new Promise((resolve) => {
     let settled = false
@@ -907,7 +912,7 @@ function tcpAlive(host, tport, timeoutMs = 3_000) {
   })
 }
 
-/** Réseau sortant disponible ? (les deux sondes doivent échouer pour dire « coupé ») */
+/** Is the outbound network available? (both probes must fail to say "down") */
 async function internetAlive() {
   if (await tcpAlive('1.1.1.1', 443)) return true
   return await tcpAlive('8.8.8.8', 443)
@@ -927,7 +932,7 @@ function readSuperviseState() {
   return state && Array.isArray(state.running) ? state : { at: null, running: [] }
 }
 
-/** Échantillonne les sessions actives : c'est la liste de reprise si le serveur tombe. */
+/** Samples the active sessions: this is the resume list if the server goes down. */
 async function sampleRunning() {
   const rows = await runningSessions()
   const state = { at: new Date().toISOString(), running: rows.map((row) => ({ id: row.sessionId, title: sessionTitle(row), updatedAt: row.updatedAt })) }
@@ -938,14 +943,14 @@ async function sampleRunning() {
 async function superviseLoop() {
   const intervalSec = Math.max(5, Number(args.interval ?? 15))
   const graceMs = Math.max(5_000, Number(args['grace-ms'] ?? 45_000))
-  log(`supervise: démarrage (pid ${process.pid}, intervalle ${intervalSec}s, grâce ${graceMs}ms, port ${port})`)
+  log(`supervise: starting (pid ${process.pid}, interval ${intervalSec}s, grace ${graceMs}ms, port ${port})`)
   const etat = readSuperviseState()
   const reprendreEtatPersiste = etat.at !== null && Date.now() - Date.parse(etat.at) < 15 * 60_000
-  // Les cibles de reprise vivent en MÉMOIRE : un journal ou un échantillon
-  // périmé réveillerait une session active il y a trois jours.
+  // The resume targets live in MEMORY: a stale journal or sample would wake a
+  // session that was active three days ago.
   let dernieres = reprendreEtatPersiste ? etat.running.map((row) => row.id) : []
   let prev = { server: await serverAlive(), net: await internetAlive() }
-  if (prev.server && prev.net) { try { dernieres = (await sampleRunning()).running.map((row) => row.id) } catch (error) { log(`supervise: échantillon initial impossible — ${error?.message ?? error}`) } }
+  if (prev.server && prev.net) { try { dernieres = (await sampleRunning()).running.map((row) => row.id) } catch (error) { log(`supervise: initial sample failed — ${error?.message ?? error}`) } }
   let first = true
   for (;;) {
     const server = await serverAlive()
@@ -957,10 +962,10 @@ async function superviseLoop() {
     const serverBack = server && !prev.server
     const netBack = net && !prev.net
     if (!first && (serverBack || netBack)) {
-      const why = serverBack ? 'serveur revenu' : 'réseau revenu'
-      if (paused) log(`supervise: ${why} — reprise suspendue (${SUPERVISE_PAUSE})`)
+      const why = serverBack ? 'server back' : 'network back'
+      if (paused) log(`supervise: ${why} — resume suspended (${SUPERVISE_PAUSE})`)
       else {
-        log(`supervise: ${why} — attente de grâce (${graceMs} ms) avant reprise de ${dernieres.length} session(s)`)
+        log(`supervise: ${why} — grace wait (${graceMs} ms) before resuming ${plural(dernieres.length, 'session')}`)
         await waitForApiReady(serverBack ? 30_000 : 10_000)
         await sleep(graceMs)
         await resumeActives({ reason: why, targets: dernieres })
@@ -968,7 +973,7 @@ async function superviseLoop() {
     }
     prev = { server, net }
     first = false
-    if (flag('once')) { log('supervise: --once terminé'); return 0 }
+    if (flag('once')) { log('supervise: --once done'); return 0 }
     await sleep(intervalSec * 1_000)
   }
 }
@@ -1030,31 +1035,31 @@ function cmdSuperviseInstall() {
   try { execFileSync('launchctl', ['bootout', `${DOMAIN}/${SUPERVISE_LABEL}`], { stdio: 'ignore' }) } catch {}
   execFileSync('launchctl', ['bootstrap', DOMAIN, supervisePlistPath()], { stdio: 'ignore' })
   execFileSync('launchctl', ['kickstart', '-k', `${DOMAIN}/${SUPERVISE_LABEL}`], { stdio: 'ignore' })
-  log(`supervise: installé (${SUPERVISE_LABEL})`)
-  say(`✓ supervision permanente installée (${SUPERVISE_LABEL})`)
+  log(`supervise: installed (${SUPERVISE_LABEL})`)
+  say(`✓ permanent supervision installed (${SUPERVISE_LABEL})`)
   say(`  plist   : ${supervisePlistPath()}`)
-  say(`  journal : ${LOGS}/dsh-relance-supervise.out.log`)
+  say(`  log     : ${LOGS}/dsh-relance-supervise.out.log`)
   say(`  pause   : touch ${SUPERVISE_PAUSE}`)
   return 0
 }
 
 function cmdSuperviseUninstall() {
-  try { execFileSync('launchctl', ['bootout', `${DOMAIN}/${SUPERVISE_LABEL}`], { stdio: 'ignore' }); say(`✓ supervision déchargée (${SUPERVISE_LABEL})`) }
-  catch { say('(supervision déjà déchargée)') }
-  say(`le plist reste : ${supervisePlistPath()} (supprime-le pour effacer)` )
+  try { execFileSync('launchctl', ['bootout', `${DOMAIN}/${SUPERVISE_LABEL}`], { stdio: 'ignore' }); say(`✓ supervision unloaded (${SUPERVISE_LABEL})`) }
+  catch { say('(supervision already unloaded)') }
+  say(`the plist stays: ${supervisePlistPath()} (delete it to remove it)`)
   return 0
 }
 
 function cmdSuperviseStatus() {
   const state = readSuperviseState()
-  say(`supervision : ${isSuperviseLoaded() ? `chargée (${SUPERVISE_LABEL})` : 'NON chargée'}`)
+  say(`supervision : ${isSuperviseLoaded() ? `loaded (${SUPERVISE_LABEL})` : 'NOT loaded'}`)
   say(`plist       : ${existsSync(supervisePlistPath()) ? supervisePlistPath() : 'absent'}`)
-  say(`pause       : ${existsSync(SUPERVISE_PAUSE) ? 'ACTIVE (aucune reprise automatique)' : 'non'}`)
-  say(`dernier échantillon : ${state.at ?? 'aucun'} — ${state.running.length} session(s) active(s)`)
+  say(`pause       : ${existsSync(SUPERVISE_PAUSE) ? 'ACTIVE (no automatic resume)' : 'no'}`)
+  say(`last sample : ${state.at ?? 'none'} — ${plural(state.running.length, 'active session')}`)
   for (const row of state.running) say(`  · ${row.id}  ${row.title ?? ''}`)
   const claims = readJson(CLAIMS_FILE, {})
   const recent = Object.entries(claims).filter(([, v]) => typeof v?.at === 'number' && Date.now() - v.at < 3_600_000)
-  say(`reprises < 1 h : ${recent.length === 0 ? 'aucune' : recent.map(([id, v]) => `${id}@${new Date(v.at).toISOString().slice(11, 19)}`).join(', ')}`)
+  say(`resumes < 1 h : ${recent.length === 0 ? 'none' : recent.map(([id, v]) => `${id}@${new Date(v.at).toISOString().slice(11, 19)}`).join(', ')}`)
   return 0
 }
 
@@ -1064,13 +1069,13 @@ async function cmdSupervise() {
   if (action === 'uninstall') return cmdSuperviseUninstall()
   if (action === 'status') return cmdSuperviseStatus()
   if (action === 'pause') {
-    writeFileSync(SUPERVISE_PAUSE, `pause posée le ${new Date().toISOString()}\n`)
-    say(`✓ reprise automatique suspendue (${SUPERVISE_PAUSE})`)
+    writeFileSync(SUPERVISE_PAUSE, `pause set on ${new Date().toISOString()}\n`)
+    say(`✓ automatic resume suspended (${SUPERVISE_PAUSE})`)
     return 0
   }
   if (action === 'resume') {
     rmSync(SUPERVISE_PAUSE, { force: true })
-    say('✓ reprise automatique réarmée')
+    say('✓ automatic resume re-armed')
     return 0
   }
   return superviseLoop()
@@ -1095,8 +1100,8 @@ const COMMANDS = {
 try {
   const run = COMMANDS[cmd]
   if (!run) {
-    say(`commande inconnue: ${cmd}`)
-    say('usage: status | url [--open] | actives [--json] | titre "…" --cat <slug> | rpc <méthode> [json] | kick | intent')
+    say(`unknown command: ${cmd}`)
+    say('usage: status | url [--open] | actives [--json] | titre "…" --cat <slug> | rpc <method> [json] | kick | intent')
     say('       relance [--run] [--avec-autres] [--dry]')
     say('       supervise [--once] [--interval 15] | supervise install|uninstall|status|pause|resume | install | uninstall')
     process.exit(64)

@@ -13,6 +13,9 @@ import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, browserHeaders } from './lib-session-test.mjs'
+sessionSource.secret = () => SESSION_SECRET // the machine secret the write routes check the session cookie against
 
 const here = dirname(fileURLToPath(import.meta.url))
 const home = mkdtempSync(join(tmpdir(), 'kbm-nofetch-'))
@@ -43,7 +46,12 @@ try {
   const handler = routes.get('/kybernos-models/modelsdev')
   assert.ok(handler !== undefined, 'the models.dev route must be mounted')
   const res = { status: 0, body: null, writeHead (s) { this.status = s }, end (p) { this.body = JSON.parse(p) } }
-  await handler({ method: 'GET', url: '/kybernos-models/modelsdev?force=1', headers: { origin: 'http://127.0.0.1:3080' } }, res)
+  // A forced refresh downloads the index again: it is the page's own pair (Origin + session cookie) or nothing.
+  const refused = { status: 0, body: null, writeHead (s) { this.status = s }, end (p) { this.body = JSON.parse(p) } }
+  await handler({ method: 'GET', url: '/kybernos-models/modelsdev?force=1', headers: {}, socket: { localPort: 3080 } }, refused)
+  assert.equal(refused.status, 401,'a forced refresh with no session is refused: ' + JSON.stringify(refused.body))
+  assert.equal(seenUrls.length, 0, 'nothing was downloaded for a refused request')
+  await handler({ method: 'GET', url: '/kybernos-models/modelsdev?force=1', headers: browserHeaders(), socket: { localPort: 3080 } }, res)
   assert.equal(engineCalls, 0, 'the engine web.fetch was called ' + engineCalls + ' time(s)')
   assert.ok(seenUrls.some((u) => u === 'https://models.dev/api.json'), 'the index must be fetched directly: ' + JSON.stringify(seenUrls))
   assert.equal(res.body.ok, true, JSON.stringify(res.body))

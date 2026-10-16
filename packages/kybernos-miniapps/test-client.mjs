@@ -104,14 +104,14 @@ ok('bundle client charge et expose __test', T !== null && typeof T.escTitre === 
 }
 
 {
-  // `.kbm-` is a prefix shared by three bundles: the Modeleur panel, kybernos-models' Settings page (`.kbm-root.kbmp`) and the core's own Models
-  // page (a bare `.kbm-root`). The Modeleur says `kbmo` on its root and the entry asks for it. The cross-bundle check, on every panel of the list
-  // and against the real sources of every bundle, is scripts/test-miniapps-panels.mjs; this is the same rule for the Modeleur, next to the code.
+  // `.kbm-` is the prefix of kybernos-models' Settings page (`.kbm-root.kbmp`) and of the core's own Models page (a bare `.kbm-root`). The Modeleur
+  // panel has its own prefix, `kbmo-`, and the entry asks for its root. The cross-bundle check, on every panel of the list and against the real
+  // sources of every bundle, is scripts/test-miniapps-panels.mjs; this is the same rule for the Modeleur, next to the code.
   const src = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
-  ok("le Modeleur ne se reconnaît ni sur la page Réglages de kybernos-models ni sur la page Models du cœur (.kbm-root seul)", src.includes("racine: '.kbm-root.kbmo'") && !/racine: '\.kbm-root'/.test(src) && !src.includes('.kbm-root:not(.kbmp)'))
+  ok("le Modeleur ne se reconnaît ni sur la page Réglages de kybernos-models ni sur la page Models du cœur (.kbm-root seul)", src.includes("racine: '.kbmo-root'") && !/racine: '\.kbm-root'/.test(src) && !src.includes('.kbm-root:not(.kbmp)'))
   const root = (cls) => ({ matches: (sel) => { const m = sel.match(/^((?:\.[a-z-]+)+)$/); return m !== null && m[1].split('.').filter(Boolean).every((c) => cls.includes(c)) } })
-  ok('sélecteur : .kbm-root.kbmp (Réglages) et .kbm-root seul (page Models du cœur) sont écartés, .kbm-root.kbmo (Modeleur) est gardé',
-    root(['kbm-root', 'kbmp']).matches('.kbm-root.kbmo') === false && root(['kbm-root']).matches('.kbm-root.kbmo') === false && root(['kbm-root', 'kbmo']).matches('.kbm-root.kbmo') === true)
+  ok('sélecteur : .kbm-root.kbmp (Réglages) et .kbm-root seul (page Models du cœur) sont écartés, .kbmo-root (Modeleur) est gardé',
+    root(['kbm-root', 'kbmp']).matches('.kbmo-root') === false && root(['kbm-root']).matches('.kbmo-root') === false && root(['kbmo-root', 'kbmo']).matches('.kbmo-root') === true)
 }
 
 // ── the live export finds the engine the way DSH loaded it ──────────────────

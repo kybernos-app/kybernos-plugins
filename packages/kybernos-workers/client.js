@@ -165,7 +165,7 @@ window.__ModuleLoader__.load({
 
     /** Pure. The answer of a refused route, in words. */
     const REFUSALS = {
-      'package-missing': ['Le module « Agent connectors » n’est pas installé : active-le dans Kybernos Suite, ou mets la Suite à jour.', 'The "Agent connectors" module is not installed: turn it on in Kybernos Suite, or update the Suite.'],
+      'package-missing': ['Le module « Workers connectors » n’est pas installé : active-le dans Kybernos Suite, ou mets la Suite à jour.', 'The "Workers connectors" module is not installed: turn it on in Kybernos Suite, or update the Suite.'],
       'command-changed': ['La commande a changé depuis l’affichage : recharge la page et recommence.', 'The command changed since it was shown: reload the page and try again.'],
       busy: ['Une autre opération est en cours : réessaie dans un instant.', 'Another operation is running: try again in a moment.'],
       'already-installed': ['Déjà installé : DSH le revérifie.', 'Already installed: DSH is checking it again.'],
@@ -214,7 +214,7 @@ window.__ModuleLoader__.load({
       '.kbwk button,.kbwk input{font:inherit}',
       '.kbwk button{cursor:pointer}',
       '.kbwk button:disabled{opacity:.5;cursor:default}',
-      '.kbwk button:focus-visible,.kbwk summary:focus-visible,.kbwk input:focus-visible{outline:2px solid #ff7a1a;outline-offset:2px}',
+      '.kbwk button:focus-visible,.kbwk summary:focus-visible,.kbwk input:focus-visible{outline:2px solid var(--kybernos-accent,var(--dsw-alias-brand-primary));outline-offset:2px}',
       '.kbwk svg.i{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}',
       '.kbwk .spin{animation:kbwkspin .9s linear infinite}@keyframes kbwkspin{to{transform:rotate(360deg)}}',
       '@media (prefers-reduced-motion:reduce){.kbwk .spin,.kbwk-dot.busy{animation:none}}',
@@ -229,12 +229,12 @@ window.__ModuleLoader__.load({
       '.kbwk-count b{color:var(--dsw-alias-label-primary)}',
       '.kbwk-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:30px;padding:0 12px;border-radius:9px;border:0;font-weight:600;font-size:13px;white-space:nowrap;background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground)}',
       '.kbwk-btn.ghost{background:transparent;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);font-weight:500}',
-      // Ink on the literal orange and on the success green: white on #ff7a1a is 2.6:1 and white on the green 2.3:1 in
-      // both schemes (the sweep of scripts/check-display-live.mjs); #0f1115 is 7.2:1 and 8.1:1.
-      '.kbwk-btn.accent{background:#ff7a1a;color:#0f1115}',
+      // The accent follows the theme's brand token (a preset recolours the page, A1-01) with the label pair of that fill as ink. On the
+      // success green white is 2.3:1 in both schemes (the sweep of scripts/check-display-live.mjs): its ink is #0f1115, 8.1:1.
+      '.kbwk-btn.accent{background:var(--kybernos-accent,var(--dsw-alias-brand-primary));color:var(--kybernos-on-accent,var(--dsw-alias-label-primary-foreground))}',
       '.kbwk-btn.ico{width:30px;padding:0}',
       '.kbwk-btn.big{height:32px;padding:0 13px;border-radius:10px}',
-      '.kbwk-relance{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;padding:10px 14px;border-radius:12px;border:1px solid #ff7a1a;background:color-mix(in srgb,#ff7a1a 14%,transparent)}',
+      '.kbwk-relance{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;padding:10px 14px;border-radius:12px;border:1px solid var(--dsw-alias-state-warn-primary);background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 14%,transparent)}',
       '.kbwk-banner{display:flex;flex-direction:column;gap:6px;padding:11px 14px;border-radius:12px;border:1px solid var(--dsw-alias-state-warn-primary);background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 12%,transparent)}',
       '.kbwk-banner strong{display:flex;gap:8px;align-items:center}',
       // ── the list: the same columns on every row ───────────────────────────
@@ -265,7 +265,7 @@ window.__ModuleLoader__.load({
       '.kbwk-swl{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--dsw-alias-label-secondary)}',
       '.kbwk-sw{position:relative;flex:none;width:36px;height:20px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);padding:0}',
       '.kbwk-sw i{position:absolute;inset-inline-start:2px;top:2px;width:14px;height:14px;border-radius:999px;background:var(--dsw-alias-label-secondary);transition:inset-inline-start .15s ease}',
-      '.kbwk-sw.on{background:#ff7a1a;border-color:#ff7a1a}.kbwk-sw.on i{inset-inline-start:18px;background:#fff}',
+      '.kbwk-sw.on{background:var(--kybernos-accent,var(--dsw-alias-brand-primary));border-color:var(--kybernos-accent,var(--dsw-alias-brand-primary))}.kbwk-sw.on i{inset-inline-start:18px;background:var(--kybernos-on-accent,var(--dsw-alias-label-primary-foreground))}',
       '.kbwk-chev{width:28px;height:28px;border-radius:8px;border:0;background:none;display:grid;place-items:center;color:var(--dsw-alias-label-secondary)}',
       '.kbwk-chev svg{transition:transform .15s ease}.kbwk-item[data-ouvert="1"] .kbwk-chev svg{transform:rotate(180deg)}',
       '.kbwk-msg{margin:0 2px 10px;font-size:12.5px}.kbwk-msg.ok{color:var(--dsw-alias-state-success-primary)}.kbwk-msg.bad{color:var(--dsw-alias-state-error-primary)}',
@@ -276,14 +276,14 @@ window.__ModuleLoader__.load({
       '.kbwk-todo>li{display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px;align-items:start}',
       '.kbwk-n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}',
       '.kbwk-todo>li.done .kbwk-n{background:var(--dsw-alias-state-success-primary);color:#0f1115}',
-      '.kbwk-todo>li.cur .kbwk-n{background:#ff7a1a;color:#0f1115}',
+      '.kbwk-todo>li.cur .kbwk-n{background:var(--kybernos-accent,var(--dsw-alias-brand-primary));color:var(--kybernos-on-accent,var(--dsw-alias-label-primary-foreground))}',
       '.kbwk-todo>li.wait{opacity:.6}',
       '.kbwk-todo b{font-size:13.5px}',
       '.kbwk-todo p{margin:2px 0 0;color:var(--dsw-alias-label-secondary);font-size:13px}',
       '.kbwk-cmd{display:flex;align-items:center;gap:8px;margin-top:8px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:10px;padding:6px 6px 6px 12px;min-width:0}',
       '.kbwk-cmd code{flex:1;min-width:0;overflow-x:auto;white-space:nowrap;font-size:12.5px}',
       '.kbwk-cmd input{flex:1;min-width:0;border:0;background:transparent;color:var(--dsw-alias-label-primary);font-size:13px;padding:4px 0;outline:0}',
-      '.kbwk-cmd:focus-within{border-color:#ff7a1a}',
+      '.kbwk-cmd:focus-within{border-color:var(--kybernos-accent,var(--dsw-alias-brand-primary))}',
       '.kbwk-alt{margin:8px 0 0;font-size:12.5px;color:var(--dsw-alias-label-tertiary)}',
       '.kbwk-alt a{color:inherit;text-decoration:underline}',
       '.kbwk-box{margin-top:8px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;padding:12px 14px;background:var(--dsw-alias-bg-layer-1);display:flex;flex-direction:column;gap:8px}',
@@ -336,7 +336,7 @@ window.__ModuleLoader__.load({
       '.kbwk-tabs button .kbwk-n{width:19px;height:19px;font-size:11px}',
       '.kbwk-tabs button[aria-current="step"]{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l3)}',
       '.kbwk-tabs button.done .kbwk-n{background:var(--dsw-alias-state-success-primary);color:#0f1115}',
-      '.kbwk-tabs button[aria-current="step"] .kbwk-n{background:#ff7a1a;color:#0f1115}',
+      '.kbwk-tabs button[aria-current="step"] .kbwk-n{background:var(--kybernos-accent,var(--dsw-alias-brand-primary));color:var(--kybernos-on-accent,var(--dsw-alias-label-primary-foreground))}',
       '.kbwk-say{padding:12px 16px 4px}',
       '.kbwk-say h4{margin:0 0 3px;font-size:15px}',
       '.kbwk-say p{font-size:13.5px}',
@@ -360,7 +360,7 @@ window.__ModuleLoader__.load({
       '.kbwk-bub.ai{align-self:flex-start;background:var(--dsw-alias-bg-layer-3);border-end-start-radius:4px}',
       '.kbwk-job{align-self:flex-start;width:min(100%,380px);border:1px solid var(--dsw-alias-border-l2);border-radius:12px;padding:9px 12px;font-size:13px;display:flex;flex-direction:column;gap:3px;background:var(--dsw-alias-bg-layer-2)}',
       '.kbwk-job .t{display:flex;gap:8px;align-items:center;font-weight:600}',
-      '.kbwk-prog{height:4px;border-radius:2px;background:var(--dsw-alias-border-l2);overflow:hidden}.kbwk-prog i{display:block;height:100%;background:#ff7a1a;transition:width 1.6s linear}',
+      '.kbwk-prog{height:4px;border-radius:2px;background:var(--dsw-alias-border-l2);overflow:hidden}.kbwk-prog i{display:block;height:100%;background:var(--kybernos-accent,var(--dsw-alias-brand-primary));transition:width 1.6s linear}',
       '.kbwk-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--dsw-alias-border-l1)}',
       '.kbwk-faq{display:flex;flex-direction:column;gap:6px}',
       '.kbwk-faq details{border:1px solid var(--dsw-alias-border-l1);border-radius:10px;padding:8px 12px}',
@@ -464,25 +464,25 @@ window.__ModuleLoader__.load({
         const hint = (fr, en) => h('p', { className: 'kbwk-note' }, kt(fr, en))
         let stage
         if (step === 0) stage = mini
-        else if (step === 1) stage = h(React.Fragment, null, mini, d.verdict === 'binaire-absent' ? hint('Résultat : un point manque, le programme Claude Code n’est pas installé. On s’en occupe à l’étape suivante.', 'Result: one point is missing, the Claude Code program is not installed. We take care of it in the next step.') : null, !d.mounted ? hint('Faites d’abord l’étape 1.', 'Do step 1 first.') : null)
+        else if (step === 1) stage = h(React.Fragment, null, mini, d.verdict === 'binaire-absent' ? hint('Résultat : un point manque, le programme Claude Code n’est pas installé. On s’en occupe à l’étape suivante.', 'Result: one point is missing, the Claude Code program is not installed. We take care of it in the next step.') : null, !d.mounted ? hint('Fais d’abord l’étape 1.', 'Do step 1 first.') : null)
         else if (step === 2) {
           let box = null
           if (d.ask) box = h('div', { className: 'kbwk-box' }, h('p', null, h('b', null, kt('DSH va lancer cette commande sur ton ordinateur :', 'DSH will run this command on your computer:'))), h('div', { className: 'kbwk-cmd' }, h('code', null, DEMO_COMMAND)),
             h('p', { className: 'kbwk-alt' }, kt('Source : claude.ai (installation officielle de Claude Code). Tu peux interrompre à tout moment.', 'Source: claude.ai (the official Claude Code install). You can stop it at any time.')),
             h('div', { className: 'kbwk-acts' }, h('button', { type: 'button', className: 'kbwk-btn accent', 'data-kb': 'guide-run', onClick: act.run }, ic('download'), kt('Lancer l’installation', 'Run the install')), h('button', { type: 'button', className: 'kbwk-btn ghost', onClick: () => patch({ ask: false }) }, kt('Annuler', 'Cancel'))))
           else if (d.inst === 'running' || d.inst === 'done') box = h('div', { className: 'kbwk-box' }, h('p', null, h('b', null, d.inst === 'done' ? '✓ ' + kt('Installé. DSH a revérifié tout seul.', 'Installed. DSH checked again by itself.') : kt('Installation en cours…', 'Installing…'))), h('pre', { className: 'kbwk-log' }, d.log.join('\n')))
-          stage = h(React.Fragment, null, mini, box, d.verdict !== 'binaire-absent' && !d.installed ? hint('Faites d’abord l’étape 2 : la vérification dit si l’installation est nécessaire.', 'Do step 2 first: the check says whether an install is needed.') : null)
+          stage = h(React.Fragment, null, mini, box, d.verdict !== 'binaire-absent' && !d.installed ? hint('Fais d’abord l’étape 2 : la vérification dit si l’installation est nécessaire.', 'Do step 2 first: the check says whether an install is needed.') : null)
         } else if (step === 3) {
           stage = h(React.Fragment, null, mini,
             h('div', { className: 'kbwk-term' }, h('div', { className: 'tb' }, h('i'), h('i'), h('i'), h('span', null, 'Terminal')), h('pre', null, d.term.length === 0 ? h('span', { className: 'd' }, kt('Clique sur le bouton ci-dessous pour taper la commande dans cette fenêtre.', 'Click the button below to type the command in this window.')) : d.term.map((l, i) => h('span', { key: i, className: l.c }, l.t + '\n')))),
             h('div', { className: 'kbwk-acts' }, h('button', { type: 'button', className: 'kbwk-btn', 'data-kb': 'guide-signin', disabled: !d.installed || d.connected || d.busy === true, onClick: act.signin }, d.connected ? '✓ ' + kt('Connecté', 'Signed in') : kt('Taper « claude » et se connecter', 'Type "claude" and sign in'))),
-            !d.installed ? hint('Faites d’abord l’étape 3 : il faut que le programme soit installé.', 'Do step 3 first: the program has to be installed.') : hint('Dans la vraie page, le bouton « Copier » met la commande dans le presse-papiers : il suffit de la coller (Cmd + V) dans le Terminal, puis Entrée.', 'On the real page, the "Copy" button puts the command in the clipboard: just paste it (Cmd + V) in the Terminal, then Enter.'))
+            !d.installed ? hint('Fais d’abord l’étape 3 : il faut que le programme soit installé.', 'Do step 3 first: the program has to be installed.') : hint('Dans la vraie page, le bouton « Copier » met la commande dans le presse-papiers : il suffit de la coller (Cmd + V) dans le Terminal, puis Entrée.', 'On the real page, the "Copy" button puts the command in the clipboard: just paste it (Cmd + V) in the Terminal, then Enter.'))
         } else if (step === 4) {
           const marks = [kt('Connexion montée dans le profil', 'Connection mounted in the profile'), kt('Paquet de connexion installé', 'Connection package installed'), kt('Programme trouvé sur l’ordinateur', 'Program found on the computer'), kt('Connexion à ton compte confirmée', 'Sign-in to your account confirmed'), kt('Écriture possible dans un dossier de test', 'Writing possible in a test folder')]
           stage = h(React.Fragment, null, mini, h('ul', { className: 'kbwk-checks' }, marks.map((m, i) => h('li', { key: i, className: i < d.checkN ? 'on' : '' }, h('span', { className: 'm' }, i < d.checkN ? '✓' : ''), m))),
             d.verdict === 'pret' ? hint('Aucun modèle n’a été appelé : 0 € dépensé sur ton abonnement Claude.', 'No model was called: nothing spent on your Claude subscription.') : null)
         } else if (step === 5) {
-          stage = h(React.Fragment, null, mini, d.verdict !== 'pret' ? hint('Faites d’abord l’étape 5 : l’interrupteur apparaît quand l’agent est prêt.', 'Do step 5 first: the switch shows up once the agent is ready.') : null,
+          stage = h(React.Fragment, null, mini, d.verdict !== 'pret' ? hint('Fais d’abord l’étape 5 : l’interrupteur apparaît quand l’agent est prêt.', 'Do step 5 first: the switch shows up once the agent is ready.') : null,
             d.saved ? h('p', { className: 'kbwk-msg ok', role: 'status' }, kt('Enregistré. DSH l’applique dans quelques secondes.', 'Saved. DSH applies it in a few seconds.')) : null,
             d.verdict === 'pret' ? hint('Dans la vraie page, le réglage « Arrière-plan » se trouve dans le détail de la ligne.', 'On the real page, the "Background" setting is in the row’s details.') : null)
         } else {

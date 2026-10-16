@@ -5,11 +5,11 @@
   },
   "steps": [
     {
-      "fr": "Demandez à l'agent une commande à lancer : son bloc de code prend l'allure d'un terminal.",
+      "fr": "Demande à l'agent une commande à lancer : son bloc de code prend l'allure d'un terminal.",
       "en": "Ask the agent for a command: its code block looks like a terminal window."
     },
     {
-      "fr": "Le bouton vert « Exécuter » en haut du bloc exécute la commande sur votre ordinateur, sans demander confirmation.",
+      "fr": "Le bouton vert « Exécuter » en haut du bloc exécute la commande sur ton ordinateur, sans demander confirmation.",
       "en": "The green “Run” button at the top of the block runs the command on your computer, without asking first."
     },
     {
@@ -23,7 +23,7 @@
     "page": false
   },
   "good": {
-    "fr": "La commande s'exécute vraiment, avec vos droits, comme si vous la tapiez dans un terminal : relisez-la avant de cliquer. Le bouton ne marche que depuis votre session DSH ouverte.",
+    "fr": "La commande s'exécute vraiment, avec tes droits, comme si tu la tapais dans un terminal : relis-la avant de cliquer. Le bouton ne marche que depuis ta session DSH ouverte.",
     "en": "The command really runs, with your own rights, as if you typed it in a terminal: read it before you click. The button only works from your own signed-in DSH session."
   }
 }

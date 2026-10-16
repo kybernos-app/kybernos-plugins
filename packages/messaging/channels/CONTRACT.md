@@ -1,59 +1,63 @@
-# Contrat d'adaptateur de canal
+# Channel adapter contract
 
-Un canal est un fichier qui exporte `create<Canal>Adapter(options)` et renvoie un
-objet avec les capacités ci-dessous. Le cœur (`core/runner.mjs`) ne connaît que
-ce contrat : ajouter Discord, Slack, WhatsApp ou Matrix ne demande aucune
-modification du cœur.
+A channel is a file that exports `create<Channel>Adapter(options)` and returns an
+object with the capabilities below. The core (`core/runner.mjs`) only knows this
+contract: adding Discord, Slack, WhatsApp or Matrix needs no change to the core.
 
-## Obligatoire
+## Required
 
-| Membre | Signature | Rôle |
+| Member | Signature | Role |
 |---|---|---|
-| `name` | `string` | Nom du canal, affiché dans `/status` |
-| `start` | `async ({ onMessage, inboxFor, signal })` | Démarre la réception ; `onMessage(message)` par message ; rend la main quand `signal` est avorté |
-| `send` | `async (chatId, text, { replyTo }) → { messageId }` | Envoie un message texte |
-| `edit` | `async (chatId, messageId, text) → boolean` | Remplace un message déjà envoyé (streaming) |
+| `name` | `string` | Name of the channel, shown in `/status` |
+| `start` | `async ({ onMessage, inboxFor, signal })` | Starts receiving; `onMessage(message)` per message; returns when `signal` is aborted |
+| `send` | `async (chatId, text, { replyTo }) → { messageId }` | Sends a text message |
+| `edit` | `async (chatId, messageId, text) → boolean` | Replaces a message already sent (streaming) |
 
-## Optionnel (dégradation propre si absent)
+## Optional (clean degradation when absent)
 
-| Membre | Signature | Rôle |
+| Member | Signature | Role |
 |---|---|---|
-| `sendFile` | `async (chatId, filePath, { caption })` | Pièce jointe sortante |
-| `download` | `async (attachment, destDir) → cheminLocal` | Pièce jointe entrante |
+| `sendFile` | `async (chatId, filePath, { caption })` | Outgoing attachment |
+| `download` | `async (attachment, destDir) → localPath` | Incoming attachment |
 
-`runner.deliver()` n'appelle `sendFile` que si l'adaptateur le fournit ; sans lui,
-les fichiers ne sont simplement pas envoyés (et `/status` reste valide).
+`runner.deliver()` only calls `sendFile` when the adapter provides it; without it,
+files are simply not sent (and `/status` stays valid).
 
-## Message normalisé fourni au cœur
+## Normalised message handed to the core
 
 ```js
 {
-  updateId,            // identifiant monotone de la plateforme (déduplication)
-  chatId,              // string, sert de clé de session et d'allowlist
+  updateId,            // monotonic identifier of the platform (deduplication)
+  chatId,              // string, used as the session key and the allowlist key
   messageId,
-  chatType,            // 'private' | 'group' | … (informatif)
-  from,                // libellé humain de l'expéditeur (journaux seulement)
-  text,                // texte brut (légende comprise)
+  chatType,            // 'private' | 'group' | … (informative)
+  from,                // human label of the sender (logs only)
+  lang,                // the sender's language code as the platform reports it ('fr', 'en-GB'…), or null
+  text,                // plain text (caption included)
   attachments: [{
     kind,              // 'photo' | 'document' | 'voice' | …
     fileId, name, size, mime,
-    localPath,         // posé par l'adaptateur après download()
+    localPath,         // set by the adapter after download()
   }],
   receivedAt
 }
 ```
 
-## Règles
+`lang` only chooses the language of the bridge's own replies (`core/messages.mjs`): French when it
+starts with « fr », English for anything else or when it is missing.
 
-1. **Sortant d'abord.** Un canal qui écoute en entrant sans URL publique
-   (long polling, WebSocket sortant, Socket Mode) est préféré : aucun tunnel,
-   aucun port ouvert, aucune surface exposée.
-2. **Les erreurs fatales se distinguent des transitoires.** Un token invalide ou
-   un conflit de mode (`409` Telegram) doit lever et arrêter le démon ; une
-   coupure réseau se réessaie avec repli exponentiel.
-3. **Pas de secret dans les journaux.** `send`/`edit`/`download` ne doivent
-   jamais écrire un token, une URL signée ou un identifiant d'utilisateur brut
-   dans la sortie standard.
-4. **Une dégradation n'est pas une erreur.** Si la plateforme refuse une
-   fonction (édition indisponible, taille maximale), l'adaptateur le signale et
-   le cœur continue en texte simple.
+## Rules
+
+1. **Outbound first.** A channel that listens inbound without a public URL
+   (long polling, outgoing WebSocket, Socket Mode) is preferred: no tunnel,
+   no open port, no exposed surface.
+2. **Fatal errors are told apart from transient ones.** An invalid token or
+   a mode conflict (Telegram `409`) must throw and stop the daemon; a
+   network cut is retried with exponential backoff.
+3. **No secret in the logs.** `send`/`edit`/`download` must never write a
+   token, a signed URL or a raw user identifier to the standard output.
+4. **A degradation is not an error.** If the platform refuses a feature
+   (editing unavailable, maximum size), the adapter says so and the core
+   carries on in plain text.
+5. **English for the operator.** An adapter's errors and log lines are for the person who runs
+   the daemon: English only. What a person reads in the chat is the core's job (`core/messages.mjs`).

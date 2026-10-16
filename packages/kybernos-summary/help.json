@@ -5,11 +5,11 @@
   },
   "steps": [
     {
-      "fr": "Dans un chat, ouvrez le panneau de droite puis le bouton « + » et choisissez Résumé.",
+      "fr": "Dans un chat, ouvre le panneau de droite puis le bouton « + » et choisis Résumé.",
       "en": "In a chat, open the right-hand panel, press the “+” button and pick Summary."
     },
     {
-      "fr": "Suivez la progression, les compétences et outils utilisés, et les fichiers écrits ; cliquez un fichier pour l'ouvrir.",
+      "fr": "Suis la progression, les compétences et outils utilisés, et les fichiers écrits ; clique un fichier pour l'ouvrir.",
       "en": "Follow the progress, the skills and tools used and the files written; click a file to open it."
     },
     {
@@ -23,7 +23,7 @@
     "page": false
   },
   "good": {
-    "fr": "Tout est lu dans votre navigateur, à partir de ce que le chat contient déjà : rien n'est stocké ni envoyé.",
+    "fr": "Tout est lu dans ton navigateur, à partir de ce que le chat contient déjà : rien n'est stocké ni envoyé.",
     "en": "Everything is read in your browser from what the chat already holds: nothing is stored or sent."
   }
 }

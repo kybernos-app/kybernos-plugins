@@ -19,20 +19,20 @@
 const t = (fr, en) => ({ fr, en })
 
 export const SLOTS = Object.freeze([
-  { id: 'listen', icon: 'ear', name: t('Écoute', 'Listen'), sub: t('votre voix en texte', 'your voice to text'),
-    help: t('Transforme ce que vous dites en texte pour que l’assistant puisse le lire. La précision et la vitesse comptent le plus. Gratuit ou presque.',
+  { id: 'listen', icon: 'ear', name: t('Écoute', 'Listen'), sub: t('ta voix en texte', 'your voice to text'),
+    help: t('Transforme ce que tu dis en texte pour que l’assistant puisse le lire. La précision et la vitesse comptent le plus. Gratuit ou presque.',
       'Turns what you say into text so the assistant can read it. Accuracy and speed matter most. Free or nearly free.') },
   { id: 'think', icon: 'bulb', name: t('Cerveau', 'Think'), sub: t('qui répond', 'who answers'), locked: true,
-    help: t('Le modèle de ce chat répond, avec ses outils et ses droits. Rien à régler ici : changez le modèle dans le chat comme d’habitude.',
+    help: t('Le modèle de ce chat répond, avec ses outils et ses droits. Rien à régler ici : change le modèle dans le chat comme d’habitude.',
       'The model of this chat answers, with its tools and permissions. Nothing to set here: change the model in the chat as usual.') },
   { id: 'speak', icon: 'speaker', name: t('Voix', 'Speak'), sub: t('texte en voix', 'text to voice'),
-    help: t('Lit la réponse à voix haute. C’est ici qu’on choisit une voix naturelle, ou la vôtre. Si un fournisseur échoue, la voix du Mac prend le relais : un appel n’est jamais muet.',
+    help: t('Lit la réponse à voix haute. C’est ici qu’on choisit une voix naturelle, ou la tienne. Si un fournisseur échoue, la voix du Mac prend le relais : un appel n’est jamais muet.',
       'Reads the answer aloud. This is where a natural voice, or your own cloned voice, comes from. If a provider fails, the Mac voice takes over so a call is never silent.') },
   { id: 'face', icon: 'face', name: t('Visage', 'Face'), sub: t('avatar animé', 'animated avatar'),
     help: t('Facultatif. Un avatar dont les lèvres suivent la voix. Un même fournisseur dessine le visage, synchronise les lèvres et envoie la vidéo.',
       'Optional. An avatar whose lips follow the voice. One provider draws the face, syncs the lips and sends the video.') },
   { id: 'line', icon: 'radio', name: t('Ligne', 'Line'), sub: t('transport voix et vidéo en direct', 'live voice and video transport'),
-    help: t('Transporte la voix et la vidéo en direct entre votre navigateur et l’assistant. Nécessaire pour le mode en direct.',
+    help: t('Transporte la voix et la vidéo en direct entre ton navigateur et l’assistant. Nécessaire pour le mode en direct.',
       'Carries voice and video live between your browser and the assistant. Needed for live mode.') }
 ])
 
@@ -58,11 +58,11 @@ export const PROVIDERS = Object.freeze([
         { value: 'whisper-large-v3-turbo', label: t('whisper-large-v3-turbo · 0,04 $/h', 'whisper-large-v3-turbo · $0.04/h') },
         { value: 'whisper-large-v3', label: t('whisper-large-v3 · 0,111 $/h', 'whisper-large-v3 · $0.111/h') }] }] },
   { id: 'models-asr', cost: 0, slot: 'listen', available: true, source: 'models', tags: ['models'], test: 'models',
-    name: t('Un modèle de vos Modèles', 'A model from your Models'), price: t('Inclus dans votre offre', 'Included in your plan'),
+    name: t('Un modèle de tes Modèles', 'A model from your Models'), price: t('Inclus dans ton offre', 'Included in your plan'),
     note: t('Un modèle d’écoute d’un fournisseur déjà configuré dans Modèles : la clé est celle de ce fournisseur, rien à coller.', 'A listening model of a provider already set up in Models: the key is that provider’s, nothing to paste.'),
     fields: [{ kind: 'models', name: 'model', want: 'listen', label: t('Modèle d’écoute', 'Listening model') }] },
   { id: 'app-dictation', cost: 0, slot: 'listen', available: true, source: 'models', tags: ['models'], test: 'dictation',
-    name: t('Dictée de l’app', 'App dictation'), price: t('Inclus dans votre offre', 'Included in your plan'),
+    name: t('Dictée de l’app', 'App dictation'), price: t('Inclus dans ton offre', 'Included in your plan'),
     note: t('Le modèle qu’utilise déjà la dictée de l’app (le micro de la zone de message).', 'The model the app’s dictation already uses (the microphone of the message box).'), fields: [] },
   { id: 'deepgram', cost: 0.58, slot: 'listen', available: false, source: 'key', tags: ['online'], url: 'https://console.deepgram.com',
     name: t('Deepgram Nova-3', 'Deepgram Nova-3'), price: t('0,0058 $ la minute', '$0.0058 per minute'), note: t('Pensé pour la voix en temps réel. 200 $ offerts au départ.', 'Built for realtime voice. $200 free to start.'), fields: [] },
@@ -71,7 +71,7 @@ export const PROVIDERS = Object.freeze([
 
   // ── think ────────────────────────────────────────────────────────────
   { id: 'session', cost: 0, slot: 'think', available: true, source: 'none', tags: [],
-    name: t('Le modèle de votre session', 'Your session’s model'), price: t('Déjà dans votre chat', 'Already in your chat'), note: t('Changez-le dans le chat.', 'Change it in the chat.'), fields: [] },
+    name: t('Le modèle de ta session', 'Your session’s model'), price: t('Déjà dans ton chat', 'Already in your chat'), note: t('Change-le dans le chat.', 'Change it in the chat.'), fields: [] },
 
   // ── speak: the first four are engines of the app's own voice system (the Voice settings); ElevenLabs is the clone provider ──
   { id: 'app', cost: 0, slot: 'speak', available: true, source: 'none', tags: ['local'], engine: null,
@@ -93,7 +93,7 @@ export const PROVIDERS = Object.freeze([
         { value: 'eleven_multilingual_v2', label: t('eleven_multilingual_v2 · 1 crédit par caractère', 'eleven_multilingual_v2 · 1 credit per character') },
         { value: 'eleven_flash_v2_5', label: t('eleven_flash_v2_5 · 0,5 crédit par caractère', 'eleven_flash_v2_5 · 0.5 credit per character') }] }] },
   { id: 'models-tts', cost: 0, slot: 'speak', available: true, source: 'models', tags: ['models'], engine: 'models',
-    name: t('Un modèle de vos Modèles', 'A model from your Models'), price: t('Inclus dans votre offre', 'Included in your plan'),
+    name: t('Un modèle de tes Modèles', 'A model from your Models'), price: t('Inclus dans ton offre', 'Included in your plan'),
     note: t('Un modèle de voix d’un fournisseur déjà configuré dans Modèles : la clé est celle de ce fournisseur, rien à coller. Le texte lui est envoyé.', 'A voice model of a provider already set up in Models: the key is that provider’s, nothing to paste. The text is sent to it.'), fields: [] },
   { id: 'cartesia', cost: 2, slot: 'speak', available: false, source: 'key', tags: ['online', 'clone'], url: 'https://cartesia.ai',
     name: t('Cartesia', 'Cartesia'), price: t('À partir de 5 $ par mois', 'From $5 per month'), note: t('Très faible latence. Clonage inclus dès 5 $ (100 000 crédits).', 'Very low latency. Cloning included from $5 (100,000 credits).'), fields: [] },
@@ -120,7 +120,7 @@ export const PROVIDERS = Object.freeze([
   // ── line ─────────────────────────────────────────────────────────────
   { id: 'livekit', cost: 0.1, slot: 'line', available: true, source: 'key', tags: ['online'], test: 'livekit', url: 'https://cloud.livekit.io',
     name: t('LiveKit', 'LiveKit'), price: t('Gratuit pour commencer', 'Free to start'),
-    note: t('LiveKit Cloud : 5 000 minutes de participants par mois, soit environ 2 500 minutes d’appel. Ou votre propre serveur LiveKit (LiveAvatar en mode LITE ne fonctionne pas avec).', 'LiveKit Cloud: 5,000 participant minutes a month, about 2,500 call minutes. Or your own LiveKit server (LiveAvatar LITE does not work with it).'),
+    note: t('LiveKit Cloud : 5 000 minutes de participants par mois, soit environ 2 500 minutes d’appel. Ou ton propre serveur LiveKit (LiveAvatar en mode LITE ne fonctionne pas avec).', 'LiveKit Cloud: 5,000 participant minutes a month, about 2,500 call minutes. Or your own LiveKit server (LiveAvatar LITE does not work with it).'),
     fields: [
       { kind: 'env', name: 'LIVEKIT_URL', label: t('Adresse du projet', 'Project address'), required: true },
       secret('LIVEKIT_API_KEY', 'Clé API', 'API key'),
@@ -134,8 +134,8 @@ export const isConfigured = (provider, keys) => provider.fields
 
 /** What a click on a preset sets. `available: false` presets are shown and cannot be applied. */
 export const PRESETS = Object.freeze([
-  { id: 'simple', available: false, name: t('Simple', 'Simple'), desc: t('Sans compte en plus : vous parlez, il répond.', 'No extra account: you talk, it answers.') },
-  { id: 'live', available: true, name: t('En direct', 'Live'), desc: t('Conversation fluide, vous pouvez l’interrompre.', 'Fluid conversation, you can interrupt.'),
+  { id: 'simple', available: false, name: t('Simple', 'Simple'), desc: t('Sans compte en plus : tu parles, il répond.', 'No extra account: you talk, it answers.') },
+  { id: 'live', available: true, name: t('En direct', 'Live'), desc: t('Conversation fluide, tu peux l’interrompre.', 'Fluid conversation, you can interrupt.'),
     patch: { use: { listen: 'groq', face: 'none' }, defaultVoice: { engine: 'edge', voice: 'fr-FR-DeniseNeural', lang: 'fr' } } },
   { id: 'best', available: true, name: t('Meilleure qualité', 'Best quality'), desc: t('Voix naturelle et un visage.', 'Natural voice and a face.'),
     patch: { use: { listen: 'groq', face: 'liveavatar' }, defaultVoice: { engine: 'edge', voice: 'fr-FR-VivienneMultilingualNeural', lang: 'fr' } } }

@@ -6,9 +6,10 @@
 // and nowhere else, the link is returned only when it points at the server this account is connected to, a workspace that is not the account's is
 // never asked for, and a page of another origin cannot ask DSH for a link.
 import { createServer } from 'node:http'
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 let failed = 0
 const check = (name, ok, detail) => {
@@ -194,6 +195,19 @@ console.log('who may ask')
 {
   check('a page of another origin is refused (strict)', mod.sameOriginStrict({ headers: { origin: 'https://evil.example' } }) === false)
   check('no Origin and no Referer: refused', mod.sameOriginStrict({ headers: {} }) === false)
+  // The strict guard every `strict: true` route of the table goes through (this one, the plans and the payment calls, the turns, the instructions write).
+  const req = (headers, port = 3080) => ({ headers, socket: { localPort: port } })
+  check('Origin of this server: allowed', mod.sameOriginStrict(req({ origin: 'http://127.0.0.1:3080' })) === true)
+  check('Referer of this server (a same-origin GET sends only that): allowed', mod.sameOriginStrict(req({ referer: 'http://localhost:3080/#x' })) === true)
+  check('the IPv6 loopback: allowed', mod.sameOriginStrict(req({ origin: 'http://[::1]:3080' })) === true)
+  check('another port of the same host: refused', mod.sameOriginStrict(req({ origin: 'http://127.0.0.1:3081' })) === false)
+  check('« null » and file: origins: refused', mod.sameOriginStrict(req({ origin: 'null' })) === false && mod.sameOriginStrict(req({ origin: 'file:///x' })) === false)
+  check('a forged Host header does not help', mod.sameOriginStrict(req({ origin: 'http://evil.example', host: 'evil.example' })) === false)
+  check('a request object without headers is refused, not a crash', mod.sameOriginStrict({}) === false && mod.sameOriginStrict(null) === false)
+  const link = mod.ROUTES.find((r) => r.path === '/kybernos-cloud/console/link')
+  check('the console link route is a strict, guarded POST', link !== undefined && link.method === 'POST' && link.guarded === true && link.strict === true)
+  const host = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'index.js'), 'utf8')
+  check('the dispatcher applies the strict guard to strict routes', host.indexOf('route.strict === true && sameOriginStrict(req) === false') > 0)
 }
 
 api.close()

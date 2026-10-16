@@ -1,19 +1,19 @@
 {
   "what": {
-    "fr": "Votre téléphone ouvre une application web qui parle à votre ordinateur par un relais qui ne lit rien : tout est chiffré de bout en bout.",
+    "fr": "Ton téléphone ouvre une application web qui parle à ton ordinateur par un relais qui ne lit rien : tout est chiffré de bout en bout.",
     "en": "Your phone opens a web app that talks to your computer through a relay that reads nothing: everything is end-to-end encrypted."
   },
   "steps": [
     {
-      "fr": "Sur l’ordinateur, ouvrez le menu du compte (en bas de la barre latérale) › « Contrôle à distance » : un code QR s’affiche.",
+      "fr": "Sur l’ordinateur, ouvre le menu du compte (en bas de la barre latérale) › « Contrôle à distance » : un code QR s’affiche.",
       "en": "On the computer, open the account menu (bottom of the sidebar) › “Remote control”: a QR code appears."
     },
     {
-      "fr": "Sur le téléphone, scannez le code avec l’appareil photo et ouvrez le lien. Un code à 4 chiffres s’affiche.",
+      "fr": "Sur le téléphone, scanne le code avec l’appareil photo et ouvre le lien. Un code à 4 chiffres s’affiche.",
       "en": "On the phone, scan the code with the camera and open the link. A 4-digit code appears."
     },
     {
-      "fr": "Sur l’ordinateur, vérifiez que le code est le même et touchez Autoriser : DSH s’ouvre sur le téléphone.",
+      "fr": "Sur l’ordinateur, vérifie que le code est le même et touche Autoriser : DSH s’ouvre sur le téléphone.",
       "en": "On the computer, check the code is the same and click Allow: DSH opens on the phone."
     }
   ],
@@ -23,7 +23,7 @@
     "page": true
   },
   "good": {
-    "fr": "Gardez l’ordinateur allumé et connecté à internet : s’il s’éteint ou perd la connexion, le téléphone ne peut plus l’atteindre. Le relais Kybernos fait passer les messages sans pouvoir les lire.",
+    "fr": "Garde l’ordinateur allumé et connecté à internet : s’il s’éteint ou perd la connexion, le téléphone ne peut plus l’atteindre. Le relais Kybernos fait passer les messages sans pouvoir les lire.",
     "en": "Keep the computer switched on and connected to the internet: if it is switched off or loses the connection, the phone can no longer reach it. The Kybernos relay only passes messages along and cannot read them."
   },
   "url": "https://help.kybernos.app/{lang}/features/what-is-remote-control/"

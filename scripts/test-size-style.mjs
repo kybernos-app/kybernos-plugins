@@ -85,8 +85,8 @@ ok('Motion\'s export hint uses it too: « Up to about 5.0 MB », no comma bolted
 
 // ── the type badge ──────────────────────────────────────────────────────────
 const KB_T = { 'deliv.type.media': 'Audio / Video' }
-const kbf = (fr) => ({ Autre: 'Other', 'Résumé': 'Resume' })[fr] || fr
-const typing = new Function('kbf', 'kbt', [
+const kbe = (en) => en
+const typing = new Function('kbe', 'kbt', [
   cut(core, 'const KB_ART_TYPES = [', '\n    ]\n', 'KB_ART_TYPES'),
   cut(core, 'const KB_ART_TYPE_MEDIA = ', '\n', 'KB_ART_TYPE_MEDIA'),
   cut(core, 'const KB_KIND_SUFFIX = ', '\n', 'KB_KIND_SUFFIX'),
@@ -94,7 +94,7 @@ const typing = new Function('kbf', 'kbt', [
   cut(core, 'const KB_FAM_EXTS = {', '\n    }\n', 'KB_FAM_EXTS'),
   cut(core, 'const kbArtType = (name) => {', '\n    }\n', 'kbArtType'),
   'return { kbArtType, KB_ART_TYPES }',
-].join('\n'))(kbf, (k) => KB_T[k] || k)
+].join('\n'))(kbe, (k) => KB_T[k] || k)
 
 ok('mp3, wav, mp4 and the other audio / video files are « Audio / Video », not « Autre »', () => {
   for (const f of ['tone.wav', 'song.MP3', 'intro.mp4', 'clip.webm', 'voice.m4a', 'x.opus', 'movie.mkv']) {
