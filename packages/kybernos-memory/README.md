@@ -7,7 +7,7 @@ page reaches it through that plugin's routes; the account token never leaves the
 
 ## The page
 
-Settings → **Memory & Lessons** (in the Kybernos group, after Auto Routing). It opens straight on the data; the switches live
+Settings → **Memory & Lessons** (one of the essentials at the top of the menu, after AI Provider & Models). It opens straight on the data; the switches live
 one click away.
 
 - **Memories** (account): list, search by words, filters (Show: all / pinned / sent to the model ·

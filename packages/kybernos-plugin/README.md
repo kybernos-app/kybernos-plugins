@@ -22,12 +22,21 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
 - Settings sections **Tools**, **Voice** and Appearance (shortcut to Theme); a first-run **onboarding** wizard (see
   « First-run onboarding » below). The account's own pages (Account, Referral, Security, Data, Support & legal) are not in
   Settings: they are reached from the sidebar footer menu (kybernos-cloud).
-- **The Settings menu is regrouped** (`GROUPES` in `client.js`, by the section id each cell carries, so it holds in every language):
-  *Kybernos* first (the servers entry, the section of what stays on this computer, then the Suite, and on with our plugins' pages by what they bring and how much the
-  rest leans on them: AI Provider & Models, Auto Routing, Memory & Lessons, Workers, Tools, Calls, Commands, Atlas, Ollama Local
-  Models, Voice, Language, Theme), then the shell's own *Settings*, *Desktop settings* and *Third Party Plugins*; About closes the
-  list. To move a page, move its title inside `mots`; a page not listed falls to the tail. An always-on **language runtime** (`<kb-lang-runtime>`) keeps translated languages registered in
+- **The Settings menu is short for a newcomer and ordered for everyone** (`GROUPES` in `client.js`, by the section id each cell carries, so it
+  holds in every language). Three sections: the **essentials**, with no header (General, then AI Provider & Models, Memory & Lessons, Skills,
+  Connectors, and Appearance with Theme and Language one step in under it); **Advanced**, a fold shut at first (Servers, Kybernos, Kybernos Suite, Auto
+  Routing, Usage, Workers, Automations, Tools, Web Search, Calls, Remote Control, Cloud computers, Commands, Atlas, Ollama Local Models, Free LLMs,
+  Voice); **Other settings** (the shell's own Built-in plugins and Agent presets, and the pages a plugin adds later), with About closing the list.
+  The fold opens by itself when the person searches, or lands on a page inside it (a deep link, a help pointer, a click on a row of the Suite), and it
+  remembers what they chose (`kybernos.fold.settings-advanced` in the browser). To move a page, move its title inside `mots`; a page not listed falls
+  to the tail of *Other settings*. One icon table (`ICONES`, keyed by the page's title) draws every entry, and `test-settings-icons.mjs` checks that
+  no two share a drawing. An always-on **language runtime** (`<kb-lang-runtime>`) keeps translated languages registered in
   DSH's locale service even when `kybernos-language` is off.
+- **« A short automatic state + a Customize fold »**, one helper for every settings page (`window.__KB_CUSTOMIZE__`, like `__KB_SKEL__`): a page opens on
+  what already runs by itself (one sentence, one status dot) and keeps its knobs under one fold that is shut until the person opens it and that remembers the
+  choice. `h(window.__KB_CUSTOMIZE__.Fold, { id: 'memory', state: 'Memory is on and tidies itself.', tone: 'on' }, …the knobs…)`;
+  `read(id)` / `write(id, open)` are its store, `toggle(label, open, onToggle, plain)` its button (the Settings menu's Advanced header is one). A page of
+  another bundle falls back to its own markup when the helper is not there.
 
 ## Host routes
 

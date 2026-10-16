@@ -439,6 +439,10 @@
     width: 22px;
     height: 22px;
   }
+  /* Theme and Language sit under Appearance (data-kb-sub, put on by the core plugin's Settings menu): one step in here too. */
+  [data-shortcut-modal="settings"]:not([data-kbmob-page]) > nav > div:last-child > button[data-kb-sub] {
+    padding-inline-start: 40px !important;
+  }
   [data-shortcut-modal="settings"][data-kbmob-page] > nav {
     display: none !important;
   }

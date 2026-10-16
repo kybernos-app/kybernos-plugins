@@ -26,10 +26,10 @@
 import { mkdirSync } from 'node:fs'
 import { openLivePage, waitFor, clickText, openSettings } from './live-page.mjs'
 
-// Where the page sits in the Settings nav: inside the « Kybernos » group (GROUPES in packages/kybernos-plugin/client.js),
+// Where the page sits in the Settings nav: among the essentials, the first section (GROUPES in packages/kybernos-plugin/client.js),
 // after these and before those. scripts/test-live-checks.mjs keeps both lists in line with GROUPES.
-const NAV_ABOVE = ['Kybernos Suite', 'AI Provider & Models', 'Auto Routing']
-const NAV_BELOW = ['Workers', 'Language', 'Theme']
+const NAV_ABOVE = ['General', 'AI Provider & Models']
+const NAV_BELOW = ['Skills', 'Connectors', 'Appearance']
 
 const args = process.argv.slice(2)
 const shotsDir = args.indexOf('--shots') >= 0 ? args[args.indexOf('--shots') + 1] : null
@@ -83,9 +83,9 @@ try {
   await sleep(400)
   await shot('01-page')
 
-  check('title', (await text('.kbmem-h1')) === 'Memory & Lessons learned')
+  check('title', (await text('.kbmem-h1')) === 'Memory & Lessons')
   // Visual order, not DOM order: the shell lays the nav out with CSS `order` and the Kybernos plugin groups the cells under headers
-  // (GROUPES). Where the page sits is therefore read from what is drawn: its group header, what is above it, what is below.
+  // (GROUPES). Where the page sits is therefore read from what is drawn: its group header (none for the essentials), what is above it, what is below.
   const navAt = JSON.parse((await ev(`JSON.stringify((() => {
     const list = [...document.querySelectorAll('[class*="navList"]')].find(l => l.querySelector('[class*="navCell"]'))
     if (!list) return null
@@ -98,7 +98,7 @@ try {
     const below = ${JSON.stringify(NAV_BELOW)}.filter(t => idx(t) >= 0)
     return { group: head ? head.t : null, above, below, aboveOk: above.every(t => idx(t) < i), belowOk: below.every(t => idx(t) > i) }
   })())`)) || 'null')
-  check('the section sits in the Kybernos group of the nav, after ' + NAV_ABOVE.join(', ') + ' and before ' + NAV_BELOW.join(', ') + ' (as drawn, not in DOM order)', navAt !== null && navAt.group === 'Kybernos' && navAt.aboveOk === true && navAt.belowOk === true, navAt)
+  check('the section sits among the essentials of the nav (the first section: no header above it), after ' + NAV_ABOVE.join(', ') + ' and before ' + NAV_BELOW.join(', ') + ' (as drawn, not in DOM order)', navAt !== null && navAt.group === null && navAt.aboveOk === true && navAt.belowOk === true, navAt)
   // « Data first » is about what the page offers when it HAS data. An instance with nothing to list (not connected to Kybernos Cloud, no
   // memory yet) legitimately shows no row: the empty state, which says why, is then the first screen — and still no switches.
   const memRows = memList !== null && memList.ok === true && memList.total > 0
@@ -178,7 +178,7 @@ try {
   check('both switch groups are present', /Memory system context/.test((await text('.kbmem-page')) || '') && /Lessons system context/.test((await text('.kbmem-page')) || ''))
   await shot('03-options')
   await ev(`document.querySelector('[data-act=back]').click()`); await sleep(500)
-  check('Back returns to the list', (await text('.kbmem-h1')) === 'Memory & Lessons learned')
+  check('Back returns to the list', (await text('.kbmem-h1')) === 'Memory & Lessons')
 
   console.log('tidy up (it only LOOKS: this check never merges, keeps, undoes or accepts anything)')
   const tidyLes0 = await local('/kybernos-memory/tidy')
@@ -221,7 +221,7 @@ try {
       await shot('03e-tidy-banner')
     }
   }
-  if ((await text('.kbmem-h1')) !== 'Memory & Lessons learned') { await ev(`document.querySelector('[data-act=back]').click()`); await sleep(500) }
+  if ((await text('.kbmem-h1')) !== 'Memory & Lessons') { await ev(`document.querySelector('[data-act=back]').click()`); await sleep(500) }
 
   console.log('theme tokens')
   const colors = await ev(`(() => { const p = document.querySelector('.kbmem-page'); const cs = getComputedStyle(p); const btn = document.querySelector('.kbmem-btn'); return JSON.stringify({ ink: cs.getPropertyValue('--m-ink').trim(), acc: cs.getPropertyValue('--m-acc').trim(), color: cs.color, btnBg: btn ? getComputedStyle(btn).backgroundColor : null }) })()`)
