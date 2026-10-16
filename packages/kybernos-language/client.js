@@ -144,9 +144,11 @@ body:not([data-ds-dark-theme]) .kbth-chip-tag{color:color-mix(in srgb,var(--dsw-
    The mock is pure CSS on a 12 s loop; the BASE style of every animated part is the
    final state (language ready and in use), which is also what reduced motion shows. */
 .kbth-head-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.kbth-help-btn{appearance:none;font:inherit;font-size:12px;display:inline-flex;align-items:center;gap:6px;padding:4px 11px 4px 5px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;white-space:nowrap}
-.kbth-help-btn:hover,.kbth-help-btn[aria-expanded="true"]{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary)}
-.kbth-help-q{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3)}
+/* The « ? How it works » pill: the same look as the Suite's (kybernos-hub), so every page has one form of the button; the panel it opens is this page's own. */
+.kbth-help-btn{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.kbth-help-btn:hover,.kbth-help-btn[aria-expanded="true"]{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}
+.kbth-help-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.kbth-help-q{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
 .kbth-help{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;padding:16px;border-radius:12px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);align-items:center}
 @media (max-width:700px){.kbth-help{grid-template-columns:minmax(0,1fr)}}
 .kbth-help-text{display:flex;flex-direction:column;gap:12px;min-width:0}

@@ -22,12 +22,21 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
 - Settings sections **Tools**, **Voice** and Appearance (shortcut to Theme); a first-run **onboarding** wizard (see
   « First-run onboarding » below). The account's own pages (Account, Referral, Security, Data, Support & legal) are not in
   Settings: they are reached from the sidebar footer menu (kybernos-cloud).
-- **The Settings menu is regrouped** (`GROUPES` in `client.js`, by the section id each cell carries, so it holds in every language):
-  *Kybernos* first (the servers entry, the section of what stays on this computer, then the Suite, and on with our plugins' pages by what they bring and how much the
-  rest leans on them: AI Provider & Models, Auto Routing, Memory & Lessons, Workers, Tools, Calls, Commands, Atlas, Ollama Local
-  Models, Voice, Language, Theme), then the shell's own *Settings*, *Desktop settings* and *Third Party Plugins*; About closes the
-  list. To move a page, move its title inside `mots`; a page not listed falls to the tail. An always-on **language runtime** (`<kb-lang-runtime>`) keeps translated languages registered in
+- **The Settings menu is short for a newcomer and ordered for everyone** (`GROUPES` in `client.js`, by the section id each cell carries, so it
+  holds in every language). Three sections: the **essentials**, with no header (General, then AI Provider & Models, Memory & Lessons, Skills,
+  Connectors, and Appearance with Theme and Language one step in under it); **Advanced**, a fold shut at first (Servers, Kybernos, Kybernos Suite, Auto
+  Routing, Usage, Workers, Automations, Tools, Web Search, Calls, Remote Control, Cloud computers, Commands, Atlas, Ollama Local Models, Free LLMs,
+  Voice); **Other settings** (the shell's own Built-in plugins and Agent presets, and the pages a plugin adds later), with About closing the list.
+  The fold opens by itself when the person searches, or lands on a page inside it (a deep link, a help pointer, a click on a row of the Suite), and it
+  remembers what they chose (`kybernos.fold.settings-advanced` in the browser). To move a page, move its title inside `mots`; a page not listed falls
+  to the tail of *Other settings*. One icon table (`ICONES`, keyed by the page's title) draws every entry, and `test-settings-icons.mjs` checks that
+  no two share a drawing. An always-on **language runtime** (`<kb-lang-runtime>`) keeps translated languages registered in
   DSH's locale service even when `kybernos-language` is off.
+- **« A short automatic state + a Customize fold »**, one helper for every settings page (`window.__KB_CUSTOMIZE__`, like `__KB_SKEL__`): a page opens on
+  what already runs by itself (one sentence, one status dot) and keeps its knobs under one fold that is shut until the person opens it and that remembers the
+  choice. `h(window.__KB_CUSTOMIZE__.Fold, { id: 'memory', state: 'Memory is on and tidies itself.', tone: 'on' }, …the knobs…)`;
+  `read(id)` / `write(id, open)` are its store, `toggle(label, open, onToggle, plain)` its button (the Settings menu's Advanced header is one). A page of
+  another bundle falls back to its own markup when the helper is not there.
 
 ## Host routes
 
@@ -81,6 +90,32 @@ The route is bounded: a window of at most 45 days, 200 runs per automation, 1000
 reported as truncated with the instant the list stops. It reads `tasks.json` and writes nothing; it has the guard of `tasks`
 (same origin, signed browser session) and the Host fence of every route of the bundle. Pure logic: `automation-occurrences.mjs`
 (host) and the `KB-AUTOBOARD` block of `client.js` (browser).
+
+## The List, readable schedules, and « Edit in chat »
+
+- **The List** is one grid: the header and the button of each row share ONE column declaration (`.kba-rowhead`, `.kba-rowbtn`), the
+  row's actions and its switch have the same fixed width in both, so a header always sits over its cells. The card lays itself out by
+  its own width (a container query): five columns, three below 940 px (no origin, no session count), one block per row below 700 px
+  (the header goes, the actions drop under the content below 520 px). The actions (Edit in chat, favorite, clone, export, delete) are at the right, shown on
+  hover and on keyboard focus and always on a touch screen; a starred row keeps its star. The line under the name is how the
+  automation runs (Ask me first / Always allow, notifications): `tasks.json` has no Agent Team field to show.
+- **Schedules in words** (`kbCronHuman`, pure, tested): every N minutes / hours (only steps that divide the hour or the day: « every 5
+  hours » would be 0, 5, 10, 15, 20, then 0 again), hourly, every day, weekdays, any one weekday, a day of the month 1-28. Anything a
+  sentence cannot say exactly stays the cron expression (31st, a month, a list), and the tooltip of every schedule is its expression and
+  its zone. A schedule in ANOTHER zone than the person's names it (`Every day, 08:00 (Kolkata)`); an interval has no wall clock and
+  names none. Dates are one style, the board's own (`Yesterday · 08:00`, `Sat, Oct 17 · 10:00`, the year when it is not this year), in
+  the person's zone and language; `kbFmtWhen` (dd/mm) now only serves the Cloud Computer card.
+- **The Schedule form** has a time field next to the presets; a preset sets the days and keeps the time. A custom expression (every 6
+  hours, a list) has no single time, so it shows no field.
+- **A schedule that runs more often than every 5 minutes** needs a yes: `POST /kybernos/tasks` (create, and update when the cron
+  changes) answers `{ ok: false, error: 'frequent schedule', everyMinutes: N }` unless the task says `confirmFrequent: true`; the
+  `automation-creator` script refuses it unless the specification says `confirmedFrequent: true` (the agent adds it only after the
+  user's yes). One minute stays possible once confirmed.
+- **Edit in chat** (the row, and the page of an automation) opens a NEW chat the way « Create » does (`kbStartChatText`): a draft, never
+  sent, that names the `automation-creator` skill, says this is an edit, and carries the automation as it stands (id, name, words and
+  cron of its schedule, approvals, notifications, steps; never the webhook secret nor the history). The skill's script, given the `id`,
+  replaces that automation in place (history and webhook kept, next run left to the scheduler); an unknown id writes nothing and creates
+  nothing. The form stays the manual way, and is what opens if no chat can be started.
 
 ## Automations settings, and DSH's own « Automation tasks »
 

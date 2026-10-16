@@ -29,5 +29,6 @@
   "good": {
     "fr": "Les souvenirs vivent dans votre compte Kybernos Cloud (même Free) ; les leçons restent sur cet ordinateur, par Agent Team, sans compte. Les doublons sont fusionnés seuls, annulables 30 jours.",
     "en": "Memories live in your Kybernos Cloud account (any plan, Free too); lessons stay on this computer, per agent team, no account needed. Near-duplicates merge by themselves, undoable for 30 days."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/features/what-are-skills-and-memory/"
 }

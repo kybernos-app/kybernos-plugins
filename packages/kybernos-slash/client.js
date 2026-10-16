@@ -2089,15 +2089,41 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         const needle = plat(q).trim()
         const rows = needle === '' ? rowsAll : rowsAll.filter((e) =>
           plat(nameOf(e)).indexOf(needle) >= 0 || plat(L(e.label)).indexOf(needle) >= 0 || plat(L(e.description)).indexOf(needle) >= 0)
+        // The animated help of the page (the Suite publishes window.__KB_HELP__.Intro): it opens the first time the page is visited, and the card of
+        // the « ? How it works » button can bring it back. The words are the page's own.
+        const introNode = (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Intro
+          ? h(window.__KB_HELP__.Intro, {
+            id: 'kybernos-slash',
+            title: L({ fr: 'Les commandes en trois étapes', en: 'Commands in three steps' }),
+            caption: L({ fr: 'Un prompt est enregistré comme commande, appelé avec « / » dans la zone de message, ou lancé depuis le bouton sous une réponse.', en: 'A prompt is saved as a command, called with “/” in the message box, or run from the button under a reply.' }),
+            steps: [
+              { t: L({ fr: 'Enregistrez un prompt', en: 'Save a prompt' }), b: L({ fr: 'Écrivez-le ici avec « Nouvelle commande », ou enregistrez ce que vous avez tapé avec le bouton signet de la zone de message.', en: 'Write it here with “New command”, or save what you typed with the bookmark button in the message box.' }) },
+              { t: L({ fr: 'Appelez-le avec /', en: 'Call it with /' }), b: L({ fr: 'Tapez « / » dans la zone de message : vos commandes s’affichent après celles de DSH. Choisissez-en une, remplissez son formulaire s’il y en a un.', en: 'Type “/” in the message box: your commands show after DSH’s own. Pick one and fill in its form, if it has one.' }) },
+              { t: L({ fr: 'Ou lancez-le sur une réponse', en: 'Or run it on a reply' }), b: L({ fr: 'Sous une réponse de l’assistant, un bouton lance une action de message sur ce message ; « + » en ajoute une, le clic droit la modifie.', en: 'Under an assistant reply, a button runs a message action on that message; “+” adds one, right-click edits it.' }) }
+            ],
+            mock: {
+              bar: L({ fr: 'Commandes', en: 'Commands' }),
+              rows: ['/translate'],
+              hot: '/summary',
+              states: [L({ fr: 'Nouvelle', en: 'New' }), L({ fr: 'Dans la zone', en: 'In the box' }), L({ fr: 'Envoyée', en: 'Sent' })],
+              actions: [L({ fr: 'Enregistrer', en: 'Save' }), L({ fr: 'Insertion…', en: 'Inserting…' }), L({ fr: 'Envoyer', en: 'Send' })]
+            }
+          })
+          : null)
         return h('div', { className: 'kbsl-scope kbsl-page' },
           h('div', { className: 'kbsl-head' },
             h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-slash' }) : null)),
-            h('span', { className: 'kbsl-h1' }, L({ fr: 'Commandes & actions', en: 'Commands & actions' })),
+            h('span', { className: 'kbsl-h1' }, L({ fr: 'Commandes', en: 'Commands' })),
             h('span', { className: 'kbsl-sub' }, L({ fr: 'Un même modèle : du texte inséré, ou un formulaire en ligne. Tape / pour lancer une commande, ou utilise le bouton sous un message.', en: 'One template: inserted text, or an inline form. Type / to run a command, or use the button under a message.' }))),
+          introNode,
           h('div', { className: 'kbsl-tabs' },
             h('button', { type: 'button', className: 'kbsl-tab' + (tab === 'slash' ? ' on' : ''), onClick: () => { setTab('slash'); setQ('') } }, L({ fr: 'Commandes slash', en: 'Slash commands' }) + (listOf('slash').length > 0 ? ' · ' + String(listOf('slash').length) : '')),
             h('button', { type: 'button', className: 'kbsl-tab' + (tab === 'action' ? ' on' : ''), onClick: () => { setTab('action'); setQ('') } }, L({ fr: 'Actions de message', en: 'Message actions' }) + (listOf('action').length > 0 ? ' · ' + String(listOf('action').length) : '')),
             h('input', { className: 'kbsl-search', type: 'search', value: q, placeholder: L({ fr: 'Rechercher une commande…', en: 'Search for a command…' }), 'aria-label': L({ fr: 'Rechercher une commande', en: 'Search for a command' }), style: { marginInlineStart: 'auto', width: '220px' }, onChange: (e) => setQ(e.target.value) })),
+          // What the open tab is for, in one line: a slash command is called from the message box, an action works on a reply.
+          h('span', { className: 'kbsl-sub kbsl-tabfor' }, tab === 'action'
+            ? L({ fr: 'Une action de message est un bouton sous chaque réponse de l’assistant : il applique un prompt enregistré à cette réponse.', en: 'A message action is a button under each assistant reply: it applies a saved prompt to that reply.' })
+            : L({ fr: 'Une commande slash est un prompt enregistré : tapez “/” dans la zone de message et choisissez-la. Son texte est inséré, ou un petit formulaire s’ouvre d’abord.', en: 'A slash command is a saved prompt: type “/” in the message box and pick it. Its text is inserted, or a small form opens first.' })),
           h('div', { style: { display: 'flex', flexDirection: 'column', gap: '2px' } },
             rows.length === 0 ? h('span', { className: 'kbsl-help' }, needle !== '' ? L({ fr: 'Aucune commande ne correspond à « ' + q + ' ».', en: 'No command matches “' + q + '”.' }) : (tab === 'slash' ? L({ fr: 'Aucune commande slash pour l’instant.', en: 'No slash command yet.' }) : L({ fr: 'Aucune action de message pour l’instant.', en: 'No message action yet.' }))) : null,
             rows.map((e) => h(KbSettingsRow, { key: idOf(e), entry: e }))),

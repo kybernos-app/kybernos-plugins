@@ -7,7 +7,7 @@ page reaches it through that plugin's routes; the account token never leaves the
 
 ## The page
 
-Settings → **Memory & Lessons** (in the Kybernos group, after Auto Routing). It opens as **« Memory looks after itself »**: the
+Settings → **Memory & Lessons** (one of the essentials at the top of the menu, after AI Provider & Models). It opens as **« Memory looks after itself »**: the
 defaults below are already on, so the first screen is one line of status and the data, and every switch is folded under one
 **Customize** button.
 

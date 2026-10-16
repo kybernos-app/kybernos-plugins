@@ -171,6 +171,76 @@ for (const [label, patch] of [
   check('a missing specification file is refused', w3.run().status === 2 && existsSync(w3.file) === false)
 }
 
+console.log('changing an automation that exists (« Edit in chat », V-19)')
+const stored = (extra) => Object.assign({ id: 'st-abc-123456', createdAt: '2026-10-01T08:00:00.000Z', updatedAt: '2026-10-01T08:00:00.000Z', history: [{ at: '2026-10-12T06:00:00.000Z', sessionId: 's-1', status: 'fired' }], lastRun: '2026-10-12T06:00:00.000Z', nextRun: '2026-10-19T06:00:00.000Z', name: 'Weekly product report', prompt: '1. Collect', schedule: { mode: 'cron', cron: '0 8 * * 1', tz: 'Europe/Paris' }, runsOn: 'local', active: true, approvals: 'ask', notify: [] }, extra || {})
+{
+  const w = world(Object.assign({}, base, { id: 'st-abc-123456', name: 'Weekly report (edited)', schedule: { mode: 'cron', cron: '30 9 * * 1-5', tz: 'Europe/Paris' }, approvals: 'auto' }), JSON.stringify([stored(), { id: 'other', name: 'other' }]))
+  const r = w.run(); const o = out(r)
+  const t = w.tasks()
+  check('it says it changed an automation, and which', r.status === 0 && o.ok === true && o.edited === true && o.id === 'st-abc-123456', r.stdout + r.stderr)
+  check('the automation is replaced where it stands: same id, same place, nothing appended', t.length === 2 && t[0].id === 'st-abc-123456' && t[1].id === 'other')
+  check('its name, steps, schedule and approvals are the new ones', t[0].name === 'Weekly report (edited)' && t[0].prompt === base.prompt && t[0].schedule.cron === '30 9 * * 1-5' && t[0].approvals === 'auto')
+  check('its creation date, history and last run are kept', t[0].history.length === 1 && t[0].createdAt === '2026-10-01T08:00:00.000Z' && t[0].lastRun === '2026-10-12T06:00:00.000Z' && t[0].id === 'st-abc-123456')
+  check('the next run is left empty: the scheduler computes it for the new schedule', t[0].nextRun === null)
+  check('it stays on', t[0].active === true)
+  check('the other automation is untouched, field for field', JSON.stringify(t[1]) === JSON.stringify({ id: 'other', name: 'other' }))
+  check('the file is private and no temporary file is left behind', (statSync(w.file).mode & 0o777) === 0o600 && readdirSync(join(w.dsh, 'kybernos')).join() === 'tasks.json')
+}
+{
+  const w = world(Object.assign({}, base, { id: 'st-abc-123456' }), JSON.stringify([stored({ active: false, trigger: { type: 'webhook', hookId: 'hk_aaaaaaaaaaaa', secret: 's'.repeat(32) } })]))
+  const r = w.run()
+  const t = w.tasks()[0]
+  check('a paused automation stays paused and keeps its webhook (the secret is not printed)', t.active === false && t.trigger.hookId === 'hk_aaaaaaaaaaaa' && out(r).hookUrl === null)
+}
+{
+  const w = world(Object.assign({}, base, { id: 'st-abc-123456', active: false }), JSON.stringify([stored()]))
+  w.run()
+  check('"active": false pauses it', w.tasks()[0].active === false)
+}
+{
+  const w = world(Object.assign({}, base, { id: 'st-abc-123456', schedule: { mode: 'once', at: '2999-12-15T09:00', tz: 'UTC' } }), JSON.stringify([stored({ active: false, schedule: { mode: 'once', at: '2001-01-01T09:00', tz: 'UTC' } })]))
+  w.run()
+  check('a one-time automation that already ran and got a new date is on again (it switched itself off when it ran)', w.tasks()[0].active === true && w.tasks()[0].schedule.at === '2999-12-15T09:00')
+  const w2 = world(Object.assign({}, base, { id: 'st-abc-123456' }), JSON.stringify([stored({ active: false, history: [] })]))
+  w2.run()
+  check('...but one the user paused stays paused', w2.tasks()[0].active === false)
+}
+{
+  const before = JSON.stringify([stored()])
+  const w = world(Object.assign({}, base, { id: 'st-nope' }), before)
+  const r = w.run()
+  check('an id that does not exist: nothing is written, and no new automation is made in its place', r.status === 2 && out(r).ok === false && /no automation/.test(out(r).error) && readFileSync(w.file, 'utf8') === before, r.stdout + r.stderr)
+}
+for (const bad of ['../../etc', 'a b', '', 42, { x: 1 }]) {
+  const w = world(Object.assign({}, base, { id: bad }), JSON.stringify([stored()]))
+  check('an id that is not an id is refused: ' + JSON.stringify(bad), w.run().status === 2 && JSON.parse(readFileSync(w.file, 'utf8')).length === 1)
+}
+{
+  const w = world(Object.assign({}, base, { id: 'st-abc-123456', schedule: { mode: 'webhook' } }), JSON.stringify([stored()]))
+  const r = w.run()
+  const t = w.tasks()[0]
+  check('turned into a webhook-only automation: it gets the webhook it did not have', r.status === 0 && t.schedule.mode === 'webhook' && t.trigger.type === 'webhook' && /^http:\/\/127\.0\.0\.1:\d+\/kybernos\/hooks\?hook=hk_/.test(out(r).hookUrl))
+}
+
+console.log('a schedule that runs more often than every 5 minutes needs the user\'s yes (A5-24)')
+for (const [cron, fine] of [['* * * * *', false], ['*/2 * * * *', false], ['*/4 * * * *', false], ['0,3 8 * * *', false], ['59,1 0,23 * * *', false], ['*/5 * * * *', true], ['0 * * * *', true], ['0 8 * * *', true], ['0 8 * * 1', true]]) {
+  const w = world(Object.assign({}, base, { schedule: { mode: 'cron', cron } }))
+  const r = w.run()
+  check('"' + cron + '" ' + (fine ? 'is saved' : 'is refused without a confirmation, and nothing is written'), fine ? r.status === 0 : (r.status === 2 && /confirm/.test(out(r).error) && existsSync(w.file) === false), r.stdout + r.stderr)
+}
+{
+  const w = world(Object.assign({}, base, { schedule: { mode: 'cron', cron: '* * * * *' }, confirmedFrequent: true }))
+  const r = w.run()
+  check('confirmed by the user ("confirmedFrequent": true): saved, and the flag is not stored', r.status === 0 && w.tasks()[0].schedule.cron === '* * * * *' && w.tasks()[0].confirmedFrequent === undefined)
+}
+{
+  const w = world(Object.assign({}, base, { id: 'st-abc-123456', name: 'Renamed', schedule: { mode: 'cron', cron: '* * * * *', tz: 'Europe/Paris' } }), JSON.stringify([stored({ schedule: { mode: 'cron', cron: '* * * * *', tz: 'Europe/Paris' } })]))
+  check('renaming an every-minute automation does not ask again', w.run().status === 0 && w.tasks()[0].name === 'Renamed')
+  const w2 = world(Object.assign({}, base, { id: 'st-abc-123456', schedule: { mode: 'cron', cron: '*/2 * * * *', tz: 'Europe/Paris' } }), JSON.stringify([stored()]))
+  const r2 = w2.run()
+  check('...but making a weekly one run every 2 minutes does', r2.status === 2 && /confirm/.test(out(r2).error) && w2.tasks()[0].schedule.cron === '0 8 * * 1')
+}
+
 console.log('one writer at a time: nothing is lost')
 {
   const w = world(base, '[]')

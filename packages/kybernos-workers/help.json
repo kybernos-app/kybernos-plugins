@@ -29,5 +29,6 @@
   "good": {
     "fr": "Vérifier n'appelle aucun modèle : rien n'est dépensé. Chaque assistant utilise son propre abonnement ou sa propre clé. « Essayer la démo » montre le parcours pas à pas.",
     "en": "Checking calls no model, so nothing is spent. Each assistant uses its own subscription or key. “Try the demo” walks through the whole path step by step."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/agents-and-tools/call-other-coding-assistants/"
 }

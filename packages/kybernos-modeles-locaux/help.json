@@ -29,5 +29,6 @@
   "good": {
     "fr": "Le modèle tourne sur votre machine et rien n’est téléchargé sans votre clic. S’il manque dans le sélecteur de modèles après « Brancher sur DSH », relancez DSH.",
     "en": "The model runs on your machine and nothing is downloaded without your click. If it is missing from the model picker after “Wire into DSH”, restart DSH."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/models-and-budget/use-local-models/"
 }
