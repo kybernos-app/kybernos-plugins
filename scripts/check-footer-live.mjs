@@ -149,14 +149,37 @@ const val = async (js) => { const r = await page.evalJs(js, 9000); return r.err 
 const mouse = async (x, y) => { for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) await page.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 }) }
 const key = async (k, code) => { for (const type of ['keyDown', 'keyUp']) await page.send('Input.dispatchKeyEvent', { type, key: k, code, windowsVirtualKeyCode: k === 'Escape' ? 27 : 0 }) }
 const centre = async (sel) => val(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return null; const r = e.getBoundingClientRect(); return r.width === 0 ? null : { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`)
-const press = async (sel) => { const c = await centre(sel); if (c === null || c === undefined || c.err !== undefined) return false; await mouse(c.x, c.y); return true }
+// Waiting is by event, never by a fixed delay: a busy machine only makes a step take longer. `until` polls a condition every 40 ms and gives its last value
+// when the time is up (the check that reads the result then fails, with the state it saw). `press` waits for its target to exist AND to hold still (a menu
+// slides in), then clicks it for real.
+const until = async (fn, ms = 6000) => { const end = Date.now() + ms; for (;;) { const v = await fn(); if (v) return v; if (Date.now() > end) return v; await sleep(40) } }
+const press = async (sel, ms = 3000) => {
+  let last = null
+  const c = await until(async () => {
+    const r = await centre(sel)
+    if (r === null || r === undefined || r.err !== undefined) { last = null; return null }
+    const still = last !== null && last.x === r.x && last.y === r.y
+    last = r
+    return still ? r : null
+  }, ms)
+  if (!c) return false
+  await mouse(c.x, c.y)
+  return true
+}
 // A click from the page itself (a button that may sit below the fold of a long Settings page).
 const jsClick = async (sel) => val(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (e) { e.scrollIntoView({ block: 'center' }); e.click() } })()`)
+// The same, once the button is there and enabled (a section that is busy with one action ignores the next click: wait for it to be free).
+const jsClickReady = async (sel) => { await until(() => val(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); return !!e && !e.disabled })()`), 6000); return jsClick(sel) }
 const exists = async (sel) => (await val(`document.querySelector(${JSON.stringify(sel)}) !== null`)) === true
 const text = async (sel) => val(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); return e ? (e.innerText || '').replace(/\\s+/g, ' ').trim() : null })()`)
 const rect = async (sel) => val(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return null; const r = e.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) } })()`)
 const shot = async (name) => { if (shotsAt !== null) await page.shot(join(shotsAt, name + '.png')) }
 const opened = async () => (await val('window.__kbOpened || []')) || []
+const openedCount = async () => (await opened()).length
+const gone = (sel) => async () => !(await exists(sel))
+const linkAsks = () => fake.bodies.filter((b) => b.path === '/kybernos-cloud/console/link')
+// Two frames and a beat: whatever a click set going has been drawn (used after an event was seen, to catch a duplicate that would follow it).
+const settle = () => val(`new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 80))))`)
 
 // Any popover of DSH's account launcher that becomes VISIBLE, whatever the scene (recorded in the page, read at the end of each).
 const WATCH = `(() => {
@@ -217,19 +240,22 @@ const interceptor = async () => {
 // A fresh instance (the sandbox) opens DSH's « Get started » dialog on every load; it swallows every click: closed by its own close button.
 const dismissGetStarted = () => val(`(() => { const d = Array.from(document.querySelectorAll('[role="dialog"]')).find((x) => /get started/i.test(x.innerText || '')); if (!d) return false; const c = Array.from(d.querySelectorAll('button')).find((b) => /close/i.test(b.getAttribute('aria-label') || '')); if (c) c.click(); return !!c })()`)
 const reload = async () => {
+  // The old document carries a mark the new one does not: the footer found afterwards is the reloaded page's, never the old one's.
+  await val('window.__kbStale = true')
   await page.send('Page.reload', { ignoreCache: true })
-  await sleep(2500)
-  await waitFor(page, `document.querySelector('[data-kb="foot-signin"], [data-kb="workspace-card"]') !== null`, 30000)
-  await sleep(700)
-  for (let i = 0; i < 6; i += 1) { if ((await dismissGetStarted()) === true) break; await sleep(300) }
-  await sleep(300)
+  await waitFor(page, `window.__kbStale === undefined && document.readyState === 'complete' && document.querySelector('[data-kb="foot-signin"], [data-kb="workspace-card"]') !== null`, 30000)
+  await dismissGetStarted() // live-page's own observer presses it whenever it shows up; this is the second hand
+  await settle()
 }
+// The section draws its three blocks at once and fills them when the host has answered (the note says « Loading… » until then).
+const kySectionLoaded = () => waitFor(page, `['ky-section', 'ky-instructions', 'ky-models', 'ky-chats', 'ky-instr-field'].every((k) => document.querySelector('[data-kb="' + k + '"]') !== null) && !/Loading/.test((document.querySelector('[data-kb="ky-instr-note"]') || { innerText: 'Loading' }).innerText)`, 8000)
 const settingsOpen = async () => (await waitFor(page, `document.querySelectorAll('[class*="navCell"]').length > 3`, 6000)) !== null
 // The cells of DSH's Settings navigation: the title drawn and the React key each cell is rendered with (the id of its section, the same in every language).
 const navCells = async () => (await val(`Array.from(document.querySelectorAll('[class*="navCell"]')).map((e) => { const n = Object.keys(e).find((k) => k.indexOf('__reactFiber$') === 0); const key = n === undefined ? null : e[n].key; return { t: (e.textContent || '').trim(), key: typeof key === 'string' ? key : null } })`)) || []
-const clean = async () => { await key('Escape', 'Escape'); await sleep(200); await reload() }
+const clean = async () => { await key('Escape', 'Escape'); await reload() }
 const entries = async (menuSel) => (await val(`Array.from(document.querySelectorAll(${JSON.stringify(menuSel)} + ' [data-kb^="menu-"]')).map((e) => e.getAttribute('data-kb').replace('menu-', '')).filter((k) => k.indexOf('block-') !== 0)`)) || []
-const openProfileMenu = async () => { await press('[data-kb="workspace-card"] .kbfp-cardmain'); await sleep(450) }
+const openProfileMenu = async () => { await press('[data-kb="workspace-card"] .kbfp-cardmain'); await until(() => exists('.kbfp-menu'), 4000) }
+const closeProfileMenu = async () => { await press('[data-kb="workspace-card"] .kbfp-cardmain'); await until(gone('.kbfp-menu'), 4000) }
 const openUpgrade = async (want = 'upgrade-plan-solo') => {
   await openProfileMenu()
   await press('[data-kb="menu-plan-cta"]')
@@ -266,19 +292,21 @@ try {
     await sleep(300)
     await shot('2-signed-out-menu-light')
 
-    await key('Escape', 'Escape'); await sleep(250)
+    await key('Escape', 'Escape'); await until(gone('[data-kb="off-menu"]'), 3000)
     check('Escape closes it', !(await exists('[data-kb="off-menu"]')))
-    await press('[data-kb="foot-signin"]'); await sleep(250)
-    await mouse(700, 300); await sleep(250)
+    await press('[data-kb="foot-signin"]'); await until(() => exists('[data-kb="off-menu"]'), 4000)
+    await mouse(700, 300); await until(gone('[data-kb="off-menu"]'), 3000)
     check('a click outside closes it', !(await exists('[data-kb="off-menu"]')))
-    await press('[data-kb="foot-signin"]'); await sleep(250)
-    await press('[data-kb="foot-signin"]'); await sleep(250)
+    await press('[data-kb="foot-signin"]'); await until(() => exists('[data-kb="off-menu"]'), 4000)
+    await press('[data-kb="foot-signin"]'); await until(gone('[data-kb="off-menu"]'), 3000)
     check('the button toggles it', !(await exists('[data-kb="off-menu"]')))
 
     // Links: Website, Help (in DSH's language), Create an account (the server's own account page).
     for (const entry of ['website', 'help', 'signup']) {
-      await press('[data-kb="foot-signin"]'); await sleep(300)
-      await press('[data-kb="menu-' + entry + '"]'); await sleep(200)
+      const n = await openedCount()
+      await press('[data-kb="foot-signin"]')
+      await press('[data-kb="menu-' + entry + '"]')
+      await until(async () => (await openedCount()) > n, 5000) // window.open is recorded in the page: wait for THIS click's record
     }
     const server = await val(`fetch('/kybernos-cloud/server').then((r) => r.json()).then((j) => (j.server && (j.server.web || j.server.api)) || null)`)
     const o = await opened()
@@ -287,7 +315,7 @@ try {
     check('Create an account opens the server\'s own /account page', typeof server === 'string' && o[2] === server.replace(/\/+$/, '') + '/account', { o, server })
 
     // The Settings entry reaches DSH's own dialog.
-    await press('[data-kb="foot-signin"]'); await sleep(300)
+    await press('[data-kb="foot-signin"]')
     await press('[data-kb="menu-settings"]')
     check('the Settings entry opens DSH\'s Settings (its navigation is there)', await settingsOpen())
     check('and closes our menu', !(await exists('[data-kb="off-menu"]')))
@@ -295,8 +323,7 @@ try {
     await shot('3-settings-from-menu')
     // The « Kybernos » section of Settings shows whether connected or not: the instructions need no server, the two other actions say so.
     await val(`(() => { const c = Array.from(document.querySelectorAll('[class*="navCell"]')).find((e) => { const n = Object.keys(e).find((k) => k.indexOf('__reactFiber$') === 0); return n !== undefined && e[n].key === 'kybernos-local' }); if (c) c.click() })()`)
-    await waitFor(page, `document.querySelector('[data-kb="ky-section"]') !== null`, 5000)
-    await sleep(500)
+    await kySectionLoaded()
     check('signed out: the Kybernos section opens (instructions, models, chats)', (await exists('[data-kb="ky-instructions"]')) && (await exists('[data-kb="ky-models"]')) && (await exists('[data-kb="ky-chats"]')))
     check('signed out: the two actions that need a server say so, and cannot be pressed', (await val(`document.querySelectorAll('[data-kb="ky-signed-out"]').length`)) === 2
       && (await val(`document.querySelector('[data-kb="ky-models-run"]').disabled === true && document.querySelector('[data-kb="ky-chats-run"]').disabled === true`)) === true)
@@ -314,7 +341,7 @@ try {
     // ── 3. A real click on the launcher, were it shown (a shell that renamed its classes) ───────────────────
     console.log('A real click on DSH\'s account launcher (its hiding failed)')
     await val(`(() => { const s = document.createElement('style'); s.id = 'kb-show-launcher'; s.textContent = '[data-slot="settings.launcher"]{display:block !important} [class*="settingsArea"]{width:auto !important;height:auto !important;visibility:visible !important;pointer-events:auto !important;overflow:visible !important} [data-slot="settings.launcher"] button{visibility:visible !important;pointer-events:auto !important;width:80px !important;height:32px !important}'; document.head.appendChild(s) })()`)
-    await sleep(300)
+    await until(() => centre('[data-slot="settings.launcher"] button'), 3000)
     const shown = await centre('[data-slot="settings.launcher"] button')
     check('(the launcher is forced visible for this scene)', shown !== null && shown !== undefined, shown)
     if (shown !== null && shown !== undefined) {
@@ -335,18 +362,18 @@ try {
 
     // ── 5. Connect: our flow, from the button's menu ────────────────────────────────────────────────────────
     console.log('Connect — the device-code card, ours')
-    await press('[data-kb="foot-signin"]'); await sleep(300)
+    await press('[data-kb="foot-signin"]')
     await press('[data-kb="menu-connect"]')
     const card = await waitFor(page, `document.body.innerText.indexOf('KB4-7QX2') !== -1 ? 'KB4-7QX2' : null`, 8000)
     check('« Sign in » of the menu shows OUR pairing code', card === 'KB4-7QX2', card)
     check('it asked the host to start the pairing', fake.calls.includes('start'), fake.calls)
     await shot('4-pairing-card')
     // While a pairing waits the same button says so, and its menu leads back to the code.
-    await key('Escape', 'Escape'); await sleep(300)
+    await key('Escape', 'Escape')
     fake.pairingPending = true
     await reload()
     check('while a pairing waits the button says so (same button, same place)', /Pairing in progress/.test((await text('[data-kb="foot-signin"]')) || ''), await text('[data-kb="foot-signin"]'))
-    await press('[data-kb="foot-signin"]'); await sleep(300)
+    await press('[data-kb="foot-signin"]'); await until(() => exists('[data-kb="menu-connect"]'), 4000)
     check('and its first entry brings the code back', /Show code/.test((await text('[data-kb="menu-connect"]')) || ''), await text('[data-kb="menu-connect"]'))
     fake.pairingPending = false
     await clean()
@@ -355,15 +382,16 @@ try {
     console.log('Appearance')
     const scheme = async () => (await val(`document.documentElement.getAttribute('data-kb-theme')`))
     const before = await scheme()
-    await press('[data-kb="foot-signin"]'); await sleep(300)
+    await press('[data-kb="foot-signin"]')
     const other = before === 'dark' ? 'Light' : 'Dark'
+    await until(() => exists('[data-kb="off-menu"] [data-kb="menu-appearance"] button[aria-label="' + other + '"]'), 4000)
     await val(`(() => { const b = document.querySelector('[data-kb="off-menu"] [data-kb="menu-appearance"] button[aria-label="${other}"]'); if (b) b.click() })()`)
-    await sleep(700)
+    await until(async () => (await scheme()) === other.toLowerCase(), 4000)
     check('the sun/moon segment switches the scheme and leaves the menu open', (await scheme()) === other.toLowerCase() && (await exists('[data-kb="off-menu"]')), { before, now: await scheme() })
     await sleep(300)
     await shot('5-signed-out-menu-' + other.toLowerCase())
     await val(`(() => { const b = document.querySelector('[data-kb="off-menu"] [data-kb="menu-appearance"] button[aria-label="${before === 'dark' ? 'Dark' : 'Light'}"]'); if (b) b.click() })()`)
-    await sleep(700)
+    await until(async () => (await scheme()) === before, 4000)
     check('and puts the scheme back', (await scheme()) === before, { before, now: await scheme() })
     await clean()
   }
@@ -393,7 +421,7 @@ try {
     check('Remote control opens the phone link\'s own panel (kybernos-mobile\'s), and closes the menu', (await waitFor(page, `document.querySelector('[data-kb="mobile-panel"]') !== null`, 5000)) !== null && !(await exists('.kbfp-menu')))
     check('the panel is the bundle\'s (its « Add a phone » button), not the preview', (await waitFor(page, `document.querySelector('[data-kb="mobile-panel"] [data-kb="mobile-pair"], [data-kb="mobile-panel"] [data-kb="mobile-qr"]') !== null`, 5000)) !== null && (await text('.kbf-qrnote')) === null)
     await shot('7b-remote-panel')
-    await key('Escape', 'Escape'); await sleep(300)
+    await key('Escape', 'Escape')
     // Not offered: the entry is absent, not dead.
     for (const [label, remote] of [
       ['the server does not offer the phone link (configured: false)', Object.assign({}, REMOTE_OFFERED, { configured: false })],
@@ -402,7 +430,12 @@ try {
       ['the status cannot be read (a refusal)', { ok: false, error: 'network' }],
     ]) {
       fake.remote = remote
+      const asked = fake.calls.filter((c) => c === 'remote-status').length
       await reload()
+      // The footer reads the phone link's status once it is connected: wait until the page has asked (and drawn the answer), or « no entry » would
+      // be true for the wrong reason (not read yet) and the menu could still be changing under the check.
+      await until(() => fake.calls.filter((c) => c === 'remote-status').length > asked, 8000)
+      await settle()
       await openProfileMenu()
       check(label + ': no « Remote control » entry', !(await exists('[data-kb="menu-remote"]')) && (await exists('[data-kb="menu-account"]')), await entries('.kbfp-menu'))
     }
@@ -414,11 +447,13 @@ try {
     // overview, overview) and opens the system browser itself; nothing is drawn in DSH's content zone.
     console.log('Team settings, Account and Referral — the app, in the browser')
     // The menu was left open by the scenes above and a press on the card toggles it: start from a closed one.
-    if (await exists('.kbfp-menu')) await openProfileMenu()
+    if (await exists('.kbfp-menu')) await closeProfileMenu()
     for (const [entry, section] of [['space-settings', 'plan'], ['account', 'overview'], ['referral', 'overview']]) {
       fake.bodies.length = 0
       await openProfileMenu()
-      await press('[data-kb="menu-' + entry + '"]'); await sleep(600)
+      await press('[data-kb="menu-' + entry + '"]')
+      await until(() => linkAsks().length >= 1, 5000)
+      await settle()
       const asked = fake.bodies.filter((b) => b.path === '/kybernos-cloud/console/link')
       check(entry + ': asks the host for a console link on section ' + section + ', for the active workspace, opened by the host',
         asked.length === 1 && asked[0].body.section === section && asked[0].body.open === true && asked[0].body.workspace_id === W_PERSONAL, asked)
@@ -429,7 +464,9 @@ try {
     await reload()
     fake.bodies.length = 0
     await openProfileMenu()
-    await press('[data-kb="menu-space-settings"]'); await sleep(600)
+    await press('[data-kb="menu-space-settings"]')
+    await until(() => linkAsks().length >= 1, 5000)
+    await settle()
     const teamLink = fake.bodies.filter((b) => b.path === '/kybernos-cloud/console/link')
     check('Team settings follows the active workspace (the team the person switched to)', teamLink.length === 1 && teamLink[0].body.workspace_id === W_TEAM && teamLink[0].body.section === 'plan', teamLink)
     fake.status = CLOUD(W_PERSONAL)
@@ -448,7 +485,7 @@ try {
     const frameUrl = async () => { const f = await frame(); return f === null ? null : new URL(f.url) }
     const waitFrame = async () => waitFor(page, `document.querySelector('[data-kb="ws-console"], [data-kb="ws-open-browser"]') !== null`, 8000)
     const PAGE_OF = { 'space-settings': '', account: 'account', referral: 'referral' }
-    const openPage = async (entry) => { await val(`window.__kbOpenWsConsole(${JSON.stringify(PAGE_OF[entry])})`); await waitFrame(); await sleep(400) }
+    const openPage = async (entry) => { await val(`window.__kbOpenWsConsole(${JSON.stringify(PAGE_OF[entry])})`); await waitFrame(); await settle() }
 
     await openPage('space-settings')
     let u = await frameUrl()
@@ -464,7 +501,9 @@ try {
     // The frame's « Open in browser » (its stand-in page posts what the real one posts): the host is asked for the link on the account's overview.
     fake.bodies.length = 0
     const box = await rect('[data-kb="ws-console"]')
-    await mouse(box.x + box.w / 2, box.y + box.h / 2); await sleep(700)
+    await mouse(box.x + box.w / 2, box.y + box.h / 2)
+    await until(() => linkAsks().length >= 1, 5000)
+    await settle()
     const link = fake.bodies.filter((b) => b.path === '/kybernos-cloud/console/link')
     check('its « Open in browser » asks the host for a console link on section overview, opened by the host', link.length === 1 && link[0].body.section === 'overview' && link[0].body.open === true && link[0].body.workspace_id === W_PERSONAL, link)
     await shot('14-account-embedded')
@@ -472,7 +511,9 @@ try {
     await openPage('referral')
     u = await frameUrl()
     check('Referral: #referral', u !== null && u.origin === A.origin && u.hash === '#referral', u && u.href)
-    await mouse(box.x + box.w / 2, box.y + box.h / 2); await sleep(700)
+    await mouse(box.x + box.w / 2, box.y + box.h / 2)
+    await until(() => linkAsks().length >= 2, 5000)
+    await settle()
     check('and its « Open in browser » is on the overview too', fake.bodies.filter((b) => b.path === '/kybernos-cloud/console/link').length === 2 && fake.bodies[fake.bodies.length - 1].body.section === 'overview', fake.bodies)
     await openPage('space-settings')
     u = await frameUrl()
@@ -491,14 +532,22 @@ try {
     const stateFile = join(DSH_HOME, 'kybernos-cloud-stub-1.json')
     writeFileSync(stateFile, JSON.stringify({ token: 'kys-live-check-0123456789', api: S.origin, user: { id: 'u-1', email: 'dev@example.test', name: 'Dev Person', plan: 'free' },
       workspaces: [{ id: W_PERSONAL, name: 'Personal', personal: true, role: 'owner' }], active_workspace_id: W_PERSONAL }), { mode: 0o600 })
-    const relayAfter = async (slug, want, settle = 500) => {
+    // `want`: how many reads the page makes at least; `ready(relay)`: a stricter condition when the paths are known. Then the page is left to go quiet
+    // (no new read for 400 ms) so a read that follows is in the answer too. `want` 0 asserts that the page reads NOTHING: that one is a window of time.
+    const relayList = async () => (await val('window.__kbRelay')) || []
+    const relayAfter = async (slug, want, ready = null) => {
       await val(`window.__kbRelay = []`)
       S.api.length = 0
       await val(`window.__kbOpenWsConsole(${JSON.stringify(slug)})`)
       await waitFrame()
-      await waitFor(page, `window.__kbRelay.length >= ${want}`, 6000)
-      await sleep(settle)
-      return { relay: (await val('window.__kbRelay')) || [], api: S.api.slice() }
+      if (want === 0) await sleep(700)
+      else {
+        await waitFor(page, `window.__kbRelay.length >= ${want}`, 10000)
+        if (ready !== null) await until(async () => ready(await relayList()), 10000)
+        let n = -1
+        await until(async () => { const now = (await relayList()).length; const quiet = now === n; n = now; if (!quiet) await sleep(360); return quiet }, 8000)
+      }
+      return { relay: await relayList(), api: S.api.slice() }
     }
     const notRefused = (r) => r.relay.every((x) => x.error !== 'chemin refuse' && x.error !== 'non connecte')
     const security = await relayAfter('security', 1)
@@ -555,10 +604,10 @@ try {
       return r && r.result && r.result.result ? r.result.result.value : null
     }
     for (const [slug, label, suffixes] of TEAM_PAGES) {
-      const got = await relayAfter(slug, 1, 1800)
+      const want = suffixes === null ? ['/v1/keys?limit=200&workspace_id=' + W_TEAM] : suffixes.map((x) => '/v1/workspaces/' + W_TEAM + x)
+      const got = await relayAfter(slug, 1, (list) => want.every((w) => list.some((x) => x.p.toLowerCase().startsWith(w.toLowerCase()))))
       teamSeen[slug] = teamPaths(got)
       teamApi[slug] = got.api
-      const want = suffixes === null ? ['/v1/keys?limit=200&workspace_id=' + W_TEAM] : suffixes.map((x) => '/v1/workspaces/' + W_TEAM + x)
       check(label + ': its reads are not refused by the relay and the ones the page makes got through (' + want.map((x) => x.replace('/v1/workspaces/' + W_TEAM, '…')).join(', ') + ')',
         notRefused(got) && want.every((w) => teamPaths(got).some((p) => p.toLowerCase().startsWith(w.toLowerCase()))), got.relay.map((x) => (x.error !== null ? '[' + x.error + '] ' : '') + x.p.replace('/v1/workspaces/' + W_TEAM, '…')))
     }
@@ -567,12 +616,14 @@ try {
     await val(`window.__kbRelay = []`)
     await val(`window.__kbOpenWsConsole('members')`)
     await waitFrame()
-    await sleep(1500)
+    const trailSeen = async () => (await relayList()).some((x) => /\/audit\?limit=\d+/.test(x.p))
     if (consoleFile !== null) {
-      const clicked = await frameEval(`(() => { const b = document.querySelector('#subTabs button[data-s="act"]'); if (b) b.click(); return !!b })()`)
+      // The real console builds its tabs after it loads: press « Activity » as soon as it exists.
+      let clicked = null
+      await until(async () => { clicked = await frameEval(`(() => { const b = document.querySelector('#subTabs button[data-s="act"]'); if (b) b.click(); return !!b })()`); return clicked === true }, 10000)
       check('the frame\'s « Activity » tab was there to press (the trail is read when it is shown)', clicked === true, clicked)
-      await sleep(1500)
     }
+    await until(trailSeen, 10000)
     const trail = { relay: (await val('window.__kbRelay')) || [] }
     check('the team\'s trail (the audit, owners and admins) is read through the relay with a bounded page size, and not refused',
       trail.relay.some((x) => /\/audit\?limit=\d+/.test(x.p)) && notRefused(trail), trail.relay.map((x) => (x.error !== null ? '[' + x.error + '] ' : '') + x.p.replace('/v1/workspaces/' + W_TEAM, '…')))
@@ -626,30 +677,38 @@ try {
     await val(`delete window.__kbOpenWsConsole`)
     fake.bodies.length = 0
     await openProfileMenu()
-    await press('[data-kb="menu-account"]'); await sleep(500)
+    await press('[data-kb="menu-account"]')
+    await until(() => linkAsks().length >= 1, 5000)
+    await settle()
     const acc = fake.bodies.filter((b) => b.path === '/kybernos-cloud/console/link')
     check('no bridge: Account asks the host for a console link on the overview, opened by the host', acc.length === 1 && acc[0].body.section === 'overview' && acc[0].body.open === true && acc[0].body.workspace_id === W_PERSONAL, acc)
     // A refused link says so, in a line above the footer.
     fake.link = { ok: false, status: 403, error: 'email_not_verified' }
     await openProfileMenu()
-    await press('[data-kb="menu-account"]'); await sleep(600)
+    await press('[data-kb="menu-account"]')
+    await until(async () => /Confirm your e-mail/.test((await text('[data-kb="foot-flash"]')) || ''), 5000)
     check('a refused link (e-mail not confirmed) is said above the footer', /Confirm your e-mail/.test((await text('[data-kb="foot-flash"]')) || ''), await text('[data-kb="foot-flash"]'))
     fake.link = { ok: false, status: 0, error: 'injoignable' }
     await openProfileMenu()
-    await press('[data-kb="menu-account"]'); await sleep(600)
+    await press('[data-kb="menu-account"]')
+    await until(async () => /could not be opened/.test((await text('[data-kb="foot-flash"]')) || ''), 5000)
     check('a server that does not answer is said too', /could not be opened/.test((await text('[data-kb="foot-flash"]')) || ''), await text('[data-kb="foot-flash"]'))
     fake.link = { ok: true, opened: false, url: 'https://active.example.test/api/auth/magic-link/verify?token=x' }
     await openProfileMenu()
-    await press('[data-kb="menu-account"]'); await sleep(600)
+    await press('[data-kb="menu-account"]')
+    await until(async () => (await opened()).includes('https://active.example.test/api/auth/magic-link/verify?token=x'), 5000)
     check('a host that could not open a browser hands the address back, and the page opens it', (await opened()).includes('https://active.example.test/api/auth/magic-link/verify?token=x'), await opened())
     fake.link = null
     await reload()
 
     // Website, Help and the others are unchanged.
+    const o0 = await openedCount()
     await openProfileMenu()
-    await press('[data-kb="menu-website"]'); await sleep(200)
+    await press('[data-kb="menu-website"]')
+    await until(async () => (await openedCount()) > o0, 5000)
     await openProfileMenu()
-    await press('[data-kb="menu-help"]'); await sleep(200)
+    await press('[data-kb="menu-help"]')
+    await until(async () => (await openedCount()) > o0 + 1, 5000)
     const o = await opened()
     check('Website and Help are the same links as signed out', o[o.length - 2] === 'https://kybernos.app' && o[o.length - 1] === 'https://help.kybernos.app/en/', o)
     fake.link = null
@@ -676,19 +735,20 @@ try {
     // entries are Servers (kept where it was), the section of what stays on this computer, then the Suite. Read from the layout (the organiser
     // orders by CSS), headers and cells together. The organiser (a debounced observer) draws the headers a moment after the cells: wait for them.
     await waitFor(page, `document.querySelector('[data-kb-fold-toggle]') !== null`, 6000)
-    await sleep(400)
     await openAdvancedFold(page) // only if it is shut: an earlier scene may have landed on a page inside it, which opens it
-    await sleep(500)
+    await waitFor(page, `document.querySelectorAll('[data-kb="settings-group"]').length >= 2`, 6000) // the organiser draws the headers a moment after the cells
     const flow = (await val(`(() => { const list = Array.from(document.querySelectorAll('[class*="navList"]')).find((l) => l.querySelector('[class*="navCell"]')); return Array.from(list.children).map((c) => { const n = Object.keys(c).find((k) => k.indexOf('__reactFiber$') === 0); return { t: (c.textContent || '').trim(), key: n === undefined ? null : c[n].key, y: Math.round(c.getBoundingClientRect().top), head: c.getAttribute('data-kb') === 'settings-group' } }).filter((x) => x.y > 0 || x.head).sort((a, b) => a.y - b.y) })()`)) || []
     const heads = flow.filter((x) => x.head).map((x) => x.t)
     check('the group headers are Advanced and Other settings: no « Account » header any more, and none named like a page (« Kybernos »)', heads.join('|') === 'Advanced|Other settings' && !heads.includes('Account') && !heads.includes('Kybernos'), heads)
     const at = flow.findIndex((x) => x.head && x.t === 'Advanced')
     check('under it: Servers (kept where it was), the Kybernos section, then the Suite', at >= 0 && flow[at + 1] && flow[at + 1].key === 'kybernos-servers' && flow[at + 2] && flow[at + 2].key === 'kybernos-local' && flow[at + 3] && flow[at + 3].key === 'kybernos-suite', flow.slice(at, at + 5))
     // Each of the remaining ones still opens: pick General and Remote Control by key and read the page that comes up.
+    const pageText = async () => (await val(`(document.querySelector('[data-slot="settings.section"]') || document.querySelector('[class*="settingsContent"]') || { innerText: '' }).innerText`)) || ''
     const openCell = async (cellKey) => {
+      const was = await pageText()
       await val(`(() => { const c = Array.from(document.querySelectorAll('[class*="navCell"]')).find((e) => { const n = Object.keys(e).find((k) => k.indexOf('__reactFiber$') === 0); return n !== undefined && e[n].key === ${JSON.stringify(cellKey)} }); if (c) c.click() })()`)
-      await sleep(700)
-      return (await val(`(document.querySelector('[data-slot="settings.section"]') || document.querySelector('[class*="settingsContent"]') || { innerText: '' }).innerText`)) || ''
+      await until(async () => { const t = await pageText(); return t.length > 20 && t !== was }, 3000) // the page that comes up is not the one that was there
+      return pageText()
     }
     const general = await openCell('general')
     check('General still opens', general.length > 20, general.slice(0, 120))
@@ -700,8 +760,7 @@ try {
     // ── The « Kybernos » section: the custom instructions through the host's file routes, the model re-import, the DSH chats ─────────────────────────────────
     console.log('The Kybernos section of Settings — what stays on this computer')
     await openCell('kybernos-local')
-    await waitFor(page, `document.querySelector('[data-kb="ky-section"]') !== null`, 5000)
-    await sleep(500)
+    await kySectionLoaded()
     check('the section opens: instructions, models and chats are there', (await exists('[data-kb="ky-instructions"]')) && (await exists('[data-kb="ky-models"]')) && (await exists('[data-kb="ky-chats"]')))
     const AGENTS = join(DSH_HOME, 'AGENTS.md')
     const note = (await text('[data-kb="ky-instr-note"]')) || ''
@@ -712,7 +771,7 @@ try {
     check('Save is not offered before anything changed', (await val(`document.querySelector('[data-kb="ky-instr-save"]').disabled`)) === true)
     await setField(INSTR)
     check('typing offers Save', (await val(`document.querySelector('[data-kb="ky-instr-save"]').disabled`)) === false)
-    await jsClick('[data-kb="ky-instr-save"]')
+    await jsClickReady('[data-kb="ky-instr-save"]')
     await waitFor(page, `document.querySelector('[data-kb="ky-instr-saved"]') !== null`, 5000)
     check('Save: the page says Saved', await exists('[data-kb="ky-instr-saved"]'))
     const written = existsSync(AGENTS) ? readFileSync(AGENTS, 'utf8') : ''
@@ -725,11 +784,13 @@ try {
     check('after a reload the field reads it back from the file', (await field()) === INSTR, await field())
     // Emptying the field and saving removes the section (the rest of the file is the person\'s).
     await setField('')
-    await jsClick('[data-kb="ky-instr-save"]'); await sleep(700)
+    await jsClickReady('[data-kb="ky-instr-save"]')
+    await until(() => !(existsSync(AGENTS) ? readFileSync(AGENTS, 'utf8') : '').includes('kybernos:custom-instructions'), 5000)
     check('an emptied field removes the section from AGENTS.md', !(existsSync(AGENTS) ? readFileSync(AGENTS, 'utf8') : '').includes('kybernos:custom-instructions'))
     // A marker typed in the field is refused with the reason, and nothing is written.
     await setField('x <!-- kybernos:custom-instructions v1 --> y')
-    await jsClick('[data-kb="ky-instr-save"]'); await sleep(700)
+    await jsClickReady('[data-kb="ky-instr-save"]')
+    await until(() => exists('[data-kb="ky-instr-error"]'), 5000)
     check('a reserved marker in the text is refused, with the reason', /reserved Kybernos marker/.test((await text('[data-kb="ky-instr-error"]')) || ''), await text('[data-kb="ky-instr-error"]'))
     await setField('')
 
@@ -738,12 +799,12 @@ try {
     fake.push = { ok: true, scanned: 4, pushed: 4 }
     fake.calls.length = 0
     check('connected: the two server actions can be pressed and no sign-in note is shown', (await exists('[data-kb="ky-signed-out"]')) === false && (await val(`document.querySelector('[data-kb="ky-models-run"]').disabled === false && document.querySelector('[data-kb="ky-chats-run"]').disabled === false`)) === true)
-    await jsClick('[data-kb="ky-models-run"]'); await sleep(600)
+    await jsClickReady('[data-kb="ky-models-run"]'); await until(() => fake.calls.includes('models-sync'), 5000)
     check('Import models asks the host to re-import the catalogue', fake.calls.includes('models-sync'), fake.calls)
-    await jsClick('[data-kb="ky-chats-run"]'); await sleep(600)
+    await jsClickReady('[data-kb="ky-chats-run"]'); await until(() => fake.calls.includes('chats-push'), 5000)
     check('Send DSH chats asks the host to send the directory', fake.calls.includes('chats-push'), fake.calls)
     fake.sync = { ok: false, error: 'reseau' }
-    await jsClick('[data-kb="ky-models-run"]'); await sleep(600)
+    await jsClickReady('[data-kb="ky-models-run"]'); await until(() => exists('[data-kb="ky-models-error"]'), 5000)
     check('a refused re-import says so (and offers to try again)', (await exists('[data-kb="ky-models-error"]')) && (await val(`document.querySelector('[data-kb="ky-models-run"]').disabled`)) === false, await text('[data-kb="ky-models"]'))
     fake.sync = null
     fake.push = null
@@ -770,28 +831,32 @@ try {
     check('the yearly/monthly switch and the currency switch are there; the dialog says prices exclude tax', (await exists('[data-kb="upgrade-interval"]')) && (await exists('[data-kb="upgrade-currency"]')) && /exclude tax/.test((await text('[data-kb="upgrade-dialog"]')) || ''))
     await shot('8-upgrade-dialog')
     await val(`(() => { const b = document.querySelector('[data-kb="upgrade-interval"] button:not(.on)'); if (b) b.click() })()`)
-    await sleep(300)
+    await until(async () => /\$24/.test((await text('[data-kb="upgrade-plan-solo"]')) || ''), 4000)
     check('monthly switches the prices (and does not pretend to be yearly)', /\$24/.test((await text('[data-kb="upgrade-plan-solo"]')) || '') && /billed monthly/.test((await text('[data-kb="upgrade-plan-solo"]')) || ''))
     await val(`(() => { const b = document.querySelector('[data-kb="upgrade-interval"] button:not(.on)'); if (b) b.click() })()`)
 
     // Subscribe: success
     fake.checkout = { ok: true, opened: true }
     fake.bodies.length = 0
-    await press('[data-kb="upgrade-subscribe-studio"]'); await sleep(600)
+    await press('[data-kb="upgrade-subscribe-studio"]')
+    await until(() => fake.bodies.some((b) => b.path === '/kybernos-cloud/billing/checkout'), 5000)
+    await until(() => exists('[data-kb="upgrade-opened"]'), 5000)
     const sub = fake.bodies.filter((b) => b.path === '/kybernos-cloud/billing/checkout')
     check('Subscribe asks the host for that level\'s checkout, for the active workspace, in the system browser', sub.length === 1 && sub[0].body.plan === 'solo' && sub[0].body.component === 'studio' && sub[0].body.quantity === 1 && sub[0].body.interval === 'year' && sub[0].body.currency === 'USD' && sub[0].body.workspace_id === W_PERSONAL && sub[0].body.open === true, sub)
     check('the dialog says the payment page is open, and offers to refresh the plan', (await exists('[data-kb="upgrade-opened"]')) && (await exists('[data-kb="upgrade-refresh"]')))
     check('no token anywhere in what the page sent', JSON.stringify(sub).indexOf('kys-') < 0)
     await shot('9-upgrade-opened')
     fake.calls.length = 0
-    await press('[data-kb="upgrade-refresh"]'); await sleep(700)
+    await press('[data-kb="upgrade-refresh"]')
+    await until(async () => fake.calls.includes('refresh') && !(await exists('[data-kb="upgrade-dialog"]')), 5000)
     check('« I have paid » reads the account again and closes the dialog', fake.calls.includes('refresh') && !(await exists('[data-kb="upgrade-dialog"]')), fake.calls)
 
     // Subscribe: every refusal says what happened and what to do.
     const refuse = async (status, code, say, re, buttons) => {
       fake.checkout = { ok: false, status, error: code }
       await openUpgrade()
-      await press('[data-kb="upgrade-subscribe-solo"]'); await sleep(500)
+      await press('[data-kb="upgrade-subscribe-solo"]')
+      await until(async () => (await exists('[data-kb="upgrade-error"]')) && ((await exists('[data-kb="upgrade-portal"]')) || (await exists('[data-kb="upgrade-retry"]')) || buttons === 'none'), 5000)
       const err = await text('[data-kb="upgrade-error"]')
       const portal = await exists('[data-kb="upgrade-portal"]')
       const retry = await exists('[data-kb="upgrade-retry"]')
@@ -806,7 +871,8 @@ try {
     await refuse(409, 'already_subscribed', 'already subscribed or another currency: the billing portal is offered', 'already has a subscription', 'portal')
     fake.portal = { ok: true, opened: true }
     fake.bodies.length = 0
-    await press('[data-kb="upgrade-portal"]'); await sleep(500)
+    await press('[data-kb="upgrade-portal"]')
+    await until(async () => fake.bodies.some((b) => b.path === '/kybernos-cloud/billing/portal') && (await exists('[data-kb="upgrade-opened"]')), 5000)
     check('the portal button asks the host for the workspace\'s billing portal, in the system browser', fake.bodies.some((b) => b.path === '/kybernos-cloud/billing/portal' && b.body.workspace_id === W_PERSONAL && b.body.open === true), fake.bodies)
     check('and the dialog says it is open', await exists('[data-kb="upgrade-opened"]'))
     await clean()
@@ -815,14 +881,17 @@ try {
     let n = 0
     fake.checkout = () => { n += 1; return n === 1 ? { ok: false, status: 502, error: 'bad_gateway' } : { ok: true, opened: true } }
     await openUpgrade()
-    await press('[data-kb="upgrade-subscribe-solo"]'); await sleep(500)
+    await press('[data-kb="upgrade-subscribe-solo"]')
+    await until(async () => (await exists('[data-kb="upgrade-error"]')) && (await exists('[data-kb="upgrade-retry"]')), 5000)
     check('502: « nothing was charged » and a retry', /Nothing was charged/.test((await text('[data-kb="upgrade-error"]')) || '') && (await exists('[data-kb="upgrade-retry"]')), await text('[data-kb="upgrade-error"]'))
-    await press('[data-kb="upgrade-retry"]'); await sleep(500)
+    await press('[data-kb="upgrade-retry"]')
+    await until(() => exists('[data-kb="upgrade-opened"]'), 5000)
     check('the retry goes through', await exists('[data-kb="upgrade-opened"]'))
     await clean()
     fake.checkout = { ok: false, status: 0, error: 'injoignable' }
     await openUpgrade()
-    await press('[data-kb="upgrade-subscribe-solo"]'); await sleep(500)
+    await press('[data-kb="upgrade-subscribe-solo"]')
+    await until(async () => (await exists('[data-kb="upgrade-error"]')) && (await exists('[data-kb="upgrade-retry"]')), 5000)
     check('a server that does not answer: said, with a retry', /did not answer/.test((await text('[data-kb="upgrade-error"]')) || '') && (await exists('[data-kb="upgrade-retry"]')), await text('[data-kb="upgrade-error"]'))
     await clean()
 
@@ -831,9 +900,10 @@ try {
     await openUpgrade()
     check('a catalogue that cannot be read says so and offers to try again', (await exists('[data-kb="upgrade-load-error"]')) && /could not be loaded/.test((await text('[data-kb="upgrade-load-error"]')) || ''))
     fake.plans = PLANS
-    await press('[data-kb="upgrade-load-error"] button'); await sleep(700)
+    await press('[data-kb="upgrade-load-error"] button')
+    await until(() => exists('[data-kb="upgrade-plan-solo"]'), 5000)
     check('the retry loads it', await exists('[data-kb="upgrade-plan-solo"]'))
-    await key('Escape', 'Escape'); await sleep(300)
+    await key('Escape', 'Escape'); await until(gone('[data-kb="upgrade-dialog"]'), 3000)
     check('Escape closes the dialog', !(await exists('[data-kb="upgrade-dialog"]')))
     await reload()
 
@@ -844,11 +914,12 @@ try {
     check('it sees the team plan with a seat stepper, not the individual levels', (await exists('[data-kb="upgrade-plan-team"]')) && !(await exists('[data-kb="upgrade-plan-solo"]')))
     await val(`document.querySelector('[data-kb="upgrade-seats-more"]').click()`)
     await val(`document.querySelector('[data-kb="upgrade-seats-more"]').click()`)
-    await sleep(900)
+    await until(async () => /Total\s*\$1,872(\.00)? per year/.test((await text('[data-kb="upgrade-total"]')) || ''), 6000) // the quote of 4 seats is asked of the server (answered in the page)
     check('the total is the server\'s quote for the seats chosen (graduated prices are never computed here)', /Total\s*\$1,872(\.00)? per year/.test((await text('[data-kb="upgrade-total"]')) || '') && fake.calls.some((c) => /quantity=4/.test(c) && /interval=year/.test(c)), { total: await text('[data-kb="upgrade-total"]'), calls: fake.calls.slice(-3) })
     fake.checkout = { ok: true, opened: true }
     fake.bodies.length = 0
-    await press('[data-kb="upgrade-subscribe-team"]'); await sleep(500)
+    await press('[data-kb="upgrade-subscribe-team"]')
+    await until(() => fake.bodies.some((b) => b.path === '/kybernos-cloud/billing/checkout'), 5000)
     check('Subscribe sends the seats', fake.bodies.some((b) => b.path === '/kybernos-cloud/billing/checkout' && b.body.plan === 'team' && b.body.quantity === 4 && b.body.workspace_id === W_TEAM), fake.bodies)
     await shot('11-upgrade-team')
     await clean()
@@ -858,7 +929,8 @@ try {
     await reload()
     await openUpgrade()
     fake.bodies.length = 0
-    await press('[data-kb="upgrade-subscribe-topup"]'); await sleep(500)
+    await press('[data-kb="upgrade-subscribe-topup"]')
+    await until(() => fake.bodies.some((b) => b.path === '/kybernos-cloud/billing/checkout'), 5000)
     check('top-up credits are bought as packs, with no interval', fake.bodies.some((b) => b.path === '/kybernos-cloud/billing/checkout' && b.body.plan === 'topup' && b.body.quantity === 1 && b.body.interval === undefined), fake.bodies)
     check('and no native popover showed in any of these scenes', (await nativeSeen()).length === 0, await nativeSeen())
 
@@ -869,17 +941,17 @@ try {
     const flip = startScheme === 'dark' ? 'Light' : 'Dark'
     await openProfileMenu()
     await val(`(() => { const b = document.querySelector('.kbfp-menu [data-kb="menu-appearance"] button[aria-label="${flip}"]'); if (b) b.click() })()`)
-    await sleep(600)
+    await until(async () => (await schemeNow()) === flip.toLowerCase(), 4000)
     await press('[data-kb="menu-plan-cta"]')
     await waitFor(page, `document.querySelector('[data-kb="upgrade-plan-solo"]') !== null`, 6000)
     await sleep(300)
     await shot('12-upgrade-' + flip.toLowerCase())
     const surface = await val(`(() => { const d = document.querySelector('.kbup'); const cs = getComputedStyle(d); return { bg: cs.backgroundColor, fg: cs.color } })()`)
     check('the dialog is drawn in the DSH scheme (its surface and text colours differ)', surface !== null && surface.bg !== surface.fg, surface)
-    await key('Escape', 'Escape'); await sleep(300)
+    await key('Escape', 'Escape'); await until(gone('[data-kb="upgrade-dialog"]'), 3000)
     await openProfileMenu()
     await val(`(() => { const b = document.querySelector('.kbfp-menu [data-kb="menu-appearance"] button[aria-label="${startScheme === 'dark' ? 'Dark' : 'Light'}"]'); if (b) b.click() })()`)
-    await sleep(600)
+    await until(async () => (await schemeNow()) === startScheme, 4000)
     check('and the scheme is put back', (await schemeNow()) === startScheme, { startScheme, now: await schemeNow() })
   }
 } finally {

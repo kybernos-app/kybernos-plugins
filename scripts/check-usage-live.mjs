@@ -90,7 +90,12 @@ try {
   const listText = await val(`document.querySelector('[data-kb="kybernos-usage-list"]').innerText`)
   check('the plan model is shown as being on the plan, never priced', /via le plan|on the plan/.test(listText), listText)
   check('the local model is shown as free', /gratuit|free/i.test(listText), listText)
-  check(priced ? 'the priced model shows an amount' : 'the model without a price says so', priced ? /\d[,.]\d\d\s*\$/.test(listText) : /prix inconnu|price unknown/.test(listText), listText)
+  // The amount follows the interface language the way the client does (kybernos-usage fmtMoney): « 0,04 $ » in French (and in the
+  // pseudo-language of the language checks), « $0.04 » otherwise; below one cent it is « <0,01 $ » / « <$0.01 ».
+  const uiLang = String((await val(`(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en'))`)) || 'en')
+  const frenchAmounts = uiLang.slice(0, 2) === 'fr' || uiLang === 'kybernos'
+  const amountPattern = frenchAmounts ? /\d,\d\d\s*\$/ : /\$\d\.\d\d/
+  check(priced ? 'the priced model shows an amount (' + (frenchAmounts ? '1,23 $' : '$1.23') + ' for the interface language ' + uiLang + ')' : 'the model without a price says so', priced ? amountPattern.test(listText) : /prix inconnu|price unknown/.test(listText), listText)
   await shot('usage-page')
 
   await clickAct('period-30')
