@@ -300,10 +300,13 @@ window.__ModuleLoader__.load({
       '.kbwk-empty{padding:24px;text-align:center;color:var(--dsw-alias-label-tertiary);border:1px dashed var(--dsw-alias-border-l2);border-radius:12px}',
       // narrow window: measured on the page itself, not the screen
       '@container kbwk (max-width:640px){',
-      '.kbwk-row{grid-template-columns:minmax(0,1fr) auto 28px}',
-      '.kbwk-main{grid-column:1 / span 2;grid-row:1}.kbwk-chev{grid-column:3;grid-row:1}',
-      '.kbwk-stc{grid-column:1;grid-row:2}.kbwk-steps{grid-column:2;grid-row:2;justify-self:end}',
-      '.kbwk-ctl{grid-column:1 / span 3;grid-row:3;justify-content:space-between}',
+      // The chevron's column follows the chevron (28 px on a desktop, 36-40 px on a phone, where the page's minimum target
+      // size applies): a fixed 28 px column pushed it 12 px past the page and made Settings scroll sideways (A3-19). It sits
+      // on the action's line, at the end, instead of far from it on the title's line.
+      '.kbwk-row{grid-template-columns:minmax(0,1fr) auto auto}',
+      '.kbwk-main{grid-column:1 / -1;grid-row:1}.kbwk-chev{grid-column:3;grid-row:3}',
+      '.kbwk-stc{grid-column:1;grid-row:2}.kbwk-steps{grid-column:2 / span 2;grid-row:2;justify-self:end}',
+      '.kbwk-ctl{grid-column:1 / span 2;grid-row:3;justify-content:flex-start;flex-wrap:wrap}',
       '.kbwk-head h4{font-size:22px}',
       '}',
       // ── the guide ─────────────────────────────────────────────────────────

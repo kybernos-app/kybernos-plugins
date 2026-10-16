@@ -415,8 +415,8 @@ window.__ModuleLoader__.load({
             h('b', null, kt('Routage automatique', 'Automatic routing')),
             h('span', null, kt('Activé : Auto sert dans toutes les sessions. Désactivé : vous l’activez session par session, depuis le menu du modèle dans le composer.', 'On: Auto is used in every session. Off: you turn it on per session, from the model menu in the composer.'))),
           h('button', {
-            type: 'button', className: 'kaa-switch-btn' + (etat.global === true ? ' on' : ''), 'data-kb': 'auto-global-toggle',
-            'aria-pressed': String(etat.global === true), 'aria-label': kt('Routage automatique', 'Automatic routing'),
+            type: 'button', className: 'kaa-switch-btn' + (etat.global === true ? ' on' : ''), 'data-kb': 'auto-global-toggle', role: 'switch',
+            'aria-checked': String(etat.global === true), 'aria-label': kt('Routage automatique', 'Automatic routing'),
             onClick: () => ecrire({ autoRouting: etat.global !== true })
           }, h('span', null))),
         h('div', { className: 'kaa-ligne kaa-ligne-modeles' },
@@ -470,8 +470,8 @@ window.__ModuleLoader__.load({
                   Math.max(0, Math.round((maintenant - failoverLast.at) / 1000)) + ' s', kt(' plus tôt', ' ago'))
                 : null),
             h('button', {
-              type: 'button', className: 'kaa-switch-btn' + (failoverOn ? ' on' : ''), 'data-kb': 'auto-failover-toggle',
-              'aria-pressed': String(failoverOn), 'aria-label': kt('Repli du chat', 'Chat fallback'),
+              type: 'button', className: 'kaa-switch-btn' + (failoverOn ? ' on' : ''), 'data-kb': 'auto-failover-toggle', role: 'switch',
+              'aria-checked': String(failoverOn), 'aria-label': kt('Repli du chat', 'Chat fallback'),
               onClick: () => ecrire({ autoFailover: !failoverOn })
             }, h('span', null))),
           h('div', { className: 'kaa-ligne' },
