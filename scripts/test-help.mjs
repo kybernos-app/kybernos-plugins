@@ -117,9 +117,11 @@ console.log('the « ? How it works » buttons')
     const same = (a, b, extra = []) => a !== null && b !== null && a.every((x) => b.includes(x)) && b.every((x) => a.includes(x) || extra.includes(x))
     check('the core’s pill (Agent Teams, Automations) has the Suite pill’s declarations', same(ref, decls(read('kybernos-plugin'), '.kb6-helpbtn'), ['flex:0 0 auto']), { ref })
     check('the Calls tabs’ pill has the Suite pill’s declarations', same(ref, decls(read('kybernos-call'), '.kbcl-hl')), { ref })
-    check('and the « ? » disc is the same on the three', same(disc, decls(read('kybernos-plugin'), '.kb6-helpq')) && same(disc, decls(read('kybernos-call'), '.kbcl-hq')), { disc })
+    check('the Language page’s button (it keeps its own panel) has them too', same(ref, decls(read('kybernos-language'), '.kbth-help-btn')), { ref })
+    check('and the Atlas page’s, which used to be a plain « Help » button', same(ref, decls(read('kybernos-atlas'), '.kbat-help')), { ref })
+    check('and the « ? » disc is the same on all of them', [['kybernos-plugin', '.kb6-helpq'], ['kybernos-call', '.kbcl-hq'], ['kybernos-language', '.kbth-help-q'], ['kybernos-atlas', '.kbat-helpq']].every(([d, sel]) => same(disc, decls(read(d), sel))), { disc })
     const label = (src, re) => re.test(src)
-    check('the label is the same words everywhere: « How it works » / « Comment ça marche »', label(hub, /kt\('Comment ça marche', 'How it works'\)/) && label(read('kybernos-plugin'), /'kbui\.howitworks': \{ kybernos: 'Comment ça marche', en: 'How it works' \}/) && label(read('kybernos-call'), /kt\('Comment ça marche', 'How it works'\)/))
+    check('the label is the same words everywhere: « How it works » / « Comment ça marche »', label(hub, /kt\('Comment ça marche', 'How it works'\)/) && label(read('kybernos-plugin'), /'kbui\.howitworks': \{ kybernos: 'Comment ça marche', en: 'How it works' \}/) && label(read('kybernos-call'), /kt\('Comment ça marche', 'How it works'\)/) && label(read('kybernos-language'), /helpBtn: \['Comment ça marche', 'How it works'\]/) && label(read('kybernos-atlas'), /'How it works'\)/))
   }
   const css = hub.match(/\.kbhp-[a-z]+/g) || []
   const clash = []

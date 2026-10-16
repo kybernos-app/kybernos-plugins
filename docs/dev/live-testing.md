@@ -328,7 +328,8 @@ Three things ride on the same hub seam (`window.__KB_HELP__`):
   The key is the one of the page's button (`kybernos.help.intro.<id>`, in this browser's localStorage). Skills, Connectors and Remote
   Control have one; adding a page is one call and its strings.
 - **One « ? How it works » button.** The Suite's pill is the only form. The pages that draw their own copy it declaration for
-  declaration (the core's Agent Teams / Automations button `kb6-helpbtn`, the Calls tabs `kbcl-hl`): `scripts/test-help.mjs` compares them.
+  declaration (the core's Agent Teams / Automations button `kb6-helpbtn`, the Calls tabs `kbcl-hl`, Language `kbth-help-btn`, Atlas
+  `kbat-help`; each keeps the panel it opens): `scripts/test-help.mjs` compares them.
 
 ```bash
 node packages/kybernos-hub/test-help-card.mjs   # no GUI: the link, the card's side, the animation's state and timer, the host's merge
@@ -338,7 +339,7 @@ source scripts/sandbox/env.sh && node scripts/check-help-intro-live.mjs --shots 
 The live check starts from a throw-away browser, so its empty localStorage **is** the first visit: it checks the animation opens
 on Skills, Connectors and Remote Control, runs (CSS animations counted; the three steps light in turn, sampled on the loop's own
 clock, not the test's), is marked `seen` after 8 s and does not come back, comes back from the card, and closes for good; the
-article links; one button of the same size and shape on eight pages; reduced motion (no animation at all, the end of the story
+article links; one button of the same size and shape on ten pages; reduced motion (no animation at all, the end of the story
 shown); the lines that say what Usage, Tools, Workers and Commands are for; and French on Remote Control.
 Two traps: the first click on a sidebar entry right after the shell loaded can open nothing (the check clicks again until the page's
 own text is there), and the page behind the Settings dialog stays in the document, so a button is counted only where it is the

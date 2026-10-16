@@ -811,6 +811,11 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
 .kbat-dot[data-t="idle"]{background:var(--dsw-alias-label-caption)}
 .kbat-dot[data-t="busy"]{background:transparent;border:2px solid var(--dsw-alias-border-l3);border-top-color:var(--dsw-alias-label-primary);animation:kbat-spin .8s linear infinite}
 @keyframes kbat-spin{to{transform:rotate(360deg)}}
+/* The « ? How it works » pill: the same look as the Suite's (kybernos-hub), so every page has one form of the button. */
+.kbat-help{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.kbat-help:hover{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}
+.kbat-help:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.kbat-helpq{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
 .kbat-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding-inline:14px;border-radius:16px;border:1px solid var(--dsw-alias-border-l2);background:transparent;white-space:nowrap}
 .kbat-btn:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}
 .kbat-btn:disabled{opacity:.45;cursor:default}
@@ -1512,7 +1517,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
           h('div', null, h('h1', { className: 'kbat-title' }, 'Atlas'), h('p', { className: 'kbat-sub' }, 'Every project, agent team, skill, memory, lesson, automation and app, and how they point to each other. It only reads; it never edits or stores anything.')),
           h('div', { className: 'kbat-headr' },
             h('span', { className: 'kbat-built', role: 'status' }, h('span', { className: 'kbat-dot', 'data-t': dotT }), builtTxt),
-            h('button', { type: 'button', className: 'kbat-btn', onClick: () => setHelp(true), 'aria-haspopup': 'dialog' }, 'Help'),
+            h('button', { type: 'button', className: 'kbat-help', onClick: () => setHelp(true), 'aria-haspopup': 'dialog' }, h('span', { className: 'kbat-helpq', 'aria-hidden': 'true' }, '?'), 'How it works'),
             h('button', { type: 'button', className: 'kbat-btn', onClick: load, disabled: st.phase === 'loading' }, 'Update'))),
         partial ? h('div', { className: 'kbat-banner', role: 'status' }, h('span', { className: 'kbat-dot', 'data-t': 'warn' }), h('span', { className: 'kbat-sp' },
           skippedMemory && failedNames.length === 0 ? h(React.Fragment, null, h('b', null, 'Memories were skipped. '), 'They live in your kybernos.app account, which is not linked. The other sources were read.')

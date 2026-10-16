@@ -158,8 +158,10 @@ try {
   await looks('Memory & Lessons', await goTo('Memory & Lessons'), pills)
   await looks('Remote Control', await goTo('Remote Control'), pills)
   await looks('Agent presets', await goTo('Agent presets'), pills)
+  await looks('Language', await goTo('Language'), pills)
+  await looks('Atlas', await goTo('Atlas'), pills)
   const shapes = new Set(forms.map((f) => f.split(':')[1]))
-  check('the same size, round ends, border and font on all of them (' + forms.length + ' pages)', forms.length >= 8 && shapes.size === 1 && [...shapes][0].startsWith('30/16px/1px/12.5px'), forms)
+  check('the same size, round ends, border and font on all of them (' + forms.length + ' pages)', forms.length >= 10 && shapes.size === 1 && [...shapes][0].startsWith('30/16px/1px/12.5px'), forms)
 
   // ═══ Remote Control ═══
   console.log('\n── Remote Control ──')
