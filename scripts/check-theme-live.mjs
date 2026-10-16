@@ -1099,7 +1099,7 @@ try {
   // ═══ 11. Reset all ════════════════════════════════════════════════════════════════
   const DEFAULTS = { mode: 'dark', skin: 'dsh', acc: null, wp: 'none', wpVis: 60, wpBlur: 0, tint: 0, fs: 15, fontText: 'dsh', contrastMode: 'standard', cbSafe: false,
     glassEffect: 'frosted', glassBlur: 18, sidebarLinked: true, sidebarOpacity: 25, fieldOpacity: 20, floatOpacity: 10, bgBrightness: 100, bgContrast: 100, bgSaturation: 100, bgDarken: 0, bgFit: 'cover', bgMirror: false,
-    ligatures: true, radius: 'standard', showBrand: true, reduceMotion: false, focusRing: 'accent', largeTargets: false, underlineLinks: false }
+    ligatures: true, radius: 'standard', showBrand: true, iconSet: 'classic', reduceMotion: false, focusRing: 'accent', largeTargets: false, underlineLinks: false }
   await section('reset', '« Reset all » returns to the native state', async () => {
     if (!modeSafe) { console.log('SKIPPED: it sets Dark and the mode found is ' + startMode); return }
     await openTheme({ fresh: true })

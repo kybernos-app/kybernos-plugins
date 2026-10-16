@@ -157,9 +157,13 @@ try {
   console.log('\n── C. « Translate these texts again », and the run is visible from everywhere ──')
   await val(`localStorage.setItem('__kb_real_stub', '1')`)
   await val(`window.__KB_REAL__.calls = 0`)
-  await openPseudoFold() // « Translate these texts again » sits inside the fold
-  await clickSel('[data-lang="es"] [data-act="repair"]')
-  await poll(() => val(`!!document.querySelector('[data-lang="es"] [data-note="in-tab"]')`), 8000) // the run has started: the page says it lives in this tab
+  // « Translate these texts again » sits inside the fold. On a busy machine the fold is still opening when the button's box is read and the click misses it, and the
+  // run only starts after the marks have been taken out of the stores: press again until the page says the run lives in this tab, up to three times.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await openPseudoFold()
+    await clickSel('[data-lang="es"] [data-act="repair"]')
+    if (await poll(() => val(`!!document.querySelector('[data-lang="es"] [data-note="in-tab"]')`), 20000)) break
+  }
   const inTab = await val(`(() => { const b = document.querySelector('[data-lang="es"] [data-note="in-tab"]'); return b ? b.innerText.replace(/\\s+/g, ' ') : null })()`)
   check('while it runs the page says it lives in this tab, and what to do', typeof inTab === 'string' && /this tab/.test(inTab) && /Do not close the tab/.test(inTab), inTab)
   check('the bar is live (not grey) while it runs', (await val(`!!document.querySelector('[data-lang="es"] .kbth-bar') && !document.querySelector('[data-lang="es"] .kbth-bar.stale')`)) === true)
