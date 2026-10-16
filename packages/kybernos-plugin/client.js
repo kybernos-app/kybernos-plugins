@@ -25708,6 +25708,10 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
    libellé reprend toute la place restante de sa cellule. */
 [role="dialog"]:has(nav [class$="_navCell"]) nav{width:248px;flex:none}
 [role="dialog"]:has(nav [class$="_navCell"]) nav [class$="_navLabel"]{flex:1 1 auto}
+/* V-39: the close cross of the Settings dialog is DSH's own icon button, 28 px with a 14 px icon (the owner asked for a bigger
+   one): a 40 px target with an 18 px icon, anchored on the class suffix like the rules above. */
+[role="dialog"]:has(nav [class$="_navCell"]) [class$="_close"]{min-width:40px;min-height:40px}
+[role="dialog"]:has(nav [class$="_navCell"]) [class$="_close"] svg{width:18px;height:18px}
 .kbs-search input::placeholder{color:var(--dsw-alias-label-tertiary)}
 .kbsb:hover{color:var(--dsw-alias-brand-primary)}
 .kbsb:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}

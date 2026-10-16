@@ -499,6 +499,12 @@
   [role="menuitem"], [role="option"], [role="tab"] {
     min-height: 44px;
   }
+  /* The main action of a page (Create, Install a skill, Add an MCP server...): the shared button is 38 px high, a finger
+   * needs 44 (measured 2026-10-16: every « Create » of the sidebar pages was 38 px at 390 px). */
+  [data-slot="main"] .kb8-primary,
+  [data-slot="main"] .kb-createai {
+    min-height: 44px;
+  }
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select {
     font-size: 16px !important;
   }
