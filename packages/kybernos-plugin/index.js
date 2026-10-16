@@ -12,6 +12,8 @@ import { kyberTarget } from './kyber-root.mjs'
 import { createWorkspaceInstructions } from './workspace-instructions.mjs'
 import { selectAfterConnect } from './default-model.mjs'
 import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
+import { recordFeedback, exportFeedback } from './feedback-box.mjs'
+import { writeGuard } from './session-guard.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay } from './onboarding-state.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
@@ -10307,6 +10309,24 @@ function boot(ctx) {
         try { await kbAutoSettingsWrite(next.state) } catch (e) { return sendJson(res, 500, { ok: false, error: 'write failed' }) }
         sendJson(res, 200, Object.assign({ ok: true }, autoSettingsView(next.state)))
       } }), 'kybernos: route automation-settings')
+      // ── The feedback box (V-10): POST saves one line in <DSH home>/kybernos/feedback.jsonl, GET …/export returns the file ──
+      // Nothing leaves the machine. Both need the strict write guard (same-origin AND DSH's signed browser session, session-guard.mjs):
+      // the box holds what a person wrote, and a local program must neither fill it nor read it. One method per path.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/feedback', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
+        let body = null
+        try { body = await readJsonBody(req, 20000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
+        const out = recordFeedback(dshHomeSync(), body, kbFeedbackBoxEnv())
+        sendJson(res, out.ok === true ? 200 : (out.error === 'full' ? 507 : (out.error === 'write failed' ? 500 : 400)), out)
+      } }), 'kybernos: route feedback')
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/feedback/export', handler: async (req, res) => {
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
+        sendJson(res, 200, exportFeedback(dshHomeSync()))
+      } }), 'kybernos: route feedback export')
       // ── When the scheduled automations will run: GET /kybernos/tasks/occurrences?from=&to= ──────────────
       // Read-only, for the Automations calendar. It answers with the scheduler's OWN matcher (kbComputeNextRun
       // and kbNeverRuns of the tested core block), not a second cron engine, and with the same guard as the
@@ -11233,6 +11253,19 @@ const kbFeedbackFlush = async (dir, api, token, exceptUuid) => {
     if (verdict.ok !== true) break          // the service is down again: do not hammer it
   }
 }
+
+/** What the feedback box (feedback-box.mjs) needs from this host: an id, the clock, the secret masking of the beta report, and — only when the
+ *  form's toggle is on — the system and the versions (the same three facts the beta report carries; no path, no key, no account). */
+const kbFeedbackBoxEnv = () => ({
+  id: () => (typeof randomUUID === 'function' ? randomUUID() : String(Date.now())),
+  now: () => Date.now(),
+  mask: kbFeedbackMask,
+  context: () => {
+    let os = null
+    try { os = String(osPlatform()) + ' ' + String(osRelease()) } catch (e) { os = null }
+    return { os, dsh: kbFeedbackDshVersion(), revision: kbFeedbackSuiteVersion(nodePathJoin(pluginDir, '..', '..', 'VERSION'), readFileSync) }
+  },
+})
 
 /** Exécution complète de l'outil : trace locale DANS TOUS LES CAS, puis envoi. */
 const kbFeedbackExecute = async (args) => {
