@@ -8,11 +8,15 @@
 // the hub and in the plugins of the checkout. Refuses :3080. Read-only: nothing here changes a setting.
 // For every page: the button is there, it opens a card with what the plugin does and the steps of packages/<dir>/help.json
 // (the text is read from the file, not copied here), the card closes on Escape, and French shows French.
+// The cards show the signed catalogue downloaded at the last release when this DSH home has one, so a help.json edited since is a card
+// that is one release behind: the check says which source the cards come from (scripts/lib-help-source.mjs) before it compares them.
 // Exit code 0 / 1 / 3.
 import { readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { openLivePage } from './live-page.mjs'
+import { dshHome } from './dsh-home.mjs'
+import { helpSource, describeHelpSource } from './lib-help-source.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
@@ -55,6 +59,7 @@ const goTo = async (label) => {
 const helpButton = (id) => val(`!!document.querySelector('[data-kb="help-button"][data-id="${id}"]')`)
 const panelText = () => val(`(document.querySelector('[data-kb="help-panel"]') || { innerText: '' }).innerText.replace(/\\n+/g, ' | ')`)
 
+let source = null
 try {
   await sleep(3000)
   if ((await val(`/Add an API key to get started/.test(document.body.innerText)`)) === true) {
@@ -62,6 +67,8 @@ try {
     if (typeof pos === 'string') { const { x, y } = JSON.parse(pos); await mouse(x, y); await sleep(700) }
   }
   check('Settings open', (await openSettings()) === true)
+  source = helpSource({ repo: REPO, home: dshHome() })
+  console.log('  ○ ' + describeHelpSource(source))
 
   console.log('\n── the button on each page ──')
   for (const [label, dir] of PAGES) {
@@ -147,5 +154,6 @@ try {
 } finally {
   await live.close()
 }
+if (fail > 0 && source !== null && source.differ.length > 0) console.log('  ○ ' + describeHelpSource(source))
 console.log('\n' + pass + ' ✓  ' + fail + ' ✗')
 process.exit(fail === 0 ? 0 : 1)
