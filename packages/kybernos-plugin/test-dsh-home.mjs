@@ -228,6 +228,20 @@ try {
   assert.equal(zcodeAfter.installed, true, 'the server installed under $DSH_HOME/mcp is seen')
   ok('the ZCode MCP server path of the Tools tab is $DSH_HOME/mcp, never <HOME>/.dsh/mcp')
 
+  // The quiz/cards score registry: in the DSH home, never beside the plugin folder (it was `<plugin dir>/../.dsh/artifacts/.progress.json`).
+  const besidePlugin = join(copy, '..', '.dsh', 'artifacts', '.progress.json')
+  const hadBeside = existsSync(besidePlugin)
+  const scored = await call('POST', '/kybernos/art-progress', { action: 'record', entry: { artifact: '/work/a/quiz-demo.quiz', score: 2, max: 2, date: '2026-10-16T08:00:00.000Z', round: 1 } })
+  assert.equal(scored.json.ok, true, scored.raw)
+  const strayed = !hadBeside && existsSync(besidePlugin)
+  if (strayed) rmSync(join(copy, '..', '.dsh'), { recursive: true, force: true })
+  assert.equal(strayed, false, 'nothing may be written next to the plugin folder')
+  const registry = join(iso.dshHome, 'kybernos', 'progress.json')
+  assert.equal(existsSync(registry), true, 'the registry must be written under $DSH_HOME/kybernos')
+  assert.equal(JSON.parse(readFileSync(registry, 'utf8')).goals['quiz-demo'].best_score, 2)
+  assert.equal((await call('POST', '/kybernos/art-progress', { action: 'read' })).json.data.goals['quiz-demo'].entries.length, 1, 'and it is read back from there')
+  ok('the quiz score registry is $DSH_HOME/kybernos/progress.json, not a file beside the plugin folder')
+
   iso.assertDecoyUntouched('the core plugin')
   ok('nothing was read or written under <HOME>/.dsh (canaries and listing unchanged)')
 

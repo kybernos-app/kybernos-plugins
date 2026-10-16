@@ -9760,7 +9760,9 @@ function boot(ctx) {
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
         const body = await readJsonBody(req)
         const action = str(body.action)
-        const progressFile = pluginDir + '/../.dsh/artifacts/.progress.json'
+        // The registry belongs to the person, in the DSH home (DSH_HOME honoured): next to the plugin it was replaced by every update,
+        // mixed every workspace and left an untracked file in a checkout.
+        const progressFile = nodePathJoin(dshHomeSync(), 'kybernos', 'progress.json')
         try {
           let data = { goals: {} }
           try { data = JSON.parse(readFileSync(progressFile, 'utf8')) } catch (e) { /* fichier absent ou invalide */ }

@@ -17586,7 +17586,7 @@ return {
     }
 
     // ── Registre de progression ─────────────────────────────────────────
-    // Stocke les scores par artifact dans .dsh/artifacts/.progress.json
+    // Keeps the scores per artifact in <DSH_HOME>/kybernos/progress.json
     // via fetch direct (host.call passe par routeMap qui peut être en cache).
     const kbProgressStore = { data: null, loaded: false, subs: [] }
     const kbProgressFetch = (body) => fetch('/kybernos/art-progress', {
