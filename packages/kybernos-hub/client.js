@@ -463,7 +463,7 @@ window.__ModuleLoader__.load({
       '.kbsu-grip{display:grid;place-items:center;flex:none;width:18px;height:34px;color:var(--dsw-alias-label-tertiary);cursor:grab}',
       '.kbsu-grip:hover{color:var(--dsw-alias-label-secondary)}.kbsu-grip:active{cursor:grabbing}',
       '.kbsu-rowname{flex:1 1 200px;min-width:0}',
-      '.kbsu-rowname b{display:block;font:500 13px ui-monospace,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '.kbsu-rowname b{display:block;font-size:15px;font-weight:600;letter-spacing:-.2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
       '.kbsu-rowname .kbsu-promise{display:block;font-size:12.5px;color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
       '.kbsu-famcol{flex:0 0 150px;min-width:0;display:flex}',
       '.kbsu-famtag{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
@@ -644,7 +644,7 @@ window.__ModuleLoader__.load({
 
       const Panneau = () => {
         const [charge, setCharge] = React.useState({ etat: 'loading', suite: null, bundles: null, maint: null })
-        const [filtreChoisi, setFiltre] = React.useState('featured')
+        const [filtreChoisi, setFiltre] = React.useState('all')
         const [famille, setFamille] = React.useState('')
         const [detail, setDetail] = React.useState(null)
         const [ongletFiche, setOngletFiche] = React.useState('description')
