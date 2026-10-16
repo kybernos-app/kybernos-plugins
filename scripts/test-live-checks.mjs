@@ -89,5 +89,55 @@ console.log('the live-page helper clears the engine\'s first-screen dialog (A3-0
   check('nothing on the page, nothing pressed', none.length === 0, none)
 }
 
+console.log('the live checks do not go stale on the things the audit found moving (WP-21)')
+{
+  const theme = read('scripts/check-theme-live.mjs')
+  check('check-theme-live finds the tabs of the Theme page by their name, never by a number (a tab inserted in the middle moved every index)',
+    /const TAB = Object\.fromEntries\(TAB_IDS\.map/.test(theme) && !/goTab\(\d/.test(theme) && /icones: \/\^\(ic/.test(theme))
+  check('… and does not hold the size of the example catalogue as a constant', !/cards\.length === 14/.test(theme) && /nExamples/.test(theme))
+  const queue = read('scripts/check-queue-move.mjs')
+  check('check-queue-move is skipped, with the reason, on an engine that retired the patch (and says SKIPPED)', /motifDeRetrait\(entree, version\)/.test(queue) && /SKIPPED: the queue-move engine patch check/.test(queue))
+  const faults = read('scripts/check-bundle-faults.mjs')
+  check('check-bundle-faults knows the core by its package name, its log tags and its /kybernos/* routes (not by the directory name)',
+    /const packageName = /.test(faults) && /const ownTags = /.test(faults) && /seg !== 'kybernos'/.test(faults) && /dirTail\(b\) === 'kybernos-plugin'/.test(faults))
+  check('… and judges the routes after waiting for them, not after a fixed delay', /Date\.now\(\) - t0 < 12000/.test(faults))
+  const probes = /const PROBES = \[([\s\S]*?)\]\n/.exec(faults)
+  check('… with no probe on the dead routes of an older version (/kybernos/state answered 404, so the core\'s own loss was never seen)', probes !== null && !/'\/kybernos\/state'/.test(probes[1]) && /'\/kybernos\/onboarding'/.test(probes[1]))
+  const usage = read('scripts/check-usage-live.mjs')
+  check('check-usage-live reads the price in the format of the interface language (« 0,04 $ » in French, « $0.04 » otherwise)', /frenchAmounts/.test(usage) && /\\\$\\d\\\.\\d\\d/.test(usage))
+  const helpLive = read('scripts/check-help-live.mjs')
+  check('check-help-live compares each card with the text its own host serves and says which source that is', /\/kybernos-hub\/suite/.test(helpLive) && /text compared with: /.test(helpLive) && /closest\('button, \[role=button\]'\)/.test(helpLive))
+  check('check-icons-live waits for the Suite cards, not for a fixed delay', /waitFor\(page, `document\.querySelectorAll\('\[data-kb="suite-card"\], \[data-kb="suite-row"\]'\)\.length > 0`/.test(read('scripts/check-icons-live.mjs')))
+  const footer = read('scripts/check-footer-live.mjs')
+  check('check-footer-live waits by event: press waits for its target, the reload waits for the NEW page, a recorded click is waited for', /const until = async/.test(footer) && /window\.__kbStale === undefined/.test(footer) && /\(await openedCount\(\)\) > n/.test(footer))
+  check('check-automations-board-live holds the board request until it has looked at the skeleton (no timed hold)', /held\.push\(p\.requestId\)/.test(read('scripts/check-automations-board-live.mjs')) && !/holdMs/.test(read('scripts/check-automations-board-live.mjs')))
+  const display = read('scripts/check-display-live.mjs')
+  check('check-display-live lists every view it could not measure as SKIPPED, and --strict fails on them', /console\.log\('SKIPPED: ' \+ m\.size/.test(display) && /findings\.length > 0 \|\| missing\.length > 0/.test(display))
+  const callTeam = read('scripts/check-call-team-live.mjs')
+  check('check-call-team-live clicks the tab that holds the member cards (Roles), not a tab that is gone', /const MEMBERS_TAB = 'Roles'/.test(callTeam) && !/clickText\('Team'\)/.test(callTeam))
+  check('the language checks open the test-marks fold before they read or press anything in it', /openPseudoFold/.test(read('scripts/check-language-run-live.mjs')) && /ownTextCount/.test(read('scripts/check-language-live.mjs')))
+  check('the Skills checks open Yours first (the page opens on Featured)', /openYours/.test(read('scripts/check-skills-detail-live.mjs')) && /openYours/.test(read('scripts/check-skills-codes-live.mjs')) && /\/\^Team\//.test(read('scripts/check-skills-team-live.mjs')))
+}
+
+console.log('a skip is never mistaken for a pass: every test that skips says « SKIPPED: » (A6-16)')
+{
+  const files = []
+  for (const dir of ['scripts', ...readdirSync(join(ROOT, 'packages')).map((d) => 'packages/' + d)]) {
+    try { for (const f of readdirSync(join(ROOT, dir))) if (/^test.*\.mjs$/.test(f)) files.push(dir + '/' + f) } catch (e) { /* no such folder */ }
+  }
+  const vague = []
+  for (const f of files) {
+    read(f).split('\n').forEach((line, i) => {
+      if (/console\.(log|warn|error)\(.*skip/i.test(line) && !/SKIPPED/.test(line)) vague.push(f + ':' + String(i + 1))
+    })
+  }
+  check('no test prints « skipped » without the word SKIPPED in capitals (so a grep for it finds every skip)', vague.length === 0, vague)
+  const ci = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8')
+  check('the CI keeps the output of its test loops and ends with the list of what did not run', /test-output\.log/.test(ci) && /SKIPPED SUMMARY/.test(ci) && /if: always\(\)/.test(ci))
+  for (const f of ['scripts/test-suite-gui.mjs', 'scripts/test-workers-gui.mjs', 'packages/kybernos-theme/test-client.mjs', 'packages/kybernos-cloud/test-cloud-client.mjs', 'packages/kybernos-call/test-agent-meta.mjs']) {
+    check(f + ' says SKIPPED when it skips', /SKIPPED:/.test(read(f)))
+  }
+}
+
 console.log('\n' + (failed === 0 ? 'ALL GREEN' : String(failed) + ' FAILED'))
 process.exit(failed === 0 ? 0 : 1)

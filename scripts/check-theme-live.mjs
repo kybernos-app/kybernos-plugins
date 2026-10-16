@@ -15,7 +15,7 @@
 // COMPUTED styles (`getComputedStyle(document.body)` for the --dsw-* tokens), not
 // the source. No LLM, no stub.
 //
-// The page has no Simple/Advanced switch: eight vertical tabs, « Essentiel » (appearance, colour,
+// The page has no Simple/Advanced switch: nine vertical tabs, « Essentiel » (appearance, colour,
 // background, font) open by default after every load.
 //
 // ⚠ The plugin calls DSH's own theme service, which PERSISTS two native preferences
@@ -286,9 +286,14 @@ const Q = {
   hexInput: `document.querySelector('.kbth-hex input')`,
   footBtn: (i) => `document.querySelectorAll('.kbth-foot button')[${i}]`,
 }
-// The eight tabs, in the order of the page (« Conversation » and « Terminal » are gone: nothing to apply in the web GUI).
-const TAB = { essentiel: 0, verre: 1, couleurs: 2, texte: 3, animation: 4, accessibilite: 5, partage: 6, galerie: 7 }
-const TAB_NAMES = [/^(essentiel|essentials?)$/i, /^(verre et fond|glass and background)$/i, /^(couleurs|colou?rs)$/i, /^(texte et forme|text and shape)$/i, /^animation$/i, /^(accessibilit[ée]|accessibility)$/i, /^(partage|sharing)$/i, /^(galerie|gallery)$/i]
+// The tabs of the page, in the order of the page (« Conversation » and « Terminal » are gone: nothing to apply in the web GUI). A tab is found by its
+// NAME (French or English), never by its position: a tab inserted in the middle (« Icons » was) moves every index after it, and a check that counts
+// positions then tests the wrong page. `goTab` takes one of these ids.
+const TAB_IDS = ['essentiel', 'verre', 'couleurs', 'texte', 'animation', 'icones', 'accessibilite', 'partage', 'galerie']
+const TAB = Object.fromEntries(TAB_IDS.map((id) => [id, id]))
+const TAB_NAMES = { essentiel: /^(essentiel|essentials?)$/i, verre: /^(verre et fond|glass and background)$/i, couleurs: /^(couleurs|colou?rs)$/i, texte: /^(texte et forme|text and shape)$/i, animation: /^animation$/i,
+  icones: /^(ic[ôo]nes?|icons?)$/i, accessibilite: /^(accessibilit[ée]|accessibility)$/i, partage: /^(partage|sharing)$/i, galerie: /^(galerie|gallery)$/i }
+const TAB_LABEL = { essentiel: 'Essentiel', verre: 'Verre et fond', couleurs: 'Couleurs', texte: 'Texte et forme', animation: 'Animation', icones: 'Icônes', accessibilite: 'Accessibilité', partage: 'Partage', galerie: 'Galerie' }
 const RE = { vis: '/visib/i', blur: '/blur|flou/i', tint: '/tint|teinte/i', size: '/size|taille/i',
   glass: '/flou du verre|glass blur/i', side: '/barre|sidebar/i', field: '/champ|field|input/i', menu: '/menu/i', imgblur: '/flou de l|image blur|blur of the image/i',
   bright: '/lumin|bright/i', contrast: '/^contrast/i', sat: '/satur/i', dark: '/assombr|darken/i' }
@@ -496,7 +501,7 @@ try {
     const pg = await readPage()
     check('Settings › Theme opens on the real GUI (title « Theme »)', /^(theme|thème)$/i.test(j.title), j.title)
     check('there is no Simple / Advanced switch any more (no button of that name, no segment in the header)', j.switchLike === false, j.switchLike)
-    check('eight tabs stacked vertically on the left, « Essentiel » the one open (and the only one pressed)', j.tabs.length === 8 && j.tabs.every((t) => t.x === j.tabs[0].x) && j.tabs.every((t, i) => i === 0 || t.y > j.tabs[i - 1].y) && j.tabs[0].on === true && j.tabs[0].pressed === 'true' && j.tabs.filter((t) => t.on).length === 1, j.tabs)
+    check('the tabs are stacked vertically on the left, « Essentiel » the one open (and the only one pressed)', j.tabs.length === TAB_IDS.length && j.tabs.every((t) => t.x === j.tabs[0].x) && j.tabs.every((t, i) => i === 0 || t.y > j.tabs[i - 1].y) && j.tabs[0].on === true && j.tabs[0].pressed === 'true' && j.tabs.filter((t) => t.on).length === 1, j.tabs)
     check('the header says the basic settings are in « Essentiel »', /essentiel|essentials?/i.test(j.sub), j.sub)
     check('Mode row: System / Light / Dark, exactly one pressed, and it is the native one (' + startMode + ')', j.mode.filter((x) => x === 'true').length === 1 && j.mode[MODES.indexOf(startMode)] === 'true', j.mode)
     check('18 shipped theme dots (and the add button next to « My themes »), each with a coloured disc, a name and « name — mode · accent » as label', j.skins === 18 && j.skinNamed === true, { n: j.skins, named: j.skinNamed })
@@ -555,12 +560,12 @@ try {
       check(def.names[0] + (def.mode === null ? ' (mode-less pack)' : '') + ': skin stored, tokens' + (def.wp ? ', wallpaper' : '') + ', pill, native mode kept', problems.length === 0, problems)
     }
     await shot('02-skins')
-    if (skipped.length) console.log('  · skipped (the mode is not Dark): ' + skipped.join(', '))
+    if (skipped.length) console.log('SKIPPED: the steps that need the Dark mode — it is not Dark here: ' + skipped.join(', '))
   })
 
   // ═══ 3. DSH default ═══════════════════════════════════════════════════════════════
   await section('default', '« DSH default » restores the native look', async () => {
-    if (!modeSafe) { console.log('  · skipped: this theme forces Dark and the mode found is ' + startMode); return }
+    if (!modeSafe) { console.log('SKIPPED: this theme forces Dark and the mode found is ' + startMode); return }
     await openTheme({ fresh: true })
     const labels = await skinLabels()
     const dsh = findSkin(labels, SKIN('dsh'))
@@ -910,47 +915,50 @@ try {
     check('text size: ArrowLeft puts DSH’s size back to ' + size0 + ' (page and profile configuration)', (await readFont()).size === size0 && !!back, { page: (await readFont()).size, stored: storedUi() })
   })
 
-  // ═══ 8. The eight tabs ═════════════════════════════════════════════════════════════
-  const goTab = async (i) => {
+  // ═══ 8. The tabs ═════════════════════════════════════════════════════════════
+  const tabIndex = (id) => val(`Array.from(document.querySelectorAll('.kbth-adv-tab')).findIndex((b) => ${TAB_NAMES[id]}.test(b.textContent.trim()))`)
+  const goTab = async (id) => {
+    const i = await tabIndex(id)
+    if (!(i >= 0)) throw new Error('the page has no « ' + TAB_LABEL[id] + ' » tab')
     await clickEl(Q.tab(i))
     await until(() => val(`document.querySelectorAll('.kbth-adv-tab')[${i}].classList.contains('on')`), 2000)
     await sleep(200)
   }
   const tabInfo = async () => JSON.parse(await val(`JSON.stringify((() => { const p = document.querySelector('.kbth-adv-pane'); const q = (s) => p.querySelectorAll(s).length; const t = p.innerText; return {
     chars: t.length, skins: q('.kbth-skin:not(.kbth-skin-add)'), segs: q('.kbth-seg'), toggles: q('.kbth-toggle'), sliders: q('.kbth-slider'), colors: q('input[type=color]'), toks: q('.kbth-tok'),
-    ansi: q('.kbth-ansi-swatch'), a11y: q('.kbth-a11y-row'), note: q('.kbth-note'), exportCode: q('.kbth-export-code'), fsbtn: q('.kbth-fsbtn'), term: q('.kbth-term-preview'),
+    iconsPane: q('[data-kb=theme-icons]'), ansi: q('.kbth-ansi-swatch'), a11y: q('.kbth-a11y-row'), note: q('.kbth-note'), exportCode: q('.kbth-export-code'), fsbtn: q('.kbth-fsbtn'), term: q('.kbth-term-preview'),
     gpv: q('[data-kb=glass-preview]'), galState: q('[data-kb=theme-gal],[data-kb=theme-gal-loading],[data-kb=theme-gal-error],[data-kb=theme-gal-none]'), ldSummary: q('[data-kb=ld-summary]'), ldPane: q('[data-kb=ld-pane]'), ldPreview: q('[data-kb=ld-preview]'), ldAmb: q('[data-kb=ld-amb]'), ldSettings: q('[data-kb=ld-settings]'), slots: q('.kbth-lds'),
     broken: t.indexOf('undefined') >= 0 || t.indexOf('NaN') >= 0 || t.indexOf('[object') >= 0 } })())`))
-  const TAB_ID = Object.keys(TAB)
   const TAB_EXPECT = {
     essentiel: (s) => s.skins === 18 && s.fsbtn === 1 && s.sliders >= 1 && s.ldSummary === 1,
     verre: (s) => s.sliders >= 10 && s.toggles === 2 && s.segs === 2 && s.gpv === 1,
     couleurs: (s) => s.toks === 7 && s.colors === 3 && s.segs === 1,
     texte: (s) => s.sliders === 1 && s.toggles === 2 && s.segs === 1,
     animation: (s) => s.ldPane === 1 && s.ldPreview === 1 && s.ldAmb === 1 && s.ldSettings === 1 && s.slots === 4,
+    icones: (s) => s.iconsPane === 1,
     accessibilite: (s) => s.a11y === 6 && s.segs === 2 && s.toggles === 4,
     partage: (s) => s.exportCode >= 1 && s.segs === 1 && s.toggles === 0,
     // whatever the host answers: the grid, the loading placeholders or the error card — never an empty pane
     galerie: (s) => s.galState >= 1,
   }
-  await section('advanced', 'The eight vertical tabs', async () => {
+  await section('advanced', 'The vertical tabs', async () => {
     await openTheme({ fresh: true })
     const tabs = JSON.parse(await val(`JSON.stringify(Array.from(document.querySelectorAll('.kbth-adv-tab')).map((b) => { const r = b.getBoundingClientRect(); return { text: b.textContent.trim(), on: b.classList.contains('on'), x: Math.round(r.left), y: Math.round(r.top) } }))`))
-    check('eight tabs, stacked vertically on the left, in the expected order (Essentiel, Verre et fond, Couleurs, Texte et forme, Animation, Accessibilité, Partage, Galerie — no Conversation, no Terminal)', tabs.length === 8 && tabs.every((t, i) => TAB_NAMES[i].test(t.text)) && tabs.every((t) => t.x === tabs[0].x) && tabs.every((t, i) => i === 0 || t.y > tabs[i - 1].y), tabs)
+    check('the tabs are stacked vertically on the left, in the expected order (' + TAB_IDS.map((id) => TAB_LABEL[id]).join(', ') + ' — no Conversation, no Terminal)', tabs.length === TAB_IDS.length && tabs.every((t, i) => TAB_NAMES[TAB_IDS[i]].test(t.text)) && tabs.every((t) => t.x === tabs[0].x) && tabs.every((t, i) => i === 0 || t.y > tabs[i - 1].y), tabs)
     check('… « Essentiel » is the one open by default', tabs[0].on === true && tabs.filter((t) => t.on).length === 1, tabs.map((t) => t.on))
-    await goTab(2)
+    await goTab(TAB.couleurs)
     const st = await store()
     check('the open tab is not stored: with « Colors » open, the state has no level / tab key', st === null || (st.level === undefined && st.advTab === undefined && st.tab === undefined), st)
     await openTheme()       // a plain reload: the stored state is kept
     check('… and after a reload « Essentiel » is open again', (await val(`Array.from(document.querySelectorAll('.kbth-adv-tab')).findIndex((b) => b.classList.contains('on'))`)) === 0)
     await shot('06-advanced')
-    for (let i = 0; i < 8; i += 1) {
+    for (let i = 0; i < TAB_IDS.length; i += 1) {
       const mark = errors.length
-      await goTab(i)
+      await goTab(TAB_IDS[i])
       await sleep(250)
       const info = await tabInfo()
       const alive0 = await val(`!!document.querySelector('.kbth-page')`)
-      check('tab ' + (i + 1) + ' « ' + tabs[i].text + ' » renders (' + TAB_ID[i] + '), nothing « undefined »/« NaN » in it, and no error', alive0 === true && info.chars > 40 && info.broken === false && TAB_EXPECT[TAB_ID[i]](info) && themeErrorsSince(mark).length === 0, { info, errors: themeErrorsSince(mark).slice(0, 2) })
+      check('tab ' + (i + 1) + ' « ' + tabs[i].text + ' » renders (' + TAB_IDS[i] + '), nothing « undefined »/« NaN » in it, and no error', alive0 === true && info.chars > 40 && info.broken === false && TAB_EXPECT[TAB_IDS[i]](info) && themeErrorsSince(mark).length === 0, { info, errors: themeErrorsSince(mark).slice(0, 2) })
     }
   })
 
@@ -968,32 +976,32 @@ try {
   }
   const editor = (i) => `document.querySelectorAll('.kbth-adv-editor input[type=color]')[${i}]`
   await section('colors', 'Advanced › Colors: what the page shows is what is applied; token editor and its reset', async () => {
-    if (!modeSafe) { console.log('  · skipped: the editor checks below address the Dark half of each token, and the mode found is ' + startMode); return }
+    if (!modeSafe) { console.log('SKIPPED: the editor checks below address the Dark half of each token, and the mode found is ' + startMode); return }
     await openTheme({ fresh: true })
-    await goTab(2)
+    await goTab(TAB.couleurs)
     // (a) with the native look: the page shows its own « official » palette
     const ui0 = await uiTokens()
     const mism = TOKEN_VARS.filter((v) => !sameColor(ui0[v], NATIVE[v]))
     check('the page lists the 17 tokens, four categories (Surfaces, Text, States, Brand)', Object.keys(ui0).length === 17 && TOKEN_VARS.every((v) => ui0[v] !== undefined), Object.keys(ui0))
     if (mism.length) note('native look: ' + mism.length + ' of the 17 tokens differ between the palette the page shows and the value DSH really has (' + mism.map((v) => v.replace('--dsw-', '') + ' ' + ui0[v] + ' vs ' + NATIVE[v]).join('; ') + ') — choosing any theme swaps DSH’s value for the page’s')
     // (b) with a pack applied: UI and DOM agree on all 17
-    await goTab(0)
+    await goTab(TAB.essentiel)
     const labels = await skinLabels()
     const ember = findSkin(labels, SKIN('kb-ember'))
     await clickEl(Q.skin(ember.idx))
     await until(async () => (await store()).skin === 'kb-ember', 3000)
-    await goTab(2)
+    await goTab(TAB.couleurs)
     let ui = await uiTokens()
     let dom = await readTokens()
     let diff = TOKEN_VARS.filter((v) => !sameColor(ui[v], dom[v]))
     check('with « Ember » applied, the 17 hex codes the page shows equal the 17 computed tokens', diff.length === 0, diff.map((v) => v + ' page ' + ui[v] + ' / dom ' + dom[v]))
     if (modeSafe) {
-      await goTab(0)
+      await goTab(TAB.essentiel)
       await clickEl(Q.skin(findSkin(labels, SKIN('nebuleuse')).idx))
       await until(async () => (await store()).skin === 'nebuleuse', 3000)
       await focusEl(sliderQ('tint'))
       await press('End'); await sleep(250)
-      await goTab(2)
+      await goTab(TAB.couleurs)
       ui = await uiTokens()
       dom = await readTokens()
       diff = TOKEN_VARS.filter((v) => !sameColor(ui[v], dom[v]))
@@ -1001,7 +1009,7 @@ try {
     }
     // (c) editing one token from a clean state
     await openTheme({ fresh: true })
-    await goTab(2)
+    await goTab(TAB.couleurs)
     await clickEl(`document.querySelectorAll('.kbth-tok')[1]`)   // Surfaces › Layer 1
     await sleep(200)
     const sel = await val(`JSON.stringify({ label: document.querySelector('.kbth-adv-label').textContent, css: document.querySelector('.kbth-adv-css').textContent, pressed: document.querySelector('.kbth-tok[aria-pressed=true] .kbth-tok-css').textContent })`)
@@ -1032,11 +1040,11 @@ try {
     check('the brand token can be edited too (--dsw-alias-brand-primary), with acc still null; two tokens are now retouched', sameColor((await readTokens())[V.brand], '#22c55e') && (await store()).acc === null && /^2\s/.test((await readPage()).pills[1] || ''), { brand: (await readTokens())[V.brand], pills: (await readPage()).pills })
     // reset inside a mode-less pack: does it go back to the pack or to DSH?
     await openTheme({ fresh: true })
-    await goTab(0)
+    await goTab(TAB.essentiel)
     const lab2 = await skinLabels()
     await clickEl(Q.skin(findSkin(lab2, SKIN('kb-ember')).idx))
     await until(async () => (await store()).skin === 'kb-ember', 3000)
-    await goTab(2)
+    await goTab(TAB.couleurs)
     await clickEl(`document.querySelectorAll('.kbth-tok')[1]`)
     await setColor(editor(1), '#102030')
     await until(async () => (await store()).ov['dark:l1'] === '#102030', 2000)
@@ -1048,7 +1056,7 @@ try {
 
   // ═══ 10. Advanced › Accessibility ═════════════════════════════════════════════════
   await section('a11y', 'Advanced › Accessibility: contrast levels', async () => {
-    if (!modeSafe) { console.log('  · skipped: the contrast ratios below are measured in Dark, and the mode found is ' + startMode); return }
+    if (!modeSafe) { console.log('SKIPPED: the contrast ratios below are measured in Dark, and the mode found is ' + startMode); return }
     await openTheme({ fresh: true })
     await goTab(TAB.accessibilite)
     const level = (i) => `document.querySelectorAll('.kbth-adv-pane .kbth-seg')[0].children[${i}]`
@@ -1093,7 +1101,7 @@ try {
     glassEffect: 'frosted', glassBlur: 18, sidebarLinked: true, sidebarOpacity: 25, fieldOpacity: 20, floatOpacity: 10, bgBrightness: 100, bgContrast: 100, bgSaturation: 100, bgDarken: 0, bgFit: 'cover', bgMirror: false,
     ligatures: true, radius: 'standard', showBrand: true, reduceMotion: false, focusRing: 'accent', largeTargets: false, underlineLinks: false }
   await section('reset', '« Reset all » returns to the native state', async () => {
-    if (!modeSafe) { console.log('  · skipped: it sets Dark and the mode found is ' + startMode); return }
+    if (!modeSafe) { console.log('SKIPPED: it sets Dark and the mode found is ' + startMode); return }
     await openTheme({ fresh: true })
     // dirty everything on « Essentiel », then three other tabs
     const labels = await skinLabels()
@@ -1117,13 +1125,13 @@ try {
     const tok = await readTokens()
     const wp = await readWallpaper()
     const font = await readFont()
-    await goTab(0)
+    await goTab(TAB.essentiel)
     const pg = await readPage()
     check('… the 17 tokens are the native ones, no wallpaper <div>, no font tag, the pill says native, and the page still shows its tabs', TOKEN_VARS.every((v) => sameColor(tok[v], NATIVE[v])) && wp.count === 0 && font.tags.length === 0 && /native|natif/i.test(pg.pills[0] || '') && (await val(`document.querySelectorAll('.kbth-skin:not(.kbth-skin-add)').length`)) === 18, { diff: TOKEN_VARS.filter((v) => !sameColor(tok[v], NATIVE[v])), wp: wp.count, tags: font.tags, pill: pg.pills[0] })
     check('… « DSH default » is the pressed theme again; the native mode is still ' + startMode, pg.skinPressed.length === 1 && pg.skinPressed[0] === 0 && (await modeInfo()).source === startMode, pg.skinPressed)
     const junk = Object.keys(st).filter((k) => DEFAULTS[k] === undefined && k !== 'ov')
     check('… and nothing is left behind in the stored state: « Reset all » REPLACES it (a key outside the defaults, such as radius, would otherwise survive)', junk.length === 0, junk.map((k) => k + '=' + JSON.stringify(st[k])))
-    await goTab(3)
+    await goTab(TAB.texte)
     const radius = await val(`JSON.stringify(Array.from(document.querySelectorAll('.kbth-adv-pane .kbth-seg')[0].children).map((b) => b.getAttribute('aria-pressed')))`)
     check('… the Advanced controls are back to their defaults too (Texte et forme › Radii shows the middle choice)', radius === JSON.stringify(['false', 'true', 'false']), radius)
     await reloadBoot()
@@ -1367,7 +1375,7 @@ try {
     await until(dlg, 2000)
     await shot('13b-save-window')
     const dl = JSON.parse(await val(`JSON.stringify((() => { const d = document.querySelector('[data-kb=theme-save-dlg]'); const t = Array.from(d.querySelectorAll('.kbth-toggle')).map((b) => b.getAttribute('aria-checked')); return { role: d.getAttribute('role'), modal: d.getAttribute('aria-modal'), label: d.getAttribute('aria-labelledby'), name: d.querySelector('[data-kb=theme-save-name]').value, focus: document.activeElement === d.querySelector('[data-kb=theme-save-name]'), toggles: t, inBody: d.parentElement === document.body || !!d.closest('body') } })())`))
-    check('« Enregistrer sous… » opens a window: a dialog with a name field (focused, pre-filled) and four switches: font, corners, glass on; accessibility OFF', dl.role === 'dialog' && dl.modal === 'true' && dl.name.length > 0 && dl.focus && dl.toggles.join() === 'true,true,true,false', dl)
+    check('« Enregistrer sous… » opens a window: a dialog with a name field (focused, pre-filled) and five switches: font, corners, icons, glass on; accessibility OFF', dl.role === 'dialog' && dl.modal === 'true' && dl.name.length > 0 && dl.focus && dl.toggles.join() === 'true,true,true,true,false', dl)
     await press('Tab', 12)
     check('Tab stays inside the window', await val(`!!document.activeElement.closest('[data-kb=theme-save-dlg]')`))
     await press('Escape'); await sleep(250)
@@ -1472,7 +1480,7 @@ try {
       let disk = null
       try { disk = JSON.parse(readFileSync(hostFile, 'utf8')) } catch (e) { disk = null }
       check('saving writes <DSH_HOME>/kybernos/theme-presets.json (after a short pause): one theme, same name, same clock as the browser copy', !!onDisk && disk !== null && disk.presets.length === 1 && disk.presets[0].name === 'Sur disque' && disk.updatedAt === (await libJson()).updatedAt, disk && { n: disk.presets.length, at: disk.updatedAt })
-      check('… the file holds only data: known settings, no skin, no text size', disk !== null && !('skin' in disk.presets[0].settings) && !('fs' in disk.presets[0].settings) && Object.keys(disk.presets[0].settings).every((k) => /^(mode|acc|ov|fontText|ligatures|radius|wp|wpVis|wpBlur|tint|glass\w+|sidebar\w+|fieldOpacity|floatOpacity|bg\w+)$/.test(k)), disk && Object.keys(disk.presets[0].settings))
+      check('… the file holds only data: known settings, no skin, no text size', disk !== null && !('skin' in disk.presets[0].settings) && !('fs' in disk.presets[0].settings) && Object.keys(disk.presets[0].settings).every((k) => /^(mode|acc|ov|fontText|ligatures|radius|iconSet|wp|wpVis|wpBlur|tint|glass\w+|sidebar\w+|fieldOpacity|floatOpacity|bg\w+)$/.test(k)), disk && Object.keys(disk.presets[0].settings))
       // clear the browser: the disk brings it back
       await val(`localStorage.removeItem(${JSON.stringify(LIB)})`)
       await reloadBoot()
@@ -1860,7 +1868,7 @@ try {
     check('… and the stored state holds them all (' + Object.keys(all).length + ' keys)', Object.keys(all).every((k) => JSON.stringify(st[k]) === JSON.stringify(all[k])), Object.keys(all).filter((k) => JSON.stringify(st[k]) !== JSON.stringify(all[k])))
     const withEffects = await pluginStyles()
     check('with these effects on, the plugin posts more style (' + withEffects.len + ' vs ' + base.len + ' characters in its style tags) — so the next check can tell they went away', withEffects.len > base.len + 200, { base, withEffects })
-    if (!modeSafe) { console.log('  · skipped: « Reset all » forces Dark and the mode found is ' + startMode); return }
+    if (!modeSafe) { console.log('SKIPPED: « Reset all » forces Dark and the mode found is ' + startMode); return }
     await clickEl(Q.footBtn(0)); await sleep(700)
     const st2 = await store()
     const left = Object.keys(DEFAULTS).filter((k) => JSON.stringify(st2[k]) !== JSON.stringify(DEFAULTS[k]))
@@ -1924,7 +1932,9 @@ try {
     const pk = JSON.parse(await val(`JSON.stringify((() => { const d = document.querySelector('[data-kb=ld-picker]'); return { role: d.getAttribute('role'), modal: d.getAttribute('aria-modal'), parentIsBody: d.parentElement === document.body, tabs: Array.from(document.querySelectorAll('[data-kb=ld-tab]')).map((b) => [b.getAttribute('data-id'), b.textContent.trim(), b.getAttribute('aria-pressed')]), focusIn: d === document.activeElement || d.contains(document.activeElement) } })())`))
     check('… it is a modal dialog mounted on <body> (portal), focus moved inside, three tabs with « examples » pressed', pk.role === 'dialog' && pk.modal === 'true' && pk.parentIsBody === true && pk.focusIn === true && pk.tabs.map((t) => t[0]).join() === 'examples,mine,add' && pk.tabs[0][2] === 'true', pk)
     let cards = await cardsInfo()
-    check('… 14 example cards (and the tab label says 14)', cards.length === 14 && /14/.test(pk.tabs[0][1]), { n: cards.length, label: pk.tabs[0][1] })
+    // The catalogue grows (14 examples, then 34): the count is not a constant of this check. The tab label carries it, and the grid must show exactly that many.
+    const nExamples = cards.length
+    check('… the example cards are all there (' + nExamples + ', at least the first 14) and the tab label says the same number', nExamples >= 14 && Number((/\d+/.exec(pk.tabs[0][1]) || [])[0]) === nExamples, { n: nExamples, label: pk.tabs[0][1] })
     for (let i = 0; i < 4; i += 1) {
       await clickEl(`document.querySelectorAll('.kbth-lcard')[${i}].querySelector('[data-kb=ld-toggle]')`)
       await until(async () => { const s = await ldGet(); return s && s.sel.length === i + 1 }, 2500)
@@ -1932,7 +1942,7 @@ try {
     cards = await cardsInfo()
     const rot4 = await ldGet()
     const others = cards.filter((c) => !c.on)
-    check('adding 4 animations fills the rotation (stored sel of 4), and the 5th card’s button is disabled, reading « Rotation pleine / Full rotation »', rot4 && rot4.sel.length === 4 && cards.filter((c) => c.on).length === 4 && others.length === 10 && others.every((c) => c.disabled) && /pleine|full/i.test(others[0].label), { sel: rot4 && rot4.sel, label: others[0] && others[0].label, disabled: others.filter((c) => c.disabled).length })
+    check('adding 4 animations fills the rotation (stored sel of 4), and the 5th card’s button is disabled, reading « Rotation pleine / Full rotation »', rot4 && rot4.sel.length === 4 && cards.filter((c) => c.on).length === 4 && others.length === nExamples - 4 && others.every((c) => c.disabled) && /pleine|full/i.test(others[0].label), { sel: rot4 && rot4.sel, label: others[0] && others[0].label, disabled: others.filter((c) => c.disabled).length })
     const fullHint = await val(`(document.querySelector('[data-kb=ld-picker] .kbth-mft .kbth-hint') || { textContent: '' }).textContent`)
     check('… the footer says the rotation is full', /pleine|full/i.test(String(fullHint)), fullHint)
     await clickEl(`document.querySelectorAll('.kbth-lcard')[3].querySelector('[data-kb=ld-toggle]')`)
@@ -1949,7 +1959,7 @@ try {
     await clickEl(`document.querySelectorAll('.kbth-pillb')[0]`)
     await sleep(200)
     const fAll = await cardsInfo()
-    check('filters: « one colour » shows only mono animations, « coloured » only the others, « all » the 14', fMono.length >= 5 && fMono.every((c) => c.kind === 'mono') && fCol.length >= 4 && fCol.every((c) => c.kind === 'color') && fMono.length + fCol.length === 14 && fAll.length === 14, { mono: fMono.length, color: fCol.length, all: fAll.length })
+    check('filters: « one colour » shows only mono animations, « coloured » only the others, « all » the whole catalogue (' + nExamples + ')', fMono.length >= 5 && fMono.every((c) => c.kind === 'mono') && fCol.length >= 4 && fCol.every((c) => c.kind === 'color') && fMono.length + fCol.length === nExamples && fAll.length === nExamples, { mono: fMono.length, color: fCol.length, all: fAll.length })
     await press('Escape')
     const closed = await pickerIs(false)
     check('Escape closes the picker without closing Settings, and the focus returns to the button that opened it', closed && (await settingsPageOpen()) === true && (await activeKb()) === 'ld-open-picker', { closed, settings: await settingsPageOpen(), focus: await activeKb() })
@@ -2109,7 +2119,7 @@ try {
       const cacheAfter = await val(`localStorage.getItem(${JSON.stringify(LD_CACHE)})`)
       const themeAfter = await store()
       check('the Theme page’s « Reset all » leaves the animation store alone (kybernos.theme.loader.v1 and its cache are byte-for-byte the same) while it resets the theme store', rawBefore === rawAfter && cacheBefore === cacheAfter && themeAfter && themeAfter.skin === 'dsh', { same: rawBefore === rawAfter, cacheSame: cacheBefore === cacheAfter })
-    } else console.log('  · skipped: « Reset all » forces Dark and the mode found is ' + startMode)
+    } else console.log('SKIPPED: « Reset all » forces Dark and the mode found is ' + startMode)
 
     // ── (f) imports in « Add your own » ───────────────────────────────────────────────
     await clickEl(kb('ld-open-picker')); await pickerIs(true)
@@ -2299,7 +2309,7 @@ try {
   await section('runtime', 'The thinking animation in DSH’s bottom status line (a faithful copy of the running block, DSH’s own classes)', async () => {
     await openTheme({ fresh: true })
     const lang = await val(`document.documentElement.lang`)
-    if (!/^en/i.test(String(lang))) { console.log('  · skipped: the copy uses DSH’s English phrase and the interface language is « ' + lang + ' »'); return }
+    if (!/^en/i.test(String(lang))) { console.log('SKIPPED: the copy uses DSH’s English phrase and the interface language is « ' + lang + ' »'); return }
     // ── R1: ring + orbit in order, ambiance « Médecine », size standard, no delay ──
     const info = await runtimeLoad({ ...LDBASE, sel: ['ring', 'orbit'], pack: 'medecine', size: 'standard', delay: 0 }, null)
     check('the copy is built with DSH’s real hashed classes (running, runningContent, runningIcon, runningText + the TextShimmer module’s root/content/text/decoration/sweep/highlight)', info.missing.length === 0, info)
@@ -2595,7 +2605,7 @@ try {
     const notSeen = LIGHT_RULE.filter((sel) => !seenLifted.has(sel))
     check('the selectors the plugin lifts in Light were really on screen and measured (' + (LIGHT_RULE.length - notSeen.length) + ' of ' + LIGHT_RULE.length + '; not reached: ' + (notSeen.join(', ') || 'none') + ')', LIGHT_RULE.length - notSeen.length >= LIGHT_RULE.length * 0.75, notSeen)
     if (notSeen.length) note('Light scheme: selectors of the plugin’s Light rule that no view of the run could show: ' + notSeen.join(', '))
-    if (nativeLight) console.log('  · skipped « Dark did not change »: DSH is natively Light, so there is no Dark scheme to compare (run it on a Dark profile)')
+    if (nativeLight) console.log('SKIPPED: « Dark did not change » — DSH is natively Light, so there is no Dark scheme to compare (run it on a Dark profile)')
     else check('Dark did not change: on every view, each lifted selector still computes DSH’s tertiary (' + dark.tert + ') or caption (' + dark.cap + ') colour, never the secondary one', darkWrong.length === 0, darkWrong.slice(0, 6))
     const darkSet = {}
     for (const d of darkSeen) for (const c of d.colors) (darkSet[d.sel] = darkSet[d.sel] || new Set()).add(c)
@@ -2609,7 +2619,7 @@ try {
   // then is a leftover. How long the translation took is reported too (a window shows its French source until the first pass).
   await section('french', 'English UI: nothing French is left on the Theme page, its picker or its word pack (except the export’s file content)', async () => {
     const lang = await val(`document.documentElement.lang`)
-    if (!/^en/i.test(String(lang))) { console.log('  · skipped: the interface language is « ' + lang + ' »'); return }
+    if (!/^en/i.test(String(lang))) { console.log('SKIPPED: the interface language is « ' + lang + ' »'); return }
     const { collectIn, analyse } = await import('./lib-i18n-audit.mjs')
     await openTheme({ fresh: true })
     const read = async (scope) => analyse(JSON.parse((await val(collectIn(scope), 10000)) || '[]'))
@@ -2633,17 +2643,16 @@ try {
       res.fr.forEach((t) => { if (!left.some((x) => x.text === t && x.area === area)) left.push({ area, text: t }) })
       return res
     }
-    const NAMES = ['Essentiel', 'Verre et fond', 'Couleurs', 'Texte et forme', 'Animation', 'Accessibilité', 'Partage', 'Galerie']
-    for (let i = 0; i < 8; i += 1) {
-      await goTab(i)
-      await settleView(NAMES[i], '.kbth-page')
-      if (i === TAB.essentiel) {
+    for (const id of TAB_IDS) {
+      await goTab(id)
+      await settleView(TAB_LABEL[id], '.kbth-page')
+      if (id === TAB.essentiel) {
         await clickEl(`document.querySelector('.kbth-page .kbth-fsbtn')`); await settleView('Essentiel › font list', '.kbth-page')
         await typeInto(`document.querySelector('.kbth-fssearch')`, 'zzzzzz'); await settleView('Essentiel › font list, no match', '.kbth-page')
         await press('Escape'); await sleep(300)
         if (!(await settingsPageOpen())) { await openTheme(); await goTab(TAB.essentiel) }
       }
-      if (i === TAB.animation) {
+      if (id === TAB.animation) {
         await clickEl(kb('ld-settings')); await settleView('Animation › settings', '.kbth-page')
         await clickEl(kb('ld-amb', ' .kbth-fsbtn')); await settleView('Animation › ambiances', '.kbth-page')
         await typeInto(kb('ld-amb', ' .kbth-fssearch'), 'zzzzzz'); await settleView('Animation › ambiances, no match', '.kbth-page'); await press('Escape'); await sleep(300)
@@ -2716,11 +2725,11 @@ try {
     if (lateTimers.length) note('English UI: Chrome throttled the throw-away browser’s timers in ' + lateTimers.length + ' of ' + timings.length + ' views (a 120 ms timer took up to ' + Math.max(...lateTimers.map((t) => t.lateness)) + ' ms): the live translation was late then, which is not a plugin defect — the check waits for it')
     const byArea = {}
     for (const l of left) (byArea[l.area] = byArea[l.area] || []).push(l.text)
-    console.log('  · ' + left.length + ' French string(s) left under an English interface, over the eight tabs and their windows:')
+    console.log('  · ' + left.length + ' French string(s) left under an English interface, over the tabs and their windows:')
     for (const area of Object.keys(byArea)) console.log('      ' + area + ' (' + byArea[area].length + '): ' + byArea[area].map((t) => '« ' + t.slice(0, 70) + ' »').join(' | '))
     // Allowed: the CONTENT of the exported file (its YAML header comment is the file’s own text, not interface copy).
     const unexpected = left.filter((l) => !(l.area.indexOf('Partage') === 0 && /^#/.test(l.text)) && !/^Open Sans$/.test(l.text))      // « Open Sans »: a font family name that the French-words heuristic mistakes for French
-    check('English UI: nothing French is left on the eight tabs, the picker or the word pack, except the file content of the export (' + left.length + ' listed, ' + unexpected.length + ' not allowed)', unexpected.length === 0, unexpected.map((l) => l.area + ' « ' + l.text.slice(0, 60) + ' »'))
+    check('English UI: nothing French is left on the tabs, the picker or the word pack, except the file content of the export (' + left.length + ' listed, ' + unexpected.length + ' not allowed)', unexpected.length === 0, unexpected.map((l) => l.area + ' « ' + l.text.slice(0, 60) + ' »'))
     const asleep = timings.filter((t) => !t.awake)
     if (asleep.length) note('English UI: the live translators did not answer a canary text within 12 s in ' + asleep.map((t) => t.area).join(', ') + ' (the browser’s timers were throttled; not a verdict on the plugin)')
     if (left.length) note('French left under an English interface (' + left.length + '): ' + Object.keys(byArea).map((a) => a + ' ' + byArea[a].length).join(', ') + ' — listed in the « french » section of the run')
