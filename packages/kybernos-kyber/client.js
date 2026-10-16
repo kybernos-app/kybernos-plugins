@@ -388,8 +388,8 @@ window.__ModuleLoader__.load({
       /** The « ? How it works » pill every page of the Suite carries (the card is this bundle's help.json); nothing where the Suite does not offer it. */
       const helpPill = () => {
         try {
-          if (!(typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help)) return null
-          return h('span', { className: 'kbky-pillwrap', onClickCapture: placeHelp }, h(window.__KB_HELP__.Help, { id: 'kybernos-kyber' }))
+          const pill = typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-kyber' }) : null
+          return pill === null ? null : h('span', { className: 'kbky-pillwrap', onClickCapture: placeHelp }, pill)
         } catch (e) { return null }
       }
       /** The strip sits at the foot of a chat or in the middle of an empty one: the card hangs on the side that has the room, and is no taller than it. */
@@ -750,10 +750,10 @@ window.__ModuleLoader__.load({
         '.kbky-striphr{display:flex;align-items:center;gap:8px;padding-block:3px;padding-inline-end:10px}',
         '.kbky-striph{flex:1;min-width:0;display:flex;gap:10px;align-items:center;padding:9px 14px;border:0;background:none;color:inherit;font:inherit;cursor:pointer;text-align:left;flex-wrap:wrap}',
         // the help card opens upwards by default (the strip is above the composer, at the foot of a chat), downwards when there is no room above (placeHelp)
-        '.kbky-pillwrap .kbhp-pop{top:auto;bottom:calc(100% + 8px);max-height:min(70vh,560px,var(--kbky-pop-h,70vh))}',
-        '.kbky-pillwrap[data-dir="down"] .kbhp-pop{top:calc(100% + 8px);bottom:auto}',
+        '.kbky-strip .kbky-pillwrap [data-kb="help-panel"]{top:auto;bottom:calc(100% + 8px);max-height:min(70vh,560px,var(--kbky-pop-h,70vh))}',
+        '.kbky-strip .kbky-pillwrap[data-dir="down"] [data-kb="help-panel"]{top:calc(100% + 8px);bottom:auto}',
         // a phone: the pill is mid-row, so no side of it holds the card; it becomes a sheet at the foot of the screen
-        '@media (max-width:520px){.kbky-pillwrap .kbhp-pop,.kbky-pillwrap[data-dir] .kbhp-pop,.kbky-pillwrap .kbhp-pop.start{position:fixed;inset-inline:16px;width:auto;top:auto;bottom:16px;max-height:min(70vh,560px)}}',
+        '@media (max-width:520px){.kbky-strip .kbky-pillwrap [data-kb="help-panel"],.kbky-strip .kbky-pillwrap[data-dir] [data-kb="help-panel"]{position:fixed;inset-inline:16px;width:auto;top:auto;bottom:16px;max-height:min(70vh,560px)}}',
         '.kbky-intro{margin:0 0 12px;max-width:68ch;color:var(--dsw-alias-label-secondary,#666);line-height:1.5}',
         '.kbky-help{margin:-4px 0 0;font-size:12.5px;line-height:1.45;color:var(--dsw-alias-label-secondary,#666)}',
         '.kbky-car{display:inline-flex;transform:rotate(-90deg);transition:transform .15s;color:var(--dsw-alias-label-secondary,#666)}',

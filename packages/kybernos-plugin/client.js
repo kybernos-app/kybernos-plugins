@@ -23755,9 +23755,9 @@ function renderFit(canvas, model, cam, opts){
         : null
       const kabyPair = React.useState(0)
       React.useEffect(() => {
-        const again = () => kabyPair[1]((n) => n + 1)
-        try { window.addEventListener('kb-kyby-session', again) } catch (e) { return undefined }
-        return () => { try { window.removeEventListener('kb-kyby-session', again) } catch (e) { /* gone */ } }
+        const onKaby = () => kabyPair[1]((n) => n + 1)
+        try { window.addEventListener('kb-kyby-session', onKaby) } catch (e) { return undefined }
+        return () => { try { window.removeEventListener('kb-kyby-session', onKaby) } catch (e) { /* gone */ } }
       }, [])
       let kabyChat = false
       try { kabyChat = typeof curSid === 'string' && window.__KB_KYBER__ !== undefined && typeof window.__KB_KYBER__.isKybySession === 'function' && window.__KB_KYBER__.isKybySession(curSid) === true } catch (e) { kabyChat = false }
