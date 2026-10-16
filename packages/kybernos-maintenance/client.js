@@ -97,6 +97,8 @@ window.__ModuleLoader__.load({
 
     const CSS = `
 .kbmz-page{padding:0;max-width:720px;font-size:14px;line-height:normal;display:flex;flex-direction:column;gap:18px}
+/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
+body:not([data-ds-dark-theme]) .kbmz-page{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kbmz-titre{margin:0;font-size:18px;line-height:1.3;font-weight:600;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
 [data-slot="settings.section"]:has(.kbmz-page){width:100%;max-width:none}
 /* Identity: wordmark + version on the left, « Check now » on the right */
@@ -138,7 +140,7 @@ body[data-ds-dark-theme] .kbmz-status[data-tone="warn"]{--kbmz-tc:#f5a524}
 .kbmz-auto-d{font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
 .kbmz-sw{position:relative;flex:none;width:36px;height:20px;margin-top:1px;padding:0;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);cursor:pointer}
 .kbmz-sw i{position:absolute;inset-inline-start:2px;top:2px;width:14px;height:14px;border-radius:999px;background:var(--dsw-alias-label-secondary);transition:inset-inline-start .15s ease}
-.kbmz-sw.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}.kbmz-sw.on i{inset-inline-start:18px;background:#fff}
+.kbmz-sw.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}.kbmz-sw.on i{inset-inline-start:18px;background:var(--dsw-alias-label-primary-foreground)}
 .kbmz-sw:disabled{opacity:.6;cursor:default}.kbmz-sw:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
 /* Technical details: ONE disclosure */
 .kbmz-toggle{display:flex;align-items:center;gap:10px;width:100%;padding:12px 2px;border:0;border-top:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;font-weight:600;text-align:start;cursor:pointer}

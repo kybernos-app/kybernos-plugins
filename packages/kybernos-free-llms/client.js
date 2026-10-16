@@ -120,6 +120,9 @@ window.__ModuleLoader__.load({
         ".kbm-tag[data-tone='neutral'] { background: var(--dsw-alias-bg-module-platform); color: var(--dsw-alias-label-secondary); }\n" +
         ".kbm-tag[data-tone='success'] { background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 10%, transparent); color: var(--dsw-alias-state-success-primary); }\n" +
         ".kbm-tag[data-tone='warning'] { background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 12%, transparent); color: var(--dsw-alias-state-warn-primary); }\n" +
+        "/* The tag inks are the state fills (2.1:1 on their pale tint in the light schemes): there they are pulled toward the text colour (audit A1-11). */\n" +
+        "body:not([data-ds-dark-theme]) .kbm-tag[data-tone='success'] { color: color-mix(in srgb, var(--dsw-alias-state-success-primary) 50%, var(--dsw-alias-label-primary)); }\n" +
+        "body:not([data-ds-dark-theme]) .kbm-tag[data-tone='warning'] { color: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 50%, var(--dsw-alias-label-primary)); }\n" +
         ".kbm-dot { position: relative; display: inline-block; flex: none; width: 10px; height: 10px; }\n" +
         ".kbm-dot::after { content: ''; position: absolute; inset: 20%; border-radius: 50%; background: currentColor; }\n" +
         ".kbm-dot[data-state='done'] { color: var(--dsw-alias-state-success-primary); }\n" +
@@ -129,6 +132,8 @@ window.__ModuleLoader__.load({
 
       const KFL_CSS = "/* kfl-* : the Free LLMs panel layout (this bundle only — DSH tokens) */\n" +
         ".kfl-root { border: 1px solid var(--dsw-alias-border-l2); border-radius: 14px; background: var(--dsw-alias-bg-layer-2); padding: 16px; max-width: 720px; margin-bottom: 16px; }\n" +
+        "/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */\n" +
+        "body:not([data-ds-dark-theme]) .kfl-root{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}\n" +
         ".kfl-titre { margin: 0; font-size: 18px; line-height: 1.3; font-weight: 600; letter-spacing: -.01em; color: var(--dsw-alias-label-primary); }\n" +
         ".kfl-soustitre { margin: 6px 0 14px; color: var(--dsw-alias-label-secondary); font-size: 13px; line-height: 1.5; }\n" +
         ".kfl-avertis { margin: 0 0 14px; padding: 10px 12px; border: 0.5px solid color-mix(in srgb, var(--dsw-alias-state-warn-primary) 35%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 8%, transparent); color: var(--dsw-alias-state-warn-label, var(--dsw-alias-state-warn-primary)); font-size: 13px; line-height: 1.5; }\n" +
@@ -153,7 +158,7 @@ window.__ModuleLoader__.load({
         ".kfl-sonde { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 13px; color: var(--dsw-alias-label-secondary); }\n" +
         ".kfl-sonde[data-ok='true'] { color: var(--dsw-alias-state-success-primary); }\n" +
         ".kfl-sonde[data-ok='false'] { color: var(--dsw-alias-state-error-primary); }\n" +
-        ".kfl-locked { margin: 0 0 10px; font-size: 13px; line-height: 1.5; color: var(--dsw-alias-state-error-primary); }\n"
+        ".kfl-locked { margin: 0 0 10px; font-size: 13px; line-height: 1.5; color: color-mix(in srgb, var(--dsw-alias-state-error-primary) 80%, var(--dsw-alias-label-primary)); }\n"
 
       // ── host calls ───────────────────────────────────────────────────────
       // A refused connection, a 404 page or any answer that is not JSON is the same thing for the person: the host half does not

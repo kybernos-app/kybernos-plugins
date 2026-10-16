@@ -486,6 +486,8 @@ window.__ModuleLoader__.load({
    (avatar d'initiales, nom, pastille de formule, appareil appairé) ; déconnecté,
    elle explique et propose « Se connecter ». Le tout ouvre la même fiche. */
 .kbf-root{display:flex;flex-direction:column;gap:6px;width:100%;min-width:0;max-width:100%;position:relative}
+/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
+body:not([data-ds-dark-theme]) :is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-poptitle,.kbl-page){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kbf-avatar{flex:none;width:23px;height:23px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,monospace;font-size:9.5px;font-weight:600;letter-spacing:.02em;background:var(--dsw-alias-brand-primary,#6a4fd8);color:var(--dsw-alias-label-primary-foreground,#fff)}
 /* Le sélecteur d'espace : la rangée du pied montre l'espace ACTIF ; sa page
    (classes kbs-*) porte la liste des espaces puis le réglage de synchronisation.
@@ -749,6 +751,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
 .kbl-area:hover{border-color:var(--dsw-alias-border-l3)}
 .kbl-area:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4f7cff);outline-offset:1px}
 .kbl-area:disabled{opacity:.6}
+.kbl-area::placeholder{color:var(--dsw-alias-label-tertiary)}
 .kbl-count{align-self:flex-end;font-size:11.5px;color:var(--dsw-alias-label-tertiary)}
 .kbl-line{margin:0;font-size:14px;color:var(--dsw-alias-label-primary)}
 .kbl-note{margin:0}
@@ -1641,6 +1644,35 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               }, h(MoonMenuIcon, { size: 15 }))))
         }
 
+        // <menu-keys:begin> the keyboard contract of the two footer menus (test-cloud-client.mjs plays this block on its own)
+        /** Where a key moves the focus in a menu of `count` buttons, from button `from` (-1: the focus is not on one): the new index, or -1 when the key moves nothing. */
+        const menuTarget = (key, count, from) => {
+          if (count < 1) return -1
+          if (key === 'ArrowDown') return from < 0 || from >= count - 1 ? 0 : from + 1
+          if (key === 'ArrowUp') return from <= 0 ? count - 1 : from - 1
+          if (key === 'Home') return 0
+          if (key === 'End') return count - 1
+          return -1
+        }
+        // <menu-keys:end>
+        const menuButtons = (menu) => Array.from(menu.querySelectorAll('button:not(:disabled)')).filter((b) => b.getClientRects().length > 0)
+        /** The focus enters the menu that has just opened, on its first button. */
+        const focusFirstItem = (menuRef) => { try { const m = menuRef.current; if (m !== null && m !== undefined) { const items = menuButtons(m); if (items.length > 0) items[0].focus() } } catch (e) { /* the menu is gone */ } }
+        /** The focus goes back to the button that opened the menu. */
+        const focusTrigger = (ref) => { try { if (ref !== undefined && ref !== null && ref.current !== null && ref.current !== undefined) ref.current.focus() } catch (e) { /* the button is gone */ } }
+        /** The keydown handler of a menu element: arrows, Home and End move between its buttons; Tab closes it. (Escape is the window listener of each menu.) A key pressed in the
+         *  « Switch team » panel, a React child that is not in this menu's DOM, is not ours. */
+        const menuKeyDown = (menuRef, toggleRef, close) => (ev) => {
+          const menu = menuRef.current
+          if (menu === null || menu === undefined || menu.contains(ev.target) !== true) return
+          if (ev.key === 'Tab') { ev.preventDefault(); close(); focusTrigger(toggleRef); return }
+          const items = menuButtons(menu)
+          const to = menuTarget(ev.key, items.length, items.indexOf(document.activeElement))
+          if (to < 0) return
+          ev.preventDefault()
+          items[to].focus()
+        }
+
         // ── The footer's menu while NO account is connected (or while a pairing waits) ──
         // The row's gear opens it. Same structure as the connected menu: sign in (OUR device-code flow, never DSH's own « Sign
         // in »), appearance, DSH's Settings, links. DSH's Settings are reached from an entry of this menu — never from DSH's
@@ -1650,6 +1682,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           const posPair = React.useState(null)
           const pos = posPair[0]
           const setPos = posPair[1]
+          const menuRef = React.useRef(null)
           React.useLayoutEffect(() => {
             const row = props.anchorRef.current
             if (row === null || row === undefined) return
@@ -1662,7 +1695,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             })
           }, [])
           React.useEffect(() => {
-            const onKey = (ev) => { if (ev.key === 'Escape') props.onClose() }
+            const onKey = (ev) => { if (ev.key === 'Escape') { props.onClose(); focusTrigger(props.toggleRef) } }
             // The gear toggles the menu itself: closing here at mousedown would let its click reopen the menu at once.
             const dehors = (ev) => {
               const c = ev.target
@@ -1675,10 +1708,12 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             document.addEventListener('mousedown', dehors)
             return () => { window.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', dehors) }
           }, [props.onClose])
+          // The menu is drawn once its position is known: the focus enters it then.
+          React.useEffect(() => { if (pos !== null) focusFirstItem(menuRef) }, [pos === null])
           if (pos === null) return null
           const entree = entreeMenu(props.onClose)
           return ReactDOM.createPortal(h('div', {
-            className: 'kbfp-menu kbfp-menu-off', role: 'menu', 'aria-label': t('menu'), 'data-kb': 'off-menu',
+            className: 'kbfp-menu kbfp-menu-off', role: 'menu', 'aria-label': t('menu'), 'data-kb': 'off-menu', ref: menuRef, onKeyDown: menuKeyDown(menuRef, props.toggleRef, props.onClose),
             style: { left: pos.left + 'px', bottom: pos.bottom + 'px', width: pos.width + 'px' },
           },
           h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-connect' },
@@ -1964,11 +1999,12 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
         }
         const UserMenu = (props) => {
           React.useEffect(() => {
-            const onKey = (ev) => { if (ev.key === 'Escape') props.onClose() }
+            const onKey = (ev) => { if (ev.key === 'Escape') { props.onClose(); focusTrigger(props.toggleRef) } }
             window.addEventListener('keydown', onKey)
             return () => window.removeEventListener('keydown', onKey)
           }, [props.onClose])
           const popRef = React.useRef(null)
+          React.useEffect(() => { focusFirstItem(popRef) }, [])
           React.useEffect(() => {
             const dehors = (ev) => {
 // The « Switch team » sub-panel lives in a PORTAL on
@@ -2036,7 +2072,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           // Account · Links, then Log out. An available update goes first.
           // "Security" is no longer in the menu (04/10); the plan moves up under
           // the space selector, just before "Teams settings".
-          return h('div', { className: 'kbfp-menu', ref: popRef, role: 'menu', 'aria-label': t('wsPageTitle') },
+          return h('div', { className: 'kbfp-menu', ref: popRef, role: 'menu', 'aria-label': t('wsPageTitle'), onKeyDown: menuKeyDown(popRef, props.toggleRef, props.onClose) },
             maj !== null
               ? h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-update' },
                   entree('update', h(UpdateIcon, { size: 18 }), t('menuUpdate'), () => envoyer('update'), { amber: true, tail: (maj.kind === 'moteur' ? 'DSH ' : '') + (typeof maj.version === 'string' ? maj.version : maj.cible) }),
@@ -2176,6 +2212,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           }, [])
           const offRowRef = React.useRef(null)
           const gearRef = React.useRef(null)
+          const cardRef = React.useRef(null)
           const [upgradeOpen, setUpgradeOpen] = React.useState(false)
           // The same dialog, for a page that has to say « this needs a paid plan » (the Kaby page): it asks, it does not own the dialog.
           React.useEffect(() => {
@@ -2410,7 +2447,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             },
             h('div', { className: 'kbfp-card' },
               h('button', {
-                type: 'button', className: 'kbfp-cardmain', title: t('wsPageTitle'),
+                type: 'button', className: 'kbfp-cardmain', ref: cardRef, title: t('wsPageTitle'),
                 'aria-label': meter !== null ? t('wsPageTitle') + ' — ' + meter.title : t('wsPageTitle'), 'aria-haspopup': 'menu',
                 'aria-expanded': menuOpen === true ? 'true' : 'false',
                 onClick: () => { setNotifOpen(false); setMenuOpen(menuOpen !== true) },
@@ -2457,6 +2494,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               menuOpen === true
                 ? h(UserMenu, {
                   state: state,
+                  toggleRef: cardRef,
                   onClose: () => setMenuOpen(false),
                   onChanged: () => { void load() },
                   onCreateSpace: () => {

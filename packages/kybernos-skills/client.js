@@ -668,7 +668,7 @@ window.__ModuleLoader__.load({
 .kbs-root .kbsub button.kb-seg{display:inline-flex;align-items:center;gap:8px;height:34px;border:0;border-radius:999px;padding:0 16px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .kbs-root .kbsub button.kb-seg:hover{color:var(--dsw-alias-label-primary)}
 .kbs-root .kbsub button.kb-seg.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 1px 3px rgba(20,20,19,.14)}
-.kbs-root .kbsub .count{font-family:ui-monospace,monospace;font-size:11px;color:inherit;opacity:.7}
+.kbs-root .kbsub .count{font-family:ui-monospace,monospace;font-size:11px;color:inherit;opacity:.95}
 /* A phone (A5-05): four tabs with their counts need 395 px in a 332 px strip, and the strip slid sideways with « Team » out of
    sight and no hint that it was there. Tighter tabs and no counts (they are on the pages) need about 295 px: all four fit. */
 @media (max-width:440px){
@@ -792,9 +792,9 @@ window.__ModuleLoader__.load({
 .kbs-root .kb-pager{display:flex;align-items:center;justify-content:center;gap:16px;padding:6px 0 2px}
 .kbs-root .kb-pager .t{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--dsw-alias-label-caption)}
 .kbs-root .kb-sw{width:36px;height:20px;border-radius:999px;background:var(--dsw-alias-bg-layer-3);position:relative;cursor:pointer;border:none;flex:0 0 auto;transition:background .15s}
-.kbs-root .kb-sw i{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s;display:block}
+.kbs-root .kb-sw i{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--dsw-alias-label-secondary);transition:transform .15s;display:block}
 .kbs-root .kb-sw.on{background:var(--kb-switch-on,#4d7cfe)}
-.kbs-root .kb-sw.on i{transform:translateX(16px)}
+.kbs-root .kb-sw.on i{transform:translateX(16px);background:#fff}
 .kbs-root .kb-back{display:inline-flex;align-items:center;gap:8px;background:none;border:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13.5px;cursor:pointer;padding:0;width:fit-content}
 .kbs-root .kb-back:hover{color:var(--dsw-alias-label-primary)}
 .kbs-root .kb-detail-head{display:flex;align-items:center;gap:16px}
@@ -924,8 +924,8 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-star-btn.on{color:#f7c46c;border-color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 45%,transparent);background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 14%,transparent)}
 /* — Where the index is read from — */
 .kbs-root .kbs-srcline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
-.kbs-root .kbs-srcline svg{flex:0 0 auto;color:var(--dsw-alias-label-caption)}
-.kbs-root .kbs-srcline .k{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-caption)}
+.kbs-root .kbs-srcline svg{flex:0 0 auto;color:var(--dsw-alias-label-secondary)}
+.kbs-root .kbs-srcline .k{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
 .kbs-root .kbs-srcline .v{font-family:ui-monospace,monospace;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .kbs-root .kbs-srcline .w::before{content:'·';margin-right:8px}
 @media (max-width:520px){.kbs-root .kbs-srcline .w::before{display:none}}
@@ -970,7 +970,7 @@ window.__ModuleLoader__.load({
 .kbs-root .kbt-card .grow{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
 .kbs-root .kbt-dot{width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-state-warn-primary);display:inline-block;flex:0 0 auto}
 .kbs-root .kbt-kv{display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px 14px;font-size:13px;color:var(--dsw-alias-label-secondary)}
-.kbs-root .kbt-kv .k{color:var(--dsw-alias-label-caption)}
+.kbs-root .kbt-kv .k{color:var(--dsw-alias-label-secondary)}
 .kbs-root .kbt-cap{font-size:12px;color:var(--dsw-alias-label-caption);line-height:1.5}
 .kbs-root .kbt-sheet{width:660px}
 .kbs-root .kb8-primary[disabled]{opacity:.45;cursor:default}
@@ -1035,6 +1035,12 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
 .kbs-root .kbsf-pill.ok{color:var(--dsw-alias-state-success-primary,#22c55e)}
 .kbs-root .kbsf-pill.warn{color:var(--dsw-alias-state-warn-primary,#f59e0b)}
 .kbs-root .kbsf-pill.need{color:var(--dsw-alias-state-business-primary,#5686fe)}
+/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
+body:not([data-ds-dark-theme]) .kbs-root{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
+/* The state inks are the fills (2.1 to 4.2:1 on white): in the light schemes they are pulled toward the text colour (audit A1-11). */
+body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.ok{color:color-mix(in srgb,var(--dsw-alias-state-success-primary,#22c55e) 50%,var(--dsw-alias-label-primary))}
+body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.warn{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#f59e0b) 50%,var(--dsw-alias-label-primary))}
+body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb,var(--dsw-alias-state-business-primary,#5686fe) 60%,var(--dsw-alias-label-primary))}
 .kbs-root .kbsf-acts{display:flex;align-items:center;gap:8px;margin-top:auto;min-height:32px;transition:opacity .14s ease}
 @media (hover:hover){
 .kbs-root .kbsf-card .kbsf-acts{opacity:0}
@@ -1117,8 +1123,8 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
 .kbss-page .kbss-h2{margin:0;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}
 .kbss-page .kbss-sub{margin:0;font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
 .kbss-page .kbss-srcline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
-.kbss-page .kbss-srcline svg{flex:0 0 auto;color:var(--dsw-alias-label-caption)}
-.kbss-page .kbss-srcline .k{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-caption)}
+.kbss-page .kbss-srcline svg{flex:0 0 auto;color:var(--dsw-alias-label-secondary)}
+.kbss-page .kbss-srcline .k{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
 .kbss-page .kbss-srcline .v{font-family:ui-monospace,monospace;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .kbss-page .kbss-srcline .w::before{content:'·';margin-right:8px}
 @media (max-width:520px){.kbss-page .kbss-srcline .w::before{display:none}}
@@ -2028,7 +2034,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
         const pickBy = (p) => {
           const owner = String(p.source).split('/')[0]
           return h('span', { className: 'kbsf-by', title: t('pick.by', { who: owner }) },
-            h('span', { className: 'kbsf-av', style: { background: 'hsl(' + hue(owner) + ' 45% 42%)' }, 'aria-hidden': 'true' }, owner.charAt(0).toUpperCase()),
+            h('span', { className: 'kbsf-av', style: { background: 'hsl(' + hue(owner) + ' 45% 32%)' }, 'aria-hidden': 'true' }, owner.charAt(0).toUpperCase()),
             h('span', { className: 'nm' }, owner))
         }
         const pickCnt = (p) => {

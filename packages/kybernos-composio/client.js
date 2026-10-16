@@ -876,13 +876,15 @@ window.__ModuleLoader__.load({
     const CSS = `
 .kbcp-config{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border:1px solid rgba(128,128,128,.25);border-radius:12px;max-width:680px}
 .kbcp-config h3{margin:0;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
-.kbcp-logo{width:20px;height:20px;border-radius:6px;background:linear-gradient(135deg,#ff7a1a,#f43f5e);color:#fff;font-weight:800;font-size:11px;display:inline-flex;align-items:center;justify-content:center}
+.kbcp-logo{width:20px;height:20px;border-radius:6px;background:linear-gradient(135deg,#ff7a1a,#f43f5e);color:#0f1115;font-weight:800;font-size:11px;display:inline-flex;align-items:center;justify-content:center}
 .kbcp-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .kbcp-input{flex:1;min-width:200px;height:34px;border-radius:9px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;padding:0 11px;font-size:13px}
+.kbcp-input::placeholder{color:var(--dsw-alias-label-tertiary)}
+body:not([data-ds-dark-theme]) .kbcp-input::placeholder{color:var(--dsw-alias-label-secondary)}
 .kbcp-btn{height:32px;padding:0 13px;border-radius:8px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .kbcp-btn:hover{background:rgba(128,128,128,.12)}
 .kbcp-btn.primary{background:#635bff;border-color:#635bff;color:#fff}
-.kbcp-btn.primary:hover{filter:brightness(1.08)}
+.kbcp-btn.primary:hover{filter:brightness(.92)}
 .kbcp-btn:disabled{opacity:.5;cursor:default}
 /* (Kybernos filter POC) Pill in the header bar of the engine's Plugins page
    (dsh-client-ui-plugin-manager): hides the non-Kybernos groups/cards when it is
@@ -901,13 +903,15 @@ window.__ModuleLoader__.load({
 .kbcp-dot.on{background:#22c55e}
 .kbcp-dot.warn{background:#f59e0b}
 .kbcp-dot.bad{background:#ef4444}
-.kbcp-help{font-size:12px;opacity:.75}
+.kbcp-help{font-size:12px;opacity:.95}
 .kbcp-help summary{cursor:pointer;font-size:12.5px;width:fit-content}
 .kbcp-help ol{margin:8px 0 0;padding-inline-start:20px;display:flex;flex-direction:column;gap:4px}
 .kbcp-help a{color:var(--dsw-alias-label-secondary);text-decoration:underline}
 .kbcp-note{font-size:11.5px;opacity:.65;line-height:1.5}
 .kbcp-code{font-family:ui-monospace,Menlo,monospace;font-size:11px;opacity:.75}
 .kb7-root{display:flex;flex-direction:column;gap:16px;padding:4px 0 24px;position:relative}
+/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
+body:not([data-ds-dark-theme]) .kb7-root{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kb7-head{display:flex;flex-direction:column;gap:4px}
 .kb7-h1{margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em}
 .kb7-sub{margin:0;font-size:13px;opacity:.7;max-width:720px;line-height:1.5}
@@ -937,6 +941,9 @@ window.__ModuleLoader__.load({
 .kb7-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:28px}
 .kb7-pill{font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:rgba(34,197,94,.15);color:#22c55e;white-space:nowrap}
 .kb7-pill.pend{background:rgba(250,204,21,.15);color:#facc15}
+/* The tag inks are the state fills (2.1:1 on their pale tint in the light schemes): there they are pulled toward the text colour (audit A1-11). */
+body:not([data-ds-dark-theme]) .kb7-pill{color:color-mix(in srgb,var(--dsw-alias-state-success-primary,#22c55e) 50%,var(--dsw-alias-label-primary))}
+body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#facc15) 50%,var(--dsw-alias-label-primary))}
 .kb7-bars{display:flex;gap:4px}
 .kb7-bar{height:4px;flex:1;border-radius:2px;background:#22c55e;opacity:.55}
 .kb7-bar.pend{background:#facc15}
@@ -1103,7 +1110,6 @@ window.__ModuleLoader__.load({
 .kb7-seclab span{font-weight:500;text-transform:none;letter-spacing:0;padding:0 7px;border-radius:7px;background:rgba(128,128,128,.18)}
 .kbcp-pv{display:flex;gap:14px;padding:16px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));background:var(--dsw-alias-bg-layer-2,transparent);margin:0 0 12px}
 .kbcp-pv.sel{border-color:var(--dsw-alias-brand-primary,#6c8cff);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary,#6c8cff)}
-.kbcp-pv.off{opacity:.85}
 .kbcp-pv-rad{flex:none;width:18px;height:18px;border-radius:50%;border:2px solid var(--dsw-alias-border-l2,rgba(128,128,128,.5));margin-top:2px;position:relative;cursor:pointer;background:transparent;padding:0}
 .kbcp-pv.off .kbcp-pv-rad{cursor:default}
 .kbcp-pv.sel .kbcp-pv-rad{border-color:var(--dsw-alias-brand-primary,#6c8cff)}

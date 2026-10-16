@@ -353,6 +353,8 @@ window.__ModuleLoader__.load({
 
       const CSS = [
         '.kwse-page{max-width:720px;font-size:14px;line-height:normal}',
+        '/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */',
+        'body:not([data-ds-dark-theme]) .kwse-page{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}',
         '.kwse-head{display:flex;align-items:center;gap:10px}',
         '.kwse-page h4{margin:0 0 2px;font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1.25}',
         '.kwse-intro{margin:0 0 14px;color:var(--dsw-alias-label-secondary,#666);font-size:13px;line-height:1.45}',
@@ -385,8 +387,8 @@ window.__ModuleLoader__.load({
         '.kwse-dot.down{background:var(--dsw-alias-state-error-primary,#c33)}',
         '.kwse-switch{width:34px;height:20px;border:0;border-radius:999px;cursor:pointer;position:relative;flex:none;background:var(--dsw-alias-border-l3,#bbb)}',
         '.kwse-switch.on{background:var(--dsw-alias-brand-primary,#36c)}',
-        '.kwse-switch span{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--dsw-alias-label-primary-foreground,#fff);transition:left 120ms ease}',
-        '.kwse-switch.on span{left:16px}',
+        '.kwse-switch span{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--dsw-alias-label-secondary,#666);transition:left 120ms ease}',
+        '.kwse-switch.on span{left:16px;background:var(--dsw-alias-label-primary-foreground,#fff)}',
         '.kwse-detail{padding:2px 12px 12px 36px;display:flex;flex-direction:column;gap:8px}',
         '.kwse-desc{margin:0;font-size:12.5px;color:var(--dsw-alias-label-secondary,#666)}',
         '.kwse-field{display:flex;flex-wrap:wrap;align-items:center;gap:8px}',

@@ -25,6 +25,9 @@
 // packages/kybernos-cloud/index.js (relay rules). By default the stand-in page makes the reads the real frame makes; `--console-file <html>` serves the
 // server's real console page instead (node -e "import('<server>/src/modules/app/pages.ts').then((m) => require('fs').writeFileSync('console.html', m.EMBEDDED_PAGE))").
 //
+// The menus are also driven with the KEYBOARD ONLY (audit A1-29): Enter opens one with the focus on its first item, the arrows walk it round the ends, Home / End jump, Escape and
+// Tab close it and give the focus back to the button that opened it. The keys are real key events (CDP Input.dispatchKeyEvent), nothing is focused by the page after the first focus.
+//
 // Sandbox only: it refuses :3080 (exit 3). It presses DSH's light/dark switch of the sandbox's own profile and puts it back.
 // Exit 0 all good, 1 a check failed, 3 not run.
 import { createServer } from 'node:http'
@@ -256,6 +259,41 @@ const clean = async () => { await key('Escape', 'Escape'); await reload() }
 const entries = async (menuSel) => (await val(`Array.from(document.querySelectorAll(${JSON.stringify(menuSel)} + ' [data-kb^="menu-"]')).map((e) => e.getAttribute('data-kb').replace('menu-', '')).filter((k) => k.indexOf('block-') !== 0)`)) || []
 const openProfileMenu = async () => { await press('[data-kb="workspace-card"] .kbfp-cardmain'); await until(() => exists('.kbfp-menu'), 4000) }
 const closeProfileMenu = async () => { await press('[data-kb="workspace-card"] .kbfp-cardmain'); await until(gone('.kbfp-menu'), 4000) }
+// A real key press: the keys of a menu are named keys, not text (Enter alone carries its character, the one a button is activated by).
+const KEY_CODES = { Escape: 27, Enter: 13, Tab: 9, ArrowDown: 40, ArrowUp: 38, Home: 36, End: 35 }
+const pressKey = async (k) => {
+  await page.send('Input.dispatchKeyEvent', Object.assign({ type: k === 'Enter' ? 'keyDown' : 'rawKeyDown', key: k, code: k, windowsVirtualKeyCode: KEY_CODES[k] }, k === 'Enter' ? { text: '\r' } : {}))
+  await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: k, code: k, windowsVirtualKeyCode: KEY_CODES[k] })
+  await settle() // two frames and a beat: what the key set going has been drawn (focus moved, menu closed)
+}
+/** The menu with the keyboard only. `trigger` is the button that opens it, `menu` the menu's own selector. */
+const keyboardMenu = async (label, trigger, menu) => {
+  const spot = () => val(`(() => { const m = document.querySelector(${JSON.stringify(menu)}); const a = document.activeElement; if (!a || a === document.body) return { at: null, n: m ? m.querySelectorAll('button:not(:disabled)').length : 0 }; const items = m ? Array.from(m.querySelectorAll('button:not(:disabled)')) : []; return { at: m ? items.indexOf(a) : -1, n: items.length, trigger: a.matches(${JSON.stringify(trigger)}), open: !!m } })()`)
+  await val(`document.querySelector(${JSON.stringify(trigger)}).focus()`)
+  await pressKey('Enter')
+  await waitFor(page, `document.querySelector(${JSON.stringify(menu)}) !== null`, 4000)
+  await until(async () => (await spot()).at !== null, 3000) // the focus enters the menu a moment after it is drawn
+  let s = await spot()
+  check(label + ': Enter on the focused button opens the menu and the focus enters it, on its first item', s.open === true && s.at === 0 && s.n >= 6, s)
+  const n = s.n
+  await pressKey('ArrowDown'); s = await spot()
+  check(label + ': ArrowDown moves to the second item', s.at === 1, s)
+  await pressKey('End'); s = await spot()
+  check(label + ': End goes to the last item', s.at === n - 1, s)
+  await pressKey('ArrowDown'); s = await spot()
+  check(label + ': ArrowDown on the last item wraps to the first', s.at === 0, s)
+  await pressKey('ArrowUp'); s = await spot()
+  check(label + ': ArrowUp on the first item wraps to the last', s.at === n - 1, s)
+  await pressKey('Home'); s = await spot()
+  check(label + ': Home goes to the first item', s.at === 0, s)
+  await pressKey('Escape'); await until(gone(menu), 3000)
+  s = await spot()
+  check(label + ': Escape closes the menu and the focus is back on the button', s.open !== true && s.trigger === true && !(await exists(menu)), s)
+  await pressKey('Enter'); await waitFor(page, `document.querySelector(${JSON.stringify(menu)}) !== null`, 4000); await until(async () => (await spot()).at !== null, 3000)
+  await pressKey('Tab'); await until(gone(menu), 3000)
+  s = await spot()
+  check(label + ': Tab closes the menu too and the focus is back on the button (not left on the page behind)', s.open !== true && s.trigger === true && !(await exists(menu)), s)
+}
 const openUpgrade = async (want = 'upgrade-plan-solo') => {
   await openProfileMenu()
   await press('[data-kb="menu-plan-cta"]')
@@ -300,6 +338,7 @@ try {
     await press('[data-kb="foot-signin"]'); await until(() => exists('[data-kb="off-menu"]'), 4000)
     await press('[data-kb="foot-signin"]'); await until(gone('[data-kb="off-menu"]'), 3000)
     check('the button toggles it', !(await exists('[data-kb="off-menu"]')))
+    await keyboardMenu('Signed out', '[data-kb="foot-signin"]', '[data-kb="off-menu"]')
 
     // Links: Website, Help (in DSH's language), Create an account (the server's own account page).
     for (const entry of ['website', 'help', 'signup']) {
@@ -414,6 +453,9 @@ try {
     check('the plan row shows « Free » and Upgrade', /Free/.test((await text('.kbfp-mplan')) || '') && (await exists('[data-kb="menu-plan-cta"]')))
     await sleep(300)
     await shot('7-connected-menu')
+    await pressKey('Escape'); await until(gone('.kbfp-menu'), 3000)
+    await keyboardMenu('Connected', '[data-kb="workspace-card"] .kbfp-cardmain', '.kbfp-menu')
+    await openProfileMenu()
 
     // Remote control: the phone link's own panel, from the menu — and the footer's separate phone button is gone.
     check('the footer has no phone button and no bell: the profile row is the card\'s only button (the bell is hidden behind one flag, not deleted)', (await val(`document.querySelectorAll('[data-kb="workspace-card"] .kbfp-card > button').length`)) === 1 && !(await exists('.kbfp-bellwrap')) && !(await exists('[data-kb="workspace-card"] [title="Notifications"]')))

@@ -326,6 +326,9 @@ async function run() {
       const { page } = live
       try {
         await page.send('Runtime.enable', {})
+        // A "Leave site?" dialog (a panel with an unsaved edit) would hold every later reload for ever: it is answered at once.
+        await page.send('Page.enable', {})
+        page.on('Page.javascriptDialogOpening', () => { page.send('Page.handleJavaScriptDialog', { accept: true }).catch(() => {}) })
         await page.send('Page.addScriptToEvaluateOnNewDocument', { source: RECORD_SHIFTS })
         if (size === 'narrow') await page.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false })
         await interceptor(page)
@@ -371,6 +374,7 @@ function makeCtx(page, size, scheme) {
           const r = e.getBoundingClientRect()
           if (r.width < 4 || r.height < 4 || getComputedStyle(e).visibility !== 'visible') return false
           if (sp.label !== undefined && !norm(e.getAttribute('aria-label') || e.getAttribute('title')).startsWith(norm(sp.label))) return false
+          if (sp.minLeft !== undefined && r.left < sp.minLeft) return false // the right pane's rows, not the same word in the middle of the page
           if (sp.text !== undefined) {
             const own = norm(Array.from(e.childNodes).filter((n) => n.nodeType === 3).map((n) => n.textContent).join(''))
             const first = norm(String(e.innerText || '').split('\\n')[0])
@@ -546,6 +550,35 @@ const SCENARIOS = [
         for (const t of tabs) { if (await c.click({ css: '[role="tab"], .kbth-adv-tab', text: t }, { quiet: true, wait: 900 })) await c.audit(slug(name) + '.' + slug(t, 18), { wait: 900 }) }
         // The « How it works » card of the pages that have one.
         if (await c.click({ css: 'button', text: 'How it works' }, { quiet: true })) { await c.audit(slug(name) + '.help', { wait: 700 }); await c.key('Escape') }
+      }
+      c.dirty = true
+    },
+  },
+  {
+    // The right pane's own panels. Their stage is a fixed light paper in every scheme while their head, bars and notes follow the theme, so a pair of inks
+    // chosen for one of the two reads wrong in the other (audit A4-01, A4-13, A4-24). Slides is also played with its demo deck and the text editor over it.
+    id: 'panels',
+    async run(c) {
+      const { page } = c
+      const dbl = async (x, y) => { for (const [type, n] of [['mouseMoved', 0], ['mousePressed', 1], ['mouseReleased', 1], ['mousePressed', 2], ['mouseReleased', 2]]) await page.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: n }) }
+      const present = (sel) => page.evalJs(`!!document.querySelector(${JSON.stringify(sel)})`).then((r) => r.val === true)
+      // The host keeps the pane and its tabs from one page to the next: a panel may already be open, or be a tab behind the active one.
+      const openPanel = async (name, probe) => {
+        if (await present(probe)) return true
+        if (await c.click({ css: '[role="tab"], button', text: name, minLeft: 700 }, { wait: 1800, quiet: true })) return true
+        return (await c.click({ css: 'button[aria-label="New tab"]' }, { wait: 900, quiet: true })) && (await c.click({ css: '[role="tab"], button', text: name, minLeft: 700 }, { wait: 1800 }))
+      }
+      await c.click({ css: 'button[aria-label="Open right sidebar"]' }, { wait: 1500, quiet: true })
+      if (await openPanel('Slides', '.kbsd-root')) {
+        if (await present('.kbsd-demo')) { await c.audit('slides-empty', { shot: true, wait: 1200 }); await c.click({ css: '.kbsd-demo' }); await sleep(11000) } // the demo writes its five slides in about nine seconds
+        else await sleep(1200)
+        await c.audit('slides-deck', { shot: true })
+        const title = (await page.evalJs(`(() => { const e = Array.from(document.querySelectorAll('.kbsd-slide .kbsd-champ')).find((x) => x.innerText.trim() !== ''); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`)).val
+        if (title) { await dbl(title.x, title.y); await sleep(700); await c.audit('slides-editor', { shot: true }); await c.key('Escape') }
+        else missing.push({ size: c.size, scheme: c.scheme, scenario: 'panels', why: 'no field to edit on the demo deck' })
+      }
+      for (const [name, probe] of [['Briques', '.kbb-root'], ['Modeleur', '.kbmo']]) {
+        if (await openPanel(name, probe)) await c.audit(slug(name) + '-empty', { shot: true, wait: 1200 })
       }
       c.dirty = true
     },

@@ -358,6 +358,12 @@ let kbLocaleRead = () => 'en'
       'tasks.edit.chat.ask': { kybernos: 'Ce que je veux changer : ', en: 'What I want to change: ' },
       'tasks.edit.chat.act': { kybernos: 'Modifier dans le chat', en: 'Edit in chat' },
       'tasks.edit.chat.aria': { kybernos: 'Modifier {name} dans le chat', en: 'Edit {name} in chat' },
+      'tasks.row.toggle': { kybernos: 'Activer {name}', en: 'Enable {name}' },
+      'tasks.row.fav': { kybernos: 'Ajouter {name} aux favoris', en: 'Add {name} to favorites' },
+      'tasks.row.unfav': { kybernos: 'Retirer {name} des favoris', en: 'Remove {name} from favorites' },
+      'tasks.row.clone': { kybernos: 'Cloner {name}', en: 'Clone {name}' },
+      'tasks.row.export': { kybernos: 'Exporter {name}', en: 'Export {name}' },
+      'tasks.row.delete': { kybernos: 'Supprimer {name}', en: 'Delete {name}' },
       // A schedule that runs more often than every 5 minutes needs an explicit confirmation: the host refuses it without one.
       'tasks.err.frequent': { kybernos: 'Ce planning se déclenche très souvent (plus d’une fois toutes les 5 minutes) et chaque déclenchement ouvre une vraie session du modèle : il faut le confirmer explicitement.', en: 'This schedule runs very often (more than once every 5 minutes) and each run starts a real model session: it needs an explicit confirmation.' },
       // The Columns and Calendar views of the Automations page.
@@ -5657,7 +5663,7 @@ const CSS = `
 .kb4-pick-div{height:1px;margin:5px 8px;background:var(--dsw-alias-border-l1);flex:none}
 .kb4-emptyset{padding:8px;font-size:12.5px;opacity:.7;line-height:1.5}
 .kb4-pick-f{display:flex;align-items:center;gap:6px;margin-top:5px;padding:8px 6px 2px;border-top:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary);font-size:12.5px}
-.kb4-pick-sep{opacity:.5}
+.kb4-pick-sep{color:var(--dsw-alias-label-secondary)}
 .kb4-pick-b{display:flex;align-items:center;gap:6px;padding:4px 6px;border:none;border-radius:8px;background:transparent;color:inherit;cursor:pointer;font:inherit;font-size:12.5px}
 .kb4-pick-b:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
 .kb4-pick-b b{font-weight:600;color:var(--dsw-alias-label-primary)}
@@ -6030,7 +6036,9 @@ const CSS = `
 /* Nom du fichier sur UNE ligne, même en 4 colonnes (demande 26/09 : cartes
    plus compactes) — sans ça, un nom long cassait la hauteur de la rangée. */
 .kb6-cname .kbg-name{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;font-weight:600}
-.kb6-type{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.05em;flex:none}
+.kb6-type{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.05em;flex:none;color:var(--kb6-ink)}
+/* the type pastels are made for the dark scheme: 1.2 to 2.1:1 on a light card (audit A4-12). In the light schemes the ink is pulled 60% toward the text colour. */
+body:not([data-ds-dark-theme]) .kb6-type{color:color-mix(in srgb,var(--kb6-ink) 40%,var(--dsw-alias-label-primary))}
 .kb6-cbtn{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border:none;border-radius:7px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;flex:none;padding:0}
 .kb6-cbtn:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
 .kb6-cbtn:disabled{opacity:.4;cursor:default}
@@ -17122,7 +17130,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           h('div', { className: 'kb6-ico kb6-ico-ti', style: { background: 'var(--dsw-alias-interactive-bg-hover)' } }, kbTiSvg(kbTiOfName(a.name), 16)),
           h('div', { className: 'kb6-cname' },
             h('div', { className: 'kbg-name' }, a.name || '—')),
-          h('span', { className: 'kb6-type', style: { background: t.tint, color: t.color } }, t.label),
+          h('span', { className: 'kb6-type', style: { background: t.tint, '--kb6-ink': t.color } }, t.label),
           h('button', { type: 'button', className: 'kb6-cbtn', 'data-kb': 'art-locate', title: kbt('kbui.localiser') + a.path, onClick: (e) => { e.stopPropagation(); if (typeof onAction === 'function') onAction('reveal', a) } }, Icon('folderOpen', 13)),
           h('button', {
             type: 'button', className: 'kb6-cbtn kb6-pinbtn' + (pinned === true ? ' on' : ''), 'data-kb': 'art-pin',
@@ -19023,7 +19031,7 @@ function renderFit(canvas, model, cam, opts){
               onClick: () => { try { kbMiniAppOpen(name, load.text, 'sidebar', path) } catch (e) {} },
             }, Icon('panelRight', 13), ' Sidebar')
             : null),
-          h('span', { className: 'kb6-type', style: { background: kind.tint, color: kind.color } }, kind.label)),
+          h('span', { className: 'kb6-type', style: { background: kind.tint, '--kb6-ink': kind.color } }, kind.label)),
         h(ArtBody, { name: name, load: load, path: path }))
     }
 
@@ -19590,7 +19598,7 @@ function renderFit(canvas, model, cam, opts){
           h('div', { className: 'kb6-lmain' },
             h('div', { className: 'kb6-ltop' },
               h('div', { className: 'kb6-lrowname' }, a.name),
-              h('span', { className: 'kb6-type', style: { background: a.type.tint, color: a.type.color } }, a.type.label)),
+              h('span', { className: 'kb6-type', style: { background: a.type.tint, '--kb6-ink': a.type.color } }, a.type.label)),
             h('div', { className: 'kb6-lrowsub', title: dateTip }, metaBits.slice(1).join(' · ')),
             (snippet !== '' ? h('div', { className: 'kb6-snip' }, snippet) : null)),
           h('div', { className: 'kb6-lacts' },
@@ -20863,11 +20871,11 @@ function renderFit(canvas, model, cam, opts){
               // left of the name and push it away from its column.
               h('span', { className: 'kba-lacts' },
                 h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-edit-chat', title: kbt('tasks.edit.chat.act'), 'aria-label': kbt('tasks.edit.chat.aria').replace('{name}', () => a.name), onClick: (e2) => { e2.stopPropagation(); editInChat(a._t) } }, Icon('messageSquare', 13)),
-                h('button', { type: 'button', className: 'kb-favbtn' + (auFavOf(a) === true ? ' on' : ''), 'data-kb': 'favorite-star', 'data-scope': 'automations', 'data-id': a.id, title: kbt(auFavOf(a) === true ? 'kbui.unfav' : 'kbui.fav'), 'aria-label': kbt(auFavOf(a) === true ? 'kbui.unfav' : 'kbui.fav'), onClick: (e2) => { e2.stopPropagation(); auFavToggle(a.id) } }, Icon('star', 13)),
-                h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-clone', title: kbt('kbui.action.clone'), 'aria-label': kbt('kbui.action.clone'), onClick: (e2) => { e2.stopPropagation(); cloneTask(a) } }, Icon('copy', 13)),
-                h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-export', title: kbt('kbui.action.export'), 'aria-label': kbt('kbui.action.export'), onClick: (e2) => { e2.stopPropagation(); exportTask(a) } }, Icon('download', 13)),
-                h('button', { type: 'button', className: 'kb-favbtn kba-trash', 'data-kb': 'action-delete', title: kbt('tasks.delete'), 'aria-label': kbt('tasks.delete'), onClick: (e2) => { e2.stopPropagation(); askDelete(a.id, a.name) } }, Icon('trash', 13))),
-              h('span', { role: 'switch', 'aria-checked': a.active === true ? 'true' : 'false', 'aria-label': kbt('tasks.toggle.aria'), className: 'kba-toggle' + (a.active === true ? ' on' : ''), tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act('toggle', a._t.id, { active: a._t.active === false }) } }, onClick: () => act('toggle', a._t.id, { active: a._t.active === false }) },
+                h('button', { type: 'button', className: 'kb-favbtn' + (auFavOf(a) === true ? ' on' : ''), 'data-kb': 'favorite-star', 'data-scope': 'automations', 'data-id': a.id, title: kbt(auFavOf(a) === true ? 'kbui.unfav' : 'kbui.fav'), 'aria-label': kbt(auFavOf(a) === true ? 'tasks.row.unfav' : 'tasks.row.fav').replace('{name}', () => a.name), onClick: (e2) => { e2.stopPropagation(); auFavToggle(a.id) } }, Icon('star', 13)),
+                h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-clone', title: kbt('kbui.action.clone'), 'aria-label': kbt('tasks.row.clone').replace('{name}', () => a.name), onClick: (e2) => { e2.stopPropagation(); cloneTask(a) } }, Icon('copy', 13)),
+                h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-export', title: kbt('kbui.action.export'), 'aria-label': kbt('tasks.row.export').replace('{name}', () => a.name), onClick: (e2) => { e2.stopPropagation(); exportTask(a) } }, Icon('download', 13)),
+                h('button', { type: 'button', className: 'kb-favbtn kba-trash', 'data-kb': 'action-delete', title: kbt('tasks.delete'), 'aria-label': kbt('tasks.row.delete').replace('{name}', () => a.name), onClick: (e2) => { e2.stopPropagation(); askDelete(a.id, a.name) } }, Icon('trash', 13))),
+              h('span', { role: 'switch', 'aria-checked': a.active === true ? 'true' : 'false', 'aria-label': kbt('tasks.row.toggle').replace('{name}', () => a.name), className: 'kba-toggle' + (a.active === true ? ' on' : ''), tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act('toggle', a._t.id, { active: a._t.active === false }) } }, onClick: () => act('toggle', a._t.id, { active: a._t.active === false }) },
                 h('span', { className: 'kba-toggle-knob' }))))))),
         (msg !== null ? h('div', { className: 'kba-toast', role: 'status' }, h('span', { className: 'kba-kdot ok' }), h('span', { style: { flex: 1 } }, msg), h('button', { type: 'button', 'aria-label': kbt('tasks.dismiss'), onClick: () => setMsg(null) }, '\u2715')) : null),
         (confirmAsk !== null ? h(KbConfirm, { title: confirmAsk.title, body: confirmAsk.body, confirmLabel: confirmAsk.confirmLabel, onConfirm: confirmAsk.onConfirm, onClose: () => setConfirm(null) }) : null),
@@ -23976,6 +23984,9 @@ function renderFit(canvas, model, cam, opts){
 .kb7-foot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:6px}
 .kb7-pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:99px;background:var(--dsw-alias-state-success-tertiary, rgba(34,197,94,.16));color:var(--dsw-alias-state-success-primary, #22c55e);font-size:11.5px;font-weight:600}
 .kb7-pill.pend{background:var(--dsw-alias-state-warn-tertiary, rgba(250,180,60,.16));color:var(--dsw-alias-state-warn-label, var(--dsw-alias-state-warn-primary, #f0a030))}
+/* The tag inks are the state fills (2.1:1 on their pale tint in the light schemes): there they are pulled toward the text colour (audit A1-11). */
+body:not([data-ds-dark-theme]) .kb7-pill{color:color-mix(in srgb,var(--dsw-alias-state-success-primary, #22c55e) 50%,var(--dsw-alias-label-primary))}
+body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary, #f0a030) 50%,var(--dsw-alias-label-primary))}
 .kb7-empty{opacity:.5;font-size:13px}
 `
       document.head.appendChild(s)
@@ -24321,10 +24332,10 @@ function renderFit(canvas, model, cam, opts){
               h('button', { type: 'button', className: 'kb8-nc-x', 'aria-label': kbt('kbnc.close'), title: kbt('kbnc.close'), onClick: () => setOpen(null) }, Icon('x', 14))),
             h('div', { className: 'kb8-nc-tiles' }, group.map((t) =>
               h('button', { type: 'button', key: t.id, className: 'kb8-nc-tile', 'data-kb': 'newchat-template', onClick: () => prefill(t.id) },
-                h('span', { className: 'kb8-nc-ico', style: { background: kbNcTint(t.hue, 0.16), color: t.hue } }, Icon(t.icon, 18)), h('span', { className: 'kb8-nc-t' }, kbt('kbnc.t.' + t.id)))))))
+                h('span', { className: 'kb8-nc-ico', style: { background: kbNcTint(t.hue, 0.16), '--kb8-ink': t.hue } }, Icon(t.icon, 18)), h('span', { className: 'kb8-nc-t' }, kbt('kbnc.t.' + t.id)))))))
       }
       const card = (id, icon, title, sub, onClick, dot) => h('button', { type: 'button', key: id, className: 'kb8-nc-card', 'data-kb': 'newchat-' + id, onClick },
-        h('span', { className: 'kb8-nc-ico', style: { background: kbNcTint(KB_NC_HUES[id], 0.16), color: KB_NC_HUES[id] } }, Icon(icon, 18)),
+        h('span', { className: 'kb8-nc-ico', style: { background: kbNcTint(KB_NC_HUES[id], 0.16), '--kb8-ink': KB_NC_HUES[id] } }, Icon(icon, 18)),
         h('span', { className: 'kb8-nc-body' },
           h('span', { className: 'kb8-nc-t' }, dot === undefined || dot === '' ? null : h('i', { className: 'kb8-nc-dot ' + dot }), title),
           h('span', { className: 'kb8-nc-d', title: sub }, sub)))
@@ -24370,7 +24381,7 @@ function renderFit(canvas, model, cam, opts){
           (cloud.kind === 'unknown' ? null
             : h('div', { key: 'cloud', className: 'kb8-nc-card kb8-nc-cloud', 'data-kb': 'newchat-cloud' },
               h('button', { type: 'button', className: 'kb8-nc-main', 'data-kb': 'newchat-cloud-open', onClick: openKyber },
-                h('span', { className: 'kb8-nc-ico', style: { background: kbNcTint(KB_NC_HUES.cloud, 0.16), color: KB_NC_HUES.cloud } }, Icon('monitor', 18)),
+                h('span', { className: 'kb8-nc-ico', style: { background: kbNcTint(KB_NC_HUES.cloud, 0.16), '--kb8-ink': KB_NC_HUES.cloud } }, Icon('monitor', 18)),
                 h('span', { className: 'kb8-nc-body' },
                   h('span', { className: 'kb8-nc-t' }, kbNcDot(cloud.kind) === '' ? null : h('i', { className: 'kb8-nc-dot ' + kbNcDot(cloud.kind) }), kbt('kbui.cloudcomputer')),
                   h('span', { className: 'kb8-nc-d', role: act.note !== null ? 'alert' : undefined, title: act.note !== null ? act.note : undefined },
@@ -24396,7 +24407,7 @@ function renderFit(canvas, model, cam, opts){
 .kb8-nc-act{height:26px;padding:0 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground);font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
 .kb8-nc-act.ghost{background:transparent;color:var(--dsw-alias-label-secondary);font-weight:500}
 .kb8-nc-act:disabled{opacity:.5;cursor:default}
-.kb8-nc-ico{width:36px;height:36px;flex:none;border-radius:11px;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
+.kb8-nc-ico{width:36px;height:36px;flex:none;border-radius:11px;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-bg-layer-3);color:color-mix(in srgb,var(--kb8-ink,var(--dsw-alias-label-primary)) 60%,var(--dsw-alias-label-primary))}
 .kb8-nc-body{display:flex;flex-direction:column;gap:2px;min-width:0}
 .kb8-nc-t{font-size:13.5px;font-weight:600;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kb8-nc-d{font-size:12px;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -25360,7 +25371,7 @@ function renderFit(canvas, model, cam, opts){
           h('div', { className: 'kas-menu-title' }, kbt('art.selector.create')),
           h('div', { className: 'kas-grid' }, KB_ARTIFACT_CATALOG.map((t) =>
             h('button', { type: 'button', key: t.type, className: 'kas-item', title: kba(t.label) + ' — ' + kba(t.desc), onClick: () => pickType(t) },
-              h('div', { className: 'kas-icon', style: { background: (t.tint !== undefined ? t.tint : t.color + '22'), color: (t.ink !== undefined ? t.ink : t.color) } },
+              h('div', { className: 'kas-icon', style: { background: (t.tint !== undefined ? t.tint : t.color + '22'), '--kas-ink': (t.ink !== undefined ? t.ink : t.color) } },
                 h('svg', { width: 17, height: 17, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: t.iconSvg }))),
               h('div', { className: 'kas-info' }, h('span', { className: 'kas-label' }, kba(t.label)), h('span', { className: 'kas-desc' }, kba(t.desc))))))
         ) : null,
@@ -25372,7 +25383,7 @@ function renderFit(canvas, model, cam, opts){
         (taskSaved !== null && activeType === null) ? h('div', { className: 'kas-form-panel', style: { width: 'auto', padding: '10px 14px', fontSize: '13px', color: 'var(--dsw-alias-state-success-primary)' } }, '✓ ' + taskSaved) : null)
     }
 
-    const KB_ARTIFACT_SELECTOR_CSS = '.kas-root{position:relative;display:inline-flex;align-items:center}.kas-btn{width:28px;height:28px;border-radius:8px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;padding:0}.kas-btn:hover,.kas-btn.kas-open{border-color:var(--dsw-alias-brand-primary,#5563d6);background:color-mix(in srgb,#5563d6 14%,transparent)}.kas-menu{position:absolute;left:0;bottom:calc(100% + 8px);box-sizing:border-box;width:460px;padding:10px 10px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 12px 32px rgba(0,0,0,.24);display:flex;flex-direction:column;z-index:20;animation:kas-rise .18s ease}@keyframes kas-rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}.kas-menu-title{padding:4px 8px 10px;font-size:12.5px;font-weight:500;color:var(--dsw-alias-label-secondary)}.kas-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 6px;padding:0 2px}.kas-item{display:flex;align-items:center;gap:11px;padding:6px 8px;border-radius:10px;border:none;background:transparent;text-align:left;width:100%;cursor:pointer;transition:background .12s;color:var(--dsw-alias-label-primary)}.kas-item:hover{background:var(--dsw-alias-bg-layer-2)}.kas-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex:none}body:not([data-ds-dark-theme]) .kas-icon svg{filter:brightness(.5)}.kas-info{display:flex;flex-direction:column;gap:1px;min-width:0}.kas-label{font-size:14px;font-weight:600;line-height:17px}.kas-desc{font-size:12.5px;line-height:14px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    const KB_ARTIFACT_SELECTOR_CSS = '.kas-root{position:relative;display:inline-flex;align-items:center}.kas-btn{width:28px;height:28px;border-radius:8px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;padding:0}.kas-btn:hover,.kas-btn.kas-open{border-color:var(--dsw-alias-brand-primary,#5563d6);background:color-mix(in srgb,#5563d6 14%,transparent)}.kas-menu{position:absolute;left:0;bottom:calc(100% + 8px);box-sizing:border-box;width:460px;padding:10px 10px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 12px 32px rgba(0,0,0,.24);display:flex;flex-direction:column;z-index:20;animation:kas-rise .18s ease}@keyframes kas-rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}.kas-menu-title{padding:4px 8px 10px;font-size:12.5px;font-weight:500;color:var(--dsw-alias-label-secondary)}.kas-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 6px;padding:0 2px}.kas-item{display:flex;align-items:center;gap:11px;padding:6px 8px;border-radius:10px;border:none;background:transparent;text-align:left;width:100%;cursor:pointer;transition:background .12s;color:var(--dsw-alias-label-primary)}.kas-item:hover{background:var(--dsw-alias-bg-layer-2)}.kas-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex:none;color:var(--kas-ink)}body:not([data-ds-dark-theme]) .kas-icon{color:color-mix(in srgb,var(--kas-ink) 40%,var(--dsw-alias-label-primary))}body:not([data-ds-dark-theme]) .kas-icon svg{filter:brightness(.5)}.kas-info{display:flex;flex-direction:column;gap:1px;min-width:0}.kas-label{font-size:14px;font-weight:600;line-height:17px}.kas-desc{font-size:12.5px;line-height:14px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
       // Panneau formulaire
       '.kas-form-panel{position:absolute;left:0;bottom:calc(100% + 8px);width:380px;max-height:420px;overflow-y:auto;padding:16px;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:20;animation:kas-rise .18s ease}' +
       '.kaf-root{display:flex;flex-direction:column;gap:14px}' +
@@ -25910,6 +25921,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
 [role="dialog"]:has(nav [class$="_navCell"]) [class$="_close"]{min-width:40px;min-height:40px}
 [role="dialog"]:has(nav [class$="_navCell"]) [class$="_close"] svg{width:18px;height:18px}
 .kbs-search input::placeholder{color:var(--dsw-alias-label-tertiary)}
+body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-alias-label-secondary)}
 .kbsb:hover{color:var(--dsw-alias-brand-primary)}
 .kbsb:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
 .kbsb-label{white-space:nowrap}
@@ -27238,6 +27250,8 @@ html [class$="_options"] .kbth-head>.kbth-sub+*{margin-top:20px}
 .kbo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
 /* ── Section Outils, maquette du 28/09 — mêmes tokens DSW que le reste ── */
 .kbt2-sec{display:flex;flex-direction:column;gap:20px;max-width:720px}
+/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
+body:not([data-ds-dark-theme]) :is(.kbt2-sec,.kba-onboard,.kbv-pop,.kb4-pick){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kbt2-entete{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
 .kbt2-entete-txt{display:flex;flex-direction:column;gap:0;min-width:0}
 .kbt2-h1{margin:0;font-size:18px;font-weight:600;line-height:1.3;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
@@ -28484,6 +28498,7 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 .kb8-grid.kb8-cmp{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
 .kb8-card.kb8-cmp{position:relative;min-height:0;height:auto;padding:12px 14px;gap:7px}
 .kb8-cmp .kb8-desc.kb8-none{display:block;white-space:nowrap;text-overflow:ellipsis;font-size:12.5px;color:var(--dsw-alias-label-tertiary)}
+body:not([data-ds-dark-theme]) .kb8-cmp .kb8-desc.kb8-none{color:var(--dsw-alias-label-secondary)}
 .kb8-cmp .kb8-parent{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kb8-parent.kb8-count{font-family:ui-monospace,monospace;font-size:10.5px;letter-spacing:.04em}
 .kb8-cmp .kb8-cardfoot{position:relative;display:flex;align-items:center;gap:8px;min-width:0;min-height:26px;margin-top:auto}
@@ -28505,7 +28520,7 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 .kb-favbtn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;flex:0 0 auto;border:0;border-radius:9px;background:transparent;color:var(--dsw-alias-label-tertiary);cursor:pointer;padding:0;transition:color .14s ease,background .14s ease}
 .kb-favbtn:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary)}
 .kb-favbtn.on{color:var(--dsw-alias-state-warn-primary)}
-.kb-favbtn:focus-visible{outline:1px solid var(--dsw-alias-brand-primary);outline-offset:1px}
+.kb-favbtn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
 .kb8-tile{flex:0 0 auto;width:38px;height:38px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary)}
 .kb8-name{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--dsw-alias-label-primary)}
 .kb8-parent{font-size:12px;color:var(--dsw-alias-label-secondary)}
@@ -28837,9 +28852,9 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 .kba-kdot.fail{background:var(--dsw-alias-state-error-primary)}
 .kba-td-num{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--dsw-alias-label-secondary)}
 .kba-toggle{display:inline-block;width:44px;height:26px;border-radius:13px;background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-border-l2);position:relative;cursor:pointer;flex:none}
-.kba-toggle-knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:9px;background:var(--dsw-alias-bg-base);transition:left .12s;box-shadow:var(--dsw-elevation-soft,0 1px 2px rgba(0,0,0,.2))}
+.kba-toggle-knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:9px;background:var(--dsw-alias-label-secondary);transition:left .12s;box-shadow:var(--dsw-elevation-soft,0 1px 2px rgba(0,0,0,.2))}
 .kba-toggle.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}
-.kba-toggle.on .kba-toggle-knob{left:21px}
+.kba-toggle.on .kba-toggle-knob{left:21px;background:var(--dsw-alias-label-primary-foreground)}
 .kba-empty{padding:34px 16px;font-size:14px;color:var(--dsw-alias-label-secondary);line-height:1.6}
 .kba-empty b{color:var(--dsw-alias-label-primary)}
 /* ── Automations board: the Columns and Calendar views (prefix kbbd-) ─────────────────────────────────
@@ -30828,6 +30843,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
     ctx.effect(() => styles.insert(`
 /* Section headers of the Settings menu: a quiet sub-title, shell tokens, no pointer events. */
 [class*="navList"] [data-kb="settings-group"]{padding:10px 12px 2px;font-size:12.5px;font-weight:500;color:var(--dsw-alias-label-tertiary);pointer-events:none;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body:not([data-ds-dark-theme]) [class*="navList"] [data-kb="settings-group"]{color:var(--dsw-alias-label-secondary)}
 /* The Advanced header is the button of its fold (the shared Customize button), drawn like a header. */
 [class*="navList"] [data-kb="settings-group"][data-kb-fold-toggle]{display:flex;align-items:center;align-self:stretch;gap:6px;margin:0;padding:10px 12px 2px;border:none;border-radius:8px;background:transparent;font:inherit;font-size:12.5px;font-weight:500;line-height:normal;text-align:start;pointer-events:auto;cursor:pointer}
 [class*="navList"] [data-kb="settings-group"][data-kb-fold-toggle]:hover{color:var(--dsw-alias-label-secondary)}
