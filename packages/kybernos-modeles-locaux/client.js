@@ -137,7 +137,7 @@ window.__ModuleLoader__.load({
         // The machine could not be measured: no verdict on any model (it used to read « Too heavy » on all of them).
         'kml.etat.indetermine': { fr: 'Mémoire non mesurée', en: 'Memory not measured' },
         'kml.machine.nonmesuree': { fr: 'non mesurée', en: 'not measured' },
-        'kml.machine.hote': { fr: 'Cette page n’arrive pas à joindre son assistant dans DSH. Si DSH vient d’être mis à jour, redémarrez DSH, puis réessayez.', en: 'This page cannot reach its helper in DSH. If DSH was just updated, restart DSH, then try again.' },
+        'kml.machine.hote': { fr: 'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarrez DSH, puis appuyez sur Réessayer.', en: 'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.' },
         'kml.machine.echec': { fr: 'Cette machine n’a pas pu être mesurée : {raison}. Les modèles ne sont pas jugés tant qu’elle ne l’est pas.', en: 'This machine could not be measured: {raison}. No model is judged until it is.' },
         'kml.reessayer': { fr: 'Réessayer', en: 'Retry' },
         'kml.detection': { fr: 'détection…', en: 'detecting…' },
