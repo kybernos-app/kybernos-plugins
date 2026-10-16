@@ -12,6 +12,8 @@ import { kyberTarget } from './kyber-root.mjs'
 import { createWorkspaceInstructions } from './workspace-instructions.mjs'
 import { selectAfterConnect } from './default-model.mjs'
 import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
+import { recordFeedback, exportFeedback } from './feedback-box.mjs'
+import { writeGuard } from './session-guard.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay } from './onboarding-state.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
@@ -296,6 +298,33 @@ const kbNextCronAfter = (cronExpr, afterMs, tz) => {
 }
 // Does this cron fire at all? ('0 0 31 2 *' never does; it must be refused, not stored as asleep.)
 const kbCronCanFire = (cronExpr) => kbNextCronAfter(cronExpr, Date.UTC(2024, 0, 1), 'UTC') !== null
+// The shortest gap, in minutes, between two runs of a cron (Infinity when a run is always alone). Every run of an automation
+// starts a real model session, so a schedule below KB_FREQUENT_MINUTES needs the person's confirmation (A5-24).
+const KB_FREQUENT_MINUTES = 5
+const kbCronGapMinutes = (cronExpr) => {
+  const f = kbParseCron(cronExpr)
+  if (f === null) return Infinity
+  const slots = []
+  for (const h of Array.from(f.hour).sort((a, b) => a - b)) { for (const m of Array.from(f.minute).sort((a, b) => a - b)) slots.push(h * 60 + m) }
+  let gap = Infinity
+  for (let i = 1; i < slots.length; i += 1) gap = Math.min(gap, slots[i] - slots[i - 1])
+  // Across midnight, only when the next day fires as well (every day of every month).
+  if (slots.length > 0 && f.dom.size === 31 && f.dow.size === 7 && f.mon.size === 12) gap = Math.min(gap, slots[0] + 1440 - slots[slots.length - 1])
+  return gap
+}
+// The refusal of a request that would run more often than every 5 minutes and that the person has not confirmed
+// (`confirmFrequent: true` in the request, which the sanitizer does not store). `previous` is the stored task of an
+// update: a cron it already had is not asked again (renaming an every-minute automation is not a new decision).
+const kbFrequentRefusal = (cleanTask, requestTask, previous) => {
+  const sc = cleanTask !== null && typeof cleanTask === 'object' ? cleanTask.schedule : null
+  if (sc === null || typeof sc !== 'object' || sc.mode !== 'cron') return null
+  const gap = kbCronGapMinutes(sc.cron)
+  if (gap >= KB_FREQUENT_MINUTES) return null
+  if (requestTask !== null && typeof requestTask === 'object' && requestTask.confirmFrequent === true) return null
+  const before = previous !== null && previous !== undefined && typeof previous === 'object' && previous.schedule !== null && typeof previous.schedule === 'object' ? previous.schedule : null
+  if (before !== null && before.mode === 'cron' && before.cron === sc.cron) return null
+  return { ok: false, error: 'frequent schedule', everyMinutes: gap }
+}
 // Generic nextRun (ms epoch): a one-time date that has passed never comes back.
 const kbComputeNextRun = (task, afterMs, tzFallback) => {
   if (task === null || typeof task !== 'object') return null
@@ -2692,6 +2721,8 @@ function boot(ctx) {
       if (action === 'create') {
         const clean = kbSanitizeTaskInput(body.task)
         if (clean.ok !== true) return { ok: false, error: clean.error }
+        const frequentCreate = kbFrequentRefusal(clean.task, body.task, null)
+        if (frequentCreate !== null) return frequentCreate
         const id = kbTaskId()
         const now = new Date().toISOString()
         const task = Object.assign({ id, createdAt: now, updatedAt: now, history: [], lastRun: null }, clean.task)
@@ -2708,10 +2739,13 @@ function boot(ctx) {
         if (clean.ok !== true) return { ok: false, error: clean.error }
         let updated = null
         let refusal = null
+        let frequentUpdate = null
         await kbTasksMutate(async (tasks) => {
           for (let i = 0; i < tasks.length; i += 1) {
             const t = tasks[i]
             if (t !== null && typeof t === 'object' && t.id === id) {
+              frequentUpdate = kbFrequentRefusal(clean.task, body.task, t)
+              if (frequentUpdate !== null) break
               const merged = Object.assign({}, t, clean.task, { id, createdAt: t.createdAt, updatedAt: new Date().toISOString(), history: Array.isArray(t.history) === true ? t.history : [] })
               const nx = kbComputeNextRun(merged, Date.now())
               if (kbNeverRuns(merged, nx) === true) { refusal = kbNoNextRunError(merged); break }
@@ -2722,6 +2756,7 @@ function boot(ctx) {
             }
           }
         })
+        if (frequentUpdate !== null) return frequentUpdate
         if (refusal !== null) return { ok: false, error: refusal }
         return updated === null ? { ok: false, error: 'tache introuvable' } : { ok: true, task: updated }
       }
@@ -10307,6 +10342,24 @@ function boot(ctx) {
         try { await kbAutoSettingsWrite(next.state) } catch (e) { return sendJson(res, 500, { ok: false, error: 'write failed' }) }
         sendJson(res, 200, Object.assign({ ok: true }, autoSettingsView(next.state)))
       } }), 'kybernos: route automation-settings')
+      // ── The feedback box (V-10): POST saves one line in <DSH home>/kybernos/feedback.jsonl, GET …/export returns the file ──
+      // Nothing leaves the machine. Both need the strict write guard (same-origin AND DSH's signed browser session, session-guard.mjs):
+      // the box holds what a person wrote, and a local program must neither fill it nor read it. One method per path.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/feedback', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
+        let body = null
+        try { body = await readJsonBody(req, 20000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
+        const out = recordFeedback(dshHomeSync(), body, kbFeedbackBoxEnv())
+        sendJson(res, out.ok === true ? 200 : (out.error === 'full' ? 507 : (out.error === 'write failed' ? 500 : 400)), out)
+      } }), 'kybernos: route feedback')
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/feedback/export', handler: async (req, res) => {
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
+        sendJson(res, 200, exportFeedback(dshHomeSync()))
+      } }), 'kybernos: route feedback export')
       // ── When the scheduled automations will run: GET /kybernos/tasks/occurrences?from=&to= ──────────────
       // Read-only, for the Automations calendar. It answers with the scheduler's OWN matcher (kbComputeNextRun
       // and kbNeverRuns of the tested core block), not a second cron engine, and with the same guard as the
@@ -11233,6 +11286,19 @@ const kbFeedbackFlush = async (dir, api, token, exceptUuid) => {
     if (verdict.ok !== true) break          // the service is down again: do not hammer it
   }
 }
+
+/** What the feedback box (feedback-box.mjs) needs from this host: an id, the clock, the secret masking of the beta report, and — only when the
+ *  form's toggle is on — the system and the versions (the same three facts the beta report carries; no path, no key, no account). */
+const kbFeedbackBoxEnv = () => ({
+  id: () => (typeof randomUUID === 'function' ? randomUUID() : String(Date.now())),
+  now: () => Date.now(),
+  mask: kbFeedbackMask,
+  context: () => {
+    let os = null
+    try { os = String(osPlatform()) + ' ' + String(osRelease()) } catch (e) { os = null }
+    return { os, dsh: kbFeedbackDshVersion(), revision: kbFeedbackSuiteVersion(nodePathJoin(pluginDir, '..', '..', 'VERSION'), readFileSync) }
+  },
+})
 
 /** Exécution complète de l'outil : trace locale DANS TOUS LES CAS, puis envoi. */
 const kbFeedbackExecute = async (args) => {

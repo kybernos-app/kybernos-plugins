@@ -77,6 +77,22 @@ try {
   // The « How it works » button comes from the Suite's catalogue, which a DSH serves from the last SIGNED release: it appears once
   // this module is in one (nothing to assert here before that).
 
+  console.log('the default engine, and an address that cannot be saved (V-35, A3-26)')
+  const defLine = await ev(`(document.querySelector('[data-kb="websearch-default-line"]') || {}).innerText || null`)
+  check('the page names the default engine under its title, and marks that engine\'s row', typeof defLine === 'string' && /^Default engine: .+ — agents try it first\.$/.test(defLine) && (await ev(`!!document.querySelector('[data-kb="websearch-default"]')`)) === true, defLine)
+  if ((await ev(`!!document.querySelector('${rowSel('searxng')}')`)) !== true) { await press('[data-act="more"]'); await sleep(300) }
+  await press(rowSel('searxng') + ' [data-act="open"]')
+  await sleep(300)
+  for (const bad of ['not a url', 'javascript:alert(1)', 'ftp://x.example', '127.0.0.1:8080']) {
+    await typeInto(rowSel('searxng') + ' [data-kb="websearch-url"]', bad)
+    await sleep(200)
+    const gate = await ev(`JSON.stringify({ disabled: document.querySelector('${rowSel('searxng')} [data-act="save-address"]').disabled, msg: (document.querySelector('${rowSel('searxng')} [data-kb="websearch-address-error"]') || {}).innerText || null })`)
+    const g = gate === null ? null : JSON.parse(gate)
+    check('« ' + bad + ' » cannot be saved, and the page says what an address looks like', g !== null && g.disabled === true && /^Enter an http\(s\) address such as http:\/\/127\.0\.0\.1:8080\.$/.test(g.msg || ''), g)
+  }
+  await typeInto(rowSel('searxng') + ' [data-kb="websearch-url"]', '')
+  await press(rowSel('searxng') + ' [data-act="open"]')
+
   console.log('a switch')
   await press(rowSel('wikipedia') + ' [data-kb="websearch-switch"]')
   await sleep(900)

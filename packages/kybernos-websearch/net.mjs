@@ -27,7 +27,8 @@ export const makeHttp = ({ fetchImpl = globalThis.fetch, maxBytes = 2_000_000 } 
   const wrap = (e) => {
     if (signal !== undefined && signal !== null && signal.aborted === true) return Object.assign(new Error('aborted'), { name: 'AbortError' })
     if (timeout.aborted === true) return new EngineError('timeout', 'no answer within ' + Math.round(timeoutMs / 1000) + ' s')
-    return new EngineError('network', String((e && e.message) || e).slice(0, 160))
+    // The cause Node attaches to « fetch failed » (a refused connection, an unknown host…) rides along: the router words it (A3-26).
+    return Object.assign(new EngineError('network', String((e && e.message) || e).slice(0, 160)), { cause: e !== null && typeof e === 'object' && e.cause !== undefined ? e.cause : e })
   }
   let res
   try { res = await fetchImpl(url, { ...rest, signal: both, redirect: 'follow' }) } catch (e) { throw wrap(e) }

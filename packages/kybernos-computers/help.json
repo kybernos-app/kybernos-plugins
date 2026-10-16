@@ -29,5 +29,6 @@
   "good": {
     "fr": "Le code et les fichiers que l'agent y envoie partent chez E2B. Chaque ordinateur est jetable, s'arrête seul après 15 min (2 h au plus), 4 à la fois. Sans clé, l'agent reste sur votre poste.",
     "en": "The code and files the agent sends there go to E2B. Each computer is disposable, stops by itself after 15 min (2 h at most), 4 at a time. With no key, the agent stays on your machine."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/computers/run-code-in-a-cloud-sandbox/"
 }

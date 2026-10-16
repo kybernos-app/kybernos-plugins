@@ -186,9 +186,17 @@ window.__ModuleLoader__.load({
       // (29/09) sous-onglets + aide « Connecteurs locaux ».
       'kb.cp.tab.yours': { fr: 'Vos connexions', en: 'Yours' },
       'kb.cp.tab.discover': { fr: 'Découvrir', en: 'Discover' },
-      'kb.cp.info': { fr: 'À propos des connecteurs locaux', en: 'About Local Connectors' },
-      'kb.cp.help.title': { fr: 'Connecteurs locaux — mode d’emploi', en: 'Local Connectors — how it works' },
-      'kb.cp.help': { fr: 'Vos connexions : les apps déjà reliées à vos Agent Teams. Découvrir : le catalogue complet, connexion en un clic. Serveurs MCP : vos propres serveurs (HTTP distant ou commande locale). Les agents du chat lisent la même clé côté machine (~/.dsh/.env).', en: 'Yours: apps already linked to your Agent Teams. Discover: the full catalog, one-click connect. MCP servers: your own servers (remote HTTP or local command). Chat agents read the same key on this machine (~/.dsh/.env).' },
+      'kb.cp.intro.title': { fr: 'Connecter une app en trois étapes', en: 'Connect an app in three steps' },
+      'kb.cp.intro.caption': { fr: 'Une app est choisie dans Découvrir, autorisée dans son propre onglet, puis disponible pour vos agents.', en: 'An app is picked in Discover, authorised in its own tab, then available to your agents.' },
+      'kb.cp.intro.s1t': { fr: 'Choisissez une app', en: 'Pick an app' },
+      'kb.cp.intro.s1b': { fr: 'Dans Découvrir, choisissez une app et cliquez « Ajouter une connexion ». Il faut votre clé Composio ou votre compte Kybernos.', en: 'In Discover, pick an app and click “Add a connection”. It needs your Composio key or your Kybernos account.' },
+      'kb.cp.intro.s2t': { fr: 'Autorisez-la', en: 'Authorise it' },
+      'kb.cp.intro.s2b': { fr: 'Un onglet de l’app s’ouvre : connectez-vous et autorisez l’accès.', en: 'A tab of the app opens: sign in and allow access.' },
+      'kb.cp.intro.s3t': { fr: 'Vos agents s’en servent', en: 'Your agents use it' },
+      'kb.cp.intro.s3b': { fr: 'Elle apparaît dans « Vos connexions » : vos agents peuvent agir dans cette app.', en: 'It appears under Yours: your agents can now act in that app.' },
+      'kb.cp.intro.m.st1': { fr: 'Non connecté', en: 'Not connected' },
+      'kb.cp.intro.m.wait': { fr: 'Autorisation…', en: 'Authorising…' },
+      'kb.cp.intro.m.allow': { fr: 'Autoriser', en: 'Allow' },
       'kb.cp.yours.empty': { fr: 'Aucune app connectée pour l’instant — le catalogue vous attend.', en: 'No app connected yet — the catalog is waiting for you.' },
       'kb.cp.popular': { fr: 'Populaire', en: 'Popular' },
       // ── Settings page (Settings ▸ Connectors) ──
@@ -750,7 +758,18 @@ window.__ModuleLoader__.load({
         return { status: res.status, json: json }
       } catch (e) { return { status: 0, json: null } }
     }
-    const kbCpModeGet = () => { try { return localStorage.getItem(KB_CP_MODE) === 'kybernos' ? 'kybernos' : 'personal' } catch (e) { return 'personal' } }
+    /** The person's own choice of mode, or null when they have not made one (the page then takes the default, kbCpModeEffective). */
+    const kbCpModeGet = () => { try { const v = localStorage.getItem(KB_CP_MODE); return v === 'kybernos' || v === 'personal' ? v : null } catch (e) { return null } }
+    /** The mode in force. Kybernos connections only where this server offers them. The person's choice wins; with none, Kybernos
+     *  connections are the default (nothing to paste, no key to keep), except for someone who already saved a Composio key of their
+     *  own (`keyConfigured` true) or whose key is not known yet (null): they stay as they were. Pure. */
+    const kbCpModeEffective = (stored, offered, keyConfigured) => {
+      if (offered !== true) return 'personal'
+      if (stored === 'kybernos' || stored === 'personal') return stored
+      return keyConfigured === false ? 'kybernos' : 'personal'
+    }
+    /** What Settings › Connectors shows as selected: what was chosen, else the default of kbCpModeEffective. Pure. */
+    const kbCpProviderEffective = (chosen, offered, keyConfigured) => (chosen === 'composio' || chosen === 'kybernos' ? chosen : kbCpModeEffective(null, offered, keyConfigured) === 'kybernos' ? 'kybernos' : 'composio')
     const kbCpModeSet = (m) => { try { localStorage.setItem(KB_CP_MODE, m === 'kybernos' ? 'kybernos' : 'personal') } catch (e) { /* a convenience only */ } }
     /**
      * What GET /kybernos-cloud/connections says, as the page uses it. null when the cloud half does not answer in that shape
@@ -963,12 +982,6 @@ window.__ModuleLoader__.load({
 .kb7-cxtype.http{background:rgba(34,197,94,.14);color:#22c55e}
 /* (29/09) Sub-tabs Yours / Discover + help (i): same language as
    kb4-tab (page tab bar), set here so the page can be mounted without the plugin. */
-.kb7-titlerow{display:flex;align-items:center;gap:8px}
-.kb7-infobtn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;opacity:.65;cursor:pointer;flex:none}
-.kb7-infobtn:hover,.kb7-infobtn.on{opacity:1;border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-brand-primary)}
-.kb7-help{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border:1px dashed rgba(128,128,128,.4);border-radius:12px;font-size:12.5px;line-height:1.55;max-width:720px}
-.kb7-helptitle{font-weight:700;font-size:12.5px}
-.kb7-help .kb7-helptext{margin:0;opacity:.75}
 .kb7-ctlrow{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;position:relative;min-height:44px}
 /* (01/10) Loading, empty and errors ALWAYS take the same place: a box the size of the cards,
    not a bare text that makes the page jump when the data arrive. */
@@ -2095,13 +2108,10 @@ window.__ModuleLoader__.load({
       const cxNote = p14[0]
       const setCxNote = p14[1]
       // (29/09) Current sub-tab: "yours" (Yours) by default,
-      // "discover" (Discover) for the catalog. Help (i): collapsed at rest.
+      // "discover" (Discover) for the catalog.
       const p15 = React.useState('yours')
       const vtab = p15[0]
       const setVtab = p15[1]
-      const p16 = React.useState(false)
-      const helpOpen = p16[0]
-      const setHelpOpen = p16[1]
       // Whether the host has a Composio key: null until it has answered, so the "add your key" banner never flashes.
       const p17 = React.useState(null)
       const hostCfg = p17[0]
@@ -2485,7 +2495,7 @@ window.__ModuleLoader__.load({
       }
       const appItem = (a, inPop) => (viewMode === 'list' ? appRow(a, inPop) : appCard(a, inPop))
       // The mode in force: Kybernos connections only when this server offers them, else the person's own key, as before.
-      const effMode = kc !== null && kc.offered === true && mode === 'kybernos' ? 'kybernos' : 'personal'
+      const effMode = kbCpModeEffective(mode, kc !== null && kc.offered === true, hostCfg)
       const kcMode = effMode === 'kybernos'
 
       // The add menu is the page's primary action: a value, so the header can put it where the template wants it.
@@ -2501,6 +2511,17 @@ window.__ModuleLoader__.load({
                   h('span', { style: { display: 'flex', width: '100%', alignItems: 'center', gap: 8 } }, kbt('kb.cp.add.ai'), h('span', { className: 'kbcp-new' }, kbt('kb.cp.add.new'))), h('small', null, kbt('kb.cp.add.aihint')))) : null)
       // No items on the tab: no bar (the template), and the action alone keeps its place.
       const barShown = vtab === 'mcp' ? cx.length + apis.length > 0 : (vtab === 'discover' ? apps.length > 0 : (kcMode ? kc.connections.length > 0 : yoursPool.length > 0))
+      // The animated help of the page (the Suite publishes window.__KB_HELP__.Intro): it opens the first time the page is visited, and the card
+      // of the « ? How it works » button can bring it back. The words are the page's own.
+      const introNode = (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Intro
+        ? h(window.__KB_HELP__.Intro, {
+          id: 'kybernos-composio',
+          title: kbt('kb.cp.intro.title'),
+          caption: kbt('kb.cp.intro.caption'),
+          steps: [{ t: kbt('kb.cp.intro.s1t'), b: kbt('kb.cp.intro.s1b') }, { t: kbt('kb.cp.intro.s2t'), b: kbt('kb.cp.intro.s2b') }, { t: kbt('kb.cp.intro.s3t'), b: kbt('kb.cp.intro.s3b') }],
+          mock: { bar: kbt('kb.cp.title'), rows: ['Slack'], hot: 'GitHub', states: [kbt('kb.cp.intro.m.st1'), kbt('kb.cp.pend'), kbt('kb.cp.connected')], actions: [kbt('kb.cp.addconn'), kbt('kb.cp.intro.m.wait'), kbt('kb.cp.intro.m.allow')] }
+        })
+        : null)
       return h('div', { className: 'kb7-root' },
         // ── Header: Agent Teams gabarit (kb6-headrow / kb6-headcol / kb6-titlerow).
         // Same structure as the Kybers page: title + "?" help glued to it, subtitle
@@ -2511,7 +2532,8 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kb6-headcol' },
             h('div', { className: 'kb6-titlerow' },
               h('h1', { className: 'kb6-title' }, kbt('kb.cp.title')),
-              h('button', { type: 'button', className: 'kb6-helpbtn' + (helpOpen === true ? ' on' : ''), 'aria-label': kbt('kb.cp.info'), title: kbt('kb.cp.info'), 'aria-expanded': helpOpen === true ? 'true' : 'false', 'data-kb': 'connectors-help', onClick: () => setHelpOpen(!helpOpen) }, '?')),
+              // The Suite's « ? How it works » button, the one form of the help button on every page (its card is help.json).
+              typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-composio' }) : null),
             h('p', { className: 'kb8-sub', title: kbt('kb.cp.sub') }, kbt('kb.cp.sub'))),
           // Same visual language as "Create with AI" on the other pages (class kb8-primary of the
           // kybernos bundle). It always adds an MCP server: with a form, or by pasting the JSON of a documentation.
@@ -2530,6 +2552,7 @@ window.__ModuleLoader__.load({
             showFav: false,
             trailing: addWrap,
           }) : h('div', { className: 'kb6-headacts' }, addWrap))),
+        introNode,
         // Control row ("Resources" mockup 29/09): pill sub-tabs on the LEFT,
         // search/filters/sort block on the RIGHT: same design
         // and same position as the other pages, the content varies by tab.
@@ -2547,11 +2570,6 @@ window.__ModuleLoader__.load({
             apps.length <= CATALOG.length ? h('button', { type: 'button', className: 'kbcp-btn kb7-more', disabled: loadingAll, onClick: loadAll }, loadingAll ? kbt('kb.cp.loading') : kbt('kb.cp.loadall')) : null) : null),
         // (01/10) The status banners go UNDER the control row: their
         // appearance no longer moves the title or the row (tab parity).
-        // (29/09) small "Local Connectors" help: collapsed at rest, the (i) button
-        // unfolds it (same values for fr/en through kbt).
-        helpOpen === true ? h('div', { className: 'kb7-help', role: 'note' },
-          h('div', { className: 'kb7-helptitle' }, kbt('kb.cp.help.title')),
-          h('p', { className: 'kb7-helptext' }, kbt('kb.cp.help'))) : null,
         (vtab !== 'mcp' && kcMode === false && ready === true && hostCfg === false && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-nokey' }, Icon('key', 15), kbt('kb.cp.nokey')) : null,
         err !== null && (vtab !== 'yours' || kcMode === false) ? h('div', { className: 'kbcp-err', role: 'alert' }, err) : null,
         // ── Vos connexions ──────────────────────────────────────────────────
@@ -2965,7 +2983,8 @@ window.__ModuleLoader__.load({
       const inPlan = signedIn && kc.entitled !== false
       const keyOn = key !== null && key.configured === true
       // Nothing chosen yet: what is in use today is what shows as selected (a saved key first), so the page never claims a change.
-      const effective = provider === 'composio' || provider === 'kybernos' ? provider : (keyOn || inPlan !== true ? 'composio' : 'kybernos')
+      // Nothing chosen yet: Kybernos Cloud, the default, unless a key of their own is saved (then what is in use today shows as selected).
+      const effective = kbCpProviderEffective(provider, offered, key === null ? null : keyOn)
       const choose = (next) => {
         if (next === effective && provider === next) return
         if (next === 'kybernos' && inPlan !== true) return
@@ -3093,7 +3112,7 @@ window.__ModuleLoader__.load({
       // exposed for the Resources tab of the kybernos bundle; the pure parts (webUrl, carteHtml,
       // carteAccepter, errText, hostState) and the MCP timeout are exposed so test-client.mjs can
       // reach them without a DOM.
-      composio: { cloudView: kbCpCloudView, cloudMerge: kbCpCloudMerge, cloudErr: kbCpCloudErr, connState: kbCpConnState, connActions: kbCpConnActions, failedText: kbCpFailedText, appsMatch: kbCpAppsMatch, modeGet: kbCpModeGet, modeSet: kbCpModeSet, page: ComposioPage, hostIsOld: kbCpHostIsOld, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, carteAcceptMax: CARTE_ACCEPT_MAX, match: kbCpMatch, joinArgs: kbCpJoinArgs, t: kbt, errText: kbCpErrText, keyState: kbCpKeyState, testErr: kbCpTestErr, statusOf: kbCpStatusOf, importParse: kbCpImportParse, importBody: kbCpImportBody, safeName: kbCpSafeName, targetOf: kbCpTargetOf, formOf: kbCpFormOf, bodyOf: kbCpBodyOf },
+      composio: { modeEffective: kbCpModeEffective, providerEffective: kbCpProviderEffective, cloudView: kbCpCloudView, cloudMerge: kbCpCloudMerge, cloudErr: kbCpCloudErr, connState: kbCpConnState, connActions: kbCpConnActions, failedText: kbCpFailedText, appsMatch: kbCpAppsMatch, modeGet: kbCpModeGet, modeSet: kbCpModeSet, page: ComposioPage, hostIsOld: kbCpHostIsOld, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, carteAcceptMax: CARTE_ACCEPT_MAX, match: kbCpMatch, joinArgs: kbCpJoinArgs, t: kbt, errText: kbCpErrText, keyState: kbCpKeyState, testErr: kbCpTestErr, statusOf: kbCpStatusOf, importParse: kbCpImportParse, importBody: kbCpImportBody, safeName: kbCpSafeName, targetOf: kbCpTargetOf, formOf: kbCpFormOf, bodyOf: kbCpBodyOf },
     }
   },
 })

@@ -66,7 +66,7 @@ export function createRouter (deps) {
   let last = null
 
   const record = (id) => {
-    if (!health.has(id)) health.set(id, { openUntil: 0, kind: null, message: '', at: 0, calls: 0, failures: 0, lastMs: null, lastCount: null, lastOkAt: 0 })
+    if (!health.has(id)) health.set(id, { openUntil: 0, kind: null, message: '', reason: null, at: 0, calls: 0, failures: 0, lastMs: null, lastCount: null, lastOkAt: 0 })
     return health.get(id)
   }
   const byId = new Map(deps.engines.map((e) => [e.id, e]))
@@ -102,20 +102,34 @@ export function createRouter (deps) {
     await mine
   }
 
-  const classify = (e, signal) => {
-    if (signal !== undefined && signal.aborted === true) return { kind: 'aborted', message: 'aborted' }
-    if (e instanceof EngineError) return { kind: e.kind, message: e.message }
-    const name = e !== null && typeof e === 'object' ? String(e.name || '') : ''
-    if (name === 'AbortError' || name === 'TimeoutError') return { kind: 'timeout', message: 'timed out' }
-    return { kind: 'network', message: String((e && e.message) || e).slice(0, 160) }
+  /** A word for what a failed connection ran into, from the cause Node attaches to « fetch failed »; null when it says nothing. The page
+   *  turns the word into a sentence in the person's language (A3-26: « fetch failed » told nobody that nothing listens there). */
+  const networkReason = (e) => {
+    const c = e && e.cause !== undefined && e.cause !== null ? e.cause : e
+    const code = String((c && c.cause && c.cause.code) || (c && c.code) || (e && e.code) || '')
+    if (code === 'ECONNREFUSED') return 'refused'
+    if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') return 'notfound'
+    if (code === 'ECONNRESET' || code === 'UND_ERR_SOCKET') return 'reset'
+    if (/CERT|TLS|SSL|SELF_SIGNED/.test(code)) return 'tls'
+    if (c !== null && c !== undefined && String(c.message) === 'bad port') return 'badport' // a port the fetch standard refuses (1, 25, 6000…)
+    return null
   }
 
-  const fail = (engine, kind, message) => {
+  const classify = (e, signal) => {
+    if (signal !== undefined && signal.aborted === true) return { kind: 'aborted', message: 'aborted' }
+    if (e instanceof EngineError) return e.kind === 'network' ? { kind: e.kind, message: e.message, reason: networkReason(e) } : { kind: e.kind, message: e.message }
+    const name = e !== null && typeof e === 'object' ? String(e.name || '') : ''
+    if (name === 'AbortError' || name === 'TimeoutError') return { kind: 'timeout', message: 'timed out' }
+    return { kind: 'network', message: String((e && e.message) || e).slice(0, 160), reason: networkReason(e) }
+  }
+
+  const fail = (engine, kind, message, reason) => {
     const rec = record(engine.id)
     rec.calls += 1
     rec.failures += 1
     rec.kind = kind
     rec.message = String(message).slice(0, 200)
+    rec.reason = reason || null
     rec.at = now()
     rec.openUntil = PAUSE_MS[kind] !== undefined ? now() + PAUSE_MS[kind] : 0
   }
@@ -125,6 +139,7 @@ export function createRouter (deps) {
     rec.calls += 1
     rec.kind = null
     rec.message = ''
+    rec.reason = null
     rec.openUntil = 0
     rec.lastMs = ms
     rec.lastCount = count
@@ -191,9 +206,9 @@ export function createRouter (deps) {
           }
           return { sources: items, truncated: false, engine: engine.id }
         } catch (e) {
-          const { kind, message } = classify(e, signal)
+          const { kind, message, reason } = classify(e, signal)
           if (kind === 'aborted') throw abortError()
-          fail(engine, kind, message)
+          fail(engine, kind, message, reason)
           trace.push({ id: engine.id, result: kind, message })
         }
       }
@@ -213,9 +228,9 @@ export function createRouter (deps) {
         succeed(engine, ms, items.length)
         return { ok: true, ms, count: items.length, sample: items.slice(0, 3).map((r) => ({ title: r.title || '', url: r.url })) }
       } catch (e) {
-        const { kind, message } = classify(e, signal)
-        if (kind !== 'aborted') fail(engine, kind, message)
-        return { ok: false, kind, message }
+        const { kind, message, reason } = classify(e, signal)
+        if (kind !== 'aborted') fail(engine, kind, message, reason)
+        return reason === undefined || reason === null ? { ok: false, kind, message } : { ok: false, kind, message, reason }
       }
     },
 
@@ -230,7 +245,8 @@ export function createRouter (deps) {
         lastOkAt: rec.lastOkAt || null,
         pausedUntil: rec.openUntil > now() ? rec.openUntil : null,
         kind: rec.kind,
-        message: rec.message
+        message: rec.message,
+        reason: rec.reason || null
       }
     },
 
@@ -239,7 +255,7 @@ export function createRouter (deps) {
     /** A key or an address changed: whatever pause was set on this engine said something that is no longer true. */
     forget (id) {
       const rec = health.get(id)
-      if (rec !== undefined) { rec.openUntil = 0; rec.kind = null; rec.message = '' }
+      if (rec !== undefined) { rec.openUntil = 0; rec.kind = null; rec.message = ''; rec.reason = null }
       cache.clear()
     },
 

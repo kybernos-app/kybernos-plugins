@@ -319,13 +319,42 @@ console.log('\n── language (A2-19): English is the base, French is the twin,
   check('English: the lazy tables read the language when they are read, not when the file loads', (() => { setLang('kybernos'); const a = T.KIND_NAME_ALL.skill; const l1 = T.LAYER_NAME.core; setLang('en'); return a === 'Skill' && l1 === 'Espace de travail' && T.LAYER_NAME.core === 'Workspace' })())
 }
 
+console.log('\n── the page opens on the last reading (V-22) ──')
+{
+  const memory = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => { m.set(k, String(v)) }, removeItem: (k) => { m.delete(k) }, m } }
+  const status = { projects: { state: 'ok', count: 2, note: '' }, memory: { state: 'skipped', count: null, note: 'Account not linked' } }
+  const store = memory()
+  const wrote = T.saveReading(store, { at: NOW, failed: 0, status, src })
+  check('an Update writes the reading to the page\'s own store', wrote === true && store.m.size === 1)
+  const back = T.restoreReading(store)
+  check('the next visit gets the same reading back: date, sources status, failures', back !== null && back.result.at === NOW && back.result.failed === 0 && back.status.memory.state === 'skipped')
+  check('...with the graph rebuilt from the sources, as of the day it was read', back.result.graph.nodes.length === g.nodes.length && back.result.graph.byId['t:digest'].days === g.byId['t:digest'].days && back.result.graph.now === NOW)
+  check('...and it holds no prompt and no webhook secret (they never reach the sources)', !Array.from(store.m.values()).join('').match(/TOP-SECRET|PRIVATE PROMPT/))
+  check('nothing stored → nothing restored (a first visit stays on « Nothing read yet »)', T.restoreReading(memory()) === null)
+  check('no storage at all → no throw, nothing restored, nothing written', T.restoreReading(null) === null && T.saveReading(null, { at: NOW, failed: 0, status, src }) === false)
+  const full = { getItem: () => null, setItem: () => { throw new Error('QuotaExceededError') } }
+  check('a full or blocked store never breaks the page', T.saveReading(full, { at: NOW, failed: 0, status, src }) === false)
+  const bad = memory(); bad.setItem(T.READING_KEY, '{not json')
+  check('a damaged entry is ignored', T.restoreReading(bad) === null)
+  const old = memory(); old.setItem(T.READING_KEY, JSON.stringify({ v: 0, at: NOW, failed: 0, status, src }))
+  check('an entry of another version is ignored', T.restoreReading(old) === null)
+  const odd = memory(); odd.setItem(T.READING_KEY, JSON.stringify({ v: 1, at: 'yesterday', failed: 0, status, src }))
+  check('an entry with no valid date is ignored', T.restoreReading(odd) === null)
+  const huge = memory()
+  const giant = Object.assign({}, src, { skills: Array.from({ length: 20000 }, (_, i) => ({ name: 's' + i, description: 'x'.repeat(100), root: '', source: '', active: true, collision: false, modifiedAt: null })) })
+  check('a reading too big for a shared browser store is not kept (the old one stays)', T.saveReading(huge, { at: NOW, failed: 0, status, src: giant }) === false && huge.m.size === 0)
+  check('a reading where every source failed is never stored over a good one', (() => { const s = memory(); T.saveReading(s, { at: NOW, failed: 0, status, src }); T.saveReading(s, { at: NOW + 1, failed: 7, status, src: {} }); return T.restoreReading(s).result.at === NOW })())
+  check('the page still opens idle when nothing was stored, and never reads on open', /lastReading\(\)/.test(SOURCE) && (SOURCE.match(/readAll\(/g) || []).length === 1 && !/useEffect\([^)]*\bload\(\)/.test(SOURCE))
+  check('the header of a restored reading says how long ago it was read (the existing « Read … ago »)', /'Read ' \+ when/.test(SOURCE))
+}
+
 console.log('\n── what the page may not do ──')
 const verbs = SOURCE.match(/method:\s*'([A-Z]+)'/g) || []
 check('the only explicit non-GET verb is POST', verbs.every((v) => v.includes("'POST'")))
 const posts = (SOURCE.match(/postJson\('([^']+)'/g) || []).map((s) => s.replace(/postJson\('/, '').replace(/'$/, ''))
 check('POST only to the two read-only routes', posts.sort().join(',') === '/kybernos/project-data,/kybernos/tasks', posts)
 check('tasks are only ever listed', /postJson\('\/kybernos\/tasks', \{ action: 'list' \}\)/.test(SOURCE) && !/action:\s*'(create|update|delete|run|toggle|remove|pause)/.test(SOURCE))
-check('no storage of its own', !/localStorage|sessionStorage|indexedDB/.test(SOURCE))
+check('its only storage is the one key of the last reading, in this browser', !/sessionStorage|indexedDB/.test(SOURCE) && (SOURCE.match(/localStorage/g) || []).length === 2 && (SOURCE.match(/'kybernos-atlas:last-reading'/g) || []).length === 1)
 check('no personal path in the source', !/\/Users\/(?!me\b|x\b)[A-Za-z0-9._-]+/.test(SOURCE))
 check('every class is prefixed kbat-', !/className:\s*'(?!kbat-)/.test(SOURCE))
 

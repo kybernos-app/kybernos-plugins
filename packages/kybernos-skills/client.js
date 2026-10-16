@@ -103,6 +103,7 @@ window.__ModuleLoader__.load({
         'err.install': { fr: 'installation impossible', en: 'installation failed' },
         'he.root_not_allowed': { fr: 'Ce dossier n’est pas l’un de vos dossiers de skills modifiables.', en: 'That folder is not one of your writable skills folders.' },
         'he.invalid_name': { fr: 'Nom invalide : minuscules, chiffres et tirets, sans accent.', en: 'Invalid name: lowercase letters, digits and hyphens, no accents.' },
+        'he.name_too_long': { fr: 'Nom trop long ({max} caractères au plus).', en: 'Name too long ({max} characters at most).' },
         'he.active_required': { fr: 'L’état à appliquer (actif ou non) est absent.', en: 'The state to apply (on or off) is missing.' },
         'he.skill_not_found': { fr: 'Skill introuvable.', en: 'Skill not found.' },
         'he.skill_ambiguous': { fr: 'Plusieurs dossiers portent ce nom : impossible de choisir.', en: 'Several folders have this name: cannot choose.' },
@@ -280,7 +281,8 @@ window.__ModuleLoader__.load({
         'src.refused': { fr: 'adresse refusée', en: 'address refused' },
         'src.change': { fr: 'Changer', en: 'Change' },
         'src.title': { fr: 'Source de l’index', en: 'Index source' },
-        'src.sub': { fr: 'L’onglet Discover lit un relais en lecture seule de l’index skills.sh. Aucun identifiant n’est envoyé, et la réponse est bornée en taille.', en: 'The Discover tab reads a read-only relay of the skills.sh index. No credential is sent, and the answer is capped in size.' },
+        'src.what': { fr: 'Une source est l’endroit où l’onglet Discover lit sa liste de skills publics. Par défaut, c’est le relais Kybernos : une copie en lecture seule de l’index skills.sh, rafraîchie environ toutes les heures, donc sans compte ni clé.', en: 'A source is where the Discover tab reads its list of public skills from. The default is the Kybernos relay: a read-only copy of the skills.sh index, refreshed about every hour, so no account or key is needed.' },
+        'src.sub': { fr: 'Aucun identifiant n’est envoyé, et la réponse est bornée en taille.', en: 'No credential is sent, and the answer is capped in size.' },
         'src.field': { fr: 'Adresse du relais', en: 'Relay address' },
         'src.hint': { fr: 'https://… (ou http://localhost… pour un essai sur cette machine). Laissez vide pour le relais Kybernos.', en: 'https://… (or http://localhost… for a test on this machine). Leave empty for the Kybernos relay.' },
         'src.envnote': { fr: 'La variable d’environnement KYBERNOS_SKILLS_INDEX_URL décide de l’adresse : elle prime sur ce réglage. Modifiez-la là pour changer de source.', en: 'The KYBERNOS_SKILLS_INDEX_URL environment variable decides the address: it overrides this setting. Change it there to change the source.' },
@@ -292,10 +294,9 @@ window.__ModuleLoader__.load({
         'err.source': { fr: 'enregistrement impossible', en: 'could not save' },
         // ── Settings page « Skills » (catalogue): the routes that decide where skills come from ──
         'set.nav': { fr: 'Compétences', en: 'Skills' },
-        'set.h1': { fr: 'Compétences — catalogue', en: 'Skills — catalogue' },
+        'set.h1': { fr: 'Compétences', en: 'Skills' },
         'set.lead': { fr: 'D’où viennent les skills de ce profil : la source de l’index (Discover) et les dossiers dans lesquels les installations sont écrites.', en: 'Where this profile’s skills come from: the index source (Discover) and the folders installs are written to.' },
         'set.srcH': { fr: 'Source de l’index', en: 'Index source' },
-        'set.srcSub': { fr: 'Le classement de l’onglet Discover est lu à cette adresse (relais en lecture seule de l’index skills.sh).', en: 'The Discover ranking is read at this address (a read-only relay of the skills.sh index).' },
         'set.srcMissing': { fr: 'La route /kybernos-skills/index-source ne répond pas sur cet hôte.', en: 'The /kybernos-skills/index-source route is not answering on this host.' },
         'set.rootsH': { fr: 'Dossiers modifiables', en: 'Writable folders' },
         'set.rootsSub': { fr: 'La création et l’installation de skills s’écrivent uniquement dans ces dossiers.', en: 'Skill creation and installs are written only to these folders.' },
@@ -549,6 +550,20 @@ window.__ModuleLoader__.load({
         'tm.r.tooBig': { fr: 'Trop long pour une comparaison ligne à ligne.', en: 'Too long to compare line by line.' },
         'tm.r.rejectedWith': { fr: 'Refusé : {note}', en: 'Rejected: {note}' },
         'tm.r.noNote': { fr: 'Refusé, sans note.', en: 'Rejected, no note.' },
+        // The animated help of the page (window.__KB_HELP__.Intro): what it says, and the words of its little mock.
+        'intro.title': { fr: 'Les skills en trois étapes', en: 'Skills in three steps' },
+        'intro.caption': { fr: 'Un skill est choisi dans Featured, installé en un clic, puis listé dans Yours.', en: 'A skill is picked in Featured, installed with one click, then listed under Yours.' },
+        'intro.s1t': { fr: 'Choisissez', en: 'Pick one' },
+        'intro.s1b': { fr: 'Featured montre nos choix et ce que disent leurs audits de sécurité. Discover classe les skills publics.', en: 'Featured shows our picks and what their security audits said. Discover ranks the public ones.' },
+        'intro.s2t': { fr: 'Installez', en: 'Install it' },
+        'intro.s2b': { fr: 'Un clic, puis confirmez. Le skill est copié sur cet ordinateur.', en: 'One click, then confirm. The skill is copied to this computer.' },
+        'intro.s3t': { fr: 'Laissez vos agents s’en servir', en: 'Let your agents use it' },
+        'intro.s3b': { fr: 'Il apparaît dans Yours. Vos agents le chargent quand votre demande lui correspond.', en: 'It is listed under Yours. Your agents load it when your request fits it.' },
+        'intro.m.row': { fr: 'Documents Word', en: 'Word documents' },
+        'intro.m.st1': { fr: 'Featured', en: 'Featured' },
+        'intro.m.st2': { fr: 'Installation…', en: 'Installing…' },
+        'intro.m.st3': { fr: 'Installé', en: 'Installed' },
+        'intro.m.open': { fr: 'Ouvrir', en: 'Open' },
       }
       // Language: same mechanism as kybernos-composio (kbt). The host's `locale` service; “kybernos”
       // is the theme's default: with no explicit choice (kybernos.theme.lang absent) and under an English
@@ -872,7 +887,7 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-input:focus,.kbs-root .kbs-area:focus,.kbs-root .kbs-select:focus{outline:none;border-color:var(--kb-switch-on,#4d7cfe)}
 .kbs-root .kbs-check{display:flex;align-items:flex-start;gap:9px;font-size:13px;color:var(--dsw-alias-label-secondary);line-height:1.5}
 .kbs-root .kbs-err{font-size:13px;color:var(--dsw-alias-state-error-primary)}
-.kbs-root .kbs-actions{display:flex;align-items:center;gap:10px;justify-content:flex-end}
+.kbs-root .kbs-actions{display:flex;align-items:center;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 .kbs-root .kbs-toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:210;display:flex;align-items:center;gap:9px;padding:11px 16px;border-radius:12px;background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-border-l2);box-shadow:0 14px 34px rgba(0,0,0,.5);font-size:13px;color:var(--dsw-alias-label-primary);max-width:70vw}
 .kbs-root .kbs-toast.err{border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 55%,transparent)}
 .kbs-root .kbs-copy{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-caption);border-radius:999px;padding:3px 9px;font-family:ui-monospace,monospace;font-size:11px;cursor:pointer}
@@ -924,6 +939,8 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-srcline svg{flex:0 0 auto;color:var(--dsw-alias-label-caption)}
 .kbs-root .kbs-srcline .k{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-caption)}
 .kbs-root .kbs-srcline .v{font-family:ui-monospace,monospace;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.kbs-root .kbs-srcline .w::before{content:'·';margin-right:8px}
+@media (max-width:520px){.kbs-root .kbs-srcline .w::before{display:none}}
 .kbs-root .kbs-link{background:none;border:none;padding:3px 6px;border-radius:7px;color:var(--dsw-alias-brand-primary);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
 .kbs-root .kbs-link:hover{background:var(--dsw-alias-bg-layer-2)}
 /* — Team skills: the table reuses the one from Discover (same tokens), only the columns change — */
@@ -1115,6 +1132,8 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
 .kbss-page .kbss-srcline svg{flex:0 0 auto;color:var(--dsw-alias-label-caption)}
 .kbss-page .kbss-srcline .k{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-caption)}
 .kbss-page .kbss-srcline .v{font-family:ui-monospace,monospace;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.kbss-page .kbss-srcline .w::before{content:'·';margin-right:8px}
+@media (max-width:520px){.kbss-page .kbss-srcline .w::before{display:none}}
 .kbss-page .kbss-link{background:none;border:none;padding:3px 6px;border-radius:7px;color:var(--dsw-alias-brand-primary);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
 .kbss-page .kbss-link:hover{background:var(--dsw-alias-bg-layer-2)}
 .kbss-page .kbss-fields{display:flex;flex-direction:column;gap:8px}
@@ -1125,7 +1144,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
 .kbss-page .kbss-err{font-size:13px;color:var(--dsw-alias-state-error-primary)}
 .kbss-page .kbss-note{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--dsw-alias-label-caption)}
 .kbss-page .kbss-root-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-2);font-size:12.5px;color:var(--dsw-alias-label-secondary)}
-.kbss-page .kbss-root-row .p{font-family:ui-monospace,monospace;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1 1 auto}
+.kbss-page .kbss-root-row .p{font-family:ui-monospace,monospace;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1 1 220px}
 .kbss-page .kbss-kpis{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
 .kbss-page .kbss-kpis .n{font-size:17px;font-weight:600;color:var(--dsw-alias-label-primary)}
 .kbss-page .kbss-hint{margin:0;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-caption)}
@@ -2185,7 +2204,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
             src.refused === true
               ? h('span', { className: 'kb8-pill warn' }, t('src.refused'))
               : h('span', { className: 'v', title: src.url !== null ? src.url : undefined }, src.host),
-            h('span', { className: 'w' }, '· ' + where),
+            h('span', { className: 'w' }, where),
             h('button', { type: 'button', className: 'kbs-link', 'data-kb': 'index-source-change', onClick: () => { setSrcErr(''); setSrcOpen(true) } }, t('src.change')))
         }
 
@@ -2556,6 +2575,16 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
         const teamAction = primary(teamRoleAdmin(tsum.role) ? t('tm.add') : t('tm.propose'), () => setTeamSheet(true), 'plus')
         const headAction = mode === 'team' ? (teamBarShown ? teamAction : null) : renderAdd()
         const helpBtn = (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-skills' }) : null)
+        // The animated help: opens the first time the page is visited (the hub remembers it was closed), and the card of the button above can bring it back.
+        const introNode = (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Intro
+          ? h(window.__KB_HELP__.Intro, {
+            id: 'kybernos-skills',
+            title: t('intro.title'),
+            caption: t('intro.caption'),
+            steps: [{ t: t('intro.s1t'), b: t('intro.s1b') }, { t: t('intro.s2t'), b: t('intro.s2b') }, { t: t('intro.s3t'), b: t('intro.s3b') }],
+            mock: { bar: 'Skills', rows: [t('intro.m.row')], hot: 'PDF', states: [t('intro.m.st1'), t('intro.m.st2'), t('intro.m.st3')], actions: [t('btn.install'), t('intro.m.st2'), t('intro.m.open')] }
+          })
+          : null)
         return h('div', { className: 'kbs-root' },
           KbBar !== null
             ? h('div', { className: 'kb6-headrow' },
@@ -2584,6 +2613,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
                 h('h2', { className: 'kbs-h1' }, 'Skills'),
                 h('p', { className: 'kbs-sub', title: capTxt }, capTxt)),
               mode !== 'team' ? renderAdd() : null),
+          introNode,
           h('div', { className: 'kbs-ctlrow' },
             h('nav', { className: 'kbsub' },
               // Same capsule as the "Connections" sub-tabs (Your connections / Discover): one single language.
@@ -2784,6 +2814,9 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
         const [root, setRoot] = React.useState(props.roots.length > 0 ? props.roots[0].path : '')
         const [quiet, setQuiet] = React.useState(false)
         const field = (label, node) => h('div', { className: 'kbs-fields' }, h('span', { className: 'kbs-label' }, label), node)
+        // The same rule as the host's (a lowercase kebab name, 64 characters at most), said while typing: the « /name » line only
+        // promises a command once the name can be one, and a bad name says why under its field (A3-27).
+        const nameRule = name === '' ? null : (/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name) ? (name.length > 64 ? 'name_too_long' : null) : 'invalid_name')
         const select = (value, onChange) => h('select', { className: 'kbs-select', value, onChange: (e) => onChange(e.target.value) },
           props.roots.length === 0
             ? h('option', { value: '' }, t('m.defroot'))
@@ -2793,19 +2826,21 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
             h('div', { className: 'kb-row' }, h('span', { className: 'kb8-h2' }, t('add.create')), h('span', { style: { flex: '1' } }),
               h('button', { type: 'button', className: 'kb-tool', onClick: props.onClose }, '✕')),
             h('p', { className: 'kb8-sub', style: { margin: '0' } }, t('m.createSub')),
-            field(t('m.name'), h('input', { className: 'kbs-input', value: name, placeholder: t('m.nameph'), onChange: (e) => setName(e.target.value) })),
+            field(t('m.name'), h(React.Fragment, null,
+              h('input', { className: 'kbs-input', value: name, placeholder: t('m.nameph'), 'aria-invalid': nameRule !== null ? 'true' : 'false', onChange: (e) => setName(e.target.value) }),
+              nameRule !== null ? h('div', { className: 'kbs-err', role: 'alert', 'data-kb': 'create-name-error' }, t('he.' + nameRule, { max: 64 })) : null)),
             field(t('m.desc'), h('textarea', { className: 'kbs-area', style: { minHeight: '70px' }, value: description, onChange: (e) => setDescription(e.target.value) })),
             field(t('m.when'), h('input', { className: 'kbs-input', value: whenToUse, onChange: (e) => setWhenToUse(e.target.value) })),
             field(t('m.content'), h('textarea', { className: 'kbs-area', value: content, placeholder: t('m.contentph'), onChange: (e) => setContent(e.target.value) })),
             field(t('f.root'), select(root, setRoot)),
             h('label', { className: 'kbs-check' },
               h('input', { type: 'checkbox', checked: quiet, onChange: (e) => setQuiet(e.target.checked) }),
-              h('span', null, t('m.quiet', { n: name || t('m.nameWord') }))),
+              h('span', null, t('m.quiet', { n: name !== '' && nameRule === null ? name : t('m.nameWord') }))),
             props.error ? h('div', { className: 'kbs-err' }, props.error) : null,
             h('div', { className: 'kbs-actions' },
               h('button', { type: 'button', className: 'kb8-ghost', onClick: props.onClose }, t('m.cancel')),
               h('button', {
-                type: 'button', className: 'kb8-primary', disabled: props.busy.__modal === true,
+                type: 'button', className: 'kb8-primary', disabled: props.busy.__modal === true || nameRule !== null,
                 onClick: () => props.onSubmit({ name, description, whenToUse, body: content, root, modelInvocable: quiet !== true })
               }, icon('wand', 15), props.busy.__modal === true ? t('m.creating') : t('m.createBtn')))))
       }
@@ -2826,7 +2861,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
           h('div', { className: 'kb-modal', 'data-kb': 'index-source-modal', role: 'dialog', 'aria-label': t('src.title'), onClick: (e) => e.stopPropagation() },
             h('div', { className: 'kb-row' }, h('span', { className: 'kb8-h2' }, t('src.title')), h('span', { style: { flex: '1' } }),
               h('button', { type: 'button', className: 'kb-tool', 'aria-label': t('m.cancel'), onClick: props.onClose }, '✕')),
-            h('p', { className: 'kb8-sub', style: { margin: '0' } }, t('src.sub')),
+            h('p', { className: 'kb8-sub', style: { margin: '0' } }, t('src.what') + ' ' + t('src.sub')),
             now !== '' ? h('div', { className: 'kb-note' }, icon('globe', 14), h('span', null, now)) : null,
             editable === true
               ? h('div', { className: 'kbs-fields' },
@@ -2837,14 +2872,13 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
                     onChange: (e) => setValue(e.target.value),
                     onKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); props.onSubmit(value) } }
                   }),
-                  h('span', { className: 'kb8-mono' }, t('src.hint')))
+                  h('span', { className: 'kb8-sub', style: { fontSize: '12px', color: 'var(--dsw-alias-label-caption)' } }, t('src.hint')))
               : h('div', { className: 'kb-callout' }, icon('info', 16), h('span', null, t('src.envnote'))),
             props.error ? h('div', { className: 'kbs-err', role: 'alert' }, props.error) : null,
             h('div', { className: 'kbs-actions' },
               editable === true && s0 !== null && s0.origin === 'setting'
-                ? h('button', { type: 'button', className: 'kb8-ghost', 'data-kb': 'index-source-reset', disabled: props.busy === true, onClick: () => props.onSubmit('') }, t('src.reset'))
+                ? h('button', { type: 'button', className: 'kb8-ghost', 'data-kb': 'index-source-reset', style: { marginRight: 'auto' }, disabled: props.busy === true, onClick: () => props.onSubmit('') }, t('src.reset'))
                 : null,
-              h('span', { style: { flex: '1' } }),
               h('button', { type: 'button', className: 'kb8-ghost', onClick: props.onClose }, t('m.cancel')),
               editable === true
                 ? h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'index-source-save', disabled: props.busy === true, onClick: () => props.onSubmit(value) }, props.busy === true ? t('src.saving') : t('src.save'))
@@ -3405,7 +3439,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
           const where = src === null ? '' : (src.origin === 'env' ? t('src.env') : (src.origin === 'setting' ? t('src.custom') : t('src.default')))
           return h('div', { className: 'kbss-card', 'data-kb': 'skills-settings-source' },
             h('h3', { className: 'kbss-h2' }, t('set.srcH')),
-            h('p', { className: 'kbss-sub' }, t('set.srcSub')),
+            h('p', { className: 'kbss-sub' }, t('src.what')),
             src === null
               ? h('p', { className: 'kbss-sub' }, t('set.srcMissing'))
               : h('div', { className: 'kbss-srcline', 'data-kb': 'index-source' },
@@ -3414,7 +3448,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
                   src.refused === true
                     ? h('span', { className: 'kb8-pill warn' }, t('src.refused'))
                     : h('span', { className: 'v', title: src.url !== null ? src.url : undefined }, src.host),
-                  h('span', { className: 'w' }, '\u00b7 ' + where),
+                  h('span', { className: 'w' }, where),
                   h('button', {
                     type: 'button', className: 'kbss-link', 'data-kb': 'index-source-change',
                     disabled: srcBusy === true, onClick: () => { setSrcErr(''); setSrcOpen(true) }

@@ -1,5 +1,5 @@
 // The Free LLMs page checks the free tier before it offers to connect (audit A3-14): when the tier is locked it says so in a
-// sentence, the models are not drawn as available, Connect is off, and « Probe a model » gives a sentence, not a code.
+// sentence, the models are not drawn as available, Connect is off, and « Re-check » (V-43) gives a sentence, not a code.
 // The real Panel runs here on a tiny synchronous renderer (useState / useEffect / useCallback), with a scripted host.
 //
 //   node packages/kybernos-free-llms/test-panel.mjs
@@ -121,21 +121,33 @@ console.log('the check has not answered yet, or failed for a reason that says no
   check('a network failure does not block Connect (the tier is not known to be locked)', connectButton(view).props.disabled === false && view.one((n) => n.props && n.props['data-kfl'] === 'tier-locked') === null)
 }
 
-console.log('« Probe a model »')
+console.log('« Re-check » (V-43): a small button on the list, a fresh probe each time, and the time of the last check')
 {
-  const view = await open({ ok: true, model: MODELS[0], code: 'ok' })
-  healthAnswer = { ok: false, code: 'free_tier_locked', status: 403 }
+  const clock = (iso) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const view = await open({ ok: true, model: MODELS[0], code: 'ok', checkedAt: '2026-10-16T08:15:00.000Z', cached: true })
+  const recheck = () => view.one((n) => n.props && n.props['data-kfl'] === 'recheck')
+  check('the button sits in the header of the list, not below the fold', recheck() !== null && view.one((n) => n.props && n.props.className === 'kfl-tete' && (n.kids || []).includes(recheck())) !== null)
+  check('it is a small button labelled Re-check', recheck() !== null && /kbm-btn-sm/.test(recheck().props.className) && /Re-check/.test(view.text()))
+  check('on open the page shows when the tier was last checked (the host\'s own stamp)', view.one((n) => n.props && n.props['data-kfl'] === 'verifie') !== null && view.text().includes('Last checked ' + clock('2026-10-16T08:15:00.000Z')), view.text().slice(0, 300))
+  healthAnswer = { ok: false, code: 'free_tier_locked', status: 403, checkedAt: '2026-10-16T08:21:00.000Z', cached: false }
   calls.length = 0
-  const probe = view.all((n) => n.tag === 'button').find((b) => /Probe a model/.test(view.text()) && (b.kids || []).some((k) => typeof k === 'string' && k === 'Probe a model'))
-  probe.props.onClick()
+  recheck().props.onClick()
   await view.settle()
   check('it asks for a fresh probe (no cached form)', calls.includes('/free-llms/health'), calls)
+  check('...and reads the list of models again', calls.includes('/free-llms/status'), calls)
+  check('the time of the last check moves to the new check', view.text().includes('Last checked ' + clock('2026-10-16T08:21:00.000Z')) && !view.text().includes(clock('2026-10-16T08:15:00.000Z')), view.text().slice(0, 300))
   check('a refusal is worded as a sentence, never as « Gate refused: free_tier_locked »', /The free tier is unavailable right now/.test(view.text()) && !/Gate refused|free_tier_locked/.test(view.text()), view.text())
   check('the probe also tells the page the tier is locked: Connect goes off', view.one((n) => n.props && n.props['data-kfl'] === 'tier-locked') !== null)
-  healthAnswer = { ok: false, code: 'upstream_500' }
-  probe.props.onClick()
+  check('...and the sentence is said once, not once by the list and once by the check', (view.text().match(/The free tier is unavailable right now/g) || []).length === 1, view.text().slice(0, 400))
+  healthAnswer = { ok: false, code: 'upstream_500', checkedAt: '2026-10-16T08:30:00.000Z' }
+  recheck().props.onClick()
   await view.settle()
   check('an unknown code is still a sentence with the code in brackets', /The test failed \(upstream_500\)/.test(view.text()), view.text())
+  check('there is one button that probes: the old « Probe a model » is gone', !/Probe a model/.test(view.text()))
+}
+{
+  const view = await open({ ok: false, code: 'error' })
+  check('an answer without a stamp shows no time (the page never invents a check)', view.one((n) => n.props && n.props['data-kfl'] === 'verifie') === null)
 }
 
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)

@@ -3,7 +3,7 @@
 // The Free LLMs page asks whether the free tier answers BEFORE it offers to connect (audit A3-14): when OpenCode Zen
 // locks the tier (HTTP 403 free_tier_locked), the models of the catalogue are still listed and a person who connects gets
 // models that cannot answer. Opening the page must stay cheap, so the probe (one 8-token chat call) is remembered for a
-// few minutes, and two pages opened together share one call. « Probe a model » asks for a FRESH one.
+// few minutes, and two pages opened together share one call. « Re-check » asks for a FRESH one.
 //
 // Pure: the probe, the clock and the memory are handed in.
 

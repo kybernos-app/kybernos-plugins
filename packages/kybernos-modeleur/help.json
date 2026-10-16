@@ -29,5 +29,6 @@
   "good": {
     "fr": "Un modèle n’est pas enregistré : il disparaît quand DSH redémarre. Passer de la 3D à la 2D (ou l’inverse) repart aussi d’un modèle neuf.",
     "en": "A model is not saved: it disappears when DSH restarts. Switching from 3D to 2D (or back) also starts from a new model."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/create-with-kybernos/draw-a-2d-or-3d-model/"
 }

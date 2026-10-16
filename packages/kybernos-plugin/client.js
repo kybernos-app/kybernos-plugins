@@ -105,7 +105,7 @@ let kbLocaleRead = () => 'en'
       'tasks.filter.all': { kybernos: 'Toutes', en: 'All' },
       'tasks.filter.active': { kybernos: 'Actives', en: 'Active' },
       'tasks.filter.attention': { kybernos: 'Attention requise', en: 'Needs attention' },
-      'tasks.col.name': { kybernos: 'NOM · AGENT TEAM', en: 'NAME · AGENT TEAM' },
+      'tasks.col.name': { kybernos: 'NOM', en: 'NAME' },
       'tasks.col.trigger': { kybernos: 'DÉCLENCHEUR', en: 'TRIGGER' },
       'tasks.col.origin': { kybernos: 'ORIGINE', en: 'ORIGIN' },
       'tasks.col.lastsession': { kybernos: 'DERNIÈRE SESSION', en: 'LAST SESSION' },
@@ -187,8 +187,9 @@ let kbLocaleRead = () => 'en'
       'deliv.fam.images': { kybernos: 'Images', en: 'Images' },
       'deliv.fam.images.desc': { kybernos: 'Visuels, captures et schémas générés.', en: 'Generated visuals, captures and diagrams.' },
       'deliv.fam.av': { kybernos: 'Audio & vidéo', en: 'Audio & Video' },
+      'deliv.type.media': { kybernos: 'Audio / Vidéo', en: 'Audio / Video' },
       'deliv.fam.av.desc': { kybernos: 'Extraits sonores et clips vidéo produits par vos Agent Teams.', en: 'Sound bites and video clips produced by your Agent Teams.' },
-      'tasks.form.title': { kybernos: 'Planifier une tâche', en: 'Schedule task' },
+      'tasks.form.title': { kybernos: 'Planifier une automation', en: 'Schedule an automation' },
       'tasks.name': { kybernos: 'Nom', en: 'Name' },
       'tasks.prompt': { kybernos: 'Prompt', en: 'Prompt' },
       'tasks.repeats': { kybernos: 'Répétition', en: 'Repeats' },
@@ -211,8 +212,8 @@ let kbLocaleRead = () => 'en'
       'tasks.schedule': { kybernos: 'Planifier', en: 'Schedule' },
       'tasks.cancel': { kybernos: 'Annuler', en: 'Cancel' },
       'tasks.save': { kybernos: 'Enregistrer', en: 'Save' },
-      'tasks.needname': { kybernos: 'Donnez un nom à la tâche pour la planifier.', en: 'Give the task a name to schedule it.' },
-      'tasks.needprompt': { kybernos: 'Ajoutez un prompt pour que la tâche sache quoi faire.', en: 'Add a prompt so the task knows what to do.' },
+      'tasks.needname': { kybernos: 'Donnez un nom à l’automation pour la planifier.', en: 'Give the automation a name to schedule it.' },
+      'tasks.needprompt': { kybernos: 'Ajoutez un prompt pour que l’automation sache quoi faire.', en: 'Add a prompt so the automation knows what to do.' },
       'tasks.edit': { kybernos: 'Modifier', en: 'Edit' },
       'tasks.delete': { kybernos: 'Supprimer', en: 'Delete' },
       'tasks.deleted': { kybernos: 'Tâche supprimée.', en: 'Task deleted.' },
@@ -337,12 +338,28 @@ let kbLocaleRead = () => 'en'
       'tasks.sessions.hint': { kybernos: 'Chaque session est un chat réel avec l’Agent Team. Ouvrez-en une pour lire ce que les agents ont fait.', en: 'Each session is a real chat with the Agent Team. Open one to follow what the agents did.' },
       'tasks.everyday8': { kybernos: 'Chaque jour, 8:00', en: 'Every day, 8:00' },
       'tasks.weekdays8': { kybernos: 'Jours ouvrés, 8:00', en: 'Weekdays, 8:00' },
-      'tasks.monday8': { kybernos: 'Chaque lundi, 8:00', en: 'Every Monday, 8:00' },
-      'tasks.friday16': { kybernos: 'Chaque vendredi, 16:00', en: 'Every Friday, 16:00' },
+      // The readable schedules (kbCronHuman): a sentence per common shape, `{day}` a weekday name, `{time}` HH:MM.
+      'tasks.every.minute': { kybernos: 'Chaque minute', en: 'Every minute' },
+      'tasks.every.minutes': { kybernos: 'Toutes les {n} minutes', en: 'Every {n} minutes' },
+      'tasks.every.hour': { kybernos: 'Chaque heure', en: 'Every hour' },
+      'tasks.every.hour.at': { kybernos: 'Chaque heure à :{minute}', en: 'Every hour at :{minute}' },
+      'tasks.every.hours': { kybernos: 'Toutes les {n} heures', en: 'Every {n} hours' },
+      'tasks.every.hours.at': { kybernos: 'Toutes les {n} heures à :{minute}', en: 'Every {n} hours at :{minute}' },
+      'tasks.every.dow': { kybernos: 'Chaque {day}, {time}', en: 'Every {day}, {time}' },
+      'tasks.every.month': { kybernos: 'Chaque mois le {day}, {time}', en: 'Every month on the {day}, {time}' },
       'tasks.onetime': { kybernos: 'Une seule fois', en: 'One time' },
       'tasks.cron': { kybernos: 'Expression cron', en: 'Cron expression' },
       'tasks.timezone': { kybernos: 'Fuseau', en: 'Time zone' },
+      'tasks.time': { kybernos: 'Heure', en: 'Time' },
+      'tasks.prompt.max': { kybernos: 'Le prompt est limité à 8 000 caractères.', en: 'A prompt is limited to 8,000 characters.' },
       'tasks.trigger.plushook': { kybernos: '+ webhook', en: '+ webhook' },
+      // « Edit → chat »: the text put in the composer of a new chat (the automation-creator skill, edit mode) and the buttons.
+      'tasks.edit.chat': { kybernos: 'Skill automation-creator — mode modification. Modifie cette automation, n’en crée pas une nouvelle : demande-moi ce qu’il faut changer, montre-moi le résultat et attends mon accord, puis enregistre-le avec le mode modification du script (id : {id}).\n\nNom : {name}\nSe lance : {runs}\nQuand une validation est nécessaire : {approvals}\nNotifications : {notify}\nActive : {active}\n\nCe qu’elle fait :\n{prompt}', en: 'Skill automation-creator — edit mode. Change this automation, do not create a new one: ask me what to change, show me the result and wait for my yes, then save it with the script’s edit mode (id: {id}).\n\nName: {name}\nRuns: {runs}\nWhen it needs approval: {approvals}\nNotifications: {notify}\nOn: {active}\n\nWhat it does:\n{prompt}' },
+      'tasks.edit.chat.ask': { kybernos: 'Ce que je veux changer : ', en: 'What I want to change: ' },
+      'tasks.edit.chat.act': { kybernos: 'Modifier dans le chat', en: 'Edit in chat' },
+      'tasks.edit.chat.aria': { kybernos: 'Modifier {name} dans le chat', en: 'Edit {name} in chat' },
+      // A schedule that runs more often than every 5 minutes needs an explicit confirmation: the host refuses it without one.
+      'tasks.err.frequent': { kybernos: 'Ce planning se déclenche très souvent (plus d’une fois toutes les 5 minutes) et chaque déclenchement ouvre une vraie session du modèle : il faut le confirmer explicitement.', en: 'This schedule runs very often (more than once every 5 minutes) and each run starts a real model session: it needs an explicit confirmation.' },
       // The Columns and Calendar views of the Automations page.
       'tasks.board.cols.upcoming': { kybernos: 'À venir', en: 'Upcoming' },
       'tasks.board.cols.running': { kybernos: 'En cours', en: 'Running' },
@@ -497,12 +514,11 @@ let kbLocaleRead = () => 'en'
       'menu.referral.copycode': { kybernos: 'Copier le code', en: 'Copy code' },
       'menu.referral.copylink': { kybernos: 'Copier le lien', en: 'Copy link' },
       'menu.referral.copied': { kybernos: 'Copié', en: 'Copied' },
-      // ── groupes du menu Réglages (maquette « Settings Menu », 30/09 soir) ──
-      'settings.group.kybernos': { kybernos: 'Kybernos', en: 'Kybernos' },
-      'settings.group.settings': { kybernos: 'Réglages', en: 'Settings' },
-      'settings.group.desktop': { kybernos: 'Réglages du poste', en: 'Desktop settings' },
-      'settings.group.plugins': { kybernos: 'Plugins tiers', en: 'Third Party Plugins' },
-      'settings.divider.desktop': { kybernos: 'Desktop', en: 'Desktop' },
+      // ── Settings menu sections: the essentials have no header, then a fold « Advanced » and « Other settings » (audit N-01, V-24) ──
+      'settings.group.advanced': { kybernos: 'Avancé', en: 'Advanced' },
+      'settings.group.other': { kybernos: 'Autres réglages', en: 'Other settings' },
+      // « A short automatic state + a Customize fold »: the label of the fold every page shares (window.__KB_CUSTOMIZE__, audit N-08)
+      'kbcz.customize': { kybernos: 'Personnaliser', en: 'Customize' },
       'kbac.appearance': { kybernos: 'Apparence', en: 'Appearance' },
       'kbac.appearance.sub': { kybernos: 'Choisissez le thème de l\'interface.', en: 'Choose the interface theme.' },
       'kbac.theme.light': { kybernos: 'Clair', en: 'Light' },
@@ -1113,6 +1129,7 @@ let kbLocaleRead = () => 'en'
       'kbui.tts.headsup': { kybernos: 'Attention : ce moteur envoie le texte de la réponse à ', en: 'Heads-up: this engine sends the reply text to ' },
       'kbui.healthcheck.all': { kybernos: 'Tout vérifier', en: 'Healthcheck all' },
       'kbui.helpdocs': { kybernos: 'Aide et documentation', en: 'Help & docs' },
+      'kbui.howitworks': { kybernos: 'Comment ça marche', en: 'How it works' },
       'kbui.hire.kyber': { kybernos: 'Embaucher une Agent Team depuis le Marketplace', en: 'Hire an Agent Team from the Marketplace' },
       'kbui.hosted.means': { kybernos: 'Hosted signifie que cette Agent Team existe aussi dans Kybernos Hosted.', en: 'Hosted means this Agent Team also exists in Kybernos Hosted.' },
       'kbui.hosted.vs.plugin': { kybernos: 'Hosted face au plugin open source', en: 'Hosted vs the open-source plugin' },
@@ -1238,6 +1255,29 @@ let kbLocaleRead = () => 'en'
       'kbui.search.everywhere': { kybernos: 'Rechercher partout…', en: 'Search everywhere…' },
       'kbui.search.parser': { kybernos: 'Rechercher — parser, CRM, scraping…', en: 'Search — parser, CRM, scraping…' },
       'kbui.send.feedback': { kybernos: 'Envoyer un retour', en: 'Send feedback' },
+      // The feedback form (V-10): a note is saved on this computer, and goes nowhere until the person exports it.
+      'kbui.fb.type': { kybernos: 'Type', en: 'Type' },
+      'kbui.fb.type.bug': { kybernos: 'Bug', en: 'Bug' },
+      'kbui.fb.type.idea': { kybernos: 'Idée', en: 'Idea' },
+      'kbui.fb.type.question': { kybernos: 'Question', en: 'Question' },
+      'kbui.fb.message': { kybernos: 'Votre message', en: 'Your message' },
+      'kbui.fb.placeholder': { kybernos: 'Que s’est-il passé, ou que souhaiteriez-vous ?', en: 'What happened, or what would you like?' },
+      'kbui.fb.context': { kybernos: 'Ajouter les détails techniques', en: 'Add technical details' },
+      'kbui.fb.context.hint': { kybernos: 'Désactivé par défaut. Versions, système, titre de la page, langue et taille de la fenêtre : aucune clé, aucun chemin, aucun nom de fichier.', en: 'Off by default. Versions, system, page title, language and window size: no key, no path, no file name.' },
+      'kbui.fb.save': { kybernos: 'Enregistrer', en: 'Save feedback' },
+      'kbui.fb.saving': { kybernos: 'Enregistrement…', en: 'Saving…' },
+      'kbui.fb.saved': { kybernos: 'Enregistré sur cet ordinateur — il n’est envoyé que lorsque vous l’exportez.', en: 'Saved on this computer — it is sent only when you export it.' },
+      'kbui.fb.export': { kybernos: 'Exporter les retours', en: 'Export feedback' },
+      'kbui.fb.exporting': { kybernos: 'Export…', en: 'Exporting…' },
+      'kbui.fb.copied.one': { kybernos: 'Copié : 1 retour. Collez-le dans un message à l’équipe Kybernos.', en: 'Copied: 1 entry. Paste it into a message to the Kybernos team.' },
+      'kbui.fb.copied.many': { kybernos: 'Copié : {n} retours. Collez-les dans un message à l’équipe Kybernos.', en: 'Copied: {n} entries. Paste them into a message to the Kybernos team.' },
+      'kbui.fb.empty': { kybernos: 'Aucun retour enregistré pour l’instant.', en: 'No feedback saved yet.' },
+      'kbui.fb.copyfail': { kybernos: 'Copie impossible ici : sélectionnez le texte ci-dessous.', en: 'Could not copy here: select the text below.' },
+      'kbui.fb.fail': { kybernos: 'Enregistrement impossible. Rien n’a été écrit.', en: 'Could not save. Nothing was written.' },
+      'kbui.fb.full': { kybernos: 'La boîte de retours est pleine : exportez-la, puis supprimez le fichier.', en: 'The feedback box is full: export it, then delete the file.' },
+      'kbui.fb.signin': { kybernos: 'Session expirée : rechargez la page, puis réessayez.', en: 'Your session expired: reload the page, then try again.' },
+      'kbui.fb.assistant': { kybernos: 'Préférez-vous que l’assistant vous pose trois questions ?', en: 'Prefer to be asked three questions by the assistant?' },
+      'kbui.fb.close': { kybernos: 'Fermer', en: 'Close' },
       // ── "Help" box of the account menu (04/10) ──
       // Carte de notation 5 étoiles (remplace les pouces Quality Score).
       // Libellés portés depuis la maquette validée (docs/handoff/notation-agent/
@@ -2584,6 +2624,18 @@ const kbNavTitles = (texts, keys) => texts.map((t, i) => {
 })
 // </kb-nav-titles>
 
+// ── The « Advanced » fold of the Settings menu: when it is open (<kb-settings-fold>) ──
+// Shut until the person needs it. It opens by itself when they LAND on a page inside it (a deep link, a help pointer, a click on a row of the
+// Suite: the cell is clicked while hidden, and the page changes) and that is remembered, like any choice; staying on such a page does not
+// fight a person who shuts it on purpose. The search box opens it on its own, apart from this (a query shows every match, and lets go after).
+//   stored: what the person chose (true / false / null for never); inside: the page now open is one of the fold's;
+//   changed: it is not the page that was open at the last look.   Returns { open, remember }: remember = write « open » to the store.
+const kbFoldNext = (state) => {
+  const landed = state.inside === true && state.changed === true
+  return { open: landed || state.stored === true, remember: landed && state.stored !== true }
+}
+// </kb-settings-fold>
+
 // ── DSH's Settings, opened from outside the sidebar (<kb-open-settings>) ─────────────────────────────────────
 // The sidebar's settings seat renders DSH's ACCOUNT launcher (slot `settings.launcher`) whenever the account plugin is mounted, and
 // the trigger of that launcher opens an account popover (Settings / Feedback / Sign in), not the Settings dialog. Everything that
@@ -3334,6 +3386,7 @@ const KB_FR_EN = {
   'Aucun appel connecteur sur la période.': 'No connector calls over the period.',
   'workflows-v2: onglet journal d exécution': 'workflows-v2: execution journal tab',
   '[workflows-v2] onglet désactivé': '[workflows-v2] tab disabled',
+  'Autre': 'Other',
 }
 const kbf = (fr) => {
   if (typeof fr !== 'string' || fr.length === 0) return fr
@@ -4832,25 +4885,79 @@ const kbRemoteOutcome = (name, reply, failure) => {
 const kbMachineTz = () => {
   try { const z = new Intl.DateTimeFormat().resolvedOptions().timeZone; return typeof z === 'string' && z.length > 0 ? z : 'UTC' } catch (e) { return 'UTC' }
 }
-// "Every Monday, 08:30": only what the label can say exactly. A day of the month, a month, a list of
-// hours or any other weekday set is shown as the cron expression itself, never as a wrong sentence.
-const kbCronHuman = (cron, tr) => {
+// The city of an IANA zone: "Asia/Kolkata" -> "Kolkata". What names the clock of an automation that is not the person's own.
+const kbZoneLabel = (tz) => (typeof tz === 'string' && tz.length > 0 ? tz.split('/').pop().replace(/_/g, ' ') : '')
+// The name of a weekday (0 and 7 are Sunday) and the ordinal of a day of the month, in the language of the page.
+const kbDayName = (dow, locale) => {
+  try { return new Intl.DateTimeFormat(locale || 'en', { weekday: 'long', timeZone: 'UTC' }).format(Date.UTC(2024, 0, 7 + (dow % 7))) } catch (e) { return String(dow) }
+}
+const kbDayOrdinal = (d, locale) => {
+  const lang = String(locale || 'en').split(/[-_]/)[0]
+  if (lang === 'en') return String(d) + (d % 100 >= 11 && d % 100 <= 13 ? 'th' : (['th', 'st', 'nd', 'rd'][d % 10] || 'th'))
+  return lang === 'fr' && d === 1 ? '1er' : String(d)
+}
+// "Sat, Oct 17": the one way the page writes a day (the board's own, kbBoardDayLong); the year only when it is not this year.
+const kbDayLabel = (y, mo, d, locale, withYear) => {
+  try { return new Intl.DateTimeFormat(locale || 'en', Object.assign({ weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }, withYear === true ? { year: 'numeric' } : {})).format(Date.UTC(y, mo - 1, d, 12)) } catch (e) { return String(d) + '/' + String(mo) }
+}
+// "Every Monday, 08:30", "Every 2 hours", "Every month on the 1st, 08:00": only what the label can say exactly.
+// Anything else (a month, a list, "every 5 hours" which is 0, 5, 10, 15, 20 and then 0 again, the 31st that not every
+// month has...) is shown as the cron expression itself, never as a wrong sentence. `locale` names the weekdays and the
+// day of the month; `zoneName` is added to a sentence that has a wall clock (an interval has none) when the automation
+// runs in another zone than the person's.
+const kbCronHuman = (cron, tr, locale, zoneName) => {
   const raw = String(cron || '').trim()
   const c = raw.split(/\s+/)
   if (c.length !== 5) return raw
   const mi = c[0]; const hh = c[1]; const dom = c[2]; const mon = c[3]; const dow = c[4]
-  const whole = (x) => /^\d{1,2}$/.test(x)
-  const named = dow === '1' ? 'tasks.monday8' : dow === '1-5' ? 'tasks.weekdays8' : dow === '*' ? 'tasks.everyday8' : dow === '5' ? 'tasks.friday16' : null
-  if (whole(mi) === false || whole(hh) === false || dom !== '*' || mon !== '*' || named === null) return tr('tasks.cron') + ' · ' + raw
-  const hm = String(Number(hh)).padStart(2, '0') + ':' + String(Number(mi)).padStart(2, '0')
-  return tr(named).replace(/\d{1,2}:\d{2}( [AP]M)?/, hm)
+  const fallback = tr('tasks.cron') + ' · ' + raw
+  const whole = (x, max) => /^\d{1,2}$/.test(x) && Number(x) <= max
+  const two = (x) => String(Number(x)).padStart(2, '0')
+  const step = (x) => { const s = /^\*\/(\d{1,2})$/.exec(x); return s === null ? 0 : Number(s[1]) }
+  if (mon !== '*') return fallback
+  if (dom === '*' && dow === '*') {
+    // Intervals: whole steps of the hour (60 / n) or of the day (24 / n), so the rhythm never breaks at the wrap.
+    const hourly = (n) => (Number(mi) === 0 ? tr(n === 1 ? 'tasks.every.hour' : 'tasks.every.hours') : tr(n === 1 ? 'tasks.every.hour.at' : 'tasks.every.hours.at').replace('{minute}', two(mi))).replace('{n}', String(n))
+    if (hh === '*' && mi === '*') return tr('tasks.every.minute')
+    if (hh === '*' && step(mi) > 0) return step(mi) === 1 ? tr('tasks.every.minute') : (step(mi) < 60 && 60 % step(mi) === 0 ? tr('tasks.every.minutes').replace('{n}', String(step(mi))) : fallback)
+    if (hh === '*' && whole(mi, 59) === true) return hourly(1)
+    if (step(hh) > 0 && whole(mi, 59) === true) return step(hh) === 1 || (step(hh) < 24 && 24 % step(hh) === 0) ? hourly(step(hh)) : fallback
+  }
+  if (whole(mi, 59) === false || whole(hh, 23) === false) return fallback
+  const hm = two(hh) + ':' + two(mi)
+  const at = (key) => tr(key).replace(/\d{1,2}:\d{2}( [AP]M)?/, hm)
+  let words = null
+  if (dom === '*' && dow === '*') words = at('tasks.everyday8')
+  else if (dom === '*' && dow === '1-5') words = at('tasks.weekdays8')
+  else if (dom === '*' && /^[0-7]$/.test(dow) === true) words = tr('tasks.every.dow').replace('{day}', kbDayName(Number(dow), locale)).replace('{time}', hm)
+  else if (dow === '*' && /^\d{1,2}$/.test(dom) === true && Number(dom) >= 1 && Number(dom) <= 28) words = tr('tasks.every.month').replace('{day}', kbDayOrdinal(Number(dom), locale)).replace('{time}', hm)
+  if (words === null) return fallback
+  return typeof zoneName === 'string' && zoneName.length > 0 ? words + ' (' + zoneName + ')' : words
 }
-// A one-time date as written in the automation's own zone: "One time · 06/10 09:00".
-const kbOnceLabel = (at, tr, nowYear) => {
+// The time of day of a schedule the form's time field can edit (a fixed minute and a fixed hour), else null.
+const kbCronTime = (cron) => {
+  const c = String(cron || '').trim().split(/\s+/)
+  if (c.length !== 5 || /^\d{1,2}$/.test(c[0]) === false || /^\d{1,2}$/.test(c[1]) === false || Number(c[0]) > 59 || Number(c[1]) > 23) return null
+  return { hh: Number(c[1]), mi: Number(c[0]) }
+}
+// The same schedule at another time of day (the days stay), or null when the schedule has no single time.
+const kbCronAt = (cron, hh, mi) => {
+  const c = String(cron || '').trim().split(/\s+/)
+  if (kbCronTime(cron) === null || Number.isInteger(hh) === false || Number.isInteger(mi) === false || hh < 0 || hh > 23 || mi < 0 || mi > 59) return null
+  return String(mi) + ' ' + String(hh) + ' ' + c.slice(2).join(' ')
+}
+// The same time of day on other days (`days` is the weekday field: '*', '1-5', '1'...): what a preset does. A schedule with
+// no single time of day (every 6 hours, a list) becomes the preset at 08:00.
+const kbCronOnDays = (cron, days) => {
+  const t = kbCronTime(cron)
+  return String(t === null ? 0 : t.mi) + ' ' + String(t === null ? 8 : t.hh) + ' * * ' + days
+}
+// A one-time date as written in the automation's own zone: "One time · Sat, Oct 17 · 10:00".
+const kbOnceLabel = (at, tr, nowYear, locale, zoneName) => {
   const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{1,2}):(\d{2})/.exec(String(at || ''))
   if (m === null) return tr('tasks.onetime')
   const year = Number.isFinite(nowYear) === true ? nowYear : new Date().getFullYear()
-  return tr('tasks.onetime') + ' · ' + m[3] + '/' + m[2] + ' ' + m[4].padStart(2, '0') + ':' + m[5] + (Number(m[1]) !== year ? ' ' + m[1] : '')
+  return tr('tasks.onetime') + ' · ' + kbDayLabel(Number(m[1]), Number(m[2]), Number(m[3]), locale, Number(m[1]) !== year) + ' · ' + m[4].padStart(2, '0') + ':' + m[5] + (typeof zoneName === 'string' && zoneName.length > 0 ? ' (' + zoneName + ')' : '')
 }
 // When a run happens, in the zone of the automation (a New York schedule reads in New York time, not
 // in whatever the browser is set to); an unreadable date is a dash, never "NaN/NaN".
@@ -4897,11 +5004,37 @@ const kbTaskTriggerCode = (sc) => {
 // The trigger of an automation as two facts: what it runs on (schedule, date or webhook alone) and
 // whether a webhook can also start it. The list shows the second one on its own line instead of
 // cutting a long sentence in half.
-const kbTriggerParts = (t, tr) => {
+// `locale` is the page's language (weekdays, dates) and `viewerZone` the zone of the person: a schedule in ANOTHER zone
+// names it (« Every day, 08:00 (Kolkata) »), because its clock is not the one on the person's wall. `tip` is what the
+// label hides: the cron expression (and the zone when it is another one), for a tooltip.
+const kbTriggerParts = (t, tr, locale, viewerZone) => {
   const sc = t !== null && typeof t === 'object' && t.schedule !== null && typeof t.schedule === 'object' ? t.schedule : {}
-  const label = sc.mode === 'webhook' ? tr('tasks.trigger.webhook') : (sc.mode === 'once' ? kbOnceLabel(sc.at, tr) : kbCronHuman(sc.cron || '', tr))
+  const away = typeof sc.tz === 'string' && sc.tz.length > 0 && typeof viewerZone === 'string' && viewerZone.length > 0 && sc.tz !== viewerZone
+  const zoneName = away === true ? kbZoneLabel(sc.tz) : ''
+  const label = sc.mode === 'webhook' ? tr('tasks.trigger.webhook') : (sc.mode === 'once' ? kbOnceLabel(sc.at, tr, undefined, locale, zoneName) : kbCronHuman(sc.cron || '', tr, locale, zoneName))
   const hooked = t !== null && typeof t === 'object' && t.trigger !== null && t.trigger !== undefined && t.trigger.type === 'webhook' && sc.mode !== 'webhook'
-  return { label, hooked }
+  const tip = sc.mode === 'webhook' ? '' : (sc.mode === 'once' ? (away === true ? sc.tz : '') : String(sc.cron || '').trim() + (away === true ? ' · ' + sc.tz : ''))
+  return { label, hooked, tip }
+}
+// The line under the name in the list: how the automation runs (an automation is not bound to an Agent Team of its own: it
+// starts a session in the workspace), the same words the cards of the board use.
+const kbTaskWho = (t, tr) => (t !== null && typeof t === 'object' && t.approvals === 'auto' ? tr('tasks.auto') : tr('tasks.ask')) + (t !== null && typeof t === 'object' && Array.isArray(t.notify) === true && t.notify.length > 0 ? ' · ' + tr('tasks.notify.on') : '')
+// V-19, « Edit → chat »: the text put in the composer of a NEW chat. It names the automation-creator skill the way « Create »
+// does, says this is an edit and carries the definition as it stands, so the person only has to say what to change. Never
+// the webhook secret, the hook id or the history. `{x}` is replaced by a function: a prompt holding « $& » stays as written.
+const kbEditChatText = (t, tr, locale) => {
+  const x = t !== null && typeof t === 'object' ? t : {}
+  const sc = x.schedule !== null && typeof x.schedule === 'object' ? x.schedule : {}
+  const parts = kbTriggerParts(x, tr, locale)
+  const zone = typeof sc.tz === 'string' && sc.tz.length > 0 ? sc.tz : kbMachineTz()
+  const detail = sc.mode === 'cron' ? ' (cron ' + String(sc.cron || '') + ', ' + zone + ')' : (sc.mode === 'once' ? ' (' + String(sc.at || '') + ', ' + zone + ')' : '')
+  const vars = {
+    id: String(x.id || ''), name: String(x.name || ''), runs: parts.label + (parts.hooked === true ? ' ' + tr('tasks.trigger.plushook') : '') + detail,
+    approvals: x.approvals === 'auto' ? tr('tasks.auto') + ' (auto)' : tr('tasks.ask') + ' (ask)',
+    notify: Array.isArray(x.notify) === true && x.notify.length > 0 ? x.notify.join(', ') : '-', active: x.active === false ? tr('tasks.no') : tr('tasks.yes'),
+    prompt: typeof x.prompt === 'string' ? x.prompt : '',
+  }
+  return tr('tasks.edit.chat').replace(/\{(id|name|runs|approvals|notify|active|prompt)\}/g, (all, k) => vars[k]) + '\n\n' + tr('tasks.edit.chat.ask')
 }
 // What the list shows. Only a list the host actually answered can be "empty": while it loads there is a
 // skeleton, and when the host could not answer there is the reason with a retry (both used to show
@@ -4916,6 +5049,7 @@ const KB_TASK_ERRORS = {
   'date ponctuelle invalide': 'tasks.err.date', 'unknown time zone': 'tasks.err.tz', 'that date is in the past': 'tasks.err.past',
   'this schedule never fires': 'tasks.err.never', 'sign-in required': 'tasks.err.signin', 'request body too large': 'tasks.err.large',
   'tache introuvable': 'tasks.err.notfound', 'active must be true or false': 'tasks.err.active', 'automation paused': 'tasks.err.paused',
+  'frequent schedule': 'tasks.err.frequent',
 }
 const kbTaskError = (message, tr) => (Object.prototype.hasOwnProperty.call(KB_TASK_ERRORS, message) === true ? tr(KB_TASK_ERRORS[message]) : String(message))
 // KB-TASKS-CLIENT-END
@@ -4986,7 +5120,7 @@ const kbBoardWeekOffset = (todayKey, dayKey) => Math.round((kbBoardKeyUtc(kbBoar
 // The labels that depend on a language (never on the zone): the keys are days, read at noon UTC.
 const kbBoardDayName = (key, locale, style) => { try { return new Intl.DateTimeFormat(locale, { weekday: style === 'long' ? 'long' : 'short', timeZone: 'UTC' }).format(kbBoardKeyUtc(key) + 12 * 3600000) } catch (e) { return key } }
 const kbBoardMonthName = (year, month, locale) => { try { return new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' }).format(Date.UTC(year, month - 1, 15)) } catch (e) { return String(month) } }
-const kbBoardDayLong = (key, locale) => { try { return new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(kbBoardKeyUtc(key) + 12 * 3600000) } catch (e) { return key } }
+const kbBoardDayLong = (key, locale, withYear) => { try { return new Intl.DateTimeFormat(locale, Object.assign({ weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }, withYear === true ? { year: 'numeric' } : {})).format(kbBoardKeyUtc(key) + 12 * 3600000) } catch (e) { return key } }
 const kbBoardWeekTitle = (keys, locale) => {
   const a = /^(\d{4})-(\d{2})-(\d{2})$/.exec(keys[0])
   const b = /^(\d{4})-(\d{2})-(\d{2})$/.exec(keys[keys.length - 1])
@@ -4995,12 +5129,13 @@ const kbBoardWeekTitle = (keys, locale) => {
   return String(Number(a[3])) + (a[2] !== b[2] ? ' ' + nameA : '') + (a[1] !== b[1] ? ' ' + a[1] : '') + ' – ' + String(Number(b[3])) + ' ' + nameB + ' ' + b[1]
 }
 const kbBoardMonthTitle = (grid, locale) => kbBoardMonthName(grid.year, grid.month, locale) + ' ' + String(grid.year)
-// « Today · 08:00 », « Tomorrow · 08:00 », « Wed 14 Oct · 08:00 »: the day in the viewer's zone, never invented.
+// « Today · 08:00 », « Tomorrow · 08:00 », « Wed 14 Oct · 08:00 »: the day in the viewer's zone, never invented. The year
+// is added when it is not this year's (« Fri, Jan 1, 2027 · 09:00 »): without it a date a year away reads as this year's.
 const kbBoardWhen = (ms, nowMs, zone, locale) => {
   const key = kbBoardDayKey(ms, zone)
   const today = kbBoardDayKey(nowMs, zone)
   const diff = Math.round((kbBoardKeyUtc(key) - kbBoardKeyUtc(today)) / KB_BOARD_DAY_MS)
-  let day = kbBoardDayLong(key, locale)
+  let day = kbBoardDayLong(key, locale, key.slice(0, 4) !== today.slice(0, 4))
   if (diff >= -1 && diff <= 1) {
     try { const w = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(diff, 'day'); day = w.charAt(0).toUpperCase() + w.slice(1) } catch (e) { /* the date stays */ }
   }
@@ -7985,6 +8120,82 @@ return {
     /** Class suffix that makes the i-th real row fade in: only the first screenful (12) animates. */
     const kbIn = (i) => (typeof i === 'number' && i >= 0 && i < KB_APPEAR_MAX ? ' kb-in' : '')
     try { if (typeof window !== 'undefined') window.__KB_SKEL__ = { bone: kbBone, line: kbBoneLine, wrap: kbSkelWrap, appear: kbIn, max: KB_APPEAR_MAX } } catch (e) { /* outside a browser */ }
+    // ── « A short automatic state + a Customize fold »: ONE helper for every settings page (audit N-08) ────────────
+    // Simple and automatic by default, customisable on demand. A page opens on what already runs by itself (one sentence and one status)
+    // and keeps its knobs under ONE fold that is shut until the person opens it, and that remembers the choice. The Settings nav builds its
+    // « Advanced » group with the same store, the same button and the same look (kbCzToggle); a page of another bundle reads the rest from
+    // window.__KB_CUSTOMIZE__ (like __KB_SKEL__ above) and falls back to its own markup when the core plugin is not there.
+    //   h(window.__KB_CUSTOMIZE__.Fold, { id: 'memory', state: 'Memory is on and tidies itself.', tone: 'on' }, …the knobs…)
+    //   props: id (the store key), state (the sentence), tone ('on' green dot, 'off' grey, 'warn' amber), label (default « Customize »),
+    //   defaultOpen (when the person never chose: shut by default).
+    const KB_CZ_STORE = 'kybernos.fold.'
+    const KB_CZ_CHEV = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>'
+    const kbCzMem = {}
+    /** What the person chose for a fold: true (open), false (shut), or null when they never chose. */
+    const kbCzRead = (id) => {
+      if (typeof kbCzMem[id] === 'boolean') return kbCzMem[id]
+      try {
+        const v = window.localStorage.getItem(KB_CZ_STORE + id)
+        if (v === '1') return true
+        if (v === '0') return false
+      } catch (e) { /* storage refused: the fold keeps its default */ }
+      return null
+    }
+    const kbCzWrite = (id, open) => {
+      kbCzMem[id] = open === true // a browser that keeps nothing still remembers until the page is closed
+      try { window.localStorage.setItem(KB_CZ_STORE + id, open === true ? '1' : '0') } catch (e) { /* storage refused: the memory above is enough for now */ }
+    }
+    /** The Customize fold of a page: the state sentence on top, then a button that shows or hides what the page lets people change. */
+    const KbCustomize = (props) => {
+      const id = String(props.id)
+      const pair = React.useState(() => { const saved = kbCzRead(id); return saved === null ? props.defaultOpen === true : saved })
+      const open = pair[0]
+      const tone = props.tone === 'off' || props.tone === 'warn' ? props.tone : 'on'
+      return h('section', { className: 'kb-cz', 'data-kb': 'customize', 'data-open': open ? '1' : '0' },
+        h('p', { className: 'kb-cz-state', role: 'status' }, h('span', { className: 'kb-cz-dot ' + tone, 'aria-hidden': 'true' }), props.state),
+        h('button', { type: 'button', className: 'kb-cz-toggle', 'aria-expanded': open ? 'true' : 'false', onClick: () => { kbCzWrite(id, !open); pair[1](!open) } },
+          h('span', { className: 'kb-cz-chev', 'aria-hidden': 'true', dangerouslySetInnerHTML: { __html: KB_CZ_CHEV } }),
+          typeof props.label === 'string' ? props.label : kbt('kbcz.customize')),
+        open ? h('div', { className: 'kb-cz-body' }, props.children) : null)
+    }
+    /** The same button for a fold that is not a React tree (the Settings nav): a plain element, `onToggle` is called on a click. `plain`: a div with
+     *  role="button" instead of a <button> — the Settings list is full of rules for its buttons (the phone layout takes a tap on one for « a page was
+     *  picked » and hides the list), and the fold's header is not a page. */
+    const kbCzToggle = (label, open, onToggle, plain) => {
+      const b = document.createElement(plain === true ? 'div' : 'button')
+      if (plain === true) {
+        b.setAttribute('role', 'button')
+        b.tabIndex = 0
+        b.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } })
+      } else b.type = 'button'
+      b.className = 'kb-cz-toggle'
+      b.setAttribute('aria-expanded', open ? 'true' : 'false')
+      const chev = document.createElement('span')
+      chev.className = 'kb-cz-chev'
+      chev.setAttribute('aria-hidden', 'true')
+      chev.innerHTML = KB_CZ_CHEV
+      const text = document.createElement('span')
+      text.textContent = label
+      b.append(chev, text)
+      b.addEventListener('click', onToggle)
+      return b
+    }
+    ctx.effect(() => styles.insert(`
+.kb-cz{display:flex;flex-direction:column;gap:10px;min-width:0}
+.kb-cz-state{margin:0;display:flex;align-items:center;gap:8px;font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
+.kb-cz-dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-state-idle-primary,var(--dsw-alias-label-tertiary))}
+.kb-cz-dot.on{background:var(--dsw-alias-state-success-primary)}
+.kb-cz-dot.warn{background:var(--dsw-alias-state-warn-primary)}
+.kb-cz-toggle{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;margin:0;padding:2px 6px 2px 0;border:none;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:500;line-height:22px;cursor:pointer}
+.kb-cz-toggle:hover{color:var(--dsw-alias-label-primary)}
+.kb-cz-toggle:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.kb-cz-chev{display:inline-flex;flex:none;transition:transform .15s}
+.kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:rotate(90deg)}
+html[dir="rtl"] .kb-cz-chev{transform:scaleX(-1)}
+html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX(-1) rotate(90deg)}
+@media (prefers-reduced-motion:reduce){.kb-cz-chev{transition:none}}
+`), 'kybers: styles customize')
+    try { if (typeof window !== 'undefined') window.__KB_CUSTOMIZE__ = { Fold: KbCustomize, read: kbCzRead, write: kbCzWrite, toggle: kbCzToggle } } catch (e) { /* outside a browser */ }
     // Deux icones voisines ne suffisaient pas a lire le mode courant : le
     // selecteur est un groupe segmente, le mode actif porte son libelle et
     // chaque bouton expose son etat (`aria-pressed`) aux lecteurs d'ecran.
@@ -8265,10 +8476,12 @@ return {
           (props.trailing !== null && props.trailing !== undefined ? h('div', { className: 'kb6-tb-trailing' }, props.trailing) : null),
           (typeof props.onAdd === 'function' ? h('button', { type: 'button', className: 'kb8-primary kb6-tb-add', onClick: props.onAdd }, Icon('plus', 14), props.addLabel || ('+ ' + kbt('kbui.new'))) : null)))
     }
-    // ── Gabarit d'en-tête : l'aide et l'action primaire ──────────────────────
-    // Une seule implémentation pour toutes les pages : l'aide « ? » se pose dans
-    // `.kb6-titlerow`, collée au titre ; l'action primaire se passe en
-    // `trailing` de KbToolbar. Aucune page ne réinvente l'un ou l'autre.
+    // ── Page header template: the help and the primary action ─────────────────
+    // One implementation for every page: the « ? How it works » pill sits in
+    // `.kb6-titlerow`, next to the title, and is the same pill the Suite draws on the
+    // other pages (window.__KB_HELP__.Help, class kbhp-btn): one form, one label.
+    // The primary action goes in the `trailing` of KbToolbar. No page reinvents either.
+    // `title` is the tooltip (what the panel it opens is about); the visible words are the label.
     const KbHelpButton = (props) => {
       const p = (props !== null && props !== undefined) ? props : {}
       const label = p.title === undefined ? kbt('kbui.helpdocs') : p.title
@@ -8277,10 +8490,9 @@ return {
         className: 'kb6-helpbtn' + (p.open === true ? ' on' : ''),
         'data-kb': p.dataKb === undefined ? 'page-help' : p.dataKb,
         title: label,
-        'aria-label': label,
         'aria-expanded': p.open === true ? 'true' : 'false',
         onClick: typeof p.onClick === 'function' ? p.onClick : (() => {}),
-      }, '?')
+      }, h('span', { className: 'kb6-helpq', 'aria-hidden': 'true' }, '?'), kbt('kbui.howitworks'))
     }
     // Menu « Nouveau Kyber » (le bouton et ses quatre entrées) : défini ici pour
     // que l'action primaire de la page Kybers vive en `trailing` de la barre,
@@ -10765,7 +10977,7 @@ return {
       const docsReels = (projData !== null && projData !== undefined && Array.isArray(projData.docs) === true) ? projData.docs : []
       const goalsReels = (projData !== null && projData !== undefined && Array.isArray(projData.goals) === true) ? projData.goals : []
       const warnsReels = (projData !== null && projData !== undefined && Array.isArray(projData.warnings) === true) ? projData.warnings : []
-      const tailleTxt = (o) => (typeof o === 'number' ? o.toLocaleString('fr-FR') + ' o' : (typeof o === 'string' ? o : '—'))
+      const tailleTxt = (o) => (typeof o === 'number' ? kbFmtSize(o) : (typeof o === 'string' ? o : '—'))
       const docsM = kbiMeubler(docsReels.map((d) => [String(d.title !== undefined && d.title !== null ? d.title : (d.name !== undefined && d.name !== null ? d.name : '—')), tailleTxt(d.size)]), KBI_EXEMPLES.docs)
       const goalsM = kbiMeubler(goalsReels.map((g) => [String(g !== null && g !== undefined ? g : '—')]), KBI_EXEMPLES.goals)
       const warnsM = kbiMeubler(warnsReels.map((w) => [String(w !== null && w !== undefined ? w : '—')]), KBI_EXEMPLES.warnings)
@@ -16208,8 +16420,12 @@ return {
       { id: 'engine', label: 'Diagram', exts: ['engine'], ico: 'zap', tint: 'rgba(132,204,22,0.16)', color: '#bef264' },
       { id: 'data', label: 'Data', exts: ['json', 'yaml', 'yml', 'toml', 'lock', 'sha256', 'csv'], ico: 'settings', tint: 'rgba(20,184,166,0.16)', color: '#5eead4' },
       { id: 'image', label: 'Image', exts: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'avif', 'bmp', 'ico'], ico: 'image', tint: 'rgba(236,72,153,0.16)', color: '#f9a8d4' },
-      { id: 'other', label: 'Autre', exts: [], ico: 'package', tint: 'rgba(148,163,184,0.16)', color: '#cbd5e1' },
+      { id: 'other', label: kbf('Autre'), exts: [], ico: 'package', tint: 'rgba(148,163,184,0.16)', color: '#cbd5e1' },
     ]
+    // Audio and video files used to read « Other » (Autre): the badge now says what they are. Not in KB_ART_TYPES on purpose: the
+    // Audio & Video FAMILY already is the filter tile, so this type must not add a second row to the type picker. Its label is read
+    // when drawn (a getter), so it follows the language like the tile does.
+    const KB_ART_TYPE_MEDIA = { id: 'media', get label() { return kbt('deliv.type.media') }, exts: [], ico: 'play', tint: 'rgba(14,165,233,0.16)', color: '#7dd3fc' }
     // Un artefact produit par un agent conforme au contrat partage déclare son
     // genre DANS le fichier (« un kind, un titre, des items ») et se nomme donc
     // `<sujet>-quiz.json`. Or l'extension `.json` n'a pas de genre à elle : sans
@@ -16356,6 +16572,7 @@ return {
         }
       }
       for (const t of KB_ART_TYPES) { if (t.exts.indexOf(ext) >= 0) return t }
+      if (KB_FAM_EXTS.av.indexOf(ext) >= 0) return KB_ART_TYPE_MEDIA
       return KB_ART_TYPES[KB_ART_TYPES.length - 1]
     }
     // Nom de fichier → id d'icône du jeu (miniapp, genre dans un .json, extension, type DSH).
@@ -16374,7 +16591,16 @@ return {
       if (KB_TI.ext[ext] !== undefined) return KB_TI.ext[ext]
       return KB_TI.type[kbArtType(name).id] || 'other'
     }
-    const kbFmtSize = (s) => (typeof s === 'number' && s >= 0 ? (s > 1048576 ? (s / 1048576).toFixed(1) + ' Mo' : (s > 1024 ? Math.round(s / 1024) + ' Ko' : s + ' o')) : '')
+    // One size style per language, the same as Motion and the media player: English « 86 KB », « 5.0 MB », « 880 B »; French « 86 Ko »,
+    // « 5,0 Mo », « 880 o ». It used to say « Ko » / « Mo » / « o » in every language.
+    const kbFmtSize = (s) => {
+      if (typeof s !== 'number' || s < 0) return ''
+      const lang = kbLangResolve()
+      const fr = lang === 'kybernos' || String(lang).split(/[-_]/)[0] === 'fr'
+      if (s >= 1048576) { const v = (s / 1048576).toFixed(1); return (fr ? v.replace('.', ',') + ' Mo' : v + ' MB') }
+      if (s >= 1024) return Math.round(s / 1024) + (fr ? ' Ko' : ' KB')
+      return s + (fr ? ' o' : ' B')
+    }
     // ── familles de livrables (demande 26/09 : « en haut de la sélection ») ─
     // Six familles GRAND PUBLIC passées en tête de la bande, devant les types
     // fins : Slides, Sites web, Documents, Tableurs, Images, Audio & vidéo.
@@ -19389,10 +19615,15 @@ function renderFit(canvas, model, cam, opts){
     // c'est CETTE page qui consomme le drapeau : startSession + draft prérempli.
     // The label helpers live in the tested block at the top of the file; these read a task.
     const kbScheduleLabel = (t, withHook) => {
-      const p = kbTriggerParts(t, kbt)
+      const p = kbTriggerParts(t, kbt, kbBoardLocale(), kbMachineTz())
       return withHook === true && p.hooked === true ? p.label + ' + ' + kbt('tasks.trigger.webhook') : p.label
     }
-    const kbWhenOf = (iso, t) => kbFmtWhen(iso, t !== null && typeof t === 'object' && t.schedule !== null && typeof t.schedule === 'object' ? t.schedule.tz : undefined)
+    // When a run happened or will: the one way every view of the page writes it (the board's own, « Yesterday · 08:00 » or
+    // « Sat, Oct 17 · 10:00 »), in the person's zone and language. A schedule in another zone says its zone on its own label.
+    const kbWhenOf = (iso) => {
+      const ms = Date.parse(iso)
+      return Number.isFinite(ms) === true ? kbBoardWhen(ms, Date.now(), kbMachineTz(), kbBoardLocale()) : '—'
+    }
     const KbTaskModal = (propsM) => {
       const t0 = (propsM.task !== null && propsM.task !== undefined && typeof propsM.task === 'object') ? propsM.task : {}
       const namePair = React.useState(typeof t0.name === 'string' ? t0.name : '')
@@ -19431,14 +19662,18 @@ function renderFit(canvas, model, cam, opts){
         document.addEventListener('keydown', onKey, true)
         return () => { document.removeEventListener('keydown', onKey, true) }
       }, [])
+      // A preset sets the DAYS (the weekday field); the time of day is the time field's, so pressing « Every day » no longer
+      // overwrites a 09:15 with 08:00.
       const presets = [
-        { id: 'mon', cron: '0 8 * * 1', label: kbt('tasks.preset.mon') },
-        { id: 'weekdays', cron: '0 8 * * 1-5', label: kbt('tasks.preset.weekdays') },
-        { id: 'daily', cron: '0 8 * * *', label: kbt('tasks.preset.daily') },
-        { id: 'fri', cron: '0 16 * * 5', label: kbt('tasks.preset.fri') },
-        { id: 'once', cron: null, label: kbt('tasks.preset.once') },
-        { id: 'webhook', cron: null, label: kbt('tasks.preset.webhook') },
+        { id: 'mon', days: '1', label: kbt('tasks.preset.mon') },
+        { id: 'weekdays', days: '1-5', label: kbt('tasks.preset.weekdays') },
+        { id: 'daily', days: '*', label: kbt('tasks.preset.daily') },
+        { id: 'fri', days: '5', label: kbt('tasks.preset.fri') },
+        { id: 'once', days: null, label: kbt('tasks.preset.once') },
+        { id: 'webhook', days: null, label: kbt('tasks.preset.webhook') },
       ]
+      // (The form only writes a fixed time of day, so it can never make the schedule that runs more often than every 5 minutes
+      // that the host refuses without a confirmation: see kbFrequentRefusal.)
       const submit = async () => {
         if (busy === true) return
         if (name.trim().length === 0) { setErr(kbt('tasks.needname')); return }
@@ -19468,7 +19703,9 @@ function renderFit(canvas, model, cam, opts){
           } else { setBusy(false); setErr((r !== null && r !== undefined && typeof r.error === 'string') ? kbTaskError(r.error, kbt) : 'error') }
         } catch (e) { setBusy(false); setErr(String((e !== null && typeof e === 'object' && e.message !== undefined) ? e.message : e)) }
       }
-      const presetOn = (pr) => (pr.id === 'webhook' ? mode === 'webhook' : (pr.id === 'once' ? mode === 'once' : (mode === 'cron' && cron === pr.cron)))
+      const presetOn = (pr) => (pr.id === 'webhook' ? mode === 'webhook' : (pr.id === 'once' ? mode === 'once' : (mode === 'cron' && kbCronTime(cron) !== null && cron.trim().split(/\s+/).slice(2).join(' ') === '* * ' + pr.days)))
+      // The time field edits a schedule that has ONE time of day; a custom expression (every 6 hours, a list) has none.
+      const timeOf = mode === 'cron' ? kbCronTime(cron) : null
       return h('div', { className: 'kb-task-modal-scrim', onMouseDown: (e) => { if (e !== null && e.target === e.currentTarget && typeof propsM.onClose === 'function') propsM.onClose() } },
         h('div', { className: 'kb-task-modal', role: 'dialog', 'aria-modal': 'true' },
           h('h3', null, Icon('calendar-clock', 16), t0.id !== null && t0.id !== undefined ? kbt('tasks.edit') : kbt('tasks.form.title')),
@@ -19477,15 +19714,21 @@ function renderFit(canvas, model, cam, opts){
             h('input', { type: 'text', value: name, autoFocus: true, maxLength: 120, onChange: (e) => setName(e.target.value), placeholder: kbt('tasks.name.placeholder') })),
           h('div', { className: 'kb-task-f' },
             h('label', null, kbt('tasks.prompt')),
-            h('textarea', { value: prompt, maxLength: 8000, onChange: (e) => setPrompt(e.target.value), placeholder: kbf('Ce que l’Agent Team doit faire à chaque déclenchement…') })),
+            h('textarea', { value: prompt, maxLength: 8000, onChange: (e) => setPrompt(e.target.value), placeholder: kbf('Ce que l’Agent Team doit faire à chaque déclenchement…') }),
+            // The field stops at 8000 characters (as the host does): near the end, the counter says so instead of cutting silently.
+            (prompt.length >= 7200 ? h('span', { className: 'kb-task-muted', 'data-kb': 'prompt-count', title: kbt('tasks.prompt.max') }, String(prompt.length) + ' / 8000') : null)),
           h('div', { className: 'kb-task-f' },
             h('label', null, kbt('tasks.repeats')),
-            h('div', { className: 'kb-task-chips' }, presets.map((pr) => h('button', { type: 'button', key: pr.id, className: 'kb-task-chip' + (presetOn(pr) === true ? ' on' : ''), onClick: () => { if (pr.id === 'webhook') { setMode('webhook') } else if (pr.id === 'once') { setMode('once') } else { setMode('cron'); setCron(pr.cron) } } }, pr.label)))),
+            h('div', { className: 'kb-task-chips' }, presets.map((pr) => h('button', { type: 'button', key: pr.id, className: 'kb-task-chip' + (presetOn(pr) === true ? ' on' : ''), onClick: () => { if (pr.id === 'webhook') { setMode('webhook') } else if (pr.id === 'once') { setMode('once') } else { setMode('cron'); setCron(kbCronOnDays(cron, pr.days)) } } }, pr.label)))),
           (mode === 'webhook'
             ? h('div', { className: 'kb-task-hint' }, kbt('tasks.webhook.hint'))
             : mode === 'cron'
-            ? h('div', { className: 'kb-task-row' },
-                h('span', { className: 'kb-task-muted' }, kbCronHuman(cron, kbt)),
+            ? h('div', { className: 'kb-task-row', style: { flexWrap: 'wrap', alignItems: 'flex-end' } },
+                (timeOf !== null ? h('span', { className: 'kb-task-f' },
+                  h('label', null, kbt('tasks.time')),
+                  h('input', { type: 'time', 'data-kb': 'task-time', value: String(timeOf.hh).padStart(2, '0') + ':' + String(timeOf.mi).padStart(2, '0'),
+                    onChange: (e) => { const m = /^(\d{2}):(\d{2})$/.exec(String(e.target.value)); const next = m === null ? null : kbCronAt(cron, Number(m[1]), Number(m[2])); if (next !== null) setCron(next) } })) : null),
+                h('span', { className: 'kb-task-muted', title: cron.trim() }, kbCronHuman(cron, kbt, kbBoardLocale())),
                 h('span', { className: 'grow' }),
                 h('span', { className: 'kb-task-muted' }, kbt('tasks.timezone') + ' · ' + tz0))
             : h('div', { className: 'kb-task-f' },
@@ -19518,7 +19761,7 @@ function renderFit(canvas, model, cam, opts){
           (err !== null ? h('div', { className: 'kb-task-err' }, err) : null),
           h('div', { className: 'kb-task-foot' },
             h('button', { type: 'button', className: 'kb-task-btn', onClick: propsM.onClose }, kbt('tasks.cancel')),
-            h('button', { type: 'button', className: 'kb8-primary', style: { padding: '9px 18px', borderRadius: '10px', fontSize: '13px' }, disabled: busy === true, onClick: submit },
+            h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'task-save', style: { padding: '9px 18px', borderRadius: '10px', fontSize: '13px' }, disabled: busy === true, onClick: submit },
               Icon('calendar-clock', 14), t0.id !== null && t0.id !== undefined ? kbt('tasks.save') : kbt('tasks.schedule')))))
     }
     // ── Automations : compte réel partagé (barre latérale + page) ───────────
@@ -19796,10 +20039,10 @@ function renderFit(canvas, model, cam, opts){
       const CHIPCLS = { running: 'run', waiting: 'warn', failed: 'err', ended: 'ok' }
       const stateChip = (state) => h('span', { className: 'kbbd-chip ' + (CHIPCLS[state] || ''), 'data-state': state }, kbt(CHIP[state] || 'tasks.board.chip.started'))
       const cadence = (t) => {
-        const p = kbTriggerParts(t, kbt)
+        const p = kbTriggerParts(t, kbt, locale, zone)
         const label = p.label + (p.hooked === true ? ' ' + kbt('tasks.trigger.plushook') : '')
         const hook = t.schedule !== null && typeof t.schedule === 'object' && t.schedule.mode === 'webhook'
-        return h('span', { className: 'kbbd-chip', title: label }, Icon(hook === true ? 'zap' : 'clock', 11), h('span', { className: 'kbbd-chip-t' }, label))
+        return h('span', { className: 'kbbd-chip', title: p.tip !== '' ? label + ' · ' + p.tip : label }, Icon(hook === true ? 'zap' : 'clock', 11), h('span', { className: 'kbbd-chip-t' }, label))
       }
       const whoOf = (t, it) => (t.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask')) + (it !== null && it.via === 'webhook' ? ' · ' + kbt('tasks.trigger.webhook') : '')
       // One card. `col` is the column; `it` a run, or { taskId, atMs, due } for the upcoming column.
@@ -19879,7 +20122,7 @@ function renderFit(canvas, model, cam, opts){
         const nm = nameOf(g.taskId) + (g.n > 1 ? ' ×' + String(g.n) : '')
         const hm = kbBoardHm(g.atMs, zone)
         return h('button', { key: g.key, type: 'button', className: 'kbbd-ev ' + (g.state === 'mixed' ? 'planned' : g.state) + (cal.sel === g.key ? ' sel' : ''), 'data-kb': 'board-event', 'data-state': g.state, 'data-task': g.taskId, 'aria-pressed': cal.sel === g.key ? 'true' : 'false',
-          'aria-label': nm + ', ' + hm + ', ' + kbt(CHIP[g.state] || 'tasks.board.chip.started'), title: nm + (t !== undefined ? ' · ' + kbTriggerParts(t, kbt).label : ''),
+          'aria-label': nm + ', ' + hm + ', ' + kbt(CHIP[g.state] || 'tasks.board.chip.started'), title: nm + (t !== undefined ? ' · ' + kbTriggerParts(t, kbt, locale, zone).label : ''),
           onClick: () => setCal((c) => Object.assign({}, c, { sel: c.sel === g.key ? null : g.key })) },
           (g.n > 1 ? null : h('span', { className: 'kbbd-tm' }, hm)), h('span', { className: 'kbbd-nm' }, nm), sign(g.state === 'mixed' ? 'planned' : g.state))
       }
@@ -20115,6 +20358,12 @@ function renderFit(canvas, model, cam, opts){
           toast(kbf('Export lancé'))
         } catch (e) { toast(kbf('Export impossible')) }
       }
+      // « Edit → chat » (V-19): a NEW chat, the way « Create » opens one (the draft names the automation-creator skill), with the
+      // automation as it stands, so the person says what to change in words and sends. The form stays the manual way; it is also
+      // what opens when no chat can be started from here.
+      const editInChat = (t) => {
+        try { kbStartChatText(kbEditChatText(t, kbt, kbBoardLocale())) } catch (e) { setModal(t) }
+      }
 
       const list = kbTasksList(tasks)
       const askDelete = (id, name) => setConfirm({
@@ -20124,21 +20373,24 @@ function renderFit(canvas, model, cam, opts){
         onConfirm: async () => { await act('delete', id); if (detail === id) setDetail(null) },
       })
       // The shared skeleton (see KB_SKEL_CSS): the card, the real header and rows with the SAME grid as the real ones, bones inside.
-      const kbaSkeleton = () => kbSkelWrap(kbt('tasks.loading'), 'kba-card', [
-        h('div', { key: 'hd', className: 'kba-rowline kba-rowline-head' },
-          h('div', { className: 'kba-rowhead' },
-            h('span', { className: 'kba-tabver' }, kbt('tasks.col.name')),
-            h('span', { className: 'kba-tabver' }, kbt('tasks.col.trigger')),
-            h('span', { className: 'kba-tabver' }, kbt('tasks.col.origin')),
-            h('span', { className: 'kba-tabver' }, kbt('tasks.col.lastsession')),
-            h('span', { className: 'kba-tabver' }, kbt('tasks.col.sessions')),
-            h('span', null)),
-          h('span', { className: 'kba-toggle-spacer' }, h('span', { className: 'kba-tabver' }, kbt('tasks.col.on')))),
+      // The header of the List, shared by the skeleton and the real list: one grid (see .kba-lcard), so a column header always sits over its cells.
+      const kbaListHead = () => h('div', { key: 'hd', className: 'kba-rowline kba-rowline-head' },
+        h('div', { className: 'kba-rowhead' },
+          h('span', { className: 'kba-tabver' }, kbt('tasks.col.name')),
+          h('span', { className: 'kba-tabver' }, kbt('tasks.col.trigger')),
+          h('span', { className: 'kba-tabver' }, kbt('tasks.col.origin')),
+          h('span', { className: 'kba-tabver' }, kbt('tasks.col.lastsession')),
+          h('span', { className: 'kba-tabver' }, kbt('tasks.col.sessions'))),
+        h('span', null),
+        h('span', { className: 'kba-oncol' }, h('span', { className: 'kba-tabver' }, kbt('tasks.col.on'))))
+      const kbaSkeleton = () => kbSkelWrap(kbt('tasks.loading'), 'kba-card kba-lcard', [
+        kbaListHead(),
         [0, 1, 2, 3].map((i) => h('div', { key: 'r' + i, className: 'kba-rowline kb-sk-row' },
           h('div', { className: 'kba-rowbtn', style: { cursor: 'default' } },
             h('span', { style: { display: 'flex', flexDirection: 'column', gap: '3px' } }, kbBone(i % 2 === 0 ? '62%' : '48%', 13), kbBone('36%', 10)),
-            kbBone('72%', 12), kbBone(72, 20, 'pill'), kbBone('70%', 12), kbBone(20, 12), h('span', null)),
-          h('span', { className: 'kba-toggle-spacer' }, kbBone(40, 22, 'pill'))))])
+            kbBone('72%', 12), kbBone(72, 20, 'pill'), kbBone('70%', 12), kbBone(20, 12)),
+          h('span', null),
+          h('span', { className: 'kba-oncol' }, kbBone(34, 20, 'pill'))))])
       const kbaLoadError = () => h('div', { className: 'kba-card' },
         h('div', { className: 'kba-banner', role: 'alert' },
           h('div', { style: { flex: 1, minWidth: 0 } }, h('b', null, kbt('tasks.load.error.title')), h('span', null, String(loadErr))),
@@ -20150,11 +20402,11 @@ function renderFit(canvas, model, cam, opts){
         let lastLabel = kbt('tasks.none.yet')
         let lastCls = ''
         if (t.active === false) { lastLabel = kbt('tasks.paused'); lastCls = '' }
-        else if (failed) { lastLabel = kbt('tasks.failed.at').replace('{when}', kbWhenOf(last.at, t)); lastCls = 'fail' }
-        else if (t.lastRun !== null && t.lastRun !== undefined) { lastLabel = kbWhenOf(t.lastRun, t) + ' \u00b7 ok'; lastCls = 'ok' }
-        const isHook = t.trigger !== null && t.trigger !== undefined && t.trigger.type === 'webhook'
+        else if (failed) { lastLabel = kbt('tasks.failed.at').replace('{when}', kbWhenOf(last.at)); lastCls = 'fail' }
+        else if (t.lastRun !== null && t.lastRun !== undefined) { lastLabel = kbWhenOf(t.lastRun) + ' \u00b7 ok'; lastCls = 'ok' }
+        const parts = kbTriggerParts(t, kbt, kbBoardLocale(), kbMachineTz())
         return {
-          id: t.id, name: t.name || t.id, team: t.notify && t.notify.length > 0 ? kbt('tasks.notify.on') : '', trigger: kbTriggerParts(t, kbt).label, hooked: kbTriggerParts(t, kbt).hooked, active: t.active !== false,
+          id: t.id, name: t.name || t.id, team: kbTaskWho(t, kbt), trigger: parts.label, tip: parts.tip, hooked: parts.hooked, active: t.active !== false,
           sessions: hist.length, lastLabel: lastLabel, lastCls: lastCls, failed: failed === true || t.pendingFire === true, _t: t,
         }
       })
@@ -20234,10 +20486,11 @@ function renderFit(canvas, model, cam, opts){
               h('div', { className: 'kba-dmeta' }, kbScheduleLabel(t, true)
                 + ' \u00b7 ' + kbt('tasks.runson.local')
                 + ' \u00b7 ' + (t.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask'))
-                + (t.nextRun ? ' \u00b7 ' + kbt('tasks.next').replace('{when}', kbWhenOf(t.nextRun, t)) : ''))),
+                + (t.nextRun ? ' \u00b7 ' + kbt('tasks.next').replace('{when}', kbWhenOf(t.nextRun)) : ''))),
             h('span', { role: 'switch', 'aria-checked': (t.active !== false) ? 'true' : 'false', 'aria-label': kbt('tasks.toggle.aria'), className: 'kba-toggle' + (t.active !== false ? ' on' : ''), tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act('toggle', t.id, { active: t.active === false }) } }, onClick: () => act('toggle', t.id, { active: t.active === false }) },
               h('span', { className: 'kba-toggle-knob' })),
             h('button', { type: 'button', className: 'kba-btn', onClick: () => act('run-now', t.id) }, Icon('play', 13), ' ', kbt('tasks.runnow')),
+            h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'detail-edit-chat', onClick: () => editInChat(t) }, Icon('messageSquare', 13), ' ', kbt('tasks.edit.chat.act')),
             h('button', { type: 'button', className: 'kba-btn', onClick: () => setModal(t) }, Icon('calendar-clock', 13), ' ', kbt('tasks.editsched')),
             h('button', { type: 'button', className: 'kba-btn kba-trash', 'data-kb': 'detail-delete', onClick: () => askDelete(t.id, t.name || t.id) }, Icon('trash', 13), ' ', kbt('tasks.delete'))),
           h('div', { className: 'kba-tabs' },
@@ -20304,7 +20557,7 @@ function renderFit(canvas, model, cam, opts){
                   onClick: () => { if (typeof e.sessionId === 'string' && e.sessionId.length > 0) { try { uiWorkspaceSvc.openSession(e.sessionId) } catch (er) { /* navigation indisponible */ } } },
                 },
                   h('span', { className: 'kba-kdot ' + (e.status === 'error' ? 'fail' : e.status === 'queued' ? 'wait' : 'ok') }),
-                  h('span', { className: 'kba-ell', style: { fontWeight: 600 } }, kbt('tasks.session.run') + ' \u00b7 ' + kbWhenOf(e.at, t), e.status === 'error' && typeof e.error === 'string' && e.error.length > 0 ? h('span', { className: 'kba-reason' }, e.error) : null),
+                  h('span', { className: 'kba-ell', style: { fontWeight: 600 } }, kbt('tasks.session.run') + ' \u00b7 ' + kbWhenOf(e.at), e.status === 'error' && typeof e.error === 'string' && e.error.length > 0 ? h('span', { className: 'kba-reason' }, e.error) : null),
                   h('span', { className: 'kba-ell dim kba-moboff' }, (typeof e.sessionId === 'string' && e.sessionId.length > 0) ? e.sessionId.slice(0, 14) : '\u2014'),
                   h('span', { className: 'dim', title: e.status === 'error' && typeof e.error === 'string' ? e.error : undefined }, e.status === 'error' ? kbt('tasks.status.error') : e.status === 'queued' ? kbt('tasks.status.queued') : kbt('tasks.status.fired')),
                   h('span', null, (typeof e.sessionId === 'string' && e.sessionId.length > 0)
@@ -20593,27 +20846,23 @@ function renderFit(canvas, model, cam, opts){
           ? (list.length === 0
             ? kbaOnboard(false)
             : h('div', { className: 'kba-card' }, h('div', { className: 'kba-empty' }, kbt('tb.empty.title'))))
-          : (boardEl !== null ? boardEl : h('div', { className: 'kba-card' },
-            h('div', { className: 'kba-rowline kba-rowline-head' },
-              h('div', { className: 'kba-rowhead' },
-                h('span', { className: 'kba-tabver' }, kbt('tasks.col.name')),
-                h('span', { className: 'kba-tabver' }, kbt('tasks.col.trigger')),
-                h('span', { className: 'kba-tabver' }, kbt('tasks.col.origin')),
-                h('span', { className: 'kba-tabver' }, kbt('tasks.col.lastsession')),
-                h('span', { className: 'kba-tabver' }, kbt('tasks.col.sessions')),
-                h('span', null)),
-              h('span', { className: 'kba-toggle-spacer' }, h('span', { className: 'kba-tabver' }, kbt('tasks.col.on')))),
+          : (boardEl !== null ? boardEl : h('div', { className: 'kba-card kba-lcard' },
+            kbaListHead(),
             filtered.map((a, i) => h('div', { key: a.id, className: 'kba-rowline' + kbIn(i) },
-              h('button', { type: 'button', className: 'kb-favbtn' + (auFavOf(a) === true ? ' on' : ''), 'data-kb': 'favorite-star', 'data-scope': 'automations', 'data-id': a.id, title: kbt(auFavOf(a) === true ? 'kbui.unfav' : 'kbui.fav'), 'aria-label': kbt(auFavOf(a) === true ? 'kbui.unfav' : 'kbui.fav'), style: { marginInlineStart: '10px' }, onClick: (e2) => { e2.stopPropagation(); auFavToggle(a.id) } }, Icon('star', 13)),
-              h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-clone', title: kbt('kbui.action.clone'), 'aria-label': kbt('kbui.action.clone'), onClick: (e2) => { e2.stopPropagation(); cloneTask(a) } }, Icon('copy', 13)),
-              h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-export', title: kbt('kbui.action.export'), 'aria-label': kbt('kbui.action.export'), onClick: (e2) => { e2.stopPropagation(); exportTask(a) } }, Icon('download', 13)),
-              h('button', { type: 'button', className: 'kb-favbtn kba-trash', 'data-kb': 'action-delete', title: kbt('tasks.delete'), 'aria-label': kbt('tasks.delete'), onClick: (e2) => { e2.stopPropagation(); askDelete(a.id, a.name) } }, Icon('trash', 13)),
               h('button', { type: 'button', className: 'kba-rowbtn', onClick: () => { setDetail(a.id); setTab('sessions'); setNodeSel(null) } },
-                h('span', { className: 'kba-name' }, a.name, h('span', { className: 'kba-team' }, a.team)),
-                h('span', { className: 'kba-trgcell' }, h('span', { className: 'kba-trigger-icon' }, Icon('zap', 12)), h('span', { className: 'kba-trg-stack' }, h('span', { className: 'kba-ell' }, a.trigger), a.hooked === true ? h('span', { className: 'kba-team' }, kbt('tasks.trigger.plushook')) : null)),
+                h('span', { className: 'kba-namecell' }, h('span', { className: 'kba-name', title: a.name }, a.name), h('span', { className: 'kba-team', title: a.team }, a.team)),
+                h('span', { className: 'kba-trgcell' }, h('span', { className: 'kba-trigger-icon' }, Icon('zap', 12)), h('span', { className: 'kba-trg-stack' }, h('span', { className: 'kba-ell', title: a.tip !== '' ? a.trigger + ' · ' + a.tip : a.trigger }, a.trigger), a.hooked === true ? h('span', { className: 'kba-team' }, kbt('tasks.trigger.plushook')) : null)),
                 h('span', null, h('span', { className: 'kba-origin-badge' }, kbt('tasks.origin.manual'))),
-                h('span', { className: 'kba-last' + (a.lastCls !== '' ? ' ' + a.lastCls : '') }, h('span', { className: 'kba-kdot ' + a.lastCls }), h('span', { className: 'kba-ell' }, a.lastLabel)),
+                h('span', { className: 'kba-last' + (a.lastCls !== '' ? ' ' + a.lastCls : '') }, h('span', { className: 'kba-kdot ' + a.lastCls }), h('span', { className: 'kba-ell', title: a.lastLabel }, a.lastLabel)),
                 h('span', { className: 'kba-td-num' }, String(a.sessions))),
+              // The row's actions sit at the right, shown on hover and on focus (always on a touch screen): they used to stand to the
+              // left of the name and push it away from its column.
+              h('span', { className: 'kba-lacts' },
+                h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-edit-chat', title: kbt('tasks.edit.chat.act'), 'aria-label': kbt('tasks.edit.chat.aria').replace('{name}', () => a.name), onClick: (e2) => { e2.stopPropagation(); editInChat(a._t) } }, Icon('messageSquare', 13)),
+                h('button', { type: 'button', className: 'kb-favbtn' + (auFavOf(a) === true ? ' on' : ''), 'data-kb': 'favorite-star', 'data-scope': 'automations', 'data-id': a.id, title: kbt(auFavOf(a) === true ? 'kbui.unfav' : 'kbui.fav'), 'aria-label': kbt(auFavOf(a) === true ? 'kbui.unfav' : 'kbui.fav'), onClick: (e2) => { e2.stopPropagation(); auFavToggle(a.id) } }, Icon('star', 13)),
+                h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-clone', title: kbt('kbui.action.clone'), 'aria-label': kbt('kbui.action.clone'), onClick: (e2) => { e2.stopPropagation(); cloneTask(a) } }, Icon('copy', 13)),
+                h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-export', title: kbt('kbui.action.export'), 'aria-label': kbt('kbui.action.export'), onClick: (e2) => { e2.stopPropagation(); exportTask(a) } }, Icon('download', 13)),
+                h('button', { type: 'button', className: 'kb-favbtn kba-trash', 'data-kb': 'action-delete', title: kbt('tasks.delete'), 'aria-label': kbt('tasks.delete'), onClick: (e2) => { e2.stopPropagation(); askDelete(a.id, a.name) } }, Icon('trash', 13))),
               h('span', { role: 'switch', 'aria-checked': a.active === true ? 'true' : 'false', 'aria-label': kbt('tasks.toggle.aria'), className: 'kba-toggle' + (a.active === true ? ' on' : ''), tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act('toggle', a._t.id, { active: a._t.active === false }) } }, onClick: () => act('toggle', a._t.id, { active: a._t.active === false }) },
                 h('span', { className: 'kba-toggle-knob' }))))))),
         (msg !== null ? h('div', { className: 'kba-toast', role: 'status' }, h('span', { className: 'kba-kdot ok' }), h('span', { style: { flex: 1 } }, msg), h('button', { type: 'button', 'aria-label': kbt('tasks.dismiss'), onClick: () => setMsg(null) }, '\u2715')) : null),
@@ -25418,112 +25667,14 @@ function renderFit(canvas, model, cam, opts){
         }
       } catch (e) { /* menu natif absent ou refondu */ }
     }
-    // ── le popup Paramètres : une icône par section Kybernos ────────────────
-    // Le shell DSH (dsh-client-ui-settings-general) choisit l'icône d'une ligne
-    // dans une table en dur indexée par l'ID de section — models, agent-presets,
-    // plugins, archived-sessions — et tout le reste retombe sur l'engrenage
-    // générique. Or le slot `settings.section` ne transporte que { id, order,
-    // label } : aucune icône n'est déclarable. On habille donc la ligne par son
-    // libellé, seule clé présente dans le DOM, et c'est celui que NOUS
-    // enregistrons. Un libellé renommé laisse simplement l'engrenage natif : on
-    // dégrade, on ne peint jamais au hasard. `voice` est traduit (Voix /
-    // Voice), d'où les deux graphies.
-    // Les libellés sont comparés sans accent et en minuscules : « Thème ·
-    // Kybernos » se compare donc à la clé ASCII `theme · kybernos` — le filet
-    // i18n du dépôt (aucun libellé français nu hors table de locales) reste
-    // tenu, et le rapprochement survit à une graphie accentuée ou non.
-    const kbNavCle = (v) => {
-      try { return String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim() } catch (e) { return String(v).toLowerCase().trim() }
-    }
-    const KB_NAV_ICONES = {
-      'theme · kybernos': 'palette',
-      // Les sections Thème et Langue sont désormais enregistrées via des
-      // fonctions bilingues : le libellé réellement peint est la forme COURTE
-      // (« Theme », « Language »), pas « Thème · Kybernos ». C'est elle qui
-      // doit être indexée ici, sinon la ligne garde l'engrenage natif
-      // (constaté en capture le 01/10 : Theme, Language et le catalogue
-      // n'avaient AUCUNE icône).
-      theme: 'palette',
-      // La section Langue vit dans son propre bundle depuis le 01/10/2026
-      // (@local/kybernos-language, satellite activable) : elle garde son siège
-      // { id, order, label }, l'icône se déclare ici.
-      language: 'languages',
-      langue: 'languages',
-      voice: 'audio-lines',
-      voix: 'audio-lines',
-      commands: 'square-slash',
-      commandes: 'square-slash',
-      plugins: 'puzzle',
-      // La page de réglages de kybernos-sessions (interrupteur de re-titrage) :
-      // une section Kybernos de plus dans le popup Paramètres.
-      'kybernos settings': 'settings',
-      'kybernos plugins': 'puzzle',
-      // (01/10) Section dédiée du bundle kybernos-modeles-locaux — disque dur
-      // Lucide, la même icône que sa carte dans Kybernos Plugins.
-      'ollama local models': 'hardDrive',
-      'modeles locaux ollama': 'hardDrive',
-      // Le catalogue de modèles (kybernos-models), passé du menu principal à
-      // un menu de Réglages le 24/09/2026 : le siège `settings.section` ne
-      // transporte que { id, order, label } — l'icône se déclare donc ICI,
-      // indexée par le libellé normalisé que ce plugin peint.
-      'kybernos models': 'key',
-      'fournisseur ia & modeles': 'key',
-      'ai provider & models': 'key'
-    }
-    // Le svg natif RESTE dans le DOM (React continue de le gérer) : on masque
-    // ses tracés par attribut, et on peint le glyphe en MASQUE — la couleur
-    // vient alors de `currentColor`, donc l'icône suit le survol et la ligne
-    // active sans qu'on ait à repeindre quoi que ce soit.
-    const KB_NAV_ICON_CSS = '[class*="navIcon"][data-kb-nav]>*{display:none!important}'
-    const kbDecorateSettingsNav = () => {
-      try {
-        if (typeof document === 'undefined' || document === null || document.body === null) return
-        const cellules = document.querySelectorAll('[class*="navCell"]')
-        for (const cellule of cellules) {
-          const label = kbNavCle(cellule.textContent === null || cellule.textContent === undefined ? '' : cellule.textContent)
-          const icone = KB_NAV_ICONES[label]
-          if (icone === undefined) continue
-          const slot = cellule.querySelector('[class*="navIcon"]')
-          if (slot === null || slot === undefined) continue
-          const nodes = Array.isArray(kbIconCache[icone]) === true ? kbIconCache[icone] : null
-          // On indexe ce qui EST peint : le catalogue d'icônes arrive en
-          // différé, donc une clé fondée sur le seul souhait figerait la ligne
-          // sur l'engrenage pour de bon.
-          const url = nodes === null ? null : kbIconGlyphUrl(nodes, 16, '#000')
-          if (url === null) {
-            if (slot.getAttribute('data-kb-nav') !== null) {
-              slot.removeAttribute('data-kb-nav')
-              slot.style.maskImage = ''
-              slot.style.webkitMaskImage = ''
-              slot.style.backgroundColor = ''
-            }
-            continue
-          }
-          if (slot.getAttribute('data-kb-nav') === icone) continue
-          slot.setAttribute('data-kb-nav', icone)
-          slot.style.webkitMaskImage = url
-          slot.style.maskImage = url
-          slot.style.webkitMaskRepeat = 'no-repeat'
-          slot.style.maskRepeat = 'no-repeat'
-          slot.style.webkitMaskPosition = 'center'
-          slot.style.maskPosition = 'center'
-          slot.style.webkitMaskSize = '16px 16px'
-          slot.style.maskSize = '16px 16px'
-          slot.style.backgroundColor = 'currentColor'
-        }
-      } catch (e) { /* popup Paramètres absent ou refondu */ }
-    }
     ctx.effect(() => {
       let stopped = false
       let obs = null
-      const tick = () => { if (stopped !== true) { kbDecorateSidebar(); kbDecorateSettingsNav() } }
+      const tick = () => { if (stopped !== true) kbDecorateSidebar() }
       // Une seule règle, globale : elle masque le dossier SVG natif de la ligne
       // dont on peint l'icône personnalisée. Le svg reste dans le DOM, donc
       // React continue de le gérer normalement.
       const killGlyphCss = styles.insert(KB_SIDEBAR_GLYPH_CSS)
-      // Sa jumelle pour la nav du popup Paramètres, où l'élément peint EST le
-      // svg : ce sont ses tracés qu'il faut masquer.
-      const killNavCss = styles.insert(KB_NAV_ICON_CSS)
       kbLoadIconNodes()
       tick()
       let iv = null
@@ -25532,11 +25683,10 @@ function renderFit(canvas, model, cam, opts){
       return () => {
         stopped = true
         try { killGlyphCss() } catch (e) { /* deja retire */ }
-        try { if (killNavCss !== null) killNavCss() } catch (e) { /* deja retire */ }
         try { if (iv !== null) clearInterval(iv) } catch (e) { /* deja nettoye */ }
         try { if (obs !== null) obs.disconnect() } catch (e) { /* deja deconnecte */ }
       }
-    }, 'kybernos: decoration du menu lateral et des sections du popup Parametres (icones)');
+    }, 'kybernos: decoration du menu lateral (icones)');
 
     // ── chargement initial : attend la session courante (auto-restauration) ──
     ctx.effect(() => {
@@ -25655,11 +25805,10 @@ function renderFit(canvas, model, cam, opts){
         }, Icon('arrowLeft', 15), h('span', { className: 'kbsb-label' }, label)),
         h(KbSettingsSearchInline, null))
     }
-    // (29/09, demande) RECHERCHE dans les Réglages : un champ dans l'en-tête
-    // filtre la navigation du dialog (boutons de section) au fil de la frappe.
-    // Vide = tout visible. Le filtrage est du pur affichage (style.display)
-    // sur les boutons du nav hôte — rien n'est démonté, et le nettoyage au
-    // démontage remet toute la liste.
+    // (29/09, request) SEARCH in Settings: a field in the header filters the dialog's navigation (section buttons) as you type. Empty = everything
+    // shows. The filtering is pure display (style.display) on the host nav's buttons — nothing is unmounted, and the cleanup on unmount puts the
+    // whole list back. While a query runs the Advanced fold is open (data-kb-searching on the list: a match inside it must show) and a section
+    // header with no entry left under it is hidden (the fold's header is no `button`, so the filter below leaves it alone).
     const KbSettingsSearchInline = () => {
       const pair = React.useState('')
       const q = pair[0]
@@ -25673,7 +25822,21 @@ function renderFit(canvas, model, cam, opts){
           const t = (b.textContent || '').trim().toLowerCase()
           b.style.display = (aiguille === '' || t.indexOf(aiguille) >= 0) ? '' : 'none'
         })
-        return () => { btns.forEach((b) => { b.style.display = '' }) }
+        const liste = dlg.querySelector('[class*="navList"]')
+        const tetes = liste === null ? [] : [...liste.querySelectorAll('[data-kb="settings-group"]')]
+        if (liste !== null) {
+          if (aiguille === '') liste.removeAttribute('data-kb-searching')
+          else liste.setAttribute('data-kb-searching', '1')
+        }
+        tetes.forEach((hd) => {
+          const reste = [...liste.querySelectorAll('[data-kb-g="' + String(hd.dataset.kbG) + '"]')].some((c) => c.dataset.kb !== 'settings-group' && c.style.display !== 'none')
+          hd.style.display = (aiguille === '' || reste) ? '' : 'none'
+        })
+        return () => {
+          btns.forEach((b) => { b.style.display = '' })
+          tetes.forEach((hd) => { hd.style.display = '' })
+          if (liste !== null) liste.removeAttribute('data-kb-searching')
+        }
       }, [q])
       const ph = kbt('settings.search')
       return h('div', { className: 'kbs-search' },
@@ -25708,6 +25871,10 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
    libellé reprend toute la place restante de sa cellule. */
 [role="dialog"]:has(nav [class$="_navCell"]) nav{width:248px;flex:none}
 [role="dialog"]:has(nav [class$="_navCell"]) nav [class$="_navLabel"]{flex:1 1 auto}
+/* V-39: the close cross of the Settings dialog is DSH's own icon button, 28 px with a 14 px icon (the owner asked for a bigger
+   one): a 40 px target with an 18 px icon, anchored on the class suffix like the rules above. */
+[role="dialog"]:has(nav [class$="_navCell"]) [class$="_close"]{min-width:40px;min-height:40px}
+[role="dialog"]:has(nav [class$="_navCell"]) [class$="_close"] svg{width:18px;height:18px}
 .kbs-search input::placeholder{color:var(--dsw-alias-label-tertiary)}
 .kbsb:hover{color:var(--dsw-alias-brand-primary)}
 .kbsb:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
@@ -26879,6 +27046,8 @@ html [class$="_options"] .kbth-head>.kbth-sub+*{margin-top:20px}
         h('div', { className: 'kbt2-entete-txt' },
           h('h1', { className: 'kbt2-h1' }, kbt('kbui.tools')),
           h('p', { className: 'kbt2-sub' }, kbToolsTxt({ fr: 'Active des capacités expérimentales et branche des outils externes sur un profil DSH. Chaque changement s’écrit dans le fichier de config du profil.', en: 'Enable experimental capabilities and connect external tools to a DSH profile. Each change is written to the profile’s config file.' })),
+          // What this page is for, next to the one it is mistaken for: Tools mounts abilities in a profile, Workers runs the coding assistants.
+          h('p', { className: 'kbt2-sub' }, kbToolsTxt({ fr: 'Les outils ajoutent des capacités à un profil DSH : des capacités expérimentales et des connexions à des outils extérieurs. Les assistants de code (Codex, Claude Code…) ont aussi leur page, Workers, qui vérifie qu’ils sont prêts et permet à votre agent de les appeler.', en: 'Tools add abilities to a DSH profile: experimental capabilities and connections to outside tools. The coding assistants (Codex, Claude Code…) also have their own page, Workers, which checks they are ready and lets your agent call them.' })),
           h('p', { className: 'kbt2-sub', style: { marginTop: 4, fontSize: 12, color: 'var(--dsw-alias-label-tertiary)' } }, kbf('Rien n’est à chaud : la relance applique. Un aperçu d’abord, puis l’écriture — sauvegarde datée avant, retour arrière ensuite.'))))
       const colonne = { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }
       // First read: the page's own head, then bones in the boxes of the profile block and of the cards (the shared skeleton helper).
@@ -28342,8 +28511,11 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
    pas de barre (liste vide, onglet sans outils), .kb6-headacts occupe
    exactement sa place : le bouton ne saute jamais d'un côté à l'autre. */
 .kb6-titlerow{display:flex;align-items:center;gap:10px;min-width:0}
-.kb6-helpbtn{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;font-weight:700;line-height:1;cursor:pointer}
-.kb6-helpbtn:hover,.kb6-helpbtn.on{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-brand-primary);background:var(--dsw-alias-bg-layer-2)}
+/* The « ? How it works » pill: the same look as the Suite's pill (kybernos-hub), so every page has one form of the button. */
+.kb6-helpbtn{flex:0 0 auto;appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.kb6-helpbtn:hover,.kb6-helpbtn.on{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}
+.kb6-helpbtn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.kb6-helpq{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
 .kb6-headacts{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;margin-inline-start:auto;padding-top:6px}
 /* No wrap: the search field shrinks (min-width:0) instead of dropping the view switch and the menu to a second line, which pushed the whole page down when the magnifier was pressed. */
 .kb6-tb-tools{margin-inline-start:auto;display:flex;align-items:center;gap:2px;flex-wrap:nowrap;justify-content:flex-end;padding-top:6px}
@@ -28486,8 +28658,9 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 .kb-task-modal h3{margin:0;font-size:16px;color:var(--dsw-alias-label-primary);display:flex;align-items:center;gap:9px}
 .kb-task-f{display:flex;flex-direction:column;gap:6px}
 .kb-task-f>label{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
-.kb-task-f input[type=text],.kb-task-f textarea,.kb-task-f input[type=datetime-local]{border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;padding:9px 11px;outline:none;width:100%;box-sizing:border-box}
+.kb-task-f input[type=text],.kb-task-f textarea,.kb-task-f input[type=datetime-local],.kb-task-f input[type=time]{border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;padding:9px 11px;outline:none;width:100%;box-sizing:border-box}
 .kb-task-f textarea{min-height:84px;resize:vertical}
+.kb-task-f input[type=time]{width:132px}
 .kb-task-f input:focus,.kb-task-f textarea:focus{border-color:var(--dsw-alias-brand-primary)}
 .kb-task-chips{display:flex;gap:6px;flex-wrap:wrap}
 .kb-task-chip{padding:6px 12px;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0}
@@ -28518,11 +28691,43 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 .kba-toast{display:flex;align-items:center;gap:12px;align-self:center;padding:10px 14px;border-radius:12px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2);font-size:13px;color:var(--dsw-alias-label-primary);max-width:min(92%,560px)}
 .kba-toast button{border:0;background:transparent;color:var(--dsw-alias-label-secondary);font-size:15px;cursor:pointer}
 .kba-card{border-radius:16px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);overflow:hidden}
-.kba-rowbtn{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 96px 168px 72px 46px;gap:14px;align-items:center}
-.kba-rowline-head{cursor:default;border-top:0}
-.kba-rowhead{flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 96px 168px 72px 46px;gap:14px;align-items:center;padding:11px 16px}
-.kba-toggle-spacer{width:44px;height:26px;flex:none;display:flex;align-items:center;justify-content:center}
-.kba-rowline{display:flex;align-items:center;border-top:1px solid var(--dsw-alias-border-l1);padding-right:10px}
+/* The List of the Automations: ONE grid for the header and the rows. A line is [columns | actions | switch]; the header
+   (.kba-rowhead) and the button of a row (.kba-rowbtn) share ONE column declaration, and the actions and the switch have the same
+   fixed width in both, so a header can never drift away from its cells. The card lays itself out by its own width (a container
+   query: the sidebar takes a different share on every screen): five columns, then four (no origin), then one stacked block per
+   row. The second .kba-card rule further down (a padded flex card) is for other pages: the list card cancels it. */
+.kba-card.kba-lcard{display:block;padding:0;gap:0;border-radius:16px;animation:none;container-type:inline-size}
+.kba-rowline{display:grid;grid-template-columns:minmax(0,1fr) 146px 40px;column-gap:10px;align-items:center;border-top:1px solid var(--dsw-alias-border-l1);padding:0 16px}
+.kba-rowline:hover,.kba-rowline:focus-within{background:var(--dsw-alias-interactive-bg-hover)}
+.kba-rowline-head{cursor:default;border-top:0;padding-top:11px;padding-bottom:11px}
+.kba-rowline-head:hover{background:transparent}
+.kba-rowbtn,.kba-rowhead{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 88px 150px 64px;column-gap:14px;align-items:center;min-width:0}
+.kba-oncol{display:flex;align-items:center;justify-content:center}
+.kba-namecell{display:flex;flex-direction:column;min-width:0}
+/* The row's actions: at the right, on hover and on focus; always on a touch screen. A starred row keeps its star. */
+.kba-lacts{display:flex;align-items:center;justify-content:flex-end;gap:2px}
+.kba-lacts .kb-favbtn{opacity:0;transition:opacity .12s}
+.kba-rowline:hover .kba-lacts .kb-favbtn,.kba-rowline:focus-within .kba-lacts .kb-favbtn,.kba-lacts .kb-favbtn.on,.kba-lacts .kb-favbtn:focus-visible{opacity:1}
+@media (hover:none){.kba-lacts .kb-favbtn{opacity:1}}
+.kba-lcard .kba-toggle{width:34px;height:20px;border-radius:10px;justify-self:center}
+.kba-lcard .kba-toggle-knob{top:2px;left:2px;width:14px;height:14px;border-radius:7px}
+.kba-lcard .kba-toggle.on .kba-toggle-knob{left:16px}
+@container (max-width:939px){
+  .kba-rowbtn,.kba-rowhead{grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 150px}
+  .kba-rowbtn>:nth-child(3),.kba-rowhead>:nth-child(3),.kba-rowbtn>:nth-child(5),.kba-rowhead>:nth-child(5){display:none}
+}
+@container (max-width:699px){
+  .kba-rowline-head{display:none}
+  .kba-rowbtn{grid-template-columns:minmax(0,1fr);row-gap:4px;padding:10px 0}
+  .kba-rowbtn .kba-ell{white-space:normal;overflow:visible;text-overflow:clip}
+}
+@container (max-width:519px){
+  .kba-rowline{grid-template-columns:minmax(0,1fr) 40px;grid-template-areas:"main sw" "acts acts";padding:0 12px 6px}
+  .kba-rowline>.kba-rowbtn{grid-area:main}
+  .kba-rowline>.kba-toggle{grid-area:sw}
+  .kba-rowline>.kba-lacts{grid-area:acts;justify-content:flex-start}
+  .kba-lacts .kb-favbtn{width:34px;height:34px}
+}
 /* assistant « par chat » (port maquette v3) */
 .kba-chatwrap{display:flex;flex-direction:column;height:100%}
 .kba-subhead{flex:none;display:flex;align-items:center;gap:12px;padding:0 26px;height:54px;border-bottom:1px solid var(--dsw-alias-border-l1);flex-wrap:wrap}
@@ -28545,9 +28750,8 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 .kba-tr{display:grid;grid-template-columns:70px minmax(0,1fr) 220px;gap:12px;align-items:center;padding:9px 0;border-top:1px solid var(--dsw-alias-border-l1);font-size:14px}
 .kba-tr>*{min-width:0}
 .kb-task-f textarea{min-height:150px}
-.kba-rowbtn{flex:1;padding:12px 16px;border:0;background:transparent;text-align:left;font:inherit;font-size:13.5px;color:var(--dsw-alias-label-primary);cursor:pointer;min-width:0}
-.kba-rowbtn:hover{background:var(--dsw-alias-interactive-bg-hover)}
-.kba-name{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kba-rowbtn{padding:12px 0;border:0;background:transparent;text-align:left;font:inherit;font-size:13.5px;color:var(--dsw-alias-label-primary);cursor:pointer}
+.kba-name{display:block;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kba-team{display:block;font-size:11px;color:var(--dsw-alias-label-secondary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kba-trg-stack{display:flex;flex-direction:column;min-width:0}
 .kba-reason{display:block;margin-top:3px;font-size:12px;font-weight:400;color:var(--dsw-alias-state-error-primary);white-space:normal}
@@ -28752,9 +28956,6 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kba-ln i{font-style:normal;width:38px;text-align:right;padding-right:13px;color:var(--dsw-alias-label-tertiary);flex:none;opacity:.7}
 .kba-ln.cm span{color:var(--dsw-alias-label-tertiary)}
 @media (max-width:900px){
-  .kba-rowhead{display:none}
-  .kba-rowbtn{grid-template-columns:1fr;gap:4px}
-  .kba-rowbtn .kba-ell{white-space:normal;overflow:visible;text-overflow:clip}
   .kba-srow{grid-template-columns:14px minmax(0,1fr) 110px;row-gap:4px}
   .kba-srow .kba-moboff{display:none}
 }
@@ -29691,6 +29892,130 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
         carte)
     }
 
+    // ── The feedback form (V-10) ─────────────────────────────────────────────────────────────────────
+    // « Send feedback » of the footer menu opens a small form: a type, a message, and an optional technical context (off by
+    // default). It POSTs to /kybernos/feedback, which appends one line to <DSH home>/kybernos/feedback.jsonl and sends NOTHING
+    // anywhere: the person reads « Saved on this computer — it is sent only when you export it ». « Export feedback » copies the
+    // file to the clipboard. The interview with the assistant (the skill signaler-retour, which can reach the Kybernos team) stays one
+    // click away. A screenshot is not offered: the page cannot be captured without the screen-capture permission prompt.
+    const KB_FB_TYPES = ['bug', 'idea', 'question']
+    const KbFeedbackForm = () => {
+      const [open, setOpen] = React.useState(false)
+      const [type, setType] = React.useState('bug')
+      const [message, setMessage] = React.useState('')
+      const [withContext, setWithContext] = React.useState(false)
+      const [busy, setBusy] = React.useState('')
+      const [note, setNote] = React.useState(null)
+      const [manual, setManual] = React.useState('')
+      React.useEffect(() => {
+        // The technical details are off at every opening: a person who ticked them once is not asked to remember to untick.
+        const ouvrir = () => { setNote(null); setManual(''); setWithContext(false); setOpen(true) }
+        window.addEventListener('kybernos:menu:feedback', ouvrir)
+        return () => window.removeEventListener('kybernos:menu:feedback', ouvrir)
+      }, [])
+      React.useEffect(() => {
+        if (open !== true) return undefined
+        // Captured, because the Settings dialog beneath also closes on Escape.
+        const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); setOpen(false) } }
+        window.addEventListener('keydown', onKey, true)
+        return () => window.removeEventListener('keydown', onKey, true)
+      }, [open])
+      const why = (status, out) => {
+        if (status === 507 || (out !== null && out.error === 'full')) return kbt('kbui.fb.full')
+        if (status === 401 || status === 403 || status === 503) return kbt('kbui.fb.signin')
+        return kbt('kbui.fb.fail')
+      }
+      const save = async () => {
+        const text = message.trim()
+        if (text === '' || busy !== '') return
+        setBusy('save'); setNote(null); setManual('')
+        let out = null
+        let status = 0
+        try {
+          const page = withContext === true
+            ? { title: String(document.title || ''), lang: String(document.documentElement.lang || navigator.language || ''), width: window.innerWidth, height: window.innerHeight }
+            : undefined
+          const r = await fetch('/kybernos/feedback', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ type: type, message: text, context: withContext === true, page: page }) })
+          status = r.status
+          out = await r.json().catch(() => null)
+        } catch (e) { out = null }
+        setBusy('')
+        if (out !== null && out.ok === true) { setMessage(''); setNote({ tone: 'ok', text: kbt('kbui.fb.saved') }) } else setNote({ tone: 'err', text: why(status, out) })
+      }
+      const exporter = async () => {
+        if (busy !== '') return
+        setBusy('export'); setNote(null); setManual('')
+        let out = null
+        let status = 0
+        try {
+          const r = await fetch('/kybernos/feedback/export', { headers: { accept: 'application/json' } })
+          status = r.status
+          out = await r.json().catch(() => null)
+        } catch (e) { out = null }
+        setBusy('')
+        if (out === null || out.ok !== true) { setNote({ tone: 'err', text: why(status, out) }); return }
+        if (out.count === 0) { setNote({ tone: 'ok', text: kbt('kbui.fb.empty') }); return }
+        let copied = false
+        try { await navigator.clipboard.writeText(out.text); copied = true } catch (e) { copied = false }
+        if (copied === true) setNote({ tone: 'ok', text: out.count === 1 ? kbt('kbui.fb.copied.one') : kbt('kbui.fb.copied.many').replace('{n}', String(out.count)) })
+        else { setManual(out.text); setNote({ tone: 'err', text: kbt('kbui.fb.copyfail') }) }
+      }
+      const withAssistant = () => {
+        setOpen(false)
+        try { if (typeof kbOpenFeedbackChat === 'function') kbOpenFeedbackChat(kbt('kbui.feedback.draft')) } catch (e) { /* the form stays the way in */ }
+      }
+      if (open !== true) return null
+      const title = kbt('kbui.send.feedback')
+      return kbPortalDe(h('div', { className: 'kbfb-overlay', onMouseDown: (e) => { if (e.target === e.currentTarget) setOpen(false) } },
+        h('div', { className: 'kbfb-card', role: 'dialog', 'aria-modal': 'true', 'aria-label': title, 'data-kb': 'feedback-form' },
+          h('div', { className: 'kbfb-head' },
+            h('b', null, title),
+            h('button', { type: 'button', className: 'kbfb-x', 'aria-label': kbt('kbui.fb.close'), title: kbt('kbui.fb.close'), onClick: () => setOpen(false) }, Icon('x', 16))),
+          h('div', { className: 'kbfb-types', role: 'radiogroup', 'aria-label': kbt('kbui.fb.type') },
+            KB_FB_TYPES.map((k) => h('button', { key: k, type: 'button', role: 'radio', 'aria-checked': type === k ? 'true' : 'false', className: 'kbfb-type' + (type === k ? ' on' : ''), 'data-type': k, onClick: () => setType(k) }, kbt('kbui.fb.type.' + k)))),
+          h('label', { className: 'kbfb-lab', htmlFor: 'kbfb-msg' }, kbt('kbui.fb.message')),
+          h('textarea', { id: 'kbfb-msg', className: 'kbfb-msg', rows: 6, maxLength: 4000, value: message, placeholder: kbt('kbui.fb.placeholder'), autoFocus: true, onChange: (e) => { setMessage(e.target.value); if (note !== null) setNote(null) } }),
+          h('label', { className: 'kbfb-ctx' },
+            h('input', { type: 'checkbox', checked: withContext, onChange: (e) => setWithContext(e.target.checked), 'data-kb': 'feedback-context' }),
+            h('span', null, h('b', null, kbt('kbui.fb.context')), h('i', null, kbt('kbui.fb.context.hint')))),
+          note === null ? null : h('div', { className: 'kbfb-note', 'data-tone': note.tone, role: 'status', 'data-kb': 'feedback-note' }, note.text),
+          manual === '' ? null : h('textarea', { className: 'kbfb-manual', readOnly: true, rows: 6, value: manual, onFocus: (e) => { try { e.target.select() } catch (er) { /* no selection */ } } }),
+          h('div', { className: 'kbfb-acts' },
+            h('button', { type: 'button', className: 'kbfb-btn kbfb-primary', 'data-kb': 'feedback-save', disabled: busy !== '' || message.trim() === '', onClick: save }, busy === 'save' ? kbt('kbui.fb.saving') : kbt('kbui.fb.save')),
+            h('button', { type: 'button', className: 'kbfb-btn', 'data-kb': 'feedback-export', disabled: busy !== '', onClick: exporter }, busy === 'export' ? kbt('kbui.fb.exporting') : kbt('kbui.fb.export'))),
+          h('button', { type: 'button', className: 'kbfb-link', 'data-kb': 'feedback-assistant', onClick: withAssistant }, kbt('kbui.fb.assistant')))))
+    }
+    ctx.effect(() => styles.insert(`
+.kbfb-overlay{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.5)}
+.kbfb-card{box-sizing:border-box;width:min(480px,100%);max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:12px;padding:20px;border:1px solid var(--dsw-alias-border-l2);border-radius:16px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 24px 60px rgba(0,0,0,.45);font-size:14px;line-height:1.45}
+.kbfb-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.kbfb-head b{font-size:16px;font-weight:600}
+.kbfb-x{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;margin:-8px -8px -8px 0;border:none;border-radius:10px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.kbfb-x:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.kbfb-types{display:flex;gap:6px;flex-wrap:wrap}
+.kbfb-type{height:36px;padding:0 14px;border:1px solid var(--dsw-alias-border-l2);border-radius:18px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;cursor:pointer}
+.kbfb-type.on{background:var(--dsw-alias-button-primary-fill);border-color:transparent;color:var(--dsw-alias-label-primary-foreground)}
+.kbfb-lab{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+.kbfb-msg,.kbfb-manual{box-sizing:border-box;width:100%;resize:vertical;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:14px}
+.kbfb-msg:focus,.kbfb-manual:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
+.kbfb-manual{font-family:var(--ds-font-family-code,monospace);font-size:12px}
+.kbfb-ctx{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
+.kbfb-ctx input{flex:none;width:18px;height:18px;margin:2px 0 0;accent-color:var(--dsw-alias-brand-primary);cursor:pointer}
+.kbfb-ctx span{display:flex;flex-direction:column;gap:2px}
+.kbfb-ctx i{font-style:normal;font-size:12px;color:var(--dsw-alias-label-tertiary)}
+.kbfb-note{padding:8px 12px;border-radius:10px;font-size:13px;background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 12%,transparent);color:var(--dsw-alias-label-primary)}
+.kbfb-note[data-tone="err"]{background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 12%,transparent)}
+.kbfb-acts{display:flex;gap:8px;flex-wrap:wrap}
+.kbfb-btn{height:40px;padding:0 16px;border:1px solid var(--dsw-alias-border-l2);border-radius:20px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-weight:500;cursor:pointer}
+.kbfb-btn:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}
+.kbfb-btn:disabled{opacity:.4;cursor:not-allowed}
+.kbfb-primary{border-color:transparent;background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground)}
+.kbfb-primary:hover:not(:disabled){background:var(--dsw-alias-button-primary-hover)}
+.kbfb-link{align-self:flex-start;padding:4px 0;border:none;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer}
+.kbfb-link:hover{color:var(--dsw-alias-brand-primary)}
+@media (pointer:coarse){.kbfb-btn,.kbfb-type{height:44px}.kbfb-link{min-height:44px}}
+`), 'kybers: formulaire de retour')
+
     // ── barre d'outils du pied de sidebar (thème, notifications, feedback, aide) ──
     const KbUtilButton = (props) => h('button', {
       type: 'button', title: props.title, 'aria-label': props.title,
@@ -29777,12 +30102,10 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
       }
       const flash = (msg) => { try { window.alert(msg) } catch (e) { /* pas d alerte */ } }
       const startFeedback = () => {
-        // Un chat neuf, prérempli : la skill `signaler-retour` mène l'entretien,
-        // puis appelle l'outil `kybernos_signaler_retour` (côté hôte). Le
-        // testeur n'a jamais de jeton GitHub, et rien ne part sans son « oui ».
-        try {
-          if (typeof kbOpenFeedbackChat === 'function') { kbOpenFeedbackChat(kbt('kbui.feedback.draft')); return }
-        } catch (e) { /* on retombe sur le message */ }
+        // The form (KbFeedbackForm, mounted below) opens on the same event as the footer menu's entry. It keeps the way to the
+        // older interview: a fresh chat prefilled with the skill `signaler-retour`, which then calls the tool
+        // `kybernos_signaler_retour` (host side). The tester never holds a GitHub token, and nothing leaves without a « yes ».
+        try { window.dispatchEvent(new Event('kybernos:menu:feedback')); return } catch (e) { /* no Event: the message below */ }
         flash(kbt('kbui.feedback.flash'))
       }
       return h('div', { className: 'kbu-row' },
@@ -29802,7 +30125,8 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
         // « (i) » branché sur kybernos.app — l'alerte flash ne disait rien
         // d'utile (demande du 27/09/2026).
         h(KbUtilButton, { title: kbt('kbui.helpdocs'), onClick: () => { try { window.open('https://kybernos.app', '_blank', 'noopener') } catch (e) { flash(kbt('kbui.help.flash')) } } }, Icon('info', 16)),
-        h(KbReferralGift, null))
+        h(KbReferralGift, null),
+        h(KbFeedbackForm, null))
     }
     ctx.effect(() => slots.inject('sidebar.footer.action', () => slots.register(
       { name: 'sidebar.footer.action', id: 'kybernos-utils', order: 20 }, SidebarUtils)), 'kybers: barre d utils sidebar')
@@ -29820,17 +30144,11 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
         } catch (e) { /* theme indisponible */ }
         try { document.documentElement.setAttribute('data-kb-theme', to) } catch (e) { /* document indisponible */ }
       }
-      const surFeedback = () => {
-        try {
-          if (typeof kbOpenFeedbackChat === 'function') { kbOpenFeedbackChat(kbt('kbui.feedback.draft')); return }
-        } catch (e) { /* on ne flash pas depuis le menu */ }
-      }
       // « Help » is the web help (help.kybernos.app/<lang>/), opened by the footer menu itself: no in-app box any more.
+      // « Send feedback » is handled by KbFeedbackForm (the same event opens the form), not here.
       window.addEventListener('kybernos:menu:theme', surTheme)
-      window.addEventListener('kybernos:menu:feedback', surFeedback)
       return () => {
         window.removeEventListener('kybernos:menu:theme', surTheme)
-        window.removeEventListener('kybernos:menu:feedback', surFeedback)
       }
     }, 'kybers: gestes du menu unifie du pied')
     ctx.effect(() => styles.insert(`
@@ -30210,11 +30528,9 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
 @media (max-width:560px){.kbac-themes{grid-template-columns:1fr}.kbac-row{align-items:flex-start;flex-wrap:wrap}}
 `), 'kybers: styles sections compte')
 
-    // ── Menu Réglages : GROUPES de la maquette « Settings Menu » (30/09) ──
-    // Le nav du shell est une colonne flex : on ne DÉPLACE aucun nœud (le
-    // reconciler du shell reste maître du DOM), on pose un style.order sur
-    // chaque cellule et on insère des EN-TÊTES de groupe. Réappliqué par
-    // un observateur quand le shell re-rend le nav.
+    // ── Settings menu: sections, order, icons and the Advanced fold ──
+    // The shell's nav is a flex column: no node is MOVED (the shell's reconciler stays in charge of the DOM). Each cell gets a style.order
+    // and the section headers are inserted; an observer applies it again whenever the shell renders the nav anew.
     ctx.effect(() => {
       const norm = (s) => {
         try {
@@ -30222,46 +30538,53 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
             .replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim()
         } catch (e) { return String(s || '').toLowerCase().trim() }
       }
-      // Sections, in order. « Kybernos » opens with the Suite, then the pages our plugins add, by what they bring and how much the rest
-      // leans on them (the models, then what picks one, then what the agents keep, do and reach, then comfort). The order INSIDE a section is
-      // the position of the title in `mots`; a page of a plugin not listed here falls to the tail (450+), the shell's own pages keep theirs.
-      // `bureau`: the section that follows the « Desktop » divider.
+      // Sections, in order (audit N-01, V-24: 28 entries at once, 23 of them under one heading, General at the bottom). The ESSENTIALS come
+      // first and have no header: General, then what a newcomer needs (the models, what the agents keep, the skills, the connectors, the look).
+      // « Advanced » is a fold, shut until the person needs it: the rest of our pages, in the order the owner gave. « Other settings » holds
+      // the shell's own two (Built-in plugins, Agent presets) and the pages a plugin adds later (they fall to its tail, 450+), and About closes
+      // the list. The order INSIDE a section is the position of the title in `mots`.
+      // `pliable`: the section is a fold (its header is a button, its cells are hidden while it is shut).
       const GROUPES = [
-        // One group: the servers entry (the private Select server module), the section of what stays on this computer (kybernos-cloud's
-        // `kybernos-local`), then the Suite and our plugins' pages. The account's own pages are not in Settings (the footer menu opens them).
-        { titre: kbt('settings.group.kybernos'), mots: [
+        { titre: null, mots: [
+          'general', 'mon espace', 'my workspace',
+          'fournisseur ia & modeles', 'ai provider & models', 'ai providers & models',
+          'memory & lessons',
+          'skills',
+          'connectors',
+          'apparence', 'appearance',
+          'theme',
+          'langue', 'language'
+        ] },
+        { titre: kbt('settings.group.advanced'), pliable: true, mots: [
           'serveurs', 'servers',
           'kybernos',
           'kybernos suite',
-          'fournisseur ia & modeles', 'ai provider & models', 'ai providers & models',
           'auto routing',
-          'memory & lessons',
           'usage',
           'workers',
           'automations',
           'outils', 'tools',
-          'skills',
-          'connectors',
-          'cloud computers',
           'web search',
           'calls', 'appels',
           'remote control',
+          'cloud computers',
           'commandes', 'commands',
           'atlas',
           'ollama local models',
           'free llms',
-          'voix', 'voice',
-          'langue', 'language',
-          'apparence', 'appearance',
-          'theme'
+          'voix', 'voice'
         ] },
-        { titre: kbt('settings.group.settings'), mots: ['general', 'mon espace', 'my workspace'] },
-        { titre: kbt('settings.group.desktop'), bureau: true, mots: ['models', 'agent presets', 'plugins kybernos', 'kybernos plugins', 'about', 'a propos'] },
-        { titre: kbt('settings.group.plugins'), mots: ['plugins', 'listing', 'built-in plugins'] },
+        { titre: kbt('settings.group.other'), mots: ['plugins', 'listing', 'built-in plugins', 'models', 'agent presets', 'plugins kybernos', 'kybernos plugins', 'about', 'a propos'] },
       ]
-      // Icônes VARIÉES du nav (maquette « Settings Menu ») : tracés Lucide
-      // 24×24, posés dans le svg natif de la cellule (viewBox réécrit).
-      // stroke=currentColor : l'icône suit l'état actif/inactif du shell.
+      // Theme and Language belong to Appearance: they are drawn one step in under it (their pages stay what they were).
+      const SOUS_APPARENCE = ['theme', 'langue', 'language', 'tema', 'idioma']
+      // The fold's id in the shared store (kbCzRead / kbCzWrite: the person's choice survives a reload).
+      const PLI_ID = 'settings-advanced'
+      const PLI = GROUPES.findIndex((g) => g.pliable === true)
+      // The ONE icon table of the Settings menu (audit V-25: no two pages share a drawing, test-settings-icons.mjs reads it): Lucide drawings
+      // on a 24×24 grid, keyed by the page's normalised title and put into the cell's native svg (viewBox rewritten). stroke=currentColor: the
+      // icon follows the shell's active / inactive state. There used to be a second table that painted a mask over this one once the icon
+      // catalogue had come from the server: it made Theme a palette again (like Appearance), and only in English.
       const trait = 'stroke="currentColor" stroke-width="1.75" fill="none" stroke-linecap="round" stroke-linejoin="round"'
       const ICONES = {
         'compte': '<circle cx="12" cy="8" r="4" ' + trait + '/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" ' + trait + '/>',
@@ -30272,26 +30595,26 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         'servers': '<rect x="2" y="2" width="20" height="8" rx="2" ' + trait + '/><rect x="2" y="14" width="20" height="8" rx="2" ' + trait + '/><line x1="6" y1="6" x2="6.01" y2="6" ' + trait + '/><line x1="6" y1="18" x2="6.01" y2="18" ' + trait + '/>',
         'kybernos': '<rect x="3" y="4" width="18" height="12" rx="2" ' + trait + '/><path d="M2 20h20" ' + trait + '/>',
         'general': '<path d="M4 7h10M18 7h2M4 17h2M10 17h10" ' + trait + '/><circle cx="16" cy="7" r="2" ' + trait + '/><circle cx="8" cy="17" r="2" ' + trait + '/>',
-        'commandes': '<polyline points="4 17 10 11 4 5" ' + trait + '/><line x1="12" y1="19" x2="20" y2="19" ' + trait + '/>',
-        'commands': '<polyline points="4 17 10 11 4 5" ' + trait + '/><line x1="12" y1="19" x2="20" y2="19" ' + trait + '/>',
+        'commandes': '<rect width="18" height="18" x="3" y="3" rx="2" ' + trait + '/>' + '<line x1="9" x2="15" y1="15" y2="9" ' + trait + '/>',
+        'commands': '<rect width="18" height="18" x="3" y="3" rx="2" ' + trait + '/>' + '<line x1="9" x2="15" y1="15" y2="9" ' + trait + '/>',
         'theme': '<circle cx="12" cy="12" r="9" ' + trait + '/><path d="M12 3v18M12 3a9 9 0 0 1 0 18z" ' + trait + '/>',
         'mon espace': '<path d="M4 21V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16M14 10h5a1 1 0 0 1 1 1v10M2 21h20M8 8h2M8 12h2M8 16h2" ' + trait + '/>',
         'atlas': '<polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" ' + trait + '/><line x1="9" y1="3" x2="9" y2="18" ' + trait + '/><line x1="15" y1="6" x2="15" y2="21" ' + trait + '/>',
         'usage': '<path d="m12 14 4-4" ' + trait + '/><path d="M3.34 19a10 10 0 1 1 17.32 0" ' + trait + '/>',
-        'fournisseur ia & modeles': '<path d="M12 3l2 6 6 3-6 3-2 6-2-6-6-3 6-3z" ' + trait + '/>',
-        'ai provider & models': '<path d="M12 3l2 6 6 3-6 3-2 6-2-6-6-3 6-3z" ' + trait + '/>',
-        'ai providers & models': '<path d="M12 3l2 6 6 3-6 3-2 6-2-6-6-3 6-3z" ' + trait + '/>',
+        'fournisseur ia & modeles': '<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" ' + trait + '/>' + '<path d="m21 2-9.6 9.6" ' + trait + '/>' + '<circle cx="7.5" cy="15.5" r="5.5" ' + trait + '/>',
+        'ai provider & models': '<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" ' + trait + '/>' + '<path d="m21 2-9.6 9.6" ' + trait + '/>' + '<circle cx="7.5" cy="15.5" r="5.5" ' + trait + '/>',
+        'ai providers & models': '<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" ' + trait + '/>' + '<path d="m21 2-9.6 9.6" ' + trait + '/>' + '<circle cx="7.5" cy="15.5" r="5.5" ' + trait + '/>',
         'models': '<path d="M12 2 2 7l10 5 10-5-10-5z" ' + trait + '/><path d="M2 12l10 5 10-5" ' + trait + '/><path d="M2 17l10 5 10-5" ' + trait + '/>',
-        'voix': '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" ' + trait + '/><path d="M19 10v1a7 7 0 0 1-14 0v-1" ' + trait + '/><line x1="12" y1="19" x2="12" y2="22" ' + trait + '/>',
-        'voice': '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" ' + trait + '/><path d="M19 10v1a7 7 0 0 1-14 0v-1" ' + trait + '/><line x1="12" y1="19" x2="12" y2="22" ' + trait + '/>',
+        'voix': '<path d="M2 10v3" ' + trait + '/>' + '<path d="M6 6v11" ' + trait + '/>' + '<path d="M10 3v18" ' + trait + '/>' + '<path d="M14 8v7" ' + trait + '/>' + '<path d="M18 5v13" ' + trait + '/>' + '<path d="M22 10v3" ' + trait + '/>',
+        'voice': '<path d="M2 10v3" ' + trait + '/>' + '<path d="M6 6v11" ' + trait + '/>' + '<path d="M10 3v18" ' + trait + '/>' + '<path d="M14 8v7" ' + trait + '/>' + '<path d="M18 5v13" ' + trait + '/>' + '<path d="M22 10v3" ' + trait + '/>',
         'outils': '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" ' + trait + '/>',
         'tools': '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" ' + trait + '/>',
         'web search': '<circle cx="11" cy="11" r="7" ' + trait + '/><path d="m20 20-3.5-3.5" ' + trait + '/><path d="M4 11h14M11 4c2 2 3 4.5 3 7s-1 5-3 7c-2-2-3-4.5-3-7s1-5 3-7z" ' + trait + '/>',
         'agent presets': '<rect x="4" y="8" width="16" height="12" rx="2" ' + trait + '/><line x1="12" y1="8" x2="12" y2="5" ' + trait + '/><circle cx="9" cy="14" r="1" fill="currentColor"/><circle cx="15" cy="14" r="1" fill="currentColor"/><line x1="2" y1="13" x2="4" y2="13" ' + trait + '/><line x1="20" y1="13" x2="22" y2="13" ' + trait + '/>',
         'about': '<circle cx="12" cy="12" r="10" ' + trait + '/><path d="M12 16v-4" ' + trait + '/><path d="M12 8h.01" ' + trait + '/>',
         'a propos': '<circle cx="12" cy="12" r="10" ' + trait + '/><path d="M12 16v-4" ' + trait + '/><path d="M12 8h.01" ' + trait + '/>',
-        'langue': '<circle cx="12" cy="12" r="10" ' + trait + '/><path d="M2 12h20" ' + trait + '/><path d="M12 2a15 15 0 0 1 0 20a15 15 0 0 1 0-20z" ' + trait + '/>',
-        'language': '<circle cx="12" cy="12" r="10" ' + trait + '/><path d="M2 12h20" ' + trait + '/><path d="M12 2a15 15 0 0 1 0 20a15 15 0 0 1 0-20z" ' + trait + '/>',
+        'langue': '<path d="m5 8 6 6" ' + trait + '/>' + '<path d="m4 14 6-6 2-3" ' + trait + '/>' + '<path d="M2 5h12" ' + trait + '/>' + '<path d="M7 2h1" ' + trait + '/>' + '<path d="m22 22-5-10-5 10" ' + trait + '/>' + '<path d="M14 18h6" ' + trait + '/>',
+        'language': '<path d="m5 8 6 6" ' + trait + '/>' + '<path d="m4 14 6-6 2-3" ' + trait + '/>' + '<path d="M2 5h12" ' + trait + '/>' + '<path d="M7 2h1" ' + trait + '/>' + '<path d="m22 22-5-10-5 10" ' + trait + '/>' + '<path d="M14 18h6" ' + trait + '/>',
         'memory & lessons': '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" ' + trait + '/><path d="M9 18h6" ' + trait + '/><path d="M10 22h4" ' + trait + '/>',
         'ollama local models': '<path d="M12 2 2 7l10 5 10-5-10-5z" ' + trait + '/><path d="M2 12l10 5 10-5" ' + trait + '/>',
         'plugins kybernos': '<rect x="3" y="3" width="7" height="7" rx="1" ' + trait + '/><rect x="14" y="3" width="7" height="7" rx="1" ' + trait + '/><rect x="3" y="14" width="7" height="7" rx="1" ' + trait + '/>',
@@ -30311,11 +30634,9 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         'remote control': '<rect x="5" y="2" width="14" height="20" rx="2" ry="2" ' + trait + '/><path d="M12 18h.01" ' + trait + '/>',
         'calls': '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" ' + trait + '/>',
       }
-      // Variantes de LANGUE des libellés : sous une langue traduite, le titre
-      // affiché d'une cellule n'est plus fr/en et le reconnaissance par mot-clé
-      // (GROUPES + ICONES) échouait — l'ordre du menu changeait et les icônes
-      // variées n'étaient plus peintes (constaté en espagnol, 08/10). Chaque
-      // variante pointe la clé canonique fr/en dont elle reprend groupe et tracé.
+      // LANGUAGE variants of the titles: under a translated language the title drawn on a cell is no longer French or English and the match
+      // by keyword (GROUPES + ICONES) failed — the menu changed order and the varied icons were no longer painted (seen in Spanish, 08/10).
+      // Each variant points at the canonical French / English key whose section and drawing it takes over.
       for (const [variante, base] of Object.entries({
         'cuenta': 'compte',
         'apariencia': 'apparence',
@@ -30327,7 +30648,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
           if (GROUPES[g].mots.indexOf(base) !== -1 && GROUPES[g].mots.indexOf(variante) === -1) GROUPES[g].mots.push(variante)
         }
       }
-      // Libellés (normalisés) qui ferment le menu des Réglages, quelle que soit leur place dans GROUPES.
+      // Titles (normalised) that close the Settings menu, wherever GROUPES puts them.
       const FIN_DE_LISTE = ['about', 'a propos']
       const rang = (libelle) => {
         const n = norm(libelle)
@@ -30336,8 +30657,8 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         }
         return -1
       }
-      // icône VARIÉE : le svg natif de la cellule reçoit le tracé du libellé (plusieurs items partageaient la même icône shell).
-      // Posée AVANT le tri par groupe : une page de plugin qui n'est dans aucun groupe garde sa place en queue, mais plus l'engrenage.
+      // Varied icon: the shell's native svg gets the drawing of the page's title (several items used to share the shell's gear). Put on BEFORE
+      // the section sort: a plugin page that is in no section keeps its place at the tail, but no longer the gear.
       const poserIcone = (cellule, n) => {
         const icone = ICONES[n]
         const svg = cellule.querySelector('svg')
@@ -30349,28 +30670,47 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         }
       }
       let minuteur = null
+      // The Advanced fold. Shut or open is ONE attribute of the list (data-kb-fold): a stylesheet rule hides the fold's cells, the cells
+      // themselves are never touched (React owns them). It follows the person's saved choice, the page they land on (kbFoldNext) and, apart from
+      // this, the search box (data-kb-searching, set by KbSettingsSearchInline).
+      const suivrePli = (liste, cellules) => {
+        if (PLI < 0) return
+        const actif = cellules.find((c) => c.getAttribute('aria-current') === 'true')
+        const page = actif === undefined ? '' : String(actif.dataset.kbT || '')
+        const plan = kbFoldNext({ stored: kbCzRead(PLI_ID), inside: actif !== undefined && actif.dataset.kbG === String(PLI), changed: page !== (liste.dataset.kbActive || '') })
+        liste.dataset.kbActive = page
+        if (plan.remember) kbCzWrite(PLI_ID, true)
+        liste.dataset.kbFold = plan.open ? 'open' : 'shut'
+        const bouton = liste.querySelector('[data-kb-fold-toggle]')
+        if (bouton !== null) bouton.setAttribute('aria-expanded', plan.open ? 'true' : 'false')
+      }
+      const basculer = (liste) => {
+        if (liste.hasAttribute('data-kb-searching')) return // a search is running: every match shows, whatever the fold says
+        const ouvre = liste.dataset.kbFold !== 'open'
+        kbCzWrite(PLI_ID, ouvre)
+        liste.dataset.kbFold = ouvre ? 'open' : 'shut'
+        const bouton = liste.querySelector('[data-kb-fold-toggle]')
+        if (bouton !== null) bouton.setAttribute('aria-expanded', ouvre ? 'true' : 'false')
+      }
       const organiser = () => {
         const listes = Array.from(document.querySelectorAll('[class*="navList"]'))
         for (let li = 0; li < listes.length; li++) {
           const liste = listes[li]
           const cellules = Array.from(liste.children).filter((e) => String(e.className || '').indexOf('navCell') !== -1)
           if (cellules.length === 0) continue
-          // le nav des Réglages se reconnaît à ses cellules connues (General,
-          // Compte, Thème…) — les autres navs de l'app n'en portent aucune.
+          // The Settings nav is recognised by its known cells (General, Theme…): the app's other navs carry none of them.
           // Titles by what the cells stand for, not by how they are drawn in the language of the day (kbNavTitles).
           const dessines = cellules.map((e) => norm(e.textContent))
           const titres = kbNavTitles(dessines, cellules.map(kbNavKeyOf))
           if (titres.every((t) => rang(t) === -1)) continue
-          // Idempotence : si les cellules n'ont pas changé et que les
-          // en-têtes sont déjà posés, on ne touche à rien — sinon
-          // l'observateur se ré-amorce sur ses propres mutations et
-          // boucle (constaté 30/09 : le nav clignotait hors ordre).
+          // Idempotence: when the cells have not changed and the headers are already there, nothing is touched (only the fold follows the
+          // page) — else the observer re-arms itself on its own mutations and loops (seen 30/09: the nav flickered out of order).
           const signature = dessines.join('|')
           const tetes = liste.querySelectorAll('[data-kb="settings-group"]')
-          if (liste.dataset.kbSig === signature && tetes.length === GROUPES.length) continue
+          const attendues = GROUPES.filter((g) => g.titre !== null && titres.some((t) => g.mots.indexOf(t) !== -1)).length
+          if (liste.dataset.kbSig === signature && tetes.length === attendues) { suivrePli(liste, cellules); continue }
           liste.dataset.kbSig = signature
           Array.from(tetes).forEach((e) => e.remove())
-          Array.from(liste.querySelectorAll('[data-kb="settings-divider"]')).forEach((e) => e.remove())
           liste.dataset.kbSettings = '1'
           const vus = GROUPES.map(() => false)
           cellules.forEach((cellule, idx) => {
@@ -30382,31 +30722,33 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
               if (pos !== -1) { g = k; wi = pos; break }
             }
             poserIcone(cellule, n)
+            cellule.dataset.kbT = n
+            cellule.removeAttribute('data-kb-g')
+            cellule.removeAttribute('data-kb-fold-cell')
+            cellule.removeAttribute('data-kb-sub')
             if (g === -1) { cellule.style.order = String(450 + idx); return }
+            cellule.dataset.kbG = String(g)
+            if (GROUPES[g].pliable === true) cellule.dataset.kbFoldCell = '1'
+            if (g === 0 && SOUS_APPARENCE.indexOf(n) !== -1) cellule.dataset.kbSub = '1'
             if (vus[g] !== true) {
               vus[g] = true
-              const tete = document.createElement('div')
-              tete.dataset.kb = 'settings-group'
-              tete.setAttribute('role', 'presentation')
-              tete.textContent = GROUPES[g].titre
-              tete.style.order = String(g * 100)
-              if (GROUPES[g].bureau === true) {
-                // séparateur « Desktop » : tout ce qui suit est propre à l'app desktop
-                const sep = document.createElement('div')
-                sep.dataset.kb = 'settings-divider'
-                sep.setAttribute('role', 'presentation')
-                sep.textContent = kbt('settings.divider.desktop')
-                sep.style.order = String(g * 100 - 10)
-                liste.append(sep)
+              if (GROUPES[g].titre !== null) {
+                // The fold's header is the shared Customize button (kbCzToggle); the others are quiet sub-titles.
+                const tete = GROUPES[g].pliable === true ? kbCzToggle(GROUPES[g].titre, false, () => basculer(liste), true) : document.createElement('div')
+                if (GROUPES[g].pliable === true) tete.dataset.kbFoldToggle = '1'
+                else { tete.textContent = GROUPES[g].titre; tete.setAttribute('role', 'presentation') }
+                tete.dataset.kb = 'settings-group'
+                tete.dataset.kbG = String(g)
+                tete.style.order = String(g * 100)
+                liste.append(tete)
               }
-              liste.append(tete)
             }
-            // ordre INTRA-groupe : la position du mot dans la liste du
-            // groupe (l'ordre de la maquette), pas l'index d'origine.
+            // Order INSIDE a section: the position of the title in its list (the mockup's order), not the original index.
             cellule.style.order = String(g * 100 + 10 + wi)
-            // « About » ferme la liste, après les pages que les plugins ajoutent (qui tombent à 450+).
+            // « About » closes the list, after the pages the plugins add (those fall at 450+).
             if (FIN_DE_LISTE.indexOf(n) !== -1) cellule.style.order = '9000'
           })
+          suivrePli(liste, cellules)
         }
       }
       const programmer = () => {
@@ -30414,19 +30756,29 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         minuteur = setTimeout(() => { minuteur = null; try { organiser() } catch (e) { /* nav absent */ } }, 250)
       }
       const observateur = new MutationObserver(programmer)
-      observateur.observe(document.body, { childList: true, subtree: true })
+      // The page changing (aria-current moves to another cell) is heard too: a click on a cell the fold hides lands the person inside it.
+      observateur.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-current'] })
       programmer()
       return () => { observateur.disconnect(); if (minuteur !== null) clearTimeout(minuteur) }
     }, 'kybers: groupes du menu reglages')
     ctx.effect(() => styles.insert(`
-/* En-têtes de groupes du menu Réglages (maquette « Settings Menu ») :
-   intertitre discret, jetons du shell, hors pointer-events. */
-[class*="navList"] [data-kb="settings-group"]{padding:10px 12px 2px;font-size:12.5px;font-weight:500;color:var(--dsw-alias-label-tertiary);pointer-events:none}
-[class*="navList"] [data-kb="settings-group"]:first-child{padding-top:2px}
-/* Menu des Réglages seulement (posé par organiser) : de l'air sous le dernier onglet, noms d'onglets un cran plus petits. */
+/* Section headers of the Settings menu: a quiet sub-title, shell tokens, no pointer events. */
+[class*="navList"] [data-kb="settings-group"]{padding:10px 12px 2px;font-size:12.5px;font-weight:500;color:var(--dsw-alias-label-tertiary);pointer-events:none;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+/* The Advanced header is the button of its fold (the shared Customize button), drawn like a header. */
+[class*="navList"] [data-kb="settings-group"][data-kb-fold-toggle]{display:flex;align-items:center;align-self:stretch;gap:6px;margin:0;padding:10px 12px 2px;border:none;border-radius:8px;background:transparent;font:inherit;font-size:12.5px;font-weight:500;line-height:normal;text-align:start;pointer-events:auto;cursor:pointer}
+[class*="navList"] [data-kb="settings-group"][data-kb-fold-toggle]:hover{color:var(--dsw-alias-label-secondary)}
+@media (max-width:700px),(pointer:coarse){[class*="navList"] [data-kb="settings-group"][data-kb-fold-toggle]{min-height:44px}}
+/* While a search runs the fold is open whatever its button says: the arrow shows it, and the button does nothing. */
+[class*="navList"][data-kb-searching] [data-kb-fold-toggle]{cursor:default}
+[class*="navList"][data-kb-searching] [data-kb-fold-toggle] .kb-cz-chev{transform:rotate(90deg)}
+html[dir="rtl"] [class*="navList"][data-kb-searching] [data-kb-fold-toggle] .kb-cz-chev{transform:scaleX(-1) rotate(90deg)}
+/* Settings menu only (set by the organiser): room under the last tab, tab names a notch smaller. */
 [class*="navList"][data-kb-settings]{padding-bottom:32px}
 [class*="navList"][data-kb-settings] [class*="navCell"]{font-size:13px}
-[class*="navList"] [data-kb="settings-divider"]{margin:14px 4px 0;padding:14px 8px 0;border-top:1px solid var(--dsw-alias-border-l1);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);pointer-events:none}
+/* A shut fold hides its entries, except the page the person is on; a running search shows every match. */
+[class*="navList"][data-kb-settings][data-kb-fold="shut"]:not([data-kb-searching]) [data-kb-fold-cell]:not([aria-current="true"]){display:none}
+/* Theme and Language belong to Appearance: drawn one step in under it. */
+[class*="navList"][data-kb-settings] [data-kb-sub]{padding-inline-start:30px}
 `), 'kybers: styles groupes menu reglages')
 
     // ── Pages de Réglages posées par d'autres plugins (Thème, Langue, Commandes) ──
@@ -30467,7 +30819,6 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         'Aucun modèle LLM détecté. Configurez un provider dans settings.yaml pour activer la traduction automatique.': 'No LLM model detected. Configure a provider in settings.yaml to enable automatic translation.',
         'Traduction annulée': 'Translation cancelled', 'Traduction terminée': 'Translation complete', 'Préparation…': 'Preparing…', 'Exécuter en arrière-plan': 'Run in the background',
         'avec le modèle actif…': 'with the active model…', 'aucune chaîne traduite — réessaie après correction': 'no string translated — try again after fixing',
-        'Commandes & actions': 'Commands & actions',
         'Un même modèle : du texte inséré, ou un formulaire en ligne. Tape / pour lancer une commande, ou utilise le bouton sous un message.': 'One model: inserted text, or an inline form. Type / to run a command, or use the button under a message.',
         'Nouvelle action': 'New action', 'Nouvelle commande': 'New command', 'Créer avec l’IA': 'Create with AI',
         'JSON stocké — ce que l’hôte garde vraiment': 'Stored JSON — what the host really keeps',

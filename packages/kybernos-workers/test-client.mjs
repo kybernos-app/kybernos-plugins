@@ -49,6 +49,17 @@ console.log('── the status of a row ──')
   ok('only "ready" is green, only the two real problems are red', Object.entries(T.STATUS).filter(([, v]) => v[0] === 'ok').map(([k]) => k).join() === 'pret' && Object.entries(T.STATUS).filter(([, v]) => v[0] === 'bad').map(([k]) => k).sort().join() === 'ecriture-impossible,serveur-absent')
 }
 
+console.log('── the connection word (A3-48) ──')
+{
+  resolved = 'en'
+  const sign = (id) => T.authLabel(WORKERS.find((x) => x.id === id))
+  ok('an agent that takes an API key says « Add the key », not « Sign in » (Gemini CLI, Qwen Code)', sign('gemini') === 'Add the key' && sign('qwen') === 'Add the key', [sign('gemini'), sign('qwen')].join())
+  ok('an agent that signs in with an account still says « Sign in » (Claude Code, Codex, Hermes)', sign('claude-code') === 'Sign in' && sign('codex') === 'Sign in' && sign('hermes') === 'Sign in')
+  ok('the word is used by the row button and by the step, from the same function', /ctl = toDetail\(authLabel\(w\), 'wk-todo-row-' \+ w\.id\)/.test(source) && /done: authOk, t: authLabel\(w\),/.test(source))
+  resolved = 'kybernos'
+  ok('and in French', T.authLabel({ connect: { mode: 'key' } }) === 'Ajouter la clé' && T.authLabel({ connect: { mode: 'cli' } }) === 'Se connecter' && T.authLabel(undefined) === 'Se connecter')
+}
+
 console.log('── the four dots ──')
 {
   const c = (id, etat, code = 'x') => ({ id, etat, code })
@@ -126,6 +137,13 @@ console.log('── what the page may talk to ──')
   ok('an API key is read from an input and handed to the credentials service, nowhere else (never logged, never fetched)', !/console\.\w+\([^)]*typed/.test(source) && !/fetch\([^)]*typed/.test(source) && /creds\.get\(\)\.set\(w\.connect\.env, value\)/.test(source))
   ok('the section asks for the Settings slots only; the credentials service is asked for on its own and is optional', /ctx\.inject\(\['slots'\]/.test(source) && /ctx\.inject\(\['remote', 'remote\.credentials'\]/.test(source))
   ok('the shared help card is used behind a guard, with an action for the guide', /window\.__KB_HELP__ && window\.__KB_HELP__\.Help \? h\(window\.__KB_HELP__\.Help, \{ id: 'kybernos-workers', action:/.test(source))
+}
+
+// Tools and Workers list some of the same assistants (V-32): each page says what it is for and names the other.
+{
+  const lead = source.slice(source.indexOf("h('h4', null, 'Workers')"), source.indexOf("h('h4', null, 'Workers')") + 1800)
+  ok('the lead says what the page is for: coding assistants the main agent can hand tasks to', /Coding assistants installed on your computer/.test(lead) && /Des assistants de code installés/.test(lead))
+  ok('…and names Settings › Tools as the other door, in both languages', /Settings › Tools/.test(lead) && /Réglages › Tools/.test(lead) && /mounts tools in a profile/.test(lead) && /monte des outils dans un profil/.test(lead), lead.slice(0, 300))
 }
 
 console.log('\n' + (failures === 0 ? '✓ ' : '✗ ') + (total - failures) + '/' + total + ' checks')

@@ -25,5 +25,6 @@
   "good": {
     "fr": "Gardez l’ordinateur allumé et connecté à internet : s’il s’éteint ou perd la connexion, le téléphone ne peut plus l’atteindre. Le relais Kybernos fait passer les messages sans pouvoir les lire.",
     "en": "Keep the computer switched on and connected to the internet: if it is switched off or loses the connection, the phone can no longer reach it. The Kybernos relay only passes messages along and cannot read them."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/features/what-is-remote-control/"
 }

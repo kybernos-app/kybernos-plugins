@@ -7,7 +7,7 @@ page reaches it through that plugin's routes; the account token never leaves the
 
 ## The page
 
-Settings → **Memory & Lessons** (in the Kybernos group, after Auto Routing). It opens as **« Memory looks after itself »**: the
+Settings → **Memory & Lessons** (one of the essentials at the top of the menu, after AI Provider & Models). It opens as **« Memory looks after itself »**: the
 defaults below are already on, so the first screen is one line of status and the data, and every switch is folded under one
 **Customize** button.
 
@@ -121,7 +121,7 @@ every rewrite is atomic, and a deletion goes to the archive too.
 | **Prompt** | chunk `kybernos:lessons` (order 135, ≤ 2 400 chars **frame included**): the lessons of the agent team the session runs (`~/.dsh/kybers/.active/<sessionId>`) get 70 % of the budget, `default` the rest. Most used first, then newest; a lesson too long for what is left is skipped. Never the lessons of another agent team. The chunk says when lessons were left out. |
 | **Tools** | `lesson_write` (text, kyber, tags — validated, deduplicated) and `lesson_search`. A lesson that a search returns counts as used: it is the only use this bundle can see, and the signal the cap relies on (1 lesson in 212 had `uses > 0` before). |
 | **Switches** | `lessons` (agents may save and look lessons up), `context` (lessons are injected) and `relevant` (the lessons that match the latest message go first), all on by default, in `kybernos-memory.json` (0600). `lessons = off` injects one line telling agents not to record lessons — a global rule or the `memory.cjs` habit would otherwise go on. A patch with an unknown key or a non-boolean applies nothing. |
-| **Routes** | `GET /kybernos-memory/lessons` (limit, offset, kyber, used, added, q), `GET /kybernos-memory/kybers`, `POST …/lessons/add`, `…/lessons/update`, `…/lessons/delete`, `GET …/settings`, `POST …/settings/set`. Same-origin only, one path per route (the web server indexes by path). |
+| **Routes** | `GET /kybernos-memory/lessons` (limit, offset, kyber, used, added, q), `GET /kybernos-memory/kybers`, `POST …/lessons/add`, `…/lessons/update`, `…/lessons/delete`, `GET …/settings`, `POST …/settings/set`. Same-origin only, one path per route (the web server indexes by path); every POST also needs DSH's signed session cookie (`session-guard.mjs`, `test-write-guard.mjs`). |
 
 Agent Team ids and session ids end up in paths: only plain names pass (`^[A-Za-z0-9][A-Za-z0-9._-]*$`,
 no `..`), and a typo never creates an agent team.
@@ -185,7 +185,7 @@ removal, and the answer only ever produces suggestions (`by: 'brain'`) for the r
 Both hosts: `apply` needs `confirm: true`, checks every group against what is stored *now* (a changed or vanished item
 makes its group `a_change`, never a guess), writes the archive before the first delete and refuses a request that
 removes more than 50 items. `dismiss` remembers a pair the user kept apart (`restore: true` takes it back).
-Same-origin guard, POST for everything that writes.
+Same-origin guard, POST for everything that writes, and DSH's session cookie on every POST.
 
 ## The cap: tidied before it bites
 

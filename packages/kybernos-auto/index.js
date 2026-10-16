@@ -1,18 +1,18 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// kybernos-auto — moitié hôte.
+// kybernos-auto — host half.
 //
-// Le mode Auto, dans UN bundle dédié (02/10/2026, décision utilisateur) :
-//   • état PAR SESSION   → <DSH home>/kybernos/auto-sessions.json  (~/.dsh par défaut)
-//   • whitelist/classifieur (globaux) → <DSH home>/kybernos/settings.json
-//     (mêmes clés que la première itération : autoRouting* y restent lisibles,
-//     la page Settings dédiée du bundle les écrit désormais)
-//   • santé par modèle   → <DSH home>/kybernos/auto-health.json (compteurs locaux
-//     écrits à chaque routage : appels, erreurs, dernière latence)
-//   • le routeur lui-même (règles → classifieur local tev1 → whitelist)
+// Auto mode, in ONE dedicated bundle (02/10/2026, user decision):
+//   • state PER SESSION   → <DSH home>/kybernos/auto-sessions.json  (~/.dsh by default)
+//   • whitelist/classifier (global) → <DSH home>/kybernos/settings.json
+//     (the same keys as the first iteration: autoRouting* stay readable there,
+//     the bundle's own Settings page now writes them)
+//   • health per model    → <DSH home>/kybernos/auto-health.json (local counters
+//     written at each routing: calls, errors, last latency)
+//   • the router itself (rules → local tev1 classifier → whitelist)
 //
-// Le routeur est une COPIE conforme du CLI `~/.dsh/tools/auto-router.mjs`
-// (contrat identique, mêmes classes chat|code|vision|media|agent-task). Le CLI
-// reste autonome pour l'agent ; l'hôte sert la page et la puce du composer.
+// The router is a faithful COPY of the CLI `~/.dsh/tools/auto-router.mjs`
+// (same contract, same classes chat|code|vision|media|agent-task). The CLI
+// stays standalone for the agent; the host serves the page and the composer's chip.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, realpathSync, renameSync, chmodSync, rmSync } from 'node:fs'
@@ -21,6 +21,8 @@ import { basename, dirname, join, resolve } from 'node:path'
 import { DELAI_DEFAUT, normaliserListe, sonderUn } from './sonde.mjs'
 import { TTL_SONDE_MS, apresIssue, issueDeRapport, plafondEssais, resoudre, triCandidats, vueModele } from './resilience.mjs'
 import { createFailover } from './failover.mjs'
+import { SCOPES, etendre, modelesConnus, refuserListe, scopeEnVigueur } from './modeles.mjs'
+import { writeGuard } from './session-guard.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -53,6 +55,16 @@ const kbFenced = (service) => {
   return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => target.register(fence(route)) : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
 }
 
+/** A route that WRITES (the switches, the whitelist, a probe that spends tokens) needs DSH's signed session as well as the right Origin (session-guard.mjs,
+ *  the terminal's rule): plugin routes are served before DSH's own login and an Origin header is forgeable by any local program. Sends the refusal. */
+const ecritureAutorisee = (req, res) => {
+  const refus = writeGuard(req)
+  if (refus === null) return true
+  res.writeHead(refus.status, { 'Content-Type': 'application/json; charset=utf-8' })
+  res.end(JSON.stringify({ ok: false, error: refus.error }))
+  return false
+}
+
 export const name = 'kybernos-auto'
 
 /**
@@ -70,6 +82,8 @@ export const dshHome = (env = process.env, osHome = homedir) => {
 
 const OLLAMA = process.env.AUTO_ROUTER_OLLAMA || 'http://127.0.0.1:11434'
 const CLASSES = ['chat', 'code', 'vision', 'media', 'agent-task']
+/** The most models « Check now » asks in one run (each is a real, tiny call). */
+export const SONDE_MAX = 20
 
 // ── settings.json is SHARED (the core reads pairingToken, gatewayBase, wsAdminKey; the
 // sessions bundle writes its own keys): a save merges, never replaces, is atomic, and
@@ -151,7 +165,7 @@ function settingsFileBlocked (read, file) {
 }
 // KB-SETTINGS-FILE-END
 
-// ── réglages (whitelist + classifieur) : mêmes clés que settings.json ───────
+// ── settings (the models Auto may use + classifier): same keys as settings.json ───────
 export function lireReglagesAuto (fichier) {
   let brut = {}
   try { brut = JSON.parse(readFileSync(fichier, 'utf8')) } catch { brut = {} }
@@ -159,8 +173,12 @@ export function lireReglagesAuto (fichier) {
     brut.autoWhitelist.length <= 64 &&
     brut.autoWhitelist.every((x) => typeof x === 'string' && x.length <= 200) &&
     new Set(brut.autoWhitelist).size === brut.autoWhitelist.length
+  const liste = whitelistValide === true ? brut.autoWhitelist : []
   return {
-    whitelist: whitelistValide === true ? brut.autoWhitelist : [],
+    whitelist: liste,
+    // Which models Auto may pick from: every connected one (the default), only the free ones, or the typed list above. A list
+    // saved before scopes existed stays the list (modeles.mjs scopeEnVigueur).
+    scope: scopeEnVigueur(brut.autoScope, liste),
     classifier: typeof brut.autoClassifier === 'string' ? brut.autoClassifier : '',
     global: brut.autoRouting === true,
     // Opt-in: the chat itself moves to the next whitelist model when its own cannot answer (failover.mjs).
@@ -168,7 +186,38 @@ export function lireReglagesAuto (fichier) {
   }
 }
 
-// ── état PAR SESSION ────────────────────────────────────────────────────────
+// ── the models Auto may pick from (the scope resolved against what the host knows) ─────────────────────────────────────
+/** The configured models, read through `modeles()` (the host's settings and credentials services) and kept `ttlMs`: Auto asks for the
+ *  list on every request, the services are asked once in a while. Never throws; `lire()` answers null when nothing is known. */
+export function creerUnivers ({ modeles, horloge = () => Date.now(), ttlMs = 15000 } = {}) {
+  let derniere = null
+  let enCours = null
+  const lire = () => {
+    if (typeof modeles !== 'function') return Promise.resolve(null)
+    if (derniere !== null && horloge() - derniere.at < ttlMs) return Promise.resolve(derniere.liste)
+    if (enCours === null) {
+      enCours = Promise.resolve().then(() => modeles())
+        .then((l) => { derniere = { at: horloge(), liste: Array.isArray(l) ? l : null } }, () => { derniere = { at: horloge(), liste: null } })
+        .then(() => { enCours = null })
+    }
+    return enCours.then(() => (derniere === null ? null : derniere.liste))
+  }
+  return { lire, cache: () => (derniere === null ? null : derniere.liste), oublier: () => { derniere = null } }
+}
+/** The list Auto routes among right now: the typed one, or the connected (free) models. */
+export const listeEffective = async (reg, univers) => etendre(reg.scope, reg.whitelist, reg.scope === 'custom' ? null : await univers.lire())
+/** The same from what was last read, for the callers that cannot wait (the chat failover). */
+export const listeEffectiveCache = (reg, univers) => etendre(reg.scope, reg.whitelist, reg.scope === 'custom' ? null : univers.cache())
+/** The models the host's services can name, for the host to build with `modelesConnus` at call time. */
+const modelesDeLHote = (ctx) => async () => {
+  const service = (nom) => {
+    try { const svc = ctx.get(nom); if (svc !== undefined && svc !== null) return svc } catch (e) { /* read from the root below */ }
+    try { const svc = ctx.root[nom]; return svc === null ? undefined : svc } catch (e) { return undefined }
+  }
+  return modelesConnus({ settings: service('settings'), credentials: service('credentials') })
+}
+
+// ── PER-SESSION state ──────────────────────────────────────────────────
 export function lireSessions (fichier) {
   let brut = {}
   try { brut = JSON.parse(readFileSync(fichier, 'utf8')) } catch { brut = {} }
@@ -352,14 +401,14 @@ export async function router (demande, opts = {}) {
   }
 }
 
-// ── montage des routes ──────────────────────────────────────────────────────
+// ── mounting the routes ─────────────────────────────────────────────────────
 const envoyer = (res, code, obj) => {
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' })
   res.end(JSON.stringify(obj))
 }
 const origineOK = (req) => {
-  // Recette 2026-10 (M-02/S-03) : hôte EXACT de l'écoute réelle du socket,
-  // jamais un préfixe (« localhost.evil.example » passait).
+  // 2026-10 acceptance (M-02/S-03): the EXACT host of the socket's real listener,
+  // never a prefix (« localhost.evil.example » used to pass).
   const o = String(req.headers.origin || '')
   if (o === '') return true
   try {
@@ -378,6 +427,7 @@ const lireCorps = (req) => new Promise((res) => {
 /** The main-session failover (failover.mjs) wired to the files of this DSH home: the switch is `autoFailover` in
  *  settings.json, the breaker is the delegations' (auto-health.json), the fallbacks are the whitelist's text models. */
 export function creerFailover (opts = {}) {
+  const univers = opts.univers !== undefined ? opts.univers : creerUnivers({})
   const home = opts.home || dshHome()
   const reglagesFichier = opts.reglagesPath || join(home, 'kybernos', 'settings.json')
   const santeFichier = opts.santePath || join(home, 'kybernos', 'auto-health.json')
@@ -386,7 +436,10 @@ export function creerFailover (opts = {}) {
     settings: () => ({ enabled: lireReglagesAuto(reglagesFichier).failover === true }),
     health: () => lireSante(santeFichier),
     note: (modele, issue) => { noterIssue(santeFichier, modele, issue, { rapport: true, maintenant: horloge() }) },
-    fallbacks: () => candidats(lireReglagesAuto(reglagesFichier).whitelist, 'agent-task'),
+    fallbacks: () => {
+      univers.lire() // refresh for the next failure: this call cannot wait
+      return candidats(listeEffectiveCache(lireReglagesAuto(reglagesFichier), univers), 'agent-task')
+    },
     now: horloge,
     log: opts.log || ((ligne) => console.log('[kybernos-auto] ' + ligne))
   })
@@ -400,6 +453,8 @@ export function monterRoutes (webServerSvc, opts = {}) {
   const santeFichier = opts.santePath || join(home, 'kybernos', 'auto-health.json')
   // The llm service, read at call time (DSH may publish it after this plugin mounts); `opts.llm` is a test double.
   const llm = opts.llm !== undefined ? opts.llm : null
+  // The configured models (for « all models », « free models » and the check of a typed list); absent = nothing is known.
+  const univers = opts.univers !== undefined ? opts.univers : creerUnivers({ modeles: opts.modeles, horloge: opts.horloge })
   const llmDispo = () => llm !== null && typeof llm.stream === 'function'
   const delaiSonde = Number.isFinite(opts.delaiSondeMs) ? opts.delaiSondeMs : parseInt(process.env.KB_AUTO_DELAI || String(DELAI_DEFAUT), 10)
   const horloge = opts.horloge || (() => Date.now())
@@ -421,10 +476,15 @@ export function monterRoutes (webServerSvc, opts = {}) {
   // there is a web server (a profile without one, headless or TUI, gets the failover too); the page only reads its view.
   const failover = opts.failover !== undefined && opts.failover !== null
     ? opts.failover
-    : creerFailover({ reglagesPath: reglagesFichier, santePath: santeFichier, horloge })
+    : creerFailover({ reglagesPath: reglagesFichier, santePath: santeFichier, horloge, univers })
 
-  const etatComplet = (sessionId) => {
+  /** The saved settings with the list Auto really uses in `whitelist` (`explicite` keeps the typed one). */
+  const reglagesEffectifs = async () => {
     const reg = lireReglagesAuto(reglagesFichier)
+    return { ...reg, explicite: reg.whitelist, whitelist: await listeEffective(reg, univers) }
+  }
+  const etatComplet = async (sessionId) => {
+    const reg = await reglagesEffectifs()
     const sessions = lireSessions(sessionsFichier)
     const on = sessionId ? sessions[String(sessionId)] === true : false
     const maintenant = Date.now()
@@ -433,34 +493,44 @@ export function monterRoutes (webServerSvc, opts = {}) {
     const sains = sante.filter((v) => v.etat !== 'down' && v.cacheHitPct !== null && v.cacheHitPct >= 50)
     sains.sort((a, b) => b.cacheHitPct - a.cacheHitPct)
     return {
-      ok: true, global: reg.global, whitelist: reg.whitelist, classifier: reg.classifier,
+      ok: true, global: reg.global, whitelist: reg.whitelist, scope: reg.scope, explicite: reg.explicite, classifier: reg.classifier,
       sessionOn: on, sante,
       total: sante.length, disponibles: sante.filter((v) => v.etat !== 'down').length,
       chaud: sains.length > 0 ? sains[0].modele : null,
       failover: failover.view(),
-      sondeEnCours: sondeToutEnCours !== null, plafond: plafondEssais(), ttlSondeS: Math.round(TTL_SONDE_MS / 1000),
+      sondeEnCours: sondeToutEnCours !== null, sondeMax: SONDE_MAX, plafond: plafondEssais(), ttlSondeS: Math.round(TTL_SONDE_MS / 1000),
       checkedAt: maintenant, intervalS: 60
     }
   }
 
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/state', handler: async (req, res) => {
     if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
-    envoyer(res, 200, etatComplet(new URL(req.url, 'http://x').searchParams.get('sessionId') || ''))
+    envoyer(res, 200, await etatComplet(new URL(req.url, 'http://x').searchParams.get('sessionId') || ''))
+  } })
+
+  // The configured models, for the picker of the typed list (read-only: `route/id` and whether the provider is connected).
+  webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/models', handler: async (req, res) => {
+    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    univers.oublier()
+    const connus = await univers.lire()
+    envoyer(res, 200, { ok: true, models: (connus === null ? [] : connus).map((x) => ({ cle: x.cle, route: x.route, id: x.id, connecte: x.connecte === true, locale: x.locale === true })) })
   } })
 
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/session', handler: async (req, res) => {
     if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }
+    if (!ecritureAutorisee(req, res)) return
     const corps = await lireCorps(req)
     const r = ecrireSession(sessionsFichier, corps.sessionId, corps.on === true)
     envoyer(res, r.ok === true ? 200 : 400, r.ok === true
-      ? { ...etatComplet(corps.sessionId), on: r.on }
+      ? { ...(await etatComplet(corps.sessionId)), on: r.on }
       : { ok: false, erreur: r.erreur })
   } })
 
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/settings', handler: async (req, res) => {
     if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }
+    if (!ecritureAutorisee(req, res)) return
     const corps = await lireCorps(req)
     // Whitelist and classifier: the same global keys as settings.json — the
     // dedicated page is their main writer. Validate first, touch the disk after.
@@ -470,12 +540,27 @@ export function monterRoutes (webServerSvc, opts = {}) {
         corps.autoWhitelist.every((x) => typeof x === 'string' && x.length <= 200) &&
         new Set(corps.autoWhitelist).size === corps.autoWhitelist.length
       if (valide !== true) {
-        envoyer(res, 400, { ok: false, erreur: 'autoWhitelist : tableau d identifiants sans doublon attendu' }); return
+        envoyer(res, 400, { ok: false, code: 'liste', erreur: 'autoWhitelist : tableau d identifiants sans doublon attendu' }); return
+      }
+      // A list of models is a list of `provider/model` the profile knows (A3-24): « model-only », « a b/c d » or « <script>/x »
+      // used to be saved and then « really asked » by the health check. The existence is judged only when the host can read the
+      // profile; the form always.
+      univers.oublier()
+      const connus = await univers.lire()
+      const refus = refuserListe(corps.autoWhitelist, connus === null ? null : new Set(connus.map((x) => x.cle)))
+      if (refus !== null) {
+        envoyer(res, 400, { ok: false, code: 'liste-' + refus.code, cles: refus.cles.slice(0, 5), erreur: (refus.code === 'forme'
+          ? 'autoWhitelist : « ' + refus.cles[0] + ' » n est pas de la forme fournisseur/modèle'
+          : 'autoWhitelist : « ' + refus.cles[0] + ' » n est pas un modèle configuré') }); return
       }
       maj.autoWhitelist = corps.autoWhitelist
     }
+    if (corps.autoScope !== undefined) {
+      if (SCOPES.indexOf(corps.autoScope) < 0) { envoyer(res, 400, { ok: false, code: 'scope', erreur: 'autoScope : all, free ou custom attendu' }); return }
+      maj.autoScope = corps.autoScope
+    }
     if (corps.autoRouting !== undefined) {
-      // Disjoncteur GLOBAL hérité : true force Auto sur toutes les sessions.
+      // Inherited GLOBAL breaker: true forces Auto on every session.
       if (typeof corps.autoRouting !== 'boolean') { envoyer(res, 400, { ok: false, erreur: 'autoRouting : booléen attendu' }); return }
       maj.autoRouting = corps.autoRouting
     }
@@ -494,15 +579,17 @@ export function monterRoutes (webServerSvc, opts = {}) {
     if (bloque !== null) { envoyer(res, 500, { ok: false, erreur: bloque }); return }
     try {
       writeFileAtomically(reglagesFichier, JSON.stringify({ ...lu.raw, ...maj }, null, 2) + '\n')
-      envoyer(res, 200, etatComplet(''))
+      envoyer(res, 200, await etatComplet(''))
     } catch (e) {
       envoyer(res, 500, { ok: false, erreur: String(e && e.message ? e.message : e) })
     }
   } })
 
-  // Rapport d'issue d'une délégation : latence réelle, erreur, usage de cache.
-  // C'est l'appelant (workflow, kyber, CLI) qui connaît l'issue — le routeur
-  // seul ne la voit pas. Alimente les colonnes Latence / Erreurs / Cache hit.
+  // Report of a delegation's outcome: real latency, error, cache usage.
+  // It is the caller (workflow, kyber, CLI) that knows the outcome — the router
+  // alone does not see it. Feeds the Latency / Errors / Cache hit columns.
+  // LEFT OPEN ON PURPOSE (no session cookie, an Origin is only refused when it is foreign): the caller is `cli/auto-router.mjs` (--report), copied to
+  // ~/.dsh/tools/ for the agent, a Node program that sends no Origin and has no browser session. `/router` below has the same caller.
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/report', handler: async (req, res) => {
     if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }
@@ -514,7 +601,7 @@ export function monterRoutes (webServerSvc, opts = {}) {
     // The outcome keeps its reason (code, message, when): the page says WHY a model is skipped, and the breaker learns from it.
     const issue = issueDeRapport({ erreur: c.erreur === true, code: c.code, message: c.message })
     noterIssue(santeFichier, c.modele, issue, { rapport: true, latenceMs: c.latenceMs, usage: { inputTokens: c.inputTokens, cacheReadTokens: c.cacheReadTokens }, maintenant: horloge() })
-    envoyer(res, 200, { ...etatComplet(''), issue: { etat: issue.etat, code: issue.code } })
+    envoyer(res, 200, { ...(await etatComplet('')), issue: { etat: issue.etat, code: issue.code } })
   } })
 
   // "Re-check now": probe the whitelist (or the models named) for real, bypassing the verdict cache. A success closes a
@@ -522,12 +609,14 @@ export function monterRoutes (webServerSvc, opts = {}) {
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/probe', handler: async (req, res) => {
     if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }
+    if (!ecritureAutorisee(req, res)) return
     const corps = await lireCorps(req)
     if (!llmDispo()) { envoyer(res, 503, { ok: false, erreur: 'llm service unavailable: nothing can be probed' }); return }
-    const reg = lireReglagesAuto(reglagesFichier)
+    const reg = await reglagesEffectifs()
     // Only whitelist models are ever probed: these routes need no login (DSH serves plugin routes before its own
     // authentication), so they must not become a way to make the server call arbitrary models.
-    const liste = corps.models === undefined ? reg.whitelist : normaliserListe(corps.models).filter((m) => reg.whitelist.indexOf(m) >= 0)
+    // With « all models » the list can be long: a run asks the first SONDE_MAX, in the order Auto would try them (a real call each).
+    const liste = corps.models === undefined ? reg.whitelist.slice(0, SONDE_MAX) : normaliserListe(corps.models).filter((m) => reg.whitelist.indexOf(m) >= 0)
     // …nor a way to burn tokens: a run that ended less than five seconds ago answers again with its result.
     if (sondeToutEnCours === null && horloge() - derniereSonde >= 5000) {
       sondeToutEnCours = (async () => {
@@ -546,9 +635,10 @@ export function monterRoutes (webServerSvc, opts = {}) {
       })().finally(() => { sondeToutEnCours = null; derniereSonde = horloge() })
     }
     if (sondeToutEnCours !== null) await sondeToutEnCours
-    envoyer(res, 200, etatComplet(''))
+    envoyer(res, 200, await etatComplet(''))
   } })
 
+  // LEFT OPEN ON PURPOSE, like /report: `cli/auto-router.mjs` (the agent's reflex before a delegation) calls it with no Origin and no cookie.
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/router', handler: async (req, res) => {
     if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }
@@ -557,10 +647,10 @@ export function monterRoutes (webServerSvc, opts = {}) {
     if (demande === '') { envoyer(res, 400, { ok: false, erreur: 'demande attendue' }); return }
     const sessionId = String(corps.sessionId || '')
     const sessions = lireSessions(sessionsFichier)
-    const reg = lireReglagesAuto(reglagesFichier)
-    // Activation : PAR SESSION (la puce du composer) — le global hérité de la
-    // première itération reste un disjoncteur (ON force toutes les sessions,
-    // dont le CLI sans sessionId).
+    const reg = await reglagesEffectifs()
+    // Activation: PER SESSION (the composer's chip) — the global inherited from the
+    // first iteration stays a breaker (ON forces every session,
+    // the CLI with no sessionId included).
     const actifPourSession = reg.global === true || (sessionId !== '' && sessions[sessionId] === true)
     if (actifPourSession === false) { envoyer(res, 200, { actif: false, raison: 'auto off pour cette session' }); return }
     // The caller may name models that just failed for this very delegation: the answer is then the NEXT ones.
@@ -601,8 +691,11 @@ export function mountFailover (ctx, failover) {
 export function apply (ctx) {
   // The failover needs no web server: its hooks are mounted first, and guarded on their own.
   let failover = null
+  // One reading of the configured models for the failover and the routes: « all models » means what is connected NOW.
+  const univers = creerUnivers({ modeles: modelesDeLHote(ctx) })
   try {
-    failover = creerFailover()
+    failover = creerFailover({ univers })
+    univers.lire() // first reading in the background, so the first failover already knows the list
     mountFailover(ctx, failover)
   } catch (e) {
     failover = null
@@ -619,7 +712,7 @@ export function apply (ctx) {
           return svc === null || svc === undefined || typeof svc.stream !== 'function' ? undefined : svc.stream.bind(svc)
         }
       }
-      monterRoutes(hostCtx.webServer, { llm: llmParesseux, failover })
+      monterRoutes(hostCtx.webServer, { llm: llmParesseux, failover, univers })
       console.log('[kybernos-auto] routes /kybernos-auto/* enregistrees (state, session, settings, router, report, probe)')
     }
     if (ctx.get('webServer') !== undefined) monter(ctx)

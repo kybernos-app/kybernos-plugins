@@ -160,8 +160,11 @@ console.log('\n── the actions, run against the REAL host routes and a fake s
 console.log('\n── provider writes: pure rules ──')
 {
   const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
-  const pv = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvKeyRef, kbPvUrlOk, kbPvRows, kbPvMergeModels, kbPvDiffOps, kbPvEditProfile, kbPvNewProfile, kbPvAddBlock }')()
+  const pv = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvKeyRef, kbPvKeyRefOf, kbPvKeyState, kbPvUrlOk, kbPvRows, kbPvMergeModels, kbPvDiffOps, kbPvEditProfile, kbPvNewProfile, kbPvAddBlock }')()
   ok('the key reference is <ROUTE>_API_KEY, like the native page', pv.kbPvKeyRef('zai-coding-cn') === 'ZAI_CODING_CN_API_KEY' && pv.kbPvKeyRef('groq') === 'GROQ_API_KEY')
+  ok('a catalog provider added with the key left blank is « key missing », not a silent card (A3-32)', pv.kbPvKeyState({ baseURL: 'https://api.mistral.ai/v1' }, 'MISTRAL_API_KEY', { MISTRAL_API_KEY: false }) === 'missing' && pv.kbPvKeyState({}, 'MISTRAL_API_KEY', {}) === 'unknown')
+  ok('the key dot follows the credential: the profile reference wins over the catalogue one, set is ok', pv.kbPvKeyState({ apiKeyEnv: 'MY_KEY' }, 'MISTRAL_API_KEY', { MY_KEY: true, MISTRAL_API_KEY: false }) === 'ok' && pv.kbPvKeyRefOf({ apiKeyEnv: 'MY_KEY' }, 'X') === 'MY_KEY' && pv.kbPvKeyRefOf({}, 'MISTRAL_API_KEY') === 'MISTRAL_API_KEY')
+  ok('a hand-declared route that names no key stays without a dot (a local endpoint)', pv.kbPvKeyState({ baseURL: 'http://127.0.0.1:11434/v1' }, null, {}) === 'none' && pv.kbPvKeyState(undefined, undefined, undefined) === 'none')
   ok('http(s) URLs pass, templates and junk do not', pv.kbPvUrlOk('https://a.example/v1') === true && pv.kbPvUrlOk('http://127.0.0.1:11434/v1') === true && pv.kbPvUrlOk('https://x.${ACCOUNT}.example') === false && pv.kbPvUrlOk('ftp://x') === false && pv.kbPvUrlOk('') === false && pv.kbPvUrlOk('https://a b') === false)
   ok('model rows: blanks dropped, first duplicate kept, ids trimmed', JSON.stringify(pv.kbPvRows([{ id: ' a ', name: 'A' }, { id: '', name: 'x' }, { id: 'a', name: 'dup' }, { id: 'b' }])) === JSON.stringify([{ id: 'a', name: 'A' }, { id: 'b', name: '' }]))
   const existing = [{ id: 'm1', name: 'Old', contextWindow: 8000, maxTokens: 2000, input: ['text', 'image'] }, { id: 'm2' }]
@@ -490,7 +493,7 @@ console.log('\n── Fetch available models (the engine lists what a provider s
 {
   const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
   ok('the fetch blocks are delimited', bl('KB-FETCH-PURE').length > 100 && bl('KB-FETCH-ACTIONS').length > 100)
-  const fx = new Function(bl('KB-FETCH-PURE') + '\nreturn { kbFetchProbe, kbFetchAskable, kbFetchCandidates, kbFetchOutcome, kbFetchAdopt, kbFetchPreselect, kbFetchFilter, kbFetchApply, kbFetchSize }')()
+  const fx = new Function(bl('KB-CAP-PURE') + bl('KB-FETCH-PURE') + '\nreturn { kbFetchProbe, kbFetchAskable, kbFetchCandidates, kbFetchOutcome, kbFetchAdopt, kbFetchPreselect, kbFetchFilter, kbFetchApply, kbFetchSize }')()
   const pv = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvRows, kbPvMergeModels, kbPvEditProfile, kbPvNewProfile }')()
 
   console.log('  — the request')
@@ -515,7 +518,7 @@ console.log('\n── Fetch available models (the engine lists what a provider s
   const applied = fx.kbFetchApply(rows, cands, { 'gpt-a': true, 'claude-x': true })
   ok('adopting appends the ticked models, keeps a row already there exactly as it was, drops the empty placeholder', applied.length === 2 && applied[0].name === 'Mine' && applied[0].contextWindow === 999 && applied[1].id === 'claude-x' && applied[1].name === 'Claude X' && applied[1].input.join() === 'text,image', applied)
   ok('nothing ticked adds nothing', fx.kbFetchApply([{ id: 'x', name: '' }], cands, {}).length === 1)
-  ok('sizes read the way the native page writes them', fx.kbFetchSize(262144) === '256K' && fx.kbFetchSize(1048576) === '1M' && fx.kbFetchSize(131072) === '128K' && fx.kbFetchSize(200000) === '200K' && fx.kbFetchSize(8192) === '8K' && fx.kbFetchSize(1500) === '1500')
+  ok('sizes read like the Context column: K is 1000, so a label reads back as itself (A3-11)', fx.kbFetchSize(256000) === '256K' && fx.kbFetchSize(262144) === '262.1K' && fx.kbFetchSize(1048576) === '1M' && fx.kbFetchSize(131072) === '131.1K' && fx.kbFetchSize(200000) === '200K' && fx.kbFetchSize(8192) === '8.2K' && fx.kbFetchSize(1500) === '1.5K' && fx.kbFetchSize(512) === '512')
 
   console.log('  — what lands in the profile')
   const written = pv.kbPvMergeModels([{ id: 'old', name: 'Old', contextWindow: 8000 }], applied.concat([{ id: 'old', name: 'Old' }]))
@@ -557,7 +560,7 @@ console.log('\n── the model health chip (the alert of the study model, on th
   const hb = src.indexOf('// KB-HEALTH-PURE-BEGIN')
   const he = src.indexOf('// KB-HEALTH-PURE-END')
   ok('the health block is delimited', hb > 0 && he > hb)
-  const { KB_HEALTH_CAUSES, kbHealthView, kbHealthCauses, kbHealthRows, kbHealthDown } = new Function(src.slice(hb, he) + '\nreturn { KB_HEALTH_CAUSES, kbHealthView, kbHealthCauses, kbHealthRows, kbHealthDown }')()
+  const { KB_HEALTH_CAUSES, kbHealthView, kbHealthCauses, kbHealthRows, kbHealthDown, kbHealthIndex, kbHealthFree, kbHealthWhy } = new Function(src.slice(hb, he) + '\nreturn { KB_HEALTH_CAUSES, kbHealthView, kbHealthCauses, kbHealthRows, kbHealthDown, kbHealthIndex, kbHealthFree, kbHealthWhy }')()
   const raw = (over) => ({ total: 9, tousEnEchec: false, checking: false, alertes: [{ cle: 'groq/a', route: 'groq', id: 'a', cause: 'key' }], ...over })
   ok('anything that is not a view reads as nothing to say, never a throw', kbHealthView(null) === null && kbHealthView(undefined) === null && kbHealthView('x') === null && kbHealthView({}) === null && kbHealthView({ alertes: 'x' }) === null)
   ok('no failing model: nothing to say', kbHealthView(raw({ alertes: [] })) === null)
@@ -614,6 +617,44 @@ console.log('\n── a count typed in the model sheet (context window, max outp
   ok('NaN and Infinity are refused', kbMNum(NaN) === null && kbMNum(Infinity) === null)
 }
 
+console.log('\n── a count and its label agree both ways (A3-11) ──')
+{
+  const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
+  const { kbCapLabel, kbCapExact, kbMNum } = new Function(bl('KB-CAP-PURE') + bl('KB-DS-PURE') + bl('KB-NUM-PURE') + '\nreturn { kbCapLabel, kbCapExact, kbMNum }')()
+  ok('typing 256K shows 256K (it showed 250K)', kbCapLabel(kbMNum('256K')) === '256K', kbCapLabel(kbMNum('256K')))
+  ok('a window of 128000 reads 128K (it read 125K) and 200000 reads 200K', kbCapLabel(128000) === '128K' && kbCapLabel(200000) === '200K')
+  ok('a window that is not a whole thousand does not pretend to be one: 262144 is 262.1K, not 256K', kbCapLabel(262144) === '262.1K' && kbCapLabel(131072) === '131.1K')
+  ok('every whole thousand reads back as itself', [1000, 8000, 32000, 64000, 128000, 200000, 256000, 1000000, 1500000, 2000000].every((n) => kbMNum(kbCapLabel(n)) === n), [1000, 64000, 256000, 1500000].map((n) => kbCapLabel(n)).join())
+  ok('the edges: just under a million rounds up to 1M, small counts are plain, blanks and junk are empty', kbCapLabel(999960) === '1M' && kbCapLabel(999949) === '999.9K' && kbCapLabel(512) === '512' && kbCapLabel('') === '' && kbCapLabel(null) === '' && kbCapLabel(0) === '' && kbCapLabel(-5) === '' && kbCapLabel('abc') === '')
+  ok('the exact count sits behind the label', kbCapExact(262144) === '262,144' && kbCapExact('1048576') === '1,048,576' && kbCapExact(512) === '512' && kbCapExact('') === '' && kbCapExact(0) === '')
+  const has = (frag) => src.includes(frag)
+  ok('the Context column and the field badge carry the exact count as a tooltip', has("h('span', { title: kbCapExact(ctx) !== '' ? kbCapExact(ctx) : undefined }") && has("className: 'kbm-suffix', title: def.pretty === true && kbCapExact(value)"))
+  ok('the fetch list uses the same words as the table (one convention)', has('const kbFetchSize = (n) => kbCapLabel(n)') && has('const pretty = kbCapLabel'))
+}
+
+console.log('\n── a provider card with no model says what to do (A3-32) ──')
+{
+  const has = (frag) => src.includes(frag)
+  ok('the key dot reads the credential of the catalogue provider when the profile names none', has('return kbPvKeyState(kbMOBJ(KBM.userProviders)[route], entry !== null ? entry.env : null, KBM.keys)') && has('const ref = kbPvKeyRefOf(prof, entry !== null ? entry.env : null)'))
+  ok('a card with 0 models and no managed block offers the next step, which opens the panel on the models block', has("count === 0 && off !== true && bloc === null && ro !== true") && has("'data-kbm': 'prov-next', onClick: () => openEdit(route, false, true)") && has("if (showModels === true) d.adv = true"))
+  ok('the hint says "add the key" while the key is missing, "fetch the models" otherwise', has("m(ks === 'missing' ? 'kb.pv.empty.nokey' : 'kb.pv.empty.fetch')"))
+}
+
+console.log('\n── the provider panel keeps the keyboard inside (A3-40) ──')
+{
+  const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
+  const { kbTrapTarget } = new Function(bl('KB-TRAP-PURE') + '\nreturn { kbTrapTarget }')()
+  const [a, b, c] = ['a', 'b', 'c']
+  ok('Tab on the last control comes back to the first (it used to leave for the page behind)', kbTrapTarget([a, b, c], c, false) === a)
+  ok('Shift+Tab on the first control goes to the last', kbTrapTarget([a, b, c], a, true) === c)
+  ok('inside the list the browser moves on by itself', kbTrapTarget([a, b, c], b, false) === null && kbTrapTarget([a, b, c], b, true) === null && kbTrapTarget([a, b, c], a, false) === null && kbTrapTarget([a, b, c], c, true) === null)
+  ok('a focus outside the panel (or on its frame) is brought back in at the end the key is heading for', kbTrapTarget([a, b, c], 'x', false) === a && kbTrapTarget([a, b, c], 'x', true) === c)
+  ok('nothing tabbable, or junk, changes nothing', kbTrapTarget([], a, false) === null && kbTrapTarget(null, a, false) === null)
+  const has = (frag) => src.includes(frag)
+  ok('the panel handles Tab in its captured key handler and the frame can take focus', has("ev.key === 'Tab' && boxRef.current !== null") && has("kbTrapTarget(kbTabbables(boxRef.current), document.activeElement, ev.shiftKey)") && has("'aria-modal': 'true', 'aria-label': label, tabIndex: -1, ref: boxRef"))
+  ok('the focus goes back to what opened the panel, read before the panel autofocuses (not on every render)', has('if (openerRef.current === undefined) openerRef.current = document.activeElement') && /React\.useEffect\(\(\) => \(\) => \{\s*const opener = openerRef\.current/.test(src))
+}
+
 console.log('\n── a refused value is shown, and taken back ──')
 {
   const fn = (name) => { const i = src.indexOf('const ' + name + ' = '); return i < 0 ? '' : src.slice(i, i + 1400) }
@@ -621,8 +662,61 @@ console.log('\n── a refused value is shown, and taken back ──')
   ok('kbmSet clears the error BEFORE saving (a synchronous refusal used to be wiped right after)', /mo\.error = null[\s\S]*?kbmSave\(mo, k, v, takeBack\)/.test(set) && !/kbmSave\(mo, k, v, takeBack\) !== true\) \{[^}]*\}\s*mo\.error = null/.test(set))
   ok('a refused value is taken back: the previous override comes back, or the key goes', /takeBack = \(\) =>[\s\S]*?if \(had\) back\[k\] = previous[\s\S]*?else delete back\[k\]/.test(set))
   ok('a refused count says what a count is', /wire === KB_REFUS\) \{ mo\.error = m\(k === 'context' \|\| k === 'outputLimit' \? 'kb\.models\.error\.number'/.test(src))
+  const rowSrc = fn('Row').length > 0 ? src.slice(src.indexOf('const Row = '), src.indexOf('const ROWS_PAR_PAGE')) : ''
+  ok('the row draws the message only while the sheet is closed: the sheet\'s mask covers the row (A3-10)', /ouvert !== true && mo\.error !== null && mo\.error !== undefined \? h\('div', \{ className: 'kbmp-err', 'data-kbm': 'row-error'/.test(rowSrc))
+  ok('the open sheet draws a message that belongs to no field as an alert at the top of its own body (A3-10)', /kbmp-mdlbody' \},\s*mo\.error !== null && mo\.error !== undefined && kbmFieldOwned\(mo\) !== true \? h\('div', \{ className: 'kbmp-err kbmp-err-mdl', 'data-kbm': 'modal-error', role: 'alert' \}[\s\S]*?h\(Details, \{ mo: mo \}\)/.test(rowSrc))
+  ok('a refused count is attached to its field and drawn under it, inside the sheet, as an alert (A3-10)', src.includes("mo.errorAt = { k, text: mo.error }") && src.includes("kbmFieldError(mo, def.k) !== null ? h('div', { className: 'kbm-ferr', 'data-kbm': 'field-error', role: 'alert' }"))
+  {
+    const body = src.slice(src.indexOf('const kbmFieldError = '), src.indexOf('const kbmSet = '))
+    const { kbmFieldError, kbmFieldOwned } = new Function(body + '\nreturn { kbmFieldError, kbmFieldOwned }')()
+    const mo = { error: 'enter a positive count', errorAt: { k: 'context', text: 'enter a positive count' } }
+    ok('the message stays with the field that was refused, and only while it is the current message', kbmFieldError(mo, 'context') === 'enter a positive count' && kbmFieldError(mo, 'outputLimit') === null && kbmFieldOwned(mo) === true && kbmFieldError({ ...mo, error: 'another error' }, 'context') === null && kbmFieldOwned({ ...mo, error: 'another error' }) === false && kbmFieldError({ error: null }, 'context') === null && kbmFieldOwned({ error: 'x' }) === false)
+  }
   const num = /'kb\.models\.error\.number': \{ kybernos: '([^']+)', en: '([^']+)' \}/.exec(src)
   ok('that message exists in French and English and names the K / M spelling', num !== null && /256K/.test(num[1]) && /256K/.test(num[2]))
+}
+
+console.log('\n── why a model is not answering, and the first view (V-29, V-28, N-06) ──')
+{
+  const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
+  const hb = src.indexOf('// KB-HEALTH-PURE-BEGIN')
+  const he = src.indexOf('// KB-HEALTH-PURE-END')
+  const { kbHealthView, kbHealthIndex, kbHealthFree, kbHealthWhy } = new Function(src.slice(hb, he) + '\nreturn { kbHealthView, kbHealthIndex, kbHealthFree, kbHealthWhy }')()
+  const al = (cle, cause, code = '') => ({ cle, route: cle.slice(0, cle.indexOf('/')), cause, code })
+  ok('a key problem says what it is for a Kybernos Cloud model, a free model and any other', kbHealthWhy(al('kybernos/x', 'key')) === 'kb.health.why.cloud' && kbHealthWhy(al('openrouter/a:free', 'key'), true) === 'kb.health.why.free' && kbHealthWhy(al('groq/a', 'key'), false) === 'kb.health.why.key')
+  ok('every other cause has its own sentence', ['gone', 'refused', 'text', 'silent', 'other'].every((c) => kbHealthWhy(al('groq/a', c)) === 'kb.health.why.' + c))
+  ok('a model is free when it comes from the Free LLMs route, says so in its id, or sits with a provider that gives a free quota', kbHealthFree('opencode-free', 'big-pickle', []) === true && kbHealthFree('openrouter', 'x/y:free', []) === true && kbHealthFree('p', 'model-free', []) === true && kbHealthFree('nvidia', 'nv', ['nvidia', 'openrouter']) === true && kbHealthFree('groq', 'llama', ['nvidia']) === false)
+  const view = kbHealthView({ alertes: [{ cle: 'groq/a', cause: 'key', code: 'AUTH' }, { cle: 'groq/b', cause: 'gone', code: 'x'.repeat(100) }, { cle: 'groq/c', cause: 'silent' }], total: 9 })
+  ok('the failure code rides along (a tooltip), capped, and is empty when the bus has none', view.alertes[0].code === 'AUTH' && view.alertes[1].code.length === 40 && view.alertes[2].code === '')
+  ok('the failing models are indexed by route/id', Object.keys(kbHealthIndex(view)).join() === 'groq/a,groq/b,groq/c' && kbHealthIndex(view)['groq/a'].cause === 'key' && Object.keys(kbHealthIndex(null)).length === 0)
+  ok('each reason sentence exists in French and English', ['cloud', 'free', 'key', 'gone', 'refused', 'text', 'silent', 'other'].every((c) => new RegExp("'kb\\.health\\.why\\." + c + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src)))
+  const has = (frag) => src.includes(frag)
+  ok('the popover words each row with its own reason and the button says what it does (« Check key »)', has("'data-kbm': 'health-why'") && has("m(kbHealthWhy(a, kbHealthFree(a.route, a.cle.slice(a.route.length + 1), Object.keys(FREE_LINKS))))") && /'kb\.health\.fixkey': \{ kybernos: 'Vérifier la clé', en: 'Check key' \}/.test(src))
+  ok('« Show unavailable (n) » brings the failing models back, on the Models tab, and the chip hears the bus so the tab re-reads it', has("m('kb.health.show', { n })") && has('UI.statut = \'down\'; UI.page = 1; UI.showDown = true') && has("const on = () => { tick((n) => n + 1); kbmNotify() }"))
+  ok('the Models tab folds the failing models away until asked, with a toggle that counts them, and each shown row says why', has("hidden !== null && hidden[mo.route + '/' + mo.id] === true") && has("'data-kbm': 'toggle-down'") && has("'data-kbm': 'row-why'") && has("m('kb.health.showdown', { n: downN })"))
+
+  const { kbHeroPlan, kbHeroShowKey } = new Function(bl('KB-HERO-PURE') + '\nreturn { kbHeroPlan, kbHeroShowKey }')()
+  ok('the plan comes from the active space, else from the account, lower case; nothing known is null', kbHeroPlan({ space_plan: { key: 'Free' }, user: { plan: 'team' } }) === 'free' && kbHeroPlan({ user: { plan: 'PLUS' } }) === 'plus' && kbHeroPlan({ space_plan: { key: '' }, user: { plan: 'pro' } }) === 'pro' && kbHeroPlan(null) === null && kbHeroPlan({}) === null && kbHeroPlan({ space_plan: 5, user: 7 }) === null)
+  ok('V-28: « Add your API key » is offered while not connected and on a Free account, not on a connected paid one', kbHeroShowKey(false, null) === true && kbHeroShowKey(null, null) === true && kbHeroShowKey(true, 'free') === true && kbHeroShowKey(true, 'plus') === false && kbHeroShowKey(true, null) === false)
+  ok('the hero hides the key button, its « or » and the « Recommended » pill once connected, and says it in one line (« N models included »)', has('kbHeroShowKey(connecte, plan) ? h(\'div\', { className: \'kbmh-hero-or\'') && has("connecte === true ? null : h('span', { className: 'kbmh-hero-pill', 'data-kbmh': 'badge' }") && has("m(n === 1 ? 'kb.hero.title.in.one' : 'kb.hero.title.in', { n })") && /'kb\.hero\.title\.in': \{ kybernos: '\{n\} modèles inclus', en: '\{n\} models included' \}/.test(src))
+
+  const { kbPvFold } = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvFold }')()
+  ok('N-06: once one provider works, the ones with no key or switched off fold away and are counted', JSON.stringify(kbPvFold([false, true, true, true])) === JSON.stringify({ fold: true, waiting: 3 }))
+  ok('...but with none working, or none waiting, nothing folds (a fold over the whole page would hide the page)', kbPvFold([true, true]).fold === false && kbPvFold([false, false]).fold === false && kbPvFold([]).fold === false && kbPvFold(null).waiting === 0)
+  ok('the fold is a button that names the count, opens by itself for a provider just added, and keeps the old cards intact', has("'data-kbm': 'prov-wait-toggle'") && has("m('kb.pv.wait.n', { n: fold.waiting })") && has('patch({ drawer: null, busy: false, waitOpen: true,') && has('const renderDsCard = (c) => {'))
+}
+
+console.log('\n── a score on each model, a filter and a sort on it (V-37) ──')
+{
+  const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
+  const { kbScoreRank, kbScoreSteps } = new Function(bl('KB-SCORE-PURE') + '\nreturn { kbScoreRank, kbScoreSteps }')()
+  ok('a model with a score sorts by it, one without goes after them all', kbScoreRank(52.3) > kbScoreRank(32) && kbScoreRank(0) > kbScoreRank(undefined) && kbScoreRank(null) === -1 && kbScoreRank('x') === -1 && kbScoreRank(NaN) === -1)
+  ok('the filter offers steps only up to what the list reaches', JSON.stringify(kbScoreSteps({ a: 32, b: 52.3 })) === JSON.stringify([10, 20, 30, 40, 50]) && JSON.stringify(kbScoreSteps({ a: 9 })) === JSON.stringify([]) && kbScoreSteps({}).length === 0 && kbScoreSteps(null).length === 0)
+  const has = (frag) => src.includes(frag)
+  ok('the badge reads « II 32 » with the source in its tooltip, and sits in the model cell', has("'data-kbm': 'row-score'") && has("'II ' + String(KBM.scoreOf[mo.route + '/' + mo.id])") && has("m('kb.models.score.badge', { n: KBM.scoreOf[mo.route + '/' + mo.id] })"))
+  ok('the Score filter and the Score sort exist only once a score is known, and the filter is part of « reset »', has("kbScoreSteps(KBM.scoreOf).length > 0 ? h(Menu, { id: 'score', field: 'score'") && has("Object.keys(KBM.scoreOf).length > 0 ? [{ v: 'score'") && has("UI.statut !== 'any' || UI.score !== 'any'") && has("UI.score = 'any'"))
+  ok('the whole list is scored in ONE call, when the Models tab is up, and again for a newer snapshot — never on every render', has("fetch('/kybernos-models/scores/list'") && has("React.useEffect(() => { if (UI.tab !== 'providers') kbMScoreListLoad(false) })") && has('if (KBM.scoreLoaded === true && force !== true) return false') && has('if (KBM.scoreAtSeen !== KBM.scoresAt) { KBM.scoreAtSeen = KBM.scoresAt; KBM.scoreLoaded = false }'))
+  ok('the score strings exist in French and English', ['kb.models.tri.score', 'kb.models.filter.score', 'kb.models.score.any', 'kb.models.score.min', 'kb.models.score.badge'].every((k) => new RegExp("'" + k.replace(/\./g, '\\.') + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src)))
 }
 
 console.log('\n── strings: every new key in French and English ──')

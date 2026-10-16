@@ -2,6 +2,7 @@
 // kybernos-websearch: the chain. Fake engines, a fake clock, no network, no disk.
 import { createRouter, explain, PAUSE_MS } from './router.mjs'
 import { EngineError } from './engines.mjs'
+import { makeHttp } from './net.mjs'
 import { normalizeSettings, applyPatch } from './settings.mjs'
 
 let fail = 0
@@ -190,6 +191,32 @@ console.log('— abort, forget, probe')
   const good = await router.probe('a', 'hello')
   ok('probe asks an engine that is switched off, and returns a sample', good.ok === true && good.count === 2 && good.sample.length === 2)
   eq('probe of an unknown engine', (await router.probe('nope', 'x')).ok, false)
+  // A3-26: « fetch failed » is all Node says; the cause underneath says whether nothing listens, the name is wrong, or the certificate.
+  const refusedErr = Object.assign(new Error('fetch failed'), { cause: Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:1'), { code: 'ECONNREFUSED' }) })
+  const { router: rr } = make([engine('u', 'url', [refusedErr])])
+  const refused = await rr.probe('u', 'x')
+  ok('a refused connection says so: the probe carries a reason, and the health record keeps it', refused.ok === false && refused.kind === 'network' && refused.reason === 'refused' && rr.health('u').reason === 'refused', JSON.stringify(refused))
+  const named = async (code) => {
+    const e = Object.assign(new Error('fetch failed'), { cause: { code } })
+    const { router: r2 } = make([engine('u', 'url', [e])])
+    return (await r2.probe('u', 'x')).reason
+  }
+  ok('an unknown host, a cut connection and a refused certificate each get their word', (await named('ENOTFOUND')) === 'notfound' && (await named('ECONNRESET')) === 'reset' && (await named('DEPTH_ZERO_SELF_SIGNED_CERT')) === 'tls' && (await named('SOMETHING_ELSE')) === undefined)
+  const badPort = await make([engine('u', 'url', [Object.assign(new TypeError('fetch failed'), { cause: new Error('bad port') })])]).router.probe('u', 'x')
+  ok('a port the fetch standard refuses (the audit used 127.0.0.1:1) is told apart from a refused connection', badPort.reason === 'badport', JSON.stringify(badPort))
+  const plain = await make([engine('u', 'url', [new Error('boom')])]).router.probe('u', 'x')
+  ok('a plain error has no reason field (nothing invented)', plain.kind === 'network' && plain.reason === undefined && plain.message === 'boom')
+  // …and through the real http wrapper: it turns a failed fetch into an EngineError, and the cause must survive that
+  const refusedFetch = async () => { throw Object.assign(new TypeError('fetch failed'), { cause: Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:1'), { code: 'ECONNREFUSED' }) }) }
+  const wrapped = await rejects(makeHttp({ fetchImpl: refusedFetch })('http://127.0.0.1:1/search'))
+  ok('the http wrapper keeps the cause of a failed fetch on its EngineError', wrapped instanceof EngineError && wrapped.kind === 'network' && wrapped.cause.code === 'ECONNREFUSED', wrapped && wrapped.cause)
+  const { router: rw } = make([engine('w', 'url', [wrapped])])
+  const viaWrapper = await rw.probe('w', 'x')
+  ok('so the probe of an engine behind it still says « refused » (this is what the page showed as « fetch failed »)', viaWrapper.kind === 'network' && viaWrapper.reason === 'refused' && rw.health('w').reason === 'refused', JSON.stringify(viaWrapper))
+  const bare = await rejects(makeHttp({ fetchImpl: async () => { throw new Error('boom') } })('http://x.example/'))
+  ok('a plain failure keeps no invented cause', bare instanceof EngineError && bare.kind === 'network' && bare.message === 'boom')
+  rr.forget('u')
+  ok('forgetting an engine clears the reason', rr.health('u').reason === null)
   const nokey = await make([engine('k', 'key', [[item(1)]])]).router.probe('k', 'x')
   ok('probe of a keyed engine with no key says it is missing', nokey.ok === false && nokey.kind === 'missing')
 }

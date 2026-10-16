@@ -1,36 +1,36 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// @local/kybernos-models — client : « Model catalog », catalogue de modèles
-// personnalisé, en pied de la page Réglages → Models.
+// @local/kybernos-models — client: « Model catalog », a custom model catalogue,
+// at the foot of the Settings → Models page.
 //
-// Ce que fait l'écran (maquette « Model catalog — capabilities override ») :
-// chaque modèle d'une route configurée est une ligne (ID + nom affiché) qui se
-// déplie en une fiche « Model details » : INPUT, OUTPUT, CAPABILITIES, TYPE,
-// LIMITS, PRICING, METADATA. Trois couches se superposent —
+// What the screen does (mock-up « Model catalog — capabilities override »):
+// every model of a configured route is a line (ID + display name) that unfolds
+// into a « Model details » sheet: INPUT, OUTPUT, CAPABILITIES, TYPE,
+// LIMITS, PRICING, METADATA. Three layers are stacked —
 //
-//     base    ce que le harnais sait sans rien consulter
-//     remote  ce que models.dev répond pour cet id
-//     ov      ce que l'utilisateur surcharge
+//     base    what the harness knows without consulting anything
+//     remote  what models.dev answers for that id
+//     ov      what the user overrides
 //
-// et la valeur effective est toujours `ov` sinon `remote` (si synchronisé)
-// sinon `base`. Les pastilles disent d'où vient la valeur : bleu = models.dev,
-// ambre = surcharge. Un revert par champ, « Clear N overrides » pour tout, et
-// « Restore defaults » au niveau du panneau.
+// and the effective value is always `ov`, else `remote` (if synchronised),
+// else `base`. The dots say where a value comes from: blue = models.dev,
+// amber = override. A revert per field, « Clear N overrides » for all, and
+// « Restore defaults » at the panel level.
 //
-// ── LES DEUX NIVEAUX (le point honnête de cet écran) ───────────────────────
-// Le harnais n'accepte, PAR MODÈLE installé, que six champs (`llm-pi-ai` →
-// `providers.<route>.modelOverrides.<id>`) : `name`, `contextWindow`,
-// `maxTokens`, `input` (text/image), `reasoningEfforts`, `compat`. Ceux-là sont
-// réellement APPLIQUÉS : écrits dans settings.yaml, ils changent les appels
-// suivants, sans redémarrage. Tous les autres champs de la maquette (pricing,
-// type, family, knowledge, release, weights, sorties TTS/image/vidéo, search,
-// s2s, max input) n'ont AUCUN équivalent dans la configuration : ce sont des
-// ANNOTATIONS Kybernos, conservées dans le fichier du plugin et lues par les
-// vues Kybernos (coût, lisibilité). Chaque contrôle porte donc un marqueur
-// discret : maillon = appliqué au harnais, étiquette = annotation.
+// ── THE TWO LEVELS (the honest point of this screen) ───────────────────────
+// The harness only accepts, PER installed model, six fields (`llm-pi-ai` →
+// `providers.<route>.modelOverrides.<id>`): `name`, `contextWindow`,
+// `maxTokens`, `input` (text/image), `reasoningEfforts`, `compat`. Those are
+// really APPLIED: written to settings.yaml, they change the calls that
+// follow, with no restart. All the other fields of the mock-up (pricing,
+// type, family, knowledge, release, weights, TTS/image/video outputs, search,
+// s2s, max input) have NO equivalent in the configuration: they are Kybernos
+// ANNOTATIONS, kept in the plugin's file and read by the Kybernos
+// views (cost, readability). Every control therefore carries a discreet
+// marker: link = applied to the harness, tag = annotation.
 //
-// Phase 1 (ce commit) : l'écran est complet sur un JEU FIGÉ (`KBM.live` faux) et
-// n'écrit rien. Le branchement réel vit dans `kbMSave` et `kbMLoad`, à un seul
-// endroit, pour que la bascule se fasse sans toucher aux composants.
+// Phase 1 (this commit): the screen is complete on a FROZEN SET (`KBM.live` false) and
+// writes nothing. The real wiring lives in `kbMSave` and `kbMLoad`, in a single
+// place, so that the switch happens without touching the components.
 // ═══════════════════════════════════════════════════════════════════════════
 window.__ModuleLoader__.load({
   id: '@local/kybernos-models',
@@ -39,9 +39,9 @@ window.__ModuleLoader__.load({
       const React = require('react')
       const h = React.createElement
 
-      // ── langue : la locale DSH quand elle répond, sinon anglais ────────────
-      // Lue à l'APPEL, jamais à la définition : le service peut ne pas être
-      // injecté et `ctx` n'existe qu'après apply().
+      // ── language: the DSH locale when it answers, otherwise English ────────────
+      // Read at CALL time, never at definition: the service may not be
+      // injected and `ctx` only exists after apply().
       let kbCtx = null
       let kbLocaleRead = () => 'en'
       // Text separator, locale-aware: French ' : ', English ': ' (kbLocaleRead
@@ -127,12 +127,12 @@ window.__ModuleLoader__.load({
         'kb.models.sec.scores': { kybernos: 'Notes externes', en: 'EXTERNAL SCORES' },
         'kb.models.scores.hint': { kybernos: 'deux sources, jamais fusionnées', en: 'two sources, never merged' },
         'kb.models.scores.loading': { kybernos: 'Lecture des catalogues…', en: 'Reading the catalogues…' },
-        // « dans aucun catalogue » serait FAUX quand le modèle y figure deux fois
-        // (AA liste « Claude 4.5 Sonnet » en Reasoning et Non-reasoning : mêmes mots,
-        // deux modèles) — le refus de deviner doit se lire comme tel.
-        // Une lecture CASSÉE ne doit pas se lire « aucune note » : c'est une
-        // panne déguisée en résultat, et l'utilisateur chercherait le modèle au
-        // lieu de la route. Deux états, deux phrases.
+        // « in no catalogue » would be WRONG when the model is there twice
+        // (AA lists « Claude 4.5 Sonnet » as Reasoning and Non-reasoning: same words,
+        // two models) — the refusal to guess must read as such.
+        // A BROKEN read must not read as « no score »: it is an outage
+        // disguised as a result, and the user would look for the model
+        // instead of the route. Two states, two sentences.
         'kb.models.scores.failed': { kybernos: 'Relevé illisible : la route des notes n’a pas répondu.', en: 'Reading failed: the scores route did not answer.' },
         'kb.models.scores.empty': { kybernos: 'Aucune note : aucun rapprochement sûr dans l’un ou l’autre catalogue.', en: 'No score: no unambiguous match in either catalogue.' },
         'kb.models.scores.intelligence': { kybernos: 'Intelligence', en: 'Intelligence' },
@@ -173,7 +173,7 @@ window.__ModuleLoader__.load({
         'kb.models.pricing.unit': { kybernos: 'USD / 1M tokens', en: 'USD / 1M tokens' },
         'kb.models.usd': { kybernos: 'USD', en: 'USD' },
         'kb.models.empty': { kybernos: 'Aucun modèle à afficher pour l\'instant — ajoutez-en un, ou configurez une route dans Models.', en: 'No model to show yet — add one, or configure a route in Models.' },
-        // libellés de champs
+        // field labels
         'kb.models.f.textIn': { kybernos: 'Texte entrant', en: 'Text In' },
         'kb.models.f.vision': { kybernos: 'Vision', en: 'Vision' },
         'kb.models.f.video': { kybernos: 'Vidéo', en: 'Video' },
@@ -247,11 +247,24 @@ window.__ModuleLoader__.load({
         'kb.health.cause.silent': { kybernos: 'muet (aucune réponse)', en: 'silent (no answer)' },
         'kb.health.cause.other': { kybernos: 'échec pour une autre raison', en: 'fails for another reason' },
         'kb.health.more': { kybernos: '+ {n} autres', en: '+ {n} more' },
-        'kb.health.fixkey': { kybernos: 'Corriger la clé', en: 'Fix key' },
+        'kb.health.fixkey': { kybernos: 'Vérifier la clé', en: 'Check key' },
         'kb.health.fixkey.t': { kybernos: 'Ouvrir {slug} pour changer sa clé API', en: 'Open {slug} to change its API key' },
         'kb.health.recheck': { kybernos: 'Revérifier', en: 'Recheck' },
         'kb.health.checking': { kybernos: 'Vérification…', en: 'Checking…' },
-        'kb.health.show': { kybernos: 'Les afficher', en: 'Show them' },
+        'kb.health.show': { kybernos: 'Afficher les indisponibles ({n})', en: 'Show unavailable ({n})' },
+        'kb.health.why.cloud': { kybernos: 'Hors de votre formule Kybernos, ou compte non connecté', en: 'Not in your Kybernos plan, or account not connected' },
+        'kb.health.why.free': { kybernos: 'Refusé : n’est peut-être plus gratuit, ou quota épuisé', en: 'Refused: may no longer be free, or quota used up' },
+        'kb.health.why.key': { kybernos: 'Clé refusée, ou votre formule ici n’inclut pas ce modèle', en: 'Key refused, or your plan here does not include this model' },
+        'kb.health.why.gone': { kybernos: 'Le fournisseur ne propose plus ce modèle', en: 'The provider no longer offers this model' },
+        'kb.health.why.refused': { kybernos: 'Le fournisseur a refusé la requête (réglages du modèle invalides)', en: 'The provider refused the request (invalid model settings)' },
+        'kb.health.why.text': { kybernos: 'Ne prend pas de message texte (modèle d’image, d’audio ou autre)', en: 'Cannot take a text message (an image, audio or other kind of model)' },
+        'kb.health.why.silent': { kybernos: 'Pas de réponse dans le délai', en: 'No answer in time' },
+        'kb.health.why.other': { kybernos: 'Échec pour une autre raison', en: 'Fails for another reason' },
+        'kb.health.hidden': { kybernos: '{n} modèles indisponibles sont masqués', en: '{n} unavailable models are hidden' },
+        'kb.health.hidden.one': { kybernos: '1 modèle indisponible est masqué', en: '1 unavailable model is hidden' },
+        'kb.health.showdown': { kybernos: 'Afficher les indisponibles ({n})', en: 'Show unavailable ({n})' },
+        'kb.health.hidedown': { kybernos: 'Masquer les indisponibles', en: 'Hide unavailable' },
+        'kb.health.rowwhy': { kybernos: 'Indisponible : {why}', en: 'Unavailable: {why}' },
         'kb.health.hide': { kybernos: 'Masquer 1 h', en: 'Hide for 1 hour' },
         'kb.models.statut.down': { kybernos: 'Ne répondent pas', en: 'Not answering' },
         'kb.models.prov.empty': { kybernos: 'Aucun fournisseur exposé pour le moment.', en: 'No provider exposed yet.' },
@@ -292,6 +305,10 @@ window.__ModuleLoader__.load({
         'kb.pv.key.ok': { kybernos: 'Clé API configurée', en: 'API key configured' },
         'kb.pv.key.missing': { kybernos: 'Clé API absente', en: 'API key missing' },
         'kb.pv.key.unknown': { kybernos: 'État de la clé inconnu', en: 'Key state unknown' },
+        'kb.pv.wait.n': { kybernos: 'Fournisseurs sans clé ou désactivés ({n})', en: 'Providers with no key or switched off ({n})' },
+        'kb.pv.wait.hint': { kybernos: 'Ils ne répondent à rien tant que leur clé n’est pas posée : ajoutez-la, ou activez-les.', en: 'They answer nothing until their key is set: add it, or switch them on.' },
+        'kb.pv.empty.nokey': { kybernos: 'Pas encore de clé : ajoutez-la, puis récupérez les modèles.', en: 'No key yet: add it, then fetch the models.' },
+        'kb.pv.empty.fetch': { kybernos: 'Aucun modèle pour l’instant : récupérez-les chez le fournisseur.', en: 'No model yet: fetch them from the provider.' },
         'kb.pv.key.ph.set': { kybernos: 'Configurée — saisissez une nouvelle valeur pour la remplacer', en: 'Configured — enter a new value to replace' },
         'kb.pv.key.ph.blank': { kybernos: 'Saisissez une clé, ou laissez vide pour l’authentification par environnement', en: 'Enter an API key, or leave blank to use environment authentication' },
         'kb.pv.customized': { kybernos: 'Réglages personnalisés', en: 'Customized settings' },
@@ -347,12 +364,17 @@ window.__ModuleLoader__.load({
         'kb.models.filter.prov': { kybernos: 'Fournisseur', en: 'Provider' },
         'kb.models.filter.type': { kybernos: 'Type', en: 'Type' },
         'kb.models.filter.statut': { kybernos: 'État', en: 'Status' },
+        'kb.models.tri.score': { kybernos: 'Score (le plus haut d’abord)', en: 'Score (highest first)' },
+        'kb.models.filter.score': { kybernos: 'Score', en: 'Score' },
+        'kb.models.score.any': { kybernos: 'Tous', en: 'Any' },
+        'kb.models.score.min': { kybernos: '{n} et plus', en: '{n}+' },
+        'kb.models.score.badge': { kybernos: 'Indice d’intelligence {n} — Artificial Analysis (plus haut = mieux)', en: 'Intelligence index {n} — Artificial Analysis (higher is better)' },
         'kb.models.tri.name': { kybernos: 'Nom', en: 'Name' },
         'kb.models.tri.context': { kybernos: 'Contexte', en: 'Context' },
         'kb.models.tri.provider': { kybernos: 'Fournisseur', en: 'Provider' },
-        // Valeurs COURTES du déclencheur de filtre : la boîte Réglages ne fait
-        // que 556 ou 720 px, « Provider · All providers » sur quatre filtres y
-        // passait à la ligne. Le menu déroulant, lui, garde les libellés longs.
+        // SHORT values for the filter trigger: the Settings box is only
+        // 556 or 720 px wide, « Provider · All providers » on four filters wrapped
+        // there. The drop-down menu keeps the long labels.
         'kb.models.opt.allprov': { kybernos: 'Tous', en: 'All' },
         'kb.models.opt.alltypes': { kybernos: 'Tous', en: 'All' },
         'kb.models.opt.anystatus': { kybernos: 'Indifférent', en: 'Any' },
@@ -372,7 +394,7 @@ window.__ModuleLoader__.load({
         'kb.models.col.previewed': { kybernos: '{n} prévisualisées', en: '{n} previewed' },
         'kb.models.ovline': { kybernos: '{n} surcharges · {m} appliquées', en: '{n} overrides · {m} applied' },
         'kb.models.ovline1': { kybernos: '1 surcharge · {m} appliquée', en: '1 override · {m} applied' },
-        // La pastille ambre de la ligne : courte à l'écran, complète en infobulle.
+        // The row's amber pill: short on screen, complete in the tooltip.
         'kb.models.ovpill': { kybernos: '{n} surcharges', en: '{n} overrides' },
         'kb.models.ovpill1': { kybernos: '1 surcharge', en: '1 override' },
         'kb.models.ovtip': { kybernos: '{n} surcharges déclarées · {m} changent réellement le harnais', en: '{n} overrides declared · {m} actually change the harness' },
@@ -382,7 +404,7 @@ window.__ModuleLoader__.load({
         'kb.models.w.unknown': { kybernos: 'Inconnu', en: 'Unknown' },
         'kb.models.w.open': { kybernos: 'Poids ouverts', en: 'Open weights' },
         'kb.models.w.closed': { kybernos: 'Poids fermés', en: 'Closed weights' },
-        // types de modèle
+        // model types
         'kb.models.t.chat': { kybernos: 'Chat', en: 'Chat' },
         'kb.models.t.embedding': { kybernos: 'Embedding', en: 'Embedding' },
         'kb.models.t.image': { kybernos: 'Image', en: 'Image' },
@@ -396,15 +418,18 @@ window.__ModuleLoader__.load({
         'kb.models.loading': { kybernos: 'Lecture de settings.yaml…', en: 'Reading settings.yaml…' },
         'kb.models.reload': { kybernos: 'Réessayer', en: 'Retry' },
         'kb.models.loaderror': { kybernos: 'Lecture impossible', en: 'Load failed' },
+        // A route of this plugin's host half that does not answer (DSH not restarted after an update): the same sentence as the other settings pages.
+        'kb.models.hostdown': { kybernos: 'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarrez DSH, puis appuyez sur Réessayer.', en: 'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.' },
         'kb.models.empty.live': { kybernos: 'aucun modèle configuré dans llm-pi-ai', en: 'no model configured in llm-pi-ai' },
         'kb.models.route': { kybernos: 'route', en: 'route' },
-        // ── bloc d'en-tête « AI Provider & Models » (settings.models.header) ──
-        // ── carte Kybernos Cloud (refonte du 2026-09-21, d'après la maquette) ─
-        // L'anglais reprend la maquette au mot près ; le français la traduit.
+        // ── « AI Provider & Models » header block (settings.models.header) ──
+        // ── Kybernos Cloud card (redesign of 2026-09-21, from the mock-up) ─
+        // The English follows the mock-up word for word; the French translates it.
         'kb.hero.badge': { kybernos: 'Recommandé', en: 'Recommended' },
         'kb.hero.connected': { kybernos: 'Connecté', en: 'Connected' },
         'kb.hero.title.free': { kybernos: 'Commencez gratuitement', en: 'Start for free' },
-        'kb.hero.title.in': { kybernos: '{n} modèles sélectionnés, inclus', en: '{n} curated models, included' },
+        'kb.hero.title.in': { kybernos: '{n} modèles inclus', en: '{n} models included' },
+        'kb.hero.title.in.one': { kybernos: '1 modèle inclus', en: '1 model included' },
         'kb.hero.pitch.free': { kybernos: 'Utilisez notre liste de LLM sélectionnés — aucune clé d\u2019API à mettre à jour.', en: 'Use our curated list of LLMs — no API keys to update.' },
         'kb.hero.pitch.in': { kybernos: 'Importés depuis votre abonnement Kybernos — aucune clé d\u2019API à mettre à jour.', en: 'Imported from your Kybernos subscription — no API keys to update.' },
         'kb.hero.f.fallback': { kybernos: 'Repli automatique', en: 'Auto-fallback' },
@@ -447,9 +472,9 @@ window.__ModuleLoader__.load({
           if (brut !== '') lang = brut
           else {
             lang = String(kbLocaleRead())
-            // Politique de langue (chasse Settings 27/09) : sans choix
-            // Kybernos, suivre le shell uniquement pour les langues
-            // réellement traduites (ar/he/fa/ur) — sinon français.
+            // Language policy (Settings hunt 27/09): with no Kybernos
+            // choice, follow the shell only for the languages
+            // really translated (ar/he/fa/ur) — otherwise French.
             if (['ar', 'he', 'fa', 'ur'].indexOf(lang.split(/[-_]/)[0]) < 0) lang = 'kybernos'
           }
         } catch (e) { lang = 'kybernos' }
@@ -461,7 +486,7 @@ window.__ModuleLoader__.load({
         return text
       }
 
-      // ── icônes : tracés exacts de la maquette (Lucide) ─────────────────────
+      // ── icons: exact paths of the mock-up (Lucide) ─────────────────────
       const ICONS = {
         type: ['M4 7V4h16v3', 'M9 20h6', 'M12 4v16'],
         eye: ['M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z', 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z'],
@@ -498,8 +523,8 @@ window.__ModuleLoader__.load({
         more: ['M5 12h.01', 'M12 12h.01', 'M19 12h.01'],
         x: ['M6 6l12 12', 'M18 6 6 18'],
         undo: ['M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8', 'M3 3v5h5'],
-        // la carte Kybernos Cloud (maquette 2026-09-21) : flèche du CTA,
-        // clé d'API personnelle, nuage (marque, tracé du plugin kybernos-cloud)
+        // the Kybernos Cloud card (mock-up 2026-09-21): CTA arrow,
+        // personal API key, cloud (brand, path of the kybernos-cloud plugin)
         arrowright: ['M5 12h14', 'M12 5l7 7-7 7'],
         key: ['M15.5 7.5l3 3L22 7l-3-3-3.5 3.5z', 'M12 3a5 5 0 0 0-4.9 6L2.6 13.5a2 2 0 0 0-.6 1.4V19a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-1h1a1 1 0 0 0 1-1v-1h1a2 2 0 0 0 1.4-.6l.5-.5A5 5 0 0 0 12 3z'],
         cloud: ['M7 18h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.1 9.2 3.9 3.9 0 0 0 7 18Z'],
@@ -512,7 +537,7 @@ window.__ModuleLoader__.load({
           d.map((p, i) => h('path', { d: p, key: i })))
       }
 
-      // ── styles : le même contrat que les autres plugins du dépôt ───────────
+      // ── styles: the same contract as the repository's other plugins ───────────
       const styles = (() => {
         const tags = new Set()
         return {
@@ -529,21 +554,21 @@ window.__ModuleLoader__.load({
         }
       })()
 
-      // ── DSH-CONTROLS:BEGIN ── (généré par scripts/build-model-catalog-css.mjs) ──
-      // @deepseek-ai/dsh-client-ui-primitives@0.1.6-alpha.2 — 21761 caractères, 11 modules.
+      // ── DSH-CONTROLS:BEGIN ── (generated by scripts/build-model-catalog-css.mjs) ──
+      // @deepseek-ai/dsh-client-ui-primitives@0.1.6-alpha.2 — 21761 characters, 11 modules.
       const DSH_CONTROLS_CSS = "/* ── Button — les actions (capsule h36 r18, variantes primary/ghost/outline/toolbar) ─────────────────────────────── */\n/* Capsule geometry from the figma Button component (1:155 instances:\n * h36, pad 14/7, gap 4, r18; the wide New Session form is r24 at h38 —\n * owners with the wide form set their own radius/width). */\n.kbm-btn {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: 4px;\n  border: none;\n  border-radius: 18px;\n  cursor: pointer;\n  font-size: 14px;\n  line-height: 22px;\n  color: var(--dsw-alias-label-primary);\n  background: transparent;\n  padding: 0 14px;\n}\n\n.kbm-btn:disabled {\n  cursor: not-allowed;\n  opacity: 0.4;\n}\n\n.kbm-btn-md {\n  height: 36px;\n}\n\n/* Compact height for dense rows; no dedicated figma node (Icon_container\n * 28x28 is the icon-only form) — geometry is ours. */\n.kbm-btn-sm {\n  height: 28px;\n  font-size: 12px;\n  line-height: 18px;\n  padding: 0 10px;\n  border-radius: 14px;\n}\n\n.kbm-btn-primary {\n  background: var(--dsw-alias-button-primary-fill);\n  color: var(--dsw-alias-label-primary-foreground);\n}\n\n.kbm-btn-primary:hover:not(:disabled) {\n  background: var(--dsw-alias-button-primary-hover);\n}\n\n.kbm-btn-ghost:hover:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n.kbm-btn-ghost:active:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-active);\n}\n\n/* Dialog Cancel (figma 451:18655): bordered capsule on transparent fill. */\n.kbm-btn-outline {\n  border: 0.5px solid var(--dsw-alias-border-l3);\n  background: transparent;\n}\n\n.kbm-btn-outline:hover:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n.kbm-btn-toolbar {\n  background: var(--dsw-alias-button-tool-bar-fill);\n}\n\n.kbm-btn-toolbar:hover:not(:disabled) {\n  background: var(--dsw-alias-button-tool-bar-hover);\n}\n\n.kbm-btn-icon {\n  display: inline-flex;\n  width: 16px;\n  height: 16px;\n  align-items: center;\n  justify-content: center;\n}\n\n/* ── Input — le champ de recherche (wrap + icône + input) ─────────────────────────────── */\n.kbm-in-wrap {\n  display: inline-flex;\n  align-items: center;\n  gap: 6px;\n  height: 32px;\n  padding: 0 8px;\n  border: 0.5px solid var(--dsw-alias-border-l4);\n  border-radius: 8px;\n  background: var(--dsw-alias-bg-layer-1);\n}\n\n.kbm-in-wrap:focus-within {\n  border-color: var(--dsw-alias-brand-primary);\n}\n\n.kbm-in-icon {\n  display: inline-flex;\n  width: 16px;\n  height: 16px;\n  align-items: center;\n  justify-content: center;\n  color: var(--dsw-alias-label-tertiary);\n}\n\n.kbm-in-input {\n  flex: 1;\n  min-width: 0;\n  border: none;\n  outline: none;\n  background: transparent;\n  font-size: 14px;\n  line-height: 22px;\n  color: var(--dsw-alias-label-primary);\n}\n\n.kbm-in-input::placeholder {\n  color: var(--dsw-alias-label-dimmed);\n}\n\n/* ── Pill — les puces de filtre sélectionnables ─────────────────────────────── */\n.kbm-pill {\n  display: inline-flex;\n  align-items: center;\n  gap: 4px;\n  height: 24px;\n  padding: 0 8px;\n  border: none;\n  border-radius: 12px;\n  font-size: 12px;\n  line-height: 18px;\n  color: var(--dsw-alias-label-secondary);\n  background: var(--dsw-alias-bg-layer-2);\n}\n\n.kbm-pill-interactive {\n  cursor: pointer;\n}\n\n.kbm-pill-interactive:hover {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n.kbm-pill-active {\n  color: var(--dsw-alias-label-primary);\n  background: var(--dsw-alias-button-ghost-active-fill);\n  box-shadow: inset 0 0 0 1px var(--dsw-alias-button-ghost-active-border);\n}\n\n/* ── Tag — les étiquettes en lecture seule (8 tons) ─────────────────────────────── */\n/* Capsule geometry is fixed: a tag reads as one size everywhere, and only its\n * palette varies. Tone colors ride background/border/color so a render site can\n * still position the tag with its own class without touching the palette. */\n.kbm-tag {\n  display: inline-flex;\n  align-items: center;\n  border-radius: 999px;\n  corner-shape: round;\n  padding: 1px 8px;\n  font-size: 11px;\n  line-height: 17px;\n  font-weight: 500;\n  white-space: nowrap;\n}\n\n.kbm-tag[data-tone='outline'] {\n  border: 0.5px solid var(--dsw-alias-border-l4);\n  color: var(--dsw-alias-label-tertiary);\n}\n\n.kbm-tag[data-tone='solid'] {\n  background: var(--dsw-alias-label-primary);\n  color: var(--dsw-alias-bg-layer-3);\n}\n\n.kbm-tag[data-tone='neutral'] {\n  background: var(--dsw-alias-bg-module-platform);\n  color: var(--dsw-alias-label-secondary);\n}\n\n.kbm-tag[data-tone='quiet'] {\n  color: var(--dsw-alias-label-tertiary);\n}\n\n/* Status tones tint their own color for the fill, so a palette change moves\n * fill and text together and neither needs a second token. The tint is 10%,\n * except `warning`, which keeps the 12% the plugin inventory's conditional\n * tag shipped with — matching it is what makes this a pure consolidation. */\n.kbm-tag[data-tone='success'] {\n  background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 10%, transparent);\n  color: var(--dsw-alias-state-success-primary);\n}\n\n.kbm-tag[data-tone='info'] {\n  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 10%, transparent);\n  color: var(--dsw-alias-state-business-primary);\n}\n\n.kbm-tag[data-tone='warning'] {\n  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 12%, transparent);\n  color: var(--dsw-alias-state-warn-primary);\n}\n\n.kbm-tag[data-tone='danger'] {\n  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent);\n  color: var(--dsw-alias-state-error-primary);\n}\n\n/* ── StateDot — les pastilles d'état (done/warning/error/idle) ─────────────────────────────── */\n/* Ongoing blue has no alias token (state-business-primary is the 500 step,\n * not this 450) — component-level var pinned to the static scale instead. */\n.kbm-dot,\n.kbm-dot-matrix {\n  --dsh-state-ongoing: var(--dsw-static-deepseek-450);\n}\n\n/* Solid states: same-color halo via a 0.10-opacity outer layer (::before)\n * with a 6/10-scale solid core. Layer color rides currentColor set per state. */\n.kbm-dot {\n  position: relative;\n  display: inline-block;\n  flex: none;\n}\n\n.kbm-dot::before {\n  content: '';\n  position: absolute;\n  inset: 0;\n  border-radius: 50%;\n  corner-shape: round;\n  background: currentColor;\n  opacity: 0.1;\n}\n\n.kbm-dot::after {\n  content: '';\n  position: absolute;\n  inset: 20%;\n  border-radius: 50%;\n  corner-shape: round;\n  background: currentColor;\n}\n\n.kbm-dot[data-state='done'] {\n  color: var(--dsw-alias-state-success-primary);\n}\n\n.kbm-dot[data-state='warning'] {\n  color: var(--dsw-alias-state-warn-primary);\n}\n\n.kbm-dot[data-state='error'] {\n  color: var(--dsw-alias-state-error-primary);\n}\n\n/* Idle is the absence of activity, not a fourth outcome: it stays on the\n * tertiary label color so it recedes beside the three outcome colors. */\n.kbm-dot[data-state='idle'] {\n  color: var(--dsw-alias-label-tertiary);\n}\n\n/* Pixel chase: each outer cell holds a discrete brightness step (flat keyframe\n * holds, no tweening — the retro feel), peaking when the chase hits it and\n * decaying over the next three cells. Phase offsets come from per-rect\n * animation-delay (index * -125ms) set inline by the component. */\n.kbm-dot-matrix {\n  flex: none;\n  color: var(--dsh-state-ongoing);\n}\n\n.kbm-dot-cell {\n  fill: currentColor;\n  opacity: 0.15;\n  animation: kbm-dsh-state-dot-chase 1s infinite;\n}\n\n@keyframes kbm-dsh-state-dot-chase {\n  0%, 12.4% { opacity: 1; }\n  12.5%, 24.9% { opacity: 0.6; }\n  25%, 37.4% { opacity: 0.35; }\n  37.5%, 100% { opacity: 0.15; }\n}\n\n/* ── Switch — les bascules ─────────────────────────────── */\n/* The on/off appearance keys off aria-checked rather than a parallel class, so\n * the visual state cannot disagree with the state assistive technology reads.\n *\n * The track is a capsule: its radius is half its height, so the corners consume\n * the whole side and the global superellipse would square the ends off against\n * the round thumb inside it. `corner-shape: round` opts the track out, the way\n * every full-round radius does. The corner-shape spec does not catch this one —\n * it recognizes 50%, 100%, and radii at or above 99px, not a radius that is\n * full-round only relative to its own box. */\n.kbm-sw {\n  box-sizing: border-box;\n  position: relative;\n  flex: 0 0 auto;\n  width: 36px;\n  height: 20px;\n  padding: 2px;\n  border: 0;\n  border-radius: 10px;\n  corner-shape: round;\n  background: var(--dsw-alias-border-l3);\n  cursor: pointer;\n}\n\n.kbm-sw[aria-checked='true'] {\n  background: var(--dsw-alias-brand-primary);\n}\n\n.kbm-sw:disabled {\n  cursor: default;\n  opacity: 0.5;\n}\n\n.kbm-sw:focus-visible {\n  outline: 2px solid var(--dsw-alias-brand-primary);\n  outline-offset: 2px;\n}\n\n.kbm-sw-thumb {\n  display: block;\n  width: 16px;\n  height: 16px;\n  border-radius: 50%;\n  corner-shape: round;\n  background: var(--dsw-alias-label-primary-foreground);\n  transition: transform 120ms ease;\n}\n\n.kbm-sw[aria-checked='true'] .kbm-sw-thumb {\n  transform: translateX(16px);\n}\n\n/* ── Checkbox — les cases à cocher ─────────────────────────────── */\n.kbm-ck {\n  display: inline-flex;\n  align-items: center;\n  gap: 6px;\n  font-size: 14px;\n  line-height: 20px;\n  color: var(--dsw-alias-label-primary);\n  cursor: pointer;\n}\n\n.kbm-ck input {\n  flex: 0 0 auto;\n  width: 16px;\n  height: 16px;\n  margin: 0;\n  accent-color: var(--dsw-alias-brand-primary);\n  cursor: inherit;\n}\n\n.kbm-ck input:focus-visible {\n  outline: 2px solid var(--dsw-alias-brand-primary);\n  outline-offset: 2px;\n}\n\n.kbm-ck:has(input:disabled) {\n  cursor: default;\n  opacity: 0.5;\n}\n\n/* ── Menu — les menus déroulants (routes, tri) ─────────────────────────────── */\n.kbm-menu-root {\n  position: relative;\n  display: inline-flex;\n}\n\n/* Dropdown card (figma MenuDropdown 122:9481 / 419:16920): menu surface,\n * r12, elevation-prominent (hairline stroke in shadow), 4px inset padding. */\n.kbm-menu-list,\n.kbm-menu-submenu {\n  /* min-widths below are the design's outer card widths — include the pad. */\n  box-sizing: border-box;\n  padding: 4px;\n  display: flex;\n  flex-direction: column;\n  gap: 0;\n  border: 0;\n  border-radius: 20px;\n  background: var(--dsw-specific-menu);\n  --dsw-elevation-stroke-color: var(--dsw-alias-border-l1);\n  box-shadow: var(--dsw-elevation-prominent);\n  /* Elevated surface: the scrollbar thumb takes the l2 elevation tokens. The\n     declaration sits on the card rather than on `.scrollable .viewport`\n     because the elevation is a property of this surface, and the custom\n     properties inherit down to whichever descendant actually scrolls (see\n     ui-theme styles/scrollbar.css for the rebinding contract). */\n  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);\n  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);\n}\n\n/* Primary card is 218 wide in the design across both hosts. */\n.kbm-menu-list {\n  position: absolute;\n  top: calc(100% + 4px);\n  left: 0;\n  z-index: 100;\n  min-width: 218px;\n  max-width: 360px;\n}\n\n/* Portal mode: fixed in the viewport, coordinates supplied inline from the\n * anchor rect (side/align resolved in JS, the in-place offset rules above\n * don't apply). Portaled lists must layer above modal overlays (z 1000) —\n * an anchor inside a dialog still expects its menu on top. */\n.kbm-menu-portal {\n  position: fixed;\n  top: auto;\n  left: auto;\n  z-index: 1100;\n}\n\n/* Open above the anchor (empty-state workspace chip: figma 122:9481). */\n.kbm-menu-sideTop {\n  top: auto;\n  bottom: calc(100% + 4px);\n}\n\n.kbm-menu-alignEnd {\n  left: auto;\n  right: 0;\n}\n\n/* Viewport fit: the card stops 12px short of the viewport's top/bottom edges\n * (24 = 2 × the portal MARGIN in Menu.tsx) and taller content scrolls inside\n * .viewport, so a pinned .footer stays visible. Menus with submenu rows skip\n * this class — the overflow clip would crop the side card, so they rely on\n * staying short. */\n.kbm-menu-scrollable {\n  max-height: calc(100vh - 24px);\n}\n\n.kbm-menu-viewport {\n  display: flex;\n  flex-direction: column;\n  min-height: 0;\n}\n\n.kbm-menu-scrollable .kbm-menu-viewport {\n  overflow-y: auto;\n}\n\n/* Pinned rows below the scroll region; l2 hairline (l1 is near-invisible on\n * the menu surface) mirrors the .separator spacing. */\n.kbm-menu-footer {\n  flex: none;\n  display: flex;\n  flex-direction: column;\n  margin-top: 4px;\n  padding-top: 4px;\n  border-top: 0.5px solid var(--dsw-alias-border-l2);\n}\n\n.kbm-menu-itemWrap {\n  position: relative;\n}\n\n/* Menu cell (figma .Menu_cell): min-h 40, r10, pad 10/8, 14/22 primary,\n * gap 8 between leading icon / label / trailing check. */\n.kbm-menu-item {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  width: 100%;\n  min-height: 40px;\n  padding: 8px 10px;\n  border: none;\n  border-radius: 10px;\n  background: transparent;\n  cursor: pointer;\n  font-size: 14px;\n  line-height: 22px;\n  color: var(--dsw-alias-label-primary);\n  text-align: left;\n}\n\n.kbm-menu-item:hover:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n/* Arrow navigation moves real focus, so the row the keyboard is on carries the\n   same fill the pointer gets: the fill is the row's focus indication, and the\n   browser's default ring would double it. */\n.kbm-menu-item:focus-visible:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-hover);\n  outline: none;\n}\n\n.kbm-menu-denseList .kbm-menu-item {\n  min-height: 34px;\n  padding-block: 5px;\n}\n\n.kbm-menu-denseList .kbm-menu-label {\n  padding-block: 4px;\n}\n\n.kbm-menu-list.kbm-menu-compactList,\n.kbm-menu-submenu.kbm-menu-compactList {\n  min-width: 164px;\n  padding: 2px;\n  border-radius: 7px;\n}\n\n.kbm-menu-compactList .kbm-menu-item {\n  min-height: 26px;\n  gap: 6px;\n  padding: 3px 7px;\n  border-radius: 5px;\n  font-size: 12px;\n  line-height: 18px;\n}\n\n.kbm-menu-compactList .kbm-menu-itemIcon {\n  width: 14px;\n  height: 14px;\n}\n\n.kbm-menu-compactList .kbm-menu-separator {\n  margin: 2px;\n}\n\n.kbm-menu-compactList .kbm-menu-label {\n  padding: 4px 7px;\n  font-size: 11px;\n  line-height: 16px;\n}\n\n.kbm-menu-item:disabled {\n  opacity: 0.4;\n  cursor: not-allowed;\n}\n\n.kbm-menu-itemIcon {\n  display: inline-flex;\n  flex: none;\n  width: 16px;\n  height: 16px;\n  align-items: center;\n  justify-content: center;\n  color: var(--dsw-alias-label-tertiary);\n}\n\n.kbm-menu-itemLabel {\n  flex: 1;\n  min-width: 0;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.kbm-menu-check {\n  flex: none;\n  color: var(--dsw-alias-label-primary);\n}\n\n/* Selected cell keeps the plain fill (marker is the trailing check); the\n * class remains as a hook for owner-side emphasis. */\n.kbm-menu-selected {\n  background: transparent;\n}\n\n/* Fill-mode selection: the row holds the hover fill instead of a check. */\n.kbm-menu-selectedFill {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n/* Destructive row: error text/icon, danger hover fill. */\n.kbm-menu-danger {\n  color: var(--dsw-alias-state-error-primary);\n}\n\n.kbm-menu-danger .kbm-menu-itemIcon {\n  color: var(--dsw-alias-state-error-primary);\n}\n\n.kbm-menu-danger:hover:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-hover-danger);\n}\n\n.kbm-menu-danger:focus-visible:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-hover-danger);\n  outline: none;\n}\n\n/* Heading row: non-interactive small grey text, padding aligned with items. */\n.kbm-menu-label {\n  padding: 8px 10px;\n  font-size: 12px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-tertiary);\n}\n\n/* Separator cell (figma 122:9481): py 4 / px 2 around the hairline. */\n.kbm-menu-separator {\n  height: 0.5px;\n  margin: 4px 2px;\n  background: var(--dsw-alias-border-l1);\n}\n\n/* Nested card to the right of the parent row (figma 419:16920).\n * Bottom-aligned with the parent menu card (grows upward): itemWrap sits in\n * .list's 4px pad, so bottom: -4px matches the list's outer bottom edge.\n * Horizontal: list pad (4px) + 6px card gap = 10px past itemWrap — plain\n * `100% + 6px` collapses to ~2px between outer card edges.\n * ::before bridges the full gap so the pointer can cross without mouseLeave. */\n.kbm-menu-submenu {\n  position: absolute;\n  top: auto;\n  bottom: -4px;\n  left: calc(100% + 10px);\n  z-index: 101;\n  min-width: 163px;\n}\n\n.kbm-menu-submenu::before {\n  content: '';\n  position: absolute;\n  top: 0;\n  bottom: 0;\n  left: -10px;\n  width: 10px;\n}\n\n/* ── Modal — la surface de détail ─────────────────────────────── */\n/* Full-viewport layer (figma Mask + Dialog 451:18655): mask + centered card. */\n.kbm-mdl-root {\n  position: fixed;\n  inset: 0;\n  z-index: 1000;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  padding: 24px;\n}\n\n/* User/spec mask: rgba(0,0,0,0.24) + blur(2px) via --dsw-alias-bg-mask-1 /\n   --dsw-mask-blur (light); dark theme raises mask opacity. */\n.kbm-mdl-mask {\n  position: absolute;\n  inset: 0;\n  background: var(--dsw-alias-bg-mask-1);\n  backdrop-filter: var(--dsw-mask-blur);\n}\n\n/* Dialog card: r24, elevation-prominent, layer-2 fill, pb 24. */\n.kbm-mdl-dialog {\n  position: relative;\n  z-index: 1;\n  display: flex;\n  flex-direction: column;\n  gap: 20px;\n  width: min(380px, 100%);\n  padding: 0 0 24px;\n  overflow: hidden;\n  border: 0;\n  border-radius: 24px;\n  background: var(--dsw-alias-bg-layer-2);\n  box-shadow: var(--dsw-elevation-prominent);\n}\n\n.kbm-mdl-content {\n  display: flex;\n  flex-direction: column;\n  width: 100%;\n}\n\n/* Header row (figma Title row): pad l24/t22/r14/b12, SPACE_BETWEEN —\n * title left, close button right. */\n.kbm-mdl-header {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  padding: 22px 14px 12px 24px;\n}\n\n.kbm-mdl-title {\n  margin: 0;\n  font-size: 16px;\n  line-height: 24px;\n  font-weight: 500; /* figma wt510, rendered 500 */\n  color: var(--dsw-alias-label-primary);\n}\n\n.kbm-mdl-close {\n  flex: none;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  width: 28px;\n  height: 28px;\n  border: none;\n  border-radius: 8px;\n  background: transparent;\n  cursor: pointer;\n  color: var(--dsw-alias-label-secondary);\n}\n\n.kbm-mdl-close:hover {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n/* Description and body share the 332px content column (24px side pads). */\n.kbm-mdl-description {\n  margin: 0;\n  padding: 0 24px;\n  font-size: 14px;\n  line-height: 22px;\n  font-weight: 400;\n  color: var(--dsw-alias-label-primary);\n}\n\n.kbm-mdl-body {\n  display: flex;\n  flex-direction: column;\n  min-width: 0;\n  margin-top: 20px;\n  padding: 0 24px;\n}\n\n.kbm-mdl-footer {\n  display: flex;\n  align-items: center;\n  justify-content: flex-end;\n  gap: 8px;\n  padding: 0 24px;\n}\n\n/* ── Tooltip — les bulles d'aide ─────────────────────────────── */\n.kbm-tip-bubble {\n  position: fixed;\n  z-index: 100;\n  /* Fixed-position shrink-to-fit measures only the space from `left` to the\n     viewport edge, so anchors near the right edge would wrap early;\n     max-content sizes by the label alone, capped at half the viewport. */\n  width: max-content;\n  max-width: 50vw;\n  padding: 3px 7px;\n  border-radius: 8px;\n  background: var(--dsw-alias-tooltip-bg);\n  color: var(--dsw-static-neutral-bluish-00);\n  font-size: 13px;\n  line-height: 20px;\n  white-space: pre-line;\n  /* Unbreakable tokens (URLs, paths) must not push past max-width. */\n  overflow-wrap: break-word;\n  pointer-events: none;\n  animation: kbm-tooltip-in 150ms var(--ds-ease-in-out);\n}\n\n.kbm-tip-bubble[data-side='right'] {\n  transform: translateY(-50%);\n}\n\n.kbm-tip-bubble[data-side='bottom'] {\n  transform: translateX(-50%);\n}\n\n.kbm-tip-bubble[data-side='top'] {\n  transform: translate(-50%, -100%);\n}\n\n@keyframes kbm-tooltip-in {\n  from { opacity: 0; }\n}\n\n@media (prefers-reduced-motion: reduce) {\n  .kbm-tip-bubble {\n    animation: none;\n  }\n}\n\n/* ── DisclosureRow — la ligne dépliable (titre + contenu côte à côte) ─────────────────────────────── */\n/* Shared disclosure header: [16px leading] gap 6 [title 13/24] at the default\n   size. The Settings font-size preference moves the row through the\n   body-published axis: title size follows the secondary tier\n   (--dsh-content-font-size-secondary: one step under the body — setting −1 at\n   ≤14, setting −2 above), and the row height, leading box, and glyph edge\n   shift by the body px delta so the icon keeps its optical share of the\n   line. */\n\n.kbm-dr-root {\n  display: flex;\n  flex-direction: column;\n  width: 100%;\n  min-width: 0;\n}\n\n.kbm-dr-row {\n  position: relative;\n  overflow: hidden;\n  display: flex;\n  align-items: center;\n  height: calc(24px + var(--dsh-content-font-delta, 0px));\n  min-width: 0;\n}\n\n.kbm-dr-row[data-expandable] {\n  cursor: pointer;\n}\n\n.kbm-dr-leading {\n  position: relative;\n  flex: none;\n  width: calc(16px + var(--dsh-content-font-delta, 0px));\n  height: calc(16px + var(--dsh-content-font-delta, 0px));\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  margin-right: 6px;\n  padding: 0;\n  border: none;\n  background: none;\n  color: var(--dsw-alias-label-tertiary);\n}\n\n/* Flow-row glyphs render at 14px inside the 16px box; the CSS edge overrides\n   each svg's own width/height attributes so every registered icon scales\n   without a per-callsite size prop. StateDot (its svg carries data-state)\n   stays at its fixed figma size — it is a status mark, not text furniture. */\n.kbm-dr-leading svg:not([data-state]) {\n  width: calc(14px + var(--dsh-content-font-delta, 0px));\n  height: calc(14px + var(--dsh-content-font-delta, 0px));\n}\n\nbutton.kbm-dr-leading {\n  cursor: pointer;\n}\n\n.kbm-dr-iconIdle {\n  display: inline-flex;\n  opacity: 1;\n  transition: opacity 100ms ease;\n}\n\n.kbm-dr-chevronHover {\n  position: absolute;\n  inset: 0;\n  margin: auto;\n  opacity: 0;\n  transition: opacity 100ms ease;\n}\n\n.kbm-dr-row:hover .kbm-dr-iconIdle {\n  opacity: 0;\n}\n\n.kbm-dr-row:hover .kbm-dr-chevronHover {\n  opacity: 1;\n}\n\n.kbm-dr-title {\n  flex: none;\n  font-size: var(--dsh-content-font-size-secondary, 13px);\n  line-height: calc(24px + var(--dsh-content-font-delta, 0px));\n  color: var(--dsw-alias-label-secondary);\n}"
       // ── DSH-CONTROLS:END ──
 
-      // ── le catalogue : définition des champs de la maquette ───────────────
-      // `wire` nomme le champ `llm-pi-ai` que ce contrôle écrit RÉELLEMENT —
-      // absent = annotation Kybernos. C'est la seule table qui décide du badge.
+      // ── the catalogue: definition of the mock-up's fields ───────────────
+      // `wire` names the `llm-pi-ai` field this control REALLY writes —
+      // absent = Kybernos annotation. It is the only table that decides the badge.
       //
-      // Rien d'inventé : le seul `compat` de la maquette qui ait un équivalent
-      // réel est le raisonnement (`reasoningEfforts`) ; S2S, Search et Structured
-      // output n'ont AUCUN champ correspondant côté harnais (les ~20 commutateurs
-      // `compat` parlent de format de raisonnement, de rôle developer, de champ
-      // maxTokens, de template de chat — pas de ces capacités-là). Les marquer
-      // « appliqué » serait un mensonge : ils restent des annotations.
+      // Nothing invented: the only `compat` of the mock-up that has a real
+      // equivalent is reasoning (`reasoningEfforts`); S2S, Search and Structured
+      // output have NO matching field on the harness side (the ~20 `compat` switches
+      // talk about reasoning format, developer role, maxTokens field,
+      // chat template — not about those capabilities). Marking them
+      // « applied » would be a lie: they stay annotations.
       const CAPS = [
         { k: 'textIn', t: 'kb.models.f.textIn', icon: 'type', tint: '#6366f1', sec: 'input', wire: 'input.text' },
         { k: 'vision', t: 'kb.models.f.vision', icon: 'eye', tint: '#10b981', sec: 'input', wire: 'input.image' },
@@ -599,7 +624,7 @@ window.__ModuleLoader__.load({
         { k: 'weights', t: 'kb.models.f.weights', select: true },
       ]
 
-      // ── couche 1 : ce que le harnais sait sans rien consulter ─────────────
+      // ── layer 1: what the harness knows without consulting anything ─────────────
       const BASE = {
         textIn: true, vision: false, video: false, audioIn: false, textOut: true, tts: false,
         imageGen: false, videoGen: false, tools: false, search: false, s2s: false,
@@ -608,7 +633,7 @@ window.__ModuleLoader__.load({
         costIn: '', costOut: '', cacheRead: '', cacheWrite: '',
         family: '', knowledge: '', release: '', weights: '',
       }
-      // ── couche 2 : ce qu'une réponse models.dev pose (échantillon figé) ────
+      // ── layer 2: what a models.dev answer sets (frozen sample) ────
       const REMOTE = {
         textIn: true, vision: false, video: false, audioIn: false, textOut: true, tts: false,
         imageGen: false, videoGen: false, tools: true, s2s: false,
@@ -629,12 +654,12 @@ window.__ModuleLoader__.load({
         family: 'llama', knowledge: '2023-12', release: '2024-12-06', weights: 'Open',
       }
 
-      // ── l'état : un seul store, abonné par le React local ─────────────────
-      // `live` est LA bascule : faux = jeu figé et aucune écriture (phase sans
-      // câblage), vrai = remotes + settings.yaml (phase câblée).
-      // `live` = le panneau lit settings.yaml et écrit par les canaux réels.
-      // Le mode figé reste accessible (`?kybernos-models=sample`) : c'est ce que
-      // vérifie la preuve de l'étape 1, et ça n'écrit jamais rien.
+      // ── the state: a single store, subscribed to by the local React ─────────────────
+      // `live` is THE switch: false = frozen set and no write (phase with no
+      // wiring), true = remotes + settings.yaml (wired phase).
+      // `live` = the panel reads settings.yaml and writes through the real channels.
+      // The frozen mode stays reachable (`?kybernos-models=sample`): it is what the
+      // step-1 proof checks, and it never writes anything.
       const kbMSampleMode = () => {
         try { return /[?&]kybernos-models=sample/.test(String(window.location.search)) } catch (e) { return false }
       }
@@ -664,9 +689,12 @@ window.__ModuleLoader__.load({
         dsKey: { ref: '', configured: null },
         userProviders: {},
         baseProviders: {},
-        // Les notes externes : l'instant global (pour dire la fraîcheur) et
-        // l'état du relevé de fond (pour n'en déclencher qu'un à la fois).
+        // The external scores: the global instant (to tell the freshness) and
+        // the state of the background read (to start only one at a time).
         scoresAt: null,
+        // The headline score of each model ("route/id" → number), read in one call for the whole list.
+        scoreOf: {},
+        scoreLoaded: false,
         scoresRunning: false,
         scoresAskedAt: null,
         listeners: new Set(),
@@ -690,32 +718,32 @@ window.__ModuleLoader__.load({
       const kbmHas = (obj, k) => Object.prototype.hasOwnProperty.call(obj, k)
       const kbmUnder = (mo, k) => {
         if (kbmHas(mo.baseCtl, k)) return mo.baseCtl[k]
-        // Décision du 2025-09-20 : la valeur de models.dev s'affiche DÈS qu'on
-        // a la fiche, même si la synchronisation n'est pas encore confirmée —
-        // `kbmPending` la marque « renseignée, pas encore appliquée ».
+        // Decision of 2025-09-20: models.dev's value is shown AS SOON AS
+        // the sheet is there, even if the synchronisation is not yet confirmed —
+        // `kbmPending` marks it « filled in, not yet applied ».
         if (mo.remote[k] !== undefined) return mo.remote[k]
         return KBM.live === true ? '' : BASE[k]
       }
-      /** Renseigné par models.dev, pas encore confirmé par la synchronisation. */
+      /** Filled in by models.dev, not yet confirmed by the synchronisation. */
       const kbmPending = (mo, k) => kbmIsOv(mo, k) !== true && mo.synced !== true && mo.remote[k] !== undefined
       const kbmVal = (mo, k) => (kbmHas(mo.ov, k) ? mo.ov[k] : kbmUnder(mo, k))
       const kbmIsOv = (mo, k) => kbmHas(mo.ov, k)
       const kbmIsSync = (mo, k) => kbmIsOv(mo, k) !== true && mo.synced === true && mo.remote[k] !== undefined
       const kbmCountOv = (mo) => Object.keys(mo.ov).length
-      /** Un contrôle appliqué au harnais, ou une simple annotation Kybernos. */
+      /** A control applied to the harness, or a mere Kybernos annotation. */
       const kbmWireOf = (k) => {
-        // Le nom affiché est un champ appliqué, même s'il vit dans la ligne du
-        // modèle et non dans une section (`llm-pi-ai` → `modelOverrides.<id>.name`).
+        // The display name is an applied field, even though it lives in the model's
+        // line and not in a section (`llm-pi-ai` → `modelOverrides.<id>.name`).
         if (k === 'name') return 'name'
         for (const c of CAPS) if (c.k === k && c.wire !== undefined) return c.wire
         for (const f of LIMITS) if (f.k === k && f.wire !== undefined) return f.wire
         return null
       }
       const kbmIsWired = (k) => kbmWireOf(k) !== null
-      /** Le partage annoncé dans le pied du panneau — calculé, jamais écrit.
-       *  Six champs RÉELS (name, input texte, input image, reasoningEfforts,
-       *  contextWindow, maxTokens) ; tous les autres contrôles de la maquette
-       *  sont des annotations locales. */
+      /** The split announced in the panel's foot — computed, never written.
+       *  Six REAL fields (name, text input, image input, reasoningEfforts,
+       *  contextWindow, maxTokens); every other control of the mock-up
+       *  is a local annotation. */
       const kbmCounts = () => {
         let note = 0
         const bump = (k) => { if (kbmIsWired(k) !== true) note += 1 }
@@ -727,21 +755,25 @@ window.__ModuleLoader__.load({
         return { wired: 6, note }
       }
 
-      // ── écritures : la valeur part en mémoire, puis par le canal réel ─────
-      // Phase sans câblage : rien ne sort de la page. Phase câblée : les champs
-      // `wire` passent par `remote.settings.mutate` (settings.yaml, validé par
-      // le service), les autres par le fichier d'annotations du plugin.
+      // ── writes: the value goes to memory first, then through the real channel ─────
+      // Phase with no wiring: nothing leaves the page. Wired phase: the `wire`
+      // fields go through `remote.settings.mutate` (settings.yaml, validated by
+      // the service), the others through the plugin's annotations file.
       const kbmSave = (mo, k, v, ifRefused) => {
         if (KBM.live !== true) return true
-        // Optimiste : l'écran suit le geste, le canal réel (settings.yaml ou
-        // fichier d'annotations) répond ensuite ; un refus atterrit dans
-        // `mo.error` et reste affiché sur la ligne. `ifRefused` (optional) is called when the channel
+        // Optimistic: the screen follows the gesture, the real channel (settings.yaml or
+        // annotations file) answers afterwards; a refusal lands in
+        // `mo.error` and stays shown on the row. `ifRefused` (optional) is called when the channel
         // refused, to take back what the screen showed on trust.
         Promise.resolve(kbMPersist(mo, k, v))
           .then((ok) => { if (ok === false && typeof ifRefused === 'function') ifRefused() })
           .catch(() => { /* kbMPersist ne rejette pas */ })
         return true
       }
+      /** The refusal that belongs to field `k` (drawn under it, inside the sheet), or null. It stays attached only while it is still
+       *  the model's current message: a later error of another kind is drawn at the top of the sheet instead (A3-10). */
+      const kbmFieldError = (mo, k) => (mo.error !== null && mo.error !== undefined && mo.errorAt !== null && mo.errorAt !== undefined && mo.errorAt.k === k && mo.errorAt.text === mo.error ? mo.error : null)
+      const kbmFieldOwned = (mo) => mo.error !== null && mo.error !== undefined && mo.errorAt !== null && mo.errorAt !== undefined && mo.errorAt.text === mo.error
       const kbmSet = (mo, k, v) => {
         const had = Object.prototype.hasOwnProperty.call(mo.ov, k)
         const previous = mo.ov[k]
@@ -775,11 +807,11 @@ window.__ModuleLoader__.load({
         mo.ov = {}
         kbmNotify()
       }
-      // « Restore defaults » = effacer TOUTES les surcharges, pas les valeurs
-      // models.dev : c'est exactement `clearOverrides` de la maquette, et ça
-      // laisse le catalogue prérempli intact (on ne relance pas la synchro).
-      // En mode réel c'est une écriture LARGE (toutes les surcharges de tous les
-      // modèles) : deux clics, et le nombre de surcharges retirées est affiché.
+      // « Restore defaults » = erase ALL the overrides, not the models.dev
+      // values: it is exactly the mock-up's `clearOverrides`, and it
+      // leaves the prefilled catalogue intact (the sync is not run again).
+      // In real mode it is a WIDE write (every override of every
+      // model): two clicks, and the number of overrides removed is shown.
       const kbmRestoreAll = () => {
         if (KBM.live === true && KBM.confirmRestore !== true) {
           KBM.confirmRestore = true
@@ -801,15 +833,15 @@ window.__ModuleLoader__.load({
         if (mo === null) return
         mo.open = mo.open !== true
         kbmNotify()
-        // Ouvrir la fiche, c'est demander ce qu'elle montrera : les notes
-        // arrivent après le rendu, jamais avant (aucun écran n'attend le réseau).
+        // Opening the sheet is asking what it will show: the notes
+        // arrive after the render, never before (no screen waits for the network).
         if (mo.open === true && mo.scores === undefined && KBM.live === true) {
           kbMScoresLoad(mo, false).catch(() => { /* notes best-effort */ })
         }
       }
       const kbmRename = (mo, value) => {
         mo.name = value
-        // Le nom affiché EST un champ appliqué (`name`) : il suit le même canal.
+        // The display name IS an applied field (`name`): it follows the same channel.
         if (mo.live === true || KBM.live === true) kbmSet(mo, 'name', value)
         kbmNotify()
       }
@@ -828,9 +860,9 @@ window.__ModuleLoader__.load({
           kbmNotify()
           return
         }
-        // En mode réel, un modèle DÉCLARÉ ne disparaît pas d'ici : settings.yaml
-        // le sert. La corbeille efface donc ses annotations locales et le DIT —
-        // une ligne qui revient après rechargement serait un mensonge.
+        // In real mode, a DECLARED model does not disappear from here: settings.yaml
+        // serves it. The trash therefore erases its local annotations and SAYS so —
+        // a line that comes back after a reload would be a lie.
         const k2 = kbMKey(mo)
         if (k2 === null) return
         Promise.resolve(kbMAnnotations(k2, null)).then(() => {
@@ -844,8 +876,8 @@ window.__ModuleLoader__.load({
           kbmNotify()
         })
       }
-      /** Synchronisation : en figé on rejoue l'échantillon ; en réel on lit
-       *  l'index models.dev du host (une requête, réponses mises en cache). */
+      /** Synchronisation: when frozen the sample is replayed; in real mode the
+       *  host's models.dev index is read (one request, answers cached). */
       const kbmSync = (key) => {
         const mo = kbmModel(key)
         if (mo === null || mo.loading === true) return
@@ -862,9 +894,9 @@ window.__ModuleLoader__.load({
           }, 1100)
           return
         }
-        // La synchronisation d'une ligne déclenche AUSSI le relevé des deux
-        // catalogues de notes — en arrière-plan, une seule fois pour toutes les
-        // lignes — puis relit les notes de ce modèle.
+        // Synchronising a row ALSO triggers the read of the two
+        // score catalogues — in the background, once for all the
+        // rows — then re-reads this model's notes.
         kbMScoresRefresh(false)
         Promise.resolve(kbMSyncLive(mo)).then(() => kbMScoresLoad(mo, false)).catch(() => { /* notes best-effort */ })
       }
@@ -884,42 +916,51 @@ window.__ModuleLoader__.load({
         error: null,
       })
 
-      // ── phase sans câblage : le jeu figé de la maquette ───────────────────
+      // ── phase with no wiring: the mock-up's frozen set ───────────────────
       const SAMPLE = [
         { route: 'groq', id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B', open: false, synced: true, remote: Object.assign({}, BASE, REMOTE_LLAMA8), ov: {} },
         { route: 'groq', id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', open: false, synced: true, remote: Object.assign({}, BASE, REMOTE_LLAMA70), ov: {} },
         { route: 'openai', id: 'openai/gpt-oss-120b', name: 'GPT OSS 120B', open: true, synced: true, remote: Object.assign({}, BASE, REMOTE), ov: { search: true, context: '65536' } },
         { route: 'openai', id: 'openai/gpt-oss-20b', name: 'GPT OSS 20B', open: false, synced: false, remote: {}, ov: {} },
       ]
-      // Le jeu figé n'existe QU'HORS mode réel : en mode réel le panneau part
-      // vide, lit settings.yaml, et n'invente jamais une ligne.
+      // The frozen set only exists OUTSIDE real mode: in real mode the panel starts
+      // empty, reads settings.yaml, and never invents a line.
       if (KBM.live !== true) KBM.models = SAMPLE.map((s, i) => kbmMakeModel(s, 'ech-' + String(i + 1)))
 
-      // ── rendu : les briques de la maquette ───────────────────────────────
-      const pretty = (v) => {
+      // ── rendering: the mock-up's building blocks ───────────────────────────────
+      // KB-CAP-PURE-BEGIN
+      // ── a context size as a short label ──
+      // K is 1 000 and M is 1 000 000 on the way in (kbDsParseCapacity: "256K" is 256000) and on the way out, so a label
+      // reads back as itself: 256000 is "256K", and 262144 is "262.1K", never "256K" (typed back, that would be 256000).
+      // The exact count goes in the tooltip (kbCapExact). It used to read a multiple of 1024 as binary: 256000 showed
+      // "250K" and 128000 "125K" (A3-11). Pure.
+      const kbCapLabel = (v) => {
         const n = Number(v)
-        if (v === '' || v === null || v === undefined || isFinite(n) !== true || n === 0) return ''
-        const court = (x) => String(Math.round(x * 10) / 10)
-        if (n >= 1048576 && n % 1048576 === 0) return String(n / 1048576) + 'M'
-        if (n >= 1024 && n % 1024 === 0) return String(n / 1024) + 'K'
-        // Les routes déclarent aussi des fenêtres rondes (1000000, 200000) :
-        // la maquette les écrit 1M / 200K.
-        if (n >= 1000000) return court(n / 1000000) + 'M'
-        if (n >= 1000) return court(n / 1000) + 'K'
+        if (v === '' || v === null || v === undefined || Number.isFinite(n) !== true || n <= 0) return ''
+        const one = (x) => String(Math.round(x * 10) / 10)
+        if (n >= 999950) return one(n / 1e6) + 'M'
+        if (n >= 1000) return one(n / 1e3) + 'K'
         return String(n)
       }
+      /** "262,144" — the exact count behind a label, or '' when there is none. Pure. */
+      const kbCapExact = (v) => {
+        const n = Number(v)
+        return v !== '' && v !== null && v !== undefined && Number.isFinite(n) && n > 0 ? String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''
+      }
+      // KB-CAP-PURE-END
+      const pretty = kbCapLabel
       const Dot = (props) => h('span', { className: 'kbm-dot ' + (props.src === 'ov' ? 'ov' : 'sync'), title: m(props.src === 'ov' ? 'kb.models.ov.src' : 'kb.models.sync.src') })
-      /** Marqueur « appliqué au harnais » ou « annotation Kybernos ». */
+      /** « Applied to the harness » or « Kybernos annotation » marker. */
       const Mark = (props) => h('span', {
         className: 'kbm-mark' + (props.wire === true ? ' wire' : ''),
         title: m(props.wire === true ? 'kb.models.mark.wire' : 'kb.models.mark.note'),
         'data-kbm': props.wire === true ? 'mark-wire' : 'mark-note',
       }, Ic(props.wire === true ? 'link' : 'tag', 12))
 
-      /** L'infobulle du kit : un ancre (children) + une bulle `kbm-tip-bubble`
-       *  révélée au survol et au focus clavier. Le `title` natif attend une
-       *  seconde et se perd dans la GUI ; la bulle du kit est immédiate,
-       *  stylée comme le reste, et lisible dans les captures de contrôle. */
+      /** The kit's tooltip: an anchor (children) + a `kbm-tip-bubble` bubble
+       *  revealed on hover and on keyboard focus. The native `title` waits
+       *  a second and gets lost in the GUI; the kit's bubble is immediate,
+       *  styled like the rest, and readable in the check screenshots. */
       const Tip = (props) => h('span', { className: 'kbm-tipwrap' },
         props.children,
         props.text != null && props.text !== ''
@@ -932,10 +973,10 @@ window.__ModuleLoader__.load({
         const on = kbmVal(mo, def.k) === true
         const ov = kbmIsOv(mo, def.k)
         const sy = kbmIsSync(mo, def.k)
-        // Icône seule + infobulle du kit : la fiche gagne la largeur du libellé
-        // sur chaque puce (14 capacités + 8 types), le libellé complet vit
-        // dans la bulle et l'aria-label — même contrat que les icônes des
-        // rangées. (Le `title` natif attend ~1 s et se perd dans la GUI.)
+        // Icon only + the kit's tooltip: the sheet gains the width of the label
+        // on every chip (14 capabilities + 8 types), the full label lives
+        // in the bubble and the aria-label — same contract as the rows'
+        // icons. (The native `title` waits ~1 s and gets lost in the GUI.)
         const src = ov === true ? m('kb.models.ov.src') : (sy === true ? m('kb.models.sync.src') : null)
         const tip = m(def.t) + ' — ' + (src !== null
           ? src
@@ -971,9 +1012,9 @@ window.__ModuleLoader__.load({
           (on === true && (ov === true || sy === true)) ? h(Dot, { src: ov === true ? 'ov' : 'sync', key: 'dot' }) : null))
       }
 
-      /** En mode réel, un champ texte garde sa frappe en local et n'écrit
-       *  settings.yaml qu'au blur (ou Entrée) : pas une écriture par caractère,
-       *  pas d'état intermédiaire invalide dans le fichier. */
+      /** In real mode, a text field keeps its typing local and only writes
+       *  settings.yaml on blur (or Enter): not one write per character,
+       *  no invalid intermediate state in the file. */
       const useDraft = (value, commit) => {
         const pair = React.useState(null)
         const draft = pair[0]
@@ -1000,9 +1041,9 @@ window.__ModuleLoader__.load({
         const sy = kbmIsSync(mo, def.k)
         const under = kbmUnder(mo, def.k)
         const underText = under === null || under === undefined ? '' : String(under)
-        // Au niveau réel, « effacer » veut dire RETIRER la clé de settings.yaml :
-        // l'étiquette le dit, parce que la valeur disparue peut être celle de
-        // l'utilisateur (le harnais reprend alors le catalogue).
+        // At the real level, « clear » means REMOVE the key from settings.yaml:
+        // the label says so, because the value that disappears may be the
+        // user's (the harness then falls back on the catalogue).
         const revertLabel = underText === ''
           ? (KBM.live === true ? m('kb.models.clearfield.live') : m('kb.models.clearfield'))
           : m('kb.models.revert', { v: underText })
@@ -1032,14 +1073,15 @@ window.__ModuleLoader__.load({
                 id: inputId, className: 'kbm-finput' + (ov === true ? ' ov' : ''), value: value,
                 placeholder: def.ph === undefined ? '—' : def.ph, 'data-kbm': 'field-' + def.k,
               }, useDraft(value, (v) => kbmSet(mo, def.k, v)))),
-            suffix === '' ? null : h('span', { className: 'kbm-suffix' }, suffix)))
+            suffix === '' ? null : h('span', { className: 'kbm-suffix', title: def.pretty === true && kbCapExact(value) !== '' ? kbCapExact(value) : undefined }, suffix)),
+          kbmFieldError(mo, def.k) !== null ? h('div', { className: 'kbm-ferr', 'data-kbm': 'field-error', role: 'alert' }, kbmFieldError(mo, def.k)) : null)
       }
 
-      // ── notes externes : ce que les deux catalogues disent de CE modèle ────
-      // Rendu en LECTURE SEULE. Rien ici n'est un champ du harnais ni une
-      // annotation Kybernos : il n'y a donc ni pastille de surcharge, ni
-      // marqueur de câblage, ni retour en arrière — la valeur et sa provenance,
-      // et rien d'autre. Un nombre sans provenance est un nombre qui ment.
+      // ── external notes: what the two catalogues say about THIS model ────
+      // Rendered READ-ONLY. Nothing here is a harness field nor a
+      // Kybernos annotation: so there is no override pill, no
+      // wiring marker, no way back — the value and its provenance,
+      // and nothing else. A number without provenance is a number that lies.
       const kbLocaleFr = () => String(kbLocaleRead()).indexOf('fr') === 0
       const kbNum = (v, dec) => {
         const n = Number(v)
@@ -1047,9 +1089,9 @@ window.__ModuleLoader__.load({
         const s = n.toFixed(dec === undefined ? 1 : dec)
         return kbLocaleFr() ? s.replace('.', ',') : s
       }
-      /** AA publie ses épreuves en fraction (0,5185) et ses indices en points
-       *  (−5,3) : on rend le pourcentage pour les premières, le point pour les
-       *  seconds — sans jamais convertir un indice en pourcentage. */
+      /** AA publishes its evaluations as a fraction (0.5185) and its indices as points
+       *  (−5.3): the percentage is rendered for the former, the point for the
+       *  latter — an index is never converted into a percentage. */
       const kbEval = (v) => {
         const n = Number(v)
         if (isFinite(n) !== true) return '—'
@@ -1062,14 +1104,14 @@ window.__ModuleLoader__.load({
         return p(d.getDate()) + '/' + p(d.getMonth() + 1) + ' ' + p(d.getHours()) + 'h' + p(d.getMinutes())
       }
       const kbMethod = (meth) => m('kb.models.scores.method', { m: m('kb.models.scores.method.' + String(meth === undefined || meth === null ? 'slug' : meth)) })
-      /** Les épreuves affichées, dans l'ordre de lecture. */
+      /** The evaluations shown, in reading order. */
       const AA_SHOW = ['scicode', 'terminalBench40', 'terminalBench21', 'terminalbenchHard', 'hle', 'gpqa', 'mmmuPro', 'lcr', 'critpt', 'tau2', 'tauBanking', 'ifbench', 'gdpvalNormalized', 'analystAgent', 'apexAgents', 'itbenchSre', 'omniscience']
-      /** Les catégories de BenchLM, dans l'ordre. */
+      /** BenchLM's categories, in order. */
       const BL_SHOW = ['coding', 'agentic', 'reasoning', 'knowledge', 'multimodalGrounded', 'instructionFollowing', 'multilingual', 'math', 'external']
 
       const ScoreLine = (props) => h('span', { className: 'kbm-sc-it' },
-        // L'intitulé est long parfois (« Terminal-Bench 4.0 ») : la cellule le
-        // tronque plutôt que de tordre la grille, et l'infobulle le rend entier.
+        // The label is sometimes long (« Terminal-Bench 4.0 »): the cell cuts it
+        // rather than bend the grid, and the tooltip gives it whole.
         h('span', { className: 'kbm-sc-l', title: props.label }, props.label),
         h('span', { className: 'kbm-sc-v' }, props.value))
 
@@ -1144,10 +1186,10 @@ window.__ModuleLoader__.load({
           const mot = mo.scoresLoading === true
             ? m('kb.models.scores.loading')
             : (mo.scoresFailed === true ? m('kb.models.scores.failed') : m('kb.models.scores.empty'))
-          // L'état PORTE son nom dans le DOM : « en cours de lecture » n'est pas
-          // « aucune note », et un contrôle qui attend l'absence doit pouvoir le
-          // distinguer — l'ancien attribut unique les confondait et faisait
-          // passer au vert une lecture encore en vol.
+          // The state CARRIES its name in the DOM: « being read » is not
+          // « no score », and a check that waits for the absence must be able to
+          // tell them apart — the old single attribute confused them and turned
+          // green a read still in flight.
           const etat = mo.scoresLoading === true ? 'scores-loading' : (mo.scoresFailed === true ? 'scores-failed' : 'scores-idle')
           return h('div', { className: 'kbm-scwrap', 'data-kbm': etat },
             h('div', { className: 'kbm-note' }, mot))
@@ -1220,8 +1262,8 @@ window.__ModuleLoader__.load({
             h(Section, { id: 'caps', label: 'kb.models.sec.caps', wrap: true }, bySec('caps').map((c) => h(Chip, { mo: mo, def: c, key: c.k }))),
             h(Section, {
               id: 'type', label: 'kb.models.sec.type', wrap: true,
-              // Le nom du type vient de models.dev : quand il est surchargé, le
-              // libellé de retour dit À QUOI on revient, comme dans la maquette.
+              // The name of the type comes from models.dev: when it is overridden, the
+              // return label says WHAT it goes back to, as in the mock-up.
               aside: kbmIsOv(mo, 'type') === true
                 ? h('button', {
                   type: 'button', className: 'kbm-minirevert', 'data-kbm': 'revert-type',
@@ -1236,24 +1278,24 @@ window.__ModuleLoader__.load({
             h(Section, { id: 'pricing', label: 'kb.models.sec.pricing', hint: m('kb.models.pricing.unit'), wide: true }, PRICING.map((f) => h(Field, { mo: mo, def: f, key: f.k }))),
             h(Section, { id: 'meta', label: 'kb.models.sec.meta', wide: true }, META.map((f) => h(Field, { mo: mo, def: f, key: f.k }))),
             h('div', { className: 'kbm-sep' }),
-            // Les notes viennent de DEUX pages publiques, pas du harnais : elles
-            // ne sont ni éditables ni marquées, et la section le dit.
+            // The notes come from TWO public pages, not from the harness: they
+            // are neither editable nor marked, and the section says so.
             h(Section, { id: 'scores', label: 'kb.models.sec.scores', hint: m('kb.models.scores.hint'), wide: true },
               h(Scores, { mo: mo })),
             h('div', { className: 'kbm-note kbm-wirenote' }, m('kb.models.wire.note'))))
       }
 
-      // ══ L'ÉCRAN CÂBLÉ ═════════════════════════════════════════════════════
-      // La maquette telle qu'elle est branchée : les deux onglets de la maquette
-      // (Providers d'abord — la décision), la liste dense et son filtre, et
-      // l'éditeur que la flèche ouvre en dialogue. Les hooks `data-kbm` ne
-      // changent pas : le contrat des deux niveaux est le même, seul l'écran
-      // change. L'état d'écran (onglet, recherche, filtres, tri) ne se persiste
-      // pas et n'écrit rien.
+      // ══ THE WIRED SCREEN ═════════════════════════════════════════════════════
+      // The mock-up as it is wired: the mock-up's two tabs
+      // (Providers first — the decision), the dense list and its filter, and
+      // the editor that the arrow opens in a dialog. The `data-kbm` hooks do not
+      // change: the contract of the two levels is the same, only the screen
+      // changes. The screen state (tab, search, filters, sort) is not persisted
+      // and writes nothing.
 
-      const UI = { tab: 'providers', q: '', prov: 'all', type: 'all', statut: 'any', tri: 'name', caps: {}, menu: null, page: 1, edit: null }
-      // Changer un filtre (ou d'onglet) ramène à la première page : rester à
-      // une page qui n'existe plus afficherait une liste vide.
+      const UI = { tab: 'providers', q: '', prov: 'all', type: 'all', statut: 'any', tri: 'name', score: 'any', caps: {}, menu: null, page: 1, edit: null, showDown: false }
+      // Changing a filter (or a tab) goes back to the first page: staying on
+      // a page that no longer exists would show an empty list.
       const uiSet = (k, v) => { UI[k] = v; if (k !== 'page') UI.page = 1; kbmNotify() }
       const uiCap = (k) => { UI.caps[k] = UI.caps[k] !== true; UI.page = 1; kbmNotify() }
       const uiProvs = () => {
@@ -1267,16 +1309,17 @@ window.__ModuleLoader__.load({
         UI.type = 'all'
         UI.statut = 'any'
         UI.tri = 'name'
+        UI.score = 'any'
         UI.caps = {}
         kbmNotify()
       }
       const uiFiltre = () => {
-        if (UI.q.trim() !== '' || UI.prov !== 'all' || UI.type !== 'all' || UI.statut !== 'any') return true
+        if (UI.q.trim() !== '' || UI.prov !== 'all' || UI.type !== 'all' || UI.statut !== 'any' || UI.score !== 'any') return true
         for (const k of Object.keys(UI.caps)) if (UI.caps[k] === true) return true
         return false
       }
-      /** Le tri de la maquette : sur la valeur AFFICHÉE, fiche en attente
-       *  comprise — pas sur un `val` qui ignorait les valeurs non confirmées. */
+      /** The mock-up's sort: on the DISPLAYED value, pending sheet
+       *  included — not on a `val` that ignored unconfirmed values. */
       const uiNombre = (mo, k) => {
         const brut = String(kbmVal(mo, k) === null || kbmVal(mo, k) === undefined ? '' : kbmVal(mo, k)).replace(/[^0-9.]/g, '')
         const n = Number(brut)
@@ -1286,12 +1329,16 @@ window.__ModuleLoader__.load({
         const cherche = UI.q.trim().toLowerCase()
         const caps = CAPS.filter((c) => UI.caps[c.k] === true)
         const down = UI.statut === 'down' ? kbHealthDown(kbHealthGet()) : null
+        // The models that do not answer are folded away until asked for: a list of 126 where 74 fail first shows the 52 that work.
+        const hidden = UI.statut !== 'down' && UI.showDown !== true ? kbHealthDown(kbHealthGet()) : null
         const rows = KBM.models.filter((mo) => {
+          if (hidden !== null && hidden[mo.route + '/' + mo.id] === true) return false
           if (UI.prov !== 'all' && mo.route !== UI.prov) return false
           if (UI.type !== 'all' && String(kbmVal(mo, 'type')) !== UI.type) return false
           if (UI.statut === 'ov' && kbmCountOv(mo) === 0) return false
           if (UI.statut === 'sync' && mo.synced !== true) return false
           if (UI.statut === 'pending' && mo.synced === true) return false
+          if (UI.score !== 'any' && !(typeof KBM.scoreOf[mo.route + '/' + mo.id] === 'number' && KBM.scoreOf[mo.route + '/' + mo.id] >= Number(UI.score))) return false
           if (down !== null && down[mo.route + '/' + mo.id] !== true) return false
           for (const c of caps) if (kbmVal(mo, c.k) !== true) return false
           if (cherche !== '') {
@@ -1301,13 +1348,23 @@ window.__ModuleLoader__.load({
           return true
         })
         if (UI.tri === 'context') return rows.sort((a, b) => uiNombre(b, 'context') - uiNombre(a, 'context'))
+        if (UI.tri === 'score') return rows.sort((a, b) => kbScoreRank(KBM.scoreOf[b.route + '/' + b.id]) - kbScoreRank(KBM.scoreOf[a.route + '/' + a.id]) || String(a.name || a.id).localeCompare(String(b.name || b.id)))
         if (UI.tri === 'provider') return rows.sort((a, b) => (a.route + ' ' + a.id).localeCompare(b.route + ' ' + b.id))
         return rows.sort((a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id)))
       }
+      // KB-SCORE-PURE-BEGIN
+      /** A sort key: the score, and a model without one after every model that has one. Pure. */
+      const kbScoreRank = (n) => (typeof n === 'number' && Number.isFinite(n) ? n : -1)
+      /** The « Score ≥ » steps of the filter, only up to what the list reaches (no « 60+ » when nothing scores above 45). Pure. */
+      const kbScoreSteps = (scores) => {
+        const top = Math.max(0, ...Object.keys(scores || {}).map((k) => Number(scores[k])).filter((n) => Number.isFinite(n)))
+        return [10, 20, 30, 40, 50, 60, 70].filter((n) => n <= top)
+      }
+      // KB-SCORE-PURE-END
       const uiCaps = (mo) => CAPS.filter((c) => kbmVal(mo, c.k) === true)
-      /** L'infobulle d'une icône de capacité : le libellé PUIS le maillon —
-       *  une icône seule ne dit ni ce qu'elle nomme, ni si la donnée est
-       *  appliquée au harnais ou annotée (le contrat public du panneau). */
+      /** The tooltip of a capability icon: the label THEN the link —
+       *  an icon alone says neither what it names, nor whether the datum is
+       *  applied to the harness or annotated (the panel's public contract). */
       const kbmCapTip = (c) => m(c.t) + ' — ' + (c.wire === undefined ? m('kb.models.mark.note') : m('kb.models.mark.wire'))
       const uiTypeDef = (mo) => TYPES.filter((t) => t.id === String(kbmVal(mo, 'type')))[0] || null
       const uiSync = (mo) => {
@@ -1316,7 +1373,7 @@ window.__ModuleLoader__.load({
         if (Object.keys(mo.remote).length > 0) return { txt: m('kb.models.col.pending'), cls: 'wait' }
         return { txt: m('kb.models.col.nosync'), cls: 'no' }
       }
-      // Les valeurs de la fiche s'affichent même non confirmées : on le DIT.
+      // The sheet's values are shown even when unconfirmed: and it SAYS so.
       const uiAvis = (mo) => (mo.synced !== true && mo.loading !== true && Object.keys(mo.remote).length > 0
         ? m('kb.models.col.previewed', { n: Object.keys(mo.remote).length })
         : null)
@@ -1337,14 +1394,14 @@ window.__ModuleLoader__.load({
         { v: 'name', t: m('kb.models.tri.name') },
         { v: 'context', t: m('kb.models.tri.context') },
         { v: 'provider', t: m('kb.models.tri.provider') },
-      ]
+      ].concat(Object.keys(KBM.scoreOf).length > 0 ? [{ v: 'score', t: m('kb.models.tri.score') }] : [])
 
       const Loupe = () => h('svg', { className: 'kbmp-loupe', viewBox: '0 0 16 16', width: 14, height: 14, 'aria-hidden': 'true' },
         h('circle', { cx: 7, cy: 7, r: 4.6, fill: 'none', stroke: 'currentColor', strokeWidth: 1.4 }),
         h('path', { d: 'M10.6 10.6 14 14', fill: 'none', stroke: 'currentColor', strokeWidth: 1.4, strokeLinecap: 'round' }))
 
-      /** Une puce de capacité : elle filtre la liste. Icône + libellé : huit
-       *  pastilles muettes ne disaient pas ce qu'elles filtraient. */
+      /** A capability chip: it filters the list. Icon + label: eight
+       *  mute pills did not say what they filtered. */
       const CapFiltre = (props) => {
         const on = UI.caps[props.def.k] === true
         return h('button', {
@@ -1356,12 +1413,12 @@ window.__ModuleLoader__.load({
         h('span', { className: 'kbmp-caplab' }, m(props.def.t)))
       }
 
-      /** Le `Menu` de DSH : un déclencheur + une liste, fermés au clic dehors.
+      /** DSH's `Menu`: a trigger + a list, closed on a click outside.
        *
-       *  `props.field` — et JAMAIS `props.key` : React réserve `key` pour la
-       *  réconciliation et ne le passe pas au composant. Les quatre filtres
-       *  lisaient donc `UI[undefined]`, affichaient « Provider · undefined » et
-       *  n'appliquaient rien (la sélection s'écrivait sur `UI.undefined`). */
+       *  `props.field` — and NEVER `props.key`: React reserves `key` for
+       *  reconciliation and does not pass it to the component. The four filters
+       *  therefore read `UI[undefined]`, displayed « Provider · undefined » and
+       *  applied nothing (the selection was written to `UI.undefined`). */
       const Menu = (props) => {
         const ouvert = UI.menu === props.id
         const choix = props.options.filter((o) => o.v === UI[props.field])[0]
@@ -1397,9 +1454,9 @@ window.__ModuleLoader__.load({
         } catch (e) { return null }
       }
 
-      /** Une ligne de la liste dense — et, quand elle est ouverte, l'éditeur de
-       *  la maquette en dialogue. Le dialogue vit DANS la ligne (position fixe) :
-       *  les hooks de la ligne restent valables tels quels. */
+      /** A line of the dense list — and, when it is open, the mock-up's
+       *  editor in a dialog. The dialog lives INSIDE the line (fixed position):
+       *  the line's hooks stay valid as they are. */
       const Row = (props) => {
         const mo = props.mo
         const ouvert = mo.open === true
@@ -1436,6 +1493,8 @@ window.__ModuleLoader__.load({
             type === null ? null : h('span', { className: 'kbmp-mtype', key: 'ty' }, h('span', { className: 'kbmp-tyi', style: { color: type.tint } }, Ic(type.icon, 12)), m(type.t)),
             prix === null ? null : h('span', { className: 'kbmp-msep kbmp-sep2', key: 'sp' }, '·'),
             prix === null ? null : h('span', { className: 'kbmp-mprix', key: 'pr', title: m('kb.models.col.price') }, prix),
+            typeof KBM.scoreOf[mo.route + '/' + mo.id] === 'number' ? h('span', { className: 'kbmp-score', key: 'sc', 'data-kbm': 'row-score', title: m('kb.models.score.badge', { n: KBM.scoreOf[mo.route + '/' + mo.id] }) }, 'II ' + String(KBM.scoreOf[mo.route + '/' + mo.id])) : null,
+            props.down !== undefined ? h('span', { className: 'kbmp-why', 'data-kbm': 'row-why', title: props.down.code }, m('kb.health.rowwhy', { why: m(kbHealthWhy(props.down, kbHealthFree(props.down.route, mo.id, Object.keys(FREE_LINKS)))) })) : null,
             h('span', { className: 'kbmp-nar', key: 'nar' },
               KBM.live === true ? h('span', { className: 'kbmp-msep' }, '·') : null,
               KBM.live === true ? h('span', { className: 'kbmp-mcellroute' }, mo.route === '' ? null : h(LogoProv, { route: mo.route, taille: 14 }), h('span', { className: 'kbmp-mroute', title: m('kb.models.route') + ' ' + mo.route }, label)) : null,
@@ -1459,7 +1518,7 @@ window.__ModuleLoader__.load({
             h('span', { className: 'kbmp-mxc', key: 'x' }, mx.extras.length === 0 ? null
               : h(Tip, { text: mx.extras.map((k) => m(CAPS.filter((c) => c.k === k)[0].t)).join(' · ') }, h('span', { className: 'kbmp-plus' }, '+' + String(mx.extras.length)))))))
         colonnes.push(h('div', { className: 'kbmp-c kbmp-cctx', key: 'x' },
-          ctx === '' ? h('span', { className: 'kbmp-vide' }, '—') : h('span', null, pretty(ctx) === '' ? ctx : pretty(ctx))))
+          ctx === '' ? h('span', { className: 'kbmp-vide' }, '—') : h('span', { title: kbCapExact(ctx) !== '' ? kbCapExact(ctx) : undefined }, pretty(ctx) === '' ? ctx : pretty(ctx))))
         // ── SOURCE: where the values come from, then how many are yours (amber text, only when there are some:
         //    a pill on every row said nothing).
         colonnes.push(h('div', { className: 'kbmp-c kbmp-csrc', key: 's' },
@@ -1486,7 +1545,8 @@ window.__ModuleLoader__.load({
         },
         h('div', { className: 'kbmp-cols' }, colonnes),
         KBM.live === true && mo.kind === 'local' ? h('div', { className: 'kbmp-note', 'data-kbm': 'row-local' }, m('kb.models.local')) : null,
-        mo.error !== null && mo.error !== undefined ? h('div', { className: 'kbmp-err', 'data-kbm': 'row-error', role: 'status' }, String(mo.error)) : null,
+        // While the sheet is open its mask covers the row: the message is drawn inside the sheet then (A3-10).
+        ouvert !== true && mo.error !== null && mo.error !== undefined ? h('div', { className: 'kbmp-err', 'data-kbm': 'row-error', role: 'status' }, String(mo.error)) : null,
         ouvert === true
           ? h('div', {
             className: 'kbm-mdl-root', 'data-kbm': 'modal',
@@ -1506,28 +1566,30 @@ window.__ModuleLoader__.load({
               type: 'button', className: 'kbm-mdl-close', 'data-kbm': 'close',
               'aria-label': m('kb.models.hide') + ' ' + mo.id, onClick: () => kbmOpen(mo.key),
             }, h('span', { className: 'kbmp-x' }, '×'))),
-          h('div', { className: 'kbm-mdl-body kbmp-mdlbody' }, h(Details, { mo: mo }))))
+          h('div', { className: 'kbm-mdl-body kbmp-mdlbody' },
+            mo.error !== null && mo.error !== undefined && kbmFieldOwned(mo) !== true ? h('div', { className: 'kbmp-err kbmp-err-mdl', 'data-kbm': 'modal-error', role: 'alert' }, String(mo.error)) : null,
+            h(Details, { mo: mo }))))
           : null)
       }
 
-      /** La liste du catalogue est longue : on la découpe par pages (10 lignes),
-       *  et le pied de page dit toujours où l'on est sur le total filtré. */
+      /** The catalogue list is long: it is cut into pages (10 lines),
+       *  and the footer always says where we are in the filtered total. */
       const ROWS_PAR_PAGE = 10
-      /** La liste du catalogue : dense, ses filtres, son compteur. L'ancien
-       *  onglet « Providers » est fondu : les rangées natives au-dessous
-       *  gèrent déjà les fournisseurs (clé, route, suppression) — un doublon
-       *  de la même liste ne disait rien de plus. La clé d'API et l'URL de
-       *  base restent HORS du panneau (l'avertissement le dit en tête). */
-      // Onglet « Providers » : la section native de DSH reste VIDE sous notre
-      // panneau — les rangées Edit/Delete de DSH vivent dans la page native
-      // « Models », pas dans cette section — donc l'onglet n'affichait rien du
-      // tout alors qu'il annonce « Fournisseurs 9 » (constat de la campagne
-      // visuelle). On liste ici ce que le host expose vraiment : la route et le
-      // nombre de modèles qu'elle porte. Rien n'est inventé.
-      // ── logos fournisseurs : Simple Icons CDN, repli puce-initiale ──────
-      // Un logo manquant (hors ligne, route inconnue) ne casse rien : la puce
-      // reprend la première lettre de la route. Mapping par sous-chaîne, car
-      // les routes réelles portent des suffixes (qwen-token-plan, vercel-ai-
+      /** The catalogue list: dense, its filters, its counter. The old
+       *  « Providers » tab is melted in: the native rows below
+       *  already manage the providers (key, route, deletion) — a duplicate
+       *  of the same list said nothing more. The API key and the base
+       *  URL stay OUTSIDE the panel (the warning says so at the top). */
+      // « Providers » tab: DSH's native section stays EMPTY under our
+      // panel — DSH's Edit/Delete rows live in the native
+      // « Models » page, not in this section — so the tab showed nothing
+      // at all while announcing « Providers 9 » (finding of the visual
+      // campaign). Here we list what the host really exposes: the route and the
+      // number of models it carries. Nothing is invented.
+      // ── provider logos: Simple Icons CDN, initial-chip fallback ──────
+      // A missing logo (offline, unknown route) breaks nothing: the chip
+      // takes the first letter of the route. Mapping by substring, because
+      // real routes carry suffixes (qwen-token-plan, vercel-ai-
       // gateway, xiaomi-token-plan-ams…).
       const LOGO_SLUGS = [
         ['openrouter', 'openrouter'], ['anthropic', 'anthropic'], ['deepseek', 'deepseek'],
@@ -1609,15 +1671,15 @@ window.__ModuleLoader__.load({
         { id: 'edenai', nom: 'Eden AI', env: 'EDENAI_API_KEY', url: 'https://api.edenai.run/v3', logo: null },
         { id: 'helicone', nom: 'Helicone', env: 'HELICONE_API_KEY', url: 'https://ai-gateway.helicone.ai/v1', logo: null },
       ]
-      // Liens « modèles gratuits sous quota » — les deux fournisseurs de la
-      // demande (02/10) ; une future entrée `libre` du catalogue aura le sien.
+      // « free models under quota » links — the two providers of the
+      // request (02/10); a future `libre` entry of the catalogue will have its own.
       const FREE_LINKS = {
         openrouter: 'https://openrouter.ai/collections/free-models',
         nvidia: 'https://build.nvidia.com/models?filters=nimType%3Anim_type_preview',
       }
-      // Catalogue complet models.dev (~210 fournisseurs), servi par l'hôte ; tant
-      // qu'il n'est pas arrivé (ou si l'hôte est ancien), la courte liste
-      // ci-dessus fait foi. `libre` et les liens « free » restent les nôtres.
+      // The full models.dev catalogue (~210 providers), served by the host; until
+      // it has arrived (or if the host is old), the short list
+      // above stands. `libre` and the « free » links stay ours.
       let KB_CATALOGUE = PROV_CATALOG
       let KB_CAT_CHARGE = false
       const POPULAIRES = ['openai', 'anthropic', 'google', 'deepseek', 'groq', 'mistral', 'xai', 'openrouter', 'togetherai', 'fireworks-ai',
@@ -1630,7 +1692,7 @@ window.__ModuleLoader__.load({
         return out.sort((a, b) => a.nom.localeCompare(b.nom, 'en', { sensitivity: 'base' }))
       }
       const catDe = (slug) => KB_CATALOGUE.find((p) => p.id === slug) || null
-      /** Entrée du catalogue (logo SVG disponible) qui correspond à une route : id exact, sinon id-préfixe le plus long. */
+      /** The catalogue entry (SVG logo available) that matches a route: exact id, else the longest id prefix. */
       const kbLogoEntree = (route) => {
         const r = String(route || '').toLowerCase()
         let best = null
@@ -1648,13 +1710,13 @@ window.__ModuleLoader__.load({
         return h('span', { className: 'kbmp-logo kbmp-logo-chip', style: { width: t + 6, height: t + 6, fontSize: Math.max(9, t - 6) } },
           String(nom || slug || '?').charAt(0).toUpperCase())
       }
-      /** Logo models.dev servi par l'hôte, peint en masque : il prend la couleur du thème (clair/sombre). */
+      /** models.dev logo served by the host, painted as a mask: it takes the theme's colour (light/dark). */
       const LogoMd = ({ id, nom, taille }) => {
         const t = taille || 18
         const u = 'url(/kybernos-models/logo?id=' + encodeURIComponent(id) + ')'
         return h('span', { className: 'kbmp-logo kbmp-logo-mask', role: 'img', 'aria-label': nom || id, style: { width: t, height: t, WebkitMaskImage: u, maskImage: u } })
       }
-      /** Tuile carrée arrondie portant le logo (ou l'initiale). */
+      /** Rounded square tile carrying the logo (or the initial). */
       const LogoTile = ({ p, taille, tuile }) => {
         const t = taille || 16
         const inner = p.logo === true ? h(LogoMd, { id: p.id, nom: p.nom, taille: t })
@@ -1662,7 +1724,7 @@ window.__ModuleLoader__.load({
             : h('span', { className: 'kbmp-tuile-init' }, String(p.nom || p.id).charAt(0).toUpperCase()))
         return h('span', { className: 'kbmp-tuile', style: { width: tuile || 28, height: tuile || 28 } }, inner)
       }
-      /** Badge vert « Free models · quota », avec lien vers la collection. */
+      /** Green « Free models · quota » badge, linking to the collection. */
       const BadgeFree = ({ slug, petit }) => {
         const lien = FREE_LINKS[slug]
         const cls = petit === true ? 'kbmp-free kbmp-free-sm' : 'kbmp-free'
@@ -1828,16 +1890,45 @@ window.__ModuleLoader__.load({
           h('div', null, h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kbm': 'ds-model-add', onClick: () => setRows(rows.concat([{ id: '', inputModalities: ['text'] }])) }, Ic('plus', 13), m('kb.pv.model.add'))))
       }
 
+      // KB-TRAP-PURE-BEGIN
+      /** Where Tab goes inside a dialog, so the focus never leaves it (A3-40): the element to focus, or null to let the
+       *  browser take the next step by itself. `items` are the tabbable elements in order; an `active` that is not among
+       *  them (focus outside the dialog, or on its frame) is brought back in at the end the key is heading for. Pure. */
+      const kbTrapTarget = (items, active, shift) => {
+        if (!Array.isArray(items) || items.length === 0) return null
+        const i = items.indexOf(active)
+        if (shift === true) return i <= 0 ? items[items.length - 1] : null
+        return i === -1 || i === items.length - 1 ? items[0] : null
+      }
+      // KB-TRAP-PURE-END
+      const KB_TABBABLE = 'a[href],button,input,select,textarea,[tabindex]'
+      const kbTabbables = (box) => Array.from(box.querySelectorAll(KB_TABBABLE)).filter((el) => el.disabled !== true && el.tabIndex >= 0 && el.type !== 'hidden' && el.getClientRects().length > 0)
       const PvDrawer = ({ label, onClose, children, footer, head }) => {
+        const boxRef = React.useRef(null)
         React.useEffect(() => {
-          // Captured first so that DSH, which also listens for Escape, does not close Settings under the panel.
-          const key = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); onClose() } }
+          // Captured first so that DSH, which also listens for Escape, does not close Settings under the panel. Tab stays
+          // inside the panel: its overlay is modal, and the page behind it must not be reachable from the keyboard.
+          const key = (ev) => {
+            if (ev.key === 'Escape') { ev.stopPropagation(); onClose() }
+            else if (ev.key === 'Tab' && boxRef.current !== null) {
+              const to = kbTrapTarget(kbTabbables(boxRef.current), document.activeElement, ev.shiftKey)
+              if (to !== null) { ev.preventDefault(); to.focus() }
+            }
+          }
           document.addEventListener('keydown', key, true)
           return () => document.removeEventListener('keydown', key, true)
         }, [onClose])
+        // The element that had the focus before the panel opened (read during the first render, before the panel's own
+        // autofocus): the focus goes back to it when the panel closes.
+        const openerRef = React.useRef(undefined)
+        if (openerRef.current === undefined) openerRef.current = document.activeElement
+        React.useEffect(() => () => {
+          const opener = openerRef.current
+          try { if (opener !== null && opener !== undefined && typeof opener.focus === 'function' && document.contains(opener)) opener.focus() } catch (e) { /* focus is a courtesy */ }
+        }, [])
         return h('div', { className: 'kbpv-layer', 'data-kbm': 'pv-drawer' },
           h('div', { className: 'kbpv-mask', onMouseDown: onClose }),
-          h('div', { className: 'kbpv-drawer', role: 'dialog', 'aria-modal': 'true', 'aria-label': label },
+          h('div', { className: 'kbpv-drawer', role: 'dialog', 'aria-modal': 'true', 'aria-label': label, tabIndex: -1, ref: boxRef },
             h('header', null, head, h('button', { type: 'button', className: 'kbpv-ib', 'aria-label': m('kb.pv.close'), onClick: onClose }, Ic('x', 16))),
             h('div', { className: 'kbpv-body' }, children),
             h('footer', null, footer)))
@@ -1845,7 +1936,7 @@ window.__ModuleLoader__.load({
 
       const ProviderList = () => {
         const [, forcer] = React.useReducer((x) => x + 1, 0)
-        const [ui, setUi] = React.useState({ drawer: null, dlg: null, menu: null, busy: false, err: null, note: null, typed: '' })
+        const [ui, setUi] = React.useState({ drawer: null, dlg: null, menu: null, busy: false, err: null, note: null, typed: '', waitOpen: false })
         const [dr, setDr] = React.useState(null)
         const patch = (o) => setUi((u) => ({ ...u, ...o }))
         const setD = (o) => setDr((d) => ({ ...d, ...o }))
@@ -1896,15 +1987,13 @@ window.__ModuleLoader__.load({
         const ro = KBM.writable !== true
         const countOf = (route) => KBM.models.filter((mo) => mo.route === route).length
         const keyOf = (route) => {
-          const prof = kbMOBJ(KBM.userProviders)[route]
-          const ref = kbPvIsObj(prof) && typeof prof.apiKeyEnv === 'string' ? prof.apiKeyEnv : null
-          if (ref === null) return 'none'
-          const st = KBM.keys[ref]
-          return st === true ? 'ok' : (st === false ? 'missing' : 'unknown')
+          const entry = catDe(route)
+          return kbPvKeyState(kbMOBJ(KBM.userProviders)[route], entry !== null ? entry.env : null, KBM.keys)
         }
         const closeAll = () => { setDr(null); setUi((u) => ({ ...u, drawer: null, dlg: null, menu: null, busy: false, err: null, typed: '' })) }
-        const openEdit = (route, addModel) => {
+        const openEdit = (route, addModel, showModels) => {
           const d = pvEditDraft(route)
+          if (showModels === true) d.adv = true // the folded block holds the "Fetch available models" panel
           if (addModel === true) { d.adv = true; d.models = d.models.concat([{ id: '', name: '' }]); d.touched = true }
           setDr(d); patch({ drawer: { mode: 'edit', id: route }, menu: null, err: null, note: null })
         }
@@ -1949,7 +2038,7 @@ window.__ModuleLoader__.load({
           const out = await run(() => kbPvCreate(d), 'kb.pv.add.err', d.id)
           if (out === undefined) return
           setDr(null); uiSet('prov', out.slug)
-          patch({ drawer: null, busy: false, note: m(out.keyOk === false ? 'kb.prov.add.fait.cleko' : (out.keyOk === true ? 'kb.prov.add.fait.cleok' : 'kb.prov.add.fait'), { slug: out.slug }) })
+          patch({ drawer: null, busy: false, waitOpen: true, note: m(out.keyOk === false ? 'kb.prov.add.fait.cleko' : (out.keyOk === true ? 'kb.prov.add.fait.cleok' : 'kb.prov.add.fait'), { slug: out.slug }) })
         }
         const doDisable = async (route) => {
           patch({ dlg: null })
@@ -1993,6 +2082,10 @@ window.__ModuleLoader__.load({
                 custom ? h('span', { className: 'kbpv-tag' }, m('kb.pv.custom')) : null,
                 off !== true && kbPvIsObj(KBM.dir[route]) && KBM.dir[route].error !== '' ? h('span', { className: 'kbpv-tag kbpv-tag-warn', title: KBM.dir[route].error, 'data-kbm': 'prov-diag' }, m('kb.pv.diag')) : null,
                 h('span', null, String(count) + ' ' + m(count === 1 ? 'kb.models.prov.model1' : 'kb.models.prov.modelN'))),
+              // A route with no model serves nothing: say what to do next instead of leaving a silent card (A3-32).
+              count === 0 && off !== true && bloc === null && ro !== true
+                ? h('button', { type: 'button', className: 'kbpv-next', 'data-kbm': 'prov-next', onClick: () => openEdit(route, false, true) }, m(ks === 'missing' ? 'kb.pv.empty.nokey' : 'kb.pv.empty.fetch'))
+                : null,
               free ? h(BadgeFree, { slug: route, petit: true }) : null),
             h('div', { className: 'kbpv-right' },
               off === true ? h('span', { className: 'kbpv-rest' }, h('span', { className: 'kbpv-tag', 'data-kbm': 'prov-off-badge' }, m('kb.prov.off.badge'))) : null,
@@ -2208,6 +2301,27 @@ window.__ModuleLoader__.load({
           return h('div', { className: 'kbmp-empty', 'data-kbm': 'prov-empty' }, m('kb.models.prov.empty'),
             h('div', { className: 'kbmp-prov-addct' }, h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'prov-add', disabled: ro, onClick: openAdd }, Ic('plus', 14), m('kb.prov.add'))))
         }
+        // ── a built-in DeepSeek card ──
+        const renderDsCard = (c) => {
+              const official = c.ns === 'llm-deepseek'
+              const count = Array.isArray(KBM.ds[c.ns].value.models) ? KBM.ds[c.ns].value.models.length : 0
+              const ks = official ? (KBM.dsKey.configured === true ? 'ok' : (KBM.dsKey.configured === false ? 'missing' : 'unknown')) : 'none'
+              return h('div', { key: c.ns, className: 'kbpv-card', 'data-kbm': 'prov-card', 'data-prov': c.provider },
+                h('span', { className: 'kbpv-logo' }, h(LogoProv, { route: 'deepseek', taille: 20 })),
+                h('div', { className: 'kbpv-cbody' },
+                  h('span', { className: 'kbpv-nm' }, h('span', { className: 'kbpv-link kbpv-static' }, c.name),
+                    ks === 'none' ? null : h('i', { className: 'kbpv-kd kbpv-kd-' + ks, title: m(ks === 'ok' ? 'kb.pv.key.ok' : (ks === 'missing' ? 'kb.pv.key.missing' : 'kb.pv.key.unknown')) })),
+                  h('span', { className: 'kbpv-meta', 'data-kbm': 'prov-name' }, h('span', { className: 'kbpv-tag' }, m('kb.pv.builtin')), h('span', null, String(count) + ' ' + m(count === 1 ? 'kb.models.prov.model1' : 'kb.models.prov.modelN')))),
+                h('div', { className: 'kbpv-right' }, h('div', { className: 'kbpv-acts' },
+                  h('button', { type: 'button', className: 'kbpv-ib', 'data-kbm': 'prov-edit', disabled: ro, title: m('kb.pv.edit', { slug: c.provider }), 'aria-label': m('kb.pv.edit', { slug: c.provider }), onClick: (ev) => { ev.stopPropagation(); openDs(c.ns) } }, Ic('pencil', 15)))))
+            }
+        // The cards in the order they have always had, each with whether it waits (no key yet, or switched off).
+        const cards = dsCards.map((c) => ({ node: renderDsCard(c), waiting: c.ns === 'llm-deepseek' && KBM.dsKey.configured === false }))
+          .concat(routes.map((route) => ({ node: renderCard({ route }), waiting: keyOf(route) === 'missing' })))
+          .concat(parkedShown.map((p) => ({ node: renderCard({ route: p.slug, off: true }), waiting: true })))
+        const fold = kbPvFold(cards.map((x) => x.waiting))
+        const ready = cards.filter((x) => !x.waiting)
+        const waiting = cards.filter((x) => x.waiting)
         return h('div', { className: 'kbpv', 'data-kbm': 'prov-list' },
           h('div', { className: 'kbpv-head' },
             h('span', { className: 'kbpv-grow' }),
@@ -2222,21 +2336,11 @@ window.__ModuleLoader__.load({
           ui.err !== null && ui.drawer === null ? h('div', { className: 'kbpv-fail', role: 'alert', 'data-kbm': 'prov-off-err' }, ui.err) : null,
           KBM.parkHost !== true ? h('div', { className: 'kbpv-hostnote', role: 'status', 'data-kbm': 'park-host-note' }, Ic('info', 14), m('kb.pv.hostnote')) : null,
           h('div', { className: 'kbpv-cards', 'data-kbm': 'prov-cards' },
-            dsCards.map((c) => {
-              const official = c.ns === 'llm-deepseek'
-              const count = Array.isArray(KBM.ds[c.ns].value.models) ? KBM.ds[c.ns].value.models.length : 0
-              const ks = official ? (KBM.dsKey.configured === true ? 'ok' : (KBM.dsKey.configured === false ? 'missing' : 'unknown')) : 'none'
-              return h('div', { key: c.ns, className: 'kbpv-card', 'data-kbm': 'prov-card', 'data-prov': c.provider },
-                h('span', { className: 'kbpv-logo' }, h(LogoProv, { route: 'deepseek', taille: 20 })),
-                h('div', { className: 'kbpv-cbody' },
-                  h('span', { className: 'kbpv-nm' }, h('span', { className: 'kbpv-link kbpv-static' }, c.name),
-                    ks === 'none' ? null : h('i', { className: 'kbpv-kd kbpv-kd-' + ks, title: m(ks === 'ok' ? 'kb.pv.key.ok' : (ks === 'missing' ? 'kb.pv.key.missing' : 'kb.pv.key.unknown')) })),
-                  h('span', { className: 'kbpv-meta', 'data-kbm': 'prov-name' }, h('span', { className: 'kbpv-tag' }, m('kb.pv.builtin')), h('span', null, String(count) + ' ' + m(count === 1 ? 'kb.models.prov.model1' : 'kb.models.prov.modelN')))),
-                h('div', { className: 'kbpv-right' }, h('div', { className: 'kbpv-acts' },
-                  h('button', { type: 'button', className: 'kbpv-ib', 'data-kbm': 'prov-edit', disabled: ro, title: m('kb.pv.edit', { slug: c.provider }), 'aria-label': m('kb.pv.edit', { slug: c.provider }), onClick: (ev) => { ev.stopPropagation(); openDs(c.ns) } }, Ic('pencil', 15)))))
-            }),
-            routes.map((route) => renderCard({ route })),
-            parkedShown.map((p) => renderCard({ route: p.slug, off: true }))),
+            (fold.fold && !ui.waitOpen ? ready : cards).map((x) => x.node)),
+          fold.fold ? h('button', { type: 'button', className: 'kbpv-fold', 'data-kbm': 'prov-wait-toggle', 'aria-expanded': ui.waitOpen ? 'true' : 'false', onClick: () => patch({ waitOpen: !ui.waitOpen }) },
+            h('span', { className: 'kbpv-fold-chev' + (ui.waitOpen ? ' open' : ''), 'aria-hidden': 'true' }, Ic('chevron', 13)), m('kb.pv.wait.n', { n: fold.waiting })) : null,
+          fold.fold && ui.waitOpen ? h('p', { className: 'kbpv-fold-hint', 'data-kbm': 'prov-wait-hint' }, m('kb.pv.wait.hint')) : null,
+          fold.fold && ui.waitOpen ? h('div', { className: 'kbpv-cards kbpv-cards-wait', 'data-kbm': 'prov-cards-wait' }, waiting.map((x) => x.node)) : null,
           ui.drawer !== null && ui.drawer.mode === 'edit' && dr !== null ? renderEdit() : null,
           ui.drawer !== null && ui.drawer.mode === 'add' && dr !== null ? renderAdd() : null,
           ui.drawer !== null && ui.drawer.mode === 'ds' && dr !== null ? renderDsEdit() : null,
@@ -2259,6 +2363,8 @@ window.__ModuleLoader__.load({
         const debut = (page - 1) * ROWS_PAR_PAGE
         const pageRows = rows.slice(debut, debut + ROWS_PAR_PAGE)
         const toutes = KBM.models
+        const downIdx = kbHealthIndex(kbHealthGet())
+        const downN = toutes.filter((mo) => downIdx[mo.route + '/' + mo.id] !== undefined).length
         const capFiltres = ['vision', 'audioIn', 'imageGen', 'video', 'search', 'tools', 's2s', 'reasoning']
         const optsProv = [{ v: 'all', t: m('kb.models.allprov'), c: m('kb.models.opt.allprov') }].concat(uiProvs().map((r) => ({ v: r, t: r })))
         const optsType = [{ v: 'all', t: m('kb.models.alltypes'), c: m('kb.models.opt.alltypes') }].concat(TYPES.map((t) => ({ v: t.id, t: m(t.t) })))
@@ -2274,6 +2380,7 @@ window.__ModuleLoader__.load({
               h(Menu, { id: 'prov', field: 'prov', defaut: 'all', label: m('kb.models.filter.prov'), options: optsProv }),
               h(Menu, { id: 'type', field: 'type', defaut: 'all', label: m('kb.models.filter.type'), options: optsType }),
               h(Menu, { id: 'statut', field: 'statut', defaut: 'any', label: m('kb.models.filter.statut'), options: OPT_STATUT() }),
+              kbScoreSteps(KBM.scoreOf).length > 0 ? h(Menu, { id: 'score', field: 'score', defaut: 'any', label: m('kb.models.filter.score'), options: [{ v: 'any', t: m('kb.models.score.any') }].concat(kbScoreSteps(KBM.scoreOf).map((n) => ({ v: String(n), t: m('kb.models.score.min', { n }) }))) }) : null,
               h(Menu, { id: 'tri', field: 'tri', defaut: 'name', label: m('kb.models.sort'), options: OPT_TRI() }))),
           h('div', { className: 'kbmp-capsbar' + (kbmChipsOn() === true ? ' kbmp-capsbar-on' : '') }, h('span', { className: 'kbmp-caps' }, capFiltres
             .map((k) => CAPS.filter((c) => c.k === k)[0])
@@ -2284,15 +2391,20 @@ window.__ModuleLoader__.load({
             uiFiltre() === true
               ? h('button', { type: 'button', className: 'kbmp-link', 'data-kbm': 'reset', onClick: uiReset }, m('kb.models.reset'))
               : null,
+            // The failing ones are folded away; this brings them back, each with its reason on the row.
+            downN > 0 && UI.statut !== 'down'
+              ? h('button', { type: 'button', className: 'kbmp-link', 'data-kbm': 'toggle-down', 'aria-pressed': UI.showDown === true ? 'true' : 'false', onClick: () => uiSet('showDown', UI.showDown !== true) },
+                UI.showDown === true ? m('kb.health.hidedown') : m('kb.health.showdown', { n: downN }))
+              : null,
             h('span', { className: 'kbmp-grow' }),
             h('button', {
               type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kbm': 'sync-list',
               onClick: () => { for (const mo of rows) kbmSync(mo.key) },
             }, Ic('download', 13), h('span', null, m('kb.models.syncN', { n: rows.length })))),
           h('div', { className: 'kbmp-table', 'data-kbm': 'list' },
-            // Les colonnes du modèle vivent dans la cellule MODEL (nom + ligne
-            // id · route · type · prix) : la table n'a donc que cinq colonnes,
-            // et aucune ne se tronque à 556 px.
+            // The model's columns live in the MODEL cell (name + line
+            // id · route · type · price): the table therefore has only five columns,
+            // and none is cut at 556 px.
             h('div', { className: 'kbmp-thead' },
               h('div', { className: 'kbmp-th kbmp-c-model', key: 'model' }, kbmSortHead('name', m('kb.models.col.model'))),
               h('div', { className: 'kbmp-th kbmp-c-prov', key: 'prov' }, kbmSortHead('provider', m('kb.models.col.prov'))),
@@ -2326,7 +2438,7 @@ window.__ModuleLoader__.load({
             rows.length === 0 && toutes.length > 0
               ? h('div', { className: 'kbmp-vide kbmp-empty', 'data-kbm': 'novide' }, m('kb.models.empty'))
               : null,
-            pageRows.map((mo) => h(Row, { mo: mo, key: mo.key })),
+            pageRows.map((mo) => h(Row, { mo: mo, key: mo.key, down: downIdx[mo.route + '/' + mo.id] })),
             rows.length > ROWS_PAR_PAGE
               ? h('div', { className: 'kbmp-pager', 'data-kbm': 'pager' },
                   h('span', { className: 'kbmp-pageinfo', 'data-kbm': 'pageinfo' },
@@ -2345,41 +2457,55 @@ window.__ModuleLoader__.load({
               : null))
       }
 
-      // ── le panneau Kybernos : UN seul bloc, au-dessus du natif ──────────
-      // Il siège `settings.models.header` : la page Réglages → Models garde sa
-      // liste de fournisseurs native intacte en dessous, et le catalogue
-      // Kybernos vit au-dessus d'elle, dans ce bloc unique (onglets, liste,
-      // pagination). L'ancien doublon — un bloc d'appel en tête ET un panneau
-      // re-titré « Models » en pied — est fondu ici : un seul titre.
-      // ── la carte Kybernos Cloud (settings.models.header) ────────────────
-      // La refonte du 2026-09-21 suit la maquette : une carte de marque bleu
-      // nuit au-dessus des rangées natives — logo K, nom, badge « Recommended »,
-      // grand titre, pitch, trois acquis cochés, et à droite le CTA blanc
-      // « Connect to Kybernos Cloud », le séparateur « or », puis
-      // « Add your API key ». Deux états :
-      //   · découvert  — la maquette au mot près (titre « Start for free ») ;
-      //   · couplé     — le même gabarit, mais le compte de modèles est celui
-      //                  qui vit RÉELLEMENT dans settings.yaml (route kybernos),
-      //                  un badge « Connected » s'ajoute et le CTA devient
-      //                  « Manage Kybernos Cloud ».
-      // La carte n'écrit RIEN : elle lit /kybernos-cloud/status (same-origin,
-      // lecture seule) et délègue le couplage au plugin kybernos-cloud via
-      // l'événement fenêtre `kybernos-cloud:open` ; « Add your API key » ouvre
-      // le flux natif « Add provider » de la page, qui reste le seul chemin
-      // vers une clé personnelle. En mode figé (?kybernos-models=sample),
-      // aucune lecture réseau : la carte rend l'état découvert de la maquette.
-      const HERO_MODELS_FALLBACK = 19 // la maquette : « 19 curated models » (le catalogue de la formule gratuite)
+      // ── the Kybernos panel: ONE block, above the native one ──────────
+      // It sits in `settings.models.header`: the Settings → Models page keeps its native
+      // provider list intact below, and the Kybernos catalogue
+      // lives above it, in this single block (tabs, list,
+      // pagination). The old duplicate — a call-to-action block at the top AND a panel
+      // re-titled « Models » at the foot — is melted in here: one title.
+      // ── the Kybernos Cloud card (settings.models.header) ────────────────
+      // The redesign of 2026-09-21 follows the mock-up: a night-blue brand card
+      // above the native rows — K logo, name, « Recommended » badge,
+      // big title, pitch, three ticked gains, and on the right the white CTA
+      // « Connect to Kybernos Cloud », the « or » separator, then
+      // « Add your API key ». Two states:
+      //   · discovered — the mock-up word for word (title « Start for free »);
+      //   · connected  — the same template, but the model count is the one
+      //                  that REALLY lives in settings.yaml (kybernos route), a « Connected » badge is added,
+      //                  the CTA becomes « Manage Kybernos Cloud », and « Recommended », « or » and
+      //                  « Add your API key » go (V-28: a connected paid account has no key; a Free one keeps it).
+      // The card writes NOTHING: it reads /kybernos-cloud/status (same-origin,
+      // read-only) and delegates the pairing to the kybernos-cloud plugin through
+      // the window event `kybernos-cloud:open`; « Add your API key » opens the page's
+      // native « Add provider » flow, which stays the only path
+      // to a personal key. In frozen mode (?kybernos-models=sample),
+      // there is no network read: the card renders the mock-up's discovered state.
+      // KB-HERO-PURE-BEGIN
+      /** The plan key of the connected account (`space_plan.key`, else `user.plan`), lower case, or null when the status does not say. Pure. */
+      const kbHeroPlan = (res) => {
+        const o = res !== null && typeof res === 'object' ? res : {}
+        const sp = o.space_plan !== null && typeof o.space_plan === 'object' ? o.space_plan.key : undefined
+        if (typeof sp === 'string' && sp !== '') return sp.toLowerCase()
+        const u = o.user !== null && typeof o.user === 'object' ? o.user.plan : undefined
+        return typeof u === 'string' && u !== '' ? u.toLowerCase() : null
+      }
+      /** « Add your API key » next to Kybernos Cloud: offered while the account is not connected, and on a Free account. A connected
+       *  paid account has nothing to paste (V-28). Pure. */
+      const kbHeroShowKey = (connected, plan) => connected !== true || plan === 'free'
+      // KB-HERO-PURE-END
+      const HERO_MODELS_FALLBACK = 19 // the mock-up: « 19 curated models » (the free plan's catalogue)
       const kbmHeroModels = () => KBM.models.filter((mo) => mo.route === 'kybernos')
       const KybernosHero = () => {
         kbmUse()
         const mine = KBM.live === true ? kbmHeroModels() : []
-        const [cloud, setCloud] = React.useState(null) // null = inconnu · false = déconnecté · true = couplé
+        const [cloud, setCloud] = React.useState(null) // null = unknown · false = disconnected · true = connected
+        const [plan, setPlan] = React.useState(null) // the account's plan key ('free', …); null when the status does not say
         React.useEffect(() => {
           if (KBM.live !== true) return undefined
           let mort = false
           fetch('/kybernos-cloud/status', { headers: { 'content-type': 'application/json' } })
             .then((r) => r.json())
-            .then((res) => { if (mort !== true) setCloud(res !== null && typeof res === 'object' && res.connected === true) })
+            .then((res) => { if (mort !== true) { setCloud(res !== null && typeof res === 'object' && res.connected === true); setPlan(kbHeroPlan(res)) } })
             .catch(() => {})
           return () => { mort = true }
         }, [])
@@ -2389,9 +2515,9 @@ window.__ModuleLoader__.load({
           try { window.dispatchEvent(new CustomEvent('kybernos-cloud:open')) } catch (e) { /* carte cloud non montée */ }
         }
         const ajouterCle = () => {
-          // Le bouton natif « Add provider » vit dans la même section, sous les
-          // rangées : la carte passe d'abord sur l'onglet Providers (qui seul
-          // montre l'UX natif), puis clique — un seul chemin d'écriture.
+          // The native « Add provider » button lives in the same section, under the
+          // rows: the card first switches to the Providers tab (which alone
+          // shows the native UX), then clicks — a single write path.
           uiSet('tab', 'providers')
           const btn = Array.from(document.querySelectorAll('button'))
             .filter((b) => /^add provider$/i.test((b.innerText || '').trim()))[0]
@@ -2402,24 +2528,22 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kbmh-hero-brand' },
               h('span', { className: 'kbmh-hero-logo', 'aria-hidden': 'true' }, 'K'),
               h('span', { className: 'kbmh-hero-name' }, 'Kybernos Cloud'),
-              h('span', { className: 'kbmh-hero-pill', 'data-kbmh': 'badge' }, m('kb.hero.badge')),
+              // « Recommended » is an invitation to connect: once connected there is nothing left to recommend.
+              connecte === true ? null : h('span', { className: 'kbmh-hero-pill', 'data-kbmh': 'badge' }, m('kb.hero.badge')),
               connecte === true
                 ? h('span', { className: 'kbmh-hero-pill kbmh-hero-pill-on', 'data-kbmh': 'badge-on' },
                   h('span', { className: 'kbmh-hero-pill-dot', 'aria-hidden': 'true' }), m('kb.hero.connected'))
                 : null),
             h('div', { className: 'kbmh-hero-title', 'data-kbmh': 'title' },
-              connecte === true ? m('kb.hero.title.in', { n }) : m('kb.hero.title.free')),
+              connecte === true ? m(n === 1 ? 'kb.hero.title.in.one' : 'kb.hero.title.in', { n }) : m('kb.hero.title.free')),
             h('div', { className: 'kbmh-hero-pitch', 'data-kbmh': 'pitch' },
               connecte === true ? m('kb.hero.pitch.in') : m('kb.hero.pitch.free')),
             h('div', { className: 'kbmh-hero-feats', 'data-kbmh': 'feats' },
               h('span', { className: 'kbmh-hero-feat', title: m('kb.hero.f.fallback.tip') },
                 h('span', { className: 'kbmh-hero-feat-i' }, Ic('check', 14)), m('kb.hero.f.fallback')),
               h('span', { className: 'kbmh-hero-feat', title: m('kb.hero.f.guard.tip') },
-                h('span', { className: 'kbmh-hero-feat-i' }, Ic('check', 14)), m('kb.hero.f.guard'))),
-            KBM.live === true && KBM.loadError !== null
-              ? h('div', { className: 'kbm-warn', 'data-kbmh': 'loaderror' },
-                m('kb.models.loaderror') + sep() + String(KBM.loadError))
-              : null),
+                h('span', { className: 'kbmh-hero-feat-i' }, Ic('check', 14)), m('kb.hero.f.guard')))),
+          // (The load error is told once, by the panel's banner right under the hero, which also has the Retry.)
           h('div', { className: 'kbmh-hero-cta' },
             h('button', {
               type: 'button', className: 'kbmh-hero-btn', 'data-kbmh': 'connect',
@@ -2427,23 +2551,23 @@ window.__ModuleLoader__.load({
             },
               h('span', { className: 'kbmh-hero-btn-i' }, Ic(connecte === true ? 'cloud' : 'arrowright', 15)),
               h('span', null, connecte === true ? m('kb.hero.manage') : m('kb.hero.connect'))),
-            h('div', { className: 'kbmh-hero-or', 'aria-hidden': 'true' },
+            kbHeroShowKey(connecte, plan) ? h('div', { className: 'kbmh-hero-or', 'aria-hidden': 'true' },
               h('span', { className: 'kbmh-hero-or-line' }),
               h('span', { className: 'kbmh-hero-or-txt' }, m('kb.hero.or')),
-              h('span', { className: 'kbmh-hero-or-line' })),
-            h('button', {
+              h('span', { className: 'kbmh-hero-or-line' })) : null,
+            kbHeroShowKey(connecte, plan) ? h('button', {
               type: 'button', className: 'kbmh-hero-btn kbmh-hero-btn-ghost', 'data-kbmh': 'addkey',
               title: m('kb.hero.addkey.tip'), onClick: ajouterCle,
             },
               h('span', { className: 'kbmh-hero-btn-i' }, Ic('key', 15)),
-              h('span', null, m('kb.hero.addkey')))))
+              h('span', null, m('kb.hero.addkey'))) : null))
       }
 
-      // ── le marqueur d'ordre de la rangée kybernos (siège provider-card) ──
-      // Le siège est rendu dans CHAQUE carte de fournisseur (aussi dans le
-      // brouillon d'ajout, dont la route n'existe pas encore) : on ne marque
-      // que la rangée kybernos réellement configurée. Rien de visible — la
-      // rangée garde son apparence native, le CSS fait le reste.
+      // ── the order marker of the kybernos row (provider-card seat) ──
+      // The seat is rendered in EVERY provider card (also in the
+      // add draft, whose route does not exist yet): only the really configured
+      // kybernos row is marked. Nothing visible — the
+      // row keeps its native look, the CSS does the rest.
       const RowMark = (props) => {
         const p = props || {}
         const entry = p.provider
@@ -2455,9 +2579,9 @@ window.__ModuleLoader__.load({
       const Panel = () => {
         kbmUse()
         const counts = kbmCounts()
-        // L'attribut de section pilote l'affichage des deux contenus (CSS
-        // ci-dessous) : Providers → l'UX natif de DSH ; Models → le catalogue.
-        // Au démontage l'attribut saute : les rangées natives reviennent.
+        // The section attribute drives the display of the two contents (CSS
+        // below): Providers → DSH's native UX; Models → the catalogue.
+        // On unmount the attribute goes: the native rows come back.
         React.useEffect(() => {
           const rootEl = document.querySelector('[data-slot="kybernos-models-header"]')
           const sec = rootEl !== null ? rootEl.closest('[data-slot="settings.section"]') : null
@@ -2465,6 +2589,8 @@ window.__ModuleLoader__.load({
           sec.setAttribute('data-kbm-tab', UI.tab === 'providers' ? 'providers' : 'models')
           return () => { sec.removeAttribute('data-kbm-tab') }
         })
+        // The Score column is read once the Models tab is up and the models are known (and again after a newer snapshot).
+        React.useEffect(() => { if (UI.tab !== 'providers') kbMScoreListLoad(false) })
         React.useEffect(() => {
           const fermerMenu = () => { if (UI.menu !== null) { UI.menu = null; kbmNotify() } }
           // Escape closes the menu or the details sheet and nothing else: capturing it first, and stopping it when we
@@ -2488,14 +2614,15 @@ window.__ModuleLoader__.load({
           UI.tab === 'providers' ? h(KybernosHero, null) : null,
           KBM.live === true && KBM.loading === true && skelOf() === null ? h('div', { className: 'kbmp-vide', 'data-kbm': 'loading' }, m('kb.models.loading')) : null,
           KBM.live === true && KBM.loadError !== null ? h('div', { className: 'kbm-warn', 'data-kbm': 'loaderror' },
-            m('kb.models.loaderror') + sep() + String(KBM.loadError),
+            // The helper-not-answering sentence stands on its own; any other reason follows « Load failed: ».
+            (KBM.loadError === m('kb.models.hostdown') ? '' : m('kb.models.loaderror') + sep()) + String(KBM.loadError),
             h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kbm': 'reload', onClick: () => { kbMLoad() } }, m('kb.models.reload'))) : null,
-          // Deux onglets, un seul contenu visible à la fois :
-          //  · « Providers » montre l'UX NATIF de DSH (les rangées avec
-          //    Edit/Delete sous notre panneau) — l'attribut data-kbm-tab
-          //    posé sur la section révèle la liste et masque le catalogue ;
-          //  · « Models » (notre création) montre le catalogue détaillé et
-          //    masque les rangées natives, une à la fois, jamais deux listes.
+          // Two tabs, one visible content at a time:
+          //  · « Providers » shows DSH's NATIVE UX (the rows with
+          //    Edit/Delete under our panel) — the data-kbm-tab attribute
+          //    set on the section reveals the list and hides the catalogue;
+          //  · « Models » (our creation) shows the detailed catalogue and
+          //    hides the native rows, one at a time, never two lists.
           h('div', { className: 'kbmp-tabs', role: 'tablist', 'data-kbm': 'tabs' },
             h('button', {
               type: 'button', role: 'tab', 'data-kbm': 'tab-providers',
@@ -2532,23 +2659,23 @@ window.__ModuleLoader__.load({
             ? h('div', { className: 'kbmp-note', 'data-kbm': 'restored' }, m('kb.models.restore.note') + String(KBM.restoredNote))
             : null
           ) : null,
-          // Un seul contenu visible a la fois : la liste des fournisseurs sur
-          // l'onglet Providers, le catalogue detaille sur l'onglet Models.
+          // One visible content at a time: the provider list on
+          // the Providers tab, the detailed catalogue on the Models tab.
           UI.tab === 'providers' ? h(ProviderList, null) : h(ListView, null)
         )
       }
 
-      // ── CSS du panneau : la mise en page de la maquette, dans les jetons du
-      //    thème. Les CONTRÔLES viennent du CSS de DSH ci-dessus (mêmes règles
-      //    que la maquette) : ici, il n'y a que la grille et les espacements.
+      // ── panel CSS: the mock-up's layout, in the theme's tokens.
+      //    The CONTROLS come from DSH's CSS above (same rules
+      //    as the mock-up): here there is only the grid and the spacing.
       const CSS_PANEL = [
         '.kbm-root.kbmp{container-type:inline-size;margin:0 0 26px;padding:0 0 26px;border-bottom:.5px solid var(--dsw-alias-border-l2);display:flex;flex-direction:column;gap:14px}',
         '.kbmp [hidden]{display:none!important}',
-        // ── en-tête du panneau : sous-titre + état + actions sur une ligne ───
+        // ── panel header: subtitle + state + actions on one line ───
         '.kbm-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}',
         '.kbm-headleft{display:flex;align-items:center;gap:9px;flex-wrap:wrap;min-width:0}',
         '.kbm-sub{font-size:12.5px;color:var(--dsw-alias-label-tertiary);max-width:62ch}',
-        // En-tête de page (gabarit Réglages 02/10) : titre 18/600, sous-titre 13 à 6 px, bloc suivant à 20 px.
+        // Page header (Settings template 02/10): title 18/600, subtitle 13 at 6 px, next block at 20 px.
         '.kbm-page{box-sizing:border-box;width:100%;max-width:720px}',
         // The core plugin caps every child of a Settings section at 720 px; this page, with a table and a card grid, uses the room it has.
         '[class$="_options"] [data-slot="settings.section"]>.kbm-page:has(.kbm-root.kbmp){max-width:1120px}',
@@ -2595,6 +2722,8 @@ window.__ModuleLoader__.load({
         '.kbmp-thb:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px;border-radius:4px}',
         '.kbmp-thar{display:inline-flex;transform:rotate(90deg)}',
         '.kbmp-ovline{font-size:11px;color:var(--dsw-alias-state-warn-primary);white-space:nowrap}',
+        '.kbmp-why{flex:1 0 100%;font-size:11.5px;line-height:16px;color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 62%,var(--dsw-alias-label-primary))}',
+        '.kbmp-score{display:inline-flex;align-items:center;height:16px;padding:0 6px;border-radius:999px;background:var(--dsw-alias-bg-layer-3);border:.5px solid var(--dsw-alias-border-l3);font-size:10.5px;font-weight:600;color:var(--dsw-alias-label-secondary);white-space:nowrap;font-variant-numeric:tabular-nums}',
         '.kbmp-resbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;font-size:12px;color:var(--dsw-alias-label-tertiary)}',
         '.kbmp-grow{flex:1}',
         '.kbmp-link{border:0;background:transparent;padding:2px 4px;font-size:12px;color:var(--dsw-alias-label-secondary);text-decoration:underline;text-underline-offset:2px;cursor:pointer}',
@@ -2645,6 +2774,12 @@ window.__ModuleLoader__.load({
         '.kbpv-link:focus-visible::after{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:-2px}',
         '.kbpv-static{cursor:default}',
         '.kbpv-static::after{display:none}',
+        '.kbpv-next{align-self:flex-start;margin-top:3px;padding:0;border:0;background:none;font:inherit;font-size:12px;line-height:18px;color:var(--dsw-alias-state-warn-primary);text-align:left;text-decoration:underline;text-underline-offset:2px;cursor:pointer}',
+        '.kbpv-fold{display:flex;align-items:center;gap:6px;margin:12px 0 0;padding:6px 2px;border:0;background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;cursor:pointer}',
+        '.kbpv-fold:hover{color:var(--dsw-alias-label-primary)}',
+        '.kbpv-fold:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px;border-radius:6px}',
+        '.kbpv-fold-chev{display:inline-flex;transition:transform .12s}.kbpv-fold-chev.open{transform:rotate(90deg)}',
+        '.kbpv-fold-hint{margin:2px 0 10px;font-size:12px;color:var(--dsw-alias-label-tertiary)}',
         '.kbpv-meta{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}',
         '.kbpv-tag{font-size:11px;line-height:16px;padding:0 7px;border-radius:999px;background:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary);white-space:nowrap}',
         '.kbpv-tag-warn{color:var(--dsw-alias-state-warn-primary);border-color:var(--dsw-alias-state-warn-primary)}',
@@ -2773,8 +2908,8 @@ window.__ModuleLoader__.load({
         '.kbmp-off-dlg .kbm-mdl-body{margin-top:0}',
         '.kbmp-off-dlg-body p{margin:0 0 16px;font-size:14px;line-height:22px;color:var(--dsw-alias-label-secondary)}',
         '.kbmp-off-dlg-act{display:flex;justify-content:flex-end;gap:8px}',
-        /* formulaire d'ajout de fournisseur */
-        // ── sélecteur de presets + badge « free models · quota » (02/10) ─────
+        /* add-provider form */
+        // ── preset picker + « free models · quota » badge (02/10) ─────
         '.kbmp-free{display:inline-flex;align-items:center;gap:4px;height:18px;padding:0 7px;border-radius:9px;font-size:10.5px;line-height:14px;font-weight:600;color:#0b7a3b;background:rgba(34,197,94,.16);white-space:nowrap}',
         '.kbmp-free-sm{height:16px;padding:0 6px;font-size:10px}',
         // The dark green ink is for the light scheme; on the dark layers it was 1.9:1 (dark green on a dark green tint).
@@ -2794,13 +2929,13 @@ window.__ModuleLoader__.load({
         '.kbmp-tuile{flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;background:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l3);box-sizing:border-box}',
         '.kbmp-tuile-init{font-size:12px;font-weight:600;color:var(--dsw-alias-label-secondary)}',
         '.kbmp-card-logo .kbmp-logo-mask{color:var(--dsw-alias-label-primary)}',
-        /* logo dans la ligne de modèle */
+        /* logo in the model row */
         '.kbmp-mcellroute{display:inline-flex;align-items:center;gap:5px;min-width:0}',
-        // ── les deux onglets, un contenu chacun ─────────────────────────────
-        // Providers (défaut) : l'UX natif de DSH — les rangées sous notre
-        // panneau restent la seule interface qui écrit clé et URL de base.
-        // Models : notre catalogue, et les rangées natives se retirent —
-        // jamais deux listes visibles en même temps.
+        // ── the two tabs, one content each ─────────────────────────────
+        // Providers (default): DSH's native UX — the rows under our
+        // panel remain the only interface that writes key and base URL.
+        // Models: our catalogue, and the native rows withdraw —
+        // never two lists visible at the same time.
         '[data-slot="settings.section"][data-kbm-tab="providers"] .kbmp-listwrap{display:none}',
         '[data-slot="settings.section"][data-kbm-tab="models"] ul{display:none}',
         // ── liste Models : recherche, quatre filtres, puces, table ──────────
@@ -2825,26 +2960,26 @@ window.__ModuleLoader__.load({
         '.kbmp-pop .kbm-menu-selected{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-3)}',
         '.kbmp-capsbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}',
         '.kbmp-caps{display:flex;gap:6px;flex-wrap:wrap;min-width:0}',
-        // Des puces ICÔNE + LIBELLÉ : huit rondelles muettes ne disaient pas
-        // ce qu'elles filtraient.
+        // ICON + LABEL chips: eight mute discs did not say
+        // what they filtered.
         '.kbmp-cap{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px 0 8px;border:.5px solid var(--dsw-alias-border-l2);border-radius:999px;background:var(--dsw-alias-bg-layer-2);cursor:pointer;font-size:11.5px;color:var(--dsw-alias-label-secondary)}',
         '.kbmp-cap:hover{border-color:var(--dsw-alias-border-l3)}',
         '.kbmp-cap .kbmp-capi{display:inline-flex}',
         '.kbmp-cap.on{background:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-inverted)}',
         '.kbmp-cap.on .kbmp-capi{color:currentColor!important}',
         'body:not([data-ds-dark-theme]) .kbmp-cap.on .kbmp-capi{filter:none}',
-        // La table du panneau vit dans une colonne de 556 ou 720 px (la boîte
-        // Réglages) : cinq colonnes, dont une seule se partage la place. Le
-        // modèle porte nom + « id · route · type · prix » — plus aucune
-        // colonne vide, plus aucun nom tronqué.
+        // The panel's table lives in a 556 or 720 px column (the Settings
+        // box): five columns, of which only one shares the room. The
+        // model carries name + « id · route · type · price » — no empty
+        // column left, no truncated name.
         '.kbmp-table{display:flex;flex-direction:column;border:.5px solid var(--dsw-alias-border-l2);border-radius:14px;overflow:hidden;background:var(--dsw-alias-bg-layer-2)}',
         '.kbmp-thead,.kbmp-cols{display:grid;grid-template-columns:minmax(0,1fr) 52px 84px 44px;gap:8px;align-items:center;padding:0 10px}',
         '.kbmp-thead .kbmp-c-caps,.kbmp-cols .kbmp-ccaps,.kbmp-thead .kbmp-c-prov,.kbmp-cols .kbmp-cprov{display:none}',
         '@container (min-width: 620px){.kbmp-thead,.kbmp-cols{grid-template-columns:minmax(0,1fr) 88px 58px 104px 46px}.kbmp-thead .kbmp-c-caps,.kbmp-cols .kbmp-ccaps{display:flex}.kbmp-nar .kbmp-caprow{display:none}.kbmp-mtype,.kbmp-mprix,.kbmp-sep2{display:inline-flex;align-items:center;gap:4px}}',
         '.kbmp-mtype,.kbmp-mprix{display:none}',
-        // Les deux actions de la ligne : une zone de 24 px, alignées SUR la
-        // même ligne (la règle `.kbmp-c{flex-direction:column}` passerait
-        // sinon devant un simple `.kbmp-cact`).
+        // The row's two actions: a 24 px zone, aligned ON the
+        // same line (the rule `.kbmp-c{flex-direction:column}` would otherwise
+        // win over a plain `.kbmp-cact`).
         '.kbmp-c.kbmp-cact{flex-direction:row;align-items:center;justify-content:flex-end;gap:2px;opacity:0;transition:opacity .12s}',
         '@media (hover:none){.kbmp-c.kbmp-cact{opacity:1}}',
         '@media (prefers-reduced-motion:reduce){.kbmp-c.kbmp-cact{transition:none}}',
@@ -2861,13 +2996,13 @@ window.__ModuleLoader__.load({
         '.kbmp-nameline{display:flex;align-items:center;gap:6px;min-width:0}',
         '.kbmp-cmodel .kbmp-nom{height:20px;padding:0}',
         '.kbmp-nom{flex:1 1 auto;min-width:0;font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}',
-        // À 556 px, le nom le plus long du catalogue (249 px) ne tenait qu'à 1 px près :
-        // sous 620 px il passe à 12,5 px, et garde sa place quoi qu'il arrive.
+        // At 556 px, the longest name in the catalogue (249 px) fitted by 1 px only:
+        // under 620 px it drops to 12.5 px, and keeps its place whatever happens.
         '@container (max-width: 619px){.kbmp-nom{font-size:12.5px}}',
-        // La ligne de contexte du modèle : id (mono), route, type, prix.
+        // The model's context line: id (mono), route, type, price.
         '.kbmp-metaline{display:flex;align-items:center;gap:6px;min-width:0;font-size:11.5px;color:var(--dsw-alias-label-tertiary)}',
-        // `field-sizing` (Chrome 123+) : le champ prend la largeur de son id
-        // au lieu d'une taille fixe qui coupait « anthropic/claude-sonnet ».
+        // `field-sizing` (Chrome 123+): the field takes the width of its id
+        // instead of a fixed size that cut « anthropic/claude-sonnet ».
         '.kbmp-id{flex:0 1 auto;min-width:0;max-width:100%;field-sizing:content;height:16px;line-height:16px;padding:0;font-size:11.5px!important;color:var(--dsw-alias-label-tertiary);font-family:var(--ds-font-family-code)}',
         '.kbmp-id[readonly]{cursor:default}',
         '.kbmp-msep{flex:none;color:var(--dsw-alias-label-tertiary)}',
@@ -2884,15 +3019,15 @@ window.__ModuleLoader__.load({
         '.kbmp-point{width:6px;height:6px;border-radius:999px;background:var(--dsw-alias-label-tertiary);flex:none}',
         '.kbmp-sy.ok .kbmp-point{background:var(--dsw-alias-state-success-primary)}',
         '.kbmp-sy.wait .kbmp-point{background:var(--dsw-alias-state-business-primary)}',
-        // La surcharge se dit sur la ligne du nom : elle décrit le modèle, pas
-        // la source, et la phrase entière (« 5 overrides · 0 applied ») ne
-        // tenait pas dans la colonne SOURCE.
-        // La pastille des surcharges : discrète (bordure ambrée, pas de
-        // remplissage) — 69 modèles importés en portent presque tous, un
-        // aplat orange sur chaque ligne criait plus fort que la table.
-        // ── l'infobulle du kit : placée au-dessus de l'ancre, révélée au
-        //    survol et au focus clavier ; le style visuel vient de
-        //    .kbm-tip-bubble (kit DSH), ici on ne règle que la place.
+        // The override is told on the name's line: it describes the model, not
+        // the source, and the whole sentence (« 5 overrides · 0 applied ») did not
+        // fit in the SOURCE column.
+        // The overrides pill: discreet (amber border, no
+        // fill) — 69 imported models almost all carry some, an
+        // orange flat on every row shouted louder than the table.
+        // ── the kit's tooltip: placed above the anchor, revealed on
+        //    hover and on keyboard focus; the visual style comes from
+        //    .kbm-tip-bubble (DSH kit), here only the place is set.
         '.kbm-tipwrap{position:relative;display:inline-flex;max-width:100%}',
         '.kbm-tip{position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);z-index:90;pointer-events:none;opacity:0;transition:opacity 120ms ease;width:max-content;max-width:min(320px,72vw);white-space:normal;text-align:left}',
         '.kbm-tipwrap:hover .kbm-tip,.kbm-tipwrap:focus-within .kbm-tip{opacity:1}',
@@ -2902,10 +3037,12 @@ window.__ModuleLoader__.load({
         '.kbmp-chev.open{transform:rotate(90deg)}',
         '.kbmp-danger{color:var(--dsw-alias-state-error-primary)}',
         '.kbmp-err{margin:0 12px 8px;font-size:12px;color:var(--dsw-alias-state-error-primary)}',
-        // Lignes du catalogue DANS une carte fournisseur : le modèle et sa
-        // ligne de contexte suffisent, l'en-tête de la carte dit la route.
-        // DEUX colonnes (modèle + actions) : une seule ferait passer les
-        // actions sur un second rang implicite, deux fois plus haut pour rien.
+        '.kbmp-err-mdl{margin:0 0 12px;padding:8px 10px;border-radius:8px;background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 10%,transparent);font-size:13px}',
+        '.kbm-ferr{margin-top:4px;font-size:12px;line-height:17px;color:var(--dsw-alias-state-error-primary)}',
+        // Catalogue rows INSIDE a provider card: the model and its
+        // context line are enough, the card's header says the route.
+        // TWO columns (model + actions): a single one would push the
+        // actions onto an implicit second row, twice as tall for nothing.
         '.kbmp-lig.compact .kbmp-cols{grid-template-columns:minmax(0,1fr) 52px;min-height:36px;padding:4px 8px}',
         '.kbmp-lig.compact .kbmp-ccaps,.kbmp-lig.compact .kbmp-cctx,.kbmp-lig.compact .kbmp-csrc{display:none}',
         '.kbmp-lig.compact .kbmp-mroute,.kbmp-lig.compact .kbmp-msep{display:none}',
@@ -2925,9 +3062,9 @@ window.__ModuleLoader__.load({
         '.kbm-dot{width:7px;height:7px;border-radius:999px;flex:none;display:inline-block}',
         '.kbm-dot.sync{background:var(--dsw-alias-state-business-primary)}',
         '.kbm-dot.ov{background:var(--dsw-alias-state-warn-primary)}',
-        // Puces icône-seule : le libellé vit dans le title/aria-label du
-        // bouton, la pastille et le maillon complètent l'état. Largeur fixe
-        // (icône seule) : quatorze capacités tiennent sur une ligne de moins.
+        // Icon-only chips: the label lives in the button's title/aria-label,
+        // the pill and the link complete the state. Fixed width
+        // (icon only): fourteen capabilities take one line less.
         '.kbm-chip{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:30px;min-width:34px;padding:0 8px;border:1px solid var(--dsw-alias-border-l1);border-radius:999px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-secondary);font-size:12.5px;cursor:pointer}',
         '.kbm-chip:hover{border-color:var(--dsw-alias-border-l3)}',
         '.kbm-chip.on{background:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-inverted)}',
@@ -2940,7 +3077,7 @@ window.__ModuleLoader__.load({
         '.kbm-chips{display:flex;flex-wrap:wrap;gap:8px}',
         '.kbm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:12px}',
         '.kbm-grid.wide{grid-template-columns:repeat(auto-fit,minmax(158px,1fr))}',
-        // Les noms de classes sont ceux du composant Field : ne pas les réinventer.
+        // The class names are those of the Field component: do not reinvent them.
         '.kbm-field{display:flex;flex-direction:column;gap:6px;min-width:0}',
         '.kbm-fieldhead{display:flex;align-items:center;justify-content:space-between;gap:8px}',
         '.kbm-flabel{display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.04em;color:var(--dsw-alias-label-tertiary)}',
@@ -2986,26 +3123,26 @@ window.__ModuleLoader__.load({
         '.kbm-sc-biglab{font-size:11.5px;color:var(--dsw-alias-label-secondary);min-width:0}',
         '.kbm-sc-vals{display:grid;grid-template-columns:1fr;gap:2px 0;min-width:0}',
         '.kbm-sc-it{display:flex;align-items:baseline;justify-content:space-between;gap:8px;min-width:0}',
-        // L'intitulé passe à la ligne au lieu d'être coupé : « Terminal-Bench 4.0 »
-        // se tronquait en « Terminal-Bench ... » dans une cellule de ~150 px, et un
-        // nom d'épreuve amputé se lit mal. La valeur, elle, ne se coupe jamais.
+        // The label wraps instead of being cut: « Terminal-Bench 4.0 »
+        // was truncated to « Terminal-Bench ... » in a ~150 px cell, and a
+        // clipped benchmark name reads badly. The value itself is never cut.
         '.kbm-sc-l{font-size:11.5px;color:var(--dsw-alias-label-tertiary);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
         '.kbm-sc-v{font-size:11.5px;color:var(--dsw-alias-label-primary);font-variant-numeric:tabular-nums;flex:none}',
         '.kbm-sc-foot{font-size:11px;color:var(--dsw-alias-label-tertiary);line-height:15px}',
         '.kbm-scmeta{display:flex;align-items:center;gap:12px;flex-wrap:wrap}',
         '.kbm-sc-empty{margin:0}',
         '.kbm-wirenote{font-size:11.5px;color:var(--dsw-alias-label-tertiary)}',
-        // ── bloc d'en-tête « Kybernos Models » (le siège header de la page) ──
+        // ── « Kybernos Models » header block (the page's header seat) ──
         '.kbm-root.kbmh{margin-top:0;padding-top:0;border-top:none;gap:10px;flex-direction:column}',
-        // ── la carte Kybernos Cloud (maquette du 2026-09-21) ────────────────
-        // La carte est une carte de MARQUE : son bleu nuit ne suit pas le
-        // thème — elle se lit pareil en clair et en sombre, comme un bloc
-        // sponsor. Une seule valeur par couleur, documentée ici.
-        //   #1F2A4D le bleu nuit · #FFFFFF le blanc des CTA · #EAF0FF/#B9C4DE
-        //   les textes clairs · #34C759 le vert des coches et du badge connecté.
-        // La colonne CTA reste À DROITE comme sur la maquette : elle est fixe
-        // (~248px) et le texte prend le reste — la section fait ~504px utiles,
-        // pas 1382 comme le visuel, donc les tailles sont recalibrées.
+        // ── the Kybernos Cloud card (mock-up of 2026-09-21) ────────────────
+        // The card is a BRAND card: its night blue does not follow the
+        // theme — it reads the same in light and dark, like a sponsor
+        // block. One value per colour, documented here.
+        //   #1F2A4D the night blue · #FFFFFF the CTAs' white · #EAF0FF/#B9C4DE
+        //   the light texts · #34C759 the green of the ticks and of the connected badge.
+        // The CTA column stays ON THE RIGHT as in the mock-up: it is fixed
+        // (~248px) and the text takes the rest — the section is ~504px useful,
+        // not 1382 like the visual, so the sizes are recalibrated.
         '.kbmh-hero{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;background:#1F2A4D;border:.5px solid #2C3A63;border-radius:14px;padding:20px 22px}',
         '.kbmh-hero-main{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1 1 210px}',
         '.kbmh-hero-brand{display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
@@ -3029,10 +3166,10 @@ window.__ModuleLoader__.load({
         '.kbmh-hero-or{display:flex;align-items:center;gap:10px}',
         '.kbmh-hero-or-line{flex:1;height:1px;background:rgba(255,255,255,.20)}',
         '.kbmh-hero-or-txt{font-size:11.5px;color:#9FACCB;white-space:nowrap}',
-        // ── version compacte (02/10) : une bande de ~70 px au lieu d'un bloc de ~200 px ──
-        // Ligne 1 : marque + pastilles ; ligne 2 : titre ; actions à droite, sur une ligne.
-        // Le pitch et les deux points forts (Auto-fallback, Guardrails) sont masqués : ils
-        // restent dans le DOM (info-bulles des puces, hooks data-kbmh) pour les contrôles.
+        // ── compact version (02/10): a ~70 px strip instead of a ~200 px block ──
+        // Line 1: brand + pills; line 2: title; actions on the right, on one line.
+        // The pitch and the two highlights (Auto-fallback, Guardrails) are hidden: they
+        // stay in the DOM (chips' tooltips, data-kbmh hooks) for the checks.
         '.kbmh-hero{padding:10px 14px;gap:8px 16px;border-radius:12px}',
         '.kbmh-hero-main{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:6px 14px;flex:1 1 300px;min-width:0}',
         '.kbmh-hero-brand{grid-column:1/-1;flex-wrap:nowrap;gap:8px}',
@@ -3044,20 +3181,20 @@ window.__ModuleLoader__.load({
         '.kbmh-hero-cta{flex-direction:row;align-items:center;flex:0 0 auto;gap:8px}',
         '.kbmh-hero-btn{height:28px;padding:0 10px;font-size:12px;border-radius:8px}',
         '.kbmh-hero-or{display:none}',
-        // Étroit : la colonne CTA passe sous le texte et s'étale en ligne.
+        // Narrow: the CTA column goes under the text and spreads on a line.
         '@container (max-width: 520px){.kbmh-hero{flex-direction:column;align-items:stretch;gap:14px;padding:18px}.kbmh-hero-cta{flex-basis:auto}}',
-        // ── la rangée « Kybernos Cloud » en tête de la liste native ─────────
-        // La liste native (ul du module ModelsSection) est déjà une colonne
-        // flex : `order:-1` remonte la rangée marquée sans toucher au DOM ni
-        // au cœur DSH. Le marqueur est invisible ; l'outlet du siège rend un
-        // ancre `display:contents`, donc `:has()` descendant suffit — seule la
-        // rangée kybernos porte .kbm-rowmark.
+        // ── the « Kybernos Cloud » row at the head of the native list ─────────
+        // The native list (ul of the ModelsSection module) is already a flex
+        // column: `order:-1` lifts the marked row without touching the DOM nor
+        // the DSH core. The marker is invisible; the seat's outlet renders an
+        // anchor `display:contents`, so a descendant `:has()` is enough — only the
+        // kybernos row carries .kbm-rowmark.
         '.kbm-rowmark{display:none!important}',
         'li:has(.kbm-rowmark){order:-1}',
         '@media (prefers-reduced-motion: no-preference){.kbmp *{transition:background-color .15s ease,border-color .15s ease,color .15s ease}}',
       ].join('\n')
 
-      // Les contrôles DSH (kbm-*) sont communs à Models et Sessions : un seul <style id="kbm-controls-style"> pour les deux.
+      // DSH controls (kbm-*) are shared by Models and Sessions: a single <style id="kbm-controls-style"> for both.
       const kbPoseControles = () => {
         if (typeof document === 'undefined' || document.getElementById('kbm-controls-style')) return
         const st = document.createElement('style')
@@ -3068,22 +3205,22 @@ window.__ModuleLoader__.load({
       const CSS = CSS_PANEL
 
 
-      // ── phase câblée : un seul point à remplir (étape 2) ──────────────────
-      // Aujourd'hui `KBM.live` est faux : l'écran travaille sur le jeu figé et
-      // n'écrit rien. À l'étape 2, ces trois fonctions deviennent le seul endroit
-      // qui touche le réseau — les composants, eux, ne changent pas.
-      //   kbMPersist : champs `wire` → `remote.settings.mutate('llm-pi-ai', …)`,
-      //                annotations → POST /kybernos-models/annotations/save ;
-      //   kbMLoad    : remplit KBM.models depuis `remote.llm` + `settings.describe` ;
-      //   kbMSyncLive: lit GET /kybernos-models/modelsdev?route=…&id=… (index caché).
-      // ── Les champs réels : un contrôle → un chemin dans `llm-pi-ai` ───────
-      // Ce que le schéma du harnais accepte RÉELLEMENT par modèle :
+      // ── wired phase: a single place to fill (step 2) ──────────────────
+      // Today `KBM.live` is false: the screen works on the frozen set and
+      // writes nothing. At step 2, these three functions become the only place
+      // that touches the network — the components do not change.
+      //   kbMPersist : `wire` fields → `remote.settings.mutate('llm-pi-ai', …)`,
+      //                annotations → POST /kybernos-models/annotations/save;
+      //   kbMLoad    : fills KBM.models from `remote.llm` + `settings.describe`;
+      //   kbMSyncLive: reads GET /kybernos-models/modelsdev?route=…&id=… (cached index).
+      // ── The real fields: a control → a path in `llm-pi-ai` ───────
+      // What the harness schema REALLY accepts per model:
       //   name: string · contextWindow: int>0 · maxTokens: int>0
-      //   input: sous-ensemble de ['text','image'] · reasoningEfforts: false | dict
-      //   compat: ~20 commutateurs (pas de contrôle dans la maquette : hors panneau)
-      // Un modèle vit sous `models[i]` (route déclarée : elle a une liste `models`)
-      // ou sous `modelOverrides.<id>` (route catalogue). Le harnais REFUSE
-      // `modelOverrides` à côté d'une liste `models` — d'où les deux chemins.
+      //   input: subset of ['text','image'] · reasoningEfforts: false | dict
+      //   compat: ~20 switches (no control in the mock-up: outside the panel)
+      // A model lives under `models[i]` (declared route: it has a `models` list)
+      // or under `modelOverrides.<id>` (catalogue route). The harness REFUSES
+      // `modelOverrides` next to a `models` list — hence the two paths.
       const KB_NS = 'llm-pi-ai'
       const KB_LEVELS = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']
       // KB-NUM-PURE-BEGIN
@@ -3108,12 +3245,12 @@ window.__ModuleLoader__.load({
         if (k === 'reasoning') return 'reasoningEfforts'
         return null
       }
-      /** Le chemin d'écriture, ou une erreur explicite.
-       *  Le service settings ne traverse PAS les tableaux (`path` n'accepte que
-       *  des chaînes et un tableau n'est pas un objet) : pour une route déclarée
-       *  on réécrit donc la LISTE `models` entière — en repartant de la couche
-       *  UTILISATEUR, jamais de la couche résolue (qui matérialiserait les
-       *  défauts du schéma, par exemple `input: []`). */
+      /** The write path, or an explicit error.
+       *  The settings service does NOT traverse arrays (`path` only accepts
+       *  strings and an array is not an object): for a declared route
+       *  the whole `models` LIST is therefore rewritten — starting again from the
+       *  USER layer, never from the resolved layer (which would materialise the
+       *  schema's defaults, for example `input: []`). */
       const kbMOps = (mo, k, del, wire) => {
         const field = kbMFieldOf(k)
         if (field === null) return { error: m('kb.models.error.path') }
@@ -3132,13 +3269,13 @@ window.__ModuleLoader__.load({
           ops: [{ op: 'set', path: ['providers', mo.route, 'models'], value: list }],
         }
       }
-      /** La valeur de fil, ou la sentinelle `KB_REFUS` quand la traduction est
-       *  impossible (niveaux de raisonnement inconnus) — on refuse au lieu
-       *  d'écrire une valeur inventée. */
+      /** The wire value, or the `KB_REFUS` sentinel when translation is
+       *  impossible (unknown reasoning levels) — we refuse instead of
+       *  writing an invented value. */
       const KB_REFUS = Symbol('refus')
-      /** Les modalités EFFECTIVES d'une entrée qui n'écrit pas `input` :
-       *  celles de la route si elle les déclare, sinon le défaut du harnais
-       *  (`llm-pi-ai` : DEFAULT_INPUT = ['text']). Jamais deviné plus loin. */
+      /** The EFFECTIVE modalities of an entry that does not write `input`:
+       *  the route's if it declares them, otherwise the harness default
+       *  (`llm-pi-ai`: DEFAULT_INPUT = ['text']). Never guessed further. */
       const kbMInputBase = (mo) => {
         if (Array.isArray(mo.raw.input)) return mo.raw.input
         if (Array.isArray(mo.defaultInput)) return mo.defaultInput
@@ -3184,7 +3321,7 @@ window.__ModuleLoader__.load({
       }
       const kbMKey = (mo) => (mo.route === '' || mo.id === '' ? null : mo.route + '/' + mo.id)
 
-      /** Les annotations locales : lues au chargement, patchées champ par champ. */
+      /** The local annotations: read at load, patched field by field. */
       const kbMAnnotations = async (key, fields) => {
         const url = fields === undefined ? '/kybernos-models/annotations' : '/kybernos-models/annotations/save'
         const res = await fetch(url, fields === undefined ? { headers: { accept: 'application/json' } }
@@ -3195,8 +3332,8 @@ window.__ModuleLoader__.load({
         return body
       }
 
-      /** Le journal local (host) : chaque tentative d'écriture y laisse une
-       *  ligne. Best-effort : un journal indisponible ne bloque jamais un geste. */
+      /** The local journal (host): every write attempt leaves a
+       *  line there. Best-effort: an unavailable journal never blocks a gesture. */
       const kbMJournal = async (event) => {
         try {
           await fetch('/kybernos-models/journal', {
@@ -3205,8 +3342,8 @@ window.__ModuleLoader__.load({
           })
         } catch (e) { /* journal best-effort */ }
       }
-      /** Un service qui ne répond pas ne doit pas laisser le panneau suspendu :
-       *  au-delà du délai, on rend la main et l'écran le dit. */
+      /** A service that does not answer must not leave the panel hanging:
+       *  after the delay, control is handed back and the screen says so. */
       const kbMTimeout = (promise, ms) => new Promise((resolve) => {
         let done = false
         const timer = setTimeout(() => {
@@ -3227,13 +3364,13 @@ window.__ModuleLoader__.load({
         })
       })
 
-      /** Le contrat host : la liste des champs réels, comparée à la nôtre.
-       *  Si les deux divergent, le panneau le DIT au lieu d'afficher un compte
-       *  flatteur. */
+      /** The host contract: the list of real fields, compared with ours.
+       *  If the two diverge, the panel SAYS so instead of showing a
+       *  flattering count. */
       const KB_PANEL_FIELDS = ['contextWindow', 'input', 'maxTokens', 'name', 'reasoningEfforts']
-      // `compat` est belle et bien inscriptible par le harnais (~20 commutateurs)
-      // mais la maquette n'en expose AUCUN contrôle : il est donc « hors
-      // panneau », listé ici pour que le contrat reste vrai sans mentir.
+      // `compat` is indeed writable by the harness (~20 switches)
+      // but the mock-up exposes NO control for it: it is therefore « outside the
+      // panel », listed here so that the contract stays true without lying.
       const KB_HORS_PANNEAU = ['compat']
       const kbMVerifyContract = async () => {
         const res = await fetch('/kybernos-models/status', { headers: { accept: 'application/json' } })
@@ -3246,7 +3383,7 @@ window.__ModuleLoader__.load({
         KBM.hostVersion = body.version === undefined ? null : body.version
       }
 
-      /** Écriture d'un contrôle. Deux canaux, jamais mélangés. */
+      /** Writing a control. Two channels, never mixed. */
       const kbMPersist = async (mo, k, v) => {
         const api = kbMApi()
         if (api === null || api.settings === null) { mo.error = m('kb.models.error.remote'); kbmNotify(); return false }
@@ -3268,9 +3405,9 @@ window.__ModuleLoader__.load({
           let wire = null
           if (del !== true) {
             wire = kbMWireValue(mo, k, v)
-            if (wire === KB_REFUS) { mo.error = m(k === 'context' || k === 'outputLimit' ? 'kb.models.error.number' : 'kb.models.error.wire'); kbmNotify(); return false }
-            // Un retour à la valeur de la couche inférieure s'écrit en retirant la
-            // clé : on ne redéclare pas ce que le harnais applique déjà.
+            if (wire === KB_REFUS) { mo.error = m(k === 'context' || k === 'outputLimit' ? 'kb.models.error.number' : 'kb.models.error.wire'); mo.errorAt = { k, text: mo.error }; kbmNotify(); return false }
+            // A return to the lower layer's value is written by removing the
+            // key: what the harness already applies is not declared again.
             if ((k === 'textIn' || k === 'vision') && Array.isArray(mo.raw.input) !== true && kbMSameList(wire, kbMInputBase(mo)) === true) del = true
           }
           const plan = kbMOps(mo, k, del, wire)
@@ -3306,11 +3443,11 @@ window.__ModuleLoader__.load({
         }
       }
 
-      /** Un rechargement ne perd rien. Les états acquis d'une rangée — fiche
-       *  models.dev, notes externes, rangée ouverte, refus à afficher — reviennent
-       *  sur la rangée de MÊME CLÉ (`route/id`). Une ligne « Ajouter un modèle »
-       *  en cours de saisie survit aussi : elle ne vient pas du document, seul un
-       *  document peut la remplacer. */
+      /** A reload loses nothing. The acquired states of a row — models.dev
+       *  sheet, external notes, open row, refusal to show — come back
+       *  on the row with the SAME KEY (`route/id`). An « Add a model » line
+       *  being typed also survives: it does not come from the document, only a
+       *  document can replace it. */
       const kbMReprendre = (avant, apres) => {
         const par = new Map(avant.map((mo) => [mo.key, mo]))
         for (const mo of apres) {
@@ -3323,8 +3460,8 @@ window.__ModuleLoader__.load({
           if (old.scores !== undefined) mo.scores = old.scores
           if (old.scoresAt !== undefined) mo.scoresAt = old.scoresAt
           if (old.scoresFailed !== undefined) mo.scoresFailed = old.scoresFailed
-          // Un refus d'écriture reste affiché (l'écriture n'a pas eu lieu) — sauf
-          // le conflit de révision, que ce rechargement vient justement de régler.
+          // A write refusal stays shown (the write did not happen) — except
+          // the revision conflict, which this very reload has just settled.
           if (typeof old.error === 'string' && old.error !== m('kb.models.error.conflict')) mo.error = old.error
         }
         const cles = new Set(apres.map((mo) => mo.key))
@@ -3396,9 +3533,9 @@ window.__ModuleLoader__.load({
                 }, route + '/' + id))
               }
             } else {
-              // Route catalogue : le catalogue installé n'est pas lisible d'ici,
-              // donc on montre les surcharges déjà posées (et « Add model » en
-              // crée une). Rien n'est inventé.
+              // Catalogue route: the installed catalogue is not readable from here,
+              // so the overrides already set are shown (and « Add model »
+              // creates one). Nothing is invented.
               const overrides = kbMOBJ(user.modelOverrides)
               for (const id of Object.keys(overrides)) {
                 rows.push(kbmMakeModel({
@@ -3409,8 +3546,8 @@ window.__ModuleLoader__.load({
               }
             }
           }
-          // Les annotations locales (le deuxième niveau) — jamais par-dessus un
-          // champ réel : un contrôle câblé tient sa valeur de settings.yaml.
+          // The local annotations (the second level) — never on top of a
+          // real field: a wired control takes its value from settings.yaml.
           for (const mo of rows) {
             const key = kbMKey(mo)
             const noted = key === null ? undefined : KBM.annotations[key]
@@ -3431,22 +3568,26 @@ window.__ModuleLoader__.load({
           return true
         } catch (e) {
           KBM.loading = false
-          KBM.loadError = String(e && e.message ? e.message : e)
+          // The browser's own text for a refused connection or an HTML answer (« Failed to fetch », « Load failed ») is not
+          // something to read: say what it means.
+          const brut = String(e && e.message ? e.message : e)
+          // (By the message, not the error class: a TypeError can also be a bug of ours, which must stay visible.)
+          KBM.loadError = /^(failed to fetch|load failed|networkerror)|unexpected token|is not valid json/i.test(brut) ? m('kb.models.hostdown') : brut
           kbmNotify()
           kbMRefreshDone()
           return false
         }
       }
 
-      // ── Rafraîchissement piloté par les invalidations de DSH ───────────────
-      // La page Models NATIVE se réabonne aux quatre signaux ci-dessous ; ce
-      // panneau, lui, lisait settings.yaml UNE SEULE FOIS, à sa pose. Un
-      // fournisseur ou un modèle ajouté pendant que la page est ouverte n'y
-      // apparaissait donc pas — il fallait recharger la page (bug constaté deux
-      // fois le 23/09/2026 : « j'ai ajouté mimo, mais je ne trouve pas dans
-      // Models »). On écoute les mêmes signaux, sans rien écrire : un délai court
-      // absorbe les rafales, et une lecture déjà en cours est rejouée à sa fin
-      // plutôt que doublée.
+      // ── Refresh driven by DSH's invalidations ───────────────
+      // The NATIVE Models page re-subscribes to the four signals below; this
+      // panel read settings.yaml ONLY ONCE, when mounted. A
+      // provider or a model added while the page is open therefore did not
+      // show up in it — the page had to be reloaded (bug seen twice
+      // on 23/09/2026: « I added mimo, but I cannot find it in
+      // Models »). The same signals are listened to, writing nothing: a short delay
+      // absorbs the bursts, and a read already running is replayed when it ends
+      // rather than doubled.
       let kbMRefreshTimer = null
       let kbMRefreshPending = false
       const kbMRefresh = () => {
@@ -3465,7 +3606,7 @@ window.__ModuleLoader__.load({
         kbMRefresh()
       }
 
-      /** Un objet sûr : ni null, ni undefined, ni tableau. */
+      /** A safe object: not null, not undefined, not an array. */
       const kbMOBJ = (v) => (v === null || v === undefined || typeof v !== 'object' || Array.isArray(v) === true) ? {} : v
       const kbMProviders = (layer) => {
         const safe = kbMOBJ(layer)
@@ -3513,7 +3654,9 @@ window.__ModuleLoader__.load({
         const refs = []
         for (const route of Object.keys(kbMOBJ(userProviders))) {
           const prof = kbMOBJ(userProviders)[route]
-          if (kbPvIsObj(prof) && typeof prof.apiKeyEnv === 'string' && refs.indexOf(prof.apiKeyEnv) < 0) refs.push(prof.apiKeyEnv)
+          const entry = catDe(route)
+          const ref = kbPvKeyRefOf(prof, entry !== null ? entry.env : null)
+          if (kbPvIsObj(prof) && ref !== null && refs.indexOf(ref) < 0) refs.push(ref)
         }
         const keys = {}
         const cr = api.credentials
@@ -3617,7 +3760,8 @@ window.__ModuleLoader__.load({
           alertes.push({
             cle: a.cle,
             route: typeof a.route === 'string' && a.route !== '' ? a.route : (cut < 0 ? a.cle : a.cle.slice(0, cut)),
-            cause: KB_HEALTH_CAUSES.indexOf(a.cause) >= 0 ? a.cause : 'other'
+            cause: KB_HEALTH_CAUSES.indexOf(a.cause) >= 0 ? a.cause : 'other',
+            code: typeof a.code === 'string' ? a.code.slice(0, 40) : ''
           })
         }
         if (alertes.length === 0) return null
@@ -3637,6 +3781,21 @@ window.__ModuleLoader__.load({
         if (vue !== null) for (const a of vue.alertes) out[a.cle] = true
         return out
       }
+      /** The failing models as a lookup by "route/id" to what is known about them (the page words the cause on the row). Pure. */
+      const kbHealthIndex = (vue) => {
+        const out = {}
+        if (vue !== null) for (const a of vue.alertes) out[a.cle] = a
+        return out
+      }
+      /** Is this model free to call? The Free LLMs route, an id that says so, or a provider known for a free quota. Pure. */
+      const kbHealthFree = (route, id, freeRoutes) => route === 'opencode-free' || /(:free|-free)$/i.test(String(id)) || (Array.isArray(freeRoutes) && freeRoutes.indexOf(route) >= 0)
+      /** The sentence (a key under kb.health.why.*) that says WHY a model is not answering, for the person to act on: a key problem is
+       *  « not in your Kybernos plan » for a Kybernos Cloud model, « may no longer be free » for a free one, « the key is refused » for the
+       *  rest (V-29). Pure. */
+      const kbHealthWhy = (alerte, free) => {
+        if (alerte.cause === 'key') return alerte.route === 'kybernos' ? 'kb.health.why.cloud' : (free === true ? 'kb.health.why.free' : 'kb.health.why.key')
+        return 'kb.health.why.' + alerte.cause
+      }
       // KB-HEALTH-PURE-END
       /** The published view, or null: no bundle, no study model, nothing failing, or the hour of silence is running. */
       const kbHealthGet = () => {
@@ -3655,7 +3814,8 @@ window.__ModuleLoader__.load({
         kbmUse()
         const [, tick] = React.useState(0)
         React.useEffect(() => {
-          const on = () => tick((n) => n + 1)
+          // The whole panel re-reads the verdict: the Models tab folds the failing models away, it must hear of a new one too.
+          const on = () => { tick((n) => n + 1); kbmNotify() }
           window.addEventListener('kybernos-health', on)
           return () => window.removeEventListener('kybernos-health', on)
         }, [])
@@ -3666,7 +3826,7 @@ window.__ModuleLoader__.load({
         const all = vue.tousEnEchec === true
         const label = all ? m('kb.health.chip.all') : (n === 1 ? m('kb.health.chip.one') : m('kb.health.chip.many', { n }))
         const lines = kbHealthRows(vue.alertes, 6)
-        const showThem = () => { UI.menu = null; UI.tab = 'models'; UI.q = ''; UI.prov = 'all'; UI.type = 'all'; UI.caps = {}; UI.statut = 'down'; UI.page = 1; kbmNotify() }
+        const showThem = () => { UI.menu = null; UI.tab = 'models'; UI.q = ''; UI.prov = 'all'; UI.type = 'all'; UI.caps = {}; UI.statut = 'down'; UI.page = 1; UI.showDown = true; kbmNotify() }
         const hide = () => { kbHealthCall('hide'); UI.menu = null; if (UI.statut === 'down') UI.statut = 'any'; kbmNotify() }
         const fixKey = (route) => { UI.menu = null; UI.tab = 'providers'; UI.edit = route; kbmNotify() }
         return h('span', { className: 'kbhc', 'data-kbm': 'health' },
@@ -3684,13 +3844,13 @@ window.__ModuleLoader__.load({
                 h('ul', { key: 'l', className: 'kbhc-list', 'data-kbm': 'health-list' },
                   lines.rows.map((a) => h('li', { key: a.cle, 'data-kbm': 'health-row', 'data-kbm-key': a.cle },
                     h('code', { title: a.cle }, a.cle),
-                    h('span', { className: 'kbhc-cause' }, m('kb.health.cause.' + a.cause)),
+                    h('span', { className: 'kbhc-cause', 'data-kbm': 'health-why', title: a.code }, m(kbHealthWhy(a, kbHealthFree(a.route, a.cle.slice(a.route.length + 1), Object.keys(FREE_LINKS))))),
                     a.cause === 'key' ? h('button', { type: 'button', className: 'kbhc-btn', 'data-kbm': 'health-fix', title: m('kb.health.fixkey.t', { slug: a.route }), onClick: () => fixKey(a.route) }, m('kb.health.fixkey')) : null)),
                   lines.more > 0 ? h('li', { key: 'more', className: 'kbhc-detail' }, m('kb.health.more', { n: lines.more })) : null),
                 h('div', { key: 'i', className: 'kbhc-detail' }, m('kb.health.impact'))],
             h('div', { className: 'kbhc-acts' },
               h('button', { type: 'button', className: 'kbhc-btn', 'data-kbm': 'health-recheck', disabled: vue.checking === true, onClick: () => kbHealthCall('recheck') }, vue.checking === true ? m('kb.health.checking') : m('kb.health.recheck')),
-              h('button', { type: 'button', className: 'kbhc-btn', 'data-kbm': 'health-show', onClick: showThem }, m('kb.health.show')),
+              h('button', { type: 'button', className: 'kbhc-btn', 'data-kbm': 'health-show', onClick: showThem }, m('kb.health.show', { n })),
               h('button', { type: 'button', className: 'kbhc-btn kbhc-btn-quiet', 'data-kbm': 'health-hide', onClick: hide }, m('kb.health.hide')))) : null)
       }
 
@@ -3813,6 +3973,26 @@ window.__ModuleLoader__.load({
       /** A parseable http(s) URL without an unfilled `${…}` template. Pure. */
       const kbPvUrlOk = (url) => /^https?:\/\/[^\s]+$/.test(String(url).trim()) && String(url).indexOf('${') < 0
       const kbPvIsObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
+      /** The credential reference a route reads its key from: the one its profile names, else the one the catalogue gives that
+       *  provider (a catalog add with the key left blank writes no `apiKeyEnv` yet), else null (a route that names no key at
+       *  all, such as a local endpoint: nothing to say about it). Pure. */
+      const kbPvKeyRefOf = (prof, catEnv) => (kbPvIsObj(prof) && typeof prof.apiKeyEnv === 'string' && prof.apiKeyEnv !== '' ? prof.apiKeyEnv : (typeof catEnv === 'string' && catEnv !== '' ? catEnv : null))
+      /** 'ok' | 'missing' | 'unknown' for a route that has a key reference, 'none' for one that has not. A catalog provider added
+       *  without its key is 'missing', like every other provider without one (it showed no dot at all: A3-32). Pure. */
+      const kbPvKeyState = (prof, catEnv, keys) => {
+        const ref = kbPvKeyRefOf(prof, catEnv)
+        if (ref === null) return 'none'
+        const st = keys !== null && typeof keys === 'object' ? keys[ref] : undefined
+        return st === true ? 'ok' : (st === false ? 'missing' : 'unknown')
+      }
+      /** Which cards wait under a fold. A provider with no key (or switched off) answers nothing, so once at least one provider works they
+       *  fold away and the first view is the ones that do; with none working everything stays in view (a fold over the whole page would
+       *  hide the page). `flags` is one boolean per card, true = waiting. Pure. */
+      const kbPvFold = (flags) => {
+        const list = Array.isArray(flags) ? flags : []
+        const waiting = list.filter((x) => x === true).length
+        return { fold: waiting > 0 && waiting < list.length, waiting }
+      }
       /** Model rows (id + optional name) from a draft: drops blank ids, keeps the first of a duplicate. Pure. */
       const kbPvRows = (rows) => {
         const seen = new Set()
@@ -4108,13 +4288,8 @@ window.__ModuleLoader__.load({
         for (const c of cands) if (picked[c.id] === true && !have.has(c.id)) out.push(kbFetchAdopt(c))
         return out
       }
-      /** 262144 → "256K", 1048576 → "1M", anything else as it is. Pure. */
-      const kbFetchSize = (n) => {
-        if (n >= 1048576 && n % 1048576 === 0) return String(n / 1048576) + 'M'
-        if (n >= 1024 && n % 1024 === 0) return String(n / 1024) + 'K'
-        if (n >= 1000 && n % 1000 === 0) return String(n / 1000) + 'K'
-        return String(n)
-      }
+      /** The size of a fetched model, in the same words as the Context column (kbCapLabel): 256000 is "256K", 262144 "262.1K". Pure. */
+      const kbFetchSize = (n) => kbCapLabel(n)
       // KB-FETCH-PURE-END
       // KB-FETCH-ACTIONS-BEGIN
       /** Ask the engine. Never throws: a service this DSH lacks, a refusal and a timeout all come back as `refused`. */
@@ -4245,9 +4420,9 @@ window.__ModuleLoader__.load({
         } catch (e) { /* unknown stays unknown */ }
       }
       // KB-DS-ACTIONS-END
-      /** Une entrée `models[i]`/`modelOverrides.<id>` → les clés de contrôle du
-       *  panneau. Seules les clés PRÉSENTES apparaissent : c'est ce qui fait
-       *  qu'une surcharge se voit. */
+      /** A `models[i]`/`modelOverrides.<id>` entry → the panel's control keys.
+       *  Only the PRESENT keys appear: that is what makes
+       *  an override visible. */
       const kbMControlsFromEntry = (entry) => {
         const out = {}
         if (entry === null || entry === undefined || typeof entry !== 'object' || Array.isArray(entry) === true) return out
@@ -4263,9 +4438,9 @@ window.__ModuleLoader__.load({
         return out
       }
 
-      /** Les notes externes d'un modèle : lecture d'un instantané tenu par l'hôte
-       *  (deux pages publiques, cache disque 24 h). Best-effort : un catalogue
-       *  indisponible ne bloque jamais les contrôles, il laisse la section vide. */
+      /** A model's external notes: a read of a snapshot held by the host
+       *  (two public pages, 24 h disk cache). Best-effort: an unavailable catalogue
+       *  never blocks the controls, it leaves the section empty. */
       const kbMScoresLoad = async (mo, force) => {
         const key = kbMKey(mo)
         if (key === null) { mo.scores = null; mo.scoresFailed = false; kbmNotify(); return false }
@@ -4290,6 +4465,8 @@ window.__ModuleLoader__.load({
           }
           KBM.scoresAt = body.at === undefined ? null : body.at
           KBM.scoresRunning = body.running === true
+          // A newer snapshot than the one the Score column was read from: read the column again.
+          if (KBM.scoreAtSeen !== KBM.scoresAt) { KBM.scoreAtSeen = KBM.scoresAt; KBM.scoreLoaded = false }
           kbmNotify()
           return true
         } catch (e) {
@@ -4300,10 +4477,30 @@ window.__ModuleLoader__.load({
           return false
         }
       }
-      /** Déclenche le relevé des deux catalogues, en arrière-plan. La réponse
-       *  part tout de suite : un scrape de ~4 Mo ne fait jamais attendre l'écran.
-       *  Appelée par la synchronisation d'une ligne, elle se coalesce — le bouton
-       *  « Synchroniser N » la sollicite N fois, le réseau une seule. */
+      /** Triggers the read of the two catalogues, in the background. The answer
+       *  leaves right away: a ~4 MB scrape never makes the screen wait.
+       *  Called by a row's synchronisation, it coalesces — the « Sync N » button
+       *  asks for it N times, the network once. */
+      /** The headline score of every listed model, in ONE call (the badge, the filter and the sort of the Models tab). Best-effort: a host
+       *  without the route, or with no snapshot yet, leaves the column empty. */
+      const kbMScoreListLoad = async (force) => {
+        if (KBM.live !== true || KBM.models.length === 0) return false
+        if (KBM.scoreLoaded === true && force !== true) return false
+        KBM.scoreLoaded = true
+        try {
+          const res = await fetch('/kybernos-models/scores/list', {
+            method: 'POST', headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ models: KBM.models.filter((mo) => mo.route !== '' && mo.id !== '').map((mo) => ({ key: mo.route + '/' + mo.id, name: mo.name })) }),
+          })
+          const body = await res.json()
+          // A host without the route (not restarted) or an unreadable answer: no column, and no new try on every render.
+          if (body === null || body.ok !== true || body.scores === null || typeof body.scores !== 'object') return false
+          KBM.scoreOf = body.scores
+          KBM.scoreAtSeen = body.at === undefined ? null : body.at
+          kbmNotify()
+          return true
+        } catch (e) { return false }
+      }
       const kbMScoresRefresh = async (force) => {
         if (force !== true) {
           if (KBM.scoresRunning === true) return null
@@ -4322,9 +4519,9 @@ window.__ModuleLoader__.load({
         } catch (e) { return null }
       }
 
-      /** Préremplissage : l'index models.dev de la moitié host (un fetch pour
-       *  tous, cache disque 6 h). Aucune invention : pas de correspondance →
-       *  pas de valeurs, et le panneau le dit. */
+      /** Prefill: the models.dev index of the host half (one fetch for
+       *  all, 6 h disk cache). No invention: no match →
+       *  no values, and the panel says so. */
       const kbMSyncLive = async (mo) => {
         if (mo.route === '' || mo.id === '') { mo.synced = true; mo.remote = {}; mo.error = m('kb.models.error.nokey'); kbmNotify(); return false }
         if (mo.loading === true) return false
@@ -4337,7 +4534,7 @@ window.__ModuleLoader__.load({
           mo.loading = false
           mo.synced = true
           if (body !== null && body.ok === false) {
-            // L'index indisponible n'est PAS « modèle inconnu » : le dire juste.
+            // The index being unavailable is NOT « unknown model »: say it right.
             mo.remote = {}
             mo.synced = false
             mo.error = body.error === 'modelsdev-unavailable' ? m('kb.models.error.index') : (m('kb.models.error.reseau') + sep() + String(body.error === undefined ? 'inconnu' : body.error))
@@ -4361,17 +4558,17 @@ window.__ModuleLoader__.load({
       }
       const kbMSyncAll = () => { for (const mo of KBM.models) kbMSyncLive(mo) }
 
-      // ── NOTRE surface : un menu NEUF dans Réglages ───────────────────────
-      // Décision P3b (23/09/2026) : le catalogue cesse d'être un locataire de
-      // la page « Réglages → Models » du harnais.
-      // Révision du 24/09/2026, sur demande utilisateur (« il devra être dans
-      // Settings, un nouveau Menu ») : la surface n'est plus une entrée de la
-      // barre latérale, c'est une SECTION de Réglages — la barre latérale
-      // redevient native, et le catalogue se range là où on le cherche.
+      // ── OUR surface: a NEW menu in Settings ───────────────────────
+      // Decision P3b (23/09/2026): the catalogue stops being a tenant of
+      // the harness's « Settings → Models » page.
+      // Revision of 24/09/2026, on the user's request (« it must be in
+      // Settings, a new Menu »): the surface is no longer a sidebar
+      // entry, it is a Settings SECTION — the sidebar
+      // becomes native again, and the catalogue goes where it is looked for.
       //
-      // Le siège est `settings.section`, celui-là même que le paquet
-      // `dsh-client-ui-settings-models` occupe (`id: 'models'`, `order: 10`) :
-      // on prend notre propre id et on passe après le sien.
+      // The seat is `settings.section`, the very one the package
+      // `dsh-client-ui-settings-models` occupies (`id: 'models'`, `order: 10`):
+      // we take our own id and come after its.
       const SURFACE_ID = 'kybernos-models'
       const ModelsGlyph = (props) => Ic(
         'key',
@@ -4384,13 +4581,13 @@ window.__ModuleLoader__.load({
         h('h1', { className: 'kbm-h1' }, m('kb.models.surface.entry')),
         h('div', { className: 'kbm-sub' }, m('kb.models.surface.hint'))),
       h(KbBoundary, null, h(Panel, null)))
-      // (02/10) Plus de point de montage « Modèles locaux » ici : ce panneau
-      // vit uniquement dans la section dédiée « Ollama Local Models ».
+      // (02/10) No more « Local models » mount point here: this panel
+      // only lives in the dedicated « Ollama Local Models » section.
 
       return {
-        // `remote` porte les deux namespaces utilisés : settings (lecture et
-        // écriture de llm-pi-ai) et llm (découverte de modèles). Les noms sont
-        // ceux de la page Models native, pour écrire exactement au même endroit.
+        // `remote` carries the two namespaces used: settings (read and
+        // write of llm-pi-ai) and llm (model discovery). The names are
+        // those of the native Models page, to write at exactly the same place.
         inject: ['slots', 'remote', 'remote.settings', 'remote.llm', 'remote.credentials', 'locale'],
         apply(ctx) {
           kbCtx = ctx
@@ -4417,31 +4614,31 @@ window.__ModuleLoader__.load({
             try { window.__KB_MODELS__ = seam } catch (e) { /* no window */ }
             return () => { try { if (window.__KB_MODELS__ === seam) delete window.__KB_MODELS__ } catch (e) { /* no window */ } }
           }, 'kybernos-models: wizard seam')
-          // Trois sièges sur la page Models native : la carte Kybernos Cloud
-          // AVANT la liste des fournisseurs (siège settings.models.header que
-          // le harnais déclare dans sa section Models), le catalogue détaillé
-          // dans le corps du panneau, et le marqueur d'ordre dans le siège
-          // provider-card (un par rangée native).
+          // Three seats on the native Models page: the Kybernos Cloud card
+          // BEFORE the provider list (seat settings.models.header that
+          // the harness declares in its Models section), the detailed catalogue
+          // in the panel's body, and the order marker in the
+          // provider-card seat (one per native row).
           slots.inject('settings.models.header', () => slots.register(
             { name: 'settings.models.header', id: 'kybernos-models', order: -100 },
             Panel))
-          // ── la rangée « Kybernos Cloud » en tête de la liste native ──────
-          // Le siège provider-card est rendu DANS chaque rangée de la liste
-          // (clé = namespace de settings). Ce composant ne peint un marqueur
-          // invisible que dans la rangée kybernos réellement configurée ; le
-          // CSS du plugin remonte ensuite cette rangée (`order:-1` sur la
-          // liste, déjà une colonne flex). La rangée reste 100 % native —
-          // Edit, Delete, éditeur de clé et de modèles — seule sa position
-          // D'AFFICHAGE change : « juste avant DeepSeek », comme demandé.
-          // Zéro patch du cœur DSH.
+          // ── the « Kybernos Cloud » row at the head of the native list ──────
+          // The provider-card seat is rendered IN every row of the list
+          // (key = settings namespace). This component only paints an
+          // invisible marker in the really configured kybernos row; the
+          // plugin's CSS then lifts that row (`order:-1` on the
+          // list, already a flex column). The row stays 100 % native —
+          // Edit, Delete, key and model editor — only its DISPLAY position
+          // changes: « just before DeepSeek », as requested.
+          // Zero DSH core patch.
           slots.inject('settings.models.provider-card', () => slots.register(
             { name: 'settings.models.provider-card', key: 'llm-pi-ai', id: 'kybernos-rowmark', priority: 0 },
             RowMark))
-          // ── notre propre surface : une section de Réglages ───────────────
-          // `settings.section` est déclaré par `@deepseek-ai/dsh-client-ui-settings` ;
-          // on s'y injecte (rejoué si la déclaration revient) et on enregistre
-          // notre menu sous notre propre identifiant, APRÈS les Models natifs
-          // (`order: 10`) pour ne pas déplacer le leur.
+          // ── our own surface: a Settings section ───────────────
+          // `settings.section` is declared by `@deepseek-ai/dsh-client-ui-settings`;
+          // we inject into it (replayed if the declaration comes back) and register
+          // our menu under our own identifier, AFTER the native Models
+          // (`order: 10`) so as not to move theirs.
           ctx.effect(() => slots.inject('settings.section', () => slots.register(
             { name: 'settings.section', id: SURFACE_ID, order: 20,
               label: () => m('kb.models.surface.entry') },
@@ -4457,12 +4654,12 @@ window.__ModuleLoader__.load({
             return () => { clearInterval(tick); kbNatOwner = false; kbNatApply() }
           }, 'kybernos-models: native page menu cell')
           if (KBM.live === true) { try { kbMLoad() } catch (e) { /* chargement best-effort */ } }
-          // Les mêmes invalidations que la page Models native : un fournisseur,
-          // une clé ou un modèle ajouté AILLEURS (page native, autre écran, autre
-          // session) refait lire le document — sans recharger la page. Une édition
-          // de cordis.patch.yml faite HORS de la GUI n'émet rien (aucun watcher
-          // dans le harnais installé, mesuré le 23/09/2026) : celle-là ne se voit
-          // qu'après une relance de DSH.
+          // The same invalidations as the native Models page: a provider,
+          // a key or a model added ELSEWHERE (native page, another screen, another
+          // session) makes the document read again — without reloading the page. An edit
+          // of cordis.patch.yml made OUTSIDE the GUI emits nothing (no watcher
+          // in the installed harness, measured on 23/09/2026): that one only shows
+          // after a DSH restart.
           ctx.effect(() => {
             const remote = ctx.remote
             const fermer = []

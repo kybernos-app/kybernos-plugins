@@ -29,5 +29,6 @@
   "good": {
     "fr": "Une maquette n’est pas enregistrée : elle disparaît quand DSH redémarre, et chaque conversation a la sienne.",
     "en": "A mockup is not saved: it disappears when DSH restarts, and each chat has its own."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/create-with-kybernos/build-a-brick-mockup/"
 }

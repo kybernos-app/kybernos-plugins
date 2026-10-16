@@ -137,6 +137,9 @@ window.__ModuleLoader__.load({
     }
 
     /** Pure. The one line under the name: it follows the status so the next step reads at a glance. */
+    /** The word for the connection step and its row button: « Sign in » only for an agent that signs in with an account; one that
+     *  takes an API key says « Add the key » (Gemini CLI, Qwen Code), so the same word never names two actions (A3-48). */
+    const authLabel = (w) => (w !== null && w !== undefined && w.connect != null && w.connect.mode === 'key' ? kt('Ajouter la clé', 'Add the key') : kt('Se connecter', 'Sign in'))
     const sublineOf = (w, status) => {
       if (status === 'binaire-absent') return kt('Le programme n’est pas encore sur cet ordinateur.', 'The program is not on this computer yet.')
       if (status === 'non-connecte') {
@@ -667,7 +670,7 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kbwk-page' },
               h('div', { className: 'kbwk-head' },
                 h('div', null, h('h4', null, 'Workers'),
-                  h('p', null, kt('Des assistants de code installés sur votre ordinateur. Votre agent principal peut leur confier des tâches pendant que vous faites autre chose.', 'Coding assistants installed on your computer. Your main agent can hand them tasks while you do something else.'))),
+                  h('p', null, kt('Des assistants de code installés sur votre ordinateur. Votre agent principal peut leur confier des tâches pendant que vous faites autre chose. Réglages › Tools est l’autre porte : elle monte des outils dans un profil ; ici vous vérifiez chaque assistant et autorisez votre agent à l’appeler.', 'Coding assistants installed on your computer. Your main agent can hand them tasks while you do something else. Settings › Tools is the other door: it mounts tools in a profile; here you check each assistant and allow your agent to call it.'))),
                 h('span', { className: 'kbwk-hbtn' }, k.bone(120, 36, null, 18), k.bone(104, 36, null, 18))),
               h('div', { className: 'kbwk-count' }, k.bone(64, 14), k.bone(78, 14)),
               k.wrap(kt('Chargement des workers…', 'Loading workers…'), 'kbwk-list', [0, 1, 2, 3, 4].map((i) => h('div', { key: 'sk' + i, className: 'kbwk-item' },
@@ -780,7 +783,7 @@ window.__ModuleLoader__.load({
               }
             }
             items.push({
-              done: authOk, t: kt('Se connecter', 'Sign in'),
+              done: authOk, t: authLabel(w),
               d: authOk ? (w.connect != null && w.connect.mode === 'key' ? kt('Clé API trouvée.', 'API key found.') : kt('Connecté.', 'Signed in.')) : (authKo ? '' : kt('Votre compte ou votre clé, jamais ceux de DSH.', 'Your account or your key, never DSH’s.')), extra: authExtra
             })
           }
@@ -838,7 +841,7 @@ window.__ModuleLoader__.load({
               mine && changed ? h('button', { type: 'button', className: 'kbwk-btn accent', 'data-kb': 'wk-apply-row-' + w.id, onClick: () => apply(w, draft) }, kt('Enregistrer', 'Save'))
                 : h('button', { type: 'button', className: 'kbwk-btn ghost ico', 'data-kb': 'wk-recheck-' + w.id, title: kt('Revérifier', 'Check again'), 'aria-label': kt('Revérifier', 'Check again'), onClick: () => checkOne(w.id) }, ic('refresh')))
           } else if (status === 'binaire-absent') ctl = toDetail(h(React.Fragment, null, ic('download'), kt('Installer', 'Install')), 'wk-todo-row-' + w.id)
-          else if (status === 'non-connecte') ctl = toDetail(kt('Se connecter', 'Sign in'), 'wk-todo-row-' + w.id)
+          else if (status === 'non-connecte') ctl = toDetail(authLabel(w), 'wk-todo-row-' + w.id)
           else ctl = toDetail(kt('Que faire ?', 'What to do?'), 'wk-todo-row-' + w.id)
 
           return h('li', { key: w.id, className: 'kbwk-item', 'data-kb': 'wk-card-' + w.id, 'data-ouvert': isOpen ? '1' : '0' },
@@ -862,7 +865,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kbwk-page' },
             h('div', { className: 'kbwk-head' },
               h('div', null, h('h4', null, 'Workers'),
-                h('p', null, kt('Des assistants de code installés sur votre ordinateur. Votre agent principal peut leur confier des tâches pendant que vous faites autre chose.', 'Coding assistants installed on your computer. Your main agent can hand them tasks while you do something else.'))),
+                h('p', null, kt('Des assistants de code installés sur votre ordinateur. Votre agent principal peut leur confier des tâches pendant que vous faites autre chose. Réglages › Tools est l’autre porte : elle monte des outils dans un profil ; ici vous vérifiez chaque assistant et autorisez votre agent à l’appeler.', 'Coding assistants installed on your computer. Your main agent can hand them tasks while you do something else. Settings › Tools is the other door: it mounts tools in a profile; here you check each assistant and allow your agent to call it.'))),
               h('span', { className: 'kbwk-hbtn' },
                 typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-workers', action: { label: kt('Essayer la démo', 'Try the demo'), onClick: () => setGuide(true) } }) : null,
                 !helpHasAction ? h('button', { type: 'button', className: 'kbwk-btn ghost big', 'data-kb': 'wk-guide', onClick: () => setGuide(true) }, kt('Guide et démo', 'Guide and demo')) : null,
@@ -916,6 +919,6 @@ window.__ModuleLoader__.load({
       } catch (e) { /* optional */ }
     }
 
-    return { name: NAME, inject: [], apply: start, __test: { STATUS, statusOf, stepsOf, controlLabel, currentPolicy, sublineOf, failureText, refusalText, identityLine, PACK_STRINGS, kt } }
+    return { name: NAME, inject: [], apply: start, __test: { STATUS, statusOf, stepsOf, controlLabel, currentPolicy, sublineOf, authLabel, failureText, refusalText, identityLine, PACK_STRINGS, kt } }
   }
 })

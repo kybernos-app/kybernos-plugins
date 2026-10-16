@@ -88,7 +88,7 @@ window.__ModuleLoader__.load({
       'no date': 'sans date',
       'Close help': 'Fermer l’aide',
       'How to read the Atlas': 'Comment lire l’Atlas',
-      'The Atlas shows how the things you set up fit together. It reads your files and plugins only when you click Update, and never edits or stores anything.': 'L’Atlas montre comment ce que vous avez mis en place s’articule. Il ne lit vos fichiers et vos plugins que lorsque vous cliquez sur Mettre à jour, et ne modifie ni n’enregistre jamais rien.',
+      'The Atlas shows how the things you set up fit together. It reads your files and plugins only when you click Update, and never edits them. It keeps its last reading in this browser, so the page opens on it.': 'L’Atlas montre comment ce que vous avez mis en place s’articule. Il ne lit vos fichiers et vos plugins que lorsque vous cliquez sur Mettre à jour, et ne les modifie jamais. Il garde sa dernière lecture dans ce navigateur : la page s’ouvre donc dessus.',
       'The views': 'Les vues',
       'Around': 'Autour',
       'Pick a project or an agent team in “Start from”. Four columns show who works there, what they use and what they know. Hover a name to light up its lines.': 'Choisissez un projet ou une Agent Team dans « Partir de ». Quatre colonnes montrent qui y travaille, ce qu’il utilise et ce qu’il sait. Survolez un nom pour allumer ses lignes.',
@@ -192,7 +192,7 @@ window.__ModuleLoader__.load({
       'None of the sources answered. DSH may be restarting. Wait a moment, then try again.': 'Aucune source n’a répondu. DSH redémarre peut-être. Patientez un instant, puis réessayez.',
       'Try again': 'Réessayer',
       'Nothing read yet': 'Rien n’a encore été lu',
-      'The Atlas reads your files and plugins only when you ask. Opening this page reads nothing.': 'L’Atlas ne lit vos fichiers et vos plugins que lorsque vous le demandez. Ouvrir cette page ne lit rien.',
+      'The Atlas reads your files and plugins only when you ask. Opening this page reads nothing; the first Update is kept here, and the page shows it next time.': 'L’Atlas ne lit vos fichiers et vos plugins que lorsque vous le demandez. Ouvrir cette page ne lit rien ; la première mise à jour est gardée ici, et la page l’affichera la prochaine fois.',
       'Update': 'Mettre à jour',
       'Nothing to map yet': 'Rien à cartographier pour l’instant',
       'The Atlas fills in as you add agent teams, skills, automations and memories. Create an agent team or install a skill, then click Update.': 'L’Atlas se remplit à mesure que vous ajoutez des Agent Teams, des skills, des automations et des mémoires. Créez une Agent Team ou installez une skill, puis cliquez sur Mettre à jour.',
@@ -200,14 +200,14 @@ window.__ModuleLoader__.load({
       'Zoom in': 'Zoomer',
       'Zoom out': 'Dézoomer',
       'Fit to screen': 'Ajuster à l’écran',
-      'Help': 'Aide',
+      'How it works': 'Comment ça marche',
       'Memories were skipped. ': 'Les mémoires ont été ignorées. ',
       'They live in your kybernos.app account, which is not linked. The other sources were read.': 'Elles vivent dans votre compte kybernos.app, qui n’est pas relié. Les autres sources ont été lues.',
       'The rest is shown.': 'Le reste est affiché.',
       'Reading…': 'Lecture…',
       'Not read yet': 'Pas encore lue',
       'Could not read': 'Lecture impossible',
-      'Every project, agent team, skill, memory, lesson, automation and app, and how they point to each other. It only reads; it never edits or stores anything.': 'Chaque projet, Agent Team, skill, mémoire, leçon, automation et app, et la façon dont ils se pointent les uns vers les autres. Il ne fait que lire ; il ne modifie ni n’enregistre jamais rien.',
+      'Every project, agent team, skill, memory, lesson, automation and app, and how they point to each other. It only reads; it never edits anything. Its last reading is kept in this browser.': 'Chaque projet, Agent Team, skill, mémoire, leçon, automation et app, et la façon dont ils se pointent les uns vers les autres. Il ne fait que lire ; il ne modifie jamais rien. Sa dernière lecture est gardée dans ce navigateur.',
       'reading…': 'lecture…',
       'waiting': 'en attente',
       'Rings. ': 'Anneaux. ',
@@ -1023,6 +1023,11 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
 .kbat-dot[data-t="idle"]{background:var(--dsw-alias-label-caption)}
 .kbat-dot[data-t="busy"]{background:transparent;border:2px solid var(--dsw-alias-border-l3);border-top-color:var(--dsw-alias-label-primary);animation:kbat-spin .8s linear infinite}
 @keyframes kbat-spin{to{transform:rotate(360deg)}}
+/* The « ? How it works » pill: the same look as the Suite's (kybernos-hub), so every page has one form of the button. Under the page class: the page's own button rule (font:inherit) would win otherwise. */
+.kbat-page .kbat-help{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.kbat-page .kbat-help:hover{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}
+.kbat-page .kbat-help:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.kbat-helpq{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
 .kbat-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding-inline:14px;border-radius:16px;border:1px solid var(--dsw-alias-border-l2);background:transparent;white-space:nowrap}
 .kbat-btn:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}
 .kbat-btn:disabled{opacity:.45;cursor:default}
@@ -1241,7 +1246,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
         h('div', { className: 'kbat-mcard', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kbat-help-t', ref, tabIndex: -1 },
           h('button', { type: 'button', className: 'kbat-x', 'aria-label': tr('Close help'), onClick: p.onClose }, '×'),
           h('h2', { id: 'kbat-help-t' }, tr('How to read the Atlas')),
-          h('p', { className: 'kbat-lead' }, tr('The Atlas shows how the things you set up fit together. It reads your files and plugins only when you click Update, and never edits or stores anything.')),
+          h('p', { className: 'kbat-lead' }, tr('The Atlas shows how the things you set up fit together. It reads your files and plugins only when you click Update, and never edits them. It keeps its last reading in this browser, so the page opens on it.')),
           h('section', null, h('h3', null, tr('The views')),
             h('dl', null,
               h('dt', null, tr('Around')), h('dd', null, tr('Pick a project or an agent team in “Start from”. Four columns show who works there, what they use and what they know. Hover a name to light up its lines.')),
@@ -1569,10 +1574,37 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
 
     // The last reading, kept in memory only (gone when the page reloads) so that moving between Settings pages
     // does not make the user read again. Nothing is ever read until they ask: see `load` below.
+    // The last reading is kept in this browser (V-22), so the page opens on it instead of empty. Written only by an Update, read
+    // only by opening the page: opening still reads none of the sources. The graph is not stored, it is rebuilt from `src`.
+    const READING_KEY = 'kybernos-atlas:last-reading'
+    const READING_MAX = 1500000 // characters: the origin's browser store (about 5 MB) is shared with the rest of DSH
+    const readingStore = () => { try { return typeof window !== 'undefined' && window.localStorage ? window.localStorage : null } catch (e) { return null } }
+    function saveReading (store, r) {
+      try {
+        if (store === null || store === undefined || r.failed >= sources().length) return false
+        const text = JSON.stringify({ v: 1, at: r.at, failed: r.failed, status: r.status, src: r.src })
+        if (text.length > READING_MAX) return false
+        store.setItem(READING_KEY, text)
+        return true
+      } catch (e) { return false } // a full, blocked or private-mode store: the page just opens empty next time
+    }
+    function restoreReading (store) {
+      try {
+        if (store === null || store === undefined) return null
+        const raw = store.getItem(READING_KEY)
+        if (typeof raw !== 'string') return null
+        const j = JSON.parse(raw)
+        if (obj(j).v !== 1 || typeof j.at !== 'number' || !Number.isFinite(j.at) || typeof j.failed !== 'number' || obj(j.src) !== j.src || obj(j.status) !== j.status) return null
+        return { status: j.status, result: { graph: buildGraph(j.src, j.at), src: j.src, at: j.at, failed: j.failed } }
+      } catch (e) { return null }
+    }
     let LAST = null
+    let RECALLED = false
+    // In memory first (moving between Settings pages), else once per page load from the browser store.
+    const lastReading = () => { if (LAST === null && RECALLED === false) { RECALLED = true; LAST = restoreReading(readingStore()) } return LAST }
     function Atlas (p) {
-      const sp = React.useState(() => (LAST ? { phase: 'ready', status: LAST.status, result: LAST.result } : { phase: 'idle', status: {}, result: null })); const st = sp[0]; const setSt = sp[1]
-      const fp = React.useState(() => (LAST ? defaultFocus(LAST.result.graph) : null)); const focus = fp[0]; const setFocus = fp[1]
+      const sp = React.useState(() => { const l = lastReading(); return l ? { phase: 'ready', status: l.status, result: l.result } : { phase: 'idle', status: {}, result: null } }); const st = sp[0]; const setSt = sp[1]
+      const fp = React.useState(() => { const l = lastReading(); return l ? defaultFocus(l.result.graph) : null }); const focus = fp[0]; const setFocus = fp[1]
       const tkp = React.useState(0); const setTick = tkp[1]
       const tp = React.useState('around'); const tab = tp[0]; const setTabRaw = tp[1]
       const selp = React.useState(null); const sel = selp[0]; const setSel = selp[1]
@@ -1608,7 +1640,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
           const failed = sources().filter((s) => r.status[s[0]] && r.status[s[0]].state === 'failed').length
           const g = buildGraph(r.src, Date.now())
           const result = { graph: g, src: r.src, at: Date.now(), failed }
-          if (failed < sources().length) LAST = { status: r.status, result }
+          if (failed < sources().length) { LAST = { status: r.status, result }; saveReading(readingStore(), { at: result.at, failed, status: r.status, src: r.src }) }
           setSt({ phase: failed === sources().length ? 'error' : 'ready', status: r.status, result })
           setFocus((f) => (f !== null && g.byId[f] !== undefined ? f : defaultFocus(g)))
         }).catch((e) => { if (alive.current) setSt({ phase: 'error', status: {}, result: null }) })
@@ -1694,7 +1726,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       let body
       if (loading) body = h('div', { className: 'kbat-state', role: 'status' }, h('h2', null, tr('Reading the Atlas')), h('p', null, tr('Reading seven sources on this computer. Nothing leaves it.')), h(SourceList, { status: st.status }))
       else if (st.phase === 'error') body = h('div', { className: 'kbat-state', role: 'alert' }, h('h2', null, tr('The Atlas could not be read')), h('p', null, tr('None of the sources answered. DSH may be restarting. Wait a moment, then try again.')), h(SourceList, { status: st.status }), h('button', { type: 'button', className: 'kbat-btn', 'data-primary': 'true', onClick: load }, tr('Try again')))
-      else if (st.phase === 'idle') body = h('div', { className: 'kbat-state' }, h('h2', null, tr('Nothing read yet')), h('p', null, tr('The Atlas reads your files and plugins only when you ask. Opening this page reads nothing.')), h('button', { type: 'button', className: 'kbat-btn', 'data-primary': 'true', onClick: load }, tr('Update')))
+      else if (st.phase === 'idle') body = h('div', { className: 'kbat-state' }, h('h2', null, tr('Nothing read yet')), h('p', null, tr('The Atlas reads your files and plugins only when you ask. Opening this page reads nothing; the first Update is kept here, and the page shows it next time.')), h('button', { type: 'button', className: 'kbat-btn', 'data-primary': 'true', onClick: load }, tr('Update')))
       else if (empty) body = h('div', { className: 'kbat-state' }, h('h2', null, tr('Nothing to map yet')), h('p', null, tr('The Atlas fills in as you add agent teams, skills, automations and memories. Create an agent team or install a skill, then click Update.')))
       else {
         const cap = CAPTION[tab]
@@ -1721,10 +1753,10 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       }
       return h('div', { className: 'kbat-page', 'data-kb': 'atlas', 'data-size': size, ref: rootRef },
         h('header', { className: 'kbat-head' },
-          h('div', null, h('h1', { className: 'kbat-title' }, 'Atlas'), h('p', { className: 'kbat-sub' }, tr('Every project, agent team, skill, memory, lesson, automation and app, and how they point to each other. It only reads; it never edits or stores anything.'))),
+          h('div', null, h('h1', { className: 'kbat-title' }, 'Atlas'), h('p', { className: 'kbat-sub' }, tr('Every project, agent team, skill, memory, lesson, automation and app, and how they point to each other. It only reads; it never edits anything. Its last reading is kept in this browser.'))),
           h('div', { className: 'kbat-headr' },
             h('span', { className: 'kbat-built', role: 'status' }, h('span', { className: 'kbat-dot', 'data-t': dotT }), builtTxt),
-            h('button', { type: 'button', className: 'kbat-btn', onClick: () => setHelp(true), 'aria-haspopup': 'dialog' }, tr('Help')),
+            h('button', { type: 'button', className: 'kbat-help', onClick: () => setHelp(true), 'aria-haspopup': 'dialog' }, h('span', { className: 'kbat-helpq', 'aria-hidden': 'true' }, '?'), tr('How it works')),
             h('button', { type: 'button', className: 'kbat-btn', onClick: load, disabled: st.phase === 'loading' }, tr('Update')))),
         partial ? h('div', { className: 'kbat-banner', role: 'status' }, h('span', { className: 'kbat-dot', 'data-t': 'warn' }), h('span', { className: 'kbat-sp' },
           skippedMemory && failedNames.length === 0 ? h(React.Fragment, null, h('b', null, tr('Memories were skipped. ')), tr('They live in your kybernos.app account, which is not linked. The other sources were read.'))
@@ -1758,7 +1790,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
     }
     Object.defineProperty(model, '__test', {
       enumerable: false,
-      value: { normSkills, normLoad, normState, normMemory, normTasks, normApps, normWorkspaces, buildGraph, hubOf, aroundSet, aroundModel, listRows, pickerItems, defaultFocus, daysSince, ago, cut, firstSentence, canvasModel, canvasLayouts, runForce, CANVAS_VIEWS, LAYERS, RING_R, TL, tlx, readAgo, openTarget, FR, tr, kt, linkCount, KIND_NAME_ALL, LAYER_NAME, COLS }
+      value: { normSkills, normLoad, normState, normMemory, normTasks, normApps, normWorkspaces, buildGraph, hubOf, aroundSet, aroundModel, listRows, pickerItems, defaultFocus, daysSince, ago, cut, firstSentence, canvasModel, canvasLayouts, runForce, CANVAS_VIEWS, LAYERS, RING_R, TL, tlx, readAgo, openTarget, saveReading, restoreReading, READING_KEY, FR, tr, kt, linkCount, KIND_NAME_ALL, LAYER_NAME, COLS }
     })
     return model
   }
