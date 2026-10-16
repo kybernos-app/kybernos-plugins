@@ -1,15 +1,15 @@
 {
   "version": "1",
-  "commentaire": "Manifeste d'activation des satellites Kybernos. Un satellite = un bundle @local/* indépendant du socle. Le socle (tier 1) est toujours livré ; les tiers 2 et 3 sont optionnels et activables un par un. `obligatoire: true` = le socle en a besoin (slot déclaré par le master) ; `false` = débranchable sans casse.",
+  "commentaire": "Activation manifest of the Kybernos satellites. A satellite = a @local/* bundle independent of the base. The base (tier 1) is always shipped; tiers 2 and 3 are optional and can be switched on one by one. `obligatoire: true` = the base needs it (slot declared by the master); `false` = can be unplugged without breakage.",
   "socle": {
-    "commentaire": "Toujours livré. Pas d'option d'activation : le master déclare les slots de ces bundles, il ne peut pas s'en passer.",
+    "commentaire": "Always shipped. No activation option: the master declares the slots of these bundles, it cannot do without them.",
     "bundles": [
       {
         "dir": "kybernos-plugin",
         "nom": "@local/kybernos",
         "tier": 1,
         "obligatoire": true,
-        "role": "master : 20 modules client, 30+ routes hôte, outil kybernos_report_feedback",
+        "role": "master: 20 client modules, 30+ host routes, tool kybernos_report_feedback",
         "poids_ko": 8090
       },
       {
@@ -17,7 +17,7 @@
         "nom": "@local/kybernos-hub",
         "tier": 1,
         "obligatoire": false,
-        "role": "hub : suit si les démarrages mènent à une GUI utilisable, recommande le mode sans échec (reste actif en mode sans échec)",
+        "role": "hub: tracks whether startups lead to a usable GUI, recommends safe mode (stays active in safe mode)",
         "poids_ko": 28
       },
       {
@@ -25,7 +25,7 @@
         "nom": "@local/kybernos-theme",
         "tier": 1,
         "obligatoire": true,
-        "role": "thème (mode, palettes, fond, police) — la langue et le RTL sont dans le satellite kybernos-language",
+        "role": "theme (mode, palettes, background, font) — language and RTL are in the kybernos-language satellite",
         "poids_ko": 230
       },
       {
@@ -33,7 +33,7 @@
         "nom": "@local/kybernos-sessions",
         "tier": 1,
         "obligatoire": true,
-        "role": "sessions, garde des fichiers chauds, catégories",
+        "role": "sessions, hot-file guard, categories",
         "poids_ko": 372
       },
       {
@@ -41,20 +41,20 @@
         "nom": "@local/kybernos-skills",
         "tier": 1,
         "obligatoire": true,
-        "role": "skills, marketplace — slot 'main.kybernos-skills' déclaré par le master",
+        "role": "skills, marketplace — slot 'main.kybernos-skills' declared by the master",
         "poids_ko": 172
       }
     ]
   },
   "satellites": {
-    "commentaire": "Débranchables. tier 2 = indépendants, tier 3 = modules de rendu lourds (libs tierces).",
+    "commentaire": "Can be unplugged. tier 2 = independent, tier 3 = heavy rendering modules (third-party libs).",
     "bundles": [
       {
         "dir": "kybernos-language",
         "nom": "@local/kybernos-language",
         "tier": 2,
         "obligatoire": false,
-        "role": "langue d'interface : liste ISO, traduction LLM de Kybernos et des écrans DSH, dir/lang sur <html>",
+        "role": "interface language: ISO list, LLM translation of Kybernos and of the DSH screens, dir/lang on <html>",
         "poids_ko": 80,
         "lib_vendor": null
       },
@@ -63,7 +63,7 @@
         "nom": "@local/kybernos-relance",
         "tier": 2,
         "obligatoire": false,
-        "role": "relance DSH, outil relancer_dsh",
+        "role": "DSH relaunch, tool relancer_dsh",
         "poids_ko": 52,
         "lib_vendor": null
       },
@@ -72,7 +72,7 @@
         "nom": "@local/kybernos-composio",
         "tier": 2,
         "obligatoire": false,
-        "role": "connecteurs Composio",
+        "role": "Composio connectors",
         "poids_ko": 536,
         "lib_vendor": null
       },
@@ -81,7 +81,7 @@
         "nom": "@local/kybernos-cloud",
         "tier": 2,
         "obligatoire": false,
-        "role": "cloud, mémoire, outils memory_search/memory_write",
+        "role": "cloud, memory, tools memory_search/memory_write",
         "poids_ko": 328,
         "lib_vendor": null
       },
@@ -90,7 +90,7 @@
         "nom": "@local/kybernos-models",
         "tier": 2,
         "obligatoire": false,
-        "role": "catalogue de modèles",
+        "role": "model catalogue",
         "poids_ko": 320,
         "lib_vendor": null
       },
@@ -99,7 +99,7 @@
         "nom": "@local/kybernos-slash",
         "tier": 2,
         "obligatoire": false,
-        "role": "commandes / (slash)",
+        "role": "slash (/) commands",
         "poids_ko": 248,
         "lib_vendor": null
       },
@@ -108,7 +108,7 @@
         "nom": "@local/kybernos-maintenance",
         "tier": 2,
         "obligatoire": false,
-        "role": "maintenance, outil install_bundle",
+        "role": "maintenance, tool install_bundle",
         "poids_ko": 68,
         "lib_vendor": null
       },
@@ -118,7 +118,7 @@
         "tier": 2,
         "obligatoire": false,
         "defaut": "actif",
-        "role": "file d'attente réordonnable (glisser), auto-continue, route /kybernos/queue-move",
+        "role": "reorderable queue (drag), auto-continue, route /kybernos/queue-move",
         "poids_ko": 88,
         "lib_vendor": null
       },
@@ -128,7 +128,7 @@
         "tier": 2,
         "obligatoire": false,
         "defaut": "actif",
-        "role": "modèles gratuits OpenCode Zen sans compte : passerelle /free-llms/v1, panneau Réglages, activation au wizard",
+        "role": "free OpenCode Zen models without an account: gateway /free-llms/v1, Settings panel, activation in the wizard",
         "poids_ko": 74,
         "lib_vendor": null
       },
@@ -138,7 +138,7 @@
         "tier": 2,
         "obligatoire": false,
         "defaut": "actif",
-        "role": "mode Auto : routage des délégations par classe, whitelist, état par session",
+        "role": "Auto mode: routing of delegations by class, whitelist, per-session state",
         "poids_ko": 76,
         "lib_vendor": null
       },
@@ -148,7 +148,7 @@
         "tier": 2,
         "obligatoire": false,
         "defaut": "actif",
-        "role": "panneau Briques : maquettes isométriques pilotées par le chat, outil animer_briques",
+        "role": "Bricks panel: isometric mockups driven by the chat, tool animer_briques",
         "poids_ko": 108,
         "lib_vendor": null
       },
@@ -158,7 +158,7 @@
         "tier": 2,
         "obligatoire": false,
         "defaut": "actif",
-        "role": "panneau Slides : decks écrits en direct par le chat, outil creer_slides",
+        "role": "Slides panel: decks written live by the chat, tool creer_slides",
         "poids_ko": 776,
         "lib_vendor": null
       },
@@ -168,7 +168,7 @@
         "tier": 2,
         "obligatoire": false,
         "defaut": "actif",
-        "role": "panneau Modeleur : modèles 2D/3D pilotés par le chat, outil modeliser",
+        "role": "Modeller panel: 2D/3D models driven by the chat, tool modeliser",
         "poids_ko": 168,
         "lib_vendor": null
       },
@@ -178,7 +178,7 @@
         "tier": 2,
         "obligatoire": false,
         "defaut": "actif",
-        "role": "panneau Motion : animations (titres, graphiques, compteurs, particules, 3D, personnages, son) créées par le chat, export MP4, outil creer_motion",
+        "role": "Motion panel: animations (titles, charts, counters, particles, 3D, characters, sound) made by the chat, MP4 export, tool creer_motion",
         "poids_ko": 1481,
         "lib_vendor": "mediabunny, three.js, lottie-web"
       },
@@ -188,7 +188,7 @@
         "tier": 2,
         "obligatoire": false,
         "defaut": "actif",
-        "role": "« Install as app » : exporte un panneau de la barre droite en app native",
+        "role": "“Install as app”: exports a right-sidebar panel as a native app",
         "poids_ko": 276,
         "lib_vendor": null
       },
@@ -198,7 +198,7 @@
         "tier": 2,
         "obligatoire": false,
         "defaut": "actif",
-        "role": "ordinateurs cloud pour les agents (E2B, clé fournie par l'utilisateur)",
+        "role": "cloud computers for agents (E2B, key supplied by the user)",
         "poids_ko": 128,
         "lib_vendor": null
       },
@@ -228,7 +228,7 @@
         "tier": 2,
         "obligatoire": false,
         "defaut": "actif",
-        "role": "panneau modèles locaux : détecte la machine, installe un modèle Ollama",
+        "role": "local models panel: detects the machine, installs an Ollama model",
         "poids_ko": 80,
         "lib_vendor": null
       },
@@ -238,7 +238,7 @@
         "tier": 2,
         "obligatoire": false,
         "defaut": "actif",
-        "role": "liens markdown des messages en pastilles de référence",
+        "role": "markdown links in messages as reference chips",
         "poids_ko": 28,
         "lib_vendor": null
       },
@@ -268,7 +268,7 @@
         "tier": 2,
         "obligatoire": false,
         "defaut": "actif",
-        "role": "page Memory & Lessons learned (mémoire du compte + leçons par Agent Team), leçons injectées par session, interrupteurs, outils lesson_write/lesson_search",
+        "role": "Memory & Lessons learned page (account memory + lessons per Agent Team), lessons injected per session, switches, tools lesson_write/lesson_search",
         "poids_ko": 140,
         "lib_vendor": null
       },
@@ -287,7 +287,7 @@
         "tier": 2,
         "obligatoire": false,
         "defaut": "actif",
-        "role": "une pastille sous le composer : où en est le travail (modifié, sauvegardé, sur GitHub, dans le projet) et quoi faire ensuite ; mode Simple / Développeur ; remplace les quatre pilules git de Sessions tant qu'elle est active",
+        "role": "a chip under the composer: where the work stands (changed, saved, on GitHub, in the project) and what to do next; Simple / Developer mode; replaces the four git pills of Sessions while it is active",
         "poids_ko": 40,
         "lib_vendor": null
       },
@@ -297,7 +297,7 @@
         "tier": 2,
         "obligatoire": false,
         "defaut": "actif",
-        "role": "une pastille sous le composer et une page Réglages : la fenêtre la plus chargée de votre plan (donnée par le serveur, en pourcentage) ou le coût de la session sur votre propre clé ; le détail par jour, modèle et session ; un budget qui prévient",
+        "role": "a chip under the composer and a Settings page: the busiest window of your plan (given by the server, as a percentage) or the session cost on your own key; the detail by day, model and session; a budget that warns",
         "poids_ko": 40,
         "lib_vendor": null
       },
@@ -307,7 +307,7 @@
         "tier": 2,
         "obligatoire": false,
         "defaut": "actif",
-        "role": "des workspaces avec ou sans dossier : Create propose un dossier privé dans Documents/Kybernos, et l'onglet Détails montre où le workspace travaille ; l'exécution et les appareils y sont un aperçu grisé des prochaines versions",
+        "role": "workspaces with or without a folder: Create offers a private folder in Documents/Kybernos, and the Details tab shows where the workspace works; execution and devices are a greyed-out preview of the next versions",
         "poids_ko": 48,
         "lib_vendor": null
       },
@@ -317,7 +317,7 @@
         "tier": 2,
         "obligatoire": false,
         "defaut": "actif",
-        "role": "appels vocaux depuis n'importe quelle session (bouton sous le message, page Réglages › Appels, voix du membre, langues, voix clonée et visage en option) ; les boutons Appel / Vidéo des membres d'équipe n'apparaissent qu'avec lui",
+        "role": "voice calls from any session (button under the message, Settings › Calls page, member voice, languages, cloned voice and face optional); the Call / Video buttons of team members only appear with it",
         "poids_ko": 960,
         "lib_vendor": "livekit-client 2.22.3",
         "lib_poids_ko": 580,
@@ -328,7 +328,7 @@
         "nom": "@local/dsh-mermaid",
         "tier": 3,
         "obligatoire": false,
-        "role": "rendu des fences ```mermaid en SVG",
+        "role": "rendering of ```mermaid fences as SVG",
         "poids_ko": 6042,
         "lib_vendor": "mermaid 11.14 + katex",
         "lib_poids_ko": 3072,
@@ -339,7 +339,7 @@
         "nom": "@local/dsh-db-viewer",
         "tier": 3,
         "obligatoire": false,
-        "role": "visualisation de bases SQLite/Postgres",
+        "role": "viewer for SQLite/Postgres databases",
         "poids_ko": 2150,
         "lib_vendor": "echarts",
         "lib_poids_ko": 2048,
@@ -350,7 +350,7 @@
         "nom": "@local/dsh-media-player",
         "tier": 3,
         "obligatoire": false,
-        "role": "lecteur audio/vidéo dans la barre latérale",
+        "role": "audio/video player in the sidebar",
         "poids_ko": 1126,
         "lib_vendor": null,
         "chargement": "immediat"
@@ -360,7 +360,7 @@
         "nom": "@local/kybernos-terminal",
         "tier": 3,
         "obligatoire": false,
-        "role": "blocs de commandes du chat habillés en terminal, avec un bouton pour les lancer",
+        "role": "chat command blocks dressed as a terminal, with a button to run them",
         "poids_ko": 14,
         "lib_vendor": null,
         "chargement": "immediat"
@@ -370,7 +370,7 @@
         "nom": "@local/kybernos-dashboards",
         "tier": 3,
         "obligatoire": false,
-        "role": "page Dashboards avant Agent Teams : des dashboards construits par chat, avec un aperçu en direct dans la barre latérale droite",
+        "role": "Dashboards page before Agent Teams: dashboards built by chat, with a live preview in the right sidebar",
         "poids_ko": 185,
         "lib_vendor": null,
         "chargement": "immediat"
@@ -381,7 +381,7 @@
         "tier": 2,
         "obligatoire": false,
         "defaut": "actif",
-        "role": "un onglet Résumé dans le panneau de droite du chat : les agents, la liste des tâches, les compétences et outils utilisés et les fichiers écrits, lus dans le navigateur à partir de ce que le chat contient déjà",
+        "role": "a Summary tab in the chat's right-hand panel: the agents, the task list, the skills and tools used and the files written, read in the browser from what the chat already contains",
         "poids_ko": 16,
         "lib_vendor": null
       },
@@ -391,7 +391,7 @@
         "tier": 2,
         "obligatoire": false,
         "defaut": "actif",
-        "role": "un onglet Kyber dans le panneau de droite du chat : où votre assistant vous répond (Telegram) et l'ordinateur cloud sur lequel il travaille, lus depuis le serveur",
+        "role": "a Kyber tab in the chat's right-hand panel: where your assistant answers you (Telegram) and the cloud computer it works on, read from the server",
         "poids_ko": 12,
         "lib_vendor": null
       },
@@ -401,14 +401,14 @@
         "tier": 2,
         "obligatoire": false,
         "defaut": "actif",
-        "role": "recherche partout : le contenu des chats, les skills, mémoires, leçons, créations, automations et équipes",
+        "role": "search everywhere: the content of chats, skills, memories, lessons, creations, automations and teams",
         "poids_ko": 40,
         "lib_vendor": null
       }
     ]
   },
   "ordre_montage": {
-    "commentaire": "Ordre de dsh.profile.bundles. Le socle d'abord, puis les satellites activés dans cet ordre. Un satellite désactivé est simplement omis de la liste.",
+    "commentaire": "Order of dsh.profile.bundles. The base first, then the satellites activated in that order. A deactivated satellite is simply left out of the list.",
     "socle": [
       "@local/kybernos-theme",
       "@local/kybernos-models",

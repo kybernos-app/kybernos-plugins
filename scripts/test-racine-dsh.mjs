@@ -55,7 +55,7 @@ const profilPose = [join(racineProfil, 'node_modules', '@deepseek-ai'), join(rac
 const sansRacine = resoudreCopie(null, PKG)
 verifie('sans racine, rien n\'est résolu', sansRacine.copie === null)
 verifie('sans racine, le motif réclame --dsh', sansRacine.motif.indexOf('--dsh') >= 0)
-verifie('sans racine, le motif dit qui sait quelle copie DSH charge', sansRacine.motif.indexOf('robot de cycle de vie') >= 0)
+verifie('sans racine, le motif dit qui sait quelle copie DSH charge', sansRacine.motif.indexOf('lifecycle robot') >= 0)
 
 const mauvaise = resoudreCopie('/Q', PKG, fauxExiste([]))
 verifie('une racine sans node_modules/@deepseek-ai est refusée', mauvaise.copie === null)
@@ -111,7 +111,7 @@ for (const [script] of SCRIPTS) {
   const r = spawnSync('node', [join('scripts', script), '--check'], { cwd: REPO, encoding: 'utf8' })
   verifie(script + ' : --check sans --dsh sort en 2', r.status === 2)
   verifie(script + ' : --check sans --dsh ne dit pas ✓', (r.stdout || '').indexOf('✓') < 0)
-  verifie(script + ' : --check sans --dsh réclame --dsh', (r.stderr || '').indexOf('aucune racine déclarée') >= 0)
+  verifie(script + ' : --check sans --dsh réclame --dsh', (r.stderr || '').indexOf('no root declared') >= 0)
 }
 
 // ── 5. la racine déclarée est HONORÉE (et non remplacée par un défaut) ──────
@@ -125,7 +125,7 @@ try {
   for (const [script] of SCRIPTS) {
     const r = spawnSync('node', [join('scripts', script), '--check', '--dsh', banc], { cwd: REPO, encoding: 'utf8' })
     verifie(script + ' : accepte une racine déclarée qui porte la cible', r.status !== 2)
-    verifie(script + ' : ne réclame plus --dsh quand la racine est donnée', (r.stderr || '').indexOf('aucune racine déclarée') < 0)
+    verifie(script + ' : ne réclame plus --dsh quand la racine est donnée', (r.stderr || '').indexOf('no root declared') < 0)
   }
 } finally {
   rmSync(banc, { recursive: true, force: true })

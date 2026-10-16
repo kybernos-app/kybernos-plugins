@@ -1,14 +1,14 @@
-// Utilitaires de texte : découpage des messages et marqueurs de fichiers sortants.
+// Text utilities: message splitting and outgoing file markers.
 
 import path from 'node:path';
 
-/** Limite Telegram pour sendMessage/editMessageText. */
+/** Telegram limit for sendMessage/editMessageText. */
 export const TELEGRAM_TEXT_LIMIT = 4096;
 
 /**
- * Découpe un texte en morceaux <= limit, en privilégiant les frontières
- * naturelles (paragraphes, lignes, espaces) et en refermant les blocs de code
- * ouverts pour ne pas casser le rendu.
+ * Splits a text into chunks <= limit, preferring natural boundaries
+ * (paragraphs, lines, spaces) and closing the open code blocks so the
+ * rendering does not break.
  */
 export function splitMessage(text, limit = TELEGRAM_TEXT_LIMIT) {
   const value = String(text ?? '');
@@ -21,7 +21,7 @@ export function splitMessage(text, limit = TELEGRAM_TEXT_LIMIT) {
   let openFence = false;
 
   while (rest.length > limit) {
-    // Budget réduit si un bloc de code est ouvert : il faudra le refermer.
+    // Smaller budget when a code block is open: it will have to be closed.
     const budget = openFence ? limit - 4 : limit;
     let cut = -1;
     for (const pattern of [/\n\n/g, /\n/g, / /g]) {
@@ -42,7 +42,7 @@ export function splitMessage(text, limit = TELEGRAM_TEXT_LIMIT) {
     let head = rest.slice(0, cut).replace(/\s+$/, '');
     rest = rest.slice(cut).replace(/^\s+/, '');
 
-    // Compte les clôtures ``` dans ce morceau pour savoir si on laisse un bloc ouvert.
+    // Counts the ``` fences in this chunk to know whether a block is left open.
     const fences = (head.match(/```/g) || []).length;
     if (fences % 2 === 1) {
       head += '\n```';
@@ -60,8 +60,8 @@ export function splitMessage(text, limit = TELEGRAM_TEXT_LIMIT) {
 const MARKER = /\[\[\s*send-file\s*:\s*([^\]]+?)\s*\]\]/gi;
 
 /**
- * Extrait les marqueurs [[send-file:/chemin]] d'une réponse et renvoie le texte
- * nettoyé + la liste des chemins. Un chemin relatif est résolu contre cwd.
+ * Extracts the [[send-file:/path]] markers from an answer and returns the cleaned
+ * text + the list of paths. A relative path is resolved against cwd.
  */
 export function extractFileMarkers(text, cwd = process.cwd()) {
   const value = String(text ?? '');
@@ -78,14 +78,14 @@ export function extractFileMarkers(text, cwd = process.cwd()) {
   return { text: cleaned, files: files.map((p) => (path.isAbsolute(p) ? p : path.resolve(cwd, p))) };
 }
 
-/** Résumé court d'une erreur pour un message de chat. */
+/** Short summary of an error for a chat message. */
 export function shortError(err, max = 300) {
   const msg = err && err.message ? err.message : String(err);
   return msg.length > max ? `${msg.slice(0, max)}…` : msg;
 }
 
-/** Nettoie un nom de fichier reçu d'une plateforme (anti-traversée). */
-export function safeFileName(name, fallback = 'fichier') {
+/** Cleans a file name received from a platform (no path traversal). */
+export function safeFileName(name, fallback = 'file') {
   const base = String(name || '')
     .replace(/\\/g, '/')
     .split('/')

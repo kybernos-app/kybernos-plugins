@@ -131,6 +131,17 @@ test('the sign-in page reads in French or English with scripts off, and is locke
   await gate.close()
 })
 
+test('the sign-in page speaks to one person (« tu »), and says « 1 day », never « 1 days »', async () => {
+  const { renderLogin } = await import('../core/page.mjs')
+  const fr = renderLogin({ lang: 'fr', nonce: 'n', next: '/', sessionDays: 1 })
+  const en = renderLogin({ lang: 'en', nonce: 'n', next: '/', sessionDays: 1 })
+  assert.ok(fr.includes('connecté 1 jour.') && !fr.includes('1 jours'), 'French singular')
+  assert.ok(en.includes('signed in for 1 day.') && !en.includes('1 days'), 'English singular')
+  assert.ok(renderLogin({ lang: 'fr', nonce: 'n', next: '/', sessionDays: 7 }).includes('connecté 7 jours.'))
+  assert.ok(!/Saisissez|Patientez|Réessayez|pour vous|vos identifiants/.test(fr), 'the French register is « tu »')
+  assert.ok(renderLogin({ lang: 'de', nonce: 'n', next: '/', sessionDays: 30 }).includes('Protected access'), 'any other language reads English')
+})
+
 test('the next parameter cannot send the user to another site', async () => {
   const { gate, port } = await startGate()
   const page = await request(port, 'GET', '/__gate/login?next=' + encodeURIComponent('https://evil.example/x'), { headers: NAV })

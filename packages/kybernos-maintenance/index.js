@@ -9,8 +9,11 @@
 // Answers the lifecycle state — the SAME reads as `doctor`: versions (engine,
 // plugin), pin alignment, missing links/bundles, applied patches,
 // compatibility, update journal. The GUI invents nothing, it shows what the
-// robot measures. Sentences that reach the client are French on purpose: the
-// client translates them with its own tables (HS_STATIC / HS_RX).
+// robot measures. The sentences and the level words that reach the client are
+// ENGLISH (decision D1: English is the base); a French page shows them through
+// the client's French tables (FR_HOST / FR_HOST_RX / FR_LEVEL). The levels are
+// Perfect, Compatible, Partial, Out of range, Unknown (compatibility) and
+// None, Possible, Recommended, Required, Unknown (advised update).
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { execFile } from 'node:child_process'
@@ -133,7 +136,7 @@ async function lireRegistre () {
       erreur: null
     }
   } catch (e) {
-    valeur = { ok: false, latest: null, alpha: null, next: null, derniere: null, canal: null, erreur: 'registre npm injoignable' }
+    valeur = { ok: false, latest: null, alpha: null, next: null, derniere: null, canal: null, erreur: 'npm registry unreachable' }
   }
   CACHE_REGISTRE = { quand: Date.now(), valeur }
   return valeur
@@ -202,11 +205,11 @@ export async function repondreMaj (url, dep = {}) {
  *  supported range: the robot's gate would refuse it). */
 export function composerMaj ({ pack, installee, etat, git, quand }) {
   const dispo = installee !== null && pack.latest !== null && comparerVersions(installee, pack.latest) < 0
-  const maj = (etat && etat.maj) || { niveau: 'Inconnue', cible: null, note: '' }
+  const maj = (etat && etat.maj) || { niveau: 'Unknown', cible: null, note: '' }
   let pending = null
   if (dispo) pending = { kind: 'kybernos', cible: pack.latest, installee, requis: false, note: '' }
-  else if (maj.cible && ['Requise', 'Recommandée', 'Possible'].indexOf(maj.niveau) >= 0) {
-    pending = { kind: 'moteur', cible: maj.cible, installee: etat.global, requis: maj.niveau === 'Requise', note: maj.note || '' }
+  else if (maj.cible && ['Required', 'Recommended', 'Possible'].indexOf(maj.niveau) >= 0) {
+    pending = { kind: 'moteur', cible: maj.cible, installee: etat.global, requis: maj.niveau === 'Required', note: maj.note || '' }
   }
   return {
     ok: true,
@@ -224,11 +227,11 @@ export async function mesurerMaj (force, dep = {}) {
 }
 
 async function mesurerEtat () {
-  const global = (await run(['dsh', '--version'])).sortie.trim().split('\n').pop() || 'inconnu'
-  const plugin = (await run(['git', 'rev-parse', '--short', 'HEAD'], REPO)).sortie.trim() || 'inconnu'
+  const global = (await run(['dsh', '--version'])).sortie.trim().split('\n').pop() || 'unknown'
+  const plugin = (await run(['git', 'rev-parse', '--short', 'HEAD'], REPO)).sortie.trim() || 'unknown'
   // The shipped semver (null when VERSION is missing or not a semver). `plugin`
   // stays the git hash: a tester who unpacked an archive has no checkout, so
-  // there it reads 'inconnu' and the semver is what the page shows instead.
+  // there it reads 'unknown' and the semver is what the page shows instead.
   const version = lireVersion(VERSION_CHEMIN)
   const compat = (() => { try { return JSON.parse(readFileSync(COMPAT_CHEMIN, 'utf8')) } catch (e) { return null } })()
   const distant = await lireRegistre()
@@ -246,10 +249,11 @@ async function mesurerEtat () {
     (compat.dsh.min !== undefined && comparerVersions(global, compat.dsh.min) < 0) ||
     (compat.dsh.max !== undefined && comparerVersions(global, compat.dsh.max) > 0))
   const problemes = []
-  if (pinsDivergents.length > 0) problemes.push(`Des paquets DSH du profil sont épinglés à une autre version que le moteur (${pinsDivergents.length}).`)
-  for (const l of liensManquants) problemes.push(`Le paquet ${l} n'est pas lié au profil.`)
-  for (const b of bundlesManquants) problemes.push(`Le bundle ${b} n'est pas déclaré.`)
-  if (horsZone) problemes.push(`La version du moteur (${global}) n'a jamais été testée avec ce plugin.`)
+  if (pinsDivergents.length === 1) problemes.push('A DSH package of the profile is pinned to a different version than the engine.')
+  else if (pinsDivergents.length > 1) problemes.push(`${pinsDivergents.length} DSH packages of the profile are pinned to a different version than the engine.`)
+  for (const l of liensManquants) problemes.push(`Package ${l} is not linked to the profile.`)
+  for (const b of bundlesManquants) problemes.push(`Bundle ${b} is not declared.`)
+  if (horsZone) problemes.push(`Engine version (${global}) has never been tested with this plugin.`)
   const journal = (() => {
     try {
       return readFileSync(JOURNAL, 'utf8').split('\n').filter((l) => l.trim() !== '')
@@ -275,7 +279,7 @@ async function mesurerEtat () {
   const installation = dates.length === 0 ? null : Math.max(...dates)
   const serveurPerime = installation !== null && installation - demarrageServeur > 10000
   if (serveurPerime) {
-    problemes.push('Le serveur a démarré avant la dernière mise à jour : il sert encore l\'ancien moteur. Redémarre DSH.')
+    problemes.push('The server started before the last update: it is still serving the old engine. Restart DSH.')
   }
   // ── the engine SURFACES: what the installed version breaks or takes over ──
   // Same lesson as the 0.1.6 → 0.1.7 upgrade: "applied" patches do not say
@@ -301,20 +305,20 @@ async function mesurerEtat () {
   // ── compatibility LEVEL of the plugin with the INSTALLED engine ──────────
   // The contract (dsh-compat.json) declares the supported range (min/max) and
   // the TESTED versions. Same reading rule as the robot's gate:
-  //   Parfaite    = engine = the highest tested version;
-  //   Compatible  = inside the range, NEWER than the tested one (untested);
-  //   Partielle   = inside the range, OLDER than the tested one (fewer
-  //                 patches — the validated 0.1.7-alpha.1 scenario);
-  //   Hors zone   = below min or above max: must not run.
+  //   Perfect      = engine = the highest tested version;
+  //   Compatible   = inside the range, NEWER than the tested one (untested);
+  //   Partial      = inside the range, OLDER than the tested one (fewer
+  //                  patches — the validated 0.1.7-alpha.1 scenario);
+  //   Out of range = below min or above max: must not run.
   const testee = compat !== null && Array.isArray(compat.dsh?.testees) && compat.dsh.testees.length > 0
     ? [...compat.dsh.testees].sort((a, b) => comparerVersions(a, b)).pop()
     : null
-  let niveau = 'Inconnue'
-  if (compat === null || compat.dsh === undefined) niveau = 'Inconnue'
-  else if (horsZone) niveau = 'Hors zone'
-  else if (testee !== null && comparerVersions(global, testee) === 0) niveau = 'Parfaite'
+  let niveau = 'Unknown'
+  if (compat === null || compat.dsh === undefined) niveau = 'Unknown'
+  else if (horsZone) niveau = 'Out of range'
+  else if (testee !== null && comparerVersions(global, testee) === 0) niveau = 'Perfect'
   else if (testee !== null && comparerVersions(global, testee) > 0) niveau = 'Compatible'
-  else niveau = 'Partielle'
+  else niveau = 'Partial'
   // Compatibility range of any version (to talk about channels).
   const horsZoneV = (v) => compat !== null && compat.dsh !== undefined && (
     (compat.dsh.min !== undefined && comparerVersions(v, compat.dsh.min) < 0) ||
@@ -322,7 +326,7 @@ async function mesurerEtat () {
   // Direction of the installed engine vs the NEWEST published across all
   // channels: up = the installed one is newer (local checkout), down = a newer
   // one exists (even under `next`), same = aligned.
-  const direction = !distant.ok || distant.derniere === null || global === 'inconnu'
+  const direction = !distant.ok || distant.derniere === null || global === 'unknown'
     ? 'same'
     : (comparerVersions(global, distant.derniere) > 0 ? 'up' : comparerVersions(global, distant.derniere) < 0 ? 'down' : 'same')
   // Note of the Engine card: what the registry says, channel included.
@@ -330,32 +334,32 @@ async function mesurerEtat () {
     if (!distant.ok || distant.derniere === null) return null
     const c = comparerVersions(global, distant.derniere)
     if (c === 0) return distant.canal === 'latest'
-      ? `à jour — dernière publiée : ${distant.derniere}`
-      : `à jour de la plus récente publiée (${distant.canal} ${distant.derniere})`
-    if (c < 0) return `plus récente publiée : ${distant.derniere} (canal ${distant.canal} — ${horsZoneV(distant.derniere) ? 'hors zone supportée' : 'dans la zone'})`
-    return `en avance sur la plus récente publiée (${distant.derniere})`
+      ? `up to date — latest published: ${distant.derniere}`
+      : `up to date with the newest published (${distant.canal} ${distant.derniere})`
+    if (c < 0) return `newest published: ${distant.derniere} (channel ${distant.canal} — ${horsZoneV(distant.derniere) ? 'outside the supported range' : 'within the range'})`
+    return `ahead of the newest published (${distant.derniere})`
   })()
   // Advised UPDATE level, target and note — computed host side.
   const maj = (() => {
     if (compat !== null && compat.dsh?.min !== undefined && comparerVersions(global, compat.dsh.min) < 0) {
-      return { niveau: 'Requise', cible: testee, note: `Minimum demandé par le plugin : ${compat.dsh.min}.` }
+      return { niveau: 'Required', cible: testee, note: `Minimum required by the plugin: ${compat.dsh.min}.` }
     }
-    if (horsZone) return { niveau: 'Recommandée', cible: testee, note: 'Moteur hors de la zone supportée — reviens à la version testée ou attends un plugin adapté.' }
-    if (!distant.ok || distant.derniere === null) return { niveau: 'Inconnue', cible: null, note: 'Registre npm injoignable — impossible de savoir si une mise à jour existe.' }
+    if (horsZone) return { niveau: 'Recommended', cible: testee, note: 'Engine outside the supported range — go back to the tested version or wait for a matching plugin.' }
+    if (!distant.ok || distant.derniere === null) return { niveau: 'Unknown', cible: null, note: 'npm registry unreachable — cannot tell whether an update exists.' }
     const c = comparerVersions(global, distant.derniere)
     if (c < 0) {
       // A newer version exists: advise it ONLY if it is inside the supported
       // range — otherwise the robot's gate refuses it.
       if (horsZoneV(distant.derniere)) {
-        return { niveau: 'Aucune', cible: null, note: `Une version plus récente existe (${distant.derniere}, canal ${distant.canal}) mais elle est hors de la zone supportée — attendre un plugin adapté.` }
+        return { niveau: 'None', cible: null, note: `A newer version exists (${distant.derniere}, channel ${distant.canal}) but it is outside the supported range — wait for a matching plugin.` }
       }
-      if (niveau === 'Partielle') return { niveau: 'Recommandée', cible: distant.derniere, note: 'Une version plus récente du moteur réactiverait les retouches non posées.' }
-      if (niveau === 'Compatible') return { niveau: 'Possible', cible: distant.derniere, note: 'Version publiée prête ; dans la zone supportée, rien ne presse.' }
-      return { niveau: 'Possible', cible: distant.derniere, note: 'Version publiée dans la zone supportée, même contrat.' }
+      if (niveau === 'Partial') return { niveau: 'Recommended', cible: distant.derniere, note: 'A newer engine version would re-enable the patches that are not applied.' }
+      if (niveau === 'Compatible') return { niveau: 'Possible', cible: distant.derniere, note: 'Published version ready; within the supported range, no rush.' }
+      return { niveau: 'Possible', cible: distant.derniere, note: 'Published version within the supported range, same contract.' }
     }
-    if (c > 0) return { niveau: 'Aucune', cible: null, note: 'Moteur plus récent que la plus récente version publiée (installation locale).' }
-    if (niveau === 'Compatible') return { niveau: 'Possible', cible: testee, note: 'Moteur plus récent que la version testée — la prochaine campagne de tests la validera.' }
-    return { niveau: 'Aucune', cible: null, note: 'Moteur installé = plus récente version publiée, tous canaux.' }
+    if (c > 0) return { niveau: 'None', cible: null, note: 'Engine newer than the newest published version (local install).' }
+    if (niveau === 'Compatible') return { niveau: 'Possible', cible: testee, note: 'Engine newer than the tested version — the next test run will validate it.' }
+    return { niveau: 'None', cible: null, note: 'Installed engine = newest published version, all channels.' }
   })()
   // ── compatibility MATRIX: the known markers (tested, installed, registry ──
   // releases), sorted newest first, with a level per row.
@@ -363,21 +367,21 @@ async function mesurerEtat () {
   const pousser = (v, niv, detail, repere) => {
     const deja = reperes.find((r) => r.v === v)
     if (deja !== undefined) { if (deja.repere.indexOf(repere) === -1) deja.repere += ' · ' + repere; return }
-    if (v && v !== 'inconnu') reperes.push({ v, niveau: niv, detail, repere })
+    if (v && v !== 'unknown') reperes.push({ v, niveau: niv, detail, repere })
   }
-  for (const v of (compat?.dsh?.testees || [])) pousser(v, 'Parfaite', 'Testée ensemble, retouches posées.', 'testée')
-  pousser(global, null, '', 'installée')
+  for (const v of (compat?.dsh?.testees || [])) pousser(v, 'Perfect', 'Tested together, patches applied.', 'tested')
+  pousser(global, null, '', 'installed')
   pousser(distant.latest, null, '', 'npm latest')
   pousser(distant.alpha, null, '', 'npm alpha')
   pousser(distant.next, null, '', 'npm next')
   for (const r of reperes) {
     if (r.niveau !== null) continue
-    if (compat === null || compat.dsh === undefined) { r.niveau = 'Inconnue'; r.detail = 'Zone de compatibilité absente du dépôt.'; continue }
+    if (compat === null || compat.dsh === undefined) { r.niveau = 'Unknown'; r.detail = 'Compatibility range missing from the repository.'; continue }
     const infMin = compat.dsh.min !== undefined && comparerVersions(r.v, compat.dsh.min) < 0
     const supMax = compat.dsh.max !== undefined && comparerVersions(r.v, compat.dsh.max) > 0
-    if (infMin || supMax) { r.niveau = 'Hors zone'; r.detail = infMin ? 'Plus ancien que le minimum supporté.' : 'Plus récent que le maximum supporté — ne doit pas tourner.' }
-    else if (testee !== null && comparerVersions(r.v, testee) > 0) { r.niveau = 'Compatible'; r.detail = 'Dans la zone, pas encore testée avec ce plugin.' }
-    else { r.niveau = 'Partielle'; r.detail = 'Démarrerait, des retouches en moins.' }
+    if (infMin || supMax) { r.niveau = 'Out of range'; r.detail = infMin ? 'Older than the supported minimum.' : 'Newer than the supported maximum — must not run.' }
+    else if (testee !== null && comparerVersions(r.v, testee) > 0) { r.niveau = 'Compatible'; r.detail = 'Within range, not yet tested with this plugin.' }
+    else { r.niveau = 'Partial'; r.detail = 'Would start, with fewer patches.' }
   }
   reperes.sort((a, b) => comparerVersions(b.v, a.v))
   return {

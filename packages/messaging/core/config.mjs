@@ -1,7 +1,7 @@
-// Configuration du pont DSH ↔ messageries.
+// Configuration of the DSH ↔ messaging bridge.
 //
-// Aucun secret n'est copié : le token reste dans le fichier .env existant
-// (par défaut celui du projet Kybernos) et n'est lu qu'en mémoire.
+// No secret is copied: the token stays in the existing .env file
+// (by default the Kybernos project's) and is only read in memory.
 
 import fs from 'node:fs';
 import os from 'node:os';
@@ -20,7 +20,7 @@ export function defaultConfigPath() {
   return path.join(bridgeHome(), 'config.json');
 }
 
-/** Parse le sous-ensemble KEY=VALUE d'un fichier .env (commentaires et quotes simples gérés). */
+/** Parses the KEY=VALUE subset of a .env file (comments and simple quotes handled). */
 export function parseEnvFile(text) {
   const out = {};
   for (const raw of String(text).split(/\r?\n/)) {
@@ -58,9 +58,9 @@ function splitList(value) {
 }
 
 /**
- * Résout la configuration effective.
- * Priorité du token : process.env > fichier .env.
- * Priorité du fichier .env : --env-file > TELEGRAM_ENV_FILE > config.json > défaut Kybernos.
+ * Resolves the effective configuration.
+ * Token priority: process.env > .env file.
+ * .env file priority: --env-file > TELEGRAM_ENV_FILE > config.json > Kybernos default.
  */
 export function loadConfig({ configPath = defaultConfigPath(), env = process.env, envFile: envFileArg = null } = {}) {
   const notes = [];
@@ -73,7 +73,7 @@ export function loadConfig({ configPath = defaultConfigPath(), env = process.env
   }
   const envFile = envFileArg || env.TELEGRAM_ENV_FILE || fileConfig.envFile || null;
   const fileEnv = readEnvFileIfAny(envFile);
-  if (envFile && !fileEnv) notes.push(`fichier .env illisible ou absent: ${envFile}`);
+  if (envFile && !fileEnv) notes.push(`.env file unreadable or missing: ${envFile}`);
 
   const token = env.TELEGRAM_BOT_TOKEN || (fileEnv && fileEnv.TELEGRAM_BOT_TOKEN) || null;
   const defaultChat = env.TELEGRAM_CHAT_ID || (fileEnv && fileEnv.TELEGRAM_CHAT_ID) || null;
@@ -108,8 +108,8 @@ export function describeConfig(cfg) {
   return {
     envFile: cfg.envFile,
     envFileFound: cfg.envFileFound,
-    token: cfg.token ? `présent (${String(cfg.token).length} caractères)` : 'ABSENT',
-    defaultChat: cfg.defaultChat ? 'défini' : 'absent',
+    token: cfg.token ? `present (${String(cfg.token).length} characters)` : 'ABSENT',
+    defaultChat: cfg.defaultChat ? 'set' : 'absent',
     allowedChats: cfg.allowedChats.size,
     allowAll: cfg.allowAll,
     statePath: cfg.statePath,

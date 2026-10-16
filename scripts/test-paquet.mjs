@@ -159,7 +159,7 @@ verifie('le verdict est vert sur un arbre propre', verdictArbrePropre([]).ok ===
 const verdictSale = verdictArbrePropre(['scripts/patches.json'])
 verifie('le verdict est rouge sur un arbre sale', verdictSale.ok === false)
 verifie('le refus NOMME le fichier', verdictSale.message.includes('scripts/patches.json'))
-verifie('le refus dit pourquoi (l\'arbre de travail part tel quel)', /arbre de travail/.test(verdictSale.message))
+verifie('le refus dit pourquoi (l\'arbre de travail part tel quel)', /working tree/.test(verdictSale.message))
 verifie('le refus donne la sortie « révision propre »', /git worktree add/.test(verdictSale.message))
 const source = readFileSync(join(REPO, 'scripts', 'paquet.mjs'), 'utf8')
 verifie('--construire refuse AVANT d\'écrire', source.includes('verdictPropre.ok !== true') && source.includes('process.exit(2)'))

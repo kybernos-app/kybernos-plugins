@@ -28,70 +28,97 @@ window.__ModuleLoader__.load({
     const React = require('react')
     const h = React.createElement
 
-    // Language: the SAME rule as kbt in the main plugin (« kybernos » + no
-    // kybernos.theme.lang key + English shell => English), read through the
-    // resolver it exposes. Any language other than French falls back to English,
-    // like kbt.
-    const kbLang = () => {
-      try { if (typeof window.__KB_LANG_RESOLVE__ === 'function') return String(window.__KB_LANG_RESOLVE__()) } catch (e) { /* resolver absent */ }
+    // Language: French ONLY when the resolved language is French (« kybernos », the product's own French, or an fr tag). Every other
+    // language, translated or not, gets English, and so does a page whose resolver is absent or throws (the same rule as kbt in the
+    // main plugin, read through the resolver it exposes).
+    const lang = () => {
       try {
-        const a = window.__KB_I18N_ACTIVE__
-        if (a !== null && a !== undefined && a.lang !== null && a.lang !== undefined && String(a.lang) !== '') return String(a.lang)
-      } catch (e) { /* outside a browser */ }
-      return 'kybernos'
+        const l = String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : '')
+        return l === 'kybernos' || l.split(/[-_]/)[0].toLowerCase() === 'fr' ? 'fr' : 'en'
+      } catch (e) { return 'en' }
     }
-    const kbEn = () => { const l = kbLang(); return l !== 'kybernos' && l.slice(0, 2).toLowerCase() !== 'fr' }
-    // kbp(fr, en): a pair of labels; hs(): sentences measured by the host (in
-    // French); nv(): levels.
-    const kbp = (fr, en) => (kbEn() ? en : fr)
-    const NIV_EN = { Parfaite: 'Perfect', Compatible: 'Compatible', Partielle: 'Partial', 'Hors zone': 'Out of range', Inconnue: 'Unknown', Aucune: 'None', Possible: 'Possible', 'Recommandée': 'Recommended', Requise: 'Required' }
-    const nv = (n) => (kbEn() && NIV_EN[n] !== undefined ? NIV_EN[n] : n)
-    const HS_STATIC = {
-      'inconnu': 'unknown',
-      'Le serveur a démarré avant la dernière mise à jour : il sert encore l\'ancien moteur. Redémarre DSH.': 'The server started before the last update: it is still serving the old engine. Restart DSH.',
-      'Moteur hors de la zone supportée — reviens à la version testée ou attends un plugin adapté.': 'Engine outside the supported range — go back to the tested version or wait for a matching plugin.',
-      'Registre npm injoignable — impossible de savoir si une mise à jour existe.': 'npm registry unreachable — cannot tell whether an update exists.',
-      'Une version plus récente du moteur réactiverait les retouches non posées.': 'A newer engine version would re-enable the patches that are not applied.',
-      'Version publiée prête ; dans la zone supportée, rien ne presse.': 'Published version ready; within the supported range, no rush.',
-      'Version publiée dans la zone supportée, même contrat.': 'Published version within the supported range, same contract.',
-      'Moteur plus récent que la plus récente version publiée (installation locale).': 'Engine newer than the newest published version (local install).',
-      'Moteur plus récent que la version testée — la prochaine campagne de tests la validera.': 'Engine newer than the tested version — the next test run will validate it.',
-      'Moteur installé = plus récente version publiée, tous canaux.': 'Installed engine = newest published version, all channels.',
-      'Testée ensemble, retouches posées.': 'Tested together, patches applied.',
-      'Zone de compatibilité absente du dépôt.': 'Compatibility range missing from the repository.',
-      'Le moteur installé est introuvable : audit des surfaces impossible.': 'The installed engine cannot be found: the surface audit is not possible.',
-      'Plus ancien que le minimum supporté.': 'Older than the supported minimum.',
-      'Plus récent que le maximum supporté — ne doit pas tourner.': 'Newer than the supported maximum — must not run.',
-      'Dans la zone, pas encore testée avec ce plugin.': 'Within range, not yet tested with this plugin.',
-      'Démarrerait, des retouches en moins.': 'Would start, with fewer patches.',
-      'testée': 'tested', 'installée': 'installed',
-      'dictée locale (SenseVoice ONNX), bundle optionnel « Voice input »': 'local dictation (SenseVoice ONNX), optional “Voice input” bundle',
-      'édition de la configuration des plugins (couture officielle)': 'plugin configuration editing (official seam)',
-      'registre d\'agent presets (sélection par session)': 'agent preset registry (per-session selection)',
-      'comptes et facturation (DeepSeek seulement)': 'accounts and billing (DeepSeek only)',
-      'compétences Office (Word / PPT / Excel)': 'Office skills (Word / PPT / Excel)',
+    // kt(fr, en): a pair of labels. The HOST speaks English (decision D1); a French page shows the French of a level through nv() and
+    // of a host sentence through hs(), from the tables below.
+    const kt = (fr, en) => (lang() === 'fr' ? fr : en)
+    const FR_LEVEL = { Perfect: 'Parfaite', Compatible: 'Compatible', Partial: 'Partielle', 'Out of range': 'Hors zone', Unknown: 'Inconnue', None: 'Aucune', Possible: 'Possible', Recommended: 'Recommandée', Required: 'Requise' }
+    const nv = (n) => (lang() === 'fr' && FR_LEVEL[n] !== undefined ? FR_LEVEL[n] : n)
+    // The French of the host's sentences. A sentence that is not here is shown as the host wrote it (English): the test of the bundle
+    // reads the frames from the host sources, so a new sentence fails there until it has its entry. The pieces a sentence quotes
+    // (a patch, a native capability) are translated on their own, through the same table.
+    const FR_HOST = {
+      'unknown': 'inconnu',
+      'tested': 'testée',
+      'installed': 'installée',
+      'A DSH package of the profile is pinned to a different version than the engine.': 'Un paquet DSH du profil est épinglé à une autre version que le moteur.',
+      'The server started before the last update: it is still serving the old engine. Restart DSH.': 'Le serveur a démarré avant la dernière mise à jour : il sert encore l’ancien moteur. Redémarre DSH.',
+      'Engine outside the supported range — go back to the tested version or wait for a matching plugin.': 'Moteur hors de la zone supportée — reviens à la version testée ou attends un plugin adapté.',
+      'npm registry unreachable — cannot tell whether an update exists.': 'Registre npm injoignable — impossible de savoir si une mise à jour existe.',
+      'A newer engine version would re-enable the patches that are not applied.': 'Une version plus récente du moteur réactiverait les retouches non posées.',
+      'Published version ready; within the supported range, no rush.': 'Version publiée prête ; dans la zone supportée, rien ne presse.',
+      'Published version within the supported range, same contract.': 'Version publiée dans la zone supportée, même contrat.',
+      'Engine newer than the newest published version (local install).': 'Moteur plus récent que la plus récente version publiée (installation locale).',
+      'Engine newer than the tested version — the next test run will validate it.': 'Moteur plus récent que la version testée — la prochaine campagne de tests la validera.',
+      'Installed engine = newest published version, all channels.': 'Moteur installé = plus récente version publiée, tous canaux.',
+      'Tested together, patches applied.': 'Testée ensemble, retouches posées.',
+      'Compatibility range missing from the repository.': 'Zone de compatibilité absente du dépôt.',
+      'The installed engine cannot be found: the surface audit is not possible.': 'Le moteur installé est introuvable : audit des surfaces impossible.',
+      'Older than the supported minimum.': 'Plus ancien que le minimum supporté.',
+      'Newer than the supported maximum — must not run.': 'Plus récent que le maximum supporté — ne doit pas tourner.',
+      'Within range, not yet tested with this plugin.': 'Dans la zone, pas encore testée avec ce plugin.',
+      'Would start, with fewer patches.': 'Démarrerait, des retouches en moins.',
+      // what the engine audit quotes (packages/kybernos-maintenance/surfaces.mjs)
+      'queue-move patch': 'retouche queue-move',
+      'workspace-pins patch': 'retouche workspace-pins',
+      'workspace-pins patch — OVERLAP': 'retouche workspace-pins — DOUBLON',
+      'models-header patch': 'retouche models-header',
+      'model-search patch': 'retouche model-search',
+      'model-search / queue-move patches': 'retouches model-search / queue-move',
+      'kybernos plugin (dshHome)': 'plugin kybernos (dshHome)',
+      'kybernos-models plugin': 'plugin kybernos-models',
+      'the session host accepts edit / remove / steer': 'l’hôte de session accepte edit / remove / steer',
+      'no native queue move (no "move" case)': 'aucun déplacement de file natif (pas de case "move")',
+      'native conversation pinning (seat + labels)': 'épinglage de conversation natif (siège + libellés)',
+      'no native header seat on the Models page': 'aucun siège natif d’en-tête sur la page Models',
+      'native footer seat on the Models page (fallback possible)': 'siège natif footer de la page Models (repli possible)',
+      'no native model search in the picker': 'aucune recherche de modèle native dans le sélecteur',
+      'AgentPreset no longer has a path field (our dshHome can no longer use it)': 'AgentPreset n’a plus de champ path (notre dshHome ne peut plus s’en servir)',
+      'the settings service is inspected through describe()': 'le service settings s’inspecte par describe()',
+      'the …16 icons were renamed …Regular': 'les icônes …16 ont été renommées …Regular',
+      'local dictation (SenseVoice ONNX), optional “Voice input” bundle': 'dictée locale (SenseVoice ONNX), bundle optionnel « Voice input »',
+      'our own dictation (/kybernos/voice/* + /kybernos/tts/*)': 'notre dictée maison (/kybernos/voice/* + /kybernos/tts/*)',
+      'plugin configuration editing (official seam)': 'édition de la configuration des plugins (couture officielle)',
+      'our hand-written cordis.patch.yml writes': 'nos écritures de cordis.patch.yml à la main',
+      'agent preset registry (per-session selection)': 'registre d’agent presets (sélection par session)',
+      'our ~/.dsh/kybers/.active/<session>': 'notre ~/.dsh/kybers/.active/<session>',
+      'accounts and billing (DeepSeek only)': 'comptes et facturation (DeepSeek seulement)',
+      'kybernos-cloud (multi-provider)': 'kybernos-cloud (multi-fournisseurs)',
+      'Office skills (Word / PPT / Excel)': 'compétences Office (Word / PPT / Excel)',
     }
-    const HS_RX = [
-      [/^Des paquets DSH du profil sont épinglés à une autre version que le moteur \((\d+)\)\.$/, 'DSH profile packages are pinned to a different version than the engine ($1).'],
-      [/^Le paquet (.+) n'est pas lié au profil\.$/, 'Package $1 is not linked to the profile.'],
-      [/^Le bundle (.+) n'est pas déclaré\.$/, 'Bundle $1 is not declared.'],
-      [/^(.+) : « (.+) » n'est plus vrai dans le moteur installé \((.+)\)\.$/, '$1: “$2” is no longer true in the installed engine ($3).'],
-      [/^DOUBLON — (.+) : le moteur porte désormais « (.+) » \(mesuré sur la sauvegarde vierge (.+)\)\.$/, 'OVERLAP — $1: the engine now carries “$2” (measured on the clean backup $3).'],
-      [/^(.+) : « (.+) » trouvé dans le moteur vivant, mais aucune sauvegarde vierge à côté — peut venir de notre propre retouche\. À confirmer sur un 0\.1\.x nu\.$/, '$1: “$2” found in the live engine, but no clean backup beside it — it may come from our own patch. To be confirmed on a bare 0.1.x.'],
-      [/^La version du moteur \((.+)\) n'a jamais été testée avec ce plugin\.$/, 'Engine version ($1) has never been tested with this plugin.'],
-      [/^à jour — dernière publiée : (.+)$/, 'up to date — latest published: $1'],
-      [/^à jour de la plus récente publiée \((.+)\)$/, 'up to date with the newest published ($1)'],
-      [/^plus récente publiée : (.+) \(canal (.+) — hors zone supportée\)$/, 'newest published: $1 (channel $2 — outside the supported range)'],
-      [/^plus récente publiée : (.+) \(canal (.+) — dans la zone\)$/, 'newest published: $1 (channel $2 — within the range)'],
-      [/^en avance sur la plus récente publiée \((.+)\)$/, 'ahead of the newest published ($1)'],
-      [/^Minimum demandé par le plugin : (.+)\.$/, 'Minimum required by the plugin: $1.'],
-      [/^Une version plus récente existe \((.+), canal (.+)\) mais elle est hors de la zone supportée — attendre un plugin adapté\.$/, 'A newer version exists ($1, channel $2) but it is outside the supported range — wait for a matching plugin.'],
-      [/^(.+) recoupe le natif « (.+) » \((.+)\)\.$/, '$1 overlaps the native “$2” ($3).'],
+    const FR_HOST_RX = [
+      [/^(\d+) DSH packages of the profile are pinned to a different version than the engine\.$/, '$1 paquets DSH du profil sont épinglés à une autre version que le moteur.'],
+      [/^Package (.+) is not linked to the profile\.$/, 'Le paquet $1 n’est pas lié au profil.'],
+      [/^Bundle (.+) is not declared\.$/, 'Le bundle $1 n’est pas déclaré.'],
+      [/^(.+): “(.+)” is no longer true in the installed engine \((.+)\)\.$/, '$1 : « $2 » n’est plus vrai dans le moteur installé ($3).'],
+      [/^OVERLAP — (.+): the engine now carries “(.+)” \(measured on the clean backup (.+)\)\.$/, 'DOUBLON — $1 : le moteur porte désormais « $2 » (mesuré sur la sauvegarde vierge $3).'],
+      [/^OVERLAP — (.+): the engine now carries “(.+)” \(measured on the bare bench (.+)\)\.$/, 'DOUBLON — $1 : le moteur porte désormais « $2 » (mesuré sur le banc nu $3).'],
+      [/^(.+): “(.+)” found in the live engine, but no clean backup beside it — it may come from our own patch\. To be confirmed on a bare 0\.1\.x\.$/, '$1 : « $2 » trouvé dans le moteur vivant, mais aucune sauvegarde vierge à côté — peut venir de notre propre retouche. À confirmer sur un 0.1.x nu.'],
+      [/^Engine version \((.+)\) has never been tested with this plugin\.$/, 'La version du moteur ($1) n’a jamais été testée avec ce plugin.'],
+      [/^up to date — latest published: (.+)$/, 'à jour — dernière publiée : $1'],
+      [/^up to date with the newest published \((.+)\)$/, 'à jour de la plus récente publiée ($1)'],
+      [/^newest published: (.+) \(channel (.+) — outside the supported range\)$/, 'plus récente publiée : $1 (canal $2 — hors zone supportée)'],
+      [/^newest published: (.+) \(channel (.+) — within the range\)$/, 'plus récente publiée : $1 (canal $2 — dans la zone)'],
+      [/^ahead of the newest published \((.+)\)$/, 'en avance sur la plus récente publiée ($1)'],
+      [/^Minimum required by the plugin: (.+)\.$/, 'Minimum demandé par le plugin : $1.'],
+      [/^A newer version exists \((.+), channel (.+)\) but it is outside the supported range — wait for a matching plugin\.$/, 'Une version plus récente existe ($1, canal $2) mais elle est hors de la zone supportée — attendre un plugin adapté.'],
+      [/^(.+) overlaps the native “(.+)” \((.+)\)\.$/, '$1 recoupe le natif « $2 » ($3).'],
     ]
     const hs = (s) => {
-      if (kbEn() === false || typeof s !== 'string') return s
-      if (HS_STATIC[s] !== undefined) return HS_STATIC[s]
-      for (let i = 0; i < HS_RX.length; i++) { if (HS_RX[i][0].test(s)) return s.replace(HS_RX[i][0], HS_RX[i][1]) }
+      if (lang() !== 'fr' || typeof s !== 'string') return s
+      if (FR_HOST[s] !== undefined) return FR_HOST[s]
+      for (let i = 0; i < FR_HOST_RX.length; i++) {
+        const m = FR_HOST_RX[i][0].exec(s)
+        if (m !== null) return FR_HOST_RX[i][1].replace(/\$(\d)/g, (x, n) => (FR_HOST[m[n]] !== undefined ? FR_HOST[m[n]] : m[n]))
+      }
       return s
     }
 
@@ -110,7 +137,7 @@ window.__ModuleLoader__.load({
 .kbmz-bouton:disabled{opacity:.6;cursor:default}
 .kbmz-bouton:focus-visible,.kbmz-toggle:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
 /* Status: dot + state + one-line verdict + action, border tinted by the state */
-.kbmz-status{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;padding:12px 16px;border-radius:12px;border:1px solid var(--kbmz-ton);background:linear-gradient(0deg,var(--kbmz-tbg,transparent),var(--kbmz-tbg,transparent)),var(--dsw-alias-bg-layer-1)}
+.kbmz-status{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;padding:12px 16px;border-radius:12px;border:1px solid var(--kbmz-tone);background:linear-gradient(0deg,var(--kbmz-tbg,transparent),var(--kbmz-tbg,transparent)),var(--dsw-alias-bg-layer-1)}
 .kbmz-dot{width:10px;height:10px;border-radius:5px;flex:none;margin-top:5px;background:var(--kbmz-tdot)}
 .kbmz-status-txt{display:flex;flex-direction:column;gap:3px;flex:1;min-width:200px}
 .kbmz-kicker{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--kbmz-tc)}
@@ -119,11 +146,11 @@ body:not([data-ds-dark-theme]) .kbmz-kicker{color:color-mix(in srgb,var(--kbmz-t
 .kbmz-verdict{font-size:14px;line-height:1.45;color:var(--dsw-alias-label-primary)}
 .kbmz-problemes{margin:4px 0 0;padding-inline-start:18px;font-size:13px;color:var(--dsw-alias-label-primary)}
 .kbmz-problemes li{margin:3px 0}
-.kbmz-status[data-tone="ok"]{--kbmz-ton:rgba(52,199,89,.35);--kbmz-tbg:rgba(52,199,89,.08);--kbmz-tc:#2fae52;--kbmz-tdot:#34c759}
-.kbmz-status[data-tone="info"]{--kbmz-ton:rgba(59,158,255,.38);--kbmz-tbg:rgba(59,158,255,.08);--kbmz-tc:#3b9eff;--kbmz-tdot:#3b9eff}
-.kbmz-status[data-tone="warn"]{--kbmz-ton:rgba(245,165,36,.4);--kbmz-tbg:rgba(245,165,36,.08);--kbmz-tc:#d98a0b;--kbmz-tdot:#f5a524}
+.kbmz-status[data-tone="ok"]{--kbmz-tone:rgba(52,199,89,.35);--kbmz-tbg:rgba(52,199,89,.08);--kbmz-tc:#2fae52;--kbmz-tdot:#34c759}
+.kbmz-status[data-tone="info"]{--kbmz-tone:rgba(59,158,255,.38);--kbmz-tbg:rgba(59,158,255,.08);--kbmz-tc:#3b9eff;--kbmz-tdot:#3b9eff}
+.kbmz-status[data-tone="warn"]{--kbmz-tone:rgba(245,165,36,.4);--kbmz-tbg:rgba(245,165,36,.08);--kbmz-tc:#d98a0b;--kbmz-tdot:#f5a524}
 body[data-ds-dark-theme] .kbmz-status[data-tone="warn"]{--kbmz-tc:#f5a524}
-.kbmz-status[data-tone="bad"]{--kbmz-ton:rgba(255,92,92,.4);--kbmz-tbg:rgba(255,92,92,.08);--kbmz-tc:#e5484d;--kbmz-tdot:#ff5c5c}
+.kbmz-status[data-tone="bad"]{--kbmz-tone:rgba(255,92,92,.4);--kbmz-tbg:rgba(255,92,92,.08);--kbmz-tc:#e5484d;--kbmz-tdot:#ff5c5c}
 /* Three key numbers */
 .kbmz-tuiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
 .kbmz-tuile{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-1);min-width:0}
@@ -164,14 +191,14 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
 .kbmz-stat-n{font-size:12px;line-height:1.45;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}
 /* Level badges + 4-notch bar */
 .kbmz-badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.02em}
-.kbmz-badge[data-niveau="Parfaite"],.kbmz-badge[data-niveau="Aucune"],.kbmz-badge[data-niveau="réussi"]{background:rgba(52,199,89,.14);color:#2fae52}
+.kbmz-badge[data-niveau="Perfect"],.kbmz-badge[data-niveau="None"],.kbmz-badge[data-niveau="reussi"]{background:rgba(52,199,89,.14);color:#2fae52}
 .kbmz-badge[data-niveau="Compatible"],.kbmz-badge[data-niveau="Possible"]{background:rgba(59,158,255,.14);color:#3b9eff}
-.kbmz-badge[data-niveau="Partielle"],.kbmz-badge[data-niveau="Recommandée"],.kbmz-badge[data-niveau="retour-arriere"]{background:rgba(245,165,36,.16);color:#d98a0b}
-.kbmz-badge[data-niveau="Hors zone"],.kbmz-badge[data-niveau="Requise"],.kbmz-badge[data-niveau="Inconnue"],.kbmz-badge[data-niveau="echec"]{background:rgba(255,92,92,.15);color:#e5484d}
+.kbmz-badge[data-niveau="Partial"],.kbmz-badge[data-niveau="Recommended"],.kbmz-badge[data-niveau="retour-arriere"]{background:rgba(245,165,36,.16);color:#d98a0b}
+.kbmz-badge[data-niveau="Out of range"],.kbmz-badge[data-niveau="Required"],.kbmz-badge[data-niveau="Unknown"],.kbmz-badge[data-niveau="echec"]{background:rgba(255,92,92,.15);color:#e5484d}
 [data-kbr-theme="clair"] .kbmz-badge,.kbmz-badge{color:var(--kbmz-badge-c,var(--dsw-alias-label-primary))}
 .kbmz-bar{display:inline-flex;gap:4px}
 .kbmz-bar span{width:17px;height:6px;border-radius:3px;background:var(--dsw-alias-interactive-bg-active)}
-.kbmz-bar span[data-on="true"]{background:var(--kbmz-ton-bar,#34c759)}
+.kbmz-bar span[data-on="true"]{background:var(--kbmz-tonee-bar,#34c759)}
 /* Generic cards + journal */
 .kbmz-carte{border:1px solid var(--dsw-alias-border-l1);border-radius:14px;padding:14px 16px;background:var(--dsw-alias-bg-layer-1)}
 .kbmz-sec{margin:0 0 10px;font-size:13px;font-weight:600;letter-spacing:0;color:var(--dsw-alias-label-primary)}
@@ -192,7 +219,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
 .kbmz-mat-tete,.kbmz-mat-ligne{display:grid;grid-template-columns:150px 120px minmax(0,1fr) 150px;gap:12px;align-items:center}
 .kbmz-mat-tete{padding:0 12px 6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
 .kbmz-mat-ligne{padding:11px 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l1);margin-top:6px;font-size:13px;background:var(--dsw-alias-bg-layer-1)}
-.kbmz-mat-ligne[data-ici="true"]{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary)}
+.kbmz-mat-ligne[data-here="true"]{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary)}
 .kbmz-mat-v{font-family:ui-monospace,Menlo,monospace;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}
 .kbmz-mat-ligne .kbmz-repere{text-align:right;color:var(--dsw-alias-label-tertiary);font-size:12px}
 .kbmz-legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 16px;font-size:13px;color:var(--dsw-alias-label-secondary);margin-top:12px}
@@ -312,11 +339,11 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       natifs: 'Native capabilities shipped',
       doublons: 'Overlaps to arbitrate'
     }
-    const t = (k) => (kbEn() ? (EN[k] ?? FR[k]) : FR[k]) ?? k
+    const t = (k) => (lang() === 'fr' ? FR[k] : EN[k]) ?? k
 
     // Scale of the levels for the 4-notch bar (increasing health).
-    const ECHELLE = ['Hors zone', 'Partielle', 'Compatible', 'Parfaite']
-    const TONE_PAR_NIVEAU = { Parfaite: 'ok', Compatible: 'info', Partielle: 'warn', 'Hors zone': 'bad' }
+    const ECHELLE = ['Out of range', 'Partial', 'Compatible', 'Perfect']
+    const TONE_PAR_NIVEAU = { Perfect: 'ok', Compatible: 'info', Partial: 'warn', 'Out of range': 'bad' }
 
     // ── pure logic (exposed through `__test`) ──────────────────────────────
 
@@ -327,7 +354,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
     // host read one, else what the host state already had (the git hash).
     const versionPlugin = (etat) => (typeof etat.version === 'string' && etat.version !== ''
       ? etat.version
-      : (typeof etat.plugin === 'string' && etat.plugin !== '' ? etat.plugin : 'inconnu'))
+      : (typeof etat.plugin === 'string' && etat.plugin !== '' ? etat.plugin : 'unknown'))
     const zoneTexte = (compat) => (compat !== null && compat !== undefined && compat.min !== null
       ? compat.min + (compat.max ? ' → ' + compat.max : '') : '—')
 
@@ -335,17 +362,17 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
     // green; label: out of range > problems > level), now returned as data.
     const statutDe = (etat) => {
       const problemes = Array.isArray(etat.problemes) ? etat.problemes : []
-      const niveau = etat.niveau || 'Inconnue'
+      const niveau = etat.niveau || 'Unknown'
       const compat = etat.compat || null
       const tone = problemes.length > 0
         ? (compat !== null && compat.horsZone ? 'bad' : 'warn')
         : (TONE_PAR_NIVEAU[niveau] || 'ok')
       let cle = 'inconnu'
-      if (niveau === 'Hors zone') cle = 'action'
+      if (niveau === 'Out of range') cle = 'action'
       else if (problemes.length > 0) cle = 'afaire'
-      else if (niveau === 'Parfaite') cle = 'ok'
+      else if (niveau === 'Perfect') cle = 'ok'
       else if (niveau === 'Compatible') cle = 'avancer'
-      else if (niveau === 'Partielle') cle = 'partielle'
+      else if (niveau === 'Partial') cle = 'partielle'
       return { tone, cle, problemes }
     }
 
@@ -381,7 +408,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
     }
 
     function Page ({ etat, onRafraichir, charge, reglage, onReglage }) {
-      const resTexte = { reussi: kbp('✓ réussi', '✓ succeeded'), echec: kbp('✗ échec', '✗ failed'), 'retour-arriere': kbp('↩ retour arrière', '↩ rolled back') }
+      const resTexte = { reussi: kt('✓ réussi', '✓ succeeded'), echec: kt('✗ échec', '✗ failed'), 'retour-arriere': kt('↩ retour arrière', '↩ rolled back') }
       const resCouleur = { reussi: 'reussi', echec: 'echec', 'retour-arriere': 'retour-arriere' }
       const [copie, setCopie] = React.useState(null)
       const [ouvert, setOuvert] = React.useState(() => lireOuvert(stockage()))
@@ -397,9 +424,9 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
 
       // ── reading the state measured by the host ─────────────────────────────
       const compat = etat.compat || null
-      const niveau = etat.niveau || 'Inconnue'
+      const niveau = etat.niveau || 'Unknown'
       const distant = etat.distant || { ok: false, latest: null }
-      const maj = etat.maj || { niveau: 'Inconnue', cible: null, note: t('registreKo') }
+      const maj = etat.maj || { niveau: 'Unknown', cible: null, note: t('registreKo') }
       const st = statutDe(etat)
       const libelle = { ok: t('synchro'), avancer: t('avancer'), partielle: t('partielle'), action: t('action'), afaire: t('afaire'), inconnu: t('afaire') }[st.cle]
       // One-line verdict: the first problem when there is one, else the sentence of the level.
@@ -407,7 +434,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         ? (st.problemes.length > 0 ? hs(st.problemes[0]) : t('detailAction'))
         : { ok: t('ok'), avancer: t('detailAvancer'), partielle: t('detailPartielle'), inconnu: t('detailInconnu') }[st.cle]
       const autresProblemes = st.problemes.slice(1)
-      const cmdMaj = maj.niveau !== 'Aucune' && maj.niveau !== 'Inconnue' && maj.cible !== null
+      const cmdMaj = maj.niveau !== 'None' && maj.niveau !== 'Unknown' && maj.cible !== null
         ? CMD + 'upgrade' : null
 
       // Journal: the last operation in a banner, the earlier ones in their own card.
@@ -426,12 +453,12 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         h('div', { className: 'kbmz-sec' }, t('surfaces')),
         h('div', { className: 'kbmz-ligne' },
           h('span', { className: 'kbmz-vers' }, s.erreur !== undefined
-            ? kbp('Audit impossible : ', 'Audit failed: ') + s.erreur
-            : `${s.conformes}/${s.total} ` + kbp('contrats du moteur conformes', 'engine contracts compliant') +
-              (s.mesureesSurVierge > 0 ? ` (${s.mesureesSurVierge} ` + kbp('mesurés sur une sauvegarde vierge', 'measured on a clean backup') + ')' : ''))),
+            ? kt('Audit impossible : ', 'Audit failed: ') + s.erreur
+            : `${s.conformes}/${s.total} ` + kt('contrats du moteur conformes', 'engine contracts compliant') +
+              (s.mesureesSurVierge > 0 ? ` (${s.mesureesSurVierge} ` + kt('mesurés sur une sauvegarde vierge', 'measured on a clean backup') + ')' : ''))),
         natifsNatifs.length > 0 ? h('div', { className: 'kbmz-sub' }, t('natifs')) : null,
         natifsNatifs.map((n, i) => h('div', { className: 'kbmz-ligne', key: 'n' + i },
-          h('span', { className: 'kbmz-date' }, n.monte ? kbp('● montée', '● mounted') : n.livre ? kbp('○ non montée', '○ not mounted') : kbp('— absente', '— absent')),
+          h('span', { className: 'kbmz-date' }, n.monte ? kt('● montée', '● mounted') : n.livre ? kt('○ non montée', '○ not mounted') : kt('— absente', '— absent')),
           h('span', { className: 'kbmz-vers' }, `${n.paquet} — ${hs(n.quoi)}`))),
         doublonsNatifs.length > 0 ? h('div', { className: 'kbmz-sub' }, t('doublons')) : null,
         doublonsNatifs.map((d, i) => h('div', { className: 'kbmz-ligne', key: 'd' + i },
@@ -474,12 +501,12 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       // ── the automatic check: what it asks, who sees it, and the switch (A6-14) ──
       // Shown once the host has answered (an older host has no route: no card, the check then stays as it was).
       const auto = reglage !== undefined && reglage !== null && typeof reglage.autoCheck === 'boolean' ? reglage : null
-      const titreAuto = kbp('Vérifier les mises à jour automatiquement', 'Check for updates automatically')
+      const titreAuto = kt('Vérifier les mises à jour automatiquement', 'Check for updates automatically')
       const carteAuto = auto === null ? null : h('div', { className: 'kbmz-auto', 'data-kb': 'maintenance-auto-update' },
         h('div', { className: 'kbmz-auto-txt' },
           h('span', { className: 'kbmz-auto-t' }, titreAuto),
-          h('span', { className: 'kbmz-auto-d' }, kbp(
-            'Kybernos demande à GitHub la version courante de la suite et au registre npm celle de DSH, 15 secondes après l’ouverture puis toutes les 6 heures. Rien de votre travail n’est envoyé : ces serveurs voient votre adresse IP et les en-têtes habituels d’une requête web. Désactivé, rien n’est demandé tant que vous n’appuyez pas sur « Vérifier maintenant ».',
+          h('span', { className: 'kbmz-auto-d' }, kt(
+            'Kybernos demande à GitHub la version courante de la suite et au registre npm celle de DSH, 15 secondes après l’ouverture puis toutes les 6 heures. Rien de ton travail n’est envoyé : ces serveurs voient ton adresse IP et les en-têtes habituels d’une requête web. Désactivé, rien n’est demandé tant que tu n’appuies pas sur « Vérifier maintenant ».',
             'Kybernos asks GitHub which suite version is current and the npm registry which DSH version is, 15 seconds after it opens and then every 6 hours. Nothing about your work is sent: those servers see your IP address and the usual headers of a web request. Switched off, nothing is asked until you press « Check now ».'))),
         h('button', { type: 'button', role: 'switch', className: 'kbmz-sw' + (auto.autoCheck ? ' on' : ''), 'aria-checked': auto.autoCheck ? 'true' : 'false', 'aria-label': titreAuto, 'data-kb': 'maintenance-auto-switch', disabled: auto.occupe === true, onClick: () => { if (typeof onReglage === 'function') onReglage(!auto.autoCheck) } }, h('i', null)))
 
@@ -495,15 +522,15 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         h('span', { className: 'kbmz-stat-l' }, t('plugin')),
         h('span', { className: 'kbmz-stat-v' }, h('code', null, hs(versionBrute))),
         h('span', { className: 'kbmz-stat-n' }, (compat && compat.min !== null
-          ? `${t('zone')} : ${zoneTexte(compat)}` : kbp('zone de compatibilité absente', 'compatibility range missing'))
+          ? `${t('zone')} : ${zoneTexte(compat)}` : kt('zone de compatibilité absente', 'compatibility range missing'))
           // The git build, for a bug report, next to the version it belongs to (never instead of it).
-          + (typeof etat.plugin === 'string' && etat.plugin !== '' && etat.plugin !== 'inconnu' && etat.plugin !== versionBrute ? ' · build ' + etat.plugin : '')))
+          + (typeof etat.plugin === 'string' && etat.plugin !== '' && etat.plugin !== 'unknown' && etat.plugin !== versionBrute ? ' · build ' + etat.plugin : '')))
       const carteCompat = h('div', { className: 'kbmz-stat', 'data-kb': 'maintenance-compat-card' },
         h('span', { className: 'kbmz-stat-l' }, t('compat')),
         h('span', { className: 'kbmz-stat-v' },
           h('span', { className: 'kbmz-badge', 'data-niveau': niveau }, nv(niveau)),
-          h('span', { className: 'kbmz-bar', style: { '--kbmz-ton-bar': st.tone === 'bad' ? '#ff453a' : st.tone === 'warn' ? '#ff9f0a' : st.tone === 'info' ? '#3b9eff' : '#34c759' }, 'aria-hidden': 'true' }, ECHELLE.map((n) => h('span', { key: n, 'data-on': ECHELLE.indexOf(niveau) >= ECHELLE.indexOf(n) && niveau !== 'Inconnue' ? 'true' : 'false' })))),
-        h('span', { className: 'kbmz-stat-n' }, etat.testee ? kbp('testée avec le plugin : ', 'tested with the plugin: ') + etat.testee : kbp('aucune version testée déclarée', 'no tested version declared')))
+          h('span', { className: 'kbmz-bar', style: { '--kbmz-tonee-bar': st.tone === 'bad' ? '#ff453a' : st.tone === 'warn' ? '#ff9f0a' : st.tone === 'info' ? '#3b9eff' : '#34c759' }, 'aria-hidden': 'true' }, ECHELLE.map((n) => h('span', { key: n, 'data-on': ECHELLE.indexOf(niveau) >= ECHELLE.indexOf(n) && niveau !== 'Unknown' ? 'true' : 'false' })))),
+        h('span', { className: 'kbmz-stat-n' }, etat.testee ? kt('testée avec le plugin : ', 'tested with the plugin: ') + etat.testee : kt('aucune version testée déclarée', 'no tested version declared')))
       const carteMaj = h('div', { className: 'kbmz-stat', 'data-kb': 'maintenance-update-card' },
         h('span', { className: 'kbmz-stat-l' }, t('maj')),
         h('span', { className: 'kbmz-stat-v' }, h('span', { className: 'kbmz-badge', 'data-niveau': maj.niveau }, nv(maj.niveau))),
@@ -522,15 +549,15 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
           h('span', { className: 'kbmz-date', style: { width: '190px' } }, t('surfacesReq')),
           h('span', { className: 'kbmz-vers' }, s && !s.erreur ? `${s.conformes}/${s.total}` : '—')),
         h('div', { className: 'kbmz-legend' },
-          h('span', null, h('span', { className: 'kbmz-badge', 'data-niveau': 'Parfaite' }, nv('Parfaite')), kbp('testée ensemble', 'tested together')),
-          h('span', null, h('span', { className: 'kbmz-badge', 'data-niveau': 'Compatible' }, nv('Compatible')), kbp('dans la zone, non testée', 'within range, not tested')),
-          h('span', null, h('span', { className: 'kbmz-badge', 'data-niveau': 'Partielle' }, nv('Partielle')), kbp('démarre, retouches en moins', 'starts, fewer patches')),
-          h('span', null, h('span', { className: 'kbmz-badge', 'data-niveau': 'Hors zone' }, nv('Hors zone')), kbp('ne doit pas tourner', 'must not run'))))
+          h('span', null, h('span', { className: 'kbmz-badge', 'data-niveau': 'Perfect' }, nv('Perfect')), kt('testée ensemble', 'tested together')),
+          h('span', null, h('span', { className: 'kbmz-badge', 'data-niveau': 'Compatible' }, nv('Compatible')), kt('dans la zone, non testée', 'within range, not tested')),
+          h('span', null, h('span', { className: 'kbmz-badge', 'data-niveau': 'Partial' }, nv('Partial')), kt('démarre, retouches en moins', 'starts, fewer patches')),
+          h('span', null, h('span', { className: 'kbmz-badge', 'data-niveau': 'Out of range' }, nv('Out of range')), kt('ne doit pas tourner', 'must not run'))))
       const matrice = h('div', { className: 'kbmz-carte', 'data-kb': 'maintenance-compat-matrix' },
         h('div', { className: 'kbmz-sec' }, t('niveauxTitre')),
         h('div', { className: 'kbmz-mat-tete' },
           h('span', null, t('colMoteur')), h('span', null, t('colNiveau')), h('span', null, t('colDetail')), h('span', { style: { textAlign: 'right' } }, t('colReperes'))),
-        (etat.versions || []).map((r, i) => h('div', { className: 'kbmz-mat-ligne', key: i, 'data-ici': (r.ici === true || r.v === etat.global) ? 'true' : 'false' },
+        (etat.versions || []).map((r, i) => h('div', { className: 'kbmz-mat-ligne', key: i, 'data-here': (r.ici === true || r.v === etat.global) ? 'true' : 'false' },
           h('span', { className: 'kbmz-mat-v' }, r.v + (r.v === etat.global ? '  ●' : '')),
           h('span', null, h('span', { className: 'kbmz-badge', 'data-niveau': r.niveau }, nv(r.niveau))),
           h('span', { style: { color: 'var(--dsw-alias-label-secondary)' } }, hs(r.detail)),
@@ -694,7 +721,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       const r = await fetch('/kybernos-maintenance/update' + (auto === true ? '?auto=1' + (force === true ? '&force=1' : '') : (force === true ? '?force=1' : '')), { cache: 'no-store' })
       if (r.ok !== true) throw new Error('HTTP ' + String(r.status))
       const j = await r.json()
-      if (j === null || typeof j !== 'object' || j.ok !== true) throw new Error('réponse inattendue')
+      if (j === null || typeof j !== 'object' || j.ok !== true) throw new Error('unexpected response')
       if (j.desactive === true) return null
       // The signed catalogue (the Suite's own check). It never blocks or breaks the host's answer.
       try {
@@ -752,7 +779,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
     }
     const updCloseCard = () => { const c = document.querySelector('.kbup-card'); if (c !== null) c.remove(); upd.cardUp = false }
     const updCopy = (txt, btn) => {
-      const done = () => { const o = btn.textContent; btn.textContent = kbp('Copié ✓', 'Copied ✓'); setTimeout(() => { btn.textContent = o }, 1400) }
+      const done = () => { const o = btn.textContent; btn.textContent = kt('Copié ✓', 'Copied ✓'); setTimeout(() => { btn.textContent = o }, 1400) }
       try { navigator.clipboard.writeText(txt).then(done, () => { /* clipboard denied: the command stays visible */ }) } catch (e) { /* no clipboard */ }
     }
 
@@ -761,18 +788,18 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       if (t === null || typeof t !== 'object') return ''
       if (t.moteur === true) {
         const v = String(t.version || '')
-        if (t.etat === 'installation' || t.etat === 'telechargement') return kbp('Remise de DSH sur la version testée (une photo est prise avant)…', 'Putting DSH back on the tested version (a snapshot is taken first)…')
-        if (t.etat === 'relance') return '✓ ' + kbp('DSH ' + v + ' est en place. DSH redémarre : la page se recharge toute seule (sinon, rechargez-la).', 'DSH ' + v + ' is in place. DSH is restarting: the page reloads by itself (otherwise, reload it).')
-        if (t.etat === 'termine') return '✓ ' + kbp('DSH ' + v + ' est en place. Redémarrez DSH pour terminer.', 'DSH ' + v + ' is in place. Restart DSH to finish.')
-        if (t.etat === 'echec') return kbp('DSH n’a pas pu être remis sur la version testée ; rien n’a changé.', 'DSH could not be put back on the tested version; nothing changed.')
+        if (t.etat === 'installation' || t.etat === 'telechargement') return kt('Remise de DSH sur la version testée (une photo est prise avant)…', 'Putting DSH back on the tested version (a snapshot is taken first)…')
+        if (t.etat === 'relance') return '✓ ' + kt('DSH ' + v + ' est en place. DSH redémarre : la page se recharge toute seule (sinon, recharge-la).', 'DSH ' + v + ' is in place. DSH is restarting: the page reloads by itself (otherwise, reload it).')
+        if (t.etat === 'termine') return '✓ ' + kt('DSH ' + v + ' est en place. Redémarre DSH pour terminer.', 'DSH ' + v + ' is in place. Restart DSH to finish.')
+        if (t.etat === 'echec') return kt('DSH n’a pas pu être remis sur la version testée ; rien n’a changé.', 'DSH could not be put back on the tested version; nothing changed.')
         return ''
       }
-      if (t.etat === 'telechargement') return kbp('Téléchargement et vérification de l’archive…', 'Downloading and checking the archive…')
-      if (t.etat === 'extraction') return kbp('Extraction…', 'Extracting…')
-      if (t.etat === 'installation') return kbp('Installation (une photo est prise avant)…', 'Installing (a snapshot is taken first)…')
-      if (t.etat === 'relance') return '✓ ' + kbp('Kybernos ' + String(t.version || '') + ' est installé. DSH redémarre : la page se recharge toute seule (sinon, rechargez-la).', 'Kybernos ' + String(t.version || '') + ' is installed. DSH is restarting: the page reloads by itself (if it does not, reload it).')
-      if (t.etat === 'termine') return '✓ ' + kbp('Kybernos ' + String(t.version || '') + ' est installé. Redémarrez DSH pour terminer.', 'Kybernos ' + String(t.version || '') + ' is installed. Restart DSH to finish.')
-      if (t.etat === 'echec') return kbp('La mise à jour a échoué, rien n’a changé : ', 'The update failed and nothing changed: ') + String(t.erreur || '')
+      if (t.etat === 'telechargement') return kt('Téléchargement et vérification de l’archive…', 'Downloading and checking the archive…')
+      if (t.etat === 'extraction') return kt('Extraction…', 'Extracting…')
+      if (t.etat === 'installation') return kt('Installation (une photo est prise avant)…', 'Installing (a snapshot is taken first)…')
+      if (t.etat === 'relance') return '✓ ' + kt('Kybernos ' + String(t.version || '') + ' est installé. DSH redémarre : la page se recharge toute seule (sinon, recharge-la).', 'Kybernos ' + String(t.version || '') + ' is installed. DSH is restarting: the page reloads by itself (if it does not, reload it).')
+      if (t.etat === 'termine') return '✓ ' + kt('Kybernos ' + String(t.version || '') + ' est installé. Redémarre DSH pour terminer.', 'Kybernos ' + String(t.version || '') + ' is installed. Restart DSH to finish.')
+      if (t.etat === 'echec') return kt('La mise à jour a échoué, rien n’a changé : ', 'The update failed and nothing changed: ') + String(t.erreur || '')
       return ''
     }
     /** Restarts DSH through the hub, the route the Suite panel already uses (it needs the explicit confirmation sent here: the click on
@@ -787,7 +814,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
     /** Starts the Suite's update from the dialog (the host does the work; this only asks and follows). */
     const updRun = async (btn, statut, fin, moteurVersion) => {
       btn.disabled = true
-      statut.textContent = kbp('Démarrage…', 'Starting…')
+      statut.textContent = kt('Démarrage…', 'Starting…')
       let r = null
       try {
         // The Suite update, or (when `moteurVersion` is given) the engine put back on a version this plugin was tested with.
@@ -797,7 +824,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         r = { code: x.status, body: await x.json().catch(() => null) }
       } catch (e) { r = null }
       if (r === null || r.code !== 202) {
-        statut.textContent = kbp('La mise à jour n’a pas pu démarrer', 'The update could not start') + (r !== null && r.body !== null && r.body.error ? ' (' + String(r.body.error) + ')' : '') + '.'
+        statut.textContent = kt('La mise à jour n’a pas pu démarrer', 'The update could not start') + (r !== null && r.body !== null && r.body.error ? ' (' + String(r.body.error) + ')' : '') + '.'
         btn.disabled = false
         return
       }
@@ -839,22 +866,22 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       scrim.addEventListener('mousedown', (e) => { if (e.target === scrim) close() })
 
       const title = upEl('h2', 'kbup-title')
-      dlg.setAttribute('aria-label', p !== null ? kbp('Mise à jour disponible', 'Update available') : kbp('Vous êtes à jour', 'You are up to date'))
+      dlg.setAttribute('aria-label', p !== null ? kt('Mise à jour disponible', 'Update available') : kt('Tu es à jour', 'You are up to date'))
       const ico = upEl('span', 'kbup-ico', p !== null ? '↓' : '✓')
       ico.setAttribute('aria-hidden', 'true')
       title.appendChild(ico)
-      title.appendChild(document.createTextNode(p !== null ? kbp('Mise à jour disponible', 'Update available') : kbp('Vous êtes à jour', 'You are up to date')))
+      title.appendChild(document.createTextNode(p !== null ? kt('Mise à jour disponible', 'Update available') : kt('Tu es à jour', 'You are up to date')))
       dlg.appendChild(title)
 
       const rows = upEl('div', 'kbup-rows')
       const row = (k, v) => { const r = upEl('div', 'kbup-row'); r.appendChild(upEl('span', null, k)); r.appendChild(upEl('b', null, v)); rows.appendChild(r) }
       if (info !== null) {
         const pk = info.pack || {}
-        row('Kybernos', pk.installee === null || pk.installee === undefined ? kbp('inconnue', 'unknown')
-          : (pk.disponible === true ? pk.installee + '  →  ' + pk.latest : pk.installee + (pk.joignable === true ? ' · ' + kbp('à jour', 'up to date') : ' · ' + kbp('dépôt injoignable', 'repository unreachable'))))
+        row('Kybernos', pk.installee === null || pk.installee === undefined ? kt('inconnue', 'unknown')
+          : (pk.disponible === true ? pk.installee + '  →  ' + pk.latest : pk.installee + (pk.joignable === true ? ' · ' + kt('à jour', 'up to date') : ' · ' + kt('dépôt injoignable', 'repository unreachable'))))
         const m = info.moteur || {}
-        const mv = m.installee === null || m.installee === undefined || m.installee === 'inconnu' ? kbp('inconnu', 'unknown')
-          : (m.cible ? m.installee + '  →  ' + m.cible : m.installee + (m.latest && m.latest !== m.installee ? ' · ' + kbp('plus récente publiée : ', 'latest published: ') + m.latest : ' · ' + kbp('à jour', 'up to date')))
+        const mv = m.installee === null || m.installee === undefined || m.installee === 'unknown' ? kt('inconnu', 'unknown')
+          : (m.cible ? m.installee + '  →  ' + m.cible : m.installee + (m.latest && m.latest !== m.installee ? ' · ' + kt('plus récente publiée : ', 'latest published: ') + m.latest : ' · ' + kt('à jour', 'up to date')))
         row('DSH', mv)
       }
       dlg.appendChild(rows)
@@ -864,13 +891,13 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       let statutMaj = null
       if (p !== null) {
         if (p.kind === 'moteur' && p.note) dlg.appendChild(upEl('p', 'kbup-note', hs(p.note)))
-        if (p.requis === true) dlg.appendChild(upEl('p', 'kbup-note', kbp('Cette mise à jour est requise : le moteur installé est sous le minimum que ce plugin supporte.', 'This update is required: the installed engine is below the minimum this plugin supports.')))
+        if (p.requis === true) dlg.appendChild(upEl('p', 'kbup-note', kt('Cette mise à jour est requise : le moteur installé est sous le minimum que ce plugin supporte.', 'This update is required: the installed engine is below the minimum this plugin supports.')))
         const steps = upEl('ol', 'kbup-steps')
         const step = (txt, cmd) => {
           const li = upEl('li'); li.appendChild(upEl('span', null, txt))
           if (cmd !== undefined) {
             const c = upEl('div', 'kbup-cmd'); c.appendChild(upEl('code', null, cmd))
-            const b = upBtn(kbp('Copier', 'Copy'), 'kbup-b', () => updCopy(cmd, b)); c.appendChild(b); li.appendChild(c)
+            const b = upBtn(kt('Copier', 'Copy'), 'kbup-b', () => updCopy(cmd, b)); c.appendChild(b); li.appendChild(c)
           }
           steps.appendChild(li)
         }
@@ -878,70 +905,70 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         const mode = modeMiseAJour(info)
         if (mode === 'heberge') {
           // A server or container deployment is rebuilt. Replacing files in a running container would be lost at the next redeploy.
-          dlg.appendChild(upEl('p', 'kbup-note', kbp('Cette instance tourne sur un serveur ou dans un conteneur (Coolify, Docker…). Elle ne se met pas à jour sur place : elle se reconstruit.', 'This instance runs on a server or in a container (Coolify, Docker…). It is not updated in place: it is rebuilt.')))
-          step(kbp('Redéployez ou redémarrez l’instance pour qu’elle reparte de la dernière version du Dockerfile. Si la construction réutilise son cache, forcez-la sans cache : sinon l’ancienne version est conservée.', 'Redeploy or restart the instance so that it starts from the latest version of the Dockerfile. If the build reuses its cache, force it without cache: otherwise the old version is kept.'))
-          step(kbp('Gardez le volume de données attaché s’il y en a un : vos sessions et réglages y vivent. Sans volume, un redéploiement repart d’une instance vide.', 'Keep the data volume attached if there is one: your sessions and settings live in it. Without a volume, a redeploy starts from an empty instance.'))
+          dlg.appendChild(upEl('p', 'kbup-note', kt('Cette instance tourne sur un serveur ou dans un conteneur (Coolify, Docker…). Elle ne se met pas à jour sur place : elle se reconstruit.', 'This instance runs on a server or in a container (Coolify, Docker…). It is not updated in place: it is rebuilt.')))
+          step(kt('Redéploie ou redémarre l’instance pour qu’elle reparte de la dernière version du Dockerfile. Si la construction réutilise son cache, force-la sans cache : sinon l’ancienne version est conservée.', 'Redeploy or restart the instance so that it starts from the latest version of the Dockerfile. If the build reuses its cache, force it without cache: otherwise the old version is kept.'))
+          step(kt('Garde le volume de données attaché s’il y en a un : tes sessions et réglages y vivent. Sans volume, un redéploiement repart d’une instance vide.', 'Keep the data volume attached if there is one: your sessions and settings live in it. Without a volume, a redeploy starts from an empty instance.'))
         } else if (mode === 'suite') {
           viaSuite = true
-          dlg.appendChild(upEl('p', 'kbup-note', kbp('Kybernos télécharge l’archive signée, vérifie son empreinte, prend une photo de votre installation puis installe. En cas d’échec, tout revient à l’état d’avant. Ensuite DSH redémarre tout seul ; les sessions en cours reprennent après le redémarrage.', 'Kybernos downloads the signed archive, checks its hash, snapshots your install, then installs. If anything fails, everything goes back to how it was. Then DSH restarts by itself; running sessions pick up again after the restart.')))
+          dlg.appendChild(upEl('p', 'kbup-note', kt('Kybernos télécharge l’archive signée, vérifie son empreinte, prend une photo de ton installation puis installe. En cas d’échec, tout revient à l’état d’avant. Ensuite DSH redémarre tout seul ; les sessions en cours reprennent après le redémarrage.', 'Kybernos downloads the signed archive, checks its hash, snapshots your install, then installs. If anything fails, everything goes back to how it was. Then DSH restarts by itself; running sessions pick up again after the restart.')))
           statutMaj = upEl('p', 'kbup-note'); statutMaj.setAttribute('role', 'status'); statutMaj.setAttribute('data-kb', 'upd-status')
           dlg.appendChild(statutMaj)
         } else if (p.kind === 'kybernos' && pk.git !== true) {
-          step(kbp('Téléchargez la dernière archive du dépôt et décompressez-la.', 'Download the latest archive of the repository and extract it.'))
-          step(kbp('Dans un terminal, depuis le dossier décompressé :', 'In a terminal, from the extracted folder:'), './kybernos-update')
+          step(kt('Télécharge la dernière archive du dépôt et décompresse-la.', 'Download the latest archive of the repository and extract it.'))
+          step(kt('Dans un terminal, depuis le dossier décompressé :', 'In a terminal, from the extracted folder:'), './kybernos-update')
         } else if (p.kind === 'kybernos') {
-          step(kbp('Dans le dépôt, récupérez la dernière version :', 'In the repository, fetch the latest version:'), 'git pull')
-          step(kbp('Puis lancez la mise à jour :', 'Then run the update:'), 'node scripts/dsh-lifecycle.mjs upgrade')
+          step(kt('Dans le dépôt, récupère la dernière version :', 'In the repository, fetch the latest version:'), 'git pull')
+          step(kt('Puis lance la mise à jour :', 'Then run the update:'), 'node scripts/dsh-lifecycle.mjs upgrade')
         } else if (p.kind === 'moteur' && pk.heberge !== true && typeof p.cible === 'string' && p.cible !== '') {
           // The engine is outside what this plugin was tested with: no terminal, one click. The terminal command stays, folded, for developers.
           viaMoteur = true
-          dlg.appendChild(upEl('p', 'kbup-note', kbp('Kybernos peut remettre DSH sur la version qu’il a testée (' + p.cible + '). Une photo de votre installation est prise avant, DSH redémarre tout seul, et en cas d’échec tout revient à l’état d’avant.',
+          dlg.appendChild(upEl('p', 'kbup-note', kt('Kybernos peut remettre DSH sur la version qu’il a testée (' + p.cible + '). Une photo de ton installation est prise avant, DSH redémarre tout seul, et en cas d’échec tout revient à l’état d’avant.',
             'Kybernos can put DSH back on the version it was tested with (' + p.cible + '). A snapshot of your installation is taken first, DSH restarts by itself, and if anything fails everything goes back to how it was.')))
           statutMaj = upEl('p', 'kbup-note'); statutMaj.setAttribute('role', 'status'); statutMaj.setAttribute('data-kb', 'upd-status')
           dlg.appendChild(statutMaj)
           const dev = upEl('details', 'kbup-dev')
-          dev.appendChild(upEl('summary', null, kbp('Pour les développeurs', 'For developers')))
+          dev.appendChild(upEl('summary', null, kt('Pour les développeurs', 'For developers')))
           const c = upEl('div', 'kbup-cmd'); c.appendChild(upEl('code', null, 'node scripts/dsh-lifecycle.mjs upgrade ' + p.cible))
-          const cb = upBtn(kbp('Copier', 'Copy'), 'kbup-b', () => updCopy('node scripts/dsh-lifecycle.mjs upgrade ' + p.cible, cb)); c.appendChild(cb)
+          const cb = upBtn(kt('Copier', 'Copy'), 'kbup-b', () => updCopy('node scripts/dsh-lifecycle.mjs upgrade ' + p.cible, cb)); c.appendChild(cb)
           dev.appendChild(c)
           dlg.appendChild(dev)
         } else {
-          step(kbp('Dans un terminal, depuis le dépôt :', 'In a terminal, from the repository:'), 'node scripts/dsh-lifecycle.mjs upgrade')
+          step(kt('Dans un terminal, depuis le dépôt :', 'In a terminal, from the repository:'), 'node scripts/dsh-lifecycle.mjs upgrade')
         }
-        if (viaSuite !== true && viaMoteur !== true && mode !== 'heberge') step(kbp('Redémarrez DSH si le robot le demande. Une photo est prise avant : en cas d’échec, tout revient à l’état d’avant.', 'Restart DSH if asked. A snapshot is taken first: if anything fails, everything goes back to how it was.'))
+        if (viaSuite !== true && viaMoteur !== true && mode !== 'heberge') step(kt('Redémarre DSH si le robot le demande. Une photo est prise avant : en cas d’échec, tout revient à l’état d’avant.', 'Restart DSH if asked. A snapshot is taken first: if anything fails, everything goes back to how it was.'))
         if (viaSuite !== true && viaMoteur !== true) dlg.appendChild(steps)
       } else if (info !== null && info.checkedAt) {
         let quand = ''
         try { quand = new Date(info.checkedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) } catch (e) { quand = '' }
-        dlg.appendChild(upEl('p', 'kbup-note', kbp('Dernière vérification à ', 'Last checked at ') + quand + '.'))
+        dlg.appendChild(upEl('p', 'kbup-note', kt('Dernière vérification à ', 'Last checked at ') + quand + '.'))
       } else {
-        dlg.appendChild(upEl('p', 'kbup-note', kbp('La vérification n’a pas abouti. Réessayez dans un instant.', 'The check did not complete. Try again in a moment.')))
+        dlg.appendChild(upEl('p', 'kbup-note', kt('La vérification n’a pas abouti. Réessaie dans un instant.', 'The check did not complete. Try again in a moment.')))
       }
 
       const foot = upEl('div', 'kbup-foot')
       if (p !== null && p.requis !== true) {
-        foot.appendChild(upBtn(kbp('Plus tard', 'Later'), 'kbup-b', () => { lsSet(KB_UPD_SNOOZE, JSON.stringify({ cible: p.cible, until: Date.now() + 24 * 3600 * 1000 })); close() }))
-        foot.appendChild(upBtn(kbp('Ignorer cette version', 'Skip this version'), 'kbup-b', () => { lsSet(KB_UPD_SKIP, p.cible); updSignal(); close() }))
+        foot.appendChild(upBtn(kt('Plus tard', 'Later'), 'kbup-b', () => { lsSet(KB_UPD_SNOOZE, JSON.stringify({ cible: p.cible, until: Date.now() + 24 * 3600 * 1000 })); close() }))
+        foot.appendChild(upBtn(kt('Ignorer cette version', 'Skip this version'), 'kbup-b', () => { lsSet(KB_UPD_SKIP, p.cible); updSignal(); close() }))
       }
       const grow = upEl('span', 'grow'); foot.appendChild(grow)
-      const again = upBtn(kbp('Vérifier à nouveau', 'Check again'), 'kbup-link', () => { again.textContent = kbp('Vérification…', 'Checking…'); void updCheck(true, true) })
+      const again = upBtn(kt('Vérifier à nouveau', 'Check again'), 'kbup-link', () => { again.textContent = kt('Vérification…', 'Checking…'); void updCheck(true, true) })
       foot.appendChild(again)
       if (viaSuite === true || viaMoteur === true) {
         // Once installed the dialog has nothing left to postpone or skip: only "Close" stays.
         const fin = () => {
           foot.querySelectorAll('.kbup-b').forEach((b) => { if (b !== go) b.remove() })
-          go.textContent = kbp('Fermer', 'Close'); go.disabled = false; go.removeAttribute('data-kb'); go.onclick = close
+          go.textContent = kt('Fermer', 'Close'); go.disabled = false; go.removeAttribute('data-kb'); go.onclick = close
         }
-        const go = upBtn(viaMoteur === true ? kbp('Corriger automatiquement', 'Fix automatically') : kbp('Mettre à jour maintenant', 'Update now'), 'kbup-b main',
+        const go = upBtn(viaMoteur === true ? kt('Corriger automatiquement', 'Fix automatically') : kt('Mettre à jour maintenant', 'Update now'), 'kbup-b main',
           () => { void updRun(go, statutMaj, fin, viaMoteur === true ? p.cible : undefined) })
         go.setAttribute('data-kb', 'upd-go')
         foot.appendChild(go)
       } else if (p !== null && p.kind === 'kybernos' && info.pack && info.pack.depot) {
-        const a = upEl('a', 'kbup-b main', modeMiseAJour(info) === 'heberge' ? kbp('Voir cette version', 'See this release') : kbp('Ouvrir la page de téléchargement', 'Open the download page'))
+        const a = upEl('a', 'kbup-b main', modeMiseAJour(info) === 'heberge' ? kt('Voir cette version', 'See this release') : kt('Ouvrir la page de téléchargement', 'Open the download page'))
         a.href = info.pack.depot + (modeMiseAJour(info) === 'heberge' && /github\.com/.test(info.pack.depot) ? '/releases/latest' : ''); a.target = '_blank'; a.rel = 'noopener noreferrer'; a.style.textDecoration = 'none'; a.style.display = 'inline-flex'; a.style.alignItems = 'center'
         foot.appendChild(a)
       } else {
-        foot.appendChild(upBtn(kbp('Fermer', 'Close'), 'kbup-b main', close))
+        foot.appendChild(upBtn(kt('Fermer', 'Close'), 'kbup-b main', close))
       }
       dlg.appendChild(foot)
       scrim.appendChild(dlg)
@@ -962,12 +989,12 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       upd.cardUp = true
       const card = upEl('div', 'kbup-card')
       card.setAttribute('role', 'status')
-      const head = upEl('div', 'kbup-head'); head.appendChild(upEl('span', 'kbup-dot')); head.appendChild(document.createTextNode(kbp('Mise à jour disponible', 'Update available')))
+      const head = upEl('div', 'kbup-head'); head.appendChild(upEl('span', 'kbup-dot')); head.appendChild(document.createTextNode(kt('Mise à jour disponible', 'Update available')))
       card.appendChild(head)
-      card.appendChild(upEl('p', 'kbup-sub', updLabel(p) + ' — ' + kbp('vous avez ', 'you have ') + p.installee + '.'))
+      card.appendChild(upEl('p', 'kbup-sub', updLabel(p) + ' — ' + kt('tu as ', 'you have ') + p.installee + '.'))
       const acts = upEl('div', 'kbup-actions')
-      acts.appendChild(upBtn(kbp('Voir comment', 'See how'), 'kbup-b main', () => updDialog(upd.info)))
-      if (p.requis !== true) acts.appendChild(upBtn(kbp('Plus tard', 'Later'), 'kbup-b', () => { lsSet(KB_UPD_SNOOZE, JSON.stringify({ cible: p.cible, until: Date.now() + 24 * 3600 * 1000 })); updCloseCard() }))
+      acts.appendChild(upBtn(kt('Voir comment', 'See how'), 'kbup-b main', () => updDialog(upd.info)))
+      if (p.requis !== true) acts.appendChild(upBtn(kt('Plus tard', 'Later'), 'kbup-b', () => { lsSet(KB_UPD_SNOOZE, JSON.stringify({ cible: p.cible, until: Date.now() + 24 * 3600 * 1000 })); updCloseCard() }))
       card.appendChild(acts)
       document.body.appendChild(card)
     }
@@ -1006,10 +1033,10 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
           return
         }
         slots.inject('settings.section', () => slots.register(
-          { name: 'settings.section', id: 'kybernos-maintenance', order: 13, label: kbp('À propos', 'About') },
+          { name: 'settings.section', id: 'kybernos-maintenance', order: 13, label: kt('À propos', 'About') },
           () => h(Conteneur)))
         // Update detection: never blocks startup.
-        try { updBoot() } catch (e) { try { console.warn('[kybernos-maintenance] detection des mises a jour indisponible', e) } catch (e2) { /* console */ } }
+        try { updBoot() } catch (e) { try { console.warn('[kybernos-maintenance] update detection unavailable', e) } catch (e2) { /* console */ } }
       },
       __test: { fusionnerSigne, modeMiseAJour, updRelancer, motMaj, ligneVersion, versionPlugin, zoneTexte, statutDe, etatValide, lireOuvert, ecrireOuvert, CLE_DETAILS, ID_DETAILS, Page, FR, EN }
     }

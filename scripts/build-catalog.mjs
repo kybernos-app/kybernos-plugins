@@ -20,7 +20,7 @@ export const FAMILLES = [
   { id: 'teams', fr: 'Agent Teams', en: 'Agent Teams', couleur: '#1a9a8a' },
   { id: 'create', fr: 'Créer dans le chat', en: 'Create in the chat', couleur: '#e8630a' },
   { id: 'data', fr: 'Données', en: 'Data', couleur: '#0f8fb5' },
-  { id: 'connect', fr: 'Connecteurs et machines', en: 'Connectors and machines', couleur: '#d6458a' },
+  { id: 'connect', fr: 'Connexions', en: 'Connections', couleur: '#d6458a' },
   { id: 'cloud', fr: 'Cloud', en: 'Cloud', couleur: '#3b8be0' }
 ]
 
@@ -63,7 +63,7 @@ const FICHE = {
   'kybernos-terminal': ['create', 'Les blocs de commandes du chat en fenêtres de terminal, avec un bouton pour les lancer.', 'Command blocks in the chat as terminal windows, with a button to run them.'],
   'kybernos-composio': ['connect', 'Des centaines de connecteurs en cartes prêtes pour l’agent.', 'Hundreds of connectors as ready-made cards for the agent.'],
   'kybernos-computers': ['connect', 'Ordinateurs cloud pour les agents (votre clé E2B).', 'Cloud computers for agents (your E2B key).'],
-  'dsh-subagent-maison': ['connect', 'Les connecteurs d’OpenCode, Gemini, Qwen et Hermes que la page Workers allume.', 'The OpenCode, Gemini, Qwen and Hermes connectors that the Workers page turns on.'],
+  'dsh-subagent-maison': ['connect', 'Les connecteurs de workers (OpenCode, Gemini, Qwen, Hermes) que la page Workers allume.', 'The Workers connectors (OpenCode, Gemini, Qwen, Hermes) that the Workers page turns on.'],
   'kybernos-workers': ['connect', 'Installe, vérifie et expose à l’agent principal Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes et ZCode.', 'Installs, checks and exposes to the main agent Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes and ZCode.'],
   'kybernos-cloud': ['cloud', 'Compte Kybernos, modèles du proxy, mémoire du compte.', 'Kybernos account, proxy models, account memory.'],
   'kybernos-memory': ['cloud', 'La page Memory & Lessons : mémoire du compte et leçons par Agent Team, filtres, interrupteurs.', 'The Memory & Lessons page: account memory and lessons per agent team, filters, on/off switches.']
@@ -76,7 +76,7 @@ const TITRES = {
   'kybernos-relance': 'Relaunch', 'kybernos-models': 'AI Provider & Models', 'kybernos-modeles-locaux': 'Ollama Local Models', 'kybernos-auto': 'Auto Routing',
   'kybernos-flow': 'Flow', 'kybernos-free-llms': 'Free LLMs', 'kybernos-slides': 'Slides', 'kybernos-bricks': 'Bricks', 'kybernos-modeleur': '3D modeller',
   'kybernos-motion': 'Motion', 'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'kybernos-search': 'Search everywhere', 'kybernos-mobile': 'Remote Control', 'kybernos-websearch': 'Web Search', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
-  'dsh-media-player': 'Media player', 'kybernos-composio': 'Connectors', 'kybernos-computers': 'Cloud computers', 'kybernos-workers': 'Workers', 'dsh-subagent-maison': 'Agent connectors',
+  'dsh-media-player': 'Media player', 'kybernos-composio': 'Connectors', 'kybernos-computers': 'Cloud computers', 'kybernos-workers': 'Workers', 'dsh-subagent-maison': 'Workers connectors',
   'kybernos-cloud': 'Kybernos Cloud', 'kybernos-memory': 'Memory & Lessons', 'kybernos-atlas': 'Atlas', 'kybernos-changes': 'Changes', 'kybernos-usage': 'Usage', 'kybernos-multi-device': 'Workspaces & devices', 'kybernos-call': 'Calls', 'kybernos-terminal': 'Terminal', 'kybernos-dashboards': 'Dashboards', 'kybernos-summary': 'Summary', 'kybernos-kyber': 'Kaby'
 }
 const GLYPHES = {

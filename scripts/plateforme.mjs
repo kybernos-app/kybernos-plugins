@@ -1,56 +1,56 @@
-// ── La couche portable du robot de cycle de vie ─────────────────────────────
+// ── The portable layer of the lifecycle robot ───────────────────────────────
 //
-// Le robot a besoin de trois choses qui, jusqu'ici, étaient écrites pour macOS :
+// The robot needs three things that, until now, were written for macOS:
 //
-//   1. TROUVER LE SERVEUR VIVANT — quel pid écoute sur le port de la GUI ;
-//   2. SON HEURE DE DÉMARRAGE — pour dire « le serveur est antérieur à
-//      l'installation » (le mélange mémoire/disque décrit dans DIAGNOSTIC) ;
-//   3. NOMMER LA SUPERVISION — LaunchAgent ici, Planificateur de tâches là,
-//      unité systemd ailleurs.
+//   1. FINDING THE LIVE SERVER — which pid listens on the GUI's port;
+//   2. ITS START TIME — to be able to say « the server is older than the
+//      installation » (the memory/disk mix described in DIAGNOSTIC);
+//   3. NAMING THE SUPERVISION — LaunchAgent here, Task Scheduler there,
+//      a systemd unit elsewhere.
 //
-// Ce module sépare deux choses que le robot confondait :
+// This module separates two things the robot used to confuse:
 //
-//   · la DÉCISION (quelle commande, quel analyseur) — pure, donc éprouvable
-//     sur cette machine, quelle qu'elle soit ;
-//   · l'EXÉCUTION — la seule partie qui ne peut être prouvée que là où elle
-//     tourne.
+//   · the DECISION (which command, which parser) — pure, so it can be tested
+//     on this machine, whatever it is;
+//   · the EXECUTION — the only part that can only be proven where it
+//     runs.
 //
-// Les analyseurs (`parse*`) ne devinent rien : ils prennent la sortie BRUTE
-// d'une commande et rendent un pid ou une date. Chaque famille a sa fixture
-// dans `scripts/test-plateforme.mjs`. Pour macOS les fixtures sont MESURÉES sur
-// cette machine ; pour Linux et Windows, elles sont des sorties FORMATÉES
-// (voir `PROVENANCE`) — c'est dit pour ne pas faire passer un format
-// documenté pour une mesure.
+// The parsers (`parse*`) guess nothing: they take the RAW output of a command
+// and return a pid or a date. Each family has its fixture in
+// `scripts/test-plateforme.mjs`. For macOS the fixtures are MEASURED on this
+// machine; for Linux and Windows they are FORMATTED outputs (see
+// `PROVENANCE`) — that is said so as not to pass a documented format off as
+// a measurement.
 //
-// Usage :
-//   node scripts/plateforme.mjs --plan            # les commandes qui seraient lancées ici
-//   node scripts/plateforme.mjs --sonde           # mesure réelle : serveur vivant ?
+// Usage:
+//   node scripts/plateforme.mjs --plan            # the commands that would be run here
+//   node scripts/plateforme.mjs --sonde           # real measure: is the server alive?
 //   node scripts/plateforme.mjs --sonde --port N
 //
-// Sortie : 0 = mesure faite, 1 = serveur absent ou lecture impossible.
+// Exit: 0 = measure done, 1 = server absent or unreadable.
 import { execFile, execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
 
 export const PROVENANCE = Object.freeze({
-  mac: 'mesuré sur cette machine (2026-09-23)',
-  linux: 'format documenté (ss / netstat / proc), non mesuré ici',
-  windows: 'format documenté (netstat -ano / PowerShell / wmic), non mesuré ici',
+  mac: 'measured on this machine (2026-09-23)',
+  linux: 'documented format (ss / netstat / proc), not measured here',
+  windows: 'documented format (netstat -ano / PowerShell / wmic), not measured here',
 })
 
-// ── 1. La famille d'OS ──────────────────────────────────────────────────────
+// ── 1. The OS family ────────────────────────────────────────────────────────
 export const famille = (plateforme = process.platform) => {
   if (plateforme === 'darwin') return 'mac'
   if (plateforme === 'win32') return 'windows'
   if (plateforme === 'linux') return 'linux'
-  return 'autre'
+  return 'other'
 }
 export const estWindows = (p = process.platform) => p === 'win32'
 export const estMac = (p = process.platform) => p === 'darwin'
 export const estLinux = (p = process.platform) => p === 'linux'
 
-// ── 2. Les analyseurs purs ──────────────────────────────────────────────────
-// Un pid, première ligne numérique non vide. `lsof -t` rend un pid par ligne.
+// ── 2. The pure parsers ─────────────────────────────────────────────────────
+// A pid, first non-empty numeric line. `lsof -t` gives one pid per line.
 export const parsePidLsof = (sortie) => {
   for (const ligne of String(sortie ?? '').split('\n')) {
     const t = ligne.trim()
@@ -59,7 +59,7 @@ export const parsePidLsof = (sortie) => {
   return null
 }
 
-// `ss -ltnp` : une ligne par socket, le pid dans `users:(("node",pid=29198,fd=21))`.
+// `ss -ltnp`: one line per socket, the pid in `users:(("node",pid=29198,fd=21))`.
 export const parsePidSs = (sortie) => {
   for (const ligne of String(sortie ?? '').split('\n')) {
     const m = /pid=(\d+)/.exec(ligne)
@@ -68,13 +68,13 @@ export const parsePidSs = (sortie) => {
   return null
 }
 
-// `netstat -ano` : colonnes « Proto  Local  Distant  État  PID ». On ne prend
-// qu'une ligne en écoute sur le port demandé — jamais la première venue, sinon
-// un port voisin donne le pid d'un autre programme.
+// `netstat -ano`: columns « Proto  Local  Foreign  State  PID ». We only take a
+// line that is listening on the requested port — never the first one that comes,
+// otherwise a neighbouring port gives the pid of another program.
 //
-// ⚠️ Le port se compare sur la colonne d'adresse LOCALE, pas par `includes` :
-// `:3080` est un préfixe de `:30801`, et un `includes` naïf rendait le pid d'un
-// AUTRE programme (défaut attrapé par la fixture de `test-plateforme.mjs`).
+// ⚠️ The port is compared on the LOCAL address column, not with `includes`:
+// `:3080` is a prefix of `:30801`, and a naive `includes` returned the pid of
+// ANOTHER program (defect caught by the fixture of `test-plateforme.mjs`).
 export const parsePidNetstat = (sortie, port) => {
   const suffixe = ':' + String(port)
   for (const ligne of String(sortie ?? '').split('\n')) {
@@ -89,8 +89,8 @@ export const parsePidNetstat = (sortie, port) => {
   return null
 }
 
-// `ps -o lstart=` : « Wed Sep 23 18:31:20 2026 » (mesuré sur macOS ; GNU ps
-// rend le même format avec la locale C).
+// `ps -o lstart=`: « Wed Sep 23 18:31:20 2026 » (measured on macOS; GNU ps
+// gives the same format with the C locale).
 export const parseDemarragePs = (sortie) => {
   const t = String(sortie ?? '').trim()
   if (t === '') return null
@@ -98,8 +98,8 @@ export const parseDemarragePs = (sortie) => {
   return Number.isFinite(ms) ? ms : null
 }
 
-// PowerShell `(Get-Process -Id N).StartTime.ToString('o')` : ISO 8601 avec
-// décalage — `Date.parse` suffit, mais on refuse une date non finie.
+// PowerShell `(Get-Process -Id N).StartTime.ToString('o')`: ISO 8601 with
+// offset — `Date.parse` is enough, but we refuse a non-finite date.
 export const parseDemarrageIso = (sortie) => {
   const t = String(sortie ?? '').trim()
   if (t === '') return null
@@ -107,8 +107,8 @@ export const parseDemarrageIso = (sortie) => {
   return Number.isFinite(ms) ? ms : null
 }
 
-// `wmic process where processid=N get CreationDate` : « 20260923183120.123456+120 »
-// (l'offset est en MINUTES, signe inclus).
+// `wmic process where processid=N get CreationDate`: « 20260923183120.123456+120 »
+// (the offset is in MINUTES, sign included).
 export const parseDemarrageWmic = (sortie) => {
   const m = /(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})\.(\d{1,6})([+-]\d{1,4})?/.exec(String(sortie ?? ''))
   if (m === null) return null
@@ -118,9 +118,9 @@ export const parseDemarrageWmic = (sortie) => {
   return ms - offset
 }
 
-// `/proc/<pid>/stat` : le champ 22 est `starttime`, en tops depuis le démarrage.
-// Le champ 2 (`comm`) peut contenir des espaces ET des parenthèses : on coupe
-// donc après la DERNIÈRE parenthèse fermante, jamais au premier espace.
+// `/proc/<pid>/stat`: field 22 is `starttime`, in ticks since boot.
+// Field 2 (`comm`) can contain spaces AND parentheses: so we cut after the
+// LAST closing parenthesis, never at the first space.
 export const parseDemarrageProcStat = (stat, btimeMs, hz) => {
   const fin = String(stat ?? '').lastIndexOf(')')
   if (fin < 0) return null
@@ -130,14 +130,14 @@ export const parseDemarrageProcStat = (stat, btimeMs, hz) => {
   return btimeMs + (tops / hz) * 1000
 }
 
-// `btime <secondes>` dans `/proc/stat` : l'heure de démarrage de la MACHINE.
+// `btime <seconds>` in `/proc/stat`: the boot time of the MACHINE.
 export const parseBtime = (contenu) => {
   const m = /^btime\s+(\d+)\s*$/m.exec(String(contenu ?? ''))
   return m === null ? null : Number(m[1]) * 1000
 }
 
-// ── 3. Le plan par famille (pur, donc éprouvable ici) ───────────────────────
-// `nom` sert aux messages ; `parse` reçoit (sortie, contexte).
+// ── 3. The plan per family (pure, so it can be tested here) ─────────────────
+// `nom` is used by the messages; `parse` receives (output, context).
 export const planPid = (fam, port) => {
   if (fam === 'windows') {
     return [{ nom: 'netstat -ano', cmd: ['netstat', '-ano'], parse: (s) => parsePidNetstat(s, port) }]
@@ -169,8 +169,8 @@ export const planDemarrage = (fam, pid) => {
       {
         nom: '/proc/<pid>/stat',
         fichier: '/proc/' + pid + '/stat',
-        // `starttime` est en tops depuis le démarrage de la MACHINE : il faut
-        // donc `btime` (/proc/stat) ET le `hz` du noyau pour en faire une date.
+        // `starttime` is in ticks since the MACHINE's boot: so we need
+        // `btime` (/proc/stat) AND the kernel's `hz` to make a date of it.
         lire: (chemin) => parseDemarrageProcStat(
           readFileSync(chemin, 'utf8'),
           parseBtime(readFileSync('/proc/stat', 'utf8')),
@@ -183,10 +183,10 @@ export const planDemarrage = (fam, pid) => {
   return []
 }
 
-// ── Le REDÉMARRAGE ─────────────────────────────────────────────────────────
-// Un plugin a du code côté hôte (index.js) : le charger demande de REDÉMARRER
-// DSH, pas de recharger la page. Arrêter est portable (process.kill), démarrer
-// ne l'est pas tout à fait : sous Windows le binaire s'appelle `dsh.cmd`.
+// ── The RESTART ────────────────────────────────────────────────────────────
+// A plugin has host-side code (index.js): loading it needs DSH to be RESTARTED,
+// not the page to be reloaded. Stopping is portable (process.kill), starting
+// is not quite: on Windows the binary is called `dsh.cmd`.
 export const binaireDsh = (fam) => (fam === 'windows' ? 'dsh.cmd' : 'dsh')
 
 export const planRelance = (fam, { port, pid = null }) => ({
@@ -207,9 +207,9 @@ export const instructionsRedemarrage = (fam, port) => {
     '  (or run « ' + robot + ' »: the robot restarts DSH for you)'
 }
 
-// La ligne de commande d'un processus : elle sert à VÉRIFIER qu'un pid est bien
-// un `dsh web` avant de le couper — sur un port partagé, le mauvais pid est un
-// accident coûteux.
+// The command line of a process: it is used to CHECK that a pid really is a
+// `dsh web` before cutting it — on a shared port, the wrong pid is an
+// expensive accident.
 export const parseCommande = (sortie) => {
   const t = String(sortie ?? '').trim()
   return t === '' ? null : t
@@ -231,32 +231,32 @@ export const planCommande = (fam, pid) => {
 
 export const nomSuperviseur = (fam) => {
   if (fam === 'mac') return 'launchd (LaunchAgent)'
-  if (fam === 'windows') return 'Planificateur de taches'
+  if (fam === 'windows') return 'Task Scheduler'
   if (fam === 'linux') return 'systemd --user'
-  return 'inconnu'
+  return 'unknown'
 }
 
-// ── 3 bis. La supervision : le CONTENU de l'unité, par famille ──────────────
-// Même doctrine que le reste du fichier : on construit le contenu et les
-// commandes, on ne les exécute pas. Un seul cas est MESURÉ ici — le
-// LaunchAgent `com.kybernos.dsh-web` réellement chargé sur cette machine
-// (2026-09-23) : `planSupervision('mac', …)` reproduit son plist OCTET POUR
-// OCTET, sinon ce plan n'est qu'une intention. Linux et Windows sont écrits
-// d'après la documentation systemd et schtasks, et le disent.
+// ── 3 bis. The supervision: the CONTENT of the unit, per family ─────────────
+// Same doctrine as the rest of the file: we build the content and the
+// commands, we do not run them. Only one case is MEASURED here — the
+// `com.kybernos.dsh-web` LaunchAgent really loaded on this machine
+// (2026-09-23): `planSupervision('mac', …)` reproduces its plist BYTE FOR
+// BYTE, otherwise this plan is only an intention. Linux and Windows are written
+// from the systemd and schtasks documentation, and say so.
 export const PROVENANCE_SUPERVISION = Object.freeze({
-  mac: 'mesuré : reproduit le plist chargé le 2026-09-23',
-  linux: 'écrit d\'après systemd --user, non mesuré ici',
-  windows: 'écrit d\'après schtasks /create /xml, non mesuré ici',
+  mac: 'measured: reproduces the plist loaded on 2026-09-23',
+  linux: 'written from systemd --user, not measured here',
+  windows: 'written from schtasks /create /xml, not measured here',
 })
 
-/** Les familles pour lesquelles on sait écrire une unité. */
+/** The families for which we know how to write a unit. */
 export const famillesSupervisables = () => ['mac', 'linux', 'windows']
 
 /**
- * Pure. Rend l'unité de supervision à écrire, ses commandes et son chemin :
+ * Pure. Returns the supervision unit to write, its commands and its path:
  * `{ fam, nom, chemin, contenu, installer, desinstaller, etat, remarque, provenance }`.
- * `opts` : `{ home, node, dsh, port, travail, journaux, label, path, uid }`.
- * Une famille inconnue rend `null` — jamais une unité inventée.
+ * `opts`: `{ home, node, dsh, port, travail, journaux, label, path, uid }`.
+ * An unknown family returns `null` — never an invented unit.
  */
 export const planSupervision = (fam, opts = {}) => {
   const label = opts.label || 'com.kybernos.dsh-web'
@@ -321,13 +321,13 @@ export const planSupervision = (fam, opts = {}) => {
       installer: [['launchctl', 'bootstrap', domaine, chemin]],
       desinstaller: [['launchctl', 'bootout', domaine + '/' + label]],
       etat: [['launchctl', 'print', domaine + '/' + label]],
-      remarque: 'KeepAlive : launchd relance DSH seul. Un `dsh web` lancé à la main occupe le port — libère-le avant.',
+      remarque: 'KeepAlive: launchd restarts DSH by itself. A `dsh web` started by hand holds the port — free it first.',
     }
   }
   if (fam === 'linux') {
     const chemin = join(home, '.config', 'systemd', 'user', label + '.service')
     const contenu = `[Unit]
-Description=DSH (DeepSeek Harness) — serveur web Kybernos
+Description=DSH (DeepSeek Harness) — Kybernos web server
 Documentation=https://github.com/platonai-net/dsh-kybernos
 
 [Service]
@@ -349,7 +349,7 @@ WantedBy=default.target
       installer: [['systemctl', '--user', 'daemon-reload'], ['systemctl', '--user', 'enable', '--now', label + '.service']],
       desinstaller: [['systemctl', '--user', 'disable', '--now', label + '.service']],
       etat: [['systemctl', '--user', 'status', label + '.service', '--no-pager']],
-      remarque: 'Sans session graphique, active la persistance : `loginctl enable-linger ' + utilisateur + '` — c\'est ce qui fait tourner l\'unité après la fermeture de session.',
+      remarque: 'Without a graphical session, turn persistence on: `loginctl enable-linger ' + utilisateur + '` — that is what keeps the unit running after the session is closed.',
     }
   }
   if (fam === 'windows') {
@@ -357,7 +357,7 @@ WantedBy=default.target
     const contenu = `<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <RegistrationInfo>
-    <Description>DSH — serveur web Kybernos</Description>
+    <Description>DSH — Kybernos web server</Description>
   </RegistrationInfo>
   <Triggers>
     <LogonTrigger>
@@ -393,20 +393,20 @@ WantedBy=default.target
       installer: [['schtasks', '/create', '/tn', label, '/xml', chemin, '/f']],
       desinstaller: [['schtasks', '/delete', '/tn', label, '/f']],
       etat: [['schtasks', '/query', '/tn', label, '/v', '/fo', 'list']],
-      remarque: '`LeastPrivilege` : la tâche tourne en tant qu\'utilisateur — aucun droit administrateur, aucun mot de passe stocké.',
+      remarque: '`LeastPrivilege`: the task runs as the user — no administrator right, no stored password.',
     }
   }
   return null
 }
 
-// ── 4. L'exécution ──────────────────────────────────────────────────────────
+// ── 4. The execution ────────────────────────────────────────────────────────
 export const executer = (cmd, options = {}) => new Promise((res) => {
   execFile(cmd[0], cmd.slice(1), { encoding: 'utf8', timeout: options.timeoutMs ?? 15000, windowsHide: true }, (err, stdout, stderr) =>
     res({ code: err ? (err.code ?? 1) : 0, sortie: String(stdout || ''), err: String(stderr || '') }))
 })
 
-// Variante SYNCHRONE : les outils qui tournent déjà en synchrone (le relanceur)
-// n'ont pas à être réécrits en asynchrone pour devenir portables.
+// SYNCHRONOUS variant: the tools that already run synchronously (the restarter)
+// do not have to be rewritten asynchronously to become portable.
 export const executerSync = (cmd, options = {}) => {
   try {
     return { code: 0, sortie: String(execFileSync(cmd[0], cmd.slice(1), { encoding: 'utf8', timeout: options.timeoutMs ?? 15000 })), err: '' }
@@ -420,8 +420,8 @@ const valeurDuPlan = (plan, sortie) => {
   return null
 }
 
-// Le premier plan qui rend une valeur gagne ; on note lequel, pour que le
-// message dise d'où vient la mesure (et se taise si aucune source n'a répondu).
+// The first plan that returns a value wins; we note which one, so that the
+// message says where the measure comes from (and stays quiet if no source answered).
 export const mesurer = async (plans) => {
   for (const plan of plans) {
     if (plan.cmd !== undefined) {
@@ -431,12 +431,12 @@ export const mesurer = async (plans) => {
       if (valeur !== null && valeur !== undefined) return { valeur, source: plan.nom }
       continue
     }
-    // Chemin fichier (Linux : /proc).
+    // File path (Linux: /proc).
     if (plan.fichier !== undefined && plan.lire !== undefined) {
       try {
         const valeur = plan.lire(plan.fichier)
         if (valeur !== null && valeur !== undefined) return { valeur, source: plan.nom }
-      } catch (e) { /* fichier absent : on essaie le plan suivant */ }
+      } catch (e) { /* file absent: we try the next plan */ }
     }
   }
   return { valeur: null, source: null }
@@ -455,7 +455,7 @@ export const mesurerSync = (plans) => {
       try {
         const valeur = plan.lire(plan.fichier)
         if (valeur !== null && valeur !== undefined) return { valeur, source: plan.nom }
-      } catch (e) { /* fichier absent : on essaie le plan suivant */ }
+      } catch (e) { /* file absent: we try the next plan */ }
     }
   }
   return { valeur: null, source: null }
@@ -471,10 +471,10 @@ export const demarrageProcessusSync = (pid, fam = famille()) => mesurerSync(plan
 
 export const commandeProcessusSync = (pid, fam = famille()) => mesurerSync(planCommande(fam, pid))
 
-// ── 5. Sonde en ligne de commande ───────────────────────────────────────────
-// ⚠️ Comparer le NOM DU FICHIER, pas un `endsWith` sur le chemin : ce dernier
-// était vrai pour `test-plateforme.mjs`, si bien qu'importer le module depuis
-// l'épreuve lançait la sonde (défaut vu dans la sortie de l'épreuve).
+// ── 5. Command-line probe ───────────────────────────────────────────────────
+// ⚠️ Compare the FILE NAME, not an `endsWith` on the path: the latter was true
+// for `test-plateforme.mjs`, so that importing the module from the test
+// launched the probe (defect seen in the test's output).
 const estPrincipal = () => process.argv[1] !== undefined && basename(process.argv[1]) === 'plateforme.mjs'
 
 if (estPrincipal()) {
@@ -485,8 +485,8 @@ if (estPrincipal()) {
   }
   const port = Number(lireOption('--port', '3080'))
   const fam = famille()
-  // `--supervision [<famille>]` : l'unité qui serait écrite, et les commandes
-  // qui la poseraient. N'écrit rien, n'exécute rien — c'est un plan.
+  // `--supervision [<family>]`: the unit that would be written, and the commands
+  // that would put it in place. Writes nothing, runs nothing — it is a plan.
   const iSup = args.indexOf('--supervision')
   if (iSup >= 0) {
     const voulue = args[iSup + 1] !== undefined && args[iSup + 1].startsWith('--') === false ? args[iSup + 1] : fam
@@ -500,34 +500,34 @@ if (estPrincipal()) {
       uid: typeof process.getuid === 'function' ? process.getuid() : '',
     })
     if (plan === null) {
-      console.log('Aucune unité connue pour « ' + voulue + ' » — familles : ' + famillesSupervisables().join(', '))
+      console.log('No known unit for « ' + voulue + ' » — families: ' + famillesSupervisables().join(', '))
       process.exit(1)
     }
     console.log('Supervision ' + plan.fam + ' — ' + plan.nom + '  (' + plan.provenance + ')')
-    console.log('Fichier : ' + plan.chemin)
+    console.log('File: ' + plan.chemin)
     console.log(plan.contenu)
-    console.log('Pour poser :')
+    console.log('To install:')
     for (const c of plan.installer) console.log('  · ' + c.join(' '))
-    console.log('Pour retirer :')
+    console.log('To remove:')
     for (const c of plan.desinstaller) console.log('  · ' + c.join(' '))
-    console.log('Pour regarder :')
+    console.log('To look at:')
     for (const c of plan.etat) console.log('  · ' + c.join(' '))
-    console.log('Remarque : ' + plan.remarque)
+    console.log('Note: ' + plan.remarque)
   } else if (args.includes('--plan')) {
-    console.log('Plateforme : ' + process.platform + ' (' + fam + ') — supervision : ' + nomSuperviseur(fam))
-    console.log('Trouver le serveur sur le port ' + port + ' :')
+    console.log('Platform: ' + process.platform + ' (' + fam + ') — supervision: ' + nomSuperviseur(fam))
+    console.log('Find the server on port ' + port + ':')
     for (const p of planPid(fam, port)) console.log('  · ' + p.nom + ' — ' + p.cmd.join(' '))
-    console.log('Heure de démarrage du processus :')
+    console.log('Start time of the process:')
     for (const p of planDemarrage(fam, '<pid>')) console.log('  · ' + p.nom + (p.cmd === undefined ? ' — ' + p.fichier : ' — ' + p.cmd.join(' ')))
-    console.log('Provenance des formats : ' + JSON.stringify(PROVENANCE))
+    console.log('Provenance of the formats: ' + JSON.stringify(PROVENANCE))
   } else {
     const pid = await pidSurPort(port)
     if (pid.valeur === null) {
-      console.log('Aucun serveur en écoute sur le port ' + port + ' (source : ' + (pid.source ?? 'aucune') + ')')
+      console.log('No server listening on port ' + port + ' (source: ' + (pid.source ?? 'none') + ')')
       process.exit(1)
     }
     const demarrage = await demarrageProcessus(pid.valeur)
-    console.log('pid ' + pid.valeur + ' sur le port ' + port + ' (via ' + pid.source + ')')
-    console.log('démarré : ' + (demarrage.valeur === null ? 'inconnu' : new Date(demarrage.valeur).toISOString()) + ' (via ' + (demarrage.source ?? 'aucune source') + ')')
+    console.log('pid ' + pid.valeur + ' on port ' + port + ' (via ' + pid.source + ')')
+    console.log('started: ' + (demarrage.valeur === null ? 'unknown' : new Date(demarrage.valeur).toISOString()) + ' (via ' + (demarrage.source ?? 'no source') + ')')
   }
 }

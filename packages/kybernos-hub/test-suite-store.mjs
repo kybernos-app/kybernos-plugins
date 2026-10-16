@@ -44,12 +44,12 @@ console.log('the words of the online catalogue and of the update')
   const mc = T.messageCatalogue
   ok('a new signed release, an up-to-date one, in both languages', /1\.1\.0/.test(mc({ ok: true, etat: 'nouveau', suite: '1.1.0', publieLe: '2026-10-05T12:00:00Z' })[0]) && /2026-10-05/.test(mc({ ok: true, etat: 'nouveau', suite: '1.1.0', publieLe: '2026-10-05T12:00:00Z' })[1]) && /à jour/.test(mc({ ok: true, etat: 'a-jour', suite: '1.1.0' })[0]) && /up to date/.test(mc({ ok: true, etat: 'a-jour', suite: '1.1.0' })[1]))
   ok('every refusal the host can give has its own sentence, in French and English', ['pas-de-cle', 'url', 'reseau', 'signature', 'plus-ancien', 'forme', 'taille', 'cache', 'busy'].every((e) => { const m = mc({ ok: false, erreur: e }); return m.length === 2 && m[0].length > 15 && m[1].length > 15 && !m[0].includes('refusé (') && m[0] !== m[1] }))
-  ok('a DSH that predates the online catalogue (404, not JSON) is told to restart, not shown an undefined refusal', /redémarrez/.test(mc({ ok: false, error: 'bad-response' })[0]) && /restart/.test(mc({ ok: false, error: 'bad-response' })[1]) && !/undefined/.test(mc({ ok: false, error: 'network' }).join()))
+  ok('a DSH that predates the online catalogue (404, not JSON) is told to restart, not shown an undefined refusal', /redémarre-le/.test(mc({ ok: false, error: 'bad-response' })[0]) && /restart/.test(mc({ ok: false, error: 'bad-response' })[1]) && !/undefined/.test(mc({ ok: false, error: 'network' }).join()))
   ok('an unknown refusal still says something; an unreadable answer does not throw', /zzz/.test(mc({ ok: false, erreur: 'zzz' })[1]) && mc(null).length === 2 && mc(undefined).length === 2)
   const rm = T.raisonMiseAJour
   ok('an update that can be applied has no reason; one that cannot says why', rm({ miseAJour: { possible: true } }) === null && rm(null) === null && rm({}) === null && /git/.test(rm({ miseAJour: { possible: false, raison: 'development-checkout' } })[1]) && /archive/.test(rm({ miseAJour: { possible: false, raison: 'no-archive-for-platform' } })[1]) && rm({ miseAJour: { possible: false, raison: 'odd' } })[0] === 'odd')
   const mm = T.messageMiseAJour
-  ok('each step of the update has a line; the end says to restart; a failure says nothing was installed or that it was rolled back', ['telechargement', 'extraction', 'installation'].every((e) => mm({ etat: e }).length === 2) && /Relancez/.test(mm({ etat: 'termine', version: '1.1.0' })[0]) && /Restart/.test(mm({ etat: 'termine', version: '1.1.0' })[1]) && /rien n’a été installé/.test(mm({ etat: 'echec', erreur: 'digest-mismatch' })[0]) && /rolled back/.test(mm({ etat: 'echec', erreur: 'robot-refused' })[1]) && mm({ etat: 'idle' }) === null && mm(null) === null)
+  ok('each step of the update has a line; the end says to restart; a failure says nothing was installed or that it was rolled back', ['telechargement', 'extraction', 'installation'].every((e) => mm({ etat: e }).length === 2) && /Relance DSH/.test(mm({ etat: 'termine', version: '1.1.0' })[0]) && /Restart/.test(mm({ etat: 'termine', version: '1.1.0' })[1]) && /rien n’a été installé/.test(mm({ etat: 'echec', erreur: 'digest-mismatch' })[0]) && /rolled back/.test(mm({ etat: 'echec', erreur: 'robot-refused' })[1]) && mm({ etat: 'idle' }) === null && mm(null) === null)
   // A code in a sentence is a developer's line on a person's page (audit 2026-10-16: « Suite 1.0.0-beta.10 is available. hosted-instance »,
   // « Update failed (robot-failed) »). The codes are read from the host sources, so a code added there without a sentence fails here.
   const hostSrc = readFileSync(new URL('./suite-host.mjs', import.meta.url), 'utf8')
@@ -89,6 +89,27 @@ ok('a finished update becomes a pending restart (the existing banner), the catal
 ok('compatibility only speaks up on a card when something is wrong', has("chipCompat(false)") && has("verdict === 'hors'"))
 ok('the family icons nothing draws any more are gone', !/\n      (cpu|users|layout|cloud|database): '/.test(source.slice(source.indexOf('const ICONES = {'), source.indexOf('const construirePanneau'))))
 ok('no hard-coded colour in the new styles except the DSH orange the page already uses', !/kbsu-(fb|chip|hero|panel|ticks|dl|side|vedette)[^']*#[0-9a-fA-F]{3,8}\b/.test(source))
+
+console.log('the language: French only for French, English for everything else, and when the resolver fails (decision D1)')
+{
+  const dans = (win) => { let d; new Function('window', source)({ __ModuleLoader__: { load: (x) => { d = x } }, ...win }); const t = d.factory().__test; return t.kt('FR', 'EN') + '/' + t.lang() }
+  const avec = (l) => dans({ __KB_LANG_RESOLVE__: () => l })
+  ok('« kybernos » and every fr tag read French', ['kybernos', 'fr', 'fr-CA', 'fr_FR'].every((l) => avec(l) === 'FR/fr'), ['kybernos', 'fr', 'fr-CA', 'fr_FR'].map(avec))
+  ok('English and every other language read English', ['en', 'es', 'ar', 'zh', 'de'].every((l) => avec(l) === 'EN/en'), ['en', 'es', 'ar', 'zh', 'de'].map(avec))
+  ok('a resolver that throws reads English, never French', dans({ __KB_LANG_RESOLVE__: () => { throw new Error('not ready') } }) === 'EN/en')
+  ok('no resolver at all reads English', dans({}) === 'EN/en' && dans({ __KB_LANG_RESOLVE__: () => undefined }) === 'EN/en')
+  ok('the rows built from a value are pairs with the French first', T.pair('a', 'b').join() === 'a,b' && T.messageMiseAJour({ etat: 'termine', version: '1.1.0' })[0].startsWith('Suite 1.1.0 installée') && T.messageMiseAJour({ etat: 'echec', erreur: 'zzz' })[0] === 'Mise à jour échouée (zzz).' && T.messageCatalogue({ ok: false, erreur: 'zzz' })[1] === 'Online catalogue refused (zzz).')
+  ok('the French of the panel is in « tu »: no « vous », no imperative in -ez', !/\b(?:vous|votre|vos)\b/i.test(source) && !/Relancez|Redémarrez|redémarrez|Activez|Réessayez|mettez-la|cherchez|attendez|arrêtez/.test(source))
+}
+
+console.log('the names of the catalogue (A1-28 / A2-27)')
+{
+  const maison = catalogue.modules.find((m) => m.id === 'dsh-subagent-maison')
+  const connexions = catalogue.familles.find((f) => f.id === 'connect')
+  ok('the module the Workers page turns on is titled « Workers connectors » and its description says Workers', maison.titre === 'Workers connectors' && /Workers/.test(maison.promesse.en) && /workers|Workers/.test(maison.promesse.fr) && /Workers connectors/.test(maison.aide.what.en))
+  ok('nothing in the catalogue still calls it « Agent connectors »', !/Agent connectors/.test(JSON.stringify(catalogue)))
+  ok('the family is « Connections » (fr « Connexions »), no longer confused with the Connectors page', connexions.en === 'Connections' && connexions.fr === 'Connexions' && !/Connectors and machines|Connecteurs et machines/.test(JSON.stringify(catalogue)), connexions)
+}
 
 console.log('\n' + (total - echecs) + '/' + total + ' passed')
 process.exit(echecs === 0 ? 0 : 1)

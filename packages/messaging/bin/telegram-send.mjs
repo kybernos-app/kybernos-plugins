@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-// Envoi proactif DSH → Telegram (sans attendre une question).
+// Proactive DSH → Telegram send (without waiting for a question).
 //
-//   node messaging/bin/telegram-send.mjs "texte" [--chat <id>] [--file <chemin>]...
-//   echo "texte" | node messaging/bin/telegram-send.mjs
+//   node messaging/bin/telegram-send.mjs "text" [--chat <id>] [--file <path>]...
+//   echo "text" | node messaging/bin/telegram-send.mjs
 //
-// Utilisable depuis une session DSH, un script, un cron ou un hook.
+// Usable from a DSH session, a script, a cron job or a hook. The text is the caller's own;
+// the console output of this file is English only.
 
 import fs from 'node:fs';
 import process from 'node:process';
@@ -14,17 +15,17 @@ import { createBridge } from '../core/runner.mjs';
 import { allowChat, loadState, saveState } from '../core/state.mjs';
 import { createTelegramAdapter } from '../channels/telegram.mjs';
 
-const HELP = `Envoi proactif vers Telegram
+const HELP = `Proactive send to Telegram
 
-Usage: node messaging/bin/telegram-send.mjs "texte" [options]
-       echo "texte" | node messaging/bin/telegram-send.mjs
+Usage: node messaging/bin/telegram-send.mjs "text" [options]
+       echo "text" | node messaging/bin/telegram-send.mjs
 
 Options:
-  --chat <id>        chat cible (défaut: TELEGRAM_CHAT_ID du .env)
-  --file <chemin>    pièce jointe à envoyer (répétable)
-  --env-file <c>     fichier .env (défaut: config.json du pont)
-  --config <c>       config.json du pont
-  --allow <id>       autorise ce chat avant l'envoi (persistant)
+  --chat <id>        target chat (default: TELEGRAM_CHAT_ID of the .env)
+  --file <path>      attachment to send (repeatable)
+  --env-file <p>     .env file (default: config.json of the bridge)
+  --config <p>       config.json of the bridge
+  --allow <id>       allow this chat before sending (persistent)
   --help
 `;
 
@@ -80,13 +81,13 @@ async function main() {
   }
   const text = args.text || (await readStdin());
   if (!text && !args.files.length) {
-    process.stderr.write('telegram-send: rien à envoyer (texte ou --file requis)\n');
+    process.stderr.write('telegram-send: nothing to send (text or --file required)\n');
     return 2;
   }
 
   const config = loadConfig({ configPath: args.config, envFile: args.envFile });
   if (!config.token) {
-    process.stderr.write('telegram-send: aucun token Telegram (--env-file ou $TELEGRAM_BOT_TOKEN)\n');
+    process.stderr.write('telegram-send: no Telegram token (--env-file or $TELEGRAM_BOT_TOKEN)\n');
     return 2;
   }
 
@@ -96,12 +97,12 @@ async function main() {
 
   const chatId = String(args.chat || config.defaultChat || '');
   if (!chatId) {
-    process.stderr.write('telegram-send: aucun chat cible (--chat ou TELEGRAM_CHAT_ID)\n');
+    process.stderr.write('telegram-send: no target chat (--chat or TELEGRAM_CHAT_ID)\n');
     return 2;
   }
   for (const file of args.files) {
     if (!fs.existsSync(file)) {
-      process.stderr.write(`telegram-send: fichier introuvable — ${file}\n`);
+      process.stderr.write(`telegram-send: file not found — ${file}\n`);
       return 2;
     }
   }
@@ -109,7 +110,7 @@ async function main() {
   const adapter = createTelegramAdapter({ token: config.token, log: (m) => process.stderr.write(`[send] ${m}\n`) });
   const bridge = createBridge({ adapter, config, state, stateFile: config.statePath, log: (m) => process.stderr.write(`[send] ${m}\n`) });
   await bridge.notify(chatId, text || '', { files: args.files });
-  process.stdout.write(`envoyé à ${chatId}${args.files.length ? ` (+${args.files.length} fichier(s))` : ''}\n`);
+  process.stdout.write(`sent to ${chatId}${args.files.length ? ` (+${args.files.length} file${args.files.length === 1 ? '' : 's'})` : ''}\n`);
   return 0;
 }
 

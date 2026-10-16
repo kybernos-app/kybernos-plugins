@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-// Démon du pont DSH ↔ messagerie.
+// Daemon of the DSH ↔ messaging bridge.
 //
 //   node messaging/bin/telegram-daemon.mjs [options]
 //
-// Aucun port n'est ouvert : la connexion à Telegram est sortante (long polling).
+// No port is opened: the connection to Telegram is outbound (long polling).
+// The operator's console (this file, the log lines) is English only.
 
 import path from 'node:path';
 import process from 'node:process';
@@ -13,19 +14,19 @@ import { createBridge } from '../core/runner.mjs';
 import { allowChat, loadState, saveState } from '../core/state.mjs';
 import { createTelegramAdapter } from '../channels/telegram.mjs';
 
-const HELP = `Pont DSH ↔ Telegram (long polling sortant, aucun tunnel)
+const HELP = `DSH ↔ Telegram bridge (outbound long polling, no tunnel)
 
 Usage: node messaging/bin/telegram-daemon.mjs [options]
 
 Options:
-  --env-file <chemin>   fichier .env contenant TELEGRAM_BOT_TOKEN (défaut: config.json)
-  --config <chemin>     config.json du pont (défaut: ~/.dsh/telegram-bridge/config.json)
-  --state <chemin>      état (défaut: ~/.dsh/telegram-bridge/state.json)
-  --workspaces <dir>    racine des dossiers de travail par chat
-  --allow <chatId>      autorise ce chat (répétable, persistant)
-  --allow-all           autorise TOUS les chats (dangereux : accès outils complet)
-  --dry-run             ne lance pas DSH, renvoie un écho (test du câblage)
-  --print-config        affiche la configuration résolue (secrets masqués) et sort
+  --env-file <path>     .env file holding TELEGRAM_BOT_TOKEN (default: config.json)
+  --config <path>       config.json of the bridge (default: ~/.dsh/telegram-bridge/config.json)
+  --state <path>        state (default: ~/.dsh/telegram-bridge/state.json)
+  --workspaces <dir>    root of the per-chat working folders
+  --allow <chatId>      allow this chat (repeatable, persistent)
+  --allow-all           allow EVERY chat (dangerous: full tool access)
+  --dry-run             do not start DSH, send an echo back (wiring test)
+  --print-config        print the resolved configuration (secrets masked) and exit
   --help
 `;
 
@@ -67,7 +68,7 @@ function parseArgs(argv) {
         out.help = true;
         break;
       default:
-        if (arg.startsWith('--')) throw new Error(`option inconnue: ${arg}`);
+        if (arg.startsWith('--')) throw new Error(`unknown option: ${arg}`);
     }
   }
   return out;
@@ -82,7 +83,7 @@ function dryRunTask({ task, sessionId }) {
     ok: true,
     exitCode: 0,
     sessionId: sessionId || `session-dry-run-${Date.now()}`,
-    final: `🧪 dry-run — aucune exécution DSH.\n\nTâche reçue:\n${task}`,
+    final: `🧪 dry-run — DSH was not run.\n\nTask received:\n${task}`,
     error: null,
     usage: null,
     stderr: '',
@@ -115,18 +116,18 @@ async function main() {
   }
   if (!config.token) {
     process.stderr.write(
-      `telegram-daemon: aucun token.\n` +
-        `  cherché dans ${config.envFile || '(aucun .env configuré)'} et dans $TELEGRAM_BOT_TOKEN\n` +
-        `  crée ${config.configPath} avec {"envFile":"/chemin/vers/.env"} ou exporte TELEGRAM_BOT_TOKEN\n`,
+      `telegram-daemon: no token.\n` +
+        `  looked in ${config.envFile || '(no .env configured)'} and in $TELEGRAM_BOT_TOKEN\n` +
+        `  create ${config.configPath} with {"envFile":"/path/to/.env"} or export TELEGRAM_BOT_TOKEN\n`,
     );
     return 2;
   }
 
   const log = (message) => process.stdout.write(`[${stamp()}] ${message}\n`);
-  log(`pont démarré — ${JSON.stringify(describeConfig(config))}`);
-  if (config.configFileError) log(`config illisible: ${config.configFileError}`);
+  log(`bridge started — ${JSON.stringify(describeConfig(config))}`);
+  if (config.configFileError) log(`config unreadable: ${config.configFileError}`);
   for (const note of config.notes || []) log(`note: ${note}`);
-  if (config.allowAll) log('⚠️  --allow-all : tout chat Telegram peut piloter ce Harness');
+  if (config.allowAll) log('⚠️  --allow-all: any Telegram chat can drive this Harness');
 
   let lastPersist = 0;
   const adapter = createTelegramAdapter({
@@ -140,7 +141,7 @@ async function main() {
         try {
           saveState(config.statePath, state);
         } catch (err) {
-          log(`état non enregistré: ${err.message}`);
+          log(`state not saved: ${err.message}`);
         }
       }
     },
@@ -150,7 +151,7 @@ async function main() {
     const me = await adapter.me();
     log(`bot: @${me.username || me.first_name} (id ${me.id})`);
   } catch (err) {
-    process.stderr.write(`telegram-daemon: token refusé — ${err.message}\n`);
+    process.stderr.write(`telegram-daemon: token refused — ${err.message}\n`);
     return 3;
   }
 
@@ -165,7 +166,7 @@ async function main() {
 
   const controller = new AbortController();
   const stop = (signal) => {
-    log(`signal ${signal} — arrêt du pont`);
+    log(`signal ${signal} — stopping the bridge`);
     controller.abort();
   };
   process.on('SIGINT', () => stop('SIGINT'));

@@ -33,8 +33,8 @@
     },
     {
       "id": "connect",
-      "fr": "Connecteurs et machines",
-      "en": "Connectors and machines",
+      "fr": "Connexions",
+      "en": "Connections",
       "couleur": "#d6458a"
     },
     {
@@ -180,11 +180,11 @@
         },
         "steps": [
           {
-            "fr": "Ouvrez « Kybernos Suite » : l’onglet « À la une » montre les modules phares, « Tous » les liste tous.",
+            "fr": "Ouvre « Kybernos Suite » : l’onglet « À la une » montre les modules phares, « Tous » les liste tous.",
             "en": "Open “Kybernos Suite”: the “Featured” tab shows the main modules, “All” lists every one."
           },
           {
-            "fr": "Cherchez avec « Rechercher un module… », filtrez par « Installés » ou « Mises à jour », puis cliquez une carte pour lire sa page.",
+            "fr": "Cherche avec « Rechercher un module… », filtre par « Installés » ou « Mises à jour », puis clique sur une carte pour lire sa page.",
             "en": "Use “Search a module…”, filter by “Installed” or “Updates”, then click a card to read its page."
           },
           {
@@ -502,7 +502,7 @@
       },
       "aide": {
         "what": {
-          "fr": "Met de l’ordre dans vos conversations : une icône de catégorie devant chaque titre, la pastille « Memory » sous la zone de saisie et le bloc « Kybernos Settings ».",
+          "fr": "Met de l’ordre dans tes conversations : une icône de catégorie devant chaque titre, la pastille « Memory » sous la zone de saisie et le bloc « Réglages Kybernos ».",
           "en": "Tidies your chats: a category icon before each title, the “Memory” pill under the chat box, and the “Kybernos Settings” block."
         },
         "steps": [
@@ -511,25 +511,25 @@
             "en": "In the chat list, a small icon before each title shows the kind of work: fix, question, documentation…"
           },
           {
-            "fr": "Sous la zone de saisie, la pastille « Memory » compte les souvenirs envoyés au modèle et les leçons de ce chat ; cliquez pour le détail.",
+            "fr": "Sous la zone de saisie, la pastille « Memory » compte les souvenirs envoyés au modèle et les leçons de cette conversation. Clique dessus.",
             "en": "Under the chat box, the “Memory” pill counts the memories sent to the model and this chat’s lessons; click it for details."
           },
           {
-            "fr": "Dans « Kybernos Settings », réglez « Name each chat when it ends » (Yes/No) et « Study model » (Automatic, votre choix ou None).",
+            "fr": "Dans « Réglages Kybernos », règle « Nommer chaque conversation à sa fin » (Oui/Non) et « Modèle d’étude » (Automatique, ton choix ou Aucun).",
             "en": "In “Kybernos Settings”, set “Name each chat when it ends” (Yes/No) and “Study model” (Automatic, your pick, or None)."
           },
           {
-            "fr": "Sans le module Changes, quatre pastilles de plus montrent où en est le travail de ce chat (enregistré, GitHub, relecture).",
+            "fr": "Sans le module Changes, quatre pastilles de plus montrent où en est le travail de cette conversation (enregistré, GitHub, relecture).",
             "en": "Without the Changes module, four more pills show where this chat’s work stands (saved, GitHub, review)."
           }
         ],
         "where": {
-          "fr": "Sous la zone de saisie du chat, et Réglages › Général › Kybernos Settings",
+          "fr": "Sous la zone de saisie de la conversation, et Réglages › Général › Réglages Kybernos",
           "en": "Under the chat box, and Settings › General › Kybernos Settings",
           "page": false
         },
         "good": {
-          "fr": "L’icône d’un chat se choisit d’abord sur les mots de son titre, sur votre machine. S’ils ne disent rien, le titre seul part vers le modèle d’étude (nulle part s’il est local) ; jamais s’il est sur « None ».",
+          "fr": "L’icône d’une conversation se choisit d’abord sur les mots de son titre, sur ton ordinateur. S’ils ne disent rien, le titre seul part vers le modèle d’étude (nulle part s’il est local) ; jamais s’il est sur « Aucun ».",
           "en": "The icon of a chat is picked from its title’s words on your machine. If they say nothing, the title alone goes to the Study model (nowhere if it is local); never if it is “None”."
         }
       }
@@ -880,7 +880,7 @@
         },
         "steps": [
           {
-            "fr": "Ouvrez « À propos » : vous voyez la version de Kybernos, celle de DSH et la zone de DSH testée avec cette version.",
+            "fr": "Ouvre « À propos » : tu vois la version de Kybernos, celle de DSH et la zone de DSH testée avec cette version.",
             "en": "Open “About”: you see the Kybernos version, the DSH version and the DSH range tested with this version."
           },
           {
@@ -888,7 +888,7 @@
             "en": "The status block says in one sentence whether everything is in sync; “Check now” measures again."
           },
           {
-            "fr": "Si une mise à jour est conseillée, « Copier la commande », puis collez-la dans un terminal.",
+            "fr": "Si une mise à jour est conseillée, « Copier la commande », puis colle-la dans un terminal.",
             "en": "If an update is advised, “Copy the command”, then paste it in a terminal."
           },
           {
@@ -902,7 +902,7 @@
           "page": true
         },
         "good": {
-          "fr": "Rien ne s’installe tout seul ; une mise à jour prend d’abord une photo de votre installation. Kybernos cherche les mises à jour sur GitHub et npm (rien de votre travail) : l’interrupteur de la page l’arrête.",
+          "fr": "Rien ne s’installe tout seul ; une mise à jour prend d’abord une photo de ton installation. Kybernos cherche les mises à jour sur GitHub et npm (rien de ton travail) : l’interrupteur de la page l’arrête.",
           "en": "Nothing installs by itself; an update first snapshots your installation. Kybernos looks for updates on GitHub and npm (nothing about your work): the switch on this page turns that off."
         }
       }
@@ -1256,7 +1256,7 @@
     {
       "id": "dsh-subagent-maison",
       "nom": "@local/dsh-subagent-maison",
-      "titre": "Agent connectors",
+      "titre": "Workers connectors",
       "glyphe": "agent",
       "famille": "connect",
       "palier": "core",
@@ -1265,25 +1265,25 @@
       "defaut": "actif",
       "poids_ko": 28,
       "promesse": {
-        "fr": "Les connecteurs d’OpenCode, Gemini, Qwen et Hermes que la page Workers allume.",
-        "en": "The OpenCode, Gemini, Qwen and Hermes connectors that the Workers page turns on."
+        "fr": "Les connecteurs de workers (OpenCode, Gemini, Qwen, Hermes) que la page Workers allume.",
+        "en": "The Workers connectors (OpenCode, Gemini, Qwen, Hermes) that the Workers page turns on."
       },
       "aide": {
         "what": {
-          "fr": "Les quatre petits connecteurs qui permettent à votre agent principal de confier une tâche à OpenCode, Gemini, Qwen ou Hermes. Ils ne font rien tant que vous ne les allumez pas.",
-          "en": "The four small connectors that let your main agent hand a task to OpenCode, Gemini, Qwen or Hermes. They do nothing until you turn them on."
+          "fr": "Les quatre petits connecteurs de workers qui permettent à ton agent principal de confier une tâche à OpenCode, Gemini, Qwen ou Hermes. Ils ne font rien tant que tu ne les allumes pas.",
+          "en": "The four small Workers connectors that let your main agent hand a task to OpenCode, Gemini, Qwen or Hermes. They do nothing until you turn them on."
         },
         "steps": [
           {
-            "fr": "Laissez ce module actif : il n'a pas de page, la page Workers s'en sert.",
+            "fr": "Laisse ce module actif : il n'a pas de page, la page Workers s'en sert.",
             "en": "Leave this module on: it has no page of its own, the Workers page uses it."
           },
           {
-            "fr": "Ouvrez Réglages › Workers et cliquez « Activer » sur la ligne de l'agent voulu.",
+            "fr": "Ouvre Réglages › Workers et clique « Activer » sur la ligne de l'agent voulu.",
             "en": "Open Settings › Workers and click “Turn on” on the row of the agent you want."
           },
           {
-            "fr": "Installez le programme de l'agent et connectez-vous, toujours depuis la page Workers.",
+            "fr": "Installe le programme de l'agent et connecte-toi, toujours depuis la page Workers.",
             "en": "Install the agent's program and sign in, still from the Workers page."
           }
         ],

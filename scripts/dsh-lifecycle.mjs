@@ -28,34 +28,34 @@ import {
   photographier, restaurerPhoto, journaliser, lireJournal, alignerPins, alignerLiens, activesResolues, desactivesAEcrire,
   planUpgrade, ecrireLisezMoi, inspecterFraicheur, motifDeRetrait
 } from './lifecycle-engine.mjs'
-// La vérification d'une archive reçue : le manifeste du paquet est la seule
-// autorité sur ce qui a été livré (voir scripts/paquet.mjs).
+// Checking a received archive: the package manifest is the only
+// authority on what was delivered (see scripts/paquet.mjs).
 import { verifierManifest, cheminer, LIRE_SATELLITES, TOUS_LES_SATELLITES, verifierSatellite, lireManifestDuDossier, verifierDossier, nomInstallation } from './paquet.mjs'
-// La règle des bases d'une installation (profil, moteur global, projet épinglé)
-// vit dans UN seul module, éprouvé par test-racine-dsh.mjs.
+// The rule for an installation's bases (profile, global engine, pinned project)
+// lives in ONE module, proven by test-racine-dsh.mjs.
 import { basesPossibles } from './racine-dsh.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
-// REPO n'est plus une constante : `--source` peut désigner le dossier extrait
-// d'une archive reçue. ICI reste le dossier des scripts du robot (patches.json
-// et lifecycle-packages.json se lisent TOUJOURS là, jamais dans la source).
+// REPO is no longer a constant: `--source` can point at the folder extracted
+// from a received archive. ICI stays the folder of the robot's scripts (patches.json
+// and lifecycle-packages.json are ALWAYS read from there, never from the source).
 let REPO = resolve(ICI, '..')
 const DSH_HOME = process.env.DSH_HOME || join(homedir(), '.dsh')
 const PROFIL_DIR = process.env.KBLIFE_PROFIL || join(DSH_HOME, 'profiles', 'web')
 
-// ── Le moteur de RÉFÉRENCE : un arbre épinglé, dans un dossier à nous ───────
-// Mesure du 23/09/2026, laboratoire isolé : `npm i -g @deepseek-ai/dsh@X`
-// n'épingle PAS l'arbre. Les paquets que nos retouches visent ne sont pas des
-// dépendances directes du moteur ; ils arrivent par des plages transitives et
-// npm prend le plus récent qui satisfait — 0.1.7-rc.1 le soir où cette machine
-// portait 0.1.7-alpha.1. Deux machines neuves n'ont donc pas le même moteur, et
-// deux retouches sur quatre ne rentrent pas chez le testeur.
-// La seule façon MESURÉE d'épingler l'arbre : `overrides` + `npm install` dans
-// un projet (6/6 paquets à la version voulue, empreinte identique à celle d'ici).
-// Le binaire est ensuite lié dans le préfixe GLOBAL, déjà sur le PATH : le geste
-// du testeur ne change pas.
+// ── The REFERENCE engine: a pinned tree, in a folder of our own ─────────────
+// Measured on 23/09/2026, isolated lab: `npm i -g @deepseek-ai/dsh@X`
+// does NOT pin the tree. The packages our patches target are not direct
+// dependencies of the engine; they arrive through transitive ranges and
+// npm takes the most recent one that satisfies — 0.1.7-rc.1 the evening this machine
+// carried 0.1.7-alpha.1. Two new machines therefore do not get the same engine, and
+// two patches out of four do not fit on the tester's machine.
+// The only MEASURED way to pin the tree: `overrides` + `npm install` in
+// a project (6/6 packages at the wanted version, fingerprint identical to the one here).
+// The binary is then linked into the GLOBAL prefix, already on the PATH: the tester's
+// gesture does not change.
 const MOTEUR_DIR = join(DSH_HOME, 'kybernos', 'moteur')
-/** Les paquets dont le contenu décide si nos retouches rentrent. */
+/** The packages whose content decides whether our patches fit. */
 const PAQUETS_EPINGLES = [
   'dsh-agent-loop',
   'dsh-api-remotes',
@@ -70,28 +70,28 @@ const CYCLE_DIR = join(DSH_HOME, 'lifecycle')
 const PHOTOS_DIR = join(CYCLE_DIR, 'photos')
 const JOURNAL = join(CYCLE_DIR, 'journal.jsonl')
 const PATCHES = JSON.parse(readFileSync(join(ICI, 'patches.json'), 'utf8'))
-// KYBERNOS_PACKAGES_FILE : crochet de test (liste de paquets de remplacement). Jamais posé en usage normal.
+// KYBERNOS_PACKAGES_FILE: test hook (replacement package list). Never set in normal use.
 const PACKAGES = JSON.parse(readFileSync(process.env.KYBERNOS_PACKAGES_FILE || join(ICI, 'lifecycle-packages.json'), 'utf8')).packages
 
-// ── Modèle 3 : activation des satellites ────────────────────────────────────
-// Un satellite est ACTIVÉ s'il est listé dans `~/.dsh/kybernos/satellites-actives.json`
-// (un simple tableau de noms @local/…). Si le fichier est absent → TOUT est
-// activé (comportement historique, aucune régression pour un install existant).
-// Le socle (tier 1, obligatoire) est TOUJOURS activé, quoi qu'il arrive.
+// ── Model 3: activation of the satellites ───────────────────────────────────
+// A satellite is ACTIVE if it is listed in `~/.dsh/kybernos/satellites-actives.json`
+// (a plain array of @local/… names). If the file is absent → EVERYTHING is
+// active (historical behaviour, no regression for an existing install).
+// The core (`socle`, tier 1, mandatory) is ALWAYS active, whatever happens.
 const SATELLITES_ACTIVES_FICHIER = join(DSH_HOME, 'kybernos', 'satellites-actives.json')
 function lireSatellitesActives () {
   try {
     const brut = JSON.parse(readFileSync(SATELLITES_ACTIVES_FICHIER, 'utf8'))
     const manifeste = LIRE_SATELLITES(REPO)
     if (manifeste === null) return null
-    // Le socle est toujours actif, même si le fichier ne le liste pas.
+    // The core is always active, even if the file does not list it.
     const socle = (manifeste.socle?.bundles ?? []).map((b) => b.nom)
     const satellites = manifeste.satellites?.bundles ?? []
-    // Un satellite « actif par défaut » (arrivé après l'écriture du fichier) reste allumé.
+    // A "default-active" satellite (added after the file was written) stays on.
     const liste = activesResolues({ brut, satellites, socle })
     if (liste === null) return null
-    // Un paquet que satellites.json ne gère pas n'est ni socle ni satellite : il
-    // reste actif. Sans ça, créer le fichier d'activation le retirait.
+    // A package that satellites.json does not manage is neither core nor satellite: it
+    // stays active. Without this, creating the activation file removed it.
     const geres = new Set([...socle, ...satellites.map((b) => b.nom)])
     const nonGeres = PACKAGES.map((p) => p.nom).filter((n) => typeof n === 'string' && !geres.has(n))
     return [...new Set([...liste, ...nonGeres])]
@@ -106,19 +106,19 @@ let COMPAT_CHEMIN = join(REPO, 'dsh-compat.json')
 const ALLOW_SCRIPTS = '--allow-scripts=@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs'
 const horodatage = () => new Date().toISOString().replace(/[-:T]/g, '').slice(0, 15).replace('Z', '')
 
-// Verrous orphelins : un `dsh plugin install` tué en pleine course laisse
-// `package.json.lock` sur disque et TOUT install suivant meurt sur le timeout
-// atomic-write. Personne ne le détient → on le retire. (Mesuré ce jour : le
-// verrou traînait et le pnpm du robot échouait en silence.)
+// Orphaned locks: a `dsh plugin install` killed mid-run leaves
+// `package.json.lock` on disk and EVERY following install dies on the
+// atomic-write timeout. Nobody holds it → we remove it. (Measured when this was
+// written: the lock was lying around and the robot's pnpm failed silently.)
 const nettoyerVerrousOrphelins = () => {
   const verrou = join(PROFIL_DIR, 'package.json.lock')
   try { if (existsSync(verrou)) { rmSync(verrou); console.log('  🧹 orphaned lock removed (' + verrou + ')') } } catch (e) { /* nothing */ }
 }
 
-// Lier un binaire construit dans NOTRE arbre dans le préfixe GLOBAL de npm : c'est ce dossier qui est déjà
-// sur le PATH du testeur, donc son geste (`dsh web`) ne change pas. On ne suppose pas que le PATH y pointe
-// déjà (même piège qu'avant : « moteur posé » suivi de « aucun moteur lisible »). Rend le lien posé, ou null
-// quand npm ne dit pas où est le préfixe. `echouer(message)` interrompt (ou lève) selon l'appelant.
+// Link a binary built in OUR tree into npm's GLOBAL prefix: that folder is already
+// on the tester's PATH, so their gesture (`dsh web`) does not change. We do not assume the PATH already
+// points there (same trap as before: « engine in place » followed by « no readable engine »). Returns the link made, or null
+// when npm does not say where the prefix is. `echouer(message)` interrupts (or throws) depending on the caller.
 async function lierDansLePrefixe (vrai, nom, echouer) {
   const p = await execReel(['npm', 'prefix', '-g'])
   const prefixe = (p.sortie || '').trim()
@@ -130,8 +130,8 @@ async function lierDansLePrefixe (vrai, nom, echouer) {
   rmSync(lien, { force: true })
   if (existsSync(vrai) === false) echouer('🔴 the ' + nom + ' binary is not where npm installed it: ' + vrai)
   if (win) {
-    // Windows : un lien symbolique demande des droits ; un relais qui appelle
-    // le vrai .cmd par chemin ABSOLU marche sans rien supposer.
+    // Windows: a symbolic link needs privileges; a relay that calls
+    // the real .cmd by ABSOLUTE path works without assuming anything.
     writeFileSync(lien, '@echo off\r\ncall "' + vrai + '" %*\r\n')
   } else {
     symlinkSync(vrai, lien)
@@ -142,9 +142,9 @@ async function lierDansLePrefixe (vrai, nom, echouer) {
   return lien
 }
 
-// DSH installe les plugins d'un profil avec `pnpm` (`spawn pnpm ENOENT` sinon) et le site ne promet que Node et git :
-// sur une machine qui n'a pas pnpm, l'installation posait le moteur puis s'arrêtait au milieu (« pnpm was not found »).
-// On le pose comme le moteur : dans NOTRE arbre (npm), lié dans le préfixe global, jamais plus d'un geste de plus.
+// DSH installs a profile's plugins with `pnpm` (`spawn pnpm ENOENT` otherwise) and the site only promises Node and git:
+// on a machine without pnpm, the installation put the engine in place then stopped halfway (« pnpm was not found »).
+// We put it in place like the engine: in OUR tree (npm), linked into the global prefix, never more than one extra gesture.
 async function assurerPnpm () {
   const present = await execReel(['pnpm', '--version'], REPO, 30000)
   if (present.code === 0) return
@@ -163,8 +163,8 @@ async function assurerPnpm () {
   console.log('  ✓ pnpm ' + apres.sortie.trim() + ' in place' + (lien === null ? '' : ' (linked in ' + lien + ')'))
 }
 
-// install pnpm avec sortie VISIBLE : un échec muet est un échec qu'on
-// confond avec un boot cassé. Le code de sortie est la seule vérité.
+// pnpm install with VISIBLE output: a silent failure is a failure that gets
+// mistaken for a broken boot. The exit code is the only truth.
 const installerProfil = async () => {
   nettoyerVerrousOrphelins()
   await assurerPnpm()
@@ -177,7 +177,7 @@ const installerProfil = async () => {
   return r
 }
 
-// ── l'environnement réel, injecté dans le moteur ───────────────────────────
+// ── the real environment, injected into the engine ─────────────────────────
 const fsReel = {
   existe: existsSync,
   lire: (p) => readFileSync(p, 'utf8'),
@@ -186,14 +186,14 @@ const fsReel = {
   lister: (p) => readdirSync(p),
   copier: (src, dst) => { cpSync(src, dst) },
 }
-// ── lancer un binaire externe, y compris sur Windows ──────────────────────
-// Mesure du 23/09/2026, coureur windows-latest, machine neuve : `npm` y est
-// `npm.cmd`, et `execFile('npm', …)` echoue — l'installation s'arretait net sur
-// « impossible de lire les versions publiees (npm view @deepseek-ai/dsh dist-tags
-// a echoue) », sans qu'aucune version ne soit lue. Meme piege pour `dsh`, qui est
-// `dsh.cmd`. On passe donc par le shell de la plateforme, en citant les arguments
-// qui contiennent un espace : « C:\Users\Jean Dupont\… » est un cas reel chez un
-// testeur Windows, et un chemin coupe en deux ferait echouer la meme etape.
+// ── launching an external binary, Windows included ────────────────────────
+// Measured on 23/09/2026, windows-latest runner, fresh machine: `npm` is
+// `npm.cmd` there, and `execFile('npm', …)` fails — the installation stopped dead on
+// « cannot read the published versions (npm view @deepseek-ai/dsh dist-tags
+// failed) », without any version being read. Same trap for `dsh`, which is
+// `dsh.cmd`. So we go through the platform shell, quoting the arguments
+// that contain a space: « C:\Users\Jean Dupont\… » is a real case for a
+// Windows tester, and a path split in two would fail the same step.
 const citerArg = (a) => {
   const s = String(a)
   return /[\s"]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s
@@ -204,9 +204,9 @@ const execReel = (cmd, cwd, delaiMs = 180000) => new Promise((res) => {
   execFile(prog, cmd.slice(1).map(citerArg), { cwd, encoding: 'utf8', timeout: delaiMs, shell: win, windowsHide: true },
     (err, stdout, stderr) => res({
       code: err ? (err.code ?? 1) : 0,
-      // Un depassement de delai rend un code non nul ET des flux VIDES : sans ce
-      // drapeau, l'echec s'affichait « npm a echoue : » — un message qui n'explique
-      // rien. Mesure du 23/09/2026 sur un coureur windows-latest a froid.
+      // A timeout gives a non-zero code AND EMPTY streams: without this
+      // flag, the failure was shown as « npm failed: » — a message that explains
+      // nothing. Measured on 23/09/2026 on a cold windows-latest runner.
       delaiDepasse: err ? (err.killed === true || err.signal === 'SIGTERM') : false,
       delaiMs,
       sortie: String(stdout || ''),
@@ -215,33 +215,33 @@ const execReel = (cmd, cwd, delaiMs = 180000) => new Promise((res) => {
 })
 const horlogeReelle = () => Date.now()
 
-// ── le global installé : où vivent les paquets que les retouches modifient ──
-// On ne code plus /opt/homebrew en dur ici : `npm root -g` dit où est le
-// moteur, et chaque script de retouche reçoit ce chemin par `--dsh`.
+// ── the installed global: where the packages the patches modify live ──────
+// We no longer hard-code /opt/homebrew here: `npm root -g` says where the
+// engine is, and each patch script receives that path through `--dsh`.
 let RACINE_CACHE = null
 
 /**
- * Le moteur que le binaire `dsh` du PATH lance VRAIMENT, ou `null`.
+ * The engine that the `dsh` binary of the PATH REALLY launches, or `null`.
  *
- * Distinct de `moteurEpinglé` — et c'est LUI qui doit faire foi. Un retour
- * arrière repose le lien sur l'ancien moteur en laissant le nouveau dossier sous
- * MOTEUR_DIR : prendre « le plus récent » lisait alors un arbre que personne ne
- * lançait. Mesuré le 23/09/2026 au laboratoire : après l'échec d'une montée en
- * 0.1.7-alpha.2, le doctor annonçait « models-header posée » et le retour
- * arrière reposait les retouches dans l'arbre alpha.2 — pendant que `dsh`
- * lançait alpha.1, sans la retouche.
+ * Distinct from `moteurEpinglé` — and it is THIS one that must be authoritative. A
+ * rollback puts the link back on the old engine while leaving the new folder under
+ * MOTEUR_DIR: taking « the most recent » then read a tree nobody was
+ * running. Measured on 23/09/2026 in the lab: after a failed upgrade to
+ * 0.1.7-alpha.2, the doctor announced « models-header applied » and the
+ * rollback put the patches back in the alpha.2 tree — while `dsh`
+ * was launching alpha.1, without the patch.
  */
 const moteurDuLien = async () => {
   const p = await execReel(['npm', 'prefix', '-g'])
   const prefixe = String(p.sortie || '').trim()
   if (p.code !== 0 || prefixe === '') return null
-  // LES DEUX CÔTÉS sont résolus : sur macOS `/tmp` est un lien vers
-  // `/private/tmp`, et comparer un chemin résolu (le lien `dsh`) à un chemin
-  // brut (notre foyer) donne « .. » à tous les coups — mesuré le 23/09/2026, le
-  // laboratoire retombait alors sur « le plus récent » au lieu du moteur lancé.
+  // BOTH SIDES are resolved: on macOS `/tmp` is a link to
+  // `/private/tmp`, and comparing a resolved path (the `dsh` link) to a raw
+  // path (our home) gives « .. » every time — measured on 23/09/2026, the
+  // lab then fell back on « the most recent » instead of the engine that was launched.
   let racineMoteur = MOTEUR_DIR
-  try { racineMoteur = realpathSync(MOTEUR_DIR) } catch (e) { /* foyer neuf : tel quel */ }
-  // Windows : notre poseur écrit un relais `dsh.cmd` (pas de lien symbolique).
+  try { racineMoteur = realpathSync(MOTEUR_DIR) } catch (e) { /* fresh home: as is */ }
+  // Windows: our installer writes a `dsh.cmd` relay (no symbolic link).
   for (const nom of ['dsh', 'dsh.cmd']) {
     let cible = null
     try { cible = realpathSync(join(prefixe, 'bin', nom)) } catch (e) { continue }
@@ -254,7 +254,7 @@ const moteurDuLien = async () => {
   return null
 }
 
-/** Le moteur épinglé déjà posé (le plus récent), ou `null`. */
+/** The pinned engine already in place (the most recent), or `null`. */
 const moteurEpinglé = () => {
   const versions = existsSync(MOTEUR_DIR) === false ? [] : readdirSync(MOTEUR_DIR).filter((v) => v[0] !== '.' && v[0] !== '@')
   versions.sort((a, b) => comparerVersions(b, a))
@@ -267,15 +267,15 @@ const moteurEpinglé = () => {
 
 const racineGlobale = async () => {
   if (RACINE_CACHE !== null) return RACINE_CACHE
-  // 1) ce que le binaire `dsh` lance VRAIMENT (l'ordre compte : voir
-  //    `moteurDuLien`, qui existe à cause d'un retour arrière menteur) ;
+  // 1) what the `dsh` binary REALLY launches (order matters: see
+  //    `moteurDuLien`, which exists because of a lying rollback);
   const duLien = await moteurDuLien()
   if (duLien !== null) {
     RACINE_CACHE = duLien.dsh
     return RACINE_CACHE
   }
-  // 2) à défaut, le moteur ÉPINGLÉ le plus récent de notre foyer : c'est celui
-  //    que nos retouches connaissent, et celui que le binaire `dsh` lance.
+  // 2) failing that, the most recent PINNED engine in our home: it is the one
+  //    our patches know about, and the one the `dsh` binary launches.
   const epingle = moteurEpinglé()
   if (epingle !== null) {
     RACINE_CACHE = epingle.dsh
@@ -288,19 +288,19 @@ const racineGlobale = async () => {
 }
 const avecDsh = (racine, extra = []) => (racine === null ? extra : extra.concat(['--dsh', racine]))
 
-// ── le serveur sert-il le moteur qui est SUR LE DISQUE ? ───────────────────
-// Angle mort mesuré le 2026-09-22 : après la montée en 0.1.7, le serveur déjà
-// en cours (démarré 4 h plus tôt) a continué de servir le 0.1.6 depuis sa
-// mémoire. Le mélange donne « 1 entry did not activate · …-jobs: waiting for
-// service: jobs ». Ni le doctor (il ne lisait que le disque) ni la page Réglages
-// (elle lit `dsh --version`, donc le disque aussi) ne pouvaient le dire.
+// ── does the server serve the engine that is ON DISK? ──────────────────────
+// Blind spot measured on 2026-09-22: after the upgrade to 0.1.7, the server already
+// running (started 4 h earlier) kept serving 0.1.6 from its
+// memory. The mix gives « 1 entry did not activate · …-jobs: waiting for
+// service: jobs ». Neither the doctor (it only read the disk) nor the Settings page
+// (it reads `dsh --version`, so the disk too) could say so.
 const mtime = (chemin) => {
   try { return statSync(chemin).mtimeMs } catch (e) { return null }
 }
 
 const mesurerFraicheur = async () => {
-  // Portable : chaque OS a son plan (lsof ici, netstat -ano ailleurs), et le
-  // verdict dit par quelle source il a mesuré — ou qu'aucune n'a répondu.
+  // Portable: each OS has its own plan (lsof here, netstat -ano elsewhere), and the
+  // verdict says by which source it measured — or that none answered.
   const trouve = await pidSurPort(portGui)
   const pid = trouve.valeur
   if (pid === null || pid === undefined) {
@@ -320,11 +320,11 @@ const mesurerFraicheur = async () => {
   })
 }
 
-// ── les versions réellement publiées (mesure, pas devinette) ───────────────
-// Un paquet sans version cible fait échouer pnpm en ERR_PNPM_NO_MATCHING_VERSION
-// (mesuré le 2026-09-22 : agent-team-web-profile, fusionné en amont dans
-// agent-team-profile en 0.1.7). On interroge le registre paquet par paquet, en
-// parallèle ; un paquet non mesuré garde le comportement historique (épinglé).
+// ── the versions actually published (measured, not guessed) ────────────────
+// A package without a target version makes pnpm fail with ERR_PNPM_NO_MATCHING_VERSION
+// (measured on 2026-09-22: agent-team-web-profile, merged upstream into
+// agent-team-profile in 0.1.7). We query the registry package by package, in
+// parallel; a package that was not measured keeps the historical behaviour (pinned).
 const versionsPubliees = async (noms) => {
   const paires = await Promise.all(noms.map(async (nom) => {
     const r = await execReel(['npm', 'view', nom, 'versions', '--json'])
@@ -339,29 +339,28 @@ const versionsPubliees = async (noms) => {
   return mesure
 }
 
-// ── les retouches du moteur : posées PUIS vérifiées ────────────────────────
-// Une retouche qui ne se pose plus est une fonctionnalité perdue en silence :
-// c'est exactement ce que produit une montée de version. On la vérifie par son
-// propre `--check` et, si elle ne se pose pas, on refuse de continuer (l'appel
-// enveloppant remet la photo).
-// La racine que les scripts de retouche attendent : un dossier qui PORTE la
-// cible (`node_modules/<cible>`). Depuis 0.1.7, le global peut livrer les
-// paquets autrement : mesuré le 23/09/2026 sur cette machine, le profil a bien
-// `node_modules/@deepseek-ai` (40 paquets) mais AUCUN des quatre qu'on retouche —
-// ils vivent dans le paquet global, sous
-// `…/@deepseek-ai/dsh/node_modules/@deepseek-ai/<court>`. C'est donc par CIBLE
-// qu'on résout, une fois pour chaque retouche, et jamais une racine unique.
-// Une seule source de vérité : `racineQuiPorte`.
+// ── the engine patches: applied THEN verified ──────────────────────────────
+// A patch that no longer applies is a feature lost silently:
+// that is exactly what a version upgrade produces. We verify it with its
+// own `--check` and, if it does not apply, we refuse to continue (the
+// calling wrapper puts the photo back).
+// The root the patch scripts expect: a folder that CARRIES the
+// target (`node_modules/<target>`). Since 0.1.7, the global may ship the
+// packages differently: measured on 23/09/2026 on this machine, the profile does have
+// `node_modules/@deepseek-ai` (40 packages) but NONE of the four we patch —
+// they live in the global package, under
+// `…/@deepseek-ai/dsh/node_modules/@deepseek-ai/<short>`. So we resolve by TARGET,
+// once for each patch, and never with a single root.
+// One source of truth: `racineQuiPorte`.
 
-// La racine qui PORTE la cible de cette retouche, ou null si ce moteur ne la
-// livre pas du tout. Mesure du 23/09/2026 sur un moteur neuf : deux de nos
-// quatre retouches n'ont aucune cible installée — ce n'est pas une régression,
-// c'est une retouche qui ne s'applique pas.
-// Les bases essayées sont celles de `racine-dsh.mjs` (`basesPossibles`), la
-// MÊME règle que celle qu'utilisent les scripts de retouche : le profil, le
-// dossier du moteur, le préfixe npm, et la racine d'un projet épinglé (les
-// paquets y sont remontés, donc trois crans au-dessus du moteur — l'erreur d'un
-// cran se paie par un « non applicable » sur les quatre retouches).
+// The root that CARRIES this patch's target, or null if this engine does not
+// ship it at all. Measured on 23/09/2026 on a fresh engine: two of our
+// four patches have no installed target — that is not a regression,
+// it is a patch that does not apply.
+// The bases tried are those of `racine-dsh.mjs` (`basesPossibles`), the
+// SAME rule the patch scripts use: the profile, the engine
+// folder, the npm prefix, and the root of a pinned project (the packages are hoisted there,
+// so three levels above the engine — being off by one level is paid for with a « not applicable » on all four patches).
 const racineQuiPorte = async (cible) => {
   const globale = await racineGlobale()
   const candidats = [PROFIL_DIR].concat(basesPossibles(globale))
@@ -369,13 +368,13 @@ const racineQuiPorte = async (cible) => {
   return null
 }
 
-// Annuler les retouches qu'on vient de poser. Les scripts gardent une copie
-// d'avant (`.kybernos-*.orig`) et savent se retirer (`--revert`) : on s'en sert
-// au lieu de croire que la photo du profil couvre le moteur.
-// Mesure du 23/09/2026 au laboratoire : après un « ta machine est revenue à
-// l'état d'avant », le moteur portait ENCORE 10 marqueurs de notre retouche
-// d'épingles — la photo ne couvre que le profil, et un testeur aurait gardé un
-// moteur à moitié retouché sans que rien ne le dise.
+// Undo the patches we have just applied. The scripts keep a copy of the
+// previous state (`.kybernos-*.orig`) and know how to remove themselves (`--revert`): we use that
+// instead of believing that the profile photo covers the engine.
+// Measured on 23/09/2026 in the lab: after a « your machine is back to
+// how it was », the engine STILL carried 10 markers of our pins patch
+// — the photo only covers the profile, and a tester would have kept a
+// half-patched engine with nothing saying so.
 const annulerRetouches = async (resultats) => {
   const posees = resultats.filter((r) => r.applicable === true && r.conforme === true)
   if (posees.length === 0) return
@@ -390,11 +389,11 @@ const poserPatchs = async ({ tolerance = false } = {}) => {
   const resultats = []
   const versionMoteur = await versionDuGlobal({ exec: execReel })
   for (const p of PATCHES) {
-    // ── une retouche RETIRÉE ne se pose plus (P3) ──────────────────────────
-    // Retirer une entrée de `patches.json` laisserait la retouche POSÉE sur les
-    // machines où elle l'est déjà, sans que rien ne sache la défaire (le
-    // rollback lit ce même fichier). On garde donc l'entrée, marquée `retire` :
-    // le robot ne la pose plus, et il la défait là où elle traîne.
+    // ── a REMOVED patch is no longer applied (P3) ──────────────────────────
+    // Removing an entry from `patches.json` would leave the patch APPLIED on
+    // machines where it already is, with nothing able to undo it (the
+    // rollback reads this same file). So we keep the entry, marked `retire`:
+    // the robot no longer applies it, and it undoes it where it is still lying around.
     const motifRetrait = motifDeRetrait(p, versionMoteur)
     if (motifRetrait !== null) {
       const racineRetiree = await racineQuiPorte(p.cible)
@@ -421,12 +420,12 @@ const poserPatchs = async ({ tolerance = false } = {}) => {
     const pose = await execReel(['node', join(ICI, p.script), ...avecDsh(racineCible)], REPO)
     const verif = await execReel(['node', join(ICI, p.script), '--check', ...avecDsh(racineCible)], REPO)
     const conforme = pose.code === 0 && verif.code === 0
-    // On DIT sur quelle copie on a écrit : sans cette ligne, un « ✓ » ne dit pas
-    // ce qu'il a mesuré (P1 du plan).
+    // We SAY which copy we wrote to: without this line, a « ✓ » does not say
+    // what it measured (P1 of the plan).
     console.log(`     ${conforme ? '✓' : '✗'} ${p.id}  [${racineCible}]`)
     if (!conforme) {
-      // Le POURQUOI, tout de suite : sans ça la prochaine session refait la
-      // meme execution de 4 minutes pour apprendre la meme chose.
+      // The WHY, right away: without it the next session reruns the same
+      // 4-minute execution to learn the same thing.
       const detail = (pose.err || pose.sortie || verif.err || '').trim().split('\n').filter((l) => l.trim() !== '').slice(-2)
       for (const l of detail) console.log('       ' + l)
     }
@@ -441,7 +440,7 @@ const poserPatchs = async ({ tolerance = false } = {}) => {
 }
 
 const args = process.argv.slice(2)
-// --migrer-depuis <checkout> : re-pointe les liens d'un ancien dépôt vers celui-ci (explicite, jamais silencieux).
+// --migrer-depuis <checkout>: re-points the links of an old repository to this one (explicit, never silent).
 const ANCIENS_DEPOTS = args.flatMap((a, i) => (a === '--migrer-depuis' && typeof args[i + 1] === 'string' ? [resolve(args[i + 1])] : []))
 const ordre = args[0] || 'doctor'
 const opts = {
@@ -451,12 +450,12 @@ const opts = {
   port: Number((args.indexOf('--port') >= 0 ? args[args.indexOf('--port') + 1] : undefined) || process.env.KB_PORT || 3080),
   photo: (args[args.indexOf('--photo') + 1] !== undefined && args.indexOf('--photo') >= 0) ? args[args.indexOf('--photo') + 1] : null,
   url: (args[args.indexOf('--url') + 1] !== undefined && args.indexOf('--url') >= 0) ? args[args.indexOf('--url') + 1] : null,
-  // `--source <chemin>` : le dossier (ou l'archive) d'où vient le plugin.
+  // `--source <path>`: the folder (or archive) the plugin comes from.
   source: args.indexOf('--source') >= 0 ? args[args.indexOf('--source') + 1] : null,
   relancer: args.includes('--relancer'),
-  // La version cible est le premier argument LIBRE. Les valeurs des options
-  // n'en sont pas : sans ce saut, `--source dist/x.tar.gz` faisait chercher à
-  // npm un paquet nommé d'après un chemin de fichier.
+  // The target version is the first FREE argument. The values of the options
+  // are not: without this skip, `--source dist/x.tar.gz` made
+  // npm look for a package named after a file path.
   versionCible: (() => {
     const aParametre = new Set(['--source', '--port', '--photo', '--url', '--ref', '--migrer-depuis'])
     const ordres = new Set(['doctor', 'install', 'upgrade', 'rollback', 'uninstall', 'verify', 'bootstrap', 'satellites', 'safe-mode'])
@@ -470,7 +469,7 @@ const opts = {
   })()
 }
 
-/** Le port que sert la GUI : c'est lui qui porte le processus à interroger. */
+/** The port the GUI serves on: it determines which process to query. */
 const portGui = opts.port
 
 const quitter = (code, ...messages) => { for (const m of messages) console.log(m); process.exit(code) }
@@ -493,10 +492,10 @@ const direLiensReprise = () => {
   liensReprise.length = 0
 }
 
-// ── vérification boot : ce que l'utilisateur voit ─────────────────────────
-// Sans --url : vérification HOST — le robot démarre un DSH sur un port libre
-// et lit sa sortie ; un warning « did not activate » ou un crash = échec.
-// Avec --url : boot-check complet sur la vraie page (carte Failed, surfaces).
+// ── boot check: what the user sees ────────────────────────────────────────
+// Without --url: HOST check — the robot starts a DSH on a free port
+// and reads its output; a « did not activate » warning or a crash = failure.
+// With --url: full boot-check on the real page (Failed card, surfaces).
 // What a failing boot looks like in DSH's output. A line that matches is a failure of THIS boot; whether it is the suite's doing is decided
 // by comparing with the same check made before anything was written (`avant`): a warning that was already there (a third-party plugin,
 // a provider registered twice: the owner's own profile prints one at every start) is not ours and must not roll an install back.
@@ -511,17 +510,17 @@ async function verifierBoot (url, { avant = null } = {}) {
   const fs = await import('node:fs')
   const port = 0
   let sortie = ''
-  // `dsh` n'est pas un executable sur Windows mais un shim pose par `npm i -g` :
-  // `dsh.cmd`. Mesure du 23/09/2026, coureur windows-latest : `spawn('dsh', …)`
-  // rend « Error: spawn dsh ENOENT » (errno -4058) — meme classe que `npm.cmd`.
+  // `dsh` is not an executable on Windows but a shim put in place by `npm i -g`:
+  // `dsh.cmd`. Measured on 23/09/2026, windows-latest runner: `spawn('dsh', …)`
+  // returns « Error: spawn dsh ENOENT » (errno -4058) — same class as `npm.cmd`.
   const binaire = process.platform === 'win32' ? 'dsh.cmd' : 'dsh'
   const win = process.platform === 'win32'
-  // Et il faut passer par le SHELL : depuis le correctif CVE-2024-27980, Node
-  // refuse de lancer un .cmd ou un .bat directement et rend « Error: spawn EINVAL »
-  // (errno -4071) — mesure du 23/09/2026, coureur windows-latest, sur `dsh.cmd`.
-  // C'est la meme regle que `execReel`. Le throw est SYNCHRONE : un gestionnaire
-  // `error` ne le voit pas, d'ou le try/catch — un binaire qui refuse de partir
-  // doit se lire dans le verdict, jamais tuer le robot en pleine installation.
+  // And it has to go through the SHELL: since the CVE-2024-27980 fix, Node
+  // refuses to launch a .cmd or a .bat directly and returns « Error: spawn EINVAL »
+  // (errno -4071) — measured on 23/09/2026, windows-latest runner, on `dsh.cmd`.
+  // It is the same rule as `execReel`. The throw is SYNCHRONOUS: an `error`
+  // handler does not see it, hence the try/catch — a binary that refuses to start
+  // must show in the verdict, never kill the robot in the middle of an installation.
   let proc = null
   try {
     proc = (await import('node:child_process')).spawn(binaire, ['web', '--no-open', '--port', String(port)], {
@@ -530,9 +529,9 @@ async function verifierBoot (url, { avant = null } = {}) {
   } catch (e) {
     return { ok: false, sortie: binaire + ' could not start: ' + e.message, code: -1 }
   }
-  // Un binaire absent doit se LIRE dans le verdict, jamais tuer le robot : sans ce
-  // gestionnaire, Node renverse « Unhandled 'error' event » et toute l'installation
-  // echoue sur une verification de boot facultative.
+  // A missing binary must show in the verdict, never kill the robot: without this
+  // handler, Node throws « Unhandled 'error' event » and the whole installation
+  // fails on an optional boot check.
   proc.on('error', (e) => { sortie += binaire + ' not found: ' + e.message })
   proc.stdout.on('data', (d) => { sortie += d })
   proc.stderr.on('data', (d) => { sortie += d })
@@ -542,7 +541,7 @@ async function verifierBoot (url, { avant = null } = {}) {
   const t = setInterval(() => { if (/dsh web: http/.test(sortie)) { clearInterval(t); pret() } }, 250)
   await Promise.race([demarrage, attendre(25000)])
   clearInterval(t)
-  // attendre la fin du boot (les warnings arrivent après l'URL)
+  // wait for the end of the boot (the warnings arrive after the URL)
   await attendre(3000)
   const tuable = proc
   const mort = new Promise((res) => tuable.on('exit', res))
@@ -570,12 +569,12 @@ const direEchecBoot = (boot) => {
   for (const l of boot.nouveaux.slice(0, 4)) console.log('     · ' + l.slice(0, 220))
 }
 
-// ── DOCTOR : lire, ne jamais écrire ───────────────────────────────────────
-// ── REDÉMARRER DSH : le seul geste qui charge le code HÔTE d'un plugin ────
-// Un rechargement de page ne suffit pas (le client, oui ; l'hôte, non). Le
-// robot tourne dans une console, HORS de DSH : il peut donc arrêter et
-// relancer — mais seulement si on le lui demande (`--relancer --force`),
-// parce que c'est le DSH du testeur qu'on éteint.
+// ── DOCTOR: read, never write ─────────────────────────────────────────────
+// ── RESTART DSH: the only gesture that loads a plugin's HOST code ─────────
+// A page reload is not enough (the client yes; the host, no). The
+// robot runs in a console, OUTSIDE DSH: it can therefore stop and
+// restart it — but only when asked to (`--relancer --force`),
+// because it is the tester's DSH that gets shut down.
 const attendre = (ms) => new Promise((r) => setTimeout(r, ms))
 
 async function relancerDsh (port) {
@@ -583,7 +582,7 @@ async function relancerDsh (port) {
   const plan = planRelance(famille(), { port, pid: trouve.valeur })
   if (plan.arreter !== null) {
     console.log('  ⏹ stopping DSH (pid ' + plan.arreter.pid + ')…')
-    try { process.kill(Number(plan.arreter.pid), 'SIGTERM') } catch (e) { /* déjà mort : tant mieux */ }
+    try { process.kill(Number(plan.arreter.pid), 'SIGTERM') } catch (e) { /* already dead: good */ }
     for (let i = 0; i < 40; i++) { await attendre(250); if ((await pidSurPort(port)).valeur === null) break }
   }
   console.log('  ▶ restarting: ' + plan.demarrer.cmd + ' ' + plan.demarrer.args.join(' ') + ' (detached)')
@@ -597,23 +596,23 @@ async function relancerDsh (port) {
   return { ok: false, raison: 'no server answered on port ' + port + ' within 30 s' }
 }
 
-// ── LA SOURCE : le dépôt, un dossier, ou l'archive reçue par le testeur ───
-// Une archive reçue n'est utilisée qu'après vérification de ses empreintes :
-// une seule différence et on refuse — installer un paquet qu'on n'a pas pu
-// vérifier, c'est installer ce que quelqu'un a mis à la place.
+// ── THE SOURCE: the repository, a folder, or the archive received by the tester ──
+// A received archive is only used after its fingerprints are verified:
+// a single difference and we refuse — installing a package we could not
+// verify is installing whatever someone put in its place.
 //
-// Mesuré le 2026-10-08 (bancs isolés, profil jetable) :
-//   · une archive reçue en FICHIER était extraite DIRECTEMENT dans `paquets/<nom>` (après un rmSync) AVANT d'être vérifiée : une
-//     archive truquée ou tronquée du même nom était « refusée » mais avait déjà remplacé l'installation vivante (les liens du
-//     profil pointent là). Désormais : extraction dans un dossier d'étape, vérification, PUIS échange.
-//   · le DOSSIER passé par `kybernos-install` / `kybernos-update` n'était jamais vérifié, malgré ce que disent leurs en-têtes.
-//   · le panneau Suite extrait l'archive dans un dossier TEMPORAIRE puis le supprime : les nouveaux liens du profil
-//     pointaient dans le vide et `dsh plugin install` plantait ensuite pour de bon. Un dossier d'archive situé sous le dossier
-//     temporaire du système est donc recopié (vérifié, par échange) dans `paquets/` avant d'être lié.
+// Measured on 2026-10-08 (isolated benches, throwaway profile):
+//   · an archive received as a FILE was extracted DIRECTLY into `paquets/<name>` (after an rmSync) BEFORE being verified: a
+//     tampered or truncated archive of the same name was « refused » but had already replaced the live installation (the
+//     profile's links point there). Now: extraction into a staging folder, verification, THEN swap.
+//   · the FOLDER passed by `kybernos-install` / `kybernos-update` was never verified, despite what their headers say.
+//   · the Suite panel extracts the archive into a TEMPORARY folder then deletes it: the profile's new links
+//     pointed into the void and `dsh plugin install` then crashed for good. An archive folder located under the system
+//     temporary folder is therefore copied (verified, by swap) into `paquets/` before being linked.
 const PAQUETS_DIR = join(DSH_HOME, 'kybernos', 'paquets')
 const NOM_SUR = /^[A-Za-z0-9][A-Za-z0-9._-]{0,120}$/
 
-/** Ce dossier est-il sous le dossier temporaire du système (donc destiné à disparaître) ? */
+/** Is this folder under the system temporary folder (hence meant to disappear)? */
 const dossierVolatil = (chemin) => {
   try {
     const tmp = realpathSync(tmpdir())
@@ -624,7 +623,7 @@ const dossierVolatil = (chemin) => {
 
 const pidVivant = (pid) => { try { process.kill(pid, 0); return true } catch (e) { return e.code === 'EPERM' } }
 
-/** Reprend ce qu'un robot tué en pleine extraction ou en plein échange a laissé dans `paquets/`. */
+/** Picks up what a robot killed mid-extraction or mid-swap left behind in `paquets/`. */
 const remettreEnOrdrePaquets = () => {
   if (existsSync(PAQUETS_DIR) === false) return
   for (const nom of readdirSync(PAQUETS_DIR)) {
@@ -632,14 +631,14 @@ const remettreEnOrdrePaquets = () => {
     if (etape !== null && pidVivant(Number(etape[1])) === false) { rmSync(join(PAQUETS_DIR, nom), { recursive: true, force: true }); continue }
     const avant = /^(.+)\.avant-(\d+)$/.exec(nom)
     if (avant !== null && pidVivant(Number(avant[2])) === false) {
-      // Tué entre les deux renommages : l'installation vivante est restée de côté. On la remet.
+      // Killed between the two renames: the live installation was left aside. Put it back.
       if (existsSync(join(PAQUETS_DIR, avant[1])) === false) renameSync(join(PAQUETS_DIR, nom), join(PAQUETS_DIR, avant[1]))
       else rmSync(join(PAQUETS_DIR, nom), { recursive: true, force: true })
     }
   }
 }
 
-/** Échange `etape` (déjà vérifié) contre `paquets/<nom>` : l'ancien reste de côté jusqu'à ce que le nouveau soit en place. */
+/** Swaps `etape` (already verified) for `paquets/<name>`: the old one stays aside until the new one is in place. */
 const poserDansPaquets = (etape, nom) => {
   const cible = join(PAQUETS_DIR, nom)
   const avant = cible + '.avant-' + process.pid
@@ -654,29 +653,29 @@ const poserDansPaquets = (etape, nom) => {
 
 const refuserArchive = (verdict, etape) => {
   console.log('🔴 archive NOT conforming — ' + verdict.ecarts.length + ' discrepancy(ies):')
-  for (const e of verdict.ecarts.slice(0, 20)) console.log('   · ' + e.type + ' : ' + e.chemin)
+  for (const e of verdict.ecarts.slice(0, 20)) console.log('   · ' + ({ manquant: 'missing', modifie: 'modified', 'en-trop': 'extra' }[e.type] ?? e.type) + ': ' + e.chemin)
   if (etape !== null) rmSync(etape, { recursive: true, force: true })
   quitter(1, '   nothing was installed (nor changed). Ask whoever sent you the archive for a new one.')
 }
 
 async function preparerSource () {
-  if (opts.source === null) return { origine: 'dépôt', chemin: REPO, manifest: null }
+  if (opts.source === null) return { chemin: REPO, manifest: null }
   const chemin = resolve(opts.source)
   if (!existsSync(chemin)) quitter(1, '🔴 source not found: ' + chemin)
   if (statSync(chemin).isDirectory()) {
     const manifest = lireManifestDuDossier(chemin)
     if (manifest === null && existsSync(join(chemin, 'manifest.json'))) {
-      // Un manifeste PRÉSENT mais illisible ne vaut pas « pas de manifeste » : sinon il suffirait de l'abîmer pour échapper à la vérification.
+      // A PRESENT but unreadable manifest is not « no manifest »: otherwise damaging it would be enough to escape verification.
       try { JSON.parse(readFileSync(join(chemin, 'manifest.json'), 'utf8')) } catch (e) {
         quitter(1, '🔴 the manifest.json of ' + chemin + ' is unreadable — I refuse to install a folder I cannot verify.')
       }
     }
     if (manifest === null) {
-      // Un dépôt de développement (ou tout dossier qui ne vient pas d'une archive) n'a pas de manifeste : rien à rejouer.
+      // A development repository (or any folder that does not come from an archive) has no manifest: nothing to replay.
       REPO = chemin
       COMPAT_CHEMIN = join(REPO, 'dsh-compat.json')
       console.log('  Source: folder ' + REPO)
-      return { origine: 'dossier', chemin: REPO, manifest: null }
+      return { chemin: REPO, manifest: null }
     }
     const verdict = verifierDossier(chemin, manifest)
     if (!verdict.ok) refuserArchive(verdict, null)
@@ -698,19 +697,19 @@ async function preparerSource () {
     }
     COMPAT_CHEMIN = join(REPO, 'dsh-compat.json')
     console.log('  ' + manifest.total.fichiers + ' files verified, version ' + manifest.version)
-    return { origine: 'dossier', chemin: REPO, manifest }
+    return { chemin: REPO, manifest }
   }
   const nom = basename(chemin).replace(/\.tar\.gz$/, '')
   if (NOM_SUR.test(nom) === false || nom.includes('..')) quitter(1, '🔴 archive name refused: ' + basename(chemin))
   remettreEnOrdrePaquets()
   mkdirSync(PAQUETS_DIR, { recursive: true })
-  // Jamais dans `paquets/<nom>` directement : cette installation est peut-être celle qui tourne.
+  // Never directly in `paquets/<name>`: that installation may be the one that is running.
   const etape = join(PAQUETS_DIR, '.etape-' + process.pid + '-' + Date.now())
   mkdirSync(etape, { recursive: true })
-  // Piège Windows (n°3 de AGENTS.md) : un chemin d'archive en argument fichier
-  // ferait lire « D: » comme un hôte distant — NOM du fichier + cwd du dossier.
-  // Les antislashs de la cible -C sont aussi mangés par le tar GNU de
-  // Git-for-Windows : slashes partout (run 36993946467).
+  // Windows trap (no. 3 of AGENTS.md): an archive path as a file argument
+  // would make « D: » be read as a remote host — file NAME + cwd of the folder.
+  // The backslashes of the -C target are also eaten by the GNU tar of
+  // Git-for-Windows: slashes everywhere (run 36993946467).
   const detar = await execReel(['tar', '-xzf', basename(chemin), '-C', etape.split(sep).join('/')],
     dirname(chemin))
   if (detar.code !== 0) {
@@ -728,13 +727,13 @@ async function preparerSource () {
   console.log('  Source: archive ' + nom + ' — ' + manifest.total.fichiers + ' files verified, version ' + manifest.version)
   REPO = dossier
   COMPAT_CHEMIN = join(REPO, 'dsh-compat.json')
-  return { origine: 'archive', chemin: REPO, manifest }
+  return { chemin: REPO, manifest }
 }
 
-// La version du moteur à poser : on lit les étiquettes publiées EN DIRECT et on
-// épingle une version précise. Jamais `latest`, jamais un intervalle : c'est
-// exactement le défaut que la sonde du 23/09/2026 a montré (latest = 0.1.5-rc.3
-// alors que alpha = 0.1.7-alpha.2 — installer latest aurait RÉGRESSÉ le moteur).
+// The engine version to put in place: we read the published tags LIVE and
+// pin a precise version. Never `latest`, never a range: that is
+// exactly the defect the probe of 23/09/2026 showed (latest = 0.1.5-rc.3
+// while alpha = 0.1.7-alpha.2 — installing latest would have REGRESSED the engine).
 async function chaineDAssurer () {
   if (opts.versionCible !== null) {
     console.log('  (version asked for explicitly: ' + opts.versionCible + ')')
@@ -755,10 +754,10 @@ async function chaineDAssurer () {
   const dedans = (v) => zone === null || zone.min === undefined ||
     (comparerVersions(v, zone.min) >= 0 && comparerVersions(v, zone.max) <= 0)
   const ligne = 'alpha ' + (tags.alpha ?? '—') + ' · next ' + (tags.next ?? '—') + ' · latest ' + (tags.latest ?? '—')
-  // Le choix DOIT rester dans la zone éprouvée. Mesuré le 23/09/2026 : `alpha`
-  // valait 0.1.7-alpha.2, un cran AU-DESSUS du max testé — le robot aurait donc
-  // posé un moteur, puis refusé sa propre installation, à chaque fois, sur
-  // toute machine neuve. Une étiquette hors zone n'est pas un choix.
+  // The choice MUST stay inside the proven range. Measured on 23/09/2026: `alpha`
+  // was 0.1.7-alpha.2, one notch ABOVE the tested max — the robot would thus have
+  // put an engine in place, then refused its own installation, every time, on
+  // every fresh machine. A tag outside the range is not a choice.
   for (const canal of ['alpha', 'next', 'latest']) {
     if (tags[canal] !== undefined && dedans(tags[canal])) {
       console.log('  (read live — ' + ligne + ' → pinning ' + tags[canal] + ', inside the tested range)')
@@ -780,9 +779,9 @@ async function chaineDAssurer () {
 }
 
 async function installerMoteur (cible, opts = {}) {
-  // `tolere` : lever au lieu de sortir. L'installation n'a rien à remettre en
-  // place avant d'avoir écrit, donc elle peut sortir ; la mise à jour, elle, a
-  // déjà pris une photo et DOIT passer par son `catch` pour la restaurer.
+  // `tolere`: throw instead of exiting. The installation has nothing to put back
+  // before having written, so it may exit; the upgrade, though, has
+  // already taken a photo and MUST go through its `catch` to restore it.
   const echouer = (message) => {
     if (opts.tolere === true) throw new Error(message)
     quitter(1, message)
@@ -799,12 +798,12 @@ async function installerMoteur (cible, opts = {}) {
   writeFileSync(join(projet, 'package.json'), JSON.stringify(manifeste, null, 2) + '\n')
   console.log('  ⬇ npm install @deepseek-ai/dsh@' + cible + ' pinned (' + PAQUETS_EPINGLES.length + ' sub-packages) …')
   console.log('     (reference tree in ' + projet + ')')
-  // `--allow-scripts` est refusé pour une installation de projet (mesuré :
-  // « EALLOWSCRIPTS — not allowed in project-scoped installs »). npm se contente
-  // d'un avertissement, et le moteur tourne sans ces scripts post-installation.
-  // 10 minutes : `npm install` sur un Windows a froid (ou une connexion de
-  // beta-testeur) depasse largement les 3 minutes. Mesure du 23/09/2026 : le
-  // coureur windows-latest a ete coupe a 180 s, avec des flux vides.
+  // `--allow-scripts` is refused for a project installation (measured:
+  // « EALLOWSCRIPTS — not allowed in project-scoped installs »). npm settles
+  // for a warning, and the engine runs without these post-install scripts.
+  // 10 minutes: `npm install` on a cold Windows (or a beta tester's
+  // connection) goes well beyond 3 minutes. Measured on 23/09/2026: the
+  // windows-latest runner was cut at 180 s, with empty streams.
   const r = await execReel(['npm', 'install', '--no-audit', '--no-fund'], projet, 600000)
   if (r.code !== 0) {
     const cause = r.delaiDepasse === true
@@ -815,12 +814,12 @@ async function installerMoteur (cible, opts = {}) {
   const moteur = join(projet, 'node_modules', '@deepseek-ai', 'dsh')
   if (existsSync(moteur) === false) echouer('🔴 npm did not put @deepseek-ai/dsh in ' + projet)
 
-  // Le binaire est lié dans le préfixe GLOBAL (voir `lierDansLePrefixe`).
+  // The binary is linked into the GLOBAL prefix (see `lierDansLePrefixe`).
   const vrai = join(projet, 'node_modules', '.bin', famille() === 'windows' ? 'dsh.cmd' : 'dsh')
   const lien = await lierDansLePrefixe(vrai, 'dsh', echouer)
   if (lien !== null) {
-    // Le moteur vient de CHANGER : tout ce qui a été résolu avant (racine des
-    // retouches, audit des surfaces) désignait l'ancien arbre.
+    // The engine has just CHANGED: everything resolved before (patch root,
+    // surface audit) designated the old tree.
     RACINE_CACHE = null
     console.log('  (dsh linked in ' + lien + ')')
   }
@@ -836,11 +835,11 @@ async function installerMoteur (cible, opts = {}) {
 const source = await preparerSource()
 
 if (ordre === 'satellites') {
-  // Modèle 3 : gestion des satellites. Lister, activer, désactiver.
-  //   satellites --liste                → état actuel (actifs/inactifs)
-  //   satellites --activer <nom> [...]  → active ces satellites
-  //   satellites --desactiver <nom>...  → les désactive
-  //   satellites --tout                 → active tout (réinitialise)
+  // Model 3: satellite management. List, activate, deactivate.
+  //   satellites --liste                → current state (active/inactive)
+  //   satellites --activer <name> [...] → activates these satellites
+  //   satellites --desactiver <name>... → deactivates them
+  //   satellites --tout                 → activates everything (reset)
   const manifeste = LIRE_SATELLITES(REPO)
   if (manifeste === null) quitter(1, '✗ docs/beta/satellites.json unreadable')
   const tous = TOUS_LES_SATELLITES(REPO)
@@ -1001,8 +1000,8 @@ if (ordre === 'doctor') {
   const versionMoteur = etat.global ?? await versionDuGlobal({ exec: execReel })
   for (const p of PATCHES) {
     const r = await execReel(['node', join(ICI, p.script), '--check', ...avecDsh(racine)], REPO)
-    // Une retouche RETIRÉE est attendue ABSENTE : qu'elle soit encore posée est
-    // un écart (l'installation n'a pas suivi), pas un succès à compter.
+    // A REMOVED patch is expected to be ABSENT: that it is still applied is
+    // a discrepancy (the installation did not follow), not a success to count.
     const motifRetrait = motifDeRetrait(p, versionMoteur)
     if (motifRetrait !== null) {
       retirees.push({ id: p.id, motif: motifRetrait, encorePosee: r.code === 0 })
@@ -1013,19 +1012,19 @@ if (ordre === 'doctor') {
     if (r.code !== 0) etat.problemes.push(`patch « ${p.id} » is not applied in the engine`)
   }
   etat.retirees = retirees
-  // Le serveur qui tourne sert-il le moteur qui est sur le disque ? Un serveur
-  // plus ancien que la dernière installation sert l'ancienne version depuis sa
-  // mémoire — c'est ce mélange qui affichait « Failed to load plugins ».
+  // Does the running server serve the engine that is on disk? A server
+  // older than the last installation serves the old version from its
+  // memory — that mix is what displayed « Failed to load plugins ».
   const fraicheur = await mesurerFraicheur()
   etat.fraicheur = fraicheur
   if (fraicheur.perime === true) etat.problemes.push(fraicheur.raison)
-  // ── les SURFACES du moteur ───────────────────────────────────────────────
-  // Une retouche « posée » ne dit pas que son ancre existe encore : la montée
-  // 0.1.6 → 0.1.7 a cassé quatre contrats en silence (settings.get,
-  // AgentPreset.path, l'arité de sessionVisible/deriveFlat, des icônes
-  // renommées). On audite donc les contrats à chaque doctor, et on signale
-  // aussi ce que le moteur livre désormais en natif (doublon ou capacité non
-  // montée). `--ref <racine>` mesure les sondes « absent » sur un banc nu.
+  // ── the engine SURFACES ──────────────────────────────────────────────────
+  // An « applied » patch does not say its anchor still exists: the upgrade
+  // 0.1.6 → 0.1.7 broke four contracts silently (settings.get,
+  // AgentPreset.path, the arity of sessionVisible/deriveFlat, renamed
+  // icons). So we audit the contracts at every doctor, and we also flag
+  // what the engine now ships natively (duplicate or capability not
+  // mounted). `--ref <root>` measures the « absent » probes on a bare bench.
   const iRef = args.indexOf('--ref')
   const audit = auditerSurfaces(racine, { racineVierge: iRef >= 0 ? args[iRef + 1] : null })
   etat.surfaces = {
@@ -1039,9 +1038,9 @@ if (ordre === 'doctor') {
   }
   for (const r of audit.ruptures) etat.problemes.push(r)
   etat.couleur = etat.problemes.length === 0 ? 'verte' : 'orange'
-  // La fiche du serveur entre dans le JSON : la recette des scénarios (§15 G)
-  // compare `doctor --json` d'une machine à l'autre, elle a donc besoin du pid,
-  // des dates ET de la source qui a mesuré.
+  // The server record goes into the JSON: the scenario acceptance run (§15 G)
+  // compares `doctor --json` from one machine to another, so it needs the pid,
+  // the dates AND the source that measured.
   etat.plateforme = { os: process.platform, famille: famille(), supervision: nomSuperviseur(famille()) }
   etat.serveur = {
     pid: fraicheur.pid ?? null,
@@ -1056,8 +1055,8 @@ if (ordre === 'doctor') {
   if (opts.json) { console.log(JSON.stringify({ ...etat, patches: verresPatchs })); process.exit(etat.couleur === 'verte' ? 0 : 1) }
   console.log(`\n  DSH engine: ${etat.global ?? 'absent (not on the PATH)'}   Plugin: ${etat.plugin}`)
   console.log(`  Status: ${etat.couleur === 'verte' ? '🟢 all good' : '🟠 needs attention'}`)
-  // Le PREFLIGHT : ce qui est disponible ICI, et par quoi on a mesuré. Un
-  // testeur sous Windows doit pouvoir le lire — pas supposer que c'est `lsof`.
+  // The PREFLIGHT: what is available HERE, and by what we measured. A
+  // tester on Windows must be able to read it — not assume it is `lsof`.
   const fam = famille()
   const par = []
   if (fraicheur.sourcePid !== null && fraicheur.sourcePid !== undefined) par.push(fraicheur.sourcePid)
@@ -1081,7 +1080,7 @@ if (ordre === 'doctor') {
   process.exit(etat.couleur === 'verte' ? 0 : 1)
 }
 
-// ── la porte : geste n°1 de install ET upgrade ────────────────────────────
+// ── the gate: gesture no. 1 of install AND upgrade ───────────────────────
 async function porteCompat (cible) {
   if (cible === null || cible === undefined) {
     quitter(1, '🔴 no readable DSH engine (`dsh --version` does not answer).\n' +
@@ -1100,9 +1099,9 @@ async function photoAvantTout (versions) {
   return photo
 }
 
-// ── INSTALL : greffer le plugin sur un profil ─────────────────────────────
-// Le corps de l'installation, extrait pour être appelé par `install` ET par
-// `bootstrap` : les deux scénarios de la bêta finissent par le même geste.
+// ── INSTALL: graft the plugin onto a profile ──────────────────────────────
+// The body of the installation, extracted so it can be called by `install` AND by
+// `bootstrap`: both beta scenarios end with the same gesture.
 async function faireInstall () {
   const cible = await versionDuGlobal({ exec: execReel })
   await porteCompat(cible)
@@ -1113,12 +1112,12 @@ async function faireInstall () {
   const versions = { global: cible, plugin: await versionDuPlugin({ exec: execReel, repoDir: REPO }) }
   const bootAvant = await etatDeDepartDuBoot()
   const photo = await photoAvantTout(versions)
-  // Sur une machine NEUVE, le profil n'existe pas encore : `alignerLiens` et
-  // `poserPatchs` ecrivent DEDANS (package.json, cordis.patch.yml). L'ordre
-  // historique (lier -> patcher -> installer) marchait seulement parce que le
-  // profil existait deja. Mesure du 23/09/2026 en scenario B isole : ENOENT
-  // package.json des `alignerLiens`. On demande donc d'abord a DSH de creer le
-  // profil (194 ms sur un HOME nu), puis on le remplit.
+  // On a NEW machine, the profile does not exist yet: `alignerLiens` and
+  // `poserPatchs` write INTO it (package.json, cordis.patch.yml). The
+  // historical order (link -> patch -> install) only worked because the
+  // profile already existed. Measured on 23/09/2026 in isolated scenario B: ENOENT
+  // package.json from `alignerLiens`. So we first ask DSH to create the
+  // profile (194 ms on a bare HOME), then we fill it.
   // One way out for every step below that can fail for reasons nobody controls (pnpm: no network, a registry that is down, a
   // full disk, a store in use; a patch that no longer fits): put the photo back, say it in words, journal it. Before this, a
   // pnpm failure escaped as a raw stack trace with the links already written to package.json, no restore and no journal line.
@@ -1139,18 +1138,18 @@ async function faireInstall () {
   direLiensReprise()
   console.log('  📦 installing the profile (pnpm)…')
   try { await installerProfil() } catch (e) { await abandonner(e) }
-  // Les retouches touchent les paquets `@deepseek-ai/*` du PROFIL (l'installation
-  // globale ne porte que le paquet `dsh` depuis 0.1.7). Les poser avant le pnpm
-  // du profil revient a patcher un dossier vide : mesure du 23/09/2026 en
-  // scenario B isole — `queue-move` et `model-search` ✗ sur un moteur neuf, ✓ sur
-  // une machine ou le profil est deja peuple. On patche donc APRES l'installation
-  // qui les rend presents.
+  // The patches touch the `@deepseek-ai/*` packages of the PROFILE (the global
+  // installation only carries the `dsh` package since 0.1.7). Applying them before the profile
+  // pnpm amounts to patching an empty folder: measured on 23/09/2026 in
+  // isolated scenario B — `queue-move` and `model-search` ✗ on a fresh engine, ✓ on
+  // a machine where the profile is already populated. So we patch AFTER the installation
+  // that makes them present.
   console.log('  🧶 re-applying the engine patches…')
   try {
     await poserPatchs()
   } catch (e) {
-    // Une retouche non posable est une fonctionnalite perdue : on ne continue
-    // pas et on ne laisse pas non plus une stack trace au testeur.
+    // A patch that cannot be applied is a feature lost: we do not continue
+    // and we do not leave a stack trace to the tester either.
     await abandonner(e)
   }
   console.log('  🔎 checking the boot…')
@@ -1181,11 +1180,11 @@ async function faireInstall () {
 
 if (ordre === 'install') await faireInstall()
 
-// ── BOOTSTRAP : les DEUX entrées de la bêta, dans un seul ordre ───────────
-//   A. le testeur a déjà DSH → on ne touche pas au moteur, on greffe le plugin ;
-//   B. la machine est nue     → on pose d'abord le moteur, épinglé.
-// La décision est MESURÉE (`dsh --version`), pas demandée : un testeur ne doit
-// pas avoir à savoir dans quel cas il est.
+// ── BOOTSTRAP: the TWO entry points of the beta, in a single order ────────
+//   A. the tester already has DSH → we do not touch the engine, we graft the plugin;
+//   B. the machine is bare        → we first put the engine in place, pinned.
+// The decision is MEASURED (`dsh --version`), not asked: a tester must not
+// have to know which case they are in.
 if (ordre === 'bootstrap') {
   const global = await versionDuGlobal({ exec: execReel })
   console.log('\n  Scenario ' + (global === null ? 'B — this machine does not have DSH yet' : 'A — DSH ' + global + ' is already installed'))
@@ -1193,7 +1192,7 @@ if (ordre === 'bootstrap') {
     const cible = await chaineDAssurer()
     const serv = await pidSurPort(portGui)
     if (serv.valeur !== null) {
-      // D7 : refus, puis LA COMMANDE EXACTE. Jamais de sudo, jamais d'escalade.
+      // D7: refusal, then THE EXACT COMMAND. Never sudo, never escalation.
       quitter(1, '🔴 a DSH server answers on port ' + portGui + ' (pid ' + serv.valeur + ') although `dsh` is not on the PATH.\n' +
         '   I do not touch an installation I cannot read. If it is yours, put the engine in place yourself:\n' +
         '     npm i -g @deepseek-ai/dsh@' + cible + ' ' + ALLOW_SCRIPTS + '\n' +
@@ -1212,7 +1211,7 @@ if (ordre === 'bootstrap') {
   await faireInstall()
 }
 
-// ── UPGRADE : les 8 gestes ───────────────────────────────────────────────
+// ── UPGRADE: the 8 gestures ──────────────────────────────────────────────
 if (ordre === 'upgrade') {
   const depuis = await versionDuGlobal({ exec: execReel })
   const cible = opts.versionCible || depuis
@@ -1228,12 +1227,12 @@ if (ordre === 'upgrade') {
   try {
     if (plan.includes('remplacer-moteur')) {
       console.log(`  🔄 DSH engine ${depuis} → ${cible}…`)
-      // Par le même chemin que l'installation — arbre épinglé dans le foyer, puis
-      // lien dans le préfixe. Mesuré le 23/09/2026 : `npm i -g` ici échouait en
-      // EEXIST sur `prefix/bin/dsh` (le lien que NOTRE installation venait de
-      // poser), donc la PREMIÈRE mise à jour de moteur était morte pour tout
-      // testeur — et, même réussie, elle n'aurait posé aucun des sous-paquets
-      // épinglés que le plugin retouche.
+      // Through the same path as the installation — pinned tree in the home, then
+      // link in the prefix. Measured on 23/09/2026: `npm i -g` here failed with
+      // EEXIST on `prefix/bin/dsh` (the link OUR installation had just
+      // put in place), so the FIRST engine upgrade was dead for every
+      // tester — and, even when it succeeded, it would not have put in place any of the pinned
+      // sub-packages that the plugin patches.
       await installerMoteur(cible, { tolere: true })
     }
     console.log('  📝 aligning the settings sheet (@deepseek-ai pins → ' + cible + ')…')
@@ -1259,9 +1258,9 @@ if (ordre === 'upgrade') {
   } catch (e) {
     console.log('\n  ❌ ' + (e.message || e) + ' — back to the photo')
     await restaurerPhoto({ fs: fsReel, photosDir: PHOTOS_DIR, photoDossier: photo.dossier, profilDir: PROFIL_DIR })
-    // le moteur ET les retouches reviennent à la version d'origine
+    // the engine AND the patches go back to the original version
     if (depuis !== cible) {
-      // Retour au moteur d'avant par le même chemin (arbre épinglé + lien).
+      // Back to the previous engine through the same path (pinned tree + link).
       try { await installerMoteur(depuis, { tolere: true }) } catch (e) { console.log('  ⚠ engine rollback ' + depuis + ': ' + (e.message || e)) }
     }
     await poserPatchs({ tolerance: true })
@@ -1273,7 +1272,7 @@ if (ordre === 'upgrade') {
   }
 }
 
-// ── ROLLBACK : le bouton d'urgence ─────────────────────────────────────────
+// ── ROLLBACK: the emergency button ─────────────────────────────────────────
 if (ordre === 'rollback') {
   const avant = await versionDuGlobal({ exec: execReel })
   const r = await restaurerPhoto({ fs: fsReel, photosDir: PHOTOS_DIR, photoDossier: opts.photo, profilDir: PROFIL_DIR })
@@ -1285,7 +1284,7 @@ if (ordre === 'rollback') {
   quitter(0, '\n🟢 rollback done. Reload the DSH page.')
 }
 
-// ── UNINSTALL : retirer proprement, sans casser le reste ───────────────────
+// ── UNINSTALL: remove cleanly, without breaking the rest ───────────────────
 if (ordre === 'uninstall') {
   const versions = { global: await versionDuGlobal({ exec: execReel }), plugin: await versionDuPlugin({ exec: execReel, repoDir: REPO }) }
   const photo = await photoAvantTout(versions)
@@ -1301,7 +1300,7 @@ if (ordre === 'uninstall') {
   quitter(0, '\n🟢 plugin removed. Run `dsh plugin --profile web install` to finish.')
 }
 
-// ── VERIFY : boot seul ────────────────────────────────────────────────────
+// ── VERIFY: boot only ─────────────────────────────────────────────────────
 if (ordre === 'verify') {
   const boot = await verifierBoot(opts.url)
   quitter(boot.ok ? 0 : 1, boot.ok ? '\n🟢 the boot is healthy.' : '\n🔴 the boot fails.\n' + boot.sortie.slice(0, 600))

@@ -11,7 +11,7 @@ function tmpdir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-tg-'));
 }
 
-/** Faux serveur Bot API : aucune requête ne sort vers Telegram. */
+/** Fake Bot API server: no request leaves for Telegram. */
 async function startFakeApi() {
   const calls = [];
   let served = 0;
@@ -54,7 +54,7 @@ async function startFakeApi() {
                   message_id: 5,
                   date: 1700000000,
                   chat: { id: 42, type: 'private' },
-                  from: { id: 9, username: 'alex', is_bot: false },
+                  from: { id: 9, username: 'alex', is_bot: false, language_code: 'fr' },
                   caption: 'salut',
                   photo: [{ file_id: 'petit' }, { file_id: 'grand', file_size: 1234 }],
                 },
@@ -70,7 +70,7 @@ async function startFakeApi() {
         json({ ok: true, result: { message_id: 11, chat: { id: 42 } } });
         return;
       case 'editMessageText': {
-        if (raw.includes('INCHANGÉ')) {
+        if (raw.includes('UNCHANGED')) {
           json({ ok: false, error_code: 400, description: 'Bad Request: message is not modified' }, 400);
           return;
         }
@@ -100,14 +100,14 @@ async function startFakeApi() {
   return { server, base: `http://127.0.0.1:${port}`, calls, close };
 }
 
-test('normalizeUpdate extrait chat, texte, pièces jointes et ignore les bots', () => {
+test('normalizeUpdate extracts chat, text, attachments and ignores bots', () => {
   const message = normalizeUpdate({
     update_id: 1,
     message: {
       message_id: 5,
       date: 1700000000,
       chat: { id: -100, type: 'group' },
-      from: { id: 9, username: 'alex', is_bot: false },
+      from: { id: 9, username: 'alex', is_bot: false, language_code: 'en-GB' },
       text: 'bonjour',
       document: { file_id: 'f', file_name: 'notes.pdf', file_size: 10, mime_type: 'application/pdf' },
     },
@@ -115,6 +115,7 @@ test('normalizeUpdate extrait chat, texte, pièces jointes et ignore les bots', 
   assert.equal(message.chatId, '-100');
   assert.equal(message.text, 'bonjour');
   assert.equal(message.attachments[0].name, 'notes.pdf');
+  assert.equal(message.lang, 'en-GB', 'the sender’s language code is handed to the core');
 
   assert.equal(
     normalizeUpdate({ update_id: 2, message: { message_id: 1, chat: { id: 1 }, from: { id: 2, is_bot: true }, text: 'x' } }),
@@ -123,7 +124,7 @@ test('normalizeUpdate extrait chat, texte, pièces jointes et ignore les bots', 
   assert.equal(normalizeUpdate({ update_id: 3 }), null);
 });
 
-test('normalizeUpdate retient la plus grande photo', () => {
+test('normalizeUpdate keeps the largest photo, and a sender without a language code has lang null', () => {
   const message = normalizeUpdate({
     update_id: 4,
     message: {
@@ -136,13 +137,14 @@ test('normalizeUpdate retient la plus grande photo', () => {
   });
   assert.equal(message.attachments[0].fileId, 'grand');
   assert.equal(message.attachments[0].kind, 'photo');
+  assert.equal(message.lang, null);
 });
 
-test('createTelegramAdapter refuse l’absence de token', () => {
-  assert.throws(() => createTelegramAdapter({}), /token/);
+test('createTelegramAdapter refuses a missing token', () => {
+  assert.throws(() => createTelegramAdapter({}), /Telegram token missing/);
 });
 
-test('start reçoit un message, télécharge la pièce jointe et avance l’offset', async () => {
+test('start receives a message, downloads the attachment and moves the offset forward', async () => {
   const { base, calls, close } = await startFakeApi();
   const inbox = path.join(tmpdir(), 'inbox');
   const offsets = [];
@@ -174,28 +176,29 @@ test('start reçoit un message, télécharge la pièce jointe et avance l’offs
   assert.equal(message.chatId, '42');
   assert.equal(message.text, 'salut');
   assert.equal(message.from, 'alex');
+  assert.equal(message.lang, 'fr');
   assert.equal(message.attachments.length, 1);
-  assert.ok(message.attachments[0].localPath, 'la pièce jointe doit être téléchargée');
+  assert.ok(message.attachments[0].localPath, 'the attachment must be downloaded');
   assert.equal(fs.readFileSync(message.attachments[0].localPath, 'utf8'), 'contenu-image');
   assert.deepEqual(offsets, [8]);
   assert.ok(calls.some((c) => c.method === 'getFile'));
   assert.ok(calls.some((c) => c.method === 'download'));
 });
 
-test('un webhook actif (409) est une erreur fatale explicite', async () => {
+test('an active webhook (409) is an explicit fatal error, in English', async () => {
   const { base, close } = await startFakeApi();
   const adapter = createTelegramAdapter({ token: 'CONFLICT', apiBase: base, log: () => {} });
   try {
     await assert.rejects(
       () => adapter.start({ onMessage: async () => {}, signal: new AbortController().signal }),
-      /409|webhook/,
+      /getUpdates refused \(409\) — a webhook is configured/,
     );
   } finally {
     close();
   }
 });
 
-test('send et edit renvoient les identifiants, une édition identique ne lève pas', async () => {
+test('send and edit return the identifiers, an identical edit does not throw', async () => {
   const { base, close } = await startFakeApi();
   const adapter = createTelegramAdapter({ token: 'TEST', apiBase: base, log: () => {} });
   try {
@@ -203,7 +206,7 @@ test('send et edit renvoient les identifiants, une édition identique ne lève p
     assert.equal(sent.messageId, 11);
     assert.equal(sent.chatId, '42');
     assert.equal(await adapter.edit('42', 11, 'coucou v2'), true);
-    assert.equal(await adapter.edit('42', 11, 'INCHANGÉ'), false);
+    assert.equal(await adapter.edit('42', 11, 'UNCHANGED'), false);
     const me = await adapter.me();
     assert.equal(me.username, 'testbot');
   } finally {
@@ -211,7 +214,7 @@ test('send et edit renvoient les identifiants, une édition identique ne lève p
   }
 });
 
-test('sendFile choisit sendPhoto pour une image et sendDocument sinon', async () => {
+test('sendFile picks sendPhoto for an image and sendDocument otherwise', async () => {
   const { base, calls, close } = await startFakeApi();
   const dir = tmpdir();
   const image = path.join(dir, 'capture.png');
@@ -230,10 +233,10 @@ test('sendFile choisit sendPhoto pour une image et sendDocument sinon', async ()
   }
 });
 
-test('une erreur réseau transitoire est marquée non fatale', async () => {
+test('a transient network error is marked non-fatal, and says so in English', async () => {
   const adapter = createTelegramAdapter({ token: 'TEST', apiBase: 'http://127.0.0.1:1', log: () => {} });
   await assert.rejects(
     () => adapter.send('42', 'test'),
-    (err) => err.transient === true && !err.fatal,
+    (err) => err.transient === true && !err.fatal && /^sendMessage: network — /.test(err.message),
   );
 });

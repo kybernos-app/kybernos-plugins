@@ -1,6 +1,6 @@
 # `@local/dsh-subagent-maison`
 
-The **Agent connectors** module of the Suite: four DSH subagent providers — OpenCode, Gemini CLI, Qwen Code and Hermes — that let
+The **Workers connectors** module of the Suite: four DSH subagent providers — OpenCode, Gemini CLI, Qwen Code and Hermes — that let
 the main agent hand a task to one of these coding CLIs. It has no page and no switch of its own: the Workers page
 (`kybernos-workers`) turns a connector on, installs the program, takes the API key and exposes the agent to the lead.
 
