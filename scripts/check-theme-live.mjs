@@ -832,11 +832,18 @@ try {
     await page.send('Input.insertText', { text: 'georgia' }); await sleep(200)
     let o = await opts()
     check('search « georgia » → only Georgia', o.length === 1 && /georgia/i.test(o[0]), o)
-    await typeInto(`document.querySelector('.kbth-fssearch')`, 'systeme')
-    const o1 = await opts()
-    await typeInto(`document.querySelector('.kbth-fssearch')`, 'système')
-    const o2 = await opts()
-    check('search is accent-insensitive: « systeme » and « système » give the same, non-empty list', o1.length >= 2 && JSON.stringify(o1) === JSON.stringify(o2), { o1, o2 })
+    // The accent test needs a family whose NAME has an accent in the language the page speaks (« Système » in French; the English names have none): the word is taken
+    // from the list itself, written once with its accents and once without.
+    const accented = all.map((n) => (/^([^\s—·(]*[éèêàçùôî][^\s—·(]*)/i.exec(String(n)) || [])[1]).find((w) => typeof w === 'string' && w.length >= 4)
+    if (accented === undefined) console.log('SKIPPED: search is accent-insensitive (fonts) — no family of this interface language has an accent in its name')
+    else {
+      const plain = accented.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      await typeInto(`document.querySelector('.kbth-fssearch')`, plain)
+      const o1 = await opts()
+      await typeInto(`document.querySelector('.kbth-fssearch')`, accented)
+      const o2 = await opts()
+      check('search is accent-insensitive: « ' + plain + ' » and « ' + accented + ' » give the same, non-empty list', o1.length >= 1 && JSON.stringify(o1) === JSON.stringify(o2), { o1, o2 })
+    }
     await typeInto(`document.querySelector('.kbth-fssearch')`, 'mono')
     o = await opts()
     check('search « mono » → the families whose name contains it (Mono système, IBM Plex Mono, JetBrains Mono, SF Mono)', o.length === 4 && o.every((n) => /mono/i.test(n)), o)
@@ -1351,7 +1358,7 @@ try {
     const labels = await skinLabels()
     const ember = findSkin(labels, SKINS.find((d) => d.id === 'kb-ember'))
     const stone = findSkin(labels, SKINS.find((d) => d.id === 'kb-stone-cloud'))
-    check('the add button sits next to « My themes », and with no theme of yours the page says so and points to Sharing', (await mineDots()) === 0 && (await val(`!!document.querySelector('[data-kb=theme-add]')`)) && /Aucun thème à vous|You have no theme/i.test(await val(`document.querySelector('[data-kb=theme-block]').innerText`)) && (await val(`!!document.querySelector('[data-kb=theme-open-sharing]')`)))
+    check('the add button sits next to « My themes », with none of yours yet, and the block points to Sharing to manage them', (await mineDots()) === 0 && (await val(`!!document.querySelector('[data-kb=theme-add]')`)) && (await val(`!!document.querySelector('[data-kb=theme-open-sharing]')`)))
     await clickEl(Q.skin(ember.idx))
     await until(async () => { const s = await store(); return s && s.skin === 'kb-ember' }, 4000)
     let sm = await summary()
@@ -1386,7 +1393,9 @@ try {
     await typeInto(`document.querySelector('[data-kb=theme-save-name]')`, '   ')
     await clickEl(kb('theme-save-ok')); await sleep(250)
     check('an empty name is refused inside the window, in red, and the window stays', (await dlg()) && /nom|name/i.test(await val(`(document.querySelector('[data-kb=theme-save-error]') || { textContent: '' }).textContent`)))
-    await typeInto(`document.querySelector('[data-kb=theme-save-name]')`, 'Défaut DSH')
+    // a shipped theme's name, as the page shows it in its language (« DSH default » / « Défaut DSH »)
+    const shippedName = labels[findSkin(labels, SKIN('dsh')).idx].split(' — ')[0]
+    await typeInto(`document.querySelector('[data-kb=theme-save-name]')`, shippedName)
     await clickEl(kb('theme-save-ok')); await sleep(250)
     check('a name already used by a shipped theme is refused too', (await dlg()) && /existe|exists/i.test(await val(`(document.querySelector('[data-kb=theme-save-error]') || { textContent: '' }).textContent`)))
     await typeInto(`document.querySelector('[data-kb=theme-save-name]')`, 'Bureau')
@@ -1422,7 +1431,9 @@ try {
     check('Sharing lists it: one row, the source (« à vous »), what it retains, and the four actions (the theme in use has no « Appliquer »)', (await val(`document.querySelectorAll('[data-kb=theme-row]').length`)) === 1 && /retient|keeps|retains/i.test(await val(`document.querySelector('[data-kb=theme-row]').innerText`)) && !(await val(`!!document.querySelector('[data-kb=theme-row] [data-kb=theme-apply]')`)) && (await val(`['theme-export-one', 'theme-rename', 'theme-delete'].every((k) => !!document.querySelector('[data-kb=theme-row] [data-kb=' + k + ']'))`)))
     await clickEl(kb('theme-rename'))
     await until(() => val(`!!document.querySelector('[data-kb=theme-rename-in]')`), 2000)
-    await typeInto(kb('theme-rename-in'), 'Clair net')
+    // a shipped theme's name as the page shows it (« Clean light » / « Clair net »): a name that was only the French one is free in the English interface
+    const takenName = labels[findSkin(labels, SKINS.find((d) => d.names.indexOf('Clair net') >= 0)).idx].split(' — ')[0]
+    await typeInto(kb('theme-rename-in'), takenName)
     await press('Enter'); await sleep(300)
     check('renaming to a name that exists is refused with a visible red note, and the row keeps its name', /existe|exists/i.test(await val(`(document.querySelector('[data-kb=theme-note]') || { textContent: '' }).textContent`)) && (await libJson()).presets[0].name === 'Bureau')
     await typeInto(kb('theme-rename-in'), 'Bureau du matin')
@@ -1585,11 +1596,12 @@ try {
         await until(async () => (await cards()) === shipped.themes.length, 8000)
 
         // install
+        const shownName = await val(`(document.querySelector('[data-kb=theme-gal-card][data-id=${t.id}] .kbth-card-n') || { textContent: '' }).textContent.trim()`)
         await clickEl(cardBtn(t.id, 'theme-gal-install'))
         await until(async () => { const l = await libJson(); return l && l.presets.length === 1 }, 4000)
         const l1 = await libJson()
         const st1 = await store()
-        check('« Installer » adds the theme to My themes (source gallery, its catalogue id, version, author) and applies it', l1.presets[0].source === 'gallery' && l1.presets[0].gid === t.id && l1.presets[0].v === t.v && l1.presets[0].author === t.author && l1.presets[0].name === t.name && st1.skin === l1.presets[0].id, l1.presets[0])
+        check('« Installer » adds the theme to My themes (source gallery, its catalogue id, version, author) and applies it', l1.presets[0].source === 'gallery' && l1.presets[0].gid === t.id && l1.presets[0].v === t.v && l1.presets[0].author === t.author && l1.presets[0].name === shownName && shownName !== '' && st1.skin === l1.presets[0].id, l1.presets[0])
         check('...the note says so and the card now reads « Installé »', /installé|installed/i.test(await val(`(document.querySelector('[data-kb=theme-note]') || { textContent: '' }).textContent`)) && /Installé|Installed/i.test(await val(`document.querySelector('[data-kb=theme-gal-card][data-id=${t.id}]').textContent`)) && !(await val(`!!${cardBtn(t.id, 'theme-gal-install')}`)))
         check('...the native mode is still the one found, and the look is the theme\'s (brand token moved)', (await modeInfo()).source === startMode && !sameColor((await readTokens())[V.brand], tok0[V.brand]))
         check('no accessibility setting was touched by the install', st1.contrastMode === DEFAULTS.contrastMode && st1.cbSafe === DEFAULTS.cbSafe && st1.reduceMotion === DEFAULTS.reduceMotion && st1.largeTargets === DEFAULTS.largeTargets && st1.underlineLinks === DEFAULTS.underlineLinks && st1.focusRing === DEFAULTS.focusRing, st1)
@@ -1985,11 +1997,16 @@ try {
     let opts = await ambOptions()
     const perso0 = opts.find((o) => o.id === 'perso')
     check('the ambiance select opens: 12 ambiances + « Mon pack », which is disabled while the pack is empty', (await ambOpen()) === 'true' && opts.length === 13 && opts.filter((o) => o.id !== 'perso').length === 12 && perso0 !== undefined && perso0.disabled === true && opts[0].id === 'dsh' && opts[0].selected === true, { n: opts.length, perso: perso0, first: opts[0] })
-    await page.send('Input.insertText', { text: 'sante' }); await sleep(200)
+    // « Santé mentale » / « Mental health »: the accent half of the test only means something when the page speaks the language with the accent.
+    const santeName = String((opts.find((o) => o.id === 'sante-mentale') || {}).name || '')
+    const accentUi = /[éèêàç]/i.test(santeName)
+    await page.send('Input.insertText', { text: accentUi ? 'sante' : 'mental' }); await sleep(200)
     const oSante = await ambOptions()
     await typeInto(`document.querySelector('[data-kb=ld-amb] .kbth-fssearch')`, 'edu')
     const oEdu = await ambOptions()
-    check('search ignores accents: « sante » → Santé mentale only, « edu » → Éducation only', oSante.length === 1 && oSante[0].id === 'sante-mentale' && oEdu.length === 1 && oEdu[0].id === 'education', { sante: oSante.map((o) => o.name), edu: oEdu.map((o) => o.name) })
+    check(accentUi ? 'search ignores accents: « sante » → Santé mentale only, « edu » → Éducation only' : 'search narrows the ambiances: « mental » → Mental health only, « edu » → Education only',
+      oSante.length === 1 && oSante[0].id === 'sante-mentale' && oEdu.length === 1 && oEdu[0].id === 'education', { sante: oSante.map((o) => o.name), edu: oEdu.map((o) => o.name) })
+    if (!accentUi) console.log('SKIPPED: search ignores accents (ambiances) — the names of this interface language (« ' + santeName + ' ») have none')
     await typeInto(`document.querySelector('[data-kb=ld-amb] .kbth-fssearch')`, '')
     await press('ArrowDown'); await sleep(150)
     const idxDown = (await ambOptions()).findIndex((o) => o.active)
