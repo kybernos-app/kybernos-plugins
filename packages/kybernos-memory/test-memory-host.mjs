@@ -641,7 +641,9 @@ try {
     assert.equal((await mod.tidyTick(T0 + 40 * 86400000)).ran, true, 'start: after 3 days, at the first look of this launch')
     assert.equal((await mod.tidyTick(T0 + 50 * 86400000)).ran, false, 'and not again before the next launch')
     await call(url('/settings'), { schedule: 'n50' })
-    put('au-a', [...rows('au-a'), ...Array.from({ length: 48 }, (_, i) => L('Filler remark number ' + String.fromCharCode(97 + Math.floor(i / 26)) + String.fromCharCode(97 + (i % 26)) + 'q about wholly separate subjects ' + 'zk'.repeat(i % 7 + 1) + ' ' + ['kitchens', 'violins', 'glaciers', 'harbors'][i % 4], { ts: iso(50 + i) }))].slice(0, 80))
+    const fill48 = Array.from({ length: 48 }, (_, i) => L('Filler remark number ' + String.fromCharCode(97 + Math.floor(i / 26)) + String.fromCharCode(97 + (i % 26)) + 'q about wholly separate subjects ' + 'zk'.repeat(i % 7 + 1) + ' ' + ['kitchens', 'violins', 'glaciers', 'harbors'][i % 4], { ts: iso(50 + i) }))
+    put('au-a', [...rows('au-a'), ...fill48.slice(0, 24)])
+    put('au-c', fill48.slice(24))   // two teams: one team over 40 lessons would be a run for the cap (tested below), not for the count
     assert.equal((await mod.tidyTick(T0 + 51 * 86400000)).ran, false, 'fewer than 50 new since the last run')
     put('au-b', Array.from({ length: 3 }, (_, i) => L('Another separate remark about ' + ['cellars', 'orchards', 'lighthouses'][i] + ' and nothing in common ' + String.fromCharCode(113 + i) + 'y', { ts: iso(30 + i) })))
     assert.equal((await mod.tidyTick(T0 + 51 * 86400000)).ran, true, '50 more than at the last run: due')
@@ -660,6 +662,63 @@ try {
     assert.deepEqual(await mod.tidyTick(T1 + 600000), { ran: false, why: 'pas_echu' }, 'after a failed attempt the next one waits')
     assert.equal((await mod.tidyTick(T1 + 3700000)).ran, true, 'an hour later it tries again')
     ok('tidy: a run in progress is not doubled, and a failed attempt waits an hour')
+
+    // WP-10 (N-05): an agent team that nears its cap (40 of 50) is tidied by itself, whatever the clock of the schedule says
+    {
+      assert.equal(store.LESSONS_NEAR_COUNT, 40, 'the near-cap line: 40 of 50')
+      for (const k of store.listKybers()) rmSync(join(kybers, k), { recursive: true, force: true })
+      // pseudo-words, so that two fillers share nothing but « lesson »: no pair of them is a near-duplicate
+      const word = (n) => 'qz' + n.toString(26).split('').map((c) => String.fromCharCode(97 + parseInt(c, 26))).join('')
+      const filler = (i) => L('Lesson ' + word(i + 11) + ' ' + word(i + 311) + ' ' + word(i + 611) + ' ' + word(i + 911), { ts: iso(100 + i) })
+      const base = (n) => Array.from({ length: n }, (_, i) => filler(i))
+      const lastRun = (at, peak) => writeFileSync(sideFile('tidy'), JSON.stringify({ settings: { mode: 'auto', schedule: 'weekly', brain: false }, last: { at: new Date(at).toISOString(), trigger: 'schedule', total: 10, peak, ok: true } }))
+      const NOW = Date.now() + 400 * 86400000
+      const DAY = 86400000
+      mod.tidyFlags.retryAt = 0; mod.tidyFlags.bootDone = false
+
+      // 38 separate lessons and one close pair = 40: near. The weekly run was yesterday, so the schedule is not due.
+      put('au-cap', [...base(38), L(A1, { ts: iso(1500), uses: 2, tags: ['expo'] }), L(A2, { ts: iso(20000), uses: 1, tags: ['metro'] })])
+      lastRun(NOW - DAY, 12)
+      assert.equal(rows('au-cap').length, 40)
+      const cap1 = await mod.tidyTick(NOW)
+      assert.deepEqual([cap1.ran, cap1.trigger, cap1.auto && cap1.auto.groups], [true, 'cap', 1], 'a team at 40 is tidied by itself, the week not being over')
+      assert.equal(rows('au-cap').length, 39, 'the close pair was merged')
+      const viewCap = await call(url(''))
+      assert.deepEqual([viewCap.last.trigger, viewCap.last.peak], ['cap', 39], 'the run says why it ran, and how full the fullest team is now')
+      assert.equal(viewCap.log[0].by, 'auto')
+      assert.deepEqual(await mod.tidyTick(NOW + 600000), { ran: false, why: 'pas_echu' }, '39 is not near: nothing more to do before the week is over')
+
+      // one more lesson: 40 again, the team grew since the last look: a new run (nothing to merge), then it waits
+      put('au-cap', [...rows('au-cap'), filler(60)])
+      const cap2 = await mod.tidyTick(NOW + 1200000)
+      assert.deepEqual([cap2.ran, cap2.trigger, cap2.auto.groups], [true, 'cap', 0])
+      assert.equal((await call(url(''))).last.peak, 40)
+      assert.deepEqual(await mod.tidyTick(NOW + 1800000), { ran: false, why: 'pas_echu' }, 'near but not growing: it is not looked at every ten minutes')
+      assert.equal((await mod.tidyTick(NOW + 1800000 + DAY)).trigger, 'cap', 'still near a day later: one more look')
+
+      // it respects what the person chose
+      put('au-cap', [...rows('au-cap'), filler(61), filler(62)])
+      await call(url('/settings'), { schedule: 'off' })
+      assert.deepEqual(await mod.tidyTick(NOW + 3 * DAY), { ran: false, why: 'pas_echu' }, 'automatic tidy-up off means off, near the cap or not')
+      await call(url('/settings'), { schedule: 'weekly', mode: 'ask' })
+      put('au-cap', [...rows('au-cap'), L('Commit the lockfile with every dependency change to the repository', { ts: iso(50) }), L('Always commit the lockfile with every dependency change to the repository', { ts: iso(40) })])
+      const capAsk = await mod.tidyTick(NOW + 4 * DAY)
+      assert.deepEqual([capAsk.ran, capAsk.trigger, capAsk.auto.groups], [true, 'cap', 0], '« Ask me first »: it looks and proposes, it merges nothing')
+      assert.equal((await call(url(''))).groups.length, 1, 'the close pair waits in the review')
+      await call(url('/settings'), { mode: 'auto' })
+      await call('/kybernos-memory/settings/set', { lessons: false })
+      assert.deepEqual(await mod.tidyTick(NOW + 5 * DAY), { ran: false, why: 'lecons_desactivees' }, 'with Lessons switched off nothing runs')
+      await call('/kybernos-memory/settings/set', { lessons: true })
+
+      // 25 + 25 lessons in two teams is not a team near its cap: the line is per agent team, not the total
+      for (const k of store.listKybers()) rmSync(join(kybers, k), { recursive: true, force: true })
+      put('au-x', base(25)); put('au-y', Array.from({ length: 25 }, (_, i) => filler(i + 100)))
+      lastRun(NOW + 6 * DAY, 25)
+      assert.deepEqual(await mod.tidyTick(NOW + 6 * DAY + 3600000), { ran: false, why: 'pas_echu' })
+      for (const k of store.listKybers()) rmSync(join(kybers, k), { recursive: true, force: true })
+      await call(url('/settings'), { schedule: 'off' })
+      ok('tidy: a team that nears its cap (40 of 50) is tidied by itself, once per growth or per day, never against « off », « Ask me first » or Lessons off')
+    }
 
     // the Study model
     for (const k of store.listKybers()) rmSync(join(kybers, k), { recursive: true, force: true })

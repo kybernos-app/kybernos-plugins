@@ -1513,16 +1513,16 @@
         },
         "steps": [
           {
-            "fr": "Ouvrez la page : elle montre la liste, avec les onglets « Memories » et « Lessons learned » et une barre de recherche.",
-            "en": "Open the page: it shows the list, with the “Memories” and “Lessons learned” tabs and a search bar."
+            "fr": "Ouvrez la page : une ligne dit ce qui est actif et le dernier rangement, puis la liste (onglets « Memories » et « Lessons learned »).",
+            "en": "Open the page: one line says what is on and the last tidy-up, then the list (“Memories” and “Lessons learned” tabs)."
           },
           {
             "fr": "Filtrez avec « Filter », cliquez une ligne pour la modifier ou l’oublier ; « Add » écrit un souvenir de votre main.",
             "en": "Narrow down with “Filter” and click a row to edit or forget it; “Add” writes a memory of your own."
           },
           {
-            "fr": "« Options » donne les interrupteurs : enregistrer, envoyer au modèle, capture automatique, recherche par sens.",
-            "en": "“Options” holds the switches: saving, sending to the model, automatic capture and search by meaning."
+            "fr": "« Customize » ouvre les réglages, déjà faits pour vous : enregistrement, envoi au modèle, capture, recherche par sens, rangement.",
+            "en": "“Customize” opens the settings, already set for you: saving, sending to the model, capture, search by meaning, tidy-up."
           },
           {
             "fr": "Sous la zone de saisie, la pastille « Memory & Lessons » montre ce que le modèle reçoit, avec un lien vers la page.",
@@ -1535,8 +1535,8 @@
           "page": true
         },
         "good": {
-          "fr": "Les souvenirs vivent dans votre compte Kybernos Cloud (à connecter, même en offre Free) ; les leçons restent sur cet ordinateur, rangées par Agent Team.",
-          "en": "Memories live in your Kybernos Cloud account (connect it first, any plan including Free); lessons stay on this computer, kept per agent team."
+          "fr": "Les souvenirs vivent dans votre compte Kybernos Cloud (même Free) ; les leçons restent sur cet ordinateur, par Agent Team, sans compte. Les doublons sont fusionnés seuls, annulables 30 jours.",
+          "en": "Memories live in your Kybernos Cloud account (any plan, Free too); lessons stay on this computer, per agent team, no account needed. Near-duplicates merge by themselves, undoable for 30 days."
         }
       },
       "vedette": 3,
