@@ -66,16 +66,16 @@ const FICHE = {
   'dsh-subagent-maison': ['connect', 'Les connecteurs d’OpenCode, Gemini, Qwen et Hermes que la page Workers allume.', 'The OpenCode, Gemini, Qwen and Hermes connectors that the Workers page turns on.'],
   'kybernos-workers': ['connect', 'Installe, vérifie et expose à l’agent principal Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes et ZCode.', 'Installs, checks and exposes to the main agent Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes and ZCode.'],
   'kybernos-cloud': ['cloud', 'Compte Kybernos, modèles du proxy, mémoire du compte.', 'Kybernos account, proxy models, account memory.'],
-  'kybernos-memory': ['cloud', 'La page Memory & Lessons learned : mémoire du compte et leçons par Agent Team, filtres, interrupteurs.', 'The Memory & Lessons learned page: account memory and lessons per agent team, filters, on/off switches.']
+  'kybernos-memory': ['cloud', 'La page Memory & Lessons : mémoire du compte et leçons par Agent Team, filtres, interrupteurs.', 'The Memory & Lessons page: account memory and lessons per agent team, filters, on/off switches.']
 }
 
 // dir → human title (the id stays visible under it) and the glyph the client draws for it.
 const TITRES = {
   'kybernos-plugin': 'Kybernos Core', 'kybernos-hub': 'Suite', 'kybernos-theme': 'Theme', 'kybernos-language': 'Language',
-  'kybernos-sessions': 'Sessions', 'kybernos-maintenance': 'About & Maintenance', 'kybernos-skills': 'Skills', 'kybernos-slash': 'Slash commands',
-  'kybernos-relance': 'Relaunch', 'kybernos-models': 'Models', 'kybernos-modeles-locaux': 'Local models', 'kybernos-auto': 'Auto Routing',
+  'kybernos-sessions': 'Sessions', 'kybernos-maintenance': 'About', 'kybernos-skills': 'Skills', 'kybernos-slash': 'Commands',
+  'kybernos-relance': 'Relaunch', 'kybernos-models': 'AI Provider & Models', 'kybernos-modeles-locaux': 'Ollama Local Models', 'kybernos-auto': 'Auto Routing',
   'kybernos-flow': 'Flow', 'kybernos-free-llms': 'Free LLMs', 'kybernos-slides': 'Slides', 'kybernos-bricks': 'Bricks', 'kybernos-modeleur': '3D modeller',
-  'kybernos-motion': 'Motion', 'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'kybernos-search': 'Search everywhere', 'kybernos-mobile': 'Remote Control', 'kybernos-websearch': 'Web search', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
+  'kybernos-motion': 'Motion', 'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'kybernos-search': 'Search everywhere', 'kybernos-mobile': 'Remote Control', 'kybernos-websearch': 'Web Search', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
   'dsh-media-player': 'Media player', 'kybernos-composio': 'Connectors', 'kybernos-computers': 'Cloud computers', 'kybernos-workers': 'Workers', 'dsh-subagent-maison': 'Agent connectors',
   'kybernos-cloud': 'Kybernos Cloud', 'kybernos-memory': 'Memory & Lessons', 'kybernos-atlas': 'Atlas', 'kybernos-changes': 'Changes', 'kybernos-usage': 'Usage', 'kybernos-multi-device': 'Workspaces & devices', 'kybernos-call': 'Calls', 'kybernos-terminal': 'Terminal', 'kybernos-dashboards': 'Dashboards', 'kybernos-summary': 'Summary', 'kybernos-kyber': 'Kaby'
 }
@@ -122,8 +122,8 @@ const VEDETTES = {
   'kybernos-memory': {
     accroche: { fr: 'Ce que les agents ont retenu', en: 'What the agents remember' },
     description: {
-      fr: 'La page Memory & Lessons learned : les souvenirs du compte et les leçons de chaque Agent Team, avec recherche, filtres et interrupteurs. La recherche classe par pertinence, en local.',
-      en: 'The Memory & Lessons learned page: the account memories and the lessons of every agent team, with search, filters and switches. Search ranks by relevance, locally.'
+      fr: 'La page Memory & Lessons : les souvenirs du compte et les leçons de chaque Agent Team, avec recherche, filtres et interrupteurs. La recherche classe par pertinence, en local.',
+      en: 'The Memory & Lessons page: the account memories and the lessons of every agent team, with search, filters and switches. Search ranks by relevance, locally.'
     },
     points: [
       { fr: 'Souvenirs du compte : liste, recherche, filtres (épinglés, source, date), ajout, modification, oubli avec annulation', en: 'Account memories: list, search, filters (pinned, source, date), add, edit, forget with Undo' },

@@ -1,4 +1,4 @@
-// kybernos-memory — browser half: the « Memory & Lessons learned » settings page.
+// kybernos-memory — browser half: the « Memory & Lessons » settings page.
 //
 //   settings section « Memory & Lessons » ... settings.section (order 3; where it is DRAWN is decided by the
 //                                             Settings menu grouping in kybernos-plugin: « Kybernos » group,
@@ -1086,7 +1086,7 @@ window.__ModuleLoader__.load({
         }
         const options = [{ id: '', label: 'General (every agent team)' }].concat(kybers.map((k) => ({ id: k.id, label: k.id })))
         return h('div', null,
-          h('a', { className: 'kbmem-crumb', role: 'button', tabIndex: 0, 'data-act': 'back', onClick: back, onKeyDown: (e) => { if (e.key === 'Enter') back() } }, Ico('left'), 'Memory & Lessons learned'),
+          h('a', { className: 'kbmem-crumb', role: 'button', tabIndex: 0, 'data-act': 'back', onClick: back, onKeyDown: (e) => { if (e.key === 'Enter') back() } }, Ico('left'), 'Memory & Lessons'),
           h('div', { className: 'kbmem-top' }, h('h1', { className: 'kbmem-h1' }, 'Team lesson proposals'), h('span', { className: 'kbmem-grow' }), h('span', { className: 'kbmem-tiny' }, (team.workspaceName || 'Your team') + ' · ' + String(waiting) + ' to review')),
           h('p', { className: 'kbmem-lead' }, 'A lesson you approve is read by every member’s agents from their next message. Members never see a proposal that is still waiting, except their own.'),
           d.loading ? h('div', { className: 'kbmem-empty' }, h('div', { className: 'kbmem-spin' }))
@@ -1365,7 +1365,7 @@ window.__ModuleLoader__.load({
           h(Pager, { total: list.total, page, size, onPage: setPage, onSize: (n) => { setSize(n); setPage(1) } }))
 
         return h('div', null,
-          h('div', { className: 'kbmem-top' }, h('h1', { className: 'kbmem-h1' }, 'Memory & Lessons learned'), h('span', { className: 'kbmem-grow' }), (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-memory' }) : null),
+          h('div', { className: 'kbmem-top' }, h('h1', { className: 'kbmem-h1' }, 'Memory & Lessons'), h('span', { className: 'kbmem-grow' }), (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-memory' }) : null),
             h('button', { type: 'button', className: 'kbmem-st' + (on ? '' : ' off'), 'data-act': 'status', title: 'Open options', onClick: openOptions }, h('i'), status1),
             h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'options', onClick: openOptions }, Ico('gear'), 'Options')),
           tabs, teamMode || mapOn ? null : tools, teamMode || mapOn ? null : chips, teamMode ? h(TeamPane, { team: teamFull, kybers, notify, bump, refreshKey, openReview: openTeamReview }) : null, teamMode ? null : (ran !== null && ran !== undefined ? h(TidyRanNotice, { notice: ran, onUndo: onRanUndo, onHide: onRanHide }) : null), teamMode ? null : (tidy.loaded === true && tidySaves(tidy) > 0 && hiddenKey !== scanKey(tidy) ? h(TidyBanner, { tidy, onReview: openReview, onHide: hideBanner }) : null), teamMode ? null : notes, teamMode ? null : (mapOn ? h(MapPane, { ctxOn, refreshKey, openOptions, onOpen: (m) => setSheet({ kind: 'mem', item: m }), onReady: () => writeLayout('map'), onList: () => setLayout('list') }) : body),
@@ -1587,7 +1587,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kbmem-grow' }, autoState === 'undone' ? 'Undone: what was merged by itself is back. Press “Look again” to see it as suggestions.' : [h('b', { key: 'b' }, 'Merged ' + plural(autoCount, 'group') + ' by itself'), ' (80 % alike or more): ' + plural(autoRemoved, 'item') + ' removed. Every change can be undone for 30 days.']),
           autoState === 'undone' ? null : h('button', { type: 'button', className: 'kbmem-btn ghost sm', 'data-act': 'tidy-auto-undo', disabled: busy, onClick: async () => { setBusy(true); const r = await onUndoAuto(auto); setBusy(false); if (r.back === r.total) setAutoState('undone'); else notify('Undid ' + String(r.back) + ' of ' + String(r.total) + ': open Options to retry the rest') } }, Ico('undo'), 'Undo')) : null
         const head = h('div', null,
-          h('a', { className: 'kbmem-crumb', role: 'button', tabIndex: 0, 'data-act': 'back', onClick: back, onKeyDown: (e) => { if (e.key === 'Enter') back() } }, Ico('left'), 'Memory & Lessons learned'),
+          h('a', { className: 'kbmem-crumb', role: 'button', tabIndex: 0, 'data-act': 'back', onClick: back, onKeyDown: (e) => { if (e.key === 'Enter') back() } }, Ico('left'), 'Memory & Lessons'),
           h('div', { className: 'kbmem-top' }, h('h1', { className: 'kbmem-h1' }, 'Tidy-up suggestions'), h('span', { className: 'kbmem-grow' }),
             at ? h('span', { className: 'kbmem-tiny' }, 'Found ' + whenLabel(at) + (tidyBrain(tidy).model !== '' && tidySettingsOf(tidy).brain === true ? ' · local scan + Study model' : ' · local scan')) : null,
             h('button', { type: 'button', className: 'kbmem-btn ghost sm', 'data-act': 'tidy-rescan', disabled: scanning || busy, onClick: scan }, Ico('broom'), scanning ? 'Looking…' : 'Look again')),
@@ -1726,7 +1726,7 @@ window.__ModuleLoader__.load({
         const lesUnavailable = les === null
         const lastCapture = settings.capture === null ? null : h('div', { className: 'kbmem-tiny', style: { marginTop: 6 } }, 'Last capture: ' + captureWords(settings.capture))
         return h('div', null,
-          h('a', { className: 'kbmem-crumb', role: 'button', tabIndex: 0, 'data-act': 'back', onClick: back, onKeyDown: (e) => { if (e.key === 'Enter') back() } }, Ico('left'), 'Memory & Lessons learned'),
+          h('a', { className: 'kbmem-crumb', role: 'button', tabIndex: 0, 'data-act': 'back', onClick: back, onKeyDown: (e) => { if (e.key === 'Enter') back() } }, Ico('left'), 'Memory & Lessons'),
           h('h1', { className: 'kbmem-h1' }, 'Options'),
           h('p', { className: 'kbmem-lead' }, 'What Kybernos may save, and what it may send to the model.'),
           note,

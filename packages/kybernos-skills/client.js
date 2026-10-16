@@ -292,7 +292,7 @@ window.__ModuleLoader__.load({
         'err.source': { fr: 'enregistrement impossible', en: 'could not save' },
         // ── Settings page « Skills » (catalogue): the routes that decide where skills come from ──
         'set.nav': { fr: 'Compétences', en: 'Skills' },
-        'set.h1': { fr: 'Compétences — catalogue', en: 'Skills — catalogue' },
+        'set.h1': { fr: 'Compétences', en: 'Skills' },
         'set.lead': { fr: 'D’où viennent les skills de ce profil : la source de l’index (Discover) et les dossiers dans lesquels les installations sont écrites.', en: 'Where this profile’s skills come from: the index source (Discover) and the folders installs are written to.' },
         'set.srcH': { fr: 'Source de l’index', en: 'Index source' },
         'set.srcSub': { fr: 'Le classement de l’onglet Discover est lu à cette adresse (relais en lecture seule de l’index skills.sh).', en: 'The Discover ranking is read at this address (a read-only relay of the skills.sh index).' },
