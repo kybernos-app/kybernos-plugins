@@ -434,7 +434,7 @@ ok('the Skills count badges and author avatars keep 4.5:1 (A1-11)', () => {
   const css = srcOf('kybernos-skills/client.js')
   const opacity = Number(/\.kbs-root \.kbsub \.count\{[^}]*opacity:([\d.]+)/.exec(css)[1])
   const ink = colour('var(--dsw-alias-label-secondary)', 'light')
-  atLeast('count badge', contrast([ink[0], ink[1], ink[2], opacity], colour('var(--dsw-alias-bg-layer-1)', 'light')), 4.5)
+  for (const layer of ['var(--dsw-alias-bg-layer-1)', 'var(--dsw-alias-bg-module-platform)', '#f5f5f5']) atLeast('count badge on ' + layer, contrast([ink[0], ink[1], ink[2], opacity], colour(layer, 'light')), 4.5)
   // an avatar is white 9px text on hsl(<hue> 45% L%): the worst hue decides
   const L = Number(/'hsl\(' \+ hue\(owner\) \+ ' 45% (\d+)%\)'/.exec(css)[1])
   const hsl = (h) => { const s = 0.45, l = L / 100, a = s * Math.min(l, 1 - l); const k = (n) => (n + h / 30) % 12; const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1))); return [f(0) * 255, f(8) * 255, f(4) * 255, 1] }
@@ -468,6 +468,12 @@ ok('the Slash accent (the link blue) is 4.5:1 where it writes text in the light 
   const locked = rule('kybernos-free-llms/client.js', '.kfl-locked')
   for (const scheme of ['light', 'dark']) atLeast('.kfl-locked (' + scheme + ')', contrast(colour(lastDecl(locked.body, 'color'), scheme), colour('var(--dsw-alias-bg-layer-2)', scheme)), 4.5)
   assert.ok(!multiRules('kybernos-composio/client.js').some((x) => x.selector === '.kbcp-pv.off' && /opacity/.test(x.body)), 'the card of the provider that is not selected is not dimmed (opacity .85 made its button 3.7:1 and its pill 4.4:1)')
+})
+
+ok('the Composio help text and its link keep 4.5:1 under the help block\'s opacity (A1-05)', () => {
+  const opacity = Number(/opacity:\s*([\d.]+)/.exec(rule('kybernos-composio/client.js', '.kbcp-help').body)[1])
+  const ink = colour(lastDecl(rule('kybernos-composio/client.js', '.kbcp-help a').body, 'color'), 'light')
+  for (const layer of ['var(--dsw-alias-bg-layer-1)', 'var(--dsw-alias-bg-module-platform)', '#f5f5f5']) atLeast('help link on ' + layer, contrast([ink[0], ink[1], ink[2], opacity], colour(layer, 'light')), 4.5)
 })
 
 console.log('\n' + count + ' tests passed')

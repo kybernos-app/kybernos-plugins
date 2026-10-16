@@ -898,7 +898,7 @@ body:not([data-ds-dark-theme]) .kbcp-input::placeholder{color:var(--dsw-alias-la
 .kbcp-dot.on{background:#22c55e}
 .kbcp-dot.warn{background:#f59e0b}
 .kbcp-dot.bad{background:#ef4444}
-.kbcp-help{font-size:12px;opacity:.9}
+.kbcp-help{font-size:12px;opacity:.95}
 .kbcp-help summary{cursor:pointer;font-size:12.5px;width:fit-content}
 .kbcp-help ol{margin:8px 0 0;padding-inline-start:20px;display:flex;flex-direction:column;gap:4px}
 .kbcp-help a{color:var(--dsw-alias-label-secondary);text-decoration:underline}
