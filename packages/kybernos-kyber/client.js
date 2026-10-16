@@ -507,11 +507,16 @@ window.__ModuleLoader__.load({
       // `sessions` makes a chat (it answers the new session's id); `uiWorkspace` is DSH's own shell: it opens a chat and pins it.
       // Asked for at the moment of use: a re-applied plugin keeps working with whatever the shell offers then.
       const svc = (name) => { try { return CTX !== null ? CTX.get(name) : null } catch (e) { return null } }
+      // Another bundle draws things in the same chat (the new-chat cards): it cannot subscribe to this store, and it renders before the pointer
+      // is read on a page load, so it is told, by a window event, the moment the chat that is Kaby's becomes known.
+      const announceSession = () => { try { window.dispatchEvent(new CustomEvent('kb-kyby-session', { detail: { sessionId: state.kybySid } })) } catch (e) { /* no window */ } }
       const readSessionPointer = async () => {
         const r = await readJson('/kybernos-cloud/kyby/native')
+        const was = state.kybySid
         state.kybySid = r !== null && r.ok === true && typeof r.sessionId === 'string' ? r.sessionId : null
         state.kybyCwd = r !== null && r.ok === true && typeof r.cwd === 'string' && r.cwd !== '' ? r.cwd : null
         emit()
+        if (state.kybySid !== was) announceSession()
         return state.kybySid
       }
       /** The chat exists AND belongs to a workspace: one made without a folder (the first build did that) asks the person to choose one. */
@@ -552,6 +557,7 @@ window.__ModuleLoader__.load({
             const w = await postJson('/kybernos-cloud/kyby/native/set', { sessionId: sid })
             if (w === null || w.ok !== true) throw new Error('the session could not be remembered')
             state.kybySid = sid
+            announceSession()
           }
           uiSvc.openSession(sid)
           return true
@@ -661,7 +667,7 @@ window.__ModuleLoader__.load({
         '.kbky-chip.ok{border-color:transparent;background:var(--dsw-alias-state-success-bg,rgba(34,197,94,.16));color:var(--dsw-alias-state-success-primary,#15803d)}',
         '.kbky-chip.warn{border-color:transparent;background:var(--dsw-alias-state-warn-bg,rgba(245,158,11,.18));color:var(--dsw-alias-state-warn-label,#a8530a)}',
         // the strip also sits in the chat's dock, which has no `.kbky` ancestor: it sets its own size and colour, like the page and the pane do
-        '.kbky-strip{border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.25));border-radius:14px;background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.06));color:var(--dsw-alias-label-primary,#222);font-size:var(--dsh-content-font-size-secondary,13.5px);line-height:1.5}',
+        '.kbky-strip{border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.25));border-radius:28px;background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.06));color:var(--dsw-alias-label-primary,#222);font-size:var(--dsh-content-font-size-secondary,13.5px);line-height:1.5}',
         '.kbky-striph{width:100%;display:flex;gap:10px;align-items:center;padding:9px 14px;border:0;background:none;color:inherit;font:inherit;cursor:pointer;text-align:left;flex-wrap:wrap}',
         '.kbky-car{display:inline-flex;transform:rotate(-90deg);transition:transform .15s;color:var(--dsw-alias-label-secondary,#666)}',
         '.kbky-strip.open .kbky-car{transform:rotate(0)}',
@@ -688,12 +694,14 @@ window.__ModuleLoader__.load({
         '.kbky-btn[disabled]{opacity:.6;cursor:default}',
         '.kbky-btn:focus-visible,.kbky-link:focus-visible,.kbky-striph:focus-visible,.kbky-sw:focus-visible,.kbky-fsel:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4c6ef5);outline-offset:2px}',
         '.kbky-link{border:0;background:none;padding:0;font:inherit;font-size:13px;color:var(--dsw-alias-label-secondary,#666);text-decoration:underline;cursor:pointer;text-align:left}',
-        '.kbky-dock{margin:0 0 8px}',
+        // In the chat's dock the strip lines up with the composer's card (the dock is 16 px wider on each side, measured) and takes its radius (28 px):
+        // the tiles inside have the radius that nests in it (28 minus the 12 px of padding).
+        '.kbky-dock{margin:0 0 8px;padding:0 16px}',
         '.kbky-calm{display:flex;flex-direction:column;gap:12px}',
         '.kbky-chip.err{border-color:transparent;background:var(--dsw-alias-state-error-bg,rgba(236,19,19,.12));color:var(--dsw-alias-state-error-primary,#b91c1c)}',
         // the two tiles: one grid, one padding, one radius, one anatomy (mark and name on top, the body, one action at the bottom)
         '.kbky-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}',
-        '.kbky-tile{display:flex;flex-direction:column;gap:10px;min-width:0;padding:14px;border-radius:12px;background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.1));border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.2))}',
+        '.kbky-tile{display:flex;flex-direction:column;gap:10px;min-width:0;padding:14px;border-radius:16px;background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.1));border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.2))}',
         '.kbky-th{display:flex;align-items:center;gap:10px;min-height:32px}.kbky-th b{font-size:14px;font-weight:600}',
         '.kbky-mark{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;flex:none;background:var(--dsw-alias-bg-base,rgba(127,127,127,.08));border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.2))}',
         '.kbky-chlist{display:flex;flex-direction:column}',
@@ -716,7 +724,7 @@ window.__ModuleLoader__.load({
         '.kbky-fsel{font:inherit;font-size:14px;font-weight:600;color:inherit;background:transparent;border:0;min-width:0;width:100%;padding:0;cursor:pointer;text-overflow:ellipsis}',
         '.kbky-cap{margin:0;font-size:12.5px;color:var(--dsw-alias-label-secondary,#666)}',
         // the panel under the tiles: the code to scan, what happened to it, or the question before disconnecting
-        '.kbky-panel{padding:14px;border-radius:12px;background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.1));border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3))}',
+        '.kbky-panel{padding:14px;border-radius:16px;background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.1));border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3))}',
         '.kbky-pbody{display:flex;gap:16px;align-items:flex-start}',
         '.kbky-pqr .kbky-qr{width:132px;height:132px}',
         '.kbky-pcol{display:flex;flex-direction:column;gap:10px;min-width:0;flex:1}.kbky-pcol h3{margin:0;font-size:14px;font-weight:650}',
@@ -737,7 +745,7 @@ window.__ModuleLoader__.load({
         name: 'kybernos-kyber',
         // `sidebarRightTabs` must be declared: ui-sidebar-right provides it, and without this `apply` could run before.
         inject: ['slots', 'sidebarRightTabs', 'sessions', 'workspaces', 'uiWorkspace'],
-        __test: { S, L, kt, derive, pairingFace, clock, stripIsOpen, CSS, TYPE_ID, KIND, state, BRAND, NAME, views: { Strip, Channels, ChannelsTile, ComputerTile, TelegramPanel, KybyDock, Page }, actions: { load, pairStart, pairCancel, unlink, setComputer, computerAction, telegramSwitch, toggleStrip, telegramRow, settle }, listeners },
+        __test: { S, L, kt, derive, pairingFace, clock, stripIsOpen, CSS, TYPE_ID, KIND, state, BRAND, NAME, views: { Strip, Channels, ChannelsTile, ComputerTile, TelegramPanel, KybyDock, Page }, actions: { load, pairStart, pairCancel, unlink, setComputer, computerAction, telegramSwitch, toggleStrip, telegramRow, settle, readSessionPointer }, listeners },
         apply (ctx) {
           CTX = ctx
           // The plugin is applied again when a service it asks for comes back: the new scope replaces the sheet, and the old scope's

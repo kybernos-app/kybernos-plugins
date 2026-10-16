@@ -24325,6 +24325,13 @@ function renderFit(canvas, model, cam, opts){
       const act = actPair[0]
       const setAct = actPair[1]
       const cloud = useNcCloud()
+      // Kaby's chat becomes known after this renders on a page load (its bundle reads the pointer then): it says so with an event, and the cards go.
+      const kabyPair = React.useState(0)
+      React.useEffect(() => {
+        const again = () => kabyPair[1]((n) => n + 1)
+        try { window.addEventListener('kb-kyby-session', again) } catch (e) { return undefined }
+        return () => { try { window.removeEventListener('kb-kyby-session', again) } catch (e) { /* gone */ } }
+      }, [])
       if (blank !== '1') return null
       // Kaby's own chat is not a place to start building: its strip is all that sits above the composer.
       try { if (window.__KB_KYBER__ && typeof window.__KB_KYBER__.isKybySession === 'function' && window.__KB_KYBER__.isKybySession(sid) === true) return null } catch (e) { /* the cards stay */ }

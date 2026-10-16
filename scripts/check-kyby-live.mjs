@@ -141,6 +141,22 @@ try {
   const attr = (kb, name) => val(`(() => { const e = document.querySelector('[data-kb="${kb}"]'); return e ? e.getAttribute(${JSON.stringify(name)}) : null })()`)
   const box = (kb) => val(`(() => { const e = document.querySelector('[data-kb="${kb}"]'); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, b: r.bottom } })()`)
 
+  console.log('── 2b. a reload with Kaby\'s chat on screen: nothing to build, lined up with the composer ──')
+  // The new-chat cards are drawn before the Kaby bundle has read which chat is Kaby's: on a page load they used to stay, above the strip.
+  for (let i = 0; i < 2; i++) {
+    await page.send('Page.reload', { ignoreCache: true })
+    await sleep(1200)
+    await closeDialog()
+    await poll(() => has('kybernos-kyber-dock'), 25000)
+    let sawCards = false
+    for (const end = Date.now() + 3500; Date.now() < end;) { if ((await has('newchat')) || (await has('newchat-visuals'))) sawCards = true; await sleep(200) }
+    check('reload ' + (i + 1) + ': the new-chat cards and the templates row never show in Kaby\'s chat', sawCards === false && (await has('kybernos-kyber-strip')) === true)
+  }
+  const geo = await val(`(() => { const ed = document.querySelector('[contenteditable="true"], textarea'); let card = null; for (let e = ed; e; e = e.parentElement) { if (parseFloat(getComputedStyle(e).borderTopLeftRadius) >= 20) { card = e; break } } const s = document.querySelector('[data-kb="kybernos-kyber-strip"]'); if (!card || !s) return null; const a = card.getBoundingClientRect(); const b = s.getBoundingClientRect(); return { cx: a.x, cw: a.width, sx: b.x, sw: b.width, cr: getComputedStyle(card).borderTopLeftRadius, sr: getComputedStyle(s).borderTopLeftRadius } })()`)
+  check('the strip starts and ends where the composer\'s card does', geo !== null && Math.abs(geo.cx - geo.sx) <= 1 && Math.abs(geo.cw - geo.sw) <= 1, geo)
+  check('and has its radius', geo !== null && geo.cr === geo.sr, geo)
+  await shot('2a-reloaded')
+
   await closeDialog()
   console.log('── 3. not connected, Free plan: two tiles ──')
   check('the strip is open, headed with the assistant\'s name and nothing that files the computer under « Channels »', (await val(`(() => { const s = document.querySelector('[data-kb="kybernos-kyber-strip"]'); const t = document.querySelector('[data-kb="kybernos-kyber-strip-toggle"]'); return !!s && s.classList.contains('open') && !!t && t.innerText.trim() === 'Kaby' && t.querySelectorAll('.kbky-chip').length === 0 })()`)) === true)
