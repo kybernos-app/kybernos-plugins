@@ -23509,6 +23509,17 @@ function renderFit(canvas, model, cam, opts){
     // (a getter: KB_CP is only known once the menu renders). Keep it in step with the rows of SalesMenu.
     Object.defineProperty(kbOpenPage, 'views', { get: () => ['teaminfo', 'project', 'tasks', 'skills'].concat(KB_CP === true ? ['connectors'] : []).concat(KB_DB === true ? ['dashboards'] : []).concat(KB_KY === true ? ['kyber'] : []) })
     try { if (typeof window !== 'undefined') window.__KB_OPEN__ = kbOpenPage } catch (e) { /* outside a browser */ }
+    // <kb-menu-active>
+    /** The page the sidebar rows read as « on screen ». `panelId` is the layout's selected panel (undefined when this engine tells none),
+     *  `view` the page the store holds, `kabyChat` whether the chat on screen is Kaby's. The store keeps the page the person LEFT, and opening a
+     *  chat (Kaby's included) does not touch it: a page row is selected only while our panel is on screen; in a chat none is, and the Kaby row is
+     *  when the chat is Kaby's. */
+    const kbMenuShown = (panelId, view, kabyChat) => {
+      if (panelId === undefined || panelId === 'kybers') return view
+      if (panelId === null) return kabyChat === true ? 'kyber' : 'chat'
+      return 'panel'
+    }
+    // </kb-menu-active>
     const SalesMenu = (p0) => {
       const s = useStore()
       // A change of menu icon set redraws the rows (the registry is read at render).
@@ -23524,6 +23535,23 @@ function renderFit(canvas, model, cam, opts){
       const uw = (p0 !== null && p0 !== undefined) ? p0.useWorkspaces : null
       const snapW = (typeof uw === 'function') ? uw((st) => st) : null
       const wsCount = (snapW !== null && snapW !== undefined && Array.isArray(snapW.items) === true) ? snapW.items.length : null
+      // Which row is selected follows what is on screen (the engine's own rows do the same): the selected panel, and the chat open in it.
+      // Kaby's chat becomes known after the first render (its bundle reads the pointer then and says so with an event).
+      const upi = (p0 !== null && p0 !== undefined) ? p0.usePanelInfo : null
+      const panelId = (typeof upi === 'function') ? upi((info) => info.activePanelId) : undefined
+      const uss = (p0 !== null && p0 !== undefined) ? p0.useSessions : null
+      const curSid = (typeof uss === 'function')
+        ? uss((st) => { const cur = Object.values(st.byId).find((x) => x.retainedBy !== undefined && x.retainedBy !== null && (x.retainedBy.mainView || 0) > 0); return cur === undefined ? null : cur.id })
+        : null
+      const kabyPair = React.useState(0)
+      React.useEffect(() => {
+        const again = () => kabyPair[1]((n) => n + 1)
+        try { window.addEventListener('kb-kyby-session', again) } catch (e) { return undefined }
+        return () => { try { window.removeEventListener('kb-kyby-session', again) } catch (e) { /* gone */ } }
+      }, [])
+      let kabyChat = false
+      try { kabyChat = typeof curSid === 'string' && window.__KB_KYBER__ !== undefined && typeof window.__KB_KYBER__.isKybySession === 'function' && window.__KB_KYBER__.isKybySession(curSid) === true } catch (e) { kabyChat = false }
+      const shown = kbMenuShown(panelId, s.view, kabyChat)
       const canPanel = layoutSvc !== undefined && layoutSvc !== null && typeof layoutSvc.selectPanel === 'function'
       const teams = kbTeams(s.data)
       const sel = kbSelectedTeam(s.data)
@@ -23635,31 +23663,31 @@ function renderFit(canvas, model, cam, opts){
           (kbNcDot(ncCloud.kind) === '' ? null : h('span', { className: 'kb4-dot ' + kbNcDot(ncCloud.kind), 'aria-label': kbt('kbnc.cc.' + ncCloud.kind) }))) : null),
         // The Kaby row opens Kaby's own conversation: a native DSH chat (kybernos-kyber makes it the first time and remembers it). Without that
         // bundle's hook, or when the chat cannot open, it falls back to the page of the same bundle.
-        (KB_KY === true ? row('kyber', Icon('waypoints', 15), kbt('kbui.kyber'), null, s.view === 'kyber', () => {
+        (KB_KY === true ? row('kyber', Icon('waypoints', 15), kbt('kbui.kyber'), null, shown === 'kyber', () => {
           let opened = null
           try { if (window.__KB_KYBER__ && typeof window.__KB_KYBER__.openChat === 'function') opened = window.__KB_KYBER__.openChat() } catch (e) { opened = null }
           if (opened === null || typeof opened.then !== 'function') { openPage({ view: 'kyber' }); return }
           opened.then((ok) => { if (ok !== true) openPage({ view: 'kyber' }) }).catch(() => openPage({ view: 'kyber' }))
         }) : null),
-        (KB_DB === true ? row('dashboards', Icon('layoutDashboard', 15), kbt('kbui.dashboards'), null, s.view === 'dashboards', () => openPage({ view: 'dashboards' })) : null),
+        (KB_DB === true ? row('dashboards', Icon('layoutDashboard', 15), kbt('kbui.dashboards'), null, shown === 'dashboards', () => openPage({ view: 'dashboards' })) : null),
         // Search everywhere (kybernos-search) is no longer a menu row: its icon sits at the top of the sidebar, next to « Collapse », and ⌘K opens it.
-        row('aiteams', Icon(KB_DEFAULT_ICON, 15), kbt('menu.aiteams'), c.kybers, s.view === 'kybers' || s.view === 'gallery' || s.view === 'teamnew' || s.view === 'teamedit' || s.view === 'teaminfo' || s.view === 'detail' || s.view === 'marketplace' || s.view === undefined || s.view === null, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null })),
+        row('aiteams', Icon(KB_DEFAULT_ICON, 15), kbt('menu.aiteams'), c.kybers, shown === 'kybers' || shown === 'gallery' || shown === 'teamnew' || shown === 'teamedit' || shown === 'teaminfo' || shown === 'detail' || shown === 'marketplace' || shown === undefined || shown === null, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null })),
         // Runs n'est plus ici : c'est un onglet de conversation, à côté de
         // « Kybernos Crew » (cf. slot `conversation.view` id `runs`).
-        row('projects', Icon('folderOpen', 15), kbt('menu.projects'), wsCount, s.view === 'projects' || s.view === 'project', () => openPage({ view: 'projects' })),
-        row('deliverables', Icon('shapes', 15), kbt('menu.deliverables'), arts.length, s.view === 'artifacts' || s.view === 'artview', () => openPage({ view: 'artifacts' })),
+        row('projects', Icon('folderOpen', 15), kbt('menu.projects'), wsCount, shown === 'projects' || shown === 'project', () => openPage({ view: 'projects' })),
+        row('deliverables', Icon('shapes', 15), kbt('menu.deliverables'), arts.length, shown === 'artifacts' || shown === 'artview', () => openPage({ view: 'artifacts' })),
         // « Mon espace » retiré du menu (demande du 26/09/2026) : la page et sa
         // section Réglages restent en place, seule l'entrée de la barre disparaît.
-        row('tasks', Icon('zap', 15), kbt('menu.tasks'), (KB_TASKS_COUNT !== null && KB_TASKS_COUNT !== undefined) ? KB_TASKS_COUNT : 0, s.view === 'tasks', () => openPage({ view: 'tasks' })),
-        row('skills', Icon('sparkles', 15), kbt('kbui.skills'), c.skills, s.view === 'skills', () => openPage({ view: 'skills' })),
-        (KB_CP === true ? row('connectors', Icon('plug', 15), kbt('kbui.connecteurs'), 0, s.view === 'connectors', () => openPage({ view: 'connectors' })) : null),
-        (KB_SHOW_DOCS === true ? row('documents', Icon('fileText', 15), kbt('kbui.documents'), c.docs, s.view === 'documents', () => openPage({ view: 'documents' })) : null),
+        row('tasks', Icon('zap', 15), kbt('menu.tasks'), (KB_TASKS_COUNT !== null && KB_TASKS_COUNT !== undefined) ? KB_TASKS_COUNT : 0, shown === 'tasks', () => openPage({ view: 'tasks' })),
+        row('skills', Icon('sparkles', 15), kbt('kbui.skills'), c.skills, shown === 'skills', () => openPage({ view: 'skills' })),
+        (KB_CP === true ? row('connectors', Icon('plug', 15), kbt('kbui.connecteurs'), 0, shown === 'connectors', () => openPage({ view: 'connectors' })) : null),
+        (KB_SHOW_DOCS === true ? row('documents', Icon('fileText', 15), kbt('kbui.documents'), c.docs, shown === 'documents', () => openPage({ view: 'documents' })) : null),
         // ── Barre de progression des objectifs ──────────────────────────
         h(KbProgressBar, null),
         // « Kybernos Hosted » est masqué pour le moment (KB_SHOW_HOSTED) : la
         // page et la traduction restent en place, seule l'entrée disparaît.
         (KB_SHOW_HOSTED === true
-          ? h('button', { type: 'button', className: 'kb4-item' + (s.view === 'hosted' ? ' on' : ''), onClick: () => openPage({ view: 'hosted' }) },
+          ? h('button', { type: 'button', className: 'kb4-item' + (shown === 'hosted' ? ' on' : ''), onClick: () => openPage({ view: 'hosted' }) },
             h('span', { className: 'kb4-ico' }, Icon('cloud', 15)),
             h('span', { className: 'kb4-lab' }, kbt('menu.hosted')))
           : null))
