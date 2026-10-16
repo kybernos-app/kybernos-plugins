@@ -4,7 +4,7 @@
   "description": "Kaby, your assistant: a real DSH chat with your account's memory, Telegram connected by QR code or link, and the cloud computer it works on.",
   "private": true,
   "type": "module",
-  "exports": { ".": "./index.js", "./client": "./client.js" },
+  "exports": { ".": "./index.js", "./client": "./client.js", "./package.json": "./package.json" },
   "dsh": {
     "bundle": { "patch": "./cordis.patch.yml" },
     "client": { "platform": "web", "immediately": true }

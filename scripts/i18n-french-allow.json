@@ -9,7 +9,11 @@
     "kybernos-miniapps": 10,
     "kybernos-modeleur": 18,
     "kybernos-slides": 16,
-    "kybernos-terminal": 10
+    "kybernos-terminal": 10,
+    "kybernos-hub": 102,
+    "kybernos-maintenance": 109,
+    "kybernos-sessions": 33,
+    "kybernos-plugin": 1104
   },
   "bundles": {
     "dsh-db-viewer": "pending",
@@ -22,16 +26,18 @@
     "kybernos-call": [],
     "kybernos-changes": [],
     "kybernos-cloud": [],
-    "kybernos-composio": ["CONNECTEURS PERSONNALISÉS"],
+    "kybernos-composio": [
+      "CONNECTEURS PERSONNALISÉS"
+    ],
     "kybernos-computers": [],
     "kybernos-dashboards": [],
     "kybernos-flow": [],
     "kybernos-free-llms": [],
-    "kybernos-gate": "pending",
-    "kybernos-hub": "pending",
-    "kybernos-kyber": "pending",
+    "kybernos-gate": [],
+    "kybernos-hub": [],
+    "kybernos-kyber": [],
     "kybernos-language": [],
-    "kybernos-maintenance": "pending",
+    "kybernos-maintenance": [],
     "kybernos-memory": [],
     "kybernos-miniapps": [],
     "kybernos-mobile": [],
@@ -40,11 +46,15 @@
     "kybernos-models": [],
     "kybernos-motion": [],
     "kybernos-multi-device": [],
-    "kybernos-plugin": "pending",
+    "kybernos-plugin": [
+      "Hola. Soy la voz de Kybernos, tu asistente.",
+      "fermé",
+      "[^a-zà-ÿ]"
+    ],
     "kybernos-refs": [],
     "kybernos-relance": [],
     "kybernos-search": [],
-    "kybernos-sessions": "pending",
+    "kybernos-sessions": [],
     "kybernos-skills": [],
     "kybernos-slash": [],
     "kybernos-slides": [],
@@ -54,6 +64,6 @@
     "kybernos-usage": [],
     "kybernos-websearch": [],
     "kybernos-workers": [],
-    "messaging": "pending"
+    "messaging": []
   }
 }
