@@ -162,7 +162,21 @@ try {
     return null
   }
   page.on('Fetch.requestPaused', async (p) => {
-    if (p.responseStatusCode !== undefined) return
+    if (p.responseStatusCode !== undefined) {
+      // The wizard asks THIS machine's Ollama for its models to decide whether a model already works (« Keep as is » instead of « Decide later », no free models
+      // offered after an account without models, the kit without a model question). A machine that holds models would turn those steps into other steps, so
+      // the answer of the real route is kept but for the one thing that depends on the machine: its Ollama has no model, as on the machine this check is written for.
+      try {
+        const got = (await page.send('Fetch.getResponseBody', { requestId: p.requestId })).result || {}
+        const raw = got.base64Encoded ? Buffer.from(got.body, 'base64').toString('utf8') : String(got.body || '')
+        let j = null
+        try { j = JSON.parse(raw) } catch (e) { j = null }
+        if (j !== null && typeof j === 'object' && j.machine && typeof j.machine === 'object' && j.machine.ollama && typeof j.machine.ollama === 'object') j.machine.ollama.models = []
+        const headers = (p.responseHeaders || []).filter((h) => !/^(content-length|content-encoding|transfer-encoding)$/i.test(h.name))
+        await page.send('Fetch.fulfillRequest', { requestId: p.requestId, responseCode: p.responseStatusCode, responseHeaders: headers, body: Buffer.from(j === null ? raw : JSON.stringify(j), 'utf8').toString('base64') })
+      } catch (e) { try { await page.send('Fetch.continueResponse', { requestId: p.requestId }) } catch (e2) { /* the page moved on */ } }
+      return
+    }
     let body = null
     try { body = answers(p.request.url, p.request.method, p.request.postData) } catch (e) { body = null }
     try {
@@ -172,7 +186,8 @@ try {
   })
   await page.send('Fetch.enable', { patterns: ['kybernos-cloud/start', 'kybernos-cloud/poll', 'kybernos-cloud/disconnect', 'kybernos-cloud/status', 'kybernos-cloud/memory/', 'kybernos-models/key/check',
     'kybernos-skills/skills', 'kybernos-skills/install',
-    'modeles-locaux/installer', 'modeles-locaux/installation', 'free-llms/auto-enable', 'kybernos/model/auto'].map((x) => ({ urlPattern: '*/' + x + '*', requestStage: 'Request' })) })
+    'modeles-locaux/installer', 'modeles-locaux/installation', 'free-llms/auto-enable', 'kybernos/model/auto'].map((x) => ({ urlPattern: '*/' + x + '*', requestStage: 'Request' }))
+    .concat([{ urlPattern: '*/modeles-locaux/machine*', requestStage: 'Response' }]) })
   await page.send('Page.reload', { ignoreCache: true })
 
   const q = async (expr) => (await page.evalJs(expr, 8000)).val
@@ -257,7 +272,7 @@ try {
   check('the paste form is there for a known provider', (await q(`!!document.querySelector('#kb-ob-key')`)) === true)
   await press('Other provider')
   check('another provider has no paste field', (await q(`!!document.querySelector('#kb-ob-key')`)) === false)
-  await press('Open Settings → Models')
+  await press('Open Settings → AI Provider & Models')
   await sleep(1500)
   check('the wizard is gone', (await q(`document.querySelector('.kb-ob') === null`)) === true)
   const settingsOpen = await waitFor(page, `[...document.querySelectorAll('nav button')].some((b) => /models/i.test(b.textContent))`, 8000)
