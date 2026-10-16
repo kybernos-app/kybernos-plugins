@@ -29,5 +29,6 @@
   "good": {
     "fr": "Un seul service à la fois côté agents : Kybernos Cloud ou votre clé. Votre clé reste sur votre machine ; une clé changée n'atteint les agents qu'après un redémarrage de DSH.",
     "en": "One service at a time for the agents: Kybernos Cloud or your key. Your key stays on your machine; a changed key reaches the agents only after DSH restarts."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/features/what-are-app-connections/"
 }

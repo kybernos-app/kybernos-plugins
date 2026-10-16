@@ -32,8 +32,7 @@
   /* an icon on its own is that wide; a button with a label keeps the width of its label (a min-width would let a flex row
    * squeeze it below that, and its text would be cut under the next button) */
   [data-slot="main"] button:where(:has(> svg:only-child)),
-  [data-slot="main"] [role="button"]:where(:has(> svg:only-child)),
-  [data-slot="main"] .kb6-helpbtn {
+  [data-slot="main"] [role="button"]:where(:has(> svg:only-child)) {
     min-width: 36px;
   }
   [data-slot="main"] input:where(:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"])) {
@@ -438,6 +437,10 @@
   [data-shortcut-modal="settings"]:not([data-kbmob-page]) > nav > div:last-child > button svg {
     width: 22px;
     height: 22px;
+  }
+  /* Theme and Language sit under Appearance (data-kb-sub, put on by the core plugin's Settings menu): one step in here too. */
+  [data-shortcut-modal="settings"]:not([data-kbmob-page]) > nav > div:last-child > button[data-kb-sub] {
+    padding-inline-start: 40px !important;
   }
   [data-shortcut-modal="settings"][data-kbmob-page] > nav {
     display: none !important;

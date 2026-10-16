@@ -29,5 +29,6 @@
   "good": {
     "fr": "Rien n’est envoyé sans votre action. Modèles gratuits : les prompts peuvent être conservés, n’y mettez rien de sensible.",
     "en": "Nothing is sent without your action. Free models: prompts may be retained, so do not put anything sensitive there."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/models-and-budget/use-free-models/"
 }

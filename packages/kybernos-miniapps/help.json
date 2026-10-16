@@ -25,5 +25,6 @@
   "good": {
     "fr": "macOS seulement. Dans l’app, Briques garde sa lecture et sa rotation ; Modeleur et Slides sont figés comme une photo et ne suivent plus le chat.",
     "en": "macOS only. In the app, Briques keeps its replay and rotation; Modeleur and Slides are frozen like a photo and no longer follow the chat."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/create-with-kybernos/turn-a-panel-into-an-app/"
 }

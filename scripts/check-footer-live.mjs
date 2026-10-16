@@ -30,7 +30,7 @@
 import { createServer } from 'node:http'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { openLivePage, waitFor } from './live-page.mjs'
+import { openLivePage, waitFor, openAdvancedFold } from './live-page.mjs'
 
 const host = process.env.KB_HOST || '127.0.0.1:3080'
 if (host.endsWith(':3080')) { console.error('○ not run: this check must run against the sandbox (source scripts/sandbox/env.sh), never the real DSH on :3080'); process.exit(3) }
@@ -672,15 +672,17 @@ try {
     check('DSH\'s own entries and the other bundles\' are still listed (General, Appearance, Remote Control)',
       cells.some((c) => c.key === 'general') && cells.some((c) => c.key === 'kbac-appearance') && cells.some((c) => c.key === 'kybernos-mobile'), cells.map((c) => c.key))
     await shot('11-settings-without-account-entries')
-    // The group header that held « Account » is « Kybernos » now, and it is the only one: the servers entry stays first under it, then the section of what
-    // stays on this computer, then the Suite. Read from the layout (the organiser orders by CSS), headers and cells together.
-    // The organiser (a debounced observer) draws the group headers a moment after the cells: wait for them.
-    await waitFor(page, `document.querySelectorAll('[data-kb="settings-group"]').length >= 3`, 6000)
+    // The first section is the essentials (no header). « Advanced » is a fold, shut at first: opened here with a click, as a person does, its first
+    // entries are Servers (kept where it was), the section of what stays on this computer, then the Suite. Read from the layout (the organiser
+    // orders by CSS), headers and cells together. The organiser (a debounced observer) draws the headers a moment after the cells: wait for them.
+    await waitFor(page, `document.querySelector('[data-kb-fold-toggle]') !== null`, 6000)
     await sleep(400)
+    await openAdvancedFold(page) // only if it is shut: an earlier scene may have landed on a page inside it, which opens it
+    await sleep(500)
     const flow = (await val(`(() => { const list = Array.from(document.querySelectorAll('[class*="navList"]')).find((l) => l.querySelector('[class*="navCell"]')); return Array.from(list.children).map((c) => { const n = Object.keys(c).find((k) => k.indexOf('__reactFiber$') === 0); return { t: (c.textContent || '').trim(), key: n === undefined ? null : c[n].key, y: Math.round(c.getBoundingClientRect().top), head: c.getAttribute('data-kb') === 'settings-group' } }).filter((x) => x.y > 0 || x.head).sort((a, b) => a.y - b.y) })()`)) || []
     const heads = flow.filter((x) => x.head).map((x) => x.t)
-    check('the group headers are Kybernos, Settings, Desktop, Plugins: no « Account » header any more, and « Kybernos » only once', heads[0] === 'Kybernos' && heads.filter((h) => h === 'Kybernos').length === 1 && !heads.includes('Account'), heads)
-    const at = flow.findIndex((x) => x.head && x.t === 'Kybernos')
+    check('the group headers are Advanced and Other settings: no « Account » header any more, and none named like a page (« Kybernos »)', heads.join('|') === 'Advanced|Other settings' && !heads.includes('Account') && !heads.includes('Kybernos'), heads)
+    const at = flow.findIndex((x) => x.head && x.t === 'Advanced')
     check('under it: Servers (kept where it was), the Kybernos section, then the Suite', at >= 0 && flow[at + 1] && flow[at + 1].key === 'kybernos-servers' && flow[at + 2] && flow[at + 2].key === 'kybernos-local' && flow[at + 3] && flow[at + 3].key === 'kybernos-suite', flow.slice(at, at + 5))
     // Each of the remaining ones still opens: pick General and Remote Control by key and read the page that comes up.
     const openCell = async (cellKey) => {

@@ -10,7 +10,7 @@ const root = fileURLToPath(new URL('..', import.meta.url))
 const src = readFileSync(root + 'packages/kybernos-plugin/index.js', 'utf8')
 const m = src.match(/\/\/ KB-TASKS-CORE-BEGIN([\s\S]*?)\/\/ KB-TASKS-CORE-END/)
 if (m === null) { console.error('KB-TASKS-CORE block not found in index.js'); process.exit(1) }
-const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { kbVerifySessionCookie, kbNeverRuns, kbMakeRateLimiter, kbHookSource, kbHookPayload, kbHookPrompt, kbCronCanFire, kbIsValidTimeZone, kbWallInstants, kbWallToEpoch, kbMachineTimeZone, kbClip, kbParseTasksText, kbParseCron, kbNextCronAfter, kbComputeNextRun, kbSanitizeTaskInput, kbParseIsoLocal, kbZoneOffsetMinutes, kbMakeTaskStore, kbMakeTrigger, kbPickAskPreset, kbMcpGate }'))
+const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { kbVerifySessionCookie, kbNeverRuns, kbMakeRateLimiter, kbHookSource, kbHookPayload, kbHookPrompt, kbCronCanFire, kbCronGapMinutes, kbFrequentRefusal, kbIsValidTimeZone, kbWallInstants, kbWallToEpoch, kbMachineTimeZone, kbClip, kbParseTasksText, kbParseCron, kbNextCronAfter, kbComputeNextRun, kbSanitizeTaskInput, kbParseIsoLocal, kbZoneOffsetMinutes, kbMakeTaskStore, kbMakeTrigger, kbPickAskPreset, kbMcpGate }'))
 
 let fails = 0
 const eq = (label, got, want) => { const ok = got === want; if (!ok) { fails++; console.log('FAIL', label, '| got', got, '| want', want) } else console.log('ok  ', label) }
@@ -131,6 +131,40 @@ eq('31 February refused (one-time)', bad(base({ schedule: { mode: 'once', at: '2
 eq('absurdly long date refused', bad(base({ schedule: { mode: 'once', at: '2027-01-01T10:00' + ' '.repeat(200) } })), 'date ponctuelle invalide')
 eq('one-time date is trimmed', mod.kbSanitizeTaskInput(base({ schedule: { mode: 'once', at: ' 2027-01-01T10:00 ' } })).task.schedule.at, '2027-01-01T10:00')
 eq('prototype keys do not pollute', (() => { mod.kbSanitizeTaskInput(JSON.parse('{"name":"a","prompt":"b","__proto__":{"polluted":1},"schedule":{"__proto__":{"polluted":2}}}')); return ({}).polluted === undefined })(), true)
+
+/* ── 4b2. A5-24: a schedule that starts a model session every few minutes needs a confirmation ── */
+// The shortest gap between two runs, in minutes; a request that would run more often than every 5 minutes is refused
+// unless it says `confirmFrequent: true`, and an update that keeps the cron it already had is not asked again.
+const gap = (c) => mod.kbCronGapMinutes(c)
+eq('every minute: 1', gap('* * * * *'), 1)
+eq('every 2, 4, 5, 15 minutes', [gap('*/2 * * * *'), gap('*/4 * * * *'), gap('*/5 * * * *'), gap('*/15 * * * *')].join(), '2,4,5,15')
+eq('two runs 2 minutes apart, once a day', gap('0,2 8 * * *'), 2)
+eq('every 2 hours: 120', gap('0 */2 * * *'), 120)
+eq('every day at 08:00: a whole day (the wrap across midnight counts)', gap('0 8 * * *'), 1440)
+eq('23:59 and 00:01 every day: 2 minutes across midnight', gap('59,1 0,23 * * *'), 2)
+eq('...but on Mondays only, the next day does not fire: a run is alone', gap('0 8 * * 1'), Infinity)
+eq('a cron that is not one has no gap', gap('banana'), Infinity)
+{
+  // The oracle: walk the real runs with the scheduler's own matcher and take the smallest gap.
+  const real = (c) => { let t = Date.UTC(2026, 0, 5, 0, 0) - 1; let prev = null; let min = Infinity; for (let i = 0; i < 400; i += 1) { t = mod.kbNextCronAfter(c, t, 'UTC'); if (t === null) break; if (prev !== null) min = Math.min(min, (t - prev) / 60000); prev = t } return min }
+  const crons = ['* * * * *', '*/3 * * * *', '*/10 * * * *', '7,9 * * * *', '0 */3 * * *', '30 8-10 * * *', '0,4 6 * * *', '0 8 * * *', '15 9 * * 1-5', '*/7 * * * *', '0 0 1 * *']
+  // A gap of a day or more is « not frequent »: the function may say Infinity where the real runs are 3 days or 28 days apart.
+  eq('the gap matches the real runs of the scheduler on ' + crons.length + ' crons', crons.filter((c) => gap(c) !== real(c) && !(gap(c) >= 1440 && real(c) >= 1440)).join(' | ') || 'none', 'none')
+}
+{
+  const ask = (cron, req, previous) => mod.kbFrequentRefusal(mod.kbSanitizeTaskInput(Object.assign({ name: 'a', prompt: 'b', schedule: { mode: 'cron', cron } }, req || {})).task, Object.assign({ name: 'a', prompt: 'b', schedule: { mode: 'cron', cron } }, req || {}), previous || null)
+  eq('every minute is refused with the number of minutes, never saved silently', JSON.stringify(ask('* * * * *')), '{"ok":false,"error":"frequent schedule","everyMinutes":1}')
+  eq('every 4 minutes is refused too', ask('*/4 * * * *').everyMinutes, 4)
+  eq('every 5 minutes is fine', ask('*/5 * * * *'), null)
+  eq('every hour is fine', ask('0 * * * *'), null)
+  eq('confirmed by the person: accepted', ask('* * * * *', { confirmFrequent: true }), null)
+  eq('a string « true » is not a confirmation', ask('* * * * *', { confirmFrequent: 'true' }) !== null, true)
+  eq('an update that keeps the cron it already had is not asked again (a rename of an every-minute one)', ask('* * * * *', {}, { schedule: { mode: 'cron', cron: '* * * * *' } }), null)
+  eq('...but a new frequent cron on an existing automation is', ask('*/2 * * * *', {}, { schedule: { mode: 'cron', cron: '0 8 * * *' } }) !== null, true)
+  eq('a one-time date and a webhook are never frequent', mod.kbFrequentRefusal({ schedule: { mode: 'once', at: '2027-01-01T10:00' } }, {}, null) + '|' + mod.kbFrequentRefusal({ schedule: { mode: 'webhook' } }, {}, null), 'null|null')
+  eq('the route asks on create AND on update, before anything is written', src.indexOf('kbFrequentRefusal(clean.task, body.task, null)') > 0 && src.indexOf('kbFrequentRefusal(clean.task, body.task, t)') > src.indexOf('action === \'update\'') && src.indexOf('kbFrequentRefusal(clean.task, body.task, null)') < src.indexOf('tasks.push(task)'), true)
+  eq('the flag is not stored: the sanitizer drops it', mod.kbSanitizeTaskInput({ name: 'a', prompt: 'b', confirmFrequent: true, schedule: { mode: 'cron', cron: '* * * * *' } }).task.confirmFrequent, undefined)
+}
 
 /* ── 4c. Property test against an independent per-minute oracle ─────────── */
 // The oracle shares no code with the engine: it walks every real minute of a window, reads the

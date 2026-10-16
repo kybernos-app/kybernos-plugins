@@ -1,7 +1,7 @@
 ---
 name: automation-creator
-description: Creates a Kybernos automation from the conversation. Asks what should start it (a schedule, one date, or a webhook), what the team should do, and whether it may act without asking, shows the result for approval, then saves it where the Automations page and its scheduler read it. Use when the user wants something to run by itself, for example "every Monday at 8, summarise last week's pull requests".
-whenToUse: The user asks for an automation, a recurring task, a scheduled run of the team, or something that must start when an outside service calls a URL.
+description: Creates a Kybernos automation from the conversation, or changes one that exists. Asks what should start it (a schedule, one date, or a webhook), what the team should do, and whether it may act without asking, shows the result for approval, then saves it where the Automations page and its scheduler read it. Use when the user wants something to run by itself, for example "every Monday at 8, summarise last week's pull requests", or wants to change an automation they already have.
+whenToUse: The user asks for an automation, a recurring task, a scheduled run of the team, or something that must start when an outside service calls a URL; or the message is an edit of an existing automation (the Automations page's "Edit in chat" button).
 ---
 
 # Automation creator
@@ -10,6 +10,24 @@ You create ONE automation per conversation, and you create it for real: an inter
 a draft the user approves, then a saved task. Never a mock-up, never invented data.
 Talk to the user in their own language. Everything below is written in English because
 it is read by you.
+
+## Changing an automation that exists
+
+If the first message asks to change an existing automation (the "Edit in chat" button of
+the Automations page writes "edit mode", or its translation, and then the automation's id,
+name, schedule, approvals, notifications and steps), the user wants to CHANGE that
+automation: do not interview from scratch and never create a second one.
+
+1. Read the definition you were given. Ask what to change, in one question, unless the
+   message already says it.
+2. Apply the change to that definition only. Everything else stays as it is.
+3. Show the result as in section 2 and wait for a clear yes.
+4. Save it with the script in section 3, with the COMPLETE definition (the unchanged
+   fields too) and the id you were given as `"id"`. The script then replaces that
+   automation's name, steps, schedule, approvals and notifications in place. Its history
+   and its webhook stay, and the scheduler computes the next run within about half a
+   minute. If no automation has that id, nothing is written: tell the user, and do not
+   create a new one instead.
 
 ## 1. Interview
 
@@ -70,6 +88,12 @@ First write the specification to a temporary JSON file, for example
   `notify` may hold `push` and `email`.
 - `webhook: true` adds a webhook URL to a `cron` or `once` automation. A `webhook`
   schedule always has one.
+- `id` is only for a change (see the section above): the id of the automation to replace.
+  `active` (`true` or `false`) is optional and only meant for a change: it switches the
+  automation on or off.
+- A schedule that runs more often than every 5 minutes (`* * * * *`, `*/2 * * * *`) starts a
+  real model session each time. The script refuses it unless the specification also has
+  `"confirmedFrequent": true`, which you add ONLY after the user has said yes to that cost.
 - `prompt` is the numbered steps, at most 8000 characters. Never put a password, a key
   or a token in it.
 
@@ -94,6 +118,9 @@ const fail = (code, error) => done(code, { ok: false, error })
 let spec
 try { spec = JSON.parse(fs.readFileSync(process.argv[2], 'utf8')) } catch (e) { fail(2, 'the specification file is missing or is not JSON') }
 if (spec === null || typeof spec !== 'object' || Array.isArray(spec)) fail(2, 'the specification must be a JSON object')
+// A change carries the id of the automation to replace; nothing but an id may stand there.
+const editId = spec.id === undefined ? null : spec.id
+if (editId !== null && (typeof editId !== 'string' || !/^[A-Za-z0-9_-]{1,80}$/.test(editId))) fail(2, 'id: the id of the automation to change, exactly as it was given to you')
 
 // ---- the DSH home, as DSH resolves it: $DSH_HOME (trimmed, ~ expanded), else <home>/.dsh
 const dshHome = () => {
@@ -131,6 +158,26 @@ const cronOk = (expr) => {
     return lo >= bounds[i][0] && hi <= bounds[i][1] && lo <= hi
   }))
 }
+// The shortest gap, in minutes, between two runs of a valid cron (Infinity when a run is always alone).
+const gapOf = (expr) => {
+  const f = text(expr).trim().split(/\s+/)
+  const set = (field, min, max, wrap7) => {
+    const out = new Set()
+    for (const piece of field.split(',')) {
+      const m = /^(?:(\*)|(\d+)(?:-(\d+))?)(?:\/(\d+))?$/.exec(piece)
+      const lo = m[1] === '*' ? min : Number(m[2])
+      const hi = m[1] === '*' ? max : (m[3] !== undefined ? Number(m[3]) : (m[4] !== undefined ? max : lo))
+      for (let v = lo; v <= hi; v += (m[4] === undefined ? 1 : Number(m[4]))) out.add(wrap7 && v === 7 ? 0 : v)
+    }
+    return out
+  }
+  const slots = []
+  for (const h of Array.from(set(f[1], 0, 23)).sort((a, b) => a - b)) { for (const mi of Array.from(set(f[0], 0, 59)).sort((a, b) => a - b)) slots.push(h * 60 + mi) }
+  let gap = Infinity
+  for (let i = 1; i < slots.length; i += 1) gap = Math.min(gap, slots[i] - slots[i - 1])
+  if (set(f[2], 1, 31).size === 31 && set(f[4], 0, 7, true).size === 7 && set(f[3], 1, 12).size === 12) gap = Math.min(gap, slots[0] + 1440 - slots[slots.length - 1])
+  return gap
+}
 const schedule = { mode, tz }
 if (mode === 'cron') {
   if (!cronOk(sc.cron)) fail(2, 'schedule.cron: five fields of digits, *, lists, ranges and steps (for example "0 8 * * 1")')
@@ -144,6 +191,10 @@ if (mode === 'cron') {
   if (ms < Date.now() - 14 * 3600 * 1000) fail(2, 'schedule.at: that date is in the past')
   schedule.at = text(sc.at).trim()
 }
+// Every run starts a real model session: below 5 minutes between two runs, the user has to have said yes to that cost.
+const needsYes = mode === 'cron' && gapOf(schedule.cron) < 5 && spec.confirmedFrequent !== true
+const askYes = () => fail(2, 'schedule.cron: this runs more often than every 5 minutes and every run starts a real model session. Ask the user to confirm it, then add "confirmedFrequent": true to the specification.')
+if (needsYes && editId === null) askYes()
 
 const task = {
   id: 'st-' + Date.now().toString(36) + '-' + crypto.randomBytes(4).toString('hex').slice(0, 6),
@@ -200,13 +251,31 @@ for (;;) {
 // again from what is there now instead of overwriting it.
 for (let attempt = 0; attempt < 5; attempt += 1) {
   const current = read()
+  let next = current.tasks.concat([task])
+  let saved = task
+  if (editId !== null) {
+    // A change replaces that automation where it stands: its id, creation date, history and webhook stay, and the
+    // next run is left empty for the scheduler to compute. It never turns into an append.
+    const at = current.tasks.findIndex((t) => t !== null && typeof t === 'object' && t.id === editId)
+    if (at < 0) fail(2, 'no automation has the id ' + editId + ': nothing was written, and no new one was created. Tell the user.')
+    const old = current.tasks[at]
+    const sameCron = old.schedule !== null && typeof old.schedule === 'object' && old.schedule.mode === 'cron' && old.schedule.cron === schedule.cron
+    if (needsYes && !sameCron) askYes()
+    saved = Object.assign({}, old, { name, prompt, schedule, approvals: task.approvals, notify: task.notify, updatedAt: task.updatedAt, nextRun: null })
+    if (typeof spec.active === 'boolean') saved.active = spec.active
+    // A one-time automation switches itself off when it has run: a new date is meant to run, so it is on again.
+    else if (mode === 'once' && old.active === false && Array.isArray(old.history) && old.history.length > 0) saved.active = true
+    if (old.trigger === undefined || old.trigger === null) { if (task.trigger !== undefined) saved.trigger = task.trigger } else { hookUrl = null }
+    next = current.tasks.slice()
+    next[at] = saved
+  }
   const tmp = file + '.tmp-' + process.pid + '-' + Date.now().toString(36)
-  fs.writeFileSync(tmp, JSON.stringify(current.tasks.concat([task]), null, 2), { mode: 0o600 })
+  fs.writeFileSync(tmp, JSON.stringify(next, null, 2), { mode: 0o600 })
   let now = null
   try { now = fs.readFileSync(file, 'utf8') } catch (e) { now = null }
   if (now !== current.raw) { fs.rmSync(tmp, { force: true }); continue }
   fs.renameSync(tmp, file)
-  done(0, { ok: true, id: task.id, name, schedule, approvals: task.approvals, hookUrl })
+  done(0, { ok: true, id: saved.id, name, schedule, approvals: task.approvals, hookUrl, edited: editId !== null })
 }
 fail(5, 'tasks.json kept changing: nothing was written, try again')
 JS
@@ -220,7 +289,8 @@ valid JSON" or "is not a list": then stop and tell the user their task file need
 ## 4. Afterwards
 
 Tell the user, in their language: the name, when it starts in plain words, and that the
-Automations page shows it with its next run within about half a minute. If there is a
+Automations page shows it with its next run within about half a minute (for a change: what
+changed, and that its history was kept). If there is a
 webhook URL, show it once and say that it contains a secret (anyone with the URL can
 start the automation): it can be regenerated or revoked from the automation's page.
 Do not run the automation yourself unless the user asks. Offer "Run now?" once, and do not
@@ -233,6 +303,8 @@ restart the interview.
   that, and keep `approvals` on `ask` unless they chose `auto`. For an automation that should
   only look, still write "read-only: never send, create, change or delete anything" into its
   prompt: it keeps the run from pausing on an action nobody wanted.
-- A schedule that fires every minute is almost never what someone means: confirm it.
+- A schedule that fires more often than every 5 minutes is almost never what someone
+  means, and every run starts a real model session: say so, and only add
+  `"confirmedFrequent": true` after a clear yes (the script refuses it otherwise).
 - If a value cannot be validated (a zone you are unsure of, a date that may be in the
   past), ask instead of guessing.

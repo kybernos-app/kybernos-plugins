@@ -84,5 +84,55 @@ console.log('where the button is')
   check('without the Suite there is no button and the panel still draws', without.tree !== null && none.length === 0 && find(without.tree, (n) => n.props && n.props.className === 'kbf-poptitle').length === 1)
 }
 
+console.log('the animated help of the Settings page (V-05, V-36)')
+{
+  // The Settings page, rendered on the same fake React: the Suite's Help and Intro are stand-ins that only record what the page asks for.
+  const Help = function Help () { return null }
+  const Intro = function Intro () { return null }
+  const draw = ({ lang, hub }) => {
+    const fakeReact = {
+      createElement: (type, props, ...children) => ({ type, props: props || {}, children: children.flat() }),
+      useState: (v) => [typeof v === 'function' ? v() : v, () => {}], useRef: (v) => ({ current: v }), useEffect: () => {}, useCallback: (f) => f,
+    }
+    let def = null
+    const win = { __ModuleLoader__: { load: (d) => { def = d } }, matchMedia: () => ({ matches: false }), __KB_LANG_RESOLVE__: () => lang }
+    if (hub !== undefined) win.__KB_HELP__ = hub
+    globalThis.window = win
+    globalThis.document = { body: {}, head: { appendChild: (c) => c }, baseURI: 'http://127.0.0.1:3080/', createElement: () => ({ dataset: {}, remove () {} }), addEventListener () {}, removeEventListener () {} }
+    new Function('window', 'document', SOURCE)(win, globalThis.document)
+    const plugin = def.factory((name) => (name === 'react' ? fakeReact : undefined))
+    let page = null
+    const slots = { inject: (name, make) => { if (name === 'settings.section') make() }, register: (d, comp) => { if (d.id === 'kybernos-mobile') page = comp; return () => {} } }
+    plugin.apply({ effect: (fn, label) => (/settings section|phone panel/.test(String(label)) ? fn() : () => {}), inject: (names, cb) => cb({ slots }) })
+    if (page === null) return null
+    const el = page()
+    return typeof el.type === 'function' ? el.type(el.props) : el
+  }
+  const find = (node, test, out = []) => {
+    if (node === null || typeof node !== 'object') return out
+    if (test(node)) out.push(node)
+    for (const c of node.children || []) find(c, test, out)
+    return out
+  }
+  const text = (n) => (n === null || typeof n !== 'object' ? String(n) : (n.children || []).map(text).join(' '))
+  const tree = draw({ lang: 'en', hub: { version: 1, actions: true, Help, Intro } })
+  const intros = tree === null ? [] : find(tree, (n) => n.type === Intro)
+  const p = intros.length === 1 ? intros[0].props : null
+  check('the Settings page is drawn', tree !== null)
+  check('it asks the Suite for the animation, keyed by its own bundle', p !== null && p.id === 'kybernos-mobile', intros.length)
+  check('three steps that say show the code, scan it, allow', p !== null && p.steps.length === 3 && /code/i.test(p.steps[0].t) && /scan/i.test(p.steps[1].t) && /allow/i.test(p.steps[2].t), p && p.steps.map((s) => s.t))
+  check('every step has a sentence', p !== null && p.steps.every((s) => s.b.length > 20))
+  check('the mock names the page, the phone, its three states and three labels', p !== null && p.mock.bar === 'Remote Control' && p.mock.hot.length > 2 && p.mock.states.length === 3 && p.mock.actions.length === 3 && p.mock.actions[2] === 'Allow', p && p.mock)
+  check('it sits after the title row and before the body', (() => { const order = find(tree, (n) => n.type === Intro || (n.props && (n.props.className === 'kbmr-head' || n.type !== 'div' && typeof n.type === 'function' && n.type.name === 'Body'))).map((n) => (n.type === Intro ? 'intro' : n.props.className === 'kbmr-head' ? 'head' : 'body')); return order.join() === 'head,intro,body' })())
+  check('the title row still carries one « ? How it works » button, for this bundle', find(tree, (n) => n.type === Help).length === 1 && find(tree, (n) => n.type === Help)[0].props.id === 'kybernos-mobile')
+  const fr = draw({ lang: 'kybernos', hub: { version: 1, Help, Intro } })
+  const q = fr === null ? null : find(fr, (n) => n.type === Intro)[0]
+  check('in French: the same animation, in French', q !== undefined && q !== null && /code/i.test(q.props.steps[0].t) && /Autoriser/.test(q.props.mock.actions[2]) && q.props.title !== p.title, q && q.props.title)
+  const older = draw({ lang: 'en', hub: { version: 1, Help } })
+  check('an older Suite without the animation: the page draws, with its button and no animation', older !== null && find(older, (n) => n.type === Intro).length === 0 && find(older, (n) => n.type === Help).length === 1)
+  const none = draw({ lang: 'en' })
+  check('no Suite at all: the page draws with neither', none !== null && find(none, (n) => n.type === Intro || n.type === Help).length === 0)
+}
+
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)
 process.exit(failed === 0 ? 0 : 1)
