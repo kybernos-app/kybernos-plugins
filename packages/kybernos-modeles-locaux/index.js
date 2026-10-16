@@ -16,6 +16,7 @@ import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadKeys, loadShipped, serveCatalogue } from './modeles-distant.mjs'
+import { writeGuard } from './session-guard.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 export const CATALOGUE_FILE = join(HERE, 'catalogue.json')
@@ -310,9 +311,13 @@ export function apply(ctx) {
 
       // Démarrage : 'ollama' (brew) ou un id de modèle (charset sûr). Un seul
       // job à la fois ; un job en cours répond 409 sans rien casser.
+      // It installs software and downloads gigabytes, so it needs DSH's signed session as well as the right Origin (session-guard.mjs, the terminal's
+      // rule): plugin routes are served before DSH's own login and an Origin header is forgeable by any local program. Its callers are pages (this
+      // one, and the first-run wizard of the core), both in a browser.
       hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/modeles-locaux/installer', handler: async (req, res) => {
         if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
-        if (sameOrigin(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }
+        const refus = writeGuard(req)
+        if (refus !== null) { sendJson(res, refus.status, { ok: false, error: refus.error }); return }
         const body = await readBody(req)
         const cible = body !== null && typeof body.cible === 'string' ? body.cible : ''
         if (cible.length === 0) { sendJson(res, 400, { ok: false, error: 'cible-absente' }); return }
@@ -343,10 +348,11 @@ export function apply(ctx) {
         sendJson(res, 200, { ok: true, demarre: true, cmd: j.cmd })
       }}), 'modeles-locaux: installation (démarrage)')
 
-      // Annulation : SIGTERM sur le tirage en cours.
+      // Annulation : SIGTERM sur le tirage en cours. Same rule as the start: it ends a process.
       hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/modeles-locaux/annuler', handler: async (req, res) => {
         if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
-        if (sameOrigin(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }
+        const refus = writeGuard(req)
+        if (refus !== null) { sendJson(res, refus.status, { ok: false, error: refus.error }); return }
         if (job === null || job.running !== true) { sendJson(res, 200, { ok: true, annule: false }); return }
         try { job.child.kill('SIGTERM') } catch (e) { /* déjà mort */ }
         sendJson(res, 200, { ok: true, annule: true })
