@@ -833,6 +833,32 @@ section('wired controls: the effects stylesheet')
   check('...and removes both when the controls are off', tagged[0].removed === true && !('data-kbth-reduced' in attrs))
   globalThis.document.documentElement = prevDe
 }
+section('the Kybernos accent: a look that has its own brand colour says so on <html data-kbth-brand> (audit A1-01)')
+{
+  // kybernos-plugin declares `--kybernos-accent` (the brand orange) and lets the brand token win when this attribute names the scheme: the Suite, Workers,
+  // the core switch and the Composio pill stay orange by default and follow Neutral violet, Ember or a custom accent.
+  const skin = (id) => T.SKINS.find((sk) => sk.id === id)
+  const own = (state) => T.accentsPropres({ ...T.DEF, ...state }).join(' ')
+  check('DSH default (the native configuration) has no brand of its own: the accent stays orange', own({}) === '')
+  check('Neutral violet sets an accent for both schemes', own(T.skinPatch(skin('neutre'))) === 'light dark')
+  check('a custom accent from the picker too', own({ skin: 'clair', acc: '#EC4899' }) === 'light dark')
+  check('OLED (a themed look with no accent) keeps the orange', own(T.skinPatch(skin('oled'))) === '' && skin('oled').acc === null)
+  check('Ember, a pack with a brand per scheme, names both', own(T.skinPatch(skin('kb-ember'))) === 'light dark')
+  check('a brand override in ONE scheme names that scheme only', own({ ...T.skinPatch(skin('oled')), ov: { 'dark:brand': '#AABBCC' } }) === 'dark')
+  const rec = []
+  const prev = globalThis.document.documentElement
+  const attrs = {}
+  globalThis.document.documentElement = { setAttribute: (k, v) => { attrs[k] = v }, removeAttribute: (k) => { delete attrs[k] } }
+  const svc = { overrideTokens: () => () => { rec.push('disposed') } }
+  T.appliquerJetons(svc, { ...T.DEF, ...T.skinPatch(skin('neutre')) })
+  check('applying Neutral violet writes data-kbth-brand="light dark"', attrs['data-kbth-brand'] === 'light dark', attrs)
+  T.appliquerJetons(svc, { ...T.DEF, ...T.skinPatch(skin('oled')) })
+  check('switching to a look without a brand removes it', !('data-kbth-brand' in attrs), attrs)
+  T.appliquerJetons(svc, { ...T.DEF, ...T.skinPatch(skin('neutre')) })
+  T.appliquerJetons(svc, T.DEF)
+  check('going back to DSH default (the layer is dropped) removes it too', !('data-kbth-brand' in attrs), attrs)
+  globalThis.document.documentElement = prev
+}
 section('wired controls: the colour-blind palette really recolours success and error')
 {
   const plain = (m, cb) => T.makeTheme(m, { acc: null, ov: {}, lvl: 0, cb, tint: 0, dom: '' })

@@ -145,9 +145,8 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
   // Calm: what there is to DO, not everything there is.
   ok('Kaby\'s chat is made in a workspace of its own, already chosen, and a chat made without one is made again', /ws\.items\.some\(\(i\) => i !== null && Array\.isArray\(i\.sessionIds\) && i\.sessionIds\.includes\(sid\)\)/.test(src))
   ok('the strip is two tiles and a panel; no settings, no radio, no « Other channels » group', /h\(ChannelsTile, \{ view: v \}\), h\(ComputerTile, \{ view: v \}\)/.test(src) && /h\(TelegramPanel, \{ view: v \}\)/.test(src) && !/type: 'radio'/.test(src) && !/WhereCard|OtherChannels|SoonLine|kbky-more|otherChannels/.test(src))
-  const srv = T.derive({ ok: true, connected: true, telegram: { configured: false, enabled: false, bot: null, linked: null }, home: null }, { ok: true, server: { id: 'kybernos-local', api: 'http://localhost:8791' } })
-  ok('the server\'s name is known, so that « no Telegram bot » can say whose', (() => { const v = T.derive({ ok: true, connected: true, telegram: { configured: false, enabled: false, bot: null, linked: null }, home: null }, { ok: true, server: { id: 'kybernos-local', api: 'http://localhost:8791' } }); return v.serverId === 'kybernos-local' && T.L('ofSubS', { server: v.serverId }).includes('kybernos-local') })())
-  ok('an odd server id is dropped', T.derive({ ok: true, connected: true, telegram: null, home: null }, { ok: true, server: { id: '<b>', api: 'http://x' } }).serverId === '')
+  ok('the server the host names is kept, with whether another can be switched to', (() => { const v = T.derive({ ok: true, connected: true, telegram: null, home: null, server: { name: 'Kybernos (local)', host: 'localhost:8791', can_switch: true } }, server); return v.server.name === 'Kybernos (local)' && v.server.host === 'localhost:8791' && v.server.canSwitch === true })())
+  ok('an odd or missing server is dropped, and then there is nothing to switch to', (() => { const a = T.derive({ ok: true, connected: true, telegram: null, home: null, server: { name: '<b>x</b>'.repeat(40), host: 7, can_switch: 'yes' } }, server); const b = T.derive({ ok: true, connected: true, telegram: null, home: null }, server); return a.server.canSwitch === false && a.server.name.length <= 60 && a.server.host === '' && b.server.canSwitch === false && b.server.name === '' })())
   ok('the diagnostics hook tells whether a chat is Kaby\'s (the new-chat cards stay out of it)', /isKybySession \(sid\)/.test(src))
 }
 
@@ -204,6 +203,9 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
     T.state.view = T.derive({ ok: true, connected: true,
       telegram: Object.assign({ configured: true, enabled: true, bot: 'kybernos_bot', linked: null }, o.tg || {}),
       home: o.home === undefined ? null : o.home, computers: o.computers || [] }, o.srv || server)
+  }
+  const setK = (telegram, extra) => {
+    T.state.view = T.derive(Object.assign({ ok: true, connected: true, telegram, home: null, computers: [] }, extra || {}), server)
   }
   const LINKED = { linked: { display: 'Miled (@alex)', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } }
   const soonFromNow = (s) => new Date(Date.now() + s * 1000).toISOString()
@@ -268,7 +270,8 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
     ['taken by another account', { id: 'x', state: 'declined', reason: 'taken' }, 'taken', true, 'Déjà utilisé par un autre compte'],
     ['the bot already made the account', { id: 'x', state: 'declined', reason: 'botmade' }, 'botmade', false, 'Compte déjà créé par le bot'],
     ['too many tries', { error: 'rate_limited' }, 'error', true, 'Impossible de préparer le code'],
-    ['no Telegram route on this server', { error: 'not_found' }, 'off', false, 'Pas de bot sur ce serveur'],
+    ['the door is off on this server', { error: 'not_found' }, 'off', false, 'Ce serveur n’a pas de bot Telegram'],
+    ['a server too old for the pairing routes', { error: 'unsupported' }, 'old', false, 'Ce serveur ne sait pas encore relier Telegram'],
   ]) {
     reset(); set({ home: null }); T.state.pairing = pairing
     const strip = ui(T.views.Strip)
@@ -303,14 +306,73 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
     ok('a paused chat says so in its row, as a warning', textOf(row).includes('En pause') && walk(row).some((n) => n.tag === 'span' && /warn/.test(n.props.className || '')))
   }
 
-  // ── a server with no bot ──
-  reset(); set({ tg: { configured: false, enabled: false, bot: null, linked: null }, home: null, srv: { ok: true, server: { id: 'kybernos-local', api: 'http://localhost:8791' } } })
+  // ── the three states of the Telegram door: a bot, no bot on this server, a server too old for the pairing routes (the owner, 2026-10-16) ──
   {
-    const tile = ui(T.views.ChannelsTile, { view: T.state.view })
-    const sw = one(tile, 'kybernos-kyber-tg-switch')
-    await press(tile, 'kybernos-kyber-tg-switch')
-    ok('no bot: the switch is disabled, the row says whose server, nothing is requested', sw.props.disabled === true && textOf(one(tile, 'kybernos-kyber-tg-row')).includes('Pas de bot sur ce serveur (kybernos-local)') && calls.length === 0 && byKb(ui(T.views.Strip), 'kybernos-kyber-telegram').length === 0)
-    ok('and the strip is folded by itself (nothing to turn on)', byKb(ui(T.views.Strip), 'kybernos-kyber-tile-channels').length === 0)
+    const BOT = { configured: true, enabled: true, bot: 'kybernos_bot', linked: null }
+    const NOBOT = { configured: false, enabled: false, bot: null, linked: null }
+    const SRV = { name: 'Kybernos (local)', host: 'localhost:8791', can_switch: true }
+    const events = []
+    globalThis.window.dispatchEvent = (e) => { events.push(e.type); return true }
+    const stateOf = (view) => view.telegram.state
+    // the model: three states, and which one wins
+    ok('a bot there: the door is offered', (setK(BOT, { pairing: 'supported', server: SRV }), stateOf(T.state.view)) === 'unlinked')
+    ok('no bot on this server: off', (setK(NOBOT, { pairing: 'supported', server: SRV }), stateOf(T.state.view)) === 'off')
+    ok('a server too old for the pairing routes: old, whether or not its door answered', (setK(null, { pairing: 'unsupported', server: SRV }), stateOf(T.state.view)) === 'old' && (setK(BOT, { pairing: 'unsupported', server: SRV }), stateOf(T.state.view)) === 'old')
+    ok('no bot AND too old reads « no bot »: the answer that tells where to go', (setK(NOBOT, { pairing: 'unsupported', server: SRV }), stateOf(T.state.view)) === 'off')
+    ok('a host that says nothing (older host, unreadable): as before, nothing is claimed', (setK(BOT), stateOf(T.state.view)) === 'unlinked' && (setK(null), stateOf(T.state.view)) === 'off' && (setK(BOT, { pairing: 'unknown' }), stateOf(T.state.view)) === 'unlinked')
+
+    // what each state shows
+    const rowOf = () => { const t = ui(T.views.ChannelsTile, { view: T.state.view }); return { tile: t, row: one(t, 'kybernos-kyber-tg-row'), sw: one(t, 'kybernos-kyber-tg-switch'), btn: one(t, 'kybernos-kyber-tg-switch-server') } }
+    reset(); setK(BOT, { pairing: 'supported', server: SRV })
+    {
+      const r = rowOf()
+      ok('bot present: the switch works, and no explanation or server button is in the way', r.sw.props.disabled === false && r.btn === undefined && !/serveur/.test(textOf(r.row)))
+    }
+    reset(); setK(NOBOT, { pairing: 'supported', server: SRV })
+    {
+      const r = rowOf()
+      ok('no bot: one sentence says why and what to do, the switch stays greyed', textOf(r.row).includes('Ce serveur n’a pas de bot Telegram. Passe sur un serveur qui en a un, comme Kybernos Cloud.') && r.sw.props.disabled === true && r.row.props['data-state'] === 'off')
+      ok('no bot, another server registered: a « Changer de serveur » button', r.btn !== undefined && textOf(r.btn) === 'Changer de serveur')
+      events.length = 0; calls.length = 0
+      await r.btn.props.onClick()
+      ok('and it asks for Settings › Servers (the footer\'s window event), calling no server', events.length === 1 && events[0] === 'kybernos-cloud:servers' && calls.length === 0, events)
+      await r.sw.props.onClick()
+      ok('the greyed switch asks for nothing even if it is pressed', calls.length === 0 && T.state.pairing === null && T.state.starting === false)
+    }
+    reset(); setK(NOBOT, { pairing: 'supported', server: Object.assign({}, SRV, { can_switch: false }) })
+    ok('no bot and no other server registered: the sentence, no button (there is nowhere to go)', (() => { const r = rowOf(); return /pas de bot Telegram/.test(textOf(r.row)) && r.btn === undefined && r.sw.props.disabled === true })())
+    reset(); setK(null, { pairing: 'unsupported', server: SRV })
+    {
+      const r = rowOf()
+      ok('server too old: it says so, instead of failing silently', textOf(r.row).includes('Ce serveur ne sait pas encore relier Telegram.') && r.sw.props.disabled === true && r.row.props['data-state'] === 'old')
+      ok('and offers the way out when another server is registered', r.btn !== undefined)
+    }
+    reset(); setK(BOT, { pairing: 'unsupported', server: Object.assign({}, SRV, { can_switch: false }) })
+    ok('a bot on a server too old for the routes: still « old », still greyed, no button without another server', (() => { const r = rowOf(); return /ne sait pas encore relier/.test(textOf(r.row)) && r.sw.props.disabled === true && r.btn === undefined })())
+
+    // the strip: folded unless there is something to do; the way out is something to do
+    reset(); setK(NOBOT, { pairing: 'supported', server: SRV })
+    ok('no bot with a server to switch to: the strip opens by itself so the way out is seen', byKb(ui(T.views.Strip), 'kybernos-kyber-tile-channels').length === 1)
+    reset(); setK(NOBOT, { pairing: 'supported', server: Object.assign({}, SRV, { can_switch: false }) })
+    ok('no bot and nowhere to go: folded, as before', byKb(ui(T.views.Strip), 'kybernos-kyber-tile-channels').length === 0)
+    reset(); setK(null, { pairing: 'unsupported', server: SRV })
+    ok('too old with a server to switch to: open too', byKb(ui(T.views.Strip), 'kybernos-kyber-tile-channels').length === 1)
+    reset(); setK(NOBOT, { pairing: 'supported', server: SRV }); T.state.stripPref = false
+    ok('the person\'s fold wins over all of it', byKb(ui(T.views.Strip), 'kybernos-kyber-tile-channels').length === 0)
+    ok('folded, the chip says Telegram is unavailable in both states', textOf(one(ui(T.views.Strip), 'kybernos-kyber-status')) === 'Telegram indisponible' && (setK(null, { pairing: 'unsupported', server: SRV }), textOf(one(ui(T.views.Strip), 'kybernos-kyber-status'))) === 'Telegram indisponible')
+    // the words, in both languages
+    ok('the sentences are the coordinator\'s, in English', T.S.offWhy[1] === 'This server has no Telegram bot. Switch to a server that has one, such as Kybernos Cloud.' && T.S.oldWhy[1] === 'This server does not support linking Telegram yet.' && T.S.switchServer[1] === 'Switch server')
+    // a pairing that the server answers « unsupported » to (a stale « supported ») is its own panel, never a silent failure
+    reset(); setK(BOT, { pairing: 'unknown', server: SRV }); T.state.pairing = { error: 'unsupported' }
+    {
+      const p = one(ui(T.views.Strip), 'kybernos-kyber-telegram')
+      ok('a pairing refused as unsupported says the server is too old', p !== undefined && p.props['data-state'] === 'old' && /ne sait pas encore relier/.test(textOf(p)))
+    }
+    // the computer choice on such a server is said in words too
+    reset(); setK(BOT, { pairing: 'unknown', server: SRV })
+    answer = (u) => (u.endsWith('/kyby/computer') ? { ok: false, error: 'unsupported' } : (u === '/kybernos-cloud/kyber' ? { ok: true, connected: true, telegram: null, home: null, computers: [] } : { ok: true }))
+    await T.actions.setComputer('aaaaaaaa-1111'); await flush()
+    ok('a computer choice that an old server cannot keep is said so', T.state.computerError === 'err_computer_old', T.state.computerError)
   }
 
   // ── the computer tile ──

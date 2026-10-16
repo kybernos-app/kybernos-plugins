@@ -51,7 +51,7 @@ import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, 
 import { zstdDecompressSync } from 'node:zlib'
 import { activeServer, stateFileName, llmBase, publicProfile } from './server-profile.mjs'
 import { agentsFile, readInstructions, writeInstructions } from './instructions.mjs'
-import { createKybyRoutes } from './kyby.mjs'
+import { createKybyRoutes, pairingSupport } from './kyby.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { createKybyNative, isSessionId, readPointer, writePointer } from './kyby-native.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
@@ -4231,22 +4231,27 @@ const turnAnswer = async (req, body) => {
 // ── The Kyber tab's data (ADR 0053 § 14): where the person's assistant answers, and the computer it works on ───
 // Read-only, from the active server with the account's token: the Telegram door's state (`GET /v1/me/telegram`) and the person's `Home` computer in their personal workspace. A device
 // cannot link or unlink a chat (the server asks for a signed-in session): this route only says what is, and the tab sends the person to the bot and to their account page for the rest.
-const kybyChosen = { at: 0, token: '', id: null }
+const kybyChosen = { at: 0, token: '', server: '', id: null, status: 0 }
 const kyberRoute = async () => {
   const state = readState()
   if (!isConnected(state)) return { ok: true, connected: false }
   const get = (p) => apiCall(p, { method: 'GET', token: state.token, timeoutMs: 15000 })
-  // The computer the person linked to their assistant (`GET /v1/me/kyby`, null = the default Home): read at most once a minute, an older server has none.
+  // The computer the person linked to their assistant (`GET /v1/me/kyby`, null = the default Home): read at most once a minute, an older server has none. Its status is kept
+  // too: a 404 there is how a server older than the pairing routes (PR #230) shows, and the tile says so instead of offering a switch that cannot work.
   const chosen = async () => {
-    if (kybyChosen.token === state.token && Date.now() - kybyChosen.at < 60000) return kybyChosen.id
+    const serverId = server().profile.id
+    if (kybyChosen.token === state.token && kybyChosen.server === serverId && Date.now() - kybyChosen.at < 60000) return { id: kybyChosen.id, status: kybyChosen.status }
     const r = await get('/v1/me/kyby')
     const id = r.status === 200 && r.body !== null && typeof r.body === 'object' && typeof r.body.computer_id === 'string' ? r.body.computer_id : null
     kybyChosen.at = r.status === 200 || r.status === 404 ? Date.now() : 0
     kybyChosen.token = state.token
+    kybyChosen.server = serverId
     kybyChosen.id = id
-    return id
+    kybyChosen.status = r.status
+    return { id, status: r.status }
   }
-  const [tg, ws, pick] = await Promise.all([get('/v1/me/telegram'), get('/v1/workspaces'), chosen()])
+  const [tg, ws, kyby0] = await Promise.all([get('/v1/me/telegram'), get('/v1/workspaces'), chosen()])
+  const pick = kyby0.id
   const list = ws.status === 200 && ws.body !== null && Array.isArray(ws.body.workspaces) ? ws.body.workspaces : []
   const personal = list.find((w) => w !== null && typeof w === 'object' && w.personal === true)
   let home = null
@@ -4290,6 +4295,10 @@ const kyberRoute = async () => {
     },
     computers,
     home,
+    // Which server this is (the footer's helper: its label, its host, whether the registry names another to switch to) and whether it has the pairing routes:
+    // the tile says what to do when it has no bot, or is too old for them, instead of showing a switch that cannot work.
+    server: serverIdentity(),
+    pairing: pairingSupport(tg.status, kyby0.status),
   }
 }
 

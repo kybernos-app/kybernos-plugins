@@ -440,7 +440,7 @@ The routes the **Kaby** page (`kybernos-kyber`) uses; the shapes and the words o
 
 | Route | Does |
 |---|---|
-| `GET /kybernos-cloud/kyber` | the door's state, the person's cloud computers and the one linked to the assistant (`home`; `manual_control`: false on the Free plan) |
+| `GET /kybernos-cloud/kyber` | the door's state, the person's cloud computers and the one linked to the assistant (`home`; `manual_control`: false on the Free plan), `server` (the footer's `{ name, host, can_switch }`) and `pairing` (`supported` / `unsupported` / `unknown`: whether the server has the pairing routes, from the status of `GET /v1/me/telegram` and `GET /v1/me/kyby`; a 404 on either is a server older than kybernos-server#230) |
 | `POST /kybernos-cloud/telegram/pairing` | asks for a pairing: `{ id, link, bot, expires_at, qr: { size, modules } }` (the QR is computed here, `qr.mjs`) |
 | `GET /kybernos-cloud/telegram/pairing/state?id=` | `{ state: waiting\|scanned\|done\|declined\|expired, reason?, sender? }` |
 | `POST /kybernos-cloud/telegram/pairing/cancel` `{id}` | “it is not me” |

@@ -7882,6 +7882,20 @@ return {
       kbStartChatText(text)
     }
     ctx.effect(() => styles.insert(CSS), 'kybers: sidebar styles')
+    // The Kybernos accent: ONE place for the brand orange (audit A1-01). The switches, kicker lines, active tabs, accent buttons and step discs of the
+    // Suite, Workers, the core and the Composio filter pill read `--kybernos-accent` / `--kybernos-on-accent`, never the literal.
+    //  - default: #ff7a1a with the dark ink #0f1115 (7.2:1). On the light schemes the orange is mixed 14 % toward black, because #ff7a1a is 2.6:1 on
+    //    white and a switch or a tab underline must be 3:1 (the mix is 3.5:1; the ink on it 5.4:1);
+    //  - a theme that sets its own brand colour (Neutral violet, Ember, a custom accent) says so on <html data-kbth-brand="light dark"> (the schemes
+    //    that have one, written by kybernos-theme): the accent then IS the brand token and the on-accent text is DSH's label pair of it. In the dark scheme the
+    //    brand token is only lifted to 3:1 on layer 1, so the accent is it mixed 10 % toward white (the ink on it 4.9:1 instead of 4.15:1 for Neutral violet).
+    const KB_ACCENT_CSS = `
+body{--kybernos-accent:#ff7a1a;--kybernos-on-accent:#0f1115}
+body:not([data-ds-dark-theme]){--kybernos-accent:color-mix(in srgb,#ff7a1a 86%,#000)}
+html[data-kbth-brand~="light"] body:not([data-ds-dark-theme]){--kybernos-accent:var(--dsw-alias-brand-primary);--kybernos-on-accent:var(--dsw-alias-label-primary-foreground)}
+html[data-kbth-brand~="dark"] body[data-ds-dark-theme]{--kybernos-accent:color-mix(in srgb,var(--dsw-alias-brand-primary) 90%,#fff);--kybernos-on-accent:var(--dsw-alias-label-primary-foreground)}
+`
+    ctx.effect(() => styles.insert(KB_ACCENT_CSS), 'kybernos: accent token')
     // DSH's Settings from outside the sidebar + the guard on DSH's account launcher (see <kb-open-settings>).
     ctx.effect(() => kbInstallLauncherGuard(), 'kybernos: guard on the account launcher, Settings seam')
     // Design system partagé (généré par scripts/build-shared-ui.mjs) : les
@@ -26697,8 +26711,8 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
 .kbu-sw:hover{border-color:var(--dsw-alias-border-l3)}
 .kbu-sw:disabled{opacity:.45;cursor:default}
 .kbu-sw-dot{position:absolute;inset-inline-start:2px;top:2px;width:14px;height:14px;border-radius:999px;background:var(--dsw-alias-label-secondary);transition:inset-inline-start .15s ease,background .15s ease}
-.kbu-sw.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}
-.kbu-sw.on .kbu-sw-dot{inset-inline-start:18px;background:var(--dsw-alias-label-primary-foreground)}
+.kbu-sw.on{background:var(--kybernos-accent,var(--dsw-alias-brand-primary));border-color:var(--kybernos-accent,var(--dsw-alias-brand-primary))}
+.kbu-sw.on .kbu-sw-dot{inset-inline-start:18px;background:var(--kybernos-on-accent,var(--dsw-alias-label-primary-foreground))}
 /* Nom technique (paquet + version) en petit sous le nom commercial. */
 .kbu-tech{font-family:var(--ds-font-family-code,ui-monospace,Menlo,monospace);font-size:11px;color:var(--dsw-alias-label-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kbu-cfgbtn{flex:none;height:28px;padding:0 11px;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}

@@ -33,6 +33,10 @@ let tokenValid = true
 let computerRestricted = false
 // The Kyber tab (ADR 0053 § 14): the personal workspace flag and what the server says of the Telegram door and of the person's Home computer.
 let kyberPersonal = false
+// What the server says to GET /v1/me/kyby (the Kaby thread, PR #230): null = the route does not exist there (404).
+let kybyAnswer = null
+// The status of GET /v1/me/telegram (404 = a server older than the Telegram door).
+let kyberTelegramStatus = 200
 // What the server answers to POST …/computers/{id}/resume | suspend | ticket (the computers module, ADR 0052): a status and a body.
 let computerActionAnswer = null
 const computerActionSeen = []
@@ -257,7 +261,13 @@ const api = createServer((req, res) => {
       if (meProfile === null) return send(404, { detail: 'Not Found' })
       return send(200, meProfile)
     }
+    if (req.url === '/v1/me/kyby' && req.method === 'GET') {
+      if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+      if (kybyAnswer === null) return send(404, { error: 'not_found' })
+      return send(200, kybyAnswer)
+    }
     if (req.url === '/v1/me/telegram' && req.method === 'GET') {
+      if (kyberTelegramStatus !== 200) return send(kyberTelegramStatus, { error: 'not_found' })
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
       return send(200, kyberTelegram)
     }
@@ -1213,6 +1223,17 @@ try {
     const none = await hit('/kybernos-cloud/kyber', 'GET', 'http://127.0.0.1:3080')
     assert.equal(none.body.home, null)
     assert.deepEqual(none.body.telegram, { configured: false, enabled: false, bot: null, linked: null })
+    // Which server answered, so the tile can say what to do (the footer's own helper: name, host, whether another server is registered).
+    assert.ok(r.body.server !== null && typeof r.body.server === 'object' && typeof r.body.server.name === 'string' && typeof r.body.server.host === 'string' && typeof r.body.server.can_switch === 'boolean', 'the answer names the server: ' + JSON.stringify(r.body.server))
+    assert.equal(leaks(r.body.server), false)
+    // Whether the pairing routes exist there (PR #230): no /v1/me/kyby (404) = a server too old; one that answers = supported; an unreadable answer is not claimed.
+    assert.equal(r.body.pairing, 'unsupported', 'the fake server has no /v1/me/kyby: too old for the pairing routes')
+    kyberTelegramStatus = 404
+    const olderThanDoor = await hit('/kybernos-cloud/kyber', 'GET', 'http://127.0.0.1:3080')
+    assert.equal(olderThanDoor.body.pairing, 'unsupported', 'a server with no Telegram door at all is too old too (every combination is in test-kyby.mjs)')
+    assert.equal(olderThanDoor.body.telegram, null, 'and says nothing of a door it does not have')
+    kyberTelegramStatus = 200
+    kybyAnswer = null
     kyberPersonal = false
     ok('onglet Kyber : l\'etat de la porte Telegram et du Home de la personne, sans jeton')
   }
