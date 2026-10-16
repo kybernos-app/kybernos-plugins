@@ -140,7 +140,7 @@ export async function appliquerPlafondRetries(ctx, plafond = plafondDepuisEnv())
   try {
     await settings.update(ID_NS_PROVIDERS, { providers: corriges })
   } catch (erreur) {
-    return { corriges: 0, plafond, noms, raison: 'settings.update a refusé : ' + errText(erreur) }
+    return { corriges: 0, plafond, noms, raison: 'settings.update refused: ' + errText(erreur) }
   }
   return { corriges: noms.length, plafond, noms }
 }

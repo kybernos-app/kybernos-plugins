@@ -230,7 +230,8 @@ export const literals = (src) => {
       const e = topInfo()
       const prev = toks[k - 1]
       const next = toks[k + 1]
-      const isKey = isPunct(next, ':') && e !== undefined && e.open === '{'
+      // a property key follows « { » or « , »; a literal before a colon after « ? » is the middle of a ternary (« c ? 'Fermer' : 'Close' »)
+      const isKey = isPunct(next, ':') && e !== undefined && e.open === '{' && (isPunct(prev, '{') || isPunct(prev, ',') || prev === undefined)
       const key = isKey ? null : (isPunct(prev, ':') && (toks[k - 2] !== undefined && (toks[k - 2].type === 'id' || toks[k - 2].type === 'str')) && e !== undefined && e.open === '{' ? (toks[k - 2].type === 'id' ? toks[k - 2].text : toks[k - 2].value) : null)
       let callOf = null
       for (let q = stack.length - 1; q >= 0; q -= 1) {

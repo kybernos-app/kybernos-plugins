@@ -96,6 +96,8 @@ const errText = (e) => (e && e.message ? String(e.message) : String(e))
 const isDir = (info) => info !== undefined && info !== null && info.type === 'directory'
 const isFile = (info) => info !== undefined && info !== null && info.type === 'file'
 const str = (v) => (typeof v === 'string' ? v : null)
+// A text in both languages for the host's approval prompts: `displayReason` carries { en, fr } and the shell picks the one of its language.
+const kbPair = (fr, en) => ({ en: en, fr: fr })
 
 let parseJson = null
 try {
@@ -1515,7 +1517,7 @@ export function deriveCalls(events, kyberIds) {
     const nodes = []
     const wires = []
     const short = callShortOf(str(task.subject), crew)
-    nodes.push({ id: 't', type: 'trigger', x: CALL_X_COLS[0], y: 150, label: str(task.id) === null ? 'Déclencheur' : 'Task ' + str(task.id), sub: 'trigger', st: completed === true ? 'done' : (status === 'in_progress' ? 'active' : 'pending'), io: ['—', str(task.id)] })
+    nodes.push({ id: 't', type: 'trigger', x: CALL_X_COLS[0], y: 150, label: str(task.id) === null ? 'Trigger' : 'Task ' + str(task.id), sub: 'trigger', st: completed === true ? 'done' : (status === 'in_progress' ? 'active' : 'pending'), io: ['—', str(task.id)] })
     // Filtre d'appartenance : quand le crew est connu, l'appel ne montre que
     // SES membres (les spawn/messages d'un autre crew peuvent tomber dans la
     // même fenêtre — deux tâches se créent souvent à la suite).
@@ -2590,10 +2592,8 @@ function boot(ctx) {
           return {
             kind: 'ask',
             reason: 'Automation run: ' + gate.what + ' may change something outside this session (send, write, delete, pay). Allow it?',
-            displayReason: {
-              en: 'Automation run: ' + gate.what + ' may change something outside this session (send, write, delete, pay). Allow it?',
-              fr: `Automation : ${gate.what} peut modifier quelque chose en dehors de cette session (envoyer, écrire, supprimer, payer). Autoriser ?`,
-            },
+            displayReason: kbPair('Automation : ' + gate.what + ' peut modifier quelque chose en dehors de cette session (envoyer, écrire, supprimer, payer). Autoriser ?',
+              'Automation run: ' + gate.what + ' may change something outside this session (send, write, delete, pay). Allow it?'),
           }
         })
       }
@@ -3846,7 +3846,7 @@ function boot(ctx) {
         runNames: roll.runNames,
         top: { skills: roll.skills, connectors: roll.connectors, tools: roll.tools },
         methods: {
-          runs: ledgerRuns > 0 ? 'ledger de l’Agent Team : une ligne = une exécution de rôle' : 'workflow runs with an agent tagged ' + kyberId + '-<role>',
+          runs: ledgerRuns > 0 ? 'the Agent Team\'s ledger: one line = one role execution' : 'workflow runs with an agent tagged ' + kyberId + '-<role>',
           uniqueUsers: 'distinct DSH sessions that either carried a run tagged “' + kyberId + '-<role>”, or turned this team on during the period (registry ~/.dsh/kybers/.active, stamped at the last activation; local install: one session = one person at the keyboard)',
           versions: 'current version + kyber.yml.bak-* backups written by the host',
           engagement: 'journal messages, inside the [run-start, run-end] window of the attributed runs; the Sessions card counts the sessions that turned the team on or carried a run',
@@ -7606,7 +7606,7 @@ function boot(ctx) {
           avatar: null,
         }
       }
-      if (people.length < 2 || people.length > 9) return { ok: false, error: recrop === true ? 'planche mémorisée sans casting exploitable' : '2 to 9 people per sheet' }
+      if (people.length < 2 || people.length > 9) return { ok: false, error: recrop === true ? 'the saved sheet has no usable cast' : '2 to 9 people per sheet' }
       const t0 = Date.now()
       const workDir = joinPath(tmpdir(), 'kb-visages-' + randomUUID())
       let sheetPath = null
@@ -7922,14 +7922,14 @@ function boot(ctx) {
     const kbVoiceKey = async (ref) => {
       const creds = ctx.get('credentials')
       if (creds === null || creds === undefined || typeof creds.resolve !== 'function') {
-        return { key: null, error: 'service credentials indisponible dans ce profil' }
+        return { key: null, error: 'credentials service unavailable in this profile', code: 'no-credentials-service' }
       }
       try {
         const rec = await creds.resolve(ref)
         const key = (rec !== null && rec !== undefined && typeof rec.value === 'string' && rec.value.length > 0) ? rec.value : null
-        if (key === null) return { key: null, error: 'reference ' + ref + ' not set' }
+        if (key === null) return { key: null, error: 'reference ' + ref + ' not set', code: 'no-key' }
         return { key, source: str(rec.source) }
-      } catch (e) { return { key: null, error: errText(e) } }
+      } catch (e) { return { key: null, error: errText(e), code: 'credentials-error' } }
     }
     // The audio models of the user's own providers (see models-audio.mjs): spoken to with the key the app already holds for them.
     const kbModelsProviders = () => {
@@ -8033,7 +8033,7 @@ function boot(ctx) {
           // Durée déduite de l'en-tête WAV (44 octets, 16 kHz mono 16 bits).
           let seconds = null
           if (audio.mime.indexOf('wav') >= 0 && audio.bytes.length > 44) seconds = Math.round((audio.bytes.length - 44) / 2 / 16000 * 10) / 10
-          let message = firstError === null ? 'transcription vide' : firstError
+          let message = firstError === null ? 'empty transcription' : firstError
           // Mesuré : audio trop court ou silencieux ⇒ 400 avec l'enveloppe
           // native dont `sentence.text` est vide, SANS `message` ni `code`. Un
           // 400 porteur d'un message (modèle inconnu, quota…) garde son texte.
@@ -10086,10 +10086,12 @@ function boot(ctx) {
         // quota. Le quota est exposé à part pour que l'UI puisse expliquer.
         const quota = kbAsrState.quota === true
         const ready = cred.key !== null && quota === false
+        // `reasonCode` is what the page words in its own language (an English `reason` stays for any other reader)
+        const reasonCode = cred.key === null ? cred.code : (quota === true ? 'quota' : null)
         const raison = cred.key === null
           ? cred.error
           : (quota === true ? ('last attempt refused (' + (kbAsrState.status === null ? 'quota' : 'HTTP ' + kbAsrState.status) + ') : ' + String(kbAsrState.error === null ? 'quota epuise' : kbAsrState.error)) : null)
-        sendJson(res, 200, { ok: true, asr: { model: prof.asrModel, ready: ready, ref: prof.ref, baseUrl: prof.baseUrl, maxBytes: KB_VOICE_MAX_BYTES, reason: raison, quota: { exhausted: quota, status: kbAsrState.status, at: kbAsrState.at === null ? null : new Date(kbAsrState.at).toISOString(), message: kbAsrState.error } } })
+        sendJson(res, 200, { ok: true, asr: { model: prof.asrModel, ready: ready, ref: prof.ref, baseUrl: prof.baseUrl, maxBytes: KB_VOICE_MAX_BYTES, reason: raison, reasonCode: reasonCode, quota: { exhausted: quota, status: kbAsrState.status, at: kbAsrState.at === null ? null : new Date(kbAsrState.at).toISOString(), message: kbAsrState.error } } })
       } }), 'kybernos: route voice/config')
       // The audio models of the providers already set up in Models (names and kinds only): a call can reuse them without a new key.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/models/audio', handler: async (req, res) => {
@@ -10510,7 +10512,7 @@ function boot(ctx) {
         { id: 'browser-use', group: 'exp', label: 'Browser Use',
           registry: { id: 'browser-use', name: '@deepseek-ai/dsh-browser-use' },
           slot: 'browserUse', prefix: 'mcp__playwright-mcp__', toolCount: 24,
-          needs: 'Nothing on the system side — the browser is started by the driver, in a temporary profile.',
+          needs: 'Nothing at the system level — the browser is launched by the driver, in a temporary profile.',
           drivers: [
             { id: 'browser-use-playwright', name: '@deepseek-ai/dsh-experimental-browser-use-playwright-mcp', label: 'Playwright MCP', def: true,
               config: { mode: 'launch', headless: false, executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' } },
@@ -10519,16 +10521,16 @@ function boot(ctx) {
         { id: 'computer-use', group: 'exp', label: 'Computer Use',
           registry: { id: 'computer-use', name: '@deepseek-ai/dsh-computer-use' },
           slot: 'computerUse', prefix: 'cua_driver_native__', toolCount: 55,
-          needs: 'Screen recording + Accessibility (System Settings > Privacy).',
+          needs: 'Screen Recording + Accessibility (System Settings > Privacy).',
           drivers: [
             { id: 'computer-use-cua-native', name: '@deepseek-ai/dsh-experimental-computer-use-cua-driver-native', label: 'Cua Driver natif', def: true },
             { id: 'computer-use-cua-mcp', name: '@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp', label: 'Cua Driver MCP' } ] },
         { id: 'auto-review', group: 'exp', label: 'Auto review', known: false,
-          why: 'Engine capability (the current model reviews its own work): no package to mount from this plugin.' },
+          why: 'An engine capability (the current model reviews its own work): no package to mount from this plugin.' },
         { id: 'codex', group: 'ext', label: 'Codex', connection: '@deepseek-ai/dsh-subagent-codex',
           why: 'Connexion officielle : sous-agent Codex par le protocole app-server.' },
         { id: 'claude-code', group: 'ext', label: 'Claude Code', connection: '@deepseek-ai/dsh-subagent-claude-code',
-          why: 'Official connection: Claude Code subagent through the native SDK. Needs CLI sign-in — the Desktop app is not enough.' },
+          why: 'Official connection: Claude Code sub-agent through the native SDK. Requires a CLI login — the desktop app is not enough.' },
         // ZCode n’est pas un paquet npm : c’est un connecteur MCP personnalisé
         // (dsh-mcp-client + un serveur local). `mcp` porte donc de quoi écrire le
         // bloc ET reconnaître qu’il est déjà monté — sinon la page proposerait de
@@ -10539,7 +10541,7 @@ function boot(ctx) {
           needs: 'The ZCode app installed and signed in to a Z.ai account — the connector reads its own credential store, no key is copied into the patch.',
           why: 'Custom connector (MCP): drives the Z.ai code agent — the plan\'s GLM-5.3 / GLM-5.3-Flash — through its app-server, the “-p” path failing in 0.16.9.' },
         { id: 'workbuddy', group: 'ext', label: 'WorkBuddy', known: false,
-          why: 'Community plugin: no package verified on our side, so no install is offered here.' },
+          why: 'Community plugin: no package verified on our side, so no installation is offered here.' },
         { id: 'hermes', group: 'ext', label: 'Hermes', supported: false,
           why: 'Harness ne publie pas de fournisseur de sous-agent pour Hermes.' }
       ]

@@ -357,6 +357,6 @@ derivation, widget bridge, gateway watcher, voice and TTS, tools catalog, preset
   on 0.2.0-rc.2 the plugin does the job (the Goal-card part was not measured live).
 - Dead or stale: `shared-ui.css` (86 KB, read by nothing: `scripts/build-shared-ui.mjs`, which is meant to inline it into `SHARED_UI_CSS` in
   `client.js`, is missing; kept because dropping the design-system input is the owner's call, not provable by grep);
-  `technique/workflow-traducteur.mjs` is also pasted into `client.js`, contract test missing; `docs/handoff/*` cited in
+  `docs/handoff/*` cited in
   comments is absent. `client.js` is 2.4 MB (repo guard: no personal-path scan above 2 MB, fails at 4 MB). The scheduler runs only
   while DSH runs; catch-up after downtime is not verified.

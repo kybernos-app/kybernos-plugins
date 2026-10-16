@@ -22,7 +22,7 @@ const src = readFileSync(process.env.KB_PLUGIN_CLIENT || join(here, 'client.js')
 
 // The journal block: from its banner to the catch that reports « tab disabled ».
 const start = src.indexOf('workflows-v2 · journal d')
-const end = src.indexOf("[workflows-v2] onglet désactivé", start)
+const end = src.indexOf("[workflows-v2] tab disabled", start)
 assert.ok(start > 0 && end > start, 'the workflows-v2 block was found')
 const block = src.slice(start, end)
 
@@ -60,7 +60,7 @@ const code = block
 // 3. No demo dataset comes back (UB-7: an empty journal is shown empty, never as sample data).
 {
   assert.ok(!/\bWV_RUNS\b|\bWV_GRAPHS\b|\bwv2JeuDemo\b/.test(code), 'no demo dataset identifier is referenced')
-  assert.ok(!/kbf\('[Jj]eu de démonstration/.test(block), 'no label offers a demo dataset')
+  assert.ok(!/kbe\('[^']*[Dd]emo/.test(block), 'no label offers a demo dataset')
   ok('no demo dataset is referenced (an empty journal stays empty)')
 }
 
@@ -86,7 +86,7 @@ const code = block
   }
   const code = ['wv2Vide', 'wv2Source', 'wv2Modele'].map(cutFunction).join('\n')
   const stub = () => 0
-  const scope = new Proxy({ kbf: (x) => x, WV_LLM: { orch: 1, doer: 1, checker: 1 }, Math, Object, Array, String, Number, JSON }, {
+  const scope = new Proxy({ kbe: (x) => x, WV_LLM: { orch: 1, doer: 1, checker: 1 }, Math, Object, Array, String, Number, JSON }, {
     has: () => true,
     get: (t, k) => (k in t ? t[k] : (k === Symbol.unscopables ? undefined : stub))
   })

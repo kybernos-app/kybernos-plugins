@@ -403,7 +403,7 @@ writeFileSync(file, good)
   const c2b = (await api({ action: 'consume-fire', id: Q.id })).json
   eq('the page gets the first event, with its payload (it used to get the bare prompt)', c1.ok === true && c1.task.prompt.includes('{"event":"first"}'), true)
   eq('...then the second one (it used to be lost)', c2b.ok === true && c2b.task.prompt.includes('{"event":"second"}'), true)
-  eq('...then nothing', (await api({ action: 'consume-fire', id: Q.id })).json.error, 'rien a consommer')
+  eq('...then nothing', (await api({ action: 'consume-fire', id: Q.id })).json.error, 'nothing to consume')
 }
 
 
