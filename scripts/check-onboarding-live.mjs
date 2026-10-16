@@ -167,6 +167,11 @@ try {
   console.log('     theme: ' + ((await q(`document.querySelector('.kb-ob').classList.contains('kb-ob-dark')`)) ? 'dark' : 'light'))
   await goEnglish()
   check('the wizard speaks English', (await h1()) === 'Welcome to Kybernos')
+  // Escape (A6-03): a stray key never ends the first run (it used to record « later » and a lost profession for good).
+  const escape = async () => { for (const type of ['keyDown', 'keyUp']) await page.send('Input.dispatchKeyEvent', { type, key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 }); await sleep(400) }
+  const onboardingDone = () => { try { return JSON.parse(read('kybernos/onboarding.json') || '{}').completed === true } catch (e) { return null } }
+  await escape()
+  check('Escape on the welcome screen leaves the wizard open and the first run undone', (await q(`!!document.querySelector('.kb-ob')`)) === true && (await h1()) === 'Welcome to Kybernos' && onboardingDone() === false)
   // The language menu: each language changes the texts, Arabic also flips the layout and keeps the logo left-to-right.
   const pickLanguage = async (id) => {
     await q(`document.querySelector('.kb-ob-lang-btn').click()`); await sleep(150)
@@ -191,6 +196,10 @@ try {
   check('two answers, the Kybernos account recommended', Array.isArray(answersShown) && answersShown.length === 2 && /^Kybernos models/.test(answersShown[0]) && /Recommended/.test(answersShown[0]) && /^My own API key/.test(answersShown[1]), JSON.stringify(answersShown))
   check('the Kybernos account is ticked by default', (await q(`document.querySelector('.kb-ob-row.on .kb-ob-t').textContent`)).startsWith('Kybernos models'))
   check('the other ways stay one line below', /a model on this computer/.test(String(await q(`(document.querySelector('.kb-ob-others') || {}).textContent`))) && /free community models/.test(String(await q(`(document.querySelector('.kb-ob-others') || {}).textContent`))))
+  await escape()
+  check('Escape on the model question steps back to the display mode, not out of the wizard', (await q(`!!document.querySelector('.kb-ob')`)) === true && (await h1()) === 'Choose your UI mode' && onboardingDone() === false, String(await h1()))
+  await press('Continue')
+  check('Continue brings the model question back', (await h1()) === 'Which models should Kybernos use?', String(await h1()))
   check('the question can be left for later', (await q(`[...document.querySelectorAll('.kb-ob button')].some((b) => b.textContent.trim() === 'Decide later')`)) === true)
   await page.shot(join(shotDir, 'model-question.png'))
 

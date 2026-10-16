@@ -33949,8 +33949,9 @@ html.wv2-actif [data-composer-seat]{display:none !important}
     // host CREATES ~/.dsh/kybernos/onboarding.json on that first read). Screens: welcome, profession,
     // display mode, « which models should Kybernos use? » (a Kybernos account or an own key, the
     // other ways one line below; never skipped, so a replay is where an account gets added) and a
-    // starter kit of skills and agent teams that fit the profession. « Skip », the cross and Escape
-    // all close it and record what was chosen so far: it is never asked twice. Replay and
+    // starter kit of skills and agent teams that fit the profession. « Skip » closes it and records what was chosen so
+    // far: it is never asked twice. Escape never does that on a first run (it closes the language menu, or steps back like « Back »);
+    // opened on its own (replay, the chat's card, the kit) nothing is recorded and Escape closes it. Replay and
     // « Starter kit »: the buttons at the top of Kybernos Settings (bundle kybernos-sessions) fire
     // the window event `kybernos:onboarding` with `action: 'replay' | 'kit'`.
     //
@@ -34181,6 +34182,14 @@ html.wv2-actif [data-composer-seat]{display:none !important}
     }
     /** Where « Back » goes from a screen (null = nowhere). */
     const kbObBack = (screen) => ({ job: 'welcome', mode: 'job', model: 'mode', kit: 'model', key: 'model', local: 'model', free: 'model', 'local-err': 'local', 'cloud-wait': 'model', 'cloud-err': 'model' }[screen] || null)
+    /** Where « Back » goes in the wizard as it stands (null = nowhere). The button and Escape share it. `S` is the wizard's state. */
+    const kbObBackOf = (S) => ((S.standalone && (S.screen === 'model' || S.screen === 'kit')) || (S.screen === 'free' && S.fromAccount) ? null : kbObBack(S.screen))
+    /**
+     * What Escape does: 'menu' (close the language menu), 'back', 'close' or 'none'. A first run is never abandoned by a stray key: leaving
+     * it records « later » and it is not asked again (A6-03), so Escape steps back where « Back » exists and otherwise does nothing; « Skip » is
+     * the way out. Opened on its own (replay, the chat's card, the starter kit) nothing is recorded, so Escape just closes it.
+     */
+    const kbObEscape = (S) => (S.menu ? 'menu' : (S.standalone ? 'close' : (kbObBackOf(S) !== null ? 'back' : 'none')))
 
     // The starter kit offered after the model step, by profession (the ids of KB_OB_PROFILES).
     // A skill is { name, source, d: [English, French] }: every pair was checked on 2026-10-14 to exist exactly once in its
@@ -34500,6 +34509,13 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         st.appendChild(icon(IC.check, 18))
         st.appendChild(h('span', null, T('auto.set', { model: S.picked.model })))
         return st
+      }
+      // « Back » (the button, and Escape on a first run): one screen up, or the end of a pairing in progress.
+      const goBack = () => {
+        const back = kbObBackOf(S)
+        if (back === null) return
+        if (S.screen === 'cloud-wait') { cancelCloud(); return }
+        go(back)
       }
       // ── the three ways of powering the agents ──
       const go = (screen) => {
@@ -35387,11 +35403,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         root.appendChild(top)
 
         const main = h('main', 'kb-ob-main')
-        const back = (S.standalone && (S.screen === 'model' || S.screen === 'kit')) || (S.screen === 'free' && S.fromAccount) ? null : kbObBack(S.screen)
-        if (back !== null) main.appendChild(button('kb-ob-back', T('back'), () => {
-          if (S.screen === 'cloud-wait') { cancelCloud(); return }
-          go(back)
-        }))
+        if (kbObBackOf(S) !== null) main.appendChild(button('kb-ob-back', T('back'), goBack))
         const build = screens[S.screen]
         main.appendChild(build !== undefined ? build() : screens.welcome())
         root.appendChild(main)
@@ -35425,8 +35437,10 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         keyHandler = (ev) => {
           if (ev.key !== 'Escape' || root === null) return
           ev.stopPropagation()
-          if (S.menu) { S.menu = false; render(false); return }
-          finish()
+          const what = kbObEscape(S)
+          if (what === 'menu') { S.menu = false; render(false); return }
+          if (what === 'back') { goBack(); return }
+          if (what === 'close') finish()
         }
         doc.addEventListener('keydown', keyHandler, true)
         try { doc.body.appendChild(root) } catch (e) { root = null; return false }
