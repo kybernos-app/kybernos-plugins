@@ -490,7 +490,7 @@ window.__ModuleLoader__.load({
 body:not([data-ds-dark-theme]) :is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-poptitle,.kbl-page){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kbf-avatar{flex:none;width:23px;height:23px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,monospace;font-size:9.5px;font-weight:600;letter-spacing:.02em;background:var(--dsw-alias-brand-primary,#6a4fd8);color:var(--dsw-alias-label-primary-foreground,#fff)}
 /* Le sélecteur d'espace : la rangée du pied montre l'espace ACTIF ; sa page
-   (classes kbs-*) porte la liste des espaces puis le réglage de synchronisation.
+   (classes kbws-*) porte la liste des espaces puis le réglage de synchronisation.
    ATTENTION : ce bloc vit DANS un template literal — jamais de backtick ici, il
    fermerait la chaîne et la révision ne parserait plus (incident du 24/09). */
 /* La rangée workspace (carte + engrenage), au-dessus du menu user conservé. */
@@ -510,18 +510,18 @@ body:not([data-ds-dark-theme]) :is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-
 .kbf-qrnote{margin:8px 2px 2px;font-size:11.5px;line-height:1.45;color:var(--dsw-alias-label-tertiary,#8a8a93)}
 .kbf-popcenter{padding:10px 10px 12px}
 .kbf-wsgear:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14));color:var(--dsw-alias-label-primary,#e9e9ee)}
-.kbs-head{display:flex;align-items:flex-start;gap:10px;justify-content:space-between}
-.kbs-who{display:flex;align-items:center;gap:9px;min-width:0}
-.kbs-who b{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kbs-list{display:flex;flex-direction:column;gap:2px;margin:10px 0 0}
-.kbs-item{display:flex;align-items:center;gap:9px;width:100%;padding:8px 9px;border:1px solid transparent;border-radius:8px;background:transparent;color:inherit;font:inherit;font-size:12.5px;text-align:left;cursor:pointer}
-.kbs-item:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14))}
-.kbs-item[aria-current="true"]{border-color:var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14))}
-.kbs-item .kbs-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kbs-mark{flex:none;font-size:10.5px;color:var(--dsw-alias-label-tertiary,#8a8a93)}
-.kbs-sep{height:1px;margin:12px 0;background:var(--dsw-alias-border-l2,rgba(127,127,127,.22))}
-.kbs-link{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:transparent;color:inherit;font:inherit;font-size:12px;cursor:pointer;text-decoration:none}
-.kbs-link:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14))}
+.kbws-head{display:flex;align-items:flex-start;gap:10px;justify-content:space-between}
+.kbws-who{display:flex;align-items:center;gap:9px;min-width:0}
+.kbws-who b{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbws-list{display:flex;flex-direction:column;gap:2px;margin:10px 0 0}
+.kbws-item{display:flex;align-items:center;gap:9px;width:100%;padding:8px 9px;border:1px solid transparent;border-radius:8px;background:transparent;color:inherit;font:inherit;font-size:12.5px;text-align:left;cursor:pointer}
+.kbws-item:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14))}
+.kbws-item[aria-current="true"]{border-color:var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14))}
+.kbws-item .kbws-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbws-mark{flex:none;font-size:10.5px;color:var(--dsw-alias-label-tertiary,#8a8a93)}
+.kbws-sep{height:1px;margin:12px 0;background:var(--dsw-alias-border-l2,rgba(127,127,127,.22))}
+.kbws-link{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:transparent;color:inherit;font:inherit;font-size:12px;cursor:pointer;text-decoration:none}
+.kbws-link:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14))}
 .kbf-off{display:flex;flex-direction:column;gap:8px;width:100%;min-width:0}
 .kbf-maj{display:flex;align-items:center;gap:8px;width:100%;min-width:0;height:34px;padding:0 10px;border:1px solid color-mix(in srgb,#f5a524 40%,var(--dsw-alias-border-l2));border-radius:10px;background:color-mix(in srgb,#f5a524 9%,transparent);color:var(--dsw-alias-label-primary);font:inherit;font-size:12.5px;cursor:pointer;text-align:start}
 .kbf-maj:hover{background:color-mix(in srgb,#f5a524 16%,transparent)}
@@ -1409,29 +1409,29 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
 
           return h('div', { className: 'kbf-pop', ref: popRef, role: 'menu', 'aria-label': t('wsSwitchTitle') },
               h('div', { className: 'kbf-poptitle' }, t('wsSwitchTitle')),
-              h('div', { className: 'kbs-list' }, espaces.length === 0
+              h('div', { className: 'kbws-list' }, espaces.length === 0
                 ? h('div', { className: 'kbc-note' }, t('none'))
                 : espaces.map((w, i) => {
                   const on = w !== null && w.id === actif
                   return h('button', {
-                    type: 'button', key: String((w && w.id) || i), className: 'kbs-item',
+                    type: 'button', key: String((w && w.id) || i), className: 'kbws-item',
                     role: 'menuitem', 'aria-current': on ? 'true' : 'false', disabled: busy,
                     // The name is cut with an ellipsis in a narrow list: the title is the only way to read a long one in full.
                     title: (w && nomAffiche(w, t)) || undefined,
                     onClick: () => { void choisir(w && w.id) },
                   },
                   h('span', { className: 'kbf-avatar', 'aria-hidden': 'true' }, initiales(w && w.name, '')),
-                  h('span', { className: 'kbs-name' }, w ? nomAffiche(w, t) || t('none') : t('none')),
-                  h('span', { className: 'kbs-mark' }, on
+                  h('span', { className: 'kbws-name' }, w ? nomAffiche(w, t) || t('none') : t('none')),
+                  h('span', { className: 'kbws-mark' }, on
                     ? t('spaceMark')
                     : (w && w.kyber_count !== undefined ? String(w.kyber_count) + ' ' + t('kybers') : '')))
                 })),
-              h('div', { className: 'kbs-sep' }),
+              h('div', { className: 'kbws-sep' }),
               h('button', {
-                type: 'button', className: 'kbs-item', role: 'menuitem', onClick: props.onCreate,
+                type: 'button', className: 'kbws-item', role: 'menuitem', onClick: props.onCreate,
               },
               h('span', { className: 'kbf-wsgear', 'aria-hidden': 'true' }, '+'),
-              h('span', { className: 'kbs-name' }, t('wsNewTitle'))),
+              h('span', { className: 'kbws-name' }, t('wsNewTitle'))),
               erreur !== '' ? h('div', { className: 'kbc-note kbc-warn', style: { marginTop: '8px' } }, erreur) : null)
         }
 
@@ -1467,8 +1467,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
 
           return h('div', { className: 'kbc-scrim', onClick: (e) => { if (e.target === e.currentTarget) props.onClose() } },
             h('div', { className: 'kbc-card', role: 'dialog', 'aria-label': t('wsNewTitle'), style: { maxWidth: '340px' } },
-              h('div', { className: 'kbs-head' },
-                h('span', { className: 'kbs-who' }, h('b', null, t('wsNewTitle'))),
+              h('div', { className: 'kbws-head' },
+                h('span', { className: 'kbws-who' }, h('b', null, t('wsNewTitle'))),
                 h('button', { type: 'button', className: 'kbc-close', onClick: props.onClose, 'aria-label': t('close') }, '✕')),
               h('div', { className: 'kbc-body', style: { display: 'flex', flexDirection: 'column', gap: '10px' } },
                 h('input', {
@@ -1478,7 +1478,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                   onKeyDown: (e) => { if (e.key === 'Enter') { void creer() } },
                 }),
                 hosted !== null
-                  ? h('a', { className: 'kbs-link', href: hosted, target: '_blank', rel: 'noreferrer' }, t('wsNewHosted'))
+                  ? h('a', { className: 'kbws-link', href: hosted, target: '_blank', rel: 'noreferrer' }, t('wsNewHosted'))
                   : h('button', { type: 'button', className: 'kbc-btn-primary', disabled: busy || nom.trim() === '', onClick: () => { void creer() } }, t('wsNewCreate')),
                 erreur !== '' ? h('div', { className: 'kbc-note kbc-warn' }, erreur) : null)))
         }
