@@ -413,7 +413,7 @@ window.__ModuleLoader__.load({
           ? kt('Ta liste est vide : le modèle de la session sera utilisé.', 'Your list is empty: the session model will be used.')
           : total + (total > 1 ? kt(' modèles autorisés', ' models allowed') : kt(' modèle autorisé', ' model allowed')) + ' · ' + disponibles + kt(' répondent', ' answering'))
       return h('div', { className: 'kaa-page', 'data-kb': 'auto-settings' },
-        h('h4', { className: 'kb6-title', style: { fontSize: '26px', fontWeight: 800, letterSpacing: '-.01em' } }, 'Auto Routing'),
+        h('h4', { className: 'kb6-title', style: { fontSize: '26px', fontWeight: 800, letterSpacing: '-.01em' } }, kt('Routage Auto', 'Auto Routing')),
         h('p', { className: 'kaa-intro' }, kt(
           'Auto envoie chaque tâche déléguée au modèle le plus adapté parmi ceux que tu autorises. Le modèle de ton chat n’est jamais changé.',
           'Auto sends each delegated task to the best-fit model among the ones you allow. Your chat’s own model is never changed.')),
@@ -631,7 +631,7 @@ window.__ModuleLoader__.load({
         } catch (e) { /* hors navigateur */ }
         try {
             slots.inject('settings.section', () => slots.register(
-            { name: 'settings.section', id: 'kybernos-auto-page', order: 14, label: 'Auto Routing' },
+            { name: 'settings.section', id: 'kybernos-auto-page', order: 14, label: kt('Routage Auto', 'Auto Routing') },
             () => h(KbAutoSettings)))
                 // « Auto » label from the mount: the current session's state is read
                 // without waiting for the menu to open (defect T6 of the 02/10 pass).

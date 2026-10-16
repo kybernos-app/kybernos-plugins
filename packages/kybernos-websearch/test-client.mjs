@@ -104,5 +104,8 @@ ok('the CSS prefix is private to this bundle', (src.match(/\.kwse-/g) || []).len
   ok('an engine row is { name, fr, en }, the name being one word or { fr, en }', /deepseek: \{ name: \{ fr: /.test(src) && /searxng: \{ name: 'SearXNG', fr: /.test(src))
 }
 
+// The Settings menu draws the label the section is registered with: a fixed English string would stay English under the French.
+ok('the nav label follows the language (Recherche web / Web Search)', /label: kt\('Recherche web', 'Web Search'\) \}/.test(src))
+
 console.log('\n' + (fail === 0 ? 'ALL CHECKS OK' : fail + ' check(s) FAILED'))
 process.exit(fail === 0 ? 0 : 1)

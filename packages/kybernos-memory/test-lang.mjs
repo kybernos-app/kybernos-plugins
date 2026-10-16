@@ -54,5 +54,9 @@ check('it quotes labels', quoted.length >= 5, quoted)
 check('every label it quotes is a French label of the page', quoted.every((q) => SOURCE.includes("kt('" + q + "'")), quoted.filter((q) => !SOURCE.includes("kt('" + q + "'")))
 check('the English help is still English and untouched in shape', Object.keys(help).join() === 'what,steps,where,good,url' && help.steps.length === 4 && help.steps.every((s) => typeof s.en === 'string' && !/[éèàç]/.test(s.en)))
 
+// The Settings menu draws the label the section is registered with: a fixed English string would stay English under the French.
+console.log('the nav entry')
+check('the nav label is the page title, said in the language in use', /id: 'kybernos-memory', order: 3, label: pageTitle\(\) \}/.test(SOURCE) && /const pageTitle = \(\) => kt\('Mémoire & Leçons', PAGE_TITLE\)/.test(SOURCE))
+
 console.log('\n' + (pass + fail) + ' verifications, ' + fail + ' failure(s)')
 process.exit(fail === 0 ? 0 : 1)

@@ -143,7 +143,7 @@ console.log('── what the page may talk to ──')
 {
   const lead = source.slice(source.indexOf("h('h4', null, 'Workers')"), source.indexOf("h('h4', null, 'Workers')") + 1800)
   ok('the lead says what the page is for, with the one noun: workers are the coding assistants the main agent can hand tasks to', /Workers are the coding assistants installed on your computer/.test(lead) && /Les workers sont les assistants de code installés/.test(lead))
-  ok('…and names Settings › Tools as the other door, in both languages', /Settings › Tools/.test(lead) && /Réglages › Tools/.test(lead) && /mounts tools in a profile/.test(lead) && /monte des outils dans un profil/.test(lead), lead.slice(0, 300))
+  ok('…and names Settings › Tools as the other door, in both languages', /Settings › Tools/.test(lead) && /Réglages › Outils/.test(lead) && /mounts tools in a profile/.test(lead) && /monte des outils dans un profil/.test(lead), lead.slice(0, 300))
 }
 
 // The French of the page speaks « tu » (WP-07, A2-25), the row words are objects with a French and an English word, and

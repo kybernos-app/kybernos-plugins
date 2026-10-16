@@ -415,7 +415,7 @@ window.__ModuleLoader__.load({
           try {
             ctx.effect(() => {
               const off = slots.inject('settings.section', () => slots.register(
-                { name: 'settings.section', id: 'kybernos-websearch-page', order: 15, label: 'Web Search' },
+                { name: 'settings.section', id: 'kybernos-websearch-page', order: 15, label: kt('Recherche web', 'Web Search') },
                 () => h(Page)))
               return () => { try { off() } catch (e) { /* gone */ } try { if (tag !== null) tag.remove() } catch (e) { /* gone */ } }
             }, 'kybernos-websearch: settings page')

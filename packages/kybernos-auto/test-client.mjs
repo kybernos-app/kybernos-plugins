@@ -36,7 +36,7 @@ ok('un clic dans le panneau ne ferme pas le menu natif (pointerdown arrêté)', 
 // What a person reads on the page is a sentence (audit 2026-10-16): no HTTP route inside a paragraph, no debug « scope: session » line,
 // and one spelling of the page's name, the one of the Settings menu.
 ok('the page shows no HTTP route and no debug line (« POST /kybernos-auto/report », « scope: session »)', !/\(POST \/kybernos-auto/.test(src) && !/scope: session/.test(src) && src.indexOf('kaa-foot') === -1)
-ok('the page title is « Auto Routing », as the Settings menu says it', src.indexOf("}, 'Auto Routing'),") !== -1 && src.indexOf("}, 'Auto routing'),") === -1 && src.indexOf("label: 'Auto Routing' }") !== -1)
+ok('the page title is « Auto Routing », as the Settings menu says it', src.indexOf("}, kt('Routage Auto', 'Auto Routing')),") !== -1 && src.indexOf("}, 'Auto routing'),") === -1 && src.indexOf("label: kt('Routage Auto', 'Auto Routing') }") !== -1)
 
 // ── the page of V-30 / A3-24: one plain switch, three scopes, the rest under one fold ─────────────────────────────────
 ok('la page ouvre sur une phrase simple, UN interrupteur « Routage automatique » et le choix des modèles : tous / gratuits / ma liste',

@@ -1966,7 +1966,7 @@ window.__ModuleLoader__.load({
           if (ctx === null || ctx === undefined || ctx.slots === null || ctx.slots === undefined) return
           ctx.effect(() => styles.insert(css), 'kybernos-memory: styles')
           ctx.effect(() => ctx.slots.inject('settings.section', () => ctx.slots.register(
-            { name: 'settings.section', id: 'kybernos-memory', order: 3, label: 'Memory & Lessons' },
+            { name: 'settings.section', id: 'kybernos-memory', order: 3, label: pageTitle() },
             (props) => h(Page, props))), 'kybernos-memory: memory & lessons settings section')
         },
       }

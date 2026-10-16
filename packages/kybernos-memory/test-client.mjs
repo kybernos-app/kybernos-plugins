@@ -163,7 +163,8 @@ check('the page never calls a cloud URL directly: only same-origin local routes'
 // bottom, under the last header (seen on the real GUI). Ours is one of the essentials, the first section, after AI Provider & Models.
 console.log('settings nav')
 {
-  const label = (/label: '(Memory & Lessons)'/.exec(SOURCE) || [])[1]
+  // The nav label is the page's own title, said in the language in use (English at the base).
+  const label = /id: 'kybernos-memory', order: 3, label: pageTitle\(\) \}/.test(SOURCE) && /const PAGE_TITLE = 'Memory & Lessons'/.test(SOURCE) ? 'Memory & Lessons' : undefined
   const nav = readFileSync(join(HERE, '..', 'kybernos-plugin', 'client.js'), 'utf8')
   const row = /const GROUPES = \[\s*\{ titre: null, mots: \[([^\]]*)\]/.exec(nav)
   const words = row === null ? [] : row[1].split(',').map((w) => w.trim().replace(/^'|'$/g, '')).filter((w) => w !== '')

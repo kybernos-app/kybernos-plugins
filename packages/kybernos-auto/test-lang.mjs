@@ -46,5 +46,7 @@ check('the page words those codes itself, beside the field', /code === 'liste-fo
 const pkg = JSON.parse(readFileSync(here('./package.json'), 'utf8'))
 check('the package description is English', /^Auto mode:/.test(pkg.description), pkg.description)
 
+check('the nav label and the page title follow the language (Routage Auto / Auto Routing), not a fixed English string', /label: kt\('Routage Auto', 'Auto Routing'\) \}/.test(client) && /\}, kt\('Routage Auto', 'Auto Routing'\)\),/.test(client))
+
 console.log('\n' + pass + ' ✓  ' + fail + ' ✗')
 process.exit(fail === 0 ? 0 : 1)
