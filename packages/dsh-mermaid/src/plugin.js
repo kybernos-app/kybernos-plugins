@@ -132,6 +132,7 @@ function mermaidConfig(theme) {
     // produced by a diagram.
     securityLevel: 'strict',
     suppressErrorRendering: true,
+    maxTextSize: MAX_TEXT_SIZE,
     theme: 'base',
     fontFamily: theme.font,
     themeVariables: {
@@ -170,8 +171,13 @@ function injectStyle() {
     `border:1px solid var(--dsw-alias-border-l2,currentColor);border-radius:6px;background:transparent;`,
     `color:var(--dsw-alias-label-secondary,currentColor)}`,
     `.${CARD_CLASS}-bar button:hover{background:var(--dsw-alias-interactive-bg-hover,transparent)}`,
-    `.${CARD_CLASS}-error{font-size:12px;line-height:18px;white-space:pre-wrap;`,
-    `color:var(--dsw-alias-state-error-primary,currentColor);margin:2px 0 0}`
+    // An error card has nothing to toggle: the source is already shown, so its button is hidden.
+    `.${CARD_CLASS}[data-dsh-mermaid-state="error"] .${CARD_CLASS}-bar{display:none}`,
+    `.${CARD_CLASS}-error{font-size:12px;line-height:18px;margin:2px 0 0}`,
+    `.${CARD_CLASS}-error strong{display:block;font-weight:650;color:var(--dsw-alias-state-error-primary,currentColor)}`,
+    // A div, not a <pre>: DSH styles every <pre> as a code block (box, padding) and the card already has its own.
+    `.${CARD_CLASS}-error-detail{margin:4px 0 0;white-space:pre-wrap;word-break:break-word;font:11.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;`,
+    `color:var(--dsw-alias-label-secondary,currentColor)}`
   ].join('')
   document.head.append(style)
   return () => style.remove()
@@ -191,16 +197,61 @@ const DISTINCT_HEADER = new RegExp(
 )
 const PLAIN_WORD_HEADER = /^(?:graph|flowchart|pie(?:\s+showData)?(?:\s+title\b.*)?|journey|gantt|timeline|mindmap|kanban)\s*$/
 
-/** True when `source` opens like a mermaid diagram (front matter, blank lines and %% lines skipped). */
-function looksLikeMermaid(source) {
+/** The lines of a diagram that carry something: front matter, blank lines and %% comments / directives dropped. */
+function bodyLines(source) {
   let text = String(source === null || source === undefined ? '' : source).replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n')
   text = text.replace(/^\s*---[ \t]*\n[\s\S]*?\n---[ \t]*(?:\n|$)/, '') // YAML front matter
-  for (const raw of text.split('\n')) {
-    const line = raw.trim()
-    if (line === '' || line.startsWith('%%')) continue // blank, comment or %%{init}%% directive
-    return DISTINCT_HEADER.test(line) || PLAIN_WORD_HEADER.test(line)
+  return text.split('\n').map((raw) => raw.trim()).filter((line) => line !== '' && !line.startsWith('%%'))
+}
+
+/** True when `source` opens like a mermaid diagram (front matter, blank lines and %% lines skipped). */
+function looksLikeMermaid(source) {
+  const lines = bodyLines(source)
+  return lines.length > 0 && (DISTINCT_HEADER.test(lines[0]) || PLAIN_WORD_HEADER.test(lines[0]))
+}
+
+// What mermaid draws is capped at 50 000 characters (its own default, passed to mermaid.initialize as well). Above it
+// mermaid does not refuse: it draws a pink \u00AB Maximum text size in diagram exceeded \u00BB box in the diagram's place, with
+// white text at 1.9:1 and its own wording, so the size is checked here first.
+const MAX_TEXT_SIZE = 50000
+const grouped = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+
+/** Why a fence that opens like a diagram is not drawn, or null when it should be: { title, detail } for the error card. */
+function diagramProblem(source) {
+  const text = String(source === null || source === undefined ? '' : source)
+  if (text.length > MAX_TEXT_SIZE) {
+    return {
+      title: 'Diagram too large to draw',
+      detail: 'This diagram has ' + grouped(text.length) + ' characters; mermaid draws up to ' + grouped(MAX_TEXT_SIZE) + '. Its source is shown instead.'
+    }
   }
-  return false
+  // A header and nothing after it (\u00AB sequenceDiagram \u00BB alone): mermaid draws a blank rectangle, not an error.
+  const lines = bodyLines(text)
+  if (lines.length === 1) {
+    const distinct = DISTINCT_HEADER.exec(lines[0])
+    const headerOnly = distinct !== null ? lines[0].slice(distinct[0].length).replace(/^[\s;]+/, '') === '' : PLAIN_WORD_HEADER.test(lines[0])
+    if (headerOnly) return { title: 'Empty diagram', detail: 'Nothing follows the header line, so there is nothing to draw.' }
+  }
+  return null
+}
+
+/**
+ * What an error card says about a failure of mermaid.render: { title, detail }. A parse error is kept whole (\u00AB Parse error on
+ * line 3: \u00BB, the code around it, a caret under the spot, \u00AB Expecting \u2026 got \u2026 \u00BB): the last line is the useful one. Any other
+ * error keeps its first paragraph, the rest being advice for people who embed mermaid (\u00AB You have to call mermaid.initialize \u00BB).
+ */
+function explainError(error) {
+  const raw = error && error.message ? error.message : (error === null || error === undefined ? '' : error)
+  const message = String(raw).replace(/\r\n?/g, '\n').trim()
+  const parse = /^Parse error on line \d+/.test(message)
+  let detail = parse ? message : message.split(/\n\s*\n/)[0]
+  // The parser indents the code line, the caret line and the reason by the same amount: drop it, keep their alignment.
+  const rows = detail.split('\n')
+  const indent = Math.min(...rows.slice(1).filter((row) => row.trim() !== '').map((row) => row.length - row.trimStart().length))
+  detail = rows.map((row, i) => (i > 0 && Number.isFinite(indent) ? row.slice(indent) : row).trimEnd()).join('\n')
+  if (detail === '') detail = 'Mermaid gave no reason.'
+  if (detail.length > 600) detail = detail.slice(0, 600).replace(/\s+\S*$/, '') + '\u2026'
+  return { title: parse ? 'Invalid mermaid diagram' : 'Mermaid could not draw this diagram', detail }
 }
 // <detect:end>
 
@@ -291,6 +342,13 @@ function apply(ctx) {
     const errorNode = card.querySelector('.' + CARD_CLASS + '-error')
     if (errorNode) errorNode.remove()
 
+    // Too large, or only a header: no render, a card that says why and the source left visible.
+    const problem = diagramProblem(source)
+    if (problem !== null) {
+      showProblem(block, card, key, problem)
+      return
+    }
+
     initMermaid(palette())
     const id = NAME + '-' + ++renderId
     try {
@@ -310,19 +368,28 @@ function apply(ctx) {
       block.setAttribute(READY_ATTR, 'ready')
       current.inflight = ''
     } catch (error) {
-      const current = rendered.get(block)
-      // Same rule as on success: an error from a stale render must not overwrite the newer one.
-      if (!current || current.inflight !== key) return
-      const message = error && error.message ? error.message : String(error)
-      const node = document.createElement('p')
-      node.className = CARD_CLASS + '-error'
-      node.textContent = 'Diagramme mermaid invalide — ' + message.split('\n')[0]
-      card.append(node)
-      card.dataset.dshMermaidState = 'error'
-      // Source left visible: the reader sees the faulty code.
-      block.classList.add(SOURCE_ATTR)
-      current.inflight = ''
+      showProblem(block, card, key, explainError(error))
     }
+  }
+
+  /** The error card: a title and the reason in the parser's own words, the source left visible. */
+  function showProblem(block, card, key, problem) {
+    const current = rendered.get(block)
+    // Same rule as on success: an error from a stale render must not overwrite the newer one.
+    if (!current || current.inflight !== key) return
+    const node = document.createElement('div')
+    node.className = CARD_CLASS + '-error'
+    const title = document.createElement('strong')
+    title.textContent = problem.title
+    const detail = document.createElement('div')
+    detail.className = CARD_CLASS + '-error-detail'
+    detail.textContent = problem.detail
+    node.append(title, detail)
+    card.append(node)
+    card.dataset.dshMermaidState = 'error'
+    // Source left visible: the reader sees the faulty code.
+    block.classList.add(SOURCE_ATTR)
+    current.inflight = ''
   }
 
   const domObserver = new MutationObserver(schedule)

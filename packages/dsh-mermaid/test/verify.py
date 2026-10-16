@@ -74,6 +74,31 @@ def main() -> int:
         report["python"] = page.evaluate(STATE_JS, "not-mermaid")
         report["prose"] = page.evaluate(STATE_JS, "plain-text")
 
+        # A4-14 / A4-16: two fences that used to draw a blank card and mermaid's own pink box. Built here from the
+        # first block (the audit's 5 000-edge chain is ~76 KB: nothing big is committed).
+        page.evaluate(
+            """() => {
+              const mk = (id, src) => {
+                const b = document.getElementById('valid').cloneNode(true)
+                b.id = id
+                b.removeAttribute('data-dsh-mermaid')
+                b.classList.remove('dsh-mermaid-source')
+                b.querySelectorAll('.dsh-mermaid').forEach((e) => e.remove())
+                b.querySelector('pre code').textContent = src
+                document.querySelector('.wrap').append(b)
+              }
+              mk('empty', 'sequenceDiagram')
+              mk('huge', 'flowchart TD\\n' + Array.from({ length: 5000 }, (_, i) => '  M' + i + '-->M' + (i + 1)).join('\\n'))
+            }"""
+        )
+        page.wait_for_selector("#empty .dsh-mermaid-error", timeout=30000)
+        page.wait_for_selector("#huge .dsh-mermaid-error", timeout=30000)
+        report["empty"] = page.evaluate(STATE_JS, "empty")
+        report["huge"] = page.evaluate(STATE_JS, "huge")
+        report["error_bar_hidden"] = page.evaluate(
+            "() => getComputedStyle(document.querySelector('#invalid .dsh-mermaid-bar')).display === 'none'"
+        )
+
         # Code <-> diagram toggle: the source must stay reachable.
         page.click("#valid .dsh-mermaid-bar button")
         report["after_toggle"] = page.evaluate(STATE_JS, "valid")
@@ -140,6 +165,19 @@ def main() -> int:
         "real DOM: toggle back hides it again": bool(report["after_toggle_back"]["preHidden"]),
         "real DOM: invalid fence → error card": inv["cardState"] == "error" and len(inv["errorText"]) > 10,
         "real DOM: invalid fence → source left visible": inv["preHidden"] is False,
+        "invalid fence: English title, the parser's line and its « Expecting … » reason (not cut after line 1)": "Invalid mermaid diagram" in inv["errorText"]
+        and "Parse error on line" in inv["errorText"]
+        and "Expecting" in inv["errorText"]
+        and "Diagramme" not in inv["errorText"],
+        "error card has no dead « Code » button": bool(report["error_bar_hidden"]),
+        "header-only fence → « Empty diagram » card, source visible, no blank svg": report["empty"]["cardState"] == "error"
+        and "Empty diagram" in report["empty"]["errorText"]
+        and report["empty"]["svgCount"] == 0
+        and report["empty"]["preHidden"] is False,
+        "5 000-edge chain → « too large » card, no pink mermaid box, source visible": report["huge"]["cardState"] == "error"
+        and "too large" in report["huge"]["errorText"]
+        and report["huge"]["svgCount"] == 0
+        and report["huge"]["preHidden"] is False,
         "highlighted fence (pre.shiki) left alone, even if its text opens like a diagram": py["cards"] == 0
         and py["ready"] is None
         and py["preHidden"] is False,
