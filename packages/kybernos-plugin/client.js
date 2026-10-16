@@ -1954,17 +1954,6 @@ let kbLocaleRead = () => 'en'
       'kbui.ins.top.noroles': { kybernos: 'Aucun rôle enregistré au ledger', en: 'No role recorded in the ledger' },
       'kbui.ins.sources': { kybernos: 'Sources et réserves', en: 'Sources and caveats' },
       'kbui.ins.saved': { kybernos: 'Réglages enregistrés', en: 'Settings saved' },
-      'kbui.ws.title': { kybernos: 'Réglages du workspace', en: 'Workspace settings' },
-      'kbui.ws.sub': { kybernos: 'Membres, plan et paiement, clés et usage du gateway LLM.', en: 'Members, plan & payment, keys and usage of the LLM gateway.' },
-      'kbui.ws.row.t': { kybernos: 'Console du workspace', en: 'Workspace console' },
-      'kbui.ws.row.d': { kybernos: 'Gérez les membres, quotas, abonnements Stripe et clés — dans Kybernos Cloud.', en: 'Manage members, quotas, Stripe subscriptions and keys — in Kybernos Cloud.' },
-      'kbui.ws.open': { kybernos: 'Ouvrir', en: 'Open' },
-      'kbui.ws.down.t': { kybernos: 'Console indisponible', en: 'Console unavailable' },
-      'kbui.ws.down.d': { kybernos: 'Impossible de joindre la console du workspace ({host}). Vérifie ta connexion, puis réessaie.', en: 'Could not reach the workspace console ({host}). Check your connection, then try again.' },
-      'kbui.ws.computer.t': { kybernos: 'La console se gère dans ton navigateur', en: 'The console is managed in your browser' },
-      'kbui.ws.computer.d': { kybernos: 'Cet ordinateur cloud est le tien, mais la console du workspace ({host}) s\'ouvre dans ton navigateur, avec ta connexion habituelle.', en: 'This cloud computer is yours, but the workspace console ({host}) opens in your own browser, signed in as usual.' },
-      'kbui.ws.retry': { kybernos: 'Réessayer', en: 'Try again' },
-      'kbui.ws.openbrowser': { kybernos: 'Ouvrir dans le navigateur', en: 'Open in browser' },
       'kbui.ins.saving': { kybernos: 'Enregistrement…', en: 'Saving…' },
       'kbui.ins.save.err': { kybernos: 'Réglages non enregistrés', en: 'Settings not saved' },
       'kbui.ins.empty': { kybernos: 'Agent Team introuvable', en: 'Agent Team not found' },
@@ -8058,30 +8047,17 @@ html[data-kbth-brand~="dark"] body[data-ds-dark-theme]{--kybernos-accent:color-m
       engine: 'engine', quiz: 'quiz', cards: 'cards', flashcards: 'cards',
       deck: 'deck', exam: 'exam', pdf: 'pdf', sketchnote: 'sketch',
     }
-    // The server this DSH talks to (Select server): its api, its web app, its console, its gateway. The built-in Kybernos Cloud is
+    // The web app of the server this DSH talks to (Select server): the address of the shared pages and of the account page. The built-in Kybernos Cloud is
     // the answer until the cloud plugin has told us otherwise; a server that is not the default arrives through
     // /kybernos-cloud/server (packages/kybernos-cloud/server-profile.mjs), and a page opened later reads what was loaded last.
     // GO-LIVE: the built-in server is the NEW one. This literal cannot import server-profile.mjs (a browser script), so it repeats
-    // BUILTIN_API from there; scripts/test-no-legacy-hosts.mjs fails when the two differ. No gateway: the host relay replaced it.
+    // BUILTIN_API from there; scripts/test-no-legacy-hosts.mjs fails when the two differ.
     const KB_BUILTIN_API = 'https://api.kybernos.app'
-    const kbServer = { name: 'Kybernos Cloud', api: KB_BUILTIN_API, web: KB_BUILTIN_API, console: KB_BUILTIN_API + '/workspace-console', gateway: '', workspace: '', computer: false }
+    const kbServer = { web: KB_BUILTIN_API }
     const kbServerLoad = () => {
       if (typeof fetch !== 'function') return Promise.resolve(kbServer)
-      const get = (url) => fetch(url, { credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
-      // The server, and which workspace this DSH has active: the console opens on THAT one, so the two selectors agree.
-      return Promise.all([get('/kybernos-cloud/server'), get('/kybernos-cloud/status')]).then((both) => {
-        const j = both[0]
-        const st = both[1]
-        if (j !== null && j !== undefined && j.ok === true && j.server !== null && typeof j.server === 'object') {
-          const sv = j.server
-          if (typeof sv.name === 'string' && sv.name !== '') kbServer.name = sv.name
-          if (typeof sv.api === 'string' && sv.api !== '') kbServer.api = sv.api
-          if (typeof sv.web === 'string' && sv.web !== '') kbServer.web = sv.web
-          if (typeof sv.console === 'string' && sv.console !== '') kbServer.console = sv.console
-          kbServer.gateway = typeof sv.gateway === 'string' ? sv.gateway : ''
-        }
-        kbServer.computer = j !== null && j !== undefined && j.computer === true
-        kbServer.workspace = st !== null && st !== undefined && st.state !== null && typeof st.state === 'object' && typeof st.state.active_workspace_id === 'string' ? st.state.active_workspace_id : ''
+      return fetch('/kybernos-cloud/server', { credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((j) => {
+        if (j !== null && j !== undefined && j.ok === true && j.server !== null && typeof j.server === 'object' && typeof j.server.web === 'string' && j.server.web !== '') kbServer.web = j.server.web
         return kbServer
       })
     }
@@ -15614,7 +15590,6 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         if (s.view === 'documents') return h(KbDocumentsView, props)
         if (s.view === 'tasks') return h(ScheduledTasksPage, props)
         if (s.view === 'projects') return h(ProjectsHub, props)
-        if (s.view === 'wsconsole') return h(KbWsConsoleMain, props)
         if (s.view === 'project') return h(ProjectDetail, props)
         if (s.view === 'hosted') return h(HostedPage, props)
         if (s.view === 'runs') return h(KbRuns, props)
@@ -26074,24 +26049,6 @@ function renderFit(canvas, model, cam, opts){
       } catch (e) { /* document indisponible */ }
     }
 
-    // ── « Team settings » (the account menu of bundle kybernos-cloud) → the CONTENT AREA (moved 02/10) ───────────────────
-    // The menu entry no longer opens the Settings modal: it shows the workspace-console iframe full frame, like Projects/Deliverables.
-    // The component is the one that used to live under `settings.section` — one definition, painted elsewhere.
-    // The selector is the panel's STORE, not a flag: `KybersMain` switches on `state.view`, and only a known view shows the page — an
-    // unknown one falls back to the Agent Teams gallery (seen 02/10: « Team settings » opened the gallery). The `wsconsole` view is
-    // therefore declared in `KybersMain`'s switch AND here, so the bridge below names it in the same place as the rest.
-    // The window exposure is GUARDED: this module is evaluated in contexts without a window, and a top-level assignment there breaks the
-    // whole activation (seen 25/09: « 1 entry did not activate »).
-    const KB_WS_CONSOLE_VIEW = 'wsconsole'
-    // `page` names a page of the console (`account`, `referral`): none opens the console on its own first page (Team settings).
-    const kbOuvrirWsConsole = (page) => {
-      try { set({ view: KB_WS_CONSOLE_VIEW, wsPage: kbConsolePage(page) }) } catch (e) { /* store indisponible : le panneau reste atteignable */ }
-      try { layoutSvc.selectPanel('kybers') } catch (e2) { /* layout indisponible */ }
-    }
-    // The bridge the account menu (bundle kybernos-cloud) calls.
-    try {
-      if (typeof window !== 'undefined' && window !== null) window.__kbOpenWsConsole = kbOuvrirWsConsole
-    } catch (e) { /* contexte sans window : l'exposition est optionnelle */ }
     const KbSettingsBack = () => {
       const label = kbt('settings.back')
       return h(React.Fragment, null,
@@ -26736,333 +26693,6 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
 .kbtg-open:hover{border-color:var(--dsw-alias-border-l2)}
 .kbtg-open svg{color:var(--dsw-alias-brand-primary,#C9A45C)}
 `), 'kybers: teams chip styles')
-    // ── « Mon espace » affiche la NOUVELLE console du gateway LLM (01/10) :
-    // iframe directe vers workspace-console.html servie par le SaaS (pas de
-    // mur de login — c'est la route /workspace-settings du SaaS qui est derrière
-    // LoginGate, pas l'asset console lui-même). Repli : bouton « Ouvrir ».
-    // URL de la console et gateway : configurables (localStorage `kybernos.ws.console.url` /
-    // `kybernos.ws.gateway`, ou window.KYBERNOS_WS_CONSOLE_URL / KYBERNOS_WS_GATEWAY) ; le défaut
-    // reste l'environnement de dev. Plus rien d'obligatoirement codé en dur pour un autre poste.
-    // (04/10) The default was `http://localhost:8081/…`: the SaaS dev server,
-    // which only exists on the machine of whoever runs it — elsewhere "Teams settings"
-    // opened a blank page (the browser's sad face). The default is
-    // now the HOSTED console (same host as the store and the cloud plugin);
-    // a machine that runs the SaaS locally keeps `kybernos.ws.console.url` to
-    // point at it. And the page checks that the console answers BEFORE mounting
-    // the iframe: otherwise it says why and offers to retry.
-    // These overrides point DSH at a console, a gateway or a cloud of the developer's choosing. They win over the ACTIVE server only behind an
-    // explicit flag (`localStorage['kybernos.dev'] === '1'` or `window.KYBERNOS_DEV === true`): a value left behind by an old test must never
-    // send « Teams settings », the account or the payment to another server than the one the person selected.
-    const kbDevOverrides = () => {
-      try { if (window.localStorage.getItem('kybernos.dev') === '1') return true } catch (e) { /* storage blocked */ }
-      try { return window.KYBERNOS_DEV === true } catch (e) { return false }
-    }
-    const kbWsCfg = (k, g, def) => {
-      if (kbDevOverrides() !== true) return def
-      try { const v = window.localStorage.getItem(k); if (typeof v === 'string' && v.trim() !== '') return v.trim() } catch (e) { /* stockage bloqué */ }
-      try { const w = window[g]; if (typeof w === 'string' && w.trim() !== '') return w.trim() } catch (e) { /* pas de window */ }
-      return def
-    }
-    // The console of the ACTIVE server, read at each use (the server may change between two openings). `gw` is the admin
-    // gateway of the console's key mode, which goes away with the key hand-off: a server that names none gets none.
-    const kbWsConsole = () => kbWsCfg('kybernos.ws.console.url', 'KYBERNOS_WS_CONSOLE_URL', kbServer.console)
-      + '?gw=' + encodeURIComponent(kbWsCfg('kybernos.ws.gateway', 'KYBERNOS_WS_GATEWAY', kbServer.gateway))
-      + (kbServer.workspace !== '' ? '&ws=' + encodeURIComponent(kbServer.workspace) : '')
-    const kbWsOrigin = () => { try { return new URL(kbWsConsole()).origin } catch (e) { return '*' } }
-    // ── Le thème de DSH SUIT l'iframe (02/10) ─────────────────────────────
-    // La console IGNORAIT le thème (aucun `theme` dans son HTML) : sans ce
-    // pont elle reste claire au milieu d'un DSH sombre. Le signal est
-    // l'attribut `data-ds-dark-theme` que le shell pose sur <body> (le même
-    // que la feuille de style du dépôt lit déjà en
-    // `:global(body[data-ds-dark-theme])`) — on n'invente pas de source.
-    // Suivi par MutationObserver : la bascule de thème change l'attribut SANS
-    // recharger le panneau, donc un calcul fait une seule fois au montage
-    // laisserait l'iframe sur l'ancien thème.
-    // `matchMedia` ne sert que de repli quand l'attribut n'est pas encore posé
-    // (premier rendu) — un attribut posé reste la référence.
-    // 02/10 (suite) — l'attribut n'existe qu'en sombre : DSH le RETIRE en clair
-    // (mesuré au DOM : posé-vide en sombre, null en clair). Le repli matchMedia
-    // lisait donc l'OS, pas DSH : un OS sombre gardait la console sombre dans un
-    // DSH clair — c'est le « ça ne suit pas » remonté. Sans attribut = clair.
-    // Au tout premier rendu, si le shell n'a pas encore posé l'attribut, on
-    // répond clair : le MutationObserver corrige dès la pose (testé 02/10).
-    const kbConsoleDark = () => {
-      try {
-        const b = document.body
-        if (b !== null && b !== undefined) {
-          const v = b.getAttribute('data-ds-dark-theme')
-          if (v !== null) return v !== 'false'
-        }
-      } catch (e) { /* document indisponible */ }
-      return false
-    }
-    // The language the embedded console is asked to speak (its own default is the browser's): DSH's active language, `en` when unknown.
-    const kbConsoleLang = () => {
-      let l = ''
-      try { l = String(kbLocaleRead() || '') } catch (e) { l = '' }
-      l = l.toLowerCase().replace(/_/g, '-')
-      return /^[a-z]{2,3}(-[a-z0-9]{2,8})?$/.test(l) ? l : 'en'
-    }
-    // A page of the console, by its name (`account`, `referral`…): the address's fragment. Never a path, never an address.
-    const KB_CONSOLE_PAGE_RE = /^[a-z][a-z0-9-]{0,31}$/
-    const kbConsolePage = (page) => (typeof page === 'string' && KB_CONSOLE_PAGE_RE.test(page) ? page : '')
-    // The console of the ACTIVE server, with the theme, the language and (through kbWsConsole) the workspace and the gateway. Built at each use.
-    const kbConsoleUrl = (dark, page) => kbWsConsole() + '&theme=' + (dark === true ? 'dark' : 'light') + '&lang=' + encodeURIComponent(kbConsoleLang())
-      + (kbConsolePage(page) !== '' ? '#' + kbConsolePage(page) : '')
-    // La clé admin vient de la route hôte same-origin (settings.json, champ
-    // wsAdminKey) — jamais codée en dur ici. Sans clé, l'iframe se charge
-    // quand même ; le pont de données ne prompt qu'au 401 réel.
-    const KbWsConsole = (props) => {
-      const page = kbConsolePage(props !== null && props !== undefined ? props.page : '')
-      const pageRef = React.useRef(page)
-      pageRef.current = page
-      // Le thème courant pilote les deux occurrences de l'URL (src rendue et
-      // target du bouton « Ouvrir ») : un seul état, jamais deux vérités.
-      const [dark, setDark] = React.useState(kbConsoleDark)
-      React.useEffect(() => {
-        const observer = new MutationObserver(() => { setDark(kbConsoleDark()) })
-        try {
-          observer.observe(document.body, { attributes: true, attributeFilter: ['data-ds-dark-theme'] })
-        } catch (e) { /* body indisponible : le thème reste au dernier connu */ }
-        setDark(kbConsoleDark())
-        return () => { try { observer.disconnect() } catch (e2) { /* déjà déconnecté */ } }
-      }, [])
-      // La console reçoit le thème AUSSI par postMessage : changer le `src` de
-      // l'iframe rechargerait toute la console (perte de l'écran en cours), or
-      // le paramètre d'URL ne vaut qu'au chargement. Le message est donc le
-      // canal du changement à chaud ; le `src` reste la source du premier paint.
-      React.useEffect(() => {
-        try {
-          const fr = document.querySelector('.kbwsif iframe')
-          if (fr !== null && fr !== undefined && fr.contentWindow !== null) {
-            fr.contentWindow.postMessage({ kbConsoleTheme: dark === true ? 'dark' : 'light' }, '*')
-          }
-        } catch (e) { /* iframe pas encore montée : le src fait foi */ }
-      }, [dark])
-      // Plein cadre : la page n'ajoute que son bouton « Ouvrir » au-dessus de
-      // l'iframe (le titre et le sous-titre de la version Réglages tenaient la
-      // place du panneau de nav, ici ils voleraient une bande à la console).
-      // La clé admin vient de la route hôte same-origin (settings.json, champ
-      // wsAdminKey) — jamais codée en dur ici, et NE PASSE PLUS dans l'URL de
-      // l'iframe (historique, logs, Referer) : elle est postée à la console par
-      // postMessage, vers l'origine exacte de la console, à son signal
-      // `kbConsoleReady` ou dès qu'elle est connue (iframe déjà chargée).
-      // What the frame is drawn FOR: the server's addresses and the ACTIVE workspace (the `ws` of its address). A frame drawn for another is drawn again: a pairing that ends
-      // just after the page opened, or an active space changed from the Cloud card, would otherwise leave a frame on the team it opened with while another frame of the same
-      // app (Account, Team settings) opens on the new one, and two frames of one DSH show two teams.
-      const frameIdentity = () => kbServer.api + '|' + kbServer.console + '|' + String(kbServer.computer) + '|' + kbServer.workspace
-      const keyRef = React.useRef('')
-      const envoyerCle = React.useCallback(() => {
-        try {
-          const fr = document.querySelector('.kbwsif iframe')
-          if (keyRef.current !== '' && fr !== null && fr.contentWindow !== null) {
-            fr.contentWindow.postMessage({ kbConsoleKey: keyRef.current }, kbWsOrigin())
-          }
-        } catch (e) { /* iframe pas prête : elle redemandera via kbConsoleReady */ }
-      }, [])
-      React.useEffect(() => {
-        // The console never holds a token. It asks this page (a `kbApi` request: a GET path), this page asks the local host
-        // route `/kybernos-cloud/relay` (allowlist, strict origin, the token is added THERE) and posts the answer back to the
-        // console's exact origin. Only the console's own iframe and its exact origin are heard: any other frame is ignored.
-        const repondre = (fr, message) => {
-          try { fr.contentWindow.postMessage(message, kbWsOrigin()) } catch (e) { /* iframe partie : rien à faire */ }
-        }
-        const relayer = (fr, demande) => {
-          const id = typeof demande.id === 'string' || typeof demande.id === 'number' ? String(demande.id).slice(0, 40) : ''
-          const chemin = typeof demande.path === 'string' ? demande.path : ''
-          if (id === '' || demande.method !== 'GET' || chemin === '' || chemin.length > 300) { repondre(fr, { kbApiReply: { id: id, ok: false, status: 0, error: 'request refused' } }); return }
-          fetch('/kybernos-cloud/relay?p=' + encodeURIComponent(chemin), { credentials: 'same-origin' })
-            .then((r) => r.json()).catch(() => ({ ok: false, status: 0, error: 'relay unreachable' }))
-            .then((j) => repondre(fr, { kbApiReply: { id: id, ok: j !== null && j.ok === true, status: j !== null && typeof j.status === 'number' ? j.status : 0, body: j !== null && j.body !== undefined ? j.body : null, error: j !== null && typeof j.error === 'string' ? j.error : undefined } }))
-        }
-        // The console's team menu asks THIS page to change the ACTIVE space (the one the Cloud card shows and the app bills), so the two
-        // selectors always agree: a `kbSwitchSpace` names one id, a `kbNewSpace` names a team to create. Both go to the same local host routes
-        // the Cloud card uses (the server stays the master: a refusal creates nothing here); the console is told the outcome, and the card
-        // is told to reload through an event. Nothing else is accepted from the frame.
-        const dire = (fr, ok, extra) => repondre(fr, { kbSpaceReply: Object.assign({ ok: ok }, extra) })
-        const posterHote = (route, payload) => fetch('/kybernos-cloud/space/' + route, { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(payload) })
-          .then((r) => r.json()).catch(() => ({ ok: false, error: 'hote_injoignable' }))
-        const prevenirCarte = () => { try { window.dispatchEvent(new Event('kybernos-cloud:space-changed')) } catch (e) { /* Event absent */ } }
-        const changerEspace = (fr, demande) => {
-          const id = typeof demande.id === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(demande.id) ? demande.id : ''
-          if (id === '') { dire(fr, false, { error: 'espace_absent' }); return }
-          posterHote('active', { workspace_id: id }).then((j) => {
-            const ok = j !== null && j.ok === true
-            if (ok) { kbServer.workspace = id; seenServer.current = frameIdentity(); prevenirCarte() }
-            dire(fr, ok, { id: id, error: ok ? null : String(j !== null && j.error !== undefined ? j.error : 'refuse') })
-          })
-        }
-        const creerEspace = (fr, demande) => {
-          const nom = typeof demande.name === 'string' ? demande.name.trim().slice(0, 60) : ''
-          if (nom === '') { dire(fr, false, { created: true, error: 'nom_absent' }); return }
-          posterHote('create', { name: nom }).then((j) => {
-            const ok = j !== null && j.ok === true
-            const actif = ok && j.state !== null && typeof j.state === 'object' && typeof j.state.active_workspace_id === 'string' ? j.state.active_workspace_id : null
-            if (ok && actif !== null) { kbServer.workspace = actif; seenServer.current = frameIdentity(); prevenirCarte() }
-            dire(fr, ok, { created: true, id: actif, error: ok ? null : String(j !== null && j.error !== undefined ? j.error : 'refuse') })
-          })
-        }
-        // The console is read only in this frame (it has no session of its own); to change a plan it asks for its twin in the person's BROWSER. The host makes the
-        // single-use link and opens the SYSTEM browser itself: the server refuses a link that arrives as a navigation a page started (a tab opened from here is
-        // « cross-site » for it and ends on « link expired »), and accepts one the person's own OS opened. A host that cannot open a browser hands the address back
-        // and this page opens it (a server on the same site as this page accepts that).
-        const ouvrirNavigateur = (fr, demande) => {
-          const id = typeof demande.id === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(demande.id) ? demande.id : ''
-          // The page of the app the link lands on: the one the frame asks for, else the account's overview when this frame IS the account or referral page.
-          const asked = kbConsolePage(demande.section)
-          const section = asked !== '' ? asked : (pageRef.current === 'account' || pageRef.current === 'referral' ? 'overview' : '')
-          const body = Object.assign(id === '' ? {} : { workspace_id: id }, { open: true }, section === '' ? {} : { section: section })
-          fetch('/kybernos-cloud/console/link', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(body) })
-            .then((r) => r.json()).catch(() => ({ ok: false, error: 'hote_injoignable' }))
-            .then((j) => {
-              const ok = j !== null && j.ok === true && (j.opened === true || typeof j.url === 'string')
-              if (ok && j.opened !== true) { try { window.open(j.url, '_blank', 'noopener,noreferrer') } catch (e) { /* ouverture impossible */ } }
-              repondre(fr, { kbBrowserReply: { ok: ok, error: ok ? null : String(j !== null && j.error !== undefined ? j.error : 'refuse') } })
-            })
-        }
-        const sur = (ev) => {
-          const fr = document.querySelector('.kbwsif iframe')
-          if (fr === null || ev.source !== fr.contentWindow) return
-          if (ev.data === null || typeof ev.data !== 'object') return
-          if (kbWsOrigin() !== '*' && ev.origin !== kbWsOrigin()) return
-          if (ev.data.kbConsoleReady === true) { envoyerCle(); repondre(fr, { kbApiReady: true }) }
-          else if (ev.data.kbApi !== null && typeof ev.data.kbApi === 'object') relayer(fr, ev.data.kbApi)
-          else if (ev.data.kbSwitchSpace !== null && typeof ev.data.kbSwitchSpace === 'object') changerEspace(fr, ev.data.kbSwitchSpace)
-          else if (ev.data.kbNewSpace !== null && typeof ev.data.kbNewSpace === 'object') creerEspace(fr, ev.data.kbNewSpace)
-          else if (ev.data.kbOpenBrowser !== null && typeof ev.data.kbOpenBrowser === 'object') ouvrirNavigateur(fr, ev.data.kbOpenBrowser)
-        }
-        window.addEventListener('message', sur)
-        return () => window.removeEventListener('message', sur)
-      }, [])
-      React.useEffect(() => {
-        let vivant = true
-        fetch('/kybernos/ws-console-key', { credentials: 'same-origin' })
-          .then(r => (r.ok ? r.json() : null)).catch(() => null)
-          .then(j => {
-            if (vivant !== true) return
-            if (j !== null && j !== undefined && typeof j.key === 'string' && j.key.length > 0) {
-              keyRef.current = j.key
-              envoyerCle()
-            }
-          })
-        return () => { vivant = false }
-      }, [])
-      // Does the console answer? A no-cors `fetch` is enough (opaque response = reachable;
-      // connection refused or offline = exception). Without this an unreachable console
-      // shows up as a blank page, without a word.
-      const reachPair = React.useState('checking')
-      const reach = reachPair[0]
-      const setReach = reachPair[1]
-      const probe = React.useCallback(() => {
-        setReach('checking')
-        const ctl = new AbortController()
-        const minuteur = setTimeout(() => ctl.abort(), 7000)
-        fetch(kbWsConsole(), { mode: 'no-cors', cache: 'no-store', signal: ctl.signal })
-          .then(() => setReach('ok'), () => setReach('down'))
-          .then(() => clearTimeout(minuteur))
-      }, [])
-      // Ask the cloud plugin which server is active BEFORE probing its console: opening « Teams settings » after a server switch
-      // must reach the new server's console, not the one loaded at startup.
-      React.useEffect(() => { kbServerLoad().then(() => { if (kbServer.computer === true) setReach('computer'); else probe() }) }, [])
-      // The server can change while this page stays up (the Select server module, a registry written by hand): the address is read again when the window
-      // comes back, now and then while it is visible, and when the cloud card says so. A different server redraws the frame on ITS console (and probes it).
-      const revPair = React.useState(0)
-      const bumpRev = revPair[1]
-      const seenServer = React.useRef(null)
-      React.useEffect(() => {
-        const serverOf = (identity) => String(identity).split('|').slice(0, 3).join('|')
-        seenServer.current = frameIdentity()
-        let vivant = true
-        const again = () => {
-          kbServerLoad().then(() => {
-            if (vivant !== true) return
-            const now = frameIdentity()
-            if (now === seenServer.current) return
-            const serverChanged = serverOf(now) !== serverOf(seenServer.current)
-            seenServer.current = now
-            bumpRev((n) => n + 1)
-            // Another workspace redraws the frame (its key says so); only another server needs the console asked again.
-            if (serverChanged !== true) return
-            if (kbServer.computer === true) setReach('computer'); else probe()
-          })
-        }
-        const seen = () => { if (document.visibilityState === 'visible') again() }
-        window.addEventListener('focus', again)
-        document.addEventListener('visibilitychange', seen)
-        window.addEventListener('kybernos-cloud:server-changed', again)
-        window.addEventListener('kybernos-cloud:space-changed', again)
-        const timer = window.setInterval(seen, 10000)
-        return () => {
-          vivant = false
-          window.clearInterval(timer)
-          window.removeEventListener('focus', again)
-          document.removeEventListener('visibilitychange', seen)
-          window.removeEventListener('kybernos-cloud:server-changed', again)
-          window.removeEventListener('kybernos-cloud:space-changed', again)
-        }
-      }, [])
-      if (reach !== 'ok') {
-        let hote = kbWsConsole()
-        try { hote = new URL(kbWsConsole()).host } catch (e) { /* unreadable URL: we display it as is */ }
-        // A cloud computer: the server's console refuses to be framed by a page that is not on the person's own machine, so it is not framed there
-        // (a blank « refused to connect ») but opened in the person's browser, where they are signed in as usual.
-        if (reach === 'computer') {
-          return h('div', { className: 'kbwsif' },
-            h('div', { className: 'kbwsif-down', role: 'status' },
-              h('div', { className: 'kbwsif-downt' }, kbt('kbui.ws.computer.t')),
-              h('p', { className: 'kbwsif-downd' }, kbt('kbui.ws.computer.d').replace('{host}', hote)),
-              h('div', { className: 'kbwsif-downa' },
-                h('a', { className: 'kb6-btn', href: kbConsoleUrl(dark, page), target: '_blank', rel: 'noopener noreferrer', 'data-kb': 'ws-open-browser' }, kbt('kbui.ws.openbrowser')))))
-        }
-        return h('div', { className: 'kbwsif' },
-          reach === 'checking'
-            ? h('div', { className: 'kbwsif-wait', 'aria-busy': 'true' })
-            : h('div', { className: 'kbwsif-down', role: 'alert' },
-                h('div', { className: 'kbwsif-downt' }, kbt('kbui.ws.down.t')),
-                h('p', { className: 'kbwsif-downd' }, kbt('kbui.ws.down.d').replace('{host}', hote)),
-                h('div', { className: 'kbwsif-downa' },
-                  h('button', { type: 'button', className: 'kb8-primary', onClick: probe }, kbt('kbui.ws.retry')),
-                  h('a', { className: 'kb6-btn', href: kbConsoleUrl(dark, page), target: '_blank', rel: 'noopener noreferrer', 'data-kb': 'ws-open-browser' }, kbt('kbui.ws.openbrowser')))))
-      }
-      return h('div', { className: 'kbwsif' },
-        // Plus AUCUNE barre au-dessus de l'iframe (02/10, demande) : le haut de
-        // la console (lien retour, fil d'Ariane, titre, sous-titre) est masqué,
-        // et le bouton « Ouvrir » qui restait ici est retiré — la page occupe
-        // donc toute la hauteur du panneau, sans chrome intermédiaire.
-        h('iframe', {
-          // `key`: another page of the console is a new document (a fragment alone would not reload it), and a new server a new frame.
-          key: page + '|' + kbServer.console + '|' + kbServer.workspace, 'data-kb': 'ws-console', 'data-origin': kbWsOrigin(),
-          src: kbConsoleUrl(dark, page), title: kbt('kbui.ws.row.t'),
-          // Cadre et coins ARRONDIS retirés (02/10, demande) : embarquée en plein
-// cadre, la console n'est pas une carte posée dans la page — son propre
-// fond touche celui du panneau, sans liseré ni rayon intermédiaire.
-          style: { width: '100%', flex: '1 1 auto', minHeight: '0', border: 'none', borderRadius: '0', background: dark === true ? '#151517' : '#ffffff' },
-        }))
-    }
-    ctx.effect(() => styles.insert(`.kbwsif{display:flex;flex-direction:column;gap:0;min-height:100%;padding-block-end:0}
-.kbwsif iframe{border-radius:0!important;box-shadow:none}
-.kbwsif-wait{flex:1 1 auto;min-height:240px}
-.kbwsif-down{margin:64px auto 0;max-width:420px;padding:0 20px;text-align:center}
-.kbwsif-downt{font-size:17px;font-weight:650;color:var(--dsw-alias-label-primary)}
-.kbwsif-downd{margin:8px 0 0;font-size:13.5px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
-.kbwsif-downa{display:flex;justify-content:center;gap:10px;margin-top:18px}
-.kbwsif-downa a{text-decoration:none;display:inline-flex;align-items:center}`), 'kybers: my console space styles')
-    // ── La page « Réglage de l'espace » (02/10) ────────────────────────────
-    // Même composant que l'ancienne section Réglages (retirée du panneau le
-    // 02/10) : il est désormais peint par `KybersMain` sous la vue
-    // `wsconsole`, comme Projets / Livrables / Mon espace. Aucun siège de
-    // panneau supplémentaire : le panneau `kybers` est le sélecteur commun,
-    // et `state.view` choisit la page À L'INTÉRIEUR de ce panneau.
-    const KbWsConsoleMain = () => {
-      const s = useStore()
-      return h('div', { className: 'kbwsif-main' }, h(KbWsConsole, { page: s.wsPage }))
-    }
-    ctx.effect(() => styles.insert(`
-/* La page « Réglage de l'espace » occupe TOUTE la zone de contenu : ni marge
-   ni largeur maximale, la hauteur du panneau se transmet à l'iframe. */
-.kbwsif-main{display:flex;flex-direction:column;width:100%;height:100%;min-height:100%}
-.kbwsif-main .kbwsif{flex:1 1 auto;height:100%;min-height:100%;max-width:none;box-sizing:border-box}
-.kbwsif-main .kbwsif iframe{min-height:0;height:100%;width:100%;flex:1 1 auto}`), 'kybers: space settings page styles')
     // The "Kybernos Plugins" Settings page was replaced by the "Kybernos Suite" section
     // (kybernos-hub). Per-module settings still come through the slot
     // 'plugins.bundle.config', which the Suite reads.

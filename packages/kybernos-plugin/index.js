@@ -26,7 +26,6 @@ const pluginDir = dirname(fileURLToPath(import.meta.url))
 import { poserPresetLegacy, replierSurStandard, activerSubagentClaude } from './preset-legacy.mjs'
 import { poserForceProposition } from './agents-proposition.mjs'
 import { translateBatch as i18nTranslateBatch, modelList as i18nModelList } from './i18n-translate.mjs'
-import { wsConsoleKeyReply } from './ws-console-key.mjs'
 import { createI18nStore, serveI18nStore } from './i18n-store.mjs'
 import { createJobRunner, serveJobs } from './i18n-job.mjs'
 import { loadKeys as loadLanguagePackKeys, servePacks } from './i18n-packs.mjs'
@@ -9980,15 +9979,6 @@ function boot(ctx) {
           sessionId: q.get('sessionId'),
         }))
       } }), 'kybernos: route insight')
-      // Console workspace (gateway LLM) : la clé admin vit dans
-      // ~/.dsh/kybernos/settings.json (champ wsAdminKey) — JAMAIS dans le
-      // dépôt. Le client la récupère par cette route same-origin pour la
-      // passer à l'iframe (?key=…), ce qui évite tout prompt à l'utilisateur.
-      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/ws-console-key', handler: async (req, res) => {
-        // The logic (method, origin guard, reading the key) lives in ws-console-key.mjs, where a test covers every branch.
-        const r = await wsConsoleKeyReply(req, { sameOriginStrict: sameOriginStrict, readSettings: kbBrainSettings })
-        sendJson(res, r.status, r.body)
-      } }), 'kybernos: route ws-console-key')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/insight-save', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })

@@ -66,34 +66,17 @@ The summary (`count`, `plan`, `imported_at`, `settings`, `credential`) also
 travels in the `state` of the `/status`, `/poll` and `/refresh` responses. The
 full ids stay in the detail route.
 
-## Team console relay (read only)
+## The Team console in DSH: gone
 
-`GET /kybernos-cloud/relay?p=<path>` is how the server's console, framed in DSH, reads the account and the team: the frame holds no token, it asks its
-parent page, the parent asks this route, the route adds the device token and calls the server. **Only GET, only the exact paths of the allowlist
-(`RELAY_RULES` in `index.js`), only for a workspace of this account**; a path off the list answers `chemin refuse`, a workspace that is not the account's
-`espace_inconnu`. Every write stays a door to the browser (the console asks the host for a single-use link).
-
-| Reads | Query keys |
-|---|---|
-| `/v1/me`, `/v1/sessions`, `/v1/referral`, `/v1/me/mfa`, `/v1/public/legal`, `/v1/workspaces` | none |
-| `/v1/workspaces/{id}/members`, `/providers`, `/models`, `/invitations`, `/security`, `/computers`, `/computers/usage` | none |
-| `/v1/workspaces/{id}/llm/budget`, `/models`, `/catalog`, `/billing`, `/member-limits`, `/byok`, `/byok/credentials`, `/byok/models`, `/provider-policy`, `/provider-acceptances` | none |
-| `/v1/workspaces/{id}/llm/usage` | `from`, `to` (dates), `group_by` (`model`, `day`, `member`, `detail`) |
-| `/v1/keys` | `limit` (integer, 1 to 200), `workspace_id` (a UUID of this account) |
-| `/v1/workspaces/{id}/audit` | `limit` (integer, 1 to 100), `before` (a UUID: the last entry of the previous page) |
-
-Not named, on purpose: one computer's detail (`/computers/{id}`), a key or a credential by id, the trail's export, and every method but GET.
-
-**The two most personal reads each have a switch** in `index.js`: `RELAY_ALLOW_API_KEYS_LIST` (the person's own API keys: name, 8-character prefix, dates,
-status, never a secret) and `RELAY_ALLOW_TEAM_AUDIT_TRAIL` (who joined, left, was invited, changed role; owners and admins only on the server's side). A host
-that does not want one reachable from the frame sets it to `false`: the relay then refuses that path and nothing else changes (the frame says it could not
-read it). Both are `true` as shipped. The rules are in the host half: **a DSH restart is needed to change them**.
+`GET /kybernos-cloud/relay` is no more. It was how the server's console, framed read-only in DSH, read the account and the team (an allowlist of GET paths, the
+token added by the host). The menu entries Team settings, Account and Referral open the app in the browser instead (`POST /kybernos-cloud/console/link`, ADR 0054
+of the server), so nothing frames the console any more and the route, its allowlist and the page-side broker are removed (`docs/dev/frame-removal.md`).
 
 ## Settings › Kybernos (what stays on this computer)
 
 The one Settings section of this bundle (`kybernos-local`, `KybernosSection` in `client.js`) holds the three local functions that used to sit
 on the removed Account pages. It is shown whether connected or not; what needs a server says so when signed out (buttons disabled).
-The account's own pages (profile, security, devices, data, support) are the server's embedded pages, opened from the footer menu.
+The account's own pages (profile, security, devices, data, support) are the server's pages, opened from the footer menu in the browser.
 
 - **Custom instructions**: the field and its Save, through the two host routes below (a marked section of `<DSH home>/AGENTS.md`).
 - **Models**: the line says what the last import did (count, plan, date) and that the list updates by itself (the host re-imports at the connection, at boot, at a server switch, on a change of space and when the catalogue changes at the 5-minute refresh). The by-hand button is not on the page: it is under a folded **Advanced** (`ky-adv-toggle`): « Re-import » runs `POST /kybernos-cloud/models/sync`.

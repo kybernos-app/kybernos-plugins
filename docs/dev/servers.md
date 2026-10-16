@@ -15,15 +15,15 @@ server.
   "services": { "llm": "https://llm.acme.example", "gateway": null } }
 ```
 
-- `api` is required: account, workspaces, billing, the Team relay.
+- `api` is required: account, workspaces, billing.
 - `web` and `console` are optional and default to **the server's own host** (`web` = `api`, `console` = `<web>/workspace-console`): the
   new server serves its account page, the device activation page, the referral landing and the team console itself. There is no
   `api.x → x` convention any more: it pointed a server at a different host (the legacy web app).
 - `services.llm`: a URL is the OpenAI-compatible base DSH sends chat to; `null` or absent means the same host as `api` (what
   Kybernos Cloud does today); `false` means **this server has no Kybernos LLM**. That is a normal case: DSH imports no
   « kybernos » models, removes the ones another server left, and the console can hide the LLM pages.
-- `services.gateway`: the LLM service's admin gateway, used only by the Team console's key mode. It goes away with the key
-  hand-off (the relay replaces it), so a new server never needs one.
+- `services.gateway`: the LLM service's admin gateway, which only the Team console's key mode used. That mode went with the key
+  hand-off and the account frame (`docs/dev/frame-removal.md`): the page reads no gateway, so a new server never needs one.
 - `services.connections`: the address of the server's MCP endpoint for the account's connected apps (`/v1/mcp/connections`, ADR 0008
   of the Kybernos server), or `false`. **Absent means not offered**, unlike `services.llm` where absent means the same host as `api`:
   an older server, or one without Composio (an on-premises one), simply has no connections, and DSH hides the « Kybernos connections »
@@ -56,7 +56,7 @@ connections endpoint move with it.
 
 Nothing of the old stack was deleted; it is simply not the default any more. To use it (to compare, to reproduce a problem), add
 this entry to `servers.json` and make it active. It has its own connection file (`kybernos-cloud-kybernos-legacy.json`), so a
-token of one stack never reaches the other; the page then follows it (console, web app and gateway), and `POST
+token of one stack never reaches the other; the page then follows it (its web app), and `POST
 /kybernos-cloud/server/apply` swaps the « kybernos » model route. A test reads this very block (`test-server-profile.mjs`).
 
 <!-- legacy-entry -->
@@ -109,7 +109,8 @@ Anyone can edit the file by hand. What the paid module sells is the management o
   imported last (`<DSH home>/kybernos/server-applied.json`). On a switch the previous server's route is **removed first**, so
   chat never keeps talking to a server the user left; then the new server's catalogue is imported when this DSH is connected to
   it. The catalogue is read where the route points (the profile's LLM service, else the account API).
-- The page asks the cloud plugin for the active server each time « Teams settings » opens, and uses its console and web address.
+- The page asks the cloud plugin for the active server once, when it loads, and keeps its web address (the public share links and the account page). The
+  console address and the `computer` flag of the answer are read by nothing in the page any more.
 
 ## Routes (kybernos-cloud)
 

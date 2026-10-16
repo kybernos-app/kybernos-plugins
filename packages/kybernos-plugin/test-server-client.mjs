@@ -2,6 +2,8 @@
 //
 // The loader is a few lines in client.js (kbServer, kbServerLoad). The test cuts that exact code out of the source and runs it
 // against a stub of fetch, so what is proven is the shipped code: what an active server changes, what a failure leaves alone.
+// The page reads one thing of the server now, its WEB address (the public share links, the account page): the other fields (console,
+// gateway, workspace, computer) fed the read-only account frame, which is gone (docs/dev/frame-removal.md).
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -23,33 +25,21 @@ const answer = (body, ok = true) => () => Promise.resolve({ ok, json: () => Prom
 
 console.log('what the active server changes')
 {
-  const s = load(answer({ ok: true, server: { id: 'acme', name: 'Acme', api: 'https://kb.acme.example', web: 'https://kb.acme.example', console: 'https://kb.acme.example/workspace-console', gateway: null } }))
+  const s = load(answer({ ok: true, server: { id: 'acme', name: 'Acme', api: 'https://kb.acme.example', web: 'https://kb.acme.example/app', console: 'https://kb.acme.example/workspace-console', gateway: null } }))
   const out = await s.kbServerLoad()
-  check('the console, the web app and the name are the server\'s', out.name === 'Acme' && out.web === 'https://kb.acme.example' && out.console === 'https://kb.acme.example/workspace-console', JSON.stringify(out))
-  check('a server that names no gateway gets none (the console\'s key mode then uses its own origin)', out.gateway === '')
-  check('the api of the server is carried too (the keys tab shows it)', out.api === 'https://kb.acme.example')
-  // The old stack is an explicit opt-in (a servers.json entry): when it is active, the page follows it, gateway included.
-  const t = load(answer({ ok: true, server: { name: 'Kybernos (old stack)', api: 'https://old.example', web: 'https://web.old.example', console: 'https://web.old.example/workspace-console', gateway: 'https://gw.old.example' } }))
-  const old = await t.kbServerLoad()
-  check('an opt-in server with a gateway still gets it', old.web === 'https://web.old.example' && old.gateway === 'https://gw.old.example')
-}
-
-console.log('which workspace the console opens on')
-{
-  const byUrl = (map) => (url) => Promise.resolve({ ok: true, json: () => Promise.resolve(map[url]) })
-  const s = load(byUrl({ '/kybernos-cloud/server': { ok: true, server: { name: 'Kybernos Cloud', web: 'https://kb.example', console: 'https://kb.example/workspace-console', gateway: null } }, '/kybernos-cloud/status': { ok: true, connected: true, state: { active_workspace_id: 'w-active-1' } } }))
-  check('the workspace this DSH has active is carried to the console, so the two selectors agree', (await s.kbServerLoad()).workspace === 'w-active-1')
-  const none = load(byUrl({ '/kybernos-cloud/server': { ok: true, server: { name: 'X', web: 'https://x.example', console: 'https://x.example/c' } }, '/kybernos-cloud/status': { ok: true, connected: false } }))
-  check('not signed in: no workspace, the console picks its own first one', (await none.kbServerLoad()).workspace === '')
-  const odd = load(byUrl({ '/kybernos-cloud/status': { state: { active_workspace_id: 42 } } }))
-  check('a workspace id that is not a string is ignored', (await odd.kbServerLoad()).workspace === '')
+  check('the web app address is the server\'s', out.web === 'https://kb.acme.example/app', JSON.stringify(out))
+  check('and nothing else of the server is kept (no console, no gateway, no workspace: the frame they fed is gone)', JSON.stringify(Object.keys(out)) === JSON.stringify(['web']), JSON.stringify(out))
+  const noWeb = await load(answer({ ok: true, server: { name: 'X', api: 'https://x.example' } })).kbServerLoad()
+  check('a server that names no web address leaves the built-in one', noWeb.web === load(undefined).kbServer.web, JSON.stringify(noWeb))
+  const odd = await load(answer({ ok: true, server: { web: 42 } })).kbServerLoad()
+  check('a web address that is not a string is ignored', odd.web === load(undefined).kbServer.web, JSON.stringify(odd))
 }
 
 console.log('what a failure leaves alone')
 {
-  // The defaults are what the page starts with: the NEW server, its own host for web and console, and no gateway.
+  // The defaults are what the page starts with: the NEW server, its own host for the web app.
   const defaults = JSON.parse(JSON.stringify(load(undefined).kbServer))
-  check('the page starts on the built-in server: its own host for api, web and console, and no gateway', defaults.api === defaults.web && defaults.console === defaults.api + '/workspace-console' && defaults.gateway === '' && defaults.workspace === '' && /^https:\/\//.test(defaults.api), JSON.stringify(defaults))
+  check('the page starts on the built-in server: its own host, over https', /^https:\/\//.test(defaults.web), JSON.stringify(defaults))
   for (const [label, stub] of [['a refused request', () => Promise.reject(new Error('offline'))], ['a non-OK status', answer({}, false)], ['an answer that is not ours', answer({ hello: 'world' })], ['an answer with an invalid server', answer({ ok: true, server: 'text' })], ['no fetch at all', undefined]]) {
     const s = load(stub)
     const out = await s.kbServerLoad()
@@ -57,51 +47,10 @@ console.log('what a failure leaves alone')
   }
 }
 
-console.log('the developer overrides only win behind the explicit flag')
-{
-  const a = source.indexOf('const kbDevOverrides = () =>')
-  const b = source.indexOf("// The console of the ACTIVE server, read at each use", a)
-  check('the override helpers are where the test expects them', a > 0 && b > a)
-  const make = (storage, win) => new Function('window', source.slice(a, b) + '\nreturn { kbDevOverrides, kbWsCfg }')(Object.assign({ localStorage: { getItem: (k) => (k in storage ? storage[k] : null) } }, win))
-  const DEF = 'https://active.example/workspace-console'
-  const stored = { 'kybernos.ws.console.url': 'http://localhost:8081/old-test-console' }
-  check('a console URL left in localStorage does NOT win over the active server', make(stored, {}).kbWsCfg('kybernos.ws.console.url', 'KYBERNOS_WS_CONSOLE_URL', DEF) === DEF)
-  check('nor does a window global', make({}, { KYBERNOS_WS_CONSOLE_URL: 'http://localhost:8081/x' }).kbWsCfg('kybernos.ws.console.url', 'KYBERNOS_WS_CONSOLE_URL', DEF) === DEF)
-  check('with kybernos.dev = 1 the stored override wins again', make(Object.assign({ 'kybernos.dev': '1' }, stored), {}).kbWsCfg('kybernos.ws.console.url', 'KYBERNOS_WS_CONSOLE_URL', DEF) === 'http://localhost:8081/old-test-console')
-  check('with window.KYBERNOS_DEV = true the window override wins', make({}, { KYBERNOS_DEV: true, KYBERNOS_WS_CONSOLE_URL: 'http://localhost:8081/x' }).kbWsCfg('kybernos.ws.console.url', 'KYBERNOS_WS_CONSOLE_URL', DEF) === 'http://localhost:8081/x')
-  check('a flag that is not exactly 1 / true is not a flag', make({ 'kybernos.dev': 'true' }, { KYBERNOS_DEV: 'yes' }).kbDevOverrides() === false)
-  const blocked = new Function('window', source.slice(a, b) + '\nreturn { kbWsCfg }')({ get localStorage() { throw new Error('blocked') } })
-  check('a blocked storage is the active server, not an error', blocked.kbWsCfg('kybernos.ws.console.url', 'KYBERNOS_WS_CONSOLE_URL', DEF) === DEF)
-}
-
-console.log('the address of the embedded console is derived from the active server at each use')
-{
-  const a = source.indexOf('const kbDevOverrides = () =>')
-  const endMark = "+ (kbConsolePage(page) !== '' ? '#' + kbConsolePage(page) : '')"
-  const b = source.indexOf(endMark, a) + endMark.length
-  check('the address builders are where the test expects them', a > 0 && b > endMark.length && b > a)
-  const make = (server, locale) => new Function('kbServer', 'kbLocaleRead', 'window', source.slice(a, b) + '\nreturn { kbWsConsole, kbWsOrigin, kbConsoleUrl, kbConsoleLang, kbConsolePage }')(
-    server, () => locale, { localStorage: { getItem: () => null } })
-  const srv = (origin, ws = '') => ({ api: origin, web: origin, console: origin + '/workspace-console', gateway: '', workspace: ws, computer: false })
-  const A = srv('http://localhost:8791', 'w-1')
-  const f = make(A, 'en')
-  check('console, workspace, theme and language', f.kbConsoleUrl(false) === 'http://localhost:8791/workspace-console?gw=&ws=w-1&theme=light&lang=en', f.kbConsoleUrl(false))
-  check('a page is the fragment', f.kbConsoleUrl(true, 'account') === 'http://localhost:8791/workspace-console?gw=&ws=w-1&theme=dark&lang=en#account', f.kbConsoleUrl(true, 'account'))
-  for (const bad of ['../x', 'a b', '#plan', '/account', 'x'.repeat(40), '', 7, null]) check('a page that is not a slug is no fragment (' + JSON.stringify(bad) + ')', f.kbConsoleUrl(false, bad).indexOf('#') < 0)
-  // The server object is read at each call: another server later gives another address from the same functions.
-  A.console = 'https://other.example/workspace-console'
-  A.workspace = ''
-  check('the address follows the server object (each use, never captured)', f.kbConsoleUrl(false) === 'https://other.example/workspace-console?gw=&theme=light&lang=en' && f.kbWsOrigin() === 'https://other.example', f.kbConsoleUrl(false))
-  for (const [locale, want] of [['fr', 'fr'], ['zh-CN', 'zh-cn'], ['pt_BR', 'pt-br'], ['ar', 'ar'], ['', 'en'], ['not a locale', 'en'], [undefined, 'en']]) check('language ' + JSON.stringify(locale) + ' → ' + want, make(srv('http://x.example'), locale).kbConsoleLang() === want)
-}
-
 console.log('the shipped code')
-check('the loader asks the cloud plugin, same-origin', snippet.indexOf("'/kybernos-cloud/server'") > 0 && snippet.indexOf("credentials: 'same-origin'") > 0)
-check('the console URL carries `ws` only when a workspace is known', source.indexOf("(kbServer.workspace !== '' ? '&ws=' + encodeURIComponent(kbServer.workspace) : '')") > 0)
-check('the console and the shared-page address read the loaded server, not a literal', source.indexOf("kbWsCfg('kybernos.ws.console.url', 'KYBERNOS_WS_CONSOLE_URL', kbServer.console)") > 0 && source.indexOf("kbServer.web.replace(/\\/+$/, '') + '/s/'") > 0)
+check('the loader asks the cloud plugin for the server, same-origin, and for nothing else', snippet.indexOf("'/kybernos-cloud/server'") > 0 && snippet.indexOf("credentials: 'same-origin'") > 0 && snippet.indexOf('/kybernos-cloud/status') < 0)
+check('the shared-page address reads the loaded server, not a literal', source.indexOf("kbServer.web.replace(/\\/+$/, '') + '/s/'") > 0)
 check('the account pages of Settings (and their `kybernos.cloud.url` base) are gone', source.indexOf('kbacCloudBase') < 0 && source.indexOf("'kybernos.cloud.url'") < 0)
-// On a cloud computer the console cannot be framed (the server's console only accepts a page of the person's own machine), so it is not probed there: the fallback card shows.
-check('opening « Teams settings » asks for the active server before probing its console', source.indexOf("kbServerLoad().then(() => { if (kbServer.computer === true) setReach('computer'); else probe() })") > 0)
 
 console.log('\n' + (failed === 0 ? 'all checks OK' : failed + ' check(s) failed'))
 process.exit(failed === 0 ? 0 : 1)

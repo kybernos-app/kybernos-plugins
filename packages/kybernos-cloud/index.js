@@ -968,7 +968,8 @@ const serverRoute = async () => {
     try { return isConnected(JSON.parse(readFileSync(join(dshHome(), stateFileName({ id })), 'utf8'))) } catch (e) { return false }
   }
   return { ok: true, server: publicProfile(active.profile), source: active.source, error: active.error, servers: active.servers.map((x) => Object.assign({ active: x.id === active.profile.id, connected: connectedTo(x.id) }, x)), rejected: active.rejected,
-    // A cloud computer (the platform names it in the machine's environment): the suite there is the person's own, but the server's console cannot be framed by its page.
+    // A cloud computer (the platform names it in the machine's environment). The page of this checkout no longer reads it: only the page bundle of a release that still frames
+    // the server's console does, and the computer image patches that one (services/computer-image/patch-console.mjs). It goes with that patch.
     computer: typeof process.env.KYBERNOS_COMPUTER_ID === 'string' && process.env.KYBERNOS_COMPUTER_ID !== '' }
 }
 
@@ -1155,100 +1156,8 @@ const sameOriginStrict = (req) => {
   } catch (e) { return false }
 }
 
-// ── Relay for the Team settings console (read only, phase 1) ───────────────────
-// The console is a page of another origin shown in an iframe: it must never hold a session token. It asks its parent page,
-// the parent calls THIS route, and this route adds the token and calls the main API: only on the allowlist below, only GET,
-// only for a workspace of this account. The server checks the caller's role again (docs/specs/2026-10-05-team-console-wiring.md).
+// A UUID, as the places that name a workspace by id write it (the console link, the active space).
 const UUID_SRC = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
-const RELAY_DATE = /^\d{4}-\d{2}-\d{2}([T ][0-9:.]{1,16}(Z|[+-]\d{2}:?\d{2})?)?$/
-const RELAY_UUID = new RegExp('^' + UUID_SRC + '$', 'i')
-/** A decimal integer within [min, max], written plainly (no sign, no leading zero, no exponent): the server's own bound for the parameter. */
-const relayInt = (min, max) => (v) => /^[1-9]\d{0,3}$/.test(v) && Number(v) >= min && Number(v) <= max
-const relayUuid = (v) => RELAY_UUID.test(v)
-
-// The two reads that are the most personal of the list: the person's own API keys (names, 8-character prefix, dates, status: never a secret) and the team's trail
-// (who joined, left, was invited, changed role; the server answers owners and admins only). Each is behind its own switch: a host that does not want one of them
-// reachable from the frame sets it to false and the relay refuses that path, nothing else changes (README: « Team console relay »).
-const RELAY_ALLOW_API_KEYS_LIST = true
-const RELAY_ALLOW_TEAM_AUDIT_TRAIL = true
-
-/** The allowlist, as a function of the two switches above (the tests build it both ways). A rule is `{ re, query }`: the path, and the query keys it takes, each with
- *  the check its value must pass (`check`, a date by default; `choices`, a closed set). Every rule is a GET and the whole list is read only: a write is a door to the browser. */
-const relayRules = (opts = {}) => {
-  const rules = [
-    { re: /^\/v1\/me$/, query: [] },
-    // The read-only pages of the account the console shows in DSH's frame (Account, Referral): the profile (above), the person's sessions and the referral card.
-    { re: /^\/v1\/sessions$/, query: [] },
-    { re: /^\/v1\/referral$/, query: [] },
-    // The account's security (is a second factor on: status only, never a secret) and the server's legal page (terms, privacy, support addresses): the Security and
-    // Support & legal pages of the same frame. Exact paths: the writes of the second factor (`/v1/me/mfa/...`) are not named.
-    { re: /^\/v1\/me\/mfa$/, query: [] },
-    { re: /^\/v1\/public\/legal$/, query: [] },
-    { re: /^\/v1\/workspaces$/, query: [] },
-    { re: new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/(members|providers|models)$', 'i'), query: [] },
-    { re: new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/llm/(budget|models|catalog|billing)$', 'i'), query: [] },
-    // The team's metadata the frame's pages draw (Members, Models, Billing, Team security, Computers). Every one answers owners and admins only on the server's side
-    // (a member gets a 403 that comes back as it is); the team's own keys come back with their last four characters only.
-    { re: new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/(invitations|security|computers|computers/usage)$', 'i'), query: [] },
-    { re: new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/llm/(member-limits|byok|byok/credentials|byok/models|provider-policy|provider-acceptances)$', 'i'), query: [] },
-    // `group_by` is one of the server's four groupings (the team console asks for `detail`: one row per day, member and model).
-    { re: new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/llm/usage$', 'i'), query: ['from', 'to', 'group_by'], choices: { group_by: ['model', 'day', 'member', 'detail'] } },
-  ]
-  if (opts.apiKeysList === true) {
-    // GET /v1/keys: `limit` 1 to 200 and the workspace the keys belong to (the server's own bounds); no cursor, no other key.
-    rules.push({ re: /^\/v1\/keys$/, query: ['limit', 'workspace_id'], check: { limit: relayInt(1, 200), workspace_id: relayUuid }, workspaceQuery: 'workspace_id' })
-  }
-  if (opts.auditTrail === true) {
-    // GET /v1/workspaces/{id}/audit: `limit` 1 to 100, `before` the id of the last entry of the previous page (a UUID). The export is another path and is not named.
-    rules.push({ re: new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/audit$', 'i'), query: ['limit', 'before'], check: { limit: relayInt(1, 100), before: relayUuid } })
-  }
-  return rules
-}
-const RELAY_RULES = relayRules({ apiKeysList: RELAY_ALLOW_API_KEYS_LIST, auditTrail: RELAY_ALLOW_TEAM_AUDIT_TRAIL })
-
-/** `{ ok, path }` (the canonical path to call) or `{ ok: false, error }`. Pure: a path the allowlist does not name, a
- *  workspace that is not one of the account's, a query parameter other than a date `from` / `to` (or a known `group_by` on usage), is refused. */
-const relayCheck = (target, state, rules = RELAY_RULES) => {
-  const refused = { ok: false, error: 'chemin refuse' }
-  if (typeof target !== 'string' || target.length === 0 || target.length > 300 || target[0] !== '/') return refused
-  let u = null
-  try { u = new URL(target, 'http://relay.invalid') } catch (e) { return refused }
-  // A path the URL parser rewrites (dot segments, doubled slashes, an encoded trick) is not the path we were asked for.
-  if (u.origin !== 'http://relay.invalid' || u.pathname !== target.split('?')[0]) return refused
-  const rule = rules.find((r) => r.re.test(u.pathname))
-  if (rule === undefined) return refused
-  const seen = new Set()
-  const query = []
-  let askedWorkspace = null
-  for (const [k, v] of u.searchParams) {
-    if (rule.query.indexOf(k) < 0 || seen.has(k)) return refused
-    const choices = rule.choices !== undefined ? rule.choices[k] : undefined
-    const check = rule.check !== undefined ? rule.check[k] : undefined
-    if (check !== undefined) { if (check(v) !== true) return refused } else if (choices !== undefined ? choices.indexOf(v) < 0 : RELAY_DATE.test(v) !== true) return refused
-    if (rule.workspaceQuery === k) askedWorkspace = v
-    seen.add(k)
-    query.push(k + '=' + encodeURIComponent(v))
-  }
-  // A workspace the path names, or the one a query names, must be one of this account's: the server checks the caller's role again.
-  const m = u.pathname.match(new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/', 'i'))
-  const named = m !== null ? m[1] : askedWorkspace
-  if (named !== null) {
-    const known = (state !== null && state !== undefined && Array.isArray(state.workspaces) ? state.workspaces : [])
-    if (known.some((w) => w !== null && typeof w === 'object' && String(w.id).toLowerCase() === named.toLowerCase()) !== true) return { ok: false, error: 'espace_inconnu' }
-  }
-  return { ok: true, path: u.pathname + (query.length > 0 ? '?' + query.join('&') : '') }
-}
-
-const relayRoute = async (req) => {
-  const state = readState()
-  if (isConnected(state) !== true) return { ok: false, connected: false, status: 'none', error: 'non connecte' }
-  let target = ''
-  try { target = new URL(req.url, 'http://localhost').searchParams.get('p') || '' } catch (e) { target = '' }
-  const verdict = relayCheck(target, state)
-  if (verdict.ok !== true) return { ok: false, error: verdict.error }
-  const res = await apiCall(verdict.path, { token: state.token })
-  return { ok: res.status >= 200 && res.status < 300, status: res.status, body: res.body }
-}
 
 // ── The team console in the user's browser (the new server, ADR 0005 § 5) ──────
 // The console page is served by the server and, in a browser, uses the person's own session. DSH holds a device token and a token never goes through a
@@ -4546,8 +4455,6 @@ const ROUTES = [
   // Members of a space: real read; invitation and removal return
   // {ok:false,error:'indisponible'} as long as the server reserves them to the master key.
   { path: '/kybernos-cloud/members', method: 'GET', guarded: true, run: membersGet },
-  // Read-only relay for the Team console (iframe of another origin): allowlist, token added here, STRICT origin.
-  { path: '/kybernos-cloud/relay', method: 'GET', guarded: true, strict: true, run: relayRoute },
   // The Team console in the browser: a single-use link (60 s) requested from the server with the device token, never the token itself.
   { path: '/kybernos-cloud/console/link', method: 'POST', guarded: true, strict: true, body: true, cap: 2048, run: consoleLink },
   // The upgrade popup: the plans and their quotes (public data of the server, no token sent), and the two payment calls (owner or admin of the workspace: the server decides).
@@ -4709,8 +4616,8 @@ export {
   dshHome, resolveApi, stateFile, server, serverApply, serverRoute, deviceLabel, publicState, ROUTES, importCatalog, CRED_REF, PROVIDER_ID, connections,
   // Keeping the picture of the account current (test: kybernos-cloud/test-profile-refresh.mjs).
   profileRefreshTick, PROFILE_REFRESH_TUNING, sameOrigin, hostAllowed,
-  // Team console relay (exported for the dedicated suite).
-  relayCheck, sameOriginStrict, RELAY_RULES, relayRules,
+  // The strict origin guard (test: kybernos-cloud/test-console-link.mjs).
+  sameOriginStrict,
   // Memory — exported for the host suite (fake server, no real API).
   consoleLink, openExternal, plansRoute, planQuote, billingCheckout, billingPortal,
   asMemory, validateMemory, createMemory, patchMemory, deleteMemory, searchMemories,
