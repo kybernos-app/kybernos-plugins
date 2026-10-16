@@ -25,5 +25,6 @@
   "good": {
     "fr": "Les moteurs sans clé passent par des pages publiques : ils peuvent demander une vérification anti-robot. Un moteur à clé ou votre SearXNG est plus fiable.",
     "en": "Engines without a key use public pages: they may ask for an anti-bot check. A keyed engine or your own SearXNG is more reliable."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/agents-and-tools/search-the-web/"
 }

@@ -41,8 +41,7 @@
   /* an icon on its own is that wide; a button with a label keeps the width of its label (a min-width would let a flex row
    * squeeze it below that, and its text would be cut under the next button) */
   [data-slot="main"] button:where(:has(> svg:only-child)),
-  [data-slot="main"] [role="button"]:where(:has(> svg:only-child)),
-  [data-slot="main"] .kb6-helpbtn {
+  [data-slot="main"] [role="button"]:where(:has(> svg:only-child)) {
     min-width: 36px;
   }
   [data-slot="main"] input:where(:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"])) {
@@ -451,6 +450,10 @@
     width: 22px;
     height: 22px;
   }
+  /* Theme and Language sit under Appearance (data-kb-sub, put on by the core plugin's Settings menu): one step in here too. */
+  [data-shortcut-modal="settings"]:not([data-kbmob-page]) > nav > div:last-child > button[data-kb-sub] {
+    padding-inline-start: 40px !important;
+  }
   [data-shortcut-modal="settings"][data-kbmob-page] > nav {
     display: none !important;
   }
@@ -509,6 +512,13 @@
  * on focus and never zooms back). Only on a coarse pointer, and only on a phone. */
 @media (max-width: 700px) and (pointer: coarse), (max-height: 500px) and (pointer: coarse) {
   [role="menuitem"], [role="option"], [role="tab"] {
+    min-height: 44px;
+  }
+  /* The main action of a page (Create, Install a skill, Add an MCP server...): the shared button is 38 px high, a finger
+   * needs 44 (measured 2026-10-16: every « Create » of the sidebar pages was 38 px at 390 px). */
+  [data-slot="main"] .kb8-primary,
+  [data-slot="main"] .kb-createai,
+  [data-slot="main"] .kbs-actions .kb8-ghost {
     min-height: 44px;
   }
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select {

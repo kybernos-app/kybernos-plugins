@@ -155,6 +155,17 @@ export async function clickText(page, text, opts = {}) {
   return true
 }
 
+/**
+ * Open the Advanced fold of the Settings menu, when the menu has one. It is shut at first (the audit's « short for a newcomer »), and a check
+ * that reaches a page by its cell with a real mouse needs the cell drawn. The choice lands in the throw-away browser's own storage: nothing of
+ * the person's DSH changes. Resolves `true` when the fold is open (or the menu has none: an older core plugin).
+ */
+export async function openAdvancedFold(page) {
+  if ((await waitFor(page, `document.querySelector('[data-kb-fold-toggle]') !== null`, 3000)) === null) return true
+  await page.evalJs(`(() => { const b = document.querySelector('[data-kb-fold-toggle]'); if (b && b.getAttribute('aria-expanded') !== 'true') b.click() })()`, 4000)
+  return (await waitFor(page, `(() => { const l = document.querySelector('[data-kb-fold]'); return l !== null && l.getAttribute('data-kb-fold') === 'open' })()`, 3000)) !== null
+}
+
 /** Open DSH's Settings dialog; resolves `true` once its navigation cells are there.
  *  The signed-in user's DSH has an account chip (« My workspace ») that leads to it; a fresh instance (the
  *  sandbox) has no account, so the dialog opens from the settings trigger of the sidebar instead. */
@@ -168,7 +179,10 @@ export async function openSettings(page, opts = {}) {
     const chip = (await page.evalJs(chipJs, 4000)).val
     if (chip) { await click(chip.x, chip.y); await sleep(1000); await clickText(page, 'Settings') }
     else await page.evalJs(`(() => { const b = document.querySelector('[class*="settingsArea"] button[class*="trigger"]'); if (b) b.click() })()`, 4000)
-    if ((await waitFor(page, `document.querySelectorAll('[class*="navCell"]').length > ${minCells}`, 6000)) !== null) return true
+    if ((await waitFor(page, `document.querySelectorAll('[class*="navCell"]').length > ${minCells}`, 6000)) !== null) {
+      if (opts.fold !== 'keep') await openAdvancedFold(page) // `fold: 'keep'`: the check is about the fold itself
+      return true
+    }
     await page.send('Page.reload', { ignoreCache: true })
     await sleep(3500)
   }

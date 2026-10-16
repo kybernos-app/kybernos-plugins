@@ -43,17 +43,25 @@ console.log('the Memory page check follows the Settings nav grouping')
   const below = /const NAV_BELOW = \[([^\]]*)\]/.exec(src)
   check('the check declares what sits above and below the page', above !== null && below !== null)
   const groupes = read('packages/kybernos-plugin/client.js')
-  const g = /titre: kbt\('settings\.group\.kybernos'\), mots: \[([^\]]*)\]/.exec(groupes)
+  const g = /const GROUPES = \[\s*\{ titre: null, mots: \[([^\]]*)\]/.exec(groupes)
   const mots = g === null ? [] : words(g[1])
-  check('GROUPES has the Kybernos group and the page is in it', mots.indexOf('memory & lessons') >= 0, mots)
+  check('GROUPES opens with the essentials (no header) and the page is in them', mots.indexOf('memory & lessons') >= 0, mots)
   if (above !== null && below !== null && mots.length > 0) {
     const rank = (label) => mots.indexOf(label.toLowerCase())
     const me = rank('Memory & Lessons')
     const up = words(above[1])
     const down = words(below[1])
-    check('every label the check expects above the page is in the group, before it', up.length > 0 && up.every((l) => rank(l) >= 0 && rank(l) < me), up.map((l) => [l, rank(l)]))
-    check('every label the check expects below the page is in the group, after it', down.length > 0 && down.every((l) => rank(l) > me), down.map((l) => [l, rank(l)]))
+    check('every label the check expects above the page is in the section, before it', up.length > 0 && up.every((l) => rank(l) >= 0 && rank(l) < me), up.map((l) => [l, rank(l)]))
+    check('every label the check expects below the page is in the section, after it', down.length > 0 && down.every((l) => rank(l) > me), down.map((l) => [l, rank(l)]))
   }
+}
+
+console.log('the live-page helper opens the Settings menu\'s Advanced fold for the checks that click a page by its cell')
+{
+  const lp = read('scripts/live-page.mjs')
+  check('openSettings opens the fold unless the check is about the fold (fold: \'keep\')', /if \(opts\.fold !== 'keep'\) await openAdvancedFold\(page\)/.test(lp) && /export async function openAdvancedFold\(page\)/.test(lp))
+  check('a menu without the fold (an older core plugin) is not an error', /document\.querySelector\('\[data-kb-fold-toggle\]'\) !== null`, 3000\)\) === null\) return true/.test(lp))
+  check('the check of the fold itself keeps it as it finds it', /openSettings\(page, \{ minCells: 3, fold: 'keep' \}\)/.test(read('scripts/check-settings-nav-live.mjs')))
 }
 
 console.log('the live-page helper clears the engine\'s first-screen dialog (A3-03)')

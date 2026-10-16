@@ -4,13 +4,15 @@ A read-only map of how the things you set up fit together: **projects, agent tea
 skills, memory, lessons, automations and apps**. It adds one Settings page,
 **Atlas**, with a Help button that explains how to read it.
 
-**It reads nothing until you click *Update*.** Opening the page only shows an empty screen with an
-*Update* button; the sources below are read when you click it (and again each time you click it again).
-The last reading is kept in memory so that moving between Settings pages does not read again; it is
-gone when the page reloads, and the header says how long ago it was read.
+**It reads nothing until you click *Update*.** Opening the page reads none of the sources below: the
+first time ever it shows an empty screen with an *Update* button, and after that it shows **the last
+reading** with its age in the header (« Read 3 h ago »). The sources are read when you click *Update*
+(and again each time you click it again). The last reading is kept in this browser (one key of its
+local storage, `kybernos-atlas:last-reading`, written by an *Update* and read when the page opens;
+a reading too big for the browser's shared store, or a blocked store, is simply not kept). Moving
+between Settings pages does not read again either.
 
-It only reads. It writes nothing, stores nothing between visits, adds no route
-to the host and needs no engine patch.
+It only reads. It never edits your files, adds no route to the host and needs no engine patch.
 
 ## What you see
 

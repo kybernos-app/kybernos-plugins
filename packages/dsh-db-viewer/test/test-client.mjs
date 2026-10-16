@@ -159,5 +159,18 @@ if (typeof t.positionsFinales === 'function') {
     anc.x2 === fin.pos.b.x, JSON.stringify(anc))
 }
 
+// ── SQL tab: a cut result says so, and offers more (A4-22) ──────────────────
+if (typeof t.noteSql === 'function') {
+  ok('noteSql: a whole result has no note', t.noteSql({ compte: 20, total: 20, tronque: false }) === null)
+  ok('noteSql says « the first 500 of 200,000 rows »',
+    t.noteSql({ compte: 500, total: 200000, tronque: true, borne: false }) === 'Showing the first 500 of 200,000 rows.',
+    String(t.noteSql({ compte: 500, total: 200000, tronque: true, borne: false })))
+  ok('noteSql says « more than » when the host stopped counting',
+    t.noteSql({ compte: 500, total: 1000000, tronque: true, borne: true }) === 'Showing the first 500 of more than 1,000,000 rows.')
+  ok('limiteSqlSuivante doubles the page and stops at the host cap',
+    t.limiteSqlSuivante(500) === 1000 && t.limiteSqlSuivante(2500) === t.PAGE_SQL_MAX && t.limiteSqlSuivante(t.PAGE_SQL_MAX) === t.PAGE_SQL_MAX)
+  ok('the first page is 500 rows, the cap 5 000', t.PAGE_SQL === 500 && t.PAGE_SQL_MAX === 5000)
+} else ok('__test exposes noteSql', false)
+
 console.log(ko === 0 ? `\nHARNAIS CLIENT dsh-db-viewer — 0 échec` : `\n✗ ${ko} échec(s)`)
 process.exit(ko === 0 ? 0 : 1)

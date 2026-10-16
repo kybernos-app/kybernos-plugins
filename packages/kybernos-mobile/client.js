@@ -708,6 +708,22 @@ window.__ModuleLoader__.load({
           return h('span', { ref: box, className: 'kbmr-helpbox', onClickCapture: anchor }, helpButton())
         }
 
+        // The animated help of the Settings page (the Suite publishes it): opens the first time the page is visited, and the card of the
+        // « ? How it works » button can bring it back. The words are the ones of the real screen.
+        const introNode = () => (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Intro
+          ? h(window.__KB_HELP__.Intro, {
+            id: 'kybernos-mobile',
+            title: kt('Relier un téléphone en trois étapes', 'Link a phone in three steps'),
+            caption: kt('Le code QR est affiché sur l’ordinateur, scanné avec le téléphone, puis autorisé sur l’ordinateur.', 'The QR code is shown on the computer, scanned with the phone, then allowed on the computer.'),
+            steps: [
+              { t: kt('Affichez le code', 'Show the code'), b: kt('Sur l’ordinateur, ouvrez le menu du compte › « Contrôle à distance » : un code QR s’affiche.', 'On the computer, open the account menu › “Remote control”: a QR code appears.') },
+              { t: kt('Scannez-le', 'Scan it'), b: kt('Sur le téléphone, scannez le code avec l’appareil photo et ouvrez le lien : un code à 4 chiffres s’affiche.', 'On the phone, scan the code with the camera and open the link: a 4-digit code appears.') },
+              { t: kt('Autorisez', 'Allow'), b: kt('Sur l’ordinateur, vérifiez que le code est le même et touchez Autoriser : votre téléphone pilote cet ordinateur.', 'On the computer, check the code is the same and click Allow: your phone now drives this computer.') }
+            ],
+            mock: { bar: 'Remote Control', rows: [kt('Cet ordinateur', 'This computer')], hot: kt('Votre téléphone', 'Your phone'), states: [kt('Pas lié', 'Not linked'), kt('Code : 4821', 'Code: 4821'), kt('Lié', 'Linked')], actions: [kt('Afficher le QR', 'Show the QR'), kt('Scan…', 'Scanning…'), kt('Autoriser', 'Allow')] }
+          })
+          : null)
+
         // The sidebar's phone button opens this (kybernos-cloud renders it inside its popover).
         const Panel = (props) => {
           const r = useRemote()
@@ -755,6 +771,7 @@ window.__ModuleLoader__.load({
                 h('p', { className: 'kbmr-sub' }, kt('Pilotez cet ordinateur depuis votre téléphone : scannez le code, c’est tout. Rien à installer, aucun compte à créer.', 'Drive this computer from your phone: scan the code, that is all. Nothing to install, no account to create.'))),
               planChip !== null ? h('span', { className: 'kbmr-chip' }, planChip) : null,
               helpButton()),
+            introNode(),
             h(Body, { r, compact: false, autoPair: false, web }))
         }
 

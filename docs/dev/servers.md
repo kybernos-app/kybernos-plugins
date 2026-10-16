@@ -152,8 +152,8 @@ no Kybernos LLM; `services.connections` is the connected apps' endpoint on the s
 half refuses a profile with an insecure or malformed one. A server that cannot publish this file can still be used by writing its profile
 into the registry by hand.
 
-The Settings nav lists a page labelled « Servers » / « Serveurs » in the Account group (a one-line entry in `GROUPES`, so the paid module's page
-lands where the mockup puts it instead of under « Third Party Plugins »).
+The Settings nav lists a page labelled « Servers » / « Serveurs » in the Advanced fold (a one-line entry in `GROUPES`, so the paid module's page
+lands where the mockup puts it instead of at the tail of « Other settings »).
 
 ## What the paid module does (private repo)
 

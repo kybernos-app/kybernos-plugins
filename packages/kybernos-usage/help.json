@@ -25,5 +25,6 @@
   "good": {
     "fr": "Le plan est compté par le serveur, en pourcentage ; le coût de vos clés est calculé sur cet ordinateur, rien n'est envoyé.",
     "en": "The plan is counted by the server, as a percentage; the cost of your keys is worked out on this computer, nothing is sent."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/models-and-budget/see-what-it-costs/"
 }

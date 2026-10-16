@@ -374,6 +374,25 @@ try {
   check('and none was written into the project the instance was started in', process.env.KB_WORKTREE === undefined || (!existsSync(join(process.env.KB_WORKTREE, 'kybers/studencik')) && !existsSync(join(process.env.KB_WORKTREE, 'kybers/research-desk'))))
   check('the profession and display mode were written to memory, once, pinned', fake.memoryBodies.length === 1 && fake.memoryBodies[0].path === '/kybernos-cloud/memory/add' && fake.memoryBodies[0].body.pinned === true && fake.memoryBodies[0].body.kind === 'fact' && /^Works as: Students \/ Teaching \/ Research\./.test(fake.memoryBodies[0].body.content), JSON.stringify(fake.memoryBodies))
   check('and the recap says so', (await waitFor(page, `document.querySelector('.kb-ob-mem') !== null`, 4000)) === true)
+  // N-09: the end screen lists what is set up, read from the host's own routes, one row per area, each with a Change link
+  check('the end screen lists what we set up: five areas', (await waitFor(page, `document.querySelectorAll('.kb-ob-setup .kb-ob-srow').length === 5`, 8000)) === true, String(await q(`document.querySelectorAll('.kb-ob-setup .kb-ob-srow').length`)))
+  const setupRows = (await q(`[...document.querySelectorAll('.kb-ob-setup .kb-ob-srow')].map((r) => ({ id: r.getAttribute('data-kb-ob-row'), label: r.querySelector('b').textContent, text: r.querySelector('span').textContent, change: (r.querySelector('button') || {}).textContent }))`)) || []
+  const rowText = (id) => (setupRows.find((r) => r.id === id) || {}).text || ''
+  check('memory, auto routing, connectors, web search and study model, in that order', JSON.stringify(setupRows.map((r) => r.id)) === JSON.stringify(['mem', 'auto', 'conn', 'ws', 'study']), JSON.stringify(setupRows))
+  check('under the title « What we set up for you »', /What we set up for you/i.test(String(await q(`(document.querySelector('.kb-ob-setup h2') || {}).textContent`))))
+  check('every row says something and offers Change', setupRows.every((r) => r.text.trim().length > 8 && r.change === 'Change'), JSON.stringify(setupRows))
+  check('with an account the memory line says memories and lessons are on (it is what the host says)', /Memories and lessons are on/.test(rowText('mem')), rowText('mem'))
+  check('Auto routing says what is so on this install, not a promise', /^(Off|On)/.test(rowText('auto')), rowText('auto'))
+  check('no sideways scroll, and the main button is still there', (await q(`document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1 && !!document.querySelector('[data-kb-ob-primary]')`)) === true)
+  await sleep(700)
+  check('the way out (Open Kybernos) stays in view at the foot of the window', (await q(`(() => { const b = document.querySelector('[data-kb-ob-primary]'); if (!b) return false; const r = b.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight + 1 })()`)) === true)
+  await page.shot(join(shotDir, 'end-what-we-set-up.png'))
+  await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false })
+  await sleep(600)
+  check('at 390 px nothing scrolls sideways and the way out is still in view', (await q(`(() => { const b = document.querySelector('[data-kb-ob-primary]'); if (!b) return false; const r = b.getBoundingClientRect(); return document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1 && r.top >= 0 && r.bottom <= innerHeight + 1 })()`)) === true)
+  await page.shot(join(shotDir, 'end-what-we-set-up-390.png'))
+  await page.send('Emulation.clearDeviceMetricsOverride', {})
+  await sleep(300)
   await press('Open Kybernos')
   let st6 = null
   try { st6 = JSON.parse(read('kybernos/onboarding.json')) } catch (e) { st6 = null }
@@ -388,7 +407,16 @@ try {
   await waitFor(page, `!!document.querySelector('.kb-ob-recap')`, 8000)
   await sleep(600)
   check('and updates that memory', fake.memoryBodies.length === 1 && fake.memoryBodies[0].path === '/kybernos-cloud/memory/update' && fake.memoryBodies[0].body.id === 'mem_test_1', JSON.stringify(fake.memoryBodies))
-  await press('Open Kybernos')
+  // A Change link ends the wizard and opens that area's page of Settings (here Web Search), whatever the language.
+  await waitFor(page, `document.querySelectorAll('.kb-ob-setup .kb-ob-srow').length === 5`, 8000)
+  const changed = await q(`(() => { const b = document.querySelector('.kb-ob-srow[data-kb-ob-row="ws"] button'); if (!b) return false; b.click(); return true })()`)
+  check('Change on the web search row is pressed', changed === true)
+  await sleep(1500)
+  check('the wizard is gone', (await q(`document.querySelector('.kb-ob') === null`)) === true)
+  await waitFor(page, `[...document.querySelectorAll('nav button')].some((b) => /web search/i.test(b.textContent))`, 8000)
+  await sleep(1200)
+  const landedWs = await q(`(() => { const sel = document.querySelector('nav button[aria-current], nav button[aria-selected="true"], nav button[class*="active"], nav button[class*="selected"]'); return sel ? sel.textContent.trim() : null })()`)
+  check('it landed on Web Search', landedWs === 'Web Search', JSON.stringify(landedWs))
   fake.statusConnected = false
   await backToTheStartingPoint()
 

@@ -81,6 +81,60 @@ ok('the order of the list is the priority: moving an engine up makes it the defa
 ok('no engine on, or none ready: no default (the page says so)', defaultEngine([eng('a', { enabled: false })]) === null && defaultEngine([]) === null && defaultEngine(undefined) === null)
 ok('the default is marked on its row and named under the title', /isDefault: fixed !== true && defaultId === e\.id/.test(src) && src.includes("'data-kb': 'websearch-default'") && src.includes("'data-kb': 'websearch-default-line'"))
 
+// ── A3-34: a host half that does not answer is a sentence and a Retry, never « Failed to fetch » ────
+// The four ways the audit saw it fail (refused connection, 404 after an update without restart, a 500, an HTML page),
+// then the page that shows the result.
+const { api, hostDown } = plugin.__test
+const SENTENCE = 'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.'
+const answer = (status, text) => async () => ({ status, ok: status < 400, json: async () => JSON.parse(text), text: async () => text })
+const whatApiSays = async (fetchImpl) => {
+  sandbox.fetch = fetchImpl
+  try { return { value: await api('/kybernos-websearch/state') } } catch (e) { return { error: e } }
+}
+{
+  const refused = await whatApiSays(async () => { throw new TypeError('Failed to fetch') })
+  ok('a refused connection says the helper is not answering', refused.error !== undefined && refused.error.message === SENTENCE, refused.error && refused.error.message)
+  const gone = await whatApiSays(answer(404, '<html>Not found</html>'))
+  ok('a 404 (DSH not restarted after an update) says the same', gone.error !== undefined && gone.error.message === SENTENCE, gone.error && gone.error.message)
+  const crashed = await whatApiSays(answer(500, '{"ok":false,"error":"boom"}'))
+  ok('a 500 says the same', crashed.error !== undefined && crashed.error.message === SENTENCE, crashed.error && crashed.error.message)
+  const html = await whatApiSays(async () => ({ status: 200, ok: true, json: async () => JSON.parse('<!doctype html><title>Sign in</title>') }))
+  ok('a page that is not JSON says the same (a captive portal, a proxy)', html.error !== undefined && html.error.message === SENTENCE, html.error && html.error.message)
+  ok('never the browser\'s own words', [refused, gone, crashed, html].every((r) => !/Failed to fetch|Unexpected token|JSON/.test(r.error.message)))
+  const fine = await whatApiSays(answer(200, '{"ok":true,"engines":[]}'))
+  ok('a good answer passes through untouched', fine.value !== undefined && fine.value.ok === true)
+  const refusal = await whatApiSays(answer(400, '{"ok":false,"error":"invalid-key"}'))
+  ok('a 400 with its own reason is still the host\'s answer, not « not answering »', refusal.value !== undefined && refusal.value.error === 'invalid-key')
+  ok('hostDown() carries the sentence', hostDown().message === SENTENCE)
+}
+
+// The page itself, rendered with a fake React whose first hooks are set: state null and msg = the sentence.
+{
+  const walk = (node, hit, out = []) => {
+    if (node === null || typeof node !== 'object') return out
+    if (hit(node)) out.push(node)
+    for (const c of [].concat(node.children || [])) walk(c, hit, out)
+    return out
+  }
+  const textOf = (node) => (node === null || node === undefined ? '' : (typeof node === 'object' ? [].concat(node.children || []).map(textOf).join('') : String(node)))
+  const renderPage = (over) => {
+    let n = 0
+    const React2 = { ...React, Fragment: 'Fragment', useState: (v) => { const i = n; n += 1; return [i in over ? over[i] : v, () => {}] }, useEffect: () => {} }
+    const p2 = loaded.factory((name) => (name === 'react' ? React2 : null))
+    let reg = null
+    p2.apply({ slots: { inject: (name, fn) => { reg = fn(); return () => {} }, register: (meta, render) => ({ meta, render }) }, effect: (fn) => fn() })
+    return reg.render().type()
+  }
+  const failed = renderPage({ 1: SENTENCE })
+  const panel = walk(failed, (nd) => nd.props && nd.props['data-kb'] === 'websearch-down')
+  ok('first read failed: a panel with the sentence', panel.length === 1 && textOf(panel[0]).includes(SENTENCE), panel.length && textOf(panel[0]))
+  ok('…and a Retry button', walk(failed, (nd) => nd.type === 'button' && nd.props['data-act'] === 'retry' && textOf(nd) === 'Retry').length === 1)
+  ok('…under the page\'s own title, which stays', walk(failed, (nd) => nd.type === 'h4' && textOf(nd) === 'Web Search').length === 1)
+  ok('…and no bare red line any more', walk(failed, (nd) => nd.props && nd.props.className === 'kwse-err').length === 0)
+  const loading = renderPage({})
+  ok('while it loads (no error yet) there is no failure panel', walk(loading, (nd) => nd.props && nd.props['data-kb'] === 'websearch-down').length === 0)
+}
+
 // ── hygiene (same rules as the other bundles) ───────────────────────────────────────────────────────
 const hook = (id) => src.indexOf("'data-kb': '" + id + "'") !== -1
 ok('stable data-kb hooks for tests and live scripts', ['websearch-page', 'websearch-list', 'websearch-engine', 'websearch-switch', 'websearch-key-input', 'websearch-test-result', 'websearch-domains', 'websearch-last'].every(hook))

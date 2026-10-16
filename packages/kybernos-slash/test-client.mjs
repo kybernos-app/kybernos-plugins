@@ -118,5 +118,29 @@ console.log('the slash name')
   check('the editor refuses such a name, with its own sentence', /KB_DSH_COMMANDS\.indexOf\(kbCleanSlug\(d\.slug\)\) !== -1\) return \{ msg: '\/' \+ kbCleanSlug\(d\.slug\) \+ ' is one of DSH/.test(src))
 }
 
+console.log('the animated help of the Commands page (V-36)')
+{
+  const guard = "typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__"
+  const at = src.indexOf("id: 'kybernos-slash',\n")
+  const call = at < 0 ? '' : src.slice(at, at + 3000)
+  check('the page asks the Suite for the animation, keyed by its bundle, behind a guard', src.includes(guard + '.Intro') && /h\(window\.__KB_HELP__\.Intro, \{\s*id: 'kybernos-slash'/.test(src))
+  check('three steps with a title and a sentence each, in both languages', (call.match(/\{ t: L\(\{ fr: '[^']+', en: '[^']+' \}\), b: L\(\{ fr: '[^']+', en: '[^']+' \}\) \}/g) || []).length === 3, call.slice(0, 200))
+  check('they say what to do: save a prompt, call it with « / », or run it on a reply', /Save a prompt/.test(call) && /Call it with \//.test(call) && /run it on a reply/i.test(call))
+  check('the mock names the page and shows a command with its three states and three labels', /bar: L\(\{ fr: 'Commandes', en: 'Commands' \}\)/.test(call) && /hot: '\/summary'/.test(call) && /states: \[L\(/.test(call) && /actions: \[L\(/.test(call))
+  check('it sits under the header and above the tabs', src.indexOf('introNode,') > src.indexOf("className: 'kbsl-head'") && src.indexOf('introNode,') < src.indexOf("className: 'kbsl-tabs'"))
+}
+
+console.log('the page says what each tab is for (V-36)')
+{
+  const line = src.match(/className: 'kbsl-sub kbsl-tabfor'[^\n]*\n?/)
+  const where = line === null ? '' : line[0] + src.slice(line.index + line[0].length, line.index + line[0].length + 900)
+  check('a line under the tabs follows the tab that is open', line !== null && /tab === 'action'/.test(where.slice(0, 200)))
+  check('slash tab: it says what a slash command is, in both languages', /fr: 'Une commande slash est un prompt enregistré/.test(where) && /en: 'A slash command is a saved prompt/.test(where))
+  check('message actions tab: it says what an action is and where it shows, in both languages', /fr: 'Une action de message est un bouton sous/.test(where) && /en: 'A message action is a button under/.test(where))
+  check('it explains how to run a slash command (the « / » key) and what an action works on (that reply)', /“\/”/.test(where) && /that reply/.test(where) && /cette réponse/.test(where))
+  const pairs = [...src.matchAll(/L\(\s*\{\s*fr:\s*'([^']*)'\s*,\s*en:\s*'([^']*)'\s*\}\)/g)]
+  check('the new sentences are among the L({fr, en}) pairs, none empty', pairs.filter((p) => /commande slash est un prompt|action de message est un bouton/.test(p[1])).length === 2)
+}
+
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)
 process.exit(failed === 0 ? 0 : 1)
