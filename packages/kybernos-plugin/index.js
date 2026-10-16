@@ -8099,7 +8099,7 @@ function boot(ctx) {
       { id: 'piper', name: 'Piper', kind: 'local', price: 'free', privacy: 'Stays on this Mac. Nothing leaves it.' },
       { id: 'supertonic', name: 'Supertonic-3', kind: 'local', price: 'free', privacy: 'Stays on this Mac. Nothing leaves it.' },
       { id: 'edge', name: 'edge-tts', kind: 'cloud', price: 'free', privacy: 'The reply text is sent to Microsoft to be synthesised.' },
-      { id: 'models', name: 'Your models', kind: 'cloud', price: 'plan', privacy: 'The reply text is sent to the provider of the model you choose, with the key already set up in Models.' },
+      { id: 'models', name: 'Your models', kind: 'cloud', price: 'plan', privacy: 'The reply text is sent to the provider of the model you choose, with the key already set up in AI Provider & Models.' },
     ]
     // 31 langues déclarées par Supertonic-3 (aucune langue chinoise : vérifié).
     const KB_TTS_SUPERTONIC_LANGS = ['ar', 'bg', 'cs', 'da', 'de', 'el', 'en', 'es', 'et', 'fi', 'fr', 'hi', 'hr', 'hu', 'id', 'it', 'ja', 'ko', 'lt', 'lv', 'nl', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sv', 'tr', 'uk', 'vi']
