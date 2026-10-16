@@ -17,8 +17,21 @@ window.__ModuleLoader__.load({
   factory () {
     try {
       // ── words ─────────────────────────────────────────────────────────────
-      const lang = () => { try { return String((window.__KB_LANG_RESOLVE__ && window.__KB_LANG_RESOLVE__()) || '').split(/[-_]/)[0] } catch (e) { return 'fr' } }
-      const kt = (fr, en) => (lang() === 'en' ? en : fr)
+      // French is the source, English the pair; French only for a French UI, a translated language is looked up by its French text,
+      // and every other language (and a language not known yet) reads English.
+      const lang = () => {
+        try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
+      }
+      const kt = (fr, en) => {
+        const l = lang()
+        if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
+        if (l === 'en') return en
+        try {
+          const a = window.__KB_I18N_ACTIVE__
+          if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
+        } catch (e) { /* no dictionary: English */ }
+        return en
+      }
 
       // ── scopes: the order of the groups, their colour, and where each is read ──
       // `host`: searched by the host (the chats, which are big; the small files). `page`: read here from a route the page already uses.

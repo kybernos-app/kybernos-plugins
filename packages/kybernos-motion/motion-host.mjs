@@ -1,7 +1,7 @@
 // Motion host logic: scene files, revisions, previews. No `ctx`, no DSH import: every effect is injected,
 // so the whole thing runs in a test against a temp folder.
 //
-// A scene lives in the project as `<name>.miniapp.json`, the shared livrable format (see the Livrables page):
+// A scene lives in the project as `<name>.miniapp.json`, the shared creation format (see the Creations page):
 //
 //   { "kind": "motion", "renderer": "motion", "title": "...",
 //     "meta": { "rev": 7, "history": [ { "r": 7, "by": "agent", "at": "...", "what": "..." } ] },
@@ -10,7 +10,7 @@
 // Files only ever go where the core plugin says a session may work (session folder, kyber roots, declared
 // workspaces): `workspace.pathAllowed` is the core's own resolve-then-compare check, and `workspace.sessionCwd`
 // finds the session's folder. Without the core (or when the folder is unknown) scenes go to
-// `<dsh home>/kybernos/motion/files`, which still works but does not show in Livrables.
+// `<dsh home>/kybernos/motion/files`, which still works but does not show in Creations.
 import { createHash } from 'node:crypto'
 import { basename, dirname, extname, isAbsolute, join, resolve, sep } from 'node:path'
 import * as engine from './engine.mjs'
@@ -122,7 +122,7 @@ export function createHost ({ fs, home, workspace, now = () => Date.now(), log =
     return { ok: true, path: join(real, leaf) }
   }
 
-  /** Same check for a file that already exists (the panel, Livrables). */
+  /** Same check for a file that already exists (the panel, Creations). */
   async function confineExisting (path, sessionId) {
     if (typeof path !== 'string' || !isAbsolute(path) || !path.endsWith(EXT)) return { ok: false, message: 'Not a scene file.' }
     const real = await allowedDir(dirname(path), sessionId)
@@ -384,7 +384,7 @@ export function toolOptions (host) {
     name: TOOL,
     description:
       'Creates or edits a motion-design animation (titles, shapes, charts, counters, particles, shape morphs, sound) '
-      + 'as a .miniapp.json file in the project\'s artifacts/ folder. It shows in the Livrables page and in the "Motion" panel '
+      + 'as a .miniapp.json file in the project\'s artifacts/ folder. It shows in the Creations page and in the "Motion" panel '
       + '(right sidebar), where the user can play it, change its settings and export it to MP4. '
       + 'Call with `scene` to write it; call with only `params` to change a few of its settings; call with neither to READ it back '
       + 'together with what the user changed since your last write. The result lists problems found in the scene '
@@ -400,7 +400,7 @@ export function toolOptions (host) {
       + 'Components (layers[].type):\n' + engine.describeComponents(),
     parameters: {
       fichier: { type: 'string', description: 'File name (without folder) or path. Default: derived from the title. Created in <project>/artifacts/.' },
-      titre: { type: 'string', description: 'Title shown in the Livrables page and the panel.' },
+      titre: { type: 'string', description: 'Title shown in the Creations page and the panel.' },
       scene: { type: 'object', additionalProperties: true, description: 'The whole scene to write (see above). Omit to read, or to patch with `params`.' },
       params: { type: 'object', additionalProperties: true, description: 'Change only these params of the existing scene (e.g. {"titre":"New title","accent":"#ff0000"}).' },
       voir: { type: 'number', description: 'Render the instant t (seconds) as a PNG and return its path, to look at the result. Needs the Motion panel open.' },
@@ -475,7 +475,7 @@ export async function runTool (host, sessionId, a) {
   const out = {
     ok: true, chemin: path, titre: saved.title, rev: saved.rev,
     dropped: saved.errors.slice(0, 15), inspect: brief(insp), ...(await assetReport(host, path, saved.scene, sessionId)),
-    message: `Saved r${saved.rev}. The user sees it in the Motion panel and in Livrables.`
+    message: `Saved r${saved.rev}. The user sees it in the Motion panel and in Creations.`
       + (saved.errors.length ? ` ${saved.errors.length} thing(s) were ignored (see dropped).` : '')
       + (insp.warnings.length ? ` ${insp.warnings.length} readability warning(s): fix and call again.` : ' No readability warning.'),
   }

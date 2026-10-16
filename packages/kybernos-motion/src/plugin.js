@@ -2,7 +2,7 @@
 // In scope from the assembler: `require` (DSH module loader), `engine`, `audio`, `render2d`, `renderExt`, `Mediabunny`, `RUNTIME_SRC`.
 //
 // Two things live here:
-//   MotionPlayer  plays a motion scene; registered as the "motion" player of the Livrables page, the chat card and the popup
+//   MotionPlayer  plays a motion scene; registered as the "motion" player of the Creations page, the chat card and the popup
 //   MotionPanel   the right-sidebar tab: play, scrub, change the scene's settings, export (MP4, standalone page, app)
 const React = require('react')
 const h = React.createElement
@@ -13,10 +13,27 @@ const SLOT = 'sidebar.right.pane.tab'
 const STYLE_ID = 'kybernos-motion-styles'
 const R = '/kybernos-motion/'
 
-const lang = () => { try { return String(window.__KB_LANG_RESOLVE__?.() || '').split(/[-_]/)[0] } catch (e) { return 'fr' } }
-const kt = (fr, en) => (lang() === 'en' ? en : fr)
-// Text separator, locale-aware: French ' : ', English ': '.
-const sep = () => (lang() === 'en' ? ': ' : ' : ')
+// French is the source, English the pair; French only for a French UI, a translated language is looked up by its French text,
+// and every other language (and a language not known yet) reads English.
+const lang = () => {
+  try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
+}
+const kt = (fr, en) => {
+  const l = lang()
+  if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
+  if (l === 'en') return en
+  try {
+    const a = window.__KB_I18N_ACTIVE__
+    if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
+  } catch (e) { /* no dictionary: English */ }
+  return en
+}
+/** True for a French UI only: the typography below (the space before a colon, the guillemets) is French. */
+const isFr = () => { const l = lang(); return l === 'kybernos' || l.slice(0, 2) === 'fr' }
+// Text separator, locale-aware: French ' : ', every other language ': '.
+const sep = () => (isFr() ? ' : ' : ': ')
+/** A name or a text between quotes, in the typography of the language. */
+const quoted = (s) => (isFr() ? '« ' + s + ' »' : '“' + s + '”')
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
 const fmtT = (t) => { const m = Math.floor(t / 60); const s = (t % 60).toFixed(1); return m + ':' + (s.length < 4 ? '0' + s : s) }
 const slugOf = (s) => String(s || 'animation').toLowerCase().normalize('NFD').replace(/\p{M}+/gu, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'animation'
@@ -47,7 +64,7 @@ function openTab () {
   } catch (e) { /* no session mounted */ }
 }
 
-// The tab can only show inside a chat. When someone asks for it elsewhere (the Livrables page), keep trying for a minute
+// The tab can only show inside a chat. When someone asks for it elsewhere (the Creations page), keep trying for a minute
 // so it appears as soon as a chat is on screen.
 let WANT_OPEN_UNTIL = 0
 function requestOpen () {
@@ -377,7 +394,7 @@ function Transport ({ scene, player, extra }) {
     extra || null)
 }
 
-/* ══════════════════════ the player (Livrables, chat card, popup) ══════════════════════ */
+/* ══════════════════════ the player (Creations, chat card, popup) ══════════════════════ */
 
 function MotionPlayer (props) {
   const parsed = React.useMemo(() => parseDoc(props.text), [props.text])
@@ -634,7 +651,7 @@ function ExportModal ({ doc, player, onClose, onToast }) {
   }
   return h('div', { className: 'kbmt-mask', onClick: (e) => { if (e.target === e.currentTarget && phase !== 'work') onClose() } },
     h('div', { className: 'kbmt-modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': kt('Exporter', 'Export') },
-      h('div', { className: 'kbmt-mh' }, h('h2', null, kt('Exporter « ', 'Export "') + doc.title + (lang() === 'en' ? '"' : ' »')), phase === 'work' ? null : h('button', { type: 'button', className: 'kbmt-ibtn', 'aria-label': kt('Fermer', 'Close'), onClick: onClose }, Ic('x', 16))),
+      h('div', { className: 'kbmt-mh' }, h('h2', null, kt('Exporter ', 'Export ') + quoted(doc.title)), phase === 'work' ? null : h('button', { type: 'button', className: 'kbmt-ibtn', 'aria-label': kt('Fermer', 'Close'), onClick: onClose }, Ic('x', 16))),
       h('div', { className: 'kbmt-mb' }, body), h('div', { className: 'kbmt-mf' }, foot)))
 }
 
@@ -647,7 +664,7 @@ function MotionPanel () {
   const [list, setList] = React.useState([])
   const [modal, setModal] = React.useState(false)
   const [toast, setToast] = React.useState('')
-  const [arrival, setArrival] = React.useState(0) // counts the scenes the HOST handed us (the agent wrote, Livrables pointed here), not our own edits
+  const [arrival, setArrival] = React.useState(0) // counts the scenes the HOST handed us (the agent wrote, Creations pointed here), not our own edits
   const draft = React.useRef(null)
   const timer = React.useRef(null)
   const seenAt = React.useRef(0)
@@ -680,7 +697,7 @@ function MotionPanel () {
     setArrival((n) => n + 1)
   }, [])
 
-  // follow what the host says is current (the agent wrote, Livrables pointed here); answer frame requests
+  // follow what the host says is current (the agent wrote, Creations pointed here); answer frame requests
   React.useEffect(() => {
     let dead = false
     const poll = async () => {
@@ -733,7 +750,7 @@ function MotionPanel () {
     draft.current = next
     setDoc({ ...d, scene: engine.validate(next).scene })
     clearTimeout(timer.current)
-    const what = ctl.label + sep() + (kind === 'text' ? '« ' + String(value).slice(0, 40) + ' »' : shown || String(value))
+    const what = ctl.label + sep() + (kind === 'text' ? quoted(String(value).slice(0, 40)) : shown || String(value))
     if (kind === 'text') timer.current = setTimeout(() => save(what), 700)
     else save(what)
   }
@@ -902,7 +919,7 @@ const CSS = `
 
 /* ══════════════════════ wiring ══════════════════════ */
 
-/** The door of the Livrables page: the "motion" player, and the exporter the Mac app install uses. */
+/** The door of the Creations page: the "motion" player, and the exporter the Mac app install uses. */
 function registerPlayer () {
   try {
     if (window.__KB_MINIAPP__ && typeof window.__KB_MINIAPP__.register === 'function') window.__KB_MINIAPP__.register('motion', MotionPlayer)

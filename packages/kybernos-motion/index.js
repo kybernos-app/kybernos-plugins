@@ -235,7 +235,7 @@ export function mountRoutes (webServer, host) {
     send(res, r.ok ? 200 : 409, r)
   })
 
-  // An exported video, written next to its scene (artifacts/ is where Livrables lists media).
+  // An exported video, written next to its scene (artifacts/ is where Creations lists media).
   route('export', ['POST'], async (req, res) => {
     const p = q(req)
     const ext = { mp4: '.mp4', webm: '.webm' }[p.get('format')]
