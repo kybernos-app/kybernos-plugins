@@ -169,10 +169,12 @@ verifie('relance : sans serveur, rien à arrêter', planRelance('mac', { port: 3
 verifie('relance : windows démarre dsh.cmd', planRelance('windows', { port: 3080, pid: 1 }).demarrer.cmd === 'dsh.cmd')
 verifie('relance : le pid est converti en chaîne (process.kill accepte les deux)', typeof planRelance('mac', { port: 1, pid: 42 }).arreter.pid === 'string')
 const ditMac = instructionsRedemarrage('mac', 3080)
-verifie('instructions : la commande exacte est donnée', ditMac.includes('dsh web --no-open --port 3080'))
+verifie('instructions : la commande exacte est donnée, sans --no-open : le navigateur s\'ouvre déjà connecté', ditMac.includes('dsh web --port 3080') && !/^\s+dsh web --no-open/m.test(ditMac))
+verifie('instructions : elles disent d\'ouvrir l\'adresse que dsh web affiche (jeton), et que l\'adresse nue répond 401 (A6-17)', /address that dsh web prints/.test(ditMac) && /\?token=/.test(ditMac) && /answers 401/.test(ditMac))
+verifie('instructions : elles sont en anglais (A6-18)', !/[éèàçùô]|Pour voir|là où/.test(ditMac) && /To see Kybernos/.test(ditMac))
 verifie('instructions : elle dit Ctrl-C, pas « recharge la page »', ditMac.includes('Ctrl-C'))
-verifie('instructions : elle propose --relancer', ditMac.includes('--relancer'))
-verifie('instructions : Windows dit la même commande', instructionsRedemarrage('windows', 3080).includes('dsh web --no-open --port 3080'))
+verifie('instructions : elle propose --relancer --force (le robot refuse sans --force)', ditMac.includes('--relancer --force'))
+verifie('instructions : Windows dit la même commande', instructionsRedemarrage('windows', 3080).includes('dsh web --port 3080'))
 verifie('instructions : le port vient de l\'appelant', instructionsRedemarrage('linux', 4444).includes('--port 4444'))
 
 // ── la supervision : le contenu de l'unité, par famille ────────────────────
