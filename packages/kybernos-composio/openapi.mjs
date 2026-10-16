@@ -290,7 +290,9 @@ export const createOpenapi = ({ home, fetchFn = fetch, log = () => {} }) => {
   let tools = null
   const live = new Map()
 
-  // The spec is fetched anonymously: the key belongs to the API and is never sent to wherever the spec happens to be hosted.
+  // The spec is fetched anonymously: the key belongs to the API and is never sent to wherever the spec happens to be hosted. Like the API
+  // calls, no redirect is followed: `safeUrl` judged the address that was typed, and a hop to http://169.254.169.254/ or to an internal http
+  // service would have gone unjudged (a 3xx reads as `spec_http`, the person types the final address).
   const fetchSpec = async (url, auth) => {
     const u = safeUrl(url)
     if (u === null) return { ok: false, error: 'bad_address' }
@@ -298,7 +300,7 @@ export const createOpenapi = ({ home, fetchFn = fetch, log = () => {} }) => {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
     try {
-      const res = await fetchFn(u.href, { headers: { accept: 'application/json', 'user-agent': 'kybernos-openapi' }, redirect: 'follow', signal: controller.signal })
+      const res = await fetchFn(u.href, { headers: { accept: 'application/json', 'user-agent': 'kybernos-openapi' }, redirect: 'manual', signal: controller.signal })
       if (!res.ok) return { ok: false, error: res.status === 401 || res.status === 403 ? 'spec_unauthorized' : 'spec_http', status: res.status }
       const { text, cut } = await readBounded(res, MAX_SPEC_BYTES)
       if (cut) return { ok: false, error: 'spec_too_large' }
