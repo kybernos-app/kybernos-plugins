@@ -330,6 +330,22 @@ Both need a sandbox that serves this checkout and refuse `:3080`; neither writes
   `packages/kybernos-modeles-locaux/test-modeles-catalogue.mjs`. Trap: the button is in the machine tile, which is drawn only
   once the machine is measured (a few seconds when Ollama is installed but not serving): wait for it.
 
+## The Study model: `scripts/check-study-model-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-study-model-live.mjs [--shots /tmp/shots]
+```
+
+Kybernos Settings has ONE brain row, the Study model (« Decision Brain » is gone): Automatic — <model> (the empty setting, the
+default), « Choose another… » and None. The check refuses `:3080`, picks each state in the page, reads what the host kept and
+what the decision route does (None: nothing is sent to any model, the word rules still pick the icon), and puts the sandbox back on
+Automatic. It calls no model. The closed question itself is played by `packages/kybernos-sessions/test-decision-llm.mjs` (a stub
+`llm`); to see it through DSH's real `llm` service in a sandbox, point the sandbox's `ollama-local` route (its own
+`cordis.patch.yml`, hot-reloaded) at a local fake OpenAI-compatible server and put `OLLAMA_LOCAL_API_KEY=ollama` in the sandbox's
+`$DSH_HOME/.env` (read at launch: restart the sandbox). Trap: a plugin's host half sees a service with `ctx.get` only when it
+declared it; the sessions bundle reads `credentials` from `ctx.root` (until it did, every provider looked connected, and the Cloud
+was picked on a sandbox with no account).
+
 ## The run, the ring and the test marks: `scripts/check-language-run-live.mjs`
 
 ```bash

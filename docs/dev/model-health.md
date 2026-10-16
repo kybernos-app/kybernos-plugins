@@ -1,8 +1,11 @@
 # Model health: the chip on the AI Provider & Models tab
 
-When a study model (`brain`) is set in Kybernos Settings, the configured models are probed on the host (one real,
-tiny call each, cached five hours). A model that no longer answers is reported. With no study model nobody is
-watching and nothing is shown.
+While a Study model is in force (`brain` in Kybernos Settings: the person's pick, or Automatic, which is the default and
+picks a model by itself), the configured models are probed on the host (one real, tiny call each, cached five hours). A
+model that no longer answers is reported, and the automatic choice skips it. On Automatic the probe watches the models whose
+provider is connected (a key is set): the profile lists many providers nobody set a key for, and a chip saying « 100 models not
+answering » would be noise. A person who picked their Study model keeps the old behaviour: every model they listed is probed.
+With the Study model on **None**, or Automatic with no connected model that qualifies, nobody is watching and nothing is shown.
 
 Until now the verdict was a five-line banner drawn by `kybernos-sessions` above the page. It is now a **chip on the
 tab bar** of AI Provider & Models, drawn by `kybernos-models`:

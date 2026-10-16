@@ -47,7 +47,7 @@ import { MAP_TUNING, textHash, packVector, unpackVector, buildMap } from './mapp
 import { TEAM_CHUNK_NAME, TEAM_CHUNK_ORDER, TEAM_TUNING, teamWorkspace, displayName, asTeamLesson, teamFailure, teamPlan, renderTeamChunk, applicable } from './team-lessons.mjs'
 import { teamSkillsBase, isSkillId, teamSkillsFailure, asTeamSkill } from './team-skills.mjs'
 import { createConnections } from './connections-host.mjs'
-import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyModel, brainGroups } from './tidy.mjs'
+import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyChoice, brainGroups } from './tidy.mjs'
 import { zstdDecompressSync } from 'node:zlib'
 import { activeServer, stateFileName, llmBase, publicProfile } from './server-profile.mjs'
 import { agentsFile, readInstructions, writeInstructions } from './instructions.mjs'
@@ -2965,12 +2965,16 @@ const tidyState = () => {
 }
 const writeTidy = (t) => writeSide('tidy', { scan: t.scan, dismissed: t.dismissed.slice(-TIDY_DISMISSED_MAX), log: t.log.slice(0, TIDY_LOG_MAX), settings: t.settings, last: t.last, judged: t.judged })
 
-// The Study model (Kybernos Settings → `brain`, « route/id ») and the `llm` service that can talk to it.
+// The Study model (Kybernos Settings → `brain`: a « route/id », `none`, or empty = Automatic, the model kybernos-sessions
+// publishes) and the `llm` service that can talk to it.
 const kybernosSettingsFile = () => {
   const own = process.env.KYBERNOS_SETTINGS_FILE
   return typeof own === 'string' && own.trim() !== '' ? own.trim() : join(dshHome(), 'kybernos', 'settings.json')
 }
-const studyModel = () => readStudyModel(() => readFileSync(kybernosSettingsFile(), 'utf8'))
+const studyChoice = () => readStudyChoice(() => readFileSync(kybernosSettingsFile(), 'utf8'))
+const studyModel = () => studyChoice().model
+/** What the page needs of the Study model: its name, whether it was picked for the person, whether they chose none, and whether a model service exists. */
+const studyView = () => { const c = studyChoice(); return { model: c.model, auto: c.auto, none: c.none, llm: tidyLlm() !== undefined } }
 const tidyLlm = () => { try { return hostCtx === null ? undefined : hostCtx.get('llm') } catch (e) { return undefined } }
 // A run that starts by itself, and the process-wide flags it needs.
 const TIDY_TUNING = { firstMs: 90000, tickMs: 600000 }
@@ -3001,7 +3005,7 @@ const tidyView = () => {
     log: t.log.slice(0, 20).map((l) => ({ ...l, canUndo: l.undone !== true && a.runs[l.id] !== undefined })),
     settings: t.settings, last: t.last,
     next: tidyNext({ schedule: t.settings.schedule, last: t.last, now, total: memoryCache.account.length > 0 ? memoryCache.account.length : null, bootDone: tidyFlags.bootDone }),
-    brain: { model: studyModel(), llm: tidyLlm() !== undefined },
+    brain: studyView(),
     unclear: t.scan === null || !Number.isFinite(t.scan.unclear) ? 0 : t.scan.unclear,
   }
 }

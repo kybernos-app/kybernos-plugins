@@ -65,7 +65,8 @@ one click away.
   vs « 3080 ») is never « the same fact », whatever the word overlap.
   *Run automatically* (Off / When DSH starts / Daily / Weekly (default) / Every 50 new) starts a run while DSH runs:
   a look, then what the mode allows; a failed run waits an hour. *Study model judges the unclear cases* (off by
-  default, needs the Study model of Kybernos Settings): the pairs that look alike but are not duplicates are sent to
+  default; uses the Study model of Kybernos Settings, which is picked automatically unless you chose one or None, and the
+  row says which one): the pairs that look alike but are not duplicates are sent to
   it — their text only, never the whole list — and it answers « same » (with a merged wording), « replaces » (the
   newer one makes the older outdated) or « different »; its answers are only ever suggestions, never merged by
   itself. See *Tidy up* below.
@@ -160,7 +161,11 @@ and are written by the page to both (lessons work without the cloud); a patch is
 per launch if the last run is over 3 days old, `n50` once 50 more items exist than at the last run; never offline, not
 with Memories / Lessons switched off, and a failed attempt is not retried for an hour.
 
-**Study model** (`brain`, « route/id » of Kybernos Settings, read from `~/.dsh/kybernos/settings.json`): asked through
+**Study model** (`brain` of Kybernos Settings, read from `~/.dsh/kybernos/settings.json`: a « route/id » is the person's pick,
+`none` is no Study model, empty is Automatic — the model `kybernos-sessions` picks and publishes as
+`globalThis[Symbol.for('kybernos.studyModel')]`, a function giving « route/id » or `''`; absent, Automatic finds nobody and the
+run says `pas_de_modele_detude`; `readStudyChoice` in `tidy.mjs`, shared with `kybernos-cloud`; the view tells the page
+`{ model, auto, none, llm }`): asked through
 the `llm` service (`purpose: 'kybernos-tidy'`), 12 pairs per question, at most 30 pairs per run, 60 s per question,
 the notes handed over as data. Every verdict is cached by pair and text (a pair is asked once; a changed text is asked
 again; `different` is remembered), every slip in the answer becomes « unsure », a pinned item is never offered for

@@ -1,19 +1,17 @@
-// Classement local de secours — quelle catégorie pour ce chat, SANS le cerveau de décision.
+// Local classifier — which category for this chat, from the words of its title alone.
 //
-// Pourquoi ce module existe. L'icône d'une ligne de session est sa catégorie (decision.mjs : CATEGORIES). Le cerveau de décision
-// (Jev, sur la passerelle) est la source de la vraie réponse ; mesuré le 15/10/2026, il rend un 403 (« Free tier users do not
-// have access to this model ») : plus aucune session créée depuis n'a de catégorie, et toutes les lignes gardent le point
-// « non classé ». Ce module donne alors une réponse HONNÊTE et prudente, à partir des seuls mots du titre :
-//   · il n'est appelé que quand le cerveau n'a PAS répondu (erreur, éteint, clé absente) — jamais pour contredire un verdict ;
-//   · il ne classe que sur un signal net : un mot assez spécifique (ou deux), et une avance sur la catégorie suivante ;
-//   · sinon il rend `null` et la ligne garde son icône neutre : on n'invente pas une catégorie ;
-//   · son verdict est étiqueté `local` — jamais présenté comme celui du modèle.
-// Pur : aucune lecture de fichier, aucun réseau, aucune horloge. Testé par test-classement-local.mjs.
+// Why this module exists. The icon of a session row is its category (decision.mjs: CATEGORIES). The words of the title are
+// asked FIRST, before any model: they cost nothing, send nothing anywhere and are instant. A model (the Study model, see
+// decision-llm.mjs) is asked only when they have no clear signal. The answer is deliberately cautious:
+//   · it classifies only on a clear signal: a specific enough word (or two), and a lead over the next category;
+//   · otherwise it answers `null` and the row keeps its neutral icon: a category is never invented;
+//   · its verdict is labelled `local` — never presented as the model's.
+// Pure: no file read, no network, no clock. Tested by test-classement-local.mjs.
 //
-// Un radical de 3 lettres ou moins ne vaut que comme mot entier (« ui » n'est pas dans « quiz », « bug » pas dans « debugger »,
-// avec les flexions courantes de 3 lettres : bugs, fixed) ; un radical plus long vaut comme début de mot (« nettoy » →
-// nettoyage, nettoyer) ; `=mot` ne vaut que comme mot entier (« =memo » : pas « memory »). Accents et casse ignorés.
-// Poids : 3 = le mot dit le domaine, 2 = typique, 1 = indice faible (jamais suffisant seul).
+// A stem of 3 letters or less only counts as a whole word (« ui » is not in « quiz », « bug » not in « debugger », with the
+// common 3-letter inflections: bugs, fixed); a longer stem counts as a word start (« nettoy » → nettoyage, nettoyer); `=word`
+// only counts as a whole word (« =memo »: not « memory »). Accents and case are ignored.
+// Weights: 3 = the word names the domain, 2 = typical, 1 = weak hint (never enough alone).
 
 /** Score minimal du vainqueur, et avance minimale sur le suivant. */
 export const SEUIL_LOCAL = 2
@@ -62,7 +60,7 @@ const REGLES = {
   ]
 }
 
-/** Titres que le harnais pose avant le premier nommage : rien à classer. */
+/** Titles the harness sets before the first naming: nothing to classify. */
 const TITRES_VIDES = new Set(['new session', 'nouvelle session', 'untitled', 'sans titre', 'new chat', 'nouveau chat'])
 
 const normaliser = (texte) => String(texte === undefined || texte === null ? '' : texte)
@@ -71,8 +69,8 @@ const normaliser = (texte) => String(texte === undefined || texte === null ? '' 
 
 const jetons = (texte) => normaliser(texte).split(/[^a-z0-9]+/).filter((j) => j !== '')
 
-/** Les mots (indices de jetons) que ce radical reconnaît dans le titre ; une expression (avec espace) se cherche mot à mot,
- *  début de mot compris, et vaut pour tous les mots qu'elle couvre. */
+/** The words (token indexes) this stem recognises in the title; a phrase (with a space) is looked for word by word, word
+ *  start included, and counts for every word it covers. */
 const reconnus = (radical, listeJetons) => {
   const sortie = []
   if (radical.indexOf(' ') !== -1) {
@@ -89,8 +87,8 @@ const reconnus = (radical, listeJetons) => {
     listeJetons.forEach((j, i) => { if (j === exact) sortie.push(i) })
     return sortie
   }
-  // Trois lettres ou moins : le mot entier (« ui » n'est pas dans « quiz »), et pour trois lettres ses flexions courantes
-  // (bugs, fixed, added). Plus long : un début de mot.
+  // Three letters or less: the whole word (« ui » is not in « quiz »), and for three letters its common inflections
+  // (bugs, fixed, added). Longer: a word start.
   const flexions = radical.length === 3 ? ['', 's', 'es', 'ed', 'er', 'e'] : ['']
   listeJetons.forEach((j, i) => {
     const ok = radical.length <= 3 ? flexions.some((f) => j === radical + f) : j.startsWith(radical)
@@ -100,9 +98,9 @@ const reconnus = (radical, listeJetons) => {
 }
 
 /**
- * @param {string} titre le titre du chat
+ * @param {string} titre the chat title
  * @returns {{ categorie: string|null, score: number, ecart: number, mots: string[] }}
- *   `categorie` : le slug de CATEGORIES (decision.mjs), ou `null` quand le titre ne dit pas assez.
+ *   `categorie`: the slug of CATEGORIES (decision.mjs), or `null` when the title does not say enough.
  */
 export function classerLocalement (titre) {
   const vide = { categorie: null, score: 0, ecart: 0, mots: [] }
@@ -113,7 +111,7 @@ export function classerLocalement (titre) {
   const points = {}
   const mots = {}
   for (const slug of Object.keys(REGLES)) {
-    // Un mot du titre ne compte qu'UNE fois par catégorie (le plus fort de ses radicaux : « creer » ne vaut pas aussi « cree »).
+    // A word of the title counts ONCE per category (the strongest of its stems: « creer » is not also « cree »).
     const parMot = new Map()
     const vus = []
     for (const [poids, radicaux] of REGLES[slug]) {
@@ -126,18 +124,24 @@ export function classerLocalement (titre) {
     }
     let total = 0
     for (const v of parMot.values()) total += v
-    // Un point d'interrogation dans le titre : le chat pose une question.
+    // A question mark in the title: the chat asks a question.
     if (slug === 'question' && brut.indexOf('?') !== -1) { total += 4; vus.push('?') }
     points[slug] = total
     mots[slug] = vus
   }
-  // Le plus de points, et une avance sur le suivant : à égalité (un titre qui parle autant d'interface que de données) le titre
-  // ne tranche pas — mesuré sur 113 titres déjà classés, départager les égalités ne tombait juste que 2 fois sur 10 : pas de
-  // catégorie inventée, la ligne garde son icône neutre.
+  // The most points, and a lead over the next: on a tie (a title that speaks as much of interface as of data) the title does
+  // not decide — measured on 113 titles already classified, breaking ties was right only 2 times out of 10: no invented
+  // category, the row keeps its neutral icon.
   const classes = Object.keys(points).sort((a, b) => points[b] - points[a])
   const premier = classes[0]
   const second = classes[1]
   const ecart = points[premier] - points[second]
   if (points[premier] < SEUIL_LOCAL || ecart < ECART_LOCAL) return { ...vide, score: points[premier], ecart }
   return { categorie: premier, score: points[premier], ecart, mots: mots[premier] }
+}
+
+/** Is this a placeholder title the harness sets before the first naming (« New Session », « Untitled »…)? Nothing in it is
+ *  worth putting to a model. */
+export function estTitreAttente (titre) {
+  return TITRES_VIDES.has(jetons(titre).join(' '))
 }

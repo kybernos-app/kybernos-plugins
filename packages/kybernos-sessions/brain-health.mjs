@@ -1,33 +1,27 @@
-// Sonde de santé des modèles — ce que fait le « modèle d'étude » (brain).
+// Model health probe — what the Study model watches.
 //
-// La règle (réglage `brain` de Kybernos Settings) : le modèle d'étude surveille
-// les modèles configurés et, quand l'un d'eux ne répond plus, un bandeau en haut
-// du chat nomme le fautif et invite à le changer. Réglage vide = personne ne
-// surveille : aucune sonde, aucun bandeau.
+// The rule (setting `brain` of Kybernos Settings): the Study model watches the configured models and, when one of them stops
+// answering, a banner at the top of the chat names the culprit and invites to change it. The setting is the person's pick or,
+// empty, Automatic (etude-auto.mjs picks the model); only `none` means nobody watches: no probe, no banner. The probe pings
+// every configured model whichever one the Study model is, so the setting is the switch.
 //
-// La mesure est un appel RÉEL par modèle, minuscule (un « ping », un jeton de
-// sortie). C'est la seule mesure honnête ici : un catalogue qui liste un modèle
-// ne dit pas qu'il répond, et une clé absente ne se voit qu'en appelant.
+// The measure is a REAL call per model, tiny (a « ping », one output token). It is the only honest measure here: a catalogue
+// that lists a model does not say it answers, and a missing key only shows when called.
 //
-// Cinq issues, et UNE SEULE mérite une alerte :
-//   · ok      — le modèle a parlé (même tronqué à un jeton : il a répondu) ;
-//   · muet    — rien, ou trop tard (délai dépassé) ;
-//   · erreur  — refus net : clé absente, modèle inconnu, adaptateur manquant ;
-//   · limite  — débit ou quota : le modèle existe et répond, il est à court de
-//               crédit à cet instant. Alerter ferait clignoter le bandeau pour
-//               rien — ce n'est PAS une alerte ;
-//   · reseau  — transport ou serveur : la panne n'est pas celle du modèle.
-//               Si TOUS les modèles en sont là, c'est le réseau (ou le service)
-//               qu'il faut regarder, pas cinquante-six modèles.
+// Five outcomes, and ONE ALONE deserves an alert:
+//   · ok      — the model spoke (even cut at one token: it answered);
+//   · muet    — nothing, or too late (timeout);
+//   · erreur  — a plain refusal: missing key, unknown model, missing adapter;
+//   · limite  — rate or quota: the model exists and answers, it is out of credit at this moment. Alerting would make the
+//               banner blink for nothing — this is NOT an alert;
+//   · reseau  — transport or server: the failure is not the model's. If ALL the models are there, it is the network (or the
+//               service) to look at, not fifty-six models.
 //
-// Et une sixième, ajoutée le 23/09/2026 :
-//   · hors-jeu — le modèle a REFUSÉ d'être un modèle de langage. Mesuré sur
-//               `vercel-ai-gateway/typesafe-ai/jev` : « Model 'typesafe-ai/jev'
-//               is an evaluation model, not a language model. » C'est un modèle
-//               de DÉCISION (verdicts typés sur /v1/evaluate), il ne répondra
-//               jamais à un ping de chat — le compter comme « ne répond pas »
-//               ferait un faux témoin permanent dans le bandeau. Il est donc
-//               relevé À PART, et n'alerte pas.
+// And a sixth, added 2026-09-23:
+//   · hors-jeu — the model REFUSED to be a language model. Measured on `vercel-ai-gateway/typesafe-ai/jev`: « Model
+//               'typesafe-ai/jev' is an evaluation model, not a language model. » It answers typed verdicts on the gateway's
+//               evaluation API and will never answer a chat ping — counting it as « does not answer » would make a permanent
+//               false witness in the banner. It is therefore reported APART, and does not alert.
 
 import { randomUUID } from 'node:crypto'
 
@@ -163,7 +157,7 @@ export async function sonderUn (llm, cle, delaiMs, horloge) {
 }
 // KB-PROBE-END
 
-/** La sonde : un relevé à la fois, mis en cache le temps du TTL. */
+/** The probe: one reading at a time, cached for the TTL. */
 export function creerSonde ({ llm, delaiMs = DELAI_DEFAUT, concurrence = CONCURRENCE_DEFAUT, ttlMs = TTL_DEFAUT, horloge = () => Date.now() } = {}) {
   let cache = null
   let enCours = null
@@ -172,7 +166,7 @@ export function creerSonde ({ llm, delaiMs = DELAI_DEFAUT, concurrence = CONCURR
 
   const sonder = async (modeles, opts = {}) => {
     const brain = typeof opts.brain === 'string' ? opts.brain : ''
-    // Réglage vide : personne ne surveille. On le DIT, on ne sonde pas.
+    // No Study model in force (None, or Automatic with nothing connected): nobody watches. We SAY so, we do not probe.
     if (brain === '') return { ok: true, actif: false, raison: 'aucun-modele-detude', brain: '' }
     if (llm === null || llm === undefined || typeof llm.stream !== 'function') {
       return { ok: false, actif: true, brain, erreur: 'service llm indisponible' }
@@ -183,7 +177,7 @@ export function creerSonde ({ llm, delaiMs = DELAI_DEFAUT, concurrence = CONCURR
     if (!force && cache !== null && cache.signature === signature && (horloge() - cache.quand) < ttlMs) {
       return { ...cache.resultat, cache: true }
     }
-    // Deux appels simultanés ne sondent pas deux fois : ils partagent la course.
+    // Two simultaneous calls do not probe twice: they share the run.
     if (enCours !== null && enCours.signature === signature) return enCours.promesse
     const promesse = (async () => {
       const debut = horloge()
@@ -192,13 +186,10 @@ export function creerSonde ({ llm, delaiMs = DELAI_DEFAUT, concurrence = CONCURR
       const alertes = resultats.filter((r) => r.etat === 'erreur' || r.etat === 'muet')
       const limites = resultats.filter((r) => r.etat === 'limite')
       const reseau = resultats.filter((r) => r.etat === 'reseau')
-      // Les modèles de décision sont relevés, pas jugés : ils ne peuvent pas
-      // répondre à un ping de chat, et leur refus ne dit rien sur la santé.
+      // Evaluation models are noted, not judged: they cannot answer a chat ping, and their refusal says nothing about health.
       const horsJeu = resultats.filter((r) => r.etat === 'hors-jeu')
-      // Aucun modèle ne répond : ce n'est pas cinquante-six coupables, c'est une
-      // panne d'ensemble — le bandeau ne doit pas accuser les modèles. Et un
-      // relevé qui ne contient QUE des modèles hors-jeu n'est pas une panne :
-      // c'est une liste où il n'y a personne à interroger.
+      // No model answers: not fifty-six culprits but a general failure — the banner must not accuse the models. And a reading
+      // that holds ONLY out-of-game models is no failure: it is a list with nobody to ask.
       const juges = resultats.filter((r) => r.etat !== 'hors-jeu')
       const tousEnEchec = juges.length > 0 && sains.length === 0
       const resultat = {

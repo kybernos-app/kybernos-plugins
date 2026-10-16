@@ -1,46 +1,48 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // kybernos-sessions — host.
 //
-// Deux lectures réelles, aucune écriture :
-//   • l'état « sessions » d'un dossier : combien de sessions y ont écrit
-//     récemment (fenêtre glissante), git (branche, sale, poussé) ;
-//   • l'état « mémoire » des kybers : leçons, runs du ledger, membres.
+// Two real reads of the state of the work, and the actions around it:
+//   • the « sessions » state of a folder: how many sessions wrote there recently
+//     (sliding window), git (branch, dirty, pushed);
+//   • the « memory » state of the agent teams: lessons, ledger runs, members.
 //
-// Routes exposées (webServer) :
+// Routes (webServer):
 //   GET  /kybernos-sessions/state?session=<id>[&kyber=<id>][&window=24]
-//   POST /kybernos-sessions/isolate     → crée OU réutilise (idempotent, marqué)
-//   POST /kybernos-sessions/reclaim     → ramasse les arbres propres sans travail
-//   POST /kybernos-sessions/commit      → commit attribué + merge (`local:true`
-//                                          = aucun envoi GitHub)
-//   POST /kybernos-sessions/close-check → « cette session est-elle clôturable ? »
-//                                          (mêmes gardes que la fermeture)
-//   POST /kybernos-sessions/close       → fusionne puis retire l'arbre
+//   POST /kybernos-sessions/isolate     → creates OR reuses (idempotent, marked)
+//   POST /kybernos-sessions/reclaim     → picks up the clean trees with no work
+//   POST /kybernos-sessions/commit      → attributed commit + merge (`local:true`
+//                                          = nothing sent to GitHub)
+//   POST /kybernos-sessions/close-check → « can this session be closed? »
+//                                          (same guards as the closing)
+//   POST /kybernos-sessions/close       → merges, then removes the tree
 //   POST /kybernos-sessions/push · /fetch · /sync · /pr
 //   GET|POST /kybernos-sessions/settings   → ~/.dsh/kybernos/settings.json
-//        (renommage de fin de chantier, modèle d'étude `brain`, source du micro,
-//         et modèle de décision `decisionBrain` : le GET annonce AUSSI les
-//         modèles connus de l'API d'évaluation — la page n'en invente aucun)
+//        (re-title at the end of a work session, the Study model `brain`, the
+//         microphone source; the GET also says which Study model is in force: the
+//         person's choice, the automatic one, or none — the page invents none)
 //   GET  /kybernos-sessions/categories     → ~/.dsh/kybernos/categories.json
-//        (la catégorie d'une session, écrite par la CLI de nommage : c'est
-//         elle que la liste des chats rend en SVG, sans emoji dans le titre)
-//   POST /kybernos-sessions/decision       → le CERVEAU DE DÉCISION (Jev) :
-//        `{kybers:[{id,mission}],demande}` classe la demande, ou
-//        `{categorie:"texte du chat"}` choisit la catégorie de session (donc
-//        l'icône du nommage), ou `{state,questions}` passe une question typée.
-//        Jev n'est pas un modèle
-//        de langage (mesuré le 23/09/2026 : le chat rend un 400) : il vit sur
-//        /v1/evaluate et rend des verdicts typés avec des probabilités.
+//        (the category of a session, written by the naming CLI: the chat list
+//         draws it as an SVG, with no emoji in the title)
+//   POST /kybernos-sessions/decision       → the CLOSED QUESTIONS, which the Study
+//        model settles through DSH's `llm` service:
+//        `{kybers:[{id,mission}],demande}` says which agent team handles the
+//        request, `{categorie:"chat text"}` picks the session category (so the
+//        icon of the row): the words of the title first (classement-local), the
+//        model only when they say nothing. An answer is kept only if it is an id
+//        of the closed list.
 //
-// Les fonctions pures sont exportées pour le harnais
-// scripts/test-kybernos-sessions-host.mjs.
+// The Study model is the person's `brain` setting; empty means Automatic (etude-auto.mjs).
+// The pure functions are exported for the tests (test-*.mjs next to this file).
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { execFile } from 'node:child_process'
 import { readdirSync, statSync, existsSync, readFileSync, writeFileSync, mkdirSync, appendFileSync, rmSync, realpathSync, renameSync, chmodSync } from 'node:fs'
 import { join, basename, dirname } from 'node:path'
 import { creerSonde } from './brain-health.mjs'
-import { decider, selectionnerKyber, selectionnerCategorie, lireModeleDecision, dshHome, CATEGORIES, MODELES_DECISION_CONNUS, MODELE_DEFAUT } from './decision.mjs'
-import { classerLocalement } from './classement-local.mjs'
+import { dshHome, CATEGORIES } from './decision.mjs'
+import { selectionnerKyber, selectionnerCategorie } from './decision-llm.mjs'
+import { classerLocalement, estTitreAttente } from './classement-local.mjs'
+import { choisirEtudeAuto, modelesConnectes, ecartesDe, garderConnectes } from './etude-auto.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -250,30 +252,23 @@ export async function etatGit (chemin, run = git) {
   }
 }
 
-// ── réglages Kybernos (~/.dsh/kybernos/settings.json) ──────────────────────
-// Le popup Paramètres écrit ici, la CLI de nommage LIT ici : c'est le seul
-// contrat qui rende un interrupteur de la GUI réellement obéi par l'agent
-// (l'agent n'a aucun accès au localStorage de la page).
+// ── Kybernos settings (~/.dsh/kybernos/settings.json) ──────────────────────
+// The Settings popup writes here and the naming CLI READS here: this is the only contract that makes a switch of the GUI
+// really obeyed by the agent (the agent has no access to the page's localStorage).
 //
-// Quatre réglages : `renameAfterRecap` — re-titrer la session à la fin de chaque
-// récapitulatif (défaut : vrai) — `brain`, le MODÈLE D'ÉTUDE que le harnais
-// interroge pour dire si un modèle configuré répond encore — `voiceInput`, la
-// SOURCE DU MICRO du composer : le contrôle natif du harnais (`native`) ou celui
-// de Kybernos (`kybernos`, défaut), qui prend alors sa place — et `decisionBrain`,
-// le MODÈLE DE DÉCISION (Jev) : celui qui répond aux questions fermées (quel
-// kyber traite une demande, quelle catégorie — donc quelle icône — pour un chat).
+// Six keys: `renameAfterRecap` — re-title the session at the end of each recap (default: yes) — `brain`, the STUDY MODEL —
+// `voiceInput`, the MICROPHONE SOURCE of the composer: the native control of the harness (`native`) or Kybernos's own
+// (`kybernos`, default), which then takes its place — and the three of Auto routing (`autoRouting`, `autoWhitelist`,
+// `autoClassifier`).
 //
-// Le modèle d'étude s'écrit `route/id` : exactement l'identifiant que la page
-// Models affiche. Vide = aucun modèle d'étude, donc aucun contrôle de santé —
-// c'est un état légitime, pas une erreur.
-//
-// Le modèle de décision, lui, ne vient PAS des modèles configurés : il doit
-// répondre sur l'API d'évaluation de la passerelle (`/v1/evaluate`), où Jev est
-// seul aujourd'hui. Vide = le défaut (annoncé à la page, jamais recopié ici),
-// `none` = cerveau éteint (chaque appelant garde sa propre règle), sinon
-// l'identifiant écrit là.
+// The Study model is written `route/id`: exactly the identifier the Models page shows. It watches the configured models
+// (health banner), judges the unclear cases of the Memory tidy-up and answers the closed questions (which agent team, which
+// chat icon). Three states: a `route/id` is the person's choice, `none` is no Study model (nothing is watched and nothing is
+// sent to a model for those questions), and EMPTY — the default — is Automatic: the model is picked from what the person
+// connected (etude-auto.mjs). The key `decisionBrain` of the old « Decision Brain » setting is retired: it is accepted from
+// an old page, ignored, and leaves the file at the next write.
 
-export const REGLAGES_DEFAUT = { renameAfterRecap: true, brain: '', voiceInput: 'kybernos', decisionBrain: '', autoRouting: false, autoWhitelist: [], autoClassifier: '' }
+export const REGLAGES_DEFAUT = { renameAfterRecap: true, brain: '', voiceInput: 'kybernos', autoRouting: false, autoWhitelist: [], autoClassifier: '' }
 
 /** La whitelist Auto : un tableau d'identifiants « route/id » (ou route/clé),
  *  sans doublon, plafonné à 64 entrées — les seuls modèles que le routage Auto
@@ -293,17 +288,16 @@ const voiceSourceValide = (v) => VOICE_SOURCES.indexOf(v) !== -1
 const brainValide = (v) => typeof v === 'string' && v.length <= 200
   && (v === '' || /^[A-Za-z0-9._:-]+\/[A-Za-z0-9._:-]+$/.test(v))
 
-/** Le modèle de décision accepte une valeur de plus que le modèle d'étude :
- *  `none`, qui ÉTEINT le cerveau sans le confondre avec « prends le défaut ». */
-const decisionValide = (v) => (typeof v === 'string' && v === 'none') || brainValide(v)
+/** The Study model takes one value more than an identifier: `none`, which switches it off without being confused with the
+ *  empty value (Automatic). */
+const etudeValide = (v) => (typeof v === 'string' && v === 'none') || brainValide(v)
 
-// The seven keys this page owns, normalised: anything missing or invalid falls
+// The six keys this page owns, normalised: anything missing or invalid falls
 // back to its default.
 const normalizeSettings = (j) => ({
   renameAfterRecap: j.renameAfterRecap !== false,
-  brain: brainValide(j.brain) === true ? j.brain : '',
+  brain: etudeValide(j.brain) === true ? j.brain : '',
   voiceInput: voiceSourceValide(j.voiceInput) === true ? j.voiceInput : REGLAGES_DEFAUT.voiceInput,
-  decisionBrain: decisionValide(j.decisionBrain) === true ? j.decisionBrain : '',
   autoRouting: j.autoRouting === true,
   autoWhitelist: whitelistValide(j.autoWhitelist) === true ? j.autoWhitelist : [],
   autoClassifier: brainValide(j.autoClassifier) === true ? j.autoClassifier : ''
@@ -318,7 +312,7 @@ export function lireReglages (fichier) {
 }
 
 // ── Safe writer for settings.json ──────────────────────────────────────────
-// The file is SHARED. Besides the seven keys written here, the core bundle reads
+// The file is SHARED. Besides the six keys written here, the core bundle reads
 // `pairingToken`, `gatewayBase` and `wsAdminKey` from it, kybernos-auto writes its
 // own keys, and other bundles may add more. So a save is a MERGE, never a
 // replace: read what is on disk, overlay the keys this page owns, keep every
@@ -414,14 +408,11 @@ export function ecrireReglages (fichier, patch) {
   // page que le choix est enregistré alors que le fichier garde l'ancien.
   // `invalide: true` marks a refusal of what was sent (the route answers 400); the others (a blocked or unwritable
   // settings.json) are the host's own trouble (500).
-  if (p.brain !== undefined && brainValide(p.brain) !== true) {
-    return { ok: false, invalide: true, erreur: 'brain : identifiant « route/id » attendu (ou chaîne vide)' }
+  if (p.brain !== undefined && etudeValide(p.brain) !== true) {
+    return { ok: false, invalide: true, erreur: 'brain : identifiant « route/id », « none » ou chaîne vide attendu' }
   }
   if (p.voiceInput !== undefined && voiceSourceValide(p.voiceInput) !== true) {
     return { ok: false, invalide: true, erreur: 'voiceInput : « native » ou « kybernos » attendu' }
-  }
-  if (p.decisionBrain !== undefined && decisionValide(p.decisionBrain) !== true) {
-    return { ok: false, invalide: true, erreur: 'decisionBrain : identifiant « route/id », « none » ou chaîne vide attendu' }
   }
   if (p.autoWhitelist !== undefined && whitelistValide(p.autoWhitelist) !== true) {
     return { ok: false, invalide: true, erreur: 'autoWhitelist : tableau d identifiants « route/id » sans doublon attendu' }
@@ -436,14 +427,15 @@ export function ecrireReglages (fichier, patch) {
       : p.renameAfterRecap !== false,
     brain: p.brain === undefined ? avant.brain : p.brain,
     voiceInput: p.voiceInput === undefined ? avant.voiceInput : p.voiceInput,
-    decisionBrain: p.decisionBrain === undefined ? avant.decisionBrain : p.decisionBrain,
     autoRouting: p.autoRouting === undefined ? avant.autoRouting : p.autoRouting === true,
     autoWhitelist: p.autoWhitelist === undefined ? avant.autoWhitelist : p.autoWhitelist,
     autoClassifier: p.autoClassifier === undefined ? avant.autoClassifier : p.autoClassifier
   }
   try {
-    // Merge: every key already on disk stays, the seven above are overlaid.
-    writeFileAtomically(fichier, JSON.stringify({ ...lu.raw, ...apres }, null, 2) + '\n')
+    // Merge: every key already on disk stays, the six above are overlaid. The retired `decisionBrain` is the one key that goes.
+    const reste = { ...lu.raw }
+    delete reste.decisionBrain
+    writeFileAtomically(fichier, JSON.stringify({ ...reste, ...apres }, null, 2) + '\n')
   } catch (e) { return { ok: false, erreur: String(e && e.message ? e.message : e) } }
   return { ok: true, reglages: apres }
 }
@@ -454,10 +446,9 @@ export function ecrireReglages (fichier, patch) {
 // c'est elle que la liste rend en SVG. La CLI de nommage l'écrit ; le client la
 // lit ici. Le fichier est un simple objet `{ "<sessionId>": { cat, titre, ts } }`.
 
-// Les slugs acceptés — DÉRIVÉS de la table du cerveau de décision, qui est le
-// seul endroit où leur SENS est écrit (les critères envoyés à Jev) : une
-// catégorie ajoutée là-bas est proposée au modèle et acceptée par la route, sans
-// second relevé à tenir à jour. L'ordre est celui du registre historique.
+// The accepted slugs — DERIVED from the table of the closed lists (decision.mjs), the only place where their MEANING is
+// written (the criteria the Study model reads): a category added there is offered to the model and accepted by the route,
+// with no second list to keep up to date. The order is that of the historical registry.
 export const CATEGORIES_CONNUES = CATEGORIES.map((c) => c.slug)
 
 export function lireCategories (fichier) {
@@ -1216,23 +1207,9 @@ export function monterRoutes (webServerSvc, opts) {
   const base = sessionsHome === undefined ? dshHome() : dirname(sessionsHome)
   const reglagesFichier = opts.reglagesPath || join(base, 'kybernos', 'settings.json')
   const categoriesFichier = opts.categoriesPath || join(base, 'kybernos', 'categories.json')
-  // Le fichier de références du harnais porte la clé de la passerelle de
-  // décision. Il est lu PAR L'HÔTE, jamais envoyé à la page : le cerveau de
-  // décision n'expose pas de secret au navigateur.
-  const referencesFichier = opts.credentialsPath || join(base, '.credentials.yaml')
-  // Le moteur de décision est injectable : le harnais de routes le remplace par
-  // un faux — sinon chaque contrôle appellerait vraiment la passerelle.
-  // Le dernier échec du cerveau pour une CATÉGORIE de chat, et jusqu'à quand on ne le rappelle pas (voir la route decision).
-  const DUREE_REPOS_CERVEAU = 5 * 60 * 1000
-  let cerveauAuRepos = null
-  const moteurDecision = (opts.decision === null || opts.decision === undefined)
-    ? { decider, selectionner: selectionnerKyber, selectionnerCategorie }
-    : opts.decision
-
-  // Le service `llm` est lu À L'APPEL, pas au montage : DSH peut le publier
-  // après ce plugin, et un plugin qui refuse de se monter perdrait toutes ses
-  // routes. Getter et non fonction : `creerSonde` teste `typeof llm.stream`
-  // pour dire « service indisponible » au lieu d'accuser les 56 modèles.
+  // The `llm` service is read AT CALL TIME, not at mount: DSH may publish it after this plugin, and a plugin that refuses to
+  // mount would lose all its routes. A getter and not a function: `creerSonde` tests `typeof llm.stream` to say « service
+  // unavailable » instead of accusing the 56 models. The health probe and the closed questions both go through it.
   const llmParesseux = {
     get stream () {
       let svc = null
@@ -1246,6 +1223,53 @@ export function monterRoutes (webServerSvc, opts) {
     concurrence: parseInt(process.env.KB_BRAIN_CONCURRENCE || '4', 10),
     ttlMs: parseInt(process.env.KB_BRAIN_TTL || '18000000', 10)
   })
+  // ── the Study model in force ──────────────────────────────────────────────
+  // `brain` is the person's choice: a `route/id`, `none` (no Study model) or empty (Automatic: etude-auto.mjs picks the model
+  // from what is connected). The automatic choice is cached a minute (ten seconds while nothing was found, so a model that
+  // gets connected is taken up quickly) and read from the host's `settings` and `credentials` services at call time.
+  const maintenantMs = () => (typeof opts.maintenant === 'function' ? Number(opts.maintenant()) : Date.now())
+  const service = (nom) => {
+    if (opts.ctx === undefined || opts.ctx === null) return undefined
+    try { const svc = opts.ctx.get(nom); if (svc !== undefined && svc !== null) return svc } catch (e) { /* read from the root below */ }
+    // Cordis lets a plugin read, with `get`, only the services it declared; the root context holds them all (read-only here).
+    try { const svc = opts.ctx.root[nom]; return svc === null ? undefined : svc } catch (e) { return undefined }
+  }
+  const AUCUN_AUTO = { cle: '', raison: null }
+  let auto = { ...AUCUN_AUTO, a: -Infinity }
+  let autoEnCours = null
+  const autoPerime = () => maintenantMs() - auto.a >= (auto.cle === '' ? 10000 : 60000)
+  const rafraichirAuto = () => {
+    if (autoEnCours !== null) return autoEnCours
+    autoEnCours = (async () => {
+      const modeles = await modelesConnectes({ settings: service('settings'), credentials: service('credentials') })
+      return choisirEtudeAuto({ modeles, ecartes: ecartesDe(sondeSante.dernier()) })
+    })().then((r) => { auto = { ...(r === null ? AUCUN_AUTO : r), a: maintenantMs() } }, () => { auto = { ...AUCUN_AUTO, a: maintenantMs() } })
+      .then(() => { autoEnCours = null })
+    return autoEnCours
+  }
+  const etudeAuto = async () => { if (autoPerime()) await rafraichirAuto(); return auto }
+  // For the callers that cannot wait (the Memory tidy-up reads it synchronously): the last automatic choice, and a refresh
+  // started in the background when it is stale. Published below for the other bundles, which cannot import this one.
+  const etudeAutoSync = () => { if (autoPerime()) rafraichirAuto(); return auto.cle }
+  /** `{ actif, cle, mode, raison }`: `mode` is `choisi` (the person's pick), `auto`, `none` (the person chose none) or `aucun`
+   *  (Automatic, but nothing connected qualifies). Never throws. */
+  const etudeEnVigueur = async () => {
+    try {
+      const brain = lireReglages(reglagesFichier).brain
+      if (brain === 'none') return { actif: false, cle: '', mode: 'none', raison: null }
+      if (brain !== '') return { actif: true, cle: brain, mode: 'choisi', raison: null }
+      const a = await etudeAuto()
+      return a.cle === '' ? { actif: false, cle: '', mode: 'aucun', raison: null } : { actif: true, cle: a.cle, mode: 'auto', raison: a.raison }
+    } catch (e) { return { actif: false, cle: '', mode: 'aucun', raison: null } }
+  }
+  if (opts.ctx !== undefined && opts.ctx !== null) {
+    // The contract with the bundles that cannot import this one (Memory's tidy-up): a function giving the AUTOMATIC Study
+    // model, « route/id » or '' (same pattern as `kybernos.trustedAuthority`, published by the core bundle). Absent, they
+    // behave as before: no Study model unless the person chose one.
+    try { globalThis[Symbol.for('kybernos.studyModel')] = etudeAutoSync } catch (e) { /* the bundle works without it */ }
+    rafraichirAuto()
+  }
+
   webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/state', handler: async (req, res) => {
     if (req.method !== 'GET') { res.writeHead(405); res.end('POST attendu non — GET uniquement'); return }
     if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
@@ -1299,7 +1323,7 @@ export function monterRoutes (webServerSvc, opts) {
   // ── santé des modèles (le « modèle d'étude ») ─────────────────────────────
   // Le client envoie la liste des modèles configurés — lui seul la connaît, elle
   // vient du service settings. L'hôte sonde chacun par un appel RÉEL minuscule.
-  // Réglage `brain` vide : personne ne surveille, on ne sonde rien et on le dit.
+  // Study model on None (or Automatic with nothing connected): nobody watches, nothing is probed, and the answer says so.
   webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/brain/health', handler: async (req, res) => {
     if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
     // GET : le dernier relevé, sans rien relancer — c'est ce que lit le bandeau
@@ -1307,68 +1331,79 @@ export function monterRoutes (webServerSvc, opts) {
     if (req.method === 'GET') { envoyer(res, 200, { ok: true, dernier: sondeSante.dernier() }); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('GET ou POST attendu'); return }
     const corps = await lireCorps(req)
-    const reglages = lireReglages(reglagesFichier)
     try {
-      envoyer(res, 200, await sondeSante.sonder(corps.models, {
-        brain: typeof reglages.brain === 'string' ? reglages.brain : '',
-        force: corps.force === true
-      }))
+      const etude = await etudeEnVigueur()
+      // Automatic watches what the person connected; a model they picked as Study model watches every model they listed.
+      const aSonder = etude.mode === 'auto'
+        ? garderConnectes(corps.models, await modelesConnectes({ settings: service('settings'), credentials: service('credentials') }))
+        : corps.models
+      envoyer(res, 200, await sondeSante.sonder(aSonder, { brain: etude.cle, force: corps.force === true }))
     } catch (e) {
       envoyer(res, 500, { ok: false, erreur: String(e && e.message ? e.message : e) })
     }
   } })
-  // ── cerveau de décision (Jev) : là où il faut CLASSER, pas rédiger ────────
-  // Deux formes, une seule route :
-  //   { kybers:[{id,mission}], demande, seuil? } → quel kyber traite la demande ;
-  //   { state, questions }                       → une question typée en direct.
-  // Le verdict est rendu avec un code 200 même quand il est négatif : comme la
-  // sonde de santé, cette route rend un VERDICT, elle ne jette pas — l'appelant
-  // lit `ok`, et un `ok:false` n'est pas une panne de la route.
+  // ── closed questions: where the job is to SORT, not to write ───────────────
+  // Two forms, one route:
+  //   { categorie: "chat title" }                → which category (so which icon) the chat gets;
+  //   { kybers: [{id, mission}], demande }       → which agent team handles the request.
+  // A category goes to the word rules of classement-local.mjs FIRST (free, instant, nothing leaves the machine) and to the
+  // Study model only when they say nothing. The model's answer is kept only if it is an id of the list (decision-llm.mjs).
+  // The verdict is answered with a 200 even when negative: like the health probe, this route gives a VERDICT, it does not
+  // throw — the caller reads `ok`, and `ok:false` is not a failure of the route.
+  const DUREE_REPOS_ETUDE = 5 * 60 * 1000 // after a failure the model is not asked again for 5 minutes (a list asks for a dozen rows at once)
+  const DUREE_DOUTE = 30 * 60 * 1000 // an answer « not sure » is not asked again for half an hour
+  const TITRES_MEMOIRE_MAX = 300
+  const delaiDecision = parseInt(process.env.KB_DECISION_DELAI || '', 10)
+  const optionsDecision = (modele) => ({ llm: llmParesseux, modele, ...(delaiDecision > 0 ? { delaiMs: delaiDecision } : {}) })
+  const SANS_ETUDE = { ok: false, code: 'ETUDE-ABSENTE', erreur: 'no Study model: the closed question is not put to any model', ms: 0 }
+  let etudeAuRepos = null // { jusqua, verdict }: the last failure of the Study model for a category, and until when it rests
+  const titresJuges = new Map() // normalised title → { reponse, jusqua }
+  const cleTitre = (titre) => titre.toLowerCase().replace(/\s+/g, ' ').trim()
+  const memoriser = (cle, reponse, jusqua) => {
+    if (titresJuges.size >= TITRES_MEMOIRE_MAX) titresJuges.delete(titresJuges.keys().next().value)
+    titresJuges.set(cle, { reponse, jusqua })
+  }
+  // Failures that say nothing about the model (a missing text, a service not mounted yet) do not put it to rest.
+  const PAS_UNE_PANNE = ['SANS-TEXTE', 'SANS-CATEGORIE', 'LLM-INDISPONIBLE', 'ETUDE-ABSENTE']
+  const trancherCategorie = async (titre, maintenant) => {
+    if (estTitreAttente(titre)) return { ok: false, code: 'SANS-TEXTE', erreur: 'a placeholder title says nothing about the chat', ms: 0 }
+    const local = classerLocalement(titre)
+    if (local.categorie !== null) {
+      return { ok: true, motif: 'local', categorie: local.categorie, source: 'local', score: local.score, ecart: local.ecart, mots: local.mots, ms: 0 }
+    }
+    const etude = await etudeEnVigueur()
+    if (etude.actif !== true) return SANS_ETUDE
+    const cle = cleTitre(titre)
+    const connu = titresJuges.get(cle)
+    if (connu !== undefined && maintenant < connu.jusqua) return connu.reponse
+    if (etudeAuRepos !== null && maintenant < etudeAuRepos.jusqua) return etudeAuRepos.verdict
+    const verdict = await selectionnerCategorie(titre, optionsDecision(etude.cle))
+    if (verdict.ok === true) {
+      etudeAuRepos = null
+      memoriser(cle, verdict, verdict.categorie === null ? maintenant + DUREE_DOUTE : Infinity)
+    } else if (PAS_UNE_PANNE.indexOf(verdict.code) < 0) {
+      etudeAuRepos = { jusqua: maintenant + DUREE_REPOS_ETUDE, verdict }
+    }
+    return verdict
+  }
+  const trancherKyber = async (corps) => {
+    const etude = await etudeEnVigueur()
+    if (etude.actif !== true) return SANS_ETUDE
+    return selectionnerKyber(corps.kybers, corps.demande, optionsDecision(etude.cle))
+  }
   webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/decision', handler: async (req, res) => {
     if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }
     const corps = await lireCorps(req)
-    const seuil = (typeof corps.seuil === 'number' && corps.seuil > 0 && corps.seuil <= 1) ? corps.seuil : undefined
     try {
-      const questions = corps.questions
-      // Quel modèle sert : le réglage de la page Paramètres, et le défaut si
-      // elle n'a rien dit. Le cerveau peut être ÉTEINT là — auquel cas aucune
-      // passerelle n'est appelée et le verdict le dit (`CERVEAU-ETEINT`).
-      const regle = lireModeleDecision({ fichier: reglagesFichier })
-      const modele = typeof corps.modele === 'string' && corps.modele !== ''
-        ? corps.modele
-        : (regle.eteint === true ? 'none' : regle.modele)
-      const voieCategorie = !(questions !== null && questions !== undefined && typeof questions === 'object' && Array.isArray(questions) === false) &&
-        corps.categorie !== undefined && corps.categorie !== null
-      const maintenant = typeof opts.maintenant === 'function' ? Number(opts.maintenant()) : Date.now()
-      // Un cerveau qui vient d'échouer (403 de passerelle, éteint, clé absente) n'est pas rappelé à chaque ligne de la liste :
-      // 5 minutes de repos, pendant lesquelles le classement local répond tout de suite. Une demande qui choisit son propre
-      // modèle ne passe jamais par ce repos.
-      const reposPossible = voieCategorie === true && !(typeof corps.modele === 'string' && corps.modele !== '')
-      const verdict = (reposPossible === true && cerveauAuRepos !== null && maintenant < cerveauAuRepos.jusqua)
-        ? cerveauAuRepos.verdict
-        : ((questions !== null && questions !== undefined && typeof questions === 'object' && Array.isArray(questions) === false)
-          ? await moteurDecision.decider(questions, corps.state === undefined ? '' : corps.state,
-            { fichierCredentials: referencesFichier, modele })
-          : (corps.categorie !== undefined && corps.categorie !== null
-              ? await moteurDecision.selectionnerCategorie(corps.categorie,
-                { fichierCredentials: referencesFichier, modele, ...(seuil === undefined ? {} : { seuil }) })
-              : await moteurDecision.selectionner(corps.kybers, corps.demande,
-                { fichierCredentials: referencesFichier, modele, ...(seuil === undefined ? {} : { seuil }) })))
-      if (reposPossible === true) {
-        if (verdict !== null && typeof verdict === 'object' && verdict.ok === true) cerveauAuRepos = null
-        else if (cerveauAuRepos === null || maintenant >= cerveauAuRepos.jusqua) cerveauAuRepos = { jusqua: maintenant + DUREE_REPOS_CERVEAU, verdict }
-      }
-      // Le cerveau n'a RIEN répondu (erreur de passerelle, éteint, clé absente) : pour une CATÉGORIE de chat, un classement local
-      // prudent sur les mots du titre prend le relais (classement-local.mjs), étiqueté `local`. Un verdict du cerveau — même
-      // « aucun » ou « sous le seuil » — n'est jamais contredit ; sans signal net dans le titre, la réponse reste celle du cerveau.
-      let reponse = verdict
-      if (voieCategorie === true && (verdict === null || typeof verdict !== 'object' || verdict.ok !== true)) {
-        const local = classerLocalement(corps.categorie)
-        if (local.categorie !== null) {
-          reponse = { ok: true, motif: 'local', categorie: local.categorie, source: 'local', score: local.score, ecart: local.ecart, mots: local.mots, ms: 0,
-            cerveau: verdict !== null && typeof verdict === 'object' ? { ok: verdict.ok === true, code: String(verdict.code || verdict.motif || '') } : null }
-        }
+      let reponse
+      if (corps.questions !== null && corps.questions !== undefined && typeof corps.questions === 'object' && Array.isArray(corps.questions) === false) {
+        // The free typed question belonged to the old gateway evaluation API, which this route no longer calls.
+        reponse = { ok: false, code: 'QUESTION-NON-SUPPORTEE', erreur: 'typed questions are gone: send { categorie } or { kybers, demande }', ms: 0 }
+      } else if (corps.categorie !== undefined && corps.categorie !== null) {
+        reponse = await trancherCategorie(String(corps.categorie), maintenantMs())
+      } else {
+        reponse = await trancherKyber(corps)
       }
       envoyer(res, 200, reponse === null || typeof reponse !== 'object' ? { ok: false, code: 'VERDICT-ILLISIBLE', erreur: 'le moteur n’a rien rendu' } : reponse)
     } catch (e) {
@@ -1378,7 +1413,12 @@ export function monterRoutes (webServerSvc, opts) {
   // ── réglages Kybernos : ce que la page Paramètres lit et écrit ─────────────
   webServerSvc.register({ kind: 'exact', path: '/kybernos-sessions/settings', handler: async (req, res) => {
     if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
-    if (req.method === 'GET') { envoyer(res, 200, { ok: true, reglages: lireReglages(reglagesFichier), modelesDecision: MODELES_DECISION_CONNUS, modeleDecisionDefaut: MODELE_DEFAUT }); return }
+    if (req.method === 'GET') {
+      // `auto`: the model Automatic uses (or ''), always, so the select can name it whatever is in force.
+      const etude = await etudeEnVigueur()
+      envoyer(res, 200, { ok: true, reglages: lireReglages(reglagesFichier), etude: { ...etude, auto: (await etudeAuto()).cle } })
+      return
+    }
     if (req.method !== 'POST') { res.writeHead(405); res.end('GET ou POST attendu'); return }
     try {
       const corps = await lireCorps(req)
@@ -1447,8 +1487,7 @@ export function apply (ctx) {
         sessionsHome: join(home, 'sessions'),
         kybersHome: join(home, 'kybers'),
         reglagesPath: join(home, 'kybernos', 'settings.json'),
-        categoriesPath: join(home, 'kybernos', 'categories.json'),
-        credentialsPath: join(home, '.credentials.yaml')
+        categoriesPath: join(home, 'kybernos', 'categories.json')
       })
       console.log('[kybernos-sessions] routes webServer /kybernos-sessions/* enregistrees (etat, reglages, categories, actions)')
     }

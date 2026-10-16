@@ -2352,6 +2352,17 @@ try {
   writeFileSync(tk_settingsFile, JSON.stringify({ brain: '' }))
   const tk_nomodel = await hit(tk_url('/scan'), 'POST')
   assert.deepEqual([llmCalls.length, tk_nomodel.body.brain.error], [0, 'pas_de_modele_detude'], 'no Study model set: no call, and it says why')
+  // Automatic (WP-08): an empty setting is the model kybernos-sessions publishes; `none` is the person's own « no Study model ».
+  const tk_published = Symbol.for('kybernos.studyModel')
+  globalThis[tk_published] = () => 'kybernos/auto'
+  assert.equal(mod.studyModel(), 'kybernos/auto', 'Automatic: the model kybernos-sessions publishes')
+  const tk_autoView = (await hit(tk_url(''), 'GET')).body.brain
+  assert.deepEqual([tk_autoView.model, tk_autoView.auto, tk_autoView.none], ['kybernos/auto', true, false], 'the page is told which model, and that it was picked for the person')
+  writeFileSync(tk_settingsFile, JSON.stringify({ brain: 'none' }))
+  assert.equal(mod.studyModel(), '', 'None wins over the published model')
+  assert.equal((await hit(tk_url(''), 'GET')).body.brain.none, true)
+  delete globalThis[tk_published]
+  writeFileSync(tk_settingsFile, JSON.stringify({ brain: '' }))
   writeFileSync(tk_settingsFile, JSON.stringify({ brain: 'zai-coding-cn/GLM-5.3-Flash' }))
   llmEnabled = false
   assert.equal((await hit(tk_url('/scan'), 'POST')).body.brain.error, 'llm_indisponible', 'no llm service: no call, and it says why')

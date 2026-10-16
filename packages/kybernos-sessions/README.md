@@ -12,17 +12,28 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
   (checks, review, merge through `gh`) and `notes` (memory and lessons this chat wrote). A click opens a card with a plain
   sentence, a dry-run plan, then "Confirm & run".
 - **Category icon** before each session title in the list (found through `data-row-key="session:<id>"`). The category is written
-  by the naming CLI (`scripts/session-titre.mjs`) or, when absent, guessed from the title by the decision brain. **When the brain
-  gives no verdict at all** (gateway error such as HTTP 403, brain switched off, key missing) the host falls back to
-  `classement-local.mjs`: a cautious keyword classifier on the title (French and English, accents and case ignored, one hit per
-  word, a minimum score and a lead over the second category, otherwise nothing: the row keeps its neutral speech bubble). The answer is labelled
-  `motif: 'local'` and never contradicts a brain verdict (even « not sure »). A row whose title changes after an automatic
-  classification is judged again (« Greeting » becomes the real subject).
+  by the naming CLI (`scripts/session-titre.mjs`) or, when absent, guessed from the title. The host asks the **word rules first**
+  (`classement-local.mjs`: a cautious keyword classifier on the title, French and English, accents and case ignored, one hit per
+  word, a minimum score and a lead over the second category, otherwise nothing) and answers `motif: 'local'` on a clear signal,
+  without calling any model. Only when the words say nothing is the **Study model** asked (see below); its answer is kept only if
+  it is one of the eight categories (`motif: 'choisi'`), otherwise the row keeps its neutral speech bubble. A row whose title
+  changes after an automatic classification is judged again (« Greeting » becomes the real subject).
 - **Settings ▸ General ▸ Kybernos Settings** (slot `settings.general.item`, order -30): replay onboarding, *Rename Chat session
-  after each recap*, *Study model (brain)*, *Decision Brain*. The bundle also reorders the native Settings navigation into a
+  after each recap*, *Study model*. The bundle also reorders the native Settings navigation into a
   "Kybernos" and a "DSH" group and hides the native Appearance and Font-size rows and the version footer, by position.
-- **Model-health alert** when a study model is set: this bundle probes and publishes the verdict (`window.__kybernosHealth` and a `kybernos-health`
-  event); `kybernos-models` draws it as a chip on the AI Provider & Models tab bar. "Hide" silences it for 1 h.
+- **The Study model** is the one brain setting (`brain`). Its select reads **Automatic — <model>** (the default, the empty
+  value), *Choose another…* (your configured models) or **None** (`none`). Automatic picks, in this order: the model of the
+  connected Kybernos Cloud; else the cheapest connected model that answers (a provider whose key is set and that the last health
+  probe did not see failing; « cheap » is read from the model name, the profile carries no price); else the smallest local Ollama
+  model (`etude-auto.mjs`). It reports on the other models (the alert below), answers the closed questions (which agent team runs a
+  request, which category a chat gets) and judges the unclear cases of the Memory tidy-up. The old *Decision Brain* setting
+  (`decisionBrain`, the gateway's evaluation model) is gone: an old page that still posts the key is not refused, the key is
+  ignored and leaves `settings.json` at the next write.
+- **Model-health alert** while a Study model is in force (Automatic included): this bundle probes and publishes the verdict
+  (`window.__kybernosHealth` and a `kybernos-health` event); `kybernos-models` draws it as a chip on the AI Provider & Models tab
+  bar. "Hide" silences it for 1 h. With the Study model on None, nothing is probed; on Automatic the probe watches the models whose
+  provider is connected (a key is set), so an unused provider of the profile does not make noise; with a model you picked, it
+  watches every model of your list.
 
 ## Host routes
 
@@ -36,24 +47,25 @@ Under `/kybernos-sessions/`. Every action route is a **dry run unless the body h
 | `POST close-check` · `close` | can the worktree be closed; merge then remove it |
 | `POST push` · `fetch` · `sync` · `pr` | `git push` / `fetch` / both; `gh pr create`, or `{action:'merge'}` |
 | `GET\|POST settings` · `GET\|POST categories` | the two JSON files below |
-| `POST decision` · `GET\|POST brain/health` | classify a request, a category or typed questions · probe every configured model |
+| `POST decision` · `GET\|POST brain/health` | the closed questions (`{categorie}` or `{kybers, demande}`) · probe every configured model |
 
 ## Files, settings, env
 
-- Under `$DSH_HOME` (else `~/.dsh`), read only: `sessions/<project>/<session>/session.v3.jsonl.zstd` (mtime),
-  `kybers/<kyber>/memory/{lessons,ledger}.jsonl`, and one key of `.credentials.yaml`.
-- Writes `kybernos/settings.json` (`renameAfterRecap`, `brain`, `voiceInput`, `decisionBrain`, `autoRouting`, `autoWhitelist`,
-  `autoClassifier`; also read by the core, `kybernos-auto` and the naming CLI) and `kybernos/categories.json`
+- Under `$DSH_HOME` (else `~/.dsh`), read only: `sessions/<project>/<session>/session.v3.jsonl.zstd` (mtime) and
+  `kybers/<kyber>/memory/{lessons,ledger}.jsonl`.
+- Writes `kybernos/settings.json` (`renameAfterRecap`, `brain` — `route/id`, `none` or empty —, `voiceInput`, `autoRouting`,
+  `autoWhitelist`, `autoClassifier`; also read by the core, `kybernos-auto`, `kybernos-memory` and the naming CLI) and `kybernos/categories.json`
   (`{sessionId: {cat, titre, ts, auto}}`, 8 categories). In the user's repo: `.worktrees/<slug>/`, a `<slug>.kybernos.json`
   marker and a line in `.git/info/exclude` (local, never committed).
 - **Saving settings is a merge, not a replace.** `settings.json` is shared: the core reads `pairingToken`, `gatewayBase` and
-  `wsAdminKey` from it and `kybernos-auto` writes its own keys. A save reads what is on disk, overlays the seven keys above and
-  keeps every other key as it is; the write is atomic (temp file + rename), keeps the file's permissions (a new file is `0600`)
+  `wsAdminKey` from it and `kybernos-auto` writes its own keys. A save reads what is on disk, overlays the six keys above and
+  keeps every other key as it is (the retired `decisionBrain` is the one key it drops); the write is atomic (temp file + rename), keeps the file's permissions (a new file is `0600`)
   and follows a symlinked file. If the file exists but is not a JSON object, or cannot be read, nothing is written: a copy of a
   corrupt file is kept as `settings.json.corrupt-<time>` (at most 5, never two of the same content) and the route answers 500
   with the reason. `kybernos-auto` has the same block (`KB-SETTINGS-FILE-BEGIN … END`); a test keeps the two copies identical.
 - Browser `localStorage`: `kybernos.sessions.categories.v1`, `.autocat.v1`, `.commits.v4`, `kb-sante-silence`.
-- Env: `DSH_HOME`, `VERCEL_AI_GATEWAY_API_KEY`, `KB_BRAIN_DELAI` (8000 ms), `KB_BRAIN_CONCURRENCE` (4), `KB_BRAIN_TTL` (5 h);
+- Env: `DSH_HOME`, `KB_BRAIN_DELAI` (8000 ms), `KB_BRAIN_CONCURRENCE` (4), `KB_BRAIN_TTL` (5 h), `KB_DECISION_DELAI` (8000 ms, one
+  closed question);
   for `garde.mjs`: `DSH_SESSION_ID`, `KYBERNOS_ISOLATE`.
 - CLI tools, not loaded by DSH: `garde.mjs` (agent hook: `--isoler`, `--claim|--release <hot file>`, `--check`,
   `--veille [--install|--uninstall|--etat]`; state in `kybernos/{hot-claims.json,last-good/,veille-bundle.log}`; the permanent
@@ -66,21 +78,32 @@ Under `/kybernos-sessions/`. Every action route is a **dry run unless the body h
   `ctx.get('remote.settings').describe()` (read-only, `llm-pi-ai` namespace, in try/catch, not in `inject`), DSH's own
   `POST /api/session/list` and `/api/session/page` with the browser cookie, DOM observers. No `remote.*` in `package.json`.
 - `git` and `gh` run through `execFile` (15 s / 20 s); push, fetch and PRs go to the repo's `origin`.
-- The decision brain posts the session title (or an agent team mission list) to `https://ai-gateway.vercel.sh/v1/evaluate` (model
-  `typesafe-ai/jev`); nothing is sent without `VERCEL_AI_GATEWAY_API_KEY` (env, else `.credentials.yaml`) or when `decisionBrain`
-  is `none`. The health probe makes one tiny real call per configured model through DSH's `llm`.
+- The closed questions go through DSH's `llm` service, to the Study model, with no tools, an 8 s timeout and one retry on the
+  lower-cased model id (as the Memory tidy-up does). What is sent: the chat title (or an agent team mission list and the
+  request), quoted as data in the prompt; the answer counts only if it is an id of the closed list. A title is sent only when the
+  word rules cannot place it, never when the Study model is `none`, and nowhere beyond the machine when the Study model is local.
+  After a failure the model rests 5 minutes; one answer is kept per title. Nothing calls the gateway's evaluation API or reads
+  a gateway key any more. The automatic choice reads the `settings` and `credentials` services (only whether a key
+  exists, never its value), and the bundle publishes it as `globalThis[Symbol.for('kybernos.studyModel')]` (a function giving
+  `route/id` or `''`) for the bundles that cannot import it (Memory). The health probe makes one tiny real call per configured
+  model through DSH's `llm`.
 
 ## Tests
 
 `node packages/kybernos-sessions/test-reglages.mjs` covers the settings writer (merge, permissions, atomic write, corrupt and
 unreadable files, symlink, the HTTP route) and checks that the safe-write block matches the one in `kybernos-auto`.
 `node packages/kybernos-sessions/test-origin.mjs` covers the same-origin guard, unit by unit and through every registered route.
-`node packages/kybernos-sessions/test-classement-local.mjs` covers the local fallback classifier (real titles, what it refuses to guess,
-how words are matched, reachability of every category) and the route: it fires only when the brain gave no verdict.
-Nothing else in this bundle has a test file. `node scripts/test-layout.mjs` checks that the hot-file list of `garde.mjs` points at existing files
+`node packages/kybernos-sessions/test-classement-local.mjs` covers the local classifier (real titles, what it refuses to guess,
+how words are matched, reachability of every category) and the decision route: the words first, the Study model only when they
+say nothing, the caches and the rest after a failure, and that nothing goes through the network.
+`node packages/kybernos-sessions/test-decision-llm.mjs` drives the closed-question engine with a stub `llm` (an id of the list or
+nothing, the timeout, the retry, the text quoted as data). `node packages/kybernos-sessions/test-etude-auto.mjs` covers the
+automatic Study model (the order, what is skipped, reading the host's services, the settings answer, the health switch).
+`test-sante.mjs`, `test-dsh-home.mjs`, `test-changes-facts.mjs`, `test-journal.mjs`, `test-prefix.mjs` and `test-wording.mjs`
+cover the health bus and the Study model row, `$DSH_HOME`, and small pure parts of the page. `node scripts/test-layout.mjs` checks that the hot-file list of `garde.mjs` points at existing files
 and that its LaunchAgent path is right; `node packages/kybernos-sessions/garde.mjs --check` parses every hot client file
 (read-only); `node scripts/smoke-gui.mjs --token <token>` calls `/state`, `/settings`, `/categories`, `/brain/health` on a running
-`dsh web` (needs `playwright`). The pure functions are exported with injected `run`, `fetchImpl`, `llm`; the settings writer is the only part with a test.
+`dsh web` (needs `playwright`). The pure functions are exported with injected `run`, `llm`, settings and credentials services.
 
 ## Known limits
 

@@ -234,7 +234,7 @@ window.__ModuleLoader__.load({
         if (c === 'deja_annule') return 'Already undone.'
         if (c === 'aucun_scan') return 'Look first: nothing has been scanned yet.'
         if (c === 'deja_en_cours') return 'A tidy-up is already running.'
-        if (c === 'pas_de_modele_detude') return 'No Study model is set: pick one in Kybernos Settings.'
+        if (c === 'pas_de_modele_detude') return 'No Study model is available: it is set to None in Kybernos Settings, or no connected model fits yet.'
         if (c === 'llm_indisponible') return 'The model service is not available right now.'
         if (c === 'delai_depasse') return 'The Study model did not answer in time.'
         if (c === 'modele_en_erreur') return 'The Study model could not be reached.'
@@ -409,10 +409,30 @@ window.__ModuleLoader__.load({
         return out
       }
 
-      /** The Study model, as the page needs it: its name (the same file for both hosts), whether a model service exists, and how many unclear pairs wait. */
+      /** The Study model, as the page needs it: its name (the same file for both hosts), whether it was picked automatically (the
+       *  setting is empty) or the person chose none, whether a model service exists, and how many unclear pairs wait. A host that
+       *  says nothing of `auto` and `none` (an older build) gives neither. */
       const tidyBrain = (t) => {
         const views = [t.mem, t.les].filter((x) => x !== null && x.brain !== undefined)
-        return { model: views.map((x) => x.brain.model).find((m) => typeof m === 'string' && m !== '') || '', llm: views.some((x) => x.brain.llm === true), unclear: views.reduce((n, x) => n + (Number.isFinite(x.unclear) ? x.unclear : 0), 0) }
+        const model = views.map((x) => x.brain.model).find((m) => typeof m === 'string' && m !== '') || ''
+        return {
+          model, llm: views.some((x) => x.brain.llm === true),
+          auto: model !== '' && views.some((x) => x.brain.model === model && x.brain.auto === true),
+          none: model === '' && views.some((x) => x.brain.none === true),
+          unclear: views.reduce((n, x) => n + (Number.isFinite(x.unclear) ? x.unclear : 0), 0)
+        }
+      }
+
+      /** What the Study model row says about itself: `using` (which model, and whether it was picked for you) and `why` (what blocks
+       *  it, or null). */
+      const studyWords = (b) => {
+        if (b.model === '') {
+          return { using: null, why: b.none ? 'The Study model is set to None in Kybernos Settings.' : 'No Study model yet: Kybernos Settings picks one by itself as soon as a model is connected (the Kybernos Cloud, one of yours, or a local one).' }
+        }
+        return {
+          using: b.auto ? 'Using ' + b.model + ', picked automatically; change it in Kybernos Settings.' : 'Using ' + b.model + '.',
+          why: b.llm ? null : 'The model service is not available right now.'
+        }
       }
 
       /** Both logs, newest first, each line tagged with its side. */
@@ -1629,7 +1649,8 @@ window.__ModuleLoader__.load({
           bump()
         }
         const unavailable = none ? 'The plugins were updated: restart DSH to use this.' : (stale ? 'The plugins were updated: restart DSH to change this.' : null)
-        const brainWhy = unavailable !== null ? unavailable : (brain.model === '' ? 'No Study model is set: pick one in Kybernos Settings (AI Provider & Models).' : (!brain.llm ? 'The model service is not available right now.' : null))
+        const words = studyWords(brain)
+        const brainWhy = unavailable !== null ? unavailable : words.why
         return [
           h('section', { key: 'tidy', className: 'kbmem-sec', 'data-sec': 'tidy' }, h('h2', null, 'Tidy up', h('small', null, 'near-duplicates, memories and lessons')),
             h(SettingRow, { label: 'Tidy up now', act: 'tidy-now',
@@ -1647,7 +1668,9 @@ window.__ModuleLoader__.load({
               control: h(Seg, { value: cfg.schedule, label: 'Run automatically', onChange: (v) => set({ schedule: v }), items: TIDY_SCHEDULES.map(([v, l]) => ({ v, l })) }) }),
             h(SettingRow, { label: 'Study model judges the unclear cases', act: 'tidy-brain', locked: brainWhy !== null && !(cfg.brain === true), why: brainWhy,
               desc: 'Pairs that look alike but are not duplicates (« port 3000 » then « port 3080 », « do » then « do not »): the Study model says whether one replaces the other, they are the same or they differ. Only the text of those pairs is sent to it, never your whole list, and it only suggests: you decide.',
-              live: brain.unclear > 0 ? h('div', { className: 'kbmem-tiny', style: { marginTop: 6 }, 'data-live': 'unclear' }, plural(brain.unclear, 'look-alike pair') + (cfg.brain === true ? ' found at the last run.' : ' found: turn this on to have them judged.')) : null,
+              live: words.using !== null || brain.unclear > 0 ? h('div', null,
+                words.using !== null ? h('div', { className: 'kbmem-tiny', style: { marginTop: 6 }, 'data-live': 'study-model' }, words.using) : null,
+                brain.unclear > 0 ? h('div', { className: 'kbmem-tiny', style: { marginTop: 6 }, 'data-live': 'unclear' }, plural(brain.unclear, 'look-alike pair') + (cfg.brain === true ? ' found at the last run.' : ' found: turn this on to have them judged.')) : null) : null,
               control: h(YesNo, { name: 'Study model judges the unclear cases', value: cfg.brain === true, onChange: (v) => set({ brain: v }) }) }),
             h(SettingRow, { label: 'Pinned memories', desc: 'Never removed by a tidy-up.', control: h('span', { className: 'kbmem-chip' }, 'Always protected') })),
           h('section', { key: 'log', className: 'kbmem-sec', 'data-sec': 'tidy-log' }, h('h2', null, 'Recent tidy-ups'),
@@ -1819,7 +1842,7 @@ window.__ModuleLoader__.load({
       return {
         inject: ['slots'],
         // Pure pieces and the page, exposed for test-client.mjs and the live check.
-        __test: { mapMatches, mapZoom, mapPan, mapClamp, mapLabelSpots, mapWords, MAP_FIT, teamLockedWords, teamReasonOf, isTeamAdmin, minutesSince, teamStatusChip, teamMatches, teamMeta, tidyRanNotice, TIDY_MODES, TIDY_SCHEDULES, whenAhead, tidySettingsOf, nextWords, tidyNextOf, tidyLast, lastWords, tidyBrain, logWho, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
+        __test: { studyWords, mapMatches, mapZoom, mapPan, mapClamp, mapLabelSpots, mapWords, MAP_FIT, teamLockedWords, teamReasonOf, isTeamAdmin, minutesSince, teamStatusChip, teamMatches, teamMeta, tidyRanNotice, TIDY_MODES, TIDY_SCHEDULES, whenAhead, tidySettingsOf, nextWords, tidyNextOf, tidyLast, lastWords, tidyBrain, logWho, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
         apply(ctx) {
           if (ctx === null || ctx === undefined || ctx.slots === null || ctx.slots === undefined) return
           ctx.effect(() => styles.insert(css), 'kybernos-memory: styles')

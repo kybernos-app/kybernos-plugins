@@ -2339,12 +2339,13 @@ function boot(ctx) {
       })
       Promise.resolve()
         .then(async () => {
-          // La règle « force de proposition » dans ~/.dsh/AGENTS.md (02/10/2026) :
-          // posée idempotemment au boot, jamais réécrite, jamais retirée. Une
-          // erreur ici ne doit JAMAIS empêcher le preset de se poser.
+          // The « force de proposition » rule in ~/.dsh/AGENTS.md (02/10/2026): laid idempotently at boot, never removed; an
+          // untouched v1 section is replaced by v2 once (agents-proposition.mjs). An error here must NEVER stop the preset
+          // from being laid.
           try {
             const ra = poserForceProposition()
             if (ra.etat === 'pose') console.log('[kybers] force de proposition posée dans ' + ra.chemin)
+            else if (ra.etat === 'migre') console.log('[kybers] force de proposition v1 remplacée par v2 dans ' + ra.chemin)
             else if (ra.etat === 'erreur') console.log('[kybers] force de proposition non posée — ' + ra.erreur)
           } catch (e) { console.log('[kybers] force de proposition — échec silencieux : ' + String(e && e.message ? e.message : e)) }
           const r = await poserPresetLegacy({ agentPresets: service })
