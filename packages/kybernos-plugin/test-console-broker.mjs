@@ -43,8 +43,10 @@ const harness = (page = '') => {
   const kbServer = { workspace: 'w-before' }
   const win = { dispatchEvent: (e) => { events.push(e.type); return true }, open: (...args) => { opened.push(args); return null } }
   class EventStub { constructor (type) { this.type = type } }
-  const sur = new Function('kbWsOrigin', 'envoyerCle', 'document', 'fetch', 'kbServer', 'window', 'Event', 'pageRef', pageRule + '\n' + snippet + '\nreturn sur')(() => CONSOLE_ORIGIN, () => { keyAsked += 1 }, doc, fetchStub, kbServer, win, EventStub, { current: page })
-  return { sur, posted, fetched, iframeWindow, answers, events, opened, kbServer, get keyAsked () { return keyAsked } }
+  const seenServer = { current: '' }
+  const frameIdentity = () => 'identity|' + kbServer.workspace
+  const sur = new Function('kbWsOrigin', 'envoyerCle', 'document', 'fetch', 'kbServer', 'window', 'Event', 'pageRef', 'seenServer', 'frameIdentity', pageRule + '\n' + snippet + '\nreturn sur')(() => CONSOLE_ORIGIN, () => { keyAsked += 1 }, doc, fetchStub, kbServer, win, EventStub, { current: page }, seenServer, frameIdentity)
+  return { sur, posted, fetched, iframeWindow, answers, events, opened, kbServer, seenServer, get keyAsked () { return keyAsked } }
 }
 const settle = () => new Promise((r) => setTimeout(r, 5))
 
@@ -101,12 +103,14 @@ console.log('changing the active space from the console')
   check('a switch is sent to the local active-space route, same-origin, with the id only', h.fetched.length === 1 && h.fetched[0].url === '/kybernos-cloud/space/active' && h.fetched[0].opts.method === 'POST' && h.fetched[0].opts.credentials === 'same-origin' && h.fetched[0].opts.body === JSON.stringify({ workspace_id: 'w-new' }), JSON.stringify(h.fetched))
   check('the page remembers the new space and tells the Cloud card to reload', h.kbServer.workspace === 'w-new' && h.events.length === 1 && h.events[0] === 'kybernos-cloud:space-changed', JSON.stringify({ ws: h.kbServer.workspace, ev: h.events }))
   check('the console is told it worked, at its exact origin', h.posted.length === 1 && h.posted[0].origin === CONSOLE_ORIGIN && h.posted[0].message.kbSpaceReply.ok === true && h.posted[0].message.kbSpaceReply.id === 'w-new')
+  check('the frame that asked is marked as already on the new space, so that it is not drawn again (no reload, no lost page)', h.seenServer.current === 'identity|w-new', h.seenServer.current)
 
   const r = harness()
   r.answers.json = { ok: false, error: 'espace_inconnu' }
   r.sur({ source: r.iframeWindow, origin: CONSOLE_ORIGIN, data: { kbSwitchSpace: { id: 'w-gone' } } })
   await settle()
   check('a space the host refuses changes nothing and the console is told why', r.kbServer.workspace === 'w-before' && r.events.length === 0 && r.posted[0].message.kbSpaceReply.ok === false && r.posted[0].message.kbSpaceReply.error === 'espace_inconnu')
+  check('and the frame is not marked as moved', r.seenServer.current === '', r.seenServer.current)
 
   for (const [label, id] of [['an empty id', ''], ['a path in the id', '../x'], ['an id with a space', 'a b'], ['a number', 7], ['a very long id', 'x'.repeat(81)]]) {
     const g = harness()
