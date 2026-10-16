@@ -41,7 +41,11 @@ window.__ModuleLoader__.load({
         // header and intro
        
         heroH: ['Votre assistant, dans votre poche.', 'Your assistant, in your pocket.'],
-        heroP: ['Écrivez à {NAME} ici ou sur Telegram, comme à un ami. Il fait le travail sur son propre ordinateur dans le cloud, même quand le vôtre est éteint, et vous demande votre accord avant de modifier quoi que ce soit.', 'Write to {NAME} here or on Telegram, the way you would to a friend. It does the work on its own computer in the cloud, even when yours is off, and asks you before it changes anything.'],
+        // What {NAME} is, in one picture (the owner's): a phone with a remote control, working on the desktop. Said on the page, above the tiles of the strip, and by the help card.
+        intro: ['{NAME}, c’est comme un téléphone avec télécommande : vous lui parlez d’ici ou depuis Telegram, et il travaille sur votre ordinateur. Un ordinateur dans le cloud peut prendre le relais quand le vôtre est éteint. Avant de modifier quoi que ce soit, il vous demande.', '{NAME} is like a phone with a remote control: you talk to it from here or from Telegram, and it works on your desktop. A cloud computer can take over when yours is off. Before it changes anything, it asks you.'],
+        // One help line under each tile's title.
+        channelsHelp: ['Reliez Telegram, WhatsApp et WeChat pour que {NAME} puisse vous joindre là. « Bientôt » : pas encore disponible.', 'Link Telegram, WhatsApp and WeChat so {NAME} can reach you there. “Soon” means it is not available yet.'],
+        computerHelp: ['La machine sur laquelle {NAME} travaille : cet ordinateur, ou un ordinateur dans le cloud qui continue quand le vôtre est éteint. « À la demande » : il est créé la première fois que vous demandez quelque chose qui en a besoin.', 'The machine {NAME} works on: this computer (your desktop), or a cloud computer that keeps going when yours is off. “On request” means it is made the first time you ask for something that needs it.'],
         b1h: ['Demandez de n’importe où', 'Ask from anywhere'], b1p: ['Ici, ou depuis votre téléphone sur Telegram. C’est la même conversation.', 'Here, or from your phone on Telegram. It is the same conversation.'],
         b2h: ['Il travaille pendant votre absence', 'It keeps working while you are away'], b2p: ['Il a son propre ordinateur, qui se réveille quand il a du travail.', 'It has its own computer, which wakes up when it has work to do.'],
         b3h: ['Vous gardez la main', 'You stay in control'], b3p: ['Avant d’agir, il demande : Autoriser, Refuser ou Autoriser pour cette tâche.', 'Before it acts, it asks: Allow, Refuse, or Allow for this task.'],
@@ -82,7 +86,10 @@ window.__ModuleLoader__.load({
         peRate: ['Trop d’essais : réessayez dans une minute.', 'Too many tries: try again in a minute.'],
         retry: ['Réessayer', 'Try again'],
         // computer
-        computer: ['Ordinateur', 'Computer'], acct: ['Compte personnel', 'Personal account'],
+        computer: ['Ordinateur', 'Computer'],
+        // « This computer » is the machine that runs Kybernos: a choice that needs no server and no account.
+        thisComputer: ['Cet ordinateur', 'This computer'], ready: ['Prêt', 'Ready'], cloudName: ['{name} (cloud)', '{name} (cloud)'],
+        txt_local: ['{NAME} travaille sur cet ordinateur quand vous lui écrivez ici. Gardez Kybernos ouvert.', '{NAME} works on this computer when you write to it here. Keep Kybernos open.'],
         noHome: ['Créé à votre première demande qui en a besoin.', 'Made at your first request that needs one.'],
         onRequest: ['À la demande', 'On request'],
         pickLead: ['Ordinateur lié à {NAME}', 'Computer linked to {NAME}'],
@@ -150,6 +157,13 @@ window.__ModuleLoader__.load({
         const serverId = s !== null && typeof s.id === 'string' && /^[A-Za-z0-9._-]{1,40}$/.test(s.id) ? s.id : ''
         return { kind: 'ok', telegram, home, computers, serverId, accountUrl: api === '' ? '' : api + '/account' }
       }
+      /** Which computer {NAME} works on, as the tile shows it: the person's choice (`pref`), else the cloud computer when one is already there (made at an
+       *  earlier request), else this one. A view with no account or no readable server can only say « this computer »: that choice needs neither. */
+      const whereOf = (pref, view) => {
+        if (view === null || view === undefined || view.kind !== 'ok') return 'local'
+        if (pref === 'local' || pref === 'cloud') return pref
+        return view.home !== null ? 'cloud' : 'local'
+      }
       /** What the connection card shows for a pairing (null = none yet), at `nowMs`. */
       const pairingFace = (p, nowMs) => {
         if (p === null || p === undefined) return { kind: 'none' }
@@ -166,9 +180,10 @@ window.__ModuleLoader__.load({
       const state = {
         loading: true, view: null, at: 0, stripPref: null,
         pairing: null, starting: false, confirmDisc: false, showCode: false, copied: false, busy: '',
-        kybySid: null, kybyCwd: null, opening: false, openFailed: false, openError: '', computerError: '',
+        kybySid: null, kybyCwd: null, opening: false, openFailed: false, openError: '', computerError: '', where: null,
       }
       try { const v = window.localStorage.getItem('kybernos-kyber.strip'); if (v === '0') state.stripPref = false; else if (v === '1') state.stripPref = true } catch (e) { /* no storage */ }
+      try { const w = window.localStorage.getItem('kybernos-kyber.where'); if (w === 'local' || w === 'cloud') state.where = w } catch (e) { /* no storage */ }
       const listeners = new Set()
       const emit = () => { listeners.forEach((fn) => { try { fn() } catch (e) { /* a view that went away */ } }) }
       const live = () => listeners.size > 0
@@ -273,6 +288,12 @@ window.__ModuleLoader__.load({
         if (r === null || r.ok !== true) state.computerError = r !== null && r.error === 'not_found' ? 'err_computer_old' : 'err_computer'
         await load()
       }
+      /** « This computer » or the cloud one: remembered by this browser, with no call to any server (the cloud computer itself is chosen with `setComputer`). */
+      const setWhere = (w) => {
+        state.where = w
+        try { window.localStorage.setItem('kybernos-kyber.where', w) } catch (e) { /* no storage: the choice holds until the page is closed */ }
+        emit()
+      }
       const unlink = async () => {
         state.confirmDisc = false
         const r = await postJson('/kybernos-cloud/telegram/unlink', { confirm: true })
@@ -321,6 +342,7 @@ window.__ModuleLoader__.load({
       const PATHS = {
         kyby: ['m10.586 5.414-5.172 5.172', 'm18.586 13.414-5.172 5.172', 'M6 12h12', 'M10 20a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z', 'M10 4a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z', 'M18 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z', 'M2 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z'],
         cloud: ['M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z'],
+        monitor: ['M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', 'M8 21h8', 'M12 17v4'],
         phone: ['M5 4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z', 'M12 18h.01'],
         shield: ['M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z', 'm9 12 2 2 4-4'],
         chev: ['m6 9 6 6 6-6'],
@@ -363,6 +385,25 @@ window.__ModuleLoader__.load({
       }
 
       const HOME_NAME = 'Home'
+      /** The « ? How it works » pill every page of the Suite carries (the card is this bundle's help.json); nothing where the Suite does not offer it. */
+      const helpPill = () => {
+        try {
+          if (!(typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help)) return null
+          return h('span', { className: 'kbky-pillwrap', onClickCapture: placeHelp }, h(window.__KB_HELP__.Help, { id: 'kybernos-kyber' }))
+        } catch (e) { return null }
+      }
+      /** The strip sits at the foot of a chat or in the middle of an empty one: the card hangs on the side that has the room, and is no taller than it. */
+      const placeHelp = (e) => {
+        try {
+          const box = e.currentTarget
+          const r = box.getBoundingClientRect()
+          const above = r.top
+          const below = window.innerHeight - r.bottom
+          const down = above < 380 && below > above
+          box.setAttribute('data-dir', down ? 'down' : 'up')
+          box.style.setProperty('--kbky-pop-h', Math.max(160, Math.floor((down ? below : above) - 24)) + 'px')
+        } catch (err) { /* the card keeps its default place */ }
+      }
       /** A switch: a button with a role, a state and a name, so that a keyboard and a screen reader reach it like a checkbox. */
       const Switch = (props) => h('button', { type: 'button', role: 'switch', 'aria-checked': String(props.on === true), 'aria-label': props.label, className: 'kbky-sw' + (props.on ? ' on' : ''), disabled: props.disabled === true, 'data-kb': props.kb, onClick: props.onClick }, h('span', { className: 'kbky-swk' }))
       const Mark = (props) => h('span', { className: 'kbky-mark' }, props.children)
@@ -396,6 +437,7 @@ window.__ModuleLoader__.load({
         const soon = (id, name) => h(ChanRow, { key: id, kb: 'kybernos-kyber-chan-' + id, stateKey: 'soon', mark: BRAND[id](20), name, sub: L('soon'), right: h('span', { className: 'kbky-chip' }, L('soon')) })
         return h('div', { className: 'kbky-tile', 'data-kb': 'kybernos-kyber-tile-channels' },
           h('div', { className: 'kbky-th' }, h(Mark, null, Ic('link', 18)), h('b', null, L('channels'))),
+          h('p', { className: 'kbky-help', 'data-kb': 'kybernos-kyber-channels-help' }, L('channelsHelp')),
           h('div', { className: 'kbky-chlist' },
             h(ChanRow, { kb: 'kybernos-kyber-tg-row', stateKey: row.key, mark: BRAND.telegram(20), name: L('telegram'), sub: row.sub, warn: row.warn === true,
               right: h(React.Fragment, null, bot, h(Switch, { on, disabled: tg.state === 'off', label: L('telegram'), kb: 'kybernos-kyber-tg-switch', onClick: telegramSwitch })) }),
@@ -410,34 +452,46 @@ window.__ModuleLoader__.load({
         return h('span', { className: 'kbky-chip' + cls, 'data-kb': kb }, S['st_' + st] !== undefined ? L('st_' + st) : L('st_other', { state: st }))
       }
 
-      /** The second tile: {NAME}'s computer, as a select (a real one when there are several), its state, and the one thing the plan lets the person do. */
+      /** The second tile: the computer {NAME} works on, as a select. « This computer » is always there (it needs no account and no server); next to it the
+       *  cloud computers of the account, with the state of the chosen one and the one thing the plan lets the person do. The choice is remembered. */
       const ComputerTile = (props) => {
         const v = props.view
-        const hm = v.home
-        const free = hm !== null && hm.manualControl === false
+        const signed = v.kind === 'ok'
+        const hm = signed ? v.home : null
+        const local = whereOf(state.where, v) === 'local'
+        const free = !local && hm !== null && hm.manualControl === false
         const st = hm === null ? '' : hm.state
         const busy = state.busy !== ''
-        const several = hm !== null && v.computers.length > 1
         const name = hm !== null && hm.name !== '' ? hm.name : HOME_NAME
-        const field = several
-          ? h('label', { className: 'kbky-field' }, h(Mark, null, Ic('cloud', 18)),
-            h('select', { className: 'kbky-fsel', 'aria-label': L('pickLead'), 'data-kb': 'kybernos-kyber-pick', value: hm.id, onChange: (e) => { void setComputer(e.target.value) } },
-              v.computers.map((c) => h('option', { key: c.id, value: c.id }, c.name))),
-            computerChip(hm, 'kybernos-kyber-computer-state'))
-          : h('div', { className: 'kbky-field static', 'data-kb': 'kybernos-kyber-field' }, h(Mark, null, Ic('cloud', 18)),
-            h('span', { className: 'kbky-fv' }, h('b', null, name), h('span', null, L('acct'))), computerChip(hm, 'kybernos-kyber-computer-state'))
-        const line = hm === null ? h('p', { className: 'kbky-line' }, L('noHome'))
-          : st === 'creating' ? h('div', { className: 'kbky-row' }, h('span', { className: 'kbky-spin', 'aria-hidden': 'true' }), h('span', { className: 'kbky-line' }, L('txt_creating')))
-            : h('p', { className: 'kbky-line' }, S['txt_' + st] !== undefined ? L('txt_' + st) : L('st_other', { state: st }))
-        const acts = hm === null || free ? null : h('div', { className: 'kbky-actions' },
+        // The cloud computers of the account (the one linked to {NAME} is `home`); with none yet, one entry stands for the Home made at the first request.
+        const cloud = signed ? v.computers.slice() : []
+        if (hm !== null && hm.id !== '' && !cloud.some((c) => c.id === hm.id)) cloud.push({ id: hm.id, name })
+        const clouds = !signed ? [] : (cloud.length > 0 ? cloud : [{ id: 'cloud', name }])
+        const options = [h('option', { key: 'local', value: 'local' }, L('thisComputer'))].concat(clouds.map((c) => h('option', { key: c.id, value: c.id }, L('cloudName', { name: c.name }))))
+        const picked = local ? 'local' : (hm !== null && clouds.some((c) => c.id === hm.id) ? hm.id : clouds[0].id)
+        const onPick = (e) => {
+          const val = e.target.value
+          if (val === 'local') { setWhere('local'); return }
+          setWhere('cloud')
+          if (val !== 'cloud') void setComputer(val)
+        }
+        const field = h('label', { className: 'kbky-field', 'data-kb': 'kybernos-kyber-field' }, h(Mark, null, Ic(local ? 'monitor' : 'cloud', 18)),
+          h('select', { className: 'kbky-fsel', 'aria-label': L('pickLead'), 'data-kb': 'kybernos-kyber-pick', value: picked, disabled: options.length < 2, onChange: onPick }, options),
+          local ? h('span', { className: 'kbky-chip ok', 'data-kb': 'kybernos-kyber-computer-state' }, L('ready')) : computerChip(hm, 'kybernos-kyber-computer-state'))
+        const line = local ? h('p', { className: 'kbky-line', 'data-kb': 'kybernos-kyber-local-line' }, L('txt_local'))
+          : hm === null ? h('p', { className: 'kbky-line' }, L('noHome'))
+            : st === 'creating' ? h('div', { className: 'kbky-row' }, h('span', { className: 'kbky-spin', 'aria-hidden': 'true' }), h('span', { className: 'kbky-line' }, L('txt_creating')))
+              : h('p', { className: 'kbky-line' }, S['txt_' + st] !== undefined ? L('txt_' + st) : L('st_other', { state: st }))
+        const acts = local || hm === null || free ? null : h('div', { className: 'kbky-actions' },
           st === 'suspended' ? h(Btn, { kb: 'kybernos-kyber-wake', disabled: busy, onClick: () => { void computerAction('resume') } }, L('wake')) : null,
           st === 'running' ? h(Btn, { kb: 'kybernos-kyber-sleep', disabled: busy, onClick: () => { void computerAction('suspend') } }, L('sleep')) : null,
           st === 'running' ? h(Btn, { kb: 'kybernos-kyber-pcopen', disabled: busy, onClick: () => { void computerAction('open') } }, Ic('ext', 14), L('openPc')) : null)
         return h('div', { className: 'kbky-tile', 'data-kb': 'kybernos-kyber-computer' },
-          h('div', { className: 'kbky-th' }, h(Mark, null, Ic('cloud', 18)), h('b', null, L('computer'))),
+          h('div', { className: 'kbky-th' }, h(Mark, null, Ic('monitor', 18)), h('b', null, L('computer'))),
+          h('p', { className: 'kbky-help', 'data-kb': 'kybernos-kyber-computer-help' }, L('computerHelp')),
           h('div', { className: 'kbky-tb' },
             field, line,
-            hm !== null && hm.paused !== '' ? h('p', { className: 'kbky-warn' }, L(hm.paused === 'hours' ? 'pr_hours' : 'pr_other')) : null,
+            !local && hm !== null && hm.paused !== '' ? h('p', { className: 'kbky-warn' }, L(hm.paused === 'hours' ? 'pr_hours' : 'pr_other')) : null,
             state.computerError !== '' ? h('p', { className: 'kbky-err', role: 'alert', 'data-kb': 'kybernos-kyber-computer-error' }, L(state.computerError)) : null,
             free ? h('p', { className: 'kbky-cap', 'data-kb': 'kybernos-kyber-upsell' }, L('upsell')) : null),
           acts !== null || free
@@ -508,12 +562,15 @@ window.__ModuleLoader__.load({
                 : null)))
       }
 
-      /** Two equal tiles, the channels and the computer, and under them the one thing Telegram may need. */
+      /** Two equal tiles, the channels and the computer, and under them the one thing Telegram may need. With no account or no readable server only the computer
+       *  is offered, and only « this computer »: that choice needs neither. */
       const Channels = (props) => {
         const v = state.view
         if (v === null) return h('p', { className: 'kbky-note' }, L('loading'))
-        if (v.kind !== 'ok') return h('p', { className: 'kbky-note' }, L(v.kind))
+        const intro = props.intro === true ? h('p', { className: 'kbky-intro', 'data-kb': 'kybernos-kyber-intro' }, L('intro')) : null
+        if (v.kind !== 'ok') return h('div', { className: 'kbky-calm', 'data-kb': 'kybernos-kyber-channels' }, intro, h('p', { className: 'kbky-note' }, L(v.kind)), h('div', { className: 'kbky-tiles' }, h(ComputerTile, { view: v })))
         return h('div', { className: 'kbky-calm', 'data-kb': 'kybernos-kyber-channels' },
+          intro,
           h('div', { className: 'kbky-tiles' }, h(ChannelsTile, { view: v }), h(ComputerTile, { view: v })),
           h(TelegramPanel, { view: v }),
           props.manage === true && v.accountUrl !== '' ? h('div', { className: 'kbky-actions' }, h('button', { type: 'button', className: 'kbky-link', 'data-kb': 'kybernos-kyber-account', onClick: () => { void openAccount('account') } }, L('manage'))) : null)
@@ -613,16 +670,22 @@ window.__ModuleLoader__.load({
         const open = stripIsOpen(state.stripPref, telegramStateOf())
         const chip = statusOf(v)
         const hm = v !== null && v.kind === 'ok' ? v.home : null
+        const local = whereOf(state.where, v) === 'local'
         const chips = !open && v !== null && v.kind === 'ok'
           ? h('span', { className: 'kbky-stripc' },
             h('span', { className: 'kbky-chip ' + chip[0], 'data-kb': 'kybernos-kyber-status' }, BRAND.telegram(14), L(chip[1])),
-            h('span', { className: 'kbky-chip' + (hm !== null && hm.state === 'running' ? ' ok' : ''), 'data-kb': 'kybernos-kyber-computer-chip' }, Ic('cloud', 13),
-              (hm !== null && hm.name !== '' ? hm.name : HOME_NAME) + ' · ' + (hm === null ? L('onRequest') : (S['st_' + hm.state] !== undefined ? L('st_' + hm.state) : hm.state))))
+            local
+              ? h('span', { className: 'kbky-chip ok', 'data-kb': 'kybernos-kyber-computer-chip' }, Ic('monitor', 13), L('thisComputer') + ' · ' + L('ready'))
+              : h('span', { className: 'kbky-chip' + (hm !== null && hm.state === 'running' ? ' ok' : ''), 'data-kb': 'kybernos-kyber-computer-chip' }, Ic('cloud', 13),
+                (hm !== null && hm.name !== '' ? hm.name : HOME_NAME) + ' · ' + (hm === null ? L('onRequest') : (S['st_' + hm.state] !== undefined ? L('st_' + hm.state) : hm.state))))
           : null
+        // The « ? How it works » pill sits beside the fold button, not in it (a button cannot hold a button).
         return h('div', { className: 'kbky-strip' + (open ? ' open' : ''), 'data-kb': 'kybernos-kyber-strip' },
-          h('button', { type: 'button', className: 'kbky-striph', 'aria-expanded': String(open), 'data-kb': 'kybernos-kyber-strip-toggle', onClick: toggleStrip },
-            h('span', { className: 'kbky-car' }, Ic('chev', 14)), h('b', null, L('title')), chips),
-          open ? h('div', { className: 'kbky-stripb' }, h(Channels, { visible: true })) : null)
+          h('div', { className: 'kbky-striphr' },
+            h('button', { type: 'button', className: 'kbky-striph', 'aria-expanded': String(open), 'data-kb': 'kybernos-kyber-strip-toggle', onClick: toggleStrip },
+              h('span', { className: 'kbky-car' }, Ic('chev', 14)), h('b', null, L('title')), chips),
+            helpPill()),
+          open ? h('div', { className: 'kbky-stripb' }, h(Channels, { visible: true, intro: true })) : null)
       }
 
       /** The strip, above the composer of Kaby's own conversation and of no other. */
@@ -643,7 +706,7 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'kbky-page', 'data-kb': 'kybernos-kyber-page' },
           h('div', { className: 'kbky-hero' },
             h('div', { className: 'kbky-herot' }, h('span', { className: 'kbky-glyph' }, Ic('kyby', 22)), h('div', { className: 'kbky-row wrap' }, h('b', { className: 'kbky-name' }, L('title')), h('span', { className: 'kbky-chip ' + chip[0] }, L(chip[1])))),
-            h('h1', null, L('heroH')), h('p', { className: 'kbky-lead' }, L('heroP')),
+            h('h1', null, L('heroH')), h('p', { className: 'kbky-lead' }, L('intro')),
             h('div', { className: 'kbky-actions' }, h(Btn, { primary: true, kb: 'kybernos-kyber-openchat', disabled: state.opening, onClick: () => { void openChat() } }, L('openChat'))),
             h('p', { className: 'kbky-sub left' }, L('openChatHint')),
             state.openFailed ? h('p', { className: 'kbky-err', role: 'alert' }, L('openChatFail')) : null,
@@ -684,7 +747,15 @@ window.__ModuleLoader__.load({
         '.kbky-chip.warn{border-color:transparent;background:var(--dsw-alias-state-warn-bg,rgba(245,158,11,.18));color:var(--dsw-alias-state-warn-label,#a8530a)}',
         // the strip also sits in the chat's dock, which has no `.kbky` ancestor: it sets its own size and colour, like the page and the pane do
         '.kbky-strip{border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.25));border-radius:28px;background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.06));color:var(--dsw-alias-label-primary,#222);font-size:var(--dsh-content-font-size-secondary,13.5px);line-height:1.5}',
-        '.kbky-striph{width:100%;display:flex;gap:10px;align-items:center;padding:9px 14px;border:0;background:none;color:inherit;font:inherit;cursor:pointer;text-align:left;flex-wrap:wrap}',
+        '.kbky-striphr{display:flex;align-items:center;gap:8px;padding-block:3px;padding-inline-end:10px}',
+        '.kbky-striph{flex:1;min-width:0;display:flex;gap:10px;align-items:center;padding:9px 14px;border:0;background:none;color:inherit;font:inherit;cursor:pointer;text-align:left;flex-wrap:wrap}',
+        // the help card opens upwards by default (the strip is above the composer, at the foot of a chat), downwards when there is no room above (placeHelp)
+        '.kbky-pillwrap .kbhp-pop{top:auto;bottom:calc(100% + 8px);max-height:min(70vh,560px,var(--kbky-pop-h,70vh))}',
+        '.kbky-pillwrap[data-dir="down"] .kbhp-pop{top:calc(100% + 8px);bottom:auto}',
+        // a phone: the pill is mid-row, so no side of it holds the card; it becomes a sheet at the foot of the screen
+        '@media (max-width:520px){.kbky-pillwrap .kbhp-pop,.kbky-pillwrap[data-dir] .kbhp-pop,.kbky-pillwrap .kbhp-pop.start{position:fixed;inset-inline:16px;width:auto;top:auto;bottom:16px;max-height:min(70vh,560px)}}',
+        '.kbky-intro{margin:0 0 12px;max-width:68ch;color:var(--dsw-alias-label-secondary,#666);line-height:1.5}',
+        '.kbky-help{margin:-4px 0 0;font-size:12.5px;line-height:1.45;color:var(--dsw-alias-label-secondary,#666)}',
         '.kbky-car{display:inline-flex;transform:rotate(-90deg);transition:transform .15s;color:var(--dsw-alias-label-secondary,#666)}',
         '.kbky-strip.open .kbky-car{transform:rotate(0)}',
         '.kbky-stripc{display:flex;gap:6px;flex-wrap:wrap}',
@@ -736,7 +807,6 @@ window.__ModuleLoader__.load({
         '.kbky-tb{display:flex;flex-direction:column;gap:8px;flex:1;min-height:0}',
         '.kbky-tf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:auto}',
         '.kbky-field{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:10px;align-items:center;min-height:56px;padding:8px 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));background:var(--dsw-alias-bg-base,transparent)}',
-        '.kbky-fv{display:flex;flex-direction:column;min-width:0}.kbky-fv b{font-size:14px;font-weight:600}.kbky-fv span{font-size:12.5px;color:var(--dsw-alias-label-secondary,#666)}',
         '.kbky-fsel{font:inherit;font-size:14px;font-weight:600;color:inherit;background:transparent;border:0;min-width:0;width:100%;padding:0;cursor:pointer;text-overflow:ellipsis}',
         '.kbky-cap{margin:0;font-size:12.5px;color:var(--dsw-alias-label-secondary,#666)}',
         // the panel under the tiles: the code to scan, what happened to it, or the question before disconnecting
@@ -763,7 +833,7 @@ window.__ModuleLoader__.load({
         name: 'kybernos-kyber',
         // `sidebarRightTabs` must be declared: ui-sidebar-right provides it, and without this `apply` could run before.
         inject: ['slots', 'sidebarRightTabs', 'sessions', 'workspaces', 'uiWorkspace'],
-        __test: { S, L, kt, derive, pairingFace, clock, stripIsOpen, CSS, TYPE_ID, KIND, state, BRAND, NAME, views: { Strip, Channels, ChannelsTile, ComputerTile, TelegramPanel, KybyDock, Page }, actions: { load, pairStart, pairCancel, unlink, setComputer, computerAction, telegramSwitch, toggleStrip, telegramRow, settle, readSessionPointer }, listeners },
+        __test: { S, L, kt, derive, pairingFace, clock, stripIsOpen, whereOf, CSS, TYPE_ID, KIND, state, BRAND, NAME, views: { Strip, Channels, ChannelsTile, ComputerTile, TelegramPanel, KybyDock, Page }, actions: { load, pairStart, pairCancel, unlink, setComputer, setWhere, computerAction, telegramSwitch, toggleStrip, telegramRow, settle, readSessionPointer }, listeners },
         apply (ctx) {
           CTX = ctx
           // The plugin is applied again when a service it asks for comes back: the new scope replaces the sheet, and the old scope's
