@@ -117,6 +117,20 @@ window.__ModuleLoader__.load({
         'kml.reco.tag': { fr: 'Recommandé', en: 'Recommended' },
         'kml.leger.tag': { fr: 'Léger', en: 'Light' },
         'kml.section.selection': { fr: 'Sélection pour cette machine', en: 'Picked for this machine' },
+        'kml.search': { fr: 'Rechercher un modèle…', en: 'Search a model…' },
+        'kml.score.any': { fr: 'Tous les scores', en: 'Any score' },
+        'kml.score.min': { fr: 'Score {n}+', en: 'Score {n}+' },
+        'kml.score.badge': { fr: 'Indice d’intelligence {n} (Artificial Analysis) : plus haut = mieux', en: 'Intelligence index {n} (Artificial Analysis): higher is better' },
+        'kml.page.info': { fr: '{a}–{b} sur {n} modèles', en: '{a}–{b} of {n} models' },
+        'kml.page.prev': { fr: 'Page précédente', en: 'Previous page' },
+        'kml.page.next': { fr: 'Page suivante', en: 'Next page' },
+        'kml.lourd.n': { fr: 'Trop lourds pour cette machine ({n})', en: 'Too heavy for this machine ({n})' },
+        'kml.aucun': { fr: 'Aucun modèle ne correspond à cette recherche.', en: 'No model matches this search.' },
+        'kml.detail.ouvrir': { fr: 'Détails du téléchargement', en: 'Download details' },
+        'kml.detail.cmd': { fr: 'Commande', en: 'Command' },
+        'kml.detail.recu': { fr: 'Reçu', en: 'Received' },
+        'kml.detail.ligne': { fr: 'Dernière ligne', en: 'Last line' },
+        'kml.detail.attente': { fr: 'en attente de la première réponse…', en: 'waiting for the first answer…' },
         'kml.etat.compatible': { fr: 'Compatible', en: 'Fits' },
         'kml.etat.juste': { fr: 'Juste', en: 'Tight' },
         'kml.etat.lourd': { fr: 'Trop lourd', en: 'Too heavy' },
@@ -191,6 +205,46 @@ window.__ModuleLoader__.load({
       const dateDe = (iso) => {
         try { return new Date(iso).toLocaleDateString(String(kbLocaleRead()) === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) } catch (e) { return String(iso).slice(0, 10) }
       }
+
+      // KB-KML-PURE-BEGIN
+      /** Models per page of the list (V-21: ten cards in one column read as a wall). */
+      const KML_PAGE = 8
+      const KML_RANG = { compatible: 0, juste: 1, inconnu: 2, lourd: 3 }
+      /** The intelligence index in a catalogue line (« II 32 · MMMU-Pro 69 % » → 32): Artificial Analysis' number, the one the Models tab
+       *  shows. null when the line quotes none (« Ollama library · 6.6 GB · 128K ctx »). Pure. */
+      const kbScoreDe = (texte) => {
+        const r = /(?:^|[^A-Za-z])II\s+(\d+(?:[.,]\d+)?)/.exec(String(texte === undefined || texte === null ? '' : texte))
+        return r === null ? null : Number(r[1].replace(',', '.'))
+      }
+      /** The order a person should read them in: the models that fit first (in the catalogue's own order of preference), then the tight
+       *  ones, then those whose size is not known, the too-heavy ones last. Stable; `etatDe` answers compatible, juste, inconnu or lourd. Pure. */
+      const kbOrdreAjuste = (liste, etatDe) => liste
+        .map((mod, i) => ({ mod, i, r: KML_RANG[etatDe(mod)] === undefined ? 2 : KML_RANG[etatDe(mod)] }))
+        .sort((a, b) => a.r - b.r || a.i - b.i)
+        .map((x) => x.mod)
+      /** One page of a list: the page asked for, held between 1 and the last. Pure. */
+      const kbPagine = (liste, page, taille) => {
+        const pages = Math.max(1, Math.ceil(liste.length / taille))
+        const courante = Math.min(Math.max(1, Math.floor(Number(page)) || 1), pages)
+        const debut = (courante - 1) * taille
+        return { page: courante, pages, debut, fin: Math.min(liste.length, debut + taille), tranche: liste.slice(debut, debut + taille), total: liste.length }
+      }
+      const kbNormalise = (t) => String(t === undefined || t === null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+      /** A search over id, family, badges and description, accents and case ignored; every word typed must be found. Pure. */
+      const kbChercher = (liste, q, texteDe) => {
+        const mots = kbNormalise(q).split(/\s+/).filter((x) => x !== '')
+        if (mots.length === 0) return liste
+        return liste.filter((mod) => {
+          const foin = kbNormalise([mod.id, mod.famille, (mod.badges || []).join(' '), texteDe(mod)].join(' '))
+          return mots.every((w) => foin.indexOf(w) >= 0)
+        })
+      }
+      /** The steps of the score filter, up to the best score the list has (none at all when no line quotes a score). Pure. */
+      const kbPaliers = (liste) => {
+        const top = Math.max(0, ...liste.map((mod) => kbScoreDe(mod.score)).filter((n) => n !== null))
+        return [10, 20, 30, 40, 50].filter((n) => n <= top)
+      }
+      // KB-KML-PURE-END
 
       // ── icônes (tracés Lucide, comme les autres plugins) ─────────────────
       const ICONS = {
@@ -319,7 +373,21 @@ window.__ModuleLoader__.load({
         ".kml-outils { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }\n" +
         ".kml-section-inline { margin: 0 10px 0 0; }\n" +
         ".kml-liste { display: flex; flex-direction: column; gap: 6px; margin: 0 0 6px; }\n" +
-        ".kml-mod { display: flex; align-items: center; gap: 12px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 10px; background: var(--dsw-alias-bg-layer-1); padding: 10px 12px; }\n" +
+        ".kml-barre { position: sticky; top: 0; z-index: 2; margin: 0 -4px 8px; padding: 6px 4px 2px; background: var(--dsw-alias-bg-layer-2); }\n" +
+        ".kml-recherche { flex: 1; min-width: 180px; max-width: 320px; }\n" +
+        ".kml-score { font-variant-numeric: tabular-nums; }\n" +
+        ".kml-pager { display: flex; align-items: center; gap: 6px; padding: 4px 2px 8px; }\n" +
+        ".kml-pager-info { margin-right: auto; font-size: 12px; color: var(--dsw-alias-label-tertiary); }\n" +
+        ".kml-pager-num { min-width: 44px; text-align: center; font-size: 12px; color: var(--dsw-alias-label-secondary); font-variant-numeric: tabular-nums; }\n" +
+        ".kml-fold { display: flex; align-items: center; gap: 6px; margin: 6px 0 8px; padding: 6px 2px; border: 0; background: none; cursor: pointer; font: inherit; font-size: 13px; color: var(--dsw-alias-label-secondary); }\n" +
+        ".kml-fold:hover { color: var(--dsw-alias-label-primary); }\n" +
+        ".kml-chev { display: inline-block; transition: transform .12s; }\n" +
+        ".kml-chev.open { transform: rotate(90deg); }\n" +
+        ".kml-detail { flex: 1 0 100%; display: flex; flex-direction: column; gap: 3px; padding: 8px 0 0 42px; font-size: 12px; line-height: 17px; color: var(--dsw-alias-label-secondary); }\n" +
+        ".kml-detail b { font-weight: 500; color: var(--dsw-alias-label-primary); }\n" +
+        ".kml-detail code { font-family: var(--ds-font-family-code, monospace); font-size: 11.5px; overflow-wrap: anywhere; }\n" +
+        ".kml-detail-btn { padding: 0 8px; }\n" +
+        ".kml-mod { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 10px; background: var(--dsw-alias-bg-layer-1); padding: 10px 12px; }\n" +
         ".kml-mod-chip { width: 30px; height: 30px; flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 11px; font-weight: 700; letter-spacing: .3px; }\n" +
         ".kml-mod-chip[data-famille='q'] { background: color-mix(in srgb, var(--dsw-alias-brand-primary) 14%, transparent); color: var(--dsw-alias-brand-primary); }\n" +
         ".kml-mod-chip[data-famille='g'] { background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 14%, transparent); color: var(--dsw-alias-state-success-primary); }\n" +
@@ -442,6 +510,12 @@ window.__ModuleLoader__.load({
         const [scanEtape, setScanEtape] = React.useState(null)
         const [catBilan, setCatBilan] = React.useState(null)
         const [catRev, setCatRev] = React.useState(0)
+        // The list: what is typed, the score asked for, the page, the too-heavy fold, and the download's details.
+        const [recherche, setRecherche] = React.useState('')
+        const [scoreMin, setScoreMin] = React.useState(0)
+        const [page, setPage] = React.useState(1)
+        const [lourdsOuverts, setLourdsOuverts] = React.useState(false)
+        const [detailOuvert, setDetailOuvert] = React.useState(false)
         const jobVivant = React.useRef(null)
 
         // ── lectures réelles ───────────────────────────────────────────────
@@ -595,12 +669,22 @@ window.__ModuleLoader__.load({
         const reco = kbRecommend(ramGo)
         // Ids found by the last Refresh scan: highlighted with a "New" tag.
         const idsNouveaux = new Set((scanNouveaux !== null ? scanNouveaux.map((x) => x.id) : []).concat(catBilan !== null && catBilan.ok === true ? catBilan.nouveaux : []))
-        const visibles = CATALOGUE.filter((mod) => {
+        const parBudget = CATALOGUE.filter((mod) => {
           if (budget === 'compatibles') return etatDe(mod) === 'compatible'
           if (budget === 'reco') return mod === reco
           if (budget === 'leger') return mod.tailleGo !== null && mod.tailleGo <= 4
           return true
         })
+        // The machine not measured yet: nothing is « too heavy » (it would fold the whole list while the machine is being read).
+        const etatListe = (mod) => (ramGo === null ? 'inconnu' : etatDe(mod))
+        const trouves = kbChercher(parBudget, recherche, (mod) => descDe(mod) + ' ' + (mod.score || ''))
+          .filter((mod) => scoreMin === 0 || (kbScoreDe(mod.score) !== null && kbScoreDe(mod.score) >= scoreMin))
+        const ordonnes = kbOrdreAjuste(trouves, etatListe)
+        // The ones that fit are paged; the too-heavy ones wait under a fold (still reachable, never in the way).
+        const lourds = ordonnes.filter((mod) => etatListe(mod) === 'lourd')
+        const visibles = ordonnes.filter((mod) => etatListe(mod) !== 'lourd')
+        const pageDe = kbPagine(visibles, page, KML_PAGE)
+        const paliers = kbPaliers(CATALOGUE)
 
         const rangeeDe = (mod) => {
           const estInstalle = installees.some((x) => x.id === mod.id)
@@ -612,9 +696,10 @@ window.__ModuleLoader__.load({
           if (enCours === true) {
             actions = [
               h('div', { className: 'kml-prog', key: 'p' }, h('div', { className: 'kml-prog-fill', style: { width: (job.pct === null ? 4 : job.pct) + '%' } })),
-              h('span', { className: 'kml-prog-texte', key: 't' },
-                job.pct === null ? m('kml.en.cours') : job.pct + ' %' + (job.octets !== null ? ' · ' + job.octets.recu + ' / ' + job.octets.total : '')),
-              h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-outline', key: 'a', onClick: annuler, title: 'Annuler' }, '✕'),
+              h('span', { className: 'kml-prog-texte', key: 't' }, job.pct === null ? m('kml.en.cours') : job.pct + ' %'),
+              h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-ghost kml-detail-btn', key: 'd', 'data-kml': 'detail-toggle', 'aria-expanded': String(detailOuvert), 'aria-label': m('kml.detail.ouvrir'), title: m('kml.detail.ouvrir'), onClick: () => setDetailOuvert(!detailOuvert) },
+                h('span', { className: 'kml-chev' + (detailOuvert ? ' open' : ''), 'aria-hidden': 'true' }, '›')),
+              h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-outline', key: 'a', onClick: annuler, title: 'Annuler', 'aria-label': 'Annuler' }, '✕'),
             ]
           } else if (estBranche === true) {
             // L'étiquette est cliquable : re-brancher resynchronise la
@@ -640,7 +725,8 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'kbm-tag', 'data-tone': 'outline' }, 'Q4'),
                 mod === reco ? h('span', { className: 'kbm-tag', 'data-tone': 'success' }, m('kml.reco.tag')) : null,
                 idsNouveaux.has(mod.id) ? h('span', { className: 'kbm-tag', 'data-tone': 'warning' }, m('kml.scan.tag')) : null,
-                mod.tailleGo !== null && mod.tailleGo <= 4 ? h('span', { className: 'kbm-tag', 'data-tone': 'quiet' }, m('kml.leger.tag')) : null),
+                mod.tailleGo !== null && mod.tailleGo <= 4 ? h('span', { className: 'kbm-tag', 'data-tone': 'quiet' }, m('kml.leger.tag')) : null,
+                kbScoreDe(mod.score) !== null ? h('span', { className: 'kbm-tag kml-score', 'data-tone': 'neutral', 'data-kml': 'score', title: m('kml.score.badge', { n: kbScoreDe(mod.score) }) }, 'II ' + String(kbScoreDe(mod.score))) : null),
               h('span', { className: 'kml-mod-desc', title: descDe(mod) + (mod.score ? ' · ' + mod.score : '') }, descDe(mod) + (mod.score ? ' · ' + mod.score : ''))),
             h('span', { className: 'kml-mod-etat' },
               h('span', { className: 'kml-etat' },
@@ -649,7 +735,13 @@ window.__ModuleLoader__.load({
               ec !== null ? h('span', { className: 'kml-etat-sous' }, m('kml.en.charge', { go: String(ec).replace('.', ',') })) : null,
               h('span', { className: 'kml-bar', 'aria-hidden': 'true' },
                 h('span', { className: 'kml-bar-fill', 'data-etat': etat, style: { width: ec === null ? '0%' : Math.min(100, Math.round(ec / (ramGo || 16) * 100)) + '%' } }))),
-            h('span', { className: 'kml-mod-actions' }, actions))
+            h('span', { className: 'kml-mod-actions' }, actions),
+            enCours === true && detailOuvert
+              ? h('div', { className: 'kml-detail', 'data-kml': 'detail' },
+                h('span', null, h('b', null, m('kml.detail.cmd')), ' ', h('code', null, job.cmd || '')),
+                h('span', null, h('b', null, m('kml.detail.recu')), ' ', job.octets !== null && job.octets !== undefined ? job.octets.recu + ' / ' + job.octets.total : m('kml.detail.attente')),
+                job.ligne ? h('span', { className: 'kml-detail-ligne' }, h('b', null, m('kml.detail.ligne')), ' ', h('code', null, String(job.ligne).slice(0, 160))) : null)
+              : null)
         }
 
         const ollamaAbsent = machine === null ? null : machine.ollama.present !== true
@@ -778,12 +870,37 @@ window.__ModuleLoader__.load({
                     : null)
                 : null)
             : null,
-          h('div', { className: 'kml-outils' },
-            h('span', { className: 'kml-section kml-section-inline' }, m('kml.section.selection')),
-            ['tous', 'compatibles', 'reco', 'leger'].map((b) => h('button', {
-              key: b, className: 'kbm-pill kbm-pill-interactive' + (budget === b ? ' kbm-pill-active' : ''), onClick: () => setBudget(b),
-            }, m('kml.' + b)))),
-          h('div', { className: 'kml-liste' }, visibles.map(rangeeDe)),
+          // The bar stays at the top of the list while it scrolls: the search is always at hand (V-37).
+          h('div', { className: 'kml-barre', 'data-kml': 'barre' },
+            h('div', { className: 'kml-outils' },
+              h('span', { className: 'kml-section kml-section-inline' }, m('kml.section.selection')),
+              ['tous', 'compatibles', 'reco', 'leger'].map((b) => h('button', {
+                key: b, type: 'button', className: 'kbm-pill kbm-pill-interactive' + (budget === b ? ' kbm-pill-active' : ''), 'aria-pressed': String(budget === b), onClick: () => { setBudget(b); setPage(1) },
+              }, m('kml.' + b)))),
+            h('div', { className: 'kml-outils' },
+              h('span', { className: 'kbm-in-wrap kml-recherche' },
+                h('span', { className: 'kbm-in-icon' }, Ic('search', 14)),
+                h('input', { className: 'kbm-in-input', type: 'search', 'data-kml': 'recherche', value: recherche, placeholder: m('kml.search'), 'aria-label': m('kml.search'),
+                  onChange: (e) => { setRecherche(e.target.value); setPage(1) } })),
+              paliers.length > 0
+                ? [0].concat(paliers).map((n) => h('button', {
+                  key: 's' + n, type: 'button', className: 'kbm-pill kbm-pill-interactive' + (scoreMin === n ? ' kbm-pill-active' : ''), 'data-kml': 'score-' + n, 'aria-pressed': String(scoreMin === n), onClick: () => { setScoreMin(n); setPage(1) },
+                }, n === 0 ? m('kml.score.any') : m('kml.score.min', { n })))
+                : null)),
+          visibles.length === 0 && lourds.length === 0 ? h('p', { className: 'kml-vide', 'data-kml': 'aucun' }, m('kml.aucun')) : null,
+          h('div', { className: 'kml-liste', 'data-kml': 'liste' }, pageDe.tranche.map(rangeeDe)),
+          visibles.length > KML_PAGE
+            ? h('div', { className: 'kml-pager', 'data-kml': 'pager' },
+              h('span', { className: 'kml-pager-info' }, m('kml.page.info', { a: pageDe.debut + 1, b: pageDe.fin, n: pageDe.total })),
+              h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-ghost', 'data-kml': 'page-prev', 'aria-label': m('kml.page.prev'), title: m('kml.page.prev'), disabled: pageDe.page <= 1, onClick: () => setPage(pageDe.page - 1) }, '‹'),
+              h('span', { className: 'kml-pager-num', 'data-kml': 'page-num' }, pageDe.page + ' / ' + pageDe.pages),
+              h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-ghost', 'data-kml': 'page-next', 'aria-label': m('kml.page.next'), title: m('kml.page.next'), disabled: pageDe.page >= pageDe.pages, onClick: () => setPage(pageDe.page + 1) }, '›'))
+            : null,
+          lourds.length > 0
+            ? h('button', { type: 'button', className: 'kml-fold', 'data-kml': 'lourds-toggle', 'aria-expanded': String(lourdsOuverts), onClick: () => setLourdsOuverts(!lourdsOuverts) },
+              h('span', { className: 'kml-chev' + (lourdsOuverts ? ' open' : ''), 'aria-hidden': 'true' }, '›'), m('kml.lourd.n', { n: lourds.length }))
+            : null,
+          lourds.length > 0 && lourdsOuverts ? h('div', { className: 'kml-liste', 'data-kml': 'lourds' }, lourds.map(rangeeDe)) : null,
           h('div', { className: 'kml-section' }, m('kml.section')),
           branchees.length === 0
             ? h('p', { className: 'kml-vide' }, m('kml.vide'))
