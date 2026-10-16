@@ -32,7 +32,7 @@ if (host === '127.0.0.1:3080') { console.error('○ inconclusive: this check nee
 if (home.indexOf('.kybernos-sandbox') < 0) { console.error('○ inconclusive: DSH_HOME is not a sandbox home.'); process.exit(3) }
 
 // What a language must show. A French word in an English page, or an English phrase of ours in the French one, is a failure.
-const FRENCH_WORDS = /\b(Briques|Modeleur|Aucun|Aucune|Demandez|Demande au|Voir la|Relire|Début|Résumé|Rechercher partout|Fichiers|Ouvrir|Rejouer|Effacer|Gomme|Mettre à jour|Autour|Réessayer|Partir de|Ce poste|Créations|Mémoire|Leçons|Aide)\b/
+const FRENCH_WORDS = /\b(Briques|Modeleur|Aucun|Aucune|Demande|Voir la|Relire|Début|Résumé|Rechercher partout|Fichiers|Ouvrir|Rejouer|Effacer|Gomme|Mettre à jour|Autour|Réessayer|Partir de|Ce poste|Créations|Mémoire|Leçons|Aide)\b/
 const ENGLISH_OF_OURS = /\b(No model yet|Ask the chat|Bricks|3D modeller|Replay|Eraser|Clear all|Search everywhere|This machine|Update|Start from|Try again|Nothing read yet|See the demo|Ask the chat for a deck)\b/
 
 const live = await openLivePage({ width: 1500, height: 950 }).catch((e) => { console.error('○ inconclusive: ' + e.message); process.exit(3) })
@@ -100,9 +100,9 @@ try {
     await shot('start-' + lang)
 
     const PANELS = [
-      { en: 'Bricks', fr: 'Briques', root: '.kbb-root', want: french ? ['Aucune maquette pour le moment', 'Demandez au chat'] : ['No model yet', 'Ask the chat'] },
-      { en: 'Slides', fr: 'Slides', root: '.kbsd-root', want: french ? ['Demandez un deck au chat', 'Voir la démo'] : ['Ask the chat for a deck', 'See the demo'] },
-      { en: '3D modeller', fr: 'Modeleur', root: '.kbmo', want: french ? ['Aucun modèle pour le moment', 'Demandez au chat'] : ['No model yet', 'Ask the chat'] },
+      { en: 'Bricks', fr: 'Briques', root: '.kbb-root', want: french ? ['Aucune maquette pour le moment', 'Demande au chat'] : ['No model yet', 'Ask the chat'] },
+      { en: 'Slides', fr: 'Slides', root: '.kbsd-root', want: french ? ['Demande un deck au chat', 'Voir la démo'] : ['Ask the chat for a deck', 'See the demo'] },
+      { en: '3D modeller', fr: 'Modeleur', root: '.kbmo', want: french ? ['Aucun modèle pour le moment', 'Demande au chat'] : ['No model yet', 'Ask the chat'] },
       { en: 'Summary', fr: 'Résumé', root: '.kbsm-root', want: french ? ['Rien à résumer pour l’instant'] : ['Nothing to sum up yet'] },
       // A2-07: the page that lists the animations is named like the sidebar names it (« Creations »), never « Livrables ».
       { en: 'Motion', fr: 'Motion', root: '[data-kb="motion-panel"]', want: french ? ['page Créations'] : ['the Creations page'], not: /Livrables|Deliverables/ },

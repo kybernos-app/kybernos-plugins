@@ -1,61 +1,62 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-// garde — le « hook agent » d'isolation.
+// garde — the isolation « agent hook ».
 //
-//   node kybernos-sessions/garde.mjs [--nom <slug>] [--but "<phrase>"] [--isoler]
+//   node kybernos-sessions/garde.mjs [--nom <slug>] [--but "<sentence>"] [--isoler]
 //
-// À appeler AVANT LA PREMIÈRE ÉCRITURE DE FICHIER d'un chantier (règle dans
-// ~/.dsh/AGENTS.md). Décision, puis action :
-//   • dossier déjà un worktree             → exit 0 : déjà isolé, travaille ici ;
-//   • hors git, non partagé                → exit 0 : rien à isoler ;
-//   • hors git, PARTAGÉ                    → exit 0 : pas d'arbre possible,
-//                                            mais AVERTIT (voir « ordre » plus bas) ;
-//   • dossier non partagé                  → exit 0 : travaille en place ;
-//   • partagé + un arbre libre du même nom → exit 2 : RÉUTILISE-le, rien créé ;
-//   • partagé, sans arbre, sans --isoler   → exit 0 : travaille en place ;
-//   • partagé + --isoler                   → exit 2 : arbre créé (ou réutilisé).
+// To be called BEFORE THE FIRST FILE WRITE of a piece of work (rule in
+// ~/.dsh/AGENTS.md). Decision, then action:
+//   • the folder is already a worktree        → exit 0: already isolated, work here;
+//   • outside git, not shared                 → exit 0: nothing to isolate;
+//   • outside git, SHARED                     → exit 0: no tree possible,
+//                                               but WARNS (see « order » below);
+//   • folder not shared                       → exit 0: work in place;
+//   • shared + a free tree of the same name   → exit 2: REUSE it, nothing created;
+//   • shared, no tree, no --isoler            → exit 0: work in place;
+//   • shared + --isoler                       → exit 2: tree created (or reused).
 //
-// RÉSERVATION D'UN FICHIER CHAUD — le point de collision que la garde de dossier
-// ne peut PAS voir (elle mesure le partage d'un dossier sur 1 h, pas « ce
-// fichier est en train d'être écrit ») :
-//   node kybernos-sessions/garde.mjs --claim client.js    → exit 0 : réservé 180 s
-//                                                         → exit 4 : déjà pris ailleurs
-//   node kybernos-sessions/garde.mjs --release client.js  → exit 0 : libéré
-// Sans cette réservation, « un seul écrivain par fichier chaud » restait un vœu.
+// CLAIMING A HOT FILE — the collision point the folder guard cannot SEE (it
+// measures how much a folder is shared over 1 h, not « this file is being
+// written right now »):
+//   node kybernos-sessions/garde.mjs --claim client.js    → exit 0: claimed 180 s
+//                                                         → exit 4: already taken elsewhere
+//   node kybernos-sessions/garde.mjs --release client.js  → exit 0: released
+// Without this claim, « one writer per hot file » stayed a wish.
 //
-// VEILLE DE PUBLICATION — le second étage, pour la révision INTERMÉDIAIRE :
+// PUBLICATION WATCH — the second stage, for the INTERMEDIATE revision:
 //   node kybernos-sessions/garde.mjs --veille [--interval 1000] [--une-fois]
 //
-// Le code client d'un bundle local est servi À CHAUD depuis le disque : toute
-// révision qui passe par le fichier est vue par les pages ouvertes. Une écriture
-// en plusieurs passes (ou deux écrivains, ou une écriture interrompue) publie
-// donc une révision QUI NE PARSE PAS, et l'entrée entière échoue au boot —
-// « Failed to load plugins @local/kybernos ». Constaté le 23/09/2026.
+// The client code of a local bundle is served HOT from the disk: every revision
+// that goes through the file is seen by the open pages. A write in several
+// passes (or two writers, or an interrupted write) therefore publishes a
+// revision THAT DOES NOT PARSE, and the whole entry fails at boot —
+// « Failed to load plugins @local/kybernos ». Seen on 23/09/2026.
 //
-// La veille garde une copie de la dernière révision VERTE de chaque fichier
-// chaud (~/.dsh/kybernos/last-good/) et, dès qu'une révision ne parse plus,
-// remet la verte en place dans la seconde. Elle ne juge pas l'intention : elle
-// protège la GUI SERVIE. Le journal (~/.dsh/kybernos/veille-bundle.log) dit
-// quelle révision a été remplacée ; l'écrivain, lui, doit relire son fichier
-// (le garde-fou de version du système de fichiers le lui impose de toute façon).
+// The watch keeps a copy of the last GREEN revision of every hot file
+// (~/.dsh/kybernos/last-good/) and, as soon as a revision no longer parses,
+// puts the green one back within the second. It does not judge intent: it
+// protects the SERVED GUI. The log (~/.dsh/kybernos/veille-bundle.log) says which
+// revision was replaced; the writer must re-read its file (the file system's
+// version guard forces it to anyway).
 //
-// Le verdict « parse » est rendu par `--input-type=module`, PAS par
-// `node --check <fichier>.js` : mesuré le 23/09/2026 sur Node 26.7.0, ce dernier
-// rend 0 (`= {{{`, `= = 1`) sur un bundle client cassé. `--check` (sans veille)
-// passe la même porte à la demande, pour ne pas livrer une révision illisible.
+// The « parses » verdict is given by `--input-type=module`, NOT by
+// `node --check <file>.js`: measured on 23/09/2026 on Node 26.7.0, the latter
+// returns 0 (`= {{{`, `= = 1`) on a broken client bundle. `--check` (without
+// the watch) goes through the same gate on demand, so as not to deliver an
+// unreadable revision.
 //
-// POURQUOI « en place » par défaut : un worktree ne peut pas être rattaché au
-// chat EN COURS — la session et la GUI servent le checkout principal
-// (`<checkout>/plugins/…`). Créer un arbre à chaque écriture produisait des
-// arbres morts : deux constatés le 21/09/2026, propres, à 0 commit d'avance, et
-// un troisième déjà signalé « resté, redondant » la veille. L'arbre n'a de sens
-// que pour un PROCHAIN chat ouvert dedans : il se réserve donc explicitement
-// (--isoler), et il est marqué, réutilisé et ramassable (`reclaim`).
+// WHY « in place » by default: a worktree cannot be attached to the CURRENT
+// chat — the session and the GUI serve the main checkout
+// (`<checkout>/plugins/…`). Creating a tree at every write produced dead trees:
+// two seen on 21/09/2026, clean, at 0 commits ahead, and a third already
+// reported « left, redundant » the day before. A tree only makes sense for a
+// NEXT chat opened inside it: so it is reserved explicitly (--isoler), and it
+// is marked, reused and reclaimable (`reclaim`).
 //
-// Les quick talks (aucune écriture) n'appellent jamais la garde.
+// Quick talks (no write) never call the guard.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { appendFileSync, copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { appendFileSync, copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { homedir } from 'node:os'
 import { createHash } from 'node:crypto'
@@ -69,23 +70,22 @@ const arg = (nom, defaut) => {
 const home = process.env.DSH_HOME || join(homedir(), '.dsh')
 const chemin = process.cwd()
 const sessionsHome = join(home, 'sessions')
-// Le nom doit être STABLE pour le même chat, sinon la réutilisation ne peut pas
-// reconnaître l'arbre réservé au tour précédent et en fabrique un second. Sans
-// `DSH_SESSION_ID` (session non-DSH), on ne peut pas distinguer deux chats : on
-// dérive du DOSSIER plutôt que de retomber sur une constante globale — l'ancien
-// `s-chantier` faisait collisionner toutes les sessions sur le même arbre.
+// The name must be STABLE for the same chat, otherwise the reuse cannot
+// recognise the tree reserved on the previous turn and makes a second one.
+// Without `DSH_SESSION_ID` (a non-DSH session), two chats cannot be told apart:
+// the name is derived from the FOLDER rather than falling back on a global
+// constant — the old `s-chantier` made every session collide on the same tree.
 const sessionCourte = String(process.env.DSH_SESSION_ID || '').replace(/[^a-z0-9]/gi, '').slice(0, 8)
 const dossierCourt = createHash('sha1').update(process.cwd()).digest('hex').slice(0, 8)
 const nom = arg('--nom') || ('s-' + (sessionCourte || 'd' + dossierCourt))
 const but = arg('--but')
 const demande = process.argv.includes('--isoler') || process.env.KYBERNOS_ISOLATE === '1'
 
-// décision pure (exportable/testable) : ce dossier est-il partagé à 1 h ?
+// pure decision (exportable/testable): is this folder shared within the hour?
 //
-// Le slug du magasin est DÉCODÉ depuis les noms réels, jamais construit à la
-// main : DSH encode les caractères spéciaux (`~0020` pour une espace), et un slug
-// naïf faisait répondre « non partagé » — donc « travaille en place » — sur un
-// dossier réellement occupé.
+// The slug of the store is DECODED from the real names, never built by hand: DSH
+// encodes special characters (`~0020` for a space), and a naive slug answered
+// « not shared » — hence « work in place » — on a folder that was really busy.
 export function decider (cheminCourant, sessionsHome, fenetreMs = 3600 * 1000, horloge = Date.now) {
   const r = repartitionParDossier(sessionsHome, fenetreMs, horloge())
   const slugs = slugsDeChemin(sessionsHome, cheminCourant)
@@ -93,16 +93,16 @@ export function decider (cheminCourant, sessionsHome, fenetreMs = 3600 * 1000, h
   return { slug: slugs[0] || null, slugs, partage: sessionsActives >= 2, sessionsActives }
 }
 
-// ── Fichiers chauds : réservation par FICHIER, pas par dossier ───────────────
-// `decider` ci-dessus mesure le PARTAGE d'un dossier sur 1 h : il ne peut pas
-// dire « client.js est en train d'être écrit ». Or c'est LA collision constatée
-// les 22-23/09/2026 (trois sessions sur un seul checkout, point de collision
-// kybernos-plugin/client.js, 1 Mo / ~13 000 lignes). Sans réservation par
-// fichier, « un seul écrivain par fichier chaud » restait un vœu.
-// Tous les bundles clients du dépôt sont servis à chaud depuis le disque : un
-// filet qui ne couvrirait que `kybernos-plugin` laisserait dix bundles cassables
-// sans veille. Mesuré le 23/09/2026 : le bandeau de santé vit dans
-// `kybernos-sessions/client.js`, donc dans un fichier chaud, lui aussi.
+// ── Hot files: a claim per FILE, not per folder ──────────────────────────────
+// `decider` above measures how much a folder is SHARED over 1 h: it cannot say
+// « client.js is being written right now ». Yet that is THE collision seen on
+// 22-23/09/2026 (three sessions on a single checkout, collision point
+// kybernos-plugin/client.js, 1 MB / ~13,000 lines). Without a claim per file,
+// « one writer per hot file » stayed a wish.
+// All the client bundles of the repository are served hot from the disk: a net
+// that covered only `kybernos-plugin` would leave ten bundles breakable without
+// the watch. Measured on 23/09/2026: the health banner lives in
+// `kybernos-sessions/client.js`, so in a hot file too.
 export const FICHIERS_CHAUDS = [
   'packages/kybernos-plugin/client.js',
   'packages/kybernos-plugin/index.js',
@@ -116,12 +116,12 @@ export const FICHIERS_CHAUDS = [
   'packages/kybernos-maintenance/client.js',
   'packages/kybernos-relance/client.js',
   'packages/kybernos-flow/client.js',
-  // Ajouté le 24/09/2026 : le panneau « Briques » vit dans un bundle client
-  // servi à chaud, comme les autres. Il manquait à cette liste — la garde
-  // répondait « pas un fichier chaud connu », donc personne ne le réservait.
+  // Added on 24/09/2026: the « Bricks » panel lives in a client bundle served
+  // hot, like the others. It was missing from this list — the guard answered
+  // « not a known hot file », so nobody claimed it.
   'packages/kybernos-bricks/client.js',
-  // Recette 03/10 : bundles clients apparus depuis — la suite worktrees (C1b)
-  // les réclamait, la garde les ignorait (« pas un fichier chaud connu »).
+  // Recette 03/10: client bundles that appeared since — the worktree suite (C1b)
+  // claimed them, the guard ignored them (« not a known hot file »).
   'packages/kybernos-auto/client.js',
   'packages/kybernos-computers/client.js',
   'packages/kybernos-language/client.js',
@@ -145,9 +145,9 @@ export const FICHIERS_CHAUDS = [
 ]
 export const TTL_CLAIM_MS = 180 * 1000
 
-// Pure : les réservations encore vivantes. Une réservation périmée est ignorée —
-// un chat tué sans libérer ne doit pas bloquer le suivant indéfiniment (même
-// choix que `dsh-relance-claims.json`, 180 s).
+// Pure: the claims that are still alive. An expired claim is ignored — a chat
+// killed without releasing must not block the next one forever (the same choice
+// as `dsh-relance-claims.json`, 180 s).
 export function claimsVivants (claims, maintenant = Date.now()) {
   const c = claims && typeof claims === 'object' ? claims : {}
   const out = {}
@@ -158,18 +158,18 @@ export function claimsVivants (claims, maintenant = Date.now()) {
   return out
 }
 
-// Pure : le détenteur d'un fichier chaud quand ce n'est PAS nous (null sinon).
+// Pure: the holder of a hot file when it is NOT us (null otherwise).
 export function claimConcurrent (claims, fichier, session, maintenant = Date.now()) {
   const v = claimsVivants(claims, maintenant)[fichier]
   if (!v) return null
   return String(v.session || '') === String(session || '') ? null : v
 }
 
-// ── Verdict d'une passe de veille (pur, donc testable sans disque) ───────────
-// Ce qu'on fait d'une révision : la PUBLIER (elle parse), la REMPLACER par la
-// dernière verte connue (elle ne parse plus et il existe un filet), ou la
-// SIGNALER seulement (elle ne parse plus et il n'y a aucun filet : on ne peut
-// pas inventer une version valide).
+// ── Verdict of a watch pass (pure, so testable without a disk) ───────────────
+// What to do with a revision: PUBLISH it (it parses), REPLACE it with the last
+// known green one (it no longer parses and a safety copy exists), or only FLAG it
+// (it no longer parses and there is no safety copy: a valid version cannot be
+// invented).
 export function verdictRevision ({ parseOk, filetOk }) {
   if (parseOk === true) return 'publier'
   return filetOk === true ? 'remplacer' : 'signaler'
@@ -177,16 +177,16 @@ export function verdictRevision ({ parseOk, filetOk }) {
 
 const SNAPSHOTS = () => join(home, 'kybernos', 'last-good')
 const JOURNAL = () => join(home, 'kybernos', 'veille-bundle.log')
-// Le nom garde les caractères lisibles (`-`, `.`, `_`) et ne remplace que ce qui
-// sépare : le filet de `kybernos-plugin/client.js` s'appelle
-// `kybernos-plugin__client.js`, donc lisible dans un `ls last-good`.
+// The name keeps the readable characters (`-`, `.`, `_`) and only replaces what
+// separates: the safety copy of `kybernos-plugin/client.js` is called
+// `kybernos-plugin__client.js`, so readable in an `ls last-good`.
 const nomSnapshot = (rel) => rel.replace(/[^a-zA-Z0-9._-]+/g, '__')
-// `node --check <fichier>.js` NE SUFFIT PAS pour ces bundles — mesuré le
-// 23/09/2026 sur Node 26.7.0 : il rend 0 sur `export const vert = {{{` et sur
-// `export const a = = 1` (la passe CommonJS avale l'erreur), alors que le même
-// contenu en `.mjs` rend 1. Un bundle client est un MODULE : on valide donc en
-// forçant le mode module par l'entrée standard (aucun fichier temporaire, et le
-// verdict ne dépend pas de l'extension).
+// `node --check <file>.js` is NOT ENOUGH for these bundles — measured on
+// 23/09/2026 on Node 26.7.0: it returns 0 on `export const vert = {{{` and on
+// `export const a = = 1` (the CommonJS pass swallows the error), while the same
+// content as `.mjs` returns 1. A client bundle is a MODULE: so we validate by
+// forcing module mode through standard input (no temporary file, and the
+// verdict does not depend on the extension).
 const parsee = (f) => {
   try {
     const r = spawnSync(process.execPath, ['--input-type=module', '--check', '-'], {
@@ -199,58 +199,58 @@ const journaliser = (ligne) => {
   try {
     mkdirSync(dirname(JOURNAL()), { recursive: true })
     appendFileSync(JOURNAL(), new Date().toISOString() + '  ' + ligne + '\n')
-  } catch (e) { /* journal indisponible : la veille continue */ }
+  } catch (e) { /* log unavailable: the watch goes on */ }
 }
 
-// Signature de contenu : c'est ELLE qui évite de revalider 1 Mo par seconde.
-// Un `mtime` seul se ferait piéger par une écriture de même taille dans la même
-// milliseconde ; le hachage lit le fichier (1,4 Mo/s, négligeable) mais ne
-// relance plus un processus node ni ne recopie le filet tant que rien n'a changé.
+// Content signature: it is THIS that avoids re-validating 1 MB per second.
+// A bare `mtime` would be fooled by a write of the same size in the same
+// millisecond; the hash reads the file (1.4 MB/s, negligible) but no longer
+// starts a node process nor copies the safety copy again as long as nothing changed.
 const signature = (f) => createHash('sha1').update(readFileSync(f)).digest('hex').slice(0, 16)
 
 /**
- * Une passe de veille sur les fichiers chauds d'un dossier. Ne bloque pas, ne
- * lève pas : une veille ne doit jamais faire échouer un chantier.
- * @param {Map<string,string>} memo signatures déjà jugées (évite le travail à vide)
+ * One watch pass over the hot files of a folder. Does not block, does not
+ * throw: a watch must never make a piece of work fail.
+ * @param {Map<string,string>} memo signatures already judged (avoids idle work)
  * @returns {{ publies: string[], remplaces: string[], signales: string[] }}
  */
 export function passeVeille (dossier, fichiers = FICHIERS_CHAUDS, memo = new Map()) {
   const out = { publies: [], remplaces: [], signales: [] }
   const snap = SNAPSHOTS()
-  try { mkdirSync(snap, { recursive: true }) } catch (e) { /* pas de filet possible */ }
+  try { mkdirSync(snap, { recursive: true }) } catch (e) { /* no safety copy possible */ }
   for (const rel of fichiers) {
     const cible = join(dossier, rel)
     let sig = null
     try { sig = signature(cible) } catch (e) { continue }
-    // Rien n'a bougé depuis la dernière passe jugée : on ne refait ni la
-    // validation (un processus node et 1 Mo à parser), ni la copie du filet.
+    // Nothing moved since the last judged pass: neither the validation (a node
+    // process and 1 MB to parse) nor the copy of the safety copy is redone.
     if (memo.get(rel) === sig) continue
     const filet = join(snap, nomSnapshot(rel))
     const filetOk = existsSync(filet) === true && parsee(filet) === true
     const verdict = verdictRevision({ parseOk: parsee(cible), filetOk })
     if (verdict === 'publier') {
-      try { copyFileSync(cible, filet); memo.set(rel, sig) } catch (e) { /* filet non écrit */ }
+      try { copyFileSync(cible, filet); memo.set(rel, sig) } catch (e) { /* safety copy not written */ }
       out.publies.push(rel)
       continue
     }
     if (verdict === 'remplacer') {
       try {
         copyFileSync(filet, cible)
-        memo.delete(rel) // la remise en place change le contenu : on rejugera
+        memo.delete(rel) // putting it back changes the content: it will be judged again
         out.remplaces.push(rel)
-        journaliser('REMPLACÉ ' + rel + ' — révision illisible, dernière verte remise en place')
+        journaliser('REPLACED ' + rel + ' — unreadable revision, last green one put back')
       } catch (e) { out.signales.push(rel) }
       continue
     }
-    memo.set(rel, sig) // une seule ligne de journal par révision illisible
+    memo.set(rel, sig) // a single log line per unreadable revision
     out.signales.push(rel)
-    journaliser('SIGNALÉ ' + rel + ' — révision illisible et AUCUN filet vert connu')
+    journaliser('FLAGGED ' + rel + ' — unreadable revision and NO green safety copy known')
   }
   return out
 }
 
 /**
- * Boucle de veille. `--une-fois` sert aux tests (une passe, puis rendu la main).
+ * The watch loop. `--une-fois` is for the tests (one pass, then control is handed back).
  */
 export function veille (options = {}) {
   const dossier = options.dossier || chemin
@@ -262,16 +262,16 @@ export function veille (options = {}) {
   const passe = () => {
     const r = passeVeille(dossier, fichiers, memo)
     if (options.verbeux === true && (r.publies.length > 0 || r.remplaces.length > 0)) {
-      console.log('  ' + new Date().toISOString() + '  vertes=' + r.publies.length
-        + ' remplacées=' + r.remplaces.length + ' sans filet=' + r.signales.length)
+      console.log('  ' + new Date().toISOString() + '  green=' + r.publies.length
+        + ' replaced=' + r.remplaces.length + ' without safety copy=' + r.signales.length)
     }
     return r
   }
   passe()
   if (uneFois === true) return
-  console.log('veille de publication : ' + fichiers.join(', ') + ' (toutes les ' + interval + ' ms)')
-  console.log('  filets : ' + SNAPSHOTS())
-  console.log('  journal : ' + JOURNAL())
+  console.log('publication watch: ' + fichiers.join(', ') + ' (every ' + interval + ' ms)')
+  console.log('  safety copies: ' + SNAPSHOTS())
+  console.log('  log: ' + JOURNAL())
   const timer = setInterval(passe, interval)
   const finir = () => { arret = true; clearInterval(timer); process.exit(0) }
   process.on('SIGINT', finir)
@@ -279,17 +279,17 @@ export function veille (options = {}) {
   void arret
 }
 
-// ── Veille PERMANENTE (LaunchAgent, pour survivre à la fermeture des chats) ──
-// Mesuré : la veille en job de fond meurt avec la session — donc pile au moment
-// où plus personne ne surveille. Le LaunchAgent, lui, démarre au login et
-// redémarre tout seul (`KeepAlive`), comme `com.kybernos.dsh-relance`.
+// ── PERMANENT watch (LaunchAgent, to outlive the closing of the chats) ───────
+// Measured: the watch as a background job dies with the session — so exactly when
+// nobody watches any more. The LaunchAgent, for its part, starts at login and
+// restarts by itself (`KeepAlive`), like `com.kybernos.dsh-relance`.
 export const LABEL_VEILLE = 'com.kybernos.dsh-veille-bundle'
 const cheminPlist = () => join(homedir(), 'Library', 'LaunchAgents', LABEL_VEILLE + '.plist')
 const uid = String(process.getuid === undefined ? '' : process.getuid())
 
 /**
- * Plist de la veille. Chemin du bundle FIGÉ (comme les autres agents Kybernos) :
- * un dépôt déplacé demande une réinstallation, ce que `--install` refait.
+ * Plist of the watch. The bundle path is FROZEN (like the other Kybernos agents):
+ * a moved repository needs a reinstall, which `--install` redoes.
  */
 export function plistVeille (racine, intervalle = 1000, noeud = process.execPath, journal = join(home, 'logs')) {
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -339,7 +339,7 @@ export function plistVeille (racine, intervalle = 1000, noeud = process.execPath
 `
 }
 
-/** Pose (ou retire) la veille permanente. Rend un compte-rendu, ne lève pas. */
+/** Installs (or removes) the permanent watch. Returns a report, does not throw. */
 export function agentVeille (action, racine = chemin, intervalle = 1000) {
   const p = cheminPlist()
   const launchctl = (args) => spawnSync('launchctl', args, { encoding: 'utf8' })
@@ -348,27 +348,27 @@ export function agentVeille (action, racine = chemin, intervalle = 1000) {
       mkdirSync(dirname(p), { recursive: true })
       mkdirSync(join(home, 'logs'), { recursive: true })
       writeFileSync(p, plistVeille(racine, intervalle))
-    } catch (e) { return { ok: false, quoi: 'écriture du plist', erreur: e.message } }
+    } catch (e) { return { ok: false, quoi: 'writing the plist', erreur: e.message } }
     launchctl(['bootout', 'gui/' + uid, p])
     const r = launchctl(['bootstrap', 'gui/' + uid, p])
-    if (r.status !== 0) return { ok: false, quoi: 'bootstrap launchctl', erreur: (r.stderr || '').trim() || ('code ' + String(r.status)) }
-    return { ok: true, quoi: 'veille permanente installée', plist: p }
+    if (r.status !== 0) return { ok: false, quoi: 'launchctl bootstrap', erreur: (r.stderr || '').trim() || ('code ' + String(r.status)) }
+    return { ok: true, quoi: 'permanent watch installed', plist: p }
   }
   if (action === 'uninstall') {
     launchctl(['bootout', 'gui/' + uid, p])
     if (existsSync(p)) {
-      try { rmSync(p) } catch (e) { return { ok: false, quoi: 'retrait du plist', erreur: e.message } }
+      try { rmSync(p) } catch (e) { return { ok: false, quoi: 'removing the plist', erreur: e.message } }
     }
-    return { ok: true, quoi: 'veille permanente retirée', plist: p }
+    return { ok: true, quoi: 'permanent watch removed', plist: p }
   }
-  // 'etat' : ce que launchd en dit, et ce que la veille a fait.
+  // 'etat': what launchd says about it, and what the watch did.
   const r = launchctl(['print', 'gui/' + uid + '/' + LABEL_VEILLE])
   const vivante = r.status === 0
   let dernier = []
   try {
     dernier = readFileSync(JOURNAL(), 'utf8').trim().split('\n').slice(-5)
   } catch (e) { dernier = [] }
-  return { ok: true, quoi: vivante ? 'veille permanente chargée' : 'veille permanente ABSENTE', plist: p, journal: dernier }
+  return { ok: true, quoi: vivante ? 'permanent watch loaded' : 'permanent watch ABSENT', plist: p, journal: dernier }
 }
 
 const moiSession = process.env.DSH_SESSION_ID || ('pid-' + process.pid)
@@ -381,20 +381,19 @@ const lireClaims = () => {
   } catch (e) { return {} }
 }
 
-// Best effort assumé : une réservation ne doit JAMAIS faire échouer un chantier.
+// Best effort by design: a claim must NEVER make a piece of work fail.
 const ecrireClaims = (c) => {
   try {
     mkdirSync(dirname(CLAIMS), { recursive: true })
     writeFileSync(CLAIMS, JSON.stringify(claimsVivants(c), null, 2) + '\n')
-  } catch (e) { /* disque plein, droits… : on continue sans réservation */ }
+  } catch (e) { /* disk full, permissions…: we go on without a claim */ }
 }
 
-// Accepte le chemin complet ou le seul nom (« client.js ») : au clavier, on écrit
-// le nom, et un chemin exact exigé serait une friction qui fait abandonner la
-// règle. Mais plusieurs bundles portent désormais un `client.js` : `--claim
-// client.js` ne peut plus désigner « le premier qui correspond » — il doit
-// refuser et nommer les candidats (une réservation posée sur le mauvais bundle
-// ne protège rien).
+// Accepts the full path or the bare name (« client.js »): at the keyboard one
+// types the name, and an exact path would be a friction that makes people give
+// the rule up. But several bundles now carry a `client.js`: `--claim client.js`
+// can no longer mean « the first that matches » — it must refuse and name the
+// candidates (a claim put on the wrong bundle protects nothing).
 export const resoudreChaud = (saisie) => {
   if (!saisie) return { ambigu: [] }
   const s = String(saisie).replace(/^\.\//u, '')
@@ -405,44 +404,44 @@ export const resoudreChaud = (saisie) => {
   return { ambigu: parNom }
 }
 
-// ne s'exécute qu'invoqué directement (l'import pour les tests ne fait rien)
+// only runs when invoked directly (the import for the tests does nothing)
 const direct = process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop())
 
 const main = async () => {
-  // ── Porte de publication (--check) ────────────────────────────────────────
-  // À passer AVANT d'annoncer qu'une modification du bundle est prête : c'est le
-  // même verdict que la veille, mais à la demande. Sort en 1 si un fichier chaud
-  // ne parse pas (la veille, elle, le remplacerait).
+  // ── Publication gate (--check) ────────────────────────────────────────────
+  // To be passed BEFORE announcing that a change to the bundle is ready: it is
+  // the same verdict as the watch, but on demand. Exits 1 if a hot file does not
+  // parse (the watch would replace it).
   if (process.argv.includes('--check')) {
     const dossierCheck = arg('--dossier', chemin)
     let casses = 0
     for (const rel of FICHIERS_CHAUDS) {
       const f = join(dossierCheck, rel)
-      if (existsSync(f) !== true) { console.log('· absent : ' + rel); continue }
+      if (existsSync(f) !== true) { console.log('· absent: ' + rel); continue }
       const bon = parsee(f)
       if (bon === false) casses += 1
-      console.log((bon ? '✓ ' : '✗ ') + rel + (bon ? ' parse (module)' : ' NE PARSE PAS — ne pas livrer en l\'état'))
+      console.log((bon ? '✓ ' : '✗ ') + rel + (bon ? ' parses (module)' : ' DOES NOT PARSE — do not deliver as it is'))
     }
     process.exit(casses === 0 ? 0 : 1)
   }
 
-  // ── Veille de publication (--veille) ──────────────────────────────────────
-  // Avant tout le reste : elle boucle, elle ne prend aucune décision de chantier.
+  // ── Publication watch (--veille) ──────────────────────────────────────────
+  // Before everything else: it loops, it takes no decision about the work.
   if (process.argv.includes('--veille')) {
     const dossierVeille = arg('--dossier', chemin)
     const intervalle = arg('--interval', '1000')
-    // Cycle de vie de la veille PERMANENTE (elle survit aux chats).
+    // Life cycle of the PERMANENT watch (it outlives the chats).
     const cycle = ['--install', '--uninstall', '--etat'].find((f) => process.argv.includes(f))
     if (cycle !== undefined) {
       const r = agentVeille(cycle.slice(2), dossierVeille, Number(intervalle))
       if (r.ok !== true) {
-        console.log('✗ ' + r.quoi + ' : ' + String(r.erreur || 'échec'))
+        console.log('✗ ' + r.quoi + ': ' + String(r.erreur || 'failed'))
         process.exit(1)
       }
       console.log('✓ ' + r.quoi)
-      console.log('  plist   : ' + r.plist)
+      console.log('  plist: ' + r.plist)
       if (r.journal !== undefined) {
-        console.log('  journal : ' + (r.journal.length === 0 ? '(aucune ligne — rien à réparer)' : ''))
+        console.log('  log: ' + (r.journal.length === 0 ? '(no line — nothing to repair)' : ''))
         for (const l of r.journal) console.log('    ' + l)
       }
       process.exit(0)
@@ -456,7 +455,7 @@ const main = async () => {
     return
   }
 
-  // ── Réservation d'un fichier chaud (--claim / --release) ───────────────────
+  // ── Claiming a hot file (--claim / --release) ──────────────────────────────
   const demandeClaim = arg('--claim')
   const demandeRelease = arg('--release')
   if (demandeClaim || demandeRelease) {
@@ -464,11 +463,11 @@ const main = async () => {
     const cible = resoudreChaud(demande)
     if (cible.fichier === undefined) {
       if (cible.ambigu.length > 1) {
-        console.log('✗ « ' + demande + ' » désigne ' + cible.ambigu.length + ' fichiers chauds — nomme le bundle :')
+        console.log('✗ « ' + demande + ' » designates ' + cible.ambigu.length + ' hot files — name the bundle:')
         for (const c of cible.ambigu) console.log('  · ' + c)
       } else {
-        console.log('✗ « ' + demande + ' » n\'est pas un fichier chaud connu.')
-        console.log('  connus : ' + FICHIERS_CHAUDS.join(', '))
+        console.log('✗ « ' + demande + ' » is not a known hot file.')
+        console.log('  known: ' + FICHIERS_CHAUDS.join(', '))
       }
       process.exit(3)
     }
@@ -478,98 +477,97 @@ const main = async () => {
       const v = claims[f]
       if (v && String(v.session || '') === moiSession) delete claims[f]
       ecrireClaims(claims)
-      console.log('✓ réservation libérée : ' + f)
+      console.log('✓ claim released: ' + f)
       process.exit(0)
     }
     const conc = claimConcurrent(claims, f, moiSession)
     if (conc !== null) {
       const restant = Math.max(0, Math.round(((conc.expire || 0) - Date.now()) / 1000))
-      console.log('⚠ ' + f + ' est DÉJÀ réservé par un autre chat : ' + (conc.session || '?') + ' (' + restant + ' s restantes)')
-      console.log('  Un seul écrivain par fichier chaud : n\'écris pas dedans maintenant.')
-      console.log('  Attends la libération, ou demande à ce chat de la rendre :')
+      console.log('⚠ ' + f + ' is ALREADY claimed by another chat: ' + (conc.session || '?') + ' (' + restant + ' s left)')
+      console.log('  One writer per hot file: do not write in it now.')
+      console.log('  Wait for the release, or ask that chat to give it up:')
       console.log('  node kybernos-sessions/garde.mjs --release ' + f)
       process.exit(4)
     }
     claims[f] = { session: moiSession, debut: Date.now(), expire: Date.now() + TTL_CLAIM_MS }
     ecrireClaims(claims)
-    console.log('✓ réservé ' + (TTL_CLAIM_MS / 1000) + ' s : ' + f)
-    console.log('  Renouvelle avec --claim avant expiration si l\'écriture dure.')
+    console.log('✓ claimed for ' + (TTL_CLAIM_MS / 1000) + ' s: ' + f)
+    console.log('  Renew with --claim before it expires if the write goes on.')
     process.exit(0)
   }
 
-  // Le point de collision RÉEL, dit AVANT la décision d'isolation : la garde de
-  // dossier ne le voit pas.
+  // The REAL collision point, said BEFORE the isolation decision: the folder
+  // guard does not see it.
   const vivants = claimsVivants(lireClaims())
   const conflits = FICHIERS_CHAUDS.filter((f) => claimConcurrent(vivants, f, moiSession) !== null)
   if (conflits.length > 0) {
     for (const f of conflits) {
       const v = claimConcurrent(vivants, f, moiSession)
       const restant = Math.max(0, Math.round(((v.expire || 0) - Date.now()) / 1000))
-      console.log('⚠ fichier chaud DÉJÀ réservé : ' + f + ' — ' + (v.session || '?') + ' (' + restant + ' s)')
+      console.log('⚠ hot file ALREADY claimed: ' + f + ' — ' + (v.session || '?') + ' (' + restant + ' s)')
     }
-    console.log('  N\'écris pas dedans : attends, ou prends un autre périmètre.')
+    console.log('  Do not write in it: wait, or take another scope.')
   } else if (Object.keys(vivants).length > 0) {
-    console.log('✓ fichier(s) chaud(s) réservé(s) par toi : ' + Object.keys(vivants).join(', '))
+    console.log('✓ hot file(s) claimed by you: ' + Object.keys(vivants).join(', '))
   }
 
   const g = await etatGit(chemin)
 
-  // Le PARTAGE se teste AVANT le constat git. Hors git il n'existe aucune
-  // isolation possible : l'avertissement est alors la SEULE protection, et
-  // l'ancien ordre (`!g.git` en premier) la sautait exactement dans ce cas —
-  // il répondait « rien à isoler, travaille en place », le message le plus
-  // rassurant du lot, à un dossier que 13 sessions se partageaient.
-  // Constaté le 22/09/2026 : /Users/me/projects/testing, 72 sessions,
-  // 13 actives à l'heure, une en train d'écrire pendant qu'on écrivait.
+  // SHARING is tested BEFORE the git finding. Outside git no isolation exists:
+  // the warning is then the ONLY protection, and the old order (`!g.git` first)
+  // skipped it exactly in that case — it answered « nothing to isolate, work in
+  // place », the most reassuring message of the lot, to a folder that 13 sessions
+  // shared. Seen on 22/09/2026: /Users/me/projects/testing, 72 sessions,
+  // 13 active within the hour, one of them writing while we were writing.
   const d = decider(chemin, sessionsHome)
 
   if (!g.git) {
     if (d.partage) {
-      console.log('⚠ hors git ET dossier PARTAGÉ — aucune isolation possible ici')
-      console.log('  ' + d.sessionsActives + ' session(s) active(s) dans l\'heure sur ce dossier.')
-      console.log('  Aucun arbre n\'est possible (pas de dépôt) : n\'écris QUE dans un')
-      console.log('  sous-dossier à toi, et ne touche pas aux fichiers de la racine.')
+      console.log('⚠ outside git AND folder SHARED — no isolation possible here')
+      console.log('  ' + d.sessionsActives + ' active session(s) within the hour on this folder.')
+      console.log('  No tree is possible (no repository): write ONLY in a subfolder of your')
+      console.log('  own, and do not touch the files at the root.')
     } else {
-      console.log('✓ hors git — rien à isoler, travaille en place')
+      console.log('✓ outside git — nothing to isolate, work in place')
     }
     process.exit(0)
   }
-  if (g.worktree) { console.log('✓ déjà isolé (worktree) — travaille ici'); process.exit(0) }
-  if (!d.partage) { console.log('✓ dossier non partagé — travaille en place'); process.exit(0) }
+  if (g.worktree) { console.log('✓ already isolated (worktree) — work here'); process.exit(0) }
+  if (!d.partage) { console.log('✓ folder not shared — work in place'); process.exit(0) }
 
   const s = await sondeIsolation({ chemin, nom, sessionsHome })
-  if (s.dejaIsole) { console.log('✓ déjà isolé — travaille ici'); process.exit(0) }
+  if (s.dejaIsole) { console.log('✓ already isolated — work here'); process.exit(0) }
 
   if (s.reutilisable) {
-    console.log('⚠ dossier partagé — un arbre d\'isolation LIBRE existe déjà, réutilisé :')
+    console.log('⚠ shared folder — a FREE isolation tree already exists, reused:')
     console.log('  ' + s.cible)
-    console.log('  branche : ' + s.branche)
-    console.log('  → ouvre le PROCHAIN chat dans ce dossier ; n\'en crée pas un second.')
+    console.log('  branch: ' + s.branche)
+    console.log('  → open the NEXT chat in this folder; do not create a second one.')
     process.exit(2)
   }
 
   if (!demande) {
-    console.log('✓ dossier partagé — un worktree ne peut pas être rattaché à CE chat')
-    console.log('  (la session et la GUI servent le checkout principal : les éditions')
-    console.log('  faites dans un arbre n\'apparaîtraient pas). Travaille en place.')
-    console.log('  Pour réserver un arbre au PROCHAIN chat :')
-    console.log('  node kybernos-sessions/garde.mjs --isoler [--nom <slug>] [--but "<phrase>"]')
+    console.log('✓ shared folder — a worktree cannot be attached to THIS chat')
+    console.log('  (the session and the GUI serve the main checkout: the edits made')
+    console.log('  in a tree would not show up). Work in place.')
+    console.log('  To reserve a tree for the NEXT chat:')
+    console.log('  node kybernos-sessions/garde.mjs --isoler [--nom <slug>] [--but "<sentence>"]')
     process.exit(0)
   }
 
   if (!s.ok) {
-    console.log('✗ isolation demandée mais impossible : ' + s.erreur)
-    if (s.cible) console.log('  cible : ' + s.cible)
-    console.log('  → committe (ou nettoie l\'arbre) puis relance.')
+    console.log('✗ isolation requested but impossible: ' + s.erreur)
+    if (s.cible) console.log('  target: ' + s.cible)
+    console.log('  → commit (or clean the tree) then run again.')
     process.exit(3)
   }
 
   const r = await isoler({ chemin, nom, but, exec: true, sessionsHome })
-  if (r.ok !== true) { console.log('✗ isolation refusée : ' + r.erreur); process.exit(3) }
-  console.log('⚠ dossier partagé — worktree ' + (r.reutilise ? 'réutilisé' : 'créé') + ' :')
+  if (r.ok !== true) { console.log('✗ isolation refused: ' + r.erreur); process.exit(3) }
+  console.log('⚠ shared folder — worktree ' + (r.reutilise ? 'reused' : 'created') + ':')
   console.log('  ' + r.cible)
-  console.log('  branche : ' + r.branche)
-  console.log('  → ouvre le PROCHAIN chat dans ce dossier pour qu\'il y soit isolé.')
+  console.log('  branch: ' + r.branche)
+  console.log('  → open the NEXT chat in this folder so that it is isolated there.')
   process.exit(2)
 }
 

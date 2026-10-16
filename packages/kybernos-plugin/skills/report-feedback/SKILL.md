@@ -1,5 +1,5 @@
 ---
-name: signaler-retour
+name: report-feedback
 description: Collects a beta tester's feedback (a bug or an improvement) in three questions, gathers the technical evidence, has the report approved, then sends it through the plugin's tool. Use when the user asks to report a problem or suggest an improvement through the assistant (the "Send feedback" form offers it).
 whenToUse: The user wants to report a bug or suggest an improvement to the Kybernos team.
 ---
@@ -51,7 +51,7 @@ from the preview.
 
 ## 4. Sending
 
-Call the `kybernos_signaler_retour` tool with `kind`, `title`, `body`, `errors`
+Call the `kybernos_report_feedback` tool with `kind`, `title`, `body`, `errors`
 (an array, possibly empty) and `reporter` (empty if the user left no contact).
 
 Then announce the result in one or two plain sentences:
@@ -66,7 +66,7 @@ Then announce the result in one or two plain sentences:
   again by itself with the next report you send, once the service answers: do not
   present the failure as a loss.
 
-If the `kybernos_signaler_retour` tool does not exist (older plugin or host), say
+If the `kybernos_report_feedback` tool does not exist (older plugin or host), say
 so plainly and give the report in clear, ready to copy, with a `mailto:` link with
 no recipient: that is the only fallback.
 

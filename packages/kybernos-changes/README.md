@@ -18,11 +18,14 @@ It has no host half of its own (`index.js` is an empty `apply()`).
   belongs to another chat working in the same folder), **one main button** for the next step, and quiet buttons for the
   others (e.g. « Save on this computer only »).
 - A button never acts at once. It asks the host for the plan first (a dry run), then shows « Before going on » with a
-  one-line message field for a save, and acts only on confirm. A refusal shows the host's reason and offers nothing.
+  one-line message field for a save, and acts only on confirm. A refusal shows the host's reason and offers nothing. The
+  reason (and the « Done ✓ » line) is worded by the chip itself, in the language of the page, from the stable `code` that
+  every reply of the Sessions git routes carries (`sent`, `not-a-repo`, `push-refused`…; git's or gh's own words ride in
+  `detail` and are shown as they are). A code the chip does not know shows the host's English sentence.
 - **Simple** (default) uses no git word on a button. **Developer** adds the git word beside each label (`commit + push`,
   `pull request`, `worktree`…), the exact commands of the plan before « Confirm and run », and the branch, the gap
   (`↑ to send ↓ to fetch`), the folder, the isolated copy, the remote and the last check.
-- French and English. French is the source; a translated language is looked up by its French text and falls back to English.
+- English and French. English is the base, French (« tu ») the twin of every sentence; a translated language is looked up by the French text and falls back to English. What the git routes answer is a code the page words itself (`code` in the reply, `GIT_TEXTS` in `kybernos-sessions`).
 - A folder that is not a git project shows nothing.
 
 ## Where the facts and the actions come from

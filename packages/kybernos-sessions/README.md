@@ -21,6 +21,12 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
 - **Settings ▸ General ▸ Kybernos Settings** (slot `settings.general.item`, order -30): replay onboarding, *Name each chat when it ends*,
   *Study model*. The bundle also reorders the native Settings navigation into a
   "Kybernos" and a "DSH" group and hides the native Appearance and Font-size rows and the version footer, by position.
+  **Language.** English is the base of every text; the block has a French twin (`Réglages Kybernos`, `Premiers pas`,
+  `Kit de départ`, `Nommer chaque conversation à sa fin`, `Modèle d’étude`; the French speaks « tu »). One pair helper
+  `kt(fr, en)` says which: French for `window.__KB_LANG_RESOLVE__()` = `kybernos` or an `fr*` tag, **English for every other
+  language**, and English when the resolver throws or is absent; a translated language (es, ar…) is looked up by the French text
+  in the dictionary the language layer serves. The same helper words the category icons (aria-label and tooltip) and the
+  refusals of the settings route (by their `code`, see below). The composer pills are English only.
 - **The Study model** is the one brain setting (`brain`). Its select reads **Automatic — <model>** (the default, the empty
   value), *Choose another…* (your configured models) or **None** (`none`). Automatic picks, in this order: the model of the
   connected Kybernos Cloud; else the cheapest connected model that answers (a provider whose key is set and that the last health
@@ -48,6 +54,25 @@ Under `/kybernos-sessions/`. Every action route is a **dry run unless the body h
 | `POST push` · `fetch` · `sync` · `pr` | `git push` / `fetch` / both; `gh pr create`, or `{action:'merge'}` |
 | `GET\|POST settings` · `GET\|POST categories` | the two JSON files below |
 | `POST decision` · `GET\|POST brain/health` | the closed questions (`{categorie}` or `{kybers, demande}`) · probe every configured model |
+
+`close` and `close-check` also take `forceIgnores: true` (accept that closing destroys ignored entries that cannot be regenerated).
+
+### Replies and their codes
+
+Every reply of the git routes (`isolate`, `reclaim`, `commit`, `close-check`, `close`, `push`, `fetch`, `sync`, `pr`) keeps its JSON
+shape (`ok`, `erreur` on a refusal, `message` and `note` on success…) and carries a stable **`code`** (kebab-case). The sentences
+(`erreur`, `message`, `note`, `raison`) are plain **English**; what git or gh said itself rides apart, untranslated, in **`detail`**
+(a number in `count`, a branch in `base`, ignored entries in `entries`). A dry run answers `{ ok: true, dry: true, commandes }` and has
+no code. The table of codes and sentences is `GIT_TEXTS` in `index.js`: `sent`, `nothing-to-send`, `not-a-repo`, `no-remote`,
+`nothing-to-save`, `already-saved`, `saved-sent`, `saved-local`, `push-refused`, `merge-refused`, `git-refused`, `tree-dirty`,
+`ignored-entries`, `copy-created`, `copy-reused`, `pr-opened`, `pr-merged`… (44 in all). A client words the reply from its code, in
+its own language, and shows the host's English sentence for a code it does not know: `kybernos-changes` has an [fr, en] sentence for
+every code (its test reads `GIT_TEXTS` and fails when the two lists drift). A new code is added in both places.
+
+The settings route refuses with `invalid-brain`, `invalid-voice-input`, `invalid-auto-whitelist` (400), `settings-corrupt`,
+`settings-unreadable` or `settings-not-written` (500); the Kybernos Settings block words them itself. `POST categories` refuses with
+`empty-session` or `unknown-category`. The plain-text bodies of a wrong method or origin are `POST only`, `GET only`,
+`GET or POST only` and `origin refused`.
 
 ## Files, settings, env
 
@@ -99,6 +124,10 @@ say nothing, the caches and the rest after a failure, and that nothing goes thro
 `node packages/kybernos-sessions/test-decision-llm.mjs` drives the closed-question engine with a stub `llm` (an id of the list or
 nothing, the timeout, the retry, the text quoted as data). `node packages/kybernos-sessions/test-etude-auto.mjs` covers the
 automatic Study model (the order, what is skipped, reading the host's services, the settings answer, the health switch).
+`node packages/kybernos-sessions/test-codes.mjs` drives every git route with a fake git and a fake gh: each reply's code, its English
+sentence, the `detail` apart, the plurals, and that the table `GIT_TEXTS` has no dead entry. `node packages/kybernos-sessions/test-language.mjs`
+renders the Kybernos Settings block in French, English and a translated language, and checks the pair helper, the words of the
+category icons and of the settings refusals, and that the « General » tab is renamed in French only.
 `test-sante.mjs`, `test-dsh-home.mjs`, `test-changes-facts.mjs`, `test-journal.mjs`, `test-prefix.mjs` and `test-wording.mjs`
 cover the health bus and the Study model row, `$DSH_HOME`, and small pure parts of the page. `node scripts/test-layout.mjs` checks that the hot-file list of `garde.mjs` points at existing files
 and that its LaunchAgent path is right; `node packages/kybernos-sessions/garde.mjs --check` parses every hot client file
@@ -107,7 +136,6 @@ and that its LaunchAgent path is right; `node packages/kybernos-sessions/garde.m
 
 ## Known limits
 
-- The `index.js` header and `cordis.patch.yml` still say "read-only / GET only"; nine POST routes run git or gh.
 - DSH serves plugin routes before its own auth (core comment; measured on 0.2.0-rc.2). `origineOK` therefore requires an `Origin`
   (or a `Referer`) from this machine on every request that changes state, compared with the socket's real listening address, and
   refuses a foreign origin on reads too; a read without one still passes. It cannot stop a local process that forges an `Origin`:
@@ -116,4 +144,7 @@ and that its LaunchAgent path is right; `node packages/kybernos-sessions/garde.m
   Settings reordering assumes 13 native nav buttons.
 - The client factory has no top-level try/catch (theme, skills and core do), against `AGENTS.md` rule 2.
 - Stale: the header lists an older pill set; comments cite files absent here (`docs/handoff/session-status/`,
-  `scripts/build-model-catalog-css.mjs`, `scripts/test-kybernos-sessions-host.mjs`); nothing imports `dsh-css.js`.
+  `scripts/test-kybernos-sessions-host.mjs`). `dsh-css.js` is a frozen extract of the DSH controls CSS (its generator is gone, the
+  same CSS is inlined in `client.js`); only `scripts/check-dashboards-render.mjs` imports it.
+- Much of the code (names, many comments in `client.js`) is still French in places; the texts a person reads are English with a
+  French twin where listed above.

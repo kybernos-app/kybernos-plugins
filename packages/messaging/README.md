@@ -20,6 +20,7 @@ messaging/
 │   ├── state.mjs      # persistent 0600 state: chat → DSH session, allowlist, offset
 │   ├── dsh-run.mjs    # `dsh --profile headless --json` + NDJSON reading + timeout/abort
 │   ├── runner.mjs     # the heart: commands, queue, streaming, delivery
+│   ├── messages.mjs   # what the bridge says in a chat: English, or French for a French-speaking sender
 │   └── text.mjs       # 4096 splitting, [[send-file:…]] markers, safe file names
 ├── channels/
 │   ├── telegram.mjs   # Telegram adapter (getUpdates, send/edit, attachments)
@@ -27,7 +28,7 @@ messaging/
 ├── bin/
 │   ├── telegram-daemon.mjs  # the daemon
 │   └── telegram-send.mjs    # proactive DSH → Telegram send
-└── test/                    # 40 tests: no real network, a fake `dsh` and a fake Bot API
+└── test/                    # 50 tests: no real network, a fake `dsh` and a fake Bot API
 ```
 
 The core knows **no platform**: it speaks the contract of 4 required methods
@@ -95,6 +96,11 @@ if the crash happens after the turn but before the confirmation.
 Any other message goes to DSH. Messages received while a turn is running
 are **queued** (5 by default) instead of being lost.
 
+**Language.** The bridge answers in English. When the sender's Telegram `language_code` starts with `fr`, its own
+sentences (the command answers, the progress lines, the refusals) are in French instead (`core/messages.mjs`, a small
+`t(lang, key)` table, « tu » register); any other language, or none, gets English. The answer of DSH itself is whatever the model
+writes. The daemon's console output and the CLI usage are English only.
+
 ## Files and images
 
 - **Inbound**: photo, document, voice note, audio, video are downloaded into
@@ -125,7 +131,7 @@ are **queued** (5 by default) instead of being lost.
 ## Tests
 
 ```bash
-cd messaging && npm test        # 40 tests, no real network access
+cd messaging && npm test        # 50 tests, no real network access
 ```
 
 The fake `dsh` (`test/fixtures/fake-dsh.mjs`) reproduces the real NDJSON stream and

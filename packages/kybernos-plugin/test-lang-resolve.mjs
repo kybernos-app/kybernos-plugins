@@ -43,7 +43,8 @@ const page = ({ stored, active, shell }) => {
 console.log('the default follows the shell')
 check('nothing stored, an English shell: English', page({ shell: 'en' }).kbLangResolve() === 'en')
 check('the Language plugin\'s default (« kybernos », nothing stored), an English shell: English', page({ active: 'kybernos', shell: 'en' }).kbLangResolve() === 'en')
-check('nothing stored, a shell language Kybernos has no table for: French, the source language', page({ shell: 'es' }).kbLangResolve() === 'kybernos')
+check('nothing stored, a shell language Kybernos has no table for (es, zh): English, never French (A2-28)', page({ shell: 'es' }).kbLangResolve() === 'en' && page({ shell: 'zh' }).kbLangResolve() === 'en')
+check('nothing stored, a French shell (« kybernos » or an fr tag): French', page({ shell: 'kybernos' }).kbLangResolve() === 'kybernos' && page({ shell: 'fr-CA' }).kbLangResolve() === 'kybernos')
 check('nothing stored, a right-to-left shell: that language', page({ shell: 'ar' }).kbLangResolve() === 'ar')
 
 console.log('an explicit choice is obeyed')

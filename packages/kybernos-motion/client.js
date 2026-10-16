@@ -2287,7 +2287,7 @@ window.__ModuleLoader__.load({
                 setTimeout(() => setHint(!panelShown()), 900)
               } }, Ic('pencil', 13), kt('Modifier', 'Edit')) : null,
             }),
-            hint ? h('p', { className: 'kbmt-note', role: 'status', 'data-kb': 'motion-hint' }, kt('Ouvrez un chat : l\'animation s\'ouvrira dans le panneau Motion (barre latérale droite).', 'Open a chat: the animation will open in the Motion panel (right sidebar).')) : null,
+            hint ? h('p', { className: 'kbmt-note', role: 'status', 'data-kb': 'motion-hint' }, kt('Ouvre un chat : l\'animation s\'ouvrira dans le panneau Motion (barre latérale droite).', 'Open a chat: the animation will open in the Motion panel (right sidebar).')) : null,
             h('div', { className: 'kbmt-scrub' }, h('input', { type: 'range', min: 0, max: scene.format.duration, step: 0.05, value: player.t, 'aria-label': kt('Position', 'Position'), onChange: (e) => { player.pause(); player.seek(Number(e.target.value)) } })),
             parsed.errors.length ? h('p', { className: 'kbmt-note' }, (parsed.errors.length === 1 ? kt('1 élément ignoré dans ce fichier.', '1 item ignored in this file.') : kt(parsed.errors.length + ' éléments ignorés dans ce fichier.', parsed.errors.length + ' items ignored in this file.'))) : null)
         }
@@ -2499,7 +2499,7 @@ window.__ModuleLoader__.load({
           let foot
           if (phase === 'work') {
             body = h('div', { className: 'kbmt-progress' }, h('div', { className: 'kbmt-track', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': Math.round((prog[0] / prog[1]) * 100) }, h('i', { style: { width: (prog[0] / prog[1]) * 100 + '%' } })),
-              h('p', { className: 'kbmt-hint' }, fmt === 'mp4' ? kt('Encodage dans votre navigateur · image ' + prog[0] + '/' + prog[1], 'Encoding in your browser · frame ' + prog[0] + '/' + prog[1]) : kt('Préparation…', 'Preparing…')))
+              h('p', { className: 'kbmt-hint' }, fmt === 'mp4' ? kt('Encodage dans ton navigateur · image ' + prog[0] + '/' + prog[1], 'Encoding in your browser · frame ' + prog[0] + '/' + prog[1]) : kt('Préparation…', 'Preparing…')))
             foot = h('button', { type: 'button', className: 'kbmt-btn', 'data-act': 'cancel', onClick: () => { cancelled.current = true } }, kt('Annuler l\'export', 'Cancel export'))
           } else if (phase === 'done') {
             body = h('div', { className: 'kbmt-done' }, h('span', { className: 'kbmt-big' }, Ic('check', 20)), h('b', null, result.name),
@@ -2511,7 +2511,7 @@ window.__ModuleLoader__.load({
             foot = [h('button', { type: 'button', className: 'kbmt-btn', key: 'c', onClick: onClose }, kt('Fermer', 'Close')), h('button', { type: 'button', className: 'kbmt-btn pri', key: 'r', onClick: () => setPhase('choose') }, kt('Réessayer', 'Try again'))]
           } else {
             body = [h('div', { className: 'kbmt-opts', key: 'o', role: 'radiogroup', 'aria-label': kt('Format', 'Format') },
-              opt('mp4', 'film', kt('Vidéo MP4', 'MP4 video'), kt('Pour publier ou envoyer. Encodée dans votre navigateur.', 'To publish or send. Encoded in your browser.')),
+              opt('mp4', 'film', kt('Vidéo MP4', 'MP4 video'), kt('Pour publier ou envoyer. Encodée dans ton navigateur.', 'To publish or send. Encoded in your browser.')),
               opt('html', 'file', kt('Page autonome (.html)', 'Standalone page (.html)'), kt('Un lecteur dans un seul fichier, sans DSH.', 'A player in one file, no DSH needed.')),
               opt('scene', 'box', kt('Fichier de scène', 'Scene file'), kt('Pour la réimporter ou la partager.', 'To import it again or share it.')),
               canApp ? opt('app', 'app', kt('App macOS', 'macOS app'), kt('Une fenêtre qui reste ouverte sans DSH.', 'A window that stays open without DSH.')) : null),
@@ -2648,7 +2648,7 @@ window.__ModuleLoader__.load({
               pop === 'list' ? ListPop({ list, onPick: async (p) => { await api('POST', 'open', { path: p }); setPop(null); await load(p) } }) : null,
               h('div', { className: 'kbmt-empty', 'data-kb': 'motion-empty' }, loadErr ? h('p', { className: 'kbmt-err' }, loadErr) : null,
                 h('b', null, kt('Aucune animation ouverte', 'No animation open')),
-                h('p', null, kt('Demandez-en une à l\'agent (titre animé, graphique, compteur, logo…), ou ouvrez un fichier de type motion depuis la page Créations.', 'Ask the agent for one (animated title, chart, counter, logo…), or open a motion file from the Creations page.'))))
+                h('p', null, kt('Demandes-en une à l\'agent (titre animé, graphique, compteur, logo…), ou ouvre un fichier de type motion depuis la page Créations.', 'Ask the agent for one (animated title, chart, counter, logo…), or open a motion file from the Creations page.'))))
           }
 
           const controls = controlsOf(scene)
@@ -2665,11 +2665,11 @@ window.__ModuleLoader__.load({
             h(Timeline, { scene, player }),
             h('div', { className: 'kbmt-params' },
               h('h3', null, kt('Paramètres', 'Settings')),
-              controls.length === 0 ? h('p', { className: 'kbmt-hint' }, kt('Cette animation n\'a pas de réglages : demandez à l\'agent de la modifier.', 'This animation has no settings: ask the agent to change it.')) : controls.map((c) => h(Field, { key: c.id, ctl: c, value: scene.params[c.id], onChange: (v, kind, shown) => setParam(c, v, kind, shown) })),
+              controls.length === 0 ? h('p', { className: 'kbmt-hint' }, kt('Cette animation n\'a pas de réglages : demande à l\'agent de la modifier.', 'This animation has no settings: ask the agent to change it.')) : controls.map((c) => h(Field, { key: c.id, ctl: c, value: scene.params[c.id], onChange: (v, kind, shown) => setParam(c, v, kind, shown) })),
               doc.errors && doc.errors.length ? h('p', { className: 'kbmt-note' }, (doc.errors.length === 1 ? kt('1 élément ignoré par le moteur.', '1 item ignored by the engine.') : kt(doc.errors.length + ' éléments ignorés par le moteur.', doc.errors.length + ' items ignored by the engine.'))) : null),
             pop === 'revs' ? h('div', { className: 'kbmt-pop', role: 'menu' }, h('h3', null, kt('Révisions', 'Revisions')),
               revs.length === 0 ? h('p', { className: 'kbmt-hint', style: { padding: '4px 8px' } }, kt('Aucune révision conservée.', 'No revision kept.')) : revs.map((v, i) => h('div', { className: 'kbmt-rv', key: v.r },
-                h('span', { className: 'kbmt-r' }, 'r' + v.r), h('span', { className: 'kbmt-w' }, (v.by === 'user' ? kt('Vous', 'You') : v.by === 'agent' ? kt('Agent', 'Agent') : v.by) + ' · ' + v.what, h('small', null, v.at ? new Date(v.at).toLocaleString() : '')),
+                h('span', { className: 'kbmt-r' }, 'r' + v.r), h('span', { className: 'kbmt-w' }, (v.by === 'user' ? kt('Toi', 'You') : v.by === 'agent' ? kt('Agent', 'Agent') : v.by) + ' · ' + v.what, h('small', null, v.at ? new Date(v.at).toLocaleString() : '')),
                 i === 0 ? h('span', { className: 'kbmt-cur' }, kt('actuelle', 'current')) : h('button', { type: 'button', 'data-act': 'restore', onClick: async () => { const r = await api('POST', 'restore', { path: doc.path, rev: v.r }); setPop(null); if (r.ok) { await load(doc.path); say(kt('Révision r' + v.r + ' restaurée', 'Revision r' + v.r + ' restored')) } else say(r.json.message) } }, kt('Restaurer', 'Restore'))))) : null,
             pop === 'list' ? ListPop({ list, onPick: async (p) => { await api('POST', 'open', { path: p }); setPop(null); await load(p) } }) : null,
             modal ? h(ExportModal, { doc, player, onClose: () => setModal(false), onToast: say }) : null,

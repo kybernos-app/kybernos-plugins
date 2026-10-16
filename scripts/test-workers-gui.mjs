@@ -324,7 +324,7 @@ try {
   {
     const p = await open('en', { packages: new Set([PKG_CODEX]) })
     await p.click('[data-kb="wk-activate-row-qwen"]')
-    await waitCard(p, 'qwen', /"Agent connectors" module is not installed/)
+    await waitCard(p, 'qwen', /"Workers connectors" module is not installed/)
     ok('without the shared package in the profile: refused with a sentence that names the module, and NOTHING is written', etatProfil(world.patch, trouverWorker('qwen')).connexion === false && world.writes.length === 0)
     await p.close()
   }

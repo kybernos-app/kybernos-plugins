@@ -1,23 +1,23 @@
 {
   "what": {
-    "fr": "Laisse l'agent exécuter du code dans un ordinateur cloud jetable (E2B) plutôt que sur votre poste. Votre propre clé E2B est nécessaire : l'usage est facturé sur votre compte E2B.",
+    "fr": "Laisse l'agent exécuter du code dans un ordinateur cloud jetable (E2B) plutôt que sur ton poste. Ta propre clé E2B est nécessaire : l'usage est facturé sur ton compte E2B.",
     "en": "Lets the agent run code in a throwaway cloud computer (E2B) instead of on your machine. Your own E2B key is required: usage is billed to your E2B account."
   },
   "steps": [
     {
-      "fr": "Créez un compte sur e2b.dev et copiez votre clé API.",
+      "fr": "Crée un compte sur e2b.dev et copie ta clé API.",
       "en": "Create an account on e2b.dev and copy your API key."
     },
     {
-      "fr": "Collez-la dans Réglages › Ordinateurs cloud (champ « Clé API »), puis « Enregistrer ».",
+      "fr": "Colle-la dans Réglages › Ordinateurs cloud (champ « Clé API »), puis « Enregistrer ».",
       "en": "Paste it in Settings › Cloud computers (“API key” field), then click “Save”."
     },
     {
-      "fr": "Dans le chat, ouvrez le menu « Ce poste ▾ » à gauche de la zone de saisie et choisissez « E2B ».",
+      "fr": "Dans le chat, ouvre le menu « Ce poste ▾ » à gauche de la zone de saisie et choisis « E2B ».",
       "en": "In the chat, open the “This machine ▾” menu next to the message box and choose “E2B”."
     },
     {
-      "fr": "Demandez à l'agent d'exécuter du code : il démarre un ordinateur cloud, y travaille, puis l'arrête.",
+      "fr": "Demande à l'agent d'exécuter du code : il démarre un ordinateur cloud, y travaille, puis l'arrête.",
       "en": "Ask the agent to run some code: it starts a cloud computer, works in it, then stops it."
     }
   ],
@@ -27,7 +27,7 @@
     "page": true
   },
   "good": {
-    "fr": "Le code et les fichiers que l'agent y envoie partent chez E2B. Chaque ordinateur est jetable, s'arrête seul après 15 min (2 h au plus), 4 à la fois. Sans clé, l'agent reste sur votre poste.",
+    "fr": "Le code et les fichiers que l'agent y envoie partent chez E2B. Chaque ordinateur est jetable, s'arrête seul après 15 min (2 h au plus), 4 à la fois. Sans clé, l'agent reste sur ton poste.",
     "en": "The code and files the agent sends there go to E2B. Each computer is disposable, stops by itself after 15 min (2 h at most), 4 at a time. With no key, the agent stays on your machine."
   },
   "url": "https://help.kybernos.app/{lang}/computers/run-code-in-a-cloud-sandbox/"

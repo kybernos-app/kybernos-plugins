@@ -1,19 +1,19 @@
 {
   "what": {
-    "fr": "Une carte en lecture seule de votre espace : projets, Agent Teams, skills, mémoire, leçons, automatisations et applications, comment ils se relient, et ce qui est cassé.",
+    "fr": "Une carte en lecture seule de ton espace : projets, Agent Teams, skills, mémoire, leçons, automatisations et applications, comment ils se relient, et ce qui est cassé.",
     "en": "A read-only map of your workspace: projects, agent teams, skills, memory, lessons, automations and apps, how they connect, and what is broken."
   },
   "steps": [
     {
-      "fr": "Activez Atlas dans Réglages › Kybernos Suite (désactivé par défaut), puis ouvrez Réglages › Atlas.",
+      "fr": "Active Atlas dans Réglages › Kybernos Suite (désactivé par défaut), puis ouvre Réglages › Atlas.",
       "en": "Turn Atlas on in Settings › Kybernos Suite (off by default), then open Settings › Atlas."
     },
     {
-      "fr": "Cliquez « Mettre à jour » : rien n’est lu avant ; ensuite la page s’ouvre sur la dernière lecture, et l’en-tête dit depuis combien de temps.",
+      "fr": "Clique « Mettre à jour » : rien n’est lu avant ; ensuite la page s’ouvre sur la dernière lecture, et l’en-tête dit depuis combien de temps.",
       "en": "Click “Update”: nothing is read before you do. Next time the page opens on the last reading, and the header says how long ago it was read."
     },
     {
-      "fr": "Dans « Autour », choisissez un projet ou une Agent Team dans « Partir de » : quatre colonnes montrent qui y travaille et ce qu’il utilise.",
+      "fr": "Dans « Autour », choisis un projet ou une Agent Team dans « Partir de » : quatre colonnes montrent qui y travaille et ce qu’il utilise.",
       "en": "In “Around”, pick a project or an agent team in “Start from”: four columns show who works there and what they use."
     },
     {

@@ -5,6 +5,9 @@
   "type": "module",
   "description": "Sign-in gate in front of a hosted DSH: one login page, a signed session, a reverse proxy, and DSH's own session cookie so the user signs in once.",
   "license": "Apache-2.0",
+  "exports": {
+    "./package.json": "./package.json"
+  },
   "bin": {
     "kybernos-gate": "bin/kybernos-gate.mjs"
   },

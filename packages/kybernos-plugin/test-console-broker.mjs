@@ -91,7 +91,7 @@ console.log('when the host does not answer')
   h.sur({ source: h.iframeWindow, origin: CONSOLE_ORIGIN, data: { kbApi: { id: 'r2', method: 'GET', path: '/v1/me' } } })
   await settle()
   const reply = h.posted[0] && h.posted[0].message.kbApiReply
-  check('an unreachable host is an ok:false, status 0 answer, not a hang or a crash', reply !== undefined && reply.ok === false && reply.status === 0 && reply.id === 'r2' && reply.error === 'relais injoignable')
+  check('an unreachable host is an ok:false, status 0 answer, not a hang or a crash', reply !== undefined && reply.ok === false && reply.status === 0 && reply.id === 'r2' && reply.error === 'relay unreachable')
 }
 
 console.log('changing the active space from the console')

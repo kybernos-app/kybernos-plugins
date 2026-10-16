@@ -148,7 +148,7 @@
     var b = document.createElement('button')
     b.className = 'kbwgt-bulle'
     b.style.background = cfg.color
-    b.setAttribute('aria-label', 'Ouvrir le chat Kybernos')
+    b.setAttribute('aria-label', 'Open the Kybernos chat')
     b.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 1 1 16.1-3.8z"/></svg>'
     b.addEventListener('click', function () { etat.ouvert = etat.ouvert !== true; etat.vue = suivante(); dessiner() })
     return b
@@ -163,7 +163,7 @@
     var f = document.createElement('button')
     f.className = 'kbwgt-fermer'
     f.textContent = '×'
-    f.setAttribute('aria-label', 'Fermer')
+    f.setAttribute('aria-label', 'Close')
     f.addEventListener('click', function () { etat.ouvert = false; dessiner() })
     t.appendChild(n); t.appendChild(f)
     return t

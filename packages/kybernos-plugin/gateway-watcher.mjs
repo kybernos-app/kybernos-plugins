@@ -229,11 +229,11 @@ export function kyberYml (payload) {
   const p = (payload !== null && payload !== undefined && typeof payload === 'object') ? payload : {}
   const crew = Array.isArray(p.crew) ? p.crew.filter((a) => a !== null && a !== undefined && typeof a === 'object') : []
   const sort = []
-  sort.push('# Agent Team synchronisée depuis kybernos.app — catégorie « equipes », contrat gateway §8.')
-  sort.push('# Projection minimale écrite par le watcher @local/kybernos : ce fichier est')
-  sort.push('# RÉÉCRIT à chaque changement cloud — une édition locale ne remonte pas.')
+  sort.push('# Agent Team synced from kybernos.app — category “equipes”, gateway contract §8.')
+  sort.push('# Minimal projection written by the @local/kybernos watcher: this file is')
+  sort.push('# REWRITTEN at every cloud change — a local edit does not go back up.')
   sort.push('# Nom : ' + String(p.name === null || p.name === undefined ? '' : p.name))
-  sort.push('# Catégorie : ' + String(p.cat === null || p.cat === undefined ? '' : p.cat))
+  sort.push('# Category: ' + String(p.cat === null || p.cat === undefined ? '' : p.cat))
   sort.push('id: ' + yEchapp(GATEWAY_SYNC_PREFIXE_DOSSIER + String(p.id === null || p.id === undefined ? '' : p.id)))
   sort.push('specVersion: 2')
   sort.push('mission:' + yBloc(p.pitch))
@@ -258,7 +258,7 @@ export function kyberYml (payload) {
 
 class ErreurRevoquee extends Error {
   constructor () {
-    super('token révoqué (401)')
+    super('token revoked (401)')
     this.name = 'ErreurRevoquee'
     this.revoquee = true
   }
@@ -366,7 +366,7 @@ export function createGatewayWatcher (options) {
     if (typeof opts.base === 'string' && opts.base !== '') return opts.base.replace(/\/+$/, '')
     const r = await lireReglages()
     const b = lireBaseGateway(r)
-    if (b === null) throw new Error('aucune base de gateway (réglage gatewayBase)')
+    if (b === null) throw new Error('no gateway base (gatewayBase setting)')
     return b
   }
 
@@ -374,14 +374,14 @@ export function createGatewayWatcher (options) {
   let cookieRpc = null
   const rpcLocal = async (method, args, timeoutMs) => {
     let base = null
-    try { base = readFileSync(join(await homeDsh(), 'logs', 'dsh-web.url'), 'utf8').trim().split('?')[0].replace(/\/$/, '') } catch (e) { throw new Error('url DSH introuvable') }
+    try { base = readFileSync(join(await homeDsh(), 'logs', 'dsh-web.url'), 'utf8').trim().split('?')[0].replace(/\/$/, '') } catch (e) { throw new Error('DSH url not found') }
     if (cookieRpc === null) {
       // Les credentials DSH vivent DANS le home DSH (~/.dsh/.credentials.yaml).
       const raw = readFileSync(join(await homeDsh(), '.credentials.yaml'), 'utf8')
       const at = raw.indexOf('client-connection/browser-session')
-      if (at === -1) throw new Error('secret navigateur absent des credentials')
+      if (at === -1) throw new Error('browser secret missing from the credentials')
       const m = raw.slice(at).match(/secret:\s*(\S+)/)
-      if (m === null) throw new Error('secret du cookie introuvable')
+      if (m === null) throw new Error('cookie secret not found')
       const secret = Buffer.from(m[1].replaceAll('-', '+').replaceAll('_', '/'), 'base64')
       const b64url = (b) => Buffer.from(b).toString('base64').replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
       const authority = base.replaceAll('http://', '').replaceAll('https://', '').replace(/\/$/, '')
@@ -399,13 +399,13 @@ export function createGatewayWatcher (options) {
     })
     const texte = await rep.text()
     let out = null
-    try { out = JSON.parse(texte) } catch (e) { throw new Error('RPC ' + method + ' illisible') }
+    try { out = JSON.parse(texte) } catch (e) { throw new Error('RPC ' + method + ' unreadable') }
     if (out && out.result && out.result.ok === false) throw new Error('RPC ' + method + ': ' + JSON.stringify(out.result.error).slice(0, 160))
     return (out && out.result && out.result.value !== undefined && out.result.value !== null) ? out.result.value : (out ? out.result : null)
   }
   const rpc = typeof opts.rpc === 'function' ? opts.rpc : rpcLocal
   const activeSet = typeof opts.setActiveKyber === 'function' ? opts.setActiveKyber : async (args) => {
-    journal('active-set non branché (kyber ' + String(args && args.kyberId ? args.kyberId : '?') + ') — mémoire d’équipe non liée')
+    journal('active-set not wired (kyber ' + String(args && args.kyberId ? args.kyberId : '?') + ') — team memory not linked')
     return { ok: true, ignore: true }
   }
 
@@ -447,7 +447,7 @@ export function createGatewayWatcher (options) {
     try {
       mkdirSync(join(p, '..'), { recursive: true })
       writeFileSync(p, JSON.stringify(ligne) + '\n', { flag: 'a' })
-    } catch (e) { throw new Error('conversation illisible: ' + String(e && e.message ? e.message : e)) }
+    } catch (e) { throw new Error('unreadable conversation: ' + String(e && e.message ? e.message : e)) }
     return p
   }
   const lirePont = async () => {
@@ -491,12 +491,12 @@ export function createGatewayWatcher (options) {
     if (Array.isArray(bruts) === true) {
       for (const brut of bruts) {
         const item = normaliserItem(brut)
-        if (item === null) { journal('item illisible ignoré — ' + JSON.stringify(brut).slice(0, 120)); continue }
+        if (item === null) { journal('unreadable item ignored — ' + JSON.stringify(brut).slice(0, 120)); continue }
         const cle = cleIdempotence(item)
-        if (cle === null) { journal('item sans clé d’idempotence ignoré (§7) — ' + JSON.stringify(brut).slice(0, 120)); continue }
+        if (cle === null) { journal('item without an idempotency key ignored (§7) — ' + JSON.stringify(brut).slice(0, 120)); continue }
         if (file.items.some((i) => i !== null && i !== undefined && i.cle === cle) === true) {
           // Livraison au moins une fois : le renvoi du même item ne crée rien.
-          if (doublonsJournales.has(cle) === false) { doublonsJournales.add(cle); journal('doublon ignoré (idempotence §7) — ' + cle) }
+          if (doublonsJournales.has(cle) === false) { doublonsJournales.add(cle); journal('duplicate ignored (idempotency §7) — ' + cle) }
           continue
         }
         file.items.push({
@@ -530,7 +530,7 @@ export function createGatewayWatcher (options) {
 
   // ── Repoussage des réponses (§3 état 4 : « répondu ») ───────────────────
   const poster = async (chemin, corps) => {
-    if (fetchImpl === null) throw new Error('fetch indisponible')
+    if (fetchImpl === null) throw new Error('fetch unavailable')
     const rep = await fetchImpl((await baseCloud()) + chemin, {
       method: 'POST',
       headers: { 'content-type': 'application/json', accept: 'application/json', authorization: 'Bearer ' + String(jeton) },
@@ -553,19 +553,19 @@ export function createGatewayWatcher (options) {
   const pousserReponse = async (item) => {
     // Même corps que la route locale POST /widget/api/reply : {kyberId, conversation, text}.
     const out = await poster(GATEWAY_REPLY_PATH, { kyberId: item.kyberId, conversation: item.conversationId, text: item.reponse })
-    if (out !== null && out.ok === false) throw new Error('reply refusé: ' + JSON.stringify(out).slice(0, 120))
+    if (out !== null && out.ok === false) throw new Error('reply refused: ' + JSON.stringify(out).slice(0, 120))
     item.etat = 'repondu'
     item.majA = new Date().toISOString()
     item.aPousser = false
-    journal('réponse repoussée — ' + item.conversationId + ' (' + String(item.reponse).slice(0, 40) + '…)')
+    journal('answer pushed back — ' + item.conversationId + ' (' + String(item.reponse).slice(0, 40) + '…)')
   }
   const pousserDecision = async (item) => {
     const d = item.approbation !== null && item.approbation.statut === 'refuser' ? 'refuser' : 'approuver'
     const out = await poster(GATEWAY_DECISION_PATH + encodeURIComponent(String(item.taskId)) + '/decision', { decision: d })
-    if (out !== null && out.ok === false) throw new Error('décision refusée: ' + JSON.stringify(out).slice(0, 120))
+    if (out !== null && out.ok === false) throw new Error('decision refused: ' + JSON.stringify(out).slice(0, 120))
     item.aPousser = false
     item.majA = new Date().toISOString()
-    journal('décision poussée — ' + item.taskId + ' : ' + d)
+    journal('decision pushed — ' + item.taskId + ' : ' + d)
   }
 
   // ── Traitement d'un item par le pont widget EXISTANT ────────────────────
@@ -584,7 +584,7 @@ export function createGatewayWatcher (options) {
     if (typeof s.sessionId !== 'string' || s.sessionId === '') {
       const cr = await rpc('session/create', { request: {} })
       const sid = cr !== null && cr !== undefined && typeof cr.sessionId === 'string' ? cr.sessionId : null
-      if (typeof sid !== 'string' || sid === '') throw new Error('session/create sans sessionId')
+      if (typeof sid !== 'string' || sid === '') throw new Error('session/create returned no sessionId')
       s.sessionId = sid
       try { await activeSet({ sessionId: sid, kyberId: item.kyberId }) } catch (e) { /* active-set est best-effort, comme dans le pont */ }
     }
@@ -621,12 +621,12 @@ export function createGatewayWatcher (options) {
         requestId: 'kbg-' + item.conversationId + '-' + String(n),
         sessionId: s.sessionId,
         mode: 'queue',
-        content: [{ type: 'text', text: '[Widget] Un visiteur de votre site public écrit : « ' + String(item.text).slice(0, 1800) + ' »' }],
+        content: [{ type: 'text', text: '[Widget] A visitor on your public site writes: “' + String(item.text).slice(0, 1800) + ' »' }],
       },
     })
     item.session = { id: s.sessionId, base: base }
     item.majA = new Date().toISOString()
-    journal('message dépêché au pont — ' + item.conversationId + ' (' + String(item.text).slice(0, 40) + '…)')
+    journal('message dispatched to the bridge — ' + item.conversationId + ' (' + String(item.text).slice(0, 40) + '…)')
   }
 
   // §3 état 5 : « approuvé / refusé » — la tâche télécommande attend une
@@ -635,7 +635,7 @@ export function createGatewayWatcher (options) {
     if (item.approbation === null || item.approbation === undefined) {
       item.approbation = { statut: 'attente', recuA: new Date().toISOString() }
       item.majA = new Date().toISOString()
-      journal('demande d’approbation en attente — ' + String(item.taskId) + (item.title !== '' ? ' (' + item.title + ')' : ''))
+      journal('approval request waiting — ' + String(item.taskId) + (item.title !== '' ? ' (' + item.title + ')' : ''))
     }
     // L'état reste « en cours » jusqu'à `decider()` — jamais d'exécution muette.
     if (item.etat === 'empile' || item.etat === 'tire') item.etat = 'en cours'
@@ -664,7 +664,7 @@ export function createGatewayWatcher (options) {
             // Même écriture que le pont : la réponse rejoint le JSONL (role: "kyber").
             await ecrireConv({ kyberId: item.kyberId, id: item.conversationId }, { role: 'kyber', text: item.reponse, at: new Date().toISOString() })
             await ecrireFile()
-            journal('réponse du kyber reçue — ' + item.conversationId)
+            journal('kyber answer received — ' + item.conversationId)
           }
         }
       } catch (e) {
@@ -689,7 +689,7 @@ export function createGatewayWatcher (options) {
             item.etat = 'echec'
             item.aPousser = false
             await ecrireFile()
-            journal('livraison échouée définitivement (dead-letter) — ' + item.conversationId + ' : ' + item.derniereErreur)
+            journal('delivery failed for good (dead-letter) — ' + item.conversationId + ' : ' + item.derniereErreur)
           }
         }
         continue
@@ -708,7 +708,7 @@ export function createGatewayWatcher (options) {
             item.etat = 'echec'
             item.aPousser = false
             await ecrireFile()
-            journal('livraison échouée définitivement (dead-letter) — ' + item.taskId + ' : ' + item.derniereErreur)
+            journal('delivery failed for good (dead-letter) — ' + item.taskId + ' : ' + item.derniereErreur)
           }
         }
       }
@@ -745,7 +745,7 @@ export function createGatewayWatcher (options) {
           item.etat = 'empile'
           item.prochaineTentative = Date.now() + Math.min(60000, delaiRepriseMs * Math.pow(2, Math.min(item.essais, 6)))
         }
-        const msg = 'échec de traitement (' + item.cle + ') — ' + item.derniereErreur
+        const msg = 'processing failed (' + item.cle + ') — ' + item.derniereErreur
         if (dernierJournalErreur !== msg) { dernierJournalErreur = msg; journal(msg) }
       }
       await ecrireFile()
@@ -754,7 +754,7 @@ export function createGatewayWatcher (options) {
 
   // ── Long-poll (§7 : GET /gateway/poll, ?after=<curseur>, ≤ 25 s) ────────
   const sonder = async () => {
-    if (fetchImpl === null) throw new Error('fetch indisponible')
+    if (fetchImpl === null) throw new Error('fetch unavailable')
     const base = await baseCloud()
     const url = base + GATEWAY_POLL_PATH + '?after=' + encodeURIComponent(String(file.cursor === undefined || file.cursor === null ? '' : file.cursor))
     const ctrl = new AbortController()
@@ -827,20 +827,20 @@ export function createGatewayWatcher (options) {
       let corps = null
       try { corps = await rep.json() } catch (e) { corps = null }
       syncSettings = lireSyncSettings(corps)
-      const autori = categoriesSyncAutorisees(syncSettings).join(', ') || 'aucune'
+      const autori = categoriesSyncAutorisees(syncSettings).join(', ') || 'none'
       if (syncErreur !== null) {
         syncErreur = null
-        journal('sync §8 rétablie — catégories autorisées : ' + autori)
+        journal('sync §8 restored — allowed categories: ' + autori)
       }
       const signature = String(syncSettings.ok) + ':' + JSON.stringify(syncSettings.categories)
       if (syncSignature !== signature) {
         syncSignature = signature
-        journal('sync §8 — catégories autorisées : ' + autori)
+        journal('sync §8 — allowed categories: ' + autori)
       }
     } catch (e) {
       if (estRevoquee(e) === true) throw e
-      const msg = 'réglages de sync §8 illisibles — sync par catégorie inactive : ' + String(e !== null && e !== undefined && e.message ? e.message : e)
-      if (syncErreur !== msg) { syncErreur = msg; journal(msg + ' (relecture dans 60 s)') }
+      const msg = 'sync §8 settings unreadable — per-category sync inactive: ' + String(e !== null && e !== undefined && e.message ? e.message : e)
+      if (syncErreur !== msg) { syncErreur = msg; journal(msg + ' (reading again in 60 s)') }
     }
     return syncSettings
   }
@@ -888,7 +888,7 @@ export function createGatewayWatcher (options) {
   const appliquerChange = async (etatSync, ch) => {
     const rid = (typeof ch.resourceId === 'string' && ch.resourceId !== '') ? ch.resourceId : (typeof ch.payload.id === 'string' ? ch.payload.id : '')
     if (rid === '') {
-      journal('sync §8 equipes — changement sans resourceId, ignoré (' + ch.changeId + ')')
+      journal('sync §8 teams — change without a resourceId, ignored (' + ch.changeId + ')')
       return ''
     }
     if (ch.op === 'removed') {
@@ -910,7 +910,7 @@ export function createGatewayWatcher (options) {
       etatSync.fichiers[rid] = fichier
       return fichier
     } catch (e) {
-      const msg = 'sync §8 equipes — application impossible (' + ch.changeId + ') : ' + String(e !== null && e !== undefined && e.message ? e.message : e)
+      const msg = 'sync §8 teams — apply failed (' + ch.changeId + ') : ' + String(e !== null && e !== undefined && e.message ? e.message : e)
       if (syncTirageErreur !== msg) { syncTirageErreur = msg; journal(msg) }
       return null
     }
@@ -936,7 +936,7 @@ export function createGatewayWatcher (options) {
       etatSync.cursor = ''
       etatSync.appliques = {}
       await ecrireSyncEtat()
-      journal('sync §8 equipes — resync complet demandé par le cloud')
+      journal('sync §8 teams — full resync requested by the cloud')
       return
     }
     if (lue.ok !== true) return
@@ -953,7 +953,7 @@ export function createGatewayWatcher (options) {
     if (ids.length > 500) { for (const k of ids.slice(0, ids.length - 500)) delete etatSync.appliques[k] }
     etatSync.cursor = lue.cursor
     await ecrireSyncEtat()
-    if (appliques > 0) journal('sync §8 equipes — ' + String(appliques) + ' changement(s) appliqué(s), curseur ' + (lue.cursor === '' ? '(vide)' : lue.cursor))
+    if (appliques > 0) journal('sync §8 teams — ' + String(appliques) + ' change(s) applied, cursor ' + (lue.cursor === '' ? '(empty)' : lue.cursor))
   }
 
   // ── La boucle : finitions → drainage → long-poll → backoff ──────────────
@@ -974,8 +974,8 @@ export function createGatewayWatcher (options) {
         const r = await lireReglages()
         const t = lireTokenAppairage(r)
         if (t === null) {
-          journal('token retiré des réglages — watcher inactif')
-          motifArret = 'token retiré'
+          journal('token removed from the settings — watcher inactive')
+          motifArret = 'token removed'
           enMarche = false
           break
         }
@@ -993,8 +993,8 @@ export function createGatewayWatcher (options) {
         // une panne de tirage n'arrête JAMAIS le poll — seul un 401 remonte.
         try { await tirerEquipes() } catch (e) {
           if (estRevoquee(e) === true) throw e
-          const msg = 'tirage sync §8 en échec — ' + String(e !== null && e !== undefined && e.message ? e.message : e)
-          if (syncTirageErreur !== msg) { syncTirageErreur = msg; journal(msg + ' (reprise au prochain cycle)') }
+          const msg = 'sync §8 pull failed — ' + String(e !== null && e !== undefined && e.message ? e.message : e)
+          if (syncTirageErreur !== msg) { syncTirageErreur = msg; journal(msg + ' (retry at the next cycle)') }
         }
         await ramasserReponses()
         await pousserEnAttente()
@@ -1008,7 +1008,7 @@ export function createGatewayWatcher (options) {
         // faire rejouer la file, il doit la faire oublier (idempotence §7).
         if (poses > 0 || curseurAvant !== file.cursor) {
           await ecrireFile()
-          if (poses > 0) journal(String(poses) + ' item(s) empilé(s) — curseur ' + String(file.cursor))
+          if (poses > 0) journal(String(poses) + ' item(s) queued — cursor ' + String(file.cursor))
         }
         attente = delaiRepriseMs
         // Anti-tourbillon : un cloud qui répond vide SANS patienter ne doit pas
@@ -1017,15 +1017,15 @@ export function createGatewayWatcher (options) {
       } catch (e) {
         if (estRevoquee(e) === true) {
           revoque = true
-          motifArret = 'token révoqué (401)'
+          motifArret = 'token revoked (401)'
           enMarche = false
-          journal('token révoqué (401) — watcher arrêté, aucune reconnexion')
+          journal('token revoked (401) — watcher stopped, no reconnection')
           break
         }
         if (enMarche === false) break
         derniereErreur = String(e !== null && e !== undefined && e.message ? e.message : e)
-        const msg = 'sondage en échec — ' + derniereErreur
-        if (dernierJournalErreur !== msg) { dernierJournalErreur = msg; journal(msg + ' (reprise silencieuse dans ' + String(Math.round(attente / 1000)) + ' s)') }
+        const msg = 'poll failed — ' + derniereErreur
+        if (dernierJournalErreur !== msg) { dernierJournalErreur = msg; journal(msg + ' (silent retry in ' + String(Math.round(attente / 1000)) + ' s)') }
         await dormir(attente)
         attente = Math.min(delaiRepriseMaxMs, attente * 2)
       }
@@ -1039,13 +1039,13 @@ export function createGatewayWatcher (options) {
     const t = lireTokenAppairage(lireReglagesSync())
     if (t === null) {
       // §1 : sans token, RIEU ne sort — strictement local, comme aujourd'hui.
-      journal('sans token d’appairage — inactif (strictement local)')
+      journal('no pairing token — inactive (strictly local)')
       if (reactivationMs > 0 && minuteurReactivation === null) {
         minuteurReactivation = setInterval(() => {
           if (enMarche === true || revoque === true) return
           if (lireTokenAppairage(lireReglagesSync()) !== null) {
             if (minuteurReactivation !== null) { clearInterval(minuteurReactivation); minuteurReactivation = null }
-            journal('token d’appairage détecté — démarrage')
+            journal('pairing token found — starting')
             demarrer()
           }
         }, reactivationMs)
@@ -1055,7 +1055,7 @@ export function createGatewayWatcher (options) {
     }
     // Sans base écrite à la main, rien ne sort : aucun hôte par défaut (le serveur Kybernos par défaut n'a pas ce gateway).
     if ((typeof opts.base !== 'string' || opts.base === '') && lireBaseGateway(lireReglagesSync()) === null) {
-      journal('token d’appairage sans gatewayBase — inactif (le gateway est un choix explicite, aucun hôte par défaut)')
+      journal('pairing token without a gatewayBase — inactive (the gateway is an explicit choice, there is no default host)')
       return false
     }
     jeton = t
@@ -1063,9 +1063,9 @@ export function createGatewayWatcher (options) {
     motifArret = null
     derniereErreur = null
     const maGeneration = ++generation
-    journal('démarrage — long-poll ' + (opts.base !== undefined ? String(opts.base) : String(lireBaseGateway(lireReglagesSync()))) + GATEWAY_POLL_PATH + ' (token ' + empreinteToken(t) + '…)')
+    journal('starting — long-poll ' + (opts.base !== undefined ? String(opts.base) : String(lireBaseGateway(lireReglagesSync()))) + GATEWAY_POLL_PATH + ' (token ' + empreinteToken(t) + '…)')
     bouclePromesse = boucle(maGeneration).catch((e) => {
-      journal('boucle interrompue — ' + String(e !== null && e !== undefined && e.message ? e.message : e))
+      journal('loop interrupted — ' + String(e !== null && e !== undefined && e.message ? e.message : e))
       enMarche = false
     })
     return true
@@ -1078,8 +1078,8 @@ export function createGatewayWatcher (options) {
     generation += 1
     if (abortCourant !== null) { try { abortCourant.abort() } catch (e) { /* déjà fini */ } }
     reveiller()
-    if (motifArret === null) motifArret = 'arrêt demandé'
-    journal('arrêt du watcher')
+    if (motifArret === null) motifArret = 'stop requested'
+    journal('watcher stopped')
     return true
   }
 
@@ -1127,18 +1127,18 @@ export function createGatewayWatcher (options) {
   /** Décision humaine sur une tâche télécommande : `approuver` ou `refuser`. */
   const decider = async (taskId, decision) => {
     const d = String(decision === null || decision === undefined ? '' : decision).toLowerCase()
-    if (d !== 'approuver' && d !== 'refuser') return { ok: false, error: 'decision attendue : approuver ou refuser' }
+    if (d !== 'approuver' && d !== 'refuser') return { ok: false, error: 'decision expected: approve or reject' }
     const id = idSur(taskId, 120)
-    if (id === null) return { ok: false, error: 'taskId invalide' }
+    if (id === null) return { ok: false, error: 'invalid taskId' }
     const item = file.items.find((i) => i !== null && i !== undefined && i.kind === 'task' && i.taskId === id && i.approbation !== null && i.approbation !== undefined && i.approbation.statut === 'attente')
-    if (item === undefined) return { ok: false, error: 'action inconnue ou deja decidee' }
+    if (item === undefined) return { ok: false, error: 'unknown action or already decided' }
     const etatDecision = d === 'approuver' ? 'approuve' : 'refuse'
     item.approbation = { statut: d, decideA: new Date().toISOString() }
     item.etat = etatDecision
     item.aPousser = true
     item.majA = new Date().toISOString()
     await ecrireFile()
-    journal('décision locale — ' + id + ' : ' + d)
+    journal('local decision — ' + id + ' : ' + d)
     // La DÉCISION locale est prise quoi qu'il arrive ; la POUSSÉE vers le
     // relais peut échouer — les deux sont rendues séparément (jamais de faux
     // « approuvé » sur la livraison).
@@ -1150,7 +1150,7 @@ export function createGatewayWatcher (options) {
       poussee = false
       if (estRevoquee(e) === true) {
         revoque = true
-        motifArret = 'token révoqué (401)'
+        motifArret = 'token revoked (401)'
         enMarche = false
       }
       item.derniereErreur = String(e !== null && e !== undefined && e.message ? e.message : e)
@@ -1161,7 +1161,7 @@ export function createGatewayWatcher (options) {
         item.aPousser = false
         item.majA = new Date().toISOString()
         await ecrireFile()
-        journal('livraison échouée définitivement (dead-letter) — ' + id + ' : ' + item.derniereErreur)
+        journal('delivery failed for good (dead-letter) — ' + id + ' : ' + item.derniereErreur)
       }
     }
     return { ok: true, etat: etatDecision, taskId: id, pousse: poussee }

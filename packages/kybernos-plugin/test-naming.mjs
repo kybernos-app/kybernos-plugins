@@ -96,13 +96,13 @@ for (const [k, v] of dict) {
 assert.deepEqual(gram, [], 'an article or an adjective does not agree with « Agent Team »')
 ok('English says « an Agent Team »; French puts the feminine article in front of « Agent Team » (une, la, cette, aucune)')
 
-// 6. the French sentences of the `kbf` table and the code that uses them stay in step
+// 6. the French sentences of the `KB_FR_EN` table and the code that uses them stay in step
 const tableAt = src.indexOf('const KB_FR_EN = {')
 const tableEnd = src.indexOf('\n}\n', tableAt)
 const table = src.slice(tableAt, tableEnd)
 const phrases = []
 for (const m of table.matchAll(/^  '((?:[^'\\]|\\.)*)': '((?:[^'\\]|\\.)*)',?\s*$/gm)) phrases.push([m[1], m[2]])
-assert.ok(phrases.length > 500, 'the kbf table was read (' + phrases.length + ' phrases)')
+assert.ok(phrases.length > 500, 'the KB_FR_EN table was read (' + phrases.length + ' phrases)')
 const phraseBad = phrases.filter(([fr, en]) => kyberLeft(fr) !== null || kyberLeft(en) !== null || /\bAI Teams?\b/i.test(en)).map(([fr]) => fr)
 assert.deepEqual(phraseBad, [], 'a French sentence of KB_FR_EN (or its English) still says « Kyber »')
 ok('the ' + phrases.length + ' French sentences of KB_FR_EN and their English say « Agent Team », never « Kyber »')

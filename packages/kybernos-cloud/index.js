@@ -1067,7 +1067,7 @@ const referralRoute = async () => {
   const share = code === null ? null : brutLien
   // `ok: true` even without a code: the account answers, it simply has no code
   // yet — the card must be able to say that instead of asking for a paste.
-  return { ok: true, connected: true, code: code, share_url: share, motif: code === null ? 'ce compte n a pas encore de code de parrainage' : null }
+  return { ok: true, connected: true, code: code, share_url: share, motif: code === null ? 'this account has no referral code yet' : null }
 }
 
 // ── Routes ──────────────────────────────────────────────────────────────────

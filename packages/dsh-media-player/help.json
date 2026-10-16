@@ -5,7 +5,7 @@
   },
   "steps": [
     {
-      "fr": "Dans la barre latérale droite, ouvrez l'onglet « Files » et cliquez un fichier son ou vidéo (mp3, wav, mp4, webm…).",
+      "fr": "Dans la barre latérale droite, ouvre l'onglet « Files » et clique un fichier son ou vidéo (mp3, wav, mp4, webm…).",
       "en": "In the right sidebar, open the “Files” tab and click a sound or video file (mp3, wav, mp4, webm…)."
     },
     {
@@ -13,7 +13,7 @@
       "en": "The player opens in place, with the file's name and size."
     },
     {
-      "fr": "Utilisez les commandes habituelles : lecture, pause, position, volume.",
+      "fr": "Utilise les commandes habituelles : lecture, pause, position, volume.",
       "en": "Use the usual controls: play, pause, position, volume."
     },
     {
@@ -22,7 +22,7 @@
     }
   ],
   "where": {
-    "fr": "Barre latérale droite › onglet « Files » : cliquez un fichier audio ou vidéo",
+    "fr": "Barre latérale droite › onglet « Files » : clique un fichier audio ou vidéo",
     "en": "Right sidebar › “Files” tab: click an audio or video file",
     "page": false
   },

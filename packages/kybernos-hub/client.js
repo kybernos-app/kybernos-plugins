@@ -97,9 +97,12 @@ window.__ModuleLoader__.load({
         // or a fr base); every other language — translated (es…) or not — gets
         // English, never French.
         return (s === 'kybernos' || s.split(/[-_]/)[0] === 'fr') ? 'fr' : 'en'
-      } catch (e) { return 'fr' }
+      } catch (e) { return 'en' }
     }
     const kt = (fr, en) => (lang() === 'fr' ? fr : en)
+    // A [fr, en] row whose sentences are built from a value (a version, an error code): the French is the first argument of a pair helper,
+    // so it sits in a dictionary like every other row.
+    const pair = (fr, en) => [fr, en]
     const rawLang = () => { try { return window.__KB_LANG_RESOLVE__ ? window.__KB_LANG_RESOLVE__() : '' } catch (e) { return '' } }
 
     // ── The link of a help card to its article, and the first-visit animation of a page ──────────────────────────────
@@ -174,9 +177,9 @@ window.__ModuleLoader__.load({
           title: kt('Les presets d’agent en trois étapes', 'Agent presets in three steps'),
           caption: kt('Un preset est choisi parmi ceux livrés, ou écrit avec l’aide de l’agent, puis utilisé pour une nouvelle tâche.', 'A preset is picked from the built-in ones, or written with the agent’s help, then used for a new task.'),
           steps: [
-            { t: kt('Connaissez les modes', 'Know the modes'), b: kt('Standard pour le quotidien ; PTC, Minimal et Creator pour d’autres besoins : chacun a ses outils et ses habitudes.', 'Standard for everyday tasks; PTC, Minimal and Creator for other needs: each has its own tools and habits.') },
-            { t: kt('Créez le vôtre', 'Create your own'), b: kt('Demandez de l’aide à l’agent (le bouton en bas de la page) : il vous interroge, puis écrit le preset.', 'Ask the agent for help (the button at the bottom of the page): it asks you questions, then writes the preset.') },
-            { t: kt('Lancez une tâche avec', 'Start a task with it'), b: kt('Choisissez le preset à la nouvelle tâche. Celui marqué « New task default » sert quand vous ne choisissez pas.', 'Pick the preset when you start a task. The one marked “New task default” is used when you do not choose.') }
+            { t: kt('Connais les modes', 'Know the modes'), b: kt('Standard pour le quotidien ; PTC, Minimal et Creator pour d’autres besoins : chacun a ses outils et ses habitudes.', 'Standard for everyday tasks; PTC, Minimal and Creator for other needs: each has its own tools and habits.') },
+            { t: kt('Crée le tien', 'Create your own'), b: kt('Demande de l’aide à l’agent (le bouton en bas de la page) : il t’interroge, puis écrit le preset.', 'Ask the agent for help (the button at the bottom of the page): it asks you questions, then writes the preset.') },
+            { t: kt('Lance une tâche avec', 'Start a task with it'), b: kt('Choisis le preset à la nouvelle tâche. Celui marqué « New task default » sert quand tu ne choisis pas.', 'Pick the preset when you start a task. The one marked “New task default” is used when you do not choose.') }
           ],
           mock: { bar: 'Agent presets', rows: ['Standard mode'], hot: kt('Mon preset', 'My preset'), states: [kt('À créer', 'To create'), kt('L’agent écrit…', 'The agent writes…'), kt('Prêt', 'Ready')], actions: [kt('Créer avec l’agent', 'Create with the agent'), kt('Écriture…', 'Writing…'), kt('Utiliser', 'Use')] }
         }
@@ -254,11 +257,11 @@ window.__ModuleLoader__.load({
     const messageCatalogue = (r) => {
       if (r === null || r === undefined || typeof r !== 'object') return ['Réponse illisible.', 'Unreadable answer.']
       // A DSH started before this version answers 404 (not JSON): `post` reports it as bad-response.
-      if (r.error === 'bad-response' || r.error === 'network') return ['Le serveur DSH n’a pas encore chargé cette version : redémarrez-le.', 'The DSH server has not loaded this version yet: restart it.']
+      if (r.error === 'bad-response' || r.error === 'network') return ['Le serveur DSH n’a pas encore chargé cette version : redémarre-le.', 'The DSH server has not loaded this version yet: restart it.']
       if (r.ok === true) {
         return r.etat === 'nouveau'
-          ? ['La suite ' + r.suite + ' est disponible (catalogue signé du ' + String(r.publieLe || '').slice(0, 10) + ').', 'Suite ' + r.suite + ' is available (signed catalogue of ' + String(r.publieLe || '').slice(0, 10) + ').']
-          : ['Catalogue signé à jour (suite ' + r.suite + ').', 'Signed catalogue up to date (suite ' + r.suite + ').']
+          ? pair('La suite ' + r.suite + ' est disponible (catalogue signé du ' + String(r.publieLe || '').slice(0, 10) + ').', 'Suite ' + r.suite + ' is available (signed catalogue of ' + String(r.publieLe || '').slice(0, 10) + ').')
+          : pair('Catalogue signé à jour (suite ' + r.suite + ').', 'Signed catalogue up to date (suite ' + r.suite + ').')
       }
       const t = {
         'pas-de-cle': ['Aucune clé de signature n’est installée : le catalogue en ligne ne peut pas être vérifié, il n’est donc pas demandé.', 'No signing key is installed: the online catalogue cannot be verified, so it is not asked for.'],
@@ -271,18 +274,18 @@ window.__ModuleLoader__.load({
         cache: ['Impossible d’enregistrer le catalogue vérifié sur le disque.', 'Could not save the verified catalogue to disk.'],
         busy: ['Une opération est déjà en cours.', 'Another operation is already running.']
       }
-      return t[r.erreur] || ['Catalogue en ligne refusé (' + String(r.erreur) + ').', 'Online catalogue refused (' + String(r.erreur) + ').']
+      return t[r.erreur] || pair('Catalogue en ligne refusé (' + String(r.erreur) + ').', 'Online catalogue refused (' + String(r.erreur) + ').')
     }
 
     /** Pure. Why an update cannot be applied from this page. [fr, en] or null when it can. */
     const raisonMiseAJour = (distant) => {
       if (distant === null || distant === undefined || distant.miseAJour === undefined || distant.miseAJour.possible === true) return null
       const t = {
-        'development-checkout': ['Ce poste est une copie de développement (git) : mettez-la à jour avec git, pas avec une archive.', 'This machine is a development checkout (git): update it with git, not with an archive.'],
+        'development-checkout': ['Ce poste est une copie de développement (git) : mets-la à jour avec git, pas avec une archive.', 'This machine is a development checkout (git): update it with git, not with an archive.'],
         'no-archive-for-platform': ['Cette version n’a pas d’archive pour ce système.', 'This release has no archive for this system.'],
         'hosted-instance': ['Cette instance est hébergée : elle se met à jour en la reconstruisant, pas depuis cette page.', 'This instance is hosted: it is updated by rebuilding it, not from this page.'],
         'no-key': ['Aucune clé de signature n’est installée.', 'No signing key is installed.'],
-        'no-release': ['Aucun catalogue en ligne vérifié : cherchez les mises à jour d’abord.', 'No verified online catalogue: check for updates first.'],
+        'no-release': ['Aucun catalogue en ligne vérifié : cherche les mises à jour d’abord.', 'No verified online catalogue: check for updates first.'],
         'up-to-date': ['La suite est à jour.', 'The suite is up to date.']
       }
       return t[distant.miseAJour.raison] || [String(distant.miseAJour.raison), String(distant.miseAJour.raison)]
@@ -293,22 +296,22 @@ window.__ModuleLoader__.load({
       if (t === null || t === undefined) return null
       const etapes = { telechargement: ['Téléchargement de l’archive…', 'Downloading the archive…'], extraction: ['Vérification et extraction…', 'Verifying and extracting…'], installation: ['Installation : photo de sécurité, liaison, contrôle du démarrage…', 'Installing: safety snapshot, link, boot check…'] }
       if (etapes[t.etat] !== undefined) return etapes[t.etat]
-      if (t.etat === 'termine') return ['Suite ' + t.version + ' installée. Relancez DSH pour l’activer.', 'Suite ' + t.version + ' installed. Restart DSH to turn it on.']
+      if (t.etat === 'termine') return pair('Suite ' + t.version + ' installée. Relance DSH pour l’activer.', 'Suite ' + t.version + ' installed. Restart DSH to turn it on.')
       if (t.etat === 'echec') {
-        const e = { 'digest-mismatch': ['L’archive téléchargée ne correspond pas à l’empreinte signée : rien n’a été installé.', 'The downloaded archive does not match the signed digest: nothing was installed.'], 'robot-refused': ['L’installation a été refusée et annulée : votre installation actuelle est intacte.', 'The install was refused and rolled back: your current install is intact.'], 'bad-archive': ['L’archive est invalide : rien n’a été installé.', 'The archive is invalid: nothing was installed.'],
+        const e = { 'digest-mismatch': ['L’archive téléchargée ne correspond pas à l’empreinte signée : rien n’a été installé.', 'The downloaded archive does not match the signed digest: nothing was installed.'], 'robot-refused': ['L’installation a été refusée et annulée : ton installation actuelle est intacte.', 'The install was refused and rolled back: your current install is intact.'], 'bad-archive': ['L’archive est invalide : rien n’a été installé.', 'The archive is invalid: nothing was installed.'],
           'hosted-instance': ['Cette instance est hébergée : elle se met à jour en la reconstruisant, pas depuis cette page.', 'This instance is hosted: it is updated by rebuilding it, not from this page.'],
-          'development-checkout': ['Ce poste est une copie de développement (git) : mettez-la à jour avec git, pas avec une archive.', 'This machine is a development checkout (git): update it with git, not with an archive.'],
+          'development-checkout': ['Ce poste est une copie de développement (git) : mets-la à jour avec git, pas avec une archive.', 'This machine is a development checkout (git): update it with git, not with an archive.'],
           'nothing-to-update': ['Il n’y a rien à mettre à jour : la suite est à jour.', 'There is nothing to update: the suite is up to date.'],
           'no-archive-for-platform': ['Cette version n’a pas d’archive pour ce système : rien n’a été installé.', 'This release has no archive for this system: nothing was installed.'],
           'robot-failed': ['L’installateur n’a pas pu démarrer : rien n’a été installé.', 'The installer could not start: nothing was installed.'],
-          'engine-update-failed': ['La mise à jour du moteur a échoué : votre moteur actuel n’a pas changé.', 'The engine update failed: your current engine has not changed.'],
+          'engine-update-failed': ['La mise à jour du moteur a échoué : ton moteur actuel n’a pas changé.', 'The engine update failed: your current engine has not changed.'],
           url: ['L’adresse de téléchargement n’est pas valable (https seulement) : rien n’a été installé.', 'The download address is not valid (https only): nothing was installed.'],
           http: ['Le serveur de téléchargement a refusé la demande : rien n’a été installé.', 'The download server refused the request: nothing was installed.'],
           vide: ['Le téléchargement est arrivé vide : rien n’a été installé.', 'The download came back empty: nothing was installed.'],
           'trop-gros': ['L’archive est plus grosse que prévu : rien n’a été installé.', 'The archive is bigger than announced: nothing was installed.'],
-          busy: ['Une autre opération est déjà en cours : attendez qu’elle se termine.', 'Another operation is already running: wait until it ends.'],
-          'update-failed': ['La mise à jour a échoué. Réessayez, ou relancez DSH.', 'The update failed. Try again, or restart DSH.'] }
-        return e[t.erreur] || ['Mise à jour échouée (' + String(t.erreur) + ').', 'Update failed (' + String(t.erreur) + ').']
+          busy: ['Une autre opération est déjà en cours : attends qu’elle se termine.', 'Another operation is already running: wait until it ends.'],
+          'update-failed': ['La mise à jour a échoué. Réessaie, ou relance DSH.', 'The update failed. Try again, or restart DSH.'] }
+        return e[t.erreur] || pair('Mise à jour échouée (' + String(t.erreur) + ').', 'Update failed (' + String(t.erreur) + ').')
       }
       return null
     }
@@ -866,7 +869,7 @@ window.__ModuleLoader__.load({
           if (k === null || k === undefined || typeof k.bone !== 'function' || typeof k.wrap !== 'function') return h('div', { className: 'kbsu' }, h('div', { className: 'kbsu-empty' }, kt('Chargement de la suite…', 'Loading the suite…')))
           return h('div', { className: 'kbsu', 'data-kb': 'suite' },
             h('div', { className: 'kbsu-head' },
-              h('div', null, h('h4', null, 'Kybernos Suite'), h('p', null, kt('Les modules Kybernos de ce poste. Activez, installez ou ouvrez les paramètres sans quitter les Réglages.', 'The Kybernos modules on this machine. Switch, install or open settings without leaving Settings.'))),
+              h('div', null, h('h4', null, 'Kybernos Suite'), h('p', null, kt('Les modules Kybernos de ce poste. Active, installe ou ouvre les paramètres sans quitter les Réglages.', 'The Kybernos modules on this machine. Switch, install or open settings without leaving Settings.'))),
               h('div', { className: 'kbsu-headr' },
                 h('span', { className: 'kbsu-right' }, k.bone(150, 34, null, 10), k.bone(190, 34, null, 10)),
                 h('div', { className: 'kbsu-meta' }, k.bone(240, 12)))),
@@ -887,7 +890,7 @@ window.__ModuleLoader__.load({
           return h('div', { className: 'kbsu' },
             h('div', { className: 'kbsu-head' }, h('div', null, h('h4', null, 'Kybernos Suite'))),
             h('div', { className: 'kbsu-banner', role: 'alert' }, h('strong', null, ic('alert'), kt('Le catalogue de la suite est injoignable.', 'The suite catalogue cannot be reached.')),
-              h('span', null, kt('Le serveur DSH ne répond pas sur /kybernos-hub/suite. Relancez DSH, ou utilisez le gestionnaire de plugins natif de DSH.', 'The DSH server does not answer on /kybernos-hub/suite. Restart DSH, or use DSH’s native plugin manager.'))),
+              h('span', null, kt('Le serveur DSH ne répond pas sur /kybernos-hub/suite. Relance DSH, ou utilise le gestionnaire de plugins natif de DSH.', 'The DSH server does not answer on /kybernos-hub/suite. Restart DSH, or use DSH’s native plugin manager.'))),
             h('div', null, h('button', { type: 'button', className: 'kbsu-btn ghost', onClick: () => { setCharge({ etat: 'loading', suite: null, bundles: null, maint: null }); recharger() } }, ic('refresh'), kt('Réessayer', 'Retry'))))
         }
 
@@ -1019,7 +1022,7 @@ window.__ModuleLoader__.load({
         const chipFamille = (fam) => h('span', { className: 'kbsu-chip fam', style: { '--c': fam.couleur } }, h('i', null), kt(fam.fr, fam.en))
         // Compatibility speaks up on a card only when something is wrong; the full verdict is on the module's page.
         const chipCompat = (pleine) => verdict === 'hors'
-          ? h('span', { className: 'kbsu-chip warn', title: kt('Cette version de DSH n’est pas dans la zone testée.', 'This DSH version is not in the tested range.') }, kt('Non testé sur votre DSH', 'Not tested on your DSH'))
+          ? h('span', { className: 'kbsu-chip warn', title: kt('Cette version de DSH n’est pas dans la zone testée.', 'This DSH version is not in the tested range.') }, kt('Non testé sur ton DSH', 'Not tested on your DSH'))
           : (pleine && verdict === 'ok' ? h('span', { className: 'kbsu-chip ok' }, kt('Compatible avec DSH ', 'Works with DSH ') + (charge.maint && charge.maint.global ? charge.maint.global : '')) : null)
 
         // What waits for the hover: the module's own Settings page (when it has one and it is there), and its page here.
@@ -1056,7 +1059,7 @@ window.__ModuleLoader__.load({
           const corps = ongletFiche === 'compat'
             ? h('div', { className: 'kbsu-body' },
               h('dl', { className: 'kbsu-dl' },
-                h('dt', null, kt('Votre DSH', 'Your DSH')), h('dd', null, dsh),
+                h('dt', null, kt('Ton DSH', 'Your DSH')), h('dd', null, dsh),
                 h('dt', null, kt('Zone testée', 'Tested range')), h('dd', null, compatLue !== null ? (compatLue.min || '?') + kt(' à ', ' to ') + (compatLue.max || '?') : kt('inconnue', 'unknown')),
                 h('dt', null, kt('Verdict', 'Verdict')), h('dd', null, verdict === 'ok' ? h('span', { className: 'kbsu-chip ok' }, kt('Compatible', 'Works with your DSH')) : verdict === 'hors' ? chipCompat(true) : kt('Inconnu', 'Unknown'))),
               h('p', null, kt('Cette zone est celle de toute la suite : elle vient de dsh-compat.json, le contrat que le testeur de compatibilité applique à chaque installation et mise à jour.', 'This range is the whole suite’s: it comes from dsh-compat.json, the contract the compatibility check applies to every install and update.')))
@@ -1169,7 +1172,7 @@ window.__ModuleLoader__.load({
 
         return h('div', { className: 'kbsu', 'data-kb': 'suite', ref: rootRef },
           detail !== null ? null : h('div', { className: 'kbsu-head' },
-            h('div', null, h('h4', null, 'Kybernos Suite'), h('p', null, kt('Les modules Kybernos de ce poste. Activez, installez ou ouvrez les paramètres sans quitter les Réglages.', 'The Kybernos modules on this machine. Switch, install or open settings without leaving Settings.'))),
+            h('div', null, h('h4', null, 'Kybernos Suite'), h('p', null, kt('Les modules Kybernos de ce poste. Active, installe ou ouvre les paramètres sans quitter les Réglages.', 'The Kybernos modules on this machine. Switch, install or open settings without leaving Settings.'))),
             h('div', { className: 'kbsu-headr' },
               h('span', { className: 'kbsu-right' },
                 typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-hub' }) : null,
@@ -1190,13 +1193,13 @@ window.__ModuleLoader__.load({
             tacheMaj !== null && tacheMaj.etat === 'echec' ? h('span', { className: 'kbsu-st bad', role: 'alert' }, (() => { const m = messageMiseAJour(tacheMaj); return m === null ? '' : kt(m[0], m[1]) })()) : null) : null,
           tacheMaj !== null && tacheMaj.etat !== 'echec' && tacheMaj.etat !== 'termine' ? h('div', { className: 'kbsu-relance', role: 'status', 'data-kb': 'suite-maj-en-cours' }, h('span', { className: 'kbsu-st' }, ic('refresh', 'spin'), (() => { const m = messageMiseAJour(tacheMaj); return m === null ? '' : kt(m[0], m[1]) })())) : null,
           nbEnAttente > 0 ? h('div', { className: 'kbsu-relance', role: 'status' },
-            h('span', null, h('b', null, nbEnAttente + (nbEnAttente > 1 ? kt(' changements en attente. ', ' changes pending. ') : kt(' changement en attente. ', ' change pending. '))), enAttente.__suite === true ? kt('La suite est installée. Relancez DSH pour l’activer.', 'The suite is installed. Restart DSH to turn it on.') : kt('Relancez DSH pour les activer.', 'Restart DSH to turn them on.')),
+            h('span', null, h('b', null, nbEnAttente + (nbEnAttente > 1 ? kt(' changements en attente. ', ' changes pending. ') : kt(' changement en attente. ', ' change pending. '))), enAttente.__suite === true ? kt('La suite est installée. Relance DSH pour l’activer.', 'The suite is installed. Restart DSH to turn it on.') : kt('Relance DSH pour les activer.', 'Restart DSH to turn them on.')),
             relance === 'running' ? h('span', { className: 'kbsu-st' }, ic('refresh', 'spin'), kt('Relance en cours… la page va se recharger.', 'Restarting… the page will reload.'))
               : confirmerRelance ? h('span', { className: 'kbsu-right' }, h('span', { className: 'kbsu-st warn' }, kt('Les sessions en cours seront interrompues, puis reprises.', 'Running sessions will be interrupted, then resumed.')),
                 h('button', { type: 'button', className: 'kbsu-btn sm accent', onClick: relancer }, kt('Relancer maintenant', 'Restart now')),
                 h('button', { type: 'button', className: 'kbsu-btn sm ghost', onClick: () => setConfirmerRelance(false) }, kt('Annuler', 'Cancel')))
                 : h('button', { type: 'button', className: 'kbsu-btn sm accent', onClick: () => setConfirmerRelance(true) }, kt('Relancer DSH', 'Restart DSH')),
-            relance === 'error' ? h('span', { className: 'kbsu-st bad' }, kt('Relance impossible depuis ici : arrêtez « dsh web » dans votre terminal, puis relancez-le.', 'Cannot restart from here: stop “dsh web” in your terminal, then start it again.')) : null) : null,
+            relance === 'error' ? h('span', { className: 'kbsu-st bad' }, kt('Relance impossible depuis ici : arrête « dsh web » dans ton terminal, puis relance-le.', 'Cannot restart from here: stop “dsh web” in your terminal, then start it again.')) : null) : null,
           mgr === null ? h('div', { className: 'kbsu-banner', role: 'status' }, h('strong', null, ic('alert'), kt('Gestionnaire de plugins indisponible.', 'Plugin manager unavailable.')), h('span', null, kt('Le catalogue s’affiche, mais l’état installé et les interrupteurs ne sont pas disponibles sur cette version de DSH.', 'The catalogue shows, but installed state and switches are unavailable on this DSH version.'))) : null,
           detail !== null ? null : h('div', { className: 'kbsu-bar' },
             h('div', { className: 'kbsu-seg', role: 'group', 'aria-label': kt('Filtre', 'Filter') },
@@ -1412,6 +1415,6 @@ window.__ModuleLoader__.load({
 
     const demarrer = (ctx) => { apply(ctx); try { appliquerSuite(ctx) } catch (e) { /* optional */ } }
 
-    return { name: NAME, inject: [], apply: demarrer, __test: { messageCatalogue, raisonMiseAJour, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView, construireAide, construireNatifs, NATIVE_SEL, nativeKeyOf, findNativeHost, nativeContent, coteDeLaCarte, adresseAide, langueDuSite, introKey, introOuverte, INTRO_SEEN_MS } }
+    return { name: NAME, inject: [], apply: demarrer, __test: { lang, kt, pair, messageCatalogue, raisonMiseAJour, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView, construireAide, construireNatifs, NATIVE_SEL, nativeKeyOf, findNativeHost, nativeContent, coteDeLaCarte, adresseAide, langueDuSite, introKey, introOuverte, INTRO_SEEN_MS } }
   }
 })

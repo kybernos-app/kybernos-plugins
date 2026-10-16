@@ -165,7 +165,7 @@ window.__ModuleLoader__.load({
 
     /** Pure. The answer of a refused route, in words. */
     const REFUSALS = {
-      'package-missing': ['Le module « Agent connectors » n’est pas installé : active-le dans Kybernos Suite, ou mets la Suite à jour.', 'The "Agent connectors" module is not installed: turn it on in Kybernos Suite, or update the Suite.'],
+      'package-missing': ['Le module « Workers connectors » n’est pas installé : active-le dans Kybernos Suite, ou mets la Suite à jour.', 'The "Workers connectors" module is not installed: turn it on in Kybernos Suite, or update the Suite.'],
       'command-changed': ['La commande a changé depuis l’affichage : recharge la page et recommence.', 'The command changed since it was shown: reload the page and try again.'],
       busy: ['Une autre opération est en cours : réessaie dans un instant.', 'Another operation is running: try again in a moment.'],
       'already-installed': ['Déjà installé : DSH le revérifie.', 'Already installed: DSH is checking it again.'],
@@ -464,25 +464,25 @@ window.__ModuleLoader__.load({
         const hint = (fr, en) => h('p', { className: 'kbwk-note' }, kt(fr, en))
         let stage
         if (step === 0) stage = mini
-        else if (step === 1) stage = h(React.Fragment, null, mini, d.verdict === 'binaire-absent' ? hint('Résultat : un point manque, le programme Claude Code n’est pas installé. On s’en occupe à l’étape suivante.', 'Result: one point is missing, the Claude Code program is not installed. We take care of it in the next step.') : null, !d.mounted ? hint('Faites d’abord l’étape 1.', 'Do step 1 first.') : null)
+        else if (step === 1) stage = h(React.Fragment, null, mini, d.verdict === 'binaire-absent' ? hint('Résultat : un point manque, le programme Claude Code n’est pas installé. On s’en occupe à l’étape suivante.', 'Result: one point is missing, the Claude Code program is not installed. We take care of it in the next step.') : null, !d.mounted ? hint('Fais d’abord l’étape 1.', 'Do step 1 first.') : null)
         else if (step === 2) {
           let box = null
           if (d.ask) box = h('div', { className: 'kbwk-box' }, h('p', null, h('b', null, kt('DSH va lancer cette commande sur ton ordinateur :', 'DSH will run this command on your computer:'))), h('div', { className: 'kbwk-cmd' }, h('code', null, DEMO_COMMAND)),
             h('p', { className: 'kbwk-alt' }, kt('Source : claude.ai (installation officielle de Claude Code). Tu peux interrompre à tout moment.', 'Source: claude.ai (the official Claude Code install). You can stop it at any time.')),
             h('div', { className: 'kbwk-acts' }, h('button', { type: 'button', className: 'kbwk-btn accent', 'data-kb': 'guide-run', onClick: act.run }, ic('download'), kt('Lancer l’installation', 'Run the install')), h('button', { type: 'button', className: 'kbwk-btn ghost', onClick: () => patch({ ask: false }) }, kt('Annuler', 'Cancel'))))
           else if (d.inst === 'running' || d.inst === 'done') box = h('div', { className: 'kbwk-box' }, h('p', null, h('b', null, d.inst === 'done' ? '✓ ' + kt('Installé. DSH a revérifié tout seul.', 'Installed. DSH checked again by itself.') : kt('Installation en cours…', 'Installing…'))), h('pre', { className: 'kbwk-log' }, d.log.join('\n')))
-          stage = h(React.Fragment, null, mini, box, d.verdict !== 'binaire-absent' && !d.installed ? hint('Faites d’abord l’étape 2 : la vérification dit si l’installation est nécessaire.', 'Do step 2 first: the check says whether an install is needed.') : null)
+          stage = h(React.Fragment, null, mini, box, d.verdict !== 'binaire-absent' && !d.installed ? hint('Fais d’abord l’étape 2 : la vérification dit si l’installation est nécessaire.', 'Do step 2 first: the check says whether an install is needed.') : null)
         } else if (step === 3) {
           stage = h(React.Fragment, null, mini,
             h('div', { className: 'kbwk-term' }, h('div', { className: 'tb' }, h('i'), h('i'), h('i'), h('span', null, 'Terminal')), h('pre', null, d.term.length === 0 ? h('span', { className: 'd' }, kt('Clique sur le bouton ci-dessous pour taper la commande dans cette fenêtre.', 'Click the button below to type the command in this window.')) : d.term.map((l, i) => h('span', { key: i, className: l.c }, l.t + '\n')))),
             h('div', { className: 'kbwk-acts' }, h('button', { type: 'button', className: 'kbwk-btn', 'data-kb': 'guide-signin', disabled: !d.installed || d.connected || d.busy === true, onClick: act.signin }, d.connected ? '✓ ' + kt('Connecté', 'Signed in') : kt('Taper « claude » et se connecter', 'Type "claude" and sign in'))),
-            !d.installed ? hint('Faites d’abord l’étape 3 : il faut que le programme soit installé.', 'Do step 3 first: the program has to be installed.') : hint('Dans la vraie page, le bouton « Copier » met la commande dans le presse-papiers : il suffit de la coller (Cmd + V) dans le Terminal, puis Entrée.', 'On the real page, the "Copy" button puts the command in the clipboard: just paste it (Cmd + V) in the Terminal, then Enter.'))
+            !d.installed ? hint('Fais d’abord l’étape 3 : il faut que le programme soit installé.', 'Do step 3 first: the program has to be installed.') : hint('Dans la vraie page, le bouton « Copier » met la commande dans le presse-papiers : il suffit de la coller (Cmd + V) dans le Terminal, puis Entrée.', 'On the real page, the "Copy" button puts the command in the clipboard: just paste it (Cmd + V) in the Terminal, then Enter.'))
         } else if (step === 4) {
           const marks = [kt('Connexion montée dans le profil', 'Connection mounted in the profile'), kt('Paquet de connexion installé', 'Connection package installed'), kt('Programme trouvé sur l’ordinateur', 'Program found on the computer'), kt('Connexion à ton compte confirmée', 'Sign-in to your account confirmed'), kt('Écriture possible dans un dossier de test', 'Writing possible in a test folder')]
           stage = h(React.Fragment, null, mini, h('ul', { className: 'kbwk-checks' }, marks.map((m, i) => h('li', { key: i, className: i < d.checkN ? 'on' : '' }, h('span', { className: 'm' }, i < d.checkN ? '✓' : ''), m))),
             d.verdict === 'pret' ? hint('Aucun modèle n’a été appelé : 0 € dépensé sur ton abonnement Claude.', 'No model was called: nothing spent on your Claude subscription.') : null)
         } else if (step === 5) {
-          stage = h(React.Fragment, null, mini, d.verdict !== 'pret' ? hint('Faites d’abord l’étape 5 : l’interrupteur apparaît quand l’agent est prêt.', 'Do step 5 first: the switch shows up once the agent is ready.') : null,
+          stage = h(React.Fragment, null, mini, d.verdict !== 'pret' ? hint('Fais d’abord l’étape 5 : l’interrupteur apparaît quand l’agent est prêt.', 'Do step 5 first: the switch shows up once the agent is ready.') : null,
             d.saved ? h('p', { className: 'kbwk-msg ok', role: 'status' }, kt('Enregistré. DSH l’applique dans quelques secondes.', 'Saved. DSH applies it in a few seconds.')) : null,
             d.verdict === 'pret' ? hint('Dans la vraie page, le réglage « Arrière-plan » se trouve dans le détail de la ligne.', 'On the real page, the "Background" setting is in the row’s details.') : null)
         } else {

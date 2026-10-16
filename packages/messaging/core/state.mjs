@@ -1,5 +1,5 @@
-// État persistant du pont : mapping chat → session DSH, allowlist, journal léger.
-// Écrit en 0600, de façon atomique (tmp + rename).
+// Persistent state of the bridge: chat → DSH session mapping, allowlist, light journal.
+// Written as 0600, atomically (tmp + rename).
 
 import fs from 'node:fs';
 import path from 'node:path';

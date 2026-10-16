@@ -6,19 +6,19 @@
 
 const STRINGS = {
   fr: {
-    title: 'Accès protégé', sub: 'Saisissez vos identifiants pour ouvrir Kybernos.',
-    userLabel: 'Identifiant', label: 'Mot de passe', signin: 'Se connecter', signing: 'Connexion…', wait: 'Patientez',
-    note: 'Cet appareil restera connecté {days} jours.', foot: 'Une seule connexion : la porte ouvre aussi DSH pour vous.',
-    empty: 'Saisissez l’identifiant et le mot de passe.',
+    title: 'Accès protégé', sub: 'Saisis tes identifiants pour ouvrir Kybernos.',
+    userLabel: 'Identifiant', label: 'Mot de passe', signin: 'Se connecter', signing: 'Connexion…', wait: 'Patiente',
+    note: 'Cet appareil restera connecté {days} jours.', noteOne: 'Cet appareil restera connecté 1 jour.', foot: 'Une seule connexion : la porte ouvre aussi DSH pour toi.',
+    empty: 'Saisis l’identifiant et le mot de passe.',
     wrongOne: 'Identifiant ou mot de passe incorrect. {n} essai restant.', wrongMany: 'Identifiant ou mot de passe incorrect. {n} essais restants.',
-    locked: 'Trop d’essais. Nouvelle tentative possible dans {t}.', failed: 'La connexion a échoué. Réessayez dans un instant.',
+    locked: 'Trop d’essais. Nouvelle tentative possible dans {t}.', failed: 'La connexion a échoué. Réessaie dans un instant.',
     doneTitle: 'Connecté', doneSub: 'Ouverture de Kybernos…', show: 'Afficher le mot de passe', hide: 'Masquer le mot de passe',
     startTitle: 'Kybernos démarre', startSub: 'La page se rouvrira toute seule dans quelques secondes.'
   },
   en: {
     title: 'Protected access', sub: 'Enter your credentials to open Kybernos.',
     userLabel: 'Username', label: 'Password', signin: 'Sign in', signing: 'Signing in…', wait: 'Please wait',
-    note: 'This device will stay signed in for {days} days.', foot: 'One sign-in: the gate also signs you in to DSH.',
+    note: 'This device will stay signed in for {days} days.', noteOne: 'This device will stay signed in for 1 day.', foot: 'One sign-in: the gate also signs you in to DSH.',
     empty: 'Enter the username and the password.',
     wrongOne: 'Wrong username or password. {n} attempt left.', wrongMany: 'Wrong username or password. {n} attempts left.',
     locked: 'Too many attempts. You can try again in {t}.', failed: 'Sign-in failed. Try again in a moment.',
@@ -99,7 +99,7 @@ export const pageCsp = (nonce) => `default-src 'none'; style-src 'nonce-${nonce}
 /** The sign-in page. `next` is where to go afterwards (sanitised here as well). */
 export function renderLogin ({ lang, nonce, next, sessionDays }) {
   const s = STRINGS[lang] ?? STRINGS.en
-  const note = s.note.replace('{days}', String(sessionDays))
+  const note = (sessionDays === 1 ? s.noteOne : s.note).replace('{days}', String(sessionDays))
   const cfg = { next: safeNext(next), dict: { ...s, note } }
   const body = `<section class="card" aria-labelledby="ttl">${wordmark}
 <form id="form" novalidate autocomplete="on" method="post" action="/__gate/login">

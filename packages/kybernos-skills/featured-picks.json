@@ -838,7 +838,7 @@
       },
       "outcome": {
         "en": "A summary of your unread Gmail: sender, subject, date.",
-        "fr": "Un résumé de vos mails Gmail non lus : expéditeur, objet, date."
+        "fr": "Un résumé de tes mails Gmail non lus : expéditeur, objet, date."
       },
       "prompt": {
         "en": "What is unread in my inbox, and what needs an answer today?",
@@ -885,7 +885,7 @@
       },
       "outcome": {
         "en": "Agenda, attendees and linked documents for your next meeting.",
-        "fr": "Ordre du jour, participants et documents liés pour votre prochaine réunion."
+        "fr": "Ordre du jour, participants et documents liés pour ta prochaine réunion."
       },
       "prompt": {
         "en": "Prepare me for my next meeting.",
@@ -932,7 +932,7 @@
       },
       "outcome": {
         "en": "Keep a TASKS.md that you and the agent both edit.",
-        "fr": "Tenir un fichier TASKS.md que vous et l’agent modifiez tous les deux."
+        "fr": "Tenir un fichier TASKS.md que toi et l’agent modifiez tous les deux."
       },
       "prompt": {
         "en": "Add “send the invoice” to my tasks and show what is due this week.",
@@ -979,7 +979,7 @@
       },
       "outcome": {
         "en": "A relentless interview that finds the holes in your plan.",
-        "fr": "Un entretien implacable qui trouve les trous de votre plan."
+        "fr": "Un entretien implacable qui trouve les trous de ton plan."
       },
       "prompt": {
         "en": "Grill me on this migration plan until nothing is left vague.",

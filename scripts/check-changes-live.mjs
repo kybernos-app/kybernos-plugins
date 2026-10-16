@@ -51,8 +51,8 @@ page.on('Fetch.requestPaused', async (p) => {
       try { body = JSON.parse(p.request.postData || '{}') } catch (e) { /* not JSON */ }
       posts.push({ path: new URL(url).pathname, body })
       let out
-      if (fake.refuse !== null) out = { ok: false, erreur: fake.refuse }
-      else if (body.exec === true) out = { ok: true, message: 'fake: done' }
+      if (fake.refuse !== null) out = { ok: false, code: fake.refuse, erreur: 'nothing to save — the folder is clean' }
+      else if (body.exec === true) out = { ok: true, code: 'saved-sent', message: 'fake: done' }
       else out = { ok: true, dry: true, commandes: ['git add src/a.js', 'git commit -m "livraison"', 'git push'] }
       await page.send('Fetch.fulfillRequest', { requestId: p.requestId, responseCode: 200, responseHeaders: [{ name: 'content-type', value: 'application/json' }, { name: 'cache-control', value: 'no-store' }], body: Buffer.from(JSON.stringify(out)).toString('base64') })
       return
@@ -235,7 +235,7 @@ try {
   check('Back cancels: nothing was run (only the dry run was posted)', posts.length === 1 && posts[0].body.exec === false && (await val(`!document.querySelector('[data-kb="changes-confirm"]')`)) === true, posts)
   // a refusal
   posts.length = 0
-  fake.refuse = 'rien à committer — arbre propre'
+  fake.refuse = 'nothing-to-save' // the host's code: the chip words it itself, in the language of the page
   await click('[data-act="primary"]')
   await poll(() => val(`!!document.querySelector('[data-kb="changes-error"]')`), 6000)
   const er = await val(`(document.querySelector('[data-kb="changes-error"]') || { innerText: '' }).innerText`)

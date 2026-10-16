@@ -6,7 +6,7 @@ stored state and tests keep working; only the visible label and title changed.
 
 ## What the page shows
 
-- **Identity**: the Kybernos wordmark, `Version 1.0.0 · beta 1`, and a **Check now** button.
+- **Identity**: the Kybernos wordmark, `Version 1.0.0-beta.1` (the exact shipped version), and a **Check now** button.
   The wordmark comes from `window.__KB_BRAND__.Wordmark` (shared brand component); when it is absent or
   throws, the page falls back to the plain text "Kybernos".
 - **Status**: one block, green or orange (blue for "engine ahead", red for out of range), with a one-line
@@ -28,7 +28,9 @@ local host and port gets 403.
 It measures, and never writes: `dsh --version`, `git rev-parse --short HEAD`, `npm root -g`, and
 `npm view @deepseek-ai/dsh version dist-tags` (cached for 10 minutes). The answer carries `global` (engine),
 `plugin` (git hash), `version` (shipped semver or null), `problemes`, `niveau`, `compat`, `maj`, `distant`,
-`versions`, `surfaces`, `serveur`, `journal`. Sentences are French; the client translates them.
+`versions`, `surfaces`, `serveur`, `journal`. The sentences and the level words (`Perfect`, `Compatible`, `Partial`,
+`Out of range`, `Unknown`, `None`, `Possible`, `Recommended`, `Required`) are English: the host has no French. A French page
+shows them through the client's French tables (`FR_HOST`, `FR_HOST_RX`, `FR_LEVEL`); every other language reads the English.
 
 `GET /kybernos-maintenance/update` is the update notice: the Kybernos version published on GitHub (cached 1 h) and the DSH
 engine measure above. The page asks it ~15 s after it opens, every 6 h and when the tab comes back (`?auto=1`), and the person
@@ -52,8 +54,8 @@ the machine, and when: [`docs/privacy.md`](../../docs/privacy.md).
 
 ## Files
 
-`index.js` host route · `client.js` page (React, bilingual: `FR`/`EN` tables, `kbp(fr, en)`, `HS_STATIC`/`HS_RX`
-for host sentences) · `surfaces.mjs` engine audit (also used by `scripts/dsh-lifecycle.mjs`) · `version.mjs`
+`index.js` host route · `client.js` page (React, bilingual: `FR`/`EN` tables, `kt(fr, en)`, `FR_HOST`/`FR_HOST_RX`/
+`FR_LEVEL` for the host's sentences and levels) · `surfaces.mjs` engine audit (also used by `scripts/dsh-lifecycle.mjs`) · `version.mjs`
 reads `VERSION` · `test-about.mjs` tests · `cordis.patch.yml`, `package.json` bundle wiring.
 The bundle is an optional satellite (`obligatoire: false` in `docs/beta/satellites.json`).
 

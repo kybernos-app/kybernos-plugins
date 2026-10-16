@@ -422,7 +422,7 @@ html[dir="rtl"] .kbln-page{direction:rtl}
       // variables the translation must keep.
       const S = {
         title: ['Langue', 'Language'],
-        sub: ['Choisis la langue de l’interface. Les textes pas encore traduits restent en anglais.', 'Choose the language of the interface. Texts that aren’t translated yet stay in English.'],
+        sub: ['Choisis la langue de l’interface. Les textes pas encore traduits restent en anglais ; les pages des plugins (compétences, connecteurs, tableaux de bord, pastilles du chat) se traduisent à leur première ouverture, puis restent traduites.', 'Choose the language of the interface. Texts that aren’t translated yet stay in English; plugin pages (skills, connectors, dashboards, chat chips) are translated the first time you open them, then kept.'],
         inUse: ['Active', 'In use'],
         ready: ['Prête', 'Ready'],
         readyOn: ['Prête · traduite le {date} · {n} textes', 'Ready · translated on {date} · {n} texts'],
@@ -1397,18 +1397,24 @@ html[dir="rtl"] .kbln-page{direction:rtl}
       // 6. LIVE TRANSLATION — settings pages written with hardcoded text
       // ══════════════════════════════════════════════════════════════════════
       //
-      // Many settings pages carry their text in the code (French in some
-      // plugins, English in others), outside any table, so a run can't know them.
-      // While a translated language is active, text that appears in a settings
-      // page and has no translation yet is queued, translated through the same
-      // host route (source: auto), cached under `kybernos.i18n.live.<lang>`, and
+      // Many pages carry their text in the code, outside any table, so a run can't know it.
+      // While a translated language is active, text that appears in one of the
+      // LIVE_ROOTS below and has no translation yet is queued, translated through the
+      // same host route (source: auto), cached under `kybernos.i18n.live.<lang>`, and
       // swapped in place. The first visit to a page shows the original for a
-      // moment; every later one is instant. The chat, session titles and other
-      // content are never touched: only settings pages, menus and the sidebar
-      // footer (the account menu and the mobile-app button are rendered by another
-      // plugin, with its own French/English table). Dialogs are left out on
-      // purpose: they quote session and file names.
-      const LIVE_ROOTS = '[data-slot="settings.section"],[role="menu"],[data-slot="sidebar.footer.action"],[data-kb="ld-picker"],[data-kb="ld-pack"]'
+      // moment; every later one is instant. The chat messages, session titles and
+      // other content are never touched (the account menu and the mobile-app button
+      // are rendered by another plugin, with its own English/French table). Dialogs
+      // are left out on purpose: they quote session and file names.
+      // Settings pages, menus, the sidebar footer, the language pickers — and (A2-23) the pages and cards the Kybernos plugins draw outside Settings:
+      // the Skills and Connectors pages, Dashboards, the cards of the chat chips (Changes, Usage, Summary, Calls, Motion), Kaby and the computer page, and the
+      // sidebar's section headers (the « Search everywhere » button). A text the plugin has no table for in this language is learned there on first view.
+      const LIVE_ROOTS = [
+        '[data-slot="settings.section"]', '[role="menu"]', '[data-slot="sidebar.footer.action"]', '[data-kb="ld-picker"]', '[data-kb="ld-pack"]',
+        '.kbs-root', '.kb7-root', '[data-kb="dashboards-page"]', '.kbdb-pop',
+        '[data-kb="changes-card"]', '[data-kb="kybernos-usage-card"]', '.kbsm-card', '[data-kb="kybernos-call-panel"]', '[data-kb="motion-panel"]',
+        '[data-kb="kybernos-kyber-page"]', '[data-kb="computers-page"]', '[class*="sectionHeader"]',
+      ].join(',')
       const LIVE_BATCH = 30
       const LIVE_DELAY_MS = 500
       // Two calls in flight: a settings page can carry 100+ new strings.

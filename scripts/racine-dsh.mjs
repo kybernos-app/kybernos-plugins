@@ -1,34 +1,34 @@
-// ── La racine des retouches : DÉCLARÉE, jamais devinée ───────────────────────
+// ── The root of the patches: DECLARED, never guessed ─────────────────────────
 //
-// Doctrine (lot P1 du plan du 23/09/2026) : un script de retouche n'a pas le
-// droit de CHERCHER son installation. Il écrit là où on lui dit, ou il refuse.
+// Doctrine (lot P1 of the plan of 23/09/2026): a patch script has no right to
+// SEARCH for its installation. It writes where it is told to, or it refuses.
 //
-// Pourquoi c'est une règle et non un confort : mesuré le 23/09/2026, une sonde
-// `require.resolve` lancée depuis le dépôt et un défaut `/opt/homebrew/...`
-// faisaient rendre « 4/4 posées » à la machine de développement en écrivant
-// parfois dans une copie que DSH **ne charge pas**. Un « ✓ » vert peut donc
-// mesurer une autre installation que celle du testeur. La seule source de
-// vérité, c'est le robot de cycle de vie : lui seul sait quelle copie charge le
-// DSH qui tourne (`racineQuiPorte`), et il la passe par `--dsh`.
+// Why this is a rule and not a convenience: measured on 23/09/2026, a
+// `require.resolve` probe launched from the repository and a `/opt/homebrew/...`
+// default made the development machine answer « 4/4 applied » while sometimes
+// writing into a copy that DSH **does not load**. A green « ✓ » can therefore
+// measure an installation other than the tester's. The only source of truth is
+// the lifecycle robot: it alone knows which copy is loaded by the DSH that is
+// running (`racineQuiPorte`), and it passes it with `--dsh`.
 //
-// Contrat d'appel :
-//   node scripts/patch-dsh-<id>.mjs [--check|--revert] --dsh <RACINE>
-// où RACINE est un dossier qui PORTE la cible, sous l'une des trois formes
-// mesurées sur DSH 0.1.7 :
-//   · le profil        ~/.dsh/profiles/web   → node_modules/<pkg>
-//   · le paquet global …/@deepseek-ai/dsh    → node_modules/@deepseek-ai/<court>
-//   · le préfixe npm   …/lib/node_modules    → @deepseek-ai/dsh/node_modules/@deepseek-ai/<court>
+// Calling contract:
+//   node scripts/patch-dsh-<id>.mjs [--check|--revert] --dsh <ROOT>
+// where ROOT is a folder that CARRIES the target, in one of the three shapes
+// measured on DSH 0.1.7:
+//   · the profile          ~/.dsh/profiles/web   → node_modules/<pkg>
+//   · the global package   …/@deepseek-ai/dsh    → node_modules/@deepseek-ai/<short>
+//   · the npm prefix       …/lib/node_modules    → @deepseek-ai/dsh/node_modules/@deepseek-ai/<short>
 //
-// Usage direct (pour savoir ce qu'un script viserait, sans rien écrire) :
-//   node scripts/racine-dsh.mjs --dsh <RACINE> [--pkg @deepseek-ai/dsh-client-ui-workspace]
+// Direct usage (to know what a script would aim at, without writing anything):
+//   node scripts/racine-dsh.mjs --dsh <ROOT> [--pkg @deepseek-ai/dsh-client-ui-workspace]
 import { existsSync, readFileSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-/** La lecture de texte, injectable pour que la résolution reste éprouvable à sec. */
+/** Reading text, injectable so that the resolution stays testable dry. */
 export const lireTexte = (chemin) => readFileSync(chemin, 'utf8')
 
-/** Le `--dsh <R>` des arguments, résolu en absolu. `null` s'il n'est pas là. */
+/** The `--dsh <R>` of the arguments, resolved to absolute. `null` when it is not there. */
 export const racineDeclaree = (args) => {
   const i = args.indexOf('--dsh')
   const valeur = i >= 0 ? args[i + 1] : undefined
@@ -38,34 +38,34 @@ export const racineDeclaree = (args) => {
 }
 
 /**
- * Les BASES à essayer : un dossier B tel que `B/node_modules/@deepseek-ai/<pkg>`
- * soit la copie du paquet. Toutes dérivées de R — aucune devinette.
+ * The BASES to try: a folder B such that `B/node_modules/@deepseek-ai/<pkg>`
+ * is the copy of the package. All derived from R — no guessing.
  */
 export const basesPossibles = (racine) => {
   const bases = [racine]
-  // Installation par PROJET (référence épinglée par `overrides`) : la racine est
-  // `…/<projet>/node_modules/@deepseek-ai/dsh`, les paquets sont remontés, donc
-  // la base qui les porte est la racine du projet, deux crans plus haut que
+  // PROJECT installation (reference pinned by `overrides`): the root is
+  // `…/<project>/node_modules/@deepseek-ai/dsh`, the packages are hoisted, so
+  // the base that carries them is the project root, two levels above
   // `node_modules`.
   if (basename(dirname(racine)) === '@deepseek-ai') bases.push(dirname(dirname(dirname(racine))))
-  // Préfixe npm : la racine est `…/lib/node_modules`, le moteur est dedans.
+  // npm prefix: the root is `…/lib/node_modules`, the engine is inside it.
   bases.push(join(racine, '@deepseek-ai', 'dsh'))
   return bases
 }
 
-/** Le dossier du paquet `dsh` (celui dont on lit la VERSION), vu depuis la base. */
+/** The folder of the `dsh` package (the one whose VERSION is read), seen from the base. */
 export const moteurSous = (base, existe = existsSync, lire = lireTexte) => {
   const sous = join(base, 'node_modules', '@deepseek-ai', 'dsh')
   if (existe(sous) === true) return sous
-  // La base EST le paquet `dsh` (installation globale : les sous-paquets sont
-  // imbriqués dedans). On ne le confond pas avec un profil : on lit son nom.
+  // The base IS the `dsh` package (global installation: the sub-packages are
+  // nested inside it). We do not confuse it with a profile: we read its name.
   try {
     if (JSON.parse(lire(join(base, 'package.json'))).name === '@deepseek-ai/dsh') return base
-  } catch (e) { /* pas un manifeste lisible : ce n'est pas le moteur */ }
+  } catch (e) { /* not a readable manifest: it is not the engine */ }
   return null
 }
 
-/** La version du moteur, ou `null` : l'appelant DIT qu'il ne l'a pas lue. */
+/** The engine version, or `null`: the caller SAYS it did not read it. */
 export const versionDuMoteur = (moteur, lire = lireTexte) => {
   if (moteur === null) return null
   try {
@@ -75,32 +75,32 @@ export const versionDuMoteur = (moteur, lire = lireTexte) => {
 }
 
 /**
- * Pure : rend `{ copie, base, moteur, motif }`.
- * - `copie`  : le dossier du paquet à retoucher ;
- * - `base`   : le dossier qui PORTE `node_modules/@deepseek-ai/*` — c'est lui qui
- *   donne les chemins relatifs (`base` + `node_modules/@deepseek-ai/…`) ;
- * - `moteur` : le dossier du paquet `dsh` — c'est lui qui donne la VERSION, et
- *   c'est une autre question que la première (mesuré le 23/09/2026 : dans une
- *   installation par projet, les paquets sont remontés au niveau du projet, donc
- *   la base et le moteur ne sont PAS le même dossier).
- * `motif` n'est renseigné que lorsque `copie` est `null`, et il dit POURQUOI.
+ * Pure: returns `{ copie, base, moteur, motif }`.
+ * - `copie`  : the folder of the package to patch;
+ * - `base`   : the folder that CARRIES `node_modules/@deepseek-ai/*` — it is the one
+ *   that gives the relative paths (`base` + `node_modules/@deepseek-ai/…`);
+ * - `moteur` : the folder of the `dsh` package — it gives the VERSION, and
+ *   that is a different question from the first (measured on 23/09/2026: in a
+ *   project installation, the packages are hoisted to the project level, so
+ *   the base and the engine are NOT the same folder).
+ * `motif` is only filled in when `copie` is `null`, and it says WHY.
  */
 export const resoudreCopie = (racine, pkg, existe = existsSync, lire = lireTexte) => {
   if (racine === null) {
     return {
       copie: null,
-      motif: 'aucune racine déclarée : ce script exige --dsh <dossier du moteur DSH>.\n' +
-        '      Le robot de cycle de vie le passe toujours (lui seul sait quelle copie DSH charge) ;\n' +
-        '      à la main, vise le profil : --dsh ~/.dsh/profiles/web',
+      motif: 'no root declared: this script requires --dsh <folder of the DSH engine>.\n' +
+        '      The lifecycle robot always passes it (it alone knows which copy DSH loads);\n' +
+        '      by hand, aim at the profile: --dsh ~/.dsh/profiles/web',
     }
   }
-  // Une racine de moteur : soit un dossier qui porte les paquets (profil,
-  // préfixe npm), soit le paquet `dsh` lui-même (dont les sous-paquets peuvent
-  // être imbriqués OU remontés au niveau du projet).
+  // An engine root: either a folder that carries the packages (profile,
+  // npm prefix), or the `dsh` package itself (whose sub-packages can be
+  // nested OR hoisted to the project level).
   const porteLeMoteur = existe(join(racine, 'node_modules', '@deepseek-ai')) === true ||
     existe(join(racine, 'package.json')) === true
   if (porteLeMoteur !== true) {
-    return { copie: null, motif: racine + " ne porte ni node_modules/@deepseek-ai ni package.json — ce n'est pas une racine de moteur DSH" }
+    return { copie: null, motif: racine + ' carries neither node_modules/@deepseek-ai nor package.json — it is not a DSH engine root' }
   }
   for (const base of basesPossibles(racine)) {
     const copie = join(base, 'node_modules', pkg)
@@ -108,18 +108,18 @@ export const resoudreCopie = (racine, pkg, existe = existsSync, lire = lireTexte
   }
   return {
     copie: null,
-    motif: pkg + " n'est installé dans aucune des copies attendues sous " + racine + ' :\n      ' +
+    motif: pkg + ' is not installed in any of the expected copies under ' + racine + ':\n      ' +
       basesPossibles(racine).map((b) => join(b, 'node_modules', pkg)).join('\n      '),
   }
 }
 
-/** Refuse, en le disant, et sort en 2 (1 = un écart mesuré ; 2 = impossible d'écrire). */
+/** Refuses, saying so, and exits with 2 (1 = a measured discrepancy; 2 = unable to write). */
 export const refuserRacine = (motif, script) => {
-  console.error('✗ ' + script + ' : ' + motif)
+  console.error('✗ ' + script + ': ' + motif)
   process.exit(2)
 }
 
-// ── Point d'entrée direct : on DIT ce que la racine porte, on n'écrit rien ───
+// ── Direct entry point: we SAY what the root carries, we write nothing ───────
 if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const args = process.argv.slice(2)
   const iPkg = args.indexOf('--pkg')
@@ -131,6 +131,6 @@ if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.a
     process.exit(2)
   }
   console.log('✓ ' + pkg)
-  console.log('  racine : ' + racine)
-  console.log('  copie  : ' + copie)
+  console.log('  root: ' + racine)
+  console.log('  copy: ' + copie)
 }

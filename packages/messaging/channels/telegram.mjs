@@ -1,7 +1,8 @@
-// Adaptateur Telegram — long polling sortant (aucun port ouvert, aucun tunnel).
+// Telegram adapter — outbound long polling (no open port, no tunnel).
 //
-// Contrat : voir CONTRACT.md. Ne connaît ni DSH ni les sessions : il ne fait que
-// recevoir des messages normalisés et savoir écrire dans un chat.
+// Contract: see CONTRACT.md. It knows neither DSH nor the sessions: it only
+// receives normalised messages and knows how to write into a chat.
+// Its errors and log lines are for the operator: English only.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -71,6 +72,8 @@ export function normalizeUpdate(update) {
     messageId: raw.message_id,
     chatType: raw.chat.type,
     from: raw.from?.username || raw.from?.first_name || String(raw.from?.id ?? ''),
+    // The sender's language as Telegram reports it (« fr », « en-GB »…), or null: the core picks the language of its replies from it.
+    lang: raw.from?.language_code || null,
     text,
     attachments,
     receivedAt: raw.date ? raw.date * 1000 : Date.now(),
@@ -91,7 +94,7 @@ export function createTelegramAdapter({
   initialOffset = 0,
   onOffset = () => {},
 } = {}) {
-  if (!token) throw new Error('token Telegram manquant');
+  if (!token) throw new Error('Telegram token missing');
 
   async function apiCall(method, payload = {}, { signal = null, form = null, timeoutMs = null } = {}) {
     const url = `${apiBase}/bot${token}/${method}`;
@@ -118,11 +121,11 @@ export function createTelegramAdapter({
       if (timer) clearTimeout(timer);
       if (signal) signal.removeEventListener('abort', onAbort);
       if (signal?.aborted) {
-        const abortErr = new Error('abandonné');
+        const abortErr = new Error('aborted');
         abortErr.aborted = true;
         throw abortErr;
       }
-      const netErr = new Error(`${method}: réseau — ${err.message}`);
+      const netErr = new Error(`${method}: network — ${err.message}`);
       netErr.transient = true;
       throw netErr;
     }
@@ -136,7 +139,7 @@ export function createTelegramAdapter({
       body = null;
     }
     if (!response.ok || !body || body.ok !== true) {
-      const description = body?.description || response.statusText || 'réponse illisible';
+      const description = body?.description || response.statusText || 'unreadable answer';
       const retryAfter = body?.parameters?.retry_after ?? null;
       const fatal = response.status === 401 || response.status === 403 || response.status === 409;
       throw new TelegramApiError(method, response.status, description, { fatal, retryAfter });
@@ -147,14 +150,14 @@ export function createTelegramAdapter({
   async function download(attachment, inboxDir) {
     const info = await apiCall('getFile', { file_id: attachment.fileId });
     if (attachment.size && attachment.size > maxFileBytes) {
-      throw new Error(`fichier trop gros (${attachment.size} octets > ${maxFileBytes})`);
+      throw new Error(`file too large (${attachment.size} bytes > ${maxFileBytes})`);
     }
     const url = `${apiBase}/file/bot${token}/${info.file_path}`;
     const res = await fetchImpl(url);
-    if (!res.ok) throw new Error(`téléchargement HTTP ${res.status}`);
+    if (!res.ok) throw new Error(`download HTTP ${res.status}`);
     const buffer = Buffer.from(await res.arrayBuffer());
     fs.mkdirSync(inboxDir, { recursive: true, mode: 0o700 });
-    const name = safeFileName(attachment.name || path.basename(info.file_path || 'fichier'));
+    const name = safeFileName(attachment.name || path.basename(info.file_path || 'file'));
     const dest = path.join(inboxDir, name);
     fs.writeFileSync(dest, buffer, { mode: 0o600 });
     return dest;
@@ -167,7 +170,7 @@ export function createTelegramAdapter({
   async function start({ onMessage, inboxFor = null, signal = null } = {}) {
     let offset = Number(initialOffset) || 0;
     let backoff = 1000;
-    log(`telegram: long polling démarré (offset ${offset})`);
+    log(`telegram: long polling started (offset ${offset})`);
     while (!signal?.aborted) {
       let updates;
       try {
@@ -181,14 +184,14 @@ export function createTelegramAdapter({
         if (err.fatal) {
           if (err.status === 409) {
             throw new Error(
-              'telegram: getUpdates refusé (409) — un webhook est configuré sur ce bot. ' +
-                'Supprime-le (deleteWebhook) pour utiliser le long polling.',
+              'telegram: getUpdates refused (409) — a webhook is configured on this bot. ' +
+                'Delete it (deleteWebhook) to use long polling.',
             );
           }
-          throw new Error(`telegram: ${err.message} — vérifie TELEGRAM_BOT_TOKEN`);
+          throw new Error(`telegram: ${err.message} — check TELEGRAM_BOT_TOKEN`);
         }
         const wait = err.retryAfter ? err.retryAfter * 1000 : backoff;
-        log(`telegram: ${formatSendError(err)} — nouvelle tentative dans ${Math.round(wait / 1000)} s`);
+        log(`telegram: ${formatSendError(err)} — retrying in ${Math.round(wait / 1000)} s`);
         await sleep(wait);
         backoff = Math.min(backoff * 2, 15000);
         continue;
@@ -203,20 +206,20 @@ export function createTelegramAdapter({
               try {
                 att.localPath = await download(att, inbox);
               } catch (err) {
-                log(`telegram: pièce jointe ignorée (${formatSendError(err)})`);
+                log(`telegram: attachment ignored (${formatSendError(err)})`);
               }
             }
           }
           try {
             await onMessage(message);
           } catch (err) {
-            log(`telegram: traitement du message en échec — ${formatSendError(err)}`);
+            log(`telegram: handling the message failed — ${formatSendError(err)}`);
           }
         }
-        // L'offset n'avance qu'APRÈS traitement : Telegram confirme l'update au
-        // prochain getUpdates. Un crash en cours de tour laisse donc le message
-        // non confirmé, et il sera relivré (au-moins-une-fois) au lieu d'être
-        // perdu en silence.
+        // The offset only moves forward AFTER handling: Telegram confirms the update at the
+        // next getUpdates. A crash in the middle of a turn therefore leaves the message
+        // unconfirmed, and it is delivered again (at least once) instead of being
+        // lost in silence.
         offset = update.update_id + 1;
         try {
           onOffset(offset);
@@ -225,7 +228,7 @@ export function createTelegramAdapter({
         }
       }
     }
-    log('telegram: long polling arrêté');
+    log('telegram: long polling stopped');
   }
 
   async function send(chatId, text, { replyTo = null } = {}) {
@@ -248,7 +251,7 @@ export function createTelegramAdapter({
       });
       return true;
     } catch (err) {
-      // Telegram refuse une édition identique : ce n'est pas une erreur.
+      // Telegram refuses an identical edit: that is not an error.
       if (err.description && /message is not modified/i.test(err.description)) return false;
       throw err;
     }

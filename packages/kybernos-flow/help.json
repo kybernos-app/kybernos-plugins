@@ -5,11 +5,11 @@
   },
   "steps": [
     {
-      "fr": "Envoyez plusieurs messages pendant que l’agent travaille : ils attendent dans la file d’attente de DSH.",
+      "fr": "Envoie plusieurs messages pendant que l’agent travaille : ils attendent dans la file d’attente de DSH.",
       "en": "Send several messages while the agent is working: they wait in DSH’s queue."
     },
     {
-      "fr": "Survolez un message en attente : une poignée à six points apparaît. Glissez-la, ou, au clavier, utilisez Alt + ↑ et Alt + ↓ dessus.",
+      "fr": "Survole un message en attente : une poignée à six points apparaît. Glisse-la, ou, au clavier, utilise Alt + ↑ et Alt + ↓ dessus.",
       "en": "Hover a queued message: a six-dot handle appears. Drag it, or, with the keyboard, press Alt + ↑ and Alt + ↓ on it."
     },
     {

@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-// proof-sync — miroir lisible des preuves d'auto-apprentissage des kybers.
+// proof-sync — a readable mirror of the self-learning proofs of the agent teams (kybers).
 //
-//   node kybernos-sessions/proof-sync.mjs [--project <chemin>] [--home <DSH_HOME>]
+//   node kybernos-sessions/proof-sync.mjs [--project <path>] [--home <DSH_HOME>]
 //
-// Écrit, par kyber, dans <project>/.kybers/<kyber>/ (sibling de l'endroit où
-// vivaient les worktrees) :
-//   • lessons.md  — leçons datées + runs + membres (données réelles du ledger) ;
-//   • VERSION.md  — une ligne par commit local du dépôt des kybers touchant
-//                   ce kyber (preuve versionnée ; vide et dit comme tel tant
-//                   qu'aucun correctif n'y est passé).
-// Aucune écriture ailleurs. Idempotent.
+// Writes, per agent team, into <project>/.kybers/<kyber>/ (a sibling of where the
+// worktrees used to live):
+//   • lessons.md  — dated lessons + runs + members (real ledger data);
+//   • VERSION.md  — one line per local commit of the agent teams' repository that
+//                   touches this agent team (versioned proof; empty, and said to
+//                   be, as long as no fix has gone through it).
+// No write anywhere else. Idempotent.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { execFileSync } from 'node:child_process'
@@ -34,7 +34,7 @@ const estGit = existsSync(join(kybersHome, '.git'))
 
 const kybers = etatMemoire(kybersHome)
 if (kybers.length === 0) {
-  console.log('aucune mémoire d’Agent Team trouvée dans ' + kybersHome)
+  console.log('no agent team memory found in ' + kybersHome)
   process.exit(0)
 }
 
@@ -42,7 +42,7 @@ for (const k of kybers) {
   const dir = join(projet, '.kybers', k.id)
   mkdirSync(dir, { recursive: true })
 
-  // lessons.md — lisible par un humain
+  // lessons.md — readable by a person
   const membres = k.membres.map((m) => '| ' + m.role + ' | ' + m.runs + ' | ' + (m.outcome || '—') + ' | ' + String(m.dernier || '—').slice(0, 10) + ' |').join('\n')
   const lecons = k.lecons.map((l) => '- **' + String(l.ts || '').slice(0, 10) + '** — ' + l.texte + (l.tags.length > 0 ? ' `' + l.tags.join('`,`') + '`' : '')).join('\n')
   writeFileSync(join(dir, 'lessons.md'),
@@ -62,7 +62,7 @@ ${membres}
 ${lecons}
 `)
 
-  // VERSION.md — une ligne par commit local touchant ce kyber
+  // VERSION.md — one line per local commit touching this agent team
   let lignes = ''
   if (estGit) {
     const log = git(['log', '--oneline', '--date=short', '--pretty=format:%h %ad %s', '--', k.id])
@@ -78,4 +78,4 @@ ${lignes || '| — | — | no version has touched this agent team since the init
 `)
   console.log('✓ ' + k.id + ' → ' + join('.kybers', k.id))
 }
-console.log('miroir écrit dans ' + join(projet, '.kybers'))
+console.log('mirror written in ' + join(projet, '.kybers'))

@@ -123,15 +123,15 @@ export function inspect(source, translated, opts) {
 }
 
 const WHY = {
-  empty: 'la traduction est vide',
-  placeholder: 'une variable ({nom}, {{nom}}, %s, %d) a été modifiée, traduite ou perdue : recopie-les à l’identique',
-  tags: 'les balises HTML ne sont pas les mêmes que dans le texte source : conserve-les à l’identique',
-  url: 'une adresse (URL ou lien Markdown) a changé : conserve-la à l’identique',
-  code: 'un extrait de code entre accents graves a été modifié : conserve-le à l’identique',
-  numbers: 'les nombres ne sont pas les mêmes que dans le texte source',
-  meta: 'la réponse contient une phrase qui n’est pas la traduction (introduction, explication, bloc de code) : réponds par la traduction seule',
-  script: 'le texte n’est pas écrit dans l’écriture de la langue cible',
-  length: 'la longueur est incohérente avec le texte source (tronquée ou allongée)',
+  empty: 'the translation is empty',
+  placeholder: 'a variable ({name}, {{name}}, %s, %d) was changed, translated or lost: copy them exactly',
+  tags: 'the HTML tags are not the same as in the source text: keep them exactly',
+  url: 'an address (URL or Markdown link) changed: keep it exactly',
+  code: 'a code excerpt between backticks was changed: keep it exactly',
+  numbers: 'the numbers are not the same as in the source text',
+  meta: 'the answer contains a sentence that is not the translation (introduction, explanation, code block): answer with the translation only',
+  script: 'the text is not written in the script of the target language',
+  length: 'the length is inconsistent with the source text (cut short or padded)',
 }
 
 /** A sentence for the model, in French like the rest of its prompt, for the reasons a text was refused. */

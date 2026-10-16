@@ -75,14 +75,14 @@
   // `open_now` est déclaré "string?" par la skill : l'agent y met soit un
   // booléen, soit un horaire libre (« jusqu'à 23:00 »). On garde les deux.
   function plOpen(v) {
-    if (v === true) return { on: true, label: 'ouvert' }
+    if (v === true) return { on: true, label: plT('open', 'ouvert') }
     if (typeof v === 'number') return v > 0 ? { on: true, label: 'ouvert' } : null
     if (typeof v !== 'string') return null
     var t = v.trim()
     if (t === '') return null
     var low = t.toLowerCase()
     if (low === 'false' || low === 'no' || low === 'non' || low === '0' || low === 'closed' || low === 'fermé' || low === 'ferme') {
-      return { on: false, label: 'fermé' }
+      return { on: false, label: plT('closed', 'fermé') }
     }
     if (low === 'true' || low === 'yes' || low === 'oui' || low === '1' || low === 'open' || low === 'ouvert') {
       return { on: true, label: 'ouvert' }
@@ -185,7 +185,7 @@
     var s = String(text === null || text === undefined ? '' : text).toLowerCase()
     var keys = Object.keys(PL_CITY_BOX)
     for (var i = 0; i < keys.length; i++) {
-      if (new RegExp('[^a-zà-ÿ]' + keys[i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[^a-zà-ÿ]').test(s) === true) {
+      if (new RegExp('[^a-z\u00e0-\u00ff]' + keys[i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[^a-z\u00e0-\u00ff]').test(s) === true) {
         return PL_CITY_LABEL[keys[i]] !== undefined ? PL_CITY_LABEL[keys[i]] : keys[i]
       }
     }
@@ -260,8 +260,13 @@
       document.head.appendChild(l)
     })
   }
+  // Text in the language of the page: French when the page resolved French (« kybernos » or an fr tag), English for every other language.
+  function plFrench() {
+    try { var l = String(window.__KB_LANG_RESOLVE__()); return l === 'kybernos' || l.split(/[-_]/)[0] === 'fr' } catch (e) { return false }
+  }
+  function plT(en, fr) { return plFrench() ? fr : en }
   function plEach(list, fn) {
-    var p = Promise.reject(new Error('aucune source'))
+    var p = Promise.reject(new Error('no source'))
     list.forEach(function (src) { p = p.catch(function () { return fn(src) }) })
     return p
   }
@@ -283,7 +288,7 @@
       })
       .then(function () {
         if (window.L !== null && window.L !== undefined) return window.L
-        throw new Error('leaflet indisponible')
+        throw new Error('leaflet unavailable')
       })
       .catch(function (err) { plLeafletP = null; throw err })
     return plLeafletP
@@ -543,32 +548,32 @@
       if (best !== active) { scrolledByCard.current = true; setActive(best) }
     }
 
-    function cardLink(kindLabel, href, iconName, external) {
+    function cardLink(kind, kindLabel, href, iconName, external) {
       return h('a', {
         className: 'kbpl-a', href: href, target: external === true ? '_blank' : undefined,
         rel: external === true ? 'noopener noreferrer' : undefined,
-        'data-kb': 'places-link-' + kindLabel,
+        'data-kb': 'places-link-' + kind,
       }, plIcon(iconName, 12), ' ' + kindLabel)
     }
 
     if (items.length === 0) {
       return h('div', { className: 'kbpl-wrap', 'data-kb': 'places' },
-        h('div', { className: 'kbpl-empty' }, 'Aucun lieu exploitable dans ' + artName))
+        h('div', { className: 'kbpl-empty' }, plT('No usable place in ', 'Aucun lieu exploitable dans ') + artName))
     }
 
     var geoDone = state.done
     var note = null
     if (geoDone >= state.total && state.total > 0 && state.failed === state.total) {
-      note = h('div', { className: 'kbpl-note' }, plIcon('info', 12), ' Géolocalisation indisponible — la liste reste utilisable.')
+      note = h('div', { className: 'kbpl-note' }, plIcon('info', 12), plT(' Geolocation unavailable — the list is still usable.', ' Géolocalisation indisponible — la liste reste utilisable.'))
     }
 
     return h('div', { className: 'kbpl-wrap', 'data-kb': 'places' },
       h('div', { className: 'kbpl-bar' },
         h('span', { className: 'kbpl-title' }, plIcon('pin', 13),
-          items.length + ' lieux',
-          h('span', { className: 'kbpl-city' }, ' · ' + (city !== '' ? city : 'lieux géolocalisés'))),
+          items.length + plT(items.length === 1 ? ' place' : ' places', ' lieux'),
+          h('span', { className: 'kbpl-city' }, ' · ' + (city !== '' ? city : plT('geolocated places', 'lieux géolocalisés')))),
         h('span', { className: 'kbpl-spacer' }),
-        h('span', { className: 'kbpl-count' }, geoDone + '/' + items.length + ' géolocalisés')),
+        h('span', { className: 'kbpl-count' }, geoDone + '/' + items.length + plT(' geolocated', ' géolocalisés'))),
       h('div', { className: 'kbpl-mapbox' },
         h('div', { className: 'kbpl-map', 'data-kb': 'places-map', ref: mapEl }),
         note),
@@ -600,9 +605,9 @@
             (p.blurb !== '' ? h('div', { className: 'kbpl-blurb' }, p.blurb) : null),
             (p.address !== '' ? h('div', { className: 'kbpl-addr' }, plIcon('target', 11), ' ' + p.address) : null),
             h('div', { className: 'kbpl-links' },
-              (p.links.site !== '' ? cardLink('Site', p.links.site, 'link', true) : null),
-              (p.links.tel !== '' ? cardLink('Appeler', p.links.tel, 'phone', false) : null),
-              cardLink('Itinéraire', 'https://www.google.com/maps/dir/?api=1&destination=' + mapsQ, 'pin', true)))
+              (p.links.site !== '' ? cardLink('site', plT('Website', 'Site'), p.links.site, 'link', true) : null),
+              (p.links.tel !== '' ? cardLink('call', plT('Call', 'Appeler'), p.links.tel, 'phone', false) : null),
+              cardLink('directions', plT('Directions', 'Itinéraire'), 'https://www.google.com/maps/dir/?api=1&destination=' + mapsQ, 'pin', true)))
         })))
   }
 

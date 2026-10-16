@@ -1912,7 +1912,7 @@ window.__ModuleLoader__.load({
         const settings = presetSettings(framed ? raw.settings : raw)
         if (settings === null) return { ok: false, error: 'empty' }
         const name = framed ? presetName(raw.name) : ''
-        return { ok: true, name: name === '' ? 'Thème importé' : name, settings, legacy: !framed, author: framed && typeof raw.author === 'string' ? raw.author : undefined }
+        return { ok: true, name: name === '' ? kt('Thème importé', 'Imported theme') : name, settings, legacy: !framed, author: framed && typeof raw.author === 'string' ? raw.author : undefined }
       }
 
       // “Modified” = a setting this theme retains has moved. The mode is left out on purpose: DSH's own

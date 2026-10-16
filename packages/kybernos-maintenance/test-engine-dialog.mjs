@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// The update dialog for an ENGINE that is outside the tested zone (owner, 2026-10-15: « ce popup n'aide pas, pour un non dev c'est
-// compliqué de mettre à jour : on devrait le faire de manière automatisée »). It used to say « go back to the tested version » and
+// The update dialog for an ENGINE that is outside the tested zone (owner, 2026-10-15: “this popup does not help, for a non-developer it is
+// hard to update: it should be done automatically”). It used to say « go back to the tested version » and
 // hand over a terminal command. It must now offer ONE button that does it (POST /kybernos-hub/engine, then the same follow-up and
 // restart as the Suite update), and keep the command folded for developers.
 //
@@ -42,7 +42,7 @@ assert.equal(typeof T.motMaj, 'function', 'motMaj is exposed to the tests')
 {
   assert.ok(/fetch\('\/kybernos-hub\/engine', \{ method: 'POST'/.test(SOURCE) && /\{ confirm: true, version: moteurVersion \}/.test(SOURCE), 'the click posts to the engine route with the version')
   assert.ok(/p\.kind === 'moteur' && pk\.heberge !== true && typeof p\.cible === 'string' && p\.cible !== ''/.test(SOURCE), 'only for an engine item with a target, and never on a hosted instance (it is rebuilt)')
-  assert.ok(/viaMoteur === true \? kbp\('Corriger automatiquement', 'Fix automatically'\)/.test(SOURCE), 'the primary button says what it does')
+  assert.ok(/viaMoteur === true \? kt\('Corriger automatiquement', 'Fix automatically'\)/.test(SOURCE), 'the primary button says what it does')
   assert.ok(/updRun\(go, statutMaj, fin, viaMoteur === true \? p\.cible : undefined\)/.test(SOURCE), 'the target is the one the host announced (p.cible), not typed anywhere')
   assert.ok(/upEl\('details', 'kbmu-dev'\)/.test(SOURCE) && /Pour les développeurs/.test(SOURCE), 'the terminal command is kept, folded, for developers')
   assert.ok(/if \(viaSuite !== true && viaMoteur !== true\) dlg\.appendChild\(steps\)/.test(SOURCE), 'the numbered terminal steps are not shown on the automatic path')

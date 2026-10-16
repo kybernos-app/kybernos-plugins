@@ -144,17 +144,17 @@ const T = modele.__test
 // ── fixtures ───────────────────────────────────────────────────────────────
 const ETAT = {
   global: '0.2.0-rc.2', plugin: 'a1b2c3d', version: '1.0.0-beta.1', problemes: [], couleur: 'verte',
-  compat: { min: '0.1.6-alpha.2', max: '0.2.0-rc.2', horsZone: false }, testee: '0.2.0-rc.2', niveau: 'Parfaite', direction: 'same',
-  maj: { niveau: 'Aucune', cible: null, note: 'Moteur installé = plus récente version publiée, tous canaux.' },
-  distant: { ok: true, latest: '0.1.7', alpha: null, next: '0.2.0-rc.2', derniere: '0.2.0-rc.2', canal: 'next', note: 'à jour de la plus récente publiée (next 0.2.0-rc.2)' },
+  compat: { min: '0.1.6-alpha.2', max: '0.2.0-rc.2', horsZone: false }, testee: '0.2.0-rc.2', niveau: 'Perfect', direction: 'same',
+  maj: { niveau: 'None', cible: null, note: 'Installed engine = newest published version, all channels.' },
+  distant: { ok: true, latest: '0.1.7', alpha: null, next: '0.2.0-rc.2', derniere: '0.2.0-rc.2', canal: 'next', note: 'up to date with the newest published (next 0.2.0-rc.2)' },
   versions: [
-    { v: '0.2.0-rc.2', niveau: 'Parfaite', detail: 'Testée ensemble, retouches posées.', repere: 'testée · installée · npm next', ici: true },
-    { v: '0.1.7', niveau: 'Partielle', detail: 'Démarrerait, des retouches en moins.', repere: 'npm latest', ici: false },
+    { v: '0.2.0-rc.2', niveau: 'Perfect', detail: 'Tested together, patches applied.', repere: 'tested · installed · npm next', ici: true },
+    { v: '0.1.7', niveau: 'Partial', detail: 'Would start, with fewer patches.', repere: 'npm latest', ici: false },
   ],
   surfaces: {
     conformes: 10, total: 11, mesureesSurVierge: 4, ruptures: [], aVerifier: [],
-    doublons: ['kybernos-slash recoupe le natif « dictée locale » (dsh-voice).'],
-    natifs: [{ id: 'voix', quoi: 'dictée locale (SenseVoice ONNX), bundle optionnel « Voice input »', paquet: 'dsh-voice', livre: true }],
+    doublons: ['kybernos-slash overlaps the native “local dictation” (dsh-voice).'],
+    natifs: [{ id: 'voix', quoi: 'local dictation (SenseVoice ONNX), optional “Voice input” bundle', paquet: 'dsh-voice', livre: true }],
   },
   serveur: { perime: false, demarrageServeur: 1, installation: 2 },
   journal: [
@@ -165,13 +165,13 @@ const ETAT = {
 }
 const avec = (extra) => ({ ...ETAT, ...extra })
 const DEPASSE = avec({
-  problemes: ['Des paquets DSH du profil sont épinglés à une autre version que le moteur (2).', 'Le paquet @local/kybernos-flow n\'est pas lié au profil.'],
-  niveau: 'Partielle', maj: { niveau: 'Recommandée', cible: '0.2.0-rc.2', note: 'Une version plus récente du moteur réactiverait les retouches non posées.' },
+  problemes: ['2 DSH packages of the profile are pinned to a different version than the engine.', 'Package @local/kybernos-flow is not linked to the profile.'],
+  niveau: 'Partial', maj: { niveau: 'Recommended', cible: '0.2.0-rc.2', note: 'A newer engine version would re-enable the patches that are not applied.' },
 })
 const HORS_ZONE = avec({
-  compat: { min: '0.1.6-alpha.2', max: '0.2.0-rc.2', horsZone: true }, niveau: 'Hors zone',
-  problemes: ['La version du moteur (0.3.0) n\'a jamais été testée avec ce plugin.'], global: '0.3.0',
-  maj: { niveau: 'Recommandée', cible: '0.2.0-rc.2', note: 'Moteur hors de la zone supportée — reviens à la version testée ou attends un plugin adapté.' },
+  compat: { min: '0.1.6-alpha.2', max: '0.2.0-rc.2', horsZone: true }, niveau: 'Out of range',
+  problemes: ['Engine version (0.3.0) has never been tested with this plugin.'], global: '0.3.0',
+  maj: { niveau: 'Recommended', cible: '0.2.0-rc.2', note: 'Engine outside the supported range — go back to the tested version or wait for a matching plugin.' },
 })
 
 const rendrePage = (etat, langue = 'en', props = {}) => {
@@ -203,20 +203,20 @@ console.log('── pure logic ──')
   // One release, one spelling (audit 2026-10-16: the line said « 1.0.0 · beta 9 », the tile « 1.0.0-beta.9 », the details a git hash).
   check('line: the exact version, as the tile says it (« Version 1.0.0-beta.1 »), not a rewritten one', T.ligneVersion('1.0.0-beta.1') === 'Version 1.0.0-beta.1', T.ligneVersion('1.0.0-beta.1'))
   check('line: a stable version, a release candidate and a dev build are shown as they are', T.ligneVersion('2.0.0') === 'Version 2.0.0' && T.ligneVersion('0.2.0-rc.2') === 'Version 0.2.0-rc.2' && T.ligneVersion('0.0.0-dev+2026-10-04') === 'Version 0.0.0-dev+2026-10-04')
-  check('line: a hash is shown as it is, an unknown one is translated', T.ligneVersion('a1b2c3d') === 'Version a1b2c3d' && T.ligneVersion('inconnu') === 'Version unknown')
+  check('line: a hash is shown as it is, the host\'s « unknown » reads « unknown »', T.ligneVersion('a1b2c3d') === 'Version a1b2c3d' && T.ligneVersion('unknown') === 'Version unknown')
   lang = 'fr'
-  check('line (fr): an unknown version stays French', T.ligneVersion('inconnu') === 'Version inconnu')
+  check('line (fr): the host\'s English « unknown » is shown in French', T.ligneVersion('unknown') === 'Version inconnu')
   check('Kybernos number: the semver when the host read one', T.versionPlugin({ version: '1.0.0-beta.1', plugin: 'a1b2c3d' }) === '1.0.0-beta.1')
   check('Kybernos number: else the git hash the state already has', T.versionPlugin({ version: null, plugin: 'a1b2c3d' }) === 'a1b2c3d' && T.versionPlugin({ plugin: 'a1b2c3d' }) === 'a1b2c3d')
-  check('Kybernos number: nothing is invented', T.versionPlugin({}) === 'inconnu' && T.versionPlugin({ version: '', plugin: '' }) === 'inconnu')
+  check('Kybernos number: nothing is invented', T.versionPlugin({}) === 'unknown' && T.versionPlugin({ version: '', plugin: '' }) === 'unknown')
   check('tested zone text: min → max, min only, absent', T.zoneTexte({ min: '0.1.6', max: '0.2.0' }) === '0.1.6 → 0.2.0' && T.zoneTexte({ min: '0.1.6', max: null }) === '0.1.6' && T.zoneTexte(null) === '—' && T.zoneTexte({ min: null, max: null }) === '—')
   const s = (e) => { const r = T.statutDe(e); return r.tone + '/' + r.cle }
   check('status: in sync is green', s(ETAT) === 'ok/ok')
-  check('status: engine ahead is blue, partial is orange', s(avec({ niveau: 'Compatible' })) === 'info/avancer' && s(avec({ niveau: 'Partielle' })) === 'warn/partielle')
+  check('status: engine ahead is blue, partial is orange', s(avec({ niveau: 'Compatible' })) === 'info/avancer' && s(avec({ niveau: 'Partial' })) === 'warn/partielle')
   check('status: out of range with its problem is red', s(HORS_ZONE) === 'bad/action')
-  check('status: a problem turns it orange (to check), whatever the level', s(DEPASSE) === 'warn/afaire' && s(avec({ niveau: 'Parfaite', problemes: ['x'] })) === 'warn/afaire')
+  check('status: a problem turns it orange (to check), whatever the level', s(DEPASSE) === 'warn/afaire' && s(avec({ niveau: 'Perfect', problemes: ['x'] })) === 'warn/afaire')
   check('status: a problem with horsZone set is red', s(avec({ niveau: 'Compatible', problemes: ['x'], compat: { min: '1', max: '2', horsZone: true } })) === 'bad/afaire')
-  check('status: unknown level is « to check » (tone unchanged from the old hero: green)', s(avec({ niveau: 'Inconnue' })) === 'ok/inconnu')
+  check('status: unknown level is « to check » (tone unchanged from the old hero: green)', s(avec({ niveau: 'Unknown' })) === 'ok/inconnu')
   check('status: a state without problems array does not throw', T.statutDe({}).cle === 'inconnu')
   check('a host answer is a state only with problems[] and global', T.etatValide(ETAT) === true && T.etatValide({ erreur: 'boom' }) === false && T.etatValide(null) === false && T.etatValide({ problemes: [] }) === false && T.etatValide('x') === false)
   const st = new Map()
@@ -287,7 +287,7 @@ console.log('── the version when the host has no semver ──')
 {
   const tree = rendrePage(avec({ version: null }), 'en')
   check('the line and the tile fall back to the git hash the state has', texte(parKb(tree, 'maintenance-version')[0]) === 'Version a1b2c3d' && parKb(tree, 'maintenance-version')[0].props.title === undefined && texte(parClasse(tree, 'kbmz-tuile-v')[1]) === 'a1b2c3d')
-  check('… and an unknown plugin reads « unknown », not a made-up number', texte(parKb(rendrePage(avec({ version: null, plugin: 'inconnu' }), 'en'), 'maintenance-version')[0]) === 'Version unknown')
+  check('… and an unknown plugin reads « unknown », not a made-up number', texte(parKb(rendrePage(avec({ version: null, plugin: 'unknown' }), 'en'), 'maintenance-version')[0]) === 'Version unknown')
   check('a missing compatibility range shows a dash in the tile', texte(parClasse(rendrePage(avec({ compat: null }), 'en'), 'kbmz-tuile-v')[2]) === '—')
 }
 
@@ -295,7 +295,7 @@ console.log('── the status block: problems and the action hint ──')
 {
   const tree = rendrePage(DEPASSE, 'en')
   const statut = parKb(tree, 'maintenance-status')[0]
-  check('orange, state « To check », the first problem is the verdict (translated)', statut.props['data-tone'] === 'warn' && texte(parClasse(statut, 'kbmz-kicker')[0]) === 'To check' && texte(parClasse(statut, 'kbmz-verdict')[0]) === 'DSH profile packages are pinned to a different version than the engine (2).')
+  check('orange, state « To check », the first problem is the verdict', statut.props['data-tone'] === 'warn' && texte(parClasse(statut, 'kbmz-kicker')[0]) === 'To check' && texte(parClasse(statut, 'kbmz-verdict')[0]) === '2 DSH packages of the profile are pinned to a different version than the engine.')
   check('the other problems stay visible, in the status block', texte(parClasse(statut, 'kbmz-problemes')[0]) === 'Package @local/kybernos-flow is not linked to the profile.')
   const copier = parKb(statut, 'maintenance-copy-upgrade')
   check('« Copy the command » is the action hint when an update is advised, inside the status block', copier.length === 1 && texte(copier[0]) === 'Copy the command' && copier[0].props['data-primaire'] === 'true')
@@ -303,10 +303,10 @@ console.log('── the status block: problems and the action hint ──')
   check('out of range: red, « Action required », the problem as verdict, no empty list', hz.props['data-tone'] === 'bad' && texte(parClasse(hz, 'kbmz-kicker')[0]) === 'Action required' && texte(parClasse(hz, 'kbmz-verdict')[0]) === 'Engine version (0.3.0) has never been tested with this plugin.' && parClasse(hz, 'kbmz-problemes').length === 0)
   const sansCible = parKb(rendrePage(avec({ maj: { niveau: 'Possible', cible: null, note: 'x' } }), 'en'), 'maintenance-copy-upgrade')
   check('no target, no hint', sansCible.length === 0)
-  check('partial level without problems: orange with its own sentence', texte(parClasse(rendrePage(avec({ niveau: 'Partielle' }), 'en'), 'kbmz-verdict')[0]) === 'It starts, but some patches are not applied on this engine: updating is recommended.')
-  check('unknown level no longer says « All good » next to « discrepancies »', texte(parClasse(rendrePage(avec({ niveau: 'Inconnue' }), 'en'), 'kbmz-verdict')[0]) === 'Compatibility could not be measured: the compatibility range is missing from the repository.')
+  check('partial level without problems: orange with its own sentence', texte(parClasse(rendrePage(avec({ niveau: 'Partial' }), 'en'), 'kbmz-verdict')[0]) === 'It starts, but some patches are not applied on this engine: updating is recommended.')
+  check('unknown level no longer says « All good » next to « discrepancies »', texte(parClasse(rendrePage(avec({ niveau: 'Unknown' }), 'en'), 'kbmz-verdict')[0]) === 'Compatibility could not be measured: the compatibility range is missing from the repository.')
   const fr = parKb(rendrePage(DEPASSE, 'fr'), 'maintenance-status')[0]
-  check('French: the host sentence is shown untouched', texte(parClasse(fr, 'kbmz-verdict')[0]) === 'Des paquets DSH du profil sont épinglés à une autre version que le moteur (2).' && texte(parKb(fr, 'maintenance-copy-upgrade')[0]) === 'Copier la commande')
+  check('French: the host sentence is shown in French (the host speaks English)', texte(parClasse(fr, 'kbmz-verdict')[0]) === '2 paquets DSH du profil sont épinglés à une autre version que le moteur.' && texte(parKb(fr, 'maintenance-copy-upgrade')[0]) === 'Copier la commande')
 }
 
 console.log('── Technical details: ONE collapsed disclosure ──')
@@ -373,34 +373,57 @@ console.log('── nothing is lost: everything the old page showed is in the pa
   const contrat = texte(parKb(tree, 'maintenance-contract-card')[0])
   check('contract: range, tested version, surfaces ratio, legend', contrat.includes('≥ 0.1.6-alpha.2  < 0.2.0-rc.2') && contrat.includes('10/11') && contrat.includes('tested together') && contrat.includes('must not run'))
   const mat = texte(parKb(tree, 'maintenance-compat-matrix')[0])
-  check('matrix: every version row with level, detail and markers; the installed one is marked', mat.includes('0.2.0-rc.2  ●') && mat.includes('0.1.7') && mat.includes('Tested together, patches applied.') && mat.includes('Would start, with fewer patches.') && mat.includes('tested · installed · npm next') && parClasse(tree, 'kbmz-mat-ligne').filter((x) => x.props['data-ici'] === 'true').length === 1)
+  check('matrix: every version row with level, detail and markers; the installed one is marked', mat.includes('0.2.0-rc.2  ●') && mat.includes('0.1.7') && mat.includes('Tested together, patches applied.') && mat.includes('Would start, with fewer patches.') && mat.includes('tested · installed · npm next') && parClasse(tree, 'kbmz-mat-ligne').filter((x) => x.props['data-here'] === 'true').length === 1)
   const surf = texte(parKb(tree, 'maintenance-surfaces')[0])
-  check('surfaces: ratio, clean-backup count, native capabilities, overlaps', surf.includes('10/11 engine contracts compliant (4 measured on a clean backup)') && surf.includes('dsh-voice — local dictation (SenseVoice ONNX), optional “Voice input” bundle') && surf.includes('kybernos-slash overlaps the native “dictée locale” (dsh-voice).'))
+  check('surfaces: ratio, clean-backup count, native capabilities, overlaps', surf.includes('10/11 engine contracts compliant (4 measured on a clean backup)') && surf.includes('dsh-voice — local dictation (SenseVoice ONNX), optional “Voice input” bundle') && surf.includes('kybernos-slash overlaps the native “local dictation” (dsh-voice).'))
   check('the engine arrow keeps the registry tooltip', parClasse(tree, 'kbmz-fleche')[0].props.title === 'latest 0.1.7 · next 0.2.0-rc.2 · alpha —')
   check('an empty journal says so, once, and shows no earlier-updates card', (() => { const t2 = rendrePage(avec({ journal: [] }), 'en'); return texte(parKb(t2, 'maintenance-last-op')[0]).includes('No update recorded yet.') && parKb(t2, 'maintenance-journal').length === 0 })())
   check('a single entry: no earlier-updates card', parKb(rendrePage(avec({ journal: [ETAT.journal[0]] }), 'en'), 'maintenance-journal').length === 0)
   check('a failed audit is reported, not hidden', texte(parKb(rendrePage(avec({ surfaces: { erreur: 'boom', ruptures: [], aVerifier: [], doublons: [], natifs: [] } }), 'en'), 'maintenance-surfaces')[0]).includes('Audit failed: boom'))
   const fr = texte(panneau(rendrePage(ETAT, 'fr')))
-  // Every sentence the host can write is French on purpose and translated by the client's tables: a sentence with no entry stays French in
-  // an English page (audit 2026-10-16). The frames are read from the host sources, so a new sentence fails here until it has its entry.
+  // Every sentence the host writes is ENGLISH (decision D1); a French page shows it through the client's French tables. A sentence with no
+  // entry would stay English in a French page. The frames are read from the host sources, so a new sentence fails here until it has its entry.
   const SURFACES = readFileSync(join(ICI, 'surfaces.mjs'), 'utf8')
   const PHRASES = [
-    ['Des paquets DSH du profil sont épinglés à une autre version que le moteur (', HOST, 'Des paquets DSH du profil sont épinglés à une autre version que le moteur (2).'],
-    ["Le paquet ", HOST, "Le paquet @local/x n'est pas lié au profil."],
-    ['Le bundle ', HOST, "Le bundle @local/x n'est pas déclaré."],
-    ["n'a jamais été testée avec ce plugin", HOST, "La version du moteur (0.3.0) n'a jamais été testée avec ce plugin."],
-    ["Le serveur a démarré avant la dernière mise à jour", HOST, "Le serveur a démarré avant la dernière mise à jour : il sert encore l'ancien moteur. Redémarre DSH."],
-    ["Le moteur installé est introuvable : audit des surfaces impossible.", SURFACES, "Le moteur installé est introuvable : audit des surfaces impossible."],
-    ["n'est plus vrai dans le moteur installé", SURFACES, "Notre retouche : « une forme » n'est plus vrai dans le moteur installé (chemin/fichier.js)."],
-    ['DOUBLON — ', SURFACES, 'DOUBLON — Notre retouche : le moteur porte désormais « une forme » (mesuré sur la sauvegarde vierge banc nu /x).'],
-    ['trouvé dans le moteur vivant, mais aucune sauvegarde vierge à côté', SURFACES, 'Notre retouche : « une forme » trouvé dans le moteur vivant, mais aucune sauvegarde vierge à côté — peut venir de notre propre retouche. À confirmer sur un 0.1.x nu.'],
+    [' DSH packages of the profile are pinned to a different version than the engine.', HOST, '2 DSH packages of the profile are pinned to a different version than the engine.'],
+    ['A DSH package of the profile is pinned to a different version than the engine.', HOST, 'A DSH package of the profile is pinned to a different version than the engine.'],
+    [' is not linked to the profile.', HOST, 'Package @local/x is not linked to the profile.'],
+    [' is not declared.', HOST, 'Bundle @local/x is not declared.'],
+    ['has never been tested with this plugin.', HOST, 'Engine version (0.3.0) has never been tested with this plugin.'],
+    ['The server started before the last update: it is still serving the old engine. Restart DSH.', HOST, 'The server started before the last update: it is still serving the old engine. Restart DSH.'],
+    ['The installed engine cannot be found: the surface audit is not possible.', SURFACES, 'The installed engine cannot be found: the surface audit is not possible.'],
+    ['is no longer true in the installed engine', SURFACES, 'Our patch: “a form” is no longer true in the installed engine (path/file.js).'],
+    ['OVERLAP — ', SURFACES, 'OVERLAP — Our patch: the engine now carries “a form” (measured on the clean backup file.js.orig).'],
+    ['measured on ${mesure}', SURFACES, 'OVERLAP — Our patch: the engine now carries “a form” (measured on the bare bench /x).'],
+    ['found in the live engine, but no clean backup beside it', SURFACES, 'Our patch: “a form” found in the live engine, but no clean backup beside it — it may come from our own patch. To be confirmed on a bare 0.1.x.'],
+    [' overlaps the native “', SURFACES, 'Our patch overlaps the native “a capability” (dsh-x).'],
   ]
   const hors = PHRASES.filter(([frame, source]) => !source.includes(frame)).map(([frame]) => frame)
   check('the sentences this test covers are still the ones the host writes', hors.length === 0, hors)
-  const FRANCAIS = /n'est plus vrai|DOUBLON|introuvable|trouvé dans|n'est pas déclaré|n'est pas lié|épinglés|jamais été testée|a démarré avant/
-  const restes = PHRASES.map(([, , phrase]) => [phrase, texte(parClasse(rendrePage(avec({ problemes: [phrase], couleur: 'orange' }), 'en'), 'kbmz-status')[0])]).filter(([, vu]) => FRANCAIS.test(vu)).map(([phrase]) => phrase.slice(0, 50))
-  check('in English, none of the host sentences stays French (problems list and the engine surfaces)', restes.length === 0, restes)
+  const ANGLAIS = /is no longer true|OVERLAP|cannot be found|found in the live engine|is not declared|is not linked|has never been tested|started before|pinned to|overlaps the native/
+  const dedans = (phrase, langue) => texte(parClasse(rendrePage(avec({ problemes: [phrase], couleur: 'orange' }), langue), 'kbmz-status')[0])
+  check('in English a host sentence is shown as the host wrote it', PHRASES.every(([, , phrase]) => dedans(phrase, 'en').includes(phrase)), PHRASES.filter(([, , phrase]) => !dedans(phrase, 'en').includes(phrase)).map(([, , phrase]) => phrase.slice(0, 50)))
+  const restes = PHRASES.map(([, , phrase]) => [phrase, dedans(phrase, 'fr')]).filter(([, vu]) => ANGLAIS.test(vu)).map(([phrase]) => phrase.slice(0, 50))
+  check('in French, none of the host sentences stays English (problems list and the engine surfaces)', restes.length === 0, restes)
+  check('French: the plural and the singular of the pinned packages, « tu » for the restart', dedans('A DSH package of the profile is pinned to a different version than the engine.', 'fr').includes('Un paquet DSH du profil est épinglé à une autre version que le moteur.') && dedans('The server started before the last update: it is still serving the old engine. Restart DSH.', 'fr').includes('Redémarre DSH.'))
+  check('French: a quoted piece of the audit is translated inside its frame', dedans('Our patch: “the session host accepts edit / remove / steer” is no longer true in the installed engine (x.js).', 'fr').includes('« l’hôte de session accepte edit / remove / steer » n’est plus vrai dans le moteur installé (x.js).') && dedans('queue-move patch: “no native queue move (no "move" case)” is no longer true in the installed engine (x.js).', 'fr').includes('retouche queue-move : « aucun déplacement de file natif (pas de case "move") »'))
+  check('French: the clean-backup and bare-bench variants of the overlap', dedans(PHRASES[8][2], 'fr').includes('DOUBLON — ') && dedans(PHRASES[8][2], 'fr').includes('sauvegarde vierge file.js.orig') && dedans(PHRASES[9][2], 'fr').includes('banc nu /x'))
+  // Everything the audit module can quote (a probe, a native capability) has a French twin in the client: no English piece stays in a French sentence.
+  const { SONDES, NATIFS } = await import('./surfaces.mjs')
+  const pieces = [...SONDES.flatMap((p) => [p.quoi, p.notre]), ...NATIFS.flatMap((n) => [n.quoi, n.notre])]
+  const identiques = (piece) => piece === 'kybernos-skills' || /^(?:sessionVisible|deriveFlat)\(/.test(piece) // code, the same in both languages
+  const sansFrancais = pieces.filter((piece) => !identiques(piece)).filter((piece) => dedans(`${piece} overlaps the native “x” (p).`, 'fr').includes(piece))
+  check('every probe and capability the audit can quote is translated in French', sansFrancais.length === 0, sansFrancais)
   check('French panel: titles and host sentences', fr.includes('Mises à jour précédentes') && fr.includes('Surfaces du moteur') && fr.includes('Plage de moteurs supportée') && fr.includes('à jour de la plus récente publiée (next 0.2.0-rc.2)'))
+  // The levels are data (the tones, the notch bar and the badge colours read them): the host sends English words, a French page shows these.
+  const niveaux = ['Perfect', 'Compatible', 'Partial', 'Out of range', 'Unknown', 'None', 'Possible', 'Recommended', 'Required']
+  check('the host speaks English: no French level word is left in the host', !/Parfaite|Partielle|Hors zone|Inconnue|Aucune|Recommandée|Requise/.test(HOST) && niveaux.every((n) => HOST.includes("'" + n + "'")), niveaux.filter((n) => !HOST.includes("'" + n + "'")))
+  const FR_ATTENDU = { Perfect: 'Parfaite', Compatible: 'Compatible', Partial: 'Partielle', 'Out of range': 'Hors zone', Unknown: 'Inconnue', None: 'Aucune', Possible: 'Possible', Recommended: 'Recommandée', Required: 'Requise' }
+  const badge = (n, langue) => texte(parClasse(parKb(rendrePage(avec({ versions: [{ v: '9.9.9', niveau: n, detail: '', repere: 'tested' }] }), langue), 'maintenance-compat-matrix')[0], 'kbmz-badge')[0])
+  check('a level is shown as the host sent it in English, in French from the table', niveaux.every((n) => badge(n, 'en') === n && badge(n, 'fr') === FR_ATTENDU[n]), niveaux.map((n) => badge(n, 'en') + '/' + badge(n, 'fr')))
+  const css = SOURCE.slice(SOURCE.indexOf('const CSS = `'), SOURCE.indexOf('`', SOURCE.indexOf('const CSS = `') + 14))
+  const sansCouleur = [...niveaux, 'reussi', 'echec', 'retour-arriere'].filter((n) => !css.includes('data-niveau="' + n + '"'))
+  check('every level and every journal result has a badge colour in the CSS (the selectors read the values the markup carries)', sansCouleur.length === 0, sansCouleur)
 }
 
 console.log('── the wordmark: shared brand component, never a throw ──')
@@ -487,6 +510,25 @@ console.log('── the container: loading, failing, refreshing ──')
   await tick()
   check('fetch that throws synchronously is caught', texte(parKb(s.tree, 'maintenance-status')[0]).includes('Status unavailable'))
   globalThis.fetch = sansFetch
+}
+
+console.log('── the language: French only for French, English for everything else (decision D1) ──')
+{
+  const motsDans = (resolver, extra = {}) => {
+    const reel = {}
+    const w = { __ModuleLoader__: { load: (def) => { reel.def = def } }, localStorage: fakeStorage, ...extra }
+    if (resolver !== undefined) w.__KB_LANG_RESOLVE__ = resolver
+    new Function('window', SOURCE)(w)
+    const m = reel.def.factory((n) => { if (n === 'react') return FAKE_REACT; throw new Error('no ' + n) })
+    return m.__test.motMaj({ etat: 'extraction' })
+  }
+  const FR = 'Extraction…'
+  const EN = 'Extracting…'
+  check('« kybernos » (the product\'s own French) and every fr tag read French', ['kybernos', 'fr', 'fr-CA', 'fr_FR', 'FR'].every((l) => motsDans(() => l) === FR), ['kybernos', 'fr', 'fr-CA', 'fr_FR', 'FR'].map((l) => motsDans(() => l)))
+  check('English and every other language read English, translated or not', ['en', 'es', 'ar', 'zh', 'de', 'pt-BR'].every((l) => motsDans(() => l) === EN) && motsDans(() => 'es', { __KB_I18N_ACTIVE__: { lang: 'es', dict: { [FR]: 'Extrayendo…' } } }) === EN)
+  check('a resolver that throws reads English, never French', motsDans(() => { throw new Error('not ready') }) === EN)
+  check('no resolver at all (the main plugin is off) reads English', motsDans(undefined) === EN && motsDans(() => undefined) === EN && motsDans(() => '') === EN)
+  check('the French register is « tu »: no « vous », no imperative in -ez', !/\b(?:vous|votre|vos)\b/i.test(SOURCE) && !/Redémarrez|Redéployez|Téléchargez|Récupérez|récupérez|lancez|Lancez|Réessayez|rechargez|Gardez|forcez|décompressez/.test(SOURCE))
 }
 
 console.log('── source guards ──')

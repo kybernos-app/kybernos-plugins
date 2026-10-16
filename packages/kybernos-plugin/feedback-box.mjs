@@ -1,7 +1,7 @@
 // The feedback box (V-10): what a person writes in the « Send feedback » form is appended, as ONE JSON line, to
 // <DSH home>/kybernos/feedback.jsonl. Nothing is sent anywhere: the file is what the owner reads, or what the person exports
-// (copies to the clipboard) and passes on himself. The relay path of the older interview (the skill signaler-retour and its
-// tool kybernos_signaler_retour, index.js) is another door and stays as it is.
+// (copies to the clipboard) and passes on himself. The relay path of the older interview (the skill report-feedback and its
+// tool kybernos_report_feedback, index.js) is another door and stays as it is.
 //
 // Pure but for the file: the DSH home, the masking of secrets, the clock and the id are handed in (index.js gives the real ones).
 import { appendFileSync, chmodSync, mkdirSync, readFileSync, statSync } from 'node:fs'

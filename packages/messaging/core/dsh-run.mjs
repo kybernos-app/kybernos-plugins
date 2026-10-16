@@ -1,19 +1,19 @@
-// Lancement de `dsh --profile headless --json` et lecture du flux d'événements.
+// Starts `dsh --profile headless --json` and reads the event stream.
 //
-// Vérifié sur DSH 0.1.6-alpha.2, séquence réelle :
+// Checked on DSH 0.1.6-alpha.2, real sequence:
 //   {"type":"session","sessionId":…,"cwd":…}
 //   {"type":"status","phase":"turn_start"|"step_start"|"step_end"|"turn_end",…}
-//   {"type":"text","text":…}          (messages assistant validés)
-//   {"type":"final","text":…}         (réponse finale, non tronquée)
-// Types additionnels documentés : "thinking", "tool_call", "tool_result", "error".
+//   {"type":"text","text":…}          (validated assistant messages)
+//   {"type":"final","text":…}         (final answer, not truncated)
+// Additional documented types: "thinking", "tool_call", "tool_result", "error".
 
 import { spawn } from 'node:child_process';
 
 const KILL_GRACE_MS = 5000;
 
 /**
- * Parse un flux de lignes NDJSON et appelle onEvent pour chaque événement valide.
- * Renvoie { feed(chunk) } — les lignes incomplètes sont conservées.
+ * Parses a stream of NDJSON lines and calls onEvent for every valid event.
+ * Returns { feed(chunk) } — incomplete lines are kept.
  */
 export function createEventParser(onEvent = () => {}) {
   let buffer = '';
@@ -54,7 +54,7 @@ export function createEventParser(onEvent = () => {}) {
 }
 
 /**
- * Exécute une tâche en mode headless.
+ * Runs a task in headless mode.
  * @returns {Promise<{ok:boolean, exitCode:number|null, sessionId:string|null, final:string,
  *   error:object|null, turnEnd:object|null, usage:object|null, stderr:string,
  *   durationMs:number, timedOut:boolean, aborted:boolean, events:object[]}>}
@@ -75,7 +75,7 @@ export async function runHeadless({
   const args = [...dshArgsPrefix, '--profile', profile, '--json'];
   if (sessionId) args.push('--session-id', String(sessionId));
   args.push(...extraArgs);
-  args.push('-'); // la tâche arrive par stdin
+  args.push('-'); // the task arrives on stdin
 
   const startedAt = Date.now();
   const events = [];
@@ -98,7 +98,7 @@ export async function runHeadless({
     try {
       onEvent(event);
     } catch {
-      /* un consommateur fautif ne doit pas casser le run */
+      /* a faulty consumer must not break the run */
     }
   });
 
@@ -118,7 +118,7 @@ export async function runHeadless({
     try {
       child.kill(sig);
     } catch {
-      /* déjà mort */
+      /* already dead */
     }
   };
 
@@ -141,7 +141,7 @@ export async function runHeadless({
   try {
     child.stdin.end(String(task ?? ''), 'utf8');
   } catch {
-    /* le process a pu mourir aussitôt */
+    /* the process may have died at once */
   }
 
   const closed = new Promise((resolve) => {

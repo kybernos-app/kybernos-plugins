@@ -128,7 +128,8 @@ eq('it stops its timers when disposed', /clearTimeout\(first\); clearInterval\(t
   eq('the Theme page subtitle names Kybernos in French and in English', /Personnalise l’apparence de Kybernos\./.test(line) && /Customize the look of Kybernos\./.test(line), true)
   eq('…and never the engine', /DeepSeek Harness/.test(line), false)
   const row = src.split('\n').find((l) => /Les réglages de base sont dans Essentiel/.test(l)) || ''
-  eq('the core\'s table row says Kybernos too', /'Personnalise l’apparence de Kybernos\. Les réglages de base sont dans Essentiel\.': 'Customize the look of Kybernos\. The basic settings are in Essentials\.'/.test(row) && !/DeepSeek Harness/.test(row), true)
+  // the core no longer rewrites the Theme page (that page writes its own English and French, WP-07): the row is gone, and if one ever comes back it must not name the engine
+  eq('the core has no table row that names the engine for this sentence', !/DeepSeek Harness/.test(row), true)
 }
 
 console.log(fails === 0 ? '\nbrand: all checks pass' : '\nbrand: ' + fails + ' check(s) FAILED')

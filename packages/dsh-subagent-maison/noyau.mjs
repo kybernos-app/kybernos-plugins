@@ -175,7 +175,7 @@ export function runOneShot (produit, argv, { spawn, cwd, env, signal, graceMs = 
     if (annule) throw new RunFailure(produit, { stage: 'exec', categorie: 'limit' })
     if (sig != null || code !== 0) throw new RunFailure(produit, { stage: 'exec', categorie: sig != null ? 'process' : 'product-error', code: code ?? undefined, signal: sig })
     const rendu = (texte !== '' ? texte : erreurTxt)
-    return { output: [{ type: 'text', text: rendu === '' ? '(sortie vide)' : rendu }], stopReason: 'completed' }
+    return { output: [{ type: 'text', text: rendu === '' ? '(empty output)' : rendu }], stopReason: 'completed' }
   }
   const teardown = async () => {
     enfant.terminate()

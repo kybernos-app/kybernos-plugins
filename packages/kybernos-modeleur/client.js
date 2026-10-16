@@ -1185,14 +1185,14 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
         ANN.traits.length > 0
           ? h('div', { className: 'kbmo-note' },
               ANN.traits.length === 1
-                ? kt('✏️ 1 trait dessiné par-dessus — demandez au chat : « réajuste d\'après mes traits »', '✏️ 1 stroke drawn on top — ask the chat: “readjust from my strokes”')
-                : kt(`✏️ ${ANN.traits.length} traits dessinés par-dessus — demandez au chat : « réajuste d'après mes traits »`, `✏️ ${ANN.traits.length} strokes drawn on top — ask the chat: “readjust from my strokes”`))
+                ? kt('✏️ 1 trait dessiné par-dessus — demande au chat : « réajuste d\'après mes traits »', '✏️ 1 stroke drawn on top — ask the chat: “readjust from my strokes”')
+                : kt(`✏️ ${ANN.traits.length} traits dessinés par-dessus — demande au chat : « réajuste d'après mes traits »`, `✏️ ${ANN.traits.length} strokes drawn on top — ask the chat: “readjust from my strokes”`))
           : null,
       )
 
       const vide = h('div', { className: 'kbmo-empty' },
         h('div', {}, h('b', {}, kt('Aucun modèle pour le moment', 'No model yet'))),
-        h('div', {}, kt('Demandez au chat : ', 'Ask the chat: '), h('code', {}, kt('dessinez un phare en 3D', 'draw a lighthouse in 3D'))),
+        h('div', {}, kt('Demande au chat : ', 'Ask the chat: '), h('code', {}, kt('dessine un phare en 3D', 'draw a lighthouse in 3D'))),
         h('div', { className: 'kbmo-chips' }, ...Object.keys(DEMOS).map((cle) => h(Apercu, { key: cle, cle }))),
       )
 
@@ -1215,7 +1215,7 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
                 className: 'kbmo-saisie',
                 style: { left: `${PINCEAU.texte.x * 100}%`, top: `calc(${PINCEAU.texte.y * 100}% - 22px)`, color: PINCEAU.coul },
                 autoFocus: true,
-                placeholder: kt('votre texte…', 'your text…'),
+                placeholder: kt('ton texte…', 'your text…'),
                 onInput: (e) => { PINCEAU.texte.valeur = e.currentTarget.value },
                 onKeyDown: (e) => {
                   if (e.key === 'Enter') validerTexte()
@@ -1231,7 +1231,7 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
           total ? h('div', { className: 'kbmo-tools' },
             h('button', {
               className: 'kbmo-tool' + (PINCEAU.on ? ' on' : ''),
-              title: kt('Dessiner par-dessus — le chat relit vos traits et réajuste', 'Draw on top — the chat reads your strokes and adjusts the model'),
+              title: kt('Dessiner par-dessus — le chat relit tes traits et réajuste', 'Draw on top — the chat reads your strokes and adjusts the model'),
               onClick: () => { PINCEAU.on = !PINCEAU.on; PINCEAU.trait = null; maj() },
             }, '✏'),
             PINCEAU.on

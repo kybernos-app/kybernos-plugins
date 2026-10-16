@@ -73,6 +73,8 @@ eq('placeholders are filled', T('en', 'step', { n: 2, total: 3 }), 'Step 2 of 3'
 eq('every occurrence of a placeholder is filled', T('en', 'key.g1', { host: 'x.test' }), 'Open x.test and sign in.')
 eq('an unknown language reads English', T('de', 'back'), 'Back')
 eq('an unknown key answers itself', T('en', 'nope.nothing'), 'nope.nothing')
+eq('exactly one has its own wording: « 1 model ready », « 1 modèle prêt », not « 1 models »', [T('en', 'ok.models', { n: 1 }), T('fr', 'ok.models', { n: 1 }), T('en', 'ok.models', { n: 3 })], ['1 model ready', '1 modèle prêt', '3 models ready'])
+eq('…in every count line that can be 1: cloud models, kit added, kit failed, add selected', [T('en', 'fin.cloud.n', { n: 1 }), T('fr', 'fin.kit.n', { n: 1 }), T('en', 'k.err', { n: 1 }), T('es', 'k.add', { n: 1 })], ['Kybernos Cloud · 1 model', '1 ajouté', '1 could not be added. You can find it later in Skills and in Agent Teams.', 'Añadir el seleccionado'])
 
 /* ── 5. The steps ────────────────────────────────────────────────────────── */
 eq('four numbered steps, the model step among them whatever already works', mod.kbObPlan(), ['job', 'mode', 'model', 'kit'])

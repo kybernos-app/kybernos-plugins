@@ -1,4 +1,4 @@
-// The beta-feedback tool (`kybernos_signaler_retour`), host half: what leaves the machine, what stays, and what the person is told.
+// The beta-feedback tool (`kybernos_report_feedback`), host half: what leaves the machine, what stays, and what the person is told.
 // Born from the 2026-10 customer-journey acceptance test run against a local replica of the Kybernos server.
 //
 //   node packages/kybernos-plugin/test-feedback.mjs
@@ -6,6 +6,7 @@
 // No network (a fake `fetch`), a throw-away DSH home. Each assertion carries the incident it guards.
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, statSync, existsSync, rmSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -151,22 +152,49 @@ try {
 
   // 10. The skill the « Send feedback » button opens exists in the plugin: a fresh install has no other copy.
   const fresh2 = mkdtempSync(join(tmpdir(), 'kb-feedback-skill-'))
-  assert.equal(mod.kbFeedbackEnsureSkill(fresh2), true, 'the plugin must ship skills/signaler-retour/SKILL.md')
-  const skill = readFileSync(join(fresh2, 'skills', 'signaler-retour', 'SKILL.md'), 'utf8')
-  assert.match(skill, /^---\nname: signaler-retour\n/)
-  assert.ok(skill.includes('kybernos_signaler_retour'), 'the skill calls the tool of this plugin')
+  assert.equal(mod.kbFeedbackEnsureSkill(fresh2), true, 'the plugin must ship skills/report-feedback/SKILL.md')
+  const skill = readFileSync(join(fresh2, 'skills', 'report-feedback', 'SKILL.md'), 'utf8')
+  assert.match(skill, /^---\nname: report-feedback\n/)
+  assert.ok(skill.includes('kybernos_report_feedback'), 'the skill calls the tool of this plugin')
   assert.ok(!/\/Users\/[a-z]/i.test(skill), 'no personal path')
-  ok('the plugin ships the signaler-retour skill that the button opens')
+  ok('the plugin ships the report-feedback skill that the button opens (an English id)')
 
   // 10b. A skill the person wrote under that name is theirs: the plugin never overwrites it (it used to, at every start).
   const mine = mkdtempSync(join(tmpdir(), 'kb-feedback-own-'))
-  mkdirSync(join(mine, 'skills', 'signaler-retour'), { recursive: true })
-  const own = '---\nname: signaler-retour\ndescription: my own way to report\n---\nMy own instructions, in my words.\n'
-  writeFileSync(join(mine, 'skills', 'signaler-retour', 'SKILL.md'), own)
+  mkdirSync(join(mine, 'skills', 'report-feedback'), { recursive: true })
+  const own = '---\nname: report-feedback\ndescription: my own way to report\n---\nMy own instructions, in my words.\n'
+  writeFileSync(join(mine, 'skills', 'report-feedback', 'SKILL.md'), own)
   assert.equal(mod.kbFeedbackEnsureSkill(mine), true, 'the skill is there, the person\'s own')
-  assert.equal(readFileSync(join(mine, 'skills', 'signaler-retour', 'SKILL.md'), 'utf8'), own, 'the person\'s own skill is left exactly as it was')
+  assert.equal(readFileSync(join(mine, 'skills', 'report-feedback', 'SKILL.md'), 'utf8'), own, 'the person\'s own skill is left exactly as it was')
   assert.equal(mod.kbFeedbackEnsureSkill(fresh2), true, 'and a second start on our own copy changes nothing')
-  ok('a signaler-retour skill the person wrote or edited is never overwritten')
+  ok('a report-feedback skill the person wrote or edited is never overwritten')
+
+  // 10c. The skill used to be called signaler-retour (a French id): the copy we seeded is retired, a copy the person edited is not,
+  // and both are told apart by the sha-256 this plugin recorded when it wrote the file.
+  const sha = (text) => createHash('sha256').update(text).digest('hex')
+  const OLD = '---\nname: signaler-retour\ndescription: the old seeded copy\n---\nOld instructions.\n'
+  const upgraded = mkdtempSync(join(tmpdir(), 'kb-feedback-upgrade-'))
+  mkdirSync(join(upgraded, 'skills', 'signaler-retour'), { recursive: true })
+  mkdirSync(join(upgraded, 'kybernos'), { recursive: true })
+  writeFileSync(join(upgraded, 'skills', 'signaler-retour', 'SKILL.md'), OLD)
+  writeFileSync(join(upgraded, 'kybernos', 'seeded-skills.json'), JSON.stringify({ skills: { 'signaler-retour': sha(OLD) } }))
+  assert.equal(mod.kbFeedbackEnsureSkill(upgraded), true)
+  assert.equal(existsSync(join(upgraded, 'skills', 'signaler-retour')), false, 'the old seeded copy, still ours, is gone')
+  assert.equal(existsSync(join(upgraded, 'skills', 'report-feedback', 'SKILL.md')), true, 'and the new one is there')
+  assert.equal(JSON.parse(readFileSync(join(upgraded, 'kybernos', 'seeded-skills.json'), 'utf8')).skills['signaler-retour'], undefined, 'its record is dropped')
+  const edited = mkdtempSync(join(tmpdir(), 'kb-feedback-edited-'))
+  mkdirSync(join(edited, 'skills', 'signaler-retour'), { recursive: true })
+  mkdirSync(join(edited, 'kybernos'), { recursive: true })
+  writeFileSync(join(edited, 'skills', 'signaler-retour', 'SKILL.md'), OLD + 'My own line.\n')
+  writeFileSync(join(edited, 'kybernos', 'seeded-skills.json'), JSON.stringify({ skills: { 'signaler-retour': sha(OLD) } }))
+  assert.equal(mod.kbFeedbackEnsureSkill(edited), true)
+  assert.equal(readFileSync(join(edited, 'skills', 'signaler-retour', 'SKILL.md'), 'utf8'), OLD + 'My own line.\n', 'a copy the person edited is theirs: left exactly as it was')
+  const unknown = mkdtempSync(join(tmpdir(), 'kb-feedback-unknown-'))
+  mkdirSync(join(unknown, 'skills', 'signaler-retour'), { recursive: true })
+  writeFileSync(join(unknown, 'skills', 'signaler-retour', 'SKILL.md'), OLD)
+  assert.equal(mod.kbFeedbackEnsureSkill(unknown), true)
+  assert.equal(existsSync(join(unknown, 'skills', 'signaler-retour', 'SKILL.md')), true, 'a copy we cannot prove ours (no record) is left alone')
+  ok('the old French-named skill is retired only when it is still exactly the copy this plugin seeded')
 
   // 11. The nominal path still works as before.
   reset()

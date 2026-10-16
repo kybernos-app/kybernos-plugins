@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-/** The « force de proposition » section of <DSH home>/AGENTS.md (WP-08, N-03).
+/** The « initiative » section of <DSH home>/AGENTS.md (WP-08, N-03; English since WP-07c).
  *
  *  v1 told the agents to put their closed question to the « Decision Brain » (setting `decisionBrain`, default
- *  typesafe-ai/jev), which no longer exists. v2 names the Study model. Machines that already hold the v1 section must get
- *  v2 without anyone touching their file: the boot REPLACES the v1 section (only when it is byte for byte the one this
- *  plugin laid, so a person's own edit is never overwritten), once, and is idempotent after. Everything runs in a temporary
- *  directory.
+ *  typesafe-ai/jev), which no longer exists. v2 named the Study model, in French. v3 is the same rule in English (decision D1).
+ *  Machines that already hold the v1 or v2 section must get v3 without anyone touching their file: the boot REPLACES the old
+ *  section (only when it is byte for byte the one this plugin laid, so a person's own edit is never overwritten), once, and is
+ *  idempotent after. Everything runs in a temporary directory.
  *
  *  Usage: node packages/kybernos-plugin/test-agents-proposition.mjs   (exit 0 = all pass) */
 import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
@@ -42,6 +42,29 @@ const V1 = [
   '<!-- /kybernos:force-proposition -->'
 ].join('\n')
 const V1_POSE = '\n' + V1 + '\n' // what appendFileSync wrote
+// The v2 section, as the plugin laid it from 2026-10-16 (French).
+const V2 = [
+  "<!-- kybernos:force-proposition v2 -->",
+  "## Force de proposition — matching systématique Agent Team/skill (posée par le plugin Kybernos)",
+  "",
+  "À chaque demande (et à chaque changement de sujet), AVANT de proposer une",
+  "ressource, passer la demande dans le double étage — jamais au flair :",
+  "",
+  "1. **Score lexical en front** : confronter les 1-2 phrases de la demande aux",
+  "   missions des Agent Teams installées (`~/.dsh/kybers/`) et aux descriptions",
+  "   des skills du catalogue ; garder les 2 meilleurs de chaque.",
+  "2. **Arbitre** si le lexical hésite (scores proches ou aucun net) : une",
+  "   question fermée au Study model (le modèle d'étude de Kybernos Settings,",
+  "   choisi automatiquement par défaut) : « demande X → Agent Team/skill parmi",
+  "   A, B, aucun ? réponds un seul mot ».",
+  "",
+  "Ne proposer QUE les gagnants — nommés, en une phrase de mission, avec une",
+  "question fermée (« je le lance ? »). Une skill se propose, elle ne se charge",
+  "qu'après un oui. Rien de ce qui n'existe pas ne se propose.",
+  "",
+  "<!-- /kybernos:force-proposition -->"
+].join('\n')
+const V2_POSE = '\n' + V2 + '\n'
 
 const racine = mkdtempSync(join(tmpdir(), 'kb-agents-prop-'))
 let n = 0
@@ -49,21 +72,22 @@ const nouveau = () => { n += 1; const d = join(racine, 'c' + n); mkdirSync(d); r
 const lire = (f) => readFileSync(f, 'utf8')
 const nbMarqueurs = (t, m) => t.split(m).length - 1
 
-console.log('\n── a fresh machine gets v2 ──')
+console.log('\n── a fresh machine gets v3 ──')
 {
   const f = nouveau()
   const r = poserForceProposition(f)
   const t = lire(f)
   ok('the section is laid', r.etat === 'pose' && r.chemin === f, r)
-  ok('it carries the v2 marker and its closing marker, once', MARQUEUR_OUVERT.endsWith('v2 -->') && nbMarqueurs(t, MARQUEUR_OUVERT) === 1 && nbMarqueurs(t, MARQUEUR_FERME) === 1, MARQUEUR_OUVERT)
+  ok('it carries the v3 marker and its closing marker, once', MARQUEUR_OUVERT.endsWith('v3 -->') && nbMarqueurs(t, MARQUEUR_OUVERT) === 1 && nbMarqueurs(t, MARQUEUR_FERME) === 1, MARQUEUR_OUVERT)
   ok('it names the Study model', /Study model/.test(t), t)
   ok('it no longer mentions the Decision Brain, its setting or its default model', !/Decision Brain|decisionBrain|typesafe-ai|jev/i.test(t), t)
-  ok('the double-stage rule is still there (lexical score first, then a closed question)', /Score lexical/.test(t) && /question fermée/.test(t))
+  ok('the double-stage rule is still there (lexical score first, then a closed question)', /Lexical score first/.test(t) && /closed question/.test(t))
+  ok('the section is English: no French word of the old text is left', !/Force de proposition|Score lexical|question fermée|À chaque demande/.test(t), t)
   const encore = poserForceProposition(f)
   ok('a second boot changes nothing (idempotent)', encore.etat === 'deja' && lire(f) === t, encore)
 }
 
-console.log('\n── a machine that holds v1 is migrated, once ──')
+console.log('\n── a machine that holds v1 or v2 is migrated, once ──')
 {
   const f = nouveau()
   const avant = '# The person\'s own agent rules\n\nAlways answer in French.\n'
@@ -73,7 +97,7 @@ console.log('\n── a machine that holds v1 is migrated, once ──')
   const t = lire(f)
   ok('the boot reports a migration', r.etat === 'migre', r)
   ok('the v1 section is gone', !t.includes('force-proposition v1') && !/Decision Brain|decisionBrain|typesafe-ai/.test(t), t)
-  ok('the v2 section is there exactly once', nbMarqueurs(t, MARQUEUR_OUVERT) === 1 && nbMarqueurs(t, MARQUEUR_FERME) === 1 && /Study model/.test(t))
+  ok('the v3 section is there exactly once', nbMarqueurs(t, MARQUEUR_OUVERT) === 1 && nbMarqueurs(t, MARQUEUR_FERME) === 1 && /Study model/.test(t))
   ok('it took the very place of the old one: what the person wrote before and after is byte for byte unchanged', t.startsWith(avant + '\n' + MARQUEUR_OUVERT) && t.endsWith(MARQUEUR_FERME + '\n' + apres), t)
   const encore = poserForceProposition(f)
   ok('the next boot does nothing', encore.etat === 'deja' && lire(f) === t, encore)
@@ -82,7 +106,7 @@ console.log('\n── a machine that holds v1 is migrated, once ──')
   const f = nouveau()
   writeFileSync(f, V1_POSE)
   const r = poserForceProposition(f)
-  ok('a file that holds only v1 (the usual case) is migrated too', r.etat === 'migre' && nbMarqueurs(lire(f), MARQUEUR_OUVERT) === 1 && !lire(f).includes('v1'), r)
+  ok('a file that holds only v1 is migrated too', r.etat === 'migre' && nbMarqueurs(lire(f), MARQUEUR_OUVERT) === 1 && !lire(f).includes('v1'), r)
 }
 {
   const f = nouveau()
@@ -91,6 +115,24 @@ console.log('\n── a machine that holds v1 is migrated, once ──')
   const r = poserForceProposition(f)
   const t = lire(f)
   ok('a file saved with Windows line endings is migrated, and keeps them', r.etat === 'migre' && !/[^\r]\n/.test(t) && nbMarqueurs(t, MARQUEUR_OUVERT) === 1 && t.endsWith('After.\r\n'), JSON.stringify(t.slice(0, 120)))
+}
+
+{
+  const f = nouveau()
+  const avant = '# Rules\n'
+  writeFileSync(f, avant + V2_POSE)
+  const r = poserForceProposition(f)
+  const t = lire(f)
+  ok('the usual machine of today (v2, French) is migrated to v3', r.etat === 'migre' && nbMarqueurs(t, MARQUEUR_OUVERT) === 1 && !t.includes('v2') && /Study model/.test(t) && t.startsWith(avant + '\n' + MARQUEUR_OUVERT), r)
+  const encore = poserForceProposition(f)
+  ok('and the next boot does nothing', encore.etat === 'deja' && lire(f) === t, encore)
+}
+{
+  const f = nouveau()
+  const edite = '\n' + V2.replace('réponds un seul mot', 'réponds en une phrase') + '\n'
+  writeFileSync(f, edite)
+  const r = poserForceProposition(f)
+  ok('a v2 section the person edited is left alone, and the boot says so', r.etat === 'v2-modifiee' && lire(f) === edite, r)
 }
 
 console.log('\n── the person\'s own text is never overwritten ──')
@@ -131,7 +173,7 @@ console.log('\n── how the file is written ──')
   writeFileSync(cible, 'mine\n' + V1_POSE)
   symlinkSync(cible, f)
   const r = poserForceProposition(f)
-  ok('a symlinked AGENTS.md stays a link, and its target is the file that gets migrated', r.etat === 'migre' && lstatSync(f).isSymbolicLink() && lire(cible).includes('v2') && !lire(cible).includes('v1') && lire(cible).startsWith('mine\n'), r)
+  ok('a symlinked AGENTS.md stays a link, and its target is the file that gets migrated', r.etat === 'migre' && lstatSync(f).isSymbolicLink() && lire(cible).includes('v3') && !lire(cible).includes('v1') && lire(cible).startsWith('mine\n'), r)
 }
 {
   const f = nouveau()

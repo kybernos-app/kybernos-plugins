@@ -1061,7 +1061,7 @@ function renderFit(canvas, model, cam, opts){
 
       const vide = h('div', { className: 'kbb-empty' },
         h('div', {}, h('b', {}, kt('Aucune maquette pour le moment', 'No model yet'))),
-        h('div', {}, kt('Demandez au chat : ', 'Ask the chat: '), h('code', {}, kt('construisez un château en briques', 'build a castle out of bricks'))),
+        h('div', {}, kt('Demande au chat : ', 'Ask the chat: '), h('code', {}, kt('construis un château en briques', 'build a castle out of bricks'))),
         h('div', { className: 'kbb-chips' }, ...SHOWCASE.map(([cle]) => h(Apercu, { key: cle, cle }))),
       )
 
