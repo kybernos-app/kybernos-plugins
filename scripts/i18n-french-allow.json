@@ -12,6 +12,7 @@
   "needFrench": {
     "_doc": "Strict bundles whose UI has a French twin that must not disappear: the minimum number of French dictionary literals their client keeps (a quarter below what they hold when the twin was written).",
     "dsh-media-player": 6,
+    "dsh-mermaid": 7,
     "kybernos-atlas": 120,
     "kybernos-bricks": 10,
     "kybernos-computers": 18,
@@ -27,7 +28,7 @@
   "bundles": {
     "dsh-db-viewer": "pending",
     "dsh-media-player": [],
-    "dsh-mermaid": "pending",
+    "dsh-mermaid": [],
     "dsh-subagent-maison": [],
     "kybernos-atlas": [],
     "kybernos-auto": [],

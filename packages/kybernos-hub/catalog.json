@@ -1836,10 +1836,10 @@
           },
           {
             "fr": "Le bouton « Code » sous le schéma montre le code ; « Diagramme » ramène le dessin.",
-            "en": "The “Code” button under the diagram shows the code; “Diagramme” brings the picture back."
+            "en": "The “Code” button under the diagram shows the code; “Diagram” brings the picture back."
           },
           {
-            "fr": "Si le code est faux, trop long ou vide, une carte en donne la raison (en anglais) et le code reste visible.",
+            "fr": "Si le code est faux, trop long ou vide, une carte donne la raison (le détail d’une erreur reste en anglais) et le code reste visible.",
             "en": "If the code is wrong, too long or empty, a card gives the reason and the code stays visible."
           }
         ],
@@ -1849,8 +1849,8 @@
           "page": false
         },
         "good": {
-          "fr": "Le schéma est dessiné dans la page : le plugin n'envoie rien en ligne. Liens et HTML sont bloqués dans les schémas, volontairement. Les deux boutons sont en français.",
-          "en": "The diagram is drawn in the page itself: the plugin sends nothing online. Links and HTML are blocked inside diagrams on purpose. The two buttons are in French only."
+          "fr": "Le schéma est dessiné dans la page : le plugin n'envoie rien en ligne. Liens et HTML sont bloqués dans les schémas, volontairement.",
+          "en": "The diagram is drawn in the page itself: the plugin sends nothing online. Links and HTML are blocked inside diagrams on purpose."
         }
       }
     },
