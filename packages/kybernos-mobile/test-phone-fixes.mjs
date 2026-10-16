@@ -29,8 +29,10 @@ const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
   const head = css.slice(css.lastIndexOf('}', at), at)
   const sels = head.split('\n').filter((l) => /has\(> (button|span > button|div > button) > svg:only-child\)/.test(l))
   assert.equal(sels.length, 3, 'its three selectors')
-  for (const s of sels) assert.ok(s.includes(':where(:not(:has(input)))'), 'a box that holds a field is not an icon box: ' + s.trim())
-  ok('the sidebar icon-box rule (width: auto !important) leaves the expanded session search alone')
+  // the collapsed search holds its field too (tabindex -1, 0 px): excluding every box with a field put back the 28 px boxes that
+  // clipped the 36 px magnifier (the mobile tour: « Search sessions [168..204] cut by its container »). Only a REACHABLE field counts.
+  for (const s of sels) assert.ok(s.includes(':where(:not(:has(> input:not([tabindex="-1"]))))'), 'a box that holds a reachable field is not an icon box: ' + s.trim())
+  ok('the sidebar icon-box rule (width: auto !important) leaves the expanded session search alone (not the collapsed one)')
 }
 
 {
