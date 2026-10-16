@@ -208,7 +208,7 @@ const atLeast = (label, got, min) => assert.ok(got >= min, label + ': ' + (Math.
 const PANELS = [
   { name: 'Slides', file: 'kybernos-slides/client.js', p: 'kbsd', stage: '.kbsd-scene', empty: '.kbsd-empty', root: '.kbsd-root', note: '.kbsd-note-bas' },
   { name: 'Bricks', file: 'kybernos-bricks/client.js', p: 'kbb', stage: '.kbb-view', empty: '.kbb-empty', root: '.kbb-root', note: '.kbb-note' },
-  { name: 'Modeleur', file: 'kybernos-modeleur/client.js', p: 'kbm', stage: '.kbm-view', empty: '.kbm-empty', root: '.kbm-root', note: '.kbm-note' },
+  { name: 'Modeleur', file: 'kybernos-modeleur/client.js', p: 'kbmo', stage: '.kbmo-view', empty: '.kbmo-empty', root: '.kbmo-root', note: '.kbmo-note' },
 ]
 for (const P of PANELS) {
   ok(P.name + ': the empty state reads 4.5:1 on the fixed light stage, in both schemes (A4-01, A4-24)', () => {
@@ -459,10 +459,9 @@ ok('the tags and pills are 4.5:1 on their tint in the light schemes, and unchang
     ['kybernos-skills/client.js', 'body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.ok', 'var(--dsw-alias-bg-layer-2)'],
     ['kybernos-skills/client.js', 'body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.warn', 'var(--dsw-alias-bg-layer-2)'],
     ['kybernos-skills/client.js', 'body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need', 'var(--dsw-alias-bg-layer-2)'],
-    ['kybernos-plugin/client.js', 'body:not([data-ds-dark-theme]) .kb7-pill', 'var(--dsw-alias-state-success-tertiary, rgba(34,197,94,.16))'],
-    ['kybernos-plugin/client.js', 'body:not([data-ds-dark-theme]) .kb7-pill.pend', 'var(--dsw-alias-state-warn-tertiary, rgba(250,180,60,.16))'],
-    ['kybernos-composio/client.js', 'body:not([data-ds-dark-theme]) .kb7-pill', 'rgba(34,197,94,.15)'],
-    ['kybernos-composio/client.js', 'body:not([data-ds-dark-theme]) .kb7-pill.pend', 'rgba(250,204,21,.15)'],
+    // the Connectors pills: the bundle's own rules, which carry the tint the page has always drawn (the core's copy of this sheet is gone, A1-04)
+    ['kybernos-composio/client.js', 'body:not([data-ds-dark-theme]) .kb7-pill', 'var(--dsw-alias-state-success-tertiary, rgba(34,197,94,.16))'],
+    ['kybernos-composio/client.js', 'body:not([data-ds-dark-theme]) .kb7-pill.pend', 'var(--dsw-alias-state-warn-tertiary, rgba(250,180,60,.16))'],
   ]
   for (const [file, sel, bg] of cases) {
     const r = rule(file, sel)
@@ -486,7 +485,7 @@ ok('the Composio logo mark and the three panels\' play buttons keep their ink 4.
   const stops = [...lastDecl(logo.body, 'background').matchAll(/#[0-9a-f]{6}/gi)].map((m) => m[0])
   assert.ok(stops.length >= 2)
   for (const stop of stops) atLeast('logo on ' + stop, contrast(colour(lastDecl(logo.body, 'color'), 'light'), colour(stop, 'light')), 4.5)
-  for (const [file, sel] of [['kybernos-slides/client.js', '.kbsd-play'], ['kybernos-bricks/client.js', '.kbb-play'], ['kybernos-modeleur/client.js', '.kbm-play'], ['kybernos-bricks/client.js', '.kbb-badge.run'], ['kybernos-modeleur/client.js', '.kbm-badge.run']]) {
+  for (const [file, sel] of [['kybernos-slides/client.js', '.kbsd-play'], ['kybernos-bricks/client.js', '.kbb-play'], ['kybernos-modeleur/client.js', '.kbmo-play'], ['kybernos-bricks/client.js', '.kbb-badge.run'], ['kybernos-modeleur/client.js', '.kbmo-badge.run']]) {
     const r = rule(file, sel)
     atLeast(sel, contrast(colour(lastDecl(r.body, 'color'), 'light'), colour(lastDecl(r.body, 'background'), 'light')), 4.5)
     if (sel.endsWith('-play')) { const h = rule(file, sel + ':hover'); atLeast(sel + ':hover', contrast(colour(lastDecl(r.body, 'color'), 'light'), colour(lastDecl(h.body, 'background'), 'light')), 4.5) }

@@ -51,7 +51,7 @@ console.log('an engine that gives no panel keeps the old reading')
 console.log('the rows read it')
 {
   const m = SRC.indexOf('const SalesMenu = ')
-  const end = SRC.indexOf("// ── styles de l'onglet Composio", m)
+  const end = SRC.indexOf("// ── menu maquette : au-dessus des workspaces", m)
   const menu = SRC.slice(m, end)
   check('SalesMenu asks the layout which panel is on screen and which chat', /usePanelInfo/.test(menu) && /isKybySession/.test(menu))
   const raw = menu.replace('kbMenuShown(panelId, s.view, kabyChat)', '')

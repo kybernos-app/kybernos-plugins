@@ -942,7 +942,7 @@ window.__ModuleLoader__.load({
       }
       // KB-CAP-PURE-END
       const pretty = kbCapLabel
-      const Dot = (props) => h('span', { className: 'kbm-dot ' + (props.src === 'ov' ? 'ov' : 'sync'), title: m(props.src === 'ov' ? 'kb.models.ov.src' : 'kb.models.sync.src') })
+      const Dot = (props) => h('span', { className: 'kbmp-dot ' + (props.src === 'ov' ? 'ov' : 'sync'), title: m(props.src === 'ov' ? 'kb.models.ov.src' : 'kb.models.sync.src') })
       /** « Applied to the harness » or « Kybernos annotation » marker. */
       const Mark = (props) => h('span', {
         className: 'kbm-mark' + (props.wire === true ? ' wire' : ''),
@@ -3053,9 +3053,9 @@ window.__ModuleLoader__.load({
         '.kbm-mark.wire{color:var(--dsw-alias-state-business-primary)}',
         '.kbm-mark:not(.wire){color:var(--dsw-alias-label-tertiary)}',
         '.kbm-contract.ko{color:var(--dsw-alias-state-error-primary)}',
-        '.kbm-dot{width:7px;height:7px;border-radius:999px;flex:none;display:inline-block}',
-        '.kbm-dot.sync{background:var(--dsw-alias-state-business-primary)}',
-        '.kbm-dot.ov{background:var(--dsw-alias-state-warn-primary)}',
+        '.kbmp-dot{width:7px;height:7px;border-radius:999px;flex:none;display:inline-block}',
+        '.kbmp-dot.sync{background:var(--dsw-alias-state-business-primary)}',
+        '.kbmp-dot.ov{background:var(--dsw-alias-state-warn-primary)}',
         // Icon-only chips: the label lives in the button's title/aria-label,
         // the pill and the link complete the state. Fixed width
         // (icon only): fourteen capabilities take one line less.
@@ -3064,7 +3064,7 @@ window.__ModuleLoader__.load({
         '.kbm-chip.on{background:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-inverted)}',
         '.kbm-chip .kbm-ico{display:inline-flex;align-items:center}',
         '.kbm-chip.on .kbm-mark{color:currentColor}',
-        '.kbm-chip.on .kbm-dot{box-shadow:0 0 0 1.5px var(--dsw-alias-label-primary)}',
+        '.kbm-chip.on .kbmp-dot{box-shadow:0 0 0 1.5px var(--dsw-alias-label-primary)}',
         '.kbm-sec{display:flex;flex-direction:column;gap:9px}',
         '.kbm-seclab{display:flex;align-items:baseline;gap:8px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}',
         '.kbm-sechint{font-size:11px;font-weight:500;letter-spacing:0;text-transform:none;margin-top:3px}',

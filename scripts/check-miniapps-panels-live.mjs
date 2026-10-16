@@ -66,7 +66,7 @@ try {
   await stage('kb-t-core-models', '<div class="kbm-root"><div class="kbm-head">head</div></div>')
   await stage('kb-t-skills-like', '<div class="kbs-root"><div class="kbs-head">head</div></div>')
   await stage('kb-t-slides', '<div class="kbsd-root"><div class="kbsd-head">head</div></div>')
-  await stage('kb-t-modeleur', '<div class="kbm-root kbmo"><div class="kbm-head">head</div></div>')
+  await stage('kb-t-modeleur', '<div class="kbmo-root kbmo"><div class="kbmo-head">head</div></div>')
   await stage('kb-t-briques', '<div class="kbb-root"><div class="kbb-head">head</div></div>')
   // Wait for the sweep to reach the Bricks stand-in (a cold DSH, just restarted, takes longer than 3 s), then give it a beat for the others.
   await waitFor(page, "document.querySelectorAll('#kb-t-briques .kbb-head > .kbmini-btn').length === 1", 20000)
@@ -75,7 +75,7 @@ try {
   const anywhere = (id) => page.evalJs(`document.querySelectorAll('#${id} .kbmini-btn').length`).then((r) => r.val)
   if (!baseline) {
     check('Slides: its panel (.kbsd-root) gets one button, in its head', (await inHead('kb-t-slides', 'kbsd-head')) === 1, await anywhere('kb-t-slides'))
-    check('the Modeleur: its panel (.kbm-root.kbmo) gets one button, in its head', (await inHead('kb-t-modeleur', 'kbm-head')) === 1, await anywhere('kb-t-modeleur'))
+    check('the Modeleur: its panel (.kbmo-root) gets one button, in its head', (await inHead('kb-t-modeleur', 'kbmo-head')) === 1, await anywhere('kb-t-modeleur'))
   }
   check('Bricks: its panel still gets one button, in its head', (await inHead('kb-t-briques', 'kbb-head')) === 1, await anywhere('kb-t-briques'))
   check('AI Provider & Models (.kbm-root.kbmp) gets none', (await anywhere('kb-t-models-settings')) === 0, await anywhere('kb-t-models-settings'))

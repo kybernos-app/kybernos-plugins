@@ -5920,9 +5920,9 @@ const CSS = `
 /* (28/09, audit) Sous-titre unifié : même corps 13px que .kb8-sub /
    .kba-subtitle — une seule taille de sous-titre par page. */
 .kb6-desc{margin-top:6px;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary);max-width:62ch}
-/* (28/09, gabarit) Le titre « Connections » vit dans le bundle composio, qui
-   redéfinit .kb7-h1 à sa façon : cette règle scopée gagne sur les deux feuilles
-   (spécificité 0-2-0) et fixe l'intertitre quelle que soit l'ordre d'injection. */
+/* (28/09, template) The « Connections » title lives in the composio bundle, which defines .kb7-h1 its own way: this scoped rule
+   (specificity 0-2-0) fixes the heading whatever the injection order. The core no longer carries a copy of the .kb7-* sheet (audit A1-04):
+   only the composio bundle draws these classes, and the .kbg-root rules below are the page frame's overrides of them. */
 /* (01/10, parité Ressources) Titre d'onglet 20/700 + sous-titre 13, mêmes
    gouttières que l'onglet Skills (.kbs-h1 / .kbs-sub) : le titre et la rangée de
    contrôles ne bougent plus d'un onglet à l'autre. */
@@ -16505,7 +16505,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const id = (t !== null && t !== undefined && typeof t.id === 'string') ? t.id : ''
       const ln = (w, k, o, hh) => h('i', { key: 'l' + k, className: 'kbm-ln', style: { width: w, opacity: (o === undefined ? 0.6 : o), height: (hh === undefined ? 3 : hh) } })
       const box = (key, st) => h('i', { key: key, className: 'kbm-box', style: st })
-      const dot = (key, s, st) => h('i', { key: key, className: 'kbm-dot', style: Object.assign({ width: s, height: s }, st) })
+      const dot = (key, s, st) => h('i', { key: key, className: 'kbm-mdot', style: Object.assign({ width: s, height: s }, st) })
       const page = (k, children) => h('span', { key: k, style: { position: 'relative', width: 46, height: 54, borderRadius: 4, border: '1.5px solid currentColor', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4, padding: '0 7px', boxSizing: 'border-box' } }, [
         h('i', { key: 'f', style: { position: 'absolute', inset: 0, background: 'currentColor', opacity: 0.08 } })].concat(children))
       if (id === 'doc') return h('span', { className: 'kbm' }, page('p', [
@@ -23955,43 +23955,6 @@ function renderFit(canvas, model, cam, opts){
             h('span', { className: 'kb4-lab' }, kbt('menu.hosted')))
           : null))
     }
-    // ── styles de l'onglet Composio ─────────────────────────────────────────
-    ctx.effect(() => {
-      const s = document.createElement('style')
-      s.textContent = `
-.kb7-root{display:flex;flex-direction:column;gap:14px;padding:6px 0 40px}
-// (28/09, gabarit) Rétrogradée en intertitre : cette règle n'a plus de
-// consommateur côté plugin et fuyait sur la page Composio (« Connections »
-// peinte 26px comme un titre de page). Une seule taille de titre par page —
-// le nom d'un onglet reste petit et secondaire.
-.kb7-h1{margin:0;font-size:15px;line-height:20px;font-weight:650;letter-spacing:0;color:var(--dsw-alias-label-secondary)}
-.kb7-sub{margin:6px 0 0;font-size:13px;opacity:.68;line-height:1.55;max-width:640px}
-.kb7-nokey{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;background:rgba(250,180,60,.14);border:1px solid rgba(250,180,60,.4);font-size:12.5px}
-.kb7-search{width:100%;max-width:100%;height:46px;border-radius:12px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;padding:0 16px;font-size:13.5px;box-sizing:border-box}
-.kb7-search:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
-.kb7-chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
-.kb7-chips::-webkit-scrollbar{display:none}
-.kb7-chip{flex:none;height:32px;padding:0 14px;border-radius:99px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
-.kb7-chip:hover{background:rgba(128,128,128,.1)}
-.kb7-chip.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground)}
-.kb7-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
-.kb7-card{display:flex;flex-direction:column;gap:8px;padding:18px;border:1px solid rgba(128,128,128,.22);border-radius:16px;background:var(--kb-surface,transparent);min-height:170px}
-.kb7-card:hover{border-color:rgba(128,128,128,.45)}
-.kb7-lr{display:flex;align-items:center;gap:12px}
-.kb7-name{font-weight:650;font-size:15px}
-.kb7-cat{font-size:11px;opacity:.55;margin-top:2px}
-.kb7-desc{font-size:12.5px;opacity:.78;line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.kb7-foot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:6px}
-.kb7-pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:99px;background:var(--dsw-alias-state-success-tertiary, rgba(34,197,94,.16));color:var(--dsw-alias-state-success-primary, #22c55e);font-size:11.5px;font-weight:600}
-.kb7-pill.pend{background:var(--dsw-alias-state-warn-tertiary, rgba(250,180,60,.16));color:var(--dsw-alias-state-warn-label, var(--dsw-alias-state-warn-primary, #f0a030))}
-/* The tag inks are the state fills (2.1:1 on their pale tint in the light schemes): there they are pulled toward the text colour (audit A1-11). */
-body:not([data-ds-dark-theme]) .kb7-pill{color:color-mix(in srgb,var(--dsw-alias-state-success-primary, #22c55e) 50%,var(--dsw-alias-label-primary))}
-body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary, #f0a030) 50%,var(--dsw-alias-label-primary))}
-.kb7-empty{opacity:.5;font-size:13px}
-`
-      document.head.appendChild(s)
-      return () => s.remove()
-    }, 'kybernos: styles composio')
     // ── menu maquette : au-dessus des workspaces, conversations natives ────
     ctx.effect(() => slots.inject('sidebar.panellist', () => slots.register({ name: 'sidebar.panellist', id: 'kybers-menu', order: 5, label: kbt('kbui.kybernos') }, SalesMenu)), 'kybers: menu kybernos panellist');
     // Occupant attendu de l'emplacement enfant ci-dessous : le module
@@ -28660,7 +28623,7 @@ body:not([data-ds-dark-theme]) .kb8-cmp .kb8-desc.kb8-none{color:var(--dsw-alias
 .kbm i{display:block}
 .kbm-ln{height:3px;border-radius:2px;background:currentColor}
 .kbm-box{position:absolute;border:1.5px solid currentColor;border-radius:4px}
-.kbm-dot{border-radius:50%;background:currentColor}
+.kbm-mdot{border-radius:50%;background:currentColor}
 .kbm-ring{border:1.5px solid currentColor;border-radius:50%}
 .kbm-txt{font-family:ui-monospace,Menlo,monospace;font-weight:700;line-height:1;color:currentColor}
 /* Pas d'ANIMATION dans les tuiles (demande 26/09 : « pas de trait qui
