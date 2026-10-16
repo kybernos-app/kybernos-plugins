@@ -648,4 +648,30 @@ console.log('kybernos-call: the panel and the language')
   ok('in English the same panel says "Hang up" and "Mute me"; a voice call has no picture area')
 }
 
+console.log('kybernos-call: the voice test says when it has no sentence of its own (A2-13), and the language fallback is English')
+{
+  const e = makeEnv()
+  const t = e.run().__test
+  for (const code of ['fr', 'en', 'es', 'de', 'it', 'pt', 'fr-FR', 'EN']) {
+    const s = t.sampleFor(code)
+    assert.equal(s.neutral, false)
+    assert.equal(s.lang, code.split('-')[0].toLowerCase())
+  }
+  ok('the six languages with a sentence of ours read it (a region suffix or capitals do not hide it)')
+  for (const code of ['nl', 'ar', 'zh', 'ja', 'ko', 'ru', 'tr', 'pl', 'hi', 'zh-CN']) {
+    const s = t.sampleFor(code)
+    assert.equal(s.neutral, true)
+    assert.equal(s.lang, code.split('-')[0])
+    assert.equal(s.text, '1, 2, 3, 4, 5.')
+  }
+  ok('the nine other call languages are NOT given an English sentence under their own voice: a neutral count, in the voice\'s language, flagged as neutral')
+  assert.equal(t.sampleFor('').lang, 'en')
+  ok('no language at all: English')
+  for (const [resolved, want] of [['en', 'ENGLISH'], ['kybernos', 'FRENCH'], ['fr', 'FRENCH'], ['es', 'ENGLISH'], ['ar', 'ENGLISH'], ['zh', 'ENGLISH']]) {
+    const x = makeEnv({ lang: resolved })
+    assert.equal(x.run().__test.kt('FRENCH', 'ENGLISH'), want, resolved)
+  }
+  ok('the pair helper answers French for French, English for every other language (also checked by scripts/test-no-french-literals.mjs)')
+}
+
 console.log('\nkybernos-call client: ' + pass + ' checks')
