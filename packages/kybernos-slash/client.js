@@ -909,6 +909,17 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
 .kbsl-lmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;text-align:left;border:0;background:transparent;padding:0;overflow:hidden}
 .kbsl-ltitle{display:flex;align-items:baseline;gap:8px;font-size:14px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden}
 .kbsl-ltitle>span{overflow:hidden;text-overflow:ellipsis}
+/* A phone (A3-22): the row's name kept about 50 px between the tile and the chip and three icon buttons (« / w… »), and the
+   search field, 220 px wide at the end of the tab line, was cut by the page. The chip and the actions go on a line under the name,
+   the tabs wrap, and the search takes its own line. */
+@media (max-width:520px){
+.kbsl-tabs{flex-wrap:wrap;row-gap:8px}
+.kbsl-tabs .kbsl-search{flex:1 1 100%;width:auto!important;margin-inline-start:0!important}
+.kbsl-lrow{flex-wrap:wrap;row-gap:4px}
+.kbsl-lrow>.kbsl-lmain{flex:1 1 calc(100% - 40px)}
+.kbsl-lrow>.kbsl-chip{margin-inline-start:40px}
+.kbsl-lrow>.kbsl-chip+.kbsl-ibtn{margin-inline-start:auto}
+}
 .kbsl-jrow{display:flex;align-items:center;gap:8px}
 .kbsl-json summary{cursor:pointer;color:var(--kb-muted);font-size:12px}
 .kbsl-json pre{margin:6px 0 0;padding:10px;background:var(--kb-surface2);border-radius:10px;font-size:12px;overflow:auto;max-height:260px}

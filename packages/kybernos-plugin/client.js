@@ -27000,7 +27000,7 @@ html [class$="_options"] .kbth-head>.kbth-sub+*{margin-top:20px}
       if (st.state === 'loading' && st.data === null) {
         return h('div', { className: 'kbt2-sec', 'aria-busy': 'true' }, entete(),
           kbSkelWrap(kbf('Lecture de l’état réel…'), 'kbt2-sec', [
-            h('section', { key: 'prof', className: 'kbt2-stat kb-sk-row', style: { flexDirection: 'column', alignItems: 'stretch', gap: 12, minHeight: 106, boxSizing: 'border-box' } },
+            h('section', { key: 'prof', className: 'kbt2-stat kb-sk-row', style: { flexDirection: 'column', flexWrap: 'nowrap', alignItems: 'stretch', gap: 12, minHeight: 106, boxSizing: 'border-box' } },
               h('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } }, kbBone(150, 30, null, 9), kbBone('40%', 12)),
               h('div', { style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, paddingTop: 12, borderTop: '1px solid var(--dsw-alias-border-l1)' } }, kbBone(84, 24, 'pill'), kbBone(104, 24, 'pill'), kbBone(170, 24, 'pill'))),
             h('section', { key: 'preset', className: 'kbt2-stat kb-sk-row', style: { minHeight: 116, boxSizing: 'border-box' } },
@@ -27075,7 +27075,9 @@ html [class$="_options"] .kbth-head>.kbth-sub+*{margin-top:20px}
         entete(),
         // ① Profil ciblé : sélecteur + fichier de config écrit (les deux vont
         // ensemble — changer de profil change le fichier), puis le bilan chiffré.
-        h('section', { className: 'kbt2-stat', 'data-kb': 'tool-profile', 'aria-busy': st.state === 'loading' ? 'true' : 'false', style: { flexDirection: 'column', alignItems: 'stretch', gap: 12 } },
+        // (a column that wraps stretches its rows to their content width, not to its own: the config path pushed the copy
+        // button 36 px past the card on a phone and the page scrolled sideways: no wrap here.)
+        h('section', { className: 'kbt2-stat', 'data-kb': 'tool-profile', 'aria-busy': st.state === 'loading' ? 'true' : 'false', style: { flexDirection: 'column', flexWrap: 'nowrap', alignItems: 'stretch', gap: 12 } },
           h('div', { style: { display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', minWidth: 0 } },
             h('label', { className: 'kbt2-profil' }, kbf('Profil'),
               h('select', { value: prof === null ? '' : prof, onChange: (ev) => setProf(ev.target.value === '' ? null : ev.target.value) },
