@@ -204,14 +204,14 @@ process.exit(1)`)
   ok('update from a NEW folder exits 0…', r.status === 0, sortie(r).slice(-400))
   ok('…and the profile now loads EVERY bundle from the new folder, including the added one (not 3 of 4 from the old folder)', tousVers(v2) && Object.keys(liens()).length === 4, JSON.stringify(liens()))
   ok('…the old folder is untouched (it is what a rollback goes back to)', verif(v1).ok === true)
-  ok('…and the robot says it moved the links', /ré-pointé/.test(sortie(r)), sortie(r).slice(-300))
+  ok('…and the robot says it moved the links', /re-pointed/.test(sortie(r)), sortie(r).slice(-300))
 
   // 2. idempotence
   const avantPj = readFileSync(join(PROFIL, 'package.json'), 'utf8')
   const avantLock = readFileSync(join(PROFIL, 'pnpm-lock.yaml'), 'utf8')
   r = lancer(v2, ['upgrade', '--source', v2])
   ok('running the same update twice exits 0 and changes nothing in the profile', r.status === 0 && readFileSync(join(PROFIL, 'package.json'), 'utf8') === avantPj && readFileSync(join(PROFIL, 'pnpm-lock.yaml'), 'utf8') === avantLock, sortie(r).slice(-300))
-  ok('…and does not claim to have moved any link the second time', /ré-pointé/.test(sortie(r)) === false)
+  ok('…and does not claim to have moved any link the second time', /re-pointed/.test(sortie(r)) === false)
 
   // 3. the Suite panel: the archive is extracted under the system temp folder, the robot runs from there, the folder is then deleted
   const v3tmp = join(TMP, 'kybernos-update-abc', 'contenu')
@@ -258,7 +258,7 @@ process.exit(1)`)
   cpSync(v2, abime, { recursive: true })
   writeFileSync(join(abime, 'manifest.json'), '{"nom": "kybernos-dsh", "fichiers": [')
   r = lancer(abime, ['upgrade', '--source', abime])
-  ok('a folder whose manifest.json is present but unreadable is refused, not mistaken for a development checkout', r.status === 1 && /illisible/.test(sortie(r)) && readFileSync(join(PROFIL, 'package.json'), 'utf8') === pjAvant, sortie(r).slice(-300))
+  ok('a folder whose manifest.json is present but unreadable is refused, not mistaken for a development checkout', r.status === 1 && /unreadable/.test(sortie(r)) && readFileSync(join(PROFIL, 'package.json'), 'utf8') === pjAvant, sortie(r).slice(-300))
 
   // 7. an archive FILE: installed from a tarball, then a tampered and a truncated one of the SAME name are refused
   const nom = 'kybernos-dsh-1.1.0-' + PLATEFORME
@@ -283,9 +283,9 @@ process.exit(1)`)
   ok('…and no half-extracted staging folder is left behind', paquets().every((x) => x.startsWith('.etape-') === false && x.includes('.avant-') === false), JSON.stringify(paquets()))
   // 8. going back to an OLDER release by hand is allowed (a rollback is a legitimate need) but never silent
   r = lancer(v1, ['upgrade', '--source', v1])
-  ok('running an OLDER release’s update over a newer install works but says it is a version step back', r.status === 0 && /plus ANCIENNE/.test(sortie(r)) && /1\.0\.0/.test(sortie(r)) && /1\.1\.0/.test(sortie(r)), sortie(r).slice(-500))
+  ok('running an OLDER release’s update over a newer install works but says it is a version step back', r.status === 0 && /is OLDER than/.test(sortie(r)) && /1\.0\.0/.test(sortie(r)) && /1\.1\.0/.test(sortie(r)), sortie(r).slice(-500))
   r = lancer(v2, ['upgrade', '--source', v2])
-  ok('…and the newer release goes forward again without a warning', r.status === 0 && /plus ANCIENNE/.test(sortie(r)) === false, sortie(r).slice(-300))
+  ok('…and the newer release goes forward again without a warning', r.status === 0 && /is OLDER than/.test(sortie(r)) === false, sortie(r).slice(-300))
 
   // 9. pnpm (the profile install) fails: no network, a registry that is down, a full disk. The robot used to let the error escape
   //    (a raw stack trace), with the links already written to package.json, no restore, no journal line, no word about it.
@@ -294,13 +294,13 @@ process.exit(1)`)
   const lockAvantEchec = readFileSync(join(PROFIL, 'pnpm-lock.yaml'), 'utf8')
   const journalAvantEchec = existsSync(join(DSH_HOME, 'lifecycle', 'journal.jsonl')) ? readFileSync(join(DSH_HOME, 'lifecycle', 'journal.jsonl'), 'utf8') : ''
   r = lancer(v4, ['install', '--source', v4], { FAKE_DSH_PLUGIN_FAIL: '1' })
-  ok('an install whose pnpm step fails exits 1 with words, not a stack trace', r.status === 1 && /Node\.js v\d|at (async )?installerProfil|\n    at /.test(sortie(r)) === false && /(revenue|retour).{0,40}état d'avant/.test(sortie(r)), sortie(r).slice(-500))
+  ok('an install whose pnpm step fails exits 1 with words, not a stack trace', r.status === 1 && /Node\.js v\d|at (async )?installerProfil|\n    at /.test(sortie(r)) === false && /back to how it was/.test(sortie(r)), sortie(r).slice(-500))
   ok('…the profile is exactly what it was (package.json and lockfile put back from the photo)', readFileSync(join(PROFIL, 'package.json'), 'utf8') === pjAvantEchec && readFileSync(join(PROFIL, 'pnpm-lock.yaml'), 'utf8') === lockAvantEchec)
   const journalApres = existsSync(join(DSH_HOME, 'lifecycle', 'journal.jsonl')) ? readFileSync(join(DSH_HOME, 'lifecycle', 'journal.jsonl'), 'utf8') : ''
   const nouvelles = journalApres.slice(journalAvantEchec.length).trim().split('\n').filter((l) => l !== '').map((l) => JSON.parse(l))
   ok('…and the failure is in the journal (one line, result « echec », with the reason)', nouvelles.length === 1 && nouvelles[0].resultat === 'echec' && /pnpm|registry/i.test(nouvelles[0].raison), JSON.stringify(nouvelles))
   r = lancer(v4, ['upgrade', '--source', v4], { FAKE_DSH_PLUGIN_FAIL: '1' })
-  ok('an update whose pnpm step fails (also during the clean-up that follows the restore) exits 1 with words, not a stack trace', r.status === 1 && /Node\.js v\d|at (async )?installerProfil|\n    at /.test(sortie(r)) === false && /(revenue|retour).{0,40}état d'avant/.test(sortie(r)), sortie(r).slice(-500))
+  ok('an update whose pnpm step fails (also during the clean-up that follows the restore) exits 1 with words, not a stack trace', r.status === 1 && /Node\.js v\d|at (async )?installerProfil|\n    at /.test(sortie(r)) === false && /back to how it was/.test(sortie(r)), sortie(r).slice(-500))
   ok('…and the profile is exactly what it was', readFileSync(join(PROFIL, 'package.json'), 'utf8') === pjAvantEchec)
   r = lancer(v4, ['install', '--source', v4])
   ok('…and the same install works once pnpm answers again', r.status === 0 && tousVersOuDev(v4), sortie(r).slice(-300))
@@ -312,7 +312,7 @@ process.exit(1)`)
   const v5 = fabriquerPaquet(join(RACINE, 'pkgs', 'v5'), '1.4.0', NOMS_2)
   r = lancer(v5, ['upgrade', '--source', v5], { FAKE_DSH_WARN: '1' })
   ok('an update is not rolled back for a boot warning that was already there before it started', r.status === 0 && tousVersOuDev(v5), sortie(r).slice(-500))
-  ok('…and the robot says the warning was already there', /déjà là avant|déjà présent/.test(sortie(r)), sortie(r).slice(-300))
+  ok('…and the robot says the warning was already there', /already there before/.test(sortie(r)), sortie(r).slice(-300))
   const v6 = fabriquerPaquet(join(RACINE, 'pkgs', 'v6'), '1.5.0', NOMS_2, { 'kybernos-alpha': '// THROW_AT_LOAD\n' })
   const pjAvantV6 = readFileSync(join(PROFIL, 'package.json'), 'utf8')
   r = lancer(v6, ['upgrade', '--source', v6], { FAKE_DSH_WARN: '1' })
