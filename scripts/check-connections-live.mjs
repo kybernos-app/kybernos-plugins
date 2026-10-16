@@ -5,8 +5,10 @@
 //   source scripts/sandbox/env.sh && scripts/sandbox/start.sh      # an isolated instance serving this checkout
 //   node scripts/check-connections-live.mjs [--shots <dir>]
 //
-// It writes into the isolated instance only: a server entry whose `services.connections` points at the stand-in, and a connection
-// file with a made-up token. Both are put back as they were at the end. It REFUSES to run against the real DSH (127.0.0.1:3080) or
+// It writes into the isolated instance only: a server entry whose `services.connections` points at the stand-in, a connection
+// file with a made-up token, and the connectors choice the page saves when its Kybernos Cloud card is clicked (`connectors.json`).
+// All three are put back as they were at the end (the choice file is set aside at the start, so the first check meets a fresh
+// install even in a sandbox an earlier run polluted). It REFUSES to run against the real DSH (127.0.0.1:3080) or
 // without an isolated DSH_HOME. The host half (the /kybernos-cloud/connections* routes) must be the current code: restart the
 // sandbox after a host edit (scripts/sandbox/stop.sh, then start.sh).
 //
@@ -106,6 +108,7 @@ await new Promise((resolve) => stub.listen(0, '127.0.0.1', resolve))
 const ORIGIN = 'http://127.0.0.1:' + stub.address().port
 const SERVERS = join(DSH_HOME, 'kybernos', 'servers.json')
 const STATE = join(DSH_HOME, 'kybernos-cloud-live-conn.json')
+const CHOICE = join(DSH_HOME, 'kybernos', 'connectors.json') // Settings › Connectors: which provider the person chose (A3-06)
 const keep = (file) => { if (existsSync(file)) { const bak = file + '.live-conn-bak'; renameSync(file, bak); return bak } return null }
 const unkeep = (file, bak) => { rmSync(file, { force: true }); if (bak !== null) renameSync(bak, file) }
 const registry = (connections) => {
@@ -115,6 +118,7 @@ const registry = (connections) => {
 const signedIn = () => writeFileSync(STATE, JSON.stringify({ token: TOKEN, user: { id: 'u1', name: 'Live Tester', plan: 'studio' }, workspaces: [] }))
 const bakServers = keep(SERVERS)
 const bakState = keep(STATE)
+const bakChoice = keep(CHOICE)
 reseed()
 registry(ORIGIN + '/v1/mcp/connections')
 signedIn()
@@ -339,6 +343,7 @@ try {
   stub.close()
   unkeep(SERVERS, bakServers)
   unkeep(STATE, bakState)
+  unkeep(CHOICE, bakChoice)
 }
 console.log('\n' + (fail === 0 ? '✓ ' + pass + ' checks, all green' : '✗ ' + fail + ' failed, ' + pass + ' passed'))
 process.exit(fail === 0 ? 0 : 1)
