@@ -20,8 +20,8 @@ export const MAX_KEY_LENGTH = 512
  */
 export async function wsConsoleKeyReply (req, deps) {
   const method = req !== null && req !== undefined && typeof req.method === 'string' ? req.method : ''
-  if (method !== 'GET') return { status: 405, body: { ok: false, error: 'GET attendu' } }
-  if (deps.sameOriginStrict(req) === false) return { status: 403, body: { ok: false, error: 'origine refusee' } }
+  if (method !== 'GET') return { status: 405, body: { ok: false, error: 'GET expected' } }
+  if (deps.sameOriginStrict(req) === false) return { status: 403, body: { ok: false, error: 'origin refused' } }
   let key = ''
   try {
     const settings = await deps.readSettings()

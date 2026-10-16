@@ -25,7 +25,7 @@ It has no host half of its own (`index.js` is an empty `apply()`).
 - **Simple** (default) uses no git word on a button. **Developer** adds the git word beside each label (`commit + push`,
   `pull request`, `worktree`…), the exact commands of the plan before « Confirm and run », and the branch, the gap
   (`↑ to send ↓ to fetch`), the folder, the isolated copy, the remote and the last check.
-- French and English. French is the source; a translated language is looked up by its French text and falls back to English.
+- English and French. English is the base, French (« tu ») the twin of every sentence; a translated language is looked up by the French text and falls back to English. What the git routes answer is a code the page words itself (`code` in the reply, `GIT_TEXTS` in `kybernos-sessions`).
 - A folder that is not a git project shows nothing.
 
 ## Where the facts and the actions come from

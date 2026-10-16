@@ -1,5 +1,14 @@
 {
   "_doc": "Language policy gate (scripts/test-no-french-literals.mjs, WP-07 decision D1). \"pending\" = not cleaned yet (the test only reports it); [] = strict: no French literal outside a dictionary, English README and description, a pair helper that falls back to English. A strict list may name exact literals allowed to stay. Clean a bundle, then change its line to [].",
+  "unaccented": [
+    "kybernos-gate",
+    "kybernos-hub",
+    "kybernos-maintenance",
+    "kybernos-plugin",
+    "kybernos-sessions",
+    "messaging"
+  ],
+  "unaccented_doc": "Bundles in which a French word written without its accent (indisponible, Discuter, aucun…) also counts as French outside a dictionary (see UNACCENTED in lib-french-literals.mjs). Add a bundle here once it is clean.",
   "needFrench": {
     "_doc": "Strict bundles whose UI has a French twin that must not disappear: the minimum number of French dictionary literals their client keeps (a quarter below what they hold when the twin was written).",
     "dsh-media-player": 6,
@@ -49,12 +58,19 @@
     "kybernos-plugin": [
       "Hola. Soy la voz de Kybernos, tu asistente.",
       "fermé",
-      "[^a-zà-ÿ]"
+      "[^a-zà-ÿ]",
+      "fournisseur ia & modeles",
+      "  - id: equipe",
+      "?category=equipes&after=",
+      "cordis.patch.yml.bak-outils-"
     ],
     "kybernos-refs": [],
     "kybernos-relance": [],
     "kybernos-search": [],
-    "kybernos-sessions": [],
+    "kybernos-sessions": [
+      "cle api",
+      "nouveau reglage"
+    ],
     "kybernos-skills": [],
     "kybernos-slash": [],
     "kybernos-slides": [],

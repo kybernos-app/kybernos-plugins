@@ -65,11 +65,11 @@ function lireNamespace(settings, ns) {
     try {
       const forms = settings.describe() || []
       const f = forms.find((x) => x !== null && x !== undefined && x.ns === ns)
-      if (f === undefined) return { valeur: undefined, erreur: 'namespace ' + ns + ' absent des formulaires' }
+      if (f === undefined) return { valeur: undefined, erreur: 'namespace ' + ns + ' missing from the forms' }
       return { valeur: f.value, erreur: null }
     } catch (erreur) { return { valeur: undefined, erreur: 'settings.describe() : ' + errText(erreur) } }
   }
-  return { valeur: undefined, erreur: 'service settings sans get() ni describe()' }
+  return { valeur: undefined, erreur: 'settings service has neither get() nor describe()' }
 }
 
 /**
@@ -124,10 +124,10 @@ export function providersAuPlafond(providers, plafond) {
 export async function appliquerPlafondRetries(ctx, plafond = plafondDepuisEnv()) {
   const settings = ctx?.settings
   if (settings === undefined || settings === null) {
-    return { corriges: 0, plafond, raison: 'service settings absent' }
+    return { corriges: 0, plafond, raison: 'settings service missing' }
   }
   if (typeof settings.update !== 'function') {
-    return { corriges: 0, plafond, raison: 'settings.update indisponible' }
+    return { corriges: 0, plafond, raison: 'settings.update unavailable' }
   }
   const lu = lireNamespace(settings, ID_NS_PROVIDERS)
   if (lu.erreur !== null) return { corriges: 0, plafond, raison: lu.erreur }

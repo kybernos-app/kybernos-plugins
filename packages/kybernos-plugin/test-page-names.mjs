@@ -35,4 +35,11 @@ for (const m of qa) {
 }
 ok('the three typed quick actions of Creations never put an article in front of the (plural) type name')
 
+
+// A3-46: the « Send feedback » assistant opens the shipped skill by its English id (it used to be a French-named command).
+const draft = /'kbui\.feedback\.draft': \{ kybernos: '\/skill-([a-z-]+) (?:[^'\\]|\\.)*', en: '\/skill-([a-z-]+) (?:[^'\\]|\\.)*' \}/.exec(src)
+assert.ok(draft !== null && draft[1] === 'report-feedback' && draft[2] === 'report-feedback', 'the prefilled draft names the skill report-feedback in both languages')
+assert.ok(readFileSync(new URL('./skills/report-feedback/SKILL.md', import.meta.url), 'utf8').startsWith('---\nname: report-feedback\n'), 'and the shipped skill has that name')
+ok('the Send feedback assistant opens the skill report-feedback, which the plugin ships under that English id')
+
 console.log('\n' + n + ' checks passed')

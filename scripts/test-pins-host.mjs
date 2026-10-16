@@ -86,7 +86,7 @@ const badKind = mod.applyPin(base, { kind: 'dossier', id: WS, pinned: true })
 eq('type inconnu refusé', badKind.ok, 'false')
 eq('type inconnu — motif', badKind.error.includes('kind'), 'true')
 eq('id invalide refusé', mod.applyPin(base, { kind: 'session', id: '../x', pinned: true }).ok, 'false')
-eq('id invalide — motif', mod.applyPin(base, { kind: 'session', id: '../x', pinned: true }).error, 'id invalide')
+eq('invalid id — reason', mod.applyPin(base, { kind: 'session', id: '../x', pinned: true }).error, 'invalid id')
 eq('pinned non booléen refusé', mod.applyPin(base, { kind: 'session', id: S1, pinned: 'oui' }).ok, 'false')
 eq('demande absente refusée', mod.applyPin(base, null).ok, 'false')
 const full = { version: 1, workspaces: Array.from({ length: mod.PINS_MAX_PER_KIND }, (_, i) => 'ws-' + String(i)), sessions: [] }

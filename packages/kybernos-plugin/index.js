@@ -373,11 +373,11 @@ const kbSanitizeTaskInput = (raw) => {
   } else if (mode === 'cron') {
     // no cron given: the default rhythm of the mock-up, every day at 8 (the client form always sends one)
     if (sc.cron === undefined || sc.cron === null || sc.cron === '' || (typeof sc.cron === 'string' && sc.cron.trim() === '')) schedule.cron = '0 8 * * *'
-    else if (typeof sc.cron !== 'string' || kbParseCron(sc.cron) === null) return { ok: false, error: 'cron invalide' }
+    else if (typeof sc.cron !== 'string' || kbParseCron(sc.cron) === null) return { ok: false, error: 'invalid cron expression' }
     else if (kbCronCanFire(sc.cron) === false) return { ok: false, error: 'this schedule never fires' }
     else schedule.cron = sc.cron.trim().split(/\s+/).join(' ')
   } else {
-    if (typeof sc.at !== 'string' || sc.at.length > 40 || kbParseIsoLocal(sc.at) === null) return { ok: false, error: 'date ponctuelle invalide' }
+    if (typeof sc.at !== 'string' || sc.at.length > 40 || kbParseIsoLocal(sc.at) === null) return { ok: false, error: 'invalid one-off date' }
     schedule.at = sc.at.trim()
   }
   const out = {
@@ -1246,7 +1246,7 @@ export function deriveRuns(events, snapshotsById) {
     for (let m = 0; m < run.members.length; m += 1) {
       const member = run.members[m]
       if (member.declared.model !== null && member.actual !== null && member.actual.model !== null && member.declared.model !== member.actual.model) {
-        devs.push({ kind: 'model-drift', severity: 'warning', detail: 'membre seq ' + fmtRunPart(member.seq) + ' (' + fmtRunPart(member.label) + ') phase ' + fmtRunPart(member.phase) + ': modele declare ' + member.declared.model + ' != modele reel ' + member.actual.model, source: 'derived' })
+        devs.push({ kind: 'model-drift', severity: 'warning', detail: 'member seq ' + fmtRunPart(member.seq) + ' (' + fmtRunPart(member.label) + ') phase ' + fmtRunPart(member.phase) + ': declared model ' + member.declared.model + ' != actual model ' + member.actual.model, source: 'derived' })
       }
     }
     for (let p = 0; p < run.declaredPhases.length; p += 1) {
@@ -1259,7 +1259,7 @@ export function deriveRuns(events, snapshotsById) {
       for (let m = 0; m < run.members.length; m += 1) {
         const member = run.members[m]
         if (member.phase === null || declaredByTitle[member.phase] === undefined) {
-          devs.push({ kind: 'orphan-member', severity: 'warning', detail: 'membre seq ' + fmtRunPart(member.seq) + ' (' + fmtRunPart(member.label) + ') hors phases declarees (phase ' + fmtRunPart(member.phase) + ')', source: 'derived' })
+          devs.push({ kind: 'orphan-member', severity: 'warning', detail: 'member seq ' + fmtRunPart(member.seq) + ' (' + fmtRunPart(member.label) + ') outside the declared phases (phase ' + fmtRunPart(member.phase) + ')', source: 'derived' })
         }
       }
     }
@@ -1276,7 +1276,7 @@ export function deriveRuns(events, snapshotsById) {
       if (group.length < 2) continue
       const seqs = []
       for (let g = 0; g < group.length; g += 1) seqs.push(fmtRunPart(group[g].seq))
-      devs.push({ kind: 'retry', severity: 'info', detail: 'label ' + fmtRunPart(group[0].label) + ' / phase ' + fmtRunPart(group[0].phase) + ' apparait ' + group.length + ' fois (seq ' + seqs.join(', ') + ')', source: 'derived' })
+      devs.push({ kind: 'retry', severity: 'info', detail: 'label ' + fmtRunPart(group[0].label) + ' / phase ' + fmtRunPart(group[0].phase) + ' apparait ' + group.length + ' times (seq ' + seqs.join(', ') + ')', source: 'derived' })
     }
     run.deviations = devs
   }
@@ -2344,7 +2344,7 @@ export function routeFactFromEvents(events) {
 function boot(ctx) {
     const fs = ctx.get('fs')
     if (fs === undefined) {
-      console.error('[kybers] service fs indisponible: rien a lire')
+      console.error('[kybers] fs service unavailable: nothing to read')
       return
     }
     // `settings` peut être monté APRÈS ce plugin. DSH lui-même ne l'obtient
@@ -2356,7 +2356,7 @@ function boot(ctx) {
       try {
         ctx.inject(['settings'], (settingsCtx) => {
           settings = settingsCtx.settings
-          try { console.log('[kybers] service settings resolu tardivement — catalogue de modeles disponible') } catch (e) { /* console */ }
+          try { console.log('[kybers] settings service resolved late — model catalogue available') } catch (e) { /* console */ }
         })
       } catch (e) { /* inject indisponible : le catalogue dira pourquoi */ }
     }
@@ -2412,9 +2412,9 @@ function boot(ctx) {
       Promise.resolve()
         .then(async () => {
           const r = await appliquerPlafondRetries({ settings: reglages })
-          if (r.corriges > 0) console.log('[kybers] retryPolicy : ' + r.corriges + ' provider(s) brought down to the ceiling ' + r.plafond + ' (' + r.noms.join(', ') + ')')
+          if (r.corriges > 0) console.log('[kybers] retryPolicy: ' + r.corriges + ' provider(s) brought down to the ceiling ' + r.plafond + ' (' + r.noms.join(', ') + ')')
           else if (r.raison !== undefined) console.log('[kybers] retryPolicy: ceiling not applied — ' + r.raison)
-          else console.log('[kybers] retryPolicy : plafond ' + r.plafond + ' respected (' + r.surveillance + ' fournisseurs)')
+          else console.log('[kybers] retryPolicy: ceiling ' + r.plafond + ' respected (' + r.surveillance + ' providers)')
         })
         .catch((e) => console.log('[kybers] retryPolicy: failed — ' + errText(e)))
     }
@@ -2625,7 +2625,7 @@ function boot(ctx) {
       const workspaceId = await kbTaskWorkspaceId(task)
       const created = await sc.create(workspaceId !== null ? { workspaceId } : {})
       const sessionId = unwrap(created, 'sessionId')
-      if (sessionId === null) throw new Error('session.create sans sessionId')
+      if (sessionId === null) throw new Error('session.create returned no sessionId')
       // D3 (recette team 29/09) — honorer task.model : la sélection DOIT
       // précéder le prompt (sélection durable de la session). Format
       // attendu « provider/model » (ex. kybernos/free). Échec best-effort :
@@ -2642,10 +2642,10 @@ function boot(ctx) {
           })
           if (selRes !== null && typeof selRes === 'object' && selRes.ok === false) {
             const msg = selRes.error !== null && selRes.error !== undefined && selRes.error.message !== undefined ? String(selRes.error.message) : String(selRes.error || 'refused')
-            console.error('[kybers] tache ' + String(task.id) + ' : selection modele ' + taskModel + ' refusee (' + msg + ') — tir au modele par defaut')
+            console.error('[kybers] task ' + String(task.id) + ': model selection ' + taskModel + ' refused (' + msg + ') — firing with the default model')
           }
         } catch (e) {
-          console.error('[kybers] tache ' + String(task.id) + ' : selection modele ' + taskModel + ' refusee (' + String((e && e.message) || e) + ') — tir au modele par defaut')
+          console.error('[kybers] task ' + String(task.id) + ': model selection ' + taskModel + ' refused (' + String((e && e.message) || e) + ') — firing with the default model')
         }
       }
       // Approvals: only `ask` (the default, anything that is not an explicit `auto`) is enforced. The
@@ -2734,7 +2734,7 @@ function boot(ctx) {
       }
       if (action === 'update') {
         const id = str(body.id)
-        if (id === null) return { ok: false, error: 'id requis' }
+        if (id === null) return { ok: false, error: 'id required' }
         const clean = kbSanitizeTaskInput(body.task)
         if (clean.ok !== true) return { ok: false, error: clean.error }
         let updated = null
@@ -2762,7 +2762,7 @@ function boot(ctx) {
       }
       if (action === 'toggle') {
         const id = str(body.id)
-        if (id === null) return { ok: false, error: 'id requis' }
+        if (id === null) return { ok: false, error: 'id required' }
         if (typeof body.active !== 'boolean') return { ok: false, error: 'active must be true or false' }
         let found = null
         let refusal = null
@@ -2784,7 +2784,7 @@ function boot(ctx) {
       }
       if (action === 'delete') {
         const id = str(body.id)
-        if (id === null) return { ok: false, error: 'id requis' }
+        if (id === null) return { ok: false, error: 'id required' }
         let removed = false
         await kbTasksMutate(async (tasks) => {
           for (let i = 0; i < tasks.length; i += 1) {
@@ -2800,7 +2800,7 @@ function boot(ctx) {
         // créer la session (rc.2 : `startSession()` silencieux, constaté 30/09
         // en GUI réelle — clic sans effet, zéro appel réseau).
         const sc = ctx.get('sessionController')
-        if (sc === undefined || sc === null || typeof sc.create !== 'function') return { ok: false, error: 'sessionController absent' }
+        if (sc === undefined || sc === null || typeof sc.create !== 'function') return { ok: false, error: 'sessionController missing' }
         const unwrap = (res, field) => {
           if (res === null || typeof res !== 'object') return null
           if (res.ok === false) throw new Error(res.error !== null && res.error !== undefined && res.error.message !== undefined ? String(res.error.message) : String(res.error || 'refused'))
@@ -2810,7 +2810,7 @@ function boot(ctx) {
         try {
           const created = await sc.create({})
           const sessionId = unwrap(created, 'sessionId')
-          if (sessionId === null) return { ok: false, error: 'session.create sans sessionId' }
+          if (sessionId === null) return { ok: false, error: 'session.create returned no sessionId' }
           return { ok: true, sessionId }
         } catch (e) {
           return { ok: false, error: errText(e).slice(0, 200) }
@@ -2818,7 +2818,7 @@ function boot(ctx) {
       }
       if (action === 'run-now') {
         const id = str(body.id)
-        if (id === null) return { ok: false, error: 'id requis' }
+        if (id === null) return { ok: false, error: 'id required' }
         const tasks = await kbTasksRead()
         const t = tasks.find((x) => x !== null && typeof x === 'object' && x.id === id)
         if (t === undefined) return { ok: false, error: 'task not found' }
@@ -2853,7 +2853,7 @@ function boot(ctx) {
         // robuste (32 hex). Une automation = un hook ; le régénérer invalide
         // l'ancienne URL (Make fait pareil).
         const id = str(body.id)
-        if (id === null) return { ok: false, error: 'id requis' }
+        if (id === null) return { ok: false, error: 'id required' }
         const crypto2 = await import('node:crypto')
         const hookId = 'hk_' + crypto2.randomBytes(6).toString('hex')
         const secret = crypto2.randomBytes(16).toString('hex')
@@ -2873,7 +2873,7 @@ function boot(ctx) {
       }
       if (action === 'hook-revoke') {
         const id = str(body.id)
-        if (id === null) return { ok: false, error: 'id requis' }
+        if (id === null) return { ok: false, error: 'id required' }
         let found = false
         await kbTasksMutate(async (tasks) => {
           for (const t of tasks) {
@@ -2889,7 +2889,7 @@ function boot(ctx) {
       }
       if (action === 'consume-fire') {
         const id = str(body.id)
-        if (id === null) return { ok: false, error: 'id requis' }
+        if (id === null) return { ok: false, error: 'id required' }
         let out = null
         await kbTasksMutate(async (tasks) => {
           for (const t of tasks) {
@@ -2906,7 +2906,7 @@ function boot(ctx) {
         })
         return out === null ? { ok: false, error: 'nothing to consume' } : { ok: true, task: out }
       }
-      return { ok: false, error: 'action inconnue: ' + String(action) }
+      return { ok: false, error: 'unknown action: ' + String(action) }
     }
     // Minuterie du tick : 30 s. setTimeout suffit (le host tourne en continu
     // tant que DSH vit) ; rattrapage naturel au redémarrage : nextRun échu est
@@ -2918,7 +2918,7 @@ function boot(ctx) {
         kbTasksTimer = setTimeout(() => {
           kbTasksTick().then((r) => {
             if (r !== null && typeof r === 'object' && r.fired > 0) {
-              try { console.log('[kybers] taches planifiees: ' + r.fired + ' declenchement(s)') } catch (e) { /* console */ }
+              try { console.log('[kybers] scheduled tasks: ' + r.fired + ' declenchement(s)') } catch (e) { /* console */ }
             }
           }).catch(() => null).finally(() => { kbTasksTimer = null; loop() })
         }, 30000)
@@ -2926,7 +2926,7 @@ function boot(ctx) {
       loop()
       setTimeout(() => { kbTasksTick().catch(() => null) }, 5000)
     }
-    try { kbTasksStart() } catch (e) { try { console.error('[kybers] minuterie taches indisponible:', errText(e)) } catch (e2) { /* console */ } }
+    try { kbTasksStart() } catch (e) { try { console.error('[kybers] task timer unavailable:', errText(e)) } catch (e2) { /* console */ } }
 
     // ── lire un namespace de réglages, 0.1.6 ET 0.1.7 ────────────────────────
     // 0.1.6 : `settings.get(ns)` rendait le document du namespace.
@@ -2935,7 +2935,7 @@ function boot(ctx) {
     // `value`). Sans ce shim, le catalogue restait vide et l'échec ne sortait
     // que dans `catalogErrors`, jamais dans la console (mesuré le 22/09).
     const lireNamespace = (ns) => {
-      if (settings === undefined || settings === null) return { valeur: undefined, erreur: 'service settings indisponible' }
+      if (settings === undefined || settings === null) return { valeur: undefined, erreur: 'settings service unavailable' }
       if (typeof settings.get === 'function') {
         try { return { valeur: settings.get(ns), erreur: null } } catch (e) { return { valeur: undefined, erreur: 'settings.get(' + ns + '): ' + errText(e) } }
       }
@@ -2943,17 +2943,17 @@ function boot(ctx) {
         try {
           const forms = settings.describe() || []
           const f = forms.find((x) => x !== null && x !== undefined && x.ns === ns)
-          if (f === undefined) return { valeur: undefined, erreur: 'namespace ' + ns + ' absent des formulaires' }
+          if (f === undefined) return { valeur: undefined, erreur: 'namespace ' + ns + ' missing from the forms' }
           return { valeur: f.value, erreur: null }
         } catch (e) { return { valeur: undefined, erreur: 'settings.describe(): ' + errText(e) } }
       }
-      return { valeur: undefined, erreur: 'service settings sans get() ni describe()' }
+      return { valeur: undefined, erreur: 'settings service has neither get() nor describe()' }
     }
 
     const readCatalog = () => {
       const out = { providers: {}, default: null, errors: [] }
       if (settings === undefined) {
-        out.errors.push('service settings indisponible: aucune resolution possible')
+        out.errors.push('settings service unavailable: nothing can be resolved')
         return out
       }
       let ns = null
@@ -2982,10 +2982,10 @@ function boot(ctx) {
             out.providers[name] = models
           }
         } else {
-          out.errors.push('llm-pi-ai.providers absent de la configuration')
+          out.errors.push('llm-pi-ai.providers missing from the configuration')
         }
       } else if (out.errors.length === 0) {
-        out.errors.push('namespace llm-pi-ai vide ou non enregistre')
+        out.errors.push('llm-pi-ai namespace empty or not registered')
       }
       const defLu = lireNamespace('agent-default-model')
       if (defLu.erreur !== null) out.errors.push(defLu.erreur)
@@ -3047,7 +3047,7 @@ function boot(ctx) {
       const timer = setTimeout(() => { try { control.abort() } catch (e) { /* deja termine */ } }, 30000)
       try {
         const res = await fetch(url, { signal: control.signal, headers: { accept: 'application/json' } })
-        if (res === null || res === undefined) return { text: null, reason: 'reponse sans corps' }
+        if (res === null || res === undefined) return { text: null, reason: 'response without a body' }
         if (res.ok === false) return { text: null, reason: 'HTTP ' + String(res.status) }
         let text = null
         if (res.body !== null && res.body !== undefined && typeof res.body.getReader === 'function') {
@@ -3058,15 +3058,15 @@ function boot(ctx) {
             const part = await reader.read()
             if (part.done === true) break
             total += part.value.byteLength
-            if (total > max) { await reader.cancel().catch(() => {}); return { text: null, reason: 'corps trop volumineux (plus de ' + max + ' octets)' } }
+            if (total > max) { await reader.cancel().catch(() => {}); return { text: null, reason: 'body too large (more than ' + max + ' bytes)' } }
             chunks.push(part.value)
           }
           text = Buffer.concat(chunks).toString('utf8')
         } else if (typeof res.text === 'function') {
           text = await res.text()
-        } else return { text: null, reason: 'reponse sans corps' }
+        } else return { text: null, reason: 'response without a body' }
         if (typeof text !== 'string' || text.length === 0) return { text: null, reason: 'empty body' }
-        if (text.length > max) return { text: null, reason: 'corps trop volumineux (' + text.length + ' caracteres)' }
+        if (text.length > max) return { text: null, reason: 'body too large (' + text.length + ' caracteres)' }
         return { text: text, reason: null }
       } catch (e) { return { text: null, reason: errText(e) } } finally { clearTimeout(timer) }
     }
@@ -3081,14 +3081,14 @@ function boot(ctx) {
         if (web === undefined || web === null) {
           // Aucun service web : on reste hors réseau (le harnais de test interdit toute requête pendant ses vérifications). Sa seule
           // présence dit que l'hôte autorise l'accès web ; la requête elle-même ne passe PAS par lui (voir kbFetchTextFull).
-          priceError = 'service web indisponible: tarifs models.dev inaccessibles'
+          priceError = 'web service unavailable: models.dev prices unreachable'
           return
         }
         const full = await kbFetchTextFull(url)
-        if (full.text === null) { priceError = 'models.dev: lecture impossible (' + full.reason + ')'; return }
+        if (full.text === null) { priceError = 'models.dev: cannot read (' + full.reason + ')'; return }
         const raw = full.text
         const parsed = parseJson(raw)
-        if (parsed === null || parsed === undefined) { priceError = 'models.dev: reponse JSON invalide'; return }
+        if (parsed === null || parsed === undefined) { priceError = 'models.dev: invalid JSON response'; return }
         priceIndex = buildPriceIndex(parsed)
         priceFetchedAt = Date.now()
         priceError = null
@@ -3345,14 +3345,14 @@ function boot(ctx) {
       const out = { ok: true, sessionId: sessionId, runs: [], notes: [] }
       if (sessionId === null || sessionId.length === 0) {
         out.ok = false
-        out.notes.push('sessionId requis')
+        out.notes.push('sessionId required')
         return out
       }
       let limit = Number(query.limit)
       if (Number.isFinite(limit) === false || limit < 1) limit = 50
       if (limit > 500) limit = 500
       if (persistence === undefined || persistence === null || typeof persistence.open !== 'function') {
-        out.notes.push('service sessionPersistence indisponible: aucun run lisible')
+        out.notes.push('sessionPersistence service unavailable: no readable run')
         return out
       }
       let handle = null
@@ -3416,12 +3416,12 @@ function boot(ctx) {
           snapshotsById[needed[i]] = fact
         }
       }
-      if (needed.length > cap) out.notes.push('faits reels resolus pour ' + cap + '/' + needed.length + ' enfants (borne)')
+      if (needed.length > cap) out.notes.push('real facts resolved for ' + cap + '/' + needed.length + ' children (capped)')
       const resolvedCount = Object.keys(snapshotsById).length
       if (needed.length > 0 && resolvedCount === 0) {
-        out.notes.push('faits reels: 0/' + needed.length + ' enfants resolus (journal enfant illisible ou vide)')
+        out.notes.push('real facts: 0/' + needed.length + ' children resolved (child journal unreadable or empty)')
       } else if (needed.length > 0 && resolvedCount < needed.length) {
-        out.notes.push('faits reels: ' + resolvedCount + '/' + needed.length + ' enfants resolus (degradation partielle: ' + (needed.length - resolvedCount) + ' child session(s) without a readable fact)')
+        out.notes.push('real facts: ' + resolvedCount + '/' + needed.length + ' children resolved (partial degradation: ' + (needed.length - resolvedCount) + ' child session(s) without a readable fact)')
       }
       let runs = []
       try { runs = deriveRuns(events, snapshotsById) } catch (e) { out.notes.push('deriveRuns: ' + errText(e)) }
@@ -3459,11 +3459,11 @@ function boot(ctx) {
       const out = { ok: true, sessionId: sessionId, calls: [], crews: [], members: [], notes: [] }
       if (sessionId === null || sessionId.length === 0) {
         out.ok = false
-        out.notes.push('sessionId requis')
+        out.notes.push('sessionId required')
         return out
       }
       if (persistence === undefined || persistence === null || typeof persistence.open !== 'function') {
-        out.notes.push('service sessionPersistence indisponible: aucun appel lisible')
+        out.notes.push('sessionPersistence service unavailable: no readable call')
         return out
       }
       let handle = null
@@ -3560,7 +3560,7 @@ function boot(ctx) {
       if (dsh === null) return { journals: [], notes: ['DSH home not found'] }
       const root = joinPath(dsh, 'sessions')
       let workspaces = []
-      try { workspaces = readdirSync(root, { withFileTypes: true }) } catch (e) { return { journals: [], notes: ['journaux de session illisibles: ' + errText(e)] } }
+      try { workspaces = readdirSync(root, { withFileTypes: true }) } catch (e) { return { journals: [], notes: ['unreadable session journals: ' + errText(e)] } }
       const journals = []
       for (let i = 0; i < workspaces.length; i += 1) {
         const w = workspaces[i]
@@ -3700,7 +3700,7 @@ function boot(ctx) {
     const readInsight = async (args) => {
       const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
       const kyberId = str(req.kyberId)
-      if (kyberId === null || /^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'kyberId invalide' }
+      if (kyberId === null || /^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'invalid kyberId' }
       const rootId = str(req.rootId)
       const askedDays = Number(req.days)
       const days = Number.isFinite(askedDays) === true && askedDays >= 1 && askedDays <= KB_INSIGHT_DAYS_MAX ? Math.round(askedDays) : 30
@@ -3717,7 +3717,7 @@ function boot(ctx) {
       }
       if (rootPath === null) return { ok: false, error: 'Agent Team not found in the known roots' }
       const dir = joinPath(rootPath, kyberId)
-      if (existsSync(joinPath(dir, 'kyber.yml')) === false) return { ok: false, error: 'kyber.yml absent: ' + dir }
+      if (existsSync(joinPath(dir, 'kyber.yml')) === false) return { ok: false, error: 'kyber.yml missing: ' + dir }
       const to = Date.now()
       const from = to - days * 86400000
       const notes = []
@@ -3851,7 +3851,7 @@ function boot(ctx) {
           versions: 'current version + kyber.yml.bak-* backups written by the host',
           engagement: 'journal messages, inside the [run-start, run-end] window of the attributed runs; the Sessions card counts the sessions that turned the team on or carried a run',
           llm: 'assistant/message + usage of the journal that carries the run; tokens/s = output tokens / step duration',
-          cost: 'tarifs models.dev (USD/Mtok) au taux ' + usdEur,
+          cost: 'models.dev prices (USD/Mtok) at the rate ' + usdEur,
         },
         notes: notes,
         settings: await kbInsightSettingsOf(rootPath, kyberId),
@@ -3872,12 +3872,12 @@ function boot(ctx) {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
         const rootId = str(req.rootId)
         const kyberId = str(req.kyberId)
-        if (rootId === null || kyberId === null) return { ok: false, error: 'rootId et kyberId requis' }
+        if (rootId === null || kyberId === null) return { ok: false, error: 'rootId and kyberId required' }
         if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'invalid Agent Team id' }
         const roots = await rootsFor(str(req.sessionId))
         let rootPath = null
         for (let i = 0; i < roots.length; i += 1) if (roots[i].id === rootId) rootPath = roots[i].path
-        if (rootPath === null) return { ok: false, error: 'racine inconnue' }
+        if (rootPath === null) return { ok: false, error: 'unknown root' }
         const settings = kbInsightSettingsRead(req.insight)
         const uiPath = joinPath(rootPath, '.kyber-ui.json')
         let data = {}
@@ -4055,7 +4055,7 @@ function boot(ctx) {
       const notes = []
       const scan = await insightJournals()
       if (Array.isArray(scan.notes) === true) for (const n of scan.notes) notes.push(String(n))
-      if (scan.facts.length === 0) notes.push('aucun journal de session lisible : les KPIs rendent null')
+      if (scan.facts.length === 0) notes.push('no readable session journal: the KPIs are null')
       const dayMs = 86400000
       const lowTs = Date.now() - (days - 1) * dayMs
       // ── périmètre : quand la fiche demande une équipe qui vit dans le
@@ -4100,7 +4100,7 @@ function boot(ctx) {
                 return segs.length >= 3 && segs[segs.length - 3] === slugCourant
               })
               wsFiltre = { slug: slugCourant, faits: faitsLocaux, avant: scan.facts.length }
-              notes.push('Session KPIs scoped to the workspace “' + slugCourant + ' » : ' + faitsLocaux.length + ' journal(aux) sur ' + scan.facts.length)
+              notes.push('Session KPIs scoped to the workspace “' + slugCourant + ' » : ' + faitsLocaux.length + ' journal(s) out of ' + scan.facts.length)
             }
           }
         }
@@ -4209,7 +4209,7 @@ function boot(ctx) {
       }).sort((a, b) => b.runs - a.runs).slice(0, 12)
       const crewPct = total > 0 ? kbQualityPercent(total - Math.min(erroredRuns, total), total) : null
       if (equipe.source === null && crewRoles.length > 0) equipe = { source: 'runs', pct: crewPct, total: total, roles: crewRoles }
-      if (equipe.source === null) notes.push(kyberId === null ? 'no workflow run in the window: “Team efficiency” is null' : 'aucun ledger (memory/ledger.jsonl) ni run « ' + kyberId + '-” in the window: “Team efficiency” is null')
+      if (equipe.source === null) notes.push(kyberId === null ? 'no workflow run in the window: “Team efficiency” is null' : 'no ledger (memory/ledger.jsonl) and no run “' + kyberId + '-” in the window: “Team efficiency” is null')
       // ── complétion : tours finis des sessions ordinaires, sinon les runs ──
       const completionPct = turns > 0 ? kbQualityPercent(turnsEnded, turns) : (total > 0 ? kbQualityPercent(endedRuns, total) : null)
       // ── pertinence skills : appels de skill sans erreur (faits) + runs ──
@@ -4292,9 +4292,9 @@ function boot(ctx) {
       const sid = str(req.sessionId)
       const mid = str(req.messageId)
       const vote = Number(req.vote)
-      if (sid === null || sid.length > 120) return { ok: false, error: 'sessionId invalide' }
-      if (mid === null || mid.length > 120) return { ok: false, error: 'messageId invalide' }
-      if (vote !== 1 && vote !== -1) return { ok: false, error: 'vote doit valoir 1 ou -1' }
+      if (sid === null || sid.length > 120) return { ok: false, error: 'invalid sessionId' }
+      if (mid === null || mid.length > 120) return { ok: false, error: 'invalid messageId' }
+      if (vote !== 1 && vote !== -1) return { ok: false, error: 'vote must be 1 or -1' }
       const excerpt = typeof req.excerpt === 'string' ? req.excerpt.replace(/\s+/g, ' ').trim().slice(0, 400) : ''
       const kyberId = str(req.kyberId)
       const rec = {
@@ -4351,7 +4351,7 @@ function boot(ctx) {
       const sid = str(req.sessionId)
       const mid = str(req.messageId)
       const note = Number(req.note)
-      if (mid === null || mid.length > 120) return { ok: false, error: 'messageId invalide' }
+      if (mid === null || mid.length > 120) return { ok: false, error: 'invalid messageId' }
       if (Number.isInteger(note) === false || note < 1 || note > 5) return { ok: false, error: 'rating must be from 1 to 5' }
       const issue = typeof req.issue === 'string' && KB_RATING_ISSUES.includes(req.issue) === true ? req.issue : ''
       const comment = typeof req.comment === 'string' ? req.comment.replace(/\s+/g, ' ').trim().slice(0, 2000) : ''
@@ -4392,7 +4392,7 @@ function boot(ctx) {
       const role = (str(req.role) === null ? '' : str(req.role)).trim().slice(0, 160)
       const currency = str(req.currency)
       const llmSvc = ctx.get('llm')
-      if (llmSvc === null || llmSvc === undefined || typeof llmSvc.stream !== 'function') return { ok: false, error: 'service llm indisponible dans ce profil' }
+      if (llmSvc === null || llmSvc === undefined || typeof llmSvc.stream !== 'function') return { ok: false, error: 'llm service unavailable in this profile' }
       const catalog = readCatalog()
       const def = catalog !== null && catalog !== undefined && catalog.default !== null && typeof catalog.default === 'object' ? catalog.default : null
       const provider = def === null ? null : str(def.provider)
@@ -4400,8 +4400,8 @@ function boot(ctx) {
       if (provider === null || model === null) return { ok: false, error: 'no default model in this profile\'s catalogue' }
       const prompt = [
         'You estimate a gross monthly salary to calibrate a savings simulator for an AI agent.',
-        'Pays : ' + country + '.',
-        currency === null ? '' : 'Monnaie attendue : ' + currency.toUpperCase() + '.',
+        'Country: ' + country + '.',
+        currency === null ? '' : 'Expected currency: ' + currency.toUpperCase() + '.',
         role === '' ? '' : 'Reference position (context, optional): ' + role + '.',
         'Answer ONLY with a JSON object, with no text around it, shaped like this:',
         '{"country":"<country>","currency":"<3-letter ISO code>","monthlyGrossSalary":<number>,"rationale":"<one sentence, in English>"}',
@@ -4470,7 +4470,7 @@ function boot(ctx) {
     const kbBrainPrompt = (mode, teamName, mission, existing) => {
       const tete = [
         'You design the look of the “conversation suggestions” of a team of AI agents in a work product.',
-        'Team: ' + (teamName === '' ? '(sans nom)' : teamName) + '.',
+        'Team: ' + (teamName === '' ? '(unnamed)' : teamName) + '.',
         'Team mission: ' + (mission === '' ? '(not given)' : mission) + '.',
         'Answer in the language of the team\'s mission.',
       ]
@@ -4480,11 +4480,11 @@ function boot(ctx) {
           'Icons are Lucide names in English, in kebab-case (examples: ' + KB_BRAIN_ICONS.slice(0, 40).join(', ') + ').',
           'Colours are sober, readable hexadecimal codes (#635bff, #2f6b54, #b3402f, #3f6b8a, #7a3f7a, #c4712c).',
           'Do NOT rewrite the title, the description or the request: only the look.',
-          'Saisie (' + existing.length + ' suggestions, in this order):',
-          existing.map((s, i) => '  ' + (i + 1) + '. « ' + s.title + ' »' + (s.description === '' ? '' : ' — ' + s.description) + ' — demande : ' + s.prompt).join('\n'),
+          'Input (' + existing.length + ' suggestions, in this order):',
+          existing.map((s, i) => '  ' + (i + 1) + '. « ' + s.title + ' »' + (s.description === '' ? '' : ' — ' + s.description) + ' — request: ' + s.prompt).join('\n'),
           'Answer ONLY with a JSON object, with no text around it:',
-          '{"looks":[{"icon":"<nom-lucide>","color":"#rrggbb"}]}',
-          'Le tableau « looks » a EXACTEMENT ' + existing.length + ' entr(ies), in the same order as the input.',
+          '{"looks":[{"icon":"<lucide-name>","color":"#rrggbb"}]}',
+          'The “looks” array has EXACTLY ' + existing.length + ' entr(ies), in the same order as the input.',
         ]).join('\n')
       }
       // Le reste du gabarit décrit une suggestion COMPLÈTE ; seul le nombre
@@ -4498,20 +4498,20 @@ function boot(ctx) {
       if (mode === 'complete') {
         const manque = Math.max(0, KB_BRAIN_TARGET - existing.length)
         return tete.concat([
-          'The team ALREADY has ' + existing.length + ' suggestion(s) de conversation :',
-          existing.map((s, i) => '  ' + (i + 1) + '. « ' + s.title + ' »' + (s.prompt === '' ? '' : ' — demande : ' + s.prompt)).join('\n'),
-          'Propose EXACTEMENT ' + manque + ' NEW suggestion(s), to reach ' + KB_BRAIN_TARGET + ' au total.',
+          'The team ALREADY has ' + existing.length + ' conversation suggestion(s):',
+          existing.map((s, i) => '  ' + (i + 1) + '. « ' + s.title + ' »' + (s.prompt === '' ? '' : ' — request: ' + s.prompt)).join('\n'),
+          'Propose EXACTLY ' + manque + ' NEW suggestion(s), to reach ' + KB_BRAIN_TARGET + ' in total.',
           'Each new suggestion covers a DIFFERENT SUBJECT from the previous ones: no rewording, no variant.',
         ], reste, [
-          '{"starters":[{"icon":"<nom-lucide>","color":"#rrggbb","title":"…","description":"…","prompt":"…"}]}',
-          'Le tableau « starters » a EXACTEMENT ' + manque + ' entr(ies).',
+          '{"starters":[{"icon":"<lucide-name>","color":"#rrggbb","title":"…","description":"…","prompt":"…"}]}',
+          'The “starters” array has EXACTLY ' + manque + ' entr(ies).',
         ]).join('\n')
       }
       return tete.concat([
-        'Propose EXACTEMENT ' + KB_BRAIN_TARGET + ' really useful conversation suggestions for this team, rooted in its mission.',
+        'Propose EXACTLY ' + KB_BRAIN_TARGET + ' really useful conversation suggestions for this team, rooted in its mission.',
       ], reste, [
-        '{"starters":[{"icon":"<nom-lucide>","color":"#rrggbb","title":"…","description":"…","prompt":"…"}]}',
-        'Le tableau « starters » a EXACTEMENT ' + KB_BRAIN_TARGET + ' entr(ies).',
+        '{"starters":[{"icon":"<lucide-name>","color":"#rrggbb","title":"…","description":"…","prompt":"…"}]}',
+        'The “starters” array has EXACTLY ' + KB_BRAIN_TARGET + ' entr(ies).',
       ]).join('\n')
     }
     const kbJsonBetween = (raw) => {
@@ -4537,9 +4537,9 @@ function boot(ctx) {
       })).filter((s) => s.title !== '' || s.prompt !== '')
       if (mode === 'look' && existing.length === 0) return { ok: false, error: 'no suggestion to review' }
       const manque = KB_BRAIN_TARGET - existing.length
-      if (mode === 'complete' && manque <= 0) return { ok: false, error: 'l equipe a deja ' + existing.length + ' suggestions (cible ' + KB_BRAIN_TARGET + ')' }
+      if (mode === 'complete' && manque <= 0) return { ok: false, error: 'the team already has ' + existing.length + ' suggestions (target ' + KB_BRAIN_TARGET + ')' }
       const llmSvc = ctx.get('llm')
-      if (llmSvc === null || llmSvc === undefined || typeof llmSvc.stream !== 'function') return { ok: false, error: 'service llm indisponible dans ce profil' }
+      if (llmSvc === null || llmSvc === undefined || typeof llmSvc.stream !== 'function') return { ok: false, error: 'llm service unavailable in this profile' }
       // Le modèle d'étude d'abord ; à défaut, le modèle par défaut du catalogue
       // (et on le DIT : `source` distingue les deux, l'UI ne ment pas).
       const reg = await kbBrainSettings()
@@ -4583,7 +4583,7 @@ function boot(ctx) {
       // Une icône inventée est remplacée par celle par défaut (mode `full` : il
       // n'y a rien à conserver) — la suggestion, elle, n'est jamais perdue.
       const list = propre.list.map((s) => Object.assign({}, s, { icon: kbBrainIconOf(s.icon) === '' ? 'wand-sparkles' : s.icon }))
-      if (list.length === 0) return { ok: false, error: 'le modele n a propose aucune suggestion exploitable' }
+      if (list.length === 0) return { ok: false, error: 'the model proposed no usable suggestion' }
       // Le nombre attendu est EXACT : `complete` n'ajoute que les manquantes,
       // `full` remplace tout par la cible. Un modèle bavard est borné ici, pas
       // par la bonne volonté du prompt.
@@ -4667,9 +4667,9 @@ function boot(ctx) {
       if (unreadable > 0) notes.push(unreadable + (unreadable === 1 ? ' unreadable journal ignored' : ' unreadable journals ignored'))
       if (capped) {
         const skipped = journals.length - picked.length
-        notes.push('plafond ' + RUNS_INDEX_MAX_JOURNALS + ' journaux: ' + skipped + (skipped === 1 ? ' old session ignored' : ' old sessions ignored'))
+        notes.push('plafond ' + RUNS_INDEX_MAX_JOURNALS + ' journals: ' + skipped + (skipped === 1 ? ' old session ignored' : ' old sessions ignored'))
       }
-      if (byteCapped) notes.push('plafond de decompression atteint: index partiel')
+      if (byteCapped) notes.push('decompression ceiling reached: partial index')
       return { at: Date.now(), entries: entries, truncated: capped || byteCapped, notes: notes, scanned: scanned }
     }
     const readRunsIndex = async (args) => {
@@ -5179,7 +5179,7 @@ function boot(ctx) {
       if (typeof needs.tier === 'string') needsOut.tier = needs.tier
       if (typeof needs.context === 'string') needsOut.context = needs.context
       return {
-        id: role.id === null ? '(sans id)' : role.id,
+        id: role.id === null ? '(no id)' : role.id,
         kind: role.kind,
         provider,
         model,
@@ -5203,7 +5203,7 @@ function boot(ctx) {
     }
     const buildKyber = (doc, dirName, filePath, catalog, probe, probeInherited) => {
       const stages = doc.stages.map((s) => ({
-        id: s.id === null ? '(sans id)' : s.id,
+        id: s.id === null ? '(no id)' : s.id,
         mode: s.mode,
         roles: s.roles,
         inputs: s.inputs,
@@ -5316,7 +5316,7 @@ function boot(ctx) {
         const target = await findKyberFile(childDir)
         if (target === null) continue
         let text = null
-        try { text = await fs.readText(target) } catch (e) { root.notes.push(name + ': lecture impossible (' + errText(e) + ')'); continue }
+        try { text = await fs.readText(target) } catch (e) { root.notes.push(name + ': cannot read (' + errText(e) + ')'); continue }
         let shown = childDir
         try { shown = fs.processPath(target) } catch (e) { /* garde childDir */ }
         const doc = parseKyber(text)
@@ -5326,7 +5326,7 @@ function boot(ctx) {
           kyber.docs = extras.docs
           kyber.skills = extras.skills
         } catch (e) { kyber.docs = []; kyber.skills = [] }
-        if (kyber.id !== name) root.notes.push(name + ': id declare "' + kyber.id + '" different from the folder')
+        if (kyber.id !== name) root.notes.push(name + ': declared id "' + kyber.id + '" different from the folder')
         root.kybers.push(kyber)
       }
       try {
@@ -5358,7 +5358,7 @@ function boot(ctx) {
       const scanRoot = sessionRoot !== null ? sessionRoot : workspaceRoot
 
       let home = await dshHomeOrNull()
-      let homeSource = home !== null ? 'dsh-home-paths (DSH_HOME ou <home>/.dsh)' : null
+      let homeSource = home !== null ? 'dsh-home-paths (DSH_HOME or <home>/.dsh)' : null
       // Repli 0.1.6 uniquement : le roster exposait alors le CHEMIN du preset.
       // En 0.1.7 `AgentPreset` ne porte plus de `path` — cette sonde ne rend
       // rien, et c'était la SEULE source : le home valait `null` et les kybers
@@ -5376,7 +5376,7 @@ function boot(ctx) {
               const at = path.indexOf(marker)
               if (at > 0) {
                 home = path.slice(0, at)
-                homeSource = 'roster des presets (' + String(str(preset.id)) + ')'
+                homeSource = 'presets roster (' + String(str(preset.id)) + ')'
                 break
               }
             }
@@ -5506,7 +5506,7 @@ function boot(ctx) {
           for (const member of team.members) await pushRow(member, null, member.role === 'lead' ? 'lead' : null)
         }
         if (typeof sessionId === 'string' && sessionId.length > 0 && seen[sessionId] !== true) {
-          await pushRow({ sessionId }, 'Cette session', team.members.length > 0 ? null : 'lead')
+          await pushRow({ sessionId }, 'This session', team.members.length > 0 ? null : 'lead')
         }
         if (team.members.length === 0 && team.childIds.length > 0) {
           for (const cid of team.childIds) {
@@ -5879,7 +5879,7 @@ function boot(ctx) {
     const applyRole = (lines, roleId, provider, model, prompt, fallback) => {
       let rolesAt = -1
       for (let i = 0; i < lines.length; i += 1) { if (/^roles:\s*$/.test(lines[i]) === true) { rolesAt = i; break } }
-      if (rolesAt < 0) return { lines, applied: false, note: 'section roles absente' }
+      if (rolesAt < 0) return { lines, applied: false, note: 'roles section missing' }
       let send = lines.length
       for (let i = rolesAt + 1; i < lines.length; i += 1) {
         if (lines[i].trim() !== '' && indentOf(lines[i]) === 0) { send = i; break }
@@ -5892,9 +5892,9 @@ function boot(ctx) {
         const rawId = m[2].trim().replace(/^["']|["']$/g, '')
         if (rawId === roleId) { ei = i; eIndent = indentOf(lines[i]); break }
       }
-      if (ei < 0) return { lines, applied: false, note: 'role ' + roleId + ' introuvable' }
+      if (ei < 0) return { lines, applied: false, note: 'role ' + roleId + ' not found' }
       const rest = lines[ei].replace(/^(\s*)-\s*/, '')
-      if (KEY_RE.exec(rest) === null || rest.indexOf(',') >= 0) return { lines, applied: false, note: 'role ' + roleId + ': style inline non pris en charge' }
+      if (KEY_RE.exec(rest) === null || rest.indexOf(',') >= 0) return { lines, applied: false, note: 'role ' + roleId + ': inline style not supported' }
       let eend = send
       for (let i = ei + 1; i < send; i += 1) {
         if (lines[i].trim() === '') continue
@@ -6188,8 +6188,8 @@ function boot(ctx) {
       try {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
         const workspaceId = str(req.workspaceId)
-        if (workspaceId === null || workspaceId.length === 0 || workspaceId.length > 120) return { ok: false, error: 'workspaceId requis' }
-        if (/^[A-Za-z0-9][A-Za-z0-9 ._:-]*$/.test(workspaceId) === false) return { ok: false, error: 'workspaceId invalide' }
+        if (workspaceId === null || workspaceId.length === 0 || workspaceId.length > 120) return { ok: false, error: 'workspaceId required' }
+        if (/^[A-Za-z0-9][A-Za-z0-9 ._:-]*$/.test(workspaceId) === false) return { ok: false, error: 'invalid workspaceId' }
         const home = await dshHome()
         if (home === null) return { ok: false, error: 'DSH home not found' }
         const name = typeof req.name === 'string' ? req.name.trim().slice(0, 60) : ''
@@ -6249,8 +6249,8 @@ function boot(ctx) {
       try {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
         const workspaceId = str(req.workspaceId)
-        if (workspaceId === null || workspaceId.length === 0 || workspaceId.length > 120) return { ok: false, error: 'workspaceId requis' }
-        if (/^[A-Za-z0-9][A-Za-z0-9 ._:-]*$/.test(workspaceId) === false) return { ok: false, error: 'workspaceId invalide' }
+        if (workspaceId === null || workspaceId.length === 0 || workspaceId.length > 120) return { ok: false, error: 'workspaceId required' }
+        if (/^[A-Za-z0-9][A-Za-z0-9 ._:-]*$/.test(workspaceId) === false) return { ok: false, error: 'invalid workspaceId' }
         const data = await readWorkspaceUi()
         return { ok: true, workspaceId: workspaceId, skills: workspaceSkillsOf(data, workspaceId) }
       } catch (e) { return { ok: false, error: errText(e) } }
@@ -6259,8 +6259,8 @@ function boot(ctx) {
       try {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
         const workspaceId = str(req.workspaceId)
-        if (workspaceId === null || workspaceId.length === 0 || workspaceId.length > 120) return { ok: false, error: 'workspaceId requis' }
-        if (/^[A-Za-z0-9][A-Za-z0-9 ._:-]*$/.test(workspaceId) === false) return { ok: false, error: 'workspaceId invalide' }
+        if (workspaceId === null || workspaceId.length === 0 || workspaceId.length > 120) return { ok: false, error: 'workspaceId required' }
+        if (/^[A-Za-z0-9][A-Za-z0-9 ._:-]*$/.test(workspaceId) === false) return { ok: false, error: 'invalid workspaceId' }
         const skills = sanitizeSkillList(req.skills)
         if (skills === null) return { ok: false, error: 'skills required (list of strings)' }
         const home = await dshHome()
@@ -6317,7 +6317,7 @@ function boot(ctx) {
         // l'ORDRE : la nouvelle épingle passe en tête, comme chez DSH.
         const registre = registreWorkspaces()
         if (req.kind === 'session' && registre !== null && typeof req.pinned === 'boolean') {
-          if (isPinId(req.id) !== true) return { ok: false, error: 'id invalide' }
+          if (isPinId(req.id) !== true) return { ok: false, error: 'invalid id' }
           const avant = pinnedNatives() || []
           if (req.pinned === true) await registre.pinSession(req.id)
           else await registre.unpinSession(req.id)
@@ -6407,8 +6407,8 @@ function boot(ctx) {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
         const kind = typeof req.kind === 'string' ? req.kind : ''
         const id = typeof req.id === 'string' ? req.id.trim() : ''
-        if (SHARE_KINDS.indexOf(kind) === -1) return { ok: false, error: 'kind invalide (workspace|deliverable|kyber)' }
-        if (id === '' || id.length > 200) return { ok: false, error: 'id invalide' }
+        if (SHARE_KINDS.indexOf(kind) === -1) return { ok: false, error: 'invalid kind (workspace|deliverable|kyber)' }
+        if (id === '' || id.length > 200) return { ok: false, error: 'invalid id' }
         const home = await dshHomeOrNull()
         if (home === null) return { ok: false, error: 'DSH home not found' }
         const path = joinPath(home, SHARE_FILE)
@@ -6418,7 +6418,7 @@ function boot(ctx) {
           // Retour au privé : l'entrée est retirée (l'absence EST « only me »).
           delete data[cle]
         } else {
-          if (SHARE_ACCES.indexOf(req.access) === -1) return { ok: false, error: 'access invalide (me|team|public)' }
+          if (SHARE_ACCES.indexOf(req.access) === -1) return { ok: false, error: 'invalid access (me|team|public)' }
           data[cle] = { access: req.access, role: SHARE_ROLES.indexOf(req.role) !== -1 ? req.role : 'view', ts: new Date().toISOString() }
         }
         await writeTextScoped(home, path, JSON.stringify(data, null, 2) + String.fromCharCode(10))
@@ -6571,7 +6571,7 @@ function boot(ctx) {
         try {
           const entries = await readActiveKybers(sid)
           active[sid] = entries.map((e) => e.id)
-        } catch (e) { active[sid] = []; warnings.push('active illisible') }
+        } catch (e) { active[sid] = []; warnings.push('active unreadable') }
         // Les objectifs sont resolus par le service `goals` a partir de l'agent
         // initiateur de la session : borne volontairement (chaque appel lit des
         // fichiers), le reste du projet n'en depend pas.
@@ -6589,16 +6589,16 @@ function boot(ctx) {
             roundsStarted: typeof g.roundsStarted === 'number' ? g.roundsStarted : null,
             maxGoalRounds: typeof g.maxGoalRounds === 'number' ? g.maxGoalRounds : null,
           })
-        } catch (e) { warnings.push('objectif illisible') }
+        } catch (e) { warnings.push('goal unreadable') }
       }
       // Documents : seuls les threads les plus recents sont lus (cout mesure sur
       // cette machine : ~435 ms pour 15,8 Mo / 6 sessions). Un thread illisible
       // est note, jamais fatal : le reste du projet reste affichable.
       const docs = []
       const readIds = ids.slice(0, KB_DOCS_MAX_READ_SESSIONS)
-      if (ids.length > readIds.length) warnings.push('documents: ' + readIds.length + ' threads sur ' + ids.length + ' lus (borne)')
+      if (ids.length > readIds.length) warnings.push('documents: ' + readIds.length + ' threads out of ' + ids.length + ' read (capped)')
       if (persistence === undefined || persistence === null || typeof persistence.open !== 'function') {
-        if (ids.length > 0) warnings.push('documents: service sessionPersistence indisponible')
+        if (ids.length > 0) warnings.push('documents: sessionPersistence service unavailable')
       } else {
         let home = null
         try { home = await dshHome() } catch (e) { home = null }
@@ -6614,7 +6614,7 @@ function boot(ctx) {
         let readCount = 0
         for (const sid of readIds) {
           if (docs.length >= KB_DOCS_MAX) break
-          if (totalBytes >= KB_DOCS_MAX_TOTAL_BYTES) { warnings.push('documents: volume lu plafonne'); break }
+          if (totalBytes >= KB_DOCS_MAX_TOTAL_BYTES) { warnings.push('documents: read volume capped'); break }
           // Taille du transcript compresse quand le service sait la donner : un
           // thread demesure est ignore plutot que de faire attendre le projet.
           let size = null
@@ -6623,7 +6623,7 @@ function boot(ctx) {
             if (st !== null && st !== undefined && typeof st.size === 'number') size = st.size
           } catch (e) { size = null }
           if (size !== null && size > KB_DOCS_MAX_SESSION_BYTES) {
-            warnings.push('documents: thread ' + sid.slice(0, 12) + ' trop volumineux, ignore')
+            warnings.push('documents: thread ' + sid.slice(0, 12) + ' too large, ignored')
             continue
           }
           let header = null
@@ -6663,11 +6663,11 @@ function boot(ctx) {
       try {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
         const names = activeFileNames(req.sessionId)
-        if (names.length === 0) return { ok: false, error: 'sessionId requis' }
+        if (names.length === 0) return { ok: false, error: 'sessionId required' }
         // Un vrai identifiant de session ressemble a `session-<uuid>` : on refuse
         // le reste plutot que de creer un fichier nomme d'apres une chaine tordue.
         const sid = str(req.sessionId)
-        if (sid === null || /^[A-Za-z0-9][A-Za-z0-9._:-]{0,120}$/.test(sid) === false) return { ok: false, error: 'sessionId invalide' }
+        if (sid === null || /^[A-Za-z0-9][A-Za-z0-9._:-]{0,120}$/.test(sid) === false) return { ok: false, error: 'invalid sessionId' }
         const home = await dshHome()
         if (home === null) return { ok: false, error: 'DSH home not found' }
         const since = nowIso()
@@ -6680,7 +6680,7 @@ function boot(ctx) {
           return { ok: true, path: path, active: [] }
         }
         const kyberId = str(req.kyberId)
-        if (kyberId === null || /^[A-Za-z0-9][A-Za-z0-9._-]{0,60}$/.test(kyberId) === false) return { ok: false, error: 'kyberId invalide' }
+        if (kyberId === null || /^[A-Za-z0-9][A-Za-z0-9._-]{0,60}$/.test(kyberId) === false) return { ok: false, error: 'invalid kyberId' }
         // Fusion : plusieurs kybers peuvent travailler dans une meme session, et
         // un lancement ne doit jamais effacer le travail deja declare.
         const prev = await readActiveKybers(req.sessionId)
@@ -6713,7 +6713,7 @@ function boot(ctx) {
       try {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
         const lastTeamId = str(req.lastTeamId)
-        if (lastTeamId === null || /^[A-Za-z0-9][A-Za-z0-9._-]{0,60}$/.test(lastTeamId) === false) return { ok: false, error: 'lastTeamId invalide' }
+        if (lastTeamId === null || /^[A-Za-z0-9][A-Za-z0-9._-]{0,60}$/.test(lastTeamId) === false) return { ok: false, error: 'invalid lastTeamId' }
         const home = await dshHome()
         if (home === null) return { ok: false, error: 'DSH home not found' }
         const data = await readWorkspaceUi()
@@ -6729,7 +6729,7 @@ function boot(ctx) {
       try {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
         const path = str(req.path)
-        if (path === null || path.length < 4) return { ok: false, error: 'chemin attendu' }
+        if (path === null || path.length < 4) return { ok: false, error: 'path expected' }
         // garde-fou : le fichier doit vivre sous le workspace courant ou un workspace connu
         if ((await cheminAutorise(path)) === false) return { ok: false, error: 'file outside the known workspaces' }
         const target = await fs.resolve(path)
@@ -6757,13 +6757,13 @@ function boot(ctx) {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
         const action = str(req.action)
         const path = str(req.path)
-        if (action === null || path === null || path.length < 4) return { ok: false, error: 'action et chemin requis' }
+        if (action === null || path === null || path.length < 4) return { ok: false, error: 'action and path required' }
         if ((await cheminAutorise(path)) === false) return { ok: false, error: 'file outside the known workspaces' }
         const target = await fs.resolve(path)
         const info = await fs.stat(target).catch(() => null)
         if (!isFile(info)) return { ok: false, error: 'file not found' }
         const shellSvc = ctx.get('shell')
-        if (shellSvc === undefined || shellSvc === null) return { ok: false, error: 'service shell indisponible' }
+        if (shellSvc === undefined || shellSvc === null) return { ok: false, error: 'shell service unavailable' }
         // Recette 2026-10 : le service shell réel (dsh-bash-local, ShellExecutor)
         // expose execute() — jamais run(). L'ancien appel shellSvc.run(spec)
         // levait « shellSvc.run is not a function » et cassait reveal/delete/
@@ -6777,7 +6777,7 @@ function boot(ctx) {
             return await (handle !== null && handle !== undefined ? handle.result : null)
           }
           if (typeof shellSvc.run === 'function') return await shellSvc.run(request)
-          throw new Error('service shell sans execute ni run')
+          throw new Error('shell service has neither execute nor run')
         }
         let writeRoot = null
         {
@@ -6806,11 +6806,11 @@ function boot(ctx) {
         const dir = path.slice(0, path.lastIndexOf('/'))
         if (action === 'reveal') {
           const ok = await run('open -R ' + q(path))
-          return ok === true ? { ok: true } : { ok: false, error: 'Finder indisponible' }
+          return ok === true ? { ok: true } : { ok: false, error: 'Finder unavailable' }
         }
         if (action === 'delete') {
           const ok = await run('rm -f ' + q(path))
-          return ok === true ? { ok: true, path: path } : { ok: false, error: 'suppression refusee' }
+          return ok === true ? { ok: true, path: path } : { ok: false, error: 'deletion refused' }
         }
         if (action === 'duplicate' || action === 'rename') {
           const ext = path.lastIndexOf('.') > path.lastIndexOf('/') ? path.slice(path.lastIndexOf('.')) : ''
@@ -6818,27 +6818,27 @@ function boot(ctx) {
           let newName = null
           if (action === 'rename') {
             const next = str(req.name)
-            if (next === null || next.trim().length === 0) return { ok: false, error: 'nom requis' }
+            if (next === null || next.trim().length === 0) return { ok: false, error: 'name required' }
             newName = next.trim().slice(0, 120)
           } else {
             newName = base + ' copy' + ext
           }
-          if (/^[A-Za-z0-9][A-Za-z0-9 ._-]{0,119}$/.test(newName) === false) return { ok: false, error: 'nom invalide (lettres, chiffres, espace, . _ -)' }
+          if (/^[A-Za-z0-9][A-Za-z0-9 ._-]{0,119}$/.test(newName) === false) return { ok: false, error: 'invalid name (letters, digits, space, . _ -)' }
           let target2 = dir + '/' + newName
           let n = 2
           while (true) {
             const exists = await fs.stat(await fs.resolve(target2)).catch(() => null)
             if (exists === null || exists === undefined) break
-            if (n > 50) return { ok: false, error: 'trop de collisions de nom' }
+            if (n > 50) return { ok: false, error: 'too many name collisions' }
             const stem = newName.slice(0, newName.length - ext.length)
             target2 = dir + '/' + stem + '-' + n + ext
             n += 1
           }
           const cmd = action === 'rename' ? 'mv' : 'cp'
           const ok = await run(cmd + ' ' + q(path) + ' ' + q(target2))
-          return ok === true ? { ok: true, path: target2, name: target2.slice(target2.lastIndexOf('/') + 1) } : { ok: false, error: cmd + ' refuse' }
+          return ok === true ? { ok: true, path: target2, name: target2.slice(target2.lastIndexOf('/') + 1) } : { ok: false, error: cmd + ' refused' }
         }
-        return { ok: false, error: 'action inconnue: ' + action }
+        return { ok: false, error: 'unknown action: ' + action }
       } catch (e) { return { ok: false, error: errText(e) } }
     };
 
@@ -6846,13 +6846,13 @@ function boot(ctx) {
       try {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
         const path = str(req.path)
-        if (path === null || path.length < 4) return { ok: false, error: 'chemin attendu' }
+        if (path === null || path.length < 4) return { ok: false, error: 'path expected' }
         if ((await cheminAutorise(path)) === false) return { ok: false, error: 'file outside the known workspaces' }
         const target = await fs.resolve(path)
         const info = await fs.stat(target).catch(() => null)
         if (!isFile(info)) return { ok: false, error: 'file not found' }
         const shellSvc = ctx.get('shell')
-        if (shellSvc === undefined || shellSvc === null) return { ok: false, error: 'service shell indisponible' }
+        if (shellSvc === undefined || shellSvc === null) return { ok: false, error: 'shell service unavailable' }
         // Recette 2026-10 : le service shell réel (dsh-bash-local, ShellExecutor)
         // expose execute() — jamais run(). L'ancien appel shellSvc.run(spec)
         // levait « shellSvc.run is not a function » et cassait reveal/delete/
@@ -6866,7 +6866,7 @@ function boot(ctx) {
             return await (handle !== null && handle !== undefined ? handle.result : null)
           }
           if (typeof shellSvc.run === 'function') return await shellSvc.run(request)
-          throw new Error('service shell sans execute ni run')
+          throw new Error('shell service has neither execute nor run')
         }
         // H-03 (recette 03/10) : entre doubles quotes, $(…) et `…` S'exécutent —
         // l'échappement de " seul ne protège rien. Quote POSIX à la q() du bloc
@@ -6874,7 +6874,7 @@ function boot(ctx) {
         const q2 = (p) => "'" + String(p).replace(/'/g, "'\\''") + "'"
         const resReveal = await shellRun({ command: 'open -R ' + q2(path), timeoutMs: 8000, stdoutMaxBytes: 4096 })
         const codeReveal = (resReveal !== null && resReveal !== undefined && typeof resReveal.exitCode === 'number') ? resReveal.exitCode : null
-        if (codeReveal !== null && codeReveal !== 0) return { ok: false, error: 'Finder indisponible (exit ' + codeReveal + ')' }
+        if (codeReveal !== null && codeReveal !== 0) return { ok: false, error: 'Finder unavailable (exit ' + codeReveal + ')' }
         return { ok: true }
       } catch (e) { return { ok: false, error: errText(e) } }
     };
@@ -6955,7 +6955,7 @@ function boot(ctx) {
         const prompt = str(s.prompt) !== null ? String(s.prompt).trim().slice(0, 2000) : ''
         if (title === '' && prompt === '') continue
         const icon = kbStarterIconOf(s.icon)
-        if (icon === null) return { error: 'icone de suggestion refusee (image > 256 Ko, ou ni nom, ni emoji, ni URL d image)' }
+        if (icon === null) return { error: 'suggestion icon refused (image > 256 KB, or neither a name, nor an emoji, nor an image URL)' }
         out.push({ icon, title, description, prompt, color: kbStarterColorOf(s.color) })
         if (out.length >= KB_STARTERS_MAX) break
       }
@@ -6977,12 +6977,12 @@ function boot(ctx) {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
         const rootId = str(req.rootId)
         const kyberId = str(req.kyberId)
-        if (rootId === null || kyberId === null) return { ok: false, error: 'rootId et kyberId requis' }
+        if (rootId === null || kyberId === null) return { ok: false, error: 'rootId and kyberId required' }
         if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'invalid Agent Team id' }
         const rootsUi = await rootsFor()
         let rootPath = null
         for (const r of rootsUi) { if (r.id === rootId) rootPath = r.path }
-        if (rootPath === null) return { ok: false, error: 'racine inconnue' }
+        if (rootPath === null) return { ok: false, error: 'unknown root' }
         const name = typeof req.name === 'string' ? req.name.trim().slice(0, 60) : ''
         const icon = typeof req.icon === 'string' ? req.icon.trim().slice(0, 24) : ''
         const color = typeof req.color === 'string' && /^#[0-9a-fA-F]{6}$/.test(req.color.trim()) === true ? req.color.trim().toLowerCase() : ''
@@ -7056,11 +7056,11 @@ function boot(ctx) {
       try {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
         const path = str(req.path)
-        if (path === null || path.length < 10 || path.indexOf('/kyber.yml') !== path.length - '/kyber.yml'.length) return { ok: false, error: 'chemin kyber.yml attendu' }
+        if (path === null || path.length < 10 || path.indexOf('/kyber.yml') !== path.length - '/kyber.yml'.length) return { ok: false, error: 'kyber.yml path expected' }
         const roots = await rootsFor()
         let known = false
         for (const r of roots) { if (path.indexOf(r.path + '/') === 0) known = true }
-        if (known === false) return { ok: false, error: 'chemin hors des racines kybers connues' }
+        if (known === false) return { ok: false, error: 'path outside the known kybers roots' }
         const target = await fs.resolve(path)
         const text = await fs.readText(target)
         return { ok: true, path, text }
@@ -7070,7 +7070,7 @@ function boot(ctx) {
       try {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
         const path = str(req.path)
-        if (path === null || path.length < 10 || path.indexOf('/kyber.yml') !== path.length - '/kyber.yml'.length) return { ok: false, error: 'chemin kyber.yml attendu' }
+        if (path === null || path.length < 10 || path.indexOf('/kyber.yml') !== path.length - '/kyber.yml'.length) return { ok: false, error: 'kyber.yml path expected' }
         const rootsAll = await rootsFor()
         let under = false
         let underRoot = null
@@ -7151,7 +7151,7 @@ function boot(ctx) {
       try {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
         const name = typeof req.name === 'string' ? req.name.trim().slice(0, 60) : ''
-        if (name.length === 0) return { ok: false, error: 'nom requis' }
+        if (name.length === 0) return { ok: false, error: 'name required' }
         const wantId = typeof req.id === 'string' && req.id.trim().length > 0 ? slugify(req.id) : slugify(name)
         // `home: true` (the first-run starter kit) writes into DSH's own home, not into the project the person is working in.
         const rootsAll = await rootsFor()
@@ -7203,7 +7203,7 @@ function boot(ctx) {
             exists = info !== undefined && info !== null
           } catch (e) { exists = false }
           if (exists === false) break
-          if (n > 50) return { ok: false, error: 'trop de collisions de nom' }
+          if (n > 50) return { ok: false, error: 'too many name collisions' }
           id = wantId + '-' + n
           path = joinPath(joinPath(targetRoot, id), 'kyber.yml')
           n += 1
@@ -7273,22 +7273,22 @@ function boot(ctx) {
         const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
         const rootId = str(req.rootId)
         const kyberId = str(req.kyberId)
-        if (rootId === null || kyberId === null) return { ok: false, error: 'rootId et kyberId requis' }
+        if (rootId === null || kyberId === null) return { ok: false, error: 'rootId and kyberId required' }
         if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'invalid Agent Team id' }
         const dataUrl = str(req.dataUrl)
-        if (dataUrl === null || dataUrl.length < 32) return { ok: false, error: 'image requise' }
+        if (dataUrl === null || dataUrl.length < 32) return { ok: false, error: 'image required' }
         const m = /^data:([^;,]+);base64,([A-Za-z0-9+/=\s]+)$/.exec(dataUrl)
-        if (m === null) return { ok: false, error: 'format d image invalide (data URL base64 attendue)' }
+        if (m === null) return { ok: false, error: 'invalid image format (base64 data URL expected)' }
         const ext = extForMime(m[1])
-        if (ext === null) return { ok: false, error: 'type d image non supporte (png, jpg, webp, gif, svg)' }
+        if (ext === null) return { ok: false, error: 'unsupported image type (png, jpg, webp, gif, svg)' }
         const b64 = m[2].replace(/\s+/g, '')
         const bytes = Buffer.from(b64, 'base64')
         if (bytes.length === 0) return { ok: false, error: 'empty image' }
-        if (bytes.length > 3145728) return { ok: false, error: 'image trop volumineuse (max 3 Mo)' }
+        if (bytes.length > 3145728) return { ok: false, error: 'image too large (max 3 MB)' }
         const rootsUi = await rootsFor()
         let rootPath = null
         for (const r of rootsUi) { if (r.id === rootId) rootPath = r.path }
-        if (rootPath === null) return { ok: false, error: 'racine inconnue' }
+        if (rootPath === null) return { ok: false, error: 'unknown root' }
         const rel = avatarRelFor(ext, kyberId)
         await writeTextScoped(rootPath, joinPath(rootPath, rel), b64)
         const uiPath = joinPath(rootPath, '.kyber-ui.json')
@@ -7391,22 +7391,22 @@ function boot(ctx) {
       try {
         const req = (body !== null && body !== undefined && typeof body === 'object') ? body : {}
         const rootPath = await kbSampleRoot(req.rootId)
-        if (rootPath === null) return { ok: false, error: 'racine inconnue' }
+        if (rootPath === null) return { ok: false, error: 'unknown root' }
         const kyberId = str(req.kyberId)
         if (kyberId === null || /^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'invalid Agent Team id' }
         const name = String(str(req.name) !== null ? req.name : '').trim()
-        if (name.length < 1 || name.length > 40) return { ok: false, error: 'nom de voix requis (1 a 40 caracteres)' }
-        if (req.consent !== true) return { ok: false, error: 'consentement explicite requis' }
+        if (name.length < 1 || name.length > 40) return { ok: false, error: 'voice name required (1 to 40 characters)' }
+        if (req.consent !== true) return { ok: false, error: 'explicit consent required' }
         const raw = str(req.sample)
-        if (raw === null) return { ok: false, error: 'echantillon manquant' }
+        if (raw === null) return { ok: false, error: 'sample missing' }
         const m = /^data:(audio\/[a-z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/i.exec(raw)
-        if (m === null) return { ok: false, error: 'audio attendu en data URL base64' }
+        if (m === null) return { ok: false, error: 'audio expected as a base64 data URL' }
         const ext = kbSampleExtFor(m[1])
-        if (ext === null) return { ok: false, error: 'format audio non supporte (wav, mp3, m4a, webm, ogg, flac)' }
+        if (ext === null) return { ok: false, error: 'unsupported audio format (wav, mp3, m4a, webm, ogg, flac)' }
         const b64 = m[2].replace(/\s+/g, '')
         const bytes = Buffer.from(b64, 'base64')
         if (bytes.length === 0) return { ok: false, error: 'empty audio' }
-        if (bytes.length > KB_SAMPLE_MAX_BYTES) return { ok: false, error: 'echantillon trop long (max 10 Mo)' }
+        if (bytes.length > KB_SAMPLE_MAX_BYTES) return { ok: false, error: 'sample too long (max 10 MB)' }
         const voiceId = 'v-' + Date.now().toString(36) + '-' + randomUUID().replace(/-/g, '').slice(0, 8)
         const rel = kbSampleFileRel(kyberId, voiceId, ext)
         await writeTextScoped(rootPath, joinPath(rootPath, rel), b64)
@@ -7432,7 +7432,7 @@ function boot(ctx) {
     const kbSampleList = async (query) => {
       try {
         const rootPath = await kbSampleRoot(query.get('rootId'))
-        if (rootPath === null) return { ok: false, error: 'racine inconnue' }
+        if (rootPath === null) return { ok: false, error: 'unknown root' }
         const kyberId = str(query.get('kyberId'))
         const out = []
         for (const v of await kbSampleIndexRead(rootPath)) {
@@ -7478,13 +7478,13 @@ function boot(ctx) {
     const kbSampleDelete = async (query) => {
       try {
         const rootPath = await kbSampleRoot(query.get('rootId'))
-        if (rootPath === null) return { ok: false, error: 'racine inconnue' }
+        if (rootPath === null) return { ok: false, error: 'unknown root' }
         const voiceId = str(query.get('voiceId'))
-        if (voiceId === null) return { ok: false, error: 'voiceId requis' }
+        if (voiceId === null) return { ok: false, error: 'voiceId required' }
         const keep = []
         let removed = false
         for (const v of await kbSampleIndexRead(rootPath)) { if (String(v.id) === voiceId) removed = true; else keep.push(v) }
-        if (removed === false) return { ok: false, error: 'voix inconnue' }
+        if (removed === false) return { ok: false, error: 'unknown voice' }
         await kbSampleIndexWrite(rootPath, keep)
         return { ok: true, removed: voiceId, fileKept: true }
       } catch (e) { return { ok: false, error: errText(e) } }
@@ -7568,12 +7568,12 @@ function boot(ctx) {
       const req = (args !== null && args !== undefined && typeof args === 'object') ? args : {}
       const rootId = str(req.rootId)
       const kyberId = str(req.kyberId)
-      if (rootId === null || kyberId === null) return { ok: false, error: 'rootId et kyberId requis' }
+      if (rootId === null || kyberId === null) return { ok: false, error: 'rootId and kyberId required' }
       if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'invalid Agent Team id' }
       const rootsUi = await rootsFor()
       let rootPath = null
       for (const r of rootsUi) { if (r.id === rootId) rootPath = r.path }
-      if (rootPath === null) return { ok: false, error: 'racine inconnue' }
+      if (rootPath === null) return { ok: false, error: 'unknown root' }
       const side = await kbSidecarRead(rootPath)
       const entry = (side.data[kyberId] !== null && side.data[kyberId] !== undefined && typeof side.data[kyberId] === 'object') ? side.data[kyberId] : {}
       const memo = (entry.portraitSheet !== null && entry.portraitSheet !== undefined && typeof entry.portraitSheet === 'object') ? entry.portraitSheet : null
@@ -7873,12 +7873,12 @@ function boot(ctx) {
       const rootId = str(body.rootId)
       const kyberId = str(body.kyberId)
       const memberId = str(body.memberId)
-      if (rootId === null || kyberId === null || memberId === null) return { ok: false, error: 'rootId, kyberId et memberId requis' }
-      if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false || /^[a-z0-9][a-z0-9-]{0,63}$/.test(memberId) === false) return { ok: false, error: 'identifiant invalide' }
+      if (rootId === null || kyberId === null || memberId === null) return { ok: false, error: 'rootId, kyberId and memberId required' }
+      if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false || /^[a-z0-9][a-z0-9-]{0,63}$/.test(memberId) === false) return { ok: false, error: 'invalid identifier' }
       const rootsUi = await rootsFor()
       let rootPath = null
       for (const r of rootsUi) { if (r.id === rootId) rootPath = r.path }
-      if (rootPath === null) return { ok: false, error: 'racine inconnue' }
+      if (rootPath === null) return { ok: false, error: 'unknown root' }
       const look = str(body.look)
       const model = str(body.model) !== null ? str(body.model) : kbTeamImageModel()
       const r = await kbPortraitOne(rootPath, kyberId, memberId, look, model)
@@ -7938,12 +7938,12 @@ function boot(ctx) {
     const kbModelsAudio = createModelsAudio({ providers: kbModelsProviders, credential: async (ref) => (await kbVoiceKey(ref)).key, api: createProbe() })
     const kbVoiceDecodeAudio = (value) => {
       const raw = str(value)
-      if (raw === null) return { error: 'audio manquant' }
+      if (raw === null) return { error: 'audio missing' }
       const m = /^data:(audio\/[a-z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/i.exec(raw)
-      if (m === null) return { error: 'audio attendu en data URL base64 (audio/wav)' }
+      if (m === null) return { error: 'audio expected as a base64 data URL (audio/wav)' }
       const bytes = Buffer.from(m[2].replace(/\s+/g, ''), 'base64')
       if (bytes.length === 0) return { error: 'empty audio' }
-      if (bytes.length > KB_VOICE_MAX_BYTES) return { error: 'audio trop long (max 10 Mo, ~5 min)' }
+      if (bytes.length > KB_VOICE_MAX_BYTES) return { error: 'audio too long (max 10 MB, ~5 min)' }
       return { dataUrl: raw, mime: m[1].toLowerCase(), bytes }
     }
     // Dernier état connu de la dictée. `/voice/config` ne disait que « la clé se
@@ -7956,7 +7956,7 @@ function boot(ctx) {
         const req = (args !== null && args !== undefined && typeof args === 'object') ? args : {}
         const audio = kbVoiceDecodeAudio(req.audio)
         if (audio.error !== undefined) return { ok: false, error: audio.error }
-        if (typeof fetch !== 'function') return { ok: false, error: 'fetch global indisponible dans ce runtime' }
+        if (typeof fetch !== 'function') return { ok: false, error: 'global fetch unavailable in this runtime' }
         const prof = kbVoiceProfile()
         const cred = await kbVoiceKey(prof.ref)
         if (cred.key === null) return { ok: false, error: cred.error, needsKey: true, ref: prof.ref }
@@ -8009,7 +8009,7 @@ function boot(ctx) {
           if (text === null) {
             const msg = json !== null && json !== undefined ? (str(json.message) || str(json.code)) : null
             lastMessage = msg
-            firstError = msg !== null ? msg : ('HTTP ' + res.status + ' (enveloppe native' + (raw.length === 0 ? ', empty body' : ', ' + raw.slice(0, 120)) + ')')
+            firstError = msg !== null ? msg : ('HTTP ' + res.status + ' (native envelope' + (raw.length === 0 ? ', empty body' : ', ' + raw.slice(0, 120)) + ')')
           }
         } catch (e) { firstError = errText(e) }
         if (text === null) {
@@ -8025,7 +8025,7 @@ function boot(ctx) {
             text = pickText(json)
             if (text === null && firstError === null) {
               const err = json !== null && json !== undefined ? json.error : null
-              firstError = (err !== null && err !== undefined && str(err.message) !== null) ? String(err.message) : ('HTTP ' + res.status + ' (compatible OpenAI)')
+              firstError = (err !== null && err !== undefined && str(err.message) !== null) ? String(err.message) : ('HTTP ' + res.status + ' (OpenAI-compatible)')
             }
           } catch (e) { if (firstError === null) firstError = errText(e) }
         }
@@ -8177,7 +8177,7 @@ function boot(ctx) {
               const derniere = lignes.length > 0 ? lignes[lignes.length - 1] : ''
               return derniere.length > 0 ? derniere.slice(0, 200) : errText(err).slice(0, 200)
             }
-            fin({ ok: false, code: typeof err.code === 'number' ? err.code : null, out: outText, err: errText2.slice(0, 2000), error: killed ? 'moteur trop lent (' + limit + ' ms)' : utile() })
+            fin({ ok: false, code: typeof err.code === 'number' ? err.code : null, out: outText, err: errText2.slice(0, 2000), error: killed ? 'engine too slow (' + limit + ' ms)' : utile() })
             return
           }
           fin({ ok: true, code: 0, out: outText, err: errText2 })
@@ -8235,11 +8235,11 @@ function boot(ctx) {
       if (typeof p.speed === 'number' && p.speed >= 0.5 && p.speed <= 1.5) next.speed = Math.round(p.speed * 20) / 20
       if (typeof p.autoRead === 'boolean') next.autoRead = p.autoRead
       const path = await kbTtsConfigPath()
-      if (path === null) return { ok: false, error: 'dossier de configuration introuvable (~/.dsh introuvable)' }
+      if (path === null) return { ok: false, error: 'configuration folder not found (~/.dsh not found)' }
       const dir = await kbTtsDirOf(null)
       if (kbTtsMkdir(dir) === false) return { ok: false, error: 'folder cannot be created: ' + dir }
       const wrote = await kbTtsWriteText(path, JSON.stringify(next, null, 2) + String.fromCharCode(10))
-      if (wrote === false) return { ok: false, error: 'ecriture du reglage refusee' }
+      if (wrote === false) return { ok: false, error: 'setting write refused' }
       return { ok: true, config: next }
     }
 
@@ -8399,7 +8399,7 @@ function boot(ctx) {
     }
     const kbTtsEdgeVoices = async () => {
       const dir = await kbTtsDirOf(null)
-      if (dir === null) return { voices: KB_TTS_EDGE_FALLBACK, cached: false, note: 'catalogue reduit (dossier de cache introuvable)' }
+      if (dir === null) return { voices: KB_TTS_EDGE_FALLBACK, cached: false, note: 'reduced catalogue (cache folder not found)' }
       const cachePath = joinPath(dir, 'edge-voices.json')
       const raw = await kbTtsReadText(cachePath)
       if (raw !== null && raw !== '') {
@@ -8419,7 +8419,7 @@ function boot(ctx) {
           if (parsed !== null && Array.isArray(parsed) === true && parsed.length > 0) got = parsed
         }
       }
-      if (got === null) return { voices: KB_TTS_EDGE_FALLBACK, cached: false, note: 'liste complete injoignable : catalogue reduit a 9 voix' }
+      if (got === null) return { voices: KB_TTS_EDGE_FALLBACK, cached: false, note: 'full list unreachable: catalogue reduced to 9 voices' }
       if (kbTtsMkdir(dir) === true) {
         try { writeFileSync(cachePath, JSON.stringify({ at: Date.now(), voices: got })) } catch (e) { /* cache optionnel */ }
       }
@@ -8440,29 +8440,29 @@ function boot(ctx) {
         const item = { id: cat.id, name: cat.name, kind: cat.kind, price: cat.price, privacy: cat.privacy, ready: false, reason: null, voices: [], langs: null, size: null, sizeBytes: 0, note: null }
         if (cat.id === 'say') {
           item.ready = isMac === true && sayVoices.length > 0
-          item.reason = item.ready === true ? null : (isMac === true ? 'commande say muette' : 'reserve a macOS')
+          item.reason = item.ready === true ? null : (isMac === true ? 'the say command is silent' : 'macOS only')
           item.voices = sayVoices
-          item.size = '0 Mo'
+          item.size = '0 MB'
         } else if (cat.id === 'piper') {
           item.voices = piperVoices
           item.ready = piperVoices.length > 0 && piperOk === true
-          item.reason = piperVoices.length === 0 ? 'aucun modele .onnx dans ~/.dsh/kybers/tts/piper' : (piperOk === true ? null : 'module python piper absent')
+          item.reason = piperVoices.length === 0 ? 'no .onnx model in the Piper folder' : (piperOk === true ? null : 'python module piper missing')
           if (piperVoices.length > 0) {
             let bytes = 0
             for (const v of piperVoices) { try { const st = await fs.stat(await fs.resolve(joinPath(await kbTtsDirOf('piper'), v.id))); if (st !== null && typeof st.size === 'number') bytes += st.size } catch (e) { /* taille inconnue */ } }
-            item.size = Math.round(bytes / 1048576) + ' Mo'
+            item.size = Math.round(bytes / 1048576) + ' MB'
             item.sizeBytes = bytes
           }
         } else if (cat.id === 'supertonic') {
           item.ready = superOk === true
-          item.reason = item.ready === true ? null : 'module python supertonic absent'
+          item.reason = item.ready === true ? null : 'python module supertonic missing'
           item.langs = KB_TTS_SUPERTONIC_LANGS
           item.voices = ['F1', 'F2', 'F3', 'F4', 'F5', 'M1', 'M2', 'M3', 'M4', 'M5'].map((v) => ({ id: v, label: v + ((v.charAt(0) === 'F') ? ' · feminine' : ' · masculine'), lang: '' }))
           // Mesure et non constante : le cache des poids peut grandir.
           const cachePoids = await kbTtsDu(joinPath(joinPath(homedir(), '.cache'), 'supertonic3'))
           item.sizeBytes = cachePoids
-          item.size = cachePoids > 0 ? Math.round(cachePoids / 1048576) + ' Mo' : null
-          item.note = 'voix multilingues : la langue se choisit separement'
+          item.size = cachePoids > 0 ? Math.round(cachePoids / 1048576) + ' MB' : null
+          item.note = 'multilingual voices: the language is chosen separately'
         } else if (cat.id === 'models') {
           // The speaking models of the providers already set up in Models: one "voice" per model. No installation, no new key.
           const found = []
@@ -8470,15 +8470,15 @@ function boot(ctx) {
           item.voices = found
           item.ready = found.length > 0
           item.reason = found.length > 0 ? null : 'no voice model among your providers'
-          item.size = '0 Mo'
+          item.size = '0 MB'
           item.sizeBytes = 0
           item.note = 'uses the key already set for the model\'s provider'
         } else if (cat.id === 'edge') {
           item.ready = edgeOk === true
-          item.reason = item.ready === true ? null : 'module python edge_tts absent'
+          item.reason = item.ready === true ? null : 'python module edge_tts missing'
           item.voices = edgeList.voices
           item.sizeBytes = 0
-          item.size = '0 Mo'
+          item.size = '0 MB'
           item.note = edgeList.note
         }
         out.push(item)
@@ -8503,7 +8503,7 @@ function boot(ctx) {
       return { text: t, truncated: truncated }
     }
     const kbTtsTextFromMessage = async (sessionId, messageId) => {
-      if (persistence === undefined || persistence === null || typeof persistence.open !== 'function') return { ok: false, error: 'sessionPersistence indisponible' }
+      if (persistence === undefined || persistence === null || typeof persistence.open !== 'function') return { ok: false, error: 'sessionPersistence unavailable' }
       let events = []
       try {
         const handle = await persistence.open(sessionId, 'read')
@@ -8513,7 +8513,7 @@ function boot(ctx) {
         } finally {
           try { if (handle !== null && handle !== undefined && typeof handle.close === 'function') await handle.close() } catch (e) { /* deja ferme */ }
         }
-      } catch (e) { return { ok: false, error: 'thread illisible : ' + errText(e) } }
+      } catch (e) { return { ok: false, error: 'unreadable thread: ' + errText(e) } }
       let found = null
       for (const ev of events) {
         if (ev === null || ev === undefined || ev.type !== 'assistant/message') continue
@@ -8531,7 +8531,7 @@ function boot(ctx) {
         found = parts.join(String.fromCharCode(10))
       }
       if (found === null) return { ok: false, error: 'message not found in this thread' }
-      if (found.trim() === '') return { ok: false, error: 'ce message ne contient pas de texte a lire' }
+      if (found.trim() === '') return { ok: false, error: 'this message holds no text to read' }
       return { ok: true, text: found }
     }
 
@@ -8578,7 +8578,7 @@ function boot(ctx) {
           else { try { writeFileSync(rawFile, made.audio); res = { ok: true } } catch (e) { res = { ok: false, error: errText(e) } } }
         } else {
           const helper = await kbTtsHelperPath()
-          if (helper === null) return { ok: false, error: 'script des moteurs non ecrit' }
+          if (helper === null) return { ok: false, error: 'engines script not written' }
           const argv = [helper, '--engine', engine, '--voice', String(voiceId === null ? '' : voiceId), '--lang', String(lang), '--text-file', textFile, '--out', rawFile]
           if (engine === 'edge') argv.push('--rate', kbTtsSpeedToRate(speed, 'edge'))
           if (engine === 'piper') argv.push('--length-scale', String(1 / ((typeof speed === 'number' && speed > 0) ? speed : 1)))
@@ -8593,13 +8593,13 @@ function boot(ctx) {
       }
       if (res === null || res.ok !== true) {
         try { rmSync(rawFile, { force: true }) } catch (e) { /* rien a effacer */ }
-        return { ok: false, error: (res !== null && res !== undefined && res.error !== undefined) ? res.error : 'moteur en echec' }
+        return { ok: false, error: (res !== null && res !== undefined && res.error !== undefined) ? res.error : 'engine failed' }
       }
       let info = null
       try { info = statSync(rawFile) } catch (e) { info = null }
       if (info === null || info.size < 512) {
         try { rmSync(rawFile, { force: true }) } catch (e) { /* rien a effacer */ }
-        return { ok: false, error: 'le moteur n a produit aucun son (' + (info === null ? 'file missing' : info.size + ' octets') + ')' }
+        return { ok: false, error: 'the engine produced no sound (' + (info === null ? 'file missing' : info.size + ' bytes') + ')' }
       }
       // Conversion en m4a : le navigateur la lit partout et le poids est divise par 5.
       const conv = await kbTtsExec('afconvert', ['-f', 'm4af', '-d', 'aac', '-b', '48000', '-c', '1', rawFile, destM4a], { timeoutMs: 20000 })
@@ -8607,7 +8607,7 @@ function boot(ctx) {
       if (conv.ok !== true) {
         // Sans convertisseur, on rend le fichier brut plutôt que rien : le wav est
         // lourd mais jouable, l'utilisateur a du son.
-        return { ok: false, error: 'conversion m4a refusee : ' + String(conv.error === undefined ? conv.err : conv.error).slice(0, 160), rawFile: rawFile, ms: Date.now() - started }
+        return { ok: false, error: 'm4a conversion refused: ' + String(conv.error === undefined ? conv.err : conv.error).slice(0, 160), rawFile: rawFile, ms: Date.now() - started }
       }
       return { ok: true, ms: Date.now() - started }
     }
@@ -8635,7 +8635,7 @@ function boot(ctx) {
         } else {
           const sessionId = str(req.sessionId)
           const messageId = str(req.messageId)
-          if (sessionId === null || messageId === null) return { ok: false, error: 'texte ou couple sessionId+messageId requis' }
+          if (sessionId === null || messageId === null) return { ok: false, error: 'text or sessionId+messageId pair required' }
           source = await kbTtsTextFromMessage(sessionId, messageId)
           if (source.ok !== true) return source
         }
@@ -8656,14 +8656,14 @@ function boot(ctx) {
         const attempts = []
         let done = null
         for (const id of chain) {
-          if (ready[id] !== true && id !== 'say') { attempts.push({ engine: id, error: 'moteur indisponible' }); continue }
-          if (id === 'say' && process.platform !== 'darwin') { attempts.push({ engine: id, error: 'say reserve a macOS' }); continue }
+          if (ready[id] !== true && id !== 'say') { attempts.push({ engine: id, error: 'engine unavailable' }); continue }
+          if (id === 'say' && process.platform !== 'darwin') { attempts.push({ engine: id, error: 'say is macOS only' }); continue }
           const voices = byId[id] === undefined ? [] : byId[id].voices
           const voiceId = kbTtsPickVoice(id, voices, lang, wantedVoice)
           const cacheDir = await kbTtsCacheDir()
           if (cacheDir === null) return { ok: false, error: 'cache folder cannot be created' }
           const key = kbTtsHash([id, voiceId, lang, String(speed), cleaned.text].join('|'))
-          if (key === null) return { ok: false, error: 'empreinte de cache indisponible' }
+          if (key === null) return { ok: false, error: 'cache fingerprint unavailable' }
           const file = joinPath(cacheDir, key + '.m4a')
           let cached = false
           try { const st = statSync(file); cached = st.size > 512 } catch (e) { cached = false }
@@ -8708,7 +8708,7 @@ function boot(ctx) {
         }
         if (done === null) {
           const detail = attempts.map((a) => a.engine + ' : ' + a.error).join(' · ')
-          return { ok: false, error: 'aucun moteur n a pu lire le texte' + (detail === '' ? '' : ' (' + detail + ')'), attempts: attempts }
+          return { ok: false, error: 'no engine could read the text' + (detail === '' ? '' : ' (' + detail + ')'), attempts: attempts }
         }
         return done
       } catch (e) { return { ok: false, error: errText(e) } }
@@ -8807,7 +8807,7 @@ function boot(ctx) {
       const chunks = []
       for await (const chunk of req) {
         size += chunk.length
-        if (size > cap) throw new Error('corps de requete trop volumineux')
+        if (size > cap) throw new Error('request body too large')
         chunks.push(chunk)
       }
       if (chunks.length === 0) return {}
@@ -8854,36 +8854,36 @@ function boot(ctx) {
       // Every route but the public ones (the website widget and its API, the webhook receiver): see scripts/test-route-hosts.mjs.
       webServerSvc = kbFenced(webServerSvc, (route) => /^\/kybernos\/(?:widget\.js|widget\/api\/[a-z-]+|hooks)$/.test(String(route.path)))
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/load', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         sendJson(res, 200, await loadKybers({ sessionId: queryOf(req).get('sessionId') }))
       } }), 'kybernos: route load')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/aa', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         sendJson(res, 200, await readAaBenchmarks())
       } }), 'kybernos: route aa')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/yaml', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         sendJson(res, 200, await readYaml({ path: queryOf(req).get('path') }))
       } }), 'kybernos: route yaml')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/save', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, await saveKyber(await readJsonBody(req)))
       } }), 'kybernos: route save')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/create', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, await createKyber(await readJsonBody(req)))
       } }), 'kybernos: route create')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/ui-save', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         // 1 Mo : la fiche porte jusqu'à 10 suggestions, chacune pouvant avoir sa
         // vignette en data URL (bornée à 64 Ko par saveUi). Le défaut de 64 Ko
         // faisait échouer l'enregistrement dès la première image. Un corps trop
         // gros rend un refus lisible — il ne doit pas casser la requête.
         let body = null
-        try { body = await readJsonBody(req, 1048576) } catch (e) { return sendJson(res, 413, { ok: false, error: 'corps de requete trop volumineux' }) }
+        try { body = await readJsonBody(req, 1048576) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         sendJson(res, 200, await saveUiQueuee(body))
       } }), 'kybernos: route ui-save')
       // ── Widget PUBLIC : la porte d'un kyber sur n'importe quel site ────────
@@ -8911,7 +8911,7 @@ function boot(ctx) {
         } catch (e) { try { res.writeHead(500); res.end('{}') } catch (e2) { /* socket ferme */ } }
       }
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/widget.js', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         try {
           // pluginDir (et non pluginRepoRoot) : Node réalise le chemin du module
           // à travers le lien @local/kybernos, donc pluginRepoRoot est la RACINE
@@ -8924,12 +8924,12 @@ function boot(ctx) {
             'content-length': String(bytes.length),
           })
           res.end(bytes)
-        } catch (e) { sendJson(res, 404, { ok: false, error: 'widget.js absent' }) }
+        } catch (e) { sendJson(res, 404, { ok: false, error: 'widget.js missing' }) }
       } }), 'kybernos: route widget public')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/widget/api/config', handler: async (req, res) => {
         if (req.method === 'GET') {
           const team = String(queryOf(req).get('team') || '')
-          if (team === '') return sendJsonPublic(res, 400, { ok: false, error: 'team attendu' })
+          if (team === '') return sendJsonPublic(res, 400, { ok: false, error: 'team expected' })
           const store = await readWidgetStore()
           for (const kyberId of Object.keys(store)) {
             const items = Array.isArray(store[kyberId] && store[kyberId].items) ? store[kyberId].items : []
@@ -8950,14 +8950,14 @@ function boot(ctx) {
               footer: typeof w.footer === 'string' ? w.footer : '',
             })
           }
-          return sendJsonPublic(res, 404, { ok: false, error: 'widget inconnu' })
+          return sendJsonPublic(res, 404, { ok: false, error: 'unknown widget' })
         }
-        if (req.method !== 'POST') return sendJsonPublic(res, 405, { ok: false, error: 'GET ou POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJsonPublic(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJsonPublic(res, 405, { ok: false, error: 'GET or POST expected' })
+        if (sameOriginStrict(req) === false) return sendJsonPublic(res, 403, { ok: false, error: 'origin refused' })
         let body = null
-        try { body = await readJsonBody(req) } catch (e) { return sendJsonPublic(res, 400, { ok: false, error: 'corps JSON invalide' }) }
+        try { body = await readJsonBody(req) } catch (e) { return sendJsonPublic(res, 400, { ok: false, error: 'invalid JSON body' }) }
         const kyberId = body && typeof body.kyberId === 'string' ? body.kyberId : ''
-        if (kyberId === '' || Array.isArray(body.items) !== true) return sendJsonPublic(res, 400, { ok: false, error: 'kyberId et items attendus' })
+        if (kyberId === '' || Array.isArray(body.items) !== true) return sendJsonPublic(res, 400, { ok: false, error: 'kyberId and items expected' })
         const store = await readWidgetStore()
         store[kyberId] = {
           name: typeof body.kyberName === 'string' ? body.kyberName : '',
@@ -8969,17 +8969,17 @@ function boot(ctx) {
           mkdirSync(nodePathJoin(p, '..'), { recursive: true })
           writeFileSync(p, JSON.stringify(store, null, 2) + '\n')
           return sendJsonPublic(res, 200, { ok: true, kyberId: kyberId, widgets: store[kyberId].items.length })
-        } catch (e) { return sendJsonPublic(res, 500, { ok: false, error: 'ecriture impossible' }) }
+        } catch (e) { return sendJsonPublic(res, 500, { ok: false, error: 'cannot write' }) }
       } }), 'kybernos: route widget api config')
       // ── Conversations d'un kyber : index DSH + (plus tard) flux widget ─────
       // v1 : la source DSH vient de kybers/<id>/sessions/ (écrit par active-set)
       // ; les conversations visiteurs du widget s'ajouteront quand le pont sera
       // branché (mêmes dossiers sous kybernos-widget/conversations/<kyberId>/).
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/widget/api/conversations', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         const kyberId = String(queryOf(req).get('kyberId') || '')
-        if (kyberId === '' || /^[A-Za-z0-9][A-Za-z0-9._-]{0,60}$/.test(kyberId) === false) return sendJson(res, 400, { ok: false, error: 'kyberId attendu' })
+        if (kyberId === '' || /^[A-Za-z0-9][A-Za-z0-9._-]{0,60}$/.test(kyberId) === false) return sendJson(res, 400, { ok: false, error: 'kyberId expected' })
         const dsh = []
         try {
           const home = await dshHome()
@@ -9028,10 +9028,10 @@ function boot(ctx) {
         }
         if (req.method === 'POST') {
           let body = null
-          try { body = await readJsonBody(req) } catch (e) { return sendJsonPublic(res, 400, { ok: false, error: 'corps JSON invalide' }) }
+          try { body = await readJsonBody(req) } catch (e) { return sendJsonPublic(res, 400, { ok: false, error: 'invalid JSON body' }) }
           const text = body && typeof body.text === 'string' ? body.text.trim().slice(0, 2000) : ''
           const team = body && typeof body.team === 'string' ? body.team.slice(0, 60) : ''
-          if (text === '' || team === '') return sendJsonPublic(res, 400, { ok: false, error: 'team et text attendus' })
+          if (text === '' || team === '') return sendJsonPublic(res, 400, { ok: false, error: 'team and text expected' })
           // La conversation est résolue via le widget publié : on ne crée un
           // fichier que si la porte existe et est activée.
           const store = await readWidgetStore()
@@ -9041,7 +9041,7 @@ function boot(ctx) {
             const w = items.find((x) => x && x.slug === team)
             if (w !== undefined && w !== null && w.enabled === true) { kyberId = k; break }
           }
-          if (kyberId === null) return sendJsonPublic(res, 404, { ok: false, error: 'widget inconnu ou en pause' })
+          if (kyberId === null) return sendJsonPublic(res, 404, { ok: false, error: 'widget unknown or paused' })
           const id = typeof body.conversationId === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$/.test(body.conversationId) ? body.conversationId : ('c-' + Date.now().toString(36) + '-' + randomUUID().replace(/-/g, '').slice(0, 8))
           const conv = { kyberId: kyberId, id: id }
           const visiteur = {
@@ -9052,19 +9052,19 @@ function boot(ctx) {
           await widgetConvAppend(conv, visiteur)
           return sendJsonPublic(res, 200, { ok: true, conversationId: id })
         }
-        if (req.method !== 'GET') return sendJsonPublic(res, 405, { ok: false, error: 'GET ou POST attendu' })
+        if (req.method !== 'GET') return sendJsonPublic(res, 405, { ok: false, error: 'GET or POST expected' })
         const q = queryOf(req)
         const id = String(q.get('conversation') || '')
         const team = String(q.get('team') || '')
         const after = Number(q.get('after') || '0')
-        if (id === '' || team === '' || /^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$/.test(id) === false) return sendJsonPublic(res, 400, { ok: false, error: 'team et conversation attendus' })
+        if (id === '' || team === '' || /^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$/.test(id) === false) return sendJsonPublic(res, 400, { ok: false, error: 'team and conversation expected' })
         const store = await readWidgetStore()
         let kyberId = null
         for (const k of Object.keys(store)) {
           const items = Array.isArray(store[k] && store[k].items) ? store[k].items : []
           if (items.some((x) => x && x.slug === team)) { kyberId = k; break }
         }
-        if (kyberId === null) return sendJsonPublic(res, 404, { ok: false, error: 'widget inconnu' })
+        if (kyberId === null) return sendJsonPublic(res, 404, { ok: false, error: 'unknown widget' })
         const messages = await widgetConvRead({ kyberId: kyberId, id: id })
         return sendJsonPublic(res, 200, { ok: true, conversationId: id, messages: messages.slice(Number.isFinite(after) ? Math.max(0, after) : 0) })
       } }), 'kybernos: route widget api message')
@@ -9076,12 +9076,12 @@ function boot(ctx) {
           res.writeHead(204, { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'POST, OPTIONS', 'access-control-allow-headers': 'content-type', 'access-control-max-age': '86400' })
           return res.end()
         }
-        if (req.method !== 'POST') return sendJsonPublic(res, 405, { ok: false, error: 'POST attendu' })
+        if (req.method !== 'POST') return sendJsonPublic(res, 405, { ok: false, error: 'POST expected' })
         let body = null
-        try { body = await readJsonBody(req) } catch (e) { return sendJsonPublic(res, 400, { ok: false, error: 'corps JSON invalide' }) }
+        try { body = await readJsonBody(req) } catch (e) { return sendJsonPublic(res, 400, { ok: false, error: 'invalid JSON body' }) }
         const email = body && typeof body.email === 'string' ? body.email.trim().toLowerCase().slice(0, 120) : ''
         const team = body && typeof body.team === 'string' ? body.team.slice(0, 60) : ''
-        if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) === false) return sendJsonPublic(res, 400, { ok: false, error: 'email invalide' })
+        if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) === false) return sendJsonPublic(res, 400, { ok: false, error: 'invalid email' })
         const hache = createHash('sha256').update(email).digest('hex').slice(0, 32)
         const dossier = nodePathJoin(await dshHome(), 'kybernos-widget', 'accounts')
         const fichier = nodePathJoin(dossier, hache + '.json')
@@ -9094,7 +9094,7 @@ function boot(ctx) {
         try {
           mkdirSync(dossier, { recursive: true })
           writeFileSync(fichier, JSON.stringify(compte, null, 2) + '\n')
-        } catch (e) { return sendJsonPublic(res, 500, { ok: false, error: 'ecriture impossible' }) }
+        } catch (e) { return sendJsonPublic(res, 500, { ok: false, error: 'cannot write' }) }
         return sendJsonPublic(res, 200, { ok: true, vid: compte.vid, created: Array.isArray(compte.teams) === false || compte.teams.length <= 1 })
       } }), 'kybernos: route widget api account')
       // Effacement par le visiteur de sa propre conversation (l'id de
@@ -9104,19 +9104,19 @@ function boot(ctx) {
           res.writeHead(204, { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'POST, OPTIONS', 'access-control-allow-headers': 'content-type', 'access-control-max-age': '86400' })
           return res.end()
         }
-        if (req.method !== 'POST') return sendJsonPublic(res, 405, { ok: false, error: 'POST attendu' })
+        if (req.method !== 'POST') return sendJsonPublic(res, 405, { ok: false, error: 'POST expected' })
         let body = null
-        try { body = await readJsonBody(req) } catch (e) { return sendJsonPublic(res, 400, { ok: false, error: 'corps JSON invalide' }) }
+        try { body = await readJsonBody(req) } catch (e) { return sendJsonPublic(res, 400, { ok: false, error: 'invalid JSON body' }) }
         const team = body && typeof body.team === 'string' ? body.team.slice(0, 60) : ''
         const id = body && typeof body.conversation === 'string' ? body.conversation : ''
-        if (team === '' || /^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$/.test(id) === false) return sendJsonPublic(res, 400, { ok: false, error: 'team et conversation attendus' })
+        if (team === '' || /^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$/.test(id) === false) return sendJsonPublic(res, 400, { ok: false, error: 'team and conversation expected' })
         const store = await readWidgetStore()
         let kyberId = null
         for (const k of Object.keys(store)) {
           const items = Array.isArray(store[k] && store[k].items) ? store[k].items : []
           if (items.some((x) => x && x.slug === team)) { kyberId = k; break }
         }
-        if (kyberId === null) return sendJsonPublic(res, 404, { ok: false, error: 'widget inconnu' })
+        if (kyberId === null) return sendJsonPublic(res, 404, { ok: false, error: 'unknown widget' })
         const cible = await widgetConvPath({ kyberId: kyberId, id: id })
         let parti = false
         try { unlinkSync(cible); parti = true } catch (e) { if (e && e.code !== 'ENOENT') throw e }
@@ -9124,14 +9124,14 @@ function boot(ctx) {
       } }), 'kybernos: route widget api history-delete')
       // Réponse du créateur (ou du kyber) depuis la fiche : same-origin, append.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/widget/api/reply', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         let body = null
-        try { body = await readJsonBody(req) } catch (e) { return sendJson(res, 400, { ok: false, error: 'corps JSON invalide' }) }
+        try { body = await readJsonBody(req) } catch (e) { return sendJson(res, 400, { ok: false, error: 'invalid JSON body' }) }
         const text = body && typeof body.text === 'string' ? body.text.trim().slice(0, 2000) : ''
         const id = body && typeof body.conversation === 'string' ? body.conversation : ''
         const kyberId = body && typeof body.kyberId === 'string' ? body.kyberId : ''
-        if (text === '' || id === '' || /^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$/.test(id) === false || kyberId === '') return sendJson(res, 400, { ok: false, error: 'kyberId, conversation et text attendus' })
+        if (text === '' || id === '' || /^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$/.test(id) === false || kyberId === '') return sendJson(res, 400, { ok: false, error: 'kyberId, conversation and text expected' })
         await widgetConvAppend({ kyberId: kyberId, id: id }, { role: 'kyber', text: text, at: new Date().toISOString() })
         return sendJson(res, 200, { ok: true })
       } }), 'kybernos: route widget api reply')
@@ -9160,7 +9160,7 @@ function boot(ctx) {
           const credPath = nodePathJoin(await dshHome(), '.credentials.yaml')
           const raw = readFileSync(credPath, 'utf8')
           const at = raw.indexOf('client-connection/browser-session')
-          if (at === -1) throw new Error('secret navigateur absent des credentials')
+          if (at === -1) throw new Error('browser secret missing from the credentials')
           const m = raw.slice(at).match(/secret:\s*(\S+)/)
           if (m === null) throw new Error('cookie secret not found')
           const secret = Buffer.from(m[1].replaceAll('-', '+').replaceAll('_', '/'), 'base64')
@@ -9213,7 +9213,7 @@ function boot(ctx) {
               try {
                 const cr = await kbRpc('session/create', { request: {} })
                 const sid = cr && typeof cr.sessionId === 'string' ? cr.sessionId : null
-                if (typeof sid !== 'string' || sid === '') throw new Error('sessionId absent')
+                if (typeof sid !== 'string' || sid === '') throw new Error('sessionId missing')
                 s.sessionId = sid
                 try { await setActiveKyber({ sessionId: sid, kyberId: kdir }) } catch (e2) { /* le lien mémoire reste best-effort */ }
                 sale = true
@@ -9273,20 +9273,20 @@ function boot(ctx) {
       // Routes locales MINIMALES nécessaires au watcher : son état, et les
       // demandes d'approbation de la télécommande (§3 état 5) avec leur décision.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/gateway/status', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, gatewayWatcher.etat())
       } }), 'kybernos: route gateway status')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/gateway/approvals', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, { ok: true, approvals: gatewayWatcher.demandesApprobation() })
       } }), 'kybernos: route gateway approvals')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/gateway/approvals/decision', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         let body = null
-        try { body = await readJsonBody(req) } catch (e) { return sendJson(res, 400, { ok: false, error: 'corps JSON invalide' }) }
+        try { body = await readJsonBody(req) } catch (e) { return sendJson(res, 400, { ok: false, error: 'invalid JSON body' }) }
         const rep = await gatewayWatcher.decider(
           body !== null && body !== undefined && typeof body.taskId === 'string' ? body.taskId : '',
           body !== null && body !== undefined && typeof body.decision === 'string' ? body.decision : '')
@@ -9310,7 +9310,7 @@ function boot(ctx) {
           if (dsh === null || dsh === undefined) return { ok: false, found: false, error: 'DSH home not found' }
           const root = joinPath(dsh, 'sessions')
           let workspaces = []
-          try { workspaces = readdirSync(root, { withFileTypes: true }) } catch (e) { return { ok: false, found: false, error: 'journaux illisibles' } }
+          try { workspaces = readdirSync(root, { withFileTypes: true }) } catch (e) { return { ok: false, found: false, error: 'unreadable journals' } }
           const journals = []
           for (const w of workspaces) {
             if (w === null || w === undefined || w.isDirectory() !== true) continue
@@ -9421,23 +9421,23 @@ function boot(ctx) {
         } catch (e) { return { ok: false, found: false, error: String(e !== null && e !== undefined && e.message ? e.message : e) } }
       }
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/art-origin', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
-        if (sameOriginLax(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        if (sameOriginLax(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, await artifactOrigin({ path: queryOf(req).get('path') }))
       } }), 'kybernos: route art-origin')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/art-read', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
-        if (sameOriginLax(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        if (sameOriginLax(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, await readArtifact({ path: queryOf(req).get('path') }))
       } }), 'kybernos: route art-read')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/art-previews', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, await previewArtifacts(await readJsonBody(req)))
       } }), 'kybernos: route art-previews')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/art-reveal', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, await revealArtifact(await readJsonBody(req)))
       } }), 'kybernos: route art-reveal')
       // ── vendor « technique » : three.js + le renderer 3D ──────────────────
@@ -9452,8 +9452,8 @@ function boot(ctx) {
       }
       for (const [route, [relatif, type]] of Object.entries(TECHNIQUE_FICHIERS)) {
         ctx.effect(() => webServerSvc.register({ kind: 'exact', path: route, handler: async (req, res) => {
-          if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
-          if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+          if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+          if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
           try {
             // pluginDir (et non pluginRepoRoot), comme la route widget.js : le
             // realpath du lien @local/kybernos fait pointer pluginRepoRoot sur
@@ -9467,7 +9467,7 @@ function boot(ctx) {
         } }), 'kybernos: route technique ' + relatif)
       }
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/art-raw', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         if (sameOriginLax(req) === false) { res.writeHead(403); res.end(''); return }
         try {
           const p = str(queryOf(req).get('path'))
@@ -9520,7 +9520,7 @@ function boot(ctx) {
       // caracteres, aucun chemin — pas de traversee possible. Plafond de taille,
       // images raster en ligne, tout le reste en telechargement.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/doc-raw', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         try {
           const q = queryOf(req)
           // Plafond local a la route : une piece plus lourde est refusee (413)
@@ -9604,14 +9604,14 @@ function boot(ctx) {
         } catch (e) { try { res.writeHead(500, { 'x-kb-error': errText(e).slice(0, 120) }); res.end('') } catch (e2) { /* socket ferme */ } }
       } }), 'kybernos: route doc-raw')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/art-action', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, await artifactAction(await readJsonBody(req)))
       } }), 'kybernos: route art-action')
       // ── Registre de progression des artifacts (.progress.json) ─────────
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/art-progress', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         const body = await readJsonBody(req)
         const action = str(body.action)
         // The registry belongs to the person, in the DSH home (DSH_HOME honoured): next to the plugin it was replaced by every update,
@@ -9626,7 +9626,7 @@ function boot(ctx) {
           }
           if (action === 'record') {
             const entry = body.entry
-            if (entry === null || entry === undefined || typeof entry !== 'object') return sendJson(res, 400, { ok: false, error: 'entry manquant' })
+            if (entry === null || entry === undefined || typeof entry !== 'object') return sendJson(res, 400, { ok: false, error: 'entry missing' })
             const artifactPath = str(entry.artifact) || 'unknown'
             // Utiliser le chemin comme clé d'objectif par défaut
             const goalKey = artifactPath.replace(/^.*\//, '').replace(/\.\w+$/, '')
@@ -9646,18 +9646,18 @@ function boot(ctx) {
             writeFileSync(progressFile, JSON.stringify(data, null, 2), 'utf8')
             return sendJson(res, 200, { ok: true, data: data })
           }
-          return sendJson(res, 400, { ok: false, error: 'action inconnue: ' + action })
+          return sendJson(res, 400, { ok: false, error: 'unknown action: ' + action })
         } catch (e) {
           return sendJson(res, 500, { ok: false, error: String(e.message || e) })
         }
       } }), 'kybernos: route art-progress')
       // ── Chargement d'un MiniApp (.miniapp.json) ──────────────────────────
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/art-load', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         const body = await readJsonBody(req)
         const filePath = str(body.path)
-        if (filePath === null || filePath.length === 0) return sendJson(res, 400, { ok: false, error: 'path manquant' })
+        if (filePath === null || filePath.length === 0) return sendJson(res, 400, { ok: false, error: 'path missing' })
         // Chemin CONFINÉ : relatif au dépôt du plugin, ou absolu — mais dans les
         // deux cas il doit tomber sous une racine de travail connue. Avant, la
         // concaténation `pluginDir + '/../' + filePath` laissait `../../.dsh/.env`
@@ -9666,7 +9666,7 @@ function boot(ctx) {
         const resolved = nodePathNormalize(brut)
         let autorise = false
         try { autorise = await cheminAutorise(resolved, { strict: true }) } catch (e) { autorise = false }
-        if (autorise === false) return sendJson(res, 403, { ok: false, error: 'chemin hors des racines autorisees' })
+        if (autorise === false) return sendJson(res, 403, { ok: false, error: 'path outside the allowed roots' })
         try {
           const text = readFileSync(resolved, 'utf8')
           return sendJson(res, 200, { ok: true, text: text, path: resolved })
@@ -9675,8 +9675,8 @@ function boot(ctx) {
         }
       } }), 'kybernos: route art-load')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspace-ui-save', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, await saveWorkspaceUiQueuee(await readJsonBody(req)))
       } }), 'kybernos: route workspace-ui-save')
       // ── Skills rattachées à un projet : GET lit, POST écrit la sélection ──
@@ -9685,19 +9685,19 @@ function boot(ctx) {
           const wid = str(queryOf(req).get('workspaceId'))
           return sendJson(res, 200, await readWorkspaceSkills({ workspaceId: wid }))
         }
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET ou POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, await saveWorkspaceSkills(await readJsonBody(req)))
       } }), 'kybernos: route workspace-skills')
       // ── Instructions of a workspace: a text sent with the prompt of its sessions (private store, optional AGENTS.md section) ──
       const wsInstructions = createWorkspaceInstructions({ home: dshHomeSync() })
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspace-instructions', handler: async (req, res) => {
         if (req.method === 'GET') {
-          if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+          if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
           return sendJson(res, 200, wsInstructions.get(str(queryOf(req).get('workspaceId'))))
         }
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET ou POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         const body = await readJsonBody(req)
         sendJson(res, 200, wsInstructions.set({ workspaceId: body !== null && typeof body === 'object' ? str(body.workspaceId) : null, text: body !== null && typeof body === 'object' ? body.text : undefined, alsoAgents: body !== null && typeof body === 'object' && body.alsoAgents === true }))
       } }), 'kybernos: route workspace-instructions')
@@ -9715,29 +9715,29 @@ function boot(ctx) {
       })
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/pins', handler: async (req, res) => {
         if (req.method === 'GET') return sendJson(res, 200, { ok: true, pins: pinsPayload(await readPins(), pinnedNatives()) })
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET ou POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, await savePin(await readJsonBody(req)))
       } }), 'kybernos: route pins')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/share', handler: async (req, res) => {
         if (req.method === 'GET') return sendJson(res, 200, { ok: true, shares: await readShares() })
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET ou POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, await saveShare(await readJsonBody(req)))
       } }), 'kybernos: route share')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/active-set', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, await setActiveKyber(await readJsonBody(req)))
       } }), 'kybernos: route active-set')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/project-data', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, await projectData(await readJsonBody(req)))
       } }), 'kybernos: route project-data')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/menu-save', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, await saveMenuState(await readJsonBody(req)))
       } }), 'kybernos: route menu-save')
       // ── onboarding: the state of the first-run wizard ──
@@ -9815,13 +9815,13 @@ function boot(ctx) {
         sendJson(res, 200, out)
       } }), 'kybernos: model auto-select route')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/icons', handler: (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const catalog = readIconCatalog()
         const withNodes = queryOf(req).get('nodes') === '1'
         sendJson(res, 200, { ok: true, icons: Object.keys(catalog).sort(), nodes: withNodes === true ? catalog : null })
       } }), 'kybernos: route icons')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/icon', handler: (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const name = str(queryOf(req).get('name'))
         const catalog = readIconCatalog()
         const nodes = name !== null && Object.prototype.hasOwnProperty.call(catalog, name) === true ? catalog[name] : null
@@ -9835,14 +9835,14 @@ function boot(ctx) {
       const serveVendor = (file, mime) => (req, res) => {
         // m6 : ces routes ne lisaient pas la methode — un PUT ou un DELETE
         // repondait 200 avec le fichier. Une ressource statique est GET/HEAD.
-        if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         try {
           const bytes = readFileSync(pluginDir + '/vendor/' + file)
           res.writeHead(200, { 'content-type': mime, 'cache-control': 'no-store', 'content-length': String(bytes.length) })
           res.end(req.method === 'HEAD' ? '' : bytes)
         } catch (e) {
           res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' })
-          res.end('introuvable: ' + file)
+          res.end('not found: ' + file)
         }
       }
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/vendor/xyflow.js',
@@ -9861,7 +9861,7 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/kb-places.js',
         handler: (req, res) => {
           // m6 : la methode n etait pas controlee (PUT/DELETE -> 200).
-          if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+          if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { ok: false, error: 'GET expected' })
           try {
             const src = readFileSync(pluginDir + '/kb-places.js', 'utf8')
             res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-store' })
@@ -9872,12 +9872,12 @@ function boot(ctx) {
           }
         } }), 'kybernos: route kb-places')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/avatar-save', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, await saveAvatar(await readJsonBody(req, 6291456)))
       } }), 'kybernos: route avatar-save')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/avatar', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const out = await readAvatar(queryOf(req))
         if (out === null || out.bytes.length === 0) { res.writeHead(404); res.end(''); return }
         try {
@@ -9888,12 +9888,12 @@ function boot(ctx) {
       // Visages d'équipe : UN appel image (planche deux sections) puis découpe
       // locale — la route écrit l'avatar d'équipe et un avatar par rôle.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/team-portraits', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, await teamPortraits(await readJsonBody(req, 6291456)))
       } }), 'kybernos: route team-portraits')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/member-avatar', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const out = await readMemberAvatar(queryOf(req))
         if (out === null || out.bytes.length === 0) { res.writeHead(404); res.end(''); return }
         try {
@@ -9903,24 +9903,24 @@ function boot(ctx) {
       } }), 'kybernos: route member-avatar')
       // Un portrait seul : un appel image (~65 s), la scène d'équipe n'est pas relue.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/member-portrait', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) !== true) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) !== true) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         const body = await readJsonBody(req, 262144)
-        if (body === null || typeof body !== 'object') return sendJson(res, 400, { ok: false, error: 'corps JSON requis' })
+        if (body === null || typeof body !== 'object') return sendJson(res, 400, { ok: false, error: 'JSON body required' })
         sendJson(res, 200, await memberPortrait(body))
       } }), 'kybernos: route member-portrait')
       // Échantillon d'une voix custom : l'audio est enfin conservé (voir `kbSampleSave`).
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/voice-sample', handler: async (req, res) => {
         if (req.method === 'GET') return sendJson(res, 200, await kbSampleList(queryOf(req)))
-        if (sameOriginStrict(req) !== true) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (sameOriginStrict(req) !== true) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         if (req.method === 'DELETE') return sendJson(res, 200, await kbSampleDelete(queryOf(req)))
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET, POST ou DELETE attendu' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET, POST or DELETE expected' })
         let body = null
         try { body = await readJsonBody(req, 15728640) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         sendJson(res, 200, await kbSampleSave(body))
       } }), 'kybernos: route voice-sample')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/voice-sample-audio', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const out = await kbSampleAudio(queryOf(req))
         if (out === null || out.bytes.length === 0) { res.writeHead(404); res.end(''); return }
         try {
@@ -9930,7 +9930,7 @@ function boot(ctx) {
       } }), 'kybernos: route voice-sample-audio')
       // Les modèles image réellement configurés (+ leur prix connu, leur sonde).
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/image-models', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const q = queryOf(req)
         const rootId = str(q.get('rootId'))
         let rootPath = null
@@ -9939,12 +9939,12 @@ function boot(ctx) {
         sendJson(res, 200, { ok: true, default: kbTeamImageModel(), models: kbImageModels(probe) })
       } }), 'kybernos: route image-models')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/runs', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const query = queryOf(req)
         sendJson(res, 200, await readRuns({ sessionId: query.get('sessionId'), limit: query.get('limit') }))
       } }), 'kybernos: route runs')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/runs-index', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const query = queryOf(req)
         sendJson(res, 200, await readRunsIndex({ query: query.get('query'), limit: query.get('limit') }))
       } }), 'kybernos: route runs-index')
@@ -9953,17 +9953,17 @@ function boot(ctx) {
       // décompresse les journaux (cache LRU sur mtime+taille) et rend des
       // extraits. Lecture pure, GET.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/search-content', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const q2 = queryOf(req)
         sendJson(res, 200, await readContentSearch({ query: q2.get('q'), limit: q2.get('limit'), sessionId: q2.get('sessionId') }))
       } }), 'kybernos: route search-content')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/calls', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const query = queryOf(req)
         sendJson(res, 200, await readCalls({ sessionId: query.get('sessionId') }))
       } }), 'kybernos: route calls')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/calls-index', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const query = queryOf(req)
         sendJson(res, 200, await readRunsIndex({ query: query.get('query'), limit: query.get('limit'), marker: 'team' }))
       } }), 'kybernos: route calls-index')
@@ -9971,7 +9971,7 @@ function boot(ctx) {
       // ne sert qu'aux réglages du simulateur (sidecar `.kyber-ui.json`) et à la
       // détection de salaire, qui est un vrai appel LLM.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/insight', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const q = queryOf(req)
         sendJson(res, 200, await readInsight({
           kyberId: q.get('kyberId'),
@@ -9990,16 +9990,16 @@ function boot(ctx) {
         sendJson(res, r.status, r.body)
       } }), 'kybernos: route ws-console-key')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/insight-save', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         let body = null
-        try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: 'corps de requete trop volumineux' }) }
+        try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         sendJson(res, 200, await saveInsightSettings(body))
       } }), 'kybernos: route insight-save')
       // Quality Score : lecture agrégée (runs du scan Insight + pouces captés)
       // et captage des pouces 👍/👎 posés par la barre d'actions du plugin.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/quality', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const q = queryOf(req)
         sendJson(res, 200, await readQuality({
           kyberId: q.get('kyberId'),
@@ -10009,12 +10009,12 @@ function boot(ctx) {
       } }), 'kybernos: route quality')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/quality-feedback', handler: async (req, res) => {
         if (req.method === 'POST') {
-          if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+          if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
           let body = null
-          try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: 'corps de requete trop volumineux' }) }
+          try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
           return sendJson(res, 200, await saveQualityFeedback(body))
         }
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET ou POST attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         const q = queryOf(req)
         const askedDays = Number(q.get('days'))
         const days = Number.isFinite(askedDays) === true && askedDays >= 1 && askedDays <= 365 ? Math.round(askedDays) : 30
@@ -10024,12 +10024,12 @@ function boot(ctx) {
       } }), 'kybernos: route quality-feedback')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/quality-rating', handler: async (req, res) => {
         if (req.method === 'POST') {
-          if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+          if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
           let body = null
-          try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: 'corps de requete trop volumineux' }) }
+          try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
           return sendJson(res, 200, await saveQualityRating(body))
         }
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET ou POST attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
         const q = queryOf(req)
         const askedDays = Number(q.get('days'))
         const days = Number.isFinite(askedDays) === true && askedDays >= 1 && askedDays <= 365 ? Math.round(askedDays) : 30
@@ -10038,33 +10038,33 @@ function boot(ctx) {
         return sendJson(res, 200, { ok: true, rows: rows.slice(-200).reverse(), total: rows.length })
       } }), 'kybernos: route quality-rating')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/salary-detect', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         let body = null
-        try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: 'corps de requete trop volumineux' }) }
+        try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         sendJson(res, 200, await detectSalary(body))
       } }), 'kybernos: route salary-detect')
       // Le Brain propose l'apparence des suggestions (icône + couleur, ou des
       // suggestions complètes) : c'est un VRAI appel LLM, rien n'est écrit ici.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/starters-suggest', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         let body = null
-        try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: 'corps de requete trop volumineux' }) }
+        try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         sendJson(res, 200, await startersSuggest(body))
       } }), 'kybernos: route starters-suggest')
       // Interface translation (batch <= 40 strings): see i18nTranslate.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-translate', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         let body = null
-        try { body = await readJsonBody(req, 262144) } catch (e) { return sendJson(res, 413, { ok: false, error: 'corps de requete trop volumineux' }) }
+        try { body = await readJsonBody(req, 262144) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         sendJson(res, 200, await i18nTranslate(body))
       } }), 'kybernos: route i18n-translate')
       // Models the language page can offer: the configured catalog, not a guess.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-models', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
-        if (sameOriginLax(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        if (sameOriginLax(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, Object.assign({ ok: true }, await i18nModels()))
       } }), 'kybernos: route i18n-models')
       // Translations saved on the user's disk (~/.dsh/kybernos/i18n/<lang>.json), shared by
@@ -10083,14 +10083,14 @@ function boot(ctx) {
       }) }), 'kybernos: route i18n-job')
       try { resumeI18nJobs() } catch (e) { /* the boot does not depend on it */ }
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/team-cap', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         sendJson(res, 200, { ok: true, cap: readTeamCap() })
       } }), 'kybernos: route team-cap')
       // ── voix : capacités, dictée, message vocal ─────────────────────────────
       // La config ne dit JAMAIS si une clé existe « en clair » : elle dit
       // seulement si la référence se résout, ce qui suffit à griser le micro.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/voice/config', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const prof = kbVoiceProfile()
         const cred = await kbVoiceKey(prof.ref)
         // `ready` = la clé se résout ET le dernier essai n'a pas été refusé pour
@@ -10101,12 +10101,12 @@ function boot(ctx) {
         const reasonCode = cred.key === null ? cred.code : (quota === true ? 'quota' : null)
         const raison = cred.key === null
           ? cred.error
-          : (quota === true ? ('last attempt refused (' + (kbAsrState.status === null ? 'quota' : 'HTTP ' + kbAsrState.status) + ') : ' + String(kbAsrState.error === null ? 'quota epuise' : kbAsrState.error)) : null)
+          : (quota === true ? ('last attempt refused (' + (kbAsrState.status === null ? 'quota' : 'HTTP ' + kbAsrState.status) + ') : ' + String(kbAsrState.error === null ? 'quota exhausted' : kbAsrState.error)) : null)
         sendJson(res, 200, { ok: true, asr: { model: prof.asrModel, ready: ready, ref: prof.ref, baseUrl: prof.baseUrl, maxBytes: KB_VOICE_MAX_BYTES, reason: raison, reasonCode: reasonCode, quota: { exhausted: quota, status: kbAsrState.status, at: kbAsrState.at === null ? null : new Date(kbAsrState.at).toISOString(), message: kbAsrState.error } } })
       } }), 'kybernos: route voice/config')
       // The audio models of the providers already set up in Models (names and kinds only): a call can reuse them without a new key.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/models/audio', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         let providers = {}
         try { const ns = lireNamespace('llm-pi-ai').valeur; providers = (ns !== null && ns !== undefined && ns.providers !== null && ns.providers !== undefined) ? ns.providers : {} } catch (e) { providers = {} }
         sendJson(res, 200, { ok: true, providers: audioModelsOf(providers) })
@@ -10114,16 +10114,16 @@ function boot(ctx) {
       // Which way of asking one of those models works (a few words of text, or a second of silence, sent to the provider with the key the
       // app already holds for it; the key never leaves this process and is not in the answer). On a click only: it is a call to the provider.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/models/audio/probe', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         let body = {}
         try { body = await readJsonBody(req, 4096) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         sendJson(res, 200, await kbModelsAudio.check({ provider: str(body.provider) ?? '', model: str(body.model) ?? '' }))
       } }), 'kybernos: route models/audio/probe')
       // Speak with one of those models, and listen with one: what a call uses when its voice or its ears are a model of the user's provider.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/models/audio/speak', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         let body = {}
         try { body = await readJsonBody(req, 8192) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         const said = str(body.text)
@@ -10132,26 +10132,26 @@ function boot(ctx) {
         sendJson(res, 200, made.ok === true ? { ok: true, family: made.family, audio: 'data:audio/wav;base64,' + made.audio.toString('base64') } : { ok: false, code: made.code, error: made.error })
       } }), 'kybernos: route models/audio/speak')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/models/audio/listen', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         let body = {}
         try { body = await readJsonBody(req, 16777216) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         const b64 = str(body.audio)
         const wav = b64 === null ? null : Buffer.from(b64.replace(/^data:audio\/[a-z0-9.+-]+;base64,/i, ''), 'base64')
-        if (wav === null || wav.length < 100 || wav.length > 12582912) return sendJson(res, 400, { ok: false, error: 'audio WAV en base64 attendu (jusqu a 12 Mo)' })
+        if (wav === null || wav.length < 100 || wav.length > 12582912) return sendJson(res, 400, { ok: false, error: 'base64 WAV audio expected (up to 12 MB)' })
         const lang = str(body.language)
         sendJson(res, 200, await kbModelsAudio.listen({ provider: str(body.provider) ?? '', model: str(body.model) ?? '', wav: wav, language: lang !== null && /^[a-z]{2}$/.test(lang) ? lang : undefined }))
       } }), 'kybernos: route models/audio/listen')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/voice/transcribe', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         let body = {}
         try { body = await readJsonBody(req, 16777216) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         sendJson(res, 200, await kbVoiceTranscribe(body))
       } }), 'kybernos: route voice/transcribe')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/voice/save', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         let body = {}
         try { body = await readJsonBody(req, 16777216) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         sendJson(res, 200, await kbVoiceSave(body))
@@ -10180,9 +10180,9 @@ function boot(ctx) {
       const kbYmlProposer = async (args) => {
         const req = (args !== null && args !== undefined && typeof args === 'object') ? args : {}
         const texte = str(req.texte).trim()
-        if (texte.length < 4) return { ok: false, error: 'description trop courte' }
-        if (texte.length > 4000) return { ok: false, error: 'description trop longue (max 4000 caracteres)' }
-        if (typeof fetch !== 'function') return { ok: false, error: 'fetch global indisponible' }
+        if (texte.length < 4) return { ok: false, error: 'description too short' }
+        if (texte.length > 4000) return { ok: false, error: 'description too long (max 4000 characters)' }
+        if (typeof fetch !== 'function') return { ok: false, error: 'global fetch unavailable' }
         const prof = kbVoiceProfile()
         const cred = await kbVoiceKey(prof.ref)
         if (cred.key === null) return { ok: false, error: cred.error, needsKey: true, ref: prof.ref }
@@ -10221,8 +10221,8 @@ function boot(ctx) {
         const kyberId = str(req.kyberId).trim()
         const yml = str(req.yml)
         if (/^[a-z0-9][a-z0-9-]{1,62}$/.test(kyberId) === false) return { ok: false, error: 'invalid Agent Team id (lowercase letters, digits, dashes)' }
-        if (yml.length === 0 || yml.length > 60000) return { ok: false, error: 'yml absent ou trop long' }
-        if (yml.indexOf('topology:') !== 0) return { ok: false, error: 'yml refuse: doit commencer par topology:' }
+        if (yml.length === 0 || yml.length > 60000) return { ok: false, error: 'yml missing or too long' }
+        if (yml.indexOf('topology:') !== 0) return { ok: false, error: 'yml refused: must start with topology:' }
         try {
           const dossier = nodePathJoin(dshHomeSync(), 'kybers', kyberId)
           mkdirSync(dossier, { recursive: true })
@@ -10239,15 +10239,15 @@ function boot(ctx) {
         } catch (e) { return { ok: false, error: errText(e) } }
       }
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/yml-proposer', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         let body = {}
         try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         sendJson(res, 200, await kbYmlProposer(body))
       } }), 'kybernos: route yml-proposer')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/yml-appliquer', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         let body = {}
         try { body = await readJsonBody(req, 131072) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         sendJson(res, 200, await kbYmlAppliquer(body))
@@ -10257,34 +10257,34 @@ function boot(ctx) {
       // synchronisation à maintenir entre le client et l'hôte.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tts/config', handler: async (req, res) => {
         if (req.method === 'GET') return sendJson(res, 200, { ok: true, config: await kbTtsGetConfig(kbTtsUiLangOf(req)) })
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET ou POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         let body = {}
         try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         const patch = (body !== null && body !== undefined && typeof body === 'object') ? body.patch : null
         sendJson(res, 200, await kbTtsSetConfig(patch, kbTtsUiLangOf(req)))
       } }), 'kybernos: route tts/config')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tts/voices', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         const engines = await kbTtsEngines()
         const config = await kbTtsGetConfig(kbTtsUiLangOf(req))
         const cache = await kbTtsCacheStats()
         sendJson(res, 200, { ok: true, engines: engines, config: config, cache: cache, os: process.platform })
       } }), 'kybernos: route tts/voices')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tts/speak', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         let body = {}
         try { body = await readJsonBody(req, 262144) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
         sendJson(res, 200, await kbTtsSpeak(body, kbTtsUiLangOf(req)))
       } }), 'kybernos: route tts/speak')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tts/cache', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         sendJson(res, 200, { ok: true, cache: await kbTtsCacheStats() })
       } }), 'kybernos: route tts/cache')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tts/cache-trim', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, { ok: true, trim: await kbTtsCacheTrim() })
       } }), 'kybernos: route tts/cache-trim')
       // ── Tâches planifiées (store ~/.dsh/kybernos/tasks.json) ─────────────
@@ -10325,8 +10325,8 @@ function boot(ctx) {
         return kbVerifySessionCookie(req.headers.cookie, authorities, secret, Date.now(), { createHash, createHmac, timingSafeEqual })
       }
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tasks', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         if (await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
         let body = null
         try { body = await readJsonBody(req, 200000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
@@ -10345,7 +10345,7 @@ function boot(ctx) {
       // ── The Automations settings page: GET (what the sidebar and the page read) / POST { showNativeTasks?, paused? } ──
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/automation-settings', handler: async (req, res) => {
         if (req.method !== 'GET' && req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         if (req.method === 'GET') return sendJson(res, 200, Object.assign({ ok: true }, autoSettingsView(await kbAutoSettingsRead())))
         if (await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
         let body = null
@@ -10380,7 +10380,7 @@ function boot(ctx) {
       // (automation-occurrences.mjs). A page that gets no answer still shows the past and the next run.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tasks/occurrences', handler: async (req, res) => {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         if (await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
         try {
           const q = queryOf(req)
@@ -10407,7 +10407,7 @@ function boot(ctx) {
       // journal read each; a session that cannot be read is simply absent from the answer (nothing is claimed).
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tasks/outcomes', handler: async (req, res) => {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         if (await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
         try {
           const ids = []
@@ -10504,17 +10504,17 @@ function boot(ctx) {
       const kbToolsCurrent = (asked) => {
         const list = kbToolsProfiles()
         const want = kbToolsName(asked)
-        if (want !== null && list.indexOf(want) !== -1) return { profile: want, source: 'demande' }
+        if (want !== null && list.indexOf(want) !== -1) return { profile: want, source: 'request' }
         // L'argv AVANT `DSH_PROFILE` : mesure du 22/09 sur l'instance isolee —
         // lancee `dsh kybernos-ui` avec un `DSH_PROFILE=web` herite du shell,
         // elle boote bien kybernos-ui (ses bundles apparaissent) alors que la
         // variable d'environnement disait web. L'argv est la vraie source.
         const av = kbToolsArgv()
-        if (av !== null && list.indexOf(av) !== -1) return { profile: av, source: 'ligne de commande' }
+        if (av !== null && list.indexOf(av) !== -1) return { profile: av, source: 'command-line' }
         const env = kbToolsName(process.env.DSH_PROFILE)
         if (env !== null && list.indexOf(env) !== -1) return { profile: env, source: 'DSH_PROFILE' }
-        if (list.indexOf('web') !== -1) return { profile: 'web', source: 'defaut' }
-        return { profile: list.length > 0 ? list[0] : null, source: 'repli' }
+        if (list.indexOf('web') !== -1) return { profile: 'web', source: 'default' }
+        return { profile: list.length > 0 ? list[0] : null, source: 'fallback' }
       }
       // Catalogue verifie. `drivers` = les pilotes connus d'un registre a place
       // unique ; `known: false` = paquet inconnu, on le DIT au lieu de peindre
@@ -10534,12 +10534,12 @@ function boot(ctx) {
           slot: 'computerUse', prefix: 'cua_driver_native__', toolCount: 55,
           needs: 'Screen Recording + Accessibility (System Settings > Privacy).',
           drivers: [
-            { id: 'computer-use-cua-native', name: '@deepseek-ai/dsh-experimental-computer-use-cua-driver-native', label: 'Cua Driver natif', def: true },
+            { id: 'computer-use-cua-native', name: '@deepseek-ai/dsh-experimental-computer-use-cua-driver-native', label: 'Cua native driver', def: true },
             { id: 'computer-use-cua-mcp', name: '@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp', label: 'Cua Driver MCP' } ] },
         { id: 'auto-review', group: 'exp', label: 'Auto review', known: false,
           why: 'An engine capability (the current model reviews its own work): no package to mount from this plugin.' },
         { id: 'codex', group: 'ext', label: 'Codex', connection: '@deepseek-ai/dsh-subagent-codex',
-          why: 'Connexion officielle : sous-agent Codex par le protocole app-server.' },
+          why: 'Official connection: Codex subagent through the app-server protocol.' },
         { id: 'claude-code', group: 'ext', label: 'Claude Code', connection: '@deepseek-ai/dsh-subagent-claude-code',
           why: 'Official connection: Claude Code subagent through the native SDK. Requires a CLI login — the desktop app is not enough.' },
         // ZCode n’est pas un paquet npm : c’est un connecteur MCP personnalisé
@@ -10554,7 +10554,7 @@ function boot(ctx) {
         { id: 'workbuddy', group: 'ext', label: 'WorkBuddy', known: false,
           why: 'Community plugin: no package verified on our side, so no installation is offered here.' },
         { id: 'hermes', group: 'ext', label: 'Hermes', supported: false,
-          why: 'Harness ne publie pas de fournisseur de sous-agent pour Hermes.' }
+          why: 'Harness ships no subagent provider for Hermes.' }
       ]
       const kbToolsPatchPath = (profile) => {
         const dir = kbToolsProfilesDir()
@@ -10627,8 +10627,8 @@ function boot(ctx) {
       const kbToolsBlock = (entry, driver, stamp) => {
         const L = []
         L.push('')
-        L.push('# ── Outils · ' + entry.label + ' — ajoute le ' + stamp + ' par l onglet Outils (Kybers)')
-        L.push('# Rollback : restaurer cordis.patch.yml.bak-outils-' + entry.id + '-' + stamp + ', puis redemarrer DSH.')
+        L.push('# ── Tools · ' + entry.label + ' — added ' + stamp + ' by the Tools tab (Kybers)')
+        L.push('# Rollback: restore cordis.patch.yml.bak-outils-' + entry.id + '-' + stamp + ', then restart DSH.')
         L.push('- insert:')
         if (entry.registry !== undefined) {
           L.push('    - id: ' + entry.registry.id)
@@ -10666,22 +10666,22 @@ function boot(ctx) {
         await kbToolsHome()
         const b = (body !== null && body !== undefined && typeof body === 'object') ? body : {}
         const cur = kbToolsCurrent(b.profile)
-        if (cur.profile === null) return { ok: false, error: 'aucun profil lisible sous ~/.dsh/profiles' }
+        if (cur.profile === null) return { ok: false, error: 'no readable profile under ~/.dsh/profiles' }
         const family = kbToolsName(b.family)
-        if (family === null) return { ok: false, error: 'famille inconnue' }
+        if (family === null) return { ok: false, error: 'unknown family' }
         const entry = KB_TOOLS_CATALOG.filter((e) => e.id === family)[0]
-        if (entry === undefined) return { ok: false, error: 'famille inconnue : ' + family }
+        if (entry === undefined) return { ok: false, error: 'unknown family: ' + family }
         const path = kbToolsPatchPath(cur.profile)
         if (b.action === 'revert') {
           const want = 'cordis.patch.yml.bak-outils-' + entry.id + '-'
           const list = kbToolsBackups(cur.profile).filter((n) => n.indexOf(want) === 0)
-          if (list.length === 0) return { ok: false, error: 'no backup for ' + entry.label + ' dans ' + cur.profile }
+          if (list.length === 0) return { ok: false, error: 'no backup for ' + entry.label + ' in ' + cur.profile }
           const name = list[0]
           const backDir = kbToolsProfilesDir()
-          if (backDir === null) return { ok: false, error: 'profil illisible' }
+          if (backDir === null) return { ok: false, error: 'unreadable profile' }
           const back = joinPath(joinPath(backDir, cur.profile), name)
           let content = null
-          try { content = readFileSync(back, 'utf8') } catch (e) { return { ok: false, error: 'sauvegarde illisible : ' + errText(e) } }
+          try { content = readFileSync(back, 'utf8') } catch (e) { return { ok: false, error: 'unreadable backup: ' + errText(e) } }
           // `chars` et non `bytes` : ces longueurs viennent de String.length, donc
           // d unites UTF-16 — pas d un compte d octets. Le nom disait le contraire,
           // et aucun appelant ne lit ce champ : le renommer ne casse personne.
@@ -10692,10 +10692,10 @@ function boot(ctx) {
             // fichier vide qui resterait dans le dossier du profil.
             if (content.length === 0) rmSync(path, { force: true })
             else writeFileSync(path, content, 'utf8')
-          } catch (e) { return { ok: false, error: 'ecriture refusee : ' + errText(e) } }
+          } catch (e) { return { ok: false, error: 'write refused: ' + errText(e) } }
           return { ok: true, action: 'revert', profile: cur.profile, path, backup: name, chars: content.length, removed: content.length === 0, restart: true }
         }
-        if (entry.known === false || entry.supported === false) return { ok: false, error: entry.why !== undefined ? entry.why : 'outil non supporte' }
+        if (entry.known === false || entry.supported === false) return { ok: false, error: entry.why !== undefined ? entry.why : 'unsupported tool' }
         const raw = kbToolsReadPatch(cur.profile)
         const txt = raw === null ? '' : raw
         const alreadyInstalled = entry.registry !== undefined ? (txt.indexOf(entry.registry.name) !== -1)
@@ -10705,16 +10705,16 @@ function boot(ctx) {
         if (Array.isArray(entry.drivers)) {
           const wanted = kbToolsName(b.driver)
           const chosen = wanted !== null ? entry.drivers.filter((d) => d.id === wanted)[0] : undefined
-          if (wanted !== null && chosen === undefined) return { ok: false, error: 'pilote inconnu : ' + wanted }
+          if (wanted !== null && chosen === undefined) return { ok: false, error: 'unknown driver: ' + wanted }
           driver = chosen !== undefined ? chosen : entry.drivers.filter((d) => d.def === true)[0]
           if (driver === undefined) driver = entry.drivers[0]
           const other = entry.drivers.filter((d) => d.id !== driver.id).filter((d) => txt.indexOf(d.name) !== -1)[0]
-          if (other !== undefined) return { ok: false, error: 'un autre pilote est deja monte (' + other.label + ') : registre a place unique, retirez-le d abord' }
+          if (other !== undefined) return { ok: false, error: 'another driver is already mounted (' + other.label + '): single-slot registry, remove it first' }
         }
         const stamp = kbToolsStamp()
         const block = kbToolsBlock(entry, driver, stamp)
         const after = txt.length === 0
-          ? '# Patch de profil — ecrit par l onglet Outils (Kybers).\n' + block
+          ? '# Profile patch — written by the Tools tab (Kybers).\n' + block
           : (txt.charAt(txt.length - 1) === '\n' ? txt + block : txt + '\n' + block)
         if (b.dry === true) {
           return { ok: true, dry: true, action: 'install', profile: cur.profile, source: cur.source, path,
@@ -10722,25 +10722,25 @@ function boot(ctx) {
         }
         const backupName = 'cordis.patch.yml.bak-outils-' + entry.id + '-' + stamp
         const bkDir = kbToolsProfilesDir()
-        if (bkDir === null) return { ok: false, error: 'profil illisible' }
+        if (bkDir === null) return { ok: false, error: 'unreadable profile' }
         const backupPath = joinPath(joinPath(bkDir, cur.profile), backupName)
         try {
           // Sauvegarde SYSTEMATIQUE, meme vide : « vide » = « il n y avait pas
           // de patch », et le retrait supprime alors le fichier.
           writeFileSync(backupPath, raw === null ? '' : raw, 'utf8')
           writeFileSync(path, after, 'utf8')
-        } catch (e) { return { ok: false, error: 'ecriture refusee : ' + errText(e) } }
+        } catch (e) { return { ok: false, error: 'write refused: ' + errText(e) } }
         return { ok: true, action: 'install', profile: cur.profile, source: cur.source, path,
           backup: backupName, driver: driver !== null && driver !== undefined ? driver.id : null,
           block, chars: after.length, restart: true }
       }
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tools/state', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
         sendJson(res, 200, await kbToolsState(queryOf(req).get('profile')))
       } }), 'kybernos: route tools/state')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tools/apply', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         sendJson(res, 200, await kbToolsApply(await readJsonBody(req, 200000)))
       } }), 'kybernos: route tools/apply')
 
@@ -10812,7 +10812,7 @@ function boot(ctx) {
 
       // Le cache est plafonne une fois au demarrage : lent, jamais bloquant.
       try { setTimeout(() => { kbTtsCacheTrim().catch(() => null) }, 8000) } catch (e) { /* pas de minuterie : sans importance */ }
-      console.log('[kybers] routes webServer /kybernos/* enregistrees (lecture + ecriture cadree + icones + avatar + runs + runs-index + team-cap + voice/* + tts/* + yml-proposer + yml-appliquer)')
+      console.log('[kybers] webServer routes /kybernos/* registered (read + framed write + icons + avatar + runs + runs-index + team-cap + voice/* + tts/* + yml-proposer + yml-appliquer)')
     }
     // Every bundle's route guard reads this predicate: it is what lets a hosted instance behind a reverse
     // proxy (Origin = the public address) pass the guards, using the same `--trusted-host` list as DSH's own fence.
@@ -10909,14 +10909,14 @@ export function applyPin(pins, change) {
   const state = normalizePins(pins)
   const req = change !== null && change !== undefined && typeof change === 'object' ? change : {}
   const field = pinsFieldOf(req.kind)
-  if (field === null) return { ok: false, changed: false, error: 'kind attendu: workspace ou session', pins: state }
-  if (isPinId(req.id) !== true) return { ok: false, changed: false, error: 'id invalide', pins: state }
-  if (typeof req.pinned !== 'boolean') return { ok: false, changed: false, error: 'pinned attendu (booleen)', pins: state }
+  if (field === null) return { ok: false, changed: false, error: 'kind expected: workspace or session', pins: state }
+  if (isPinId(req.id) !== true) return { ok: false, changed: false, error: 'invalid id', pins: state }
+  if (typeof req.pinned !== 'boolean') return { ok: false, changed: false, error: 'pinned expected (boolean)', pins: state }
   const list = state[field]
   const has = list.indexOf(req.id) >= 0
   if (has === req.pinned) return { ok: true, changed: false, error: null, pins: state }
   if (req.pinned === true && list.length >= PINS_MAX_PER_KIND) {
-    return { ok: false, changed: false, error: 'trop d epingles (' + String(PINS_MAX_PER_KIND) + ' max)', pins: state }
+    return { ok: false, changed: false, error: 'too many pins (' + String(PINS_MAX_PER_KIND) + ' max)', pins: state }
   }
   const next = req.pinned === true ? list.concat([req.id]) : list.filter((id) => id !== req.id)
   return { ok: true, changed: true, error: null, pins: Object.assign({}, state, { [field]: next }) }
@@ -10936,8 +10936,8 @@ export function applyPinOrder(pins, change) {
   const state = normalizePins(pins)
   const req = change !== null && change !== undefined && typeof change === 'object' ? change : {}
   const field = pinsFieldOf(req.kind)
-  if (field === null) return { ok: false, changed: false, error: 'kind attendu: workspace ou session', pins: state }
-  if (Array.isArray(req.order) !== true) return { ok: false, changed: false, error: 'order attendu (liste)', pins: state }
+  if (field === null) return { ok: false, changed: false, error: 'kind expected: workspace or session', pins: state }
+  if (Array.isArray(req.order) !== true) return { ok: false, changed: false, error: 'order expected (list)', pins: state }
   const seen = new Set()
   const next = []
   for (const id of req.order) {
@@ -10946,7 +10946,7 @@ export function applyPinOrder(pins, change) {
     next.push(id)
   }
   if (next.length > PINS_MAX_PER_KIND) {
-    return { ok: false, changed: false, error: 'trop d epingles (' + String(PINS_MAX_PER_KIND) + ' max)', pins: state }
+    return { ok: false, changed: false, error: 'too many pins (' + String(PINS_MAX_PER_KIND) + ' max)', pins: state }
   }
   const before = state[field]
   const changed = before.length !== next.length || before.some((id, index) => id !== next[index]) === true
@@ -11080,21 +11080,21 @@ const kbFeedbackPlainText = (report) => {
   const evidence = r.evidence !== null && r.evidence !== undefined && typeof r.evidence === 'object' ? r.evidence : {}
   const client = r.client !== null && r.client !== undefined && typeof r.client === 'object' ? r.client : {}
   const lines = [
-    (r.kind === 'feature' ? 'Amelioration' : 'Bug') + ' : ' + String(r.title === undefined ? '' : r.title),
+    (r.kind === 'feature' ? 'Improvement' : 'Bug') + ' : ' + String(r.title === undefined ? '' : r.title),
     '',
     String(r.body === undefined ? '' : r.body),
   ]
-  if (r.reporter) lines.push('', 'Contact : ' + String(r.reporter))
+  if (r.reporter) lines.push('', 'Contact: ' + String(r.reporter))
   const meta = []
   if (client.dsh) meta.push('DSH ' + client.dsh)
   if (client.revision) meta.push('revision ' + client.revision)
   if (client.os) meta.push(client.os)
-  if (meta.length > 0) lines.push('', 'Contexte : ' + meta.join(' / '))
+  if (meta.length > 0) lines.push('', 'Context: ' + meta.join(' / '))
   if (Array.isArray(evidence.errors) && evidence.errors.length > 0) {
-    lines.push('', 'Erreurs :')
+    lines.push('', 'Errors:')
     for (let i = 0; i < evidence.errors.length; i++) lines.push('- ' + String(evidence.errors[i]))
   }
-  lines.push('', 'Rapport ' + String(r.uuid) + ' (relais automatique indisponible).')
+  lines.push('', 'Report ' + String(r.uuid) + ' (automatic relay unavailable).')
   return kbFeedbackMask(lines.join('\r\n'))
 }
 
@@ -11189,7 +11189,7 @@ const kbFeedbackAnswerText = async (res) => {
   return typeof res.text === 'function' ? String(await res.text()).slice(0, KB_FEEDBACK_ANSWER_MAX) : ''
 }
 const kbFeedbackPost = async (url, token, report) => {
-  if (typeof fetch !== 'function') throw new Error('fetch indisponible')
+  if (typeof fetch !== 'function') throw new Error('fetch unavailable')
   // A relay that accepts the connection and never answers must not hold the agent for ever, and a redirect must not carry the report
   // (and the way to the person's account) to another host: both end as a failed send, which the outbox keeps for later.
   const wait = Number(process.env.KYBERNOS_FEEDBACK_TIMEOUT_MS)
@@ -11201,7 +11201,7 @@ const kbFeedbackPost = async (url, token, report) => {
     signal: AbortSignal.timeout(Number.isFinite(wait) && wait > 0 ? wait : KB_FEEDBACK_TIMEOUT_MS),
   })
   if (res === null || res === undefined) throw new Error('empty response')
-  if (res.status >= 300 && res.status < 400) throw new Error('redirection refusee')
+  if (res.status >= 300 && res.status < 400) throw new Error('redirect refused')
   return { status: res.status, text: await kbFeedbackAnswerText(res) }
 }
 
@@ -11527,7 +11527,7 @@ export function apply(ctx) {
         else ctx.inject(['fs'], (hostCtx) => boot(hostCtx))
     } catch (kbBootError) {
         try {
-            console.error('[kybers] demarrage impossible — routes /kybernos/* non montees', kbBootError)
+            console.error('[kybers] start failed — /kybernos/* routes not mounted', kbBootError)
         } catch (e2) { /* console indisponible */ }
     }
     // ── projection `kybernos.calls` : push natif de fraîcheur (WP5) ──────────
@@ -11558,7 +11558,7 @@ export function apply(ctx) {
                 parse: (value) => {
                     if (value === null || typeof value !== 'object' || Array.isArray(value) === true ||
                         typeof value.rev !== 'number' || Number.isFinite(value.rev) === false) {
-                        throw new Error('kybernos.calls: etat invalide ({rev: number} attendu)')
+                        throw new Error('kybernos.calls: invalid state ({rev: number} expected)')
                     }
                     return value
                 },

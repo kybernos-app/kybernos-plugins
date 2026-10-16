@@ -931,7 +931,7 @@ let kbLocaleRead = () => 'en'
       // The brief written in the chat that « Let the agent help me create a preset » (Settings › Agent presets) opens. It is a
       // draft, not a message: nothing is sent until the person sends it. The skill named is DSH's own for presets.
       'kbui.preset.creator.draft': { kybernos: 'Aide-moi à créer un preset d’agent (une façon de travailler réglée pour un usage précis). Pose-moi d’abord, une question à la fois : à quoi il doit servir, quels outils il doit avoir ou ne pas avoir, quelles limites ou habitudes il doit respecter. Appuie-toi sur le skill editing-cordis-compositions, propose-moi le preset complet, et n’écris rien tant que je ne l’ai pas validé.', en: 'Help me create an agent preset (a way of working tuned for one use). Ask me first, one question at a time: what it is for, which tools it should or should not have, which limits or habits it should respect. Use the editing-cordis-compositions skill, propose the full preset, and write nothing until I have approved it.' },
-      'kbui.feedback.draft': { kybernos: '/skill-signaler-retour Je veux signaler un problème ou proposer une amélioration. Commence l\'entretien par ta première question.', en: '/skill-signaler-retour I want to report a problem or suggest an improvement. Start the interview with your first question.' },
+      'kbui.feedback.draft': { kybernos: '/skill-report-feedback Je veux signaler un problème ou proposer une amélioration. Commence l\'entretien par ta première question.', en: '/skill-report-feedback I want to report a problem or suggest an improvement. Start the interview with your first question.' },
       'kbui.help.flash': { kybernos: 'Aide · raccourcis · journal des versions.', en: 'Help · shortcuts · release notes.' },
       'kbui.runs.locally': { kybernos: 'Tourne en local sur ta machine', en: 'Runs locally on your machine' },
       'crew.nodes.drag': { kybernos: 'Nœuds déplaçables · clique un nœud pour le détail', en: 'Draggable nodes · click a node for details' },
@@ -2877,6 +2877,7 @@ const KB_FR_EN = {
   'paquet absent': 'package missing',
   'à la demande': 'on request',
   'par DSH_PROFILE': 'from DSH_PROFILE',
+  'Cette session': 'This session',
   'à la ligne de commande': 'from the command line',
   'au défaut du profil': 'from the profile default',
   'par repli': 'as a fallback',
@@ -3674,6 +3675,117 @@ const KB_FR_EN = {
   'Reste ': 'Remaining ',
   'Tes modèles': 'Your models',
   'Le texte de la réponse est envoyé au fournisseur du modèle que tu choisis, avec la clé déjà configurée dans Fournisseur IA & modèles.': 'The reply text is sent to the provider of the model you choose, with the key already set up in AI Provider & Models.',
+  'hors tarif': 'unpriced',
+  'date inconnue': 'unknown date',
+  'sonde OK': 'probe OK',
+  'Tous': 'All',
+  'Favoris': 'Favourites',
+  'autre': 'other',
+  'Galerie': 'Gallery',
+  'Discuter': 'Chat',
+  'objectif': 'goal',
+  'actif': 'active',
+  'aucun': 'none',
+  'aucune': 'none',
+  'vide': 'empty',
+  'dossier': 'folder',
+  'fichier': 'file',
+  'Connecteurs': 'Connectors',
+  'outil': 'tool',
+  'illisible': 'unreadable',
+  'route injoignable': 'route unreachable',
+  'Initiale': 'Initial',
+  'notes-recette.md : date de modification inconnue': 'notes-recette.md: modification date unknown',
+  'archive sans manifeste : generique.mp4': 'archive without a manifest: generique.mp4',
+  ' sessions couvertes, ': ' sessions covered, ',
+  ' session couverte, ': ' session covered, ',
+  ' documents pour ': ' documents for ',
+  ' document pour ': ' document for ',
+  'Cacher': 'Hide',
+  'Cloner': 'Clone',
+  'Exemple de budget rempli': 'Filled budget example',
+  'Artefacts': 'Artifacts',
+  'Vues — skill insight-presets': 'Views — skill insight-presets',
+  ' vues': ' views',
+  ' vue': ' view',
+  'Vue ': 'View ',
+  'Sur ': 'Over ',
+  ' sur douze mois. FX ': ' over twelve months. FX ',
+  ' appels LLM.': ' LLM calls.',
+  ' appel LLM.': ' LLM call.',
+  ' appels LLM sur ': ' LLM calls over ',
+  ' appel LLM sur ': ' LLM call over ',
+  ' jours, FX ': ' days, FX ',
+  'lecture: ': 'read: ',
+  'yml lu (': 'yml read (',
+  'route absente': 'route missing',
+  'fiche': 'sheet',
+  'connecteur': 'connector',
+  'palier ': 'tier ',
+  'contexte ': 'context ',
+  'tour ': 'turn ',
+  'objectif DSH': 'DSH goal',
+  '(sans phase)': '(no phase)',
+  'membres': 'members',
+  ' composants': ' components',
+  'Composants': 'Components',
+  'version CGU': 'terms version',
+  'gauche': 'left',
+  'droite': 'right',
+  'Trop court (': 'Too short (',
+  ' · Relance ': ' · Retry ',
+  'relance n°': 'retry #',
+  'Corriger': 'Grade',
+  'erreur': 'error',
+  'MiniApp JSON invalide : ': 'invalid MiniApp JSON: ',
+  'provider inconnu de llm-pi-ai.providers': 'provider unknown to llm-pi-ai.providers',
+  'Orchestrateur': 'Orchestrator',
+  'Connecteur': 'Connector',
+  'Humain': 'Human',
+  'Attente humaine': 'Awaiting a human',
+  'HUMAIN': 'HUMAN',
+  'Chronologie': 'Timeline',
+  'Graphe': 'Graph',
+  'Analyse': 'Analysis',
+  'en cours': 'in progress',
+  ' · rang ': ' · rank ',
+  'rang ': 'rank ',
+  'run de workflow': 'workflow run',
+  ' en attente · ': ' pending · ',
+  ' / exécution': ' / execution',
+  'Appels LLM': 'LLM calls',
+  'Gates humaines': 'Human gates',
+  ' en attente': ' pending',
+  'Erreurs connecteur': 'Connector errors',
+  'Acteur': 'Actor',
+  ' (en cours)': ' (in progress)',
+  'En attente': 'Pending',
+  ' en file': ' queued',
+  '1 span par ligne': '1 span per line',
+  'Rapport PDF': 'PDF report',
+  ' Ko · ': ' KB · ',
+  'PII en clair': 'PII in clear',
+  ' · prompts inclus': ' · prompts included',
+  ' d attente humaine': ' of human wait',
+  'Exporter': 'Export',
+  'ctrl+molette : zoom': 'ctrl+wheel: zoom',
+  'Zoomer': 'Zoom in',
+  'Recentrer': 'Recenter',
+  'Sortie': 'Output',
+  'Approuver': 'Approve',
+  'Temps par type d acteur': 'Time by actor type',
+  'appels · latence moy.': 'calls · avg. latency',
+  '820 Ko': '820 KB',
+  '63 Ko': '63 KB',
+  '14,2 Mo': '14.2 MB',
+  'Aucune exécution dans cette session pour l’instant.': 'No runs in this session yet.',
+  'la commande say est muette': 'the say command is silent',
+  'réservé à macOS': 'macOS only',
+  'aucun modèle .onnx dans le dossier Piper': 'no .onnx model in the Piper folder',
+  'module python piper absent': 'python module piper missing',
+  'module python supertonic absent': 'python module supertonic missing',
+  'module python edge_tts absent': 'python module edge_tts missing',
+  'aucun modèle de voix chez tes fournisseurs': 'no voice model among your providers',
 }
 // kbe(en[, fr]) — text whose BASE is English (decision D1). The call site holds the ENGLISH text; its French twin is the KB_FR_EN key whose value it is
 // (two keys that share one English text are told apart by the explicit `fr` argument: `kbe(' answered', ' répondues')`). Rendering follows kbt:
@@ -5084,9 +5196,9 @@ const kbCollect = async (args) => {
   const home = kbHome()
   const wf = kbWf()
   if (home === null || wf === null) {
-    console.log('[kybers] collect: services indisponibles', { home: home, wf: wf !== null })
+    console.log('[kybers] collect: services unavailable', { home: home, wf: wf !== null })
     out.ok = false
-    out.error = 'services distants indisponibles (home ou workspaceFiles)'
+    out.error = 'remote services unavailable (home or workspaceFiles)'
     return out
   }
   const sid = (args !== null && args !== undefined && typeof args.sessionId === 'string') ? args.sessionId : kbSid
@@ -5367,10 +5479,10 @@ const kbListState = (tasks, loadError) => {
 }
 // The host answers in a fixed set of messages; the page shows them in its own language.
 const KB_TASK_ERRORS = {
-  'name required': 'tasks.needname', 'prompt required': 'tasks.needprompt', 'cron invalide': 'tasks.err.cron',
-  'date ponctuelle invalide': 'tasks.err.date', 'unknown time zone': 'tasks.err.tz', 'that date is in the past': 'tasks.err.past',
+  'name required': 'tasks.needname', 'prompt required': 'tasks.needprompt', 'invalid cron expression': 'tasks.err.cron',
+  'invalid one-off date': 'tasks.err.date', 'unknown time zone': 'tasks.err.tz', 'that date is in the past': 'tasks.err.past',
   'this schedule never fires': 'tasks.err.never', 'sign-in required': 'tasks.err.signin', 'request body too large': 'tasks.err.large',
-  'tache introuvable': 'tasks.err.notfound', 'active must be true or false': 'tasks.err.active', 'automation paused': 'tasks.err.paused',
+  'task not found': 'tasks.err.notfound', 'active must be true or false': 'tasks.err.active', 'automation paused': 'tasks.err.paused',
   'frequent schedule': 'tasks.err.frequent',
 }
 const kbTaskError = (message, tr) => (Object.prototype.hasOwnProperty.call(KB_TASK_ERRORS, message) === true ? tr(KB_TASK_ERRORS[message]) : String(message))
@@ -5827,7 +5939,7 @@ const host = {
     }
     if (name === 'kybers/load') return await kbCollect(a)
     const wf = kbWf()
-    if (wf === null) return { ok: false, error: 'workspaceFiles indisponible' }
+    if (wf === null) return { ok: false, error: 'workspaceFiles unavailable' }
     if (name === 'kybers/art-read') {
       try {
         const text = await kbReadText(wf, String(a.path || ''), 6000)
@@ -7469,7 +7581,7 @@ return {
       if (typeof ctx.provide === 'function' && ctx.get('settingsScope') === undefined) {
         const kbSettingsScopeShim = function () {
           const scoped = function () { return { status: 'loading', value: null, writable: false } }
-          scoped.set = function () { throw new Error('[kybers] shim settingsScope : ecriture non supportee sur ce hote') }
+          scoped.set = function () { throw new Error('[kybers] settingsScope shim: writing is not supported on this host') }
           return scoped
         }
         ctx.provide('settingsScope', kbSettingsScopeShim)
@@ -7478,7 +7590,7 @@ return {
     const slots = ctx.get('slots')
     const timerSvc = ctx.get('timer')
     if (slots === undefined) {
-      console.error('[kybers] service slots indisponible: pas d interface')
+      console.error('[kybers] slots service unavailable: no interface')
       return
     }
     const sidebarRight = ctx.get('sidebarRight')
@@ -7784,7 +7896,7 @@ return {
     // ici (le plugin tourne dans le navigateur, pas dans Node — pas de fs).
     ctx.effect(() => styles.insert(SHARED_UI_CSS), 'shared-ui: design system DSH')
     if (sidebarRight === undefined || sidebarTabs === undefined) {
-      console.error('[kybers] sidebar droite indisponible sur cette page: onglet non enregistre')
+      console.error('[kybers] right sidebar unavailable on this page: tab not registered')
     }
 
     // ── store partagé ─────────────────────────────────────────────────────
@@ -8073,7 +8185,8 @@ return {
     };
 
     const AgentRow = (row, kindHint) => {
-      const name = row.name === null || row.name === undefined ? 'agent' : String(row.name);
+      // The host names the row of the session itself 'This session' (English); the page words it.
+      const name = row.name === null || row.name === undefined ? 'agent' : (String(row.name) === 'This session' ? kbe('This session') : String(row.name));
       let badge = null;
       if (typeof kindHint === 'string' && kindHint.length > 0) badge = kindHint.toUpperCase();
       else if (row.role === 'lead') badge = 'LEAD';
@@ -8098,7 +8211,7 @@ return {
             model === null && annonce !== true && tok === null ? kbt('ui.nousage') : null)),
         h('div', null,
           h('div', { className: 'kb2-acost' }, cost === null ? '—' : (cost.length === 0 ? '·' : cost)),
-          row.priced === false && row.tokens !== null ? h('div', { className: 'kb2-atok', title: kbt('ui.noprice') }, 'hors tarif') : null,
+          row.priced === false && row.tokens !== null ? h('div', { className: 'kb2-atok', title: kbt('ui.noprice') }, kbe('unpriced')) : null,
           row.tokens === null && row.tokens !== undefined ? h('div', { className: 'kb2-atok', title: kbt('ui.notmeasured.title') }, kbt('ui.notmeasured')) : null));
     }
 
@@ -8154,7 +8267,7 @@ return {
       if (needs.context && needs.context !== 'standard') bits.push(needs.context);
       const notes = [];
       if (role.declared === false) notes.push(kbt('ui.role.undeclared'));
-      else if (role.providerKnown === false) notes.push('provider inconnu de llm-pi-ai.providers');
+      else if (role.providerKnown === false) notes.push(kbe('provider unknown to llm-pi-ai.providers'));
       else if (role.inCatalog === false) notes.push(kbt('ui.role.notinharness'));
       if (role.imageRequired === true && role.image === false) notes.push(kbt('ui.role.noimage'));
       if (role.stages.length === 0) notes.push(kbt('ui.role.unreachable'));
@@ -8239,7 +8352,7 @@ return {
         }
         if (root.probe !== null && root.probe !== undefined) {
           const n = Object.keys(root.probe.results).length;
-          block.push(h('div', { className: 'kb2-note', key: 'probe' }, kbt('ui.realprobe') + (root.probe.probedAt || 'date inconnue') + ' — ' + n + kbt('ui.targets')));
+          block.push(h('div', { className: 'kb2-note', key: 'probe' }, kbt('ui.realprobe') + (root.probe.probedAt || kbe('unknown date')) + ' — ' + n + kbt('ui.targets')));
         }
         if (cards.length === 0) {
           block.push(h('div', { className: 'kb2-empty', key: 'none' }, root.kybers.length === 0 ? kbt('ui.noyaml') : kbt('ui.nomatch')));
@@ -8327,9 +8440,9 @@ return {
         // L'hote du guide appelle entry.title() : une chaine fait crasher
         // l'entree de slot ('entry.title is not a function').
         guide: [{ title: () => kbt('ui.team.guide'), description: () => kbt('ui.team.meta') }],
-      }), 'kybers: type d onglet sidebar droite');
+      }), 'kybers: right sidebar tab type');
     }
-    ctx.effect(() => slots.register({ name: 'sidebar.right.pane.tab', key: TYPE_ID }, TabBody), 'kybers: corps d onglet sidebar droite');
+    ctx.effect(() => slots.register({ name: 'sidebar.right.pane.tab', key: TYPE_ID }, TabBody), 'kybers: right sidebar tab body');
 
     // ── galerie des kybers (rangée de menu + panneau principal) ────────────
     const PanelIcon = (props) => {
@@ -8855,13 +8968,13 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const favs = (s.pfavs !== null && s.pfavs !== undefined && typeof s.pfavs === 'object') ? s.pfavs : {};
       const kinds = [];
       for (const it of items) {
-        const kd = String(it.kyber.topology || 'autre');
+        const kd = String(it.kyber.topology || 'other');
         if (kinds.indexOf(kd) < 0) kinds.push(kd);
       }
       const match = (it) => {
         const key = it.rootId + '/' + it.kyber.id;
         if (chip === 'favs' && favs[key] !== true) return false;
-        if (chip !== 'all' && chip !== 'favs' && String(it.kyber.topology || 'autre') !== chip) return false;
+        if (chip !== 'all' && chip !== 'favs' && String(it.kyber.topology || 'other') !== chip) return false;
         if (q !== '') {
           const hay = (it.kyber.id + ' ' + (it.kyber.mission || '')).toLowerCase();
           if (hay.indexOf(q) < 0) return false;
@@ -8895,7 +9008,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             roleRows.push(h('div', { className: 'kbg-role', key: 'r' + r.id },
               h('span', { className: 'kbg-roleid' }, r.id),
               h('span', { className: 'kbg-rolenote' }, (r.provider || '?') + ' / ' + (r.model || '?')),
-              h('span', { className: 'kbg-roleok' + (r.probeOk === true ? ' ok' : '') }, r.probeOk === true ? 'sonde OK' : (r.declared === false ? kbt('ui.notdeclared') : kbt('ui.notprobed')))));
+              h('span', { className: 'kbg-roleok' + (r.probeOk === true ? ' ok' : '') }, r.probeOk === true ? kbe('probe OK') : (r.declared === false ? kbt('ui.notdeclared') : kbt('ui.notprobed')))));
           }
         }
         const budgetPill = (k.budget !== null && k.budget !== undefined && typeof k.budget.total === 'number' ? h('span', { className: 'kbg-pill' }, kbt('ui.budget.pill').replace('{amount}', fmtEur(k.budget.total, k.budget.currency))) : null);
@@ -8917,7 +9030,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             h('button', { type: 'button', className: 'kbg-open', onClick: () => { const next = Object.assign({}, s.expanded); next[key] = !open; set({ expanded: next }) } }, open ? kbt('ui.hideroles') : kbt('ui.showroles')),
             (sid !== null ? h('button', { type: 'button', className: 'kbg-talk', onClick: (e2) => { e2.stopPropagation(); try { if (sessionsSvc !== undefined && sessionsSvc !== null && typeof sessionsSvc.open === 'function') sessionsSvc.open(sid) } catch (e) { /* session inconnue */ } } }, kbt('ui.opensession.verb')) : null))));
       }
-      const chipLabel = (c) => (c === 'all' ? 'Tous' : (c === 'favs' ? 'Favoris' : c));
+      const chipLabel = (c) => (c === 'all' ? kbe('All', 'Tous') : (c === 'favs' ? kbe('Favourites') : (c === 'other' ? kbe('other') : c)));
       const chips = ['all', 'favs'].concat(kinds);
       return h('div', { className: 'kbg-root' },
         (compact !== true ? h('div', { className: 'kbg-head' },
@@ -9056,7 +9169,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const sid2 = sessionForKyber(rootId, kyber)
       if (kyber === null) {
         return h('div', { className: 'kbg-root' },
-          h('button', { type: 'button', className: 'kbg-open', onClick: () => set({ view: 'gallery' }) }, '← Galerie'),
+          h('button', { type: 'button', className: 'kbg-open', onClick: () => set({ view: 'gallery' }) }, '← ' + kbe('Gallery')),
           h('div', { className: 'kbg-note' }, kbe('Agent Team not found.')))
       }
       const writable = true
@@ -9090,7 +9203,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const teamLiveSection = h('div', null,
         h('button', { type: 'button', className: 'kbg-menurow', onClick: () => setLiveOpen(liveOpen !== true) },
           h('span', { className: 'kbg-mico' }, '🛰'), h('span', { className: 'kbg-mlab' }, kbt('ui.liveteam')),
-          h('span', { className: 'kbg-mval' }, (liveTeam !== null && liveTeam.state === 'ok' && kbRosterOf(liveTeam.view).length > 0) ? kbPlural(kbRosterOf(liveTeam.view).length, 'membre') : kbt('kbui.agentteams'))),
+          h('span', { className: 'kbg-mval' }, (liveTeam !== null && liveTeam.state === 'ok' && kbRosterOf(liveTeam.view).length > 0) ? kbPlural(kbRosterOf(liveTeam.view).length, kbt('crew.member'), kbt('crew.members')) : kbt('kbui.agentteams'))),
         (liveOpen === true ? h('div', { className: 'kbg-msec' }, (() => {
           if (liveTeam === null) return h('div', { className: 'kbg-empty' }, kbt('kbui.loading'))
           if (liveTeam.state === 'ok') {
@@ -9118,20 +9231,20 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             h('button', { type: 'button', className: 'kbg-fav' + (favs2[favKey2] === true ? ' on' : ''), title: kbt('kbui.favori'), onClick: () => { const n2 = Object.assign({}, favs2); if (n2[favKey2] === true) delete n2[favKey2]; else n2[favKey2] = true; set({ pfavs: n2 }) } }, favs2[favKey2] === true ? '★' : '☆'),
             h('button', { type: 'button', className: 'kbg-pin' + (pins2[favKey2] === true ? ' on' : ''), title: pins2[favKey2] === true ? kbt('ui.unpin') : kbt('ui.pin'), onClick: () => { const n2 = Object.assign({}, pins2); if (n2[favKey2] === true) delete n2[favKey2]; else n2[favKey2] = true; set({ ppins: n2 }) } }, '📌')),
           h('div', { className: 'kbg-kmeta' }, String(kyber.topology || kbe('team')).toUpperCase() + ' · ' + roles.length + kbt('kbui.frag.agents') + kyber.id)),
-        h('button', { type: 'button', className: 'kbg-talkbtn', disabled: sid2 === null, title: sid2 === null ? kbt('ui.nosession') : kbt('ui.opensession'), onClick: () => { try { if (sid2 !== null && sessionsSvc !== undefined && sessionsSvc !== null && typeof sessionsSvc.open === 'function') sessionsSvc.open(sid2) } catch (e) { /* session inconnue */ } } }, Icon('messageCircle', 13), ' Discuter'),
+        h('button', { type: 'button', className: 'kbg-talkbtn', disabled: sid2 === null, title: sid2 === null ? kbt('ui.nosession') : kbt('ui.opensession'), onClick: () => { try { if (sid2 !== null && sessionsSvc !== undefined && sessionsSvc !== null && typeof sessionsSvc.open === 'function') sessionsSvc.open(sid2) } catch (e) { /* session inconnue */ } } }, Icon('messageCircle', 13), ' ' + kbe('Chat')),
         h('div', { className: 'kbg-menu' },
           h('button', { type: 'button', className: 'kbg-menurow', onClick: () => secT('goals') },
             h('span', { className: 'kbg-mico' }, '🎯'), h('span', { className: 'kbg-mlab' }, kbe('Goals')),
-            h('span', { className: 'kbg-mval' }, goal !== null ? 'objectif ' + (goal.phase || 'actif') : 'aucun')),
+            h('span', { className: 'kbg-mval' }, goal !== null ? kbe('goal') + ' ' + (goal.phase || kbe('active')) : kbe('none', 'aucun'))),
           (sec.goals === true ? h('div', { className: 'kbg-msec' },
             goal !== null
               ? h('div', null,
                   h('p', { className: 'kbg-goalobj' }, goal.objective || '—'),
-                  h('div', { className: 'kbg-note' }, 'phase : ' + (goal.phase || '?') + (typeof goal.roundsStarted === 'number' ? ' · ' + kbPlural(goal.roundsStarted, 'round') + (typeof goal.maxGoalRounds === 'number' ? ' / ' + goal.maxGoalRounds : '') : '')))
+                  h('div', { className: 'kbg-note' }, 'phase' + kbfSep() + (goal.phase || '?') + (typeof goal.roundsStarted === 'number' ? ' · ' + kbPlural(goal.roundsStarted, 'round') + (typeof goal.maxGoalRounds === 'number' ? ' / ' + goal.maxGoalRounds : '') : '')))
               : h('div', { className: 'kbg-empty' }, kbt('ui.nogoal'))) : null),
           h('button', { type: 'button', className: 'kbg-menurow', onClick: () => secT('artifacts') },
             h('span', { className: 'kbg-mico' }, '📦'), h('span', { className: 'kbg-mlab' }, kbt('kbui.artefacts')),
-            h('span', { className: 'kbg-mval' }, arts.length > 0 ? kbPlural(arts.length, kbt('ui.recent')) : 'aucun')),
+            h('span', { className: 'kbg-mval' }, arts.length > 0 ? kbPlural(arts.length, kbt('ui.recent')) : kbe('none', 'aucun'))),
           (sec.artifacts === true ? h('div', { className: 'kbg-msec' },
             arts.length > 0
               ? arts.map((a) => h('div', { className: 'kb2-art', key: a.path, title: a.path },
@@ -9141,25 +9254,25 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               : h('div', { className: 'kbg-empty' }, kbt('ui.noartifact'))) : null),
           h('button', { type: 'button', className: 'kbg-menurow', onClick: () => secT('skills') },
             h('span', { className: 'kbg-mico' }, Icon('zap', 14)), h('span', { className: 'kbg-mlab' }, kbt('kbui.skills')),
-            h('span', { className: 'kbg-mval' }, skills.length > 0 ? String(skills.length) : 'aucune')),
+            h('span', { className: 'kbg-mval' }, skills.length > 0 ? String(skills.length) : kbe('none', 'aucune'))),
           (sec.skills === true ? h('div', { className: 'kbg-msec' },
             skills.length > 0
               ? h('div', { className: 'kbg-tags' }, skills.map((sk) => h('span', { className: 'kbg-tag', key: sk }, sk)))
               : h('div', { className: 'kbg-empty' }, kbt('ui.noskills'))) : null),
           (KB_SHOW_DOCS === true ? h('button', { type: 'button', className: 'kbg-menurow', onClick: () => secT('docs') },
             h('span', { className: 'kbg-mico' }, Icon('fileText', 14)), h('span', { className: 'kbg-mlab' }, kbt('kbui.documents')),
-            h('span', { className: 'kbg-mval' }, docs.length > 0 ? kbPlural(docs.length, kbt('ui.input')) : 'vide')) : null),
+            h('span', { className: 'kbg-mval' }, docs.length > 0 ? kbPlural(docs.length, kbt('ui.input')) : kbe('empty'))) : null),
           (KB_SHOW_DOCS === true && sec.docs === true ? h('div', { className: 'kbg-msec' },
             docs.length > 0
               ? docs.map((d) => h('div', { className: 'kbg-docrow', key: d.name },
                   h('span', { className: 'kbg-docico' }, d.type === 'dir' ? Icon('folder', 13) : Icon('file', 13)),
                   h('span', { className: 'kbg-docname', title: d.name }, d.name),
-                  h('span', { className: 'kbg-dockey' }, d.type === 'dir' ? 'dossier' : 'fichier')))
+                  h('span', { className: 'kbg-dockey' }, d.type === 'dir' ? kbe('folder') : kbe('file'))))
               : h('div', { className: 'kbg-empty' }, kbt('kbui.team.folderonly'))) : null),
           teamLiveSection,
           h('button', { type: 'button', className: 'kbg-menurow', onClick: () => secT('connectors') },
-            h('span', { className: 'kbg-mico' }, Icon('plug', 14)), h('span', { className: 'kbg-mlab' }, 'Connecteurs'),
-            h('span', { className: 'kbg-mval' }, conns.length > 0 ? kbPlural(conns.length, 'outil') : 'aucun')),
+            h('span', { className: 'kbg-mico' }, Icon('plug', 14)), h('span', { className: 'kbg-mlab' }, kbe('Connectors')),
+            h('span', { className: 'kbg-mval' }, conns.length > 0 ? kbPlural(conns.length, kbe('tool')) : kbe('none', 'aucun'))),
           (sec.connectors === true ? h('div', { className: 'kbg-msec' },
             conns.length > 0
               ? h('div', { className: 'kbg-tags' }, conns.map((c) => h('span', { className: 'kbg-tag', key: c }, c)))
@@ -9275,7 +9388,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             roles.map((r, i) => h('div', { className: 'kbg-role', key: 'r' + i },
               h('span', { className: 'kbg-roleid' }, r.id || '—'),
               h('span', { className: 'kbg-rolenote' }, (r.provider || '?') + ' / ' + (r.model || '?')),
-              h('span', { className: 'kbg-roleok' + (r.probeOk === true ? ' ok' : '') }, r.probeOk === true ? 'sonde OK' : (r.declared === false ? kbt('ui.notdeclared') : kbt('ui.notprobed')))))) : null),
+              h('span', { className: 'kbg-roleok' + (r.probeOk === true ? ' ok' : '') }, r.probeOk === true ? kbe('probe OK') : (r.declared === false ? kbt('ui.notdeclared') : kbt('ui.notprobed')))))) : null),
           (live.state === 'ok' && live.members !== null && live.members.length > 0 ? h('div', { className: 'kb6-tinfosec' },
             h('div', { className: 'kb6-tinfolabel' }, kbt('ui.liveteam.head')),
             live.members.map((m, i) => h('div', { className: 'kbg-docrow', key: 'tm' + i },
@@ -9429,7 +9542,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               // l'état n'est pas confirmé, on le dit au lieu de supposer privé.
               // The server has no public links at all (paused on the new server): said plainly below, the control is off.
               if (g !== null && g.ok !== true && g.error === 'not_on_this_server') { if (vivant === true) setSrv({ state: 'unavail', share: null, artId: null, error: null }); return }
-              if (g === null || g.ok !== true) throw new Error(((g !== null && g.error) ? String(g.error) : 'illisible') + ((g !== null && g.status) ? ' (HTTP ' + g.status + ')' : ''))
+              if (g === null || g.ok !== true) throw new Error(((g !== null && g.error) ? String(g.error) : kbe('unreadable')) + ((g !== null && g.status) ? ' (HTTP ' + g.status + ')' : ''))
               if (g.share !== null && g.share !== undefined && g.share.audience !== 'only_me' && typeof g.share.slug === 'string') { trouve = g.share; artId = a.id; break }
             }
             if (vivant === true) setSrv({ state: 'ok', share: trouve, artId: artId, error: null })
@@ -10079,9 +10192,9 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             const reste = Array.isArray(res.aCompleter) ? res.aCompleter.slice(0, 2).join(' · ') : ''
             notify('“' + item.name + '”' + kbt('kbui.market.cloud.done') + reste)
           } else {
-            notify('“' + item.name + '” : ' + String(res !== null && res.error !== undefined ? res.error : 'route injoignable'))
+            notify('“' + item.name + '” : ' + String(res !== null && res.error !== undefined ? res.error : kbe('route unreachable')))
           }
-        } catch (e) { notify('“' + item.name + '” : route injoignable') }
+        } catch (e) { notify('“' + item.name + '” : ' + kbe('route unreachable')) }
         setMarketBusy(null)
       }
 
@@ -11061,7 +11174,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       budget: '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><rect x="2" y="4.2" width="14" height="9.6" rx="2.4" stroke="currentColor" stroke-width="1.3"/><path d="M2 7.6h10.5" stroke="currentColor" stroke-width="1.3"/><circle cx="12.4" cy="10.8" r="1" fill="currentColor"/></svg>'
     }
     const KBI_VUES_KYBER = [
-      { cle: 'initiale', nom: 'Initiale', blocs: ['cles', 'usage', 'engagement', 'llm', 'roi', 'budget', 'top', 'sources'], lecture: null, defaut: true },
+      { cle: 'initiale', nom: kbe('Initial'), blocs: ['cles', 'usage', 'engagement', 'llm', 'roi', 'budget', 'top', 'sources'], lecture: null, defaut: true },
       { cle: 'cout', nom: kbe('Cost'), blocs: ['roi', 'llm', 'top', 'sources'], lecture: 'cout', defaut: false },
       { cle: 'prod', nom: 'Production', blocs: ['cles', 'usage', 'engagement', 'top'], lecture: 'prod', defaut: false },
       { cle: 'qualite', nom: kbe('Quality'), blocs: ['cles', 'top', 'sources', 'llm'], lecture: 'qualite', defaut: false },
@@ -11084,12 +11197,12 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       wsynthese: KBI_VUE_NEUTRE
     }
     const KBI_VUES_PROJ = [
-      { cle: 'initiale', nom: 'Initiale', blocs: ['cles', 'budget', 'top', 'sources'], lecture: null, defaut: true },
+      { cle: 'initiale', nom: kbe('Initial'), blocs: ['cles', 'budget', 'top', 'sources'], lecture: null, defaut: true },
       { cle: 'pbudget', nom: kbe('Budget'), blocs: ['budget', 'sources'], lecture: 'pbudget' },
       { cle: 'pdocs', nom: kbe('Documents'), blocs: ['top', 'cles'], lecture: 'pdocs' }
     ]
     const KBI_VUES_WS = [
-      { cle: 'initiale', nom: 'Initiale', blocs: ['cles', 'usage', 'sources'], lecture: null, defaut: true },
+      { cle: 'initiale', nom: kbe('Initial'), blocs: ['cles', 'usage', 'sources'], lecture: null, defaut: true },
       { cle: 'wruns', nom: 'Runs', blocs: ['usage', 'cles'], lecture: 'wruns' },
       { cle: 'wsynthese', nom: kbe('Overview'), blocs: ['cles', 'sources'], lecture: 'wsynthese' }
     ]
@@ -11099,8 +11212,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     const KBI_EXEMPLES = {
       goals: [[kbe('Ship the P7 beta recipe')], [kbe('Publish the three archives under /beta/')]],
       docs: [['Kybernos chat (standalone) (3).html', '1 249 619 o'], ['notes-recette.md', '12 480 o']],
-      warnings: [['notes-recette.md : date de modification inconnue'], ['archive sans manifeste : generique.mp4']],
-      artefacts: [['planche-contact.png', '820 Ko'], ['transcription.md', '63 Ko'], ['generique.mp4', '14,2 Mo']],
+      warnings: [[kbe('notes-recette.md: modification date unknown')], [kbe('archive without a manifest: generique.mp4')]],
+      artefacts: [['planche-contact.png', kbe('820 KB')], ['transcription.md', kbe('63 KB')], ['generique.mp4', kbe('14.2 MB')]],
       budget: [[kbe('Declared budget'), '60 000 €'], [kbe('Deadline'), '2026-12-31']]
     }
     // --- Menu Insight dynamique : contextes Projet / Espace de travail -------
@@ -11117,8 +11230,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         onglet: kbe('Project · sessions of this chat'),
         reserve: kbe('The project name comes from the Projects page — no name in the payload: the slot stays visible in the pre-message.'),
         lectures: {
-          pbudget: (n) => kbe('No budget declared for this project: the block shows a filled example (tag ex.), never an invented budget. ') + n.sessions + (n.sessions > 1 ? ' sessions couvertes, ' : ' session couverte, ') + n.docs + (n.docs > 1 ? ' documents.' : ' document.'),
-          pdocs: (n) => kbe('Project documents: ') + n.docs + (n.docs > 1 ? ' documents pour ' : ' document pour ') + n.sessions + (n.sessions > 1 ? ' sessions — ' : ' session — ') + kbe('lines without the “ex.” tag come from the project-data payload.')
+          pbudget: (n) => kbe('No budget declared for this project: the block shows a filled example (tag ex.), never an invented budget. ') + n.sessions + (n.sessions > 1 ? kbe(' sessions covered, ') : kbe(' session covered, ')) + n.docs + (n.docs > 1 ? ' documents.' : ' document.'),
+          pdocs: (n) => kbe('Project documents: ') + n.docs + (n.docs > 1 ? kbe(' documents for ') : kbe(' document for ')) + n.sessions + (n.sessions > 1 ? ' sessions — ' : ' session — ') + kbe('lines without the “ex.” tag come from the project-data payload.')
         }
       },
       ws: {
@@ -11225,7 +11338,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         const next = Object.assign({}, vE, { appliquee: cle })
         setEtat(next)
         const part = {}; part[cleVues] = next; sauver(part)
-        setAnno('Vue ' + (vuePar(cle) !== undefined ? vuePar(cle).nom : cle) + kbe(' shown'))
+        setAnno(kbe('View ') + (vuePar(cle) !== undefined ? vuePar(cle).nom : cle) + kbe(' shown'))
       }
       const actionVue = (act, cle) => {
         setOuvert(null)
@@ -11239,19 +11352,19 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         if (act === 'cacher') {
           next.cachees = next.cachees.concat([cle])
           if (next.appliquee === cle) next.appliquee = defautCle
-          setAnno('Vue ' + nom + kbe(' hidden'))
+          setAnno(kbe('View ') + nom + kbe(' hidden'))
         } else if (act === 'defaut') {
           next.defaut = cle
-          setAnno('Vue ' + nom + kbe(': default view'))
+          setAnno(kbe('View ') + nom + kbe(': default view'))
         } else if (act === 'archiver') {
           const idx = next.archivees.indexOf(cle)
-          if (idx >= 0) { next.archivees.splice(idx, 1); setAnno('Vue ' + nom + kbe(' unarchived')) } else { next.archivees.push(cle); setAnno('Vue ' + nom + kbe(' archived')) }
+          if (idx >= 0) { next.archivees.splice(idx, 1); setAnno(kbe('View ') + nom + kbe(' unarchived')) } else { next.archivees.push(cle); setAnno(kbe('View ') + nom + kbe(' archived')) }
         } else if (act === 'cloner') {
           let n = next.copies.length + 1
           let cle2 = cle + '-copie' + n
           while (vuesToutes.some((x) => x.cle === cle2)) { n += 1; cle2 = cle + '-copie' + n }
-          next.copies = next.copies.concat([{ cle: cle2, nom: nom + ' — copie' }])
-          setAnno('Vue ' + kbe('cloned: ') + nom + kbe(' — copy'))
+          next.copies = next.copies.concat([{ cle: cle2, nom: nom + kbe(' — copy') }])
+          setAnno(kbe('View ') + kbe('cloned: ') + nom + kbe(' — copy'))
         }
         setEtat(next)
         const part = {}; part[cleVues] = next; sauver(part)
@@ -11265,7 +11378,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // --- pré-messages IA verbatim (contrat de la maquette) ----------------
       const iaMsg = (act) => (act === 'creer'
         ? kbe('using the skill \'insight-principe\', create a dashboard for ') + conf.libelle + " '" + conf.nom + "'."
-        : kbe('using the skill \'insight-principe\', improve the dashboard \'View ') + (vueCourante !== undefined ? vueCourante.nom : '') + "' pour " + conf.libelle + " '" + conf.nom + "'.")
+        : kbe('using the skill \'insight-principe\', improve the dashboard \'View ') + (vueCourante !== undefined ? vueCourante.nom : '') + "' for " + conf.libelle + " '" + conf.nom + "'.")
       const iaOuvrir = (act) => { try { kbStartChatText(iaMsg(act)) } catch (e) { /* le chat ne s'est pas ouvert */ } }
       // --- données du contexte ---------------------------------------------
       kbUseProjRev()
@@ -11325,10 +11438,10 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               (defaut ? h('span', { className: 'kbm-tag', style: { fontSize: '10px' } }, kbe('Default')) : null),
               (archivee ? h('span', { className: 'kbm-tag', style: { fontSize: '10px', color: 'var(--dsw-alias-label-secondary)' } }, kbe('Archived')) : null)),
             h('div', { className: 'kbi-vue-acts', onClick: (ev) => ev.stopPropagation() },
-              h('button', { type: 'button', className: 'kbi-vue-act', 'data-act': 'cacher', onClick: () => actionVue('cacher', v.cle) }, 'Cacher'),
+              h('button', { type: 'button', className: 'kbi-vue-act', 'data-act': 'cacher', onClick: () => actionVue('cacher', v.cle) }, kbe('Hide')),
               h('button', { type: 'button', className: 'kbi-vue-act', 'data-act': 'defaut', onClick: () => actionVue('defaut', v.cle) }, kbe('Default')),
               h('button', { type: 'button', className: 'kbi-vue-act', 'data-act': 'archiver', onClick: () => actionVue('archiver', v.cle) }, archivee ? kbe('Unarchive') : kbe('Archive')),
-              h('button', { type: 'button', className: 'kbi-vue-act', 'data-act': 'cloner', onClick: () => actionVue('cloner', v.cle) }, 'Cloner'))))
+              h('button', { type: 'button', className: 'kbi-vue-act', 'data-act': 'cloner', onClick: () => actionVue('cloner', v.cle) }, kbe('Clone')))))
       }
       const cachees = (Array.isArray(vE.cachees) === true ? vE.cachees : []).map((c) => vuePar(c)).filter((v) => v !== undefined)
       const lectCle2 = (vueCourante !== undefined && vueCourante.lecture !== null && vueCourante.lecture !== undefined && typeof vueCourante.lecture === 'string') ? vueCourante.lecture : null
@@ -11350,7 +11463,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             h('div', { className: 'kbi-grid2' },
               h('div', { className: 'kbi-card' }, h('div', { className: 'kbi-card-l' }, kbe('Declared budget')), h('div', { className: 'kbi-card-v' }, '—'), h('div', { className: 'kbi-card-s' }, kbe('no budget: block for this project'))),
               h('div', { className: 'kbi-card' }, h('div', { className: 'kbi-card-l' }, kbe('Deadline')), h('div', { className: 'kbi-card-v' }, '—'), h('div', { className: 'kbi-card-s' }, kbe('no deadline declared')))),
-            h('h5', { className: 'kbi-card-l', style: { marginTop: '14px' } }, 'Exemple de budget rempli'),
+            h('h5', { className: 'kbi-card-l', style: { marginTop: '14px' } }, kbe('Filled budget example')),
             KbiExLignes({ lignes: KBI_EXEMPLES.budget, exemple: true }),
             KbiExNote()),
           sec('top', kbe('Documents'),
@@ -11365,7 +11478,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             h('div', { className: 'kbi-grid4' },
               hcard(kbe('runs-index entries'), String(entreesR.length), kbe('last 200')),
               hcard(kbe('Sessions with runs'), String(entreesR.length), kbe('one entry = one session')),
-              hcard('Artefacts', String(artM.lignes.length), kbe('example set')),
+              hcard(kbe('Artifacts'), String(artM.lignes.length), kbe('example set')),
               hcard('Top session', entreesR.length > 0 ? String((entreesR[0].title !== undefined && entreesR[0].title !== null && entreesR[0].title !== '') ? entreesR[0].title : (entreesR[0].sessionId || '—')) : '—', entreesR.length > 0 ? kbe('first entry') : kbe('runs-index silent')))),
           sec('usage', kbe('Sessions with runs'),
             (entreesR.length > 0
@@ -11380,8 +11493,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       return h('div', { className: 'kbi-root', 'data-kb': 'insight-' + props.variante },
         h('div', { className: 'kbi-presets-band', id: 'presets' },
           h('div', { className: 'kbi-presets-h' },
-            h('span', null, 'Vues — skill insight-presets'),
-            h('span', { className: 'kbi-sub' }, conf.onglet + ' · ' + vuesVisibles.length + (vuesVisibles.length > 1 ? ' vues' : ' vue'))),
+            h('span', null, kbe('Views — skill insight-presets')),
+            h('span', { className: 'kbi-sub' }, conf.onglet + ' · ' + vuesVisibles.length + (vuesVisibles.length > 1 ? kbe(' views') : kbe(' view')))),
           h('div', { className: 'kbi-vue-grid', id: 'presets-cartes', role: 'group', 'aria-label': kbe('Selectable views') }, vuesVisibles.map(carte)),
           (cachees.length > 0
             ? h('div', { className: 'kbi-cachees' },
@@ -11590,31 +11703,31 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const choisirVue = (cle) => {
         const v = vuePar(cle)
         if (v === undefined) return
-        vEtatAppliquer(Object.assign({}, vE, { appliquee: cle }), 'Vue ' + v.nom + kbe(' applied — ') + v.blocs.length + kbe(' blocks shown.'))
+        vEtatAppliquer(Object.assign({}, vE, { appliquee: cle }), kbe('View ') + v.nom + kbe(' applied — ') + v.blocs.length + kbe(' blocks shown.'))
       }
       const actionVue = (cle, act) => {
         const v = vuePar(cle)
         if (v === undefined) return
         if (act === 'cacher') {
-          vEtatAppliquer(Object.assign({}, vE, { cachees: vE.cachees.concat([cle]), appliquee: vE.appliquee === cle ? vE.defaut : vE.appliquee }), 'Vue ' + v.nom + kbe(' hidden.'))
+          vEtatAppliquer(Object.assign({}, vE, { cachees: vE.cachees.concat([cle]), appliquee: vE.appliquee === cle ? vE.defaut : vE.appliquee }), kbe('View ') + v.nom + kbe(' hidden.'))
         } else if (act === 'defaut') {
-          vEtatAppliquer(Object.assign({}, vE, { defaut: cle }), 'Vue ' + v.nom + kbe(' becomes the default view.'))
+          vEtatAppliquer(Object.assign({}, vE, { defaut: cle }), kbe('View ') + v.nom + kbe(' becomes the default view.'))
         } else if (act === 'archiver') {
           const archivees = vE.archivees.indexOf(cle) >= 0 ? vE.archivees.filter((x) => x !== cle) : vE.archivees.concat([cle])
-          vEtatAppliquer(Object.assign({}, vE, { archivees: archivees }), 'Vue ' + v.nom + (archivees.indexOf(cle) >= 0 ? kbe(' archived.') : kbe(' unarchived.')))
+          vEtatAppliquer(Object.assign({}, vE, { archivees: archivees }), kbe('View ') + v.nom + (archivees.indexOf(cle) >= 0 ? kbe(' archived.') : kbe(' unarchived.')))
         } else if (act === 'cloner') {
           const base = baseNom(cle)
           let n = vE.copies.length + 1
           let cle2 = cle + '-copie' + n
           while (vuePar(cle2) !== undefined) { n = n + 1; cle2 = cle + '-copie' + n }
-          const copie = { cle: cle2, nom: v.nom + ' — copie', blocs: v.blocs.slice(), lecture: v.lecture }
+          const copie = { cle: cle2, nom: v.nom + kbe(' — copy'), blocs: v.blocs.slice(), lecture: v.lecture }
           vEtatAppliquer(Object.assign({}, vE, { copies: vE.copies.concat([copie]) }), kbe('Copy created: ') + copie.nom + '.')
           return base
         }
         return null
       }
       const retablirVue = (cle) => {
-        vEtatAppliquer(Object.assign({}, vE, { cachees: vE.cachees.filter((x) => x !== cle) }), 'Vue ' + nomDe(cle) + kbe(' restored.'))
+        vEtatAppliquer(Object.assign({}, vE, { cachees: vE.cachees.filter((x) => x !== cle) }), kbe('View ') + nomDe(cle) + kbe(' restored.'))
       }
       // Les deux boutons IA ouvrent un NOUVEAU CHAT avec le pré-message verbatim
       // de la maquette — le slot du skill est résolu sur insight-principe.
@@ -11628,7 +11741,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const kbiCarteVue = (v) => h('div', { key: v.cle, className: 'kbi-card-vue' + (v.archivee === true ? ' kbi-card-vue-archivee' : ''), 'data-kb': 'preset-' + v.cle, 'data-sel': vE.appliquee === v.cle ? '1' : '0', 'data-ouvert': ouvert === v.cle ? '1' : '0', style: { '--kbi-c': couleurDe(v.cle) }, onMouseEnter: () => setApercu(v.cle), onMouseLeave: () => setApercu(null) },
         h('button', { type: 'button', className: 'kbi-card-hd', 'data-choisir': v.cle, onClick: () => choisirVue(v.cle) },
           h('span', { className: 'kbi-type-ico', dangerouslySetInnerHTML: { __html: iconeDe(v.cle) } }),
-          h('span', { className: 'kbi-type-lab' }, 'Vue ' + v.nom),
+          h('span', { className: 'kbi-type-lab' }, kbe('View ') + v.nom),
           h('span', { className: 'kbi-type-cnt' }, v.blocs.length + ' blocs')),
         h('div', { className: 'kbi-vue-d' }, v.blocs.map((b) => KBI_LIB_BLOCS[b] !== undefined ? KBI_LIB_BLOCS[b] : b).join(', ')),
         h('div', { className: 'kbi-card-ft' },
@@ -11636,21 +11749,21 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             (v.cle === vE.defaut ? h('span', { className: 'kbm-tag' }, kbe('Default')) : null),
             (v.archivee === true ? h('span', { className: 'kbm-tag' }, kbe('Archived')) : null)),
           h('div', { className: 'kbi-vue-acts' },
-            h('button', { type: 'button', className: 'kbi-vue-act', 'data-act': 'cacher', title: kbe('Hide the view'), onClick: () => actionVue(v.cle, 'cacher') }, 'Cacher'),
+            h('button', { type: 'button', className: 'kbi-vue-act', 'data-act': 'cacher', title: kbe('Hide the view'), onClick: () => actionVue(v.cle, 'cacher') }, kbe('Hide')),
             h('button', { type: 'button', className: 'kbi-vue-act', 'data-act': 'defaut', title: kbe('Default view'), onClick: () => actionVue(v.cle, 'defaut') }, kbe('Default')),
-            h('button', { type: 'button', className: 'kbi-vue-act', 'data-act': 'archiver', title: kbe('Archive the view'), onClick: () => actionVue(v.cle, 'archiver') }, 'Archiver'),
-            h('button', { type: 'button', className: 'kbi-vue-act', 'data-act': 'cloner', title: kbe('Clone the view'), onClick: () => actionVue(v.cle, 'cloner') }, 'Cloner'),
+            h('button', { type: 'button', className: 'kbi-vue-act', 'data-act': 'archiver', title: kbe('Archive the view'), onClick: () => actionVue(v.cle, 'archiver') }, kbe('Archive')),
+            h('button', { type: 'button', className: 'kbi-vue-act', 'data-act': 'cloner', title: kbe('Clone the view'), onClick: () => actionVue(v.cle, 'cloner') }, kbe('Clone')),
             h('button', { type: 'button', className: 'kbi-vue-act-btn', 'data-act-btn': v.cle, 'aria-label': kbe('Actions of the view ') + v.nom, onClick: () => setOuvert(ouvert === v.cle ? null : v.cle) }, '⋯'))))
       const kbiCartesRendre = () => h('div', { className: 'kbi-presets-band', 'data-kb': 'presets' },
         h('div', { className: 'kbi-presets-h' },
-          h('span', { className: 'kbi-lab' }, 'Vues — skill insight-presets'),
+          h('span', { className: 'kbi-lab' }, kbe('Views — skill insight-presets')),
           h('span', { className: 'kbi-sub' }, kbe('picking a card refreshes the dashboard'))),
         h('div', { className: 'kbi-vue-grid', role: 'group', 'aria-label': kbe('Selectable views') }, vuesVisibles.map(kbiCarteVue)))
       const kbiCacheesRendre = () => (vE.cachees.length === 0 ? null : h('div', { className: 'kbi-cachees', 'data-kb': 'cachees' },
         h('h4', { className: 'kbi-sec-t' }, kbe('Hidden views — pick one to restore')),
         vE.cachees.map((cle) => h('div', { key: cle, className: 'kbi-cachee-row' },
           h('span', { className: 'kbi-cachee-ico', style: { '--kbi-c': couleurDe(cle) }, dangerouslySetInnerHTML: { __html: iconeDe(cle) } }),
-          h('span', { className: 'kbi-lab' }, 'Vue ' + nomDe(cle)),
+          h('span', { className: 'kbi-lab' }, kbe('View ') + nomDe(cle)),
           h('button', { type: 'button', className: 'kbi-btn', 'data-retablir': cle, onClick: () => retablirVue(cle) }, kbe('Restore'))))))
       // Bloc Budget : absence honnête — jamais un zéro maquillé.
       const kbgt = (kyber !== null && kyber.budget !== null && kyber.budget !== undefined && typeof kyber.budget === 'object') ? kyber.budget : null
@@ -11666,11 +11779,11 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // Lectures (skill insight-principe) : une par vue, ancrée aux chiffres
       // affichés. Aucune valeur inventée.
       const kbiLectures = {
-        cout: () => 'Sur ' + days + kbe(' days, the simulator reports ') + kbiMoney(savings, f.currency) + kbe(' saved over ') + kbiMoney(loaded, f.currency) + kbe(' loaded (i.e. ') + ratioTxt + ' %) ; ' + kbiMoney(over12, f.currency) + ' sur douze mois. FX ' + bgFx + ', ' + bgAppels + (bgAppels > 1 ? ' appels LLM.' : ' appel LLM.'),
+        cout: () => kbe('Over ') + days + kbe(' days, the simulator reports ') + kbiMoney(savings, f.currency) + kbe(' saved over ') + kbiMoney(loaded, f.currency) + kbe(' loaded (i.e. ') + ratioTxt + ' %) ; ' + kbiMoney(over12, f.currency) + kbe(' over twelve months. FX ') + bgFx + ', ' + bgAppels + (bgAppels > 1 ? kbe(' LLM calls.') : kbe(' LLM call.')),
         prod: () => 'Sur ' + days + ' jours : ' + kbiNum(msgTotal) + kbe(' messages exchanged and ') + kbiNum(usersTotal) + kbe(' users tracked in the series.'),
         qualite: () => kbiNum(roles.length) + kbe(' roles listed, ') + kbiNum(notes.length) + (notes.length > 1 ? kbe(' source caveats') : kbe(' source caveat')) + kbe(' — period of ') + days + kbe(' days.'),
         debug: () => kbiNum(Object.keys(methods).length) + kbe(' documented measurement methods, ') + kbiNum(notes.length) + (notes.length > 1 ? kbe(' open caveats') : kbe(' open caveat')) + kbe(' — period of ') + days + kbe(' days.'),
-        budget: () => (bgAbsent === true ? kbe('No budget declared (budget: block absent) — ') : kbe('Declared budget: ') + bgMontant + kbe(' — ')) + bgAppels + (bgAppels > 1 ? ' appels LLM sur ' : ' appel LLM sur ') + days + ' jours, FX ' + bgFx + '.'
+        budget: () => (bgAbsent === true ? kbe('No budget declared (budget: block absent) — ') : kbe('Declared budget: ') + bgMontant + kbe(' — ')) + bgAppels + (bgAppels > 1 ? kbe(' LLM calls over ') : kbe(' LLM call over ')) + days + kbe(' days, FX ') + bgFx + '.'
       }
       const lectureCle = (vueCourante !== undefined && typeof vueCourante.lecture === 'string') ? vueCourante.lecture : null
       const kbiLectureTexte = (lectureCle !== null && typeof kbiLectures[lectureCle] === 'function') ? kbiLectures[lectureCle]() : null
@@ -12321,10 +12434,10 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             else echec = (res !== null && res !== undefined && typeof res.error === 'string') ? res.error : kbe('invalid host response')
           } catch (e) { echec = errText(e) }
           if (vivant === false) return undefined
-          if (texte === '') { setWfData({ etat: 'vide', yml: '', topo: null, err: (echec !== null) ? ('lecture: ' + echec + ' — ' + chemin) : null }); return undefined }
+          if (texte === '') { setWfData({ etat: 'vide', yml: '', topo: null, err: (echec !== null) ? (kbe('read: ') + echec + ' — ' + chemin) : null }); return undefined }
           let topo = null
           try { topo = kbWfTraducteur.lireKyberYml(texte) } catch (e) { topo = null }
-          setWfData({ etat: topo !== null ? 'ok' : 'vide', yml: texte, topo: topo, err: (topo === null) ? ('yml lu (' + texte.length + kbe(' char.) but topology not recognised')) : null })
+          setWfData({ etat: topo !== null ? 'ok' : 'vide', yml: texte, topo: topo, err: (topo === null) ? (kbe('yml read (') + texte.length + kbe(' char.) but topology not recognised')) : null })
           return undefined
         }
         charger()
@@ -12607,7 +12720,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                   (wfProp.avertissements.length > 0) ? h('div', { style: { color: 'var(--dsw-alias-state-warn-primary)', fontSize: '12px' } }, wfProp.avertissements.map((e, i) => h('div', { key: 'pwa' + String(i) }, '⚠ ' + e))) : null,
                   h('div', { style: { display: 'flex', gap: '8px' } },
                     h('button', { type: 'button', className: 'kb8-chip', style: { borderColor: 'rgba(201,164,92,.5)', color: '#C9A45C' }, onClick: () => { try { wfAppliquer() } catch (e) { /* application */ } } }, kbe('Apply to the Agent Team “') + String((kyber !== null && kyber !== undefined) ? kyber.id : '?') + kbe('”', ' »')),
-                    h('button', { type: 'button', className: 'kb8-chip', onClick: () => setWfProp(null) }, 'Rejeter'))) : null) : null))
+                    h('button', { type: 'button', className: 'kb8-chip', onClick: () => setWfProp(null) }, kbe('Reject')))) : null) : null))
         }
         if (tab === 'Identity') return h('div', { style: card },
           h('span', { className: 'kb8-parent' }, kbt('kbui.col.name')),
@@ -13068,7 +13181,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     const kbFmtTok = (n) => {
       const v = kbNum(n)
       if (v === null) return '—'
-      return Math.round(v).toLocaleString('en-US').replace(/,/g, ' ')
+      return kbFmtNum(Math.round(v))
     }
     const kbPhaseKey = (t) => String(t === null || t === undefined ? '' : t).trim().toLowerCase()
     const KbRuns = (props) => {
@@ -13317,7 +13430,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           const wModel = estW(modelText, 5.6)
           const need = wLabel + wModel + 22
           const childId = (typeof m.childId === 'string' && m.childId.length > 0) ? m.childId : null
-          const tip = labelText + ' · ' + String(m.phase === null || m.phase === undefined ? '(sans phase)' : m.phase) + ' · ' + String(m.outcome) + ' · ' + modelText + ' · ' + kbFmtMs(kbNum(m.durationMs))
+          const tip = labelText + ' · ' + String(m.phase === null || m.phase === undefined ? kbe('(no phase)') : m.phase) + ' · ' + String(m.outcome) + ' · ' + modelText + ' · ' + kbFmtMs(kbNum(m.durationMs))
           const inner = [h('title', { key: 't' }, tip), h('rect', { key: 'r', x: bx, y: yb, width: bw, height: 16, rx: 4, fill: kbRunColor(m.outcome), fillOpacity: 0.92 })]
           if (bw >= need) {
             inner.push(h('text', { key: 'l', x: bx + 7, y: yb + 11.5, fill: '#ffffff', fontSize: 10.5, pointerEvents: 'none' }, labelText))
@@ -13360,7 +13473,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const totalsView = (r) => {
         const t = totalsOf(r)
         return h('div', { className: 'kb8-pills' },
-          h('span', { className: 'kb8-pill' }, 'membres ' + String(t.members)),
+          h('span', { className: 'kb8-pill' }, kbe('members') + ' ' + String(t.members)),
           h('span', { className: 'kb8-pill' }, 'completed ' + String(t.completed)),
           h('span', { className: 'kb8-pill' }, 'failed ' + String(t.failed)),
           h('span', { className: 'kb8-pill' }, 'cancelled ' + String(t.cancelled)),
@@ -13383,7 +13496,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       if (phase === 'loading') content = h('div', { style: cardBox }, kbt('runs.loading'))
       else if (phase === 'error') content = h('div', { style: Object.assign({}, cardBox, { borderColor: 'var(--dsw-alias-state-error-primary)' }) },
         h('span', { className: 'kb8-name' }, kbt('kbui.runs.unavailable')),
-        h('span', { style: { fontSize: '13px', color: 'var(--dsw-alias-label-secondary)' } }, String(error || 'route absente')))
+        h('span', { style: { fontSize: '13px', color: 'var(--dsw-alias-label-secondary)' } }, String(error || kbe('route missing'))))
       else if (runs.length === 0) content = h('div', { className: 'kb9-empty' },
         Icon('gitBranch', 22),
         h('span', { className: 'kb8-name' }, kbt('runs.norun')),
@@ -14732,7 +14845,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                 onClick: () => { pickFromMsg(e.msg) },
               },
                 h('span', { className: 'kb2-jt' }, String(e.t === null || e.t === undefined ? '—' : e.t)),
-                h('span', { className: 'kb2-jchip kb2-ch-' + String(e.who) }, basique === true ? ({ T: 'fiche', M: kbt('crew.who.m'), L: 'lead', V: 'validation', X: 'connecteur' }[String(e.who)] || String(e.who)) : String(e.who)),
+                h('span', { className: 'kb2-jchip kb2-ch-' + String(e.who) }, basique === true ? ({ T: kbe('sheet'), M: kbt('crew.who.m'), L: 'lead', V: 'validation', X: kbe('connector') }[String(e.who)] || String(e.who)) : String(e.who)),
                 h('span', { className: 'kb2-jmsg' }, kbBadgeSpans(e.msg)),
                 h('span', { className: 'kb2-jmark' }, String(e.mark === null || e.mark === undefined ? '' : e.mark))))) : null)
         }
@@ -14881,7 +14994,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                     'data-kb': 'crew2-jrow', onClick: () => { pickFromMsg(r.e.msg) },
                   },
                     h('span', { className: 'kb2-jt' }, String(r.e.t === null || r.e.t === undefined ? '—' : r.e.t)),
-                    h('span', { className: 'kb2-jchip kb2-ch-' + String(r.e.who) }, basique === true ? ({ T: 'fiche', M: kbt('crew.who.m'), L: 'lead', V: 'validation', X: 'connecteur' }[String(r.e.who)] || String(r.e.who)) : String(r.e.who)),
+                    h('span', { className: 'kb2-jchip kb2-ch-' + String(r.e.who) }, basique === true ? ({ T: kbe('sheet'), M: kbt('crew.who.m'), L: 'lead', V: 'validation', X: kbe('connector') }[String(r.e.who)] || String(r.e.who)) : String(r.e.who)),
                     h('span', { className: 'kb2-jmsg' }, kbBadgeSpans(r.e.msg)),
                     (() => {
                       const m = rowExec(r.e.msg)
@@ -15295,7 +15408,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               kbFmtTok(p.tokens) + ' × ' + String(p.rate) + ' $/Mtok = ' + kbFmtUsd(p.usd))))
         }
         sessKids.push(h('span', { className: 'kb8-sub' }, kbt('kbui.total') + kbFmtUsd(sessCost.usd)
-          + (fxRate !== null ? '  ≈  ' + (sessCost.usd * fxRate).toFixed(3) + ' €' : '')
+          + (fxRate !== null ? '  ≈  ' + kbFmtMoney(sessCost.usd * fxRate, 'EUR', 3) : '')
           + kbt('crew.pricing.mid') + String(kbPrices.source === null ? '—' : kbPrices.source)
           + ' (' + String(kbPrices.providers) + kbt('crew.providers')))
       } else if (sessUsage !== null && sessLast !== null) {
@@ -15431,7 +15544,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           detailKids.push(drow(kbt('crew.agenttokens'), (mf.usage === null) ? '—' : (kbFmtTok(mf.tokens) + kbt('crew.input.mid') + kbFmtTok(mf.usage.uncachedInputTokens) + kbt('crew.output.mid') + kbFmtTok(mf.usage.outputTokens) + kbt('crew.cacheread.mid') + kbFmtTok(mf.usage.cacheReadTokens))))
           detailKids.push(drow(kbt('crew.agentduration.one'), (mf.settledMs === null) ? '—' : kbFmtMs(mf.settledMs)))
           detailKids.push(drow(kbt('crew.passes'), (mf.stats === null) ? '—' : (kbPlural(mf.stats.turns, kbt('crew.turn'), kbt('crew.turns')) + kbt('crew.turns.mid') + kbPlural(mf.stats.steps, kbt('crew.step'), kbt('crew.steps')) + kbt('crew.steps.mid') + kbFmtMs(mf.stats.llmMs) + kbt('crew.tooltime.mid2') + kbFmtMs(mf.stats.toolMs))))
-          detailKids.push(drow(kbt('crew.agentcost.one'), (mf.cost === null) ? '—' : (kbFmtUsd(mf.cost.usd) + (fxRate !== null ? '  ≈  ' + (mf.cost.usd * fxRate).toFixed(3) + ' €' : ''))))
+          detailKids.push(drow(kbt('crew.agentcost.one'), (mf.cost === null) ? '—' : (kbFmtUsd(mf.cost.usd) + (fxRate !== null ? '  ≈  ' + kbFmtMoney(mf.cost.usd * fxRate, 'EUR', 3) : ''))))
           if (mf.title !== null) {
             // Le titre d'une sous-session est son prompt initial : on retire les
             // balises système pour ne garder que lisible.
@@ -15449,8 +15562,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         const needs = []
         if (nd !== null) {
           if (typeof nd.modality === 'string') needs.push(kbt('crew.modality') + nd.modality)
-          if (typeof nd.tier === 'string') needs.push('palier ' + nd.tier)
-          if (typeof nd.context === 'string') needs.push('contexte ' + nd.context)
+          if (typeof nd.tier === 'string') needs.push(kbe('tier ') + nd.tier)
+          if (typeof nd.context === 'string') needs.push(kbe('context ') + nd.context)
         }
         detailKids.push(drow(kbt('crew.needs'), needs.length === 0 ? '—' : needs.join('  ·  ')))
         detailKids.push(drow(kbe('Tools'), (Array.isArray(r.tools) && r.tools.length > 0) ? r.tools.join(', ') : '—'))
@@ -16462,7 +16575,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                 const pct = (max !== null && done !== null) ? Math.max(4, Math.min(100, Math.round((done / max) * 100))) : null
                 return h('div', { className: 'kb8-row', key: g.sessionId, style: Object.assign({}, rowStyle, { cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: '8px' }) },
                   h('span', { className: 'kb8-name' }, g.objective === null || g.objective === undefined || g.objective === '' ? kbe('(untitled goal)') : String(g.objective)),
-                  h('span', { className: 'kb8-parent' }, [g.phase === null || g.phase === undefined ? null : String(g.phase).toUpperCase(), done !== null && max !== null ? ('tour ' + done + '/' + max) : null].filter((x) => x !== null).join(' · ') || 'objectif DSH'),
+                  h('span', { className: 'kb8-parent' }, [g.phase === null || g.phase === undefined ? null : String(g.phase).toUpperCase(), done !== null && max !== null ? (kbe('turn ') + done + '/' + max) : null].filter((x) => x !== null).join(' · ') || kbe('DSH goal')),
                   pct === null ? null : h('div', { className: 'kb9-bar' }, h('span', { style: { width: pct + '%' } })))
               })),
               pagerOf(goalsVp))
@@ -17336,7 +17449,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           h('div', { className: 'kb6-prevtitle', key: 'tt' }, titre),
           h('div', { className: 'kb6-line2', key: 'ln' }, 'MiniApp ' + rendu
             + (lots !== null ? ' · ' + lots + (lots > 1 ? ' lots' : ' lot') : ' · ' + kbe('preview truncated'))
-            + (comps !== null && comps > 0 ? ' · ' + comps + (p !== null && Array.isArray(p.parts) ? ' components' : ' composants') : '')),
+            + (comps !== null && comps > 0 ? ' · ' + comps + kbe(' components') : '')),
           (resume !== null && resume.length > 0 ? h('div', { className: 'kb6-line2', key: 'sm' }, resume.slice(0, 88)) : null),
         ]
       }
@@ -17534,7 +17647,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         h('div', { className: 'kbq-bar' },
           h('span', { className: 'kbq-stat', 'data-kb': 'quiz-progress' }, answered + ' / ' + items.length + (answered > 1 ? kbe(' answered', ' répondues') : kbe(' answered', ' répondu'))),
           (checked === true ? h('span', { className: 'kbq-stat kbq-score', 'data-kb': 'quiz-score' }, good + ' / ' + items.length + (good > 1 ? kbe(' correct', ' justes') : kbe(' correct', ' juste'))) : null),
-          (round > 1 ? h('span', { className: 'kbq-stat kbq-round' }, 'relance n°' + round) : null),
+          (round > 1 ? h('span', { className: 'kbq-stat kbq-round' }, kbe('retry #') + round) : null),
           h('span', { className: 'kbq-spacer' }),
           (typeof onEditParams === 'function' ? h('button', { type: 'button', className: 'kbq-btn', 'data-kb': 'quiz-edit-params', onClick: onEditParams, title: kbe('Change the settings and regenerate') }, Icon('settings', 13), kbe(' Edit')) : null),
           (checked === true
@@ -17542,7 +17655,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             : h('button', {
               type: 'button', className: 'kbq-btn kbq-btn-primary', 'data-kb': 'quiz-check',
               disabled: answered < items.length,
-              title: answered < items.length ? kbe('Answer every question before grading') : 'Corriger',
+              title: answered < items.length ? kbe('Answer every question before grading') : kbe('Grade'),
               onClick: doCheck,
             }, Icon('check', 13), kbe(' Check')))),
         h('ol', { className: 'kbq-list' }, items.map((it, i) => {
@@ -17580,7 +17693,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       return h('div', { className: 'kbf-wrap', 'data-kb': 'cards' },
         h('div', { className: 'kbq-bar' },
           h('span', { className: 'kbq-stat', 'data-kb': 'cards-progress' }, seen + ' / ' + items.length + (seen > 1 ? kbe(' returned', ' retournées') : kbe(' returned', ' retournée'))),
-          (round > 1 ? h('span', { className: 'kbq-stat kbq-round' }, 'relance n°' + round) : null),
+          (round > 1 ? h('span', { className: 'kbq-stat kbq-round' }, kbe('retry #') + round) : null),
           h('span', { className: 'kbq-spacer' }),
           h('button', { type: 'button', className: 'kbq-btn', 'data-kb': 'cards-reveal', onClick: () => { const all = {}; items.forEach((_, i) => { all[i] = true }); setFlipped(all) } }, kbe('Reveal all')),
           h('button', { type: 'button', className: 'kbq-btn kbq-btn-primary', 'data-kb': 'cards-replay', onClick: replay }, Icon('rotateCcw', 13), kbe(' Replay'))),
@@ -17650,7 +17763,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         host.call('kybers/art-read', { path: path }).then((res) => {
           if (dead === true) return
           if (res !== null && res !== undefined && res.ok === true) setLoad({ state: 'ok', text: String(res.text || ''), truncated: res.truncated === true, error: null })
-          else setLoad({ state: 'error', text: '', truncated: false, error: res !== null && res !== undefined ? String(res.error || 'erreur') : 'erreur' })
+          else setLoad({ state: 'error', text: '', truncated: false, error: res !== null && res !== undefined ? String(res.error || kbe('error')) : kbe('error') })
         }).catch((e) => { if (dead === false) setLoad({ state: 'error', text: '', truncated: false, error: String(e && e.message ? e.message : e) }) })
         return () => { dead = true }
       }, [path])
@@ -17762,7 +17875,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           // alors sur un archétype : ouvrir le château affichait « Retro Rocket ».
           return h(KbMiniApp, { text: load.text, name: name, path: path, renderer: renderer, kind: innerKind, meta: parsed })
         } catch (e) {
-          return h('pre', { className: 'kb6-pre' }, load.text + '\n\n— MiniApp JSON invalide : ' + String(e.message || e))
+          return h('pre', { className: 'kb6-pre' }, load.text + '\n\n— ' + kbe('invalid MiniApp JSON: ') + String(e.message || e))
         }
       }
       // ── Legacy types (.quiz, .cards, .deck, etc.) ─────────────────────
@@ -17941,14 +18054,14 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const p = new Promise((res) => { kbPlacesWaiters.push(res) })
       const tryOne = (i) => {
         if (i >= KBPLACES_SRCS.length) {
-          kbPlacesState = { status: 'failed', mod: null, error: 'kb-places injoignable' }
+          kbPlacesState = { status: 'failed', mod: null, error: 'kb-places unreachable' }
           kbPlacesEmit(); return
         }
         fetch(KBPLACES_SRCS[i], { method: 'GET' })
           .then((r) => { if (r === null || r === undefined || r.ok !== true) throw new Error('HTTP'); return r.text() })
           .then((src) => {
             const mod = kbPlacesEval(src)
-            if (mod === null || typeof mod.component !== 'function') throw new Error('module invalide')
+            if (mod === null || typeof mod.component !== 'function') throw new Error('invalid module')
             kbPlacesState = { status: 'ok', mod: mod, error: null }
             kbPlacesEmit()
           })
@@ -18959,7 +19072,7 @@ function renderFit(canvas, model, cam, opts){
       const legende = composants.length > 0
         ? h('div', { className: 'kbbm-legend', 'data-kb': 'bricks-legend' },
           h('div', { className: 'kbbm-legend-head' },
-            h('span', null, 'Composants'),
+            h('span', null, kbe('Components')),
             (libelleCourant !== null && libelleCourant !== undefined && libelleCourant !== ''
               ? h('span', { className: 'kbbm-legend-now', 'data-kb': 'bricks-legend-now' }, 'en cours : ' + libelleCourant)
               : null)),
@@ -19196,7 +19309,7 @@ function renderFit(canvas, model, cam, opts){
       })
       if (res.ok !== true) throw new Error('art-load ' + res.status)
       const j = await res.json()
-      if (j === null || j === undefined || j.ok !== true) throw new Error(String((j && j.error) || 'illisible'))
+      if (j === null || j === undefined || j.ok !== true) throw new Error(String((j && j.error) || 'unreadable'))
       return String(j.text || '')
     }
     const kbTechniqueCharger = async () => {
@@ -19222,7 +19335,7 @@ function renderFit(canvas, model, cam, opts){
         let instance = null
         let art = null
         try { art = JSON.parse(String(text === undefined || text === null ? '{}' : text)) } catch (e) {
-          setPanne('JSON invalide — ' + String((e && e.message) || e)); setEtat('erreur'); return undefined
+          setPanne('invalid JSON — ' + String((e && e.message) || e)); setEtat('erreur'); return undefined
         }
         kbTechniqueCharger().then((mod) => {
           if (mort === true || ref.current === null) return
@@ -19749,11 +19862,11 @@ function renderFit(canvas, model, cam, opts){
             setNote(action === 'rename' ? kbe('Renamed') : (action === 'duplicate' ? kbe('Duplicated') : (action === 'delete' ? kbe('Deleted') : 'OK')))
             if (action !== 'reveal') { try { timerSvc.timeout(refresh, 400) } catch (e) { refresh() } }
           } else {
-            const msg = res !== null && res !== undefined && typeof res.error === 'string' ? res.error : 'erreur'
+            const msg = res !== null && res !== undefined && typeof res.error === 'string' ? res.error : kbe('error')
             setNote(msg.slice(0, 48))
           }
           try { timerSvc.timeout(() => setNote(null), 2200) } catch (e) { setNote(null) }
-        }).catch(() => { setNote('erreur'); try { timerSvc.timeout(() => setNote(null), 2000) } catch (e) { setNote(null) } })
+        }).catch(() => { setNote(kbe('error')); try { timerSvc.timeout(() => setNote(null), 2000) } catch (e) { setNote(null) } })
       }
       React.useEffect(() => {
         if (real.length === 0) return undefined
@@ -21600,7 +21713,7 @@ function renderFit(canvas, model, cam, opts){
               kbt('kbw.gate')),
             h('input', { value: draftW.termsUrl, placeholder: kbt('kbw.terms'), onChange: (e) => patcher({ termsUrl: e.target.value }), style: fieldStyle }),
             h('input', { value: draftW.privacyUrl, placeholder: kbt('kbw.privacy'), onChange: (e) => patcher({ privacyUrl: e.target.value }), style: fieldStyle }),
-            h('input', { type: 'number', min: 1, value: draftW.termsVersion, placeholder: 'version CGU', onChange: (e) => patcher({ termsVersion: Number(e.target.value) > 0 ? Number(e.target.value) : 1 }), style: fieldStyle }),
+            h('input', { type: 'number', min: 1, value: draftW.termsVersion, placeholder: kbe('terms version'), onChange: (e) => patcher({ termsVersion: Number(e.target.value) > 0 ? Number(e.target.value) : 1 }), style: fieldStyle }),
             h('input', { value: draftW.footer, placeholder: kbt('kbw.footer'), onChange: (e) => patcher({ footer: e.target.value }), style: fieldStyle }),
             h('span', { className: 'kbw-lab' }, kbt('kbw.embed')),
             h('div', { className: 'kbw-embed' },
@@ -21735,7 +21848,7 @@ function renderFit(canvas, model, cam, opts){
         if (/^liste\b/i.test(rest) === true) {
           const lignes = (items.length === 0)
             ? kbt('kbw.none')
-            : items.map((w) => (w.slug + ' · ' + (w.enabled === true ? 'ON' : 'OFF') + ' · ' + w.color + ' · ' + (w.position === 'left' ? 'gauche' : 'droite') + (w.title !== '' ? ' · ' + w.title : ''))).join('\n')
+            : items.map((w) => (w.slug + ' · ' + (w.enabled === true ? 'ON' : 'OFF') + ' · ' + w.color + ' · ' + (w.position === 'left' ? kbe('left') : kbe('right')) + (w.title !== '' ? ' · ' + w.title : ''))).join('\n')
           poserDraft(lignes)
           flash(kbt('kbw.listed'))
           return
@@ -24328,7 +24441,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
     KybersMain.__testStartersFromUi = kbStartersFromUi
     // Idem pour la rangée de suggestions qui vit dans le chat (dock du composer).
     KybersMain.__testChatStarters = KbChatStarters
-    ctx.effect(() => slots.register({ name: 'main', key: 'kybers', children: { 'main.kybernos-skills': { kind: 'single', scope: 'root' }, 'main.kybernos-dashboards': { kind: 'single', scope: 'root' }, 'main.kybernos-kyber': { kind: 'single', scope: 'root' } } }, KybersMain), 'kybers: panneau principal galerie');
+    ctx.effect(() => slots.register({ name: 'main', key: 'kybers', children: { 'main.kybernos-skills': { kind: 'single', scope: 'root' }, 'main.kybernos-dashboards': { kind: 'single', scope: 'root' }, 'main.kybernos-kyber': { kind: 'single', scope: 'root' } } }, KybersMain), 'kybers: gallery main panel');
     // ── Onglets absorbés par Crew v2 (décision du 26/09) ─────────────────────
     // Les vues « Kybernos Crew » (order 11), « Crew Model Execution » (order 12)
     // et « Runs » (order 13) ne sont plus enregistrées : leurs infos utiles
@@ -24546,7 +24659,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       return null
     }
     ctx.effect(() => slots.inject('conversation.composer.dock', () => slots.register(
-      { name: 'conversation.composer.dock', id: 'kybernos-usage', order: 90 }, KbUsageProbe)), 'kybers: sonde usage tokens');
+      { name: 'conversation.composer.dock', id: 'kybernos-usage', order: 90 }, KbUsageProbe)), 'kybers: token usage probe');
 
     // ── Suggestions de conversation dans le CHAT ────────────────────────────
     // Dans le DOCK D'ENTRÉE (`conversation.input.dock`, juste AU-DESSUS de la
@@ -24819,7 +24932,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
     if (KBW_PUBLIC_RUNTIME === true) {
       ctx.effect(() => slots.inject('conversation.input.dock', () => slots.register(
         { name: 'conversation.input.dock', id: 'kybernos-widget', order: 35 }, KbWidgetChip)), 'kybers: composer widget chip');
-      ctx.effect(() => styles.insert(KBW_CSS), 'kybers: styles widget (onglet + puce)');
+      ctx.effect(() => styles.insert(KBW_CSS), 'kybers: widget styles (tab + chip)');
       kbwAssurerSlash()
     }
 
@@ -25196,7 +25309,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
           const seconds = (rate > 0) ? stats.frames / rate : 0
           if (seconds < 0.5) {
             setState('idle')
-            setNote('Trop court (' + seconds.toFixed(1) + kbe(' s): the model needs at least half a second.'))
+            setNote(kbe('Too short (') + seconds.toFixed(1) + kbe(' s): the model needs at least half a second.'))
             return
           }
           if (stats.peak < 0.01) {
@@ -25347,7 +25460,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
           (saved !== null) ? h('div', { className: 'kbv-note ok' }, kbe('Voice note filed in the workspace: ') + saved) : null)
           : null)
     }
-    ctx.effect(() => styles.insert(KBV_CSS), 'kybers: styles voix (composer)');
+    ctx.effect(() => styles.insert(KBV_CSS), 'kybers: voice styles (composer)');
     // `conversation.input.right` = « compact controls before the composer submit
     // action » : DANS la rangée d'outils du composer — c'est la place de la
     // maquette. Mesure du 21/09 (constat D4) : cette rangée native est
@@ -25564,7 +25677,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
       '@keyframes kaf-pulse{0%,100%{opacity:.35}50%{opacity:.75}}' +
       '.kaf-gen-row{display:flex;justify-content:space-between;font-size:11.5px;color:var(--dsw-alias-label-secondary)}' +
       '.kaf-gen-label{font-weight:500;color:var(--dsw-alias-label-primary)}'
-    ctx.effect(() => styles.insert(KB_ARTIFACT_SELECTOR_CSS), 'kybers: styles selecteur artifact');
+    ctx.effect(() => styles.insert(KB_ARTIFACT_SELECTOR_CSS), 'kybers: artifact picker styles');
     ctx.effect(() => slots.inject('conversation.input.right', () => slots.register(
       { name: 'conversation.input.right', id: 'kybernos-artifact-selector', order: 5 }, KbArtifactSelector)), 'kybers: artifact picker in the composer');
 
@@ -26077,7 +26190,7 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
 .kbsb:hover{color:var(--dsw-alias-brand-primary)}
 .kbsb:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
 .kbsb-label{white-space:nowrap}
-`), 'kybers: styles reglages plein ecran')
+`), 'kybers: full-screen settings styles')
 
     // ── Copier l'ID du chat : bouton dans l'en-tête de conversation ──────────
     // La maquette « Header chat — copie ID » : une pastille « ID », posée à côté
@@ -26584,7 +26697,7 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
     }
     ctx.effect(() => slots.inject('conversation.session.header.actions', () => slots.register(
       { name: 'conversation.session.header.actions', id: 'kybernos-teams', order: 40 }, KbTeamsGate)),
-    'kybers: chip equipes + popover')
+    'kybers: teams chip + popover')
     ctx.effect(() => styles.insert(`
 /* ── Chip « Équipes » + popover S1 (maquette Crew v2, plan WP1) ─────────────
    Gabarit capture 02 : pastille d'en-tete avec compteur d'équipes + point
@@ -26636,7 +26749,7 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
 .kbtg-open{display:flex;align-items:center;justify-content:center;gap:8px;height:34px;border:1px solid var(--dsw-alias-border-l1);border-radius:9px;background:var(--dsw-alias-bg-layer-3,var(--dsw-alias-bg-layer-2));color:var(--dsw-alias-label-primary);font:inherit;font-size:12.5px;font-weight:500;cursor:pointer}
 .kbtg-open:hover{border-color:var(--dsw-alias-border-l2)}
 .kbtg-open svg{color:var(--dsw-alias-brand-primary,#C9A45C)}
-`), 'kybers: styles chip equipes')
+`), 'kybers: teams chip styles')
     // ── « Mon espace » affiche la NOUVELLE console du gateway LLM (01/10) :
     // iframe directe vers workspace-console.html servie par le SaaS (pas de
     // mur de login — c'est la route /workspace-settings du SaaS qui est derrière
@@ -26773,7 +26886,7 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
           const chemin = typeof demande.path === 'string' ? demande.path : ''
           if (id === '' || demande.method !== 'GET' || chemin === '' || chemin.length > 300) { repondre(fr, { kbApiReply: { id: id, ok: false, status: 0, error: 'request refused' } }); return }
           fetch('/kybernos-cloud/relay?p=' + encodeURIComponent(chemin), { credentials: 'same-origin' })
-            .then((r) => r.json()).catch(() => ({ ok: false, status: 0, error: 'relais injoignable' }))
+            .then((r) => r.json()).catch(() => ({ ok: false, status: 0, error: 'relay unreachable' }))
             .then((j) => repondre(fr, { kbApiReply: { id: id, ok: j !== null && j.ok === true, status: j !== null && typeof j.status === 'number' ? j.status : 0, body: j !== null && j.body !== undefined ? j.body : null, error: j !== null && typeof j.error === 'string' ? j.error : undefined } }))
         }
         // The console's team menu asks THIS page to change the ACTIVE space (the one the Cloud card shows and the app bills), so the two
@@ -27021,7 +27134,7 @@ html [class$="_options"] :is(.kbsl-head,.kbth-head){gap:0}
 html [class$="_options"] .kbth-head>*+*{margin-top:8px}
 html [class$="_options"] .kbth-head>.kbth-sub{margin-top:6px}
 html [class$="_options"] .kbth-head>.kbth-sub+*{margin-top:20px}
-`), 'kybers: styles entete reglages')
+`), 'kybers: settings header styles')
 
 
 
@@ -27039,10 +27152,11 @@ html [class$="_options"] .kbth-head>.kbth-sub+*{margin-top:20px}
     // avant, retour arrière par restauration exacte (routes /kybernos/tools/*).
     // ══════════════════════════════════════════════════════════════════════════
     // Every label goes through `kbe` HERE (not through a table of objects): the repository's language gate flags any bare French string.
-    const kbToolsSource = (s) => (s === 'demande' ? kbe('on request')
+    // The host sends English codes ('request', 'command-line', 'DSH_PROFILE', 'default', 'fallback'); the page words them.
+    const kbToolsSource = (s) => (s === 'request' ? kbe('on request')
       : (s === 'DSH_PROFILE' ? kbe('from DSH_PROFILE')
-        : (s === 'ligne de commande' ? kbe('from the command line')
-          : (s === 'defaut' ? kbe('from the profile default') : kbe('as a fallback')))))
+        : (s === 'command-line' ? kbe('from the command line')
+          : (s === 'default' ? kbe('from the profile default') : kbe('as a fallback')))))
     // Ton d un badge : 'on' / 'ok' vert, 'off' gris, tout le reste orange (à faire).
     const kbToolsCouleur = (t) => ((t === 'on' || t === 'ok') ? 'var(--dsw-alias-state-success-primary)' : (t === 'off' ? 'var(--dsw-alias-label-secondary)' : 'var(--dsw-alias-state-warn-primary)'))
     // Badge d état UNIQUE de la page (02/10) : pastille + libellé dans la couleur
@@ -27213,7 +27327,7 @@ html [class$="_options"] .kbth-head>.kbth-sub+*{margin-top:20px}
         h('div', { className: 'kbt2-card-tete' },
           kbt2Tile(e, false),
           h('div', { className: 'kbt2-card-nom' },
-            h('div', { className: 'kbt2-card-titre' }, String(e.label)),
+            h('div', { className: 'kbt2-card-titre' }, kbe(String(e.label))),
             h('div', { className: 'kbt2-card-sous' }, String(e.prefix !== null && e.prefix !== undefined ? e.prefix : (e.slot !== null && e.slot !== undefined ? e.slot : e.id)))),
           kbt2Pill(e)),
         h('div', { className: 'kbt2-card-desc' },
@@ -27367,7 +27481,7 @@ html [class$="_options"] .kbth-head>.kbth-sub+*{margin-top:20px}
         // ④ Catalogue : filtre par type à gauche, vue cartes/liste à droite.
         h('div', { className: 'kbt2-barre', style: { justifyContent: 'space-between' } },
           h('div', { className: 'kbt2-seg', role: 'group', 'aria-label': kbe('Filter by type'), 'data-kb': 'tool-filters' },
-            segBouton('all', kbe('All'), entries.length),
+            segBouton('all', kbe('All', 'Tout'), entries.length),
             segBouton('exp', kbe('Experimental capabilities'), entries.filter((e) => e.group === 'exp').length),
             segBouton('ext', kbe('External tools'), entries.filter((e) => e.group === 'ext').length)),
           h('div', { className: 'kbt2-seg', role: 'group', 'aria-label': kbe('View'), 'data-kb': 'tool-view' },
@@ -27394,7 +27508,7 @@ html [class$="_options"] .kbth-head>.kbth-sub+*{margin-top:20px}
     }
     ctx.effect(() => slots.inject('settings.section', () => slots.register(
       { name: 'settings.section', id: 'kybernos-tools', order: 29, label: kbt('kbui.tools') },
-      KbToolsPage)), 'kybers: section outils settings')
+      KbToolsPage)), 'kybers: tools settings section')
     ctx.effect(() => styles.insert(`
 .kbo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
 /* ── Section Outils, maquette du 28/09 — mêmes tokens DSW que le reste ── */
@@ -27503,7 +27617,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
 .kbo-rows{display:flex;flex-direction:column;gap:6px}
 .kbo-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:8px;background:var(--dsw-alias-bg-layer-2)}
 .kbo-ligne{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-`), 'kybers: styles section outils')
+`), 'kybers: tools section styles')
 
 
 
@@ -27893,7 +28007,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
         // la ligne doit garder sa hauteur. Le detail vit dans l'infobulle et
         // dans la fiche, pas ici.
         const court = e.ready === true ? (e.kind === 'cloud' ? kbt('kbui.sends.text') : kbt('kbui.engine.offline')) : kbt('kbui.engine.indispo')
-        const note = e.reason !== null && e.reason !== undefined ? String(e.reason) : (e.privacy !== null && e.privacy !== undefined ? String(e.privacy) : court)
+        const note = e.reason !== null && e.reason !== undefined ? kbe(String(e.reason)) : (e.privacy !== null && e.privacy !== undefined ? kbttsConfidentialite(String(e.privacy)) : court)
         return h('button', {
           key: e.id,
           type: 'button',
@@ -27990,7 +28104,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
     }
     ctx.effect(() => slots.inject('settings.section', () => slots.register(
       { name: 'settings.section', id: 'voice', order: 25, label: kbt('kbui.voice') },
-      KbttsReglages)), 'kybers: section reglages voix')
+      KbttsReglages)), 'kybers: voice settings section')
     // ── Réglages du workspace (30/09 → retiré le 01/10) : la section lien
     // « Workspace settings » est supprimée du menu — la nouvelle console vit
     // dans « Mon espace » ci-dessus (iframe directe, sans mur de login).
@@ -28026,7 +28140,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
       // Carte de notation 5 étoiles (remplace les pouces) : meme garde que la
       // vedette, sinon la reference fait lever `apply()` et rien apres ne
       // s'enregistre.
-      (function () { try { return KbQualityRating } catch (e) { return () => null } })())), 'kybers: action notation qualite')
+      (function () { try { return KbQualityRating } catch (e) { return () => null } })())), 'kybers: quality rating action')
 
     // ── MiniApp 4 modes : inline / sidebar / popup / fullpage ────────────
     // État global partagé entre les modes (réponses, score, round, mode actif).
@@ -28122,7 +28236,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
         h('div', { className: 'kbmac-footer' },
           h('span', { className: 'kbmac-stat' },
             estQuestions
-              ? (st.checked ? answered + '/' + items.length + ' · ' + good + '/' + items.length + kbe(' correct', ' justes') : (answered > 0 ? answered + '/' + items.length + kbe(' answered', ' répondu') : '0/' + items.length + kbe(' · Never played'))) + (st.round > 1 ? ' · Relance ' + st.round : '')
+              ? (st.checked ? answered + '/' + items.length + ' · ' + good + '/' + items.length + kbe(' correct', ' justes') : (answered > 0 ? answered + '/' + items.length + kbe(' answered', ' répondu') : '0/' + items.length + kbe(' · Never played'))) + (st.round > 1 ? kbe(' · Retry ') + st.round : '')
               : items.length + (items.length > 1 ? ' lots' : ' lot') + (Array.isArray(parsed.components) && parsed.components.length > 0 ? ' · ' + parsed.components.length + ' composants' : '')),
           h('button', { type: 'button', className: 'kbmac-open', style: { color: color }, onClick: () => doOpen(st.mode === 'inline' ? 'sidebar' : st.mode) },
             h('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2 }, h('path', { d: 'M8 5v14l11-7z' })),
@@ -28162,7 +28276,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
         h('div', { className: 'kbmai-bar' },
           h('span', { className: 'kbmai-stat' }, answered + ' / ' + questions.length + (answered > 1 ? kbe(' answered', ' répondues') : kbe(' answered', ' répondu'))),
           (st.checked ? h('span', { className: 'kbmai-stat kbmai-score' }, good + ' / ' + questions.length + (good > 1 ? kbe(' correct', ' justes') : kbe(' correct', ' juste'))) : null),
-          (st.round > 1 ? h('span', { className: 'kbmai-stat kbmai-round' }, 'relance n°' + st.round) : null),
+          (st.round > 1 ? h('span', { className: 'kbmai-stat kbmai-round' }, kbe('retry #') + st.round) : null),
           h('span', { className: 'kbmai-spacer' }),
           h('button', { type: 'button', className: 'kbmai-btn', onClick: editParams, title: kbe('Change the settings') }, Icon('settings', 13), kbe(' Edit')),
           // Boutons de mode
@@ -29751,7 +29865,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
     // at every load. On loopback DSH remembers the acknowledgement itself and the notice stays as it is.
     if (!kbIsLoopbackHost(globalThis.location !== undefined ? globalThis.location.hostname : '')) {
       ctx.effect(() => slots.inject('settings.onboarding', () => slots.register(
-        { name: 'settings.onboarding', id: 'welcome-notice', order: -100, priority: -1 }, () => null)), 'kybers: avis de preversion DSH (navigateur distant)')
+        { name: 'settings.onboarding', id: 'welcome-notice', order: -100, priority: -1 }, () => null)), 'kybers: DSH pre-release notice (remote browser)')
     }
     ctx.effect(() => slots.inject('conversation.hero.brand.mark', () => slots.register(
       { name: 'conversation.hero.brand.mark' }, (p) => h(KybernosMark, { height: (p !== null && p !== undefined && typeof p.size === 'number' ? p.size : 34) + 10 }))), 'kybers: logo hero')
@@ -30136,7 +30250,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
     // « Send feedback » of the footer menu opens a small form: a type, a message, and an optional technical context (off by
     // default). It POSTs to /kybernos/feedback, which appends one line to <DSH home>/kybernos/feedback.jsonl and sends NOTHING
     // anywhere: the person reads « Saved on this computer — it is sent only when you export it ». « Export feedback » copies the
-    // file to the clipboard. The interview with the assistant (the skill signaler-retour, which can reach the Kybernos team) stays one
+    // file to the clipboard. The interview with the assistant (the skill report-feedback, which can reach the Kybernos team) stays one
     // click away. A screenshot is not offered: the page cannot be captured without the screen-capture permission prompt.
     const KB_FB_TYPES = ['bug', 'idea', 'question']
     const KbFeedbackForm = () => {
@@ -30343,8 +30457,8 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
       const flash = (msg) => { try { window.alert(msg) } catch (e) { /* pas d alerte */ } }
       const startFeedback = () => {
         // The form (KbFeedbackForm, mounted below) opens on the same event as the footer menu's entry. It keeps the way to the
-        // older interview: a fresh chat prefilled with the skill `signaler-retour`, which then calls the tool
-        // `kybernos_signaler_retour` (host side). The tester never holds a GitHub token, and nothing leaves without a « yes ».
+        // older interview: a fresh chat prefilled with the skill `report-feedback`, which then calls the tool
+        // `kybernos_report_feedback` (host side). The tester never holds a GitHub token, and nothing leaves without a « yes ».
         try { window.dispatchEvent(new Event('kybernos:menu:feedback')); return } catch (e) { /* no Event: the message below */ }
         flash(kbt('kbui.feedback.flash'))
       }
@@ -30369,7 +30483,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
         h(KbFeedbackForm, null))
     }
     ctx.effect(() => slots.inject('sidebar.footer.action', () => slots.register(
-      { name: 'sidebar.footer.action', id: 'kybernos-utils', order: 20 }, SidebarUtils)), 'kybers: barre d utils sidebar')
+      { name: 'sidebar.footer.action', id: 'kybernos-utils', order: 20 }, SidebarUtils)), 'kybers: sidebar utility bar')
     // ── Gestes du MENU UNIFIÉ du pied (refonte 30/09, maquette « Menu ouvert »)
     //    La carte d'espace et son menu vivent dans kybernos-cloud ; les gestes
     //    qui appartiennent au PLUGIN (thème, retour, aide) restent ici et sont
@@ -30617,7 +30731,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
 /* En rail replié : le popup s'ouvre à droite du rail, centré sur la rangée. */
 [class*="collapsed"] .kbu-notif-pop{left:calc(100% + 8px);right:auto;bottom:auto;top:50%;transform:translateY(-50%);width:240px}
 [class*="collapsed"] .kbu-row{align-self:center;margin:0 auto}
-`), 'kybers: styles utils sidebar')
+`), 'kybers: sidebar utility styles')
     ctx.effect(() => styles.insert(
       'nav[aria-label="Global panels"] > button[aria-label="Plugins"]{display:none !important;}'),
       'kybers: hides the native plugins line')
@@ -30736,7 +30850,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
     }
     ;[['kybernos-automations', 28, 'kbui.automations.set', KbAutomationsSettings], ['kbac-appearance', 12, 'kbac.appearance', KbacAppearance]].forEach((s) => {
       ctx.effect(() => slots.inject('settings.section', () => slots.register(
-        { name: 'settings.section', id: s[0], order: s[1], label: kbt(s[2]) }, s[3])), 'kybers: section reglages ' + s[0])
+        { name: 'settings.section', id: s[0], order: s[1], label: kbt(s[2]) }, s[3])), 'kybers: settings section ' + s[0])
     })
     ctx.effect(() => styles.insert(`
 [data-slot="settings.section"]:has(.kbac-page){width:100%;max-width:none}
@@ -31020,7 +31134,7 @@ html[dir="rtl"] [class*="navList"][data-kb-searching] [data-kb-fold-toggle] .kb-
 [class*="navList"][data-kb-settings][data-kb-fold="shut"]:not([data-kb-searching]) [data-kb-fold-cell]:not([aria-current="true"]){display:none}
 /* Theme and Language belong to Appearance: drawn one step in under it. */
 [class*="navList"][data-kb-settings] [data-kb-sub]{padding-inline-start:30px}
-`), 'kybers: styles groupes menu reglages')
+`), 'kybers: settings menu group styles')
 
     // (The French→English DOM rewriter of the Theme, Language and Commands pages lived here. Those bundles write their own English and French now: removed.)
 
@@ -31067,11 +31181,11 @@ html[dir="rtl"] [class*="navList"][data-kb-searching] [data-kb-fold-toggle] .kb-
         const WV_SESSION = 900
         const WV_NOW = 884
         const WV_ACT = {
-          orch: { label: 'Orchestrateur', letter: 'O' },
+          orch: { label: kbe('Orchestrator'), letter: 'O' },
           doer: { label: 'Doer', letter: 'D' },
           checker: { label: 'Checker', letter: 'C' },
-          connector: { label: 'Connecteur', letter: 'A' },
-          human: { label: 'Humain', letter: 'H' },
+          connector: { label: kbe('Connector'), letter: 'A' },
+          human: { label: kbe('Human'), letter: 'H' },
           system: { label: kbe('System'), letter: 'S' },
         }
         const WV_ORDER = ['orch', 'doer', 'checker', 'connector', 'human', 'system']
@@ -31089,11 +31203,11 @@ html[dir="rtl"] [class*="navList"][data-kb-searching] [data-kb-fold-toggle] .kb-
         }
         const WV_RST = {
           ok: { label: kbe('Done'), tone: 'ok' },
-          pending: { label: 'Attente humaine', tone: 'wait', pulse: 1 },
+          pending: { label: kbe('Awaiting a human'), tone: 'wait', pulse: 1 },
           error: { label: kbe('Failed'), tone: 'err' },
         }
-        const WV_TRIG = { webhook: 'WEBHOOK', human: 'HUMAIN', cron: 'CRON', agent: 'AGENT' }
-        const WV_SECS = [['tl', 'Chronologie'], ['graph', 'Graphe'], ['cascade', 'Cascade'], ['detail', kbe('Step detail')], ['analyse', 'Analyse']]
+        const WV_TRIG = { webhook: 'WEBHOOK', human: kbe('HUMAN'), cron: 'CRON', agent: 'AGENT' }
+        const WV_SECS = [['tl', kbe('Timeline')], ['graph', kbe('Graph')], ['cascade', 'Cascade'], ['detail', kbe('Step detail')], ['analyse', kbe('Analysis')]]
         const WV_EDGE = {
           ok: { cls: 'e-ok', dash: 'none', w: 1.5 },
           active: { cls: 'e-active', dash: '6 6', w: 2, flow: 1 },
@@ -31103,15 +31217,6 @@ html[dir="rtl"] [class*="navList"][data-kb-searching] [data-kb-fold-toggle] .kb-
           loopHit: { cls: 'e-err', dash: '6 4', w: 2 },
         }
         const AN = 'Anthropic · via LiteLLM'
-        // kbe() only carries strings present in KB_FR_EN: register the two
-        // literals this module renders through it (the phrase-translation
-        // engine reads KB_FR_EN as its source).
-        ;(function () {
-          try {
-            if (KB_FR_EN['Run en cours'] === undefined) KB_FR_EN['Run en cours'] = 'Run in progress'
-            if (KB_FR_EN['Aucune exécution dans cette session pour l’instant.'] === undefined) KB_FR_EN['Aucune exécution dans cette session pour l’instant.'] = 'No runs in this session yet.'
-          } catch (e) { /* translation table not writable: strings stay French */ }
-        })()
 
         const WV2_CSS = `
 .wv2-root{
@@ -31358,16 +31463,16 @@ html.wv2-actif [data-composer-seat]{display:none !important}
 `
 
         /* ── format helpers (restored: the journal still calls them) ───────────────────── */
-        const wvEur = (v, d) => (!v ? '0 €' : v.toFixed(d === undefined ? 4 : d).replace('.', ',') + ' €')
+        const wvEur = (v, d) => kbFmtMoney(v || 0, 'EUR', !v ? 0 : (d === undefined ? 4 : d))
         const wvDur = (ms) => {
           if (ms <= 0) return '0 s'
           if (ms < 1000) return Math.round(ms) + ' ms'
           const s = ms / 1000
-          if (s < 60) return s.toFixed(1).replace('.', ',') + ' s'
+          if (s < 60) return kbFmtNum(s, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' s'
           const m = Math.floor(s / 60)
           return m + ' min ' + String(Math.round(s % 60)).padStart(2, '0') + ' s'
         }
-        const wvTok = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+        const wvTok = (n) => kbFmtNum(n)
         const wvClock = (start, ms) => {
           const p = start.split(':').map(Number)
           const t = p[0] * 3600 + p[1] * 60 + p[2] + Math.floor(ms / 1000)
@@ -31444,16 +31549,16 @@ html.wv2-actif [data-composer-seat]{display:none !important}
                 p: (m.actual && m.actual.source) || (m.declared && m.declared.source) || '—',
                 t0: s0, t1: s1, tk: (m.actual && m.actual.tokens) || 0, c: (m.actual && typeof m.actual.costEur === 'number') ? m.actual.costEur : null, st: st,
                 i: m.phase ? 'phase ' + m.phase : '—',
-                o: m.outcome || (st === 'pending' ? 'en cours' : '—'),
-                note: m.childId ? 'trace ' + String(m.childId).slice(0, 8) + ' · rang ' + (m.seq || '?') : 'rang ' + (m.seq || '?'),
+                o: m.outcome || (st === 'pending' ? kbe('in progress') : '—'),
+                note: m.childId ? 'trace ' + String(m.childId).slice(0, 8) + kbe(' · rank ') + (m.seq || '?') : kbe('rank ') + (m.seq || '?'),
               }
             })
             if (!steps.length) steps.push({ a: 'system', n: kbe('Run with no member observed'), w: 'workflow', m: '—', p: '—', t0: 0, t1: Math.max(2000, rEnd - r.startedAt), c: null, st: r.endedAt ? 'ok' : 'pending', i: '—', o: r.stopReason || '—' })
             return {
               id: r.runId ? String(r.runId).slice(0, 8) : 'run_' + (i + 1),
               kind: 'agent', title: r.name || kbe('Unnamed workflow'),
-              source: (meta && meta.title) || 'run de workflow',
-              by: (r.declaredFrom || 'workflow') + ' · ' + steps.length + ' membres',
+              source: (meta && meta.title) || kbe('workflow run'),
+              by: (r.declaredFrom || 'workflow') + ' · ' + steps.length + kbe(' members'),
               start: wv2Hms(r.startedAt), status: status,
               sp0: Math.max(0, (r.startedAt - t0) / 1000), steps: steps,
             }
@@ -31578,14 +31683,14 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           }
           const nRuns = Object.keys(inRuns).length
           const kpis = [
-            { k: kbe('Executions'), v: String(nRuns), sub: runPending + ' en attente · ' + runErr + kbe(' failure'), tone: '' },
+            { k: kbe('Executions'), v: String(nRuns), sub: runPending + kbe(' pending · ') + runErr + kbe(' failure'), tone: '' },
             { k: kbe('Active time'), v: wvDur(activeMs), sub: kbe('total over the period'), tone: '' },
-            { k: kbe('Cost'), v: cost > 0 ? wvEur(cost, 3) : (unpTot ? '—' : '0 €'), sub: nRuns ? ((src.pricing ? kbe('estimated · ') : '') + (unpTot ? (unpTot > 1 ? unpTot + kbe(' unpriced calls') : unpTot + kbe(' unpriced call')) : '≈ ' + wvEur(cost / nRuns, 3) + ' / exécution')) : '—', tone: 'accent' },
+            { k: kbe('Cost'), v: cost > 0 ? wvEur(cost, 3) : (unpTot ? '—' : wvEur(0)), sub: nRuns ? ((src.pricing ? kbe('estimated · ') : '') + (unpTot ? (unpTot > 1 ? unpTot + kbe(' unpriced calls') : unpTot + kbe(' unpriced call')) : '≈ ' + wvEur(cost / nRuns, 3) + kbe(' / execution'))) : '—', tone: 'accent' },
             { k: 'Tokens', v: wvTok(tin + tout + tkTot), sub: (tin + tout) ? wvTok(tin) + ' in · ' + wvTok(tout) + ' out' : (tkTot ? kbe('journal total') : '—'), tone: '' },
-            { k: 'Appels LLM', v: String(llm), sub: modelList.length + (modelList.length > 1 ? kbe(' models') : kbe(' model')) + ' · ' + Object.keys(provs).length + (Object.keys(provs).length > 1 ? kbe(' providers') : kbe(' provider')), tone: '' },
-            { k: 'Gates humaines', v: String(humans), sub: humanPending + ' en attente', tone: humanPending ? 'warn' : '' },
-            { k: kbe('Check rejections'), v: String(rejects), sub: rejects ? kbe('fixed on the 1st retry') : 'aucun', tone: '' },
-            { k: 'Erreurs connecteur', v: String(connErr), sub: connErr ? 'Google Drive · timeout' : 'aucune', tone: connErr ? 'err' : '' },
+            { k: kbe('LLM calls'), v: String(llm), sub: modelList.length + (modelList.length > 1 ? kbe(' models') : kbe(' model')) + ' · ' + Object.keys(provs).length + (Object.keys(provs).length > 1 ? kbe(' providers') : kbe(' provider')), tone: '' },
+            { k: kbe('Human gates'), v: String(humans), sub: humanPending + kbe(' pending'), tone: humanPending ? 'warn' : '' },
+            { k: kbe('Check rejections'), v: String(rejects), sub: rejects ? kbe('fixed on the 1st retry') : kbe('none', 'aucun'), tone: '' },
+            { k: kbe('Connector errors'), v: String(connErr), sub: connErr ? 'Google Drive · timeout' : kbe('none', 'aucune'), tone: connErr ? 'err' : '' },
           ]
 
           // préréglages de période
@@ -31641,7 +31746,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
               idx: i, id: r.id, title: r.title, trig: WV_TRIG[r.kind], segs: segs,
               tone: rs.tone, pulse: !!rs.pulse, on: i === ri,
               showMark: x.span[0] >= A && x.span[0] <= B, markLeft: sp + '%',
-              label: wvDur(x.total) + (r.status === 'pending' ? '…' : '') + ' · ' + (x.cost > 0 ? wvEur(x.cost, 3) : (x.unp ? '—' : '0 €')),
+              label: wvDur(x.total) + (r.status === 'pending' ? '…' : '') + ' · ' + (x.cost > 0 ? wvEur(x.cost, 3) : (x.unp ? '—' : wvEur(0))),
               labelLeft: (toLeft ? Math.max(sp - 0.8, 1) : ep + 0.6) + '%',
               labelTf: toLeft && sp > 12 ? 'translateX(-100%)' : 'none',
             })
@@ -31661,7 +31766,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             stats: [
               { k: kbe('Start'), v: rr.start },
               { k: kbe('Duration'), v: wvDur(T) + (rr.status === 'pending' ? '…' : '') },
-              { k: kbe('Cost'), v: R.cost > 0 ? wvEur(R.cost, 4) : (R.unp ? '—' : '0 €') },
+              { k: kbe('Cost'), v: R.cost > 0 ? wvEur(R.cost, 4) : (R.unp ? '—' : wvEur(0)) },
               { k: 'Tokens', v: wvTok(R.tin + R.tout + R.tk) },
               { k: 'LLM', v: String(R.llm) },
             ],
@@ -31699,11 +31804,11 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             tone: decided ? (S.decision === 'ok' ? 'ok' : 'err') : WV_ST[sk].tone,
             pulse: !decided && !!WV_ST[sk].pulse,
             kv: [
-              { k: 'Acteur', v: s.w },
+              { k: kbe('Actor'), v: s.w },
               { k: slot[0], v: s.m || '—' },
               { k: slot[1], v: s.p || '—' },
               { k: kbe('Start'), v: wvClock(rr.start, s.t0) + ' · T+' + wvDur(s.t0) },
-              { k: kbe('Duration'), v: sk === 'queued' ? '—' : wvDur(s.t1 - s.t0) + (sk === 'pending' ? ' (en cours)' : '') },
+              { k: kbe('Duration'), v: sk === 'queued' ? '—' : wvDur(s.t1 - s.t0) + (sk === 'pending' ? kbe(' (in progress)') : '') },
               { k: 'Tokens', v: WV_LLM[s.a] ? (s.tk && !(s.tin || s.tout) ? wvTok(s.tk) + ' (total)' : wvTok(s.tin || 0) + ' in → ' + wvTok(s.tout || 0) + ' out') : '—' },
               { k: kbe('Cost'), v: WV_LLM[s.a] ? (s.c === null ? '—' : wvEur(s.c || 0) + (s.c === 0 ? ' (local)' : '')) : '—' },
               { k: 'Trace', v: 'trc_' + rr.id.slice(4) + '_' + String(si + 1).padStart(2, '0') + ' · span ' + (7120 + si * 13).toString(16) },
@@ -31730,11 +31835,11 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             const kind = n.kind || 'step'
             let tone = 'ok', badge = 'done', title = n.t || '', sub = n.sub || '', metrics = '', letter = '', selected = false, act = null
             if (kind === 'end') {
-              title = { ok: 'Done', pending: 'En attente', error: kbe('Failed') }[rr.status]
+              title = { ok: kbe('Done'), pending: kbe('Pending'), error: kbe('Failed') }[rr.status]
               sub = rr.id
               badge = { ok: 'done', pending: 'waiting', error: 'failed' }[rr.status]
               tone = { ok: 'ok', pending: 'wait', error: 'err' }[rr.status]
-              metrics = wvDur(T) + ' · ' + (R.cost > 0 ? wvEur(R.cost, 3) : (R.unp ? '—' : '0 €'))
+              metrics = wvDur(T) + ' · ' + (R.cost > 0 ? wvEur(R.cost, 3) : (R.unp ? '—' : wvEur(0)))
             } else if (n.steps.length) {
               const ss = n.steps.map((i2) => rr.steps[i2])
               const a0 = ss[0].a
@@ -31794,7 +31899,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             const c = conns[k]
             let status = 'OK', tone = 'ok'
             if (c.err) { status = c.err + kbe(' failure'); tone = 'err' }
-            else if (c.queued) { status = c.queued + ' en file'; tone = 'idle' }
+            else if (c.queued) { status = c.queued + kbe(' queued'); tone = 'idle' }
             return {
               name: c.name, calls: '×' + (c.calls + c.queued),
               lat: c.calls ? wvDur(Math.round(c.ms / c.calls)) : '—', status: status, tone: tone,
@@ -31803,7 +31908,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
 
           // sections + filtres déclencheur
           const secs = WV_SECS.map((x) => ({ key: x[0], label: x[1], on: !!S.sec[x[0]] }))
-          const chips = [['all', 'Tous'], ['webhook', 'Webhook'], ['human', 'Humain'], ['cron', 'Cron'], ['agent', 'Agent']].map((c) => ({
+          const chips = [['all', kbe('All', 'Tous')], ['webhook', 'Webhook'], ['human', kbe('Human')], ['cron', 'Cron'], ['agent', 'Agent']].map((c) => ({
             key: c[0], label: c[1] + ' ' + (c[0] === 'all' ? RUNS.length : RUNS.filter((r) => r.kind === c[0]).length),
             on: S.trig === c[0],
           }))
@@ -31812,7 +31917,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           const E = S.exp
           const scopeN = { range: inSteps.length, run: rr.steps.length, session: RUNS.reduce((a, r) => a + r.steps.length, 0) }
           const scopeDefs = [['range', kbe('Period'), rng.short], ['run', kbe('Execution'), rr.id], ['session', kbe('Session'), RUNS.length + kbe(' executions')]]
-          const fmtDefs = [['jsonl', 'JSONL', '1 span par ligne'], ['csv', 'CSV', kbe('spreadsheet · 1 row / step')], ['otlp', 'OpenTelemetry', 'OTLP/JSON → Grafana, Datadog'], ['pdf', 'Rapport PDF', kbe('summary + graph')]]
+          const fmtDefs = [['jsonl', 'JSONL', kbe('1 span per line')], ['csv', 'CSV', kbe('spreadsheet · 1 row / step')], ['otlp', 'OpenTelemetry', 'OTLP/JSON → Grafana, Datadog'], ['pdf', kbe('PDF report'), kbe('summary + graph')]]
           const ext = { jsonl: 'jsonl', csv: 'csv', otlp: 'otlp.json', pdf: 'pdf' }[E.fmt]
           const nStepsExp = scopeN[E.scope]
           const kb = Math.round(nStepsExp * (E.prompts ? 14.5 : 1.6) + (E.fmt === 'pdf' ? 180 : 2))
@@ -31823,7 +31928,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           const exp = {
             open: E.open, done: E.done,
             file: 'kybernos_' + src.meta.id + '_' + scopeTag + '.' + ext,
-            summary: nStepsExp + kbe(' steps · ≈ ') + kb + ' Ko · ' + (E.pii ? kbe('PII masked') : 'PII en clair') + (E.prompts ? ' · prompts inclus' : ''),
+            summary: nStepsExp + kbe(' steps · ≈ ') + kb + kbe(' KB · ') + (E.pii ? kbe('PII masked') : kbe('PII in clear')) + (E.prompts ? kbe(' · prompts included') : ''),
             api: 'GET /v1/sessions/' + src.meta.id + '/export' + qs + (qs ? '&' : '?') + 'format=' + E.fmt,
             copyLabel: E.copied ? kbe('API link copied') : kbe('Copy the API link'),
             scopes: scopeDefs.map((o) => ({ key: o[0], label: o[1], sub: o[2], on: E.scope === o[0] })),
@@ -31843,11 +31948,11 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             gnodes: gnodes, gedges: gedges,
             models: modelList.map((m) => ({
               name: m.name, calls: '×' + m.calls,
-              cost: m.cost ? wvEur(m.cost) : (m.unpriced ? '—' : '0 € (local)'),
+              cost: m.cost ? wvEur(m.cost) : (m.unpriced ? '—' : wvEur(0) + ' (local)'),
               pct: Math.max(m.cost / maxCost * 100, 1.5).toFixed(1) + '%',
             })),
             actorTime: actorTime,
-            humanWait: kbe('of which ') + wvDur(actorMs.human || 0) + ' d attente humaine',
+            humanWait: kbe('of which ') + wvDur(actorMs.human || 0) + kbe(' of human wait'),
             connectors: connectors,
             secs: secs, chips: chips, exp: exp,
             showRow: !!(S.sec.cascade || S.sec.detail),
@@ -32131,7 +32236,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
               El('div', { className: 'wv2-pill' }, WV2Led('wait', true), El('span', null, M.src.meta.status)),
               El('button', { type: 'button', className: 'wv2-btn', 'aria-expanded': !!M.exp.open, onClick: () => setExp({ open: !S.exp.open }) },
                 El('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round', strokeLinejoin: 'round' },
-                  El('path', { d: 'M12 3v12M7 10l5 5 5-5M5 21h14' })), 'Exporter')),
+                  El('path', { d: 'M12 3v12M7 10l5 5 5-5M5 21h14' })), kbe('Export'))),
             El('div', { className: 'wv2-head-r' },
               El('span', { className: 'wv2-lbl' }, 'Sections'),
               M.secs.map((x) => El('button', {
@@ -32146,7 +32251,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
               }, c.label))))
 
           /* ── dialogue d export ── */
-          const expBox = M.exp.open ? El('div', { className: 'wv2-exp', role: 'dialog', 'aria-label': 'Exporter' },
+          const expBox = M.exp.open ? El('div', { className: 'wv2-exp', role: 'dialog', 'aria-label': kbe('Export') },
             El('div', { className: 'wv2-exp-head' },
               El('span', { style: { fontSize: 15, fontWeight: 600 } }, kbe('Export the traces')),
               El('button', { type: 'button', className: 'wv2-exp-x', 'aria-label': kbe('Close'), onClick: () => setExp({ open: 0 }) },
@@ -32219,7 +32324,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           /* ── chronologie ── */
           const chrono = S.sec.tl ? El('section', { className: 'wv2-panel' },
             El('div', { className: 'wv2-tl-head' },
-              El('h2', { className: 'wv2-h2' }, 'Chronologie'),
+              El('h2', { className: 'wv2-h2' }, kbe('Timeline')),
               El('span', { className: 'wv2-hint' }, kbe('click a row to open the execution')),
               El('div', { className: 'wv2-grow' }), legend),
             El('div', { className: 'wv2-tl-ticks' },
@@ -32257,7 +32362,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
 
           const graphe = S.sec.graph ? El('section', { className: 'wv2-panel' },
             El('div', { className: 'wv2-tl-head' },
-              El('h2', { className: 'wv2-h2' }, 'Graphe'),
+              El('h2', { className: 'wv2-h2' }, kbe('Graph')),
               El('span', { className: 'wv2-lbl' }, 'Style'),
               [['carte', 'Carte'], ['flow', 'Flow'], ['log', 'Journal']].map((sty) => El('button', {
                 key: sty[0], type: 'button', className: 'wv2-chip' + (S.nstyle === sty[0] ? ' on' : ''), 'aria-pressed': S.nstyle === sty[0],
@@ -32266,11 +32371,11 @@ html.wv2-actif [data-composer-seat]{display:none !important}
               El('span', { className: 'wv2-hint' }, kbe('draggable nodes · wheel to zoom')),
               El('div', { className: 'wv2-grow' }),
               El('div', { className: 'wv2-vcontrols' },
-                El('span', { className: 'wv2-hint', style: { marginRight: 6 } }, 'ctrl+molette : zoom'),
+                El('span', { className: 'wv2-hint', style: { marginRight: 6 } }, kbe('ctrl+wheel: zoom')),
                 El('button', { type: 'button', className: 'wv2-vbtn', 'aria-label': kbe('Zoom out'), onClick: () => zoomBy(1 / 1.2) }, '−'),
                 El('span', { className: 'wv2-vpct' }, Math.round(S.view.k * 100) + ' %'),
-                El('button', { type: 'button', className: 'wv2-vbtn', 'aria-label': 'Zoomer', onClick: () => zoomBy(1.2) }, '+'),
-                El('button', { type: 'button', className: 'wv2-ghost', style: { height: 26, padding: '0 10px', fontSize: 12 }, onClick: () => set({ view: { x: 0, y: 0, k: 1 }, npos: {} }) }, 'Recentrer'))),
+                El('button', { type: 'button', className: 'wv2-vbtn', 'aria-label': kbe('Zoom in'), onClick: () => zoomBy(1.2) }, '+'),
+                El('button', { type: 'button', className: 'wv2-ghost', style: { height: 26, padding: '0 10px', fontSize: 12 }, onClick: () => set({ view: { x: 0, y: 0, k: 1 }, npos: {} }) }, kbe('Recenter')))),
             runBar,
             El('div', {
               className: 'wv2-canvas' + (S.panning ? ' panning' : ''), ref: stageRef,
@@ -32351,15 +32456,15 @@ html.wv2-actif [data-composer-seat]{display:none !important}
                 El('span', { className: 'k' }, kv.k), El('span', { className: 'v' }, kv.v)))),
             El('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
               El('span', { className: 'wv2-lbl' }, kbe('Input')), El('div', { className: 'wv2-io' }, sel.input),
-              El('span', { className: 'wv2-lbl' }, 'Sortie'), El('div', { className: 'wv2-io' }, sel.output)),
+              El('span', { className: 'wv2-lbl' }, kbe('Output')), El('div', { className: 'wv2-io' }, sel.output)),
             sel.hasNote ? El('div', { className: 'wv2-note wv2-tone-' + sel.noteTone },
               WV2Led(sel.noteTone), El('span', null, sel.note)) : null,
             sel.isGate ? El('div', { className: 'wv2-gate' },
               El('div', { className: 'gt' }, kbe('Human decision required')),
               El('div', { className: 'gs' }, kbe('Assigned to Sarah M. · due 01:14 · 2 backup approvers')),
               El('div', { style: { display: 'flex', gap: 8 } },
-                El('button', { type: 'button', className: 'wv2-approve', onClick: () => set({ decision: 'ok' }) }, 'Approuver'),
-                El('button', { type: 'button', className: 'wv2-reject', onClick: () => set({ decision: 'ko' }) }, 'Rejeter'))) : null,
+                El('button', { type: 'button', className: 'wv2-approve', onClick: () => set({ decision: 'ok' }) }, kbe('Approve')),
+                El('button', { type: 'button', className: 'wv2-reject', onClick: () => set({ decision: 'ko' }) }, kbe('Reject')))) : null,
             sel.decided ? El('div', { className: 'wv2-decision wv2-tone-' + sel.decisionTone }, sel.decisionText) : null,
             sel.hasChild ? El('button', {
               type: 'button', className: 'wv2-ghost',
@@ -32381,7 +32486,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
                 El('span', { className: 'mv' }, m.cost))) : El('span', { style: { fontSize: 12, color: 'var(--wv-mut)' } }, kbe('No LLM calls over the period.'))),
             El('div', { className: 'wv2-panel', style: { gap: 12 } },
               El('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' } },
-                El('h3', { className: 'wv2-h3' }, 'Temps par type d acteur'),
+                El('h3', { className: 'wv2-h3' }, kbe('Time by actor type')),
                 El('span', { className: 'wv2-hint' }, M.humanWait)),
               El('div', { className: 'wv2-actbar' },
                 M.actorTime.map((a) => El('div', { key: a.act, style: { flexBasis: 0, flexGrow: Math.max(Number(a.grow), 0), background: actVar(a.act) } }))),
@@ -32393,8 +32498,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
                   El('span', { className: 'p' }, a.pct))))),
             El('div', { className: 'wv2-panel' },
               El('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' } },
-                El('h3', { className: 'wv2-h3' }, 'Connecteurs'),
-                El('span', { className: 'wv2-hint' }, 'appels · latence moy.')),
+                El('h3', { className: 'wv2-h3' }, kbe('Connectors')),
+                El('span', { className: 'wv2-hint' }, kbe('calls · avg. latency'))),
               M.connectors.length ? M.connectors.map((c) => El('div', { key: c.name, className: 'wv2-conn' },
                 El('span', { className: 'cn' }, c.name),
                 El('span', { className: 'cc' }, c.calls),
@@ -34468,7 +34573,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
 }
   } catch (kbBootError) {
     try {
-      console.error('[kybernos] chargement impossible — plugin desactive, GUI preservee', kbBootError)
+      console.error('[kybernos] load failed — plugin disabled, GUI preserved', kbBootError)
     } catch (e2) { /* console indisponible */ }
     return { apply() { /* plugin desactive apres erreur de chargement */ } }
   }

@@ -199,7 +199,7 @@ check('« kybernos » (langue source) refusée', (await translateBatch({ lang: '
 check('lot absent', (await translateBatch({ lang: 'ar' }, deps(fakeLlm({})))).ok === false)
 check('lot vide → ok sans appel', await (async () => { const l = fakeLlm({}); const r = await translateBatch({ lang: 'ar', batch: {} }, deps(l)); return r.ok === true && l.calls.length === 0 })())
 check('service llm absent → erreur nette', (await translateBatch({ lang: 'ar', batch }, deps(null))).ok === false)
-check('aucun modèle résoluble → erreur nette', await (async () => { const r = await translateBatch({ lang: 'ar', batch }, { llm: fakeLlm({}), brainKey: null, catalog: { providers: {}, default: null }, jsonBetween }); return r.ok === false && /aucun modele/.test(r.error) })())
+check('aucun modèle résoluble → erreur nette', await (async () => { const r = await translateBatch({ lang: 'ar', batch }, { llm: fakeLlm({}), brainKey: null, catalog: { providers: {}, default: null }, jsonBetween }); return r.ok === false && /no model available/.test(r.error) })())
 {
   const big = {}
   for (let i = 0; i < I18N_BATCH_MAX + 20; i += 1) big['k' + i] = 'Texte ' + i
@@ -219,11 +219,11 @@ console.log('\n── a run the host drives can stop the call (i18n-job.mjs) ─
   await new Promise((r) => setTimeout(r, 20))
   outer.abort()
   const r = await Promise.race([pending, new Promise((res) => setTimeout(() => res('still waiting'), 2000))])
-  check('aborting the run ends the model call at once, not after its timeout', r !== 'still waiting' && r.ok === false && /ABORTED|interrompu/.test(r.error), r)
+  check('aborting the run ends the model call at once, not after its timeout', r !== 'still waiting' && r.ok === false && /ABORTED|interrupted/.test(r.error), r)
   check('the model call got a signal of its own', seen !== null && typeof seen.aborted === 'boolean')
   const already = new AbortController(); already.abort()
   const r2 = await translateBatch({ lang: 'ar', batch, signal: already.signal }, deps(hang, { timeoutMs: 60000 }))
-  check('a run already stopped makes no call that lasts', r2.ok === false && /ABORTED|interrompu/.test(r2.error), r2)
+  check('a run already stopped makes no call that lasts', r2.ok === false && /ABORTED|interrupted/.test(r2.error), r2)
   check('a signal from the HTTP body is ignored (a JSON body cannot carry one)', await (async () => { const l = fakeLlm({ 'groq/llama-3.3-70b-versatile': ok({ 'tb.filters': 'x', 'tb.reset': 'y' }) }); const q = await translateBatch({ lang: 'ar', batch, signal: { aborted: true } }, deps(l)); return q.ok === true })())
 }
 

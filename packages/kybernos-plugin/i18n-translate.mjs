@@ -19,10 +19,10 @@ const ATTEMPT_TIMEOUT_MS = 120000
 
 const LANG_NAMES = {
   ar: 'into Arabic (العربية, right-to-left reading direction)',
-  es: 'en espagnol', de: 'en allemand', it: 'en italien', pt: 'en portugais',
-  nl: 'into Dutch', ja: 'en japonais', ko: 'into Korean', zh: 'en chinois',
+  es: 'into Spanish', de: 'into German', it: 'into Italian', pt: 'into Portuguese',
+  nl: 'into Dutch', ja: 'into Japanese', ko: 'into Korean', zh: 'into Chinese',
   he: 'into Hebrew (right-to-left)', fa: 'into Persian (right-to-left)',
-  ur: 'into Urdu (right-to-left)', ru: 'en russe', tr: 'en turc', hi: 'en hindi',
+  ur: 'into Urdu (right-to-left)', ru: 'into Russian', tr: 'into Turkish', hi: 'into Hindi',
 }
 
 // "This model cannot be used from here": the next candidate may work. Anything
@@ -133,7 +133,7 @@ const attempt = async ({ llm, route, prompt, maxTokens, timeoutMs, outer }) => {
         finishKind = chunk.reason.kind
         if (finishKind === 'error' || finishKind === 'aborted') {
           const f = chunk.reason.failure
-          failure = { code: f !== null && f !== undefined && typeof f.code === 'string' ? f.code : 'UNKNOWN', message: f !== null && f !== undefined && typeof f.message === 'string' ? f.message : 'echec sans detail' }
+          failure = { code: f !== null && f !== undefined && typeof f.code === 'string' ? f.code : 'UNKNOWN', message: f !== null && f !== undefined && typeof f.message === 'string' ? f.message : 'failure without detail' }
         }
       }
     }
@@ -143,8 +143,8 @@ const attempt = async ({ llm, route, prompt, maxTokens, timeoutMs, outer }) => {
     clearTimeout(timer)
     if (onOuter !== null) { try { outer.removeEventListener('abort', onOuter) } catch (e) { /* gone */ } }
   }
-  if (outer !== null && outer !== undefined && outer.aborted === true) failure = { code: 'ABORTED', message: 'interrompu' }
-  else if (control.signal.aborted) failure = { code: 'TIMEOUT', message: 'pas de reponse en ' + Math.round(timeoutMs / 1000) + ' s' }
+  if (outer !== null && outer !== undefined && outer.aborted === true) failure = { code: 'ABORTED', message: 'interrupted' }
+  else if (control.signal.aborted) failure = { code: 'TIMEOUT', message: 'no answer in ' + Math.round(timeoutMs / 1000) + ' s' }
   return { raw, failure, finishKind }
 }
 
@@ -155,15 +155,15 @@ export const translateBatch = async (args, deps) => {
   const lang = typeof req.lang === 'string' ? req.lang.trim().toLowerCase().slice(0, 10) : ''
   if (/^[a-z]{2,3}([-_][a-z0-9]{2,8})?$/.test(lang) !== true || lang === 'kybernos') return { ok: false, error: 'invalid language code' }
   const batchIn = req.batch !== null && req.batch !== undefined && typeof req.batch === 'object' ? req.batch : null
-  if (batchIn === null) return { ok: false, error: 'lot batch manquant' }
+  if (batchIn === null) return { ok: false, error: 'batch missing' }
   const pairs = Object.entries(batchIn)
     .filter(([k, v]) => typeof k === 'string' && k.length > 0 && k.length <= 200 && typeof v === 'string' && v.length > 0)
     .slice(0, I18N_BATCH_MAX)
   if (pairs.length === 0) return { ok: true, translations: {} }
   const llm = deps.llm
-  if (llm === null || llm === undefined || typeof llm.stream !== 'function') return { ok: false, error: 'service llm indisponible dans ce profil' }
+  if (llm === null || llm === undefined || typeof llm.stream !== 'function') return { ok: false, error: 'llm service unavailable in this profile' }
   const routes = candidates({ requested: { provider: req.provider, model: req.model }, brainKey: deps.brainKey, catalog: deps.catalog })
-  if (routes.length === 0) return { ok: false, error: 'aucun modele disponible (reglage brain vide, catalogue sans defaut)' }
+  if (routes.length === 0) return { ok: false, error: 'no model available (the “brain” setting is empty and the catalogue has no default)' }
 
   // What the checks said about an earlier answer to these same keys (reasons as codes, see i18n-quality.mjs): the model is
   // told, in a sentence, which key was refused and why. Only keys of this batch, only codes this module knows.

@@ -281,6 +281,13 @@ const LEXICON = new Set(('début fin relire briques maquette maquettes aucun auc
   'demande demandez retour suivant précédent aujourd hui hier demain jamais toujours merci bonjour ordinateur serveur connexion compte langue réglages paramètres compétences créations ' +
   'livrables rechercher résultats épinglés modeleur maintenant ensuite rien plusieurs prochain dernier derniers première cliquez appuyez introuvable lancez créez ajoutez mettez relancez ' +
   'patientez attendez pièces rendu élément éléments enregistré enregistrée envoyer envoyé afficher masquer actualiser rafraîchir').split(' '))
+// French words written WITHOUT their accent (a host log, an error message, a label typed on a keyboard that has no é): the accent rule cannot see them.
+// Only words that are not English words. Checked in the bundles listed under "unaccented" in the allow-list (the gate tightens bundle by bundle).
+const UNACCENTED = new Set(('indisponible indisponibles injoignable illisible illisibles inconnu inconnue invalide invalides manquant manquante requis requise attendu attendue refusee refusees ' +
+  'discuter cacher archiver cloner rejeter approuver recentrer graphe chronologie orchestrateur connecteur connecteurs galerie favoris sonde membres outil outils ' +
+  'objectif actif initiale composants acteur sortie attente ecriture ecrit reglage reglages demarrage lancement parrainage reponse octets ' +
+  'etape etapes equipe equipes modele modeles cle cles tache taches fichier fichiers apercu echec reussi termine bientot rien jamais toujours demain aujourd ' +
+  'vide chargement erreur introuvable aucun aucune').split(' '))
 const ELISION = /(?:^|[^A-Za-z0-9])(?:l|d|qu|n|s|j|c|m|t|jusqu)['’][a-zàâçéèêëîïôùûœ]/i
 // Language names written in their own language, and a few proper names, are not « French text » (a language picker lists them).
 const AUTONYM = /^(?:Français|Español|Deutsch|Português|Italiano|Nederlands|Türkçe|Polski|Русский|日本語|한국어|中文|العربية|हिन्दी|Svenska|Čeština|Română|Magyar|Ελληνικά|עברית|Bahasa|Tiếng Việt|Amélie|Zoé|Aurélie|Gérard|Hélène|Cécile|Frédéric|Valérie|Rénald)(?:\s*\(.*\))?$/
@@ -290,11 +297,14 @@ const FR_ONLY = /[èêëâçîïôûœÈÊËÂÇÎÏÔÛŒ]/
 const wordsOf = (text) => text.toLowerCase().split(/[^a-zàâçéèêëîïôùûœ]+/).filter((w) => w.length > 0)
 
 /** Does this literal read as French text? (the decision is about the text alone, not about where it sits) */
-export const isFrench = (raw) => {
+export const isFrench = (raw, opts) => {
   if (typeof raw !== 'string') return false
+  let unaccented = opts !== undefined && opts !== null && opts.unaccented === true
   // a comment inside a CSS template is not a user-facing string
   const text = raw.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\$\{\}/g, ' ').replace(/\bkybernos-[a-z-]+/g, ' ').trim()
   if (text.length < 2) return false
+  // CSS (class names such as .kbi-vide are not words) and code-like text: the accent-less rule is about sentences and labels
+  if (/[{};]/.test(text)) unaccented = false
   if (AUTONYM.test(text)) return false
   // not text at all: a URL, a path, a selector list, a regex source, a JSON/CSS fragment with no sentence
   if (/^(?:https?:|\/|\.{1,2}\/|[#.][\w-]+$|@[\w-]+\/)/.test(text)) return false
@@ -312,7 +322,9 @@ export const isFrench = (raw) => {
   if (fn.size >= 2) return true
   if (ELISION.test(text) && (fn.size >= 1 || words.length >= 3)) return true
   // A lone lowercase word ('texte', 'trait') is a token of the code (a type, an id), not a label: labels are capitalised or phrases.
-  if (!identifierLike && words.length <= 5 && words.some((w) => LEXICON.has(w)) && (words.length >= 2 || /^[A-ZÀ-Ý]/.test(text))) return true
+  if (!identifierLike && words.length <= 5 && words.some((w) => LEXICON.has(w) || (unaccented && UNACCENTED.has(w))) && (words.length >= 2 || /^[A-ZÀ-Ý]/.test(text))) return true
+  // a longer text (a log line, an error message) with two of the accent-less words in it
+  if (unaccented && !identifierLike && words.filter((w) => UNACCENTED.has(w)).length >= 2) return true
   return false
 }
 
@@ -366,13 +378,13 @@ export const inDictionary = (lit, helpers) => {
 }
 
 /** Every French literal of a source that is NOT in a dictionary: [{ line, text }]. */
-export const frenchOutsideDictionary = (src) => {
+export const frenchOutsideDictionary = (src, opts) => {
   const helpers = pairHelpers(src)
   const { literals: lits } = literals(src)
   const out = []
   for (const lit of lits) {
     if (lit.isKey) continue
-    if (!isFrench(lit.text)) continue
+    if (!isFrench(lit.text, opts)) continue
     if (inDictionary(lit, helpers)) continue
     out.push({ line: lit.line, text: lit.text })
   }

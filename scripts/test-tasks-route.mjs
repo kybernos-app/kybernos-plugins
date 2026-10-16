@@ -121,7 +121,7 @@ const big = await call('POST', JSON.stringify({ action: 'create', task: task({ p
 eq('an oversized body answers 413', big.status, 413)
 eq('a null body answers 400', (await call('POST', 'null')).status, 400)
 eq('an array body answers 400', (await call('POST', '[1]')).status, 400)
-eq('an unknown action is a clean error', (await api({ action: 'nope' })).json.error, 'action inconnue: nope')
+eq('an unknown action is a clean error', (await api({ action: 'nope' })).json.error, 'unknown action: nope')
 eq('a JSON object where a string is expected does not crash the route', (await api({ action: 'create', task: { name: { toString: 1 }, prompt: 'p' } })).json.error, 'name required')
 eq('only the valid tasks were stored', onDisk().length, 2)
 

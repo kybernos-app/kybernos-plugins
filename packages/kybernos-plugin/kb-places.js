@@ -288,7 +288,7 @@
       })
       .then(function () {
         if (window.L !== null && window.L !== undefined) return window.L
-        throw new Error('leaflet indisponible')
+        throw new Error('leaflet unavailable')
       })
       .catch(function (err) { plLeafletP = null; throw err })
     return plLeafletP

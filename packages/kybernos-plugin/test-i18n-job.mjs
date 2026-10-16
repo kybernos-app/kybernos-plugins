@@ -35,7 +35,7 @@ const fakeModel = (script) => {
     const n = calls.length
     calls.push({ keys, provider: args.provider, model: args.model, signal: args.signal, hints: args.hints })
     // A model call that is told to stop returns (as the real one does): a never-ending fake must not hang the test.
-    const aborted = new Promise((resolve) => { if (args.signal) { if (args.signal.aborted) resolve('p/m : ABORTED — interrompu'); else args.signal.addEventListener('abort', () => resolve('p/m : ABORTED — interrompu'), { once: true }) } })
+    const aborted = new Promise((resolve) => { if (args.signal) { if (args.signal.aborted) resolve('p/m : ABORTED — interrupted'); else args.signal.addEventListener('abort', () => resolve('p/m : ABORTED — interrupted'), { once: true }) } })
     const verdict = await Promise.race([script(keys, n, args), aborted])
     if (verdict === 'ok' || verdict === undefined) {
       const translations = {}
@@ -122,7 +122,7 @@ try {
     rmSync(x.dir, { recursive: true, force: true })
   }
   {
-    const x = make({ model: fakeModel(() => 'p/m : TIMEOUT — pas de reponse en 120 s') })
+    const x = make({ model: fakeModel(() => 'p/m : TIMEOUT — no answer in 120 s') })
     x.runner.start(startBody('es', items(400)))
     await x.runner.idle()
     const st = stateOf(x)

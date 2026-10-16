@@ -379,7 +379,7 @@ export function createGatewayWatcher (options) {
       // Les credentials DSH vivent DANS le home DSH (~/.dsh/.credentials.yaml).
       const raw = readFileSync(join(await homeDsh(), '.credentials.yaml'), 'utf8')
       const at = raw.indexOf('client-connection/browser-session')
-      if (at === -1) throw new Error('secret navigateur absent des credentials')
+      if (at === -1) throw new Error('browser secret missing from the credentials')
       const m = raw.slice(at).match(/secret:\s*(\S+)/)
       if (m === null) throw new Error('cookie secret not found')
       const secret = Buffer.from(m[1].replaceAll('-', '+').replaceAll('_', '/'), 'base64')
@@ -399,7 +399,7 @@ export function createGatewayWatcher (options) {
     })
     const texte = await rep.text()
     let out = null
-    try { out = JSON.parse(texte) } catch (e) { throw new Error('RPC ' + method + ' illisible') }
+    try { out = JSON.parse(texte) } catch (e) { throw new Error('RPC ' + method + ' unreadable') }
     if (out && out.result && out.result.ok === false) throw new Error('RPC ' + method + ': ' + JSON.stringify(out.result.error).slice(0, 160))
     return (out && out.result && out.result.value !== undefined && out.result.value !== null) ? out.result.value : (out ? out.result : null)
   }
@@ -447,7 +447,7 @@ export function createGatewayWatcher (options) {
     try {
       mkdirSync(join(p, '..'), { recursive: true })
       writeFileSync(p, JSON.stringify(ligne) + '\n', { flag: 'a' })
-    } catch (e) { throw new Error('conversation illisible: ' + String(e && e.message ? e.message : e)) }
+    } catch (e) { throw new Error('unreadable conversation: ' + String(e && e.message ? e.message : e)) }
     return p
   }
   const lirePont = async () => {
@@ -530,7 +530,7 @@ export function createGatewayWatcher (options) {
 
   // ── Repoussage des réponses (§3 état 4 : « répondu ») ───────────────────
   const poster = async (chemin, corps) => {
-    if (fetchImpl === null) throw new Error('fetch indisponible')
+    if (fetchImpl === null) throw new Error('fetch unavailable')
     const rep = await fetchImpl((await baseCloud()) + chemin, {
       method: 'POST',
       headers: { 'content-type': 'application/json', accept: 'application/json', authorization: 'Bearer ' + String(jeton) },
@@ -584,7 +584,7 @@ export function createGatewayWatcher (options) {
     if (typeof s.sessionId !== 'string' || s.sessionId === '') {
       const cr = await rpc('session/create', { request: {} })
       const sid = cr !== null && cr !== undefined && typeof cr.sessionId === 'string' ? cr.sessionId : null
-      if (typeof sid !== 'string' || sid === '') throw new Error('session/create sans sessionId')
+      if (typeof sid !== 'string' || sid === '') throw new Error('session/create returned no sessionId')
       s.sessionId = sid
       try { await activeSet({ sessionId: sid, kyberId: item.kyberId }) } catch (e) { /* active-set est best-effort, comme dans le pont */ }
     }
@@ -754,7 +754,7 @@ export function createGatewayWatcher (options) {
 
   // ── Long-poll (§7 : GET /gateway/poll, ?after=<curseur>, ≤ 25 s) ────────
   const sonder = async () => {
-    if (fetchImpl === null) throw new Error('fetch indisponible')
+    if (fetchImpl === null) throw new Error('fetch unavailable')
     const base = await baseCloud()
     const url = base + GATEWAY_POLL_PATH + '?after=' + encodeURIComponent(String(file.cursor === undefined || file.cursor === null ? '' : file.cursor))
     const ctrl = new AbortController()
@@ -827,7 +827,7 @@ export function createGatewayWatcher (options) {
       let corps = null
       try { corps = await rep.json() } catch (e) { corps = null }
       syncSettings = lireSyncSettings(corps)
-      const autori = categoriesSyncAutorisees(syncSettings).join(', ') || 'aucune'
+      const autori = categoriesSyncAutorisees(syncSettings).join(', ') || 'none'
       if (syncErreur !== null) {
         syncErreur = null
         journal('sync §8 restored — allowed categories: ' + autori)
@@ -840,7 +840,7 @@ export function createGatewayWatcher (options) {
     } catch (e) {
       if (estRevoquee(e) === true) throw e
       const msg = 'sync §8 settings unreadable — per-category sync inactive: ' + String(e !== null && e !== undefined && e.message ? e.message : e)
-      if (syncErreur !== msg) { syncErreur = msg; journal(msg + ' (relecture dans 60 s)') }
+      if (syncErreur !== msg) { syncErreur = msg; journal(msg + ' (reading again in 60 s)') }
     }
     return syncSettings
   }
@@ -910,7 +910,7 @@ export function createGatewayWatcher (options) {
       etatSync.fichiers[rid] = fichier
       return fichier
     } catch (e) {
-      const msg = 'sync §8 equipes — application impossible (' + ch.changeId + ') : ' + String(e !== null && e !== undefined && e.message ? e.message : e)
+      const msg = 'sync §8 teams — apply failed (' + ch.changeId + ') : ' + String(e !== null && e !== undefined && e.message ? e.message : e)
       if (syncTirageErreur !== msg) { syncTirageErreur = msg; journal(msg) }
       return null
     }
@@ -953,7 +953,7 @@ export function createGatewayWatcher (options) {
     if (ids.length > 500) { for (const k of ids.slice(0, ids.length - 500)) delete etatSync.appliques[k] }
     etatSync.cursor = lue.cursor
     await ecrireSyncEtat()
-    if (appliques > 0) journal('sync §8 equipes — ' + String(appliques) + ' change(s) applied, cursor ' + (lue.cursor === '' ? '(vide)' : lue.cursor))
+    if (appliques > 0) journal('sync §8 teams — ' + String(appliques) + ' change(s) applied, cursor ' + (lue.cursor === '' ? '(empty)' : lue.cursor))
   }
 
   // ── La boucle : finitions → drainage → long-poll → backoff ──────────────
@@ -1025,7 +1025,7 @@ export function createGatewayWatcher (options) {
         if (enMarche === false) break
         derniereErreur = String(e !== null && e !== undefined && e.message ? e.message : e)
         const msg = 'poll failed — ' + derniereErreur
-        if (dernierJournalErreur !== msg) { dernierJournalErreur = msg; journal(msg + ' (reprise silencieuse dans ' + String(Math.round(attente / 1000)) + ' s)') }
+        if (dernierJournalErreur !== msg) { dernierJournalErreur = msg; journal(msg + ' (silent retry in ' + String(Math.round(attente / 1000)) + ' s)') }
         await dormir(attente)
         attente = Math.min(delaiRepriseMaxMs, attente * 2)
       }
@@ -1065,7 +1065,7 @@ export function createGatewayWatcher (options) {
     const maGeneration = ++generation
     journal('starting — long-poll ' + (opts.base !== undefined ? String(opts.base) : String(lireBaseGateway(lireReglagesSync()))) + GATEWAY_POLL_PATH + ' (token ' + empreinteToken(t) + '…)')
     bouclePromesse = boucle(maGeneration).catch((e) => {
-      journal('boucle interrompue — ' + String(e !== null && e !== undefined && e.message ? e.message : e))
+      journal('loop interrupted — ' + String(e !== null && e !== undefined && e.message ? e.message : e))
       enMarche = false
     })
     return true
@@ -1127,11 +1127,11 @@ export function createGatewayWatcher (options) {
   /** Décision humaine sur une tâche télécommande : `approuver` ou `refuser`. */
   const decider = async (taskId, decision) => {
     const d = String(decision === null || decision === undefined ? '' : decision).toLowerCase()
-    if (d !== 'approuver' && d !== 'refuser') return { ok: false, error: 'decision attendue : approuver ou refuser' }
+    if (d !== 'approuver' && d !== 'refuser') return { ok: false, error: 'decision expected: approve or reject' }
     const id = idSur(taskId, 120)
-    if (id === null) return { ok: false, error: 'taskId invalide' }
+    if (id === null) return { ok: false, error: 'invalid taskId' }
     const item = file.items.find((i) => i !== null && i !== undefined && i.kind === 'task' && i.taskId === id && i.approbation !== null && i.approbation !== undefined && i.approbation.statut === 'attente')
-    if (item === undefined) return { ok: false, error: 'action inconnue ou deja decidee' }
+    if (item === undefined) return { ok: false, error: 'unknown action or already decided' }
     const etatDecision = d === 'approuver' ? 'approuve' : 'refuse'
     item.approbation = { statut: d, decideA: new Date().toISOString() }
     item.etat = etatDecision
