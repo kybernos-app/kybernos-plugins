@@ -28,7 +28,7 @@ window.__ModuleLoader__.load({
       const KB_M_T = {
         'kfl.titre': { fr: 'Free LLMs', en: 'Free LLMs' },
         'kfl.soustitre': { fr: 'Des modèles gratuits, sans compte ni clé API.', en: 'Free models, no account or API key.' },
-        'kfl.avertis': { fr: 'Ces modèles sont gratuits : les prompts envoyés peuvent être conservés par OpenCode pour améliorer leurs modèles. N’y envoyez rien de sensible.', en: 'These models are free: prompts you send may be retained by OpenCode to improve their models. Do not send anything sensitive.' },
+        'kfl.avertis': { fr: 'Ces modèles sont gratuits : les prompts envoyés peuvent être conservés par OpenCode pour améliorer leurs modèles. N’y envoie rien de sensible.', en: 'These models are free: prompts you send may be retained by OpenCode to improve their models. Do not send anything sensitive.' },
         'kfl.liste': { fr: 'Modèles gratuits disponibles', en: 'Available free models' },
         'kfl.vide': { fr: 'Aucun modèle gratuit détecté pour l’instant.', en: 'No free model detected right now.' },
         'kfl.catalogue.err': { fr: 'Catalogue injoignable : {err}', en: 'Catalog unreachable: {err}' },
@@ -41,16 +41,23 @@ window.__ModuleLoader__.load({
         'kfl.sonde.encours': { fr: 'Test…', en: 'Probing…' },
         'kfl.sonde.ok': { fr: 'Répond — contrat accepté.', en: 'Answers — contract accepted.' },
         'kfl.sonde.ko': { fr: 'Le test a échoué ({code}).', en: 'The test failed ({code}).' },
-        'kfl.tier.locked': { fr: 'Le palier gratuit est indisponible pour le moment : OpenCode l’a verrouillé, ces modèles ne peuvent pas répondre. Réessayez plus tard.', en: 'The free tier is unavailable right now: OpenCode has locked it, so these models cannot answer. Try again later.' },
-        'kfl.tier.rate': { fr: 'Le palier gratuit est saturé pour le moment. Réessayez dans un instant.', en: 'The free tier is busy right now. Try again in a moment.' },
-        'kfl.tier.network': { fr: 'OpenCode est injoignable. Vérifiez la connexion.', en: 'OpenCode cannot be reached. Check the connection.' },
+        'kfl.tier.locked': { fr: 'Le palier gratuit est indisponible pour le moment : OpenCode l’a verrouillé, ces modèles ne peuvent pas répondre. Réessaie plus tard.', en: 'The free tier is unavailable right now: OpenCode has locked it, so these models cannot answer. Try again later.' },
+        'kfl.tier.rate': { fr: 'Le palier gratuit est saturé pour le moment. Réessaie dans un instant.', en: 'The free tier is busy right now. Try again in a moment.' },
+        'kfl.tier.network': { fr: 'OpenCode est injoignable. Vérifie la connexion.', en: 'OpenCode cannot be reached. Check the connection.' },
         'kfl.tier.model': { fr: 'Le modèle testé n’est plus proposé par le palier gratuit.', en: 'The tested model is no longer offered by the free tier.' },
-        'kfl.relance': { fr: 'Si un modèle n’apparaît pas dans le sélecteur : relancez DSH.', en: 'If a model does not show in the picker: restart DSH.' },
+        'kfl.relance': { fr: 'Si un modèle n’apparaît pas dans le sélecteur : relance DSH.', en: 'If a model does not show in the picker: restart DSH.' },
         'kfl.auto': { fr: 'Activé automatiquement au premier lancement.', en: 'Enabled automatically at first run.' },
         'kfl.erreur': { fr: 'Erreur', en: 'Error' },
         'kfl.page.titre': { fr: 'Free LLMs', en: 'Free LLMs' },
       }
-      let kbLocaleRead = () => 'en'
+      // « fr » for the French of the product (the locale id « kybernos », or any fr*), « en » for every other language, translated
+      // or not: it is what Kybernos resolved (the <html lang> stays « en » under the Language page's French, « kybernos » under DSH's selector).
+      const kbLocaleRead = () => {
+        try {
+          const l = String(window.__KB_LANG_RESOLVE__())
+          return l === 'kybernos' || l.split(/[-_]/)[0] === 'fr' ? 'fr' : 'en'
+        } catch (e) { return 'en' }
+      }
       // Text separator, locale-aware: French ' : ', English ': '.
       const sep = () => (String(kbLocaleRead()).toLowerCase().indexOf('fr') === 0 ? ' : ' : ': ')
       const m = (key, vars) => {
@@ -196,7 +203,7 @@ window.__ModuleLoader__.load({
           const r = await jsonPost('/free-llms/enable', { acknowledged: ack === true })
           setBusy(null)
           if (r && r.ok === true) { await refresh() } else {
-            setErreur(m('kfl.erreur') + sep() + String((r && r.error) || 'refus'))
+            setErreur(m('kfl.erreur') + sep() + String((r && r.error) || 'refused'))
           }
         }
         const deconnecter = async () => {
@@ -268,13 +275,8 @@ window.__ModuleLoader__.load({
       }
 
       return {
-        inject: ['slots', 'remote', 'locale'],
+        inject: ['slots', 'remote'],
         apply(ctx) {
-          try {
-            const svc = ctx.get('locale')
-            const lu = typeof svc === 'string' ? svc : (svc !== null && svc !== undefined ? (svc.locale || svc.current || svc.lang) : null)
-            kbLocaleRead = () => (lu !== null && lu !== undefined && String(lu).toLowerCase().indexOf('fr') === 0) || String(document.documentElement.lang || '').toLowerCase().indexOf('fr') === 0 ? 'fr' : 'en'
-          } catch (e) { kbLocaleRead = () => 'en' }
           styles.insert(KBM_CSS, '@local/kybernos-free-llms')
           styles.insert(KFL_CSS, '@local/kybernos-free-llms')
           // One door: the dedicated Settings section.
