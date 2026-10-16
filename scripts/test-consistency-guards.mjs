@@ -188,6 +188,22 @@ ok('A1-04: a @keyframes name defined by two bundles has the same body in both (t
   assert.deepEqual(bad, [])
 })
 
+// ── A4-26 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+// The playback panels draw their transport bar one by one. Until one component exists (the owner's recipe), the vocabulary at least agrees:
+// the speeds are 0.5x 1x 2x 4x, written « 0.5× », the number first, in Slides, the Modeleur and Bricks. (Motion has a time scrubber and a Loop
+// switch and no speeds: nothing to align there.)
+ok('A4-26: Slides, the Modeleur and Bricks offer the same speeds, written the same way (0.5× 1× 2× 4×)', () => {
+  const slides = clientOf('kybernos-slides')
+  assert.match(slides, /const vitesses = \[0\.5, 1, 2, 4\]/, 'Slides speeds')
+  assert.match(slides, /\}, `\$\{v\}×`\)\)/, 'Slides writes the number first')
+  assert.doesNotMatch(slides, /`×\$\{v\}`/, 'Slides no longer writes × before the number')
+  for (const [bundle, p] of [['kybernos-modeleur', 'kbmo'], ['kybernos-bricks', 'kbb']]) {
+    const text = clientOf(bundle)
+    const labels = [...text.matchAll(new RegExp("className: '" + p + "-sp' \\+ \\(VITESSE === ([\\d.]+) \\? ' on' : ''\\), onClick: [^}]*\\} \\}, '([^']+)'\\)", 'g'))].map((m) => m[1] + '=' + m[2])
+    assert.deepEqual(labels, ['0.5=0.5\\u00D7', '1=1\\u00D7', '2=2\\u00D7', '4=4\\u00D7'], bundle)
+  }
+})
+
 // ── the ratchets: A1-04 (prefixes), A1-13, A1-14 ──────────────────────────────────────────────────────────────────────────────
 const base = JSON.parse(readFileSync(BASELINE, 'utf8'))
 const nowShared = sharedPrefixes()

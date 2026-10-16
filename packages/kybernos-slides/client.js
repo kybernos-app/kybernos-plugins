@@ -795,7 +795,7 @@ window.__ModuleLoader__.load({
                 S.suivre = true
                 reveiller()
               }
-              const vitesses = [0.5, 1, 2]
+              const vitesses = [0.5, 1, 2, 4] // the same four speeds, written the same way (0.5×), as the Modeleur and Bricks panels (audit A4-26)
               const changerVitesse = (v) => {
                 const vitesse = TICK !== null ? TICK.vitesse : 1
                 TICK = { t0: Date.now() - (p * S.deck.dureeMs) / v * vitesse, vitesse: v }
@@ -1010,7 +1010,7 @@ window.__ModuleLoader__.load({
                   vitesses.map((v) => h('button', {
                     key: v, className: 'kbsd-sp' + ((TICK !== null ? TICK.vitesse : 1) === v ? ' on' : ''),
                     onClick: () => changerVitesse(v),
-                  }, `×${v}`)),
+                  }, `${v}×`)),
                   h('input', {
                     type: 'range', className: 'kbsd-range', min: 0, max: 1000, value: Math.round(p * 1000),
                     onChange: (e) => {
