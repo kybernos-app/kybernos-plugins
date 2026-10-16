@@ -211,6 +211,8 @@ const kbJournalAppend = (entry) => {
   rows.push(JSON.stringify(line))
   // On garde les 200 dernières lignes : un journal, pas une archive.
   const kept = rows.slice(Math.max(0, rows.length - 200))
+  // The store folder does not exist on a fresh install (writeJsonAtomic makes it for the other files; this one writes directly).
+  mkdirSync(dirname(JOURNAL_FILE), { recursive: true })
   writeFileSync(JOURNAL_FILE, kept.join('\n') + '\n')
   return line
 }
@@ -971,7 +973,8 @@ export function apply(ctx) {
           const line = kbJournalAppend(body)
           sendJson(res, 200, { ok: true, version: MODEL_CATALOG_VERSION, line })
         } catch (e) {
-          sendJson(res, 500, { ok: false, error: 'write-failed', detail: String(e && e.message ? e.message : e) })
+          // No detail: the system message carries the absolute path of the home folder.
+          sendJson(res, 500, { ok: false, error: 'write-failed' })
         }
       }}), 'kybernos-models: journal des ecritures')
 
@@ -1077,4 +1080,4 @@ export function apply(ctx) {
   }
 }
 
-export { STORE_DIR, ANNOTATIONS_FILE, MODELSDEV_CACHE, SCORES_FILE, JOURNAL_FILE, pluginDir, kbScoresRefresh, kbScoresRead }
+export { STORE_DIR, ANNOTATIONS_FILE, MODELSDEV_CACHE, SCORES_FILE, JOURNAL_FILE, kbJournalAppend, pluginDir, kbScoresRefresh, kbScoresRead }
