@@ -28,8 +28,12 @@ const MEMORY_TAIL = 'memory_search pour en chercher.'
 const KYBY_HEAD = '[KYBY]'
 const KYBY_TAIL = '[/KYBY]'
 
-/** A user-role message that is only a note of DSH's own, as measured (a switch of model leaves one behind the person's message). */
-const DSH_NOTE = /^\[model changed:[^\]]*\]$/u
+/**
+ * DSH writes messages of its own with the user role: the runtime-context snapshot (where Kaby's identity block lives), the time sample, the skill catalogue,
+ * « [model changed: ...] ». They carry `source.kind`, as measured in a session log (`user` for what the person typed; `time-context`, `runtime-context`,
+ * `skill-catalog`, `agent-instructions`, `model-selection` for DSH's): only the person's own are their words.
+ */
+const isDshNote = (m) => m.source !== null && typeof m.source === 'object' && typeof m.source.kind === 'string' && m.source.kind !== 'user'
 
 export const isSessionId = (v) => typeof v === 'string' && SESSION_ID.test(v)
 
@@ -62,11 +66,7 @@ export const lastTurn = (messages) => {
     const m = list[i]
     if (m === null || typeof m !== 'object') continue
     if (assistant === '' && m.role === 'assistant') assistant = strip(textOf(m))
-    else if (user === '' && m.role === 'user') {
-      // DSH writes notes of its own as user messages (« [model changed: ...] » when the model is switched mid-session): they are not the person's words.
-      const text = strip(textOf(m))
-      if (!DSH_NOTE.test(text)) user = text
-    }
+    else if (user === '' && m.role === 'user' && !isDshNote(m)) user = strip(textOf(m))
   }
   return { user: user.slice(0, MAX_USER_CHARS), assistant: assistant.slice(0, MAX_USER_CHARS) }
 }
