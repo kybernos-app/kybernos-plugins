@@ -18,8 +18,8 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
   without calling any model. Only when the words say nothing is the **Study model** asked (see below); its answer is kept only if
   it is one of the eight categories (`motif: 'choisi'`), otherwise the row keeps its neutral speech bubble. A row whose title
   changes after an automatic classification is judged again (« Greeting » becomes the real subject).
-- **Settings ▸ General ▸ Kybernos Settings** (slot `settings.general.item`, order -30): replay onboarding, *Rename Chat session
-  after each recap*, *Study model*. The bundle also reorders the native Settings navigation into a
+- **Settings ▸ General ▸ Kybernos Settings** (slot `settings.general.item`, order -30): replay onboarding, *Name each chat when it ends*,
+  *Study model*. The bundle also reorders the native Settings navigation into a
   "Kybernos" and a "DSH" group and hides the native Appearance and Font-size rows and the version footer, by position.
 - **The Study model** is the one brain setting (`brain`). Its select reads **Automatic — <model>** (the default, the empty
   value), *Choose another…* (your configured models) or **None** (`none`). Automatic picks, in this order: the model of the

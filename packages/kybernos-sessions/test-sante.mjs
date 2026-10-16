@@ -132,6 +132,7 @@ console.log('the Study model row')
   const tous = [auto, rien, pas, pick, parti, vieux]
   check('no row mentions the retired « Decision Brain », the evaluation API or a probability', tous.every((v) => !/decision brain|evaluation|\/v1\/|probabilit/i.test(v.description + v.libelleAuto)), tous.map((v) => v.description))
   check('the row says what leaves the machine: a title only when the word rules cannot place it, and nothing for a local model', [auto, pick].every((v) => /word rules/i.test(v.description) && /local model/i.test(v.description)), [auto.description, pick.description])
+  check('no jargon a person cannot act on: no « closed questions », « brain » or « evaluation »', tous.every((v) => !/closed question|brain|evaluation/i.test(v.description + v.libelleAuto)), tous.map((v) => v.description))
   check('plain English, no French word', tous.every((v) => !/\b(le|la|les|des|une?|pour|avec|aucun)\b|[éèêàùç]/i.test(v.description + v.libelleAuto)), tous.map((v) => v.description))
 }
 
