@@ -348,7 +348,7 @@ window.__ModuleLoader__.load({
       const failoverOn = failoverInfo.enabled === true
       const failoverLast = failoverInfo.last !== undefined ? failoverInfo.last : null
       return h('div', { className: 'kaa-page', 'data-kb': 'auto-settings' },
-        h('h4', { className: 'kb6-title', style: { fontSize: '26px', fontWeight: 800, letterSpacing: '-.01em' } }, 'Auto routing ', h('span', { className: 'kaa-tag' }, 'session')),
+        h('h4', { className: 'kb6-title', style: { fontSize: '26px', fontWeight: 800, letterSpacing: '-.01em' } }, 'Auto Routing ', h('span', { className: 'kaa-tag' }, 'session')),
         h('p', { className: 'kaa-intro' }, kt(
           'Chaque étape déléguée part vers le modèle le plus adapté parmi ceux activés ci-dessous — optimisé pour les hits de cache : Auto garde le modèle dont le cache est chaud et ne bascule que sur meilleur choix ou panne.',
           'Each delegated step goes to the best-fit model among the ones enabled below — optimized for cache hits: Auto keeps the warm-cache model and only switches on a clearly better fit or failure.')),
@@ -441,9 +441,8 @@ window.__ModuleLoader__.load({
               kt(' · toutes les ', ' ago · every '), (etat.intervalS || 60) + ' s'),
             h('button', { type: 'button', className: 'kaa-recheck', 'data-kb': 'auto-health-recheck', disabled: sondage, onClick: sonder }, sondage ? kt('Vérification…', 'Checking…') : kt('Vérifier maintenant', 'Check now'))),
           h('p', { className: 'kaa-note' }, kt(
-            'Avant de choisir, Auto interroge les candidats (une vraie question minuscule, verdict gardé ' + (etat.ttlSondeS || 60) + ' s) et ne propose que des modèles qui répondent, avec jusqu’à ' + (etat.plafond || 10) + ' replis ordonnés. Latence, erreurs et cache hit viennent des délégations qui rapportent leur issue (POST /kybernos-auto/report) ; « — » tant qu’aucune n’a rapporté.',
-            'Before choosing, Auto asks the candidates a real, tiny question (the verdict is kept for ' + (etat.ttlSondeS || 60) + ' s) and only offers models that answer, with up to ' + (etat.plafond || 10) + ' ordered fallbacks. Latency, errors and cache hit come from delegations that report their outcome (POST /kybernos-auto/report); "—" until one has.')),
-          h('div', { className: 'kaa-foot' }, h('code', null, 'scope: session'))),
+            'Avant de choisir, Auto interroge les candidats (une vraie question minuscule, verdict gardé ' + (etat.ttlSondeS || 60) + ' s) et ne propose que des modèles qui répondent, avec jusqu’à ' + (etat.plafond || 10) + ' replis ordonnés. Latence, erreurs et cache hit viennent des délégations qui rapportent leur issue ; « — » tant qu’aucune n’a rapporté.',
+            'Before choosing, Auto asks the candidates a real, tiny question (the verdict is kept for ' + (etat.ttlSondeS || 60) + ' s) and only offers models that answer, with up to ' + (etat.plafond || 10) + ' ordered fallbacks. Latency, errors and cache hit come from delegations that report their outcome; "—" until one has.'))),
         msg !== '' ? h('p', { className: 'kaa-err' }, msg) : null)
     }
 
@@ -474,8 +473,6 @@ window.__ModuleLoader__.load({
       '.kaa-bar{display:block;height:6px;margin-top:3px;border-radius:999px;background:var(--dsw-alias-bg-layer-3);overflow:hidden}',
       '.kaa-bar i{display:block;height:100%;border-radius:999px;background:var(--dsw-alias-brand-primary)}',
       '.kaa-meta{display:flex;justify-content:space-between;align-items:center;margin:10px 0 0;font-size:11.5px;color:var(--dsw-alias-label-tertiary)}',
-      '.kaa-foot{margin-top:10px;padding-top:10px;border-top:0.5px solid var(--dsw-alias-border-l2);font-size:12px;color:var(--dsw-alias-label-tertiary)}',
-      '.kaa-foot code{font:12px ui-monospace,Menlo,monospace}',
       '.kaa-dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex:none}',
       '.kaa-dot.ok{background:var(--dsw-alias-state-success-primary)}',
       '.kaa-dot.warn{background:var(--dsw-alias-state-warn-primary)}',
