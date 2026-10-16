@@ -2325,28 +2325,13 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             const mfaNote = mfaNoteText(state.space_plan !== undefined && state.space_plan !== null ? state.space_plan.mfa : null, nomEspace, t, fmtDate)
             const planEspace = planDeEspace(state, user).label !== null ? planDeEspace(state, user).label : t('none')
             const meter = quota !== null ? quotaMeterOf(quota, t) : null
-            const ouvrirPageEspace = () => {
-              // « Réglage de l'espace » (02/10) : l'entrée ouvre la page EMBED
-              // qui vivait jusqu'ici dans Paramètres ▸ Mon espace — l'iframe
-              // workspace-console (console du gateway LLM), montée en plein
-              // cadre dans la zone de contenu par le bundle kybernos-plugin.
-              // Le pont marche par contrat : le composant de la page vit dans
-              // le plugin, et cette entrée se contente de demander son
-              // ouverture — jamais de dupliquer l'iframe ici.
-              // Fallback if the plugin has no console bridge (a master older than
-              // 02/10): the rich « Mon espace » page of the Kybernos panel. No local
-              // page stands behind it any more (it was removed as unreachable): the
-              // master bundle is mandatory in the Suite (docs/beta/satellites.json)
-              // and sets both bridges unconditionally, so a missing bridge can only
-              // mean a stale master.
-              const ouvrir = (typeof window !== 'undefined') ? window.__kbOpenWsConsole : null
-              if (typeof ouvrir === 'function') {
-                try { ouvrir(); return } catch (e) { /* fall back to the rich page */ }
-              }
-              const ouvrirRiche = (typeof window !== 'undefined') ? window.__kbOpenWorkspace : null
-              if (typeof ouvrirRiche === 'function') {
-                try { ouvrirRiche() } catch (e) { /* nothing left to try: the click does nothing */ }
-              }
+            // « Team settings », « Account » and « Referral » open the APP, in the person's browser, signed in (the single-use console link, section `plan` or
+            // `overview`, on the active workspace). They used to open a read-only copy of it in DSH's content zone, and every change in that copy sent the person
+            // to the browser anyway (ADR 0054, decision of 2026-10-16): the way in now says where the work happens. The embedded console's code is still in the
+            // core bundle (its console bridge); nothing in this bundle calls it.
+            const ouvrirAppli = (section) => () => {
+              setMenuOpen(false)
+              openAccountPage(section, actif)
             }
             const shownName = displayName(user)
             const qui = shownName.value !== '' ? shownName.value : (user.email || t('none'))
@@ -2391,15 +2376,6 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                 if (essais < 40) window.setTimeout(tique, 50)
               }
               window.setTimeout(tique, 80)
-            }
-            // Account and Referral are read-only pages of the ACTIVE server's console, in the content zone of DSH (the same frame as Team
-            // settings: `#account`, `#referral`). The « Open in browser » action of that frame goes through the console link on `overview`.
-            // Without the core plugin's bridge the old way stands: the account page in the system browser.
-            const ouvrirComptePage = (page) => () => {
-              setMenuOpen(false)
-              const bridge = window.__kbOpenWsConsole
-              if (typeof bridge === 'function') { try { bridge(page); return } catch (e) { /* the browser is next */ } }
-              openAccountPage('overview', actif)
             }
             const seDeconnecter = async () => {
               setMenuOpen(false)
@@ -2465,12 +2441,13 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                     setMenuOpen(false)
                     setNewOpen(true)
                   },
-                  onAccount: ouvrirComptePage('account'),
-                  onReferral: ouvrirComptePage('referral'),
+                  onAccount: ouvrirAppli('overview'),
+                  // The referral card is on the account's overview page.
+                  onReferral: ouvrirAppli('overview'),
                   remote: remote,
                   onRemote: () => { setMenuOpen(false); setNotifOpen(false); setMobileOpen(true) },
                   onUpgrade: () => { setMenuOpen(false); setUpgradeOpen(true) },
-                  onSpace: ouvrirPageEspace,
+                  onSpace: ouvrirAppli('plan'),
                   onLogout: () => { void seDeconnecter() },
                 })
                 : null),

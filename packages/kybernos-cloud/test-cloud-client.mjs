@@ -69,12 +69,14 @@ for (const needle of ["entree('space-browser'", "menuTeamsBrowser", "onSpaceBrow
   assert.ok(!clientSource.includes(needle), 'l entree « ouvrir dans le navigateur » ne doit plus exister: ' + needle)
 }
 assert.ok(clientSource.includes("entree('space-settings'"), 'l entree « Teams settings » reste')
-// Two client calls to the host's console-link route, and only two: the quota notice's button, and the footer's account page (the menu's Account and Referral entries, `section:
-// 'overview'`). Both ask the HOST to open the system browser (`open: true`): a tab opened by the page and pointed at the link is « cross-site » and the server refuses it
-// (« link expired »).
+// Two client calls to the host's console-link route, and only two: the quota notice's button, and the footer's account page (the menu's Team settings, Account and Referral
+// entries: `section: 'plan'` and `'overview'`). Both ask the HOST to open the system browser (`open: true`): a tab opened by the page and pointed at the link is « cross-site »
+// and the server refuses it (« link expired »).
 assert.equal((clientSource.match(/callLocal\('\/console\/link'/g) || []).length, 2, 'deux appels client a /console/link : la notice de quota et la page du compte du pied')
 assert.equal((clientSource.match(/callLocal\('\/console\/link', 'POST', [^\n]*open: true/g) || []).length, 2, 'le lien de la console est ouvert par l hote (open: true), jamais par un onglet de la page')
-assert.ok(/openAccountPage\('overview', actif\)/.test(clientSource) && /section: section, open: true/.test(clientSource), 'Account et Referral demandent la section overview')
+assert.ok(/const ouvrirAppli = \(section\) => \(\) => \{\s*setMenuOpen\(false\)\s*openAccountPage\(section, actif\)/.test(clientSource) && /section: section, open: true/.test(clientSource), 'les entrees du menu demandent un lien de console, ouvert par l hote')
+assert.ok(clientSource.includes("onSpace: ouvrirAppli('plan')"), 'Team settings ouvre la page du plan de l equipe dans le navigateur')
+assert.ok(clientSource.includes("onAccount: ouvrirAppli('overview')") && clientSource.includes("onReferral: ouvrirAppli('overview')"), 'Account et Referral ouvrent la vue d ensemble dans le navigateur')
 // « Remote control »: the phone link is ONE entry of the connected menu (right after Referral), offered only when the phone link's own status route says the
 // feature is there; the footer's separate phone button is gone. The panel is the same bridge and fallback as the old button's (MobilePanel).
 {
@@ -133,10 +135,10 @@ for (const cle of ['wsTabPlan', 'wsTabUsage', 'wsTabPeople', 'wsTabBilling', 'ws
   'syncTitle', 'syncNotServed', 'syncOn', 'syncOff', 'syncMemorySpace', 'syncSends', 'syncPull', 'syncPush', 'spaceAccount']) {
   assert.equal((clientSource.match(new RegExp('^ {8}' + cle + ': ', 'gm')) || []).length, 0, cle + ' belonged to the local Team page and must not stay in a dictionary')
 }
-// The ways in the « Teams settings » entry has left: the console bridge, then the rich page of an older master; nothing else.
-// The console bridge has two callers now: Team settings (no page) and Account / Referral (a page of the same console).
-assert.equal((clientSource.match(/window\.__kbOpenWsConsole/g) || []).length, 2)
-assert.equal((clientSource.match(/window\.__kbOpenWorkspace/g) || []).length, 1)
+// The menu entries no longer open a page of DSH (2026-10-16): the console's frame was read-only and every change in it sent the person to the browser. Neither bridge of
+// the core is asked for any more, and no fallback to the rich page of an older master stands.
+assert.equal((clientSource.match(/window\.__kbOpenWsConsole/g) || []).length, 0, 'plus de pont vers l iframe de la console')
+assert.equal((clientSource.match(/window\.__kbOpenWorkspace/g) || []).length, 0, 'plus de repli vers la page riche')
 assert.equal(/\.selectPanel\('/.test(clientSource), false, 'selectPanel only ever closes the profile page (selectPanel(null)): no call opens a panel by key')
 sok('page locale de l equipe : supprimee (composant, cle de panneau, evenement, onglets, 38 chaines fr/en)')
 // The card says what went wrong in a sentence, never in the host's internal code (found in the pre-production acceptance: « Could not connect »
@@ -250,7 +252,7 @@ ok('bouton enregistre dans sidebar.footer.action (id=kybernos-cloud, order=21)')
 
 // The bundle puts NO full-frame page in the `main` slot any more: the old local Team page (`SpaceMain`, key `kybernos-cloud-space`) went as unreachable,
 // and the profile page (`kybernos-cloud-profile`: Account, Referral, Appearance, Security, Data, Support) went with the five account entries of DSH's
-// Settings. The account's pages are the server console's own, embedded by the master bundle (`window.__kbOpenWsConsole`).
+// Settings. The account's pages are the app's own, opened in the browser by the footer menu (the console link).
 const mains = registrations.filter((r) => r.options.name === 'main')
 assert.deepEqual(mains.map((r) => r.options.key), [], 'no `main` page in the bundle')
 ok('slot main : plus aucune page locale (ni profil, ni espace)')
@@ -503,15 +505,16 @@ ok('carte : compteur d usage en pourcentage (lu a l hote, ambre des 75 %, phrase
 }
 ok('section Kybernos : instructions lues sur l hote, deconnecte (actions serveur desactivees et dites) puis connecte (dernier import, dernier envoi)')
 
-// « Teams settings » is a NAMED entry of the account menu. It opens the console through a bridge the core plugin exposes,
-// then falls back to the rich space page of the Kybernos panel (an older master): degrade, never break. There is no third, local page.
+// « Teams settings » is a NAMED entry of the account menu. It opens the app's plan page for the active team in the person's browser, signed in (the console link,
+// asked of the host, which opens the system browser). No frame, no bridge to the core, no local page.
 assert.ok(source.includes("entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace)"),
   'le menu doit porter une entree nommee pour les reglages de la team')
+assert.ok(source.includes("onSpace: ouvrirAppli('plan')"), 'Teams settings ouvre la page du plan dans le navigateur')
 for (const needle of ['window.__kbOpenWsConsole', 'window.__kbOpenWorkspace']) {
-  assert.ok(source.includes(needle), 'repli de l entree Teams settings manquant: ' + needle)
+  assert.ok(!source.includes(needle), 'l entree Teams settings ne passe plus par un pont du coeur: ' + needle)
 }
 assert.equal((source.match(/menuTeamsSettings:/g) || []).length, 2, 'menuTeamsSettings doit exister en fr ET en')
-ok('Teams settings : entree nommee du menu, pont vers la console puis un repli, fr/en')
+ok('Teams settings : entree nommee du menu, ouvre le plan de l equipe dans le navigateur (lien de console), fr/en')
 
 
 // Wiring that stays: the switcher (the list of teams, the choice route, the event another plugin can send) and the hosted-page link.

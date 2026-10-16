@@ -4,7 +4,7 @@
 //   node scripts/check-team-live.mjs [--shots <dir>] [--console-url <url>] [--console-file <path>] [--capture-labels]
 //
 // It talks to your real `dsh web` (127.0.0.1:3080, KB_HOST to change it) and to the hosted Team settings console. It
-// changes nothing: it opens the account menu, opens « Teams settings », reads the iframe, then loads the console page
+// changes nothing: it opens the account menu, opens the core's embedded console (through its bridge: the menu entry opens the app in the browser), reads the iframe, then loads the console page
 // in its own throw-away Chrome and reads each of its pages. No setting, no pin, no language, no key is written, and DSH
 // is not restarted. Never named test-*.mjs: CI has no `dsh web` (see docs/dev/live-testing.md).
 //
@@ -113,7 +113,11 @@ try {
     const entry = await page.evalJs(`(() => { const b = document.querySelector('[data-kb="menu-space-settings"]'); if (!b) return null; const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`)
     check('the menu has the « Teams settings » entry', entry.val !== null)
     if (entry.val) {
-      await click(entry.val)
+      // The entry opens the APP in the person's browser now (the console link: 2026-10-16), so it is not pressed here: it would open a browser on this machine.
+      // The core's embedded console, which this script reads, is opened through its bridge (the card's click closes the menu first).
+      await click(card.val)
+      await sleep(300)
+      await page.evalJs(`window.__kbOpenWsConsole()`)
       const src = await waitFor(page, `(() => { const f = document.querySelector('.kbwsif iframe'); return f ? f.src : '' })()`, 20000)
       check('it opens the console in an iframe', typeof src === 'string' && src.length > 0, 'no iframe after 20 s (the page says why when the console is unreachable)')
       if (typeof src === 'string' && src.length > 0) {

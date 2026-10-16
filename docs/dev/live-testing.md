@@ -539,8 +539,8 @@ node scripts/check-team-live.mjs --capture-labels        # re-freeze the label b
 node scripts/check-team-live.mjs --console-file <path>/workspace-console.html   # test the console you are editing
 ```
 
-It writes nothing: no setting, no key, no language, and DSH is not restarted. It opens the account menu, opens
-« Teams settings », reads the iframe, then loads the hosted console (the iframe's own address) in the throw-away Chrome
+It writes nothing: no setting, no key, no language, and DSH is not restarted. It opens the account menu, opens the core's
+embedded console through its bridge (the menu's « Teams settings » opens the app in the browser now), reads the iframe, then loads the hosted console (the iframe's own address) in the throw-away Chrome
 at the iframe's width and reads each of its pages (the list comes from the page, not from the script).
 
 - **menu**: the entry exists; it opens the console in an iframe whose URL carries the gateway and DSH's theme and **no key**;
@@ -703,18 +703,20 @@ clicks:
 - **Signed out:** the one button, its menu (Sign in = the device-code card, Create an account, Appearance, Settings, Website, Help, Send
   feedback), Escape / outside click / toggle, the three links (`window.open` is recorded, never followed), the Settings entry reaching DSH's
   dialog, the pairing state, the sun/moon segment.
-- **Connected** (the status route is answered in the page): the profile row, the menu's skeleton, Account and Referral asking the host for a
-  console link on `section: overview` (and what is said when it is refused), Team settings opening the **active server's** console, then
-  the same with a stored `kybernos.ws.console.url` (ignored) and with `kybernos.dev = 1` (it wins again).
-- **The embedded console** (Team settings, Account, Referral): the frame is the ACTIVE server's `/workspace-console` with `ws`, `theme`, `lang` and,
+- **Connected** (the status route is answered in the page): the profile row, the menu's skeleton, **Team settings, Account and Referral asking
+  the host for a console link** (`section: plan`, `overview`, `overview`, on the active workspace, `open: true`; nothing is drawn in DSH's content
+  zone; what is said when it is refused), then the embedded console opened through its bridge with a stored `kybernos.ws.console.url` (ignored) and
+  with `kybernos.dev = 1` (it wins again).
+- **The core's embedded console** (no menu entry opens it since 2026-10-16: the footer's three entries open the app in the browser; the scenes open
+  it through `window.__kbOpenWsConsole(<page>)`): the frame is the ACTIVE server's `/workspace-console` with `ws`, `theme`, `lang` and,
   for the two account pages, the fragment `#account` / `#referral` (the server's embedded shell reads it; a server that has no such page shows its
   console's first page, never an error). The check writes small console stand-ins on loopback ports into the sandbox's own registry
   (`<DSH home>/kybernos/servers.json`, put back at the end), so the address comes from the host's route and the frame really loads from that
   server: it asserts the frame's origin, that the server was hit, that the frame follows a registry change while the page is up (focus event),
   that the « Open in browser » link of a console that does not answer is on the same origin, that a stored `kybernos.ws.console.url` does not win
   (but wins behind `kybernos.dev = 1`), and that the frame's own « Open in browser » (the stand-in page posts what the real console posts) asks the
-  host for a console link on `section: overview` from the Account and Referral pages. Without the core plugin's `__kbOpenWsConsole` bridge Account
-  falls back to the system browser through the console link. The notification bell is hidden behind `SHOW_BELL` in the cloud client and the check
+  host for a console link on `section: overview` from the Account and Referral pages. The menu's Account entry asks the host for the console link
+  itself (the core's bridge is deleted in that scene to prove it is not involved). The notification bell is hidden behind `SHOW_BELL` in the cloud client and the check
   asserts it is absent.
 - **The frame's account pages** (the server's ADR 0054 rail: Overview, Security, Devices, My data, Support & legal): the scene opens each one
   through `window.__kbOpenWsConsole(<page>)` against the stand-in server and drives the sandbox host's REAL relay route (a connected state
