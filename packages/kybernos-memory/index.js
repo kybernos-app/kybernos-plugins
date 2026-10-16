@@ -23,6 +23,7 @@ import { dirname, join } from 'node:path'
 import { LESSON_MAX_CHARS, activeKyber, addLesson, deleteLesson, dshHome, isKyberId, listKybers, listLessons, markUsed, readLessons, searchLessons, updateLesson, restoreLessons, retouchLesson, lessonId, parseLessonId } from './lessons-store.mjs'
 import { findDuplicateGroups, unclearPairs } from './dedupe.mjs'
 import { rank } from './relevance.mjs'
+import { writeGuard } from './session-guard.mjs'
 import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyChoice, brainGroups } from './tidy.mjs'
 
 export const name = 'kybernos-memory'
@@ -768,20 +769,23 @@ const settingsSetRoute = async (req, body) => {
 
 // One path per route: the web server indexes by path only, so a GET and a POST can
 // never share one (kybernos-cloud's host suite caught that once).
+// `session: true` is a route that WRITES: besides the same-origin rule it needs DSH's signed browser-session cookie (session-guard.mjs, the terminal's
+// rule). Plugin routes are served before DSH's own login and an Origin header is forgeable by any local program, so before this a `curl -X POST` with
+// no header at all deleted a lesson. Every caller is the Memory page (a browser): the agent's tools call the store in-process, not these routes.
 export const ROUTES = [
   { path: '/kybernos-memory/lessons', method: 'GET', guarded: true, run: lessonsListRoute },
   { path: '/kybernos-memory/kybers', method: 'GET', guarded: true, run: lessonsKybersRoute },
-  { path: '/kybernos-memory/lessons/add', method: 'POST', guarded: true, body: true, run: lessonsAddRoute },
-  { path: '/kybernos-memory/lessons/update', method: 'POST', guarded: true, body: true, run: lessonsUpdateRoute },
-  { path: '/kybernos-memory/lessons/delete', method: 'POST', guarded: true, body: true, run: lessonsDeleteRoute },
+  { path: '/kybernos-memory/lessons/add', method: 'POST', guarded: true, session: true, body: true, run: lessonsAddRoute },
+  { path: '/kybernos-memory/lessons/update', method: 'POST', guarded: true, session: true, body: true, run: lessonsUpdateRoute },
+  { path: '/kybernos-memory/lessons/delete', method: 'POST', guarded: true, session: true, body: true, run: lessonsDeleteRoute },
   { path: '/kybernos-memory/tidy', method: 'GET', guarded: true, run: tidyRoute },
-  { path: '/kybernos-memory/tidy/scan', method: 'POST', guarded: true, run: tidyScanRoute },
-  { path: '/kybernos-memory/tidy/apply', method: 'POST', guarded: true, body: true, cap: 65536, run: tidyApplyRoute },
-  { path: '/kybernos-memory/tidy/dismiss', method: 'POST', guarded: true, body: true, cap: 16384, run: tidyDismissRoute },
-  { path: '/kybernos-memory/tidy/undo', method: 'POST', guarded: true, body: true, cap: 4096, run: tidyUndoRoute },
-  { path: '/kybernos-memory/tidy/settings', method: 'POST', guarded: true, body: true, cap: 4096, run: tidySettingsRoute },
+  { path: '/kybernos-memory/tidy/scan', method: 'POST', guarded: true, session: true, run: tidyScanRoute },
+  { path: '/kybernos-memory/tidy/apply', method: 'POST', guarded: true, session: true, body: true, cap: 65536, run: tidyApplyRoute },
+  { path: '/kybernos-memory/tidy/dismiss', method: 'POST', guarded: true, session: true, body: true, cap: 16384, run: tidyDismissRoute },
+  { path: '/kybernos-memory/tidy/undo', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: tidyUndoRoute },
+  { path: '/kybernos-memory/tidy/settings', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: tidySettingsRoute },
   { path: '/kybernos-memory/settings', method: 'GET', guarded: true, run: settingsRoute },
-  { path: '/kybernos-memory/settings/set', method: 'POST', guarded: true, body: true, run: settingsSetRoute },
+  { path: '/kybernos-memory/settings/set', method: 'POST', guarded: true, session: true, body: true, run: settingsSetRoute },
 ]
 
 const mountRoutes = (ctx, webServer) => {
@@ -790,6 +794,10 @@ const mountRoutes = (ctx, webServer) => {
     const handler = async (req, res) => {
       if (req.method !== route.method) return sendJson(res, 405, { ok: false, error: route.method + ' expected' })
       if (route.guarded === true && sameOrigin(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+      if (route.session === true) {
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
+      }
       try {
         const body = route.body === true ? await readJsonBody(req, route.cap) : null
         sendJson(res, 200, await route.run(req, body))
