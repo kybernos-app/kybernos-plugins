@@ -320,7 +320,7 @@ Three things ride on the same hub seam (`window.__KB_HELP__`):
   `{lang}` as the first part of the path stands for the reader's language (en, fr, ar, zh-cn; any other gets English), the way the
   site addresses its articles: `https://help.kybernos.app/{lang}/<category>/<article>/`. The card shows it as « Read the article »
   at its foot, in a new tab with `noopener`; the Suite's module page too. A bundle with no article yet simply has no `url`: nothing is drawn.
-  The host keeps the shipped link when the signed catalogue predates it, like the page cards.
+  The host shows the shipped card, link included, whatever the signed catalogue says, so a link needs no release to appear.
 - **The animation of the first visit** (`window.__KB_HELP__.Intro`, the mechanism of the Language page for any page). A page draws it
   under its header with the words of its own screen: `h(Intro, { id, title, caption, steps: [{ t, b } × 3], mock: { bar, rows,
   hot, states: [3], actions: [3], done } })`. The mock is CSS only (12 s loop; its base style is the end of the story, which is what
