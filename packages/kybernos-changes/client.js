@@ -33,6 +33,8 @@ window.__ModuleLoader__.load({
         } catch (e) { /* no dictionary: English */ }
         return en
       }
+      /** 'fr' for a French UI, 'en' for every other language. */
+      const langBase = () => { const l = lang(); return l === 'kybernos' || l.slice(0, 2) === 'fr' ? 'fr' : 'en' }
       const fill = (text, p) => (p === undefined ? text : text.replace(/\{(\w+)\}/g, (m, k) => (p[k] !== undefined ? String(p[k]) : m)))
       // [fr, en] pairs, by key. Kept in ONE table so that a test can check both sides of every pair.
       const S = {
@@ -58,10 +60,13 @@ window.__ModuleLoader__.load({
         tUnsaved1: ['1 fichier de cette conversation n’est pas sauvegardé', '1 file from this chat is not saved'],
         tUnsavedN: ['{n} fichiers de cette conversation ne sont pas sauvegardés', '{n} files from this chat are not saved'],
         xUnsaved: ['Si l’ordinateur plante, ces changements sont perdus.', 'If the computer crashes, these changes are lost.'],
-        xUnsavedShared: [' Le dossier est partagé avec {m} autre(s) conversation(s) : seuls les fichiers de celle-ci seront sauvegardés.', ' The folder is shared with {m} other chat(s): only this chat’s files will be saved.'],
+        xUnsavedShared: [' Le dossier est partagé avec {m} autres conversations : seuls les fichiers de celle-ci seront sauvegardés.', ' The folder is shared with {m} other chats: only this chat’s files will be saved.'],
+        xUnsavedShared1: [' Le dossier est partagé avec une autre conversation : seuls les fichiers de celle-ci seront sauvegardés.', ' The folder is shared with another chat: only this chat’s files will be saved.'],
         tToSend: ['Pas encore en ligne', 'Not online yet'],
-        xToSend: ['Votre projet a {n} mise(s) à jour que GitHub n’a pas. Les envoyer garde une copie en lieu sûr.', 'Your project has {n} update(s) GitHub does not have. Sending them keeps a safe copy.'],
-        xToSendCopy: ['Le projet principal a {n} mise(s) à jour que GitHub n’a pas. Votre copie séparée reste sur votre ordinateur (c’est normal).', 'The main project has {n} update(s) GitHub does not have. Your separate copy stays on your computer (that is normal).'],
+        xToSend: ['Votre projet a {n} mises à jour que GitHub n’a pas. Les envoyer garde une copie en lieu sûr.', 'Your project has {n} updates GitHub does not have. Sending them keeps a safe copy.'],
+        xToSend1: ['Votre projet a 1 mise à jour que GitHub n’a pas. L’envoyer garde une copie en lieu sûr.', 'Your project has 1 update GitHub does not have. Sending it keeps a safe copy.'],
+        xToSendCopy: ['Le projet principal a {n} mises à jour que GitHub n’a pas. Votre copie séparée reste sur votre ordinateur (c’est normal).', 'The main project has {n} updates GitHub does not have. Your separate copy stays on your computer (that is normal).'],
+        xToSendCopy1: ['Le projet principal a 1 mise à jour que GitHub n’a pas. Votre copie séparée reste sur votre ordinateur (c’est normal).', 'The main project has 1 update GitHub does not have. Your separate copy stays on your computer (that is normal).'],
         tSync: ['Vous et GitHub avez chacun du nouveau', 'You and GitHub both have news'],
         xSync: ['{n} à envoyer, {m} à récupérer. On récupère d’abord, puis on envoie.', '{n} to send, {m} to fetch. We fetch first, then send.'],
         tNotInProject: ['Sauvegardé, mais pas encore dans le projet', 'Saved, but not in the project yet'],
@@ -81,11 +86,13 @@ window.__ModuleLoader__.load({
         tMerged: ['Votre travail est dans le projet', 'Your work is in the project'],
         xMerged: ['La relecture est finie et GitHub a votre travail. Récupérez la mise à jour pour la voir sur votre ordinateur.', 'The review is done and GitHub has your work. Fetch the update to see it on your computer.'],
         tFetch: ['GitHub a du nouveau', 'GitHub has news'],
-        xFetch: ['{n} mise(s) à jour sont arrivées en ligne. Récupérez-les pour rester à jour.', '{n} update(s) arrived online. Fetch them to stay up to date.'],
+        xFetch: ['{n} mises à jour sont arrivées en ligne. Récupérez-les pour rester à jour.', '{n} updates arrived online. Fetch them to stay up to date.'],
+        xFetch1: ['1 mise à jour est arrivée en ligne. Récupérez-la pour rester à jour.', '1 update arrived online. Fetch it to stay up to date.'],
         tConflict: ['Des fichiers sont en conflit', 'Some files are in conflict'],
         xConflict: ['Quelqu’un a modifié les mêmes lignes. Il faut choisir quelle version garder : demandez à l’agent de vous aider à résoudre.', 'Someone changed the same lines. A version has to be chosen: ask the agent to help you resolve it.'],
         tElsewhere: ['Rien à sauvegarder pour cette conversation', 'Nothing to save for this chat'],
-        xElsewhere: ['Le dossier a {n} fichier(s) modifié(s), mais ils viennent d’autres conversations. Le travail de celle-ci est sauvegardé.', 'The folder has {n} changed file(s), but they come from other chats. This chat’s work is saved.'],
+        xElsewhere: ['Le dossier a {n} fichiers modifiés, mais ils viennent d’autres conversations. Le travail de celle-ci est sauvegardé.', 'The folder has {n} changed files, but they come from other chats. This chat’s work is saved.'],
+        xElsewhere1: ['Le dossier a 1 fichier modifié, mais il vient d’une autre conversation. Le travail de celle-ci est sauvegardé.', 'The folder has 1 changed file, but it comes from another chat. This chat’s work is saved.'],
         tOk: ['Tout est sauvegardé', 'Everything is saved'],
         xOk: ['Rien à faire pour le moment.', 'Nothing to do right now.'],
         xOkCopy: ['Votre copie est identique au projet : vous pouvez la fermer.', 'Your copy is identical to the project: you can close it.'],
@@ -97,7 +104,8 @@ window.__ModuleLoader__.load({
         stepsAria: ['Étapes du travail', 'Steps of the work'],
 
         files: ['Fichiers', 'Files'],
-        fileMore: ['… et {n} autre(s)', '… and {n} more'],
+        fileMore: ['… et {n} autres', '… and {n} more'],
+        fileMore1: ['… et 1 autre', '… and 1 more'],
         otherChat: ['autre conversation', 'other chat'],
         kModified: ['modifié', 'modified'], kNew: ['nouveau', 'new'], kDeleted: ['supprimé', 'deleted'], kRenamed: ['renommé', 'renamed'], kConflict: ['en conflit', 'conflict'],
 
@@ -153,6 +161,55 @@ window.__ModuleLoader__.load({
         if (pair === undefined) return String(key)
         return fill(kt(pair[0], pair[1]), p)
       }
+      /** A count in a sentence: the key with a « 1 » twin (`xFetch1`) is used for exactly one, so « 1 updates » never shows. */
+      const Lp = (key, n, p) => L(n === 1 && S[key + '1'] !== undefined ? key + '1' : key, Object.assign({ n }, p))
+
+      // ── what the host says after an action ─────────────────────────────────────────────────────────────
+      // The git routes of Sessions answer with a French sentence (`message`, `erreur`). A French UI shows it as it is; any other
+      // language gets the English twin of the sentences we know, and the host's own words (a git error, a path) after the colon.
+      // [host sentence, English]: a sentence ending in « : » or « de » is a prefix, the rest is the host's detail.
+      const HOST_SAYS = [
+        ['dossier introuvable', 'folder not found'],
+        ['pas un dépôt git', 'not a git repository'],
+        ['hors git — rien à fusionner', 'not in git — nothing to merge'],
+        ['aucun dépôt distant (origin) configuré', 'no remote repository (origin) is set up'],
+        ['rien à pousser — déjà à jour', 'nothing to send — already up to date'],
+        ['rien à committer — arbre propre', 'nothing to save — the folder is clean'],
+        ['aucun fichier attribué à ce chat — le dossier est modifié par d’autres chats, rien à committer ici', 'no file belongs to this chat — the folder is changed by other chats, nothing to save here'],
+        ['déjà enregistré — rien de nouveau dans les fichiers de ce chat', 'already saved — nothing new in this chat’s files'],
+        ['committé localement (aucun envoi)', 'saved on this computer (nothing sent)'],
+        ['committé localement — le push a ÉCHOUÉ (voir erreurPush), le commit reste à envoyer', 'saved on this computer — sending FAILED, the save still has to be sent'],
+        ['committé et poussé', 'saved and sent'],
+        ['fusionné dans la branche locale (aucun envoi)', 'merged into the local branch (nothing sent)'],
+        ['fusionné et worktree retiré', 'merged and the separate copy removed'],
+        ['envoyé sur GitHub', 'sent to GitHub'],
+        ['mises à jour récupérées — rien de changé sur vos fichiers', 'updates fetched — your files are unchanged'],
+        ['récupéré puis envoyé — synchronisé', 'fetched, then sent — in sync'],
+        ['la branche courante est la branche de base — créez d’abord une copie isolée', 'the current branch is the base branch — give this chat its own copy first'],
+        ['pull request créée', 'pull request opened'],
+        ['pull request fusionnée dans la branche de base', 'pull request merged into the base branch'],
+        ['worktree créé — ouvre le PROCHAIN chat dans ce dossier pour qu’il y soit isolé', 'copy created — open the NEXT chat in this folder to work in it'],
+        ['worktree déjà en place et sans travail — réutilisé, rien créé', 'a copy is already there and has no work — reused, nothing created'],
+        ['push refusé : ', 'send refused: '],
+        ['fetch refusé : ', 'fetch refused: '],
+        ['merge refusé : ', 'merge refused: '],
+        ['git a refusé : ', 'git refused: '],
+        ['gh pr create refusé : ', 'gh pr create refused: '],
+        ['gh pr merge refusé : ', 'gh pr merge refused: '],
+        ['rien à examiner — aucun commit au-delà de ', 'nothing to review — no commit beyond ']
+      ]
+      const hostSays = (raw) => {
+        const text = String(raw === undefined || raw === null ? '' : raw)
+        if (text === '' || langBase() === 'fr') return text
+        const apostrophe = text.replace(/'/g, '’')
+        for (const [fr, en] of HOST_SAYS) {
+          if (apostrophe === fr.replace(/'/g, '’')) return en
+          if (/(?: : |au-delà de )$/.test(fr) && apostrophe.startsWith(fr.replace(/'/g, '’'))) return en + text.slice(fr.length)
+        }
+        const refused = /^((?:git|gh) [\w -]+?|\w+) refusé : /.exec(text)
+        if (refused !== null) return refused[1] + ' refused: ' + text.slice(refused[0].length)
+        return text
+      }
 
       // ── the pure part: what the facts mean ─────────────────────────────────────────────────────────────────
       // `f` comes from window.__KB_SESSIONS_VIEW__.read(): git, unsaved, files, ahead/behind, notMerged, pr,
@@ -187,8 +244,8 @@ window.__ModuleLoader__.load({
       const wording = (m, f) => {
         const n = f.unsaved
         switch (m.key) {
-          case 'unsaved': return [n === 1 ? L('chipUnsaved1') : L('chipUnsavedN', { n }), n === 1 ? L('tUnsaved1') : L('tUnsavedN', { n }), L('xUnsaved') + (f.sharedWith > 0 ? L('xUnsavedShared', { m: f.sharedWith }) : '')]
-          case 'toSend': return [L('chipToSend'), L('tToSend'), L(f.isolated ? 'xToSendCopy' : 'xToSend', { n: f.ahead })]
+          case 'unsaved': return [n === 1 ? L('chipUnsaved1') : L('chipUnsavedN', { n }), n === 1 ? L('tUnsaved1') : L('tUnsavedN', { n }), L('xUnsaved') + (f.sharedWith > 0 ? Lp('xUnsavedShared', f.sharedWith, { m: f.sharedWith }) : '')]
+          case 'toSend': return [L('chipToSend'), L('tToSend'), Lp(f.isolated ? 'xToSendCopy' : 'xToSend', f.ahead)]
           case 'sync': return [L('chipSync'), L('tSync'), L('xSync', { n: f.ahead, m: f.behind })]
           case 'notInProject': return [L('chipNotInProject'), L('tNotInProject'), L('xNotInProject')]
           case 'readyReview': return [L('chipReadyReview'), L('tReadyReview'), L('xReadyReview')]
@@ -198,9 +255,9 @@ window.__ModuleLoader__.load({
           case 'prFail': return [L('chipCheckFailed'), L('tCheckFailed'), L('xCheckFailed')]
           case 'prReady': return [L('chipReadyMerge'), L('tReadyMerge'), L('xReadyMerge')]
           case 'prMerged': return [L('chipMerged'), L('tMerged'), L('xMerged')]
-          case 'toFetch': return [L('chipFetch'), L('tFetch'), L('xFetch', { n: f.behind })]
+          case 'toFetch': return [L('chipFetch'), L('tFetch'), Lp('xFetch', f.behind)]
           case 'conflict': return [L('chipConflict'), L('tConflict'), L('xConflict')]
-          case 'elsewhere': return [L('chipElsewhere'), L('tElsewhere'), L('xElsewhere', { n: f.folderDirty })]
+          case 'elsewhere': return [L('chipElsewhere'), L('tElsewhere'), Lp('xElsewhere', f.folderDirty)]
           default: return [L('chipOk'), L('tOk'), L(f.isolated && f.actions && f.actions.closeCopy ? 'xOkCopy' : 'xOk')]
         }
       }
@@ -431,7 +488,7 @@ html[dir="rtl"] .kbch-card{left:auto;right:0;text-align:right}
           shown.map((f) => h('li', { key: f.path },
             h('span', { className: 'kbch-fn' }, f.path),
             h('span', { className: 'kbch-fs' }, [f.kind !== null && f.kind !== undefined && KIND_KEY[f.kind] !== undefined ? L(KIND_KEY[f.kind]) : null, f.mine === false ? L('otherChat') : null].filter(Boolean).join(' · ')))),
-          files.length > shown.length ? h('li', { key: 'more' }, h('span', { className: 'kbch-fs' }, L('fileMore', { n: files.length - shown.length }))) : null)
+          files.length > shown.length ? h('li', { key: 'more' }, h('span', { className: 'kbch-fs' }, Lp('fileMore', files.length - shown.length))) : null)
 
         // the action area: nothing, the primary button, or the dry-run / confirm / result of the one in progress
         let action = null
@@ -452,8 +509,8 @@ html[dir="rtl"] .kbch-card{left:auto;right:0;text-align:right}
           action = h('div', { className: 'kbch-act' },
             primary !== null ? h('button', { className: 'kbch-go', type: 'button', 'data-act': 'primary', 'data-role': primary, onClick: () => begin(primary) }, roleLabel(primary)) : null,
             primary !== null ? h('p', { className: 'kbch-why' }, L(ROLES[primary][1])) : null,
-            run !== null && run.phase === 'error' ? h('p', { className: 'kbch-err-t', role: 'alert', 'data-kb': 'changes-error' }, L('failed') + ' — ' + run.error) : null,
-            run !== null && run.phase === 'done' ? h('p', { className: 'kbch-ok-t', role: 'status', 'data-kb': 'changes-done' }, L('done') + (run.message !== '' ? ' ' + run.message : '')) : null)
+            run !== null && run.phase === 'error' ? h('p', { className: 'kbch-err-t', role: 'alert', 'data-kb': 'changes-error' }, L('failed') + ' — ' + hostSays(run.error)) : null,
+            run !== null && run.phase === 'done' ? h('p', { className: 'kbch-ok-t', role: 'status', 'data-kb': 'changes-done' }, L('done') + (run.message !== '' ? ' ' + hostSays(run.message) : '')) : null)
         }
         const secondary = (run !== null && (run.phase === 'confirm' || run.phase === 'running' || run.phase === 'plan')) ? [] : m.secondary
         const extra = h('div', { className: 'kbch-row2' },
@@ -495,7 +552,7 @@ html[dir="rtl"] .kbch-card{left:auto;right:0;text-align:right}
       return {
         name: 'kybernos-changes',
         inject: ['slots'],
-        __test: { classify, wording, stepStates, ROLES, S, L, kt, readMode, writeMode, CSS, STEP_KEYS },
+        __test: { classify, wording, stepStates, ROLES, S, L, Lp, kt, hostSays, readMode, writeMode, CSS, STEP_KEYS },
         apply (ctx) {
           // Before the sessions pills (order 5): the chip is the first thing on the row.
           ctx.effect(() => ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register(
