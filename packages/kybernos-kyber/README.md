@@ -23,6 +23,13 @@ works on.
   - **Channels tile**: Telegram, WhatsApp and WeChat, one row each, with their marks. Telegram has a **switch**: turning it on asks for a
     code (never when the strip opens), turning it off cancels a code in flight or, for a connected chat, asks before disconnecting.
     WhatsApp and WeChat say « Soon » and offer nothing. The person may turn on several, as they come.
+    **Three states of Telegram's door**, told by the host (`GET /kybernos-cloud/kyber`: `telegram`, `pairing`, `server`): a **bot there** (the switch works); **no bot on this
+    server** (`configured` or `enabled` false); a **server too old** for the pairing routes (`pairing: 'unsupported'`: a 404 on `/v1/me/telegram` or `/v1/me/kyby`, the routes of
+    kybernos-server#230). Each of the last two keeps the switch greyed and says on the row, in one sentence, what is so and what to do (« This server has no Telegram bot. Switch to
+    a server that has one, such as Kybernos Cloud. » / « This server does not support linking Telegram yet. »), with a **Switch server** button when the registry names another
+    server (`server.can_switch`, the footer's helper): it sends the `kybernos-cloud:servers` window event the footer answers by opening Settings › Servers. No bot AND too old reads
+    « no bot » (the answer that tells where to go). With such a way out the strip opens by itself; the person's fold still wins. A host that says nothing claims nothing. A pairing
+    the server answers 404 to with none of our codes is `unsupported` (a panel, never a silent failure).
   - **Computer tile**: where Kaby works, always a real `<select>`. **This computer** (the machine that runs Kybernos) is the first entry:
     it needs no account and no server, so it is offered signed out and when the server cannot be read, choosing it calls nobody, and the
     choice is remembered by the browser (`kybernos-kyber.where`). Next to it, the cloud computers of the account (the chosen one is kept

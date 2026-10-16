@@ -18,7 +18,7 @@ export const DECLINE_REASONS = Object.freeze(['user', 'taken', 'botmade'])
 const KNOWN = Object.freeze([
   'not_found', 'already_linked', 'not_linked', 'computer_not_found', 'computer_unavailable', 'rate_limited', 'busy', 'turn_pending', 'model_required', 'model_not_in_plan', 'model_not_found',
   'feature_not_in_plan', 'insufficient_quota', 'payment_past_due', 'budget_not_configured', 'job_bud', 'hosted_busy', 'queue_full',
-  'thread_full', 'storage_full', 'hosted_runs_disabled', 'no_runner', 'kyber_archived', 'thread_archived', 'client_turn_conflict',
+  'thread_full', 'storage_full', 'hosted_runs_disabled', 'no_runner', 'kyber_archived', 'thread_archived', 'client_turn_conflict', 'unsupported',
   'mfa_required_by_workspace', 'plan_required', 'computers_off_for_workspace', 'invalid_request', 'thread_limit', 'computer_unavailable',
 ])
 
@@ -29,7 +29,17 @@ export const codeOf = (res) => {
   if (res.status === 401) return 'not_connected'
   const e = res.body !== null && typeof res.body === 'object' ? res.body.error : undefined
   const code = typeof e === 'string' ? e : (e !== null && typeof e === 'object' && typeof e.code === 'string' ? e.code : '')
+  // A route the server does not have answers 404 with none of OUR codes (a framework's own page, or {detail}): « unsupported », so the page can say that this
+  // server is too old, not fail silently. A 404 that carries our code (`not_found`) is the door being off, which is another thing.
+  if (res.status === 404 && code === '') return 'unsupported'
   return KNOWN.includes(code) ? code : 'refused'
+}
+
+/** Whether the server has the pairing routes (ADR 0053 slice of PR #230), from the status of the two reads the host already makes: `GET /v1/me/telegram` and `GET /v1/me/kyby`.
+ *  « unsupported »: either is a 404 (the server is older than the routes); « supported »: both answered; « unknown »: anything else (a failure says nothing about the routes). */
+export const pairingSupport = (telegramStatus, kybyStatus) => {
+  if (telegramStatus === 404 || kybyStatus === 404) return 'unsupported'
+  return telegramStatus === 200 && kybyStatus === 200 ? 'supported' : 'unknown'
 }
 
 const asObj = (v) => (v !== null && typeof v === 'object' && !Array.isArray(v) ? v : null)
