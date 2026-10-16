@@ -355,6 +355,31 @@ try {
   ok('when the plan lapses the paired phone stays listed, locked, and nothing connects', locked !== null && hostGone === true)
   relay.state.entitled = true
 
+  // 9b. the server does not answer: the refusal names it (audit V-41: « The Kybernos server does not answer » with no word of WHICH server)
+  {
+    const downDir = mkdtempSync(join(tmpdir(), 'kb-mobile-remote-down-'))
+    const named = { name: 'Kybernos (local)', host: 'localhost:8791', can_switch: true }
+    let seam = { status: 0, body: null, error: 'fetch failed', server: named }
+    const gone = createRemote({
+      dir: downDir, cloud: () => ({ call: async () => seam }), WebSocket: LaggyWebSocket, fetch: globalThis.fetch,
+      local: () => ({ base: dshBase, cookie: 'dsh-auth-test=SESSION' }), label: () => 'Test computer', tuning: { retryMinMs: 100, retryMaxMs: 400 },
+    })
+    await gone.start()
+    const down = await gone.pair()
+    ok('the server does not answer: server_unavailable, with the server named (label, host) and whether another one can be chosen', down.ok === false && down.error === 'server_unavailable' && JSON.stringify(down.server) === JSON.stringify(named), JSON.stringify(down))
+    seam = { status: 0, body: null, error: 'fetch failed' }
+    const bare = await gone.pair()
+    ok('a seam that names no server: the same refusal, no server in it', bare.ok === false && bare.error === 'server_unavailable' && bare.server === undefined, JSON.stringify(bare))
+    seam = { status: 0, body: null, error: 'fetch failed', server: { name: 'x'.repeat(500), host: 7, can_switch: 'yes', extra: 'no' } }
+    const odd = await gone.pair()
+    ok('what the seam says is cut to what the page may show (bounded text, a boolean, nothing else)', odd.server !== undefined && odd.server.name.length <= 80 && odd.server.host === '' && odd.server.can_switch === false && Object.keys(odd.server).sort().join() === 'can_switch,host,name', JSON.stringify(odd))
+    seam = { status: 0, body: null, error: 'not_connected' }
+    const out = await gone.pair()
+    ok('signed out is still « not_connected », not an unreachable server', out.ok === false && out.error === 'not_connected' && out.server === undefined, JSON.stringify(out))
+    gone.stop()
+    rmSync(downDir, { recursive: true, force: true })
+  }
+
   // 10. everything off
   const all = await remote.revokeAll()
   ok('revoke all empties the list', all.ok === true && (await remote.status()).devices.length === 0)

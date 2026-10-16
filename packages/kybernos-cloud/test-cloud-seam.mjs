@@ -73,6 +73,17 @@ try {
   check('an array body is refused', (await cloudSeamCall('/v1/remote/x', { method: 'POST', body: [1] })).error === 'body_refused')
   check('a huge body is refused', (await cloudSeamCall('/v1/remote/x', { method: 'POST', body: { a: 'x'.repeat(9000) } })).error === 'body_refused')
   check('none of the refused calls reached the server', seen.length === before)
+
+  // The server does not answer (a closed port): the caller can say WHICH server (label and host) and whether another one could be chosen (audit V-41).
+  // Not the address in full, and never the token.
+  const closed = await new Promise((r) => { const s = createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)) }) })
+  process.env.KYBERNOS_CLOUD_API = 'http://127.0.0.1:' + closed
+  r = await cloudSeamCall('/v1/remote/pairings', { method: 'POST', body: { label: 'My Mac' } })
+  check('an unreachable server: status 0 and the answer names it (label, host)', r.status === 0 && r.server !== undefined && r.server.name === 'Kybernos Cloud' && r.server.host === '127.0.0.1:' + closed, JSON.stringify(r))
+  check('and says whether there is another server to switch to (none: only the built-in one)', r.server !== undefined && r.server.can_switch === false, JSON.stringify(r))
+  check('the answer still never carries the token', JSON.stringify(r).includes(TOKEN) === false)
+  r = await cloudSeamCall('/v1/other', { method: 'GET' })
+  check('a refused call does not name a server (it never left)', r.error === 'path_refused' && r.server === undefined)
 } catch (e) {
   console.log('  ✗ exception — ' + (e && e.stack ? e.stack : e))
   failed += 1

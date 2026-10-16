@@ -28,6 +28,11 @@
 // The menus are also driven with the KEYBOARD ONLY (audit A1-29): Enter opens one with the focus on its first item, the arrows walk it round the ends, Home / End jump, Escape and
 // Tab close it and give the focus back to the button that opened it. The keys are real key events (CDP Input.dispatchKeyEvent), nothing is focused by the page after the first focus.
 //
+// « Upgrade » (audit V-40): the menu has an entry for a plan that has something above it (not Free, which keeps its pill and the dialog; not the top level, not a paid
+// Team plan; where the page can open) that asks the host for the console link on the PLAN page, like Team settings; signed out, « See plans » opens the server's own
+// `/account#plan`. A server that does not answer (audit V-41) is NAMED in the footer's notice and in the phone link's panel, with « Switch server » (Settings › Servers).
+// Everything these scenes press is answered in the page (the console link, the pairing, the catalogue): nothing reaches the sandbox's host or a server.
+//
 // Sandbox only: it refuses :3080 (exit 3). It presses DSH's light/dark switch of the sandbox's own profile and puts it back.
 // Exit 0 all good, 1 a check failed, 3 not run.
 import { createServer } from 'node:http'
@@ -52,10 +57,10 @@ const check = (label, cond, detail) => {
 
 const W_PERSONAL = '11111111-1111-4111-8111-111111111111'
 const W_TEAM = '22222222-2222-4222-8222-222222222222'
-const CLOUD = (active = W_PERSONAL, planKey = 'free') => ({ ok: true, connected: true, state: {
+const CLOUD = (active = W_PERSONAL, planKey = 'free', level = null) => ({ ok: true, connected: true, state: {
   user: { email: 'dev@example.test', name: 'Dev Person', plan: planKey },
   workspaces: [{ id: W_PERSONAL, name: 'Personal', personal: true, role: 'owner' }, { id: W_TEAM, name: 'Studio', personal: false, role: 'owner' }],
-  active_workspace_id: active, space_plan: { key: planKey, label: planKey === 'free' ? 'Free' : 'Plus', workspace_id: active }, web_url: 'https://dev.kybernos.app', device_label: 'This computer' } })
+  active_workspace_id: active, space_plan: { key: planKey, label: planKey === 'free' ? 'Free' : (level !== null ? level : 'Plus'), ...(level !== null ? { level } : {}), workspace_id: active }, web_url: 'https://dev.kybernos.app', device_label: 'This computer' } })
 const PAIRING = { ok: true, connected: false, status: 'pending', pairing: { user_code: 'KB4-7QX2', activation_url: 'https://server.example.test/cloud/cli/activate?deviceId=d1', expires_at: '2099-01-01T00:00:00Z' } }
 const price = (cur, amount, interval) => ({ currency: cur, amount, mode: 'unit', interval })
 const PLANS = { ok: true, credits_per_usd: 3680, tax_basis: 'exclusive', plans: [
@@ -74,7 +79,7 @@ const PLANS = { ok: true, credits_per_usd: 3680, tax_basis: 'exclusive', plans: 
 // The phone link's own status route (kybernos-mobile): offered, with two phones already linked, unless a scene says otherwise.
 const REMOTE_OFFERED = { ok: true, available: true, running: true, connected: true, configured: true, entitled: true, relay: 'idle', pairing: null, max_devices: 5,
   devices: [{ id: 'd1', label: 'Pixel 9', online: true, state: 'serving' }, { id: 'd2', label: 'iPhone', online: false, state: 'offline' }] }
-const fake = { status: null, calls: [], bodies: [], plans: null, plansDelay: 0, checkout: null, portal: null, quote: null, link: null, pairingPending: false, remote: REMOTE_OFFERED, sync: null, push: null }
+const fake = { status: null, calls: [], bodies: [], pair: null, plans: null, plansDelay: 0, checkout: null, portal: null, quote: null, link: null, pairingPending: false, remote: REMOTE_OFFERED, sync: null, push: null }
 const body64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64')
 
 // The GETs the real frame makes for each page of the account group (what the server's console asks its parent for): Overview and the two entries DSH's footer
@@ -219,14 +224,22 @@ const answerFor = (path, req) => {
   if (path === '/kybernos-cloud/start') { fake.calls.push('start'); return { body: PAIRING } }
   if (path === '/kybernos-cloud/poll') { fake.calls.push('poll'); return { body: { ok: true, connected: false, status: 'pending' } } }
   if (path === '/kybernos-cloud/console/link') { fake.bodies.push({ path, body: sent() }); return { body: fake.link || { ok: true, opened: true, expires_in: 60 } } }
-  if (path === '/kybernos-cloud/plans' && fake.plans !== null) return { body: fake.plans, delay: fake.plansDelay }
+  // The catalogue is always answered here (the account menu reads it to know whether a plan is the top one): « cannot be read » unless a scene sets it. The routes that
+  // pay or sign someone in never reach the sandbox's host: with no answer set they say « no payment provider ».
+  if (path === '/kybernos-cloud/plans') fake.calls.push('plans')
+  if (path === '/kybernos-cloud/plans') return { body: fake.plans !== null ? fake.plans : { ok: false, status: 0, error: 'injoignable' }, delay: fake.plans !== null ? fake.plansDelay : 0 }
+  if (path === '/kybernos-cloud/billing/checkout' || path === '/kybernos-cloud/billing/portal') {
+    const set = path.endsWith('checkout') ? fake.checkout : fake.portal
+    fake.bodies.push({ path, body: sent() })
+    return { body: set === null ? { ok: false, status: 501, error: 'billing_disabled' } : (typeof set === 'function' ? set() : set) }
+  }
   if (path === '/kybernos-cloud/plans/quote' && fake.quote !== null) { const u = new URL(req.url); fake.calls.push('quote:' + u.search); return { body: fake.quote(u.searchParams) } }
-  if (path === '/kybernos-cloud/billing/checkout' && fake.checkout !== null) { fake.bodies.push({ path, body: sent() }); return { body: typeof fake.checkout === 'function' ? fake.checkout() : fake.checkout } }
-  if (path === '/kybernos-cloud/billing/portal' && fake.portal !== null) { fake.bodies.push({ path, body: sent() }); return { body: typeof fake.portal === 'function' ? fake.portal() : fake.portal } }
   if (path === '/kybernos-cloud/refresh') { fake.calls.push('refresh'); return { body: { ok: true } } }
   if (path === '/kybernos-cloud/models/sync' && fake.sync !== null) { fake.calls.push('models-sync'); return { body: fake.sync } }
   if (path === '/kybernos-cloud/chats/push' && fake.push !== null) { fake.calls.push('chats-push'); return { body: fake.push } }
   if (path === '/kybernos-mobile/remote/status' && fake.remote !== null) { fake.calls.push('remote-status'); return { body: fake.remote } }
+  // The phone link's gestures (a code, an approval, a revoke) are the page's to ask and never the host's to do here: answered, refused unless a scene says otherwise.
+  if (path.startsWith('/kybernos-mobile/remote/') && req.method === 'POST') { fake.calls.push('remote:' + path.slice('/kybernos-mobile/remote/'.length)); return { body: path.endsWith('/pair') && fake.pair !== null ? fake.pair : { ok: false, error: 'not_connected' } } }
   return null
 }
 const interceptor = async () => {
@@ -322,7 +335,7 @@ try {
 
     check('a real click on the button opens our menu', await press('[data-kb="foot-signin"]') && (await waitFor(page, `document.querySelector('[data-kb="off-menu"]') !== null`, 4000)) !== null)
     const list = await entries('[data-kb="off-menu"]')
-    check('the menu: Sign in, Create an account, Appearance, Settings, Website, Help, Send feedback — in that order', JSON.stringify(list) === JSON.stringify(['connect', 'signup', 'appearance', 'settings', 'website', 'help', 'feedback']), list)
+    check('the menu: Sign in, Create an account, See plans, Appearance, Settings, Website, Help, Send feedback — in that order', JSON.stringify(list) === JSON.stringify(['connect', 'signup', 'plans', 'appearance', 'settings', 'website', 'help', 'feedback']), list)
     check('no plan row, team, account, referral, remote control or log out', (await val(`!document.querySelector('[data-kb="off-menu"] [data-kb="menu-plan-cta"], [data-kb="off-menu"] [data-kb="menu-switch"], [data-kb="off-menu"] [data-kb="menu-account"], [data-kb="off-menu"] [data-kb="menu-referral"], [data-kb="off-menu"] [data-kb="menu-logout"], [data-kb="off-menu"] [data-kb="menu-space-settings"], [data-kb="off-menu"] [data-kb="menu-remote"]')`)) === true)
     const fits = await val(`(() => { const m = document.querySelector('[data-kb="off-menu"]'); const r = m.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight })()`)
     check('it fits the window and the button says it is open', fits === true && (await val(`document.querySelector('[data-kb="foot-signin"]').getAttribute('aria-expanded')`)) === 'true')
@@ -341,7 +354,7 @@ try {
     await keyboardMenu('Signed out', '[data-kb="foot-signin"]', '[data-kb="off-menu"]')
 
     // Links: Website, Help (in DSH's language), Create an account (the server's own account page).
-    for (const entry of ['website', 'help', 'signup']) {
+    for (const entry of ['website', 'help', 'signup', 'plans']) {
       const n = await openedCount()
       await press('[data-kb="foot-signin"]')
       await press('[data-kb="menu-' + entry + '"]')
@@ -352,6 +365,7 @@ try {
     check('Website opens the constant https://kybernos.app', o[0] === 'https://kybernos.app', o)
     check('Help opens https://help.kybernos.app/<DSH language>/ (English here)', o[1] === 'https://help.kybernos.app/en/', o)
     check('Create an account opens the server\'s own /account page', typeof server === 'string' && o[2] === server.replace(/\/+$/, '') + '/account', { o, server })
+    check('See plans opens the server\'s own plan page (/account#plan: the app signs the person in, then shows the plans)', typeof server === 'string' && o[3] === server.replace(/\/+$/, '') + '/account#plan', { o, server })
 
     // The Settings entry reaches DSH's own dialog.
     await press('[data-kb="foot-signin"]')
@@ -440,7 +454,6 @@ try {
   if (notRun === null) {
     console.log('Connected — the profile row and its menu')
     fake.status = CLOUD(W_PERSONAL)
-    fake.server = { ok: true, server: { name: 'Active server', api: 'http://active.example.test', web: 'http://active.example.test', console: 'http://active.example.test/workspace-console' }, servers: [] }
     await reload()
     check('the profile row replaces the button, with the same chevron', (await val(`document.querySelector('[data-kb="workspace-card"]') !== null && document.querySelector('[data-kb="foot-signin"]') === null && !!document.querySelector('[data-kb="workspace-card"] .kbfp-chev')`)) === true)
     const profile = await rect('[data-kb="workspace-card"] .kbfp-card')
@@ -513,6 +526,140 @@ try {
     const teamLink = fake.bodies.filter((b) => b.path === '/kybernos-cloud/console/link')
     check('Team settings follows the active workspace (the team the person switched to)', teamLink.length === 1 && teamLink[0].body.workspace_id === W_TEAM && teamLink[0].body.section === 'plan', teamLink)
     fake.status = CLOUD(W_PERSONAL)
+    fake.bodies.length = 0
+    await reload()
+    await openProfileMenu()
+
+    // ── Upgrade (V-40): the plan page of the app, in the browser ───────────────────────────────────────────────────────────────────────────────────────────
+    // An entry for a plan that has something above it: Plus is offered it, Pro (the top level) and a paid Team plan are not, Free has its pill (and the dialog).
+    // It asks the host for the console link on the PLAN page of the active workspace, like Team settings: nothing is bought, nothing is drawn in DSH.
+    console.log('Upgrade — an entry for a plan that has something above it; the plan page, in the browser')
+    fake.plans = PLANS
+    fake.link = null
+    for (const [label, status, wantEntry, wantPill] of [
+      ['Free', CLOUD(W_PERSONAL), false, true],
+      ['Plus (Pro is above it)', CLOUD(W_PERSONAL, 'solo', 'Plus'), true, false],
+      ['Pro (the top level)', CLOUD(W_PERSONAL, 'solo', 'Pro'), false, false],
+      ['a paid Team plan', CLOUD(W_TEAM, 'team', '1-5 seats'), false, false],
+    ]) {
+      fake.status = status
+      const planReads = fake.calls.filter((c) => c === 'plans').length
+      await reload()
+      // The footer reads the catalogue once the account is there; the menu is judged after it was read (and drawn), not before.
+      await until(() => fake.calls.filter((c) => c === 'plans').length > planReads, 8000)
+      await settle()
+      await openProfileMenu()
+      const list = (await entries('.kbfp-menu')).filter((k) => k !== 'update')
+      const at = list.indexOf('upgrade')
+      check(label + ': ' + (wantEntry ? 'the menu has « Upgrade », right after the plan and before Team settings' : 'no « Upgrade » entry'),
+        (at >= 0) === wantEntry && (!wantEntry || (at === list.indexOf('switch') + 1 && list.indexOf('space-settings') === at + 1)), list)
+      check(label + ': the Free pill is ' + (wantPill ? 'there (it opens the dialog)' : 'not there'), (await exists('[data-kb="menu-plan-cta"]')) === wantPill, list)
+      if (wantEntry) { await sleep(300); await shot('v40-upgrade-entry') }
+    }
+    fake.status = CLOUD(W_PERSONAL, 'solo', 'Plus')
+    await reload()
+    await openProfileMenu()
+    check('the entry says Upgrade and carries the arrow that leaves DSH', /Upgrade/.test((await text('[data-kb="menu-upgrade"]')) || '') && (await exists('[data-kb="menu-upgrade"] .kbfp-mext')), await text('[data-kb="menu-upgrade"]'))
+    fake.bodies.length = 0
+    const openedBefore = await openedCount()
+    await press('[data-kb="menu-upgrade"]')
+    await until(() => linkAsks().length >= 1, 5000)
+    await settle()
+    const upLink = linkAsks()
+    check('Upgrade asks the host for a console link on the PLAN page of the active workspace, opened by the host (Team settings\' own mechanism)', upLink.length === 1 && upLink[0].body.section === 'plan' && upLink[0].body.open === true && upLink[0].body.workspace_id === W_PERSONAL, upLink)
+    check('it opens no dialog, draws nothing in DSH\'s content zone, closes the menu, and the page opened nothing itself (the host did)', !(await exists('[data-kb="upgrade-dialog"]')) && !(await exists('[data-kb="ws-console"]')) && !(await exists('.kbfp-menu')) && (await openedCount()) === openedBefore)
+    check('no payment route was asked: nothing is bought from here', !fake.bodies.some((b) => /billing/.test(b.path)), fake.bodies)
+    fake.plans = { ok: false, status: 0, error: 'injoignable' }
+    fake.status = CLOUD(W_PERSONAL, 'solo', 'Pro')
+    const planReads2 = fake.calls.filter((c) => c === 'plans').length
+    await reload()
+    await until(() => fake.calls.filter((c) => c === 'plans').length > planReads2, 8000)
+    await settle()
+    await openProfileMenu()
+    check('the catalogue cannot be read: nothing proves Pro is the top, the entry stays', await exists('[data-kb="menu-upgrade"]'))
+    fake.plans = PLANS
+
+    // ── A server that does not answer (V-41): the notice names it and offers another ────────────────────────────────────────────────────────────────────
+    console.log('A server that does not answer — named, with « Switch server »')
+    const settingsText = async () => (await val(`(document.querySelector('[data-slot="settings.section"]') || document.querySelector('[class*="settingsContent"]') || { innerText: '' }).innerText`)) || ''
+    const serversCell = async () => (await navCells()).some((c) => c.key === 'kybernos-servers')
+    fake.status = CLOUD(W_PERSONAL, 'solo', 'Plus')
+    fake.link = { ok: false, status: 0, error: 'injoignable', server: { name: 'Kybernos (local)', host: 'localhost:8791', can_switch: true } }
+    await reload()
+    await openProfileMenu()
+    await press('[data-kb="menu-upgrade"]')
+    await until(() => exists('[data-kb="foot-flash"]'), 5000)
+    let said = (await text('[data-kb="foot-flash"]')) || ''
+    check('the notice names the server that does not answer: its label and its host', /“Kybernos \(local\)”/.test(said) && /localhost:8791/.test(said) && /does not answer/.test(said), said)
+    check('and offers « Switch server »', (await exists('[data-kb="foot-switch-server"]')) && /Switch server/.test(said), said)
+    await sleep(300)
+    await shot('v41-server-down-notice')
+    await press('[data-kb="foot-switch-server"]')
+    check('« Switch server » opens Settings and takes the notice away', (await settingsOpen()) && !(await exists('[data-kb="foot-flash"]')))
+    if (await serversCell()) {
+      await until(async () => /where your account/i.test(await settingsText()), 5000)
+      check('on the Servers page (Settings › Servers)', /where your account/i.test(await settingsText()), (await settingsText()).slice(0, 120))
+      await shot('v41-switch-server-settings')
+    } else console.log('  ○ skipped: this sandbox has no Servers module (cell kybernos-servers): the click was checked up to Settings opening')
+    await clean()
+    fake.link = { ok: false, status: 0, error: 'injoignable', server: { name: 'Kybernos Cloud', host: 'api.kybernos.app', can_switch: false } }
+    await openProfileMenu()
+    await press('[data-kb="menu-account"]')
+    await until(() => exists('[data-kb="foot-flash"]'), 5000)
+    said = (await text('[data-kb="foot-flash"]')) || ''
+    check('the only server: it is named, and there is nothing to switch to (no action)', /“Kybernos Cloud”/.test(said) && /api\.kybernos\.app/.test(said) && !(await exists('[data-kb="foot-switch-server"]')), said)
+    fake.link = null
+
+    // The phone link's panel says the same words, and its « Switch server » closes the panel and asks the footer for Settings › Servers.
+    fake.pair = { ok: false, error: 'server_unavailable', server: { name: 'Kybernos (local)', host: 'localhost:8791', can_switch: true } }
+    await reload()
+    await openProfileMenu()
+    await press('[data-kb="menu-remote"]')
+    await until(() => exists('[data-kb="mobile-panel"] [role="alert"]'), 6000)
+    said = (await text('[data-kb="mobile-panel"] [role="alert"]')) || ''
+    check('Remote control: the panel names the server that does not answer (label, host)', /“Kybernos \(local\)”/.test(said) && /localhost:8791/.test(said) && /does not answer/.test(said) && !/The Kybernos server does not answer/.test(said), said)
+    check('and offers « Switch server »', await exists('[data-kb="mobile-switch-server"]'), said)
+    await sleep(300)
+    await shot('v41-remote-server-down')
+    await press('[data-kb="mobile-switch-server"]')
+    check('« Switch server » closes the panel and opens Settings', (await settingsOpen()) && !(await exists('[data-kb="mobile-panel"]')))
+    if (await serversCell()) {
+      await until(async () => /where your account/i.test(await settingsText()), 5000)
+      check('on the Servers page', /where your account/i.test(await settingsText()), (await settingsText()).slice(0, 120))
+    }
+    fake.pair = null
+    await clean()
+
+    // ── At 390 px (a phone): the menu with its new entry, the notice, the signed-out menu ───────────────────────────────────────────────────────────────
+    console.log('At 390 px')
+    await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true })
+    const openDrawer = async () => { await press('button[aria-label="Open the menu"]'); await until(async () => { const r = await rect('[data-kb="workspace-card"] .kbfp-cardmain, [data-kb="signin-card"] .kbfp-cardmain'); return r !== null && r.x >= 0 }, 4000) }
+    const within = (r) => r !== null && r.x >= 0 && r.y >= 0 && r.x + r.w <= 390 && r.y + r.h <= 844
+    fake.status = CLOUD(W_PERSONAL, 'solo', 'Plus')
+    fake.link = { ok: false, status: 0, error: 'injoignable', server: { name: 'Kybernos (local)', host: 'localhost:8791', can_switch: true } }
+    await reload()
+    await openDrawer()
+    await openProfileMenu()
+    await sleep(300)
+    check('390 px: the menu fits the window and « Upgrade » is in it', within(await rect('.kbfp-menu')) && within(await rect('[data-kb="menu-upgrade"]')), { menu: await rect('.kbfp-menu'), entry: await rect('[data-kb="menu-upgrade"]') })
+    await shot('v40-upgrade-390')
+    await press('[data-kb="menu-upgrade"]')
+    await until(() => exists('[data-kb="foot-flash"]'), 5000)
+    await sleep(300)
+    check('390 px: the notice that names the server fits, « Switch server » with it', within(await rect('[data-kb="foot-flash"]')) && within(await rect('[data-kb="foot-switch-server"]')), { notice: await rect('[data-kb="foot-flash"]'), action: await rect('[data-kb="foot-switch-server"]') })
+    await shot('v41-server-down-390')
+    fake.link = null
+    fake.status = null
+    await reload()
+    await openDrawer()
+    await press('[data-kb="foot-signin"]')
+    await until(() => exists('[data-kb="off-menu"]'), 4000)
+    await sleep(300)
+    check('390 px signed out: the menu fits the window and « See plans » is in it', within(await rect('[data-kb="off-menu"]')) && within(await rect('[data-kb="menu-plans"]')), { menu: await rect('[data-kb="off-menu"]'), entry: await rect('[data-kb="menu-plans"]') })
+    await shot('v40-see-plans-390')
+    await page.send('Emulation.clearDeviceMetricsOverride', {})
+    fake.status = CLOUD(W_PERSONAL)
+    fake.plans = null
     fake.bodies.length = 0
     await reload()
     await openProfileMenu()
