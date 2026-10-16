@@ -54,6 +54,12 @@ export const name = 'dsh-db-viewer'
 const ID_VALIDE = /^[a-z0-9][a-z0-9-]*$/
 const TABLE_VALIDE = /^[A-Za-z_][A-Za-z0-9_]*$/
 
+// What this host refuses is said in English, with a code: the page maps the code to the language of the person (an error of the SQL
+// engine itself carries no code and is shown as the engine worded it).
+class Refus extends Error {
+  constructor (code, message) { super(message); this.code = code }
+}
+
 // ── pure functions ──────────────────────────────────────────────────────────
 
 /** The databases found: one kyber = one folder = at most one `donnees.sqlite`. */
@@ -129,12 +135,12 @@ export function lireSchema (dbPath) {
 }
 
 export function lireLignes (dbPath, table, limite) {
-  if (!TABLE_VALIDE.test(table)) throw new Error('nom de table invalide')
+  if (!TABLE_VALIDE.test(table)) throw new Refus('bad-table', 'Invalid table name')
   const max = Math.min(Math.max(parseInt(limite, 10) || 50, 1), 500)
   const db = new DatabaseSync(dbPath, { readOnly: true })
   try {
     const info = db.prepare(`PRAGMA table_info("${table}")`).all()
-    if (info.length === 0) throw new Error('table inconnue : ' + table)
+    if (info.length === 0) throw new Refus('unknown-table', 'Unknown table: ' + table)
     return {
       colonnes: info.map((c) => ({ name: c.name, type: String(c.type || 'TEXT').toUpperCase() })),
       lignes: db.prepare(`SELECT * FROM "${table}" LIMIT ${max}`).all(),
@@ -153,11 +159,11 @@ export const COMPTE_MAX = 1000000
 /** Declared read-only: every write is refused before it reaches the database. */
 export function executerSelect (dbPath, sql, limite) {
   const texte = String(sql || '').trim()
-  if (texte === '') throw new Error('requête vide')
+  if (texte === '') throw new Refus('empty-query', 'Empty query')
   if (!/^(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(texte)) {
-    throw new Error('lecture seule : SELECT / WITH / PRAGMA uniquement')
+    throw new Refus('read-only', 'Read-only: SELECT / WITH / PRAGMA / EXPLAIN only')
   }
-  if (/;\s*\S/.test(texte)) throw new Error('une seule requête à la fois')
+  if (/;\s*\S/.test(texte)) throw new Refus('one-statement', 'One statement at a time')
   const max = Math.min(Math.max(parseInt(limite, 10) || LIMITE_REQUETE, 1), LIMITE_REQUETE_MAX)
   const db = new DatabaseSync(dbPath, { readOnly: true })
   try {
@@ -221,13 +227,13 @@ export function monterRoutes (webServerSvc, opts = {}) {
   const kybersHome = opts.kybersHome || join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'kybers')
 
   const lecture = (path, traiter) => webServerSvc.register({ kind: 'exact', path, handler: async (req, res) => {
-    if (req.method !== 'GET') { res.writeHead(405); res.end('GET uniquement'); return }
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (req.method !== 'GET') { res.writeHead(405); res.end('GET only'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     try {
       const u = new URL(req.url, 'http://127.0.0.1')
       envoyer(res, 200, await traiter(u.searchParams))
     } catch (e) {
-      envoyer(res, 400, { erreur: String(e && e.message ? e.message : e) })
+      envoyer(res, 400, e instanceof Refus ? { erreur: e.message, code: e.code } : { erreur: String(e && e.message ? e.message : e) })
     }
   } })
 
@@ -235,24 +241,24 @@ export function monterRoutes (webServerSvc, opts = {}) {
 
   lecture('/dsh-db-viewer/schema', (p) => {
     const fichier = resoudreBase(kybersHome, p.get('base'))
-    if (fichier === null) throw new Error('base inconnue')
+    if (fichier === null) throw new Refus('unknown-base', 'Unknown database')
     return lireSchema(fichier)
   })
 
   lecture('/dsh-db-viewer/rows', (p) => {
     const fichier = resoudreBase(kybersHome, p.get('base'))
-    if (fichier === null) throw new Error('base inconnue')
+    if (fichier === null) throw new Refus('unknown-base', 'Unknown database')
     return lireLignes(fichier, p.get('table') || '', p.get('limit'))
   })
 
   lecture('/dsh-db-viewer/query', (p) => {
     const fichier = resoudreBase(kybersHome, p.get('base'))
-    if (fichier === null) throw new Error('base inconnue')
+    if (fichier === null) throw new Refus('unknown-base', 'Unknown database')
     return executerSelect(fichier, p.get('sql') || '', p.get('limit'))
   })
 
   if (opts.silencieux !== true) {
-    console.log('[dsh-db-viewer] routes webServer /dsh-db-viewer/* enregistrees (bases, schema, rows, query)')
+    console.log('[dsh-db-viewer] webServer routes /dsh-db-viewer/* registered (bases, schema, rows, query)')
   }
   return { kybersHome }
 }
@@ -263,7 +269,7 @@ export function apply (ctx) {
     try {
       monterRoutes(hostCtx.webServer, { ctx: hostCtx, kybersHome })
     } catch (e) {
-      console.error('[dsh-db-viewer] montage des routes impossible', e)
+      console.error('[dsh-db-viewer] cannot mount the routes', e)
     }
   }
   if (ctx.get('webServer') !== undefined) demarrer(ctx)

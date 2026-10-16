@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Visualiseur de bases SQLite des Agent Teams dans la sidebar droite DSH — onglets Diagramme (style drawdb), Données et SQL.",
+  "description": "Viewer for the SQLite databases of Agent Teams in the DSH right sidebar — Diagram (drawdb style), Charts, Data and SQL views.",
   "license": "Apache-2.0",
   "main": "index.js",
   "exports": {
