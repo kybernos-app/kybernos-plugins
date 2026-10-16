@@ -96,8 +96,8 @@ on the removed Account pages. It is shown whether connected or not; what needs a
 The account's own pages (profile, security, devices, data, support) are the server's embedded pages, opened from the footer menu.
 
 - **Custom instructions**: the field and its Save, through the two host routes below (a marked section of `<DSH home>/AGENTS.md`).
-- **Models**: « Re-import » runs `POST /kybernos-cloud/models/sync` and shows what the last import did (count, plan, date).
-- **DSH chats**: « Send DSH chats » runs `POST /kybernos-cloud/chats/push` and shows the last send.
+- **Models**: the line says what the last import did (count, plan, date) and that the list updates by itself (the host re-imports at the connection, at boot, at a server switch, on a change of space and when the catalogue changes at the 5-minute refresh). The by-hand button is not on the page: it is under a folded **Advanced** (`ky-adv-toggle`): « Re-import » runs `POST /kybernos-cloud/models/sync`.
+- **DSH chats** (also under Advanced): one sentence says what is sent (the title and date of each DSH chat, never what is said in it), to whom (the person's Kybernos account) and why (the « DSH conversations » list of the web app). « Send DSH chats » then asks « Send the list now? »: only `Yes, send` runs `POST /kybernos-cloud/chats/push`; Cancel sends nothing. The last send is shown.
 
 The "Custom instructions" field used to live in the browser only, so no agent read it.
 It is now a marked section of `<DSH home>/AGENTS.md`, which DSH's own `dsh-agent-instructions` loader hands

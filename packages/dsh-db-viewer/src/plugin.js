@@ -78,7 +78,6 @@ function ancresRelation (rel, pos) {
   }
 }
 
-const JS_PATH = 'M x1 y1 C x1+b y1, x2-b y2, x2 y2'
 function cheminLien (a) {
   const b = 70
   return `M ${a.x1} ${a.y1} C ${a.x1 + b} ${a.y1}, ${a.x2 - b} ${a.y2}, ${a.x2} ${a.y2}`
@@ -142,6 +141,10 @@ const CSS = `
 .dshdb-sql textarea:focus{outline:none;border-color:var(--dsw-alias-brand-primary,#6366f1)}
 .dshdb-run{align-self:flex-start;height:30px;padding:0 16px;border-radius:8px;border:none;background:var(--dsw-alias-brand-primary,#6366f1);color:var(--dsw-alias-label-primary-foreground,#fff);font-size:12.5px;font-weight:650;cursor:pointer}
 .dshdb-run:hover{opacity:.9}
+.dshdb-cut{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:2px 0 8px;opacity:1;color:var(--dsw-alias-label-secondary,inherit)}
+.dshdb-more{height:26px;padding:0 12px;border-radius:8px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;font-size:12px;cursor:pointer}
+.dshdb-more:hover:not(:disabled){background:rgba(128,128,128,.12)}
+.dshdb-more:disabled{opacity:.5;cursor:default}
 .dshdb-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:8px;padding:12px 12px 2px}
 .dshdb-kpi{border-radius:12px;padding:10px 12px;border:1px solid color-mix(in srgb, currentColor 14%, transparent);background:linear-gradient(135deg,color-mix(in srgb,#6366f1 26%,transparent),color-mix(in srgb,#0ea5e9 12%,transparent))}
 .dshdb-kpi:nth-child(2){background:linear-gradient(135deg,color-mix(in srgb,#10b981 26%,transparent),color-mix(in srgb,#14b8a6 12%,transparent))}
@@ -455,30 +458,57 @@ function Donnees (props) {
   return h('div', { className: 'dshdb-view' }, corps)
 }
 
+// A result is shown 500 rows at a time and the host cuts it (it used to send every row: 200 000 rows froze the page
+// for ~14 s). « Show more rows » asks twice as many, up to what the host gives (index.js, LIMITE_REQUETE_MAX).
+const PAGE_SQL = 500
+const PAGE_SQL_MAX = 5000
+
+/** « Showing the first 500 of 200,000 rows. » for a result the host cut, null for a whole one. */
+function noteSql (d) {
+  if (d === null || d === undefined || d.tronque !== true) return null
+  const n = (x) => Number(x).toLocaleString('en-US')
+  return 'Showing the first ' + n(d.compte) + ' of ' + (d.borne === true ? 'more than ' : '') + n(d.total) + ' rows.'
+}
+
+/** The size asked next: twice the last one, never more than the host would give. */
+function limiteSqlSuivante (limite) { return Math.min(limite * 2, PAGE_SQL_MAX) }
+
 /** Vue SQL : une requête SELECT, son résultat. Rien d'écrit ne passe. */
 function Sql (props) {
   const [sql, setSql] = React.useState('SELECT * FROM societes LIMIT 20')
-  const [etat, setEtat] = React.useState({ lance: false, data: null, erreur: null })
-  const lancer = () => {
-    setEtat({ lance: true, data: null, erreur: null })
-    api('/dsh-db-viewer/query', { base: props.baseId, sql })
-      .then((data) => setEtat({ lance: false, data, erreur: null }))
-      .catch((e) => setEtat({ lance: false, data: null, erreur: String(e.message || e) }))
+  const [etat, setEtat] = React.useState({ lance: false, data: null, erreur: null, limite: PAGE_SQL })
+  const lancer = (limite) => {
+    // « Show more rows » keeps the rows already on screen until the larger answer arrives.
+    setEtat((avant) => ({ lance: true, data: limite > PAGE_SQL ? avant.data : null, erreur: null, limite }))
+    api('/dsh-db-viewer/query', { base: props.baseId, sql, limit: limite })
+      .then((data) => setEtat({ lance: false, data, erreur: null, limite }))
+      .catch((e) => setEtat({ lance: false, data: null, erreur: String(e.message || e), limite }))
   }
   const corps = [h('textarea', {
     key: 'sql', value: sql, spellCheck: false,
     onChange: (e) => setSql(e.target.value),
   }),
-  h('button', { type: 'button', className: 'dshdb-run', key: 'run', onClick: lancer }, 'Exécuter')]
+  h('button', { type: 'button', className: 'dshdb-run', key: 'run', onClick: () => lancer(PAGE_SQL) }, 'Exécuter')]
   if (etat.erreur !== null) corps.push(h('div', { className: 'dshdb-err', key: 'err' }, etat.erreur))
   if (etat.data !== null) {
     const d = etat.data
     if (d.colonnes.length === 0) corps.push(h('div', { className: 'dshdb-note', key: 'vide' }, 'aucune ligne'))
     else {
+      // The note sits above the table AND under it: 500 rows is a long scroll.
+      const note = noteSql(d)
+      const encore = d.compte < PAGE_SQL_MAX
+      const bandeau = (cle) => h('div', { className: 'dshdb-note dshdb-cut', key: cle, 'data-dshdb': 'cut' },
+        note + (encore ? '' : ' Narrow the query (WHERE or LIMIT) to see the others.'),
+        encore ? h('button', {
+          type: 'button', className: 'dshdb-more', 'data-dshdb': 'more', disabled: etat.lance,
+          onClick: () => lancer(limiteSqlSuivante(etat.limite)),
+        }, etat.lance ? 'Loading…' : 'Show more rows') : null)
+      if (note !== null) corps.push(bandeau('cut-haut'))
       corps.push(h('table', { className: 'dshdb-table', key: 'tab' },
         h('thead', null, h('tr', null, d.colonnes.map((c) => h('th', { key: c }, c)))),
         h('tbody', null, d.lignes.map((l, i) => h('tr', { key: 'r' + i },
           d.colonnes.map((c) => h('td', { key: c, title: String(l[c] ?? '') }, String(l[c] ?? ''))))))))
+      if (note !== null) corps.push(bandeau('cut-bas'))
     }
   }
   return h('div', { className: 'dshdb-view' }, h('div', { className: 'dshdb-sql' }, corps))
@@ -824,5 +854,5 @@ return {
   // enregistré, entrée absente du guide).
   inject: ['slots', 'sidebarRightTabs'],
   apply,
-  __test: { calculerDisposition, ancresRelation, cheminLien, PALETTE, profiler, construireGraphiques, construireCalendrier, positionsFinales },
+  __test: { calculerDisposition, ancresRelation, cheminLien, PALETTE, profiler, construireGraphiques, construireCalendrier, positionsFinales, noteSql, limiteSqlSuivante, PAGE_SQL, PAGE_SQL_MAX },
 }

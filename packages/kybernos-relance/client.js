@@ -62,11 +62,11 @@ window.__ModuleLoader__.load({
             const last = Number(sessionStorage.getItem(STORAGE_KEY) || 0)
             if (Date.now() - last < MIN_INTERVAL_MS) return
             sessionStorage.setItem(STORAGE_KEY, String(Date.now()))
-            console.info(`[${NAME}] ${String(changed)}/${String(next.size)} révisions ont changé — rechargement de la page`)
+            console.info(`[${NAME}] ${String(changed)}/${String(next.size)} revisions changed — reloading the page`)
             location.reload()
           } catch (error) {
             // Une exception ici ne doit jamais casser la page : on journalise et on continue.
-            console.warn(`[${NAME}] trame de graphe ignorée`, error)
+            console.warn(`[${NAME}] graph frame ignored`, error)
           }
         })
         return () => source.close()

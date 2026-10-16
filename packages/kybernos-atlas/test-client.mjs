@@ -281,8 +281,71 @@ console.log('\n── nothing is read until the user asks ──')
   check('the mount effect exists and never calls load()', mount.length === 1 && !/\bload\(/.test(mount[0]), mount)
   check('readAll is only called from load, and load only from buttons', (SOURCE.match(/readAll\(/g) || []).length === 1 && !/useEffect\([^)]*load\(\)/.test(SOURCE))
   check('a first visit starts idle, not loading', /\{ phase: 'idle', status: \{\}, result: null \}/.test(SOURCE) && !/useState\(\{ phase: 'loading'/.test(SOURCE))
-  check('the header button says Update, the first screen offers Update', SOURCE.includes("}, 'Update'))),") && SOURCE.includes("onClick: load }, 'Update'"))
+  check('the header button says Update, the first screen offers Update', SOURCE.includes("}, tr('Update')))),") && SOURCE.includes("onClick: load }, tr('Update')"))
   check('readAgo: just now, minutes, hours, days', T.readAgo(1000, 1000 + 20000) === 'just now' && T.readAgo(0, 5 * 60000) === '5 min ago' && T.readAgo(0, 3 * 3600000) === '3 h ago' && T.readAgo(0, 86400000) === '1 day ago' && T.readAgo(0, 4 * 86400000) === '4 days ago')
+}
+
+console.log('\n── language (A2-19): English is the base, French is the twin, every other language reads English ──')
+{
+  const setLang = (l) => { globalThis.window.__KB_LANG_RESOLVE__ = () => { if (l === 'throws') throw new Error('not ready'); return l } }
+  const keysUsed = new Set([...SOURCE.matchAll(/\btr\('((?:[^'\\]|\\.)*)'\)/g)].map((m) => m[1].replace(/\\'/g, "'")))
+  const SAME = new Set(['Agent Team', 'Agent Teams', 'Automation', 'Automations', 'Skill', 'Skills', 'App', 'Apps', 'Source', 'Rechercher'])
+  check('the French table has an entry for every tr(...) the page uses', [...keysUsed].every((k) => T.FR[k] !== undefined), [...keysUsed].filter((k) => T.FR[k] === undefined))
+  check('…and no dead entry', Object.keys(T.FR).every((k) => keysUsed.has(k)), Object.keys(T.FR).filter((k) => !keysUsed.has(k)))
+  check('every French text is a text of its own (empty or identical only for words that are the same in both languages)', Object.entries(T.FR).every(([en, fr]) => fr.length > 0 && (fr !== en || SAME.has(en))), Object.entries(T.FR).filter(([en, fr]) => fr === en && !SAME.has(en)).map((x) => x[0]))
+  check('no English word is left in a French sentence of three words or more', Object.values(T.FR).filter((fr) => fr.split(' ').length >= 3).every((fr) => !/\b(the|and|your|with|from|this|that|are|is not)\b/i.test(fr)), Object.values(T.FR).filter((fr) => fr.split(' ').length >= 3 && /\b(the|and|your|with|from|this|that|are|is not)\b/i.test(fr)))
+
+  setLang('en')
+  const en = T.buildGraph(src, NOW)
+  check('English: the graph reads as before', en.byId['k:ghost-kyber'].note.includes('No agent team definition') && T.ago(12) === '12 days ago' && T.ago(0) === 'today')
+  for (const lg of ['es', 'ar', 'zh', 'throws']) {
+    setLang(lg)
+    const other = T.buildGraph(src, NOW)
+    check(`language « ${lg} »: the graph is the English one (never French)`, JSON.stringify(other.nodes.map((n) => [n.label, n.note, n.sub, n.problem])) === JSON.stringify(en.nodes.map((n) => [n.label, n.note, n.sub, n.problem])) && T.ago(12) === '12 days ago' && T.tr('Update') === 'Update' && T.KIND_NAME_ALL.kyber === 'Agent Team')
+  }
+
+  setLang('kybernos')
+  const fr = T.buildGraph(src, NOW)
+  const texts = fr.nodes.flatMap((n) => [n.note, n.sub, n.problem ? n.problem.text : '']).join(' | ')
+  check('French: the notes, the subtitles and the problems of the graph are French', /Aucune définition d’Agent Team/.test(texts) && /Déclare la skill « /.test(texts) && /Dernière exécution/.test(texts) && /leçon/.test(texts), texts.slice(0, 300))
+  check('French: no English sentence is left in a note', !/\b(No description|Last run|Declares the skill|facts? kept|Inactive, but|Another skill has|The last run failed|No agent team)\b/.test(texts), texts.slice(0, 300))
+  check('French: dates', T.ago(null) === 'non enregistré' && T.ago(0) === 'aujourd’hui' && T.ago(1) === 'hier' && T.ago(12) === 'il y a 12 jours' && T.ago(90) === 'il y a 3 mois')
+  check('French: how long ago it was read', T.readAgo(1000, 21000) === 'à l’instant' && T.readAgo(0, 5 * 60000) === 'il y a 5 min' && T.readAgo(0, 3 * 3600000) === 'il y a 3 h' && T.readAgo(0, 86400000) === 'il y a 1 jour' && T.readAgo(0, 3 * 86400000) === 'il y a 3 jours')
+  check('French: the names of the kinds, the layers, the columns and the picker', T.KIND_NAME_ALL.kyber === 'Agent Team' && T.KIND_NAME_ALL.lesson === 'Leçon' && T.KIND_NAME_ALL.root === 'Espace de travail' && T.LAYER_NAME.knowledge === 'Mémoire et leçons' && T.COLS[3].title === 'Mémoire et leçons' && T.pickerItems(fr, '')[0].head === 'Projets')
+  check('French: a count of links has its singular', T.linkCount(1) === '1 lien' && T.linkCount(3) === '3 liens')
+  check('French: the places a node opens are named in French', T.openTarget({ kind: 'skill' }, ['skills']).label === 'Skills' && T.openTarget({ kind: 'app', id: 'a:toolkit:x' }, ['connectors']).label === 'Connecteurs')
+  setLang('en')
+  check('English: a count of links has its singular too', T.linkCount(1) === '1 link' && T.linkCount(3) === '3 links' && T.linkCount(0) === '0 links')
+  check('English: the lazy tables read the language when they are read, not when the file loads', (() => { setLang('kybernos'); const a = T.KIND_NAME_ALL.skill; const l1 = T.LAYER_NAME.core; setLang('en'); return a === 'Skill' && l1 === 'Espace de travail' && T.LAYER_NAME.core === 'Workspace' })())
+}
+
+console.log('\n── the page opens on the last reading (V-22) ──')
+{
+  const memory = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => { m.set(k, String(v)) }, removeItem: (k) => { m.delete(k) }, m } }
+  const status = { projects: { state: 'ok', count: 2, note: '' }, memory: { state: 'skipped', count: null, note: 'Account not linked' } }
+  const store = memory()
+  const wrote = T.saveReading(store, { at: NOW, failed: 0, status, src })
+  check('an Update writes the reading to the page\'s own store', wrote === true && store.m.size === 1)
+  const back = T.restoreReading(store)
+  check('the next visit gets the same reading back: date, sources status, failures', back !== null && back.result.at === NOW && back.result.failed === 0 && back.status.memory.state === 'skipped')
+  check('...with the graph rebuilt from the sources, as of the day it was read', back.result.graph.nodes.length === g.nodes.length && back.result.graph.byId['t:digest'].days === g.byId['t:digest'].days && back.result.graph.now === NOW)
+  check('...and it holds no prompt and no webhook secret (they never reach the sources)', !Array.from(store.m.values()).join('').match(/TOP-SECRET|PRIVATE PROMPT/))
+  check('nothing stored → nothing restored (a first visit stays on « Nothing read yet »)', T.restoreReading(memory()) === null)
+  check('no storage at all → no throw, nothing restored, nothing written', T.restoreReading(null) === null && T.saveReading(null, { at: NOW, failed: 0, status, src }) === false)
+  const full = { getItem: () => null, setItem: () => { throw new Error('QuotaExceededError') } }
+  check('a full or blocked store never breaks the page', T.saveReading(full, { at: NOW, failed: 0, status, src }) === false)
+  const bad = memory(); bad.setItem(T.READING_KEY, '{not json')
+  check('a damaged entry is ignored', T.restoreReading(bad) === null)
+  const old = memory(); old.setItem(T.READING_KEY, JSON.stringify({ v: 0, at: NOW, failed: 0, status, src }))
+  check('an entry of another version is ignored', T.restoreReading(old) === null)
+  const odd = memory(); odd.setItem(T.READING_KEY, JSON.stringify({ v: 1, at: 'yesterday', failed: 0, status, src }))
+  check('an entry with no valid date is ignored', T.restoreReading(odd) === null)
+  const huge = memory()
+  const giant = Object.assign({}, src, { skills: Array.from({ length: 20000 }, (_, i) => ({ name: 's' + i, description: 'x'.repeat(100), root: '', source: '', active: true, collision: false, modifiedAt: null })) })
+  check('a reading too big for a shared browser store is not kept (the old one stays)', T.saveReading(huge, { at: NOW, failed: 0, status, src: giant }) === false && huge.m.size === 0)
+  check('a reading where every source failed is never stored over a good one', (() => { const s = memory(); T.saveReading(s, { at: NOW, failed: 0, status, src }); T.saveReading(s, { at: NOW + 1, failed: 7, status, src: {} }); return T.restoreReading(s).result.at === NOW })())
+  check('the page still opens idle when nothing was stored, and never reads on open', /lastReading\(\)/.test(SOURCE) && (SOURCE.match(/readAll\(/g) || []).length === 1 && !/useEffect\([^)]*\bload\(\)/.test(SOURCE))
+  check('the header of a restored reading says how long ago it was read (the existing « Read … ago »)', /'Read ' \+ when/.test(SOURCE))
 }
 
 console.log('\n── what the page may not do ──')
@@ -291,7 +354,7 @@ check('the only explicit non-GET verb is POST', verbs.every((v) => v.includes("'
 const posts = (SOURCE.match(/postJson\('([^']+)'/g) || []).map((s) => s.replace(/postJson\('/, '').replace(/'$/, ''))
 check('POST only to the two read-only routes', posts.sort().join(',') === '/kybernos/project-data,/kybernos/tasks', posts)
 check('tasks are only ever listed', /postJson\('\/kybernos\/tasks', \{ action: 'list' \}\)/.test(SOURCE) && !/action:\s*'(create|update|delete|run|toggle|remove|pause)/.test(SOURCE))
-check('no storage of its own', !/localStorage|sessionStorage|indexedDB/.test(SOURCE))
+check('its only storage is the one key of the last reading, in this browser', !/sessionStorage|indexedDB/.test(SOURCE) && (SOURCE.match(/localStorage/g) || []).length === 2 && (SOURCE.match(/'kybernos-atlas:last-reading'/g) || []).length === 1)
 check('no personal path in the source', !/\/Users\/(?!me\b|x\b)[A-Za-z0-9._-]+/.test(SOURCE))
 check('every class is prefixed kbat-', !/className:\s*'(?!kbat-)/.test(SOURCE))
 

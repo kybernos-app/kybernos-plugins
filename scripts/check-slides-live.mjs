@@ -77,9 +77,9 @@ try {
   await key('Escape', 'Escape', 27)
   await sleep(500)
   check('Escape closes it: no editor is left behind', (await q('.kbsd-ebox')) === 0, await q('.kbsd-ebox'))
-  const tool = await centre(`Array.from(document.querySelectorAll('.kbsd-outil')).find((b) => /Texte/.test(b.innerText))`)
+  const tool = await centre(`Array.from(document.querySelectorAll('.kbsd-outil')).find((b) => /Text/.test(b.innerText))`)
   const covered = tool === null ? null : await val(`(() => { const e = document.elementFromPoint(${tool ? tool.x : 0}, ${tool ? tool.y : 0}); return !!e && !!e.closest('.kbsd-outil') })()`)
-  check('the tool bar is reachable again (« Texte » is the element under its own centre)', covered === true, { tool, covered })
+  check('the tool bar is reachable again (the Text tool is the element under its own centre)', covered === true, { tool, covered })
 
   console.log('\n── A4-04 · clicking away commits ──')
   check('a double-click opens the editor on the title', (await dblclick(field('Rain is a given.'))) === true && (await q('.kbsd-ebox')) === 1)

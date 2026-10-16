@@ -1,12 +1,12 @@
 /**
- * dsh-media-player — moitié hôte.
+ * dsh-media-player — host half.
  *
- * Le plugin est purement client : il n'ajoute qu'un renderer d'aperçu dans la
- * page (aucune route, aucun service, aucun outil). La moitié hôte existe parce
- * que le chargeur de profil compose ce paquet comme une entrée ordinaire ;
- * `apply` n'a donc rien à faire et ne doit surtout rien démarrer.
+ * The plugin is purely client-side: it only adds a preview renderer to the
+ * page (no route, no service, no tool). The host half exists because the
+ * profile loader composes this package like any other entry; `apply` has
+ * nothing to do and must start nothing at all.
  */
 export const name = 'dsh-media-player'
 
-/** No-op : tout le travail vit dans `client/client.js`. */
+/** No-op: all the work lives in `client/client.js`. */
 export function apply() {}

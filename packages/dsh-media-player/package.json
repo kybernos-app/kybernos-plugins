@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Lecteur de média universel pour l'aperçu de documents DSH : audio et vidéo dans la barre latérale.",
+  "description": "Universal media player for the DSH document preview: audio and video in the right sidebar.",
   "license": "Apache-2.0",
   "main": "index.js",
   "exports": {

@@ -43,7 +43,7 @@ window.__ModuleLoader__.load({
         // or a fr base); every other language — translated (es…) or not — gets
         // English, never French.
         return (s === 'kybernos' || s.split(/[-_]/)[0] === 'fr') ? 'fr' : 'en'
-      } catch { return 'fr' }
+      } catch { return 'en' } // the language is not known yet: English
     }
     const kt = (fr, en) => (lang() === 'fr' ? fr : en)
 
@@ -79,9 +79,9 @@ window.__ModuleLoader__.load({
      */
     const resoudre = (items, apercusDom, de, cible) => {
       const file = (Array.isArray(items) ? items : []).filter((i) => i && i.lane === 'next-turn')
-      if (file.length !== apercusDom.length) return { ok: false, raison: 'file-perimee (' + String(file.length) + ' côté hôte, ' + String(apercusDom.length) + ' à l’écran)' }
-      if (de < 0 || de >= file.length || cible < 0 || cible > file.length) return { ok: false, raison: 'indices-hors-file' }
-      if (!memeApercu(apercusDom[de], file[de].preview)) return { ok: false, raison: 'apercu-different' }
+      if (file.length !== apercusDom.length) return { ok: false, raison: 'stale-queue (' + String(file.length) + ' on the host, ' + String(apercusDom.length) + ' on screen)' }
+      if (de < 0 || de >= file.length || cible < 0 || cible > file.length) return { ok: false, raison: 'indices-out-of-queue' }
+      if (!memeApercu(apercusDom[de], file[de].preview)) return { ok: false, raison: 'preview-differs' }
       return { ok: true, messageId: file[de].id, beforeId: cible === file.length ? null : file[cible].id }
     }
 
@@ -207,11 +207,11 @@ window.__ModuleLoader__.load({
           const file = await lireFile(sessionId)
           if (file.supported !== true) { statut(dock, kt('Réordonnancement indisponible.', 'Reordering unavailable.')); return }
           const choix = resoudre(file.items, lignes.map(apercuDeLigne), de, cible)
-          if (choix.ok === false) { console.info('[' + NAME + '] déplacement ignoré : ' + choix.raison); return }
+          if (choix.ok === false) { console.info('[' + NAME + '] move ignored: ' + choix.raison); return }
           const r = await envoyerDeplacement(sessionId, choix.messageId, choix.beforeId)
           if (r.ok === false) statut(dock, kt('Impossible de réordonner ce message.', 'Could not reorder this message.'))
         } catch (erreur) {
-          console.warn('[' + NAME + '] déplacement échoué', erreur)
+          console.warn('[' + NAME + '] move failed', erreur)
           statut(dock, kt('Impossible de réordonner ce message.', 'Could not reorder this message.'))
         }
       }

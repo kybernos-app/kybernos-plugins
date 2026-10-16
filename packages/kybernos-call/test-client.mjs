@@ -63,6 +63,10 @@ const makeEnv = ({ lang = 'en' } = {}) => {
     requests.push({ url, init })
     const next = responses.shift()
     if (next instanceof Error) throw next
+    // { __http: 404 } is an answer with that status; { __http: 200, __html: true } is a page that is not JSON (a proxy, a portal).
+    if (next !== null && typeof next === 'object' && next.__http !== undefined) {
+      return { status: next.__http, ok: next.__http < 400, json: async () => { if (next.__html === true) throw new SyntaxError('Unexpected token <'); return next.__body } }
+    }
     return { json: async () => next }
   }
   const React = {
@@ -255,11 +259,17 @@ console.log('kybernos-call: the member\'s voice')
 
 console.log('kybernos-call: what goes wrong is said, never invented over')
 {
+  // A5-22: « relaunch DSH once » is only right when the routes are really absent (404). Every other failure of the status
+  // route (refused connection, a 500, a page that is not JSON, ok:false) is a service that cannot be reached: try again.
+  const UNREACHABLE = /Cannot reach the call service — try again/
   const cases = [
-    { name: 'host routes not loaded', responses: [new Error('network')], expect: /call routes are not loaded/ },
-    { name: 'status not ok', responses: [{ ok: false }], expect: /call routes are not loaded/ },
-    { name: 'token refused', responses: [{ ok: true, secrets: 'posee' }, { ok: false, error: 'LiveKit secrets missing' }], expect: /LiveKit secrets missing/ },
-    { name: 'token without an error text', responses: [{ ok: true, secrets: 'posee' }, new Error('network')], expect: /no call token/ }
+    { name: 'refused connection', responses: [new Error('network')], expect: UNREACHABLE, retry: true },
+    { name: 'status not ok', responses: [{ ok: false }], expect: UNREACHABLE, retry: true },
+    { name: 'HTTP 500', responses: [{ __http: 500, __body: { ok: false, error: 'boom' } }], expect: UNREACHABLE, retry: true },
+    { name: 'an HTML page instead of JSON', responses: [{ __http: 200, __html: true }], expect: UNREACHABLE, retry: true },
+    { name: 'HTTP 404: the routes are not mounted', responses: [{ __http: 404, __html: true }], expect: /call routes are not loaded — relaunch DSH once/, retry: false },
+    { name: 'token refused', responses: [{ ok: true, secrets: 'posee' }, { ok: false, error: 'LiveKit secrets missing' }], expect: /LiveKit secrets missing/, retry: false },
+    { name: 'token without an error text', responses: [{ ok: true, secrets: 'posee' }, new Error('network')], expect: /Cannot reach the call service/, retry: true }
   ]
   for (const c of cases) {
     const e = makeEnv()
@@ -268,9 +278,38 @@ console.log('kybernos-call: what goes wrong is said, never invented over')
     await t.open({ sessionId: 'session-aaaaaaaa', name: 'A' })
     assert.equal(t.getState().phase, 'error', c.name)
     assert.match(t.getState().note, c.expect, c.name)
+    assert.equal(t.getState().retry === true, c.retry, c.name + ': a retry is offered exactly when trying again can help')
+    if (c.retry) assert.doesNotMatch(t.getState().note, /relaunch/, c.name + ': a transient failure never says to relaunch DSH')
     assert.equal(e.rooms.length, 0, c.name + ': no room is created')
   }
-  ok('routes not loaded, no secrets, a refused token, an unreachable host: an error with a reason, and no room is created')
+  ok('a refused connection, a 500, an HTML page and ok:false say « Cannot reach the call service — try again » with a retry; only a 404 says « relaunch DSH once »; no room is created')
+
+  {
+    // The panel of a call that never started: « Close », not « Hang up », and a « Try again » that really tries again.
+    const e = makeEnv()
+    const plugin = e.run()
+    let PanelE = null
+    plugin.apply({ slots: { inject: (n, fn) => { fn(); return () => {} }, register: (m, c) => { if (m.id === 'kybernos-call-overlay') PanelE = c; return {} } }, effect: (fn) => fn() })
+    e.responses.push(new Error('network'))
+    await plugin.__test.open({ sessionId: 'session-aaaaaaaa', name: 'Alice', mode: 'voice' })
+    const find = (node, act) => {
+      if (node === null || node === undefined || typeof node !== 'object') return null
+      if (node.props && node.props['data-act'] === act) return node
+      for (const k of (Array.isArray(node.children) ? node.children : [node.children])) { const f = find(k, act); if (f !== null) return f }
+      return null
+    }
+    const dismiss = find(PanelE(), 'hangup')
+    assert.ok(dismiss !== null && /Close/.test(JSON.stringify(dismiss)) && !/Hang up/.test(JSON.stringify(dismiss)), 'a call that never started is closed, not hung up')
+    const again = find(PanelE(), 'retry')
+    assert.ok(again !== null && /Try again/.test(JSON.stringify(again)), 'the panel offers « Try again »')
+    e.responses.push({ ok: true, secrets: 'posee' }, { ok: true, url: 'wss://x', token: 'T', room: 'r', agent: { running: true, dispatched: true }, meta: { mode: 'voice' } })
+    await again.props.onClick()
+    assert.equal(plugin.__test.getState().phase, 'live', 'Try again re-runs the same call and it goes through')
+    assert.equal(find(PanelE(), 'retry'), null)
+    assert.ok(/Hang up/.test(JSON.stringify(find(PanelE(), 'hangup'))), 'a live call is hung up')
+    await plugin.__test.hangUp()
+    ok('after a transient failure the panel says « Close » (not « Hang up » on a call that never started) and « Try again » re-runs the same call')
+  }
 
   const e = makeEnv()
   const t = e.run().__test
@@ -655,6 +694,32 @@ console.log('kybernos-call: the panel and the language')
   const flatEn = JSON.stringify(en.Panel())
   assert.ok(flatEn.includes('Hang up') && flatEn.includes('Mute me') && flatEn.includes('"height":"0px"'))
   ok('in English the same panel says "Hang up" and "Mute me"; a voice call has no picture area')
+}
+
+console.log('kybernos-call: the voice test says when it has no sentence of its own (A2-13), and the language fallback is English')
+{
+  const e = makeEnv()
+  const t = e.run().__test
+  for (const code of ['fr', 'en', 'es', 'de', 'it', 'pt', 'fr-FR', 'EN']) {
+    const s = t.sampleFor(code)
+    assert.equal(s.neutral, false)
+    assert.equal(s.lang, code.split('-')[0].toLowerCase())
+  }
+  ok('the six languages with a sentence of ours read it (a region suffix or capitals do not hide it)')
+  for (const code of ['nl', 'ar', 'zh', 'ja', 'ko', 'ru', 'tr', 'pl', 'hi', 'zh-CN']) {
+    const s = t.sampleFor(code)
+    assert.equal(s.neutral, true)
+    assert.equal(s.lang, code.split('-')[0])
+    assert.equal(s.text, '1, 2, 3, 4, 5.')
+  }
+  ok('the nine other call languages are NOT given an English sentence under their own voice: a neutral count, in the voice\'s language, flagged as neutral')
+  assert.equal(t.sampleFor('').lang, 'en')
+  ok('no language at all: English')
+  for (const [resolved, want] of [['en', 'ENGLISH'], ['kybernos', 'FRENCH'], ['fr', 'FRENCH'], ['es', 'ENGLISH'], ['ar', 'ENGLISH'], ['zh', 'ENGLISH']]) {
+    const x = makeEnv({ lang: resolved })
+    assert.equal(x.run().__test.kt('FRENCH', 'ENGLISH'), want, resolved)
+  }
+  ok('the pair helper answers French for French, English for every other language (also checked by scripts/test-no-french-literals.mjs)')
 }
 
 console.log('\nkybernos-call client: ' + pass + ' checks')

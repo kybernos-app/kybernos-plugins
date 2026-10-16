@@ -26,18 +26,18 @@ const dire = (message) => console.log('[kybernos-flow] ' + message)
 export function apply (ctx) {
   try {
     installerAutoContinue(ctx)
-    dire('auto-continue actif (plafond KYBERNOS_AUTO_CONTINUE_MAX, défaut 3)')
+    dire('auto-continue on (cap KYBERNOS_AUTO_CONTINUE_MAX, default 3)')
   } catch (erreur) {
-    dire('auto-continue non installé : ' + String(erreur?.message ?? erreur))
+    dire('auto-continue not installed: ' + String(erreur?.message ?? erreur))
   }
 
   const liens = { agents: () => ctx.get('agents'), effect: (fn, etiquette) => ctx.effect(fn, etiquette) }
   const monter = (webServer) => {
     try {
       monterRoutes(webServer, liens)
-      dire('route /kybernos/queue-move montée')
+      dire('route /kybernos/queue-move mounted')
     } catch (erreur) {
-      dire('route queue-move non montée : ' + String(erreur?.message ?? erreur))
+      dire('route queue-move not mounted: ' + String(erreur?.message ?? erreur))
     }
   }
   if (ctx.get('webServer') !== undefined) monter(ctx.get('webServer'))

@@ -388,7 +388,7 @@ try {
   await sleep(1500)
   const generalText = String(await val('document.body.innerText'))
   await shot('11-general-es')
-  check('the DSH language selector (Settings › General) offers Español, and DSH is translated there', /Español/.test(generalText) && /⟦Rename Chat session after each recap⟧|⟦Font size⟧/.test(generalText), generalText.slice(0, 160))
+  check('the DSH language selector (Settings › General) offers Español, and DSH is translated there', /Español/.test(generalText) && /⟦Name each chat when it ends⟧|⟦Font size⟧/.test(generalText), generalText.slice(0, 160))
 
   // ═══ 8. settings pages written with hardcoded text ═══════════════════════
   console.log('\n── settings pages with hardcoded text (live translation) ──')

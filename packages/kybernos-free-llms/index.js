@@ -415,7 +415,7 @@ export function apply(ctx) {
 
       // Health probe: run the full contract against one model and classify the answer.
       // `?cached=1` (the page, on open) accepts a verdict of the last few minutes and shares one call between pages; without it
-      // (« Probe a model ») the call is made again. A probe of a chosen model (`?model=`) is never remembered for another.
+      // (« Re-check ») the call is made again. A probe of a chosen model (`?model=`) is never remembered for another.
       const probes = createProbeCache({ run: async () => {
         const found = await fetchFreeModels()
         const model = found.models[0] || null

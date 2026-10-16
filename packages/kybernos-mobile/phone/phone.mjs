@@ -12,14 +12,14 @@ import * as e2e from '/__kb/remote-e2e.mjs'
 const lang = String(navigator.language || 'en').toLowerCase().startsWith('fr') ? 'fr' : 'en'
 const STR = {
   fr: {
-    scanTitle: 'Scanne le code de ton ordinateur', scanSub: 'Ouvre Réglages › Remote Control sur ton ordinateur et vise le code avec l\'appareil photo.',
-    connecting: 'Connexion à ton poste', verifyTitle: 'Autorise ce téléphone', verifySub: 'Sur ton ordinateur, vérifie que ce code est le même, puis touche Autoriser.',
-    saslabel: 'Ce code doit être le même sur l\'ordinateur', waiting: 'Attente de ton accord sur l\'ordinateur…',
-    offlineTitle: 'Ton ordinateur est hors ligne', offlineSub: 'Allume-le et ouvre Kybernos : la connexion reprend toute seule.',
-    reconnecting: 'Reconnexion…', revokedTitle: 'Ce téléphone n\'est plus autorisé', revokedSub: 'Il a été retiré depuis l\'ordinateur. Scanne un nouveau code pour le rappairer.',
-    deniedTitle: 'Accès refusé', deniedSub: 'L\'ordinateur n\'a pas autorisé ce téléphone.', expiredTitle: 'Code expiré', expiredSub: 'Génère un nouveau code sur l\'ordinateur et scanne-le.',
+    scanTitle: 'Scannez le code de votre ordinateur', scanSub: 'Ouvrez Réglages › Remote Control sur votre ordinateur et visez le code avec l\'appareil photo.',
+    connecting: 'Connexion à votre poste', verifyTitle: 'Autorisez ce téléphone', verifySub: 'Sur votre ordinateur, vérifiez que ce code est le même, puis touchez Autoriser.',
+    saslabel: 'Ce code doit être le même sur l\'ordinateur', waiting: 'Attente de votre accord sur l\'ordinateur…',
+    offlineTitle: 'Votre ordinateur est hors ligne', offlineSub: 'Allumez-le et ouvrez Kybernos : la connexion reprend toute seule.',
+    reconnecting: 'Reconnexion…', revokedTitle: 'Ce téléphone n\'est plus autorisé', revokedSub: 'Il a été retiré depuis l\'ordinateur. Scannez un nouveau code pour le rappairer.',
+    deniedTitle: 'Accès refusé', deniedSub: 'L\'ordinateur n\'a pas autorisé ce téléphone.', expiredTitle: 'Code expiré', expiredSub: 'Générez un nouveau code sur l\'ordinateur et scannez-le.',
     errorTitle: 'Connexion impossible', unsupported: 'Ce navigateur ne gère pas les fonctions nécessaires (service worker, WebCrypto).',
-    retry: 'Réessayer', lock: 'Chiffré de bout en bout. Kybernos transporte tes messages sans pouvoir les lire.',
+    retry: 'Réessayer', lock: 'Chiffré de bout en bout. Kybernos transporte vos messages sans pouvoir les lire.',
     peerDown: 'Ordinateur hors ligne, reconnexion…', relayDown: 'Connexion perdue, reconnexion…',
   },
   en: {

@@ -515,8 +515,8 @@
             "en": "Under the chat box, the “Memory” pill counts the memories sent to the model and this chat’s lessons; click it for details."
           },
           {
-            "fr": "Dans « Kybernos Settings », réglez « Rename Chat session after each recap » (Yes/No) et « Study model » (Automatic, votre choix ou None).",
-            "en": "In “Kybernos Settings”, set “Rename Chat session after each recap” (Yes/No) and “Study model” (Automatic, your pick, or None)."
+            "fr": "Dans « Kybernos Settings », réglez « Name each chat when it ends » (Yes/No) et « Study model » (Automatic, votre choix ou None).",
+            "en": "In “Kybernos Settings”, set “Name each chat when it ends” (Yes/No) and “Study model” (Automatic, your pick, or None)."
           },
           {
             "fr": "Sans le module Changes, quatre pastilles de plus montrent où en est le travail de ce chat (enregistré, GitHub, relecture).",
@@ -739,8 +739,8 @@
             "en": "Tick “I understand my prompts may be retained”, then “Connect to DSH”: the provider and its models are created."
           },
           {
-            "fr": "« Tester un modèle » vérifie que la couche gratuite répond encore, et l’affiche en clair — y compris quand OpenCode la verrouille.",
-            "en": "“Probe a model” checks the free tier still answers, and says so plainly — including when OpenCode locks it."
+            "fr": "« Revérifier » vérifie que la couche gratuite répond encore, et l’affiche en clair — y compris quand OpenCode la verrouille.",
+            "en": "“Re-check” checks the free tier still answers, and says so plainly — including when OpenCode locks it."
           },
           {
             "fr": "« Retirer » enlève le fournisseur sans rien supprimer d’autre.",
@@ -929,11 +929,11 @@
         },
         "steps": [
           {
-            "fr": "Demandez une maquette au chat, par exemple « construis un château en briques » : l’onglet « Briques » s’ouvre seul à droite.",
-            "en": "Ask the chat for a mockup, for example “build a brick castle”: the “Briques” tab opens by itself on the right."
+            "fr": "Demandez une maquette au chat, par exemple « construisez un château en briques » : l’onglet « Briques » s’ouvre seul à droite.",
+            "en": "Ask the chat for a mockup, for example “build a brick castle”: the “Bricks” tab opens by itself on the right."
           },
           {
-            "fr": "Faites glisser la scène pour la tourner, molette pour zoomer ; « 3/4 », « Front », « Top » et « Spin » changent la vue.",
+            "fr": "Faites glisser la scène pour la tourner, molette pour zoomer ; « 3/4 », « Face », « Dessus » et « Rotation » changent la vue.",
             "en": "Drag the scene to turn it and scroll to zoom; “3/4”, “Front”, “Top” and “Spin” change the view."
           },
           {
@@ -947,7 +947,7 @@
         ],
         "where": {
           "fr": "Barre latérale droite, onglet « Briques » (il s’ouvre seul)",
-          "en": "Right sidebar, “Briques” tab (opens by itself)",
+          "en": "Right sidebar, “Bricks” tab (opens by itself)",
           "page": false
         },
         "good": {
@@ -1056,12 +1056,12 @@
         },
         "steps": [
           {
-            "fr": "Demandez un modèle au chat, par exemple « dessine un phare en 3D » : l’onglet « Modeleur » s’ouvre seul à droite.",
-            "en": "Ask the chat for a model, for example “draw a lighthouse in 3D”: the “Modeleur” tab opens by itself on the right."
+            "fr": "Demandez un modèle au chat, par exemple « dessinez un phare en 3D » : l’onglet « Modeleur » s’ouvre seul à droite.",
+            "en": "Ask the chat for a model, for example “draw a lighthouse in 3D”: the “3D modeller” tab opens by itself on the right."
           },
           {
-            "fr": "En 3D, faites glisser pour tourner, molette pour zoomer ; « 3/4 », « Front », « Top », « Spin » (en 2D : « Grille », « Ajuster »).",
-            "en": "In 3D, drag to turn and scroll to zoom; “3/4”, “Front”, “Top”, “Spin” change the view (in 2D: “Grille”, “Ajuster”)."
+            "fr": "En 3D, faites glisser pour tourner, molette pour zoomer ; « 3/4 », « Face », « Dessus », « Rotation » (en 2D : « Grille », « Ajuster »).",
+            "en": "In 3D, drag to turn and scroll to zoom; “3/4”, “Front”, “Top”, “Spin” change the view (in 2D: “Grid”, “Fit”)."
           },
           {
             "fr": "Sous la scène, ▶ rejoue la pose, le curseur avance à la main, 0.5× à 4× règlent la vitesse.",
@@ -1074,7 +1074,7 @@
         ],
         "where": {
           "fr": "Barre latérale droite, onglet « Modeleur » (il s’ouvre seul)",
-          "en": "Right sidebar, “Modeleur” tab (opens by itself)",
+          "en": "Right sidebar, “3D modeller” tab (opens by itself)",
           "page": false
         },
         "good": {
@@ -1141,13 +1141,13 @@
             "en": "“Export” gives an MP4 video, a standalone page or a scene file, saved in the project’s artifacts/ folder."
           },
           {
-            "fr": "Retrouvez vos animations dans la page Livrables, ou avec « Animations » en haut du panneau.",
-            "en": "Find your animations on the Livrables page, or with “Animations” at the top of the panel."
+            "fr": "Retrouvez vos animations dans la page Créations, ou avec « Animations » en haut du panneau.",
+            "en": "Find your animations on the Creations page, or with “Animations” at the top of the panel."
           }
         ],
         "where": {
-          "fr": "Barre latérale droite, onglet « Motion » (s’ouvre seul quand une animation arrive), et page Livrables",
-          "en": "Right sidebar, “Motion” tab (opens by itself when an animation arrives), and the Livrables page",
+          "fr": "Barre latérale droite, onglet « Motion » (s’ouvre seul quand une animation arrive), et page Créations",
+          "en": "Right sidebar, “Motion” tab (opens by itself when an animation arrives), and the Creations page",
           "page": false
         },
         "good": {
@@ -1175,7 +1175,7 @@
       "aide": {
         "what": {
           "fr": "Ajoute un bouton « App » aux panneaux Briques, Modeleur et Slides : il en fait une petite app macOS flottante, qui reste ouverte même quand DSH est fermé.",
-          "en": "Adds an “App” button to the Briques, Modeleur and Slides panels: it turns the panel into a small floating macOS app that stays open even when DSH is closed."
+          "en": "Adds an “App” button to the Bricks, 3D modeller and Slides panels: it turns the panel into a small floating macOS app that stays open even when DSH is closed."
         },
         "steps": [
           {
@@ -1193,12 +1193,12 @@
         ],
         "where": {
           "fr": "Dans l’en-tête de chaque panneau Briques, Modeleur ou Slides",
-          "en": "In the header of each Briques, Modeleur or Slides panel",
+          "en": "In the header of each Bricks, 3D modeller or Slides panel",
           "page": false
         },
         "good": {
           "fr": "macOS seulement. Dans l’app, Briques garde sa lecture et sa rotation ; Modeleur et Slides sont figés comme une photo et ne suivent plus le chat.",
-          "en": "macOS only. In the app, Briques keeps its replay and rotation; Modeleur and Slides are frozen like a photo and no longer follow the chat."
+          "en": "macOS only. In the app, Bricks keeps its replay and rotation; the 3D modeller and Slides are frozen like a photo and no longer follow the chat."
         },
         "url": "https://help.kybernos.app/{lang}/create-with-kybernos/turn-a-panel-into-an-app/"
       }
@@ -1638,15 +1638,15 @@
             "en": "Turn Atlas on in Settings › Kybernos Suite (off by default), then open Settings › Atlas."
           },
           {
-            "fr": "Cliquez « Update » : rien n’est lu avant, et l’en-tête dit depuis combien de temps la carte a été lue.",
-            "en": "Click “Update”: nothing is read before you do, and the header says how long ago the map was read."
+            "fr": "Cliquez « Mettre à jour » : rien n’est lu avant ; ensuite la page s’ouvre sur la dernière lecture, et l’en-tête dit depuis combien de temps.",
+            "en": "Click “Update”: nothing is read before you do. Next time the page opens on the last reading, and the header says how long ago it was read."
           },
           {
-            "fr": "Dans « Around », choisissez un projet ou une Agent Team dans « Start from » : quatre colonnes montrent qui y travaille et ce qu’il utilise.",
+            "fr": "Dans « Autour », choisissez un projet ou une Agent Team dans « Partir de » : quatre colonnes montrent qui y travaille et ce qu’il utilise.",
             "en": "In “Around”, pick a project or an agent team in “Start from”: four columns show who works there and what they use."
           },
           {
-            "fr": "Les autres onglets montrent la même carte autrement ; « To check » liste ce qui est cassé, « Help » explique les traits.",
+            "fr": "Les autres onglets montrent la même carte autrement ; « À vérifier » liste ce qui est cassé, « Aide » explique les traits.",
             "en": "The other tabs show the same map in other ways; “To check” lists what is broken, “Help” explains the lines."
           }
         ],
@@ -1656,8 +1656,8 @@
           "page": true
         },
         "good": {
-          "fr": "Atlas ne fait que lire : rien n’est modifié ni enregistré. La page est en anglais, d’où les noms d’onglets cités ici.",
-          "en": "Atlas only reads: nothing is changed or stored. The page is in English, hence the tab names quoted here."
+          "fr": "Atlas ne fait que lire : rien n’est modifié. Sa dernière lecture est gardée dans ce navigateur, la page s’ouvre donc dessus.",
+          "en": "Atlas only reads: nothing is changed. Its last reading is kept in this browser so the page opens on it."
         }
       }
     },
@@ -1839,8 +1839,8 @@
             "en": "The “Code” button under the diagram shows the code; “Diagramme” brings the picture back."
           },
           {
-            "fr": "Si le code est faux, une carte indique « Diagramme mermaid invalide » et le code reste visible.",
-            "en": "If the code is wrong, a card says “Diagramme mermaid invalide” and the code stays visible."
+            "fr": "Si le code est faux, trop long ou vide, une carte en donne la raison (en anglais) et le code reste visible.",
+            "en": "If the code is wrong, too long or empty, a card gives the reason and the code stays visible."
           }
         ],
         "where": {
@@ -1849,8 +1849,8 @@
           "page": false
         },
         "good": {
-          "fr": "Le schéma est dessiné dans la page : le plugin n'envoie rien en ligne. Liens et HTML sont bloqués dans les schémas, volontairement. Les deux boutons et l'erreur sont en français.",
-          "en": "The diagram is drawn in the page itself: the plugin sends nothing online. Links and HTML are blocked inside diagrams on purpose. The two buttons and the error message are in French only."
+          "fr": "Le schéma est dessiné dans la page : le plugin n'envoie rien en ligne. Liens et HTML sont bloqués dans les schémas, volontairement. Les deux boutons sont en français.",
+          "en": "The diagram is drawn in the page itself: the plugin sends nothing online. Links and HTML are blocked inside diagrams on purpose. The two buttons are in French only."
         }
       }
     },
@@ -1956,7 +1956,7 @@
             "en": "Ask the agent for a command: its code block looks like a terminal window."
           },
           {
-            "fr": "Le bouton vert « Run » en haut du bloc exécute la commande sur votre ordinateur, sans demander confirmation.",
+            "fr": "Le bouton vert « Exécuter » en haut du bloc exécute la commande sur votre ordinateur, sans demander confirmation.",
             "en": "The green “Run” button at the top of the block runs the command on your computer, without asking first."
           },
           {
@@ -2084,8 +2084,8 @@
       },
       "aide": {
         "what": {
-          "fr": "Une page Dashboards avant Agent Teams : le chat construit vos tableaux de bord (Agent Teams, automations, usage, livrables) avec des graphiques animés, un calendrier, un kanban et des notes.",
-          "en": "A Dashboards page before Agent Teams: the chat builds your dashboards (Agent Teams, automations, usage, deliverables) with animated charts, a calendar, a kanban and notes."
+          "fr": "Une page Dashboards avant Agent Teams : le chat construit vos tableaux de bord (Agent Teams, automations, usage, créations) avec des graphiques animés, un calendrier, un kanban et des notes.",
+          "en": "A Dashboards page before Agent Teams: the chat builds your dashboards (Agent Teams, automations, usage, creations) with animated charts, a calendar, a kanban and notes."
         },
         "steps": [
           {
@@ -2179,8 +2179,8 @@
       },
       "aide": {
         "what": {
-          "fr": "Kaby, votre assistant : une vraie conversation DSH, Telegram à connecter d'un geste, et l'ordinateur sur lequel il travaille.",
-          "en": "Kaby, your assistant: a real DSH chat, Telegram to connect in one move, and the computer it works on."
+          "fr": "Kaby, votre assistant : comme un téléphone avec télécommande, il travaille sur votre ordinateur. Une vraie conversation DSH, Telegram à connecter d'un geste, et l'ordinateur sur lequel il travaille.",
+          "en": "Kaby, your assistant: like a phone with a remote control, it works on your desktop. A real DSH chat, Telegram to connect in one move, and the computer it works on."
         },
         "steps": [
           {
@@ -2192,8 +2192,8 @@
             "en": "Turn Telegram on in the channels tile: scan the code (or tap “Open Telegram”), tap Start, then “Yes, it's me”."
           },
           {
-            "fr": "La tuile de l'ordinateur montre celui lié à Kaby, créé à votre première demande qui en a besoin ; liste s'il y en a plusieurs.",
-            "en": "The computer tile shows the one linked to Kaby, made at your first request that needs one; a list if there are several."
+            "fr": "La tuile Ordinateur dit où Kaby travaille : cet ordinateur, ou un ordinateur dans le cloud. Votre choix est retenu.",
+            "en": "The computer tile says where Kaby works: this computer, or a cloud computer. Your choice is remembered."
           }
         ],
         "where": {
