@@ -142,4 +142,20 @@ const catalog = readFileSync(new URL('./catalog.js', import.meta.url), 'utf8')
   ok('strings: every word the host can answer has its sentence', words.every((w) => dyn.includes(w)), words.filter((w) => !dyn.includes(w)).join(','))
 }
 
+// ── the help of the page: the shared « How it works » button, and the animation of the first visit ─────────────────────────────
+{
+  const guard = "typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__"
+  ok('help: the page carries the Suite’s « ? How it works » button, for its own bundle, behind a guard', src.includes(guard + ".Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-composio' })"))
+  ok('help: not the icon-only « ? » it had (one form of the button), and not the dashed note it opened', !/className: 'kb6-helpbtn'/.test(src) && !/kb7-help'/.test(src) && !/helpOpen/.test(src))
+  ok('help: the strings of that note are gone with it (nothing says them any more)', !/'kb\.cp\.help(\.title)?'/.test(src) && !/'kb\.cp\.info'/.test(src))
+  ok('animation: the page asks the hub for it, keyed by its bundle, behind a guard', src.includes(guard + ".Intro") && /h\(window\.__KB_HELP__\.Intro, \{\s*id: 'kybernos-composio'/.test(src))
+  const at = src.indexOf("id: 'kybernos-composio',\n")
+  const call = at < 0 ? '' : src.slice(at, at + 1800)
+  ok('animation: three steps, and a mock made of the page’s own words (the real « Add a connection » and « Connected »)', /kb\.cp\.intro\.s1t/.test(call) && /kb\.cp\.intro\.s2b/.test(call) && /kb\.cp\.intro\.s3b/.test(call) && /actions: \[kbt\('kb\.cp\.addconn'\)/.test(call) && /kbt\('kb\.cp\.connected'\)/.test(call), call.slice(0, 200))
+  ok('animation: it sits under the header and above the tabs', src.indexOf('introNode,') > src.indexOf("className: 'kb6-headrow'") && src.indexOf('introNode,') < src.indexOf("className: 'kb7-ctlrow'"))
+  const asked = new Set([...src.matchAll(/kbt\('(kb\.cp\.intro\.[A-Za-z0-9_.]+)'\)/g)].map((m) => m[1]))
+  const lacking = [...asked].filter((k) => new RegExp("'" + k.replace(/\./g, '\\.') + "': \\{ fr: '((?:[^'\\\\]|\\\\.)+)', en: '((?:[^'\\\\]|\\\\.)+)' \\}").test(src) === false)
+  ok('animation: every string it asks for exists in French and in English (' + asked.size + ')', asked.size >= 10 && lacking.length === 0, lacking.join(','))
+}
+
 done('Connectors settings, discover and add')
