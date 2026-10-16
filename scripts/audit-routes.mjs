@@ -10,7 +10,7 @@
 //   node scripts/audit-routes.mjs --bundle NAME    only the routes of one bundle
 //   node scripts/audit-routes.mjs --root DIR       judge another checkout (a `git archive` of an earlier commit gives the "before" column)
 //
-// It is read-only and offline by construction, not by promise: the worker runs under Node's permission model (`--permission`), which
+// Needs Node 22.13 or later (`--permission`). It is read-only and offline by construction, not by promise: the worker runs under Node's permission model (`--permission`), which
 // denies spawning a process, every network call, and every write outside a throw-away folder, and it can read only the checkout and that
 // folder. The home folder it hands the bundles is that folder (a fake DSH home with a fake session secret), never the person's.
 // Handlers are called in-process with fake request and response objects: there is no socket and no listening port.
