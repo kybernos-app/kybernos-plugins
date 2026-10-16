@@ -78,7 +78,8 @@ window.__ModuleLoader__.load({
         refused: ['Rien n’écoute à cette adresse (connexion refusée).', 'Nothing is listening at this address (connection refused).'],
         notfound: ['Ce nom d’hôte est introuvable.', 'This host name could not be found.'],
         reset: ['La connexion a été coupée par l’autre côté.', 'The connection was cut by the other side.'],
-        tls: ['Le certificat de ce serveur n’est pas accepté.', 'This server’s certificate is not accepted.']
+        tls: ['Le certificat de ce serveur n’est pas accepté.', 'This server’s certificate is not accepted.'],
+        badport: ['Ce port est interdit pour une requête web : choisissez-en un autre.', 'This port is not allowed for a web request: pick another one.']
       }
       /** What follows the kind of a failed test: the sentence for its reason, never the raw « fetch failed ». */
       const testDetail = (test) => {

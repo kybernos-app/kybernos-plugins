@@ -105,17 +105,19 @@ export function createRouter (deps) {
   /** A word for what a failed connection ran into, from the cause Node attaches to « fetch failed »; null when it says nothing. The page
    *  turns the word into a sentence in the person's language (A3-26: « fetch failed » told nobody that nothing listens there). */
   const networkReason = (e) => {
-    const code = String((e && e.cause && e.cause.code) || (e && e.code) || '')
+    const c = e && e.cause !== undefined && e.cause !== null ? e.cause : e
+    const code = String((c && c.cause && c.cause.code) || (c && c.code) || (e && e.code) || '')
     if (code === 'ECONNREFUSED') return 'refused'
     if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') return 'notfound'
     if (code === 'ECONNRESET' || code === 'UND_ERR_SOCKET') return 'reset'
     if (/CERT|TLS|SSL|SELF_SIGNED/.test(code)) return 'tls'
+    if (c !== null && c !== undefined && String(c.message) === 'bad port') return 'badport' // a port the fetch standard refuses (1, 25, 6000…)
     return null
   }
 
   const classify = (e, signal) => {
     if (signal !== undefined && signal.aborted === true) return { kind: 'aborted', message: 'aborted' }
-    if (e instanceof EngineError) return { kind: e.kind, message: e.message }
+    if (e instanceof EngineError) return e.kind === 'network' ? { kind: e.kind, message: e.message, reason: networkReason(e) } : { kind: e.kind, message: e.message }
     const name = e !== null && typeof e === 'object' ? String(e.name || '') : ''
     if (name === 'AbortError' || name === 'TimeoutError') return { kind: 'timeout', message: 'timed out' }
     return { kind: 'network', message: String((e && e.message) || e).slice(0, 160), reason: networkReason(e) }
