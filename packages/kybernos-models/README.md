@@ -65,8 +65,11 @@ Checked on a real GUI by `scripts/check-models-live.mjs`.
 
 ## Host contract (routes)
 
-All answer in JSON. Writes require the same origin: `Origin` (else `Referer`) of the same host;
-a write that does not say where it comes from is refused (`403`).
+All answer in JSON. A route that writes or acts (every `POST` below, and `modelsdev?force=1`, a forced download) needs the page's own pair:
+the right `Origin` (else `Referer`) of this DSH **and** DSH's signed browser-session cookie (`session-guard.mjs`, the terminal's rule; `docs/dev/route-origin-rule.md`).
+No header or a foreign origin is refused (`403`); the right origin without a valid cookie is refused (`401`). Plugin routes are served before DSH's own login,
+so this is the only door: a local program that sends the right `Origin` is not the signed-in browser. Every caller is a page of this DSH (the Models page and the
+first-run wizard), which carries both by itself. The reads (`GET`) stay open behind the Host fence; `providers/parked` also refuses a foreign `Origin`.
 
 | Route | Answer |
 | --- | --- |

@@ -68,6 +68,11 @@ const GUARDED = [
   ['POST', '/kybernos-memory/tidy/undo', {}], ['POST', '/kybernos-memory/tidy/settings', {}], ['POST', '/kybernos-memory/settings/set', {}],
   ['POST', '/kybernos-auto/session', { sessionId: '', on: true }], ['POST', '/kybernos-auto/settings', {}], ['POST', '/kybernos-auto/probe', {}],
   ['POST', '/modeles-locaux/installer', { cible: '' }], ['POST', '/modeles-locaux/annuler', {}],
+  // kybernos-models: bodies the route answers with a 400 (nothing stored, no call out). The journal takes `null` because an empty object is a line; scores/sync is left out
+  // on purpose (a stale snapshot makes it start a ~4 MB download: packages/kybernos-models/test-write-guard.mjs plays it offline).
+  ['POST', '/kybernos-models/annotations/save', {}], ['POST', '/kybernos-models/journal', null], ['POST', '/kybernos-models/key/check', {}],
+  ['POST', '/kybernos-models/providers/park', {}], ['POST', '/kybernos-models/providers/take', {}], ['POST', '/kybernos-models/providers/forget', {}],
+  ['POST', '/kybernos-models/scores/list', {}],
   ['POST', '/kybernos-computers/key/set', {}], ['POST', '/kybernos-computers/key/clear', {}], ['POST', '/kybernos-computers/sandboxes/start', {}],
   ['POST', '/kybernos-computers/sandboxes/exec', {}], ['POST', '/kybernos-computers/sandboxes/write', {}], ['POST', '/kybernos-computers/sandboxes/stop', {}],
   ['POST', '/kybernos-computers/sandboxes/pause', {}], ['POST', '/kybernos-computers/sandboxes/resume', {}], ['POST', '/kybernos-computers/env/set', { env: 'nope' }],

@@ -4,6 +4,9 @@
 import assert from 'node:assert/strict'
 import { checkKey, KEY_PROVIDERS } from './key-check.mjs'
 import { kbKeyMount } from './index.js'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, browserHeaders } from './lib-session-test.mjs'
+sessionSource.secret = () => SESSION_SECRET // the machine secret the write routes check the session cookie against
 
 let n = 0
 const ok = (label, fn) => Promise.resolve(fn()).then(() => { n += 1; console.log('  ✓ ' + label) })
@@ -91,10 +94,11 @@ const mount = (options) => {
   kbKeyMount((r) => routes.set(r.path, r.handler), options)
   return routes.get('/kybernos-models/key/check')
 }
-const call = async (handler, { method = 'POST', origin = 'http://127.0.0.1:3080', body = {} } = {}) => {
+const call = async (handler, { method = 'POST', origin = 'http://127.0.0.1:3080', body = {}, headers } = {}) => {
   const req = {
     method,
-    headers: origin === null ? {} : { origin },
+    // the page's own pair by default (right Origin + DSH's signed session); `headers` or `origin` say anything else
+    headers: headers !== undefined ? headers : (origin === null ? {} : (origin === 'http://127.0.0.1:3080' ? browserHeaders() : { origin, cookie: browserHeaders().cookie })),
     socket: { localPort: 3080 },
     on(ev, cb) { if (ev === 'data') setTimeout(() => cb(JSON.stringify(body)), 0); if (ev === 'end') setTimeout(cb, 1) },
   }
@@ -117,6 +121,7 @@ await ok('the route refuses a foreign origin, a missing origin and any other met
   const handler = mount({ fetch: f })
   assert.equal((await call(handler, { origin: 'https://evil.example', body: { provider: 'openai', key: KEY } })).status, 403)
   assert.equal((await call(handler, { origin: null, body: { provider: 'openai', key: KEY } })).status, 403)
+  assert.equal((await call(handler, { headers: { origin: 'http://127.0.0.1:3080' }, body: { provider: 'openai', key: KEY } })).status, 401, 'the right Origin and no session cookie')
   assert.equal((await call(handler, { method: 'GET' })).status, 405)
   assert.equal(seen.length, 0, 'no request left the machine')
 })
