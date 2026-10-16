@@ -29,6 +29,7 @@ import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { checkKey } from './key-check.mjs'
+import { origineOK, writeGuard } from './session-guard.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -146,22 +147,17 @@ const readBody = (req) => new Promise((resolve) => {
   } catch (e) { resolve(null) }
 })
 
-// A request that says nothing about where it comes from (no Origin, no Referer: a script, another local user) may read; it may not
-// write. A page of this DSH always says it on a write, so this refuses no one the person can see (A3-29).
-const sameOrigin = (req) => {
-  try {
-    const h = req.headers || {}
-    const origin = typeof h.origin === 'string' && h.origin !== '' ? h.origin : (typeof h.referer === 'string' ? h.referer : '')
-    if (origin === '') return ['GET', 'HEAD'].indexOf(String(req.method || '').toUpperCase()) >= 0
-    const u = new URL(origin)
-    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
-    const sock = req.socket !== null && req.socket !== undefined ? req.socket : null
-    // A real connection: the origin is compared with what THIS listener really is (the socket's port), never with the client-supplied Host header
-    // alone (a page that rebinds its own name sends the same authority as Host and as Origin). No socket = a synthetic caller (a test).
-    if (sock === null || typeof sock.localPort !== 'number') return typeof req.headers.host === 'string' && u.host === req.headers.host
-    const port = ':' + sock.localPort
-    return (['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0 || kbTrusted(u.host))
-  } catch (e) { return false }
+// A route that WRITES or ACTS (stores a key or a provider profile, saves a note, starts a download, spends a call on a pasted key) needs DSH's
+// signed browser session as well as the right Origin (session-guard.mjs, kybernos-terminal's rule): plugin routes are served before DSH's own
+// login and an Origin header is forgeable by any local program, so before this a `curl -X POST` with a made-up Origin rewrote the person's
+// notes or parked their provider. Every caller is a page of this DSH (the Models page and the first-run wizard of kybernos-plugin), which
+// carries the cookie by itself; nothing else calls these routes (scripts/audit-routes.mjs). The reads stay open behind the Host fence.
+// Answers the refusal and returns true when the request must stop there.
+const kbRefused = (req, res) => {
+  const refused = writeGuard(req)
+  if (refused === null) return false
+  sendJson(res, refused.status, { ok: false, error: refused.error })
+  return true
 }
 
 // ── Annotations: one file, merged by `route/id` key ─────────────────
@@ -313,27 +309,13 @@ export const kbPkForget = (slug, file = PARKED_FILE) => {
   return { ok: true, slug, removed: true }
 }
 
-/** Strict same-origin (Origin, else Referer, required; host compared with the socket's real
- *  listening address, never the forgeable Host header). Same rule as `sameOriginStrict` in
- *  kybernos-plugin: plugin routes are served before DSH's own auth. */
-export const kbSameOriginStrict = (req) => {
-  try {
-    const h = (req && req.headers) || {}
-    const source = typeof h.origin === 'string' && h.origin !== '' ? h.origin : (typeof h.referer === 'string' && h.referer !== '' ? h.referer : null)
-    if (source === null) return false
-    const u = new URL(source)
-    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
-    const port = req.socket && typeof req.socket.localPort === 'number' ? ':' + req.socket.localPort : ''
-    return (['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0 || kbTrusted(u.host))
-  } catch (e) { return false }
-}
-
-/** Mount the first-run wizard's key check on a webServer-like `{ register }`: same-origin POST only, answers one word
- *  (`ok`, `invalid`, `denied`, `rate_limited`, `unreachable`, `unexpected`), never the key or the provider's answer. */
+/** Mount the first-run wizard's key check on a webServer-like `{ register }`: a POST of the signed-in page only (it spends a call to the
+ *  provider with a pasted key), answers one word (`ok`, `invalid`, `denied`, `rate_limited`, `unreachable`, `unexpected`), never the key
+ *  or the provider's answer. */
 export const kbKeyMount = (register, options = {}) => {
   register({ kind: 'exact', path: '/kybernos-models/key/check', handler: async (req, res) => {
     if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
-    if (kbSameOriginStrict(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }
+    if (kbRefused(req, res)) return
     const body = await readBody(req)
     if (!isPlainObject(body)) { sendJson(res, 400, { ok: false, error: 'bad-json' }); return }
     const out = await checkKey(body.provider, body.key, options)
@@ -346,8 +328,7 @@ export const kbKeyMount = (register, options = {}) => {
 export const kbPkMount = (register, file = PARKED_FILE) => {
   const guard = (req, res, method) => {
     if (req.method !== method) { sendJson(res, 405, { ok: false, error: 'method' }); return false }
-    if (kbSameOriginStrict(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return false }
-    return true
+    return kbRefused(req, res) !== true
   }
   const post = async (req, res) => {
     if (guard(req, res, 'POST') !== true) return null
@@ -357,9 +338,8 @@ export const kbPkMount = (register, file = PARKED_FILE) => {
   }
   register({ kind: 'exact', path: '/kybernos-models/providers/parked', handler: async (req, res) => {
     if (req.method !== 'GET') { sendJson(res, 405, { ok: false, error: 'method' }); return }
-    // Listing carries no profile; a foreign Origin is still refused (DNS rebinding), no Origin passes.
-    const o = req.headers && (req.headers.origin || req.headers.referer)
-    if (o && kbSameOriginStrict(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }
+    // Listing carries no profile; a foreign Origin is still refused (DNS rebinding), no Origin passes (a page sends none on a same-origin GET).
+    if (origineOK(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin refused' }); return }
     sendJson(res, 200, { ok: true, version: PARKED_VERSION, parked: kbPkPublic(kbPkRead(file)) })
   } })
   register({ kind: 'exact', path: '/kybernos-models/providers/park', handler: async (req, res) => {
@@ -944,7 +924,7 @@ export function apply(ctx) {
             // the whole entry (it is the path of the global revert).
       hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/kybernos-models/annotations/save', handler: async (req, res) => {
         if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
-        if (sameOrigin(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }
+        if (kbRefused(req, res)) return
         const body = await readBody(req)
         if (body === null || typeof body !== 'object') { sendJson(res, 400, { ok: false, error: 'bad-json' }); return }
         const key = typeof body.key === 'string' ? body.key : ''
@@ -977,7 +957,7 @@ export function apply(ctx) {
           return
         }
         if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
-        if (sameOrigin(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }
+        if (kbRefused(req, res)) return
         const body = await readBody(req)
         if (body === null || typeof body !== 'object') { sendJson(res, 400, { ok: false, error: 'bad-json' }); return }
         try {
@@ -995,6 +975,8 @@ export function apply(ctx) {
         const route = url.searchParams.get('route') || ''
         const id = url.searchParams.get('id') || ''
         const force = url.searchParams.get('force') === '1'
+        // A forced refresh downloads the 4.7 MB index again: that is an act, so it is the page's own pair or nothing. The plain read stays open.
+        if (force && kbRefused(req, res)) return
         const index = await kbMdLoad(web, force)
         if (index === null) { sendJson(res, 200, { ok: false, error: 'modelsdev-unavailable' }); return }
         // `stale` : l'index vient d'un cache de plus de 6 h (poste hors ligne).
@@ -1063,7 +1045,7 @@ export function apply(ctx) {
       // { scores: { "route/id": 32.1 } }, only for the models the snapshot knows. A POST so a long list never lands in an URL.
       hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/kybernos-models/scores/list', handler: async (req, res) => {
         if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
-        if (sameOrigin(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }
+        if (kbRefused(req, res)) return
         const body = await readBody(req)
         if (body === null || typeof body !== 'object' || !Array.isArray(body.models)) { sendJson(res, 400, { ok: false, error: 'bad-json' }); return }
         const snapshot = kbScoresRead(false)
@@ -1085,7 +1067,7 @@ export function apply(ctx) {
             // An up-to-date scrape is not started again — it costs ~4 MB and two requests.
       hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/kybernos-models/scores/sync', handler: async (req, res) => {
         if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
-        if (sameOrigin(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }
+        if (kbRefused(req, res)) return
         const body = await readBody(req)
         const force = body !== null && typeof body === 'object' && body.force === true
         if (scoresInflight !== null) { sendJson(res, 200, { ok: true, started: false, running: true }); return }
