@@ -22,6 +22,24 @@ window.__ModuleLoader__.load({
     const React = require('react')
     const h = React.createElement
 
+    // ── language: French is the source, English the pair; French only for a French UI, a translated language is looked up by its
+    // French text (the dictionary the Language page keeps), and every other language (and a language not known yet) reads English ──
+    const lang = () => {
+      try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
+    }
+    const kt = (fr, en) => {
+      const l = lang()
+      if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
+      if (l === 'en') return en
+      try {
+        const a = window.__KB_I18N_ACTIVE__
+        if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
+      } catch (e) { /* no dictionary: English */ }
+      return en
+    }
+    /** 'fr' for a French UI, 'en' for every other language: what a number format is keyed by. */
+    const langBase = () => { const l = lang(); return l === 'kybernos' || l.slice(0, 2) === 'fr' ? 'fr' : 'en' }
+
     const TYPE_ID = 'kybernos-bricks'
     const KIND = 'kybernos-bricks'
     const SLOT = 'sidebar.right.pane.tab'
@@ -760,7 +778,7 @@ function renderFit(canvas, model, cam, opts){
         source: 'archetype',
         cle,
         desc: built.desc || DEFAULT_DESC[cle] || '',
-        titre: etat.titre && etat.titre !== 'Briques' ? etat.titre : (titreConnu || pl.name || 'Briques'),
+        titre: etat.titre && !DEFAULT_TITLES.includes(etat.titre) ? etat.titre : (titreConnu || pl.name || DEFAULT_TITLES[1]),
       }
     }
 
@@ -770,7 +788,10 @@ function renderFit(canvas, model, cam, opts){
      * panneau. React ne rend que le chrome (titre, compteurs, transport). */
 
     const abonnes = new Set()
-    let ETAT = { titre: 'Briques', version: -1, sessionId: '', total: 0, pose: 0, lots: 0, enCours: false, desc: '', source: '', cle: null, prompt: '', dureeMs: 0 }
+    /** The name the host gives a model that has none (« Bricks »; « Briques » in older hosts): shown in the language of the page. */
+    const DEFAULT_TITLES = ['Briques', 'Bricks']
+    const titleOf = (t) => (typeof t !== 'string' || t === '' || DEFAULT_TITLES.includes(t) ? kt('Briques', 'Bricks') : t)
+    let ETAT = { titre: DEFAULT_TITLES[1], version: -1, sessionId: '', total: 0, pose: 0, lots: 0, enCours: false, desc: '', source: '', cle: null, prompt: '', dureeMs: 0 }
     let MODELE = null
     let POSE = 0, POSE_MIN = 0, T0 = 0, DUREE = 8000, VITESSE = 1, EN_COURS = false
     const OUVERTURES_VUES = new Map() // sessionId → last reopen counter read (each session counts its own)
@@ -863,7 +884,7 @@ function renderFit(canvas, model, cam, opts){
         POSE_MIN = 0
         POSE = 0
         publier({
-          titre: c.titre || etat.titre || 'Briques',
+          titre: c.titre || etat.titre || DEFAULT_TITLES[1],
           desc: c.desc || etat.prompt || '',
           source: c.source,
           lots: c.lots,
@@ -919,7 +940,7 @@ function renderFit(canvas, model, cam, opts){
         if (etat.version === VERSION_VUE && etat.sessionId === SESSION_VUE) return
         appliquer(etat)
       } catch (e) {
-        if (!enPanne) { enPanne = true; publier({ desc: 'hôte injoignable — ' + String(e?.message ?? e) }) }
+        if (!enPanne) { enPanne = true; publier({ desc: kt('hôte injoignable — ', 'host unreachable — ') + String(e?.message ?? e) }) }
       }
     }
 
@@ -1010,27 +1031,27 @@ function renderFit(canvas, model, cam, opts){
 
       const barre = h('div', { className: 'kbb-foot' },
         h('div', { className: 'kbb-line' },
-          h('button', { className: 'kbb-step', title: 'Début', onClick: () => { POSE = 0; EN_COURS = false; publier({ pose: 0, enCours: false }); reveiller() } }, '\u25C0\u25C0'),
+          h('button', { className: 'kbb-step', title: kt('Début', 'Start'), onClick: () => { POSE = 0; EN_COURS = false; publier({ pose: 0, enCours: false }); reveiller() } }, '\u25C0\u25C0'),
           h('button', {
             className: 'kbb-play',
-            title: EN_COURS ? 'Pause' : 'Relire',
+            title: EN_COURS ? 'Pause' : kt('Relire', 'Replay'),
             onClick: () => {
               if (EN_COURS) { EN_COURS = false; publier({ enCours: false }); reveiller(); return }
               POSE_MIN = 0; POSE = 0; T0 = performance.now(); DUREE = DUREE_BUILD; EN_COURS = true
               publier({ enCours: true }); reveiller()
             },
           }, EN_COURS ? '\u23F8' : '\u25B6'),
-          h('button', { className: 'kbb-step', title: 'Fin', onClick: () => { POSE = total; EN_COURS = false; publier({ pose: total, enCours: false }); reveiller() } }, '\u25B6\u25B6'),
+          h('button', { className: 'kbb-step', title: kt('Fin', 'End'), onClick: () => { POSE = total; EN_COURS = false; publier({ pose: total, enCours: false }); reveiller() } }, '\u25B6\u25B6'),
           h('button', { className: 'kbb-sp' + (VITESSE === 0.5 ? ' on' : ''), onClick: () => { VITESSE = 0.5; maj() } }, '0.5\u00D7'),
           h('button', { className: 'kbb-sp' + (VITESSE === 1 ? ' on' : ''), onClick: () => { VITESSE = 1; maj() } }, '1\u00D7'),
           h('button', { className: 'kbb-sp' + (VITESSE === 2 ? ' on' : ''), onClick: () => { VITESSE = 2; maj() } }, '2\u00D7'),
           h('button', { className: 'kbb-sp' + (VITESSE === 4 ? ' on' : ''), onClick: () => { VITESSE = 4; maj() } }, '4\u00D7'),
-          h('span', { className: 'kbb-badge' + (EN_COURS ? ' run' : '') }, total ? (EN_COURS ? pct + ' %' : 'Fini') : '\u2014'),
+          h('span', { className: 'kbb-badge' + (EN_COURS ? ' run' : '') }, total ? (EN_COURS ? pct + (langBase() === 'fr' ? ' %' : '%') : kt('Fini', 'Done')) : '\u2014'),
         ),
         h('div', { className: 'kbb-track', style: { marginTop: '7px' } },
           h('div', { className: 'kbb-lab' },
-            h('b', {}, pose.toLocaleString('fr-FR')),
-            ' / ' + total.toLocaleString('fr-FR') + ' pi\u00E8ces \u00B7 ' + (ETAT.lots || 0) + ' lots'),
+            h('b', {}, pose.toLocaleString(langBase() === 'fr' ? 'fr-FR' : 'en-US')),
+            ' / ' + total.toLocaleString(langBase() === 'fr' ? 'fr-FR' : 'en-US') + kt(' pi\u00E8ces \u00B7 ', ' pieces \u00B7 ') + (ETAT.lots || 0) + kt(' lots', ' groups')),
           h('input', {
             className: 'kbb-range', type: 'range', min: 0, max: Math.max(1, total), value: pose,
             onChange: (e) => { POSE = Number(e.target.value); EN_COURS = false; publier({ pose: POSE, enCours: false }); reveiller() },
@@ -1039,15 +1060,15 @@ function renderFit(canvas, model, cam, opts){
       )
 
       const vide = h('div', { className: 'kbb-empty' },
-        h('div', {}, h('b', {}, 'Aucune maquette pour le moment')),
-        h('div', {}, 'Demande au chat : ', h('code', {}, 'construis un château en briques')),
+        h('div', {}, h('b', {}, kt('Aucune maquette pour le moment', 'No model yet'))),
+        h('div', {}, kt('Demandez au chat : ', 'Ask the chat: '), h('code', {}, kt('construisez un château en briques', 'build a castle out of bricks'))),
         h('div', { className: 'kbb-chips' }, ...SHOWCASE.map(([cle]) => h(Apercu, { key: cle, cle }))),
       )
 
       return h('div', { className: 'kbb-root' },
         h('div', { className: 'kbb-head' },
-          h('span', { className: 'kbb-title', title: ETAT.titre }, ETAT.titre || 'Briques'),
-          h('span', { className: 'kbb-badge' }, ETAT.source === 'ops' ? 'ops' : (ETAT.cle || 'arch\u00E9type'))),
+          h('span', { className: 'kbb-title', title: titleOf(ETAT.titre) }, titleOf(ETAT.titre)),
+          h('span', { className: 'kbb-badge' }, ETAT.source === 'ops' ? 'ops' : (ETAT.cle || kt('arch\u00E9type', 'archetype')))),
         h('div', { className: 'kbb-view' },
           h('canvas', {
             ref: cvRef,
@@ -1057,12 +1078,12 @@ function renderFit(canvas, model, cam, opts){
           !total ? vide : null,
           total ? h('div', { className: 'kbb-tools' },
             h('button', { className: 'kbb-tool' + (vue === 'iso' ? ' on' : ''), onClick: () => vueCam('iso') }, '3/4'),
-            h('button', { className: 'kbb-tool' + (vue === 'front' ? ' on' : ''), onClick: () => vueCam('front') }, 'Front'),
-            h('button', { className: 'kbb-tool' + (vue === 'top' ? ' on' : ''), onClick: () => vueCam('top') }, 'Top'),
+            h('button', { className: 'kbb-tool' + (vue === 'front' ? ' on' : ''), onClick: () => vueCam('front') }, kt('Face', 'Front')),
+            h('button', { className: 'kbb-tool' + (vue === 'top' ? ' on' : ''), onClick: () => vueCam('top') }, kt('Dessus', 'Top')),
             h('button', {
               className: 'kbb-tool' + (CANEVAS.spin ? ' on' : ''),
               onClick: (e) => { CANEVAS.spin = !CANEVAS.spin; e.currentTarget.classList.toggle('on', CANEVAS.spin); reveiller() },
-            }, 'Spin')) : null),
+            }, kt('Rotation', 'Spin'))) : null),
         barre,
       )
     }
@@ -1093,13 +1114,13 @@ function renderFit(canvas, model, cam, opts){
         ctx.effect(() => registre.register({
           id: TYPE_ID,
           kind: KIND,
-          title: () => 'Briques',
-          guide: [{ title: () => 'Briques', description: () => 'Maquettes en briques pilotées par le chat : pose en direct brique par brique, puis relecture.' }],
-        }), 'kybernos-bricks: type d onglet barre latérale droite')
+          title: () => kt('Briques', 'Bricks'),
+          guide: [{ title: () => kt('Briques', 'Bricks'), description: () => kt('Maquettes en briques pilotées par le chat : pose en direct brique par brique, puis relecture.', 'Brick models driven by the chat: laid live, brick by brick, then replayed.') }],
+        }), 'kybernos-bricks: right sidebar tab type')
       }
 
       ctx.effect(() => ctx.slots.inject(SLOT, () => ctx.slots.register(
-        { name: SLOT, key: TYPE_ID }, PanneauBriques)), 'kybernos-bricks: corps de panneau')
+        { name: SLOT, key: TYPE_ID }, PanneauBriques)), 'kybernos-bricks: panel body')
 
       // Le panneau s'ouvre TOUT SEUL quand une maquette arrive (voir `ouvrirOnglet`).
       // Aucun bouton dans le pied de la sidebar : il y traînait un « ▦ Briques »
@@ -1111,7 +1132,7 @@ function renderFit(canvas, model, cam, opts){
         interroger()
         const t = setInterval(interroger, CADENCE_MS)
         return () => clearInterval(t)
-      }, 'kybernos-bricks: sonde de l hote')
+      }, 'kybernos-bricks: host probe')
     }
 
     return {
@@ -1123,7 +1144,7 @@ function renderFit(canvas, model, cam, opts){
       apply,
       // Surface de test : le harnais monte le moteur et l'exécuteur d'ops sans
       // navigateur — aucun rendu React n'est nécessaire pour les vérifier.
-      __test: { executerOps, construire, plan, BUILDERS, renderScene, fitCamera, makeCam, Builder, hash, SHOWCASE },
+      __test: { executerOps, construire, plan, BUILDERS, renderScene, fitCamera, makeCam, Builder, hash, SHOWCASE, titleOf, kt },
     }
   }
 })

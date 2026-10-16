@@ -309,8 +309,8 @@ window.__ModuleLoader__.load({
           },
         },
         'deliverables.list': {
-          label: 'Deliverables',
-          about: 'The files your Agent Teams produced (the Deliverables page).',
+          label: 'Creations',
+          about: 'The files your Agent Teams produced (the Creations page).',
           params: { limit: 'number 1..60, default 20' },
           period: false,
           columns: [col('name', 'Name', 'string'), col('kind', 'Kind', 'string'), col('workspace', 'Project', 'string'), col('size', 'Size (KB)', 'number'), col('at', 'Modified', 'time'), col('day', 'Day', 'date')],
@@ -1665,8 +1665,27 @@ window.__ModuleLoader__.load({
         // and nothing throws into React.
         const R = '/kybernos-dashboards/'
 
-        const lang = () => { try { return String(window.__KB_LANG_RESOLVE__?.() || '').split(/[-_]/)[0] } catch (e) { return 'fr' } }
-        const kt = (fr, en) => (lang() === 'en' ? en : fr)
+        // French is the source, English the pair; French only for a French UI, a translated language is looked up by its French text,
+        // and every other language (and a language not known yet) reads English.
+        const lang = () => {
+          try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
+        }
+        const kt = (fr, en) => {
+          const l = lang()
+          if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
+          if (l === 'en') return en
+          try {
+            const a = window.__KB_I18N_ACTIVE__
+            if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
+          } catch (e) { /* no dictionary: English */ }
+          return en
+        }
+        /** 'fr' for a French UI, 'en' for every other language: what a date format or a weekday table is keyed by. */
+        const langBase = () => { const l = lang(); return l === 'kybernos' || l.slice(0, 2) === 'fr' ? 'fr' : 'en' }
+        const WEEKDAYS = {
+          fr: ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'],
+          en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+        }
         const reduceMotion = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches === true } catch (e) { return false } }
 
         let SESSION_ID = ''
@@ -1755,7 +1774,7 @@ window.__ModuleLoader__.load({
           const hm = type === 'time' ? ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) : ''
           if (days === 0) return kt('Aujourd’hui', 'Today') + hm
           if (days === 1) return kt('Hier', 'Yesterday') + hm
-          try { return d.toLocaleDateString(lang() === 'en' ? 'en-GB' : 'fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) + hm } catch (e) { return model.dayKey(ms) + hm }
+          try { return d.toLocaleDateString(langBase() === 'fr' ? 'fr-FR' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + hm } catch (e) { return model.dayKey(ms) + hm }
         }
 
         // ════════════════════════════════════════════════════════════════════════════
@@ -2090,7 +2109,7 @@ window.__ModuleLoader__.load({
         /* ── charts ── */
         function chartTableHtml (data) {
           const head = '<tr><th></th>' + data.series.map((s) => '<th>' + esc(s.name) + '</th>').join('') + (data.series.length > 1 ? '<th>Σ</th>' : '') + '</tr>'
-          const rows = data.labels.map((l, i) => '<tr><td>' + esc(fmtLabel(l.label, lang())) + '</td>' + data.series.map((s) => '<td>' + esc(model.formatNumber(s.values[i])) + '</td>').join('') + (data.series.length > 1 ? '<td>' + esc(model.formatNumber(data.totals[i])) + '</td>' : '') + '</tr>').join('')
+          const rows = data.labels.map((l, i) => '<tr><td>' + esc(fmtLabel(l.label, langBase())) + '</td>' + data.series.map((s) => '<td>' + esc(model.formatNumber(s.values[i])) + '</td>').join('') + (data.series.length > 1 ? '<td>' + esc(model.formatNumber(data.totals[i])) + '</td>' : '') + '</tr>').join('')
           return '<table><thead>' + head + '</thead><tbody>' + rows + '</tbody></table>'
         }
         function ChartBody ({ wd, table, stale, asTable }) {
@@ -2103,7 +2122,7 @@ window.__ModuleLoader__.load({
           const multi = (wd.kind === 'stacked' || wd.kind === 'columns' || wd.kind === 'line' || wd.kind === 'area') && data.series.length > 1
           let svg = ''
           if (w > 40 && ht > 40) {
-            const o = { lang: lang(), label: wd.title }
+            const o = { lang: langBase(), label: wd.title }
             if (wd.kind === 'stacked' || wd.kind === 'columns') svg = paintColumns(data, w, ht, o)
             else if (wd.kind === 'bars') svg = paintBars(data, w, ht, o)
             else if (wd.kind === 'line' || wd.kind === 'area') svg = paintLine(data, w, ht, wd.kind === 'area', o)
@@ -2155,7 +2174,7 @@ window.__ModuleLoader__.load({
         /* ── calendar ── */
         function CalendarBody ({ wd, table, stale }) {
           const days = useMemo(() => model.calendarData(table, wd, Date.now()), [table, wd])
-          const dn = lang() === 'en' ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.']
+          const dn = WEEKDAYS[langBase()]
           const key = h('div', { className: 'kbdb-calkey' },
             h('span', null, h('span', { className: 'kbdb-dot' }), kt('Fait', 'Done')), h('span', null, h('span', { className: 'kbdb-dot err' }), kt('Échec', 'Failed')),
             h('span', null, h('span', { className: 'kbdb-dot idle' }), kt('À venir', 'Upcoming')), h('span', null, h('span', { className: 'kbdb-dot pause' }), kt('En pause', 'Paused')))
@@ -2811,7 +2830,7 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kbdb-pane-b' }, h(DashboardView, { dash: dash.dashboard, tick, edit: false, flashIds: flash, onChange: () => {}, onRetry: () => { clearRoutes(); setTick((x) => x + 1) } })))
         }
 
-        /* ── the player of the MiniApp door (Livrables page, chat card, popup) ── */
+        /* ── the player of the MiniApp door (Creations page, chat card, popup) ── */
         function DashboardPlayer (props) {
           const rootRef = useRef(null)
           useInView(rootRef)
@@ -2850,7 +2869,7 @@ window.__ModuleLoader__.load({
         let WANT_OPEN_UNTIL = 0
         const panelShown = () => { const p = document.querySelector('[data-kb="dashboards-pane"]'); return !!p && p.getClientRects().length > 0 }
 
-        /** The door of the Livrables page, the chat card and the popup: the "dashboard" player. */
+        /** The door of the Creations page, the chat card and the popup: the "dashboard" player. */
         function registerPlayer () {
           try {
             if (window.__KB_MINIAPP__ && typeof window.__KB_MINIAPP__.register === 'function') window.__KB_MINIAPP__.register('dashboard', DashboardPlayer)

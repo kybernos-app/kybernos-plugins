@@ -84,7 +84,7 @@ async function chargerDefineTool () {
     try {
       const module = await import(chemin)
       if (typeof module?.defineTool === 'function') return { defineTool: module.defineTool, chemin }
-    } catch (e) { dire(`defineTool illisible depuis ${chemin} : ${e?.message ?? e}`) }
+    } catch (e) { dire(`defineTool unreadable from ${chemin}: ${e?.message ?? e}`) }
   }
   return undefined
 }
@@ -143,7 +143,7 @@ export function creerMagasin () {
         sessionId,
         t0: maintenant,
         dureeMs: bornement(entree?.dureeMs),
-        titre: texte(entree?.titre, 120) || 'Briques',
+        titre: texte(entree?.titre, 120) || 'Bricks',
         prompt: texte(entree?.prompt, 2000),
         mode: entree?.mode === 'modifier' ? 'modifier' : 'nouveau',
         ops: Array.isArray(entree?.ops) ? entree.ops.slice(0, 4000) : null,
@@ -189,32 +189,32 @@ export function optionsOutil (magasin) {
   return {
     name: OUTIL,
     description:
-      "Construit une maquette en briques et l'anime dans la barre latérale droite du chat (panneau « Briques »), "
-      + 'brique par brique, puis la laisse rejouable. '
-      + "Deux façons de s'en servir : soit `prompt` décrit la maquette en français et le panneau choisit un archétype "
-      + '(château, chalet, phare, fusée, robot, place à horloge, mosaïque, van, colibri), '
-      + "soit `ops` décrit explicitement la géométrie — c'est le chemin où c'est TOI qui dessines. "
-      + "Chaque op est un lot : {op:'rect',x,y,z,w,d,h,color,group} | {op:'disc',cx,cy,r,z,h,color} | "
+      'Builds a brick model and animates it in the right sidebar of the chat (the “Bricks” panel), '
+      + 'brick by brick, then leaves it replayable. '
+      + 'Two ways to use it: either `prompt` describes the model (in English or French) and the panel picks an archetype '
+      + '(castle, chalet, lighthouse, rocket, robot, clock square, mosaic, van, hummingbird), '
+      + 'or `ops` describes the geometry explicitly — the path where YOU do the drawing. '
+      + "Each op is a batch: {op:'rect',x,y,z,w,d,h,color,group} | {op:'disc',cx,cy,r,z,h,color} | "
       + "{op:'ring',cx,cy,r,t,z,h,color} | {op:'cone',cx,cy,z,r,niveaux,color} | {op:'tree',x,y,z,h} | "
-      + "{op:'archetype',cle:'chateau'}. Les opés sont posées dans l'ordre du tableau. "
-      + 'Un appel sans `ops` ni `prompt` se contente d\'ouvrir le panneau sur la dernière maquette.',
+      + "{op:'archetype',cle:'castle'}. The ops are laid in the order of the array. "
+      + 'A call with neither `ops` nor `prompt` only opens the panel on the last model.',
     parameters: {
-      prompt: { type: 'string', description: "Ce que l'utilisateur veut construire, ou la modification demandée. Sert à choisir l'archétype et le titre." },
+      prompt: { type: 'string', description: 'What the user wants to build, or the change asked for. Used to pick the archetype and the title.' },
       ops: {
         type: 'array',
-        description: 'Géométrie explicite, posée dans l\'ordre. Chaque élément est un lot (voir la description de l\'outil). Prioritaire sur `prompt`.',
+        description: 'Explicit geometry, laid in order. Each element is a batch (see the description of the tool). Takes precedence over `prompt`.',
         items: { type: 'object', additionalProperties: true },
       },
-      mode: { type: 'string', description: "« nouveau » (remplace la maquette) ou « modifier » (ajoute à la maquette courante). Défaut : nouveau." },
-      titre: { type: 'string', description: 'Titre affiché dans le panneau. Défaut : déduit du prompt, ou « Briques ».' },
-      duree_ms: { type: 'number', description: `Durée de la pose, en millisecondes (défaut ${DUREE_DEFAUT_MS}, borné ${DUREE_MIN_MS}–${DUREE_MAX_MS}).` },
+      mode: { type: 'string', description: '“nouveau” (replaces the model) or “modifier” (adds to the current model). Default: nouveau.' },
+      titre: { type: 'string', description: 'Title shown in the panel. Default: taken from the prompt, or “Bricks”.' },
+      duree_ms: { type: 'number', description: `Duration of the laying, in milliseconds (default ${DUREE_DEFAUT_MS}, between ${DUREE_MIN_MS} and ${DUREE_MAX_MS}).` },
     },
     render: (_args, valeur) => [{ type: 'text', text: typeof valeur === 'string' ? valeur : JSON.stringify(valeur, null, 2) }],
     execute: async (brut, exec) => {
       const options = brut && typeof brut === 'object' ? brut : {}
       const sessionId = exec?.agent?.id
       if (typeof sessionId !== 'string' || sessionId.length === 0) {
-        return { ok: false, raison: 'agent_inconnu', message: "impossible d'identifier la session courante (appel hors tour ?)" }
+        return { ok: false, raison: 'agent_inconnu', message: 'cannot identify the current session (called outside a turn?)' }
       }
       const enregistrement = magasin.pousser({
         sessionId,
@@ -233,10 +233,10 @@ export function optionsOutil (magasin) {
         lots: Array.isArray(enregistrement.ops) ? enregistrement.ops.length : 0,
         duree_ms: enregistrement.dureeMs,
         message: enregistrement.rouvert === true
-          ? 'Panneau rouvert sur la dernière maquette : rien n\'a été reconstruit ni effacé (donne `prompt` ou `ops` pour construire).'
+          ? 'Panel reopened on the last model: nothing was rebuilt or erased (give `prompt` or `ops` to build).'
           : Array.isArray(enregistrement.ops)
-          ? `${enregistrement.ops.length} lot(s) de briques déposés : le panneau « Briques » (barre latérale droite) va les poser en ${(enregistrement.dureeMs / 1000).toFixed(1)} s.`
-          : 'Maquette déposée : le panneau « Briques » (barre latérale droite) la construit maintenant.',
+          ? `${enregistrement.ops.length} ${enregistrement.ops.length === 1 ? 'batch' : 'batches'} of bricks handed over: the “Bricks” panel (right sidebar) lays them in ${(enregistrement.dureeMs / 1000).toFixed(1)} s.`
+          : 'Model handed over: the “Bricks” panel (right sidebar) is building it now.',
       }
     },
   }
@@ -248,7 +248,7 @@ export async function enregistrer (tools, magasin) {
   const chargement = await chargerDefineTool()
   const outil = chargement !== undefined ? chargement.defineTool(specDefineTool(definition)) : definitionLiteral(definition)
   tools.register(outil)
-  dire(`outil « ${OUTIL} » enregistré`)
+  dire(`tool “${OUTIL}” registered`)
 }
 
 // ── les routes (pour la moitié client) ──────────────────────────────────────
@@ -283,8 +283,8 @@ const lireCorps = (req) => new Promise((res) => {
 export function monterRoutes (webServerSvc, magasin) {
   webServerSvc = kbFenced(webServerSvc)
   webServerSvc.register({ kind: 'exact', path: ROUTE_STATE, handler: async (req, res) => {
-    if (req.method !== 'GET') { res.writeHead(405); res.end('GET uniquement'); return }
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (req.method !== 'GET') { res.writeHead(405); res.end('GET only'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     const u = new URL(req.url, 'http://127.0.0.1')
     const etat = magasin.lire(u.searchParams.get('session'))
     if (etat === null) { envoyer(res, 200, { vide: true }); return }
@@ -306,24 +306,24 @@ export function monterRoutes (webServerSvc, magasin) {
   } })
 
   webServerSvc.register({ kind: 'exact', path: ROUTE_PUSH, handler: async (req, res) => {
-    if (req.method !== 'POST') { res.writeHead(405); res.end('POST uniquement'); return }
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     // Recette 2026-10 (M-02) : un POST qui écrit l'état exige du JSON —
     // text/plain multipart etc. sont refusés.
     const ct = String(req.headers['content-type'] || '')
-    if (ct !== '' && /^application\/json/i.test(ct) === false) { res.writeHead(415); res.end('content-type json attendu'); return }
+    if (ct !== '' && /^application\/json/i.test(ct) === false) { res.writeHead(415); res.end('JSON content-type expected'); return }
     const corps = await lireCorps(req)
     // An unreadable body must not leave an empty model behind: it would become "the last model" for a panel that
     // does not name its session.
     if (!corps || typeof corps !== 'object' || (!Array.isArray(corps.ops) && texte(corps.prompt, 2000) === '' && texte(corps.cle, 60) === '')) {
-      envoyer(res, 400, { ok: false, raison: 'corps_illisible', message: 'POST /push attend `ops` (tableau), `prompt` ou `cle`.' })
+      envoyer(res, 400, { ok: false, raison: 'corps_illisible', message: 'POST /push expects `ops` (an array), `prompt` or `cle`.' })
       return
     }
     const etat = magasin.pousser(corps)
     envoyer(res, 200, { ok: true, version: etat.version, titre: etat.titre, dureeMs: etat.dureeMs })
   } })
 
-  dire(`routes ${ROUTE_STATE} et ${ROUTE_PUSH} enregistrées`)
+  dire(`routes ${ROUTE_STATE} and ${ROUTE_PUSH} registered`)
 }
 
 // ── le plugin hôte ──────────────────────────────────────────────────────────
@@ -336,9 +336,9 @@ export function apply (ctx) {
   const demarrer = (c) => {
     const tools = c.get('tools')
     const webServer = c.get('webServer')
-    if (tools !== undefined) enregistrer(tools, magasin).catch((e) => dire(`outil non enregistré : ${e?.message ?? e}`))
+    if (tools !== undefined) enregistrer(tools, magasin).catch((e) => dire(`tool not registered: ${e?.message ?? e}`))
     if (webServer !== undefined) {
-      try { monterRoutes(webServer, magasin) } catch (e) { dire(`routes non montées : ${e?.message ?? e}`) }
+      try { monterRoutes(webServer, magasin) } catch (e) { dire(`routes not mounted: ${e?.message ?? e}`) }
     }
   }
   if (ctx.get('tools') !== undefined && ctx.get('webServer') !== undefined) demarrer(ctx)

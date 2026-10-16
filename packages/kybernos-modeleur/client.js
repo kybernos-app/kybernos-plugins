@@ -24,6 +24,24 @@ window.__ModuleLoader__.load({
     const React = require('react')
     const h = React.createElement
 
+    // ── language: French is the source, English the pair; French only for a French UI, a translated language is looked up by its
+    // French text (the dictionary the Language page keeps), and every other language (and a language not known yet) reads English ──
+    const lang = () => {
+      try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
+    }
+    const kt = (fr, en) => {
+      const l = lang()
+      if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
+      if (l === 'en') return en
+      try {
+        const a = window.__KB_I18N_ACTIVE__
+        if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
+      } catch (e) { /* no dictionary: English */ }
+      return en
+    }
+    /** 'fr' for a French UI, 'en' for every other language: what a number format is keyed by. */
+    const langBase = () => { const l = lang(); return l === 'kybernos' || l.slice(0, 2) === 'fr' ? 'fr' : 'en' }
+
     const TYPE_ID = 'kybernos-modeleur'
     const KIND = 'kybernos-modeleur'
     const SLOT = 'sidebar.right.pane.tab'
@@ -504,23 +522,23 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
     function objet3D (o) {
       const facets = []
       const ajouter = (pts, couleur) => facets.push({ pts, color: hexate(couleur, COULEUR_DEFAUT) })
-      switch (o.op) {
-        case 'box': case 'bloc': case 'pave':
+      switch (OP_ALIASES.fr[o.op] ?? o.op) {
+        case 'box':
           primitiveBoite({ x: reel(o.x, 0), y: reel(o.y, 0), z: reel(o.z, 0), w: Math.abs(reel(o.w, 4)), d: Math.abs(reel(o.d, 4)), h: Math.abs(reel(o.h, 4)), color: o.color }, ajouter)
           break
-        case 'cyl': case 'cylindre':
+        case 'cyl':
           primitiveRevolution({ cx: reel(o.cx, 0), cy: reel(o.cy, 0), z: reel(o.z, 0), r: reel(o.r, 3), r2: reel(o.r2, 0), h: reel(o.h, 3), n: o.n, rot: o.rot, fond: o.fond, color: o.color }, ajouter)
           break
-        case 'cone': case 'cône':
+        case 'cone':
           primitiveRevolution({ cx: reel(o.cx, 0), cy: reel(o.cy, 0), z: reel(o.z, 0), r: reel(o.r, 3), r2: 0, h: reel(o.h, 4), n: o.n, rot: o.rot, fond: o.fond, color: o.color }, ajouter)
           break
-        case 'sphere': case 'sphère': case 'boule':
+        case 'sphere':
           primitiveSphere({ cx: reel(o.cx, 0), cy: reel(o.cy, 0), cz: reel(o.cz, reel(o.r, 3)), r: reel(o.r, 3), n: o.n, m: o.m, color: o.color }, ajouter)
           break
-        case 'tube': case 'anneau':
+        case 'tube':
           primitiveTube({ cx: reel(o.cx, 0), cy: reel(o.cy, 0), z: reel(o.z, 0), r: reel(o.r, 4), t: reel(o.t, 1), h: reel(o.h, 3), n: o.n, fond: o.fond, color: o.color }, ajouter)
           break
-        case 'extrude': case 'prisme':
+        case 'extrude':
           primitiveExtrude({ points: o.points, z: reel(o.z, 0), h: reel(o.h, 2), fond: o.fond, color: o.color }, ajouter)
           break
         default:
@@ -529,7 +547,9 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
       return facets.length > 0 ? { group: typeof o.group === 'string' ? o.group : '', facets } : null
     }
 
-    const OPS_3D = new Set(['box', 'bloc', 'pave', 'cyl', 'cylindre', 'cone', 'cône', 'sphere', 'sphère', 'boule', 'tube', 'anneau', 'extrude', 'prisme'])
+    // The 3D ops are named in English. The French names an agent may still write are synonyms, kept in a French table.
+    const OP_ALIASES = { fr: { bloc: 'box', pave: 'box', cylindre: 'cyl', cône: 'cone', sphère: 'sphere', boule: 'sphere', anneau: 'tube', prisme: 'extrude' } }
+    const OPS_3D = new Set(['box', 'cyl', 'cone', 'sphere', 'tube', 'extrude', ...Object.keys(OP_ALIASES.fr)])
 
     /** Normalise les ops 3D en objets (une op = un objet posé). */
     function normaliser3D (ops) {
@@ -661,46 +681,48 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
 
     /* ══════════════════════ DÉMOS (chips de l'état vide) ══════════════════════ */
 
+    // The titles (and the two words drawn inside the 2D demo) are read when the chip is drawn, in the language of the page; the group
+    // names are data, in English.
     const DEMOS = {
       phare: {
-        titre: 'Phare — démo 3D',
+        get titre () { return kt('Phare — démo 3D', 'Lighthouse — 3D demo') },
         espace: '3d',
         ops: [
-          { op: 'cyl', cx: 0, cy: 0, z: 0, r: 7, r2: 6.4, h: 1.2, color: '#C3C8CB', group: 'Socle' },
-          { op: 'sphere', cx: -5.2, cy: 3.4, cz: 0.9, r: 1.7, color: '#7C848A', group: 'Rochers' },
-          { op: 'sphere', cx: 4.6, cy: -4.2, cz: 0.8, r: 1.4, color: '#7C848A', group: 'Rochers' },
-          { op: 'cone', cx: 0, cy: 0, z: 1.2, r: 4.6, h: 15, color: '#EFE4C8', group: 'Tour', n: 26 },
-          { op: 'cyl', cx: 0, cy: 0, z: 16.2, r: 3.6, h: 0.9, color: '#C4291C', group: 'Galerie' },
-          { op: 'tube', cx: 0, cy: 0, z: 17.1, r: 2.5, t: 0.5, h: 2.6, color: '#D9C08C', group: 'Lanterne' },
-          { op: 'sphere', cx: 0, cy: 0, cz: 18.4, r: 1.4, color: '#F2C31A', group: 'Lanterne' },
-          { op: 'cone', cx: 0, cy: 0, z: 19.8, r: 2.9, h: 2.6, color: '#C4291C', group: 'Dôme', n: 24 },
-          { op: 'cyl', cx: 0, cy: 0, z: 22.4, r: 0.16, h: 1.6, color: '#C4291C', group: 'Dôme' },
+          { op: 'cyl', cx: 0, cy: 0, z: 0, r: 7, r2: 6.4, h: 1.2, color: '#C3C8CB', group: 'Base' },
+          { op: 'sphere', cx: -5.2, cy: 3.4, cz: 0.9, r: 1.7, color: '#7C848A', group: 'Rocks' },
+          { op: 'sphere', cx: 4.6, cy: -4.2, cz: 0.8, r: 1.4, color: '#7C848A', group: 'Rocks' },
+          { op: 'cone', cx: 0, cy: 0, z: 1.2, r: 4.6, h: 15, color: '#EFE4C8', group: 'Tower', n: 26 },
+          { op: 'cyl', cx: 0, cy: 0, z: 16.2, r: 3.6, h: 0.9, color: '#C4291C', group: 'Gallery' },
+          { op: 'tube', cx: 0, cy: 0, z: 17.1, r: 2.5, t: 0.5, h: 2.6, color: '#D9C08C', group: 'Lantern' },
+          { op: 'sphere', cx: 0, cy: 0, cz: 18.4, r: 1.4, color: '#F2C31A', group: 'Lantern' },
+          { op: 'cone', cx: 0, cy: 0, z: 19.8, r: 2.9, h: 2.6, color: '#C4291C', group: 'Dome', n: 24 },
+          { op: 'cyl', cx: 0, cy: 0, z: 22.4, r: 0.16, h: 1.6, color: '#C4291C', group: 'Dome' },
         ],
       },
       maison: {
-        titre: 'Maison — démo 3D',
+        get titre () { return kt('Maison — démo 3D', 'House — 3D demo') },
         espace: '3d',
         ops: [
-          { op: 'box', x: -8, y: -7, z: 0, w: 16, d: 14, h: 0.7, color: '#4C9A52', group: 'Terrain' },
-          { op: 'box', x: -5, y: -4, z: 0.7, w: 10, d: 8, h: 4.4, color: '#EFE4C8', group: 'Murs' },
-          { op: 'cone', cx: 0, cy: 0, z: 5.1, r: 7.0, h: 3.4, color: '#8E1B14', group: 'Toit', n: 4, rot: 45 },
-          { op: 'box', x: -1, y: -4.3, z: 0.7, w: 2, d: 0.6, h: 2.6, color: '#7A4E2B', group: 'Porte' },
-          { op: 'box', x: 3.2, y: 1.4, z: 5.4, w: 1.4, d: 1.4, h: 3.2, color: '#9BA3A7', group: 'Cheminée' },
+          { op: 'box', x: -8, y: -7, z: 0, w: 16, d: 14, h: 0.7, color: '#4C9A52', group: 'Ground' },
+          { op: 'box', x: -5, y: -4, z: 0.7, w: 10, d: 8, h: 4.4, color: '#EFE4C8', group: 'Walls' },
+          { op: 'cone', cx: 0, cy: 0, z: 5.1, r: 7.0, h: 3.4, color: '#8E1B14', group: 'Roof', n: 4, rot: 45 },
+          { op: 'box', x: -1, y: -4.3, z: 0.7, w: 2, d: 0.6, h: 2.6, color: '#7A4E2B', group: 'Door' },
+          { op: 'box', x: 3.2, y: 1.4, z: 5.4, w: 1.4, d: 1.4, h: 3.2, color: '#9BA3A7', group: 'Chimney' },
         ],
       },
       schema: {
-        titre: 'Coupe A-A — démo 2D',
+        get titre () { return kt('Coupe A-A — démo 2D', 'Section A-A — 2D demo') },
         espace: '2d',
-        ops: [
+        get ops () { return [
           { op: 'axes', x: 0, y: 0, w: 96, h: 56 },
-          { op: 'rect', x: 8, y: 8, w: 60, h: 40, stroke: '#2A2A28', fill: 'rgba(42,111,214,.06)', group: 'Viro' },
-          { op: 'circle', cx: 38, cy: 28, r: 13, stroke: '#C4291C', fill: 'rgba(196,41,28,.08)', group: 'Axe' },
-          { op: 'line', x1: 38, y1: 8, x2: 38, y2: 48, stroke: '#8a8a87', width: 1, dash: [4, 3], group: 'Axe' },
-          { op: 'arrow', x1: 68, y1: 28, x2: 88, y2: 28, group: 'Flux' },
-          { op: 'text', x: 90, y: 30, text: 'sortie', size: 8, group: 'Flux' },
-          { op: 'text', x: 8, y: 54, text: 'coupe A-A — éch. 1:2', size: 7, anchor: 'start' },
+          { op: 'rect', x: 8, y: 8, w: 60, h: 40, stroke: '#2A2A28', fill: 'rgba(42,111,214,.06)', group: 'Ferrule' },
+          { op: 'circle', cx: 38, cy: 28, r: 13, stroke: '#C4291C', fill: 'rgba(196,41,28,.08)', group: 'Axis' },
+          { op: 'line', x1: 38, y1: 8, x2: 38, y2: 48, stroke: '#8a8a87', width: 1, dash: [4, 3], group: 'Axis' },
+          { op: 'arrow', x1: 68, y1: 28, x2: 88, y2: 28, group: 'Flow' },
+          { op: 'text', x: 90, y: 30, text: kt('sortie', 'outlet'), size: 8, group: 'Flow' },
+          { op: 'text', x: 8, y: 54, text: kt('coupe A-A — éch. 1:2', 'section A-A — scale 1:2'), size: 7, anchor: 'start' },
           { op: 'text', x: 38, y: 29.5, text: 'Ø 26', size: 8, anchor: 'middle', bold: true },
-        ],
+        ] },
       },
     }
 
@@ -709,7 +731,10 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
      * React ne rend que le chrome (titre, compteurs, transport). */
 
     const abonnes = new Set()
-    let ETAT = { titre: 'Modeleur', version: -1, sessionId: '', espace: '3d', total: 0, pose: 0, lots: 0, enCours: false, desc: '', prompt: '', dureeMs: 0 }
+    /** The name the host gives a model that has none (« 3D modeller »; « Modeleur » in older hosts): shown in the language of the page. */
+    const DEFAULT_TITLES = ['Modeleur', '3D modeller']
+    const titleOf = (t) => (typeof t !== 'string' || t === '' || DEFAULT_TITLES.includes(t) ? kt('Modeleur', '3D modeller') : t)
+    let ETAT = { titre: DEFAULT_TITLES[1], version: -1, sessionId: '', espace: '3d', total: 0, pose: 0, lots: 0, enCours: false, desc: '', prompt: '', dureeMs: 0 }
     let MODELE = null
     let POSE = 0, POSE_MIN = 0, T0 = 0, DUREE = 8000, VITESSE = 1, EN_COURS = false
     const OUVERTURES_VUES = new Map() // sessionId → last reopen counter read (each session counts its own)
@@ -724,11 +749,11 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
     const PINCEAU = { on: false, coul: '#E1502A', outil: 'trait', trait: null, texte: null, texteEnAttente: null }
     const COULEURS_PEN = ['#E1502A', '#2A6FD6', '#F2C31A']
     const OUTILS_PEN = [
-      { id: 'trait', label: '✏', titre: 'Trait libre' },
-      { id: 'rect', label: '▭', titre: 'Rectangle' },
-      { id: 'ellipse', label: '◯', titre: 'Ellipse' },
-      { id: 'fleche', label: '➔', titre: 'Flèche' },
-      { id: 'texte', label: 'A', titre: 'Texte' },
+      { id: 'trait', label: '✏', get titre () { return kt('Trait libre', 'Freehand') } },
+      { id: 'rect', label: '▭', get titre () { return kt('Rectangle', 'Rectangle') } },
+      { id: 'ellipse', label: '◯', get titre () { return kt('Ellipse', 'Ellipse') } },
+      { id: 'fleche', label: '➔', get titre () { return kt('Flèche', 'Arrow') } },
+      { id: 'texte', label: 'A', get titre () { return kt('Texte', 'Text') } },
     ]
 
     /** Graine stable par annotation : le wobble rough.js ne vibre pas d'une frame à l'autre. */
@@ -897,7 +922,7 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
         POSE_MIN = 0
         POSE = 0
         publier({
-          titre: etat.titre || 'Modeleur',
+          titre: etat.titre || DEFAULT_TITLES[1],
           espace: c.espace,
           lots: c.lots,
           desc: c.desc || etat.prompt || '',
@@ -954,7 +979,7 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
         if (etat.version === VERSION_VUE && etat.sessionId === SESSION_VUE) return
         appliquer(etat)
       } catch (e) {
-        if (!enPanne) { enPanne = true; publier({ desc: 'hôte injoignable — ' + String(e?.message ?? e) }) }
+        if (!enPanne) { enPanne = true; publier({ desc: kt('hôte injoignable — ', 'host unreachable — ') + String(e?.message ?? e) }) }
       }
     }
 
@@ -1127,31 +1152,32 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
       const pose = Math.min(total, ETAT.pose || 0)
       const pct = total ? Math.round((100 * pose) / total) : 0
       const en2d = ETAT.espace === '2d'
-      const unite = en2d ? 'traits' : 'objets'
+      const unite = en2d ? kt('traits', 'lines') : kt('objets', 'objects')
+      const nombre = (n) => n.toLocaleString(langBase() === 'fr' ? 'fr-FR' : 'en-US')
 
       const barre = h('div', { className: 'kbm-foot' },
         h('div', { className: 'kbm-line' },
-          h('button', { className: 'kbm-step', title: 'Début', onClick: () => { POSE = 0; EN_COURS = false; publier({ pose: 0, enCours: false }); reveiller() } }, '\u25C0\u25C0'),
+          h('button', { className: 'kbm-step', title: kt('Début', 'Start'), onClick: () => { POSE = 0; EN_COURS = false; publier({ pose: 0, enCours: false }); reveiller() } }, '\u25C0\u25C0'),
           h('button', {
             className: 'kbm-play',
-            title: EN_COURS ? 'Pause' : 'Relire',
+            title: EN_COURS ? 'Pause' : kt('Relire', 'Replay'),
             onClick: () => {
               if (EN_COURS) { EN_COURS = false; publier({ enCours: false }); reveiller(); return }
               POSE_MIN = 0; POSE = 0; T0 = performance.now(); DUREE = DUREE_BUILD; EN_COURS = true
               publier({ enCours: true }); reveiller()
             },
           }, EN_COURS ? '\u23F8' : '\u25B6'),
-          h('button', { className: 'kbm-step', title: 'Fin', onClick: () => { POSE = total; EN_COURS = false; publier({ pose: total, enCours: false }); reveiller() } }, '\u25B6\u25B6'),
+          h('button', { className: 'kbm-step', title: kt('Fin', 'End'), onClick: () => { POSE = total; EN_COURS = false; publier({ pose: total, enCours: false }); reveiller() } }, '\u25B6\u25B6'),
           h('button', { className: 'kbm-sp' + (VITESSE === 0.5 ? ' on' : ''), onClick: () => { VITESSE = 0.5; maj() } }, '0.5\u00D7'),
           h('button', { className: 'kbm-sp' + (VITESSE === 1 ? ' on' : ''), onClick: () => { VITESSE = 1; maj() } }, '1\u00D7'),
           h('button', { className: 'kbm-sp' + (VITESSE === 2 ? ' on' : ''), onClick: () => { VITESSE = 2; maj() } }, '2\u00D7'),
           h('button', { className: 'kbm-sp' + (VITESSE === 4 ? ' on' : ''), onClick: () => { VITESSE = 4; maj() } }, '4\u00D7'),
-          h('span', { className: 'kbm-badge' + (EN_COURS ? ' run' : '') }, total ? (EN_COURS ? pct + ' %' : 'Fini') : '\u2014'),
+          h('span', { className: 'kbm-badge' + (EN_COURS ? ' run' : '') }, total ? (EN_COURS ? pct + (langBase() === 'fr' ? ' %' : '%') : kt('Fini', 'Done')) : '\u2014'),
         ),
         h('div', { className: 'kbm-track', style: { marginTop: '7px' } },
           h('div', { className: 'kbm-lab' },
-            h('b', {}, pose.toLocaleString('fr-FR')),
-            ' / ' + total.toLocaleString('fr-FR') + ' ' + unite + ' \u00B7 ' + (ETAT.lots || 0) + ' lots'),
+            h('b', {}, nombre(pose)),
+            ' / ' + nombre(total) + ' ' + unite + ' \u00B7 ' + (ETAT.lots || 0) + kt(' lots', ' groups')),
           h('input', {
             className: 'kbm-range', type: 'range', min: 0, max: Math.max(1, total), value: pose,
             onChange: (e) => { POSE = Number(e.target.value); EN_COURS = false; publier({ pose: POSE, enCours: false }); reveiller() },
@@ -1159,13 +1185,15 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
         ETAT.desc ? h('div', { className: 'kbm-note', title: ETAT.desc }, ETAT.desc) : null,
         ANN.traits.length > 0
           ? h('div', { className: 'kbm-note' },
-              `✏️ ${ANN.traits.length} trait(s) dessinés par-dessus — demande au chat : « réajuste d'après mes traits »`)
+              ANN.traits.length === 1
+                ? kt('✏️ 1 trait dessiné par-dessus — demandez au chat : « réajuste d\'après mes traits »', '✏️ 1 stroke drawn on top — ask the chat: “readjust from my strokes”')
+                : kt(`✏️ ${ANN.traits.length} traits dessinés par-dessus — demandez au chat : « réajuste d'après mes traits »`, `✏️ ${ANN.traits.length} strokes drawn on top — ask the chat: “readjust from my strokes”`))
           : null,
       )
 
       const vide = h('div', { className: 'kbm-empty' },
-        h('div', {}, h('b', {}, 'Aucun modèle pour le moment')),
-        h('div', {}, 'Demande au chat : ', h('code', {}, 'dessine un phare en 3D')),
+        h('div', {}, h('b', {}, kt('Aucun modèle pour le moment', 'No model yet'))),
+        h('div', {}, kt('Demandez au chat : ', 'Ask the chat: '), h('code', {}, kt('dessinez un phare en 3D', 'draw a lighthouse in 3D'))),
         h('div', { className: 'kbm-chips' }, ...Object.keys(DEMOS).map((cle) => h(Apercu, { key: cle, cle }))),
       )
 
@@ -1173,7 +1201,7 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
       // Models page, so the mini-apps plugin cannot find the Modeleur by it (scripts/test-miniapps-panels.mjs).
       return h('div', { className: 'kbm-root kbmo' },
         h('div', { className: 'kbm-head' },
-          h('span', { className: 'kbm-title', title: ETAT.titre }, ETAT.titre || 'Modeleur'),
+          h('span', { className: 'kbm-title', title: titleOf(ETAT.titre) }, titleOf(ETAT.titre)),
           h('span', { className: 'kbm-badge' }, en2d ? '2D' : '3D')),
         h('div', { className: 'kbm-view' },
           h('canvas', {
@@ -1188,7 +1216,7 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
                 className: 'kbm-saisie',
                 style: { left: `${PINCEAU.texte.x * 100}%`, top: `calc(${PINCEAU.texte.y * 100}% - 22px)`, color: PINCEAU.coul },
                 autoFocus: true,
-                placeholder: 'ton texte…',
+                placeholder: kt('votre texte…', 'your text…'),
                 onInput: (e) => { PINCEAU.texte.valeur = e.currentTarget.value },
                 onKeyDown: (e) => {
                   if (e.key === 'Enter') validerTexte()
@@ -1204,7 +1232,7 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
           total ? h('div', { className: 'kbm-tools' },
             h('button', {
               className: 'kbm-tool' + (PINCEAU.on ? ' on' : ''),
-              title: 'Dessiner par-dessus — le chat relit tes traits et réajuste',
+              title: kt('Dessiner par-dessus — le chat relit vos traits et réajuste', 'Draw on top — the chat reads your strokes and adjusts the model'),
               onClick: () => { PINCEAU.on = !PINCEAU.on; PINCEAU.trait = null; maj() },
             }, '✏'),
             PINCEAU.on
@@ -1225,25 +1253,25 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
               : null,
             h('button', {
               className: 'kbm-tool',
-              title: 'Effacer tous mes traits',
+              title: kt('Effacer tous mes traits', 'Erase all my strokes'),
               onClick: () => { ANN.traits = []; PINCEAU.trait = null; envoyerTraits(); reveiller(); maj() },
-            }, 'Effacer'),
+            }, kt('Effacer', 'Erase')),
             en2d
               ? [
-                  h('button', { className: 'kbm-tool' + (CANEVAS.grille ? ' on' : ''), onClick: (e) => { CANEVAS.grille = !CANEVAS.grille; e.currentTarget.classList.toggle('on', CANEVAS.grille); reveiller() } }, 'Grille'),
+                  h('button', { className: 'kbm-tool' + (CANEVAS.grille ? ' on' : ''), onClick: (e) => { CANEVAS.grille = !CANEVAS.grille; e.currentTarget.classList.toggle('on', CANEVAS.grille); reveiller() } }, kt('Grille', 'Grid')),
                   h('button', {
                     className: 'kbm-tool',
                     onClick: () => { CANEVAS.cam2d = { zoom: 1, dx: 0, dy: 0 }; reveiller() },
-                  }, 'Ajuster'),
+                  }, kt('Ajuster', 'Fit')),
                 ]
               : [
                   h('button', { className: 'kbm-tool' + (vue === 'iso' ? ' on' : ''), onClick: () => vueCam('iso') }, '3/4'),
-                  h('button', { className: 'kbm-tool' + (vue === 'front' ? ' on' : ''), onClick: () => vueCam('front') }, 'Front'),
-                  h('button', { className: 'kbm-tool' + (vue === 'top' ? ' on' : ''), onClick: () => vueCam('top') }, 'Top'),
+                  h('button', { className: 'kbm-tool' + (vue === 'front' ? ' on' : ''), onClick: () => vueCam('front') }, kt('Face', 'Front')),
+                  h('button', { className: 'kbm-tool' + (vue === 'top' ? ' on' : ''), onClick: () => vueCam('top') }, kt('Dessus', 'Top')),
                   h('button', {
                     className: 'kbm-tool' + (CANEVAS.spin ? ' on' : ''),
                     onClick: (e) => { CANEVAS.spin = !CANEVAS.spin; e.currentTarget.classList.toggle('on', CANEVAS.spin); reveiller() },
-                  }, 'Spin'),
+                  }, kt('Rotation', 'Spin')),
                 ]) : null),
         barre,
       )
@@ -1275,19 +1303,19 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
         ctx.effect(() => registre.register({
           id: TYPE_ID,
           kind: KIND,
-          title: () => 'Modeleur',
-          guide: [{ title: () => 'Modeleur', description: () => 'Modèles 2D et 3D pilotés par le chat : dessin à l\'échelle, solides orbitables, pose en direct puis relecture.' }],
-        }), 'kybernos-modeleur: type d onglet barre latérale droite')
+          title: () => kt('Modeleur', '3D modeller'),
+          guide: [{ title: () => kt('Modeleur', '3D modeller'), description: () => kt('Modèles 2D et 3D pilotés par le chat : dessin à l\'échelle, solides orbitables, pose en direct puis relecture.', '2D and 3D models driven by the chat: scale drawings, orbitable solids, laid live, then replayed.') }],
+        }), 'kybernos-modeleur: right sidebar tab type')
       }
 
       ctx.effect(() => ctx.slots.inject(SLOT, () => ctx.slots.register(
-        { name: SLOT, key: TYPE_ID }, PanneauModeleur)), 'kybernos-modeleur: corps de panneau')
+        { name: SLOT, key: TYPE_ID }, PanneauModeleur)), 'kybernos-modeleur: panel body')
 
       ctx.effect(() => {
         interroger()
         const t = setInterval(interroger, CADENCE_MS)
         return () => clearInterval(t)
-      }, 'kybernos-modeleur: sonde de l hote')
+      }, 'kybernos-modeleur: host probe')
     }
 
     return {
@@ -1297,7 +1325,7 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
       apply,
       // Surface de test : le harnais monte les moteurs et l'exécuteur d'ops
       // sans navigateur — aucun rendu React n'est nécessaire pour les vérifier.
-      __test: { normaliser2D, normaliser3D, bornes2D, bornes3D, dessiner2D, dessiner3D, construire, DEMOS, makeCam, OPS_2D, OPS_3D, parserChemin, ordonnerFacettes, tracerAnnotations, graineDe, traitsAnn: () => ANN.traits, poserTraits: (t) => { ANN.traits = t }, pinceau: PINCEAU },
+      __test: { titleOf, kt, normaliser2D, normaliser3D, bornes2D, bornes3D, dessiner2D, dessiner3D, construire, DEMOS, makeCam, OPS_2D, OPS_3D, parserChemin, ordonnerFacettes, tracerAnnotations, graineDe, traitsAnn: () => ANN.traits, poserTraits: (t) => { ANN.traits = t }, pinceau: PINCEAU },
     }
   }
 })

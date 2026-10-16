@@ -127,6 +127,36 @@ console.log('mounting')
   check('the effect\'s cleanup removes the button and the watcher', button.removed === true && dom.listeners.length === 0)
 }
 
+console.log('the menu button is named in the language of the page (A1-23): English until the language is known, then it follows')
+{
+  const mountWith = (resolve) => {
+    const dom = makeDom({ collapsed: true })
+    const def = load(dom, { lang: 'en' })
+    const fire = []
+    globalThis.window.__KB_LANG_RESOLVE__ = resolve
+    globalThis.window.addEventListener = (ev, fn) => { fire.push({ ev, fn }) }
+    globalThis.window.removeEventListener = () => {}
+    const plugin = def.factory()
+    plugin.apply({ effect: (fn) => fn() })
+    const button = dom.body.children.find((c) => c.className === 'kbmob-menu')
+    return { button, fire }
+  }
+  const early = mountWith(() => { throw new Error('the language is not known yet') })
+  check('before the language is known the label is English, not French', early.button.attrs['aria-label'] === 'Open the menu', early.button.attrs['aria-label'])
+  let now = 'en'
+  const live = mountWith(() => now)
+  check('an English page: English', live.button.attrs['aria-label'] === 'Open the menu')
+  now = 'kybernos'
+  for (const l of live.fire.filter((f) => f.ev === 'kybernos-lang-change')) l.fn()
+  check('the language changes to French: the label follows without a reload', live.button.attrs['aria-label'] === 'Ouvrir le menu', live.button.attrs['aria-label'])
+  now = 'es'
+  for (const l of live.fire.filter((f) => f.ev === 'kybernos-lang-change')) l.fn()
+  check('Spanish (no table of ours): English, never French', live.button.attrs['aria-label'] === 'Open the menu', live.button.attrs['aria-label'])
+  now = 'ar'
+  live.button.listeners.filter((l) => l.ev === 'focus').forEach((l) => l.fn())
+  check('the label is also written again when the button is reached', live.button.attrs['aria-label'] === 'Open the menu')
+}
+
 console.log('the stylesheet did not arrive')
 {
   const dom = makeDom({ sheet: false })

@@ -44,8 +44,10 @@ function fauxContexte () {
 const faussCanvas = () => ({ width: 0, height: 0, clientWidth: 340, clientHeight: 260, style: {}, getContext: () => fauxContexte(), addEventListener: () => {}, removeEventListener: () => {} })
 
 let definition = null
+let langue = 'kybernos' // the language the page resolves to: the existing checks below read the French panel
 globalThis.window = {
   __ModuleLoader__: { load: (d) => { definition = d } },
+  __KB_LANG_RESOLVE__: () => { if (langue === 'throws') throw new Error('langue pas encore connue'); return langue },
   devicePixelRatio: 1,
   addEventListener: () => {},
 }
@@ -255,6 +257,27 @@ ok('le chrome porte le titre et le badge d\'espace', texte.includes('Modeleur') 
 ok('l\'état vide propose les trois démos',
   texte.includes('"cle":"phare"') && texte.includes('"cle":"maison"') && texte.includes('"cle":"schema"'))
 ok('le transport est là (lecture, vitesses)', texte.includes('0.5×') && texte.includes('4×'))
+
+// ── la langue : français pour le français, anglais pour toute autre langue (A2-31, A2-08) ──
+for (const [lg, attendu, interdit] of [
+  ['en', ['3D modeller', 'No model yet', 'Ask the chat', 'Start', 'Replay', 'End', 'Lighthouse'], /Aucun|Demandez|Modeleur|Début|Relire|Phare/],
+  ['kybernos', ['Modeleur', 'Aucun modèle pour le moment', 'Demandez au chat', 'Début', 'Relire', 'Phare'], /No model|Ask the chat|3D modeller|Replay|Lighthouse/],
+  ['es', ['3D modeller', 'No model yet', 'Ask the chat'], /Aucun|Demandez|Modeleur|Début|Phare/],
+  ['ar', ['3D modeller', 'No model yet'], /Aucun|Modeleur|Phare/],
+  ['throws', ['3D modeller', 'No model yet'], /Aucun|Modeleur|Phare/],
+]) {
+  langue = lg
+  const t = JSON.stringify(composant({})) + ' ' + Object.values(T.DEMOS).map((d) => d.titre).join(' ') + ' ' + slotsInj.filter((r) => r && r.title).map((r) => r.title()).join(' ')
+  ok(`langue « ${lg} » : le panneau, les puces et le titre d'onglet parlent la langue de la page`, attendu.every((m) => t.includes(m)) && !interdit.test(t), t.slice(0, 150))
+}
+langue = 'en'
+ok('la démo schéma : les mots dessinés dans le plan suivent la langue', T.DEMOS.schema.ops.some((o) => o.text === 'outlet') && T.DEMOS.schema.ops.some((o) => o.text === 'section A-A — scale 1:2'))
+langue = 'kybernos'
+ok('…en français aussi', T.DEMOS.schema.ops.some((o) => o.text === 'sortie'))
+ok('les noms de groupes des démos sont des données en anglais (aucun mot français)', Object.values(T.DEMOS).every((d) => d.ops.every((o) => o.group === undefined || /^[A-Za-z]+$/.test(o.group))))
+ok('les synonymes français des ops 3D restent acceptés (bloc, cylindre, cône, sphère, boule, anneau, prisme, pave)',
+  ['bloc', 'pave', 'cylindre', 'cône', 'sphère', 'boule', 'anneau', 'prisme'].every((nom) => T.OPS_3D.has(nom) && T.normaliser3D([{ op: nom, points: [[0, 0], [4, 0], [2, 3]], x: 0, y: 0, z: 0, w: 2, d: 2, h: 2 }]).length === 1))
+langue = 'kybernos'
 
 // ── A4-07: the Text annotation tool ─────────────────────────────────────────────
 // The field used to open on pointerdown, was focused and then blurred at once by the focus move that ends that same press,

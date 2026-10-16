@@ -35,8 +35,21 @@ window.__ModuleLoader__.load({
       // global panels (Automation tasks: the buttons of a nav in the sidebar).
       const PICKS = '[data-row-key^="session:"], .kb4-item, .kb4-newchat, [data-slot^="sidebar.panellist"] button, [data-slot="sidebar"] nav > button'
 
-      const lang = () => { try { return String(window.__KB_LANG_RESOLVE__ ? window.__KB_LANG_RESOLVE__() : '').split(/[-_]/)[0] } catch (e) { return 'fr' } }
-      const kt = (fr, en) => (lang() === 'en' ? en : fr)
+      // ── language: French is the source, English the pair; French only for a French UI, a translated language is looked up by its
+      // French text, and every other language (and a language not known yet) reads English ──
+      const lang = () => {
+        try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
+      }
+      const kt = (fr, en) => {
+        const l = lang()
+        if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
+        if (l === 'en') return en
+        try {
+          const a = window.__KB_I18N_ACTIVE__
+          if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
+        } catch (e) { /* no dictionary: English */ }
+        return en
+      }
 
       const narrow = () => { try { return window.matchMedia(MEDIA).matches === true } catch (e) { return false } }
       const frame = () => { try { return document.querySelector('[data-slot="root"] > div') } catch (e) { return null } }
@@ -282,7 +295,12 @@ window.__ModuleLoader__.load({
         button.type = 'button'
         button.className = MENU_CLASS
         button.setAttribute('data-kb', 'mobile-menu')
-        button.setAttribute('aria-label', kt('Ouvrir le menu', 'Open the menu'))
+        // The label follows the language: it is written now, again when the language changes, and again when the button is
+        // reached (the language is often not known yet at the first paint, and a label written once stayed in the wrong one).
+        const relabel = () => { try { button.setAttribute('aria-label', kt('Ouvrir le menu', 'Open the menu')) } catch (e) { /* the button went away */ } }
+        relabel()
+        for (const ev of ['focus', 'pointerenter', 'touchstart']) button.addEventListener(ev, relabel, { passive: true })
+        try { window.addEventListener('kybernos-lang-change', relabel); undo.push(() => window.removeEventListener('kybernos-lang-change', relabel)) } catch (e) { /* no window */ }
         button.appendChild(menuIcon())
         button.addEventListener('click', (e) => { e.stopPropagation(); opened = !drawerOpen(); flip() })
         document.body.appendChild(button)
@@ -685,7 +703,9 @@ window.__ModuleLoader__.load({
                 s.relay === 'up' ? h('span', { className: 'kbmr-sub kbmr-inline' }, h('span', { className: 'kbmr-dot on', 'aria-hidden': 'true' }), kt('Relais Kybernos joint', 'Kybernos relay reached')) : null),
               h(Devices, { devices, onRevoke: (id) => run('devices/revoke', { id }) }),
               devices.length > 1 ? h('button', { type: 'button', className: 'kbmr-link', 'data-kb': 'mobile-revoke-all', onClick: () => { void run('devices/revoke-all') } }, kt('Tout révoquer', 'Revoke all')) : null,
-              s.refused > 0 ? h('div', { className: 'kbmr-sub' }, kt(s.refused + ' demande(s) refusée(s) depuis un téléphone (réglages, identifiants, extensions).', s.refused + ' request(s) refused from a phone (settings, credentials, plugins).')) : null))
+              s.refused > 0 ? h('div', { className: 'kbmr-sub' }, (s.refused === 1
+                ? kt('1 demande refusée depuis un téléphone (réglages, identifiants, extensions).', '1 request refused from a phone (settings, credentials, plugins).')
+                : kt(s.refused + ' demandes refusées depuis un téléphone (réglages, identifiants, extensions).', s.refused + ' requests refused from a phone (settings, credentials, plugins).'))) : null))
         }
 
         // The « ? How it works » button of this bundle (the Suite publishes it; without the Suite there is none). The card it opens is

@@ -22,7 +22,8 @@ window.__ModuleLoader__.load({
       const API = '/kybernos-call'
       const SDK_URL = API + '/vendor/livekit-client.js'
 
-      // ── language: French is the source, English the pair; a translated language is looked up by its French text ──
+      // ── language: French is the source, English the pair; French only for a French UI, a translated language is looked up by its
+      // French text (the dictionary the Language page keeps), and every other language reads English ──
       const lang = () => {
         try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
       }
@@ -31,10 +32,13 @@ window.__ModuleLoader__.load({
         if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
         if (l === 'en') return en
         try {
-          const tr = typeof window.__KB_LANG_T__ === 'function' ? window.__KB_LANG_T__(fr) : null
-          return (typeof tr === 'string' && tr !== '') ? tr : en
-        } catch (e) { return en }
+          const a = window.__KB_I18N_ACTIVE__
+          if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
+        } catch (e) { /* no dictionary: English */ }
+        return en
       }
+      /** 'fr' for a French UI, 'en' for every other language. */
+      const langBase = () => { const l = lang(); return l === 'kybernos' || l.slice(0, 2) === 'fr' ? 'fr' : 'en' }
 
       // ── the call state: one call at a time, outside React so any surface can open it ──
       let state = null // { role, name, mode, phase, note, lines, startedAt, agent, muted }
@@ -778,6 +782,18 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
       const noModels = (c, p) => p.source === 'models' && ((p.id === 'models-asr' && foundModels(c, 'listen').length === 0) || (p.id === 'models-tts' && foundModels(c, 'speak').length === 0))
       const stateChip = (p, c) => (p.available !== true ? Chip('warn', kt('Bientôt', 'Coming soon')) : (c && noModels(c, p) ? Chip('warn', kt('Pas trouvé dans vos Modèles', 'Not found in your Models')) : (p.ready === true ? Chip('ok', kt('Prêt', 'Ready')) : Chip('warn', kt('Clé manquante', 'Needs a key')))))
       const SAMPLES = { fr: 'Bonjour, je suis votre assistant. Comment puis-je vous aider ?', en: 'Hello, I am your assistant. How can I help you?', es: 'Hola, soy tu asistente. ¿En qué puedo ayudarte?', de: 'Hallo, ich bin dein Assistent. Wie kann ich dir helfen?', it: 'Ciao, sono il tuo assistente. Come posso aiutarti?', pt: 'Olá, sou o seu assistente. Como posso ajudar?' }
+      // Six languages have a sentence of ours. For any other voice language the test does not pretend: it counts from 1 to 5 in that voice
+      // (a neutral text every engine reads in its own language) and the page says so.
+      const NEUTRAL_SAMPLE = '1, 2, 3, 4, 5.'
+      const sampleFor = (code) => {
+        const base = String(code || '').split(/[-_]/)[0].toLowerCase()
+        return SAMPLES[base] !== undefined ? { lang: base, text: SAMPLES[base], neutral: false } : { lang: base === '' ? 'en' : base, text: NEUTRAL_SAMPLE, neutral: true }
+      }
+      /** The name of a language in the language of the page (the code itself when the browser does not know it). */
+      const languageName = (code) => {
+        try { const n = new Intl.DisplayNames([langBase()], { type: 'language' }).of(String(code)); if (typeof n === 'string' && n !== '') return n } catch (e) { /* no Intl.DisplayNames */ }
+        return String(code)
+      }
 
       // One provider's page. The same layout for every provider of every slot, drawn from the catalogue the host sends.
       const ProviderForm = (props) => {
@@ -823,8 +839,8 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
         const listen = async () => {
           const v = voiceOf(chosen)
           const wanted = v && v.lang ? String(v.lang) : kt('fr', 'en')
-          const lang = SAMPLES[wanted] !== undefined ? wanted : 'en'
-          const body = Object.assign({ text: SAMPLES[lang], lang: lang }, p.engine ? { engine: p.engine, voice: chosen } : {})
+          const sample = sampleFor(wanted)
+          const body = Object.assign({ text: sample.text, lang: sample.lang }, p.engine ? { engine: p.engine, voice: chosen } : {})
           setListening(true)
           try {
             const r = await fetch('/kybernos/tts/speak', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
@@ -833,6 +849,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
               const audio = new Audio(out.audio)
               await new Promise((resolve) => { audio.onended = resolve; audio.onerror = resolve; audio.play().catch(resolve) })
               if (p.engine && out.engine !== p.engine) c.say(true, kt('Cette voix n’a pas pu parler : ', 'That voice could not speak: ') + (out.attempts && out.attempts[0] && out.attempts[0].error ? out.attempts[0].error : kt('l’app a utilisé un autre moteur', 'the app used another engine')))
+              else if (sample.neutral) c.say(false, kt('Pas encore de phrase d’essai en ' + languageName(sample.lang) + ' : la voix compte de 1 à 5.', 'No sample sentence in ' + languageName(sample.lang) + ' yet: the voice counts from 1 to 5.'))
               else c.setNotice(null)
             } else c.say(true, kt('Écoute impossible — ', 'Could not play — ') + ((out && out.error) || kt('le moteur de voix ne répond pas', 'the voice engine does not answer')))
           } catch (e) { c.say(true, kt('Écoute impossible — le moteur de voix ne répond pas', 'Could not play — the voice engine does not answer')) }
@@ -1154,7 +1171,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
       return {
         name: 'kybernos-call',
         inject: ['slots'],
-        __test: { getGoto: () => settingsGoto, openCallSettings: openCallSettings, open: open, hangUp: hangUp, toggleMute: toggleMute, toggleSounds: toggleSounds, getState: () => state, setAudioHost: (el) => { audioHost = el }, switchMic: switchMic, CallHeader: CallHeader, SettingsPage: SettingsPage, CSS: CSS, cloneNote: cloneNote },
+        __test: { getGoto: () => settingsGoto, openCallSettings: openCallSettings, open: open, hangUp: hangUp, toggleMute: toggleMute, toggleSounds: toggleSounds, getState: () => state, setAudioHost: (el) => { audioHost = el }, switchMic: switchMic, CallHeader: CallHeader, SettingsPage: SettingsPage, CSS: CSS, cloneNote: cloneNote, sampleFor: sampleFor, kt: kt },
         apply (ctx) {
           try {
             const slots = ctx.slots

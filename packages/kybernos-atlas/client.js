@@ -25,6 +25,216 @@
 window.__ModuleLoader__.load({
   id: '@local/kybernos-atlas/client',
   factory (require) {
+    // ── language: English is the base; the French of each static text lives in FR below, keyed by the English text. A sentence that
+    // carries a name or a number is written where it is built, as a kt(fr, en) pair. French only for a French UI, a translated language
+    // is looked up by its French text, and every other language (and a language not known yet) reads English ──
+    const lang = () => {
+      try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
+    }
+    const kt = (fr, en) => {
+      const l = lang()
+      if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
+      if (l === 'en') return en
+      try {
+        const a = window.__KB_I18N_ACTIVE__
+        if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
+      } catch (e) { /* no dictionary: English */ }
+      return en
+    }
+    /** 'fr' for a French UI, 'en' for every other language. */
+    const langBase = () => { const l = lang(); return l === 'kybernos' || l.slice(0, 2) === 'fr' ? 'fr' : 'en' }
+    const FR = {
+      'not recorded': 'non enregistré',
+      'today': 'aujourd’hui',
+      'yesterday': 'hier',
+      'just now': 'à l’instant',
+      'read failed': 'lecture échouée',
+      'Shared or unassigned': 'Partagé ou non attribué',
+      'No agent team definition found; only its lessons and runs remain.': 'Aucune définition d’Agent Team trouvée ; il ne reste que ses leçons et ses exécutions.',
+      'No description.': 'Aucune description.',
+      'lessons only': 'leçons seulement',
+      'Not installed': 'Non installée',
+      'Another skill has the same name in another folder. Only one of them is used.': 'Une autre skill porte le même nom dans un autre dossier. Une seule des deux est utilisée.',
+      'Account memory': 'Mémoire du compte',
+      'Account not linked': 'Compte non relié',
+      'no answer': 'pas de réponse',
+      'task history': 'historique de la tâche',
+      'Everything here is read live from your own files and plugins.': 'Tout ce qui figure ici est lu en direct dans vos propres fichiers et plugins.',
+      'Workspace': 'Espace de travail',
+      'Run': 'Exécution',
+      'Project': 'Projet',
+      'Projects': 'Projets',
+      'Agent Teams & automations': 'Agent Teams et automations',
+      'Agent Teams': 'Agent Teams',
+      'Automations': 'Automations',
+      'Skills & apps': 'Skills et apps',
+      'Skills': 'Skills',
+      'Apps': 'Apps',
+      'Memory & lessons': 'Mémoire et leçons',
+      'Memory': 'Mémoire',
+      'Lessons': 'Leçons',
+      'Agent Team': 'Agent Team',
+      'Automation': 'Automation',
+      'Skill': 'Skill',
+      'App': 'App',
+      'Lesson': 'Leçon',
+      'Resources': 'Ressources',
+      'Connectors': 'Connecteurs',
+      'the session': 'la session',
+      'Memory (cloud)': 'Mémoire (cloud)',
+      'AUTOMATION RUNS · LAST 14 DAYS': 'EXÉCUTIONS DES AUTOMATIONS · 14 DERNIERS JOURS',
+      'FILES BY LAST CHANGE': 'FICHIERS PAR DERNIÈRE MODIFICATION',
+      'No automation run in the last 14 days.': 'Aucune exécution d’automation ces 14 derniers jours.',
+      'no date': 'sans date',
+      'Close help': 'Fermer l’aide',
+      'How to read the Atlas': 'Comment lire l’Atlas',
+      'The Atlas shows how the things you set up fit together. It reads your files and plugins only when you click Update, and never edits them. It keeps its last reading in this browser, so the page opens on it.': 'L’Atlas montre comment ce que vous avez mis en place s’articule. Il ne lit vos fichiers et vos plugins que lorsque vous cliquez sur Mettre à jour, et ne les modifie jamais. Il garde sa dernière lecture dans ce navigateur : la page s’ouvre donc dessus.',
+      'The views': 'Les vues',
+      'Around': 'Autour',
+      'Pick a project or an agent team in “Start from”. Four columns show who works there, what they use and what they know. Hover a name to light up its lines.': 'Choisissez un projet ou une Agent Team dans « Partir de ». Quatre colonnes montrent qui y travaille, ce qu’il utilise et ce qu’il sait. Survolez un nom pour allumer ses lignes.',
+      'Rings': 'Anneaux',
+      'The whole workspace: one ring per layer, the workspace in the middle, each project keeping its wedge.': 'Tout l’espace de travail : un anneau par couche, l’espace de travail au centre, chaque projet gardant sa part.',
+      'Circle': 'Cercle',
+      'Every node on one ring, grouped by project. Links cross the middle.': 'Tous les nœuds sur un seul anneau, groupés par projet. Les liens traversent le milieu.',
+      'Areas': 'Zones',
+      'One cluster per project. Lines between clusters show what crosses projects.': 'Un groupe par projet. Les lignes entre groupes montrent ce qui traverse les projets.',
+      'Links': 'Liens',
+      'Nodes pulled together by what they reference. Loose ends drift to the edge.': 'Des nœuds rapprochés par ce qu’ils référencent. Les bouts isolés partent vers le bord.',
+      'Timeline': 'Chronologie',
+      'Automation runs of the last 14 days on top, everything else by last change below.': 'Les exécutions d’automations des 14 derniers jours en haut, tout le reste par dernière modification en dessous.',
+      'Orbit': 'Orbite',
+      'The rings as a stack that turns on its own. Drag to turn it.': 'Les anneaux en pile qui tourne toute seule. Faites glisser pour la tourner.',
+      'List': 'Liste',
+      'The same things as a table. The text version of every drawing.': 'Les mêmes éléments en tableau. La version texte de chaque dessin.',
+      'In the drawings': 'Dans les dessins',
+      'Click a dot for details; the card has an Open button when the thing has a page in Kybernos (a skill, an agent team, a project, an automation, a connector, or the session of a run). Search finds a name and flies to it. Click a legend chip to isolate it. Names shows every name, Motion lets the dots drift, and Lessons adds the lessons, which are many and so off by default. Ctrl or ⌘ + scroll, or the + and − buttons, zoom.': 'Cliquez sur un point pour les détails ; la fiche a un bouton Ouvrir quand l’élément a une page dans Kybernos (une skill, une Agent Team, un projet, une automation, un connecteur ou la session d’une exécution). La recherche trouve un nom et s’y rend. Cliquez sur une pastille de la légende pour l’isoler. Noms affiche tous les noms, Mouvement laisse les points dériver, et Leçons ajoute les leçons, nombreuses donc masquées par défaut. Ctrl ou ⌘ + molette, ou les boutons + et −, zooment.',
+      'The lines': 'Les lignes',
+      'Solid. ': 'Pleine. ',
+      'Written in a file. For example, an agent team lists a skill.': 'Écrite dans un fichier. Par exemple, une Agent Team liste une skill.',
+      'Dashed. ': 'En pointillés. ',
+      'Guessed from a name. For example, an app that matches one of an agent team’s tools.': 'Devinée d’après un nom. Par exemple, une app qui correspond à l’un des outils d’une Agent Team.',
+      'Crossed out, red. ': 'Barrée, en rouge. ',
+      'Points to something that no longer exists, such as a skill that is not installed.': 'Pointe vers quelque chose qui n’existe plus, comme une skill qui n’est pas installée.',
+      'To check': 'À vérifier',
+      'Red items are broken links. Amber items look wrong, for example an automation whose last run failed. Click one to see where it is on the map. Skills that nobody declares are not listed: skills are mostly used by name, on demand.': 'Les éléments rouges sont des liens cassés. Les éléments ambre ont l’air anormaux, par exemple une automation dont la dernière exécution a échoué. Cliquez sur l’un d’eux pour voir où il se trouve sur la carte. Les skills que personne ne déclare ne sont pas listées : les skills sont surtout utilisées par leur nom, à la demande.',
+      'Words': 'Les mots',
+      'A workspace in DSH.': 'Un espace de travail dans DSH.',
+      'A team of agents with its own roles, skills and lessons.': 'Une équipe d’agents avec ses propres rôles, skills et leçons.',
+      'A reusable instruction set an agent team or a project can use.': 'Un jeu d’instructions réutilisable qu’une Agent Team ou un projet peut utiliser.',
+      'Facts kept in your kybernos.app account. Needs a linked account.': 'Des faits gardés dans votre compte kybernos.app. Demande un compte relié.',
+      'Something an agent team learned from a past run. The most recent few are shown.': 'Ce qu’une Agent Team a appris d’une exécution passée. Les plus récentes sont affichées.',
+      'A scheduled task. Its last run is shown on its card.': 'Une tâche planifiée. Sa dernière exécution figure sur sa fiche.',
+      'What you will not see': 'Ce que vous ne verrez pas',
+      'Sessions. Automation runs only appear in the drawings, and only the last 14 days.': 'Les sessions. Les exécutions d’automations n’apparaissent que dans les dessins, et seulement sur les 14 derniers jours.',
+      'Which agent team worked in which project, beyond each project’s 40 most recent sessions. It is only known when an agent team was activated in a session.': 'Quelle Agent Team a travaillé dans quel projet, au-delà des 40 sessions les plus récentes de chaque projet. On ne le sait que lorsqu’une Agent Team a été activée dans une session.',
+      'Account memory fact by fact. It can hold hundreds, so it is one node with a count.': 'La mémoire du compte fait par fait. Elle peut en contenir des centaines : c’est donc un seul nœud avec un compteur.',
+      'Memories, when no account is linked.': 'Les mémoires, quand aucun compte n’est relié.',
+      'Links no file declares. Names are the only thing it guesses from.': 'Les liens qu’aucun fichier ne déclare. Les noms sont la seule chose dont il se sert pour deviner.',
+      'The colour of a dot is its project. Grey means shared or unassigned. The shape is the kind, as in the legend.': 'La couleur d’un point est son projet. Le gris veut dire partagé ou non attribué. La forme est le type, comme dans la légende.',
+      'Got it': 'Compris',
+      'Start from': 'Partir de',
+      'Choose…': 'Choisir…',
+      'Search a project, agent team, skill…': 'Chercher un projet, une Agent Team, une skill…',
+      'Search': 'Rechercher',
+      'No match': 'Aucun résultat',
+      'Pick a project or an agent team in “Start from”.': 'Choisissez un projet ou une Agent Team dans « Partir de ».',
+      'Not read. Link your kybernos.app account to see memory.': 'Non lue. Reliez votre compte kybernos.app pour voir la mémoire.',
+      'Who works on this project, what they use and what they know.': 'Qui travaille sur ce projet, ce qu’il utilise et ce qu’il sait.',
+      'Where this agent team is used, what it uses and what it knows.': 'Où cette Agent Team est utilisée, ce qu’elle utilise et ce qu’elle sait.',
+      ' Hover a name to follow its lines.': ' Survolez un nom pour suivre ses lignes.',
+      'Show fewer': 'En montrer moins',
+      'Nothing here.': 'Rien ici.',
+      'Copied': 'Copié',
+      'Copy is blocked here. Select the text instead.': 'La copie est bloquée ici. Sélectionnez plutôt le texte.',
+      'Close details': 'Fermer les détails',
+      'Finished': 'Terminée',
+      'Failed': 'Échouée',
+      'Path': 'Chemin',
+      'Source': 'Source',
+      'Changed': 'Modifié',
+      'Not recorded': 'Non enregistré',
+      'Show around this': 'Voir autour de ceci',
+      'Centre': 'Centrer',
+      'Copy path': 'Copier le chemin',
+      'Copy id': 'Copier l’identifiant',
+      'Read-only. The Atlas never edits your files.': 'Lecture seule. L’Atlas ne modifie jamais vos fichiers.',
+      'Broken links, and things that look wrong.': 'Liens cassés, et éléments qui ont l’air anormaux.',
+      'Nothing to check. Every reference points somewhere and nothing failed.': 'Rien à vérifier. Chaque référence mène quelque part et rien n’a échoué.',
+      'Filter by name, note or path': 'Filtrer par nom, note ou chemin',
+      'Filter the list': 'Filtrer la liste',
+      'Name': 'Nom',
+      'Kind': 'Type',
+      'Nothing matches.': 'Rien ne correspond.',
+      'Broken link': 'Lien cassé',
+      'Check': 'À vérifier',
+      'A drawing of your workspace. The List view has the same things as text.': 'Un dessin de votre espace de travail. La vue Liste contient les mêmes éléments en texte.',
+      'Search name, path or note': 'Chercher un nom, un chemin ou une note',
+      'Search the drawing': 'Chercher dans le dessin',
+      'Names': 'Noms',
+      'Motion': 'Mouvement',
+      'Lessons are many; they are left out unless you ask': 'Les leçons sont nombreuses ; elles sont écartées sauf demande',
+      'Fit': 'Ajuster',
+      'Exit full screen': 'Quitter le plein écran',
+      'Full screen': 'Plein écran',
+      'Legend: click to isolate': 'Légende : cliquez pour isoler',
+      'Kinds': 'Types',
+      'Hidden. Use the Lessons button.': 'Masquées. Utilisez le bouton Leçons.',
+      'Links that come from a name match, not from a field': 'Liens issus d’une correspondance de nom, pas d’un champ',
+      'Inferred links': 'Liens déduits',
+      'The rings as a stack that turns on its own. Drag to turn it yourself.': 'Les anneaux en pile qui tourne toute seule. Faites-la tourner en la faisant glisser.',
+      'Memories were not read, so any problem with them is not listed.': 'Les mémoires n’ont pas été lues : leurs éventuels problèmes ne sont donc pas listés.',
+      'Sessions were not ready, so agent teams are not tied to projects. Click Update in a moment.': 'Les sessions n’étaient pas prêtes : les Agent Teams ne sont donc pas rattachées aux projets. Cliquez sur Mettre à jour dans un instant.',
+      'Open the session': 'Ouvrir la session',
+      'Could not open the session.': 'Impossible d’ouvrir la session.',
+      'Reading the Atlas': 'Lecture de l’Atlas',
+      'Reading seven sources on this computer. Nothing leaves it.': 'Lecture de sept sources sur cet ordinateur. Rien n’en sort.',
+      'The Atlas could not be read': 'L’Atlas n’a pas pu être lu',
+      'None of the sources answered. DSH may be restarting. Wait a moment, then try again.': 'Aucune source n’a répondu. DSH redémarre peut-être. Patientez un instant, puis réessayez.',
+      'Try again': 'Réessayer',
+      'Nothing read yet': 'Rien n’a encore été lu',
+      'The Atlas reads your files and plugins only when you ask. Opening this page reads nothing; the first Update is kept here, and the page shows it next time.': 'L’Atlas ne lit vos fichiers et vos plugins que lorsque vous le demandez. Ouvrir cette page ne lit rien ; la première mise à jour est gardée ici, et la page l’affichera la prochaine fois.',
+      'Update': 'Mettre à jour',
+      'Nothing to map yet': 'Rien à cartographier pour l’instant',
+      'The Atlas fills in as you add agent teams, skills, automations and memories. Create an agent team or install a skill, then click Update.': 'L’Atlas se remplit à mesure que vous ajoutez des Agent Teams, des skills, des automations et des mémoires. Créez une Agent Team ou installez une skill, puis cliquez sur Mettre à jour.',
+      'View': 'Vue',
+      'Zoom in': 'Zoomer',
+      'Zoom out': 'Dézoomer',
+      'Fit to screen': 'Ajuster à l’écran',
+      'How it works': 'Comment ça marche',
+      'Memories were skipped. ': 'Les mémoires ont été ignorées. ',
+      'They live in your kybernos.app account, which is not linked. The other sources were read.': 'Elles vivent dans votre compte kybernos.app, qui n’est pas relié. Les autres sources ont été lues.',
+      'The rest is shown.': 'Le reste est affiché.',
+      'Reading…': 'Lecture…',
+      'Not read yet': 'Pas encore lue',
+      'Could not read': 'Lecture impossible',
+      'Every project, agent team, skill, memory, lesson, automation and app, and how they point to each other. It only reads; it never edits anything. Its last reading is kept in this browser.': 'Chaque projet, Agent Team, skill, mémoire, leçon, automation et app, et la façon dont ils se pointent les uns vers les autres. Il ne fait que lire ; il ne modifie jamais rien. Sa dernière lecture est gardée dans ce navigateur.',
+      'reading…': 'lecture…',
+      'waiting': 'en attente',
+      'Rings. ': 'Anneaux. ',
+      'One ring per layer, the workspace in the middle. Each project keeps the same wedge on every ring.': 'Un anneau par couche, l’espace de travail au centre. Chaque projet garde la même part sur chaque anneau.',
+      'Circle. ': 'Cercle. ',
+      'Areas. ': 'Zones. ',
+      'Links. ': 'Liens. ',
+      'Timeline. ': 'Chronologie. ',
+      'Top: automation runs of the last 14 days. Bottom: things by last change. Colour is the project.': 'En haut : les exécutions d’automations des 14 derniers jours. En bas : les éléments par dernière modification. La couleur est le projet.',
+      'Orbit. ': 'Orbite. ',
+      'No run recorded yet.': 'Aucune exécution enregistrée pour l’instant.',
+      'Paused. ': 'En pause. ',
+      'never ran': 'jamais exécutée',
+      ' · paused': ' · en pause',
+      'Connected': 'Connectée',
+      'Runs': 'Exécutions'
+    }
+    /** The text in the language of the page: its French twin in FR for a French UI, the English text itself otherwise. */
+    const tr = (en) => (langBase() === 'fr' && FR[en] !== undefined ? FR[en] : en)
+    /** A table of labels read when it is used, not when the file loads (the language is often not known at load). */
+    const lazyTable = (build) => new Proxy({}, {
+      get: (_, k) => build()[k],
+      has: (_, k) => k in build(),
+      ownKeys: () => Reflect.ownKeys(build()),
+      getOwnPropertyDescriptor: (_, k) => { const b = build(); return k in b ? { enumerable: true, configurable: true, value: b[k] } : undefined }
+    })
+
     // ══ 1. PURE MODEL ════════════════════════════════════════════════════════
     const DAY = 86400000
     const str = (v) => (typeof v === 'string' ? v : '')
@@ -39,8 +249,10 @@ window.__ModuleLoader__.load({
       return null
     }
     const daysSince = (v, now) => { const t = toMs(v); return t === null ? null : Math.max(0, Math.floor((now - t) / DAY)) }
-    const ago = (d) => (d === null ? 'not recorded' : d === 0 ? 'today' : d === 1 ? 'yesterday' : d < 45 ? d + ' days ago' : Math.round(d / 30) + ' months ago')
-    const readAgo = (ms, now) => { const d = Math.max(0, now - ms); const m = Math.floor(d / 60000); return d < 45000 ? 'just now' : m < 60 ? Math.max(1, m) + ' min ago' : m < 1440 ? Math.floor(m / 60) + ' h ago' : Math.floor(m / 1440) + (Math.floor(m / 1440) === 1 ? ' day ago' : ' days ago') }
+    const ago = (d) => (d === null ? tr('not recorded') : d === 0 ? tr('today') : d === 1 ? tr('yesterday') : d < 45 ? kt('il y a ' + d + ' jours', d + ' days ago') : kt('il y a ' + Math.round(d / 30) + ' mois', Math.round(d / 30) + ' months ago'))
+    const readAgo = (ms, now) => { const d = Math.max(0, now - ms); const m = Math.floor(d / 60000); const days = Math.floor(m / 1440); return d < 45000 ? tr('just now') : m < 60 ? kt('il y a ' + Math.max(1, m) + ' min', Math.max(1, m) + ' min ago') : m < 1440 ? kt('il y a ' + Math.floor(m / 60) + ' h', Math.floor(m / 60) + ' h ago') : kt('il y a ' + days + (days === 1 ? ' jour' : ' jours'), days + (days === 1 ? ' day ago' : ' days ago')) }
+    /** « 3 links », « 1 link »: a count of links in the language of the page. */
+    const linkCount = (n) => kt(n + (n > 1 ? ' liens' : ' lien'), n + (n === 1 ? ' link' : ' links'))
     const shortId = (id) => (/^[0-9a-f]{8}-[0-9a-f]{4}-/.test(id) ? id.slice(0, 8) : id)
 
     // ── Normalisers: one per route, written against the shapes measured on a
@@ -92,7 +304,7 @@ window.__ModuleLoader__.load({
     function normMemory (j) {
       const o = obj(j)
       if (o.connected === false) return { connected: false, failed: '', accountCount: 0, pinned: 0, cloud: [], byKyber: {} }
-      if (o.ok === false) return { connected: true, failed: str(o.error) !== '' ? str(o.error) : 'read failed', accountCount: 0, pinned: 0, cloud: [], byKyber: {} }
+      if (o.ok === false) return { connected: true, failed: str(o.error) !== '' ? str(o.error) : tr('read failed'), accountCount: 0, pinned: 0, cloud: [], byKyber: {} }
       const byKyber = {}
       for (const id of Object.keys(obj(o.kyber))) {
         const v = o.kyber[id]
@@ -110,7 +322,7 @@ window.__ModuleLoader__.load({
       if (typeof s === 'string') return s
       const o = obj(s)
       if (str(o.cron) !== '') return 'Cron ' + o.cron + (str(o.tz) !== '' ? ' (' + o.tz + ')' : '')
-      if (str(o.at) !== '') return 'Once, ' + o.at
+      if (str(o.at) !== '') return kt('Une fois, ', 'Once, ') + o.at
       return str(o.mode)
     }
     function normTasks (j) {
@@ -128,7 +340,7 @@ window.__ModuleLoader__.load({
       }
       for (const m of arr(obj(mini).items)) {
         if (typeof obj(m).id !== 'string') continue
-        out.push({ id: 'mini:' + m.id, label: m.id, key: low(m.id), source: str(m.chemin) !== '' ? str(m.chemin) : 'Mini app', status: '' })
+        out.push({ id: 'mini:' + m.id, label: m.id, key: low(m.id), source: str(m.chemin) !== '' ? str(m.chemin) : kt('Mini-app', 'Mini app'), status: '' })
       }
       return out
     }
@@ -174,7 +386,7 @@ window.__ModuleLoader__.load({
         areas.push({ id: 'p:' + w.id, label: w.name, idx: i % 6 })
         add({ id: 'p:' + w.id, kind: 'area', label: w.name, area: 'p:' + w.id, days: daysSince(w.updatedAt, now), path: w.id, note: w.sessionIds.length + (w.sessionIds.length === 1 ? ' session.' : ' sessions.') })
       })
-      areas.push({ id: 'none', label: 'Shared or unassigned', idx: 6 })
+      areas.push({ id: 'none', label: tr('Shared or unassigned'), idx: 6 })
 
       // Which project each kyber worked in, from the sessions' active kybers.
       const sessionWs = {}
@@ -199,10 +411,10 @@ window.__ModuleLoader__.load({
         const d = kdef[kid]; const l = ledger[kid]
         const bits = []
         if (d && d.mission !== '') bits.push(cut(firstSentence(d.mission), 140) + '.')
-        if (d && d.roles.length) bits.push('Roles: ' + d.roles.join(', ') + '.')
-        if (l) bits.push(l.total + (l.total === 1 ? ' lesson' : ' lessons') + ', ' + l.runs + (l.runs === 1 ? ' run.' : ' runs.'))
-        if (!d) bits.unshift('No agent team definition found; only its lessons and runs remain.')
-        add({ id: 'k:' + kid, kind: 'kyber', file: d ? d.file : '', rootId: d ? d.rootId : '', label: d ? d.name : kid, area: mainWs(kid), days: l ? daysSince(l.lastActivity, now) : null, path: '~/.dsh/kybers/' + kid, note: bits.join(' ') || 'No description.', sub: d ? (d.roles.length ? 'Roles: ' + d.roles.slice(0, 3).join(', ') : '') : 'lessons only' })
+        if (d && d.roles.length) bits.push(kt('Rôles : ', 'Roles: ') + d.roles.join(', ') + '.')
+        if (l) bits.push(kt(l.total + (l.total > 1 ? ' leçons' : ' leçon') + ', ' + l.runs + (l.runs > 1 ? ' exécutions.' : ' exécution.'), l.total + (l.total === 1 ? ' lesson' : ' lessons') + ', ' + l.runs + (l.runs === 1 ? ' run.' : ' runs.')))
+        if (!d) bits.unshift(tr('No agent team definition found; only its lessons and runs remain.'))
+        add({ id: 'k:' + kid, kind: 'kyber', file: d ? d.file : '', rootId: d ? d.rootId : '', label: d ? d.name : kid, area: mainWs(kid), days: l ? daysSince(l.lastActivity, now) : null, path: '~/.dsh/kybers/' + kid, note: bits.join(' ') || tr('No description.'), sub: d ? (d.roles.length ? kt('Rôles : ', 'Roles: ') + d.roles.slice(0, 3).join(', ') : '') : tr('lessons only') })
         for (const wid of Object.keys(obj(kyberWs[kid]))) link('k:' + kid, 'p:' + wid, 'derived')
       }
 
@@ -217,13 +429,13 @@ window.__ModuleLoader__.load({
           // A skill kept inside a kyber's own folder: real, just not in the shared catalogue.
           const lo = localOf[low(name)]; const lid = 's:local:' + lo.kid + ':' + low(lo.name)
           if (localNodes[lid] === undefined) {
-            localNodes[lid] = add({ id: lid, kind: 'skill', label: lo.name, area: byId['k:' + lo.kid].area, days: null, path: '~/.dsh/kybers/' + lo.kid + '/skills/' + lo.name, note: 'A skill kept inside the agent team “' + byId['k:' + lo.kid].label + '”, not in the shared catalogue.' })
+            localNodes[lid] = add({ id: lid, kind: 'skill', label: lo.name, area: byId['k:' + lo.kid].area, days: null, path: '~/.dsh/kybers/' + lo.kid + '/skills/' + lo.name, note: kt('Une skill gardée dans l’Agent Team « ' + byId['k:' + lo.kid].label + ' », pas dans le catalogue partagé.', 'A skill kept inside the agent team “' + byId['k:' + lo.kid].label + '”, not in the shared catalogue.') })
             link(lid, 'k:' + lo.kid, 'declared')
           }
           if (ownerId !== 'k:' + lo.kid) link(ownerId, lid, 'declared')
           return
         }
-        if (s === undefined) { ghosts.push({ id: 'ghost:' + ownerId + ':' + name, src: ownerId, kind: 'skill', label: name, sub: 'Not installed' }); problem(ownerId, 'err', 'Declares the skill “' + name + '”, which is not among your installed skills.'); return }
+        if (s === undefined) { ghosts.push({ id: 'ghost:' + ownerId + ':' + name, src: ownerId, kind: 'skill', label: name, sub: tr('Not installed') }); problem(ownerId, 'err', kt('Déclare la skill « ' + name + ' », qui ne figure pas parmi vos skills installées.', 'Declares the skill “' + name + '”, which is not among your installed skills.')); return }
         ;(declaredBy[low(s.name)] || (declaredBy[low(s.name)] = [])).push(ownerId)
       }
       for (const kid of kyberIds) if (kdef[kid]) for (const name of kdef[kid].skillsDeclared) declare('k:' + kid, name)
@@ -235,17 +447,17 @@ window.__ModuleLoader__.load({
         seenSkill[key] = true
         const owners = declaredBy[key] || []
         const owner = owners.length ? byId[owners[0]] : null
-        add({ id: 's:' + key, kind: 'skill', label: s.name, area: owner ? owner.area : 'none', days: daysSince(s.modifiedAt, now), path: s.root !== '' ? s.root + '/' + s.name : s.name, note: (s.description !== '' ? cut(s.description, 180) : 'No description.') + (s.active ? '' : ' Inactive.') })
+        add({ id: 's:' + key, kind: 'skill', label: s.name, area: owner ? owner.area : 'none', days: daysSince(s.modifiedAt, now), path: s.root !== '' ? s.root + '/' + s.name : s.name, note: (s.description !== '' ? cut(s.description, 180) : tr('No description.')) + (s.active ? '' : kt(' Inactive.', ' Inactive.')) })
         for (const o of owners) link(o, 's:' + key, 'declared')
-        if (s.collision) problem('s:' + key, 'warn', 'Another skill has the same name in another folder. Only one of them is used.')
-        if (!s.active && owners.length) problem('s:' + key, 'warn', 'Inactive, but declared by ' + owners.map((o) => byId[o].label).join(', ') + '.')
+        if (s.collision) problem('s:' + key, 'warn', tr('Another skill has the same name in another folder. Only one of them is used.'))
+        if (!s.active && owners.length) problem('s:' + key, 'warn', kt('Inactive, mais déclarée par ', 'Inactive, but declared by ') + owners.map((o) => byId[o].label).join(', ') + '.')
       }
 
       // Lessons: the ledger keeps the most recent few per kyber; the kyber node says how many exist.
       for (const kid of Object.keys(ledger)) {
         const l = ledger[kid]
         l.lessons.forEach((x, i) => {
-          add({ id: 'l:' + kid + ':' + i, kind: 'lesson', label: cut(x.text, 56), area: byId['k:' + kid].area, days: daysSince(x.ts, now), path: '~/.dsh/kybers/' + kid + '/memory/lessons.jsonl', note: x.text + (x.tags.length ? ' Tags: ' + x.tags.join(', ') + '.' : '') })
+          add({ id: 'l:' + kid + ':' + i, kind: 'lesson', label: cut(x.text, 56), area: byId['k:' + kid].area, days: daysSince(x.ts, now), path: '~/.dsh/kybers/' + kid + '/memory/lessons.jsonl', note: x.text + (x.tags.length ? kt(' Étiquettes : ', ' Tags: ') + x.tags.join(', ') + '.' : '') })
           link('l:' + kid + ':' + i, 'k:' + kid, 'declared')
         })
         byId['k:' + kid].olderLessons = Math.max(0, l.total - l.lessons.length)
@@ -254,14 +466,14 @@ window.__ModuleLoader__.load({
       // Memory. Account memory is one node (it applies to every kyber). Cloud kybers keep a count per workspace.
       const mem = src.memory
       if (mem && mem.connected) {
-        add({ id: 'm:account', kind: 'memory', label: 'Account memory', area: 'none', days: null, path: 'kybernos.app · account', note: mem.accountCount + ' facts kept in your account' + (mem.pinned ? ', ' + mem.pinned + ' pinned' : '') + '. They apply to every agent team, so they are not drawn one by one.' })
+        add({ id: 'm:account', kind: 'memory', label: tr('Account memory'), area: 'none', days: null, path: kt('kybernos.app · compte', 'kybernos.app · account'), note: kt(mem.accountCount + (mem.accountCount > 1 ? ' faits gardés' : ' fait gardé') + ' dans votre compte' + (mem.pinned ? ', ' + mem.pinned + (mem.pinned > 1 ? ' épinglés' : ' épinglé') : '') + '. Ils valent pour toutes les Agent Teams, donc ils ne sont pas dessinés un par un.', mem.accountCount + (mem.accountCount === 1 ? ' fact' : ' facts') + ' kept in your account' + (mem.pinned ? ', ' + mem.pinned + ' pinned' : '') + '. They apply to every agent team, so they are not drawn one by one.') })
         for (const c of mem.cloud) {
-          add({ id: 'm:cloud:' + c.id, kind: 'memory', label: c.name + ' memory', area: workspaces.some((w) => w.id === c.workspaceId) ? 'p:' + c.workspaceId : 'none', days: null, path: 'kybernos.app · ' + c.name, note: c.count + (c.count === 1 ? ' fact' : ' facts') + ' kept for “' + c.name + '”.' })
+          add({ id: 'm:cloud:' + c.id, kind: 'memory', label: kt('Mémoire ' + c.name, c.name + ' memory'), area: workspaces.some((w) => w.id === c.workspaceId) ? 'p:' + c.workspaceId : 'none', days: null, path: 'kybernos.app · ' + c.name, note: kt(c.count + (c.count > 1 ? ' faits gardés' : ' fait gardé') + ' pour « ' + c.name + ' ».', c.count + (c.count === 1 ? ' fact' : ' facts') + ' kept for “' + c.name + '”.') })
           link('m:cloud:' + c.id, 'p:' + c.workspaceId, 'declared')
         }
         for (const kid of Object.keys(mem.byKyber)) {
           if (byId['k:' + kid] === undefined || mem.byKyber[kid] === 0) continue
-          add({ id: 'm:kyber:' + kid, kind: 'memory', label: byId['k:' + kid].label + ' memory', area: byId['k:' + kid].area, days: null, path: 'kybernos.app · agent team ' + kid, note: mem.byKyber[kid] + ' facts kept for this agent team.' })
+          add({ id: 'm:kyber:' + kid, kind: 'memory', label: kt('Mémoire ' + byId['k:' + kid].label, byId['k:' + kid].label + ' memory'), area: byId['k:' + kid].area, days: null, path: kt('kybernos.app · Agent Team ', 'kybernos.app · agent team ') + kid, note: kt(mem.byKyber[kid] + (mem.byKyber[kid] > 1 ? ' faits gardés' : ' fait gardé') + ' pour cette Agent Team.', mem.byKyber[kid] + (mem.byKyber[kid] === 1 ? ' fact' : ' facts') + ' kept for this agent team.') })
           link('m:kyber:' + kid, 'k:' + kid, 'declared')
         }
       }
@@ -274,17 +486,17 @@ window.__ModuleLoader__.load({
         const wid = Object.keys(wsCount).sort((a, b) => wsCount[b] - wsCount[a])[0]
         const last = hist[0]
         const failed = last !== undefined && last.status === 'error'
-        const lastTxt = last ? 'Last run ' + ago(daysSince(last.at, now)) + (failed ? ' failed.' : '.') : 'No run recorded yet.'
-        add({ id: 't:' + t.id, kind: 'routine', label: t.name, area: wid !== undefined ? 'p:' + wid : 'none', days: last ? daysSince(last.at, now) : null, path: '~/.dsh/kybernos/tasks.json › ' + t.id, note: (t.schedule !== '' ? t.schedule + '. ' : '') + (t.active ? '' : 'Paused. ') + lastTxt, sub: (last ? 'last run ' + ago(daysSince(last.at, now)) + (failed ? ', failed' : '') : 'never ran') + (t.active ? '' : ' · paused') })
+        const lastTxt = last ? kt('Dernière exécution ' + ago(daysSince(last.at, now)) + (failed ? ' : échec.' : '.'), 'Last run ' + ago(daysSince(last.at, now)) + (failed ? ' failed.' : '.')) : tr('No run recorded yet.')
+        add({ id: 't:' + t.id, kind: 'routine', label: t.name, area: wid !== undefined ? 'p:' + wid : 'none', days: last ? daysSince(last.at, now) : null, path: '~/.dsh/kybernos/tasks.json › ' + t.id, note: (t.schedule !== '' ? t.schedule + '. ' : '') + (t.active ? '' : tr('Paused. ')) + lastTxt, sub: (last ? kt('dernière exécution ' + ago(daysSince(last.at, now)) + (failed ? ', échec' : ''), 'last run ' + ago(daysSince(last.at, now)) + (failed ? ', failed' : '')) : tr('never ran')) + (t.active ? '' : tr(' · paused')) })
         if (wid !== undefined) link('t:' + t.id, 'p:' + wid, 'derived')
         hist.slice(0, 20).forEach((x, i) => { const d = daysSince(x.at, now); if (d !== null && d <= 13) runs.push({ id: 'x:' + t.id + ':' + i, task: 't:' + t.id, taskName: t.name, days: d, ok: x.status !== 'error', status: x.status, error: x.error, sessionId: x.sessionId }) })
-        if (failed && t.active) problem('t:' + t.id, 'warn', 'The last run failed' + (last.error !== '' ? ': ' + last.error : '.') + (last.error !== '' && !/[.!?]$/.test(last.error) ? '.' : ''))
+        if (failed && t.active) problem('t:' + t.id, 'warn', kt('La dernière exécution a échoué', 'The last run failed') + (last.error !== '' ? ': ' + last.error : '.') + (last.error !== '' && !/[.!?]$/.test(last.error) ? '.' : ''))
       }
 
       // Apps. An app is tied to a kyber only by a name match on the kyber's tools: inferred, drawn dashed.
       for (const a of arr(src.apps)) {
         const users = kyberIds.filter((kid) => kdef[kid] && kdef[kid].tools.some((t) => a.key !== '' && low(t).indexOf(a.key) >= 0))
-        add({ id: 'a:' + a.id, kind: 'app', label: a.label, area: users.length ? byId['k:' + users[0]].area : 'none', days: null, path: a.source, note: 'Connected' + (a.status !== '' ? ' (' + low(a.status) + ')' : '') + '.' })
+        add({ id: 'a:' + a.id, kind: 'app', label: a.label, area: users.length ? byId['k:' + users[0]].area : 'none', days: null, path: a.source, note: tr('Connected') + (a.status !== '' ? ' (' + low(a.status) + ')' : '') + '.' })
         for (const kid of users) link('a:' + a.id, 'k:' + kid, 'inferred')
       }
 
@@ -315,13 +527,13 @@ window.__ModuleLoader__.load({
       return set
     }
     const COLS = [
-      { title: 'Project', groups: [['area', '']] },
-      { title: 'Agent Teams & automations', groups: [['kyber', 'Agent Teams'], ['routine', 'Automations']] },
-      { title: 'Skills & apps', groups: [['skill', 'Skills'], ['app', 'Apps']] },
-      { title: 'Memory & lessons', groups: [['memory', 'Memory'], ['lesson', 'Lessons']] }
+      { get title () { return tr('Project') }, groups: [['area', '']] },
+      { get title () { return tr('Agent Teams & automations') }, get groups () { return [['kyber', tr('Agent Teams')], ['routine', tr('Automations')]] } },
+      { get title () { return tr('Skills & apps') }, get groups () { return [['skill', tr('Skills')], ['app', tr('Apps')]] } },
+      { get title () { return tr('Memory & lessons') }, get groups () { return [['memory', tr('Memory')], ['lesson', tr('Lessons')]] } }
     ]
     const COL_OF = { area: 0, kyber: 1, routine: 1, skill: 2, app: 2, memory: 3, lesson: 3 }
-    const KIND_NAME = { area: 'Project', kyber: 'Agent Team', routine: 'Automation', skill: 'Skill', app: 'App', memory: 'Memory', lesson: 'Lesson' }
+    const KIND_NAME = lazyTable(() => ({ area: tr('Project'), kyber: tr('Agent Team'), routine: tr('Automation'), skill: tr('Skill'), app: tr('App'), memory: tr('Memory'), lesson: tr('Lesson') }))
     const KIND_ORDER = ['area', 'kyber', 'routine', 'skill', 'app', 'memory', 'lesson']
     const byKindThenLabel = (a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || a.label.localeCompare(b.label)
     const CAP = 5
@@ -332,12 +544,12 @@ window.__ModuleLoader__.load({
     function openTarget (n, views) {
       const has = (v) => arr(views).indexOf(v) >= 0
       switch (n.kind) {
-        case 'skill': return has('skills') ? { label: 'Skills', patch: { view: 'skills' } } : has('resources') ? { label: 'Resources', patch: { view: 'resources' } } : null
-        case 'routine': return has('tasks') ? { label: 'Automations', patch: { view: 'tasks' } } : null
-        case 'app': return n.id.indexOf('a:toolkit:') === 0 && has('connectors') ? { label: 'Connectors', patch: { view: 'connectors' } } : null
-        case 'area': return n.path !== '' && has('project') ? { label: 'Projects', patch: { view: 'project', projectId: n.path } } : null
-        case 'kyber': return n.file && has('teaminfo') ? { label: 'Agent Teams', patch: { view: 'teaminfo', detailPath: n.file, detailRoot: n.rootId } } : null
-        case 'run': return n.run && n.run.sessionId ? { label: 'the session', session: n.run.sessionId } : null
+        case 'skill': return has('skills') ? { label: tr('Skills'), patch: { view: 'skills' } } : has('resources') ? { label: tr('Resources'), patch: { view: 'resources' } } : null
+        case 'routine': return has('tasks') ? { label: tr('Automations'), patch: { view: 'tasks' } } : null
+        case 'app': return n.id.indexOf('a:toolkit:') === 0 && has('connectors') ? { label: tr('Connectors'), patch: { view: 'connectors' } } : null
+        case 'area': return n.path !== '' && has('project') ? { label: tr('Projects'), patch: { view: 'project', projectId: n.path } } : null
+        case 'kyber': return n.file && has('teaminfo') ? { label: tr('Agent Teams'), patch: { view: 'teaminfo', detailPath: n.file, detailRoot: n.rootId } } : null
+        case 'run': return n.run && n.run.sessionId ? { label: tr('the session'), session: n.run.sessionId } : null
         default: return null
       }
     }
@@ -351,7 +563,7 @@ window.__ModuleLoader__.load({
       const lines = g.links.filter((l) => set.has(l.s) && set.has(l.t)).map((l) => ({ s: l.s, t: l.t, inferred: l.kind === 'inferred' }))
       ghosts.forEach((x) => lines.push({ s: x.src, t: x.id, inferred: false }))
       const cols = COLS.map((c, ci) => ({
-        title: ci === 0 && f.kind === 'kyber' ? 'Projects' : c.title,
+        title: ci === 0 && f.kind === 'kyber' ? tr('Projects') : c.title,
         groups: c.groups.map((gr) => {
           const items = g.nodes.filter((n) => set.has(n.id) && n.kind === gr[0]).sort(byKindThenLabel)
           const gh = ghosts.filter((x) => x.kind === gr[0])
@@ -372,8 +584,8 @@ window.__ModuleLoader__.load({
       if (q !== '') return g.nodes.filter((n) => (n.label + ' ' + n.note).toLowerCase().indexOf(q) >= 0).sort(byKindThenLabel).slice(0, 12).map((n) => ({ id: n.id, label: n.label, sub: KIND_NAME[n.kind] }))
       const out = []
       const proj = g.nodes.filter((n) => n.kind === 'area'); const ky = g.nodes.filter((n) => n.kind === 'kyber')
-      if (proj.length) { out.push({ head: 'Projects' }); proj.forEach((n) => out.push({ id: n.id, label: n.label, sub: n.deg + ' links' })) }
-      if (ky.length) { out.push({ head: 'Agent Teams' }); ky.sort((a, b) => a.label.localeCompare(b.label)).forEach((n) => out.push({ id: n.id, label: n.label, sub: n.deg + ' links' })) }
+      if (proj.length) { out.push({ head: tr('Projects') }); proj.forEach((n) => out.push({ id: n.id, label: n.label, sub: linkCount(n.deg) })) }
+      if (ky.length) { out.push({ head: tr('Agent Teams') }); ky.sort((a, b) => a.label.localeCompare(b.label)).forEach((n) => out.push({ id: n.id, label: n.label, sub: linkCount(n.deg) })) }
       return out
     }
     // Where the Map opens: the project or kyber with the most links, so the first view is never empty
@@ -391,14 +603,14 @@ window.__ModuleLoader__.load({
     // and every layout, so test-client.mjs can check them without a browser.
     const CANVAS_VIEWS = ['rings', 'circle', 'areas', 'links', 'timeline', 'orbit']
     const LAYERS = ['core', 'projects', 'kybers', 'knowledge', 'skills', 'automations', 'apps', 'runs']
-    const LAYER_NAME = { core: 'Workspace', projects: 'Projects', kybers: 'Agent Teams', knowledge: 'Memory & lessons', skills: 'Skills', automations: 'Automations', apps: 'Apps', runs: 'Runs' }
+    const LAYER_NAME = lazyTable(() => ({ core: tr('Workspace'), projects: tr('Projects'), kybers: tr('Agent Teams'), knowledge: tr('Memory & lessons'), skills: tr('Skills'), automations: tr('Automations'), apps: tr('Apps'), runs: tr('Runs') }))
     const LAYER_OF = { root: 'core', area: 'projects', kyber: 'kybers', memory: 'knowledge', lesson: 'knowledge', skill: 'skills', routine: 'automations', app: 'apps', run: 'runs' }
-    const KIND_NAME_ALL = Object.assign({ root: 'Workspace', run: 'Run' }, KIND_NAME)
+    const KIND_NAME_ALL = lazyTable(() => Object.assign({ root: tr('Workspace'), run: tr('Run') }, KIND_NAME))
     const RING_R = [0, 125, 210, 295, 380, 460, 530, 600]
     const TL = { lanes: ['root', 'area', 'kyber', 'memory', 'lesson', 'skill', 'routine', 'app'], x0: -410, x1: 520, nod: -478 }
     const tlx = (d) => TL.x1 - Math.sqrt(Math.min(d, 220) / 220) * (TL.x1 - TL.x0)
     const hashOf = (s) => { let x = 2166136261; for (let i = 0; i < s.length; i++) { x ^= s.charCodeAt(i); x = Math.imul(x, 16777619) } return ((x >>> 0) % 10000) / 10000 }
-    const shortDate = (d, now) => new Date(now - d * DAY).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+    const shortDate = (d, now) => new Date(now - d * DAY).toLocaleDateString(langBase() === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short' })
 
     // Nodes are COPIES (the engine moves them); `root` and `run` nodes exist only here. Lessons are left out
     // unless asked for: there are many of them and they bury everything else on a whole-workspace picture.
@@ -407,12 +619,12 @@ window.__ModuleLoader__.load({
       const now = typeof g.now === 'number' ? g.now : Date.now()
       const nodes = []; const byId = {}
       const add = (n) => { n.h = hashOf(n.id); n.layer = LAYER_OF[n.kind]; n.x = 0; n.y = 0; n.tx = 0; n.ty = 0; n.ds = 1; n.z = 0; n.deg = 0; nodes.push(n); byId[n.id] = n; return n }
-      add({ id: 'root', kind: 'root', label: 'Workspace', area: null, days: 0, path: '~/.dsh', note: 'Everything here is read live from your own files and plugins.', problem: null })
+      add({ id: 'root', kind: 'root', label: tr('Workspace'), area: null, days: 0, path: '~/.dsh', note: tr('Everything here is read live from your own files and plugins.'), problem: null })
       for (const n of g.nodes) { if (n.kind === 'lesson' && !withLessons) continue; add(Object.assign({}, n)) }
       for (const r of arr(g.runs)) {
         const t = g.byId[r.task]
-        add({ id: r.id, kind: 'run', label: r.taskName + ' · ' + shortDate(r.days, now), area: t ? t.area : 'none', days: r.days, path: r.sessionId !== '' ? 'session ' + r.sessionId : 'task history',
-          note: (r.ok ? 'Ran ' + ago(r.days) + '.' : 'Failed ' + ago(r.days) + (r.error !== '' ? ': ' + r.error : '.')), problem: null, run: { ok: r.ok, sessionId: r.sessionId } })
+        add({ id: r.id, kind: 'run', label: r.taskName + ' · ' + shortDate(r.days, now), area: t ? t.area : 'none', days: r.days, path: r.sessionId !== '' ? 'session ' + r.sessionId : tr('task history'),
+          note: (r.ok ? kt('Exécutée ' + ago(r.days) + '.', 'Ran ' + ago(r.days) + '.') : kt('Échec ' + ago(r.days), 'Failed ' + ago(r.days)) + (r.error !== '' ? ': ' + r.error : '.')), problem: null, run: { ok: r.ok, sessionId: r.sessionId } })
       }
       const links = []
       const has = (id) => byId[id] !== undefined
@@ -524,7 +736,7 @@ window.__ModuleLoader__.load({
     }
 
     // ══ 2. LOADING ═══════════════════════════════════════════════════════════
-    const SOURCES = [['projects', 'Projects'], ['kybers', 'Agent Teams'], ['skills', 'Skills'], ['lessons', 'Lessons'], ['memory', 'Memory (cloud)'], ['automations', 'Automations'], ['apps', 'Apps']]
+    const sources = () => [['projects', tr('Projects')], ['kybers', tr('Agent Teams')], ['skills', tr('Skills')], ['lessons', tr('Lessons')], ['memory', tr('Memory (cloud)')], ['automations', tr('Automations')], ['apps', tr('Apps')]]
     const TIMEOUT = 15000
     async function getJson (url, init) {
       const ctl = typeof AbortController === 'function' ? new AbortController() : null
@@ -541,7 +753,7 @@ window.__ModuleLoader__.load({
     async function readAll (store, onStatus) {
       const status = {}
       const set = (key, state, count, note) => { status[key] = { state, count: count === undefined ? null : count, note: note || '' }; try { onStatus(Object.assign({}, status)) } catch (e) { /* the UI went away */ } }
-      for (const s of SOURCES) set(s[0], 'waiting')
+      for (const s of sources()) set(s[0], tr('waiting'))
       const src = { workspaces: null, kybers: null, skills: null, state: null, memory: null, tasks: null, apps: null, active: {} }
       const run = (key, work) => { set(key, 'reading'); return work().then((n) => { if (status[key].state === 'reading') set(key, 'ok', n) }, (e) => set(key, 'failed', null, String(e && e.message ? e.message : e))) }
       let load = null
@@ -576,14 +788,14 @@ window.__ModuleLoader__.load({
         run('memory', async () => {
           src.memory = normMemory(await getJson('/kybernos-cloud/memory'))
           if (src.memory.failed !== '') throw new Error(src.memory.failed)
-          if (!src.memory.connected) { set('memory', 'skipped', null, 'Account not linked'); return 0 }
+          if (!src.memory.connected) { set('memory', 'skipped', null, tr('Account not linked')); return 0 }
           return src.memory.accountCount
         }),
         run('automations', async () => { src.tasks = normTasks(await postJson('/kybernos/tasks', { action: 'list' })); return src.tasks.length }),
         run('apps', async () => {
           let [c, m] = await Promise.all([getJson('/kybernos/composio/connections').catch(() => null), getJson('/kybernos-miniapps/list').catch(() => null)])
           if (c !== null && c.ok === false) c = null // Composio not set up: its apps are simply absent
-          if (c === null && m === null) throw new Error('no answer')
+          if (c === null && m === null) throw new Error(tr('no answer'))
           src.apps = normApps(c, m); return src.apps.length
         })
       ])
@@ -712,13 +924,13 @@ window.__ModuleLoader__.load({
       if (view === 'rings') { RING_R.forEach((r, i) => { if (!i) return; c.beginPath(); c.arc(0, 0, r, 0, 7); c.stroke(); c.fillText(LAYER_NAME[LAYERS[i]], 0, -r - 6 / k) }) } else if (view === 'circle') { c.beginPath(); c.arc(0, 0, 330, 0, 7); c.stroke() } else if (view === 'areas') {
         for (const ar of m.areas) { const hl = e.lay.halos[ar.id]; if (!hl) continue; c.globalAlpha = 0.07; c.fillStyle = C.areas[ar.idx]; c.beginPath(); c.arc(hl.x, hl.y, hl.r, 0, 7); c.fill(); c.globalAlpha = 1; c.fillStyle = C.ink3 }
       } else if (view === 'timeline') {
-        c.textAlign = 'left'; c.fillText('AUTOMATION RUNS · LAST 14 DAYS', -575, -326); c.fillText('FILES BY LAST CHANGE', -575, 66)
+        c.textAlign = 'left'; c.fillText(tr('AUTOMATION RUNS · LAST 14 DAYS'), -575, -326); c.fillText(tr('FILES BY LAST CHANGE'), -575, 66)
         c.textAlign = 'center'
-        for (let d = 0; d <= 13; d += 2) { const x = TL.x1 - d * ((TL.x1 - TL.x0) / 13); c.beginPath(); c.moveTo(x, -40); c.lineTo(x, -34); c.stroke(); c.fillText(d === 0 ? 'today' : shortDate(d, m.now), x, -20) }
+        for (let d = 0; d <= 13; d += 2) { const x = TL.x1 - d * ((TL.x1 - TL.x0) / 13); c.beginPath(); c.moveTo(x, -40); c.lineTo(x, -34); c.stroke(); c.fillText(d === 0 ? tr('today') : shortDate(d, m.now), x, -20) }
         c.beginPath(); c.moveTo(TL.x0 - 14, -40); c.lineTo(TL.x1 + 14, -40); c.stroke()
-        if (!m.hasRuns) c.fillText('No automation run in the last 14 days.', (TL.x0 + TL.x1) / 2, -150)
-        ;[0, 7, 30, 90, 180].forEach((d) => { const x = tlx(d); c.beginPath(); c.moveTo(x, 76); c.lineTo(x, 100 + 7 * 34); c.stroke(); c.fillText(d === 0 ? 'today' : shortDate(d, m.now), x, 100 + 7 * 34 + 24) })
-        c.beginPath(); c.moveTo(TL.nod, 76); c.lineTo(TL.nod, 100 + 7 * 34); c.stroke(); c.fillText('no date', TL.nod, 100 + 7 * 34 + 24)
+        if (!m.hasRuns) c.fillText(tr('No automation run in the last 14 days.'), (TL.x0 + TL.x1) / 2, -150)
+        ;[0, 7, 30, 90, 180].forEach((d) => { const x = tlx(d); c.beginPath(); c.moveTo(x, 76); c.lineTo(x, 100 + 7 * 34); c.stroke(); c.fillText(d === 0 ? tr('today') : shortDate(d, m.now), x, 100 + 7 * 34 + 24) })
+        c.beginPath(); c.moveTo(TL.nod, 76); c.lineTo(TL.nod, 100 + 7 * 34); c.stroke(); c.fillText(tr('no date'), TL.nod, 100 + 7 * 34 + 24)
         c.textAlign = 'left'; TL.lanes.forEach((l, i) => { c.fillText(KIND_NAME_ALL[l], -575, 104 + i * 34) })
       }
       c.restore()
@@ -1035,43 +1247,43 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       const line = (dash, inf) => h('svg', { width: 44, height: 12, 'aria-hidden': 'true' }, h('path', { d: 'M2 6h40', stroke: 'currentColor', strokeWidth: 1.6, strokeDasharray: dash }))
       return h('div', { className: 'kbat-modal', onPointerDown: (e) => { if (e.target === e.currentTarget) p.onClose() } },
         h('div', { className: 'kbat-mcard', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kbat-help-t', ref, tabIndex: -1 },
-          h('button', { type: 'button', className: 'kbat-x', 'aria-label': 'Close help', onClick: p.onClose }, '×'),
-          h('h2', { id: 'kbat-help-t' }, 'How to read the Atlas'),
-          h('p', { className: 'kbat-lead' }, 'The Atlas shows how the things you set up fit together. It reads your files and plugins only when you click Update, and never edits them. It keeps its last reading in this browser, so the page opens on it.'),
-          h('section', null, h('h3', null, 'The views'),
+          h('button', { type: 'button', className: 'kbat-x', 'aria-label': tr('Close help'), onClick: p.onClose }, '×'),
+          h('h2', { id: 'kbat-help-t' }, tr('How to read the Atlas')),
+          h('p', { className: 'kbat-lead' }, tr('The Atlas shows how the things you set up fit together. It reads your files and plugins only when you click Update, and never edits them. It keeps its last reading in this browser, so the page opens on it.')),
+          h('section', null, h('h3', null, tr('The views')),
             h('dl', null,
-              h('dt', null, 'Around'), h('dd', null, 'Pick a project or an agent team in “Start from”. Four columns show who works there, what they use and what they know. Hover a name to light up its lines.'),
-              h('dt', null, 'Rings'), h('dd', null, 'The whole workspace: one ring per layer, the workspace in the middle, each project keeping its wedge.'),
-              h('dt', null, 'Circle'), h('dd', null, 'Every node on one ring, grouped by project. Links cross the middle.'),
-              h('dt', null, 'Areas'), h('dd', null, 'One cluster per project. Lines between clusters show what crosses projects.'),
-              h('dt', null, 'Links'), h('dd', null, 'Nodes pulled together by what they reference. Loose ends drift to the edge.'),
-              h('dt', null, 'Timeline'), h('dd', null, 'Automation runs of the last 14 days on top, everything else by last change below.'),
-              h('dt', null, 'Orbit'), h('dd', null, 'The rings as a stack that turns on its own. Drag to turn it.'),
-              h('dt', null, 'List'), h('dd', null, 'The same things as a table. The text version of every drawing.'))),
-          h('section', null, h('h3', null, 'In the drawings'), h('p', null, 'Click a dot for details; the card has an Open button when the thing has a page in Kybernos (a skill, an agent team, a project, an automation, a connector, or the session of a run). Search finds a name and flies to it. Click a legend chip to isolate it. Names shows every name, Motion lets the dots drift, and Lessons adds the lessons, which are many and so off by default. Ctrl or ⌘ + scroll, or the + and − buttons, zoom.')),
-          h('section', null, h('h3', null, 'The lines'),
+              h('dt', null, tr('Around')), h('dd', null, tr('Pick a project or an agent team in “Start from”. Four columns show who works there, what they use and what they know. Hover a name to light up its lines.')),
+              h('dt', null, tr('Rings')), h('dd', null, tr('The whole workspace: one ring per layer, the workspace in the middle, each project keeping its wedge.')),
+              h('dt', null, tr('Circle')), h('dd', null, tr('Every node on one ring, grouped by project. Links cross the middle.')),
+              h('dt', null, tr('Areas')), h('dd', null, tr('One cluster per project. Lines between clusters show what crosses projects.')),
+              h('dt', null, tr('Links')), h('dd', null, tr('Nodes pulled together by what they reference. Loose ends drift to the edge.')),
+              h('dt', null, tr('Timeline')), h('dd', null, tr('Automation runs of the last 14 days on top, everything else by last change below.')),
+              h('dt', null, tr('Orbit')), h('dd', null, tr('The rings as a stack that turns on its own. Drag to turn it.')),
+              h('dt', null, tr('List')), h('dd', null, tr('The same things as a table. The text version of every drawing.')))),
+          h('section', null, h('h3', null, tr('In the drawings')), h('p', null, tr('Click a dot for details; the card has an Open button when the thing has a page in Kybernos (a skill, an agent team, a project, an automation, a connector, or the session of a run). Search finds a name and flies to it. Click a legend chip to isolate it. Names shows every name, Motion lets the dots drift, and Lessons adds the lessons, which are many and so off by default. Ctrl or ⌘ + scroll, or the + and − buttons, zoom.'))),
+          h('section', null, h('h3', null, tr('The lines')),
             h('ul', { className: 'kbat-key' },
-              h('li', null, line(undefined), h('span', null, h('b', null, 'Solid. '), 'Written in a file. For example, an agent team lists a skill.')),
-              h('li', null, line('4 4'), h('span', null, h('b', null, 'Dashed. '), 'Guessed from a name. For example, an app that matches one of an agent team’s tools.')),
-              h('li', null, h('span', { className: 'kbat-ghostkey' }, 'brand-voice'), h('span', null, h('b', null, 'Crossed out, red. '), 'Points to something that no longer exists, such as a skill that is not installed.')))),
-          h('section', null, h('h3', null, 'To check'), h('p', null, 'Red items are broken links. Amber items look wrong, for example an automation whose last run failed. Click one to see where it is on the map. Skills that nobody declares are not listed: skills are mostly used by name, on demand.')),
-          h('section', null, h('h3', null, 'Words'),
+              h('li', null, line(undefined), h('span', null, h('b', null, tr('Solid. ')), tr('Written in a file. For example, an agent team lists a skill.'))),
+              h('li', null, line('4 4'), h('span', null, h('b', null, tr('Dashed. ')), tr('Guessed from a name. For example, an app that matches one of an agent team’s tools.'))),
+              h('li', null, h('span', { className: 'kbat-ghostkey' }, 'brand-voice'), h('span', null, h('b', null, tr('Crossed out, red. ')), tr('Points to something that no longer exists, such as a skill that is not installed.'))))),
+          h('section', null, h('h3', null, tr('To check')), h('p', null, tr('Red items are broken links. Amber items look wrong, for example an automation whose last run failed. Click one to see where it is on the map. Skills that nobody declares are not listed: skills are mostly used by name, on demand.'))),
+          h('section', null, h('h3', null, tr('Words')),
             h('dl', null,
-              h('dt', null, 'Project'), h('dd', null, 'A workspace in DSH.'),
-              h('dt', null, 'Agent Team'), h('dd', null, 'A team of agents with its own roles, skills and lessons.'),
-              h('dt', null, 'Skill'), h('dd', null, 'A reusable instruction set an agent team or a project can use.'),
-              h('dt', null, 'Memory'), h('dd', null, 'Facts kept in your kybernos.app account. Needs a linked account.'),
-              h('dt', null, 'Lesson'), h('dd', null, 'Something an agent team learned from a past run. The most recent few are shown.'),
-              h('dt', null, 'Automation'), h('dd', null, 'A scheduled task. Its last run is shown on its card.'))),
-          h('section', null, h('h3', null, 'What you will not see'),
+              h('dt', null, tr('Project')), h('dd', null, tr('A workspace in DSH.')),
+              h('dt', null, tr('Agent Team')), h('dd', null, tr('A team of agents with its own roles, skills and lessons.')),
+              h('dt', null, tr('Skill')), h('dd', null, tr('A reusable instruction set an agent team or a project can use.')),
+              h('dt', null, tr('Memory')), h('dd', null, tr('Facts kept in your kybernos.app account. Needs a linked account.')),
+              h('dt', null, tr('Lesson')), h('dd', null, tr('Something an agent team learned from a past run. The most recent few are shown.')),
+              h('dt', null, tr('Automation')), h('dd', null, tr('A scheduled task. Its last run is shown on its card.')))),
+          h('section', null, h('h3', null, tr('What you will not see')),
             h('ul', null,
-              h('li', null, 'Sessions. Automation runs only appear in the drawings, and only the last 14 days.'),
-              h('li', null, 'Which agent team worked in which project, beyond each project’s 40 most recent sessions. It is only known when an agent team was activated in a session.'),
-              h('li', null, 'Account memory fact by fact. It can hold hundreds, so it is one node with a count.'),
-              h('li', null, 'Memories, when no account is linked.'),
-              h('li', null, 'Links no file declares. Names are the only thing it guesses from.'))),
-          h('p', { className: 'kbat-foot2' }, 'The colour of a dot is its project. Grey means shared or unassigned. The shape is the kind, as in the legend.'),
-          h('div', { className: 'kbat-acts', style: { justifyContent: 'flex-end' } }, h('button', { type: 'button', className: 'kbat-btn', 'data-primary': 'true', 'data-ok': '1', onClick: p.onClose }, 'Got it'))))
+              h('li', null, tr('Sessions. Automation runs only appear in the drawings, and only the last 14 days.')),
+              h('li', null, tr('Which agent team worked in which project, beyond each project’s 40 most recent sessions. It is only known when an agent team was activated in a session.')),
+              h('li', null, tr('Account memory fact by fact. It can hold hundreds, so it is one node with a count.')),
+              h('li', null, tr('Memories, when no account is linked.')),
+              h('li', null, tr('Links no file declares. Names are the only thing it guesses from.')))),
+          h('p', { className: 'kbat-foot2' }, tr('The colour of a dot is its project. Grey means shared or unassigned. The shape is the kind, as in the legend.')),
+          h('div', { className: 'kbat-acts', style: { justifyContent: 'flex-end' } }, h('button', { type: 'button', className: 'kbat-btn', 'data-primary': 'true', 'data-ok': '1', onClick: p.onClose }, tr('Got it')))))
     }
 
     function Picker (p) {
@@ -1093,11 +1305,11 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       const focus = p.focus !== null ? g.byId[p.focus] : null
       return h('div', { className: 'kbat-picker', ref: wrap },
         h('button', { type: 'button', className: 'kbat-pkbtn', 'aria-haspopup': 'listbox', 'aria-expanded': String(open), onClick: () => { setOpen(!open); setIdx(0) } },
-          h('span', { className: 'kbat-k' }, 'Start from'), h('b', null, focus ? focus.label : 'Choose…'),
+          h('span', { className: 'kbat-k' }, tr('Start from')), h('b', null, focus ? focus.label : tr('Choose…')),
           h('svg', { width: 10, height: 10, viewBox: '0 0 10 10', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' }, h('path', { d: 'M2 3.5 5 6.5 8 3.5' }))),
         open ? h('div', { className: 'kbat-pop' },
           h('input', {
-            ref: input, type: 'search', value: q, placeholder: 'Search a project, agent team, skill…', 'aria-label': 'Search',
+            ref: input, type: 'search', value: q, placeholder: tr('Search a project, agent team, skill…'), 'aria-label': tr('Search'),
             onChange: (e) => { setQ(e.target.value); setIdx(0) },
             onKeyDown: (e) => {
               if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (options.length) setIdx((idx + (e.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length) }
@@ -1105,8 +1317,8 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
               else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setOpen(false) }
             }
           }),
-          h('ul', { role: 'listbox', 'aria-label': 'Start from' },
-            options.length === 0 ? h('li', { className: 'kbat-hd', role: 'presentation' }, 'No match') : null,
+          h('ul', { role: 'listbox', 'aria-label': tr('Start from') },
+            options.length === 0 ? h('li', { className: 'kbat-hd', role: 'presentation' }, tr('No match')) : null,
             (() => { let k = -1; return items.map((it, i) => it.head !== undefined ? h('li', { key: 'h' + i, className: 'kbat-hd', role: 'presentation' }, it.head) : (k++, h('li', { key: it.id, className: 'kbat-o', role: 'option', 'aria-selected': String(k === idx), onClick: () => choose(it.id) }, h('span', null, it.label), h('span', { className: 'kbat-sub2' }, it.sub)))) })())) : null)
     }
 
@@ -1136,7 +1348,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
         const ro = new ResizeObserver(() => measure()); ro.observe(host)
         return () => ro.disconnect()
       }, [measure])
-      if (!model) return h('div', { className: 'kbat-state' }, h('p', null, 'Pick a project or an agent team in “Start from”.'))
+      if (!model) return h('div', { className: 'kbat-state' }, h('p', null, tr('Pick a project or an agent team in “Start from”.')))
       const cur = hot || p.sel
       const ids = new Set(); const nbs = new Set()
       model.cols.forEach((c) => c.groups.forEach((gr) => { gr.items.forEach((n) => ids.add(n.id)); gr.ghosts.forEach((x) => ids.add(x.id)) }))
@@ -1157,9 +1369,9 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
         onClick: () => p.onSelect(x.src), onPointerEnter: () => setHot(x.id), onPointerLeave: () => setHot(null)
       }, h('span', { className: 'kbat-pt' }, h('b', null, x.label), h('i', null, x.sub)), h('span', { className: 'kbat-pw' }, h(Glyph, { kind: 'warn', size: 13 })))
       const focusNode = model.focus
-      const noMemoryNote = g.memory ? 'Account memory (' + g.memory.accountCount + ' facts) is shared by every agent team.' : 'Not read. Link your kybernos.app account to see memory.'
+      const noMemoryNote = g.memory ? kt('La mémoire du compte (' + g.memory.accountCount + (g.memory.accountCount > 1 ? ' faits' : ' fait') + ') est partagée par toutes les Agent Teams.', 'Account memory (' + g.memory.accountCount + (g.memory.accountCount === 1 ? ' fact' : ' facts') + ') is shared by every agent team.') : tr('Not read. Link your kybernos.app account to see memory.')
       return h('div', { className: 'kbat-around' },
-        h('p', { className: 'kbat-cap' }, 'Around ', h('b', null, focusNode.label), '. ', focusNode.kind === 'area' ? 'Who works on this project, what they use and what they know.' : 'Where this agent team is used, what it uses and what it knows.', ' Hover a name to follow its lines.'),
+        h('p', { className: 'kbat-cap' }, 'Around ', h('b', null, focusNode.label), '. ', focusNode.kind === 'area' ? tr('Who works on this project, what they use and what they know.') : tr('Where this agent team is used, what it uses and what it knows.'), tr(' Hover a name to follow its lines.')),
         h('div', { className: 'kbat-grid', ref: gridRef, 'data-hover': on ? '1' : undefined },
           h('svg', { className: 'kbat-lines', width: geo.w, height: geo.h, 'aria-hidden': 'true' },
             geo.paths.map((q) => h('path', { key: q.key, d: q.d, 'data-inf': q.inf ? '1' : undefined, 'data-hot': on && (q.s === cur || q.t === cur) ? '1' : undefined }))),
@@ -1175,11 +1387,11 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
                 gr.label ? h('h4', null, gr.label, ' ', h('span', null, gr.total)) : null,
                 gr.items.map((n) => pill(n, ci)),
                 gr.ghosts.map((x) => ghost(x, ci)),
-                gr.hidden > 0 ? h('button', { type: 'button', className: 'kbat-more', onClick: () => p.onExpand(gr.key) }, gr.open ? 'Show fewer' : 'Show ' + gr.hidden + ' more') : null,
-                gr.kind === 'lesson' && focusNode.kind === 'kyber' && focusNode.olderLessons > 0 ? h('p', { className: 'kbat-none' }, focusNode.olderLessons + ' older lessons are not shown.') : null)
+                gr.hidden > 0 ? h('button', { type: 'button', className: 'kbat-more', onClick: () => p.onExpand(gr.key) }, gr.open ? tr('Show fewer') : kt('En montrer ' + gr.hidden + ' de plus', 'Show ' + gr.hidden + ' more')) : null,
+                gr.kind === 'lesson' && focusNode.kind === 'kyber' && focusNode.olderLessons > 0 ? h('p', { className: 'kbat-none' }, kt(focusNode.olderLessons + (focusNode.olderLessons > 1 ? ' leçons plus anciennes ne sont pas affichées.' : ' leçon plus ancienne n’est pas affichée.'), focusNode.olderLessons + (focusNode.olderLessons === 1 ? ' older lesson is not shown.' : ' older lessons are not shown.'))) : null)
             })
             const empty = !any && !c.groups.some((gr) => gr.kind === 'memory' && gr.total === 0)
-            return h('div', { key: c.title, className: 'kbat-col' }, h('h3', null, c.title), groups, empty ? h('p', { className: 'kbat-none' }, 'Nothing here.') : null)
+            return h('div', { key: c.title, className: 'kbat-col' }, h('h3', null, c.title), groups, empty ? h('p', { className: 'kbat-none' }, tr('Nothing here.')) : null)
           })))
     }
 
@@ -1190,31 +1402,31 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       const nb = Array.from((x && x.adj[n.id]) || g.adj[n.id] || []).map((i) => g.byId[i] || (x && x.byId[i])).filter(Boolean).sort(byKindThenLabel)
       const hub = n.kind === 'area' || n.kind === 'kyber'
       const isPath = ['area', 'kyber', 'lesson', 'skill', 'routine', 'root'].indexOf(n.kind) >= 0
-      const copy = () => { try { navigator.clipboard.writeText(isPath ? n.path : n.id).then(() => p.onToast('Copied'), () => p.onToast('Copy is blocked here. Select the text instead.')) } catch (e) { p.onToast('Copy is blocked here. Select the text instead.') } }
+      const copy = () => { try { navigator.clipboard.writeText(isPath ? n.path : n.id).then(() => p.onToast(tr('Copied')), () => p.onToast(tr('Copy is blocked here. Select the text instead.'))) } catch (e) { p.onToast(tr('Copy is blocked here. Select the text instead.')) } }
       return h('div', { className: 'kbat-card' + (p.float ? ' kbat-float' : ''), 'data-kb': 'atlas-card' },
-        h('button', { type: 'button', className: 'kbat-x', 'aria-label': 'Close details', onClick: p.onClose }, '×'),
+        h('button', { type: 'button', className: 'kbat-x', 'aria-label': tr('Close details'), onClick: p.onClose }, '×'),
         h('h3', null, h(Glyph, { kind: n.kind, color: areaVar(g, n), size: 14 }), h('span', null, n.label)),
         h('div', { className: 'kbat-meta' }, h('span', { className: 'kbat-pill' }, KIND_NAME_ALL[n.kind]),
           area && n.kind !== 'area' ? h('span', { className: 'kbat-pill' }, h('svg', { width: 8, height: 8, 'aria-hidden': 'true' }, h('circle', { cx: 4, cy: 4, r: 4, style: { fill: 'var(--kbat-p' + area.idx + ')' } })), area.label) : null,
-          n.run ? h('span', { className: 'kbat-pill' }, n.run.ok ? 'Finished' : 'Failed') : null),
+          n.run ? h('span', { className: 'kbat-pill' }, n.run.ok ? tr('Finished') : tr('Failed')) : null),
         h('p', { className: 'kbat-note' }, n.note),
         n.problem ? h('div', { className: 'kbat-callout', 'data-sev': n.problem.sev, role: 'note' }, h('span', { style: { color: n.problem.sev === 'err' ? 'var(--dsw-alias-state-error-primary,#ec1313)' : 'var(--dsw-alias-state-warn-primary,#f59e0b)' } }, h(Glyph, { kind: 'warn', size: 12 })), h('span', null, n.problem.text)) : null,
-        h('dl', { className: 'kbat-kv' }, h('dt', null, isPath ? 'Path' : 'Source'), h('dd', { className: 'kbat-mono' }, n.path), h('dt', null, 'Changed'), h('dd', null, n.days === null ? 'Not recorded' : ago(n.days))),
-        nb.length && !p.hideLinked ? h('div', { className: 'kbat-meta' }, nb.slice(0, 6).map((y) => h('button', { key: y.id, type: 'button', className: 'kbat-pill', onClick: () => p.onGo(y.id) }, h(Glyph, { kind: y.kind, color: areaVar(g, y), size: 10 }), y.label)), nb.length > 6 ? h('span', { className: 'kbat-pill' }, '+' + (nb.length - 6) + ' more') : null) : null,
+        h('dl', { className: 'kbat-kv' }, h('dt', null, isPath ? tr('Path') : tr('Source')), h('dd', { className: 'kbat-mono' }, n.path), h('dt', null, tr('Changed')), h('dd', null, n.days === null ? tr('Not recorded') : ago(n.days))),
+        nb.length && !p.hideLinked ? h('div', { className: 'kbat-meta' }, nb.slice(0, 6).map((y) => h('button', { key: y.id, type: 'button', className: 'kbat-pill', onClick: () => p.onGo(y.id) }, h(Glyph, { kind: y.kind, color: areaVar(g, y), size: 10 }), y.label)), nb.length > 6 ? h('span', { className: 'kbat-pill' }, kt('+' + (nb.length - 6) + ' de plus', '+' + (nb.length - 6) + ' more')) : null) : null,
         h('div', { className: 'kbat-acts' },
           p.openAction ? h('button', { type: 'button', className: 'kbat-btn', 'data-primary': 'true', onClick: p.openAction.run }, p.openAction.label) : null,
-          hub && !(p.tab === 'around' && p.focus === n.id) ? h('button', { type: 'button', className: 'kbat-btn', onClick: () => p.onFocus(n.id) }, 'Show around this') : null,
-          p.onFly ? h('button', { type: 'button', className: 'kbat-btn', onClick: p.onFly }, 'Centre') : null,
-          h('button', { type: 'button', className: 'kbat-btn', onClick: copy }, isPath ? 'Copy path' : 'Copy id')),
-        h('p', { className: 'kbat-ro' }, 'Read-only. The Atlas never edits your files.'))
+          hub && !(p.tab === 'around' && p.focus === n.id) ? h('button', { type: 'button', className: 'kbat-btn', onClick: () => p.onFocus(n.id) }, tr('Show around this')) : null,
+          p.onFly ? h('button', { type: 'button', className: 'kbat-btn', onClick: p.onFly }, tr('Centre')) : null,
+          h('button', { type: 'button', className: 'kbat-btn', onClick: copy }, isPath ? tr('Copy path') : tr('Copy id'))),
+        h('p', { className: 'kbat-ro' }, tr('Read-only. The Atlas never edits your files.')))
     }
 
     function ToCheck (p) {
       const items = p.graph.problems
       return h('details', { className: 'kbat-tc', open: p.open, 'data-kb': 'atlas-tocheck' },
-        h('summary', null, h('span', null, 'To check'), h('span', { className: 'kbat-count', 'data-zero': items.length === 0 ? '1' : undefined }, items.length)),
-        h('p', null, 'Broken links, and things that look wrong.'),
-        items.length === 0 ? h('p', null, 'Nothing to check. Every reference points somewhere and nothing failed.') : h('ul', null, items.map((n) => h('li', { key: n.id }, h('button', { type: 'button', onClick: () => p.onShow(n.id) },
+        h('summary', null, h('span', null, tr('To check')), h('span', { className: 'kbat-count', 'data-zero': items.length === 0 ? '1' : undefined }, items.length)),
+        h('p', null, tr('Broken links, and things that look wrong.')),
+        items.length === 0 ? h('p', null, tr('Nothing to check. Every reference points somewhere and nothing failed.')) : h('ul', null, items.map((n) => h('li', { key: n.id }, h('button', { type: 'button', onClick: () => p.onShow(n.id) },
           h('span', { className: 'kbat-ic', 'data-sev': n.problem.sev }, h(Glyph, { kind: 'warn', size: 14 })),
           h('span', { className: 'kbat-tx' }, h('b', null, n.label, h('u', null, KIND_NAME[n.kind])), h('i', null, n.problem.text)))))),
         p.notes.length ? h('p', null, p.notes.join(' ')) : null)
@@ -1224,21 +1436,21 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       const g = p.graph; const fp = React.useState(''); const q = fp[0]; const setQ = fp[1]
       const rows = React.useMemo(() => listRows(g, q), [g, q])
       return h('div', { className: 'kbat-list' },
-        h('div', { className: 'kbat-listbar' }, h('input', { className: 'kbat-filter', type: 'search', value: q, placeholder: 'Filter by name, note or path', 'aria-label': 'Filter the list', onChange: (e) => setQ(e.target.value) }), h('span', { className: 'kbat-ro' }, rows.length + ' of ' + g.nodes.length)),
-        h('table', null, h('thead', null, h('tr', null, ['Name', 'Kind', 'Project', 'Links', 'Changed'].map((x) => h('th', { key: x }, x)))),
-          h('tbody', null, rows.length === 0 ? h('tr', null, h('td', { colSpan: 5, style: { padding: 24, color: 'var(--dsw-alias-label-tertiary)' } }, 'Nothing matches.')) : rows.map((n) => {
+        h('div', { className: 'kbat-listbar' }, h('input', { className: 'kbat-filter', type: 'search', value: q, placeholder: tr('Filter by name, note or path'), 'aria-label': tr('Filter the list'), onChange: (e) => setQ(e.target.value) }), h('span', { className: 'kbat-ro' }, rows.length + kt(' sur ', ' of ') + g.nodes.length)),
+        h('table', null, h('thead', null, h('tr', null, [tr('Name'), tr('Kind'), tr('Project'), tr('Links'), tr('Changed')].map((x) => h('th', { key: x }, x)))),
+          h('tbody', null, rows.length === 0 ? h('tr', null, h('td', { colSpan: 5, style: { padding: 24, color: 'var(--dsw-alias-label-tertiary)' } }, tr('Nothing matches.'))) : rows.map((n) => {
             const area = n.kind === 'area' ? null : g.areas.filter((a) => a.id === n.area)[0]
             return h('tr', { key: n.id, 'data-row': n.id, tabIndex: 0, 'aria-selected': String(p.sel === n.id), onClick: () => p.onSelect(n.id), onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); p.onSelect(n.id) } } },
-              h('td', null, h('span', { className: 'kbat-nm' }, h(Glyph, { kind: n.kind, color: areaVar(g, n) }), n.label), n.problem ? h('span', { className: 'kbat-flag', 'data-sev': n.problem.sev }, n.problem.sev === 'err' ? 'Broken link' : 'Check') : null),
+              h('td', null, h('span', { className: 'kbat-nm' }, h(Glyph, { kind: n.kind, color: areaVar(g, n) }), n.label), n.problem ? h('span', { className: 'kbat-flag', 'data-sev': n.problem.sev }, n.problem.sev === 'err' ? tr('Broken link') : tr('Check')) : null),
               h('td', null, KIND_NAME[n.kind]), h('td', null, area ? area.label : '—'), h('td', { style: { fontVariantNumeric: 'tabular-nums' } }, n.deg), h('td', { style: { fontVariantNumeric: 'tabular-nums' } }, ago(n.days)))
           }))))
     }
 
     function SourceList (p) {
-      return h('ul', { className: 'kbat-srcs' }, SOURCES.map((s) => {
-        const st = p.status[s[0]] || { state: 'waiting', count: null, note: '' }
+      return h('ul', { className: 'kbat-srcs' }, sources().map((s) => {
+        const st = p.status[s[0]] || { state: tr('waiting'), count: null, note: '' }
         const bad = st.state === 'failed'
-        const txt = st.state === 'ok' ? st.count + ' read' : st.state === 'skipped' ? st.note : st.state === 'reading' ? 'reading…' : bad ? 'no answer' : 'waiting'
+        const txt = st.state === 'ok' ? kt(st.count + (st.count > 1 ? ' lus' : ' lu'), st.count + ' read') : st.state === 'skipped' ? st.note : st.state === 'reading' ? tr('reading…') : bad ? tr('no answer') : tr('waiting')
         return h('li', { key: s[0], 'data-bad': bad ? '1' : undefined, title: bad ? st.note : undefined },
           h('span', { style: { width: 14, display: 'inline-flex', justifyContent: 'center', color: bad ? 'var(--dsw-alias-state-error-primary,#ec1313)' : st.state === 'ok' ? 'var(--dsw-alias-state-success-primary,#22c55e)' : 'var(--dsw-alias-label-tertiary)' } }, bad ? h(Glyph, { kind: 'warn', size: 12 }) : st.state === 'ok' ? '✓' : st.state === 'reading' ? h('span', { className: 'kbat-dot', 'data-t': 'busy', style: { width: 12, height: 12 } }) : '·'),
           h('span', null, s[1]), h('span', { className: 'kbat-s' }, txt))
@@ -1307,8 +1519,8 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       const leave = () => { if (!e.drag) { e.hover = null; setTip(null); e.dirty = true } }
       const areaOf = (n) => (n.area && n.kind !== 'area' ? p.data.model.areas.filter((a) => a.id === n.area)[0] : null)
       return h('div', { ref: boxRef, style: { position: 'absolute', inset: 0 } },
-        h('canvas', { ref: cvRef, className: 'kbat-canvas', 'data-hot': tip ? '1' : undefined, role: 'img', 'aria-label': 'A drawing of your workspace. The List view has the same things as text.', onPointerDown: down, onPointerMove: move, onPointerUp: up, onPointerLeave: leave }),
-        tip ? h('div', { className: 'kbat-tip', style: { left: tip.x, top: tip.y } }, h('b', null, tip.n.label), h('span', null, KIND_NAME_ALL[tip.n.kind] + (areaOf(tip.n) ? ' · ' + areaOf(tip.n).label : '') + ' · ' + tip.n.deg + (tip.n.deg === 1 ? ' link' : ' links'))) : null)
+        h('canvas', { ref: cvRef, className: 'kbat-canvas', 'data-hot': tip ? '1' : undefined, role: 'img', 'aria-label': tr('A drawing of your workspace. The List view has the same things as text.'), onPointerDown: down, onPointerMove: move, onPointerUp: up, onPointerLeave: leave }),
+        tip ? h('div', { className: 'kbat-tip', style: { left: tip.x, top: tip.y } }, h('b', null, tip.n.label), h('span', null, KIND_NAME_ALL[tip.n.kind] + (areaOf(tip.n) ? ' · ' + areaOf(tip.n).label : '') + ' · ' + linkCount(tip.n.deg))) : null)
     }
 
     // Search (with a result list that flies to the node), plus the toggles of the canvas views.
@@ -1323,18 +1535,18 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
         h('div', { className: 'kbat-search' },
           h('svg', { width: 14, height: 14, viewBox: '0 0 14 14', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', 'aria-hidden': 'true' }, h('circle', { cx: 6, cy: 6, r: 4.2 }), h('path', { d: 'M9.2 9.2 12.5 12.5' })),
           h('input', {
-            type: 'search', value: p.query, placeholder: 'Search name, path or note', 'aria-label': 'Search the drawing', role: 'combobox', 'aria-expanded': String(open && results.length > 0),
+            type: 'search', value: p.query, placeholder: tr('Search name, path or note'), 'aria-label': tr('Search the drawing'), role: 'combobox', 'aria-expanded': String(open && results.length > 0),
             onChange: (ev) => { p.setQuery(ev.target.value); setOpen(true); setIdx(0) }, onFocus: () => setOpen(true), onBlur: () => setTimeout(() => setOpen(false), 120),
             onKeyDown: (ev) => {
               if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') { if (results.length) { ev.preventDefault(); setIdx((idx + (ev.key === 'ArrowDown' ? 1 : -1) + results.length) % results.length) } } else if (ev.key === 'Enter' && results[idx]) { ev.preventDefault(); pick(results[idx].id) } else if (ev.key === 'Escape' && p.query !== '') { ev.preventDefault(); ev.stopPropagation(); p.setQuery(''); setOpen(false) }
             }
           }),
-          open && q !== '' ? h('ul', { className: 'kbat-results', role: 'listbox' }, results.length === 0 ? h('li', { className: 'kbat-none2' }, 'No match for “' + p.query.trim() + '”') : results.map((n, i) => h('li', { key: n.id, role: 'option', 'aria-selected': String(i === idx), onMouseDown: (ev) => { ev.preventDefault(); pick(n.id) } }, h(Glyph, { kind: n.kind, color: areaVar(p.graph, n) }), h('span', null, n.label), h('span', { className: 'kbat-sub2' }, KIND_NAME_ALL[n.kind])))) : null),
-        h('button', { type: 'button', className: 'kbat-btn', 'aria-pressed': String(p.names), onClick: () => p.setNames(!p.names) }, 'Names'),
-        h('button', { type: 'button', className: 'kbat-btn', 'aria-pressed': String(p.motion), onClick: () => p.setMotion(!p.motion) }, 'Motion'),
-        h('button', { type: 'button', className: 'kbat-btn', 'aria-pressed': String(p.lessons), title: 'Lessons are many; they are left out unless you ask', onClick: () => p.setLessons(!p.lessons) }, 'Lessons'),
-        h('button', { type: 'button', className: 'kbat-btn', onClick: p.onFit }, 'Fit'),
-        h('button', { type: 'button', className: 'kbat-btn', onClick: p.onFull }, p.full ? 'Exit full screen' : 'Full screen'))
+          open && q !== '' ? h('ul', { className: 'kbat-results', role: 'listbox' }, results.length === 0 ? h('li', { className: 'kbat-none2' }, kt('Aucun résultat pour « ' + p.query.trim() + ' »', 'No match for “' + p.query.trim() + '”')) : results.map((n, i) => h('li', { key: n.id, role: 'option', 'aria-selected': String(i === idx), onMouseDown: (ev) => { ev.preventDefault(); pick(n.id) } }, h(Glyph, { kind: n.kind, color: areaVar(p.graph, n) }), h('span', null, n.label), h('span', { className: 'kbat-sub2' }, KIND_NAME_ALL[n.kind])))) : null),
+        h('button', { type: 'button', className: 'kbat-btn', 'aria-pressed': String(p.names), onClick: () => p.setNames(!p.names) }, tr('Names')),
+        h('button', { type: 'button', className: 'kbat-btn', 'aria-pressed': String(p.motion), onClick: () => p.setMotion(!p.motion) }, tr('Motion')),
+        h('button', { type: 'button', className: 'kbat-btn', 'aria-pressed': String(p.lessons), title: tr('Lessons are many; they are left out unless you ask'), onClick: () => p.setLessons(!p.lessons) }, tr('Lessons')),
+        h('button', { type: 'button', className: 'kbat-btn', onClick: p.onFit }, tr('Fit')),
+        h('button', { type: 'button', className: 'kbat-btn', onClick: p.onFull }, p.full ? tr('Exit full screen') : tr('Full screen')))
     }
 
     // Click a chip to isolate it; click again to clear. The dashed-lines chip is a plain toggle.
@@ -1342,26 +1554,26 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       const m = p.model; const g = p.graph
       const chip = (key, label, glyph, count, k, v, extra) => h('button', { key, type: 'button', className: 'kbat-chip', 'data-check': extra && extra.check ? '1' : undefined, disabled: extra && extra.disabled, title: extra && extra.title, 'aria-pressed': String(!!p.iso && p.iso.k === k && p.iso.v === v), onClick: () => p.setIso(p.iso && p.iso.k === k && p.iso.v === v ? null : { k, v }) }, glyph, label, ' ', h('span', { className: 'kbat-n' }, count))
       const lessonTotal = g.nodes.filter((n) => n.kind === 'lesson').length
-      return h('div', { className: 'kbat-legend', 'aria-label': 'Legend: click to isolate' },
-        h('div', { className: 'kbat-lrow' }, h('span', { className: 'kbat-lbl' }, 'Projects'),
+      return h('div', { className: 'kbat-legend', 'aria-label': tr('Legend: click to isolate') },
+        h('div', { className: 'kbat-lrow' }, h('span', { className: 'kbat-lbl' }, tr('Projects')),
           m.areas.map((a) => chip('a' + a.id, a.label, h('svg', { width: 10, height: 10, 'aria-hidden': 'true' }, h('circle', { cx: 5, cy: 5, r: 5, style: { fill: 'var(--kbat-p' + a.idx + ')' } })), m.areaCount[a.id] || 0, 'area', a.id)),
-          chip('chk', 'To check', h(Glyph, { kind: 'warn', size: 12 }), m.problemCount, 'problem', '1', { check: true })),
-        h('div', { className: 'kbat-lrow' }, h('span', { className: 'kbat-lbl' }, 'Kinds'),
+          chip('chk', tr('To check'), h(Glyph, { kind: 'warn', size: 12 }), m.problemCount, 'problem', '1', { check: true })),
+        h('div', { className: 'kbat-lrow' }, h('span', { className: 'kbat-lbl' }, tr('Kinds')),
           ['area', 'kyber', 'memory', 'lesson', 'skill', 'routine', 'app', 'run'].map((k) => (k === 'lesson' && !p.lessons
-            ? chip('k' + k, KIND_NAME_ALL[k], h(Glyph, { kind: k, color: 'currentColor' }), lessonTotal, 'kind', k, { disabled: true, title: 'Hidden. Use the Lessons button.' })
+            ? chip('k' + k, KIND_NAME_ALL[k], h(Glyph, { kind: k, color: 'currentColor' }), lessonTotal, 'kind', k, { disabled: true, title: tr('Hidden. Use the Lessons button.') })
             : chip('k' + k, KIND_NAME_ALL[k], h(Glyph, { kind: k, color: 'currentColor' }), m.kindCount[k] || 0, 'kind', k))),
-          h('button', { type: 'button', className: 'kbat-chip', 'aria-pressed': String(p.inferred), title: 'Links that come from a name match, not from a field', onClick: () => p.setInferred(!p.inferred) }, h('svg', { width: 18, height: 8, 'aria-hidden': 'true' }, h('path', { d: 'M1 4h16', stroke: 'currentColor', strokeWidth: 1.4, strokeDasharray: '3 3' })), 'Inferred links')))
+          h('button', { type: 'button', className: 'kbat-chip', 'aria-pressed': String(p.inferred), title: tr('Links that come from a name match, not from a field'), onClick: () => p.setInferred(!p.inferred) }, h('svg', { width: 18, height: 8, 'aria-hidden': 'true' }, h('path', { d: 'M1 4h16', stroke: 'currentColor', strokeWidth: 1.4, strokeDasharray: '3 3' })), tr('Inferred links'))))
     }
 
-    const TABS = [['around', 'Around'], ['rings', 'Rings'], ['circle', 'Circle'], ['areas', 'Areas'], ['links', 'Links'], ['timeline', 'Timeline'], ['orbit', 'Orbit'], ['list', 'List']]
-    const CAPTION = {
-      rings: ['Rings. ', 'One ring per layer, the workspace in the middle. Each project keeps the same wedge on every ring.'],
-      circle: ['Circle. ', 'Every node on one ring, grouped by project. Links cross the middle.'],
-      areas: ['Areas. ', 'One cluster per project. Lines between clusters show what crosses projects.'],
-      links: ['Links. ', 'Nodes pulled together by what they reference. Loose ends drift to the edge.'],
-      timeline: ['Timeline. ', 'Top: automation runs of the last 14 days. Bottom: things by last change. Colour is the project.'],
-      orbit: ['Orbit. ', 'The rings as a stack that turns on its own. Drag to turn it yourself.']
-    }
+    const tabs = () => [['around', tr('Around')], ['rings', tr('Rings')], ['circle', tr('Circle')], ['areas', tr('Areas')], ['links', tr('Links')], ['timeline', tr('Timeline')], ['orbit', tr('Orbit')], ['list', tr('List')]]
+    const CAPTION = lazyTable(() => ({
+      rings: [tr('Rings. '), tr('One ring per layer, the workspace in the middle. Each project keeps the same wedge on every ring.')],
+      circle: [tr('Circle. '), tr('Every node on one ring, grouped by project. Links cross the middle.')],
+      areas: [tr('Areas. '), tr('One cluster per project. Lines between clusters show what crosses projects.')],
+      links: [tr('Links. '), tr('Nodes pulled together by what they reference. Loose ends drift to the edge.')],
+      timeline: [tr('Timeline. '), tr('Top: automation runs of the last 14 days. Bottom: things by last change. Colour is the project.')],
+      orbit: [tr('Orbit. '), tr('The rings as a stack that turns on its own. Drag to turn it yourself.')]
+    }))
 
     // The last reading, kept in memory only (gone when the page reloads) so that moving between Settings pages
     // does not make the user read again. Nothing is ever read until they ask: see `load` below.
@@ -1372,7 +1584,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
     const readingStore = () => { try { return typeof window !== 'undefined' && window.localStorage ? window.localStorage : null } catch (e) { return null } }
     function saveReading (store, r) {
       try {
-        if (store === null || store === undefined || r.failed >= SOURCES.length) return false
+        if (store === null || store === undefined || r.failed >= sources().length) return false
         const text = JSON.stringify({ v: 1, at: r.at, failed: r.failed, status: r.status, src: r.src })
         if (text.length > READING_MAX) return false
         store.setItem(READING_KEY, text)
@@ -1428,11 +1640,11 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
         setSt((s) => ({ phase: 'loading', status: {}, result: s.result }))
         readAll(p.store, (status) => { if (alive.current) setSt((s) => ({ phase: 'loading', status, result: s.result })) }).then((r) => {
           if (!alive.current) return
-          const failed = SOURCES.filter((s) => r.status[s[0]] && r.status[s[0]].state === 'failed').length
+          const failed = sources().filter((s) => r.status[s[0]] && r.status[s[0]].state === 'failed').length
           const g = buildGraph(r.src, Date.now())
           const result = { graph: g, src: r.src, at: Date.now(), failed }
-          if (failed < SOURCES.length) { LAST = { status: r.status, result }; saveReading(readingStore(), { at: result.at, failed, status: r.status, src: r.src }) }
-          setSt({ phase: failed === SOURCES.length ? 'error' : 'ready', status: r.status, result })
+          if (failed < sources().length) { LAST = { status: r.status, result }; saveReading(readingStore(), { at: result.at, failed, status: r.status, src: r.src }) }
+          setSt({ phase: failed === sources().length ? 'error' : 'ready', status: r.status, result })
           setFocus((f) => (f !== null && g.byId[f] !== undefined ? f : defaultFocus(g)))
         }).catch((e) => { if (alive.current) setSt({ phase: 'error', status: {}, result: null }) })
       }, [p.store])
@@ -1474,13 +1686,13 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
         } catch (e) { /* the CSS fallback is enough */ }
       }
       const loading = st.phase === 'loading' && !g
-      const partial = st.phase === 'ready' && g && (st.result.failed > 0 || SOURCES.some((s) => st.status[s[0]] && st.status[s[0]].state === 'skipped'))
-      const failedNames = SOURCES.filter((s) => st.status[s[0]] && st.status[s[0]].state === 'failed').map((s) => s[1])
+      const partial = st.phase === 'ready' && g && (st.result.failed > 0 || sources().some((s) => st.status[s[0]] && st.status[s[0]].state === 'skipped'))
+      const failedNames = sources().filter((s) => st.status[s[0]] && st.status[s[0]].state === 'failed').map((s) => s[1])
       const skippedMemory = st.status.memory && st.status.memory.state === 'skipped'
       const notes = []
-      if (st.result && st.result.src.storeReady === false) notes.push('Sessions were not ready, so agent teams are not tied to projects. Click Update in a moment.')
-      if (skippedMemory) notes.push('Memories were not read, so any problem with them is not listed.')
-      if (failedNames.length) notes.push(failedNames.join(', ') + (failedNames.length === 1 ? ' was' : ' were') + ' not read, so related problems are not listed.')
+      if (st.result && st.result.src.storeReady === false) notes.push(tr('Sessions were not ready, so agent teams are not tied to projects. Click Update in a moment.'))
+      if (skippedMemory) notes.push(tr('Memories were not read, so any problem with them is not listed.'))
+      if (failedNames.length) notes.push(kt(failedNames.join(', ') + (failedNames.length === 1 ? ' n’a pas été lue' : ' n’ont pas été lues') + ' : les problèmes associés ne sont donc pas listés.', failedNames.join(', ') + (failedNames.length === 1 ? ' was' : ' were') + ' not read, so related problems are not listed.'))
       const flyTo = (id) => { setTimeout(() => { if (canvasApi.current) canvasApi.current.fly(id) }, 40) }
       const showNode = (id) => {
         if (!g) return
@@ -1496,7 +1708,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
         if (hub === null) setTab('list')
       }
       const when = st.result ? readAgo(st.result.at, Date.now()) : ''
-      const builtTxt = st.phase === 'loading' ? 'Reading…' : st.phase === 'idle' ? 'Not read yet' : st.phase === 'error' ? 'Could not read' : partial ? 'Read ' + when + ' · ' + (SOURCES.length - failedNames.length - (skippedMemory ? 1 : 0)) + ' of ' + SOURCES.length + ' sources' : 'Read ' + when
+      const builtTxt = st.phase === 'loading' ? tr('Reading…') : st.phase === 'idle' ? tr('Not read yet') : st.phase === 'error' ? tr('Could not read') : partial ? kt('Lu ' + when + ' · ' + (sources().length - failedNames.length - (skippedMemory ? 1 : 0)) + ' sources sur ' + sources().length, 'Read ' + when + ' · ' + (sources().length - failedNames.length - (skippedMemory ? 1 : 0)) + ' of ' + sources().length + ' sources') : kt('Lu ' + when, 'Read ' + when)
       const dotT = st.phase === 'loading' ? 'busy' : st.phase === 'idle' ? 'idle' : st.phase === 'error' ? 'err' : partial ? 'warn' : undefined
       const empty = g && g.nodes.length === 0
       // Opening a page: the Kybernos pages through window.__KB_OPEN__ (set by the main plugin), a session through the
@@ -1508,17 +1720,17 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
         if (t === null) return null
         if (t.session) {
           if (!(p.store && typeof p.store.openSession === 'function')) return null
-          return { label: 'Open the session', run: () => { try { p.store.openSession(t.session); closeSettings() } catch (e) { setToast('Could not open the session.') } } }
+          return { label: tr('Open the session'), run: () => { try { p.store.openSession(t.session); closeSettings() } catch (e) { setToast(tr('Could not open the session.')) } } }
         }
         if (typeof seam !== 'function') return null
-        return { label: 'Open in ' + t.label, run: () => { if (seam(t.patch) === false) setToast('Could not open ' + t.label + '.'); else closeSettings() } }
+        return { label: kt('Ouvrir dans ', 'Open in ') + t.label, run: () => { if (seam(t.patch) === false) setToast(kt('Impossible d’ouvrir ', 'Could not open ') + t.label + '.'); else closeSettings() } }
       }
       const card = (float) => (sel && nodeOf(sel) ? h(DetailCard, { graph: g, extra: data ? data.model : null, id: sel, tab, focus, float, openAction: openAction(nodeOf(sel)), hideLinked: tab === 'around', onClose: () => setSel(null), onGo: showNode, onFocus: (id) => { setFocus(id); setTab('around') }, onFly: isCanvas ? () => flyTo(sel) : null, onToast: setToast }) : null)
       let body
-      if (loading) body = h('div', { className: 'kbat-state', role: 'status' }, h('h2', null, 'Reading the Atlas'), h('p', null, 'Reading seven sources on this computer. Nothing leaves it.'), h(SourceList, { status: st.status }))
-      else if (st.phase === 'error') body = h('div', { className: 'kbat-state', role: 'alert' }, h('h2', null, 'The Atlas could not be read'), h('p', null, 'None of the sources answered. DSH may be restarting. Wait a moment, then try again.'), h(SourceList, { status: st.status }), h('button', { type: 'button', className: 'kbat-btn', 'data-primary': 'true', onClick: load }, 'Try again'))
-      else if (st.phase === 'idle') body = h('div', { className: 'kbat-state' }, h('h2', null, 'Nothing read yet'), h('p', null, 'The Atlas reads your files and plugins only when you ask. Opening this page reads nothing; the first Update is kept here, and the page shows it next time.'), h('button', { type: 'button', className: 'kbat-btn', 'data-primary': 'true', onClick: load }, 'Update'))
-      else if (empty) body = h('div', { className: 'kbat-state' }, h('h2', null, 'Nothing to map yet'), h('p', null, 'The Atlas fills in as you add agent teams, skills, automations and memories. Create an agent team or install a skill, then click Update.'))
+      if (loading) body = h('div', { className: 'kbat-state', role: 'status' }, h('h2', null, tr('Reading the Atlas')), h('p', null, tr('Reading seven sources on this computer. Nothing leaves it.')), h(SourceList, { status: st.status }))
+      else if (st.phase === 'error') body = h('div', { className: 'kbat-state', role: 'alert' }, h('h2', null, tr('The Atlas could not be read')), h('p', null, tr('None of the sources answered. DSH may be restarting. Wait a moment, then try again.')), h(SourceList, { status: st.status }), h('button', { type: 'button', className: 'kbat-btn', 'data-primary': 'true', onClick: load }, tr('Try again')))
+      else if (st.phase === 'idle') body = h('div', { className: 'kbat-state' }, h('h2', null, tr('Nothing read yet')), h('p', null, tr('The Atlas reads your files and plugins only when you ask. Opening this page reads nothing; the first Update is kept here, and the page shows it next time.')), h('button', { type: 'button', className: 'kbat-btn', 'data-primary': 'true', onClick: load }, tr('Update')))
+      else if (empty) body = h('div', { className: 'kbat-state' }, h('h2', null, tr('Nothing to map yet')), h('p', null, tr('The Atlas fills in as you add agent teams, skills, automations and memories. Create an agent team or install a skill, then click Update.')))
       else {
         const cap = CAPTION[tab]
         body = h('div', { className: 'kbat-body' },
@@ -1526,7 +1738,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
           h('div', { className: 'kbat-panel', ref: panelRef, 'data-full': full ? '1' : undefined },
             h('div', { className: 'kbat-tools' },
               tab === 'around' ? h(Picker, { graph: g, focus, onPick: (id) => { setFocus(id); setTab('around'); setSel(null) } }) : null,
-              h('div', { className: 'kbat-seg', role: 'group', 'aria-label': 'View' }, TABS.map((t) => h('button', { key: t[0], type: 'button', 'aria-pressed': String(tab === t[0]), onClick: () => setTab(t[0]) }, t[1]))),
+              h('div', { className: 'kbat-seg', role: 'group', 'aria-label': tr('View') }, tabs().map((tb) => h('button', { key: tb[0], type: 'button', 'aria-pressed': String(tab === tb[0]), onClick: () => setTab(tb[0]) }, tb[1]))),
               isCanvas ? h(CanvasTools, { graph: g, model: data.model, query, setQuery, names, setNames, motion, setMotion, lessons, setLessons, full, onFit: () => { if (canvasApi.current) canvasApi.current.fit() }, onFull: toggleFull, onPick: showNode }) : null),
             isCanvas ? h(Legend, { graph: g, model: data.model, iso, setIso, inferred, setInferred, lessons }) : null,
             h('div', { className: 'kbat-stage', 'data-canvas': isCanvas ? '1' : undefined },
@@ -1535,24 +1747,24 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
                   : h(React.Fragment, null,
                     h(CanvasView, { data, view: tab, sel, names, motion, iso, query, inferred, full, onSelect: setSel, apiRef: canvasApi }),
                     h('div', { className: 'kbat-cap2' }, h('b', null, cap[0]), cap[1]),
-                    h('div', { className: 'kbat-count2' }, data.model.nodes.length + ' nodes · ' + data.model.links.filter((l) => !l.bad).length + ' links · ' + data.model.problemCount + ' to check'),
+                    h('div', { className: 'kbat-count2' }, kt(data.model.nodes.length + ' nœuds · ' + data.model.links.filter((l) => !l.bad).length + ' liens · ' + data.model.problemCount + ' à vérifier', data.model.nodes.length + ' nodes · ' + data.model.links.filter((l) => !l.bad).length + ' links · ' + data.model.problemCount + ' to check')),
                     h('div', { className: 'kbat-hud' },
-                      h('button', { type: 'button', className: 'kbat-btn kbat-icon', 'aria-label': 'Zoom in', onClick: () => { if (canvasApi.current) canvasApi.current.zoom(1.4) } }, '+'),
-                      h('button', { type: 'button', className: 'kbat-btn kbat-icon', 'aria-label': 'Zoom out', onClick: () => { if (canvasApi.current) canvasApi.current.zoom(1 / 1.4) } }, '−'),
-                      h('button', { type: 'button', className: 'kbat-btn kbat-icon', 'aria-label': 'Fit to screen', title: 'Fit to screen', onClick: () => { if (canvasApi.current) canvasApi.current.fit() } }, h('svg', { width: 12, height: 12, viewBox: '0 0 12 12', fill: 'none', stroke: 'currentColor', strokeWidth: 1.4, strokeLinecap: 'round', 'aria-hidden': 'true' }, h('path', { d: 'M1.5 4.5v-3h3M7.5 1.5h3v3M10.5 7.5v3h-3M4.5 10.5h-3v-3' })))),
+                      h('button', { type: 'button', className: 'kbat-btn kbat-icon', 'aria-label': tr('Zoom in'), onClick: () => { if (canvasApi.current) canvasApi.current.zoom(1.4) } }, '+'),
+                      h('button', { type: 'button', className: 'kbat-btn kbat-icon', 'aria-label': tr('Zoom out'), onClick: () => { if (canvasApi.current) canvasApi.current.zoom(1 / 1.4) } }, '−'),
+                      h('button', { type: 'button', className: 'kbat-btn kbat-icon', 'aria-label': tr('Fit to screen'), title: tr('Fit to screen'), onClick: () => { if (canvasApi.current) canvasApi.current.fit() } }, h('svg', { width: 12, height: 12, viewBox: '0 0 12 12', fill: 'none', stroke: 'currentColor', strokeWidth: 1.4, strokeLinecap: 'round', 'aria-hidden': 'true' }, h('path', { d: 'M1.5 4.5v-3h3M7.5 1.5h3v3M10.5 7.5v3h-3M4.5 10.5h-3v-3' })))),
                     full ? card(true) : null))))
       }
       return h('div', { className: 'kbat-page', 'data-kb': 'atlas', 'data-size': size, ref: rootRef },
         h('header', { className: 'kbat-head' },
-          h('div', null, h('h1', { className: 'kbat-title' }, 'Atlas'), h('p', { className: 'kbat-sub' }, 'Every project, agent team, skill, memory, lesson, automation and app, and how they point to each other. It only reads; it never edits anything. Its last reading is kept in this browser.')),
+          h('div', null, h('h1', { className: 'kbat-title' }, 'Atlas'), h('p', { className: 'kbat-sub' }, tr('Every project, agent team, skill, memory, lesson, automation and app, and how they point to each other. It only reads; it never edits anything. Its last reading is kept in this browser.'))),
           h('div', { className: 'kbat-headr' },
             h('span', { className: 'kbat-built', role: 'status' }, h('span', { className: 'kbat-dot', 'data-t': dotT }), builtTxt),
-            h('button', { type: 'button', className: 'kbat-help', onClick: () => setHelp(true), 'aria-haspopup': 'dialog' }, h('span', { className: 'kbat-helpq', 'aria-hidden': 'true' }, '?'), 'How it works'),
-            h('button', { type: 'button', className: 'kbat-btn', onClick: load, disabled: st.phase === 'loading' }, 'Update'))),
+            h('button', { type: 'button', className: 'kbat-help', onClick: () => setHelp(true), 'aria-haspopup': 'dialog' }, h('span', { className: 'kbat-helpq', 'aria-hidden': 'true' }, '?'), tr('How it works')),
+            h('button', { type: 'button', className: 'kbat-btn', onClick: load, disabled: st.phase === 'loading' }, tr('Update')))),
         partial ? h('div', { className: 'kbat-banner', role: 'status' }, h('span', { className: 'kbat-dot', 'data-t': 'warn' }), h('span', { className: 'kbat-sp' },
-          skippedMemory && failedNames.length === 0 ? h(React.Fragment, null, h('b', null, 'Memories were skipped. '), 'They live in your kybernos.app account, which is not linked. The other sources were read.')
-            : h(React.Fragment, null, h('b', null, failedNames.join(', ') + ' did not answer. '), 'The rest is shown.')),
-          failedNames.length ? h('button', { type: 'button', className: 'kbat-btn', onClick: load }, 'Try again') : null) : null,
+          skippedMemory && failedNames.length === 0 ? h(React.Fragment, null, h('b', null, tr('Memories were skipped. ')), tr('They live in your kybernos.app account, which is not linked. The other sources were read.'))
+            : h(React.Fragment, null, h('b', null, kt(failedNames.join(', ') + (failedNames.length > 1 ? ' n’ont pas répondu. ' : ' n’a pas répondu. '), failedNames.join(', ') + ' did not answer. ')), tr('The rest is shown.'))),
+          failedNames.length ? h('button', { type: 'button', className: 'kbat-btn', onClick: load }, tr('Try again')) : null) : null,
         body,
         help ? h(HelpDialog, { onClose: () => setHelp(false) }) : null,
         toast ? h('div', { role: 'status', style: { position: 'fixed', left: '50%', bottom: 24, transform: 'translateX(-50%)', zIndex: 2147483001, padding: '8px 14px', borderRadius: 16, background: 'var(--dsw-alias-brand-primary)', color: 'var(--dsw-alias-label-primary-foreground,#fff)', fontSize: 12 } }, toast) : null)
@@ -1581,7 +1793,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
     }
     Object.defineProperty(model, '__test', {
       enumerable: false,
-      value: { normSkills, normLoad, normState, normMemory, normTasks, normApps, normWorkspaces, buildGraph, hubOf, aroundSet, aroundModel, listRows, pickerItems, defaultFocus, daysSince, ago, cut, firstSentence, canvasModel, canvasLayouts, runForce, CANVAS_VIEWS, LAYERS, RING_R, TL, tlx, readAgo, openTarget, saveReading, restoreReading, READING_KEY }
+      value: { normSkills, normLoad, normState, normMemory, normTasks, normApps, normWorkspaces, buildGraph, hubOf, aroundSet, aroundModel, listRows, pickerItems, defaultFocus, daysSince, ago, cut, firstSentence, canvasModel, canvasLayouts, runForce, CANVAS_VIEWS, LAYERS, RING_R, TL, tlx, readAgo, openTarget, saveReading, restoreReading, READING_KEY, FR, tr, kt, linkCount, KIND_NAME_ALL, LAYER_NAME, COLS }
     })
     return model
   }

@@ -41,6 +41,8 @@ window.__ModuleLoader__.load({
       }
     })()
 
+    // English is the base. French lives under Kybernos' French locale id (« kybernos »): that is the id DSH knows the French of
+    // Kybernos by, not « fr ». Any other language reads the English table.
     const locales = {
       en: {
         title: 'Cloud computers',
@@ -72,7 +74,7 @@ window.__ModuleLoader__.load({
         pageErrStore: 'The key could not be stored on this machine.',
         pageErrNoAnswer: 'DSH did not answer. Reload the page and try again.',
       },
-      fr: {
+      kybernos: {
         title: 'Ordinateurs cloud',
         description: 'Sandboxes E2B pour les agents — avec votre propre clé.',
         apiKey: 'Clé API',
@@ -249,9 +251,21 @@ window.__ModuleLoader__.load({
             console.error('[kybernos-computers] ' + label + ' : ' + String((e && e.message) || e))
           }
         }
-        const t = ctx.locale.bind(NS)
+        const tDsh = ctx.locale.bind(NS)
+        // The French of Kybernos is chosen on the Language page (DSH itself then stays in English) or in DSH's selector (the
+        // « kybernos » locale): either way the resolved Kybernos language says it, so the strings of our own pages follow that.
+        const french = () => {
+          try {
+            const l = String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en'))
+            return l === 'kybernos' || l.slice(0, 2) === 'fr'
+          } catch (e) { return false }
+        }
+        const t = (key) => (french() && typeof locales.kybernos[key] === 'string' ? locales.kybernos[key] : tDsh(key))
         const slots = ctx.get('slots')
-        safe('kybernos-computers: dictionaries', () => ctx.locale.register(NS, locales))
+        safe('kybernos-computers: dictionaries', () => {
+          // English first and alone if the French locale is not known yet: a failed French registration must never lose the English.
+          try { return ctx.locale.register(NS, locales) } catch (e) { return ctx.locale.register(NS, { en: locales.en }) }
+        })
         // The controller is created only WHEN the host serves the namespace:
         // creating it earlier makes apply() throw (fiber « failed » — measured
         // 29/09: configForms.get throws on a namespace that is not served) and
