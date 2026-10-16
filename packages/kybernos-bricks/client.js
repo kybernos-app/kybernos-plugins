@@ -1078,12 +1078,12 @@ function renderFit(canvas, model, cam, opts){
           !total ? vide : null,
           total ? h('div', { className: 'kbb-tools' },
             h('button', { className: 'kbb-tool' + (vue === 'iso' ? ' on' : ''), onClick: () => vueCam('iso') }, '3/4'),
-            h('button', { className: 'kbb-tool' + (vue === 'front' ? ' on' : ''), onClick: () => vueCam('front') }, 'Front'),
-            h('button', { className: 'kbb-tool' + (vue === 'top' ? ' on' : ''), onClick: () => vueCam('top') }, 'Top'),
+            h('button', { className: 'kbb-tool' + (vue === 'front' ? ' on' : ''), onClick: () => vueCam('front') }, kt('Face', 'Front')),
+            h('button', { className: 'kbb-tool' + (vue === 'top' ? ' on' : ''), onClick: () => vueCam('top') }, kt('Dessus', 'Top')),
             h('button', {
               className: 'kbb-tool' + (CANEVAS.spin ? ' on' : ''),
               onClick: (e) => { CANEVAS.spin = !CANEVAS.spin; e.currentTarget.classList.toggle('on', CANEVAS.spin); reveiller() },
-            }, 'Spin')) : null),
+            }, kt('Rotation', 'Spin'))) : null),
         barre,
       )
     }

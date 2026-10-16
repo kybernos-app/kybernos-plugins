@@ -1266,12 +1266,12 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
                 ]
               : [
                   h('button', { className: 'kbm-tool' + (vue === 'iso' ? ' on' : ''), onClick: () => vueCam('iso') }, '3/4'),
-                  h('button', { className: 'kbm-tool' + (vue === 'front' ? ' on' : ''), onClick: () => vueCam('front') }, 'Front'),
-                  h('button', { className: 'kbm-tool' + (vue === 'top' ? ' on' : ''), onClick: () => vueCam('top') }, 'Top'),
+                  h('button', { className: 'kbm-tool' + (vue === 'front' ? ' on' : ''), onClick: () => vueCam('front') }, kt('Face', 'Front')),
+                  h('button', { className: 'kbm-tool' + (vue === 'top' ? ' on' : ''), onClick: () => vueCam('top') }, kt('Dessus', 'Top')),
                   h('button', {
                     className: 'kbm-tool' + (CANEVAS.spin ? ' on' : ''),
                     onClick: (e) => { CANEVAS.spin = !CANEVAS.spin; e.currentTarget.classList.toggle('on', CANEVAS.spin); reveiller() },
-                  }, 'Spin'),
+                  }, kt('Rotation', 'Spin')),
                 ]) : null),
         barre,
       )

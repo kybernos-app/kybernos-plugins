@@ -226,7 +226,7 @@ window.__ModuleLoader__.load({
       const etat = JSON.stringify(rEtat)
       const LIBELLES = JSON.stringify({
         rejouer: kt('Rejouer', 'Replay'), pause: 'Pause',
-        vues: { iso: '3/4', front: kt('Face', 'Front'), top: kt('Dessus', 'Top') }, spin: kt('Tourner', 'Spin'),
+        vues: { iso: '3/4', front: kt('Face', 'Front'), top: kt('Dessus', 'Top') }, spin: kt('Rotation', 'Spin'),
         pieces: kt('pièces', 'pieces'),
       })
       // Le moteur embarqué : stub React (la fabrique n'en a besoin qu'à la

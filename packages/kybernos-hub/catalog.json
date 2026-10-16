@@ -899,7 +899,7 @@
             "en": "Ask the chat for a mockup, for example “build a brick castle”: the “Bricks” tab opens by itself on the right."
           },
           {
-            "fr": "Faites glisser la scène pour la tourner, molette pour zoomer ; « 3/4 », « Front », « Top » et « Spin » changent la vue.",
+            "fr": "Faites glisser la scène pour la tourner, molette pour zoomer ; « 3/4 », « Face », « Dessus » et « Rotation » changent la vue.",
             "en": "Drag the scene to turn it and scroll to zoom; “3/4”, “Front”, “Top” and “Spin” change the view."
           },
           {
@@ -1024,7 +1024,7 @@
             "en": "Ask the chat for a model, for example “draw a lighthouse in 3D”: the “3D modeller” tab opens by itself on the right."
           },
           {
-            "fr": "En 3D, faites glisser pour tourner, molette pour zoomer ; « 3/4 », « Front », « Top », « Spin » (en 2D : « Grille », « Ajuster »).",
+            "fr": "En 3D, faites glisser pour tourner, molette pour zoomer ; « 3/4 », « Face », « Dessus », « Rotation » (en 2D : « Grille », « Ajuster »).",
             "en": "In 3D, drag to turn and scroll to zoom; “3/4”, “Front”, “Top”, “Spin” change the view (in 2D: “Grid”, “Fit”)."
           },
           {
