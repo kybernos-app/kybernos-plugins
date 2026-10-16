@@ -89,7 +89,7 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
 .kbm-tool:hover{background:rgba(0,0,0,.05)}
 .kbm-tool.on{background:#efefec;color:#1a1a1a;font-weight:650}
 .kbm-foot{flex:none;padding:8px 12px 10px;border-top:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.07))}
-.kbm-line{display:flex;align-items:center;gap:7px}
+.kbm-line{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .kbm-play{flex:none;width:26px;height:26px;border:0;border-radius:50%;background:#c94522;color:#fff;cursor:pointer;
   display:grid;place-items:center;font-size:10px;line-height:1}
 .kbm-play:hover{background:#b43f1e}

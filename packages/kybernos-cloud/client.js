@@ -1,17 +1,17 @@
-// ── Kybernos Cloud — entrée de menu + carte profil (half client) ────────────
+// ── Kybernos Cloud — menu entry + profile card (client half) ────────────
 //
-// Un bouton dans la barre du bas de la sidebar (slot `sidebar.footer.action`,
-// à côté de Settings) qui ouvre une carte à trois états :
-//   1. déconnecté  → « Connecter Kybernos Cloud » (device code flow) ;
-//   2. appairage   → code à recopier + ouverture de la page d'activation ;
-//   3. connecté    → profil (email, nom, plan, workspaces + nb de kybers,
-//                    appareil, état de session) + rafraîchir / reconnecter /
-//                    se déconnecter.
+// A button in the bottom bar of the sidebar (slot `sidebar.footer.action`,
+// next to Settings) that opens a card with three states:
+//   1. signed out  → « Connect Kybernos Cloud » (device code flow);
+//   2. pairing     → code to copy + opens the activation page;
+//   3. connected   → profile (email, name, plan, workspaces + number of kybers,
+//                    device, session state) + refresh / reconnect /
+//                    sign out.
 //
-// Aucun secret ne transite ici : la carte ne parle qu'aux routes locales
-// /kybernos-cloud/*, qui seules détiennent le jeton `kys-…` (fichier 0600,
-// ~/.dsh/kybernos-cloud.json). Le mot de passe est saisi dans le NAVIGATEUR,
-// sur la page servie par Kybernos — jamais ici.
+// No secret passes through here: the card only talks to the local routes
+// /kybernos-cloud/*, which alone hold the `kys-…` token (0600 file,
+// ~/.dsh/kybernos-cloud.json). The password is typed in the BROWSER,
+// on the page served by Kybernos — never here.
 window.__ModuleLoader__.load({
   id: '@local/kybernos-cloud',
   factory(require) {
@@ -19,7 +19,7 @@ window.__ModuleLoader__.load({
     const ReactDOM = require('react-dom')
     const h = React.createElement
 
-    // Même contrat local que kybernos-plugin : insert(css) → disposer.
+    // Same local contract as kybernos-plugin: insert(css) → dispose.
     const styles = (() => {
       const tags = new Set()
       return {
@@ -40,24 +40,24 @@ window.__ModuleLoader__.load({
     const DICT = {
       fr: {
         menu: 'Kybernos Cloud',
-        subtitle: 'Connectez DSH à votre compte Kybernos.',
+        subtitle: 'Connecte DSH à ton compte Kybernos.',
         connect: 'Connecter Kybernos Cloud',
         pairingTitle: 'Appairage en cours',
-        pairingBody: 'Ouvrez la page d\'activation et confirmez le code : DSH se connectera tout seul.',
+        pairingBody: 'Ouvre la page d\'activation et confirme le code : DSH se connectera tout seul.',
         openPage: 'Ouvrir la page d\'activation',
         copyCode: 'Copier le code',
         copied: 'Code copié',
         cancel: 'Annuler la demande',
-        waiting: 'En attente de votre confirmation dans le navigateur…',
+        waiting: 'En attente de ta confirmation dans le navigateur…',
         connected: 'Connecté',
         email: 'Email',
         name: 'Nom',
         plan: 'Formule',
-        // DSH parle déjà de « Teams » (AI Teams) : même mot ici, pas deux
-        // vocabulaires pour la même chose.
+        // DSH already says « Teams » (AI Teams): the same word here, not two
+        // vocabularies for the same thing.
         workspaces: 'Teams',
         kybers: 'Agent Teams',
-        // ── l'espace : la rangée du pied devient un sélecteur, et sa page ──
+        // ── the workspace: the footer row becomes a selector, and its page ──
         spaceTitle: 'Équipe',
         wsSwitchTitle: 'Changer d\'équipe',
         wsPageTitle: 'Équipe',
@@ -72,17 +72,17 @@ window.__ModuleLoader__.load({
         profApparence: 'Apparence',
         profLogout: 'Se déconnecter',
         mobTitle: 'Télécharger l\'app mobile',
-        mobScan: 'Scannez le code pour installer Kybernos sur votre téléphone.',
+        mobScan: 'Scanne le code pour installer Kybernos sur ton téléphone.',
         mobSoon: 'Aperçu — le vrai lien arrivera avec l\'app.',
         // Help explaining what the phone link really is (asked 13/10): a web app
         // that opens the same interface and talks to this machine through the
         // Kybernos relay, which reads nothing (end to end). Not « direct ».
-        mobHelp: 'Kybernos Mobile est une web app : votre téléphone ouvre la même interface que cette application et parle à cette machine par un relais qui ne lit rien (chiffré de bout en bout). Le Mac doit être allumé et connecté à Internet.',
+        mobHelp: 'Kybernos Mobile est une web app : ton téléphone ouvre la même interface que cette application et parle à cette machine par un relais qui ne lit rien (chiffré de bout en bout). Le Mac doit être allumé et connecté à Internet.',
         spaceMark: 'actif',
         spaceUnknown: 'Équipe inconnue — rien n\'a été changé.',
         models: 'Modèles',
-        // Chats DSH → webapp (annuaire de sessions, métadonnées seulement)
-        // Mémoire du compte (fonctionnalité cloud n°2)
+        // DSH chats → webapp (session directory, metadata only)
+        // Account memory (cloud feature #2)
         device: 'Appareil',
         session: 'Session',
         refresh: 'Rafraîchir',
@@ -91,23 +91,23 @@ window.__ModuleLoader__.load({
         revokedTitle: 'Reconnexion requise',
         revokedBody: 'Cette session a été révoquée depuis Kybernos.',
         errorTitle: 'Connexion impossible',
-        errNet: 'DSH ne joint pas le serveur Kybernos. Vérifiez la connexion, puis réessayez.',
-        errBusy: 'Trop de tentatives en peu de temps. Attendez une minute, puis réessayez.',
-        errStart: 'Le serveur Kybernos n\'a pas accepté la demande de connexion. Réessayez dans un instant.',
-        errProfile: 'Votre compte n\'a pas pu être lu à l\'instant. Réessayez dans un instant.',
-        errUnreadable: 'Le serveur a répondu quelque chose que DSH ne comprend pas. Réessayez ; si cela dure, vérifiez l\'adresse du serveur.',
+        errNet: 'DSH ne joint pas le serveur Kybernos. Vérifie la connexion, puis réessaie.',
+        errBusy: 'Trop de tentatives en peu de temps. Attends une minute, puis réessaie.',
+        errStart: 'Le serveur Kybernos n\'a pas accepté la demande de connexion. Réessaie dans un instant.',
+        errProfile: 'Ton compte n\'a pas pu être lu à l\'instant. Réessaie dans un instant.',
+        errUnreadable: 'Le serveur a répondu quelque chose que DSH ne comprend pas. Réessaie ; si cela dure, vérifie l\'adresse du serveur.',
         pairingExpires: 'Code valable jusqu\'à',
-        pairingDenied: 'La connexion a été refusée dans le navigateur. Recommencez si c\'était une erreur.',
-        pairingExpired: 'Le code a expiré avant d\'être confirmé. Recommencez.',
+        pairingDenied: 'La connexion a été refusée dans le navigateur. Recommence si c\'était une erreur.',
+        pairingExpired: 'Le code a expiré avant d\'être confirmé. Recommence.',
         retry: 'Réessayer',
         close: 'Fermer',
         none: '—',
         loading: 'Chargement…',
-        footHint: 'Connectez-vous pour synchroniser vos sessions et appareils.',
+        footHint: 'Connecte-toi pour synchroniser tes sessions et appareils.',
         footConnect: 'Se connecter',
-        footPairing: 'Appairage en cours : confirmez le code dans le navigateur.',
+        footPairing: 'Appairage en cours : confirme le code dans le navigateur.',
         footPairingAction: 'Voir le code',
-        // ── Refonte du pied (30/09, maquette « Menu ouvert ») ──
+        // ── Footer rework (30/09, « Open menu » mockup) ──
         notifTitle: 'Notifications',
         notifEmpty: 'Rien de neuf pour l’instant.',
         notifClear: 'Tout effacer',
@@ -117,46 +117,51 @@ window.__ModuleLoader__.load({
         menuHelp: 'Aide',
         menuUpdate: 'Mise à jour disponible',
         menuFeedback: 'Envoyer un retour',
-        menuSettingsApp: 'Paramètres',
+        menuSettingsApp: 'Réglages',
         menuTeamsSettings: 'Réglages d\'équipe',
         menuRemote: 'Contrôle à distance',
         quotaPayment: 'Le dernier paiement de {name} a échoué : les appels IA sont suspendus jusqu\'à son règlement.',
-        quotaPaymentAdmin: ' Réglez-le dans Facturation.',
-        quotaPaymentMember: ' Demandez à un propriétaire ou à un admin de {name}.',
-        quotaUsedUp: '{pct}\u00a0% de votre quota de {window}{cap} est utilisé — il revient {when}.',
+        quotaPaymentAdmin: ' Règle-le dans Facturation.',
+        quotaPaymentMember: ' Demande à un propriétaire ou à un admin de {name}.',
+        quotaUsedUp: '{pct}\u00a0% de ton quota de {window}{cap} est utilisé — il revient {when}.',
         quotaUsedUpTeam: '{pct}\u00a0% du quota de {window} de {name} est utilisé — il revient {when}.',
-        quotaNear: '{pct}\u00a0% de votre quota de {window}{cap} est utilisé.',
+        quotaNear: '{pct}\u00a0% de ton quota de {window}{cap} est utilisé.',
         quotaNearTeam: '{pct}\u00a0% du quota de {window} de {name} est utilisé.',
         quotaCap: ' (un plafond fixé dans {name})',
         quotaBackMin: 'dans environ {n}\u00a0min',
         quotaBackHours: 'dans environ {n}\u00a0h',
         quotaBackDays: 'dans environ {n}\u00a0jours',
-        quotaBackUnknown: 'à mesure que l\'usage ancien sort de cette fenêtre, et il est entier {window} après votre dernier appel',
-        quotaMoreSolo: ' Passez à une formule supérieure ou ajoutez des crédits pour continuer maintenant.',
-        quotaMoreAdmin: ' Ajoutez des crédits ou relevez le plafond dans Formule et crédits.',
-        quotaMoreMember: ' Demandez plus de crédits à un propriétaire ou à un admin de {name}.',
+        quotaBackUnknown: 'à mesure que l\'usage ancien sort de cette fenêtre, et il est entier {window} après ton dernier appel',
+        quotaMoreSolo: ' Passe à une formule supérieure ou ajoute des crédits pour continuer maintenant.',
+        quotaMoreAdmin: ' Ajoute des crédits ou releve le plafond dans Formule et crédits.',
+        quotaMoreMember: ' Demande plus de crédits à un propriétaire ou à un admin de {name}.',
         quotaOpenConsole: 'Ouvrir Formule et crédits',
         quotaClose: 'Fermer',
         quotaWorkspace: 'cette équipe',
         quotaHours: '{n} heures',
         quotaDays: '{n} jours',
         quotaMinutes: '{n} minutes',
+        quotaHours1: '1 heure',
+        quotaDays1: '1 jour',
+        quotaMinutes1: '1 minute',
+        quotaBackDays1: 'dans environ 1\u00a0jour',
+        kyModelsCount1: '1 modèle · formule {plan}',
         mfaBlockedShort: 'Second facteur requis',
-        mfaBlockedLong: '{name} demande un second facteur à ses membres et vous n\'en avez pas : activez-en un dans votre compte Kybernos (Sécurité), puis rechargez.',
+        mfaBlockedLong: '{name} demande un second facteur à ses membres et tu n\'en as pas : active-en un dans ton compte Kybernos (Sécurité), puis recharge.',
         mfaGraceShort: 'Second facteur d\'ici le {date}',
-        mfaGraceLong: '{name} demande un second facteur à ses membres : activez-en un dans votre compte Kybernos (Sécurité) avant le {date}, ensuite l\'équipe vous sera fermée.',
-        // ── onglet Account : champs profil éditables (comme la webapp) ──
-        // ── onglet « Données & confidentialité » (30/09 soir) ──
+        mfaGraceLong: '{name} demande un second facteur à ses membres : active-en un dans ton compte Kybernos (Sécurité) avant le {date}, ensuite l\'équipe te sera fermée.',
+        // ── Account tab: editable profile fields (as in the webapp) ──
+        // ── « Data & privacy » tab (30/09 evening) ──
         themeLight: 'Clair',
         themeDark: 'Sombre',
-        // ── Pied à un seul bouton, menus, fenêtre « Mettre à niveau » ──
+        // ── One-button footer, menus, « Upgrade » dialog ──
         footSignInUp: 'Se connecter / Créer un compte',
-        footSyncSub: 'Sync de vos sessions',
+        footSyncSub: 'Sync de tes sessions',
         menuSignup: 'Créer un compte',
-        accountOpenFail: 'La page de votre compte n\'a pas pu s\'ouvrir. Réessayez dans un instant.',
-        accountNeedsVerify: 'Confirmez d\'abord votre adresse e-mail, puis réessayez.',
+        accountOpenFail: 'La page de ton compte n\'a pas pu s\'ouvrir. Réessaie dans un instant.',
+        accountNeedsVerify: 'Confirme d\'abord ton adresse e-mail, puis réessaie.',
         upTitle: 'Mettre à niveau',
-        upFor: 'Choisissez la formule de',
+        upFor: 'Choisis la formule de',
         upLoading: 'Chargement des formules…',
         upRetry: 'Réessayer',
         upYearly: 'Annuel',
@@ -185,20 +190,20 @@ window.__ModuleLoader__.load({
         upBuyCredits: 'Acheter des crédits',
         upTaxExcl: 'Prix hors taxes.',
         upTaxIncl: 'Prix toutes taxes comprises.',
-        upOpened: 'La page de paiement est ouverte dans votre navigateur. Revenez ici une fois terminé.',
+        upOpened: 'La page de paiement est ouverte dans ton navigateur. Reviens ici une fois terminé.',
         upOpenedRefresh: 'J\'ai payé : actualiser ma formule',
         upOpenFallback: 'Ouvrir la page de paiement',
         upErrLoad: 'Les formules n\'ont pas pu être chargées.',
         upErrDisabled: 'Les paiements ne sont pas disponibles sur ce serveur.',
-        upErrForbidden: 'Seul un propriétaire ou un administrateur peut changer cette formule. Demandez à un propriétaire de le faire.',
-        upErrConflict: 'Cette formule a déjà un abonnement, ou est payée dans une autre devise. Gérez-le depuis le portail de facturation.',
-        upErrInvalid: 'Ce choix n\'est pas possible (par exemple moins de places que de membres). Modifiez-le puis réessayez.',
+        upErrForbidden: 'Seul un propriétaire ou un administrateur peut changer cette formule. Demande à un propriétaire de le faire.',
+        upErrConflict: 'Cette formule a déjà un abonnement, ou est payée dans une autre devise. Gère-le depuis le portail de facturation.',
+        upErrInvalid: 'Ce choix n\'est pas possible (par exemple moins de places que de membres). Modifie-le puis réessaie.',
         upErrNotFound: 'Cette formule n\'est pas en vente pour le moment.',
-        upErrRate: 'Trop de tentatives. Patientez une minute puis réessayez.',
-        upErrRetry: 'Le paiement n\'a pas pu être lancé pour l\'instant. Rien n\'a été débité : réessayez.',
-        upErrDown: 'Le serveur ne répond pas. Rien n\'a été débité : réessayez.',
+        upErrRate: 'Trop de tentatives. Patiente une minute puis réessaie.',
+        upErrRetry: 'Le paiement n\'a pas pu être lancé pour l\'instant. Rien n\'a été débité : réessaie.',
+        upErrDown: 'Le serveur ne répond pas. Rien n\'a été débité : réessaie.',
         upPortal: 'Ouvrir le portail de facturation',
-        upFeatByok: 'Vos propres clés',
+        upFeatByok: 'Tes propres clés',
         upFeatConnections: 'Connexions',
         upFeatHostedRuns: 'Exécutions hébergées',
         upFeatComputers: 'Ordinateurs cloud',
@@ -210,12 +215,12 @@ window.__ModuleLoader__.load({
         kyTitle: 'Kybernos',
         kySub: 'Ce que Kybernos garde sur cet ordinateur.',
         kyInstrTitle: 'Instructions personnalisées',
-        kyInstrPh: 'Soyez direct. Phrases courtes…',
+        kyInstrPh: 'Sois direct. Phrases courtes…',
         kyInstrNote: 'Gardées sur cet ordinateur, dans {file} : tous les agents les lisent, dans les nouvelles conversations.',
         kyInstrNone: 'Le fichier des instructions n\'a pas pu être lu sur cet ordinateur.',
         kyInstrErr: 'Pas enregistrées : {why}.',
         kyWhyReserved: 'le texte contient un repère réservé de Kybernos',
-        kyWhyDamaged: 'la section Kybernos de AGENTS.md est abîmée : corrigez-la ou supprimez-la à la main',
+        kyWhyDamaged: 'la section Kybernos de AGENTS.md est abîmée : corrige-la ou supprime-la à la main',
         kyWhyLong: 'le texte dépasse {max} caractères',
         kyWhyUnreadable: 'le fichier n\'a pas pu être lu',
         kyWhyWrite: 'le fichier n\'a pas pu être écrit',
@@ -226,24 +231,24 @@ window.__ModuleLoader__.load({
         kyModelsCount: '{n} modèles · formule {plan}',
         kyModelsNone: 'Aucun modèle importé',
         kyLastOn: 'dernier import le {date}',
-        kyModelsNote: 'Relit le catalogue de modèles du serveur actif et ajoute ceux que votre formule inclut dans Réglages › Models.',
+        kyModelsNote: 'Relit le catalogue de modèles du serveur actif et ajoute ceux que ta formule inclut dans Réglages › Fournisseur IA & modèles.',
         kyModelsWarn: 'Import partiel : la route du fournisseur n\'a pas pu être écrite dans les réglages — « Réimporter » réessaie.',
-        kyModelsFail: 'Réimport impossible — réessayez.',
+        kyModelsFail: 'Réimport impossible — réessaie.',
         kyImport: 'Importer les modèles',
         kyReimport: 'Réimporter',
         kyImporting: 'Import…',
         kyChatsTitle: 'Chats DSH',
-        kyChatsNote: 'Envoie le titre et la date de vos conversations DSH (jamais leur contenu) à votre compte Kybernos, pour qu’elles apparaissent dans la liste « Conversations DSH » de l’application web. Rien n’est envoyé sans votre confirmation.',
+        kyChatsNote: 'Envoie le titre et la date de tes conversations DSH (jamais leur contenu) à ton compte Kybernos, pour qu’elles apparaissent dans la liste « Conversations DSH » de l’application web. Rien n’est envoyé sans ta confirmation.',
         kyChatsSend: 'Envoyer les chats DSH',
         kyChatsAsk: 'Envoyer la liste maintenant ?',
         kyChatsYes: 'Oui, envoyer',
         kyChatsNo: 'Annuler',
         kyAdvanced: 'Avancé',
-        kyModelsAuto: 'La liste se met à jour toute seule quand votre formule ou votre serveur change.',
+        kyModelsAuto: 'La liste se met à jour toute seule quand ta formule ou ton serveur change.',
         kyChatsSending: 'Envoi…',
         kyChatsLast: 'Dernier envoi',
-        kyChatsFail: 'Envoi impossible — réessayez.',
-        kyNeedServer: 'Demande un serveur Kybernos : connectez-vous d\'abord (le bouton en bas de la barre latérale).',
+        kyChatsFail: 'Envoi impossible — réessaie.',
+        kyNeedServer: 'Demande un serveur Kybernos : connecte-toi d\'abord (le bouton en bas de la barre latérale).',
       },
       en: {
         menu: 'Kybernos Cloud',
@@ -260,8 +265,8 @@ window.__ModuleLoader__.load({
         email: 'Email',
         name: 'Name',
         plan: 'Plan',
-        // DSH parle déjà de « Teams » (AI Teams) : même mot ici, pas deux
-        // vocabulaires pour la même chose.
+        // DSH already says « Teams » (AI Teams): the same word here, not two
+        // vocabularies for the same thing.
         workspaces: 'Teams',
         kybers: 'agent teams',
         spaceTitle: 'Team',
@@ -276,7 +281,7 @@ window.__ModuleLoader__.load({
         profCompte: 'Account',
         profParrain: 'Referral',
         profApparence: 'Appearance',
-        profLogout: 'Log out',
+        profLogout: 'Sign out',
         mobTitle: 'Get the mobile app',
         mobScan: 'Scan the code to install Kybernos on your phone.',
         mobSoon: 'Preview — the real link will come with the app.',
@@ -293,7 +298,7 @@ window.__ModuleLoader__.load({
         session: 'Session',
         refresh: 'Refresh',
         reconnect: 'Reconnect',
-        disconnect: 'Disconnect',
+        disconnect: 'Sign out',
         revokedTitle: 'Reconnection required',
         revokedBody: 'This session was revoked from Kybernos.',
         errorTitle: 'Could not connect',
@@ -346,6 +351,11 @@ window.__ModuleLoader__.load({
         quotaHours: '{n} hours',
         quotaDays: '{n} days',
         quotaMinutes: '{n} minutes',
+        quotaHours1: '1 hour',
+        quotaDays1: '1 day',
+        quotaMinutes1: '1 minute',
+        quotaBackDays1: 'in about 1\u00a0day',
+        kyModelsCount1: '1 model · plan {plan}',
         mfaBlockedShort: 'Second factor required',
         mfaBlockedLong: '{name} asks its members for a second factor and you have none: set one up in your Kybernos account (Security), then reload.',
         mfaGraceShort: 'Second factor by {date}',
@@ -429,7 +439,7 @@ window.__ModuleLoader__.load({
         kyModelsCount: '{n} models · plan {plan}',
         kyModelsNone: 'No models imported',
         kyLastOn: 'last import on {date}',
-        kyModelsNote: 'Re-reads the active server\'s model catalogue and adds the ones your plan includes to Settings › Models.',
+        kyModelsNote: 'Re-reads the active server\'s model catalogue and adds the ones your plan includes to Settings › AI Provider & Models.',
         kyModelsWarn: 'Partial import: the provider route could not be written to settings — "Re-import" tries again.',
         kyModelsFail: 'Re-import failed — try again.',
         kyImport: 'Import models',
@@ -756,7 +766,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
 .kbl-ok{font-size:13px;color:var(--dsw-alias-label-secondary)}
 `
 
-    /** Téléphone (appareil appairé) — tracé Lucide, comme le reste du pied. */
+    /** Phone (paired device) — Lucide stroke, like the rest of the footer. */
     const PhoneIcon = (props) => h('svg', {
       width: (props !== undefined && props !== null && typeof props.size === 'number') ? props.size : 15,
       height: (props !== undefined && props !== null && typeof props.size === 'number') ? props.size : 15,
@@ -765,7 +775,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
     h('rect', { x: 6, y: 2, width: 12, height: 20, rx: 2.5, stroke: 'currentColor', strokeWidth: 1.7 }),
     h('path', { d: 'M12 18h.01', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round' }))
 
-    /** Flèche d'entrée (CTA « Se connecter ») — tracé Lucide `log-in`. */
+    /** Entry arrow (« Sign in » CTA) — Lucide `log-in` stroke. */
     const EnterIcon = (props) => h('svg', {
       width: (props !== undefined && props !== null && typeof props.size === 'number') ? props.size : 15,
       height: (props !== undefined && props !== null && typeof props.size === 'number') ? props.size : 15,
@@ -775,7 +785,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
     h('path', { d: 'm10 17 5-5-5-5', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }),
     h('path', { d: 'M15 12H3', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' }))
 
-    /** Échange d'espace — tracé Lucide `chevrons-up-down`, celui de la maquette. */
+    /** Workspace switch — Lucide `chevrons-up-down` stroke, the one from the mockup. */
     const SwapIcon = (props) => h('svg', {
       width: (props !== undefined && props !== null && typeof props.size === 'number') ? props.size : 15,
       height: (props !== undefined && props !== null && typeof props.size === 'number') ? props.size : 15,
@@ -784,7 +794,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
     h('path', { d: 'm7 15 5 5 5-5', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }),
     h('path', { d: 'm7 9 5-5 5 5', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }))
 
-    /** Engrenage (tracé Lucide settings) — maquette : page de l'espace. */
+    /** Gear (Lucide settings stroke) — mockup: the workspace page. */
     const GearIcon = (props) => h('svg', {
       width: (props !== undefined && props !== null && typeof props.size === 'number') ? props.size : 15,
       height: (props !== undefined && props !== null && typeof props.size === 'number') ? props.size : 15,
@@ -793,9 +803,9 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
     h('path', { d: 'M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' }),
     h('circle', { cx: 12, cy: 12, r: 3, stroke: 'currentColor', strokeWidth: 1.8 }))
 
-    /* ── Icônes du menu unifié (refonte 30/09) — tracés Lucide, comme le reste
-       du pied : chaque entrée du menu porte son glyphe, l'apparence seule a un
-       segment clair/sombre au lieu d'une icône. ── */
+    /* ── Icons of the unified menu (30/09 rework) — Lucide strokes, like the rest
+       of the footer: each menu entry carries its glyph, only the appearance row has a
+       light/dark segment instead of an icon. ── */
     const svgIcon = (paths, props) => h('svg', {
       width: (props !== undefined && props !== null && typeof props.size === 'number') ? props.size : 18,
       height: (props !== undefined && props !== null && typeof props.size === 'number') ? props.size : 18,
@@ -874,7 +884,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
       h('path', { key: 'b', d: 'M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.5M12 17h.01', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' }),
     ], props)
 
-    /** Initiales pour l'avatar : deux lettres au plus, jamais vides. */
+    /** Initials for the avatar: two letters at most, never empty. */
     /** The plan to show for the ACTIVE space. The host reads it from the server (`state.space_plan`); the account's own word
      *  (`user.plan`, « team » as soon as the person is in any team) is only the fallback when that read is not there. `free` is
      *  true for a space with no paid plan: the only case that is offered « Upgrade ». Never the raw lowercase key of an API. */
@@ -899,7 +909,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
       return (tokens[0].charAt(0) + tokens[1].charAt(0)).toUpperCase()
     }
 
-    /** Base locale des routes du half host (même calcul que kybernos-plugin). */
+    /** Local base path of the host half's routes (same computation as kybernos-plugin). */
     const apiBase = () => {
       try { return new URL('kybernos-cloud', document.baseURI).pathname.replace(/\/$/, '') } catch (e) { return '/kybernos-cloud' }
     }
@@ -921,12 +931,17 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
     // (the server's `used_percent`, relayed by the host as `usage`): never tokens, never dollars. Pure: facts and a translator in, a sentence out.
     // `null` means no fact explains it (the server did not answer, or nothing is used up or close to it): the caller then keeps DSH's own words.
     const quotaFill = (text, values) => String(text).replace(/\{(\w+)\}/g, (m, k) => (values[k] !== undefined ? String(values[k]) : m))
+    // A count with its noun: the « 1 » twin of the row (« 1 hour ») when n is 1 and the translator has one, the plural row otherwise.
+    const quotaCount = (t, key, n, more) => {
+      const one = n === 1 ? t(key + '1') : key + '1'
+      return quotaFill(n === 1 && one !== key + '1' ? one : t(key), Object.assign({ n }, more))
+    }
     const quotaWindowLabel = (seconds, t) => {
       const n = Number(seconds)
-      if (n === 86400) return quotaFill(t('quotaHours'), { n: 24 })
-      if (n > 0 && n % 86400 === 0) return quotaFill(t('quotaDays'), { n: n / 86400 })
-      if (n > 0 && n % 3600 === 0) return quotaFill(t('quotaHours'), { n: n / 3600 })
-      return quotaFill(t('quotaMinutes'), { n: Math.max(1, Math.round(n / 60)) })
+      if (n === 86400) return quotaCount(t, 'quotaHours', 24)
+      if (n > 0 && n % 86400 === 0) return quotaCount(t, 'quotaDays', n / 86400)
+      if (n > 0 && n % 3600 === 0) return quotaCount(t, 'quotaHours', n / 3600)
+      return quotaCount(t, 'quotaMinutes', Math.max(1, Math.round(n / 60)))
     }
     // From this share of a window on, the notice says so even when nothing is used up yet.
     const QUOTA_NEAR_PERCENT = 75
@@ -937,7 +952,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
       const minutes = Math.ceil(ms / 60000)
       if (minutes < 60) return quotaFill(t('quotaBackMin'), { n: minutes })
       const hours = Math.round(minutes / 60)
-      return hours < 48 ? quotaFill(t('quotaBackHours'), { n: hours }) : quotaFill(t('quotaBackDays'), { n: Math.round(hours / 24) })
+      return hours < 48 ? quotaFill(t('quotaBackHours'), { n: hours }) : quotaCount(t, 'quotaBackDays', Math.round(hours / 24))
     }
     // The windows the host relayed, each with its percent; anything unreadable is left out.
     const quotaWindows = (info) => (Array.isArray(info.usage) ? info.usage : [])
@@ -1024,52 +1039,30 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
     // </mfa-note-text>
 
     return {
-      // On ne déclare QUE `slots` (seul service indispensable) : `locale` est
-      // lu avec `ctx.get()` et garde un repli français, comme dans
-      // kybernos-plugin, pour qu'une locale absente ne bloque pas le montage.
+      // Only `slots` is declared (the one essential service): `locale` is
+      // read with `ctx.get()` and keeps a French fallback, as in
+      // kybernos-plugin, so that a missing locale does not block the mount.
       inject: ['slots'],
       apply(ctx) {
         const slots = ctx.get('slots')
         if (slots === undefined || slots === null) {
-          console.error('[kybernos-cloud] service slots indisponible: pas d interface')
+          console.error('[kybernos-cloud] slots service unavailable: no interface')
           return
         }
-        const localeSvc = ctx.get('locale')
-
-        // The active language as DSH names it (« en », « zh-CN », « ar »…), or null: the raw value `lang()` reduces to a base.
+        // The language is what Kybernos resolved (window.__KB_LANG_RESOLVE__, the one rule of every bundle): « kybernos » (the French of
+        // the product) or fr* is French, « en » English, a translated language (es, ar…) is served through its pack — see t() — and any
+        // other, or nothing resolved, reads English. It used to be re-derived here from DSH's own locale, which is « en » under the
+        // Language page's French: the French dictionary was never reached.
         const langRaw = () => {
-          // Active language: the mirror the Language runtime keeps of DSH's shell
-          // locale (window.__KB_I18N_ACTIVE__), then the first-paint cache
-          // (kybernos.theme.lang), then DSH's own locale service, then the French
-          // source. 'kybernos' is the DEFAULT (French), never a choice. Any
-          // translated language (es, de, ar…) is served through its pack — see t().
-          let act = null
-          try {
-            const a = (typeof window !== 'undefined') ? window.__KB_I18N_ACTIVE__ : null
-            if (a !== null && a !== undefined && a.lang !== null && a.lang !== undefined && String(a.lang) !== '') act = String(a.lang)
-          } catch (e) { /* no window (test harness) */ }
-          if (act === null || act === 'kybernos') {
-            try { const l = localStorage.getItem('kybernos.theme.lang'); if (l !== null && l !== '') act = String(l) } catch (e) { /* storage unavailable */ }
-          }
-          if (act === null || act === 'kybernos') {
-            try {
-              if (localeSvc !== undefined && localeSvc !== null && typeof localeSvc.getLocale === 'function') {
-                const snap = localeSvc.getLocale()
-                if (snap !== null && snap !== undefined) {
-                  const raw = snap.active || snap.locale || snap.current || snap.lang || snap.id
-                  if (typeof raw === 'string' && raw !== '') act = raw.toLowerCase()
-                }
-              }
-            } catch (e) { /* locale service in flux */ }
-          }
-          return act
+          try { return String(window.__KB_LANG_RESOLVE__()) } catch (e) { return 'en' }
         }
         const lang = () => {
           const act = langRaw()
-          if (act === null || act === '' || act === 'kybernos') return 'fr'
-          const base = String(act).split(/[-_]/)[0]
-          if (base === 'en') return 'en'
-          if (DICT[base] !== undefined || kbPackFor(base) !== null) return base
+          if (act === 'kybernos') return 'fr'
+          const base = act.split(/[-_]/)[0]
+          if (base === 'fr') return 'fr'
+          if (base === 'en' || base === '') return 'en'
+          if (kbPackFor(base) !== null) return base
           // A language we have nothing for: English is the fallback, never French.
           return 'en'
         }
@@ -1097,10 +1090,17 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
         // bundle vocabulary never collides with kbt keys or another bundle's.
         const KB_PACK_PREFIX = 'cloud.'
         const t = (key) => {
+          // A « 1 » twin (« 1 hour ») exists for English and French only: another language keeps its plural row.
+          if (key.length > 1 && key.slice(-1) === '1' && DICT.en[key.slice(0, -1)] !== undefined && lang() !== 'en' && lang() !== 'fr') return key
           const pack = kbPackFor(lang())
           if (pack !== null) {
             const v = pack[KB_PACK_PREFIX + key]
             if (typeof v === 'string' && v !== '') return v
+          }
+          // French is served from its own dictionary first (it used to fall behind the English one: the French half was never shown).
+          if (lang() === 'fr') {
+            const fr = DICT.fr[key]
+            if (fr !== undefined) return fr
           }
           const en = DICT.en[key]
           if (en !== undefined) return en
@@ -1135,12 +1135,12 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           return c
         }
 
-        // Nom affiché. `kybernos_users.name` est vide pour l'instant : AUCUN
-        // chemin produit ne l'écrit (l'écran Profils garde le nom en local).
-        // Plutôt qu'un « — » muet, on montre la partie locale de l'email —
-        // marquée comme un repli (grisée + info-bulle) pour ne pas faire
-        // passer un dérivé pour le vrai nom. Dès qu'un nom existe (saisi côté
-        // Kybernos, ou rafraîchi par /v1/me), c'est lui qui s'affiche.
+        // Displayed name. `kybernos_users.name` is empty for now: NO product
+        // path writes it (the Profiles screen keeps the name locally).
+        // Rather than a mute « — », we show the local part of the email —
+        // marked as a fallback (greyed out + tooltip) so a derived value is not
+        // passed off as the real name. As soon as a name exists (entered on the
+        // Kybernos side, or refreshed by /v1/me), that is what is displayed.
         const displayName = (user) => {
           const name = typeof user.name === 'string' ? user.name.trim() : ''
           if (name !== '') return { value: name, fallback: false }
@@ -1168,9 +1168,9 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           const settle = (next) => {
             if (liveRef.current !== true) return
             setView(next)
-            // La pastille du bouton suit l'etat de la carte sans attendre une
-            // fermeture/reouverture (sinon elle resterait verte apres
-            // « Se deconnecter »).
+            // The button's dot follows the state of the card without waiting for a
+            // close/reopen (otherwise it would stay green after
+            // « Sign out »).
             if (typeof props.onConnection === 'function') props.onConnection(next.phase === 'connected')
           }
 
@@ -1180,7 +1180,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               const fresh = await callLocal('/refresh', 'POST')
               if (fresh.connected === true) return settle({ phase: 'connected', state: fresh.state })
               if (fresh.status === 'revoked') return settle({ phase: 'revoked' })
-              // Réseau indisponible : on garde le profil en cache.
+              // Network unavailable: the cached profile is kept.
               if (status.state !== undefined && status.state !== null) return settle({ phase: 'connected', state: status.state, stale: true })
               return settle({ phase: 'error', error: fresh.error || 'profil_indisponible' })
             }
@@ -1190,16 +1190,16 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
 
           React.useEffect(() => { void load() }, [load])
 
-          // La carte ne se fermait qu'au clic hors d'elle : Echap ne repondait
-          // pas (constat de la campagne visuelle). On ecoute la touche tant que
-          // la carte est montee.
+          // The card only closed on a click outside it: Escape did not respond
+          // (finding of the visual campaign). We listen for the key as long as
+          // the card is mounted.
           React.useEffect(() => {
             const onKey = (ev) => { if (ev.key === 'Escape') props.onClose() }
             window.addEventListener('keydown', onKey)
             return () => window.removeEventListener('keydown', onKey)
           }, [props.onClose])
 
-          // Appairage : on interroge le half host toutes les 2 s jusqu'au claim.
+          // Pairing: the host half is polled every 2 s until the claim.
           React.useEffect(() => {
             if (view.phase !== 'pairing') return undefined
             const id = window.setInterval(async () => {
@@ -1228,10 +1228,10 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             settle({ phase: 'pairing', pairing: res.pairing })
           }
 
-          // Ouverture depuis le CTA « Se connecter » du pied : l'appairage
-          // démarre tout de suite, UNE seule fois — sans ce verrou, une
-          // annulation ramènerait l'état à `disconnected` et relancerait la
-          // demande en boucle.
+          // Opened from the « Sign in » CTA of the footer: pairing starts
+          // right away, ONCE only — without this latch, a cancel would bring
+          // the state back to `disconnected` and restart the request
+          // in a loop.
           const autoRef = React.useRef(false)
           React.useEffect(() => {
             if (props.autoStart !== true || autoRef.current === true) return
@@ -1254,7 +1254,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           const copy = async () => {
             const code = view.pairing !== undefined && view.pairing !== null ? view.pairing.user_code : null
             if (typeof code !== 'string' || code === '') return
-            try { await navigator.clipboard.writeText(code); setCopied(true) } catch (e) { /* presse-papier refuse */ }
+            try { await navigator.clipboard.writeText(code); setCopied(true) } catch (e) { /* clipboard refused */ }
           }
 
           const openPage = () => {
@@ -1328,19 +1328,19 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               h('div', null, body)))
         }
 
-        // ── LE SÉLECTEUR D'ESPACE (rangée du pied) ───────────────────────────
-        // La carte ouvre la LISTE (on change d'espace), l'engrenage ouvre la
-        // PAGE de l'espace. C'est la maquette : carte + engrenage, au-dessus du
-        // menu user qui, lui, ne bouge pas.
+        // ── THE WORKSPACE SELECTOR (footer row) ───────────────────────────
+        // The card opens the LIST (you switch workspace), the gear opens the
+        // workspace PAGE. That is the mockup: card + gear, above the user
+        // menu, which does not move.
         const SwitchPanel = (props) => {
-          // Meme regle que la carte du compte : Echap ferme le selecteur.
+          // Same rule as the account card: Escape closes the selector.
           React.useEffect(() => {
             const onKey = (ev) => { if (ev.key === 'Escape') props.onClose() }
             window.addEventListener('keydown', onKey)
             return () => window.removeEventListener('keydown', onKey)
           }, [props.onClose])
-          // Clic DEHORS : pas de rideau (il volerait l'ancrage du popover),
-          // juste un listener document qui referme.
+          // Click OUTSIDE: no backdrop (it would steal the popover's anchor),
+          // just a document listener that closes it.
           const popRef = React.useRef(null)
           React.useEffect(() => {
             const dehors = (ev) => {
@@ -1364,15 +1364,15 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             try { res = await callLocal('/space/active', 'POST', { workspace_id: id }) } catch (e) { res = null }
             setBusy(false)
             if (res !== null && res.ok === true) { props.onChanged(); props.onClose(); return }
-            // Un espace qu'on ne voit pas ne devient pas actif — et on le DIT.
+            // A workspace that is not visible does not become active — and we SAY so.
             setErreur(t('spaceUnknown'))
           }
 
-          // `embedded` (menu unifié, 30/09) : la liste vit DANS le menu de la
-          // carte — pas de seconde boîte popover, juste le corps. Gabarit de la
-          // maquette : l'espace ACTIF est une carte surélevée avec une COCHE,
-          // les autres des rangées nues (nom + compte de kybers), et « Créer
-          // un espace » ferme la liste.
+          // `embedded` (unified menu, 30/09): the list lives INSIDE the card's
+          // menu — no second popover box, just the body. Mockup template:
+          // the ACTIVE workspace is a raised card with a CHECK mark,
+          // the others bare rows (name + kyber count), and « Create
+          // a team » closes the list.
           if (props.embedded === true) {
             return h('div', { className: 'kbfp-switchbody', ref: popRef },
               espaces.length === 0
@@ -1435,10 +1435,10 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               erreur !== '' ? h('div', { className: 'kbc-note kbc-warn', style: { marginTop: '8px' } }, erreur) : null)
         }
 
-        // ── LA CRÉATION D'ESPACE (bouton « + » de la rangée) ──────────────────
-        // Le serveur hébergé reste maître : la route locale transmet le nom,
-        // et si la création n'est pas permise on RENVOIE vers Kybernos au
-        // lieu d'inventer un espace local.
+        // ── CREATING A WORKSPACE (the row's « + » button) ──────────────────
+        // The hosted server stays in charge: the local route forwards the name,
+        // and if creation is not allowed we REDIRECT to Kybernos
+        // instead of inventing a local workspace.
         const NewSpacePanel = (props) => {
           React.useEffect(() => {
             const onKey = (ev) => { if (ev.key === 'Escape') props.onClose() }
@@ -1483,11 +1483,11 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                 erreur !== '' ? h('div', { className: 'kbc-note kbc-warn' }, erreur) : null)))
         }
 
-        // ── L'APP MOBILE (bouton téléphone du pied) ───────────────────────────
-        // Popover ancré au-dessus du pied. Quand le bundle kybernos-mobile est là il publie
-        // `window.__KB_MOBILE__.Panel` : le vrai QR d'appairage (ou « inclus dans les offres
-        // payantes »), et ce panneau n'est plus qu'un cadre. Sans lui, l'aperçu d'avant : un QR
-        // FICTIF, grille déterministe (stable d'un rendu à l'autre) et trois carrés de repère.
+        // ── THE MOBILE APP (footer phone button) ───────────────────────────
+        // Popover anchored above the footer. When the kybernos-mobile bundle is there it publishes
+        // `window.__KB_MOBILE__.Panel`: the real pairing QR (or « included in paid
+        // plans »), and this panel is then just a frame. Without it, the earlier preview: a
+        // FAKE QR, deterministic grid (stable from one render to the next) and three finder squares.
         const MobilePanel = (props) => {
           React.useEffect(() => {
             const onKey = (ev) => { if (ev.key === 'Escape') props.onClose() }
@@ -1513,7 +1513,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             return h('div', { className: 'kbf-pop kbf-popcenter kbf-popremote', ref: popRef, role: 'dialog', 'aria-label': t('mobTitle'), 'data-kb': 'mobile-panel' },
               h(Remote, { onClose: props.onClose, web: props.web, onManage: props.onManage }))
           }
-          // Faux modules : hash simple, déterministe, réparti sur 21×21.
+          // Fake modules: simple, deterministic hash, spread over 21×21.
           const modules = []
           for (let y = 0; y < 21; y++) {
             for (let x = 0; x < 21; x++) {
@@ -1537,12 +1537,12 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               h('div', { className: 'kbf-qrnote', 'data-kb': 'mobile-help' }, t('mobHelp')))
         }
 
-        // ── LE MENU UNIFIÉ DE LA CARTE (refonte 30/09, maquette « Menu ouvert »)
-        // Ouvert par le clic sur la carte d'espace. Deux vues : le menu
-        // principal, puis la liste « Changer d'espace » en place. Chaque entrée
-        // rebranche un geste RÉEL : la page profil, la carte de parrainage et
-        // le thème vivent dans les autres bundles et sont déclenchés par
-        // événements fenêtre ; rien de fictif n'est affiché.
+        // ── THE UNIFIED CARD MENU (30/09 rework, « Open menu » mockup)
+        // Opened by clicking the workspace card. Two views: the main
+        // menu, then the « Switch team » list in place. Each entry
+        // rewires a REAL gesture: the profile page, the referral card and
+        // the theme live in the other bundles and are triggered by
+        // window events; nothing fictitious is displayed.
         const lireMaj = () => {
           try {
             const m = window.__kbUpdate
@@ -1567,7 +1567,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
         const helpUrl = () => {
           let l = ''
           try { l = String(langRaw() || '').toLowerCase().replace(/_/g, '-') } catch (e) { l = '' }
-          if (l === '' || l === 'kybernos') l = 'fr' // the product's source language
+          if (l === 'kybernos') l = 'fr' // the product's own French
+          if (l === '') l = 'en'
           if (l === 'zh' || l === 'zh-hans' || l.indexOf('zh-hans-') === 0) l = 'zh-cn'
           if (HELP_LANGUAGES.indexOf(l) < 0) {
             const base = l.split('-')[0]
@@ -1600,7 +1601,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           className: 'kbfp-mitem' + (opts !== undefined && opts.danger === true ? ' kbfp-mout' : '') + (opts !== undefined && opts.amber === true ? ' kbfp-mamber' : ''),
           onClick: (ev) => {
             if (typeof action !== 'function') return
-            try { fermer() } catch (e) { /* menu déjà fermé */ }
+            try { fermer() } catch (e) { /* menu already closed */ }
             action(ev)
           },
         }, icone, h('span', { className: 'kbfp-mlab' }, label),
@@ -2006,15 +2007,15 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           React.useEffect(() => { focusFirstItem(popRef) }, [])
           React.useEffect(() => {
             const dehors = (ev) => {
-// Le sous-panneau « Changer d'espace » vit en PORTAIL sur
-                        // <body> : il n'est PAS un descendant du menu, mais un clic
-                        // dedans n'est pas un clic « dehors ». Sans cette clause, le
-                        // mousedown fermait le menu AVANT le click — changement et
-                        // création d'espace ne partaient jamais (mesuré 30/09 soir).
+// The « Switch team » sub-panel lives in a PORTAL on
+                        // <body>: it is NOT a descendant of the menu, but a click
+                        // inside it is not an « outside » click. Without this clause, the
+                        // mousedown closed the menu BEFORE the click — switching and
+                        // creating a workspace never fired (measured 30/09 evening).
                         const c = ev.target
                         if (c !== null && typeof c.closest === 'function' && c.closest('.kbfp-menu, .kbfp-sub') !== null) return
-                        // Le bouton de la carte BASCULE le menu lui-même (onClick) : s'il ferme ici au
-                        // mousedown, le click suivant le rouvre aussitôt — d'où un menu « qui ne se ferme pas ».
+                        // The card's button TOGGLES the menu itself (onClick): if it closes here on
+                        // mousedown, the next click reopens it at once — hence a menu that « won't close ».
                         if (c !== null && typeof c.closest === 'function' && c.closest('.kbfp-cardmain') !== null) return
                         const n = popRef.current
                         if (n !== null && n !== undefined && n.contains(c) !== true) props.onClose()
@@ -2035,9 +2036,9 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           const switchPair = React.useState(false)
           const switchOpen = switchPair[0]
           const setSwitchOpen = switchPair[1]
-          // Position du sous-panneau : lue sur le RECT du menu à l'ouverture,
-          // posée en fixed (portail body) — la colonne de sidebar rogne tout
-          // enfant absolu qui déborde de sa largeur.
+          // Sub-panel position: read from the menu's RECT when it opens,
+          // set as fixed (body portal) — the sidebar column clips any
+          // absolute child that overflows its width.
           const posPair = React.useState(null)
           const subPos = posPair[0]
           const setSubPos = posPair[1]
@@ -2115,9 +2116,9 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             h('div', { className: 'kbfp-msep' }),
             h('div', { className: 'kbfp-mitems' },
               entree('logout', h(OutIcon, { size: 18 }), t('profLogout'), props.onLogout, { danger: true })),
-            // La liste des espaces s'ouvre À CÔTÉ du menu, à droite (comme la
-            // maquette) : le menu principal RESTE OUVERT — on choisit, la carte
-            // du menu se met à jour, le sous-panneau se referme seul.
+            // The workspace list opens NEXT TO the menu, on the right (as in the
+            // mockup): the main menu STAYS OPEN — you choose, the menu's card
+            // updates, the sub-panel closes by itself.
             switchOpen === true && subPos !== null
               ? ReactDOM.createPortal(h('div', {
                   className: 'kbfp-sub', role: 'menu', 'aria-label': t('wsSwitchTitle'),
@@ -2134,11 +2135,11 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               : null)
         }
 
-        // ── La rangée du bas du menu ─────────────────────────────────────────        // ── La rangée du bas du menu ─────────────────────────────────────────
-        // Un seul composant pour les trois états, parce que la rangée CHANGE de
-        // forme : connecté elle montre l'identité, sinon elle explique et
-        // propose le geste. Le clic ouvre la même fiche complète (appairage,
-        // profil, workspaces, catalogue) — aucune logique n'est dupliquée ici.
+        // ── The bottom row of the menu ─────────────────────────────────────────        // ── The bottom row of the menu ─────────────────────────────────────────
+        // A single component for the three states, because the row CHANGES
+        // shape: connected it shows the identity, otherwise it explains and
+        // offers the gesture. The click opens the same full sheet (pairing,
+        // profile, workspaces, catalogue) — no logic is duplicated here.
         const CloudFoot = () => {
           const [open, setOpen] = React.useState(false)
           const [menuOpen, setMenuOpen] = React.useState(false)
@@ -2167,15 +2168,15 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           }, h('span', { className: 'kbf-maj-dot', 'aria-hidden': 'true' }),
             h('span', { className: 'kbf-maj-t' }, t('menuUpdate')),
             h('span', { className: 'kbf-maj-v' }, (majInfo.kind === 'moteur' ? 'DSH ' : '') + (typeof majInfo.version === 'string' ? majInfo.version : majInfo.cible)))
-          // Largeur RÉELLE du créneau : en rail replié la rangée doit changer de
-          // forme, sinon elle déborde (mesuré : 167 px dans un rail de 60 px).
+          // REAL width of the slot: in a collapsed rail the row must change
+          // shape, otherwise it overflows (measured: 167 px in a 60 px rail).
           const racineRef = React.useRef(null)
           const [etroit, setEtroit] = React.useState(false)
-          // Deux signaux, jamais un seul : la largeur du RAIL (l'ancêtre de
-          // sidebar qui porte une largeur explicite) ET le fait que notre
-          // contenu déborde ce rail. Mesurer notre propre largeur ne suffit pas
-          // — c'est notre contenu qui l'impose (mesuré : 199 px de rangée dans
-          // un rail de 60 px, la rangée partait à x = -72).
+          // Two signals, never just one: the width of the RAIL (the sidebar
+          // ancestor that carries an explicit width) AND the fact that our
+          // content overflows this rail. Measuring our own width is not enough
+          // — it is our content that imposes it (measured: a 199 px row in a
+          // 60 px rail, the row went off to x = -72).
           React.useEffect(() => {
             const el = racineRef.current
             if (el === null || el === undefined || typeof ResizeObserver === 'undefined') return undefined
@@ -2185,8 +2186,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               while (e !== null && e !== undefined && e !== document.body) {
                 const cls = String(e.className === undefined || e.className === null ? '' : e.className)
                 const inline = e.getAttribute('style') === null ? '' : e.getAttribute('style')
-                // Le rail de DSH se reconnaît à trois choses, jamais une seule :
-                // une largeur explicite, un marqueur de repli, ou la zone de pied.
+                // DSH's rail is recognised by three things, never just one:
+                // an explicit width, a collapse marker, or the footer area.
                 if (inline.indexOf('width') !== -1 || /collaps/i.test(cls) || /footArea/i.test(cls)) candidat = e
                 e = e.parentElement
               }
@@ -2200,8 +2201,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               setEtroit(largeurRail < 140 || largeurNous > largeurRail + 8)
             }
             lireRail()
-            // DSH pose sa largeur après coup : on relit une fois la mise en page
-            // posée, et on écoute les deux éléments concernés.
+            // DSH sets its width after the fact: we read the layout once more
+            // once it is in place, and listen to the two elements concerned.
             const minuteur = setTimeout(lireRail, 400)
             const ro = new ResizeObserver(lireRail)
             ro.observe(el)
@@ -2279,9 +2280,9 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             setPhase('disconnected')
           }, [])
 
-          // `open` est dans les dépendances : à la fermeture de la fiche on
-          // relit l'état local, donc un appairage tout juste terminé apparaît
-          // dans la rangée sans recharger la page.
+          // `open` is in the dependencies: when the sheet closes we
+          // re-read the local state, so a pairing that has just finished shows up
+          // in the row without reloading the page.
           React.useEffect(() => { void load() }, [load, open])
 
           // The host reads the account again by itself (a token revoked from the account page, a removal from a team: index.js `profileRefreshTick`), and the
@@ -2328,8 +2329,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             }
           }, [quotaSpace])
 
-          // La fiche peut être ouverte depuis un autre plugin (page Models) :
-          // même événement fenêtre que l'ancien bouton, rien de nouveau.
+          // The sheet can be opened from another plugin (Models page):
+          // same window event as the former button, nothing new.
           React.useEffect(() => {
             const ouvrir = () => setOpen(true)
             window.addEventListener('kybernos-cloud:open', ouvrir)
@@ -2351,17 +2352,17 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             return () => window.removeEventListener('kybernos-cloud:menu', ouvrirMenu)
           }, [])
 
-          // État publié pour les AUTRES plugins du pied : la cloche des
-          // notifications est masquée tant qu'il n'y a pas de compte
-          // (`data-kb-cloud="off"`). Tant que la lecture est en cours on ne
-          // publie RIEN — masquer la cloche sur un simple retard réseau serait
-          // un mensonge.
+          // State published for the OTHER plugins of the footer: the notification
+          // bell is hidden as long as there is no account
+          // (`data-kb-cloud="off"`). While the read is in progress we publish
+          // NOTHING — hiding the bell on a mere network delay would be
+          // a lie.
           React.useEffect(() => {
             try {
               const root = document.documentElement
               if (phase === 'loading') root.removeAttribute('data-kb-cloud')
               else root.setAttribute('data-kb-cloud', phase === 'connected' ? 'on' : 'off')
-            } catch (e) { /* document indisponible */ }
+            } catch (e) { /* document unavailable */ }
           }, [phase])
 
           const openAndConnect = () => { setAutoStart(true); setOpen(true) }
@@ -2372,10 +2373,10 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
 
           let corps = null
           if (phase === 'connected') {
-            // ── La CARTE UNIFIÉE (refonte 30/09, maquette « Menu ouvert ») ──
-            // Une seule carte : tuile d'initiales, nom de l'espace, « qui ·
-            // formule », téléphone et cloche. Le clic ouvre le MENU unifié ;
-            // les anciennes rangées (espace, identité) ont fusionné dedans.
+            // ── The UNIFIED CARD (30/09 rework, « Open menu » mockup) ──
+            // A single card: initials tile, workspace name, « who ·
+            // plan », phone and bell. Clicking opens the unified MENU;
+            // the former rows (workspace, identity) have been merged into it.
             const espaces = Array.isArray(state.workspaces) ? state.workspaces : []
             const actif = typeof state.active_workspace_id === 'string' ? state.active_workspace_id : null
             const courant = espaces.filter((w) => w !== null && w.id === actif)[0] || espaces[0] || null
@@ -2393,17 +2394,17 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             }
             const shownName = displayName(user)
             const qui = shownName.value !== '' ? shownName.value : (user.email || t('none'))
-            // ── Réglages ▸ Compte (demande du 30/09) ────────────────────────
-            // « Compte » (et « Sécurité », même cible) du menu principal va
-            // DIRECTEMENT dans la section Compte des Réglages : l'ancienne
-            // page plein cadre est cachée pour le moment. On ouvre les
-            // Réglages de DSH (le même geste que l'entrée
-            // « Paramètres » du menu), puis on clique la cellule « Compte »
-            // du nav dès qu'elle est rendue — le panneau se monte en
-            // asynchrone. Réglages déjà ouverts : on se borne à sélectionner
-            // la cellule (re-cliquer le déclencheur les refermerait).
-            // Cellule introuvable après ~2 s : les Réglages restent sur leur
-            // section par défaut, jamais d'erreur bloquante.
+            // ── Settings ▸ Account (request of 30/09) ────────────────────────
+            // « Account » (and « Security », same target) in the main menu goes
+            // DIRECTLY to the Account section of Settings: the former
+            // full-frame page is hidden for the moment. We open DSH's
+            // Settings (the same gesture as the
+            // « Settings » menu entry), then click the « Account » cell
+            // of the nav as soon as it is rendered — the panel mounts
+            // asynchronously. Settings already open: we just select
+            // the cell (clicking the trigger again would close them).
+            // Cell not found after ~2 s: Settings stay on their
+            // default section, never a blocking error.
             // The section is named by its label AND, when known, by its id (the React key of its cell: the same in every language).
             const ouvrirReglagesCompte = (libelleCible, cleCible) => {
               const libelle = typeof libelleCible === 'string' ? libelleCible : ''
@@ -2419,14 +2420,14 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                   const cellules = Array.from(document.querySelectorAll('button[class*="navCell"]'))
                   const cible = cellules.find((b) => (typeof cleCible === 'string' && cleDe(b) === cleCible) || String((b.textContent || '').trim()) === libelle)
                   if (cible !== undefined && cible !== null) { cible.click(); return true }
-                } catch (e) { /* nav pas encore rendu */ }
+                } catch (e) { /* nav not rendered yet */ }
                 return false
               }
               try {
                 const nav = document.querySelector('[class*="navList"]')
                 const dejaOuvert = nav !== null && nav.offsetParent !== null
                 if (dejaOuvert === false) ouvrirReglagesDsh()
-              } catch (e) { /* declencheur introuvable */ }
+              } catch (e) { /* trigger not found */ }
               let essais = 0
               const tique = () => {
                 essais += 1
@@ -2437,7 +2438,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             }
             const seDeconnecter = async () => {
               setMenuOpen(false)
-              try { await callLocal('/disconnect', 'POST', { confirm: true }) } catch (e) { /* déjà parti */ }
+              try { await callLocal('/disconnect', 'POST', { confirm: true }) } catch (e) { /* already gone */ }
               void load()
             }
             corps = h('div', {
@@ -2573,7 +2574,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
         ctx.effect(() => styles.insert(CLOUD_CSS), 'kybernos-cloud: styles')
         ctx.effect(() => slots.inject('sidebar.footer.action', () => slots.register(
           { name: 'sidebar.footer.action', id: 'kybernos-cloud', order: 21 }, CloudFoot)),
-        'kybernos-cloud: rangee de profil dans le pied de sidebar')
+        'kybernos-cloud: profile row in the sidebar footer')
 
         // ── The quota notice ──────────────────────────────────────────────────────
         // DSH's own notice says « Request quota exhausted » for every refusal; this one (claimed through the `shell.quota-notice` chain, QUOTA only) asks the host
@@ -2602,7 +2603,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             const wsId = info !== null && info.r !== null && info.r.workspace !== undefined ? info.r.workspace.id : undefined
             // The HOST opens the system browser with the single-use link (the server refuses one that a page-opened tab brings); a host that could not hands the address back.
             callLocal('/console/link', 'POST', typeof wsId === 'string' ? { workspace_id: wsId, open: true } : { open: true }).then((r) => {
-              if (r !== null && r !== undefined && r.ok === true && r.opened !== true && typeof r.url === 'string') { try { window.open(r.url, '_blank', 'noopener,noreferrer') } catch (e) { /* ouverture impossible */ } }
+              if (r !== null && r !== undefined && r.ok === true && r.opened !== true && typeof r.url === 'string') { try { window.open(r.url, '_blank', 'noopener,noreferrer') } catch (e) { /* cannot open */ } }
             }).catch(() => null)
             try { props.dismiss() } catch (e) { /* already gone */ }
           }
@@ -2746,7 +2747,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               h('div', { className: 'kbl-sect' }, t('kyModelsTitle')),
               h('p', { className: 'kbl-line', 'data-kb': 'ky-models-state' },
                 count > 0
-                  ? quotaFill(t('kyModelsCount'), { n: count, plan: (models !== null && models.plan) || t('none') }) + (when !== null ? ' · ' + quotaFill(t('kyLastOn'), { date: when }) : '')
+                  ? quotaCount(t, 'kyModelsCount', count, { plan: (models !== null && models.plan) || t('none') }) + (when !== null ? ' · ' + quotaFill(t('kyLastOn'), { date: when }) : '')
                   : (signedOut ? '—' : t('kyModelsNone'))),
               // The list keeps itself up to date (the host re-imports at the connection, at a server switch and when the catalogue changes): nothing to press here.
               h('p', { className: 'kbm-setform-unavailable kbl-note', 'data-kb': 'ky-models-auto' }, t('kyModelsAuto')),
@@ -2794,7 +2795,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
         }
         ctx.effect(() => slots.inject('settings.section', () => slots.register(
           { name: 'settings.section', id: 'kybernos-local', order: 11, label: t('kyNav') }, KybernosSection)),
-        'kybernos-cloud: section Kybernos des reglages (ce qui reste sur cet ordinateur)')
+        'kybernos-cloud: Kybernos section of the settings (what stays on this computer)')
       },
     }
   },

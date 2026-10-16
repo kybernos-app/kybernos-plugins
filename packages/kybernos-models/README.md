@@ -144,12 +144,13 @@ Review screenshots (both tabs, both widths):
 [`9-refonte-providers-556.png`](../docs/handoff/model-catalog/9-refonte-providers-556.png),
 [`9-refonte-providers-720.png`](../docs/handoff/model-catalog/9-refonte-providers-720.png).
 
-The styling is **DSH's own CSS**: `scripts/build-model-catalog-css.mjs` writes the controls'
-rules extracted from `@deepseek-ai/dsh-client-ui-primitives` into `dsh-css.js`, and the same
-region into `client.js`, between the `DSH-CONTROLS:BEGIN` / `:END` markers — a plugin client's
-factory only exposes the injected services, it cannot import a file from the package. Do not
-edit that region by hand: `--check` compares it with the installed sources. The panel's own
-CSS follows right after (`CSS_PANEL`).
+The styling is **DSH's own CSS**: the controls' rules extracted from
+`@deepseek-ai/dsh-client-ui-primitives` sit in `client.js`, between the `DSH-CONTROLS:BEGIN` /
+`:END` markers — a plugin client's factory only exposes the injected services, it cannot import
+a file from the package. The extraction script (`scripts/build-model-catalog-css.mjs`) is no
+longer in the repository, and the `dsh-css.js` it also wrote was imported by nothing, so it is
+gone: refresh the region from the installed sources by hand. The panel's own CSS follows right
+after (`CSS_PANEL`).
 
 ## Frozen mode
 

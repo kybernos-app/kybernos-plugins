@@ -422,16 +422,19 @@ html[dir="rtl"] .kbth-page{direction:rtl}
       // variables the translation must keep.
       const S = {
         title: ['Langue', 'Language'],
-        sub: ['Choisissez la langue de l’interface. Les textes pas encore traduits restent en anglais.', 'Choose the language of the interface. Texts that aren’t translated yet stay in English.'],
+        sub: ['Choisis la langue de l’interface. Les textes pas encore traduits restent en anglais.', 'Choose the language of the interface. Texts that aren’t translated yet stay in English.'],
         inUse: ['Active', 'In use'],
         ready: ['Prête', 'Ready'],
         readyOn: ['Prête · traduite le {date} · {n} textes', 'Ready · translated on {date} · {n} texts'],
+        readyOn1: ['Prête · traduite le {date} · 1 texte', 'Ready · translated on {date} · 1 text'],
         use: ['Utiliser', 'Use'],
         useNow: ['Utiliser maintenant', 'Use now'],
         useAnyway: ['Utiliser quand même', 'Use anyway'],
         rtl: ['De droite à gauche', 'Right to left'],
         newMeta: ['Pas encore traduite · environ {n} textes · {t}', 'Not translated yet · about {n} texts · {t}'],
+        newMeta1: ['Pas encore traduite · environ 1 texte · {t}', 'Not translated yet · about 1 text · {t}'],
         partialMeta: ['Traduite à {pct} % · il reste {n} textes', '{pct}% translated · {n} texts left'],
+        partialMeta1: ['Traduite à {pct} % · il reste 1 texte', '{pct}% translated · 1 text left'],
         underMin: ['moins d’une minute', 'under a minute'],
         aboutMin: ['environ {m} min', 'around {m} min'],
         start: ['Démarrer la traduction', 'Start translation'],
@@ -449,34 +452,37 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         areaMore: ['Écrans avancés et plugins', 'Advanced screens and plugins'],
         areaPhrases: ['Messages et détails', 'Messages and details'],
         essentials: ['L’essentiel est prêt. Le reste continue dans cet onglet : ce qui n’est pas encore traduit s’affiche en anglais.', 'The essentials are ready. The rest keeps going in this tab: texts not translated yet show in English.'],
-        runsInTab: ['Ça tourne dans cet onglet. Vous pouvez quitter cette page et travailler ailleurs : le rond en bas de la barre latérale suit l’avancement. Ne fermez pas l’onglet : s’il se ferme, la traduction reprend toute seule à la prochaine ouverture de Kybernos.', 'This runs in this tab. You can leave this page and work elsewhere: the ring at the bottom of the sidebar follows the progress. Do not close the tab: if it closes, the translation resumes by itself the next time Kybernos opens.'],
-        runsInTabManual: ['Ça tourne dans cet onglet. Vous pouvez quitter cette page et travailler ailleurs : le rond en bas de la barre latérale suit l’avancement. Ne fermez pas l’onglet : s’il se ferme, la traduction s’arrête et il faudra appuyer sur Reprendre.', 'This runs in this tab. You can leave this page and work elsewhere: the ring at the bottom of the sidebar follows the progress. Do not close the tab: if it closes, the translation stops and you will have to press Resume.'],
-        cutNote: ['La traduction s’est arrêtée avec l’onglet. Ce qui est déjà traduit est conservé : appuyez sur Reprendre.', 'The translation stopped with the tab. What is already translated is kept: press Resume.'],
+        runsInTab: ['Ça tourne dans cet onglet. Tu peux quitter cette page et travailler ailleurs : le rond en bas de la barre latérale suit l’avancement. Ne ferme pas l’onglet : s’il se ferme, la traduction reprend toute seule à la prochaine ouverture de Kybernos.', 'This runs in this tab. You can leave this page and work elsewhere: the ring at the bottom of the sidebar follows the progress. Do not close the tab: if it closes, the translation resumes by itself the next time Kybernos opens.'],
+        runsInTabManual: ['Ça tourne dans cet onglet. Tu peux quitter cette page et travailler ailleurs : le rond en bas de la barre latérale suit l’avancement. Ne ferme pas l’onglet : s’il se ferme, la traduction s’arrête et il faudra appuyer sur Reprendre.', 'This runs in this tab. You can leave this page and work elsewhere: the ring at the bottom of the sidebar follows the progress. Do not close the tab: if it closes, the translation stops and you will have to press Resume.'],
+        cutNote: ['La traduction s’est arrêtée avec l’onglet. Ce qui est déjà traduit est conservé : appuie sur Reprendre.', 'The translation stopped with the tab. What is already translated is kept: press Resume.'],
         pseudoSummary: ['{n} textes à vérifier · marques de test', '{n} texts to check · test marks'],
+        pseudoSummary1: ['1 texte à vérifier · marques de test', '1 text to check · test marks'],
         pseudoTitle: ['{n} textes ressemblent à des marques de test.', '{n} texts look like test marks.'],
+        pseudoTitle1: ['1 texte ressemble à une marque de test.', '1 text looks like a test mark.'],
         pseudoBody: ['Ce ne sont pas de vraies traductions : ils ne sont pas comptés, et utilisés tels quels ils s’afficheraient entourés de crochets. « Retraduire » les remplace par de vraies traductions.', 'They are not real translations: they are not counted, and used as they are they would show up wrapped in brackets. “Translate again” replaces them with real translations.'],
         repair: ['Retraduire ces textes', 'Translate these texts again'],
         tipRepair: ['Retire les marques de test de cette langue, puis traduit ces textes avec le modèle choisi. Le reste est conservé.', 'Removes the test marks from this language, then translates those texts with the chosen model. Everything else is kept.'],
         autoLabel: ['Reprendre automatiquement une traduction coupée, à l’ouverture de Kybernos', 'Resume an interrupted translation automatically when Kybernos opens'],
-        tipAuto: ['Si l’onglet est fermé pendant une traduction, elle reprend toute seule à la prochaine ouverture. Décochez pour reprendre à la main.', 'If the tab is closed during a translation, it resumes by itself the next time Kybernos opens. Untick to resume by hand.'],
-        chipTitle: ['Traduction en {name} : {pct} %. Cliquez pour ouvrir la page Langue.', 'Translating {name}: {pct}%. Click to open the Language page.'],
+        tipAuto: ['Si l’onglet est fermé pendant une traduction, elle reprend toute seule à la prochaine ouverture. Décoche pour reprendre à la main.', 'If the tab is closed during a translation, it resumes by itself the next time Kybernos opens. Untick to resume by hand.'],
+        chipTitle: ['Traduction en {name} : {pct} %. Clique pour ouvrir la page Langue.', 'Translating {name}: {pct}%. Click to open the Language page.'],
         gaps: ['{n} textes n’ont pas pu être traduits et resteront en anglais.', '{n} texts couldn’t be translated and will stay in English.'],
+        gaps1: ['1 texte n’a pas pu être traduit et restera en anglais.', '1 text couldn’t be translated and will stay in English.'],
         model: ['Modèle', 'Model'],
         usesModel: ['Modèle : {model}', 'Model: {model}'],
         more: ['Plus d’actions', 'More actions'],
         again: ['Retraduire depuis zéro', 'Translate again from scratch'],
         remove: ['Supprimer cette langue', 'Remove this language'],
-        removeActive: ['Choisissez une autre langue d’abord', 'Switch to another language first'],
+        removeActive: ['Choisis une autre langue d’abord', 'Switch to another language first'],
         addLang: ['Ajouter une langue', 'Add a language'],
         search: ['Rechercher une langue, ex. Español', 'Search a language, e.g. Español'],
         popular: ['Les plus courantes', 'Most common'],
         allLangs: ['Toutes les langues (ISO 639-1)', 'All languages (ISO 639-1)'],
-        noMatch: ['Aucune langue ne correspond. Essayez le nom en anglais.', 'No language matches. Try the English name.'],
+        noMatch: ['Aucune langue ne correspond. Essaie le nom en anglais.', 'No language matches. Try the English name.'],
         added: ['Déjà ajoutée', 'Already added'],
         advanced: ['Avancé', 'Advanced'],
         modelLabel: ['Modèle de traduction', 'Translation model'],
         modelHint: ['Les traductions sont générées par ce modèle, puis gardées sur cet ordinateur. Elles s’appliquent à l’interface de Kybernos et à celle de DSH.', 'Translations are generated by this model, then kept on this computer. They apply to Kybernos and to DSH’s own screens.'],
-        noModels: ['Aucun modèle détecté. Configurez un fournisseur dans settings.yaml pour activer la traduction.', 'No model detected. Set up a provider in settings.yaml to enable translation.'],
+        noModels: ['Aucun modèle détecté. Configure un fournisseur dans settings.yaml pour activer la traduction.', 'No model detected. Set up a provider in settings.yaml to enable translation.'],
         noDsh: ['Les écrans de DSH ne peuvent pas être traduits avec cette version : seul Kybernos le sera.', 'DSH’s own screens can’t be translated with this version: only Kybernos will be.'],
         zhNative: ['DSH traduit déjà ses écrans dans cette langue : seul Kybernos reste à traduire.', 'DSH already translates its own screens in this language: only Kybernos is left to translate.'],
         showDetails: ['Afficher les détails', 'Show details'],
@@ -485,29 +491,33 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         errTitle: ['La traduction s’est arrêtée.', 'The translation stopped.'],
         errKey: ['Le modèle de traduction a besoin d’une clé d’API qui n’est pas définie sur cet ordinateur.', 'The translation model needs an API key that isn’t set on this computer.'],
         errAuth: ['Le fournisseur a refusé la clé d’API de ce modèle.', 'The provider rejected this model’s API key.'],
-        errNoModel: ['Ce modèle n’est pas disponible dans votre configuration.', 'This model isn’t available in your setup.'],
-        errRate: ['Le fournisseur limite le nombre de requêtes. Attendez une minute, puis reprenez.', 'The provider is limiting requests. Wait a minute, then resume.'],
+        errNoModel: ['Ce modèle n’est pas disponible dans ta configuration.', 'This model isn’t available in your setup.'],
+        errRate: ['Le fournisseur limite le nombre de requêtes. Attends une minute, puis reprends.', 'The provider is limiting requests. Wait a minute, then resume.'],
         errSlow: ['Le modèle a mis trop de temps à répondre.', 'The model took too long to answer.'],
         errHost: ['Impossible de joindre l’hôte Kybernos. DSH est-il toujours lancé ?', 'Can’t reach the Kybernos host. Is DSH still running?'],
-        errOld: ['Le plugin Kybernos principal est trop ancien pour traduire. Mettez-le à jour.', 'The main Kybernos plugin is too old to translate. Update it.'],
-        errBusy: ['Une autre langue est en cours de traduction. Attendez la fin ou mettez-la en pause.', 'Another language is being translated. Wait for it to finish or pause it.'],
+        errOld: ['Le plugin Kybernos principal est trop ancien pour traduire. Mets-le à jour.', 'The main Kybernos plugin is too old to translate. Update it.'],
+        errBusy: ['Une autre langue est en cours de traduction. Attends la fin ou mets-la en pause.', 'Another language is being translated. Wait for it to finish or pause it.'],
         jobReady: ['{name} est prête.', '{name} is ready.'],
-        jobReadyBody: ['{n} textes traduits. Vous pouvez passer dessus quand vous voulez.', '{n} texts translated. You can switch to it whenever you like.'],
+        jobReadyBody: ['{n} textes traduits. Tu peux passer dessus quand tu veux.', '{n} texts translated. You can switch to it whenever you like.'],
+        jobReadyBody1: ['1 texte traduit. Tu peux passer dessus quand tu veux.', '1 text translated. You can switch to it whenever you like.'],
         jobPartial: ['{name} : {n} textes restent en anglais.', '{name}: {n} texts stay in English.'],
-        jobPartialBody: ['La langue est utilisable. Réessayez les textes manquants depuis Réglages › Langue.', 'The language is usable. Retry the missing texts from Settings › Language.'],
+        jobPartial1: ['{name} : 1 texte reste en anglais.', '{name}: 1 text stays in English.'],
+        jobPartialBody: ['La langue est utilisable. Réessaie les textes manquants depuis Réglages › Langue.', 'The language is usable. Retry the missing texts from Settings › Language.'],
         jobFailed: ['La traduction en {name} s’est arrêtée.', 'The translation to {name} stopped.'],
         packInstall: ['Installer la traduction prête', 'Install the ready-made translation'],
         packInstalling: ['Installation…', 'Installing…'],
-        packNote: ['Une traduction prête à l’emploi existe pour cette langue ({n} textes) : elle s’installe tout de suite, sans modèle ni clé. Ce qui manque est ensuite traduit par votre modèle.', 'A ready-made translation exists for this language ({n} texts): it installs at once, with no model and no key. What it lacks is then translated by your model.'],
+        packNote: ['Une traduction prête à l’emploi existe pour cette langue ({n} textes) : elle s’installe tout de suite, sans modèle ni clé. Ce qui manque est ensuite traduit par ton modèle.', 'A ready-made translation exists for this language ({n} texts): it installs at once, with no model and no key. What it lacks is then translated by your model.'],
         packReviewed: ['relue', 'reviewed'],
         packTag: ['prête', 'ready'],
         packDone: ['Traduction installée : {added} textes ajoutés, {kept} déjà là.', 'Translation installed: {added} texts added, {kept} already there.'],
         packFailed: ['La traduction prête n’a pas pu être installée ({why}).', 'The ready-made translation could not be installed ({why}).'],
         staleSummary: ['{n} textes ont changé depuis cette traduction', '{n} texts changed since this translation'],
+        staleSummary1: ['1 texte a changé depuis cette traduction', '1 text changed since this translation'],
         staleBody: ['Ces textes ont été modifiés dans cette version de Kybernos ou de DSH : seuls eux seront retraduits, le reste est conservé.', 'These texts were changed in this version of Kybernos or DSH: only they are translated again, the rest is kept.'],
         staleUpdate: ['Mettre à jour la traduction', 'Update translation'],
         doubtSummary: ['{n} textes à vérifier', '{n} texts to double-check'],
-        doubtBody: ['Ces traductions sont gardées, mais elles ressemblent à la source ou ont perdu un nom de produit. Vérifiez-les si l’écran vous paraît étrange.', 'These translations are kept, but they look like the source or lost a product name. Check them if a screen looks odd.'],
+        doubtSummary1: ['1 texte à vérifier', '1 text to double-check'],
+        doubtBody: ['Ces traductions sont gardées, mais elles ressemblent à la source ou ont perdu un nom de produit. Vérifie-les si l’écran te paraît étrange.', 'These translations are kept, but they look like the source or lost a product name. Check them if a screen looks odd.'],
         doubtWhy_unchanged: ['identique à la source', 'same as the source'],
         doubtWhy_glossary: ['nom de produit disparu', 'a product name is missing'],
         errStore: ['L’espace de stockage du navigateur est plein.', 'The browser’s storage is full.'],
@@ -520,18 +530,18 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         helpTitle: ['Traduire l’interface en trois étapes', 'Translate the interface in three steps'],
         mockCaption: ['Aperçu animé des trois étapes', 'Animated preview of the three steps'],
         mockNew: ['Pas encore traduite', 'Not translated yet'],
-        step1Body: ['Ouvrez « Ajouter une langue » et choisissez-en une dans la liste ISO.', 'Open “Add a language” and pick one from the ISO list.'],
-        step2Body: ['La barre de progression montre l’avancement. Vous pouvez mettre en pause et reprendre à tout moment.', 'The progress bar shows how far it is. You can pause and resume at any time.'],
-        step3Body: ['Kybernos et DSH passent dans cette langue. Pour revenir en arrière, utilisez une autre langue.', 'Kybernos and DSH switch to this language. To go back, use another language.'],
+        step1Body: ['Ouvre « Ajouter une langue » et choisis-en une dans la liste ISO.', 'Open “Add a language” and pick one from the ISO list.'],
+        step2Body: ['La barre de progression montre l’avancement. Tu peux mettre en pause et reprendre à tout moment.', 'The progress bar shows how far it is. You can pause and resume at any time.'],
+        step3Body: ['Kybernos et DSH passent dans cette langue. Pour revenir en arrière, utilise une autre langue.', 'Kybernos and DSH switch to this language. To go back, use another language.'],
         helpNote: ['Les textes pas encore traduits restent en anglais. C’est le même choix que dans Réglages › Général › Langue.', 'Texts not translated yet stay in English. It is the same choice as in Settings › General › Language.'],
         tipHelp: ['Afficher ou masquer l’aide', 'Show or hide the help'],
-        tipStart: ['Traduit l’interface dans cette langue avec le modèle choisi dans « Avancé ». Vous pouvez mettre en pause à tout moment.', 'Translates the interface into this language with the model chosen in “Advanced”. You can pause at any time.'],
+        tipStart: ['Traduit l’interface dans cette langue avec le modèle choisi dans « Avancé ». Tu peux mettre en pause à tout moment.', 'Translates the interface into this language with the model chosen in “Advanced”. You can pause at any time.'],
         tipResume: ['Reprend là où ça s’est arrêté : ce qui est déjà traduit est conservé.', 'Continues where it stopped: what is already translated is kept.'],
         tipRetry: ['Ne retraduit que les textes qui ont échoué.', 'Translates only the texts that failed.'],
         tipPause: ['S’arrête après les textes en cours. Rien n’est perdu : « Reprendre » continue.', 'Stops after the texts in progress. Nothing is lost: Resume continues.'],
         tipUse: ['Passe Kybernos et DSH dans cette langue. La page se recharge.', 'Switches Kybernos and DSH to this language. The page reloads.'],
-        tipUseAnyway: ['Utilise la langue telle quelle : les textes pas encore traduits s’affichent en anglais. Vous pourrez reprendre la traduction plus tard.', 'Uses the language as it is: texts not translated yet show in English. You can resume the translation later.'],
-        tipUseNow: ['L’essentiel est traduit : utilisez la langue maintenant, le reste continue en arrière-plan.', 'The essentials are translated: use the language now while the rest continues in the background.'],
+        tipUseAnyway: ['Utilise la langue telle quelle : les textes pas encore traduits s’affichent en anglais. Tu pourras reprendre la traduction plus tard.', 'Uses the language as it is: texts not translated yet show in English. You can resume the translation later.'],
+        tipUseNow: ['L’essentiel est traduit : utilise la langue maintenant, le reste continue en arrière-plan.', 'The essentials are translated: use the language now while the rest continues in the background.'],
         tipInUse: ['La langue que Kybernos et DSH utilisent en ce moment.', 'The language Kybernos and DSH are using right now.'],
         tipRtl: ['Cette langue se lit de droite à gauche : toute la mise en page est inversée.', 'This language reads right to left: the whole layout is mirrored.'],
         tipProgress: ['Textes traduits jusqu’ici.', 'Texts translated so far.'],
@@ -539,14 +549,14 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         tipAreaMore: ['Les écrans moins courants et les pages des plugins.', 'Less common screens and plugin pages.'],
         tipAreaPhrases: ['Les messages longs et les explications détaillées.', 'Long messages and detailed explanations.'],
         tipEstimate: ['Estimation d’après le nombre de textes et la vitesse habituelle du modèle.', 'Estimated from the number of texts and the model’s usual speed.'],
-        tipAdd: ['Choisissez n’importe quelle langue de la liste ISO 639-1.', 'Pick any language from the ISO 639-1 list.'],
+        tipAdd: ['Choisis n’importe quelle langue de la liste ISO 639-1.', 'Pick any language from the ISO 639-1 list.'],
         tipAddLang: ['Ajouter {name} ({code})', 'Add {name} ({code})'],
         tipModel: ['Le modèle qui écrit les traductions. N’importe quel modèle configuré dans DSH convient ; un modèle rapide suffit.', 'The model that writes the translations. Any model configured in DSH works; a fast one is enough.'],
         tipAdvanced: ['Choix du modèle de traduction.', 'Translation model choice.'],
         diskOn: ['Traductions enregistrées sur cet ordinateur : {dir}', 'Translations saved on this computer: {dir}'],
-        diskOff: ['Traductions gardées dans ce navigateur seulement. Relancez DSH pour les enregistrer aussi sur le disque de cet ordinateur.', 'Translations kept in this browser only. Restart DSH to save them on this computer’s disk too.'],
+        diskOff: ['Traductions gardées dans ce navigateur seulement. Relance DSH pour les enregistrer aussi sur le disque de cet ordinateur.', 'Translations kept in this browser only. Restart DSH to save them on this computer’s disk too.'],
         diskErr: ['Enregistrement sur le disque impossible ({err}). Nouvel essai automatique.', 'Could not save to the disk ({err}). Trying again automatically.'],
-        tipDiskOn: ['Ce dossier contient une copie de chaque langue traduite. Elle reste disponible dans tous vos navigateurs, même si vous effacez les données de celui-ci. C’est ce dossier qu’il faut sauvegarder.', 'This folder holds a copy of every translated language. It stays available in all your browsers, even if you clear this one’s data. This is the folder to back up.'],
+        tipDiskOn: ['Ce dossier contient une copie de chaque langue traduite. Elle reste disponible dans tous tes navigateurs, même si tu effaces les données de celui-ci. C’est ce dossier qu’il faut sauvegarder.', 'This folder holds a copy of every translated language. It stays available in all your browsers, even if you clear this one’s data. This is the folder to back up.'],
         tipDiskOff: ['Le navigateur garde la traduction, mais effacer ses données ou changer de navigateur la ferait perdre. Après un redémarrage de DSH, elle est copiée sur le disque automatiquement.', 'The browser keeps the translation, but clearing its data or switching browser would lose it. After DSH restarts it is copied to the disk automatically.'],
         tipAgain: ['Efface cette traduction et recommence depuis zéro.', 'Discards this translation and starts over from scratch.'],
         tipRemove: ['Supprime cette langue et ses traductions de cet ordinateur.', 'Removes this language and its translations from this computer.'],
@@ -561,11 +571,12 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : 'en') } catch (e) { return 'en' }
       }
       const L = (key, params) => {
-        const pair = S[key]
+        // A row can have a « 1 » twin (« 1 text », not « 1 texts »): it is used when the count n is 1.
+        const pair = params !== undefined && String(params.n) === '1' && S[key + '1'] !== undefined ? S[key + '1'] : S[key]
         if (pair === undefined) return String(key) // a typo must show, not blank the whole page
         const l = uiLang()
         let out = pair[1]
-        if (l === 'kybernos') out = pair[0]
+        if (l === 'kybernos' || l.split(/[-_]/)[0] === 'fr') out = pair[0]
         else if (l !== 'en') {
           const a = window.__KB_I18N_ACTIVE__
           const d = a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' ? a.dict : null
@@ -818,16 +829,16 @@ html[dir="rtl"] .kbth-page{direction:rtl}
               batch,
             }),
           })
-          if (res.status === 404) return { ok: false, error: 'ROUTE_ABSENT : route hôte absente — mettez à jour le plugin Kybernos principal' }
-          if (!res.ok) return { ok: false, error: 'HTTP_' + res.status + ' : route hôte' }
+          if (res.status === 404) return { ok: false, error: 'ROUTE_ABSENT: host route missing — update the main Kybernos plugin' }
+          if (!res.ok) return { ok: false, error: 'HTTP_' + res.status + ': host route' }
           const json = await res.json()
           if (json !== null && typeof json === 'object' && json.ok === true && json.translations !== null && typeof json.translations === 'object') {
             return { ok: true, translations: json.translations, provider: json.provider, model: json.model }
           }
-          return { ok: false, error: json !== null && typeof json === 'object' && typeof json.error === 'string' && json.error !== '' ? json.error : 'réponse inattendue de la route hôte' }
+          return { ok: false, error: json !== null && typeof json === 'object' && typeof json.error === 'string' && json.error !== '' ? json.error : 'unexpected answer from the host route' }
         } catch (e) {
-          if (signal !== null && signal !== undefined && signal.aborted) return { ok: false, aborted: true, error: 'annulée' }
-          return { ok: false, error: 'UNREACHABLE : route hôte injoignable — ' + String((e !== null && e !== undefined && e.message) || e) }
+          if (signal !== null && signal !== undefined && signal.aborted) return { ok: false, aborted: true, error: 'cancelled' }
+          return { ok: false, error: 'UNREACHABLE: host route unreachable — ' + String((e !== null && e !== undefined && e.message) || e) }
         }
       }
 
@@ -871,7 +882,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
       // `{ ok:false, error, done, total }`.
       const runTranslation = async (lang, opts) => {
         const plan = buildPlan(lang)
-        if (plan === null) return { ok: false, error: 'SOURCE_MISSING : chaînes sources introuvables — mettez à jour le plugin Kybernos principal', done: 0, total: 0 }
+        if (plan === null) return { ok: false, error: 'SOURCE_MISSING: source strings not found — update the main Kybernos plugin', done: 0, total: 0 }
         const stores = { kb: i18nRead(lang), dsh: dshRead(lang) }
         const has = (it) => holds(stores[it.store][it.id])
         const counts = {}
@@ -946,7 +957,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
                   dirty = true
                 }
               }
-              if (!flush(false) && stop === null) stop = { error: 'STORAGE_FULL : stockage local plein ou indisponible' }
+              if (!flush(false) && stop === null) stop = { error: 'STORAGE_FULL: local storage full or unavailable' }
               report(model)
             }
           }
@@ -954,9 +965,9 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         }
         const flushed = flush(true)
         if (stop !== null && stop.paused) return { ok: false, paused: true, done, total: plan.total }
-        if (!flushed && (stop === null || stop.error === undefined)) stop = { error: 'STORAGE_FULL : stockage local plein ou indisponible' }
+        if (!flushed && (stop === null || stop.error === undefined)) stop = { error: 'STORAGE_FULL: local storage full or unavailable' }
         if (stop !== null && stop.error !== undefined) return { ok: false, error: stop.error, done: persisted, total: plan.total }
-        if (done === 0) return { ok: false, error: lastError || 'aucune chaîne traduite', done, total: plan.total }
+        if (done === 0) return { ok: false, error: lastError || 'no string translated', done, total: plan.total }
         return { ok: true, done, total: plan.total, missing: plan.total - done }
       }
 
@@ -1020,7 +1031,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
           // Finished, paused on purpose or failed: nothing to pick up again. Only a closed tab leaves the intent.
           stopBeat(); intentClear()
           if (result.paused) return setRun({ state: 'paused', done: result.done, total: result.total })
-          if (!result.ok) return setRun({ state: 'failed', error: result.error || 'échec inconnu', done: result.done, total: result.total })
+          if (!result.ok) return setRun({ state: 'failed', error: result.error || 'unknown failure', done: result.done, total: result.total })
           setRun({ state: result.missing > 0 ? 'partial' : 'done', done: result.done, total: result.total, missing: result.missing })
         }).catch((e) => { stopBeat(); intentClear(); setRun({ state: 'failed', error: String((e !== null && e !== undefined && e.message) || e) }) })
       }
@@ -1135,7 +1146,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         if (lang !== hostLang) return
         if (r.absent === true || r.ok !== true) {
           hostLost += 1
-          if (hostLost >= JOB_LOST_AFTER) { stopWatching(); setRun({ state: 'failed', error: 'UNREACHABLE : route hôte injoignable — la traduction continue peut-être sur l’hôte : rouvrez cette page' }) }
+          if (hostLost >= JOB_LOST_AFTER) { stopWatching(); setRun({ state: 'failed', error: 'UNREACHABLE: host route unreachable — the translation may still be running on the host: reopen this page' }) }
           return
         }
         hostLost = 0
@@ -1159,7 +1170,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         await pullDisk(lang)
         hostPulled = { at: 0, done: -1 }
         if (job.state === 'paused') { setRun(Object.assign(patch, { state: 'paused' })); return }
-        if (job.state === 'failed') setRun(Object.assign(patch, { state: 'failed', error: job.error || 'échec inconnu' }))
+        if (job.state === 'failed') setRun(Object.assign(patch, { state: 'failed', error: job.error || 'unknown failure' }))
         else setRun(Object.assign(patch, { state: job.state === 'partial' ? 'partial' : 'done', missing: job.missing }))
         if (job.acked !== true) await announceJob(job)
       }

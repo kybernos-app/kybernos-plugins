@@ -18,33 +18,33 @@ window.__ModuleLoader__.load({
           const l = window.__KB_LANG_RESOLVE__ && window.__KB_LANG_RESOLVE__()
           const s = String(l || '')
           return (s === 'kybernos' || s.split(/[-_]/)[0] === 'fr') ? 'fr' : 'en'
-        } catch (e) { return 'fr' }
+        } catch (e) { return 'en' }
       }
       const kt = (fr, en) => (lang() === 'fr' ? fr : en)
 
-      // name, then a one-line description, French and English.
+      // the name (one word for every language, or { fr, en }) and a one-line description, French and English.
       const META = {
-        searxng: ['SearXNG', 'Votre propre instance SearXNG : privé, sans clé, sans limite.', 'Your own SearXNG instance: private, no key, no limit.'],
-        custom: [['Adresse personnalisée', 'Custom address'], 'Un service de recherche à vous (contrat « external » d’OpenWebUI : POST {query, count}).', 'A search service of your own (OpenWebUI’s “external” contract: POST {query, count}).'],
-        'brave-api': ['Brave Search API', 'Index indépendant, résultats propres.', 'Independent index, clean results.'],
-        tavily: ['Tavily', 'Moteur pensé pour les agents.', 'A search engine built for agents.'],
-        serper: ['Serper', 'Résultats Google.', 'Google results.'],
-        exa: ['Exa', 'Recherche sémantique, extraits du contenu.', 'Semantic search with page excerpts.'],
-        kagi: ['Kagi', 'Moteur payant sans publicité.', 'Paid, ad-free search.'],
-        'google-pse': ['Google Programmable Search', 'Google, limité aux sites que vous choisissez.', 'Google, limited to the sites you choose.'],
-        jina: ['Jina Search', 'Recherche avec contenu des pages.', 'Search with page content.'],
-        perplexity: ['Perplexity Search', 'API de recherche de Perplexity.', 'Perplexity’s search API.'],
-        deepseek: [['Recherche native DeepSeek', 'DeepSeek native search'], 'Le moteur d’origine de DSH : un tour de modèle par recherche.', 'DSH’s own default: one model turn per search.'],
-        'brave-web': ['Brave Search', 'La page de résultats de Brave, sans clé. Peut demander un captcha.', 'Brave’s results page, no key. May ask for a captcha.'],
-        'exa-free': ['Exa', 'Quota gratuit d’Exa, sans clé.', 'Exa’s free quota, no key.'],
-        duckduckgo: ['DuckDuckGo', 'Sans clé. Se ferme parfois à un client qu’il prend pour un robot.', 'No key. Sometimes closes to a client it takes for a bot.'],
-        wikipedia: ['Wikipedia', 'Une encyclopédie, pas le web : à n’activer qu’en dernier recours.', 'An encyclopedia, not the web: switch it on only as a last resort.']
+        searxng: { name: 'SearXNG', fr: 'Ta propre instance SearXNG : privé, sans clé, sans limite.', en: 'Your own SearXNG instance: private, no key, no limit.' },
+        custom: { name: { fr: 'Adresse personnalisée', en: 'Custom address' }, fr: 'Un service de recherche à toi (contrat « external » d’OpenWebUI : POST {query, count}).', en: 'A search service of your own (OpenWebUI’s “external” contract: POST {query, count}).' },
+        'brave-api': { name: 'Brave Search API', fr: 'Index indépendant, résultats propres.', en: 'Independent index, clean results.' },
+        tavily: { name: 'Tavily', fr: 'Moteur pensé pour les agents.', en: 'A search engine built for agents.' },
+        serper: { name: 'Serper', fr: 'Résultats Google.', en: 'Google results.' },
+        exa: { name: 'Exa', fr: 'Recherche sémantique, extraits du contenu.', en: 'Semantic search with page excerpts.' },
+        kagi: { name: 'Kagi', fr: 'Moteur payant sans publicité.', en: 'Paid, ad-free search.' },
+        'google-pse': { name: 'Google Programmable Search', fr: 'Google, limité aux sites que tu choisis.', en: 'Google, limited to the sites you choose.' },
+        jina: { name: 'Jina Search', fr: 'Recherche avec contenu des pages.', en: 'Search with page content.' },
+        perplexity: { name: 'Perplexity Search', fr: 'API de recherche de Perplexity.', en: 'Perplexity’s search API.' },
+        deepseek: { name: { fr: 'Recherche native DeepSeek', en: 'DeepSeek native search' }, fr: 'Le moteur d’origine de DSH : un tour de modèle par recherche.', en: 'DSH’s own default: one model turn per search.' },
+        'brave-web': { name: 'Brave Search', fr: 'La page de résultats de Brave, sans clé. Peut demander un captcha.', en: 'Brave’s results page, no key. May ask for a captcha.' },
+        'exa-free': { name: 'Exa', fr: 'Quota gratuit d’Exa, sans clé.', en: 'Exa’s free quota, no key.' },
+        duckduckgo: { name: 'DuckDuckGo', fr: 'Sans clé. Se ferme parfois à un client qu’il prend pour un robot.', en: 'No key. Sometimes closes to a client it takes for a bot.' },
+        wikipedia: { name: 'Wikipedia', fr: 'Une encyclopédie, pas le web : à n’activer qu’en dernier recours.', en: 'An encyclopedia, not the web: switch it on only as a last resort.' }
       }
       const nameOf = (id) => {
-        const n = META[id] ? META[id][0] : id
-        return Array.isArray(n) ? kt(n[0], n[1]) : n
+        const n = META[id] ? META[id].name : id
+        return typeof n === 'object' ? kt(n.fr, n.en) : n
       }
-      const descOf = (id) => (META[id] ? kt(META[id][1], META[id][2]) : '')
+      const descOf = (id) => (META[id] ? kt(META[id].fr, META[id].en) : '')
       const KIND_TXT = {
         auth: ['clé refusée', 'key refused'], quota: ['limite atteinte', 'rate limited'], blocked: ['défi anti-robot', 'asked for a challenge'],
         server: ['erreur du service', 'service error'], network: ['injoignable', 'unreachable'], timeout: ['trop lent', 'too slow'],
@@ -58,7 +58,7 @@ window.__ModuleLoader__.load({
       // Every way the host half can fail to answer (refused connection, 404 because DSH was not restarted after an update, a 500,
       // an HTML page instead of JSON) is told the same way: a sentence, never the browser's « Failed to fetch ».
       const hostDown = () => Object.assign(new Error(kt(
-        'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarrez DSH, puis appuyez sur Réessayer.',
+        'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarre DSH, puis appuie sur Réessayer.',
         'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.')), { kbDown: true })
       const api = (path, body) => fetch(path, body === undefined
         ? { headers: { Accept: 'application/json' } }
@@ -74,7 +74,7 @@ window.__ModuleLoader__.load({
       const addressProblem = (key, text) => {
         const t = String(text === undefined || text === null ? '' : text).trim()
         if (t === '') return null
-        if (key === 'searxngUrl' || key === 'customUrl') return httpUrlOk(t) ? null : kt('Saisissez une adresse http(s), par exemple http://127.0.0.1:8080.', 'Enter an http(s) address such as http://127.0.0.1:8080.')
+        if (key === 'searxngUrl' || key === 'customUrl') return httpUrlOk(t) ? null : kt('Saisis une adresse http(s), par exemple http://127.0.0.1:8080.', 'Enter an http(s) address such as http://127.0.0.1:8080.')
         if (key === 'googleCx') return /^[A-Za-z0-9:_-]{1,100}$/.test(t) ? null : kt('Lettres, chiffres, « : », « _ » et « - » seulement.', 'Letters, digits, “:”, “_” and “-” only.')
         if (key === 'wikiLang') return /^[a-z]{2,3}(-[a-z]+)?$/.test(t) ? null : kt('Un code de langue, par exemple en ou fr.', 'A language code, such as en or fr.')
         return null
@@ -85,7 +85,7 @@ window.__ModuleLoader__.load({
         notfound: ['Ce nom d’hôte est introuvable.', 'This host name could not be found.'],
         reset: ['La connexion a été coupée par l’autre côté.', 'The connection was cut by the other side.'],
         tls: ['Le certificat de ce serveur n’est pas accepté.', 'This server’s certificate is not accepted.'],
-        badport: ['Ce port est interdit pour une requête web : choisissez-en un autre.', 'This port is not allowed for a web request: pick another one.']
+        badport: ['Ce port est interdit pour une requête web : choisis-en un autre.', 'This port is not allowed for a web request: pick another one.']
       }
       /** What follows the kind of a failed test: the sentence for its reason, never the raw « fetch failed ». */
       const testDetail = (test) => {
@@ -222,7 +222,7 @@ window.__ModuleLoader__.load({
           h('h4', null, kt('Recherche web', 'Web Search')),
           (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-websearch' }) : null)),
         h('p', { className: 'kwse-intro' }, kt(
-          'Les agents cherchent sur le web avec le premier moteur de cette liste qui répond. Les moteurs « sans clé » marchent tout de suite ; ajoutez une clé pour qu’un moteur à clé passe en premier. Un moteur qui échoue est mis en pause, le suivant prend le relais.',
+          'Les agents cherchent sur le web avec le premier moteur de cette liste qui répond. Les moteurs « sans clé » marchent tout de suite ; ajoute une clé pour qu’un moteur à clé passe en premier. Un moteur qui échoue est mis en pause, le suivant prend le relais.',
           'Agents search the web with the first engine in this list that answers. “No key” engines work right away; add a key so a keyed engine goes first. An engine that fails is paused and the next one takes over.'))
       )
 
@@ -312,13 +312,13 @@ window.__ModuleLoader__.load({
               'DSH is set to another provider (“' + state.pinned + '”): this list is not used until the profile’s “web” row is back to “' + state.provider + '”.'))
             : null,
           state.registered !== true
-            ? h('p', { className: 'kwse-banner', 'data-kb': 'websearch-banner' }, kt('Le fournisseur n’est pas enregistré auprès de DSH : redémarrez DSH pour l’activer.', 'The provider is not registered with DSH: restart DSH to activate it.'))
+            ? h('p', { className: 'kwse-banner', 'data-kb': 'websearch-banner' }, kt('Le fournisseur n’est pas enregistré auprès de DSH : redémarre DSH pour l’activer.', 'The provider is not registered with DSH: restart DSH to activate it.'))
             : null,
           h('div', { className: 'kwse-list', 'data-kb': 'websearch-list' }, used.map((e, i) => rowOf(e, i, used, false))),
           more.length > 0
             ? h('div', { className: 'kwse-more' },
               h('button', { type: 'button', className: 'kwse-link', 'data-act': 'more', 'aria-expanded': String(showMore), onClick: () => setShowMore(!showMore) },
-                (showMore ? '▾ ' : '▸ ') + kt('Autres moteurs (' + more.length + ') : ajoutez une clé ou une adresse', 'More engines (' + more.length + '): add a key or an address')),
+                (showMore ? '▾ ' : '▸ ') + kt('Autres moteurs (' + more.length + ') : ajoute une clé ou une adresse', 'More engines (' + more.length + '): add a key or an address')),
               showMore ? h('div', { className: 'kwse-list', 'data-kb': 'websearch-more' }, more.map((e, i) => rowOf(e, i, more, true))) : null)
             : null,
           h('div', { className: 'kwse-block' },
@@ -434,7 +434,7 @@ window.__ModuleLoader__.load({
           try {
             ctx.effect(() => {
               const off = slots.inject('settings.section', () => slots.register(
-                { name: 'settings.section', id: 'kybernos-websearch-page', order: 15, label: 'Web Search' },
+                { name: 'settings.section', id: 'kybernos-websearch-page', order: 15, label: kt('Recherche web', 'Web Search') },
                 () => h(Page)))
               return () => { try { off() } catch (e) { /* gone */ } try { if (tag !== null) tag.remove() } catch (e) { /* gone */ } }
             }, 'kybernos-websearch: settings page')

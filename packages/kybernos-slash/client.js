@@ -1,43 +1,43 @@
-// ── Plugin client « kybernos-slash » ─────────────────────────────────────────
-// Rend VISIBLES et UTILISABLES, dans le vrai client DSH, les entrées que le
-// skill `slash-msgaction-creator` écrit via la route /kybernos/slash/entries.
+// ── « kybernos-slash » plugin client ─────────────────────────────────────────
+// Makes VISIBLE and USABLE, in the real DSH client, the entries that the
+// skill `slash-msgaction-creator` writes through the /kybernos/slash/entries route.
 //
-// Quatre surfaces, une seule source de vérité (le magasin du hôte) :
-//   1. la PALETTE « / » — on ne réinvente pas la roue : le composeur DSH a un
-//      pipeline de déclencheurs officiel (`ctx.inputTriggers.registerSource`),
-//      qui fait la détection du jeton AU CURSEUR, le filtrage, les flèches,
-//      Entrée/Tab/Échap, et l'insertion au span exact (`insertText`). Notre
-//      source fournit les candidats et dit quoi insérer.
-//   2. le FORMULAIRE INLINE — pour une entrée qui déclare des champs, dans
-//      `conversation.input.overlay` (l'ancre du composeur), conditions et
-//      champs requis vivants.
-//   3. la BARRE D'ACTIONS DES MESSAGES — `conversation.chat.assistant-actions`.
-//   4. la SECTION DE RÉGLAGES « Commands » — liste, éditeur, JSON.
+// Four surfaces, a single source of truth (the host's store):
+//   1. the « / » PALETTE — we do not reinvent the wheel: the DSH composer has an
+//      official trigger pipeline (`ctx.inputTriggers.registerSource`),
+//      which handles detecting the token AT THE CURSOR, filtering, the arrows,
+//      Enter/Tab/Esc, and the insertion at the exact span (`insertText`). Our
+//      source supplies the candidates and says what to insert.
+//   2. the INLINE FORM — for an entry that declares fields, in
+//      `conversation.input.overlay` (the composer's anchor), live conditions and
+//      required fields.
+//   3. the MESSAGE ACTION BAR — `conversation.chat.assistant-actions`.
+//   4. the « Commands » SETTINGS SECTION — list, editor, JSON.
 //
-// Le cœur sémantique est `kybernos-slash/model.js`, embarqué ici entre les
-// marqueurs KB-MODEL-BEGIN / KB-MODEL-END : un bundle navigateur ne peut pas
-// importer un fichier du paquet, et le dupliquer en silence ferait diverger la
-// maquette, le hôte et le client. `scripts/test-kybernos-slash-parity.mjs`
-// extrait ce bloc et le compare à `model.js` cas par cas — si les deux copies
-// s'éloignent, le harnais casse.
+// The semantic core is `kybernos-slash/model.js`, embedded here between the
+// KB-MODEL-BEGIN / KB-MODEL-END markers: a browser bundle cannot
+// import a file from the package, and silently duplicating it would make the
+// mockup, the host and the client drift apart. `scripts/test-kybernos-slash-parity.mjs`
+// extracts this block and compares it to `model.js` case by case — if the two
+// copies drift apart, the harness breaks.
 //
-// Aucune boîte de dialogue : « Create with AI » démarre un chat neuf et écrit
-// le prompt dans le champ de saisie, comme « Create AI Team ».
+// No dialog box: « Create with AI » starts a fresh chat and writes the
+// prompt into the input field, like « Create AI Team ».
 window.__ModuleLoader__.load({
   id: '@local/kybernos-slash',
   factory(require) {
     try {
       const React = require('react')
-      // L'editeur et la notification doivent passer DEVANT toute l'application.
-      // Le creneau `shell.overlay` vit dans un contexte d'empilement plus bas que
-      // la rangee du composeur et que la page Reglages : la notification s'y
-      // retrouvait recouverte (le bouton Undo etait incliquable). On les monte
-      // donc dans le corps du document, comme le fait DSH pour ses menus.
+      // The editor and the notification must go IN FRONT of the whole application.
+      // The `shell.overlay` slot lives in a lower stacking context than
+      // the composer row and the Settings page: the notification ended up
+      // covered there (the Undo button could not be clicked). So we mount them
+      // in the document body, as DSH does for its menus.
       const ReactDOM = (() => { try { return require('react-dom') } catch (e) { return null } })()
       const h = React.createElement
 
       // ══════════════════════════════════════════════════════════════════════
-      // KB-MODEL-BEGIN — copie conforme de kybernos-slash/model.js
+      // KB-MODEL-BEGIN — exact copy of kybernos-slash/model.js
       // ══════════════════════════════════════════════════════════════════════
       const OPS = ['=', '!=', '>', '<', '>=', '<=', 'in', 'contains', 'empty', 'notEmpty']
       const OP_ALIASES = { eq: '=', neq: '!=', equals: '=', notEquals: '!=', contains: 'contains', in: 'in' }
@@ -128,7 +128,7 @@ window.__ModuleLoader__.load({
       // KB-MODEL-END
       // ══════════════════════════════════════════════════════════════════════
 
-      // ── Règle 12 : la valeur d'un champ masqué sort du texte, sans être effacée.
+      // ── Rule 12: the value of a hidden field leaves the text, without being erased.
       function effectiveValues(entry, values) {
         const declared = (entry.fields || []).map((f) => f.key)
         const shown = visibleFields(entry, values).map((f) => f.key)
@@ -157,23 +157,25 @@ window.__ModuleLoader__.load({
         } catch (e) { return 'en' }
       }
       const L = (v) => (v === null || v === undefined ? '' : (typeof v === 'object' ? (v[kbslLang()] || v.en || v.fr || '') : String(v)))
+      // A count with its noun, one or many: « 1 field », « 2 fields » (`one` and `many` are { fr, en } labels).
+      const kbslCount = (n, one, many) => String(n) + ' ' + L(n === 1 ? one : many)
 
-      // ── Accès aux entrées du hôte ─────────────────────────────────────────
+      // ── Access to the host's entries ──────────────────────────────────────
       const API = '/kybernos/slash/entries'
       const AI_REF = '/skill-slash-msgaction-creator'
       const AI_VALUE = '__kybernos_slash_ai__'
       const store = { entries: [], loaded: false, loading: false, error: null, version: 0 }
       const subs = new Set()
-      const notify = () => { store.version += 1; for (const fn of Array.from(subs)) { try { fn() } catch (e) { /* abonne mort */ } } }
+      const notify = () => { store.version += 1; for (const fn of Array.from(subs)) { try { fn() } catch (e) { /* dead subscriber */ } } }
       const onStore = (fn) => { subs.add(fn); return () => { subs.delete(fn) } }
 
-      // Surface de diagnostic. Le plugin vit dans une page où l'on n'a pas de
-      // console : `window.__kybernosSlash` dit ce qui est réellement branché et
-      // combien d'entrées sont chargées. Sans elle, une palette silencieusement
-      // inerte ne se distingue pas d'une palette absente — c'est exactement
-      // l'erreur qui a fait cliquer un jeton au lieu d'une ligne de menu.
+      // Diagnostic surface. The plugin lives in a page where there is no
+      // console: `window.__kybernosSlash` says what is actually wired and
+      // how many entries are loaded. Without it, a silently
+      // inert palette cannot be told apart from a missing one — which is exactly
+      // the mistake that made someone click a token instead of a menu row.
       const diag = { version: null, slots: false, palette: false, theme: 0, entries: 0, error: null, queries: 0, lastQuery: null, lastOut: 0, picks: 0, lastOutcome: null, portal: false, envoi: null, shellApi: null }
-      try { if (typeof window !== 'undefined') window.__kybernosSlash = diag } catch (e) { /* page sans window */ }
+      try { if (typeof window !== 'undefined') window.__kybernosSlash = diag } catch (e) { /* page without window */ }
 
       const entryOf = (id) => store.entries.filter((e) => idOf(e) === id)[0]
       const idOf = (e) => {
@@ -186,12 +188,12 @@ window.__ModuleLoader__.load({
         .filter((e) => (e.kind === 'action' ? 'action' : 'slash') === kind)
         .sort((a, b) => ((Number(a.order) || 0) - (Number(b.order) || 0)) || nameOf(a).localeCompare(nameOf(b)))
 
-      // ── Étape 4 : où va le texte ? ────────────────────────────────────────
-      // Le choix vit dans le modèle (`delivery`). L'hôte du profil est chargé au
-      // démarrage de `dsh web` : tant qu'il n'a pas été redémarré, il ne connaît
-      // pas ce champ et le retire à l'écriture. Une copie locale par `id` garde
-      // donc le choix dès aujourd'hui ; `entry.delivery` reprend la main dès que
-      // l'hôte sait l'écrire (la valeur est la même, il n'y a pas de conflit).
+      // ── Step 4: where does the text go? ───────────────────────────────────
+      // The choice lives in the model (`delivery`). The profile's host is loaded at
+      // `dsh web` startup: until it has been restarted, it does not know
+      // this field and strips it on write. A local copy per `id` therefore keeps
+      // the choice from today; `entry.delivery` takes over as soon as
+      // the host can write it (the value is the same, there is no conflict).
       const KB_ENVOI_CLE = 'kybernos-slash-delivery'
       const kbEnvoiLocal = () => {
         try {
@@ -207,10 +209,10 @@ window.__ModuleLoader__.load({
           if (mode === 'send') m[id] = 'send'
           else delete m[id]
           window.localStorage.setItem(KB_ENVOI_CLE, JSON.stringify(m))
-        } catch (e) { /* stockage indisponible : le champ du modele reste la source */ }
+        } catch (e) { /* storage unavailable: the model's field stays the source */ }
       }
-      // Le magasin chargé est complété depuis la copie locale — une seule fois,
-      // en mémoire. Le fichier n'est jamais touché.
+      // The loaded store is completed from the local copy — only once,
+      // in memory. The file is never touched.
       const kbAppliquerEnvoiLocal = () => {
         const m = kbEnvoiLocal()
         store.entries = store.entries.map((e) => {
@@ -227,8 +229,8 @@ window.__ModuleLoader__.load({
           const body = await r.json()
           store.entries = (body !== null && Array.isArray(body.entries) === true) ? body.entries : []
           store.error = (body !== null && body.ok === false) ? String(body.error || 'route indisponible') : null
-          // La version vient de la ROUTE : le client ne la redefinit pas, donc
-          // elle ne peut pas diverger du modele partage.
+          // The version comes from the ROUTE: the client does not redefine it, so
+          // it cannot drift from the shared model.
           diag.version = (body !== null && body !== undefined && body.version !== undefined) ? body.version : null
           kbAppliquerEnvoiLocal()
         } catch (e) {
@@ -241,8 +243,8 @@ window.__ModuleLoader__.load({
         notify()
       }
 
-      // Toute écriture passe par la ROUTE : c'est elle qui canonicalise et
-      // fusionne par `id`. Le client n'écrit jamais le fichier en direct.
+      // Every write goes through the ROUTE: it canonicalises and
+      // merges by `id`. The client never writes the file directly.
       const kbWrite = async (payload) => {
         try {
           const r = await fetch(API, {
@@ -257,58 +259,58 @@ window.__ModuleLoader__.load({
             notify()
             return { ok: true }
           }
-          return { ok: false, error: String((body !== null && body.error) ? body.error : 'écriture refusée') }
+          return { ok: false, error: String((body !== null && body.error) ? body.error : 'write refused') }
         } catch (e) {
           return { ok: false, error: String(e !== null && e.message ? e.message : e) }
         }
       }
 
-      // ── Le composeur : la seule surface d'insertion qui tient compte ──────
-      // du curseur. `shell(id)` n'est pas exposé par le type public, mais l'est
-      // à l'exécution ; `caretSpan()` et `insertText()` en viennent.
+      // ── The composer: the only insertion surface that takes the ───────────
+      // cursor into account. `shell(id)` is not exposed by the public type, but is
+      // at runtime; `caretSpan()` and `insertText()` come from it.
       let ctxRef = null
       const kbShell = (sid) => {
         if (typeof sid !== 'string' || sid === '') return null
         try {
           const conv = ctxRef !== null ? ctxRef.get('conversation') : null
           if (conv !== null && conv !== undefined && conv.input !== null && conv.input !== undefined && typeof conv.input.shell === 'function') { const sh = conv.input.shell(sid); kbNoterCoque(sh); return sh }
-        } catch (e) { /* pas de binding */ }
+        } catch (e) { /* no binding */ }
         try {
           const sessions = ctxRef !== null ? ctxRef.get('sessions') : null
           const scope = (sessions !== null && sessions !== undefined && typeof sessions.scope === 'function') ? sessions.scope(sid) : null
           const conv2 = (scope !== null && scope !== undefined && typeof scope.get === 'function') ? scope.get('conversation') : null
           if (conv2 !== null && conv2 !== undefined && conv2.input !== null && conv2.input !== undefined && typeof conv2.input.shell === 'function') { const sh2 = conv2.input.shell(sid); kbNoterCoque(sh2); return sh2 }
-        } catch (e) { /* portee indisponible */ }
+        } catch (e) { /* scope unavailable */ }
         return null
       }
-      // La coque garde la trace de ce qu'elle expose : `submit` est l'envoi natif
-      // (la touche Entree), `insertText` l'insertion au curseur. Diagnostic.
+      // The shell keeps track of what it exposes: `submit` is the native send
+      // (the Enter key), `insertText` the insertion at the cursor. Diagnostics.
       const kbNoterCoque = (shell) => {
-        try { diag.shellApi = { submit: typeof shell.submit, insertText: typeof shell.insertText, setDraft: typeof shell.setDraft } } catch (e) { /* diagnostic seulement */ }
+        try { diag.shellApi = { submit: typeof shell.submit, insertText: typeof shell.insertText, setDraft: typeof shell.setDraft } } catch (e) { /* diagnostics only */ }
       }
       const kbRev = (shell) => {
         try { return shell.snapshot !== undefined && shell.snapshot !== null ? shell.snapshot.draftRev : undefined } catch (e) { return undefined }
       }
-      // Envoi natif : `submit()` sur la coque du composeur — exactement la touche
-      // Entrée (adjudication, transaction, sink par défaut). Rien de simulé.
+      // Native send: `submit()` on the composer shell — exactly the Enter
+      // key (adjudication, transaction, default sink). Nothing simulated.
       const kbEnvoyer = (sid) => {
         const shell = kbShell(sid)
-        if (shell === null) { diag.envoi = 'composeur introuvable'; return { ok: false, error: 'composeur introuvable' } }
-        if (typeof shell.submit !== 'function') { diag.envoi = 'submit absent'; return { ok: false, error: 'envoi indisponible' } }
+        if (shell === null) { diag.envoi = 'composer not found'; return { ok: false, error: 'composer not found' } }
+        if (typeof shell.submit !== 'function') { diag.envoi = 'submit missing'; return { ok: false, error: 'sending unavailable' } }
         try {
           shell.submit('queue')
-          diag.envoi = 'envoye'
+          diag.envoi = 'sent'
           return { ok: true }
         } catch (e) {
-          diag.envoi = 'erreur: ' + String(e !== null && e.message !== undefined ? e.message : e)
+          diag.envoi = 'error: ' + String(e !== null && e.message !== undefined ? e.message : e)
           return { ok: false, error: 'envoi refuse' }
         }
       }
-      // Envoi APRÈS insertion : le texte doit d'abord être dans le brouillon —
-      // sur le chemin du menu natif, c'est le pipeline de déclencheurs qui
-      // l'écrit, de façon asynchrone. On attend donc de le voir, puis on envoie.
-      // Passé la limite, on garde le texte au curseur et on le dit : jamais un
-      // envoi annoncé qui ne part pas.
+      // Send AFTER insertion: the text must first be in the draft —
+      // on the native menu path, it is the trigger pipeline that
+      // writes it, asynchronously. So we wait to see it, then send.
+      // Past the limit, we keep the text at the cursor and say so: never
+      // a send announced that does not go out.
       const kbEnvoiApresInsertion = (sid, text, essai) => {
         const n = essai === undefined ? 0 : essai
         const shell = kbShell(sid)
@@ -317,7 +319,7 @@ window.__ModuleLoader__.load({
         const pret = text === '' || temoin === '' || brouillon.indexOf(temoin) >= 0
         if (pret === true || n >= 20) {
           if (pret !== true) {
-            diag.envoi = 'texte absent'
+            diag.envoi = 'text missing'
             kbFlash('Could not send automatically — the text is in the composer.')
             return
           }
@@ -327,11 +329,11 @@ window.__ModuleLoader__.load({
         }
         setTimeout(() => kbEnvoiApresInsertion(sid, text, n + 1), 100)
       }
-      // Insère au point exact demandé : un span collapsé à `at`, avec la
-      // révision COURANTE (sinon `insertText` refuse — CAS documenté).
+      // Inserts at the exact requested point: a span collapsed at `at`, with the
+      // CURRENT revision (otherwise `insertText` refuses — documented CAS).
       const kbInsertAt = (sid, text, at) => {
         const shell = kbShell(sid)
-        if (shell === null) return { ok: false, error: 'composeur introuvable' }
+        if (shell === null) return { ok: false, error: 'composer not found' }
         let pos = at
         if (typeof pos !== 'number' || pos < 0) {
           try { pos = shell.caretSpan().start } catch (e) { pos = 0 }
@@ -339,8 +341,8 @@ window.__ModuleLoader__.load({
         try {
           const done = shell.insertText(text, { start: pos, end: pos, draftRev: kbRev(shell) }, false)
           if (done === true) { try { shell.focus() } catch (e) { /* focus */ } ; return { ok: true } }
-        } catch (e) { /* on essaie le repli */ }
-        // Repli : réécriture totale du brouillon, calculée sur le texte publié.
+        } catch (e) { /* we try the fallback */ }
+        // Fallback: full rewrite of the draft, computed from the published text.
         try {
           const draft = String(shell.snapshot.draft || '')
           const next = draft.slice(0, pos) + text + draft.slice(pos)
@@ -354,7 +356,7 @@ window.__ModuleLoader__.load({
         try {
           const done = shell.insertText('', { start: span.start, end: span.end, draftRev: kbRev(shell) }, false)
           if (done === true) return { ok: true, at: span.start }
-        } catch (e) { /* repli ci-dessous */ }
+        } catch (e) { /* fallback below */ }
         try {
           const draft = String(shell.snapshot.draft || '')
           shell.setDraft(draft.slice(0, span.start) + draft.slice(span.end))
@@ -362,23 +364,23 @@ window.__ModuleLoader__.load({
         } catch (e) { return { ok: false, at: span.start } }
       }
 
-      // ── Le formulaire en attente, par session ─────────────────────────────
-      // `at` est la position laissée libre par le retrait du jeton : c'est là
-      // que le texte final doit atterrir, même si le curseur a bougé depuis.
+      // ── The pending form, per session ─────────────────────────────────────
+      // `at` is the position left free by the removal of the token: this is where
+      // the final text must land, even if the cursor has moved since.
       const pending = new Map()
       const pendingOf = (sid) => (pending.has(sid) ? pending.get(sid) : null)
       const setPending = (sid, value) => { if (value === null) pending.delete(sid); else pending.set(sid, value); notify() }
 
-      // ── « Create with AI » : un chat neuf, le prompt dans le champ ────────
-      // La session courante, par ordre de fiabilite : la reference principale de
-      // l'espace de travail, puis le snapshot des sessions (dont `current`, qui
-      // n'est pas toujours renseigne), puis la plus recente connue.
+      // ── « Create with AI »: a fresh chat, the prompt in the field ─────────
+      // The current session, in order of reliability: the workspace's main
+      // reference, then the sessions snapshot (including `current`, which
+      // is not always filled in), then the most recent known one.
       const kbCurrentSession = () => {
         try {
           const ui = ctxRef !== null ? ctxRef.get('uiWorkspace') : null
           const main = (ui !== null && ui !== undefined && ui.mainReference !== undefined) ? ui.mainReference : null
           if (main !== null && main !== undefined && main.sessionId !== undefined && main.sessionId !== null) return String(main.sessionId)
-        } catch (e) { /* pas de reference principale */ }
+        } catch (e) { /* no main reference */ }
         try {
           const sessions = ctxRef !== null ? ctxRef.get('sessions') : null
           const snap = (sessions !== null && sessions !== undefined && sessions.list !== undefined) ? sessions.list.getSnapshot() : null
@@ -386,7 +388,7 @@ window.__ModuleLoader__.load({
             if (snap.current !== undefined && snap.current !== null) return String(snap.current)
             if (Array.isArray(snap.ids) === true && snap.ids.length > 0) return String(snap.ids[snap.ids.length - 1])
           }
-        } catch (e) { /* pas de liste */ }
+        } catch (e) { /* no list */ }
         return ''
       }
 
@@ -400,21 +402,21 @@ window.__ModuleLoader__.load({
         const prompt = AI_REF + (clean === '' ? '' : ' ' + clean)
         const avant = kbCurrentSession()
         diag.ai = { phrase: clean, avant: avant, apres: '', tries: 0, wrote: false, why: '' }
-        // Le jeton « /zzz » a fait son travail : on l'efface avant de pre-remplir.
+        // The « /zzz » token has done its job: we erase it before pre-filling.
         const depart = kbShell(avant)
-        if (depart !== null) { try { depart.setDraft('') } catch (e) { /* brouillon deja vide */ } }
+        if (depart !== null) { try { depart.setDraft('') } catch (e) { /* draft already empty */ } }
         try {
           const uiWorkspace = ctxRef !== null ? ctxRef.get('uiWorkspace') : null
           if (uiWorkspace !== null && uiWorkspace !== undefined && typeof uiWorkspace.startSession === 'function') uiWorkspace.startSession()
-        } catch (e) { /* session indisponible */ }
+        } catch (e) { /* session unavailable */ }
         const timer = ctxRef !== null ? ctxRef.get('timer') : null
-        // On ne s'arrete pas sur « j'ai appele setDraft » mais sur « le champ
-        // contient le prompt ». Deux cas a couvrir :
-        //   1. l'application ouvre un chat neuf — l'ecriture doit suivre le
-        //      changement de session, donc on relit l'identifiant a chaque essai ;
-        //   2. l'application juge le chat courant deja neuf et le REUTILISE —
-        //      il n'y a alors aucun changement d'identifiant a attendre, et
-        //      c'est bien dans ce chat qu'il faut pre-remplir.
+        // We do not stop at « I called setDraft » but at « the field
+        // contains the prompt ». Two cases to cover:
+        //   1. the application opens a fresh chat — the write must follow the
+        //      session change, so we re-read the identifier on each attempt;
+        //   2. the application judges the current chat already fresh and REUSES it —
+        //      there is then no identifier change to wait for, and
+        //      it is indeed in that chat that the pre-fill must go.
         const attempt = (n) => {
           diag.ai.tries = n + 1
           const sid = kbCurrentSession()
@@ -425,26 +427,26 @@ window.__ModuleLoader__.load({
           } else {
             diag.ai.why = 'shell indisponible'
           }
-          // Repli DOM : seulement si le champ ne porte pas deja un brouillon que
-          // l'on ecraserait (le notre est le seul attendu).
+          // DOM fallback: only if the field does not already hold a draft that
+          // we would overwrite (ours is the only one expected).
           if (kbReadComposer() === '' || kbReadComposer() === prompt) {
             const el = document.querySelector('[data-composer-input]')
             if (el !== null && el !== undefined && kbReadComposer() === '') {
               try {
                 el.focus()
                 if (typeof document.execCommand === 'function') document.execCommand('insertText', false, prompt)
-              } catch (e) { /* rien d'autre a tenter */ }
+              } catch (e) { /* nothing else to try */ }
             }
           }
           if (kbReadComposer() === prompt) { diag.ai.wrote = true; return }
           if (n < 24 && timer !== null && timer !== undefined && typeof timer.timeout === 'function') {
-            try { timer.timeout(() => attempt(n + 1), 250) } catch (e) { /* minuteur */ }
+            try { timer.timeout(() => attempt(n + 1), 250) } catch (e) { /* timer */ }
           }
         }
         attempt(0)
       }
 
-      // ── Le texte d'un message reçu (pour `{message}`) ─────────────────────
+      // ── The text of a received message (for `{message}`) ──────────────────
       const kbMessageText = async (sid, mid) => {
         if (typeof sid !== 'string' || typeof mid !== 'string') return ''
         try {
@@ -455,7 +457,7 @@ window.__ModuleLoader__.load({
         } catch (e) { return '' }
       }
 
-      // ── Exécution d'une entrée d'action de message ────────────────────────
+      // ── Running a message-action entry ────────────────────────────────────
       const kbRunAction = async (entry, sid, mid) => {
         const message = await kbMessageText(sid, mid)
         if (runOf(entry) === 'form') {
@@ -466,34 +468,34 @@ window.__ModuleLoader__.load({
           return { ok: true }
         }
         const text = render(entry.template, {}, { message: message })
-        if (text === '') return { ok: false, error: 'gabarit vide' }
+        if (text === '') return { ok: false, error: 'empty template' }
         const out = kbInsertAt(sid, text, null)
-        // L'étape 4 vaut pour les deux familles : une action marquée « Send it
-        // right away » part toute seule, comme une commande. Sans cela elle
-        // laissait le texte au curseur en annonçant l'inverse.
+        // Step 4 applies to both families: an action marked « Send it
+        // right away » goes out on its own, like a command. Without this it
+        // left the text at the cursor while announcing the opposite.
         if (out.ok === true && entry.delivery === 'send') kbEnvoiApresInsertion(sid, text)
         return out
       }
 
       // ══════════════════════════════════════════════════════════════════════
-      // 1. LA PALETTE « / » — une source du pipeline de déclencheurs DSH
+      // 1. THE « / » PALETTE — a source of the DSH trigger pipeline
       // ══════════════════════════════════════════════════════════════════════
       const kbSource = {
         trigger: '/',
-        // « command » est déjà pris par les commandes natives : un doublon
-        // (trigger, name) lève. Le nôtre se fond dans le même menu, sans titre
-        // de groupe, juste après les commandes du harnais.
+        // « command » is already taken by the native commands: a duplicate
+        // (trigger, name) throws. Ours blends into the same menu, with no group
+        // title, right after the harness's commands.
         name: 'kybernos',
         order: 1,
         showGroupTitle: false,
         warm() { if (store.loaded === false) kbLoad() },
         lexicon() { return listOf('slash').filter((e) => e.active !== false).map((e) => nameOf(e)) },
         subscribeLexicon(session, listener) { return onStore(listener) },
-        // ATTENTION : le pipeline ecrit `source.candidates(...).then(...)` sans
-        // attendre la valeur. Une methode SYNCHRONE rend un tableau, `.then` est
-        // alors `undefined`, le TypeError interrompt la boucle du roster — et
-        // TOUS les groupes du menu restent en « pending » (squelette infini),
-        // celui des skills natifs compris. Cette methode doit rester `async`.
+        // WARNING: the pipeline writes `source.candidates(...).then(...)` without
+        // awaiting the value. A SYNCHRONOUS method returns an array, so `.then` is
+        // `undefined`, the TypeError interrupts the roster loop — and
+        // ALL the menu's groups stay « pending » (infinite skeleton),
+        // the native skills' one included. This method must stay `async`.
         async candidates(session, req) {
           const q = String((req !== null && req.query !== undefined) ? req.query : '').toLowerCase()
           const rows = listOf('slash').filter((e) => e.active !== false && nameOf(e).toLowerCase().indexOf(q) === 0)
@@ -503,9 +505,9 @@ window.__ModuleLoader__.load({
             value: idOf(e),
             hint: runOf(e) === 'form' ? 'form' : 'text',
           }))
-          // La ligne de création n'apparaît QUE si le texte tapé ne désigne
-          // aucune commande existante (règle de la maquette) : sinon elle
-          // volerait la place d'un vrai résultat.
+          // The creation row appears ONLY if the typed text does not designate
+          // any existing command (mockup rule): otherwise it would
+          // steal the place of a real result.
           if (q.length > 0 && out.length === 0) {
             out.push({
               name: 'Create "/' + q + '" with AI',
@@ -535,13 +537,13 @@ window.__ModuleLoader__.load({
           if (runOf(entry) !== 'form') {
             const text = render(entry.template, {}, {})
             if (text === '') return 'handled'
-            // Le pipeline remplace le jeton `/xxx` par ce texte, au curseur,
-            // et laisse le reste du message intact (règle 7).
+            // The pipeline replaces the `/xxx` token with this text, at the cursor,
+            // and leaves the rest of the message intact (rule 7).
             if (entry.delivery === 'send') kbEnvoiApresInsertion(sid, text)
             return { text: text }
           }
-          // Entrée à formulaire : on retire le jeton et on laisse le curseur
-          // exactement là où il était, puis le formulaire prend la main.
+          // Form entry: we remove the token and leave the cursor
+          // exactly where it was, then the form takes over.
           const removed = kbRemoveSpan(sid, pick !== null ? pick.span : null)
           setPending(sid, { entryId: idOf(entry), at: removed.at, values: defaultsOf(entry, {}), message: '' })
           return 'handled'
@@ -549,7 +551,7 @@ window.__ModuleLoader__.load({
       }
 
       // ══════════════════════════════════════════════════════════════════════
-      // 2. LE FORMULAIRE INLINE
+      // 2. THE INLINE FORM
       // ══════════════════════════════════════════════════════════════════════
       const kbSubmitForm = (sid, pend, entry, values) => {
         const verdict = validate(entry, values)
@@ -557,9 +559,9 @@ window.__ModuleLoader__.load({
         const text = render(entry.template, effectiveValues(entry, values), { message: pend.message || '' })
         const out = kbInsertAt(sid, text, pend.at)
         if (out.ok !== true) return out
-        // Étape 4 « Send it right away » : le texte part tout seul, par l'envoi
-        // natif du composeur. S'il n'est pas disponible, on garde le texte au
-        // curseur et on le dit — jamais un envoi annoncé qui ne part pas.
+        // Step 4 « Send it right away »: the text goes out on its own, through the composer's
+        // native send. If it is not available, we keep the text at the
+        // cursor and say so — never a send announced that does not go out.
         if (entry.delivery === 'send') {
           setPending(sid, null)
           kbEnvoiApresInsertion(sid, text)
@@ -568,11 +570,11 @@ window.__ModuleLoader__.load({
         setPending(sid, null)
         return out
       }
-      // ── Jeu d'icônes (sous-ensemble Lucide, sous-chemins séparés) ─────────────
-      // Chaque icône est une LISTE de sous-chemins : un seul <path> par élément.
-      // Indispensable : un « m » relatif en tête de sous-chemin vaut un point
-      // absolu. Concaténer les sous-chemins dans un seul « d » decalait la
-      // moitie des icônes Lucide (constaté a l ecran sur x, terminal, code).
+      // ── Icon set (Lucide subset, separate subpaths) ───────────────────────────
+      // Each icon is a LIST of subpaths: a single <path> per element.
+      // Essential: a relative « m » at the start of a subpath is an
+      // absolute point. Concatenating the subpaths into a single « d » shifted
+      // half of the Lucide icons (seen on screen on x, terminal, code).
       const KB_ICONS = {"slash":["M22 2 2 22"],"terminal":["M12 19h8","m4 17 6-6-6-6"],"sparkles":["M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z","M20 2v4","M22 4h-4","M2 20a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"],"wand-sparkles":["m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72","m14 7 3 3","M5 6v4","M19 14v4","M10 2v2","M7 8H3","M21 16h-4","M11 3H9"],"bot":["M12 8V4H8","M6 8h12a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-8a2 2 0 0 1 2 -2z","M2 14h2","M20 14h2","M15 13v2","M9 13v2"],"brain":["M12 18V5","M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4","M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5","M17.997 5.125a4 4 0 0 1 2.526 5.77","M18 18a4 4 0 0 0 2-7.464","M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517","M6 18a4 4 0 0 1-2-7.464","M6.003 5.125a4 4 0 0 0-2.526 5.77"],"lightbulb":["M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5","M9 18h6","M10 22h4"],"languages":["m5 8 6 6","m4 14 6-6 2-3","M2 5h12","M7 2h1","m22 22-5-10-5 10","M14 18h6"],"list-checks":["M13 5h8","M13 12h8","M13 19h8","m3 17 2 2 4-4","m3 7 2 2 4-4"],"file-text":["M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z","M14 2v5a1 1 0 0 0 1 1h5","M10 9H8","M16 13H8","M16 17H8"],"pencil-line":["M13 21h8","m15 5 4 4","M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"],"code":["m16 18 6-6-6-6","m8 6-6 6 6 6"],"shield-check":["M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z","m9 12 2 2 4-4"],"search":["m21 21-4.34-4.34","M3 11a8 8 0 1 0 16 0a8 8 0 1 0 -16 0"],"message-square":["M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"],"mail":["m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7","M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-16a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2z"],"bug":["M12 20v-9","M14 7a4 4 0 0 1 4 4v3a6 6 0 0 1-12 0v-3a4 4 0 0 1 4-4z","M14.12 3.88 16 2","M21 21a4 4 0 0 0-3.81-4","M21 5a4 4 0 0 1-3.55 3.97","M22 13h-4","M3 21a4 4 0 0 1 3.81-4","M3 5a4 4 0 0 0 3.55 3.97","M6 13H2","m8 2 1.88 1.88","M9 7.13V6a3 3 0 1 1 6 0v1.13"],"rocket":["M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5","M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09","M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z","M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05"],"zap":["M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z"],"book-open":["M12 5v16","M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"],"globe":["M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0","M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20","M2 12h20"],"scissors":["M3 6a3 3 0 1 0 6 0a3 3 0 1 0 -6 0","M8.12 8.12 12 12","M20 4 8.12 15.88","M3 18a3 3 0 1 0 6 0a3 3 0 1 0 -6 0","M14.8 14.8 20 20"],"wrench":["M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"],"table":["M12 3v18","M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2z","M3 9h18","M3 15h18"],"image":["M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2z","M7 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0","m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"],"mic":["M12 19v3","M19 10v2a7 7 0 0 1-14 0v-2","M12 2h0a3 3 0 0 1 3 3v7a3 3 0 0 1 -3 3h0a3 3 0 0 1 -3 -3v-7a3 3 0 0 1 3 -3z"],"bookmark":["M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z"],"star":["M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"],"heart":["M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"],"flag":["M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528"],"clock":["M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0","M12 6v6l4 2"],"calendar":["M8 2v3","M16 2v3","M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2z","M3 9h18"],"chart-bar":["M3 3v16a2 2 0 0 0 2 2h16","M7 16h8","M7 11h12","M7 6h3"],"database":["M3 5a9 3 0 1 0 18 0a9 3 0 1 0 -18 0","M3 5V19A9 3 0 0 0 21 19V5","M3 12A9 3 0 0 0 21 12"],"git-branch":["M15 6a9 9 0 0 0-9 9V3","M15 6a3 3 0 1 0 6 0a3 3 0 1 0 -6 0","M3 18a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"],"lock":["M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-7a2 2 0 0 1 2 -2z","M7 11V7a5 5 0 0 1 10 0v4"],"users":["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2","M16 3.128a4 4 0 0 1 0 7.744","M22 21v-2a4 4 0 0 0-3-3.87","M5 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"],"quote":["M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z","M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"],"hash":["M4 9L20 9","M4 15L20 15","M10 3L8 21","M16 3L14 21"],"text-quote":["M17 5H3","M21 12H8","M21 19H8","M3 12v7"],"send":["M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z","m21.854 2.147-10.94 10.939"],"settings-2":["M14 17H5","M19 7h-9","M14 17a3 3 0 1 0 6 0a3 3 0 1 0 -6 0","M4 7a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"],"check":["M20 6 9 17l-5-5"],"message-circle":["M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"],"file-code":["M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z","M14 2v5a1 1 0 0 0 1 1h5","M10 12.5 8 15l2 2.5","m14 12.5 2 2.5-2 2.5"],"wand":["M15 4V2","M15 16v-2","M8 9h2","M20 9h2","M17.8 11.8 19 13","M15 9h.01","M17.8 6.2 19 5","m3 21 9-9","M12.2 6.2 11 5"],"play":["M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"],"square-pen":["M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7","M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"],"pencil":["M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z","m15 5 4 4"],"copy":["M10 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2z","M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"],"plus":["M5 12h14","M12 5v14"],"x":["M18 6 6 18","m6 6 12 12"],"arrow-right":["M5 12h14","m12 5 7 7-7 7"],"arrow-up-right":["M7 7h10v10","M7 17 17 7"],"download":["M12 15V3","M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4","m7 10 5 5 5-5"],"upload":["M12 3v12","m17 8-5-5-5 5","M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"],"link":["M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71","M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"],"briefcase":["M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16","M4 6h16a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-16a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2z"],"folder":["M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"],"gift":["M12 7v14","M20 11v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8","M7.5 7a1 1 0 0 1 0-5A4.8 8 0 0 1 12 7a4.8 8 0 0 1 4.5-5 1 1 0 0 1 0 5","M4 7h16a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1z"],"info":["M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0","M12 16v-4","M12 8h.01"],"key":["m2 21 9.6-9.6","m7.5 15.5 2.3 2.3a1 1 0 0 1 0 1.4l-2.1 2.1a1 1 0 0 1-1.4 0L4 19","M10 7.5a5.5 5.5 0 1 0 11 0a5.5 5.5 0 1 0 -11 0"],"map-pin":["M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0","M9 10a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"],"moon":["M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"],"package":["M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z","M12 22V12","M3.29 7L12 12L20.71 7","m7.5 4.27 9 5.15"],"phone":["M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"],"printer":["M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2","M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6","M7 14h10a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-10a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1z"],"refresh-cw":["M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8","M21 3v5h-5","M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16","M8 16H3v5"],"save":["M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z","M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7","M7 3v4a1 1 0 0 0 1 1h7"],"settings":["M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915","M9 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"],"shield":["M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"],"share-2":["M15 5a3 3 0 1 0 6 0a3 3 0 1 0 -6 0","M3 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0","M15 19a3 3 0 1 0 6 0a3 3 0 1 0 -6 0","M8.59 13.51L15.42 17.49","M15.41 6.51L8.59 10.49"],"sun":["M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0","M12 2v2","M12 20v2","m4.93 4.93 1.41 1.41","m17.66 17.66 1.41 1.41","M2 12h2","M20 12h2","m6.34 17.66-1.41 1.41","m19.07 4.93-1.41 1.41"],"timer":["M10 2L14 2","M12 14L15 11","M4 14a8 8 0 1 0 16 0a8 8 0 1 0 -16 0"],"thumbs-up":["M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z","M7 10v12"],"video":["m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5","M4 6h10a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-8a2 2 0 0 1 2 -2z"],"wallet":["M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1","M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"],"bell":["M10.268 21a2 2 0 0 0 3.464 0","M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"],"user":["M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2","M8 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"],"tag":["M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z","M7 7.5a0.5 0.5 0 1 0 1 0a0.5 0.5 0 1 0 -1 0"],"git-merge":["M15 18a3 3 0 1 0 6 0a3 3 0 1 0 -6 0","M3 6a3 3 0 1 0 6 0a3 3 0 1 0 -6 0","M6 21V9a9 9 0 0 0 9 9"],"clipboard":["M9 2h6a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-6a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1z","M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"],"clipboard-list":["M9 2h6a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-6a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1z","M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2","M12 11h4","M12 16h4","M8 11h.01","M8 16h.01"],"heading-1":["M4 12h8","M4 18V6","M12 18V6","m17 12 3-2v8"],"heading-2":["M4 12h8","M4 18V6","M12 18V6","M21 18h-4c0-4 4-3 4-6 0-1.5-2-2.5-4-1"],"heading-3":["M4 12h8","M4 18V6","M12 18V6","M17.5 10.5c1.7-1 3.5 0 3.5 1.5a2 2 0 0 1-2 2","M17 17.5c2 1.5 4 .3 4-1.5a2 2 0 0 0-2-2"],"bold":["M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8"],"italic":["M19 4L10 4","M14 20L5 20","M15 4L9 20"],"underline":["M6 4v6a6 6 0 0 0 12 0V4","M4 20L20 20"],"list":["M3 5h.01","M3 12h.01","M3 19h.01","M8 5h13","M8 12h13","M8 19h13"],"list-ordered":["M11 5h10","M11 12h10","M11 19h10","M4 4h1v5","M4 9h2","M6.5 20H3.4c0-1 2.6-1.925 2.6-3.5a1.5 1.5 0 0 0-2.6-1.02"],"percent":["M19 5L5 19","M4 6.5a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0 -5 0","M15 17.5a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0 -5 0"],"dollar-sign":["M12 2L12 22","M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"],"euro":["M4 10h12","M4 14h9","M19 6a7.7 7.7 0 0 0-5.2-2A7.9 7.9 0 0 0 6 12c0 4.4 3.5 8 7.8 8 2 0 3.8-.8 5.2-2"],"at-sign":["M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0","M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"],"circle-check":["M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0","m16 9-5.5 5.5L8 12"],"circle-x":["M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0","m15 9-6 6","m9 9 6 6"],"loader":["M12 2v4","m16.2 7.8 2.9-2.9","M18 12h4","m16.2 16.2 2.9 2.9","M12 18v4","m4.9 19.1 2.9-2.9","M2 12h4","m4.9 4.9 2.9 2.9"],"circle-play":["M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z","M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0"],"circle-pause":["M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0","M10 15L10 9","M14 15L14 9"],"repeat":["m17 2 4 4-4 4","M3 11v-1a4 4 0 0 1 4-4h14","m7 22-4-4 4-4","M21 13v1a4 4 0 0 1-4 4H3"],"shuffle":["m18 14 4 4-4 4","m18 2 4 4-4 4","M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22","M2 6h1.972a4 4 0 0 1 3.6 2.2","M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45"],"eye":["M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0","M9 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"],"eye-off":["M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49","M14.084 14.158a3 3 0 0 1-4.242-4.242","M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143","m2 2 20 20"],"pen-tool":["M15.707 21.293a1 1 0 0 1-1.414 0l-1.586-1.586a1 1 0 0 1 0-1.414l5.586-5.586a1 1 0 0 1 1.414 0l1.586 1.586a1 1 0 0 1 0 1.414z","m18 13-1.375-6.874a1 1 0 0 0-.746-.776L3.235 2.028a1 1 0 0 0-1.207 1.207L5.35 15.879a1 1 0 0 0 .776.746L13 18","m2.3 2.3 7.286 7.286","M9 11a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"],"type":["M12 4v16","M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2","M9 20h6"],"text-cursor":["M17 22h-1a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4h1","M7 22h1a4 4 0 0 0 4-4","M7 2h1a4 4 0 0 1 4 4"],"mouse-pointer":["M12.586 12.586 19 19","M3.688 3.037a.497.497 0 0 0-.651.651l6.5 15.999a.501.501 0 0 0 .947-.062l1.569-6.083a2 2 0 0 1 1.448-1.479l6.124-1.579a.5.5 0 0 0 .063-.947z"],"layers":["M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z","M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12","M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"],"layout-grid":["M4 3h5a1 1 0 0 1 1 1v5a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-5a1 1 0 0 1 1 -1z","M15 3h5a1 1 0 0 1 1 1v5a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-5a1 1 0 0 1 1 -1z","M15 14h5a1 1 0 0 1 1 1v5a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-5a1 1 0 0 1 1 -1z","M4 14h5a1 1 0 0 1 1 1v5a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-5a1 1 0 0 1 1 -1z"],"layout-list":["M4 3h5a1 1 0 0 1 1 1v5a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-5a1 1 0 0 1 1 -1z","M4 14h5a1 1 0 0 1 1 1v5a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-5a1 1 0 0 1 1 -1z","M14 4h7","M14 9h7","M14 15h7","M14 20h7"],"grid-2x2":["M12 3v18","M3 12h18","M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2z"],"columns-2":["M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2z","M12 3v18"],"rows-2":["M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2z","M3 12h18"],"panel-left":["M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2z","M9 3v18"],"panel-right":["M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2z","M15 3v18"],"maximize":["M8 3H5a2 2 0 0 0-2 2v3","M21 8V5a2 2 0 0 0-2-2h-3","M3 16v3a2 2 0 0 0 2 2h3","M16 21h3a2 2 0 0 0 2-2v-3"],"minimize":["M8 3v3a2 2 0 0 1-2 2H3","M21 8h-3a2 2 0 0 1-2-2V3","M3 16h3a2 2 0 0 1 2 2v3","M16 21v-3a2 2 0 0 1 2-2h3"],"zoom-in":["M3 11a8 8 0 1 0 16 0a8 8 0 1 0 -16 0","M21 21L16.65 16.65","M11 8L11 14","M8 11L14 11"],"zoom-out":["M3 11a8 8 0 1 0 16 0a8 8 0 1 0 -16 0","M21 21L16.65 16.65","M8 11L14 11"],"rotate-cw":["M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8","M21 3v5h-5"],"cpu":["M12 20v2","M12 2v2","M17 20v2","M17 2v2","M2 12h2","M2 17h2","M2 7h2","M20 12h2","M20 17h2","M20 7h2","M7 20v2","M7 2v2","M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2z","M9 8h6a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-6a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1z"],"server":["M4 2h16a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-16a2 2 0 0 1 -2 -2v-4a2 2 0 0 1 2 -2z","M4 14h16a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-16a2 2 0 0 1 -2 -2v-4a2 2 0 0 1 2 -2z","M6 6L6.01 6","M6 18L6.01 18"],"hard-drive":["M10 16h.01","M2.212 11.577a2 2 0 0 0-.212.896V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5.527a2 2 0 0 0-.212-.896L18.55 5.11A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z","M21.946 12.013H2.054","M6 16h.01"],"network":["M17 16h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1z","M3 16h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1z","M10 2h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1z","M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3","M12 12V8"],"wifi":["M12 20h.01","M2 8.82a15 15 0 0 1 20 0","M5 12.859a10 10 0 0 1 14 0","M8.5 16.429a5 5 0 0 1 7 0"],"bluetooth":["m7 7 10 10-5 5V2l5 5L7 17"],"battery":["M 22 14 L 22 10","M4 6h12a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-8a2 2 0 0 1 2 -2z"],"power":["M12 2v10","M18.4 6.6a9 9 0 1 1-12.77.04"],"plug":["M12 22v-5","M15 8V2","M17 8a1 1 0 0 1 1 1v4a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1z","M9 8V2"],"usb":["M9 7a1 1 0 1 0 2 0a1 1 0 1 0 -2 0","M3 20a1 1 0 1 0 2 0a1 1 0 1 0 -2 0","M4.7 19.3 19 5","m21 3-3 1 2 2Z","M9.26 7.68 5 12l2 5","m10 14 5 2 3.5-3.5","m18 12 1-1 1 1-1 1Z"],"camera":["M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z","M9 13a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"],"video-off":["M10.66 6H14a2 2 0 0 1 2 2v2.5l5.248-3.062A.5.5 0 0 1 22 7.87v8.196","M16 16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2","m2 2 20 20"],"headphones":["M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"],"volume-2":["M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z","M16 9a5 5 0 0 1 0 6","M19.364 18.364a9 9 0 0 0 0-12.728"],"music":["M9 18V5l12-2v13","M3 18a3 3 0 1 0 6 0a3 3 0 1 0 -6 0","M15 16a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"],"film":["M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2z","M7 3v18","M3 7.5h4","M3 12h18","M3 16.5h4","M17 3v18","M17 7.5h4","M17 16.5h4"],"tv":["m17 2-5 5-5-5","M4 7h16a2 2 0 0 1 2 2v11a2 2 0 0 1 -2 2h-16a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2z"],"monitor":["M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-16a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2z","M8 21L16 21","M12 17L12 21"],"smartphone":["M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-16a2 2 0 0 1 2 -2z","M12 18h.01"],"tablet":["M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-16a2 2 0 0 1 2 -2z","M12 18L12.01 18"],"laptop":["M18 5a2 2 0 0 1 2 2v8.526a2 2 0 0 0 .212.897l1.068 2.127a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45l1.068-2.127A2 2 0 0 0 4 15.526V7a2 2 0 0 1 2-2z","M20.054 15.987H3.946"],"shopping-cart":["m2.05 2.05 1.099-.028a1 1 0 0 1 1.008.815l2.69 14.347A1 1 0 0 0 7.83 18H18","M4.563 5h16.435a1 1 0 0 1 .981 1.204l-1.026 6.226A2 2 0 0 1 18.962 14H6.25","M16 20a2 2 0 1 0 4 0a2 2 0 1 0 -4 0","M6 20a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"],"shopping-bag":["M16 10a4 4 0 0 1-8 0","M3.103 6.034h17.794","M3.4 5.467a2 2 0 0 0-.4 1.2V20a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.667a2 2 0 0 0-.4-1.2l-2-2.667A2 2 0 0 0 17 2H7a2 2 0 0 0-1.6.8z"],"credit-card":["M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-16a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2z","M2 10L22 10","M6 14h2"],"receipt":["M12 17V7","M16 8h-6a2 2 0 0 0 0 4h4a2 2 0 0 1 0 4H8","M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z"],"truck":["M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2","M15 18H9","M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14","M15 18a2 2 0 1 0 4 0a2 2 0 1 0 -4 0","M5 18a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"],"map":["M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z","M15 5.764v15","M9 3.236v15"],"compass":["M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0","m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"],"navigation":["M3 11L22 2L13 21L11 13L3 11Z"],"anchor":["M12 6v16","m19 13 2-1a9 9 0 0 1-18 0l2 1","M9 11h6","M10 4a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"],"plane":["M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"],"car":["M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2","M5 17a2 2 0 1 0 4 0a2 2 0 1 0 -4 0","M9 17h6","M15 17a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"],"bike":["M15 17.5a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0","M2 17.5a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0","M14 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0","M12 17.5V14l-3-3 4-3 2 3h2"],"utensils":["M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2","M7 2v20","M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Z","m0 0v7"],"coffee":["M10 2v2","M14 2v2","M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1","M6 2v2"],"pizza":["m12 14-1 1","m13.75 18.25-1.25 1.42","M17.775 5.654a15.68 15.68 0 0 0-12.121 12.12","M18.8 9.3a1 1 0 0 0 2.1 7.7","M21.964 20.732a1 1 0 0 1-1.232 1.232l-18-5a1 1 0 0 1-.695-1.232A19.68 19.68 0 0 1 15.732 2.037a1 1 0 0 1 1.232.695z"],"cake":["M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8","M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1","M2 21h20","M7 8v3","M12 8v3","M17 8v3","M7 4h.01","M12 4h.01","M17 4h.01"],"apple":["M12 6.528V3a1 1 0 0 1 1-1h0","M18.237 21A15 15 0 0 0 22 11a6 6 0 0 0-10-4.472A6 6 0 0 0 2 11a15.1 15.1 0 0 0 3.763 10 3 3 0 0 0 3.648.648 5.5 5.5 0 0 1 5.178 0A3 3 0 0 0 18.237 21"],"egg":["M12 2C8 2 4 8 4 14a8 8 0 0 0 16 0c0-6-4-12-8-12"],"leaf":["M11 20a10 10 0 0010-10 25.9 25.9 0 00-1.04-7.281 1 1 0 00-1.755-.325C15.833 5.5 13 5.5 9.8 6.1A7 7 0 0011 20","M2 21a5 5 0 012.911-4.544C7.613 15.212 8.351 15.24 11 13"],"flower":["M9 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0","M12 16.5A4.5 4.5 0 1 1 7.5 12 4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 1 1 4.5 4.5 4.5 4.5 0 1 1-4.5 4.5","M12 7.5V9","M7.5 12H9","M16.5 12H15","M12 16.5V15","m8 8 1.88 1.88","M14.12 9.88 16 8","m8 16 1.88-1.88","M14.12 14.12 16 16"],"sun-moon":["M12 2v2","M14.837 16.385a6 6 0 1 1-7.223-7.222c.624-.147.97.66.715 1.248a4 4 0 0 0 5.26 5.259c.589-.255 1.396.09 1.248.715","M16 12a4 4 0 0 0-4-4","m19 5-1.256 1.256","M20 12h2"],"cloud":["M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"],"wind":["M12.8 19.6A2 2 0 1 0 14 16H2","M17.5 8a2.5 2.5 0 1 1 2 4H2","M9.8 4.4A2 2 0 1 1 11 8H2"],"thermometer":["M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"],"droplet":["M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"],"flame":["M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"],"graduation-cap":["M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z","M22 10v6","M6 12.5V16a6 3 0 0 0 12 0v-3.5"],"school":["M14 21v-3a2 2 0 0 0-4 0v3","M18 4.933V21","m4 6 7.106-3.79a2 2 0 0 1 1.788 0L20 6","m6 11-3.52 2.147a1 1 0 0 0-.48.854V19a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a1 1 0 0 0-.48-.853L18 11","M6 4.933V21","M10 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"],"award":["m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526","M6 8a6 6 0 1 0 12 0a6 6 0 1 0 -12 0"],"trophy":["M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2","M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2","M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3","M4 22h16","M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z","M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3"],"medal":["M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15","M11 12 5.12 2.2","m13 12 5.88-9.8","M8 7h8","M7 17a5 5 0 1 0 10 0a5 5 0 1 0 -10 0","M12 18v-2h-.5"],"target":["M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0","M6 12a6 6 0 1 0 12 0a6 6 0 1 0 -12 0","M10 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"],"crosshair":["M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0","M22 12L18 12","M6 12L2 12","M12 6L12 2","M12 22L12 18"],"ruler":["M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z","m14.5 12.5 2-2","m11.5 9.5 2-2","m8.5 6.5 2-2","m17.5 15.5 2-2"],"scale":["M12 3v18","m19 8 3 8a5 5 0 0 1-6 0zV7","M3 7h1a17 17 0 0 0 8-2 17 17 0 0 0 8 2h1","m5 8 3 8a5 5 0 0 1-6 0zV7","M7 21h10"],"dumbbell":["M17.596 12.768a2 2 0 1 0 2.829-2.829l-1.768-1.767a2 2 0 0 0 2.828-2.829l-2.828-2.828a2 2 0 0 0-2.829 2.828l-1.767-1.768a2 2 0 1 0-2.829 2.829z","m2.5 21.5 1.4-1.4","m20.1 3.9 1.4-1.4","M5.343 21.485a2 2 0 1 0 2.829-2.828l1.767 1.768a2 2 0 1 0 2.829-2.829l-6.364-6.364a2 2 0 1 0-2.829 2.829l1.768 1.767a2 2 0 0 0-2.828 2.829z","m9.6 14.4 4.8-4.8"],"hand":["M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2","M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2","M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8","M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"],"heart-handshake":["M19.414 14.414C21 12.828 22 11.5 22 9.5a5.5 5.5 0 0 0-9.591-3.676.6.6 0 0 1-.818.001A5.5 5.5 0 0 0 2 9.5c0 2.3 1.5 4 3 5.5l5.535 5.362a2 2 0 0 0 2.879.052 2.12 2.12 0 0 0-.004-3 2.124 2.124 0 1 0 3-3 2.124 2.124 0 0 0 3.004 0 2 2 0 0 0 0-2.828l-1.881-1.882a2.41 2.41 0 0 0-3.409 0l-1.71 1.71a2 2 0 0 1-2.828 0 2 2 0 0 1 0-2.828l2.823-2.762"],"user-plus":["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2","M5 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0","M19 8L19 14","M22 11L16 11"],"user-minus":["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2","M5 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0","M22 11L16 11"],"user-check":["m16 11 2 2 4-4","M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2","M5 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"],"user-x":["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2","M5 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0","M17 8L22 13","M22 8L17 13"],"phone-call":["M13 2a9 9 0 0 1 9 9","M13 6a5 5 0 0 1 5 5","M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"],"phone-incoming":["M16 2v6h6","m22 2-6 6","M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"],"phone-outgoing":["m16 8 6-6","M22 8V2h-6","M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"],"voicemail":["M2 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0","M14 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0","M6 16L18 16"],"inbox":["M22 12L16 12L14 15L10 15L8 12L2 12","M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"],"archive":["M3 3h18a1 1 0 0 1 1 1v3a1 1 0 0 1 -1 1h-18a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 1 -1z","M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8","M10 12h4"],"folder-open":["m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"],"folder-plus":["M12 10v6","M9 13h6","M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"],"file-plus":["M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z","M14 2v5a1 1 0 0 0 1 1h5","M9 15h6","M12 18v-6"],"file-minus":["M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z","M14 2v5a1 1 0 0 0 1 1h5","M9 15h6"],"files":["M15 2h-4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8","M16.706 2.706A2.4 2.4 0 0 0 15 2v5a1 1 0 0 0 1 1h5a2.4 2.4 0 0 0-.706-1.706z","M5 7a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h8a2 2 0 0 0 1.732-1"],"trending-up":["M16 7h6v6","m22 7-8.5 8.5-5-5L2 17"],"trending-down":["M16 17h6v-6","m22 17-8.5-8.5-5 5L2 7"],"activity":["M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"],"gauge":["m12 14 4-4","M3.34 19a10 10 0 1 1 17.32 0"],"signal":["M2 20h.01","M7 20v-4","M12 20v-8","M17 20V8","M22 4v16"],"radio":["M16.247 7.761a6 6 0 0 1 0 8.478","M19.075 4.933a10 10 0 0 1 0 14.134","M4.925 19.067a10 10 0 0 1 0-14.134","M7.753 16.239a6 6 0 0 1 0-8.478","M10 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"],"rss":["M4 11a9 9 0 0 1 9 9","M4 4a16 16 0 0 1 16 16","M4 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"],"megaphone":["M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z","M6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14","M8 6v8"],"newspaper":["M15 18h-5","M18 14h-8","M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2","M11 6h6a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-6a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1z"],"trash":["M10 11v6","M14 11v6","M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6","M3 6h18","M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"],"chevron-down":["m6 9 6 6 6-6"],"grip-vertical":["M8 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0","M8 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0","M8 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0","M14 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0","M14 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0","M14 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"],"ellipsis":["M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0","M18 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0","M4 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"],"arrow-up":["m5 12 7-7 7 7","M12 19V5"],"arrow-down":["M12 5v14","m19 12-7 7-7-7"]}
       const KB_ICON_TAGS = {"slash":"divide division fraction bar","terminal":"code command line prompt shell","sparkles":"stars effect filter night magic","wand-sparkles":"magic wizard magician","bot":"robot ai chat assistant","brain":"medical mind mental intellect cerebral consciousness genius artificial intelligence ai think thought insight intelligent smart","lightbulb":"idea bright lights","languages":"translate","list-checks":"todo done check tick complete tasks items pending","file-text":"data txt pdf document","pencil-line":"pencil change create draw sketch draft writer writing biro ink marker felt tip stationery artist","code":"source programming html xml","shield-check":"cybersecurity secured safety protection protected guardian guarded armored armoured defense defence defended blocked threat prevention prevented antivirus vigilance vigilant active activated enabled detection scanned found strength strong tough invincible invincibility invulnerable undamaged audited admin verification verified certification certified tested passed qualified cleared cleaned disinfected uninfected task completed todo done ticked checked crest bravery","search":"find scan magnifier magnifying glass lens locate explore discover enlarge zoom","message-square":"comment chat conversation dialog feedback speech bubble","mail":"email message letter unread","bug":"issue error defect testing troubleshoot problem report debug code insect beetle","rocket":"release boost launch space version","zap":"flash camera lightning electricity energy power quick","book-open":"reading pages booklet magazine leaflet pamphlet library writing written writer author story script screenplay fiction novel information knowledge education high school university college academy student study learning homework research documentation revealed blank plain","globe":"world browser language translate","scissors":"cut snip chop stationery crafts","wrench":"account settings spanner diy toolbox build construction","table":"spreadsheet grid","image":"picture photo","mic":"record sound listen radio podcast microphone","bookmark":"save favorite mark label attachment file stick pin read clip marker tag","star":"bookmark favorite like review rating","heart":"like love emotion suit playing cards","flag":"report marker notification warning milestone goal notice signal attention banner","clock":"time watch alarm","calendar":"date month year event birthday birthdate","chart-bar":"statistics analytics diagram graph","database":"storage memory container tin pot bytes servers","git-branch":"code version control vcs repository","lock":"security password secure admin","users":"group people","quote":"quotation","hash":"hashtag number pound","text-quote":"blockquote quotation indent reply response","send":"email message mail paper airplane aeroplane submit","settings-2":"cog edit gear preferences slider","check":"done todo tick complete task","message-circle":"comment chat conversation dialog feedback speech bubble","file-code":"script document gist html xml property list plist","wand":"magic selection","play":"music audio video start run","square-pen":"pencil edit change create draw sketch draft writer writing biro ink marker felt tip stationery artist","pencil":"rubber edit create draw sketch draft writer writing stationery artist","copy":"clone duplicate multiple","plus":"add new increase increment positive calculate toolbar crosshair aim target scope sight reticule maximum upgrade extra","x":"cancel close cross delete ex remove times clear math multiply multiplication","arrow-right":"forward next direction east","arrow-up-right":"direction north east diagonal","download":"import export save","upload":"file","link":"chain url","briefcase":"work bag baggage folder","folder":"directory","gift":"present box birthday party","info":"about advice clue details help hint indicator information knowledge notice status support tooltip","key":"password login authentication secure unlock keychain key ring fob","map-pin":"location waypoint marker drop","moon":"dark night","package":"box container storage sealed delivery undelivered unopened packed archive zip module","phone":"call","printer":"fax office device","refresh-cw":"rotate reload rerun synchronise synchronize arrows circular cycle","save":"floppy disk","settings":"cog edit gear preferences","shield":"cybersecurity secure safety protection guardian armored armoured defense defence defender block threat prevention antivirus vigilance vigilant detection scan find strength strong tough invincible invincibility invulnerable undamaged audit admin verification crest bravery knight foot soldier infantry trooper pawn battle war military army cadet scout","share-2":"network connections","sun":"brightness weather light summer","timer":"time timer stopwatch","thumbs-up":"like good emotion","video":"camera movie film recording motion picture camcorder reel","wallet":"money finance pocket","bell":"alarm notification sound reminder","user":"person account contact","tag":"label badge ticket mark","git-merge":"code version control","clipboard":"copy paste","clipboard-list":"copy paste tasks","heading-1":"h1 html markup markdown","heading-2":"h2 html markup markdown","heading-3":"h3 html markup markdown","bold":"text strong format","italic":"oblique text format","underline":"text format","list":"options","list-ordered":"number order queue","percent":"percentage modulo modulus remainder sale discount offer marketing","dollar-sign":"currency money payment","euro":"currency money payment","at-sign":"mention at email message","circle-check":"done todo tick complete task","circle-x":"cancel close delete remove times clear error incorrect wrong mistake failure linter multiply multiplication","loader":"loading wait busy progress spinner spinning throbber","circle-play":"music start run","circle-pause":"music audio stop","repeat":"loop arrows","shuffle":"music random reorder","eye":"view watch see show expose reveal display visible visibility vision preview read","eye-off":"view watch see hide conceal mask hidden visibility vision","pen-tool":"vector drawing path","type":"text font typography","text-cursor":"select caret type typing write writing edit insert input textarea","mouse-pointer":"click select","layers":"stack pile pages sheets paperwork copies copy","layout-grid":"app home start","layout-list":"todo tasks items pending image photo","grid-2x2":"table rows columns blocks plot land geometry measure size width height distance surface area square meter acre window skylight","columns-2":"lines list queue preview panel parallel series split vertical horizontal half center middle even sidebar drawer gutter fold reflow typography pagination pages","rows-2":"lines list queue preview panel paragraphs parallel series split vertical horizontal half center middle even drawer","panel-left":"primary drawer","panel-right":"sidebar secondary drawer","maximize":"fullscreen expand dashed","minimize":"exit fullscreen close shrink","zoom-in":"magnifying glass plus","zoom-out":"magnifying glass plus","rotate-cw":"arrow right clockwise refresh reload rerun redo","cpu":"processor cores technology computer chip circuit memory ram specs gigahertz ghz","server":"cloud storage","hard-drive":"computer server memory data ssd disk hard storage hardware backup media","network":"tree","wifi":"connection signal wireless","bluetooth":"wireless","battery":"power electricity energy accumulator charge","power":"on off device switch toggle binary boolean reboot restart button keyboard troubleshoot","plug":"electricity energy electronics socket outlet power voltage current charger","usb":"universal serial bus controller connector interface","camera":"photography lens focus capture shot visual image device equipment photo webcam video","video-off":"camera movie film","headphones":"music audio sound","volume-2":"music sound speaker","music":"note quaver eighth","film":"movie video reel camera cinema entertainment","tv":"television stream display widescreen high definition hd 1080p 4k 8k smart digital video entertainment showtime channels terrestrial satellite cable broadcast live frequency tune scan aerial receiver transmission signal connection connectivity","monitor":"tv computer desktop screen display external sharing virtual machine vm","smartphone":"phone cellphone device mobile screen display touchscreen portable responsive","tablet":"device mobile screen display touchscreen portable responsive","laptop":"computer screen remote","shopping-cart":"trolley cart basket e commerce store purchase products items ingredients","shopping-bag":"ecommerce cart purchase store","credit-card":"bank purchase payment cc","receipt":"bill voucher slip check counterfoil currency dollar usd","truck":"delivery van shipping haulage lorry","map":"location navigation travel","compass":"direction north east south west browser","navigation":"location travel","anchor":"ship","plane":"plane trip airplane","car":"vehicle drive trip journey","bike":"bicycle transport trip","utensils":"fork knife cutlery flatware tableware silverware food restaurant meal breakfast dinner supper","coffee":"drink cup mug tea cafe hot beverage","pizza":"pie quiche food","cake":"birthday birthdate celebration party surprise gateaux dessert fondant icing sugar sweet baking","apple":"fruit food healthy snack nutrition fresh produce grocery organic harvest vitamin red green juicy sweet tart bite orchard plant core raw diet","egg":"bird chicken nest hatch shell incubate soft boiled hard breakfast brunch morning easter","leaf":"sustainability nature energy plant autumn","flower":"sustainability nature plant spring","sun-moon":"dark light moon sun brightness theme auto system appearance","cloud":"weather","wind":"weather air blow","thermometer":"temperature celsius fahrenheit weather","droplet":"water weather liquid fluid wet moisture damp bead globule","flame":"heat burn light glow ignite passion ember fire lit burning spark embers smoke firefighter fireman department brigade station emergency","graduation-cap":"school university learn study mortarboard education ceremony academic hat diploma bachelor s master doctorate","school":"building education childhood university learning campus scholar student lecture degree course academia study knowledge classroom research diploma graduation professor tutorial homework assignment exam","award":"achievement badge rosette prize winner","trophy":"prize sports winner achievement award champion celebration victory competition tournament leaderboard ranking success reward cup first gold","medal":"prize sports winner trophy award achievement","target":"logo bullseye deadline projects overview work productivity","crosshair":"aim target","ruler":"measurements centimeters cm millimeters mm metre foot feet inches units size length width height dimensions depth breadth extent stationery","scale":"balance legal license right rule law justice weight measure compare judge fair ethics decision","dumbbell":"barbell weight workout gym","hand":"wave move mouse grab","heart-handshake":"agreement charity help deal terms emotion together handshake","user-plus":"new add create follow subscribe","user-minus":"delete remove unfollow unsubscribe","user-check":"followed subscribed done todo tick complete task","user-x":"delete remove unfollow unsubscribe unavailable","phone-call":"ring","phone-incoming":"call","phone-outgoing":"call","voicemail":"phone cassette tape reel recording audio","inbox":"email","archive":"index backup box storage records","folder-open":"directory","folder-plus":"directory add create new","file-plus":"add create new document","file-minus":"delete remove erase document","files":"multiple copy documents","trending-up":"statistics","trending-down":"statistics","activity":"pulse action motion movement exercise fitness healthcare heart rate monitor vital signs vitals emergency room er intensive care hospital defibrillator earthquake seismic magnitude richter scale aftershock tremor shockwave audio waveform synthesizer synthesiser music","gauge":"dashboard dial meter speed pressure measure level","signal":"connection wireless gsm phone 2g 3g 4g 5g","radio":"signal broadcast connectivity live frequency","rss":"feed subscribe news updates notifications content blog articles broadcast syndication reader channels posts publishing digest alert following inbox newsletter weblog podcast","megaphone":"advertisement announcement attention alert loudspeaker megaphone notification","newspaper":"news feed home magazine article headline","trash":"empty deletion cleanup junk clear garbage delete remove bin waste recycle discard binoculars rubbish","chevron-down":"backwards reverse slow dropdown","grip-vertical":"grab dots handle move drag","ellipsis":"et cetera etc loader loading progress pending throbber menu options operator code coding spread rest more further extra overflow dots","arrow-up":"forward direction north up","arrow-down":"backwards direction south down"}
       const KB_ICON_NAMES = Object.keys(KB_ICONS)
@@ -600,9 +602,9 @@ window.__ModuleLoader__.load({
           strokeWidth: p.weight || 1.9, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: p.className || undefined },
           segs.map((d, i) => h('path', { key: i, d: d })))
       }
-      // ── Feuille de style : valeurs de la maquette « Commands and actions CRUD » ──
-      // Les surfaces et le texte passent par les jetons DSH (thème clair/sombre),
-      // les valeurs de marque (accent, alerte) sont celles de la maquette.
+      // ── Stylesheet: values from the « Commands and actions CRUD » mockup ─────────
+      // Surfaces and text go through the DSH tokens (light/dark theme),
+      // the brand values (accent, alert) are those of the mockup.
       const CSS = `
 /* ── jetons ────────────────────────────────────────────────────────────────
    Toutes les couleurs viennent des jetons DSH (--dsw-*), releves dans le theme
@@ -911,6 +913,17 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
 .kbsl-lmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;text-align:left;border:0;background:transparent;padding:0;overflow:hidden}
 .kbsl-ltitle{display:flex;align-items:baseline;gap:8px;font-size:14px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden}
 .kbsl-ltitle>span{overflow:hidden;text-overflow:ellipsis}
+/* A phone (A3-22): the row's name kept about 50 px between the tile and the chip and three icon buttons (« / w… »), and the
+   search field, 220 px wide at the end of the tab line, was cut by the page. The chip and the actions go on a line under the name,
+   the tabs wrap, and the search takes its own line. */
+@media (max-width:520px){
+.kbsl-tabs{flex-wrap:wrap;row-gap:8px}
+.kbsl-tabs .kbsl-search{flex:1 1 100%;width:auto!important;margin-inline-start:0!important}
+.kbsl-lrow{flex-wrap:wrap;row-gap:4px}
+.kbsl-lrow>.kbsl-lmain{flex:1 1 calc(100% - 40px)}
+.kbsl-lrow>.kbsl-chip{margin-inline-start:40px}
+.kbsl-lrow>.kbsl-chip+.kbsl-ibtn{margin-inline-start:auto}
+}
 .kbsl-jrow{display:flex;align-items:center;gap:8px}
 .kbsl-json summary{cursor:pointer;color:var(--kb-muted);font-size:12px}
 .kbsl-json pre{margin:6px 0 0;padding:10px;background:var(--kb-surface2);border-radius:10px;font-size:12px;overflow:auto;max-height:260px}
@@ -947,20 +960,20 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
 `
 
       // ══════════════════════════════════════════════════════════════════════
-      // 2. L'ÉTAT D'INTERFACE — palette, éditeur, confirmation, toast
+      // 2. THE INTERFACE STATE — palette, editor, confirmation, toast
       // ══════════════════════════════════════════════════════════════════════
       const ui = { palette: false, editor: null, toast: null, confirmId: null, addOpen: false, menu: null, flashId: null, palIdx: 0, palQuery: '', ctxId: null }
       let kbToastTimer = null
 
-      // ── Pont de theme ─────────────────────────────────────────────────────
-      // Les jetons --dsw-* ne sont pas poses sur :root : ils vivent sur un
-      // element profond du composeur. Les surfaces rendues dans la surcouche
-      // globale (editeur, toast) n en heritent donc PAS et retombaient sur les
-      // valeurs de repli claires, sur une application sombre. On lit une fois
-      // les jetons resolus depuis l interieur de l application et on les repose
-      // sur :root, ou toute la fenetre les voit. On resynchronise au changement
-      // de theme (attribut de racine, feuille de style) et au changement de
-      // preference systeme.
+      // ── Theme bridge ──────────────────────────────────────────────────────
+      // The --dsw-* tokens are not set on :root: they live on a deep
+      // element of the composer. Surfaces rendered in the global
+      // overlay (editor, toast) therefore do NOT inherit them and fell back to the
+      // light fallback values, on a dark application. We read the
+      // resolved tokens once from inside the application and set them
+      // on :root, where the whole window sees them. We resync on a
+      // theme change (root attribute, stylesheet) and on a change of
+      // system preference.
       const KB_THEME_TOKENS = [
         ['--kb-ink', '--dsw-alias-label-primary'], ['--kb-ink2', '--dsw-alias-label-secondary'],
         ['--kb-muted', '--dsw-alias-label-tertiary'], ['--kb-caption', '--dsw-alias-label-tertiary'], // caption is 3.2:1 on the menu's dark fill, 2.1:1 on white
@@ -975,9 +988,9 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         ['--kb-warn', '--dsw-alias-state-warn-primary'], ['--kb-warn-ink', '--dsw-alias-state-warn-label'], ['--kb-warn-bg', '--dsw-alias-state-warn-tertiary'],
         ['--kb-danger', '--dsw-alias-state-error-primary'], ['--kb-toast', '--dsw-alias-toast-bg'], ['--kb-toast-ink', '--dsw-alias-label-primary'],
         ['--kb-mask', '--dsw-alias-bg-mask-1'], ['--kb-skeleton', '--dsw-alias-bg-skeleton'],
-        // Typographie : l echelle et les familles de l application. Indispensable
-        // pour l editeur et la notification, montes dans le corps du document :
-        // la, les jetons --dsw-* ne sont plus herites.
+        // Typography: the application's scale and families. Essential
+        // for the editor and the notification, mounted in the document body:
+        // there, the --dsw-* tokens are no longer inherited.
         ['--kb-font', '--dsw-font-family'], ['--kb-mono', '--dsw-font-markdown-code-font-family'],
         ['--kb-fs-11', '--dsw-font-xxxs-11-font-size'], ['--kb-fs-12', '--dsw-font-xxs-12-font-size'],
         ['--kb-fs-13', '--dsw-font-xs-13-font-size'], ['--kb-fs-14', '--dsw-font-s-14-font-size'],
@@ -1041,8 +1054,8 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         kbToastTimer = setTimeout(() => { ui.toast = null; kbToastTimer = null; notify() }, 5000)
         notify()
       }
-      // Un abonnement au magasin : tout composant qui l'appelle se redessine
-      // quand l'état d'interface change (même canal que les données).
+      // A subscription to the store: any component that calls it redraws
+      // when the interface state changes (same channel as the data).
       const kbTick = () => {
         const pair = React.useState(0)
         const set = pair[1]
@@ -1050,7 +1063,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         return pair[0]
       }
 
-      // ── Pont entre la forme de la maquette (brouillon) et celle du modèle ──
+      // ── Bridge between the mockup's shape (draft) and the model's ──────────
       const kbSlugify = (s) => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
       // <kbsl-slug> — the name typed after the slash: pure, no DOM (test-client.mjs cuts this block out and runs it)
       // DSH's own slash commands (what its command plugins register: goal, compact, plan, feedback, and help). A command of ours with one of
@@ -1067,8 +1080,8 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
       const kbTypeOut = (t) => (t === 'long' ? 'textarea' : (t === 'toggle' ? 'checkbox' : (t === 'date' ? 'date' : (t === 'select' ? 'select' : (t === 'number' ? 'number' : 'text')))))
       const kbTypeLabel = (t) => (t === 'long' ? 'Long text' : (t === 'select' ? 'Choice' : (t === 'number' ? 'Number' : (t === 'toggle' ? 'Yes / No' : (t === 'date' ? 'Date' : 'Text')))))
       const KB_TYPE_PILLS = ['text', 'long', 'number', 'select', 'toggle', 'date']
-      // Un picto et une infobulle par type : la pastille reste courte, le sens
-      // complet vit dans l infobulle.
+      // One icon and one tooltip per type: the pill stays short, the full meaning
+      // lives in the tooltip.
       const KB_TYPE_ICON = { text: 'type', long: 'file-text', number: 'hash', select: 'list', toggle: 'check', date: 'calendar' }
       const KB_TYPE_SHORT = { text: 'Text', long: 'Long', number: 'Number', select: 'Choice', toggle: 'Yes/No', date: 'Date' }
       const KB_TYPE_TIP = {
@@ -1091,7 +1104,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
       }
       const kbToBraces = (tpl) => String(tpl || '').replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g, (m, n) => '{' + n + '}')
       const kbOff = () => ({ on: false, field: '', op: 'eq', value: '' })
-      // Un libelle lisible a partir d un nom de variable : periode -> Periode,
+      // A readable label from a variable name: periode -> Periode,
       // code_snip -> Code snip.
       const kbVarLabel = (nom) => {
         const t = String(nom).replace(/_/g, ' ').trim()
@@ -1165,7 +1178,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         }
       }
 
-      // ── Création, duplication, suppression : tout passe par la route ──────
+      // ── Creation, duplication, deletion: everything goes through the route ──
       const kbNewDraftEntry = (draft, entry) => {
         const next = Object.assign({}, entry)
         next.fields = draft.fields
@@ -1235,7 +1248,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         if (entry.id === undefined || entry.id === '') delete entry.id
         kbPatchEditor({ saving: true, error: null })
         const out = await kbWrite({ entry: entry })
-        if (out.ok !== true) { kbPatchEditor({ saving: false, error: String(out.error || 'refusé') }); return }
+        if (out.ok !== true) { kbPatchEditor({ saving: false, error: String(out.error || 'refused') }); return }
         const isNew = ed.mode === 'create'
         const isCmd = entry.kind !== 'action'
         ui.editor = null
@@ -1254,7 +1267,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         ui.confirmId = null
         ui.editor = null
         const out = await kbWrite({ delete: idOf(entry) })
-        if (out.ok !== true) { kbPatchEditor({ error: String(out.error || 'suppression refusée') }); kbFlash('Delete failed: ' + String(out.error || ''), null); return }
+        if (out.ok !== true) { kbPatchEditor({ error: String(out.error || 'delete refused') }); kbFlash('Delete failed: ' + String(out.error || ''), null); return }
         kbRetenirEnvoi(idOf(entry), 'insert')
         if (quiet !== true) kbFlash('Deleted ' + (L(entry.label) || nameOf(entry)), { entry: backup })
       }
@@ -1277,12 +1290,12 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         kbFlash('Restored ' + (L(t.undo.entry.label) || nameOf(t.undo.entry)), null)
       }
 
-      // ── Lancer une entrée depuis MA palette (hors menu natif) ─────────────
-      // Le jeton `/sig` encore present dans le brouillon : si l'on lance la
-      // commande depuis MA palette (l'utilisateur a tape le jeton puis a prefere
-      // la palette), il doit disparaitre comme dans le menu natif — sinon le texte
-      // part avec « /sig— Ada ». On ne retire qu'un jeton entier (suivi d'une fin
-      // de brouillon ou d'un blanc), et l'insertion se fait a sa place.
+      // ── Running an entry from MY palette (outside the native menu) ────────
+      // The `/sig` token still present in the draft: if the command is run from
+      // MY palette (the user typed the token then preferred
+      // the palette), it must disappear as in the native menu — otherwise the text
+      // goes out with « /sig— Ada ». We only remove a whole token (followed by the end
+      // of the draft or a blank), and the insertion is done in its place.
       const kbRetirerJeton = (sid, entry) => {
         try {
           const shell = kbShell(sid)
@@ -1318,7 +1331,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
       }
 
       // ══════════════════════════════════════════════════════════════════════
-      // 3. LE BOUTON « Commands » DU COMPOSEUR
+      // 3. THE « Commands » BUTTON OF THE COMPOSER
       // ══════════════════════════════════════════════════════════════════════
       function KbCommandsChip(props) {
         const p = props !== null && props !== undefined ? props : {}
@@ -1354,7 +1367,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
       }
 
       // ══════════════════════════════════════════════════════════════════════
-      // 4. LA PALETTE ET LA FICHE DE PARAMÈTRES — au-dessus du composeur
+      // 4. THE PALETTE AND THE PARAMETERS SHEET — above the composer
       // ══════════════════════════════════════════════════════════════════════
       function KbComposerDock(props) {
         const p = props !== null && props !== undefined ? props : {}
@@ -1364,33 +1377,33 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         const entry = pend === null ? undefined : entryOf(pend.entryId)
         const sheet = (pend !== null && entry !== undefined && entry !== null) ? h(KbRunSheet, { key: 'sheet', sid: sid, pend: pend, entry: entry }) : null
         const pal = ui.palette ? h(KbPalette, { key: 'pal', sid: sid }) : null
-        // Une seule surface a la fois : superposees, elles montaient plus haut que
-        // l ecran et la palette devenait inatteignable. La palette ouverte par
-        // l utilisateur passe devant ; le formulaire en attente revient des qu elle
-        // se referme (son etat n est jamais perdu).
+        // One surface at a time: stacked, they rose higher than
+        // the screen and the palette became unreachable. The palette opened by
+        // the user comes to the front; the pending form comes back as soon as it
+        // closes (its state is never lost).
         //
-        // L ancrage est au-dessus du composeur : la hauteur utile est donc la
-        // distance entre le haut du composeur et le haut de la fenetre, pas la
-        // hauteur de la fenetre. On la mesure et on la pose en variable CSS, sinon
-        // une longue liste sort de l ecran par le haut.
+        // The anchor is above the composer: the useful height is therefore the
+        // distance between the top of the composer and the top of the window, not the
+        // height of the window. We measure it and set it as a CSS variable, otherwise
+        // a long list goes off the screen at the top.
         const max = React.useState(0)
         const hauteurUtile = max[0]
         const setHauteurUtile = max[1]
         React.useEffect(() => {
-          // etat.valeur : derniere hauteur posee. etat.reduit : une correction a
-          // deja ete appliquee pour ce panneau. Sans ce verrou, la mesure
-          // suivante relit un panneau deja corrige (plus recouvert), conclut
-          // « rien ne recouvre » et le fait regrossir : oscillation.
+          // etat.valeur: last height set. etat.reduit: a correction has
+          // already been applied for this panel. Without this lock, the next
+          // measurement re-reads an already corrected panel (no longer covered), concludes
+          // « nothing covers it » and makes it grow back: oscillation.
           const etat = { valeur: 0, reduit: false }
           const mesurer = (neuf) => {
             const el = document.querySelector('[data-composer-input]')
             if (el === null || el === undefined) return
-            // La fenetre s arrete au composeur : c est la premiere borne.
+            // The window stops at the composer: that is the first bound.
             let cible = Math.max(200, Math.round(el.getBoundingClientRect().top - 24))
-            // La barre de titre de l application se peint AU-DESSUS de la
-            // surcouche du composeur (contexte d empilement impose). On sonde ce
-            // qui recouvre le haut de notre panneau et on retire exactement le
-            // recouvrement : l en-tete reste visible, la liste defile.
+            // The application's title bar is painted ABOVE the
+            // composer's overlay (imposed stacking context). We probe what
+            // covers the top of our panel and remove exactly the
+            // overlap: the header stays visible, the list scrolls.
             let reduitIci = false
             const pop = document.querySelector('.kbsl-dock .kbsl-pop')
             if (pop !== null) {
@@ -1405,8 +1418,8 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
                 }
               }
             }
-            // On ne regrossit jamais apres une correction (sauf mesure neuve) ;
-            // mais la correction elle-meme doit s appliquer : d ou reduitIci.
+            // We never grow back after a correction (except on a fresh measurement);
+            // but the correction itself must apply: hence reduitIci.
             if (etat.reduit && reduitIci !== true && cible > etat.valeur && neuf !== true) return
             etat.valeur = cible
             diag.dockMax = cible
@@ -1424,10 +1437,10 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         return h('div', { className: 'kbsl-scope kbsl-dock', style: style }, sheet)
       }
 
-      // Les lignes que la palette montre. Une seule définition, pour que le
-      // clavier (flèches, Entrée, filtre) et l'affichage ne puissent pas diverger.
-      // Le filtre saisi s'applique par préfixe, sur le nom court comme sur le
-      // libellé — la même règle que le menu natif de l'application.
+      // The rows the palette shows. A single definition, so that the
+      // keyboard (arrows, Enter, filter) and the display cannot drift apart.
+      // The typed filter applies by prefix, on the short name as on the
+      // label — the same rule as the application's native menu.
       const kbPaletteRows = () => {
         const tous = listOf('slash').filter((e) => e.active !== false)
         const q = String(ui.palQuery || '').trim().toLowerCase()
@@ -1440,11 +1453,11 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         const sid = props.sid
         const rows = kbPaletteRows()
         const choisi = ui.palIdx >= 0 && ui.palIdx < rows.length ? idOf(rows[ui.palIdx]) : null
-        // La ligne mise en avant suit le clavier : on la garde dans la vue.
+        // The highlighted row follows the keyboard: we keep it in view.
         React.useEffect(() => {
           const el = document.querySelector('[data-kb-palette] [data-kb-sel="1"]')
           if (el !== null && el !== undefined && typeof el.scrollIntoView === 'function') {
-            try { el.scrollIntoView({ block: 'nearest' }) } catch (e) { /* navigateur */ }
+            try { el.scrollIntoView({ block: 'nearest' }) } catch (e) { /* browser */ }
           }
         }, [choisi])
         const total = kbPaletteTotal()
@@ -1543,10 +1556,10 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
                 'aria-pressed': String(value) === String(o.v), onClick: () => setField(f.key, o.v),
               }, o.label)))
           } else if (f.type === 'checkbox') {
-            // Le magasin peut porter le défaut en booléen (ce que l'éditeur écrit)
-            // ou en chaîne (entrée écrite à la main ou par le skill) : les deux
-            // doivent allumer l'interrupteur, sinon la fiche annonce « No » pour
-            // un champ dont le défaut est vrai.
+            // The store can carry the default as a boolean (what the editor writes)
+            // or as a string (entry written by hand or by the skill): both
+            // must turn the switch on, otherwise the sheet announces « No » for
+            // a field whose default is true.
             const on = value === true || String(value === undefined || value === null ? '' : value).trim() === 'true'
             control = h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px' } },
               h('button', { type: 'button', className: 'kbsl-tgl' + (on ? ' on' : ''), role: 'switch', 'aria-checked': on, 'aria-label': L(f.label) || f.key, onClick: () => setField(f.key, !on) }),
@@ -1567,9 +1580,9 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
             bad ? h('span', { className: 'kbsl-err' }, 'Required field') : null)
         })
         return h('div', { className: 'kbsl-pop kbsl-anim', 'data-kb-sheet': nameOf(entry), role: 'dialog', 'aria-label': title,
-          // La hauteur est bornee par ce que la place au-dessus du composeur
-          // autorise (--kb-dock-max, mesure) : sinon la fiche depassait en haut
-          // de l ecran et perdait son titre.
+          // The height is bounded by what the space above the composer
+          // allows (--kb-dock-max, measured): otherwise the sheet overflowed at the top
+          // of the screen and lost its title.
           style: { display: 'flex', flexDirection: 'column', maxHeight: 'min(380px, var(--kb-dock-max, 380px))' } },
           h('div', { className: 'kbsl-shead' },
             h('span', { className: 'kbsl-tile sm' }, h(KbIcon, { name: entry.icon || 'terminal', size: 15 })),
@@ -1591,7 +1604,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
       }
 
       // ══════════════════════════════════════════════════════════════════════
-      // 5. L'ÉDITEUR — la fenêtre en quatre étapes, et le toast
+      // 5. THE EDITOR — the four-step window, and the toast
       // ══════════════════════════════════════════════════════════════════════
       const kbSampleFor = (f) => {
         if (f.type === 'toggle') return f.def === 'true' ? 'Yes' : 'No'
@@ -1628,8 +1641,8 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
       const kbAddField = (nom) => {
         if (ui.editor === null) return
         const champs = ui.editor.draft.fields
-        // Appelee depuis un blanc du prompt ({periode}) : la question doit porter
-        // CE nom, sinon elle ne remplit pas le blanc et n a aucune raison d etre.
+        // Called from a blank of the prompt ({periode}): the question must carry
+        // THAT name, otherwise it does not fill the blank and has no reason to exist.
         const demande = nom === undefined ? '' : String(nom)
         const libre = /^[a-z][a-z0-9_]*$/.test(demande) && champs.filter((x) => x.name === demande).length === 0
         const f = kbNewField(champs.length + 1, libre ? demande : undefined)
@@ -1686,7 +1699,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         const stepN = (n, done, optional) => h('span', { className: 'kbsl-stepn' + (done ? ' done' : (optional ? ' opt' : '')) },
           done ? h(KbIcon, { name: 'check', size: 15, weight: 3 }) : String(n))
 
-        // ── étape 1 : nommer ────────────────────────────────────────────────
+        // ── step 1: naming ──────────────────────────────────────────────────
         const iconPicker = ed.iconOpen ? h('div', { className: 'kbsl-icoquery kbsl-anim', style: { position: 'absolute', top: '72px', left: 0, zIndex: 8 } },
           h('div', { style: { position: 'relative' } },
             h('span', { style: { position: 'absolute', left: '12px', top: '11px', display: 'inline-flex', color: 'var(--kb-muted)' } }, h(KbIcon, { name: 'search', size: 18, weight: 2 })),
@@ -1699,8 +1712,8 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
           h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '4px' } },
             kbIconSearch(ed.iconQuery).map((n) => h('button', {
               key: n, type: 'button', className: 'kbsl-icopick' + (n === d.icon ? ' on' : ''), 'aria-label': n,
-              // L'icone appartient au BROUILLON : kbPatchEditor ne touche que
-              // l'etat de l'editeur, la passer la ne changeait rien a l'entree.
+              // The icon belongs to the DRAFT: kbPatchEditor only touches
+              // the editor state, passing it there changed nothing on the entry.
               onClick: () => kbPatchDraft({ icon: n }, { iconOpen: false }),
             }, h(KbIcon, { name: n, size: 18 }))))) : null
 
@@ -1750,7 +1763,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
               h('div', { style: { display: 'contents' } },
                 nameInput, slugBox, descInput, placementPicker))))
 
-        // ── étape 2 : le prompt ─────────────────────────────────────────────
+        // ── step 2: the prompt ──────────────────────────────────────────────
         const step2 = h('section', { className: 'kbsl-step' }, stepN(2, s2Done, false),
           h('div', { style: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '14px' } },
             h('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px' } },
@@ -1787,7 +1800,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
                   }, '{' + n + '}', h(KbIcon, { name: 'plus', size: 13, weight: 2.4 }))
                 }))) : h('span', { className: 'kbsl-help' }, 'Fields you add in step 3 will show up here.')))
 
-        // ── étape 3 : les questions ────────────────────────────────────────
+        // ── step 3: the questions ──────────────────────────────────────────
         const step3 = h('section', { className: 'kbsl-step' }, stepN(3, s3Done, true),
           h('div', { style: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '14px' } },
             h('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px' } },
@@ -1804,7 +1817,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
             h('button', { type: 'button', className: 'kbsl-btn kbsl-dashed sm', style: { alignSelf: 'flex-start' }, onClick: kbAddField },
               h(KbIcon, { name: 'plus', size: 16, weight: 2.2 }), 'Add a question')))
 
-        // ── étape 4 : la suite ─────────────────────────────────────────────
+        // ── step 4: what comes next ────────────────────────────────────────
         const step4 = h('section', { className: 'kbsl-step' }, stepN(4, false, false),
           h('div', { style: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '14px' } },
             h('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px' } },
@@ -1819,7 +1832,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
               ? 'The message is sent for you — nothing to click.'
               : 'The text lands in the composer, at your cursor, so you can edit it first.')))
 
-        // ── colonne de droite : l'aperçu ───────────────────────────────────
+        // ── right column: the preview ──────────────────────────────────────
         const demoFields = d.fields.slice(0, 3).map((f, i) => h('div', { key: f.id, style: { display: 'flex', flexDirection: 'column', gap: '4px' } },
           h('span', { style: { fontSize: '11.5px', fontWeight: 600, color: 'var(--kb-ink2)' } }, f.label || 'Untitled'),
           f.type === 'select'
@@ -1861,9 +1874,9 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
                 ed.mode === 'create' ? h('div', { className: 'kbsl-seg', role: 'group', 'aria-label': 'Type' },
                   [['slash', 'Slash command'], ['action', 'Message action']].map((k) => h('button', {
                     key: k[0], type: 'button', className: 'kbsl-pill' + (d.kind === k[0] ? ' on' : ''),
-                    // Changer de genre ne doit rien oublier du travail deja fait :
-                    // on repart d un brouillon vierge du nouveau genre, on le
-                    // recouvre de TOUT ce qui est saisi, puis on force le genre.
+                    // Changing the kind must not forget any of the work already done:
+                    // we start again from a blank draft of the new kind, we
+                    // overlay it with EVERYTHING that has been entered, then we force the kind.
                     'aria-pressed': d.kind === k[0], onClick: () => kbPatchDraft(Object.assign({}, kbBlankDraft(k[0]), d, { kind: k[0] })),
                   }, k[1]))) : null,
                 h('button', { type: 'button', className: 'kbsl-aibtn kbsl-tt b r', 'data-tip': 'Opens a new chat where a skill helps you build it.', onClick: () => { kbCloseEditor(); kbStartWithAI('') } },
@@ -1971,7 +1984,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
       }
 
       // ══════════════════════════════════════════════════════════════════════
-      // 6. LES ACTIONS SOUS UN MESSAGE
+      // 6. THE ACTIONS UNDER A MESSAGE
       // ══════════════════════════════════════════════════════════════════════
       function KbMessageActions(props) {
         const p = props !== null && props !== undefined ? props : {}
@@ -1980,9 +1993,9 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         kbTick()
         const note = React.useState(null)
         React.useEffect(() => { if (store.loaded === false) kbLoad() }, [])
-        // Menu contextuel (clic droit) : il se referme au premier appui ailleurs,
-        // sinon il resterait ouvert sous le curseur jusqu'a Echap. Les clics
-        // DANS le menu ne le ferment pas : c'est l'item qui decide.
+        // Context menu (right click): it closes on the first press elsewhere,
+        // otherwise it would stay open under the cursor until Esc. Clicks
+        // INSIDE the menu do not close it: the item decides.
         React.useEffect(() => {
           if (ui.ctxId === null) return undefined
           const fermer = (ev) => {
@@ -2007,14 +2020,14 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
             h('button', {
               type: 'button',
               className: 'kbsl-abtn',
-              // Icone seule + le NOM en tooltip : la barre d'actions n'ecrit plus
-              // de texte (harmonie avec Copier / pouces / branche du shell). Le
-              // nom reste lu par les lecteurs d'ecran via aria-label.
+              // Icon only + the NAME as a tooltip: the action bar no longer writes
+              // any text (in harmony with Copy / thumbs / the shell's branch). The
+              // name is still read by screen readers via aria-label.
               title: L(e.label) || nameOf(e),
               'aria-label': L(e.label) || nameOf(e),
-              // `data-kb-edit` reste sur le BOUTON (hook public documente dans
-              // docs/handoff/slash-actions/REFERENCE.md) : il menait au crayon,
-              // il mene desormais au menu contextuel.
+              // `data-kb-edit` stays on the BUTTON (public hook documented in
+              // docs/handoff/slash-actions/REFERENCE.md): it used to lead to the pencil,
+              // it now leads to the context menu.
               'data-kb-edit': idOf(e),
               onClick: () => run(e),
               onContextMenu: (ev) => { ev.preventDefault(); ui.ctxId = ui.ctxId === idOf(e) ? null : idOf(e); notify() },
@@ -2029,8 +2042,8 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
             h('button', {
               type: 'button',
               className: 'kbsl-abtn',
-              // Icone seule elle aussi : le nom des actions du menu tient dans
-              // la bulle, la barre reste au rythme des icones du shell.
+              // Icon only as well: the name of the menu's actions fits in
+              // the bubble, the bar stays at the rhythm of the shell's icons.
               title: 'More actions',
               'aria-label': 'More actions',
               onClick: () => { ui.menu = ui.menu === 'actions' ? null : 'actions'; notify() },
@@ -2051,8 +2064,8 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
               type: 'button',
               className: 'kbsl-abtn-add',
               'data-kb-add': '1',
-              // Le « + » seul : le mot « Action » part en tooltip, comme le nom
-              // des actions de la barre.
+              // The lone « + »: the word « Action » goes to a tooltip, like the name
+              // of the bar's actions.
               title: 'Action',
               'aria-label': 'Action',
               onClick: () => { ui.addOpen = ui.addOpen !== true; notify() },
@@ -2073,15 +2086,15 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
       }
 
       // ══════════════════════════════════════════════════════════════════════
-      // 7. LA SECTION DE RÉGLAGES « Commands »
+      // 7. THE « Commands » SETTINGS SECTION
       // ══════════════════════════════════════════════════════════════════════
       function KbSettings(props) {
         kbTick()
         const tabState = React.useState('slash')
         const tab = tabState[0]
         const setTab = tabState[1]
-        // Gabarit Réglages 29/09 : recherche dans la liste + titres au
-        // standard des autres sections (26px, sous-titre, libellés fr).
+        // Settings template 29/09: search in the list + titles at the
+        // standard of the other sections (26px, subtitle, fr labels).
         const qState = React.useState('')
         const q = qState[0]
         const setQ = qState[1]
@@ -2099,9 +2112,9 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
             title: L({ fr: 'Les commandes en trois étapes', en: 'Commands in three steps' }),
             caption: L({ fr: 'Un prompt est enregistré comme commande, appelé avec « / » dans la zone de message, ou lancé depuis le bouton sous une réponse.', en: 'A prompt is saved as a command, called with “/” in the message box, or run from the button under a reply.' }),
             steps: [
-              { t: L({ fr: 'Enregistrez un prompt', en: 'Save a prompt' }), b: L({ fr: 'Écrivez-le ici avec « Nouvelle commande », ou enregistrez ce que vous avez tapé avec le bouton signet de la zone de message.', en: 'Write it here with “New command”, or save what you typed with the bookmark button in the message box.' }) },
-              { t: L({ fr: 'Appelez-le avec /', en: 'Call it with /' }), b: L({ fr: 'Tapez « / » dans la zone de message : vos commandes s’affichent après celles de DSH. Choisissez-en une, remplissez son formulaire s’il y en a un.', en: 'Type “/” in the message box: your commands show after DSH’s own. Pick one and fill in its form, if it has one.' }) },
-              { t: L({ fr: 'Ou lancez-le sur une réponse', en: 'Or run it on a reply' }), b: L({ fr: 'Sous une réponse de l’assistant, un bouton lance une action de message sur ce message ; « + » en ajoute une, le clic droit la modifie.', en: 'Under an assistant reply, a button runs a message action on that message; “+” adds one, right-click edits it.' }) }
+              { t: L({ fr: 'Enregistre un prompt', en: 'Save a prompt' }), b: L({ fr: 'Écris-le ici avec « Nouvelle commande », ou enregistre ce que tu as tapé avec le bouton signet de la zone de message.', en: 'Write it here with “New command”, or save what you typed with the bookmark button in the message box.' }) },
+              { t: L({ fr: 'Appelle-le avec /', en: 'Call it with /' }), b: L({ fr: 'Tape « / » dans la zone de message : tes commandes s’affichent après celles de DSH. Choisis-en une, remplis son formulaire s’il y en a un.', en: 'Type “/” in the message box: your commands show after DSH’s own. Pick one and fill in its form, if it has one.' }) },
+              { t: L({ fr: 'Ou lance-le sur une réponse', en: 'Or run it on a reply' }), b: L({ fr: 'Sous une réponse de l’assistant, un bouton lance une action de message sur ce message ; « + » en ajoute une, le clic droit la modifie.', en: 'Under an assistant reply, a button runs a message action on that message; “+” adds one, right-click edits it.' }) }
             ],
             mock: {
               bar: L({ fr: 'Commandes', en: 'Commands' }),
@@ -2125,7 +2138,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
           // What the open tab is for, in one line: a slash command is called from the message box, an action works on a reply.
           h('span', { className: 'kbsl-sub kbsl-tabfor' }, tab === 'action'
             ? L({ fr: 'Une action de message est un bouton sous chaque réponse de l’assistant : il applique un prompt enregistré à cette réponse.', en: 'A message action is a button under each assistant reply: it applies a saved prompt to that reply.' })
-            : L({ fr: 'Une commande slash est un prompt enregistré : tapez “/” dans la zone de message et choisissez-la. Son texte est inséré, ou un petit formulaire s’ouvre d’abord.', en: 'A slash command is a saved prompt: type “/” in the message box and pick it. Its text is inserted, or a small form opens first.' })),
+            : L({ fr: 'Une commande slash est un prompt enregistré : tape “/” dans la zone de message et choisis-la. Son texte est inséré, ou un petit formulaire s’ouvre d’abord.', en: 'A slash command is a saved prompt: type “/” in the message box and pick it. Its text is inserted, or a small form opens first.' })),
           h('div', { style: { display: 'flex', flexDirection: 'column', gap: '2px' } },
             rows.length === 0 ? h('span', { className: 'kbsl-help' }, needle !== '' ? L({ fr: 'Aucune commande ne correspond à « ' + q + ' ».', en: 'No command matches “' + q + '”.' }) : (tab === 'slash' ? L({ fr: 'Aucune commande slash pour l’instant.', en: 'No slash command yet.' }) : L({ fr: 'Aucune action de message pour l’instant.', en: 'No message action yet.' }))) : null,
             rows.map((e) => h(KbSettingsRow, { key: idOf(e), entry: e }))),
@@ -2158,17 +2171,17 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
               e.kind === 'action' ? null : h('span', { className: 'kbsl-mono', style: { color: 'var(--kb-accent)', fontWeight: 500, fontSize: '13.5px' } }, '/' + nameOf(e)),
               h('span', null, title)),
             h('span', { className: 'kbsl-desc kbsl-clip', style: { fontSize: '12.5px', color: 'var(--kb-muted)' } }, L(e.description))),
-          h('span', { className: 'kbsl-chip kbsl-tt b', 'data-tip': runOf(e) === 'form' ? L({ fr: 'Demande ' + String((e.fields || []).length) + ' réponse(s) via un formulaire avant de lancer', en: 'Asks for ' + String((e.fields || []).length) + ' answer(s) in a form before running' }) : L({ fr: 'Se lance directement, sans formulaire', en: 'Runs directly, no form' }) }, runOf(e) === 'form' ? String((e.fields || []).length) + ' ' + L({ fr: 'champs', en: 'fields' }) : L({ fr: 'direct', en: 'direct' })),
+          h('span', { className: 'kbsl-chip kbsl-tt b', 'data-tip': runOf(e) === 'form' ? L({ fr: 'Demande', en: 'Asks for' }) + ' ' + kbslCount((e.fields || []).length, { fr: 'réponse', en: 'answer' }, { fr: 'réponses', en: 'answers' }) + ' ' + L({ fr: 'via un formulaire avant de lancer', en: 'in a form before running' }) : L({ fr: 'Se lance directement, sans formulaire', en: 'Runs directly, no form' }) }, runOf(e) === 'form' ? kbslCount((e.fields || []).length, { fr: 'champ', en: 'field' }, { fr: 'champs', en: 'fields' }) : L({ fr: 'direct', en: 'direct' })),
           h('button', { type: 'button', 'data-kb-edit': id, className: 'kbsl-ibtn sm kbsl-tt lf', 'data-tip': L({ fr: 'Modifier', en: 'Edit' }), 'aria-label': L({ fr: 'Modifier', en: 'Edit' }) + ' ' + title, onClick: () => kbOpenEditor('edit', e.kind === 'action' ? 'action' : 'slash', e) }, h(KbIcon, { name: 'square-pen', size: 15 })),
           h('button', { type: 'button', className: 'kbsl-ibtn sm kbsl-tt lf', 'data-tip': L({ fr: 'Dupliquer', en: 'Duplicate' }), 'aria-label': L({ fr: 'Dupliquer', en: 'Duplicate' }) + ' ' + title, onClick: () => kbDuplicate(e) }, h(KbIcon, { name: 'copy', size: 15 })),
           h('button', { type: 'button', className: 'kbsl-ibtn sm danger kbsl-tt lf', 'data-tip': L({ fr: 'Supprimer', en: 'Delete' }), 'aria-label': L({ fr: 'Supprimer', en: 'Delete' }) + ' ' + title, onClick: () => { ui.confirmId = id; notify() } }, h(KbIcon, { name: 'trash', size: 15 })))
       }
 
       // ══════════════════════════════════════════════════════════════════════
-      // 8. LA COUCHE GLOBALE — l'éditeur et le toast
+      // 8. THE GLOBAL LAYER — the editor and the toast
       // ══════════════════════════════════════════════════════════════════════
-      // Monte hors du creneau quand c'est possible ; sinon on garde le rendu en
-      // place (le plugin doit rester utilisable meme si react-dom manque).
+      // Mounted outside the slot when possible; otherwise we keep the render in
+      // place (the plugin must remain usable even if react-dom is missing).
       const kbPortal = (node, cle) => {
         const dispo = ReactDOM !== null && ReactDOM !== undefined && typeof ReactDOM.createPortal === 'function' &&
           typeof document !== 'undefined' && document !== null && document.body !== null && document.body !== undefined
@@ -2210,22 +2223,22 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
           return () => tag.remove()
         }, 'kybernos-slash: styles')
 
-        // Les jetons du theme, relus depuis l interieur de l application : sans
-        // ca, l editeur et le toast (surcouche globale) restent en clair.
+        // The theme tokens, re-read from inside the application: without
+        // that, the editor and the toast (global overlay) stay light.
         ctx.effect(() => {
           const obs = kbWatchTheme()
           return () => { if (obs !== null && obs !== undefined && typeof obs.disconnect === 'function') obs.disconnect() }
         }, 'kybernos-slash: theme')
 
-        // Échap ferme la palette, la fiche ou l'éditeur : c'est la règle de la
-        // maquette, et rien d'autre dans DSH n'utilise cette touche quand un de
-        // nos panneaux est ouvert.
+        // Esc closes the palette, the sheet or the editor: that is the mockup's
+        // rule, and nothing else in DSH uses that key when one of
+        // our panels is open.
         ctx.effect(() => {
           const onKey = (ev) => {
-            // Le pied de la palette annonce « Arrow keys to move · Enter to run ·
-            // Esc to close » : ces touches doivent marcher. On les capture avant
-            // le composeur (phase de capture + stopPropagation), sinon les flèches
-            // déplacent le curseur et Entrée envoie le message en cours.
+            // The palette footer announces « Arrow keys to move · Enter to run ·
+            // Esc to close »: those keys must work. We capture them before
+            // the composer (capture phase + stopPropagation), otherwise the arrows
+            // move the cursor and Enter sends the message in progress.
             if (ui.palette === true && ui.editor === null && (ev.key === 'ArrowDown' || ev.key === 'ArrowUp' || ev.key === 'Home' || ev.key === 'End' || ev.key === 'Enter')) {
               const lignes = kbPaletteRows()
               if (lignes.length > 0) {
@@ -2242,9 +2255,9 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
                 return
               }
             }
-            // Taper filtre la palette (comme le menu natif). Sans cela les lettres
-            // partaient dans le composeur, derriere la palette, sans que rien ne
-            // le montre. Retour arriere efface le filtre caractere par caractere.
+            // Typing filters the palette (like the native menu). Without this, the letters
+            // went into the composer, behind the palette, with nothing
+            // showing it. Backspace erases the filter character by character.
             if (ui.palette === true && ui.editor === null) {
               const k = ev.key
               const frappe = typeof k === 'string' && k.length === 1 && ev.ctrlKey !== true && ev.metaKey !== true && ev.altKey !== true
@@ -2280,9 +2293,9 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
           return () => document.removeEventListener('keydown', onKey, true)
         }, 'kybernos-slash: touche Echap')
 
-        // La palette : on attend le pipeline de déclencheurs pour s'y brancher.
-        // Si l'hôte ne l'a pas, le reste du plugin (palette, réglages, actions)
-        // vit quand même.
+        // The palette: we wait for the trigger pipeline in order to plug into it.
+        // If the host does not have it, the rest of the plugin (palette, settings, actions)
+        // lives on regardless.
         ctx.inject(['inputTriggers'], (scope) => {
           try {
             const it = scope.get('inputTriggers')
@@ -2301,26 +2314,26 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
           }
         })
 
-        // Le bouton « Commands » et « Save as command », dans la barre du composeur.
+        // The « Commands » button and « Save as command », in the composer bar.
         ctx.effect(() => slots.inject('conversation.input.left', () => slots.register(
           { name: 'conversation.input.left', id: 'kybernos-slash-chip', order: 20 }, KbCommandsChip)), 'kybernos-slash: bouton Commands')
 
-        // La palette et la fiche de paramètres, ancrées au-dessus du composeur.
+        // The palette and the parameters sheet, anchored above the composer.
         ctx.effect(() => slots.inject('conversation.input.overlay', () => slots.register(
           { name: 'conversation.input.overlay', id: 'kybernos-slash-dock', order: 20 }, KbComposerDock)), 'kybernos-slash: palette et fiche')
 
-        // Les actions sous un message.
+        // The actions under a message.
         ctx.effect(() => slots.inject('conversation.chat.assistant-actions', () => slots.register(
           { name: 'conversation.chat.assistant-actions', id: 'kybernos-slash-actions', order: 12 }, KbMessageActions)), 'kybernos-slash: actions de message')
 
-        // L'éditeur et le toast, au-dessus de toute la coque.
+        // The editor and the toast, above the whole shell.
         ctx.effect(() => slots.inject('shell.overlay', () => slots.register(
           { name: 'shell.overlay', id: 'kybernos-slash-overlay', order: 20 }, KbShellOverlay)), 'kybernos-slash: editeur et toast')
 
-        // Les réglages.
-        // (01/10) Libellé bilingue, lu sur __KB_I18N_ACTIVE__ (état de langue
-        // posé par le bundle thème avant les autres) : un shell en anglais
-        // lit « Commands ».
+        // The settings.
+        // (01/10) Bilingual label, read from __KB_I18N_ACTIVE__ (language state
+        // set by the theme bundle before the others): an English shell
+        // reads « Commands ».
         const kbslLabel = (fr, en) => {
           try {
             const a = (typeof window !== 'undefined') ? window.__KB_I18N_ACTIVE__ : null
@@ -2339,8 +2352,8 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
     } catch (kbBootError) {
       try {
         console.error('[kybernos-slash] chargement impossible — plugin desactive, GUI preservee', kbBootError)
-      } catch (e2) { /* console indisponible */ }
-      return { apply() { /* plugin desactive apres erreur de chargement */ } }
+      } catch (e2) { /* console unavailable */ }
+      return { apply() { /* plugin disabled after a load error */ } }
     }
   },
 })

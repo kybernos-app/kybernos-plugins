@@ -44,7 +44,7 @@ check('the list of names here and the menu\'s KB_NAV_KEYS say the same pages (a 
 console.log('the title of each page is its nav entry')
 const memory = read('packages', 'kybernos-memory', 'client.js')
 const memShown = memory.split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n')
-check('Memory & Lessons: the title and the « back » links of its sub-pages say « Memory & Lessons », not « … learned »', !/'Memory & Lessons learned'/.test(memShown) && /const PAGE_TITLE = 'Memory & Lessons'/.test(memory) && /h1', \{ className: 'kbmem-h1' \}, PAGE_TITLE\)/.test(memory), memShown.match(/'Memory & Lessons learned'/g))
+check('Memory & Lessons: the title and the « back » links of its sub-pages say « Memory & Lessons », not « … learned »', !/'Memory & Lessons learned'/.test(memShown) && /const PAGE_TITLE = 'Memory & Lessons'/.test(memory) && /h1', \{ className: 'kbmem-h1' \}, (?:PAGE_TITLE|pageTitle\(\))\)/.test(memory) && /const pageTitle = \(\) => kt\('Mémoire & Leçons', PAGE_TITLE\)/.test(memory), memShown.match(/'Memory & Lessons learned'/g))
 
 const skills = read('packages', 'kybernos-skills', 'client.js')
 const skH1 = /'set\.h1': \{ fr: '([^']+)', en: '([^']+)' \}/.exec(skills)

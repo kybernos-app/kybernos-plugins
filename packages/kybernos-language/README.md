@@ -71,7 +71,7 @@ tried after a missing or invalid credential, a missing adapter or a quota error.
 ## Tests
 
 ```bash
-node packages/kybernos-language/test-client.mjs      # 190 checks: ISO list, plan, engine, pause/resume, test marks, closed-tab takeover, DSH pack, live layer, disk hand-off
+node packages/kybernos-language/test-client.mjs      # 245 checks: ISO list, plan, engine, pause/resume, test marks, closed-tab takeover, DSH pack, live layer, disk hand-off
 node packages/kybernos-plugin/test-i18n-translate.mjs   # host route, fake LLM stream
 node packages/kybernos-plugin/test-i18n-store.mjs       # on-disk store and its route
 node packages/kybernos-plugin/test-lang-runtime.mjs     # the always-on runtime

@@ -27,7 +27,7 @@ window.__ModuleLoader__.load({
         // or a fr base); every other language — translated (es…) or not — gets
         // English, never French.
         return (s === 'kybernos' || s.split(/[-_]/)[0] === 'fr') ? 'fr' : 'en'
-      } catch { return 'fr' }
+      } catch { return 'en' }
     }
     const kt = (fr, en) => lang() === 'fr' ? fr : en
     // Why a model is skipped, in the words of the Models tab's health chip (the host keeps the cause with the outcome).
@@ -38,6 +38,13 @@ window.__ModuleLoader__.load({
       'not-chat': ['pas un modèle de langage', 'not a language model'], other: ['échec', 'failing']
     }
     const causeTxt = (c) => { const t = CAUSES_TXT[c] || CAUSES_TXT.other; return kt(t[0], t[1]) }
+    // The two outcomes the probe makes up itself (the host keeps the code; the sentence is the page's, in its language). Any other
+    // error is the provider's own message. An older state on disk still holds the French sentence: the code decides, not the text.
+    const PROBE_TXT = {
+      TIMEOUT: ['aucune réponse dans le délai', 'no answer within the time limit'],
+      'SANS-REPONSE': ['le flux s’est terminé sans verdict', 'the stream ended without a verdict']
+    }
+    const pourquoiTxt = (e) => { const t = PROBE_TXT[e.code]; return e.code + ' — ' + (t !== undefined ? kt(t[0], t[1]) : e.message) }
     const heureTxt = (ts) => { try { return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) } catch (e) { return '' } }
     const statutTxt = (s, maintenant) => {
       if (s.etat === 'jamais') return kt('pas encore vérifié', 'not checked yet')
@@ -298,7 +305,7 @@ window.__ModuleLoader__.load({
       const brut = j !== null && typeof j === 'object' && Array.isArray(j.cles) && j.cles.length > 0 ? String(j.cles[0]) : ''
       const x = brut.length > 60 ? brut.slice(0, 57) + '…' : brut
       if (code === 'liste-forme') return kt('« ' + x + ' » n’est pas de la forme fournisseur/modèle (par exemple openrouter/anthropic/claude-sonnet-4.5).', '“' + x + '” is not a provider/model name (for example openrouter/anthropic/claude-sonnet-4.5).')
-      if (code === 'liste-inconnu') return kt('« ' + x + ' » n’est pas un modèle que vous avez configuré. Choisissez-en un dans la liste, ou ajoutez-le d’abord dans Fournisseur IA & modèles.', '“' + x + '” is not a model you have configured. Pick one from the list, or add it first in AI Provider & Models.')
+      if (code === 'liste-inconnu') return kt('« ' + x + ' » n’est pas un modèle que tu as configuré. Choisis-en un dans la liste, ou ajoute-le d’abord dans Fournisseur IA & modèles.', '“' + x + '” is not a model you have configured. Pick one from the list, or add it first in AI Provider & Models.')
       if (code === 'liste') return kt('La liste est trop longue (64 au plus) ou contient un doublon.', 'The list is too long (64 at most) or has a duplicate.')
       return j !== null && typeof j === 'object' && j.erreur ? String(j.erreur) : 'Rejected.'
     }
@@ -350,9 +357,9 @@ window.__ModuleLoader__.load({
 
       // The page's head, the same on the page and on its failure state (the title stays: only the body is missing).
       const entete = () => [
-        h('h4', { key: 'h', className: 'kb6-title', style: { fontSize: '26px', fontWeight: 800, letterSpacing: '-.01em' } }, 'Auto Routing'),
+        h('h4', { key: 'h', className: 'kb6-title', style: { fontSize: '26px', fontWeight: 800, letterSpacing: '-.01em' } }, kt('Routage Auto', 'Auto Routing')),
         h('p', { key: 'i', className: 'kaa-intro' }, kt(
-          'Auto envoie chaque tâche déléguée au modèle le plus adapté parmi ceux que vous autorisez. Le modèle de votre chat n’est jamais changé.',
+          'Auto envoie chaque tâche déléguée au modèle le plus adapté parmi ceux que tu autorises. Le modèle de ton chat n’est jamais changé.',
           'Auto sends each delegated task to the best-fit model among the ones you allow. Your chat’s own model is never changed.'))
       ]
       if (etat === null && echec === true) {
@@ -360,7 +367,7 @@ window.__ModuleLoader__.load({
           ...entete(),
           h('div', { className: 'kaa-down', 'data-kb': 'auto-down', role: 'alert' },
             h('span', null, kt(
-              'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarrez DSH, puis appuyez sur Réessayer.',
+              'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarre DSH, puis appuie sur Réessayer.',
               'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.')),
             h('button', { type: 'button', className: 'kaa-ajout-btn', 'data-kb': 'auto-retry', onClick: () => { setEchec(false); lire() } }, kt('Réessayer', 'Retry'))))
       }
@@ -388,7 +395,7 @@ window.__ModuleLoader__.load({
         setMsg('')
         fetch('/kybernos-auto/probe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
           // A DSH started before the probe route existed answers 404: say what to do instead of a JSON parse error.
-          .then((r) => (r.status === 404 ? Promise.reject(new Error(kt('Le serveur DSH n’a pas encore chargé cette version : redémarrez-le.', 'The DSH server has not loaded this version yet: restart it.'))) : r.json()))
+          .then((r) => (r.status === 404 ? Promise.reject(new Error(kt('Le serveur DSH n’a pas encore chargé cette version : redémarre-le.', 'The DSH server has not loaded this version yet: restart it.'))) : r.json()))
           .then((j) => { setSondage(false); if (j && j.ok === true) setEtat(j); else setMsg(j && j.erreur ? String(j.erreur) : 'Rejected.') })
           .catch((e) => { setSondage(false); setMsg(String(e && e.message ? e.message : e)) })
       }
@@ -417,24 +424,24 @@ window.__ModuleLoader__.load({
       const lignes = toutVoir ? etat.sante : etat.sante.slice(0, SANTE_VISIBLE)
       const scopes = [['all', kt('Tous les modèles', 'All models')], ['free', kt('Modèles gratuits', 'Free models')], ['custom', kt('Ma liste', 'My list')]]
       const scopeAide = {
-        all: kt('Tous les modèles des fournisseurs que vous avez connectés. Un modèle ajouté plus tard est pris en compte tout seul.', 'Every model of the providers you connected. A model you add later is included by itself.'),
+        all: kt('Tous les modèles des fournisseurs que tu as connectés. Un modèle ajouté plus tard est pris en compte tout seul.', 'Every model of the providers you connected. A model you add later is included by itself.'),
         free: kt('Seulement ceux qui ne coûtent rien : les modèles Free LLMs, ceux marqués « :free » et les modèles locaux.', 'Only the ones that cost nothing: the Free LLMs models, the ones marked “:free” and local models.'),
-        custom: kt('Seulement les modèles que vous choisissez ci-dessous. L’ordre de la liste est l’ordre de repli.', 'Only the models you pick below. The list order is the fallback order.')
+        custom: kt('Seulement les modèles que tu choisis ci-dessous. L’ordre de la liste est l’ordre de repli.', 'Only the models you pick below. The list order is the fallback order.')
       }
       const etatCourt = scope !== 'custom' && total === 0
-        ? kt('Aucun modèle connecté pour l’instant : connectez Kybernos Cloud ou ajoutez un fournisseur (Fournisseur IA & modèles), Auto s’en servira.', 'No model is connected yet: connect Kybernos Cloud or add a provider (AI Provider & Models) and Auto will use it.')
+        ? kt('Aucun modèle connecté pour l’instant : connecte Kybernos Cloud ou ajoute un fournisseur (Fournisseur IA & modèles), Auto s’en servira.', 'No model is connected yet: connect Kybernos Cloud or add a provider (AI Provider & Models) and Auto will use it.')
         : (total === 0
-          ? kt('Votre liste est vide : le modèle de la session sera utilisé.', 'Your list is empty: the session model will be used.')
+          ? kt('Ta liste est vide : le modèle de la session sera utilisé.', 'Your list is empty: the session model will be used.')
           : total + (total > 1 ? kt(' modèles autorisés', ' models allowed') : kt(' modèle autorisé', ' model allowed')) + ' · ' + disponibles + kt(' répondent', ' answering'))
       return h('div', { className: 'kaa-page', 'data-kb': 'auto-settings' },
         ...entete(),
         h('div', { className: 'kaa-ligne' },
           h('div', { className: 'kaa-ligne-txt' },
             h('b', null, kt('Routage automatique', 'Automatic routing')),
-            h('span', null, kt('Activé : Auto sert dans toutes les sessions. Désactivé : vous l’activez session par session, depuis le menu du modèle dans le composer.', 'On: Auto is used in every session. Off: you turn it on per session, from the model menu in the composer.'))),
+            h('span', null, kt('Activé : Auto sert dans toutes les sessions. Désactivé : tu l’actives session par session, depuis le menu du modèle dans le composer.', 'On: Auto is used in every session. Off: you turn it on per session, from the model menu in the composer.'))),
           h('button', {
-            type: 'button', className: 'kaa-switch-btn' + (etat.global === true ? ' on' : ''), 'data-kb': 'auto-global-toggle',
-            'aria-pressed': String(etat.global === true), 'aria-label': kt('Routage automatique', 'Automatic routing'),
+            type: 'button', className: 'kaa-switch-btn' + (etat.global === true ? ' on' : ''), 'data-kb': 'auto-global-toggle', role: 'switch',
+            'aria-checked': String(etat.global === true), 'aria-label': kt('Routage automatique', 'Automatic routing'),
             onClick: () => ecrire({ autoRouting: etat.global !== true })
           }, h('span', null))),
         h('div', { className: 'kaa-ligne kaa-ligne-modeles' },
@@ -459,7 +466,7 @@ window.__ModuleLoader__.load({
                   h('input', {
                     className: 'kaa-ajout-in', 'data-kb': 'auto-whitelist-add', type: 'text', list: 'kaa-modeles', autoComplete: 'off', spellCheck: false,
                     'aria-invalid': refus !== '' ? 'true' : 'false', 'aria-describedby': refus !== '' ? 'kaa-refus' : undefined,
-                    placeholder: kt('fournisseur/modèle — choisissez dans la liste', 'provider/model — pick from the list'), value: ajouter,
+                    placeholder: kt('fournisseur/modèle — choisis dans la liste', 'provider/model — pick from the list'), value: ajouter,
                     onChange: (ev) => { setAjouter(ev.target.value); if (refus !== '') setRefus('') },
                     onKeyDown: (ev) => { if (ev.key === 'Enter') ajouterModele() }
                   }),
@@ -480,7 +487,7 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kaa-ligne-txt' },
               h('b', null, kt('Repli du chat', 'Chat fallback')),
               h('span', null, kt(
-                'Activé : quand le modèle de votre chat ne peut pas répondre (clé refusée, fournisseur en panne), la même étape part vers le modèle suivant de la liste, puis le vôtre est réessayé après une pause. Le modèle de repli peut avoir un autre coût ; ni l\'effort de raisonnement ni le plafond de sortie ne sont repris. Désactivé par défaut.',
+                'Activé : quand le modèle de ton chat ne peut pas répondre (clé refusée, fournisseur en panne), la même étape part vers le modèle suivant de la liste, puis le tien est réessayé après une pause. Le modèle de repli peut avoir un autre coût ; ni l\'effort de raisonnement ni le plafond de sortie ne sont repris. Désactivé par défaut.',
                 'On: when your chat\'s own model cannot answer (key refused, provider down), the same step goes to the next model of the list, then yours is tried again after a pause. The fallback model may cost differently; neither the reasoning effort nor the output cap carry over. Off by default.')),
               failoverOn && failoverLast !== null
                 ? h('span', { className: 'kaa-why', 'data-kb': 'auto-failover-last' },
@@ -488,8 +495,8 @@ window.__ModuleLoader__.load({
                   Math.max(0, Math.round((maintenant - failoverLast.at) / 1000)) + ' s', kt(' plus tôt', ' ago'))
                 : null),
             h('button', {
-              type: 'button', className: 'kaa-switch-btn' + (failoverOn ? ' on' : ''), 'data-kb': 'auto-failover-toggle',
-              'aria-pressed': String(failoverOn), 'aria-label': kt('Repli du chat', 'Chat fallback'),
+              type: 'button', className: 'kaa-switch-btn' + (failoverOn ? ' on' : ''), 'data-kb': 'auto-failover-toggle', role: 'switch',
+              'aria-checked': String(failoverOn), 'aria-label': kt('Repli du chat', 'Chat fallback'),
               onClick: () => ecrire({ autoFailover: !failoverOn })
             }, h('span', null))),
           h('div', { className: 'kaa-ligne' },
@@ -520,7 +527,7 @@ window.__ModuleLoader__.load({
                       statutTxt(s, maintenant),
                       s.calls > 0 ? ' · ' + s.calls + ' ' + (s.calls > 1 ? kt('appels', 'calls') : kt('appel', 'call')) : ''),
                     s.etat !== 'ok' && s.etat !== 'jamais' && s.lastError && s.lastError.message
-                      ? h('small', { className: 'kaa-why', 'data-kb': 'auto-health-why', title: s.lastError.message }, s.lastError.code + ' — ' + s.lastError.message)
+                      ? h('small', { className: 'kaa-why', 'data-kb': 'auto-health-why', title: pourquoiTxt(s.lastError) }, pourquoiTxt(s.lastError))
                       : null),
                   h('td', null, s.lastLatencyMs !== null && s.lastLatencyMs !== undefined ? (s.lastLatencyMs / 1000).toFixed(1) + ' s' : '—'),
                   h('td', null, s.erreurPct !== null ? s.erreurPct + '%' : '—'),
@@ -647,7 +654,7 @@ window.__ModuleLoader__.load({
         } catch (e) { /* hors navigateur */ }
         try {
             slots.inject('settings.section', () => slots.register(
-            { name: 'settings.section', id: 'kybernos-auto-page', order: 14, label: 'Auto Routing' },
+            { name: 'settings.section', id: 'kybernos-auto-page', order: 14, label: kt('Routage Auto', 'Auto Routing') },
             () => h(KbAutoSettings)))
                 // « Auto » label from the mount: the current session's state is read
                 // without waiting for the menu to open (defect T6 of the 02/10 pass).

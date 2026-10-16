@@ -197,7 +197,8 @@ plugin.apply({ get: (n) => (n === 'slots' ? { inject: (name, make) => { if (name
 if (Screen === null) { console.log('  ✗ the screen was not registered'); process.exit(1) }
 
 const open = async (w, lang) => {
-  store.set('kybernos.theme.lang', lang || 'en')
+  // the page reads the language Kybernos resolved (window.__KB_LANG_RESOLVE__), not a storage key
+  globalThis.window.__KB_LANG_RESOLVE__ = () => lang || 'en'
   globalThis.fetch = async (url, init) => { INFLIGHT.n += 1; try { return await w.fetch(url, init) } finally { INFLIGHT.n -= 1 } }
   const root = mount(React.createElement(Screen, { sessionId: '' }))
   await root.settle()
