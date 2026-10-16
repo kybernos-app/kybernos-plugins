@@ -19,7 +19,7 @@
  */
 import { spawn } from 'node:child_process'
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { readFileSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, resolve as resoudre } from 'node:path'
 
@@ -30,19 +30,35 @@ const SORTIE_MAX = 64 * 1024
 const COMMANDE_MAX = 500
 const CORPS_MAX = 16 * 1024
 
-/** Run one shell command, bounded. Never throws — answers `ok:false`. */
-export function executer ({ commande, cwd } = {}) {
+/** What a person can read of a process's bytes: C0 controls (NUL, ESC...) become their visible "control pictures" (U+2400...), except newline, tab and carriage return. */
+export function lisible (texte) {
+  return String(texte).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, (c) => String.fromCharCode(c === '\u007f' ? 0x2421 : 0x2400 + c.charCodeAt(0)))
+}
+
+/**
+ * Run one shell command, bounded. Never throws — answers `ok:false`. `limites` (timeoutMs, sortieMax) is for tests: the route never passes it.
+ * The command has no standard input (it is closed at once): a program that waits for a keypress fails immediately instead of hanging until the timeout.
+ */
+export function executer ({ commande, cwd } = {}, limites = {}) {
   return new Promise((resolve) => {
+    const timeoutMs = limites.timeoutMs ?? TIMEOUT_MS
+    const sortieMax = limites.sortieMax ?? SORTIE_MAX
     const cmd = String(commande ?? '').trim()
     if (cmd === '' || cmd.length > COMMANDE_MAX) {
       resolve({ ok: false, erreur: 'empty command, or longer than ' + COMMANDE_MAX + ' characters' })
       return
     }
     const dir = String(cwd ?? '').trim() || homedir()
+    try {
+      if (statSync(dir).isDirectory() !== true) throw new Error('not a folder')
+    } catch (error) {
+      resolve({ ok: false, erreur: 'the folder to run in does not exist any more' })
+      return
+    }
     let fini = false
     let enfant
     try {
-      enfant = spawn('/bin/zsh', ['-c', cmd], { cwd: dir, timeout: TIMEOUT_MS, env: process.env })
+      enfant = spawn('/bin/zsh', ['-c', cmd], { cwd: dir, timeout: timeoutMs, env: process.env, stdio: ['ignore', 'pipe', 'pipe'] })
     } catch (error) {
       resolve({ ok: false, erreur: String(error && error.message ? error.message : error) })
       return
@@ -50,22 +66,25 @@ export function executer ({ commande, cwd } = {}) {
     let out = ''
     let err = ''
     let temoin = false
+    let tronque = false
     const cap = (s) => {
       if (temoin) return
       out += s
-      if (out.length > SORTIE_MAX) { out = out.slice(0, SORTIE_MAX); temoin = true }
+      if (out.length > sortieMax) { out = out.slice(0, sortieMax); temoin = true; tronque = true }
     }
     const capErr = (s) => {
       if (temoin) return
       err += s
-      if (err.length > SORTIE_MAX) { err = err.slice(0, SORTIE_MAX); temoin = true }
+      if (err.length > sortieMax) { err = err.slice(0, sortieMax); temoin = true; tronque = true }
     }
+    enfant.stdout.setEncoding('utf8')
+    enfant.stderr.setEncoding('utf8')
     enfant.stdout.on('data', cap)
     enfant.stderr.on('data', capErr)
     const rendu = (code, timedOut) => {
       if (fini) return
       fini = true
-      resolve({ ok: true, code, timedOut: timedOut === true, stdout: out, stderr: err, cwd: dir })
+      resolve({ ok: true, code, signal: enfant.signalCode ?? null, timedOut: timedOut === true, truncated: tronque, stdout: lisible(out), stderr: lisible(err), cwd: dir })
     }
     enfant.on('error', (error) => {
       if (fini) return
@@ -158,6 +177,19 @@ export function cookieSessionValide (cookieHeader, authoritiesList, secret, nowM
   return false
 }
 
+/**
+ * The folder the agent works in for a session: what the core plugin publishes (`kybernos.workspace`), read from the session store by the host.
+ * The page names the session, never a path. null when it cannot be found.
+ */
+export async function dossierDeSession (session) {
+  try {
+    const w = globalThis[Symbol.for('kybernos.workspace')]
+    if (w === undefined || w === null || typeof w.sessionCwd !== 'function') return null
+    const dir = await w.sessionCwd(session)
+    return typeof dir === 'string' && dir.trim() !== '' ? dir : null
+  } catch { return null }
+}
+
 /** Reads the JSON body, capped: a larger body is dropped (the command itself is capped at 500 characters). */
 const lireCorps = (req) => new Promise((res) => {
   let corps = ''
@@ -187,6 +219,7 @@ export function monterRoutes (webServerSvc, options = {}) {
   const lireSecret = options.lireSecret ?? (() => lireSecretSession())
   const lancer = options.executer ?? executer
   const maintenant = options.maintenant ?? Date.now
+  const dossier = options.dossierDeSession ?? dossierDeSession
   webServerSvc.register({
     kind: 'exact',
     path: '/kybernos-terminal/run',
@@ -205,7 +238,21 @@ export function monterRoutes (webServerSvc, options = {}) {
       }
       const corps = await lireCorps(req)
       if (corps === null) { repondre(res, 413, { ok: false, erreur: 'request body too large' }); return }
-      const r = await lancer(corps)
+      // Where it runs: the folder of the session the click was made in, found by the host. A path sent by the page is never used,
+      // and a session whose folder cannot be found runs nothing (a silent run in the home folder is where `rm -rf build` does harm).
+      const args = corps !== null && typeof corps === 'object' ? { ...corps } : {}
+      const session = typeof args.session === 'string' ? args.session.trim() : ''
+      delete args.cwd
+      delete args.session
+      if (session !== '') {
+        const dir = await dossier(session)
+        if (dir === null || dir === undefined) {
+          repondre(res, 400, { ok: false, erreur: 'the folder of this session cannot be found: nothing was run' })
+          return
+        }
+        args.cwd = dir
+      }
+      const r = await lancer(args)
       repondre(res, r.ok ? 200 : 400, r)
     }
   })
