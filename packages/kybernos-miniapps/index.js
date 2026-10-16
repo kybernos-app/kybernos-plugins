@@ -22,6 +22,7 @@ import { homedir } from 'node:os'
 import { join, dirname, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
+import { writeGuard } from './session-guard.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -74,20 +75,12 @@ const executer = (cmd, args) => new Promise((resoudre) => {
   } catch (err) { resoudre({ err }) }
 })
 
-// ── garde d'origine (recette 2026-10 M-02/S-03, cf. kybernos-slides) ────────
+// ── garde d'écriture (recette 2026-10 M-02/S-03, cf. kybernos-slides) ──────
 // M-03 : install/uninstall écrivent ET lancent une app native — un POST
-// cross-site (drive-by) ne doit jamais y arriver. Hôte EXACT de l'écoute
-// réelle du socket, jamais un préfixe.
-const origineOK = (req) => {
-  const o = String(req.headers.origin || '')
-  if (o === '') return true
-  try {
-    const u = new URL(o)
-    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
-    const port = (req.socket && typeof req.socket.localPort === 'number') ? ':' + req.socket.localPort : ''
-    return (['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0 || kbTrusted(u.host))
-  } catch { return false }
-}
+// cross-site (drive-by) ne doit jamais y arriver, ni un programme local qui
+// n'envoie aucun en-tête : `writeGuard` (session-guard.mjs, la règle du
+// terminal) exige l'origine EXACTE de l'écoute réelle du socket ET le cookie
+// de session signé de DSH. Leur seul appelant est la page (un navigateur).
 
 // M-03 : les POST qui agissent exigent du JSON explicite — un POST text/plain
 // (forme simple cross-site sans préflight) est refusé.
@@ -247,15 +240,17 @@ export function apply (ctx) {
       const webServerSvc = kbFenced(c.get('webServer'))
       if (webServerSvc === undefined) return
       webServerSvc.register({ kind: 'exact', path: '/kybernos-miniapps/install', handler: async (req, res) => {
-        // M-03 : écrit + lance une app native — origine exacte et JSON requis.
-        if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+        // M-03 : écrit + lance une app native — origine exacte, session signée et JSON requis.
+        const refus = writeGuard(req)
+        if (refus !== null) { res.writeHead(refus.status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: refus.error })); return }
         if (!jsonSeulement(req)) { res.writeHead(415); res.end('content-type application/json attendu'); return }
         const r = await installer(await lireCorps(req))
         res.setHeader('Content-Type', 'application/json')
         res.end(JSON.stringify(r))
       } })
       webServerSvc.register({ kind: 'exact', path: '/kybernos-miniapps/uninstall', handler: async (req, res) => {
-        if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+        const refus = writeGuard(req)
+        if (refus !== null) { res.writeHead(refus.status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: refus.error })); return }
         if (!jsonSeulement(req)) { res.writeHead(415); res.end('content-type application/json attendu'); return }
         const r = await desinstaller(await lireCorps(req))
         res.setHeader('Content-Type', 'application/json')

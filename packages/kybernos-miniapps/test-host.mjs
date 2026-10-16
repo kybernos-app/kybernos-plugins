@@ -8,6 +8,10 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { apply } from './index.js'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, browserHeaders } from './lib-session-test.mjs'
+
+sessionSource.secret = () => SESSION_SECRET // la clé machine contre laquelle la garde vérifie le cookie de session (test-write-guard.mjs lit le fichier)
 
 let echecs = 0
 const ok = (label, cond, detail) => {
@@ -31,7 +35,8 @@ const requete = (extra, corps) => {
   const body = JSON.stringify(corps ?? {})
   return {
     method: 'POST',
-    headers: Object.assign({ 'content-type': 'application/json' }, extra.headers || {}),
+    // la page elle-même : sa propre origine et le cookie de session de DSH, sauf si le test dit autre chose
+    headers: Object.assign({ 'content-type': 'application/json' }, browserHeaders(), extra.headers || {}),
     socket: { localPort: 3080 },
     on: (ev, fn) => {
       if (ev === 'data') fn(body)
@@ -66,11 +71,10 @@ const jouer = async (handler, req) => { const res = reponse(); await handler(req
 // NB : on ne lance PAS l'install pour de vrai — macOS seulement et effets de
 // bord réels ; on vérifie juste qu'elle passe les gardes (code ≠ 403/415).
 if (process.platform === 'darwin') {
-  const res = await jouer(routes['/kybernos-miniapps/install'], requete({ headers: { origin: 'http://127.0.0.1:3080' } }, { id: 'garde-test', html: '<html><body>ok</body></html>' }))
+  // Un HTML trop court : la route répond « HTML trop court » AVANT d'écrire quoi que ce soit (ce test n'installe plus d'app dans ~/Applications).
+  const res = await jouer(routes['/kybernos-miniapps/install'], requete({ headers: { origin: 'http://127.0.0.1:3080' } }, { id: 'garde-test', html: '<b>x</b>' }))
   const j = (() => { try { return JSON.parse(res.corps) } catch { return {} } })()
-  // l'install peut réussir OU échouer (codesign), mais pas sur un refus de garde
-  ok('M-03 : install origine locale passe les gardes (pas 403/415)', res.code !== 403 && res.code !== 415, JSON.stringify(j).slice(0, 60))
-  await jouer(routes['/kybernos-miniapps/uninstall'], requete({}, { id: 'garde-test' }))
+  ok('M-03 : install origine locale passe les gardes (pas 401/403/415)', res.code !== 401 && res.code !== 403 && res.code !== 415 && j.ok === false, JSON.stringify(j).slice(0, 60))
 } else {
   console.log('ℹ macOS requis pour l’install réelle — gardes 403/415 testées ci-dessus')
 }
