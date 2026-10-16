@@ -4,7 +4,7 @@
     "dsh-db-viewer": "pending",
     "dsh-media-player": "pending",
     "dsh-mermaid": "pending",
-    "dsh-subagent-maison": "pending",
+    "dsh-subagent-maison": [],
     "kybernos-atlas": "pending",
     "kybernos-auto": [],
     "kybernos-bricks": "pending",
@@ -40,7 +40,7 @@
     "kybernos-summary": "pending",
     "kybernos-terminal": "pending",
     "kybernos-theme": "pending",
-    "kybernos-usage": "pending",
+    "kybernos-usage": [],
     "kybernos-websearch": [],
     "kybernos-workers": [],
     "messaging": "pending"

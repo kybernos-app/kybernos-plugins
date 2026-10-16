@@ -1,19 +1,19 @@
 {
   "what": {
-    "fr": "Une pastille sous la zone de saisie montre ce que le travail consomme : la part de votre plan avec un modèle Kybernos, le coût de la session avec votre propre clé.",
+    "fr": "Une pastille sous la zone de saisie montre ce que le travail consomme : la part de ton plan avec un modèle Kybernos, le coût de la session avec ta propre clé.",
     "en": "A chip under the message box shows what the work uses: your plan's share with a Kybernos model, the session's cost with your own key."
   },
   "steps": [
     {
-      "fr": "Lisez la pastille : un pourcentage avec un modèle Kybernos, un montant avec votre clé, « gratuit » avec un modèle local.",
+      "fr": "Lis la pastille : un pourcentage avec un modèle Kybernos, un montant avec ta clé, « gratuit » avec un modèle local.",
       "en": "Read the chip: a percentage with a Kybernos model, an amount with your key, “free” with a local model."
     },
     {
-      "fr": "Cliquez-la : la carte montre la fenêtre de contexte, les limites de votre plan et vos crédits.",
+      "fr": "Clique-la : la carte montre la fenêtre de contexte, les limites de ton plan et tes crédits.",
       "en": "Click it: the card shows the context window, your plan's limits and your credits."
     },
     {
-      "fr": "Ouvrez Réglages › Usage pour le détail par jour, par modèle et par session, et pour fixer un budget.",
+      "fr": "Ouvre Réglages › Usage pour le détail par jour, par modèle et par session, et pour fixer un budget.",
       "en": "Open Settings › Usage for the detail by day, model and session, and to set a budget."
     }
   ],
@@ -23,7 +23,7 @@
     "page": true
   },
   "good": {
-    "fr": "Le plan est compté par le serveur, en pourcentage ; le coût de vos clés est calculé sur cet ordinateur, rien n'est envoyé.",
+    "fr": "Le plan est compté par le serveur, en pourcentage ; le coût de tes clés est calculé sur cet ordinateur, rien n'est envoyé.",
     "en": "The plan is counted by the server, as a percentage; the cost of your keys is worked out on this computer, nothing is sent."
   },
   "url": "https://help.kybernos.app/{lang}/models-and-budget/see-what-it-costs/"

@@ -168,4 +168,12 @@ ok('stable test hooks exist', ['kybernos-usage-pill', 'kybernos-usage-card', 'ky
   ok('the page carries the Suite’s button, once, for this bundle', find(en, (n) => n.type === Help).length === 1 && find(en, (n) => n.type === Help)[0].props.id === 'kybernos-usage')
   ok('without the Suite there is no button and the page still draws', (() => { const t = draw('en'); return t !== null && find(t, (n) => n.type === Help).length === 0 && find(t, (n) => n.props && /\bkbus-for\b/.test(n.props.className)).length === 1 })())
 }
+// WP-07 (A2-25): the French of the page speaks « tu », like the first-run wizard.
+{
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n')
+  ok('no « vous », « votre », « vos » in the page', !/(?<![A-Za-zÀ-ÿ])(vous|votre|vos)(?![A-Za-zÀ-ÿ])/i.test(code))
+  const help = JSON.parse(readFileSync(join(here, 'help.json'), 'utf8'))
+  const frs = [help.what.fr, ...help.steps.map((x) => x.fr), help.good && help.good.fr].filter(Boolean)
+  ok('…nor in the French help', frs.length >= 4 && !frs.some((t) => /(?<![A-Za-zÀ-ÿ])(vous|votre|vos)(?![A-Za-zÀ-ÿ])/i.test(t) || /(?<![A-Za-zÀ-ÿ])(?!chez|assez)[a-zà-ÿ]{3,}ez(?![A-Za-zÀ-ÿ])/i.test(t)))
+}
 process.exit(fail ? 1 : 0)
