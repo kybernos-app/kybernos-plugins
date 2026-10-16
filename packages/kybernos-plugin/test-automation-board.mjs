@@ -70,6 +70,9 @@ eq('month title', m.kbBoardMonthTitle(m.kbBoardMonthGrid('2026-10-12', 0), 'en')
 eq('day names follow the language', [m.kbBoardDayName('2026-10-12', 'en'), m.kbBoardDayName('2026-10-12', 'fr')], ['Mon', 'lun.'])
 eq('when: today, tomorrow, later', [m.kbBoardWhen(Z(2026, 10, 12, 17), NOW, 'UTC', 'en'), m.kbBoardWhen(Z(2026, 10, 13, 8), NOW, 'UTC', 'en'), m.kbBoardWhen(Z(2026, 10, 16, 8), NOW, 'UTC', 'en')], ['Today · 17:00', 'Tomorrow · 08:00', 'Fri, Oct 16 · 08:00'])
 eq('when, in French', m.kbBoardWhen(Z(2026, 10, 13, 8), NOW, 'UTC', 'fr'), 'Demain · 08:00')
+// A5-10: the Automations list and the chips use this one style, so a date a year away must not read as this year's.
+eq('when: a date in another year carries its year', m.kbBoardWhen(Z(2027, 1, 1, 9), NOW, 'UTC', 'en') + ' | ' + m.kbBoardWhen(Z(2025, 12, 30, 9), NOW, 'UTC', 'en'), 'Fri, Jan 1, 2027 · 09:00 | Tue, Dec 30, 2025 · 09:00')
+eq('...the day after tomorrow in the same year has none', m.kbBoardWhen(Z(2026, 10, 14, 9), NOW, 'UTC', 'en'), 'Wed, Oct 14 · 09:00')
 eq('in: minutes, hours, days', [m.kbBoardIn(NOW + 12 * 60000, NOW, 'en'), m.kbBoardIn(NOW + 3 * 3600000, NOW, 'en'), m.kbBoardIn(NOW + 3 * 86400000, NOW, 'en')], ['in 12 minutes', 'in 3 hours', 'in 3 days'])
 eq('in: a time already past is "this minute", never negative', m.kbBoardIn(NOW - 60000, NOW, 'en'), 'this minute')
 
