@@ -5,6 +5,10 @@ import { mkdtempSync, readFileSync, writeFileSync, existsSync, readdirSync, stat
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { monterRoutes, lireSessions, lireSante } from './index.js'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, browserHeaders } from './lib-session-test.mjs'
+
+sessionSource.secret = () => SESSION_SECRET // the machine secret the write routes check the session cookie against (the guard's own test reads the file)
 
 let ok0 = 0
 let ko = 0
@@ -22,12 +26,12 @@ const routes = {}
 const webServerSvc = { register: (r) => { routes[r.path] = r.handler } }
 monterRoutes(webServerSvc, { home, reglagesPath, sessionsAutoPath, santePath, ollama: 'http://127.0.0.1:1' })
 
-const requete = (method, path, corps) => ({ method, url: path, headers: { origin: 'http://127.0.0.1:3080' }, socket: { localPort: 3080 }, on: ('data', (d) => {}), ...{} , __corps: corps })
+const requete = (method, path, corps) => ({ method, url: path, headers: browserHeaders(), socket: { localPort: 3080 }, on: ('data', (d) => {}), ...{} , __corps: corps })
 // petite fabrique conforme à lireCorps (events)
 const fabriqueRequete = (method, path, corps) => {
   const body = corps === undefined ? '' : JSON.stringify(corps)
   return {
-    method, url: path, headers: { origin: 'http://127.0.0.1:3080' }, socket: { localPort: 3080 },
+    method, url: path, headers: browserHeaders(), socket: { localPort: 3080 },
     on (ev, cb) { if (ev === 'data') cb(body); if (ev === 'end') cb() }
   }
 }

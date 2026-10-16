@@ -21,6 +21,7 @@ import { basename, dirname, join, resolve } from 'node:path'
 import { DELAI_DEFAUT, normaliserListe, sonderUn } from './sonde.mjs'
 import { TTL_SONDE_MS, apresIssue, issueDeRapport, plafondEssais, resoudre, triCandidats, vueModele } from './resilience.mjs'
 import { createFailover } from './failover.mjs'
+import { writeGuard } from './session-guard.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -51,6 +52,16 @@ const kbFenced = (service) => {
     })
     : route)
   return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => target.register(fence(route)) : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
+}
+
+/** A route that WRITES (the switches, the whitelist, a probe that spends tokens) needs DSH's signed session as well as the right Origin (session-guard.mjs,
+ *  the terminal's rule): plugin routes are served before DSH's own login and an Origin header is forgeable by any local program. Sends the refusal. */
+const ecritureAutorisee = (req, res) => {
+  const refus = writeGuard(req)
+  if (refus === null) return true
+  res.writeHead(refus.status, { 'Content-Type': 'application/json; charset=utf-8' })
+  res.end(JSON.stringify({ ok: false, error: refus.error }))
+  return false
 }
 
 export const name = 'kybernos-auto'
@@ -451,6 +462,7 @@ export function monterRoutes (webServerSvc, opts = {}) {
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/session', handler: async (req, res) => {
     if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }
+    if (!ecritureAutorisee(req, res)) return
     const corps = await lireCorps(req)
     const r = ecrireSession(sessionsFichier, corps.sessionId, corps.on === true)
     envoyer(res, r.ok === true ? 200 : 400, r.ok === true
@@ -461,6 +473,7 @@ export function monterRoutes (webServerSvc, opts = {}) {
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/settings', handler: async (req, res) => {
     if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }
+    if (!ecritureAutorisee(req, res)) return
     const corps = await lireCorps(req)
     // Whitelist and classifier: the same global keys as settings.json — the
     // dedicated page is their main writer. Validate first, touch the disk after.
@@ -503,6 +516,8 @@ export function monterRoutes (webServerSvc, opts = {}) {
   // Rapport d'issue d'une délégation : latence réelle, erreur, usage de cache.
   // C'est l'appelant (workflow, kyber, CLI) qui connaît l'issue — le routeur
   // seul ne la voit pas. Alimente les colonnes Latence / Erreurs / Cache hit.
+  // LEFT OPEN ON PURPOSE (no session cookie, an Origin is only refused when it is foreign): the caller is `cli/auto-router.mjs` (--report), copied to
+  // ~/.dsh/tools/ for the agent, a Node program that sends no Origin and has no browser session. `/router` below has the same caller.
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/report', handler: async (req, res) => {
     if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }
@@ -522,6 +537,7 @@ export function monterRoutes (webServerSvc, opts = {}) {
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/probe', handler: async (req, res) => {
     if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }
+    if (!ecritureAutorisee(req, res)) return
     const corps = await lireCorps(req)
     if (!llmDispo()) { envoyer(res, 503, { ok: false, erreur: 'llm service unavailable: nothing can be probed' }); return }
     const reg = lireReglagesAuto(reglagesFichier)
@@ -549,6 +565,7 @@ export function monterRoutes (webServerSvc, opts = {}) {
     envoyer(res, 200, etatComplet(''))
   } })
 
+  // LEFT OPEN ON PURPOSE, like /report: `cli/auto-router.mjs` (the agent's reflex before a delegation) calls it with no Origin and no cookie.
   webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/router', handler: async (req, res) => {
     if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }

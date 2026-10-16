@@ -9,6 +9,10 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { monterRoutes, lireSante, router } from './index.js'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, browserHeaders } from './lib-session-test.mjs'
+
+sessionSource.secret = () => SESSION_SECRET // the machine secret the write routes check the session cookie against
 import { PAUSE_HORS_JEU_MS, PAUSE_LIMITE_MS, PAUSE_MAX_MS, PAUSE_MIN_MS, SEUIL_OUVERTURE, TTL_SONDE_KO_MS, TTL_SONDE_MS, apresIssue, causeDe, etatDisjoncteur, issueDeRapport, plafondEssais, resoudre, triCandidats, vierge, vueModele } from './resilience.mjs'
 
 let pass = 0
@@ -188,7 +192,7 @@ console.log('the routes, with a fake llm service')
   let maintenant = 2_000_000_000_000
   const routes = {}
   monterRoutes({ register: (r) => { routes[r.path] = r.handler } }, { home, reglagesPath, santePath, sessionsAutoPath, llm, horloge: () => maintenant, delaiSondeMs: 80 })
-  const req = (method, path, corps) => { const body = corps === undefined ? '' : JSON.stringify(corps); return { method, url: path, headers: { origin: 'http://127.0.0.1:3080' }, socket: { localPort: 3080 }, on (ev, cb) { if (ev === 'data') cb(body); if (ev === 'end') cb() } } }
+  const req = (method, path, corps) => { const body = corps === undefined ? '' : JSON.stringify(corps); return { method, url: path, headers: browserHeaders(), socket: { localPort: 3080 }, on (ev, cb) { if (ev === 'data') cb(body); if (ev === 'end') cb() } } }
   const appelle = async (method, path, corps) => { let out = null; await routes[path](req(method, path, corps), { writeHead () {}, end (s) { out = JSON.parse(s) } }); return out }
 
   let r = await appelle('POST', '/kybernos-auto/router', { demande: DEMANDE })
