@@ -726,5 +726,28 @@ ok('each has a French and an English text', keys.every((k) => k[2].length > 0 &&
 ok('placeholders match between French and English', keys.every((k) => (k[2].match(/\{[a-z]+\}/g) || []).sort().join() === (k[3].match(/\{[a-z]+\}/g) || []).sort().join()), keys.filter((k) => (k[2].match(/\{[a-z]+\}/g) || []).sort().join() !== (k[3].match(/\{[a-z]+\}/g) || []).sort().join()).map((k) => k[1]).join())
 ok('every kb.prov.off/on, kb.pv, kb.nat, kb.health, kb.fetch and kb.ds key used in the code is declared (a trailing dot is a computed key: kb.pv.err.<reason>)', [...src.matchAll(/m\('(kb\.(?:prov\.(?:off|on)\.[a-z.]+|prov\.add\.err\.parque|pv\.[a-z.]+|nat\.[a-z.]+|health\.[a-z.]+|fetch\.[a-z.]+|ds\.[a-z.]+))'/g)].filter((u) => !u[1].endsWith('.')).every((u) => keys.some((k) => k[1] === u[1])) && ['pick', 'slug', 'taken', 'url', 'template', 'models'].every((r) => keys.some((k) => k[1] === 'kb.pv.err.' + r)))
 
+console.log('\n── the Add provider form and the provider drawer say what they do (audit A3-01, A3-07, A3-09) ──')
+ok('Custom API: when no model has an ID the form says why Create is off (kb.pv.err.models), instead of « no models will be shown »', has("required: true, probe: kbFetchProbe(null, dr)") && has("(required === true ? 'kb.pv.err.models' : 'kb.pv.models.none')") && has('required === true && rows.length > 0 && kbPvRows(rows).length === 0'))
+ok('...and the disabled Create button carries the reason as its tooltip', has("title: block !== null ? m('kb.pv.err.' + block) : undefined"))
+ok('...the footer hint nothing displayed is gone', !has("const hint = block === 'slug' || block === 'taken'"))
+ok('the enable switch of the drawer reads as the state it is in: « Enabled », not « Disable »', has("'kb.pv.zone.off': { kybernos: 'Activé', en: 'Enabled' }") && has("'kb.pv.sw.aria': { kybernos: '{slug} activé', en: '{slug} enabled' }"))
+ok('...a switch is named by what it controls, never by the action it would do', has("'aria-label': m('kb.pv.sw.aria', { slug: route })") && !has("title: why, 'aria-label': why"))
+ok('Escape closes the confirmation and not the drawer behind it (window capture, ahead of the drawer\'s own document capture)', has('const confirming = ui.dlg !== null') && has("window.addEventListener('keydown', key, true)") && has("setUi((u) => ({ ...u, dlg: null, typed: '' }))"))
+
+console.log('\n── provider logos never ask a third party (A6-13) ──')
+{
+  const lBegin = src.indexOf('// KB-LOGO-PURE-BEGIN')
+  const lEnd = src.indexOf('// KB-LOGO-PURE-END')
+  ok('the logo block is delimited', lBegin > 0 && lEnd > lBegin)
+  const { kbLogoLocalId } = new Function(src.slice(lBegin, lEnd) + '\nreturn { kbLogoLocalId }')()
+  const cat = [{ id: 'google', logo: true }, { id: 'alibaba', logo: true }, { id: 'ollama-cloud', logo: true }, { id: 'anthropic', logo: true }, { id: 'acme', logo: false }, { id: 'mistral', logo: 'mistralai' }]
+  ok('a slug that is a local logo id keeps it', kbLogoLocalId('anthropic', cat) === 'anthropic')
+  ok('simple-icons names map to the logos the bundle ships (gemini → google, qwen → alibaba, ollama → ollama-cloud)', ['googlegemini', 'qwen', 'ollama'].map((x) => kbLogoLocalId(x, cat)).join() === 'google,alibaba,ollama-cloud')
+  ok('a provider without a shipped logo gets none (its initial is shown, nothing is fetched)', kbLogoLocalId('acme', cat) === null && kbLogoLocalId('unknown', cat) === null && kbLogoLocalId('mistralai', cat) === null)
+  ok('only a catalogue entry that says logo:true counts (the short built-in list carries slugs, not files)', kbLogoLocalId('mistral', cat) === null)
+  ok('a missing catalogue or a hostile slug is no logo, not an error', kbLogoLocalId('google', null) === null && kbLogoLocalId('__proto__', cat) === null && kbLogoLocalId('constructor', cat) === null && kbLogoLocalId(undefined, cat) === null)
+  ok('no third-party image host is left in the page', !/cdn\.simpleicons\.org/.test(src.replace(/\/\/[^\n]*/g, '')), (src.match(/cdn\.simpleicons\.org[^\n]{0,40}/) || [])[0])
+}
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed')
 process.exit(fail === 0 ? 0 : 1)

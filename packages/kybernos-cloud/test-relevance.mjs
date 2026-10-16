@@ -73,8 +73,8 @@ assert.deepEqual(ids(rank(kinds, 'doc')), [3, 2, 1], 'exact word, then prefix, t
 assert.deepEqual(ids(rank(docs, 'ck')), [], 'two letters are too little to match as a fragment')
 ok('a prefix or a fragment (3+ letters) matches, always under an exact word')
 
-// Seen on the real account: « utilisateur communique » returned memories that only had « com » (from yopmail.com)
-const addr = [mk(1, "L'utilisateur utilise le compte milou7@yopmail.com"), mk(2, "L'utilisateur communique en français"), mk(3, 'Le plugin communique avec la console')]
+// Seen on the real account: « utilisateur communique » returned memories that only had « com » (from mail.example.com)
+const addr = [mk(1, "L'utilisateur utilise le compte alex@mail.example.com"), mk(2, "L'utilisateur communique en français"), mk(3, 'Le plugin communique avec la console')]
 assert.deepEqual(rank(addr, 'utilisateur communique').map((r) => [r.doc.id, r.matched]), [[2, 2], [3, 1], [1, 1]], 'a 3-letter word that merely begins the query word ("com") is not a match')
 assert.deepEqual(ids(rank([mk(1, 'ouvre un com')], 'communique')), [], 'a short memory word never matches a long query word it only begins')
 assert.deepEqual(ids(rank([mk(1, 'le fichier dockerfile')], 'docker')), [1], 'the user typing the start of a word still matches (docker → dockerfile)')

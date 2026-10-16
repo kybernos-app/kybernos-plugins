@@ -28,6 +28,7 @@ import { probeHttp, probeStdio, redactDeep } from './mcp-probe.mjs'
 import { readConnector } from './block-read.mjs'
 import { readProvider, writeProvider } from './provider.mjs'
 import { createOpenapi } from './openapi.mjs'
+import { writeGuard } from './session-guard.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -633,11 +634,9 @@ const TOKEN_RE = /\$([A-Z_][A-Z0-9_]*)/g
 // ── K-01: guards on the routes that act ─────────────────────────────────────
 // EXACT origin of the real socket (2026-10 acceptance M-02/S-03): a cross-site (drive-by)
 // POST must never register a stdio connector, it would be launched when DSH restarts.
-// A request that says nothing about where it comes from (no Origin, no Referer: a script, another local user) may read; it may not
-// write. A page of this DSH always says it on a write, so this refuses no one the person can see (A3-29).
 function origineOK(req) {
-  const o = String(req.headers.origin || req.headers.referer || '')
-  if (o === '') return ['GET', 'HEAD'].indexOf(String(req.method || '').toUpperCase()) >= 0
+  const o = String(req.headers.origin || '')
+  if (o === '') return true
   try {
     const u = new URL(o)
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
@@ -649,6 +648,15 @@ function origineOK(req) {
 // preflight, so it is refused.
 function jsonSeulement(req) {
   return String(req.headers['content-type'] || '').toLowerCase().includes('application/json')
+}
+// A route that WRITES (a key, a connector that starts a command, the provider choice) needs DSH's signed session as well as the right Origin:
+// plugin routes are served before DSH's own login and an Origin header is forgeable by any local program (session-guard.mjs, test-write-guard.mjs).
+// The reads keep the `origineOK` rule above. Sends the refusal and answers false.
+function writeAllowed(req, res) {
+  const refused = writeGuard(req)
+  if (refused === null) return true
+  sendJson(res, refused.status, { ok: false, error: refused.error })
+  return false
 }
 // The stdio command of a connector must be a known SYSTEM executable: an absolute path, an
 // existing executable file under a root the user cannot write to. A binary put in the home
@@ -1510,6 +1518,7 @@ async function serveConnecteurs(ctx, req, res) {
       problem === null ? {} : { state: state.corrupt === true ? 'corrupt' : 'unreadable', error: problem }))
   }
   if (req.method === 'POST') {
+    if (writeAllowed(req, res) !== true) return
     if (jsonSeulement(req) !== true) return sendJson(res, 415, { ok: false, error: 'content-type application/json expected' })
     let body = null
     try { body = JSON.parse(await readBody(req)) } catch (e) {
@@ -1563,6 +1572,7 @@ async function serveConnecteurs(ctx, req, res) {
     return sendJson(res, 200, Object.assign({ ok: true, connecteur: c, secretsWritten: secrets.length, validated: verdict.validated }, renameFrom === '' ? {} : { renamedFrom: renameFrom }))
   }
   if (req.method === 'DELETE') {
+    if (writeAllowed(req, res) !== true) return
     const nom = queryOf(req).get('nom') || ''
     if (NOM_RE.test(nom) !== true) return sendJson(res, 400, { ok: false, error: 'invalid name' })
     const state = readSidecarState()
@@ -1627,7 +1637,7 @@ async function credentialDescribe(ctx) {
 
 /** Reads and checks a JSON body for a route that writes. Returns { body } or sends the refusal and returns null. */
 async function jsonBody(req, res) {
-  if (origineOK(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin refused' }); return null }
+  if (writeAllowed(req, res) !== true) return null
   if (jsonSeulement(req) !== true) { sendJson(res, 415, { ok: false, error: 'content-type application/json expected' }); return null }
   try {
     const body = JSON.parse(await readBody(req))
@@ -1673,6 +1683,7 @@ async function serveKey(ctx, req, res) {
     return sendJson(res, 200, { ok: true, verified: verified, code: code, needRestart: agentsEnv !== key })
   }
   if (req.method === 'DELETE') {
+    if (writeAllowed(req, res) !== true) return
     if (await inherited()) return sendJson(res, 409, { ok: false, error: 'the key comes from the environment DSH was started with: change it there', code: 'inherited' })
     let text = null
     try { text = existsSync(ENV_PATH()) ? readFileSync(ENV_PATH(), 'utf8') : null } catch (e) { return sendJson(res, 500, { ok: false, error: fsMessage('the .env file cannot be read', e) }) }
@@ -1751,6 +1762,7 @@ function withSecrets(text, draft, fileEnv, used, missing) {
 async function serveConnecteurTest(ctx, req, res) {
   if (origineOK(req) !== true) return sendJson(res, 403, { ok: false, error: 'origin refused' })
   if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+  if (writeAllowed(req, res) !== true) return
   if (jsonSeulement(req) !== true) return sendJson(res, 415, { ok: false, error: 'content-type application/json expected' })
   let body = null
   try { body = JSON.parse(await readBody(req)) } catch (e) {
@@ -1818,6 +1830,7 @@ async function serveConnecteurCommande(ctx, req, res) {
   const roots = () => ({ base: RACINES_STDIO_OK, extra: extraRoots() })
   if (req.method === 'GET') return sendJson(res, 200, { ok: true, help: commandHelp(queryOf(req).get('command') || ''), roots: roots() })
   if (req.method === 'POST') {
+    if (writeAllowed(req, res) !== true) return
     if (jsonSeulement(req) !== true) return sendJson(res, 415, { ok: false, error: 'content-type application/json expected' })
     let body = null
     try { body = JSON.parse(await readBody(req)) } catch (e) { return sendJson(res, e instanceof BodyTooLarge ? 413 : 400, { ok: false, error: e instanceof BodyTooLarge ? 'the request body is too large' : 'a JSON body is expected' }) }
@@ -1828,6 +1841,7 @@ async function serveConnecteurCommande(ctx, req, res) {
     return sendJson(res, 200, { ok: true, roots: roots() })
   }
   if (req.method === 'DELETE') {
+    if (writeAllowed(req, res) !== true) return
     const dir = queryOf(req).get('dir') || ''
     try { writeExtraRoots(extraRoots().filter((d) => d !== dir)) } catch (e) { return sendJson(res, 500, { ok: false, error: fsMessage('the folder list could not be written', e) }) }
     return sendJson(res, 200, { ok: true, roots: roots() })

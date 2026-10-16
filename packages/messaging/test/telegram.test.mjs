@@ -54,7 +54,7 @@ async function startFakeApi() {
                   message_id: 5,
                   date: 1700000000,
                   chat: { id: 42, type: 'private' },
-                  from: { id: 9, username: 'miled', is_bot: false },
+                  from: { id: 9, username: 'alex', is_bot: false },
                   caption: 'salut',
                   photo: [{ file_id: 'petit' }, { file_id: 'grand', file_size: 1234 }],
                 },
@@ -107,7 +107,7 @@ test('normalizeUpdate extrait chat, texte, pièces jointes et ignore les bots', 
       message_id: 5,
       date: 1700000000,
       chat: { id: -100, type: 'group' },
-      from: { id: 9, username: 'miled', is_bot: false },
+      from: { id: 9, username: 'alex', is_bot: false },
       text: 'bonjour',
       document: { file_id: 'f', file_name: 'notes.pdf', file_size: 10, mime_type: 'application/pdf' },
     },
@@ -173,7 +173,7 @@ test('start reçoit un message, télécharge la pièce jointe et avance l’offs
   const message = received[0];
   assert.equal(message.chatId, '42');
   assert.equal(message.text, 'salut');
-  assert.equal(message.from, 'miled');
+  assert.equal(message.from, 'alex');
   assert.equal(message.attachments.length, 1);
   assert.ok(message.attachments[0].localPath, 'la pièce jointe doit être téléchargée');
   assert.equal(fs.readFileSync(message.attachments[0].localPath, 'utf8'), 'contenu-image');

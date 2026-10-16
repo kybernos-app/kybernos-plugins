@@ -758,7 +758,7 @@ function MotionPanel () {
       pop === 'list' ? ListPop({ list, onPick: async (p) => { await api('POST', 'open', { path: p }); setPop(null); await load(p) } }) : null,
       h('div', { className: 'kbmt-empty', 'data-kb': 'motion-empty' }, loadErr ? h('p', { className: 'kbmt-err' }, loadErr) : null,
         h('b', null, kt('Aucune animation ouverte', 'No animation open')),
-        h('p', null, kt('Demandez-en une à l\'agent (titre animé, graphique, compteur, logo…), ou ouvrez un fichier de type motion depuis la page Livrables.', 'Ask the agent for one (animated title, chart, counter, logo…), or open a motion file from the Livrables page.'))))
+        h('p', null, kt('Demandez-en une à l\'agent (titre animé, graphique, compteur, logo…), ou ouvrez un fichier de type motion depuis la page Créations.', 'Ask the agent for one (animated title, chart, counter, logo…), or open a motion file from the Creations page.'))))
   }
 
   const controls = controlsOf(scene)

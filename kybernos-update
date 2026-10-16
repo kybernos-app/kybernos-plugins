@@ -1,24 +1,24 @@
 #!/bin/sh
-# ── Kybernos : mise à jour ──────────────────────────────────────────────────
+# ── Kybernos: update ────────────────────────────────────────────────────────
 #
-# À lancer DEPUIS le dossier de la NOUVELLE archive extraite :
+# Run it FROM the folder of the NEW archive, extracted:
 #
-#   ./kybernos-update                     # met à jour le plugin (et le moteur si besoin)
-#   ./kybernos-update 0.1.7-alpha.2       # épingle aussi une version du moteur
-#   ./kybernos-update --dry               # montre le plan, ne touche à RIEN
+#   ./kybernos-update                     # updates the plugin (and the engine if needed)
+#   ./kybernos-update 0.1.7-alpha.2       # also pins a version of the engine
+#   ./kybernos-update --dry               # shows the plan, touches NOTHING
 #
-# Même contrat que l'installation : empreintes vérifiées, photo avant écriture,
-# démarrage vérifié, et retour à la photo si quoi que ce soit échoue.
+# Same contract as the installation: fingerprints verified, photo before writing, start
+# verified, and back to the photo if anything fails.
 set -e
 ici=$(cd "$(dirname "$0")" && pwd)
 
 if ! command -v node >/dev/null 2>&1; then
-  echo "Node.js est absent — voir https://nodejs.org/fr/download"
+  echo "Node.js is missing — see https://nodejs.org/en/download"
   exit 1
 fi
 version_noeud=$(node --version 2>/dev/null || echo '?')
 if ! node --input-type=module -e "await import('node:child_process')" >/dev/null 2>&1; then
-  echo "Node $version_noeud ne sait pas exécuter le robot (modules ESM indisponibles)."
+  echo "Node $version_noeud cannot run the robot (ES modules unavailable)."
   exit 1
 fi
 echo "Node $version_noeud"

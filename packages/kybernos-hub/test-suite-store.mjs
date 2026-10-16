@@ -50,6 +50,26 @@ console.log('the words of the online catalogue and of the update')
   ok('an update that can be applied has no reason; one that cannot says why', rm({ miseAJour: { possible: true } }) === null && rm(null) === null && rm({}) === null && /git/.test(rm({ miseAJour: { possible: false, raison: 'development-checkout' } })[1]) && /archive/.test(rm({ miseAJour: { possible: false, raison: 'no-archive-for-platform' } })[1]) && rm({ miseAJour: { possible: false, raison: 'odd' } })[0] === 'odd')
   const mm = T.messageMiseAJour
   ok('each step of the update has a line; the end says to restart; a failure says nothing was installed or that it was rolled back', ['telechargement', 'extraction', 'installation'].every((e) => mm({ etat: e }).length === 2) && /Relancez/.test(mm({ etat: 'termine', version: '1.1.0' })[0]) && /Restart/.test(mm({ etat: 'termine', version: '1.1.0' })[1]) && /rien n’a été installé/.test(mm({ etat: 'echec', erreur: 'digest-mismatch' })[0]) && /rolled back/.test(mm({ etat: 'echec', erreur: 'robot-refused' })[1]) && mm({ etat: 'idle' }) === null && mm(null) === null)
+  // A code in a sentence is a developer's line on a person's page (audit 2026-10-16: « Suite 1.0.0-beta.10 is available. hosted-instance »,
+  // « Update failed (robot-failed) »). The codes are read from the host sources, so a code added there without a sentence fails here.
+  const hostSrc = readFileSync(new URL('./suite-host.mjs', import.meta.url), 'utf8')
+  const hubHostSrc = readFileSync(new URL('./hub-host.mjs', import.meta.url), 'utf8')
+  const downloadSrc = readFileSync(new URL('./telechargement.mjs', import.meta.url), 'utf8')
+  const reasons = [...hostSrc.matchAll(/raison = '([a-z-]+)'/g)].map((m) => m[1])
+  const unspoken = reasons.filter((r) => { const x = rm({ miseAJour: { possible: false, raison: r } }); return x === null || x[0] === r || x[1] === r })
+  ok('every reason the host gives for « cannot update from here » has a sentence, in French and English', reasons.length >= 6 && unspoken.length === 0, { reasons, unspoken })
+  const from = hostSrc.indexOf('export async function mettreAJour')
+  const updateSrc = hostSrc.slice(from, hostSrc.indexOf('\n}\n', from))
+  const failures = new Set([].concat(
+    [...updateSrc.matchAll(/error: '([a-z-]+)'/g)].map((m) => m[1]),
+    [...downloadSrc.matchAll(/erreur\('([a-z-]+)'/g)].map((m) => m[1]),
+    [...hostSrc.matchAll(/error: '(robot-failed)'/g)].map((m) => m[1]),
+    [...hubHostSrc.matchAll(/erreur: '(engine-update-failed)'/g)].map((m) => m[1]),
+    ['busy', 'update-failed']))
+  const raw = [...failures].filter((c) => { const x = mm({ etat: 'echec', erreur: c }); return !Array.isArray(x) || x.length !== 2 || x[0].includes('(' + c + ')') || x[1].includes('(' + c + ')') })
+  ok('every way an update can fail has a sentence of its own, with no code in brackets', failures.size >= 12 && raw.length === 0, { failures: [...failures], raw })
+  ok('a failure the table does not know still says something, with its code for the support', /zzz/.test(mm({ etat: 'echec', erreur: 'zzz' })[1]))
+  ok('the restart that cannot run gives a next step a person can do alone, not « ask the agent »', !/ask the agent|demandez à l’agent/.test(source) && /stop “dsh web” in your terminal/.test(source))
 }
 
 console.log('wiring')

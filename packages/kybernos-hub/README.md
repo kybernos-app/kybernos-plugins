@@ -16,7 +16,7 @@ are wrapped in try/catch; a half that fails is skipped (the host logs it).
 
 ## Suite panel
 
-A Settings section (`settings.section`, id `kybernos-suite`, order 29) listing the 26 modules of `catalog.json`
+A Settings section (`settings.section`, id `kybernos-suite`, order 29) listing the modules of `catalog.json`
 in 7 families. Installed state and switches come from DSH's native plugin manager; the DSH version from
 `/kybernos-maintenance/state`, if present. A module with a `plugins.bundle.config` screen gets a Settings button that unfolds it in place.
 

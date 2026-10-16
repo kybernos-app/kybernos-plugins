@@ -406,7 +406,7 @@ window.__ModuleLoader__.load({
           ? kt('Votre liste est vide : le modèle de la session sera utilisé.', 'Your list is empty: the session model will be used.')
           : total + (total > 1 ? kt(' modèles autorisés', ' models allowed') : kt(' modèle autorisé', ' model allowed')) + ' · ' + disponibles + kt(' répondent', ' answering'))
       return h('div', { className: 'kaa-page', 'data-kb': 'auto-settings' },
-        h('h4', { className: 'kb6-title', style: { fontSize: '26px', fontWeight: 800, letterSpacing: '-.01em' } }, 'Auto routing'),
+        h('h4', { className: 'kb6-title', style: { fontSize: '26px', fontWeight: 800, letterSpacing: '-.01em' } }, 'Auto Routing'),
         h('p', { className: 'kaa-intro' }, kt(
           'Auto envoie chaque tâche déléguée au modèle le plus adapté parmi ceux que vous autorisez. Le modèle de votre chat n’est jamais changé.',
           'Auto sends each delegated task to the best-fit model among the ones you allow. Your chat’s own model is never changed.')),
@@ -519,8 +519,8 @@ window.__ModuleLoader__.load({
                 kt(' · toutes les ', ' ago · every '), (etat.intervalS || 60) + ' s'),
               h('button', { type: 'button', className: 'kaa-recheck', 'data-kb': 'auto-health-recheck', disabled: sondage, onClick: sonder }, sondage ? kt('Vérification…', 'Checking…') : kt('Vérifier maintenant', 'Check now'))),
             h('p', { className: 'kaa-note' }, kt(
-              'Avant de choisir, Auto interroge les candidats (une vraie question minuscule, verdict gardé ' + (etat.ttlSondeS || 60) + ' s) et ne propose que des modèles qui répondent, avec jusqu’à ' + (etat.plafond || 10) + ' replis ordonnés. « Vérifier maintenant » interroge les ' + (etat.sondeMax || 20) + ' premiers de la liste. Latence, erreurs et cache hit viennent des délégations qui rapportent leur issue (POST /kybernos-auto/report) ; « — » tant qu’aucune n’a rapporté.',
-              'Before choosing, Auto asks the candidates a real, tiny question (the verdict is kept for ' + (etat.ttlSondeS || 60) + ' s) and only offers models that answer, with up to ' + (etat.plafond || 10) + ' ordered fallbacks. “Check now” asks the first ' + (etat.sondeMax || 20) + ' of the list. Latency, errors and cache hit come from delegations that report their outcome (POST /kybernos-auto/report); "—" until one has.')))) : null,
+              'Avant de choisir, Auto interroge les candidats (une vraie question minuscule, verdict gardé ' + (etat.ttlSondeS || 60) + ' s) et ne propose que des modèles qui répondent, avec jusqu’à ' + (etat.plafond || 10) + ' replis ordonnés. « Vérifier maintenant » interroge les ' + (etat.sondeMax || 20) + ' premiers de la liste. Latence, erreurs et cache hit viennent des délégations qui rapportent leur issue ; « — » tant qu’aucune n’a rapporté.',
+              'Before choosing, Auto asks the candidates a real, tiny question (the verdict is kept for ' + (etat.ttlSondeS || 60) + ' s) and only offers models that answer, with up to ' + (etat.plafond || 10) + ' ordered fallbacks. “Check now” asks the first ' + (etat.sondeMax || 20) + ' of the list. Latency, errors and cache hit come from delegations that report their outcome; "—" until one has.')))) : null,
         msg !== '' ? h('p', { className: 'kaa-err' }, msg) : null)
     }
 

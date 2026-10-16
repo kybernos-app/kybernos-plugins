@@ -33,6 +33,10 @@ ok('relecture automatique toutes les 60 s + « Check now » qui sonde pour de vr
 ok('un DSH démarré avant la route /probe (404) reçoit un message clair, pas une erreur de parse JSON', src.indexOf('r.status === 404 ? Promise.reject') !== -1)
 ok('l’état d’un modèle dit POURQUOI (cause, retour prévu, dernière erreur), dans la page et dans le composer', src.indexOf('const statutTxt') !== -1 && src.indexOf("'data-kb': 'auto-health-why'") !== -1 && (src.match(/statutTxt\(/g) || []).length === 2)
 ok('un clic dans le panneau ne ferme pas le menu natif (pointerdown arrêté)', src.indexOf("'pointerdown'") !== -1 && src.indexOf('stopPropagation') !== -1)
+// What a person reads on the page is a sentence (audit 2026-10-16): no HTTP route inside a paragraph, no debug « scope: session » line,
+// and one spelling of the page's name, the one of the Settings menu.
+ok('the page shows no HTTP route and no debug line (« POST /kybernos-auto/report », « scope: session »)', !/\(POST \/kybernos-auto/.test(src) && !/scope: session/.test(src) && src.indexOf('kaa-foot') === -1)
+ok('the page title is « Auto Routing », as the Settings menu says it', src.indexOf("}, 'Auto Routing'),") !== -1 && src.indexOf("}, 'Auto routing'),") === -1 && src.indexOf("label: 'Auto Routing' }") !== -1)
 
 // ── the page of V-30 / A3-24: one plain switch, three scopes, the rest under one fold ─────────────────────────────────
 ok('la page ouvre sur une phrase simple, UN interrupteur « Routage automatique » et le choix des modèles : tous / gratuits / ma liste',

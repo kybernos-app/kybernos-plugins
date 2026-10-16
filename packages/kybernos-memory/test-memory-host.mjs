@@ -9,7 +9,10 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, browserHeaders } from './lib-session-test.mjs'
 
+sessionSource.secret = () => SESSION_SECRET // the machine secret the write routes check the session cookie against (the guard's own test reads the file)
 const root = mkdtempSync(join(tmpdir(), 'kybernos-memory-test-'))
 const kybers = join(root, 'kybers')
 mkdirSync(kybers, { recursive: true })
@@ -277,7 +280,8 @@ try {
   const res = () => ({ status: 0, body: null, writeHead(s) { this.status = s }, end(p) { this.body = p === undefined ? null : JSON.parse(p) } })
   const hit = async (path, method, headers, body) => {
     const r = res()
-    const req = { method, url: path, headers: { host: '127.0.0.1:3080', ...headers }, async *[Symbol.asyncIterator]() { if (body !== undefined) yield Buffer.from(JSON.stringify(body)) } }
+    // A write is sent the way the person's browser sends it (the right Origin and DSH's session cookie) unless the test says otherwise.
+    const req = { method, url: path, headers: { host: '127.0.0.1:3080', ...(method === 'GET' ? {} : browserHeaders()), ...headers }, socket: { localPort: 3080 }, async *[Symbol.asyncIterator]() { if (body !== undefined) yield Buffer.from(JSON.stringify(body)) } }
     await registered.get(path.split('?')[0])(req, r)
     return r
   }
@@ -285,16 +289,9 @@ try {
   assert.equal((await hit('/kybernos-memory/lessons', 'GET', { origin: 'https://evil.example' })).status, 403, 'cross-origin refused')
   assert.equal((await hit('/kybernos-memory/lessons/add', 'POST', { origin: 'https://evil.example' }, { text: 'x' })).status, 403)
   assert.equal((await hit('/kybernos-memory/lessons', 'GET', { origin: 'http://127.0.0.1:3080' })).status, 200, 'same-origin accepted')
-  const http = await hit('/kybernos-memory/lessons/add', 'POST', { origin: 'http://127.0.0.1:3080' }, { text: 'through the real handler', kyber: 'default' })
+  const http = await hit('/kybernos-memory/lessons/add', 'POST', {}, { text: 'through the real handler', kyber: 'default' })
   assert.equal(http.status, 200)
   assert.equal(http.body.ok, true)
-  // A3-29: a request that says nothing about where it comes from may read, it may not write (lessons, settings, tidy-up)
-  for (const path of ['/kybernos-memory/lessons/add', '/kybernos-memory/lessons/delete', '/kybernos-memory/settings/set', '/kybernos-memory/tidy/apply']) {
-    assert.equal((await hit(path, 'POST', {}, { text: 'silent', kyber: 'default', id: 'l1', mode: 'ask', confirm: true })).status, 403, path + ' refuses a write that says nothing about where it comes from')
-  }
-  assert.equal((await hit('/kybernos-memory/lessons', 'GET', {})).status, 200, 'a silent read still reads')
-  assert.equal((await hit('/kybernos-memory/lessons/add', 'POST', { referer: 'http://127.0.0.1:3080/settings' }, { text: 'through a referer', kyber: 'default' })).status, 200, 'a Referer of this DSH is enough')
-  assert.equal((await hit('/kybernos-memory/lessons/add', 'POST', { referer: 'https://evil.example/x' }, { text: 'x', kyber: 'default' })).status, 403, 'a Referer of another site is refused')
   assert.doesNotThrow(() => mod.apply({ get: () => undefined, inject: () => { throw new Error('no service') }, effect: () => {} }), 'a missing service never stops DSH from starting')
   assert.doesNotThrow(() => mod.apply({ get: () => { throw new Error('boom') }, inject: () => {}, effect: () => {} }))
   ok('wiring: every route mounted once, method and same-origin guards, a failing ctx never throws')
@@ -523,7 +520,7 @@ try {
     assert.equal((await hit(path, 'GET')).status, 405, path + ' is POST only')
   }
   assert.equal((await hit('/kybernos-memory/tidy', 'GET', { origin: 'http://127.0.0.1:3080' })).status, 200)
-  assert.equal((await hit('/kybernos-memory/tidy/apply', 'POST', { origin: 'http://127.0.0.1:3080' }, { confirm: true, groups: [{ id: 'nope' }] })).body.results[0].error, 'groupe_inconnu', 'the real handler reaches the apply code')
+  assert.equal((await hit('/kybernos-memory/tidy/apply', 'POST', {}, { confirm: true, groups: [{ id: 'nope' }] })).body.results[0].error, 'groupe_inconnu', 'the real handler reaches the apply code')
   ok('tidy: routes are same-origin guarded, POST where they write')
 
   // the store's restore: as-is, never beyond the cap, text already there is skipped
@@ -648,7 +645,9 @@ try {
     assert.equal((await mod.tidyTick(T0 + 40 * 86400000)).ran, true, 'start: after 3 days, at the first look of this launch')
     assert.equal((await mod.tidyTick(T0 + 50 * 86400000)).ran, false, 'and not again before the next launch')
     await call(url('/settings'), { schedule: 'n50' })
-    put('au-a', [...rows('au-a'), ...Array.from({ length: 48 }, (_, i) => L('Filler remark number ' + String.fromCharCode(97 + Math.floor(i / 26)) + String.fromCharCode(97 + (i % 26)) + 'q about wholly separate subjects ' + 'zk'.repeat(i % 7 + 1) + ' ' + ['kitchens', 'violins', 'glaciers', 'harbors'][i % 4], { ts: iso(50 + i) }))].slice(0, 80))
+    const fill48 = Array.from({ length: 48 }, (_, i) => L('Filler remark number ' + String.fromCharCode(97 + Math.floor(i / 26)) + String.fromCharCode(97 + (i % 26)) + 'q about wholly separate subjects ' + 'zk'.repeat(i % 7 + 1) + ' ' + ['kitchens', 'violins', 'glaciers', 'harbors'][i % 4], { ts: iso(50 + i) }))
+    put('au-a', [...rows('au-a'), ...fill48.slice(0, 24)])
+    put('au-c', fill48.slice(24))   // two teams: one team over 40 lessons would be a run for the cap (tested below), not for the count
     assert.equal((await mod.tidyTick(T0 + 51 * 86400000)).ran, false, 'fewer than 50 new since the last run')
     put('au-b', Array.from({ length: 3 }, (_, i) => L('Another separate remark about ' + ['cellars', 'orchards', 'lighthouses'][i] + ' and nothing in common ' + String.fromCharCode(113 + i) + 'y', { ts: iso(30 + i) })))
     assert.equal((await mod.tidyTick(T0 + 51 * 86400000)).ran, true, '50 more than at the last run: due')
@@ -667,6 +666,63 @@ try {
     assert.deepEqual(await mod.tidyTick(T1 + 600000), { ran: false, why: 'pas_echu' }, 'after a failed attempt the next one waits')
     assert.equal((await mod.tidyTick(T1 + 3700000)).ran, true, 'an hour later it tries again')
     ok('tidy: a run in progress is not doubled, and a failed attempt waits an hour')
+
+    // WP-10 (N-05): an agent team that nears its cap (40 of 50) is tidied by itself, whatever the clock of the schedule says
+    {
+      assert.equal(store.LESSONS_NEAR_COUNT, 40, 'the near-cap line: 40 of 50')
+      for (const k of store.listKybers()) rmSync(join(kybers, k), { recursive: true, force: true })
+      // pseudo-words, so that two fillers share nothing but « lesson »: no pair of them is a near-duplicate
+      const word = (n) => 'qz' + n.toString(26).split('').map((c) => String.fromCharCode(97 + parseInt(c, 26))).join('')
+      const filler = (i) => L('Lesson ' + word(i + 11) + ' ' + word(i + 311) + ' ' + word(i + 611) + ' ' + word(i + 911), { ts: iso(100 + i) })
+      const base = (n) => Array.from({ length: n }, (_, i) => filler(i))
+      const lastRun = (at, peak) => writeFileSync(sideFile('tidy'), JSON.stringify({ settings: { mode: 'auto', schedule: 'weekly', brain: false }, last: { at: new Date(at).toISOString(), trigger: 'schedule', total: 10, peak, ok: true } }))
+      const NOW = Date.now() + 400 * 86400000
+      const DAY = 86400000
+      mod.tidyFlags.retryAt = 0; mod.tidyFlags.bootDone = false
+
+      // 38 separate lessons and one close pair = 40: near. The weekly run was yesterday, so the schedule is not due.
+      put('au-cap', [...base(38), L(A1, { ts: iso(1500), uses: 2, tags: ['expo'] }), L(A2, { ts: iso(20000), uses: 1, tags: ['metro'] })])
+      lastRun(NOW - DAY, 12)
+      assert.equal(rows('au-cap').length, 40)
+      const cap1 = await mod.tidyTick(NOW)
+      assert.deepEqual([cap1.ran, cap1.trigger, cap1.auto && cap1.auto.groups], [true, 'cap', 1], 'a team at 40 is tidied by itself, the week not being over')
+      assert.equal(rows('au-cap').length, 39, 'the close pair was merged')
+      const viewCap = await call(url(''))
+      assert.deepEqual([viewCap.last.trigger, viewCap.last.peak], ['cap', 39], 'the run says why it ran, and how full the fullest team is now')
+      assert.equal(viewCap.log[0].by, 'auto')
+      assert.deepEqual(await mod.tidyTick(NOW + 600000), { ran: false, why: 'pas_echu' }, '39 is not near: nothing more to do before the week is over')
+
+      // one more lesson: 40 again, the team grew since the last look: a new run (nothing to merge), then it waits
+      put('au-cap', [...rows('au-cap'), filler(60)])
+      const cap2 = await mod.tidyTick(NOW + 1200000)
+      assert.deepEqual([cap2.ran, cap2.trigger, cap2.auto.groups], [true, 'cap', 0])
+      assert.equal((await call(url(''))).last.peak, 40)
+      assert.deepEqual(await mod.tidyTick(NOW + 1800000), { ran: false, why: 'pas_echu' }, 'near but not growing: it is not looked at every ten minutes')
+      assert.equal((await mod.tidyTick(NOW + 1800000 + DAY)).trigger, 'cap', 'still near a day later: one more look')
+
+      // it respects what the person chose
+      put('au-cap', [...rows('au-cap'), filler(61), filler(62)])
+      await call(url('/settings'), { schedule: 'off' })
+      assert.deepEqual(await mod.tidyTick(NOW + 3 * DAY), { ran: false, why: 'pas_echu' }, 'automatic tidy-up off means off, near the cap or not')
+      await call(url('/settings'), { schedule: 'weekly', mode: 'ask' })
+      put('au-cap', [...rows('au-cap'), L('Commit the lockfile with every dependency change to the repository', { ts: iso(50) }), L('Always commit the lockfile with every dependency change to the repository', { ts: iso(40) })])
+      const capAsk = await mod.tidyTick(NOW + 4 * DAY)
+      assert.deepEqual([capAsk.ran, capAsk.trigger, capAsk.auto.groups], [true, 'cap', 0], '« Ask me first »: it looks and proposes, it merges nothing')
+      assert.equal((await call(url(''))).groups.length, 1, 'the close pair waits in the review')
+      await call(url('/settings'), { mode: 'auto' })
+      await call('/kybernos-memory/settings/set', { lessons: false })
+      assert.deepEqual(await mod.tidyTick(NOW + 5 * DAY), { ran: false, why: 'lecons_desactivees' }, 'with Lessons switched off nothing runs')
+      await call('/kybernos-memory/settings/set', { lessons: true })
+
+      // 25 + 25 lessons in two teams is not a team near its cap: the line is per agent team, not the total
+      for (const k of store.listKybers()) rmSync(join(kybers, k), { recursive: true, force: true })
+      put('au-x', base(25)); put('au-y', Array.from({ length: 25 }, (_, i) => filler(i + 100)))
+      lastRun(NOW + 6 * DAY, 25)
+      assert.deepEqual(await mod.tidyTick(NOW + 6 * DAY + 3600000), { ran: false, why: 'pas_echu' })
+      for (const k of store.listKybers()) rmSync(join(kybers, k), { recursive: true, force: true })
+      await call(url('/settings'), { schedule: 'off' })
+      ok('tidy: a team that nears its cap (40 of 50) is tidied by itself, once per growth or per day, never against « off », « Ask me first » or Lessons off')
+    }
 
     // the Study model
     for (const k of store.listKybers()) rmSync(join(kybers, k), { recursive: true, force: true })

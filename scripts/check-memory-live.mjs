@@ -4,7 +4,7 @@
 //
 //   node scripts/check-memory-live.mjs [--shots <dir>] [--session "<start of a chat title>"]
 //
-// READ-ONLY by design: it opens Settings, opens the page, looks, opens the filter menu and the Options
+// READ-ONLY by design: it opens Settings, opens the page, looks, opens the filter menu and the Customize
 // page, looks for near-duplicates (only when the mode is « Ask me first »: « Clean up now » then only scans),
 // and takes screenshots. It never clicks a Yes/No, Save, Forget or Add — your memories, your lessons
 // and your switches are not touched (a test that must write picks its own throw-away data; this one
@@ -30,6 +30,8 @@ import { openLivePage, waitFor, clickText, openSettings } from './live-page.mjs'
 // after these and before those. scripts/test-live-checks.mjs keeps both lists in line with GROUPES.
 const NAV_ABOVE = ['Kybernos Suite', 'AI Provider & Models', 'Auto Routing']
 const NAV_BELOW = ['Workers', 'Language', 'Theme']
+// What the page is called, and what it says first (WP-10: it looks after itself, the options are folded under « Customize »).
+const PAGE_TITLE = 'Memory looks after itself'
 
 const args = process.argv.slice(2)
 const shotsDir = args.indexOf('--shots') >= 0 ? args[args.indexOf('--shots') + 1] : null
@@ -83,7 +85,7 @@ try {
   await sleep(400)
   await shot('01-page')
 
-  check('title', (await text('.kbmem-h1')) === 'Memory & Lessons learned')
+  check('title', (await text('.kbmem-h1')) === PAGE_TITLE)
   // Visual order, not DOM order: the shell lays the nav out with CSS `order` and the Kybernos plugin groups the cells under headers
   // (GROUPES). Where the page sits is therefore read from what is drawn: its group header, what is above it, what is below.
   const navAt = JSON.parse((await ev(`JSON.stringify((() => {
@@ -107,42 +109,56 @@ try {
     console.log('  – SKIP list rows: this instance has no memory to list (' + (memList !== null && memList.ok === true ? 'none yet' : 'not connected to Kybernos Cloud') + ')')
     check('data first: nothing to list, so the first screen is an empty state that says why, and no switches', (await count('.kbmem-r')) === 0 && (await count('.kbmem-empty')) >= 1 && (await count('.kbmem-srow')) === 0)
   }
+  // The one line under the title (N-04): what is on and when it last tidied; never « Off » while something works; the account is the one step.
+  const lesSettings = await local('/kybernos-memory/settings')
+  const lessonsOn = lesSettings !== null && lesSettings.ok === true && lesSettings.settings.lessons === true
+  const statusLine = (await text('.kbmem-st')) || ''
+  check('the status line says what is on, and is not « Off » while the lessons work', statusLine !== '' && (!lessonsOn || (!/\bOff\b/.test(statusLine) && /on\b/.test(statusLine))), { statusLine, lessonsOn })
+  const connectedNow = memList !== null && memList.ok === true
+  check('the account is the one visible step: a Connect button exactly when there is no account', (await count('.kbmem-st [data-act=connect]')) === (connectedNow ? 0 : 1) && (await count('.kbmem-page [data-act=connect]')) <= 1, { connectedNow })
+  check('the knobs are folded: one Customize button, no Options button', (await count('[data-act=customize]')) === 1 && (await count('[data-act=options]')) === 0)
   if (memList !== null && memList.ok === true) {
     const tabs = await text('.kbmem-row2')
     check('the Memories count is the host\'s total', tabs.indexOf('Memories' + String(memList.total)) >= 0, { tabs, host: memList.total })
-    check('the status line says how many memories are sent', new RegExp('of ' + String(memList.counts.all) + ' sent each turn').test(await text('.kbmem-st')), await text('.kbmem-st'))
     if (memList.total > 0) check('the pager matches the host', (await text('.kbmem-pager span')) === '1–' + String(Math.min(25, memList.total)) + ' of ' + String(memList.total), await text('.kbmem-pager span'))
   } else {
     console.log('  – SKIP memory numbers: the cloud memory route does not answer (not connected?)')
   }
   check('the Lessons count is the host\'s total', ((await text('.kbmem-row2')) || '').indexOf('Lessons learned' + String(lesList.total)) >= 0)
-  // The Map view is offered for the memories; it is never opened here (with Search by meaning on, opening it would spend embedding credits).
-  const mapBtn = JSON.parse((await ev(`JSON.stringify((() => { const b = document.querySelector('.kbmem-seg.sm button[data-v=map]'); return b ? { off: b.disabled, title: b.title, lock: b.querySelectorAll('svg').length > 1 } : null })())`)) || 'null')
-  check('Map is offered for the memories: ready when Search by meaning works, else locked and says why', mapBtn !== null && mapBtn.off === false && (mapBtn.lock === false ? /placed by meaning/.test(mapBtn.title) : /Click to see why/.test(mapBtn.title)), mapBtn)
+  if (!connectedNow) {
+    // No account: there is nothing to search, filter, add or draw, so the page does not draw a toolbar for it. It says why, and the Lessons tab is one click away.
+    check('no account: the memories tab shows the account explanation, not a dead toolbar', (await count('[data-empty=account]')) === 1 && (await count('.kbmem-tools')) === 0 && (await count('.kbmem-seg[aria-label=View]')) === 0)
+    console.log('  – SKIP the Map view and the search by relevance of the memories: no account on this instance')
+  } else {
+    // The Map view is offered for the memories; it is never opened here (with Search by meaning on, opening it would spend embedding credits).
+    const mapBtn = JSON.parse((await ev(`JSON.stringify((() => { const b = document.querySelector('.kbmem-seg.sm button[data-v=map]'); return b ? { off: b.disabled, title: b.title, lock: b.querySelectorAll('svg').length > 1 } : null })())`)) || 'null')
+    check('Map is offered for the memories: ready when Search by meaning works, else locked and says why', mapBtn !== null && mapBtn.off === false && (mapBtn.lock === false ? /placed by meaning/.test(mapBtn.title) : /Click to see why/.test(mapBtn.title)), mapBtn)
 
-  console.log('search by relevance (local, the default)')
-  check('the search field offers Relevance | Meaning, Relevance on', (await count('.kbmem-modes button')) === 2 && (await ev(`document.querySelector('.kbmem-modes button[data-mode=relevance]').classList.contains('on')`)) === true)
-  const setSearch = (v) => ev(`(() => { const i = document.querySelector('.kbmem-field input'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(i, ${JSON.stringify(v)}); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
-  // data-independent: take two long-ish words from the first memory and search for them
-  const sample = String(await text('.kbmem-r .kbmem-tx') || '')
-  const strip = (t) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-  // the two LONGEST distinct words: a short common word (« cette », « that ») is not a term the ranking has to honour, and the store grows
-  const picks = Array.from(new Set(sample.split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 4).map((w) => strip(w)))).sort((a, b) => b.length - a.length).slice(0, 2)
-  if (picks.length === 2) {
-    await setSearch(picks.join(' ')); await sleep(1600)
-    const first = strip(String(await text('.kbmem-r .kbmem-tx') || ''))
-    check('the first result has BOTH words (« ' + picks.join(' ') + ' »)', picks.every((w) => first.indexOf(strip(w)) >= 0), first.slice(0, 80))
-    const total = await text('.kbmem-pager span')
-    check('the list narrowed to the matches', /of \d+$/.test(total || '') && (!memRows || Number(/of (\d+)$/.exec(total)[1]) <= memList.total), total)
-    await shot('01b-relevance-two-words')
-    await setSearch(picks[0].toUpperCase().slice(0, -1)); await sleep(1400)
-    check('case and a missing last letter do not matter (prefix)', (await count('.kbmem-r')) > 0)
-    await setSearch('zzqzzqxx'); await sleep(1200)
-    check('a word nobody wrote shows an empty state, not rows', (await count('.kbmem-r')) === 0 && /No match/.test((await text('.kbmem-empty')) || ''))
-    await shot('01c-relevance-empty')
-    await setSearch(''); await sleep(1200)
-    check('clearing the search brings the full list back', (await count('.kbmem-r')) > 0)
-  } else console.log('  – SKIP relevance: the first memory has fewer than two words of 5+ letters')
+    console.log('search by relevance (local, the default)')
+    check('the search field offers Relevance | Meaning, Relevance on', (await count('.kbmem-modes button')) === 2 && (await ev(`document.querySelector('.kbmem-modes button[data-mode=relevance]').classList.contains('on')`)) === true)
+    const setSearch = (v) => ev(`(() => { const i = document.querySelector('.kbmem-field input'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(i, ${JSON.stringify(v)}); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
+    // data-independent: take two long-ish words from the first memory and search for them
+    const sample = String(await text('.kbmem-r .kbmem-tx') || '')
+    const strip = (t) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    // the two LONGEST distinct words: a short common word (« cette », « that ») is not a term the ranking has to honour, and the store grows
+    const picks = Array.from(new Set(sample.split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 4).map((w) => strip(w)))).sort((a, b) => b.length - a.length).slice(0, 2)
+    if (picks.length === 2) {
+      await setSearch(picks.join(' ')); await sleep(1600)
+      const first = strip(String(await text('.kbmem-r .kbmem-tx') || ''))
+      check('the first result has BOTH words (« ' + picks.join(' ') + ' »)', picks.every((w) => first.indexOf(strip(w)) >= 0), first.slice(0, 80))
+      const total = await text('.kbmem-pager span')
+      check('the list narrowed to the matches', /of \d+$/.test(total || '') && (!memRows || Number(/of (\d+)$/.exec(total)[1]) <= memList.total), total)
+      await shot('01b-relevance-two-words')
+      await setSearch(picks[0].toUpperCase().slice(0, -1)); await sleep(1400)
+      check('case and a missing last letter do not matter (prefix)', (await count('.kbmem-r')) > 0)
+      await setSearch('zzqzzqxx'); await sleep(1200)
+      check('a word nobody wrote shows an empty state, not rows', (await count('.kbmem-r')) === 0 && /No match/.test((await text('.kbmem-empty')) || ''))
+      await shot('01c-relevance-empty')
+      await setSearch(''); await sleep(1200)
+      check('clearing the search brings the full list back', (await count('.kbmem-r')) > 0)
+    } else console.log('  – SKIP relevance: the first memory has fewer than two words of 5+ letters')
+
+  }
 
   console.log('lessons tab, filter menu')
   await ev(`[...document.querySelectorAll('.kbmem-row2 .kbmem-seg button')].find(b => b.textContent.startsWith('Lessons')).click()`); await sleep(900)
@@ -172,21 +188,21 @@ try {
   await ev(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`); await sleep(200)
 
   console.log('options page (read-only)')
-  await ev(`document.querySelector('[data-act=options]').click()`); await sleep(900)
-  check('Options is a page: crumb + rows, no side sheet', (await count('.kbmem-crumb')) === 1 && (await count('.kbmem-srow')) >= 6 && (await count('.kbmem-sheet')) === 0)
+  await ev(`document.querySelector('[data-act=customize]').click()`); await sleep(900)
+  check('Customize is a page: crumb + rows, no side sheet', (await count('.kbmem-crumb')) === 1 && (await count('.kbmem-srow')) >= 6 && (await count('.kbmem-sheet')) === 0)
   check('the plan note is there', /Your plan|Not connected/.test((await text('.kbmem-note')) || ''))
-  check('both switch groups are present', /Memory system context/.test((await text('.kbmem-page')) || '') && /Lessons system context/.test((await text('.kbmem-page')) || ''))
+  check('both switch groups are present, the three lesson switches among them (lessons, context, relevant)', /Memory system context/.test((await text('.kbmem-page')) || '') && /Lessons system context/.test((await text('.kbmem-page')) || '') && (await count('[data-act=lessons-relevant]')) === 1)
   await shot('03-options')
   await ev(`document.querySelector('[data-act=back]').click()`); await sleep(500)
-  check('Back returns to the list', (await text('.kbmem-h1')) === 'Memory & Lessons learned')
+  check('Back returns to the list', (await text('.kbmem-h1')) === PAGE_TITLE)
 
   console.log('tidy up (it only LOOKS: this check never merges, keeps, undoes or accepts anything)')
   const tidyLes0 = await local('/kybernos-memory/tidy')
   const hostHasTidy = tidyLes0 !== null && tidyLes0.ok === true
-  await ev(`document.querySelector('[data-act=options]').click()`); await sleep(900)
-  check('Options has the Tidy up and the Recent tidy-ups sections', (await count('[data-sec=tidy]')) === 1 && (await count('[data-sec=tidy-log]')) === 1)
+  await ev(`document.querySelector('[data-act=customize]').click()`); await sleep(900)
+  check('Customize has the Tidy up and the Recent tidy-ups sections', (await count('[data-sec=tidy]')) === 1 && (await count('[data-sec=tidy-log]')) === 1)
   const cfgNow = tidyLes0 !== null && tidyLes0.ok === true && tidyLes0.settings !== undefined ? tidyLes0.settings : null
-  check('Options offer the three settings, and show what the host has stored', (await count('[data-sec=tidy] [data-act=tidy-mode] button')) === 2 && (await count('[data-sec=tidy] [data-act=tidy-schedule] button')) === 5 && (await count('[data-sec=tidy] [data-act=tidy-brain] button')) === 2 && (cfgNow === null || ((await text('[data-act=tidy-mode] button.on')) === (cfgNow.mode === 'auto' ? 'Merge close matches by itself' : 'Ask me first') && (await text('[data-act=tidy-brain] button.on')) === (cfgNow.brain === true ? 'Yes' : 'No'))), cfgNow)
+  check('Customize offers the three settings, and shows what the host has stored', (await count('[data-sec=tidy] [data-act=tidy-mode] button')) === 2 && (await count('[data-sec=tidy] [data-act=tidy-schedule] button')) === 5 && (await count('[data-sec=tidy] [data-act=tidy-brain] button')) === 2 && (cfgNow === null || ((await text('[data-act=tidy-mode] button.on')) === (cfgNow.mode === 'auto' ? 'Merge close matches by itself' : 'Ask me first') && (await text('[data-act=tidy-brain] button.on')) === (cfgNow.brain === true ? 'Yes' : 'No'))), cfgNow)
   await ev(`document.querySelector('[data-sec=tidy]').scrollIntoView()`); await sleep(200)
   await shot('03b-options-tidy')
   if (!hostHasTidy) {
@@ -221,7 +237,7 @@ try {
       await shot('03e-tidy-banner')
     }
   }
-  if ((await text('.kbmem-h1')) !== 'Memory & Lessons learned') { await ev(`document.querySelector('[data-act=back]').click()`); await sleep(500) }
+  if ((await text('.kbmem-h1')) !== PAGE_TITLE) { await ev(`document.querySelector('[data-act=back]').click()`); await sleep(500) }
 
   console.log('theme tokens')
   const colors = await ev(`(() => { const p = document.querySelector('.kbmem-page'); const cs = getComputedStyle(p); const btn = document.querySelector('.kbmem-btn'); return JSON.stringify({ ink: cs.getPropertyValue('--m-ink').trim(), acc: cs.getPropertyValue('--m-acc').trim(), color: cs.color, btnBg: btn ? getComputedStyle(btn).backgroundColor : null }) })()`)
@@ -245,6 +261,45 @@ try {
       await shot('04-pill-card')
     }
   }
+  // A3-21: at a phone width DSH's mobile layer grows every button to a finger's height. Nothing of the page's toolbars may then sit on
+  // something else, and every button stays inside the pill that holds it. Looked at on the Memories tab (no account: the explanation) and on
+  // the Lessons tab (tabs, scope, view, search, filter), the way a phone meets them.
+  console.log('at a phone width (390 px): the toolbars do not sit on each other')
+  await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true })
+  // DSH's mobile layer decides at load (it is told by the device), so the page is loaded again, in the phone, and the section reopened.
+  await page.send('Page.reload', { ignoreCache: true }); await sleep(3500)
+  const phoneOpen = await openSettings(page, { minCells: 0 })
+  await waitFor(page, navCellJs, 12000)
+  await ev(`(() => { const c = [...document.querySelectorAll('[class*="navCell"]')].find(e => e.textContent.trim() === 'Memory & Lessons'); if (c) { c.scrollIntoView({ block: 'center' }); (c.querySelector('button,[role=button]') || c).click() } })()`)
+  const phoneThere = await waitFor(page, `!!document.querySelector('.kbmem-h1') && !document.querySelector('.kbmem-spin')`, 15000)
+  check('phone: the page opens in a 390 px phone', phoneOpen === true && phoneThere !== null)
+  await sleep(1200)
+  const overlaps = () => ev(`JSON.stringify((() => {
+    const page = document.querySelector('.kbmem-page')
+    if (!page) return { missing: true }
+    const kids = [...document.querySelectorAll('.kbmem-top > *, .kbmem-st > *, .kbmem-row2 > *, .kbmem-tools > *')].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 2 && r.height > 2 })
+    const name = (e) => (e.className && typeof e.className === 'string' ? e.className.split(' ')[0] : e.tagName) + ':' + (e.textContent || '').trim().slice(0, 14)
+    const hits = []
+    for (let i = 0; i < kids.length; i += 1) for (let j = i + 1; j < kids.length; j += 1) {
+      const a = kids[i].getBoundingClientRect(), b = kids[j].getBoundingClientRect()
+      const w = Math.min(a.right, b.right) - Math.max(a.left, b.left), h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top)
+      if (w > 2 && h > 2 && !kids[i].contains(kids[j]) && !kids[j].contains(kids[i])) hits.push(name(kids[i]) + ' on ' + name(kids[j]))
+    }
+    const out = []
+    for (const pill of document.querySelectorAll('.kbmem-seg, .kbmem-modes, .kbmem-field')) {
+      const p = pill.getBoundingClientRect()
+      for (const b of pill.querySelectorAll('button')) { const r = b.getBoundingClientRect(); if (r.width > 2 && (r.left < p.left - 1 || r.right > p.right + 1 || r.top < p.top - 1 || r.bottom > p.bottom + 1)) out.push(name(b) + ' leaves ' + name(pill)) }
+    }
+    return { hits, out, sideways: page.scrollWidth > page.clientWidth + 1 }
+  })())`)
+  for (const tab of ['Memories', 'Lessons']) {
+    await ev(`[...document.querySelectorAll('.kbmem-row2 .kbmem-seg button')].find(b => b.textContent.startsWith(${JSON.stringify(tab)})).click()`); await sleep(1000)
+    const o = JSON.parse((await overlaps()) || '{"missing":true}')
+    const drawn = (await count('.kbmem-row2')) === 1 && (tab === 'Memories' || (await count('.kbmem-tools')) === 1)   // the toolbars this check is about are really there
+    check('phone, ' + tab + ' tab: no control sits on another one, every button stays in its pill, no sideways scroll', drawn && o.missing !== true && o.hits.length === 0 && o.out.length === 0 && o.sideways === false, { drawn, o })
+    await shot('05-phone-' + tab.toLowerCase())
+  }
+  await page.send('Emulation.clearDeviceMetricsOverride', {})
 } finally { await live.close() }
 
 console.log('\n' + (fail === 0 ? 'ALL GREEN' : String(fail) + ' FAILED') + ' (' + String(pass + fail) + ' checks)')

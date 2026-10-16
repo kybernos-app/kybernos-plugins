@@ -36,7 +36,7 @@ let kyberPersonal = false
 // What the server answers to POST …/computers/{id}/resume | suspend | ticket (the computers module, ADR 0052): a status and a body.
 let computerActionAnswer = null
 const computerActionSeen = []
-let kyberTelegram = { configured: true, enabled: true, bot_username: 'kybernos_bot', linked: { display: 'Miled @milede', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } }
+let kyberTelegram = { configured: true, enabled: true, bot_username: 'kybernos_bot', linked: { display: 'Miled @alex', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } }
 let kyberHome = { id: 'cmp-home', origin_host: 'cmp-home.computers.test', paused_reason: null, name: 'Home', state: 'suspended', desired: 'suspended', mode: 'sleep', region: 'ams', last_active_at: '2026-10-14T22:50:00.000Z', reported_version: 'p12', network: { mode: 'public', allow: [] } }
 // Profil servi par GET /v1/me : null → 404 (serveur plus ancien que la route),
 // sinon la valeur renvoyée. Il ÉVOLUE en cours de test : c'est l'objet même
@@ -554,6 +554,11 @@ const ctx = {
 }
 
 const mod = await import('./index.js')
+// The routes that DELETE (session: true) need DSH's signed session cookie as well as the right Origin: the machine secret the guard checks it against
+// (test-write-guard.mjs reads it from the file; here the seam gives it).
+const { sessionSource } = await import('./session-guard.mjs')
+const { SESSION_SECRET, browserHeaders } = await import('./lib-session-test.mjs')
+sessionSource.secret = () => SESSION_SECRET
 // Aucun minuteur ne doit tirer sur le faux serveur en arriere-plan : un
 // rechargement non demande fausserait les compteurs de requetes des tests.
 mod.MEMORY_TUNING.writeRefreshMs = -1
@@ -579,11 +584,18 @@ const fakeReq = (method, origin, body, url) => ({
     if (body !== undefined) yield Buffer.from(JSON.stringify(body))
   },
 })
+const SESSION_ROUTES = new Set(['/kybernos-cloud/members/remove', '/kybernos-cloud/memory/delete', '/kybernos-cloud/team/lessons/delete', '/kybernos-cloud/team/skills/delete', '/kybernos-cloud/connections/delete'])
 const hit = async (path, method, origin, body) => {
   const handler = routes.get(path.split('?')[0])
   assert.ok(handler !== undefined, 'route manquante: ' + path)
   const res = fakeRes()
-  await handler(fakeReq(method, origin, body, path), res)
+  const req = fakeReq(method, origin, body, path)
+  // A route that deletes is called the way the person's page calls it: its own Origin (unless the test names another) and DSH's session cookie.
+  if (SESSION_ROUTES.has(path.split('?')[0])) {
+    req.socket = { localPort: 3080 }
+    req.headers = { ...req.headers, cookie: browserHeaders().cookie, ...(origin === undefined ? { origin: browserHeaders().origin } : {}) }
+  }
+  await handler(req, res)
   return res
 }
 
@@ -1188,7 +1200,7 @@ try {
     const r = await hit('/kybernos-cloud/kyber', 'GET', 'http://127.0.0.1:3080')
     assert.equal(r.status, 200)
     assert.equal(r.body.connected, true)
-    assert.deepEqual(r.body.telegram, { configured: true, enabled: true, bot: 'kybernos_bot', linked: { display: 'Miled @milede', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } })
+    assert.deepEqual(r.body.telegram, { configured: true, enabled: true, bot: 'kybernos_bot', linked: { display: 'Miled @alex', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } })
     // `manual_control` is true when the server does not say (an older server): the buttons stay; false (the Free plan) hides them.
     assert.deepEqual(r.body.home, { id: 'cmp-home', name: 'Home', state: 'suspended', desired: 'suspended', mode: 'sleep', region: 'ams', last_active_at: '2026-10-14T22:50:00.000Z', version: 'p12', network: 'public', paused_reason: null, manual_control: true })
     assert.deepEqual(r.body.computers, [{ id: 'cmp-home', name: 'Home', state: 'suspended' }], 'the person\'s cloud computers, to choose among')

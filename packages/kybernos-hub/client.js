@@ -194,6 +194,7 @@ window.__ModuleLoader__.load({
       const t = {
         'development-checkout': ['Ce poste est une copie de développement (git) : mettez-la à jour avec git, pas avec une archive.', 'This machine is a development checkout (git): update it with git, not with an archive.'],
         'no-archive-for-platform': ['Cette version n’a pas d’archive pour ce système.', 'This release has no archive for this system.'],
+        'hosted-instance': ['Cette instance est hébergée : elle se met à jour en la reconstruisant, pas depuis cette page.', 'This instance is hosted: it is updated by rebuilding it, not from this page.'],
         'no-key': ['Aucune clé de signature n’est installée.', 'No signing key is installed.'],
         'no-release': ['Aucun catalogue en ligne vérifié : cherchez les mises à jour d’abord.', 'No verified online catalogue: check for updates first.'],
         'up-to-date': ['La suite est à jour.', 'The suite is up to date.']
@@ -208,7 +209,19 @@ window.__ModuleLoader__.load({
       if (etapes[t.etat] !== undefined) return etapes[t.etat]
       if (t.etat === 'termine') return ['Suite ' + t.version + ' installée. Relancez DSH pour l’activer.', 'Suite ' + t.version + ' installed. Restart DSH to turn it on.']
       if (t.etat === 'echec') {
-        const e = { 'digest-mismatch': ['L’archive téléchargée ne correspond pas à l’empreinte signée : rien n’a été installé.', 'The downloaded archive does not match the signed digest: nothing was installed.'], 'robot-refused': ['L’installation a été refusée et annulée : votre installation actuelle est intacte.', 'The install was refused and rolled back: your current install is intact.'], 'bad-archive': ['L’archive est invalide : rien n’a été installé.', 'The archive is invalid: nothing was installed.'] }
+        const e = { 'digest-mismatch': ['L’archive téléchargée ne correspond pas à l’empreinte signée : rien n’a été installé.', 'The downloaded archive does not match the signed digest: nothing was installed.'], 'robot-refused': ['L’installation a été refusée et annulée : votre installation actuelle est intacte.', 'The install was refused and rolled back: your current install is intact.'], 'bad-archive': ['L’archive est invalide : rien n’a été installé.', 'The archive is invalid: nothing was installed.'],
+          'hosted-instance': ['Cette instance est hébergée : elle se met à jour en la reconstruisant, pas depuis cette page.', 'This instance is hosted: it is updated by rebuilding it, not from this page.'],
+          'development-checkout': ['Ce poste est une copie de développement (git) : mettez-la à jour avec git, pas avec une archive.', 'This machine is a development checkout (git): update it with git, not with an archive.'],
+          'nothing-to-update': ['Il n’y a rien à mettre à jour : la suite est à jour.', 'There is nothing to update: the suite is up to date.'],
+          'no-archive-for-platform': ['Cette version n’a pas d’archive pour ce système : rien n’a été installé.', 'This release has no archive for this system: nothing was installed.'],
+          'robot-failed': ['L’installateur n’a pas pu démarrer : rien n’a été installé.', 'The installer could not start: nothing was installed.'],
+          'engine-update-failed': ['La mise à jour du moteur a échoué : votre moteur actuel n’a pas changé.', 'The engine update failed: your current engine has not changed.'],
+          url: ['L’adresse de téléchargement n’est pas valable (https seulement) : rien n’a été installé.', 'The download address is not valid (https only): nothing was installed.'],
+          http: ['Le serveur de téléchargement a refusé la demande : rien n’a été installé.', 'The download server refused the request: nothing was installed.'],
+          vide: ['Le téléchargement est arrivé vide : rien n’a été installé.', 'The download came back empty: nothing was installed.'],
+          'trop-gros': ['L’archive est plus grosse que prévu : rien n’a été installé.', 'The archive is bigger than announced: nothing was installed.'],
+          busy: ['Une autre opération est déjà en cours : attendez qu’elle se termine.', 'Another operation is already running: wait until it ends.'],
+          'update-failed': ['La mise à jour a échoué. Réessayez, ou relancez DSH.', 'The update failed. Try again, or restart DSH.'] }
         return e[t.erreur] || ['Mise à jour échouée (' + String(t.erreur) + ').', 'Update failed (' + String(t.erreur) + ').']
       }
       return null
@@ -1030,7 +1043,7 @@ window.__ModuleLoader__.load({
                 h('button', { type: 'button', className: 'kbsu-btn sm accent', onClick: relancer }, kt('Relancer maintenant', 'Restart now')),
                 h('button', { type: 'button', className: 'kbsu-btn sm ghost', onClick: () => setConfirmerRelance(false) }, kt('Annuler', 'Cancel')))
                 : h('button', { type: 'button', className: 'kbsu-btn sm accent', onClick: () => setConfirmerRelance(true) }, kt('Relancer DSH', 'Restart DSH')),
-            relance === 'error' ? h('span', { className: 'kbsu-st bad' }, kt('Relance impossible depuis ici : demandez à l’agent « relance DSH ».', 'Cannot restart from here: ask the agent to "restart DSH".')) : null) : null,
+            relance === 'error' ? h('span', { className: 'kbsu-st bad' }, kt('Relance impossible depuis ici : arrêtez « dsh web » dans votre terminal, puis relancez-le.', 'Cannot restart from here: stop “dsh web” in your terminal, then start it again.')) : null) : null,
           mgr === null ? h('div', { className: 'kbsu-banner', role: 'status' }, h('strong', null, ic('alert'), kt('Gestionnaire de plugins indisponible.', 'Plugin manager unavailable.')), h('span', null, kt('Le catalogue s’affiche, mais l’état installé et les interrupteurs ne sont pas disponibles sur cette version de DSH.', 'The catalogue shows, but installed state and switches are unavailable on this DSH version.'))) : null,
           detail !== null ? null : h('div', { className: 'kbsu-bar' },
             h('div', { className: 'kbsu-seg', role: 'group', 'aria-label': kt('Filtre', 'Filter') },

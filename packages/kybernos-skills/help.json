@@ -22,8 +22,8 @@
     }
   ],
   "where": {
-    "fr": "Barre latérale › Kybernos › Compétences",
-    "en": "Sidebar › Kybernos › Skills",
+    "fr": "Barre latérale › Compétences",
+    "en": "Sidebar › Skills",
     "page": true
   },
   "good": {

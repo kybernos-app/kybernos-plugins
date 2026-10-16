@@ -91,12 +91,14 @@ const motifVide = (ecartes) => (ecartes > 0 ? 'aucune entree exploitable (' + ec
 
 /**
  * Normalises the answer of `GET /v1/marketplace` (one page).
- * Returns `{ ok, items, motif }`: an empty catalogue is never « ok » without a reason.
+ * Returns `{ ok, items, motif }`: an empty catalogue is never « ok » without a reason. `motif` is a French line for the logs and
+ * the agent; `raison` is the same reason as a CODE (`unreadable`, `empty`, and below `no-connection`, `unavailable`, `partial`),
+ * which the page turns into a sentence in the person's language.
  */
 export const normaliserCatalogue = (reponse) => {
-  if (reponse === null || typeof reponse !== 'object') return { ok: false, items: [], motif: 'reponse illisible' }
+  if (reponse === null || typeof reponse !== 'object') return { ok: false, items: [], motif: 'reponse illisible', raison: 'unreadable' }
   const brut = Array.isArray(reponse.items) ? reponse.items : null
-  if (brut === null) return { ok: false, items: [], motif: 'aucun champ « items »' }
+  if (brut === null) return { ok: false, items: [], motif: 'aucun champ « items »', raison: 'unreadable' }
   const items = []
   let ecartes = 0
   for (const it of brut) {
@@ -105,7 +107,7 @@ export const normaliserCatalogue = (reponse) => {
     items.push(item)
   }
   const motif = items.length === 0 ? motifVide(ecartes) : null
-  return { ok: items.length > 0, items, motif }
+  return motif === null ? { ok: true, items, motif } : { ok: false, items, motif, raison: 'empty' }
 }
 
 /**
@@ -123,7 +125,7 @@ const messageDe = (e) => String(e !== null && e !== undefined && e.message !== u
  * `lirePage(avant)` reads one page (`avant` is null for the first one) and answers `{ status, body }` like the plugin's
  * `apiCall` does (it may also throw: that is a failed page).
  *
- * Returns `{ ok, items, motif, partiel?, echec? }`:
+ * Returns `{ ok, items, motif, raison?, partiel?, echec? }` (`raison`: the code of `motif`, see normaliserCatalogue):
  *  - `echec: true`: the FIRST page could not be read at all (network, HTTP error): nothing to show, `motif` says why
  *    (the same words as before the paging existed);
  *  - `partiel: true`: some pages were read and the rest was not (a later page failed, the server repeated itself, or a
@@ -147,12 +149,15 @@ export const lireCatalogue = async (lirePage, limites = {}) => {
     page += 1
     let rep = null
     let panne = null
-    try { rep = await lirePage(avant) } catch (e) { panne = 'injoignable : ' + messageDe(e) }
+    let codePanne = null
+    try { rep = await lirePage(avant) } catch (e) { panne = 'injoignable : ' + messageDe(e); codePanne = 'no-connection' }
     if (panne === null && (rep === null || rep === undefined || rep.status !== 200 || rep.body === null || rep.body === undefined)) {
       panne = 'indisponible (code ' + String(rep === null || rep === undefined ? 'inconnu' : rep.status) + ')'
+      // Status 0 (or none) is « no HTTP answer at all »: the network, not the catalogue.
+      codePanne = rep === null || rep === undefined || !(Number(rep.status) > 0) ? 'no-connection' : 'unavailable'
     }
     if (panne !== null) {
-      if (page === 1) return { ok: false, items: [], motif: 'catalogue ' + panne, echec: true }
+      if (page === 1) return { ok: false, items: [], motif: 'catalogue ' + panne, echec: true, raison: codePanne }
       note = 'catalogue incomplet : la page ' + page + ' est ' + panne + ', ' + items.length + ' Agent Team(s) lue(s)'
       break
     }
@@ -188,8 +193,8 @@ export const lireCatalogue = async (lirePage, limites = {}) => {
     avant = curseur
   }
   if (items.length === 0) vide = motifVide(ecartes)
-  if (note === null) return { ok: items.length > 0, items, motif: vide }
-  return { ok: items.length > 0, items, motif: vide === null ? note : vide + ' ; ' + note, partiel: true }
+  if (note === null) return vide === null ? { ok: items.length > 0, items, motif: vide } : { ok: items.length > 0, items, motif: vide, raison: 'empty' }
+  return { ok: items.length > 0, items, motif: vide === null ? note : vide + ' ; ' + note, raison: 'partial', partiel: true }
 }
 
 /**

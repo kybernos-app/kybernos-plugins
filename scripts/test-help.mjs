@@ -3,10 +3,12 @@
 // read it. No browser, no DSH.
 //
 //   node scripts/test-help.mjs
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { catalogueDuDepot, validerAide } from './build-catalog.mjs'
+import { helpSource, describeHelpSource } from './lib-help-source.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 let pass = 0
@@ -87,9 +89,9 @@ console.log('the « ? How it works » buttons')
   check('the pages that carry the button', ['kybernos-theme', 'kybernos-models', 'kybernos-slash', 'kybernos-workers', 'kybernos-maintenance', 'kybernos-modeles-locaux', 'kybernos-memory', 'kybernos-skills', 'kybernos-sessions', 'kybernos-hub', 'kybernos-mobile'].every((d) => placed.includes(d + '→' + d)), placed)
   const hub = readFileSync(join(REPO, 'packages', 'kybernos-hub', 'client.js'), 'utf8')
   check('the Suite publishes it (version 1) and shows the same help on a module’s page', /window\.__KB_HELP__ = construireAide\(React\)/.test(hub) && /return \{ version: 1, actions: true, Help \}/.test(hub) && /'data-kb': 'suite-aide'/.test(hub))
-  check('the host keeps the shipped help when the online catalogue lacks it', /aides\.get\(m\.id\)/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'suite-host.mjs'), 'utf8')))
+  check('the host reads the shipped help of a module by its id', /aides\.get\(m\.id\)/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'suite-host.mjs'), 'utf8')))
   check('a page card that is not there draws nothing (never the bundle’s help on the wrong page)', /const card = page === undefined \? null/.test(hub) && /if \(card === undefined\) return null/.test(hub))
-  check('the host keeps the shipped page cards when the online catalogue lacks them', /livree\.pages !== undefined && m\.aide\.pages === undefined/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'suite-host.mjs'), 'utf8')))
+  check('the host shows the help that shipped (page cards included) for every module this copy holds, whatever the online catalogue says', /const aide = livree !== undefined \? livree : m\.aide/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'suite-host.mjs'), 'utf8')))
   check('one « ? How it works » button on the Voice page: the hub pins no second one over it (it did, with a MutationObserver, and the two overlapped)', !/installerAideVoix|AIDE_VOIX|kbhp-voice/.test(hub))
   check('the Voice page asks for its own card', /Help, \{ id: 'kybernos-plugin', page: 'voice' \}/.test(readFileSync(join(REPO, 'packages', 'kybernos-plugin', 'client.js'), 'utf8')))
   const css = hub.match(/\.kbhp-[a-z]+/g) || []
@@ -100,6 +102,26 @@ console.log('the « ? How it works » buttons')
     if (existsSync(f) && /\.kbhp-/.test(readFileSync(f, 'utf8'))) clash.push(d)
   }
   check('the kbhp- class prefix is the hub’s alone', css.length > 5 && clash.length === 0, clash)
+}
+
+// ── Which text a live check compares a card with (audit 2026-10-16, A3-33) ──
+console.log('which source the cards come from (check-help-live)')
+{
+  const home = mkdtempSync(join(tmpdir(), 'kb-help-source-'))
+  const write = (doc) => { mkdirSync(join(home, 'kybernos'), { recursive: true }); writeFileSync(join(home, 'kybernos', 'catalogue-distant.json'), JSON.stringify(doc)) }
+  try {
+    check('no downloaded catalogue: the cards are the help.json of the checkout', (() => { const x = helpSource({ repo: REPO, home }); return x.cached === false && x.differ.length === 0 && /shipped with this checkout/.test(describeHelpSource(x)) })())
+    const shipped = JSON.parse(readFileSync(join(REPO, 'packages', 'kybernos-models', 'help.json'), 'utf8'))
+    const reordered = { where: shipped.where, what: shipped.what, steps: shipped.steps, ...(shipped.good === undefined ? {} : { good: shipped.good }) }
+    write({ suite: { version: '9.9.9' }, catalogue: { modules: [{ id: 'kybernos-models', aide: reordered }] } })
+    check('a downloaded catalogue with the same help (whatever the order of the keys): cached, nothing differs', (() => { const x = helpSource({ repo: REPO, home }); return x.cached === true && x.version === '9.9.9' && x.differ.length === 0 && /say the same/.test(describeHelpSource(x)) })())
+    write({ suite: { version: '9.9.9' }, catalogue: { modules: [{ id: 'kybernos-models', aide: { ...reordered, steps: [{ fr: 'Ancienne étape.', en: 'An older step.' }, ...shipped.steps.slice(1)] } }, { id: 'kybernos-nowhere', aide: { what: {} } }] } })
+    check('a catalogue one release behind: the module whose help differs is named, with the version', (() => { const x = helpSource({ repo: REPO, home }); const d = describeHelpSource(x); return x.differ.join() === 'kybernos-models' && /9\.9\.9/.test(d) && /kybernos-models/.test(d) && /next signed release/.test(d) })())
+    writeFileSync(join(home, 'kybernos', 'catalogue-distant.json'), 'not json')
+    check('an unreadable file is no catalogue (never an error)', helpSource({ repo: REPO, home }).cached === false)
+  } finally { rmSync(home, { recursive: true, force: true }) }
+  const live = readFileSync(join(REPO, 'scripts', 'check-help-live.mjs'), 'utf8')
+  check('the live check says the source of the cards before it compares them', /describeHelpSource\(source\)/.test(live) && /helpSource\(\{ repo: REPO, home: dshHome\(\) \}\)/.test(live))
 }
 
 console.log('\n' + pass + ' ✓  ' + fail + ' ✗')

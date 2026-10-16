@@ -1,26 +1,26 @@
 # kybernos-modeleur
 
-**Depuis le chat DSH, l'agent dessine un modèle 2D ou 3D ; il s'anime dans la
-barre latérale droite, objet par objet, puis se relit.**
+**From the DSH chat, the agent draws a 2D or 3D model; it animates in the right
+sidebar, object by object, then is read back.**
 
 ```
-chat DSH ──(outil `modeliser`)──▶ hôte ──(GET /kybernos-modeleur/state)──▶ panneau « Modeleur »
+DSH chat ──(tool `modeliser`)──▶ host ──(GET /kybernos-modeleur/state)──▶ « Modeleur » panel
 ```
 
-## Ce que ça fait
+## What it does
 
-| Moitié | Fichier | Rôle |
+| Half | File | Role |
 |---|---|---|
-| Hôte | `index.js` | Outil `modeliser` + deux routes. Tient le magasin (une commande par session), l'espace (2d/3d) et l'**horloge de pose** (`t0`, `dureeMs`). Ne dessine rien. |
-| Client | `client.js` | Panneau de la barre latérale droite : moteur 2D à l'échelle (ops SVG-like), moteur 3D solides (facettes + tri du peintre), exécuteur d'ops, transport (lecture, vitesses, curseur, relecture). |
+| Host | `index.js` | The `modeliser` tool + two routes. Holds the store (one order per session), the space (2d/3d) and the **laying clock** (`t0`, `dureeMs`). Draws nothing. |
+| Client | `client.js` | Right-sidebar panel: a scaled 2D engine (SVG-like ops), a 3D solids engine (facets + painter's sort), an op executor, a transport (play, speeds, cursor, replay). |
 
-Le panneau **ne joue pas une animation locale** : il pose
-`total × (maintenant − t0) / durée` objets, d'après l'horloge de l'hôte. Un
-onglet qui arrive en retard rattrape son retard au lieu de rejouer depuis zéro.
+The panel **does not play a local animation**: it lays
+`total × (now − t0) / duration` objects, from the host's clock. A tab that
+arrives late catches up instead of replaying from zero.
 
-## Les deux espaces
+## The two spaces
 
-### 3D — solides orbitables
+### 3D — orbitable solids
 
 ```jsonc
 [
@@ -33,27 +33,27 @@ onglet qui arrive en retard rattrape son retard au lieu de rejouer depuis zéro.
 ]
 ```
 
-`n:4` sur un cône = toit pyramidal carré, et `rot: 45` aligne ses arêtes sur
-les diagonales (murs droits). `r2` sur un cylindre = tronc de cône
-(tour effilée). `fond:true` ajoute la face du bas. Le rendu est un tri du
-peintre — clé = profondeur du **point le plus lointain** de chaque facette,
-et les plafonds couverts (faces horizontales sous le point culminant) se
-dessinent en premier — donc des solides **juxtaposés**, pas interpénétrés.
+`n:4` on a cone = a square pyramidal roof, and `rot: 45` aligns its edges on
+the diagonals (straight walls). `r2` on a cylinder = a truncated cone
+(a tapered tower). `fond:true` adds the bottom face. The rendering is a painter's
+sort — key = depth of the **farthest point** of each facet,
+and the covered ceilings (horizontal faces under the highest point) are
+drawn first — so the solids are **juxtaposed**, not interpenetrating.
 
-### Boucle « redessiner → réajuster »
+### « Redraw → readjust » loop
 
-Le pinceau ✏ du panneau annote par-dessus le modèle — **5 outils** : trait
-libre (moteur [perfect-freehand](https://github.com/steveruizok/perfect-freehand),
-traits feutre à épaisseur variable), rectangle, ellipse et flèche (moteur
-[Rough.js](https://roughjs.com/) façon main levée, graine stable par forme) et
-texte. 3 couleurs, bouton « Effacer ». L'agent les relit par `modeliser` avec
-`relire: true` — annotations typées en coordonnées normalisées 0..1 (rect/
-ellipse = zone, flèche = direction, texte = consigne littérale, trait =
-entourage ou biffure) — puis pousse le modèle ajusté en `mode:"modifier"`.
-Route hôte : `POST /kybernos-modeleur/annote` ; un nouveau push repart feuille
-neuve. Vendors inlinés MIT (~32 Ko) : zéro dépendance, zéro CDN.
+The ✏ brush of the panel annotates over the model — **5 tools**: freehand stroke
+([perfect-freehand](https://github.com/steveruizok/perfect-freehand) engine,
+felt-tip strokes of variable thickness), rectangle, ellipse and arrow
+([Rough.js](https://roughjs.com/) hand-drawn engine, a stable seed per shape) and
+text. 3 colours, an "Erase" button. The agent reads them back through `modeliser` with
+`relire: true` — typed annotations in normalised 0..1 coordinates (rect/
+ellipse = zone, arrow = direction, text = literal instruction, stroke =
+circling or striking out) — then pushes the adjusted model with `mode:"modifier"`.
+Host route: `POST /kybernos-modeleur/annote`; a new push starts again with a
+clean sheet. MIT vendors inlined (~32 KB): zero dependency, zero CDN.
 
-### 2D — dessin à l'échelle
+### 2D — scaled drawing
 
 ```jsonc
 [
@@ -66,59 +66,59 @@ neuve. Vendors inlinés MIT (~32 Ko) : zéro dépendance, zéro CDN.
 ]
 ```
 
-Repère mathématique (Y vers le haut), ajusté au cadre, grille au pas rond
-(`1/2/5×10^k`). Chaque op accepte `stroke`, `fill`, `width`, `dash`.
+Mathematical frame (Y pointing up), fitted to the frame, grid at a round step
+(`1/2/5×10^k`). Every op accepts `stroke`, `fill`, `width`, `dash`.
 
-Les deux familles détaillées dans la skill **`modeleur-2d-3d`**
-(`~/.dsh/skills/modeleur-2d-3d/SKILL.md`) — c'est elle qui apprend le DSL aux
-modèles ; ce README ne donne que la forme.
+Both families are detailed in the **`modeleur-2d-3d`** skill
+(`~/.dsh/skills/modeleur-2d-3d/SKILL.md`) — it is what teaches the DSL to the
+models; this README only gives the shape.
 
-## Enchaîner
+## Chaining
 
-`modeliser` avec `mode: "modifier"` **ajoute** des objets au modèle courant,
-seulement dans le même espace : passer de 3D à 2D repart forcément d'un modèle
-neuf (le magasin l'impose, pas le client). Seuls les objets neufs sont animés.
+`modeliser` with `mode: "modifier"` **adds** objects to the current model,
+only in the same space: going from 3D to 2D necessarily starts from a new
+model (the store enforces it, not the client). Only the new objects are animated.
 
 ## Installation
 
-Le profil doit lister le paquet — `dsh.profile.bundles` **et** une dépendance
-`link:` dans `~/.dsh/profiles/web/package.json`, plus le lien symbolique
-correspondant dans `node_modules/@local/`. Un redémarrage de DSH est nécessaire
-(la liste des bundles est lue au démarrage) :
+The profile must list the package — `dsh.profile.bundles` **and** a `link:`
+dependency in `~/.dsh/profiles/web/package.json`, plus the matching symbolic link in
+`node_modules/@local/`. A DSH restart is required
+(the list of bundles is read at startup):
 
 ```bash
-ln -s /Users/miled/dyad-apps/dsh-kybernos/kybernos-modeleur \
+ln -s <your checkout>/packages/kybernos-modeleur \
       ~/.dsh/profiles/web/node_modules/@local/kybernos-modeleur
-# puis ajouter "@local/kybernos-modeleur" à dsh.profile.bundles et relancer DSH
+# then add "@local/kybernos-modeleur" to dsh.profile.bundles and restart DSH
 ```
 
-Le panneau s'ouvre **tout seul** quand un modèle arrive, et le type d'onglet
-**Modeleur** reste offert en permanence par le sélecteur (`+`) de la barre
-latérale droite. Aucun bouton dans le pied de la sidebar (même décision que
+The panel opens **by itself** when a model arrives, and the **Modeleur** tab type
+stays offered at all times by the selector (`+`) of the right
+sidebar. No button in the footer of the sidebar (same decision as
 kybernos-bricks).
 
 ## Tests
 
 ```bash
-node test-host.mjs      # outil + routes sur un vrai serveur HTTP
-node test-client.mjs    # moteurs 2D/3D, exécuteur d'ops, câblage — sans navigateur
+node test-host.mjs      # the tool + the routes on a real HTTP server
+node test-client.mjs    # 2D/3D engines, op executor, wiring — no browser
 ```
 
-`test-client.mjs` vérifie notamment : facettes par primitive, bornes, tri du
-peintre (remplissage dans la famille de la couleur), ops 2D invalides ignorées,
-parseur de chemin (absolus, relatifs, `Z` qui ferme), pose partielle, et les
-trois démos de l'état vide sans perte de lot.
+`test-client.mjs` checks in particular: facets per primitive, bounds, the painter's
+sort (fill in the family of the colour), invalid 2D ops ignored,
+path parser (absolute, relative, `Z` that closes), partial laying, and the
+three demos of the empty state with no batch lost.
 
-## Décisions
+## Decisions
 
-- **Canvas 2D, pas Three.js/WebGL.** Facettes + tri du peintre suffisent à des
-  solides juxtaposés, et le paquet garde **zéro dépendance** : ni CDN, ni
+- **Canvas 2D, not Three.js/WebGL.** Facets + the painter's sort are enough for
+  juxtaposed solids, and the package keeps **zero dependency**: no CDN, no
   node_modules.
-- **L'horloge est chez l'hôte.** Sinon deux onglets ouverts sur la même session
-  jouent deux animations différentes.
-- **`t0` + rattrapage.** Le panneau rejoint l'horloge du chat ; il ne redémarre
-  pas à son montage.
-- **Un `Map` en mémoire, pas de persistance.** Un modèle est un spectacle, pas
-  un document — pour garder, le chat redemande le modèle.
-- **Le changement d'espace repart à zéro** (imposé par l'hôte) : superposer un
-  plan 2D sur une scène 3D n'a pas de sens visuel.
+- **The clock is on the host.** Otherwise two tabs open on the same session
+  play two different animations.
+- **`t0` + catch-up.** The panel joins the chat's clock; it does not restart
+  when it mounts.
+- **An in-memory `Map`, no persistence.** A model is a show, not a
+  document — to keep one, the chat asks for the model again.
+- **Changing space starts from zero** (enforced by the host): overlaying a 2D
+  plan on a 3D scene makes no visual sense.

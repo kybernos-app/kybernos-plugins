@@ -13,13 +13,13 @@
       "en": "Click it: the card shows the context window, your plan's limits and your credits."
     },
     {
-      "fr": "Ouvrez Réglages › Kybernos › Usage pour le détail par jour, par modèle et par session, et pour fixer un budget.",
-      "en": "Open Settings › Kybernos › Usage for the detail by day, model and session, and to set a budget."
+      "fr": "Ouvrez Réglages › Usage pour le détail par jour, par modèle et par session, et pour fixer un budget.",
+      "en": "Open Settings › Usage for the detail by day, model and session, and to set a budget."
     }
   ],
   "where": {
-    "fr": "Sous la zone de saisie du chat, et Réglages › Kybernos › Usage",
-    "en": "Under the chat message box, and Settings › Kybernos › Usage",
+    "fr": "Sous la zone de saisie du chat, et Réglages › Usage",
+    "en": "Under the chat message box, and Settings › Usage",
     "page": true
   },
   "good": {

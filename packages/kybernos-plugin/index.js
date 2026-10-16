@@ -8,6 +8,7 @@ import { zstdDecompressSync } from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 import { dirname, normalize as nodePathNormalize, isAbsolute as nodePathIsAbsolute, join as nodePathJoin } from 'node:path'
 import { dshHomeSync } from './dsh-home.mjs'
+import { kyberTarget } from './kyber-root.mjs'
 import { createWorkspaceInstructions } from './workspace-instructions.mjs'
 import { selectAfterConnect } from './default-model.mjs'
 import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
@@ -47,6 +48,7 @@ import { audioKindOf, audioModelsOf, providerBase } from './audio-models.mjs'
 import { createProbe } from './audio-probe.mjs'
 import { createModelsAudio } from './models-audio.mjs'
 import { expandOccurrences, parseOccurrenceRange } from './automation-occurrences.mjs'
+import { lastTurnOutcome } from './session-outcome.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -3660,202 +3662,6 @@ function boot(ctx) {
       detail.sort((a, b) => b.tokens - a.tokens)
       return { usd: usd, missing: missing, detail: detail, pricedTokens: pricedTokens, priced: detail.length > 0 }
     }
-    // ── Espace « My workspace » : usage réel, toutes équipes confondues ─────
-    // Une seule route GET agrège les journaux de session (cache insight) SANS
-    // filtre d'équipe : par jour, par route (provider/modèle) et par équipe —
-    // la liste d'équipes est une confiance passée en requête par le client,
-    // qui la tient déjà de `/kybernos/load` (un préfixe d'étiquette ne se
-    // découpe pas sans le roster : les identifiants portent des tirets).
-    // Le coût vient des tarifs models.dev ; sans tarif, `costUsd` reste null
-    // et la route atterrit dans `missing`. La même réponse porte le catalogue
-    // des modèles configurés (namespace llm-pi-ai) enrichi des tarifs
-    // unitaires : la page n'a qu'UN appel à faire.
-    const kbWorkspaceUsage = async (args) => {
-      const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
-      const notes = []
-      const now = Date.now()
-      // Période : `days` entiers (défaut 30, plafond 365) ou bornes ISO locales.
-      const askedDays = Number(req.days)
-      const days = Number.isFinite(askedDays) === true && askedDays >= 1 && askedDays <= KB_INSIGHT_DAYS_MAX ? Math.round(askedDays) : 30
-      const dayMs = 86400000
-      let toMs = now
-      const toTxt = str(req.to)
-      if (toTxt !== null && /^\d{4}-\d{2}-\d{2}$/.test(toTxt) === true) {
-        const t = new Date(toTxt + 'T23:59:59').getTime()
-        if (Number.isFinite(t) === true) toMs = t
-      }
-      let fromMs = toMs - (days - 1) * dayMs
-      const fromTxt = str(req.from)
-      if (fromTxt !== null && /^\d{4}-\d{2}-\d{2}$/.test(fromTxt) === true) {
-        const f = new Date(fromTxt + 'T00:00:00').getTime()
-        if (Number.isFinite(f) === true) fromMs = f
-      }
-      if (fromMs > toMs) fromMs = toMs
-      // Roster d'équipes (confiance client) : slugs kebab-case uniquement.
-      const roster = []
-      const rawRoster = str(req.kybers)
-      if (rawRoster !== null) {
-        for (const piece of rawRoster.split(',')) {
-          const k = piece.trim().toLowerCase()
-          if (k.length > 0 && /^[a-z0-9][a-z0-9-]*$/.test(k) === true && roster.indexOf(k) < 0 && roster.length < 64) roster.push(k)
-        }
-      }
-      // Roster automatique : sans liste passée en requête, on scanne les
-      // dossiers racine (une équipe = un dossier portant kyber.yml) — lecture
-      // de répertoire seule, jamais de YAML.
-      if (roster.length === 0) {
-        try {
-          const rootsScan = await rootsFor(null)
-          for (let i = 0; i < rootsScan.length; i += 1) {
-            const rootEntry = rootsScan[i]
-            if (rootEntry === null || rootEntry === undefined || typeof rootEntry.path !== 'string') continue
-            let dirents = []
-            try { dirents = readdirSync(rootEntry.path, { withFileTypes: true }) } catch (e) { continue }
-            for (let k = 0; k < dirents.length; k += 1) {
-              const d = dirents[k]
-              if (d.isDirectory() !== true) continue
-              if (/^[a-z0-9][a-z0-9-]*$/.test(d.name) === false) continue
-              if (existsSync(joinPath(rootEntry.path, d.name, 'kyber.yml')) === false) continue
-              const k2 = d.name.toLowerCase()
-              if (roster.indexOf(k2) < 0 && roster.length < 64) roster.push(k2)
-            }
-          }
-        } catch (e) {
-          notes.push('roster des équipes indisponible : ' + errText(e))
-        }
-      }
-      const scan = await insightJournals()
-      if (Array.isArray(scan.notes) === true) {
-        for (let i = 0; i < scan.notes.length; i += 1) if (notes.indexOf(scan.notes[i]) < 0) notes.push(scan.notes[i])
-      }
-      const dayMap = {}
-      const routeMap = {}
-      const teamMap = {}
-      const ensureDay = (day) => {
-        if (dayMap[day] === undefined) dayMap[day] = { day: day, calls: 0, errors: 0, user: 0, bot: 0, sessions: {}, routes: {} }
-        return dayMap[day]
-      }
-      const bumpRoutes = (target, routes) => {
-        const keys = routes !== null && routes !== undefined && typeof routes === 'object' ? Object.keys(routes) : []
-        for (let i = 0; i < keys.length; i += 1) {
-          const u = routes[keys[i]]
-          if (u === null || u === undefined || typeof u !== 'object') continue
-          const cell = target[keys[i]] === undefined ? (target[keys[i]] = { in: 0, out: 0, cacheRead: 0, cacheWrite: 0 }) : target[keys[i]]
-          cell.in += u.in || 0
-          cell.out += u.out || 0
-          cell.cacheRead += u.cacheRead || 0
-          cell.cacheWrite += u.cacheWrite || 0
-        }
-      }
-      let runsSeen = 0
-      const totals = { calls: 0, errors: 0, user: 0, bot: 0, tokensIn: 0, tokensOut: 0, tokensCacheRead: 0, tokensCacheWrite: 0 }
-      const facts = Array.isArray(scan.facts) === true ? scan.facts : []
-      for (let i = 0; i < facts.length; i += 1) {
-        const f = facts[i]
-        if (f === null || Array.isArray(f.runs) !== true) continue
-        for (let k = 0; k < f.runs.length; k += 1) {
-          const run = f.runs[k]
-          if (run === null || typeof run !== 'object') continue
-          const at = typeof run.t1 === 'number' && Number.isFinite(run.t1) === true ? run.t1 : (typeof run.t0 === 'number' && Number.isFinite(run.t0) === true ? run.t0 : null)
-          if (at === null || at < fromMs || at > toMs) continue
-          runsSeen += 1
-          const day = kbInsightDayKey(at)
-          if (day === null) continue
-          const d = ensureDay(day)
-          d.calls += run.calls || 0
-          d.errors += run.errors || 0
-          d.user += run.user || 0
-          d.bot += run.bot || 0
-          totals.calls += run.calls || 0
-          totals.errors += run.errors || 0
-          totals.user += run.user || 0
-          totals.bot += run.bot || 0
-          const sid = str(run.sessionId)
-          if (sid !== null) d.sessions[sid] = true
-          bumpRoutes(d.routes, run.routes)
-          bumpRoutes(routeMap, run.routes)
-          // Équipe : premier préfixe du roster reconnu dans les étiquettes.
-          let teamId = null
-          for (let r = 0; r < roster.length; r += 1) {
-            if (kbInsightCrewOfRun(run.labels, roster[r]) !== null) { teamId = roster[r]; break }
-          }
-          if (teamId !== null) {
-            if (teamMap[teamId] === undefined) teamMap[teamId] = { kyberId: teamId, runs: 0, calls: 0, routes: {} }
-            teamMap[teamId].runs += 1
-            teamMap[teamId].calls += run.calls || 0
-            bumpRoutes(teamMap[teamId].routes, run.routes)
-          }
-        }
-      }
-      for (const day of Object.keys(dayMap)) {
-        const d = dayMap[day]
-        d.sessionsCount = Object.keys(d.sessions).length
-        d.tokens = { in: 0, out: 0, cacheRead: 0, cacheWrite: 0 }
-        const keys = Object.keys(d.routes)
-        for (let i = 0; i < keys.length; i += 1) {
-          d.tokens.in += d.routes[keys[i]].in
-          d.tokens.out += d.routes[keys[i]].out
-          d.tokens.cacheRead += d.routes[keys[i]].cacheRead
-          d.tokens.cacheWrite += d.routes[keys[i]].cacheWrite
-        }
-        totals.tokensIn += d.tokens.in
-        totals.tokensOut += d.tokens.out
-        totals.tokensCacheRead += d.tokens.cacheRead
-        totals.tokensCacheWrite += d.tokens.cacheWrite
-      }
-      // Coûts : tarifs rafraîchis, puis USD par agrégat (jour, route, équipe).
-      await refreshPrices()
-      const cost = kbInsightCostOf(routeMap)
-      if (cost.priced === false && runsSeen > 0) notes.push('coût indisponible : aucun tarif models.dev chargé' + (priceError === null || priceError === undefined ? '' : ' (' + priceError + ')'))
-      else if (cost.missing.length > 0 && cost.priced === true) notes.push(cost.missing.length + ' route(s) sans tarif models.dev : leurs tokens ne sont pas facturés dans le total')
-      const dayKeys = Object.keys(dayMap).sort()
-      const daysOut = []
-      for (let i = 0; i < dayKeys.length; i += 1) {
-        const d = dayMap[dayKeys[i]]
-        const c = kbInsightCostOf(d.routes)
-        daysOut.push({ day: d.day, calls: d.calls, errors: d.errors, user: d.user, bot: d.bot, sessions: d.sessionsCount, tokensIn: d.tokens.in, tokensOut: d.tokens.out, tokensCacheRead: d.tokens.cacheRead, tokensCacheWrite: d.tokens.cacheWrite, costUsd: c.priced === true ? c.usd : null })
-      }
-      const routesOut = cost.detail.map((x) => {
-        const slash = x.route.indexOf('/')
-        const provider = slash >= 0 ? x.route.slice(0, slash) : '?'
-        const model = slash >= 0 ? x.route.slice(slash + 1) : x.route
-        const u = routeMap[x.route]
-        return { route: x.route, provider: provider, model: model, tokens: x.tokens, usd: x.usd, in: u.in, out: u.out, cacheRead: u.cacheRead, cacheWrite: u.cacheWrite }
-      })
-      const teamsOut = Object.keys(teamMap).map((k) => {
-        const t = teamMap[k]
-        const c = kbInsightCostOf(t.routes)
-        return { kyberId: k, runs: t.runs, calls: t.calls, tokens: kbInsightCostOf(t.routes).pricedTokens, costUsd: c.priced === true ? c.usd : null }
-      }).sort((a, b) => (b.costUsd === null ? -1 : b.costUsd) - (a.costUsd === null ? -1 : a.costUsd))
-      // Catalogue configuré (namespace llm-pi-ai) + tarif unitaire par modèle.
-      const cat = readCatalog()
-      for (let i = 0; i < cat.errors.length; i += 1) if (notes.indexOf(cat.errors[i]) < 0) notes.push(cat.errors[i])
-      const providersOut = {}
-      for (const name of Object.keys(cat.providers)) {
-        providersOut[name] = cat.providers[name].map((m) => {
-          const price = priceFor(name, m.id)
-          return { id: m.id, image: m.image === true, contextWindow: m.contextWindow, cost: price === null ? null : { input: price.input, output: price.output, cacheRead: price.cacheRead, cacheWrite: price.cacheWrite } }
-        })
-      }
-      return {
-        ok: true,
-        generatedAt: new Date(now).toISOString(),
-        period: { fromMs: fromMs, toMs: toMs, fromIso: new Date(fromMs).toISOString(), toIso: new Date(toMs).toISOString(), days: days },
-        runs: runsSeen,
-        totals: {
-          calls: totals.calls, errors: totals.errors, user: totals.user, bot: totals.bot,
-          tokensIn: totals.tokensIn, tokensOut: totals.tokensOut, tokensCacheRead: totals.tokensCacheRead, tokensCacheWrite: totals.tokensCacheWrite,
-          costUsd: cost.priced === true ? cost.usd : null, priced: cost.priced === true, pricedTokens: cost.pricedTokens,
-        },
-        days: daysOut,
-        models: routesOut,
-        teams: teamsOut,
-        rosterUsed: roster,
-        catalog: { providers: providersOut, default: cat.default },
-        pricing: { source: 'https://models.dev/api.json', fetchedAt: priceFetchedAt === null ? null : new Date(priceFetchedAt).toISOString(), error: priceError, defaultUsdEur: DEFAULT_USD_EUR },
-        notes: notes,
-      }
-    }
     const readInsight = async (args) => {
       const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
       const kyberId = str(req.kyberId)
@@ -7312,9 +7118,10 @@ function boot(ctx) {
         const name = typeof req.name === 'string' ? req.name.trim().slice(0, 60) : ''
         if (name.length === 0) return { ok: false, error: 'nom requis' }
         const wantId = typeof req.id === 'string' && req.id.trim().length > 0 ? slugify(req.id) : slugify(name)
+        // `home: true` (the first-run starter kit) writes into DSH's own home, not into the project the person is working in.
         const rootsAll = await rootsFor()
-        const wsRoot = rootsAll.filter((r) => r.id === 'workspace')[0] || null
-        const targetRoot = wsRoot !== null ? wsRoot.path : (rootsAll[0] !== undefined ? rootsAll[0].path : null)
+        const target = kyberTarget(rootsAll, { home: req.home === true })
+        const targetRoot = target === null ? null : target.path
         if (targetRoot === null) return { ok: false, error: 'aucune racine kybers disponible' }
         const rolesRaw = Array.isArray(req.roles) === true ? req.roles : []
         const roles = []
@@ -7390,7 +7197,7 @@ function boot(ctx) {
           uiData[id] = { name: uiName === '' ? null : uiName, icon: uiIcon, color: uiColor, category: uiCategory, hosted: uiReq.hosted === true, tags: uiTags.length === 0 ? null : uiTags }
           await writeTextScoped(targetRoot, uiPath, JSON.stringify(uiData, null, 2) + String.fromCharCode(10))
         }
-        return { ok: true, id, path, rootId: wsRoot !== null ? 'workspace' : (rootsAll[0] !== undefined ? rootsAll[0].id : null) }
+        return { ok: true, id, path, rootId: target.id }
       } catch (e) { return { ok: false, error: errText(e) } }
     };
 
@@ -9761,7 +9568,9 @@ function boot(ctx) {
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
         const body = await readJsonBody(req)
         const action = str(body.action)
-        const progressFile = pluginDir + '/../.dsh/artifacts/.progress.json'
+        // The registry belongs to the person, in the DSH home (DSH_HOME honoured): next to the plugin it was replaced by every update,
+        // mixed every workspace and left an untracked file in a checkout.
+        const progressFile = nodePathJoin(dshHomeSync(), 'kybernos', 'progress.json')
         try {
           let data = { goals: {} }
           try { data = JSON.parse(readFileSync(progressFile, 'utf8')) } catch (e) { /* fichier absent ou invalide */ }
@@ -10125,18 +9934,6 @@ function boot(ctx) {
           sessionId: q.get('sessionId'),
         }))
       } }), 'kybernos: route insight')
-      // Espace « My workspace » : usage réel (jours, routes, équipes) et
-      // catalogue de modèles avec tarifs — lecture pure, un seul GET.
-      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspace-usage', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
-        const q = queryOf(req)
-        sendJson(res, 200, await kbWorkspaceUsage({
-          days: q.get('days'),
-          from: q.get('from'),
-          to: q.get('to'),
-          kybers: q.get('kybers'),
-        }))
-      } }), 'kybernos: route workspace-usage')
       // Console workspace (gateway LLM) : la clé admin vit dans
       // ~/.dsh/kybernos/settings.json (champ wsAdminKey) — JAMAIS dans le
       // dépôt. Le client la récupère par cette route same-origin pour la
@@ -10537,6 +10334,41 @@ function boot(ctx) {
           sendJson(res, 500, { ok: false, error: 'internal error' })
         }
       } }), 'kybernos: route tasks/occurrences')
+      // ── How the last turn of some automation sessions ended: GET /kybernos/tasks/outcomes?ids=a,b ─────────
+      // Read-only, for the Automations board: « the session has ended » says nothing about a turn that failed (no
+      // credential, a refused request), and the engine's session list calls both « done ». The verdict is the engine's own
+      // `turn/end` reason (session-outcome.mjs). Same guard as the routes above; at most 20 sessions per call, one
+      // journal read each; a session that cannot be read is simply absent from the answer (nothing is claimed).
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tasks/outcomes', handler: async (req, res) => {
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
+        try {
+          const ids = []
+          for (const raw of String(queryOf(req).get('ids') || '').split(',')) {
+            const id = raw.trim()
+            if (/^[A-Za-z0-9_.-]{1,80}$/.test(id) === true && ids.indexOf(id) < 0 && ids.length < 20) ids.push(id)
+          }
+          const outcomes = {}
+          if (persistence !== undefined && persistence !== null && typeof persistence.open === 'function') {
+            for (const id of ids) {
+              let handle = null
+              try {
+                handle = await persistence.open(id, 'read')
+                const read = await handle.read()
+                const verdict = lastTurnOutcome(read !== null && read !== undefined ? read.events : null)
+                if (verdict.open !== true) outcomes[id] = verdict.failed === true ? { failed: true, code: verdict.code, message: verdict.message } : { failed: false }
+              } catch (e) { /* unreadable or gone: no verdict */ } finally {
+                try { if (handle !== null && handle !== undefined && typeof handle.close === 'function') await handle.close() } catch (e) { /* already closed */ }
+              }
+            }
+          }
+          sendJson(res, 200, { ok: true, outcomes })
+        } catch (e) {
+          try { console.error('[kybers] tasks/outcomes route:', errText(e)) } catch (e2) { /* console unavailable */ }
+          sendJson(res, 500, { ok: false, error: 'internal error' })
+        }
+      } }), 'kybernos: route tasks/outcomes')
       // ══════════════════════════════════════════════════════════════════════
       // OUTILS (onglet « Outils ») — etat reel et activation cadree.
       //

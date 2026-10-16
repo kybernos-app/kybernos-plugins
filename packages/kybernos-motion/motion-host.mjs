@@ -331,11 +331,15 @@ export function createHost ({ fs, home, workspace, now = () => Date.now(), log =
     current.set(sessionId, { path, title, at: now() })
     lastSession = sessionId
   }
-  /** The scene a session is working on. `strict` (the agent's own tool) never borrows another session's scene; the panel may. */
+  /**
+   * The scene a session is working on. `strict` (the agent's own tool) never borrows. The panel borrows ONE thing: the scene the
+   * Creations page pointed it at (kept under 'panel', opened with no session). It never borrows the scene another chat is working
+   * on: a new chat showed the last scene opened in any chat or workspace.
+   */
   function getCurrent (sessionId, strict) {
     if (typeof sessionId === 'string' && current.has(sessionId)) return current.get(sessionId)
     if (strict === true) return null
-    return lastSession !== null ? current.get(lastSession) || null : null
+    return current.get('panel') || null
   }
 
   /** The agent asks the open panel to render frame t and hand the PNG back. Resolves { ok, path } or { ok:false }. */

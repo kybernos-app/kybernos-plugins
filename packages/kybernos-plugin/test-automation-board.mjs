@@ -118,6 +118,29 @@ const T = (id, o) => Object.assign({ id, name: id, active: true, approvals: 'ask
   eq('hostile input does not throw', m.kbBoardRuns([null, 3, { id: 5 }, { id: 'z', history: 'no' }], liveOf, NOW), [])
 }
 
+/* ── A session the engine lists as done can have ended on a failed turn (audit A5-11) ───────────────── */
+{
+  const ended = { running: false, waiting: null, pending: null }
+  const running = { running: true, waiting: null, pending: null }
+  const waiting = { running: false, waiting: 'approval', pending: null }
+  const bad = { failed: true, code: 'MISSING_CREDENTIAL', message: 'no credential for provider route zai' }
+  eq('an ended session whose last turn failed is a failed run', m.kbBoardRunState('fired', ended, bad), 'failed')
+  eq('...one whose turn did not fail, or has no verdict, is still just ended', [m.kbBoardRunState('fired', ended, { failed: false }), m.kbBoardRunState('fired', ended, null), m.kbBoardRunState('fired', ended, undefined)], ['ended', 'ended', 'ended'])
+  eq('a session that is running or waiting is that, whatever an older verdict said', [m.kbBoardRunState('fired', running, bad), m.kbBoardRunState('fired', waiting, bad)], ['running', 'waiting'])
+  eq('a session this page cannot see stays `started`: a verdict is not enough to claim', m.kbBoardRunState('fired', null, bad), 'started')
+  const liveOf = (sid) => ({ 's-bad': ended, 's-ok': ended, 's-run': running }[sid] || null)
+  const outcomeOf = (sid) => ({ 's-bad': bad, 's-ok': { failed: false }, 's-run': bad }[sid] || null)
+  const tasks = [T('nightly', { history: [H(NOW - 3 * 3600000, 'fired', 's-ok'), H(NOW - 3600000, 'fired', 's-bad')] }), T('live', { history: [H(NOW - 60000, 'fired', 's-run')] })]
+  const runs = m.kbBoardRuns(tasks, liveOf, NOW, outcomeOf)
+  eq('the board reads the verdicts it is given', runs.map((r) => r.state), ['ended', 'failed', 'running'])
+  eq('the failed run carries the engine\'s own message as its reason', runs[1].error, bad.message)
+  eq('without verdicts (a host that predates the route) every ended run stays ended', m.kbBoardRuns(tasks, liveOf, NOW).map((r) => r.state), ['ended', 'ended', 'running'])
+  const C = m.kbBoardColumns(tasks, runs, null, NOW)
+  eq('the failed run is in the attention column (To approve), the good one in Done', [C.approve.map((r) => r.state), C.done.map((r) => r.state)], [['failed'], ['ended']])
+  eq('the failed run is not also filed under Done', C.done.some((r) => r.state === 'failed'), false)
+  eq('a failed entry keeps its own reason over the verdict', m.kbBoardRuns([T('f', { history: [H(NOW - 5000, 'error', null, { error: 'session service refused' })] })], liveOf, NOW, outcomeOf)[0].error, 'session service refused')
+}
+
 /* ── The four columns ────────────────────────────────────────────────────── */
 {
   const DAY = 86400000

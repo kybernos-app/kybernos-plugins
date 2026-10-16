@@ -16,7 +16,8 @@
 //   - the calendar (week and month), the folding of one automation's runs of a day, the dashed planned runs, the
 //     detail strip and its actions, previous / today / next;
 //   - « Run now » end to end: the host starts a real session, the board reads its state from the ENGINE (the same
-//     one its sidebar shows) and never says more than it knows;
+//     one its sidebar shows) and never says more than it knows; a turn that FAILED (the sandbox has no model
+//     credential) is shown failed, not done;
 //   - the host not answering (banner, retry), the loading skeleton, the empty state, French, a phone width;
 //   - with --stub-model: a run that is really RUNNING and a run that really WAITS for an approval, answered from the
 //     board with Refuse and with Approve. It needs a model that does what it is told, so the check starts a stub
@@ -417,7 +418,8 @@ try {
   await poll(() => q('[data-kb="board-columns"]'))
   const histBefore = (readTasks().find((t) => t.id === 'st-board-watch') || { history: [] }).history.length
   check('Run now is clicked on the Competitive watch card', (await click('[data-kb="board-card"][data-col="upcoming"][data-task="st-board-watch"] [data-act="launch"]')) === true)
-  // Watch the state of the NEW run every 100 ms: it can only be `running` then `ended`, never anything else.
+  // Watch the state of the NEW run every 100 ms: `running`, then `ended` until the host has read the turn's verdict, then `failed`:
+  // the sandbox has no credential for the model, so the turn ends on an error and the engine's own sidebar still says « Completed ».
   const seen = []
   const end = Date.now() + 25000
   let newSession = null
@@ -428,16 +430,16 @@ try {
     const fresh = states.filter((s) => !/:started$/.test(s))
     const tag = fresh.join(',')
     if (tag !== '' && seen[seen.length - 1] !== tag) seen.push(tag)
-    if (/done:ended/.test(tag) && Date.now() > end - 20000) break
+    if (/approve:failed/.test(tag) && Date.now() > end - 20000) break
     await sleep(100)
   }
   check('the host started a REAL session and recorded it on the run', newSession !== null && newSession.status === 'fired' && typeof newSession.sessionId === 'string' && newSession.sessionId.indexOf('seed-session') < 0, newSession)
   console.log('  · states of the new run, as the board showed them: ' + seen.join(' → '))
-  check('the board only said what the engine said: running and/or ended, in that order', seen.length > 0 && seen.every((s) => /^(running:running|done:ended|running:running,done:ended)$/.test(s) || /^(done:ended)$/.test(s)), seen)
-  check('it ended in Done, "ended" (not claimed as success: the session has ended, open it to see)', /done:ended/.test(seen[seen.length - 1] || ''))
+  check('the board only said what the engine said: running, ended, failed, in that order', seen.length > 0 && seen.every((s) => /^(running:running|done:ended|approve:failed)$/.test(s)) && seen.indexOf('approve:failed') === seen.length - 1, seen)
+  check('a turn that failed (no credential) is not filed under Done: it is Failed, in the attention column', /approve:failed/.test(seen[seen.length - 1] || '') && (await q('[data-kb="board-card"][data-col="done"][data-task="st-board-watch"][data-state="ended"]')) === 0)
   const engineSays = await val(`Array.from(document.querySelectorAll('[class*="visuallyHidden"]')).map((e) => e.textContent.trim()).filter(Boolean)`)
   check('the engine\'s own sidebar says the same: that session is "Completed"', Array.isArray(engineSays) && engineSays.includes('Completed'), engineSays)
-  check('the card now offers See session (the page can see that session)', (await q('[data-kb="board-card"][data-col="done"][data-task="st-board-watch"][data-state="ended"] [data-act="session"]')) === 1)
+  check('...with the engine\'s reason, Retry and See journal like a run that could not start', /credential/i.test(await val(`(document.querySelector('[data-kb="board-card"][data-col="approve"][data-task="st-board-watch"][data-state="failed"]') || { innerText: '' }).innerText`)) && (await q('[data-kb="board-card"][data-col="approve"][data-task="st-board-watch"][data-state="failed"] [data-act="retry"]')) === 1 && (await q('[data-kb="board-card"][data-col="approve"][data-task="st-board-watch"][data-state="failed"] [data-act="journal"]')) === 1)
   await shot('automations-after-run')
 
   console.log('\n── an automation that can never fire is said ──')

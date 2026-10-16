@@ -1,10 +1,14 @@
 #!/usr/bin/env node
-/** Harnais hôte de kybernos-auto : routes sur un webServer FACTICE, home
- *  temporaire — aucun réseau, aucune écriture hors du home de test. */
+/** Host harness of kybernos-auto: routes on a FAKE webServer, a temporary home
+ *  — no network, no write outside the test home. */
 import { mkdtempSync, readFileSync, writeFileSync, existsSync, readdirSync, statSync, chmodSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { monterRoutes, lireSessions, lireSante } from './index.js'
+import { sessionSource } from './session-guard.mjs'
+import { SESSION_SECRET, browserHeaders } from './lib-session-test.mjs'
+
+sessionSource.secret = () => SESSION_SECRET // the machine secret the write routes check the session cookie against (the guard's own test reads the file)
 
 let ok0 = 0
 let ko = 0
@@ -17,17 +21,17 @@ const reglagesPath = join(home, 'kybernos', 'settings.json')
 const sessionsAutoPath = join(home, 'kybernos', 'auto-sessions.json')
 const santePath = join(home, 'kybernos', 'auto-health.json')
 
-// webServer factice : capture les handlers par chemin
+// fake webServer: captures the handlers by path
 const routes = {}
 const webServerSvc = { register: (r) => { routes[r.path] = r.handler } }
 monterRoutes(webServerSvc, { home, reglagesPath, sessionsAutoPath, santePath, ollama: 'http://127.0.0.1:1' })
 
-const requete = (method, path, corps) => ({ method, url: path, headers: { origin: 'http://127.0.0.1:3080' }, socket: { localPort: 3080 }, on: ('data', (d) => {}), ...{} , __corps: corps })
-// petite fabrique conforme à lireCorps (events)
+const requete = (method, path, corps) => ({ method, url: path, headers: browserHeaders(), socket: { localPort: 3080 }, on: ('data', (d) => {}), ...{} , __corps: corps })
+// a small factory that matches lireCorps (events)
 const fabriqueRequete = (method, path, corps) => {
   const body = corps === undefined ? '' : JSON.stringify(corps)
   return {
-    method, url: path, headers: { origin: 'http://127.0.0.1:3080' }, socket: { localPort: 3080 },
+    method, url: path, headers: browserHeaders(), socket: { localPort: 3080 },
     on (ev, cb) { if (ev === 'data') cb(body); if (ev === 'end') cb() }
   }
 }
@@ -88,7 +92,7 @@ r = reponse()
 await routes['/kybernos-auto/settings'](fabriqueRequete('POST', '/kybernos-auto/settings', { autoRouting: 'oui' }), r)
 ok('autoRouting non booléen refusé', r.corps.ok === false, r.corps)
 
-// Repli du chat (failover.mjs) : un réglage opt-in, désactivé par défaut, exposé dans l'état de la page.
+// Chat fallback (failover.mjs): an opt-in setting, off by default, exposed in the page's state.
 r = reponse()
 await routes['/kybernos-auto/settings'](fabriqueRequete('POST', '/kybernos-auto/settings', { autoFailover: 'oui' }), r)
 ok('autoFailover non booléen refusé', r.corps.ok === false, r.corps)
@@ -222,34 +226,43 @@ console.log('\n── les modèles qu\'Auto peut prendre : tous, gratuits, ma li
   ok('« tous » sans rien de connu : une liste vide, pas inventée', st.ok === true && st.whitelist.length === 0 && st.total === 0, st)
 }
 
-console.log('\n── une requête qui ne dit pas d\'où elle vient lit, elle n\'écrit pas (A3-29) ──')
+console.log('\n── a request that does not say where it comes from reads, it does not write (A3-29, with the WP-19 guard) ──')
 {
-  const silencieuse = (method, path, corps) => {
+  // The write routes need the right Origin AND DSH's signed session cookie (session-guard.mjs; test-write-guard.mjs covers every case,
+  // this block keeps the page-level promises: nothing written by a bare request, the page's own pair writes, the CLI routes stay open).
+  const requeteAvec = (headers, method, path, corps) => {
     const body = corps === undefined ? '' : JSON.stringify(corps)
-    return { method, url: path, headers: {}, socket: { localPort: 3080 }, on (ev, cb) { if (ev === 'data') cb(body); if (ev === 'end') cb() } }
+    return { method, url: path, headers, socket: { localPort: 3080 }, on (ev, cb) { if (ev === 'data') cb(body); if (ev === 'end') cb() } }
   }
   const avant = readFileSync(reglagesPath, 'utf8')
   for (const [path, corps] of [['/kybernos-auto/settings', { autoRouting: false, autoClassifier: 'x/y' }], ['/kybernos-auto/session', { sessionId: 's9', on: true }], ['/kybernos-auto/probe', {}]]) {
     let code = null
     const rep = { writeHead (c) { code = c }, end () {} }
-    await routes[path](silencieuse('POST', path, corps), rep)
-    ok(path + ' : refus (403) sans Origin ni Referer', code === 403, code)
+    await routes[path](requeteAvec({}, 'POST', path, corps), rep)
+    ok(path + ': refused (403) with no Origin and no cookie', code === 403, code)
+    code = null
+    await routes[path](requeteAvec({ origin: 'https://evil.example', cookie: browserHeaders().cookie }, 'POST', path, corps), rep)
+    ok(path + ': refused (403) with a foreign Origin, even with the real cookie', code === 403, code)
+    code = null
+    await routes[path](requeteAvec({ origin: browserHeaders().origin }, 'POST', path, corps), rep)
+    ok(path + ': refused (401, sign-in required) with the right Origin but no session cookie', code === 401, code)
+    code = null
+    await routes[path](requeteAvec({ referer: 'http://127.0.0.1:3080/settings' }, 'POST', path, corps), rep)
+    ok(path + ': a Referer alone does not write (no session cookie: 401)', code === 401, code)
   }
-  ok('...et rien n\'a été écrit', readFileSync(reglagesPath, 'utf8') === avant && lireSessions(sessionsAutoPath).s9 === undefined)
+  ok('...and nothing was written', readFileSync(reglagesPath, 'utf8') === avant && lireSessions(sessionsAutoPath).s9 === undefined)
   let r2 = reponse()
-  await routes['/kybernos-auto/state'](silencieuse('GET', '/kybernos-auto/state'), r2)
-  ok('la lecture sans Origin passe toujours (une page n\'en envoie pas sur un GET de même origine)', r2.corps !== null && r2.corps.ok === true)
+  await routes['/kybernos-auto/state'](requeteAvec({}, 'GET', '/kybernos-auto/state'), r2)
+  ok('a read with no Origin still works (a page sends none on a same-origin GET)', r2.corps !== null && r2.corps.ok === true)
   r2 = reponse()
-  await routes['/kybernos-auto/router'](silencieuse('POST', '/kybernos-auto/router', { demande: 'corrige ce bug', sessionId: 's2' }), r2)
-  ok('le routeur reste ouvert à la ligne de commande (cli/auto-router.mjs ne parle pas depuis une page)', r2.corps !== null && r2.corps.actif !== undefined, r2.corps)
+  await routes['/kybernos-auto/router'](requeteAvec({}, 'POST', '/kybernos-auto/router', { demande: 'corrige ce bug', sessionId: 's2' }), r2)
+  ok('the router stays open to the command line (cli/auto-router.mjs does not speak from a page)', r2.corps !== null && r2.corps.actif !== undefined, r2.corps)
   r2 = reponse()
-  await routes['/kybernos-auto/report'](silencieuse('POST', '/kybernos-auto/report', { modele: 'deepseek-official/deepseek-chat', latenceMs: 900 }), r2)
-  ok('le rapport d\'issue aussi', r2.corps !== null && r2.corps.ok === true, r2.corps)
+  await routes['/kybernos-auto/report'](requeteAvec({}, 'POST', '/kybernos-auto/report', { modele: 'deepseek-official/deepseek-chat', latenceMs: 900 }), r2)
+  ok('the outcome report too', r2.corps !== null && r2.corps.ok === true, r2.corps)
   r2 = reponse()
-  const refReq = silencieuse('POST', '/kybernos-auto/session', { sessionId: 's9', on: true })
-  refReq.headers = { referer: 'http://127.0.0.1:3080/settings' }
-  await routes['/kybernos-auto/session'](refReq, r2)
-  ok('un Referer de ce DSH suffit pour écrire', r2.corps !== null && r2.corps.ok === true, r2.corps)
+  await routes['/kybernos-auto/session'](requeteAvec(browserHeaders(), 'POST', '/kybernos-auto/session', { sessionId: 's9', on: true }), r2)
+  ok('the page\'s own pair (right Origin + signed session) writes', r2.corps !== null && r2.corps.ok === true, r2.corps)
 }
 
 console.log('\n── origin garde ──')

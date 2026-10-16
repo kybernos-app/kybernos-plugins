@@ -341,8 +341,9 @@ window.__ModuleLoader__.load({
         'kb.pv.del.ok': { kybernos: 'Supprimer le fournisseur', en: 'Delete provider' },
         'kb.pv.del.instead': { kybernos: 'Désactiver plutôt', en: 'Disable instead' },
         'kb.pv.del.err': { kybernos: 'Impossible de supprimer {slug} : {raison}', en: 'Could not delete {slug}: {raison}' },
-        'kb.pv.zone.off': { kybernos: 'Désactiver', en: 'Disable' },
-        'kb.pv.zone.off.d': { kybernos: 'Masque ses modèles et bloque les appels. Rien n’est supprimé.', en: 'Hides its models and blocks calls. Nothing is deleted.' },
+        'kb.pv.zone.off': { kybernos: 'Activé', en: 'Enabled' },
+        'kb.pv.zone.off.d': { kybernos: 'Désactivez-le pour masquer ses modèles et bloquer les appels. Rien n’est supprimé.', en: 'Turn it off to hide its models and block calls. Nothing is deleted.' },
+        'kb.pv.sw.aria': { kybernos: '{slug} activé', en: '{slug} enabled' },
         'kb.pv.zone.del': { kybernos: 'Supprimer le fournisseur', en: 'Delete provider' },
         'kb.pv.zone.del.d': { kybernos: 'Le retire avec ses modèles, ses surcharges et sa clé.', en: 'Removes it with its models, overrides and key.' },
         'kb.pv.hostnote': { kybernos: 'Désactiver demande un redémarrage de DSH : les nouvelles routes de l’hôte ne sont pas encore chargées.', en: 'Disabling needs a DSH restart: the new host routes are not loaded yet.' },
@@ -1600,14 +1601,24 @@ window.__ModuleLoader__.load({
         const trouvée = LOGO_SLUGS.find((p) => r.indexOf(p[0]) >= 0)
         return trouvée === undefined ? null : trouvée[1]
       }
+      // KB-LOGO-PURE-BEGIN
+      // A provider logo comes from this bundle (logos/, served by /kybernos-models/logo), never from a third-party CDN: a page that shows
+      // twenty logos must not tell a CDN which providers a person looks at (it used to ask an icon CDN). The slugs above are
+      // simple-icons names; each maps to the models.dev logo the bundle ships, and a provider without one shows its initial.
+      const LOGO_ALIAS = { googlegemini: 'google', qwen: 'alibaba', ollama: 'ollama-cloud', mistralai: 'mistral', together: 'togetherai', ovh: 'ovhcloud', alibabacloud: 'alibaba' }
+      const kbLogoLocalId = (slug, catalogue) => {
+        const s = String(slug === null || slug === undefined ? '' : slug)
+        const id = Object.prototype.hasOwnProperty.call(LOGO_ALIAS, s) ? LOGO_ALIAS[s] : s
+        const list = Array.isArray(catalogue) ? catalogue : []
+        const found = list.find((p) => p !== null && typeof p === 'object' && p.id === id && p.logo === true)
+        return found === undefined ? null : found.id
+      }
+      // KB-LOGO-PURE-END
       // ── provider catalogue (source: https://models.dev/providers/) ──
-      // Entries: { id, nom, env, url, logo, libre }. `libre` marks the
-      // providers that offer FREE models under quota
-      // (OpenRouter: openrouter.ai/collections/free-models; NVIDIA NIM
-      // preview: build.nvidia.com/models → nim_type_preview). The `logo`
-      // slug aims at cdn.simpleicons.org; absent or failing → initial chip.
-      // A prefill writes nothing by itself: it proposes slug, baseURL
-      // and env-variable name, the user confirms with « Add ».
+      // Entries: { id, nom, env, url, logo, libre }. `libre` marks the providers that offer FREE models under a quota
+      // (OpenRouter: openrouter.ai/collections/free-models; NVIDIA NIM preview: build.nvidia.com/models → nim_type_preview).
+      // The `logo` slug is a simple-icons name, turned into the logo the bundle ships by kbLogoLocalId; none → the initial.
+      // A prefill writes nothing by itself: it proposes slug, baseURL and env variable name, and the person confirms with « Add ».
       const PROV_CATALOG = [
         { id: 'openrouter', nom: 'OpenRouter', env: 'OPENROUTER_API_KEY', url: 'https://openrouter.ai/api/v1', logo: 'openrouter', libre: true },
         { id: 'nvidia', nom: 'NVIDIA NIM', env: 'NVIDIA_API_KEY', url: 'https://integrate.api.nvidia.com/v1', logo: 'nvidia', libre: true },
@@ -1689,15 +1700,13 @@ window.__ModuleLoader__.load({
         }
         return best
       }
-      /** Puce logo par slug de catalogue (simpleicons) — repli initiale. */
+      /** Puce logo par slug de catalogue : le logo local qui lui correspond, sinon l'initiale. */
       const LogoSlug = ({ slug, nom, taille }) => {
-        const [echec, setEchec] = React.useState(false)
         const t = taille || 18
-        if (!slug || echec === true) {
-          return h('span', { className: 'kbmp-logo kbmp-logo-chip', style: { width: t + 6, height: t + 6, fontSize: Math.max(9, t - 6) } },
-            String(nom || slug || '?').charAt(0).toUpperCase())
-        }
-        return h('img', { className: 'kbmp-logo', src: 'https://cdn.simpleicons.org/' + slug, width: t, height: t, alt: '', loading: 'lazy', onError: () => setEchec(true) })
+        const local = slug ? kbLogoLocalId(slug, KB_CATALOGUE) : null
+        if (local !== null) return h(LogoMd, { id: local, nom: nom || slug, taille: t })
+        return h('span', { className: 'kbmp-logo kbmp-logo-chip', style: { width: t + 6, height: t + 6, fontSize: Math.max(9, t - 6) } },
+          String(nom || slug || '?').charAt(0).toUpperCase())
       }
       /** models.dev logo served by the host, painted as a mask: it takes the theme's colour (light/dark). */
       const LogoMd = ({ id, nom, taille }) => {
@@ -1724,16 +1733,14 @@ window.__ModuleLoader__.load({
         return h('span', { className: cls, title: m('kb.prov.free.titre'), 'data-kbm': 'prov-free' }, contenu)
       }
       const LogoProv = ({ route, taille }) => {
-        const [echec, setEchec] = React.useState(false)
         const t = taille || 18
-        const slug = logoSlugDe(route)
         const ent = kbLogoEntree(route)
         if (ent !== null) return h(LogoMd, { id: ent.id, nom: route, taille: t })
-        if (slug === null || echec === true) {
-          return h('span', { className: 'kbmp-logo kbmp-logo-chip', style: { width: t + 6, height: t + 6, fontSize: Math.max(9, t - 6) } },
-            String(route).charAt(0).toUpperCase())
-        }
-        return h('img', { className: 'kbmp-logo', src: 'https://cdn.simpleicons.org/' + slug, width: t, height: t, alt: '', loading: 'lazy', onError: () => setEchec(true) })
+        const slug = logoSlugDe(route)
+        const local = slug === null ? null : kbLogoLocalId(slug, KB_CATALOGUE)
+        if (local !== null) return h(LogoMd, { id: local, nom: route, taille: t })
+        return h('span', { className: 'kbmp-logo kbmp-logo-chip', style: { width: t + 6, height: t + 6, fontSize: Math.max(9, t - 6) } },
+          String(route).charAt(0).toUpperCase())
       }
 
       // ═══ Providers tab ═══════════════════════════════════════════════════════════════
@@ -1765,7 +1772,9 @@ window.__ModuleLoader__.load({
 
       /** The models of a draft: id and display name per row, delete, add — and "Fetch available models", which asks the
        *  engine what the provider serves and lets the user tick the ones to add (the native page's picker). */
-      const PvModels = ({ d, set, custom, probe, blocked, slug }) => {
+      // `required`: the add form of a custom provider, which cannot be created with no model (nothing can default one):
+      // the empty state then says so, in place of the « no models will be shown » of an edit.
+      const PvModels = ({ d, set, custom, probe, blocked, slug, required }) => {
         const rows = d.models
         const [fp, setFp] = React.useState({ busy: false, err: null, cands: null, picked: {}, q: '' })
         const setRows = (next) => set({ models: next, touched: true, restoreModels: false })
@@ -1834,11 +1843,13 @@ window.__ModuleLoader__.load({
                 title: blocked !== null ? blocked : (!askable ? m('kb.fetch.needsurl') : undefined), onClick: ask }, fp.busy === true ? m('kb.fetch.busy') : m('kb.fetch.btn')))),
           fp.err !== null ? h('span', { className: 'kbpv-err', role: 'alert', 'data-kbm': 'fetch-err' }, fp.err) : null,
           rows.length === 0
-            ? h('p', { className: 'kbpv-hint', 'data-kbm': d.restoreModels === true ? 'fetch-restored' : undefined }, m(d.restoreModels === true ? 'kb.fetch.restored' : (custom ? 'kb.pv.models.none' : 'kb.pv.models.catalog')))
+            ? h('p', { className: required === true && d.restoreModels !== true ? 'kbpv-err' : 'kbpv-hint', 'data-kbm': d.restoreModels === true ? 'fetch-restored' : (required === true ? 'pv-models-required' : undefined) }, m(d.restoreModels === true ? 'kb.fetch.restored' : (custom ? (required === true ? 'kb.pv.err.models' : 'kb.pv.models.none') : 'kb.pv.models.catalog')))
             : h('div', { className: 'kbpv-mrows' }, rows.map((r, i) => h('div', { className: 'kbpv-mrow', key: i, 'data-kbm': 'pv-model-row' },
               h('input', { className: 'kbm-in-input kbpv-in kbpv-mono', placeholder: m('kb.pv.model.id'), 'aria-label': m('kb.pv.model.id') + ' ' + String(i + 1), value: r.id, onChange: (ev) => upd(i, 'id', ev.target.value) }),
               h('input', { className: 'kbm-in-input kbpv-in', placeholder: m('kb.pv.model.name'), 'aria-label': m('kb.pv.model.name') + ' ' + String(i + 1), value: r.name, onChange: (ev) => upd(i, 'name', ev.target.value) }),
               h('button', { type: 'button', className: 'kbpv-ib kbpv-ib-danger', 'aria-label': m('kb.pv.model.del', { n: i + 1 }), title: m('kb.pv.model.del', { n: i + 1 }), onClick: () => setRows(rows.filter((_, j) => j !== i)) }, Ic('trash', 15))))),
+          // Rows exist but none has an ID yet: Create is still blocked, and the reason stays on screen.
+          required === true && rows.length > 0 && kbPvRows(rows).length === 0 ? h('p', { className: 'kbpv-err', role: 'alert', 'data-kbm': 'pv-models-required' }, m('kb.pv.err.models')) : null,
           h('div', null, h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kbm': 'pv-model-add', onClick: () => setRows(rows.concat([{ id: '', name: '' }])) }, Ic('plus', 13), m('kb.pv.model.add'))),
           open ? renderPicker() : null)
       }
@@ -1927,6 +1938,15 @@ window.__ModuleLoader__.load({
         const [dr, setDr] = React.useState(null)
         const patch = (o) => setUi((u) => ({ ...u, ...o }))
         const setD = (o) => setDr((d) => ({ ...d, ...o }))
+        // Escape closes the confirmation (disable / delete) and nothing else, so the drawer behind it stays: window capture runs
+        // before the drawer's own document capture.
+        const confirming = ui.dlg !== null
+        React.useEffect(() => {
+          if (confirming !== true) return undefined
+          const key = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); setUi((u) => ({ ...u, dlg: null, typed: '' })) } }
+          window.addEventListener('keydown', key, true)
+          return () => window.removeEventListener('keydown', key, true)
+        }, [confirming])
         React.useEffect(() => {
           if (KB_CAT_CHARGE === true || KBM.live !== true) return undefined
           KB_CAT_CHARGE = true
@@ -2036,7 +2056,8 @@ window.__ModuleLoader__.load({
         // ── one card ──
         const renderSwitch = ({ route, on, locked, why }) => h('button', {
           type: 'button', role: 'switch', 'aria-checked': on ? 'true' : 'false', className: 'kbpv-sw' + (on ? ' on' : ''), 'data-kbm': 'prov-switch',
-          disabled: locked === true || ui.busy === true, title: why, 'aria-label': why,
+          // A switch is named by what it controls, its state is announced by aria-checked; the action (or why it is locked) is the tooltip.
+          disabled: locked === true || ui.busy === true, title: why, 'aria-label': m('kb.pv.sw.aria', { slug: route }),
           onClick: (ev) => { ev.stopPropagation(); if (on) patch({ dlg: { type: 'off', id: route } }); else doEnable(route) },
         }, h('span', { className: 'kbpv-sw-k' }))
         const renderCard = ({ route, off }) => {
@@ -2169,7 +2190,6 @@ window.__ModuleLoader__.load({
             setTimeout(() => { try { const el = document.querySelector('.kbpv-opt-act'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' }) } catch (e) { /* best-effort */ } }, 0)
           }
           const block = kbPvAddBlock(dr, taken)
-          const hint = block === 'slug' || block === 'taken' || block === 'url' || block === 'template' ? m('kb.pv.err.' + block) : null
           const renderCombo = () => h('div', { className: 'kbpv-cb' },
             h('button', { type: 'button', className: 'kbpv-cb-btn', 'data-kbm': 'prov-combo', 'aria-haspopup': 'listbox', 'aria-expanded': dr.liste === true ? 'true' : 'false', onClick: () => setD({ liste: dr.liste !== true }) },
               preset !== null
@@ -2212,7 +2232,7 @@ window.__ModuleLoader__.load({
             label: m('kb.pv.title.add'), onClose: closeAll,
             head: h('span', { className: 'kbpv-dt' }, m('kb.pv.title.add')),
             footer: [h('button', { key: 'c', type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', onClick: closeAll }, m('kb.pv.cancel')),
-              h('button', { key: 'a', type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'prov-ok', disabled: ui.busy === true || block !== null || ro, onClick: doCreate }, m(catalog ? 'kb.pv.apply' : 'kb.pv.create'))],
+              h('button', { key: 'a', type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'prov-ok', disabled: ui.busy === true || block !== null || ro, title: block !== null ? m('kb.pv.err.' + block) : undefined, onClick: doCreate }, m(catalog ? 'kb.pv.apply' : 'kb.pv.create'))],
           },
           ui.err ? h('div', { className: 'kbpv-fail', role: 'alert', 'data-kbm': 'pv-fail' }, ui.err) : null,
           h('div', { className: 'kbpv-tabs', role: 'tablist', 'data-kbm': 'prov-mode' }, tab('catalog', 'kb.prov.add.tab.cat'), tab('custom', 'kb.prov.add.tab.perso')),
@@ -2239,7 +2259,7 @@ window.__ModuleLoader__.load({
                 h('input', { id: 'pv-url', className: 'kbm-in-input kbpv-in kbpv-mono', placeholder: 'https://gateway.example/v1', value: dr.url, onChange: (ev) => setD({ url: ev.target.value }) })),
               h(PvField, { key: 'pr', id: 'pv-proto', label: m('kb.pv.proto') }, h('select', { id: 'pv-proto', className: 'kbm-in-input kbpv-in', value: dr.proto, onChange: (ev) => setD({ proto: ev.target.value }) }, PV_PROTOS.map((x) => h('option', { key: x[0], value: x[0] }, m(x[1]))))),
               keyField,
-              h(PvModels, { key: 'mo', d: dr, set: setD, custom: true, probe: kbFetchProbe(null, dr), blocked: dr.url.trim() !== '' && !kbPvUrlOk(dr.url) ? m('kb.pv.err.url') : null, slug: null })]
+              h(PvModels, { key: 'mo', d: dr, set: setD, custom: true, required: true, probe: kbFetchProbe(null, dr), blocked: dr.url.trim() !== '' && !kbPvUrlOk(dr.url) ? m('kb.pv.err.url') : null, slug: null })]
           }
         }
 

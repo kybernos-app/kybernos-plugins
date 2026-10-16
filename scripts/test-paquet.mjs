@@ -135,7 +135,7 @@ verifie('queue-move, workspace-pins et goal-affichage ne sont retirées qu\'à p
   ['queue-move', 'workspace-pins', 'goal-affichage'].every((id) => patches.find((x) => x.id === id)?.retire_depuis_moteur === '0.2.0-rc.2'))
 verifie('le moteur la DÉFAIT là où elle traîne', moteur.includes("'--revert'") && moteur.includes('retire: true'))
 verifie('le doctor compte les retouches non retirées',
-  moteur.includes('la retouche « ${p.id} » est retirée mais encore posée'))
+  moteur.includes('patch « ${p.id} » is removed but still applied'))
 
 // ── 7. l'archive ne se construit pas sur un arbre sale (23/09/2026) ─────────
 // Le premier jet de cette garde retirait « des non-espaces » : le statut de git

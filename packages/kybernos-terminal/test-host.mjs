@@ -4,10 +4,10 @@
 //   node packages/kybernos-terminal/test-host.mjs
 import { createHash, createHmac, randomBytes } from 'node:crypto'
 import { EventEmitter } from 'node:events'
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { cookieSessionValide, dshHome, executer, lireSecretSession, monterRoutes, origineOK } from './index.js'
+import { cookieSessionValide, dossierDeSession, dshHome, executer, lireSecretSession, lisible, monterRoutes, origineOK } from './index.js'
 
 let failed = 0
 const check = (name, ok, detail) => {
@@ -151,6 +151,73 @@ console.log('the runner')
   }
   check('an empty command is refused', (await executer({ commande: '   ' })).ok === false)
   check('a command over 500 characters is refused', (await executer({ commande: 'x'.repeat(501) })).ok === false)
+}
+
+console.log('where it runs (audit A4-17): the folder of the session, found by the host')
+{
+  const project = realpathSync(mkdtempSync(join(tmpdir(), 'kb-term-proj-')))
+  try {
+    const ran = []
+    const good = cookieFor(SECRET, AUTH)
+    const run = async (b) => { ran.push(b); return { ok: true, code: 0, stdout: '', stderr: '', cwd: b.cwd ?? '~' } }
+    const h = handlerFor({ lireSecret: () => SECRET, executer: run, dossierDeSession: async (id) => (id === 's1' ? project : null) })
+    let o = await call(h, { cookie: good, body: JSON.stringify({ commande: 'git status', session: 's1' }) })
+    check('a command run for a session gets the folder of that session', o.status === 200 && ran.length === 1 && ran[0].cwd === project && ran[0].commande === 'git status', JSON.stringify(ran))
+    check('...the session id itself is not handed to the runner', ran[0].session === undefined)
+
+    ran.length = 0
+    o = await call(h, { cookie: good, body: JSON.stringify({ commande: 'rm -rf build', session: 's1', cwd: '/etc' }) })
+    check('a folder sent by the page is never used', o.status === 200 && ran.length === 1 && ran[0].cwd === project, JSON.stringify(ran))
+    ran.length = 0
+    o = await call(h, { cookie: good, body: JSON.stringify({ commande: 'rm -rf build', cwd: '/etc' }) })
+    check('...nor when there is no session (the runner then falls back to its default)', o.status === 200 && ran.length === 1 && ran[0].cwd === undefined, JSON.stringify(ran))
+
+    ran.length = 0
+    o = await call(h, { cookie: good, body: JSON.stringify({ commande: 'npm install', session: 'unknown' }) })
+    check('a session whose folder cannot be found runs NOTHING (it used to run in the home folder)', o.status === 400 && ran.length === 0 && /folder of this session/.test(JSON.parse(o.body).erreur), o.body)
+
+    // the real resolver, on what the core plugin publishes
+    const KEY = Symbol.for('kybernos.workspace')
+    const had = globalThis[KEY]
+    try {
+      delete globalThis[KEY]
+      check('without the core plugin\'s workspace service no folder is found', (await dossierDeSession('s1')) === null)
+      globalThis[KEY] = { sessionCwd: async (id) => (id === 's1' ? project : null) }
+      check('with it, the folder of the session', (await dossierDeSession('s1')) === project && (await dossierDeSession('s2')) === null)
+      globalThis[KEY] = { sessionCwd: async () => { throw new Error('boom') } }
+      check('a failing service means no folder, not a crash', (await dossierDeSession('s1')) === null)
+    } finally { if (had === undefined) delete globalThis[KEY]; else globalThis[KEY] = had }
+
+    if (existsSync('/bin/zsh')) {
+      const sub = join(project, 'sub dir')
+      mkdirSync(sub)
+      const r = await executer({ commande: 'pwd', cwd: sub })
+      check('the runner runs in the folder it is given', r.ok === true && r.stdout.trim() === realpathSync(sub), JSON.stringify(r))
+      const gone = await executer({ commande: 'pwd', cwd: join(project, 'nope') })
+      check('a folder that is gone is said, not hidden behind a spawn error', gone.ok === false && /folder/.test(gone.erreur) && !gone.erreur.includes(project), JSON.stringify(gone))
+    }
+  } finally { rmSync(project, { recursive: true, force: true }) }
+}
+
+console.log('the run card edge cases (audit A4-18)')
+if (existsSync('/bin/zsh')) {
+  const cut = await executer({ commande: 'yes hello | head -c 5000' }, { sortieMax: 100 })
+  check('output past the cap is cut AND says so', cut.ok === true && cut.stdout.length === 100 && cut.truncated === true, JSON.stringify({ n: cut.stdout.length, t: cut.truncated }))
+  const whole = await executer({ commande: 'echo short' })
+  check('output under the cap is not marked cut', whole.truncated === false && whole.stdout === 'short\n')
+
+  const t0 = Date.now()
+  const reads = await executer({ commande: 'read x; echo got-$x' }, { timeoutMs: 8000 })
+  check('a command that reads its input does not wait for the timeout (stdin is closed)', Date.now() - t0 < 4000 && reads.ok === true && reads.timedOut === false, JSON.stringify({ ms: Date.now() - t0, reads }))
+  const cat = await executer({ commande: 'cat; echo end' }, { timeoutMs: 8000 })
+  check('...cat sees an immediate end of input', cat.ok === true && cat.stdout === 'end\n', JSON.stringify(cat))
+
+  const late = await executer({ commande: 'sleep 5; echo late' }, { timeoutMs: 300 })
+  check('a timeout is reported as one, with no exit code', late.ok === true && late.timedOut === true && late.code === null && late.stdout === '', JSON.stringify(late))
+
+  const bin = await executer({ commande: "printf 'a\\x00b\\x1b[31mc'" })
+  check('control characters come out as visible pictures, never a raw NUL', bin.ok === true && bin.stdout === 'a\u2400b\u241b[31mc' && !bin.stdout.includes('\u0000'), JSON.stringify(bin.stdout))
+  check('...newline, tab and carriage return are kept', lisible('a\nb\tc\rd') === 'a\nb\tc\rd' && lisible('\u007f') === '\u2421')
 }
 
 console.log('a hosted instance (--trusted-host)')

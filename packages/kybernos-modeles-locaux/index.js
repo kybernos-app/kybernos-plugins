@@ -1,21 +1,22 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// @local/kybernos-modeles-locaux — host: detect the machine, install a
-// local Ollama model, follow the download. The client half (panel at the
-// foot of Settings → Models) lives in client.js; the DSH WIRING (the
-// `ollama-local` route of the `llm-pi-ai` namespace) is written by the client through
+// @local/kybernos-modeles-locaux — host: detect the machine, install a local
+// Ollama model, follow the download. The client half (panel at the bottom of
+// Settings → Models) lives in client.js; the DSH WIRING (the `ollama-local`
+// route of the `llm-pi-ai` namespace) is written by the client through
 // remote.settings.mutate — the same channel as the native Models page.
 //
 // Honesty: this file invents NOTHING. The machine is measured (sysctl,
 // hw.memsize, `ollama --version`, `ollama list`); the catalogue of
-// recommendations lives on the client side with its sources cited; the installation
+// recommendations lives on the client side with its sources cited; the install
 // runs `ollama pull <id>` (or `brew install ollama` first, explicitly)
-// and does nothing else. No configuration write here.
+// and does nothing else. No configuration is written here.
 // ═══════════════════════════════════════════════════════════════════════════
 import { execFile, spawn } from 'node:child_process'
 import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadKeys, loadShipped, serveCatalogue } from './modeles-distant.mjs'
+import { writeGuard } from './session-guard.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 export const CATALOGUE_FILE = join(HERE, 'catalogue.json')
@@ -35,7 +36,7 @@ export function resolveDshHome(env = process.env, osHome = homedir) {
   } catch (e) { return null }
 }
 
-// ── small HTTP helpers (same contracts as kybernos-models) ────────────
+// ── small HTTP helpers (same contracts as kybernos-models) ──────────────────
 const sendJson = (res, status, body) => {
   try {
     res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' })
@@ -84,13 +85,10 @@ const kbFenced = (service) => {
   return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => target.register(fence(route)) : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
 }
 
-// A request that says nothing about where it comes from (no Origin, no Referer: a script, another local user) may read; it may not
-// write. A page of this DSH always says it on a write, so this refuses no one the person can see (A3-29).
 const sameOrigin = (req) => {
   try {
-    const h = req.headers || {}
-    const origin = typeof h.origin === 'string' && h.origin !== '' ? h.origin : (typeof h.referer === 'string' ? h.referer : '')
-    if (origin === '') return ['GET', 'HEAD'].indexOf(String(req.method || '').toUpperCase()) >= 0
+    const origin = req.headers && typeof req.headers.origin === 'string' ? req.headers.origin : ''
+    if (origin === '') return true
     const u = new URL(origin)
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
     const sock = req.socket !== null && req.socket !== undefined ? req.socket : null
@@ -102,8 +100,8 @@ const sameOrigin = (req) => {
   } catch (e) { return false }
 }
 
-// One process, one bounded text output (ollama's progress bars
-// speak in \r: only the end is kept).
+// One process, one bounded text output (ollama's progress bars speak in \r:
+// only the end is kept).
 const exec1 = (cmd, args, timeoutMs = 4000) => new Promise((resolve) => {
   try {
     execFile(cmd, args, { timeout: timeoutMs, encoding: 'utf8', windowsHide: true, maxBuffer: 1024 * 512 },
@@ -117,7 +115,7 @@ const dernierSegment = (txt) => {
   return morceaux.length > 0 ? morceaux[morceaux.length - 1] : ''
 }
 
-// ── machine detection (30 s cache — sysctl does not change faster) ─────────
+// ── machine detection (30 s cache — sysctl does not change faster) ──────────
 let machineCache = null // { at, data }
 const MACHINE_TTL_MS = 30_000
 
@@ -141,7 +139,7 @@ export const mesurerMachine = async (exec = exec1) => {
     const liste = await exec('ollama', ['list'], 8000)
     serveur = liste !== null
     if (liste !== null) {
-      models = liste.split(/\r?\n/).slice(1) // first line = header « NAME ID SIZE MODIFIED »
+      models = liste.split(/\r?\n/).slice(1) // 1st line = the « NAME ID SIZE MODIFIED » header
         .map((l) => l.trim()).filter((l) => l.length > 0)
         .map((l) => ({ id: l.split(/\s+/)[0], taille: l.split(/\s+/)[2] || null }))
     }
@@ -163,9 +161,9 @@ const lireMachine = async (force) => {
   return data
 }
 
-// ── the install job: ONE operation at a time ───────────────────
-// target 'ollama' → `brew install ollama` (macOS, the click is the explicit consent);
-// target <id>   → `ollama pull <id>`. Nothing else can be executed.
+// ── the install job: ONE operation at a time ────────────────────────────────
+// target 'ollama' → `brew install ollama` (macOS, explicit consent by the click);
+// target <id>     → `ollama pull <id>`. Nothing else can be executed.
 let job = null
 
 const pourcentDe = (txt) => {
@@ -179,18 +177,18 @@ const octetsDe = (txt) => {
 }
 
 const lancerJob = (cible, chaineMoteur) => {
-    // The steps, in order: 'ollama' → brew alone; a model → pull alone,
-    // or (engine missing, explicit consent of the click — the mock-up says « installed
-    // on first download ») brew first then pull. Each
-    // step's progress re-arms pct/bytes/line for the next one.
+  // The steps, in order: 'ollama' → brew alone; a model → pull alone, or
+  // (engine absent, explicit consent by the click — the mockup says
+  // « installed at the 1st download ») brew first then pull. Each step's
+  // progress resets pct/bytes/line for the next one.
   const etapes = []
   if (cible === 'ollama') etapes.push({ cmd: 'brew', args: ['install', 'ollama'] })
   else {
     if (chaineMoteur === true) etapes.push({ cmd: 'brew', args: ['install', 'ollama'] })
-        // `ollama pull` needs the server: if it is not running (fresh brew
-        // install — measured 27/09: pull → « could not connect to ollama server »),
-        // it is started detached, then the port 11434 is waited for (30 s max). A
-        // `sh -c` shell, because the server must outlive the step.
+    // `ollama pull` needs the server: if it is not running (fresh brew
+    // install — measured 27/09: pull → « could not connect to ollama server »),
+    // it is started detached and we wait for port 11434 (30 s at most). A
+    // `sh -c` shell, because the server must outlive the step.
     etapes.push({
       cmd: 'sh',
       args: ['-c', 'curl -s -o /dev/null -m 2 http://127.0.0.1:11434/ 2>/dev/null && exit 0; (nohup ollama serve >/dev/null 2>&1 &); i=0; until curl -s -o /dev/null -m 2 http://127.0.0.1:11434/ 2>/dev/null; do i=$((i+1)); if [ "$i" -gt 30 ]; then echo "serveur ollama introuvable sur 11434"; exit 20; fi; sleep 1; done'],
@@ -239,9 +237,9 @@ const lancerJob = (cible, chaineMoteur) => {
   return j
 }
 
-// target 'ollama' → brew alone; a library id (qwen3.5:9b) or a
-// Hugging Face GGUF reference (hf.co/org/repo:Q4_K_M — Ollama can pull
-// hf.co/… since 0.11) — « / » allowed, « .. » refused.
+// target 'ollama' → brew alone; a library id (qwen3.5:9b) or a Hugging Face
+// GGUF reference (hf.co/org/repo:Q4_K_M — Ollama can pull hf.co/… since 0.11)
+// — « / » allowed, « .. » refused.
 const ID_VALIDE = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,100}$/
 
 // ── new-model discovery (Refresh button) ────────────────────────────────────
@@ -269,7 +267,7 @@ export function apply(ctx) {
     ctx.inject(['webServer'], (hostCtx) => {
       const webServer = kbFenced(hostCtx.get('webServer'))
 
-            // Measured machine: chip, RAM, presence of Ollama, models already pulled.
+      // Measured machine: chip, RAM, whether Ollama is there, models already pulled.
       hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/modeles-locaux/machine', handler: async (req, res) => {
         const force = req.url !== undefined && String(req.url).indexOf('force=1') >= 0
         try { sendJson(res, 200, { ok: true, machine: await lireMachine(force) }) }
@@ -304,18 +302,22 @@ export function apply(ctx) {
         } catch (e) { sendJson(res, 200, { ok: false, error: String(e && e.message ? e.message : e) }) }
       }}), 'modeles-locaux: decouvrir (nouveaux modèles)')
 
-            // Job state (the client polls every 600 ms during a pull).
+      // The job's state (the client polls every 600 ms during a pull).
       hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/modeles-locaux/installation', handler: async (req, res) => {
         if (job === null) { sendJson(res, 200, { ok: true, job: null }); return }
         const { child, ...reste } = job
         sendJson(res, 200, { ok: true, job: reste })
       }}), 'modeles-locaux: installation (état)')
 
-            // Start: 'ollama' (brew) or a model id (safe charset). One
-            // job at a time; a running job answers 409 without breaking anything.
+      // Start: 'ollama' (brew) or a model id (safe charset). One job at a
+      // time; a job in progress answers 409 without breaking anything.
+      // It installs software and downloads gigabytes, so it needs DSH's signed session as well as the right Origin (session-guard.mjs, the terminal's
+      // rule): plugin routes are served before DSH's own login and an Origin header is forgeable by any local program. Its callers are pages (this
+      // one, and the first-run wizard of the core), both in a browser.
       hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/modeles-locaux/installer', handler: async (req, res) => {
         if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
-        if (sameOrigin(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }
+        const refus = writeGuard(req)
+        if (refus !== null) { sendJson(res, refus.status, { ok: false, error: refus.error }); return }
         const body = await readBody(req)
         const cible = body !== null && typeof body.cible === 'string' ? body.cible : ''
         if (cible.length === 0) { sendJson(res, 400, { ok: false, error: 'cible-absente' }); return }
@@ -332,9 +334,9 @@ export function apply(ctx) {
         } else {
           const m = await lireMachine(false)
           if (m.ollama.present !== true) {
-                        // No engine: refused — UNLESS explicit consent (the mock-up's
-                        // « Install » button carries installeMoteur), in which case the
-                        // job chains brew install ollama then the pull (macOS).
+            // No engine: refused — UNLESS explicit consent (the mockup's
+            // « Install » button carries installeMoteur), in which case the
+            // job chains brew install ollama then the pull (macOS).
             if (veutMoteur !== true || process.platform !== 'darwin') {
               sendJson(res, 409, { ok: false, error: 'ollama-absent' }); return
             }
@@ -346,10 +348,11 @@ export function apply(ctx) {
         sendJson(res, 200, { ok: true, demarre: true, cmd: j.cmd })
       }}), 'modeles-locaux: installation (démarrage)')
 
-      // Annulation : SIGTERM sur le tirage en cours.
+      // Cancel: SIGTERM on the pull in progress. Same rule as the start: it ends a process.
       hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/modeles-locaux/annuler', handler: async (req, res) => {
         if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
-        if (sameOrigin(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }
+        const refus = writeGuard(req)
+        if (refus !== null) { sendJson(res, refus.status, { ok: false, error: refus.error }); return }
         if (job === null || job.running !== true) { sendJson(res, 200, { ok: true, annule: false }); return }
         try { job.child.kill('SIGTERM') } catch (e) { /* déjà mort */ }
         sendJson(res, 200, { ok: true, annule: true })

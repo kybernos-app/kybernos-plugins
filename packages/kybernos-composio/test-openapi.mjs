@@ -194,6 +194,27 @@ const SPEC_URL = 'https://api.acme-invoices.com/openapi.json'
   } finally { rmSync(home, { recursive: true, force: true }) }
 }
 
+// 7b. A6-21: the spec address is fetched like the API itself, with no redirect followed. A redirect from an https spec address to
+//     http://169.254.169.254/ (or to an internal http service) was followed, and the status words told the person's DSH what answered there.
+{
+  const home = mkdtempSync(join(tmpdir(), 'kb-openapi-redirect-'))
+  try {
+    const seen = []
+    const fetchFn = async (url, init) => {
+      seen.push({ url, redirect: init.redirect })
+      if (url === 'https://specs.example.test/openapi.json') return { ok: false, status: 302, headers: { get: () => 'http://169.254.169.254/latest/meta-data/' }, text: async () => '', body: null }
+      // what a fetch that FOLLOWS the redirect would have reached
+      return { ok: true, status: 200, text: async () => '{"openapi":"3.0.0","info":{"title":"Internal"},"paths":{}}', body: null }
+    }
+    const api = createOpenapi({ home, fetchFn })
+    const got = await api.read({ url: 'https://specs.example.test/openapi.json', auth: { type: 'none' } })
+    assert.equal(seen.length, 1, 'one request: the redirect is not chased')
+    assert.equal(seen[0].redirect, 'manual', 'the spec address is fetched with redirect: manual, like the API calls')
+    assert.deepEqual([got.ok, got.error, got.status], [false, 'spec_http', 302], 'a redirect answers as the spec address answering with an error')
+    ok('the spec address: no redirect is followed (A6-21), a 3xx reads as an error answer')
+  } finally { rmSync(home, { recursive: true, force: true }) }
+}
+
 // 8. the provider choice: a few bytes, 0600, kept beside whatever else the file holds
 {
   const home = mkdtempSync(join(tmpdir(), 'kb-provider-'))

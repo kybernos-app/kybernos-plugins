@@ -15,6 +15,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { readFileSync } from 'node:fs'
+import { assemble } from './scripts/build.mjs'
 
 let echecs = 0
 const ok = (label, condition, detail) => {
@@ -101,6 +102,17 @@ const deck = T.normaliserDeck([
 ok('les slides sont normalisées, les déchets écartés', deck.length === 4, String(deck.length))
 ok('les champs manquants valent chaîne vide', deck[0].points.length === 0 && deck[0].note === '')
 ok('la normalisation borne le deck à 60', T.normaliserDeck(Array.from({ length: 80 }, () => ({ titre: 'x' }))).length === 60)
+
+// A4-03: the thumbnail of a « statement » slide shows what the stage shows (its title, and the line under it), not an empty `grand`.
+{
+  const texts = (n, acc = []) => { if (n === null || n === undefined) return acc; if (typeof n === 'string') { acc.push(n); return acc } for (const e of (n.enfants || [])) texts(e, acc); return acc }
+  const th = T.THEMES.sombre
+  const st = T.normaliserDeck([{ layout: 'statement', kicker: 'The premise', titre: 'Shells should come prepared.', sous: 'and say so' }])[0]
+  const t = texts(T.miniature(st, th))
+  ok('A4-03: the thumbnail of a statement slide shows its title (as the stage does)', t.includes('Shells should come prepared.'), t.join(' | '))
+  ok('A4-03: ...and the line under it, with the kicker', t.includes('and say so') && t.includes('The premise'), t.join(' | '))
+  ok('A4-03: the thumbnail of a figure slide still shows its big number', texts(T.miniature(T.normaliserDeck([{ layout: 'chiffre', grand: '12 s', legende: 'x' }])[0], th)).includes('12 s'))
+}
 
 // ── 2. moteur de frappe ─────────────────────────────────────────────────────
 const iv = T.budget(deck)
@@ -274,6 +286,14 @@ ok('in the default state the bar is dimmed, not hidden', barre !== null && barre
   ok('PROBE: the next deck opens the tab again', appels === 3 && etat.dejaOuvert === true && etat.versionVue === 3)
   ok('PROBE: an unreachable host changes nothing', T.pasSonde(etat, null, ouvrir) === etat && appels === 3)
 }
+
+// ── the build and the demo ──────────────────────────────────────────────────
+// client.js is generated from src/plugin.js (scripts/build.mjs). It was edited by hand in four commits and src/plugin.js stayed behind:
+// the next build would have undone the focus fix, the reachable tool bar and the kbsd- selectors (audit 2026-10-16).
+ok('BUILD: client.js is the build of its sources (node packages/kybernos-slides/scripts/build.mjs)', assemble() === source)
+// The demo's caption names what the tool bar offers; it once promised keyboard shortcuts (T) and (B) that did not exist.
+const caption = /prompt: "(Deck de démonstration[^"]*)"/.exec(source)
+ok('DEMO: its caption names the tools of the bar, not shortcuts that do not exist', caption !== null && /outil Texte/.test(caption[1]) && /outil Pinceau/.test(caption[1]) && !/\([A-Z]\)/.test(caption[1]) && source.includes("['texte', '✎ Texte']") && source.includes("['pinceau', '✎ Pinceau']"), caption && caption[1])
 
 console.log(echecs === 0 ? '\nClient : tout est vert.' : `\nClient : ${echecs} échec(s).`)
 process.exit(echecs === 0 ? 0 : 1)

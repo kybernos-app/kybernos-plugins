@@ -5,6 +5,7 @@ import { tmpdir, homedir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { createRequire } from 'node:module'
 import { createServer } from 'node:http'
+import { installSession, browserHeaders } from './lib-session-test.mjs'
 
 export function suite() {
   let echecs = 0
@@ -62,6 +63,7 @@ export async function startHost({ before, services = {} } = {}) {
   const dsh = join(home, '.dsh')
   mkdirSync(join(dsh, 'profiles', 'web'), { recursive: true })
   mkdirSync(join(dsh, 'kybernos'), { recursive: true })
+  installSession(dsh) // the machine secret the write routes check the session cookie against
   // The parser DSH uses, reachable from the profile folder the way it is on a real machine (the route looks for it there).
   const yamlDir = engineYamlDir()
   if (yamlDir !== null) { mkdirSync(join(dsh, 'profiles', 'web', 'node_modules'), { recursive: true }); symlinkSync(yamlDir, join(dsh, 'profiles', 'web', 'node_modules', 'js-yaml')) }
@@ -69,13 +71,15 @@ export async function startHost({ before, services = {} } = {}) {
   const mod = await import(new URL('./index.js', import.meta.url).href + '?host=' + Math.random().toString(36).slice(2))
   const routes = {}
   mod.apply({ get: (n) => (services[n] !== undefined ? services[n] : (n === 'webServer' ? { register: (r) => { routes[r.path] = r.handler } } : undefined)), effect: (fn) => fn(), inject: (_n, fn) => fn(), logger: { info: () => {} } })
-  const call = async (path, { method = 'GET', body, headers = {}, raw } = {}) => {
+  // A write is sent the way the person's browser sends it (the right Origin and DSH's session cookie) unless `bare` is set: the guard tests
+  // then choose every header themselves.
+  const call = async (path, { method = 'GET', body, headers = {}, raw, bare = false } = {}) => {
     const handler = routes[path.split('?')[0]]
     if (typeof handler !== 'function') throw new Error('no route ' + path)
     const text = raw !== undefined ? raw : (body === undefined ? '' : JSON.stringify(body))
     const req = {
       method, url: path, socket: { localPort: 3080 },
-      headers: Object.assign(method === 'GET' ? {} : { origin: 'http://127.0.0.1:3080' }, method === 'GET' || method === 'DELETE' ? {} : { 'content-type': 'application/json' }, headers),
+      headers: Object.assign(method === 'GET' || method === 'DELETE' ? {} : { 'content-type': 'application/json' }, method === 'GET' || bare ? {} : browserHeaders(), headers),
       on: (ev, fn) => { if (ev === 'data' && text.length > 0) fn(Buffer.from(text)); if (ev === 'end') setTimeout(() => fn(), 0) },
     }
     const res = { code: null, body: '', headers: {}, headersSent: false, setHeader() {}, writeHead(c, h) { this.code = c; this.headers = h || {} }, end(b) { this.body = String(b === undefined ? '' : b) } }

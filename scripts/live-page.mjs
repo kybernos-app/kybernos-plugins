@@ -31,6 +31,20 @@ const freePort = (from) => new Promise((resolve) => {
   tryPort(from)
 })
 
+// Injected in every page of a throw-away browser on a fresh instance (see openLivePage). DSH 0.2.1-alpha.4 has no « Configure later »
+// button any more: its « Get started » dialog only has a Close cross (aria-label « Close »), pressed first. The older engines' button
+// is still looked for, so a checkout that runs both keeps working. Exported so a test can run it against a stub page.
+export const KEY_DIALOG_SCRIPT = `(() => {
+  const press = () => {
+    const dialog = document.querySelector("[role=dialog][aria-label='Get started']")
+    const cross = dialog ? dialog.querySelector("button[aria-label='Close']") : null
+    if (cross) { cross.click(); return }
+    const e = Array.from(document.querySelectorAll('button, [role=button], a, span, div')).find((x) => x.children.length === 0 && (x.innerText || '').replace(/[⟦⟧]/g, '').trim() === 'Configure later')
+    if (e) (e.closest('button') || e).click()
+  }
+  new MutationObserver(press).observe(document, { childList: true, subtree: true })
+})()`
+
 /** `{ page, close }`, or throws a readable error (no Chrome, GUI down, 401). */
 export async function openLivePage(opts = {}) {
   const authority = opts.authority || process.env.KB_HOST || '127.0.0.1:3080'
@@ -76,14 +90,11 @@ export async function openLivePage(opts = {}) {
   // The checks that translate with the pseudo-translating stub need it to count as real: say so, unless a check
   // is about that very guard (`pseudoOk: false`, and it then sets the flag itself).
   if (opts.pseudoOk !== false) await page.send('Page.addScriptToEvaluateOnNewDocument', { source: 'window.__KB_I18N_PSEUDO_OK__ = true' })
-  // A fresh instance (the sandbox, any host but the user's own :3080) opens on an « Add an API key to get started »
-  // dialog that covers the page after EVERY load and swallows every click. A check that reloads would meet it again,
+  // A fresh instance (the sandbox, any host but the user's own :3080) opens on DSH's « Get started » (sign in or add an
+  // API key) dialog that covers the page after EVERY load and swallows every click. A check that reloads would meet it again,
   // so it is pressed away by the page itself, whenever it shows up. The user's own DSH never shows it: left alone.
   if (authority !== '127.0.0.1:3080' && opts.keepKeyDialog !== true) {
-    await page.send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => {
-      const press = () => { const e = Array.from(document.querySelectorAll('button, [role=button], a, span, div')).find((x) => x.children.length === 0 && (x.innerText || '').replace(/[⟦⟧]/g, '').trim() === 'Configure later'); if (e) (e.closest('button') || e).click() }
-      new MutationObserver(press).observe(document, { childList: true, subtree: true })
-    })()` })
+    await page.send('Page.addScriptToEvaluateOnNewDocument', { source: KEY_DIALOG_SCRIPT })
   }
   if (await poserCookie(page, authority) !== true) { page.close(); await close(); throw new Error('the browser refused the session cookie') }
   await page.send('Page.navigate', { url: 'http://' + authority + '/' })

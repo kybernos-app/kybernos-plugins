@@ -104,13 +104,22 @@ window.__ModuleLoader__.load({
         return text.replace(/^\s*\$\s/, '').trim()
       }
 
-      /** POST the command to the host route, with the page's own session cookie. Never throws. */
-      function lancer(commande) {
+      /** The id of the chat session this page shows ('' when it cannot be told): the host finds the session's folder from it. */
+      function sessionCourante(ctx) {
+        try {
+          var ui = ctx && typeof ctx.get === 'function' ? ctx.get('uiSession') : null
+          var cle = ui && ui.adapter && ui.adapter.current ? ui.adapter.current.getSnapshot().key : ''
+          return typeof cle === 'string' ? cle : ''
+        } catch (e) { return '' }
+      }
+
+      /** POST the command to the host route, with the page's own session cookie, naming the session it runs for. Never throws. */
+      function lancer(commande, session) {
         return fetch('/kybernos-terminal/run', {
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ commande: commande })
+          body: JSON.stringify({ commande: commande, session: session || '' })
         }).then(function (r) {
           return r.json().catch(function () { return { ok: false, erreur: 'HTTP ' + r.status } })
         }).catch(function (e) {
@@ -129,13 +138,29 @@ window.__ModuleLoader__.load({
         return zone
       }
 
+      /** What the output card says for the host's answer: { etat: 'ok' | 'err', texte }. */
+      function carteSortie(r) {
+        if (!r || r.ok !== true) return { etat: 'err', texte: '✗ ' + ((r && r.erreur) || 'failed') }
+        var sortie = r.stdout || ''
+        if (r.stderr) sortie += (sortie ? '\n' : '') + r.stderr
+        var entete = ''
+        if (r.timedOut === true) entete = '— timeout (30 s) —' + (sortie ? '\n' : '')
+        else if (r.code !== 0) {
+          /* A process killed by a signal has no exit code: never print « exit null ». */
+          entete = (r.code === null || r.code === undefined ? 'killed' + (r.signal ? ' (' + r.signal + ')' : '') : 'exit ' + r.code) + (sortie ? '\n' : '')
+        }
+        var pied = r.truncated === true ? '\n— output cut here —' : ''
+        var texte = sortie || (r.code === 0 ? '(no output)' : '')
+        return { etat: r.code === 0 && r.timedOut !== true ? 'ok' : 'err', texte: entete + texte + pied }
+      }
+
       function afficherSortie(zone, etat, texte) {
         zone.hidden = false
         zone.dataset.kbTerminalState = etat
         zone.textContent = texte
       }
 
-      function ajouterBoutonRun(block) {
+      function ajouterBoutonRun(block, ctx) {
         var banner = block.querySelector(BANNER_SELECTOR)
         var actions = banner ? banner.lastElementChild : null
         if (!actions) return
@@ -152,24 +177,16 @@ window.__ModuleLoader__.load({
           var zone = zoneSortie(block)
           afficherSortie(zone, 'pending', '⏳ running…')
           run.disabled = true
-          lancer(commande).then(function (r) {
+          lancer(commande, sessionCourante(ctx)).then(function (r) {
             run.disabled = false
-            if (r && r.ok === true) {
-              var sortie = (r.stdout || '')
-              if (r.stderr) sortie += (sortie ? '\n' : '') + r.stderr
-              var texte = sortie || (r.code === 0 ? '(no output)' : '')
-              var entete = r.timedOut === true ? '— timeout (30 s) —\n' : ''
-              if (r.code !== 0) entete += 'exit ' + r.code + (sortie ? '\n' : '')
-              afficherSortie(zone, r.code === 0 && r.timedOut !== true ? 'ok' : 'err', entete + texte)
-            } else {
-              afficherSortie(zone, 'err', '✗ ' + ((r && r.erreur) || 'failed'))
-            }
+            var carte = carteSortie(r)
+            afficherSortie(zone, carte.etat, carte.texte)
           })
         })
         actions.prepend(run)
       }
 
-      function dress(block) {
+      function dress(block, ctx) {
         var banner = block.querySelector(BANNER_SELECTOR)
         if (!banner) return
         var lang = banner.firstElementChild ? banner.firstElementChild.textContent.trim() : 'sh'
@@ -194,15 +211,15 @@ window.__ModuleLoader__.load({
         var pre = block.querySelector('pre')
         var text = pre ? pre.textContent : ''
         if (pre && /^\s*\$\s/.test(text) === false) block.classList.add(MARK + '-prompt')
-        ajouterBoutonRun(block)
+        ajouterBoutonRun(block, ctx)
       }
 
-      function scan() {
+      function scan(ctx) {
         var blocks = document.querySelectorAll(ROOT_SELECTOR)
         for (var i = 0; i < blocks.length; i += 1) {
           var block = blocks[i]
           if (isDressed(block)) continue
-          if (isShellBlock(block)) dress(block)
+          if (isShellBlock(block)) dress(block, ctx)
         }
       }
 
@@ -216,14 +233,14 @@ window.__ModuleLoader__.load({
 
         function schedule() {
           if (timer) window.clearTimeout(timer)
-          timer = window.setTimeout(function () { timer = 0; scan() }, DEBOUNCE_MS)
+          timer = window.setTimeout(function () { timer = 0; scan(ctx) }, DEBOUNCE_MS)
         }
 
         /* `documentElement`, never `body`: this bundle is evaluated from <head>,
            where `body` is still null (the dsh-mermaid lesson). */
         var observer = new MutationObserver(schedule)
         observer.observe(document.documentElement, { childList: true, subtree: true })
-        scan()
+        scan(ctx)
 
         var dispose = function () {
           if (!window.__KB_TERMINAL_ACTIVE__) return
@@ -248,6 +265,7 @@ window.__ModuleLoader__.load({
       exports.name = NAME
       exports.inject = []
       exports.apply = apply
+      exports.__test = { carteSortie: carteSortie, lancer: lancer, sessionCourante: sessionCourante }
     } catch (error) {
       // An exception here would break the whole entry ("Failed to load plugins")
       // and leave the GUI unusable: degrade instead, plugin disabled.

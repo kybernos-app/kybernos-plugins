@@ -37,7 +37,7 @@ All under `/kybernos/` (plus `/kybernos-technique/{renderer,vendor/three}.js`). 
 | Family | Routes |
 | --- | --- |
 | Teams, projects | `load` `yaml` `save` `create` `ui-save` `menu-save` `active-set` `project-data` `workspace-ui-save` `workspace-skills` `pins` `share` `avatar*` `member-*` `team-portraits` `team-cap` `yml-proposer` `yml-appliquer` |
-| Runs, insight | `runs` `runs-index` `calls` `calls-index` `search-content` `insight` `insight-save` `workspace-usage` `quality*` `aa` `ws-console-key` `starters-suggest` `salary-detect` (purpose not verified) |
+| Runs, insight | `runs` `runs-index` `calls` `calls-index` `search-content` `insight` `insight-save` `quality*` `aa` `ws-console-key` `starters-suggest` `salary-detect` (purpose not verified) |
 | Deliverables | `art-origin\|read\|previews\|reveal\|raw\|action\|progress\|load` `doc-raw` |
 | Automations | `tasks` (POST; scheduler ticks every 30 s), `tasks/occurrences` (GET `?from=&to=`, read-only: when the active scheduled automations will run, see "The Automations board"), `hooks` (public webhook: secret + 60/h default limit) |
 | Tools catalog | `tools/state`, `tools/apply` (dry run, dated backup of the profile patch, restore) |
@@ -142,8 +142,7 @@ Under `$DSH_HOME` (else `~/.dsh`): `kybers/<id>/{kyber.yml,.kyber-ui.json,.kyber
 `skills/automation-creator/SKILL.md`,
 `kybernos-widget/{configs.json,conversations/,accounts/,bridge-state.json}` (accounts hold visitor emails), `beta-reports/`,
 `profiles/<profile>/cordis.patch.yml` (+ `.bak-outils-*`, Tools tab only) and `AGENTS.md`. Reads `kybernos-cloud.json` (token, API
-base) and `.credentials.yaml` (browser-session secret). The art progress file is `<bundle dir>/../.dsh/artifacts/.progress.json`,
-beside the bundle rather than in `~/.dsh`. Env: `DSH_HOME`, `HOME`, `DSH_WEB_PORT` (3080), `DSH_PROFILE`, `DSH_VERSION`,
+base) and `.credentials.yaml` (browser-session secret). The quiz and cards score registry is `kybernos/progress.json`. Env: `DSH_HOME`, `HOME`, `DSH_WEB_PORT` (3080), `DSH_PROFILE`, `DSH_VERSION`,
 `KYBERNOS_CLOUD_STATE`, `AA_API_KEY`, `KB_RETRY_PLAFOND`.
 
 **At boot, unasked** (each step guarded, none blocks the start): registers `kybernos-standard` as a plain copy of the Standard preset
@@ -206,7 +205,7 @@ It is a single column in the look of dev.kybernos.app (light or dark, whichever 
   was checked to exist exactly once in its repository (an ambiguous name is refused by the route). A **team** is an id of
   `KB_MARKET_TEAMS` and goes through the same `kybers/create` as the Agent Teams marketplace (so it lands in the
   workspace root, like a marketplace install). The server's templates that the plugin does not have yet are listed greyed
-  (`soon`), never installed. The kit also opens on its own: **Settings → Kybernos Settings → Starter kit → Open**
+  (`soon`), never installed. The kit also opens on its own: **Settings › General › Kybernos Settings › Starter kit › Open**
   (`kybernos:onboarding` with `action: 'kit'`, the profession saved at the first run, another one can be looked at).
 - **The profession in memory:** with a Kybernos account, the recap writes ONE pinned `fact` memory (« Works as: … Prefers: … »,
   source `taught`) through `/kybernos-cloud/memory/add`; its id is kept in `onboarding.json` (`memoryId`) so a replay updates

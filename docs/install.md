@@ -56,10 +56,14 @@ back and nothing of yours is lost.
 ## 3. Start it
 
 ```sh
-dsh web --no-open --port 3080
+dsh web --port 3080
 ```
 
-Open <http://127.0.0.1:3080/>. If DSH was already running, restart it first: a restart interrupts running sessions.
+Your browser opens, already signed in. If it does not (a server, a window you closed), open **the address that `dsh web` prints**:
+it looks like `http://127.0.0.1:3080/?token=…` and carries your sign-in. Typing the bare `http://127.0.0.1:3080/` shows a plain
+« authentication required » page (HTTP 401) on purpose: it is DSH saying it does not know you. If you lost the address, stop
+`dsh web` (Ctrl-C) and start it again: it prints a fresh one. If DSH was already running, restart it first: a restart interrupts
+running sessions.
 
 ## The welcome pages
 
@@ -72,10 +76,11 @@ The first time, Kybernos asks four short questions. Every one can be skipped, an
    (Anthropic, OpenAI, DeepSeek, Google or another provider; the key stays on your computer). A model on this computer or
    free community models, with no account, are one line below.
 4. **A starter kit.** Skills and agent teams that fit your profession (a student is offered study planning, flashcards and
-   the Studencik team; a finance profile, statements and reconciliation). You tick what you want; nothing runs by itself.
+   the Studencik team; a finance profile, statements and reconciliation). You tick what you want; nothing runs by itself, and nothing is added to the folder you work in (the agent teams go to
+   DSH's own `~/.dsh/kybers`).
 
 Your answers are stored in `~/.dsh/kybernos/onboarding.json`. To go through them again, or to open the starter kit alone:
-**Settings → Kybernos Settings → Onboarding → Replay**, or **Starter kit → Open**. A replay always shows the model question,
+**Settings › General › Kybernos Settings › Onboarding › Replay**, or **Starter kit › Open**. A replay always shows the model question,
 so it is also where you add an account or a key later.
 
 ## Update

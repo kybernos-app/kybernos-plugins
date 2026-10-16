@@ -145,7 +145,7 @@ window.__ModuleLoader__.load({
       'kb.cp.chipall': { fr: 'Toutes', en: 'All' },
       'kb.cp.chipconn': { fr: 'Connectées', en: 'Connected' },
       // (29/09) the Plugins tab left the Resources page: Settings is the target.
-      'kb.cp.nokey': { fr: "Ajoutez votre clé Composio dans Réglages → Plugins → kybernos-composio pour activer les connexions.", en: 'Add your Composio key under Settings → Plugins → kybernos-composio to enable connections.' },
+      'kb.cp.nokey': { fr: "Ajoutez votre clé Composio dans Réglages › Connecteurs pour activer les connexions.", en: 'Add your Composio key in Settings › Connectors to enable connections.' },
       'kb.cp.connected': { fr: 'Connecté', en: 'Connected' },
       'kb.cp.pend': { fr: 'En attente', en: 'Pending' },
       'kb.cp.empty': { fr: 'Aucune app ne correspond.', en: 'No matching app.' },

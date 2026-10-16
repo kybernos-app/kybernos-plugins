@@ -22,8 +22,8 @@
     }
   ],
   "where": {
-    "fr": "Menu Kybernos › Dashboards (avant Agent Teams), barre latérale droite › Dashboard",
-    "en": "Kybernos menu › Dashboards (before Agent Teams), right sidebar › Dashboard",
+    "fr": "Barre latérale › Dashboards (avant Agent Teams), barre latérale droite › Dashboard",
+    "en": "Sidebar › Dashboards (before Agent Teams), right sidebar › Dashboard",
     "page": true
   },
   "good": {
