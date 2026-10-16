@@ -292,6 +292,10 @@ read English; French must read French; no French word in another language, no En
 right pane (and its tabs) from one run to the next: the check asks for a fresh start list. In a right-to-left language the right pane is
 drawn on the left of the window. The offline twin is `scripts/test-no-french-literals.mjs`: French literals outside a dictionary, the
 pair helper (`kt(fr, en)`: French for French, English for everything else), READMEs and descriptions, the French twin that must stay.
+A bundle listed under `"unaccented"` in `scripts/i18n-french-allow.json` is also read for French typed without its accent (« indisponible »,
+« Discuter »): the gate used to count accented French only, so error messages, log lines and labels written on a keyboard without é got through.
+The live twin of that reading is `node scripts/audit-i18n-live.mjs --baseline`: in English the « FR left » column must be 0 (the language picker's
+« Français » is the one allowed word).
 
 ## The first-run wizard: `scripts/check-onboarding-live.mjs`
 
