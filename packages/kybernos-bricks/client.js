@@ -50,7 +50,7 @@ window.__ModuleLoader__.load({
 .kbb-tool:hover{background:rgba(0,0,0,.05)}
 .kbb-tool.on{background:#efefec;color:#1a1a1a;font-weight:650}
 .kbb-foot{flex:none;padding:8px 12px 10px;border-top:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.07))}
-.kbb-line{display:flex;align-items:center;gap:7px}
+.kbb-line{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .kbb-play{flex:none;width:26px;height:26px;border:0;border-radius:50%;background:#e1502a;color:#fff;cursor:pointer;
   display:grid;place-items:center;font-size:10px;line-height:1}
 .kbb-play:hover{background:#c94522}
