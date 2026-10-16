@@ -8522,6 +8522,12 @@ return {
       const setSearchOpen = searchPair[1]
       const searchShown = searchOpen === true || query.trim().length > 0
       const wrapRef = React.useRef(null)
+      // The field is not displayed until the magnifier is pressed: once it is, it takes the focus, so typing goes into it.
+      const searchInputRef = React.useRef(null)
+      React.useEffect(() => {
+        if (searchOpen !== true) return
+        try { if (searchInputRef.current !== null) searchInputRef.current.focus() } catch (e) { /* no focus API: the person clicks the field */ }
+      }, [searchOpen])
       React.useEffect(() => {
         if (menu === null) return undefined
         const onDown = (e) => {
@@ -8597,7 +8603,7 @@ return {
             (searchShown === false ? h('button', { type: 'button', 'data-kb': 'toggle-search', className: 'kb6-tb-ghost', title: kbt('tb.search.toggle'), 'aria-label': kbt('tb.search.toggle'), 'aria-expanded': 'false', onClick: () => setSearchOpen(true) }, Icon('search', 17)) : null),
             h('div', { className: 'kb6-search kb6-search-inline kb6-tb-search' + (searchShown === true ? '' : ' closed'), role: 'search' },
               Icon('search', 14),
-              h('input', { type: 'search', value: query, onChange: (e) => upd({ query: e.target.value }), placeholder: props.searchPlaceholder || 'Search\u2026', 'aria-label': props.searchPlaceholder || 'Search' }),
+              h('input', { ref: searchInputRef, type: 'search', value: query, onChange: (e) => upd({ query: e.target.value }), placeholder: props.searchPlaceholder || 'Search\u2026', 'aria-label': props.searchPlaceholder || 'Search' }),
               (searchShown === true ? h('button', { type: 'button', className: 'kb6-tb-clear', 'aria-label': query.length > 0 ? kbt('tb.clear.search') : kbt('tb.search.toggle'), title: query.length > 0 ? kbt('tb.clear.search') : kbt('tb.search.toggle'), onClick: () => { if (query.length > 0) upd({ query: '' }); else setSearchOpen(false) } }, Icon('x', 12)) : null)),
             (showFav === true ? h('button', { type: 'button', 'data-kb': 'toggle-favorites', className: 'kb6-tb-ghost' + (fav === true ? ' on' : ''), title: fav === true ? kbt('kbui.showall') : kbt('kbui.favorites.only'), 'aria-label': kbt('kbui.toggle.favorites'), 'aria-pressed': fav === true ? 'true' : 'false', onClick: () => upd({ fav: !(fav === true) }) }, Icon('star', 17)) : null),
             (hideView === true ? null : h('div', { className: 'kb6-tb-viewgrp', role: 'group', 'aria-label': kbt('tb.view') },
@@ -30054,7 +30060,8 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 .kb6-helpbtn{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;font-weight:700;line-height:1;cursor:pointer}
 .kb6-helpbtn:hover,.kb6-helpbtn.on{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-brand-primary);background:var(--dsw-alias-bg-layer-2)}
 .kb6-headacts{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;margin-inline-start:auto;padding-top:6px}
-.kb6-tb-tools{margin-inline-start:auto;display:flex;align-items:center;gap:2px;flex-wrap:wrap;justify-content:flex-end;padding-top:6px}
+/* No wrap: the search field shrinks (min-width:0) instead of dropping the view switch and the menu to a second line, which pushed the whole page down when the magnifier was pressed. */
+.kb6-tb-tools{margin-inline-start:auto;display:flex;align-items:center;gap:2px;flex-wrap:nowrap;justify-content:flex-end;padding-top:6px}
 .kb6-tb-tools .kb6-tb-search{flex:0 1 280px;min-width:0;margin-inline-end:6px}
 .kb6-tb-ghost{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:38px;height:var(--kb6-tb-h);border-radius:999px;border:0;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;position:relative;padding:0}
 .kb6-tb-ghost:hover,.kb6-tb-ghost.open{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
