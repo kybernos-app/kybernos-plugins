@@ -1128,6 +1128,7 @@ let kbLocaleRead = () => 'en'
       'kbui.tts.headsup': { kybernos: 'Attention : ce moteur envoie le texte de la réponse à ', en: 'Heads-up: this engine sends the reply text to ' },
       'kbui.healthcheck.all': { kybernos: 'Tout vérifier', en: 'Healthcheck all' },
       'kbui.helpdocs': { kybernos: 'Aide et documentation', en: 'Help & docs' },
+      'kbui.howitworks': { kybernos: 'Comment ça marche', en: 'How it works' },
       'kbui.hire.kyber': { kybernos: 'Embaucher une Agent Team depuis le Marketplace', en: 'Hire an Agent Team from the Marketplace' },
       'kbui.hosted.means': { kybernos: 'Hosted signifie que cette Agent Team existe aussi dans Kybernos Hosted.', en: 'Hosted means this Agent Team also exists in Kybernos Hosted.' },
       'kbui.hosted.vs.plugin': { kybernos: 'Hosted face au plugin open source', en: 'Hosted vs the open-source plugin' },
@@ -8450,10 +8451,12 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           (props.trailing !== null && props.trailing !== undefined ? h('div', { className: 'kb6-tb-trailing' }, props.trailing) : null),
           (typeof props.onAdd === 'function' ? h('button', { type: 'button', className: 'kb8-primary kb6-tb-add', onClick: props.onAdd }, Icon('plus', 14), props.addLabel || ('+ ' + kbt('kbui.new'))) : null)))
     }
-    // ── Gabarit d'en-tête : l'aide et l'action primaire ──────────────────────
-    // Une seule implémentation pour toutes les pages : l'aide « ? » se pose dans
-    // `.kb6-titlerow`, collée au titre ; l'action primaire se passe en
-    // `trailing` de KbToolbar. Aucune page ne réinvente l'un ou l'autre.
+    // ── Page header template: the help and the primary action ─────────────────
+    // One implementation for every page: the « ? How it works » pill sits in
+    // `.kb6-titlerow`, next to the title, and is the same pill the Suite draws on the
+    // other pages (window.__KB_HELP__.Help, class kbhp-btn): one form, one label.
+    // The primary action goes in the `trailing` of KbToolbar. No page reinvents either.
+    // `title` is the tooltip (what the panel it opens is about); the visible words are the label.
     const KbHelpButton = (props) => {
       const p = (props !== null && props !== undefined) ? props : {}
       const label = p.title === undefined ? kbt('kbui.helpdocs') : p.title
@@ -8462,10 +8465,9 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         className: 'kb6-helpbtn' + (p.open === true ? ' on' : ''),
         'data-kb': p.dataKb === undefined ? 'page-help' : p.dataKb,
         title: label,
-        'aria-label': label,
         'aria-expanded': p.open === true ? 'true' : 'false',
         onClick: typeof p.onClick === 'function' ? p.onClick : (() => {}),
-      }, '?')
+      }, h('span', { className: 'kb6-helpq', 'aria-hidden': 'true' }, '?'), kbt('kbui.howitworks'))
     }
     // Menu « Nouveau Kyber » (le bouton et ses quatre entrées) : défini ici pour
     // que l'action primaire de la page Kybers vive en `trailing` de la barre,
@@ -27001,6 +27003,8 @@ html [class$="_options"] .kbth-head>.kbth-sub+*{margin-top:20px}
         h('div', { className: 'kbt2-entete-txt' },
           h('h1', { className: 'kbt2-h1' }, kbt('kbui.tools')),
           h('p', { className: 'kbt2-sub' }, kbToolsTxt({ fr: 'Active des capacités expérimentales et branche des outils externes sur un profil DSH. Chaque changement s’écrit dans le fichier de config du profil.', en: 'Enable experimental capabilities and connect external tools to a DSH profile. Each change is written to the profile’s config file.' })),
+          // What this page is for, next to the one it is mistaken for: Tools mounts abilities in a profile, Workers runs the coding assistants.
+          h('p', { className: 'kbt2-sub' }, kbToolsTxt({ fr: 'Les outils ajoutent des capacités à un profil DSH : des capacités expérimentales et des connexions à des outils extérieurs. Les assistants de code (Codex, Claude Code…) ont aussi leur page, Workers, qui vérifie qu’ils sont prêts et permet à votre agent de les appeler.', en: 'Tools add abilities to a DSH profile: experimental capabilities and connections to outside tools. The coding assistants (Codex, Claude Code…) also have their own page, Workers, which checks they are ready and lets your agent call them.' })),
           h('p', { className: 'kbt2-sub', style: { marginTop: 4, fontSize: 12, color: 'var(--dsw-alias-label-tertiary)' } }, kbf('Rien n’est à chaud : la relance applique. Un aperçu d’abord, puis l’écriture — sauvegarde datée avant, retour arrière ensuite.'))))
       const colonne = { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }
       // First read: the page's own head, then bones in the boxes of the profile block and of the cards (the shared skeleton helper).
@@ -28464,8 +28468,11 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
    pas de barre (liste vide, onglet sans outils), .kb6-headacts occupe
    exactement sa place : le bouton ne saute jamais d'un côté à l'autre. */
 .kb6-titlerow{display:flex;align-items:center;gap:10px;min-width:0}
-.kb6-helpbtn{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;font-weight:700;line-height:1;cursor:pointer}
-.kb6-helpbtn:hover,.kb6-helpbtn.on{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-brand-primary);background:var(--dsw-alias-bg-layer-2)}
+/* The « ? How it works » pill: the same look as the Suite's pill (kybernos-hub), so every page has one form of the button. */
+.kb6-helpbtn{flex:0 0 auto;appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.kb6-helpbtn:hover,.kb6-helpbtn.on{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}
+.kb6-helpbtn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.kb6-helpq{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
 .kb6-headacts{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;margin-inline-start:auto;padding-top:6px}
 /* No wrap: the search field shrinks (min-width:0) instead of dropping the view switch and the menu to a second line, which pushed the whole page down when the magnifier was pressed. */
 .kb6-tb-tools{margin-inline-start:auto;display:flex;align-items:center;gap:2px;flex-wrap:nowrap;justify-content:flex-end;padding-top:6px}

@@ -139,5 +139,12 @@ console.log('── what the page may talk to ──')
   ok('the shared help card is used behind a guard, with an action for the guide', /window\.__KB_HELP__ && window\.__KB_HELP__\.Help \? h\(window\.__KB_HELP__\.Help, \{ id: 'kybernos-workers', action:/.test(source))
 }
 
+// Tools and Workers list some of the same assistants (V-32): each page says what it is for and names the other.
+{
+  const lead = source.slice(source.indexOf("h('h4', null, 'Workers')"), source.indexOf("h('h4', null, 'Workers')") + 1800)
+  ok('the lead says what the page is for: coding assistants the main agent can hand tasks to', /Coding assistants installed on your computer/.test(lead) && /Des assistants de code installés/.test(lead))
+  ok('…and names Settings › Tools as the other door, in both languages', /Settings › Tools/.test(lead) && /Réglages › Tools/.test(lead) && /mounts tools in a profile/.test(lead) && /monte des outils dans un profil/.test(lead), lead.slice(0, 300))
+}
+
 console.log('\n' + (failures === 0 ? '✓ ' : '✗ ') + (total - failures) + '/' + total + ' checks')
 process.exit(failures === 0 ? 0 : 1)

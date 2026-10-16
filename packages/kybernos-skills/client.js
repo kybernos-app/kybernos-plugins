@@ -550,6 +550,20 @@ window.__ModuleLoader__.load({
         'tm.r.tooBig': { fr: 'Trop long pour une comparaison ligne à ligne.', en: 'Too long to compare line by line.' },
         'tm.r.rejectedWith': { fr: 'Refusé : {note}', en: 'Rejected: {note}' },
         'tm.r.noNote': { fr: 'Refusé, sans note.', en: 'Rejected, no note.' },
+        // The animated help of the page (window.__KB_HELP__.Intro): what it says, and the words of its little mock.
+        'intro.title': { fr: 'Les skills en trois étapes', en: 'Skills in three steps' },
+        'intro.caption': { fr: 'Un skill est choisi dans Featured, installé en un clic, puis listé dans Yours.', en: 'A skill is picked in Featured, installed with one click, then listed under Yours.' },
+        'intro.s1t': { fr: 'Choisissez', en: 'Pick one' },
+        'intro.s1b': { fr: 'Featured montre nos choix et ce que disent leurs audits de sécurité. Discover classe les skills publics.', en: 'Featured shows our picks and what their security audits said. Discover ranks the public ones.' },
+        'intro.s2t': { fr: 'Installez', en: 'Install it' },
+        'intro.s2b': { fr: 'Un clic, puis confirmez. Le skill est copié sur cet ordinateur.', en: 'One click, then confirm. The skill is copied to this computer.' },
+        'intro.s3t': { fr: 'Laissez vos agents s’en servir', en: 'Let your agents use it' },
+        'intro.s3b': { fr: 'Il apparaît dans Yours. Vos agents le chargent quand votre demande lui correspond.', en: 'It is listed under Yours. Your agents load it when your request fits it.' },
+        'intro.m.row': { fr: 'Documents Word', en: 'Word documents' },
+        'intro.m.st1': { fr: 'Featured', en: 'Featured' },
+        'intro.m.st2': { fr: 'Installation…', en: 'Installing…' },
+        'intro.m.st3': { fr: 'Installé', en: 'Installed' },
+        'intro.m.open': { fr: 'Ouvrir', en: 'Open' },
       }
       // Language: same mechanism as kybernos-composio (kbt). The host's `locale` service; “kybernos”
       // is the theme's default: with no explicit choice (kybernos.theme.lang absent) and under an English
@@ -2557,6 +2571,16 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
         const teamAction = primary(teamRoleAdmin(tsum.role) ? t('tm.add') : t('tm.propose'), () => setTeamSheet(true), 'plus')
         const headAction = mode === 'team' ? (teamBarShown ? teamAction : null) : renderAdd()
         const helpBtn = (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-skills' }) : null)
+        // The animated help: opens the first time the page is visited (the hub remembers it was closed), and the card of the button above can bring it back.
+        const introNode = (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Intro
+          ? h(window.__KB_HELP__.Intro, {
+            id: 'kybernos-skills',
+            title: t('intro.title'),
+            caption: t('intro.caption'),
+            steps: [{ t: t('intro.s1t'), b: t('intro.s1b') }, { t: t('intro.s2t'), b: t('intro.s2b') }, { t: t('intro.s3t'), b: t('intro.s3b') }],
+            mock: { bar: 'Skills', rows: [t('intro.m.row')], hot: 'PDF', states: [t('intro.m.st1'), t('intro.m.st2'), t('intro.m.st3')], actions: [t('btn.install'), t('intro.m.st2'), t('intro.m.open')] }
+          })
+          : null)
         return h('div', { className: 'kbs-root' },
           KbBar !== null
             ? h('div', { className: 'kb6-headrow' },
@@ -2585,6 +2609,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
                 h('h2', { className: 'kbs-h1' }, 'Skills'),
                 h('p', { className: 'kbs-sub', title: capTxt }, capTxt)),
               mode !== 'team' ? renderAdd() : null),
+          introNode,
           h('div', { className: 'kbs-ctlrow' },
             h('nav', { className: 'kbsub' },
               // Same capsule as the "Connections" sub-tabs (Your connections / Discover): one single language.

@@ -29,5 +29,6 @@
   "good": {
     "fr": "Un skill vient d’un tiers ou d’un collègue : DSH ne le vérifie pas, lisez ses fichiers et ses audits avant de l’installer ou de l’approuver.",
     "en": "A skill comes from a third party or a colleague: DSH does not check it, so read its files and audits before you install or approve it."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/features/what-are-skills-and-memory/"
 }

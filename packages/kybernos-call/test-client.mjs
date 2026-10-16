@@ -25,6 +25,15 @@ assert.equal(/unpkg|jsdelivr|https?:\/\//.test(source), false)
 ok('it loads under its own id, uses the overlay slot, and never fetches a script from a third party')
 assert.equal(/h\('nav'/.test(source), false)
 ok('no nav element: DSH sets the width of every nav inside its settings dialog (it pushed the provider list over the provider page)')
+{
+  // The help of each tab (A5-19): the same « ? How it works » pill as every other page, not a link-style line that asks « What is this page for? ».
+  const pill = source.match(/\.kbcl-hl\{[^}]*\}/)
+  assert.ok(pill !== null && /height:30px/.test(pill[0]) && /border-radius:16px/.test(pill[0]) && /border:1px solid/.test(pill[0]) && !/border:0/.test(pill[0]), pill && pill[0])
+  assert.ok(/\.kbcl-hq\{[^}]*border-radius:50%/.test(source))
+  assert.ok(source.includes("kt('Comment ça marche', 'How it works')") && !/What is this page for\?/.test(source) && !/À quoi sert cette page/.test(source))
+  assert.ok(/className: 'kbcl-hl'[^\n]*className: 'kbcl-hq', 'aria-hidden': 'true' \}, '\?'\)/.test(source), 'the disc shows « ? » whether the box is open or not')
+  ok('the help of each tab is the shared « ? How it works » pill')
+}
 assert.ok(source.includes("data-kb': 'kybernos-call-panel'") && source.includes("'data-act': 'hangup'") && source.includes("'data-act': 'mute'"))
 ok('the panel and its two actions carry stable data-kb / data-act hooks')
 const withoutTokens = source.replace(/var\([^)]*\)/g, '')

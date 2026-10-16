@@ -561,9 +561,11 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
 @keyframes kbcl-spin{to{transform:rotate(360deg)}}
 .kbcl-hh{display:flex;align-items:center;gap:8px}
 .kbcl-prov a{color:${T.brand}}
-.kbcl-hl{appearance:none;display:inline-flex;align-items:center;gap:8px;border:0;background:transparent;color:${T.mute};font:inherit;font-size:12.5px;cursor:pointer;padding:0}
-.kbcl-hl:hover{color:${T.text}}
-.kbcl-hl:focus-visible{outline:2px solid ${T.brand};outline-offset:2px;border-radius:6px}
+/* The page help: the « ? How it works » pill of every other page (the Suite's pill, in kybernos-hub). */
+.kbcl-hl{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.kbcl-hl:hover,.kbcl-hl[aria-expanded="true"]{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}
+.kbcl-hl:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.kbcl-hq{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
 .kbcl-q{appearance:none;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;box-sizing:border-box;border-radius:50%;border:1px solid ${T.line};background:transparent;color:${T.mute};font:inherit;font-size:13px;line-height:1;cursor:pointer;flex:none;padding:0}
 .kbcl-q:hover{background:${T.hover};color:${T.text}}
 .kbcl-q:focus-visible{outline:2px solid ${T.brand};outline-offset:1px}
@@ -681,7 +683,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
         const lines = props.lines
         return [
           h('div', { key: 'hd', className: 'kbcl-hh' }, [
-            h('button', { key: 'b', type: 'button', className: 'kbcl-hl', 'data-act': 'help-' + props.id, 'aria-expanded': props.open === true ? 'true' : 'false', onClick: props.onToggle }, [h('span', { key: 'q', className: 'kbcl-q', 'aria-hidden': 'true' }, props.open === true ? '×' : '?'), h('span', { key: 't' }, kt('À quoi sert cette page ?', 'What is this page for?'))])
+            h('button', { key: 'b', type: 'button', className: 'kbcl-hl', 'data-act': 'help-' + props.id, 'aria-expanded': props.open === true ? 'true' : 'false', onClick: props.onToggle }, [h('span', { key: 'q', className: 'kbcl-hq', 'aria-hidden': 'true' }, '?'), h('span', { key: 't' }, kt('Comment ça marche', 'How it works'))])
           ]),
           props.open === true ? h('div', { key: 'tx', className: 'kbcl-helpbox', 'data-help': props.id }, lines.map((l, i) => h('div', { key: i }, [h('b', { key: 'a' }, l[0] + ' '), l[1]]))) : null
         ]

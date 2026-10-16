@@ -29,5 +29,6 @@
   "good": {
     "fr": "Auto ne change jamais le modèle de votre session : il conseille un modèle pour les étapes déléguées, parmi ceux que vous autorisez. « Ma liste » vide : le modèle de la session est gardé.",
     "en": "Auto never changes your session’s model: it advises a model for the delegated steps, among the ones you allow. An empty “My list”: the session’s model is kept."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/models-and-budget/let-kybernos-pick-the-model/"
 }

@@ -125,6 +125,35 @@
               "fr": "Les moteurs « Local » ne font rien sortir de votre ordinateur ; edge-tts et « Vos modèles » envoient le texte à un service en ligne. Le micro est demandé à la première dictée.",
               "en": "“Local” engines send nothing off your computer; edge-tts and “Your models” send the text to an online service. The microphone is asked for the first time you dictate."
             }
+          },
+          "presets": {
+            "title": {
+              "fr": "Presets d’agent",
+              "en": "Agent presets"
+            },
+            "what": {
+              "fr": "Un preset est une façon de travailler de l’agent : ses outils et ses habitudes. Choisissez-en un pour une nouvelle tâche, ou créez le vôtre.",
+              "en": "A preset is a way for the agent to work: its tools and its habits. Pick one for a new task, or create your own."
+            },
+            "steps": [
+              {
+                "fr": "Lisez les modes livrés : Standard pour le quotidien ; PTC, Minimal et Creator pour d’autres besoins.",
+                "en": "Read the built-in modes: Standard for everyday tasks; PTC, Minimal and Creator for other needs."
+              },
+              {
+                "fr": "Pour créer le vôtre, demandez de l’aide à l’agent (bouton en bas de la page) : il vous interroge, puis écrit le preset.",
+                "en": "To create your own, ask the agent for help (the button at the bottom of the page): it asks you questions, then writes the preset."
+              },
+              {
+                "fr": "À chaque nouvelle tâche vous pouvez changer de preset. Celui marqué « New task default » sert quand vous ne choisissez pas.",
+                "en": "You can change the preset for each new task. The one marked “New task default” is used when you do not choose."
+              }
+            ],
+            "where": {
+              "fr": "Réglages › Agent presets",
+              "en": "Settings › Agent presets",
+              "page": true
+            }
           }
         }
       }
@@ -322,7 +351,8 @@
         "good": {
           "fr": "La page « Models » native de DSH est masquée du menu des Réglages par défaut, mais reste à un clic : « Plus d’actions » › « Ouvrir la page native de DSH ».",
           "en": "DSH’s native Models page is hidden from the Settings menu by default, but stays one click away: “More actions” › “Open DSH’s native Models page”."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/models-and-budget/choose-your-models/"
       },
       "vedette": 1,
       "accroche": {
@@ -402,7 +432,8 @@
         "good": {
           "fr": "Un skill vient d’un tiers ou d’un collègue : DSH ne le vérifie pas, lisez ses fichiers et ses audits avant de l’installer ou de l’approuver.",
           "en": "A skill comes from a third party or a colleague: DSH does not check it, so read its files and audits before you install or approve it."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/features/what-are-skills-and-memory/"
       }
     },
     {
@@ -549,7 +580,8 @@
         "good": {
           "fr": "Auto ne change jamais le modèle de votre session : il conseille un modèle pour les étapes déléguées, parmi ceux que vous autorisez. « Ma liste » vide : le modèle de la session est gardé.",
           "en": "Auto never changes your session’s model: it advises a model for the delegated steps, among the ones you allow. An empty “My list”: the session’s model is kept."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/models-and-budget/let-kybernos-pick-the-model/"
       },
       "vedette": 2,
       "accroche": {
@@ -723,7 +755,8 @@
         "good": {
           "fr": "Rien n’est envoyé sans votre action. Modèles gratuits : les prompts peuvent être conservés, n’y mettez rien de sensible.",
           "en": "Nothing is sent without your action. Free models: prompts may be retained, so do not put anything sensitive there."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/models-and-budget/use-free-models/"
       }
     },
     {
@@ -772,7 +805,8 @@
         "good": {
           "fr": "Un seul service à la fois côté agents : Kybernos Cloud ou votre clé. Votre clé reste sur votre machine ; une clé changée n'atteint les agents qu'après un redémarrage de DSH.",
           "en": "One service at a time for the agents: Kybernos Cloud or your key. Your key stays on your machine; a changed key reaches the agents only after DSH restarts."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/features/what-are-app-connections/"
       }
     },
     {
@@ -919,7 +953,8 @@
         "good": {
           "fr": "Une maquette n’est pas enregistrée : elle disparaît quand DSH redémarre, et chaque conversation a la sienne.",
           "en": "A mockup is not saved: it disappears when DSH restarts, and each chat has its own."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/create-with-kybernos/build-a-brick-mockup/"
       }
     },
     {
@@ -968,7 +1003,8 @@
         "good": {
           "fr": "Le deck n’est pas enregistré : il disparaît quand DSH redémarre, et chaque conversation a le sien.",
           "en": "The deck is not saved: it disappears when DSH restarts, and each chat has its own."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/create-with-kybernos/make-a-slide-deck/"
       },
       "vedette": 5,
       "accroche": {
@@ -1044,7 +1080,8 @@
         "good": {
           "fr": "Un modèle n’est pas enregistré : il disparaît quand DSH redémarre. Passer de la 3D à la 2D (ou l’inverse) repart aussi d’un modèle neuf.",
           "en": "A model is not saved: it disappears when DSH restarts. Switching from 3D to 2D (or back) also starts from a new model."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/create-with-kybernos/draw-a-2d-or-3d-model/"
       },
       "vedette": 6,
       "accroche": {
@@ -1116,7 +1153,8 @@
         "good": {
           "fr": "Une animation est un simple fichier .miniapp.json du projet : copiez-le, versionnez-le, partagez-le. L’export vidéo se fait dans votre navigateur, rien n’est envoyé ailleurs.",
           "en": "An animation is a plain .miniapp.json file in the project: copy it, version it, share it. Video export happens in your browser, nothing is sent elsewhere."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/create-with-kybernos/make-an-animation/"
       }
     },
     {
@@ -1161,7 +1199,8 @@
         "good": {
           "fr": "macOS seulement. Dans l’app, Briques garde sa lecture et sa rotation ; Modeleur et Slides sont figés comme une photo et ne suivent plus le chat.",
           "en": "macOS only. In the app, Briques keeps its replay and rotation; Modeleur and Slides are frozen like a photo and no longer follow the chat."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/create-with-kybernos/turn-a-panel-into-an-app/"
       }
     },
     {
@@ -1210,7 +1249,8 @@
         "good": {
           "fr": "Le code et les fichiers que l'agent y envoie partent chez E2B. Chaque ordinateur est jetable, s'arrête seul après 15 min (2 h au plus), 4 à la fois. Sans clé, l'agent reste sur votre poste.",
           "en": "The code and files the agent sends there go to E2B. Each computer is disposable, stops by itself after 15 min (2 h at most), 4 at a time. With no key, the agent stays on your machine."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/computers/run-code-in-a-cloud-sandbox/"
       }
     },
     {
@@ -1304,7 +1344,8 @@
         "good": {
           "fr": "Vérifier n'appelle aucun modèle : rien n'est dépensé. Chaque assistant utilise son propre abonnement ou sa propre clé. « Essayer la démo » montre le parcours pas à pas.",
           "en": "Checking calls no model, so nothing is spent. Each assistant uses its own subscription or key. “Try the demo” walks through the whole path step by step."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/agents-and-tools/call-other-coding-assistants/"
       }
     },
     {
@@ -1353,7 +1394,8 @@
         "good": {
           "fr": "Le modèle tourne sur votre machine et rien n’est téléchargé sans votre clic. S’il manque dans le sélecteur de modèles après « Brancher sur DSH », relancez DSH.",
           "en": "The model runs on your machine and nothing is downloaded without your click. If it is missing from the model picker after “Wire into DSH”, restart DSH."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/models-and-budget/use-local-models/"
       }
     },
     {
@@ -1443,7 +1485,8 @@
         "good": {
           "fr": "Gardez l’ordinateur allumé et connecté à internet : s’il s’éteint ou perd la connexion, le téléphone ne peut plus l’atteindre. Le relais Kybernos fait passer les messages sans pouvoir les lire.",
           "en": "Keep the computer switched on and connected to the internet: if it is switched off or loses the connection, the phone can no longer reach it. The Kybernos relay only passes messages along and cannot read them."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/features/what-is-remote-control/"
       }
     },
     {
@@ -1488,7 +1531,8 @@
         "good": {
           "fr": "Les moteurs sans clé passent par des pages publiques : ils peuvent demander une vérification anti-robot. Un moteur à clé ou votre SearXNG est plus fiable.",
           "en": "Engines without a key use public pages: they may ask for an anti-bot check. A keyed engine or your own SearXNG is more reliable."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/agents-and-tools/search-the-web/"
       }
     },
     {
@@ -1537,7 +1581,8 @@
         "good": {
           "fr": "Les souvenirs vivent dans votre compte Kybernos Cloud (même Free) ; les leçons restent sur cet ordinateur, par Agent Team, sans compte. Les doublons sont fusionnés seuls, annulables 30 jours.",
           "en": "Memories live in your Kybernos Cloud account (any plan, Free too); lessons stay on this computer, per agent team, no account needed. Near-duplicates merge by themselves, undoable for 30 days."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/features/what-are-skills-and-memory/"
       },
       "vedette": 3,
       "accroche": {
@@ -1707,7 +1752,8 @@
         "good": {
           "fr": "Tout se règle dans Réglages › Appels : préréglage, clés, puis « Tout vérifier ». Si un appel ne peut pas démarrer, le panneau vous y conduit. Une voix enregistrée n'est clonée que si vous l'autorisez.",
           "en": "Everything is set up in Settings › Calls: a preset, each provider's keys, then “Check everything”. If a call cannot start, the panel takes you there. A recorded voice is only cloned if you allow it."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/agents-and-tools/talk-to-your-assistant-out-loud/"
       }
     },
     {
@@ -1971,7 +2017,8 @@
         "good": {
           "fr": "Le plan est compté par le serveur, en pourcentage ; le coût de vos clés est calculé sur cet ordinateur, rien n'est envoyé.",
           "en": "The plan is counted by the server, as a percentage; the cost of your keys is worked out on this computer, nothing is sent."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/models-and-budget/see-what-it-costs/"
       }
     },
     {
@@ -2016,7 +2063,8 @@
         "good": {
           "fr": "Le dossier est fixé à la création : pour travailler dans un autre dossier, créez un autre workspace. Le téléphone ouvre toute la page de l'ordinateur, pas un workspace.",
           "en": "The folder is fixed at creation: to work in another folder, create another workspace. The phone opens the whole page of the computer, not one workspace."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/computers/choose-a-working-folder/"
       }
     },
     {
@@ -2065,7 +2113,8 @@
         "good": {
           "fr": "Un dashboard est un simple fichier, sans code, qui ne lit que des sources de cet ordinateur. Les tokens sont comptés, pas l’argent.",
           "en": "A dashboard is a plain file with no code, reading only sources on this computer. Tokens are counted, not money."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/create-with-kybernos/build-a-dashboard/"
       }
     },
     {
@@ -2155,7 +2204,8 @@
         "good": {
           "fr": "Kaby garde la même mémoire ici et sur Telegram. Rien n'est connecté sans votre accord dans Telegram, et avant d'agir sur son ordinateur il vous demande : Autoriser, Refuser ou Autoriser pour cette tâche.",
           "en": "Kaby keeps the same memory here and on Telegram. Nothing is connected without your approval in Telegram, and before acting on its computer it asks you: Allow, Refuse, or Allow for this task."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/computers/see-where-kyby-answers/"
       }
     },
     {
