@@ -383,6 +383,36 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
   }
 
 
+  // ── « no camera or no app? »: the same token written by hand, in DSH, nothing sent anywhere ──
+  {
+    reset(); set({ home: null })
+    T.state.pairing = WAITING()
+    const clip = []
+    Object.defineProperty(globalThis, 'navigator', { value: { clipboard: { writeText: async (v) => { clip.push(v) } } }, configurable: true, writable: true })
+    const before = ui(T.views.Strip)
+    const toggle = one(before, 'kybernos-kyber-code')
+    ok('a waiting code offers « write a code instead », closed at first', toggle !== undefined && toggle.props['aria-expanded'] === 'false' && byKb(before, 'kybernos-kyber-code-box').length === 0)
+    ok('and the panel says nothing of a console or an account page', !/console|account page|page du compte/i.test(textOf(one(before, 'kybernos-kyber-telegram'))))
+    await press(before, 'kybernos-kyber-code')
+    const opened = ui(T.views.Strip)
+    ok('opened: the bot\'s name and the command to write, with the token of THIS pairing', one(opened, 'kybernos-kyber-code').props['aria-expanded'] === 'true' && textOf(one(opened, 'kybernos-kyber-code-box')).includes('@kybernos_bot') && textOf(one(opened, 'kybernos-kyber-code-text')) === '/start pair_abc', textOf(one(opened, 'kybernos-kyber-code-box')))
+    ok('pressing it asked nothing of the host: no console link, no request at all', calls.length === 0, calls)
+    await press(opened, 'kybernos-kyber-code-copy')
+    ok('copy puts the command on the clipboard and says so', clip.length === 1 && clip[0] === '/start pair_abc' && textOf(one(ui(T.views.Strip), 'kybernos-kyber-code-copy')) === 'Copié')
+    await press(opened, 'kybernos-kyber-code')
+    ok('pressed again it closes', byKb(ui(T.views.Strip), 'kybernos-kyber-code-box').length === 0)
+    T.state.showCode = true
+    answer = (u) => (u.endsWith('/telegram/pairing/cancel') ? { ok: true } : { ok: true })
+    await T.actions.pairCancel(); await flush()
+    ok('a cancelled code closes the box with it', T.state.showCode === false && T.state.pairing === null)
+    T.state.pairing = Object.assign(WAITING(), { state: 'scanned', sender: 'Miled' })
+    T.state.showCode = true
+    ok('once scanned there is no code to write any more', byKb(ui(T.views.Strip), 'kybernos-kyber-code-box').length === 0 && byKb(ui(T.views.Strip), 'kybernos-kyber-code').length === 0)
+    T.state.pairing = Object.assign(WAITING(), { link: 'https://t.me/kybernos_bot?start=nothing' })
+    T.state.showCode = false
+    ok('a link that carries no token offers no code (nothing invented)', byKb(ui(T.views.Strip), 'kybernos-kyber-code').length === 0)
+  }
+
   // ── what the strip tells the page about Kaby's chat, and how it sits above the composer ──
   {
     reset()
