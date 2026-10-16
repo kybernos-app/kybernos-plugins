@@ -4,7 +4,7 @@
 sidebar, object by object, then is read back.**
 
 ```
-DSH chat ──(tool `modeliser`)──▶ host ──(GET /kybernos-modeleur/state)──▶ « Modeleur » panel
+DSH chat ──(tool `modeliser`)──▶ host ──(GET /kybernos-modeleur/state)──▶ “3D modeller” panel (“Modeleur” in French)
 ```
 
 ## What it does
@@ -92,7 +92,7 @@ ln -s <your checkout>/packages/kybernos-modeleur \
 # then add "@local/kybernos-modeleur" to dsh.profile.bundles and restart DSH
 ```
 
-The panel opens **by itself** when a model arrives, and the **Modeleur** tab type
+The panel opens **by itself** when a model arrives, and the **3D modeller** tab type
 stays offered at all times by the selector (`+`) of the right
 sidebar. No button in the footer of the sidebar (same decision as
 kybernos-bricks).

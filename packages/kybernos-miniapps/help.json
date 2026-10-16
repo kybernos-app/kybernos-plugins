@@ -1,7 +1,7 @@
 {
   "what": {
     "fr": "Ajoute un bouton « App » aux panneaux Briques, Modeleur et Slides : il en fait une petite app macOS flottante, qui reste ouverte même quand DSH est fermé.",
-    "en": "Adds an “App” button to the Briques, Modeleur and Slides panels: it turns the panel into a small floating macOS app that stays open even when DSH is closed."
+    "en": "Adds an “App” button to the Bricks, 3D modeller and Slides panels: it turns the panel into a small floating macOS app that stays open even when DSH is closed."
   },
   "steps": [
     {
@@ -19,11 +19,11 @@
   ],
   "where": {
     "fr": "Dans l’en-tête de chaque panneau Briques, Modeleur ou Slides",
-    "en": "In the header of each Briques, Modeleur or Slides panel",
+    "en": "In the header of each Bricks, 3D modeller or Slides panel",
     "page": false
   },
   "good": {
     "fr": "macOS seulement. Dans l’app, Briques garde sa lecture et sa rotation ; Modeleur et Slides sont figés comme une photo et ne suivent plus le chat.",
-    "en": "macOS only. In the app, Briques keeps its replay and rotation; Modeleur and Slides are frozen like a photo and no longer follow the chat."
+    "en": "macOS only. In the app, Bricks keeps its replay and rotation; the 3D modeller and Slides are frozen like a photo and no longer follow the chat."
   }
 }

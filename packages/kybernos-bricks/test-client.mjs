@@ -217,7 +217,7 @@ const textesDe = (arbre) => {
 }
 for (const [langue, attendu, interdit] of [
   ['en', ['No model yet', 'Ask the chat', 'Bricks', 'Start', 'Replay', 'End'], /Aucune|Demande|Briques|Début|Relire|Fini/],
-  ['kybernos', ['Aucune maquette pour le moment', 'Demande au chat', 'Briques', 'Début', 'Relire', 'Fin'], /No model|Ask the chat|Bricks|Replay/],
+  ['kybernos', ['Aucune maquette pour le moment', 'Demandez au chat', 'Briques', 'Début', 'Relire', 'Fin'], /No model|Ask the chat|Bricks|Replay/],
   ['es', ['No model yet', 'Ask the chat', 'Bricks'], /Aucune|Demande|Briques|Début|Relire/],
   ['ar', ['No model yet', 'Bricks'], /Aucune|Briques/],
 ]) {

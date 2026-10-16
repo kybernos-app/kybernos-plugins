@@ -150,7 +150,7 @@ export function creerMagasin () {
         espace,
         t0: maintenant,
         dureeMs: bornement(entree?.dureeMs),
-        titre: texte(entree?.titre, 120) || 'Modeleur',
+        titre: texte(entree?.titre, 120) || '3D modeller',
         prompt: texte(entree?.prompt, 2000),
         mode: entree?.mode === 'modifier' && precedente?.espace === espace ? 'modifier' : 'nouveau',
         ops: Array.isArray(entree?.ops) ? entree.ops.slice(0, 4000) : null,
@@ -233,37 +233,37 @@ export function optionsOutil (magasin) {
   return {
     name: OUTIL,
     description:
-      "Dessine un modèle 2D ou 3D dans la barre latérale droite du chat (panneau « Modeleur »), "
-      + 'objet par objet, puis le laisse rejouable. `espace` choisit le moteur : '
-      + "« 3d » (défaut) rend des solides en perspective orbitable — ops : {op:'box',x,y,z,w,d,h,color} | "
+      'Draws a 2D or 3D model in the right sidebar of the chat (the “3D modeller” panel), '
+      + 'object by object, then leaves it replayable. `espace` picks the engine: '
+      + "“3d” (default) renders solids in orbitable perspective — ops: {op:'box',x,y,z,w,d,h,color} | "
       + "{op:'cyl',cx,cy,z,r,h,color} | {op:'cone',cx,cy,z,r,h,color} | {op:'sphere',cx,cy,cz,r,color} | "
       + "{op:'tube',cx,cy,z,r,t,h,color} | {op:'extrude',points:[[x,y]…],z,h,color} ; "
-      + "« 2d » rend un dessin à l'échelle — ops : {op:'line',x1,y1,x2,y2} | {op:'rect',x,y,w,h} | "
+      + "“2d” renders a scale drawing — ops: {op:'line',x1,y1,x2,y2} | {op:'rect',x,y,w,h} | "
       + "{op:'circle',cx,cy,r} | {op:'ellipse',cx,cy,rx,ry} | {op:'arc',cx,cy,r,a0,a1} | "
       + "{op:'poly',points:[[x,y]…],closed} | {op:'path',d} | {op:'text',x,y,text} | {op:'arrow',x1,y1,x2,y2}. "
-      + "Chaque op accepte `stroke`, `fill`, `width`, `group`. Les opés sont posées dans l'ordre du tableau. "
-      + "L'utilisateur peut dessiner des traits PAR-DESSUS le modèle (pinceau du panneau) pour montrer ce qu'il "
-      + 'veut changer : `relire: true` renvoie ces traits en coordonnées normalisées 0..1 (origine coin haut-gauche) '
-      + "+ la caméra 3D du moment — sert-t'en pour réajuster avec `mode: 'modifier'`. Sans `ops`, l'appel ouvre le panneau sur le dernier modèle.",
+      + 'Each op accepts `stroke`, `fill`, `width`, `group`. The ops are laid in the order of the array. '
+      + 'The user can draw strokes OVER the model (the brush of the panel) to show what they want changed: '
+      + '`relire: true` returns those strokes in normalised coordinates 0..1 (origin top-left corner) '
+      + "+ the current 3D camera — use them to readjust with `mode: 'modifier'`. Without `ops`, the call opens the panel on the last model.",
     parameters: {
-      espace: { type: 'string', description: "« 3d » (défaut, solides orbitables) ou « 2d » (dessin à l'échelle)." },
-      prompt: { type: 'string', description: "Ce que le modèle représente, en une phrase — affiché sous le dessin." },
+      espace: { type: 'string', description: '“3d” (default, orbitable solids) or “2d” (scale drawing).' },
+      prompt: { type: 'string', description: 'What the model shows, in one sentence — displayed under the drawing.' },
       ops: {
         type: 'array',
-        description: "Géométrie explicite, posée dans l'ordre. Chaque élément est un lot (voir la description de l'outil).",
+        description: 'Explicit geometry, laid in order. Each element is a batch (see the description of the tool).',
         items: { type: 'object', additionalProperties: true },
       },
-      mode: { type: 'string', description: "« nouveau » (remplace le modèle) ou « modifier » (ajoute au modèle courant, même espace). Défaut : nouveau." },
-      titre: { type: 'string', description: "Titre affiché dans le panneau. Défaut : « Modeleur »." },
-      duree_ms: { type: 'number', description: `Durée de la pose, en millisecondes (défaut ${DUREE_DEFAUT_MS}, borné ${DUREE_MIN_MS}–${DUREE_MAX_MS}).` },
-      relire: { type: 'boolean', description: 'true : ne dépose rien — renvoie les traits dessinés par-dessus le modèle par l\'utilisateur.' },
+      mode: { type: 'string', description: '“nouveau” (replaces the model) or “modifier” (adds to the current model, same space). Default: nouveau.' },
+      titre: { type: 'string', description: 'Title shown in the panel. Default: “3D modeller”.' },
+      duree_ms: { type: 'number', description: `Duration of the laying, in milliseconds (default ${DUREE_DEFAUT_MS}, between ${DUREE_MIN_MS} and ${DUREE_MAX_MS}).` },
+      relire: { type: 'boolean', description: 'true: puts nothing down — returns the strokes the user drew over the model.' },
     },
     render: (_args, valeur) => [{ type: 'text', text: typeof valeur === 'string' ? valeur : JSON.stringify(valeur, null, 2) }],
     execute: async (brut, exec) => {
       const options = brut && typeof brut === 'object' ? brut : {}
       const sessionId = exec?.agent?.id
       if (typeof sessionId !== 'string' || sessionId.length === 0) {
-        return { ok: false, raison: 'agent_inconnu', message: "impossible d'identifier la session courante (appel hors tour ?)" }
+        return { ok: false, raison: 'agent_inconnu', message: 'cannot identify the current session (called outside a turn?)' }
       }
       if (options.relire === true) {
         const etat = magasin.lire(sessionId)
@@ -282,8 +282,8 @@ export function optionsOutil (magasin) {
           version: etat?.version ?? 0,
           annotations: ann,
           message: ann.strokes.length > 0
-            ? `${ann.strokes.length} annotation(s) par-dessus le modèle [${resume}] (coords x,y normalisées 0..1, origine coin haut-gauche${etat?.espace === '3d' ? ' ; caméra : yaw/pitch du panneau' : ''}). Lecture : rect/ellipse = entoure une zone, fleche = direction ou déplacement, texte = consigne littérale, trait libre = entourage ou biffure. Pousse ensuite un modèle ajusté avec mode « modifier ».`
-            : "Aucun trait : l'utilisateur n'a pas redessiné par-dessus.",
+            ? `${ann.strokes.length} ${ann.strokes.length === 1 ? 'annotation' : 'annotations'} over the model [${resume}] (x,y coordinates normalised 0..1, origin top-left corner${etat?.espace === '3d' ? '; camera: yaw/pitch of the panel' : ''}). Reading: rect/ellipse = circles an area, fleche = a direction or a move, texte = a literal instruction, trait = a freehand outline or strike-through. Then push an adjusted model with mode “modifier”.`
+            : 'No stroke: the user has not drawn over the model.',
         }
       }
       const enregistrement = magasin.pousser({
@@ -305,10 +305,10 @@ export function optionsOutil (magasin) {
         lots: Array.isArray(enregistrement.ops) ? enregistrement.ops.length : 0,
         duree_ms: enregistrement.dureeMs,
         message: enregistrement.rouvert === true
-          ? 'Panneau rouvert sur le dernier modèle : rien n\'a été redessiné ni effacé (donne `ops` pour dessiner).'
+          ? 'Panel reopened on the last model: nothing was redrawn or erased (give `ops` to draw).'
           : Array.isArray(enregistrement.ops)
-          ? `${enregistrement.ops.length} lot(s) déposés : le panneau « Modeleur » (barre latérale droite) les dessine en ${(enregistrement.dureeMs / 1000).toFixed(1)} s.`
-          : 'Modèle déposé : le panneau « Modeleur » (barre latérale droite) le dessine maintenant.',
+          ? `${enregistrement.ops.length} ${enregistrement.ops.length === 1 ? 'batch' : 'batches'} handed over: the “3D modeller” panel (right sidebar) draws them in ${(enregistrement.dureeMs / 1000).toFixed(1)} s.`
+          : 'Model handed over: the “3D modeller” panel (right sidebar) is drawing it now.',
       }
     },
   }
@@ -320,7 +320,7 @@ export async function enregistrer (tools, magasin) {
   const chargement = await chargerDefineTool()
   const outil = chargement !== undefined ? chargement.defineTool(specDefineTool(definition)) : definitionLiteral(definition)
   tools.register(outil)
-  dire(`outil « ${OUTIL} » enregistré`)
+  dire(`tool “${OUTIL}” registered`)
 }
 
 // ── les routes (pour la moitié client) ──────────────────────────────────────
@@ -352,8 +352,8 @@ const lireCorps = (req) => new Promise((res) => {
 export function monterRoutes (webServerSvc, magasin) {
   webServerSvc = kbFenced(webServerSvc)
   webServerSvc.register({ kind: 'exact', path: ROUTE_STATE, handler: async (req, res) => {
-    if (req.method !== 'GET') { res.writeHead(405); res.end('GET uniquement'); return }
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (req.method !== 'GET') { res.writeHead(405); res.end('GET only'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     const u = new URL(req.url, 'http://127.0.0.1')
     const etat = magasin.lire(u.searchParams.get('session'))
     if (etat === null) { envoyer(res, 200, { vide: true }); return }
@@ -376,13 +376,13 @@ export function monterRoutes (webServerSvc, magasin) {
   } })
 
   webServerSvc.register({ kind: 'exact', path: ROUTE_PUSH, handler: async (req, res) => {
-    if (req.method !== 'POST') { res.writeHead(405); res.end('POST uniquement'); return }
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     const corps = await lireCorps(req)
     // An unreadable body must not leave an empty model behind: it would become "the last model" for a panel that
     // does not name its session.
     if (!corps || typeof corps !== 'object' || !Array.isArray(corps.ops)) {
-      envoyer(res, 400, { ok: false, raison: 'corps_illisible', message: 'POST /push attend `ops` (un tableau de lots).' })
+      envoyer(res, 400, { ok: false, raison: 'corps_illisible', message: 'POST /push expects `ops` (an array of batches).' })
       return
     }
     const etat = magasin.pousser(corps)
@@ -390,8 +390,8 @@ export function monterRoutes (webServerSvc, magasin) {
   } })
 
   webServerSvc.register({ kind: 'exact', path: ROUTE_ANNOTE, handler: async (req, res) => {
-    if (req.method !== 'POST') { res.writeHead(405); res.end('POST uniquement'); return }
-    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (req.method !== 'POST') { res.writeHead(405); res.end('POST only'); return }
+    if (!origineOK(req)) { res.writeHead(403); res.end('origin refused'); return }
     const corps = await lireCorps(req)
     const sessionId = typeof corps?.sessionId === 'string' ? corps.sessionId : ''
     const etat = magasin.annoter(sessionId, traitsPropres(corps?.strokes))
@@ -399,7 +399,7 @@ export function monterRoutes (webServerSvc, magasin) {
     envoyer(res, 200, { ok: true, annVersion: etat.ann.version, traits: etat.ann.strokes.length })
   } })
 
-  dire(`routes ${ROUTE_STATE}, ${ROUTE_PUSH} et ${ROUTE_ANNOTE} enregistrées`)
+  dire(`routes ${ROUTE_STATE}, ${ROUTE_PUSH} and ${ROUTE_ANNOTE} registered`)
 }
 
 // ── le plugin hôte ──────────────────────────────────────────────────────────
@@ -412,9 +412,9 @@ export function apply (ctx) {
   const demarrer = (c) => {
     const tools = c.get('tools')
     const webServer = c.get('webServer')
-    if (tools !== undefined) enregistrer(tools, magasin).catch((e) => dire(`outil non enregistré : ${e?.message ?? e}`))
+    if (tools !== undefined) enregistrer(tools, magasin).catch((e) => dire(`tool not registered: ${e?.message ?? e}`))
     if (webServer !== undefined) {
-      try { monterRoutes(webServer, magasin) } catch (e) { dire(`routes non montées : ${e?.message ?? e}`) }
+      try { monterRoutes(webServer, magasin) } catch (e) { dire(`routes not mounted: ${e?.message ?? e}`) }
     }
   }
   if (ctx.get('tools') !== undefined && ctx.get('webServer') !== undefined) demarrer(ctx)
