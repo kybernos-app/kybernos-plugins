@@ -64,193 +64,193 @@ window.__ModuleLoader__.load({
 /* ── Page layout (copied from kybernos-theme, NOT borrowed) ─────────────────
    This bundle is a REMOVABLE satellite: kybernos-theme can disappear from the
    profile without this page losing its layout. Same values, same DSH tokens. */
-[data-slot="settings.section"]:has(.kbth-page) { width: 100%; max-width: none; }
-.kbth-page{display:grid;grid-template-columns:1fr;gap:22px;max-width:760px;align-items:start}
-.kbth-main{display:flex;flex-direction:column;gap:22px;min-width:0}
-.kbth-head{display:flex;flex-direction:column;gap:6px}
-.kbth-title{font-size:26px;line-height:32px;font-weight:800;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
-.kbth-sub{font-size:14px;line-height:1.55;color:var(--dsw-alias-label-secondary);max-width:640px}
-.kbth-sec{display:flex;flex-direction:column;gap:10px}
-.kbth-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.kbth-lb{font-size:13px;font-weight:500;color:var(--dsw-alias-label-secondary);width:160px;flex:none}
-.kbth-hint{font-size:12px;color:var(--dsw-alias-label-tertiary);line-height:1.5}
-.kbth-btn{appearance:none;font:inherit;font-size:13px;font-weight:500;padding:7px 14px;border-radius:9px;cursor:pointer;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);transition:background .12s,border-color .12s;white-space:nowrap}
-.kbth-btn:hover{background:var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-3));border-color:var(--dsw-alias-border-l3)}
-.kbth-btn.primary{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff);border-color:var(--dsw-alias-brand-primary)}
-.kbth-btn.primary:hover{opacity:.9}
-.kbth-btn.quiet{border-color:transparent;background:transparent;color:var(--dsw-alias-label-secondary)}
-.kbth-btn.quiet:hover{background:var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-3))}
-.kbth-btn.danger{color:var(--dsw-alias-state-error, #e5484d)}
+[data-slot="settings.section"]:has(.kbln-page) { width: 100%; max-width: none; }
+.kbln-page{display:grid;grid-template-columns:1fr;gap:22px;max-width:760px;align-items:start}
+.kbln-main{display:flex;flex-direction:column;gap:22px;min-width:0}
+.kbln-head{display:flex;flex-direction:column;gap:6px}
+.kbln-title{font-size:26px;line-height:32px;font-weight:800;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
+.kbln-sub{font-size:14px;line-height:1.55;color:var(--dsw-alias-label-secondary);max-width:640px}
+.kbln-sec{display:flex;flex-direction:column;gap:10px}
+.kbln-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.kbln-lb{font-size:13px;font-weight:500;color:var(--dsw-alias-label-secondary);width:160px;flex:none}
+.kbln-hint{font-size:12px;color:var(--dsw-alias-label-tertiary);line-height:1.5}
+.kbln-btn{appearance:none;font:inherit;font-size:13px;font-weight:500;padding:7px 14px;border-radius:9px;cursor:pointer;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);transition:background .12s,border-color .12s;white-space:nowrap}
+.kbln-btn:hover{background:var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-3));border-color:var(--dsw-alias-border-l3)}
+.kbln-btn.primary{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff);border-color:var(--dsw-alias-brand-primary)}
+.kbln-btn.primary:hover{opacity:.9}
+.kbln-btn.quiet{border-color:transparent;background:transparent;color:var(--dsw-alias-label-secondary)}
+.kbln-btn.quiet:hover{background:var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-3))}
+.kbln-btn.danger{color:var(--dsw-alias-state-error, #e5484d)}
 /* ── Language rows ──────────────────────────────────────────────────────── */
-.kbth-langs{display:flex;flex-direction:column;gap:8px}
-.kbth-lang{display:flex;flex-direction:column;gap:12px;padding:12px 14px;border-radius:12px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2)}
-.kbth-lang.on{border:1.5px solid var(--dsw-alias-brand-primary);padding:11.25px 13.25px}
-.kbth-lang-top{display:flex;align-items:center;gap:12px}
-.kbth-badge{width:38px;height:38px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;letter-spacing:.02em;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-secondary)}
-.kbth-lang.on .kbth-badge{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff)}
-.kbth-lang-info{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
-.kbth-lang-name{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.kbth-lang-en{font-weight:400;color:var(--dsw-alias-label-tertiary);font-size:12px}
-body:not([data-ds-dark-theme]) .kbth-lang-en{color:var(--dsw-alias-label-secondary)}
-.kbth-lang-meta{font-size:12px;color:var(--dsw-alias-label-secondary);line-height:1.4}
-.kbth-lang-act{display:flex;align-items:center;gap:8px;flex:none;flex-wrap:wrap;justify-content:flex-end}
-.kbth-pill{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary);font-weight:500;white-space:nowrap}
-.kbth-pill.ok{border-color:transparent;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff)}
+.kbln-langs{display:flex;flex-direction:column;gap:8px}
+.kbln-lang{display:flex;flex-direction:column;gap:12px;padding:12px 14px;border-radius:12px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2)}
+.kbln-lang.on{border:1.5px solid var(--dsw-alias-brand-primary);padding:11.25px 13.25px}
+.kbln-lang-top{display:flex;align-items:center;gap:12px}
+.kbln-badge{width:38px;height:38px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;letter-spacing:.02em;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-secondary)}
+.kbln-lang.on .kbln-badge{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff)}
+.kbln-lang-info{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.kbln-lang-name{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.kbln-lang-en{font-weight:400;color:var(--dsw-alias-label-tertiary);font-size:12px}
+body:not([data-ds-dark-theme]) .kbln-lang-en{color:var(--dsw-alias-label-secondary)}
+.kbln-lang-meta{font-size:12px;color:var(--dsw-alias-label-secondary);line-height:1.4}
+.kbln-lang-act{display:flex;align-items:center;gap:8px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+.kbln-pill{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary);font-weight:500;white-space:nowrap}
+.kbln-pill.ok{border-color:transparent;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff)}
 /* Progress, inside the row */
-.kbth-prog{display:flex;flex-direction:column;gap:10px;padding-top:2px}
-.kbth-bar{height:8px;border-radius:999px;background:var(--dsw-alias-bg-layer-3);overflow:hidden}
-.kbth-bar>i{display:block;height:100%;border-radius:999px;background:var(--dsw-alias-brand-primary);transition:width .3s ease}
-.kbth-bar.sm{height:5px}
-.kbth-bar.done>i{background:var(--dsw-alias-state-success, #30a46c)}
-.kbth-prog-line{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}
-.kbth-areas{display:grid;grid-template-columns:minmax(0,200px) 1fr 40px;gap:6px 12px;align-items:center;font-size:12px;color:var(--dsw-alias-label-secondary)}
-.kbth-areas>span:last-child,.kbth-areas>span.n{text-align:end;font-variant-numeric:tabular-nums}
-.kbth-note{font-size:12px;color:var(--dsw-alias-label-secondary);line-height:1.5}
-.kbth-err{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-state-error, #e5484d)}
-.kbth-err code{font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--dsw-alias-label-secondary)}
-.kbth-link{appearance:none;background:none;border:0;padding:0;font:inherit;font-size:12px;color:var(--dsw-alias-label-secondary);text-decoration:underline;cursor:pointer;align-self:flex-start}
-.kbth-menu{position:relative}
-.kbth-menu-pop{position:absolute;inset-inline-end:0;top:calc(100% + 4px);z-index:20;min-width:210px;padding:4px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);box-shadow:0 8px 24px rgba(0,0,0,.25);display:flex;flex-direction:column}
-.kbth-menu-pop button{appearance:none;font:inherit;font-size:13px;text-align:start;padding:8px 10px;border:0;border-radius:7px;background:transparent;color:var(--dsw-alias-label-primary);cursor:pointer}
-.kbth-menu-pop button:hover{background:var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-3))}
-.kbth-menu-pop button[disabled]{opacity:.45;cursor:default}
+.kbln-prog{display:flex;flex-direction:column;gap:10px;padding-top:2px}
+.kbln-bar{height:8px;border-radius:999px;background:var(--dsw-alias-bg-layer-3);overflow:hidden}
+.kbln-bar>i{display:block;height:100%;border-radius:999px;background:var(--dsw-alias-brand-primary);transition:width .3s ease}
+.kbln-bar.sm{height:5px}
+.kbln-bar.done>i{background:var(--dsw-alias-state-success, #30a46c)}
+.kbln-prog-line{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}
+.kbln-areas{display:grid;grid-template-columns:minmax(0,200px) 1fr 40px;gap:6px 12px;align-items:center;font-size:12px;color:var(--dsw-alias-label-secondary)}
+.kbln-areas>span:last-child,.kbln-areas>span.n{text-align:end;font-variant-numeric:tabular-nums}
+.kbln-note{font-size:12px;color:var(--dsw-alias-label-secondary);line-height:1.5}
+.kbln-err{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-3);border:1px solid var(--dsw-alias-state-error, #e5484d)}
+.kbln-err code{font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--dsw-alias-label-secondary)}
+.kbln-link{appearance:none;background:none;border:0;padding:0;font:inherit;font-size:12px;color:var(--dsw-alias-label-secondary);text-decoration:underline;cursor:pointer;align-self:flex-start}
+.kbln-menu{position:relative}
+.kbln-menu-pop{position:absolute;inset-inline-end:0;top:calc(100% + 4px);z-index:20;min-width:210px;padding:4px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);box-shadow:0 8px 24px rgba(0,0,0,.25);display:flex;flex-direction:column}
+.kbln-menu-pop button{appearance:none;font:inherit;font-size:13px;text-align:start;padding:8px 10px;border:0;border-radius:7px;background:transparent;color:var(--dsw-alias-label-primary);cursor:pointer}
+.kbln-menu-pop button:hover{background:var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-3))}
+.kbln-menu-pop button[disabled]{opacity:.45;cursor:default}
 /* ── Add a language ─────────────────────────────────────────────────────── */
-.kbth-add{display:flex;flex-direction:column;border-radius:12px;border:.5px dashed var(--dsw-alias-border-l3)}
-.kbth-add-h{appearance:none;font:inherit;display:flex;align-items:center;gap:10px;padding:11px 14px;background:transparent;border:0;cursor:pointer;color:var(--dsw-alias-label-secondary);font-size:14px;text-align:start}
-.kbth-add-h:hover{color:var(--dsw-alias-brand-primary)}
-.kbth-add-body{display:flex;flex-direction:column;gap:10px;padding:0 14px 14px}
-.kbth-input{appearance:none;font:inherit;font-size:13px;padding:8px 12px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);outline:none;width:100%;box-sizing:border-box}
-.kbth-input:focus{border-color:var(--dsw-alias-brand-primary)}
-.kbth-chips{display:flex;flex-wrap:wrap;gap:6px}
-.kbth-chip{appearance:none;font:inherit;font-size:12px;padding:5px 11px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);cursor:pointer}
-.kbth-chip:hover:not([disabled]){border-color:var(--dsw-alias-brand-primary)}
-.kbth-chip[disabled]{opacity:.4;cursor:default}
-.kbth-chip-tag{font-size:11px;font-weight:500;color:var(--dsw-alias-state-success-primary);margin-inline-start:2px}
-body:not([data-ds-dark-theme]) .kbth-chip-tag{color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 55%,var(--dsw-alias-label-primary))}
-.kbth-sec-t{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
-.kbth-iso{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px;max-height:280px;overflow:auto;padding-inline-end:4px}
-.kbth-iso-i{appearance:none;font:inherit;font-size:13px;display:flex;align-items:baseline;gap:8px;padding:7px 10px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-primary);cursor:pointer;text-align:start;min-width:0}
-.kbth-iso-i:hover:not([disabled]){background:var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-3))}
-.kbth-iso-i[disabled]{opacity:.4;cursor:default}
-.kbth-iso-i b{font-weight:500}
-.kbth-iso-i small{font-size:11px;color:var(--dsw-alias-label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kbth-iso-i code{margin-inline-start:auto;font-size:10px;color:var(--dsw-alias-label-tertiary)}
+.kbln-add{display:flex;flex-direction:column;border-radius:12px;border:.5px dashed var(--dsw-alias-border-l3)}
+.kbln-add-h{appearance:none;font:inherit;display:flex;align-items:center;gap:10px;padding:11px 14px;background:transparent;border:0;cursor:pointer;color:var(--dsw-alias-label-secondary);font-size:14px;text-align:start}
+.kbln-add-h:hover{color:var(--dsw-alias-brand-primary)}
+.kbln-add-body{display:flex;flex-direction:column;gap:10px;padding:0 14px 14px}
+.kbln-input{appearance:none;font:inherit;font-size:13px;padding:8px 12px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);outline:none;width:100%;box-sizing:border-box}
+.kbln-input:focus{border-color:var(--dsw-alias-brand-primary)}
+.kbln-chips{display:flex;flex-wrap:wrap;gap:6px}
+.kbln-chip{appearance:none;font:inherit;font-size:12px;padding:5px 11px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);cursor:pointer}
+.kbln-chip:hover:not([disabled]){border-color:var(--dsw-alias-brand-primary)}
+.kbln-chip[disabled]{opacity:.4;cursor:default}
+.kbln-chip-tag{font-size:11px;font-weight:500;color:var(--dsw-alias-state-success-primary);margin-inline-start:2px}
+body:not([data-ds-dark-theme]) .kbln-chip-tag{color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 55%,var(--dsw-alias-label-primary))}
+.kbln-sec-t{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+.kbln-iso{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px;max-height:280px;overflow:auto;padding-inline-end:4px}
+.kbln-iso-i{appearance:none;font:inherit;font-size:13px;display:flex;align-items:baseline;gap:8px;padding:7px 10px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-primary);cursor:pointer;text-align:start;min-width:0}
+.kbln-iso-i:hover:not([disabled]){background:var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-3))}
+.kbln-iso-i[disabled]{opacity:.4;cursor:default}
+.kbln-iso-i b{font-weight:500}
+.kbln-iso-i small{font-size:11px;color:var(--dsw-alias-label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbln-iso-i code{margin-inline-start:auto;font-size:10px;color:var(--dsw-alias-label-tertiary)}
 /* ── Advanced ───────────────────────────────────────────────────────────── */
-.kbth-adv{border-radius:12px;border:.5px solid var(--dsw-alias-border-l2);padding:10px 14px}
-.kbth-adv>summary{cursor:pointer;font-size:13px;color:var(--dsw-alias-label-secondary)}
-.kbth-adv-body{display:flex;flex-direction:column;gap:12px;padding-top:12px}
-.kbth-select{appearance:none;font:inherit;font-size:13px;padding:7px 28px 7px 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2381858c'/%3E%3C/svg%3E") no-repeat right 10px center;color:var(--dsw-alias-label-primary);cursor:pointer;min-width:240px;max-width:100%}
-.kbth-select:focus{border-color:var(--dsw-alias-brand-primary);outline:none}
+.kbln-adv{border-radius:12px;border:.5px solid var(--dsw-alias-border-l2);padding:10px 14px}
+.kbln-adv>summary{cursor:pointer;font-size:13px;color:var(--dsw-alias-label-secondary)}
+.kbln-adv-body{display:flex;flex-direction:column;gap:12px;padding-top:12px}
+.kbln-select{appearance:none;font:inherit;font-size:13px;padding:7px 28px 7px 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2381858c'/%3E%3C/svg%3E") no-repeat right 10px center;color:var(--dsw-alias-label-primary);cursor:pointer;min-width:240px;max-width:100%}
+.kbln-select:focus{border-color:var(--dsw-alias-brand-primary);outline:none}
 /* ── Help: a small animated walkthrough ──────────────────────────────────────
    The mock is pure CSS on a 12 s loop; the BASE style of every animated part is the
    final state (language ready and in use), which is also what reduced motion shows. */
-.kbth-head-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.kbln-head-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
 /* The « ? How it works » pill: the same look as the Suite's (kybernos-hub), so every page has one form of the button; the panel it opens is this page's own. */
-.kbth-help-btn{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
-.kbth-help-btn:hover,.kbth-help-btn[aria-expanded="true"]{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}
-.kbth-help-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
-.kbth-help-q{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
-.kbth-help{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;padding:16px;border-radius:12px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);align-items:center}
-@media (max-width:700px){.kbth-help{grid-template-columns:minmax(0,1fr)}}
-.kbth-help-text{display:flex;flex-direction:column;gap:12px;min-width:0}
-.kbth-help-h{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}
-.kbth-steps{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
-.kbth-step{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:start}
-.kbth-step>b{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff)}
-.kbth-step-t{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}
-.kbth-step-b{font-size:12px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
-.kbth-step.s1{animation:kbth-k-s1 12s infinite}
-.kbth-step.s2{animation:kbth-k-s2 12s infinite}
-.kbth-step.s3{animation:kbth-k-s3 12s infinite}
-.kbth-mm{direction:ltr;position:relative;width:300px;max-width:100%;height:176px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);overflow:hidden;font-size:10px;color:var(--dsw-alias-label-primary);user-select:none;pointer-events:none}
-.kbth-mm-bar{position:absolute;left:0;right:0;top:0;height:26px;display:flex;align-items:center;justify-content:space-between;padding:0 10px;border-bottom:1px solid var(--dsw-alias-border-l2);font-weight:600}
-.kbth-mm-hi{position:relative;display:inline-block;width:34px;height:12px;line-height:12px;color:var(--dsw-alias-label-secondary)}
-.kbth-mm-hi i{font-style:normal;position:absolute;right:0;top:0;line-height:12px}
-.kbth-mm-w1{opacity:0;animation:kbth-k-w1 12s infinite}
-.kbth-mm-w2{animation:kbth-k-w2 12s infinite}
-.kbth-mm-row{position:absolute;left:8px;right:8px;height:32px;display:flex;align-items:center;gap:7px;padding:0 8px;border-radius:8px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);box-sizing:border-box}
-.kbth-mm-row.en{top:34px}
-.kbth-mm-row.es{top:72px;height:40px;animation:kbth-k-es 12s infinite}
-.kbth-mm-b{width:18px;height:18px;flex:none;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-secondary)}
-.kbth-mm-i{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;position:relative}
-.kbth-mm-n{font-weight:600;white-space:nowrap}
-.kbth-mm-st{position:relative;height:11px;color:var(--dsw-alias-label-secondary);font-size:9px}
-.kbth-mm-st>span{position:absolute;left:0;top:0;white-space:nowrap;opacity:0}
-.kbth-mm-st>.t3{opacity:1;animation:kbth-k-st3 12s infinite}
-.kbth-mm-st>.t1{animation:kbth-k-st1 12s infinite}
-.kbth-mm-st>.t2{animation:kbth-k-st2 12s infinite}
-.kbth-mm-acts{position:relative;width:92px;height:20px;flex:none}
-.kbth-mm-acts>*{position:absolute;right:0;top:0;height:20px;box-sizing:border-box;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;padding:0 7px;font-size:9px;font-weight:600;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
-.kbth-mm-go,.kbth-mm-us{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff);opacity:0}
-.kbth-mm-go{animation:kbth-k-go 12s infinite}
-.kbth-mm-us{animation:kbth-k-us 12s infinite}
-.kbth-mm-pa{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-3);opacity:0;animation:kbth-k-pa 12s infinite}
-.kbth-mm-pill{border-radius:999px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff)}
-.kbth-mm-pill.es{opacity:1;animation:kbth-k-pes 12s infinite}
-.kbth-mm-pill.en{opacity:0;animation:kbth-k-pen 12s infinite}
-.kbth-mm-track{position:absolute;left:34px;right:104px;bottom:4px;height:3px;border-radius:99px;background:var(--dsw-alias-bg-layer-3);opacity:0;animation:kbth-k-track 12s infinite}
-.kbth-mm-fill{display:block;height:100%;width:100%;border-radius:99px;background:var(--dsw-alias-brand-primary);animation:kbth-k-fill 12s linear infinite}
-.kbth-mm-pick{position:absolute;left:8px;right:8px;top:128px;display:flex;gap:6px;opacity:0;animation:kbth-k-pick 12s infinite}
-.kbth-mm-chip{padding:4px 9px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);font-size:9px}
-.kbth-mm-chip.on{animation:kbth-k-chip 12s infinite}
-.kbth-mm-cur{position:absolute;left:150px;top:110px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:11px solid var(--dsw-alias-label-primary);transform-origin:50% 100%;opacity:0;animation:kbth-k-cur 12s infinite;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}
-@keyframes kbth-k-pick{0%{opacity:0}3%,20%{opacity:1}24%,100%{opacity:0}}
-@keyframes kbth-k-chip{0%,9%{background:var(--dsw-alias-bg-layer-2);color:inherit}11%,18%{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff)}22%,100%{background:var(--dsw-alias-bg-layer-2);color:inherit}}
-@keyframes kbth-k-es{0%,14%{opacity:0;transform:translateY(8px)}20%,93%{opacity:1;transform:none}98%,100%{opacity:0;transform:translateY(8px)}}
-@keyframes kbth-k-st1{0%,19%{opacity:0}21%,32%{opacity:1}34%,100%{opacity:0}}
-@keyframes kbth-k-st2{0%,33%{opacity:0}35%,62%{opacity:1}64%,100%{opacity:0}}
-@keyframes kbth-k-st3{0%,63%{opacity:0}65%,94%{opacity:1}98%,100%{opacity:0}}
-@keyframes kbth-k-go{0%,19%{opacity:0}21%,32%{opacity:1;transform:none}33%{opacity:1;transform:scale(.92)}35%,100%{opacity:0}}
-@keyframes kbth-k-pa{0%,34%{opacity:0}36%,62%{opacity:1}64%,100%{opacity:0}}
-@keyframes kbth-k-us{0%,63%{opacity:0}65%,71%{opacity:1;transform:none}73%{opacity:1;transform:scale(.92)}76%,100%{opacity:0}}
-@keyframes kbth-k-pes{0%,76%{opacity:0}79%,94%{opacity:1}98%,100%{opacity:0}}
-@keyframes kbth-k-pen{0%,76%{opacity:1}79%,94%{opacity:0}98%,100%{opacity:1}}
-@keyframes kbth-k-track{0%,33%{opacity:0}35%,76%{opacity:1}79%,100%{opacity:0}}
-@keyframes kbth-k-fill{0%,34%{width:0}62%,100%{width:100%}}
-@keyframes kbth-k-w1{0%,74%{opacity:1}77%,96%{opacity:0}99%,100%{opacity:1}}
-@keyframes kbth-k-w2{0%,74%{opacity:0}77%,96%{opacity:1}99%,100%{opacity:0}}
-@keyframes kbth-k-cur{0%{left:150px;top:110px;opacity:0;transform:rotate(-30deg) scale(1)}4%{left:150px;top:110px;opacity:1}9%{left:36px;top:140px}11%{left:36px;top:140px;transform:rotate(-30deg) scale(.8)}13%{transform:rotate(-30deg) scale(1)}26%{left:36px;top:140px}31%{left:238px;top:90px}33%{transform:rotate(-30deg) scale(1)}34%{transform:rotate(-30deg) scale(.8)}36%{transform:rotate(-30deg) scale(1)}70%{left:238px;top:90px}72%{transform:rotate(-30deg) scale(.8)}74%{transform:rotate(-30deg) scale(1)}90%{left:238px;top:90px;opacity:1}94%,100%{opacity:0}}
-@keyframes kbth-k-s1{0%,23%{opacity:1}26%,96%{opacity:.45}99%,100%{opacity:1}}
-@keyframes kbth-k-s2{0%,24%{opacity:.45}27%,64%{opacity:1}67%,100%{opacity:.45}}
-@keyframes kbth-k-s3{0%,65%{opacity:.45}68%,95%{opacity:1}98%,100%{opacity:.45}}
-@media (prefers-reduced-motion:reduce){.kbth-mm *,.kbth-step{animation:none !important}.kbth-step{opacity:1}}
+.kbln-help-btn{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.kbln-help-btn:hover,.kbln-help-btn[aria-expanded="true"]{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}
+.kbln-help-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.kbln-help-q{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
+.kbln-help{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;padding:16px;border-radius:12px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);align-items:center}
+@media (max-width:700px){.kbln-help{grid-template-columns:minmax(0,1fr)}}
+.kbln-help-text{display:flex;flex-direction:column;gap:12px;min-width:0}
+.kbln-help-h{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kbln-steps{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.kbln-step{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:start}
+.kbln-step>b{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff)}
+.kbln-step-t{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kbln-step-b{font-size:12px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
+.kbln-step.s1{animation:kbln-k-s1 12s infinite}
+.kbln-step.s2{animation:kbln-k-s2 12s infinite}
+.kbln-step.s3{animation:kbln-k-s3 12s infinite}
+.kbln-mm{direction:ltr;position:relative;width:300px;max-width:100%;height:176px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);overflow:hidden;font-size:10px;color:var(--dsw-alias-label-primary);user-select:none;pointer-events:none}
+.kbln-mm-bar{position:absolute;left:0;right:0;top:0;height:26px;display:flex;align-items:center;justify-content:space-between;padding:0 10px;border-bottom:1px solid var(--dsw-alias-border-l2);font-weight:600}
+.kbln-mm-hi{position:relative;display:inline-block;width:34px;height:12px;line-height:12px;color:var(--dsw-alias-label-secondary)}
+.kbln-mm-hi i{font-style:normal;position:absolute;right:0;top:0;line-height:12px}
+.kbln-mm-w1{opacity:0;animation:kbln-k-w1 12s infinite}
+.kbln-mm-w2{animation:kbln-k-w2 12s infinite}
+.kbln-mm-row{position:absolute;left:8px;right:8px;height:32px;display:flex;align-items:center;gap:7px;padding:0 8px;border-radius:8px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);box-sizing:border-box}
+.kbln-mm-row.en{top:34px}
+.kbln-mm-row.es{top:72px;height:40px;animation:kbln-k-es 12s infinite}
+.kbln-mm-b{width:18px;height:18px;flex:none;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-secondary)}
+.kbln-mm-i{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;position:relative}
+.kbln-mm-n{font-weight:600;white-space:nowrap}
+.kbln-mm-st{position:relative;height:11px;color:var(--dsw-alias-label-secondary);font-size:9px}
+.kbln-mm-st>span{position:absolute;left:0;top:0;white-space:nowrap;opacity:0}
+.kbln-mm-st>.t3{opacity:1;animation:kbln-k-st3 12s infinite}
+.kbln-mm-st>.t1{animation:kbln-k-st1 12s infinite}
+.kbln-mm-st>.t2{animation:kbln-k-st2 12s infinite}
+.kbln-mm-acts{position:relative;width:92px;height:20px;flex:none}
+.kbln-mm-acts>*{position:absolute;right:0;top:0;height:20px;box-sizing:border-box;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;padding:0 7px;font-size:9px;font-weight:600;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.kbln-mm-go,.kbln-mm-us{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff);opacity:0}
+.kbln-mm-go{animation:kbln-k-go 12s infinite}
+.kbln-mm-us{animation:kbln-k-us 12s infinite}
+.kbln-mm-pa{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-3);opacity:0;animation:kbln-k-pa 12s infinite}
+.kbln-mm-pill{border-radius:999px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff)}
+.kbln-mm-pill.es{opacity:1;animation:kbln-k-pes 12s infinite}
+.kbln-mm-pill.en{opacity:0;animation:kbln-k-pen 12s infinite}
+.kbln-mm-track{position:absolute;left:34px;right:104px;bottom:4px;height:3px;border-radius:99px;background:var(--dsw-alias-bg-layer-3);opacity:0;animation:kbln-k-track 12s infinite}
+.kbln-mm-fill{display:block;height:100%;width:100%;border-radius:99px;background:var(--dsw-alias-brand-primary);animation:kbln-k-fill 12s linear infinite}
+.kbln-mm-pick{position:absolute;left:8px;right:8px;top:128px;display:flex;gap:6px;opacity:0;animation:kbln-k-pick 12s infinite}
+.kbln-mm-chip{padding:4px 9px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);font-size:9px}
+.kbln-mm-chip.on{animation:kbln-k-chip 12s infinite}
+.kbln-mm-cur{position:absolute;left:150px;top:110px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:11px solid var(--dsw-alias-label-primary);transform-origin:50% 100%;opacity:0;animation:kbln-k-cur 12s infinite;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}
+@keyframes kbln-k-pick{0%{opacity:0}3%,20%{opacity:1}24%,100%{opacity:0}}
+@keyframes kbln-k-chip{0%,9%{background:var(--dsw-alias-bg-layer-2);color:inherit}11%,18%{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff)}22%,100%{background:var(--dsw-alias-bg-layer-2);color:inherit}}
+@keyframes kbln-k-es{0%,14%{opacity:0;transform:translateY(8px)}20%,93%{opacity:1;transform:none}98%,100%{opacity:0;transform:translateY(8px)}}
+@keyframes kbln-k-st1{0%,19%{opacity:0}21%,32%{opacity:1}34%,100%{opacity:0}}
+@keyframes kbln-k-st2{0%,33%{opacity:0}35%,62%{opacity:1}64%,100%{opacity:0}}
+@keyframes kbln-k-st3{0%,63%{opacity:0}65%,94%{opacity:1}98%,100%{opacity:0}}
+@keyframes kbln-k-go{0%,19%{opacity:0}21%,32%{opacity:1;transform:none}33%{opacity:1;transform:scale(.92)}35%,100%{opacity:0}}
+@keyframes kbln-k-pa{0%,34%{opacity:0}36%,62%{opacity:1}64%,100%{opacity:0}}
+@keyframes kbln-k-us{0%,63%{opacity:0}65%,71%{opacity:1;transform:none}73%{opacity:1;transform:scale(.92)}76%,100%{opacity:0}}
+@keyframes kbln-k-pes{0%,76%{opacity:0}79%,94%{opacity:1}98%,100%{opacity:0}}
+@keyframes kbln-k-pen{0%,76%{opacity:1}79%,94%{opacity:0}98%,100%{opacity:1}}
+@keyframes kbln-k-track{0%,33%{opacity:0}35%,76%{opacity:1}79%,100%{opacity:0}}
+@keyframes kbln-k-fill{0%,34%{width:0}62%,100%{width:100%}}
+@keyframes kbln-k-w1{0%,74%{opacity:1}77%,96%{opacity:0}99%,100%{opacity:1}}
+@keyframes kbln-k-w2{0%,74%{opacity:0}77%,96%{opacity:1}99%,100%{opacity:0}}
+@keyframes kbln-k-cur{0%{left:150px;top:110px;opacity:0;transform:rotate(-30deg) scale(1)}4%{left:150px;top:110px;opacity:1}9%{left:36px;top:140px}11%{left:36px;top:140px;transform:rotate(-30deg) scale(.8)}13%{transform:rotate(-30deg) scale(1)}26%{left:36px;top:140px}31%{left:238px;top:90px}33%{transform:rotate(-30deg) scale(1)}34%{transform:rotate(-30deg) scale(.8)}36%{transform:rotate(-30deg) scale(1)}70%{left:238px;top:90px}72%{transform:rotate(-30deg) scale(.8)}74%{transform:rotate(-30deg) scale(1)}90%{left:238px;top:90px;opacity:1}94%,100%{opacity:0}}
+@keyframes kbln-k-s1{0%,23%{opacity:1}26%,96%{opacity:.45}99%,100%{opacity:1}}
+@keyframes kbln-k-s2{0%,24%{opacity:.45}27%,64%{opacity:1}67%,100%{opacity:.45}}
+@keyframes kbln-k-s3{0%,65%{opacity:.45}68%,95%{opacity:1}98%,100%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.kbln-mm *,.kbln-step{animation:none !important}.kbln-step{opacity:1}}
 /* A run lives in the tab: what to expect, a stale bar for a language that is not running, test marks */
-.kbth-banner{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:10px;font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-3)}
-.kbth-banner b{color:var(--dsw-alias-label-primary);font-weight:600}
-.kbth-banner.warn{border:1px solid var(--dsw-alias-state-warn-primary,#f59e0b)}
-.kbth-fold>summary{display:flex;align-items:center;gap:6px;cursor:pointer;list-style:none;font-weight:600;color:var(--dsw-alias-label-primary)}
-.kbth-fold>summary::-webkit-details-marker{display:none}
-.kbth-fold>summary .kbth-chev{display:inline-block;transition:transform .15s ease}
-.kbth-fold[open]>summary .kbth-chev{transform:rotate(90deg)}
-.kbth-bar.stale>i{background:var(--dsw-alias-label-tertiary)}
-.kbth-ex{font:11.5px/1.6 ui-monospace,Menlo,monospace;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}
-.kbth-check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dsw-alias-label-secondary);cursor:pointer}
-.kbth-check input{width:16px;height:16px;margin:0;accent-color:var(--dsw-alias-brand-primary)}
+.kbln-banner{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:10px;font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-3)}
+.kbln-banner b{color:var(--dsw-alias-label-primary);font-weight:600}
+.kbln-banner.warn{border:1px solid var(--dsw-alias-state-warn-primary,#f59e0b)}
+.kbln-fold>summary{display:flex;align-items:center;gap:6px;cursor:pointer;list-style:none;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kbln-fold>summary::-webkit-details-marker{display:none}
+.kbln-fold>summary .kbln-chev{display:inline-block;transition:transform .15s ease}
+.kbln-fold[open]>summary .kbln-chev{transform:rotate(90deg)}
+.kbln-bar.stale>i{background:var(--dsw-alias-label-tertiary)}
+.kbln-ex{font:11.5px/1.6 ui-monospace,Menlo,monospace;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}
+.kbln-check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.kbln-check input{width:16px;height:16px;margin:0;accent-color:var(--dsw-alias-brand-primary)}
 /* The footer indicator: a ring that fills while a translation runs, with the percentage inside */
-.kbth-ring{appearance:none;--p:0;position:relative;display:inline-grid;place-items:center;flex:none;width:30px;height:30px;padding:0;border:0;border-radius:50%;cursor:pointer;font:inherit;background:conic-gradient(var(--dsw-alias-brand-primary) calc(var(--p) * 1%),var(--dsw-alias-border-l3) 0)}
-.kbth-ring::before{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--dsw-alias-bg-layer-2)}
-.kbth-ring-n{position:relative;font-size:10px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-primary)}
-.kbth-ring:hover::before{background:var(--dsw-alias-bg-layer-3)}
-.kbth-ring:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.kbln-ring{appearance:none;--p:0;position:relative;display:inline-grid;place-items:center;flex:none;width:30px;height:30px;padding:0;border:0;border-radius:50%;cursor:pointer;font:inherit;background:conic-gradient(var(--dsw-alias-brand-primary) calc(var(--p) * 1%),var(--dsw-alias-border-l3) 0)}
+.kbln-ring::before{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--dsw-alias-bg-layer-2)}
+.kbln-ring-n{position:relative;font-size:10px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-primary)}
+.kbln-ring:hover::before{background:var(--dsw-alias-bg-layer-3)}
+.kbln-ring:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
 /* The pointer under DSH's General › Language row */
 /* A pointer, not a row: zero height, lifted into the bottom of the Language row above it
    (the row's own separator stays below it), so the rows after it do not move. */
-.kbth-gl{height:0;position:relative;top:-27px;overflow:visible;line-height:1}
-.kbth-gl-link{appearance:none;background:none;border:0;padding:0;font:inherit;font-size:12px;color:var(--dsw-alias-label-secondary);text-decoration:underline;cursor:pointer}
-.kbth-gl-link:hover{color:var(--dsw-alias-brand-primary)}
-.kbth-gl-link::after{content:' →'}
-html[dir="rtl"] .kbth-gl-link::after{content:' ←'}
+.kbln-gl{height:0;position:relative;top:-27px;overflow:visible;line-height:1}
+.kbln-gl-link{appearance:none;background:none;border:0;padding:0;font:inherit;font-size:12px;color:var(--dsw-alias-label-secondary);text-decoration:underline;cursor:pointer}
+.kbln-gl-link:hover{color:var(--dsw-alias-brand-primary)}
+.kbln-gl-link::after{content:' →'}
+html[dir="rtl"] .kbln-gl-link::after{content:' ←'}
 /* ── RTL-ready ──────────────────────────────────────────────────────────────
    The reading direction lives on <html dir>: flex rows and text follow on their
    own. These fixes only touch what is written with physical properties
    (left/right), which the browser does not flip. */
-html[dir="rtl"] .kbth-select{background-position:left 10px center;padding:7px 10px 7px 28px}
-html[dir="rtl"] .kbth-slider{background:linear-gradient(to left,var(--dsw-alias-brand-primary) 0 var(--fill,50%),var(--dsw-alias-interactive-bg-hover,var(--dsw-alias-bg-layer-3)) var(--fill,50%) 100%)}
+html[dir="rtl"] .kbln-select{background-position:left 10px center;padding:7px 10px 7px 28px}
+html[dir="rtl"] .kbln-slider{background:linear-gradient(to left,var(--dsw-alias-brand-primary) 0 var(--fill,50%),var(--dsw-alias-interactive-bg-hover,var(--dsw-alias-bg-layer-3)) var(--fill,50%) 100%)}
 /* Digits, measures and code stay left-to-right inside a right-to-left interface */
-html[dir="rtl"] .kbth-sl-vl,html[dir="rtl"] .kbth-fsmeta,html[dir="rtl"] .kbth-prog-line b,
+html[dir="rtl"] .kbln-sl-vl,html[dir="rtl"] .kbln-fsmeta,html[dir="rtl"] .kbln-prog-line b,
 html[dir="rtl"] code,html[dir="rtl"] pre{direction:ltr;unicode-bidi:isolate;text-align:left}
-html[dir="rtl"] .kbth-page{direction:rtl}
-@media (max-width:640px){.kbth-lang-top{flex-wrap:wrap}.kbth-lang-act{width:100%;justify-content:flex-start}.kbth-areas{grid-template-columns:1fr 60px}}
+html[dir="rtl"] .kbln-page{direction:rtl}
+@media (max-width:640px){.kbln-lang-top{flex-wrap:wrap}.kbln-lang-act{width:100%;justify-content:flex-start}.kbln-areas{grid-template-columns:1fr 60px}}
 `
 
       // ══════════════════════════════════════════════════════════════════════
@@ -1551,29 +1551,29 @@ html[dir="rtl"] .kbth-page{direction:rtl}
       // next to the steps themselves, which light up in step with it. The mock is an
       // illustration: hidden from assistive technology behind its caption.
       function HelpPanel() {
-        const step = (n, title, body) => h('li', { key: n, className: 'kbth-step s' + n },
+        const step = (n, title, body) => h('li', { key: n, className: 'kbln-step s' + n },
           h('b', { 'aria-hidden': 'true' }, String(n)),
-          h('div', null, h('div', { className: 'kbth-step-t' }, title), h('div', { className: 'kbth-step-b' }, body)))
-        const badge = (t) => h('span', { className: 'kbth-mm-b' }, t)
-        return h('section', { id: 'kbth-help', className: 'kbth-help', 'data-help': 'panel', 'aria-label': L('helpTitle') },
-          h('div', { className: 'kbth-mm', role: 'img', 'aria-label': L('mockCaption') },
-            h('div', { className: 'kbth-mm-bar' }, h('span', null, L('title')), h('span', { className: 'kbth-mm-hi' }, h('i', { className: 'kbth-mm-w1' }, 'Hello'), h('i', { className: 'kbth-mm-w2' }, 'Hola'))),
-            h('div', { className: 'kbth-mm-row en' }, badge('EN'),
-              h('div', { className: 'kbth-mm-i' }, h('span', { className: 'kbth-mm-n' }, 'English')),
-              h('div', { className: 'kbth-mm-acts' }, h('span', { className: 'kbth-mm-pill en' }, L('inUse')))),
-            h('div', { className: 'kbth-mm-row es' }, badge('ES'),
-              h('div', { className: 'kbth-mm-i' }, h('span', { className: 'kbth-mm-n' }, 'Español'),
-                h('div', { className: 'kbth-mm-st' }, h('span', { className: 't1' }, L('mockNew')), h('span', { className: 't2' }, L('translating')), h('span', { className: 't3' }, L('ready')))),
-              h('div', { className: 'kbth-mm-acts' },
-                h('span', { className: 'kbth-mm-go' }, L('start')), h('span', { className: 'kbth-mm-pa' }, L('pause')),
-                h('span', { className: 'kbth-mm-us' }, L('use')), h('span', { className: 'kbth-mm-pill es' }, L('inUse'))),
-              h('div', { className: 'kbth-mm-track' }, h('i', { className: 'kbth-mm-fill' }))),
-            h('div', { className: 'kbth-mm-pick' }, h('span', { className: 'kbth-mm-chip on' }, 'Español'), h('span', { className: 'kbth-mm-chip' }, 'Deutsch'), h('span', { className: 'kbth-mm-chip' }, '日本語')),
-            h('div', { className: 'kbth-mm-cur' })),
-          h('div', { className: 'kbth-help-text' },
-            h('div', { className: 'kbth-help-h' }, L('helpTitle')),
-            h('ol', { className: 'kbth-steps' }, step(1, L('addLang'), L('step1Body')), step(2, L('start'), L('step2Body')), step(3, L('use'), L('step3Body'))),
-            h('div', { className: 'kbth-note' }, L('helpNote'))))
+          h('div', null, h('div', { className: 'kbln-step-t' }, title), h('div', { className: 'kbln-step-b' }, body)))
+        const badge = (t) => h('span', { className: 'kbln-mm-b' }, t)
+        return h('section', { id: 'kbln-help', className: 'kbln-help', 'data-help': 'panel', 'aria-label': L('helpTitle') },
+          h('div', { className: 'kbln-mm', role: 'img', 'aria-label': L('mockCaption') },
+            h('div', { className: 'kbln-mm-bar' }, h('span', null, L('title')), h('span', { className: 'kbln-mm-hi' }, h('i', { className: 'kbln-mm-w1' }, 'Hello'), h('i', { className: 'kbln-mm-w2' }, 'Hola'))),
+            h('div', { className: 'kbln-mm-row en' }, badge('EN'),
+              h('div', { className: 'kbln-mm-i' }, h('span', { className: 'kbln-mm-n' }, 'English')),
+              h('div', { className: 'kbln-mm-acts' }, h('span', { className: 'kbln-mm-pill en' }, L('inUse')))),
+            h('div', { className: 'kbln-mm-row es' }, badge('ES'),
+              h('div', { className: 'kbln-mm-i' }, h('span', { className: 'kbln-mm-n' }, 'Español'),
+                h('div', { className: 'kbln-mm-st' }, h('span', { className: 't1' }, L('mockNew')), h('span', { className: 't2' }, L('translating')), h('span', { className: 't3' }, L('ready')))),
+              h('div', { className: 'kbln-mm-acts' },
+                h('span', { className: 'kbln-mm-go' }, L('start')), h('span', { className: 'kbln-mm-pa' }, L('pause')),
+                h('span', { className: 'kbln-mm-us' }, L('use')), h('span', { className: 'kbln-mm-pill es' }, L('inUse'))),
+              h('div', { className: 'kbln-mm-track' }, h('i', { className: 'kbln-mm-fill' }))),
+            h('div', { className: 'kbln-mm-pick' }, h('span', { className: 'kbln-mm-chip on' }, 'Español'), h('span', { className: 'kbln-mm-chip' }, 'Deutsch'), h('span', { className: 'kbln-mm-chip' }, '日本語')),
+            h('div', { className: 'kbln-mm-cur' })),
+          h('div', { className: 'kbln-help-text' },
+            h('div', { className: 'kbln-help-h' }, L('helpTitle')),
+            h('ol', { className: 'kbln-steps' }, step(1, L('addLang'), L('step1Body')), step(2, L('start'), L('step2Body')), step(3, L('use'), L('step3Body'))),
+            h('div', { className: 'kbln-note' }, L('helpNote'))))
       }
 
       function Page() {
@@ -1632,9 +1632,9 @@ html[dir="rtl"] .kbth-page{direction:rtl}
           const d = diskRuntime()
           if (d === null) return null
           const st = d.status()
-          if (st.state === 'on' && st.error === '') return h('div', { key: 'disk', className: 'kbth-note', 'data-disk': 'on', title: L('tipDiskOn') }, L('diskOn', { dir: st.dir }))
-          if (st.state === 'on') return h('div', { key: 'disk', className: 'kbth-note', 'data-disk': 'error', role: 'status', title: L('tipDiskOff') }, L('diskErr', { err: st.error }))
-          if (st.state === 'off' && st.error !== 'disabled') return h('div', { key: 'disk', className: 'kbth-note', 'data-disk': 'off', role: 'status', title: L('tipDiskOff') }, L('diskOff'))
+          if (st.state === 'on' && st.error === '') return h('div', { key: 'disk', className: 'kbln-note', 'data-disk': 'on', title: L('tipDiskOn') }, L('diskOn', { dir: st.dir }))
+          if (st.state === 'on') return h('div', { key: 'disk', className: 'kbln-note', 'data-disk': 'error', role: 'status', title: L('tipDiskOff') }, L('diskErr', { err: st.error }))
+          if (st.state === 'off' && st.error !== 'disabled') return h('div', { key: 'disk', className: 'kbln-note', 'data-disk': 'off', role: 'status', title: L('tipDiskOff') }, L('diskOff'))
           return null
         }
         const route = () => {
@@ -1712,28 +1712,28 @@ html[dir="rtl"] .kbth-page{direction:rtl}
           const acts = []
           const pack = isBuiltIn(id) ? undefined : packs.get(id)
           const offerPack = pack !== undefined && !complete && !running && packBusy !== id
-          const goButton = () => h('button', { key: 'go', className: 'kbth-btn' + (offerPack ? '' : ' primary'), type: 'button', 'data-act': 'start', disabled: snap.state === 'running' || snap.state === 'pausing' || models.length === 0, title: models.length === 0 ? L('noModels') : (st === 'partial' ? L('tipRetry') : (hasProgress || st === 'paused' || st === 'failed') ? L('tipResume') : L('tipStart')), onClick: () => start(id) },
+          const goButton = () => h('button', { key: 'go', className: 'kbln-btn' + (offerPack ? '' : ' primary'), type: 'button', 'data-act': 'start', disabled: snap.state === 'running' || snap.state === 'pausing' || models.length === 0, title: models.length === 0 ? L('noModels') : (st === 'partial' ? L('tipRetry') : (hasProgress || st === 'paused' || st === 'failed') ? L('tipResume') : L('tipStart')), onClick: () => start(id) },
               st === 'partial' ? L('retryMissing') : (hasProgress || st === 'paused' || st === 'failed') ? L('resume') : L('start'))
           if (inUse) {
-            acts.push(h('span', { key: 'use', className: 'kbth-pill ok', 'data-act': 'in-use', title: L('tipInUse') }, L('inUse')))
+            acts.push(h('span', { key: 'use', className: 'kbln-pill ok', 'data-act': 'in-use', title: L('tipInUse') }, L('inUse')))
             // In use but not finished (an older translation, a paused run): it can still be completed.
             if (!complete && !running) acts.push(goButton())
           }
           else if (running) {
-            if (canUseNow) acts.push(h('button', { key: 'now', className: 'kbth-btn', type: 'button', 'data-act': 'use-now', title: L('tipUseNow'), onClick: () => activate(id) }, L('useNow')))
-            acts.push(h('button', { key: 'pause', className: 'kbth-btn', type: 'button', 'data-act': 'pause', title: L('tipPause'), disabled: st === 'pausing', onClick: pauseRun }, L(st === 'pausing' ? 'pausing' : 'pause')))
-          } else if (complete || st === 'done') acts.push(h('button', { key: 'use', className: 'kbth-btn primary', type: 'button', 'data-act': 'use', title: L('tipUse'), onClick: () => activate(id) }, L('use')))
+            if (canUseNow) acts.push(h('button', { key: 'now', className: 'kbln-btn', type: 'button', 'data-act': 'use-now', title: L('tipUseNow'), onClick: () => activate(id) }, L('useNow')))
+            acts.push(h('button', { key: 'pause', className: 'kbln-btn', type: 'button', 'data-act': 'pause', title: L('tipPause'), disabled: st === 'pausing', onClick: pauseRun }, L(st === 'pausing' ? 'pausing' : 'pause')))
+          } else if (complete || st === 'done') acts.push(h('button', { key: 'use', className: 'kbln-btn primary', type: 'button', 'data-act': 'use', title: L('tipUse'), onClick: () => activate(id) }, L('use')))
           else {
-            if (canUseNow) acts.push(h('button', { key: 'now', className: 'kbth-btn', type: 'button', 'data-act': 'use-now', title: L('tipUseNow'), onClick: () => activate(id) }, L(st === 'partial' ? 'useAnyway' : 'useNow')))
-            else if (done > 0 && pseudo.n === 0) acts.push(h('button', { key: 'any', className: 'kbth-btn', type: 'button', 'data-act': 'use-now', title: L('tipUseAnyway'), onClick: () => activate(id) }, L('useAnyway')))
-            if (offerPack) acts.push(h('button', { key: 'pack', className: 'kbth-btn primary', type: 'button', 'data-act': 'install-pack', onClick: () => installReady(id) }, L('packInstall')))
+            if (canUseNow) acts.push(h('button', { key: 'now', className: 'kbln-btn', type: 'button', 'data-act': 'use-now', title: L('tipUseNow'), onClick: () => activate(id) }, L(st === 'partial' ? 'useAnyway' : 'useNow')))
+            else if (done > 0 && pseudo.n === 0) acts.push(h('button', { key: 'any', className: 'kbln-btn', type: 'button', 'data-act': 'use-now', title: L('tipUseAnyway'), onClick: () => activate(id) }, L('useAnyway')))
+            if (offerPack) acts.push(h('button', { key: 'pack', className: 'kbln-btn primary', type: 'button', 'data-act': 'install-pack', onClick: () => installReady(id) }, L('packInstall')))
             acts.push(goButton())
           }
           if (!isBuiltIn(id) && !running) {
-            acts.push(h('div', { key: 'menu', className: 'kbth-menu' },
-              h('button', { className: 'kbth-btn quiet', type: 'button', 'data-act': 'menu', 'aria-label': L('more'), title: L('more'), 'aria-haspopup': 'menu', onClick: (e) => { e.stopPropagation(); setMenuFor(menuFor === id ? null : id) } }, '⋯'),
+            acts.push(h('div', { key: 'menu', className: 'kbln-menu' },
+              h('button', { className: 'kbln-btn quiet', type: 'button', 'data-act': 'menu', 'aria-label': L('more'), title: L('more'), 'aria-haspopup': 'menu', onClick: (e) => { e.stopPropagation(); setMenuFor(menuFor === id ? null : id) } }, '⋯'),
               menuFor === id
-                ? h('div', { className: 'kbth-menu-pop', role: 'menu', onClick: (e) => e.stopPropagation() },
+                ? h('div', { className: 'kbln-menu-pop', role: 'menu', onClick: (e) => e.stopPropagation() },
                     h('button', { role: 'menuitem', type: 'button', 'data-act': 'again', title: L('tipAgain'), onClick: () => { setMenuFor(null); try { localStorage.removeItem(I18N_STORE_PREFIX + id); localStorage.removeItem(I18N_DSH_PREFIX + id); localStorage.removeItem(I18N_LIVE_PREFIX + id); localStorage.removeItem(I18N_META_PREFIX + id) } catch (e2) { /* */ } start(id) } }, L('again')),
                     h('button', { role: 'menuitem', type: 'button', 'data-act': 'remove', disabled: inUse, title: inUse ? L('removeActive') : L('tipRemove'), onClick: () => { setMenuFor(null); setAskRemove(id) } }, L('remove')))
                 : null))
@@ -1746,105 +1746,105 @@ html[dir="rtl"] .kbth-page{direction:rtl}
           // is the one place that says how far it is.
           if (running || st === 'paused' || (st === 'failed' && snap.done > 0) || (st === null && hasProgress)) {
             const mins = running ? minutesLeft(snap) : null
-            body.push(h('div', { key: 'prog', className: 'kbth-prog' },
-              h('div', { className: 'kbth-bar' + (running ? '' : ' stale'), role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': pct, title: L('tipProgress') },
+            body.push(h('div', { key: 'prog', className: 'kbln-prog' },
+              h('div', { className: 'kbln-bar' + (running ? '' : ' stale'), role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': pct, title: L('tipProgress') },
                 h('i', { style: { width: pct + '%' } })),
-              h('div', { className: 'kbth-prog-line' },
+              h('div', { className: 'kbln-prog-line' },
                 h('span', null, L('counts', { done: fmtN(done), total: fmtN(total) })),
                 h('b', { style: { fontWeight: 500 } }, running ? (mins === null ? L('estimating') : L('left', { m: mins })) : pct + ' %')),
               isRun && snap.areas !== null && snap.areas !== undefined
-                ? h('div', { className: 'kbth-areas' },
+                ? h('div', { className: 'kbln-areas' },
                     AREAS.filter((a) => snap.areas[a].total > 0).map((a) => {
                       const ar = snap.areas[a]
                       const p = Math.min(100, Math.floor(ar.done / ar.total * 100))
                       return [
                         h('span', { key: a + 't', title: L(a === 'core' ? 'tipAreaCore' : a === 'more' ? 'tipAreaMore' : 'tipAreaPhrases') }, L(a === 'core' ? 'areaCore' : a === 'more' ? 'areaMore' : 'areaPhrases')),
-                        h('div', { key: a + 'b', className: 'kbth-bar sm' + (p >= 100 ? ' done' : '') }, h('i', { style: { width: p + '%' } })),
+                        h('div', { key: a + 'b', className: 'kbln-bar sm' + (p >= 100 ? ' done' : '') }, h('i', { style: { width: p + '%' } })),
                         h('span', { key: a + 'n', className: 'n' }, p + '%'),
                       ]
                     }))
                 : null,
-              running && snap.essentials ? h('div', { className: 'kbth-note' }, L('essentials')) : null))
+              running && snap.essentials ? h('div', { className: 'kbln-note' }, L('essentials')) : null))
           }
-          if (running) body.push(h('div', { key: 'tab', className: 'kbth-banner', role: 'status', 'data-note': 'in-tab' }, L(autoOn ? 'runsInTab' : 'runsInTabManual')))
+          if (running) body.push(h('div', { key: 'tab', className: 'kbln-banner', role: 'status', 'data-note': 'in-tab' }, L(autoOn ? 'runsInTab' : 'runsInTabManual')))
           // The tab was closed during a run and the automatic resume is off: say why it stopped.
           if (!running && st === null && !complete && !autoOn && !isBuiltIn(id)) {
             const left = intentRead()
-            if (left !== null && left.lang === id) body.push(h('div', { key: 'cut', className: 'kbth-banner warn', role: 'status', 'data-note': 'cut' }, L('cutNote')))
+            if (left !== null && left.lang === id) body.push(h('div', { key: 'cut', className: 'kbln-banner warn', role: 'status', 'data-note': 'cut' }, L('cutNote')))
           }
           if (pseudo.n > 0 && !running) {
             // Collapsed by default: one summary line with the count and a chevron
             // (native <details>). Blocking errors stay outside this fold.
-            body.push(h('details', { key: 'pseudo', className: 'kbth-banner warn kbth-fold', 'data-note': 'pseudo' },
+            body.push(h('details', { key: 'pseudo', className: 'kbln-banner warn kbln-fold', 'data-note': 'pseudo' },
               h('summary', null,
-                h('span', { className: 'kbth-chev', 'aria-hidden': true }, '▸'),
+                h('span', { className: 'kbln-chev', 'aria-hidden': true }, '▸'),
                 L('pseudoSummary', { n: fmtN(pseudo.n) })),
               h('div', null, h('b', null, L('pseudoTitle', { n: fmtN(pseudo.n) })), ' ', L('pseudoBody')),
-              h('div', { className: 'kbth-row', style: { gap: 8 } },
-                h('button', { className: 'kbth-btn primary', type: 'button', 'data-act': 'repair', title: L('tipRepair'), disabled: models.length === 0, onClick: () => start(id) }, L('repair'))),
-              h('div', { className: 'kbth-ex' }, pseudo.examples.map((x) => h('div', { key: x.store + x.id }, x.id + ' → ' + x.text)))))
+              h('div', { className: 'kbln-row', style: { gap: 8 } },
+                h('button', { className: 'kbln-btn primary', type: 'button', 'data-act': 'repair', title: L('tipRepair'), disabled: models.length === 0, onClick: () => start(id) }, L('repair'))),
+              h('div', { className: 'kbln-ex' }, pseudo.examples.map((x) => h('div', { key: x.store + x.id }, x.id + ' → ' + x.text)))))
           }
           if (st === 'failed') {
             const key = friendlyError(snap.error)
-            body.push(h('div', { key: 'err', className: 'kbth-err', role: 'alert' },
+            body.push(h('div', { key: 'err', className: 'kbln-err', role: 'alert' },
               h('div', null, L(key)),
-              snap.done > 0 ? h('div', { className: 'kbth-note' }, L('kept')) : null,
-              h('div', { className: 'kbth-row', style: { gap: 8 } },
-                h('button', { className: 'kbth-btn', type: 'button', 'data-act': 'choose-model', title: L('tipChooseModel'), onClick: chooseModel }, L('chooseModel')),
-                h('button', { className: 'kbth-link', type: 'button', 'data-act': 'details', title: L('tipDetails'), onClick: () => setDetails(!details) }, L(details ? 'hideDetails' : 'showDetails'))),
+              snap.done > 0 ? h('div', { className: 'kbln-note' }, L('kept')) : null,
+              h('div', { className: 'kbln-row', style: { gap: 8 } },
+                h('button', { className: 'kbln-btn', type: 'button', 'data-act': 'choose-model', title: L('tipChooseModel'), onClick: chooseModel }, L('chooseModel')),
+                h('button', { className: 'kbln-link', type: 'button', 'data-act': 'details', title: L('tipDetails'), onClick: () => setDetails(!details) }, L(details ? 'hideDetails' : 'showDetails'))),
               details ? h('code', null, String(snap.error)) : null))
           }
-          if (st === 'partial') body.push(h('div', { key: 'gaps', className: 'kbth-note' }, L('gaps', { n: fmtN(snap.missing) })))
+          if (st === 'partial') body.push(h('div', { key: 'gaps', className: 'kbln-note' }, L('gaps', { n: fmtN(snap.missing) })))
           // A ready-made translation the project published for this language: offered above, explained here.
           if (pack !== undefined && !complete && !running) {
-            body.push(h('div', { key: 'pack', className: 'kbth-note', 'data-note': 'pack' },
+            body.push(h('div', { key: 'pack', className: 'kbln-note', 'data-note': 'pack' },
               L('packNote', { n: fmtN(pack.counts.kb + pack.counts.dsh) }) + (pack.reviewed ? ' (' + L('packReviewed') + ')' : '')))
           }
-          if (packBusy === id) body.push(h('div', { key: 'packbusy', className: 'kbth-note', role: 'status' }, L('packInstalling')))
-          if (packNote !== null && packNote.id === id) body.push(h('div', { key: 'packnote', className: packNote.ok ? 'kbth-note' : 'kbth-err', role: packNote.ok ? 'status' : 'alert', 'data-note': 'pack-result' }, packNote.text))
+          if (packBusy === id) body.push(h('div', { key: 'packbusy', className: 'kbln-note', role: 'status' }, L('packInstalling')))
+          if (packNote !== null && packNote.id === id) body.push(h('div', { key: 'packnote', className: packNote.ok ? 'kbln-note' : 'kbln-err', role: packNote.ok ? 'status' : 'alert', 'data-note': 'pack-result' }, packNote.text))
           // Texts of a translated language whose source changed since: only those are translated again.
           const staleN = !isBuiltIn(id) && !running && complete ? (staleOf.get(id) || 0) : 0
           if (staleN > 0) {
-            body.push(h('details', { key: 'stale', className: 'kbth-banner warn kbth-fold', 'data-note': 'stale' },
-              h('summary', null, h('span', { className: 'kbth-chev', 'aria-hidden': true }, '▸'), L('staleSummary', { n: fmtN(staleN) })),
+            body.push(h('details', { key: 'stale', className: 'kbln-banner warn kbln-fold', 'data-note': 'stale' },
+              h('summary', null, h('span', { className: 'kbln-chev', 'aria-hidden': true }, '▸'), L('staleSummary', { n: fmtN(staleN) })),
               h('div', null, L('staleBody')),
-              h('div', { className: 'kbth-row', style: { gap: 8 } },
-                h('button', { className: 'kbth-btn primary', type: 'button', 'data-act': 'update', disabled: models.length === 0, title: models.length === 0 ? L('noModels') : undefined, onClick: () => start(id) }, L('staleUpdate')))))
+              h('div', { className: 'kbln-row', style: { gap: 8 } },
+                h('button', { className: 'kbln-btn primary', type: 'button', 'data-act': 'update', disabled: models.length === 0, title: models.length === 0 ? L('noModels') : undefined, onClick: () => start(id) }, L('staleUpdate')))))
           }
           // Texts the host kept but doubts (identical to the source, a product name that vanished): listed, never refused.
           const doubt = !isBuiltIn(id) && !running ? doubtful.get(id) : undefined
           if (doubt !== undefined && doubt.count > 0) {
-            body.push(h('details', { key: 'doubt', className: 'kbth-banner kbth-fold', 'data-note': 'doubt' },
-              h('summary', null, h('span', { className: 'kbth-chev', 'aria-hidden': true }, '▸'), L('doubtSummary', { n: fmtN(doubt.count) })),
+            body.push(h('details', { key: 'doubt', className: 'kbln-banner kbln-fold', 'data-note': 'doubt' },
+              h('summary', null, h('span', { className: 'kbln-chev', 'aria-hidden': true }, '▸'), L('doubtSummary', { n: fmtN(doubt.count) })),
               h('div', null, L('doubtBody')),
-              h('div', { className: 'kbth-ex' }, doubt.examples.map((x) => h('div', { key: x.wire }, x.wire.replace(/^(kb|dsh):/, '') + ' — ' + String(x.why).split('+').map((w) => { const k = 'doubtWhy_' + w.split(':')[0]; return S[k] !== undefined ? L(k) + (w.indexOf(':') > 0 ? ' (' + w.split(':')[1] + ')' : '') : w }).join(', '))))))
+              h('div', { className: 'kbln-ex' }, doubt.examples.map((x) => h('div', { key: x.wire }, x.wire.replace(/^(kb|dsh):/, '') + ' — ' + String(x.why).split('+').map((w) => { const k = 'doubtWhy_' + w.split(':')[0]; return S[k] !== undefined ? L(k) + (w.indexOf(':') > 0 ? ' (' + w.split(':')[1] + ')' : '') : w }).join(', '))))))
           }
           if (!isBuiltIn(id) && !complete && !running && st === null && plan !== null && !hasProgress) {
             const lines = []
             if (!plan.dshAvailable && !plan.dshNative) lines.push(L('noDsh'))
             if (plan.dshNative) lines.push(L('zhNative'))
             if (modelName() !== null) lines.push(L('usesModel', { model: modelName() }))
-            if (lines.length > 0) body.push(h('div', { key: 'info', className: 'kbth-note' }, lines.join(' · ')))
+            if (lines.length > 0) body.push(h('div', { key: 'info', className: 'kbln-note' }, lines.join(' · ')))
           }
           if (askRemove === id) {
-            body.push(h('div', { key: 'rm', className: 'kbth-err', role: 'alertdialog' },
+            body.push(h('div', { key: 'rm', className: 'kbln-err', role: 'alertdialog' },
               h('div', null, L('removeAsk', { name: info.native })),
-              h('div', { className: 'kbth-row', style: { gap: 8 } },
-                h('button', { className: 'kbth-btn danger', type: 'button', 'data-act': 'confirm-remove', onClick: () => { dropLanguage(id); setAskRemove(null); setTick((n) => n + 1) } }, L('confirmRemove')),
-                h('button', { className: 'kbth-btn', type: 'button', onClick: () => setAskRemove(null) }, L('cancel')))))
+              h('div', { className: 'kbln-row', style: { gap: 8 } },
+                h('button', { className: 'kbln-btn danger', type: 'button', 'data-act': 'confirm-remove', onClick: () => { dropLanguage(id); setAskRemove(null); setTick((n) => n + 1) } }, L('confirmRemove')),
+                h('button', { className: 'kbln-btn', type: 'button', onClick: () => setAskRemove(null) }, L('cancel')))))
           }
 
           const badge = info.id === 'kybernos' ? 'FR' : info.id.toUpperCase()
-          return h('div', { key: id, className: 'kbth-lang' + (inUse ? ' on' : ''), 'data-lang': id },
-            h('div', { className: 'kbth-lang-top' },
-              h('div', { className: 'kbth-badge', 'aria-hidden': 'true' }, badge),
-              h('div', { className: 'kbth-lang-info' },
-                h('div', { className: 'kbth-lang-name' },
+          return h('div', { key: id, className: 'kbln-lang' + (inUse ? ' on' : ''), 'data-lang': id },
+            h('div', { className: 'kbln-lang-top' },
+              h('div', { className: 'kbln-badge', 'aria-hidden': 'true' }, badge),
+              h('div', { className: 'kbln-lang-info' },
+                h('div', { className: 'kbln-lang-name' },
                   h('span', { lang: id === 'kybernos' ? 'fr' : id }, info.native),
-                  info.english !== info.native ? h('span', { className: 'kbth-lang-en' }, info.english) : null,
-                  info.rtl ? h('span', { className: 'kbth-pill', title: L('tipRtl') }, L('rtl')) : null),
-                h('div', { className: 'kbth-lang-meta', title: !complete && !running && st === null && !hasProgress && !isBuiltIn(id) ? L('tipEstimate') : undefined }, metaLine)),
-              h('div', { className: 'kbth-lang-act' }, acts)),
+                  info.english !== info.native ? h('span', { className: 'kbln-lang-en' }, info.english) : null,
+                  info.rtl ? h('span', { className: 'kbln-pill', title: L('tipRtl') }, L('rtl')) : null),
+                h('div', { className: 'kbln-lang-meta', title: !complete && !running && st === null && !hasProgress && !isBuiltIn(id) ? L('tipEstimate') : undefined }, metaLine)),
+              h('div', { className: 'kbln-lang-act' }, acts)),
             body)
         }
 
@@ -1854,46 +1854,46 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         const all = ISO_639_1.filter((c) => c !== 'en' && c !== 'fr').map(langInfo)
         const filtered = q === '' ? all : all.filter((i) => (i.id + ' ' + i.native + ' ' + i.english).toLocaleLowerCase().indexOf(q) >= 0)
         filtered.sort((a, b) => a.english.localeCompare(b.english))
-        const isoBtn = (i) => h('button', { key: i.id, type: 'button', className: 'kbth-iso-i', 'data-iso': i.id, disabled: taken.has(i.id), title: taken.has(i.id) ? L('added') : L('tipAddLang', { name: i.english, code: i.id }), onClick: () => addLanguage(i.id) },
-          h('b', { lang: i.id }, i.native), i.english !== i.native ? h('small', null, i.english) : null, packs.has(i.id) ? h('small', { className: 'kbth-chip-tag' }, L('packTag')) : null, h('code', null, i.id))
+        const isoBtn = (i) => h('button', { key: i.id, type: 'button', className: 'kbln-iso-i', 'data-iso': i.id, disabled: taken.has(i.id), title: taken.has(i.id) ? L('added') : L('tipAddLang', { name: i.english, code: i.id }), onClick: () => addLanguage(i.id) },
+          h('b', { lang: i.id }, i.native), i.english !== i.native ? h('small', null, i.english) : null, packs.has(i.id) ? h('small', { className: 'kbln-chip-tag' }, L('packTag')) : null, h('code', null, i.id))
         const picker = pickerOpen
-          ? h('div', { className: 'kbth-add-body' },
-              h('input', { className: 'kbth-input', type: 'search', autoFocus: true, placeholder: L('search'), value: query, 'aria-label': L('search'), onChange: (e) => setQuery(e.target.value) }),
-              q === '' ? h('div', { className: 'kbth-sec-t' }, L('popular')) : null,
-              q === '' ? h('div', { className: 'kbth-chips' }, POPULAR.map(langInfo).map((i) => h('button', { key: i.id, type: 'button', className: 'kbth-chip', 'data-iso': i.id, title: taken.has(i.id) ? L('added') : L('tipAddLang', { name: i.english, code: i.id }), disabled: taken.has(i.id), onClick: () => addLanguage(i.id) }, i.native, packs.has(i.id) ? h('small', { className: 'kbth-chip-tag' }, ' · ' + L('packTag')) : null))) : null,
-              h('div', { className: 'kbth-sec-t' }, L('allLangs')),
-              filtered.length > 0 ? h('div', { className: 'kbth-iso' }, filtered.map(isoBtn)) : h('div', { className: 'kbth-note' }, L('noMatch')))
+          ? h('div', { className: 'kbln-add-body' },
+              h('input', { className: 'kbln-input', type: 'search', autoFocus: true, placeholder: L('search'), value: query, 'aria-label': L('search'), onChange: (e) => setQuery(e.target.value) }),
+              q === '' ? h('div', { className: 'kbln-sec-t' }, L('popular')) : null,
+              q === '' ? h('div', { className: 'kbln-chips' }, POPULAR.map(langInfo).map((i) => h('button', { key: i.id, type: 'button', className: 'kbln-chip', 'data-iso': i.id, title: taken.has(i.id) ? L('added') : L('tipAddLang', { name: i.english, code: i.id }), disabled: taken.has(i.id), onClick: () => addLanguage(i.id) }, i.native, packs.has(i.id) ? h('small', { className: 'kbln-chip-tag' }, ' · ' + L('packTag')) : null))) : null,
+              h('div', { className: 'kbln-sec-t' }, L('allLangs')),
+              filtered.length > 0 ? h('div', { className: 'kbln-iso' }, filtered.map(isoBtn)) : h('div', { className: 'kbln-note' }, L('noMatch')))
           : null
 
-        return h('div', { className: 'kbth-page', 'data-kb': 'language-page' },
-          h('div', { className: 'kbth-main' },
-            h('div', { className: 'kbth-head' },
-              h('div', { className: 'kbth-head-row' },
-                h('div', { className: 'kbth-title' }, L('title')),
-                h('button', { className: 'kbth-help-btn', type: 'button', 'data-act': 'help', 'aria-expanded': helpOpen ? 'true' : 'false', 'aria-controls': 'kbth-help', title: L('tipHelp'), onClick: toggleHelp },
-                  h('span', { className: 'kbth-help-q', 'aria-hidden': 'true' }, '?'), L('helpBtn'))),
-              h('div', { className: 'kbth-sub' }, L('sub'))),
+        return h('div', { className: 'kbln-page', 'data-kb': 'language-page' },
+          h('div', { className: 'kbln-main' },
+            h('div', { className: 'kbln-head' },
+              h('div', { className: 'kbln-head-row' },
+                h('div', { className: 'kbln-title' }, L('title')),
+                h('button', { className: 'kbln-help-btn', type: 'button', 'data-act': 'help', 'aria-expanded': helpOpen ? 'true' : 'false', 'aria-controls': 'kbln-help', title: L('tipHelp'), onClick: toggleHelp },
+                  h('span', { className: 'kbln-help-q', 'aria-hidden': 'true' }, '?'), L('helpBtn'))),
+              h('div', { className: 'kbln-sub' }, L('sub'))),
             helpOpen ? h(HelpPanel, null) : null,
-            h('div', { className: 'kbth-sec' },
-              h('div', { className: 'kbth-langs' }, langs.map(row)),
-              h('div', { className: 'kbth-add' },
-                h('button', { className: 'kbth-add-h', type: 'button', 'data-act': 'add-language', title: L('tipAdd'), 'aria-expanded': pickerOpen ? 'true' : 'false', onClick: () => setPickerOpen(!pickerOpen) },
+            h('div', { className: 'kbln-sec' },
+              h('div', { className: 'kbln-langs' }, langs.map(row)),
+              h('div', { className: 'kbln-add' },
+                h('button', { className: 'kbln-add-h', type: 'button', 'data-act': 'add-language', title: L('tipAdd'), 'aria-expanded': pickerOpen ? 'true' : 'false', onClick: () => setPickerOpen(!pickerOpen) },
                   h('span', { 'aria-hidden': 'true' }, pickerOpen ? '−' : '+'), L('addLang')),
                 picker),
-              h('details', { className: 'kbth-adv', ref: advRef },
+              h('details', { className: 'kbln-adv', ref: advRef },
                 h('summary', { title: L('tipAdvanced') }, L('advanced')),
-                h('div', { className: 'kbth-adv-body' },
+                h('div', { className: 'kbln-adv-body' },
                   models.length > 0
-                    ? h('div', { className: 'kbth-row' },
-                        h('span', { className: 'kbth-lb' }, L('modelLabel')),
+                    ? h('div', { className: 'kbln-row' },
+                        h('span', { className: 'kbln-lb' }, L('modelLabel')),
                         h('select', {
-                          className: 'kbth-select', value: selectedModel, disabled: snap.state === 'running',
+                          className: 'kbln-select', value: selectedModel, disabled: snap.state === 'running',
                           'aria-label': L('modelLabel'), title: L('tipModel'),
                           onChange: (e) => { setSelectedModel(e.target.value); try { localStorage.setItem(I18N_MODEL_KEY, e.target.value) } catch (ex) { /* */ } },
                         }, models.map((m) => h('option', { key: m.id, value: m.id }, m.name + ' (' + m.provider + ')'))))
                     : null,
-                  h('div', { className: 'kbth-hint' }, models.length > 0 ? L('modelHint') : L('noModels')),
-                  h('label', { className: 'kbth-check', title: L('tipAuto') },
+                  h('div', { className: 'kbln-hint' }, models.length > 0 ? L('modelHint') : L('noModels')),
+                  h('label', { className: 'kbln-check', title: L('tipAuto') },
                     h('input', { type: 'checkbox', 'data-act': 'autoresume', checked: autoOn, onChange: (e) => { setAutoResume(e.target.checked); setAutoOn(e.target.checked) } }),
                     L('autoLabel')))),
               diskLine())))
@@ -1906,7 +1906,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         const names = [plain(L('title')), S.title[0], S.title[1]]
         const entry = Array.from(document.querySelectorAll('button,[role="tab"],a')).find((b) => {
           const own = plain(b.innerText).split('\n')[0]
-          return names.indexOf(own) >= 0 && b.closest('.kbth-page') === null && b.closest('[data-slot="settings.general.item"]') === null
+          return names.indexOf(own) >= 0 && b.closest('.kbln-page') === null && b.closest('[data-slot="settings.general.item"]') === null
         })
         if (entry !== undefined) entry.click()
         return entry !== undefined
@@ -1915,7 +1915,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
       // Same two anchors as the account menu of the cloud plugin; the hashed class prefixes change at every
       // build, their suffixes do not.
       const openLanguageFromAnywhere = async () => {
-        // Not `.kbth-page`: the Theme page uses the same class prefix.
+        // Not `.kbln-page`: the Theme page uses the same class prefix.
         const shown = () => document.querySelector('[data-kb="language-page"]') !== null
         const settle = (ms) => new Promise((r) => setTimeout(r, ms))
         if (shown()) return true
@@ -1943,12 +1943,12 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         if (snap.state !== 'running' && snap.state !== 'pausing') return null
         const pct = snap.total > 0 ? Math.min(100, Math.floor(snap.done / snap.total * 100)) : 0
         const label = L('chipTitle', { name: langInfo(snap.lang).native, pct })
-        return h('button', { type: 'button', className: 'kbth-ring', 'data-act': 'run-ring', 'aria-label': label, title: label, style: { '--p': pct }, onClick: () => { openLanguageFromAnywhere() } },
-          h('span', { className: 'kbth-ring-n', 'aria-hidden': 'true' }, String(pct)))
+        return h('button', { type: 'button', className: 'kbln-ring', 'data-act': 'run-ring', 'aria-label': label, title: label, style: { '--p': pct }, onClick: () => { openLanguageFromAnywhere() } },
+          h('span', { className: 'kbln-ring-n', 'aria-hidden': 'true' }, String(pct)))
       }
       function GeneralLink() {
-        return h('div', { className: 'kbth-gl' },
-          h('button', { type: 'button', className: 'kbth-gl-link', 'data-act': 'manage-languages', onClick: openLanguagePage }, L('manageLink')))
+        return h('div', { className: 'kbln-gl' },
+          h('button', { type: 'button', className: 'kbln-gl-link', 'data-act': 'manage-languages', onClick: openLanguagePage }, L('manageLink')))
       }
 
       // ══════════════════════════════════════════════════════════════════════

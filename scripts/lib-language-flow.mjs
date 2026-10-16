@@ -109,7 +109,7 @@ export async function createFlow(page) {
   }
   const click = async (text, within) => clickText(page, text, within ? { within } : {})
   const typeInPicker = async (text) => {
-    await page.evalJs(`(() => { const i = document.querySelector('.kbth-add input'); i.focus(); i.select() })()`)
+    await page.evalJs(`(() => { const i = document.querySelector('.kbln-add input'); i.focus(); i.select() })()`)
     await page.send('Input.insertText', { text })
     await sleep(450)
   }
@@ -149,7 +149,7 @@ export async function createFlow(page) {
   const waitReady = (id, ms) => waitFor(page, `(() => { const r = document.querySelector('[data-lang="${id}"]'); return !!r && !!r.querySelector('[data-act="use"]') })()`, ms)
   const addLanguage = async (iso, searchText) => {
     await clickSel('[data-act="add-language"]'); await sleep(500)
-    if (searchText) { await typeInPicker(searchText); await clickSel('.kbth-iso [data-iso="' + iso + '"]') } else await clickSel('.kbth-chip[data-iso="' + iso + '"]')
+    if (searchText) { await typeInPicker(searchText); await clickSel('.kbln-iso [data-iso="' + iso + '"]') } else await clickSel('.kbln-chip[data-iso="' + iso + '"]')
     await sleep(800)
   }
 

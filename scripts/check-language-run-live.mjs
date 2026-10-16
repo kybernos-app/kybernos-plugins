@@ -150,8 +150,8 @@ try {
   check('opened, the banner says that texts look like test marks, with their number', unfolded === true && typeof banner === 'string' && /\d[\d,.\s]*\s+texts look like test marks/.test(banner), banner)
   check('the language is NOT "Ready" any more', !/Ready/.test(String(rowB)), rowB)
   check('"Use" and "Use anyway" are not offered while marks are there (they would show the brackets)', (await val(`!document.querySelector('[data-lang="es"] [data-act="use"]') && !document.querySelector('[data-lang="es"] [data-act="use-now"]')`)) === true)
-  check('the progress bar is there, for a language that is not running (grey, with the count)', (await val(`!!document.querySelector('[data-lang="es"] .kbth-bar.stale [style*="width"]') || !!document.querySelector('[data-lang="es"] .kbth-bar.stale > i')`)) === true && /\d+ of [\d,]+ texts/.test(String(await val(`document.querySelector('[data-lang="es"] .kbth-prog-line').innerText.replace(/\\s+/g, ' ')`))))
-  check('the examples are in the opened banner', /⟦/.test(String(await val(`(document.querySelector('[data-lang="es"] .kbth-ex') || { innerText: '' }).innerText`))))
+  check('the progress bar is there, for a language that is not running (grey, with the count)', (await val(`!!document.querySelector('[data-lang="es"] .kbln-bar.stale [style*="width"]') || !!document.querySelector('[data-lang="es"] .kbln-bar.stale > i')`)) === true && /\d+ of [\d,]+ texts/.test(String(await val(`document.querySelector('[data-lang="es"] .kbln-prog-line').innerText.replace(/\\s+/g, ' ')`))))
+  check('the examples are in the opened banner', /⟦/.test(String(await val(`(document.querySelector('[data-lang="es"] .kbln-ex') || { innerText: '' }).innerText`))))
 
   // ═══ C. translating again ══════════════════════════════════════════════════════════
   console.log('\n── C. « Translate these texts again », and the run is visible from everywhere ──')
@@ -166,7 +166,7 @@ try {
   }
   const inTab = await val(`(() => { const b = document.querySelector('[data-lang="es"] [data-note="in-tab"]'); return b ? b.innerText.replace(/\\s+/g, ' ') : null })()`)
   check('while it runs the page says it lives in this tab, and what to do', typeof inTab === 'string' && /this tab/.test(inTab) && /Do not close the tab/.test(inTab), inTab)
-  check('the bar is live (not grey) while it runs', (await val(`!!document.querySelector('[data-lang="es"] .kbth-bar') && !document.querySelector('[data-lang="es"] .kbth-bar.stale')`)) === true)
+  check('the bar is live (not grey) while it runs', (await val(`!!document.querySelector('[data-lang="es"] .kbln-bar') && !document.querySelector('[data-lang="es"] .kbln-bar.stale')`)) === true)
   check('the marks were taken out of the browser stores first (nothing of the old marks is counted)', (await marksIn('kybernos.i18n.dsh.es')).marks === 0 || (await marksIn('kybernos.i18n.dsh.es')).n < 1000)
   check('the Settings dialog is closed (we are on the workspace)', await backToWorkspace() === true)
   await sleep(500)
@@ -184,7 +184,7 @@ try {
     await clickSel('[data-act="run-ring"]')
     const onPage = await poll(() => val(`!!document.querySelector('[data-lang="es"]')`), 25000)
     await shot('C-after-ring-click')
-    check('clicking the ring opens Settings on the Language page', onPage === true, onPage === true ? undefined : await val(`JSON.stringify({ dialog: document.querySelectorAll('[role=dialog]').length, kbthPage: !!document.querySelector('.kbth-page'), candidates: Array.from(document.querySelectorAll('button,[role="tab"],a')).filter((b) => /lang/i.test(String(b.innerText || ''))).map((b) => ({ t: String(b.innerText).split('\\n')[0].slice(0, 30), cls: String(b.className).slice(0, 30), page: b.closest('.kbth-page') !== null, gen: b.closest('[data-slot="settings.general.item"]') !== null })) })`))
+    check('clicking the ring opens Settings on the Language page', onPage === true, onPage === true ? undefined : await val(`JSON.stringify({ dialog: document.querySelectorAll('[role=dialog]').length, kbthPage: !!document.querySelector('.kbln-page'), candidates: Array.from(document.querySelectorAll('button,[role="tab"],a')).filter((b) => /lang/i.test(String(b.innerText || ''))).map((b) => ({ t: String(b.innerText).split('\\n')[0].slice(0, 30), cls: String(b.className).slice(0, 30), page: b.closest('.kbln-page') !== null, gen: b.closest('[data-slot="settings.general.item"]') !== null })) })`))
   }
   const finished = await flow.waitReady('es', 180000)
   check('the run finishes: "Ready", with "Use" available again', finished !== null, finished === null ? await rowText('es') : undefined)

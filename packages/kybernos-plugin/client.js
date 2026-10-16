@@ -26812,8 +26812,8 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
     // sous-titres 13/14 px de deux gris, 5 à 18 px entre titre et sous-titre). On fixe ici l'échelle
     // pour tous : les pages natives (Models, Agent presets, Built-in plugins) et les pages Kybernos.
     ctx.effect(() => styles.insert(`
-[class$="_options"] :is(h2[class*="_title"],h2[class*="_heading"],.kb6-title,.kbsl-h1,.kbth-title,.kbt2-h1,.kbmz-titre,.kbm-h1){font-size:18px;font-weight:600;line-height:1.3;letter-spacing:-.01em;margin:0}
-[class$="_options"] :is(p[class*="_intro"],.kbsl-sub,.kbth-sub,.kb8-sub,.kbt2-sub,.kbm-pagehead .kbm-sub){font-size:13px;font-weight:400;line-height:1.5;color:var(--dsw-alias-label-secondary);margin:6px 0 0;max-width:none}
+[class$="_options"] :is(h2[class*="_title"],h2[class*="_heading"],.kb6-title,.kbsl-h1,.kbth-title,.kbln-title,.kbt2-h1,.kbmz-titre,.kbm-h1){font-size:18px;font-weight:600;line-height:1.3;letter-spacing:-.01em;margin:0}
+[class$="_options"] :is(p[class*="_intro"],.kbsl-sub,.kbth-sub,.kbln-sub,.kb8-sub,.kbt2-sub,.kbm-pagehead .kbm-sub){font-size:13px;font-weight:400;line-height:1.5;color:var(--dsw-alias-label-secondary);margin:6px 0 0;max-width:none}
 /* ── Gabarit unique des pages Réglages (02/10) ──────────────────────────────
    · Largeur : toute section = colonne de 720 px MAX, alignée à gauche (avant : 606 / 680 / 794 / 960).
    · En-tête : titre 18/600, sous-titre 13 à 6 px du titre, premier bloc à 20 px du sous-titre.
@@ -26825,13 +26825,13 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
 [class$="_options"] :is(.kbm-btn,.kbm-pill){border-radius:10px}
 [class$="_options"] .kbm-pagehead{margin:0 0 20px}
 /* Rayons (02/10, passe 2) : contrôles 10, cartes et panneaux 14 — plus de 6/7/8/9/11/12/13/16 hétérogènes sur les classes kb*. */
-html [class$="_options"] :is(.kbth-seg,.kbth-btn,.kbth-hex,.kbth-select,.kbth-fsbtn,.kbfp-sw,.kbm-setfield-input,.kbm-setform-save,.kbm-in-wrap,.kbsl-tab,.kbsl-search,.kbsl-tile,.kbsl-ibtn,.kbsl-btn,.kbsl-chip,.kbo-btn,.kb8-primary,.kbt2-seg-btn,.kbt2-part,.kbt2-cmd-copy,.kb6-search-inline,.kbf-avatar,.kbmp-card-logo,.kbmh-hero-logo,.kbmp-logo-chip,.kbth-seg button,.kbth-ramp,.kbth-tok,.kbth-adv-preview,.kml-mod-chip,.kml-rangee-init,.kbth-adv-tab){border-radius:10px}
+html [class$="_options"] :is(.kbth-seg,.kbth-btn,.kbln-btn,.kbth-hex,.kbth-select,.kbln-select,.kbth-fsbtn,.kbfp-sw,.kbm-setfield-input,.kbm-setform-save,.kbm-in-wrap,.kbsl-tab,.kbsl-search,.kbsl-tile,.kbsl-ibtn,.kbsl-btn,.kbsl-chip,.kbo-btn,.kb8-primary,.kbt2-seg-btn,.kbt2-part,.kbt2-cmd-copy,.kb6-search-inline,.kbf-avatar,.kbmp-card-logo,.kbmh-hero-logo,.kbmp-logo-chip,.kbth-seg button,.kbth-ramp,.kbth-tok,.kbth-adv-preview,.kml-mod-chip,.kml-rangee-init,.kbth-adv-tab){border-radius:10px}
 html [class$="_options"] :is(.kbth-skin,.kbp-card,.kbsl-lrow,.kb8-tile,.kbth-adv-editor,.kml-rangee){border-radius:14px}
 /* En-têtes Thème / Commandes : le gap flex s'ajoutait à la marge du sous-titre (12 / 11 px au lieu de 6). Titre -> sous-titre 6, sous-titre -> premier bloc 20. */
-html [class$="_options"] :is(.kbsl-head,.kbth-head){gap:0}
-html [class$="_options"] .kbth-head>*+*{margin-top:8px}
-html [class$="_options"] .kbth-head>.kbth-sub{margin-top:6px}
-html [class$="_options"] .kbth-head>.kbth-sub+*{margin-top:20px}
+html [class$="_options"] :is(.kbsl-head,.kbth-head,.kbln-head){gap:0}
+html [class$="_options"] :is(.kbth-head,.kbln-head)>*+*{margin-top:8px}
+html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub){margin-top:6px}
+html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin-top:20px}
 `), 'kybers: styles entete reglages')
 
 
