@@ -24,7 +24,7 @@
     "kybernos-memory": "pending",
     "kybernos-miniapps": "pending",
     "kybernos-mobile": "pending",
-    "kybernos-modeles-locaux": "pending",
+    "kybernos-modeles-locaux": [],
     "kybernos-modeleur": "pending",
     "kybernos-models": "pending",
     "kybernos-motion": "pending",

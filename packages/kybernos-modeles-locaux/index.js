@@ -41,7 +41,7 @@ const sendJson = (res, status, body) => {
   try {
     res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' })
     res.end(JSON.stringify(body))
-  } catch (e) { try { res.end('{}') } catch (e2) { /* socket fermé */ } }
+  } catch (e) { try { res.end('{}') } catch (e2) { /* socket closed */ } }
 }
 
 const readBody = (req) => new Promise((resolve) => {
@@ -284,7 +284,7 @@ export function apply(ctx) {
         send: sendJson,
         shipped: () => loadShipped(CATALOGUE_FILE),
         keys: () => loadKeys(KEYS_FILE),
-      }) }), 'modeles-locaux: catalogue (signé)')
+      }) }), 'modeles-locaux: catalogue (signed)')
 
       // Scan for newly installed compatible models (the "Re-check" button):
       // interrogate /api/tags, diff against the ids seen last time.
@@ -300,14 +300,14 @@ export function apply(ctx) {
           idsConnus = new Set(ids)
           sendJson(res, 200, { ok: true, nouveaux, total: ids.length })
         } catch (e) { sendJson(res, 200, { ok: false, error: String(e && e.message ? e.message : e) }) }
-      }}), 'modeles-locaux: decouvrir (nouveaux modèles)')
+      }}), 'modeles-locaux: discover (new models)')
 
       // The job's state (the client polls every 600 ms during a pull).
       hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/modeles-locaux/installation', handler: async (req, res) => {
         if (job === null) { sendJson(res, 200, { ok: true, job: null }); return }
         const { child, ...reste } = job
         sendJson(res, 200, { ok: true, job: reste })
-      }}), 'modeles-locaux: installation (état)')
+      }}), 'modeles-locaux: install (state)')
 
       // Start: 'ollama' (brew) or a model id (safe charset). One job at a
       // time; a job in progress answers 409 without breaking anything.
@@ -346,7 +346,7 @@ export function apply(ctx) {
         if (j === null) { sendJson(res, 500, { ok: false, error: 'spawn' }); return }
         job = j
         sendJson(res, 200, { ok: true, demarre: true, cmd: j.cmd })
-      }}), 'modeles-locaux: installation (démarrage)')
+      }}), 'modeles-locaux: install (start)')
 
       // Cancel: SIGTERM on the pull in progress. Same rule as the start: it ends a process.
       hostCtx.effect(() => webServer.register({ kind: 'exact', path: '/modeles-locaux/annuler', handler: async (req, res) => {
@@ -354,7 +354,7 @@ export function apply(ctx) {
         const refus = writeGuard(req)
         if (refus !== null) { sendJson(res, refus.status, { ok: false, error: refus.error }); return }
         if (job === null || job.running !== true) { sendJson(res, 200, { ok: true, annule: false }); return }
-        try { job.child.kill('SIGTERM') } catch (e) { /* déjà mort */ }
+        try { job.child.kill('SIGTERM') } catch (e) { /* already dead */ }
         sendJson(res, 200, { ok: true, annule: true })
       }}), 'modeles-locaux: installation (annulation)')
     })
