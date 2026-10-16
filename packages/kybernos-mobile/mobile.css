@@ -111,9 +111,11 @@
   [data-slot="sidebar"] button:has(> svg:only-child) {
     min-width: 36px;
   }
-  [data-slot="sidebar"] div:has(> button > svg:only-child),
-  [data-slot="sidebar"] div:has(> span > button > svg:only-child),
-  [data-slot="sidebar"] div:has(> div > button > svg:only-child) {
+  /* (not the expanded session search: it holds its field between two of those buttons, and `auto` made the box 80 px wide
+   * and the field 4 px: nothing could be typed or read (A1-20)) */
+  [data-slot="sidebar"] div:where(:not(:has(input))):has(> button > svg:only-child),
+  [data-slot="sidebar"] div:where(:not(:has(input))):has(> span > button > svg:only-child),
+  [data-slot="sidebar"] div:where(:not(:has(input))):has(> div > button > svg:only-child) {
     width: auto !important;
     max-width: none !important;
   }
@@ -138,6 +140,7 @@
   [data-slot="conversation.session.header.actions"] > div:not([data-kb]):not([data-team-action]):not(:has(span)),
   [data-slot="conversation.session.header.actions"] [data-act="call-video"],
   [data-slot="conversation.session.header.actions"] [data-act="call-setup"],
+  [data-slot="conversation.session.header.actions"] .kbtg-root[data-empty="1"],
   [role="tablist"][data-conversation-tabs]:has(> [role="tab"]:first-child[aria-selected="true"]) {
     position: fixed !important;
     top: 52px !important;

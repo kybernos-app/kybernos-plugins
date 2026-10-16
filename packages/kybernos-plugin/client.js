@@ -5651,6 +5651,8 @@ const CSS = `
 [class*="collapsed"] .kb4-menu .kb4-newchat .kb4-plus{width:36px;height:36px;background:transparent}
 [class*="collapsed"] .kb4-menu .kb4-item{width:36px;height:36px;margin:1px auto;padding:0;justify-content:center;gap:0;border-radius:12px}
 [class*="collapsed"] .kb4-menu .kb4-ico{width:auto}
+/* The goal-progress card is text in a card: in the 44 px icon rail only clipped fragments of it showed (A5-29). */
+[class*="collapsed"] .kbp-bar{display:none}
 .kb4-pagehead{font-size:14px;font-weight:700;letter-spacing:.02em;color:var(--dsw-alias-label-primary);padding:2px 0 12px}
 /* (28/09, audit) Onglets unifiés sur le système kb8 (Agent Teams) : même
    pilule contour, même état actif à bordure de marque. kb4-tab n'est plus
@@ -5954,14 +5956,16 @@ const CSS = `
 .kb6-prev:has(.kb6-live),
 .kb6-prev:has(.kb6-minivis){padding:0}
 .kb6-minivis{position:relative;height:100%;min-height:0;border-radius:8px;overflow:hidden;background:var(--dsw-alias-bg-base);pointer-events:none;display:flex;align-items:center}
-.kb6-minivis-in{width:1200px;flex:none;transform:scale(.25);transform-origin:0 50%}
+/* max-width:none: the phone sheet caps every box of a page at its container (max-width:100%); this one is 1200 px on purpose, and
+   is scaled down into the card: capped at the card's 332 px it was scaled to a 92 px stamp (A4-31). */
+.kb6-minivis-in{width:1200px;max-width:none;flex:none;transform:scale(.25);transform-origin:0 50%}
 /* ── Rendu vivant (html / markdown) : le livrable TEL QU'IL S'AFFICHE — une
    iframe sandboxée (aucun script, aucune navigation) du vrai document,
    réduite à l'échelle de la carte. Le code coloré n'est plus que le repli de
    lecture. pointer-events:none : le clic ouvre la popup, comme les autres
    cartes. ── */
 .kb6-live{position:relative;height:100%;min-height:0;border-radius:0;overflow:hidden;background:var(--dsw-alias-bg-base);display:flex;align-items:flex-start;pointer-events:none}
-.kb6-live-in{width:1200px;flex:none;transform:scale(.25);transform-origin:0 0}
+.kb6-live-in{width:1200px;max-width:none;flex:none;transform:scale(.25);transform-origin:0 0}
 .kb6-live-frame{width:1200px;height:440px;border:0;background:#fff;display:block;pointer-events:none}
 .kb6-more{display:flex;align-items:center;gap:9px;margin:16px auto 4px;padding:9px 20px;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .kb6-more:hover{border-color:var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2)}
@@ -18674,7 +18678,10 @@ function renderFit(canvas, model, cam, opts){
         }
         calc()
         const t = setTimeout(calc, 150)
-        return () => { clearTimeout(t) }
+        // the card changes width without being remounted (a window resized, a phone turned, a sidebar opened): follow it
+        let ro = null
+        try { if (typeof ResizeObserver === 'function') { ro = new ResizeObserver(calc); ro.observe(box) } } catch (e) { ro = null }
+        return () => { clearTimeout(t); if (ro !== null) { try { ro.disconnect() } catch (e) { /* gone */ } } }
       }, [texte])
       React.useEffect(() => {
         let mort = false
@@ -18710,7 +18717,10 @@ function renderFit(canvas, model, cam, opts){
         const calc = () => { const w = box.clientWidth; if (w > 40) setScale(w / 1200) }
         calc()
         const t = setTimeout(calc, 150)
-        return () => { clearTimeout(t) }
+        // the card changes width without being remounted (a window resized, a phone turned, a sidebar opened): follow it
+        let ro = null
+        try { if (typeof ResizeObserver === 'function') { ro = new ResizeObserver(calc); ro.observe(box) } } catch (e) { ro = null }
+        return () => { clearTimeout(t); if (ro !== null) { try { ro.disconnect() } catch (e) { /* gone */ } } }
       }, [texte])
       React.useEffect(() => {
         let mort = false
@@ -23693,7 +23703,9 @@ function renderFit(canvas, model, cam, opts){
             h('div', { className: 'kbp-fill', style: { width: pct + '%' } })),
           h('div', { className: 'kbp-detail' }, best + ' / ' + bestMax + ' · ' + entries.length + (entries.length > 1 ? kbf(' tentatives') : kbf(' tentative'))))
       }
-      const row = (id, ico, label, badge, active, onClick, extra) => h('button', { type: 'button', key: id, className: 'kb4-item' + (active === true ? ' on' : ''), onClick },
+      // In the icon rail the label is hidden: the row names itself (a screen reader, and a tooltip of its own, instead of the
+      // group's « Kybernos » for all eight pages).
+      const row = (id, ico, label, badge, active, onClick, extra) => h('button', { type: 'button', key: id, className: 'kb4-item' + (active === true ? ' on' : ''), 'aria-label': label, title: label, onClick },
         h('span', { className: 'kb4-ico' }, kbMenuIcon(id, ico, active === true)), h('span', { className: 'kb4-lab' }, label),
         (badge !== null && badge !== undefined && badge > 0) ? h('span', { className: 'kb4-badge' }, String(badge)) : null,
         (extra === undefined ? null : extra))
@@ -24159,7 +24171,7 @@ function renderFit(canvas, model, cam, opts){
         h('span', { className: 'kb8-nc-ico', style: { background: kbNcTint(KB_NC_HUES[id], 0.16), color: KB_NC_HUES[id] } }, Icon(icon, 18)),
         h('span', { className: 'kb8-nc-body' },
           h('span', { className: 'kb8-nc-t' }, dot === undefined || dot === '' ? null : h('i', { className: 'kb8-nc-dot ' + dot }), title),
-          h('span', { className: 'kb8-nc-d' }, sub)))
+          h('span', { className: 'kb8-nc-d', title: sub }, sub)))
       const openKyber = () => { try { if (typeof window.__KB_OPEN__ === 'function') window.__KB_OPEN__({ view: 'kyber' }) } catch (e) { /* no page to open */ } }
       // One action: the host acts on the person's own Home computer (it is never named here). « Open » gets its tab at the click
       // (a popup blocker lets only that through) and the address is put in it once the server has answered.
@@ -24231,7 +24243,7 @@ function renderFit(canvas, model, cam, opts){
 .kb8-nc-ico{width:36px;height:36px;flex:none;border-radius:11px;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
 .kb8-nc-body{display:flex;flex-direction:column;gap:2px;min-width:0}
 .kb8-nc-t{font-size:13.5px;font-weight:600;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kb8-nc-d{font-size:12px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kb8-nc-d{font-size:12px;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .kb8-nc-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-inline-end:6px;background:var(--dsw-alias-label-tertiary)}
 .kb8-nc-dot.on,.kb4-dot.on{background:var(--dsw-alias-state-success-primary)}
 .kb8-nc-dot.busy,.kb4-dot.busy{background:var(--dsw-alias-state-warn-primary)}
@@ -26273,7 +26285,9 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
       }
       const stChip = (st) => h('span', { className: 'kbtg-st ' + (typeof st === 'string' ? st : 'pending') }, kbt('kbtg.st.' + (typeof st === 'string' ? st : 'pending')))
       const mono = (name) => (typeof name === 'string' ? name.replace(/[^a-z0-9]/gi, '').slice(0, 2).toUpperCase() : '?')
-      return h('div', { className: 'kbtg-root', ref: racine },
+      // `data-empty`: no team in this chat and nothing to validate. The phone sheet parks the chip then (72 px of a 390 px header
+      // for « Teams 0 », while the title kept 80): it is still in the « … » list.
+      return h('div', { className: 'kbtg-root', ref: racine, 'data-empty': crews.length === 0 && gateCalls.length === 0 ? '1' : undefined },
         h('button', {
           type: 'button',
           className: 'kbtg-btn' + (open === true ? ' on' : ''),
@@ -28523,7 +28537,15 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 /* (28/09, audit) La rangée de tuiles passe en multi-ligne : la scrollbar
    brute du scroll horizontal cachait la dernière tuile (« Audio & vi… ») ;
    en flex-wrap les tuiles restent lisibles à toute largeur. */
-.kb-typerow{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;padding:2px 2px 6px}
+/* A grid of equal tiles (A4-10): with ten kinds the last ones of a wrapped flex row stretched to half the width each. 96 px
+   at least keeps ten tiles on one row at 1400 px (a page of 1064 px); fewer tiles share the row, as before. On a phone the row
+   is one strip that slides sideways (A4-31): ten tiles in a wrapping grid took 460 px and pushed the first creation 976 px down. */
+.kb-typerow{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));align-items:stretch;gap:8px;padding:2px 2px 6px}
+@media (max-width:480px){
+.kb-typerow{display:flex;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none}
+.kb-typerow::-webkit-scrollbar{display:none}
+.kb-typerow>.kb-type{flex:0 0 108px;scroll-snap-align:start}
+}
 /* Jetons de texte de la maquette (--dsw-alias-fg / --dsw-alias-fg-muted) : ils
    N'EXISTENT PAS dans DSH. Le navigateur retombait donc sur la valeur de repli,
    pensée pour le thème clair (#1c1c1e), y compris en sombre — libellés des
@@ -28534,7 +28556,7 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 /* Tuiles RESPONSIVE sur UNE ligne (demande 26/09) : flex:1 partage la largeur
    de la rangée — jamais de débord ni de retour à la ligne ; les libellés longs
    éllipsent. compactes : scène 44px, padding 8/10. */
-.kb-type{flex:1 1 112px;min-width:112px;display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:8px 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-1);cursor:pointer;text-align:left;transition:border-color .15s,box-shadow .15s;color:var(--dsw-alias-label-primary);position:relative}
+.kb-type{min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:8px 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-1);cursor:pointer;text-align:left;transition:border-color .15s,box-shadow .15s;color:var(--dsw-alias-label-primary);position:relative}
 .kb-type:hover{border-color:var(--dsw-alias-border-l2)}
 .kb-type-sel{border-color:var(--dsw-alias-brand-primary,#5563d6);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary,#5563d6)}
 /* Bande d'aperçu des tuiles de type (fidèle à la maquette demos/deliverables) :

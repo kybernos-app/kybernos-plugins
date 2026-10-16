@@ -24,4 +24,65 @@ const src = readFileSync(process.env.KB_PLUGIN_CLIENT || join(dirname(fileURLToP
   ok('the Tools profile card (and its skeleton) is a column that does not wrap')
 }
 
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+/** The body of the stylesheet rule `sel{...}` (a whole line starts with it), or null. */
+const rule = (sel) => { const m = new RegExp('(?:^|\\n)' + esc(sel) + '\\{([^}]*)\\}').exec(src); return m === null ? null : m[1] }
+
+// Creations (A4-10, A4-31): the type tiles are equal tiles in a grid, ten of them on one row at 1400 px (a page of 1064 px), and on a
+// phone ONE strip that slides sideways: ten wrapping tiles took 460 px and put the first creation 976 px down; wrapped in flex rows
+// the last ones stretched to half the width each.
+{
+  const g = rule('.kb-typerow')
+  assert.ok(g !== null, 'the type row has a rule')
+  assert.match(g, /display:grid/, 'a grid: equal tiles, whatever the count')
+  const min = Number(/minmax\((\d+)px,1fr\)/.exec(g)[1])
+  assert.match(g, /repeat\(auto-fit,/, 'auto-fit: fewer tiles share the row')
+  const gap = Number(/gap:(\d+)px/.exec(g)[1])
+  assert.ok(10 * min + 9 * gap <= 1064, 'ten tiles of ' + min + ' px at least (+ gaps of ' + gap + ') fit one row of 1064 px')
+  assert.doesNotMatch(rule('.kb-type'), /flex:1 1 112px|min-width:112px/, 'a tile has no flex-basis of its own any more (it stretched when it wrapped alone)')
+  const at = src.indexOf('@media (max-width:480px){\n.kb-typerow{')
+  assert.ok(at > 0, 'a phone block for the type row')
+  const phone = src.slice(at, src.indexOf('\n}\n', at))
+  assert.match(phone, /\.kb-typerow\{display:flex;overflow-x:auto/, 'on a phone the row is a strip that slides sideways')
+  assert.match(phone, /\.kb-typerow>\.kb-type\{flex:0 0 \d+px/, 'its tiles keep their width')
+  ok('Creations: equal type tiles in a grid (ten on one row at 1400 px), one scrolling strip on a phone')
+}
+
+// A MiniApp / HTML / Markdown card draws its document 1200 px wide and scales it into the card: the phone sheet caps every box at its
+// container (max-width:100%), so the 1200 px box became 332 px and was scaled to a 92 px stamp (A4-31). It says max-width:none, and
+// the scale follows the card's width (a ResizeObserver), not the width it had when it was mounted.
+{
+  assert.match(rule('.kb6-minivis-in'), /width:1200px;max-width:none/, 'the miniapp thumbnail is not capped by the phone sheet')
+  assert.match(rule('.kb6-live-in'), /width:1200px;max-width:none/, 'nor is the HTML/Markdown one')
+  for (const name of ['KbArtMiniVisual', 'KbArtLiveVisual']) {
+    const at = src.indexOf('const ' + name + ' = ')
+    assert.ok(at > 0, name + ' is where the test expects it')
+    const body = src.slice(at, src.indexOf('if (typeof texte !== \'string\'', at))
+    assert.match(body, /new ResizeObserver\(calc\)/, name + ' follows the width of its card')
+  }
+  ok('Creations cards: the thumbnail keeps its 1200 px and its scale follows the card')
+}
+
+// Home (A1-06): « Sites, apps, automations » / « Slides, documents, images » were cut by an ellipsis at 1400 px, with no tooltip.
+{
+  const d = rule('.kb8-nc-d')
+  assert.match(d, /-webkit-line-clamp:2/, 'two lines')
+  assert.doesNotMatch(d, /white-space:nowrap/, 'it wraps')
+  assert.ok(src.includes("h('span', { className: 'kb8-nc-d', title: sub }, sub)"), 'and the full text is a tooltip when it is still cut')
+  ok('Home: the description of a card wraps to two lines and carries its full text as a tooltip')
+}
+
+// The sidebar rail (A5-29, A5-30): the goal-progress card is hidden in the 44 px icon rail, and each page icon names itself.
+{
+  assert.ok(src.includes('[class*="collapsed"] .kbp-bar{display:none}'), 'the goal card is hidden in the rail')
+  assert.ok(src.includes("className: 'kb4-item' + (active === true ? ' on' : ''), 'aria-label': label, title: label, onClick }"), 'a page row carries its name as aria-label and title (in the rail its label is hidden)')
+  ok('Sidebar rail: no clipped goal card; every page icon has a name')
+}
+
+// Conversation header at 390 px (A5-17): the Teams chip says when it is empty so that the phone sheet can park it.
+{
+  assert.ok(src.includes("className: 'kbtg-root', ref: racine, 'data-empty': crews.length === 0 && gateCalls.length === 0 ? '1' : undefined"), 'an empty Teams chip is marked')
+  ok('Teams chip: marked data-empty when it counts 0 and has nothing to validate')
+}
+
 console.log('\n' + pass + ' checks passed')

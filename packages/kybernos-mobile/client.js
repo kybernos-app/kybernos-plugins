@@ -440,6 +440,12 @@ window.__ModuleLoader__.load({
         const fit = () => {
           try {
             if (!narrow()) return
+            // The chat's title is cut when the header is narrow (A5-17): its whole name is one long press away, as a tooltip.
+            const name = document.querySelector('[data-slot="conversation.session.header"] nav[aria-label]')
+            if (name !== null && name !== undefined) {
+              const full = String(name.textContent || '').replace(/\s+/g, ' ').trim()
+              if (full !== '' && name.getAttribute('title') !== full) name.setAttribute('title', full)
+            }
             // a conversation is DSH's own; a page, and the Settings window over anything, are measured
             const chat = document.querySelector('[data-composer-card]') !== null
             const boxes = Array.prototype.slice.call(document.querySelectorAll(chat ? SETTINGS_BOXES : PAGE_BOXES + ', ' + SETTINGS_BOXES), 0, 4000)
