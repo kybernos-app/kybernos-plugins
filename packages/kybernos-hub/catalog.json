@@ -279,7 +279,7 @@
     {
       "id": "kybernos-models",
       "nom": "@local/kybernos-models",
-      "titre": "Models",
+      "titre": "AI Provider & Models",
       "glyphe": "cpu",
       "famille": "models",
       "palier": "core",
@@ -408,7 +408,7 @@
     {
       "id": "kybernos-slash",
       "nom": "@local/kybernos-slash",
-      "titre": "Slash commands",
+      "titre": "Commands",
       "glyphe": "slash",
       "famille": "base",
       "palier": "core",
@@ -827,7 +827,7 @@
     {
       "id": "kybernos-maintenance",
       "nom": "@local/kybernos-maintenance",
-      "titre": "About & Maintenance",
+      "titre": "About",
       "glyphe": "info",
       "famille": "base",
       "palier": "core",
@@ -1310,7 +1310,7 @@
     {
       "id": "kybernos-modeles-locaux",
       "nom": "@local/kybernos-modeles-locaux",
-      "titre": "Local models",
+      "titre": "Ollama Local Models",
       "glyphe": "home",
       "famille": "models",
       "palier": "core",
@@ -1449,7 +1449,7 @@
     {
       "id": "kybernos-websearch",
       "nom": "@local/kybernos-websearch",
-      "titre": "Web search",
+      "titre": "Web Search",
       "glyphe": "search",
       "famille": "connect",
       "palier": "core",
@@ -1503,8 +1503,8 @@
       "defaut": "actif",
       "poids_ko": 140,
       "promesse": {
-        "fr": "La page Memory & Lessons learned : mémoire du compte et leçons par Agent Team, filtres, interrupteurs.",
-        "en": "The Memory & Lessons learned page: account memory and lessons per agent team, filters, on/off switches."
+        "fr": "La page Memory & Lessons : mémoire du compte et leçons par Agent Team, filtres, interrupteurs.",
+        "en": "The Memory & Lessons page: account memory and lessons per agent team, filters, on/off switches."
       },
       "aide": {
         "what": {
@@ -1545,8 +1545,8 @@
         "en": "What the agents remember"
       },
       "description": {
-        "fr": "La page Memory & Lessons learned : les souvenirs du compte et les leçons de chaque Agent Team, avec recherche, filtres et interrupteurs. La recherche classe par pertinence, en local.",
-        "en": "The Memory & Lessons learned page: the account memories and the lessons of every agent team, with search, filters and switches. Search ranks by relevance, locally."
+        "fr": "La page Memory & Lessons : les souvenirs du compte et les leçons de chaque Agent Team, avec recherche, filtres et interrupteurs. La recherche classe par pertinence, en local.",
+        "en": "The Memory & Lessons page: the account memories and the lessons of every agent team, with search, filters and switches. Search ranks by relevance, locally."
       },
       "points": [
         {

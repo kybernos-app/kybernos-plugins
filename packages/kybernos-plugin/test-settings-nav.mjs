@@ -28,17 +28,60 @@ const unknown = /cellule\.style\.order = String\((\d+) \+ idx\)/.exec(block)
 check('9000 sits after every page a plugin can add (unknown labels start at 450)', unknown !== null && Number(unknown[1]) + 200 < 9000, unknown && unknown[1])
 check('About is still a known label, so the Settings nav is still recognised from it', /'about', 'a propos'/.test(block))
 
-console.log('the Kybernos section')
-const kyb = /titre: kbt\('settings\.group\.kybernos'\), mots: \[([^\]]*)\]/.exec(block)
-const kybWords = kyb === null ? [] : kyb[1].split(',').map((w) => w.trim().replace(/^'|'$/g, '')).filter((w) => w !== '')
-check('there is a Kybernos section', kyb !== null)
-check('it opens with the servers entry (it keeps its place), then the section of what stays on this computer, then the Suite', kybWords.slice(0, 4).join() === 'serveurs,servers,kybernos,kybernos suite', kybWords.slice(0, 5))
-const rank = (w) => kybWords.indexOf(w)
-check('then the models, the routing that picks one, what the agents keep, and the comfort pages last (value, then importance)',
-  rank('kybernos suite') === 3 && rank('ai provider & models') > 0 && rank('ai provider & models') < rank('auto routing') && rank('auto routing') < rank('memory & lessons') && rank('memory & lessons') < rank('workers') && rank('workers') < rank('calls') && rank('language') < rank('theme') && rank('theme') === kybWords.length - 1, kybWords)
-check('it is the first section (no Account section of ours any more: the account\'s pages are the footer menu\'s), before the shell\'s own Settings', block.indexOf("settings.group.account") < 0 && block.indexOf("settings.group.kybernos") > 0 && block.indexOf("settings.group.kybernos") < block.indexOf("settings.group.settings"))
-check('the Desktop divider follows its section, not an index (a section can be added before it)', /GROUPES\[g\]\.bureau === true/.test(block) && /bureau: true/.test(block) && !/if \(g === 2\)/.test(block))
+// ── The sections, as the organiser reads them (the GROUPES literal, run with a stub for kbt) ──────────────────────
+const gStart = SRC.indexOf('const GROUPES = [')
+const gEnd = SRC.indexOf('\n      ]\n', gStart)
+const GROUPES = gStart < 0 || gEnd < 0 ? [] : new Function('kbt', SRC.slice(gStart, gEnd + 8).replace('const GROUPES = ', 'return ').replace(/\n\s*\]\n$/, '\n]'))((k) => k)
+const titlesOf = (g) => g.mots
+// The English titles (the keys of KB_NAV_KEYS' values), one per page of the menu.
+const keysBlock0 = /const KB_NAV_KEYS = \{([\s\S]*?)\n\}/.exec(SRC)
+const PAGE_TITLES = new Set(keysBlock0 === null ? [] : [...keysBlock0[1].matchAll(/'?[A-Za-z0-9_-]+'?:\s*'([^']+)'/g)].map((m) => m[1]))
+const where = (title) => GROUPES.findIndex((g) => g.mots.indexOf(title) >= 0)
+
+console.log('the sections: the essentials first, the rest folded away (N-01, V-24)')
+check('there are three sections: the essentials (no header), Advanced (a fold) and Other settings', GROUPES.length === 3 && GROUPES[0].titre === null && GROUPES[1].titre === 'settings.group.advanced' && GROUPES[1].pliable === true && GROUPES[2].titre === 'settings.group.other' && GROUPES[2].pliable !== true, GROUPES.map((g) => g.titre))
+const first = GROUPES.length > 0 ? titlesOf(GROUPES[0]) : []
+check('General comes first, before anything else', first[0] === 'general', first.slice(0, 3))
+const essentials = ['general', 'ai provider & models', 'memory & lessons', 'skills', 'connectors', 'appearance', 'theme', 'language']
+const rankIn = (list, w) => list.indexOf(w)
+check('then what a newcomer needs, in the owner\'s order: AI Provider & Models, Memory & Lessons, Skills, Connectors, Appearance, Theme, Language',
+  essentials.every((w) => rankIn(first, w) >= 0) && essentials.every((w, i) => i === 0 || rankIn(first, essentials[i - 1]) < rankIn(first, w)), first)
+const shown = new Set(first.filter((w) => PAGE_TITLES.has(w)))
+check('a newcomer sees eight pages before opening anything, ten at most (it was 28)', shown.size >= 8 && shown.size <= 10, [...shown])
+const advanced = GROUPES.length > 1 ? titlesOf(GROUPES[1]) : []
+const ownerAdvanced = ['servers', 'kybernos suite', 'auto routing', 'usage', 'workers', 'automations', 'tools', 'web search', 'calls', 'remote control', 'commands', 'atlas', 'ollama local models', 'free llms', 'voice']
+check('Advanced holds the owner\'s list, in the owner\'s order', ownerAdvanced.every((w) => rankIn(advanced, w) >= 0) && ownerAdvanced.every((w, i) => i === 0 || rankIn(advanced, ownerAdvanced[i - 1]) < rankIn(advanced, w)), advanced)
+check('the two pages the owner did not name sit in Advanced too: Kybernos (what stays on this computer) and Cloud computers', rankIn(advanced, 'kybernos') >= 0 && rankIn(advanced, 'cloud computers') >= 0)
+const other = GROUPES.length > 2 ? titlesOf(GROUPES[2]) : []
+check('Other settings holds Built-in plugins, then Agent presets', rankIn(other, 'built-in plugins') >= 0 && rankIn(other, 'built-in plugins') < rankIn(other, 'agent presets'), other)
+check('every page of the menu has exactly one section (none is lost, none is twice)', [...PAGE_TITLES].every((t) => GROUPES.filter((g) => g.mots.indexOf(t) >= 0).length === 1), [...PAGE_TITLES].filter((t) => GROUPES.filter((g) => g.mots.indexOf(t) >= 0).length !== 1))
+check('About is the one page nobody groups with the others: it closes the list from Other settings', where('about') === 2)
+check('the old « Kybernos » section, its Desktop divider and the shell\'s Settings header are gone (a header named like a page, 23 pages under it)', !/settings\.group\.(kybernos|settings|desktop|plugins)|settings\.divider\.desktop|settings-divider/.test(SRC))
 check('the « seen » flags follow the number of sections', /const vus = GROUPES\.map\(\(\) => false\)/.test(block))
+check('a page no section knows (a plugin added later) sits after them all, before About', /cellule\.style\.order = String\(450 \+ idx\)/.test(block))
+
+console.log('the Advanced fold: shut by itself, open when the person needs it, remembered')
+const fa = SRC.indexOf('const kbFoldNext = ')
+const fb = SRC.indexOf('// </kb-settings-fold>')
+const FOLD = fa < 0 || fb < fa ? null : new Function(SRC.slice(fa, fb) + '\nreturn { kbFoldNext }')()
+check('the fold logic is cut out of client.js between its markers', FOLD !== null)
+if (FOLD !== null) {
+  const next = FOLD.kbFoldNext
+  check('a person who never chose finds it shut', next({ stored: null, inside: false, changed: false }).open === false)
+  check('a person who opened it finds it open, and one who shut it finds it shut', next({ stored: true, inside: false, changed: false }).open === true && next({ stored: false, inside: false, changed: false }).open === false)
+  const landed = next({ stored: false, inside: true, changed: true })
+  check('landing on a page inside it (a deep link, a help pointer, a click on a row of the Suite) opens it, and that is remembered', landed.open === true && landed.remember === true, landed)
+  check('staying on a page inside it does not fight the person who shuts the fold on purpose', next({ stored: false, inside: true, changed: false }).open === false)
+  check('landing on a page outside it changes nothing', next({ stored: false, inside: false, changed: true }).open === false && next({ stored: true, inside: false, changed: true }).open === true)
+  check('a fold that is already open is not written again', next({ stored: true, inside: true, changed: true }).remember === false)
+}
+check('the fold remembers its state through the shared helper (one store for every fold)', /const PLI_ID = 'settings-advanced'/.test(block) && /kbCzWrite\(PLI_ID, /.test(block) && /kbCzRead\(PLI_ID\)/.test(block) && /window\.__KB_CUSTOMIZE__ = \{ Fold: KbCustomize/.test(SRC))
+check('the nav\'s fold button is the shared one (the same button as the Customize fold of a page)', /kbCzToggle\(GROUPES\[g\]\.titre/.test(block))
+check('the shut fold hides only its own entries, only in the Settings list, and never the page the person is on', /\[class\*="navList"\]\[data-kb-settings\]\[data-kb-fold="shut"\]:not\(\[data-kb-searching\]\) \[data-kb-fold-cell\]:not\(\[aria-current="true"\]\)\{display:none\}/.test(SRC))
+check('the search box opens it while a query runs (a match inside must show) and lets go when the query is cleared', /setAttribute\('data-kb-searching', '1'\)/.test(SRC) && /removeAttribute\('data-kb-searching'\)/.test(SRC))
+check('the search hides a header with no entry left under it, and the fold\'s header is no <button> (the phone layout takes a tap on a nav button for « a page was picked »)', /hd\.style\.display = /.test(SRC) && /document\.createElement\(plain === true \? 'div' : 'button'\)/.test(SRC) && /kbCzToggle\(GROUPES\[g\]\.titre, false, \(\) => basculer\(liste\), true\)/.test(block))
+check('the observer also hears the page change (aria-current), so a click on a hidden row opens the fold', /attributeFilter: \['aria-current'\]/.test(block))
+check('Theme and Language are drawn under Appearance, one step in', /data-kb-sub/.test(block) && /\[data-kb-sub\]\{padding-inline-start:/.test(SRC))
 
 console.log('room at the end, smaller names')
 check('the Settings list is marked, so only it is restyled', block.indexOf("liste.dataset.kbSettings = '1'") > 0)

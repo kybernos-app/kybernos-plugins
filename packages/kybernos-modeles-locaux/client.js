@@ -74,7 +74,6 @@ window.__ModuleLoader__.load({
 
       // ── i18n minimal (fr d'abord, en en repli) ───────────────────────────
       const KB_M_T = {
-        'kml.titre': { fr: 'Modèles locaux', en: 'Local models' },
         'kml.soustitre': { fr: 'Un modèle qui tourne sur cette machine — détecté, recommandé, branché sur DSH.', en: 'A model running on this machine — detected, recommended, wired into DSH.' },
         'kml.machine': { fr: 'Machine :', en: 'Machine:' },
         'kml.mesure': { fr: 'mesuré — sysctl', en: 'measured — sysctl' },
@@ -758,7 +757,7 @@ window.__ModuleLoader__.load({
 
         return h('div', { className: 'kml-root', 'data-kml': 'panneau' },
           h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-modeles-locaux' }) : null)),
-          h('h2', { className: 'kml-titre' }, m('kml.titre')),
+          h('h2', { className: 'kml-titre' }, m('kml.page.titre')),
           h('p', { className: 'kml-soustitre' }, m('kml.soustitre')),
           h('div', { className: 'kml-tuiles' },
             machine === null

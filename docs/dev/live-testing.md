@@ -61,6 +61,10 @@ await live.close()                         // kills Chrome, removes the profile
   when the secret is unreadable, or when the GUI never renders.
 - The GUI has no URL routes: pages are reached by clicking. `clickText` matches an
   element's own text, ignoring the `⟦ ⟧` pseudo-translation marks.
+- **Settings has a fold.** Most of our pages (Usage, Workers, Calls, Web Search…) sit under a shut « Advanced » header, and a hidden
+  cell cannot take a real mouse click. `openSettings(page)` opens the fold for you (in the throw-away browser's own storage: nothing of
+  your DSH changes); pass `{ fold: 'keep' }` to leave it as it is (the check of the fold itself does). A script that clicks the cell
+  with `cell.click()` reaches a page either way, and landing on a page inside the fold opens it, as it does for a person.
 - The built-in browser pane of the Claude desktop app cannot be used for this: it
   has no cookie access, so it stops at the 401 page.
 

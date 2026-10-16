@@ -513,12 +513,11 @@ let kbLocaleRead = () => 'en'
       'menu.referral.copycode': { kybernos: 'Copier le code', en: 'Copy code' },
       'menu.referral.copylink': { kybernos: 'Copier le lien', en: 'Copy link' },
       'menu.referral.copied': { kybernos: 'Copié', en: 'Copied' },
-      // ── groupes du menu Réglages (maquette « Settings Menu », 30/09 soir) ──
-      'settings.group.kybernos': { kybernos: 'Kybernos', en: 'Kybernos' },
-      'settings.group.settings': { kybernos: 'Réglages', en: 'Settings' },
-      'settings.group.desktop': { kybernos: 'Réglages du poste', en: 'Desktop settings' },
-      'settings.group.plugins': { kybernos: 'Plugins tiers', en: 'Third Party Plugins' },
-      'settings.divider.desktop': { kybernos: 'Desktop', en: 'Desktop' },
+      // ── Settings menu sections: the essentials have no header, then a fold « Advanced » and « Other settings » (audit N-01, V-24) ──
+      'settings.group.advanced': { kybernos: 'Avancé', en: 'Advanced' },
+      'settings.group.other': { kybernos: 'Autres réglages', en: 'Other settings' },
+      // « A short automatic state + a Customize fold »: the label of the fold every page shares (window.__KB_CUSTOMIZE__, audit N-08)
+      'kbcz.customize': { kybernos: 'Personnaliser', en: 'Customize' },
       'kbac.appearance': { kybernos: 'Apparence', en: 'Appearance' },
       'kbac.appearance.sub': { kybernos: 'Choisissez le thème de l\'interface.', en: 'Choose the interface theme.' },
       'kbac.theme.light': { kybernos: 'Clair', en: 'Light' },
@@ -2599,6 +2598,18 @@ const kbNavTitles = (texts, keys) => texts.map((t, i) => {
   return typeof key === 'string' && Object.prototype.hasOwnProperty.call(KB_NAV_KEYS, key) ? KB_NAV_KEYS[key] : t
 })
 // </kb-nav-titles>
+
+// ── The « Advanced » fold of the Settings menu: when it is open (<kb-settings-fold>) ──
+// Shut until the person needs it. It opens by itself when they LAND on a page inside it (a deep link, a help pointer, a click on a row of the
+// Suite: the cell is clicked while hidden, and the page changes) and that is remembered, like any choice; staying on such a page does not
+// fight a person who shuts it on purpose. The search box opens it on its own, apart from this (a query shows every match, and lets go after).
+//   stored: what the person chose (true / false / null for never); inside: the page now open is one of the fold's;
+//   changed: it is not the page that was open at the last look.   Returns { open, remember }: remember = write « open » to the store.
+const kbFoldNext = (state) => {
+  const landed = state.inside === true && state.changed === true
+  return { open: landed || state.stored === true, remember: landed && state.stored !== true }
+}
+// </kb-settings-fold>
 
 // ── DSH's Settings, opened from outside the sidebar (<kb-open-settings>) ─────────────────────────────────────
 // The sidebar's settings seat renders DSH's ACCOUNT launcher (slot `settings.launcher`) whenever the account plugin is mounted, and
@@ -8083,6 +8094,82 @@ return {
     /** Class suffix that makes the i-th real row fade in: only the first screenful (12) animates. */
     const kbIn = (i) => (typeof i === 'number' && i >= 0 && i < KB_APPEAR_MAX ? ' kb-in' : '')
     try { if (typeof window !== 'undefined') window.__KB_SKEL__ = { bone: kbBone, line: kbBoneLine, wrap: kbSkelWrap, appear: kbIn, max: KB_APPEAR_MAX } } catch (e) { /* outside a browser */ }
+    // ── « A short automatic state + a Customize fold »: ONE helper for every settings page (audit N-08) ────────────
+    // Simple and automatic by default, customisable on demand. A page opens on what already runs by itself (one sentence and one status)
+    // and keeps its knobs under ONE fold that is shut until the person opens it, and that remembers the choice. The Settings nav builds its
+    // « Advanced » group with the same store, the same button and the same look (kbCzToggle); a page of another bundle reads the rest from
+    // window.__KB_CUSTOMIZE__ (like __KB_SKEL__ above) and falls back to its own markup when the core plugin is not there.
+    //   h(window.__KB_CUSTOMIZE__.Fold, { id: 'memory', state: 'Memory is on and tidies itself.', tone: 'on' }, …the knobs…)
+    //   props: id (the store key), state (the sentence), tone ('on' green dot, 'off' grey, 'warn' amber), label (default « Customize »),
+    //   defaultOpen (when the person never chose: shut by default).
+    const KB_CZ_STORE = 'kybernos.fold.'
+    const KB_CZ_CHEV = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>'
+    const kbCzMem = {}
+    /** What the person chose for a fold: true (open), false (shut), or null when they never chose. */
+    const kbCzRead = (id) => {
+      if (typeof kbCzMem[id] === 'boolean') return kbCzMem[id]
+      try {
+        const v = window.localStorage.getItem(KB_CZ_STORE + id)
+        if (v === '1') return true
+        if (v === '0') return false
+      } catch (e) { /* storage refused: the fold keeps its default */ }
+      return null
+    }
+    const kbCzWrite = (id, open) => {
+      kbCzMem[id] = open === true // a browser that keeps nothing still remembers until the page is closed
+      try { window.localStorage.setItem(KB_CZ_STORE + id, open === true ? '1' : '0') } catch (e) { /* storage refused: the memory above is enough for now */ }
+    }
+    /** The Customize fold of a page: the state sentence on top, then a button that shows or hides what the page lets people change. */
+    const KbCustomize = (props) => {
+      const id = String(props.id)
+      const pair = React.useState(() => { const saved = kbCzRead(id); return saved === null ? props.defaultOpen === true : saved })
+      const open = pair[0]
+      const tone = props.tone === 'off' || props.tone === 'warn' ? props.tone : 'on'
+      return h('section', { className: 'kb-cz', 'data-kb': 'customize', 'data-open': open ? '1' : '0' },
+        h('p', { className: 'kb-cz-state', role: 'status' }, h('span', { className: 'kb-cz-dot ' + tone, 'aria-hidden': 'true' }), props.state),
+        h('button', { type: 'button', className: 'kb-cz-toggle', 'aria-expanded': open ? 'true' : 'false', onClick: () => { kbCzWrite(id, !open); pair[1](!open) } },
+          h('span', { className: 'kb-cz-chev', 'aria-hidden': 'true', dangerouslySetInnerHTML: { __html: KB_CZ_CHEV } }),
+          typeof props.label === 'string' ? props.label : kbt('kbcz.customize')),
+        open ? h('div', { className: 'kb-cz-body' }, props.children) : null)
+    }
+    /** The same button for a fold that is not a React tree (the Settings nav): a plain element, `onToggle` is called on a click. `plain`: a div with
+     *  role="button" instead of a <button> — the Settings list is full of rules for its buttons (the phone layout takes a tap on one for « a page was
+     *  picked » and hides the list), and the fold's header is not a page. */
+    const kbCzToggle = (label, open, onToggle, plain) => {
+      const b = document.createElement(plain === true ? 'div' : 'button')
+      if (plain === true) {
+        b.setAttribute('role', 'button')
+        b.tabIndex = 0
+        b.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } })
+      } else b.type = 'button'
+      b.className = 'kb-cz-toggle'
+      b.setAttribute('aria-expanded', open ? 'true' : 'false')
+      const chev = document.createElement('span')
+      chev.className = 'kb-cz-chev'
+      chev.setAttribute('aria-hidden', 'true')
+      chev.innerHTML = KB_CZ_CHEV
+      const text = document.createElement('span')
+      text.textContent = label
+      b.append(chev, text)
+      b.addEventListener('click', onToggle)
+      return b
+    }
+    ctx.effect(() => styles.insert(`
+.kb-cz{display:flex;flex-direction:column;gap:10px;min-width:0}
+.kb-cz-state{margin:0;display:flex;align-items:center;gap:8px;font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
+.kb-cz-dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-state-idle-primary,var(--dsw-alias-label-tertiary))}
+.kb-cz-dot.on{background:var(--dsw-alias-state-success-primary)}
+.kb-cz-dot.warn{background:var(--dsw-alias-state-warn-primary)}
+.kb-cz-toggle{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;margin:0;padding:2px 6px 2px 0;border:none;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:500;line-height:22px;cursor:pointer}
+.kb-cz-toggle:hover{color:var(--dsw-alias-label-primary)}
+.kb-cz-toggle:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.kb-cz-chev{display:inline-flex;flex:none;transition:transform .15s}
+.kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:rotate(90deg)}
+html[dir="rtl"] .kb-cz-chev{transform:scaleX(-1)}
+html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX(-1) rotate(90deg)}
+@media (prefers-reduced-motion:reduce){.kb-cz-chev{transition:none}}
+`), 'kybers: styles customize')
+    try { if (typeof window !== 'undefined') window.__KB_CUSTOMIZE__ = { Fold: KbCustomize, read: kbCzRead, write: kbCzWrite, toggle: kbCzToggle } } catch (e) { /* outside a browser */ }
     // Deux icones voisines ne suffisaient pas a lire le mode courant : le
     // selecteur est un groupe segmente, le mode actif porte son libelle et
     // chaque bouton expose son etat (`aria-pressed`) aux lecteurs d'ecran.
@@ -25539,112 +25626,14 @@ function renderFit(canvas, model, cam, opts){
         }
       } catch (e) { /* menu natif absent ou refondu */ }
     }
-    // ── le popup Paramètres : une icône par section Kybernos ────────────────
-    // Le shell DSH (dsh-client-ui-settings-general) choisit l'icône d'une ligne
-    // dans une table en dur indexée par l'ID de section — models, agent-presets,
-    // plugins, archived-sessions — et tout le reste retombe sur l'engrenage
-    // générique. Or le slot `settings.section` ne transporte que { id, order,
-    // label } : aucune icône n'est déclarable. On habille donc la ligne par son
-    // libellé, seule clé présente dans le DOM, et c'est celui que NOUS
-    // enregistrons. Un libellé renommé laisse simplement l'engrenage natif : on
-    // dégrade, on ne peint jamais au hasard. `voice` est traduit (Voix /
-    // Voice), d'où les deux graphies.
-    // Les libellés sont comparés sans accent et en minuscules : « Thème ·
-    // Kybernos » se compare donc à la clé ASCII `theme · kybernos` — le filet
-    // i18n du dépôt (aucun libellé français nu hors table de locales) reste
-    // tenu, et le rapprochement survit à une graphie accentuée ou non.
-    const kbNavCle = (v) => {
-      try { return String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim() } catch (e) { return String(v).toLowerCase().trim() }
-    }
-    const KB_NAV_ICONES = {
-      'theme · kybernos': 'palette',
-      // Les sections Thème et Langue sont désormais enregistrées via des
-      // fonctions bilingues : le libellé réellement peint est la forme COURTE
-      // (« Theme », « Language »), pas « Thème · Kybernos ». C'est elle qui
-      // doit être indexée ici, sinon la ligne garde l'engrenage natif
-      // (constaté en capture le 01/10 : Theme, Language et le catalogue
-      // n'avaient AUCUNE icône).
-      theme: 'palette',
-      // La section Langue vit dans son propre bundle depuis le 01/10/2026
-      // (@local/kybernos-language, satellite activable) : elle garde son siège
-      // { id, order, label }, l'icône se déclare ici.
-      language: 'languages',
-      langue: 'languages',
-      voice: 'audio-lines',
-      voix: 'audio-lines',
-      commands: 'square-slash',
-      commandes: 'square-slash',
-      plugins: 'puzzle',
-      // La page de réglages de kybernos-sessions (interrupteur de re-titrage) :
-      // une section Kybernos de plus dans le popup Paramètres.
-      'kybernos settings': 'settings',
-      'kybernos plugins': 'puzzle',
-      // (01/10) Section dédiée du bundle kybernos-modeles-locaux — disque dur
-      // Lucide, la même icône que sa carte dans Kybernos Plugins.
-      'ollama local models': 'hardDrive',
-      'modeles locaux ollama': 'hardDrive',
-      // Le catalogue de modèles (kybernos-models), passé du menu principal à
-      // un menu de Réglages le 24/09/2026 : le siège `settings.section` ne
-      // transporte que { id, order, label } — l'icône se déclare donc ICI,
-      // indexée par le libellé normalisé que ce plugin peint.
-      'kybernos models': 'key',
-      'fournisseur ia & modeles': 'key',
-      'ai provider & models': 'key'
-    }
-    // Le svg natif RESTE dans le DOM (React continue de le gérer) : on masque
-    // ses tracés par attribut, et on peint le glyphe en MASQUE — la couleur
-    // vient alors de `currentColor`, donc l'icône suit le survol et la ligne
-    // active sans qu'on ait à repeindre quoi que ce soit.
-    const KB_NAV_ICON_CSS = '[class*="navIcon"][data-kb-nav]>*{display:none!important}'
-    const kbDecorateSettingsNav = () => {
-      try {
-        if (typeof document === 'undefined' || document === null || document.body === null) return
-        const cellules = document.querySelectorAll('[class*="navCell"]')
-        for (const cellule of cellules) {
-          const label = kbNavCle(cellule.textContent === null || cellule.textContent === undefined ? '' : cellule.textContent)
-          const icone = KB_NAV_ICONES[label]
-          if (icone === undefined) continue
-          const slot = cellule.querySelector('[class*="navIcon"]')
-          if (slot === null || slot === undefined) continue
-          const nodes = Array.isArray(kbIconCache[icone]) === true ? kbIconCache[icone] : null
-          // On indexe ce qui EST peint : le catalogue d'icônes arrive en
-          // différé, donc une clé fondée sur le seul souhait figerait la ligne
-          // sur l'engrenage pour de bon.
-          const url = nodes === null ? null : kbIconGlyphUrl(nodes, 16, '#000')
-          if (url === null) {
-            if (slot.getAttribute('data-kb-nav') !== null) {
-              slot.removeAttribute('data-kb-nav')
-              slot.style.maskImage = ''
-              slot.style.webkitMaskImage = ''
-              slot.style.backgroundColor = ''
-            }
-            continue
-          }
-          if (slot.getAttribute('data-kb-nav') === icone) continue
-          slot.setAttribute('data-kb-nav', icone)
-          slot.style.webkitMaskImage = url
-          slot.style.maskImage = url
-          slot.style.webkitMaskRepeat = 'no-repeat'
-          slot.style.maskRepeat = 'no-repeat'
-          slot.style.webkitMaskPosition = 'center'
-          slot.style.maskPosition = 'center'
-          slot.style.webkitMaskSize = '16px 16px'
-          slot.style.maskSize = '16px 16px'
-          slot.style.backgroundColor = 'currentColor'
-        }
-      } catch (e) { /* popup Paramètres absent ou refondu */ }
-    }
     ctx.effect(() => {
       let stopped = false
       let obs = null
-      const tick = () => { if (stopped !== true) { kbDecorateSidebar(); kbDecorateSettingsNav() } }
+      const tick = () => { if (stopped !== true) kbDecorateSidebar() }
       // Une seule règle, globale : elle masque le dossier SVG natif de la ligne
       // dont on peint l'icône personnalisée. Le svg reste dans le DOM, donc
       // React continue de le gérer normalement.
       const killGlyphCss = styles.insert(KB_SIDEBAR_GLYPH_CSS)
-      // Sa jumelle pour la nav du popup Paramètres, où l'élément peint EST le
-      // svg : ce sont ses tracés qu'il faut masquer.
-      const killNavCss = styles.insert(KB_NAV_ICON_CSS)
       kbLoadIconNodes()
       tick()
       let iv = null
@@ -25653,11 +25642,10 @@ function renderFit(canvas, model, cam, opts){
       return () => {
         stopped = true
         try { killGlyphCss() } catch (e) { /* deja retire */ }
-        try { if (killNavCss !== null) killNavCss() } catch (e) { /* deja retire */ }
         try { if (iv !== null) clearInterval(iv) } catch (e) { /* deja nettoye */ }
         try { if (obs !== null) obs.disconnect() } catch (e) { /* deja deconnecte */ }
       }
-    }, 'kybernos: decoration du menu lateral et des sections du popup Parametres (icones)');
+    }, 'kybernos: decoration du menu lateral (icones)');
 
     // ── chargement initial : attend la session courante (auto-restauration) ──
     ctx.effect(() => {
@@ -25776,11 +25764,10 @@ function renderFit(canvas, model, cam, opts){
         }, Icon('arrowLeft', 15), h('span', { className: 'kbsb-label' }, label)),
         h(KbSettingsSearchInline, null))
     }
-    // (29/09, demande) RECHERCHE dans les Réglages : un champ dans l'en-tête
-    // filtre la navigation du dialog (boutons de section) au fil de la frappe.
-    // Vide = tout visible. Le filtrage est du pur affichage (style.display)
-    // sur les boutons du nav hôte — rien n'est démonté, et le nettoyage au
-    // démontage remet toute la liste.
+    // (29/09, request) SEARCH in Settings: a field in the header filters the dialog's navigation (section buttons) as you type. Empty = everything
+    // shows. The filtering is pure display (style.display) on the host nav's buttons — nothing is unmounted, and the cleanup on unmount puts the
+    // whole list back. While a query runs the Advanced fold is open (data-kb-searching on the list: a match inside it must show) and a section
+    // header with no entry left under it is hidden (the fold's header is no `button`, so the filter below leaves it alone).
     const KbSettingsSearchInline = () => {
       const pair = React.useState('')
       const q = pair[0]
@@ -25794,7 +25781,21 @@ function renderFit(canvas, model, cam, opts){
           const t = (b.textContent || '').trim().toLowerCase()
           b.style.display = (aiguille === '' || t.indexOf(aiguille) >= 0) ? '' : 'none'
         })
-        return () => { btns.forEach((b) => { b.style.display = '' }) }
+        const liste = dlg.querySelector('[class*="navList"]')
+        const tetes = liste === null ? [] : [...liste.querySelectorAll('[data-kb="settings-group"]')]
+        if (liste !== null) {
+          if (aiguille === '') liste.removeAttribute('data-kb-searching')
+          else liste.setAttribute('data-kb-searching', '1')
+        }
+        tetes.forEach((hd) => {
+          const reste = [...liste.querySelectorAll('[data-kb-g="' + String(hd.dataset.kbG) + '"]')].some((c) => c.dataset.kb !== 'settings-group' && c.style.display !== 'none')
+          hd.style.display = (aiguille === '' || reste) ? '' : 'none'
+        })
+        return () => {
+          btns.forEach((b) => { b.style.display = '' })
+          tetes.forEach((hd) => { hd.style.display = '' })
+          if (liste !== null) liste.removeAttribute('data-kb-searching')
+        }
       }, [q])
       const ph = kbt('settings.search')
       return h('div', { className: 'kbs-search' },
@@ -30360,11 +30361,9 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
 @media (max-width:560px){.kbac-themes{grid-template-columns:1fr}.kbac-row{align-items:flex-start;flex-wrap:wrap}}
 `), 'kybers: styles sections compte')
 
-    // ── Menu Réglages : GROUPES de la maquette « Settings Menu » (30/09) ──
-    // Le nav du shell est une colonne flex : on ne DÉPLACE aucun nœud (le
-    // reconciler du shell reste maître du DOM), on pose un style.order sur
-    // chaque cellule et on insère des EN-TÊTES de groupe. Réappliqué par
-    // un observateur quand le shell re-rend le nav.
+    // ── Settings menu: sections, order, icons and the Advanced fold ──
+    // The shell's nav is a flex column: no node is MOVED (the shell's reconciler stays in charge of the DOM). Each cell gets a style.order
+    // and the section headers are inserted; an observer applies it again whenever the shell renders the nav anew.
     ctx.effect(() => {
       const norm = (s) => {
         try {
@@ -30372,46 +30371,53 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
             .replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim()
         } catch (e) { return String(s || '').toLowerCase().trim() }
       }
-      // Sections, in order. « Kybernos » opens with the Suite, then the pages our plugins add, by what they bring and how much the rest
-      // leans on them (the models, then what picks one, then what the agents keep, do and reach, then comfort). The order INSIDE a section is
-      // the position of the title in `mots`; a page of a plugin not listed here falls to the tail (450+), the shell's own pages keep theirs.
-      // `bureau`: the section that follows the « Desktop » divider.
+      // Sections, in order (audit N-01, V-24: 28 entries at once, 23 of them under one heading, General at the bottom). The ESSENTIALS come
+      // first and have no header: General, then what a newcomer needs (the models, what the agents keep, the skills, the connectors, the look).
+      // « Advanced » is a fold, shut until the person needs it: the rest of our pages, in the order the owner gave. « Other settings » holds
+      // the shell's own two (Built-in plugins, Agent presets) and the pages a plugin adds later (they fall to its tail, 450+), and About closes
+      // the list. The order INSIDE a section is the position of the title in `mots`.
+      // `pliable`: the section is a fold (its header is a button, its cells are hidden while it is shut).
       const GROUPES = [
-        // One group: the servers entry (the private Select server module), the section of what stays on this computer (kybernos-cloud's
-        // `kybernos-local`), then the Suite and our plugins' pages. The account's own pages are not in Settings (the footer menu opens them).
-        { titre: kbt('settings.group.kybernos'), mots: [
+        { titre: null, mots: [
+          'general', 'mon espace', 'my workspace',
+          'fournisseur ia & modeles', 'ai provider & models', 'ai providers & models',
+          'memory & lessons',
+          'skills',
+          'connectors',
+          'apparence', 'appearance',
+          'theme',
+          'langue', 'language'
+        ] },
+        { titre: kbt('settings.group.advanced'), pliable: true, mots: [
           'serveurs', 'servers',
           'kybernos',
           'kybernos suite',
-          'fournisseur ia & modeles', 'ai provider & models', 'ai providers & models',
           'auto routing',
-          'memory & lessons',
           'usage',
           'workers',
           'automations',
           'outils', 'tools',
-          'skills',
-          'connectors',
-          'cloud computers',
           'web search',
           'calls', 'appels',
           'remote control',
+          'cloud computers',
           'commandes', 'commands',
           'atlas',
           'ollama local models',
           'free llms',
-          'voix', 'voice',
-          'langue', 'language',
-          'apparence', 'appearance',
-          'theme'
+          'voix', 'voice'
         ] },
-        { titre: kbt('settings.group.settings'), mots: ['general', 'mon espace', 'my workspace'] },
-        { titre: kbt('settings.group.desktop'), bureau: true, mots: ['models', 'agent presets', 'plugins kybernos', 'kybernos plugins', 'about', 'a propos'] },
-        { titre: kbt('settings.group.plugins'), mots: ['plugins', 'listing', 'built-in plugins'] },
+        { titre: kbt('settings.group.other'), mots: ['plugins', 'listing', 'built-in plugins', 'models', 'agent presets', 'plugins kybernos', 'kybernos plugins', 'about', 'a propos'] },
       ]
-      // Icônes VARIÉES du nav (maquette « Settings Menu ») : tracés Lucide
-      // 24×24, posés dans le svg natif de la cellule (viewBox réécrit).
-      // stroke=currentColor : l'icône suit l'état actif/inactif du shell.
+      // Theme and Language belong to Appearance: they are drawn one step in under it (their pages stay what they were).
+      const SOUS_APPARENCE = ['theme', 'langue', 'language', 'tema', 'idioma']
+      // The fold's id in the shared store (kbCzRead / kbCzWrite: the person's choice survives a reload).
+      const PLI_ID = 'settings-advanced'
+      const PLI = GROUPES.findIndex((g) => g.pliable === true)
+      // The ONE icon table of the Settings menu (audit V-25: no two pages share a drawing, test-settings-icons.mjs reads it): Lucide drawings
+      // on a 24×24 grid, keyed by the page's normalised title and put into the cell's native svg (viewBox rewritten). stroke=currentColor: the
+      // icon follows the shell's active / inactive state. There used to be a second table that painted a mask over this one once the icon
+      // catalogue had come from the server: it made Theme a palette again (like Appearance), and only in English.
       const trait = 'stroke="currentColor" stroke-width="1.75" fill="none" stroke-linecap="round" stroke-linejoin="round"'
       const ICONES = {
         'compte': '<circle cx="12" cy="8" r="4" ' + trait + '/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" ' + trait + '/>',
@@ -30422,26 +30428,26 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         'servers': '<rect x="2" y="2" width="20" height="8" rx="2" ' + trait + '/><rect x="2" y="14" width="20" height="8" rx="2" ' + trait + '/><line x1="6" y1="6" x2="6.01" y2="6" ' + trait + '/><line x1="6" y1="18" x2="6.01" y2="18" ' + trait + '/>',
         'kybernos': '<rect x="3" y="4" width="18" height="12" rx="2" ' + trait + '/><path d="M2 20h20" ' + trait + '/>',
         'general': '<path d="M4 7h10M18 7h2M4 17h2M10 17h10" ' + trait + '/><circle cx="16" cy="7" r="2" ' + trait + '/><circle cx="8" cy="17" r="2" ' + trait + '/>',
-        'commandes': '<polyline points="4 17 10 11 4 5" ' + trait + '/><line x1="12" y1="19" x2="20" y2="19" ' + trait + '/>',
-        'commands': '<polyline points="4 17 10 11 4 5" ' + trait + '/><line x1="12" y1="19" x2="20" y2="19" ' + trait + '/>',
+        'commandes': '<rect width="18" height="18" x="3" y="3" rx="2" ' + trait + '/>' + '<line x1="9" x2="15" y1="15" y2="9" ' + trait + '/>',
+        'commands': '<rect width="18" height="18" x="3" y="3" rx="2" ' + trait + '/>' + '<line x1="9" x2="15" y1="15" y2="9" ' + trait + '/>',
         'theme': '<circle cx="12" cy="12" r="9" ' + trait + '/><path d="M12 3v18M12 3a9 9 0 0 1 0 18z" ' + trait + '/>',
         'mon espace': '<path d="M4 21V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16M14 10h5a1 1 0 0 1 1 1v10M2 21h20M8 8h2M8 12h2M8 16h2" ' + trait + '/>',
         'atlas': '<polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" ' + trait + '/><line x1="9" y1="3" x2="9" y2="18" ' + trait + '/><line x1="15" y1="6" x2="15" y2="21" ' + trait + '/>',
         'usage': '<path d="m12 14 4-4" ' + trait + '/><path d="M3.34 19a10 10 0 1 1 17.32 0" ' + trait + '/>',
-        'fournisseur ia & modeles': '<path d="M12 3l2 6 6 3-6 3-2 6-2-6-6-3 6-3z" ' + trait + '/>',
-        'ai provider & models': '<path d="M12 3l2 6 6 3-6 3-2 6-2-6-6-3 6-3z" ' + trait + '/>',
-        'ai providers & models': '<path d="M12 3l2 6 6 3-6 3-2 6-2-6-6-3 6-3z" ' + trait + '/>',
+        'fournisseur ia & modeles': '<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" ' + trait + '/>' + '<path d="m21 2-9.6 9.6" ' + trait + '/>' + '<circle cx="7.5" cy="15.5" r="5.5" ' + trait + '/>',
+        'ai provider & models': '<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" ' + trait + '/>' + '<path d="m21 2-9.6 9.6" ' + trait + '/>' + '<circle cx="7.5" cy="15.5" r="5.5" ' + trait + '/>',
+        'ai providers & models': '<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" ' + trait + '/>' + '<path d="m21 2-9.6 9.6" ' + trait + '/>' + '<circle cx="7.5" cy="15.5" r="5.5" ' + trait + '/>',
         'models': '<path d="M12 2 2 7l10 5 10-5-10-5z" ' + trait + '/><path d="M2 12l10 5 10-5" ' + trait + '/><path d="M2 17l10 5 10-5" ' + trait + '/>',
-        'voix': '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" ' + trait + '/><path d="M19 10v1a7 7 0 0 1-14 0v-1" ' + trait + '/><line x1="12" y1="19" x2="12" y2="22" ' + trait + '/>',
-        'voice': '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" ' + trait + '/><path d="M19 10v1a7 7 0 0 1-14 0v-1" ' + trait + '/><line x1="12" y1="19" x2="12" y2="22" ' + trait + '/>',
+        'voix': '<path d="M2 10v3" ' + trait + '/>' + '<path d="M6 6v11" ' + trait + '/>' + '<path d="M10 3v18" ' + trait + '/>' + '<path d="M14 8v7" ' + trait + '/>' + '<path d="M18 5v13" ' + trait + '/>' + '<path d="M22 10v3" ' + trait + '/>',
+        'voice': '<path d="M2 10v3" ' + trait + '/>' + '<path d="M6 6v11" ' + trait + '/>' + '<path d="M10 3v18" ' + trait + '/>' + '<path d="M14 8v7" ' + trait + '/>' + '<path d="M18 5v13" ' + trait + '/>' + '<path d="M22 10v3" ' + trait + '/>',
         'outils': '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" ' + trait + '/>',
         'tools': '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" ' + trait + '/>',
         'web search': '<circle cx="11" cy="11" r="7" ' + trait + '/><path d="m20 20-3.5-3.5" ' + trait + '/><path d="M4 11h14M11 4c2 2 3 4.5 3 7s-1 5-3 7c-2-2-3-4.5-3-7s1-5 3-7z" ' + trait + '/>',
         'agent presets': '<rect x="4" y="8" width="16" height="12" rx="2" ' + trait + '/><line x1="12" y1="8" x2="12" y2="5" ' + trait + '/><circle cx="9" cy="14" r="1" fill="currentColor"/><circle cx="15" cy="14" r="1" fill="currentColor"/><line x1="2" y1="13" x2="4" y2="13" ' + trait + '/><line x1="20" y1="13" x2="22" y2="13" ' + trait + '/>',
         'about': '<circle cx="12" cy="12" r="10" ' + trait + '/><path d="M12 16v-4" ' + trait + '/><path d="M12 8h.01" ' + trait + '/>',
         'a propos': '<circle cx="12" cy="12" r="10" ' + trait + '/><path d="M12 16v-4" ' + trait + '/><path d="M12 8h.01" ' + trait + '/>',
-        'langue': '<circle cx="12" cy="12" r="10" ' + trait + '/><path d="M2 12h20" ' + trait + '/><path d="M12 2a15 15 0 0 1 0 20a15 15 0 0 1 0-20z" ' + trait + '/>',
-        'language': '<circle cx="12" cy="12" r="10" ' + trait + '/><path d="M2 12h20" ' + trait + '/><path d="M12 2a15 15 0 0 1 0 20a15 15 0 0 1 0-20z" ' + trait + '/>',
+        'langue': '<path d="m5 8 6 6" ' + trait + '/>' + '<path d="m4 14 6-6 2-3" ' + trait + '/>' + '<path d="M2 5h12" ' + trait + '/>' + '<path d="M7 2h1" ' + trait + '/>' + '<path d="m22 22-5-10-5 10" ' + trait + '/>' + '<path d="M14 18h6" ' + trait + '/>',
+        'language': '<path d="m5 8 6 6" ' + trait + '/>' + '<path d="m4 14 6-6 2-3" ' + trait + '/>' + '<path d="M2 5h12" ' + trait + '/>' + '<path d="M7 2h1" ' + trait + '/>' + '<path d="m22 22-5-10-5 10" ' + trait + '/>' + '<path d="M14 18h6" ' + trait + '/>',
         'memory & lessons': '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" ' + trait + '/><path d="M9 18h6" ' + trait + '/><path d="M10 22h4" ' + trait + '/>',
         'ollama local models': '<path d="M12 2 2 7l10 5 10-5-10-5z" ' + trait + '/><path d="M2 12l10 5 10-5" ' + trait + '/>',
         'plugins kybernos': '<rect x="3" y="3" width="7" height="7" rx="1" ' + trait + '/><rect x="14" y="3" width="7" height="7" rx="1" ' + trait + '/><rect x="3" y="14" width="7" height="7" rx="1" ' + trait + '/>',
@@ -30461,11 +30467,9 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         'remote control': '<rect x="5" y="2" width="14" height="20" rx="2" ry="2" ' + trait + '/><path d="M12 18h.01" ' + trait + '/>',
         'calls': '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" ' + trait + '/>',
       }
-      // Variantes de LANGUE des libellés : sous une langue traduite, le titre
-      // affiché d'une cellule n'est plus fr/en et le reconnaissance par mot-clé
-      // (GROUPES + ICONES) échouait — l'ordre du menu changeait et les icônes
-      // variées n'étaient plus peintes (constaté en espagnol, 08/10). Chaque
-      // variante pointe la clé canonique fr/en dont elle reprend groupe et tracé.
+      // LANGUAGE variants of the titles: under a translated language the title drawn on a cell is no longer French or English and the match
+      // by keyword (GROUPES + ICONES) failed — the menu changed order and the varied icons were no longer painted (seen in Spanish, 08/10).
+      // Each variant points at the canonical French / English key whose section and drawing it takes over.
       for (const [variante, base] of Object.entries({
         'cuenta': 'compte',
         'apariencia': 'apparence',
@@ -30477,7 +30481,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
           if (GROUPES[g].mots.indexOf(base) !== -1 && GROUPES[g].mots.indexOf(variante) === -1) GROUPES[g].mots.push(variante)
         }
       }
-      // Libellés (normalisés) qui ferment le menu des Réglages, quelle que soit leur place dans GROUPES.
+      // Titles (normalised) that close the Settings menu, wherever GROUPES puts them.
       const FIN_DE_LISTE = ['about', 'a propos']
       const rang = (libelle) => {
         const n = norm(libelle)
@@ -30486,8 +30490,8 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         }
         return -1
       }
-      // icône VARIÉE : le svg natif de la cellule reçoit le tracé du libellé (plusieurs items partageaient la même icône shell).
-      // Posée AVANT le tri par groupe : une page de plugin qui n'est dans aucun groupe garde sa place en queue, mais plus l'engrenage.
+      // Varied icon: the shell's native svg gets the drawing of the page's title (several items used to share the shell's gear). Put on BEFORE
+      // the section sort: a plugin page that is in no section keeps its place at the tail, but no longer the gear.
       const poserIcone = (cellule, n) => {
         const icone = ICONES[n]
         const svg = cellule.querySelector('svg')
@@ -30499,28 +30503,47 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         }
       }
       let minuteur = null
+      // The Advanced fold. Shut or open is ONE attribute of the list (data-kb-fold): a stylesheet rule hides the fold's cells, the cells
+      // themselves are never touched (React owns them). It follows the person's saved choice, the page they land on (kbFoldNext) and, apart from
+      // this, the search box (data-kb-searching, set by KbSettingsSearchInline).
+      const suivrePli = (liste, cellules) => {
+        if (PLI < 0) return
+        const actif = cellules.find((c) => c.getAttribute('aria-current') === 'true')
+        const page = actif === undefined ? '' : String(actif.dataset.kbT || '')
+        const plan = kbFoldNext({ stored: kbCzRead(PLI_ID), inside: actif !== undefined && actif.dataset.kbG === String(PLI), changed: page !== (liste.dataset.kbActive || '') })
+        liste.dataset.kbActive = page
+        if (plan.remember) kbCzWrite(PLI_ID, true)
+        liste.dataset.kbFold = plan.open ? 'open' : 'shut'
+        const bouton = liste.querySelector('[data-kb-fold-toggle]')
+        if (bouton !== null) bouton.setAttribute('aria-expanded', plan.open ? 'true' : 'false')
+      }
+      const basculer = (liste) => {
+        if (liste.hasAttribute('data-kb-searching')) return // a search is running: every match shows, whatever the fold says
+        const ouvre = liste.dataset.kbFold !== 'open'
+        kbCzWrite(PLI_ID, ouvre)
+        liste.dataset.kbFold = ouvre ? 'open' : 'shut'
+        const bouton = liste.querySelector('[data-kb-fold-toggle]')
+        if (bouton !== null) bouton.setAttribute('aria-expanded', ouvre ? 'true' : 'false')
+      }
       const organiser = () => {
         const listes = Array.from(document.querySelectorAll('[class*="navList"]'))
         for (let li = 0; li < listes.length; li++) {
           const liste = listes[li]
           const cellules = Array.from(liste.children).filter((e) => String(e.className || '').indexOf('navCell') !== -1)
           if (cellules.length === 0) continue
-          // le nav des Réglages se reconnaît à ses cellules connues (General,
-          // Compte, Thème…) — les autres navs de l'app n'en portent aucune.
+          // The Settings nav is recognised by its known cells (General, Theme…): the app's other navs carry none of them.
           // Titles by what the cells stand for, not by how they are drawn in the language of the day (kbNavTitles).
           const dessines = cellules.map((e) => norm(e.textContent))
           const titres = kbNavTitles(dessines, cellules.map(kbNavKeyOf))
           if (titres.every((t) => rang(t) === -1)) continue
-          // Idempotence : si les cellules n'ont pas changé et que les
-          // en-têtes sont déjà posés, on ne touche à rien — sinon
-          // l'observateur se ré-amorce sur ses propres mutations et
-          // boucle (constaté 30/09 : le nav clignotait hors ordre).
+          // Idempotence: when the cells have not changed and the headers are already there, nothing is touched (only the fold follows the
+          // page) — else the observer re-arms itself on its own mutations and loops (seen 30/09: the nav flickered out of order).
           const signature = dessines.join('|')
           const tetes = liste.querySelectorAll('[data-kb="settings-group"]')
-          if (liste.dataset.kbSig === signature && tetes.length === GROUPES.length) continue
+          const attendues = GROUPES.filter((g) => g.titre !== null && titres.some((t) => g.mots.indexOf(t) !== -1)).length
+          if (liste.dataset.kbSig === signature && tetes.length === attendues) { suivrePli(liste, cellules); continue }
           liste.dataset.kbSig = signature
           Array.from(tetes).forEach((e) => e.remove())
-          Array.from(liste.querySelectorAll('[data-kb="settings-divider"]')).forEach((e) => e.remove())
           liste.dataset.kbSettings = '1'
           const vus = GROUPES.map(() => false)
           cellules.forEach((cellule, idx) => {
@@ -30532,31 +30555,33 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
               if (pos !== -1) { g = k; wi = pos; break }
             }
             poserIcone(cellule, n)
+            cellule.dataset.kbT = n
+            cellule.removeAttribute('data-kb-g')
+            cellule.removeAttribute('data-kb-fold-cell')
+            cellule.removeAttribute('data-kb-sub')
             if (g === -1) { cellule.style.order = String(450 + idx); return }
+            cellule.dataset.kbG = String(g)
+            if (GROUPES[g].pliable === true) cellule.dataset.kbFoldCell = '1'
+            if (g === 0 && SOUS_APPARENCE.indexOf(n) !== -1) cellule.dataset.kbSub = '1'
             if (vus[g] !== true) {
               vus[g] = true
-              const tete = document.createElement('div')
-              tete.dataset.kb = 'settings-group'
-              tete.setAttribute('role', 'presentation')
-              tete.textContent = GROUPES[g].titre
-              tete.style.order = String(g * 100)
-              if (GROUPES[g].bureau === true) {
-                // séparateur « Desktop » : tout ce qui suit est propre à l'app desktop
-                const sep = document.createElement('div')
-                sep.dataset.kb = 'settings-divider'
-                sep.setAttribute('role', 'presentation')
-                sep.textContent = kbt('settings.divider.desktop')
-                sep.style.order = String(g * 100 - 10)
-                liste.append(sep)
+              if (GROUPES[g].titre !== null) {
+                // The fold's header is the shared Customize button (kbCzToggle); the others are quiet sub-titles.
+                const tete = GROUPES[g].pliable === true ? kbCzToggle(GROUPES[g].titre, false, () => basculer(liste), true) : document.createElement('div')
+                if (GROUPES[g].pliable === true) tete.dataset.kbFoldToggle = '1'
+                else { tete.textContent = GROUPES[g].titre; tete.setAttribute('role', 'presentation') }
+                tete.dataset.kb = 'settings-group'
+                tete.dataset.kbG = String(g)
+                tete.style.order = String(g * 100)
+                liste.append(tete)
               }
-              liste.append(tete)
             }
-            // ordre INTRA-groupe : la position du mot dans la liste du
-            // groupe (l'ordre de la maquette), pas l'index d'origine.
+            // Order INSIDE a section: the position of the title in its list (the mockup's order), not the original index.
             cellule.style.order = String(g * 100 + 10 + wi)
-            // « About » ferme la liste, après les pages que les plugins ajoutent (qui tombent à 450+).
+            // « About » closes the list, after the pages the plugins add (those fall at 450+).
             if (FIN_DE_LISTE.indexOf(n) !== -1) cellule.style.order = '9000'
           })
+          suivrePli(liste, cellules)
         }
       }
       const programmer = () => {
@@ -30564,19 +30589,29 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         minuteur = setTimeout(() => { minuteur = null; try { organiser() } catch (e) { /* nav absent */ } }, 250)
       }
       const observateur = new MutationObserver(programmer)
-      observateur.observe(document.body, { childList: true, subtree: true })
+      // The page changing (aria-current moves to another cell) is heard too: a click on a cell the fold hides lands the person inside it.
+      observateur.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-current'] })
       programmer()
       return () => { observateur.disconnect(); if (minuteur !== null) clearTimeout(minuteur) }
     }, 'kybers: groupes du menu reglages')
     ctx.effect(() => styles.insert(`
-/* En-têtes de groupes du menu Réglages (maquette « Settings Menu ») :
-   intertitre discret, jetons du shell, hors pointer-events. */
-[class*="navList"] [data-kb="settings-group"]{padding:10px 12px 2px;font-size:12.5px;font-weight:500;color:var(--dsw-alias-label-tertiary);pointer-events:none}
-[class*="navList"] [data-kb="settings-group"]:first-child{padding-top:2px}
-/* Menu des Réglages seulement (posé par organiser) : de l'air sous le dernier onglet, noms d'onglets un cran plus petits. */
+/* Section headers of the Settings menu: a quiet sub-title, shell tokens, no pointer events. */
+[class*="navList"] [data-kb="settings-group"]{padding:10px 12px 2px;font-size:12.5px;font-weight:500;color:var(--dsw-alias-label-tertiary);pointer-events:none;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+/* The Advanced header is the button of its fold (the shared Customize button), drawn like a header. */
+[class*="navList"] [data-kb="settings-group"][data-kb-fold-toggle]{display:flex;align-items:center;align-self:stretch;gap:6px;margin:0;padding:10px 12px 2px;border:none;border-radius:8px;background:transparent;font:inherit;font-size:12.5px;font-weight:500;line-height:normal;text-align:start;pointer-events:auto;cursor:pointer}
+[class*="navList"] [data-kb="settings-group"][data-kb-fold-toggle]:hover{color:var(--dsw-alias-label-secondary)}
+@media (max-width:700px),(pointer:coarse){[class*="navList"] [data-kb="settings-group"][data-kb-fold-toggle]{min-height:44px}}
+/* While a search runs the fold is open whatever its button says: the arrow shows it, and the button does nothing. */
+[class*="navList"][data-kb-searching] [data-kb-fold-toggle]{cursor:default}
+[class*="navList"][data-kb-searching] [data-kb-fold-toggle] .kb-cz-chev{transform:rotate(90deg)}
+html[dir="rtl"] [class*="navList"][data-kb-searching] [data-kb-fold-toggle] .kb-cz-chev{transform:scaleX(-1) rotate(90deg)}
+/* Settings menu only (set by the organiser): room under the last tab, tab names a notch smaller. */
 [class*="navList"][data-kb-settings]{padding-bottom:32px}
 [class*="navList"][data-kb-settings] [class*="navCell"]{font-size:13px}
-[class*="navList"] [data-kb="settings-divider"]{margin:14px 4px 0;padding:14px 8px 0;border-top:1px solid var(--dsw-alias-border-l1);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);pointer-events:none}
+/* A shut fold hides its entries, except the page the person is on; a running search shows every match. */
+[class*="navList"][data-kb-settings][data-kb-fold="shut"]:not([data-kb-searching]) [data-kb-fold-cell]:not([aria-current="true"]){display:none}
+/* Theme and Language belong to Appearance: drawn one step in under it. */
+[class*="navList"][data-kb-settings] [data-kb-sub]{padding-inline-start:30px}
 `), 'kybers: styles groupes menu reglages')
 
     // ── Pages de Réglages posées par d'autres plugins (Thème, Langue, Commandes) ──
@@ -30617,7 +30652,6 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         'Aucun modèle LLM détecté. Configurez un provider dans settings.yaml pour activer la traduction automatique.': 'No LLM model detected. Configure a provider in settings.yaml to enable automatic translation.',
         'Traduction annulée': 'Translation cancelled', 'Traduction terminée': 'Translation complete', 'Préparation…': 'Preparing…', 'Exécuter en arrière-plan': 'Run in the background',
         'avec le modèle actif…': 'with the active model…', 'aucune chaîne traduite — réessaie après correction': 'no string translated — try again after fixing',
-        'Commandes & actions': 'Commands & actions',
         'Un même modèle : du texte inséré, ou un formulaire en ligne. Tape / pour lancer une commande, ou utilise le bouton sous un message.': 'One model: inserted text, or an inline form. Type / to run a command, or use the button under a message.',
         'Nouvelle action': 'New action', 'Nouvelle commande': 'New command', 'Créer avec l’IA': 'Create with AI',
         'JSON stocké — ce que l’hôte garde vraiment': 'Stored JSON — what the host really keeps',
