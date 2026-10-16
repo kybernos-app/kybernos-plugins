@@ -49,6 +49,17 @@ console.log('── the status of a row ──')
   ok('only "ready" is green, only the two real problems are red', Object.entries(T.STATUS).filter(([, v]) => v[0] === 'ok').map(([k]) => k).join() === 'pret' && Object.entries(T.STATUS).filter(([, v]) => v[0] === 'bad').map(([k]) => k).sort().join() === 'ecriture-impossible,serveur-absent')
 }
 
+console.log('── the connection word (A3-48) ──')
+{
+  resolved = 'en'
+  const sign = (id) => T.authLabel(WORKERS.find((x) => x.id === id))
+  ok('an agent that takes an API key says « Add the key », not « Sign in » (Gemini CLI, Qwen Code)', sign('gemini') === 'Add the key' && sign('qwen') === 'Add the key', [sign('gemini'), sign('qwen')].join())
+  ok('an agent that signs in with an account still says « Sign in » (Claude Code, Codex, Hermes)', sign('claude-code') === 'Sign in' && sign('codex') === 'Sign in' && sign('hermes') === 'Sign in')
+  ok('the word is used by the row button and by the step, from the same function', /ctl = toDetail\(authLabel\(w\), 'wk-todo-row-' \+ w\.id\)/.test(source) && /done: authOk, t: authLabel\(w\),/.test(source))
+  resolved = 'kybernos'
+  ok('and in French', T.authLabel({ connect: { mode: 'key' } }) === 'Ajouter la clé' && T.authLabel({ connect: { mode: 'cli' } }) === 'Se connecter' && T.authLabel(undefined) === 'Se connecter')
+}
+
 console.log('── the four dots ──')
 {
   const c = (id, etat, code = 'x') => ({ id, etat, code })
