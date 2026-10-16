@@ -28054,6 +28054,10 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
       // l'iframe (historique, logs, Referer) : elle est postée à la console par
       // postMessage, vers l'origine exacte de la console, à son signal
       // `kbConsoleReady` ou dès qu'elle est connue (iframe déjà chargée).
+      // What the frame is drawn FOR: the server's addresses and the ACTIVE workspace (the `ws` of its address). A frame drawn for another is drawn again: a pairing that ends
+      // just after the page opened, or an active space changed from the Cloud card, would otherwise leave a frame on the team it opened with while another frame of the same
+      // app (Account, Team settings) opens on the new one, and two frames of one DSH show two teams.
+      const frameIdentity = () => kbServer.api + '|' + kbServer.console + '|' + String(kbServer.computer) + '|' + kbServer.workspace
       const keyRef = React.useRef('')
       const envoyerCle = React.useCallback(() => {
         try {
@@ -28091,7 +28095,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
           if (id === '') { dire(fr, false, { error: 'espace_absent' }); return }
           posterHote('active', { workspace_id: id }).then((j) => {
             const ok = j !== null && j.ok === true
-            if (ok) { kbServer.workspace = id; prevenirCarte() }
+            if (ok) { kbServer.workspace = id; seenServer.current = frameIdentity(); prevenirCarte() }
             dire(fr, ok, { id: id, error: ok ? null : String(j !== null && j.error !== undefined ? j.error : 'refuse') })
           })
         }
@@ -28101,7 +28105,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
           posterHote('create', { name: nom }).then((j) => {
             const ok = j !== null && j.ok === true
             const actif = ok && j.state !== null && typeof j.state === 'object' && typeof j.state.active_workspace_id === 'string' ? j.state.active_workspace_id : null
-            if (ok && actif !== null) { kbServer.workspace = actif; prevenirCarte() }
+            if (ok && actif !== null) { kbServer.workspace = actif; seenServer.current = frameIdentity(); prevenirCarte() }
             dire(fr, ok, { created: true, id: actif, error: ok ? null : String(j !== null && j.error !== undefined ? j.error : 'refuse') })
           })
         }
@@ -28173,14 +28177,19 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
       const bumpRev = revPair[1]
       const seenServer = React.useRef(null)
       React.useEffect(() => {
-        const identity = () => kbServer.api + '|' + kbServer.console + '|' + String(kbServer.computer)
-        seenServer.current = identity()
+        const serverOf = (identity) => String(identity).split('|').slice(0, 3).join('|')
+        seenServer.current = frameIdentity()
         let vivant = true
         const again = () => {
           kbServerLoad().then(() => {
-            if (vivant !== true || identity() === seenServer.current) return
-            seenServer.current = identity()
+            if (vivant !== true) return
+            const now = frameIdentity()
+            if (now === seenServer.current) return
+            const serverChanged = serverOf(now) !== serverOf(seenServer.current)
+            seenServer.current = now
             bumpRev((n) => n + 1)
+            // Another workspace redraws the frame (its key says so); only another server needs the console asked again.
+            if (serverChanged !== true) return
             if (kbServer.computer === true) setReach('computer'); else probe()
           })
         }
@@ -28188,6 +28197,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
         window.addEventListener('focus', again)
         document.addEventListener('visibilitychange', seen)
         window.addEventListener('kybernos-cloud:server-changed', again)
+        window.addEventListener('kybernos-cloud:space-changed', again)
         const timer = window.setInterval(seen, 10000)
         return () => {
           vivant = false
@@ -28195,6 +28205,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
           window.removeEventListener('focus', again)
           document.removeEventListener('visibilitychange', seen)
           window.removeEventListener('kybernos-cloud:server-changed', again)
+          window.removeEventListener('kybernos-cloud:space-changed', again)
         }
       }, [])
       if (reach !== 'ok') {
@@ -28227,7 +28238,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
         // donc toute la hauteur du panneau, sans chrome intermédiaire.
         h('iframe', {
           // `key`: another page of the console is a new document (a fragment alone would not reload it), and a new server a new frame.
-          key: page + '|' + kbServer.console, 'data-kb': 'ws-console', 'data-origin': kbWsOrigin(),
+          key: page + '|' + kbServer.console + '|' + kbServer.workspace, 'data-kb': 'ws-console', 'data-origin': kbWsOrigin(),
           src: kbConsoleUrl(dark, page), title: kbt('kbui.ws.row.t'),
           // Cadre et coins ARRONDIS retirés (02/10, demande) : embarquée en plein
 // cadre, la console n'est pas une carte posée dans la page — son propre
