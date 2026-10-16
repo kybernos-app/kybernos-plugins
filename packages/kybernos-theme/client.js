@@ -1,22 +1,22 @@
-// kybernos-theme — moitié navigateur.
+// kybernos-theme — browser half.
 //
-// Câblage de la maquette « Simple » (docs/handoff + maquette fournie) sur les
+// Wiring of the “Simple” mockup (docs/handoff + supplied mockup) onto the
 // vraies API de DSH :
 //
-//   mode (Système/Clair/Sombre) .... ctx.theme.setTheme()      — préférence native
-//   9 thèmes prêts + accent ........ ctx.theme.overrideTokens() — 17 jetons {light,dark}
-//   fond d'écran (24 fonds) ........ <div> fixe sous l'app     — motif dream-skin
+//   mode (System/Light/Dark) ....... ctx.theme.setTheme()      — native preference
+//   9 ready-made themes + accent ... ctx.theme.overrideTokens() — 17 tokens {light,dark}
+//   wallpaper (24 backgrounds) ..... fixed <div> under the app — dream-skin pattern
 //   police + taille ................ --dsw-font-family + ctx.theme.setFontSize() (px; 'text', px since 0.2.1-alpha.2)
-//   jetons (Avancé) ................ le même overrideTokens, par paire de schémas
+//   tokens (Advanced) .............. the same overrideTokens, per scheme pair
 //
-// Tout ce que cette page applique est mesuré par makeTheme (porté tel quel de
-// la maquette) : l'accent dérivé vise 4,5:1 sur les DEUX schémas, jamais une
-// clarté fixe.
+// Everything this page applies is measured by makeTheme (carried over as is from
+// the mockup): the derived accent aims for 4.5:1 on BOTH schemes, never a fixed
+// lightness.
 //
-// Chargé via window.__ModuleLoader__.load — même forme que les paquets ui-*.
-// Le try/catch de la factory est vital : une erreur d'évaluation ici casse TOUTE
-// l'entrée (« Failed to load plugins ») et laisse la GUI inutilisable. On
-// dégrade : plugin désactivé, GUI préservée.
+// Loaded via window.__ModuleLoader__.load — same shape as the ui-* packages.
+// The factory's try/catch is vital: an evaluation error here breaks the WHOLE
+// entry (“Failed to load plugins”) and leaves the GUI unusable. We
+// degrade: plugin disabled, GUI preserved.
 window.__ModuleLoader__.load({
   id: '@local/kybernos-theme',
   factory(require) {
@@ -26,7 +26,7 @@ window.__ModuleLoader__.load({
       const h = React.createElement
 
       // ── language: what Kybernos resolved ──────────────────────────────────────────────────────────────
-      // French for the French of the product (« kybernos », or any fr*); English for every other language, and for a language not known
+      // French for the French of the product (“kybernos”, or any fr*); English for every other language, and for a language not known
       // yet; a translated language is looked up by its French text, like any kbf phrase. English is the BASE of the page.
       const lang = () => {
         try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
@@ -51,7 +51,7 @@ window.__ModuleLoader__.load({
         return rows
       }
 
-      // `styles` suit le contrat du runner cordis dynamique : insert(css)
+      // `styles` follows the contract of the dynamic cordis runner: insert(css)
       // retourne un disposer.
       const styles = (() => {
         const insert = (css) => {
@@ -65,10 +65,10 @@ window.__ModuleLoader__.load({
       })()
 
       // ══════════════════════════════════════════════════════════════════════
-      // 1. MOTEUR DE COULEURS — porté tel quel de la maquette Simple.
-      //    Les jetons TK sont la feuille officielle DSH condensée ; makeTheme
-      //    applique contraste, teinte, recouvrements, puis DÉRIVE l'accent pour
-      //    viser 4,5:1 (boucles while sur ratio, pas une clarté en dur).
+      // 1. COLOUR ENGINE — carried over as is from the Simple mockup.
+      //    The TK tokens are DSH's official sheet, condensed; makeTheme
+      //    applies contrast, tint and overrides, then DERIVES the accent to
+      //    aim for 4.5:1 (while loops on the ratio, not a hard-coded lightness).
       // ══════════════════════════════════════════════════════════════════════
 
       const HEX = (c) => {
@@ -98,7 +98,7 @@ window.__ModuleLoader__.load({
       }
       const validHex = (v) => HEX(v) !== null
 
-      // Feuille officielle condensée — clair / sombre, valeurs telles quelles.
+      // Official condensed sheet — light / dark, values as they are.
       const TK = {
         light: { base: '#FFFFFF', l1: '#FFFFFF', l2: '#FFFFFF', l3: '#FFFFFF', platform: '#F5F6F7', overlay: '#E9ECF2', b1: '#0000000A', b2: '#0000001A', b3: '#0000001F', b4: '#00000029', brand: '#0F1115', onBrand: '#FFFFFF', t1: '#0F1115', t2: '#61666B', t3: '#81858C', t4: '#ADB2B8', link: '#4176E6', hov: '#2631480F', act: '#2631481A', err: '#EC1313', ok: '#22C55E', warn: '#F59E0B', biz: '#4176E6', side: '#F9FAFB', navAct: '#EBEEF2', navHov: '#F1F3F5', input: '#FFFFFF', selector: '#F5F6F7', code: '#F9FAFB', codeBanner: '#F9FAFB', inline: '#FAFAFA', tipBg: '#2C2C2E', okSoft: '#E6FAED', errSoft: '#FEE2E2', warnSoft: '#FEF5E7', bizSoft: '#E4EDFD', okTx: '#15803D', warnTx: '#B45309', off: '#CFD3D6' },
         dark: { base: '#151517', l1: '#232324', l2: '#2C2C2E', l3: '#353638', platform: '#353638', overlay: '#61666B', b1: '#FFFFFF0F', b2: '#FFFFFF1F', b3: '#FFFFFF29', b4: '#FFFFFF33', brand: '#F9FAFB', onBrand: '#0F1115', t1: '#F9FAFB', t2: '#CFD3D6', t3: '#ADB2B8', t4: '#81858C', link: '#7AAAFF', hov: '#FFFFFF14', act: '#FFFFFF24', err: '#F25A5A', ok: '#22C55E', warn: '#F59E0B', biz: '#7AAAFF', side: '#1B1B1C', navAct: '#43454A', navHov: '#2C2C2E', input: '#2C2C2E', selector: '#353638', code: '#1B1B1C', codeBanner: '#2C2C2E', inline: '#292929', tipBg: '#43454A', okSoft: '#233C2C', errSoft: '#570C0C', warnSoft: '#27241F', bizSoft: '#34415B', okTx: '#4ED17E', warnTx: '#F7AD31', off: '#61666B' }
@@ -116,24 +116,24 @@ window.__ModuleLoader__.load({
           t.base = dark ? '#000000' : '#FFFFFF'; t.l1 = t.base; t.l2 = dark ? '#0F0F0F' : '#FFFFFF'; t.l3 = dark ? '#1B1B1C' : '#FFFFFF'
           t.side = dark ? '#0F0F0F' : '#F5F5F5'; t.input = t.l2; t.code = t.side
           t.t1 = dark ? '#FFFFFF' : '#000000'; t.t2 = dark ? '#F5F6F7' : '#1B1B1C'; t.t3 = dark ? '#E1E5EE' : '#292929'
-          t.t4 = dark ? '#ADB2B8' : '#43454A' // the caption stayed at the Renforcé grey: 3.7:1 on white
+          t.t4 = dark ? '#ADB2B8' : '#43454A' // the caption stayed at the Enhanced grey: 3.7:1 on white
           t.b2 = dark ? '#FFFFFFA6' : '#000000A6'; t.b3 = dark ? '#FFFFFFCC' : '#000000CC'; t.b4 = dark ? '#FFFFFF' : '#000000'
         }
-        // Links come from DSH's own sheet (4.2:1 on white) and no level touched them: Renforcé
+        // Links come from DSH's own sheet (4.2:1 on white) and no level touched them: Enhanced
         // brings them to AA, Maximal to AAA, by the same walk the accent text already uses.
         if (o.lvl >= 1) { let k = 0; while (ratio(t.link, t.l1) < (o.lvl >= 2 ? 7 : 4.5) && k < 30) { t.link = mix(t.link, dark ? '#FFFFFF' : '#000000', 0.06); k++ } }
         if (o.tint > 0 && o.dom) { SURF.forEach((k) => { t[k] = mix(t[k], o.dom, o.tint / 100 * 0.16) }) }
         Object.keys(o.ov || {}).forEach((k) => { if (k.indexOf(mode + ':') === 0) { t[k.slice(mode.length + 1)] = o.ov[k] } })
-        // Palette daltonisme : le couple vert/rouge devient bleu/vermillon (Okabe-Ito, distinguable par les trois
-        // formes courantes de daltonisme), et ce sont bien `ok` / `err` — jetons appliqués — qui changent, pas
-        // seulement leurs fonds doux. Chaque encre garde ≥ 5:1 sur la couche 1 (testé).
+        // Colour-blind palette: the green/red pair becomes blue/vermilion (Okabe-Ito, distinguishable by the three
+        // common forms of colour blindness), and it really is `ok` / `err` — applied tokens — that change, not
+        // just their soft backgrounds. Each ink keeps ≥ 5:1 on layer 1 (tested).
         if (o.cb) {
           t.ok = dark ? '#56B4E9' : '#0072B2'; t.err = dark ? '#FF8A3D' : '#B84A00'
           t.okSoft = dark ? '#10263F' : '#E3EEFF'; t.errSoft = dark ? '#3D2A10' : '#FFEBD6'
         }
         let acc = o.acc || t.brand
-        // Un accent qui se fond dans la surface (le noir du dernier rond, sur le thème sombre) rend
-        // boutons et interrupteurs invisibles : on l'éclaircit, dans CE schéma seulement, jusqu'à 3:1.
+        // An accent that blends into the surface (the black of the last dot, on the dark theme) makes
+        // buttons and switches invisible: we lighten it, in THIS scheme only, up to 3:1.
         if (o.acc || (o.ov && o.ov[mode + ':brand'])) { let q = 0; while (ratio(acc, t.l1) < 3 && q < 30) { acc = mix(acc, dark ? '#FFFFFF' : '#000000', 0.08); q++ } }
         let fill = acc, on = t.onBrand
         if (o.acc || (o.ov && o.ov[mode + ':brand'])) {
@@ -147,8 +147,8 @@ window.__ModuleLoader__.load({
       }
 
       // ══════════════════════════════════════════════════════════════════════
-      // 2. CATALOGUE — thèmes prêts, fonds, accents, polices, jetons.
-      //    Tout vient de la maquette, à l'identique.
+      // 2. CATALOGUE — ready-made themes, backgrounds, accents, fonts, tokens.
+      //    Everything comes straight from the mockup, unchanged.
       // ══════════════════════════════════════════════════════════════════════
 
       const SKINS = [
@@ -166,20 +166,20 @@ window.__ModuleLoader__.load({
           ov: { 'light:base': '#FAFAFA', 'light:l1': '#FFFFFF', 'light:l2': '#F5F5F5', 'light:l3': '#FFFFFF', 'light:side': '#FFFFFF', 'light:input': '#F2F2F2', 'light:t1': '#101010' } },
         { id: 'rose', mode: 'light', acc: '#EC4899', wp: 'peche', vis: 60 },
 
-        // ── Palettes héritées de « Colour Pack » v1 (ancien onglet Kybernos) ──
-        // Les 8 packs sont portés à l'identique — mêmes noms, mêmes surfaces,
-        // mêmes accents — mais PAR SCHÉMA, par le vocabulaire `ov` de cette page
-        // (celui que l'onglet Avancé écrit déjà) :
-        //   mode: null → le pack n'impose pas de mode ; il suit Système / Clair /
-        //                Sombre comme le faisait le v1 ;
-        //   acc: null  → l'accent vient de `ov[mode+':brand']`, donc la valeur
-        //                exacte du pack dans chaque schéma ; le moteur dérive
-        //                ensuite `fill`/`on` pour garder le libellé lisible.
-        // Rôles v1 → jetons v2 : bg→base, layer1→l1, layer2→l2, sidebar→side,
-        // overlay→input, sidebar→code, accent→brand (par schéma).
-        // Non repris du v1 : les bordures (b1/b2) et les corrections de texte et
-        // d'états, communes aux 8 packs : hors des 17 jetons pilotables ici, et
-        // désormais dérivées par le moteur (contraste mesuré).
+        // ── Palettes inherited from “Colour Pack” v1 (former Kybernos tab) ──
+        // The 8 packs are carried over unchanged — same names, same surfaces,
+        // same accents — but PER SCHEME, through this page's `ov` vocabulary
+        // (the one the Advanced tab already writes):
+        //   mode: null → the pack imposes no mode; it follows System / Light /
+        //                Dark as v1 did;
+        //   acc: null  → the accent comes from `ov[mode+':brand']`, hence the
+        //                pack's exact value in each scheme; the engine then
+        //                derives `fill`/`on` to keep the label readable.
+        // Roles v1 → tokens v2: bg→base, layer1→l1, layer2→l2, sidebar→side,
+        // overlay→input, sidebar→code, accent→brand (per scheme).
+        // Not carried over from v1: the borders (b1/b2) and the text and
+        // state corrections, common to the 8 packs: outside the 17 tokens drivable here, and
+        // now derived by the engine (measured contrast).
         { id: 'kb-ember', mode: null, acc: null, wp: 'none', vis: 60,
           ov: {
             'light:base': '#faf5ef', 'light:l1': '#ffffff', 'light:l2': '#f5ede3',
@@ -353,8 +353,8 @@ window.__ModuleLoader__.load({
         images: ['Images', 'Images']
       })
 
-      // Les 17 jetons que cette page sait piloter, mappés sur les vraies
-      // variables DSH (contrat TOKG de la maquette).
+      // The 17 tokens this page can drive, mapped onto the real
+      // DSH variables (the mockup's TOKG contract).
       const TOKMAP = [
         ['base', null, 'alias-bg-base'],
         ['l1', null, 'alias-bg-layer-1'],
@@ -402,7 +402,7 @@ window.__ModuleLoader__.load({
 
       // Fonts: proven system stacks, applied through --dsw-font-family on :root and on body (since
       // 0.2.1-alpha.2, see appliquerPolice). The catalogue is the studio's 9 fonts plus the 21 of the old
-      // « Colour Pack » (kybernos-plugin): nothing disappears, the order follows the sans / serif / mono
+      // “Colour Pack” (kybernos-plugin): nothing disappears, the order follows the sans / serif / mono
       // groups of the page that was removed.
       const FONTS = [
         // Sans serif
@@ -445,13 +445,13 @@ window.__ModuleLoader__.load({
         mono: ['Mono système', 'System mono']
       })
 
-      // Ce qu'applique un skin — UNE seule définition, partagée par le clic du
-      // sélecteur et par la reprise des réglages v1 ci-dessous.
-      //   • `ov` est TOUJOURS posé : sans cela les jetons d'un pack hérité
-      //     survivraient au retour sur « Défaut DSH » (qui promet de retirer la
-      //     couche), et l'édition Avancée d'un thème précédent aussi.
-      //   • `mode` n'est posé que si le skin en impose un : les packs hérités
-      //     (mode null) suivent le réglage Système / Clair / Sombre.
+      // What a skin applies — ONE single definition, shared by the click on the
+      // picker and by the carry-over of the v1 settings below.
+      //   • `ov` is ALWAYS set: without that, the tokens of an inherited pack
+      //     would survive the return to “DSH default” (which promises to remove the
+      //     layer), and so would the Advanced edit of a previous theme.
+      //   • `mode` is only set if the skin imposes one: inherited packs
+      //     (mode null) follow the System / Light / Dark setting.
       const skinPatch = (sk) => {
         const patch = { skin: sk.id, acc: sk.acc, wp: sk.wp, wpVis: sk.vis, ov: sk.ov || {} }
         if (sk.mode !== null && sk.mode !== undefined) patch.mode = sk.mode
@@ -462,20 +462,20 @@ window.__ModuleLoader__.load({
         if (sk.iconSet !== undefined) patch.iconSet = sk.iconSet
         return patch
       }
-      // L'accent affiché d'un skin : sa valeur directe, sinon celle de sa
-      // palette par schéma (packs hérités). Sert au rond et à la légende.
+      // The accent displayed for a skin: its direct value, otherwise that of its
+      // per-scheme palette (inherited packs). Used for the dot and the caption.
       const skinAccent = (sk) => (sk.acc !== null && sk.acc !== undefined)
         ? sk.acc
         : (((sk.ov || {})['light:brand']) || null)
 
-      // ── Reprise unique des réglages de l'ancien « Colour Pack » (v1) ───────
-      // L'onglet Kybernos qui portait ce système a été supprimé : ses deux clés
-      // (`kybernos.pack`, `kybernos.font`) restent telles quelles dans le
-      // navigateur. Au PREMIER démarrage sans état v2, on les adopte au lieu de
-      // repartir des défauts — sinon un pack ou une police choisis avant la
-      // migration seraient perdus en silence. Aucune écriture : la reprise est
-      // recalculée à chaque lecture tant que l'utilisateur n'a rien modifié,
-      // donc elle reste idempotente et ne fige pas son choix.
+      // ── One-time carry-over of the settings of the former “Colour Pack” (v1) ───────
+      // The Kybernos tab that carried this system has been removed: its two keys
+      // (`kybernos.pack`, `kybernos.font`) stay as they are in the
+      // browser. On the FIRST start without a v2 state, we adopt them instead of
+      // starting over from the defaults — otherwise a pack or a font chosen before the
+      // migration would be silently lost. No write: the carry-over is
+      // recomputed on every read as long as the user has changed nothing,
+      // so it stays idempotent and does not freeze their choice.
       const LEGACY_FONT_IDS = { default: 'dsh', iowan: 'iapono' }
       const legacyAdopt = () => {
         const patch = {}
@@ -488,7 +488,7 @@ window.__ModuleLoader__.load({
             const mapped = LEGACY_FONT_IDS[fontId] || fontId
             if (FONTS.some((f) => f.id === mapped)) patch.fontText = mapped
           }
-        } catch (e) { /* stockage indisponible : on garde les défauts */ }
+        } catch (e) { /* storage unavailable: we keep the defaults */ }
         return patch
       }
 
@@ -646,7 +646,7 @@ window.__ModuleLoader__.load({
         plug: (t) => t.m(iRing(8, 12, 6, 2.6)) + t.s(iRing(16, 12, 6, 2.6))
       }
 
-      // ── 4 · Isométrique: blocks in three tones ──
+      // ── 4 · Isometric: blocks in three tones ──
       const iFaceQuad = (cx, ty, ux, uy, h, pts) => {
         const P3 = [cx - uy, ty + uy / 2], P2 = [cx + ux - uy, ty + ux / 2 + uy / 2]
         return pts.map((q) => [iconN(P3[0] + q[0] * (P2[0] - P3[0])), iconN(P3[1] + q[0] * (P2[1] - P3[1]) + q[1] * h)])
@@ -732,7 +732,7 @@ window.__ModuleLoader__.load({
         return iMasked('mu', e, t, P.p, (iSilhouette(P).match(/<[^>]*\/>/g) || []).map((x) => t.b(x)).join(''))
       }
 
-      // ── 11 · Alvéoles: the same bitmaps, in honeycomb cells ──
+      // ── 11 · Honeycomb: the same bitmaps, in honeycomb cells ──
       const iHexCell = (cx, cy, r) => iPoly(Array.from({ length: 6 }, (_, k) => [iconN(cx + r * Math.sin(k * Math.PI / 3)), iconN(cy - r * Math.cos(k * Math.PI / 3))]))
       const iHoney = (e, t) => {
         let m = '', s = '', k = ''
@@ -868,15 +868,15 @@ window.__ModuleLoader__.load({
       // <icon-sets:end>
 
       // ══════════════════════════════════════════════════════════════════════
-      // 3. ÉTAT + PERSISTANCE.
-      //    localStorage suffit au profil web ; l'hôte prendra le relais en v2
-      //    (DSH Desktop tire des ports aléatoires — le constat wallpaper-engine).
+      // 3. STATE + PERSISTENCE.
+      //    localStorage is enough for the web profile; the host will take over in v2
+      //    (DSH Desktop picks random ports — the wallpaper-engine finding).
       // ══════════════════════════════════════════════════════════════════════
 
       const STORE_KEY = 'kybernos.theme.v1'
-      // Chaque clé ici est LUE par un câble (jetons, fond, feuille d'effets) : une commande dont la clé
-      // manquerait ici s'afficherait, ne s'appliquerait pas et se perdrait au rechargement (41 l'étaient).
-      // Le test `test-client.mjs` refuse désormais toute commande sans clé.
+      // Every key here is READ by a wire (tokens, background, effects sheet): a command whose key
+      // were missing here would show up, not apply, and be lost on reload (41 were).
+      // The `test-client.mjs` test now refuses any command without a key.
       const DEF = {
         mode: 'dark', skin: 'dsh', acc: null,
         wp: 'none', wpVis: 60, wpBlur: 0, tint: 0,
@@ -888,13 +888,13 @@ window.__ModuleLoader__.load({
         ligatures: true, radius: 'standard', showBrand: true,
         // Menu icons: the id of a set drawn by the block above ('classic' keeps the application's line icons)
         iconSet: 'classic',
-        // Accessibilité
+        // Accessibility
         reduceMotion: false, focusRing: 'accent', largeTargets: false, underlineLinks: false
       }
       const ENUMS = { glassEffect: ['frosted', 'liquid'], bgFit: ['cover', 'fill', 'center', 'stretch'], radius: ['sharp', 'standard', 'soft'], focusRing: ['accent', 'double', 'thick'], iconSet: ICON_SET_IDS }
       const RANGES = { glassBlur: [0, 40], sidebarOpacity: [0, 100], fieldOpacity: [0, 100], floatOpacity: [0, 100], bgBrightness: [0, 200], bgContrast: [0, 200], bgSaturation: [0, 200], bgDarken: [0, 100] }
       const BOOLS = ['cbSafe', 'sidebarLinked', 'bgMirror', 'ligatures', 'showBrand', 'reduceMotion', 'largeTargets', 'underlineLinks']
-      /** Les réglages à choix, à plage ou booléens d'un objet quelconque : seules les valeurs VALIDES en sortent. */
+      /** The choice, range or boolean settings of any object: only the VALID values come out. */
       const valeursValides = (raw) => {
         const out = {}
         Object.keys(ENUMS).forEach((k) => { if (ENUMS[k].indexOf(raw[k]) >= 0) out[k] = raw[k] })
@@ -902,9 +902,9 @@ window.__ModuleLoader__.load({
         BOOLS.forEach((k) => { if (typeof raw[k] === 'boolean') out[k] = raw[k] })
         return out
       }
-      /** Ce qu'un fichier importé a le droit de poser : uniquement des clés connues, de type et de
-       *  plage valides. Rend `null` si le fichier n'est pas un objet. Une valeur douteuse est ignorée
-       *  (jamais écrite) : `{"ov":null}` faisait planter la section entière. */
+      /** What an imported file is allowed to set: only known keys, of valid type and
+       *  range. Returns `null` if the file is not an object. A doubtful value is ignored
+       *  (never written): `{"ov":null}` used to crash the whole section. */
       const sanitiserImport = (raw) => {
         if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null
         const out = {}
@@ -928,10 +928,10 @@ window.__ModuleLoader__.load({
         return out
       }
 
-      // ── Export : le MÊME état, en trois formats réels ─────────────────────────────────────────────
+      // ── Export: the SAME state, in three real formats ─────────────────────────────────────────────
       const yamlScalaire = (v) => (v === null ? 'null' : (typeof v === 'string' ? JSON.stringify(v) : String(v)))
       const exportEtat = (S) => { const o = {}; Object.keys(DEF).forEach((k) => { o[k] = S[k] }); return o }
-      /** `format` : 'json' | 'yaml' | 'css'. Rend le texte du fichier. */
+      /** `format`: 'json' | 'yaml' | 'css'. Returns the text of the file. */
       const exportTexte = (format, S) => {
         if (format === 'json') return JSON.stringify(exportEtat(S), null, 2)
         if (format === 'yaml') {
@@ -946,7 +946,7 @@ window.__ModuleLoader__.load({
           })
           return lines.join('\n')
         }
-        // css : les 17 jetons, clair puis sombre — un fichier à coller dans un thème tiers
+        // css: the 17 tokens, light then dark — a file to paste into a third-party theme
         const wpo = WPS.find((w) => w.id === S.wp) || WPS[0]
         const lvl = S.contrastMode === 'max' ? 2 : (S.contrastMode === 'plus' ? 1 : 0)
         const o = { acc: S.acc, ov: S.ov, lvl, cb: S.cbSafe, tint: wpo.id !== 'none' ? S.tint : 0, dom: wpo.dom }
@@ -962,7 +962,7 @@ window.__ModuleLoader__.load({
           const out = { ...DEF }
           for (const k of Object.keys(DEF)) if (s[k] !== undefined) out[k] = s[k]
           if (out.ov === null || typeof out.ov !== 'object') out.ov = {}
-          // Une valeur stockée abîmée (à la main, ou par une version plus ancienne) retombe sur le défaut.
+          // A damaged stored value (by hand, or by an older version) falls back to the default.
           const ok = valeursValides(s)
           Object.keys(ENUMS).concat(Object.keys(RANGES), BOOLS).forEach((k) => { out[k] = ok[k] !== undefined ? ok[k] : DEF[k] })
           return out
@@ -976,29 +976,29 @@ window.__ModuleLoader__.load({
       }
 
       // ══════════════════════════════════════════════════════════════════════
-      // 4. APPLICATION — les vrais câbles.
+      // 4. APPLICATION — the real wires.
       // ══════════════════════════════════════════════════════════════════════
 
       let layerDispose = null   // overrideTokens
-      let wpEl = null           // fond d'écran
+      let wpEl = null           // wallpaper
       let fontDispose = null    // police
 
-      /** Combien de jetons ont une retouche (clair et/ou sombre comptent pour un). */
+      /** How many tokens have a tweak (light and/or dark count as one). */
       const jetonsRetouches = (ov) => new Set(Object.keys(ov).map((k) => k.slice(k.indexOf(':') + 1))).size
 
-      /** Le schéma réellement AFFICHÉ. « Système » suit l'OS : déduire le schéma du seul réglage (`mode !== 'light'`)
-       *  donnait toujours « sombre » à quelqu'un en « Système » sur un OS clair, et la page mesurait des encres
-       *  sombres sur un fond clair. On lit l'attribut que DSH pose sur <body>, et on ne se rabat sur le réglage
-       *  que s'il n'y a pas de page (rendu hors navigateur). */
+      /** The scheme actually DISPLAYED. “System” follows the OS: deducing the scheme from the setting alone (`mode !== 'light'`)
+       *  always gave “dark” to someone on “System” on a light OS, and the page measured dark inks
+       *  on a light background. We read the attribute DSH sets on <body>, and fall back on the setting
+       *  only when there is no page (rendering outside a browser). */
       const schemeSombre = (S) => {
-        try { if (document.body && typeof document.body.hasAttribute === 'function') return document.body.hasAttribute('data-ds-dark-theme') } catch (e) { /* pas de page */ }
+        try { if (document.body && typeof document.body.hasAttribute === 'function') return document.body.hasAttribute('data-ds-dark-theme') } catch (e) { /* no page */ }
         return S.mode !== 'light'
       }
 
       const estNaturel = (S) => S.skin === 'dsh' && S.acc === null && S.wp === 'none'
         && Object.keys(S.ov).length === 0 && S.contrastMode === 'standard' && S.radius === 'standard' && S.cbSafe === false
 
-      // ── Fond d'écran : filtres, ajustement (aussi utilisés par l'aperçu du verre) ─────────────
+      // ── Wallpaper: filters, fit (also used by the glass preview) ─────────────
       const filtreFond = (S) => {
         const f = []
         if (S.wpBlur > 0) f.push('blur(' + S.wpBlur + 'px)')
@@ -1008,7 +1008,7 @@ window.__ModuleLoader__.load({
         if (S.bgSaturation !== 100) f.push('saturate(' + S.bgSaturation + '%)')
         return f.length > 0 ? f.join(' ') : 'none'
       }
-      /** Taille / position / répétition d'un fond. Les motifs et les couleurs portent leur taille dans leur shorthand. */
+      /** Size / position / repeat of a background. Patterns and colours carry their size in their shorthand. */
       const ajustementFond = (S) => {
         if (S.bgFit === 'fill') return { size: 'contain', position: 'center', repeat: 'no-repeat' }
         if (S.bgFit === 'center') return { size: 'auto', position: 'center', repeat: 'no-repeat' }
@@ -1019,9 +1019,9 @@ window.__ModuleLoader__.load({
       const RADIUS_DEF = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, panel: 28 }
       const RADIUS_ECHELLE = { sharp: 0.25, standard: 1, soft: 1.5 }
 
-      /** La couche de jetons : 17 variables, une paire {light, dark} chacune.
-       *  En configuration natives, la couche est retirée — le DSH d'origine
-       *  passe alors tel quel, sans même une redondance par-dessus. */
+      /** The token layer: 17 variables, one {light, dark} pair each.
+       *  In native configuration, the layer is removed — the original DSH
+       *  then passes through as is, without even a redundancy on top. */
       const jetonsDe = (S) => {
         if (estNaturel(S)) return null
         const lvl = S.contrastMode === 'max' ? 2 : (S.contrastMode === 'plus' ? 1 : 0)
@@ -1030,11 +1030,11 @@ window.__ModuleLoader__.load({
         const cl = makeTheme('light', o), cd = makeTheme('dark', o)
         const jetons = {}
         for (const [k, , css] of TOKMAP) jetons['--dsw-' + css] = { light: cl[k], dark: cd[k] }
-        // Un fond qu'on ne voit pas ne sert à rien : la zone principale de DSH (`bg-base`) peint un aplat
-        // opaque PAR-DESSUS lui (mesuré : 375 points sur 375 couverts). Quand un fond est choisi, `bg-base`
-        // devient transparent — c'est le curseur « Visibilité » qui dose alors le fond contre la couleur de base.
-        // Seule la pastille d'espace du pied de barre latérale s'en servait comme couleur de TEXTE
-        // (corrigé dans kybernos-cloud) ; sur toutes les pages parcourues, rien d'autre.
+        // A background you cannot see is useless: DSH's main area (`bg-base`) paints an opaque flat fill
+        // OVER it (measured: 375 points out of 375 covered). When a background is chosen, `bg-base`
+        // becomes transparent — the “Visibility” slider then doses the background against the base colour.
+        // Only the workspace badge at the foot of the sidebar used it as a TEXT colour
+        // (fixed in kybernos-cloud); on all the pages browsed, nothing else.
         if (wpo.id !== 'none') {
           jetons['--dsw-alias-bg-base'] = { light: avecAlpha(cl.base, 0), dark: avecAlpha(cd.base, 0) }
           if (S.sidebarLinked) jetons['--dsw-specific-sidebar-fill'] = { light: avecAlpha(cl.side, 1 - S.sidebarOpacity / 100), dark: avecAlpha(cd.side, 1 - S.sidebarOpacity / 100) }
@@ -1076,30 +1076,30 @@ window.__ModuleLoader__.load({
         try {
           const el = typeof document.getElementById === 'function' ? document.getElementById(BOOT_ID) : null
           if (el === null || el === undefined) return
-          const retirer = () => { try { el.remove() } catch (e) { /* déjà retirée */ } }
+          const retirer = () => { try { el.remove() } catch (e) { /* already removed */ } }
           if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => { requestAnimationFrame(retirer) })
           else retirer()
         } catch (e) { /* not in a browser */ }
       }
 
       const appliquerJetons = (themeSvc, S) => {
-        if (layerDispose !== null) { try { layerDispose() } catch (e) { /* déjà retirée */ } layerDispose = null }
+        if (layerDispose !== null) { try { layerDispose() } catch (e) { /* already removed */ } layerDispose = null }
         const jetons = jetonsDe(S)
         if (jetons === null) { retirerFeuilleBoot(); return }
         try { layerDispose = themeSvc.overrideTokens('kybernos-theme', jetons); retirerFeuilleBoot() } catch (e) { layerDispose = null }
       }
 
-      /** Le fond d'écran : une div fixe sous l'application (motif éprouvé
-       *  dream-skin), plus une teinte des surfaces quand il est actif.
-       *  Le corps du document peut ne pas exister encore à l'activation du
-       *  plugin : on attend alors DOMContentLoaded au lieu d'avaler l'erreur —
-       *  mesuré, sans cela la couche de jetons s'appliquait mais le fond, la
-       *  police et la taille étaient silencieusement sautés. */
+      /** The wallpaper: a fixed div under the application (proven
+       *  dream-skin pattern), plus a tint of the surfaces when it is active.
+       *  The document body may not exist yet when the plugin is
+       *  activated: we then wait for DOMContentLoaded instead of swallowing the error —
+       *  measured, without that the token layer was applied but the background, the
+       *  font and the size were silently skipped. */
       const appliquerFond = (S) => {
         const poser = () => {
           const wpo2 = WPS.find((w) => w.id === S.wp) || WPS[0]
           if (wpo2.id === 'none') {
-            if (wpEl !== null) { try { wpEl.remove() } catch (e) { /* déjà retiré */ } wpEl = null }
+            if (wpEl !== null) { try { wpEl.remove() } catch (e) { /* already removed */ } wpEl = null }
             return
           }
           if (wpEl === null || !document.body.contains(wpEl)) {
@@ -1108,14 +1108,14 @@ window.__ModuleLoader__.load({
             document.body.prepend(wpEl)
           }
           // IMPORTANT : certains fonds utilisent la syntaxe shorthand
-          // (position/taille dans la même chaîne, ex: "gradient 0 0/32px 32px").
-          // Cette syntaxe n'est valide que sur la propriété `background`,
-          // pas sur `backgroundImage`. On pose d'abord le shorthand,
-          // puis on override les propriétés individuelles si nécessaire.
+          // (position/size in the same string, e.g. "gradient 0 0/32px 32px").
+          // This syntax is only valid on the `background` property,
+          // not on `backgroundImage`. We set the shorthand first,
+          // then override the individual properties if needed.
           wpEl.style.background = wpo2.css
           const isPattern = wpo2.cat === 'patterns' || wpo2.cat === 'colors'
-          // Motifs et couleurs : le shorthand porte déjà taille et répétition (« 0 0/18px 18px »).
-          // Les écraser par `auto` écrasait les carreaux en une seule grande cellule.
+          // Patterns and colours: the shorthand already carries size and repeat (“0 0/18px 18px”).
+          // Overriding them with `auto` squashed the tiles into one big cell.
           if (!isPattern) {
             const aj = ajustementFond(S)
             wpEl.style.backgroundSize = aj.size
@@ -1126,8 +1126,8 @@ window.__ModuleLoader__.load({
           wpEl.style.filter = filtreFond(S)
           wpEl.style.transform = S.bgMirror ? 'scaleX(-1)' : 'none'
         }
-        // readyState, pas DOMContentLoaded : à l'activation du plugin,
-        // l'événement est SOUVENT déjà passé — l'attendre ne servirait à rien.
+        // readyState, not DOMContentLoaded: when the plugin is activated,
+        // the event has OFTEN already passed — waiting for it would be pointless.
         if (document.readyState === 'loading') {
           document.addEventListener('DOMContentLoaded', poser, { once: true })
           return
@@ -1135,9 +1135,9 @@ window.__ModuleLoader__.load({
         poser()
       }
 
-      /** La feuille des effets qui ne sont pas des jetons : verre (flou), ligatures, logo, mouvement, focus,
-       *  cibles, liens. Une chaîne pure (testable) ; vide quand rien n'est demandé. Les sélecteurs sont les
-       *  crochets STABLES de DSH (`data-slot`, `data-composer-card`, rôles ARIA), jamais ses classes hachées. */
+      /** The sheet of effects that are not tokens: glass (blur), ligatures, logo, motion, focus,
+       *  targets, links. A pure string (testable); empty when nothing is requested. The selectors are
+       *  DSH's STABLE hooks (`data-slot`, `data-composer-card`, ARIA roles), never its hashed classes. */
       const effetsCss = (S) => {
         const css = []
         if (S.wp !== 'none' && S.glassBlur > 0) {
@@ -1159,8 +1159,8 @@ window.__ModuleLoader__.load({
       }
       let effetsDispose = null
       const appliquerEffets = (S) => {
-        if (effetsDispose !== null) { try { effetsDispose() } catch (e) { /* déjà retirée */ } effetsDispose = null }
-        // Le moteur d'animation de réflexion lit aussi cet attribut : « réduire » vaut pour lui aussi.
+        if (effetsDispose !== null) { try { effetsDispose() } catch (e) { /* already removed */ } effetsDispose = null }
+        // The thinking-animation engine also reads this attribute: “reduce” applies to it too.
         try { if (S.reduceMotion) document.documentElement.setAttribute('data-kbth-reduced', '1'); else document.documentElement.removeAttribute('data-kbth-reduced') } catch (e) { /* hors navigateur */ }
         try { if (S.cbSafe) document.documentElement.setAttribute('data-kbth-cb', '1'); else document.documentElement.removeAttribute('data-kbth-cb') } catch (e) { /* hors navigateur */ }
         const css = effetsCss(S)
@@ -1171,7 +1171,7 @@ window.__ModuleLoader__.load({
       // goes ahead of the built-in stack there), which shadows a rule that only targets `:root` — the chosen
       // family then reached nothing. Both selectors are harmless on the engines that only declare it on `:root`.
       const appliquerPolice = (S) => {
-        if (fontDispose !== null) { try { fontDispose() } catch (e) { /* déjà retiré */ } fontDispose = null }
+        if (fontDispose !== null) { try { fontDispose() } catch (e) { /* already removed */ } fontDispose = null }
         const f = FONTS.find((x) => x.id === S.fontText) || FONTS[0]
         if (f.stack !== null) fontDispose = styles.insert(':root,body{--dsw-font-family:' + f.stack + ' !important;}')
       }
@@ -1179,7 +1179,7 @@ window.__ModuleLoader__.load({
       const appliquerMode = (themeSvc, S) => {
         const m = S.mode === 'system' || S.mode === 'light' ? S.mode : 'dark'
         try { themeSvc.setTheme(m) } catch (e) {
-          // Une préférence refusée doit se voir, pas disparaître.
+          // A refused preference must be visible, not disappear.
           try { console.error('[kybernos-theme] setTheme(' + m + ') refused', e) } catch (e2) { /* console indisponible */ }
         }
       }
@@ -1212,10 +1212,10 @@ window.__ModuleLoader__.load({
         appliquerTaille(themeSvc, S)
       }
 
-      /** La préférence native courante, quand elle est exploitable.
-       *  `getTheme()` rend un instantané stable : `preference` vaut « light »,
-       *  « dark » ou « system », ou le défaut du service tant que la portée de
-       *  réglages n'est pas arrivée. */
+      /** The current native preference, when usable.
+       *  `getTheme()` returns a stable snapshot: `preference` is “light”,
+       *  “dark” or “system”, or the service default as long as the settings
+       *  scope has not arrived. */
       const prefNative = (themeSvc, snapArg) => {
         try {
           const snap = (snapArg !== null && snapArg !== undefined) ? snapArg : ((themeSvc === null || themeSvc === undefined || typeof themeSvc.getTheme !== 'function') ? null : themeSvc.getTheme())
@@ -1224,17 +1224,17 @@ window.__ModuleLoader__.load({
         } catch (e) { return null }
       }
 
-      /** L'application d'ACTIVATION : tout sauf le mode.
+      /** The ACTIVATION application: everything except the mode.
        *
-       *  Pourquoi le mode est exclu — mesuré le 23/09/2026 : DSH garde la
-       *  préférence de thème dans une portée de réglages durable
-       *  (`theme.setTheme()` → `host.set('preference')`) et la restaure
-       *  lui-même au chargement. La réécrire depuis notre store écrasait le
-       *  dernier choix de l'utilisateur : bascule « sombre → clair » par le
-       *  bouton du pied de sidebar, puis rechargement → l'app revenait en
-       *  sombre. On laisse donc la préférence native s'appliquer, on ADOPTE sa
-       *  valeur dans le store (pour que la page Réglages dise la vérité), et on
-       *  recopie tout changement natif venu d'ailleurs. */
+       *  Why the mode is excluded — measured on 23/09/2026: DSH keeps the
+       *  theme preference in a durable settings scope
+       *  (`theme.setTheme()` → `host.set('preference')`) and restores it
+       *  itself on load. Rewriting it from our store overwrote the
+       *  user's last choice: toggle “dark → light” with the button at the
+       *  foot of the sidebar, then reload → the app went back to
+       *  dark. So we let the native preference apply, we ADOPT its
+       *  value into the store (so the Settings page tells the truth), and we
+       *  copy back any native change coming from elsewhere. */
       const appliquerBoot = (themeSvc, S) => {
         posterBoot(S)
         appliquerIcones(S)
@@ -1242,9 +1242,9 @@ window.__ModuleLoader__.load({
         appliquerFond(S)
         appliquerPolice(S)
         appliquerEffets(S)
-        // Pas de taille ici non plus : DSH la persiste (setFontSize) et la restaure
-        // lui-même ; la réécrire depuis notre store écrasait celle de l'utilisateur
-        // (même classe de bug que le mode). On l'ADOPTE, voir tailleNative.
+        // No size here either: DSH persists it (setFontSize) and restores it
+        // itself; rewriting it from our store overwrote the user's
+        // (same class of bug as the mode). We ADOPT it, see tailleNative.
       }
 
       /** DSH's own text size (12–17) when the snapshot carries it: `fontSizes.text` (0.2.1-alpha.2), else `fontSize`
@@ -1259,8 +1259,8 @@ window.__ModuleLoader__.load({
         } catch (e) { return null }
       }
 
-      /** « Me surprendre » — un tirage cohérent : le fond dicte le mode et la
-       *  teinte, l'accent sort de la dominante du fond. */
+      /** “Surprise me” — a coherent draw: the background dictates the mode and the
+       *  tint, the accent comes from the dominant colour of the background. */
       const surprendre = () => {
         const wp = WPS[1 + Math.floor(Math.random() * (WPS.length - 1))]
         const clair = ['sable', 'brume', 'menthe', 'peche', 'brumeg', 'carreaux', 'seyes', 'points', 'milli', 'lignes', 'kraft', 'idunes', 'iforet'].indexOf(wp.id) >= 0
@@ -1272,21 +1272,21 @@ window.__ModuleLoader__.load({
       }
 
       // ══════════════════════════════════════════════════════════════════════
-      // 4b. ANIMATION DE RÉFLEXION — le statut du bas du chat.
+      // 4b. THINKING ANIMATION — the status at the bottom of the chat.
       //
-      //   Tant que l'agent travaille, DSH monte un bloc `[data-chat-running]` : une
-      //   queue de baleine de 14 px, puis « Deep diving for 12s ··· » (texte à reflet,
-      //   écrit DEUX fois : le texte et sa copie lumineuse). Le bloc est remonté à
-      //   chaque réponse. On ne touche pas au moteur : un MutationObserver le repère,
-      //   y pose l'animation choisie (en masquant la queue de baleine) et remplace la
-      //   phrase native par un mot de l'ambiance — avec le gabarit et la durée de DSH.
-      //   Tout est défensif : si la structure change, on ne fait rien.
+      //   As long as the agent is working, DSH mounts a `[data-chat-running]` block: a
+      //   14 px whale tail, then “Deep diving for 12s ···” (shimmering text,
+      //   written TWICE: the text and its luminous copy). The block is remounted on
+      //   every answer. We do not touch the engine: a MutationObserver spots it,
+      //   puts the chosen animation in it (hiding the whale tail) and replaces the
+      //   native phrase with an ambiance word — with DSH's template and duration.
+      //   Everything is defensive: if the structure changes, we do nothing.
       //
-      //   Les réglages vivent dans une clé à part (kybernos.theme.loader.v1) : « Tout
-      //   rétablir » de la page Thème ne doit pas effacer tes animations. Les fichiers
-      //   importés et les mots du pack vivent sur le disque (route hôte
-      //   /kybernos-theme/loader-store) ; le navigateur n'en garde que les animations
-      //   CHOISIES, pour peindre sans attendre l'hôte.
+      //   The settings live in a separate key (kybernos.theme.loader.v1): “Reset
+      //   all” on the Theme page must not erase your animations. The imported files
+      //   and the pack's words live on disk (host route
+      //   /kybernos-theme/loader-store); the browser keeps only the CHOSEN
+      //   animations, to paint without waiting for the host.
       // ══════════════════════════════════════════════════════════════════════
 
       const LD_KEY = 'kybernos.theme.loader.v1'
@@ -1298,7 +1298,7 @@ window.__ModuleLoader__.load({
       const LD_ID = /^[a-z0-9][a-z0-9-]{0,63}$/
       const LD_WHALE = 'M8.844 13.742C8.967 12.328 8.45 10.4 8.45 9.65C8.45 8.94 8.88 8.43 9.6 8.43C11.285 8.43 12.106 8.281 12.685 8.104C13.71 7.791 14.585 6.768 15.055 5.945C15.137 5.803 14.99 5.641 14.829 5.671C13.829 5.86 12.828 5.376 11.827 4.978C10.659 4.514 9.491 4.707 8.935 4.876C8.805 4.915 8.658 4.819 8.636 4.686C8.468 3.643 7.405 2.615 5.498 2.238C4.54 2.048 3.748 1.574 3.347 1.202C3.252 1.113 3.088 1.125 3.03 1.242C2.628 2.059 2.168 3.82 5.248 6.115C5.82 6.494 6.31 6.785 6.574 7.637C6.72 8.104 6.157 9.168 6.061 9.368C5.157 11.27 5.089 12.19 4.926 13.742'
 
-      /** Les réglages, toujours remis dans la forme attendue (même liste blanche que l'hôte). */
+      /** The settings, always put back into the expected shape (same allow-list as the host). */
       const ldClean = (raw) => {
         const r = (raw !== null && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {}
         const out = { ...LD_DEF, sel: [] }
@@ -1318,9 +1318,9 @@ window.__ModuleLoader__.load({
       }
       const ldWrite = (S) => { try { localStorage.setItem(LD_KEY, JSON.stringify(S)) } catch (e) { /* quota */ } }
 
-      // ── Le catalogue : 34 dessins originaux (48×48, animés en CSS) ───────────
-      // Ceux de tes deux références (pack Lottie « Loading symbols set ») ne sont pas
-      // inclus : ils appartiennent à leur auteur. Importe-les depuis « Ajouter la tienne ».
+      // ── The catalogue: 34 original drawings (48×48, animated in CSS) ───────────
+      // The ones from your two references (Lottie pack “Loading symbols set”) are not
+      // included: they belong to their author. Import them from “Add your own”.
       const ldSv=(inner,attrs)=>'<svg viewBox="0 0 48 48" aria-hidden="true" '+(attrs||'')+'>'+inner+'</svg>'
       const LD_PRESETS_RAW=[
        {id:'ring',kind:'mono',dur:'1,0 s',svg:ldSv('<circle cx="24" cy="24" r="18" stroke-opacity=".2"/><circle class="vb a-spin" cx="24" cy="24" r="18" stroke-dasharray="30 120" style="--d:1s"/>','fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"')},
@@ -1358,7 +1358,7 @@ window.__ModuleLoader__.load({
        {id:'ghost',kind:'color',dur:'2,0 s',svg:ldSv('<g class="a-float"><path d="M10 41V23a14 14 0 0 1 28 0v18l-4.7-4-4.7 4-4.6-4-4.6 4-4.7-4z" fill="#fff" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><ellipse class="a-blink" cx="19" cy="23" rx="1.9" ry="2.8" fill="currentColor" style="--d:3s"/><ellipse class="a-blink" cx="29" cy="23" rx="1.9" ry="2.8" fill="currentColor" style="--d:3s"/><circle cx="15" cy="28" r="2.3" fill="var(--c1)" opacity=".45"/><circle cx="33" cy="28" r="2.3" fill="var(--c1)" opacity=".45"/><path d="M22 29q2 2.2 4 0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></g>','style="--d:2s"')},
        {id:'anger',kind:'color',dur:'1,0 s',svg:ldSv('<g class="a-beat"><path d="M8 19c8 0 11-3 11-11"/><path d="M40 19c-8 0-11-3-11-11"/><path d="M8 29c8 0 11 3 11 11"/><path d="M40 29c-8 0-11 3-11 11"/></g>','fill="none" stroke="var(--c1)" stroke-width="4.5" stroke-linecap="round" style="--d:1s"')}
       ]
-      /* dessinés par le skill (la démo en tire un à chaque demande) */
+      /* drawn by the skill (the demo draws one at each request) */
       const LD_NAMES = {
         ring: ['Anneau', 'Ring'],
         orbit: ['Orbite', 'Orbit'],
@@ -1397,8 +1397,8 @@ window.__ModuleLoader__.load({
       }
       const LD_PRESETS = named(LD_PRESETS_RAW.map((p) => ({ type: 'inline', source: 'preset', ...p })), LD_NAMES)
 
-      // ── Les ambiances : des mots par métier, en français et en anglais ─────────
-      // Une forme qui se lit après « … for 12s » : un nom d'action ou un gérondif.
+      // ── The ambiances: words per profession, in French and English ─────────
+      // A form that reads after “… for 12s”: an action noun or a gerund.
       const LD_PACKS = [
         { id: 'dsh', orig: true, words: { fr: [], en: [] } },
         { id: 'mer', words: { fr: ['Plongée', 'Sondage', 'Cap sur la réponse', 'Remontée', 'Veille'], en: ['Diving', 'Sounding', 'Charting a course', 'Surfacing', 'Keeping watch'] } },
@@ -1430,12 +1430,12 @@ window.__ModuleLoader__.load({
 
       // ── Le magasin ────────────────────────────────────────────────────────────
       const ld = { S: ldRead(), mine: [], words: [], subs: new Set(), hostState: 'unknown', pushTimer: null, ctx: null, started: false, pulled: false, mo: null, runs: new Set() }
-      const ldNotify = () => { ld.subs.forEach((fn) => { try { fn() } catch (e) { /* un abonné fautif ne coupe pas les autres */ } }) }
+      const ldNotify = () => { ld.subs.forEach((fn) => { try { fn() } catch (e) { /* a faulty subscriber does not cut off the others */ } }) }
       const ldById = (id) => LD_PRESETS.find((p) => p.id === id) || ld.mine.find((p) => p.id === id) || null
       const ldLang = () => kbLang()
       const ldHash = (str) => Array.from(String(str)).reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7)
       const ldPackById = (id) => (id === 'perso' ? { id: 'perso', name: kt('Mon pack', 'My pack'), words: { fr: ld.words, en: ld.words } } : (LD_PACKS.find((p) => p.id === id) || LD_PACKS[0]))
-      /** Les mots de l'ambiance active, dans la langue de l'interface. Vide = on laisse le texte de DSH. */
+      /** The words of the active ambiance, in the interface language. Empty = we leave DSH's text. */
       const ldWordList = (id) => {
         const p = ldPackById(id === undefined ? ld.S.pack : id)
         if (p.orig === true) return []
@@ -1443,13 +1443,13 @@ window.__ModuleLoader__.load({
         return Array.isArray(w) && w.length > 0 ? w : (p.words.en || [])
       }
 
-      // Les animations CHOISIES sont gardées dans le navigateur (≤ 4 × 200 Ko) : sans cela, la
-      // première réponse après un rechargement attendrait l'hôte pour savoir quoi dessiner.
+      // The CHOSEN animations are kept in the browser (≤ 4 × 200 KB): without that, the
+      // first answer after a reload would wait for the host to know what to draw.
       const ldCacheWrite = () => {
         try {
           const keep = ld.mine.filter((l) => ld.S.sel.indexOf(l.id) >= 0)
           localStorage.setItem(LD_CACHE, JSON.stringify({ loaders: keep, words: ld.words }))
-        } catch (e) { /* quota : l'hôte reste la référence */ }
+        } catch (e) { /* quota: the host remains the reference */ }
       }
       const ldCacheRead = () => {
         try {
@@ -1458,13 +1458,13 @@ window.__ModuleLoader__.load({
             if (Array.isArray(c.loaders)) ld.mine = c.loaders.filter(ldRecordOk)
             if (Array.isArray(c.words)) ld.words = c.words.filter((w) => typeof w === 'string')
           }
-        } catch (e) { /* pas de cache */ }
+        } catch (e) { /* no cache */ }
       }
       const ldRecordOk = (l) => l !== null && typeof l === 'object' && typeof l.id === 'string' && LD_ID.test(l.id) && typeof l.name === 'string'
         && (l.type === 'svg' || l.type === 'lottie' || l.type === 'img') && l.data !== undefined && l.data !== null
       ldCacheRead()
 
-      // ── L'hôte : disque durable, optionnel ────────────────────────────────────
+      // ── The host: durable disk, optional ────────────────────────────────────
       const ldHostOn = () => { try { return window.__KB_THEME_HOST_STORE__ !== false } catch (e) { return true } }
       const ldHostUrl = () => { try { return new URL('kybernos-theme/loader-store', document.baseURI).pathname } catch (e) { return '/kybernos-theme/loader-store' } }
       const ldHost = async (body) => {
@@ -1480,7 +1480,7 @@ window.__ModuleLoader__.load({
         if (ld.pushTimer !== null) clearTimeout(ld.pushTimer)
         ld.pushTimer = setTimeout(() => { ld.pushTimer = null; ldHost({ op: 'put-settings', settings: ld.S }) }, 700)
       }
-      /** Lit l'hôte. `quiet` : ne réveille la page que si quelque chose a changé. */
+      /** Reads the host. `quiet`: only wakes the page if something changed. */
       const ldPull = async (quiet) => {
         const j = await ldHost()
         const was = ld.hostState
@@ -1494,19 +1494,19 @@ window.__ModuleLoader__.load({
         }
         if (Array.isArray(j.words)) ld.words = j.words.filter((w) => typeof w === 'string')
         if (j.settings !== null && typeof j.settings === 'object' && typeof j.settings.updatedAt === 'number' && j.settings.updatedAt > ld.S.updatedAt) { ld.S = ldClean(j.settings); ldWrite(ld.S) }
-        else if ((j.settings === null || j.settings === undefined) && ld.S.updatedAt > 0 && ld.pulled === false) ldSchedulePush() // premier passage : l'hôte n'a rien, on lui donne ce que le navigateur sait
+        else if ((j.settings === null || j.settings === undefined) && ld.S.updatedAt > 0 && ld.pulled === false) ldSchedulePush() // first pass: the host has nothing, we give it what the browser knows
         ld.pulled = true
         ldCacheWrite()
         if (quiet !== true || sig() !== before || was !== ld.hostState) ldNotify()
         return true
       }
-      /** Change des réglages : navigateur d'abord (immédiat), disque ensuite (différé). */
+      /** Changes settings: browser first (immediate), disk afterwards (deferred). */
       const ldSet = (patch) => {
         ld.S = ldClean({ ...ld.S, ...patch, updatedAt: Date.now() })
         ldWrite(ld.S); ldCacheWrite(); ldNotify(); ldSchedulePush()
       }
-      /** Rend { ok, local?, error?, loader? }. Un hôte qui REFUSE le fichier (il en a vu un défaut) : rien n'est
-       *  gardé. Un hôte INJOIGNABLE : le fichier reste dans ce navigateur jusqu'au rechargement (`local`). */
+      /** Returns { ok, local?, error?, loader? }. A host that REFUSES the file (it saw a defect in it): nothing is
+       *  kept. An UNREACHABLE host: the file stays in this browser until reload (`local`). */
       const ldAddRecord = async (rec) => {
         const j = await ldHost({ op: 'put-loader', loader: rec })
         if (j.ok !== true && j.unreachable !== true) return { ok: false, error: j.error }
@@ -1531,7 +1531,7 @@ window.__ModuleLoader__.load({
         return j
       }
 
-      // ── Le dessin d'une animation ─────────────────────────────────────────────
+      // ── The drawing of an animation ─────────────────────────────────────────────
       const ldReduced = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.getAttribute('data-kbth-reduced') === '1' } catch (e) { return false } }
       let ldLottiePromise = null
       const ldLottieLib = () => {
@@ -1548,9 +1548,9 @@ window.__ModuleLoader__.load({
         }
         return ldLottiePromise
       }
-      /** Un nœud DOM prêt à être posé. Le contenu importé n'est JAMAIS injecté comme HTML :
-       *  un SVG passe par <img> ou par un masque CSS (aucun script n'y tourne), un Lottie par
-       *  son moteur, les dessins du catalogue (nos propres chaînes) sont seuls en ligne. */
+      /** A DOM node ready to be placed. Imported content is NEVER injected as HTML:
+       *  an SVG goes through <img> or a CSS mask (no script runs in it), a Lottie through
+       *  its engine, only the catalogue drawings (our own strings) are inline. */
       const ldNode = (l, px) => {
         const span = document.createElement('span')
         span.className = 'kb-ld'
@@ -1576,10 +1576,10 @@ window.__ModuleLoader__.load({
         }
         return span
       }
-      const ldDestroy = (node) => { try { if (node !== null && node !== undefined && node.__kbAnim) node.__kbAnim.destroy() } catch (e) { /* déjà détruit */ } }
+      const ldDestroy = (node) => { try { if (node !== null && node !== undefined && node.__kbAnim) node.__kbAnim.destroy() } catch (e) { /* already destroyed */ } }
 
       // ── Le tirage ─────────────────────────────────────────────────────────────
-      /** `memo` garde le dernier tirage : { last, idx }. Muté. */
+      /** `memo` keeps the last draw: { last, idx }. Mutated. */
       const ldChoose = (memo) => {
         const sel = ld.S.sel.map(ldById).filter((x) => x !== null)
         if (sel.length === 0) return null
@@ -1603,12 +1603,12 @@ window.__ModuleLoader__.load({
         return x
       }
 
-      // ── Le statut du bas, dans la vraie page ──────────────────────────────────
+      // ── The status at the bottom, in the real page ──────────────────────────────
       const ldTurn = { loader: null, word: null, t0: 0, lastSeen: 0, memo: {}, wmemo: {} }
       const ldBase = () => { try { return String(ld.ctx.locale.bind('chat')('chat.deepDiving')) } catch (e) { return '' } }
-      /** DSH écrit le texte DEUX fois : un nœud texte (la base) et, dans la copie lumineuse qui balaie
-       *  le mot, un attribut `data-shimmer-text` que le CSS affiche (`::after`). Sans le second, le
-       *  reflet repasserait « Deep diving » par-dessus notre mot. */
+      /** DSH writes the text TWICE: a text node (the base) and, in the luminous copy that sweeps
+       *  the word, a `data-shimmer-text` attribute that the CSS displays (`::after`). Without the second, the
+       *  shimmer would paint “Deep diving” back over our word. */
       const ldApplyText = (run) => {
         if (run.word === null || run.word === undefined) return
         const base = ldBase()
@@ -1630,7 +1630,7 @@ window.__ModuleLoader__.load({
         }
       }
       const ldRelease = (run) => {
-        try { if (run.mo !== null) run.mo.disconnect() } catch (e) { /* déjà détaché */ }
+        try { if (run.mo !== null) run.mo.disconnect() } catch (e) { /* already detached */ }
         if (run.timer !== null) clearInterval(run.timer)
         ldDestroy(run.node)
         run.mo = null; run.timer = null
@@ -1643,7 +1643,7 @@ window.__ModuleLoader__.load({
         if (shim === null || content === null || content === undefined) return // structure inconnue : on laisse DSH tranquille
         el.__kbLd = true
         const now = Date.now()
-        if (now - ldTurn.lastSeen > 1500) { // une NOUVELLE réponse (le bloc est remonté à l'identique au milieu d'une réponse)
+        if (now - ldTurn.lastSeen > 1500) { // a NEW answer (the block is remounted identically in the middle of an answer)
           ldTurn.loader = ldChoose(ldTurn.memo)
           ldTurn.word = ldChooseWord(ldTurn.wmemo)
           ldTurn.t0 = now
@@ -1677,13 +1677,13 @@ window.__ModuleLoader__.load({
           if (ld.S.rot !== 'fixed' && run.word !== null) {
             const step = ld.S.rot === '8' ? 8000 : 15000
             const idx = Math.floor((Date.now() - run.t0) / step)
-            if (idx !== run.idx) { run.idx = idx; run.word = ldChooseWord(ldTurn.wmemo); ldTurn.word = run.word } // DSH réécrit le texte à chaque seconde : le nouveau mot passe au prochain tic
+            if (idx !== run.idx) { run.idx = idx; run.word = ldChooseWord(ldTurn.wmemo); ldTurn.word = run.word } // DSH rewrites the text every second: the new word shows at the next tick
           }
         }, 1000)
       }
-      /** Arrête tout et rend à DSH son icône : le plugin peut être désactivé à chaud. */
+      /** Stops everything and gives DSH its icon back: the plugin can be disabled on the fly. */
       const ldStop = () => {
-        try { if (ld.mo !== null) ld.mo.disconnect() } catch (e) { /* déjà détaché */ }
+        try { if (ld.mo !== null) ld.mo.disconnect() } catch (e) { /* already detached */ }
         ld.mo = null
         Array.from(ld.runs).forEach((run) => {
           ldRelease(run)
@@ -1692,11 +1692,11 @@ window.__ModuleLoader__.load({
             if (run.icon !== null) run.icon.removeAttribute('data-kb-ld-hide')
             run.el.removeAttribute('data-kb-ld-notext')
             run.el.__kbLd = false
-          } catch (e) { /* le bloc est déjà parti */ }
+          } catch (e) { /* the block has already gone */ }
         })
         ld.started = false
       }
-      /** Surveille la page : chaque `[data-chat-running]` qui apparaît est décoré. Rend le disposer. */
+      /** Watches the page: each `[data-chat-running]` that appears is decorated. Returns the disposer. */
       const ldStart = (ctx) => {
         ld.ctx = ctx
         if (ld.started) return ldStop
@@ -1706,7 +1706,7 @@ window.__ModuleLoader__.load({
             if (root.nodeType !== 1) return
             if (root.matches('[data-chat-running]')) ldDecorate(root)
             root.querySelectorAll('[data-chat-running]').forEach(ldDecorate)
-          } catch (e) { /* une erreur ici ne doit jamais atteindre DSH */ }
+          } catch (e) { /* an error here must never reach DSH */ }
         }
         const go = () => {
           try {
@@ -1872,7 +1872,7 @@ window.__ModuleLoader__.load({
         for (let i = 2; libNameTaken(n); i += 1) n = base.slice(0, PRESET_NAME_MAX - String(i).length - 3).trim() + ' (' + i + ')'
         return n
       }
-      /** Adds a theme at the end of the library. Rend l'enregistrement, ou null (settings vides, bibliothèque pleine). */
+      /** Adds a theme at the end of the library. Returns the record, or null (empty settings, full library). */
       const libAdd = (name, source, settings, extra) => {
         if (lib.presets.length >= PRESET_LIMIT) return null
         const rec = presetRecord({ ...(extra || {}), id: presetId(source === 'gallery' ? 'g' : 'u'), name: libFreeName(name), source, at: Date.now(), settings })
@@ -1915,7 +1915,7 @@ window.__ModuleLoader__.load({
         return { ok: true, name: name === '' ? 'Thème importé' : name, settings, legacy: !framed, author: framed && typeof raw.author === 'string' ? raw.author : undefined }
       }
 
-      // « Modified » = a setting this theme retains has moved. The mode is left out on purpose: DSH's own
+      // “Modified” = a setting this theme retains has moved. The mode is left out on purpose: DSH's own
       // light/dark button changes it from elsewhere, and that is not editing the theme.
       const settingText = (v) => JSON.stringify(v !== null && typeof v === 'object' ? Object.keys(v).sort().map((k) => [k, v[k]]) : v).toLowerCase()
       const settingsDirty = (S, settings) => Object.keys(settings).some((k) => k !== 'mode' && settingText(S[k]) !== settingText(settings[k]))
@@ -1955,7 +1955,7 @@ window.__ModuleLoader__.load({
       //   has been verified and cached. The page never sees an unverified catalogue, and it checks what
       //   it is given anyway: a theme is data, so a catalogue theme goes through the same check as a file
       //   (`presetSettings`) and never carries accessibility settings.
-      //   Installing puts a copy in « My themes » (source « gallery », with its catalogue id and version);
+      //   Installing puts a copy in “My themes” (source “gallery”, with its catalogue id and version);
       //   from then on it is yours, and the gallery only offers an update when its version moves.
       // ══════════════════════════════════════════════════════════════════════
 
@@ -2060,43 +2060,43 @@ window.__ModuleLoader__.load({
       }
 
       // ══════════════════════════════════════════════════════════════════════
-      // 5. LA PAGE DE RÉGLAGES.
+      // 5. THE SETTINGS PAGE.
       // ══════════════════════════════════════════════════════════════════════
 
       const css = `
-/* ── Bordures du schéma clair ─────────────────────────────────────────────
-   La feuille officielle DSH pose alias-border-l1 à 4 % de noir (#0000000a)
-   en clair : invisible sur fond blanc, cartes et panneaux perdent leur
-   liseré (Marketplace, teams, etc.). On remonte à 8 % sur body SANS
-   l'attribut sombre — spécificité 0,1,1 > 0,0,1, la règle gagne quel que
-   soit l'ordre des feuilles, et ne touche jamais le sombre (#ffffff0f y
-   reste lisible). Volontairement TOUJOURS actif, même en configuration
-   native : la valeur fautive est celle de DSH, pas celle d'une peau. */
+/* ── Borders of the light scheme ──────────────────────────────────────────
+   DSH's official sheet sets alias-border-l1 to 4 % black (#0000000a)
+   in light: invisible on a white background, cards and panels lose their
+   hairline (Marketplace, teams, etc.). We raise it to 8 % on body WITHOUT
+   the dark attribute — specificity 0,1,1 > 0,0,1, the rule wins whatever
+   the order of the sheets, and never touches dark (#ffffff0f is still
+   readable there). Deliberately ALWAYS on, even in the native
+   configuration: the faulty value is DSH's, not a skin's. */
 body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
-/* ── Masquer la section native DSH "Theme / 外观" de la sidebar ─────────── */
+/* ── Hide DSH's native "Theme / 外观" section from the sidebar ─────────── */
 [data-slot="settings.section"][data-id="theme"],
 [role="dialog"] nav [data-id="theme"] { display: none !important; }
-/* Forcer le conteneur parent du slot à prendre toute la largeur disponible,
-   sinon le grid 2 colonnes n'a jamais assez de place. */
+/* Force the slot's parent container to take the whole available width,
+   otherwise the 2-column grid never has enough room. */
 [data-slot="settings.section"]:has(.kbth-page) { width: 100%; max-width: none; }
 
-/* Une seule colonne : l'aperçu latéral a été retiré (il ne servait pas). */
+/* A single column: the side preview was removed (it was of no use). */
 .kbth-page{display:grid;grid-template-columns:1fr;gap:22px;max-width:720px;align-items:start}
 .kbth-main{display:flex;flex-direction:column;gap:22px;min-width:0}
 .kbth-head{display:flex;flex-direction:column;gap:6px}
 .kbth-title{font-size:26px;line-height:32px;font-weight:800;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
 .kbth-sub{font-size:14px;line-height:1.55;color:var(--dsw-alias-label-secondary);max-width:640px}
 .kbth-seg{display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:var(--dsw-alias-bg-layer-2);width:max-content}
-/* (29/09, demande) Sélecteur Simple/Avancé (et Mode) PLUS CLAIR : 14px,
-   paddings généreux, état actif à la couleur de marque — on ne cherche
-   plus le segment actif dans un fond de gris. */
+/* (29/09, on request) Simple/Advanced selector (and Mode) CLEARER: 14px,
+   generous padding, active state in the brand colour — nobody has to look
+   for the active segment in a grey background any more. */
 .kbth-seg button{appearance:none;border:1px solid transparent;font:inherit;font-size:14px;font-weight:500;padding:8px 18px;border-radius:9px;cursor:pointer;background:transparent;color:var(--dsw-alias-label-secondary);transition:background .12s,color .12s,border-color .12s}
 .kbth-seg button:hover:not([aria-pressed="true"]){background:var(--dsw-alias-interactive-bg-hover)}
 .kbth-seg button[aria-pressed="true"]{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12)}
-/* (29/09) Le bloc « Appearance » natif de Général est remplacé par la
-   section Apparence de cette page (même préférence via themeSvc.setTheme) :
-   marqué data-kbth-own par l'observateur ci-dessous, il disparaît — un seul
-   endroit règle l'apparence. */
+/* (29/09) The native “Appearance” block of General is replaced by the
+   Appearance section of this page (same preference via themeSvc.setTheme):
+   marked data-kbth-own by the observer below, it disappears — one single
+   place sets the appearance. */
 [data-kbth-own="appearance"]{display:none}
 .kbth-sec{display:flex;flex-direction:column;gap:12px}
 .kbth-sec-h{display:flex;flex-direction:column;gap:3px}
@@ -2108,14 +2108,14 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 .kbth-hint{font-size:11px;color:var(--dsw-alias-label-tertiary);line-height:1.45}
 .kbth-link{appearance:none;border:0;background:none;padding:0;font:inherit;color:var(--dsw-alias-label-primary);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
 .kbth-link:hover{color:var(--dsw-alias-brand-primary)}
-/* Avertissement de conflit dream-skin — stylé avec les jetons DSH */
+/* dream-skin conflict warning — styled with the DSH tokens */
 .kbth-conflict{font-size:12px;line-height:1.5;padding:8px 12px;border-radius:9px;
   background:var(--dsw-alias-state-warn-tertiary);color:var(--dsw-alias-state-warn-label);
   border:.5px solid var(--dsw-alias-state-warn-secondary);flex-basis:100%}
 .kbth-conflict strong{font-weight:600}
-/* Pastilles rondes : le fond du thème d'un côté, son accent de l'autre.
-   Rien d'autre — ni cadre, ni méta sous chaque pastille (l'état du thème
-   choisi s'affiche en une ligne, sous la rangée). */
+/* Round dots: the theme's background on one side, its accent on the other.
+   Nothing else — no frame, no meta under each dot (the state of the chosen
+   theme is shown on one line, under the row). */
 .kbth-icsets{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
 .kbth-icset{appearance:none;font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:7px;text-align:left;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}
 .kbth-icset:hover{border-color:var(--dsw-alias-border-l3)}
@@ -2127,12 +2127,12 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 .kbth-skins{display:flex;flex-wrap:wrap;gap:12px 14px;align-items:flex-start}
 .kbth-skin{appearance:none;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;
   padding:2px;border:0;background:none;width:76px;border-radius:12px}
-/* (30/09) Pastille des thèmes prêts : liseré propre sur fond clair ET sombre
-   (1 px à border-l2, le 0,5 px à l3 disparaissait sur les bases claires),
-   profondeur discrète par ombre interne — le disque ne flotte plus.
-   corner-shape:round — le shell pose superellipse(1.5) en global (Chrome 139),
-   qui peint le border-radius:50% en SQUIRCLE : une pastille de couleur se
-   lit ronde, la superellipse reste aux surfaces du shell. */
+/* (30/09) Dot of the ready-made themes: clean hairline on a light AND dark background
+   (1 px at border-l2; the 0.5 px at l3 vanished on light bases),
+   discreet depth through an inner shadow — the disc no longer floats.
+   corner-shape:round — the shell sets superellipse(1.5) globally (Chrome 139),
+   which paints border-radius:50% as a SQUIRCLE: a colour dot must
+   read round; the superellipse stays on the shell's surfaces. */
 .kbth-skin-dot{width:34px;height:34px;border-radius:50%;corner-shape:round;flex:none;
   border:1px solid var(--dsw-alias-border-l2);
   box-shadow:inset 0 1px 2px rgba(0,0,0,.18);
@@ -2213,7 +2213,7 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 .kbth-fsopt-name{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
 .kbth-fsopt-sample{font-size:14px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kbth-fsempty{padding:12px;font-size:12px;color:var(--dsw-alias-label-tertiary)}
-/* ── Onglet Avancé : layout 2 colonnes (liste + éditeur) ──────────────── */
+/* ── Advanced tab: 2-column layout (list + editor) ──────────────────────── */
 .kbth-adv-editor{display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:12px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);position:sticky;top:0}
 .kbth-adv-preview{display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;border:.5px solid var(--dsw-alias-border-l2)}
 .kbth-adv-chip{width:32px;height:32px;border-radius:6px;border:1px solid var(--dsw-alias-border-l3);flex:none}
@@ -2224,13 +2224,13 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 .kbth-adv-colors{display:flex;gap:8px;align-items:center}
 .kbth-adv-swatch{display:flex;flex-direction:column;align-items:center;gap:3px}
 .kbth-adv-swatch-label{font-size:9.5px;color:var(--dsw-alias-label-tertiary)}
-/* ── Sous-onglets Avancé — pile VERTICALE à gauche du contenu (règle du
-   26/09/2026) : colonne d'onglets + panneau, grid 2 colonnes. ──────────── */
-/* ── Sous-onglets Avancé — pile VERTICALE à gauche du contenu ───────────
-   (29/09, harmonisation) Même matière que les onglets unifiés du plugin
-   (kb8-tab) : pilule contour 1px, état actif à la couleur de marque — le
-   rail vertical et le liseré droit disparaissent au profit du traitement
-   commun. text-align:start : bidi-sûr. */
+/* ── Advanced sub-tabs — VERTICAL stack on the left of the content (rule of
+   26/09/2026): column of tabs + panel, 2-column grid. ──────────────────── */
+/* ── Advanced sub-tabs — VERTICAL stack on the left of the content ──────
+   (29/09, harmonisation) Same look as the plugin's unified tabs
+   (kb8-tab): 1px outline pill, active state in the brand colour — the
+   vertical rail and the right hairline give way to the common
+   treatment. text-align:start: bidi-safe. */
 .kbth-adv-cols{display:grid;grid-template-columns:180px minmax(0,1fr);gap:8px 22px;align-items:start}
 .kbth-adv-tabs{display:flex;flex-direction:column;gap:6px;overflow-y:auto;position:sticky;top:0}
 .kbth-adv-tab{appearance:none;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;font:inherit;font-size:13px;font-weight:500;padding:8px 12px;cursor:pointer;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:start;transition:color .12s,background .12s,border-color .12s}
@@ -2255,7 +2255,7 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 .kbth-tok-hex{font-size:11px;color:var(--dsw-alias-label-tertiary);font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
 .kbth-tok-badge{font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid;flex:none}
 .kbth-tok-sel{background:var(--dsw-alias-bg-layer-2)!important;border-color:var(--dsw-alias-border-l2)!important}
-/* ── Table accessibilité ─────────────────────────────────────────────── */
+/* ── Accessibility table ─────────────────────────────────────────────── */
 .kbth-a11y-table{display:flex;flex-direction:column;gap:2px}
 .kbth-a11y-row{display:grid;grid-template-columns:28px 1fr auto auto auto;gap:10px;align-items:center;padding:6px 8px;border-radius:6px}
 .kbth-a11y-row:hover{background:var(--dsw-alias-interactive-bg-hover,var(--dsw-alias-bg-layer-2))}
@@ -2276,9 +2276,9 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 .kbth-export-preview{border:1px solid var(--dsw-alias-border-l2);border-radius:10px;overflow:hidden;margin-top:8px}
 .kbth-export-bar{display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid var(--dsw-alias-border-l2);font-size:11px;color:var(--dsw-alias-label-tertiary);background:var(--dsw-alias-bg-layer-2)}
 .kbth-export-code{margin:0;padding:12px 14px;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.6;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-1);white-space:pre;overflow-x:auto}
-/* ══ Animation de réflexion ═════════════════════════════════════════════════
-   .kb-ld : une animation, partout (statut du bas, aperçu, bibliothèque). Les
-   classes a-* et vb sont celles du catalogue ; tout est borné par .kb-ld. */
+/* ══ Thinking animation ═════════════════════════════════════════════════════
+   .kb-ld: one animation, everywhere (bottom status, preview, library). The
+   a-* and vb classes are the catalogue's; everything is scoped by .kb-ld. */
 .kb-ld{display:inline-flex;flex:none;width:var(--kb-px,24px);height:var(--kb-px,24px);color:var(--kb-tint,currentColor);--c1:#E5534B;--c2:#F2A65A;--c3:#7FAF63;--c4:#F0C75E}
 .kb-ld svg,.kb-ld img{width:100%;height:100%;display:block;overflow:visible}
 .kb-ld svg *{transform-box:fill-box;transform-origin:center}
@@ -2341,10 +2341,10 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 .kb-ld.kb-late{visibility:hidden;animation:kbk-vis 0s forwards;animation-delay:var(--kb-late,0ms)}
 html[data-kbth-reduced] .kb-ld *{animation:none!important}
 @media (prefers-reduced-motion:reduce){.kb-ld *{animation:none!important}.kbth-ldp-text,.kbth-ldp-whale{animation:none!important}}
-/* Dans la vraie page : la queue de baleine native s'efface, le texte peut se masquer. */
+/* In the real page: the native whale tail fades out, the text can be hidden. */
 [data-kb-ld-hide]{display:none!important}
 [data-chat-running][data-kb-ld-notext] [data-shimmer]{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
-/* Aperçu en situation (copie fidèle du statut du bas : mêmes jetons DSH) */
+/* In-context preview (a faithful copy of the bottom status: same DSH tokens) */
 .kbth-ldp{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-radius:12px;background:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l2)}
 .kbth-ldp-user{align-self:flex-end;max-width:80%;background:var(--dsw-alias-bg-layer-3);padding:7px 11px;border-radius:12px;font-size:13px;color:var(--dsw-alias-label-primary)}
 .kbth-ldp-step{font-size:13px;color:var(--dsw-alias-label-tertiary)}
@@ -2369,7 +2369,7 @@ html[data-kbth-reduced] .kb-ld *{animation:none!important}
 .kbth-lds-x:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
 .kbth-lds-ord{position:absolute;top:7px;left:9px;font-size:11px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
 @media(max-width:480px){.kbth-ldt{grid-template-columns:repeat(2,minmax(0,1fr))}}
-/* Réglages repliés */
+/* Folded settings */
 .kbth-disc{appearance:none;width:100%;display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1);cursor:pointer;text-align:start;color:var(--dsw-alias-label-primary);font:inherit}
 .kbth-disc:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .kbth-disc-t{font-size:13px;font-weight:600}
@@ -2432,7 +2432,7 @@ html[data-kbth-reduced] .kb-ld *{animation:none!important}
 .kbth-trial b{font-weight:600}
 .kbth-trial-sp{flex:1;min-width:8px}
 .kbth-grp{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary);font-weight:600}
-/* Fenêtre */
+/* Window */
 .kbth-mback{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2147483000}
 .kbth-mdlg{position:fixed;z-index:2147483001;left:50%;top:50%;transform:translate(-50%,-50%);width:min(720px,calc(100vw - 32px));max-height:min(86vh,800px);display:flex;flex-direction:column;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l3);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.6);outline:none;font-size:14px}
 .kbth-mhd{display:flex;align-items:center;gap:12px;padding:16px 18px 8px}
@@ -2443,7 +2443,7 @@ html[data-kbth-reduced] .kb-ld *{animation:none!important}
 .kbth-mft{padding:12px 18px;border-top:1px solid var(--dsw-alias-border-l1);display:flex;justify-content:flex-end;gap:12px;align-items:center}
 .kbth-btn.kbth-ldpri{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#0f1115);border-color:var(--dsw-alias-brand-primary);font-weight:600}
 [data-kb="ld-pane"] .kbth-btn:disabled,[data-kb="ld-picker"] .kbth-btn:disabled,[data-kb="ld-pack"] .kbth-btn:disabled{opacity:.45;cursor:not-allowed}
-/* Bibliothèque */
+/* Library */
 .kbth-lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
 .kbth-lcard{display:flex;flex-direction:column;gap:5px;padding:7px;border-radius:10px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);min-width:0}
 .kbth-lcard.on{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary)}
@@ -2479,17 +2479,17 @@ html[data-kbth-reduced] .kb-ld *{animation:none!important}
 .kbth-sum-ic{display:flex;align-items:center;gap:10px;min-width:30px;color:var(--dsw-alias-label-secondary)}
 .kbth-sum-tx{display:flex;flex-direction:column;gap:2px;flex:1;min-width:160px}
 .kbth-new{font-size:10px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:999px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#0f1115)}
-/* ── Petits textes en schéma CLAIR ──────────────────────────────────────────
-   DSH colore ses textes discrets avec label-tertiary (#81858C, 3,7:1 sur blanc) et label-caption
-   (#ADB2B8, 2,1:1) : sous le seuil AA de 4,5:1. Dans CETTE page, en clair seulement, ils prennent
-   label-secondary (5,7:1). Le sombre n'y gagne rien et garde sa hiérarchie. Mesuré sur la GUI réelle. */
+/* ── Small texts in the LIGHT scheme ────────────────────────────────────────
+   DSH colours its discreet texts with label-tertiary (#81858C, 3.7:1 on white) and label-caption
+   (#ADB2B8, 2.1:1): below the AA threshold of 4.5:1. On THIS page, in light only, they take
+   label-secondary (5.7:1). Dark gains nothing from it and keeps its hierarchy. Measured on the real GUI. */
 body:not([data-ds-dark-theme]) :is(.kbth-icset-r,.kbth-a11y-hex,.kbth-adv-css,.kbth-card-a,.kbth-card-m,.kbth-src,.kbth-adv-swatch-label,.kbth-disc-s,.kbth-drop,.kbth-empty,.kbth-export-bar,.kbth-fschev,.kbth-fsempty,.kbth-fsmeta,.kbth-fsopt-name,.kbth-grp,.kbth-hex span,.kbth-hint,.kbth-lcard-meta,.kbth-ldp-bar,.kbth-ldp-step,.kbth-lds-ord,.kbth-lds-x,.kbth-lds.empty,.kbth-mx,.kbth-note,.kbth-panel2 p,.kbth-pill,.kbth-ramp-label,.kbth-sec-d,.kbth-sl-vl,.kbth-sum-m,.kbth-toggle-hint,.kbth-tok-css,.kbth-tok-hex,.kbth-trow-m,.kbth-wchip button){color:var(--dsw-alias-label-secondary)}
 /* The "in use" pill is a brand fill with its own label pair: the grey of the rule above made it 3.3:1 (1.4:1 in Neutral violet). */
 body:not([data-ds-dark-theme]) .kbth-pill.ok{color:var(--dsw-alias-label-primary-foreground,#fff)}
-/* ── Encre des notes (AAA / AA / grand texte / échec) ───────────────────────────────────────
-   Les teintes d'état de DSH sont des fonds d'état, pas des encres : en clair, #22C55E fait 2,2:1 sur blanc.
-   Une variable par note ET par schéma, lue par le CSS : elle suit le schéma affiché sans que le script ait
-   à le deviner ni à se redessiner. Chaque encre dépasse 5:1 sur la couche 1 de son schéma (testé). */
+/* ── Ink of the grades (AAA / AA / large text / fail) ───────────────────────────────────────
+   DSH's state tints are state backgrounds, not inks: in light, #22C55E gives 2.2:1 on white.
+   One variable per grade AND per scheme, read by the CSS: it follows the scheme on display without the script
+   having to guess it or to redraw. Every ink exceeds 5:1 on layer 1 of its scheme (tested). */
 .kbth-gr-ok{--kbth-ink:#4ED17E}
 .kbth-gr-warn{--kbth-ink:#F7AD31}
 .kbth-gr-err{--kbth-ink:#F25A5A}
@@ -2522,8 +2522,8 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         o.hint ? h('div', { className: 'kbth-hint' }, o.hint) : null)
 
       // ══════════════════════════════════════════════════════════════════════
-      // 5b. L'ONGLET « ANIMATION » — aperçu, rotation, texte d'état, réglages,
-      //     et deux fenêtres (bibliothèque, pack de mots).
+      // 5b. THE “ANIMATION” TAB — preview, rotation, status text, settings,
+      //     and two windows (library, word pack).
       // ══════════════════════════════════════════════════════════════════════
 
       const ReactDOM = (() => { try { return require('react-dom') } catch (e) { return null } })()
@@ -2540,8 +2540,8 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
       const ldKo = (n) => (n / 1024).toFixed(n < 10240 ? 1 : 0).replace('.', ',') + ' Ko'
       const ldDuration = (secs) => (secs < 60 ? secs + 's' : Math.floor(secs / 60) + 'm ' + (secs % 60) + 's')
 
-      /** Nettoie un SVG importé : ce qui peut exécuter ou charger quelque chose est retiré. L'hôte REFUSE
-       *  ensuite tout ce qui en contient encore ; <img> et masque CSS ne font de toute façon rien tourner. */
+      /** Cleans an imported SVG: whatever can execute or load something is removed. The host then REFUSES
+       *  anything that still contains some; <img> and a CSS mask do not run anything anyway. */
       const ldCleanSvg = (text) => {
         let doc = null
         try { doc = new DOMParser().parseFromString(text, 'image/svg+xml') } catch (e) { return { error: kt('Ce fichier n’est pas un SVG valide.', 'This file is not a valid SVG.') } }
@@ -2559,7 +2559,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         return { svg, removed, animated: !!doc.querySelector('animate,animateTransform,animateMotion,set') || /@keyframes|animation/i.test(text), mono: /currentColor/i.test(svg) }
       }
 
-      /** Lit un fichier déposé et l'enregistre. Résout { t: 'ok'|'warn'|'err', text }. */
+      /** Reads a dropped file and saves it. Resolves { t: 'ok'|'warn'|'err', text }. */
       const ldImport = (file) => new Promise((resolve) => {
         const done = (t, text) => resolve({ t, text })
         if (file.size > LD_LIMIT) return done('err', kt('« ' + file.name + ' » pèse ' + ldKo(file.size) + ' : la limite est de 200 Ko. Simplifie l’animation ou réduise ses images.', '“' + file.name + '” weighs ' + ldKo(file.size) + ': the limit is 200 KB. Simplify the animation or reduce its images.'))
@@ -2600,7 +2600,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         } else done('err', kt('Format « .' + ext + ' » non pris en charge. Utilise SVG, JSON (Lottie), GIF ou WebP.', 'Format “.' + ext + '” is not supported. Use SVG, JSON (Lottie), GIF or WebP.'))
       })
 
-      /** Un nœud d'animation, monté dans un <span> React. */
+      /** An animation node, mounted in a React <span>. */
       function LdView(props) {
         const ref = React.useRef(null)
         const l = props.l
@@ -2621,7 +2621,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
       const ldCopy = (text, then) => {
         try { navigator.clipboard.writeText(text).then(() => then(true), () => then(false)) } catch (e) { then(false) }
       }
-      /** Une liste de nœuds texte (et non une phrase) : le traducteur de pages va nœud par nœud. */
+      /** A list of text nodes (not a sentence): the page translator goes node by node. */
       const ldSummaryHint = () => {
         const sel = ld.S.sel.map(ldById).filter((x) => x !== null)
         const p = ldPackById(ld.S.pack)
@@ -2630,7 +2630,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         return (sel.length > 0 ? names.concat([' · ', ld.S.mode === 'random' ? 'au hasard' : kt('dans l’ordre', 'in order')]) : [kt('Queue de baleine de DSH', 'DSH whale tail')]).concat([' · ', kt('texte :', 'text:'), ' ', p.name])
       }
 
-      /** La ligne de résumé d'Essentiel : renvoie vers l'onglet Animation. */
+      /** The summary line of Essentials: points to the Animation tab. */
       function LdSummary(props) {
         const [, bump] = React.useReducer((x) => x + 1, 0)
         React.useEffect(() => { ld.subs.add(bump); return () => { ld.subs.delete(bump) } }, [])
@@ -2656,8 +2656,8 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const [ambQ, setAmbQ] = React.useState('')
         const [ambIdx, setAmbIdx] = React.useState(0)
         const [setOpen, setSetOpen] = React.useState(false)
-        const [note, setNote] = React.useState(null)           // bannière de la fenêtre : { t, text }
-        const [drawn, setDrawn] = React.useState(null)         // l'aperçu : { id, word, t0, hist }
+        const [note, setNote] = React.useState(null)           // window banner: { t, text }
+        const [drawn, setDrawn] = React.useState(null)         // the preview: { id, word, t0, hist }
         const [wordDraft, setWordDraft] = React.useState('')
         const [prompt, setPrompt] = React.useState('')
         const [job, setJob] = React.useState('')
@@ -2673,7 +2673,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         React.useEffect(() => {
           ld.subs.add(bump)
           ldPull(true)
-          const poll = setInterval(() => { try { if (document.visibilityState !== 'hidden') ldPull(true) } catch (e) { /* page fermée */ } }, 4000)
+          const poll = setInterval(() => { try { if (document.visibilityState !== 'hidden') ldPull(true) } catch (e) { /* page closed */ } }, 4000)
           const clock = setInterval(bump, 1000)
           return () => { ld.subs.delete(bump); clearInterval(poll); clearInterval(clock) }
         }, [])
@@ -2683,7 +2683,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           setDrawn((cur) => ({ id: l === null ? null : l.id, word: w, t0: Date.now() - 12000, hist: [l === null ? null : l.name].concat(cur === null ? [] : cur.hist).filter((x) => x !== null).slice(0, 4), nonce: (cur === null ? 0 : cur.nonce) + 1 }))
         }
         React.useEffect(() => { draw() }, [])
-        // « Je viens de demander au chat une animation / des mots » : on attend qu'elle(s) arrive(nt) sur le disque.
+        // “I just asked the chat for an animation / words”: we wait for them to arrive on disk.
         React.useEffect(() => {
           if (waiting === null) return
           if (waiting.kind === 'loader') {
@@ -2696,7 +2696,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             setNote({ t: 'ok', text: (ld.words.length - waiting.base === 1 ? kt('1 mot ajouté à ton pack.', '1 word added to your pack.') : kt((ld.words.length - waiting.base) + ' mots ajoutés à ton pack.', (ld.words.length - waiting.base) + ' words added to your pack.')) }); setWaiting(null)
           }
         })
-        // Fenêtre : Échap la ferme, Tab reste dedans, le focus revient au bouton d'origine.
+        // Window: Escape closes it, Tab stays inside, focus returns to the original button.
         React.useEffect(() => {
           if (modal === null) return undefined
           const el = dlg.current
@@ -2704,8 +2704,8 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           const key = (e) => {
             if (e.key === 'Escape' && !ambOpen) { e.preventDefault(); e.stopPropagation(); close(); return }
             if (e.key === 'Tab' && dlg.current) {
-              // Toujours nous-mêmes : la boîte de réglages de DSH a son propre piège à focus, et la
-              // fenêtre est posée hors d'elle (portail) — laisser faire le navigateur, c'est en sortir.
+              // Always handled by us: DSH's settings dialog has its own focus trap, and the
+              // window sits outside it (portal) — leaving it to the browser would mean falling out of it.
               const f = Array.prototype.slice.call(dlg.current.querySelectorAll('button,input,textarea,select,a[href],[tabindex="0"]')).filter((x) => !x.disabled && x.offsetParent !== null)
               e.preventDefault(); e.stopPropagation()
               if (f.length === 0) return
@@ -2735,7 +2735,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const secs = drawn === null ? 12 : Math.floor((Date.now() - drawn.t0) / 1000)
         const tAcc = (() => { try { return readState().acc !== null } catch (e) { return false } })()
 
-        // La phrase de DSH, avec son gabarit et sa durée, dont on remplace le mot de base.
+        // DSH's phrase, with its template and duration, of which we replace the base word.
         const label = (() => {
           const dur = ldDuration(secs)
           let s = 'Deep diving for ' + dur + ' ···'
@@ -2792,11 +2792,11 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-open-picker', onClick: (e) => { setTab('examples'); open('picker', e) } }, sel.length < LD_MAX ? kt('+ Ajouter une animation…', '+ Add an animation…') : kt('Parcourir la bibliothèque…', 'Browse the library…')),
             h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-surprise-anim', onClick: surpriseAnim }, kt('✦ Me surprendre', '✦ Surprise me'))))
 
-        // ── Texte d'état : un grand sélecteur d'ambiances ───────────────────
+        // ── Status text: a large ambiance picker ───────────────────
         const plat = (x) => String(x).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
         const ambs = LD_PACKS.concat([{ id: 'perso', name: kt('Mon pack', 'My pack'), custom: true, words: { fr: ld.words, en: ld.words } }])
-        // Un aperçu qui VIT : trois mots qui défilent dans la liste toutes les 3 s, chaque ambiance partant d'un
-        // endroit différent. Les trois premiers, figés, donnaient l'impression que le pack s'arrêtait là.
+        // A preview that LIVES: three words scrolling in the list every 3 s, each ambiance starting from a
+        // different place. The first three, frozen, gave the impression that the pack stopped there.
         const ambSample = (p) => {
           if (p.orig === true) return '« Deep diving for 12s ··· »'
           const w = (p.words[ldLang()] && p.words[ldLang()].length > 0) ? p.words[ldLang()] : p.words.en
@@ -2841,7 +2841,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-surprise-text', onClick: surpriseText }, kt('✦ Me surprendre', '✦ Surprise me')),
             h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-open-pack', onClick: (e) => open('pack', e) }, kt('Modifier mon pack…', 'Edit my pack…'))))
 
-        // ── Réglages (repliés) ──────────────────────────────────────────────
+        // ── Settings (collapsed) ──────────────────────────────────────────────
         const sizeName = S.size === 'compact' ? kt('Compacte', 'Compact') : (S.size === 'large' ? kt('Grande', 'Large') : 'Standard')
         const summary = [sizeName, ' · ' + LD_SIZES[S.size] + ' px · ', 'vitesse', ' ' + S.speed.toFixed(2).replace('.', ',') + ' × · ', S.rot === 'fixed' ? kt('un mot par réponse', 'one word per reply') : (S.rot === '8' ? kt('un mot toutes les 8 s', 'one word every 8 s') : kt('un mot toutes les 15 s', 'one word every 15 s'))]
         const reglages = h('div', { className: 'kbth-sec', style: { gap: 8 } },
@@ -2870,7 +2870,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             h('div', { className: 'kbth-note' }, kt('Animations réduites : l’image fixe remplace l’animation. Le réglage du système est respecté.', 'Reduced motion: a still image replaces the animation. The system setting is respected.')),
             h('div', { className: 'kbth-row' }, h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-reset', onClick: () => ldSet({ ...LD_DEF, sel: S.sel, pack: S.pack }) }, kt('Rétablir ces réglages', 'Reset these settings')))) : null)
 
-        // ── Fenêtre : bibliothèque ──────────────────────────────────────────
+        // ── Window: library ──────────────────────────────────────────
         const toggleSel = (id) => {
           if (S.sel.indexOf(id) >= 0) ldSet({ sel: S.sel.filter((x) => x !== id) })
           else if (S.sel.length < LD_MAX) ldSet({ sel: S.sel.concat([id]) })
@@ -2934,7 +2934,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             h('span', { className: 'kbth-hint', style: { flex: 1 } }, sel.length >= LD_MAX ? kt('Rotation pleine : retire-en une pour en ajouter une autre.', 'Rotation full: remove one to add another.') : ''),
             h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', onClick: close }, kt('Terminé', 'Done'))))
 
-        // ── Fenêtre : mon pack de mots ──────────────────────────────────────
+        // ── Window: my word pack ──────────────────────────────────────
         const addWord = () => { const w = wordDraft.trim(); if (w !== '') { ldPutWords(ld.words.concat([w])); setWordDraft('') } }
         const packCmd = '/skill-loading-text ' + (job.trim() === '' ? kt('sage-femme libérale', 'freelance midwife') : job.trim())
         const packModal = h('div', { className: 'kbth-mdlg', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kbth-ld-mt', tabIndex: -1, ref: dlg, 'data-kb': 'ld-pack', onKeyDown: (e) => e.stopPropagation() },
@@ -3006,10 +3006,10 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const [wpCat, setWpCat] = React.useState('gradients')
         const [tokSel, setTokSel] = React.useState('l1')
         const [revision, setRevision] = React.useState(0)
-        // The theme library (« My themes »): redrawn when it changes (own writes, or the disk copy arriving).
+        // The theme library (“My themes”): redrawn when it changes (own writes, or the disk copy arriving).
         const [, libBump] = React.useReducer((x) => x + 1, 0)
         React.useEffect(() => { lib.subs.add(libBump); libPull(true); return () => { lib.subs.delete(libBump) } }, [])
-        const [saveDlg, setSaveDlg] = React.useState(null)       // null | { name, groups, error }: the « Enregistrer comme thème » window
+        const [saveDlg, setSaveDlg] = React.useState(null)       // null | { name, groups, error }: the “Save as theme” window
         const [renameId, setRenameId] = React.useState(null)     // Sharing: the row being renamed...
         const [renameDraft, setRenameDraft] = React.useState('')
         const [delId, setDelId] = React.useState(null)           // ...the one waiting for a delete confirmation...
@@ -3022,12 +3022,12 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const [trial, setTrial] = React.useState(null)          // null | { id, name, prev }: a gallery theme being tried, and the look to come back to
         const trialRef = React.useRef(null)
         trialRef.current = trial
-        const [exportFmt, setExportFmt] = React.useState('yaml')  // format de l'export affiché (non stocké)
-        const [advTab, setAdvTab] = React.useState('essentiel') // onglet ouvert : Essentiel = les réglages de base
+        const [exportFmt, setExportFmt] = React.useState('yaml')  // displayed export format (not stored)
+        const [advTab, setAdvTab] = React.useState('essentiel') // open tab: Essentials = the basic settings
 
-        // ── Sélecteur de police ────────────────────────────────────────────
-        // L'état vit ici, avec les autres contrôles : le rendu hors navigateur
-        // n'exécute que Page, et un composant imbriqué ne serait jamais appelé.
+        // ── Font picker ────────────────────────────────────────────
+        // The state lives here, with the other controls: rendering outside a browser
+        // only runs Page, and a nested component would never be called.
         const [fontOuvert, setFontOuvert] = React.useState(false)
         const [fontQ, setFontQ] = React.useState('')
         const [fontActif, setFontActif] = React.useState(0)
@@ -3037,28 +3037,28 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           const el = champPolice.current
           if (!fontOuvert || el === null) return undefined
           el.focus()
-          // Échap ferme le panneau de polices, PAS la boîte de réglages entière : on coupe la
-          // propagation au niveau natif (celui où l'écoute la boîte), pas seulement en React.
+          // Escape closes the fonts panel, NOT the whole settings dialog: we cut the
+          // propagation at the native level (the one the dialog listens at), not only in React.
           const stop = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setFontOuvert(false) } }
           el.addEventListener('keydown', stop)
           return () => el.removeEventListener('keydown', stop)
         }, [fontOuvert])
         React.useEffect(() => { setFontActif(0) }, [fontQ])
         React.useEffect(() => {
-          // Suit la sélection au clavier dans une liste qui défile.
+          // Follows the keyboard selection in a scrolling list.
           const el = boitePolice.current === null ? null : boitePolice.current.querySelector('[data-actif="1"]')
           if (el !== null && el !== undefined && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' })
         }, [fontActif, fontOuvert])
         React.useEffect(() => {
-          // Un clic ailleurs referme — pas de piège à focus.
+          // A click elsewhere closes it — no focus trap.
           if (!fontOuvert) return undefined
           const dehors = (e) => { if (boitePolice.current !== null && boitePolice.current.contains(e.target) === false) setFontOuvert(false) }
           document.addEventListener('mousedown', dehors)
           return () => document.removeEventListener('mousedown', dehors)
         }, [fontOuvert])
 
-        // Rendu du sélecteur : grand bouton (la police courante, dans sa propre
-        // fonte) + panneau avec recherche et liste des familles.
+        // Picker rendering: a large button (the current font, in its own
+        // typeface) + a panel with search and the list of families.
         const selecteurPolice = (courant, onPick) => {
           const plat = (s) => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
           const liste = FONTS.filter((x) => plat(x.name).indexOf(plat(fontQ)) >= 0)
@@ -3106,9 +3106,9 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
               : null)
         }
 
-                // Suivre le mode réel (la page native peut le changer aussi). Une
-        // préférence TIERS (« nebula »…) n'est pas un mode : la stocker
-        // corromprait l'état — on ne suit que les trois modes natifs.
+                // Follow the real mode (the native page can change it too). A
+        // THIRD-PARTY preference (“nebula”…) is not a mode: storing it
+        // would corrupt the state — we only follow the three native modes.
         React.useEffect(() => {
           if (themeSvc === null || typeof themeSvc.getTheme !== 'function') return
           try {
@@ -3122,17 +3122,17 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           } catch (e) { /* lecture impossible */ }
         }, [revision])
 
-        // S'abonner aux changements de thème : quand un plugin tiers reprend la
-        // main (dream-skin réaffirme son thème en moins de 250 ms), la note de
-        // conflit doit RÉAPPARAÎTRE — sans cet abonnement, elle n'était calculée
-        // qu'à nos propres re-rendus et restait masquée après la riposte.
+        // Subscribe to theme changes: when a third-party plugin takes
+        // over (dream-skin reasserts its theme in under 250 ms), the conflict
+        // note must REAPPEAR — without this subscription, it was only computed
+        // on our own re-renders and stayed hidden after the counter-move.
         React.useEffect(() => {
           if (ctxRef === null || ctxRef === undefined || typeof ctxRef.on !== 'function') return
           let rendu = null
           try {
             rendu = ctxRef.on('theme/change', () => setRevision((r) => r + 1))
           } catch (e) { rendu = null }
-          return () => { try { if (typeof rendu === 'function') rendu() } catch (e) { /* déjà détaché */ } }
+          return () => { try { if (typeof rendu === 'function') rendu() } catch (e) { /* already detached */ } }
         }, [])
 
         // `transient`: drawn but NOT stored, so a reload (or closing Settings) gives the previous look back: that is a trial.
@@ -3176,19 +3176,19 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const cl = makeTheme('light', o)
         const cd = makeTheme('dark', o)
 
-        // Le sélecteur de thème prêt : pastille « chip » concentrique.
-        // Le FOND du thème en disque, l'ACCENT en point centré — la diagonale
-        // 135° à arrêt sec (mesurée le 30/09) lisait comme un panneau de
-        // signalisation, pas comme un thème. Un skin sans mode (pack hérité)
-        // se dessine dans le schéma courant : c'est celui que l'utilisateur
-        // verra en le sélectionnant.
+        // The ready-made theme picker: concentric “chip” dot.
+        // The theme's BACKGROUND as a disc, the ACCENT as a centred dot — the 135°
+        // diagonal with a hard stop (measured on 30/09) read like a
+        // road sign, not like a theme. A skin without a mode (inherited pack)
+        // is drawn in the current scheme: that is the one the user
+        // will see when selecting it.
         const skinDot = (sk) => {
           const m = (sk.mode === null || sk.mode === undefined) ? (dark ? 'dark' : 'light') : sk.mode
           const so = { acc: sk.acc, ov: sk.ov || {}, lvl: 0, cb: false, tint: 0, dom: '' }
           const sd = makeTheme(m, so)
           const acc = skinAccent(sk) || sd.brand
           // point d'accent 13 px sur disque 34 px (~38 %), bord adouci 0,5 px
-          // pour éviter l'escalier d'anticrénelage sur le cercle.
+          // to avoid the anti-aliasing staircase on the circle.
           return 'radial-gradient(circle at 50% 50%,' + acc + ' 0 6.5px,' + sd.base + ' 7px 100%)'
         }
         const skinMeta = (sk) => (sk.mode === 'dark' ? kt('Sombre', 'Dark') : (sk.mode === 'light' ? kt('Clair', 'Light') : kt('Clair + sombre', 'Light + dark'))) +
@@ -3197,13 +3197,13 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           (sk.radius !== undefined ? ' · ' + kt(RADIUS_LABEL[sk.radius][0], RADIUS_LABEL[sk.radius][1]) : '') +
           (sk.iconSet !== undefined ? ((nm) => kt(' · icônes ' + nm, ' · ' + nm + ' icons'))((ICON_SETS.find((x) => x.id === sk.iconSet) || ICON_SETS[0])[kbLang()]) : '')
 
-        // The theme in use: one of yours, or a shipped one. « Modified » = a setting it retains has moved.
+        // The theme in use: one of yours, or a shipped one. “Modified” = a setting it retains has moved.
         const activeMine = lib.presets.find((x) => x.id === S.skin) || null
         const activeSkin = activeMine !== null ? null : (SKINS.find((x) => x.id === S.skin) || null)
         const activeNow = activeMine !== null ? presetAsSkin(activeMine) : activeSkin
         const activeModified = activeMine !== null ? settingsDirty(S, activeMine.settings) : (activeSkin !== null && settingsDirty(S, skinSettings(activeSkin)))
         const applyMine = (rec) => commit({ skin: rec.id, ...rec.settings })
-        // Back to the theme as it was saved. The mode stays as it is: it is not part of « modified » either.
+        // Back to the theme as it was saved. The mode stays as it is: it is not part of “modified” either.
         const revertTheme = () => {
           const full = activeMine !== null ? { skin: activeMine.id, ...activeMine.settings } : (activeSkin !== null ? skinPatch(activeSkin) : null)
           if (full === null) return
@@ -3227,18 +3227,18 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           setLibNote({ ok: true, text: kt('Thème « ' + activeMine.name + ' » mis à jour.', 'Theme “' + activeMine.name + '” updated.') })
         }
 
-        // Un thème TIERS actif (dream-skin…) reprend la main sur la préférence :
-        // mesuré, un setTheme('light') est réaffirmé sombre en moins de 250 ms.
-        // On ne peut pas gagner ce bras de fer silencieusement — on le dit.
+        // An active THIRD-PARTY theme (dream-skin…) takes over the preference:
+        // measured, a setTheme('light') is reasserted dark in under 250 ms.
+        // We cannot win this tug of war silently — we say so.
         let themeTiers = null
         try {
           const pref = themeSvc !== null && typeof themeSvc.getTheme === 'function' ? (themeSvc.getTheme() || {}).preference : null
           if (pref !== null && pref !== 'light' && pref !== 'dark' && pref !== 'system') themeTiers = pref
         } catch (e) { themeTiers = null }
 
-        // Le champ et la pipette montrent l'accent EFFECTIF : celui choisi à la
-        // main, sinon celui du skin en cours (les packs hérités portent leur
-        // accent par schéma dans `ov`, donc S.acc reste null).
+        // The field and the eyedropper show the EFFECTIVE accent: the one chosen by
+        // hand, otherwise that of the current skin (inherited packs carry their
+        // accent per scheme in `ov`, so S.acc stays null).
         const hexShown = hexDraft !== null ? hexDraft : ((S.acc === null ? c.brand : S.acc).replace('#', ''))
 
         // ── Simple : apparence ──────────────────────────────────────────────
@@ -3333,7 +3333,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
               title: a, 'aria-label': 'Accent ' + a,
               onClick: () => { setHexDraft(null); commit({ acc: a }) } }))))
         // P2-8 (chasse Settings 27/09) : les ratios WCAG restent en vue
-        // Avancé — en Simple, ce jargon de contraste n'a rien à faire.
+        // Advanced — in Simple, this contrast jargon has no business here.
         const ratiosAccent = h('div', { className: 'kbth-hint' },
           kt('L’accent dérivé vise 4,5:1 sur les deux schémas : ', 'The derived accent aims for 4.5:1 on both schemes: '),
           h('span', {
@@ -3347,7 +3347,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           }, ratio(c.onAcc, c.fill).toFixed(2) + ':1'),
           kt(' pour le texte d’un bouton plein.', ' for the text of a filled button.'))
         // ── Simple : fond ───────────────────────────────────────────────────
-        // La tuile « Aucun » ouvre la grille : sans elle, un fond posé ne pouvait plus être retiré.
+        // The “None” tile opens the grid: without it, a background that was set could no longer be removed.
         const fonds = [WPS[0]].concat(WPS.filter((w) => w.cat === wpCat))
         const fond = h('div', { className: 'kbth-sec' },
           h('div', { className: 'kbth-sec-h' },
@@ -3386,7 +3386,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           slider({ label: kt('Taille du texte', 'Text size'), min: 12, max: 17, value: S.fs, text: S.fs + ' px',
             tap: (v) => commit({ fs: v }), hint: kt('La taille de la conversation — le réglage natif de DSH, en direct.', 'The conversation size — DSH’s native setting, live.') }))
 
-        // ── Simple : icônes du menu ─────────────────────────────────────────
+        // ── Simple: menu icons ─────────────────────────────────────────
         // One row of the nine entries per state (grey at rest, then the colour of the open page). The classic set is drawn by the
         // application itself, which owns its line icons: it lends the drawing through window.__KB_MENU_CLASSIC__.
         const iconeApercu = (setId, etat) => h('div', { className: 'kbth-icset-r', style: setId === 'classic' && etat ? { color: 'var(--dsw-alias-brand-primary)' } : undefined },
@@ -3419,7 +3419,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             iconeApercu(S.iconSet, false)),
           h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'icons-open', onClick: () => setAdvTab('icones') }, kt('Régler…', 'Adjust…')))
 
-        // ── Avancé : sous-onglets ──────────────────────────────────────────
+        // ── Advanced: sub-tabs ──────────────────────────────────────────
         const ADV_TABS = [
           { id: 'essentiel', label: kt('Essentiel', 'Essentials') },
           { id: 'verre', label: kt('Verre et fond', 'Glass and background') },
@@ -3432,13 +3432,13 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           { id: 'galerie', label: kt('Galerie', 'Gallery') }
         ]
 
-        // Toggle switch réutilisable
+        // Reusable toggle switch
         const toggle = (label, value, onToggle, hint) => h('div', { className: 'kbth-toggle-row' },
           h('span', { className: 'kbth-toggle-label' }, label, hint ? h('span', { className: 'kbth-toggle-hint', title: hint }, ' ?') : null),
           h('button', { type: 'button', className: 'kbth-toggle' + (value ? ' on' : ''), role: 'switch', 'aria-checked': value ? 'true' : 'false', 'aria-label': label, onClick: onToggle },
             h('span', { className: 'kbth-toggle-knob' })))
 
-        // ── Onglet Essentiel (= mode Simple condensé) ──────────────────────
+        // ── Essentials tab (= condensed Simple mode) ──────────────────────
         const advEssentiel = h('div', { className: 'kbth-sec' },
           h('div', { className: 'kbth-sec-h' },
             h('div', { className: 'kbth-sec-t' }, kt('Essentiel', 'Essentials')),
@@ -3447,8 +3447,8 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           h(LdSummary, { onOpen: () => setAdvTab('animation') }))
 
         // ── Onglet Verre et fond ───────────────────────────────────────────
-        // Les réglages de verre n'ont d'effet que sur un fond : sans fond choisi on le dit, et l'aperçu montre
-        // ce que donnerait le réglage (le vrai fond n'est visible que derrière le chat, pas dans les réglages).
+        // The glass settings only have an effect on a background: without a chosen background we say so, and the preview shows
+        // what the setting would give (the real background is only visible behind the chat, not in the settings).
         const wpOn = wpo.id !== 'none'
         const aj = ajustementFond(S)
         const verreAlpha = (k, v) => rgba(c[k], v)
@@ -3569,7 +3569,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
                 r !== null ? h('span', { className: 'kbth-tok-ratio' }, r.toFixed(1) + ':1') : null,
                 badge ? h('span', { className: 'kbth-tok-badge kbth-gr-' + grade }, badge) : null)
             })),
-          // Éditeur du jeton sélectionné
+          // Editor of the selected token
           h('div', { className: 'kbth-adv-editor' },
             h('div', { className: 'kbth-adv-preview' },
               h('span', { className: 'kbth-adv-chip', style: { background: dark ? cd[sel[0]] : cl[sel[0]] } }),
@@ -3613,7 +3613,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             h('div', { className: 'kbth-sec-d' }, kt('Ce qui rappelle le harness.', 'What reminds you of the harness.'))),
           toggle(kt('Logo et nom', 'Logo and name'), S.showBrand, () => commit({ showBrand: !S.showBrand }), kt('Dans la barre latérale et sur l’écran d’accueil.', 'In the sidebar and on the home screen.')))
 
-        // ── Onglet Accessibilité ───────────────────────────────────────────
+        // ── Accessibility tab ───────────────────────────────────────────
         const advAccessibilite = h('div', { className: 'kbth-sec' },
           h('div', { className: 'kbth-sec-h' },
             h('div', { className: 'kbth-sec-t' }, kt('Contraste', 'Contrast')),
@@ -3823,7 +3823,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             galThumb(t),
             h('div', { className: 'kbth-card-b' },
               h('div', { className: 'kbth-card-n' }, t.name),
-              // « par » and the name are two text nodes: the page's English dictionary translates the first and leaves the author alone
+              // “by” and the name are two text nodes: a live translation of the first leaves the author's name alone
               t.author !== '' ? h('div', { className: 'kbth-card-a' }, kt('par ', 'by '), t.author) : null,
               (t.description[lang] || t.description.fr || t.description.en) !== '' ? h('div', { className: 'kbth-card-d' }, t.description[lang] || t.description.fr || t.description.en) : null,
               h('div', { className: 'kbth-card-m' }, skinMeta(sk)),
@@ -3870,7 +3870,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           libNote !== null ? h('div', { className: libNote.ok ? 'kbth-ok kbth-gr-ok' : 'kbth-bad kbth-gr-err', role: 'status', 'data-kb': 'theme-note' }, libNote.text) : null,
           galBody())
 
-        // ── Assemblage Avancé avec sous-onglets ────────────────────────────
+        // ── Advanced assembly with sub-tabs ────────────────────────────
         const ADV_CONTENT = {
           essentiel: advEssentiel,
           animation: h(AnimationPane, { ctx: ctxRef }),
@@ -3905,9 +3905,9 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             h('button', { type: 'button', className: 'kbth-btn', onClick: () => setSaveDlg(null) }, kt('Annuler', 'Cancel')),
             h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-save-ok', onClick: doSave }, kt('Enregistrer', 'Save'))))
 
-        // Une seule page : les neuf onglets restent toujours là, « Essentiel » s'ouvre par défaut.
+        // A single page: the nine tabs are always there, “Essentials” opens by default.
         const reglages = h('div', { className: 'kbth-sec' },
-          // Onglets empilés VERTICALEMENT à gauche, contenu à droite.
+          // Tabs stacked VERTICALLY on the left, content on the right.
           h('div', { className: 'kbth-adv-cols' },
             h('div', { className: 'kbth-adv-tabs' },
               ADV_TABS.map((t) => h('button', {
@@ -3918,7 +3918,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
               trialBar,
               ADV_CONTENT[advTab] || advCouleurs)))
 
-        // ── assemblage — une seule colonne (l'aperçu latéral a été retiré) ────────
+        // ── assembly — a single column (the side preview has been removed) ────────
         return h(React.Fragment, null,
           saveModal,
           h('div', { className: 'kbth-page' },
@@ -3943,10 +3943,10 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
       // 6. MONTAGE.
       // ══════════════════════════════════════════════════════════════════════
 
-      // Le contrat d'export d'une entrée cordis : la liste des services que le
-      // contexte DOIT exposer — le garde de ctx refuse tout ctx.<service> non
-      // déclaré ici (même contrat que kybernos et dream-skin). Sans elle,
-      // l'entrée reste « loading » et n'active jamais.
+      // The export contract of a cordis entry: the list of services the
+      // context MUST expose — the ctx guard refuses any ctx.<service> not
+      // declared here (same contract as kybernos and dream-skin). Without it,
+      // the entry stays “loading” and never activates.
       return {
         inject: ['slots', 'theme', 'remote', 'locale'],
         // Read-only handles for test-client.mjs (same convention as kybernos-language).
@@ -3962,11 +3962,11 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           ICON_ENTRIES, ICON_HUES, ICON_SETS, ICON_SET_IDS, iconInner, iconSvg, iconRegistry, appliquerIcones,
         },
         apply(ctx) {
-          // (01/10) Libellé selon l'état de langue courant. La langue n'est
-          // PLUS portée par ce bundle depuis le 01/10 : elle vit dans
-          // @local/kybernos-language, qui pose `__KB_I18N_ACTIVE__` dès son
-          // activation. Ce plugin ne fait que LIRE le global — débrayable sans
-          // casser le thème : sans language, le libellé retombe en français.
+          // (01/10) Label according to the current language state. The language is
+          // NO LONGER carried by this bundle since 01/10: it lives in
+          // @local/kybernos-language, which sets `__KB_I18N_ACTIVE__` as soon as it
+          // activates. This plugin only READS the global — can be switched off without
+          // breaking the theme: without language, the label falls back to French.
           const kbthLabel = (fr, en) => {
             try {
               const a = (typeof window !== 'undefined') ? window.__KB_I18N_ACTIVE__ : null
@@ -3974,12 +3974,12 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
               return loc.indexOf('en') === 0 ? en : fr
             } catch (e) { return fr }
           }
-          // (29/09) Le bloc « Appearance » de Général ▸ (DSH) est masqué : la
-          // section Apparence de la page Thème règle la MÊME préférence via
-          // themeSvc.setTheme — deux endroits pour un réglage, c'est un de
-          // trop. Les classes du shell sont hachées : on repère le bloc par
-          // son texte (titre « Appearance » + boutons Light/Dark/System) et on
-          // le marque data-kbth-own (la règle CSS ci-dessus le cache).
+          // (29/09) The “Appearance” block of General ▸ (DSH) is hidden: the
+          // Appearance section of the Theme page sets the SAME preference through
+          // themeSvc.setTheme — two places for one setting is one
+          // too many. The shell classes are hashed: we spot the block by
+          // its text (“Appearance” title + Light/Dark/System buttons) and we
+          // mark it data-kbth-own (the CSS rule above hides it).
           try {
             const marquer = () => {
               document.querySelectorAll('[role="dialog"] div').forEach((d) => {
@@ -3994,33 +3994,33 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             const obs = new MutationObserver(() => { marquer() })
             obs.observe(document.body, { childList: true, subtree: true })
           } catch (e) { /* hors navigateur */ }
-          // L'état persisté s'applique DÈS L'ACTIVATION : au rechargement de la
-          // page, le thème revient avant que l'utilisateur n'ouvre les réglages
-          // (anti-flash v1 — l'injection côté serveur viendra en v2).
+          // The persisted state applies AS SOON AS ACTIVATED: when the page is
+          // reloaded, the theme comes back before the user opens the settings
+          // (v1 anti-flash — server-side injection will come in v2).
           try {
             if (ctx !== null && ctx !== undefined && ctx.theme !== null && ctx.theme !== undefined) {
               const S = readState()
               appliquerBoot(ctx.theme, S)
-              // Adoption : la préférence native explicite (clair/sombre) est le
-              // dernier choix de l'utilisateur — quel que soit le contrôle
-              // employé, bouton du pied de sidebar compris. On la recopie dans
-              // notre store pour que la page Réglages l'affiche.
+              // Adoption: the explicit native preference (light/dark) is the
+              // user's last choice — whatever control was
+              // used, the sidebar-footer button included. We copy it into
+              // our store so that the Settings page displays it.
               const nat = prefNative(ctx.theme)
               const natPx = tailleNative(ctx.theme)
               const adopt = {}
               if (nat !== null && nat !== 'system' && nat !== S.mode) adopt.mode = nat
               if (natPx !== null && natPx !== S.fs) adopt.fs = natPx
               if (Object.keys(adopt).length > 0) writeState({ ...S, ...adopt })
-              // Et on suit les changements natifs pour la suite : sans cet
-              // abonnement, un mode choisi hors de la page Réglages Kybernos
-              // n'était jamais mémorisé (bug du rechargement, cf. appliquerBoot).
-              // `theme/change` est émis sur le contexte racine (les contextes
-              // cordis partagent le registre `_hooks` — `noShadow`) : l'écoute
-              // depuis notre contexte le reçoit, et c'est aussi le chemin par
-              // lequel la préférence durable arrive ~1,5 s après l'activation
-              // (mesuré : `preference` vaut « system» au t0, « dark » au t1500).
-              // Le service n'expose PAS de `subscribe` : l'abonnement du pied de
-              // sidebar (`tSvc.subscribe`) est un no-op silencieux.
+              // And we follow native changes afterwards: without this
+              // subscription, a mode chosen outside the Kybernos Settings page
+              // was never remembered (the reload bug, cf. appliquerBoot).
+              // `theme/change` is emitted on the root context (cordis contexts
+              // share the `_hooks` registry — `noShadow`): listening
+              // from our context receives it, and it is also the path by
+              // which the durable preference arrives ~1.5 s after activation
+              // (measured: `preference` is “system” at t0, “dark” at t1500).
+              // The service does NOT expose a `subscribe`: the sidebar-footer
+              // subscription (`tSvc.subscribe`) is a silent no-op.
               ctx.effect(() => {
                 try {
                   const off = ctx.on('theme/change', (snap) => {
@@ -4032,20 +4032,20 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
                     if (px !== null && cur.fs !== px) adopt.fs = px
                     if (Object.keys(adopt).length > 0) writeState({ ...cur, ...adopt })
                   })
-                  return () => { try { if (typeof off === 'function') off() } catch (e) { /* déjà détaché */ } }
+                  return () => { try { if (typeof off === 'function') off() } catch (e) { /* already detached */ } }
                 } catch (e) { return undefined }
               }, 'kybernos-theme: remembers the native mode')
             }
           } catch (e) {
-            // Une erreur avalée ici se lit comme « le plugin ne marche pas » :
-            // on la trace pour rester diagnosticable.
+            // An error swallowed here reads as “the plugin does not work”:
+            // we log it to stay diagnosable.
             try { console.error('[kybernos-theme] initial apply failed', e) } catch (e2) { /* console indisponible */ }
           }
 
-          // « My themes »: the disk copy, once the page is up. Never a reason for DSH not to start.
+          // “My themes”: the disk copy, once the page is up. Never a reason for DSH not to start.
           try { setTimeout(() => { libPull(true) }, 900) } catch (e) { /* no timers */ }
 
-          // L'animation du statut du bas : défensif de bout en bout (un échec ici ne touche pas DSH).
+          // The bottom-status animation: defensive end to end (a failure here does not touch DSH).
           try {
             if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => ldStart(ctx), 'kybernos-theme: thinking animation')
           } catch (e) {
@@ -4065,7 +4065,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
       try {
         console.error('[kybernos-theme] cannot load — plugin disabled, GUI preserved', kbThemeBootError)
       } catch (e2) { /* console indisponible */ }
-      return { apply() { /* plugin désactivé après erreur de chargement */ } }
+      return { apply() { /* plugin disabled after a load error */ } }
     }
   },
 })
