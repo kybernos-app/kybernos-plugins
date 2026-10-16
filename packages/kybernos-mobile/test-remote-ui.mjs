@@ -70,6 +70,7 @@ const makeRenderer = () => {
 // ── the page under test ───────────────────────────────────────────────────────
 const GOOD = { ok: true, available: true, running: true, connected: true, configured: true, entitled: true, pairing: null, devices: [], refused: 0, relay: 'up' }
 let answer = null // what the status route says next: an object, or a function that throws
+let pairAnswer = { ok: true } // what the pairing route says next
 const calls = []
 globalThis.fetch = async (url, init) => {
   calls.push(String(url))
@@ -78,12 +79,14 @@ globalThis.fetch = async (url, init) => {
     if (typeof answer === 'function') return answer()
     return { json: async () => answer }
   }
+  if (String(url).endsWith('/remote/pair')) return { json: async () => pairAnswer }
   return { json: async () => ({ ok: true }) } // pair, cancel: nothing to see
 }
 globalThis.document = { baseURI: 'http://127.0.0.1:3080/', visibilityState: 'visible', body: null, head: { appendChild: (c) => c }, createElement: () => ({ dataset: {}, remove () {} }), addEventListener () {}, querySelector: () => null }
+const events = [] // the window events the page dispatched
 const load = (renderer) => {
   let def = null
-  globalThis.window = { __ModuleLoader__: { load: (d) => { def = d } }, matchMedia: () => ({ matches: false }), __KB_LANG_RESOLVE__: () => 'en' }
+  globalThis.window = { __ModuleLoader__: { load: (d) => { def = d } }, matchMedia: () => ({ matches: false }), __KB_LANG_RESOLVE__: () => 'en', dispatchEvent: (ev) => { events.push(ev.type); return true } }
   new Function('window', 'document', SOURCE)(globalThis.window, globalThis.document)
   const plugin = def.factory((name) => (name === 'react' ? renderer.React : undefined))
   let page = null
@@ -147,6 +150,49 @@ console.log('the sidebar panel')
   check('a failed poll does not crash the panel (it would take the account card down with it)', threw === null, threw && String(threw.message))
   check('the code is still there', view.find((n) => n.props && n.props['data-kb'] === 'mobile-pairing') !== null, view.text())
 }
+
+// The server does not answer when a code is asked for: the sentence names the server (its label and host) and, when the registry has another one, offers to
+// switch (audit V-41). The same words on the sidebar panel and on the Settings page.
+console.log('the server does not answer: it is named, and another one can be chosen')
+const press = (view, key) => { const n = view.find((x) => x.props && x.props['data-kb'] === key); if (n !== null) n.props.onClick() }
+for (const where of ['panel', 'page']) {
+  for (const [label, server, wantButton] of [
+    ['another server exists', { name: 'Kybernos (local)', host: 'localhost:8791', can_switch: true }, true],
+    ['it is the only server', { name: 'Kybernos Cloud', host: 'api.kybernos.app', can_switch: false }, false],
+  ]) {
+    const r = makeRenderer()
+    timers.length = 0
+    events.length = 0
+    const { page, panel } = load(r)
+    answer = GOOD
+    pairAnswer = { ok: false, error: 'server_unavailable', server }
+    let closed = 0
+    const view = r.mount(r.React.createElement(where === 'panel' ? panel : page, where === 'panel' ? { onClose: () => { closed += 1 } } : {}))
+    await view.settle()
+    if (where === 'page') { press(view, 'mobile-pair'); await view.settle() }
+    const said = view.text()
+    check(where + ' (' + label + '): the sentence names the server: label and host', said.includes(server.name) && said.includes(server.host) && /does not answer/.test(said), said)
+    check(where + ' (' + label + '): it is not the sentence that fits any server', !/The Kybernos server does not answer/.test(said), said)
+    const sw = view.find((n) => n.props && n.props['data-kb'] === 'mobile-switch-server')
+    check(where + ' (' + label + '): « Switch server » ' + (wantButton ? 'is offered' : 'is not (nothing to switch to)'), (sw !== null) === wantButton, said)
+    if (wantButton && sw !== null) {
+      sw.props.onClick()
+      check(where + ': « Switch server » asks the footer to open Settings › Servers', events.includes('kybernos-cloud:servers'), events)
+      if (where === 'panel') check('the panel closes itself first', closed === 1, closed)
+    }
+  }
+  // A seam that named no server: the old sentence, and nothing to switch to.
+  const r = makeRenderer()
+  timers.length = 0
+  const { page, panel } = load(r)
+  answer = GOOD
+  pairAnswer = { ok: false, error: 'server_unavailable' }
+  const view = r.mount(r.React.createElement(where === 'panel' ? panel : page, {}))
+  await view.settle()
+  if (where === 'page') { press(view, 'mobile-pair'); await view.settle() }
+  check(where + ' (no server named): the sentence stays the generic one, with no switch', /The Kybernos server does not answer/.test(view.text()) && view.find((n) => n.props && n.props['data-kb'] === 'mobile-switch-server') === null, view.text())
+}
+pairAnswer = { ok: true }
 
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)
 process.exit(failed === 0 ? 0 : 1)

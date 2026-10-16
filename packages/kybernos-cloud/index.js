@@ -949,6 +949,15 @@ const appliedServerId = () => {
   } catch (e) { return null }
 }
 
+/** Which server a call went to, for a sentence that names it (« the server X (host) does not answer »): the active server's label and host, never its full address, and
+ *  whether the registry names another server to switch to. A call that failed because the server did not answer carries it (the footer and the phone link say WHICH one). */
+const serverIdentity = () => {
+  const active = server()
+  let host = ''
+  try { host = new URL(active.profile.api).host } catch (e) { host = '' }
+  return { name: active.profile.name, host, can_switch: active.servers.some((s) => s.id !== active.profile.id) }
+}
+
 /** GET /kybernos-cloud/server: the active server and the others the registry names. Nothing secret lives in a profile. */
 const serverRoute = async () => {
   const active = server()
@@ -1275,7 +1284,7 @@ const consoleLink = async (req, body, deps = {}) => {
   let res = await ask(section !== '')
   // A server that does not know `section` yet either ignores it (the link lands on its plan page) or refuses the body: ask again without it.
   if (section !== '' && (res.status === 400 || res.status === 422)) res = await ask(false)
-  if (res.status !== 200 || res.body === null || typeof res.body !== 'object') return { ok: false, status: res.status, error: res.status === 0 ? 'injoignable' : 'refuse' }
+  if (res.status !== 200 || res.body === null || typeof res.body !== 'object') return { ok: false, status: res.status, error: res.status === 0 ? 'injoignable' : 'refuse', ...(res.status === 0 ? { server: serverIdentity() } : {}) }
   let url = null
   try {
     const u = new URL(String(res.body.url))
@@ -4657,7 +4666,7 @@ const cloudSeamCall = async (path, options) => {
   const state = readState()
   if (!isConnected(state)) return { status: 0, body: null, error: 'not_connected' }
   const r = await apiCall(p, { method, body, token: state.token, timeoutMs: 15000 })
-  return { status: r.status, body: r.body, ...(r.error !== undefined ? { error: r.error } : {}) }
+  return { status: r.status, body: r.body, ...(r.error !== undefined ? { error: r.error } : {}), ...(r.status === 0 ? { server: serverIdentity() } : {}) }
 }
 const publishCloudSeam = (target = globalThis) => {
   try { target[Symbol.for('kybernos.cloud')] = Object.freeze({ version: 1, call: cloudSeamCall }) } catch (e) { /* a frozen global: the other bundles degrade */ }

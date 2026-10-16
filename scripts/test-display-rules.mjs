@@ -208,7 +208,7 @@ const atLeast = (label, got, min) => assert.ok(got >= min, label + ': ' + (Math.
 const PANELS = [
   { name: 'Slides', file: 'kybernos-slides/client.js', p: 'kbsd', stage: '.kbsd-scene', empty: '.kbsd-empty', root: '.kbsd-root', note: '.kbsd-note-bas' },
   { name: 'Bricks', file: 'kybernos-bricks/client.js', p: 'kbb', stage: '.kbb-view', empty: '.kbb-empty', root: '.kbb-root', note: '.kbb-note' },
-  { name: 'Modeleur', file: 'kybernos-modeleur/client.js', p: 'kbm', stage: '.kbm-view', empty: '.kbm-empty', root: '.kbm-root', note: '.kbm-note' },
+  { name: 'Modeleur', file: 'kybernos-modeleur/client.js', p: 'kbmo', stage: '.kbmo-view', empty: '.kbmo-empty', root: '.kbmo-root', note: '.kbmo-note' },
 ]
 for (const P of PANELS) {
   ok(P.name + ': the empty state reads 4.5:1 on the fixed light stage, in both schemes (A4-01, A4-24)', () => {
@@ -305,6 +305,43 @@ ok('the knob of an ON switch stays visible on the brand fill too: the label pair
   for (const [file, onKnob] of [['kybernos-maintenance/client.js', '.kbmz-sw.on i'], ['kybernos-plugin/client.js', '.kba-toggle.on .kba-toggle-knob'], ['kybernos-theme/client.js', '.kbth-toggle.on .kbth-toggle-knob']]) {
     const k = rule(file, onKnob)
     assert.match(lastDecl(k.body, 'background'), /label-primary-foreground/, onKnob)
+  }
+})
+
+// A1-01: the Suite, Workers and the core's switch typed the brand orange as a literal (#ff7a1a), so a preset (Neutral violet) recoloured the Connectors page and
+// left these ones orange. Every accent control draws from the theme's brand token, with its label pair for the ink and for the ON knob (a white knob on the
+// near-white brand fill of the dark scheme would vanish). The Composio logo mark keeps its own gradient: it is a logo, not an accent.
+ok('A1-01: no literal brand orange #ff7a1a in the Suite, Workers, the core switch or the Composio filter pill: a preset recolours them', () => {
+  const ours = (r) => /^(kybernos-hub|kybernos-workers)\//.test(r.file) || (r.file.startsWith('kybernos-plugin/') && /^\.kbu-sw/.test(r.selector)) || (r.file.startsWith('kybernos-composio/') && /kbfpill/.test(r.selector))
+  assert.deepEqual(rules.filter((r) => ours(r) && /#ff7a1a/i.test(r.body)).map(where), [])
+})
+ok('A1-01: the ON knob of the Suite, Workers and core switches is the label pair of the brand fill, 3:1 on it in both schemes', () => {
+  for (const [file, track, knob] of [
+    ['kybernos-hub/client.js', '.kbsu-sw.on', '.kbsu-sw.on i'],
+    ['kybernos-workers/client.js', '.kbwk-sw.on', '.kbwk-sw.on i'],
+    ['kybernos-plugin/client.js', '.kbu-sw.on', '.kbu-sw.on .kbu-sw-dot'],
+  ]) {
+    const t = rule(file, track), k = rule(file, knob)
+    assert.match(lastDecl(t.body, 'background'), /^var\(--dsw-alias-brand-primary\)$/, track + ' fill')
+    assert.match(lastDecl(k.body, 'background'), /^var\(--dsw-alias-label-primary-foreground\)$/, knob)
+    for (const scheme of ['light', 'dark']) {
+      atLeast(knob + ' on its track (' + scheme + ')', contrast(colour(lastDecl(k.body, 'background'), scheme), colour(lastDecl(t.body, 'background'), scheme)), 3)
+    }
+  }
+})
+ok('A1-01: the accent buttons and the numbered step discs of the Suite and Workers are the brand fill with its label pair, 4.5:1 in both schemes', () => {
+  for (const [file, selector] of [
+    ['kybernos-hub/client.js', '.kbsu-btn.accent'],
+    ['kybernos-workers/client.js', '.kbwk-btn.accent'],
+    ['kybernos-workers/client.js', '.kbwk-todo>li.cur .kbwk-n'],
+    ['kybernos-workers/client.js', '.kbwk-tabs button[aria-current="step"] .kbwk-n'],
+  ]) {
+    const r = rule(file, selector)
+    assert.match(lastDecl(r.body, 'background'), /^var\(--dsw-alias-brand-primary\)$/, selector + ' fill')
+    assert.match(lastDecl(r.body, 'color'), /^var\(--dsw-alias-label-primary-foreground\)$/, selector + ' ink')
+    for (const scheme of ['light', 'dark']) {
+      atLeast(selector + ' (' + scheme + ')', contrast(colour(lastDecl(r.body, 'color'), scheme), colour(lastDecl(r.body, 'background'), scheme)), 4.5)
+    }
   }
 })
 
@@ -422,10 +459,9 @@ ok('the tags and pills are 4.5:1 on their tint in the light schemes, and unchang
     ['kybernos-skills/client.js', 'body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.ok', 'var(--dsw-alias-bg-layer-2)'],
     ['kybernos-skills/client.js', 'body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.warn', 'var(--dsw-alias-bg-layer-2)'],
     ['kybernos-skills/client.js', 'body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need', 'var(--dsw-alias-bg-layer-2)'],
-    ['kybernos-plugin/client.js', 'body:not([data-ds-dark-theme]) .kb7-pill', 'var(--dsw-alias-state-success-tertiary, rgba(34,197,94,.16))'],
-    ['kybernos-plugin/client.js', 'body:not([data-ds-dark-theme]) .kb7-pill.pend', 'var(--dsw-alias-state-warn-tertiary, rgba(250,180,60,.16))'],
-    ['kybernos-composio/client.js', 'body:not([data-ds-dark-theme]) .kb7-pill', 'rgba(34,197,94,.15)'],
-    ['kybernos-composio/client.js', 'body:not([data-ds-dark-theme]) .kb7-pill.pend', 'rgba(250,204,21,.15)'],
+    // the Connectors pills: the bundle's own rules, which carry the tint the page has always drawn (the core's copy of this sheet is gone, A1-04)
+    ['kybernos-composio/client.js', 'body:not([data-ds-dark-theme]) .kb7-pill', 'var(--dsw-alias-state-success-tertiary, rgba(34,197,94,.16))'],
+    ['kybernos-composio/client.js', 'body:not([data-ds-dark-theme]) .kb7-pill.pend', 'var(--dsw-alias-state-warn-tertiary, rgba(250,180,60,.16))'],
   ]
   for (const [file, sel, bg] of cases) {
     const r = rule(file, sel)
@@ -449,7 +485,7 @@ ok('the Composio logo mark and the three panels\' play buttons keep their ink 4.
   const stops = [...lastDecl(logo.body, 'background').matchAll(/#[0-9a-f]{6}/gi)].map((m) => m[0])
   assert.ok(stops.length >= 2)
   for (const stop of stops) atLeast('logo on ' + stop, contrast(colour(lastDecl(logo.body, 'color'), 'light'), colour(stop, 'light')), 4.5)
-  for (const [file, sel] of [['kybernos-slides/client.js', '.kbsd-play'], ['kybernos-bricks/client.js', '.kbb-play'], ['kybernos-modeleur/client.js', '.kbm-play'], ['kybernos-bricks/client.js', '.kbb-badge.run'], ['kybernos-modeleur/client.js', '.kbm-badge.run']]) {
+  for (const [file, sel] of [['kybernos-slides/client.js', '.kbsd-play'], ['kybernos-bricks/client.js', '.kbb-play'], ['kybernos-modeleur/client.js', '.kbmo-play'], ['kybernos-bricks/client.js', '.kbb-badge.run'], ['kybernos-modeleur/client.js', '.kbmo-badge.run']]) {
     const r = rule(file, sel)
     atLeast(sel, contrast(colour(lastDecl(r.body, 'color'), 'light'), colour(lastDecl(r.body, 'background'), 'light')), 4.5)
     if (sel.endsWith('-play')) { const h = rule(file, sel + ':hover'); atLeast(sel + ':hover', contrast(colour(lastDecl(r.body, 'color'), 'light'), colour(lastDecl(h.body, 'background'), 'light')), 4.5) }

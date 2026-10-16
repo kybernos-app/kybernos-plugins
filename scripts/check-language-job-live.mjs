@@ -45,7 +45,7 @@ try {
   if (!routeThere) { console.error('○ inconclusive: the host has no /kybernos/i18n-job route: restart the sandbox'); await live.close(); process.exit(3) }
 
   await clickSel('[data-lang="es"] [data-act="start"]')
-  const failed = await poll(() => val(`!!document.querySelector('[data-lang="es"] .kbth-err')`), 45000)
+  const failed = await poll(() => val(`!!document.querySelector('[data-lang="es"] .kbln-err')`), 45000)
   await shot('job-failed')
   check('the run is handed to the host and ends « stopped » on the language, with a cause the person can act on', failed === true)
   const st = await jobState()

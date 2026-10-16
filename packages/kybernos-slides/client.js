@@ -233,6 +233,8 @@ window.__ModuleLoader__.load({
         .kbsd-demo{border:1px solid rgba(0,0,0,.45);background:transparent;font:inherit;font-size:11px;
           padding:5px 12px;border-radius:99px;cursor:pointer;color:#1a1a1a}
         .kbsd-demo:hover{background:rgba(0,0,0,.05)}
+        /* Reduced motion (audit A1-15): the writing caret, the correction flash and the editor's gap cursor (its blink comes from TipTap's own sheet, hence the extra specificity) stop. */
+        @media (prefers-reduced-motion:reduce){.kbsd-cor,.kbsd-caret,html .ProseMirror-gapcursor:after{animation:none}}
         `
         
             /* ═══════════════ 2. MOTEUR DE FRAPPE ═══════════════
@@ -793,7 +795,7 @@ window.__ModuleLoader__.load({
                 S.suivre = true
                 reveiller()
               }
-              const vitesses = [0.5, 1, 2]
+              const vitesses = [0.5, 1, 2, 4] // the same four speeds, written the same way (0.5×), as the Modeleur and Bricks panels (audit A4-26)
               const changerVitesse = (v) => {
                 const vitesse = TICK !== null ? TICK.vitesse : 1
                 TICK = { t0: Date.now() - (p * S.deck.dureeMs) / v * vitesse, vitesse: v }
@@ -1008,7 +1010,7 @@ window.__ModuleLoader__.load({
                   vitesses.map((v) => h('button', {
                     key: v, className: 'kbsd-sp' + ((TICK !== null ? TICK.vitesse : 1) === v ? ' on' : ''),
                     onClick: () => changerVitesse(v),
-                  }, `×${v}`)),
+                  }, `${v}×`)),
                   h('input', {
                     type: 'range', className: 'kbsd-range', min: 0, max: 1000, value: Math.round(p * 1000),
                     onChange: (e) => {

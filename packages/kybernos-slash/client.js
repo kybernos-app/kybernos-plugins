@@ -957,6 +957,8 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
 /* barres de défilement discrètes, comme le menu natif */
 .kbsl-scope *,.kbsl-backdrop *{scrollbar-width:thin;scrollbar-color:var(--dsw-alias-scrollbar-bg-l2,var(--kb-line3)) transparent}
 
+/* Reduced motion (audit A1-15): the caret, the live dot, the spinner, the flash and the rise stop. Last in the sheet: .kbsl-fbody re-declares its animation above. */
+@media (prefers-reduced-motion:reduce){.kbsl-anim,.kbsl-spin,.kbsl-caret,.kbsl-live i,.kbsl-flash,.kbsl-fbody{animation:none}}
 `
 
       // ══════════════════════════════════════════════════════════════════════

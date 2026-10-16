@@ -552,12 +552,22 @@ window.__ModuleLoader__.load({
           not_in_plan: () => kt('Ton offre n’inclut pas le mobile.', 'Your plan does not include the phone link.'),
           device_limit: () => kt('Le nombre maximum de téléphones est atteint : retires-en un.', 'The maximum number of phones is reached: remove one.'),
           not_connected: () => kt('Connecte-toi à ton compte Kybernos.', 'Sign in to your Kybernos account.'),
-          server_unavailable: () => kt('Le serveur Kybernos ne répond pas. Réessaie dans un instant.', 'The Kybernos server does not answer. Try again in a moment.'),
+          // The server that does not answer is named when the host knows which one it is (label and host): with several servers « the Kybernos server » says nothing.
+          server_unavailable: (server) => {
+            const has = (v) => typeof v === 'string' && v !== ''
+            const named = server !== null && typeof server === 'object' && has(server.name)
+            const label = server !== null && typeof server === 'object' ? [named ? '“' + server.name + '”' : '', has(server.host) ? (named ? '(' + server.host + ')' : server.host) : ''].filter((x) => x !== '').join(' ') : ''
+            return label === ''
+              ? kt('Le serveur Kybernos ne répond pas. Réessaie dans un instant.', 'The Kybernos server does not answer. Try again in a moment.')
+              : kt('Le serveur ' + label.replace('“', '« ').replace('”', ' »') + ' ne répond pas. Réessaie dans un instant.', 'The server ' + label + ' does not answer. Try again in a moment.')
+          },
           server_refused: () => kt('Le serveur a refusé l’appairage.', 'The server refused the pairing.'),
           not_offered: () => kt('Ce serveur Kybernos ne propose pas encore le mobile.', 'This Kybernos server does not offer the phone link yet.'),
           network: () => kt('Connexion impossible avec DSH.', 'Cannot reach DSH.'),
         }
-        const errorText = (code) => (ERRORS[code] !== undefined ? ERRORS[code]() : kt('Une erreur est survenue.', 'Something went wrong.'))
+        const errorText = (code, server) => (ERRORS[code] !== undefined ? ERRORS[code](server) : kt('Une erreur est survenue.', 'Something went wrong.'))
+        // « Switch server »: the footer (kybernos-cloud) opens Settings › Servers when it hears this. Nothing listens (no footer, no servers page): nothing happens.
+        const switchServer = () => { try { window.dispatchEvent(new Event('kybernos-cloud:servers')) } catch (e) { /* no window events */ } }
 
         const useRemote = () => {
           const [s, setS] = React.useState(null)
@@ -676,7 +686,16 @@ window.__ModuleLoader__.load({
           const [error, setError] = React.useState(null)
           const [busy, setBusy] = React.useState(false)
           const started = React.useRef(false)
-          const run = async (name, body) => { setBusy(true); const j = await props.r.act(name, body); setBusy(false); setError(j && j.ok === false ? errorText(j.error) : null); return j }
+          // The way out of a server that does not answer is offered only when the host says there is another server to go to.
+          const [switchable, setSwitchable] = React.useState(false)
+          const run = async (name, body) => {
+            setBusy(true)
+            const j = await props.r.act(name, body)
+            setBusy(false)
+            setError(j && j.ok === false ? errorText(j.error, j.server) : null)
+            setSwitchable(j !== null && j !== undefined && j.ok === false && j.error === 'server_unavailable' && j.server !== null && typeof j.server === 'object' && j.server.can_switch === true)
+            return j
+          }
           const usable = s !== null && s.available !== false && s.connected !== false && s.entitled !== false
           // Opening the panel IS asking for a code: the QR appears without a further click.
           React.useEffect(() => {
@@ -692,7 +711,10 @@ window.__ModuleLoader__.load({
           if (s.entitled === false) return h('div', null, h(Paywall, { web: props.web }), devices.length > 0 ? h(Devices, { devices, onRevoke: (id) => run('devices/revoke', { id }) }) : null)
           return h('div', { className: 'kbmr-body' },
             polled,
-            error !== null ? h('div', { className: 'kbmr-error', role: 'alert' }, error) : null,
+            error !== null
+              ? h('div', { className: 'kbmr-error', role: 'alert' }, error,
+                switchable === true ? h('button', { type: 'button', className: 'kbmr-link', 'data-kb': 'mobile-switch-server', onClick: typeof props.onSwitchServer === 'function' ? props.onSwitchServer : switchServer }, kt('Changer de serveur', 'Switch server')) : null)
+              : null,
             s.pairing != null
               ? h(Pairing, { pairing: s.pairing, compact: props.compact, busy, onApprove: () => run('pair/approve'), onDeny: () => run('pair/deny'), onNew: () => run('pair') })
               : h('div', { className: 'kbmr-row kbmr-start' },
@@ -761,7 +783,7 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kbmr-pophead' },
               h('div', { className: 'kbf-poptitle' }, kt('Connecter un téléphone', 'Connect a phone')),
               h(PopHelp)),
-            h(Body, { r, compact: true, autoPair: true, web: props.web }),
+            h(Body, { r, compact: true, autoPair: true, web: props.web, onSwitchServer: () => { try { if (typeof props.onClose === 'function') props.onClose() } catch (e) { /* closed already */ } switchServer() } }),
             typeof props.onManage === 'function'
               ? h('button', { type: 'button', className: 'kbmr-link', 'data-kb': 'mobile-manage', onClick: () => { keep.current = true; props.onManage() } }, kt('Gérer les téléphones', 'Manage phones') + (devices > 0 ? ' (' + devices + ')' : ''))
               : null)
@@ -827,6 +849,7 @@ window.__ModuleLoader__.load({
 .kbmr-lock svg{flex:none;margin-top:2px}
 .kbmr-sas{font-size:40px;font-weight:700;letter-spacing:.2em;padding-left:.2em;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
 .kbmr-error{padding:8px 12px;border-radius:8px;border:1px solid rgb(240,68,55);color:var(--dsw-alias-label-primary, rgb(243,243,245));font-size:13px}
+.kbmr-error .kbmr-link{display:block;margin-top:4px}
 .kbmr-section{display:flex;flex-direction:column;gap:10px}
 .kbmr-sech{display:flex;gap:10px;align-items:center;justify-content:space-between;font-weight:650;font-size:15px;color:var(--dsw-alias-label-primary, rgb(243,243,245))}
 .kbmr-inline{display:inline-flex;gap:6px;align-items:center;margin:0;font-weight:400}

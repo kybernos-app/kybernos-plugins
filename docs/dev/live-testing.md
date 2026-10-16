@@ -353,7 +353,7 @@ Three things ride on the same hub seam (`window.__KB_HELP__`):
   The key is the one of the page's button (`kybernos.help.intro.<id>`, in this browser's localStorage). Skills, Connectors and Remote
   Control have one; adding a page is one call and its strings.
 - **One « ? How it works » button.** The Suite's pill is the only form. The pages that draw their own copy it declaration for
-  declaration (the core's Agent Teams / Automations button `kb6-helpbtn`, the Calls tabs `kbcl-hl`, Language `kbth-help-btn`, Atlas
+  declaration (the core's Agent Teams / Automations button `kb6-helpbtn`, the Calls tabs `kbcl-hl`, Language `kbln-help-btn`, Atlas
   `kbat-help`; each keeps the panel it opens): `scripts/test-help.mjs` compares them.
 
 ```bash
@@ -814,6 +814,18 @@ clicks:
   feature (`configured: false`), the plan does not include it (`entitled: false`), DSH cannot (`available: false`) or the status cannot be
   read. The footer has no phone button of its own any more: `check-mobile-remote-live.mjs`, `check-mobile-remote-pages.mjs` and
   `check-display-live.mjs` open the panel through this entry.
+- **Upgrade and « See plans »** (every answer is in the page; nothing is bought and no server is called): connected on Plus the menu has « Upgrade »
+  right after the plan and before Team settings, with the arrow that leaves DSH; on Free there is the pill and no entry (it opens the dialog), on Pro (the
+  top level) and on a paid Team plan there is none, and when the catalogue cannot be read the entry stays. Pressing it asks the host for the console link on the
+  active workspace's `plan` page with `open: true` (Team settings' own call), opens no dialog and draws nothing in DSH. Signed out, the menu is Sign in,
+  Create an account, **See plans** (the server's own `/account#plan`, recorded and never followed), Appearance, Settings, Website, Help, Send feedback.
+  Every payment route of the page is answered here as « no payment provider » unless a scene sets it; the phone link's gestures (pair, approve, revoke) are
+  answered too (refused unless a scene sets `fake.pair`). The hosted-page rule (no entry off loopback) is unit-tested (`test-cloud-client.mjs`), not played live.
+- **A server that does not answer** (the host's answer carries `server: { name, host, can_switch }`): the footer's notice names it (“label” and host) and offers
+  « Switch server » when another server exists (Settings opens on Servers; skipped, visibly, in a sandbox without the Servers module), and none when it is the only
+  one; the phone link's panel says the same and its « Switch server » closes the panel first. Three scenes run again at **390 px** (the drawer opened by
+  « Open the menu »: the menu with its entry, the notice and the signed-out menu must fit the window). With the sandbox's registry pointing at a closed local
+  port the REAL host answers the same way (the check does not need it: `POST /kybernos-cloud/console/link` and `/kybernos-mobile/remote/pair` both come back with the server).
 - **DSH's Settings** (connected scene): the navigation lists none of the five account entries that used to be ours (Account, Referral,
   Account security, Account data, Support & legal; matched by the React key each cell is rendered with, and by title for the four that have
   no namesake in DSH) while General, Appearance and Remote Control are still listed and still open. The account's pages are the footer
@@ -1045,8 +1057,9 @@ the same rules on an old tree.
   there: start from a clean page (`flow.openSettings` reloads first).
 - A 401 from your script, with a valid cookie, usually means the *authority* is
   wrong (`KB_HOST` must be exactly `host:port` as `dsh web` listens).
-- **The Theme page and the Language page share the `kbth-` class prefix.** `.kbth-page` is true on both: a test that asks
-  « is the Language page shown? » must use `[data-kb="language-page"]` or `[data-act="add-language"]`. (A first version of the
-  ring's click handler stopped at « the page is already there » while Settings still showed Theme.)
+- **A class prefix belongs to one bundle.** The Language page used to share `kbth-` with the Theme page (`.kbth-page` was true on both, and
+  the later stylesheet restyled the other's page); it is `kbln-` now. `scripts/test-consistency-guards.mjs` fails when two bundles declare the
+  same selector differently, and `node scripts/audit-css-prefixes.mjs` lists them. To ask « is the Language page shown? » use
+  `[data-kb="language-page"]` or `[data-act="add-language"]` all the same: they do not depend on a class.
 - **A click on a position hits what is on top.** With Settings open, the sidebar footer is covered by the nav: clicking the
   ring's coordinates selected « Theme ». Close Settings with a real click on « Back to workspace » first, and check it closed.
