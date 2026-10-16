@@ -119,5 +119,17 @@ eq('it only clears a brand it set itself (source tracking)', /else if \(kbBrandS
 eq('a brand set by another module is tagged "api" by default', /typeof source === 'string' \? source : 'api'/.test(src), true)
 eq('it stops its timers when disposed', /clearTimeout\(first\); clearInterval\(timer\)/.test(src), true)
 
+// A1-10: the sentence under the Theme page's title named the engine, « DeepSeek Harness », while the tab title already says Kybernos. The product name is the
+// brand's on that page, in the French source and the English pair of the page and in the core's table.
+{
+  const theme = readFileSync(root + 'packages/kybernos-theme/client.js', 'utf8')
+  const line = theme.split('\n').find((l) => /Les réglages de base sont dans Essentiel/.test(l)) || ''
+  eq('the Theme page subtitle is found', line !== '', true)
+  eq('the Theme page subtitle names Kybernos in French and in English', /Personnalise l’apparence de Kybernos\./.test(line) && /Customize the look of Kybernos\./.test(line), true)
+  eq('…and never the engine', /DeepSeek Harness/.test(line), false)
+  const row = src.split('\n').find((l) => /Les réglages de base sont dans Essentiel/.test(l)) || ''
+  eq('the core\'s table row says Kybernos too', /'Personnalise l’apparence de Kybernos\. Les réglages de base sont dans Essentiel\.': 'Customize the look of Kybernos\. The basic settings are in Essentials\.'/.test(row) && !/DeepSeek Harness/.test(row), true)
+}
+
 console.log(fails === 0 ? '\nbrand: all checks pass' : '\nbrand: ' + fails + ' check(s) FAILED')
 process.exit(fails === 0 ? 0 : 1)

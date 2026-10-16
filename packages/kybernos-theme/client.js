@@ -3928,7 +3928,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
                 h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-theme' }) : null)),
                 h('div', { className: 'kbth-title' }, kt('Thème', 'Theme')),
                 h('div', { className: 'kbth-sub' },
-                  kt('Personnalise l’apparence de DeepSeek Harness. Les réglages de base sont dans Essentiel.', 'Customize the look of DeepSeek Harness. The basic settings are in Essentials.'))),
+                  kt('Personnalise l’apparence de Kybernos. Les réglages de base sont dans Essentiel.', 'Customize the look of Kybernos. The basic settings are in Essentials.'))),
               h('div', null, reglages),
               h('div', { className: 'kbth-foot' },
                 h('span', { className: 'kbth-pill' }, estNaturel(S) ? kt('DSH natif — aucune couche posée', 'Native DSH — no layer applied') : kt('17 jetons · {light, dark}', '17 tokens · {light, dark}')),

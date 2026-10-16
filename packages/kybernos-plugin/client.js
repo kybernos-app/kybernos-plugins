@@ -30870,7 +30870,7 @@ html[dir="rtl"] [class*="navList"][data-kb-searching] [data-kb-fold-toggle] .kb-
         'Apparence, accent, fond, police et icônes du menu.': 'Appearance, accent, background, font and menu icons.',
         'Icônes': 'Icons', 'Icônes du menu': 'Menu icons',
         'Le dessin des entrées de la barre latérale : gris au repos, en couleur sur la page ouverte. Un thème peut le retenir.': 'How the sidebar entries are drawn: grey at rest, in colour on the open page. A theme can keep it.',
-        'Personnalisez l’apparence de DeepSeek Harness. Les réglages de base sont dans Essentiel.': 'Customize the look of DeepSeek Harness. The basic settings are in Essentials.',
+        'Personnalise l’apparence de Kybernos. Les réglages de base sont dans Essentiel.': 'Customize the look of Kybernos. The basic settings are in Essentials.',
         'Fichier non reconnu : seul un fichier .json au format de ce thème est accepté. Rien n’a été modifié.': 'File not recognized: only a .json file in this theme\'s format is accepted. Nothing was changed.',
         'Thème importé et appliqué.': 'Theme imported and applied.',
         // ── Verre, texte, accessibilité, partage (câblés) ──
