@@ -59,6 +59,7 @@ window.__ModuleLoader__.load({
       'Moteur installé = plus récente version publiée, tous canaux.': 'Installed engine = newest published version, all channels.',
       'Testée ensemble, retouches posées.': 'Tested together, patches applied.',
       'Zone de compatibilité absente du dépôt.': 'Compatibility range missing from the repository.',
+      'Le moteur installé est introuvable : audit des surfaces impossible.': 'The installed engine cannot be found: the surface audit is not possible.',
       'Plus ancien que le minimum supporté.': 'Older than the supported minimum.',
       'Plus récent que le maximum supporté — ne doit pas tourner.': 'Newer than the supported maximum — must not run.',
       'Dans la zone, pas encore testée avec ce plugin.': 'Within range, not yet tested with this plugin.',
@@ -74,6 +75,9 @@ window.__ModuleLoader__.load({
       [/^Des paquets DSH du profil sont épinglés à une autre version que le moteur \((\d+)\)\.$/, 'DSH profile packages are pinned to a different version than the engine ($1).'],
       [/^Le paquet (.+) n'est pas lié au profil\.$/, 'Package $1 is not linked to the profile.'],
       [/^Le bundle (.+) n'est pas déclaré\.$/, 'Bundle $1 is not declared.'],
+      [/^(.+) : « (.+) » n'est plus vrai dans le moteur installé \((.+)\)\.$/, '$1: “$2” is no longer true in the installed engine ($3).'],
+      [/^DOUBLON — (.+) : le moteur porte désormais « (.+) » \(mesuré sur la sauvegarde vierge (.+)\)\.$/, 'OVERLAP — $1: the engine now carries “$2” (measured on the clean backup $3).'],
+      [/^(.+) : « (.+) » trouvé dans le moteur vivant, mais aucune sauvegarde vierge à côté — peut venir de notre propre retouche\. À confirmer sur un 0\.1\.x nu\.$/, '$1: “$2” found in the live engine, but no clean backup beside it — it may come from our own patch. To be confirmed on a bare 0.1.x.'],
       [/^La version du moteur \((.+)\) n'a jamais été testée avec ce plugin\.$/, 'Engine version ($1) has never been tested with this plugin.'],
       [/^à jour — dernière publiée : (.+)$/, 'up to date — latest published: $1'],
       [/^à jour de la plus récente publiée \((.+)\)$/, 'up to date with the newest published ($1)'],
@@ -308,20 +312,9 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
 
     // ── pure logic (exposed through `__test`) ──────────────────────────────
 
-    // « 1.0.0-beta.1 » -> { core: '1.0.0', canal: 'beta', rang: '1' }; a stable
-    // « 1.0.0 » has an empty canal; anything that is not a semver (a git hash,
-    // « inconnu ») returns null and is shown as it is.
-    const decouperVersion = (v) => {
-      const m = /^(\d+\.\d+\.\d+)(?:-([A-Za-z]+)(?:[.-]?(\d+))?[0-9A-Za-z.-]*)?(?:\+[0-9A-Za-z.-]+)?$/.exec(typeof v === 'string' ? v : '')
-      return m === null ? null : { core: m[1], canal: m[2] || '', rang: m[3] || '' }
-    }
-    // The line under the wordmark: « Version 1.0.0 · beta 1 ». The exact string
-    // stays reachable (title attribute, Kybernos tile).
-    const ligneVersion = (v) => {
-      const d = decouperVersion(v)
-      if (d === null) return 'Version ' + hs(String(v))
-      return 'Version ' + d.core + (d.canal !== '' ? ' · ' + d.canal + (d.rang !== '' ? ' ' + d.rang : '') : '')
-    }
+    // The line under the wordmark: « Version 1.0.0-beta.9 ». The exact string, the same one the Kybernos tile and the technical details show:
+    // it used to be rewritten « 1.0.0 · beta 9 » here, so one release was spelled three ways on the page (audit 2026-10-16).
+    const ligneVersion = (v) => 'Version ' + hs(String(v))
     // The version the page shows for the plugin: the shipped semver when the
     // host read one, else what the host state already had (the git hash).
     const versionPlugin = (etat) => (typeof etat.version === 'string' && etat.version !== ''
@@ -441,7 +434,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       const entete = h('div', { className: 'kbmz-haut' },
         h('div', { className: 'kbmz-id' },
           h('div', { className: 'kbmz-marque', 'data-kb': 'maintenance-brand' }, marque(30)),
-          h('div', { className: 'kbmz-version', 'data-kb': 'maintenance-version', title: decouperVersion(versionBrute) !== null ? versionBrute : undefined }, ligneVersion(versionBrute))),
+          h('div', { className: 'kbmz-version', 'data-kb': 'maintenance-version' }, ligneVersion(versionBrute))),
         h('button', { type: 'button', className: 'kbmz-bouton', 'data-kb': 'maintenance-refresh', onClick: onRafraichir, disabled: charge }, charge ? '…' : t('verifier')))
 
       // ── status block ───────────────────────────────────────────────────────
@@ -480,9 +473,11 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         h('span', { className: 'kbmz-stat-n' }, hs(distant.note) || t('registreKo')))
       const cartePlugin = h('div', { className: 'kbmz-stat', 'data-kb': 'maintenance-plugin-card' },
         h('span', { className: 'kbmz-stat-l' }, t('plugin')),
-        h('span', { className: 'kbmz-stat-v' }, h('code', null, hs(etat.plugin))),
-        h('span', { className: 'kbmz-stat-n' }, compat && compat.min !== null
-          ? `${t('zone')} : ${zoneTexte(compat)}` : kbp('zone de compatibilité absente', 'compatibility range missing')))
+        h('span', { className: 'kbmz-stat-v' }, h('code', null, hs(versionBrute))),
+        h('span', { className: 'kbmz-stat-n' }, (compat && compat.min !== null
+          ? `${t('zone')} : ${zoneTexte(compat)}` : kbp('zone de compatibilité absente', 'compatibility range missing'))
+          // The git build, for a bug report, next to the version it belongs to (never instead of it).
+          + (typeof etat.plugin === 'string' && etat.plugin !== '' && etat.plugin !== 'inconnu' && etat.plugin !== versionBrute ? ' · build ' + etat.plugin : '')))
       const carteCompat = h('div', { className: 'kbmz-stat', 'data-kb': 'maintenance-compat-card' },
         h('span', { className: 'kbmz-stat-l' }, t('compat')),
         h('span', { className: 'kbmz-stat-v' },
@@ -496,7 +491,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
 
       // ── technical details: contract + matrix ───────────────────────────────
       const contrat = h('div', { className: 'kbmz-carte', 'data-kb': 'maintenance-contract-card' },
-        h('div', { className: 'kbmz-sec' }, `${t('contract')} ${etat.plugin}`),
+        h('div', { className: 'kbmz-sec' }, `${t('contract')} ${versionBrute}`),
         h('div', { className: 'kbmz-ligne' },
           h('span', { className: 'kbmz-date', style: { width: '190px' } }, t('zone')),
           h('span', { className: 'kbmz-vers' }, compat && compat.min !== null ? `≥ ${compat.min}${compat.max ? '  < ' + compat.max : ''}` : '—')),
@@ -975,7 +970,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         // Update detection: never blocks startup.
         try { updBoot() } catch (e) { try { console.warn('[kybernos-maintenance] detection des mises a jour indisponible', e) } catch (e2) { /* console */ } }
       },
-      __test: { fusionnerSigne, modeMiseAJour, updRelancer, motMaj, decouperVersion, ligneVersion, versionPlugin, zoneTexte, statutDe, etatValide, lireOuvert, ecrireOuvert, CLE_DETAILS, ID_DETAILS, Page, FR, EN }
+      __test: { fusionnerSigne, modeMiseAJour, updRelancer, motMaj, ligneVersion, versionPlugin, zoneTexte, statutDe, etatValide, lireOuvert, ecrireOuvert, CLE_DETAILS, ID_DETAILS, Page, FR, EN }
     }
   }
 })
