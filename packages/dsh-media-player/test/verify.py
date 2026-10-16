@@ -81,7 +81,7 @@ def main() -> int:
         "corps enregistré sous la clé du même id": slot.get("name")
         == "sidebar.right.tab.document"
         and slot.get("key") == declared.get("id"),
-        "libellés en + zh": report.get("locale_languages") == ["en", "zh"],
+        "libellés en + zh + kybernos (le français de Kybernos)": report.get("locale_languages") == ["en", "kybernos", "zh"],
         "helper MIME : mp3/wav/mp4/webm": helpers.get("mp3")
         == {"kind": "audio", "mime": "audio/mpeg"}
         and helpers.get("upper") == {"kind": "video", "mime": "video/mp4"}
