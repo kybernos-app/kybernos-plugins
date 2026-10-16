@@ -14,7 +14,7 @@ let fail = 0
 const check = (name, ok, detail) => { if (ok === true) { pass += 1; console.log('  ✓ ' + name) } else { fail += 1; console.log('  ✗ ' + name + (detail === undefined ? '' : ' — ' + JSON.stringify(detail))) } }
 
 const a = src.indexOf('      const kbslLang = () => {')
-const b = src.indexOf('      // ── Accès aux entrées du hôte')
+const b = src.indexOf("      // ── Access to the host's entries")
 check('the language helpers are delimited', a > 0 && b > a)
 const make = (resolve) => new Function('window', 'document', 'navigator', src.slice(a, b) + '\nreturn { kbslLang, L, kbslCount }')(
   { __KB_LANG_RESOLVE__: resolve }, { documentElement: { lang: 'en' } }, { language: 'en' })
