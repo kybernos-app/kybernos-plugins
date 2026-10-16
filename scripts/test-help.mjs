@@ -106,6 +106,20 @@ console.log('the « ? How it works » buttons')
   check('the host keeps the shipped page cards when the online catalogue lacks them', /livree\.pages !== undefined && m\.aide\.pages === undefined/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'suite-host.mjs'), 'utf8')))
   check('one « ? How it works » button on the Voice page: the hub pins no second one over it (it did, with a MutationObserver, and the two overlapped)', !/installerAideVoix|AIDE_VOIX|kbhp-voice/.test(hub))
   check('the Voice page asks for its own card', /Help, \{ id: 'kybernos-plugin', page: 'voice' \}/.test(readFileSync(join(REPO, 'packages', 'kybernos-plugin', 'client.js'), 'utf8')))
+  // One form of the button on every page (A5-19): the pages that draw it themselves (the core's Agent Teams / Automations, the
+  // Calls tabs) copy the Suite's pill declaration for declaration, so the three cannot drift apart unnoticed.
+  {
+    const decls = (src, selector) => { const m = src.match(new RegExp(selector.replace(/[.[\]]/g, '\\$&') + '\\{([^}]*)\\}')); return m === null ? null : m[1].split(';').map((x) => x.trim()).filter(Boolean) }
+    const read = (d) => readFileSync(join(REPO, 'packages', d, 'client.js'), 'utf8')
+    const ref = decls(hub, '.kbhp-btn')
+    const disc = decls(hub, '.kbhp-q')
+    const same = (a, b, extra = []) => a !== null && b !== null && a.every((x) => b.includes(x)) && b.every((x) => a.includes(x) || extra.includes(x))
+    check('the core’s pill (Agent Teams, Automations) has the Suite pill’s declarations', same(ref, decls(read('kybernos-plugin'), '.kb6-helpbtn'), ['flex:0 0 auto']), { ref })
+    check('the Calls tabs’ pill has the Suite pill’s declarations', same(ref, decls(read('kybernos-call'), '.kbcl-hl')), { ref })
+    check('and the « ? » disc is the same on the three', same(disc, decls(read('kybernos-plugin'), '.kb6-helpq')) && same(disc, decls(read('kybernos-call'), '.kbcl-hq')), { disc })
+    const label = (src, re) => re.test(src)
+    check('the label is the same words everywhere: « How it works » / « Comment ça marche »', label(hub, /kt\('Comment ça marche', 'How it works'\)/) && label(read('kybernos-plugin'), /'kbui\.howitworks': \{ kybernos: 'Comment ça marche', en: 'How it works' \}/) && label(read('kybernos-call'), /kt\('Comment ça marche', 'How it works'\)/))
+  }
   const css = hub.match(/\.kbhp-[a-z]+/g) || []
   const clash = []
   for (const d of dirs) {

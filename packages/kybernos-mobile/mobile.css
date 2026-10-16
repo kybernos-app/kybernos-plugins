@@ -32,8 +32,7 @@
   /* an icon on its own is that wide; a button with a label keeps the width of its label (a min-width would let a flex row
    * squeeze it below that, and its text would be cut under the next button) */
   [data-slot="main"] button:where(:has(> svg:only-child)),
-  [data-slot="main"] [role="button"]:where(:has(> svg:only-child)),
-  [data-slot="main"] .kb6-helpbtn {
+  [data-slot="main"] [role="button"]:where(:has(> svg:only-child)) {
     min-width: 36px;
   }
   [data-slot="main"] input:where(:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"])) {

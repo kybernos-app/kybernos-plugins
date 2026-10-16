@@ -118,5 +118,17 @@ console.log('the slash name')
   check('the editor refuses such a name, with its own sentence', /KB_DSH_COMMANDS\.indexOf\(kbCleanSlug\(d\.slug\)\) !== -1\) return \{ msg: '\/' \+ kbCleanSlug\(d\.slug\) \+ ' is one of DSH/.test(src))
 }
 
+console.log('the page says what each tab is for (V-36)')
+{
+  const line = src.match(/className: 'kbsl-sub kbsl-tabfor'[^\n]*\n?/)
+  const where = line === null ? '' : line[0] + src.slice(line.index + line[0].length, line.index + line[0].length + 900)
+  check('a line under the tabs follows the tab that is open', line !== null && /tab === 'action'/.test(where.slice(0, 200)))
+  check('slash tab: it says what a slash command is, in both languages', /fr: 'Une commande slash est un prompt enregistré/.test(where) && /en: 'A slash command is a saved prompt/.test(where))
+  check('message actions tab: it says what an action is and where it shows, in both languages', /fr: 'Une action de message est un bouton sous/.test(where) && /en: 'A message action is a button under/.test(where))
+  check('it explains how to run a slash command (the « / » key) and what an action works on (that reply)', /“\/”/.test(where) && /that reply/.test(where) && /cette réponse/.test(where))
+  const pairs = [...src.matchAll(/L\(\s*\{\s*fr:\s*'([^']*)'\s*,\s*en:\s*'([^']*)'\s*\}\)/g)]
+  check('the new sentences are among the L({fr, en}) pairs, none empty', pairs.filter((p) => /commande slash est un prompt|action de message est un bouton/.test(p[1])).length === 2)
+}
+
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)
 process.exit(failed === 0 ? 0 : 1)
