@@ -123,10 +123,11 @@ let kbLocaleRead = () => 'en'
       'deliv.create.prompt': { kybernos: 'Imagine une création de type « {type} » à partir du contexte de cette conversation. Propose-la-moi sous forme de brouillon avant de l\'écrire dans le workspace.', en: 'Come up with a "{type}" creation from this conversation\'s context. Show me a draft before writing it to the workspace.' },
       'deliv.schedule.cta': { kybernos: 'Planifier une tâche', en: 'Schedule task' },
       'deliv.tasks.desc': { kybernos: 'Sessions qui partent toutes seules à l\'heure choisie.', en: 'Sessions that start on their own at the chosen time.' },
-      'deliv.qa.1': { kybernos: 'Crée un {type} à partir de la conversation en cours.', en: 'Create a {type} from the current conversation.' },
-      'deliv.qa.2': { kybernos: 'Propose un plan de {type} pour ce projet.', en: 'Propose a {type} plan for this project.' },
-      'deliv.qa.3': { kybernos: 'Améliore le dernier {type} produit par vos Agent Teams.', en: 'Improve the latest {type} produced by your Agent Teams.' },
-      // With no type chosen ("All"): "a {type}" does not agree with "creation".
+      // The type is named in brackets: the tile labels are plural or mass nouns (« images », « audio & video »), so « a {type} » read « a images » (A4-20).
+      'deliv.qa.1': { kybernos: 'Imagine une création à partir de la conversation en cours ({type}).', en: 'Come up with a creation from the current conversation ({type}).' },
+      'deliv.qa.2': { kybernos: 'Propose un plan de création pour ce projet ({type}).', en: 'Propose a creation plan for this project ({type}).' },
+      'deliv.qa.3': { kybernos: 'Améliore la dernière création produite par vos Agent Teams ({type}).', en: 'Improve the latest creation produced by your Agent Teams ({type}).' },
+      // With no type chosen ("All"): the same sentences without the brackets.
       'deliv.qa.1.any': { kybernos: 'Imagine une création à partir de la conversation en cours.', en: 'Come up with a creation from the current conversation.' },
       'deliv.qa.2.any': { kybernos: 'Propose un plan de création pour ce projet.', en: 'Propose a creation plan for this project.' },
       'deliv.qa.3.any': { kybernos: 'Améliore la dernière création produite par vos Agent Teams.', en: 'Improve the latest creation produced by your Agent Teams.' },
@@ -1209,7 +1210,7 @@ let kbLocaleRead = () => 'en'
       'kbui.kyplugins.none': { kybernos: 'Aucun bundle Kybernos ne correspond au filtre.', en: 'No Kybernos bundle matches the filter.' },
       'kbui.kyplugins.view.cards': { kybernos: 'Vue cartes', en: 'Card view' },
       'kbui.kyplugins.view.list': { kybernos: 'Vue liste', en: 'List view' },
-      'kbui.kyplugins.settings': { kybernos: 'Paramètres', en: 'Settings' },
+      'kbui.kyplugins.settings': { kybernos: 'Réglages', en: 'Settings' },
       'kbui.kyplugins.managed': { kybernos: 'protégé', en: 'protected' },
       'kbui.kyplugins.toggle': { kybernos: 'Activer ou désactiver ce bundle', en: 'Enable or disable this bundle' },
       // (01/10) vue cartes/liste + filtre Kybernos de la section Plugins.
@@ -1367,7 +1368,7 @@ let kbLocaleRead = () => 'en'
       'kbnc.t.miniapp': { kybernos: 'Mini-app', en: 'Mini-app' },
       'kbnc.t.dashboard': { kybernos: 'Tableau de bord', en: 'Dashboard' },
       'kbnc.t.automation': { kybernos: 'Automatisation', en: 'Automation' },
-      'kbnc.t.team': { kybernos: 'Équipe d’agents', en: 'Agent Team' },
+      'kbnc.t.team': { kybernos: 'Agent Team', en: 'Agent Team' },
       'kbnc.t.skill': { kybernos: 'Skill', en: 'Skill' },
       'kbnc.t.plugin': { kybernos: 'Plugin', en: 'Plugin' },
       'kbnc.t.model3d': { kybernos: 'Modèle 3D', en: '3D model' },
@@ -1380,7 +1381,7 @@ let kbLocaleRead = () => 'en'
       'kbnc.p.miniapp': { kybernos: 'Crée une mini-app qui ', en: 'Build a mini-app that ' },
       'kbnc.p.dashboard': { kybernos: 'Crée un tableau de bord de ', en: 'Build a dashboard of ' },
       'kbnc.p.automation': { kybernos: 'Crée une automatisation qui ', en: 'Create an automation that ' },
-      'kbnc.p.team': { kybernos: 'Crée une équipe d’agents pour ', en: 'Create an Agent Team for ' },
+      'kbnc.p.team': { kybernos: 'Crée une Agent Team pour ', en: 'Create an Agent Team for ' },
       'kbnc.p.skill': { kybernos: 'Crée un skill qui ', en: 'Create a skill that ' },
       'kbnc.p.plugin': { kybernos: 'Crée un plugin DSH qui ', en: 'Create a DSH plugin that ' },
       'kbnc.p.model3d': { kybernos: 'Modélise en 3D : ', en: 'Model in 3D: ' },
@@ -2586,6 +2587,51 @@ const kbLangResolve = () => {
   return lang
 }
 try { if (typeof window !== 'undefined') window.__KB_LANG_RESOLVE__ = kbLangResolve } catch (e) { /* hors navigateur */ }
+
+// <kb-html-lang>
+// `<html lang>` must be a language tag (A2-20). DSH's shell writes its own locale id there, after boot: « kybernos » (the French of Kybernos, not a tag),
+// or « en » over a French interface chosen on the Language page. While the interface is French or a translated language the right tag is put back
+// (screen readers, spell-check, hyphenation and the browser's translate offer read it); English is left to the shell.
+const kbHtmlLangWanted = () => {
+  let l = 'en'
+  try { l = String(kbLangResolve()) } catch (e) { return null }
+  const base = l.split(/[-_]/)[0]
+  if (base === 'kybernos' || base === 'fr') return 'fr'
+  return base === 'en' ? null : base
+}
+const kbHtmlLangFix = (doc) => {
+  const cur = doc.getAttribute('lang')
+  const want = kbHtmlLangWanted()
+  if (cur === 'kybernos') doc.setAttribute('lang', want === null ? 'en' : want)
+  else if (want !== null && cur !== want) doc.setAttribute('lang', want)
+}
+try {
+  if (typeof document !== 'undefined' && typeof MutationObserver !== 'undefined') {
+    new MutationObserver(() => { try { kbHtmlLangFix(document.documentElement) } catch (e) { /* no document */ } }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] })
+    kbHtmlLangFix(document.documentElement)
+  }
+} catch (e) { /* no document: tests */ }
+// </kb-html-lang>
+
+// <kb-rtl-bidi>
+// A text the page has no translation for (a skill's description from its repository, an English label of a plugin page) stays English inside a mirrored
+// right-to-left page (A2-26): in the RTL paragraph its final full stop jumped to the start of the line (« .and forms included »). `unicode-bidi:
+// plaintext` gives each text block the direction of its first strong letter — what `dir="auto"` does — without touching the page's own direction
+// (the layout, the alignment and the mirrored controls stay as they are). Only text blocks of Kybernos' own surfaces; code, inputs and DSH's chat are left alone.
+const KB_RTL_BIDI_CSS = [
+  'html[dir="rtl"] :is([data-slot="settings.section"], [class*="-root"], [class$="-page"], [class*="kb-page"], [data-kb="skills"], [data-kb="connectors"])',
+  ' :is(p, li, dd, dt, h1, h2, h3, h4, h5, h6, figcaption, [class*="desc"], [class*="blurb"], [class*="-sub"], [class*="title"], [class*="-name"], [class*="note"], [class*="hint"]):not(pre, code, input, textarea, select, button)',
+  '{unicode-bidi:plaintext}',
+].join('')
+try {
+  if (typeof document !== 'undefined' && document.head !== null && document.getElementById('kb-rtl-bidi') === null) {
+    const style = document.createElement('style')
+    style.id = 'kb-rtl-bidi'
+    style.textContent = KB_RTL_BIDI_CSS
+    document.head.appendChild(style)
+  }
+} catch (e) { /* no document: tests */ }
+// </kb-rtl-bidi>
 const kbt = (key) => {
   const lang = kbLangResolve()
   const entry = KB_T[key]
@@ -2796,13 +2842,13 @@ const KB_FR_EN = {
   'Cua Driver natif': 'Cua native driver',
   'Ce que ça change dans la session': 'What it changes in the session',
   'Commande copiée.': 'Command copied.',
-  'Connexion officielle : sous-agent Claude Code via le SDK natif. Exige une authentification CLI — l’app Desktop ne suffit pas.': 'Official connection: Claude Code sub-agent through the native SDK. Requires a CLI login — the desktop app is not enough.',
-  'Connexion officielle : sous-agent Codex par le protocole app-server.': 'Official connection: Codex sub-agent through the app-server protocol.',
+  'Connexion officielle : sous-agent Claude Code via le SDK natif. Exige une authentification CLI — l’app Desktop ne suffit pas.': 'Official connection: Claude Code subagent through the native SDK. Requires a CLI login — the desktop app is not enough.',
+  'Connexion officielle : sous-agent Codex par le protocole app-server.': 'Official connection: Codex subagent through the app-server protocol.',
   'Copier la commande': 'Copy the command',
   'Déjà monté dans ce profil — rien à faire.': 'Already mounted in this profile — nothing to do.',
   'Demande : ': 'Requires: ',
   'Enregistrement de l’écran + Accessibilité (Réglages système > Confidentialité).': 'Screen Recording + Accessibility (System Settings > Privacy).',
-  'Harness ne publie pas de fournisseur de sous-agent pour Hermes.': 'Harness ships no sub-agent provider for Hermes.',
+  'Harness ne publie pas de fournisseur de sous-agent pour Hermes.': 'Harness ships no subagent provider for Hermes.',
   'Installé, non monté': 'Installed, not mounted',
   'Installer & configurer': 'Install & configure',
   'Le paquet est absent de ce profil : écrire le patch sans le paquet casserait le démarrage.': 'The package is missing from this profile: writing the patch without it would break startup.',
@@ -32449,6 +32495,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'cancel': ['Cancel', 'Annuler', 'Cancelar', 'إلغاء'],
       'ok.t': ['You’re connected', 'Tu es connecté', 'Has iniciado sesión', 'تم تسجيل دخولك'],
       'ok.models': ['{n} models ready', '{n} modèles prêts', '{n} modelos listos', '{n} نموذجًا جاهزًا'],
+      'ok.models1': ['1 model ready', '1 modèle prêt', '1 modelo listo', 'نموذج واحد جاهز'],
       'err.t': ['We couldn’t reach Kybernos', 'On n’a pas pu joindre Kybernos', 'No hemos podido contactar con Kybernos', 'تعذّر الوصول إلى Kybernos'],
       'err.s': ['Check your connection. Nothing is lost, and you can go another way.', 'Vérifie ta connexion. Rien n’est perdu, et tu peux avancer autrement.', 'Comprueba tu conexión. No se ha perdido nada y puedes seguir de otra forma.', 'تحقق من اتصالك. لم يضع شيء، ويمكنك المتابعة بطريقة أخرى.'],
       'err.expired.t': ['That code has expired', 'Ce code a expiré', 'Ese código ha caducado', 'انتهت صلاحية هذا الرمز'],
@@ -32465,9 +32512,9 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'key.g2': ['Create a key — call it “Kybernos”.', 'Crée une clé — appelle-la « Kybernos ».', 'Crea una clave y llámala «Kybernos».', 'أنشئ مفتاحًا وسمّه «Kybernos».'],
       'key.g3': ['Copy it, then paste it below.', 'Copie-la, puis colle-la ci-dessous.', 'Cópiala y pégala abajo.', 'انسخه ثم الصقه أدناه.'],
       'key.o1': ['In your provider’s console, get the service address and your key.', 'Dans l’espace de ton fournisseur, récupère l’adresse du service et ta clé.', 'En el panel de tu proveedor, obtén la dirección del servicio y tu clave.', 'من لوحة مزوّدك، احصل على عنوان الخدمة ومفتاحك.'],
-      'key.o2': ['You’ll paste them in Settings → Models.', 'Tu les colleras dans Réglages → Models.', 'Las pegarás en Ajustes → Models.', 'ستلصقهما في الإعدادات ← Models.'],
+      'key.o2': ['You’ll paste them in Settings → AI Provider & Models.', 'Tu les colleras dans Réglages → Fournisseur IA & modèles.', 'Las pegarás en Ajustes → AI Provider & Models.', 'ستلصقهما في الإعدادات ← AI Provider & Models.'],
       'key.note': ['The key stays on this computer and is only sent to your provider. Some providers ask for a payment method before you can create one.', 'La clé reste sur cet ordinateur et n’est envoyée qu’à ton fournisseur. Certains demandent un moyen de paiement avant d’en créer une.', 'La clave se queda en este ordenador y solo se envía a tu proveedor. Algunos piden un método de pago antes de crear una.', 'يبقى المفتاح على هذا الحاسوب ولا يُرسل إلا إلى مزوّدك. بعض المزوّدين يطلبون وسيلة دفع قبل إنشاء مفتاح.'],
-      'key.open': ['Open Settings → Models', 'Ouvrir Réglages → Models', 'Abrir Ajustes → Models', 'فتح الإعدادات ← Models'],
+      'key.open': ['Open Settings → AI Provider & Models', 'Ouvrir Réglages → Fournisseur IA & modèles', 'Abrir Ajustes → AI Provider & Models', 'فتح الإعدادات ← AI Provider & Models'],
       'key.nokey': ['No key? We’ll handle it — sign in instead', 'Pas de clé ? On s’en occupe — me connecter', '¿Sin clave? Nos encargamos: iniciar sesión', 'لا مفتاح؟ نتولى الأمر — سجّل الدخول'],
       'loc.t': ['A model on this computer', 'Un modèle sur cet ordinateur', 'Un modelo en este ordenador', 'نموذج على هذا الحاسوب'],
       'loc.s': ['Free and private: nothing leaves your machine. In return it’s slower and less capable than an online model on long tasks.', 'Gratuit et privé : rien ne quitte ta machine. En contrepartie, c’est plus lent et moins capable qu’un modèle en ligne sur les longues tâches.', 'Gratis y privado: nada sale de tu equipo. A cambio, es más lento y menos capaz que un modelo en línea en tareas largas.', 'مجاني وخاص: لا شيء يغادر جهازك. في المقابل هو أبطأ وأقل قدرة من نموذج عبر الإنترنت في المهام الطويلة.'],
@@ -32478,7 +32525,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'loc.engine.no': ['Ollama — to install', 'Ollama — à installer', 'Ollama — por instalar', 'Ollama — يلزم تثبيته'],
       'loc.pulled': ['Models on this machine', 'Modèles sur cette machine', 'Modelos en este equipo', 'النماذج على هذا الجهاز'],
       'loc.pulled.n': ['{n}', '{n}', '{n}', '{n}'],
-      'loc.hint': ['Settings → Models shows what fits your machine and installs it for you.', 'Réglages → Models te montre ce qui tient sur ta machine et l’installe pour toi.', 'Ajustes → Models te muestra lo que cabe en tu equipo y lo instala por ti.', 'تعرض لك الإعدادات ← Models ما يناسب جهازك وتثبّته لك.'],
+      'loc.hint': ['Settings → AI Provider & Models shows what fits your machine and installs it for you.', 'Réglages → Fournisseur IA & modèles te montre ce qui tient sur ta machine et l’installe pour toi.', 'Ajustes → AI Provider & Models te muestra lo que cabe en tu equipo y lo instala por ti.', 'تعرض لك الإعدادات ← AI Provider & Models ما يناسب جهازك وتثبّته لك.'],
       'loc.go': ['Open local models', 'Ouvrir les modèles locaux', 'Abrir modelos locales', 'فتح النماذج المحلية'],
       'loc.other': ['Choose another way', 'Choisir autrement', 'Elegir otra opción', 'اختيار طريقة أخرى'],
       'fin.t': ['You’re all set', 'C’est prêt', 'Todo listo', 'كل شيء جاهز'],
@@ -32489,6 +32536,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'fin.none': ['Not specified', 'Non précisé', 'Sin especificar', 'غير محدد'],
       'fin.cloud': ['Kybernos Cloud', 'Kybernos Cloud', 'Kybernos Cloud', 'Kybernos Cloud'],
       'fin.cloud.n': ['Kybernos Cloud · {n} models', 'Kybernos Cloud · {n} modèles', 'Kybernos Cloud · {n} modelos', 'Kybernos Cloud · {n} نموذجًا'],
+      'fin.cloud.n1': ['Kybernos Cloud · 1 model', 'Kybernos Cloud · 1 modèle', 'Kybernos Cloud · 1 modelo', 'Kybernos Cloud · نموذج واحد'],
       'fin.local': ['Local model', 'Modèle local', 'Modelo local', 'نموذج محلي'],
       'fin.open': ['Open Kybernos', 'Ouvrir Kybernos', 'Abrir Kybernos', 'افتح Kybernos'],
       'key.paste': ['Paste your key here', 'Colle ta clé ici', 'Pega tu clave aquí', 'الصق مفتاحك هنا'],
@@ -32499,7 +32547,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'key.err.invalid': ['{name} answered “invalid key”. Check that it’s complete, with no spaces, and that it comes from {name}.', '{name} a répondu « clé invalide ». Vérifie qu’elle est complète, sans espace, et qu’elle vient bien de {name}.', '{name} respondió «clave no válida». Comprueba que esté completa, sin espacios, y que sea de {name}.', 'أجاب {name} «مفتاح غير صالح». تأكد من أنه كامل وبلا مسافات وأنه من {name}.'],
       'key.err.denied': ['{name} refused this key. Check its permissions, and that billing is set up on your {name} account.', '{name} a refusé cette clé. Vérifie ses autorisations et que la facturation est activée sur ton compte {name}.', '{name} rechazó esta clave. Comprueba sus permisos y que la facturación esté activada en tu cuenta de {name}.', 'رفض {name} هذا المفتاح. تحقق من صلاحياته ومن تفعيل الفوترة في حسابك لدى {name}.'],
       'key.err.unreach': ['We couldn’t reach {name} to check it. Check your connection, or save it anyway and you’ll see at your first message.', 'On n’a pas pu joindre {name} pour la vérifier. Vérifie ta connexion, ou enregistre-la quand même et tu verras au premier message.', 'No hemos podido contactar con {name} para comprobarla. Comprueba tu conexión o guárdala igualmente y lo verás en tu primer mensaje.', 'تعذّر الوصول إلى {name} للتحقق. تحقق من اتصالك أو احفظه على أي حال وسترى عند أول رسالة.'],
-      'key.err.fail': ['The key could not be saved. You can add it in Settings → AI Provider & Models.', 'La clé n’a pas pu être enregistrée. Tu peux l’ajouter dans Réglages → AI Provider & Models.', 'No se pudo guardar la clave. Puedes añadirla en Ajustes → AI Provider & Models.', 'تعذّر حفظ المفتاح. يمكنك إضافته من الإعدادات ← AI Provider & Models.'],
+      'key.err.fail': ['The key could not be saved. You can add it in Settings → AI Provider & Models.', 'La clé n’a pas pu être enregistrée. Tu peux l’ajouter dans Réglages → Fournisseur IA & modèles.', 'No se pudo guardar la clave. Puedes añadirla en Ajustes → AI Provider & Models.', 'تعذّر حفظ المفتاح. يمكنك إضافته من الإعدادات ← AI Provider & Models.'],
       'key.again': ['Check again', 'Vérifier à nouveau', 'Comprobar de nuevo', 'تحقق مجددًا'],
       'key.anyway': ['Save anyway', 'Enregistrer quand même', 'Guardar igualmente', 'احفظ على أي حال'],
       'key.done.t': ['Key saved', 'Clé enregistrée', 'Clave guardada', 'تم حفظ المفتاح'],
@@ -32536,7 +32584,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'nm.connected.set': ['Connected: {model} is now this chat’s model. Your message can go again.', 'C’est connecté : {model} est maintenant le modèle de ce chat. Ton message peut repartir.', 'Conectado: {model} es ahora el modelo de este chat. Tu mensaje puede volver a salir.', 'تم الربط: أصبح {model} نموذج هذه المحادثة. يمكن لرسالتك أن تنطلق من جديد.'],
       'nm.connected': ['Connected. Pick the new model in the selector below, then send your message again.', 'C’est connecté. Choisis le nouveau modèle dans le sélecteur ci-dessous, puis renvoie ton message.', 'Conectado. Elige el nuevo modelo en el selector de abajo y reenvía tu mensaje.', 'تم الربط. اختر النموذج الجديد من القائمة أدناه ثم أعد إرسال رسالتك.'],
       'fin0.t': ['You can start', 'Tu peux commencer', 'Ya puedes empezar', 'يمكنك البدء'],
-      'fin0.s': ['Your agents will need a model to answer. Connect one whenever you like, in Settings → Models.', 'Pour que tes agents répondent, il faudra un modèle. Branches-en un quand tu veux, dans Réglages → Models.', 'Tus agentes necesitarán un modelo para responder. Conecta uno cuando quieras, en Ajustes → Models.', 'سيحتاج وكلاؤك إلى نموذج ليجيبوا. اربط واحدًا متى شئت من الإعدادات ← Models.'],
+      'fin0.s': ['Your agents will need a model to answer. Connect one whenever you like, in Settings → AI Provider & Models.', 'Pour que tes agents répondent, il faudra un modèle. Branches-en un quand tu veux, dans Réglages → Fournisseur IA & modèles.', 'Tus agentes necesitarán un modelo para responder. Conecta uno cuando quieras, en Ajustes → AI Provider & Models.', 'سيحتاج وكلاؤك إلى نموذج ليجيبوا. اربط واحدًا متى شئت من الإعدادات ← AI Provider & Models.'],
       // The model question (two answers, the other ways one quiet line below).
       'm.t': ['Which models should Kybernos use?', 'Quels modèles Kybernos doit-il utiliser ?', '¿Qué modelos debe usar Kybernos?', 'أي النماذج يجب أن يستخدمها Kybernos؟'],
       'm.s': ['You can change this any time in Settings.', 'Tu pourras changer cela à tout moment dans Réglages.', 'Podrás cambiarlo en cualquier momento en Ajustes.', 'يمكنك تغيير ذلك في أي وقت من الإعدادات.'],
@@ -32559,17 +32607,20 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'k.teams': ['Agent Teams', 'Agent Teams', 'Agent Teams', 'فرق الوكلاء'],
       'k.src': ['from {src}', 'depuis {src}', 'de {src}', 'من {src}'],
       'k.add': ['Add {n} selected', 'Ajouter les {n} sélectionnés', 'Añadir los {n} seleccionados', 'إضافة المحدد ({n})'],
+      'k.add1': ['Add 1 selected', 'Ajouter le sélectionné', 'Añadir el seleccionado', 'إضافة المحدد'],
       'k.none': ['Nothing selected', 'Rien de sélectionné', 'Nada seleccionado', 'لم يتم تحديد شيء'],
       'k.skip': ['Not now', 'Pas maintenant', 'Ahora no', 'ليس الآن'],
       'k.done': ['Installed', 'Installé', 'Instalado', 'مثبّت'],
       'k.soon': ['Soon', 'Bientôt', 'Pronto', 'قريبًا'],
       'k.note': ['Nothing runs by itself: a skill is a file, a team is a folder. You start them from the chat.', 'Rien ne tourne tout seul : un skill est un fichier, une équipe un dossier. Tu les lances depuis le chat.', 'Nada se ejecuta solo: un skill es un archivo y un equipo una carpeta. Los inicias desde el chat.', 'لا شيء يعمل من تلقاء نفسه: المهارة ملف والفريق مجلد. تشغّلها من المحادثة.'],
       'k.busy': ['Adding {i} of {n}…', 'Ajout {i} sur {n}…', 'Añadiendo {i} de {n}…', 'جارٍ إضافة {i} من {n}…'],
+      'k.err1': ['1 could not be added. You can find it later in Skills and in Agent Teams.', '1 n’a pas pu être ajouté. Tu le trouveras plus tard dans Skills et dans Agent Teams.', 'No se pudo añadir 1. Lo encontrarás más tarde en Skills y en Agent Teams.', 'تعذّرت إضافة عنصر واحد. يمكنك إيجاده لاحقًا في المهارات وفي فرق الوكلاء.'],
       'k.err': ['{n} could not be added. You can find them later in Skills and in Agent Teams.', '{n} n’ont pas pu être ajoutés. Tu les trouveras plus tard dans Skills et dans Agent Teams.', 'No se pudieron añadir {n}. Los encontrarás más tarde en Skills y en Agent Teams.', 'تعذّرت إضافة {n}. يمكنك إيجادها لاحقًا في المهارات وفي فرق الوكلاء.'],
       'fin.kit': ['Starter kit', 'Kit de départ', 'Kit inicial', 'مجموعة البداية'],
       'fin.kit.n': ['{n} added', '{n} ajoutés', '{n} añadidos', 'تمت إضافة {n}'],
+      'fin.kit.n1': ['1 added', '1 ajouté', '1 añadido', 'تمت إضافة 1'],
       'fin.mem': ['Saved to your memory', 'Enregistré dans ta mémoire', 'Guardado en tu memoria', 'تم الحفظ في ذاكرتك'],
-      'fin.mem.d': ['Agents read it to talk to you the right way. You can edit or forget it in Settings → Memory & Lessons.', 'Les agents le lisent pour te parler comme il faut. Tu peux le modifier ou l’oublier dans Réglages → Memory & Lessons.', 'Los agentes lo leen para hablarte como corresponde. Puedes editarlo u olvidarlo en Ajustes → Memory & Lessons.', 'يقرأه الوكلاء ليخاطبوك بالطريقة المناسبة. يمكنك تعديله أو نسيانه من الإعدادات ← Memory & Lessons.'],
+      'fin.mem.d': ['Agents read it to talk to you the right way. You can edit or forget it in Settings → Memory & Lessons.', 'Les agents le lisent pour te parler comme il faut. Tu peux le modifier ou l’oublier dans Réglages → Mémoire & Leçons.', 'Los agentes lo leen para hablarte como corresponde. Puedes editarlo u olvidarlo en Ajustes → Memory & Lessons.', 'يقرأه الوكلاء ليخاطبوك بالطريقة المناسبة. يمكنك تعديله أو نسيانه من الإعدادات ← Memory & Lessons.'],
       'mem.job': ['Works as: {job}.', 'Métier : {job}.', 'Profesión: {job}.', 'المهنة: {job}.'],
       'mem.mode': ['Prefers: {mode}.', 'Préfère : {mode}.', 'Prefiere: {mode}.', 'يفضّل: {mode}.'],
       // « What we set up for you »: the end screen, one line per area, each with a way to change it. What is said is what the host answered.
@@ -32608,7 +32659,9 @@ html.wv2-actif [data-composer-seat]{display:none !important}
     }
     /** A text in a language, with {name} placeholders filled. A missing key answers the key itself. */
     const kbObText = (lang, key, vars) => {
-      const row = KB_OB_T[key]
+      // exactly one of something has its own wording (`<key>1`) when the table holds one: « 1 model ready », not « 1 models ready » (A2-12)
+      const one = vars !== undefined && vars !== null && vars.n === 1 && KB_OB_T[key + '1'] !== undefined
+      const row = KB_OB_T[one ? key + '1' : key]
       if (row === undefined) return key
       const i = KB_OB_LANGS.findIndex((l) => l.id === lang)
       let out = row[i >= 0 && row[i] !== undefined ? i : 0]

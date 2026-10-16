@@ -10541,7 +10541,7 @@ function boot(ctx) {
         { id: 'codex', group: 'ext', label: 'Codex', connection: '@deepseek-ai/dsh-subagent-codex',
           why: 'Connexion officielle : sous-agent Codex par le protocole app-server.' },
         { id: 'claude-code', group: 'ext', label: 'Claude Code', connection: '@deepseek-ai/dsh-subagent-claude-code',
-          why: 'Official connection: Claude Code sub-agent through the native SDK. Requires a CLI login — the desktop app is not enough.' },
+          why: 'Official connection: Claude Code subagent through the native SDK. Requires a CLI login — the desktop app is not enough.' },
         // ZCode n’est pas un paquet npm : c’est un connecteur MCP personnalisé
         // (dsh-mcp-client + un serveur local). `mcp` porte donc de quoi écrire le
         // bloc ET reconnaître qu’il est déjà monté — sinon la page proposerait de
