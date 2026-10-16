@@ -998,6 +998,10 @@ window.__ModuleLoader__.load({
       const estNaturel = (S) => S.skin === 'dsh' && S.acc === null && S.wp === 'none'
         && Object.keys(S.ov).length === 0 && S.contrastMode === 'standard' && S.radius === 'standard' && S.cbSafe === false
 
+      /** The schemes in which the look sets its OWN brand colour: an accent (every scheme) or a `<scheme>:brand` override (Ember, the Advanced editor). The
+       *  Kybernos accent (kybernos-plugin, `--kybernos-accent`) is the brand orange unless the look says otherwise; this is how it says so (makeTheme: the same test). */
+      const accentsPropres = (S) => (estNaturel(S) ? [] : ['light', 'dark'].filter((mode) => Boolean(S.acc) || Boolean(S.ov && S.ov[mode + ':brand'])))
+
       // ── Wallpaper: filters, fit (also used by the glass preview) ─────────────
       const filtreFond = (S) => {
         const f = []
@@ -1084,6 +1088,12 @@ window.__ModuleLoader__.load({
 
       const appliquerJetons = (themeSvc, S) => {
         if (layerDispose !== null) { try { layerDispose() } catch (e) { /* already removed */ } layerDispose = null }
+        // The Kybernos accent follows this look's brand colour when it has one (see accentsPropres; the rule is the core's KB_ACCENT_CSS).
+        try {
+          const own = accentsPropres(S)
+          if (own.length > 0) document.documentElement.setAttribute('data-kbth-brand', own.join(' '))
+          else document.documentElement.removeAttribute('data-kbth-brand')
+        } catch (e) { /* not in a browser */ }
         const jetons = jetonsDe(S)
         if (jetons === null) { retirerFeuilleBoot(); return }
         try { layerDispose = themeSvc.overrideTokens('kybernos-theme', jetons); retirerFeuilleBoot() } catch (e) { layerDispose = null }
@@ -3952,7 +3962,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         // Read-only handles for test-client.mjs (same convention as kybernos-language).
         __test: {
           makeTheme, ratio, HEX, toHex, mix, SKINS, WPS, WPCATS, FONTS, ACCS, TOKMAP, DEF, STORE_KEY,
-          skinPatch, skinAccent, legacyAdopt, readState, writeState, estNaturel, surprendre, sanitiserImport, schemeSombre, effetsCss, exportTexte, filtreFond, ajustementFond, avecAlpha, valeursValides, appliquerEffets, ENUMS, RANGES, BOOLS, RADIUS_DEF, jetonsRetouches, tailleNative, appliquerTaille,
+          skinPatch, skinAccent, legacyAdopt, readState, writeState, estNaturel, accentsPropres, surprendre, sanitiserImport, schemeSombre, effetsCss, exportTexte, filtreFond, ajustementFond, avecAlpha, valeursValides, appliquerEffets, ENUMS, RANGES, BOOLS, RADIUS_DEF, jetonsRetouches, tailleNative, appliquerTaille,
           LD_PRESETS, LD_PACKS, LD_DEF, LD_SIZES, LD_KEY, ld, ldClean, ldRead, ldSet, ldHash, ldChoose, ldChooseWord, ldWordList, ldById, ldPackById, ldNode, ldDestroy, ldCleanSvg, ldImport,
           ldDecorate, ldStart, ldStop, ldApplyText, ldPull, ldAddRecord, ldDelRecord, ldPutWords, ldCacheRead, AnimationPane, LdSummary, LdView,
           appliquerBoot, appliquerTout, appliquerJetons, appliquerFond, appliquerPolice, Page, bootSnapshot, posterBoot, retirerFeuilleBoot, jetonsDe, BOOT_ID,
