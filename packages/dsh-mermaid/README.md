@@ -10,7 +10,7 @@ Renders ` ```mermaid ` fences in DSH chat answers as themed SVG diagrams, with n
   first line that is a diagram header (`flowchart TD`, `sequenceDiagram`, `pie`, ...), after any front matter or `%%`
   line.
 - A fence that cannot be drawn shows a card with an error border and the reason, and the source stays visible
-  (the card has no toggle: there is nothing to toggle). A parse error keeps the parser's own words: "Invalid mermaid
+  (the card sits above the source, which may be long, and has no toggle: there is nothing to toggle). A parse error keeps the parser's own words: "Invalid mermaid
   diagram", the line number, the code around it with a caret, and « Expecting … got … ». A fence with only a header
   line (`sequenceDiagram`) is an "Empty diagram". A fence over 50 000 characters (mermaid's own limit, which it
   otherwise answers with a pink box) is "Diagram too large to draw". Fences in other languages are left alone.
