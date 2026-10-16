@@ -23758,6 +23758,17 @@ function renderFit(canvas, model, cam, opts){
     // (a getter: KB_CP is only known once the menu renders). Keep it in step with the rows of SalesMenu.
     Object.defineProperty(kbOpenPage, 'views', { get: () => ['teaminfo', 'project', 'tasks', 'skills'].concat(KB_CP === true ? ['connectors'] : []).concat(KB_DB === true ? ['dashboards'] : []).concat(KB_KY === true ? ['kyber'] : []) })
     try { if (typeof window !== 'undefined') window.__KB_OPEN__ = kbOpenPage } catch (e) { /* outside a browser */ }
+    // <kb-menu-active>
+    /** The page the sidebar rows read as « on screen ». `panelId` is the layout's selected panel (undefined when this engine tells none),
+     *  `view` the page the store holds, `kabyChat` whether the chat on screen is Kaby's. The store keeps the page the person LEFT, and opening a
+     *  chat (Kaby's included) does not touch it: a page row is selected only while our panel is on screen; in a chat none is, and the Kaby row is
+     *  when the chat is Kaby's. */
+    const kbMenuShown = (panelId, view, kabyChat) => {
+      if (panelId === undefined || panelId === 'kybers') return view
+      if (panelId === null) return kabyChat === true ? 'kyber' : 'chat'
+      return 'panel'
+    }
+    // </kb-menu-active>
     const SalesMenu = (p0) => {
       const s = useStore()
       // A change of menu icon set redraws the rows (the registry is read at render).
@@ -23773,6 +23784,23 @@ function renderFit(canvas, model, cam, opts){
       const uw = (p0 !== null && p0 !== undefined) ? p0.useWorkspaces : null
       const snapW = (typeof uw === 'function') ? uw((st) => st) : null
       const wsCount = (snapW !== null && snapW !== undefined && Array.isArray(snapW.items) === true) ? snapW.items.length : null
+      // Which row is selected follows what is on screen (the engine's own rows do the same): the selected panel, and the chat open in it.
+      // Kaby's chat becomes known after the first render (its bundle reads the pointer then and says so with an event).
+      const upi = (p0 !== null && p0 !== undefined) ? p0.usePanelInfo : null
+      const panelId = (typeof upi === 'function') ? upi((info) => info.activePanelId) : undefined
+      const uss = (p0 !== null && p0 !== undefined) ? p0.useSessions : null
+      const curSid = (typeof uss === 'function')
+        ? uss((st) => { const cur = Object.values(st.byId).find((x) => x.retainedBy !== undefined && x.retainedBy !== null && (x.retainedBy.mainView || 0) > 0); return cur === undefined ? null : cur.id })
+        : null
+      const kabyPair = React.useState(0)
+      React.useEffect(() => {
+        const onKaby = () => kabyPair[1]((n) => n + 1)
+        try { window.addEventListener('kb-kyby-session', onKaby) } catch (e) { return undefined }
+        return () => { try { window.removeEventListener('kb-kyby-session', onKaby) } catch (e) { /* gone */ } }
+      }, [])
+      let kabyChat = false
+      try { kabyChat = typeof curSid === 'string' && window.__KB_KYBER__ !== undefined && typeof window.__KB_KYBER__.isKybySession === 'function' && window.__KB_KYBER__.isKybySession(curSid) === true } catch (e) { kabyChat = false }
+      const shown = kbMenuShown(panelId, s.view, kabyChat)
       const canPanel = layoutSvc !== undefined && layoutSvc !== null && typeof layoutSvc.selectPanel === 'function'
       const teams = kbTeams(s.data)
       const sel = kbSelectedTeam(s.data)
@@ -23884,31 +23912,31 @@ function renderFit(canvas, model, cam, opts){
           (kbNcDot(ncCloud.kind) === '' ? null : h('span', { className: 'kb4-dot ' + kbNcDot(ncCloud.kind), 'aria-label': kbt('kbnc.cc.' + ncCloud.kind) }))) : null),
         // The Kaby row opens Kaby's own conversation: a native DSH chat (kybernos-kyber makes it the first time and remembers it). Without that
         // bundle's hook, or when the chat cannot open, it falls back to the page of the same bundle.
-        (KB_KY === true ? row('kyber', Icon('waypoints', 15), kbt('kbui.kyber'), null, s.view === 'kyber', () => {
+        (KB_KY === true ? row('kyber', Icon('waypoints', 15), kbt('kbui.kyber'), null, shown === 'kyber', () => {
           let opened = null
           try { if (window.__KB_KYBER__ && typeof window.__KB_KYBER__.openChat === 'function') opened = window.__KB_KYBER__.openChat() } catch (e) { opened = null }
           if (opened === null || typeof opened.then !== 'function') { openPage({ view: 'kyber' }); return }
           opened.then((ok) => { if (ok !== true) openPage({ view: 'kyber' }) }).catch(() => openPage({ view: 'kyber' }))
         }) : null),
-        (KB_DB === true ? row('dashboards', Icon('layoutDashboard', 15), kbt('kbui.dashboards'), null, s.view === 'dashboards', () => openPage({ view: 'dashboards' })) : null),
+        (KB_DB === true ? row('dashboards', Icon('layoutDashboard', 15), kbt('kbui.dashboards'), null, shown === 'dashboards', () => openPage({ view: 'dashboards' })) : null),
         // Search everywhere (kybernos-search) is no longer a menu row: its icon sits at the top of the sidebar, next to « Collapse », and ⌘K opens it.
-        row('aiteams', Icon(KB_DEFAULT_ICON, 15), kbt('menu.aiteams'), c.kybers, s.view === 'kybers' || s.view === 'gallery' || s.view === 'teamnew' || s.view === 'teamedit' || s.view === 'teaminfo' || s.view === 'detail' || s.view === 'marketplace' || s.view === undefined || s.view === null, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null })),
+        row('aiteams', Icon(KB_DEFAULT_ICON, 15), kbt('menu.aiteams'), c.kybers, shown === 'kybers' || shown === 'gallery' || shown === 'teamnew' || shown === 'teamedit' || shown === 'teaminfo' || shown === 'detail' || shown === 'marketplace' || shown === undefined || shown === null, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null })),
         // Runs n'est plus ici : c'est un onglet de conversation, à côté de
         // « Kybernos Crew » (cf. slot `conversation.view` id `runs`).
-        row('projects', Icon('folderOpen', 15), kbt('menu.projects'), wsCount, s.view === 'projects' || s.view === 'project', () => openPage({ view: 'projects' })),
-        row('deliverables', Icon('shapes', 15), kbt('menu.deliverables'), arts.length, s.view === 'artifacts' || s.view === 'artview', () => openPage({ view: 'artifacts' })),
+        row('projects', Icon('folderOpen', 15), kbt('menu.projects'), wsCount, shown === 'projects' || shown === 'project', () => openPage({ view: 'projects' })),
+        row('deliverables', Icon('shapes', 15), kbt('menu.deliverables'), arts.length, shown === 'artifacts' || shown === 'artview', () => openPage({ view: 'artifacts' })),
         // « Mon espace » retiré du menu (demande du 26/09/2026) : la page et sa
         // section Réglages restent en place, seule l'entrée de la barre disparaît.
-        row('tasks', Icon('zap', 15), kbt('menu.tasks'), (KB_TASKS_COUNT !== null && KB_TASKS_COUNT !== undefined) ? KB_TASKS_COUNT : 0, s.view === 'tasks', () => openPage({ view: 'tasks' })),
-        row('skills', Icon('sparkles', 15), kbt('kbui.skills'), c.skills, s.view === 'skills', () => openPage({ view: 'skills' })),
-        (KB_CP === true ? row('connectors', Icon('plug', 15), kbt('kbui.connecteurs'), 0, s.view === 'connectors', () => openPage({ view: 'connectors' })) : null),
-        (KB_SHOW_DOCS === true ? row('documents', Icon('fileText', 15), kbt('kbui.documents'), c.docs, s.view === 'documents', () => openPage({ view: 'documents' })) : null),
+        row('tasks', Icon('zap', 15), kbt('menu.tasks'), (KB_TASKS_COUNT !== null && KB_TASKS_COUNT !== undefined) ? KB_TASKS_COUNT : 0, shown === 'tasks', () => openPage({ view: 'tasks' })),
+        row('skills', Icon('sparkles', 15), kbt('kbui.skills'), c.skills, shown === 'skills', () => openPage({ view: 'skills' })),
+        (KB_CP === true ? row('connectors', Icon('plug', 15), kbt('kbui.connecteurs'), 0, shown === 'connectors', () => openPage({ view: 'connectors' })) : null),
+        (KB_SHOW_DOCS === true ? row('documents', Icon('fileText', 15), kbt('kbui.documents'), c.docs, shown === 'documents', () => openPage({ view: 'documents' })) : null),
         // ── Barre de progression des objectifs ──────────────────────────
         h(KbProgressBar, null),
         // « Kybernos Hosted » est masqué pour le moment (KB_SHOW_HOSTED) : la
         // page et la traduction restent en place, seule l'entrée disparaît.
         (KB_SHOW_HOSTED === true
-          ? h('button', { type: 'button', className: 'kb4-item' + (s.view === 'hosted' ? ' on' : ''), onClick: () => openPage({ view: 'hosted' }) },
+          ? h('button', { type: 'button', className: 'kb4-item' + (shown === 'hosted' ? ' on' : ''), onClick: () => openPage({ view: 'hosted' }) },
             h('span', { className: 'kb4-ico' }, Icon('cloud', 15)),
             h('span', { className: 'kb4-lab' }, kbt('menu.hosted')))
           : null))
@@ -32766,6 +32794,30 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'fin.mem.d': ['Agents read it to talk to you the right way. You can edit or forget it in Settings → Memory & Lessons.', 'Les agents le lisent pour te parler comme il faut. Tu peux le modifier ou l’oublier dans Réglages → Memory & Lessons.', 'Los agentes lo leen para hablarte como corresponde. Puedes editarlo u olvidarlo en Ajustes → Memory & Lessons.', 'يقرأه الوكلاء ليخاطبوك بالطريقة المناسبة. يمكنك تعديله أو نسيانه من الإعدادات ← Memory & Lessons.'],
       'mem.job': ['Works as: {job}.', 'Métier : {job}.', 'Profesión: {job}.', 'المهنة: {job}.'],
       'mem.mode': ['Prefers: {mode}.', 'Préfère : {mode}.', 'Prefiere: {mode}.', 'يفضّل: {mode}.'],
+      // « What we set up for you »: the end screen, one line per area, each with a way to change it. What is said is what the host answered.
+      'set.t': ['What we set up for you', 'Ce qu’on a réglé pour toi', 'Lo que hemos configurado para ti', 'ما أعددناه لك'],
+      'set.change': ['Change', 'Modifier', 'Cambiar', 'تغيير'],
+      'set.mem': ['Memory', 'Mémoire', 'Memoria', 'الذاكرة'],
+      'set.mem.both': ['Memories and lessons are on.', 'Les souvenirs et les leçons sont activés.', 'Los recuerdos y las lecciones están activados.', 'الذكريات والدروس مفعّلة.'],
+      'set.mem.local': ['Lessons are on and stay on this computer. Memories need your account.', 'Les leçons sont activées et restent sur cet ordinateur. Les souvenirs demandent ton compte.', 'Las lecciones están activadas y se quedan en este ordenador. Los recuerdos necesitan tu cuenta.', 'الدروس مفعّلة وتبقى على هذا الحاسوب. الذكريات تحتاج إلى حسابك.'],
+      'set.mem.acct': ['Memories are on. Lessons are off.', 'Les souvenirs sont activés. Les leçons sont désactivées.', 'Los recuerdos están activados. Las lecciones están desactivadas.', 'الذكريات مفعّلة. الدروس معطّلة.'],
+      'set.mem.off': ['Memory is off.', 'La mémoire est désactivée.', 'La memoria está desactivada.', 'الذاكرة معطّلة.'],
+      'set.auto': ['Auto routing', 'Routage automatique', 'Enrutado automático', 'التوجيه التلقائي'],
+      'set.auto.on': ['On: Auto picks the model for each request.', 'Activé : Auto choisit le modèle à chaque demande.', 'Activado: Auto elige el modelo en cada petición.', 'مفعّل: يختار Auto النموذج لكل طلب.'],
+      'set.auto.free': ['On, among the free models only.', 'Activé, parmi les modèles gratuits uniquement.', 'Activado, solo entre los modelos gratis.', 'مفعّل، بين النماذج المجانية فقط.'],
+      'set.auto.off': ['Off: you pick the model. One switch turns it on.', 'Désactivé : tu choisis le modèle. Un seul interrupteur l’active.', 'Desactivado: tú eliges el modelo. Un solo interruptor lo activa.', 'معطّل: أنت تختار النموذج. مفتاح واحد يفعّله.'],
+      'set.conn': ['Connectors', 'Connecteurs', 'Conectores', 'الموصّلات'],
+      'set.conn.cloud': ['Kybernos Cloud connects your apps. No key to paste.', 'Kybernos Cloud connecte tes applications. Aucune clé à coller.', 'Kybernos Cloud conecta tus aplicaciones. Ninguna clave que pegar.', 'يربط Kybernos Cloud تطبيقاتك. لا مفتاح للصقه.'],
+      'set.conn.later': ['Kybernos Cloud connects your apps once you sign in.', 'Kybernos Cloud connectera tes applications dès que tu te connectes.', 'Kybernos Cloud conectará tus aplicaciones cuando inicies sesión.', 'سيربط Kybernos Cloud تطبيقاتك بمجرد تسجيل دخولك.'],
+      'set.conn.own': ['Composio, with your own key.', 'Composio, avec ta propre clé.', 'Composio, con tu propia clave.', 'Composio بمفتاحك الخاص.'],
+      'set.ws': ['Web search', 'Recherche web', 'Búsqueda web', 'البحث على الويب'],
+      'set.ws.eng': ['Agents search with {engine} first.', 'Les agents cherchent d’abord avec {engine}.', 'Los agentes buscan primero con {engine}.', 'يبحث الوكلاء أولًا عبر {engine}.'],
+      'set.ws.none': ['No engine is ready yet: add a key or an address.', 'Aucun moteur n’est prêt : ajoute une clé ou une adresse.', 'Ningún motor está listo: añade una clave o una dirección.', 'لا يوجد محرك جاهز: أضف مفتاحًا أو عنوانًا.'],
+      'set.study': ['Study model', 'Modèle d’étude', 'Modelo de estudio', 'نموذج الدراسة'],
+      'set.study.auto': ['Automatic: {model} keeps an eye on your models.', 'Automatique : {model} surveille tes modèles.', 'Automático: {model} vigila tus modelos.', 'تلقائي: يراقب {model} نماذجك.'],
+      'set.study.chosen': ['You chose {model}.', 'Tu as choisi {model}.', 'Elegiste {model}.', 'اخترت {model}.'],
+      'set.study.off': ['Off: you turned it off.', 'Désactivé : tu l’as désactivé.', 'Desactivado: lo has desactivado.', 'معطّل: أنت عطّلته.'],
+      'set.study.wait': ['Automatic: it starts as soon as a model is connected.', 'Automatique : il démarre dès qu’un modèle est branché.', 'Automático: se activa en cuanto se conecta un modelo.', 'تلقائي: يبدأ فور ربط نموذج.'],
     }
     /** The wizard's first language: what the person already picked in the app, else the shell's, else English. */
     const kbObPickLang = (appChoice, shell) => {
@@ -32902,6 +32954,53 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       if (typeof mode === 'string' && KB_OB_MODES.indexOf(mode) >= 0) parts.push(kbObText(lang, 'mem.mode', { mode: kbObText(lang, 'mode.' + mode + '.t') }))
       return parts.length > 0 ? parts.join(' ') : null
     }
+    // The names the web search page gives its engines (kybernos-websearch), for the end screen's line.
+    const KB_OB_ENGINES = {
+      searxng: 'SearXNG', 'brave-api': 'Brave Search API', tavily: 'Tavily', serper: 'Serper', exa: 'Exa', kagi: 'Kagi', 'google-pse': 'Google Programmable Search', jina: 'Jina Search',
+      perplexity: 'Perplexity Search', deepseek: 'DeepSeek', 'brave-web': 'Brave Search', 'exa-free': 'Exa', duckduckgo: 'DuckDuckGo', wikipedia: 'Wikipedia',
+    }
+    /**
+     * « What we set up for you »: the areas the end screen lists, from what the host routes answered (`memory`, `cloud`, `auto`, `provider`, `search`,
+     * `study`: each the parsed answer, or anything else when it could not be read: that area is then left out, never guessed). One row per area, in
+     * this order: `label` and `text` are keys of KB_OB_T, `vars` fill the text, `page` is the Settings section the « Change » link opens. It says what
+     * is so, including « off »: nothing here turns anything on.
+     */
+    const kbObSetupRows = (s) => {
+      const obj = (v) => (v !== null && v !== undefined && typeof v === 'object' && !Array.isArray(v) ? v : null)
+      const clip = (v) => String(v).slice(0, 80)
+      const src = obj(s) !== null ? s : {}
+      const cloud = obj(src.cloud)
+      const signedIn = cloud !== null && cloud.connected === true
+      const rows = []
+      const memory = obj(src.memory) !== null ? obj(src.memory.settings) : null
+      if (memory !== null) {
+        const lessons = memory.lessons !== false
+        rows.push({ id: 'mem', label: 'set.mem', text: signedIn ? (lessons ? 'set.mem.both' : 'set.mem.acct') : (lessons ? 'set.mem.local' : 'set.mem.off'), page: ['kybernos-memory'] })
+      }
+      const auto = obj(src.auto)
+      if (auto !== null && typeof auto.global === 'boolean') {
+        rows.push({ id: 'auto', label: 'set.auto', text: auto.global ? (auto.scope === 'free' ? 'set.auto.free' : 'set.auto.on') : 'set.auto.off', page: ['kybernos-auto-page'] })
+      }
+      const provider = obj(src.provider)
+      if (provider !== null) rows.push({ id: 'conn', label: 'set.conn', text: provider.provider === 'composio' ? 'set.conn.own' : (signedIn ? 'set.conn.cloud' : 'set.conn.later'), page: ['kybernos-composio'] })
+      const search = obj(src.search)
+      if (search !== null && Array.isArray(search.engines)) {
+        const first = search.engines.find((e) => obj(e) !== null && typeof e.id === 'string' && e.enabled === true && e.configured === true)
+        rows.push(first === undefined
+          ? { id: 'ws', label: 'set.ws', text: 'set.ws.none', page: ['kybernos-websearch-page'] }
+          : { id: 'ws', label: 'set.ws', text: 'set.ws.eng', vars: { engine: clip(Object.prototype.hasOwnProperty.call(KB_OB_ENGINES, first.id) ? KB_OB_ENGINES[first.id] : first.id) }, page: ['kybernos-websearch-page'] })
+      }
+      const study = obj(src.study) !== null ? obj(src.study.etude) : null
+      if (study !== null) {
+        const model = typeof study.cle === 'string' ? clip(study.cle) : ''
+        let text = 'set.study.wait'
+        if (study.mode === 'none') text = 'set.study.off'
+        else if (study.mode === 'choisi' && model !== '') text = 'set.study.chosen'
+        else if (study.mode === 'auto' && study.actif === true && model !== '') text = 'set.study.auto'
+        rows.push({ id: 'study', label: 'set.study', text, ...(model !== '' && (text === 'set.study.auto' || text === 'set.study.chosen') ? { vars: { model } } : {}), page: ['general'] })
+      }
+      return rows
+    }
     /** A pasted key as it will be sent: trimmed, one printable-ASCII string of 8 to 400 characters, or null. */
     const kbObKeyShape = (value) => {
       const clean = typeof value === 'string' ? value.trim() : ''
@@ -32971,6 +33070,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         kitInstalled: null, kitSel: null, kitBusy: null, kitFailed: 0, kitAdded: 0, kitDone: false, kitOnly: false,
         // the memory written about the profession: its id, and where the write stands (null, 'saving', 'saved', 'failed')
         memoryId: null, memState: null,
+        // « What we set up for you » on the end screen: null until read, then the rows (kbObSetupRows)
+        setup: null,
       }
       let root = null
       let pollTimer = null
@@ -33138,7 +33239,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         S.screen = screen
         render(true)
         if (screen === 'kit') kitLoad()
-        if (screen === 'done') memoryWrite()
+        if (screen === 'done') { memoryWrite(); setupLoad() }
       }
       // After a way is connected: the first run goes on to the starter kit; from the chat's card the wizard just closes.
       const afterConnect = () => { if (S.standalone) finish(); else go('kit') }
@@ -33434,6 +33535,36 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (m !== null && typeof m.id === 'string') S.memoryId = m.id
         S.memState = m !== null ? 'saved' : 'failed'
         if (root !== null && S.screen === 'done') render(false)
+      }
+      // « What we set up for you »: the end screen reads the areas once, each route on its own and none for long (a route that does not answer
+      // leaves its row out, see kbObSetupRows); the list is drawn when it is read, never before, so no wrong word flashes.
+      const setupLoad = async () => {
+        if (S.setup !== null) return
+        const get = (path) => Promise.race([call(path, 'GET'), new Promise((resolve) => win.setTimeout(() => resolve(null), 3000))])
+        const [memory, cloud, auto, provider, search, study] = await Promise.all([
+          get('/kybernos-memory/settings'), get('/kybernos-cloud/status'), get('/kybernos-auto/state'),
+          get('/kybernos/composio/provider'), get('/kybernos-websearch/state'), get('/kybernos-sessions/settings'),
+        ])
+        S.setup = kbObSetupRows({ memory, cloud, auto, provider, search, study })
+        if (root !== null && S.screen === 'done') render(false)
+      }
+      const setupCard = () => {
+        const box = h('section', 'kb-ob-setup')
+        box.setAttribute('data-kb-ob', 'setup')
+        box.appendChild(h('h2', null, T('set.t')))
+        for (const r of S.setup) {
+          const row = h('div', 'kb-ob-srow')
+          row.setAttribute('data-kb-ob-row', r.id)
+          const body = h('div', 'kb-ob-sbody')
+          body.appendChild(h('b', null, T(r.label)))
+          body.appendChild(h('span', null, T(r.text, r.vars)))
+          row.appendChild(body)
+          const change = button('kb-ob-slink', T('set.change'), () => finish(r.page))
+          change.setAttribute('aria-label', T('set.change') + ' · ' + T(r.label))
+          row.appendChild(change)
+          box.appendChild(row)
+        }
+        return box
       }
 
       // ── pieces ──
@@ -33930,6 +34061,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             st.appendChild(h('span', null, T('k.err', { n: S.kitFailed })))
             s.appendChild(st)
           }
+          if (S.setup !== null && S.setup.length > 0) s.appendChild(setupCard())
           if (S.memState === 'saved') {
             const mem = h('div', 'kb-ob-mem')
             mem.appendChild(icon(IC.info, 16))
@@ -33939,7 +34071,9 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             mem.appendChild(tx)
             s.appendChild(mem)
           }
+          // The list above makes this screen tall: the way out stays in view at the foot of the window.
           const a = actions()
+          a.classList.add('kb-ob-sticky')
           a.appendChild(primary(T('fin.open'), () => finish()))
           s.appendChild(a)
           return s
@@ -34353,6 +34487,16 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-mem{display:flex;gap:10px;margin-top:20px;padding:13px 15px;border:1px dashed var(--line);border-radius:14px;font-size:13.5px;line-height:1.55;color:var(--ink2)}',
       '.kb-ob-mem .kb-ob-ico{flex:none;margin-top:2px;color:var(--ink3)}',
       '.kb-ob-mem b{display:block;color:var(--ink);font-weight:500}',
+      // « What we set up for you »: one row per area, the sentence on the start side, « Change » on the end side
+      '.kb-ob-setup{margin-top:22px;border:1px solid var(--line);border-radius:16px;background:var(--bg2);overflow:hidden}',
+      '.kb-ob-setup h2{margin:0;padding:14px 18px 6px;font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3)}',
+      '.kb-ob-srow{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 18px}',
+      '.kb-ob-srow+.kb-ob-srow{border-top:1px solid var(--line)}',
+      '.kb-ob-sbody{display:flex;flex-direction:column;gap:2px;min-width:0}',
+      '.kb-ob-sbody b{font-size:14.5px;font-weight:500;color:var(--ink)}',
+      '.kb-ob-sbody span{font-size:13.5px;line-height:1.5;color:var(--ink2)}',
+      '.kb-ob-slink{flex:none;background:none;border:0;padding:6px 2px;font:inherit;font-size:14px;color:var(--blue);text-decoration:underline;text-underline-offset:3px;cursor:pointer}',
+      '.kb-ob-slink:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:4px}',
       '@keyframes kbObIn{from{opacity:0}}',
       '@keyframes kbObRise{from{opacity:0;transform:translateY(8px)}}',
       '@keyframes kbObTurn{to{transform:rotate(360deg)}}',

@@ -2490,7 +2490,7 @@ window.__ModuleLoader__.load({
       const cleAuto = typeof info.auto === 'string' && info.auto !== '' ? info.auto : (mode === 'auto' && typeof info.cle === 'string' ? info.cle : '')
       const libelleAuto = cleAuto !== '' ? 'Automatic — ' + cleAuto : (info.mode !== undefined ? 'Automatic — no model is connected yet' : 'Automatic')
       const introuvable = mode === 'choisi' && Array.isArray(modeles) && !modeles.some((mo) => mo.cle === brain)
-      const role = 'It checks that your models still answer, judges the unclear cases of the Memory tidy-up and answers closed questions (which agent team, which chat icon). '
+      const role = 'It checks that your models still answer, helps tidy your memory, and decides which agent team and which chat icon fit. '
       const envoi = 'A chat title goes to it only when the word rules cannot place it, and stays on this machine if it is a local model.'
       let description
       if (mode === 'none') description = 'None: no model is watched, no health warning is raised, and nothing is sent to a model for those questions — the word rules alone pick chat icons.'
@@ -2637,11 +2637,11 @@ window.__ModuleLoader__.load({
         h('p', { className: natif ? natif.desc : 'kbr-intro' }, 'Small switches that change how the Kybernos plugins work with your chats. Saved on this machine, right away.'),
         h('div', { className: natif ? natif.row : 'kbr-row', 'data-kbr': 'rename-after-recap' },
           h('div', { className: natif ? natif.rowText : 'kbr-txt' },
-            h('div', { className: natif ? natif.title : undefined }, 'Rename Chat session after each recap'),
+            h('div', { className: natif ? natif.title : undefined }, 'Name each chat when it ends'),
             h('div', { className: natif ? natif.desc : undefined }, oui
-              ? 'On: when a work session ends, the chat is re-titled to match what was actually done. The category icon is an SVG — no emoji is written into the title.'
-              : 'Off: the title set when the chat started is kept. The category icon is an SVG — no emoji is written into the title.')),
-          h('div', { className: 'kbr-oui-non' + (natif && natif.ctrl ? ' ' + natif.ctrl : ''), role: 'group', 'aria-label': 'Rename Chat session after each recap' },
+              ? 'On: when a work session ends, the chat gets a short title that says what was done, and an icon that fits.'
+              : 'Off: a chat keeps the title it was given when it started.')),
+          h('div', { className: 'kbr-oui-non' + (natif && natif.ctrl ? ' ' + natif.ctrl : ''), role: 'group', 'aria-label': 'Name each chat when it ends' },
             choix('yes', 'Yes', oui),
             choix('no', 'No', !oui))),
         /* (29/09) « Composer microphone » vit désormais dans la page Voix du

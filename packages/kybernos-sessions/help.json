@@ -13,8 +13,8 @@
       "en": "Under the chat box, the “Memory” pill counts the memories sent to the model and this chat’s lessons; click it for details."
     },
     {
-      "fr": "Dans « Kybernos Settings », réglez « Rename Chat session after each recap » (Yes/No) et « Study model » (Automatic, votre choix ou None).",
-      "en": "In “Kybernos Settings”, set “Rename Chat session after each recap” (Yes/No) and “Study model” (Automatic, your pick, or None)."
+      "fr": "Dans « Kybernos Settings », réglez « Name each chat when it ends » (Yes/No) et « Study model » (Automatic, votre choix ou None).",
+      "en": "In “Kybernos Settings”, set “Name each chat when it ends” (Yes/No) and “Study model” (Automatic, your pick, or None)."
     },
     {
       "fr": "Sans le module Changes, quatre pastilles de plus montrent où en est le travail de ce chat (enregistré, GitHub, relecture).",

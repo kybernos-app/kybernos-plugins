@@ -13,7 +13,7 @@ const brand = src.match(/\/\/ KB-BRAND-CORE-BEGIN([\s\S]*?)\/\/ KB-BRAND-CORE-EN
 const core = src.match(/\/\/ KB-OB-CORE-BEGIN([\s\S]*?)\/\/ KB-OB-CORE-END/)
 const ui = src.match(/\/\/ KB-OB-UI-BEGIN([\s\S]*?)\/\/ KB-OB-UI-END/)
 if (core === null || ui === null) { console.error('BLOCKS KB-OB-CORE / KB-OB-UI NOT FOUND in packages/kybernos-plugin/client.js'); process.exit(1) }
-const names = 'KB_OB_LANGS, KB_OB_PROFILES, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObBackOf, kbObEscape, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, KB_OB_KITS, kbObKitFor, kbObKitDefaults, kbObMemoryText, kbObSkillText'
+const names = 'KB_OB_LANGS, KB_OB_PROFILES, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObBackOf, kbObEscape, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, KB_OB_KITS, kbObKitFor, kbObKitDefaults, kbObMemoryText, kbObSkillText, kbObSetupRows'
 const mod = await import('data:text/javascript,' + encodeURIComponent(core[1] + '\nexport { ' + names + ' }'))
 
 let fails = 0
@@ -163,13 +163,47 @@ eq('the card sits above the composer, in the input dock', /name: 'conversation\.
 eq('the card reads the failure from the chat, not from the DOM', /useChat\(\(c\) => \{ try \{ return c\.nodes\.valuesCache/.test(src), true)
 eq('the card puts the message back, it does not send it', /kbPrefillDraft\(need\.prompt/.test(src) && !/inputActions\.submit|\.submit\(\)/.test(src.slice(src.indexOf('const KbNeedModel'), src.indexOf('const KbNeedModel') + 6000)), true)
 
+/* ── 7b. « What we set up for you »: the closing list says what the host says, never a promise ─────────── */
+{
+  const R = mod.kbObSetupRows
+  const fresh = { memory: { ok: true, settings: { lessons: true, context: true, relevant: true } }, cloud: { ok: true, connected: false }, auto: { ok: true, global: false, scope: 'all' },
+    provider: { ok: true, provider: null }, search: { ok: true, engines: [{ id: 'brave-api', enabled: true, configured: false }, { id: 'duckduckgo', enabled: true, configured: true }] },
+    study: { ok: true, etude: { actif: false, cle: '', mode: 'aucun' } } }
+  const texts = (rows) => rows.map((r) => r.id + ':' + r.text)
+  eq('nothing readable: no row, no error', [R(null), R({}), R({ memory: 7, cloud: 'x', auto: [], provider: null, search: 5, study: undefined })], [[], [], []])
+  eq('a fresh install, signed out: five rows, in this order, each saying what is really so', texts(R(fresh)),
+    ['mem:set.mem.local', 'auto:set.auto.off', 'conn:set.conn.later', 'ws:set.ws.eng', 'study:set.study.wait'])
+  eq('signed in: the account\'s memories and the Kybernos Cloud connector', texts(R({ ...fresh, cloud: { ok: true, connected: true } })).filter((t) => /^(mem|conn):/.test(t)), ['mem:set.mem.both', 'conn:set.conn.cloud'])
+  eq('Auto routing: on, on among the free models, off', [R({ auto: { global: true, scope: 'all' } })[0].text, R({ auto: { global: true, scope: 'free' } })[0].text, R({ auto: { global: false, scope: 'free' } })[0].text],
+    ['set.auto.on', 'set.auto.free', 'set.auto.off'])
+  eq('the connector: Composio with the person\'s own key when they chose it', R({ provider: { provider: 'composio' } })[0].text, 'set.conn.own')
+  eq('lessons switched off: said, with or without an account', [R({ memory: { settings: { lessons: false } }, cloud: { connected: false } })[0].text, R({ memory: { settings: { lessons: false } }, cloud: { connected: true } })[0].text], ['set.mem.off', 'set.mem.acct'])
+  eq('web search: the first engine that is on AND can answer, by its name', R(fresh).find((r) => r.id === 'ws').vars, { engine: 'DuckDuckGo' })
+  eq('web search: none ready says so, and an unknown engine keeps its id', [R({ search: { engines: [{ id: 'tavily', enabled: true, configured: false }] } })[0].text, R({ search: { engines: [{ id: 'zz-new', enabled: true, configured: true }] } })[0].vars.engine], ['set.ws.none', 'zz-new'])
+  eq('study model: automatic with its model, chosen by the person, switched off, not started yet', [
+    R({ study: { etude: { actif: true, cle: 'kybernos/glm', mode: 'auto' } } })[0], R({ study: { etude: { actif: true, cle: 'ollama-local/x', mode: 'choisi' } } })[0].text,
+    R({ study: { etude: { actif: false, cle: '', mode: 'none' } } })[0].text, R({ study: { etude: { actif: false, cle: '', mode: 'aucun' } } })[0].text].map((r) => (typeof r === 'string' ? r : r.text + '|' + r.vars.model)),
+    ['set.study.auto|kybernos/glm', 'set.study.chosen', 'set.study.off', 'set.study.wait'])
+  eq('a long or odd model name is clipped, never trusted', R({ study: { etude: { actif: true, cle: 'x'.repeat(500), mode: 'auto' } } })[0].vars.model.length, 80)
+  // every row names a text that exists in all four languages, and a Settings page that exists
+  const all = [R(fresh), R({ ...fresh, cloud: { connected: true }, auto: { global: true, scope: 'free' }, provider: { provider: 'composio' } }), R({ memory: { settings: { lessons: false } }, cloud: { connected: true }, study: { etude: { actif: true, cle: 'a/b', mode: 'choisi' } } }),
+    R({ search: { engines: [] }, study: { etude: { actif: false, cle: '', mode: 'none' } } }), R({ study: { etude: { actif: true, cle: 'a/b', mode: 'auto' } } }), R({ ...fresh, memory: { settings: { lessons: false } } }), R({ ...fresh, cloud: { connected: true }, auto: { global: true, scope: 'all' } })].flat()
+  eq('every label and text the rows can ask for exists in the four languages', [...new Set(all.flatMap((r) => [r.label, r.text]))].filter((k) => mod.KB_OB_T[k] === undefined || mod.KB_OB_T[k].length !== 4), [])
+  eq('and every text of the family exists (the UI builds none of them by hand)', Object.keys(mod.KB_OB_T).filter((k) => /^set\./.test(k)).filter((k) => !new Set(all.flatMap((r) => [r.label, r.text])).has(k) && !['set.t', 'set.change'].includes(k)), [])
+  const nav = src.match(/const KB_NAV_KEYS = \{([\s\S]*?)\n\}/)[1]
+  const navIds = new Set([...nav.matchAll(/(?:'([a-z0-9-]+)'|\b([a-z]+)):\s*'/g)].map((m) => m[1] || m[2]))
+  eq('every « Change » opens a page the Settings nav knows', [...new Set(all.flatMap((r) => r.page))].filter((k) => !navIds.has(k)).sort(), [])
+  eq('and each area has its own page', Object.fromEntries(R(fresh).map((r) => [r.id, r.page])), { mem: ['kybernos-memory'], auto: ['kybernos-auto-page'], conn: ['kybernos-composio'], ws: ['kybernos-websearch-page'], study: ['general'] })
+  eq('the end screen reads the five routes of the bundles, each on its own (one that fails leaves its row out)', [/get\('\/kybernos-memory\/settings'\)/.test(ui[1]), /get\('\/kybernos-sessions\/settings'\)/.test(ui[1]), /kbObSetupRows\(/.test(ui[1]), /finish\(r\.page\)/.test(ui[1])], [true, true, true, true])
+}
+
 /* ── 8. Reading the client file ──────────────────────────────────────────── */
 eq('the UI block holds no personal path', /\/Users\//.test(core[1] + ui[1]), false)
 eq('the old wizard\'s texts are gone from the dictionary', /'ob\.(bienvenue|metier|slogan|suivant)/.test(src), false)
 eq('Arabic is a right-to-left base of the app too', /KB_RTL_BASES = \[[^\]]*'ar'/.test(src), true)
 eq('the wizard never calls a host route it does not know', [...ui[1].matchAll(/'(\/(?:kybernos-cloud|kybernos-models|kybernos|modeles-locaux|free-llms)[^']*)'/g)].map((m) => m[1]).filter((p, i, a) => a.indexOf(p) === i).sort(),
-  ['/free-llms/auto-enable', '/kybernos-cloud/disconnect', '/kybernos-cloud/memory/add', '/kybernos-cloud/memory/update', '/kybernos-cloud/poll', '/kybernos-cloud/start', '/kybernos-cloud/status',
-    '/kybernos-models/key/check', '/kybernos-skills/install', '/kybernos-skills/skills', '/kybernos/model/auto', '/modeles-locaux/annuler', '/modeles-locaux/installation', '/modeles-locaux/installer', '/modeles-locaux/machine'])
+  ['/free-llms/auto-enable', '/kybernos-auto/state', '/kybernos-cloud/disconnect', '/kybernos-cloud/memory/add', '/kybernos-cloud/memory/update', '/kybernos-cloud/poll', '/kybernos-cloud/start', '/kybernos-cloud/status',
+    '/kybernos-memory/settings', '/kybernos-models/key/check', '/kybernos-sessions/settings', '/kybernos-skills/install', '/kybernos-skills/skills', '/kybernos-websearch/state', '/kybernos/composio/provider', '/kybernos/model/auto', '/modeles-locaux/annuler', '/modeles-locaux/installation', '/modeles-locaux/installer', '/modeles-locaux/machine'])
 // The pages it hands over to are named by the id the Settings nav gives them (language-proof), and must be ids that nav knows.
 const navKeys = src.match(/const KB_NAV_KEYS = \{([\s\S]*?)\n\}/)[1]
 const known = new Set([...navKeys.matchAll(/(?:'([a-z0-9-]+)'|\b([a-z]+)):\s*'/g)].map((m) => m[1] || m[2]))
