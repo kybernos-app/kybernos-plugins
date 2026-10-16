@@ -237,6 +237,10 @@ try {
   await shot('1-member-list')
 
   // install, update
+  // The install goes to the first writable folder the host announces (GET /kybernos-skills/status, read once when the page mounts): press Install once the page has
+  // that answer (a resource entry of the page is the proof), or the folder it sends is still empty.
+  await has(`performance.getEntriesByType('resource').some((e) => e.name.indexOf('/kybernos-skills/status') >= 0)`, 30000)
+  await page.evalJs('new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))')
   fx.calls.length = 0
   await rowButton('release-notes', 'Install')
   await sleep(900)

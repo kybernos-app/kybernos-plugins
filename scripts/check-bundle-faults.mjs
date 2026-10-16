@@ -194,7 +194,11 @@ const stopDsh = async () => {
 }
 const readLog = () => { try { return readFileSync(LOG, 'utf8') } catch (e) { return '' } }
 const norm = (l) => l.replace(/\/Users\/[^\s'")\]]+/g, '<path>').replace(/\d+/g, '#').trim()
-const tagged = (log) => new Set(log.split('\n').filter((l) => /^\[[a-z0-9-]+\] /i.test(l)).map(norm))
+// The hub warns when several boots in a row ended without a working GUI. That line depends on the HISTORY of the boots of the sandbox (this script starts DSH
+// dozens of times and does not always open the GUI), not on the bundle that is broken: it is left out of what is compared, or it is « lost » by whichever run
+// comes after the GUI was last opened.
+const BOOT_HISTORY = /consecutive boots ended without a working GUI|See the exact action with:/
+const tagged = (log) => new Set(log.split('\n').filter((l) => /^\[[a-z0-9-]+\] /i.test(l) && !BOOT_HISTORY.test(l)).map(norm))
 
 // A signed request to a host route (the sandbox's own session cookie, never printed).
 const get = async (path) => {
