@@ -709,6 +709,51 @@ try {
     assert.equal(apply2.ok, true)
     assert.ok(rows('au-s').some((l) => l.text === 'Both projects deploy from the dev branch.'))
     ok('tidy: the Study model is opt-in, only the unclear pairs leave, a verdict is only a suggestion, and each pair is asked once')
+
+    // The Study model is Automatic by default (WP-08): an empty setting means the model kybernos-sessions picks, which it
+    // publishes as a function for the bundles that cannot import it. `none` is the person's own « no Study model ».
+    {
+      const PUBLIE = Symbol.for('kybernos.studyModel')
+      delete globalThis[PUBLIE]
+      writeFileSync(studyFile, JSON.stringify({ brain: '' }))
+      assert.equal(mod.studyModel(), '', 'Automatic, and nobody says which model: none, as before')
+      const brainOf = async () => (await call(url(''), null)).brain
+      assert.deepEqual(await brainOf(), { model: '', llm: true, auto: false, none: false })
+      globalThis[PUBLIE] = () => 'kybernos/auto'
+      assert.equal(mod.studyModel(), 'kybernos/auto', 'Automatic: the model kybernos-sessions publishes')
+      assert.deepEqual(await brainOf(), { model: 'kybernos/auto', llm: true, auto: true, none: false }, 'the page is told which model, and that it was picked for the person')
+      writeFileSync(studyFile, '{}')
+      assert.equal(mod.studyModel(), 'kybernos/auto', 'no `brain` key at all is Automatic too')
+      writeFileSync(studyFile, JSON.stringify({ brain: 'none' }))
+      assert.equal(mod.studyModel(), '', 'None wins over the published model')
+      assert.deepEqual(await brainOf(), { model: '', llm: true, auto: false, none: true })
+      writeFileSync(studyFile, JSON.stringify({ brain: 'zai-coding-cn/GLM-5.3-Flash' }))
+      assert.equal(mod.studyModel(), 'zai-coding-cn/GLM-5.3-Flash', 'the person\'s own pick wins over the published model')
+      assert.deepEqual(await brainOf(), { model: 'zai-coding-cn/GLM-5.3-Flash', llm: true, auto: false, none: false })
+      writeFileSync(studyFile, JSON.stringify({ brain: '' }))
+      for (const bad of [() => { throw new Error('boom') }, () => 42, () => 'no-slash', () => 'a/b c', () => null, 'not a function']) {
+        globalThis[PUBLIE] = bad
+        assert.equal(mod.studyModel(), '', 'a published value that is not a « route/id » is none, never an exception')
+      }
+      // a run in Automatic asks the automatic model, with the same safeguards
+      globalThis[PUBLIE] = () => 'kybernos/auto'
+      put('au-a', [
+        L('The test server listens on port 5000 for the whole project', { ts: iso(60000) }),
+        L('The test server listens on port 5080 for the whole project', { ts: iso(500) }),
+      ])
+      await call(url('/settings'), { brain: true })
+      llmCalls.length = 0
+      const viaAuto = await call(url('/scan'), null)
+      assert.equal(llmCalls.length, 1, JSON.stringify(viaAuto.brain))
+      assert.equal(llmCalls[0].provider + '/' + llmCalls[0].model, 'kybernos/auto', 'the automatic Study model was the one asked')
+      assert.equal(viaAuto.brain.error, null)
+      writeFileSync(studyFile, JSON.stringify({ brain: 'none' }))
+      llmCalls.length = 0
+      const none = await call(url('/scan'), null)
+      assert.deepEqual([llmCalls.length, none.brain.error], [0, 'pas_de_modele_detude'], 'None: nothing is sent, and the page is told why')
+      delete globalThis[PUBLIE]
+      ok('tidy: an empty Study model is Automatic (the model kybernos-sessions publishes), none is none, a pick wins, and a bad published value is none')
+    }
     await call(url('/settings'), { mode: 'ask', schedule: 'off', brain: false })
     delete process.env.KYBERNOS_SETTINGS_FILE
   }

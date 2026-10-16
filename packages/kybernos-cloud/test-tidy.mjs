@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  TIDY_DEFAULTS, normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, AUTO_MAX_REMOVALS, readStudyModel, textHash,
+  TIDY_DEFAULTS, normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, AUTO_MAX_REMOVALS, readStudyChoice, publishedStudyModel, textHash,
   removalChunks, brainPrompt, parseVerdicts, askModel, brainGroups, BRAIN_BATCH, BRAIN_MAX_PAIRS, TIDY_N_NEW, AUTO_MIN_SCORE,
 } from './tidy.mjs'
 
@@ -83,15 +83,38 @@ assert.deepEqual(sizes(removalChunks([G('a', 100, 5), G('big', 100, 60), G('c', 
 assert.deepEqual(removalChunks([], 50), [])
 ok('removals are cut into requests of at most 50, a group over the limit alone')
 
-console.log('the Study model setting')
-assert.equal(readStudyModel(() => JSON.stringify({ brain: 'zai-coding-cn/GLM-5.3-Flash' })), 'zai-coding-cn/GLM-5.3-Flash')
-assert.equal(readStudyModel(() => JSON.stringify({ brain: '' })), '')
-assert.equal(readStudyModel(() => JSON.stringify({ brain: 'no-slash' })), '')
-assert.equal(readStudyModel(() => JSON.stringify({ brain: 'a/b c' })), '')
-assert.equal(readStudyModel(() => JSON.stringify({ brain: 3 })), '')
-assert.equal(readStudyModel(() => 'not json'), '')
-assert.equal(readStudyModel(() => { throw new Error('ENOENT') }), '')
-ok('the Study model is « route/id » or nothing; a missing or mangled file means none')
+console.log('the Study model in force: Automatic, a pick, or none (WP-08)')
+{
+  const file = (brain) => () => JSON.stringify(brain === undefined ? {} : { brain })
+  const auto = () => 'kybernos/auto'
+  assert.deepEqual(readStudyChoice(file('zai-coding-cn/GLM-5.3-Flash'), auto), { model: 'zai-coding-cn/GLM-5.3-Flash', auto: false, none: false })
+  assert.deepEqual(readStudyChoice(file('none'), auto), { model: '', auto: false, none: true })
+  assert.deepEqual(readStudyChoice(file(''), auto), { model: 'kybernos/auto', auto: true, none: false })
+  assert.deepEqual(readStudyChoice(file(undefined), auto), { model: 'kybernos/auto', auto: true, none: false })
+  assert.deepEqual(readStudyChoice(file(''), () => ''), { model: '', auto: false, none: false })
+  ok('a pick is a pick, « none » is none, empty or absent is Automatic (the published model, or nothing when nobody publishes one)')
+  for (const mangled of [file('no-slash'), file(3), file(null), () => 'not json', () => { throw new Error('ENOENT') }]) {
+    assert.deepEqual(readStudyChoice(mangled, auto), { model: 'kybernos/auto', auto: true, none: false })
+  }
+  ok('a value that is not a « route/id », a missing or a mangled file reads as Automatic, like the Settings page does')
+  assert.deepEqual(readStudyChoice(file(' none '), auto), { model: '', auto: false, none: true })
+  assert.deepEqual(readStudyChoice(file('None'), auto), { model: 'kybernos/auto', auto: true, none: false })
+  ok('« none » is exact (spaces are forgiven, capitals are not)')
+  const KEY = Symbol.for('kybernos.studyModel')
+  const kept = globalThis[KEY]
+  delete globalThis[KEY]
+  assert.equal(publishedStudyModel(), '')
+  for (const [published, want] of [[() => 'kybernos/auto', 'kybernos/auto'], [() => 'a/b c', ''], [() => 'no-slash', ''], [() => 42, ''], [() => null, ''], [() => { throw new Error('boom') }, ''], ['not a function', ''], [() => 'x'.repeat(201) + '/y', '']]) {
+    globalThis[KEY] = published
+    assert.equal(publishedStudyModel(), want, String(published))
+  }
+  delete globalThis[KEY]
+  assert.deepEqual(readStudyChoice(file('')), { model: '', auto: false, none: false }, 'nothing published: Automatic finds nobody')
+  globalThis[KEY] = () => 'ollama-local/qwen2.5:3b'
+  assert.equal(readStudyChoice(file('')).model, 'ollama-local/qwen2.5:3b', 'by default the choice reads what kybernos-sessions publishes')
+  if (kept === undefined) delete globalThis[KEY]; else globalThis[KEY] = kept
+  ok('what kybernos-sessions publishes counts only as a « route/id »; a function that throws or answers junk is nobody')
+}
 
 console.log('the question and the answer')
 const P = (n, a, b) => ({ id: 'p' + String(n), a: { id: n * 2, content: a, createdAt: '2026-09-01 10:00:00+00:00', pinned: false }, b: { id: n * 2 + 1, content: b, createdAt: '2026-09-20 10:00:00+00:00', pinned: false }, like: 70, why: 'close' })
