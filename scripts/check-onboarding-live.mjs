@@ -59,6 +59,15 @@ const defaultModelOf = () => {
   const m = /- id: agent-default-model[\s\S]*?config:\s*\n\s*provider: ([^\n]+)\n\s*model: ([^\n]+)/.exec(read('profiles/web/cordis.patch.yml'))
   return m === null ? null : m[1].trim() + '/' + m[2].trim()
 }
+// What the route does when it switches the default model: the profile's `agent-default-model` names the new provider and model. The check's stand-in for a local
+// model's switch (below) leaves exactly that in the sandbox's own profile, so that « it became the default model » is read from the file as before.
+const setDefaultModel = (provider, model) => {
+  try {
+    const text = readFileSync(patchFile, 'utf8')
+    const next = text.replace(/(- id: agent-default-model[\s\S]*?config:\s*\n\s*provider: )([^\n]+)(\n\s*model: )([^\n]+)/, (all, a, p0, b) => a + provider + b + model)
+    if (next !== text) writeFileSync(patchFile, next)
+  } catch (e) { /* the sandbox is nobody's */ }
+}
 const backToTheStartingPoint = async () => {
   // The next section starts from a default model that has no key, as the profile had.
   try { if (credsBackup !== null) writeFileSync(credsFile, credsBackup) } catch (e) { /* the sandbox is nobody's */ }
@@ -71,13 +80,25 @@ const backToTheStartingPoint = async () => {
 const forgetKitTeams = () => { for (const id of ['studencik', 'research-desk']) { try { rmSync(join(dshHome, 'kybers', id), { recursive: true, force: true }) } catch (e) { /* none */ } } try { rmSync(join(dshHome, 'kybers', '.kyber-ui.json'), { force: true }) } catch (e) { /* none */ } }
 forgetKitTeams()
 
-// A fresh install: the sandbox's setup writes the file as done; the wizard opens only when it says otherwise.
+// A fresh install: the sandbox's setup writes the file as done; the wizard opens only when it says otherwise. What the sandbox had is put back at the end.
 mkdirSync(join(dshHome, 'kybernos'), { recursive: true })
+const onboardingBackup = read('kybernos/onboarding.json') || null
 writeFileSync(join(dshHome, 'kybernos/onboarding.json'), JSON.stringify({ version: 1, completed: false, installedAt: '2026-01-01T00:00:00.000Z', completedAt: null, profil: null, uiMode: null }) + '\n')
 
 // keepKeyDialog: this check must SEE DSH's own « Get started » dialog if it ever comes back over the wizard (A5-34, A6-01); the helper would press it away.
 const live = await openLivePage({ keepKeyDialog: true })
 const page = live.page
+// Back to what the sandbox had: the credentials, the profile's settings, the onboarding state and the teams the kit installed. Run at the end AND when the run is cut.
+const restoreSandbox = () => {
+  try { if (credsBackup !== null) writeFileSync(credsFile, credsBackup) } catch (e) { /* the sandbox is nobody's */ }
+  try { if (patchBackup !== null) writeFileSync(patchFile, patchBackup) } catch (e) { /* the sandbox is nobody's */ }
+  try { if (onboardingBackup !== null) writeFileSync(join(dshHome, 'kybernos/onboarding.json'), onboardingBackup) } catch (e) { /* the sandbox is nobody's */ }
+  forgetKitTeams()
+}
+const verdict = () => console.log(fails === 0 ? '\nall checks passed' : '\n' + fails + ' check(s) FAILED')
+// A run that is cut (Ctrl-C, a kill, an error nobody caught) still puts the sandbox back and still says how it ended: a gate without a verdict is not a gate.
+for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, async () => { fails += 1; console.log('FAIL the run was interrupted (' + sig + ')'); try { await live.close() } catch (e) { /* gone */ } restoreSandbox(); verdict(); process.exit(130) })
+process.on('unhandledRejection', (e) => { fails += 1; console.log('FAIL an error nobody caught: ' + String(e && e.message ? e.message : e).slice(0, 200)) })
 try {
   const fake = { keyVerdict: 'ok', installPolls: 0, calls: [], accountConnected: false, freeBody: null, statusConnected: false, skillsInstalled: [], skillInstalls: [], memoryBodies: [] }
   const json = (body) => Buffer.from(JSON.stringify(body), 'utf8').toString('base64')
@@ -96,10 +117,20 @@ try {
       try { fake.freeBody = JSON.parse(postData || '{}') } catch (e) { fake.freeBody = null }
       return { ok: true, models: ['mimo-v2.6-flash-free'] }
     }
-    // Only the free provider is answered here: the other ways read the REAL route (the default model is checked on disk).
+    // The free provider and the local model are answered here; the other ways (an own key) read the REAL route (the default model is checked on disk).
     if (path === '/kybernos/model/auto') {
       let body = {}
       try { body = JSON.parse(postData || '{}') } catch (e) { body = {} }
+      // A local model: the real route asks THIS machine's Ollama which models it holds, and the stand-in installer pulled nothing, so the answer would be
+      // « no-model » (or another model) on a machine without Ollama and a different one on a machine with it. The stand-in answers as the route does when the
+      // model IS listed (the route's own choices are covered by packages/kybernos-plugin/test-default-model.mjs) and writes what that answer means in the
+      // sandbox's profile: the default model. A chat that asked (a sessionId) gets it for itself, which is also saved as the default, as the engine does.
+      if (body.provider === 'ollama-local') {
+        fake.calls.push('model-auto-local')
+        const model = typeof body.model === 'string' && body.model !== '' ? body.model : 'qwen3.5:9b'
+        setDefaultModel('ollama-local', model)
+        return { ok: true, switched: true, provider: 'ollama-local', model, scope: typeof body.sessionId === 'string' && body.sessionId !== '' ? 'session' : 'default' }
+      }
       if (body.provider !== 'opencode-free') return null
       fake.calls.push('model-auto')
       return { ok: true, switched: true, provider: 'opencode-free', model: 'mimo-v2.6-flash-free', scope: 'default' }
@@ -544,12 +575,9 @@ try {
   fails += 1
   console.log('FAIL ' + String(e && e.message ? e.message : e))
 } finally {
-  await live.close()
-  // Back to the credentials the instance had before this run.
-  try { if (credsBackup !== null) writeFileSync(credsFile, credsBackup) } catch (e) { /* the sandbox is nobody's */ }
-  try { if (patchBackup !== null) writeFileSync(patchFile, patchBackup) } catch (e) { /* the sandbox is nobody's */ }
-  forgetKitTeams()
+  try { await live.close() } catch (e) { /* gone */ }
+  restoreSandbox()
   await sleep(6000)
+  verdict() // in the finally: whatever happened above, the run ends with its verdict
 }
-console.log(fails === 0 ? '\nall checks passed' : '\n' + fails + ' check(s) FAILED')
 process.exit(fails === 0 ? 0 : 1)

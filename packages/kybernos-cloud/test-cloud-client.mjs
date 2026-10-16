@@ -205,8 +205,10 @@ try {
   React = require('react')
   renderToStaticMarkup = require('react-dom/server').renderToStaticMarkup
 } catch (e) {
-  console.log('SKIP — react/react-dom introuvables. Relancez avec :')
-  console.log('  NODE_PATH=<dossier node_modules contenant react> node ' + join('kybernos-cloud', 'test-cloud-client.mjs'))
+  // A skip is never a pass: only the static checks above ran, the rendered footer and team switcher were not covered.
+  console.log('SKIPPED: the rendered part of the cloud client (footer chip, team switcher) — react / react-dom not found. Re-run with:')
+  console.log('  NODE_PATH=<a node_modules that has react + react-dom> node ' + join('kybernos-cloud', 'test-cloud-client.mjs'))
+  console.log('\nkybernos-cloud client — ' + staticPass + ' static checks OK, the rendered part SKIPPED')
   process.exit(0)
 }
 

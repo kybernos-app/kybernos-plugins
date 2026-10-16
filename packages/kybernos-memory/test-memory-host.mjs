@@ -137,7 +137,7 @@ try {
     assert.deepEqual(arch('par-mine'), arch('par-cli'), 'the same lessons go to the archive')
     ok('memory.cjs: the 50-lesson cap evicts exactly the same lessons as the plugin')
   } else {
-    console.log('  – SKIP memory.cjs parity: ' + cli + ' not found on this machine')
+    console.log('SKIPPED: memory.cjs parity with the plugin — ' + cli + ' not found on this machine')
   }
 
   // ── 3. Switches ───────────────────────────────────────────────────────────

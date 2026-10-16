@@ -14,7 +14,8 @@ const ok = (nom, cond, detail) => { if (cond) console.log('  ✓ ' + nom); else 
 try {
   await chargerMoteur()
 } catch (e) {
-  console.log('INTEGRATION — SKIPPED (no DSH engine found: ' + String(e.message).split(' — ')[0] + ')')
+  console.log('SKIPPED: the providers against the real DSH engine — no DSH engine found (' + String(e.message).split(' — ')[0] + ')')
+  console.log('INTEGRATION — 0 checks run, SKIPPED')
   process.exit(0)
 }
 

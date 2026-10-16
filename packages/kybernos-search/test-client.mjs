@@ -50,7 +50,7 @@ console.log('the dialog')
 let JSDOM = null
 try { ({ JSDOM } = await import(process.env.KYBERNOS_JSDOM ?? 'jsdom')) } catch (e) { JSDOM = null }
 if (JSDOM === null) {
-  console.log('  - jsdom is not importable: the DOM part is skipped (set KYBERNOS_JSDOM=<path to jsdom/lib/api.js>)')
+  console.log('SKIPPED: the dialog of the search client — jsdom is not importable (set KYBERNOS_JSDOM=<path to jsdom/lib/api.js>)')
 } else {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
   const dom = new JSDOM('<!doctype html><body><div class="x_brandRow"><span>Kybernos</span><button class="x_collapseBtn x_wide" aria-label="Collapse sidebar"></button></div><div class="x_sectionHeader"><span class="x_sectionLabel">Workspaces</span><div class="x_searchSlot"><button class="x_searchButton" aria-label="Search sessions"></button></div><div class="x_headerActions"><button class="x_iconButton x_wide" aria-label="View options"></button><button class="x_iconButton" aria-label="Add workspace"></button></div></div></body>',

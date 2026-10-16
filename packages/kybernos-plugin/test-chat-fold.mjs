@@ -77,7 +77,7 @@ console.log('\n── CSS on a DOM of the measured shape ──')
 let JSDOM
 try { ({ JSDOM } = await import(process.env.KYBERNOS_JSDOM ?? 'jsdom')) } catch { JSDOM = undefined }
 if (JSDOM === undefined) {
-  console.log('  · not played: jsdom not found (KYBERNOS_JSDOM=<path of its entry> plays it)')
+  console.log('SKIPPED: the chat-fold CSS on a DOM of the measured shape — jsdom not found (KYBERNOS_JSDOM=<path of its entry> plays it)')
 } else {
   // jsdom only applies @media lists that name « screen »: take the rules out of the wide-screen block.
   const mStart = css.indexOf('@media (min-width:701px){')

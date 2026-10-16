@@ -89,15 +89,17 @@ const attrs = (sel, attr) => val(`Array.from(document.querySelectorAll(${JSON.st
 const exceptions = []
 page.on('Runtime.exceptionThrown', (p) => { exceptions.push(String((p.exceptionDetails && (p.exceptionDetails.text + ' ' + ((p.exceptionDetails.exception && p.exceptionDetails.exception.description) || ''))) || '').slice(0, 240)) })
 
-// Intercepts the page's own calls to the tasks routes: 'pass', 'fail' (the host does not answer) or 'hold' (answers late).
+// Intercepts the page's own calls to the tasks routes: 'pass', 'fail' (the host does not answer) or 'hold' (the request is kept back until the check
+// lets it go). A timed hold would be a race with a slow machine; a held request stays held for as long as the check needs to look at the skeleton.
 let mode = 'pass'
-let holdMs = 0
+const held = []
+const releaseHeld = async () => { for (const requestId of held.splice(0)) { try { await page.send('Fetch.continueRequest', { requestId }) } catch (e) { /* the page went away */ } } }
 page.on('Fetch.requestPaused', async (p) => {
   const url = p.request.url
   try {
     if (url.indexOf('/kybernos/tasks') < 0) { await page.send('Fetch.continueRequest', { requestId: p.requestId }); return }
     if (mode === 'fail') { await page.send('Fetch.failRequest', { requestId: p.requestId, errorReason: 'ConnectionRefused' }); return }
-    if (mode === 'hold') { await sleep(holdMs) }
+    if (mode === 'hold') { held.push(p.requestId); return }
     await page.send('Fetch.continueRequest', { requestId: p.requestId })
   } catch (e) { /* the page went away */ }
 })
@@ -256,10 +258,15 @@ try {
   check('four columns: Upcoming, Running, To approve, Done', JSON.stringify(await attrs('[data-kb="board-col"]', 'data-col')) === JSON.stringify(['upcoming', 'running', 'approve', 'done']))
   check('the titles are the page\'s words', JSON.stringify(await texts('[data-kb="board-col"] h3').then((a) => a.map((t) => t.replace(/\s*\d+$/, '')))) === JSON.stringify(['Upcoming', 'Running', 'To approve', 'Done, last 7 days']), await texts('[data-kb="board-col"] h3'))
   const cardsOf = async (col) => JSON.parse(await val(`JSON.stringify(Array.from(document.querySelectorAll('[data-kb="board-card"][data-col="${col}"]')).map((c) => ({ task: c.dataset.task, state: c.dataset.state })))`))
+  const snapBefore = Object.fromEntries(SCHEDULED.map((id) => [id, nextOf(id)]))
   const up = await cardsOf('upcoming')
   check('Upcoming: the next run of each active scheduled automation, and only those (five)', up.length === 5 && SCHEDULED.every((id) => up.some((c) => c.task === id)), up)
-  const want = SCHEDULED.slice().sort((a, b) => nextOf(a) - nextOf(b))
-  check('...soonest first, by the stored next run', JSON.stringify(up.map((c) => c.task)) === JSON.stringify(want), { got: up.map((c) => c.task), want })
+  // The stored next runs are read before AND after the cards: the scheduler may rewrite one between the page's read and ours, so the order must hold under one
+  // of the two snapshots. It is checked as « never later than the next card » (two automations due in the same minute are not an order).
+  const snapshot = () => Object.fromEntries(SCHEDULED.map((id) => [id, nextOf(id)]))
+  const sortedBy = (ids, snap) => ids.every((id, i) => i === 0 || snap[ids[i - 1]] <= snap[id])
+  const snapAfter = snapshot()
+  check('...soonest first, by the stored next run', sortedBy(up.map((c) => c.task), snapBefore) || sortedBy(up.map((c) => c.task), snapAfter), { got: up.map((c) => c.task), before: snapBefore, after: snapAfter })
   check('...no paused automation, no webhook-only one', !up.some((c) => c.task === 'st-board-digest' || c.task === 'st-board-hook'))
   check('Upcoming cards offer Run now', (await q('[data-kb="board-card"][data-col="upcoming"] [data-act="launch"]')) === 5)
   const running = await cardsOf('running')
@@ -394,14 +401,14 @@ try {
 
   console.log('\n── loading ──')
   mode = 'hold'
-  holdMs = 3500
   await page.send('Page.reload', { ignoreCache: true })
-  await sleep(2500)
+  await poll(() => val(`document.readyState === 'complete' && /Automations/.test(document.body.innerText)`), 30000)
   await clickText(page, 'Automations')
-  const skel = await poll(() => q('.kbbd-skel[aria-busy="true"]'), 4000)
+  const skel = await poll(() => q('.kbbd-skel[aria-busy="true"]'), 20000) // held: the skeleton stays up until the check releases the request
   check('a loading skeleton in the shape of the board, announced once', skel === 1 && (await q('.kbbd-skel .kbbd-col')) === 4, skel)
   await shot('automations-skeleton')
   mode = 'pass'
+  await releaseHeld()
   check('...then the board', (await poll(() => q('[data-kb="board-card"]'), 15000)) > 0)
 
   console.log('\n── French ──')

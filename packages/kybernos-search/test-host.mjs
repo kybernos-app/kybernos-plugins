@@ -19,7 +19,8 @@ const journal = (id, title, pairs) => [
 ].map((e) => JSON.stringify(e)).join('\n') + '\n'
 
 const HAS_ZSTD = typeof zlib.zstdCompressSync === 'function'
-console.log('zstd frames' + (HAS_ZSTD ? '' : ' (this Node cannot compress zstd: skipped)'))
+console.log('zstd frames')
+if (!HAS_ZSTD) console.log('SKIPPED: the zstd frame checks of the search host — this Node cannot compress zstd')
 if (HAS_ZSTD) {
   const a = journal('s1', 'T', [['u', 'alpha un']])
   const b = journal('s1', 'T', [['u', 'beta deux']])

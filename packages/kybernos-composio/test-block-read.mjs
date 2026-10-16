@@ -55,7 +55,7 @@ ok('js: a template with another expression is complex', v('`a${1 + 1}b`') === 'C
 ok('js: an unclosed string is complex', v('"abc') === 'COMPLEX')
 ok('js: nothing is complex', v('') === 'COMPLEX')
 
-if (loadYaml === null) console.log('- skipped, no DSH engine: the parsing cases of readConnector')
+if (loadYaml === null) console.log('SKIPPED: the parsing cases of readConnector — no DSH engine')
 else {
   const block = (extra) => ['# connecteur:horloge', '- insert:', '    - id: mcp-client-horloge', "      name: '@deepseek-ai/dsh-mcp-client'", '      config:', '        serverName: horloge', '        transport: stdio', ...(extra || [
     '        command: /opt/homebrew/bin/node # DSH spawns with a scrubbed env',

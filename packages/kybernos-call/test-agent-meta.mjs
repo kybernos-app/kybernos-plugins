@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url'
 const agentDir = join(dirname(fileURLToPath(import.meta.url)), 'agent')
 const env = Object.assign({}, process.env, { PYTHONDONTWRITEBYTECODE: '1' })
 const python = ['python3', 'python'].find((c) => spawnSync(c, ['--version'], { stdio: 'ignore' }).status === 0)
-if (python === undefined) { console.log('kybernos-call agent (python): skipped (no python3 on this machine)'); process.exit(0) }
+if (python === undefined) { console.log('SKIPPED: the kybernos-call agent (python) tests — no python3 on this machine'); console.log('kybernos-call agent (python): 0 tests run, SKIPPED'); process.exit(0) }
 
 let ran = 0
 let skipped = 0
@@ -33,4 +33,5 @@ for (const file of ['test_call_meta.py', 'test_call_voice.py', 'test_call_stt.py
   ran += n ? Number(n[1]) : 0
   skipped += s ? Number(s[1]) : 0
 }
-console.log('✓ kybernos-call agent (python): ' + ran + ' tests' + (skipped > 0 ? ', ' + skipped + ' skipped (livekit-agents is not installed here)' : ''))
+if (skipped > 0) console.log('SKIPPED: ' + skipped + ' python tests of the kybernos-call agent — livekit-agents is not installed here')
+console.log('✓ kybernos-call agent (python): ' + ran + ' tests' + (skipped > 0 ? ', ' + skipped + ' SKIPPED (not covered)' : ''))

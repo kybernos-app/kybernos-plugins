@@ -7,9 +7,9 @@
 // glyph makes two cards look identical — the user's complaint "pas tous les
 // plugins ont une icône" is often this).
 //
-// Live half (needs a running DSH on 127.0.0.1:3080, cookie sign-in — see
-// docs/dev/live-testing.md): opens the Suite settings page and checks that each
-// module card actually draws a non-empty SVG glyph.
+// Live half (needs a running DSH that serves this checkout, e.g. the sandbox of
+// scripts/sandbox, cookie sign-in — see docs/dev/live-testing.md): opens the Suite
+// settings page and checks that each module card actually draws a non-empty SVG glyph.
 //
 // READ-ONLY. Exit 0 = all green, 1 = a check failed, 3 = inconclusive (GUI down).
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -73,7 +73,12 @@ try {
     if (!cells.length) return false
     cells[0].scrollIntoView({block:'center'}); cells[0].click(); return true
   })()`)
-  await sleep(1800)
+  check('the Suite entry is in the Settings menu', clickedSuite.val === true, clickedSuite)
+  // The panel draws a skeleton until the host has answered (a few ms by hand, longer on a busy machine): wait for the cards themselves,
+  // not for a fixed delay, then for the skeleton to be gone.
+  const cardsUp = await waitFor(page, `document.querySelectorAll('[data-kb="suite-card"], [data-kb="suite-row"]').length > 0`, 20000)
+  check('the Suite panel draws its cards', cardsUp !== null)
+  await waitFor(page, `!document.querySelector('.kbsu [aria-busy="true"]')`, 5000)
 
   // evalJs returns { val } or { err } — read `.val`, never the envelope.
   // The Suite panel draws each module's glyph on a card (or a row in the list
@@ -109,7 +114,7 @@ try {
   const room = await page.evalJs(`(() => { const r = document.querySelector('.kbsu'); return r ? Math.round(r.getBoundingClientRect().width) : 0 })()`)
   check('the panel is wider than the 720px every other Settings page keeps to', room.val > 900, room.val)
   const jumped = await page.evalJs(`(() => { const b = document.querySelector('[data-kb="suite-card"][data-id="kybernos-models"] [data-kb="suite-reglages"]'); if (!b) return 'no link'; b.click(); return 'clicked' })()`)
-  await sleep(1500)
+  await waitFor(page, `!document.querySelector('.kbsu')`, 8000)
   const gone = await page.evalJs(`!document.querySelector('.kbsu')`)
   check('the Settings link of a module leaves the Suite for that module\'s page', jumped.val === 'clicked' && gone.val === true, [jumped.val, gone.val])
 

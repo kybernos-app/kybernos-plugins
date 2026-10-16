@@ -1,15 +1,17 @@
 // The core of the home-made providers, without DSH: the one-shot run, the task check, the health probe, the free-model discovery.
 //   node packages/dsh-subagent-maison/test-noyau.mjs
-// Hermetic: a fake spawn, a throw-away HTTP server for the model list. The two checks that need a real CLI (opencode) say
-// "skipped" when it is not installed — CI has none.
+// Hermetic: a fake spawn, a throw-away HTTP server for the model list, a stand-in `opencode` for the health probe. Nothing
+// here reads the machine's real CLIs or logins (`scripts/check-opencode-probe-live.mjs` asks the real OpenCode).
 import { createServer } from 'node:http'
+import { mkdtempSync, writeFileSync, chmodSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { spawn as nodeSpawn } from 'node:child_process'
 import { runOneShot, texteTache, RunFailure, sonder, trouverBinaire, trouverModeleFree } from './noyau.mjs'
 
 let echecs = 0
 let total = 0
 const ok = (nom, cond, detail) => { total++; if (cond) console.log('  ✓ ' + nom); else { echecs++; console.log('  ✗ ' + nom + (detail !== undefined ? ' — ' + detail : '')) } }
-const saute = (nom, raison) => console.log('  ○ ' + nom + ' — skipped (' + raison + ')')
 
 // A fake spawn: returns a handle shaped like DSH's SubprocessHandle.
 const fauxSpawn = ({ argv }) => {
@@ -68,10 +70,23 @@ try {
     const m = await sonder({ produit: 'Node', binaire: 'node', versionArgs: ['--version'], authArgs: ['-e', 'process.exit(1)'], authOk: (code) => code === 0 })
     ok('binary present but not signed in → not ready, reason non-connecte', m.pret === false && m.raison === 'non-connecte')
   }
-  if (trouverBinaire('opencode') !== null) {
-    const s = await sonder({ produit: 'OpenCode', binaire: 'opencode', versionArgs: ['--version'], authArgs: ['models'], authOk: (code) => code === 0 })
-    ok('the real OpenCode probe is ready (opencode is installed here)', s.pret === true, JSON.stringify(s))
-  } else saute('the real OpenCode probe', 'opencode is not installed')
+  // The OpenCode probe, hermetically: a stand-in `opencode` on a throw-away PATH answers `--version` and `models` the way the
+  // real one does when signed in (exit 0) and when not (exit 1). The verdict never depends on what this machine has installed
+  // or on whether anyone is signed in; `scripts/check-opencode-probe-live.mjs` is the one place that asks the real CLI.
+  {
+    const dossier = mkdtempSync(join(tmpdir(), 'kb-fake-opencode-'))
+    try {
+      writeFileSync(join(dossier, 'opencode'), '#!/bin/sh\nif [ "$1" = "--version" ]; then echo "opencode v0.0.0-test"; exit 0; fi\nif [ "$1" = "models" ]; then [ "$KB_FAKE_OPENCODE_SIGNED" = "1" ] && exit 0; echo "not signed in" >&2; exit 1; fi\nexit 2\n')
+      chmodSync(join(dossier, 'opencode'), 0o755)
+      const spec = { produit: 'OpenCode', binaire: 'opencode', versionArgs: ['--version'], authArgs: ['models'], authOk: (code) => code === 0 }
+      const connecte = await sonder(spec, { PATH: dossier, KB_FAKE_OPENCODE_SIGNED: '1' })
+      ok('OpenCode installed and signed in (stand-in) → ready, with its version', connecte.pret === true && connecte.raison === 'pret' && connecte.version === 'opencode v0.0.0-test', JSON.stringify(connecte))
+      const deconnecte = await sonder(spec, { PATH: dossier, KB_FAKE_OPENCODE_SIGNED: '0' })
+      ok('OpenCode installed but not signed in (stand-in) → not ready, reason non-connecte', deconnecte.pret === false && deconnecte.raison === 'non-connecte' && deconnecte.version === 'opencode v0.0.0-test', JSON.stringify(deconnecte))
+      const absent = await sonder(spec, { PATH: join(dossier, 'nothing-here') })
+      ok('OpenCode not installed (empty PATH) → not ready, reason binaire-absent', absent.pret === false && absent.raison === 'binaire-absent', JSON.stringify(absent))
+    } finally { rmSync(dossier, { recursive: true, force: true }) }
+  }
 
   console.log('── discovering a free model ──')
   {
