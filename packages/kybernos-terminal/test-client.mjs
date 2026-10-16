@@ -54,5 +54,23 @@ console.log('the session of the page')
   check('a missing or failing service gives \'\', not an exception', T.sessionCourante(undefined) === '' && T.sessionCourante({ get: () => { throw new Error('boom') } }) === '' && T.sessionCourante({ get: () => undefined }) === '')
 }
 
+console.log('the language (A2-19): English by default, French for a French UI, never French for another language')
+{
+  const card = (r) => T.carteSortie(r).texte
+  const say = (lg) => { window.__KB_LANG_RESOLVE__ = () => { if (lg === 'throws') throw new Error('not ready'); return lg } }
+  say('kybernos')
+  check('French: the output card', card({ ok: true, code: 0, stdout: '', stderr: '' }) === '(aucune sortie)' && card({ ok: true, code: 3, stdout: '', stderr: 'x' }) === 'code de sortie 3\nx' && card({ ok: true, code: null, timedOut: true, stdout: '', stderr: '' }) === '— délai dépassé (30 s) —' && card({ ok: true, code: null, signal: 'SIGKILL', stdout: '', stderr: '' }) === 'interrompu (SIGKILL)' && /sortie coupée ici/.test(card({ ok: true, code: 0, stdout: 'h', stderr: '', truncated: true })) && card(null) === '✗ échec')
+  check('French: the host\'s refusals are said in French, an unknown text is left as it is', card({ ok: false, erreur: 'not a folder' }) === '✗ pas un dossier' && card({ ok: false, erreur: 'empty command, or longer than 4000 characters' }) === '✗ commande vide, ou plus longue que 4000 characters' && card({ ok: false, erreur: 'spawn ENOENT' }) === '✗ spawn ENOENT')
+  for (const lg of ['en', 'es', 'ar', 'zh', 'throws']) {
+    say(lg)
+    check(`language « ${lg} »: English, never French`, card({ ok: true, code: 0, stdout: '', stderr: '' }) === '(no output)' && card({ ok: true, code: 3, stdout: '', stderr: 'x' }) === 'exit 3\nx' && card({ ok: false, erreur: 'not a folder' }) === '✗ not a folder' && T.kt('Exécuter', 'Run') === 'Run')
+  }
+  window.__KB_I18N_ACTIVE__ = { lang: 'es', dict: { 'Exécuter': 'Ejecutar' } }
+  say('es')
+  check('a translated language is looked up by the French text', T.kt('Exécuter', 'Run') === 'Ejecutar')
+  delete window.__KB_I18N_ACTIVE__
+  say('en')
+}
+
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)
 process.exit(failed === 0 ? 0 : 1)

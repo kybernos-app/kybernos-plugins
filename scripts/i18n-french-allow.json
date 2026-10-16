@@ -1,5 +1,16 @@
 {
   "_doc": "Language policy gate (scripts/test-no-french-literals.mjs, WP-07 decision D1). \"pending\" = not cleaned yet (the test only reports it); [] = strict: no French literal outside a dictionary, English README and description, a pair helper that falls back to English. A strict list may name exact literals allowed to stay. Clean a bundle, then change its line to [].",
+  "needFrench": {
+    "_doc": "Strict bundles whose UI has a French twin that must not disappear: the minimum number of French dictionary literals their client keeps (a quarter below what they hold when the twin was written).",
+    "dsh-media-player": 6,
+    "kybernos-atlas": 120,
+    "kybernos-bricks": 10,
+    "kybernos-computers": 18,
+    "kybernos-miniapps": 10,
+    "kybernos-modeleur": 18,
+    "kybernos-slides": 16,
+    "kybernos-terminal": 10
+  },
   "bundles": {
     "dsh-db-viewer": "pending",
     "dsh-media-player": [],

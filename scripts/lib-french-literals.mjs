@@ -232,15 +232,22 @@ export const literals = (src) => {
       const next = toks[k + 1]
       const isKey = isPunct(next, ':') && e !== undefined && e.open === '{'
       const key = isKey ? null : (isPunct(prev, ':') && (toks[k - 2] !== undefined && (toks[k - 2].type === 'id' || toks[k - 2].type === 'str')) && e !== undefined && e.open === '{' ? (toks[k - 2].type === 'id' ? toks[k - 2].text : toks[k - 2].value) : null)
+      let callOf = null
+      for (let q = stack.length - 1; q >= 0; q -= 1) {
+        const st = stack[q]
+        if (st.open !== '(') break
+        if (st.isCall) { callOf = st; break }
+      }
       const rec = {
         text: t.value,
         line: t.line,
         isKey,
         key,
         labels: stack.map((s) => s.label).filter((l) => l !== null && l !== undefined),
-        // the call this literal is an argument of, even when it sits inside the argument's expression (`kt('il y a ' + n, …)`)
-        callee: e !== undefined && e.open === '(' && e.isCall ? e.label : null,
-        argIndex: e !== undefined && e.open === '(' ? e.argIndex : -1,
+        // the call this literal is an argument of, even when it sits inside the argument's expression (`kt('il y a ' + n, …)`),
+        // also through grouping parentheses (`kt('' + (n > 1 ? 's' : ''), …)`); a bracket or a brace in between makes it part of that structure
+        callee: callOf !== null ? callOf.label : null,
+        argIndex: callOf !== null ? callOf.argIndex : (e !== undefined && e.open === '(' ? e.argIndex : -1),
         arrayLen: -1,
         arrayIndex: -1,
         arraySecondStr: false,

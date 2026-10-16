@@ -9,7 +9,7 @@
       "en": "Ask the agent for a command: its code block looks like a terminal window."
     },
     {
-      "fr": "Le bouton vert « Run » en haut du bloc exécute la commande sur votre ordinateur, sans demander confirmation.",
+      "fr": "Le bouton vert « Exécuter » en haut du bloc exécute la commande sur votre ordinateur, sans demander confirmation.",
       "en": "The green “Run” button at the top of the block runs the command on your computer, without asking first."
     },
     {

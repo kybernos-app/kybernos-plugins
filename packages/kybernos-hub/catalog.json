@@ -1593,15 +1593,15 @@
             "en": "Turn Atlas on in Settings › Kybernos Suite (off by default), then open Settings › Atlas."
           },
           {
-            "fr": "Cliquez « Update » : rien n’est lu avant, et l’en-tête dit depuis combien de temps la carte a été lue.",
+            "fr": "Cliquez « Mettre à jour » : rien n’est lu avant, et l’en-tête dit depuis combien de temps la carte a été lue.",
             "en": "Click “Update”: nothing is read before you do, and the header says how long ago the map was read."
           },
           {
-            "fr": "Dans « Around », choisissez un projet ou une Agent Team dans « Start from » : quatre colonnes montrent qui y travaille et ce qu’il utilise.",
+            "fr": "Dans « Autour », choisissez un projet ou une Agent Team dans « Partir de » : quatre colonnes montrent qui y travaille et ce qu’il utilise.",
             "en": "In “Around”, pick a project or an agent team in “Start from”: four columns show who works there and what they use."
           },
           {
-            "fr": "Les autres onglets montrent la même carte autrement ; « To check » liste ce qui est cassé, « Help » explique les traits.",
+            "fr": "Les autres onglets montrent la même carte autrement ; « À vérifier » liste ce qui est cassé, « Aide » explique les traits.",
             "en": "The other tabs show the same map in other ways; “To check” lists what is broken, “Help” explains the lines."
           }
         ],
@@ -1611,8 +1611,8 @@
           "page": true
         },
         "good": {
-          "fr": "Atlas ne fait que lire : rien n’est modifié ni enregistré. La page est en anglais, d’où les noms d’onglets cités ici.",
-          "en": "Atlas only reads: nothing is changed or stored. The page is in English, hence the tab names quoted here."
+          "fr": "Atlas ne fait que lire : rien n’est modifié ni enregistré.",
+          "en": "Atlas only reads: nothing is changed or stored."
         }
       }
     },
@@ -1910,7 +1910,7 @@
             "en": "Ask the agent for a command: its code block looks like a terminal window."
           },
           {
-            "fr": "Le bouton vert « Run » en haut du bloc exécute la commande sur votre ordinateur, sans demander confirmation.",
+            "fr": "Le bouton vert « Exécuter » en haut du bloc exécute la commande sur votre ordinateur, sans demander confirmation.",
             "en": "The green “Run” button at the top of the block runs the command on your computer, without asking first."
           },
           {
