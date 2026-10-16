@@ -97,6 +97,8 @@ window.__ModuleLoader__.load({
 
     const CSS = `
 .kbmz-page{padding:0;max-width:720px;font-size:14px;line-height:normal;display:flex;flex-direction:column;gap:18px}
+/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
+body:not([data-ds-dark-theme]) .kbmz-page{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kbmz-titre{margin:0;font-size:18px;line-height:1.3;font-weight:600;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
 [data-slot="settings.section"]:has(.kbmz-page){width:100%;max-width:none}
 /* Identity: wordmark + version on the left, « Check now » on the right */

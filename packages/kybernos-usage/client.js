@@ -333,6 +333,8 @@ window.__ModuleLoader__.load({
 @media (max-width:760px){.kbus-pop{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:auto;max-height:calc(100vh - 120px)}}
 
 .kbus-page{padding:22px 28px 32px;max-width:860px;color:var(--dsw-alias-label-primary,#e8eaec)}
+/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
+body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kbus-page h2{margin:0;font-size:22px;line-height:1.25;font-weight:700}
 .kbus-lead{margin:6px 0 0;color:var(--dsw-alias-label-tertiary,#8a9096);max-width:62ch}
 .kbus-sec{margin:26px 0 0}

@@ -466,6 +466,8 @@ window.__ModuleLoader__.load({
    (avatar d'initiales, nom, pastille de formule, appareil appairé) ; déconnecté,
    elle explique et propose « Se connecter ». Le tout ouvre la même fiche. */
 .kbf-root{display:flex;flex-direction:column;gap:6px;width:100%;min-width:0;max-width:100%;position:relative}
+/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
+body:not([data-ds-dark-theme]) :is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-poptitle,.kbl-page){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kbf-avatar{flex:none;width:23px;height:23px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,monospace;font-size:9.5px;font-weight:600;letter-spacing:.02em;background:var(--dsw-alias-brand-primary,#6a4fd8);color:var(--dsw-alias-label-primary-foreground,#fff)}
 /* Le sélecteur d'espace : la rangée du pied montre l'espace ACTIF ; sa page
    (classes kbs-*) porte la liste des espaces puis le réglage de synchronisation.
@@ -729,6 +731,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
 .kbl-area:hover{border-color:var(--dsw-alias-border-l3)}
 .kbl-area:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4f7cff);outline-offset:1px}
 .kbl-area:disabled{opacity:.6}
+.kbl-area::placeholder{color:var(--dsw-alias-label-tertiary)}
 .kbl-count{align-self:flex-end;font-size:11.5px;color:var(--dsw-alias-label-tertiary)}
 .kbl-line{margin:0;font-size:14px;color:var(--dsw-alias-label-primary)}
 .kbl-note{margin:0}

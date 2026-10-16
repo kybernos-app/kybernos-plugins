@@ -5626,7 +5626,7 @@ const CSS = `
 .kb4-pick-div{height:1px;margin:5px 8px;background:var(--dsw-alias-border-l1);flex:none}
 .kb4-emptyset{padding:8px;font-size:12.5px;opacity:.7;line-height:1.5}
 .kb4-pick-f{display:flex;align-items:center;gap:6px;margin-top:5px;padding:8px 6px 2px;border-top:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary);font-size:12.5px}
-.kb4-pick-sep{opacity:.5}
+.kb4-pick-sep{color:var(--dsw-alias-label-secondary)}
 .kb4-pick-b{display:flex;align-items:center;gap:6px;padding:4px 6px;border:none;border-radius:8px;background:transparent;color:inherit;cursor:pointer;font:inherit;font-size:12.5px}
 .kb4-pick-b:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
 .kb4-pick-b b{font-weight:600;color:var(--dsw-alias-label-primary)}
@@ -25841,6 +25841,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
 [role="dialog"]:has(nav [class$="_navCell"]) nav{width:248px;flex:none}
 [role="dialog"]:has(nav [class$="_navCell"]) nav [class$="_navLabel"]{flex:1 1 auto}
 .kbs-search input::placeholder{color:var(--dsw-alias-label-tertiary)}
+body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-alias-label-secondary)}
 .kbsb:hover{color:var(--dsw-alias-brand-primary)}
 .kbsb:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
 .kbsb-label{white-space:nowrap}
@@ -27163,6 +27164,8 @@ html [class$="_options"] .kbth-head>.kbth-sub+*{margin-top:20px}
 .kbo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
 /* ── Section Outils, maquette du 28/09 — mêmes tokens DSW que le reste ── */
 .kbt2-sec{display:flex;flex-direction:column;gap:20px;max-width:720px}
+/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
+body:not([data-ds-dark-theme]) :is(.kbt2-sec,.kba-onboard,.kbv-pop,.kb4-pick){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kbt2-entete{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
 .kbt2-entete-txt{display:flex;flex-direction:column;gap:0;min-width:0}
 .kbt2-h1{margin:0;font-size:18px;font-weight:600;line-height:1.3;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
@@ -30584,6 +30587,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
    intertitre discret, jetons du shell, hors pointer-events. */
 [class*="navList"] [data-kb="settings-group"]{padding:10px 12px 2px;font-size:12.5px;font-weight:500;color:var(--dsw-alias-label-tertiary);pointer-events:none}
 [class*="navList"] [data-kb="settings-group"]:first-child{padding-top:2px}
+body:not([data-ds-dark-theme]) [class*="navList"] [data-kb="settings-group"]{color:var(--dsw-alias-label-secondary)}
 /* Menu des Réglages seulement (posé par organiser) : de l'air sous le dernier onglet, noms d'onglets un cran plus petits. */
 [class*="navList"][data-kb-settings]{padding-bottom:32px}
 [class*="navList"][data-kb-settings] [class*="navCell"]{font-size:13px}

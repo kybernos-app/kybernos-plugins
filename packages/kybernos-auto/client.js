@@ -555,6 +555,8 @@ window.__ModuleLoader__.load({
       '.kaa-dot.warn{background:var(--dsw-alias-state-warn-primary)}',
       '.kaa-dot.down{background:var(--dsw-alias-state-error-primary)}',
       '.kaa-page{padding:0;max-width:720px;font-size:14px;line-height:normal}',
+      '/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */',
+      'body:not([data-ds-dark-theme]) :is(.kaa-page,.kaa-pop){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}',
       '.kaa-page h4{margin:0 0 2px;font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1.25}',
       '.kaa-intro{margin:0 0 10px;color:var(--dsw-alias-label-secondary);font-size:13px}',
       '.kaa-cache{display:flex;gap:8px;align-items:flex-start;background:var(--dsw-alias-bg-layer-2);border:0.5px solid var(--dsw-alias-border-l2);',

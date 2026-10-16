@@ -636,6 +636,8 @@ window.__ModuleLoader__.load({
 .kbsl-scope :where(button),.kbsl-backdrop :where(button){font:inherit;cursor:pointer;color:inherit}
 .kbsl-scope :where(input,textarea),.kbsl-backdrop :where(input,textarea){font:inherit;color:inherit}
 .kbsl-mono{font-family:var(--kb-mono)}
+/* Light schemes: label-tertiary is 3.7:1 on white and the link blue 4.1:1 where it writes text; the muted inks of this palette (and of the pages that read them, Memory among them) are label-secondary there, the accent is pulled toward the text colour (audit A1-05). */
+body:not([data-ds-dark-theme]){--kb-muted:var(--dsw-alias-label-secondary,#333);--kb-caption:var(--dsw-alias-label-secondary,#333);--kb-accent:color-mix(in srgb,var(--dsw-alias-link,#36c) 75%,var(--dsw-alias-label-primary))}
 .kbsl-help{font-size:var(--kb-fs-12,12px);color:var(--kb-muted);line-height:1.45}
 .kbsl-sec{font-size:12px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--kb-caption)}
 .kbsl-lbl{font-size:14px;font-weight:500}

@@ -339,6 +339,8 @@ window.__ModuleLoader__.load({
 
       const CSS = [
         '.kwse-page{max-width:720px;font-size:14px;line-height:normal}',
+        '/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */',
+        'body:not([data-ds-dark-theme]) .kwse-page{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}',
         '.kwse-head{display:flex;align-items:center;gap:10px}',
         '.kwse-page h4{margin:0 0 2px;font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1.25}',
         '.kwse-intro{margin:0 0 14px;color:var(--dsw-alias-label-secondary,#666);font-size:13px;line-height:1.45}',

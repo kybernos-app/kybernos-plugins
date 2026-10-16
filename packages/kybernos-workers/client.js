@@ -206,6 +206,8 @@ window.__ModuleLoader__.load({
 
     const CSS = [
       '.kbwk{display:flex;flex-direction:column;gap:14px;max-width:980px;font-size:13.5px;color:var(--dsw-alias-label-primary);overflow-wrap:anywhere}',
+      '/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */',
+      'body:not([data-ds-dark-theme]) .kbwk{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}',
       '.kbwk button,.kbwk input{font:inherit}',
       '.kbwk button{cursor:pointer}',
       '.kbwk button:disabled{opacity:.5;cursor:default}',

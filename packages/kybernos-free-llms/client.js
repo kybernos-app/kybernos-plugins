@@ -120,6 +120,8 @@ window.__ModuleLoader__.load({
 
       const KFL_CSS = "/* kfl-* : the Free LLMs panel layout (this bundle only — DSH tokens) */\n" +
         ".kfl-root { border: 1px solid var(--dsw-alias-border-l2); border-radius: 14px; background: var(--dsw-alias-bg-layer-2); padding: 16px; max-width: 720px; margin-bottom: 16px; }\n" +
+        "/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */\n" +
+        "body:not([data-ds-dark-theme]) .kfl-root{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}\n" +
         ".kfl-titre { margin: 0; font-size: 18px; line-height: 1.3; font-weight: 600; letter-spacing: -.01em; color: var(--dsw-alias-label-primary); }\n" +
         ".kfl-soustitre { margin: 6px 0 14px; color: var(--dsw-alias-label-secondary); font-size: 13px; line-height: 1.5; }\n" +
         ".kfl-avertis { margin: 0 0 14px; padding: 10px 12px; border: 0.5px solid color-mix(in srgb, var(--dsw-alias-state-warn-primary) 35%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 8%, transparent); color: var(--dsw-alias-state-warn-label, var(--dsw-alias-state-warn-primary)); font-size: 13px; line-height: 1.5; }\n" +
@@ -137,7 +139,7 @@ window.__ModuleLoader__.load({
         ".kfl-sonde { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 13px; color: var(--dsw-alias-label-secondary); }\n" +
         ".kfl-sonde[data-ok='true'] { color: var(--dsw-alias-state-success-primary); }\n" +
         ".kfl-sonde[data-ok='false'] { color: var(--dsw-alias-state-error-primary); }\n" +
-        ".kfl-locked { margin: 0 0 10px; font-size: 13px; line-height: 1.5; color: var(--dsw-alias-state-error-primary); }\n"
+        ".kfl-locked { margin: 0 0 10px; font-size: 13px; line-height: 1.5; color: color-mix(in srgb, var(--dsw-alias-state-error-primary) 80%, var(--dsw-alias-label-primary)); }\n"
 
       // ── host calls ───────────────────────────────────────────────────────
       const jsonGet = async (path) => {

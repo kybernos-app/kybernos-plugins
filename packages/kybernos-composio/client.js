@@ -874,10 +874,12 @@ window.__ModuleLoader__.load({
 .kbcp-logo{width:20px;height:20px;border-radius:6px;background:linear-gradient(135deg,#ff7a1a,#f43f5e);color:#0f1115;font-weight:800;font-size:11px;display:inline-flex;align-items:center;justify-content:center}
 .kbcp-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .kbcp-input{flex:1;min-width:200px;height:34px;border-radius:9px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;padding:0 11px;font-size:13px}
+.kbcp-input::placeholder{color:var(--dsw-alias-label-tertiary)}
+body:not([data-ds-dark-theme]) .kbcp-input::placeholder{color:var(--dsw-alias-label-secondary)}
 .kbcp-btn{height:32px;padding:0 13px;border-radius:8px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .kbcp-btn:hover{background:rgba(128,128,128,.12)}
 .kbcp-btn.primary{background:#635bff;border-color:#635bff;color:#fff}
-.kbcp-btn.primary:hover{filter:brightness(1.08)}
+.kbcp-btn.primary:hover{filter:brightness(.92)}
 .kbcp-btn:disabled{opacity:.5;cursor:default}
 /* (Kybernos filter POC) Pill in the header bar of the engine's Plugins page
    (dsh-client-ui-plugin-manager): hides the non-Kybernos groups/cards when it is
@@ -896,7 +898,7 @@ window.__ModuleLoader__.load({
 .kbcp-dot.on{background:#22c55e}
 .kbcp-dot.warn{background:#f59e0b}
 .kbcp-dot.bad{background:#ef4444}
-.kbcp-help{font-size:12px;opacity:.75}
+.kbcp-help{font-size:12px;opacity:.9}
 .kbcp-help summary{cursor:pointer;font-size:12.5px;width:fit-content}
 .kbcp-help ol{margin:8px 0 0;padding-inline-start:20px;display:flex;flex-direction:column;gap:4px}
 .kbcp-help a{color:var(--dsw-alias-label-secondary);text-decoration:underline}
@@ -932,11 +934,11 @@ window.__ModuleLoader__.load({
 .kb7-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:28px}
 .kb7-pill{font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;background:rgba(34,197,94,.15);color:#22c55e;white-space:nowrap}
 .kb7-pill.pend{background:rgba(250,204,21,.15);color:#facc15}
-.kb7-bars{display:flex;gap:4px}
-.kb7-bar{height:4px;flex:1;border-radius:2px;background:#22c55e;opacity:.55}
 /* The tag inks are the state fills (2.1:1 on their pale tint in the light schemes): there they are pulled toward the text colour (audit A1-11). */
 body:not([data-ds-dark-theme]) .kb7-pill{color:color-mix(in srgb,var(--dsw-alias-state-success-primary,#22c55e) 50%,var(--dsw-alias-label-primary))}
 body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#facc15) 50%,var(--dsw-alias-label-primary))}
+.kb7-bars{display:flex;gap:4px}
+.kb7-bar{height:4px;flex:1;border-radius:2px;background:#22c55e;opacity:.55}
 .kb7-bar.pend{background:#facc15}
 .kb7-nokey{display:flex;align-items:center;gap:8px;padding:12px 14px;border:1px dashed rgba(128,128,128,.4);border-radius:12px;font-size:12.5px;opacity:.8;max-width:620px}
 /* Own class: kb7-err is also a rule of the kybernos bundle's sheet for this tab, and in the dark theme

@@ -91,6 +91,7 @@ window.__ModuleLoader__.load({
 .kbth-lang-info{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
 .kbth-lang-name{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .kbth-lang-en{font-weight:400;color:var(--dsw-alias-label-tertiary);font-size:12px}
+body:not([data-ds-dark-theme]) .kbth-lang-en{color:var(--dsw-alias-label-secondary)}
 .kbth-lang-meta{font-size:12px;color:var(--dsw-alias-label-secondary);line-height:1.4}
 .kbth-lang-act{display:flex;align-items:center;gap:8px;flex:none;flex-wrap:wrap;justify-content:flex-end}
 .kbth-pill{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary);font-weight:500;white-space:nowrap}
