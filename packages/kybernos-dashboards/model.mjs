@@ -303,8 +303,8 @@ export const PROVIDERS = {
     },
   },
   'deliverables.list': {
-    label: 'Deliverables',
-    about: 'The files your Agent Teams produced (the Deliverables page).',
+    label: 'Creations',
+    about: 'The files your Agent Teams produced (the Creations page).',
     params: { limit: 'number 1..60, default 20' },
     period: false,
     columns: [col('name', 'Name', 'string'), col('kind', 'Kind', 'string'), col('workspace', 'Project', 'string'), col('size', 'Size (KB)', 'number'), col('at', 'Modified', 'time'), col('day', 'Day', 'date')],

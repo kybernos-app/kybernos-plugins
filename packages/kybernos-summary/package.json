@@ -4,7 +4,7 @@
   "description": "A Summary tab in the right sidebar: the agents, the task list, the skills and tools used and the files written by the chat, on one page.",
   "private": true,
   "type": "module",
-  "exports": { ".": "./index.js", "./client": "./client.js" },
+  "exports": { ".": "./index.js", "./client": "./client.js", "./package.json": "./package.json" },
   "dsh": {
     "bundle": { "patch": "./cordis.patch.yml" },
     "client": { "platform": "web", "immediately": true }

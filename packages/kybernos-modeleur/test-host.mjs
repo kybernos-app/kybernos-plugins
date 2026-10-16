@@ -171,7 +171,7 @@ ok('un nouveau modèle repart feuille neuve (ann vidée)',
   const avantR = await lireEtat(SES)
   const r = await definition.execute({}, { agent: { id: SES } })
   const apresR = await lireEtat(SES)
-  ok('an empty call answers ok and says the panel was reopened', r.ok === true && /rouvert/.test(r.message), r.message)
+  ok('an empty call answers ok and says the panel was reopened', r.ok === true && /reopened/.test(r.message), r.message)
   ok('it keeps the model, its title and its version', apresR.ops.length === 2 && apresR.titre === 'A garder' && apresR.version === avantR.version, JSON.stringify([apresR.ops && apresR.ops.length, apresR.titre, apresR.version, avantR.version]))
   ok('it keeps the strokes the user drew over it', Array.isArray(apresR.ann?.strokes) && apresR.ann.strokes.length === 1)
   ok('it raises the reopen counter the panel watches', apresR.ouverture === avantR.ouverture + 1, `${avantR.ouverture} → ${apresR.ouverture}`)

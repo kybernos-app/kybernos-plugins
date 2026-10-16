@@ -17,8 +17,21 @@ window.__ModuleLoader__.load({
   factory () {
     try {
       // ── words ─────────────────────────────────────────────────────────────
-      const lang = () => { try { return String((window.__KB_LANG_RESOLVE__ && window.__KB_LANG_RESOLVE__()) || '').split(/[-_]/)[0] } catch (e) { return 'fr' } }
-      const kt = (fr, en) => (lang() === 'en' ? en : fr)
+      // French is the source, English the pair; French only for a French UI, a translated language is looked up by its French text,
+      // and every other language (and a language not known yet) reads English.
+      const lang = () => {
+        try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
+      }
+      const kt = (fr, en) => {
+        const l = lang()
+        if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
+        if (l === 'en') return en
+        try {
+          const a = window.__KB_I18N_ACTIVE__
+          if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
+        } catch (e) { /* no dictionary: English */ }
+        return en
+      }
 
       // ── scopes: the order of the groups, their colour, and where each is read ──
       // `host`: searched by the host (the chats, which are big; the small files). `page`: read here from a route the page already uses.
@@ -356,7 +369,7 @@ window.__ModuleLoader__.load({
             lab.appendChild(el('small', null, kt('gardé sur cet ordinateur', 'kept on this computer')))
             row.append(cb, lab)
             pop.appendChild(row)
-            const info = el('p', 'kbsr-m', S.host.chats + ' ' + kt('chats indexés', 'chats indexed') + (S.host.updatedAt ? ' · ' + fmtWhen(S.host.updatedAt) : ''))
+            const info = el('p', 'kbsr-m', S.host.chats + ' ' + (S.host.chats === 1 ? kt('chat indexé', 'chat indexed') : kt('chats indexés', 'chats indexed')) + (S.host.updatedAt ? ' · ' + fmtWhen(S.host.updatedAt) : ''))
             info.style.margin = '6px 4px'
             pop.appendChild(info)
             const rb = el('button', 'kbsr-btn', kt('Reconstruire l’index', 'Rebuild the index'))
@@ -481,7 +494,7 @@ window.__ModuleLoader__.load({
           foot.appendChild(el('span', 'sp'))
           const total = Object.values(S.counts).reduce((a, b) => a + b, 0)
           foot.appendChild(el('span', null, S.q.trim() !== '' && results.length > 0
-            ? total + ' ' + kt('résultats', 'results') + (S.took !== null ? ' · ' + S.took + ' ms' : '') + ' · ' + kt('local uniquement', 'local only')
+            ? total + ' ' + (total === 1 ? kt('résultat', 'result') : kt('résultats', 'results')) + (S.took !== null ? ' · ' + S.took + ' ms' : '') + ' · ' + kt('local uniquement', 'local only')
             : S.host.chats + ' ' + kt('chats', 'chats') + ' · ' + kt('local uniquement', 'local only')))
         }
 

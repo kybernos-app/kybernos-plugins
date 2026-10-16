@@ -46,6 +46,14 @@ Useful implementation details:
   silent player; if the content is not binary, it shows an
   "unreadable" message.
 
+## Language
+
+The labels are DSH locale dictionaries of the namespace `sidebarMediaPlayer`: English is the base,
+Chinese is DSH's own second language, and the French of Kybernos is registered under its locale id
+**`kybernos`** (the id DSH knows it by, not `fr`). When the French of Kybernos is chosen on the Language page DSH
+itself stays in English, so the player also reads `window.__KB_LANG_RESOLVE__()` and uses the French table
+for a French Kybernos. Every other language reads DSH's own table (English). `node test-client.mjs` checks it.
+
 ## Files
 
 | Path                        | Role                                                      |
@@ -58,6 +66,7 @@ Useful implementation details:
 | `scripts/build-harness.mjs` | `test/driver.js` → `test/harness.bundle.js` (esbuild)     |
 | `test/harness.html`         | page outside the application (simulated `--dsw-*` tokens) |
 | `test/verify.py`            | 20 Playwright checks + a capture                          |
+| `test-client.mjs`           | the language of the player, offline (no browser)          |
 
 ## Install
 
@@ -88,7 +97,7 @@ python3 test/verify.py           # 20/20 expected, capture /tmp/dsh-media-player
 
 `test/verify.py` drives headless Chromium, mounts the React body with a real
 React 18 and checks: registration, exports, metadata, formats, slot key,
-`fr`/`zh` labels, helpers (MIME, `dsh-resource://` address, size), decoding
+`en`/`zh`/`kybernos` labels, helpers (MIME, `dsh-resource://` address, size), decoding
 of a synthetic WAV (duration > 0.3 s), following the dark theme, the video failure case,
 the "non-binary content" case, and zero console errors.
 

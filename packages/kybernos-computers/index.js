@@ -84,7 +84,7 @@ try {
     defaultTtlMinutes: z.number().step(1).min(1).max(120).default(15).volatile(),
   })
 } catch (e) {
-  console.error('[kybernos-computers] Config non déclaré (schemastery introuvable) : ' + String((e && e.message) || e))
+  console.error('[kybernos-computers] Config not declared (schemastery not found): ' + String((e && e.message) || e))
 }
 export { Config }
 let sdkForTests = null       // injected by the tests: bypasses loadSdk()
@@ -160,7 +160,7 @@ const storeKey = async (key) => {
   if (svc === null) return { ok: false, error: 'store_credentials_indisponible' }
   try { await svc.set(CRED_REF, key); return { ok: true } }
   catch (e) {
-    console.error('[kybernos-computers] stockage credential refusé : ' + String((e && e.message) || e))
+    console.error('[kybernos-computers] credential store refused: ' + String((e && e.message) || e))
     return { ok: false, error: 'stockage_refuse' }
   }
 }
@@ -188,7 +188,7 @@ const tryImportSdk = async (candidateDir) => {
   try {
     const sdk = await import(pathToFileURL(resolved).href)
     if (sdk === null || sdk.Sandbox === undefined) {
-      console.error('[kybernos-computers] ' + resolved + ' chargé sans export Sandbox')
+      console.error('[kybernos-computers] ' + resolved + ' loaded without a Sandbox export')
       return null
     }
     return sdk
@@ -204,7 +204,7 @@ const autoInstallSdk = () => {
   console.log('[kybernos-computers] installation de ' + SDK_PACKAGE + '@' + SDK_RANGE + ' dans ' + SDK_INSTALL_DIR + '…')
   const made = spawnSync('npm', ['install', '--prefix', DATA_DIR, '--no-audit', '--no-fund', '--omit=dev', '--loglevel=error', SDK_PACKAGE + '@' + SDK_RANGE], { encoding: 'utf8', timeout: 180_000 })
   if (made.status !== 0) {
-    console.error('[kybernos-computers] auto-install échouée (npm status ' + String(made.status) + ') : ' + String(made.stderr || '').slice(0, 300))
+    console.error('[kybernos-computers] auto-install failed (npm status ' + String(made.status) + ') : ' + String(made.stderr || '').slice(0, 300))
     return false
   }
   return true
@@ -309,7 +309,7 @@ const startSandbox = async ({ label, ttlMs, template }) => {
 
 const runDshTask = async ({ mission, ttlMs, keep }) => {
   if (typeof mission !== 'string' || mission.trim() === '') return { ok: false, error: 'mission_manquante' }
-  const started = await startSandbox({ label: 'tâche embarquée · ' + mission.slice(0, 40), ttlMs: ttlMs ?? 3_600_000, template: DSH_TEMPLATE })
+  const started = await startSandbox({ label: 'embedded task · ' + mission.slice(0, 40), ttlMs: ttlMs ?? 3_600_000, template: DSH_TEMPLATE })
   if (started.ok !== true) return started
   const sandboxId = started.sandbox.sandboxId
   const t0 = Date.now()
@@ -334,10 +334,10 @@ const runDshTask = async ({ mission, ttlMs, keep }) => {
   if (keep === true) {
     const froze = await pauseSandbox({ sandboxId })
     out.paused = froze.ok === true
-    out.note = 'VM gelée (computer_resume pour la reprendre, computer_stop pour la jeter).'
+    out.note = 'VM frozen (computer_resume to continue it, computer_stop to throw it away).'
   } else {
     await stopSandbox({ sandboxId })
-    out.note = 'VM arrêtée — les fichiers non récupérés sont perdus (la réponse ci-dessus est le résultat durable).'
+    out.note = 'VM stopped — files that were not read back are lost (the answer above is the durable result).'
   }
   return out
 }
@@ -502,7 +502,7 @@ const sweepOnce = async () => {
     // it must not reject a `void sweepOnce()` (an unhandled rejection ends DSH) every 30 seconds.
     if (entry === null || typeof entry !== 'object' || typeof entry.sandboxId !== 'string') continue
     if (entry.expiresAt > now) continue
-    console.log('[kybernos-computers] TTL échu pour ' + entry.sandboxId + ' — arrêt')
+    console.log('[kybernos-computers] TTL expired for ' + entry.sandboxId + ' — stopping')
     await stopSandbox({ sandboxId: entry.sandboxId })
   }
 }
@@ -606,7 +606,7 @@ const keySetRoute = async (req, body) => {
 const keyClearRoute = async () => {
   const state = readState()
   for (const entry of Object.values(state.sandboxes)) {
-    console.log('[kybernos-computers] clé retirée — arrêt de ' + entry.sandboxId)
+    console.log('[kybernos-computers] key removed — stopping ' + entry.sandboxId)
     await stopSandbox({ sandboxId: entry.sandboxId })
   }
   return await clearKey()
@@ -680,12 +680,12 @@ const ENV_PROMPT_ORDER = 8700
 const renderEnvChunk = (state) => {
   if (state.env !== 'e2b') return ''
   return [
-    '## Environnement d\'exécution : ordinateur cloud E2B',
-    'L\'utilisateur a sélectionné « E2B » dans le composer : pour tout code, commande ou script à exécuter,',
-    'utilise les outils computer_* (computer_start puis computer_exec/write/read) dans une sandbox cloud',
-    'ÉPHÉMÈRE plutôt que le bash local — sauf demande explicite du contraire ou opération purement locale',
-    '(lire/éditer les fichiers du dépôt courant reste local). Arrête (computer_stop) ou gèle (computer_pause)',
-    'la sandbox quand le travail est fait ; récupère les résultats AVANT (computer_read) : la VM est jetable.',
+    '## Execution environment: E2B cloud computer',
+    'The user selected “E2B” in the composer: for any code, command or script to run,',
+    'use the computer_* tools (computer_start, then computer_exec/write/read) in an EPHEMERAL',
+    'cloud sandbox rather than the local bash — unless asked otherwise or the operation is purely local',
+    '(reading/editing the files of the current repository stays local). Stop (computer_stop) or freeze (computer_pause)',
+    'the sandbox when the work is done; read the results BEFORE (computer_read): the VM is disposable.',
   ].join('\n')
 }
 
@@ -723,8 +723,8 @@ const mountWebRoutes = (ctx, webServer) => {
   webServer = kbFenced(webServer)
   for (const route of ROUTES) {
     const handler = async (req, res) => {
-      if (req.method !== route.method) return sendJson(res, 405, { ok: false, error: route.method + ' attendu' })
-      if (sameOrigin(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+      if (req.method !== route.method) return sendJson(res, 405, { ok: false, error: route.method + ' expected' })
+      if (sameOrigin(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
       if (route.session === true) {
         const refused = writeGuard(req)
         if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
@@ -734,12 +734,12 @@ const mountWebRoutes = (ctx, webServer) => {
         sendJson(res, 200, await route.run(req, body))
       } catch (e) {
         console.error('[kybernos-computers] ' + route.path + ' : ' + String((e && e.message) || e))
-        sendJson(res, 500, { ok: false, error: 'erreur interne' })
+        sendJson(res, 500, { ok: false, error: 'internal error' })
       }
     }
     ctx.effect(() => webServer.register({ kind: 'exact', path: route.path, handler }), 'kybernos-computers: route ' + route.path)
   }
-  console.log('[kybernos-computers] routes /kybernos-computers/* enregistrées (status, key/set, key/clear, env, env/set, sandboxes start/exec/write/read/stop/list)')
+  console.log('[kybernos-computers] routes /kybernos-computers/* registered (status, key/set, key/clear, env, env/set, sandboxes start/exec/write/read/stop/list)')
 }
 
 // ── Tools exposed to the model ──────────────────────────────────────────────
@@ -755,18 +755,18 @@ const describeError = (out) => out.error + (out.detail !== undefined ? ' — ' +
 
 const computerTools = () => {
   const startedHint = (out) => out.ok === true
-    ? 'Sandbox ' + out.sandbox.sandboxId + ' démarrée (' + out.sandbox.label + ', échéance dans ' + Math.round((out.sandbox.expiresAt - Date.now()) / 60000) + ' min). Utilise cet identifiant pour computer_exec / computer_write / computer_read / computer_stop.'
-    : 'Échec : ' + describeError(out) + (out.error === 'cle_absente' ? ' — demande à l\'utilisateur de configurer sa clé E2B dans Réglages › Ordinateurs cloud.' : '')
+    ? 'Sandbox ' + out.sandbox.sandboxId + ' started (' + out.sandbox.label + ', expires in ' + Math.round((out.sandbox.expiresAt - Date.now()) / 60000) + ' min). Use this identifier for computer_exec / computer_write / computer_read / computer_stop.'
+    : 'Failed: ' + describeError(out) + (out.error === 'cle_absente' ? ' — ask the user to set up their E2B key in Settings › Cloud computers.' : '')
   return [
     {
       name: 'computer_start',
-      description: 'Démarre un ordinateur cloud éphémère (microVM E2B, Linux) pour exécuter du code SANS toucher au poste de l\'utilisateur. Facturé au compte E2B de l\'utilisateur, à la seconde. TTL par défaut 15 min, max 2 h, 4 sandbox simultanées. Templates : "base" (Linux + Python/Node, défaut) ou "kybernos-dsh" (agent DSH embarqué connecté au compte Kybernos du client — voir computer_task).',
+      description: 'Starts an ephemeral cloud computer (E2B microVM, Linux) to run code WITHOUT touching the user\'s machine. Billed to the user\'s E2B account, by the second. Default TTL 15 min, max 2 h, 4 simultaneous sandboxes. Templates: "base" (Linux + Python/Node, default) or "kybernos-dsh" (an embedded DSH agent connected to the customer\'s Kybernos account — see computer_task).',
       parameters: {
         type: 'object', additionalProperties: false,
         properties: {
-          label: { type: 'string', description: 'Nom lisible du chantier mené dans cette sandbox (ex. "scraping concurrents").' },
-          ttlMs: { type: 'number', description: 'Durée de vie en millisecondes (60 000 min, 7 200 000 max, défaut 900 000).' },
-          template: { type: 'string', enum: ['base', 'kybernos-dsh'], description: 'Image de la sandbox. "kybernos-dsh" embarque un agent DSH (nécessite la connexion Kybernos Cloud).' },
+          label: { type: 'string', description: 'Readable name of the job done in this sandbox (e.g. "competitor scraping").' },
+          ttlMs: { type: 'number', description: 'Lifetime in milliseconds (60 000 min, 7 200 000 max, default 900 000).' },
+          template: { type: 'string', enum: ['base', 'kybernos-dsh'], description: 'Sandbox image. "kybernos-dsh" embeds a DSH agent (needs the Kybernos Cloud sign-in).' },
         },
         required: [],
       },
@@ -776,120 +776,120 @@ const computerTools = () => {
     },
     {
       name: 'computer_task',
-      description: 'Délègue une MISSION à un agent DSH qui tourne DANS une microVM cloud (template kybernos-dsh) : il planifie et exécute seul, ses appels LLM sont facturés au compte Kybernos du client. Rend la réponse finale — un seul aller-retour, aucun stdout intermédiaire dans cette conversation. Budget d\'attente : ~10 min par appel (au-delà, passe keep:true puis reprends avec computer_resume). La VM est jetée après (fichiers perdus — fais-les rendre DANS la mission si besoin).',
+      description: 'Hands a MISSION to a DSH agent that runs INSIDE a cloud microVM (template kybernos-dsh): it plans and runs on its own, its LLM calls are billed to the customer\'s Kybernos account. Returns the final answer — one round trip, no intermediate stdout in this conversation. Waiting budget: ~10 min per call (beyond that, pass keep:true then continue with computer_resume). The VM is thrown away afterwards (files are lost — have them returned INSIDE the mission if needed).',
       parameters: {
         type: 'object', additionalProperties: false,
         properties: {
-          mission: { type: 'string', description: 'La mission complète et autonome (contexte inclus) confiée à l\'agent embarqué.' },
-          ttlMs: { type: 'number', description: 'Durée de vie de la VM en millisecondes (défaut 3 600 000 = 1 h).' },
-          keep: { type: 'boolean', description: 'true : gèle la VM à la fin au lieu de l\'arrêter (reprise par computer_resume).' },
+          mission: { type: 'string', description: 'The complete, self-contained mission (context included) given to the embedded agent.' },
+          ttlMs: { type: 'number', description: 'Lifetime of the VM in milliseconds (default 3 600 000 = 1 h).' },
+          keep: { type: 'boolean', description: 'true: freezes the VM at the end instead of stopping it (continue with computer_resume).' },
         },
         required: ['mission'],
       },
       output: { schema: { type: 'object', additionalProperties: false, properties: { ok: { type: 'boolean' }, answer: { type: 'string' }, durationMs: { type: 'number' }, error: { type: 'string' } }, required: ['ok'] },
         render: (args, value) => TEXT_RESULT(value.ok === true
-          ? 'Mission embarquée accomplie en ' + Math.round(Number(value.durationMs) / 1000) + ' s :\n' + String(value.answer)
-          : 'Échec : ' + describeError(value)) },
+          ? 'Embedded mission done in ' + Math.round(Number(value.durationMs) / 1000) + ' s :\n' + String(value.answer)
+          : 'Failed: ' + describeError(value)) },
       async execute(args) { return await runDshTask({ mission: args.mission, ttlMs: args.ttlMs, keep: args.keep }) },
     },
     {
       name: 'computer_exec',
-      description: 'Exécute une commande shell dans une sandbox E2B démarrée via computer_start. Retourne exitCode, stdout, stderr. cwd par défaut /home/user.',
+      description: 'Runs a shell command in an E2B sandbox started with computer_start. Returns exitCode, stdout, stderr. Default cwd /home/user.',
       parameters: {
         type: 'object', additionalProperties: false,
         properties: {
-          sandboxId: { type: 'string', description: 'Identifiant rendu par computer_start.' },
-          command: { type: 'string', description: 'Commande shell à exécuter.' },
-          timeoutMs: { type: 'number', description: 'Budget en millisecondes (5 000 min, 600 000 max, défaut 60 000).' },
+          sandboxId: { type: 'string', description: 'Identifier returned by computer_start.' },
+          command: { type: 'string', description: 'Shell command to run.' },
+          timeoutMs: { type: 'number', description: 'Budget in milliseconds (5 000 min, 600 000 max, default 60 000).' },
         },
         required: ['sandboxId', 'command'],
       },
       output: { schema: { type: 'object', additionalProperties: false, properties: { ok: { type: 'boolean' }, exitCode: { type: 'number' }, error: { type: 'string' } }, required: ['ok'] },
-        render: (args, value) => TEXT_RESULT(value.ok === true ? '$ ' + String(args.command) + '\n(exit ' + String(value.exitCode) + ') ' + String(value.stdout).slice(0, 2000) : 'Échec : ' + describeError(value)) },
+        render: (args, value) => TEXT_RESULT(value.ok === true ? '$ ' + String(args.command) + '\n(exit ' + String(value.exitCode) + ') ' + String(value.stdout).slice(0, 2000) : 'Failed: ' + describeError(value)) },
       async execute(args) { return await execCommand({ sandboxId: args.sandboxId, command: args.command, timeoutMs: args.timeoutMs }) },
     },
     {
       name: 'computer_write',
-      description: 'Écrit un fichier texte dans une sandbox E2B (crée les dossiers parents au besoin).',
+      description: 'Writes a text file in an E2B sandbox (creates the parent folders when needed).',
       parameters: {
         type: 'object', additionalProperties: false,
         properties: {
-          sandboxId: { type: 'string', description: 'Identifiant rendu par computer_start.' },
-          path: { type: 'string', description: 'Chemin absolu dans la sandbox (ex. /home/user/script.py).' },
-          content: { type: 'string', description: 'Contenu UTF-8 (max 4 Mo).' },
+          sandboxId: { type: 'string', description: 'Identifier returned by computer_start.' },
+          path: { type: 'string', description: 'Absolute path in the sandbox (e.g. /home/user/script.py).' },
+          content: { type: 'string', description: 'UTF-8 content (max 4 MB).' },
         },
         required: ['sandboxId', 'path', 'content'],
       },
       output: { schema: { type: 'object', additionalProperties: false, properties: { ok: { type: 'boolean' }, path: { type: 'string' }, error: { type: 'string' } }, required: ['ok'] },
-        render: (args, value) => TEXT_RESULT(value.ok === true ? 'Écrit : ' + String(value.path) + ' (' + String(args.content).length + ' caractères).' : 'Échec : ' + describeError(value)) },
+        render: (args, value) => TEXT_RESULT(value.ok === true ? 'Written: ' + String(value.path) + ' (' + String(args.content).length + ' characters).' : 'Failed: ' + describeError(value)) },
       async execute(args) { return await writeFile({ sandboxId: args.sandboxId, path: args.path, content: args.content }) },
     },
     {
       name: 'computer_read',
-      description: 'Lit un fichier texte d\'une sandbox E2B (max 512 Ko, tronqué au-delà).',
+      description: 'Reads a text file from an E2B sandbox (max 512 KB, truncated beyond).',
       parameters: {
         type: 'object', additionalProperties: false,
         properties: {
-          sandboxId: { type: 'string', description: 'Identifiant rendu par computer_start.' },
-          path: { type: 'string', description: 'Chemin absolu dans la sandbox.' },
+          sandboxId: { type: 'string', description: 'Identifier returned by computer_start.' },
+          path: { type: 'string', description: 'Absolute path in the sandbox.' },
         },
         required: ['sandboxId', 'path'],
       },
       output: { schema: { type: 'object', additionalProperties: false, properties: { ok: { type: 'boolean' }, content: { type: 'string' }, error: { type: 'string' } }, required: ['ok'] },
-        render: (args, value) => TEXT_RESULT(value.ok === true ? String(value.content) : 'Échec : ' + describeError(value)) },
+        render: (args, value) => TEXT_RESULT(value.ok === true ? String(value.content) : 'Failed: ' + describeError(value)) },
       async execute(args) { return await readFile({ sandboxId: args.sandboxId, path: args.path }) },
     },
     {
       name: 'computer_stop',
-      description: 'Arrête une sandbox E2B (l\'arrêter dès que tu as fini évite la facturation inutile — le TTL la couperait de toute façon).',
+      description: 'Stops an E2B sandbox (stopping it as soon as you are done avoids useless billing — the TTL would cut it anyway).',
       parameters: {
         type: 'object', additionalProperties: false,
         properties: {
-          sandboxId: { type: 'string', description: 'Identifiant rendu par computer_start.' },
+          sandboxId: { type: 'string', description: 'Identifier returned by computer_start.' },
         },
         required: ['sandboxId'],
       },
       output: { schema: { type: 'object', additionalProperties: false, properties: { ok: { type: 'boolean' }, error: { type: 'string' } }, required: ['ok'] },
-        render: (args, value) => TEXT_RESULT(value.ok === true ? 'Sandbox ' + String(args.sandboxId) + ' arrêtée.' : 'Échec : ' + describeError(value)) },
+        render: (args, value) => TEXT_RESULT(value.ok === true ? 'Sandbox ' + String(args.sandboxId) + ' stopped.' : 'Failed: ' + describeError(value)) },
       async execute(args) { return await stopSandbox({ sandboxId: args.sandboxId }) },
     },
     {
       name: 'computer_pause',
-      description: 'GÈLE une sandbox (betaPause E2B) : la facturation CPU s\'arrête, le disque et les fichiers sont conservés. Utilise-la pour une tâche longue qu\'on reprendra plus tard.',
+      description: 'FREEZES a sandbox (E2B betaPause): CPU billing stops, the disk and the files are kept. Use it for a long task that will be continued later.',
       parameters: {
         type: 'object', additionalProperties: false,
         properties: {
-          sandboxId: { type: 'string', description: 'Identifiant rendu par computer_start.' },
+          sandboxId: { type: 'string', description: 'Identifier returned by computer_start.' },
         },
         required: ['sandboxId'],
       },
       output: { schema: { type: 'object', additionalProperties: false, properties: { ok: { type: 'boolean' }, error: { type: 'string' } }, required: ['ok'] },
-        render: (args, value) => TEXT_RESULT(value.ok === true ? 'Sandbox ' + String(args.sandboxId) + ' gelée — disque conservé, CPU non facturé. computer_resume la réveillera avec ses fichiers.' : 'Échec : ' + describeError(value)) },
+        render: (args, value) => TEXT_RESULT(value.ok === true ? 'Sandbox ' + String(args.sandboxId) + ' frozen — disk kept, CPU not billed. computer_resume wakes it up with its files.' : 'Failed: ' + describeError(value)) },
       async execute(args) { return await pauseSandbox({ sandboxId: args.sandboxId }) },
     },
     {
       name: 'computer_resume',
-      description: 'RÉVEILLE une sandbox gelée par computer_pause : fichiers et processus disque intacts, nouvelle échéance TTL.',
+      description: 'WAKES UP a sandbox frozen by computer_pause: files and disk processes intact, new TTL deadline.',
       parameters: {
         type: 'object', additionalProperties: false,
         properties: {
-          sandboxId: { type: 'string', description: 'Identifiant de la sandbox gelée.' },
-          ttlMs: { type: 'number', description: 'Nouvelle durée de vie en millisecondes (défaut 900 000).' },
+          sandboxId: { type: 'string', description: 'Identifier of the frozen sandbox.' },
+          ttlMs: { type: 'number', description: 'New lifetime in milliseconds (default 900 000).' },
         },
         required: ['sandboxId'],
       },
       output: { schema: { type: 'object', additionalProperties: false, properties: { ok: { type: 'boolean' }, error: { type: 'string' } }, required: ['ok'] },
-        render: (args, value) => TEXT_RESULT(value.ok === true ? 'Sandbox ' + String(args.sandboxId) + ' réveillée, échéance dans ' + Math.round((Number(value.expiresAt) - Date.now()) / 60000) + ' min.' : 'Échec : ' + describeError(value)) },
+        render: (args, value) => TEXT_RESULT(value.ok === true ? 'Sandbox ' + String(args.sandboxId) + ' woken up, expires in ' + Math.round((Number(value.expiresAt) - Date.now()) / 60000) + ' min.' : 'Failed: ' + describeError(value)) },
       async execute(args) { return await resumeSandbox({ sandboxId: args.sandboxId, ttlMs: args.ttlMs }) },
     },
     {
       name: 'computer_list',
-      description: 'Liste les sandboxes E2B suivies sur ce poste (identifiant, libellé, temps restant avant TTL).',
+      description: 'Lists the E2B sandboxes tracked on this machine (identifier, label, time left before the TTL).',
       parameters: { type: 'object', additionalProperties: false, properties: {}, required: [] },
       output: { schema: { type: 'object', additionalProperties: false, properties: { ok: { type: 'boolean' }, sandboxes: { type: 'array' } }, required: ['ok'] },
         render: (args, value) => TEXT_RESULT(value.ok === true && Array.isArray(value.sandboxes) && value.sandboxes.length > 0
-          ? value.sandboxes.map((s) => s.sandboxId + ' · ' + s.label + ' · ' + Math.round(s.remainingMs / 60000) + ' min restantes').join('\n')
-          : 'Aucune sandbox suivie.'), },
+          ? value.sandboxes.map((s) => s.sandboxId + ' · ' + s.label + ' · ' + Math.round(s.remainingMs / 60000) + ' min left').join('\n')
+          : 'No sandbox tracked.'), },
       async execute() { return await sandboxesRoute() },
     },
   ]
@@ -898,7 +898,7 @@ const computerTools = () => {
 const mountTools = (ctx) => {
   ctx.inject(['tools'], (scope) => {
     for (const tool of computerTools()) scope.tools.register(tool)
-    console.log('[kybernos-computers] outils computer_start/exec/write/read/stop/pause/resume/list/task enregistrés')
+    console.log('[kybernos-computers] tools computer_start/exec/write/read/stop/pause/resume/list/task registered')
   })
 }
 

@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Ordinateurs cloud pour les agents : backend E2B (BYOK) — half host phase 1 (clé credential, cycle de vie sandboxes, TTL). Le client, le sélecteur composer et les outils agent viennent ensuite.",
+  "description": "Cloud computers for agents: the E2B backend (bring your own key), a Settings page for the key, a composer menu to choose where code runs, and agent tools to start, use, freeze and stop a sandbox.",
   "license": "Apache-2.0",
   "exports": {
     ".": "./index.js",
-    "./client": "./client.js"
+    "./client": "./client.js",
+    "./package.json": "./package.json"
   },
   "scripts": {
     "check": "node --check index.js && node --check client.js",
