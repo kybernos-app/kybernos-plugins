@@ -28,6 +28,9 @@ const MEMORY_TAIL = 'memory_search pour en chercher.'
 const KYBY_HEAD = '[KYBY]'
 const KYBY_TAIL = '[/KYBY]'
 
+/** A user-role message that is only a note of DSH's own, as measured (a switch of model leaves one behind the person's message). */
+const DSH_NOTE = /^\[model changed:[^\]]*\]$/u
+
 export const isSessionId = (v) => typeof v === 'string' && SESSION_ID.test(v)
 
 const strip = (value) => {
@@ -59,7 +62,11 @@ export const lastTurn = (messages) => {
     const m = list[i]
     if (m === null || typeof m !== 'object') continue
     if (assistant === '' && m.role === 'assistant') assistant = strip(textOf(m))
-    else if (user === '' && m.role === 'user') user = strip(textOf(m))
+    else if (user === '' && m.role === 'user') {
+      // DSH writes notes of its own as user messages (« [model changed: ...] » when the model is switched mid-session): they are not the person's words.
+      const text = strip(textOf(m))
+      if (!DSH_NOTE.test(text)) user = text
+    }
   }
   return { user: user.slice(0, MAX_USER_CHARS), assistant: assistant.slice(0, MAX_USER_CHARS) }
 }
