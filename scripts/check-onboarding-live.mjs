@@ -16,7 +16,7 @@
 //
 // Named check-* on purpose: it needs a running sandbox and Chrome, so CI must not run it.
 //   source scripts/sandbox/env.sh && node scripts/check-onboarding-live.mjs     (KB_SHOT_DIR=/some/dir keeps screenshots)
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { openLivePage, waitFor } from './live-page.mjs'
@@ -66,11 +66,17 @@ const backToTheStartingPoint = async () => {
   await sleep(7000)
 }
 
+// The starter kit installs its two teams into DSH's own home (A6-24), where they stay: a second run would find them installed and tick nothing.
+// The sandbox is this check's own, so they are removed before the run and after it.
+const forgetKitTeams = () => { for (const id of ['studencik', 'research-desk']) { try { rmSync(join(dshHome, 'kybers', id), { recursive: true, force: true }) } catch (e) { /* none */ } } try { rmSync(join(dshHome, 'kybers', '.kyber-ui.json'), { force: true }) } catch (e) { /* none */ } }
+forgetKitTeams()
+
 // A fresh install: the sandbox's setup writes the file as done; the wizard opens only when it says otherwise.
 mkdirSync(join(dshHome, 'kybernos'), { recursive: true })
 writeFileSync(join(dshHome, 'kybernos/onboarding.json'), JSON.stringify({ version: 1, completed: false, installedAt: '2026-01-01T00:00:00.000Z', completedAt: null, profil: null, uiMode: null }) + '\n')
 
-const live = await openLivePage()
+// keepKeyDialog: this check must SEE DSH's own « Get started » dialog if it ever comes back over the wizard (A5-34, A6-01); the helper would press it away.
+const live = await openLivePage({ keepKeyDialog: true })
 const page = live.page
 try {
   const fake = { keyVerdict: 'ok', installPolls: 0, calls: [], accountConnected: false, freeBody: null, statusConnected: false, skillsInstalled: [], skillInstalls: [], memoryBodies: [] }
@@ -165,6 +171,8 @@ try {
   check('the wizard opens on a fresh install', (await waitFor(page, `!!document.querySelector('.kb-ob')`, 40000)) === true)
   check('it is a modal dialog with the Kybernos mark', (await q(`(() => { const r = document.querySelector('.kb-ob'); return r.getAttribute('role') === 'dialog' && r.getAttribute('aria-modal') === 'true' && r.querySelectorAll('.kb-ob-wm svg circle').length === 3 })()`)) === true)
   console.log('     theme: ' + ((await q(`document.querySelector('.kb-ob').classList.contains('kb-ob-dark')`)) ? 'dark' : 'light'))
+  // A5-34 / A6-01: the engine's own step ('Sign in to your DeepSeek account or add an API Key') is replaced by the core; it is not over the wizard
+  check('DSH\'s own « Sign in to your DeepSeek account » dialog is not over the wizard', (await q(`[...document.querySelectorAll('[role="dialog"]')].every((d) => !/DeepSeek account|Add API Key/.test(d.innerText || ''))`)) === true)
   await goEnglish()
   check('the wizard speaks English', (await h1()) === 'Welcome to Kybernos')
   // Escape (A6-03): a stray key never ends the first run (it used to record « later » and a lost profession for good).
@@ -497,6 +505,11 @@ try {
     check('and the card says so', (await q(`document.querySelector('${cardSel}').innerText`)).includes('press Enter'))
   }
 
+  // ...and still not there once the first run is over: a reload (the wizard is done, no model was chosen) shows the home, not DSH's dialog
+  await page.send('Page.reload', { ignoreCache: true })
+  await sleep(6000)
+  check('after the first run and a reload, no DSH sign-in dialog over the home', (await q(`[...document.querySelectorAll('[role="dialog"]')].every((d) => !/DeepSeek account|Add API Key/.test(d.innerText || ''))`)) === true && (await q(`document.body.innerText.length`)) > 200)
+
   check('no page error', page.errs.filter((e) => /kybernos|onboarding|kb-ob|is not defined|is not a function|Cannot read/i.test(e)).length === 0, JSON.stringify(page.errs.slice(0, 3)))
   console.log('     screenshots: ' + shotDir)
 } catch (e) {
@@ -507,6 +520,7 @@ try {
   // Back to the credentials the instance had before this run.
   try { if (credsBackup !== null) writeFileSync(credsFile, credsBackup) } catch (e) { /* the sandbox is nobody's */ }
   try { if (patchBackup !== null) writeFileSync(patchFile, patchBackup) } catch (e) { /* the sandbox is nobody's */ }
+  forgetKitTeams()
   await sleep(6000)
 }
 console.log(fails === 0 ? '\nall checks passed' : '\n' + fails + ' check(s) FAILED')
