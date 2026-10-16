@@ -775,6 +775,9 @@ clicks:
 - **Signed out:** the one button, its menu (Sign in = the device-code card, Create an account, Appearance, Settings, Website, Help, Send
   feedback), Escape / outside click / toggle, the three links (`window.open` is recorded, never followed), the Settings entry reaching DSH's
   dialog, the pairing state, the sun/moon segment.
+- **The keyboard only** (both menus): Enter on the focused button opens the menu with the focus on its first item, ArrowDown / ArrowUp walk it and wrap,
+  Home / End jump, Escape and Tab close it and give the focus back to the button. The keys are real key events (`Input.dispatchKeyEvent`); nothing is
+  focused by the page after the first focus. (The signed-out menu is a portal on `<body>`: without this it was out of the Tab order's reach.)
 - **Connected** (the status route is answered in the page): the profile row, the menu's skeleton, **Team settings, Account and Referral asking
   the host for a console link** (`section: plan`, `overview`, `overview`, on the active workspace, `open: true`; nothing is drawn in DSH's content
   zone; what is said when it is refused), then the embedded console opened through its bridge with a stored `kybernos.ws.console.url` (ignored) and
@@ -959,7 +962,8 @@ node scripts/check-display-live.mjs --out <dir> [--sizes desktop,narrow] [--sche
 ```
 
 A sweep, not a gate (exit 0; `--strict` makes any finding exit 1; 3 when it could not run; it **refuses `:3080`**). It walks the
-home page and its menus, the sidebar pages and their tabs, every Settings section and its tabs and help card, the account card
+home page and its menus, the sidebar pages and their tabs, every Settings section and its tabs and help card, the right pane's panels (`--only panels`:
+Slides empty, with its demo deck and its text editor open, Bricks and Modeleur empty), the account card
 (menu, switcher, update reminder, the phone panel in each of its five states, Settings › Remote Control) and the first-run wizard, with
 real clicks, on a 1400 px window and at 390 px (the width `kybernos-mobile` lays out for), in DSH's dark theme, its light theme
 and the shipped *Neutral violet*. The account, the phone link and the wizard are answered **inside the page** (CDP Fetch on
@@ -981,7 +985,16 @@ where it was seen; findings are grouped across schemes. Keep the output outside 
 service, so each pass sets it through the real Theme page and a run needs its own sandbox (`KB_SANDBOX_ROOT`, a port of its own);
 findings on the DSH shell itself (classes with a hashed prefix such as `VOzbGW_navCell`) are not the plugins' to fix.
 
-The same rules, read from the source, are `scripts/test-display-rules.mjs` (run by CI).
+Two things to know when reading a report. A **panel kept by the host survives from one page to the next** (the right pane, its tabs, the Slides demo deck): the `panels` scenario
+opens a panel that is already there, and shows the empty Slides state only on a fresh host (restart the sandbox to see it again). And a `Leave site?` dialog (a panel with an
+unsaved edit) would hold every later reload for ever: the sweep answers it at once. What the sweep cannot see: a `filter` (kybernos-models draws its capability icons through
+`brightness(.72)` in the light schemes; the sweep reports their raw colour) and an animation caught half-way (the faded steps of an animated help card).
+
+The same rules, read from the source, are `scripts/test-display-rules.mjs` (run by CI). It resolves the colours for real (DSH's token values in
+both schemes, `var()`, `color-mix()`) and holds, for each defect the sweep found, the pair of colours that must not come back: a panel's empty state
+on its fixed light stage, an off switch's knob against its track, a type badge or a tag on its tint, the page roots that lift `label-tertiary` in the
+light schemes. `KB_DISPLAY_KEEP_GOING=1` lists every failing rule instead of stopping at the first; `KB_DISPLAY_ROOT=<another packages folder>` runs
+the same rules on an old tree.
 
 ## Traps
 

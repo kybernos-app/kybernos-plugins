@@ -352,7 +352,7 @@ window.__ModuleLoader__.load({
         ".kbm-in-wrap:focus-within { border-color: var(--dsw-alias-brand-primary); }\n" +
         ".kbm-in-icon { display: inline-flex; width: 16px; height: 16px; align-items: center; justify-content: center; color: var(--dsw-alias-label-tertiary); }\n" +
         ".kbm-in-input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-size: 14px; line-height: 22px; color: var(--dsw-alias-label-primary); }\n" +
-        ".kbm-in-input::placeholder { color: var(--dsw-alias-label-dimmed); }\n" +
+        ".kml-root .kbm-in-input::placeholder { color: var(--dsw-alias-label-tertiary); }\n" +
         ".kbm-pill { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px; border: none; border-radius: 12px; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-bg-layer-2); }\n" +
         ".kbm-pill-interactive { cursor: pointer; }\n" +
         ".kbm-pill-interactive:hover { background: var(--dsw-alias-interactive-bg-hover); }\n" +
@@ -364,6 +364,10 @@ window.__ModuleLoader__.load({
         ".kbm-tag[data-tone='success'] { background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 10%, transparent); color: var(--dsw-alias-state-success-primary); }\n" +
         ".kbm-tag[data-tone='warning'] { background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 12%, transparent); color: var(--dsw-alias-state-warn-primary); }\n" +
         ".kbm-tag[data-tone='danger'] { background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent); color: var(--dsw-alias-state-error-primary); }\n" +
+        "/* The tag inks are the state fills (2.1:1 on their pale tint in the light schemes): there they are pulled toward the text colour (audit A1-11). */\n" +
+        "body:not([data-ds-dark-theme]) .kbm-tag[data-tone='success'] { color: color-mix(in srgb, var(--dsw-alias-state-success-primary) 50%, var(--dsw-alias-label-primary)); }\n" +
+        "body:not([data-ds-dark-theme]) .kbm-tag[data-tone='warning'] { color: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 50%, var(--dsw-alias-label-primary)); }\n" +
+        "body:not([data-ds-dark-theme]) .kbm-tag[data-tone='danger'] { color: color-mix(in srgb, var(--dsw-alias-state-error-primary) 80%, var(--dsw-alias-label-primary)); }\n" +
         ".kml-scan-btn { display: inline-flex; align-items: center; gap: 4px; }\n" +
         ".kml-spin { display: inline-flex; animation: kml-rot 0.9s linear infinite; }\n" +
         "@keyframes kml-rot { to { transform: rotate(360deg); } }\n" +
@@ -380,6 +384,8 @@ window.__ModuleLoader__.load({
       const KML_CSS = "/* kml-*: layout of the Local models panel (this bundle only — DSH tokens) */\n" +
         ".kbm-resync { cursor: pointer; font: inherit; border: none; background: none; padding: 0; }\n" +
         ".kml-root { border: 1px solid var(--dsw-alias-border-l2); border-radius: 14px; background: var(--dsw-alias-bg-layer-2); padding: 16px; max-width: 720px; margin-bottom: 16px; }\n" +
+        "/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */\n" +
+        "body:not([data-ds-dark-theme]) .kml-root{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}\n" +
         ".kml-titre { margin: 0; font-size: 18px; line-height: 1.3; font-weight: 600; letter-spacing: -.01em; color: var(--dsw-alias-label-primary); }\n" +
         ".kml-soustitre { margin: 6px 0 20px; color: var(--dsw-alias-label-secondary); font-size: 13px; line-height: 1.5; }\n" +
         ".kml-tuiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px; }\n" +

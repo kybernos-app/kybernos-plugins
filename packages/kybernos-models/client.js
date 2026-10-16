@@ -2662,6 +2662,8 @@ window.__ModuleLoader__.load({
       //    as the mock-up): here there is only the grid and the spacing.
       const CSS_PANEL = [
         '.kbm-root.kbmp{container-type:inline-size;margin:0 0 26px;padding:0 0 26px;border-bottom:.5px solid var(--dsw-alias-border-l2);display:flex;flex-direction:column;gap:14px}',
+        '/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */',
+        'body:not([data-ds-dark-theme]) .kbm-root.kbmp{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}',
         '.kbmp [hidden]{display:none!important}',
         // ── panel header: subtitle + state + actions on one line ───
         '.kbm-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}',

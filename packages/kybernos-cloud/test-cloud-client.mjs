@@ -97,6 +97,35 @@ assert.ok(clientSource.includes("onAccount: ouvrirAppli('overview')") && clientS
   for (const odd of [null, undefined, 'x', 7, []]) assert.equal(remoteOffer(odd), null, 'an answer that is not a status offers nothing')
   sok('Remote control : une entree apres Referral, lue sur le statut du lien telephone (cachee si non offert, hors forfait, ou illisible), plus de bouton telephone')
 }
+// A1-29: both footer menus (signed out, and the profile's) work with the keyboard. The focus moves INTO the menu when it opens, ArrowUp/ArrowDown (round the ends), Home and
+// End move between its buttons, Tab and Escape close it and give the focus back to the button that opened it. The signed-out menu is a portal on <body> (the last thing the
+// Tab order reaches), so without this a keyboard user cannot reach Sign in, Settings or Help from the footer.
+{
+  const m = clientSource.match(/\/\/ <menu-keys:begin>[\s\S]*?\/\/ <menu-keys:end>/)
+  assert.ok(m !== null, 'the keyboard contract of the footer menus is a marked block')
+  const menuTarget = new Function(m[0] + '\nreturn menuTarget')()
+  assert.equal(menuTarget('ArrowDown', 5, -1), 0, 'ArrowDown from the trigger enters on the first item')
+  assert.equal(menuTarget('ArrowDown', 5, 0), 1)
+  assert.equal(menuTarget('ArrowDown', 5, 4), 0, 'ArrowDown on the last item wraps to the first')
+  assert.equal(menuTarget('ArrowUp', 5, 3), 2)
+  assert.equal(menuTarget('ArrowUp', 5, 0), 4, 'ArrowUp on the first item wraps to the last')
+  assert.equal(menuTarget('ArrowUp', 5, -1), 4, 'ArrowUp from the trigger enters on the last item')
+  assert.equal(menuTarget('Home', 5, 3), 0)
+  assert.equal(menuTarget('End', 5, 1), 4)
+  for (const k of ['Enter', ' ', 'a', 'Tab', 'Escape', 'ArrowLeft', 'PageDown']) assert.equal(menuTarget(k, 5, 2), -1, k + ' moves nothing here')
+  assert.equal(menuTarget('ArrowDown', 0, -1), -1, 'an empty menu moves nothing')
+  assert.equal(menuTarget('End', 1, 0), 0)
+  for (const [name, from] of [['OffMenu', 'const OffMenu = '], ['UserMenu', 'const UserMenu = ']]) {
+    const i = clientSource.indexOf(from)
+    assert.ok(i > 0, name + ' is there')
+    const body = clientSource.slice(i, clientSource.indexOf('\n        const ', i + 60))
+    assert.ok(/onKeyDown: menuKeyDown\(/.test(body), name + ': the menu element handles the arrow keys')
+    assert.ok(/focusFirstItem\(/.test(body), name + ': the focus moves into the menu when it opens')
+    assert.ok(/focusTrigger\(props\.toggleRef\)/.test(body), name + ': Escape gives the focus back to the button that opened the menu')
+  }
+  assert.ok(/toggleRef: cardRef/.test(clientSource) && /ref: cardRef/.test(clientSource), 'the profile menu knows its button')
+  sok('menus du pied : le focus entre dans le menu, fleches/Home/End, Tab et Echap le ferment et rendent le focus au bouton')
+}
 // The words: a shared space is a Team, creating one says so (docs/vocabulary.md in the app repo: workspace = the container incl. the personal one).
 for (const [needle, why] of [["wsNewTitle: 'Create a team'", 'en: Create a team'], ["wsNewName: 'Team name'", 'en: Team name'],
   ["wsNewTitle: 'Créer une équipe'", 'fr: Créer une équipe'], ["wsNewName: 'Nom de l\\'équipe'", 'fr: Nom de l équipe']]) {
