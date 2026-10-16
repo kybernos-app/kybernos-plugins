@@ -747,7 +747,7 @@ const describeError = (out) => out.error + (out.detail !== undefined ? ' — ' +
 const computerTools = () => {
   const startedHint = (out) => out.ok === true
     ? 'Sandbox ' + out.sandbox.sandboxId + ' démarrée (' + out.sandbox.label + ', échéance dans ' + Math.round((out.sandbox.expiresAt - Date.now()) / 60000) + ' min). Utilise cet identifiant pour computer_exec / computer_write / computer_read / computer_stop.'
-    : 'Échec : ' + describeError(out) + (out.error === 'cle_absente' ? ' — demande à l\'utilisateur de configurer sa clé E2B dans Réglages ▸ Plugins ▸ Cloud computers.' : '')
+    : 'Échec : ' + describeError(out) + (out.error === 'cle_absente' ? ' — demande à l\'utilisateur de configurer sa clé E2B dans Réglages › Ordinateurs cloud.' : '')
   return [
     {
       name: 'computer_start',

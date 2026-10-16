@@ -18,6 +18,7 @@ import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { auditerSurfaces } from './surfaces.mjs'
 import { lireVersion } from './version.mjs'
+import { manifesteDuCatalogue, manquants, nomsVoulus } from './voulus.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -209,8 +210,10 @@ async function mesurerEtat () {
   const bundles = pkg?.dsh?.profile?.bundles || []
   const pins = Object.entries(deps).filter(([k]) => k.startsWith('@deepseek-ai/'))
   const pinsDivergents = pins.filter(([, v]) => v !== global).map(([k, v]) => `${k} ${v}`)
-  const liensManquants = PACKAGES.map((p) => p.nom).filter((n) => !(deps[n] || '').startsWith('link:'))
-  const bundlesManquants = PACKAGES.map((p) => p.nom).filter((n) => !bundles.includes(n))
+  // Only what this machine is MEANT to have (voulus.mjs): a module switched off in the Suite, or a package that is no bundle, is not a problem.
+  const lireJson = (chemin) => { try { return JSON.parse(readFileSync(chemin, 'utf8')) } catch (e) { return null } }
+  const voulus = nomsVoulus({ noms: PACKAGES.map((p) => p.nom), manifeste: manifesteDuCatalogue(lireJson(join(REPO, 'packages', 'kybernos-hub', 'catalog.json'))), brut: lireJson(join(DSH_HOME, 'kybernos', 'satellites-actives.json')) })
+  const { liens: liensManquants, bundles: bundlesManquants } = manquants({ packages: PACKAGES, voulus, deps, bundles, lirePackage: (dir) => lireJson(join(REPO, 'packages', dir, 'package.json')) })
   const horsZone = compat !== null && compat.dsh !== undefined && (
     (compat.dsh.min !== undefined && comparerVersions(global, compat.dsh.min) < 0) ||
     (compat.dsh.max !== undefined && comparerVersions(global, compat.dsh.max) > 0))

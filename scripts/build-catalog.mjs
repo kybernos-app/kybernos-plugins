@@ -73,7 +73,7 @@ const FICHE = {
 const TITRES = {
   'kybernos-plugin': 'Kybernos Core', 'kybernos-hub': 'Suite', 'kybernos-theme': 'Theme', 'kybernos-language': 'Language',
   'kybernos-sessions': 'Sessions', 'kybernos-maintenance': 'About & Maintenance', 'kybernos-skills': 'Skills', 'kybernos-slash': 'Slash commands',
-  'kybernos-relance': 'Relaunch', 'kybernos-models': 'Models', 'kybernos-modeles-locaux': 'Local models', 'kybernos-auto': 'Auto routing',
+  'kybernos-relance': 'Relaunch', 'kybernos-models': 'Models', 'kybernos-modeles-locaux': 'Local models', 'kybernos-auto': 'Auto Routing',
   'kybernos-flow': 'Flow', 'kybernos-free-llms': 'Free LLMs', 'kybernos-slides': 'Slides', 'kybernos-bricks': 'Bricks', 'kybernos-modeleur': '3D modeller',
   'kybernos-motion': 'Motion', 'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'kybernos-search': 'Search everywhere', 'kybernos-mobile': 'Remote Control', 'kybernos-websearch': 'Web search', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
   'dsh-media-player': 'Media player', 'kybernos-composio': 'Connectors', 'kybernos-computers': 'Cloud computers', 'kybernos-workers': 'Workers', 'dsh-subagent-maison': 'Agent connectors',

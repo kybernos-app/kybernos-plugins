@@ -659,7 +659,7 @@ export async function exclureWorktrees ({ chemin, run = gitRun }) {
 // caractère hors [a-zA-Z0-9-] devient `~XXXX` (espace → ~0020, point → ~002e) et
 // chaque « / » devient « - ». Le construire à la main ratait toute session dont
 // le dossier contient un caractère encodé : le magasin réel porte
-// `--Users-miled-Library-Application~0020Support-Open~0020Design-…--`. Une session
+// `--Users-me-Library-Application~0020Support-Open~0020Design-…--`. Une session
 // « non vue » = un arbre TENU pris pour un arbre libre, donc supprimé par le
 // ramassage. On encode, et on se replie sur le décodage du magasin si le nom
 // direct n'existe pas.

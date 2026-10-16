@@ -5,8 +5,8 @@
   },
   "steps": [
     {
-      "fr": "Dans le menu « Kybernos » de la barre latérale, « New chat » ouvre une conversation ; la flèche à côté choisit l’Agent Team.",
-      "en": "In the sidebar’s “Kybernos” menu, “New chat” opens a conversation; the arrow next to it picks the Agent Team."
+      "fr": "Dans la barre latérale, « New chat » ouvre une conversation ; la flèche à côté choisit l’Agent Team.",
+      "en": "In the sidebar, “New chat” opens a conversation; the arrow next to it picks the Agent Team."
     },
     {
       "fr": "« Agent Teams » : parcourez, créez et modifiez vos Agent Teams. « Workspaces » rassemble vos projets et leurs conversations.",
@@ -22,8 +22,8 @@
     }
   ],
   "where": {
-    "fr": "Barre latérale › Kybernos",
-    "en": "Sidebar › Kybernos",
+    "fr": "Barre latérale › Agent Teams",
+    "en": "Sidebar › Agent Teams",
     "page": true
   },
   "good": {

@@ -66,7 +66,7 @@ time changes); a change to the host half (`index.js`) still needs a restart.
 
 ### The phone link
 
-- **The sidebar's phone button** opens a panel with the QR code (it used to show a preview), and a « ? How it works » button
+- **The account menu's « Remote control » entry** (bottom of the sidebar) opens a panel with the QR code (it used to show a preview), and a « ? How it works » button
   on its title row (the same card as on Settings › Remote Control: `help.json`). When the account's plan does not include
   the phone link the panel says « Not included in your plan » and offers the plans.
 - **Settings › Remote Control** lists the paired phones, shows when each was seen, and revokes one (or all).
@@ -80,7 +80,7 @@ time changes); a change to the host half (`index.js`) still needs a restart.
 |---|---|---|
 | `mobile.css` | data | the whole layout, in one `@media (max-width: 700px)` block; keyed on DSH's stable hooks (`data-slot`, `data-sidebar-collapsed`, `data-rightbar-*`, `data-shell-*`, `role`), never on its hashed class names |
 | `index.js` | host | puts `mobile.css` in every index render (`webserver/index-inject`), serves it at `GET /kybernos-mobile/mobile.css`, and registers the phone link's routes behind the Host and Origin fences |
-| `client.js` | browser | the menu button, the drawer taps and swipe, closing a drawer DSH left open, the "..." sheet, Settings' list and back bar, the rating star, the page measures (`fitKinds`), `viewport-fit=cover`; the phone panel (`window.__KB_MOBILE__.Panel`, shown by the sidebar's phone button) and the Settings › Mobile page |
+| `client.js` | browser | the menu button, the drawer taps and swipe, closing a drawer DSH left open, the "..." sheet, Settings' list and back bar, the rating star, the page measures (`fitKinds`), `viewport-fit=cover`; the phone panel (`window.__KB_MOBILE__.Panel`, opened from the account menu's « Remote control » entry) and the Settings › Remote Control page |
 | `remote-mount.mjs` | host | loaded lazily and in its own try/catch: builds the link manager from this DSH's surroundings |
 | `remote-host.mjs` | host | pairing, paired phones, one outbound relay connection per phone, and the replay of a phone's requests against this DSH |
 | `remote-local.mjs` | host | the DSH home, DSH's own port, and the session cookie the replay needs |

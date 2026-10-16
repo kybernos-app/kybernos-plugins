@@ -75,7 +75,7 @@ The first time, Kybernos asks four short questions. Every one can be skipped, an
    the Studencik team; a finance profile, statements and reconciliation). You tick what you want; nothing runs by itself.
 
 Your answers are stored in `~/.dsh/kybernos/onboarding.json`. To go through them again, or to open the starter kit alone:
-**Settings → Kybernos Settings → Onboarding → Replay**, or **Starter kit → Open**. A replay always shows the model question,
+**Settings › General › Kybernos Settings › Onboarding › Replay**, or **Starter kit › Open**. A replay always shows the model question,
 so it is also where you add an account or a key later.
 
 ## Update

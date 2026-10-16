@@ -5,12 +5,12 @@
   },
   "steps": [
     {
-      "fr": "Avec votre clé : créez-la sur dashboard.composio.dev, collez-la dans Réglages › Plugins › kybernos-composio, puis « Enregistrer ».",
-      "en": "With your key: create it on dashboard.composio.dev, paste it in Settings › Plugins › kybernos-composio, then click “Save”."
+      "fr": "Avec votre clé : créez-la sur dashboard.composio.dev, collez-la dans Réglages › Connecteurs, puis « Enregistrer ».",
+      "en": "With your key: create it on dashboard.composio.dev, paste it in Settings › Connectors, then click “Save”."
     },
     {
-      "fr": "Ouvrez Kybernos › Connecteurs › « Découvrir », choisissez une app, « Ajouter une connexion », puis autorisez-la dans l'onglet qui s'ouvre.",
-      "en": "Open Kybernos › Connectors › “Discover”, pick an app, click “Add a connection”, then authorize it in the tab that opens."
+      "fr": "Barre latérale › Connecteurs › « Découvrir » : choisissez une app, « Ajouter une connexion », puis autorisez-la dans l'onglet qui s'ouvre.",
+      "en": "Sidebar › Connectors › “Discover”: pick an app, click “Add a connection”, then authorize it in the tab that opens."
     },
     {
       "fr": "Avec votre compte Kybernos (si votre serveur le propose) : « Kybernos Cloud » dans Réglages › Connecteurs, puis « Connecter une app ».",
@@ -22,8 +22,8 @@
     }
   ],
   "where": {
-    "fr": "Kybernos (barre latérale) › Connecteurs ; le choix du service et la clé : Réglages › Connecteurs",
-    "en": "Kybernos (sidebar) › Connectors; the choice of service and the key: Settings › Connectors",
+    "fr": "Barre latérale › Connecteurs ; le choix du service et la clé : Réglages › Connecteurs",
+    "en": "Sidebar › Connectors; the choice of service and the key: Settings › Connectors",
     "page": true
   },
   "good": {

@@ -451,7 +451,7 @@ let kbLocaleRead = () => 'en'
       'kb.cp.title': { kybernos: 'Connections', en: 'Connections' },
       'kb.cp.sub': { kybernos: 'Les comptes par lesquels vos Agent Teams agissent, via Composio. Plusieurs connexions par app, une par compte.', en: 'The accounts your Agent Teams act through, via Composio — several connections per app, one per account.' },
       'kb.cp.search': { kybernos: 'Chercher dans le catalogue — WhatsApp, Slack, GitHub, facturation…', en: 'Search the catalog — WhatsApp, Slack, GitHub, billing…' },
-      'kb.cp.nokey': { kybernos: 'Clé Composio requise — réglez-la sur la page du plugin Composio (Paramètres → Plugins → Composio).', en: 'Composio key required — set it on the Composio plugin page (Settings → Plugins → Composio).' },
+      'kb.cp.nokey': { kybernos: 'Clé Composio requise — réglez-la dans Réglages › Connecteurs.', en: 'Composio key required — set it in Settings › Connectors.' },
       'kb.cp.chipall': { kybernos: 'Tous', en: 'All' },
       'kb.cp.chipconn': { kybernos: 'Connectées', en: 'Connected' },
       'kb.cp.connected': { kybernos: 'Connecté', en: 'Connected' },
@@ -762,7 +762,7 @@ let kbLocaleRead = () => 'en'
       'ui.attempts.sub': { kybernos: ' pour ce rôle dans ce run', en: ' for this role in this run' },
       'ui.noworkspace': { kybernos: 'Aucun workspace pour l\'instant.', en: 'No workspace yet.' },
       'ui.nodeliverable': { kybernos: 'Aucune création dans ce projet.', en: 'No creation in this project.' },
-      'runs.noroute': { kybernos: 'route absente — rechargez le plugin (Settings > Plugins) ou redémarrez DSH', en: 'route missing — reload the plugin (Settings > Plugins) or restart DSH' },
+      'runs.noroute': { kybernos: 'La liste des exécutions ne répond pas — redémarrez DSH.', en: 'The list of runs is not answering — restart DSH.' },
       'runs.withruns': { kybernos: ' avec runs', en: ' with runs' },
       'runs.localstore': { kybernos: ' (store local)', en: ' (local store)' },
       'runs.sub': { kybernos: 'Chaque lane est une phase. Le déclaré vient de meta.phases, l’observé des événements du run, le réel de la session enfant.', en: 'Each lane is a phase. “Declared” comes from meta.phases, “observed” from the run events, “actual” from the child session.' },
@@ -1616,6 +1616,13 @@ let kbLocaleRead = () => 'en'
       'kbui.marketplace.sub': { kybernos: 'Deux sources, jamais mélangées : le catalogue publié sur kybernos.app (lu avec votre compte lié) et les modèles livrés avec le plugin.', en: 'Two sources, never mixed up: the catalogue published on kybernos.app (read with your linked account) and the templates shipped with the plugin.' },
       'kbui.market.cloud.title': { kybernos: 'Publiés sur kybernos.app', en: 'Published on kybernos.app' },
       'kbui.market.cloud.none': { kybernos: 'Le catalogue de kybernos.app n’a pas répondu : les modèles livrés avec le plugin restent listés ci-dessous.', en: 'The kybernos.app catalogue did not answer: the templates shipped with the plugin are still listed below.' },
+      // Why the kybernos.app catalogue shows nothing (or only part): one sentence per reason code of /kybernos-cloud/marketplace.
+      'kbui.market.cloud.r.not-linked': { kybernos: 'Aucun compte kybernos.app n’est lié.', en: 'No kybernos.app account is linked.' },
+      'kbui.market.cloud.r.no-connection': { kybernos: 'Pas de connexion à kybernos.app.', en: 'No connection to kybernos.app.' },
+      'kbui.market.cloud.r.unavailable': { kybernos: 'Le catalogue de kybernos.app est indisponible pour le moment.', en: 'The kybernos.app catalogue is unavailable right now.' },
+      'kbui.market.cloud.r.unreadable': { kybernos: 'La réponse de kybernos.app est illisible.', en: 'The answer from kybernos.app is unreadable.' },
+      'kbui.market.cloud.r.empty': { kybernos: 'Le catalogue de kybernos.app est vide.', en: 'The kybernos.app catalogue is empty.' },
+      'kbui.market.cloud.r.partial': { kybernos: 'une partie seulement de la liste a pu être lue', en: 'only part of the list could be read' },
       'kbui.market.cloud.install': { kybernos: 'Installer depuis kybernos.app', en: 'Install from kybernos.app' },
       'kbui.market.cloud.local': { kybernos: 'Livrés avec le plugin', en: 'Shipped with the plugin' },
       'kbui.market.cloud.done': { kybernos: ' installé depuis kybernos.app — à compléter : ', en: ' installed from kybernos.app — to complete: ' },
@@ -2913,6 +2920,7 @@ const KB_NAV_KEYS = {
   'kybernos-suite': 'kybernos suite', 'kybernos-tools': 'tools', 'kybernos-workers': 'workers', 'kybernos-call': 'calls',
   // The pages the Suite's bundles add (their section id is the cell's key in every language).
   'kybernos-usage': 'usage', 'kybernos-automations': 'automations', 'kybernos-skills': 'skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'remote control',
+  'kybernos-computers': 'cloud computers',
   // What stays on this computer (custom instructions, models re-import, DSH chats): kybernos-cloud's section.
   'kybernos-local': 'kybernos',
 }
@@ -9862,13 +9870,13 @@ return {
       React.useEffect(() => {
         if (hubTab !== 'marketplace' || marketCloud !== null) return undefined
         let vivant = true
-        const lire = (r) => r.json().catch(() => ({ ok: false, motif: kbf('réponse illisible (HTTP ') + r.status + ')' }))
+        const lire = (r) => r.json().catch(() => ({ ok: false, raison: 'unreadable' }))
         fetch('/kybernos-cloud/marketplace', { headers: { accept: 'application/json' } })
           .then(lire)
-          .catch(() => ({ ok: false, motif: 'route /kybernos-cloud/marketplace injoignable' }))
+          .catch(() => ({ ok: false, raison: 'no-connection' }))
           .then((j) => {
             if (vivant !== true) return
-            setMarketCloud(j !== null && typeof j === 'object' ? j : { ok: false, motif: kbf('réponse illisible') })
+            setMarketCloud(j !== null && typeof j === 'object' ? j : { ok: false, raison: 'unreadable' })
           })
         return () => { vivant = false }
       }, [hubTab, marketCloud])
@@ -9896,7 +9904,12 @@ return {
         setMarketBusy(null)
       }
 
-      // A catalogue read in part (a later page failed, or the plugin's limit was hit) comes with `partiel` and a `motif`: the count is followed by it.
+      // A catalogue read in part (a later page failed, or the plugin's limit was hit) comes with `partiel`: the count is followed by the reason.
+      // The reason is a CODE (`raison`) that has a sentence in the person's language; the French `motif` of the host is for the logs, never shown.
+      const marketReason = (mc) => {
+        const code = mc !== null && typeof mc.raison === 'string' ? mc.raison : ''
+        return ['not-linked', 'no-connection', 'unavailable', 'unreadable', 'empty', 'partial'].indexOf(code) >= 0 ? kbt('kbui.market.cloud.r.' + code) : ''
+      }
       const marketCloudItems = (marketCloud !== null && marketCloud.ok === true && Array.isArray(marketCloud.items)) ? marketCloud.items : []
       const cloudTile = (it) => h('span', { className: 'kb8-tile', style: { width: '44px', height: '44px', borderRadius: '14px', flex: '0 0 auto', background: it.color === '' ? 'var(--dsw-alias-bg-layer-1)' : it.color, color: kbOnColor(it.color === '' ? '#888888' : it.color), display: 'flex', alignItems: 'center', justifyContent: 'center' } }, String(it.glyph === '' ? it.name.slice(0, 2) : it.glyph))
       // While the kybernos.app catalogue is being read the block draws bones the size of its cards (it used to be absent, and
@@ -9915,7 +9928,7 @@ return {
         : h('div', { style: { display: 'flex', flexDirection: 'column', gap: '10px' }, 'data-kb': 'market-cloud' },
             h('div', { style: { display: 'flex', alignItems: 'baseline', gap: '10px' } },
               h('span', { className: 'kb8-name' }, kbt('kbui.market.cloud.title')),
-              h('span', { className: 'kb8-parent' }, marketCloudItems.length > 0 ? String(marketCloudItems.length) + (marketCloud.partiel === true && typeof marketCloud.motif === 'string' ? ' · ' + marketCloud.motif : '') : String(marketCloud.motif === undefined ? '' : marketCloud.motif))),
+              h('span', { className: 'kb8-parent' }, marketCloudItems.length > 0 ? String(marketCloudItems.length) + (marketCloud.partiel === true ? ' · ' + marketReason(marketCloud) : '') : marketReason(marketCloud))),
             (marketCloudItems.length === 0
               ? h('span', { className: 'kb8-parent' }, kbt('kbui.market.cloud.none'))
               : h('div', { className: 'kb8-grid' }, marketCloudItems.map((it) => h('div', { className: 'kb8-card', key: it.slug, style: { cursor: 'default' } },
@@ -12311,7 +12324,7 @@ return {
       if (draft === null) return null
       // 'Access' est volontairement absent de la barre (demande utilisateur du
       // 23/09/2026) : son code reste en place, mais l'onglet n'est plus offert.
-      const TABS = ['Identity', 'Roles', 'Workflow', kbt('kbui.skills'), kbt('kbui.insight'), kbt('kbui.quality'), kbt('kbui.connecteurs'), kbt('kbw.tab'), 'Settings', 'Danger Zone']
+      const TABS = ['Identity', 'Roles', 'Workflow', kbt('kbui.skills'), kbt('kbui.insight'), kbt('kbui.quality'), kbt('kbui.connecteurs'), KBW_PUBLIC_RUNTIME === true ? kbt('kbw.tab') : null, 'Settings', 'Danger Zone'].filter((t) => t !== null)
       const protectedTeam = kyber.id === 'digital-clone'
       const field = { height: '44px', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '12px', background: 'var(--dsw-alias-bg-layer-1)', padding: '0 14px', fontSize: '14px', color: 'var(--dsw-alias-label-primary)', outline: 'none', width: '100%', boxSizing: 'border-box' }
       const card = { background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '11px' }
@@ -21069,6 +21082,12 @@ function renderFit(canvas, model, cam, opts){
     // compte visiteur, validation des CGU) est l'étage serveur, hors client.
     const KBW_COLORS = ['#2F6B54', '#2C3E6B', '#8B6F2E', '#C25E2E', '#7C3AED', '#4B5563', '#4F46E5']
     const KBW_EMBED_BASE = 'https://app.kybernos.ai/widget.js'
+    // The runtime a pasted snippet loads (KBW_EMBED_BASE, and the visitor sign-in of widget/widget.js) is the server half and is NOT
+    // published: the host of KBW_EMBED_BASE has no DNS record, so a creator could configure a widget, copy the snippet, paste it into a website
+    // and never see it load (audit 2026-10-16). While this is false nothing that configures a widget is offered: no « Widget » tab on
+    // the Agent Team sheet, no composer chip, no /widget command (the code below stays, as the « Access » tab's does). Turn it on the
+    // day a host serves widget.js and the sign-in, and point KBW_EMBED_BASE at it.
+    const KBW_PUBLIC_RUNTIME = false
     const kbwKeyOf = (rootId, kyberId) => 'kb.widgets.v1:' + String(rootId || '') + '/' + String(kyberId || '')
     const kbwSlugify = (s) => {
       const base = String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)
@@ -24539,10 +24558,13 @@ function renderFit(canvas, model, cam, opts){
     // actif, avec un brouillon /widget … elle APPLIQUE les réglages. Le magasin
     // (localStorage racine+kyber) est le MÊME que l'onglet Widget de la fiche :
     // onglet et chat restent synchronisés par construction.
-    ctx.effect(() => slots.inject('conversation.input.dock', () => slots.register(
-      { name: 'conversation.input.dock', id: 'kybernos-widget', order: 35 }, KbWidgetChip)), 'kybers: puce widget du composeur');
-    ctx.effect(() => styles.insert(KBW_CSS), 'kybers: styles widget (onglet + puce)');
-    kbwAssurerSlash()
+    // Mounted only once a public runtime exists (see KBW_PUBLIC_RUNTIME).
+    if (KBW_PUBLIC_RUNTIME === true) {
+      ctx.effect(() => slots.inject('conversation.input.dock', () => slots.register(
+        { name: 'conversation.input.dock', id: 'kybernos-widget', order: 35 }, KbWidgetChip)), 'kybers: puce widget du composeur');
+      ctx.effect(() => styles.insert(KBW_CSS), 'kybers: styles widget (onglet + puce)');
+      kbwAssurerSlash()
+    }
 
 
     // ── Voix : dictée dans le composer ──────────────────────────────────────
@@ -31914,6 +31936,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
           'outils', 'tools',
           'skills',
           'connectors',
+          'cloud computers',
           'web search',
           'calls', 'appels',
           'remote control',
@@ -31977,6 +32000,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         'automations': '<path d="M13 2 4 14h7l-1 8 9-12h-7z" ' + trait + '/>',
         'skills': '<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" ' + trait + '/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3" ' + trait + '/>',
         'connectors': '<path d="M12 22v-5M9 8V2M15 8V2" ' + trait + '/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8z" ' + trait + '/>',
+        'cloud computers': '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" ' + trait + '/>',
         'free llms': '<path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" ' + trait + '/><path d="M13 5v2M13 11v2M13 17v2" ' + trait + '/>',
         'remote control': '<rect x="5" y="2" width="14" height="20" rx="2" ry="2" ' + trait + '/><path d="M12 18h.01" ' + trait + '/>',
         'calls': '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" ' + trait + '/>',

@@ -5,8 +5,8 @@
   },
   "steps": [
     {
-      "fr": "Sur l’ordinateur, touchez le bouton téléphone en bas de la barre latérale : un code QR s’affiche.",
-      "en": "On the computer, tap the phone button at the bottom of the sidebar: a QR code appears."
+      "fr": "Sur l’ordinateur, ouvrez le menu du compte (en bas de la barre latérale) › « Contrôle à distance » : un code QR s’affiche.",
+      "en": "On the computer, open the account menu (bottom of the sidebar) › “Remote control”: a QR code appears."
     },
     {
       "fr": "Sur le téléphone, scannez le code avec l’appareil photo et ouvrez le lien. Un code à 4 chiffres s’affiche.",
@@ -18,8 +18,8 @@
     }
   ],
   "where": {
-    "fr": "Bouton téléphone en bas de la barre latérale, et Réglages › Remote Control pour retirer un téléphone",
-    "en": "Phone button at the bottom of the sidebar, and Settings › Remote Control to remove a phone",
+    "fr": "Menu du compte (bas de la barre latérale) › Contrôle à distance ; Réglages › Remote Control pour retirer un téléphone",
+    "en": "Account menu (bottom of the sidebar) › Remote control; Settings › Remote Control to remove a phone",
     "page": true
   },
   "good": {
