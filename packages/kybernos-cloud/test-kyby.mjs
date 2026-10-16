@@ -1,5 +1,5 @@
 // The Kaby routes (kyby.mjs) against a fake server: what the page may rely on, what a refusal is called, and what never leaves.
-import { createKybyRoutes, codeOf, pairingOf, pairingStateOf } from './kyby.mjs'
+import { createKybyRoutes, codeOf, pairingOf, pairingStateOf, pairingSupport } from './kyby.mjs'
 
 let fail = 0
 const ok = (name, cond, detail) => { console.log((cond ? 'ok   ' : 'FAIL ') + name + (cond ? '' : '  ' + JSON.stringify(detail))); if (!cond) fail++ }
@@ -27,6 +27,16 @@ ok('a 401 is not_connected', codeOf({ status: 401, body: null }) === 'not_connec
 ok('a known code passes', codeOf({ status: 409, body: { error: 'already_linked' } }) === 'already_linked' && codeOf({ status: 409, body: { error: { code: 'turn_pending' } } }) === 'turn_pending')
 ok('an unknown code, or text, becomes refused (the server\'s words never reach the page)', codeOf({ status: 400, body: { error: 'SELECT * FROM users', message: 'x' } }) === 'refused')
 
+// A route the server does not have is a 404 with no code of ours (a framework's own page or {detail}): it is « unsupported », never a silent failure; a 404 that
+// carries our code is the door being off, which is another thing.
+ok('a bare 404 is unsupported (the pairing routes are not on this server)', codeOf({ status: 404, body: null }) === 'unsupported' && codeOf({ status: 404, body: { detail: 'Not Found' } }) === 'unsupported' && codeOf({ status: 404, body: 'Not Found' }) === 'unsupported')
+ok('a 404 that says not_found is the door being off, not an old server', codeOf({ status: 404, body: { error: 'not_found' } }) === 'not_found')
+// What the host tells the tile about the pairing routes, from the two reads it already makes (GET /v1/me/telegram, GET /v1/me/kyby).
+ok('both answer: the pairing routes are there', pairingSupport(200, 200) === 'supported')
+ok('either is a 404: a server too old for them', pairingSupport(200, 404) === 'unsupported' && pairingSupport(404, 200) === 'unsupported' && pairingSupport(404, 404) === 'unsupported')
+ok('a failure that says nothing about the routes (network, 5xx, 401) is not claimed either way', ['0,200', '200,0', '500,200', '200,502', '401,200', '200,401', '0,0'].every((p) => pairingSupport(Number(p.split(',')[0]), Number(p.split(',')[1])) === 'unknown'))
+ok('an answer that is not a number is not claimed', pairingSupport(undefined, 200) === 'unknown' && pairingSupport(null, null) === 'unknown')
+
 // ── shapes ───────────────────────────────────────────────────────────────────
 ok('a pairing is drawn only for the bot\'s own t.me start link', pairingOf({ id: PAIR, link: LINK, expires_at: 'x' }) !== null && pairingOf({ id: PAIR, link: 'https://evil.example/?start=pair_abcdefgh' }) === null && pairingOf({ id: PAIR, link: 'https://t.me/kybernos_bot?start=pair_abc' }) === null && pairingOf({ id: 'nope', link: LINK }) === null)
 ok('a pairing state outside the five is dropped, a reason outside the three is null', pairingStateOf({ state: 'weird' }) === null && pairingStateOf({ state: 'declined', reason: 'taken' }).reason === 'taken' && pairingStateOf({ state: 'declined', reason: 'sql' }).reason === null)
@@ -44,6 +54,8 @@ ok('a pairing state outside the five is dropped, a reason outside the three is n
   ok('start: already linked is said in a word', (await r.pairingStart()).error === 'already_linked')
   const off = make({ 'POST /v1/me/telegram/pairing': { status: 404, body: { error: 'not_found' } } })
   ok('start: a door that is off is not_found', (await off.r.pairingStart()).error === 'not_found')
+  const gone = make({ 'POST /v1/me/telegram/pairing': { status: 404, body: { detail: 'Not Found' } } })
+  ok('start: a server that has no such route says unsupported, not a silent refusal', (await gone.r.pairingStart()).error === 'unsupported')
   const bad = make({ 'POST /v1/me/telegram/pairing': { status: 201, body: { id: PAIR, link: 'https://evil.example/x' } } })
   ok('start: a link that is not the bot\'s is refused, nothing is drawn', (await bad.r.pairingStart()).ok === false)
   const out = make({}, null)
