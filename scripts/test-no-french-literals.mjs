@@ -172,7 +172,7 @@ for (const b of bundles) {
   }
   if (entry === 'pending') {
     pendingCount += 1
-    console.log('  · ' + b + ' (pending): ' + found.length + ' French literal(s), ' + readme.length + ' French README line(s)' + (descFrench ? ', French description' : '') + (helperProblems.length > 0 ? ', helper falls back to French' : ''))
+    console.log('  · ' + b + ' (pending): ' + found.length + ' French literal(s), ' + readme.length + ' French README line(s)' + (descFrench ? ', French description' : '') + (helperProblems.length > 0 ? ', helper falls back to French' : '') + (pkg.exports && pkg.exports['./package.json'] === './package.json' ? '' : ', no description on the Built-in plugins page'))
     continue
   }
   strictCount += 1
@@ -183,6 +183,9 @@ for (const b of bundles) {
   check('every allowed exception still exists (no stale entry)', entry.every((s) => found.some((o) => o.text === s)), entry.filter((s) => !found.some((o) => o.text === s)))
   check('README.md is English', readme.length === 0, readme.slice(0, 3).map((o) => o.line + ' ' + JSON.stringify(o.text.slice(0, 50))))
   check('the package description is English and present', typeof pkg.description === 'string' && pkg.description.length > 10 && !descFrench, pkg.description)
+  // The Built-in plugins page reads a bundle's description through `require.resolve('<id>/package.json')`: a package that does not
+  // export it shows its raw id and no description (measured on a sandbox, 2026-10-16: with the export the description appears).
+  check('the package exports ./package.json (the Built-in plugins page reads its description through it)', pkg.exports !== null && typeof pkg.exports === 'object' && pkg.exports['./package.json'] === './package.json', pkg.exports)
   check('the pair helper answers French for French, English for every other language', helperProblems.length === 0, helperProblems)
   const need = ALLOW.needFrench[b]
   if (need !== undefined) {

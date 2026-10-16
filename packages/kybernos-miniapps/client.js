@@ -317,7 +317,7 @@ window.__ModuleLoader__.load({
         '  })\n' +
         '  document.getElementById("spin").addEventListener("click", function (e) { SPIN = !SPIN; e.currentTarget.classList.toggle("on", SPIN); reveiller() })\n' +
         '  majBoutons(); dessiner()\n' +
-        '  // rejouer la pose à l’ouverture\n' +
+        '  // replay the laying on open\n' +
         '  POSE = 0; T0 = performance.now(); EN_COURS = true; majBoutons(); reveiller()\n' +
         '})()\n' +
         '</script></body></html>'
