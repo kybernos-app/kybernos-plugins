@@ -141,21 +141,24 @@ export function politiqueApprobation (ctx, agent) {
   }
 }
 
-// ── l'outil ─────────────────────────────────────────────────────────────────
+// ── the tool ────────────────────────────────────────────────────────────────
+
+/** « 1 session », « 3 sessions » (and the verb that goes with it is written at the call site). */
+const nSessions = (n) => n + ' session' + (n === 1 ? '' : 's')
 
 export function optionsOutil (ctx) {
   return {
     name: OUTIL,
     description:
-      "Redémarre le serveur DSH (chargement d'un plugin cordis, d'un profil, de réglages…) SANS perdre le travail : " +
-      "les sessions qui tournent sont journalisées puis réveillées automatiquement après le redémarrage. " +
-      "À utiliser au lieu d'un `dsh-relance.mjs relance` en bash. " +
-      "Si d'autres sessions sont en cours, l'outil ouvre le panneau d'approbation natif : sans « Allow once », RIEN n'est coupé. " +
-      "La coupure est faite par un processus détaché après `delai` secondes (le temps que ta réponse sorte) ; " +
-      "l'outil rend la main tout de suite. Ne le rappelle pas pour vérifier : après le redémarrage, DSH réveille les sessions tout seul.",
+      'Restarts the DSH server (to load a cordis plugin, a profile, settings…) WITHOUT losing work: ' +
+      'the running sessions are journalled, then woken up automatically after the restart. ' +
+      'Use it instead of `dsh-relance.mjs relance` in bash. ' +
+      'When other sessions are running, the tool opens the native approval panel: without “Allow once”, NOTHING is cut. ' +
+      'The cut is made by a detached process after `delai` seconds (time for your answer to come out); ' +
+      'the tool returns at once. Do not call it again to check: after the restart, DSH wakes the sessions up by itself.',
     parameters: {
-      motif: { type: 'string', description: 'Note laissée avant la relance : ce que tu faisais, pour que la session reprenne juste après le redémarrage.' },
-      delai: { type: 'number', description: `Secondes avant la coupure (défaut ${DELAI_DEFAUT_S}, borné 5–300) : laisse sortir la réponse en cours.` },
+      motif: { type: 'string', description: 'Note left before the restart: what you were doing, so the session resumes right after it.' },
+      delai: { type: 'number', description: `Seconds before the cut (default ${DELAI_DEFAUT_S}, between 5 and 300): lets the current answer come out.` },
     },
     render: (_args, valeur) => [{ type: 'text', text: typeof valeur === 'string' ? valeur : JSON.stringify(valeur, null, 2) }],
     execute: async (brut, exec) => {
@@ -163,20 +166,20 @@ export function optionsOutil (ctx) {
       const sessionId = exec?.agent?.id
       const port = portCourant(ctx)
       if (!existsSync(SCRIPT_RELANCE)) {
-        return { coupe: false, raison: 'script_absent', message: `script introuvable : ${SCRIPT_RELANCE}` }
+        return { coupe: false, raison: 'script_absent', message: `script not found: ${SCRIPT_RELANCE}` }
       }
       if (typeof sessionId !== 'string' || sessionId.length === 0) {
-        return { coupe: false, raison: 'agent_inconnu', message: "impossible d'identifier la session courante (appel hors tour ?)" }
+        return { coupe: false, raison: 'agent_inconnu', message: 'cannot identify the current session (called outside a turn?)' }
       }
 
       // 1. Qui tourne ? (natif : `session/list` porte `running`)
       let autres = sessionsActives(ctx, sessionId)
       if (autres !== undefined) {
-        autres = await autres.catch((e) => { dire(`session/list a échoué : ${e?.message ?? e}`); return undefined })
+        autres = await autres.catch((e) => { dire(`session/list failed: ${e?.message ?? e}`); return undefined })
       }
       if (autres === undefined) autres = await sessionsActivesParScript(port)
       if (autres === undefined) {
-        return { coupe: false, raison: 'sessions_illisibles', message: "impossible de savoir si d'autres sessions travaillent — redémarrage refusé (échec fermé)" }
+        return { coupe: false, raison: 'sessions_illisibles', message: 'cannot tell whether other sessions are working — restart refused (fail closed)' }
       }
 
       // 2. D'autres sessions tournent : panneau d'approbation natif.
@@ -188,7 +191,7 @@ export function optionsOutil (ctx) {
             coupe: false,
             raison: 'approbation_indisponible',
             sessions_actives: autres.map((row) => ({ sessionId: row.sessionId, titre: titreDe(row) })),
-            message: `${autres.length} session(s) travaillent et aucun canal d'approbation n'est monté : je ne coupe rien. Préviens l'utilisateur.`,
+            message: `${nSessions(autres.length)} working and no approval channel is mounted: nothing is cut. Warn the user.`,
           }
         }
         // Sous la politique « never » (preset plein accès), le service
@@ -204,18 +207,18 @@ export function optionsOutil (ctx) {
             approbation: null,
             politique,
             sessions_actives: autres.map((row) => ({ sessionId: row.sessionId, titre: titreDe(row) })),
-            message: `${autres.length} session(s) travaillent, mais la politique d'approbation de cette session est « never » `
-              + '(preset plein accès) : le panneau ne peut pas s\'ouvrir et personne n\'a été consulté — rien n\'est coupé. '
-              + 'Pour autoriser OU tester le panneau, passe la session en « ask » (preset « workspace-write » : /permission workspace-write), puis rappelle l\'outil.',
+            message: `${nSessions(autres.length)} working, but the approval policy of this session is “never” `
+              + '(full-access preset): the panel cannot open and nobody was asked — nothing is cut. '
+              + 'To allow it OR to test the panel, switch the session to “ask” (preset “workspace-write”: /permission workspace-write), then call the tool again.',
           }
         }
         approbation = await approval.request({
           agent: exec.agent,
           toolName: OUTIL,
           ...(exec.callId !== undefined ? { callId: exec.callId } : {}),
-          reason: `Redémarrage de DSH alors que ${autres.length} autre(s) session(s) travaillent : `
+          reason: `Restarting DSH while ${autres.length} other ${autres.length === 1 ? 'session is' : 'sessions are'} working: `
             + autres.map((row) => `${titreDe(row)} (${row.sessionId})`).join(' · ')
-            + '. Elles seront reprises automatiquement après le redémarrage.',
+            + '. They will be resumed automatically after the restart.',
           ...(exec.signal !== undefined ? { signal: exec.signal } : {}),
         })
         if (approbation !== 'allowed-once') {
@@ -225,8 +228,8 @@ export function optionsOutil (ctx) {
             approbation,
             sessions_actives: autres.map((row) => ({ sessionId: row.sessionId, titre: titreDe(row) })),
             message: approbation === 'rejected'
-              ? "L'utilisateur a refusé le redémarrage : rien n'a été coupé, les autres sessions continuent."
-              : `Accord non obtenu (${approbation}) : rien n'a été coupé (échec fermé).`,
+              ? 'The user refused the restart: nothing was cut, the other sessions carry on.'
+              : `Approval not obtained (${approbation}): nothing was cut (fail closed).`,
           }
         }
       }
@@ -238,15 +241,15 @@ export function optionsOutil (ctx) {
       try {
         const enfant = spawn(process.execPath, argv, { detached: true, stdio: 'ignore', env: { ...process.env, DSH_HOME } })
         enfant.unref()
-        dire(`relance détachée (pid ${enfant.pid}) dans ${delai} s — ${autres.length} autre(s) session(s) seront reprises`)
+        dire(`detached restart (pid ${enfant.pid}) in ${delai} s — ${autres.length} other session(s) will be resumed`)
         return {
           coupe: true,
           dans_secondes: delai,
           pid: enfant.pid,
           approbation,
           sessions_actives: autres.map((row) => ({ sessionId: row.sessionId, titre: titreDe(row) })),
-          message: `Redémarrage de DSH dans ${delai} s ; ${autres.length + 1} session(s) (dont celle-ci) seront réveillées automatiquement. `
-            + 'Termine ta réponse maintenant : le processus détaché coupe DSH et le relance.',
+          message: `DSH restarts in ${delai} s; ${nSessions(autres.length + 1)} (this one included) will be woken up automatically. `
+            + 'Finish your answer now: the detached process cuts DSH and starts it again.',
         }
       } catch (e) {
         return { coupe: false, raison: 'spawn_impossible', message: String(e?.message ?? e) }
@@ -278,16 +281,16 @@ export async function enregistrer (ctx) {
   if (chargement !== undefined) {
     outil = chargement.defineTool(specDefineTool(definition))
   } else {
-    dire('defineTool introuvable — définition littérale (forme compilée équivalente)')
+    dire('defineTool not found — literal definition (equivalent compiled form)')
     outil = definitionLiteral(definition)
   }
   ctx.tools.register(outil)
-  dire(`outil « ${OUTIL} » enregistré`)
+  dire(`tool “${OUTIL}” registered`)
 }
 
 /** Le plugin hôte : un outil, rien d'autre (le client fait le rechargement de page). */
 export function apply (ctx) {
-  const demarrer = (c) => { enregistrer(c).catch((e) => dire(`outil non enregistré : ${e?.message ?? e}`)) }
+  const demarrer = (c) => { enregistrer(c).catch((e) => dire(`tool not registered: ${e?.message ?? e}`)) }
   if (ctx.get('tools') !== undefined) demarrer(ctx)
   else ctx.inject(['tools'], demarrer)
 }

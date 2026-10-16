@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Maquettes en briques pilotées par le chat : outil hôte `animer_briques` + panneau « Briques » dans la barre latérale droite (rendu isométrique Canvas 2D, pose en direct brique par brique, relecture).",
+  "description": "Brick models driven by the chat: the `animer_briques` host tool and a “Bricks” panel in the right sidebar (isometric Canvas 2D render, laid live brick by brick, then replayed).",
   "license": "Apache-2.0",
   "main": "index.js",
   "exports": {

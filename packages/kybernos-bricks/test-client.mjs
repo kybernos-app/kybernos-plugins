@@ -203,6 +203,36 @@ ok('l\'état vide propose les aperçus des 8 vitrines',
   noeuds.filter((n) => n.props && n.props.cle !== undefined).length >= T.SHOWCASE.length,
   `${noeuds.filter((n) => n.props && n.props.cle !== undefined).length} aperçu(s)`)
 
+// ── 6. la langue : français pour le français, anglais pour toute autre langue (A2-31, A2-08) ──
+const textesDe = (arbre) => {
+  const sortie = []
+  ;(function parcourir (n) {
+    if (n === null || n === undefined) return
+    if (Array.isArray(n)) { n.forEach(parcourir); return }
+    if (typeof n === 'string') { sortie.push(n); return }
+    if (n.props && typeof n.props.title === 'string') sortie.push(n.props.title)
+    if (n.enfants) n.enfants.forEach(parcourir)
+  })(arbre)
+  return sortie.join(' | ')
+}
+for (const [langue, attendu, interdit] of [
+  ['en', ['No model yet', 'Ask the chat', 'Bricks', 'Start', 'Replay', 'End'], /Aucune|Demande|Briques|Début|Relire|Fini/],
+  ['kybernos', ['Aucune maquette pour le moment', 'Demande au chat', 'Briques', 'Début', 'Relire', 'Fin'], /No model|Ask the chat|Bricks|Replay/],
+  ['es', ['No model yet', 'Ask the chat', 'Bricks'], /Aucune|Demande|Briques|Début|Relire/],
+  ['ar', ['No model yet', 'Bricks'], /Aucune|Briques/],
+]) {
+  globalThis.window.__KB_LANG_RESOLVE__ = () => langue
+  const txt = textesDe(corps.composant({})) + ' | ' + types[0].title() + ' | ' + types[0].guide[0].description()
+  ok(`langue « ${langue} » : le panneau parle la langue de la page`, attendu.every((m) => txt.includes(m)) && !interdit.test(txt), txt.slice(0, 160))
+}
+globalThis.window.__KB_LANG_RESOLVE__ = () => { throw new Error('langue pas encore connue') }
+ok('langue pas encore connue : anglais, jamais français', /No model yet/.test(textesDe(corps.composant({}))) && !/Aucune/.test(textesDe(corps.composant({}))))
+globalThis.window.__KB_LANG_RESOLVE__ = () => 'kybernos'
+ok('le titre par défaut de l\'hôte (« Bricks », ou « Briques » d\'un hôte plus ancien) se lit dans la langue de la page',
+  T.titleOf('Bricks') === 'Briques' && T.titleOf('Briques') === 'Briques' && T.titleOf('Mon château') === 'Mon château' && T.titleOf('') === 'Briques')
+globalThis.window.__KB_LANG_RESOLVE__ = () => 'en'
+ok('…en anglais', T.titleOf('Briques') === 'Bricks' && T.titleOf('Bricks') === 'Bricks' && T.titleOf('Ruby') === 'Ruby')
+
 console.log(echecs === 0 ? '\nclient : tout est vert' : `\nclient : ${echecs} échec(s)`)
 // La sonde de l'hôte est un setInterval : on rend les effets avant de sortir,
 // sinon Node ne rend jamais la main.
