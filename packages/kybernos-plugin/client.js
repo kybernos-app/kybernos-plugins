@@ -34786,6 +34786,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
                 const r = await host.call('kybers/create', {
                   name: tpl.name, id: tpl.id, mission: tpl.mission, topology: tpl.topology, roles: tpl.roles, skills: tpl.skills, stages: tpl.stages,
                   ui: { name: tpl.name, icon: tpl.icon, color: tpl.color, category: tpl.category, tags: tpl.tags },
+                  // into DSH's own home (~/.dsh/kybers): a welcome screen must not add a `kybers/` folder to the person's project
+                  home: true,
                 })
                 ok = r !== null && r !== undefined && r.ok === true
               } catch (e) { ok = false }

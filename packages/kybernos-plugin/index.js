@@ -8,6 +8,7 @@ import { zstdDecompressSync } from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 import { dirname, normalize as nodePathNormalize, isAbsolute as nodePathIsAbsolute, join as nodePathJoin } from 'node:path'
 import { dshHomeSync } from './dsh-home.mjs'
+import { kyberTarget } from './kyber-root.mjs'
 import { createWorkspaceInstructions } from './workspace-instructions.mjs'
 import { selectAfterConnect } from './default-model.mjs'
 import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
@@ -7313,9 +7314,10 @@ function boot(ctx) {
         const name = typeof req.name === 'string' ? req.name.trim().slice(0, 60) : ''
         if (name.length === 0) return { ok: false, error: 'nom requis' }
         const wantId = typeof req.id === 'string' && req.id.trim().length > 0 ? slugify(req.id) : slugify(name)
+        // `home: true` (the first-run starter kit) writes into DSH's own home, not into the project the person is working in.
         const rootsAll = await rootsFor()
-        const wsRoot = rootsAll.filter((r) => r.id === 'workspace')[0] || null
-        const targetRoot = wsRoot !== null ? wsRoot.path : (rootsAll[0] !== undefined ? rootsAll[0].path : null)
+        const target = kyberTarget(rootsAll, { home: req.home === true })
+        const targetRoot = target === null ? null : target.path
         if (targetRoot === null) return { ok: false, error: 'aucune racine kybers disponible' }
         const rolesRaw = Array.isArray(req.roles) === true ? req.roles : []
         const roles = []
@@ -7391,7 +7393,7 @@ function boot(ctx) {
           uiData[id] = { name: uiName === '' ? null : uiName, icon: uiIcon, color: uiColor, category: uiCategory, hosted: uiReq.hosted === true, tags: uiTags.length === 0 ? null : uiTags }
           await writeTextScoped(targetRoot, uiPath, JSON.stringify(uiData, null, 2) + String.fromCharCode(10))
         }
-        return { ok: true, id, path, rootId: wsRoot !== null ? 'workspace' : (rootsAll[0] !== undefined ? rootsAll[0].id : null) }
+        return { ok: true, id, path, rootId: target.id }
       } catch (e) { return { ok: false, error: errText(e) } }
     };
 
