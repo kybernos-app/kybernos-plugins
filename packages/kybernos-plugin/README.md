@@ -82,6 +82,32 @@ reported as truncated with the instant the list stops. It reads `tasks.json` and
 (same origin, signed browser session) and the Host fence of every route of the bundle. Pure logic: `automation-occurrences.mjs`
 (host) and the `KB-AUTOBOARD` block of `client.js` (browser).
 
+## The List, readable schedules, and « Edit in chat »
+
+- **The List** is one grid: the header and the button of each row share ONE column declaration (`.kba-rowhead`, `.kba-rowbtn`), the
+  row's actions and its switch have the same fixed width in both, so a header always sits over its cells. The card lays itself out by
+  its own width (a container query): five columns, three below 940 px (no origin, no session count), one block per row below 700 px
+  (the header goes, the actions drop under the content below 520 px). The actions (Edit in chat, favorite, clone, export, delete) are at the right, shown on
+  hover and on keyboard focus and always on a touch screen; a starred row keeps its star. The line under the name is how the
+  automation runs (Ask me first / Always allow, notifications): `tasks.json` has no Agent Team field to show.
+- **Schedules in words** (`kbCronHuman`, pure, tested): every N minutes / hours (only steps that divide the hour or the day: « every 5
+  hours » would be 0, 5, 10, 15, 20, then 0 again), hourly, every day, weekdays, any one weekday, a day of the month 1-28. Anything a
+  sentence cannot say exactly stays the cron expression (31st, a month, a list), and the tooltip of every schedule is its expression and
+  its zone. A schedule in ANOTHER zone than the person's names it (`Every day, 08:00 (Kolkata)`); an interval has no wall clock and
+  names none. Dates are one style, the board's own (`Yesterday · 08:00`, `Sat, Oct 17 · 10:00`, the year when it is not this year), in
+  the person's zone and language; `kbFmtWhen` (dd/mm) now only serves the Cloud Computer card.
+- **The Schedule form** has a time field next to the presets; a preset sets the days and keeps the time. A custom expression (every 6
+  hours, a list) has no single time, so it shows no field.
+- **A schedule that runs more often than every 5 minutes** needs a yes: `POST /kybernos/tasks` (create, and update when the cron
+  changes) answers `{ ok: false, error: 'frequent schedule', everyMinutes: N }` unless the task says `confirmFrequent: true`; the
+  `automation-creator` script refuses it unless the specification says `confirmedFrequent: true` (the agent adds it only after the
+  user's yes). One minute stays possible once confirmed.
+- **Edit in chat** (the row, and the page of an automation) opens a NEW chat the way « Create » does (`kbStartChatText`): a draft, never
+  sent, that names the `automation-creator` skill, says this is an edit, and carries the automation as it stands (id, name, words and
+  cron of its schedule, approvals, notifications, steps; never the webhook secret nor the history). The skill's script, given the `id`,
+  replaces that automation in place (history and webhook kept, next run left to the scheduler); an unknown id writes nothing and creates
+  nothing. The form stays the manual way, and is what opens if no chat can be started.
+
 ## Automations settings, and DSH's own « Automation tasks »
 
 Settings › Automations has two switches, kept in `$DSH_HOME/kybernos/automation-settings.json` (rules in `automation-settings.mjs`):

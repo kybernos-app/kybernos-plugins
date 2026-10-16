@@ -105,7 +105,7 @@ let kbLocaleRead = () => 'en'
       'tasks.filter.all': { kybernos: 'Toutes', en: 'All' },
       'tasks.filter.active': { kybernos: 'Actives', en: 'Active' },
       'tasks.filter.attention': { kybernos: 'Attention requise', en: 'Needs attention' },
-      'tasks.col.name': { kybernos: 'NOM · AGENT TEAM', en: 'NAME · AGENT TEAM' },
+      'tasks.col.name': { kybernos: 'NOM', en: 'NAME' },
       'tasks.col.trigger': { kybernos: 'DÉCLENCHEUR', en: 'TRIGGER' },
       'tasks.col.origin': { kybernos: 'ORIGINE', en: 'ORIGIN' },
       'tasks.col.lastsession': { kybernos: 'DERNIÈRE SESSION', en: 'LAST SESSION' },
@@ -188,7 +188,7 @@ let kbLocaleRead = () => 'en'
       'deliv.fam.images.desc': { kybernos: 'Visuels, captures et schémas générés.', en: 'Generated visuals, captures and diagrams.' },
       'deliv.fam.av': { kybernos: 'Audio & vidéo', en: 'Audio & Video' },
       'deliv.fam.av.desc': { kybernos: 'Extraits sonores et clips vidéo produits par vos Agent Teams.', en: 'Sound bites and video clips produced by your Agent Teams.' },
-      'tasks.form.title': { kybernos: 'Planifier une tâche', en: 'Schedule task' },
+      'tasks.form.title': { kybernos: 'Planifier une automation', en: 'Schedule an automation' },
       'tasks.name': { kybernos: 'Nom', en: 'Name' },
       'tasks.prompt': { kybernos: 'Prompt', en: 'Prompt' },
       'tasks.repeats': { kybernos: 'Répétition', en: 'Repeats' },
@@ -211,8 +211,8 @@ let kbLocaleRead = () => 'en'
       'tasks.schedule': { kybernos: 'Planifier', en: 'Schedule' },
       'tasks.cancel': { kybernos: 'Annuler', en: 'Cancel' },
       'tasks.save': { kybernos: 'Enregistrer', en: 'Save' },
-      'tasks.needname': { kybernos: 'Donnez un nom à la tâche pour la planifier.', en: 'Give the task a name to schedule it.' },
-      'tasks.needprompt': { kybernos: 'Ajoutez un prompt pour que la tâche sache quoi faire.', en: 'Add a prompt so the task knows what to do.' },
+      'tasks.needname': { kybernos: 'Donnez un nom à l’automation pour la planifier.', en: 'Give the automation a name to schedule it.' },
+      'tasks.needprompt': { kybernos: 'Ajoutez un prompt pour que l’automation sache quoi faire.', en: 'Add a prompt so the automation knows what to do.' },
       'tasks.edit': { kybernos: 'Modifier', en: 'Edit' },
       'tasks.delete': { kybernos: 'Supprimer', en: 'Delete' },
       'tasks.deleted': { kybernos: 'Tâche supprimée.', en: 'Task deleted.' },
@@ -337,12 +337,28 @@ let kbLocaleRead = () => 'en'
       'tasks.sessions.hint': { kybernos: 'Chaque session est un chat réel avec l’Agent Team. Ouvrez-en une pour lire ce que les agents ont fait.', en: 'Each session is a real chat with the Agent Team. Open one to follow what the agents did.' },
       'tasks.everyday8': { kybernos: 'Chaque jour, 8:00', en: 'Every day, 8:00' },
       'tasks.weekdays8': { kybernos: 'Jours ouvrés, 8:00', en: 'Weekdays, 8:00' },
-      'tasks.monday8': { kybernos: 'Chaque lundi, 8:00', en: 'Every Monday, 8:00' },
-      'tasks.friday16': { kybernos: 'Chaque vendredi, 16:00', en: 'Every Friday, 16:00' },
+      // The readable schedules (kbCronHuman): a sentence per common shape, `{day}` a weekday name, `{time}` HH:MM.
+      'tasks.every.minute': { kybernos: 'Chaque minute', en: 'Every minute' },
+      'tasks.every.minutes': { kybernos: 'Toutes les {n} minutes', en: 'Every {n} minutes' },
+      'tasks.every.hour': { kybernos: 'Chaque heure', en: 'Every hour' },
+      'tasks.every.hour.at': { kybernos: 'Chaque heure à :{minute}', en: 'Every hour at :{minute}' },
+      'tasks.every.hours': { kybernos: 'Toutes les {n} heures', en: 'Every {n} hours' },
+      'tasks.every.hours.at': { kybernos: 'Toutes les {n} heures à :{minute}', en: 'Every {n} hours at :{minute}' },
+      'tasks.every.dow': { kybernos: 'Chaque {day}, {time}', en: 'Every {day}, {time}' },
+      'tasks.every.month': { kybernos: 'Chaque mois le {day}, {time}', en: 'Every month on the {day}, {time}' },
       'tasks.onetime': { kybernos: 'Une seule fois', en: 'One time' },
       'tasks.cron': { kybernos: 'Expression cron', en: 'Cron expression' },
       'tasks.timezone': { kybernos: 'Fuseau', en: 'Time zone' },
+      'tasks.time': { kybernos: 'Heure', en: 'Time' },
+      'tasks.prompt.max': { kybernos: 'Le prompt est limité à 8 000 caractères.', en: 'A prompt is limited to 8,000 characters.' },
       'tasks.trigger.plushook': { kybernos: '+ webhook', en: '+ webhook' },
+      // « Edit → chat »: the text put in the composer of a new chat (the automation-creator skill, edit mode) and the buttons.
+      'tasks.edit.chat': { kybernos: 'Skill automation-creator — mode modification. Modifie cette automation, n’en crée pas une nouvelle : demande-moi ce qu’il faut changer, montre-moi le résultat et attends mon accord, puis enregistre-le avec le mode modification du script (id : {id}).\n\nNom : {name}\nSe lance : {runs}\nQuand une validation est nécessaire : {approvals}\nNotifications : {notify}\nActive : {active}\n\nCe qu’elle fait :\n{prompt}', en: 'Skill automation-creator — edit mode. Change this automation, do not create a new one: ask me what to change, show me the result and wait for my yes, then save it with the script’s edit mode (id: {id}).\n\nName: {name}\nRuns: {runs}\nWhen it needs approval: {approvals}\nNotifications: {notify}\nOn: {active}\n\nWhat it does:\n{prompt}' },
+      'tasks.edit.chat.ask': { kybernos: 'Ce que je veux changer : ', en: 'What I want to change: ' },
+      'tasks.edit.chat.act': { kybernos: 'Modifier dans le chat', en: 'Edit in chat' },
+      'tasks.edit.chat.aria': { kybernos: 'Modifier {name} dans le chat', en: 'Edit {name} in chat' },
+      // A schedule that runs more often than every 5 minutes needs an explicit confirmation: the host refuses it without one.
+      'tasks.err.frequent': { kybernos: 'Ce planning se déclenche très souvent (plus d’une fois toutes les 5 minutes) et chaque déclenchement ouvre une vraie session du modèle : il faut le confirmer explicitement.', en: 'This schedule runs very often (more than once every 5 minutes) and each run starts a real model session: it needs an explicit confirmation.' },
       // The Columns and Calendar views of the Automations page.
       'tasks.board.cols.upcoming': { kybernos: 'À venir', en: 'Upcoming' },
       'tasks.board.cols.running': { kybernos: 'En cours', en: 'Running' },
@@ -4832,25 +4848,79 @@ const kbRemoteOutcome = (name, reply, failure) => {
 const kbMachineTz = () => {
   try { const z = new Intl.DateTimeFormat().resolvedOptions().timeZone; return typeof z === 'string' && z.length > 0 ? z : 'UTC' } catch (e) { return 'UTC' }
 }
-// "Every Monday, 08:30": only what the label can say exactly. A day of the month, a month, a list of
-// hours or any other weekday set is shown as the cron expression itself, never as a wrong sentence.
-const kbCronHuman = (cron, tr) => {
+// The city of an IANA zone: "Asia/Kolkata" -> "Kolkata". What names the clock of an automation that is not the person's own.
+const kbZoneLabel = (tz) => (typeof tz === 'string' && tz.length > 0 ? tz.split('/').pop().replace(/_/g, ' ') : '')
+// The name of a weekday (0 and 7 are Sunday) and the ordinal of a day of the month, in the language of the page.
+const kbDayName = (dow, locale) => {
+  try { return new Intl.DateTimeFormat(locale || 'en', { weekday: 'long', timeZone: 'UTC' }).format(Date.UTC(2024, 0, 7 + (dow % 7))) } catch (e) { return String(dow) }
+}
+const kbDayOrdinal = (d, locale) => {
+  const lang = String(locale || 'en').split(/[-_]/)[0]
+  if (lang === 'en') return String(d) + (d % 100 >= 11 && d % 100 <= 13 ? 'th' : (['th', 'st', 'nd', 'rd'][d % 10] || 'th'))
+  return lang === 'fr' && d === 1 ? '1er' : String(d)
+}
+// "Sat, Oct 17": the one way the page writes a day (the board's own, kbBoardDayLong); the year only when it is not this year.
+const kbDayLabel = (y, mo, d, locale, withYear) => {
+  try { return new Intl.DateTimeFormat(locale || 'en', Object.assign({ weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }, withYear === true ? { year: 'numeric' } : {})).format(Date.UTC(y, mo - 1, d, 12)) } catch (e) { return String(d) + '/' + String(mo) }
+}
+// "Every Monday, 08:30", "Every 2 hours", "Every month on the 1st, 08:00": only what the label can say exactly.
+// Anything else (a month, a list, "every 5 hours" which is 0, 5, 10, 15, 20 and then 0 again, the 31st that not every
+// month has...) is shown as the cron expression itself, never as a wrong sentence. `locale` names the weekdays and the
+// day of the month; `zoneName` is added to a sentence that has a wall clock (an interval has none) when the automation
+// runs in another zone than the person's.
+const kbCronHuman = (cron, tr, locale, zoneName) => {
   const raw = String(cron || '').trim()
   const c = raw.split(/\s+/)
   if (c.length !== 5) return raw
   const mi = c[0]; const hh = c[1]; const dom = c[2]; const mon = c[3]; const dow = c[4]
-  const whole = (x) => /^\d{1,2}$/.test(x)
-  const named = dow === '1' ? 'tasks.monday8' : dow === '1-5' ? 'tasks.weekdays8' : dow === '*' ? 'tasks.everyday8' : dow === '5' ? 'tasks.friday16' : null
-  if (whole(mi) === false || whole(hh) === false || dom !== '*' || mon !== '*' || named === null) return tr('tasks.cron') + ' · ' + raw
-  const hm = String(Number(hh)).padStart(2, '0') + ':' + String(Number(mi)).padStart(2, '0')
-  return tr(named).replace(/\d{1,2}:\d{2}( [AP]M)?/, hm)
+  const fallback = tr('tasks.cron') + ' · ' + raw
+  const whole = (x, max) => /^\d{1,2}$/.test(x) && Number(x) <= max
+  const two = (x) => String(Number(x)).padStart(2, '0')
+  const step = (x) => { const s = /^\*\/(\d{1,2})$/.exec(x); return s === null ? 0 : Number(s[1]) }
+  if (mon !== '*') return fallback
+  if (dom === '*' && dow === '*') {
+    // Intervals: whole steps of the hour (60 / n) or of the day (24 / n), so the rhythm never breaks at the wrap.
+    const hourly = (n) => (Number(mi) === 0 ? tr(n === 1 ? 'tasks.every.hour' : 'tasks.every.hours') : tr(n === 1 ? 'tasks.every.hour.at' : 'tasks.every.hours.at').replace('{minute}', two(mi))).replace('{n}', String(n))
+    if (hh === '*' && mi === '*') return tr('tasks.every.minute')
+    if (hh === '*' && step(mi) > 0) return step(mi) === 1 ? tr('tasks.every.minute') : (step(mi) < 60 && 60 % step(mi) === 0 ? tr('tasks.every.minutes').replace('{n}', String(step(mi))) : fallback)
+    if (hh === '*' && whole(mi, 59) === true) return hourly(1)
+    if (step(hh) > 0 && whole(mi, 59) === true) return step(hh) === 1 || (step(hh) < 24 && 24 % step(hh) === 0) ? hourly(step(hh)) : fallback
+  }
+  if (whole(mi, 59) === false || whole(hh, 23) === false) return fallback
+  const hm = two(hh) + ':' + two(mi)
+  const at = (key) => tr(key).replace(/\d{1,2}:\d{2}( [AP]M)?/, hm)
+  let words = null
+  if (dom === '*' && dow === '*') words = at('tasks.everyday8')
+  else if (dom === '*' && dow === '1-5') words = at('tasks.weekdays8')
+  else if (dom === '*' && /^[0-7]$/.test(dow) === true) words = tr('tasks.every.dow').replace('{day}', kbDayName(Number(dow), locale)).replace('{time}', hm)
+  else if (dow === '*' && /^\d{1,2}$/.test(dom) === true && Number(dom) >= 1 && Number(dom) <= 28) words = tr('tasks.every.month').replace('{day}', kbDayOrdinal(Number(dom), locale)).replace('{time}', hm)
+  if (words === null) return fallback
+  return typeof zoneName === 'string' && zoneName.length > 0 ? words + ' (' + zoneName + ')' : words
 }
-// A one-time date as written in the automation's own zone: "One time · 06/10 09:00".
-const kbOnceLabel = (at, tr, nowYear) => {
+// The time of day of a schedule the form's time field can edit (a fixed minute and a fixed hour), else null.
+const kbCronTime = (cron) => {
+  const c = String(cron || '').trim().split(/\s+/)
+  if (c.length !== 5 || /^\d{1,2}$/.test(c[0]) === false || /^\d{1,2}$/.test(c[1]) === false || Number(c[0]) > 59 || Number(c[1]) > 23) return null
+  return { hh: Number(c[1]), mi: Number(c[0]) }
+}
+// The same schedule at another time of day (the days stay), or null when the schedule has no single time.
+const kbCronAt = (cron, hh, mi) => {
+  const c = String(cron || '').trim().split(/\s+/)
+  if (kbCronTime(cron) === null || Number.isInteger(hh) === false || Number.isInteger(mi) === false || hh < 0 || hh > 23 || mi < 0 || mi > 59) return null
+  return String(mi) + ' ' + String(hh) + ' ' + c.slice(2).join(' ')
+}
+// The same time of day on other days (`days` is the weekday field: '*', '1-5', '1'...): what a preset does. A schedule with
+// no single time of day (every 6 hours, a list) becomes the preset at 08:00.
+const kbCronOnDays = (cron, days) => {
+  const t = kbCronTime(cron)
+  return String(t === null ? 0 : t.mi) + ' ' + String(t === null ? 8 : t.hh) + ' * * ' + days
+}
+// A one-time date as written in the automation's own zone: "One time · Sat, Oct 17 · 10:00".
+const kbOnceLabel = (at, tr, nowYear, locale, zoneName) => {
   const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{1,2}):(\d{2})/.exec(String(at || ''))
   if (m === null) return tr('tasks.onetime')
   const year = Number.isFinite(nowYear) === true ? nowYear : new Date().getFullYear()
-  return tr('tasks.onetime') + ' · ' + m[3] + '/' + m[2] + ' ' + m[4].padStart(2, '0') + ':' + m[5] + (Number(m[1]) !== year ? ' ' + m[1] : '')
+  return tr('tasks.onetime') + ' · ' + kbDayLabel(Number(m[1]), Number(m[2]), Number(m[3]), locale, Number(m[1]) !== year) + ' · ' + m[4].padStart(2, '0') + ':' + m[5] + (typeof zoneName === 'string' && zoneName.length > 0 ? ' (' + zoneName + ')' : '')
 }
 // When a run happens, in the zone of the automation (a New York schedule reads in New York time, not
 // in whatever the browser is set to); an unreadable date is a dash, never "NaN/NaN".
@@ -4897,11 +4967,37 @@ const kbTaskTriggerCode = (sc) => {
 // The trigger of an automation as two facts: what it runs on (schedule, date or webhook alone) and
 // whether a webhook can also start it. The list shows the second one on its own line instead of
 // cutting a long sentence in half.
-const kbTriggerParts = (t, tr) => {
+// `locale` is the page's language (weekdays, dates) and `viewerZone` the zone of the person: a schedule in ANOTHER zone
+// names it (« Every day, 08:00 (Kolkata) »), because its clock is not the one on the person's wall. `tip` is what the
+// label hides: the cron expression (and the zone when it is another one), for a tooltip.
+const kbTriggerParts = (t, tr, locale, viewerZone) => {
   const sc = t !== null && typeof t === 'object' && t.schedule !== null && typeof t.schedule === 'object' ? t.schedule : {}
-  const label = sc.mode === 'webhook' ? tr('tasks.trigger.webhook') : (sc.mode === 'once' ? kbOnceLabel(sc.at, tr) : kbCronHuman(sc.cron || '', tr))
+  const away = typeof sc.tz === 'string' && sc.tz.length > 0 && typeof viewerZone === 'string' && viewerZone.length > 0 && sc.tz !== viewerZone
+  const zoneName = away === true ? kbZoneLabel(sc.tz) : ''
+  const label = sc.mode === 'webhook' ? tr('tasks.trigger.webhook') : (sc.mode === 'once' ? kbOnceLabel(sc.at, tr, undefined, locale, zoneName) : kbCronHuman(sc.cron || '', tr, locale, zoneName))
   const hooked = t !== null && typeof t === 'object' && t.trigger !== null && t.trigger !== undefined && t.trigger.type === 'webhook' && sc.mode !== 'webhook'
-  return { label, hooked }
+  const tip = sc.mode === 'webhook' ? '' : (sc.mode === 'once' ? (away === true ? sc.tz : '') : String(sc.cron || '').trim() + (away === true ? ' · ' + sc.tz : ''))
+  return { label, hooked, tip }
+}
+// The line under the name in the list: how the automation runs (an automation is not bound to an Agent Team of its own: it
+// starts a session in the workspace), the same words the cards of the board use.
+const kbTaskWho = (t, tr) => (t !== null && typeof t === 'object' && t.approvals === 'auto' ? tr('tasks.auto') : tr('tasks.ask')) + (t !== null && typeof t === 'object' && Array.isArray(t.notify) === true && t.notify.length > 0 ? ' · ' + tr('tasks.notify.on') : '')
+// V-19, « Edit → chat »: the text put in the composer of a NEW chat. It names the automation-creator skill the way « Create »
+// does, says this is an edit and carries the definition as it stands, so the person only has to say what to change. Never
+// the webhook secret, the hook id or the history. `{x}` is replaced by a function: a prompt holding « $& » stays as written.
+const kbEditChatText = (t, tr, locale) => {
+  const x = t !== null && typeof t === 'object' ? t : {}
+  const sc = x.schedule !== null && typeof x.schedule === 'object' ? x.schedule : {}
+  const parts = kbTriggerParts(x, tr, locale)
+  const zone = typeof sc.tz === 'string' && sc.tz.length > 0 ? sc.tz : kbMachineTz()
+  const detail = sc.mode === 'cron' ? ' (cron ' + String(sc.cron || '') + ', ' + zone + ')' : (sc.mode === 'once' ? ' (' + String(sc.at || '') + ', ' + zone + ')' : '')
+  const vars = {
+    id: String(x.id || ''), name: String(x.name || ''), runs: parts.label + (parts.hooked === true ? ' ' + tr('tasks.trigger.plushook') : '') + detail,
+    approvals: x.approvals === 'auto' ? tr('tasks.auto') + ' (auto)' : tr('tasks.ask') + ' (ask)',
+    notify: Array.isArray(x.notify) === true && x.notify.length > 0 ? x.notify.join(', ') : '-', active: x.active === false ? tr('tasks.no') : tr('tasks.yes'),
+    prompt: typeof x.prompt === 'string' ? x.prompt : '',
+  }
+  return tr('tasks.edit.chat').replace(/\{(id|name|runs|approvals|notify|active|prompt)\}/g, (all, k) => vars[k]) + '\n\n' + tr('tasks.edit.chat.ask')
 }
 // What the list shows. Only a list the host actually answered can be "empty": while it loads there is a
 // skeleton, and when the host could not answer there is the reason with a retry (both used to show
@@ -4916,6 +5012,7 @@ const KB_TASK_ERRORS = {
   'date ponctuelle invalide': 'tasks.err.date', 'unknown time zone': 'tasks.err.tz', 'that date is in the past': 'tasks.err.past',
   'this schedule never fires': 'tasks.err.never', 'sign-in required': 'tasks.err.signin', 'request body too large': 'tasks.err.large',
   'tache introuvable': 'tasks.err.notfound', 'active must be true or false': 'tasks.err.active', 'automation paused': 'tasks.err.paused',
+  'frequent schedule': 'tasks.err.frequent',
 }
 const kbTaskError = (message, tr) => (Object.prototype.hasOwnProperty.call(KB_TASK_ERRORS, message) === true ? tr(KB_TASK_ERRORS[message]) : String(message))
 // KB-TASKS-CLIENT-END
@@ -4986,7 +5083,7 @@ const kbBoardWeekOffset = (todayKey, dayKey) => Math.round((kbBoardKeyUtc(kbBoar
 // The labels that depend on a language (never on the zone): the keys are days, read at noon UTC.
 const kbBoardDayName = (key, locale, style) => { try { return new Intl.DateTimeFormat(locale, { weekday: style === 'long' ? 'long' : 'short', timeZone: 'UTC' }).format(kbBoardKeyUtc(key) + 12 * 3600000) } catch (e) { return key } }
 const kbBoardMonthName = (year, month, locale) => { try { return new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' }).format(Date.UTC(year, month - 1, 15)) } catch (e) { return String(month) } }
-const kbBoardDayLong = (key, locale) => { try { return new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(kbBoardKeyUtc(key) + 12 * 3600000) } catch (e) { return key } }
+const kbBoardDayLong = (key, locale, withYear) => { try { return new Intl.DateTimeFormat(locale, Object.assign({ weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }, withYear === true ? { year: 'numeric' } : {})).format(kbBoardKeyUtc(key) + 12 * 3600000) } catch (e) { return key } }
 const kbBoardWeekTitle = (keys, locale) => {
   const a = /^(\d{4})-(\d{2})-(\d{2})$/.exec(keys[0])
   const b = /^(\d{4})-(\d{2})-(\d{2})$/.exec(keys[keys.length - 1])
@@ -4995,12 +5092,13 @@ const kbBoardWeekTitle = (keys, locale) => {
   return String(Number(a[3])) + (a[2] !== b[2] ? ' ' + nameA : '') + (a[1] !== b[1] ? ' ' + a[1] : '') + ' – ' + String(Number(b[3])) + ' ' + nameB + ' ' + b[1]
 }
 const kbBoardMonthTitle = (grid, locale) => kbBoardMonthName(grid.year, grid.month, locale) + ' ' + String(grid.year)
-// « Today · 08:00 », « Tomorrow · 08:00 », « Wed 14 Oct · 08:00 »: the day in the viewer's zone, never invented.
+// « Today · 08:00 », « Tomorrow · 08:00 », « Wed 14 Oct · 08:00 »: the day in the viewer's zone, never invented. The year
+// is added when it is not this year's (« Fri, Jan 1, 2027 · 09:00 »): without it a date a year away reads as this year's.
 const kbBoardWhen = (ms, nowMs, zone, locale) => {
   const key = kbBoardDayKey(ms, zone)
   const today = kbBoardDayKey(nowMs, zone)
   const diff = Math.round((kbBoardKeyUtc(key) - kbBoardKeyUtc(today)) / KB_BOARD_DAY_MS)
-  let day = kbBoardDayLong(key, locale)
+  let day = kbBoardDayLong(key, locale, key.slice(0, 4) !== today.slice(0, 4))
   if (diff >= -1 && diff <= 1) {
     try { const w = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(diff, 'day'); day = w.charAt(0).toUpperCase() + w.slice(1) } catch (e) { /* the date stays */ }
   }
@@ -19389,10 +19487,15 @@ function renderFit(canvas, model, cam, opts){
     // c'est CETTE page qui consomme le drapeau : startSession + draft prérempli.
     // The label helpers live in the tested block at the top of the file; these read a task.
     const kbScheduleLabel = (t, withHook) => {
-      const p = kbTriggerParts(t, kbt)
+      const p = kbTriggerParts(t, kbt, kbBoardLocale(), kbMachineTz())
       return withHook === true && p.hooked === true ? p.label + ' + ' + kbt('tasks.trigger.webhook') : p.label
     }
-    const kbWhenOf = (iso, t) => kbFmtWhen(iso, t !== null && typeof t === 'object' && t.schedule !== null && typeof t.schedule === 'object' ? t.schedule.tz : undefined)
+    // When a run happened or will: the one way every view of the page writes it (the board's own, « Yesterday · 08:00 » or
+    // « Sat, Oct 17 · 10:00 »), in the person's zone and language. A schedule in another zone says its zone on its own label.
+    const kbWhenOf = (iso) => {
+      const ms = Date.parse(iso)
+      return Number.isFinite(ms) === true ? kbBoardWhen(ms, Date.now(), kbMachineTz(), kbBoardLocale()) : '—'
+    }
     const KbTaskModal = (propsM) => {
       const t0 = (propsM.task !== null && propsM.task !== undefined && typeof propsM.task === 'object') ? propsM.task : {}
       const namePair = React.useState(typeof t0.name === 'string' ? t0.name : '')
@@ -19431,14 +19534,18 @@ function renderFit(canvas, model, cam, opts){
         document.addEventListener('keydown', onKey, true)
         return () => { document.removeEventListener('keydown', onKey, true) }
       }, [])
+      // A preset sets the DAYS (the weekday field); the time of day is the time field's, so pressing « Every day » no longer
+      // overwrites a 09:15 with 08:00.
       const presets = [
-        { id: 'mon', cron: '0 8 * * 1', label: kbt('tasks.preset.mon') },
-        { id: 'weekdays', cron: '0 8 * * 1-5', label: kbt('tasks.preset.weekdays') },
-        { id: 'daily', cron: '0 8 * * *', label: kbt('tasks.preset.daily') },
-        { id: 'fri', cron: '0 16 * * 5', label: kbt('tasks.preset.fri') },
-        { id: 'once', cron: null, label: kbt('tasks.preset.once') },
-        { id: 'webhook', cron: null, label: kbt('tasks.preset.webhook') },
+        { id: 'mon', days: '1', label: kbt('tasks.preset.mon') },
+        { id: 'weekdays', days: '1-5', label: kbt('tasks.preset.weekdays') },
+        { id: 'daily', days: '*', label: kbt('tasks.preset.daily') },
+        { id: 'fri', days: '5', label: kbt('tasks.preset.fri') },
+        { id: 'once', days: null, label: kbt('tasks.preset.once') },
+        { id: 'webhook', days: null, label: kbt('tasks.preset.webhook') },
       ]
+      // (The form only writes a fixed time of day, so it can never make the schedule that runs more often than every 5 minutes
+      // that the host refuses without a confirmation: see kbFrequentRefusal.)
       const submit = async () => {
         if (busy === true) return
         if (name.trim().length === 0) { setErr(kbt('tasks.needname')); return }
@@ -19468,7 +19575,9 @@ function renderFit(canvas, model, cam, opts){
           } else { setBusy(false); setErr((r !== null && r !== undefined && typeof r.error === 'string') ? kbTaskError(r.error, kbt) : 'error') }
         } catch (e) { setBusy(false); setErr(String((e !== null && typeof e === 'object' && e.message !== undefined) ? e.message : e)) }
       }
-      const presetOn = (pr) => (pr.id === 'webhook' ? mode === 'webhook' : (pr.id === 'once' ? mode === 'once' : (mode === 'cron' && cron === pr.cron)))
+      const presetOn = (pr) => (pr.id === 'webhook' ? mode === 'webhook' : (pr.id === 'once' ? mode === 'once' : (mode === 'cron' && kbCronTime(cron) !== null && cron.trim().split(/\s+/).slice(2).join(' ') === '* * ' + pr.days)))
+      // The time field edits a schedule that has ONE time of day; a custom expression (every 6 hours, a list) has none.
+      const timeOf = mode === 'cron' ? kbCronTime(cron) : null
       return h('div', { className: 'kb-task-modal-scrim', onMouseDown: (e) => { if (e !== null && e.target === e.currentTarget && typeof propsM.onClose === 'function') propsM.onClose() } },
         h('div', { className: 'kb-task-modal', role: 'dialog', 'aria-modal': 'true' },
           h('h3', null, Icon('calendar-clock', 16), t0.id !== null && t0.id !== undefined ? kbt('tasks.edit') : kbt('tasks.form.title')),
@@ -19477,15 +19586,21 @@ function renderFit(canvas, model, cam, opts){
             h('input', { type: 'text', value: name, autoFocus: true, maxLength: 120, onChange: (e) => setName(e.target.value), placeholder: kbt('tasks.name.placeholder') })),
           h('div', { className: 'kb-task-f' },
             h('label', null, kbt('tasks.prompt')),
-            h('textarea', { value: prompt, maxLength: 8000, onChange: (e) => setPrompt(e.target.value), placeholder: kbf('Ce que l’Agent Team doit faire à chaque déclenchement…') })),
+            h('textarea', { value: prompt, maxLength: 8000, onChange: (e) => setPrompt(e.target.value), placeholder: kbf('Ce que l’Agent Team doit faire à chaque déclenchement…') }),
+            // The field stops at 8000 characters (as the host does): near the end, the counter says so instead of cutting silently.
+            (prompt.length >= 7200 ? h('span', { className: 'kb-task-muted', 'data-kb': 'prompt-count', title: kbt('tasks.prompt.max') }, String(prompt.length) + ' / 8000') : null)),
           h('div', { className: 'kb-task-f' },
             h('label', null, kbt('tasks.repeats')),
-            h('div', { className: 'kb-task-chips' }, presets.map((pr) => h('button', { type: 'button', key: pr.id, className: 'kb-task-chip' + (presetOn(pr) === true ? ' on' : ''), onClick: () => { if (pr.id === 'webhook') { setMode('webhook') } else if (pr.id === 'once') { setMode('once') } else { setMode('cron'); setCron(pr.cron) } } }, pr.label)))),
+            h('div', { className: 'kb-task-chips' }, presets.map((pr) => h('button', { type: 'button', key: pr.id, className: 'kb-task-chip' + (presetOn(pr) === true ? ' on' : ''), onClick: () => { if (pr.id === 'webhook') { setMode('webhook') } else if (pr.id === 'once') { setMode('once') } else { setMode('cron'); setCron(kbCronOnDays(cron, pr.days)) } } }, pr.label)))),
           (mode === 'webhook'
             ? h('div', { className: 'kb-task-hint' }, kbt('tasks.webhook.hint'))
             : mode === 'cron'
-            ? h('div', { className: 'kb-task-row' },
-                h('span', { className: 'kb-task-muted' }, kbCronHuman(cron, kbt)),
+            ? h('div', { className: 'kb-task-row', style: { flexWrap: 'wrap', alignItems: 'flex-end' } },
+                (timeOf !== null ? h('span', { className: 'kb-task-f' },
+                  h('label', null, kbt('tasks.time')),
+                  h('input', { type: 'time', 'data-kb': 'task-time', value: String(timeOf.hh).padStart(2, '0') + ':' + String(timeOf.mi).padStart(2, '0'),
+                    onChange: (e) => { const m = /^(\d{2}):(\d{2})$/.exec(String(e.target.value)); const next = m === null ? null : kbCronAt(cron, Number(m[1]), Number(m[2])); if (next !== null) setCron(next) } })) : null),
+                h('span', { className: 'kb-task-muted', title: cron.trim() }, kbCronHuman(cron, kbt, kbBoardLocale())),
                 h('span', { className: 'grow' }),
                 h('span', { className: 'kb-task-muted' }, kbt('tasks.timezone') + ' · ' + tz0))
             : h('div', { className: 'kb-task-f' },
@@ -19518,7 +19633,7 @@ function renderFit(canvas, model, cam, opts){
           (err !== null ? h('div', { className: 'kb-task-err' }, err) : null),
           h('div', { className: 'kb-task-foot' },
             h('button', { type: 'button', className: 'kb-task-btn', onClick: propsM.onClose }, kbt('tasks.cancel')),
-            h('button', { type: 'button', className: 'kb8-primary', style: { padding: '9px 18px', borderRadius: '10px', fontSize: '13px' }, disabled: busy === true, onClick: submit },
+            h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'task-save', style: { padding: '9px 18px', borderRadius: '10px', fontSize: '13px' }, disabled: busy === true, onClick: submit },
               Icon('calendar-clock', 14), t0.id !== null && t0.id !== undefined ? kbt('tasks.save') : kbt('tasks.schedule')))))
     }
     // ── Automations : compte réel partagé (barre latérale + page) ───────────
@@ -19796,10 +19911,10 @@ function renderFit(canvas, model, cam, opts){
       const CHIPCLS = { running: 'run', waiting: 'warn', failed: 'err', ended: 'ok' }
       const stateChip = (state) => h('span', { className: 'kbbd-chip ' + (CHIPCLS[state] || ''), 'data-state': state }, kbt(CHIP[state] || 'tasks.board.chip.started'))
       const cadence = (t) => {
-        const p = kbTriggerParts(t, kbt)
+        const p = kbTriggerParts(t, kbt, locale, zone)
         const label = p.label + (p.hooked === true ? ' ' + kbt('tasks.trigger.plushook') : '')
         const hook = t.schedule !== null && typeof t.schedule === 'object' && t.schedule.mode === 'webhook'
-        return h('span', { className: 'kbbd-chip', title: label }, Icon(hook === true ? 'zap' : 'clock', 11), h('span', { className: 'kbbd-chip-t' }, label))
+        return h('span', { className: 'kbbd-chip', title: p.tip !== '' ? label + ' · ' + p.tip : label }, Icon(hook === true ? 'zap' : 'clock', 11), h('span', { className: 'kbbd-chip-t' }, label))
       }
       const whoOf = (t, it) => (t.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask')) + (it !== null && it.via === 'webhook' ? ' · ' + kbt('tasks.trigger.webhook') : '')
       // One card. `col` is the column; `it` a run, or { taskId, atMs, due } for the upcoming column.
@@ -19879,7 +19994,7 @@ function renderFit(canvas, model, cam, opts){
         const nm = nameOf(g.taskId) + (g.n > 1 ? ' ×' + String(g.n) : '')
         const hm = kbBoardHm(g.atMs, zone)
         return h('button', { key: g.key, type: 'button', className: 'kbbd-ev ' + (g.state === 'mixed' ? 'planned' : g.state) + (cal.sel === g.key ? ' sel' : ''), 'data-kb': 'board-event', 'data-state': g.state, 'data-task': g.taskId, 'aria-pressed': cal.sel === g.key ? 'true' : 'false',
-          'aria-label': nm + ', ' + hm + ', ' + kbt(CHIP[g.state] || 'tasks.board.chip.started'), title: nm + (t !== undefined ? ' · ' + kbTriggerParts(t, kbt).label : ''),
+          'aria-label': nm + ', ' + hm + ', ' + kbt(CHIP[g.state] || 'tasks.board.chip.started'), title: nm + (t !== undefined ? ' · ' + kbTriggerParts(t, kbt, locale, zone).label : ''),
           onClick: () => setCal((c) => Object.assign({}, c, { sel: c.sel === g.key ? null : g.key })) },
           (g.n > 1 ? null : h('span', { className: 'kbbd-tm' }, hm)), h('span', { className: 'kbbd-nm' }, nm), sign(g.state === 'mixed' ? 'planned' : g.state))
       }
@@ -20115,6 +20230,12 @@ function renderFit(canvas, model, cam, opts){
           toast(kbf('Export lancé'))
         } catch (e) { toast(kbf('Export impossible')) }
       }
+      // « Edit → chat » (V-19): a NEW chat, the way « Create » opens one (the draft names the automation-creator skill), with the
+      // automation as it stands, so the person says what to change in words and sends. The form stays the manual way; it is also
+      // what opens when no chat can be started from here.
+      const editInChat = (t) => {
+        try { kbStartChatText(kbEditChatText(t, kbt, kbBoardLocale())) } catch (e) { setModal(t) }
+      }
 
       const list = kbTasksList(tasks)
       const askDelete = (id, name) => setConfirm({
@@ -20124,21 +20245,24 @@ function renderFit(canvas, model, cam, opts){
         onConfirm: async () => { await act('delete', id); if (detail === id) setDetail(null) },
       })
       // The shared skeleton (see KB_SKEL_CSS): the card, the real header and rows with the SAME grid as the real ones, bones inside.
-      const kbaSkeleton = () => kbSkelWrap(kbt('tasks.loading'), 'kba-card', [
-        h('div', { key: 'hd', className: 'kba-rowline kba-rowline-head' },
-          h('div', { className: 'kba-rowhead' },
-            h('span', { className: 'kba-tabver' }, kbt('tasks.col.name')),
-            h('span', { className: 'kba-tabver' }, kbt('tasks.col.trigger')),
-            h('span', { className: 'kba-tabver' }, kbt('tasks.col.origin')),
-            h('span', { className: 'kba-tabver' }, kbt('tasks.col.lastsession')),
-            h('span', { className: 'kba-tabver' }, kbt('tasks.col.sessions')),
-            h('span', null)),
-          h('span', { className: 'kba-toggle-spacer' }, h('span', { className: 'kba-tabver' }, kbt('tasks.col.on')))),
+      // The header of the List, shared by the skeleton and the real list: one grid (see .kba-lcard), so a column header always sits over its cells.
+      const kbaListHead = () => h('div', { key: 'hd', className: 'kba-rowline kba-rowline-head' },
+        h('div', { className: 'kba-rowhead' },
+          h('span', { className: 'kba-tabver' }, kbt('tasks.col.name')),
+          h('span', { className: 'kba-tabver' }, kbt('tasks.col.trigger')),
+          h('span', { className: 'kba-tabver' }, kbt('tasks.col.origin')),
+          h('span', { className: 'kba-tabver' }, kbt('tasks.col.lastsession')),
+          h('span', { className: 'kba-tabver' }, kbt('tasks.col.sessions'))),
+        h('span', null),
+        h('span', { className: 'kba-oncol' }, h('span', { className: 'kba-tabver' }, kbt('tasks.col.on'))))
+      const kbaSkeleton = () => kbSkelWrap(kbt('tasks.loading'), 'kba-card kba-lcard', [
+        kbaListHead(),
         [0, 1, 2, 3].map((i) => h('div', { key: 'r' + i, className: 'kba-rowline kb-sk-row' },
           h('div', { className: 'kba-rowbtn', style: { cursor: 'default' } },
             h('span', { style: { display: 'flex', flexDirection: 'column', gap: '3px' } }, kbBone(i % 2 === 0 ? '62%' : '48%', 13), kbBone('36%', 10)),
-            kbBone('72%', 12), kbBone(72, 20, 'pill'), kbBone('70%', 12), kbBone(20, 12), h('span', null)),
-          h('span', { className: 'kba-toggle-spacer' }, kbBone(40, 22, 'pill'))))])
+            kbBone('72%', 12), kbBone(72, 20, 'pill'), kbBone('70%', 12), kbBone(20, 12)),
+          h('span', null),
+          h('span', { className: 'kba-oncol' }, kbBone(34, 20, 'pill'))))])
       const kbaLoadError = () => h('div', { className: 'kba-card' },
         h('div', { className: 'kba-banner', role: 'alert' },
           h('div', { style: { flex: 1, minWidth: 0 } }, h('b', null, kbt('tasks.load.error.title')), h('span', null, String(loadErr))),
@@ -20150,11 +20274,11 @@ function renderFit(canvas, model, cam, opts){
         let lastLabel = kbt('tasks.none.yet')
         let lastCls = ''
         if (t.active === false) { lastLabel = kbt('tasks.paused'); lastCls = '' }
-        else if (failed) { lastLabel = kbt('tasks.failed.at').replace('{when}', kbWhenOf(last.at, t)); lastCls = 'fail' }
-        else if (t.lastRun !== null && t.lastRun !== undefined) { lastLabel = kbWhenOf(t.lastRun, t) + ' \u00b7 ok'; lastCls = 'ok' }
-        const isHook = t.trigger !== null && t.trigger !== undefined && t.trigger.type === 'webhook'
+        else if (failed) { lastLabel = kbt('tasks.failed.at').replace('{when}', kbWhenOf(last.at)); lastCls = 'fail' }
+        else if (t.lastRun !== null && t.lastRun !== undefined) { lastLabel = kbWhenOf(t.lastRun) + ' \u00b7 ok'; lastCls = 'ok' }
+        const parts = kbTriggerParts(t, kbt, kbBoardLocale(), kbMachineTz())
         return {
-          id: t.id, name: t.name || t.id, team: t.notify && t.notify.length > 0 ? kbt('tasks.notify.on') : '', trigger: kbTriggerParts(t, kbt).label, hooked: kbTriggerParts(t, kbt).hooked, active: t.active !== false,
+          id: t.id, name: t.name || t.id, team: kbTaskWho(t, kbt), trigger: parts.label, tip: parts.tip, hooked: parts.hooked, active: t.active !== false,
           sessions: hist.length, lastLabel: lastLabel, lastCls: lastCls, failed: failed === true || t.pendingFire === true, _t: t,
         }
       })
@@ -20234,10 +20358,11 @@ function renderFit(canvas, model, cam, opts){
               h('div', { className: 'kba-dmeta' }, kbScheduleLabel(t, true)
                 + ' \u00b7 ' + kbt('tasks.runson.local')
                 + ' \u00b7 ' + (t.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask'))
-                + (t.nextRun ? ' \u00b7 ' + kbt('tasks.next').replace('{when}', kbWhenOf(t.nextRun, t)) : ''))),
+                + (t.nextRun ? ' \u00b7 ' + kbt('tasks.next').replace('{when}', kbWhenOf(t.nextRun)) : ''))),
             h('span', { role: 'switch', 'aria-checked': (t.active !== false) ? 'true' : 'false', 'aria-label': kbt('tasks.toggle.aria'), className: 'kba-toggle' + (t.active !== false ? ' on' : ''), tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act('toggle', t.id, { active: t.active === false }) } }, onClick: () => act('toggle', t.id, { active: t.active === false }) },
               h('span', { className: 'kba-toggle-knob' })),
             h('button', { type: 'button', className: 'kba-btn', onClick: () => act('run-now', t.id) }, Icon('play', 13), ' ', kbt('tasks.runnow')),
+            h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'detail-edit-chat', onClick: () => editInChat(t) }, Icon('messageSquare', 13), ' ', kbt('tasks.edit.chat.act')),
             h('button', { type: 'button', className: 'kba-btn', onClick: () => setModal(t) }, Icon('calendar-clock', 13), ' ', kbt('tasks.editsched')),
             h('button', { type: 'button', className: 'kba-btn kba-trash', 'data-kb': 'detail-delete', onClick: () => askDelete(t.id, t.name || t.id) }, Icon('trash', 13), ' ', kbt('tasks.delete'))),
           h('div', { className: 'kba-tabs' },
@@ -20304,7 +20429,7 @@ function renderFit(canvas, model, cam, opts){
                   onClick: () => { if (typeof e.sessionId === 'string' && e.sessionId.length > 0) { try { uiWorkspaceSvc.openSession(e.sessionId) } catch (er) { /* navigation indisponible */ } } },
                 },
                   h('span', { className: 'kba-kdot ' + (e.status === 'error' ? 'fail' : e.status === 'queued' ? 'wait' : 'ok') }),
-                  h('span', { className: 'kba-ell', style: { fontWeight: 600 } }, kbt('tasks.session.run') + ' \u00b7 ' + kbWhenOf(e.at, t), e.status === 'error' && typeof e.error === 'string' && e.error.length > 0 ? h('span', { className: 'kba-reason' }, e.error) : null),
+                  h('span', { className: 'kba-ell', style: { fontWeight: 600 } }, kbt('tasks.session.run') + ' \u00b7 ' + kbWhenOf(e.at), e.status === 'error' && typeof e.error === 'string' && e.error.length > 0 ? h('span', { className: 'kba-reason' }, e.error) : null),
                   h('span', { className: 'kba-ell dim kba-moboff' }, (typeof e.sessionId === 'string' && e.sessionId.length > 0) ? e.sessionId.slice(0, 14) : '\u2014'),
                   h('span', { className: 'dim', title: e.status === 'error' && typeof e.error === 'string' ? e.error : undefined }, e.status === 'error' ? kbt('tasks.status.error') : e.status === 'queued' ? kbt('tasks.status.queued') : kbt('tasks.status.fired')),
                   h('span', null, (typeof e.sessionId === 'string' && e.sessionId.length > 0)
@@ -20593,27 +20718,23 @@ function renderFit(canvas, model, cam, opts){
           ? (list.length === 0
             ? kbaOnboard(false)
             : h('div', { className: 'kba-card' }, h('div', { className: 'kba-empty' }, kbt('tb.empty.title'))))
-          : (boardEl !== null ? boardEl : h('div', { className: 'kba-card' },
-            h('div', { className: 'kba-rowline kba-rowline-head' },
-              h('div', { className: 'kba-rowhead' },
-                h('span', { className: 'kba-tabver' }, kbt('tasks.col.name')),
-                h('span', { className: 'kba-tabver' }, kbt('tasks.col.trigger')),
-                h('span', { className: 'kba-tabver' }, kbt('tasks.col.origin')),
-                h('span', { className: 'kba-tabver' }, kbt('tasks.col.lastsession')),
-                h('span', { className: 'kba-tabver' }, kbt('tasks.col.sessions')),
-                h('span', null)),
-              h('span', { className: 'kba-toggle-spacer' }, h('span', { className: 'kba-tabver' }, kbt('tasks.col.on')))),
+          : (boardEl !== null ? boardEl : h('div', { className: 'kba-card kba-lcard' },
+            kbaListHead(),
             filtered.map((a, i) => h('div', { key: a.id, className: 'kba-rowline' + kbIn(i) },
-              h('button', { type: 'button', className: 'kb-favbtn' + (auFavOf(a) === true ? ' on' : ''), 'data-kb': 'favorite-star', 'data-scope': 'automations', 'data-id': a.id, title: kbt(auFavOf(a) === true ? 'kbui.unfav' : 'kbui.fav'), 'aria-label': kbt(auFavOf(a) === true ? 'kbui.unfav' : 'kbui.fav'), style: { marginInlineStart: '10px' }, onClick: (e2) => { e2.stopPropagation(); auFavToggle(a.id) } }, Icon('star', 13)),
-              h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-clone', title: kbt('kbui.action.clone'), 'aria-label': kbt('kbui.action.clone'), onClick: (e2) => { e2.stopPropagation(); cloneTask(a) } }, Icon('copy', 13)),
-              h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-export', title: kbt('kbui.action.export'), 'aria-label': kbt('kbui.action.export'), onClick: (e2) => { e2.stopPropagation(); exportTask(a) } }, Icon('download', 13)),
-              h('button', { type: 'button', className: 'kb-favbtn kba-trash', 'data-kb': 'action-delete', title: kbt('tasks.delete'), 'aria-label': kbt('tasks.delete'), onClick: (e2) => { e2.stopPropagation(); askDelete(a.id, a.name) } }, Icon('trash', 13)),
               h('button', { type: 'button', className: 'kba-rowbtn', onClick: () => { setDetail(a.id); setTab('sessions'); setNodeSel(null) } },
-                h('span', { className: 'kba-name' }, a.name, h('span', { className: 'kba-team' }, a.team)),
-                h('span', { className: 'kba-trgcell' }, h('span', { className: 'kba-trigger-icon' }, Icon('zap', 12)), h('span', { className: 'kba-trg-stack' }, h('span', { className: 'kba-ell' }, a.trigger), a.hooked === true ? h('span', { className: 'kba-team' }, kbt('tasks.trigger.plushook')) : null)),
+                h('span', { className: 'kba-namecell' }, h('span', { className: 'kba-name', title: a.name }, a.name), h('span', { className: 'kba-team', title: a.team }, a.team)),
+                h('span', { className: 'kba-trgcell' }, h('span', { className: 'kba-trigger-icon' }, Icon('zap', 12)), h('span', { className: 'kba-trg-stack' }, h('span', { className: 'kba-ell', title: a.tip !== '' ? a.trigger + ' · ' + a.tip : a.trigger }, a.trigger), a.hooked === true ? h('span', { className: 'kba-team' }, kbt('tasks.trigger.plushook')) : null)),
                 h('span', null, h('span', { className: 'kba-origin-badge' }, kbt('tasks.origin.manual'))),
-                h('span', { className: 'kba-last' + (a.lastCls !== '' ? ' ' + a.lastCls : '') }, h('span', { className: 'kba-kdot ' + a.lastCls }), h('span', { className: 'kba-ell' }, a.lastLabel)),
+                h('span', { className: 'kba-last' + (a.lastCls !== '' ? ' ' + a.lastCls : '') }, h('span', { className: 'kba-kdot ' + a.lastCls }), h('span', { className: 'kba-ell', title: a.lastLabel }, a.lastLabel)),
                 h('span', { className: 'kba-td-num' }, String(a.sessions))),
+              // The row's actions sit at the right, shown on hover and on focus (always on a touch screen): they used to stand to the
+              // left of the name and push it away from its column.
+              h('span', { className: 'kba-lacts' },
+                h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-edit-chat', title: kbt('tasks.edit.chat.act'), 'aria-label': kbt('tasks.edit.chat.aria').replace('{name}', () => a.name), onClick: (e2) => { e2.stopPropagation(); editInChat(a._t) } }, Icon('messageSquare', 13)),
+                h('button', { type: 'button', className: 'kb-favbtn' + (auFavOf(a) === true ? ' on' : ''), 'data-kb': 'favorite-star', 'data-scope': 'automations', 'data-id': a.id, title: kbt(auFavOf(a) === true ? 'kbui.unfav' : 'kbui.fav'), 'aria-label': kbt(auFavOf(a) === true ? 'kbui.unfav' : 'kbui.fav'), onClick: (e2) => { e2.stopPropagation(); auFavToggle(a.id) } }, Icon('star', 13)),
+                h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-clone', title: kbt('kbui.action.clone'), 'aria-label': kbt('kbui.action.clone'), onClick: (e2) => { e2.stopPropagation(); cloneTask(a) } }, Icon('copy', 13)),
+                h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-export', title: kbt('kbui.action.export'), 'aria-label': kbt('kbui.action.export'), onClick: (e2) => { e2.stopPropagation(); exportTask(a) } }, Icon('download', 13)),
+                h('button', { type: 'button', className: 'kb-favbtn kba-trash', 'data-kb': 'action-delete', title: kbt('tasks.delete'), 'aria-label': kbt('tasks.delete'), onClick: (e2) => { e2.stopPropagation(); askDelete(a.id, a.name) } }, Icon('trash', 13))),
               h('span', { role: 'switch', 'aria-checked': a.active === true ? 'true' : 'false', 'aria-label': kbt('tasks.toggle.aria'), className: 'kba-toggle' + (a.active === true ? ' on' : ''), tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act('toggle', a._t.id, { active: a._t.active === false }) } }, onClick: () => act('toggle', a._t.id, { active: a._t.active === false }) },
                 h('span', { className: 'kba-toggle-knob' }))))))),
         (msg !== null ? h('div', { className: 'kba-toast', role: 'status' }, h('span', { className: 'kba-kdot ok' }), h('span', { style: { flex: 1 } }, msg), h('button', { type: 'button', 'aria-label': kbt('tasks.dismiss'), onClick: () => setMsg(null) }, '\u2715')) : null),
@@ -28486,8 +28607,9 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 .kb-task-modal h3{margin:0;font-size:16px;color:var(--dsw-alias-label-primary);display:flex;align-items:center;gap:9px}
 .kb-task-f{display:flex;flex-direction:column;gap:6px}
 .kb-task-f>label{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
-.kb-task-f input[type=text],.kb-task-f textarea,.kb-task-f input[type=datetime-local]{border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;padding:9px 11px;outline:none;width:100%;box-sizing:border-box}
+.kb-task-f input[type=text],.kb-task-f textarea,.kb-task-f input[type=datetime-local],.kb-task-f input[type=time]{border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;padding:9px 11px;outline:none;width:100%;box-sizing:border-box}
 .kb-task-f textarea{min-height:84px;resize:vertical}
+.kb-task-f input[type=time]{width:132px}
 .kb-task-f input:focus,.kb-task-f textarea:focus{border-color:var(--dsw-alias-brand-primary)}
 .kb-task-chips{display:flex;gap:6px;flex-wrap:wrap}
 .kb-task-chip{padding:6px 12px;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0}
@@ -28518,11 +28640,43 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 .kba-toast{display:flex;align-items:center;gap:12px;align-self:center;padding:10px 14px;border-radius:12px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2);font-size:13px;color:var(--dsw-alias-label-primary);max-width:min(92%,560px)}
 .kba-toast button{border:0;background:transparent;color:var(--dsw-alias-label-secondary);font-size:15px;cursor:pointer}
 .kba-card{border-radius:16px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);overflow:hidden}
-.kba-rowbtn{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 96px 168px 72px 46px;gap:14px;align-items:center}
-.kba-rowline-head{cursor:default;border-top:0}
-.kba-rowhead{flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 96px 168px 72px 46px;gap:14px;align-items:center;padding:11px 16px}
-.kba-toggle-spacer{width:44px;height:26px;flex:none;display:flex;align-items:center;justify-content:center}
-.kba-rowline{display:flex;align-items:center;border-top:1px solid var(--dsw-alias-border-l1);padding-right:10px}
+/* The List of the Automations: ONE grid for the header and the rows. A line is [columns | actions | switch]; the header
+   (.kba-rowhead) and the button of a row (.kba-rowbtn) share ONE column declaration, and the actions and the switch have the same
+   fixed width in both, so a header can never drift away from its cells. The card lays itself out by its own width (a container
+   query: the sidebar takes a different share on every screen): five columns, then four (no origin), then one stacked block per
+   row. The second .kba-card rule further down (a padded flex card) is for other pages: the list card cancels it. */
+.kba-card.kba-lcard{display:block;padding:0;gap:0;border-radius:16px;animation:none;container-type:inline-size}
+.kba-rowline{display:grid;grid-template-columns:minmax(0,1fr) 146px 40px;column-gap:10px;align-items:center;border-top:1px solid var(--dsw-alias-border-l1);padding:0 16px}
+.kba-rowline:hover,.kba-rowline:focus-within{background:var(--dsw-alias-interactive-bg-hover)}
+.kba-rowline-head{cursor:default;border-top:0;padding-top:11px;padding-bottom:11px}
+.kba-rowline-head:hover{background:transparent}
+.kba-rowbtn,.kba-rowhead{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 88px 150px 64px;column-gap:14px;align-items:center;min-width:0}
+.kba-oncol{display:flex;align-items:center;justify-content:center}
+.kba-namecell{display:flex;flex-direction:column;min-width:0}
+/* The row's actions: at the right, on hover and on focus; always on a touch screen. A starred row keeps its star. */
+.kba-lacts{display:flex;align-items:center;justify-content:flex-end;gap:2px}
+.kba-lacts .kb-favbtn{opacity:0;transition:opacity .12s}
+.kba-rowline:hover .kba-lacts .kb-favbtn,.kba-rowline:focus-within .kba-lacts .kb-favbtn,.kba-lacts .kb-favbtn.on,.kba-lacts .kb-favbtn:focus-visible{opacity:1}
+@media (hover:none){.kba-lacts .kb-favbtn{opacity:1}}
+.kba-lcard .kba-toggle{width:34px;height:20px;border-radius:10px;justify-self:center}
+.kba-lcard .kba-toggle-knob{top:2px;left:2px;width:14px;height:14px;border-radius:7px}
+.kba-lcard .kba-toggle.on .kba-toggle-knob{left:16px}
+@container (max-width:939px){
+  .kba-rowbtn,.kba-rowhead{grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 150px}
+  .kba-rowbtn>:nth-child(3),.kba-rowhead>:nth-child(3),.kba-rowbtn>:nth-child(5),.kba-rowhead>:nth-child(5){display:none}
+}
+@container (max-width:699px){
+  .kba-rowline-head{display:none}
+  .kba-rowbtn{grid-template-columns:minmax(0,1fr);row-gap:4px;padding:10px 0}
+  .kba-rowbtn .kba-ell{white-space:normal;overflow:visible;text-overflow:clip}
+}
+@container (max-width:519px){
+  .kba-rowline{grid-template-columns:minmax(0,1fr) 40px;grid-template-areas:"main sw" "acts acts";padding:0 12px 6px}
+  .kba-rowline>.kba-rowbtn{grid-area:main}
+  .kba-rowline>.kba-toggle{grid-area:sw}
+  .kba-rowline>.kba-lacts{grid-area:acts;justify-content:flex-start}
+  .kba-lacts .kb-favbtn{width:34px;height:34px}
+}
 /* assistant « par chat » (port maquette v3) */
 .kba-chatwrap{display:flex;flex-direction:column;height:100%}
 .kba-subhead{flex:none;display:flex;align-items:center;gap:12px;padding:0 26px;height:54px;border-bottom:1px solid var(--dsw-alias-border-l1);flex-wrap:wrap}
@@ -28545,9 +28699,8 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 .kba-tr{display:grid;grid-template-columns:70px minmax(0,1fr) 220px;gap:12px;align-items:center;padding:9px 0;border-top:1px solid var(--dsw-alias-border-l1);font-size:14px}
 .kba-tr>*{min-width:0}
 .kb-task-f textarea{min-height:150px}
-.kba-rowbtn{flex:1;padding:12px 16px;border:0;background:transparent;text-align:left;font:inherit;font-size:13.5px;color:var(--dsw-alias-label-primary);cursor:pointer;min-width:0}
-.kba-rowbtn:hover{background:var(--dsw-alias-interactive-bg-hover)}
-.kba-name{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kba-rowbtn{padding:12px 0;border:0;background:transparent;text-align:left;font:inherit;font-size:13.5px;color:var(--dsw-alias-label-primary);cursor:pointer}
+.kba-name{display:block;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kba-team{display:block;font-size:11px;color:var(--dsw-alias-label-secondary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kba-trg-stack{display:flex;flex-direction:column;min-width:0}
 .kba-reason{display:block;margin-top:3px;font-size:12px;font-weight:400;color:var(--dsw-alias-state-error-primary);white-space:normal}
@@ -28752,9 +28905,6 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kba-ln i{font-style:normal;width:38px;text-align:right;padding-right:13px;color:var(--dsw-alias-label-tertiary);flex:none;opacity:.7}
 .kba-ln.cm span{color:var(--dsw-alias-label-tertiary)}
 @media (max-width:900px){
-  .kba-rowhead{display:none}
-  .kba-rowbtn{grid-template-columns:1fr;gap:4px}
-  .kba-rowbtn .kba-ell{white-space:normal;overflow:visible;text-overflow:clip}
   .kba-srow{grid-template-columns:14px minmax(0,1fr) 110px;row-gap:4px}
   .kba-srow .kba-moboff{display:none}
 }
