@@ -25,7 +25,10 @@ const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const mainWorkingTree = () => {
   try { return dirname(resolve(REPO, execFileSync('git', ['rev-parse', '--git-common-dir'], { cwd: REPO, encoding: 'utf8' }).trim())) } catch (e) { return REPO }
 }
-export const SHARED_TREE = process.env.KB_SHARED_TREE || mainWorkingTree()
+// On a sandbox (scripts/sandbox: KB_HOST is not :3080) `dsh web` serves the checkout the sandbox was built from, KB_WORKTREE: taking the main tree there would look
+// for text the page does not hold, and every swap would report `replaced: false` although the page already runs this checkout's client.
+const servedTree = () => ((process.env.KB_HOST || '127.0.0.1:3080') !== '127.0.0.1:3080' && process.env.KB_WORKTREE ? process.env.KB_WORKTREE : mainWorkingTree())
+export const SHARED_TREE = process.env.KB_SHARED_TREE || servedTree()
 
 /**
  * @param page   a CDP page from scripts/cdp-lib.mjs (see scripts/live-page.mjs)

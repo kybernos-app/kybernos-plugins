@@ -19,6 +19,11 @@ import { swapBundles } from './lib-bundle-swap.mjs'
 import * as host from '../packages/kybernos-skills/index.js'
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+// The Skills page opens on Featured; the catalogue of the user's own skills (and the refusals of its host route) belong to the Yours segment.
+const openYours = async (page, waitFor) => {
+  await waitFor(page, "!!document.querySelector('.kbsub-group [role=tab]')", 20000)
+  await page.evalJs("(Array.from(document.querySelectorAll('.kbsub-group [role=tab]')).find((b) => /^Yours/.test(b.innerText.trim())) || { click () {} }).click()")
+}
 let pass = 0
 const failures = []
 const check = (label, cond, detail) => {
@@ -90,6 +95,7 @@ try {
   await waitFor(page, 'document.body && document.body.innerText.length > 80', 30000)
   await clickText(page, 'Skills')
   await waitFor(page, "!!document.querySelector('.kbs-root')", 20000)
+  await openYours(page, waitFor)
   await waitFor(page, "document.querySelectorAll('.kbs-root .kb8-card[data-kb^=\"skill-card-\"]').length > 3", 40000)
   check('the client was found in the served bundle and swapped', swap.report().every((r) => r.replaced === true), swap.report())
 
