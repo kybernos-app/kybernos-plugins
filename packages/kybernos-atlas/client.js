@@ -1059,7 +1059,10 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
 .kbat-around{padding:14px 20px 28px;overflow:auto;max-height:78vh;min-height:420px}
 .kbat-cap{margin:0 0 14px;color:var(--dsw-alias-label-secondary);font-size:12px;max-width:70ch}
 .kbat-cap b{color:var(--dsw-alias-label-primary);font-weight:600}
-.kbat-grid{position:relative;display:grid;grid-template-columns:repeat(4,minmax(176px,1fr));column-gap:52px;min-width:820px;align-items:start}
+/* Four columns that fit the card (A4-23): at 1400 px the card is 786 px wide (the rail takes 300), and the columns, 176 px at least
+   with a 52 px gap, needed 860 px: the fourth one sat behind a scroll bar. They shrink to 132 px, and the page scrolls sideways
+   inside its card only below the 600 px the four of them need. */
+.kbat-grid{position:relative;display:grid;grid-template-columns:repeat(4,minmax(132px,1fr));column-gap:clamp(20px,2.4vw,40px);min-width:600px;align-items:start}
 .kbat-lines{position:absolute;left:0;top:0;pointer-events:none;z-index:0;overflow:visible}
 .kbat-lines path{fill:none;stroke:var(--dsw-alias-label-tertiary);stroke-width:1.2;opacity:.45}
 .kbat-lines path[data-inf="1"]{stroke-dasharray:4 4}

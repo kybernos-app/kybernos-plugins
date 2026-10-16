@@ -1,22 +1,22 @@
-// kybernos-theme — moitié navigateur.
+// kybernos-theme — browser half.
 //
-// Câblage de la maquette « Simple » (docs/handoff + maquette fournie) sur les
+// Wiring of the “Simple” mockup (docs/handoff + supplied mockup) onto the
 // vraies API de DSH :
 //
-//   mode (Système/Clair/Sombre) .... ctx.theme.setTheme()      — préférence native
-//   9 thèmes prêts + accent ........ ctx.theme.overrideTokens() — 17 jetons {light,dark}
-//   fond d'écran (24 fonds) ........ <div> fixe sous l'app     — motif dream-skin
+//   mode (System/Light/Dark) ....... ctx.theme.setTheme()      — native preference
+//   9 ready-made themes + accent ... ctx.theme.overrideTokens() — 17 tokens {light,dark}
+//   wallpaper (24 backgrounds) ..... fixed <div> under the app — dream-skin pattern
 //   police + taille ................ --dsw-font-family + ctx.theme.setFontSize() (px; 'text', px since 0.2.1-alpha.2)
-//   jetons (Avancé) ................ le même overrideTokens, par paire de schémas
+//   tokens (Advanced) .............. the same overrideTokens, per scheme pair
 //
-// Tout ce que cette page applique est mesuré par makeTheme (porté tel quel de
-// la maquette) : l'accent dérivé vise 4,5:1 sur les DEUX schémas, jamais une
-// clarté fixe.
+// Everything this page applies is measured by makeTheme (carried over as is from
+// the mockup): the derived accent aims for 4.5:1 on BOTH schemes, never a fixed
+// lightness.
 //
-// Chargé via window.__ModuleLoader__.load — même forme que les paquets ui-*.
-// Le try/catch de la factory est vital : une erreur d'évaluation ici casse TOUTE
-// l'entrée (« Failed to load plugins ») et laisse la GUI inutilisable. On
-// dégrade : plugin désactivé, GUI préservée.
+// Loaded via window.__ModuleLoader__.load — same shape as the ui-* packages.
+// The factory's try/catch is vital: an evaluation error here breaks the WHOLE
+// entry (“Failed to load plugins”) and leaves the GUI unusable. We
+// degrade: plugin disabled, GUI preserved.
 window.__ModuleLoader__.load({
   id: '@local/kybernos-theme',
   factory(require) {
@@ -25,7 +25,33 @@ window.__ModuleLoader__.load({
       const React = require('react')
       const h = React.createElement
 
-      // `styles` suit le contrat du runner cordis dynamique : insert(css)
+      // ── language: what Kybernos resolved ──────────────────────────────────────────────────────────────
+      // French for the French of the product (“kybernos”, or any fr*); English for every other language, and for a language not known
+      // yet; a translated language is looked up by its French text, like any kbf phrase. English is the BASE of the page.
+      const lang = () => {
+        try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
+      }
+      const kt = (fr, en) => {
+        const l = lang()
+        if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
+        if (l === 'en') return en
+        try {
+          const a = window.__KB_I18N_ACTIVE__
+          if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
+        } catch (e) { /* no dictionary: English */ }
+        return en
+      }
+      /** The names of the data tables below are read when they are DRAWN, in the language of the page (a constant is evaluated once, at
+       *  load, before the language is known): `named(rows, { <id>: [French, English] })` gives each row a `name` looked up at every read. */
+      const named = (rows, names) => {
+        rows.forEach((o) => {
+          const p = names[o.id]
+          if (p !== undefined) Object.defineProperty(o, 'name', { enumerable: true, configurable: true, get: () => kt(p[0], p[1]) })
+        })
+        return rows
+      }
+
+      // `styles` follows the contract of the dynamic cordis runner: insert(css)
       // retourne un disposer.
       const styles = (() => {
         const insert = (css) => {
@@ -39,10 +65,10 @@ window.__ModuleLoader__.load({
       })()
 
       // ══════════════════════════════════════════════════════════════════════
-      // 1. MOTEUR DE COULEURS — porté tel quel de la maquette Simple.
-      //    Les jetons TK sont la feuille officielle DSH condensée ; makeTheme
-      //    applique contraste, teinte, recouvrements, puis DÉRIVE l'accent pour
-      //    viser 4,5:1 (boucles while sur ratio, pas une clarté en dur).
+      // 1. COLOUR ENGINE — carried over as is from the Simple mockup.
+      //    The TK tokens are DSH's official sheet, condensed; makeTheme
+      //    applies contrast, tint and overrides, then DERIVES the accent to
+      //    aim for 4.5:1 (while loops on the ratio, not a hard-coded lightness).
       // ══════════════════════════════════════════════════════════════════════
 
       const HEX = (c) => {
@@ -72,7 +98,7 @@ window.__ModuleLoader__.load({
       }
       const validHex = (v) => HEX(v) !== null
 
-      // Feuille officielle condensée — clair / sombre, valeurs telles quelles.
+      // Official condensed sheet — light / dark, values as they are.
       const TK = {
         light: { base: '#FFFFFF', l1: '#FFFFFF', l2: '#FFFFFF', l3: '#FFFFFF', platform: '#F5F6F7', overlay: '#E9ECF2', b1: '#0000000A', b2: '#0000001A', b3: '#0000001F', b4: '#00000029', brand: '#0F1115', onBrand: '#FFFFFF', t1: '#0F1115', t2: '#61666B', t3: '#81858C', t4: '#ADB2B8', link: '#4176E6', hov: '#2631480F', act: '#2631481A', err: '#EC1313', ok: '#22C55E', warn: '#F59E0B', biz: '#4176E6', side: '#F9FAFB', navAct: '#EBEEF2', navHov: '#F1F3F5', input: '#FFFFFF', selector: '#F5F6F7', code: '#F9FAFB', codeBanner: '#F9FAFB', inline: '#FAFAFA', tipBg: '#2C2C2E', okSoft: '#E6FAED', errSoft: '#FEE2E2', warnSoft: '#FEF5E7', bizSoft: '#E4EDFD', okTx: '#15803D', warnTx: '#B45309', off: '#CFD3D6' },
         dark: { base: '#151517', l1: '#232324', l2: '#2C2C2E', l3: '#353638', platform: '#353638', overlay: '#61666B', b1: '#FFFFFF0F', b2: '#FFFFFF1F', b3: '#FFFFFF29', b4: '#FFFFFF33', brand: '#F9FAFB', onBrand: '#0F1115', t1: '#F9FAFB', t2: '#CFD3D6', t3: '#ADB2B8', t4: '#81858C', link: '#7AAAFF', hov: '#FFFFFF14', act: '#FFFFFF24', err: '#F25A5A', ok: '#22C55E', warn: '#F59E0B', biz: '#7AAAFF', side: '#1B1B1C', navAct: '#43454A', navHov: '#2C2C2E', input: '#2C2C2E', selector: '#353638', code: '#1B1B1C', codeBanner: '#2C2C2E', inline: '#292929', tipBg: '#43454A', okSoft: '#233C2C', errSoft: '#570C0C', warnSoft: '#27241F', bizSoft: '#34415B', okTx: '#4ED17E', warnTx: '#F7AD31', off: '#61666B' }
@@ -90,24 +116,24 @@ window.__ModuleLoader__.load({
           t.base = dark ? '#000000' : '#FFFFFF'; t.l1 = t.base; t.l2 = dark ? '#0F0F0F' : '#FFFFFF'; t.l3 = dark ? '#1B1B1C' : '#FFFFFF'
           t.side = dark ? '#0F0F0F' : '#F5F5F5'; t.input = t.l2; t.code = t.side
           t.t1 = dark ? '#FFFFFF' : '#000000'; t.t2 = dark ? '#F5F6F7' : '#1B1B1C'; t.t3 = dark ? '#E1E5EE' : '#292929'
-          t.t4 = dark ? '#ADB2B8' : '#43454A' // the caption stayed at the Renforcé grey: 3.7:1 on white
+          t.t4 = dark ? '#ADB2B8' : '#43454A' // the caption stayed at the Enhanced grey: 3.7:1 on white
           t.b2 = dark ? '#FFFFFFA6' : '#000000A6'; t.b3 = dark ? '#FFFFFFCC' : '#000000CC'; t.b4 = dark ? '#FFFFFF' : '#000000'
         }
-        // Links come from DSH's own sheet (4.2:1 on white) and no level touched them: Renforcé
+        // Links come from DSH's own sheet (4.2:1 on white) and no level touched them: Enhanced
         // brings them to AA, Maximal to AAA, by the same walk the accent text already uses.
         if (o.lvl >= 1) { let k = 0; while (ratio(t.link, t.l1) < (o.lvl >= 2 ? 7 : 4.5) && k < 30) { t.link = mix(t.link, dark ? '#FFFFFF' : '#000000', 0.06); k++ } }
         if (o.tint > 0 && o.dom) { SURF.forEach((k) => { t[k] = mix(t[k], o.dom, o.tint / 100 * 0.16) }) }
         Object.keys(o.ov || {}).forEach((k) => { if (k.indexOf(mode + ':') === 0) { t[k.slice(mode.length + 1)] = o.ov[k] } })
-        // Palette daltonisme : le couple vert/rouge devient bleu/vermillon (Okabe-Ito, distinguable par les trois
-        // formes courantes de daltonisme), et ce sont bien `ok` / `err` — jetons appliqués — qui changent, pas
-        // seulement leurs fonds doux. Chaque encre garde ≥ 5:1 sur la couche 1 (testé).
+        // Colour-blind palette: the green/red pair becomes blue/vermilion (Okabe-Ito, distinguishable by the three
+        // common forms of colour blindness), and it really is `ok` / `err` — applied tokens — that change, not
+        // just their soft backgrounds. Each ink keeps ≥ 5:1 on layer 1 (tested).
         if (o.cb) {
           t.ok = dark ? '#56B4E9' : '#0072B2'; t.err = dark ? '#FF8A3D' : '#B84A00'
           t.okSoft = dark ? '#10263F' : '#E3EEFF'; t.errSoft = dark ? '#3D2A10' : '#FFEBD6'
         }
         let acc = o.acc || t.brand
-        // Un accent qui se fond dans la surface (le noir du dernier rond, sur le thème sombre) rend
-        // boutons et interrupteurs invisibles : on l'éclaircit, dans CE schéma seulement, jusqu'à 3:1.
+        // An accent that blends into the surface (the black of the last dot, on the dark theme) makes
+        // buttons and switches invisible: we lighten it, in THIS scheme only, up to 3:1.
         if (o.acc || (o.ov && o.ov[mode + ':brand'])) { let q = 0; while (ratio(acc, t.l1) < 3 && q < 30) { acc = mix(acc, dark ? '#FFFFFF' : '#000000', 0.08); q++ } }
         let fill = acc, on = t.onBrand
         if (o.acc || (o.ov && o.ov[mode + ':brand'])) {
@@ -121,40 +147,40 @@ window.__ModuleLoader__.load({
       }
 
       // ══════════════════════════════════════════════════════════════════════
-      // 2. CATALOGUE — thèmes prêts, fonds, accents, polices, jetons.
-      //    Tout vient de la maquette, à l'identique.
+      // 2. CATALOGUE — ready-made themes, backgrounds, accents, fonts, tokens.
+      //    Everything comes straight from the mockup, unchanged.
       // ══════════════════════════════════════════════════════════════════════
 
       const SKINS = [
-        { id: 'dsh', name: 'Défaut DSH', mode: 'dark', acc: null, wp: 'none', vis: 60 },
-        { id: 'bleu', name: 'Bleu profond', mode: 'dark', acc: '#4176E6', wp: 'nuit', vis: 70 },
-        { id: 'aurore', name: 'Aurore', mode: 'dark', acc: '#2DD4BF', wp: 'aurore', vis: 60 },
-        { id: 'nebuleuse', name: 'Nébuleuse', mode: 'dark', acc: '#A855F7', wp: 'nebuleuse', vis: 60 },
-        { id: 'ambre', name: 'Ambre', mode: 'dark', acc: '#F59E0B', wp: 'ambre', vis: 60 },
-        { id: 'oled', name: 'Minuit OLED', mode: 'dark', acc: null, wp: 'noir', vis: 100 },
-        { id: 'papier', name: 'Papier', mode: 'light', acc: '#4176E6', wp: 'seyes', vis: 55 },
-        { id: 'clair', name: 'Clair net', mode: 'light', acc: null, wp: 'none', vis: 60 },
+        { id: 'dsh', mode: 'dark', acc: null, wp: 'none', vis: 60 },
+        { id: 'bleu', mode: 'dark', acc: '#4176E6', wp: 'nuit', vis: 70 },
+        { id: 'aurore', mode: 'dark', acc: '#2DD4BF', wp: 'aurore', vis: 60 },
+        { id: 'nebuleuse', mode: 'dark', acc: '#A855F7', wp: 'nebuleuse', vis: 60 },
+        { id: 'ambre', mode: 'dark', acc: '#F59E0B', wp: 'ambre', vis: 60 },
+        { id: 'oled', mode: 'dark', acc: null, wp: 'noir', vis: 100 },
+        { id: 'papier', mode: 'light', acc: '#4176E6', wp: 'seyes', vis: 55 },
+        { id: 'clair', mode: 'light', acc: null, wp: 'none', vis: 60 },
         // Neutral light theme: white panels, grey fields, one violet accent, Inter. Surfaces measured on a
         // light admin dashboard; the engine still lifts the accent to 4.5:1 wherever text sits on it.
-        { id: 'neutre', name: 'Neutre violet', mode: 'light', acc: '#6114D4', wp: 'none', vis: 60, fontText: 'inter', radius: 'standard',
+        { id: 'neutre', mode: 'light', acc: '#6114D4', wp: 'none', vis: 60, fontText: 'inter', radius: 'standard',
           ov: { 'light:base': '#FAFAFA', 'light:l1': '#FFFFFF', 'light:l2': '#F5F5F5', 'light:l3': '#FFFFFF', 'light:side': '#FFFFFF', 'light:input': '#F2F2F2', 'light:t1': '#101010' } },
-        { id: 'rose', name: 'Rose', mode: 'light', acc: '#EC4899', wp: 'peche', vis: 60 },
+        { id: 'rose', mode: 'light', acc: '#EC4899', wp: 'peche', vis: 60 },
 
-        // ── Palettes héritées de « Colour Pack » v1 (ancien onglet Kybernos) ──
-        // Les 8 packs sont portés à l'identique — mêmes noms, mêmes surfaces,
-        // mêmes accents — mais PAR SCHÉMA, par le vocabulaire `ov` de cette page
-        // (celui que l'onglet Avancé écrit déjà) :
-        //   mode: null → le pack n'impose pas de mode ; il suit Système / Clair /
-        //                Sombre comme le faisait le v1 ;
-        //   acc: null  → l'accent vient de `ov[mode+':brand']`, donc la valeur
-        //                exacte du pack dans chaque schéma ; le moteur dérive
-        //                ensuite `fill`/`on` pour garder le libellé lisible.
-        // Rôles v1 → jetons v2 : bg→base, layer1→l1, layer2→l2, sidebar→side,
-        // overlay→input, sidebar→code, accent→brand (par schéma).
-        // Non repris du v1 : les bordures (b1/b2) et les corrections de texte et
-        // d'états, communes aux 8 packs : hors des 17 jetons pilotables ici, et
-        // désormais dérivées par le moteur (contraste mesuré).
-        { id: 'kb-ember', name: 'Braise', mode: null, acc: null, wp: 'none', vis: 60,
+        // ── Palettes inherited from “Colour Pack” v1 (former Kybernos tab) ──
+        // The 8 packs are carried over unchanged — same names, same surfaces,
+        // same accents — but PER SCHEME, through this page's `ov` vocabulary
+        // (the one the Advanced tab already writes):
+        //   mode: null → the pack imposes no mode; it follows System / Light /
+        //                Dark as v1 did;
+        //   acc: null  → the accent comes from `ov[mode+':brand']`, hence the
+        //                pack's exact value in each scheme; the engine then
+        //                derives `fill`/`on` to keep the label readable.
+        // Roles v1 → tokens v2: bg→base, layer1→l1, layer2→l2, sidebar→side,
+        // overlay→input, sidebar→code, accent→brand (per scheme).
+        // Not carried over from v1: the borders (b1/b2) and the text and
+        // state corrections, common to the 8 packs: outside the 17 tokens drivable here, and
+        // now derived by the engine (measured contrast).
+        { id: 'kb-ember', mode: null, acc: null, wp: 'none', vis: 60,
           ov: {
             'light:base': '#faf5ef', 'light:l1': '#ffffff', 'light:l2': '#f5ede3',
             'light:side': '#f3ece1', 'light:input': '#ffffff', 'light:code': '#f3ece1',
@@ -162,7 +188,7 @@ window.__ModuleLoader__.load({
             'dark:l2': '#2a231f', 'dark:side': '#1c1815', 'dark:input': '#221d1a',
             'dark:code': '#1c1815', 'dark:brand': '#e2805a',
           } },
-        { id: 'kb-stone-cloud', name: 'Pierre & Nuage', mode: null, acc: null, wp: 'none', vis: 60,
+        { id: 'kb-stone-cloud', mode: null, acc: null, wp: 'none', vis: 60,
           ov: {
             'light:base': '#fafafa', 'light:l1': '#ffffff', 'light:l2': '#f1f1ef',
             'light:side': '#f0f0ed', 'light:input': '#ffffff', 'light:code': '#f0f0ed',
@@ -170,7 +196,7 @@ window.__ModuleLoader__.load({
             'dark:l2': '#26282c', 'dark:side': '#18191c', 'dark:input': '#1e2023',
             'dark:code': '#18191c', 'dark:brand': '#94a3b8',
           } },
-        { id: 'kb-indigo-pulse', name: 'Pulsation indigo', mode: null, acc: null, wp: 'none', vis: 60,
+        { id: 'kb-indigo-pulse', mode: null, acc: null, wp: 'none', vis: 60,
           ov: {
             'light:base': '#f8f8fd', 'light:l1': '#ffffff', 'light:l2': '#eef0fb',
             'light:side': '#edeffa', 'light:input': '#ffffff', 'light:code': '#edeffa',
@@ -178,7 +204,7 @@ window.__ModuleLoader__.load({
             'dark:l2': '#242438', 'dark:side': '#171728', 'dark:input': '#1d1d2e',
             'dark:code': '#171728', 'dark:brand': '#818cf8',
           } },
-        { id: 'kb-midnight-pulse', name: 'Pulsation minuit', mode: null, acc: null, wp: 'none', vis: 60,
+        { id: 'kb-midnight-pulse', mode: null, acc: null, wp: 'none', vis: 60,
           ov: {
             'light:base': '#f6f8fc', 'light:l1': '#ffffff', 'light:l2': '#eaeff8',
             'light:side': '#e8eef8', 'light:input': '#ffffff', 'light:code': '#e8eef8',
@@ -186,7 +212,7 @@ window.__ModuleLoader__.load({
             'dark:l2': '#1f283b', 'dark:side': '#131a28', 'dark:input': '#192231',
             'dark:code': '#131a28', 'dark:brand': '#60a5fa',
           } },
-        { id: 'kb-olive-grove', name: 'Olivaie', mode: null, acc: null, wp: 'none', vis: 60,
+        { id: 'kb-olive-grove', mode: null, acc: null, wp: 'none', vis: 60,
           ov: {
             'light:base': '#f8faf1', 'light:l1': '#ffffff', 'light:l2': '#eff3e2',
             'light:side': '#eef2e0', 'light:input': '#ffffff', 'light:code': '#eef2e0',
@@ -194,7 +220,7 @@ window.__ModuleLoader__.load({
             'dark:l2': '#262a21', 'dark:side': '#181b14', 'dark:input': '#1e2219',
             'dark:code': '#181b14', 'dark:brand': '#a3c060',
           } },
-        { id: 'kb-aurora-bloom', name: 'Aube florale', mode: null, acc: null, wp: 'none', vis: 60,
+        { id: 'kb-aurora-bloom', mode: null, acc: null, wp: 'none', vis: 60,
           ov: {
             'light:base': '#fdf6f9', 'light:l1': '#ffffff', 'light:l2': '#f9ebf2',
             'light:side': '#f8eaf1', 'light:input': '#ffffff', 'light:code': '#f8eaf1',
@@ -202,7 +228,7 @@ window.__ModuleLoader__.load({
             'dark:l2': '#2d202a', 'dark:side': '#1e151a', 'dark:input': '#251b22',
             'dark:code': '#1e151a', 'dark:brand': '#f472b6',
           } },
-        { id: 'kb-sunset-dream', name: 'Rêve de crépuscule', mode: null, acc: null, wp: 'none', vis: 60,
+        { id: 'kb-sunset-dream', mode: null, acc: null, wp: 'none', vis: 60,
           ov: {
             'light:base': '#fdf9f1', 'light:l1': '#ffffff', 'light:l2': '#f9f0df',
             'light:side': '#f8efdc', 'light:input': '#ffffff', 'light:code': '#f8efdc',
@@ -210,7 +236,7 @@ window.__ModuleLoader__.load({
             'dark:l2': '#2d271d', 'dark:side': '#1e1913', 'dark:input': '#251f17',
             'dark:code': '#1e1913', 'dark:brand': '#fbbf24',
           } },
-        { id: 'kb-plum-haze', name: 'Brume de prune', mode: null, acc: null, wp: 'none', vis: 60,
+        { id: 'kb-plum-haze', mode: null, acc: null, wp: 'none', vis: 60,
           ov: {
             'light:base': '#faf7fe', 'light:l1': '#ffffff', 'light:l2': '#f2ecfb',
             'light:side': '#f1ebfa', 'light:input': '#ffffff', 'light:code': '#f1ebfa',
@@ -220,69 +246,155 @@ window.__ModuleLoader__.load({
           } }
       ]
 
+      const SKIN_NAMES = {
+        dsh: ['Défaut DSH', 'DSH default'],
+        bleu: ['Bleu profond', 'Deep blue'],
+        aurore: ['Aurore', 'Aurora'],
+        nebuleuse: ['Nébuleuse', 'Nebula'],
+        ambre: ['Ambre', 'Amber'],
+        oled: ['Minuit OLED', 'OLED midnight'],
+        papier: ['Papier', 'Paper'],
+        clair: ['Clair net', 'Clean light'],
+        neutre: ['Neutre violet', 'Neutral violet'],
+        rose: ['Rose', 'Rose'],
+        'kb-ember': ['Braise', 'Ember'],
+        'kb-stone-cloud': ['Pierre & Nuage', 'Stone & Cloud'],
+        'kb-indigo-pulse': ['Pulsation indigo', 'Indigo pulse'],
+        'kb-midnight-pulse': ['Pulsation minuit', 'Midnight pulse'],
+        'kb-olive-grove': ['Olivaie', 'Olive grove'],
+        'kb-aurora-bloom': ['Aube florale', 'Floral dawn'],
+        'kb-sunset-dream': ['Rêve de crépuscule', 'Twilight dream'],
+        'kb-plum-haze': ['Brume de prune', 'Plum mist']
+      }
+      named(SKINS, SKIN_NAMES)
+
       const WPS = [
-        { id: 'none', cat: 'none', name: 'Aucun', css: 'none', dom: '' },
-        { id: 'noir', cat: 'colors', name: 'Noir OLED', css: '#000000', dom: '#81858C' },
-        { id: 'encre', cat: 'colors', name: 'Encre', css: '#0F1115', dom: '#81858C' },
-        { id: 'ardoise', cat: 'colors', name: 'Ardoise', css: '#2C2C2E', dom: '#81858C' },
-        { id: 'nuit', cat: 'colors', name: 'Bleu nuit', css: '#172554', dom: '#4176E6' },
-        { id: 'foret', cat: 'colors', name: 'Forêt', css: '#0F2A22', dom: '#22A06B' },
-        { id: 'prune', cat: 'colors', name: 'Prune', css: '#2A1638', dom: '#A855F7' },
-        { id: 'sable', cat: 'colors', name: 'Sable', css: '#E8DFD3', dom: '#B45309' },
-        { id: 'brume', cat: 'colors', name: 'Brume', css: '#E9ECF2', dom: '#61666B' },
-        { id: 'aurore', cat: 'gradients', name: 'Fond Aurore', css: 'radial-gradient(90% 70% at 15% 10%, #2dd4bf66, transparent 60%), radial-gradient(80% 70% at 90% 20%, #6366f199, transparent 55%), linear-gradient(160deg,#0b1220,#0f2a3a)', dom: '#2DD4BF' },
-        { id: 'crepuscule', cat: 'gradients', name: 'Crépuscule', css: 'radial-gradient(90% 70% at 85% 0%, #fb923caa, transparent 55%), radial-gradient(80% 80% at 10% 100%, #7c3aed99, transparent 60%), linear-gradient(180deg,#1e1b4b,#3b1d4a)', dom: '#FB923C' },
-        { id: 'nebuleuse', cat: 'gradients', name: 'Fond Nébuleuse', css: 'radial-gradient(60% 55% at 30% 30%, #a855f7aa, transparent 62%), radial-gradient(55% 55% at 75% 72%, #38bdf8aa, transparent 62%), #120a24', dom: '#A855F7' },
-        { id: 'ocean', cat: 'gradients', name: 'Océan', css: 'linear-gradient(160deg,#0c4a6e,#0e7490 55%,#134e4a)', dom: '#0E7490' },
-        { id: 'ambre', cat: 'gradients', name: 'Fond Ambre', css: 'radial-gradient(80% 70% at 80% 10%, #f59e0baa, transparent 60%), linear-gradient(170deg,#1c1108,#3a1f0a)', dom: '#F59E0B' },
-        { id: 'menthe', cat: 'gradients', name: 'Menthe', css: 'linear-gradient(135deg,#d1fae5,#a7f3d0 50%,#bae6fd)', dom: '#34D399' },
-        { id: 'peche', cat: 'gradients', name: 'Pêche', css: 'linear-gradient(135deg,#ffe4e6,#fed7aa)', dom: '#FB7185' },
-        { id: 'brumeg', cat: 'gradients', name: 'Brume claire', css: 'linear-gradient(180deg,#f8fafc,#dbe4f0)', dom: '#94A3B8' },
-        { id: 'carreaux', cat: 'patterns', name: 'Petits carreaux', css: 'linear-gradient(#bfd0ee 1px,transparent 1px) 0 0/18px 18px, linear-gradient(90deg,#bfd0ee 1px,transparent 1px) 0 0/18px 18px, #ffffff', dom: '#4176E6' },
-        { id: 'carreaux-lg', cat: 'patterns', name: 'Grands carreaux', css: 'linear-gradient(#c8d6e5 1px,transparent 1px) 0 0/32px 32px, linear-gradient(90deg,#c8d6e5 1px,transparent 1px) 0 0/32px 32px, #f0f4f8', dom: '#4176E6' },
-        { id: 'carreaux-sombre', cat: 'patterns', name: 'Carreaux nuit', css: 'linear-gradient(#ffffff12 1px,transparent 1px) 0 0/24px 24px, linear-gradient(90deg,#ffffff12 1px,transparent 1px) 0 0/24px 24px, #0f1115', dom: '#679EFE' },
-        { id: 'seyes', cat: 'patterns', name: 'Seyès', css: 'linear-gradient(90deg,transparent 47px,#f0a3a3 47px,#f0a3a3 49px,transparent 49px), linear-gradient(90deg,#dbe4f7 1px,transparent 1px) 0 0/32px 32px, linear-gradient(#c5d2ee 1px,transparent 1px) 0 0/32px 8px, #ffffff', dom: '#4176E6' },
-        { id: 'points', cat: 'patterns', name: 'Points', css: 'radial-gradient(#94a3b8 1px,transparent 1.6px) 0 0/16px 16px, #f8fafc', dom: '#61666B' },
-        { id: 'milli', cat: 'patterns', name: 'Millimétré', css: 'linear-gradient(#cbd5e1 1px,transparent 1px) 0 0/40px 40px, linear-gradient(90deg,#cbd5e1 1px,transparent 1px) 0 0/40px 40px, linear-gradient(#e2e8f0 1px,transparent 1px) 0 0/8px 8px, linear-gradient(90deg,#e2e8f0 1px,transparent 1px) 0 0/8px 8px, #f8fafc', dom: '#61666B' },
-        { id: 'lignes', cat: 'patterns', name: 'Lignes', css: 'repeating-linear-gradient(0deg,#f1f3f5 0 23px,#dfe3e8 23px 24px)', dom: '#81858C' },
-        { id: 'plan', cat: 'patterns', name: 'Plan bleu', css: 'linear-gradient(#ffffff1a 1px,transparent 1px) 0 0/20px 20px, linear-gradient(90deg,#ffffff1a 1px,transparent 1px) 0 0/20px 20px, #0e3074', dom: '#4176E6' },
-        { id: 'diag', cat: 'patterns', name: 'Diagonales', css: 'repeating-linear-gradient(45deg,#1b1b1c 0 10px,#232324 10px 20px)', dom: '#81858C' },
-        { id: 'kraft', cat: 'patterns', name: 'Kraft', css: 'radial-gradient(#00000014 1px,transparent 1.4px) 0 0/6px 6px, #d8c4a0', dom: '#B45309' },
-        { id: 'iaurore', cat: 'images', name: 'Aurore boréale', css: 'radial-gradient(60% 28% at 38% 42%, #34d39988, transparent 70%), radial-gradient(50% 24% at 66% 36%, #a78bfa77, transparent 70%), radial-gradient(130% 42% at 50% 118%, #02060c 62%, transparent 63%), linear-gradient(180deg,#050a18,#0b2a3a 65%)', dom: '#34D399' },
-        { id: 'icoucher', cat: 'images', name: 'Coucher de soleil', css: 'radial-gradient(28% 34% at 50% 66%, #fde68a, #fb923c 45%, transparent 72%), radial-gradient(130% 40% at 50% 120%, #1c0f2a 60%, transparent 61%), linear-gradient(180deg,#312e81,#be185d 58%,#fb923c)', dom: '#FB923C' },
-        { id: 'idunes', cat: 'images', name: 'Dunes', css: 'radial-gradient(90% 42% at 18% 112%, #c2410c 58%, transparent 59%), radial-gradient(90% 46% at 88% 116%, #ea580c 58%, transparent 59%), linear-gradient(180deg,#fde68a,#fdba74)', dom: '#EA580C' },
-        { id: 'iforet', cat: 'images', name: 'Forêt brumeuse', css: 'radial-gradient(120% 50% at 30% 112%, #0b2e22 58%, transparent 59%), radial-gradient(110% 46% at 85% 110%, #134e3a 58%, transparent 59%), linear-gradient(180deg,#cfe8dc,#8fbfa8 60%,#3b7a62)', dom: '#22A06B' },
-        { id: 'iespace', cat: 'images', name: 'Espace', css: 'radial-gradient(1.2px 1.2px at 12% 22%, #fff, transparent), radial-gradient(1px 1px at 38% 64%, #fff, transparent), radial-gradient(1.4px 1.4px at 70% 30%, #fff, transparent), radial-gradient(1px 1px at 84% 74%, #fff, transparent), radial-gradient(50% 45% at 30% 40%, #7c3aed66, transparent 65%), radial-gradient(50% 45% at 78% 70%, #0ea5e955, transparent 65%), #06040f', dom: '#7C3AED' },
-        { id: 'iencre', cat: 'images', name: 'Lavis d’encre', css: 'radial-gradient(50% 60% at 30% 40%, #ffffff22, transparent 65%), radial-gradient(45% 55% at 72% 62%, #ffffff14, transparent 65%), #0f1115', dom: '#81858C' }
+        { id: 'none', cat: 'none', css: 'none', dom: '' },
+        { id: 'noir', cat: 'colors', css: '#000000', dom: '#81858C' },
+        { id: 'encre', cat: 'colors', css: '#0F1115', dom: '#81858C' },
+        { id: 'ardoise', cat: 'colors', css: '#2C2C2E', dom: '#81858C' },
+        { id: 'nuit', cat: 'colors', css: '#172554', dom: '#4176E6' },
+        { id: 'foret', cat: 'colors', css: '#0F2A22', dom: '#22A06B' },
+        { id: 'prune', cat: 'colors', css: '#2A1638', dom: '#A855F7' },
+        { id: 'sable', cat: 'colors', css: '#E8DFD3', dom: '#B45309' },
+        { id: 'brume', cat: 'colors', css: '#E9ECF2', dom: '#61666B' },
+        { id: 'aurore', cat: 'gradients', css: 'radial-gradient(90% 70% at 15% 10%, #2dd4bf66, transparent 60%), radial-gradient(80% 70% at 90% 20%, #6366f199, transparent 55%), linear-gradient(160deg,#0b1220,#0f2a3a)', dom: '#2DD4BF' },
+        { id: 'crepuscule', cat: 'gradients', css: 'radial-gradient(90% 70% at 85% 0%, #fb923caa, transparent 55%), radial-gradient(80% 80% at 10% 100%, #7c3aed99, transparent 60%), linear-gradient(180deg,#1e1b4b,#3b1d4a)', dom: '#FB923C' },
+        { id: 'nebuleuse', cat: 'gradients', css: 'radial-gradient(60% 55% at 30% 30%, #a855f7aa, transparent 62%), radial-gradient(55% 55% at 75% 72%, #38bdf8aa, transparent 62%), #120a24', dom: '#A855F7' },
+        { id: 'ocean', cat: 'gradients', css: 'linear-gradient(160deg,#0c4a6e,#0e7490 55%,#134e4a)', dom: '#0E7490' },
+        { id: 'ambre', cat: 'gradients', css: 'radial-gradient(80% 70% at 80% 10%, #f59e0baa, transparent 60%), linear-gradient(170deg,#1c1108,#3a1f0a)', dom: '#F59E0B' },
+        { id: 'menthe', cat: 'gradients', css: 'linear-gradient(135deg,#d1fae5,#a7f3d0 50%,#bae6fd)', dom: '#34D399' },
+        { id: 'peche', cat: 'gradients', css: 'linear-gradient(135deg,#ffe4e6,#fed7aa)', dom: '#FB7185' },
+        { id: 'brumeg', cat: 'gradients', css: 'linear-gradient(180deg,#f8fafc,#dbe4f0)', dom: '#94A3B8' },
+        { id: 'carreaux', cat: 'patterns', css: 'linear-gradient(#bfd0ee 1px,transparent 1px) 0 0/18px 18px, linear-gradient(90deg,#bfd0ee 1px,transparent 1px) 0 0/18px 18px, #ffffff', dom: '#4176E6' },
+        { id: 'carreaux-lg', cat: 'patterns', css: 'linear-gradient(#c8d6e5 1px,transparent 1px) 0 0/32px 32px, linear-gradient(90deg,#c8d6e5 1px,transparent 1px) 0 0/32px 32px, #f0f4f8', dom: '#4176E6' },
+        { id: 'carreaux-sombre', cat: 'patterns', css: 'linear-gradient(#ffffff12 1px,transparent 1px) 0 0/24px 24px, linear-gradient(90deg,#ffffff12 1px,transparent 1px) 0 0/24px 24px, #0f1115', dom: '#679EFE' },
+        { id: 'seyes', cat: 'patterns', css: 'linear-gradient(90deg,transparent 47px,#f0a3a3 47px,#f0a3a3 49px,transparent 49px), linear-gradient(90deg,#dbe4f7 1px,transparent 1px) 0 0/32px 32px, linear-gradient(#c5d2ee 1px,transparent 1px) 0 0/32px 8px, #ffffff', dom: '#4176E6' },
+        { id: 'points', cat: 'patterns', css: 'radial-gradient(#94a3b8 1px,transparent 1.6px) 0 0/16px 16px, #f8fafc', dom: '#61666B' },
+        { id: 'milli', cat: 'patterns', css: 'linear-gradient(#cbd5e1 1px,transparent 1px) 0 0/40px 40px, linear-gradient(90deg,#cbd5e1 1px,transparent 1px) 0 0/40px 40px, linear-gradient(#e2e8f0 1px,transparent 1px) 0 0/8px 8px, linear-gradient(90deg,#e2e8f0 1px,transparent 1px) 0 0/8px 8px, #f8fafc', dom: '#61666B' },
+        { id: 'lignes', cat: 'patterns', css: 'repeating-linear-gradient(0deg,#f1f3f5 0 23px,#dfe3e8 23px 24px)', dom: '#81858C' },
+        { id: 'plan', cat: 'patterns', css: 'linear-gradient(#ffffff1a 1px,transparent 1px) 0 0/20px 20px, linear-gradient(90deg,#ffffff1a 1px,transparent 1px) 0 0/20px 20px, #0e3074', dom: '#4176E6' },
+        { id: 'diag', cat: 'patterns', css: 'repeating-linear-gradient(45deg,#1b1b1c 0 10px,#232324 10px 20px)', dom: '#81858C' },
+        { id: 'kraft', cat: 'patterns', css: 'radial-gradient(#00000014 1px,transparent 1.4px) 0 0/6px 6px, #d8c4a0', dom: '#B45309' },
+        { id: 'iaurore', cat: 'images', css: 'radial-gradient(60% 28% at 38% 42%, #34d39988, transparent 70%), radial-gradient(50% 24% at 66% 36%, #a78bfa77, transparent 70%), radial-gradient(130% 42% at 50% 118%, #02060c 62%, transparent 63%), linear-gradient(180deg,#050a18,#0b2a3a 65%)', dom: '#34D399' },
+        { id: 'icoucher', cat: 'images', css: 'radial-gradient(28% 34% at 50% 66%, #fde68a, #fb923c 45%, transparent 72%), radial-gradient(130% 40% at 50% 120%, #1c0f2a 60%, transparent 61%), linear-gradient(180deg,#312e81,#be185d 58%,#fb923c)', dom: '#FB923C' },
+        { id: 'idunes', cat: 'images', css: 'radial-gradient(90% 42% at 18% 112%, #c2410c 58%, transparent 59%), radial-gradient(90% 46% at 88% 116%, #ea580c 58%, transparent 59%), linear-gradient(180deg,#fde68a,#fdba74)', dom: '#EA580C' },
+        { id: 'iforet', cat: 'images', css: 'radial-gradient(120% 50% at 30% 112%, #0b2e22 58%, transparent 59%), radial-gradient(110% 46% at 85% 110%, #134e3a 58%, transparent 59%), linear-gradient(180deg,#cfe8dc,#8fbfa8 60%,#3b7a62)', dom: '#22A06B' },
+        { id: 'iespace', cat: 'images', css: 'radial-gradient(1.2px 1.2px at 12% 22%, #fff, transparent), radial-gradient(1px 1px at 38% 64%, #fff, transparent), radial-gradient(1.4px 1.4px at 70% 30%, #fff, transparent), radial-gradient(1px 1px at 84% 74%, #fff, transparent), radial-gradient(50% 45% at 30% 40%, #7c3aed66, transparent 65%), radial-gradient(50% 45% at 78% 70%, #0ea5e955, transparent 65%), #06040f', dom: '#7C3AED' },
+        { id: 'iencre', cat: 'images', css: 'radial-gradient(50% 60% at 30% 40%, #ffffff22, transparent 65%), radial-gradient(45% 55% at 72% 62%, #ffffff14, transparent 65%), #0f1115', dom: '#81858C' }
       ]
+      const WPS_NAMES = {
+        none: ['Aucun', 'None'],
+        noir: ['Noir OLED', 'OLED black'],
+        encre: ['Encre', 'Ink'],
+        ardoise: ['Ardoise', 'Slate'],
+        nuit: ['Bleu nuit', 'Night blue'],
+        foret: ['Forêt', 'Forest'],
+        prune: ['Prune', 'Plum'],
+        sable: ['Sable', 'Sand'],
+        brume: ['Brume', 'Mist'],
+        aurore: ['Fond Aurore', 'Aurora background'],
+        crepuscule: ['Crépuscule', 'Twilight'],
+        nebuleuse: ['Fond Nébuleuse', 'Nebula background'],
+        ocean: ['Océan', 'Ocean'],
+        ambre: ['Fond Ambre', 'Amber background'],
+        menthe: ['Menthe', 'Mint'],
+        peche: ['Pêche', 'Peach'],
+        brumeg: ['Brume claire', 'Light mist'],
+        carreaux: ['Petits carreaux', 'Small squares'],
+        'carreaux-lg': ['Grands carreaux', 'Large squares'],
+        'carreaux-sombre': ['Carreaux nuit', 'Night squares'],
+        seyes: ['Seyès', 'French ruled paper'],
+        points: ['Points', 'Dots'],
+        milli: ['Millimétré', 'Graph paper'],
+        lignes: ['Lignes', 'Lines'],
+        plan: ['Plan bleu', 'Blueprint'],
+        diag: ['Diagonales', 'Diagonals'],
+        kraft: ['Kraft', 'Kraft'],
+        iaurore: ['Aurore boréale', 'Northern lights'],
+        icoucher: ['Coucher de soleil', 'Sunset'],
+        idunes: ['Dunes', 'Dunes'],
+        iforet: ['Forêt brumeuse', 'Misty forest'],
+        iespace: ['Espace', 'Space'],
+        iencre: ['Lavis d’encre', 'Ink wash']
+      }
+      named(WPS, WPS_NAMES)
       const WPCATS = [
-        { id: 'colors', name: 'Couleurs' },
-        { id: 'gradients', name: 'Dégradés' },
-        { id: 'patterns', name: 'Motifs' },
-        { id: 'images', name: 'Images' }
+        { id: 'colors', },
+        { id: 'gradients', },
+        { id: 'patterns', },
+        { id: 'images', }
       ]
 
-      // Les 17 jetons que cette page sait piloter, mappés sur les vraies
-      // variables DSH (contrat TOKG de la maquette).
+      named(WPCATS, {
+        colors: ['Couleurs', 'Colors'],
+        gradients: ['Dégradés', 'Gradients'],
+        patterns: ['Motifs', 'Patterns'],
+        images: ['Images', 'Images']
+      })
+
+      // The 17 tokens this page can drive, mapped onto the real
+      // DSH variables (the mockup's TOKG contract).
       const TOKMAP = [
-        ['base', 'Fond de base', 'alias-bg-base'],
-        ['l1', 'Couche 1', 'alias-bg-layer-1'],
-        ['l2', 'Couche 2', 'alias-bg-layer-2'],
-        ['l3', 'Couche 3', 'alias-bg-layer-3'],
-        ['side', 'Barre latérale', 'specific-sidebar-fill'],
-        ['input', 'Champ de saisie', 'specific-input-major'],
-        ['code', 'Bloc de code', 'alias-markdown-code-block'],
-        ['t1', 'Texte principal', 'alias-label-primary'],
-        ['t2', 'Texte secondaire', 'alias-label-secondary'],
-        ['t3', 'Texte tertiaire', 'alias-label-tertiary'],
-        ['t4', 'Légende', 'alias-label-caption'],
-        ['link', 'Lien', 'alias-link'],
-        ['err', 'Erreur', 'alias-state-error-primary'],
-        ['ok', 'Succès', 'alias-state-success-primary'],
-        ['warn', 'Alerte', 'alias-state-warn-primary'],
-        ['biz', 'Information', 'alias-state-business-primary'],
-        ['brand', 'Accent (marque)', 'alias-brand-primary']
+        ['base', null, 'alias-bg-base'],
+        ['l1', null, 'alias-bg-layer-1'],
+        ['l2', null, 'alias-bg-layer-2'],
+        ['l3', null, 'alias-bg-layer-3'],
+        ['side', null, 'specific-sidebar-fill'],
+        ['input', null, 'specific-input-major'],
+        ['code', null, 'alias-markdown-code-block'],
+        ['t1', null, 'alias-label-primary'],
+        ['t2', null, 'alias-label-secondary'],
+        ['t3', null, 'alias-label-tertiary'],
+        ['t4', null, 'alias-label-caption'],
+        ['link', null, 'alias-link'],
+        ['err', null, 'alias-state-error-primary'],
+        ['ok', null, 'alias-state-success-primary'],
+        ['warn', null, 'alias-state-warn-primary'],
+        ['biz', null, 'alias-state-business-primary'],
+        ['brand', null, 'alias-brand-primary']
       ]
+      const TOK_NAMES = {
+        base: ['Fond de base', 'Base background'],
+        l1: ['Couche 1', 'Layer 1'],
+        l2: ['Couche 2', 'Layer 2'],
+        l3: ['Couche 3', 'Layer 3'],
+        side: ['Barre latérale', 'Sidebar'],
+        input: ['Champ de saisie', 'Input field'],
+        code: ['Bloc de code', 'Code block'],
+        t1: ['Texte principal', 'Primary text'],
+        t2: ['Texte secondaire', 'Secondary text'],
+        t3: ['Texte tertiaire', 'Tertiary text'],
+        t4: ['Légende', 'Caption'],
+        link: ['Lien', 'Link'],
+        err: ['Erreur', 'Error'],
+        ok: ['Succès', 'Success'],
+        warn: ['Alerte', 'Warning'],
+        biz: ['Information', 'Information'],
+        brand: ['Accent (marque)', 'Accent (brand)']
+      }
+      // the label (index 1 of a row) is read when drawn, in the language of the page
+      TOKMAP.forEach((e) => { const p = TOK_NAMES[e[0]]; Object.defineProperty(e, 1, { enumerable: true, configurable: true, get: () => kt(p[0], p[1]) }) })
       const TOKINDEX = {}
       TOKMAP.forEach((e) => { TOKINDEX[e[0]] = e })
 
@@ -290,12 +402,12 @@ window.__ModuleLoader__.load({
 
       // Fonts: proven system stacks, applied through --dsw-font-family on :root and on body (since
       // 0.2.1-alpha.2, see appliquerPolice). The catalogue is the studio's 9 fonts plus the 21 of the old
-      // « Colour Pack » (kybernos-plugin): nothing disappears, the order follows the sans / serif / mono
+      // “Colour Pack” (kybernos-plugin): nothing disappears, the order follows the sans / serif / mono
       // groups of the page that was removed.
       const FONTS = [
         // Sans serif
-        { id: 'dsh', name: 'DSH (défaut)', stack: null },
-        { id: 'system-ui', name: 'Système', stack: 'system-ui, -apple-system, sans-serif' },
+        { id: 'dsh', stack: null },
+        { id: 'system-ui', stack: 'system-ui, -apple-system, sans-serif' },
         { id: 'sf-pro', name: 'SF Pro Text', stack: "'SF Pro Text', -apple-system, BlinkMacSystemFont, system-ui, sans-serif" },
         { id: 'helvetica', name: 'Helvetica Neue', stack: "'Helvetica Neue', Helvetica, Arial, sans-serif" },
         { id: 'avenir', name: 'Avenir Next', stack: "'Avenir Next', Avenir, 'Helvetica Neue', sans-serif" },
@@ -318,7 +430,7 @@ window.__ModuleLoader__.load({
         { id: 'merriweather', name: 'Merriweather', stack: 'Merriweather, Georgia, serif' },
         { id: 'playfair', name: 'Playfair Display', stack: "'Playfair Display', Georgia, serif" },
         // Monospace
-        { id: 'mono', name: 'Mono système', stack: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace' },
+        { id: 'mono', stack: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace' },
         { id: 'plex-mono', name: 'IBM Plex Mono', stack: "'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace" },
         { id: 'jetbrains-mono', name: 'JetBrains Mono', stack: "'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" },
         { id: 'sf-mono', name: 'SF Mono', stack: "'SF Mono', ui-monospace, Menlo, monospace" },
@@ -327,14 +439,19 @@ window.__ModuleLoader__.load({
         { id: 'source-code', name: 'Source Code Pro', stack: "'Source Code Pro', ui-monospace, Menlo, monospace" },
         { id: 'courier', name: 'Courier New', stack: "'Courier New', Courier, monospace" }
       ]
+      named(FONTS, {
+        dsh: ['DSH (défaut)', 'DSH (default)'],
+        'system-ui': ['Système', 'System'],
+        mono: ['Mono système', 'System mono']
+      })
 
-      // Ce qu'applique un skin — UNE seule définition, partagée par le clic du
-      // sélecteur et par la reprise des réglages v1 ci-dessous.
-      //   • `ov` est TOUJOURS posé : sans cela les jetons d'un pack hérité
-      //     survivraient au retour sur « Défaut DSH » (qui promet de retirer la
-      //     couche), et l'édition Avancée d'un thème précédent aussi.
-      //   • `mode` n'est posé que si le skin en impose un : les packs hérités
-      //     (mode null) suivent le réglage Système / Clair / Sombre.
+      // What a skin applies — ONE single definition, shared by the click on the
+      // picker and by the carry-over of the v1 settings below.
+      //   • `ov` is ALWAYS set: without that, the tokens of an inherited pack
+      //     would survive the return to “DSH default” (which promises to remove the
+      //     layer), and so would the Advanced edit of a previous theme.
+      //   • `mode` is only set if the skin imposes one: inherited packs
+      //     (mode null) follow the System / Light / Dark setting.
       const skinPatch = (sk) => {
         const patch = { skin: sk.id, acc: sk.acc, wp: sk.wp, wpVis: sk.vis, ov: sk.ov || {} }
         if (sk.mode !== null && sk.mode !== undefined) patch.mode = sk.mode
@@ -345,20 +462,20 @@ window.__ModuleLoader__.load({
         if (sk.iconSet !== undefined) patch.iconSet = sk.iconSet
         return patch
       }
-      // L'accent affiché d'un skin : sa valeur directe, sinon celle de sa
-      // palette par schéma (packs hérités). Sert au rond et à la légende.
+      // The accent displayed for a skin: its direct value, otherwise that of its
+      // per-scheme palette (inherited packs). Used for the dot and the caption.
       const skinAccent = (sk) => (sk.acc !== null && sk.acc !== undefined)
         ? sk.acc
         : (((sk.ov || {})['light:brand']) || null)
 
-      // ── Reprise unique des réglages de l'ancien « Colour Pack » (v1) ───────
-      // L'onglet Kybernos qui portait ce système a été supprimé : ses deux clés
-      // (`kybernos.pack`, `kybernos.font`) restent telles quelles dans le
-      // navigateur. Au PREMIER démarrage sans état v2, on les adopte au lieu de
-      // repartir des défauts — sinon un pack ou une police choisis avant la
-      // migration seraient perdus en silence. Aucune écriture : la reprise est
-      // recalculée à chaque lecture tant que l'utilisateur n'a rien modifié,
-      // donc elle reste idempotente et ne fige pas son choix.
+      // ── One-time carry-over of the settings of the former “Colour Pack” (v1) ───────
+      // The Kybernos tab that carried this system has been removed: its two keys
+      // (`kybernos.pack`, `kybernos.font`) stay as they are in the
+      // browser. On the FIRST start without a v2 state, we adopt them instead of
+      // starting over from the defaults — otherwise a pack or a font chosen before the
+      // migration would be silently lost. No write: the carry-over is
+      // recomputed on every read as long as the user has changed nothing,
+      // so it stays idempotent and does not freeze their choice.
       const LEGACY_FONT_IDS = { default: 'dsh', iowan: 'iapono' }
       const legacyAdopt = () => {
         const patch = {}
@@ -371,7 +488,7 @@ window.__ModuleLoader__.load({
             const mapped = LEGACY_FONT_IDS[fontId] || fontId
             if (FONTS.some((f) => f.id === mapped)) patch.fontText = mapped
           }
-        } catch (e) { /* stockage indisponible : on garde les défauts */ }
+        } catch (e) { /* storage unavailable: we keep the defaults */ }
         return patch
       }
 
@@ -529,7 +646,7 @@ window.__ModuleLoader__.load({
         plug: (t) => t.m(iRing(8, 12, 6, 2.6)) + t.s(iRing(16, 12, 6, 2.6))
       }
 
-      // ── 4 · Isométrique: blocks in three tones ──
+      // ── 4 · Isometric: blocks in three tones ──
       const iFaceQuad = (cx, ty, ux, uy, h, pts) => {
         const P3 = [cx - uy, ty + uy / 2], P2 = [cx + ux - uy, ty + ux / 2 + uy / 2]
         return pts.map((q) => [iconN(P3[0] + q[0] * (P2[0] - P3[0])), iconN(P3[1] + q[0] * (P2[1] - P3[1]) + q[1] * h)])
@@ -615,7 +732,7 @@ window.__ModuleLoader__.load({
         return iMasked('mu', e, t, P.p, (iSilhouette(P).match(/<[^>]*\/>/g) || []).map((x) => t.b(x)).join(''))
       }
 
-      // ── 11 · Alvéoles: the same bitmaps, in honeycomb cells ──
+      // ── 11 · Honeycomb: the same bitmaps, in honeycomb cells ──
       const iHexCell = (cx, cy, r) => iPoly(Array.from({ length: 6 }, (_, k) => [iconN(cx + r * Math.sin(k * Math.PI / 3)), iconN(cy - r * Math.cos(k * Math.PI / 3))]))
       const iHoney = (e, t) => {
         let m = '', s = '', k = ''
@@ -751,15 +868,15 @@ window.__ModuleLoader__.load({
       // <icon-sets:end>
 
       // ══════════════════════════════════════════════════════════════════════
-      // 3. ÉTAT + PERSISTANCE.
-      //    localStorage suffit au profil web ; l'hôte prendra le relais en v2
-      //    (DSH Desktop tire des ports aléatoires — le constat wallpaper-engine).
+      // 3. STATE + PERSISTENCE.
+      //    localStorage is enough for the web profile; the host will take over in v2
+      //    (DSH Desktop picks random ports — the wallpaper-engine finding).
       // ══════════════════════════════════════════════════════════════════════
 
       const STORE_KEY = 'kybernos.theme.v1'
-      // Chaque clé ici est LUE par un câble (jetons, fond, feuille d'effets) : une commande dont la clé
-      // manquerait ici s'afficherait, ne s'appliquerait pas et se perdrait au rechargement (41 l'étaient).
-      // Le test `test-client.mjs` refuse désormais toute commande sans clé.
+      // Every key here is READ by a wire (tokens, background, effects sheet): a command whose key
+      // were missing here would show up, not apply, and be lost on reload (41 were).
+      // The `test-client.mjs` test now refuses any command without a key.
       const DEF = {
         mode: 'dark', skin: 'dsh', acc: null,
         wp: 'none', wpVis: 60, wpBlur: 0, tint: 0,
@@ -771,13 +888,13 @@ window.__ModuleLoader__.load({
         ligatures: true, radius: 'standard', showBrand: true,
         // Menu icons: the id of a set drawn by the block above ('classic' keeps the application's line icons)
         iconSet: 'classic',
-        // Accessibilité
+        // Accessibility
         reduceMotion: false, focusRing: 'accent', largeTargets: false, underlineLinks: false
       }
       const ENUMS = { glassEffect: ['frosted', 'liquid'], bgFit: ['cover', 'fill', 'center', 'stretch'], radius: ['sharp', 'standard', 'soft'], focusRing: ['accent', 'double', 'thick'], iconSet: ICON_SET_IDS }
       const RANGES = { glassBlur: [0, 40], sidebarOpacity: [0, 100], fieldOpacity: [0, 100], floatOpacity: [0, 100], bgBrightness: [0, 200], bgContrast: [0, 200], bgSaturation: [0, 200], bgDarken: [0, 100] }
       const BOOLS = ['cbSafe', 'sidebarLinked', 'bgMirror', 'ligatures', 'showBrand', 'reduceMotion', 'largeTargets', 'underlineLinks']
-      /** Les réglages à choix, à plage ou booléens d'un objet quelconque : seules les valeurs VALIDES en sortent. */
+      /** The choice, range or boolean settings of any object: only the VALID values come out. */
       const valeursValides = (raw) => {
         const out = {}
         Object.keys(ENUMS).forEach((k) => { if (ENUMS[k].indexOf(raw[k]) >= 0) out[k] = raw[k] })
@@ -785,9 +902,9 @@ window.__ModuleLoader__.load({
         BOOLS.forEach((k) => { if (typeof raw[k] === 'boolean') out[k] = raw[k] })
         return out
       }
-      /** Ce qu'un fichier importé a le droit de poser : uniquement des clés connues, de type et de
-       *  plage valides. Rend `null` si le fichier n'est pas un objet. Une valeur douteuse est ignorée
-       *  (jamais écrite) : `{"ov":null}` faisait planter la section entière. */
+      /** What an imported file is allowed to set: only known keys, of valid type and
+       *  range. Returns `null` if the file is not an object. A doubtful value is ignored
+       *  (never written): `{"ov":null}` used to crash the whole section. */
       const sanitiserImport = (raw) => {
         if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null
         const out = {}
@@ -811,15 +928,15 @@ window.__ModuleLoader__.load({
         return out
       }
 
-      // ── Export : le MÊME état, en trois formats réels ─────────────────────────────────────────────
+      // ── Export: the SAME state, in three real formats ─────────────────────────────────────────────
       const yamlScalaire = (v) => (v === null ? 'null' : (typeof v === 'string' ? JSON.stringify(v) : String(v)))
       const exportEtat = (S) => { const o = {}; Object.keys(DEF).forEach((k) => { o[k] = S[k] }); return o }
-      /** `format` : 'json' | 'yaml' | 'css'. Rend le texte du fichier. */
+      /** `format`: 'json' | 'yaml' | 'css'. Returns the text of the file. */
       const exportTexte = (format, S) => {
         if (format === 'json') return JSON.stringify(exportEtat(S), null, 2)
         if (format === 'yaml') {
           const o = exportEtat(S)
-          const lines = ['# Kybernos · Thème — réimportable en JSON, lisible ici', 'theme:']
+          const lines = [kt('# Kybernos · Thème — réimportable en JSON, lisible ici', '# Kybernos · Theme — re-importable as JSON, readable here'), 'theme:']
           Object.keys(o).forEach((k) => {
             if (k === 'ov') {
               const keys = Object.keys(o.ov)
@@ -829,12 +946,12 @@ window.__ModuleLoader__.load({
           })
           return lines.join('\n')
         }
-        // css : les 17 jetons, clair puis sombre — un fichier à coller dans un thème tiers
+        // css: the 17 tokens, light then dark — a file to paste into a third-party theme
         const wpo = WPS.find((w) => w.id === S.wp) || WPS[0]
         const lvl = S.contrastMode === 'max' ? 2 : (S.contrastMode === 'plus' ? 1 : 0)
         const o = { acc: S.acc, ov: S.ov, lvl, cb: S.cbSafe, tint: wpo.id !== 'none' ? S.tint : 0, dom: wpo.dom }
         const bloc = (mode) => { const t = makeTheme(mode, o); return TOKMAP.map((e) => '  --dsw-' + e[2] + ': ' + t[e[0]] + ';').join('\n') }
-        return '/* Kybernos · Thème (' + (S.skin || 'custom') + ') — jetons DSH, clair puis sombre */\n:root,\nbody:not([data-ds-dark-theme]) {\n' + bloc('light') + '\n}\nbody[data-ds-dark-theme] {\n' + bloc('dark') + '\n}'
+        return kt('/* Kybernos · Thème (' + (S.skin || 'custom') + ') — jetons DSH, clair puis sombre */', '/* Kybernos · Theme (' + (S.skin || 'custom') + ') — DSH tokens, light then dark */') + '\n:root,\nbody:not([data-ds-dark-theme]) {\n' + bloc('light') + '\n}\nbody[data-ds-dark-theme] {\n' + bloc('dark') + '\n}'
       }
 
       const readState = () => {
@@ -845,7 +962,7 @@ window.__ModuleLoader__.load({
           const out = { ...DEF }
           for (const k of Object.keys(DEF)) if (s[k] !== undefined) out[k] = s[k]
           if (out.ov === null || typeof out.ov !== 'object') out.ov = {}
-          // Une valeur stockée abîmée (à la main, ou par une version plus ancienne) retombe sur le défaut.
+          // A damaged stored value (by hand, or by an older version) falls back to the default.
           const ok = valeursValides(s)
           Object.keys(ENUMS).concat(Object.keys(RANGES), BOOLS).forEach((k) => { out[k] = ok[k] !== undefined ? ok[k] : DEF[k] })
           return out
@@ -859,29 +976,29 @@ window.__ModuleLoader__.load({
       }
 
       // ══════════════════════════════════════════════════════════════════════
-      // 4. APPLICATION — les vrais câbles.
+      // 4. APPLICATION — the real wires.
       // ══════════════════════════════════════════════════════════════════════
 
       let layerDispose = null   // overrideTokens
-      let wpEl = null           // fond d'écran
+      let wpEl = null           // wallpaper
       let fontDispose = null    // police
 
-      /** Combien de jetons ont une retouche (clair et/ou sombre comptent pour un). */
+      /** How many tokens have a tweak (light and/or dark count as one). */
       const jetonsRetouches = (ov) => new Set(Object.keys(ov).map((k) => k.slice(k.indexOf(':') + 1))).size
 
-      /** Le schéma réellement AFFICHÉ. « Système » suit l'OS : déduire le schéma du seul réglage (`mode !== 'light'`)
-       *  donnait toujours « sombre » à quelqu'un en « Système » sur un OS clair, et la page mesurait des encres
-       *  sombres sur un fond clair. On lit l'attribut que DSH pose sur <body>, et on ne se rabat sur le réglage
-       *  que s'il n'y a pas de page (rendu hors navigateur). */
+      /** The scheme actually DISPLAYED. “System” follows the OS: deducing the scheme from the setting alone (`mode !== 'light'`)
+       *  always gave “dark” to someone on “System” on a light OS, and the page measured dark inks
+       *  on a light background. We read the attribute DSH sets on <body>, and fall back on the setting
+       *  only when there is no page (rendering outside a browser). */
       const schemeSombre = (S) => {
-        try { if (document.body && typeof document.body.hasAttribute === 'function') return document.body.hasAttribute('data-ds-dark-theme') } catch (e) { /* pas de page */ }
+        try { if (document.body && typeof document.body.hasAttribute === 'function') return document.body.hasAttribute('data-ds-dark-theme') } catch (e) { /* no page */ }
         return S.mode !== 'light'
       }
 
       const estNaturel = (S) => S.skin === 'dsh' && S.acc === null && S.wp === 'none'
         && Object.keys(S.ov).length === 0 && S.contrastMode === 'standard' && S.radius === 'standard' && S.cbSafe === false
 
-      // ── Fond d'écran : filtres, ajustement (aussi utilisés par l'aperçu du verre) ─────────────
+      // ── Wallpaper: filters, fit (also used by the glass preview) ─────────────
       const filtreFond = (S) => {
         const f = []
         if (S.wpBlur > 0) f.push('blur(' + S.wpBlur + 'px)')
@@ -891,7 +1008,7 @@ window.__ModuleLoader__.load({
         if (S.bgSaturation !== 100) f.push('saturate(' + S.bgSaturation + '%)')
         return f.length > 0 ? f.join(' ') : 'none'
       }
-      /** Taille / position / répétition d'un fond. Les motifs et les couleurs portent leur taille dans leur shorthand. */
+      /** Size / position / repeat of a background. Patterns and colours carry their size in their shorthand. */
       const ajustementFond = (S) => {
         if (S.bgFit === 'fill') return { size: 'contain', position: 'center', repeat: 'no-repeat' }
         if (S.bgFit === 'center') return { size: 'auto', position: 'center', repeat: 'no-repeat' }
@@ -902,9 +1019,9 @@ window.__ModuleLoader__.load({
       const RADIUS_DEF = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, panel: 28 }
       const RADIUS_ECHELLE = { sharp: 0.25, standard: 1, soft: 1.5 }
 
-      /** La couche de jetons : 17 variables, une paire {light, dark} chacune.
-       *  En configuration natives, la couche est retirée — le DSH d'origine
-       *  passe alors tel quel, sans même une redondance par-dessus. */
+      /** The token layer: 17 variables, one {light, dark} pair each.
+       *  In native configuration, the layer is removed — the original DSH
+       *  then passes through as is, without even a redundancy on top. */
       const jetonsDe = (S) => {
         if (estNaturel(S)) return null
         const lvl = S.contrastMode === 'max' ? 2 : (S.contrastMode === 'plus' ? 1 : 0)
@@ -913,11 +1030,11 @@ window.__ModuleLoader__.load({
         const cl = makeTheme('light', o), cd = makeTheme('dark', o)
         const jetons = {}
         for (const [k, , css] of TOKMAP) jetons['--dsw-' + css] = { light: cl[k], dark: cd[k] }
-        // Un fond qu'on ne voit pas ne sert à rien : la zone principale de DSH (`bg-base`) peint un aplat
-        // opaque PAR-DESSUS lui (mesuré : 375 points sur 375 couverts). Quand un fond est choisi, `bg-base`
-        // devient transparent — c'est le curseur « Visibilité » qui dose alors le fond contre la couleur de base.
-        // Seule la pastille d'espace du pied de barre latérale s'en servait comme couleur de TEXTE
-        // (corrigé dans kybernos-cloud) ; sur toutes les pages parcourues, rien d'autre.
+        // A background you cannot see is useless: DSH's main area (`bg-base`) paints an opaque flat fill
+        // OVER it (measured: 375 points out of 375 covered). When a background is chosen, `bg-base`
+        // becomes transparent — the “Visibility” slider then doses the background against the base colour.
+        // Only the workspace badge at the foot of the sidebar used it as a TEXT colour
+        // (fixed in kybernos-cloud); on all the pages browsed, nothing else.
         if (wpo.id !== 'none') {
           jetons['--dsw-alias-bg-base'] = { light: avecAlpha(cl.base, 0), dark: avecAlpha(cd.base, 0) }
           if (S.sidebarLinked) jetons['--dsw-specific-sidebar-fill'] = { light: avecAlpha(cl.side, 1 - S.sidebarOpacity / 100), dark: avecAlpha(cd.side, 1 - S.sidebarOpacity / 100) }
@@ -959,30 +1076,30 @@ window.__ModuleLoader__.load({
         try {
           const el = typeof document.getElementById === 'function' ? document.getElementById(BOOT_ID) : null
           if (el === null || el === undefined) return
-          const retirer = () => { try { el.remove() } catch (e) { /* déjà retirée */ } }
+          const retirer = () => { try { el.remove() } catch (e) { /* already removed */ } }
           if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => { requestAnimationFrame(retirer) })
           else retirer()
         } catch (e) { /* not in a browser */ }
       }
 
       const appliquerJetons = (themeSvc, S) => {
-        if (layerDispose !== null) { try { layerDispose() } catch (e) { /* déjà retirée */ } layerDispose = null }
+        if (layerDispose !== null) { try { layerDispose() } catch (e) { /* already removed */ } layerDispose = null }
         const jetons = jetonsDe(S)
         if (jetons === null) { retirerFeuilleBoot(); return }
         try { layerDispose = themeSvc.overrideTokens('kybernos-theme', jetons); retirerFeuilleBoot() } catch (e) { layerDispose = null }
       }
 
-      /** Le fond d'écran : une div fixe sous l'application (motif éprouvé
-       *  dream-skin), plus une teinte des surfaces quand il est actif.
-       *  Le corps du document peut ne pas exister encore à l'activation du
-       *  plugin : on attend alors DOMContentLoaded au lieu d'avaler l'erreur —
-       *  mesuré, sans cela la couche de jetons s'appliquait mais le fond, la
-       *  police et la taille étaient silencieusement sautés. */
+      /** The wallpaper: a fixed div under the application (proven
+       *  dream-skin pattern), plus a tint of the surfaces when it is active.
+       *  The document body may not exist yet when the plugin is
+       *  activated: we then wait for DOMContentLoaded instead of swallowing the error —
+       *  measured, without that the token layer was applied but the background, the
+       *  font and the size were silently skipped. */
       const appliquerFond = (S) => {
         const poser = () => {
           const wpo2 = WPS.find((w) => w.id === S.wp) || WPS[0]
           if (wpo2.id === 'none') {
-            if (wpEl !== null) { try { wpEl.remove() } catch (e) { /* déjà retiré */ } wpEl = null }
+            if (wpEl !== null) { try { wpEl.remove() } catch (e) { /* already removed */ } wpEl = null }
             return
           }
           if (wpEl === null || !document.body.contains(wpEl)) {
@@ -991,14 +1108,14 @@ window.__ModuleLoader__.load({
             document.body.prepend(wpEl)
           }
           // IMPORTANT : certains fonds utilisent la syntaxe shorthand
-          // (position/taille dans la même chaîne, ex: "gradient 0 0/32px 32px").
-          // Cette syntaxe n'est valide que sur la propriété `background`,
-          // pas sur `backgroundImage`. On pose d'abord le shorthand,
-          // puis on override les propriétés individuelles si nécessaire.
+          // (position/size in the same string, e.g. "gradient 0 0/32px 32px").
+          // This syntax is only valid on the `background` property,
+          // not on `backgroundImage`. We set the shorthand first,
+          // then override the individual properties if needed.
           wpEl.style.background = wpo2.css
           const isPattern = wpo2.cat === 'patterns' || wpo2.cat === 'colors'
-          // Motifs et couleurs : le shorthand porte déjà taille et répétition (« 0 0/18px 18px »).
-          // Les écraser par `auto` écrasait les carreaux en une seule grande cellule.
+          // Patterns and colours: the shorthand already carries size and repeat (“0 0/18px 18px”).
+          // Overriding them with `auto` squashed the tiles into one big cell.
           if (!isPattern) {
             const aj = ajustementFond(S)
             wpEl.style.backgroundSize = aj.size
@@ -1009,8 +1126,8 @@ window.__ModuleLoader__.load({
           wpEl.style.filter = filtreFond(S)
           wpEl.style.transform = S.bgMirror ? 'scaleX(-1)' : 'none'
         }
-        // readyState, pas DOMContentLoaded : à l'activation du plugin,
-        // l'événement est SOUVENT déjà passé — l'attendre ne servirait à rien.
+        // readyState, not DOMContentLoaded: when the plugin is activated,
+        // the event has OFTEN already passed — waiting for it would be pointless.
         if (document.readyState === 'loading') {
           document.addEventListener('DOMContentLoaded', poser, { once: true })
           return
@@ -1018,9 +1135,9 @@ window.__ModuleLoader__.load({
         poser()
       }
 
-      /** La feuille des effets qui ne sont pas des jetons : verre (flou), ligatures, logo, mouvement, focus,
-       *  cibles, liens. Une chaîne pure (testable) ; vide quand rien n'est demandé. Les sélecteurs sont les
-       *  crochets STABLES de DSH (`data-slot`, `data-composer-card`, rôles ARIA), jamais ses classes hachées. */
+      /** The sheet of effects that are not tokens: glass (blur), ligatures, logo, motion, focus,
+       *  targets, links. A pure string (testable); empty when nothing is requested. The selectors are
+       *  DSH's STABLE hooks (`data-slot`, `data-composer-card`, ARIA roles), never its hashed classes. */
       const effetsCss = (S) => {
         const css = []
         if (S.wp !== 'none' && S.glassBlur > 0) {
@@ -1042,8 +1159,8 @@ window.__ModuleLoader__.load({
       }
       let effetsDispose = null
       const appliquerEffets = (S) => {
-        if (effetsDispose !== null) { try { effetsDispose() } catch (e) { /* déjà retirée */ } effetsDispose = null }
-        // Le moteur d'animation de réflexion lit aussi cet attribut : « réduire » vaut pour lui aussi.
+        if (effetsDispose !== null) { try { effetsDispose() } catch (e) { /* already removed */ } effetsDispose = null }
+        // The thinking-animation engine also reads this attribute: “reduce” applies to it too.
         try { if (S.reduceMotion) document.documentElement.setAttribute('data-kbth-reduced', '1'); else document.documentElement.removeAttribute('data-kbth-reduced') } catch (e) { /* hors navigateur */ }
         try { if (S.cbSafe) document.documentElement.setAttribute('data-kbth-cb', '1'); else document.documentElement.removeAttribute('data-kbth-cb') } catch (e) { /* hors navigateur */ }
         const css = effetsCss(S)
@@ -1054,7 +1171,7 @@ window.__ModuleLoader__.load({
       // goes ahead of the built-in stack there), which shadows a rule that only targets `:root` — the chosen
       // family then reached nothing. Both selectors are harmless on the engines that only declare it on `:root`.
       const appliquerPolice = (S) => {
-        if (fontDispose !== null) { try { fontDispose() } catch (e) { /* déjà retiré */ } fontDispose = null }
+        if (fontDispose !== null) { try { fontDispose() } catch (e) { /* already removed */ } fontDispose = null }
         const f = FONTS.find((x) => x.id === S.fontText) || FONTS[0]
         if (f.stack !== null) fontDispose = styles.insert(':root,body{--dsw-font-family:' + f.stack + ' !important;}')
       }
@@ -1062,8 +1179,8 @@ window.__ModuleLoader__.load({
       const appliquerMode = (themeSvc, S) => {
         const m = S.mode === 'system' || S.mode === 'light' ? S.mode : 'dark'
         try { themeSvc.setTheme(m) } catch (e) {
-          // Une préférence refusée doit se voir, pas disparaître.
-          try { console.error('[kybernos-theme] setTheme(' + m + ') refusé', e) } catch (e2) { /* console indisponible */ }
+          // A refused preference must be visible, not disappear.
+          try { console.error('[kybernos-theme] setTheme(' + m + ') refused', e) } catch (e2) { /* console indisponible */ }
         }
       }
 
@@ -1095,10 +1212,10 @@ window.__ModuleLoader__.load({
         appliquerTaille(themeSvc, S)
       }
 
-      /** La préférence native courante, quand elle est exploitable.
-       *  `getTheme()` rend un instantané stable : `preference` vaut « light »,
-       *  « dark » ou « system », ou le défaut du service tant que la portée de
-       *  réglages n'est pas arrivée. */
+      /** The current native preference, when usable.
+       *  `getTheme()` returns a stable snapshot: `preference` is “light”,
+       *  “dark” or “system”, or the service default as long as the settings
+       *  scope has not arrived. */
       const prefNative = (themeSvc, snapArg) => {
         try {
           const snap = (snapArg !== null && snapArg !== undefined) ? snapArg : ((themeSvc === null || themeSvc === undefined || typeof themeSvc.getTheme !== 'function') ? null : themeSvc.getTheme())
@@ -1107,17 +1224,17 @@ window.__ModuleLoader__.load({
         } catch (e) { return null }
       }
 
-      /** L'application d'ACTIVATION : tout sauf le mode.
+      /** The ACTIVATION application: everything except the mode.
        *
-       *  Pourquoi le mode est exclu — mesuré le 23/09/2026 : DSH garde la
-       *  préférence de thème dans une portée de réglages durable
-       *  (`theme.setTheme()` → `host.set('preference')`) et la restaure
-       *  lui-même au chargement. La réécrire depuis notre store écrasait le
-       *  dernier choix de l'utilisateur : bascule « sombre → clair » par le
-       *  bouton du pied de sidebar, puis rechargement → l'app revenait en
-       *  sombre. On laisse donc la préférence native s'appliquer, on ADOPTE sa
-       *  valeur dans le store (pour que la page Réglages dise la vérité), et on
-       *  recopie tout changement natif venu d'ailleurs. */
+       *  Why the mode is excluded — measured on 23/09/2026: DSH keeps the
+       *  theme preference in a durable settings scope
+       *  (`theme.setTheme()` → `host.set('preference')`) and restores it
+       *  itself on load. Rewriting it from our store overwrote the
+       *  user's last choice: toggle “dark → light” with the button at the
+       *  foot of the sidebar, then reload → the app went back to
+       *  dark. So we let the native preference apply, we ADOPT its
+       *  value into the store (so the Settings page tells the truth), and we
+       *  copy back any native change coming from elsewhere. */
       const appliquerBoot = (themeSvc, S) => {
         posterBoot(S)
         appliquerIcones(S)
@@ -1125,9 +1242,9 @@ window.__ModuleLoader__.load({
         appliquerFond(S)
         appliquerPolice(S)
         appliquerEffets(S)
-        // Pas de taille ici non plus : DSH la persiste (setFontSize) et la restaure
-        // lui-même ; la réécrire depuis notre store écrasait celle de l'utilisateur
-        // (même classe de bug que le mode). On l'ADOPTE, voir tailleNative.
+        // No size here either: DSH persists it (setFontSize) and restores it
+        // itself; rewriting it from our store overwrote the user's
+        // (same class of bug as the mode). We ADOPT it, see tailleNative.
       }
 
       /** DSH's own text size (12–17) when the snapshot carries it: `fontSizes.text` (0.2.1-alpha.2), else `fontSize`
@@ -1142,8 +1259,8 @@ window.__ModuleLoader__.load({
         } catch (e) { return null }
       }
 
-      /** « Me surprendre » — un tirage cohérent : le fond dicte le mode et la
-       *  teinte, l'accent sort de la dominante du fond. */
+      /** “Surprise me” — a coherent draw: the background dictates the mode and the
+       *  tint, the accent comes from the dominant colour of the background. */
       const surprendre = () => {
         const wp = WPS[1 + Math.floor(Math.random() * (WPS.length - 1))]
         const clair = ['sable', 'brume', 'menthe', 'peche', 'brumeg', 'carreaux', 'seyes', 'points', 'milli', 'lignes', 'kraft', 'idunes', 'iforet'].indexOf(wp.id) >= 0
@@ -1155,21 +1272,21 @@ window.__ModuleLoader__.load({
       }
 
       // ══════════════════════════════════════════════════════════════════════
-      // 4b. ANIMATION DE RÉFLEXION — le statut du bas du chat.
+      // 4b. THINKING ANIMATION — the status at the bottom of the chat.
       //
-      //   Tant que l'agent travaille, DSH monte un bloc `[data-chat-running]` : une
-      //   queue de baleine de 14 px, puis « Deep diving for 12s ··· » (texte à reflet,
-      //   écrit DEUX fois : le texte et sa copie lumineuse). Le bloc est remonté à
-      //   chaque réponse. On ne touche pas au moteur : un MutationObserver le repère,
-      //   y pose l'animation choisie (en masquant la queue de baleine) et remplace la
-      //   phrase native par un mot de l'ambiance — avec le gabarit et la durée de DSH.
-      //   Tout est défensif : si la structure change, on ne fait rien.
+      //   As long as the agent is working, DSH mounts a `[data-chat-running]` block: a
+      //   14 px whale tail, then “Deep diving for 12s ···” (shimmering text,
+      //   written TWICE: the text and its luminous copy). The block is remounted on
+      //   every answer. We do not touch the engine: a MutationObserver spots it,
+      //   puts the chosen animation in it (hiding the whale tail) and replaces the
+      //   native phrase with an ambiance word — with DSH's template and duration.
+      //   Everything is defensive: if the structure changes, we do nothing.
       //
-      //   Les réglages vivent dans une clé à part (kybernos.theme.loader.v1) : « Tout
-      //   rétablir » de la page Thème ne doit pas effacer vos animations. Les fichiers
-      //   importés et les mots du pack vivent sur le disque (route hôte
-      //   /kybernos-theme/loader-store) ; le navigateur n'en garde que les animations
-      //   CHOISIES, pour peindre sans attendre l'hôte.
+      //   The settings live in a separate key (kybernos.theme.loader.v1): “Reset
+      //   all” on the Theme page must not erase your animations. The imported files
+      //   and the pack's words live on disk (host route
+      //   /kybernos-theme/loader-store); the browser keeps only the CHOSEN
+      //   animations, to paint without waiting for the host.
       // ══════════════════════════════════════════════════════════════════════
 
       const LD_KEY = 'kybernos.theme.loader.v1'
@@ -1181,7 +1298,7 @@ window.__ModuleLoader__.load({
       const LD_ID = /^[a-z0-9][a-z0-9-]{0,63}$/
       const LD_WHALE = 'M8.844 13.742C8.967 12.328 8.45 10.4 8.45 9.65C8.45 8.94 8.88 8.43 9.6 8.43C11.285 8.43 12.106 8.281 12.685 8.104C13.71 7.791 14.585 6.768 15.055 5.945C15.137 5.803 14.99 5.641 14.829 5.671C13.829 5.86 12.828 5.376 11.827 4.978C10.659 4.514 9.491 4.707 8.935 4.876C8.805 4.915 8.658 4.819 8.636 4.686C8.468 3.643 7.405 2.615 5.498 2.238C4.54 2.048 3.748 1.574 3.347 1.202C3.252 1.113 3.088 1.125 3.03 1.242C2.628 2.059 2.168 3.82 5.248 6.115C5.82 6.494 6.31 6.785 6.574 7.637C6.72 8.104 6.157 9.168 6.061 9.368C5.157 11.27 5.089 12.19 4.926 13.742'
 
-      /** Les réglages, toujours remis dans la forme attendue (même liste blanche que l'hôte). */
+      /** The settings, always put back into the expected shape (same allow-list as the host). */
       const ldClean = (raw) => {
         const r = (raw !== null && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {}
         const out = { ...LD_DEF, sel: [] }
@@ -1201,76 +1318,124 @@ window.__ModuleLoader__.load({
       }
       const ldWrite = (S) => { try { localStorage.setItem(LD_KEY, JSON.stringify(S)) } catch (e) { /* quota */ } }
 
-      // ── Le catalogue : 34 dessins originaux (48×48, animés en CSS) ───────────
-      // Ceux de vos deux références (pack Lottie « Loading symbols set ») ne sont pas
-      // inclus : ils appartiennent à leur auteur. Importez-les depuis « Ajouter la vôtre ».
+      // ── The catalogue: 34 original drawings (48×48, animated in CSS) ───────────
+      // The ones from your two references (Lottie pack “Loading symbols set”) are not
+      // included: they belong to their author. Import them from “Add your own”.
       const ldSv=(inner,attrs)=>'<svg viewBox="0 0 48 48" aria-hidden="true" '+(attrs||'')+'>'+inner+'</svg>'
       const LD_PRESETS_RAW=[
-       {id:'ring',name:'Anneau',kind:'mono',dur:'1,0 s',svg:ldSv('<circle cx="24" cy="24" r="18" stroke-opacity=".2"/><circle class="vb a-spin" cx="24" cy="24" r="18" stroke-dasharray="30 120" style="--d:1s"/>','fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"')},
-       {id:'orbit',name:'Orbite',kind:'mono',dur:'1,4 s',svg:ldSv('<g class="vb a-spin" style="--d:1.4s"><circle cx="24" cy="8" r="4.5"/><circle cx="37.9" cy="32" r="3.5" opacity=".65"/><circle cx="10.1" cy="32" r="2.5" opacity=".4"/></g>','fill="currentColor"')},
-       {id:'pulse',name:'Pulsation',kind:'mono',dur:'1,6 s',svg:ldSv('<circle cx="24" cy="24" r="4" fill="currentColor"/><circle class="a-pulse" cx="24" cy="24" r="22" fill="none" stroke="currentColor" stroke-width="3"/><circle class="a-pulse" cx="24" cy="24" r="22" fill="none" stroke="currentColor" stroke-width="3" style="animation-delay:-.8s"/>')},
-       {id:'bars',name:'Barres',kind:'mono',dur:'1,0 s',svg:ldSv([5,14,23,32,41].map((x,i)=>'<rect class="a-bar" x="'+(x-3)+'" y="8" width="6" height="32" rx="3" style="animation-delay:'+(-0.9+i*0.12).toFixed(2)+'s"/>').join(''),'fill="currentColor"')},
-       {id:'dots',name:'Rebond',kind:'mono',dur:'1,1 s',svg:ldSv([10,24,38].map((x,i)=>'<circle class="a-bounce" cx="'+x+'" cy="29" r="5" style="animation-delay:'+(-1+i*0.16).toFixed(2)+'s"/>').join(''),'fill="currentColor"')},
-       {id:'atom',name:'Atome',kind:'mono',dur:'1,4 s',svg:ldSv([0,60,120].map((r,i)=>'<ellipse cx="24" cy="24" rx="20" ry="8" transform="rotate('+r+' 24 24)" stroke-opacity=".22"/><ellipse class="a-dash" pathLength="100" cx="24" cy="24" rx="20" ry="8" transform="rotate('+r+' 24 24)" stroke-dasharray="30 70" style="animation-delay:'+(-i*0.45).toFixed(2)+'s"/>').join('')+'<circle cx="24" cy="24" r="3" fill="currentColor" stroke="none"/>','fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"')},
-       {id:'flow',name:'Flux',kind:'mono',dur:'1,4 s',svg:ldSv('<line x1="6" y1="24" x2="42" y2="24" stroke-opacity=".2"/><line class="a-dash" pathLength="100" x1="6" y1="24" x2="42" y2="24" stroke-dasharray="28 72"/>','fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"')},
-       {id:'sand',name:'Sablier',kind:'mono',dur:'2,4 s',svg:ldSv('<g class="vb a-flip" style="--d:2.4s"><path d="M14 6h20M14 42h20"/><path d="M16 6c0 11 8 13 8 18s-8 7-8 18M32 6c0 11-8 13-8 18s8 7 8 18"/><path d="M18.5 12h11L24 20z" fill="currentColor" stroke="none"/></g>','fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"')},
-       {id:'jelly',name:'Bille',kind:'color',dur:'1,6 s',svg:ldSv('<g class="a-jelly"><circle cx="24" cy="24" r="16" fill="var(--c1)"/><circle cx="31" cy="18" r="3.2" fill="#fff" opacity=".92"/></g>')},
-       {id:'quad',name:'Quatre carrés',kind:'color',dur:'1,2 s',svg:ldSv([[6,6,'--c1'],[26,6,'--c3'],[6,26,'--c2'],[26,26,'--c4']].map((q,i)=>'<rect class="a-pop" x="'+q[0]+'" y="'+q[1]+'" width="16" height="16" rx="4.5" fill="var('+q[2]+')" style="animation-delay:'+(-1.2+i*0.3).toFixed(2)+'s"/>').join(''))},
-       {id:'petals',name:'Pétales',kind:'color',dur:'1,2 s',svg:ldSv(Array.from({length:8},(_,i)=>'<ellipse class="a-fade" cx="24" cy="9.5" rx="3.2" ry="6.5" transform="rotate('+(i*45)+' 24 24)" fill="var(--c'+(i%4+1)+')" style="animation-delay:'+(-1.2+i*0.15).toFixed(2)+'s"/>').join(''))},
-       {id:'gears',name:'Engrenages',kind:'color',dur:'3,0 s',svg:ldSv('<g transform="translate(18 18)"><circle class="a-spin" r="8.91" fill="none" stroke="var(--c1)" stroke-width="5" stroke-dasharray="3.5 3.5" style="--d:3s"/><circle r="6" fill="none" stroke="var(--c1)" stroke-width="3"/></g><g transform="translate(32 32) scale(.78)"><circle class="a-spin a-rev" r="8.91" fill="none" stroke="var(--c2)" stroke-width="5" stroke-dasharray="3.5 3.5" style="--d:3s"/><circle r="6" fill="none" stroke="var(--c2)" stroke-width="3"/></g>')},
-       {id:'spark',name:'Étincelle',kind:'color',dur:'1,6 s',svg:ldSv('<path class="a-twinkle" d="M24 4C26 16 32 22 44 24C32 26 26 32 24 44C22 32 16 26 4 24C16 22 22 16 24 4Z" fill="var(--c2)"/><path class="a-twinkle" d="M38 4l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" fill="var(--c1)" style="animation-delay:-.8s"/>')},
-       {id:'grid',name:'Cascade',kind:'color',dur:'1,2 s',svg:ldSv([0,1,2].map(r=>[0,1,2].map(c=>'<rect class="a-fade" x="'+(5+c*14)+'" y="'+(5+r*14)+'" width="10" height="10" rx="2.6" fill="var(--c'+(r+1)+')" style="animation-delay:'+(-1.2+(r+c)*0.2).toFixed(2)+'s"/>').join('')).join(''))},
-       {id:'sprout',name:'Pousse',kind:'color',dur:'2,4 s',svg:ldSv('<ellipse cx="24" cy="41" rx="15" ry="4" fill="currentColor" opacity=".18"/><g class="a-grow" style="transform-box:view-box;transform-origin:24px 40px"><path d="M24 40V24" fill="none" stroke="var(--c3)" stroke-width="3.5" stroke-linecap="round"/><path d="M24 27C14 27 9.5 20 9.5 13.5C18 13.5 24 17.5 24 27Z" fill="var(--c3)"/><path d="M24 23C33 23 38.5 17 38.5 9.5C30 9.5 24 13.5 24 23Z" fill="var(--c3)" opacity=".7"/></g>','style="--d:2.4s"')},
-       {id:'sunflower',name:'Tournesol',kind:'color',dur:'8,0 s',svg:ldSv('<g class="vb a-spin" style="--d:8s">'+Array.from({length:12},(_,i)=>'<ellipse cx="24" cy="8.5" rx="3.2" ry="6.5" transform="rotate('+(i*30)+' 24 24)" fill="var(--c4)"/>').join('')+'</g><circle cx="24" cy="24" r="9" fill="var(--c2)"/><circle cx="20.5" cy="22.5" r="1.4" fill="currentColor"/><circle cx="27.5" cy="22.5" r="1.4" fill="currentColor"/><path d="M20.5 26.5q3.5 3 7 0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>')},
-       {id:'cactus',name:'Cactus',kind:'color',dur:'3,2 s',svg:ldSv('<g class="a-rock" style="--rk:3deg;transform-box:view-box;transform-origin:24px 40px"><rect x="18" y="9" width="12" height="32" rx="6" fill="var(--c3)"/><path d="M18 31h-4.5a3 3 0 0 1-3-3v-8" fill="none" stroke="var(--c3)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 26h4.5a3 3 0 0 0 3-3v-7" fill="none" stroke="var(--c3)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle class="a-pop" cx="24" cy="8" r="4" fill="var(--c1)" style="--d:1.6s"/></g><path d="M14 40h20l-2.2 6.5H16.2z" fill="var(--c2)"/>','style="--d:3.2s"')},
-       {id:'mushroom',name:'Champignon',kind:'color',dur:'1,4 s',svg:ldSv('<ellipse cx="24" cy="42" rx="11" ry="2.5" fill="currentColor" opacity=".16"/><g class="a-hop" style="transform-box:view-box;transform-origin:24px 40px"><rect x="18.5" y="24" width="11" height="16" rx="5" fill="var(--c4)" opacity=".6"/><path d="M5.5 28C5.5 15 13.5 7.5 24 7.5S42.5 15 42.5 28z" fill="var(--c1)"/><circle cx="14.5" cy="20" r="3.2" fill="#fff" opacity=".9"/><circle cx="26.5" cy="14.5" r="2.6" fill="#fff" opacity=".9"/><circle cx="34" cy="22.5" r="3" fill="#fff" opacity=".9"/><circle cx="21.5" cy="33" r="1.3" fill="currentColor"/><circle cx="26.5" cy="33" r="1.3" fill="currentColor"/></g>','style="--d:1.4s"')},
-       {id:'rocket',name:'Fusée',kind:'color',dur:'0,4 s',svg:ldSv('<g class="a-shake"><path class="a-flame" d="M20 33h8l-4 12z" fill="var(--c4)" style="transform-box:view-box;transform-origin:24px 33px"/><path d="M17.5 25l-6.5 9h7z" fill="var(--c2)"/><path d="M30.5 25l6.5 9h-7z" fill="var(--c2)"/><path d="M24 3C31.5 9 33.5 20 31.5 33h-15C14.5 20 16.5 9 24 3z" fill="var(--c1)"/><circle cx="24" cy="18" r="3.8" fill="#fff" opacity=".92"/></g>','style="--d:.35s"')},
-       {id:'balloon',name:'Ballon',kind:'color',dur:'2,4 s',svg:ldSv('<g class="a-float"><path d="M24 34c-3 4 3 7 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".5"/><ellipse cx="24" cy="18" rx="11" ry="14" fill="var(--c1)"/><path d="M22.2 32l1.8 3.3 1.8-3.3z" fill="var(--c1)"/><ellipse cx="19.5" cy="12" rx="2.6" ry="4" fill="#fff" opacity=".4" transform="rotate(20 19.5 12)"/></g><g class="a-float" style="--d:1.7s;animation-delay:-.9s"><ellipse cx="11" cy="30" rx="6" ry="7.5" fill="var(--c4)" opacity=".85"/><path d="M11 37.5c-1.5 3 1.5 4 0 7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".4"/></g>','style="--d:2.4s"')},
-       {id:'bulb',name:'Ampoule',kind:'color',dur:'1,6 s',svg:ldSv(''+[-90,-60,-30,0,30,60,90].map((r,i)=>'<path class="a-fade" d="M24 2.5v4" transform="rotate('+r+' 24 20)" stroke="var(--c4)" stroke-width="3" stroke-linecap="round" style="animation-delay:'+(-1.6+i*0.2).toFixed(2)+'s"/>').join('')+'<circle class="a-glow" cx="24" cy="20" r="9.5" fill="var(--c4)"/><path d="M19.5 27.5h9v3a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2z" fill="var(--c4)" opacity=".6"/><rect x="19.5" y="33" width="9" height="3.5" rx="1.5" fill="currentColor" opacity=".55"/><rect x="21" y="37.5" width="6" height="3" rx="1.5" fill="currentColor" opacity=".55"/><path d="M20.5 22.5l2 3.5 1.5-4.5 1.5 4.5 2-3.5" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>','style="--d:1.6s"')},
-       {id:'alarm',name:'Réveil',kind:'mono',dur:'3,0 s',svg:ldSv('<g class="a-shake" style="--d:.3s"><path d="M8 13l5-4M40 13l-5-4"/></g><circle cx="24" cy="25" r="15"/><path d="M13 41l3-3M35 38l3 3"/><path class="vb a-spin" style="--d:3s" d="M24 24V14"/><path class="vb a-spin" style="--d:36s" d="M24 24l5.5 3"/>','fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"')},
-       {id:'cup',name:'Tasse',kind:'color',dur:'2,0 s',svg:ldSv(''+[[17,0],[24,-.6],[31,-1.2]].map((s)=>'<path class="a-rise" d="M'+s[0]+' 18c-3-3 3-5 0-9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" style="animation-delay:'+s[1]+'s"/>').join('')+'<path d="M10 22h24v8a10 10 0 0 1-10 10h-4a10 10 0 0 1-10-10z" fill="var(--c1)"/><path d="M34 25h3a4 4 0 0 1 0 9h-4" fill="none" stroke="var(--c1)" stroke-width="3.5" stroke-linecap="round"/><rect x="8" y="41.5" width="30" height="3.5" rx="1.75" fill="currentColor" opacity=".35"/><path d="M14 26h8" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".45"/>','style="--d:2s"')},
-       {id:'bunny',name:'Lapin',kind:'color',dur:'1,2 s',svg:ldSv('<ellipse cx="24" cy="43" rx="10" ry="2.4" fill="currentColor" opacity=".15"/><g class="a-hop" style="transform-box:view-box;transform-origin:24px 41px"><g class="a-rock" style="--rk:9deg;--d:.6s;transform-box:view-box;transform-origin:19px 20px"><ellipse cx="18.5" cy="11.5" rx="3.6" ry="9" fill="var(--c2)"/><ellipse cx="18.5" cy="12.5" rx="1.5" ry="5.5" fill="var(--c1)" opacity=".55"/></g><g class="a-rock a-rev" style="--rk:9deg;--d:.6s;transform-box:view-box;transform-origin:29px 20px"><ellipse cx="29.5" cy="11.5" rx="3.6" ry="9" fill="var(--c2)"/><ellipse cx="29.5" cy="12.5" rx="1.5" ry="5.5" fill="var(--c1)" opacity=".55"/></g><circle cx="24" cy="31" r="11" fill="var(--c2)"/><circle cx="19.5" cy="30" r="1.6" fill="currentColor"/><circle cx="28.5" cy="30" r="1.6" fill="currentColor"/><path d="M22.5 34l1.5 1.5 1.5-1.5z" fill="var(--c1)"/><circle cx="16" cy="34" r="2.3" fill="var(--c1)" opacity=".35"/><circle cx="32" cy="34" r="2.3" fill="var(--c1)" opacity=".35"/></g>','style="--d:1.2s"')},
-       {id:'fish',name:'Poisson',kind:'color',dur:'2,0 s',svg:ldSv('<circle class="a-rise" cx="9" cy="23" r="2" fill="none" stroke="currentColor" stroke-width="1.5" style="--d:1.6s"/><circle class="a-rise" cx="6" cy="29" r="1.4" fill="none" stroke="currentColor" stroke-width="1.3" style="--d:1.6s;animation-delay:-.8s"/><g class="a-swim"><g class="a-rock" style="--rk:12deg;--d:.7s;transform-box:view-box;transform-origin:33px 26px"><path d="M32 26l10-8v16z" fill="var(--c1)"/></g><ellipse cx="22" cy="26" rx="13" ry="9" fill="var(--c2)"/><path d="M20 17.5c3-5 8-4 9 0z" fill="var(--c1)"/><path d="M26 19.5c2 4 2 9 0 13" fill="none" stroke="var(--c1)" stroke-width="2.6" stroke-linecap="round" opacity=".6"/><circle cx="14" cy="24" r="2.6" fill="#fff"/><circle cx="13.4" cy="24" r="1.2" fill="currentColor"/></g>','style="--d:2s"')},
-       {id:'snail',name:'Escargot',kind:'color',dur:'3,6 s',svg:ldSv('<g class="a-swim"><rect x="5" y="32" width="36" height="8.5" rx="4.25" fill="var(--c4)"/><circle cx="38" cy="29" r="6" fill="var(--c4)"/><g class="a-rock" style="--rk:10deg;--d:1.2s;transform-box:view-box;transform-origin:37px 25px"><path d="M37 25.5l-2-9" stroke="var(--c4)" stroke-width="2.2" stroke-linecap="round" fill="none"/><circle cx="34.5" cy="15.5" r="2.2" fill="var(--c4)"/></g><g class="a-rock a-rev" style="--rk:10deg;--d:1.2s;transform-box:view-box;transform-origin:41px 25px"><path d="M41 26l2.5-8.5" stroke="var(--c4)" stroke-width="2.2" stroke-linecap="round" fill="none"/><circle cx="43.5" cy="16.5" r="2.2" fill="var(--c4)"/></g><circle cx="40" cy="29.5" r="1.2" fill="currentColor"/><circle cx="19" cy="26" r="11" fill="var(--c1)"/><path d="M19 26a3 3 0 1 1 3 3 6 6 0 1 1-6-6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".7"/></g>','style="--d:3.6s"')},
-       {id:'bee',name:'Abeille',kind:'color',dur:'1,6 s',svg:ldSv('<g class="a-float" style="--d:1.6s"><g class="a-flap" style="--d:.22s;transform-box:view-box;transform-origin:22px 22px"><ellipse cx="19" cy="12.5" rx="4.5" ry="8" fill="#fff" stroke="currentColor" stroke-width="1.5" opacity=".9"/></g><g class="a-flap a-rev" style="--d:.22s;transform-box:view-box;transform-origin:27px 22px"><ellipse cx="29" cy="12.5" rx="4.5" ry="8" fill="#fff" stroke="currentColor" stroke-width="1.5" opacity=".9"/></g><ellipse cx="24" cy="28" rx="12" ry="9" fill="var(--c4)"/><path d="M19 20.5v15M25 19.5v17M31 21.5v13" stroke="currentColor" stroke-width="3.6" opacity=".85"/><circle cx="37" cy="26" r="5.5" fill="var(--c4)"/><circle cx="39" cy="25" r="1.4" fill="currentColor"/><path d="M12 28l-5 1.5 5 1.5z" fill="currentColor"/><path d="M38 21l2-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></g>','style="--d:1.6s"')},
-       {id:'cat',name:'Chat',kind:'color',dur:'3,2 s',svg:ldSv('<g class="a-rock" style="--rk:3deg;transform-box:view-box;transform-origin:24px 42px"><path d="M11.5 21L10 6.5l10 7z" fill="var(--c2)"/><path d="M36.5 21L38 6.5l-10 7z" fill="var(--c2)"/><path d="M13 17l-.8-6.5 5 3.5z" fill="var(--c1)" opacity=".6"/><path d="M35 17l.8-6.5-5 3.5z" fill="var(--c1)" opacity=".6"/><ellipse cx="24" cy="28" rx="15" ry="13" fill="var(--c2)"/><ellipse class="a-blink" cx="18" cy="26.5" rx="2" ry="3" fill="currentColor"/><ellipse class="a-blink" cx="30" cy="26.5" rx="2" ry="3" fill="currentColor"/><path d="M22 31h4l-2 2.5z" fill="var(--c1)"/><path d="M24 33.5v1.5M21.5 36q2.5 1.5 5 0" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" opacity=".7"/><path d="M6 28h8M6.5 32.5l7-2M42 28h-8M41.5 32.5l-7-2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" opacity=".45"/></g>','style="--d:3.2s"')},
-       {id:'jellyfish',name:'Méduse',kind:'color',dur:'2,4 s',svg:ldSv('<g class="a-float" style="--d:2.4s">'+[17,22.5,28,33].map((x,i)=>'<path class="a-float" d="M'+x+' 27c-3 4 3 7 0 11" fill="none" stroke="var(--c1)" stroke-width="2.6" stroke-linecap="round" opacity=".6" style="--d:1.2s;animation-delay:'+(-0.2*i)+'s"/>').join('')+'<g class="a-boing" style="transform-box:view-box;transform-origin:24px 28px"><path d="M9 28a15 15 0 0 1 30 0z" fill="var(--c1)"/><circle cx="19" cy="21" r="1.6" fill="#fff"/><circle cx="29" cy="21" r="1.6" fill="#fff"/><path d="M21.5 25q2.5 2 5 0" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></g></g>','style="--d:2.4s"')},
-       {id:'onigiri',name:'Onigiri',kind:'color',dur:'1,4 s',svg:ldSv('<ellipse cx="24" cy="43" rx="12" ry="2.4" fill="currentColor" opacity=".15"/><g class="a-hop" style="transform-box:view-box;transform-origin:24px 41px"><path d="M24 6c2.2 0 3.8 1.2 4.9 3.1l11.7 20.3c2.6 4.5-.6 10.1-5.8 10.1H13.2c-5.2 0-8.4-5.6-5.8-10.1L19.1 9.1C20.2 7.2 21.8 6 24 6z" fill="#fff" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M15 33.5h18l1.9 3.4c1.1 2-.3 4.1-2.6 4.1H15.7c-2.3 0-3.7-2.1-2.6-4.1z" fill="currentColor"/><circle class="a-blink" cx="20" cy="24" r="1.7" fill="currentColor" style="--d:2.8s"/><circle class="a-blink" cx="28" cy="24" r="1.7" fill="currentColor" style="--d:2.8s"/><circle cx="16.5" cy="28" r="2.3" fill="var(--c1)" opacity=".45"/><circle cx="31.5" cy="28" r="2.3" fill="var(--c1)" opacity=".45"/><path d="M22.2 27.5q1.8 1.8 3.6 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></g>','style="--d:1.4s"')},
-       {id:'shuriken',name:'Shuriken',kind:'mono',dur:'0,7 s',svg:ldSv('<g class="vb a-spin">'+[0,90,180,270].map((r)=>'<path transform="rotate('+r+' 24 24)" d="M24 24C24 12 28 6 24 3C34 8 34 18 24 24z"/>').join('')+'</g>','fill="currentColor" style="--d:.7s"')},
-       {id:'sakura',name:'Sakura',kind:'color',dur:'2,4 s',svg:ldSv('<path d="M3 7c11 5 31 5 42 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" opacity=".4"/>'+[[7,12,0],[22,15,-.5],[34,11,-1],[13,27,-1.5],[30,26,-1.9]].map((p)=>'<path class="a-drop" d="M'+p[0]+' '+p[1]+'c4-4 10-1 10 4-5 3-11 1-10-4z" fill="var(--c1)" fill-opacity=".75" style="animation-delay:'+p[2]+'s"/>').join('')+'','style="--d:2.4s"')},
-       {id:'ghost',name:'Fantôme',kind:'color',dur:'2,0 s',svg:ldSv('<g class="a-float"><path d="M10 41V23a14 14 0 0 1 28 0v18l-4.7-4-4.7 4-4.6-4-4.6 4-4.7-4z" fill="#fff" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><ellipse class="a-blink" cx="19" cy="23" rx="1.9" ry="2.8" fill="currentColor" style="--d:3s"/><ellipse class="a-blink" cx="29" cy="23" rx="1.9" ry="2.8" fill="currentColor" style="--d:3s"/><circle cx="15" cy="28" r="2.3" fill="var(--c1)" opacity=".45"/><circle cx="33" cy="28" r="2.3" fill="var(--c1)" opacity=".45"/><path d="M22 29q2 2.2 4 0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></g>','style="--d:2s"')},
-       {id:'anger',name:'Colère',kind:'color',dur:'1,0 s',svg:ldSv('<g class="a-beat"><path d="M8 19c8 0 11-3 11-11"/><path d="M40 19c-8 0-11-3-11-11"/><path d="M8 29c8 0 11 3 11 11"/><path d="M40 29c-8 0-11 3-11 11"/></g>','fill="none" stroke="var(--c1)" stroke-width="4.5" stroke-linecap="round" style="--d:1s"')}
+       {id:'ring',kind:'mono',dur:'1,0 s',svg:ldSv('<circle cx="24" cy="24" r="18" stroke-opacity=".2"/><circle class="vb a-spin" cx="24" cy="24" r="18" stroke-dasharray="30 120" style="--d:1s"/>','fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"')},
+       {id:'orbit',kind:'mono',dur:'1,4 s',svg:ldSv('<g class="vb a-spin" style="--d:1.4s"><circle cx="24" cy="8" r="4.5"/><circle cx="37.9" cy="32" r="3.5" opacity=".65"/><circle cx="10.1" cy="32" r="2.5" opacity=".4"/></g>','fill="currentColor"')},
+       {id:'pulse',kind:'mono',dur:'1,6 s',svg:ldSv('<circle cx="24" cy="24" r="4" fill="currentColor"/><circle class="a-pulse" cx="24" cy="24" r="22" fill="none" stroke="currentColor" stroke-width="3"/><circle class="a-pulse" cx="24" cy="24" r="22" fill="none" stroke="currentColor" stroke-width="3" style="animation-delay:-.8s"/>')},
+       {id:'bars',kind:'mono',dur:'1,0 s',svg:ldSv([5,14,23,32,41].map((x,i)=>'<rect class="a-bar" x="'+(x-3)+'" y="8" width="6" height="32" rx="3" style="animation-delay:'+(-0.9+i*0.12).toFixed(2)+'s"/>').join(''),'fill="currentColor"')},
+       {id:'dots',kind:'mono',dur:'1,1 s',svg:ldSv([10,24,38].map((x,i)=>'<circle class="a-bounce" cx="'+x+'" cy="29" r="5" style="animation-delay:'+(-1+i*0.16).toFixed(2)+'s"/>').join(''),'fill="currentColor"')},
+       {id:'atom',kind:'mono',dur:'1,4 s',svg:ldSv([0,60,120].map((r,i)=>'<ellipse cx="24" cy="24" rx="20" ry="8" transform="rotate('+r+' 24 24)" stroke-opacity=".22"/><ellipse class="a-dash" pathLength="100" cx="24" cy="24" rx="20" ry="8" transform="rotate('+r+' 24 24)" stroke-dasharray="30 70" style="animation-delay:'+(-i*0.45).toFixed(2)+'s"/>').join('')+'<circle cx="24" cy="24" r="3" fill="currentColor" stroke="none"/>','fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"')},
+       {id:'flow',kind:'mono',dur:'1,4 s',svg:ldSv('<line x1="6" y1="24" x2="42" y2="24" stroke-opacity=".2"/><line class="a-dash" pathLength="100" x1="6" y1="24" x2="42" y2="24" stroke-dasharray="28 72"/>','fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"')},
+       {id:'sand',kind:'mono',dur:'2,4 s',svg:ldSv('<g class="vb a-flip" style="--d:2.4s"><path d="M14 6h20M14 42h20"/><path d="M16 6c0 11 8 13 8 18s-8 7-8 18M32 6c0 11-8 13-8 18s8 7 8 18"/><path d="M18.5 12h11L24 20z" fill="currentColor" stroke="none"/></g>','fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"')},
+       {id:'jelly',kind:'color',dur:'1,6 s',svg:ldSv('<g class="a-jelly"><circle cx="24" cy="24" r="16" fill="var(--c1)"/><circle cx="31" cy="18" r="3.2" fill="#fff" opacity=".92"/></g>')},
+       {id:'quad',kind:'color',dur:'1,2 s',svg:ldSv([[6,6,'--c1'],[26,6,'--c3'],[6,26,'--c2'],[26,26,'--c4']].map((q,i)=>'<rect class="a-pop" x="'+q[0]+'" y="'+q[1]+'" width="16" height="16" rx="4.5" fill="var('+q[2]+')" style="animation-delay:'+(-1.2+i*0.3).toFixed(2)+'s"/>').join(''))},
+       {id:'petals',kind:'color',dur:'1,2 s',svg:ldSv(Array.from({length:8},(_,i)=>'<ellipse class="a-fade" cx="24" cy="9.5" rx="3.2" ry="6.5" transform="rotate('+(i*45)+' 24 24)" fill="var(--c'+(i%4+1)+')" style="animation-delay:'+(-1.2+i*0.15).toFixed(2)+'s"/>').join(''))},
+       {id:'gears',kind:'color',dur:'3,0 s',svg:ldSv('<g transform="translate(18 18)"><circle class="a-spin" r="8.91" fill="none" stroke="var(--c1)" stroke-width="5" stroke-dasharray="3.5 3.5" style="--d:3s"/><circle r="6" fill="none" stroke="var(--c1)" stroke-width="3"/></g><g transform="translate(32 32) scale(.78)"><circle class="a-spin a-rev" r="8.91" fill="none" stroke="var(--c2)" stroke-width="5" stroke-dasharray="3.5 3.5" style="--d:3s"/><circle r="6" fill="none" stroke="var(--c2)" stroke-width="3"/></g>')},
+       {id:'spark',kind:'color',dur:'1,6 s',svg:ldSv('<path class="a-twinkle" d="M24 4C26 16 32 22 44 24C32 26 26 32 24 44C22 32 16 26 4 24C16 22 22 16 24 4Z" fill="var(--c2)"/><path class="a-twinkle" d="M38 4l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" fill="var(--c1)" style="animation-delay:-.8s"/>')},
+       {id:'grid',kind:'color',dur:'1,2 s',svg:ldSv([0,1,2].map(r=>[0,1,2].map(c=>'<rect class="a-fade" x="'+(5+c*14)+'" y="'+(5+r*14)+'" width="10" height="10" rx="2.6" fill="var(--c'+(r+1)+')" style="animation-delay:'+(-1.2+(r+c)*0.2).toFixed(2)+'s"/>').join('')).join(''))},
+       {id:'sprout',kind:'color',dur:'2,4 s',svg:ldSv('<ellipse cx="24" cy="41" rx="15" ry="4" fill="currentColor" opacity=".18"/><g class="a-grow" style="transform-box:view-box;transform-origin:24px 40px"><path d="M24 40V24" fill="none" stroke="var(--c3)" stroke-width="3.5" stroke-linecap="round"/><path d="M24 27C14 27 9.5 20 9.5 13.5C18 13.5 24 17.5 24 27Z" fill="var(--c3)"/><path d="M24 23C33 23 38.5 17 38.5 9.5C30 9.5 24 13.5 24 23Z" fill="var(--c3)" opacity=".7"/></g>','style="--d:2.4s"')},
+       {id:'sunflower',kind:'color',dur:'8,0 s',svg:ldSv('<g class="vb a-spin" style="--d:8s">'+Array.from({length:12},(_,i)=>'<ellipse cx="24" cy="8.5" rx="3.2" ry="6.5" transform="rotate('+(i*30)+' 24 24)" fill="var(--c4)"/>').join('')+'</g><circle cx="24" cy="24" r="9" fill="var(--c2)"/><circle cx="20.5" cy="22.5" r="1.4" fill="currentColor"/><circle cx="27.5" cy="22.5" r="1.4" fill="currentColor"/><path d="M20.5 26.5q3.5 3 7 0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>')},
+       {id:'cactus',kind:'color',dur:'3,2 s',svg:ldSv('<g class="a-rock" style="--rk:3deg;transform-box:view-box;transform-origin:24px 40px"><rect x="18" y="9" width="12" height="32" rx="6" fill="var(--c3)"/><path d="M18 31h-4.5a3 3 0 0 1-3-3v-8" fill="none" stroke="var(--c3)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 26h4.5a3 3 0 0 0 3-3v-7" fill="none" stroke="var(--c3)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle class="a-pop" cx="24" cy="8" r="4" fill="var(--c1)" style="--d:1.6s"/></g><path d="M14 40h20l-2.2 6.5H16.2z" fill="var(--c2)"/>','style="--d:3.2s"')},
+       {id:'mushroom',kind:'color',dur:'1,4 s',svg:ldSv('<ellipse cx="24" cy="42" rx="11" ry="2.5" fill="currentColor" opacity=".16"/><g class="a-hop" style="transform-box:view-box;transform-origin:24px 40px"><rect x="18.5" y="24" width="11" height="16" rx="5" fill="var(--c4)" opacity=".6"/><path d="M5.5 28C5.5 15 13.5 7.5 24 7.5S42.5 15 42.5 28z" fill="var(--c1)"/><circle cx="14.5" cy="20" r="3.2" fill="#fff" opacity=".9"/><circle cx="26.5" cy="14.5" r="2.6" fill="#fff" opacity=".9"/><circle cx="34" cy="22.5" r="3" fill="#fff" opacity=".9"/><circle cx="21.5" cy="33" r="1.3" fill="currentColor"/><circle cx="26.5" cy="33" r="1.3" fill="currentColor"/></g>','style="--d:1.4s"')},
+       {id:'rocket',kind:'color',dur:'0,4 s',svg:ldSv('<g class="a-shake"><path class="a-flame" d="M20 33h8l-4 12z" fill="var(--c4)" style="transform-box:view-box;transform-origin:24px 33px"/><path d="M17.5 25l-6.5 9h7z" fill="var(--c2)"/><path d="M30.5 25l6.5 9h-7z" fill="var(--c2)"/><path d="M24 3C31.5 9 33.5 20 31.5 33h-15C14.5 20 16.5 9 24 3z" fill="var(--c1)"/><circle cx="24" cy="18" r="3.8" fill="#fff" opacity=".92"/></g>','style="--d:.35s"')},
+       {id:'balloon',kind:'color',dur:'2,4 s',svg:ldSv('<g class="a-float"><path d="M24 34c-3 4 3 7 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".5"/><ellipse cx="24" cy="18" rx="11" ry="14" fill="var(--c1)"/><path d="M22.2 32l1.8 3.3 1.8-3.3z" fill="var(--c1)"/><ellipse cx="19.5" cy="12" rx="2.6" ry="4" fill="#fff" opacity=".4" transform="rotate(20 19.5 12)"/></g><g class="a-float" style="--d:1.7s;animation-delay:-.9s"><ellipse cx="11" cy="30" rx="6" ry="7.5" fill="var(--c4)" opacity=".85"/><path d="M11 37.5c-1.5 3 1.5 4 0 7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".4"/></g>','style="--d:2.4s"')},
+       {id:'bulb',kind:'color',dur:'1,6 s',svg:ldSv(''+[-90,-60,-30,0,30,60,90].map((r,i)=>'<path class="a-fade" d="M24 2.5v4" transform="rotate('+r+' 24 20)" stroke="var(--c4)" stroke-width="3" stroke-linecap="round" style="animation-delay:'+(-1.6+i*0.2).toFixed(2)+'s"/>').join('')+'<circle class="a-glow" cx="24" cy="20" r="9.5" fill="var(--c4)"/><path d="M19.5 27.5h9v3a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2z" fill="var(--c4)" opacity=".6"/><rect x="19.5" y="33" width="9" height="3.5" rx="1.5" fill="currentColor" opacity=".55"/><rect x="21" y="37.5" width="6" height="3" rx="1.5" fill="currentColor" opacity=".55"/><path d="M20.5 22.5l2 3.5 1.5-4.5 1.5 4.5 2-3.5" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>','style="--d:1.6s"')},
+       {id:'alarm',kind:'mono',dur:'3,0 s',svg:ldSv('<g class="a-shake" style="--d:.3s"><path d="M8 13l5-4M40 13l-5-4"/></g><circle cx="24" cy="25" r="15"/><path d="M13 41l3-3M35 38l3 3"/><path class="vb a-spin" style="--d:3s" d="M24 24V14"/><path class="vb a-spin" style="--d:36s" d="M24 24l5.5 3"/>','fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"')},
+       {id:'cup',kind:'color',dur:'2,0 s',svg:ldSv(''+[[17,0],[24,-.6],[31,-1.2]].map((s)=>'<path class="a-rise" d="M'+s[0]+' 18c-3-3 3-5 0-9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" style="animation-delay:'+s[1]+'s"/>').join('')+'<path d="M10 22h24v8a10 10 0 0 1-10 10h-4a10 10 0 0 1-10-10z" fill="var(--c1)"/><path d="M34 25h3a4 4 0 0 1 0 9h-4" fill="none" stroke="var(--c1)" stroke-width="3.5" stroke-linecap="round"/><rect x="8" y="41.5" width="30" height="3.5" rx="1.75" fill="currentColor" opacity=".35"/><path d="M14 26h8" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".45"/>','style="--d:2s"')},
+       {id:'bunny',kind:'color',dur:'1,2 s',svg:ldSv('<ellipse cx="24" cy="43" rx="10" ry="2.4" fill="currentColor" opacity=".15"/><g class="a-hop" style="transform-box:view-box;transform-origin:24px 41px"><g class="a-rock" style="--rk:9deg;--d:.6s;transform-box:view-box;transform-origin:19px 20px"><ellipse cx="18.5" cy="11.5" rx="3.6" ry="9" fill="var(--c2)"/><ellipse cx="18.5" cy="12.5" rx="1.5" ry="5.5" fill="var(--c1)" opacity=".55"/></g><g class="a-rock a-rev" style="--rk:9deg;--d:.6s;transform-box:view-box;transform-origin:29px 20px"><ellipse cx="29.5" cy="11.5" rx="3.6" ry="9" fill="var(--c2)"/><ellipse cx="29.5" cy="12.5" rx="1.5" ry="5.5" fill="var(--c1)" opacity=".55"/></g><circle cx="24" cy="31" r="11" fill="var(--c2)"/><circle cx="19.5" cy="30" r="1.6" fill="currentColor"/><circle cx="28.5" cy="30" r="1.6" fill="currentColor"/><path d="M22.5 34l1.5 1.5 1.5-1.5z" fill="var(--c1)"/><circle cx="16" cy="34" r="2.3" fill="var(--c1)" opacity=".35"/><circle cx="32" cy="34" r="2.3" fill="var(--c1)" opacity=".35"/></g>','style="--d:1.2s"')},
+       {id:'fish',kind:'color',dur:'2,0 s',svg:ldSv('<circle class="a-rise" cx="9" cy="23" r="2" fill="none" stroke="currentColor" stroke-width="1.5" style="--d:1.6s"/><circle class="a-rise" cx="6" cy="29" r="1.4" fill="none" stroke="currentColor" stroke-width="1.3" style="--d:1.6s;animation-delay:-.8s"/><g class="a-swim"><g class="a-rock" style="--rk:12deg;--d:.7s;transform-box:view-box;transform-origin:33px 26px"><path d="M32 26l10-8v16z" fill="var(--c1)"/></g><ellipse cx="22" cy="26" rx="13" ry="9" fill="var(--c2)"/><path d="M20 17.5c3-5 8-4 9 0z" fill="var(--c1)"/><path d="M26 19.5c2 4 2 9 0 13" fill="none" stroke="var(--c1)" stroke-width="2.6" stroke-linecap="round" opacity=".6"/><circle cx="14" cy="24" r="2.6" fill="#fff"/><circle cx="13.4" cy="24" r="1.2" fill="currentColor"/></g>','style="--d:2s"')},
+       {id:'snail',kind:'color',dur:'3,6 s',svg:ldSv('<g class="a-swim"><rect x="5" y="32" width="36" height="8.5" rx="4.25" fill="var(--c4)"/><circle cx="38" cy="29" r="6" fill="var(--c4)"/><g class="a-rock" style="--rk:10deg;--d:1.2s;transform-box:view-box;transform-origin:37px 25px"><path d="M37 25.5l-2-9" stroke="var(--c4)" stroke-width="2.2" stroke-linecap="round" fill="none"/><circle cx="34.5" cy="15.5" r="2.2" fill="var(--c4)"/></g><g class="a-rock a-rev" style="--rk:10deg;--d:1.2s;transform-box:view-box;transform-origin:41px 25px"><path d="M41 26l2.5-8.5" stroke="var(--c4)" stroke-width="2.2" stroke-linecap="round" fill="none"/><circle cx="43.5" cy="16.5" r="2.2" fill="var(--c4)"/></g><circle cx="40" cy="29.5" r="1.2" fill="currentColor"/><circle cx="19" cy="26" r="11" fill="var(--c1)"/><path d="M19 26a3 3 0 1 1 3 3 6 6 0 1 1-6-6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".7"/></g>','style="--d:3.6s"')},
+       {id:'bee',kind:'color',dur:'1,6 s',svg:ldSv('<g class="a-float" style="--d:1.6s"><g class="a-flap" style="--d:.22s;transform-box:view-box;transform-origin:22px 22px"><ellipse cx="19" cy="12.5" rx="4.5" ry="8" fill="#fff" stroke="currentColor" stroke-width="1.5" opacity=".9"/></g><g class="a-flap a-rev" style="--d:.22s;transform-box:view-box;transform-origin:27px 22px"><ellipse cx="29" cy="12.5" rx="4.5" ry="8" fill="#fff" stroke="currentColor" stroke-width="1.5" opacity=".9"/></g><ellipse cx="24" cy="28" rx="12" ry="9" fill="var(--c4)"/><path d="M19 20.5v15M25 19.5v17M31 21.5v13" stroke="currentColor" stroke-width="3.6" opacity=".85"/><circle cx="37" cy="26" r="5.5" fill="var(--c4)"/><circle cx="39" cy="25" r="1.4" fill="currentColor"/><path d="M12 28l-5 1.5 5 1.5z" fill="currentColor"/><path d="M38 21l2-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></g>','style="--d:1.6s"')},
+       {id:'cat',kind:'color',dur:'3,2 s',svg:ldSv('<g class="a-rock" style="--rk:3deg;transform-box:view-box;transform-origin:24px 42px"><path d="M11.5 21L10 6.5l10 7z" fill="var(--c2)"/><path d="M36.5 21L38 6.5l-10 7z" fill="var(--c2)"/><path d="M13 17l-.8-6.5 5 3.5z" fill="var(--c1)" opacity=".6"/><path d="M35 17l.8-6.5-5 3.5z" fill="var(--c1)" opacity=".6"/><ellipse cx="24" cy="28" rx="15" ry="13" fill="var(--c2)"/><ellipse class="a-blink" cx="18" cy="26.5" rx="2" ry="3" fill="currentColor"/><ellipse class="a-blink" cx="30" cy="26.5" rx="2" ry="3" fill="currentColor"/><path d="M22 31h4l-2 2.5z" fill="var(--c1)"/><path d="M24 33.5v1.5M21.5 36q2.5 1.5 5 0" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" opacity=".7"/><path d="M6 28h8M6.5 32.5l7-2M42 28h-8M41.5 32.5l-7-2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" opacity=".45"/></g>','style="--d:3.2s"')},
+       {id:'jellyfish',kind:'color',dur:'2,4 s',svg:ldSv('<g class="a-float" style="--d:2.4s">'+[17,22.5,28,33].map((x,i)=>'<path class="a-float" d="M'+x+' 27c-3 4 3 7 0 11" fill="none" stroke="var(--c1)" stroke-width="2.6" stroke-linecap="round" opacity=".6" style="--d:1.2s;animation-delay:'+(-0.2*i)+'s"/>').join('')+'<g class="a-boing" style="transform-box:view-box;transform-origin:24px 28px"><path d="M9 28a15 15 0 0 1 30 0z" fill="var(--c1)"/><circle cx="19" cy="21" r="1.6" fill="#fff"/><circle cx="29" cy="21" r="1.6" fill="#fff"/><path d="M21.5 25q2.5 2 5 0" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></g></g>','style="--d:2.4s"')},
+       {id:'onigiri',kind:'color',dur:'1,4 s',svg:ldSv('<ellipse cx="24" cy="43" rx="12" ry="2.4" fill="currentColor" opacity=".15"/><g class="a-hop" style="transform-box:view-box;transform-origin:24px 41px"><path d="M24 6c2.2 0 3.8 1.2 4.9 3.1l11.7 20.3c2.6 4.5-.6 10.1-5.8 10.1H13.2c-5.2 0-8.4-5.6-5.8-10.1L19.1 9.1C20.2 7.2 21.8 6 24 6z" fill="#fff" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M15 33.5h18l1.9 3.4c1.1 2-.3 4.1-2.6 4.1H15.7c-2.3 0-3.7-2.1-2.6-4.1z" fill="currentColor"/><circle class="a-blink" cx="20" cy="24" r="1.7" fill="currentColor" style="--d:2.8s"/><circle class="a-blink" cx="28" cy="24" r="1.7" fill="currentColor" style="--d:2.8s"/><circle cx="16.5" cy="28" r="2.3" fill="var(--c1)" opacity=".45"/><circle cx="31.5" cy="28" r="2.3" fill="var(--c1)" opacity=".45"/><path d="M22.2 27.5q1.8 1.8 3.6 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></g>','style="--d:1.4s"')},
+       {id:'shuriken',kind:'mono',dur:'0,7 s',svg:ldSv('<g class="vb a-spin">'+[0,90,180,270].map((r)=>'<path transform="rotate('+r+' 24 24)" d="M24 24C24 12 28 6 24 3C34 8 34 18 24 24z"/>').join('')+'</g>','fill="currentColor" style="--d:.7s"')},
+       {id:'sakura',kind:'color',dur:'2,4 s',svg:ldSv('<path d="M3 7c11 5 31 5 42 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" opacity=".4"/>'+[[7,12,0],[22,15,-.5],[34,11,-1],[13,27,-1.5],[30,26,-1.9]].map((p)=>'<path class="a-drop" d="M'+p[0]+' '+p[1]+'c4-4 10-1 10 4-5 3-11 1-10-4z" fill="var(--c1)" fill-opacity=".75" style="animation-delay:'+p[2]+'s"/>').join('')+'','style="--d:2.4s"')},
+       {id:'ghost',kind:'color',dur:'2,0 s',svg:ldSv('<g class="a-float"><path d="M10 41V23a14 14 0 0 1 28 0v18l-4.7-4-4.7 4-4.6-4-4.6 4-4.7-4z" fill="#fff" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><ellipse class="a-blink" cx="19" cy="23" rx="1.9" ry="2.8" fill="currentColor" style="--d:3s"/><ellipse class="a-blink" cx="29" cy="23" rx="1.9" ry="2.8" fill="currentColor" style="--d:3s"/><circle cx="15" cy="28" r="2.3" fill="var(--c1)" opacity=".45"/><circle cx="33" cy="28" r="2.3" fill="var(--c1)" opacity=".45"/><path d="M22 29q2 2.2 4 0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></g>','style="--d:2s"')},
+       {id:'anger',kind:'color',dur:'1,0 s',svg:ldSv('<g class="a-beat"><path d="M8 19c8 0 11-3 11-11"/><path d="M40 19c-8 0-11-3-11-11"/><path d="M8 29c8 0 11 3 11 11"/><path d="M40 29c-8 0-11 3-11 11"/></g>','fill="none" stroke="var(--c1)" stroke-width="4.5" stroke-linecap="round" style="--d:1s"')}
       ]
-      /* dessinés par le skill (la démo en tire un à chaque demande) */
-      const LD_PRESETS = LD_PRESETS_RAW.map((p) => ({ type: 'inline', source: 'preset', ...p }))
+      /* drawn by the skill (the demo draws one at each request) */
+      const LD_NAMES = {
+        ring: ['Anneau', 'Ring'],
+        orbit: ['Orbite', 'Orbit'],
+        pulse: ['Pulsation', 'Pulse'],
+        bars: ['Barres', 'Bars'],
+        dots: ['Rebond', 'Bounce'],
+        atom: ['Atome', 'Atom'],
+        flow: ['Flux', 'Flow'],
+        sand: ['Sablier', 'Hourglass'],
+        jelly: ['Bille', 'Marble'],
+        quad: ['Quatre carrés', 'Four squares'],
+        petals: ['Pétales', 'Petals'],
+        gears: ['Engrenages', 'Gears'],
+        spark: ['Étincelle', 'Spark'],
+        grid: ['Cascade', 'Cascade'],
+        sprout: ['Pousse', 'Sprout'],
+        sunflower: ['Tournesol', 'Sunflower'],
+        cactus: ['Cactus', 'Cactus'],
+        mushroom: ['Champignon', 'Mushroom'],
+        rocket: ['Fusée', 'Rocket'],
+        balloon: ['Ballon', 'Balloon'],
+        bulb: ['Ampoule', 'Light bulb'],
+        alarm: ['Réveil', 'Alarm clock'],
+        cup: ['Tasse', 'Cup'],
+        bunny: ['Lapin', 'Bunny'],
+        fish: ['Poisson', 'Fish'],
+        snail: ['Escargot', 'Snail'],
+        bee: ['Abeille', 'Bee'],
+        cat: ['Chat', 'Cat'],
+        jellyfish: ['Méduse', 'Jellyfish'],
+        onigiri: ['Onigiri', 'Onigiri'],
+        shuriken: ['Shuriken', 'Shuriken'],
+        sakura: ['Sakura', 'Sakura'],
+        ghost: ['Fantôme', 'Ghost'],
+        anger: ['Colère', 'Anger']
+      }
+      const LD_PRESETS = named(LD_PRESETS_RAW.map((p) => ({ type: 'inline', source: 'preset', ...p })), LD_NAMES)
 
-      // ── Les ambiances : des mots par métier, en français et en anglais ─────────
-      // Une forme qui se lit après « … for 12s » : un nom d'action ou un gérondif.
+      // ── The ambiances: words per profession, in French and English ─────────
+      // A form that reads after “… for 12s”: an action noun or a gerund.
       const LD_PACKS = [
-        { id: 'dsh', name: 'DSH d’origine', orig: true, words: { fr: [], en: [] } },
-        { id: 'mer', name: 'Mer', words: { fr: ['Plongée', 'Sondage', 'Cap sur la réponse', 'Remontée', 'Veille'], en: ['Diving', 'Sounding', 'Charting a course', 'Surfacing', 'Keeping watch'] } },
-        { id: 'cuisine', name: 'Cuisine', words: { fr: ['Mijotage', 'Assaisonnement', 'Dressage', 'Émulsion', 'Réduction'], en: ['Cooking', 'Simmering', 'Seasoning', 'Plating', 'Reducing'] } },
-        { id: 'atelier', name: 'Atelier créatif', words: { fr: ['Composition', 'Esquisse', 'Brouillon', 'Mise en page', 'Polissage'], en: ['Composing', 'Sketching', 'Drafting', 'Laying out', 'Polishing'] } },
-        { id: 'architecture', name: 'Architecture', words: { fr: ['Esquisse', 'Relevé', 'Étude de la lumière', 'Coupe et élévation', 'Calcul des structures'], en: ['Sketching', 'Surveying', 'Studying daylight', 'Drawing sections', 'Calculating structures'] } },
-        { id: 'medecine', name: 'Médecine', words: { fr: ['Examen', 'Anamnèse', 'Diagnostic différentiel', 'Recoupement des recommandations', 'Triage'], en: ['Examining', 'Taking the history', 'Weighing differentials', 'Cross-checking guidelines', 'Triaging'] } },
-        { id: 'sante-mentale', name: 'Santé mentale', words: { fr: ['Écoute active', 'Reformulation', 'Prise de recul', 'Repérage des ressources', 'Pas à pas'], en: ['Listening closely', 'Rephrasing', 'Stepping back', 'Mapping resources', 'Taking it step by step'] } },
-        { id: 'ingenierie', name: 'Ingénierie', words: { fr: ['Calcul des tolérances', 'Simulation', 'Dimensionnement', 'Vérification des charges', 'Mise au point'], en: ['Calculating tolerances', 'Simulating', 'Sizing', 'Checking loads', 'Fine-tuning'] } },
-        { id: 'droit', name: 'Droit', words: { fr: ['Lecture de la jurisprudence', 'Rédaction des clauses', 'Recoupement des textes', 'Qualification des faits'], en: ['Reading case law', 'Drafting clauses', 'Cross-referencing statutes', 'Qualifying the facts'] } },
-        { id: 'finance', name: 'Finance', words: { fr: ['Rapprochement', 'Audit', 'Prévision', 'Consolidation', 'Amortissement'], en: ['Reconciling', 'Auditing', 'Forecasting', 'Consolidating', 'Amortizing'] } },
-        { id: 'science', name: 'Recherche', words: { fr: ['Titrage', 'Séquençage', 'Contrôle témoin', 'Relecture par les pairs', 'Calibrage'], en: ['Titrating', 'Sequencing', 'Running controls', 'Peer-reviewing', 'Calibrating'] } },
-        { id: 'education', name: 'Éducation', words: { fr: ['Préparation du cours', 'Correction', 'Différenciation', 'Évaluation', 'Mise en séquence'], en: ['Planning the lesson', 'Marking', 'Differentiating', 'Assessing', 'Sequencing'] } }
+        { id: 'dsh', orig: true, words: { fr: [], en: [] } },
+        { id: 'mer', words: { fr: ['Plongée', 'Sondage', 'Cap sur la réponse', 'Remontée', 'Veille'], en: ['Diving', 'Sounding', 'Charting a course', 'Surfacing', 'Keeping watch'] } },
+        { id: 'cuisine', words: { fr: ['Mijotage', 'Assaisonnement', 'Dressage', 'Émulsion', 'Réduction'], en: ['Cooking', 'Simmering', 'Seasoning', 'Plating', 'Reducing'] } },
+        { id: 'atelier', words: { fr: ['Composition', 'Esquisse', 'Brouillon', 'Mise en page', 'Polissage'], en: ['Composing', 'Sketching', 'Drafting', 'Laying out', 'Polishing'] } },
+        { id: 'architecture', words: { fr: ['Esquisse', 'Relevé', 'Étude de la lumière', 'Coupe et élévation', 'Calcul des structures'], en: ['Sketching', 'Surveying', 'Studying daylight', 'Drawing sections', 'Calculating structures'] } },
+        { id: 'medecine', words: { fr: ['Examen', 'Anamnèse', 'Diagnostic différentiel', 'Recoupement des recommandations', 'Triage'], en: ['Examining', 'Taking the history', 'Weighing differentials', 'Cross-checking guidelines', 'Triaging'] } },
+        { id: 'sante-mentale', words: { fr: ['Écoute active', 'Reformulation', 'Prise de recul', 'Repérage des ressources', 'Pas à pas'], en: ['Listening closely', 'Rephrasing', 'Stepping back', 'Mapping resources', 'Taking it step by step'] } },
+        { id: 'ingenierie', words: { fr: ['Calcul des tolérances', 'Simulation', 'Dimensionnement', 'Vérification des charges', 'Mise au point'], en: ['Calculating tolerances', 'Simulating', 'Sizing', 'Checking loads', 'Fine-tuning'] } },
+        { id: 'droit', words: { fr: ['Lecture de la jurisprudence', 'Rédaction des clauses', 'Recoupement des textes', 'Qualification des faits'], en: ['Reading case law', 'Drafting clauses', 'Cross-referencing statutes', 'Qualifying the facts'] } },
+        { id: 'finance', words: { fr: ['Rapprochement', 'Audit', 'Prévision', 'Consolidation', 'Amortissement'], en: ['Reconciling', 'Auditing', 'Forecasting', 'Consolidating', 'Amortizing'] } },
+        { id: 'science', words: { fr: ['Titrage', 'Séquençage', 'Contrôle témoin', 'Relecture par les pairs', 'Calibrage'], en: ['Titrating', 'Sequencing', 'Running controls', 'Peer-reviewing', 'Calibrating'] } },
+        { id: 'education', words: { fr: ['Préparation du cours', 'Correction', 'Différenciation', 'Évaluation', 'Mise en séquence'], en: ['Planning the lesson', 'Marking', 'Differentiating', 'Assessing', 'Sequencing'] } }
       ]
+      named(LD_PACKS, {
+        dsh: ['DSH d’origine', 'DSH original'],
+        mer: ['Mer', 'Sea'],
+        cuisine: ['Cuisine', 'Kitchen'],
+        atelier: ['Atelier créatif', 'Creative studio'],
+        architecture: ['Architecture', 'Architecture'],
+        medecine: ['Médecine', 'Medicine'],
+        'sante-mentale': ['Santé mentale', 'Mental health'],
+        ingenierie: ['Ingénierie', 'Engineering'],
+        droit: ['Droit', 'Law'],
+        finance: ['Finance', 'Finance'],
+        science: ['Recherche', 'Research'],
+        education: ['Éducation', 'Education']
+      })
 
       // ── Le magasin ────────────────────────────────────────────────────────────
       const ld = { S: ldRead(), mine: [], words: [], subs: new Set(), hostState: 'unknown', pushTimer: null, ctx: null, started: false, pulled: false, mo: null, runs: new Set() }
-      const ldNotify = () => { ld.subs.forEach((fn) => { try { fn() } catch (e) { /* un abonné fautif ne coupe pas les autres */ } }) }
+      const ldNotify = () => { ld.subs.forEach((fn) => { try { fn() } catch (e) { /* a faulty subscriber does not cut off the others */ } }) }
       const ldById = (id) => LD_PRESETS.find((p) => p.id === id) || ld.mine.find((p) => p.id === id) || null
-      const ldLang = () => {
-        try { return String(ld.ctx.locale.getLocale().active).toLowerCase().indexOf('fr') === 0 ? 'fr' : 'en' } catch (e) { return 'en' }
-      }
+      const ldLang = () => kbLang()
       const ldHash = (str) => Array.from(String(str)).reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7)
-      const ldPackById = (id) => (id === 'perso' ? { id: 'perso', name: 'Mon pack', words: { fr: ld.words, en: ld.words } } : (LD_PACKS.find((p) => p.id === id) || LD_PACKS[0]))
-      /** Les mots de l'ambiance active, dans la langue de l'interface. Vide = on laisse le texte de DSH. */
+      const ldPackById = (id) => (id === 'perso' ? { id: 'perso', name: kt('Mon pack', 'My pack'), words: { fr: ld.words, en: ld.words } } : (LD_PACKS.find((p) => p.id === id) || LD_PACKS[0]))
+      /** The words of the active ambiance, in the interface language. Empty = we leave DSH's text. */
       const ldWordList = (id) => {
         const p = ldPackById(id === undefined ? ld.S.pack : id)
         if (p.orig === true) return []
@@ -1278,13 +1443,13 @@ window.__ModuleLoader__.load({
         return Array.isArray(w) && w.length > 0 ? w : (p.words.en || [])
       }
 
-      // Les animations CHOISIES sont gardées dans le navigateur (≤ 4 × 200 Ko) : sans cela, la
-      // première réponse après un rechargement attendrait l'hôte pour savoir quoi dessiner.
+      // The CHOSEN animations are kept in the browser (≤ 4 × 200 KB): without that, the
+      // first answer after a reload would wait for the host to know what to draw.
       const ldCacheWrite = () => {
         try {
           const keep = ld.mine.filter((l) => ld.S.sel.indexOf(l.id) >= 0)
           localStorage.setItem(LD_CACHE, JSON.stringify({ loaders: keep, words: ld.words }))
-        } catch (e) { /* quota : l'hôte reste la référence */ }
+        } catch (e) { /* quota: the host remains the reference */ }
       }
       const ldCacheRead = () => {
         try {
@@ -1293,13 +1458,13 @@ window.__ModuleLoader__.load({
             if (Array.isArray(c.loaders)) ld.mine = c.loaders.filter(ldRecordOk)
             if (Array.isArray(c.words)) ld.words = c.words.filter((w) => typeof w === 'string')
           }
-        } catch (e) { /* pas de cache */ }
+        } catch (e) { /* no cache */ }
       }
       const ldRecordOk = (l) => l !== null && typeof l === 'object' && typeof l.id === 'string' && LD_ID.test(l.id) && typeof l.name === 'string'
         && (l.type === 'svg' || l.type === 'lottie' || l.type === 'img') && l.data !== undefined && l.data !== null
       ldCacheRead()
 
-      // ── L'hôte : disque durable, optionnel ────────────────────────────────────
+      // ── The host: durable disk, optional ────────────────────────────────────
       const ldHostOn = () => { try { return window.__KB_THEME_HOST_STORE__ !== false } catch (e) { return true } }
       const ldHostUrl = () => { try { return new URL('kybernos-theme/loader-store', document.baseURI).pathname } catch (e) { return '/kybernos-theme/loader-store' } }
       const ldHost = async (body) => {
@@ -1307,7 +1472,7 @@ window.__ModuleLoader__.load({
         try {
           const res = await fetch(ldHostUrl(), body === undefined ? undefined : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
           const j = await res.json().catch(() => null)
-          return (j !== null && typeof j === 'object') ? j : { ok: false, unreachable: true, error: 'réponse illisible' }
+          return (j !== null && typeof j === 'object') ? j : { ok: false, unreachable: true, error: kt('réponse illisible', 'unreadable reply') }
         } catch (e) { return { ok: false, unreachable: true, error: String(e !== null && e.message ? e.message : e) } }
       }
       const ldSchedulePush = () => {
@@ -1315,7 +1480,7 @@ window.__ModuleLoader__.load({
         if (ld.pushTimer !== null) clearTimeout(ld.pushTimer)
         ld.pushTimer = setTimeout(() => { ld.pushTimer = null; ldHost({ op: 'put-settings', settings: ld.S }) }, 700)
       }
-      /** Lit l'hôte. `quiet` : ne réveille la page que si quelque chose a changé. */
+      /** Reads the host. `quiet`: only wakes the page if something changed. */
       const ldPull = async (quiet) => {
         const j = await ldHost()
         const was = ld.hostState
@@ -1329,19 +1494,19 @@ window.__ModuleLoader__.load({
         }
         if (Array.isArray(j.words)) ld.words = j.words.filter((w) => typeof w === 'string')
         if (j.settings !== null && typeof j.settings === 'object' && typeof j.settings.updatedAt === 'number' && j.settings.updatedAt > ld.S.updatedAt) { ld.S = ldClean(j.settings); ldWrite(ld.S) }
-        else if ((j.settings === null || j.settings === undefined) && ld.S.updatedAt > 0 && ld.pulled === false) ldSchedulePush() // premier passage : l'hôte n'a rien, on lui donne ce que le navigateur sait
+        else if ((j.settings === null || j.settings === undefined) && ld.S.updatedAt > 0 && ld.pulled === false) ldSchedulePush() // first pass: the host has nothing, we give it what the browser knows
         ld.pulled = true
         ldCacheWrite()
         if (quiet !== true || sig() !== before || was !== ld.hostState) ldNotify()
         return true
       }
-      /** Change des réglages : navigateur d'abord (immédiat), disque ensuite (différé). */
+      /** Changes settings: browser first (immediate), disk afterwards (deferred). */
       const ldSet = (patch) => {
         ld.S = ldClean({ ...ld.S, ...patch, updatedAt: Date.now() })
         ldWrite(ld.S); ldCacheWrite(); ldNotify(); ldSchedulePush()
       }
-      /** Rend { ok, local?, error?, loader? }. Un hôte qui REFUSE le fichier (il en a vu un défaut) : rien n'est
-       *  gardé. Un hôte INJOIGNABLE : le fichier reste dans ce navigateur jusqu'au rechargement (`local`). */
+      /** Returns { ok, local?, error?, loader? }. A host that REFUSES the file (it saw a defect in it): nothing is
+       *  kept. An UNREACHABLE host: the file stays in this browser until reload (`local`). */
       const ldAddRecord = async (rec) => {
         const j = await ldHost({ op: 'put-loader', loader: rec })
         if (j.ok !== true && j.unreachable !== true) return { ok: false, error: j.error }
@@ -1366,7 +1531,7 @@ window.__ModuleLoader__.load({
         return j
       }
 
-      // ── Le dessin d'une animation ─────────────────────────────────────────────
+      // ── The drawing of an animation ─────────────────────────────────────────────
       const ldReduced = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.getAttribute('data-kbth-reduced') === '1' } catch (e) { return false } }
       let ldLottiePromise = null
       const ldLottieLib = () => {
@@ -1383,9 +1548,9 @@ window.__ModuleLoader__.load({
         }
         return ldLottiePromise
       }
-      /** Un nœud DOM prêt à être posé. Le contenu importé n'est JAMAIS injecté comme HTML :
-       *  un SVG passe par <img> ou par un masque CSS (aucun script n'y tourne), un Lottie par
-       *  son moteur, les dessins du catalogue (nos propres chaînes) sont seuls en ligne. */
+      /** A DOM node ready to be placed. Imported content is NEVER injected as HTML:
+       *  an SVG goes through <img> or a CSS mask (no script runs in it), a Lottie through
+       *  its engine, only the catalogue drawings (our own strings) are inline. */
       const ldNode = (l, px) => {
         const span = document.createElement('span')
         span.className = 'kb-ld'
@@ -1411,10 +1576,10 @@ window.__ModuleLoader__.load({
         }
         return span
       }
-      const ldDestroy = (node) => { try { if (node !== null && node !== undefined && node.__kbAnim) node.__kbAnim.destroy() } catch (e) { /* déjà détruit */ } }
+      const ldDestroy = (node) => { try { if (node !== null && node !== undefined && node.__kbAnim) node.__kbAnim.destroy() } catch (e) { /* already destroyed */ } }
 
       // ── Le tirage ─────────────────────────────────────────────────────────────
-      /** `memo` garde le dernier tirage : { last, idx }. Muté. */
+      /** `memo` keeps the last draw: { last, idx }. Mutated. */
       const ldChoose = (memo) => {
         const sel = ld.S.sel.map(ldById).filter((x) => x !== null)
         if (sel.length === 0) return null
@@ -1438,12 +1603,12 @@ window.__ModuleLoader__.load({
         return x
       }
 
-      // ── Le statut du bas, dans la vraie page ──────────────────────────────────
+      // ── The status at the bottom, in the real page ──────────────────────────────
       const ldTurn = { loader: null, word: null, t0: 0, lastSeen: 0, memo: {}, wmemo: {} }
       const ldBase = () => { try { return String(ld.ctx.locale.bind('chat')('chat.deepDiving')) } catch (e) { return '' } }
-      /** DSH écrit le texte DEUX fois : un nœud texte (la base) et, dans la copie lumineuse qui balaie
-       *  le mot, un attribut `data-shimmer-text` que le CSS affiche (`::after`). Sans le second, le
-       *  reflet repasserait « Deep diving » par-dessus notre mot. */
+      /** DSH writes the text TWICE: a text node (the base) and, in the luminous copy that sweeps
+       *  the word, a `data-shimmer-text` attribute that the CSS displays (`::after`). Without the second, the
+       *  shimmer would paint “Deep diving” back over our word. */
       const ldApplyText = (run) => {
         if (run.word === null || run.word === undefined) return
         const base = ldBase()
@@ -1465,7 +1630,7 @@ window.__ModuleLoader__.load({
         }
       }
       const ldRelease = (run) => {
-        try { if (run.mo !== null) run.mo.disconnect() } catch (e) { /* déjà détaché */ }
+        try { if (run.mo !== null) run.mo.disconnect() } catch (e) { /* already detached */ }
         if (run.timer !== null) clearInterval(run.timer)
         ldDestroy(run.node)
         run.mo = null; run.timer = null
@@ -1478,7 +1643,7 @@ window.__ModuleLoader__.load({
         if (shim === null || content === null || content === undefined) return // structure inconnue : on laisse DSH tranquille
         el.__kbLd = true
         const now = Date.now()
-        if (now - ldTurn.lastSeen > 1500) { // une NOUVELLE réponse (le bloc est remonté à l'identique au milieu d'une réponse)
+        if (now - ldTurn.lastSeen > 1500) { // a NEW answer (the block is remounted identically in the middle of an answer)
           ldTurn.loader = ldChoose(ldTurn.memo)
           ldTurn.word = ldChooseWord(ldTurn.wmemo)
           ldTurn.t0 = now
@@ -1512,13 +1677,13 @@ window.__ModuleLoader__.load({
           if (ld.S.rot !== 'fixed' && run.word !== null) {
             const step = ld.S.rot === '8' ? 8000 : 15000
             const idx = Math.floor((Date.now() - run.t0) / step)
-            if (idx !== run.idx) { run.idx = idx; run.word = ldChooseWord(ldTurn.wmemo); ldTurn.word = run.word } // DSH réécrit le texte à chaque seconde : le nouveau mot passe au prochain tic
+            if (idx !== run.idx) { run.idx = idx; run.word = ldChooseWord(ldTurn.wmemo); ldTurn.word = run.word } // DSH rewrites the text every second: the new word shows at the next tick
           }
         }, 1000)
       }
-      /** Arrête tout et rend à DSH son icône : le plugin peut être désactivé à chaud. */
+      /** Stops everything and gives DSH its icon back: the plugin can be disabled on the fly. */
       const ldStop = () => {
-        try { if (ld.mo !== null) ld.mo.disconnect() } catch (e) { /* déjà détaché */ }
+        try { if (ld.mo !== null) ld.mo.disconnect() } catch (e) { /* already detached */ }
         ld.mo = null
         Array.from(ld.runs).forEach((run) => {
           ldRelease(run)
@@ -1527,11 +1692,11 @@ window.__ModuleLoader__.load({
             if (run.icon !== null) run.icon.removeAttribute('data-kb-ld-hide')
             run.el.removeAttribute('data-kb-ld-notext')
             run.el.__kbLd = false
-          } catch (e) { /* le bloc est déjà parti */ }
+          } catch (e) { /* the block has already gone */ }
         })
         ld.started = false
       }
-      /** Surveille la page : chaque `[data-chat-running]` qui apparaît est décoré. Rend le disposer. */
+      /** Watches the page: each `[data-chat-running]` that appears is decorated. Returns the disposer. */
       const ldStart = (ctx) => {
         ld.ctx = ctx
         if (ld.started) return ldStop
@@ -1541,7 +1706,7 @@ window.__ModuleLoader__.load({
             if (root.nodeType !== 1) return
             if (root.matches('[data-chat-running]')) ldDecorate(root)
             root.querySelectorAll('[data-chat-running]').forEach(ldDecorate)
-          } catch (e) { /* une erreur ici ne doit jamais atteindre DSH */ }
+          } catch (e) { /* an error here must never reach DSH */ }
         }
         const go = () => {
           try {
@@ -1582,7 +1747,16 @@ window.__ModuleLoader__.load({
         glass: ['wp', 'wpVis', 'wpBlur', 'tint', 'glassEffect', 'glassBlur', 'sidebarLinked', 'sidebarOpacity', 'fieldOpacity', 'floatOpacity', 'bgBrightness', 'bgContrast', 'bgSaturation', 'bgDarken', 'bgFit', 'bgMirror'],
         a11y: ['contrastMode', 'cbSafe', 'reduceMotion', 'focusRing', 'largeTargets', 'underlineLinks']
       }
-      const PRESET_GROUP_LABELS = { colors: 'Couleurs et accent', font: 'Police', radius: 'Coins', icons: 'Icônes du menu', glass: 'Verre et fond d’écran', a11y: 'Accessibilité' }
+      const PRESET_GROUP_NAMES = {
+        colors: ['Couleurs et accent', 'Colors and accent'],
+        font: ['Police', 'Font'],
+        radius: ['Coins', 'Corners'],
+        icons: ['Icônes du menu', 'Menu icons'],
+        glass: ['Verre et fond d’écran', 'Glass and wallpaper'],
+        a11y: ['Accessibilité', 'Accessibility']
+      }
+      /** The label of a group of a theme, in the language of the page. */
+      const groupLabel = (g) => kt(PRESET_GROUP_NAMES[g][0], PRESET_GROUP_NAMES[g][1])
       const PRESET_KEYS = Object.keys(PRESET_GROUPS).reduce((all, g) => all.concat(PRESET_GROUPS[g]), [])
       const PRESET_LIMIT = 100
       const PRESET_NAME_MAX = 40
@@ -1693,12 +1867,12 @@ window.__ModuleLoader__.load({
       }
       /** `name`, or `name (2)`, `name (3)`... when it is already taken by a shipped theme or one of yours. */
       const libFreeName = (name) => {
-        const base = presetName(name) || 'Thème'
+        const base = presetName(name) || kt('Thème', 'Theme')
         let n = base
         for (let i = 2; libNameTaken(n); i += 1) n = base.slice(0, PRESET_NAME_MAX - String(i).length - 3).trim() + ' (' + i + ')'
         return n
       }
-      /** Adds a theme at the end of the library. Rend l'enregistrement, ou null (settings vides, bibliothèque pleine). */
+      /** Adds a theme at the end of the library. Returns the record, or null (empty settings, full library). */
       const libAdd = (name, source, settings, extra) => {
         if (lib.presets.length >= PRESET_LIMIT) return null
         const rec = presetRecord({ ...(extra || {}), id: presetId(source === 'gallery' ? 'g' : 'u'), name: libFreeName(name), source, at: Date.now(), settings })
@@ -1738,10 +1912,10 @@ window.__ModuleLoader__.load({
         const settings = presetSettings(framed ? raw.settings : raw)
         if (settings === null) return { ok: false, error: 'empty' }
         const name = framed ? presetName(raw.name) : ''
-        return { ok: true, name: name === '' ? 'Thème importé' : name, settings, legacy: !framed, author: framed && typeof raw.author === 'string' ? raw.author : undefined }
+        return { ok: true, name: name === '' ? kt('Thème importé', 'Imported theme') : name, settings, legacy: !framed, author: framed && typeof raw.author === 'string' ? raw.author : undefined }
       }
 
-      // « Modified » = a setting this theme retains has moved. The mode is left out on purpose: DSH's own
+      // “Modified” = a setting this theme retains has moved. The mode is left out on purpose: DSH's own
       // light/dark button changes it from elsewhere, and that is not editing the theme.
       const settingText = (v) => JSON.stringify(v !== null && typeof v === 'object' ? Object.keys(v).sort().map((k) => [k, v[k]]) : v).toLowerCase()
       const settingsDirty = (S, settings) => Object.keys(settings).some((k) => k !== 'mode' && settingText(S[k]) !== settingText(settings[k]))
@@ -1754,7 +1928,7 @@ window.__ModuleLoader__.load({
         acc: rec.settings.acc === undefined ? null : rec.settings.acc, ov: rec.settings.ov || {},
         fontText: rec.settings.fontText, radius: rec.settings.radius, iconSet: rec.settings.iconSet
       })
-      const RADIUS_LABEL = { sharp: 'nets', standard: 'standard', soft: 'doux' }
+      const RADIUS_LABEL = { sharp: ['coins nets', 'sharp corners'], standard: ['coins standard', 'standard corners'], soft: ['coins doux', 'soft corners'] }
       /** The groups a set of settings retains: { colors: true, font: false, ... }. */
       const groupsOf = (settings) => {
         const g = {}
@@ -1781,7 +1955,7 @@ window.__ModuleLoader__.load({
       //   has been verified and cached. The page never sees an unverified catalogue, and it checks what
       //   it is given anyway: a theme is data, so a catalogue theme goes through the same check as a file
       //   (`presetSettings`) and never carries accessibility settings.
-      //   Installing puts a copy in « My themes » (source « gallery », with its catalogue id and version);
+      //   Installing puts a copy in “My themes” (source “gallery”, with its catalogue id and version);
       //   from then on it is yours, and the gallery only offers an update when its version moves.
       // ══════════════════════════════════════════════════════════════════════
 
@@ -1796,15 +1970,18 @@ window.__ModuleLoader__.load({
           return (j !== null && typeof j === 'object') ? j : { ok: false, unreachable: true, error: 'unreadable answer' }
         } catch (e) { return { ok: false, unreachable: true, error: String(e !== null && e.message ? e.message : e) } }
       }
-      /** The language of the interface, « fr » or « en »: French while nothing says otherwise (the page is written in French), English for any other language. */
-      const kbLang = () => {
-        try {
-          const a = (typeof window !== 'undefined') ? window.__KB_I18N_ACTIVE__ : null
-          const l = (a !== null && a !== undefined && a.lang !== null && a.lang !== undefined) ? String(a.lang).toLowerCase() : ''
-          return l === '' || l.indexOf('fr') === 0 ? 'fr' : 'en'
-        } catch (e) { return 'fr' }
-      }
+      /** The language of the interface, « fr » or « en »: French for the French of the product, English for every other language. */
+      const kbLang = () => { const l = lang(); return l === 'kybernos' || l.slice(0, 2) === 'fr' ? 'fr' : 'en' }
       /** One catalogue theme as the page uses it, or null. Checked again here: the host is not trusted any more than a file is. */
+      // The names of the themes of the shipped gallery are French words chosen by their author; the page says them in English too
+      // (any other id keeps the name it carries).
+      const GAL_NAMES = {
+        calcaire: ['Calcaire', 'Limestone'], composition: ['Composition', 'Composition'], 'console-verte': ['Console verte', 'Green console'],
+        crepuscule: ['Crépuscule', 'Twilight'], egaliseur: ['Égaliseur', 'Equalizer'], 'encre-papier': ['Encre & papier', 'Ink & paper'],
+        graphite: ['Graphite', 'Graphite'], kawaii: ['Kawaii', 'Kawaii'], 'lavande-brumeuse': ['Lavande brumeuse', 'Misty lavender'],
+        maquette: ['Maquette', 'Mock-up'], 'ocean-nuit': ['Océan nuit', 'Night ocean'], orbite: ['Orbite', 'Orbit'],
+        panneau: ['Panneau', 'LED panel'], sakura: ['Sakura', 'Sakura'], 'neutre-violet': ['Neutre violet', 'Neutral violet']
+      }
       const galTheme = (raw) => {
         if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null
         if (typeof raw.id !== 'string' || !PRESET_ID.test(raw.id)) return null
@@ -1814,8 +1991,9 @@ window.__ModuleLoader__.load({
         PRESET_GROUPS.a11y.forEach((k) => { delete settings[k] }) // a catalogue never touches accessibility
         if (Object.keys(settings).length === 0) return null
         const d = (raw.description !== null && typeof raw.description === 'object') ? raw.description : {}
+        const loc = GAL_NAMES[raw.id]
         return {
-          id: raw.id, name, settings,
+          id: raw.id, get name () { return loc !== undefined && loc[0] === name ? kt(loc[0], loc[1]) : name }, settings,
           v: Number.isInteger(raw.v) && raw.v >= 1 && raw.v <= 1000000 ? raw.v : 1,
           author: typeof raw.author === 'string' ? presetName(raw.author) : '',
           description: { fr: typeof d.fr === 'string' ? d.fr.slice(0, 200) : '', en: typeof d.en === 'string' ? d.en.slice(0, 200) : '' }
@@ -1862,58 +2040,63 @@ window.__ModuleLoader__.load({
         acc: t.settings.acc === undefined ? null : t.settings.acc, ov: t.settings.ov || {},
         fontText: t.settings.fontText, radius: t.settings.radius, iconSet: t.settings.iconSet
       })
-      const GAL_ONLINE_TEXT = {
-        offline: 'Le catalogue en ligne est injoignable : ce sont les thèmes livrés avec Kybernos.',
-        off: 'Le catalogue en ligne est désactivé : ce sont les thèmes livrés avec Kybernos.'
-      }
       const galOnlineText = (o) => {
-        if (o.state === 'offline' || o.state === 'off') return GAL_ONLINE_TEXT[o.state]
+        if (o.state === 'offline') return kt('Le catalogue en ligne est injoignable : ce sont les thèmes livrés avec Kybernos.', 'The online catalog cannot be reached: these are the themes shipped with Kybernos.')
+        if (o.state === 'off') return kt('Le catalogue en ligne est désactivé : ce sont les thèmes livrés avec Kybernos.', 'The online catalog is turned off: these are the themes shipped with Kybernos.')
         if (o.state === 'refused') {
-          if (o.reason === 'no-key') return 'Le catalogue en ligne n’est pas encore activé : ce sont les thèmes livrés avec Kybernos.'
-          const why = { signature: 'sa signature n’est pas reconnue', older: 'il est plus ancien que celui déjà connu', shape: 'il est mal formé', theme: 'il est mal formé', json: 'il est mal formé', size: 'il est trop gros' }[o.reason]
-          return 'Le catalogue en ligne a été refusé' + (why === undefined ? '' : ' (' + why + ')') + ' : ce sont les thèmes déjà connus qui s’affichent.'
+          if (o.reason === 'no-key') return kt('Le catalogue en ligne n’est pas encore activé : ce sont les thèmes livrés avec Kybernos.', 'The online catalog is not active yet: these are the themes shipped with Kybernos.')
+          const WHY = {
+            signature: () => kt('sa signature n’est pas reconnue', 'its signature is not recognized'),
+            older: () => kt('il est plus ancien que celui déjà connu', 'it is older than the one already known'),
+            malformed: () => kt('il est mal formé', 'it is malformed'),
+            size: () => kt('il est trop gros', 'it is too large')
+          }
+          const key = o.reason === 'shape' || o.reason === 'theme' || o.reason === 'json' ? 'malformed' : o.reason
+          const why = WHY[key] === undefined ? undefined : WHY[key]()
+          return kt('Le catalogue en ligne a été refusé' + (why === undefined ? '' : ' (' + why + ')') + ' : ce sont les thèmes déjà connus qui s’affichent.',
+            'The online catalog was refused' + (why === undefined ? '' : ' (' + why + ')') + ': the themes already known are shown.')
         }
         return ''
       }
 
       // ══════════════════════════════════════════════════════════════════════
-      // 5. LA PAGE DE RÉGLAGES.
+      // 5. THE SETTINGS PAGE.
       // ══════════════════════════════════════════════════════════════════════
 
       const css = `
-/* ── Bordures du schéma clair ─────────────────────────────────────────────
-   La feuille officielle DSH pose alias-border-l1 à 4 % de noir (#0000000a)
-   en clair : invisible sur fond blanc, cartes et panneaux perdent leur
-   liseré (Marketplace, teams, etc.). On remonte à 8 % sur body SANS
-   l'attribut sombre — spécificité 0,1,1 > 0,0,1, la règle gagne quel que
-   soit l'ordre des feuilles, et ne touche jamais le sombre (#ffffff0f y
-   reste lisible). Volontairement TOUJOURS actif, même en configuration
-   native : la valeur fautive est celle de DSH, pas celle d'une peau. */
+/* ── Borders of the light scheme ──────────────────────────────────────────
+   DSH's official sheet sets alias-border-l1 to 4 % black (#0000000a)
+   in light: invisible on a white background, cards and panels lose their
+   hairline (Marketplace, teams, etc.). We raise it to 8 % on body WITHOUT
+   the dark attribute — specificity 0,1,1 > 0,0,1, the rule wins whatever
+   the order of the sheets, and never touches dark (#ffffff0f is still
+   readable there). Deliberately ALWAYS on, even in the native
+   configuration: the faulty value is DSH's, not a skin's. */
 body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
-/* ── Masquer la section native DSH "Theme / 外观" de la sidebar ─────────── */
+/* ── Hide DSH's native "Theme / 外观" section from the sidebar ─────────── */
 [data-slot="settings.section"][data-id="theme"],
 [role="dialog"] nav [data-id="theme"] { display: none !important; }
-/* Forcer le conteneur parent du slot à prendre toute la largeur disponible,
-   sinon le grid 2 colonnes n'a jamais assez de place. */
+/* Force the slot's parent container to take the whole available width,
+   otherwise the 2-column grid never has enough room. */
 [data-slot="settings.section"]:has(.kbth-page) { width: 100%; max-width: none; }
 
-/* Une seule colonne : l'aperçu latéral a été retiré (il ne servait pas). */
+/* A single column: the side preview was removed (it was of no use). */
 .kbth-page{display:grid;grid-template-columns:1fr;gap:22px;max-width:720px;align-items:start}
 .kbth-main{display:flex;flex-direction:column;gap:22px;min-width:0}
 .kbth-head{display:flex;flex-direction:column;gap:6px}
 .kbth-title{font-size:26px;line-height:32px;font-weight:800;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
 .kbth-sub{font-size:14px;line-height:1.55;color:var(--dsw-alias-label-secondary);max-width:640px}
 .kbth-seg{display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:var(--dsw-alias-bg-layer-2);width:max-content}
-/* (29/09, demande) Sélecteur Simple/Avancé (et Mode) PLUS CLAIR : 14px,
-   paddings généreux, état actif à la couleur de marque — on ne cherche
-   plus le segment actif dans un fond de gris. */
+/* (29/09, on request) Simple/Advanced selector (and Mode) CLEARER: 14px,
+   generous padding, active state in the brand colour — nobody has to look
+   for the active segment in a grey background any more. */
 .kbth-seg button{appearance:none;border:1px solid transparent;font:inherit;font-size:14px;font-weight:500;padding:8px 18px;border-radius:9px;cursor:pointer;background:transparent;color:var(--dsw-alias-label-secondary);transition:background .12s,color .12s,border-color .12s}
 .kbth-seg button:hover:not([aria-pressed="true"]){background:var(--dsw-alias-interactive-bg-hover)}
 .kbth-seg button[aria-pressed="true"]{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12)}
-/* (29/09) Le bloc « Appearance » natif de Général est remplacé par la
-   section Apparence de cette page (même préférence via themeSvc.setTheme) :
-   marqué data-kbth-own par l'observateur ci-dessous, il disparaît — un seul
-   endroit règle l'apparence. */
+/* (29/09) The native “Appearance” block of General is replaced by the
+   Appearance section of this page (same preference via themeSvc.setTheme):
+   marked data-kbth-own by the observer below, it disappears — one single
+   place sets the appearance. */
 [data-kbth-own="appearance"]{display:none}
 .kbth-sec{display:flex;flex-direction:column;gap:12px}
 .kbth-sec-h{display:flex;flex-direction:column;gap:3px}
@@ -1925,14 +2108,14 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 .kbth-hint{font-size:11px;color:var(--dsw-alias-label-tertiary);line-height:1.45}
 .kbth-link{appearance:none;border:0;background:none;padding:0;font:inherit;color:var(--dsw-alias-label-primary);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
 .kbth-link:hover{color:var(--dsw-alias-brand-primary)}
-/* Avertissement de conflit dream-skin — stylé avec les jetons DSH */
+/* dream-skin conflict warning — styled with the DSH tokens */
 .kbth-conflict{font-size:12px;line-height:1.5;padding:8px 12px;border-radius:9px;
   background:var(--dsw-alias-state-warn-tertiary);color:var(--dsw-alias-state-warn-label);
   border:.5px solid var(--dsw-alias-state-warn-secondary);flex-basis:100%}
 .kbth-conflict strong{font-weight:600}
-/* Pastilles rondes : le fond du thème d'un côté, son accent de l'autre.
-   Rien d'autre — ni cadre, ni méta sous chaque pastille (l'état du thème
-   choisi s'affiche en une ligne, sous la rangée). */
+/* Round dots: the theme's background on one side, its accent on the other.
+   Nothing else — no frame, no meta under each dot (the state of the chosen
+   theme is shown on one line, under the row). */
 .kbth-icsets{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
 .kbth-icset{appearance:none;font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:7px;text-align:left;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}
 .kbth-icset:hover{border-color:var(--dsw-alias-border-l3)}
@@ -1944,12 +2127,12 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 .kbth-skins{display:flex;flex-wrap:wrap;gap:12px 14px;align-items:flex-start}
 .kbth-skin{appearance:none;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;
   padding:2px;border:0;background:none;width:76px;border-radius:12px}
-/* (30/09) Pastille des thèmes prêts : liseré propre sur fond clair ET sombre
-   (1 px à border-l2, le 0,5 px à l3 disparaissait sur les bases claires),
-   profondeur discrète par ombre interne — le disque ne flotte plus.
-   corner-shape:round — le shell pose superellipse(1.5) en global (Chrome 139),
-   qui peint le border-radius:50% en SQUIRCLE : une pastille de couleur se
-   lit ronde, la superellipse reste aux surfaces du shell. */
+/* (30/09) Dot of the ready-made themes: clean hairline on a light AND dark background
+   (1 px at border-l2; the 0.5 px at l3 vanished on light bases),
+   discreet depth through an inner shadow — the disc no longer floats.
+   corner-shape:round — the shell sets superellipse(1.5) globally (Chrome 139),
+   which paints border-radius:50% as a SQUIRCLE: a colour dot must
+   read round; the superellipse stays on the shell's surfaces. */
 .kbth-skin-dot{width:34px;height:34px;border-radius:50%;corner-shape:round;flex:none;
   border:1px solid var(--dsw-alias-border-l2);
   box-shadow:inset 0 1px 2px rgba(0,0,0,.18);
@@ -2030,7 +2213,7 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 .kbth-fsopt-name{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
 .kbth-fsopt-sample{font-size:14px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kbth-fsempty{padding:12px;font-size:12px;color:var(--dsw-alias-label-tertiary)}
-/* ── Onglet Avancé : layout 2 colonnes (liste + éditeur) ──────────────── */
+/* ── Advanced tab: 2-column layout (list + editor) ──────────────────────── */
 .kbth-adv-editor{display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:12px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);position:sticky;top:0}
 .kbth-adv-preview{display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;border:.5px solid var(--dsw-alias-border-l2)}
 .kbth-adv-chip{width:32px;height:32px;border-radius:6px;border:1px solid var(--dsw-alias-border-l3);flex:none}
@@ -2041,13 +2224,13 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 .kbth-adv-colors{display:flex;gap:8px;align-items:center}
 .kbth-adv-swatch{display:flex;flex-direction:column;align-items:center;gap:3px}
 .kbth-adv-swatch-label{font-size:9.5px;color:var(--dsw-alias-label-tertiary)}
-/* ── Sous-onglets Avancé — pile VERTICALE à gauche du contenu (règle du
-   26/09/2026) : colonne d'onglets + panneau, grid 2 colonnes. ──────────── */
-/* ── Sous-onglets Avancé — pile VERTICALE à gauche du contenu ───────────
-   (29/09, harmonisation) Même matière que les onglets unifiés du plugin
-   (kb8-tab) : pilule contour 1px, état actif à la couleur de marque — le
-   rail vertical et le liseré droit disparaissent au profit du traitement
-   commun. text-align:start : bidi-sûr. */
+/* ── Advanced sub-tabs — VERTICAL stack on the left of the content (rule of
+   26/09/2026): column of tabs + panel, 2-column grid. ──────────────────── */
+/* ── Advanced sub-tabs — VERTICAL stack on the left of the content ──────
+   (29/09, harmonisation) Same look as the plugin's unified tabs
+   (kb8-tab): 1px outline pill, active state in the brand colour — the
+   vertical rail and the right hairline give way to the common
+   treatment. text-align:start: bidi-safe. */
 .kbth-adv-cols{display:grid;grid-template-columns:180px minmax(0,1fr);gap:8px 22px;align-items:start}
 .kbth-adv-tabs{display:flex;flex-direction:column;gap:6px;overflow-y:auto;position:sticky;top:0}
 .kbth-adv-tab{appearance:none;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;font:inherit;font-size:13px;font-weight:500;padding:8px 12px;cursor:pointer;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:start;transition:color .12s,background .12s,border-color .12s}
@@ -2060,8 +2243,8 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 /* The off track is a tint of the text colour: layer-3 is white in the light scheme, so a white knob sat on an invisible track. */
 .kbth-toggle{appearance:none;border:0;width:40px;height:22px;border-radius:11px;background:color-mix(in srgb,var(--dsw-alias-label-primary) 22%,transparent);cursor:pointer;position:relative;transition:background .15s;flex:none}
 .kbth-toggle.on{background:var(--dsw-alias-brand-primary)}
-.kbth-toggle-knob{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--dsw-alias-bg-layer-1);transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
-.kbth-toggle.on .kbth-toggle-knob{transform:translateX(18px)}
+.kbth-toggle-knob{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--dsw-alias-label-secondary);transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.kbth-toggle.on .kbth-toggle-knob{transform:translateX(18px);background:var(--dsw-alias-label-primary-foreground)}
 /* ── Rampe de couleurs ───────────────────────────────────────────────── */
 .kbth-ramp{display:flex;gap:0;border-radius:8px;overflow:hidden;margin-top:8px}
 /* min-width:0 so eleven steps shrink to a 330 px column instead of leaving the ramp's box by 10 px (390 px window) */
@@ -2072,7 +2255,7 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 .kbth-tok-hex{font-size:11px;color:var(--dsw-alias-label-tertiary);font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
 .kbth-tok-badge{font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid;flex:none}
 .kbth-tok-sel{background:var(--dsw-alias-bg-layer-2)!important;border-color:var(--dsw-alias-border-l2)!important}
-/* ── Table accessibilité ─────────────────────────────────────────────── */
+/* ── Accessibility table ─────────────────────────────────────────────── */
 .kbth-a11y-table{display:flex;flex-direction:column;gap:2px}
 .kbth-a11y-row{display:grid;grid-template-columns:28px 1fr auto auto auto;gap:10px;align-items:center;padding:6px 8px;border-radius:6px}
 .kbth-a11y-row:hover{background:var(--dsw-alias-interactive-bg-hover,var(--dsw-alias-bg-layer-2))}
@@ -2093,9 +2276,9 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 .kbth-export-preview{border:1px solid var(--dsw-alias-border-l2);border-radius:10px;overflow:hidden;margin-top:8px}
 .kbth-export-bar{display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid var(--dsw-alias-border-l2);font-size:11px;color:var(--dsw-alias-label-tertiary);background:var(--dsw-alias-bg-layer-2)}
 .kbth-export-code{margin:0;padding:12px 14px;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.6;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-1);white-space:pre;overflow-x:auto}
-/* ══ Animation de réflexion ═════════════════════════════════════════════════
-   .kb-ld : une animation, partout (statut du bas, aperçu, bibliothèque). Les
-   classes a-* et vb sont celles du catalogue ; tout est borné par .kb-ld. */
+/* ══ Thinking animation ═════════════════════════════════════════════════════
+   .kb-ld: one animation, everywhere (bottom status, preview, library). The
+   a-* and vb classes are the catalogue's; everything is scoped by .kb-ld. */
 .kb-ld{display:inline-flex;flex:none;width:var(--kb-px,24px);height:var(--kb-px,24px);color:var(--kb-tint,currentColor);--c1:#E5534B;--c2:#F2A65A;--c3:#7FAF63;--c4:#F0C75E}
 .kb-ld svg,.kb-ld img{width:100%;height:100%;display:block;overflow:visible}
 .kb-ld svg *{transform-box:fill-box;transform-origin:center}
@@ -2158,10 +2341,10 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 .kb-ld.kb-late{visibility:hidden;animation:kbk-vis 0s forwards;animation-delay:var(--kb-late,0ms)}
 html[data-kbth-reduced] .kb-ld *{animation:none!important}
 @media (prefers-reduced-motion:reduce){.kb-ld *{animation:none!important}.kbth-ldp-text,.kbth-ldp-whale{animation:none!important}}
-/* Dans la vraie page : la queue de baleine native s'efface, le texte peut se masquer. */
+/* In the real page: the native whale tail fades out, the text can be hidden. */
 [data-kb-ld-hide]{display:none!important}
 [data-chat-running][data-kb-ld-notext] [data-shimmer]{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
-/* Aperçu en situation (copie fidèle du statut du bas : mêmes jetons DSH) */
+/* In-context preview (a faithful copy of the bottom status: same DSH tokens) */
 .kbth-ldp{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-radius:12px;background:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l2)}
 .kbth-ldp-user{align-self:flex-end;max-width:80%;background:var(--dsw-alias-bg-layer-3);padding:7px 11px;border-radius:12px;font-size:13px;color:var(--dsw-alias-label-primary)}
 .kbth-ldp-step{font-size:13px;color:var(--dsw-alias-label-tertiary)}
@@ -2186,7 +2369,7 @@ html[data-kbth-reduced] .kb-ld *{animation:none!important}
 .kbth-lds-x:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
 .kbth-lds-ord{position:absolute;top:7px;left:9px;font-size:11px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
 @media(max-width:480px){.kbth-ldt{grid-template-columns:repeat(2,minmax(0,1fr))}}
-/* Réglages repliés */
+/* Folded settings */
 .kbth-disc{appearance:none;width:100%;display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1);cursor:pointer;text-align:start;color:var(--dsw-alias-label-primary);font:inherit}
 .kbth-disc:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .kbth-disc-t{font-size:13px;font-weight:600}
@@ -2249,7 +2432,7 @@ html[data-kbth-reduced] .kb-ld *{animation:none!important}
 .kbth-trial b{font-weight:600}
 .kbth-trial-sp{flex:1;min-width:8px}
 .kbth-grp{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary);font-weight:600}
-/* Fenêtre */
+/* Window */
 .kbth-mback{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2147483000}
 .kbth-mdlg{position:fixed;z-index:2147483001;left:50%;top:50%;transform:translate(-50%,-50%);width:min(720px,calc(100vw - 32px));max-height:min(86vh,800px);display:flex;flex-direction:column;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l3);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.6);outline:none;font-size:14px}
 .kbth-mhd{display:flex;align-items:center;gap:12px;padding:16px 18px 8px}
@@ -2260,7 +2443,7 @@ html[data-kbth-reduced] .kb-ld *{animation:none!important}
 .kbth-mft{padding:12px 18px;border-top:1px solid var(--dsw-alias-border-l1);display:flex;justify-content:flex-end;gap:12px;align-items:center}
 .kbth-btn.kbth-ldpri{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#0f1115);border-color:var(--dsw-alias-brand-primary);font-weight:600}
 [data-kb="ld-pane"] .kbth-btn:disabled,[data-kb="ld-picker"] .kbth-btn:disabled,[data-kb="ld-pack"] .kbth-btn:disabled{opacity:.45;cursor:not-allowed}
-/* Bibliothèque */
+/* Library */
 .kbth-lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
 .kbth-lcard{display:flex;flex-direction:column;gap:5px;padding:7px;border-radius:10px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);min-width:0}
 .kbth-lcard.on{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary)}
@@ -2296,17 +2479,17 @@ html[data-kbth-reduced] .kb-ld *{animation:none!important}
 .kbth-sum-ic{display:flex;align-items:center;gap:10px;min-width:30px;color:var(--dsw-alias-label-secondary)}
 .kbth-sum-tx{display:flex;flex-direction:column;gap:2px;flex:1;min-width:160px}
 .kbth-new{font-size:10px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:999px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#0f1115)}
-/* ── Petits textes en schéma CLAIR ──────────────────────────────────────────
-   DSH colore ses textes discrets avec label-tertiary (#81858C, 3,7:1 sur blanc) et label-caption
-   (#ADB2B8, 2,1:1) : sous le seuil AA de 4,5:1. Dans CETTE page, en clair seulement, ils prennent
-   label-secondary (5,7:1). Le sombre n'y gagne rien et garde sa hiérarchie. Mesuré sur la GUI réelle. */
+/* ── Small texts in the LIGHT scheme ────────────────────────────────────────
+   DSH colours its discreet texts with label-tertiary (#81858C, 3.7:1 on white) and label-caption
+   (#ADB2B8, 2.1:1): below the AA threshold of 4.5:1. On THIS page, in light only, they take
+   label-secondary (5.7:1). Dark gains nothing from it and keeps its hierarchy. Measured on the real GUI. */
 body:not([data-ds-dark-theme]) :is(.kbth-icset-r,.kbth-a11y-hex,.kbth-adv-css,.kbth-card-a,.kbth-card-m,.kbth-src,.kbth-adv-swatch-label,.kbth-disc-s,.kbth-drop,.kbth-empty,.kbth-export-bar,.kbth-fschev,.kbth-fsempty,.kbth-fsmeta,.kbth-fsopt-name,.kbth-grp,.kbth-hex span,.kbth-hint,.kbth-lcard-meta,.kbth-ldp-bar,.kbth-ldp-step,.kbth-lds-ord,.kbth-lds-x,.kbth-lds.empty,.kbth-mx,.kbth-note,.kbth-panel2 p,.kbth-pill,.kbth-ramp-label,.kbth-sec-d,.kbth-sl-vl,.kbth-sum-m,.kbth-toggle-hint,.kbth-tok-css,.kbth-tok-hex,.kbth-trow-m,.kbth-wchip button){color:var(--dsw-alias-label-secondary)}
 /* The "in use" pill is a brand fill with its own label pair: the grey of the rule above made it 3.3:1 (1.4:1 in Neutral violet). */
 body:not([data-ds-dark-theme]) .kbth-pill.ok{color:var(--dsw-alias-label-primary-foreground,#fff)}
-/* ── Encre des notes (AAA / AA / grand texte / échec) ───────────────────────────────────────
-   Les teintes d'état de DSH sont des fonds d'état, pas des encres : en clair, #22C55E fait 2,2:1 sur blanc.
-   Une variable par note ET par schéma, lue par le CSS : elle suit le schéma affiché sans que le script ait
-   à le deviner ni à se redessiner. Chaque encre dépasse 5:1 sur la couche 1 de son schéma (testé). */
+/* ── Ink of the grades (AAA / AA / large text / fail) ───────────────────────────────────────
+   DSH's state tints are state backgrounds, not inks: in light, #22C55E gives 2.2:1 on white.
+   One variable per grade AND per scheme, read by the CSS: it follows the scheme on display without the script
+   having to guess it or to redraw. Every ink exceeds 5:1 on layer 1 of its scheme (tested). */
 .kbth-gr-ok{--kbth-ink:#4ED17E}
 .kbth-gr-warn{--kbth-ink:#F7AD31}
 .kbth-gr-err{--kbth-ink:#F25A5A}
@@ -2339,8 +2522,8 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         o.hint ? h('div', { className: 'kbth-hint' }, o.hint) : null)
 
       // ══════════════════════════════════════════════════════════════════════
-      // 5b. L'ONGLET « ANIMATION » — aperçu, rotation, texte d'état, réglages,
-      //     et deux fenêtres (bibliothèque, pack de mots).
+      // 5b. THE “ANIMATION” TAB — preview, rotation, status text, settings,
+      //     and two windows (library, word pack).
       // ══════════════════════════════════════════════════════════════════════
 
       const ReactDOM = (() => { try { return require('react-dom') } catch (e) { return null } })()
@@ -2357,13 +2540,13 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
       const ldKo = (n) => (n / 1024).toFixed(n < 10240 ? 1 : 0).replace('.', ',') + ' Ko'
       const ldDuration = (secs) => (secs < 60 ? secs + 's' : Math.floor(secs / 60) + 'm ' + (secs % 60) + 's')
 
-      /** Nettoie un SVG importé : ce qui peut exécuter ou charger quelque chose est retiré. L'hôte REFUSE
-       *  ensuite tout ce qui en contient encore ; <img> et masque CSS ne font de toute façon rien tourner. */
+      /** Cleans an imported SVG: whatever can execute or load something is removed. The host then REFUSES
+       *  anything that still contains some; <img> and a CSS mask do not run anything anyway. */
       const ldCleanSvg = (text) => {
         let doc = null
-        try { doc = new DOMParser().parseFromString(text, 'image/svg+xml') } catch (e) { return { error: 'Ce fichier n’est pas un SVG valide.' } }
+        try { doc = new DOMParser().parseFromString(text, 'image/svg+xml') } catch (e) { return { error: kt('Ce fichier n’est pas un SVG valide.', 'This file is not a valid SVG.') } }
         const root = doc.documentElement
-        if (!root || String(root.nodeName).toLowerCase() !== 'svg' || doc.querySelector('parsererror')) return { error: 'Ce fichier n’est pas un SVG valide.' }
+        if (!root || String(root.nodeName).toLowerCase() !== 'svg' || doc.querySelector('parsererror')) return { error: kt('Ce fichier n’est pas un SVG valide.', 'This file is not a valid SVG.') }
         let removed = 0
         doc.querySelectorAll('script,foreignObject,image,iframe,audio,video,link,embed,object').forEach((n) => { n.remove(); removed += 1 })
         doc.querySelectorAll('style').forEach((n) => { if (/@import|url\(\s*['"]?\s*(https?:|data:|\/\/)/i.test(n.textContent || '')) { n.remove(); removed += 1 } })
@@ -2376,46 +2559,48 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         return { svg, removed, animated: !!doc.querySelector('animate,animateTransform,animateMotion,set') || /@keyframes|animation/i.test(text), mono: /currentColor/i.test(svg) }
       }
 
-      /** Lit un fichier déposé et l'enregistre. Résout { t: 'ok'|'warn'|'err', text }. */
+      /** Reads a dropped file and saves it. Resolves { t: 'ok'|'warn'|'err', text }. */
       const ldImport = (file) => new Promise((resolve) => {
         const done = (t, text) => resolve({ t, text })
-        if (file.size > LD_LIMIT) return done('err', '« ' + file.name + ' » pèse ' + ldKo(file.size) + ' : la limite est de 200 Ko. Simplifiez l’animation ou réduisez ses images.')
+        if (file.size > LD_LIMIT) return done('err', kt('« ' + file.name + ' » pèse ' + ldKo(file.size) + ' : la limite est de 200 Ko. Simplifie l’animation ou réduise ses images.', '“' + file.name + '” weighs ' + ldKo(file.size) + ': the limit is 200 KB. Simplify the animation or reduce its images.'))
         const ext = (String(file.name).split('.').pop() || '').toLowerCase()
         const base = String(file.name).replace(/\.[^.]+$/, '')
         const id = ldSlug(base) + '-' + Date.now().toString(36)
         const reader = new FileReader()
         const save = async (rec, okText) => {
           const r = await ldAddRecord(rec)
-          if (r.ok !== true) done('err', 'Refusée par DSH : ' + (r.error || 'raison inconnue') + '.')
-          else if (r.local === true) done('warn', okText + ' Elle n’est pas enregistrée sur le disque : elle reste dans ce navigateur jusqu’au rechargement.')
+          if (r.ok !== true) done('err', r.error ? kt('Refusée par DSH : ' + r.error + '.', 'Refused by DSH: ' + r.error + '.') : kt('Refusée par DSH : raison inconnue.', 'Refused by DSH: unknown reason.'))
+          else if (r.local === true) done('warn', okText + kt(' Elle n’est pas enregistrée sur le disque : elle reste dans ce navigateur jusqu’au rechargement.', ' It is not saved to disk: it stays in this browser until the page reloads.'))
           else done('ok', okText)
         }
-        reader.onerror = () => done('err', 'Le fichier n’a pas pu être lu.')
+        reader.onerror = () => done('err', kt('Le fichier n’a pas pu être lu.', 'The file could not be read.'))
         if (ext === 'svg') {
           reader.onload = () => {
             const r = ldCleanSvg(String(reader.result))
             if (r.error) return done('err', r.error)
             save({ id, name: base.slice(0, 60), type: 'svg', kind: r.mono ? 'mono' : 'color', source: 'file', data: r.svg },
-              '« ' + base + ' » ajoutée à Mes animations.' + (r.removed ? ' ' + r.removed + ' élément(s) dangereux retiré(s).' : '') + (r.animated ? '' : ' Ce SVG n’est pas animé : il apparaîtra fixe.'))
+              kt('« ' + base + ' » ajoutée à Mes animations.', '“' + base + '” added to My animations.') +
+                (r.removed ? ' ' + (r.removed === 1 ? kt('1 élément dangereux retiré.', '1 dangerous element removed.') : kt(r.removed + ' éléments dangereux retirés.', r.removed + ' dangerous elements removed.')) : '') +
+                (r.animated ? '' : ' ' + kt('Ce SVG n’est pas animé : il apparaîtra fixe.', 'This SVG is not animated: it will appear still.')))
           }
           reader.readAsText(file)
         } else if (ext === 'json') {
           reader.onload = () => {
             let d = null
-            try { d = JSON.parse(String(reader.result)) } catch (e) { return done('err', 'Ce fichier n’est pas du JSON valide.') }
-            if (!(d !== null && typeof d === 'object' && Array.isArray(d.layers) && typeof d.fr === 'number' && typeof d.w === 'number')) return done('err', 'Ce JSON n’est pas une animation Lottie (il manque layers, fr ou w).')
+            try { d = JSON.parse(String(reader.result)) } catch (e) { return done('err', kt('Ce fichier n’est pas du JSON valide.', 'This file is not valid JSON.')) }
+            if (!(d !== null && typeof d === 'object' && Array.isArray(d.layers) && typeof d.fr === 'number' && typeof d.w === 'number')) return done('err', kt('Ce JSON n’est pas une animation Lottie (il manque layers, fr ou w).', 'This JSON is not a Lottie animation (layers, fr or w is missing).'))
             const name = (typeof d.nm === 'string' && d.nm.trim() !== '' ? d.nm : base).slice(0, 60)
             const dur = typeof d.op === 'number' && d.fr > 0 ? (((d.op - (d.ip || 0)) / d.fr).toFixed(1).replace('.', ',') + ' s') : ''
-            save({ id, name, type: 'lottie', kind: 'color', source: 'file', dur, data: d }, '« ' + name + ' » (Lottie) ajoutée à Mes animations.')
+            save({ id, name, type: 'lottie', kind: 'color', source: 'file', dur, data: d }, kt('« ' + name + ' » (Lottie) ajoutée à Mes animations.', '“' + name + '” (Lottie) added to My animations.'))
           }
           reader.readAsText(file)
         } else if (ext === 'gif' || ext === 'webp' || ext === 'png') {
-          reader.onload = () => save({ id, name: base.slice(0, 60), type: 'img', kind: 'color', source: 'file', data: String(reader.result) }, '« ' + base + ' » ajoutée à Mes animations.')
+          reader.onload = () => save({ id, name: base.slice(0, 60), type: 'img', kind: 'color', source: 'file', data: String(reader.result) }, kt('« ' + base + ' » ajoutée à Mes animations.', '“' + base + '” added to My animations.'))
           reader.readAsDataURL(file)
-        } else done('err', 'Format « .' + ext + ' » non pris en charge. Utilisez SVG, JSON (Lottie), GIF ou WebP.')
+        } else done('err', kt('Format « .' + ext + ' » non pris en charge. Utilise SVG, JSON (Lottie), GIF ou WebP.', 'Format “.' + ext + '” is not supported. Use SVG, JSON (Lottie), GIF or WebP.'))
       })
 
-      /** Un nœud d'animation, monté dans un <span> React. */
+      /** An animation node, mounted in a React <span>. */
       function LdView(props) {
         const ref = React.useRef(null)
         const l = props.l
@@ -2436,16 +2621,16 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
       const ldCopy = (text, then) => {
         try { navigator.clipboard.writeText(text).then(() => then(true), () => then(false)) } catch (e) { then(false) }
       }
-      /** Une liste de nœuds texte (et non une phrase) : le traducteur de pages va nœud par nœud. */
+      /** A list of text nodes (not a sentence): the page translator goes node by node. */
       const ldSummaryHint = () => {
         const sel = ld.S.sel.map(ldById).filter((x) => x !== null)
         const p = ldPackById(ld.S.pack)
         const names = []
         sel.forEach((l, i) => { if (i > 0) names.push(', '); names.push(l.name) })
-        return (sel.length > 0 ? names.concat([' · ', ld.S.mode === 'random' ? 'au hasard' : 'dans l’ordre']) : ['Queue de baleine de DSH']).concat([' · ', 'texte :', ' ', p.name])
+        return (sel.length > 0 ? names.concat([' · ', ld.S.mode === 'random' ? 'au hasard' : kt('dans l’ordre', 'in order')]) : [kt('Queue de baleine de DSH', 'DSH whale tail')]).concat([' · ', kt('texte :', 'text:'), ' ', p.name])
       }
 
-      /** La ligne de résumé d'Essentiel : renvoie vers l'onglet Animation. */
+      /** The summary line of Essentials: points to the Animation tab. */
       function LdSummary(props) {
         const [, bump] = React.useReducer((x) => x + 1, 0)
         React.useEffect(() => { ld.subs.add(bump); return () => { ld.subs.delete(bump) } }, [])
@@ -2455,9 +2640,9 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             ? sel.map((l) => h(LdView, { key: l.id, l, px: 28, spd: 1 }))
             : h('svg', { width: 28, height: 28, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' }, h('path', { d: LD_WHALE, stroke: 'currentColor', strokeWidth: 1 }))),
           h('div', { className: 'kbth-sum-tx' },
-            h('span', { className: 'kbth-sec-t', style: { textTransform: 'none', fontSize: 13 } }, 'Animation de réflexion ', h('span', { className: 'kbth-new' }, 'NOUVEAU')),
+            h('span', { className: 'kbth-sec-t', style: { textTransform: 'none', fontSize: 13 } }, kt('Animation de réflexion ', 'Thinking animation '), h('span', { className: 'kbth-new' }, kt('NOUVEAU', 'NEW'))),
             h('span', { className: 'kbth-hint' }, ldSummaryHint())),
-          h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-open', onClick: props.onOpen }, 'Régler…'))
+          h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-open', onClick: props.onOpen }, kt('Régler…', 'Adjust…')))
       }
 
       function AnimationPane(props) {
@@ -2471,8 +2656,8 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const [ambQ, setAmbQ] = React.useState('')
         const [ambIdx, setAmbIdx] = React.useState(0)
         const [setOpen, setSetOpen] = React.useState(false)
-        const [note, setNote] = React.useState(null)           // bannière de la fenêtre : { t, text }
-        const [drawn, setDrawn] = React.useState(null)         // l'aperçu : { id, word, t0, hist }
+        const [note, setNote] = React.useState(null)           // window banner: { t, text }
+        const [drawn, setDrawn] = React.useState(null)         // the preview: { id, word, t0, hist }
         const [wordDraft, setWordDraft] = React.useState('')
         const [prompt, setPrompt] = React.useState('')
         const [job, setJob] = React.useState('')
@@ -2488,7 +2673,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         React.useEffect(() => {
           ld.subs.add(bump)
           ldPull(true)
-          const poll = setInterval(() => { try { if (document.visibilityState !== 'hidden') ldPull(true) } catch (e) { /* page fermée */ } }, 4000)
+          const poll = setInterval(() => { try { if (document.visibilityState !== 'hidden') ldPull(true) } catch (e) { /* page closed */ } }, 4000)
           const clock = setInterval(bump, 1000)
           return () => { ld.subs.delete(bump); clearInterval(poll); clearInterval(clock) }
         }, [])
@@ -2498,20 +2683,20 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           setDrawn((cur) => ({ id: l === null ? null : l.id, word: w, t0: Date.now() - 12000, hist: [l === null ? null : l.name].concat(cur === null ? [] : cur.hist).filter((x) => x !== null).slice(0, 4), nonce: (cur === null ? 0 : cur.nonce) + 1 }))
         }
         React.useEffect(() => { draw() }, [])
-        // « Je viens de demander au chat une animation / des mots » : on attend qu'elle(s) arrive(nt) sur le disque.
+        // “I just asked the chat for an animation / words”: we wait for them to arrive on disk.
         React.useEffect(() => {
           if (waiting === null) return
           if (waiting.kind === 'loader') {
             const n = ld.mine.filter((l) => l.source === 'skill').length
             if (n > waiting.base) {
               const fresh = ld.mine.filter((l) => l.source === 'skill')[0]
-              setNote({ t: 'ok', text: '« ' + fresh.name + ' » est dans Mes animations. Ajoutez-la à votre rotation.' }); setTab('mine'); setWaiting(null)
+              setNote({ t: 'ok', text: kt('« ' + fresh.name + ' » est dans Mes animations. Ajoute-la à ta rotation.', '“' + fresh.name + '” is in My animations. Add it to your rotation.') }); setTab('mine'); setWaiting(null)
             }
           } else if (ld.words.length > waiting.base) {
-            setNote({ t: 'ok', text: (ld.words.length - waiting.base) + ' mot(s) ajouté(s) à votre pack.' }); setWaiting(null)
+            setNote({ t: 'ok', text: (ld.words.length - waiting.base === 1 ? kt('1 mot ajouté à ton pack.', '1 word added to your pack.') : kt((ld.words.length - waiting.base) + ' mots ajoutés à ton pack.', (ld.words.length - waiting.base) + ' words added to your pack.')) }); setWaiting(null)
           }
         })
-        // Fenêtre : Échap la ferme, Tab reste dedans, le focus revient au bouton d'origine.
+        // Window: Escape closes it, Tab stays inside, focus returns to the original button.
         React.useEffect(() => {
           if (modal === null) return undefined
           const el = dlg.current
@@ -2519,8 +2704,8 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           const key = (e) => {
             if (e.key === 'Escape' && !ambOpen) { e.preventDefault(); e.stopPropagation(); close(); return }
             if (e.key === 'Tab' && dlg.current) {
-              // Toujours nous-mêmes : la boîte de réglages de DSH a son propre piège à focus, et la
-              // fenêtre est posée hors d'elle (portail) — laisser faire le navigateur, c'est en sortir.
+              // Always handled by us: DSH's settings dialog has its own focus trap, and the
+              // window sits outside it (portal) — leaving it to the browser would mean falling out of it.
               const f = Array.prototype.slice.call(dlg.current.querySelectorAll('button,input,textarea,select,a[href],[tabindex="0"]')).filter((x) => !x.disabled && x.offsetParent !== null)
               e.preventDefault(); e.stopPropagation()
               if (f.length === 0) return
@@ -2550,7 +2735,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const secs = drawn === null ? 12 : Math.floor((Date.now() - drawn.t0) / 1000)
         const tAcc = (() => { try { return readState().acc !== null } catch (e) { return false } })()
 
-        // La phrase de DSH, avec son gabarit et sa durée, dont on remplace le mot de base.
+        // DSH's phrase, with its template and duration, of which we replace the base word.
         const label = (() => {
           const dur = ldDuration(secs)
           let s = 'Deep diving for ' + dur + ' ···'
@@ -2562,10 +2747,10 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         })()
 
         const preview = h('div', { className: 'kbth-sec', style: { gap: 10 } },
-          h('div', { className: 'kbth-sec-t', style: { fontSize: 13, textTransform: 'none' } }, 'Aperçu'),
+          h('div', { className: 'kbth-sec-t', style: { fontSize: 13, textTransform: 'none' } }, kt('Aperçu', 'Preview')),
           h('div', { className: 'kbth-ldp', 'data-kb': 'ld-preview' },
-            h('div', { className: 'kbth-ldp-user' }, 'Peux-tu ranger les fichiers du dossier docs ?'),
-            h('div', { className: 'kbth-ldp-step' }, 'Lecture de 3 fichiers'),
+            h('div', { className: 'kbth-ldp-user' }, kt('Peux-tu ranger les fichiers du dossier docs ?', 'Can you tidy the files in the docs folder?')),
+            h('div', { className: 'kbth-ldp-step' }, kt('Lecture de 3 fichiers', 'Reading 3 files')),
             h('div', { className: 'kbth-ldp-run' + (S.keep ? '' : ' nolabel') },
               h('span', { className: 'kbth-ldp-div' }),
               h('span', { className: 'kbth-ldp-ct' },
@@ -2575,17 +2760,17 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
                     : h(LdView, { key: cur.id + ':' + drawn.nonce, l: cur, px, spd: S.speed, tint: S.tint && tAcc, late: S.delay, nonce: drawn.nonce })),
                 h('span', { className: 'kbth-ldp-text', 'data-kb': 'ld-label' }, label)))),
           h('div', { className: 'kbth-ldp-bar' },
-            h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-draw', disabled: sel.length === 0, onClick: draw }, '↻ Simuler une réponse'),
-            cur !== null ? h('span', null, 'Animation tirée : ', h('b', { style: { color: 'var(--dsw-alias-label-primary)' } }, cur.name)) : h('span', null, 'Aucune animation choisie : la queue de baleine de DSH s’affiche.'),
+            h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-draw', disabled: sel.length === 0, onClick: draw }, kt('↻ Simuler une réponse', '↻ Simulate a reply')),
+            cur !== null ? h('span', null, kt('Animation tirée : ', 'Animation drawn: '), h('b', { style: { color: 'var(--dsw-alias-label-primary)' } }, cur.name)) : h('span', null, kt('Aucune animation choisie : la queue de baleine de DSH s’affiche.', 'No animation chosen: the DSH whale tail is shown.')),
             drawn !== null && drawn.hist.length > 1 ? drawn.hist.map((n, i) => h('span', { key: i + n, className: 'kbth-ldchip' + (i === 0 ? ' cur' : '') }, n)) : null))
 
         // ── Rotation ────────────────────────────────────────────────────────
         const slots = [0, 1, 2, 3].map((i) => {
           const l = sel[i]
-          if (l === undefined) return h('div', { key: 'e' + i, className: 'kbth-lds empty' }, 'Libre')
+          if (l === undefined) return h('div', { key: 'e' + i, className: 'kbth-lds empty' }, kt('Libre', 'Free'))
           return h('div', { key: l.id, className: 'kbth-lds' + (cur !== null && cur.id === l.id ? ' cur' : '') },
             S.mode === 'order' ? h('span', { className: 'kbth-lds-ord' }, String(i + 1)) : null,
-            h('button', { type: 'button', className: 'kbth-lds-x', 'aria-label': 'Retirer ' + l.name, 'data-kb': 'ld-remove', 'data-id': l.id, onClick: () => ldSet({ sel: S.sel.filter((x) => x !== l.id) }) },
+            h('button', { type: 'button', className: 'kbth-lds-x', 'aria-label': kt('Retirer ', 'Remove ') + l.name, 'data-kb': 'ld-remove', 'data-id': l.id, onClick: () => ldSet({ sel: S.sel.filter((x) => x !== l.id) }) },
               h('svg', { width: 12, height: 12, viewBox: '0 0 12 12', 'aria-hidden': 'true' }, h('path', { d: 'M2 2l8 8M10 2l-8 8', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round' }))),
             h('div', { className: 'kbth-lds-pv' }, h(LdView, { l, px: 40, spd: S.speed, tint: S.tint && tAcc })),
             h('div', { className: 'kbth-lds-nm', title: l.name }, l.name))
@@ -2597,25 +2782,25 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         }
         const rotation = h('div', { className: 'kbth-sec', style: { gap: 10 } },
           h('div', { className: 'kbth-row', style: { justifyContent: 'space-between' } },
-            h('div', { className: 'kbth-sec-t', style: { fontSize: 13, textTransform: 'none' } }, 'Ma rotation ', h('span', { className: 'kbth-hint' }, '— ', String(sel.length), ' ', 'sur', ' ', String(LD_MAX))),
+            h('div', { className: 'kbth-sec-t', style: { fontSize: 13, textTransform: 'none' } }, kt('Ma rotation ', 'My rotation '), h('span', { className: 'kbth-hint' }, '— ', String(sel.length), ' ', kt('sur', 'of'), ' ', String(LD_MAX))),
             seg({ items: [
-              { id: 'random', label: 'Au hasard', on: S.mode === 'random', tap: () => ldSet({ mode: 'random' }) },
-              { id: 'order', label: 'Dans l’ordre', on: S.mode === 'order', tap: () => ldSet({ mode: 'order' }) }] })),
-          sel.length === 0 ? h('div', { className: 'kbth-note' }, 'Rien n’est choisi : DSH garde sa queue de baleine.') : null,
+              { id: 'random', label: kt('Au hasard', 'Random'), on: S.mode === 'random', tap: () => ldSet({ mode: 'random' }) },
+              { id: 'order', label: kt('Dans l’ordre', 'In order'), on: S.mode === 'order', tap: () => ldSet({ mode: 'order' }) }] })),
+          sel.length === 0 ? h('div', { className: 'kbth-note' }, kt('Rien n’est choisi : DSH garde sa queue de baleine.', 'Nothing is chosen: DSH keeps its whale tail.')) : null,
           h('div', { className: 'kbth-ldt' }, slots),
           h('div', { className: 'kbth-row', style: { gap: 8 } },
-            h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-open-picker', onClick: (e) => { setTab('examples'); open('picker', e) } }, sel.length < LD_MAX ? '+ Ajouter une animation…' : 'Parcourir la bibliothèque…'),
-            h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-surprise-anim', onClick: surpriseAnim }, '✦ Me surprendre')))
+            h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-open-picker', onClick: (e) => { setTab('examples'); open('picker', e) } }, sel.length < LD_MAX ? kt('+ Ajouter une animation…', '+ Add an animation…') : kt('Parcourir la bibliothèque…', 'Browse the library…')),
+            h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-surprise-anim', onClick: surpriseAnim }, kt('✦ Me surprendre', '✦ Surprise me'))))
 
-        // ── Texte d'état : un grand sélecteur d'ambiances ───────────────────
+        // ── Status text: a large ambiance picker ───────────────────
         const plat = (x) => String(x).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-        const ambs = LD_PACKS.concat([{ id: 'perso', name: 'Mon pack', custom: true, words: { fr: ld.words, en: ld.words } }])
-        // Un aperçu qui VIT : trois mots qui défilent dans la liste toutes les 3 s, chaque ambiance partant d'un
-        // endroit différent. Les trois premiers, figés, donnaient l'impression que le pack s'arrêtait là.
+        const ambs = LD_PACKS.concat([{ id: 'perso', name: kt('Mon pack', 'My pack'), custom: true, words: { fr: ld.words, en: ld.words } }])
+        // A preview that LIVES: three words scrolling in the list every 3 s, each ambiance starting from a
+        // different place. The first three, frozen, gave the impression that the pack stopped there.
         const ambSample = (p) => {
           if (p.orig === true) return '« Deep diving for 12s ··· »'
           const w = (p.words[ldLang()] && p.words[ldLang()].length > 0) ? p.words[ldLang()] : p.words.en
-          if (w.length === 0) return 'Aucun mot pour l’instant'
+          if (w.length === 0) return kt('Aucun mot pour l’instant', 'No words yet')
           if (w.length <= 3) return w.join(' · ')
           const o = (Math.floor(Date.now() / 3000) + ldHash(p.id)) % w.length
           return [0, 1, 2].map((i) => w[(o + i) % w.length]).join(' · ') + '…'
@@ -2636,8 +2821,8 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         }
         const texte = h('div', { className: 'kbth-sec', style: { gap: 10 } },
           h('div', { className: 'kbth-row', style: { justifyContent: 'space-between' } },
-            h('div', { className: 'kbth-sec-t', style: { fontSize: 13, textTransform: 'none' } }, 'Texte d’état'),
-            h('span', { className: 'kbth-hint' }, 'Aujourd’hui :', ' « Deep diving for 12s ··· »')),
+            h('div', { className: 'kbth-sec-t', style: { fontSize: 13, textTransform: 'none' } }, kt('Texte d’état', 'Status text')),
+            h('span', { className: 'kbth-hint' }, kt('Aujourd’hui :', 'Today:'), ' « Deep diving for 12s ··· »')),
           h('div', { className: 'kbth-fsel', ref: ambBox, 'data-kb': 'ld-amb' },
             h('button', { type: 'button', className: 'kbth-fsbtn', 'aria-haspopup': 'listbox', 'aria-expanded': String(ambOpen), onClick: () => { setAmbOpen((o) => !o); setAmbQ(''); setAmbIdx(0) } },
               h('span', { className: 'kbth-fsname' }, ambCur.name),
@@ -2646,46 +2831,46 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
                   h('path', { d: ambOpen ? 'M3.5 10.5 8 6l4.5 4.5' : 'M3.5 5.5 8 10l4.5-4.5', stroke: 'currentColor', strokeWidth: '1.6', strokeLinecap: 'round', strokeLinejoin: 'round' })))),
             h('div', { className: 'kbth-fsmeta' }, ambSample(ambCur)),
             ambOpen ? h('div', { className: 'kbth-fspanel' },
-              h('input', { className: 'kbth-fssearch', ref: ambInput, value: ambQ, placeholder: 'Rechercher une ambiance…', 'aria-label': 'Rechercher une ambiance', onInput: (e) => { setAmbQ(e.target.value); setAmbIdx(0) }, onKeyDown: ambKey }),
+              h('input', { className: 'kbth-fssearch', ref: ambInput, value: ambQ, placeholder: kt('Rechercher une ambiance…', 'Search an ambiance…'), 'aria-label': kt('Rechercher une ambiance', 'Search an ambiance'), onInput: (e) => { setAmbQ(e.target.value); setAmbIdx(0) }, onKeyDown: ambKey }),
               h('div', { className: 'kbth-fslist', role: 'listbox' },
-                ambList.length === 0 ? h('div', { className: 'kbth-fsempty' }, 'Aucune ambiance ne correspond.')
+                ambList.length === 0 ? h('div', { className: 'kbth-fsempty' }, kt('Aucune ambiance ne correspond.', 'No ambiance matches.'))
                   : ambList.map((p, i) => h('button', { key: p.id, type: 'button', role: 'option', className: 'kbth-fsopt', 'aria-selected': p.id === S.pack ? 'true' : 'false', 'data-actif': i === ambIdx ? '1' : '0', 'data-id': p.id, disabled: disabledAmb(p), onMouseEnter: () => setAmbIdx(i), onClick: () => pickAmb(p.id) },
                     h('span', { className: 'kbth-fsopt-name' }, p.name),
                     h('span', { className: 'kbth-fsopt-sample' }, ambSample(p)))))) : null),
           h('div', { className: 'kbth-row', style: { gap: 8 } },
-            h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-surprise-text', onClick: surpriseText }, '✦ Me surprendre'),
-            h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-open-pack', onClick: (e) => open('pack', e) }, 'Modifier mon pack…')))
+            h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-surprise-text', onClick: surpriseText }, kt('✦ Me surprendre', '✦ Surprise me')),
+            h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-open-pack', onClick: (e) => open('pack', e) }, kt('Modifier mon pack…', 'Edit my pack…'))))
 
-        // ── Réglages (repliés) ──────────────────────────────────────────────
-        const sizeName = S.size === 'compact' ? 'Compacte' : (S.size === 'large' ? 'Grande' : 'Standard')
-        const summary = [sizeName, ' · ' + LD_SIZES[S.size] + ' px · ', 'vitesse', ' ' + S.speed.toFixed(2).replace('.', ',') + ' × · ', S.rot === 'fixed' ? 'un mot par réponse' : (S.rot === '8' ? 'un mot toutes les 8 s' : 'un mot toutes les 15 s')]
+        // ── Settings (collapsed) ──────────────────────────────────────────────
+        const sizeName = S.size === 'compact' ? kt('Compacte', 'Compact') : (S.size === 'large' ? kt('Grande', 'Large') : 'Standard')
+        const summary = [sizeName, ' · ' + LD_SIZES[S.size] + ' px · ', 'vitesse', ' ' + S.speed.toFixed(2).replace('.', ',') + ' × · ', S.rot === 'fixed' ? kt('un mot par réponse', 'one word per reply') : (S.rot === '8' ? kt('un mot toutes les 8 s', 'one word every 8 s') : kt('un mot toutes les 15 s', 'one word every 15 s'))]
         const reglages = h('div', { className: 'kbth-sec', style: { gap: 8 } },
           h('button', { type: 'button', className: 'kbth-disc', 'aria-expanded': String(setOpen), 'data-kb': 'ld-settings', onClick: () => setSetOpen((o) => !o) },
-            h('span', { className: 'kbth-disc-t' }, 'Réglages'), h('span', { className: 'kbth-disc-s' }, summary),
+            h('span', { className: 'kbth-disc-t' }, kt('Réglages', 'Settings')), h('span', { className: 'kbth-disc-s' }, summary),
             h('span', { className: 'kbth-fschev' }, h('svg', { width: 15, height: 15, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' }, h('path', { d: setOpen ? 'M3.5 10.5 8 6l4.5 4.5' : 'M3.5 5.5 8 10l4.5-4.5', stroke: 'currentColor', strokeWidth: '1.6', strokeLinecap: 'round', strokeLinejoin: 'round' })))),
           setOpen ? h('div', { className: 'kbth-setbody' },
             h('div', { className: 'kbth-grp' }, 'Animation'),
-            h('div', { className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, 'Taille'),
+            h('div', { className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, kt('Taille', 'Size')),
               seg({ items: [
-                { id: 'compact', label: 'Compacte · 14 px', on: S.size === 'compact', tap: () => ldSet({ size: 'compact' }) },
+                { id: 'compact', label: kt('Compacte · 14 px', 'Compact · 14 px'), on: S.size === 'compact', tap: () => ldSet({ size: 'compact' }) },
                 { id: 'standard', label: 'Standard · 24 px', on: S.size === 'standard', tap: () => ldSet({ size: 'standard' }) },
-                { id: 'large', label: 'Grande · 40 px', on: S.size === 'large', tap: () => ldSet({ size: 'large' }) }] })),
-            ldToggle('Teinter avec l’accent du thème', S.tint, () => ldSet({ tint: !S.tint }), 'Les animations d’une couleur prennent l’accent. Les autres gardent leurs couleurs.'),
-            slider({ label: 'Vitesse', min: 50, max: 200, value: Math.round(S.speed * 100), text: S.speed.toFixed(2).replace('.', ',') + ' ×', tap: (v) => ldSet({ speed: v / 100 }) }),
-            ldToggle('Ne jamais répéter la même d’affilée', S.avoid, () => ldSet({ avoid: !S.avoid })),
-            slider({ label: 'Délai avant affichage', min: 0, max: 1000, value: S.delay, text: S.delay + ' ms', tap: (v) => ldSet({ delay: Math.round(v / 50) * 50 }), hint: 'Évite un clignotement sur les réponses très rapides.' }),
-            h('div', { className: 'kbth-grp', style: { marginTop: 4 } }, 'Texte'),
-            ldToggle('Garder le texte d’état', S.keep, () => ldSet({ keep: !S.keep }), 'Sans lui, seule l’animation reste dans la ligne de statut.'),
-            h('div', { className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, 'Changement'),
+                { id: 'large', label: kt('Grande · 40 px', 'Large · 40 px'), on: S.size === 'large', tap: () => ldSet({ size: 'large' }) }] })),
+            ldToggle(kt('Teinter avec l’accent du thème', 'Tint with the theme accent'), S.tint, () => ldSet({ tint: !S.tint }), kt('Les animations d’une couleur prennent l’accent. Les autres gardent leurs couleurs.', 'Single-colour animations take the accent. The others keep their colours.')),
+            slider({ label: kt('Vitesse', 'Speed'), min: 50, max: 200, value: Math.round(S.speed * 100), text: S.speed.toFixed(2).replace('.', ',') + ' ×', tap: (v) => ldSet({ speed: v / 100 }) }),
+            ldToggle(kt('Ne jamais répéter la même d’affilée', 'Never repeat the same one twice in a row'), S.avoid, () => ldSet({ avoid: !S.avoid })),
+            slider({ label: kt('Délai avant affichage', 'Delay before showing'), min: 0, max: 1000, value: S.delay, text: S.delay + ' ms', tap: (v) => ldSet({ delay: Math.round(v / 50) * 50 }), hint: kt('Évite un clignotement sur les réponses très rapides.', 'Avoids a flicker on very quick replies.') }),
+            h('div', { className: 'kbth-grp', style: { marginTop: 4 } }, kt('Texte', 'Text')),
+            ldToggle(kt('Garder le texte d’état', 'Keep the status text'), S.keep, () => ldSet({ keep: !S.keep }), kt('Sans lui, seule l’animation reste dans la ligne de statut.', 'Without it, only the animation stays in the status line.')),
+            h('div', { className: 'kbth-row' }, h('span', { className: 'kbth-lb' }, kt('Changement', 'Change')),
               seg({ items: [
-                { id: 'fixed', label: 'Un mot par réponse', on: S.rot === 'fixed', tap: () => ldSet({ rot: 'fixed' }) },
-                { id: '8', label: 'Toutes les 8 s', on: S.rot === '8', tap: () => ldSet({ rot: '8' }) },
-                { id: '15', label: 'Toutes les 15 s', on: S.rot === '15', tap: () => ldSet({ rot: '15' }) }] })),
-            ldToggle('Afficher la durée', S.dur, () => ldSet({ dur: !S.dur }), '« … for 12s » reste à droite du mot.'),
-            h('div', { className: 'kbth-note' }, 'Animations réduites : l’image fixe remplace l’animation. Le réglage du système est respecté.'),
-            h('div', { className: 'kbth-row' }, h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-reset', onClick: () => ldSet({ ...LD_DEF, sel: S.sel, pack: S.pack }) }, 'Rétablir ces réglages'))) : null)
+                { id: 'fixed', label: kt('Un mot par réponse', 'One word per reply'), on: S.rot === 'fixed', tap: () => ldSet({ rot: 'fixed' }) },
+                { id: '8', label: kt('Toutes les 8 s', 'Every 8 s'), on: S.rot === '8', tap: () => ldSet({ rot: '8' }) },
+                { id: '15', label: kt('Toutes les 15 s', 'Every 15 s'), on: S.rot === '15', tap: () => ldSet({ rot: '15' }) }] })),
+            ldToggle(kt('Afficher la durée', 'Show the duration'), S.dur, () => ldSet({ dur: !S.dur }), kt('« … for 12s » reste à droite du mot.', '“… for 12s” stays to the right of the word.')),
+            h('div', { className: 'kbth-note' }, kt('Animations réduites : l’image fixe remplace l’animation. Le réglage du système est respecté.', 'Reduced motion: a still image replaces the animation. The system setting is respected.')),
+            h('div', { className: 'kbth-row' }, h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-reset', onClick: () => ldSet({ ...LD_DEF, sel: S.sel, pack: S.pack }) }, kt('Rétablir ces réglages', 'Reset these settings')))) : null)
 
-        // ── Fenêtre : bibliothèque ──────────────────────────────────────────
+        // ── Window: library ──────────────────────────────────────────
         const toggleSel = (id) => {
           if (S.sel.indexOf(id) >= 0) ldSet({ sel: S.sel.filter((x) => x !== id) })
           else if (S.sel.length < LD_MAX) ldSet({ sel: S.sel.concat([id]) })
@@ -2694,89 +2879,89 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const card = (l, mine) => {
           const on = S.sel.indexOf(l.id) >= 0
           const full = S.sel.length >= LD_MAX && !on
-          const kindLabel = l.type !== 'inline' && l.kind !== 'mono' ? 'Couleurs d’origine' : (l.kind === 'mono' ? 'Une couleur' : 'Colorée')
+          const kindLabel = l.type !== 'inline' && l.kind !== 'mono' ? kt('Couleurs d’origine', 'Original colours') : (l.kind === 'mono' ? kt('Une couleur', 'One colour') : kt('Colorée', 'Colourful'))
           return h('div', { key: l.id, className: 'kbth-lcard' + (on ? ' on' : ''), 'data-id': l.id },
             h('div', { className: 'kbth-lcard-pv' }, h(LdView, { l, px: 36, spd: 1, tint: S.tint && tAcc })),
             h('div', { className: 'kbth-lcard-nm', title: l.name }, l.name),
-            h('div', { className: 'kbth-lcard-meta' }, kindLabel, l.dur ? ' · ' + l.dur : null, mine ? ' · ' : null, mine ? (l.source === 'skill' ? 'Skill' : 'Fichier') : null, mine && typeof l.size === 'number' ? ' · ' + ldKo(l.size) : null),
+            h('div', { className: 'kbth-lcard-meta' }, kindLabel, l.dur ? ' · ' + l.dur : null, mine ? ' · ' : null, mine ? (l.source === 'skill' ? 'Skill' : kt('Fichier', 'File')) : null, mine && typeof l.size === 'number' ? ' · ' + ldKo(l.size) : null),
             l.prompt ? h('div', { className: 'kbth-lcard-meta', style: { fontStyle: 'italic' } }, '« ' + l.prompt + ' »') : null,
             h('div', { className: 'kbth-lcard-acts' },
-              h('button', { type: 'button', className: 'kbth-btn' + (on ? '' : ' kbth-ldpri'), 'data-kb': 'ld-toggle', 'data-id': l.id, disabled: full, title: full ? 'Retirez-en une pour en ajouter une autre' : undefined, onClick: () => toggleSel(l.id) }, on ? 'Retirer' : (full ? 'Rotation pleine' : 'Ajouter')),
-              mine ? h('button', { type: 'button', className: 'kbth-btn del', 'aria-label': 'Supprimer ' + l.name, 'data-kb': 'ld-delete', 'data-id': l.id, onClick: () => { ldDelRecord(l.id).then(draw) } }, 'Suppr.') : null))
+              h('button', { type: 'button', className: 'kbth-btn' + (on ? '' : ' kbth-ldpri'), 'data-kb': 'ld-toggle', 'data-id': l.id, disabled: full, title: full ? kt('Retire-en une pour en ajouter une autre', 'Remove one to add another') : undefined, onClick: () => toggleSel(l.id) }, on ? kt('Retirer', 'Remove') : (full ? kt('Rotation pleine', 'Rotation full') : kt('Ajouter', 'Add'))),
+              mine ? h('button', { type: 'button', className: 'kbth-btn del', 'aria-label': kt('Supprimer ', 'Delete ') + l.name, 'data-kb': 'ld-delete', 'data-id': l.id, onClick: () => { ldDelRecord(l.id).then(draw) } }, kt('Suppr.', 'Del.')) : null))
         }
         const ex = tab === 'examples'
         const exList = LD_PRESETS.filter((l) => filter === 'all' || l.kind === filter)
         const onDrop = (e) => { e.preventDefault(); setOver(false); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) ldImport(f).then((r) => { setNote({ t: r.t, text: r.text }); if (r.t !== 'err') setTab('mine') }) }
         const addTab = h('div', { className: 'kbth-add2' },
           h('div', { className: 'kbth-panel2' },
-            h('h4', null, 'Importer un fichier'),
-            h('p', null, 'SVG animé, Lottie (.json), GIF ou WebP animé. 200 Ko au maximum.'),
+            h('h4', null, kt('Importer un fichier', 'Import a file')),
+            h('p', null, kt('SVG animé, Lottie (.json), GIF ou WebP animé. 200 Ko au maximum.', 'Animated SVG, Lottie (.json), animated GIF or WebP. 200 KB at most.')),
             h('div', { className: 'kbth-drop' + (over ? ' over' : ''), onDragEnter: (e) => { e.preventDefault(); setOver(true) }, onDragOver: (e) => { e.preventDefault(); setOver(true) }, onDragLeave: () => setOver(false), onDrop },
-              h('span', null, 'Déposez un fichier ici'),
-              h('label', { className: 'kbth-btn', style: { cursor: 'pointer' } }, 'Choisir un fichier',
+              h('span', null, kt('Dépose un fichier ici', 'Drop a file here')),
+              h('label', { className: 'kbth-btn', style: { cursor: 'pointer' } }, kt('Choisir un fichier', 'Choose a file'),
                 h('input', { type: 'file', accept: '.svg,.json,.gif,.webp,.png', 'data-kb': 'ld-file', style: { display: 'none' }, onChange: (e) => {
                   const input = e.target; const f = input.files && input.files[0]
                   if (!f) return
                   ldImport(f).then((r) => { setNote({ t: r.t, text: r.text }); if (r.t !== 'err') setTab('mine') })
                   input.value = ''
                 } }))),
-            h('p', null, 'Avant usage, DSH retire les scripts, les liens externes et les images intégrées du fichier.')),
+            h('p', null, kt('Avant usage, DSH retire les scripts, les liens externes et les images intégrées du fichier.', 'Before use, DSH removes scripts, external links and embedded images from the file.'))),
           h('div', { className: 'kbth-panel2' },
-            h('h4', null, 'Créer avec Claude'),
-            h('p', null, 'Décrivez l’animation, collez la commande dans le chat : le skill « loader » la dessine et elle apparaît ici toute seule.'),
-            h('textarea', { className: 'kbth-ta', value: prompt, placeholder: 'Trois points qui rebondissent, en suivant mon accent', 'aria-label': 'Description de l’animation', onInput: (e) => setPrompt(e.target.value) }),
-            h('div', { className: 'kbth-codeln' }, h('span', null, '/skill-loader ' + (prompt.trim() === '' ? 'trois points qui rebondissent' : prompt.trim())),
-              h('button', { type: 'button', className: 'kbth-link', 'data-kb': 'ld-copy', onClick: () => ldCopy('/skill-loader ' + (prompt.trim() === '' ? 'trois points qui rebondissent' : prompt.trim()), (ok) => { setCopied(ok ? 'loader' : 'fail'); setWaiting({ kind: 'loader', base: ld.mine.filter((l) => l.source === 'skill').length }) }) }, copied === 'loader' ? 'Copié' : 'Copier')),
-            waiting !== null && waiting.kind === 'loader' ? h('div', { className: 'kbth-hint', role: 'status' }, 'En attente de l’animation… collez la commande dans le chat. Cette fenêtre la détecte seule.') : null,
-            copied === 'fail' ? h('div', { className: 'kbth-hint' }, 'Copie impossible : sélectionnez la commande ci-dessus.') : null))
+            h('h4', null, kt('Créer avec Claude', 'Create with Claude')),
+            h('p', null, kt('Décris l’animation, colle la commande dans le chat : le skill « loader » la dessine et elle apparaît ici toute seule.', 'Describe the animation, paste the command in the chat: the “loader” skill draws it and it appears here by itself.')),
+            h('textarea', { className: 'kbth-ta', value: prompt, placeholder: kt('Trois points qui rebondissent, en suivant mon accent', 'Three bouncing dots, following my accent'), 'aria-label': kt('Description de l’animation', 'Animation description'), onInput: (e) => setPrompt(e.target.value) }),
+            h('div', { className: 'kbth-codeln' }, h('span', null, '/skill-loader ' + (prompt.trim() === '' ? kt('trois points qui rebondissent', 'three bouncing dots') : prompt.trim())),
+              h('button', { type: 'button', className: 'kbth-link', 'data-kb': 'ld-copy', onClick: () => ldCopy('/skill-loader ' + (prompt.trim() === '' ? kt('trois points qui rebondissent', 'three bouncing dots') : prompt.trim()), (ok) => { setCopied(ok ? 'loader' : 'fail'); setWaiting({ kind: 'loader', base: ld.mine.filter((l) => l.source === 'skill').length }) }) }, copied === 'loader' ? kt('Copié', 'Copied') : kt('Copier', 'Copy'))),
+            waiting !== null && waiting.kind === 'loader' ? h('div', { className: 'kbth-hint', role: 'status' }, kt('En attente de l’animation… colle la commande dans le chat. Cette fenêtre la détecte seule.', 'Waiting for the animation… paste the command in the chat. This window detects it by itself.')) : null,
+            copied === 'fail' ? h('div', { className: 'kbth-hint' }, kt('Copie impossible : sélectionne la commande ci-dessus.', 'Copy failed: select the command above.')) : null))
         const picker = h('div', { className: 'kbth-mdlg', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kbth-ld-mt', tabIndex: -1, ref: dlg, 'data-kb': 'ld-picker', onKeyDown: (e) => e.stopPropagation() },
-          h('div', { className: 'kbth-mhd' }, h('h3', { id: 'kbth-ld-mt' }, 'Ajouter une animation'), h('span', { className: 'kbth-hint' }, String(sel.length), ' ', 'sur', ' ', String(LD_MAX), ' ', 'dans la rotation'),
-            h('button', { type: 'button', className: 'kbth-mx', 'aria-label': 'Fermer', onClick: close }, '×')),
+          h('div', { className: 'kbth-mhd' }, h('h3', { id: 'kbth-ld-mt' }, kt('Ajouter une animation', 'Add an animation')), h('span', { className: 'kbth-hint' }, String(sel.length), ' ', 'sur', ' ', String(LD_MAX), ' ', kt('dans la rotation', 'in the rotation')),
+            h('button', { type: 'button', className: 'kbth-mx', 'aria-label': kt('Fermer', 'Close'), onClick: close }, '×')),
           h('div', { className: 'kbth-mbody' },
             h('div', { className: 'kbth-pills' },
-              [['examples', 'Exemples', LD_PRESETS.length], ['mine', 'Mes animations', ld.mine.length], ['add', 'Ajouter la vôtre', null]].map((t) =>
+              [['examples', kt('Exemples', 'Examples'), LD_PRESETS.length], ['mine', kt('Mes animations', 'My animations'), ld.mine.length], ['add', kt('Ajouter la tienne', 'Add your own'), null]].map((t) =>
                 h('button', { key: t[0], type: 'button', className: 'kbth-cat', 'aria-pressed': tab === t[0] ? 'true' : 'false', 'data-kb': 'ld-tab', 'data-id': t[0], onClick: () => { setTab(t[0]); setNote(null) } }, t[1], t[2] === null ? null : ' (' + t[2] + ')'))),
             note !== null ? h('div', { className: 'kbth-status ' + note.t, role: 'status', 'data-kb': 'ld-note' }, note.text) : null,
-            ld.hostState === 'off' && ldHostOn() ? h('div', { className: 'kbth-status warn' }, 'Le disque de DSH ne répond pas : vos importations restent dans ce navigateur jusqu’au rechargement.') : null,
+            ld.hostState === 'off' && ldHostOn() ? h('div', { className: 'kbth-status warn' }, kt('Le disque de DSH ne répond pas : tes importations restent dans ce navigateur jusqu’au rechargement.', 'DSH’s disk does not answer: your imports stay in this browser until it reloads.')) : null,
             tab === 'add' ? addTab : h('div', { className: 'kbth-sec', style: { gap: 10 } },
-              ex ? h('div', { className: 'kbth-pills' }, [['all', 'Toutes'], ['mono', 'Une couleur'], ['color', 'Colorées']].map((f) =>
+              ex ? h('div', { className: 'kbth-pills' }, [['all', kt('Toutes', 'All')], ['mono', kt('Une couleur', 'One colour')], ['color', kt('Colorées', 'Colourful')]].map((f) =>
                 h('button', { key: f[0], type: 'button', className: 'kbth-pillb', 'aria-pressed': filter === f[0] ? 'true' : 'false', onClick: () => setFilter(f[0]) }, f[1]))) : null,
               (ex ? exList : ld.mine).length > 0
                 ? h('div', { className: 'kbth-lgrid' }, (ex ? exList : ld.mine).map((l) => card(l, !ex)))
-                : h('div', { className: 'kbth-note' }, 'Vous n’avez encore rien ajouté. Importez un fichier ou demandez au skill d’en dessiner une, dans « Ajouter la vôtre ».'),
-              ex ? h('div', { className: 'kbth-note' }, h('b', null, 'Les animations de vos références ne sont pas incluses. '), 'Les deux liens Dribbble montrent le même pack Lottie en couleurs, qui appartient à son auteur. Si vous l’avez, importez ses fichiers .json dans « Ajouter la vôtre ».') : null)),
+                : h('div', { className: 'kbth-note' }, kt('Tu n’as encore rien ajouté. Importe un fichier ou demande au skill d’en dessiner une, dans « Ajouter la tienne ».', 'You have not added anything yet. Import a file or ask the skill to draw one, in “Add your own”.')),
+              ex ? h('div', { className: 'kbth-note' }, h('b', null, kt('Les animations de tes références ne sont pas incluses. ', 'The animations of your references are not included. ')), kt('Les deux liens Dribbble montrent le même pack Lottie en couleurs, qui appartient à son auteur. Si tu l’as, importe ses fichiers .json dans « Ajouter la tienne ».', 'The two Dribbble links show the same colour Lottie pack, which belongs to its author. If you have it, import its .json files in “Add your own”.')) : null)),
           h('div', { className: 'kbth-mft' },
-            h('span', { className: 'kbth-hint', style: { flex: 1 } }, sel.length >= LD_MAX ? 'Rotation pleine : retirez-en une pour en ajouter une autre.' : ''),
-            h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', onClick: close }, 'Terminé')))
+            h('span', { className: 'kbth-hint', style: { flex: 1 } }, sel.length >= LD_MAX ? kt('Rotation pleine : retire-en une pour en ajouter une autre.', 'Rotation full: remove one to add another.') : ''),
+            h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', onClick: close }, kt('Terminé', 'Done'))))
 
-        // ── Fenêtre : mon pack de mots ──────────────────────────────────────
+        // ── Window: my word pack ──────────────────────────────────────
         const addWord = () => { const w = wordDraft.trim(); if (w !== '') { ldPutWords(ld.words.concat([w])); setWordDraft('') } }
-        const packCmd = '/skill-loading-text ' + (job.trim() === '' ? 'sage-femme libérale' : job.trim())
+        const packCmd = '/skill-loading-text ' + (job.trim() === '' ? kt('sage-femme libérale', 'freelance midwife') : job.trim())
         const packModal = h('div', { className: 'kbth-mdlg', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kbth-ld-mt', tabIndex: -1, ref: dlg, 'data-kb': 'ld-pack', onKeyDown: (e) => e.stopPropagation() },
-          h('div', { className: 'kbth-mhd' }, h('h3', { id: 'kbth-ld-mt' }, 'Mon pack de mots'), h('button', { type: 'button', className: 'kbth-mx', 'aria-label': 'Fermer', onClick: close }, '×')),
+          h('div', { className: 'kbth-mhd' }, h('h3', { id: 'kbth-ld-mt' }, kt('Mon pack de mots', 'My word pack')), h('button', { type: 'button', className: 'kbth-mx', 'aria-label': kt('Fermer', 'Close'), onClick: close }, '×')),
           h('div', { className: 'kbth-mbody' },
-            h('p', { className: 'kbth-hint', style: { margin: 0 } }, 'Vos propres mots, ou ceux que Claude écrit pour votre métier. Ils forment l’ambiance « Mon pack » du sélecteur.'),
+            h('p', { className: 'kbth-hint', style: { margin: 0 } }, kt('Tes propres mots, ou ceux que Claude écrit pour ton métier. Ils forment l’ambiance « Mon pack » du sélecteur.', 'Your own words, or the ones Claude writes for your job. They make up the “My pack” ambiance in the selector.')),
             note !== null ? h('div', { className: 'kbth-status ' + note.t, role: 'status' }, note.text) : null,
             h('div', { className: 'kbth-wchips' }, ld.words.length > 0
-              ? ld.words.map((w, i) => h('span', { key: w, className: 'kbth-wchip' }, w, h('button', { type: 'button', 'aria-label': 'Retirer ' + w, 'data-kb': 'ld-wdel', onClick: () => ldPutWords(ld.words.filter((_, j) => j !== i)) }, '×')))
-              : h('span', { className: 'kbth-hint' }, 'Aucun mot. Ajoutez-en un, ou demandez à Claude.')),
+              ? ld.words.map((w, i) => h('span', { key: w, className: 'kbth-wchip' }, w, h('button', { type: 'button', 'aria-label': kt('Retirer ', 'Remove ') + w, 'data-kb': 'ld-wdel', onClick: () => ldPutWords(ld.words.filter((_, j) => j !== i)) }, '×')))
+              : h('span', { className: 'kbth-hint' }, kt('Aucun mot. Ajoute-en un, ou demande à Claude.', 'No words. Add one, or ask Claude.'))),
             h('div', { className: 'kbth-row', style: { gap: 6 } },
-              h('input', { className: 'kbth-in', style: { flex: 1, minWidth: 140 }, value: wordDraft, maxLength: 40, placeholder: 'Ajouter un mot, puis Entrée', 'aria-label': 'Ajouter un mot', 'data-kb': 'ld-word', onInput: (e) => setWordDraft(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); addWord() } } }),
-              h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-wadd', onClick: addWord }, 'Ajouter')),
+              h('input', { className: 'kbth-in', style: { flex: 1, minWidth: 140 }, value: wordDraft, maxLength: 40, placeholder: kt('Ajouter un mot, puis Entrée', 'Add a word, then Enter'), 'aria-label': kt('Ajouter un mot', 'Add a word'), 'data-kb': 'ld-word', onInput: (e) => setWordDraft(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); addWord() } } }),
+              h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'ld-wadd', onClick: addWord }, kt('Ajouter', 'Add'))),
             h('div', { className: 'kbth-panel2' },
-              h('h4', null, 'Écrire avec Claude'),
-              h('p', null, 'Le skill « loading-text » écrit une dizaine de mots propres à votre métier, dans la langue de l’interface. Collez la commande dans le chat : les mots arrivent ici tout seuls.'),
-              h('input', { className: 'kbth-in', value: job, maxLength: 80, placeholder: 'Votre métier, par ex. sage-femme libérale', 'aria-label': 'Votre métier ou votre univers', onInput: (e) => setJob(e.target.value) }),
+              h('h4', null, kt('Écrire avec Claude', 'Write with Claude')),
+              h('p', null, kt('Le skill « loading-text » écrit une dizaine de mots propres à ton métier, dans la langue de l’interface. Colle la commande dans le chat : les mots arrivent ici tout seuls.', 'The “loading-text” skill writes about ten words specific to your job, in the interface language. Paste the command in the chat: the words arrive here by themselves.')),
+              h('input', { className: 'kbth-in', value: job, maxLength: 80, placeholder: kt('Ton métier, par ex. sage-femme libérale', 'Your job, e.g. freelance midwife'), 'aria-label': kt('Ton métier ou ton univers', 'Your job or your world'), onInput: (e) => setJob(e.target.value) }),
               h('div', { className: 'kbth-codeln' }, h('span', null, packCmd),
-                h('button', { type: 'button', className: 'kbth-link', 'data-kb': 'ld-copy2', onClick: () => ldCopy(packCmd, (ok) => { setCopied(ok ? 'words' : 'fail'); setWaiting({ kind: 'words', base: ld.words.length }) }) }, copied === 'words' ? 'Copié' : 'Copier')),
-              waiting !== null && waiting.kind === 'words' ? h('div', { className: 'kbth-hint', role: 'status' }, 'En attente des mots… collez la commande dans le chat. Cette fenêtre les détecte seule.') : null)),
-          h('div', { className: 'kbth-mft' }, h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', onClick: close }, 'Terminé')))
+                h('button', { type: 'button', className: 'kbth-link', 'data-kb': 'ld-copy2', onClick: () => ldCopy(packCmd, (ok) => { setCopied(ok ? 'words' : 'fail'); setWaiting({ kind: 'words', base: ld.words.length }) }) }, copied === 'words' ? kt('Copié', 'Copied') : kt('Copier', 'Copy'))),
+              waiting !== null && waiting.kind === 'words' ? h('div', { className: 'kbth-hint', role: 'status' }, kt('En attente des mots… colle la commande dans le chat. Cette fenêtre les détecte seule.', 'Waiting for the words… paste the command in the chat. This window detects them by itself.')) : null)),
+          h('div', { className: 'kbth-mft' }, h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', onClick: close }, kt('Terminé', 'Done'))))
 
         return h(React.Fragment, null,
           h('section', { className: 'kbth-sec', style: { gap: 20 }, 'aria-labelledby': 'kbth-ld-t', 'data-kb': 'ld-pane' },
             h('div', null,
-              h('div', { className: 'kbth-sec-t', id: 'kbth-ld-t' }, 'Animation de réflexion'),
-              h('div', { className: 'kbth-sec-d', style: { marginTop: 4 } }, 'Ce qui s’anime en bas du chat pendant que l’agent travaille.')),
+              h('div', { className: 'kbth-sec-t', id: 'kbth-ld-t' }, kt('Animation de réflexion', 'Thinking animation')),
+              h('div', { className: 'kbth-sec-d', style: { marginTop: 4 } }, kt('Ce qui s’anime en bas du chat pendant que l’agent travaille.', 'What animates at the bottom of the chat while the agent works.'))),
             preview, rotation, texte, reglages),
           modal === null ? null : portal(h(React.Fragment, null, h('div', { className: 'kbth-mback', onClick: close }), modal === 'picker' ? picker : packModal)))
       }
@@ -2821,10 +3006,10 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const [wpCat, setWpCat] = React.useState('gradients')
         const [tokSel, setTokSel] = React.useState('l1')
         const [revision, setRevision] = React.useState(0)
-        // The theme library (« My themes »): redrawn when it changes (own writes, or the disk copy arriving).
+        // The theme library (“My themes”): redrawn when it changes (own writes, or the disk copy arriving).
         const [, libBump] = React.useReducer((x) => x + 1, 0)
         React.useEffect(() => { lib.subs.add(libBump); libPull(true); return () => { lib.subs.delete(libBump) } }, [])
-        const [saveDlg, setSaveDlg] = React.useState(null)       // null | { name, groups, error }: the « Enregistrer comme thème » window
+        const [saveDlg, setSaveDlg] = React.useState(null)       // null | { name, groups, error }: the “Save as theme” window
         const [renameId, setRenameId] = React.useState(null)     // Sharing: the row being renamed...
         const [renameDraft, setRenameDraft] = React.useState('')
         const [delId, setDelId] = React.useState(null)           // ...the one waiting for a delete confirmation...
@@ -2837,12 +3022,12 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const [trial, setTrial] = React.useState(null)          // null | { id, name, prev }: a gallery theme being tried, and the look to come back to
         const trialRef = React.useRef(null)
         trialRef.current = trial
-        const [exportFmt, setExportFmt] = React.useState('yaml')  // format de l'export affiché (non stocké)
-        const [advTab, setAdvTab] = React.useState('essentiel') // onglet ouvert : Essentiel = les réglages de base
+        const [exportFmt, setExportFmt] = React.useState('yaml')  // displayed export format (not stored)
+        const [advTab, setAdvTab] = React.useState('essentiel') // open tab: Essentials = the basic settings
 
-        // ── Sélecteur de police ────────────────────────────────────────────
-        // L'état vit ici, avec les autres contrôles : le rendu hors navigateur
-        // n'exécute que Page, et un composant imbriqué ne serait jamais appelé.
+        // ── Font picker ────────────────────────────────────────────
+        // The state lives here, with the other controls: rendering outside a browser
+        // only runs Page, and a nested component would never be called.
         const [fontOuvert, setFontOuvert] = React.useState(false)
         const [fontQ, setFontQ] = React.useState('')
         const [fontActif, setFontActif] = React.useState(0)
@@ -2852,28 +3037,28 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           const el = champPolice.current
           if (!fontOuvert || el === null) return undefined
           el.focus()
-          // Échap ferme le panneau de polices, PAS la boîte de réglages entière : on coupe la
-          // propagation au niveau natif (celui où l'écoute la boîte), pas seulement en React.
+          // Escape closes the fonts panel, NOT the whole settings dialog: we cut the
+          // propagation at the native level (the one the dialog listens at), not only in React.
           const stop = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setFontOuvert(false) } }
           el.addEventListener('keydown', stop)
           return () => el.removeEventListener('keydown', stop)
         }, [fontOuvert])
         React.useEffect(() => { setFontActif(0) }, [fontQ])
         React.useEffect(() => {
-          // Suit la sélection au clavier dans une liste qui défile.
+          // Follows the keyboard selection in a scrolling list.
           const el = boitePolice.current === null ? null : boitePolice.current.querySelector('[data-actif="1"]')
           if (el !== null && el !== undefined && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' })
         }, [fontActif, fontOuvert])
         React.useEffect(() => {
-          // Un clic ailleurs referme — pas de piège à focus.
+          // A click elsewhere closes it — no focus trap.
           if (!fontOuvert) return undefined
           const dehors = (e) => { if (boitePolice.current !== null && boitePolice.current.contains(e.target) === false) setFontOuvert(false) }
           document.addEventListener('mousedown', dehors)
           return () => document.removeEventListener('mousedown', dehors)
         }, [fontOuvert])
 
-        // Rendu du sélecteur : grand bouton (la police courante, dans sa propre
-        // fonte) + panneau avec recherche et liste des familles.
+        // Picker rendering: a large button (the current font, in its own
+        // typeface) + a panel with search and the list of families.
         const selecteurPolice = (courant, onPick) => {
           const plat = (s) => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
           const liste = FONTS.filter((x) => plat(x.name).indexOf(plat(fontQ)) >= 0)
@@ -2898,16 +3083,16 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
                     d: fontOuvert ? 'M3.5 10.5 8 6l4.5 4.5' : 'M3.5 5.5 8 10l4.5-4.5',
                     stroke: 'currentColor', strokeWidth: '1.6', strokeLinecap: 'round', strokeLinejoin: 'round'
                   })))),
-            h('div', { className: 'kbth-fsmeta' }, choisi.stack === null ? 'Police native de DSH' : choisi.stack),
+            h('div', { className: 'kbth-fsmeta' }, choisi.stack === null ? kt('Police native de DSH', 'Native DSH font') : choisi.stack),
             fontOuvert
               ? h('div', { className: 'kbth-fspanel' },
                 h('input', {
-                  className: 'kbth-fssearch', ref: champPolice, value: fontQ, placeholder: 'Rechercher une police…',
-                  'aria-label': 'Rechercher une police', onInput: (e) => setFontQ(e.target.value), onKeyDown: clavier
+                  className: 'kbth-fssearch', ref: champPolice, value: fontQ, placeholder: kt('Rechercher une police…', 'Search a font…'),
+                  'aria-label': kt('Rechercher une police', 'Search a font'), onInput: (e) => setFontQ(e.target.value), onKeyDown: clavier
                 }),
                 h('div', { className: 'kbth-fslist', role: 'listbox' },
                   liste.length === 0
-                    ? h('div', { className: 'kbth-fsempty' }, 'Aucune police ne correspond.')
+                    ? h('div', { className: 'kbth-fsempty' }, kt('Aucune police ne correspond.', 'No font matches.'))
                     : liste.map((x, i) => h('button', {
                       key: x.id, type: 'button', role: 'option', className: 'kbth-fsopt',
                       'aria-selected': x.id === courant ? 'true' : 'false',
@@ -2917,13 +3102,13 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
                       style: x.stack === null ? {} : { fontFamily: x.stack }
                     },
                       h('span', { className: 'kbth-fsopt-name' }, x.name),
-                      h('span', { className: 'kbth-fsopt-sample' }, 'Le renard brun saute par-dessus le chien paresseux.')))))
+                      h('span', { className: 'kbth-fsopt-sample' }, kt('Le renard brun saute par-dessus le chien paresseux.', 'The quick brown fox jumps over the lazy dog.'))))))
               : null)
         }
 
-                // Suivre le mode réel (la page native peut le changer aussi). Une
-        // préférence TIERS (« nebula »…) n'est pas un mode : la stocker
-        // corromprait l'état — on ne suit que les trois modes natifs.
+                // Follow the real mode (the native page can change it too). A
+        // THIRD-PARTY preference (“nebula”…) is not a mode: storing it
+        // would corrupt the state — we only follow the three native modes.
         React.useEffect(() => {
           if (themeSvc === null || typeof themeSvc.getTheme !== 'function') return
           try {
@@ -2937,17 +3122,17 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           } catch (e) { /* lecture impossible */ }
         }, [revision])
 
-        // S'abonner aux changements de thème : quand un plugin tiers reprend la
-        // main (dream-skin réaffirme son thème en moins de 250 ms), la note de
-        // conflit doit RÉAPPARAÎTRE — sans cet abonnement, elle n'était calculée
-        // qu'à nos propres re-rendus et restait masquée après la riposte.
+        // Subscribe to theme changes: when a third-party plugin takes
+        // over (dream-skin reasserts its theme in under 250 ms), the conflict
+        // note must REAPPEAR — without this subscription, it was only computed
+        // on our own re-renders and stayed hidden after the counter-move.
         React.useEffect(() => {
           if (ctxRef === null || ctxRef === undefined || typeof ctxRef.on !== 'function') return
           let rendu = null
           try {
             rendu = ctxRef.on('theme/change', () => setRevision((r) => r + 1))
           } catch (e) { rendu = null }
-          return () => { try { if (typeof rendu === 'function') rendu() } catch (e) { /* déjà détaché */ } }
+          return () => { try { if (typeof rendu === 'function') rendu() } catch (e) { /* already detached */ } }
         }, [])
 
         // `transient`: drawn but NOT stored, so a reload (or closing Settings) gives the previous look back: that is a trial.
@@ -2991,69 +3176,69 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const cl = makeTheme('light', o)
         const cd = makeTheme('dark', o)
 
-        // Le sélecteur de thème prêt : pastille « chip » concentrique.
-        // Le FOND du thème en disque, l'ACCENT en point centré — la diagonale
-        // 135° à arrêt sec (mesurée le 30/09) lisait comme un panneau de
-        // signalisation, pas comme un thème. Un skin sans mode (pack hérité)
-        // se dessine dans le schéma courant : c'est celui que l'utilisateur
-        // verra en le sélectionnant.
+        // The ready-made theme picker: concentric “chip” dot.
+        // The theme's BACKGROUND as a disc, the ACCENT as a centred dot — the 135°
+        // diagonal with a hard stop (measured on 30/09) read like a
+        // road sign, not like a theme. A skin without a mode (inherited pack)
+        // is drawn in the current scheme: that is the one the user
+        // will see when selecting it.
         const skinDot = (sk) => {
           const m = (sk.mode === null || sk.mode === undefined) ? (dark ? 'dark' : 'light') : sk.mode
           const so = { acc: sk.acc, ov: sk.ov || {}, lvl: 0, cb: false, tint: 0, dom: '' }
           const sd = makeTheme(m, so)
           const acc = skinAccent(sk) || sd.brand
           // point d'accent 13 px sur disque 34 px (~38 %), bord adouci 0,5 px
-          // pour éviter l'escalier d'anticrénelage sur le cercle.
+          // to avoid the anti-aliasing staircase on the circle.
           return 'radial-gradient(circle at 50% 50%,' + acc + ' 0 6.5px,' + sd.base + ' 7px 100%)'
         }
-        const skinMeta = (sk) => (sk.mode === 'dark' ? 'Sombre' : (sk.mode === 'light' ? 'Clair' : 'Clair + sombre')) +
-          (skinAccent(sk) === null ? ' · accent neutre' : ' · ' + skinAccent(sk)) +
-          (sk.fontText !== undefined ? ' · police ' + (FONTS.find((f) => f.id === sk.fontText) || FONTS[0]).name : '') +
-          (sk.radius !== undefined ? ' · coins ' + RADIUS_LABEL[sk.radius] : '') +
-          (sk.iconSet !== undefined ? ' · icônes ' + ((ICON_SETS.find((x) => x.id === sk.iconSet) || ICON_SETS[0])[kbLang()]) : '')
+        const skinMeta = (sk) => (sk.mode === 'dark' ? kt('Sombre', 'Dark') : (sk.mode === 'light' ? kt('Clair', 'Light') : kt('Clair + sombre', 'Light + dark'))) +
+          (skinAccent(sk) === null ? kt(' · accent neutre', ' · neutral accent') : ' · ' + skinAccent(sk)) +
+          (sk.fontText !== undefined ? kt(' · police ', ' · font ') + (FONTS.find((f) => f.id === sk.fontText) || FONTS[0]).name : '') +
+          (sk.radius !== undefined ? ' · ' + kt(RADIUS_LABEL[sk.radius][0], RADIUS_LABEL[sk.radius][1]) : '') +
+          (sk.iconSet !== undefined ? ((nm) => kt(' · icônes ' + nm, ' · ' + nm + ' icons'))((ICON_SETS.find((x) => x.id === sk.iconSet) || ICON_SETS[0])[kbLang()]) : '')
 
-        // The theme in use: one of yours, or a shipped one. « Modified » = a setting it retains has moved.
+        // The theme in use: one of yours, or a shipped one. “Modified” = a setting it retains has moved.
         const activeMine = lib.presets.find((x) => x.id === S.skin) || null
         const activeSkin = activeMine !== null ? null : (SKINS.find((x) => x.id === S.skin) || null)
         const activeNow = activeMine !== null ? presetAsSkin(activeMine) : activeSkin
         const activeModified = activeMine !== null ? settingsDirty(S, activeMine.settings) : (activeSkin !== null && settingsDirty(S, skinSettings(activeSkin)))
         const applyMine = (rec) => commit({ skin: rec.id, ...rec.settings })
-        // Back to the theme as it was saved. The mode stays as it is: it is not part of « modified » either.
+        // Back to the theme as it was saved. The mode stays as it is: it is not part of “modified” either.
         const revertTheme = () => {
           const full = activeMine !== null ? { skin: activeMine.id, ...activeMine.settings } : (activeSkin !== null ? skinPatch(activeSkin) : null)
           if (full === null) return
           const { mode, ...rest } = full
           setHexDraft(null); commit(rest)
         }
-        const openSave = () => { setLibNote(null); setSaveDlg({ name: libFreeName('Mon thème'), groups: { font: true, radius: true, icons: true, glass: true, a11y: false }, error: '' }) }
+        const openSave = () => { setLibNote(null); setSaveDlg({ name: libFreeName(kt('Mon thème', 'My theme')), groups: { font: true, radius: true, icons: true, glass: true, a11y: false }, error: '' }) }
         const doSave = () => {
           if (saveDlg === null) return
           const name = presetName(saveDlg.name)
-          if (name === '') { setSaveDlg({ ...saveDlg, error: 'Donnez un nom au thème.' }); return }
-          if (libNameTaken(name)) { setSaveDlg({ ...saveDlg, error: 'Ce nom existe déjà. Choisissez-en un autre.' }); return }
+          if (name === '') { setSaveDlg({ ...saveDlg, error: kt('Donne un nom au thème.', 'Give the theme a name.') }); return }
+          if (libNameTaken(name)) { setSaveDlg({ ...saveDlg, error: kt('Ce nom existe déjà. Choisis-en un autre.', 'That name already exists. Pick another one.') }); return }
           const rec = libAdd(name, 'me', presetFromState(S, saveDlg.groups))
-          if (rec === null) { setSaveDlg({ ...saveDlg, error: 'La bibliothèque est pleine (' + PRESET_LIMIT + ' thèmes). Supprimez-en un dans Partage.' }); return }
+          if (rec === null) { setSaveDlg({ ...saveDlg, error: kt('La bibliothèque est pleine (' + PRESET_LIMIT + ' thèmes). Supprime-en un dans Partage.', 'The library is full (' + PRESET_LIMIT + ' themes). Delete one in Sharing.') }); return }
           setSaveDlg(null); commit({ skin: rec.id })
-          setLibNote({ ok: true, text: 'Thème « ' + rec.name + ' » enregistré dans Mes thèmes.' })
+          setLibNote({ ok: true, text: kt('Thème « ' + rec.name + ' » enregistré dans Mes thèmes.', 'Theme “' + rec.name + '” saved in My themes.') })
         }
         const doUpdate = () => {
           if (activeMine === null) return
           libPatch(activeMine.id, { settings: presetFromState(S, groupsOf(activeMine.settings)) })
-          setLibNote({ ok: true, text: 'Thème « ' + activeMine.name + ' » mis à jour.' })
+          setLibNote({ ok: true, text: kt('Thème « ' + activeMine.name + ' » mis à jour.', 'Theme “' + activeMine.name + '” updated.') })
         }
 
-        // Un thème TIERS actif (dream-skin…) reprend la main sur la préférence :
-        // mesuré, un setTheme('light') est réaffirmé sombre en moins de 250 ms.
-        // On ne peut pas gagner ce bras de fer silencieusement — on le dit.
+        // An active THIRD-PARTY theme (dream-skin…) takes over the preference:
+        // measured, a setTheme('light') is reasserted dark in under 250 ms.
+        // We cannot win this tug of war silently — we say so.
         let themeTiers = null
         try {
           const pref = themeSvc !== null && typeof themeSvc.getTheme === 'function' ? (themeSvc.getTheme() || {}).preference : null
           if (pref !== null && pref !== 'light' && pref !== 'dark' && pref !== 'system') themeTiers = pref
         } catch (e) { themeTiers = null }
 
-        // Le champ et la pipette montrent l'accent EFFECTIF : celui choisi à la
-        // main, sinon celui du skin en cours (les packs hérités portent leur
-        // accent par schéma dans `ov`, donc S.acc reste null).
+        // The field and the eyedropper show the EFFECTIVE accent: the one chosen by
+        // hand, otherwise that of the current skin (inherited packs carry their
+        // accent per scheme in `ov`, so S.acc stays null).
         const hexShown = hexDraft !== null ? hexDraft : ((S.acc === null ? c.brand : S.acc).replace('#', ''))
 
         // ── Simple : apparence ──────────────────────────────────────────────
@@ -3066,73 +3251,73 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         },
           h('span', { className: 'kbth-skin-dot', style: { background: skinDot(sk) } }),
           h('span', { className: 'kbth-skin-name' }, sk.name))
-        const toSharing = h('button', { type: 'button', className: 'kbth-link', 'data-kb': 'theme-open-sharing', onClick: () => setAdvTab('partage') }, 'Partage')
-        const toGallery = h('button', { type: 'button', className: 'kbth-link', 'data-kb': 'theme-open-gallery', onClick: () => setAdvTab('galerie') }, 'Galerie')
+        const toSharing = h('button', { type: 'button', className: 'kbth-link', 'data-kb': 'theme-open-sharing', onClick: () => setAdvTab('partage') }, kt('Partage', 'Sharing'))
+        const toGallery = h('button', { type: 'button', className: 'kbth-link', 'data-kb': 'theme-open-gallery', onClick: () => setAdvTab('galerie') }, kt('Galerie', 'Gallery'))
         const themeSummary = h('div', { className: 'kbth-sum', 'data-kb': 'theme-sum' },
           h('div', { className: 'kbth-sum-tx' },
-            h('div', { className: 'kbth-sum-n' }, activeNow === null ? 'Personnalisé' : activeNow.name,
-              activeModified ? h('span', { className: 'kbth-tone kbth-tone-mod', 'data-kb': 'theme-modified' }, 'modifié') : null,
-              activeNow === null ? null : h('span', { className: 'kbth-pill' }, activeMine === null ? 'livré' : (activeMine.source === 'gallery' ? 'Galerie' : 'à vous'))),
+            h('div', { className: 'kbth-sum-n' }, activeNow === null ? kt('Personnalisé', 'Custom') : activeNow.name,
+              activeModified ? h('span', { className: 'kbth-tone kbth-tone-mod', 'data-kb': 'theme-modified' }, kt('modifié', 'modified')) : null,
+              activeNow === null ? null : h('span', { className: 'kbth-pill' }, activeMine === null ? kt('livré', 'shipped') : (activeMine.source === 'gallery' ? kt('Galerie', 'Gallery') : kt('à toi', 'yours')))),
             libNote !== null
               ? h('div', { className: libNote.ok ? 'kbth-ok kbth-gr-ok' : 'kbth-bad kbth-gr-err', role: 'status', 'data-kb': 'theme-note' }, libNote.text)
               : h('div', { className: 'kbth-sum-m' }, activeNow === null
-                ? 'Réglage libre : enregistrez-le pour le retrouver en un clic.'
-                : skinMeta(activeNow) + (activeModified && activeMine === null ? ' · un thème livré ne se modifie pas : enregistrez-en une copie.' : ''))),
+                ? kt('Réglage libre : enregistre-le pour le retrouver en un clic.', 'Free setting: save it to get it back in one click.')
+                : skinMeta(activeNow) + (activeModified && activeMine === null ? kt(' · un thème livré ne se modifie pas : enregistre-en une copie.', ' · a shipped theme is not edited: save a copy.') : ''))),
           h('div', { className: 'kbth-sum-a' },
-            activeMine !== null && activeModified ? h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-update', onClick: doUpdate }, 'Mettre à jour') : null,
-            h('button', { type: 'button', className: 'kbth-btn' + (activeMine !== null && activeModified ? '' : ' kbth-ldpri'), 'data-kb': 'theme-save', onClick: openSave }, 'Enregistrer sous…'),
-            activeModified ? h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-revert', onClick: revertTheme }, 'Annuler les changements') : null))
+            activeMine !== null && activeModified ? h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-update', onClick: doUpdate }, kt('Mettre à jour', 'Update')) : null,
+            h('button', { type: 'button', className: 'kbth-btn' + (activeMine !== null && activeModified ? '' : ' kbth-ldpri'), 'data-kb': 'theme-save', onClick: openSave }, kt('Enregistrer sous…', 'Save as…')),
+            activeModified ? h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-revert', onClick: revertTheme }, kt('Annuler les changements', 'Undo the changes')) : null))
         const themeBlock = h('div', { className: 'kbth-sec', 'data-kb': 'theme-block' },
           h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, 'Thème'),
-            h('div', { className: 'kbth-sec-d' }, 'Un thème règle les couleurs ; il peut aussi retenir la police, les coins et les icônes du menu. Gérez les vôtres dans ', toSharing, '.')),
+            h('div', { className: 'kbth-sec-t' }, kt('Thème', 'Theme')),
+            h('div', { className: 'kbth-sec-d' }, kt('Un thème règle les couleurs ; il peut aussi retenir la police, les coins et les icônes du menu. Gère les tiens dans ', 'A theme sets the colors; it can also keep the font, the corners and the menu icons. Manage yours in '), toSharing, '.')),
           h('div', { className: 'kbth-skinblock' },
-            h('div', { className: 'kbth-grp' }, 'Livrés'),
+            h('div', { className: 'kbth-grp' }, kt('Livrés', 'Shipped')),
             h('div', { className: 'kbth-skins', 'data-kb': 'theme-shipped' }, SKINS.map((sk) => skinButton(sk, null)))),
           h('div', { className: 'kbth-skinblock' },
-            h('div', { className: 'kbth-grp' }, 'Mes thèmes'),
+            h('div', { className: 'kbth-grp' }, kt('Mes thèmes', 'My themes')),
             h('div', { className: 'kbth-skins', 'data-kb': 'theme-mine' },
               lib.presets.map((rec) => skinButton(presetAsSkin(rec), rec)),
-              h('button', { type: 'button', className: 'kbth-skin kbth-skin-add', 'data-kb': 'theme-add', 'aria-label': 'Enregistrer l’état actuel comme thème', onClick: openSave },
+              h('button', { type: 'button', className: 'kbth-skin kbth-skin-add', 'data-kb': 'theme-add', 'aria-label': kt('Enregistrer l’état actuel comme thème', 'Save the current look as a theme'), onClick: openSave },
                 h('span', { className: 'kbth-skin-dot', 'aria-hidden': 'true' }, '+'),
-                h('span', { className: 'kbth-skin-name' }, 'Enregistrer'))),
-            lib.presets.length === 0 ? h('div', { className: 'kbth-empty' }, 'Aucun thème à vous pour l’instant. Réglez l’apparence puis « Enregistrer », importez un fichier dans ', toSharing, ', ou installez-en un depuis la ', toGallery, '.') : null),
+                h('span', { className: 'kbth-skin-name' }, kt('Enregistrer', 'Save')))),
+            lib.presets.length === 0 ? h('div', { className: 'kbth-empty' }, kt('Aucun thème à toi pour l’instant. Règle l’apparence puis « Enregistrer », importe un fichier dans ', 'No theme of yours yet. Set the look, then “Save”, import a file in '), toSharing, kt(', ou installe-en un depuis la ', ', or install one from the '), toGallery, '.') : null),
           themeSummary,
-          S.skin === 'dsh' ? h('div', { className: 'kbth-hint' }, '« Défaut DSH » retire la couche de jetons : l’apparence native repasse telle quelle.') : null)
+          S.skin === 'dsh' ? h('div', { className: 'kbth-hint' }, kt('« Défaut DSH » retire la couche de jetons : l’apparence native repasse telle quelle.', '“DSH default” removes the token layer: the native look comes back as is.')) : null)
 
         const apparence = h('div', { className: 'kbth-sec' },
           h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, 'Apparence'),
-            h('div', { className: 'kbth-sec-d' }, 'Choisissez un mode, puis un thème prêt à l’emploi. Ce réglage remplace le bloc « Appearance » de la page Général — un seul endroit.')),
+            h('div', { className: 'kbth-sec-t' }, kt('Apparence', 'Appearance')),
+            h('div', { className: 'kbth-sec-d' }, kt('Choisis un mode, puis un thème prêt à l’emploi. Ce réglage remplace le bloc « Appearance » de la page Général — un seul endroit.', 'Pick a mode, then a ready-made theme. This setting replaces the “Appearance” block of the General page — one place only.'))),
           h('button', { className: 'kbth-btn', type: 'button', style: { width: 'max-content' },
-            onClick: () => commit(surprendre()) }, 'Me surprendre'),
+            onClick: () => commit(surprendre()) }, kt('Me surprendre', 'Surprise me')),
           h('div', { className: 'kbth-row' },
             h('span', { className: 'kbth-lb' }, 'Mode'),
             seg({ items: [
-              { id: 'system', label: 'Système', on: S.mode === 'system', tap: () => commit({ mode: 'system' }) },
-              { id: 'light', label: 'Clair', on: S.mode === 'light', tap: () => commit({ mode: 'light' }) },
-              { id: 'dark', label: 'Sombre', on: S.mode === 'dark', tap: () => commit({ mode: 'dark' }) }] }),
+              { id: 'system', label: kt('Système', 'System'), on: S.mode === 'system', tap: () => commit({ mode: 'system' }) },
+              { id: 'light', label: kt('Clair', 'Light'), on: S.mode === 'light', tap: () => commit({ mode: 'light' }) },
+              { id: 'dark', label: kt('Sombre', 'Dark'), on: S.mode === 'dark', tap: () => commit({ mode: 'dark' }) }] }),
             themeTiers !== null ? h('div', { className: 'kbth-conflict' },
-              h('strong', null, 'Conflit de thème : '),
-              'Un autre plugin (« ' + themeTiers + ' ») contrôle le mode clair/sombre. ',
-              'Désactivez-le dans son propre panneau pour que ce réglage s’applique.') : null),
+              h('strong', null, kt('Conflit de thème : ', 'Theme conflict: ')),
+              kt('Un autre plugin (« ' + themeTiers + ' ») contrôle le mode clair/sombre. ', 'Another plugin (“' + themeTiers + '”) controls the light/dark mode. '),
+              kt('Désactive-le dans son propre panneau pour que ce réglage s’applique.', 'Turn it off in its own panel for this setting to apply.')) : null),
           themeBlock)
 
         // ── Simple : couleur ────────────────────────────────────────────────
         const accentHex = S.acc === null ? c.brand : S.acc
         const couleur = h('div', { className: 'kbth-sec' },
           h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, 'Couleur'),
-            h('div', { className: 'kbth-sec-d' }, 'Teinte des boutons, interrupteurs et sélections.')),
+            h('div', { className: 'kbth-sec-t' }, kt('Couleur', 'Color')),
+            h('div', { className: 'kbth-sec-d' }, kt('Teinte des boutons, interrupteurs et sélections.', 'Tint of buttons, switches and selections.'))),
           h('div', { className: 'kbth-row' },
             h('span', { className: 'kbth-lb' }, 'Accent'),
             h('div', { className: 'kbth-acc' },
-              h('label', { className: 'kbth-sw', style: { background: accentHex }, title: 'Pipette' },
-                h('input', { type: 'color', value: accentHex, 'aria-label': 'Choisir la couleur d’accent',
+              h('label', { className: 'kbth-sw', style: { background: accentHex }, title: kt('Pipette', 'Eyedropper') },
+                h('input', { type: 'color', value: accentHex, 'aria-label': kt('Choisir la couleur d’accent', 'Pick the accent color'),
                   onInput: (e) => { setHexDraft(null); commit({ acc: e.target.value }) } })),
               h('label', { className: 'kbth-hex' + (hexDraft !== null && !validHex(hexDraft) ? ' bad' : '') },
                 h('span', null, '#'),
-                h('input', { value: hexShown, maxLength: 7, spellCheck: false, 'aria-label': 'Code hexadécimal',
+                h('input', { value: hexShown, maxLength: 7, spellCheck: false, 'aria-label': kt('Code hexadécimal', 'Hex code'),
                   onInput: (e) => {
                     const v = e.target.value
                     setHexDraft(v)
@@ -3140,7 +3325,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
                     if (p !== null) commit({ acc: toHex(p) })
                   } })),
               S.acc !== null ? h('button', { className: 'kbth-btn', type: 'button',
-                onClick: () => { setHexDraft(null); commit({ acc: null }) } }, 'Rétablir') : null)),
+                onClick: () => { setHexDraft(null); commit({ acc: null }) } }, kt('Rétablir', 'Reset')) : null)),
           h('div', { className: 'kbth-dots' },
             ACCS.map((a) => h('button', {
               key: a, type: 'button', className: 'kbth-dot', style: { background: a },
@@ -3148,35 +3333,35 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
               title: a, 'aria-label': 'Accent ' + a,
               onClick: () => { setHexDraft(null); commit({ acc: a }) } }))))
         // P2-8 (chasse Settings 27/09) : les ratios WCAG restent en vue
-        // Avancé — en Simple, ce jargon de contraste n'a rien à faire.
+        // Advanced — in Simple, this contrast jargon has no business here.
         const ratiosAccent = h('div', { className: 'kbth-hint' },
-          'L’accent dérivé vise 4,5:1 sur les deux schémas : ',
+          kt('L’accent dérivé vise 4,5:1 sur les deux schémas : ', 'The derived accent aims for 4.5:1 on both schemes: '),
           h('span', {
             className: 'kbth-acc-ratio', 'data-texte': c.accText, 'data-fond': c.l1,
-            title: 'Texte d’accent sur la couche 1'
-          }, ratio(c.accText, c.l1).toFixed(2) + ':1 (' + (dark ? 'sombre' : 'clair') + ')'),
-          ' pour le texte d’accent, ',
+            title: kt('Texte d’accent sur la couche 1', 'Accent text on layer 1')
+          }, ratio(c.accText, c.l1).toFixed(2) + ':1 (' + (dark ? kt('sombre', 'dark') : kt('clair', 'light')) + ')'),
+          kt(' pour le texte d’accent, ', ' for the accent text, '),
           h('span', {
             className: 'kbth-btn-ratio', 'data-texte': c.onAcc, 'data-fond': c.fill,
-            title: 'Texte sur un bouton d’accent'
+            title: kt('Texte sur un bouton d’accent', 'Text on an accent button')
           }, ratio(c.onAcc, c.fill).toFixed(2) + ':1'),
-          ' pour le texte d’un bouton plein.')
+          kt(' pour le texte d’un bouton plein.', ' for the text of a filled button.'))
         // ── Simple : fond ───────────────────────────────────────────────────
-        // La tuile « Aucun » ouvre la grille : sans elle, un fond posé ne pouvait plus être retiré.
+        // The “None” tile opens the grid: without it, a background that was set could no longer be removed.
         const fonds = [WPS[0]].concat(WPS.filter((w) => w.cat === wpCat))
         const fond = h('div', { className: 'kbth-sec' },
           h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, 'Arrière-plan'),
-            h('div', { className: 'kbth-sec-d' }, 'Couleur, dégradé, motif ou image derrière l’interface.')),
+            h('div', { className: 'kbth-sec-t' }, kt('Arrière-plan', 'Background')),
+            h('div', { className: 'kbth-sec-d' }, kt('Couleur, dégradé, motif ou image derrière l’interface.', 'Color, gradient, pattern or image behind the interface.'))),
           h('div', { className: 'kbth-row' },
-            h('span', { className: 'kbth-lb' }, 'Fond'),
+            h('span', { className: 'kbth-lb' }, kt('Fond', 'Background')),
             h('div', { className: 'kbth-wpcats' },
               WPCATS.map((cat) => h('button', {
                 key: cat.id, type: 'button', className: 'kbth-cat',
                 'aria-pressed': wpCat === cat.id ? 'true' : 'false',
                 onClick: () => setWpCat(cat.id) }, cat.name)),
               wpo.id !== 'none' && WPCATS.every((cat) => cat.id !== wpo.cat)
-                ? h('button', { type: 'button', className: 'kbth-cat', onClick: () => commit({ wp: 'none' }) }, 'Retirer (« ' + wpo.name + ' »)') : null)),
+                ? h('button', { type: 'button', className: 'kbth-cat', onClick: () => commit({ wp: 'none' }) }, kt('Retirer (« ' + wpo.name + ' »)', 'Remove (“' + wpo.name + '”)')) : null)),
           h('div', { className: 'kbth-wps' },
             fonds.map((w) => h('button', {
               key: w.id, type: 'button', className: 'kbth-wp',
@@ -3185,23 +3370,23 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
               h('span', { className: 'kbth-wp-band', style: { background: w.css } }),
               h('span', { className: 'kbth-wp-name', title: w.name }, w.name)))),
           wpo.id !== 'none' ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } },
-            slider({ label: 'Visibilité', min: 0, max: 100, value: S.wpVis, text: S.wpVis + ' %',
-              tap: (v) => commit({ wpVis: v }), hint: 'Opacité du fond derrière l’interface.' }),
-            slider({ label: 'Flou', min: 0, max: 40, value: S.wpBlur, text: S.wpBlur + ' px',
-              tap: (v) => commit({ wpBlur: v }), hint: 'Adoucit le fond pour laisser la place au contenu.' }),
-            slider({ label: 'Teinte des surfaces', min: 0, max: 100, value: S.tint, text: S.tint + ' %',
-              tap: (v) => commit({ tint: v }), hint: 'Tire les panneaux vers la dominante du fond, pour que l’interface s’y fonde.' })) : null)
+            slider({ label: kt('Visibilité', 'Visibility'), min: 0, max: 100, value: S.wpVis, text: S.wpVis + ' %',
+              tap: (v) => commit({ wpVis: v }), hint: kt('Opacité du fond derrière l’interface.', 'Opacity of the background behind the interface.') }),
+            slider({ label: kt('Flou', 'Blur'), min: 0, max: 40, value: S.wpBlur, text: S.wpBlur + ' px',
+              tap: (v) => commit({ wpBlur: v }), hint: kt('Adoucit le fond pour laisser la place au contenu.', 'Softens the background to make room for the content.') }),
+            slider({ label: kt('Teinte des surfaces', 'Surface tint'), min: 0, max: 100, value: S.tint, text: S.tint + ' %',
+              tap: (v) => commit({ tint: v }), hint: kt('Tire les panneaux vers la dominante du fond, pour que l’interface s’y fonde.', 'Pulls the panels towards the dominant color of the background, so the interface blends into it.') })) : null)
 
         // ── Simple : police ─────────────────────────────────────────────────
         const police = h('div', { className: 'kbth-sec' },
           h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, 'Police'),
-            h('div', { className: 'kbth-sec-d' }, 'Choisissez la police de l’interface ; la recherche filtre les familles.')),
+            h('div', { className: 'kbth-sec-t' }, kt('Police', 'Font')),
+            h('div', { className: 'kbth-sec-d' }, kt('Choisis la police de l’interface ; la recherche filtre les familles.', 'Choose the interface font; search filters the families.'))),
           selecteurPolice(S.fontText, (id) => commit({ fontText: id })),
-          slider({ label: 'Taille du texte', min: 12, max: 17, value: S.fs, text: S.fs + ' px',
-            tap: (v) => commit({ fs: v }), hint: 'La taille de la conversation — le réglage natif de DSH, en direct.' }))
+          slider({ label: kt('Taille du texte', 'Text size'), min: 12, max: 17, value: S.fs, text: S.fs + ' px',
+            tap: (v) => commit({ fs: v }), hint: kt('La taille de la conversation — le réglage natif de DSH, en direct.', 'The conversation size — DSH’s native setting, live.') }))
 
-        // ── Simple : icônes du menu ─────────────────────────────────────────
+        // ── Simple: menu icons ─────────────────────────────────────────
         // One row of the nine entries per state (grey at rest, then the colour of the open page). The classic set is drawn by the
         // application itself, which owns its line icons: it lends the drawing through window.__KB_MENU_CLASSIC__.
         const iconeApercu = (setId, etat) => h('div', { className: 'kbth-icset-r', style: setId === 'classic' && etat ? { color: 'var(--dsw-alias-brand-primary)' } : undefined },
@@ -3216,9 +3401,9 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           }))
         const icones = h('div', { className: 'kbth-sec', 'data-kb': 'theme-icons' },
           h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, 'Icônes du menu'),
-            h('div', { className: 'kbth-sec-d' }, 'Le dessin des entrées de la barre latérale : gris au repos, en couleur sur la page ouverte. Un thème peut le retenir.')),
-          h('div', { className: 'kbth-icsets', role: 'radiogroup', 'aria-label': 'Icônes du menu' },
+            h('div', { className: 'kbth-sec-t' }, kt('Icônes du menu', 'Menu icons')),
+            h('div', { className: 'kbth-sec-d' }, kt('Le dessin des entrées de la barre latérale : gris au repos, en couleur sur la page ouverte. Un thème peut le retenir.', 'How the sidebar entries are drawn: grey at rest, in colour on the open page. A theme can keep it.'))),
+          h('div', { className: 'kbth-icsets', role: 'radiogroup', 'aria-label': kt('Icônes du menu', 'Menu icons') },
             ICON_SETS.map((st) => h('button', {
               key: st.id, type: 'button', role: 'radio', 'aria-checked': S.iconSet === st.id ? 'true' : 'false',
               className: 'kbth-icset' + (S.iconSet === st.id ? ' on' : ''), 'data-kb': 'theme-icset', 'data-id': st.id,
@@ -3229,41 +3414,41 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const iconesNom = (ICON_SETS.find((x) => x.id === S.iconSet) || ICON_SETS[0])[kbLang()]
         const iconesResume = h('div', { className: 'kbth-sum', 'data-kb': 'icons-summary' },
           h('div', { className: 'kbth-sum-tx' },
-            h('span', { className: 'kbth-sec-t', style: { textTransform: 'none', fontSize: 13 } }, 'Icônes du menu'),
-            h('span', { className: 'kbth-hint' }, iconesNom + ' · ' + (ICON_SETS.length - 1) + ' jeux à choisir'),
+            h('span', { className: 'kbth-sec-t', style: { textTransform: 'none', fontSize: 13 } }, kt('Icônes du menu', 'Menu icons')),
+            h('span', { className: 'kbth-hint' }, kt(iconesNom + ' · ' + (ICON_SETS.length - 1) + ' jeux à choisir', iconesNom + ' · ' + (ICON_SETS.length - 1) + ' sets to choose from')),
             iconeApercu(S.iconSet, false)),
-          h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'icons-open', onClick: () => setAdvTab('icones') }, 'Régler…'))
+          h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'icons-open', onClick: () => setAdvTab('icones') }, kt('Régler…', 'Adjust…')))
 
-        // ── Avancé : sous-onglets ──────────────────────────────────────────
+        // ── Advanced: sub-tabs ──────────────────────────────────────────
         const ADV_TABS = [
-          { id: 'essentiel', label: 'Essentiel' },
-          { id: 'verre', label: 'Verre et fond' },
-          { id: 'couleurs', label: 'Couleurs' },
-          { id: 'texte', label: 'Texte et forme' },
+          { id: 'essentiel', label: kt('Essentiel', 'Essentials') },
+          { id: 'verre', label: kt('Verre et fond', 'Glass and background') },
+          { id: 'couleurs', label: kt('Couleurs', 'Colors') },
+          { id: 'texte', label: kt('Texte et forme', 'Text and shape') },
           { id: 'animation', label: 'Animation' },
-          { id: 'icones', label: 'Icônes' },
-          { id: 'accessibilite', label: 'Accessibilité' },
-          { id: 'partage', label: 'Partage' },
-          { id: 'galerie', label: 'Galerie' }
+          { id: 'icones', label: kt('Icônes', 'Icons') },
+          { id: 'accessibilite', label: kt('Accessibilité', 'Accessibility') },
+          { id: 'partage', label: kt('Partage', 'Sharing') },
+          { id: 'galerie', label: kt('Galerie', 'Gallery') }
         ]
 
-        // Toggle switch réutilisable
+        // Reusable toggle switch
         const toggle = (label, value, onToggle, hint) => h('div', { className: 'kbth-toggle-row' },
           h('span', { className: 'kbth-toggle-label' }, label, hint ? h('span', { className: 'kbth-toggle-hint', title: hint }, ' ?') : null),
           h('button', { type: 'button', className: 'kbth-toggle' + (value ? ' on' : ''), role: 'switch', 'aria-checked': value ? 'true' : 'false', 'aria-label': label, onClick: onToggle },
             h('span', { className: 'kbth-toggle-knob' })))
 
-        // ── Onglet Essentiel (= mode Simple condensé) ──────────────────────
+        // ── Essentials tab (= condensed Simple mode) ──────────────────────
         const advEssentiel = h('div', { className: 'kbth-sec' },
           h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, 'Essentiel'),
-            h('div', { className: 'kbth-sec-d' }, 'Apparence, accent, fond, police et icônes du menu.')),
+            h('div', { className: 'kbth-sec-t' }, kt('Essentiel', 'Essentials')),
+            h('div', { className: 'kbth-sec-d' }, kt('Apparence, accent, fond, police et icônes du menu.', 'Appearance, accent, background, font and menu icons.'))),
           apparence, couleur, ratiosAccent, fond, police, iconesResume,
           h(LdSummary, { onOpen: () => setAdvTab('animation') }))
 
         // ── Onglet Verre et fond ───────────────────────────────────────────
-        // Les réglages de verre n'ont d'effet que sur un fond : sans fond choisi on le dit, et l'aperçu montre
-        // ce que donnerait le réglage (le vrai fond n'est visible que derrière le chat, pas dans les réglages).
+        // The glass settings only have an effect on a background: without a chosen background we say so, and the preview shows
+        // what the setting would give (the real background is only visible behind the chat, not in the settings).
         const wpOn = wpo.id !== 'none'
         const aj = ajustementFond(S)
         const verreAlpha = (k, v) => rgba(c[k], v)
@@ -3277,39 +3462,39 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             h('div', { className: 'kbth-gpv-input', style: { background: wpOn ? verreAlpha('input', 1 - S.fieldOpacity / 100) : c.input, backdropFilter: wpOn ? flou : 'none', WebkitBackdropFilter: wpOn ? flou : 'none' } }, h('span', { className: 'kbth-gpv-line short' }))))
         const advVerre = h('div', { className: 'kbth-sec' },
           h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, 'Verre'),
-            h('div', { className: 'kbth-sec-d' }, 'Transparence et flou des surfaces posées sur le fond.')),
+            h('div', { className: 'kbth-sec-t' }, kt('Verre', 'Glass')),
+            h('div', { className: 'kbth-sec-d' }, kt('Transparence et flou des surfaces posées sur le fond.', 'Transparency and blur of the surfaces placed over the background.'))),
           verrePreview,
-          wpOn ? null : h('div', { className: 'kbth-note' }, 'Ces réglages s’appliquent dès qu’un fond est choisi : Essentiel › Arrière-plan.'),
+          wpOn ? null : h('div', { className: 'kbth-note' }, kt('Ces réglages s’appliquent dès qu’un fond est choisi : Essentiel › Arrière-plan.', 'These settings apply as soon as a background is chosen: Essentials › Background.')),
           h('div', { className: 'kbth-row' },
-            h('span', { className: 'kbth-lb' }, 'Effet'),
+            h('span', { className: 'kbth-lb' }, kt('Effet', 'Effect')),
             seg({ items: [
-              { id: 'frosted', label: 'Verre dépoli', on: S.glassEffect === 'frosted', tap: () => commit({ glassEffect: 'frosted' }) },
+              { id: 'frosted', label: kt('Verre dépoli', 'Frosted glass'), on: S.glassEffect === 'frosted', tap: () => commit({ glassEffect: 'frosted' }) },
               { id: 'liquid', label: 'Liquid glass', on: S.glassEffect === 'liquid', tap: () => commit({ glassEffect: 'liquid' }) }] })),
-          slider({ label: 'Flou du verre', min: 0, max: 40, value: S.glassBlur, text: S.glassBlur + ' px', tap: (v) => commit({ glassBlur: v }) }),
-          toggle('Lier la barre latérale au fond', S.sidebarLinked, () => commit({ sidebarLinked: !S.sidebarLinked }), 'Désactivé, la barre latérale reste pleine.'),
+          slider({ label: kt('Flou du verre', 'Glass blur'), min: 0, max: 40, value: S.glassBlur, text: S.glassBlur + ' px', tap: (v) => commit({ glassBlur: v }) }),
+          toggle(kt('Lier la barre latérale au fond', 'Link the sidebar to the background'), S.sidebarLinked, () => commit({ sidebarLinked: !S.sidebarLinked }), kt('Désactivé, la barre latérale reste pleine.', 'When off, the sidebar stays solid.')),
           h('div', { style: S.sidebarLinked ? null : { opacity: 0.45, pointerEvents: 'none' } },
-            slider({ label: 'Transparence de la barre latérale', min: 0, max: 100, value: S.sidebarOpacity, text: S.sidebarOpacity + ' %', tap: (v) => commit({ sidebarOpacity: v }) })),
-          slider({ label: 'Transparence des champs', min: 0, max: 100, value: S.fieldOpacity, text: S.fieldOpacity + ' %', tap: (v) => commit({ fieldOpacity: v }) }),
-          slider({ label: 'Transparence des menus', min: 0, max: 100, value: S.floatOpacity, text: S.floatOpacity + ' %', tap: (v) => commit({ floatOpacity: v }) }),
+            slider({ label: kt('Transparence de la barre latérale', 'Sidebar transparency'), min: 0, max: 100, value: S.sidebarOpacity, text: S.sidebarOpacity + ' %', tap: (v) => commit({ sidebarOpacity: v }) })),
+          slider({ label: kt('Transparence des champs', 'Field transparency'), min: 0, max: 100, value: S.fieldOpacity, text: S.fieldOpacity + ' %', tap: (v) => commit({ fieldOpacity: v }) }),
+          slider({ label: kt('Transparence des menus', 'Menu transparency'), min: 0, max: 100, value: S.floatOpacity, text: S.floatOpacity + ' %', tap: (v) => commit({ floatOpacity: v }) }),
           h('div', { style: { height: 16 } }),
           h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, 'Image de fond'),
-            h('div', { className: 'kbth-sec-d' }, 'Réglages fins du fond choisi.')),
-          slider({ label: 'Visibilité du fond', min: 0, max: 100, value: S.wpVis, text: S.wpVis + ' %', tap: (v) => commit({ wpVis: v }) }),
-          slider({ label: 'Flou de l’image', min: 0, max: 40, value: S.wpBlur, text: S.wpBlur + ' px', tap: (v) => commit({ wpBlur: v }) }),
-          slider({ label: 'Luminosité', min: 0, max: 200, value: S.bgBrightness, text: S.bgBrightness + ' %', tap: (v) => commit({ bgBrightness: v }) }),
-          slider({ label: 'Contraste', min: 0, max: 200, value: S.bgContrast, text: S.bgContrast + ' %', tap: (v) => commit({ bgContrast: v }) }),
+            h('div', { className: 'kbth-sec-t' }, kt('Image de fond', 'Background image')),
+            h('div', { className: 'kbth-sec-d' }, kt('Réglages fins du fond choisi.', 'Fine adjustments for the chosen background.'))),
+          slider({ label: kt('Visibilité du fond', 'Background visibility'), min: 0, max: 100, value: S.wpVis, text: S.wpVis + ' %', tap: (v) => commit({ wpVis: v }) }),
+          slider({ label: kt('Flou de l’image', 'Image blur'), min: 0, max: 40, value: S.wpBlur, text: S.wpBlur + ' px', tap: (v) => commit({ wpBlur: v }) }),
+          slider({ label: kt('Luminosité', 'Brightness'), min: 0, max: 200, value: S.bgBrightness, text: S.bgBrightness + ' %', tap: (v) => commit({ bgBrightness: v }) }),
+          slider({ label: kt('Contraste', 'Contrast'), min: 0, max: 200, value: S.bgContrast, text: S.bgContrast + ' %', tap: (v) => commit({ bgContrast: v }) }),
           slider({ label: 'Saturation', min: 0, max: 200, value: S.bgSaturation, text: S.bgSaturation + ' %', tap: (v) => commit({ bgSaturation: v }) }),
-          slider({ label: 'Assombrissement', min: 0, max: 100, value: S.bgDarken, text: S.bgDarken + ' %', tap: (v) => commit({ bgDarken: v }) }),
+          slider({ label: kt('Assombrissement', 'Darkening'), min: 0, max: 100, value: S.bgDarken, text: S.bgDarken + ' %', tap: (v) => commit({ bgDarken: v }) }),
           h('div', { className: 'kbth-row' },
-            h('span', { className: 'kbth-lb' }, 'Ajustement'),
+            h('span', { className: 'kbth-lb' }, kt('Ajustement', 'Fit')),
             seg({ items: [
-              { id: 'cover', label: 'Couvrir', on: S.bgFit === 'cover', tap: () => commit({ bgFit: 'cover' }) },
-              { id: 'fill', label: 'Remplir', on: S.bgFit === 'fill', tap: () => commit({ bgFit: 'fill' }) },
-              { id: 'center', label: 'Centrer', on: S.bgFit === 'center', tap: () => commit({ bgFit: 'center' }) },
-              { id: 'stretch', label: 'Étirer', on: S.bgFit === 'stretch', tap: () => commit({ bgFit: 'stretch' }) }] })),
-          toggle('Miroir horizontal', S.bgMirror, () => commit({ bgMirror: !S.bgMirror })))
+              { id: 'cover', label: kt('Couvrir', 'Cover'), on: S.bgFit === 'cover', tap: () => commit({ bgFit: 'cover' }) },
+              { id: 'fill', label: kt('Remplir', 'Fill'), on: S.bgFit === 'fill', tap: () => commit({ bgFit: 'fill' }) },
+              { id: 'center', label: kt('Centrer', 'Center'), on: S.bgFit === 'center', tap: () => commit({ bgFit: 'center' }) },
+              { id: 'stretch', label: kt('Étirer', 'Stretch'), on: S.bgFit === 'stretch', tap: () => commit({ bgFit: 'stretch' }) }] })),
+          toggle(kt('Miroir horizontal', 'Horizontal mirror'), S.bgMirror, () => commit({ bgMirror: !S.bgMirror })))
 
         // ── Onglet Couleurs ────────────────────────────────────────────────
         const sel = TOKINDEX[tokSel] || TOKMAP[0]
@@ -3318,21 +3503,21 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const ratioSel = ['t1', 't2', 't3', 't4', 'link', 'err', 'ok', 'warn', 'biz'].indexOf(sel[0]) >= 0
         const TOK_CATS = [
           { id: 'surfaces', label: 'Surfaces', keys: ['base', 'l1', 'l2', 'l3', 'side', 'input', 'code'] },
-          { id: 'texte', label: 'Texte', keys: ['t1', 't2', 't3', 't4'] },
-          { id: 'etats', label: 'États', keys: ['err', 'ok', 'warn', 'biz', 'link'] },
-          { id: 'marque', label: 'Marque', keys: ['brand'] }
+          { id: 'texte', label: kt('Texte', 'Text'), keys: ['t1', 't2', 't3', 't4'] },
+          { id: 'etats', label: kt('États', 'States'), keys: ['err', 'ok', 'warn', 'biz', 'link'] },
+          { id: 'marque', label: kt('Marque', 'Brand'), keys: ['brand'] }
         ]
         const [tokCat, setTokCat] = React.useState('surfaces')
         const catKeys = (TOK_CATS.find((c) => c.id === tokCat) || TOK_CATS[0]).keys
         const advCouleurs = h('div', { className: 'kbth-sec' },
           h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, 'Couleur d’accent'),
-            h('div', { className: 'kbth-sec-d' }, 'Les couleurs de texte sont recalculées pour rester lisibles.')),
+            h('div', { className: 'kbth-sec-t' }, kt('Couleur d’accent', 'Accent color')),
+            h('div', { className: 'kbth-sec-d' }, kt('Les couleurs de texte sont recalculées pour rester lisibles.', 'Text colors are recalculated to stay readable.'))),
           h('div', { className: 'kbth-row' },
             h('span', { className: 'kbth-lb' }, 'Accent'),
             h('div', { className: 'kbth-acc' },
-              h('label', { className: 'kbth-sw', style: { background: accentHex }, title: 'Pipette' },
-                h('input', { type: 'color', value: accentHex, 'aria-label': 'Choisir la couleur d’accent',
+              h('label', { className: 'kbth-sw', style: { background: accentHex }, title: kt('Pipette', 'Eyedropper') },
+                h('input', { type: 'color', value: accentHex, 'aria-label': kt('Choisir la couleur d’accent', 'Pick the accent color'),
                   onInput: (e) => { setHexDraft(null); commit({ acc: e.target.value }) } })),
               h('div', { className: 'kbth-dots' },
                 ACCS.map((a) => h('button', {
@@ -3341,13 +3526,13 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
                   title: a, 'aria-label': 'Accent ' + a,
                   onClick: () => { setHexDraft(null); commit({ acc: a }) } }))))),
           h('div', { className: 'kbth-row' },
-            h('span', { className: 'kbth-lb' }, 'Valeur exacte'),
+            h('span', { className: 'kbth-lb' }, kt('Valeur exacte', 'Exact value')),
             h('div', { className: 'kbth-acc' },
               h('label', { className: 'kbth-hex' + (hexDraft !== null && !validHex(hexDraft) ? ' bad' : '') },
                 h('span', null, '#'),
-                h('input', { value: hexShown, maxLength: 7, spellCheck: false, 'aria-label': 'Code hexadécimal',
+                h('input', { value: hexShown, maxLength: 7, spellCheck: false, 'aria-label': kt('Code hexadécimal', 'Hex code'),
                   onInput: (e) => { const v = e.target.value; setHexDraft(v); const p = HEX(v); if (p !== null) commit({ acc: toHex(p) }) } })),
-              S.acc !== null ? h('button', { className: 'kbth-btn', type: 'button', onClick: () => { setHexDraft(null); commit({ acc: null }) } }, 'Neutre DSH') : null)),
+              S.acc !== null ? h('button', { className: 'kbth-btn', type: 'button', onClick: () => { setHexDraft(null); commit({ acc: null }) } }, kt('Neutre DSH', 'Neutral DSH')) : null)),
           // Rampe de couleurs
           h('div', { className: 'kbth-ramp' },
             [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950].map((step) => {
@@ -3360,18 +3545,18 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             })),
           h('div', { style: { height: 12 } }),
           h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, 'Jetons de couleur'),
-            h('div', { className: 'kbth-sec-d' }, 'Modifiez un jeton pour le mode courant : le contraste est recalculé aussitôt.')),
+            h('div', { className: 'kbth-sec-t' }, kt('Jetons de couleur', 'Color tokens')),
+            h('div', { className: 'kbth-sec-d' }, kt('Modifie un jeton pour le mode courant : le contraste est recalculé aussitôt.', 'Edit a token for the current mode: contrast is recalculated right away.'))),
           h('div', { className: 'kbth-row' },
             seg({ items: TOK_CATS.map((c) => ({ id: c.id, label: c.label, on: tokCat === c.id, tap: () => setTokCat(c.id) })) })),
-          h('div', { className: 'kbth-sec-d', style: { marginTop: 4 } }, 'Couleurs du thème'),
+          h('div', { className: 'kbth-sec-d', style: { marginTop: 4 } }, kt('Couleurs du thème', 'Theme colors')),
           h('div', { className: 'kbth-toks' },
             catKeys.map((key) => {
               const e = TOKINDEX[key]
               if (!e) return null
               const r = ['t1', 't2', 't3', 't4', 'link', 'err', 'ok', 'warn', 'biz'].indexOf(key) >= 0
                 ? ratio(c[key], c.l1) : null
-              const badge = r !== null ? (r >= 7 ? 'AAA' : r >= 4.5 ? 'AA' : r >= 3 ? 'Grand texte' : 'Échec') : null
+              const badge = r !== null ? (r >= 7 ? 'AAA' : r >= 4.5 ? 'AA' : r >= 3 ? kt('Grand texte', 'Large text') : kt('Échec', 'Fail')) : null
               const grade = r !== null ? (r >= 4.5 ? 'ok' : (r >= 3 ? 'warn' : 'err')) : null
               return h('button', {
                 key: key, type: 'button', className: 'kbth-tok' + (tokSel === key ? ' kbth-tok-sel' : ''),
@@ -3384,7 +3569,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
                 r !== null ? h('span', { className: 'kbth-tok-ratio' }, r.toFixed(1) + ':1') : null,
                 badge ? h('span', { className: 'kbth-tok-badge kbth-gr-' + grade }, badge) : null)
             })),
-          // Éditeur du jeton sélectionné
+          // Editor of the selected token
           h('div', { className: 'kbth-adv-editor' },
             h('div', { className: 'kbth-adv-preview' },
               h('span', { className: 'kbth-adv-chip', style: { background: dark ? cd[sel[0]] : cl[sel[0]] } }),
@@ -3393,57 +3578,57 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
                 h('span', { className: 'kbth-adv-css' }, '--dsw-' + sel[2]))),
             ratioSel ? h('div', { className: 'kbth-adv-ratio',
               style: { color: ratio(c[sel[0]], c.l1) >= 4.5 ? 'var(--dsw-alias-state-success-primary)' : 'var(--dsw-alias-state-warn-primary)' } },
-              ratio(c[sel[0]], c.l1).toFixed(1) + ':1 · ' + (ratio(c[sel[0]], c.l1) >= 7 ? 'AAA' : ratio(c[sel[0]], c.l1) >= 4.5 ? 'AA' : 'Échec')) : null,
+              ratio(c[sel[0]], c.l1).toFixed(1) + ':1 · ' + (ratio(c[sel[0]], c.l1) >= 7 ? 'AAA' : ratio(c[sel[0]], c.l1) >= 4.5 ? 'AA' : kt('Échec', 'Fail'))) : null,
             h('div', { className: 'kbth-adv-colors' },
               ['light', 'dark'].map((m) => h('div', { key: m, className: 'kbth-adv-swatch' },
                 h('label', { className: 'kbth-sw', style: { background: m === 'light' ? selClair : selSombre, width: 28, height: 28 },
-                  title: (m === 'light' ? 'Clair' : 'Sombre') + ' — pipette' },
+                  title: (m === 'light' ? kt('Clair', 'Light') : kt('Sombre', 'Dark')) + kt(' — pipette', ' — eyedropper') },
                   h('input', { type: 'color', value: m === 'light' ? selClair : selSombre,
                     'aria-label': sel[1] + ' (' + (m === 'light' ? 'clair' : 'sombre') + ')',
                     onInput: (e) => commit({ ov: { ...S.ov, [m + ':' + sel[0]]: e.target.value } }) })),
-                h('span', { className: 'kbth-adv-swatch-label' }, m === 'light' ? 'Clair' : 'Sombre')))),
+                h('span', { className: 'kbth-adv-swatch-label' }, m === 'light' ? kt('Clair', 'Light') : kt('Sombre', 'Dark'))))),
             modifie ? h('button', { className: 'kbth-btn', type: 'button', style: { width: 'max-content' },
-              onClick: () => { const ov = { ...S.ov }; delete ov['light:' + sel[0]]; delete ov['dark:' + sel[0]]; commit({ ov }) } }, 'Rétablir') : null))
+              onClick: () => { const ov = { ...S.ov }; delete ov['light:' + sel[0]]; delete ov['dark:' + sel[0]]; commit({ ov }) } }, kt('Rétablir', 'Reset')) : null))
 
         // ── Onglet Texte et forme ──────────────────────────────────────────
         const advTexte = h('div', { className: 'kbth-sec' },
           h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, 'Texte'),
-            h('div', { className: 'kbth-sec-d' }, 'La police se choisit dans Essentiel.')),
-          slider({ label: 'Taille du texte', min: 12, max: 17, value: S.fs, text: S.fs + ' px', tap: (v) => commit({ fs: v }) }),
-          toggle('Ligatures', S.ligatures, () => commit({ ligatures: !S.ligatures }), 'Fusionne « fi », « -> » et autres paires dans les polices qui en ont.'),
+            h('div', { className: 'kbth-sec-t' }, kt('Texte', 'Text')),
+            h('div', { className: 'kbth-sec-d' }, kt('La police se choisit dans Essentiel.', 'The font is chosen in Essentials.'))),
+          slider({ label: kt('Taille du texte', 'Text size'), min: 12, max: 17, value: S.fs, text: S.fs + ' px', tap: (v) => commit({ fs: v }) }),
+          toggle('Ligatures', S.ligatures, () => commit({ ligatures: !S.ligatures }), kt('Fusionne « fi », « -> » et autres paires dans les polices qui en ont.', 'Joins “fi”, “->” and other pairs in fonts that have them.')),
           h('div', { style: { height: 16 } }),
           h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, 'Forme'),
-            h('div', { className: 'kbth-sec-d' }, 'Arrondi des boutons, cartes et panneaux.')),
+            h('div', { className: 'kbth-sec-t' }, kt('Forme', 'Shape')),
+            h('div', { className: 'kbth-sec-d' }, kt('Arrondi des boutons, cartes et panneaux.', 'Rounding of buttons, cards and panels.'))),
           h('div', { className: 'kbth-row' },
-            h('span', { className: 'kbth-lb' }, 'Rayons'),
+            h('span', { className: 'kbth-lb' }, kt('Rayons', 'Radii')),
             seg({ items: [
-              { id: 'sharp', label: 'Net', on: S.radius === 'sharp', tap: () => commit({ radius: 'sharp' }) },
+              { id: 'sharp', label: kt('Net', 'Sharp'), on: S.radius === 'sharp', tap: () => commit({ radius: 'sharp' }) },
               { id: 'standard', label: 'Standard', on: S.radius === 'standard', tap: () => commit({ radius: 'standard' }) },
-              { id: 'soft', label: 'Doux', on: S.radius === 'soft', tap: () => commit({ radius: 'soft' }) }] })),
+              { id: 'soft', label: kt('Doux', 'Soft'), on: S.radius === 'soft', tap: () => commit({ radius: 'soft' }) }] })),
           h('div', { style: { height: 16 } }),
           h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, 'Identité'),
-            h('div', { className: 'kbth-sec-d' }, 'Ce qui rappelle le harness.')),
-          toggle('Logo et nom', S.showBrand, () => commit({ showBrand: !S.showBrand }), 'Dans la barre latérale et sur l’écran d’accueil.'))
+            h('div', { className: 'kbth-sec-t' }, kt('Identité', 'Identity')),
+            h('div', { className: 'kbth-sec-d' }, kt('Ce qui rappelle le harness.', 'What reminds you of the harness.'))),
+          toggle(kt('Logo et nom', 'Logo and name'), S.showBrand, () => commit({ showBrand: !S.showBrand }), kt('Dans la barre latérale et sur l’écran d’accueil.', 'In the sidebar and on the home screen.')))
 
-        // ── Onglet Accessibilité ───────────────────────────────────────────
+        // ── Accessibility tab ───────────────────────────────────────────
         const advAccessibilite = h('div', { className: 'kbth-sec' },
           h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, 'Contraste'),
-            h('div', { className: 'kbth-sec-d' }, 'Lisibilité des textes et des bordures.')),
+            h('div', { className: 'kbth-sec-t' }, kt('Contraste', 'Contrast')),
+            h('div', { className: 'kbth-sec-d' }, kt('Lisibilité des textes et des bordures.', 'Legibility of text and borders.'))),
           h('div', { className: 'kbth-row' },
-            h('span', { className: 'kbth-lb' }, 'Niveau'),
+            h('span', { className: 'kbth-lb' }, kt('Niveau', 'Level')),
             seg({ items: [
               { id: 'standard', label: 'Standard', on: S.contrastMode === 'standard', tap: () => commit({ contrastMode: 'standard' }) },
-              { id: 'plus', label: 'Renforcé', on: S.contrastMode === 'plus', tap: () => commit({ contrastMode: 'plus' }) },
-              { id: 'max', label: 'Maximal', on: S.contrastMode === 'max', tap: () => commit({ contrastMode: 'max' }) }] })),
-          h('div', { className: 'kbth-hint' }, 'Rapports mesurés — AA : 4,5:1 · AAA : 7:1'),
+              { id: 'plus', label: kt('Renforcé', 'Enhanced'), on: S.contrastMode === 'plus', tap: () => commit({ contrastMode: 'plus' }) },
+              { id: 'max', label: kt('Maximal', 'Maximum'), on: S.contrastMode === 'max', tap: () => commit({ contrastMode: 'max' }) }] })),
+          h('div', { className: 'kbth-hint' }, kt('Rapports mesurés — AA : 4,5:1 · AAA : 7:1', 'Measured ratios — AA: 4.5:1 · AAA: 7:1')),
           h('div', { className: 'kbth-a11y-table' },
-            [['Texte principal', 't1'], ['Texte secondaire', 't2'], ['Texte tertiaire', 't3'], ['Légende', 't4'], ['Lien', 'link'], ['Bouton principal', 'brand']].map(([label, key]) => {
+            [[kt('Texte principal', 'Primary text'), 't1'], [kt('Texte secondaire', 'Secondary text'), 't2'], [kt('Texte tertiaire', 'Tertiary text'), 't3'], [kt('Légende', 'Caption'), 't4'], [kt('Lien', 'Link'), 'link'], [kt('Bouton principal', 'Primary button'), 'brand']].map(([label, key]) => {
               const r = ratio(c[key], c.l1)
-              const badge = r >= 7 ? 'AAA' : r >= 4.5 ? 'AA' : r >= 3 ? 'Grand texte' : 'Échec'
+              const badge = r >= 7 ? 'AAA' : r >= 4.5 ? 'AA' : r >= 3 ? kt('Grand texte', 'Large text') : kt('Échec', 'Fail')
               const grade = r >= 4.5 ? 'ok' : (r >= 3 ? 'warn' : 'err')
               return h('div', { key: key, className: 'kbth-a11y-row' },
                 h('span', { className: 'kbth-a11y-aa', style: { background: dark ? cd[key] : cl[key], color: dark ? cd.l1 : cl.l1 } }, 'Aa'),
@@ -3454,35 +3639,35 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             })),
           h('div', { style: { height: 16 } }),
           h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, 'Mouvement et focus'),
-            h('div', { className: 'kbth-sec-d' }, 'Animations et navigation au clavier.')),
-          toggle('Réduire les animations', S.reduceMotion, () => commit({ reduceMotion: !S.reduceMotion }), 'Coupe les animations et les transitions. Le réglage de votre système est déjà respecté sans cela.'),
+            h('div', { className: 'kbth-sec-t' }, kt('Mouvement et focus', 'Motion and focus')),
+            h('div', { className: 'kbth-sec-d' }, kt('Animations et navigation au clavier.', 'Animations and keyboard navigation.'))),
+          toggle(kt('Réduire les animations', 'Reduce animations'), S.reduceMotion, () => commit({ reduceMotion: !S.reduceMotion }), kt('Coupe les animations et les transitions. Le réglage de ton système est déjà respecté sans cela.', 'Turns off animations and transitions. Your system setting is already respected without this.')),
           h('div', { className: 'kbth-row' },
-            h('span', { className: 'kbth-lb' }, 'Anneau de focus'),
+            h('span', { className: 'kbth-lb' }, kt('Anneau de focus', 'Focus ring')),
             seg({ items: [
               { id: 'accent', label: 'Accent', on: S.focusRing === 'accent', tap: () => commit({ focusRing: 'accent' }) },
               { id: 'double', label: 'Double', on: S.focusRing === 'double', tap: () => commit({ focusRing: 'double' }) },
-              { id: 'thick', label: 'Épais', on: S.focusRing === 'thick', tap: () => commit({ focusRing: 'thick' }) }] })),
-          h('div', { className: 'kbth-hint' }, 'Visible quand vous naviguez au clavier : essayez Tab.'),
+              { id: 'thick', label: kt('Épais', 'Thick'), on: S.focusRing === 'thick', tap: () => commit({ focusRing: 'thick' }) }] })),
+          h('div', { className: 'kbth-hint' }, kt('Visible quand tu navigues au clavier : essaie Tab.', 'Visible when you navigate by keyboard: try Tab.')),
           h('div', { style: { height: 16 } }),
           h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, 'Lisibilité'),
-            h('div', { className: 'kbth-sec-d' }, 'Repères supplémentaires.')),
-          toggle('Cibles de 44 px', S.largeTargets, () => commit({ largeTargets: !S.largeTargets }), 'Boutons et champs d’au moins 44 px de haut.'),
-          toggle('Soulignement des liens', S.underlineLinks, () => commit({ underlineLinks: !S.underlineLinks })),
-          toggle('Palette daltonisme', S.cbSafe, () => commit({ cbSafe: !S.cbSafe }), 'Succès et erreurs en bleu et orange plutôt qu’en vert et rouge.'))
+            h('div', { className: 'kbth-sec-t' }, kt('Lisibilité', 'Legibility')),
+            h('div', { className: 'kbth-sec-d' }, kt('Repères supplémentaires.', 'Extra aids.'))),
+          toggle(kt('Cibles de 44 px', '44 px targets'), S.largeTargets, () => commit({ largeTargets: !S.largeTargets }), kt('Boutons et champs d’au moins 44 px de haut.', 'Buttons and fields at least 44 px tall.')),
+          toggle(kt('Soulignement des liens', 'Link underlining'), S.underlineLinks, () => commit({ underlineLinks: !S.underlineLinks })),
+          toggle(kt('Palette daltonisme', 'Color-blind palette'), S.cbSafe, () => commit({ cbSafe: !S.cbSafe }), kt('Succès et erreurs en bleu et orange plutôt qu’en vert et rouge.', 'Success and errors in blue and orange rather than green and red.')))
 
         // ── Sharing tab: your themes, import, and the file of the current look ───────────
         const importThemeFile = (file) => {
-          if (file.size > PRESET_FILE_MAX) { setLibNote({ ok: false, text: 'Fichier trop gros : un thème fait quelques Ko. Rien n’a été modifié.' }); return }
+          if (file.size > PRESET_FILE_MAX) { setLibNote({ ok: false, text: kt('Fichier trop gros : un thème fait quelques Ko. Rien n’a été modifié.', 'File too big: a theme is a few KB. Nothing was changed.') }); return }
           const reader = new FileReader()
           reader.onload = () => {
             const r = presetFromFileText(String(reader.result))
-            if (r.ok !== true) { setLibNote({ ok: false, text: 'Fichier non reconnu : seul un fichier de thème Kybernos (.json) est accepté. Rien n’a été modifié.' }); return }
+            if (r.ok !== true) { setLibNote({ ok: false, text: kt('Fichier non reconnu : seul un fichier de thème Kybernos (.json) est accepté. Rien n’a été modifié.', 'File not recognized: only a Kybernos theme file (.json) is accepted. Nothing was changed.') }); return }
             const rec = libAdd(r.name, 'file', r.settings, r.author !== undefined ? { author: r.author } : undefined)
             setLibNote(rec === null
-              ? { ok: false, text: 'La bibliothèque est pleine (' + PRESET_LIMIT + ' thèmes). Supprimez-en un d’abord.' }
-              : { ok: true, text: '« ' + rec.name + ' » est dans Mes thèmes' + (r.legacy ? ' (ancien fichier : tout le réglage est repris)' : '') + '. Il n’est pas appliqué.' })
+              ? { ok: false, text: kt('La bibliothèque est pleine (' + PRESET_LIMIT + ' thèmes). Supprime-en un d’abord.', 'The library is full (' + PRESET_LIMIT + ' themes). Delete one first.') }
+              : { ok: true, text: kt('« ' + rec.name + ' » est dans Mes thèmes', '“' + rec.name + '” is in My themes') + (r.legacy ? kt(' (ancien fichier : tout le réglage est repris)', ' (old file: the whole look is taken)') : '') + kt('. Il n’est pas appliqué.', '. It is not applied.') })
           }
           reader.readAsText(file)
         }
@@ -3494,21 +3679,21 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           const sk = presetAsSkin(rec)
           const doRename = () => {
             const name = presetName(renameDraft)
-            if (name === '') { setLibNote({ ok: false, text: 'Donnez un nom au thème.' }); return }
-            if (libNameTaken(name, rec.id)) { setLibNote({ ok: false, text: 'Ce nom existe déjà. Choisissez-en un autre.' }); return }
+            if (name === '') { setLibNote({ ok: false, text: kt('Donne un nom au thème.', 'Give the theme a name.') }); return }
+            if (libNameTaken(name, rec.id)) { setLibNote({ ok: false, text: kt('Ce nom existe déjà. Choisis-en un autre.', 'That name already exists. Pick another one.') }); return }
             libPatch(rec.id, { name }); setRenameId(null); setLibNote(null)
           }
           const acts = renaming
             ? [h('button', { key: 'ok', type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-rename-ok', onClick: doRename }, 'OK'),
-              h('button', { key: 'no', type: 'button', className: 'kbth-btn', onClick: () => setRenameId(null) }, 'Annuler')]
+              h('button', { key: 'no', type: 'button', className: 'kbth-btn', onClick: () => setRenameId(null) }, kt('Annuler', 'Cancel'))]
             : (deleting
-              ? [h('span', { key: 'q', className: 'kbth-hint' }, 'Supprimer « ' + rec.name + ' » ?'),
-                h('button', { key: 'y', type: 'button', className: 'kbth-btn kbth-danger kbth-gr-err', 'data-kb': 'theme-delete-yes', onClick: () => { libRemove(rec.id); setDelId(null); setLibNote({ ok: true, text: '« ' + rec.name + ' » supprimé.' }) } }, 'Supprimer'),
-                h('button', { key: 'n', type: 'button', className: 'kbth-btn', onClick: () => setDelId(null) }, 'Garder')]
-              : [cur ? null : h('button', { key: 'a', type: 'button', className: 'kbth-btn', 'data-kb': 'theme-apply', onClick: () => { setLibNote(null); applyMine(rec) } }, 'Appliquer'),
-                h('button', { key: 'e', type: 'button', className: 'kbth-btn', 'data-kb': 'theme-export-one', 'aria-expanded': showing ? 'true' : 'false', onClick: () => setExpId(showing ? null : rec.id) }, 'Exporter'),
-                h('button', { key: 'r', type: 'button', className: 'kbth-btn', 'data-kb': 'theme-rename', onClick: () => { setRenameId(rec.id); setRenameDraft(rec.name); setDelId(null) } }, 'Renommer'),
-                h('button', { key: 'd', type: 'button', className: 'kbth-btn kbth-danger kbth-gr-err', 'data-kb': 'theme-delete', onClick: () => { setDelId(rec.id); setRenameId(null) } }, 'Supprimer')])
+              ? [h('span', { key: 'q', className: 'kbth-hint' }, kt('Supprimer « ' + rec.name + ' » ?', 'Delete “' + rec.name + '”?')),
+                h('button', { key: 'y', type: 'button', className: 'kbth-btn kbth-danger kbth-gr-err', 'data-kb': 'theme-delete-yes', onClick: () => { libRemove(rec.id); setDelId(null); setLibNote({ ok: true, text: kt('« ' + rec.name + ' » supprimé.', '“' + rec.name + '” deleted.') }) } }, kt('Supprimer', 'Delete')),
+                h('button', { key: 'n', type: 'button', className: 'kbth-btn', onClick: () => setDelId(null) }, kt('Garder', 'Keep'))]
+              : [cur ? null : h('button', { key: 'a', type: 'button', className: 'kbth-btn', 'data-kb': 'theme-apply', onClick: () => { setLibNote(null); applyMine(rec) } }, kt('Appliquer', 'Apply')),
+                h('button', { key: 'e', type: 'button', className: 'kbth-btn', 'data-kb': 'theme-export-one', 'aria-expanded': showing ? 'true' : 'false', onClick: () => setExpId(showing ? null : rec.id) }, kt('Exporter', 'Export')),
+                h('button', { key: 'r', type: 'button', className: 'kbth-btn', 'data-kb': 'theme-rename', onClick: () => { setRenameId(rec.id); setRenameDraft(rec.name); setDelId(null) } }, kt('Renommer', 'Rename')),
+                h('button', { key: 'd', type: 'button', className: 'kbth-btn kbth-danger kbth-gr-err', 'data-kb': 'theme-delete', onClick: () => { setDelId(rec.id); setRenameId(null) } }, kt('Supprimer', 'Delete'))])
           const file = presetFile(rec)
           return h(React.Fragment, { key: rec.id },
             h('div', { className: 'kbth-trow', 'data-kb': 'theme-row', 'data-id': rec.id },
@@ -3516,19 +3701,19 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
               h('div', { className: 'kbth-trow-tx' },
                 h('div', { className: 'kbth-trow-n' },
                   renaming
-                    ? h('input', { className: 'kbth-in', style: { width: 190 }, value: renameDraft, maxLength: PRESET_NAME_MAX, 'aria-label': 'Nouveau nom', 'data-kb': 'theme-rename-in',
+                    ? h('input', { className: 'kbth-in', style: { width: 190 }, value: renameDraft, maxLength: PRESET_NAME_MAX, 'aria-label': kt('Nouveau nom', 'New name'), 'data-kb': 'theme-rename-in',
                       onInput: (e) => setRenameDraft(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); doRename() } else if (e.key === 'Escape') { e.stopPropagation(); setRenameId(null) } } })
                     : [h('span', { key: 'n' }, rec.name),
-                      cur ? h('span', { key: 'c', className: 'kbth-tone kbth-tone-on kbth-gr-ok' }, 'appliqué') : null,
-                      h('span', { key: 's', className: 'kbth-pill' }, rec.source === 'gallery' ? 'Galerie' + (rec.author !== undefined ? ' · ' + rec.author : '') : (rec.source === 'file' ? 'importé' : 'à vous'))]),
-                h('div', { className: 'kbth-trow-m' }, skinMeta(sk) + ' · retient : ' + Object.keys(PRESET_GROUPS).filter((g) => groupsOf(rec.settings)[g]).map((g) => PRESET_GROUP_LABELS[g].toLowerCase()).join(', '))),
+                      cur ? h('span', { key: 'c', className: 'kbth-tone kbth-tone-on kbth-gr-ok' }, kt('appliqué', 'applied')) : null,
+                      h('span', { key: 's', className: 'kbth-pill' }, rec.source === 'gallery' ? kt('Galerie', 'Gallery') + (rec.author !== undefined ? ' · ' + rec.author : '') : (rec.source === 'file' ? kt('importé', 'imported') : kt('à toi', 'yours')))]),
+                h('div', { className: 'kbth-trow-m' }, skinMeta(sk) + kt(' · retient : ', ' · keeps: ') + Object.keys(PRESET_GROUPS).filter((g) => groupsOf(rec.settings)[g]).map((g) => groupLabel(g).toLowerCase()).join(', '))),
               h('div', { className: 'kbth-trow-a' }, acts)),
             showing ? h('div', { className: 'kbth-exp' },
               h('div', { className: 'kbth-row', style: { justifyContent: 'space-between' } },
-                h('span', { className: 'kbth-hint' }, 'theme-' + fileSlug(rec.name) + '.json · à partager ou à versionner'),
+                h('span', { className: 'kbth-hint' }, kt('theme-' + fileSlug(rec.name) + '.json · à partager ou à versionner', 'theme-' + fileSlug(rec.name) + '.json · to share or to version')),
                 h('div', { className: 'kbth-row', style: { gap: 6 } },
-                  h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-copy-one', onClick: () => { try { navigator.clipboard.writeText(file) } catch (e) { /* clipboard unavailable */ } } }, 'Copier'),
-                  h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-download-one', onClick: () => { if (!downloadText('theme-' + fileSlug(rec.name) + '.json', file)) setLibNote({ ok: false, text: 'Le téléchargement a échoué : utilisez Copier.' }) } }, 'Télécharger'))),
+                  h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-copy-one', onClick: () => { try { navigator.clipboard.writeText(file) } catch (e) { /* clipboard unavailable */ } } }, kt('Copier', 'Copy')),
+                  h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-download-one', onClick: () => { if (!downloadText('theme-' + fileSlug(rec.name) + '.json', file)) setLibNote({ ok: false, text: kt('Le téléchargement a échoué : utilise Copier.', 'The download failed: use Copy.') }) } }, kt('Télécharger', 'Download')))),
               h('pre', { className: 'kbth-export-code', 'data-kb': 'theme-file' }, file)) : null)
         }
 
@@ -3537,23 +3722,23 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const advPartage = h('div', { className: 'kbth-sec', style: { gap: 22 } },
           h('div', { className: 'kbth-sec' },
             h('div', { className: 'kbth-sec-h' },
-              h('div', { className: 'kbth-sec-t' }, 'Mes thèmes'),
-              h('div', { className: 'kbth-sec-d' }, 'Les thèmes que vous avez enregistrés ou importés.')),
+              h('div', { className: 'kbth-sec-t' }, kt('Mes thèmes', 'My themes')),
+              h('div', { className: 'kbth-sec-d' }, kt('Les thèmes que tu as enregistrés ou importés.', 'The themes you saved or imported.'))),
             libNote !== null ? h('div', { className: libNote.ok ? 'kbth-ok kbth-gr-ok' : 'kbth-bad kbth-gr-err', role: 'status', 'data-kb': 'theme-note' }, libNote.text) : null,
             lib.presets.length > 0
               ? h('div', { className: 'kbth-lib', 'data-kb': 'theme-lib' }, lib.presets.map(libRow))
               : h('div', { className: 'kbth-state', 'data-kb': 'theme-lib-empty' },
-                h('div', { className: 'kbth-sec-t' }, 'Aucun thème à vous'),
-                h('div', { className: 'kbth-sec-d' }, 'Réglez l’apparence dans Essentiel puis enregistrez-la, ou importez un fichier ci-dessous.')),
+                h('div', { className: 'kbth-sec-t' }, kt('Aucun thème à toi', 'No theme of your own')),
+                h('div', { className: 'kbth-sec-d' }, kt('Règle l’apparence dans Essentiel puis enregistre-la, ou importe un fichier ci-dessous.', 'Set the look in Essentials, then save it, or import a file below.'))),
             h('div', { className: 'kbth-row' },
-              h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-save-sharing', onClick: openSave }, 'Enregistrer l’état actuel…'),
-              lib.hostState === 'off' && ldHostOn() ? h('span', { className: 'kbth-hint' }, 'Le disque de DSH ne répond pas : vos thèmes restent dans ce navigateur.') : null)),
+              h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-save-sharing', onClick: openSave }, kt('Enregistrer l’état actuel…', 'Save the current look…')),
+              lib.hostState === 'off' && ldHostOn() ? h('span', { className: 'kbth-hint' }, kt('Le disque de DSH ne répond pas : tes thèmes restent dans ce navigateur.', 'DSH’s disk does not answer: your themes stay in this browser.')) : null)),
           h('div', { className: 'kbth-sec' },
             h('div', { className: 'kbth-sec-h' },
-              h('div', { className: 'kbth-sec-t' }, 'Importer'),
-              h('div', { className: 'kbth-sec-d' }, 'Un fichier de thème (.json) s’ajoute à Mes thèmes. Il ne change rien tant que vous ne cliquez pas sur Appliquer. Un ancien fichier d’état complet devient lui aussi un thème.')),
+              h('div', { className: 'kbth-sec-t' }, kt('Importer', 'Import')),
+              h('div', { className: 'kbth-sec-d' }, kt('Un fichier de thème (.json) s’ajoute à Mes thèmes. Il ne change rien tant que tu ne cliques pas sur Appliquer. Un ancien fichier d’état complet devient lui aussi un thème.', 'A theme file (.json) is added to My themes. It changes nothing until you click Apply. An old file of the whole look becomes a theme too.'))),
             h('div', { className: 'kbth-row' },
-              h('label', { className: 'kbth-btn', style: { cursor: 'pointer' } }, 'Choisir un fichier .json',
+              h('label', { className: 'kbth-btn', style: { cursor: 'pointer' } }, kt('Choisir un fichier .json', 'Choose a .json file'),
                 h('input', { type: 'file', accept: '.json,application/json', 'data-kb': 'theme-import', style: { display: 'none' }, onChange: (e) => {
                   const input = e.target
                   const file = input.files && input.files[0]
@@ -3562,27 +3747,27 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
                   input.value = ''
                 } })))),
           h('details', { className: 'kbth-fold', 'data-kb': 'theme-export-fold' },
-            h('summary', null, 'Exporter l’état actuel'),
+            h('summary', null, kt('Exporter l’état actuel', 'Export the current look')),
             h('div', { className: 'kbth-sec', style: { marginTop: 10 } },
-              h('div', { className: 'kbth-sec-d' }, 'Le réglage en cours, tel quel : un fichier à partager ou à versionner. Pour un thème enregistré, utilisez « Exporter » sur sa ligne.'),
+              h('div', { className: 'kbth-sec-d' }, kt('Le réglage en cours, tel quel : un fichier à partager ou à versionner. Pour un thème enregistré, utilise « Exporter » sur sa ligne.', 'The current setting as it is: a file to share or to version. For a saved theme, use “Export” on its row.')),
               h('div', { className: 'kbth-row' },
                 h('span', { className: 'kbth-lb' }, 'Format'),
                 seg({ items: exportFormats.map((f) => ({ id: f[0], label: f[1], on: exportFmt === f[0], tap: () => setExportFmt(f[0]) })) }),
                 h('button', { className: 'kbth-btn', type: 'button', 'data-kb': 'theme-copy', onClick: () => {
                   try { navigator.clipboard.writeText(exportBody) } catch (e) { /* clipboard unavailable */ }
-                } }, 'Copier')),
+                } }, kt('Copier', 'Copy'))),
               h('div', { className: 'kbth-export-preview' },
                 h('div', { className: 'kbth-export-bar' },
                   h('span', null, 'dsh-theme.' + (exportFmt === 'yaml' ? 'yml' : exportFmt)),
-                  h('span', { 'data-kb': 'theme-export-lines' }, exportBody.split('\n').length + ' lignes')),
+                  h('span', { 'data-kb': 'theme-export-lines' }, ((n) => n + (n === 1 ? kt(' ligne', ' line') : kt(' lignes', ' lines')))(exportBody.split('\n').length))),
                 h('pre', { className: 'kbth-export-code', 'data-kb': 'theme-export' }, exportBody)))),
           h('div', { className: 'kbth-sec' },
             h('div', { className: 'kbth-sec-h' },
-              h('div', { className: 'kbth-sec-t' }, 'Réinitialiser'),
-              h('div', { className: 'kbth-sec-d' }, 'Revenir aux valeurs par défaut du harness. Vos thèmes enregistrés restent dans Mes thèmes.')),
+              h('div', { className: 'kbth-sec-t' }, kt('Réinitialiser', 'Reset')),
+              h('div', { className: 'kbth-sec-d' }, kt('Revenir aux valeurs par défaut du harness. Tes thèmes enregistrés restent dans Mes thèmes.', 'Back to the harness defaults. Your saved themes stay in My themes.'))),
             h('div', { className: 'kbth-row' },
-              h('span', { className: 'kbth-lb' }, 'Tous les réglages de thème'),
-              h('button', { className: 'kbth-btn', type: 'button', onClick: () => { setHexDraft(null); commit({ ...DEF }, true) } }, 'Réinitialiser'))))
+              h('span', { className: 'kbth-lb' }, kt('Tous les réglages de thème', 'All theme settings')),
+              h('button', { className: 'kbth-btn', type: 'button', onClick: () => { setHexDraft(null); commit({ ...DEF }, true) } }, kt('Réinitialiser', 'Reset')))))
 
         // ── Gallery tab ───────────────────────────────────────────────────────────────────
         const lang = kbLang()
@@ -3595,21 +3780,21 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const endTrial = () => { const t = trialRef.current; if (t === null) return; setHexDraft(null); commit(t.prev, true) }
         const installTheme = (t) => {
           const rec = galInstall(t)
-          if (rec === null) { setLibNote({ ok: false, text: 'La bibliothèque est pleine (' + PRESET_LIMIT + ' thèmes). Supprimez-en un dans Partage.' }); return }
+          if (rec === null) { setLibNote({ ok: false, text: kt('La bibliothèque est pleine (' + PRESET_LIMIT + ' thèmes). Supprime-en un dans Partage.', 'The library is full (' + PRESET_LIMIT + ' themes). Delete one in Sharing.') }); return }
           setHexDraft(null)
           commit({ skin: rec.id, ...rec.settings })
-          setLibNote({ ok: true, text: '« ' + rec.name + ' » est installé et appliqué. Il est dans Mes thèmes.' })
+          setLibNote({ ok: true, text: kt('« ' + rec.name + ' » est installé et appliqué. Il est dans Mes thèmes.', '“' + rec.name + '” is installed and applied. It is in My themes.') })
         }
         const updateTheme = (t, rec) => {
           galUpdate(t, rec)
           if (S.skin === rec.id) commit({ ...t.settings })
-          setLibNote({ ok: true, text: '« ' + rec.name + ' » est à jour (version ' + t.v + ').' })
+          setLibNote({ ok: true, text: kt('« ' + rec.name + ' » est à jour (version ' + t.v + ').', '“' + rec.name + '” is up to date (version ' + t.v + ').') })
         }
         const trialBar = trial === null ? null : h('div', { className: 'kbth-trial', role: 'status', 'data-kb': 'theme-trial' },
-          h('span', null, 'Essai de ', h('b', null, trial.name), '. Rien n’est enregistré.'),
+          h('span', null, kt('Essai de ', 'Trial of '), h('b', null, trial.name), kt('. Rien n’est enregistré.', '. Nothing is saved.')),
           h('span', { className: 'kbth-trial-sp' }),
-          h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-trial-install', onClick: () => { const t = gal.data === null ? null : gal.data.themes.find((x) => x.id === trial.id); if (t) installTheme(t) } }, 'Installer'),
-          h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-trial-end', onClick: endTrial }, 'Revenir à mon thème'))
+          h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-trial-install', onClick: () => { const t = gal.data === null ? null : gal.data.themes.find((x) => x.id === trial.id); if (t) installTheme(t) } }, kt('Installer', 'Install')),
+          h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-trial-end', onClick: endTrial }, kt('Revenir à mon thème', 'Back to my theme')))
 
         const galThumb = (t) => {
           const m = (t.settings.mode === 'light' || t.settings.mode === 'dark') ? t.settings.mode : (dark ? 'dark' : 'light')
@@ -3629,17 +3814,17 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           const sk = galAsSkin(t)
           const newer = inst !== null && (inst.v === undefined ? 1 : inst.v) < t.v
           const foot = inst !== null
-            ? [h('span', { key: 'i', className: 'kbth-tone kbth-tone-on kbth-gr-ok' }, 'Installé'),
-              newer ? h('button', { key: 'u', type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-gal-update', onClick: () => updateTheme(t, inst) }, 'Mettre à jour')
-                : (S.skin === inst.id ? null : h('button', { key: 'a', type: 'button', className: 'kbth-btn', 'data-kb': 'theme-gal-apply', onClick: () => { setLibNote(null); setHexDraft(null); applyMine(inst) } }, 'Appliquer'))]
-            : [h('button', { key: 'i', type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-gal-install', onClick: () => installTheme(t) }, 'Installer'),
-              h('button', { key: 't', type: 'button', className: 'kbth-btn', 'data-kb': 'theme-gal-try', disabled: trying, onClick: () => startTrial(t) }, trying ? 'En essai' : 'Essayer')]
+            ? [h('span', { key: 'i', className: 'kbth-tone kbth-tone-on kbth-gr-ok' }, kt('Installé', 'Installed')),
+              newer ? h('button', { key: 'u', type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-gal-update', onClick: () => updateTheme(t, inst) }, kt('Mettre à jour', 'Update'))
+                : (S.skin === inst.id ? null : h('button', { key: 'a', type: 'button', className: 'kbth-btn', 'data-kb': 'theme-gal-apply', onClick: () => { setLibNote(null); setHexDraft(null); applyMine(inst) } }, kt('Appliquer', 'Apply')))]
+            : [h('button', { key: 'i', type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-gal-install', onClick: () => installTheme(t) }, kt('Installer', 'Install')),
+              h('button', { key: 't', type: 'button', className: 'kbth-btn', 'data-kb': 'theme-gal-try', disabled: trying, onClick: () => startTrial(t) }, trying ? kt('En essai', 'Trying') : kt('Essayer', 'Try'))]
           return h('article', { key: t.id, className: 'kbth-card', 'data-kb': 'theme-gal-card', 'data-id': t.id, 'aria-label': t.name },
             galThumb(t),
             h('div', { className: 'kbth-card-b' },
               h('div', { className: 'kbth-card-n' }, t.name),
-              // « par » and the name are two text nodes: the page's English dictionary translates the first and leaves the author alone
-              t.author !== '' ? h('div', { className: 'kbth-card-a' }, 'par ', t.author) : null,
+              // “by” and the name are two text nodes: a live translation of the first leaves the author's name alone
+              t.author !== '' ? h('div', { className: 'kbth-card-a' }, kt('par ', 'by '), t.author) : null,
               (t.description[lang] || t.description.fr || t.description.en) !== '' ? h('div', { className: 'kbth-card-d' }, t.description[lang] || t.description.fr || t.description.en) : null,
               h('div', { className: 'kbth-card-m' }, skinMeta(sk)),
               // A theme that carries an icon set shows it: the nine entries at rest, then in colour (the picker's preview).
@@ -3653,9 +3838,9 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           }
           if (gal.state === 'error' || gal.data === null) {
             return h('div', { className: 'kbth-state', role: 'alert', 'data-kb': 'theme-gal-error' },
-              h('div', { className: 'kbth-sec-t' }, 'Impossible de lire la galerie'),
-              h('div', { className: 'kbth-sec-d' }, 'Elle est lue par DSH, pas par la page. Si le plugin vient d’être mis à jour, redémarrez DSH. Vos thèmes restent disponibles dans Partage.'),
-              h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-gal-retry', onClick: () => { galLoad() } }, 'Réessayer'))
+              h('div', { className: 'kbth-sec-t' }, kt('Impossible de lire la galerie', 'Cannot read the gallery')),
+              h('div', { className: 'kbth-sec-d' }, kt('Elle est lue par DSH, pas par la page. Si le plugin vient d’être mis à jour, redémarre DSH. Tes thèmes restent disponibles dans Partage.', 'It is read by DSH, not by the page. If the plugin was just updated, restart DSH. Your themes remain available in Sharing.')),
+              h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-gal-retry', onClick: () => { galLoad() } }, kt('Réessayer', 'Try again')))
           }
           const q = galQ.trim().toLowerCase()
           const list = gal.data.themes.filter((t) => (galF === 'all' || t.settings.mode === galF) && (q === '' || (t.name + ' ' + t.author + ' ' + (t.description[lang] || t.description.fr)).toLowerCase().indexOf(q) >= 0))
@@ -3663,29 +3848,29 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           const onlineText = galOnlineText(o)
           return h(React.Fragment, null,
             h('div', { className: 'kbth-src', 'data-kb': 'theme-gal-source' },
-              gal.data.source === 'signed' ? h('span', { className: 'kbth-tone kbth-tone-on kbth-gr-ok' }, 'Catalogue signé') : h('span', { className: 'kbth-pill' }, 'Livré avec Kybernos'),
-              h('span', null, gal.data.themes.length + (gal.data.themes.length > 1 ? ' thèmes' : ' thème')),
+              gal.data.source === 'signed' ? h('span', { className: 'kbth-tone kbth-tone-on kbth-gr-ok' }, kt('Catalogue signé', 'Signed catalog')) : h('span', { className: 'kbth-pill' }, kt('Livré avec Kybernos', 'Shipped with Kybernos')),
+              h('span', null, gal.data.themes.length + (gal.data.themes.length > 1 ? kt(' thèmes', ' themes') : kt(' thème', ' theme'))),
               o.state !== 'off' && !(o.state === 'refused' && o.reason === 'no-key')
-                ? h('button', { type: 'button', className: 'kbth-link', 'data-kb': 'theme-gal-refresh', disabled: gal.refreshing, onClick: () => { galRefresh() } }, gal.refreshing ? 'Actualisation…' : 'Actualiser') : null),
+                ? h('button', { type: 'button', className: 'kbth-link', 'data-kb': 'theme-gal-refresh', disabled: gal.refreshing, onClick: () => { galRefresh() } }, gal.refreshing ? 'Actualisation…' : kt('Actualiser', 'Refresh')) : null),
             onlineText !== '' ? h('div', { className: 'kbth-hint', 'data-kb': 'theme-gal-online' }, onlineText) : null,
             h('div', { className: 'kbth-gbar' },
-              h('input', { className: 'kbth-search', type: 'search', value: galQ, placeholder: 'Rechercher un thème, un auteur', 'aria-label': 'Rechercher un thème', 'data-kb': 'theme-gal-q', onInput: (e) => setGalQ(e.target.value) }),
-              seg({ items: [['all', 'Tous'], ['light', 'Clair'], ['dark', 'Sombre']].map((f) => ({ id: f[0], label: f[1], on: galF === f[0], tap: () => setGalF(f[0]) })) })),
+              h('input', { className: 'kbth-search', type: 'search', value: galQ, placeholder: kt('Rechercher un thème, un auteur', 'Search for a theme or an author'), 'aria-label': kt('Rechercher un thème', 'Search for a theme'), 'data-kb': 'theme-gal-q', onInput: (e) => setGalQ(e.target.value) }),
+              seg({ items: [['all', kt('Tous', 'All')], ['light', kt('Clair', 'Light')], ['dark', kt('Sombre', 'Dark')]].map((f) => ({ id: f[0], label: f[1], on: galF === f[0], tap: () => setGalF(f[0]) })) })),
             list.length === 0
               ? h('div', { className: 'kbth-state', 'data-kb': 'theme-gal-none' },
-                h('div', { className: 'kbth-sec-t' }, gal.data.themes.length === 0 ? 'La galerie est vide' : 'Aucun thème ne correspond'),
-                h('div', { className: 'kbth-sec-d' }, gal.data.themes.length === 0 ? 'Aucun thème n’est publié pour l’instant.' : 'Essayez un autre mot, ou affichez tous les modes.'),
-                gal.data.themes.length === 0 ? null : h('button', { type: 'button', className: 'kbth-btn', onClick: () => { setGalQ(''); setGalF('all') } }, 'Effacer la recherche'))
+                h('div', { className: 'kbth-sec-t' }, gal.data.themes.length === 0 ? kt('La galerie est vide', 'The gallery is empty') : kt('Aucun thème ne correspond', 'No theme matches')),
+                h('div', { className: 'kbth-sec-d' }, gal.data.themes.length === 0 ? kt('Aucun thème n’est publié pour l’instant.', 'No theme is published yet.') : kt('Essaie un autre mot, ou affiche tous les modes.', 'Try another word, or show all modes.')),
+                gal.data.themes.length === 0 ? null : h('button', { type: 'button', className: 'kbth-btn', onClick: () => { setGalQ(''); setGalF('all') } }, kt('Effacer la recherche', 'Clear the search')))
               : h('div', { className: 'kbth-gal', 'data-kb': 'theme-gal' }, list.map(galCard)))
         }
         const advGalerie = h('div', { className: 'kbth-sec', style: { gap: 14 } },
           h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, 'Galerie de thèmes'),
-            h('div', { className: 'kbth-sec-d' }, 'Un thème n’est qu’un fichier de réglages : il ne contient aucun code et ne charge rien d’extérieur. Installez-le, ou essayez-le d’abord.')),
+            h('div', { className: 'kbth-sec-t' }, kt('Galerie de thèmes', 'Theme gallery')),
+            h('div', { className: 'kbth-sec-d' }, kt('Un thème n’est qu’un fichier de réglages : il ne contient aucun code et ne charge rien d’extérieur. Installe-le, ou essaie-le d’abord.', 'A theme is only a settings file: it contains no code and loads nothing from outside. Install it, or try it first.'))),
           libNote !== null ? h('div', { className: libNote.ok ? 'kbth-ok kbth-gr-ok' : 'kbth-bad kbth-gr-err', role: 'status', 'data-kb': 'theme-note' }, libNote.text) : null,
           galBody())
 
-        // ── Assemblage Avancé avec sous-onglets ────────────────────────────
+        // ── Advanced assembly with sub-tabs ────────────────────────────
         const ADV_CONTENT = {
           essentiel: advEssentiel,
           animation: h(AnimationPane, { ctx: ctxRef }),
@@ -3697,14 +3882,14 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           partage: advPartage,
           galerie: advGalerie
         }
-        const groupToggle = (g, hint) => ldToggle(PRESET_GROUP_LABELS[g], saveDlg.groups[g] === true, () => setSaveDlg({ ...saveDlg, groups: { ...saveDlg.groups, [g]: !saveDlg.groups[g] } }), hint)
+        const groupToggle = (g, hint) => ldToggle(groupLabel(g), saveDlg.groups[g] === true, () => setSaveDlg({ ...saveDlg, groups: { ...saveDlg.groups, [g]: !saveDlg.groups[g] } }), hint)
         const saveModal = saveDlg === null ? null : h(ThemeModal, { labelId: 'kbth-save-t', kb: 'theme-save-dlg', onClose: () => setSaveDlg(null) },
           h('div', { className: 'kbth-mhd' },
-            h('h3', { id: 'kbth-save-t' }, 'Enregistrer comme thème'),
-            h('button', { type: 'button', className: 'kbth-mx', 'aria-label': 'Fermer', onClick: () => setSaveDlg(null) }, '×')),
+            h('h3', { id: 'kbth-save-t' }, kt('Enregistrer comme thème', 'Save as a theme')),
+            h('button', { type: 'button', className: 'kbth-mx', 'aria-label': kt('Fermer', 'Close'), onClick: () => setSaveDlg(null) }, '×')),
           h('div', { className: 'kbth-mbody' },
             h('div', { className: 'kbth-sec', style: { gap: 6 } },
-              h('label', { className: 'kbth-lb', htmlFor: 'kbth-save-name', style: { width: 'auto' } }, 'Nom'),
+              h('label', { className: 'kbth-lb', htmlFor: 'kbth-save-name', style: { width: 'auto' } }, kt('Nom', 'Name')),
               h('input', {
                 id: 'kbth-save-name', className: 'kbth-in' + (saveDlg.error !== '' ? ' bad' : ''), value: saveDlg.name, maxLength: PRESET_NAME_MAX, autoComplete: 'off', 'data-kb': 'theme-save-name',
                 'aria-invalid': saveDlg.error !== '' ? 'true' : 'false',
@@ -3712,17 +3897,17 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
                 onKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); doSave() } } }),
               saveDlg.error !== '' ? h('div', { className: 'kbth-bad kbth-gr-err', role: 'alert', 'data-kb': 'theme-save-error' }, saveDlg.error) : null),
             h('div', { className: 'kbth-sec', style: { gap: 4 } },
-              h('div', { className: 'kbth-sec-t' }, 'Ce que le thème retient'),
-              h('div', { className: 'kbth-hint' }, 'Les couleurs et l’accent sont toujours retenus.'),
+              h('div', { className: 'kbth-sec-t' }, kt('Ce que le thème retient', 'What the theme keeps')),
+              h('div', { className: 'kbth-hint' }, kt('Les couleurs et l’accent sont toujours retenus.', 'Colors and accent are always kept.')),
               groupToggle('font'), groupToggle('radius'), groupToggle('icons'), groupToggle('glass'),
-              groupToggle('a11y', 'Contraste, palette daltonien, cibles larges : ce sont vos besoins, pas un style. Décoché, un thème ne les change jamais.'))),
+              groupToggle('a11y', kt('Contraste, palette daltonien, cibles larges : ce sont tes besoins, pas un style. Décoché, un thème ne les change jamais.', 'Contrast, color-blind palette, large targets: these are your needs, not a style. Switched off, a theme never changes them.')))),
           h('div', { className: 'kbth-mft' },
-            h('button', { type: 'button', className: 'kbth-btn', onClick: () => setSaveDlg(null) }, 'Annuler'),
-            h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-save-ok', onClick: doSave }, 'Enregistrer')))
+            h('button', { type: 'button', className: 'kbth-btn', onClick: () => setSaveDlg(null) }, kt('Annuler', 'Cancel')),
+            h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-save-ok', onClick: doSave }, kt('Enregistrer', 'Save'))))
 
-        // Une seule page : les neuf onglets restent toujours là, « Essentiel » s'ouvre par défaut.
+        // A single page: the nine tabs are always there, “Essentials” opens by default.
         const reglages = h('div', { className: 'kbth-sec' },
-          // Onglets empilés VERTICALEMENT à gauche, contenu à droite.
+          // Tabs stacked VERTICALLY on the left, content on the right.
           h('div', { className: 'kbth-adv-cols' },
             h('div', { className: 'kbth-adv-tabs' },
               ADV_TABS.map((t) => h('button', {
@@ -3733,7 +3918,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
               trialBar,
               ADV_CONTENT[advTab] || advCouleurs)))
 
-        // ── assemblage — une seule colonne (l'aperçu latéral a été retiré) ────────
+        // ── assembly — a single column (the side preview has been removed) ────────
         return h(React.Fragment, null,
           saveModal,
           h('div', { className: 'kbth-page' },
@@ -3741,27 +3926,27 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             h('div', { className: 'kbth-main' },
               h('div', { className: 'kbth-head' },
                 h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-theme' }) : null)),
-                h('div', { className: 'kbth-title' }, 'Thème'),
+                h('div', { className: 'kbth-title' }, kt('Thème', 'Theme')),
                 h('div', { className: 'kbth-sub' },
-                  'Personnalisez l’apparence de DeepSeek Harness. Les réglages de base sont dans Essentiel.')),
+                  kt('Personnalise l’apparence de DeepSeek Harness. Les réglages de base sont dans Essentiel.', 'Customize the look of DeepSeek Harness. The basic settings are in Essentials.'))),
               h('div', null, reglages),
               h('div', { className: 'kbth-foot' },
-                h('span', { className: 'kbth-pill' }, estNaturel(S) ? 'DSH natif — aucune couche posée' : '17 jetons · {light, dark}'),
-                h('span', { className: 'kbth-pill' }, (jetonsRetouches(S.ov) === 1 ? '1 jeton retouché' : jetonsRetouches(S.ov) + ' jetons retouchés')),
+                h('span', { className: 'kbth-pill' }, estNaturel(S) ? kt('DSH natif — aucune couche posée', 'Native DSH — no layer applied') : kt('17 jetons · {light, dark}', '17 tokens · {light, dark}')),
+                h('span', { className: 'kbth-pill' }, (jetonsRetouches(S.ov) === 1 ? kt('1 jeton retouché', '1 token adjusted') : kt(jetonsRetouches(S.ov) + ' jetons retouchés', jetonsRetouches(S.ov) + ' tokens adjusted'))),
                 h('button', { className: 'kbth-btn', type: 'button',
-                  onClick: () => { setHexDraft(null); commit({ ...DEF }, true) } }, 'Tout rétablir'),
+                  onClick: () => { setHexDraft(null); commit({ ...DEF }, true) } }, kt('Tout rétablir', 'Reset all')),
                 h('button', { className: 'kbth-btn', type: 'button',
-                  onClick: () => setRevision((r) => r + 1) }, 'Actualiser le mode')))))
+                  onClick: () => setRevision((r) => r + 1) }, kt('Actualiser le mode', 'Refresh the mode'))))))
       }
 
       // ══════════════════════════════════════════════════════════════════════
       // 6. MONTAGE.
       // ══════════════════════════════════════════════════════════════════════
 
-      // Le contrat d'export d'une entrée cordis : la liste des services que le
-      // contexte DOIT exposer — le garde de ctx refuse tout ctx.<service> non
-      // déclaré ici (même contrat que kybernos et dream-skin). Sans elle,
-      // l'entrée reste « loading » et n'active jamais.
+      // The export contract of a cordis entry: the list of services the
+      // context MUST expose — the ctx guard refuses any ctx.<service> not
+      // declared here (same contract as kybernos and dream-skin). Without it,
+      // the entry stays “loading” and never activates.
       return {
         inject: ['slots', 'theme', 'remote', 'locale'],
         // Read-only handles for test-client.mjs (same convention as kybernos-language).
@@ -3777,11 +3962,11 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           ICON_ENTRIES, ICON_HUES, ICON_SETS, ICON_SET_IDS, iconInner, iconSvg, iconRegistry, appliquerIcones,
         },
         apply(ctx) {
-          // (01/10) Libellé selon l'état de langue courant. La langue n'est
-          // PLUS portée par ce bundle depuis le 01/10 : elle vit dans
-          // @local/kybernos-language, qui pose `__KB_I18N_ACTIVE__` dès son
-          // activation. Ce plugin ne fait que LIRE le global — débrayable sans
-          // casser le thème : sans language, le libellé retombe en français.
+          // (01/10) Label according to the current language state. The language is
+          // NO LONGER carried by this bundle since 01/10: it lives in
+          // @local/kybernos-language, which sets `__KB_I18N_ACTIVE__` as soon as it
+          // activates. This plugin only READS the global — can be switched off without
+          // breaking the theme: without language, the label falls back to French.
           const kbthLabel = (fr, en) => {
             try {
               const a = (typeof window !== 'undefined') ? window.__KB_I18N_ACTIVE__ : null
@@ -3789,12 +3974,12 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
               return loc.indexOf('en') === 0 ? en : fr
             } catch (e) { return fr }
           }
-          // (29/09) Le bloc « Appearance » de Général ▸ (DSH) est masqué : la
-          // section Apparence de la page Thème règle la MÊME préférence via
-          // themeSvc.setTheme — deux endroits pour un réglage, c'est un de
-          // trop. Les classes du shell sont hachées : on repère le bloc par
-          // son texte (titre « Appearance » + boutons Light/Dark/System) et on
-          // le marque data-kbth-own (la règle CSS ci-dessus le cache).
+          // (29/09) The “Appearance” block of General ▸ (DSH) is hidden: the
+          // Appearance section of the Theme page sets the SAME preference through
+          // themeSvc.setTheme — two places for one setting is one
+          // too many. The shell classes are hashed: we spot the block by
+          // its text (“Appearance” title + Light/Dark/System buttons) and we
+          // mark it data-kbth-own (the CSS rule above hides it).
           try {
             const marquer = () => {
               document.querySelectorAll('[role="dialog"] div').forEach((d) => {
@@ -3809,33 +3994,33 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             const obs = new MutationObserver(() => { marquer() })
             obs.observe(document.body, { childList: true, subtree: true })
           } catch (e) { /* hors navigateur */ }
-          // L'état persisté s'applique DÈS L'ACTIVATION : au rechargement de la
-          // page, le thème revient avant que l'utilisateur n'ouvre les réglages
-          // (anti-flash v1 — l'injection côté serveur viendra en v2).
+          // The persisted state applies AS SOON AS ACTIVATED: when the page is
+          // reloaded, the theme comes back before the user opens the settings
+          // (v1 anti-flash — server-side injection will come in v2).
           try {
             if (ctx !== null && ctx !== undefined && ctx.theme !== null && ctx.theme !== undefined) {
               const S = readState()
               appliquerBoot(ctx.theme, S)
-              // Adoption : la préférence native explicite (clair/sombre) est le
-              // dernier choix de l'utilisateur — quel que soit le contrôle
-              // employé, bouton du pied de sidebar compris. On la recopie dans
-              // notre store pour que la page Réglages l'affiche.
+              // Adoption: the explicit native preference (light/dark) is the
+              // user's last choice — whatever control was
+              // used, the sidebar-footer button included. We copy it into
+              // our store so that the Settings page displays it.
               const nat = prefNative(ctx.theme)
               const natPx = tailleNative(ctx.theme)
               const adopt = {}
               if (nat !== null && nat !== 'system' && nat !== S.mode) adopt.mode = nat
               if (natPx !== null && natPx !== S.fs) adopt.fs = natPx
               if (Object.keys(adopt).length > 0) writeState({ ...S, ...adopt })
-              // Et on suit les changements natifs pour la suite : sans cet
-              // abonnement, un mode choisi hors de la page Réglages Kybernos
-              // n'était jamais mémorisé (bug du rechargement, cf. appliquerBoot).
-              // `theme/change` est émis sur le contexte racine (les contextes
-              // cordis partagent le registre `_hooks` — `noShadow`) : l'écoute
-              // depuis notre contexte le reçoit, et c'est aussi le chemin par
-              // lequel la préférence durable arrive ~1,5 s après l'activation
-              // (mesuré : `preference` vaut « system» au t0, « dark » au t1500).
-              // Le service n'expose PAS de `subscribe` : l'abonnement du pied de
-              // sidebar (`tSvc.subscribe`) est un no-op silencieux.
+              // And we follow native changes afterwards: without this
+              // subscription, a mode chosen outside the Kybernos Settings page
+              // was never remembered (the reload bug, cf. appliquerBoot).
+              // `theme/change` is emitted on the root context (cordis contexts
+              // share the `_hooks` registry — `noShadow`): listening
+              // from our context receives it, and it is also the path by
+              // which the durable preference arrives ~1.5 s after activation
+              // (measured: `preference` is “system” at t0, “dark” at t1500).
+              // The service does NOT expose a `subscribe`: the sidebar-footer
+              // subscription (`tSvc.subscribe`) is a silent no-op.
               ctx.effect(() => {
                 try {
                   const off = ctx.on('theme/change', (snap) => {
@@ -3847,30 +4032,30 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
                     if (px !== null && cur.fs !== px) adopt.fs = px
                     if (Object.keys(adopt).length > 0) writeState({ ...cur, ...adopt })
                   })
-                  return () => { try { if (typeof off === 'function') off() } catch (e) { /* déjà détaché */ } }
+                  return () => { try { if (typeof off === 'function') off() } catch (e) { /* already detached */ } }
                 } catch (e) { return undefined }
-              }, 'kybernos-theme: mémorise le mode natif')
+              }, 'kybernos-theme: remembers the native mode')
             }
           } catch (e) {
-            // Une erreur avalée ici se lit comme « le plugin ne marche pas » :
-            // on la trace pour rester diagnosticable.
-            try { console.error('[kybernos-theme] application initiale échouée', e) } catch (e2) { /* console indisponible */ }
+            // An error swallowed here reads as “the plugin does not work”:
+            // we log it to stay diagnosable.
+            try { console.error('[kybernos-theme] initial apply failed', e) } catch (e2) { /* console indisponible */ }
           }
 
-          // « My themes »: the disk copy, once the page is up. Never a reason for DSH not to start.
+          // “My themes”: the disk copy, once the page is up. Never a reason for DSH not to start.
           try { setTimeout(() => { libPull(true) }, 900) } catch (e) { /* no timers */ }
 
-          // L'animation du statut du bas : défensif de bout en bout (un échec ici ne touche pas DSH).
+          // The bottom-status animation: defensive end to end (a failure here does not touch DSH).
           try {
-            if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => ldStart(ctx), 'kybernos-theme: animation de réflexion')
+            if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => ldStart(ctx), 'kybernos-theme: thinking animation')
           } catch (e) {
-            try { console.error('[kybernos-theme] animation de réflexion : démarrage impossible', e) } catch (e2) { /* console indisponible */ }
+            try { console.error('[kybernos-theme] thinking animation: cannot start', e) } catch (e2) { /* console indisponible */ }
           }
 
           if (ctx !== null && ctx !== undefined && ctx.slots !== null && ctx.slots !== undefined) {
             ctx.effect(() => ctx.slots.inject('settings.section', () => ctx.slots.register(
               { name: 'settings.section', id: 'kybernos-theme', order: 1, label: kbthLabel('Thème', 'Theme') },
-              (props) => h(Page, { ...props, ctx }))), 'kybernos-theme: section réglages thème')
+              (props) => h(Page, { ...props, ctx }))), 'kybernos-theme: theme settings section')
 
             ctx.effect(() => styles.insert(css), 'kybernos-theme: styles')
           }
@@ -3878,9 +4063,9 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
       }
     } catch (kbThemeBootError) {
       try {
-        console.error('[kybernos-theme] chargement impossible — plugin désactivé, GUI préservée', kbThemeBootError)
+        console.error('[kybernos-theme] cannot load — plugin disabled, GUI preserved', kbThemeBootError)
       } catch (e2) { /* console indisponible */ }
-      return { apply() { /* plugin désactivé après erreur de chargement */ } }
+      return { apply() { /* plugin disabled after a load error */ } }
     }
   },
 })

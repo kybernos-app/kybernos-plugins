@@ -44,7 +44,7 @@ window.__ModuleLoader__.load({
         { id: 'qwen3.5:2b', famille: 'q', initiale: 'Qw', tailleGo: 2.7, ramMin: 8, score: 'II 16',
           input: ['text', 'image'], badges: ['Vision'],
           desc: 'kml.desc.2b' },
-        { id: 'gemma4:e4b', famille: 'g', initiale: 'Gm', tailleGo: 6.6, ramMin: 16, score: 'audio natif · embarqué',
+        { id: 'gemma4:e4b', famille: 'g', initiale: 'Gm', tailleGo: 6.6, ramMin: 16, score: 'native audio · built in',
           input: ['text', 'image', 'audio'], badges: ['Vision', 'Audio'],
           desc: 'kml.desc.gemma' },
         { id: 'qwen3:14b', famille: 'q', initiale: 'Qw', tailleGo: 9.3, ramMin: 16, score: 'tools · thinking (Q4, Ollama)',
@@ -78,7 +78,7 @@ window.__ModuleLoader__.load({
         'kml.machine': { fr: 'Machine :', en: 'Machine:' },
         'kml.mesure': { fr: 'mesuré — sysctl', en: 'measured — sysctl' },
         'kml.ollama.absent': { fr: 'absent', en: 'not installed' },
-        'kml.ollama.arrete': { fr: "serveur arrêté : ouvrez l'app Ollama ou lancez « ollama serve »", en: 'server not running: open the Ollama app or run “ollama serve”' },
+        'kml.ollama.arrete': { fr: "serveur arrêté : ouvre l'app Ollama ou lance « ollama serve »", en: 'server not running: open the Ollama app or run “ollama serve”' },
         'kml.ollama.note': { fr: 'installé au 1ᵉʳ téléchargement', en: 'installed on first download' },
         'kml.installer.ollama': { fr: 'Installer Ollama (brew)', en: 'Install Ollama (brew)' },
         'kml.reverifier': { fr: 'Revérifier', en: 'Re-check' },
@@ -100,7 +100,7 @@ window.__ModuleLoader__.load({
         'kml.cat.refuse': { fr: 'Catalogue en ligne refusé ({raison}) : la liste du {date} est conservée.', en: 'The online catalogue was refused ({raison}): keeping the list from {date}.' },
         'kml.cat.nokey': { fr: 'La recherche en ligne n’est pas encore activée : liste livrée avec cette version ({date}).', en: 'Online search is not active yet: showing the list shipped with this version ({date}).' },
         'kml.cat.off': { fr: 'La recherche en ligne est désactivée dans les réglages.', en: 'Online search is turned off in the settings.' },
-        'kml.cat.hote': { fr: 'Redémarrez DSH pour activer la recherche de nouveaux modèles.', en: 'Restart DSH to turn on the search for new models.' },
+        'kml.cat.hote': { fr: 'Redémarre DSH pour activer la recherche de nouveaux modèles.', en: 'Restart DSH to turn on the search for new models.' },
         'kml.cat.source.signe': { fr: 'Liste : catalogue signé · {date}', en: 'List: signed catalogue · {date}' },
         'kml.cat.source.livre': { fr: 'Liste : livrée avec cette version · {date}', en: 'List: shipped with this version · {date}' },
         'kml.cat.source.embarque': { fr: 'Liste : intégrée à la page (DSH à redémarrer pour la recherche en ligne)', en: 'List: built into the page (restart DSH for the online search)' },
@@ -137,7 +137,7 @@ window.__ModuleLoader__.load({
         // The machine could not be measured: no verdict on any model (it used to read « Too heavy » on all of them).
         'kml.etat.indetermine': { fr: 'Mémoire non mesurée', en: 'Memory not measured' },
         'kml.machine.nonmesuree': { fr: 'non mesurée', en: 'not measured' },
-        'kml.machine.hote': { fr: 'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarrez DSH, puis appuyez sur Réessayer.', en: 'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.' },
+        'kml.machine.hote': { fr: 'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarre DSH, puis appuie sur Réessayer.', en: 'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.' },
         'kml.machine.echec': { fr: 'Cette machine n’a pas pu être mesurée : {raison}. Les modèles ne sont pas jugés tant qu’elle ne l’est pas.', en: 'This machine could not be measured: {raison}. No model is judged until it is.' },
         'kml.reessayer': { fr: 'Réessayer', en: 'Retry' },
         'kml.detection': { fr: 'détection…', en: 'detecting…' },
@@ -145,13 +145,18 @@ window.__ModuleLoader__.load({
         // An install that failed is told on the row that was pressed, in plain words (the CLI line is the tooltip).
         'kml.echec.titre': { fr: 'Échec de l’installation :', en: 'Install failed:' },
         'kml.echec.introuvable': { fr: 'Ollama n’a pas de modèle sous ce nom.', en: 'Ollama has no model under this name.' },
-        'kml.echec.serveur': { fr: 'Le serveur Ollama ne répond pas : ouvrez l’app Ollama, puis réessayez.', en: 'The Ollama server is not running: open the Ollama app, then try again.' },
+        'kml.echec.serveur': { fr: 'Le serveur Ollama ne répond pas : ouvre l’app Ollama, puis réessaie.', en: 'The Ollama server is not running: open the Ollama app, then try again.' },
         'kml.echec.disque': { fr: 'Le disque est plein.', en: 'The disk is full.' },
-        'kml.echec.reseau': { fr: 'Le téléchargement a été interrompu (réseau). Vérifiez la connexion, puis réessayez.', en: 'The download was interrupted (network). Check your connection, then try again.' },
+        'kml.echec.reseau': { fr: 'Le téléchargement a été interrompu (réseau). Vérifie la connexion, puis réessaie.', en: 'The download was interrupted (network). Check your connection, then try again.' },
         'kml.echec.occupe': { fr: 'Une autre installation est déjà en cours.', en: 'Another install is already running.' },
-        'kml.echec.ollama-absent': { fr: 'Ollama n’est pas installé : installez-le d’abord (bouton en haut de la page).', en: 'Ollama is not installed: install it first (the button at the top of the page).' },
-        'kml.echec.brew': { fr: 'Homebrew est introuvable : installez Ollama à la main depuis ollama.com.', en: 'Homebrew was not found: install Ollama by hand from ollama.com.' },
+        'kml.echec.ollama-absent': { fr: 'Ollama n’est pas installé : installe-le d’abord (bouton en haut de la page).', en: 'Ollama is not installed: install it first (the button at the top of the page).' },
+        'kml.echec.brew': { fr: 'Homebrew est introuvable : installe Ollama à la main depuis ollama.com.', en: 'Homebrew was not found: install Ollama by hand from ollama.com.' },
         'kml.en.charge': { fr: 'en charge ≈ {go} Go', en: 'loaded ≈ {go} GB' },
+        'kml.unit.go': { fr: 'Go', en: 'GB' },
+        'kml.detection': { fr: 'détection…', en: 'Detecting…' },
+        'kml.annuler': { fr: 'Annuler', en: 'Cancel' },
+        'kml.retirer': { fr: 'Retirer de DSH', en: 'Remove from DSH' },
+        'kml.retirer.id': { fr: 'Retirer {id}', en: 'Remove {id}' },
         'kml.installer': { fr: 'Installer', en: 'Install' },
         'kml.en.cours': { fr: 'téléchargement…', en: 'downloading…' },
         'kml.brancher': { fr: 'Brancher sur DSH', en: 'Wire into DSH' },
@@ -196,7 +201,15 @@ window.__ModuleLoader__.load({
         'kml.desc.gemma1b': { fr: 'Gemma 3 (Google), version 1B : texte seul, contexte 32K. Pour 4 Go.', en: 'Gemma 3 (Google), 1B version: text only, 32K context. For 4 GB.' },
         'kml.desc.coder30': { fr: 'Hors budget sur cette machine — rien ne sera téléchargé.', en: 'Over budget on this machine — nothing will be downloaded.' },
       }
-      let kbLocaleRead = () => 'en'
+      // « fr » for the French of the product (the locale id « kybernos », or any fr*), « en » for every other language, translated
+      // or not: the language of the page is what Kybernos resolved (the <html lang> is not reliable: it stays « en » under the
+      // Language page's French and reads « kybernos » under DSH's own selector).
+      const kbLocaleRead = () => {
+        try {
+          const l = String(window.__KB_LANG_RESOLVE__())
+          return l === 'kybernos' || l.split(/[-_]/)[0] === 'fr' ? 'fr' : 'en'
+        } catch (e) { return 'en' }
+      }
       // Text separator, locale-aware: French ' : ', English ': '.
       const sep = () => (String(kbLocaleRead()).toLowerCase().indexOf('fr') === 0 ? ' : ' : ': ')
       const m = (key, vars) => {
@@ -223,6 +236,8 @@ window.__ModuleLoader__.load({
       }
 
       // KB-KML-PURE-BEGIN
+      /** A number for the language of the page: the decimal comma is French only (« 8,3 »), every other language reads « 8.3 ». Pure. */
+      const kbNum = (x, lang) => (lang === 'fr' ? String(x).replace('.', ',') : String(x))
       /** Models per page of the list (V-21: ten cards in one column read as a wall). */
       const KML_PAGE = 8
       const KML_RANG = { compatible: 0, juste: 1, inconnu: 2, lourd: 3 }
@@ -323,7 +338,7 @@ window.__ModuleLoader__.load({
         }
       })()
 
-      const KBM_CSS = "/* kbm-* : le contrat partagé des plugins Kybernos (extrait dsh.css, scripts/build-model-catalog-css.mjs) */\n" +
+      const KBM_CSS = "/* kbm-*: the contract shared by the Kybernos plugins (extract of dsh.css, scripts/build-model-catalog-css.mjs) */\n" +
         ".kbm-btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: none; border-radius: 18px; cursor: pointer; font-size: 14px; line-height: 22px; color: var(--dsw-alias-label-primary); background: transparent; padding: 0 14px; }\n" +
         ".kbm-btn:disabled { cursor: not-allowed; opacity: 0.4; }\n" +
         ".kbm-btn-md { height: 36px; }\n" +
@@ -337,7 +352,7 @@ window.__ModuleLoader__.load({
         ".kbm-in-wrap:focus-within { border-color: var(--dsw-alias-brand-primary); }\n" +
         ".kbm-in-icon { display: inline-flex; width: 16px; height: 16px; align-items: center; justify-content: center; color: var(--dsw-alias-label-tertiary); }\n" +
         ".kbm-in-input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-size: 14px; line-height: 22px; color: var(--dsw-alias-label-primary); }\n" +
-        ".kbm-in-input::placeholder { color: var(--dsw-alias-label-dimmed); }\n" +
+        ".kml-root .kbm-in-input::placeholder { color: var(--dsw-alias-label-tertiary); }\n" +
         ".kbm-pill { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px; border: none; border-radius: 12px; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-bg-layer-2); }\n" +
         ".kbm-pill-interactive { cursor: pointer; }\n" +
         ".kbm-pill-interactive:hover { background: var(--dsw-alias-interactive-bg-hover); }\n" +
@@ -349,6 +364,10 @@ window.__ModuleLoader__.load({
         ".kbm-tag[data-tone='success'] { background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 10%, transparent); color: var(--dsw-alias-state-success-primary); }\n" +
         ".kbm-tag[data-tone='warning'] { background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 12%, transparent); color: var(--dsw-alias-state-warn-primary); }\n" +
         ".kbm-tag[data-tone='danger'] { background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent); color: var(--dsw-alias-state-error-primary); }\n" +
+        "/* The tag inks are the state fills (2.1:1 on their pale tint in the light schemes): there they are pulled toward the text colour (audit A1-11). */\n" +
+        "body:not([data-ds-dark-theme]) .kbm-tag[data-tone='success'] { color: color-mix(in srgb, var(--dsw-alias-state-success-primary) 50%, var(--dsw-alias-label-primary)); }\n" +
+        "body:not([data-ds-dark-theme]) .kbm-tag[data-tone='warning'] { color: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 50%, var(--dsw-alias-label-primary)); }\n" +
+        "body:not([data-ds-dark-theme]) .kbm-tag[data-tone='danger'] { color: color-mix(in srgb, var(--dsw-alias-state-error-primary) 80%, var(--dsw-alias-label-primary)); }\n" +
         ".kml-scan-btn { display: inline-flex; align-items: center; gap: 4px; }\n" +
         ".kml-spin { display: inline-flex; animation: kml-rot 0.9s linear infinite; }\n" +
         "@keyframes kml-rot { to { transform: rotate(360deg); } }\n" +
@@ -362,9 +381,11 @@ window.__ModuleLoader__.load({
         ".kbm-dot[data-state='error'] { color: var(--dsw-alias-state-error-primary); }\n" +
         ".kbm-dot[data-state='idle'] { color: var(--dsw-alias-state-idle-primary); }\n"
 
-      const KML_CSS = "/* kml-* : mise en page du panneau Modèles locaux (ce bundle seulement — tokens DSH) */\n" +
+      const KML_CSS = "/* kml-*: layout of the Local models panel (this bundle only — DSH tokens) */\n" +
         ".kbm-resync { cursor: pointer; font: inherit; border: none; background: none; padding: 0; }\n" +
         ".kml-root { border: 1px solid var(--dsw-alias-border-l2); border-radius: 14px; background: var(--dsw-alias-bg-layer-2); padding: 16px; max-width: 720px; margin-bottom: 16px; }\n" +
+        "/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */\n" +
+        "body:not([data-ds-dark-theme]) .kml-root{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}\n" +
         ".kml-titre { margin: 0; font-size: 18px; line-height: 1.3; font-weight: 600; letter-spacing: -.01em; color: var(--dsw-alias-label-primary); }\n" +
         ".kml-soustitre { margin: 6px 0 20px; color: var(--dsw-alias-label-secondary); font-size: 13px; line-height: 1.5; }\n" +
         ".kml-tuiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px; }\n" +
@@ -634,7 +655,7 @@ window.__ModuleLoader__.load({
             const providers = value.providers && typeof value.providers === 'object' ? value.providers : {}
             const prof = providers[ROUTE_LOCALE]
             setOllamaLocal(prof && typeof prof === 'object' ? prof : null)
-          } catch (e) { /* le panneau reste sur son état — Revérifier relit */ }
+          } catch (e) { /* the panel keeps its state — Re-check reads again */ }
         }, [])
 
                 // ── the install job, polled every 600 ms ───────────────────────────
@@ -771,7 +792,7 @@ window.__ModuleLoader__.load({
               h('span', { className: 'kml-prog-texte', key: 't' }, job.pct === null ? m('kml.en.cours') : job.pct + ' %'),
               h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-ghost kml-detail-btn', key: 'd', 'data-kml': 'detail-toggle', 'aria-expanded': String(detailOuvert), 'aria-label': m('kml.detail.ouvrir'), title: m('kml.detail.ouvrir'), onClick: () => setDetailOuvert(!detailOuvert) },
                 h('span', { className: 'kml-chev' + (detailOuvert ? ' open' : ''), 'aria-hidden': 'true' }, '›')),
-              h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-outline', key: 'a', onClick: annuler, title: 'Annuler', 'aria-label': 'Annuler' }, '✕'),
+              h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-outline', key: 'a', onClick: annuler, title: m('kml.annuler'), 'aria-label': m('kml.annuler') }, '✕'),
             ]
           } else if (estBranche === true) {
                         // The tag is clickable: wiring again re-syncs the
@@ -808,7 +829,7 @@ window.__ModuleLoader__.load({
                 // Green fits, amber is tight, red is too heavy; grey is « no verdict » (size or machine not measured).
                 h('span', { className: 'kbm-dot', 'data-state': etat === 'compatible' ? 'done' : (etat === 'juste' ? 'warning' : (etat === 'lourd' ? 'error' : 'idle')) }),
                 m('kml.etat.' + etat)),
-              ec !== null ? h('span', { className: 'kml-etat-sous' }, m('kml.en.charge', { go: String(ec).replace('.', ',') })) : null,
+              ec !== null ? h('span', { className: 'kml-etat-sous' }, m('kml.en.charge', { go: kbNum(ec, kbLocaleRead()) })) : null,
               h('span', { className: 'kml-bar', 'aria-hidden': 'true' },
                 h('span', { className: 'kml-bar-fill', 'data-etat': etat, style: { width: ec === null || ramGo === null ? '0%' : Math.min(100, Math.round(ec / ramGo * 100)) + '%' } }))),
             h('span', { className: 'kml-mod-actions' }, actions),
@@ -845,7 +866,7 @@ window.__ModuleLoader__.load({
               : tuile(m('kml.tuile.machine'),
                 h('span', { className: 'kml-tuile-ligne' },
                   h('span', { className: 'kbm-dot', 'data-state': 'done' }),
-                  h('b', null, (machine.chip || machine.arch) + (ramGo !== null ? ' · ' + ramGo + ' Go RAM' : '')),
+                  h('b', null, (machine.chip || machine.arch) + (ramGo !== null ? ' · ' + ramGo + ' ' + m('kml.unit.go') + ' RAM' : '')),
                   h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-ghost', onClick: lancerScan, disabled: scan === 'encours',
                     title: m('kml.scan.bouton'), 'aria-label': scan === 'encours' ? m('kml.scan.encours') : m('kml.reverifier') },
                   scan === 'encours'
@@ -853,7 +874,7 @@ window.__ModuleLoader__.load({
                     : h('span', { className: 'kml-scan-btn' }, Ic('refresh', 12), ' ', m('kml.scan.bouton')))), 'm'),
             tuile(m('kml.tuile.budget'),
               h('span', { className: 'kml-tuile-ligne' },
-                h('b', null, budgetGo === null ? '—' : '≈ ' + budgetGo + ' Go'),
+                h('b', null, budgetGo === null ? '—' : '≈ ' + budgetGo + ' ' + m('kml.unit.go')),
                 h('span', { className: 'kml-tuile-note' }, m('kml.budget.note'))), 'b'),
             tuile(m('kml.tuile.moteur'),
               machine === null
@@ -937,7 +958,7 @@ window.__ModuleLoader__.load({
                   h('span', null, h('b', null, m('kml.hf.champ.format')), ' ', m('kml.hf.gguf')),
                   h('span', null, h('b', null, m('kml.hf.champ.quant')), ' ', hfVerdict.quant === null ? m('kml.etat.inconnu') : hfVerdict.quant),
                   h('span', null, h('b', null, m('kml.hf.champ.memoire')), ' ',
-                    hfVerdict.poidsGo === null ? m('kml.etat.inconnu') : '≈ ' + String(hfVerdict.poidsGo).replace('.', ',') + ' Go · ' + m('kml.en.charge', { go: String(hfVerdict.enChargeGo).replace('.', ',') })),
+                    hfVerdict.poidsGo === null ? m('kml.etat.inconnu') : '≈ ' + kbNum(hfVerdict.poidsGo, kbLocaleRead()) + ' ' + m('kml.unit.go') + ' · ' + m('kml.en.charge', { go: kbNum(hfVerdict.enChargeGo, kbLocaleRead()) })),
                   h('span', null, h('b', null, m('kml.hf.champ.gpu')), ' ',
                     machine !== null && machine.platform === 'darwin' ? m('kml.hf.metal') : m('kml.hf.metal.cpu')),
                   hfHorsChamp === true
@@ -996,7 +1017,7 @@ window.__ModuleLoader__.load({
                 h(LigneContexte, { modele: mod, onContexte: (n) => majContexte(mod.id, n) }),
                 h('span', { className: 'kbm-tag', 'data-tone': 'warning', title: m('kml.relance') }, '⟳'),
                 writable === true
-                  ? h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-ghost', title: 'Retirer de DSH', 'aria-label': 'Retirer ' + mod.id, onClick: () => debrancher(mod.id) }, Ic('trash', 13))
+                  ? h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-ghost', title: m('kml.retirer'), 'aria-label': m('kml.retirer.id', { id: mod.id }), onClick: () => debrancher(mod.id) }, Ic('trash', 13))
                   : null))))
       }
 
@@ -1024,7 +1045,7 @@ window.__ModuleLoader__.load({
       }
 
       return {
-        inject: ['slots', 'remote', 'remote.settings', 'remote.llm', 'locale'],
+        inject: ['slots', 'remote', 'remote.settings', 'remote.llm'],
         apply(ctx) {
           kbCtx = ctx
           // The first-run wizard (kybernos-plugin) asks for the recommendation and connects a pulled model through this.
@@ -1036,11 +1057,6 @@ window.__ModuleLoader__.load({
             try { window.__KB_LOCAL__ = seam } catch (e) { /* no window */ }
             return () => { try { if (window.__KB_LOCAL__ === seam) delete window.__KB_LOCAL__ } catch (e) { /* no window */ } }
           }, 'modeles-locaux: wizard seam')
-          try {
-            const svc = ctx.get('locale')
-            const lu = typeof svc === 'string' ? svc : (svc !== null && svc !== undefined ? (svc.locale || svc.current || svc.lang) : null)
-            kbLocaleRead = () => (lu !== null && lu !== undefined && String(lu).toLowerCase().indexOf('fr') === 0) || String(document.documentElement.lang || '').toLowerCase().indexOf('fr') === 0 ? 'fr' : 'en'
-          } catch (e) { kbLocaleRead = () => 'en' }
           styles.insert(KBM_CSS, '@local/kybernos-modeles-locaux')
           styles.insert(KML_CSS, '@local/kybernos-modeles-locaux')
                     // (02/10) One door only: the dedicated section below. The foot of the
@@ -1053,14 +1069,14 @@ window.__ModuleLoader__.load({
             return slots2.inject('settings.section', () => slots2.register(
               { name: 'settings.section', id: 'kybernos-ollama', order: 28, label: m('kml.page.titre') },
               Panel))
-          }, 'modeles-locaux: section Réglages dédiée')
+          }, 'modeles-locaux: dedicated Settings section')
                     // (02/10) The mount in the « AI Provider & Models » page is removed:
                     // the panel now only exists in the dedicated section above.
         },
       }
     } catch (bootError) {
-      try { console.error('[kybernos-modeles-locaux] chargement impossible — plugin désactivé, GUI préservée', bootError) } catch (e2) { /* console indisponible */ }
-      return { apply() { /* plugin désactivé après erreur de chargement */ } }
+      try { console.error('[kybernos-modeles-locaux] cannot load — plugin disabled, GUI preserved', bootError) } catch (e2) { /* console indisponible */ }
+      return { apply() { /* plugin disabled after a load error */ } }
     }
   },
 })

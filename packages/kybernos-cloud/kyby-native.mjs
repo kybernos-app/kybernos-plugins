@@ -24,7 +24,7 @@ const CONTEXT_TTL_MS = 60 * 1000
 const UNSUPPORTED_MS = 10 * 60 * 1000
 /** The memory block the cloud bundle injects into a turn: removed before a turn's words are kept (same markers as index.js). */
 const MEMORY_HEAD = '[KYBERNOS MEMORY]'
-const MEMORY_TAIL = 'memory_search pour en chercher.'
+const MEMORY_TAIL = 'memory_search to look one up.'
 const KYBY_HEAD = '[KYBY]'
 const KYBY_TAIL = '[/KYBY]'
 

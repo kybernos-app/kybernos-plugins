@@ -28,7 +28,7 @@ window.__ModuleLoader__.load({
       const KB_M_T = {
         'kfl.titre': { fr: 'Free LLMs', en: 'Free LLMs' },
         'kfl.soustitre': { fr: 'Des modèles gratuits, sans compte ni clé API.', en: 'Free models, no account or API key.' },
-        'kfl.avertis': { fr: 'Ces modèles sont gratuits : les prompts envoyés peuvent être conservés par OpenCode pour améliorer leurs modèles. N’y envoyez rien de sensible.', en: 'These models are free: prompts you send may be retained by OpenCode to improve their models. Do not send anything sensitive.' },
+        'kfl.avertis': { fr: 'Ces modèles sont gratuits : les prompts envoyés peuvent être conservés par OpenCode pour améliorer leurs modèles. N’y envoie rien de sensible.', en: 'These models are free: prompts you send may be retained by OpenCode to improve their models. Do not send anything sensitive.' },
         'kfl.liste': { fr: 'Modèles gratuits disponibles', en: 'Available free models' },
         'kfl.vide': { fr: 'Aucun modèle gratuit détecté pour l’instant.', en: 'No free model detected right now.' },
         'kfl.catalogue.err': { fr: 'Catalogue injoignable : {err}', en: 'Catalog unreachable: {err}' },
@@ -43,19 +43,26 @@ window.__ModuleLoader__.load({
         'kfl.verifie': { fr: 'Dernière vérification {time}', en: 'Last checked {time}' },
         'kfl.sonde.ok': { fr: 'Répond — contrat accepté.', en: 'Answers — contract accepted.' },
         'kfl.sonde.ko': { fr: 'Le test a échoué ({code}).', en: 'The test failed ({code}).' },
-        'kfl.tier.locked': { fr: 'Le palier gratuit est indisponible pour le moment : OpenCode l’a verrouillé, ces modèles ne peuvent pas répondre. Réessayez plus tard.', en: 'The free tier is unavailable right now: OpenCode has locked it, so these models cannot answer. Try again later.' },
-        'kfl.tier.rate': { fr: 'Le palier gratuit est saturé pour le moment. Réessayez dans un instant.', en: 'The free tier is busy right now. Try again in a moment.' },
-        'kfl.tier.network': { fr: 'OpenCode est injoignable. Vérifiez la connexion.', en: 'OpenCode cannot be reached. Check the connection.' },
+        'kfl.tier.locked': { fr: 'Le palier gratuit est indisponible pour le moment : OpenCode l’a verrouillé, ces modèles ne peuvent pas répondre. Réessaie plus tard.', en: 'The free tier is unavailable right now: OpenCode has locked it, so these models cannot answer. Try again later.' },
+        'kfl.tier.rate': { fr: 'Le palier gratuit est saturé pour le moment. Réessaie dans un instant.', en: 'The free tier is busy right now. Try again in a moment.' },
+        'kfl.tier.network': { fr: 'OpenCode est injoignable. Vérifie la connexion.', en: 'OpenCode cannot be reached. Check the connection.' },
         'kfl.tier.model': { fr: 'Le modèle testé n’est plus proposé par le palier gratuit.', en: 'The tested model is no longer offered by the free tier.' },
-        'kfl.relance': { fr: 'Si un modèle n’apparaît pas dans le sélecteur : relancez DSH.', en: 'If a model does not show in the picker: restart DSH.' },
+        'kfl.relance': { fr: 'Si un modèle n’apparaît pas dans le sélecteur : relance DSH.', en: 'If a model does not show in the picker: restart DSH.' },
         'kfl.auto': { fr: 'Activé automatiquement au premier lancement.', en: 'Enabled automatically at first run.' },
         'kfl.erreur': { fr: 'Erreur', en: 'Error' },
         // The page's host half does not answer (DSH not restarted after an update, a failing route): the same sentence as the other settings pages.
-        'kfl.hote': { fr: 'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarrez DSH, puis appuyez sur Réessayer.', en: 'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.' },
+        'kfl.hote': { fr: 'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarre DSH, puis appuie sur Réessayer.', en: 'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.' },
         'kfl.reessayer': { fr: 'Réessayer', en: 'Retry' },
         'kfl.page.titre': { fr: 'Free LLMs', en: 'Free LLMs' },
       }
-      let kbLocaleRead = () => 'en'
+      // « fr » for the French of the product (the locale id « kybernos », or any fr*), « en » for every other language, translated
+      // or not: it is what Kybernos resolved (the <html lang> stays « en » under the Language page's French, « kybernos » under DSH's selector).
+      const kbLocaleRead = () => {
+        try {
+          const l = String(window.__KB_LANG_RESOLVE__())
+          return l === 'kybernos' || l.split(/[-_]/)[0] === 'fr' ? 'fr' : 'en'
+        } catch (e) { return 'en' }
+      }
       // Text separator, locale-aware: French ' : ', English ': '.
       const sep = () => (String(kbLocaleRead()).toLowerCase().indexOf('fr') === 0 ? ' : ' : ': ')
       const m = (key, vars) => {
@@ -113,6 +120,9 @@ window.__ModuleLoader__.load({
         ".kbm-tag[data-tone='neutral'] { background: var(--dsw-alias-bg-module-platform); color: var(--dsw-alias-label-secondary); }\n" +
         ".kbm-tag[data-tone='success'] { background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 10%, transparent); color: var(--dsw-alias-state-success-primary); }\n" +
         ".kbm-tag[data-tone='warning'] { background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 12%, transparent); color: var(--dsw-alias-state-warn-primary); }\n" +
+        "/* The tag inks are the state fills (2.1:1 on their pale tint in the light schemes): there they are pulled toward the text colour (audit A1-11). */\n" +
+        "body:not([data-ds-dark-theme]) .kbm-tag[data-tone='success'] { color: color-mix(in srgb, var(--dsw-alias-state-success-primary) 50%, var(--dsw-alias-label-primary)); }\n" +
+        "body:not([data-ds-dark-theme]) .kbm-tag[data-tone='warning'] { color: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 50%, var(--dsw-alias-label-primary)); }\n" +
         ".kbm-dot { position: relative; display: inline-block; flex: none; width: 10px; height: 10px; }\n" +
         ".kbm-dot::after { content: ''; position: absolute; inset: 20%; border-radius: 50%; background: currentColor; }\n" +
         ".kbm-dot[data-state='done'] { color: var(--dsw-alias-state-success-primary); }\n" +
@@ -122,6 +132,8 @@ window.__ModuleLoader__.load({
 
       const KFL_CSS = "/* kfl-* : the Free LLMs panel layout (this bundle only — DSH tokens) */\n" +
         ".kfl-root { border: 1px solid var(--dsw-alias-border-l2); border-radius: 14px; background: var(--dsw-alias-bg-layer-2); padding: 16px; max-width: 720px; margin-bottom: 16px; }\n" +
+        "/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */\n" +
+        "body:not([data-ds-dark-theme]) .kfl-root{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}\n" +
         ".kfl-titre { margin: 0; font-size: 18px; line-height: 1.3; font-weight: 600; letter-spacing: -.01em; color: var(--dsw-alias-label-primary); }\n" +
         ".kfl-soustitre { margin: 6px 0 14px; color: var(--dsw-alias-label-secondary); font-size: 13px; line-height: 1.5; }\n" +
         ".kfl-avertis { margin: 0 0 14px; padding: 10px 12px; border: 0.5px solid color-mix(in srgb, var(--dsw-alias-state-warn-primary) 35%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 8%, transparent); color: var(--dsw-alias-state-warn-label, var(--dsw-alias-state-warn-primary)); font-size: 13px; line-height: 1.5; }\n" +
@@ -146,7 +158,7 @@ window.__ModuleLoader__.load({
         ".kfl-sonde { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 13px; color: var(--dsw-alias-label-secondary); }\n" +
         ".kfl-sonde[data-ok='true'] { color: var(--dsw-alias-state-success-primary); }\n" +
         ".kfl-sonde[data-ok='false'] { color: var(--dsw-alias-state-error-primary); }\n" +
-        ".kfl-locked { margin: 0 0 10px; font-size: 13px; line-height: 1.5; color: var(--dsw-alias-state-error-primary); }\n"
+        ".kfl-locked { margin: 0 0 10px; font-size: 13px; line-height: 1.5; color: color-mix(in srgb, var(--dsw-alias-state-error-primary) 80%, var(--dsw-alias-label-primary)); }\n"
 
       // ── host calls ───────────────────────────────────────────────────────
       // A refused connection, a 404 page or any answer that is not JSON is the same thing for the person: the host half does not
@@ -219,7 +231,7 @@ window.__ModuleLoader__.load({
           const r = await jsonPost('/free-llms/enable', { acknowledged: ack === true })
           setBusy(null)
           if (r && r.ok === true) { await refresh() } else {
-            setErreur(erreurDe(r, 'refus'))
+            setErreur(erreurDe(r, 'refused'))
           }
         }
         const deconnecter = async () => {
@@ -299,13 +311,8 @@ window.__ModuleLoader__.load({
       }
 
       return {
-        inject: ['slots', 'remote', 'locale'],
+        inject: ['slots', 'remote'],
         apply(ctx) {
-          try {
-            const svc = ctx.get('locale')
-            const lu = typeof svc === 'string' ? svc : (svc !== null && svc !== undefined ? (svc.locale || svc.current || svc.lang) : null)
-            kbLocaleRead = () => (lu !== null && lu !== undefined && String(lu).toLowerCase().indexOf('fr') === 0) || String(document.documentElement.lang || '').toLowerCase().indexOf('fr') === 0 ? 'fr' : 'en'
-          } catch (e) { kbLocaleRead = () => 'en' }
           styles.insert(KBM_CSS, '@local/kybernos-free-llms')
           styles.insert(KFL_CSS, '@local/kybernos-free-llms')
           // One door: the dedicated Settings section.

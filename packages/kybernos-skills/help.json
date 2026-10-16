@@ -1,11 +1,11 @@
 {
   "what": {
-    "fr": "Vos compétences (skills) : des consignes réutilisables que vos agents chargent. Créez-en, installez-en, ou partagez-les avec votre équipe.",
+    "fr": "Tes compétences (skills) : des consignes réutilisables que tes agents chargent. Crée-en, installe-en, ou partage-les avec ton équipe.",
     "en": "Your skills: reusable instructions your agents load. Create some, install some, or share them with your team."
   },
   "steps": [
     {
-      "fr": "« Featured » propose nos choix à installer en un clic ; « Yours » liste vos skills (recherche, filtres, interrupteur).",
+      "fr": "« Featured » propose nos choix à installer en un clic ; « Yours » liste tes skills (recherche, filtres, interrupteur).",
       "en": "“Featured” offers our picks to install in one click; “Yours” lists your skills (search, filters, a switch)."
     },
     {
@@ -13,11 +13,11 @@
       "en": "“Create a skill” (name, description, content) or “Import from GitHub” (owner/repo and the skill’s name)."
     },
     {
-      "fr": "« Discover » classe les skills publics : ouvrez une ligne (dépôt, dossier, texte, audits), puis « Installer » demande confirmation.",
+      "fr": "« Discover » classe les skills publics : ouvre une ligne (dépôt, dossier, texte, audits), puis « Installer » demande confirmation.",
       "en": "“Discover” ranks the public skills: open a row (repository, folder, text, audits), then “Install” asks you to confirm."
     },
     {
-      "fr": "« Team » : le catalogue de votre équipe. Proposez un de vos skills, un admin l’approuve, chacun l’installe. Plan Team requis.",
+      "fr": "« Team » : le catalogue de ton équipe. Propose un de tes skills, un admin l’approuve, chacun l’installe. Plan Team requis.",
       "en": "“Team”: your team’s catalogue. Propose one of your skills, an admin approves it, everyone installs it. Needs the Team plan."
     }
   ],
@@ -27,7 +27,7 @@
     "page": true
   },
   "good": {
-    "fr": "Un skill vient d’un tiers ou d’un collègue : DSH ne le vérifie pas, lisez ses fichiers et ses audits avant de l’installer ou de l’approuver.",
+    "fr": "Un skill vient d’un tiers ou d’un collègue : DSH ne le vérifie pas, lis ses fichiers et ses audits avant de l’installer ou de l’approuver.",
     "en": "A skill comes from a third party or a colleague: DSH does not check it, so read its files and audits before you install or approve it."
   },
   "url": "https://help.kybernos.app/{lang}/features/what-are-skills-and-memory/"

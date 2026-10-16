@@ -229,7 +229,7 @@
         },
         "steps": [
           {
-            "fr": "Dans « Essentiel » (ouvert par défaut), choisissez un mode, un thème (livré ou à vous), un accent, un fond et une police.",
+            "fr": "Dans « Essentiel » (ouvert par défaut), choisis un mode, un thème (livré ou à toi), un accent, un fond et une police.",
             "en": "In “Essentials” (open by default), pick a mode, a theme (shipped or your own), an accent color, a background and a font."
           },
           {
@@ -237,11 +237,11 @@
             "en": "“Glass and background” sets transparency and blur once a background is chosen; “Colors”, “Text and shape” and “Accessibility” refine."
           },
           {
-            "fr": "« Animation » : choisissez le dessin et les mots affichés en bas du chat pendant que l’agent travaille.",
+            "fr": "« Animation » : choisis le dessin et les mots affichés en bas du chat pendant que l’agent travaille.",
             "en": "“Animation”: choose the drawing and the words shown at the bottom of the chat while the agent works."
           },
           {
-            "fr": "« Partage » garde vos thèmes (enregistrer, importer, exporter) ; « Galerie » en propose d’autres à essayer et installer.",
+            "fr": "« Partage » garde tes thèmes (enregistrer, importer, exporter) ; « Galerie » en propose d’autres à essayer et installer.",
             "en": "“Sharing” keeps your themes (save, import, export); “Gallery” offers more to try and install."
           }
         ],
@@ -273,20 +273,20 @@
       },
       "aide": {
         "what": {
-          "fr": "Traduit l’interface de Kybernos et celle de DSH dans la langue de votre choix, avec un modèle déjà configuré. L’arabe ou l’hébreu inversent aussi le sens de lecture.",
+          "fr": "Traduit l’interface de Kybernos et celle de DSH dans la langue de ton choix, avec un modèle déjà configuré. L’arabe ou l’hébreu inversent aussi le sens de lecture.",
           "en": "Translates the Kybernos and DSH interface into the language you choose, using a model you already set up. Arabic or Hebrew also flip the reading direction."
         },
         "steps": [
           {
-            "fr": "Ouvrez « Ajouter une langue », cherchez-la (ex. Español) et choisissez-la dans la liste.",
+            "fr": "Ouvre « Ajouter une langue », cherche-la (ex. Español) et choisis-la dans la liste.",
             "en": "Open “Add a language”, search for it (e.g. Español) and pick it from the list."
           },
           {
-            "fr": "Appuyez sur « Démarrer la traduction » et gardez l’onglet ouvert : un rond en bas de la barre latérale suit l’avancement.",
+            "fr": "Appuie sur « Démarrer la traduction » et garde l’onglet ouvert : un rond en bas de la barre latérale suit l’avancement.",
             "en": "Press “Start translation” and keep the tab open: a ring at the bottom of the sidebar shows progress."
           },
           {
-            "fr": "« Mettre en pause » puis « Reprendre la traduction » quand vous voulez : ce qui est déjà traduit est conservé.",
+            "fr": "« Mettre en pause » puis « Reprendre la traduction » quand tu veux : ce qui est déjà traduit est conservé.",
             "en": "“Pause”, then “Resume translation” whenever you like: what is already translated is kept."
           },
           {
@@ -300,7 +300,7 @@
           "page": true
         },
         "good": {
-          "fr": "Seuls des textes d’interface partent chez le fournisseur du modèle choisi dans « Avancé », pas le contenu de vos conversations. Ce qui n’est pas encore traduit s’affiche en anglais.",
+          "fr": "Seuls des textes d’interface partent chez le fournisseur du modèle choisi dans « Avancé », pas le contenu de tes conversations. Ce qui n’est pas encore traduit s’affiche en anglais.",
           "en": "Only interface texts go to the provider of the model chosen in “Advanced”, not the content of your chats. Anything not translated yet shows in English."
         }
       }
@@ -322,7 +322,7 @@
       },
       "aide": {
         "what": {
-          "fr": "Une page pour tous vos fournisseurs et modèles : ajoutez-en, désactivez-en sans rien supprimer, récupérez leurs modèles et comparez capacités, prix et notes.",
+          "fr": "Une page pour tous tes fournisseurs et modèles : ajoute-en, désactive-en sans rien supprimer, récupère leurs modèles et compare capacités, prix et notes.",
           "en": "One page for all your providers and models: add them, switch them off without deleting, fetch their models and compare capabilities, prices and scores."
         },
         "steps": [
@@ -331,15 +331,15 @@
             "en": "On the “Providers” tab, each provider has a card: API key state, model count and a switch to turn it off."
           },
           {
-            "fr": "« Ajouter un fournisseur » : choisissez-le dans le catalogue et collez votre clé API, ou prenez « API personnalisée » pour votre adresse.",
+            "fr": "« Ajouter un fournisseur » : choisis-le dans le catalogue et colle ta clé API, ou prends « API personnalisée » pour ton adresse.",
             "en": "Click “Add provider”, pick it from the catalog and paste your API key, or use “Custom API” for your own address."
           },
           {
-            "fr": "Dans sa fiche, « Récupérer les modèles disponibles » interroge le fournisseur : cochez ceux à ajouter, puis « Appliquer ».",
+            "fr": "Dans sa fiche, « Récupérer les modèles disponibles » interroge le fournisseur : coche ceux à ajouter, puis « Appliquer ».",
             "en": "In its sheet, “Fetch available models” asks the provider: tick the ones to add, then “Apply”."
           },
           {
-            "fr": "Dans l’onglet « Modèles », cherchez, filtrez et triez ; ouvrez un modèle pour voir ses capacités, ses prix et ses notes externes.",
+            "fr": "Dans l’onglet « Modèles », cherche, filtre et trie ; ouvre un modèle pour voir ses capacités, ses prix et ses notes externes.",
             "en": "On the “Models” tab, search, filter and sort; open a model to see its capabilities, prices and external scores."
           }
         ],
@@ -403,12 +403,12 @@
       },
       "aide": {
         "what": {
-          "fr": "Vos compétences (skills) : des consignes réutilisables que vos agents chargent. Créez-en, installez-en, ou partagez-les avec votre équipe.",
+          "fr": "Tes compétences (skills) : des consignes réutilisables que tes agents chargent. Crée-en, installe-en, ou partage-les avec ton équipe.",
           "en": "Your skills: reusable instructions your agents load. Create some, install some, or share them with your team."
         },
         "steps": [
           {
-            "fr": "« Featured » propose nos choix à installer en un clic ; « Yours » liste vos skills (recherche, filtres, interrupteur).",
+            "fr": "« Featured » propose nos choix à installer en un clic ; « Yours » liste tes skills (recherche, filtres, interrupteur).",
             "en": "“Featured” offers our picks to install in one click; “Yours” lists your skills (search, filters, a switch)."
           },
           {
@@ -416,11 +416,11 @@
             "en": "“Create a skill” (name, description, content) or “Import from GitHub” (owner/repo and the skill’s name)."
           },
           {
-            "fr": "« Discover » classe les skills publics : ouvrez une ligne (dépôt, dossier, texte, audits), puis « Installer » demande confirmation.",
+            "fr": "« Discover » classe les skills publics : ouvre une ligne (dépôt, dossier, texte, audits), puis « Installer » demande confirmation.",
             "en": "“Discover” ranks the public skills: open a row (repository, folder, text, audits), then “Install” asks you to confirm."
           },
           {
-            "fr": "« Team » : le catalogue de votre équipe. Proposez un de vos skills, un admin l’approuve, chacun l’installe. Plan Team requis.",
+            "fr": "« Team » : le catalogue de ton équipe. Propose un de tes skills, un admin l’approuve, chacun l’installe. Plan Team requis.",
             "en": "“Team”: your team’s catalogue. Propose one of your skills, an admin approves it, everyone installs it. Needs the Team plan."
           }
         ],
@@ -430,7 +430,7 @@
           "page": true
         },
         "good": {
-          "fr": "Un skill vient d’un tiers ou d’un collègue : DSH ne le vérifie pas, lisez ses fichiers et ses audits avant de l’installer ou de l’approuver.",
+          "fr": "Un skill vient d’un tiers ou d’un collègue : DSH ne le vérifie pas, lis ses fichiers et ses audits avant de l’installer ou de l’approuver.",
           "en": "A skill comes from a third party or a colleague: DSH does not check it, so read its files and audits before you install or approve it."
         },
         "url": "https://help.kybernos.app/{lang}/features/what-are-skills-and-memory/"
@@ -453,16 +453,16 @@
       },
       "aide": {
         "what": {
-          "fr": "Enregistrez vos messages types comme commandes « / » dans la zone de saisie, ou comme boutons d’action sous les réponses de l’assistant, avec un formulaire si besoin.",
+          "fr": "Enregistre tes messages types comme commandes « / » dans la zone de saisie, ou comme boutons d’action sous les réponses de l’assistant, avec un formulaire si besoin.",
           "en": "Save your go-to prompts as “/” commands in the message box, or as action buttons under the assistant’s replies, with a small form if needed."
         },
         "steps": [
           {
-            "fr": "Tapez « / » dans la zone de saisie : vos commandes suivent celles de DSH. Choisissez-en une et remplissez son formulaire le cas échéant.",
+            "fr": "Tape « / » dans la zone de saisie : tes commandes suivent celles de DSH. Choisis-en une et remplis son formulaire le cas échéant.",
             "en": "Type “/” in the message box: your commands show after DSH’s own. Pick one and fill in its form, if it has one."
           },
           {
-            "fr": "Pour créer une commande, écrivez votre texte puis cliquez sur le marque-page « Save as command » dans la barre de la zone de saisie.",
+            "fr": "Pour créer une commande, écris ton texte puis clique sur le marque-page « Save as command » dans la barre de la zone de saisie.",
             "en": "To create a command, write your text, then click the bookmark button “Save as command” in the message box bar."
           },
           {
@@ -480,7 +480,7 @@
           "page": true
         },
         "good": {
-          "fr": "Vos commandes restent sur cet ordinateur. « Créer avec l’IA » ouvre un nouveau chat qui s’appuie sur une skill dédiée : si elle n’est pas installée, créez la commande à la main.",
+          "fr": "Tes commandes restent sur cet ordinateur. « Créer avec l’IA » ouvre un nouveau chat qui s’appuie sur une skill dédiée : si elle n’est pas installée, crée la commande à la main.",
           "en": "Your commands stay on this computer. “Create with AI” opens a new chat that relies on a dedicated skill: if it is not installed, create the command by hand."
         }
       }
@@ -551,12 +551,12 @@
       },
       "aide": {
         "what": {
-          "fr": "Choisit, pour chaque étape déléguée, le meilleur modèle parmi ceux que vous autorisez, après avoir vérifié qu’il répond, avec des modèles de repli.",
+          "fr": "Choisit, pour chaque étape déléguée, le meilleur modèle parmi ceux que tu autorises, après avoir vérifié qu’il répond, avec des modèles de repli.",
           "en": "Picks, for each delegated step, the best model among the ones you allow, after checking it answers, with fallback models if one goes down."
         },
         "steps": [
           {
-            "fr": "Choisissez les modèles qu’Auto peut utiliser : tous (défaut), les gratuits, ou « Ma liste » (fournisseur/modèle ; l’ordre est le repli).",
+            "fr": "Choisis les modèles qu’Auto peut utiliser : tous (défaut), les gratuits, ou « Ma liste » (fournisseur/modèle ; l’ordre est le repli).",
             "en": "Choose the models Auto may use: all (default), the free ones, or “My list” (provider/model; the list order is the fallback order)."
           },
           {
@@ -578,7 +578,7 @@
           "page": true
         },
         "good": {
-          "fr": "Auto ne change jamais le modèle de votre session : il conseille un modèle pour les étapes déléguées, parmi ceux que vous autorisez. « Ma liste » vide : le modèle de la session est gardé.",
+          "fr": "Auto ne change jamais le modèle de ta session : il conseille un modèle pour les étapes déléguées, parmi ceux que tu autorises. « Ma liste » vide : le modèle de la session est gardé.",
           "en": "Auto never changes your session’s model: it advises a model for the delegated steps, among the ones you allow. An empty “My list”: the session’s model is kept."
         },
         "url": "https://help.kybernos.app/{lang}/models-and-budget/let-kybernos-pick-the-model/"
@@ -735,7 +735,7 @@
             "en": "The page lists the free models available right now, read straight from OpenCode."
           },
           {
-            "fr": "Cochez « J’ai compris que mes prompts peuvent être conservés », puis « Brancher sur DSH » : le fournisseur et ses modèles sont créés.",
+            "fr": "Coche « J’ai compris que mes prompts peuvent être conservés », puis « Brancher sur DSH » : le fournisseur et ses modèles sont créés.",
             "en": "Tick “I understand my prompts may be retained”, then “Connect to DSH”: the provider and its models are created."
           },
           {
@@ -753,7 +753,7 @@
           "page": true
         },
         "good": {
-          "fr": "Rien n’est envoyé sans votre action. Modèles gratuits : les prompts peuvent être conservés, n’y mettez rien de sensible.",
+          "fr": "Rien n’est envoyé sans ton action. Modèles gratuits : les prompts peuvent être conservés, n’y mets rien de sensible.",
           "en": "Nothing is sent without your action. Free models: prompts may be retained, so do not put anything sensitive there."
         },
         "url": "https://help.kybernos.app/{lang}/models-and-budget/use-free-models/"
@@ -776,24 +776,24 @@
       },
       "aide": {
         "what": {
-          "fr": "Relie vos applications (Slack, GitHub…) à vos agents : avec votre propre clé Composio, ou avec votre compte Kybernos, sans clé sur la machine.",
+          "fr": "Relie tes applications (Slack, GitHub…) à tes agents : avec ta propre clé Composio, ou avec ton compte Kybernos, sans clé sur la machine.",
           "en": "Links your apps (Slack, GitHub…) to your agents: with your own Composio key, or with your Kybernos account, with no key on this machine."
         },
         "steps": [
           {
-            "fr": "Avec votre clé : créez-la sur dashboard.composio.dev, collez-la dans Réglages › Connecteurs, puis « Enregistrer ».",
+            "fr": "Avec ta clé : crée-la sur dashboard.composio.dev, colle-la dans Réglages › Connecteurs, puis « Enregistrer ».",
             "en": "With your key: create it on dashboard.composio.dev, paste it in Settings › Connectors, then click “Save”."
           },
           {
-            "fr": "Barre latérale › Connecteurs › « Découvrir » : choisissez une app, « Ajouter une connexion », puis autorisez-la dans l'onglet qui s'ouvre.",
+            "fr": "Barre latérale › Connecteurs › « Découvrir » : choisis une app, « Ajouter une connexion », puis autorise-la dans l'onglet qui s'ouvre.",
             "en": "Sidebar › Connectors › “Discover”: pick an app, click “Add a connection”, then authorize it in the tab that opens."
           },
           {
-            "fr": "Avec votre compte Kybernos (si votre serveur le propose) : « Kybernos Cloud » dans Réglages › Connecteurs, puis « Connecter une app ».",
+            "fr": "Avec ton compte Kybernos (si ton serveur le propose) : « Kybernos Cloud » dans Réglages › Connecteurs, puis « Connecter une app ».",
             "en": "With your Kybernos account (if your server offers it): “Kybernos Cloud” in Settings › Connectors, then “Connect an app”."
           },
           {
-            "fr": "Un serveur ou une API à vous : onglet « Serveurs MCP », « Ajouter » : formulaire, JSON, spec OpenAPI ou « Ajouter avec l'IA ».",
+            "fr": "Un serveur ou une API à toi : onglet « Serveurs MCP », « Ajouter » : formulaire, JSON, spec OpenAPI ou « Ajouter avec l'IA ».",
             "en": "A server or API of your own: “MCP servers” tab, “Add”: a form, JSON, an OpenAPI spec or “Add with AI”."
           }
         ],
@@ -803,7 +803,7 @@
           "page": true
         },
         "good": {
-          "fr": "Un seul service à la fois côté agents : Kybernos Cloud ou votre clé. Votre clé reste sur votre machine ; une clé changée n'atteint les agents qu'après un redémarrage de DSH.",
+          "fr": "Un seul service à la fois côté agents : Kybernos Cloud ou ta clé. Ta clé reste sur ta machine ; une clé changée n'atteint les agents qu'après un redémarrage de DSH.",
           "en": "One service at a time for the agents: Kybernos Cloud or your key. Your key stays on your machine; a changed key reaches the agents only after DSH restarts."
         },
         "url": "https://help.kybernos.app/{lang}/features/what-are-app-connections/"
@@ -826,34 +826,34 @@
       },
       "aide": {
         "what": {
-          "fr": "Connecte DSH à votre compte Kybernos : les modèles proposés par Kybernos (selon votre formule) et la mémoire du compte, partagée avec vos agents.",
+          "fr": "Connecte DSH à ton compte Kybernos : les modèles proposés par Kybernos (selon ta formule) et la mémoire du compte, partagée avec tes agents.",
           "en": "Connects DSH to your Kybernos account: the models Kybernos offers (according to your plan) and the account memory, shared with your agents."
         },
         "steps": [
           {
-            "fr": "Cliquez « Se connecter / Créer un compte » en bas de la barre latérale, puis « Se connecter » : confirmez le code dans le navigateur.",
+            "fr": "Clique « Se connecter / Créer un compte » en bas de la barre latérale, puis « Se connecter » : confirme le code dans le navigateur.",
             "en": "Click “Sign in / Sign up” at the bottom of the sidebar, then “Sign in”, and confirm the code in your browser."
           },
           {
-            "fr": "Une fois connecté, vos modèles Kybernos s'ajoutent d'eux-mêmes dans Réglages › Models, selon votre formule.",
-            "en": "Once connected, your Kybernos models add themselves in Settings › Models, according to your plan."
+            "fr": "Une fois connecté, tes modèles Kybernos s'ajoutent d'eux-mêmes dans Réglages › Fournisseur IA & modèles, selon ta formule.",
+            "en": "Once connected, your Kybernos models add themselves in Settings › AI Provider & Models, according to your plan."
           },
           {
-            "fr": "Le bas de la barre latérale montre votre espace et votre formule ; cliquez-le pour « Compte », « Paramètres » ou « Se déconnecter ».",
+            "fr": "Le bas de la barre latérale montre ton espace et ta formule ; clique-le pour « Compte », « Réglages » ou « Se déconnecter ».",
             "en": "The bottom of the sidebar shows your workspace and plan; click it for “Account”, “Settings” or “Log out”."
           },
           {
-            "fr": "Réglages › Kybernos : vos instructions, le réimport des modèles, l'envoi des chats DSH. Souvenirs du compte : Memory & Lessons.",
+            "fr": "Réglages › Kybernos : tes instructions, le réimport des modèles, l'envoi des chats DSH. Souvenirs du compte : Memory & Lessons.",
             "en": "Settings › Kybernos: your instructions, model re-import, DSH chats. Account memories: Settings › Memory & Lessons."
           }
         ],
         "where": {
-          "fr": "Barre latérale (en bas) : « Se connecter / Créer un compte », puis votre espace",
+          "fr": "Barre latérale (en bas) : « Se connecter / Créer un compte », puis ton espace",
           "en": "Sidebar (bottom): “Sign in / Sign up”, then your workspace",
           "page": true
         },
         "good": {
-          "fr": "Les modèles Kybernos passent par les serveurs de Kybernos. Vos souvenirs y sont gardés et, par défaut, ajoutés à ce que lit le modèle à chaque tour, quel qu'il soit. Rien de tout cela sans connexion.",
+          "fr": "Les modèles Kybernos passent par les serveurs de Kybernos. Tes souvenirs y sont gardés et, par défaut, ajoutés à ce que lit le modèle à chaque tour, quel qu'il soit. Rien de tout cela sans connexion.",
           "en": "Kybernos models go through Kybernos servers. Your memories are kept there and, by default, added to what the model reads each turn, whichever model it is. None of this happens without signing in."
         }
       }
@@ -1315,24 +1315,24 @@
       },
       "aide": {
         "what": {
-          "fr": "Des assistants de code (Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes…) que votre agent principal peut appeler. DSH vérifie qu'ils sont prêts et peut les installer.",
-          "en": "Coding assistants (Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes…) your main agent can call. DSH checks they are ready and can install them."
+          "fr": "Des workers : des assistants de code (Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes…) que ton agent principal peut appeler. DSH vérifie qu'ils sont prêts et peut les installer.",
+          "en": "Workers: coding assistants (Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes…) your main agent can call. DSH checks they are ready and can install them."
         },
         "steps": [
           {
-            "fr": "Ouvrez Réglages › Workers : une ligne par assistant, avec son état (« Prêt », « À installer », « À connecter »…).",
+            "fr": "Ouvre Réglages › Workers : une ligne par assistant, avec son état (« Prêt », « À installer », « À connecter »…).",
             "en": "Open Settings › Workers: one row per assistant, with its state (“Ready”, “To install”, “To connect”…)."
           },
           {
-            "fr": "Cliquez le bouton de la ligne : Activer, Vérifier, Installer (DSH montre la commande et attend votre accord) ou Se connecter.",
+            "fr": "Clique le bouton de la ligne : Activer, Vérifier, Installer (DSH montre la commande et attend ton accord) ou Se connecter.",
             "en": "Click the row's button: Turn on, Check, Install (DSH shows the command and waits for your OK) or Sign in."
           },
           {
-            "fr": "Connectez-vous avec votre compte dans le navigateur, ou collez votre clé API pour Gemini et Qwen.",
+            "fr": "Connecte-toi avec ton compte dans le navigateur, ou colle ta clé API pour Gemini et Qwen.",
             "en": "Sign in with your account in the browser, or paste your API key for Gemini and Qwen."
           },
           {
-            "fr": "Quand la ligne dit « Prêt », activez « Autorisé » et enregistrez : DSH l'applique en quelques secondes.",
+            "fr": "Quand la ligne dit « Prêt », active « Autorisé » et enregistre : DSH l'applique en quelques secondes.",
             "en": "When the row says “Ready”, turn on “Allowed” and save: DSH applies it in a few seconds."
           }
         ],
@@ -1365,24 +1365,24 @@
       },
       "aide": {
         "what": {
-          "fr": "Détecte la mémoire de votre ordinateur, recommande les modèles qui y tiennent, installe celui que vous choisissez avec Ollama et le branche sur DSH pour travailler en local.",
+          "fr": "Détecte la mémoire de ton ordinateur, recommande les modèles qui y tiennent, installe celui que tu choisis avec Ollama et le branche sur DSH pour travailler en local.",
           "en": "Detects your computer’s memory, recommends the models that fit, installs the one you pick with Ollama and wires it into DSH so you can work locally."
         },
         "steps": [
           {
-            "fr": "La page affiche votre machine et Ollama ; « Rechercher de nouveaux modèles » interroge le catalogue des modèles recommandés.",
+            "fr": "La page affiche ta machine et Ollama ; « Rechercher de nouveaux modèles » interroge le catalogue des modèles recommandés.",
             "en": "The page shows your machine and Ollama; “Search for new models” checks the catalogue of recommended models."
           },
           {
-            "fr": "Dans « Sélection pour cette machine », choisissez un modèle (le « Recommandé » est le plus grand qui tient) puis « Installer ».",
+            "fr": "Dans « Sélection pour cette machine », choisis un modèle (le « Recommandé » est le plus grand qui tient) puis « Installer ».",
             "en": "In “Picked for this machine”, choose a model (the “Recommended” one is the largest that fits) then “Install”."
           },
           {
-            "fr": "Quand il est téléchargé, cliquez sur « Brancher sur DSH » : la carte passe à « Branché » et le modèle devient utilisable dans DSH.",
+            "fr": "Quand il est téléchargé, clique sur « Brancher sur DSH » : la carte passe à « Branché » et le modèle devient utilisable dans DSH.",
             "en": "Once downloaded, click “Wire into DSH”: the card turns to “Wired” and the model becomes usable in DSH."
           },
           {
-            "fr": "Autre modèle : « Modèle personnalisé (Hugging Face) », collez un lien, « Vérifier la compatibilité », puis « Télécharger via Ollama ».",
+            "fr": "Autre modèle : « Modèle personnalisé (Hugging Face) », colle un lien, « Vérifier la compatibilité », puis « Télécharger via Ollama ».",
             "en": "For another model, “Custom model (Hugging Face)”: paste a link, “Check compatibility”, then “Download via Ollama”."
           }
         ],
@@ -1392,7 +1392,7 @@
           "page": true
         },
         "good": {
-          "fr": "Le modèle tourne sur votre machine et rien n’est téléchargé sans votre clic. S’il manque dans le sélecteur de modèles après « Brancher sur DSH », relancez DSH.",
+          "fr": "Le modèle tourne sur ta machine et rien n’est téléchargé sans ton clic. S’il manque dans le sélecteur de modèles après « Brancher sur DSH », relance DSH.",
           "en": "The model runs on your machine and nothing is downloaded without your click. If it is missing from the model picker after “Wire into DSH”, restart DSH."
         },
         "url": "https://help.kybernos.app/{lang}/models-and-budget/use-local-models/"
@@ -1506,20 +1506,20 @@
       },
       "aide": {
         "what": {
-          "fr": "Donne la recherche web à vos agents, avec ou sans clé : des moteurs gratuits marchent tout de suite, et si l’un échoue le suivant prend le relais.",
+          "fr": "Donne la recherche web à tes agents, avec ou sans clé : des moteurs gratuits marchent tout de suite, et si l’un échoue le suivant prend le relais.",
           "en": "Gives your agents web search, with or without a key: free engines work right away, and when one fails the next one takes over."
         },
         "steps": [
           {
-            "fr": "Ouvrez Réglages › Web Search : la liste montre les moteurs dans l’ordre où ils sont essayés, avec « sans clé » ou « clé ».",
+            "fr": "Ouvre Réglages › Web Search : la liste montre les moteurs dans l’ordre où ils sont essayés, avec « sans clé » ou « clé ».",
             "en": "Open Settings › Web Search: the list shows the engines in the order they are tried, marked “no key” or “key”."
           },
           {
-            "fr": "Pour un moteur à clé, cliquez son nom, collez la clé, enregistrez, puis « Tester ». Montez-le avec les flèches pour qu’il passe en premier.",
+            "fr": "Pour un moteur à clé, clique son nom, colle la clé, enregistre, puis « Tester ». Monte-le avec les flèches pour qu’il passe en premier.",
             "en": "For a keyed engine, click its name, paste the key, save, then “Test”. Move it up with the arrows so it goes first."
           },
           {
-            "fr": "Pour une recherche privée, mettez l’adresse de votre SearXNG. « Sites » garde ou exclut des sites précis.",
+            "fr": "Pour une recherche privée, mets l’adresse de ton SearXNG. « Sites » garde ou exclut des sites précis.",
             "en": "For a private search, enter the address of your SearXNG. “Sites” keeps or excludes specific websites."
           }
         ],
@@ -1529,7 +1529,7 @@
           "page": true
         },
         "good": {
-          "fr": "Les moteurs sans clé passent par des pages publiques : ils peuvent demander une vérification anti-robot. Un moteur à clé ou votre SearXNG est plus fiable.",
+          "fr": "Les moteurs sans clé passent par des pages publiques : ils peuvent demander une vérification anti-robot. Un moteur à clé ou ton SearXNG est plus fiable.",
           "en": "Engines without a key use public pages: they may ask for an anti-bot check. A keyed engine or your own SearXNG is more reliable."
         },
         "url": "https://help.kybernos.app/{lang}/agents-and-tools/search-the-web/"
@@ -1552,34 +1552,34 @@
       },
       "aide": {
         "what": {
-          "fr": "Une page pour voir et corriger ce que Kybernos retient : vos souvenirs (dans votre compte) et les leçons que les agents tirent de leur travail, par Agent Team.",
+          "fr": "Une page pour voir et corriger ce que Kybernos retient : tes souvenirs (dans ton compte) et les leçons que les agents tirent de leur travail, par Agent Team.",
           "en": "One page to see and fix what Kybernos remembers: your memories (kept in your account) and the lessons agents learn from their work, per agent team."
         },
         "steps": [
           {
-            "fr": "Ouvrez la page : une ligne dit ce qui est actif et le dernier rangement, puis la liste (onglets « Memories » et « Lessons learned »).",
+            "fr": "Ouvre la page : une ligne dit ce qui est actif et le dernier rangement, puis la liste (onglets « Souvenirs » et « Leçons apprises »).",
             "en": "Open the page: one line says what is on and the last tidy-up, then the list (“Memories” and “Lessons learned” tabs)."
           },
           {
-            "fr": "Filtrez avec « Filter », cliquez une ligne pour la modifier ou l’oublier ; « Add » écrit un souvenir de votre main.",
+            "fr": "Affine avec « Filtrer », clique une ligne pour la modifier ou l’oublier ; « Ajouter » écrit un souvenir de ta main.",
             "en": "Narrow down with “Filter” and click a row to edit or forget it; “Add” writes a memory of your own."
           },
           {
-            "fr": "« Customize » ouvre les réglages, déjà faits pour vous : enregistrement, envoi au modèle, capture, recherche par sens, rangement.",
+            "fr": "« Personnaliser » ouvre les réglages, déjà faits pour toi : enregistrement, envoi au modèle, capture, recherche par sens, rangement.",
             "en": "“Customize” opens the settings, already set for you: saving, sending to the model, capture, search by meaning, tidy-up."
           },
           {
-            "fr": "Sous la zone de saisie, la pastille « Memory & Lessons » montre ce que le modèle reçoit, avec un lien vers la page.",
+            "fr": "Sous la zone de saisie, la pastille « Mémoire & Leçons » montre ce que le modèle reçoit, avec un lien vers la page.",
             "en": "Under the message box, the “Memory & Lessons” pill shows what the model receives, with a link to the page."
           }
         ],
         "where": {
-          "fr": "Réglages › Memory & Lessons, et la pastille du même nom sous la saisie",
+          "fr": "Réglages › Mémoire & Leçons, et la pastille du même nom sous la saisie",
           "en": "Settings › Memory & Lessons, and the pill of the same name under the message box",
           "page": true
         },
         "good": {
-          "fr": "Les souvenirs vivent dans votre compte Kybernos Cloud (même Free) ; les leçons restent sur cet ordinateur, par Agent Team, sans compte. Les doublons sont fusionnés seuls, annulables 30 jours.",
+          "fr": "Les souvenirs vivent dans ton compte Kybernos Cloud (même Free) ; les leçons restent sur cet ordinateur, par Agent Team, sans compte. Les quasi-doublons fusionnent seuls, avec 30 jours pour revenir en arrière.",
           "en": "Memories live in your Kybernos Cloud account (any plan, Free too); lessons stay on this computer, per agent team, no account needed. Near-duplicates merge by themselves, undoable for 30 days."
         },
         "url": "https://help.kybernos.app/{lang}/features/what-are-skills-and-memory/"
@@ -1992,20 +1992,20 @@
       },
       "aide": {
         "what": {
-          "fr": "Une pastille sous la zone de saisie montre ce que le travail consomme : la part de votre plan avec un modèle Kybernos, le coût de la session avec votre propre clé.",
+          "fr": "Une pastille sous la zone de saisie montre ce que le travail consomme : la part de ton plan avec un modèle Kybernos, le coût de la session avec ta propre clé.",
           "en": "A chip under the message box shows what the work uses: your plan's share with a Kybernos model, the session's cost with your own key."
         },
         "steps": [
           {
-            "fr": "Lisez la pastille : un pourcentage avec un modèle Kybernos, un montant avec votre clé, « gratuit » avec un modèle local.",
+            "fr": "Lis la pastille : un pourcentage avec un modèle Kybernos, un montant avec ta clé, « gratuit » avec un modèle local.",
             "en": "Read the chip: a percentage with a Kybernos model, an amount with your key, “free” with a local model."
           },
           {
-            "fr": "Cliquez-la : la carte montre la fenêtre de contexte, les limites de votre plan et vos crédits.",
+            "fr": "Clique-la : la carte montre la fenêtre de contexte, les limites de ton plan et tes crédits.",
             "en": "Click it: the card shows the context window, your plan's limits and your credits."
           },
           {
-            "fr": "Ouvrez Réglages › Usage pour le détail par jour, par modèle et par session, et pour fixer un budget.",
+            "fr": "Ouvre Réglages › Usage pour le détail par jour, par modèle et par session, et pour fixer un budget.",
             "en": "Open Settings › Usage for the detail by day, model and session, and to set a budget."
           }
         ],
@@ -2015,7 +2015,7 @@
           "page": true
         },
         "good": {
-          "fr": "Le plan est compté par le serveur, en pourcentage ; le coût de vos clés est calculé sur cet ordinateur, rien n'est envoyé.",
+          "fr": "Le plan est compté par le serveur, en pourcentage ; le coût de tes clés est calculé sur cet ordinateur, rien n'est envoyé.",
           "en": "The plan is counted by the server, as a percentage; the cost of your keys is worked out on this computer, nothing is sent."
         },
         "url": "https://help.kybernos.app/{lang}/models-and-budget/see-what-it-costs/"

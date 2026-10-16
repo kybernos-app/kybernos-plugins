@@ -421,6 +421,8 @@ window.__ModuleLoader__.load({
 .kbmd-lb{font-size:12.5px;font-weight:500;color:var(--dsw-alias-label-secondary,#a0a0aa)}
 .kbmd-input{width:100%;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:var(--dsw-alias-bg-layer-2,transparent);color:var(--dsw-alias-label-primary,inherit);border-radius:10px;padding:10px 12px;font:inherit}
 .kbmd-input:disabled{opacity:.7}
+.kbmd-input::placeholder{color:var(--dsw-alias-label-tertiary)}
+body:not([data-ds-dark-theme]) .kbmd-input::placeholder{color:var(--dsw-alias-label-secondary)}
 .kbmd-opt{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:start;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));border-radius:12px;padding:12px;background:transparent;color:inherit;cursor:pointer;font:inherit}
 .kbmd-opt[aria-pressed='true']{border-color:var(--dsw-alias-brand-primary,currentColor)}
 .kbmd-link{border:0;background:transparent;padding:0;font:inherit;color:var(--dsw-alias-brand-primary,currentColor);text-decoration:underline;cursor:pointer;font-size:13px}

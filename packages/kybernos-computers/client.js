@@ -137,6 +137,8 @@ window.__ModuleLoader__.load({
     // The Settings page (DSH tokens, the same family as the other Kybernos pages).
     const PAGE_CSS = `
 .kcc-root{max-width:720px;padding:0 0 24px}
+/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
+body:not([data-ds-dark-theme]) :is(.kcc-root,.kbenv-root,.kbenv-menu){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kcc-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 6px}
 .kcc-title{margin:0;font-size:18px;line-height:1.3;font-weight:600;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
 .kcc-sub{margin:0 0 16px;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
@@ -146,6 +148,7 @@ window.__ModuleLoader__.load({
 .kcc-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .kcc-input{flex:1 1 260px;min-width:0;height:36px;padding:0 12px;border:1px solid var(--dsw-alias-border-l3);border-radius:10px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px}
 .kcc-input:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
+.kcc-input::placeholder{color:var(--dsw-alias-label-tertiary)}
 .kcc-btn{height:36px;padding:0 16px;border:.5px solid var(--dsw-alias-border-l3);border-radius:18px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:14px;cursor:pointer}
 .kcc-btn:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}
 .kcc-btn:disabled{cursor:not-allowed;opacity:.4}

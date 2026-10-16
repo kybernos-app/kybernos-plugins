@@ -36,27 +36,27 @@ export const TTL_DEFAUT = 18000000
 
 // KB-PROBE-BEGIN — the SAME text lives in packages/kybernos-auto/sonde.mjs (bundles ship one by one and cannot
 // import each other); packages/kybernos-auto/test-resilience.mjs fails if the two copies differ.
-/** Échecs qui ne sont pas la faute du modèle (il répond, ou rien ne passe). */
+/** Failures that are not the model's fault (it answers, or nothing gets through). */
 const CODES_LIMITE = ['RATE_LIMIT', 'QUOTA', 'OVERLOADED']
 const CODES_RESEAU = ['TRANSPORT', 'SERVER', 'NETWORK']
 
-/** Un refus qui dit « ce n'est pas un modèle de langage » n'est pas une panne :
- *  la passerelle a raison. Relevé, jamais alerté — sinon Jev, qui est un modèle
- *  de décision, resterait éternellement listé comme une capacité cassée. */
+/** A refusal that says « this is not a language model » is not an outage:
+ *  the gateway is right. Noted, never alerted — otherwise Jev, which is a decision
+ *  model, would stay listed forever as a broken capability. */
 const REFUS_HORS_JEU = /not a language model|evaluation model|modeltype\s*mismatch/i
 
-/** Un échec d'appel, classé — jamais une exception : une sonde rend toujours un
- *  verdict, même sur un service qui n'existe pas. */
+/** A failed call, classified — never an exception: a probe always returns a
+ *  verdict, even on a service that does not exist. */
 export function classerIssue ({ finish, erreur, tropTard, ms, cle, route, modele }) {
   const base = { cle, route, modele, ms }
-  // Le délai prime : si on a coupé, c'est qu'il n'a rien dit à temps.
-  if (tropTard === true) return { ...base, etat: 'muet', code: 'TIMEOUT', message: 'aucune réponse dans le délai' }
+  // The time limit comes first: if we cut it off, it said nothing in time.
+  if (tropTard === true) return { ...base, etat: 'muet', code: 'TIMEOUT', message: 'no answer within the time limit' }
   if (finish !== null && finish !== undefined && typeof finish === 'object') {
-    // Le chunk cru porte `reason` ; la forme assemblée porte `kind` directement.
+    // The raw chunk carries `reason`; the assembled form carries `kind` directly.
     const raison = (finish.reason !== null && finish.reason !== undefined && typeof finish.reason === 'object') ? finish.reason : finish
     const kind = typeof raison.kind === 'string' ? raison.kind : 'stop'
-    // `max-tokens` et `tool-calls` ne sont PAS des pannes : le modèle a répondu,
-    // il a seulement été coupé par notre plafond d'un jeton.
+    // `max-tokens` and `tool-calls` are NOT outages: the model answered,
+    // it was only cut off by our one-token cap.
     if (kind === 'stop' || kind === 'max-tokens' || kind === 'tool-calls') return { ...base, etat: 'ok', code: kind, message: '' }
     const failure = (raison.failure !== null && raison.failure !== undefined && typeof raison.failure === 'object') ? raison.failure : {}
     const code = typeof failure.code === 'string' ? failure.code : (kind === 'aborted' ? 'ABORTED' : 'UNKNOWN')
@@ -68,14 +68,14 @@ export function classerIssue ({ finish, erreur, tropTard, ms, cle, route, modele
     const message = typeof erreur.message === 'string' ? erreur.message : String(erreur)
     return { ...base, ...classerCode(code, message) }
   }
-  return { ...base, etat: 'muet', code: 'SANS-REPONSE', message: 'le flux s’est terminé sans verdict' }
+  return { ...base, etat: 'muet', code: 'SANS-REPONSE', message: 'the stream ended without a verdict' }
 }
 
-/** Traduit un code d'échec en état. Exporté : c'est la règle qu'on teste. */
+/** Turns a failure code into a state. Exported: it is the rule that is tested. */
 export function classerCode (code, message) {
-  // Le plus spécifique d'abord : un refus « je ne suis pas un modèle de
-  // langage » porte un code générique (INVALID_REQUEST) et serait rangé en
-  // « erreur » — donc alerté à tort.
+  // The most specific first: a refusal « I am not a language model »
+  // carries a generic code (INVALID_REQUEST) and would be filed as an
+  // « error » — hence alerted by mistake.
   if (REFUS_HORS_JEU.test(typeof message === 'string' ? message : '')) return { etat: 'hors-jeu', code, message }
   if (CODES_LIMITE.includes(code)) return { etat: 'limite', code, message }
   if (CODES_RESEAU.includes(code)) return { etat: 'reseau', code, message }
@@ -83,7 +83,7 @@ export function classerCode (code, message) {
   return { etat: 'erreur', code, message }
 }
 
-/** « route/id » — `id` peut lui-même porter une barre (openrouter/anthropic/…). */
+/** « route/id » — the `id` can itself carry a slash (openrouter/anthropic/…). */
 export const decouperCle = (cle) => {
   if (typeof cle !== 'string') return null
   const coupe = cle.indexOf('/')
@@ -91,7 +91,7 @@ export const decouperCle = (cle) => {
   return { route: cle.slice(0, coupe), modele: cle.slice(coupe + 1) }
 }
 
-/** Liste nettoyée : chaînes valides, dédoublonnées, ordre conservé. */
+/** A cleaned list: valid strings, de-duplicated, order kept. */
 export const normaliserListe = (modeles) => {
   const vus = new Set()
   const out = []
@@ -103,7 +103,7 @@ export const normaliserListe = (modeles) => {
   return out
 }
 
-/** Exécute `faire` sur `items` avec au plus `limite` en vol. */
+/** Runs `faire` on `items` with at most `limite` in flight. */
 const enParallele = async (items, limite, faire) => {
   const out = new Array(items.length)
   let curseur = 0
@@ -119,12 +119,12 @@ const enParallele = async (items, limite, faire) => {
   return out
 }
 
-/** Un appel réel, minuscule, borné dans le temps. Rend toujours un verdict. */
+/** One real, tiny call, bounded in time. Always returns a verdict. */
 export async function sonderUn (llm, cle, delaiMs, horloge) {
   const parts = decouperCle(cle)
   const debut = horloge()
   if (parts === null) {
-    return { cle, route: '', modele: '', ms: 0, etat: 'erreur', code: 'INVALID_MODEL', message: 'identifiant « route/id » attendu' }
+    return { cle, route: '', modele: '', ms: 0, etat: 'erreur', code: 'INVALID_MODEL', message: 'a « route/id » identifier was expected' }
   }
   const coupe = new AbortController()
   let tropTard = false

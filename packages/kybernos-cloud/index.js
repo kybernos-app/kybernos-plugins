@@ -1,40 +1,40 @@
-// ── Kybernos Cloud — appairage par code d'appareil + profil + catalogue (half host) ─
+// ── Kybernos Cloud — pairing by device code + profile + catalogue (half host) ─
 //
-// Ce half fait trois choses :
-//   1. parler à l'API du serveur Kybernos actif (le NOUVEAU serveur par défaut : BUILTIN_API dans server-profile.mjs) ;
-//   2. garder le secret d'appareil HORS du navigateur et HORS du dépôt, dans
+// This half does three things:
+//   1. talk to the API of the active Kybernos server (the NEW default server: BUILTIN_API in server-profile.mjs);
+//   2. keep the device secret OUT of the browser and OUT of the repo, in
 //      <DSH home>/kybernos-cloud.json (~/.dsh by default, mode 0600) ;
-//   3. quand l'utilisateur est connecté, importer AUTOMATIQUEMENT le catalogue
-//      de modèles du proxy Kybernos LiteLLM (glm, deepseek…) dans le harnais :
-//      route provider `kybernos` de settings.yaml + credential KYBERNOS_API_KEY.
+//   3. when the user is signed in, AUTOMATICALLY import the model catalogue
+//      of the Kybernos LiteLLM proxy (glm, deepseek…) into the harness:
+//      `kybernos` provider route in settings.yaml + KYBERNOS_API_KEY credential.
 //
-// Il ne connaît NI mot de passe NI clé Supabase. L'utilisateur s'authentifie
-// dans SON navigateur, sur la page d'activation servie par Kybernos (device
-// code flow, RFC 8628) ; ce plugin ne stocke ensuite que le `kys-…` opaque
-// minté au claim — le même genre de jeton qu'une session web, révocable depuis
-// l'app Kybernos (Sécurité → Sessions).
+// It knows NEITHER a password NOR a Supabase key. The user authenticates
+// in THEIR browser, on the activation page served by Kybernos (device
+// code flow, RFC 8628); this plugin then stores only the opaque `kys-…`
+// minted at the claim — the same kind of token as a web session, revocable from
+// the Kybernos app (Security → Sessions).
 //
-// Contrat des routes (toutes en same-origin, jamais exposées au réseau) :
-//   POST /kybernos-cloud/start         → crée une demande d'appairage
-//   POST /kybernos-cloud/poll          → état de la demande / claim du jeton
-//   GET  /kybernos-cloud/status        → état local, sans réseau
-//   POST /kybernos-cloud/refresh       → rafraîchit le profil depuis l'API
-//   POST /kybernos-cloud/disconnect    → révoque côté serveur + oublie le local
-//                                         (+ retire le catalogue importé)
-//   GET  /kybernos-cloud/models        → détail du catalogue importé
-//   POST /kybernos-cloud/models/sync   → resynchronise le catalogue maintenant
-//   GET  /kybernos-cloud/artifacts     → les livrables poussés (?limit=)
-//   POST /kybernos-cloud/artifacts/push    → pousse un livrable (idempotent)
-//   POST /kybernos-cloud/artifacts/detail  → détail + URL signée {id}
+// Route contract (all same-origin, never exposed to the network):
+//   POST /kybernos-cloud/start         → creates a pairing request
+//   POST /kybernos-cloud/poll          → request state / token claim
+//   GET  /kybernos-cloud/status        → local state, no network
+//   POST /kybernos-cloud/refresh       → refreshes the profile from the API
+//   POST /kybernos-cloud/disconnect    → revokes on the server + forgets the local state
+//                                         (+ removes the imported catalogue)
+//   GET  /kybernos-cloud/models        → detail of the imported catalogue
+//   POST /kybernos-cloud/models/sync   → resynchronises the catalogue now
+//   GET  /kybernos-cloud/artifacts     → the artifacts pushed (?limit=)
+//   POST /kybernos-cloud/artifacts/push    → pushes an artifact (idempotent)
+//   POST /kybernos-cloud/artifacts/detail  → detail + signed URL {id}
 //
-// Les routes d'artefacts (phase A) sont le seul chemin par lequel un livrable
-// du chat local rejoint le magasin de l'app (`kybernos.artifacts` — la table
-// où l'EF `kybernos-chat` écrit déjà). Le jeton ne quitte jamais ce module.
+// The artifact routes (phase A) are the only path by which an artifact
+// of the local chat reaches the app's store (`kybernos.artifacts` — the table
+// where the `kybernos-chat` EF already writes). The token never leaves this module.
 //
-// Invariant : le `token` n'est JAMAIS renvoyé au client, jamais loggé. Le
-// client ne voit que `publicState()` (profil, workspaces, état, résumé du
-// catalogue). L'abonnement (glm, deepseek… accessibles selon la formule) est
-// appliqué par le proxy à chaque requête — ce plugin ne filtre rien.
+// Invariant: the `token` is NEVER returned to the client, never logged. The
+// client only sees `publicState()` (profile, workspaces, state, summary of the
+// catalogue). The subscription (glm, deepseek… available depending on the plan) is
+// applied by the proxy on every request — this plugin filters nothing.
 import { spawn } from 'node:child_process'
 import { timingSafeEqual } from 'node:crypto'
 import { chmodSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
@@ -86,9 +86,9 @@ const CLIENT_NAME = 'dsh'
 const REQUEST_TIMEOUT_MS = 15000
 const MAX_LABEL = 64
 
-/** Base d'API du serveur actif (Kybernos Cloud par défaut ; KYBERNOS_CLOUD_API ou le registre des serveurs la remplacent). */
+/** API base of the active server (Kybernos Cloud by default; KYBERNOS_CLOUD_API or the server registry replace it). */
 const resolveApi = () => server().profile.api
-/** Web du serveur actif : c'est là que vit la page de l'espace. */
+/** Web address of the active server: this is where the space's page lives. */
 const resolveWeb = () => server().profile.web
 
 /** State file: <DSH home>/kybernos-cloud.json for the built-in server, kybernos-cloud-<id>.json for another one (each server
@@ -99,7 +99,7 @@ const stateFile = (profile) => {
   return value === '' ? defaultStateFile(profile) : value
 }
 
-/** Libellé d'appareil tel qu'il apparaîtra dans « Sécurité → Sessions ». */
+/** Device label as it will appear in « Security → Sessions ». */
 const deviceLabel = () => {
   let host = 'dsh'
   try { host = hostname() || 'dsh' } catch (e) { host = 'dsh' }
@@ -120,27 +120,27 @@ const writeState = (state) => {
   // The folder of the file actually written: with KYBERNOS_CLOUD_STATE set, creating the default folder would touch ~/.dsh for nothing.
   try { mkdirSync(dirname(file), { recursive: true, mode: 0o700 }) } catch (e) { /* already there */ }
   writeFileSync(file, JSON.stringify(state, null, 2) + '\n', { mode: 0o600 })
-  // writeFileSync ne resserre pas un fichier existant : on force le 0600.
-  try { chmodSync(file, 0o600) } catch (e) { /* FS exotique (Windows) */ }
+  // writeFileSync does not tighten the mode of an existing file: 0600 is forced.
+  try { chmodSync(file, 0o600) } catch (e) { /* exotic FS (Windows) */ }
 }
 
 const clearState = () => {
-  try { rmSync(stateFile(), { force: true }) } catch (e) { /* deja absent */ }
+  try { rmSync(stateFile(), { force: true }) } catch (e) { /* already absent */ }
 }
 
 const isConnected = (state) => state !== null && typeof state.token === 'string' && state.token !== ''
 
-/** Vue publique : ni token, ni device_secret, ni code une fois consommé.
- *  L'import de catalogue est résumé (fait/quantité/formule) — jamais les ids
- *  complets ici : la route /kybernos-cloud/models les détaille à la demande. */
+/** Public view: no token, no device_secret, no code once consumed.
+ *  The catalogue import is summarised (done/count/plan) — never the full ids
+ *  here: the /kybernos-cloud/models route details them on demand. */
 const publicState = (state) => ({
   connected: true,
   user: state.user !== undefined && state.user !== null ? state.user : null,
   workspaces: Array.isArray(state.workspaces) ? state.workspaces : [],
-  // L'espace ACTIF — ce que la rangée de pied de sidebar affiche, et ce que le
-  // sélecteur change. Tant que l'utilisateur n'a rien choisi, on DÉRIVE le
-  // premier espace (le perso, créé à la connexion) sans rien écrire : un défaut
-  // dérivé n'est pas un choix, et l'écrire ferait croire à une décision.
+  // The ACTIVE space — what the sidebar footer row shows, and what the
+  // switcher changes. As long as the user has chosen nothing, we DERIVE the
+  // first space (the personal one, created at sign-in) without writing anything: a derived default
+  // is not a choice, and writing it would suggest a decision.
   active_workspace_id: espaceActif(state),
   ...(spacePlanView(state) !== null ? { space_plan: spacePlanView(state) } : {}),
   web_url: resolveWeb(),
@@ -149,12 +149,12 @@ const publicState = (state) => ({
   expires_at: state.expires_at !== undefined ? state.expires_at : null,
   refreshed_at: state.refreshed_at !== undefined ? state.refreshed_at : null,
   models: state.models !== undefined && state.models !== null ? publicModels(state.models) : null,
-  // Annuaire des chats DSH : dernier envoi (métadonnées, jamais de contenu).
+  // Directory of DSH chats: last push (metadata, never content).
   chats_last_push: state.chats_last_push !== undefined ? state.chats_last_push : null,
 })
 
-/** Id de l'espace actif : le choix explicite s'il est encore valide, sinon le
- *  premier espace connu. Jamais un id qui n'existe plus dans la liste. */
+/** Id of the active space: the explicit choice if it is still valid, else the
+ *  first known space. Never an id that is no longer in the list. */
 const espaceActif = (state) => {
   const espaces = state !== null && state !== undefined && Array.isArray(state.workspaces) ? state.workspaces : []
   const ids = espaces.map((w) => (w !== null && typeof w.id === 'string' ? w.id : null)).filter((id) => id !== null)
@@ -196,8 +196,8 @@ const spacePlanView = (state) => {
   return sp !== null && sp.workspace_id === espaceActif(state) ? sp : null
 }
 
-/** Route : choisir l'espace actif. Fail-closed — un id inconnu est REFUSÉ et
- *  jamais écrit : un espace qu'on ne voit pas ne devient pas actif. */
+/** Route: choose the active space. Fail-closed — an unknown id is REFUSED and
+ *  never written: a space one cannot see does not become active. */
 const setActiveSpace = async (req, body) => {
   const state = readState()
   if (!isConnected(state)) return { ok: false, error: 'non_connecte' }
@@ -212,10 +212,10 @@ const setActiveSpace = async (req, body) => {
   return { ok: true, state: publicState(readState()) }
 }
 
-/** Route : créer un espace. Le serveur hébergé reste maître — on transmet le
- *  nom à POST /v1/workspaces ; en cas de refus (route absente, plan limité,
- *  permission manquante) on ne fabrique RIEN localement : on rend l'URL de
- *  l'app pour que la création se fasse là où elle est réellement décidée. */
+/** Route: create a space. The hosted server stays the master — we pass the
+ *  name to POST /v1/workspaces; on a refusal (missing route, limited plan,
+ *  missing permission) we fabricate NOTHING locally: we return the app's URL
+ *  so that the creation happens where it is really decided. */
 const createSpace = async (req, body) => {
   const state = readState()
   if (!isConnected(state)) return { ok: false, error: 'non_connecte', web_url: resolveWeb() }
@@ -244,12 +244,12 @@ const publicPairing = (state) => ({
   expires_at: state.expires_at !== undefined ? state.expires_at : null,
 })
 
-/** Fusionne le profil serveur (/v1/me) dans le `user` en cache.
+/** Merges the server profile (/v1/me) into the cached `user`.
  *
- * Seules les valeurs RENSEIGNÉES écrasent : un `name` null côté serveur
- * (colonne `kybernos_users.name` vide) ne doit pas effacer un nom déjà connu,
- * et l'email n'est jamais touché — il ne vient que du claim, l'identité /v1/*
- * ne le porte pas. */
+ * Only the FILLED values overwrite: a server-side null `name`
+ * (empty `kybernos_users.name` column) must not erase an already known name,
+ * and the email is never touched — it only comes from the claim, the /v1/*
+ * identity does not carry it. */
 const mergeUser = (cached, profile) => {
   const base = cached !== null && typeof cached === 'object' ? cached : {}
   if (profile === null || typeof profile !== 'object') return base
@@ -300,10 +300,10 @@ const readBoundedText = async (res, max) => {
   return { text: Buffer.concat(chunks).toString('utf8') }
 }
 
-/** Appel API : ne throw jamais, renvoie { status, body } (status 0 = réseau).
- *  Le serveur est une API JSON, pas un site : une redirection n'est jamais suivie (elle emporterait le corps de la requête vers un
- *  autre hôte et la réponse de cet hôte passerait pour celle du serveur), une réponse trop grosse ou coupée est un échec réseau,
- *  et un statut de succès avec un corps qui n'est pas du JSON (la page d'un portail captif) n'est pas un succès. */
+/** API call: never throws, returns { status, body } (status 0 = network).
+ *  The server is a JSON API, not a site: a redirect is never followed (it would carry the request body to another
+ *  host and that host's answer would pass for the server's), a response that is too big or cut off is a network failure,
+ *  and a success status with a body that is not JSON (a captive portal's page) is not a success. */
 const apiCall = async (path, options = {}) => {
   const method = typeof options.method === 'string' ? options.method : 'GET'
   const token = typeof options.token === 'string' ? options.token : null
@@ -345,7 +345,7 @@ const apiCall = async (path, options = {}) => {
   }
 }
 
-// ── Opérations ──────────────────────────────────────────────────────────────
+// ── Operations ──────────────────────────────────────────────────────────────
 
 const startPairing = async () => {
   const current = readState()
@@ -392,7 +392,7 @@ const pollPairing = async () => {
   if (res.status !== 200 || res.body === null || typeof res.body !== 'object' || verdicts.indexOf(res.body.status) < 0) return { ok: false, error: 'reponse_illisible', status: res.status }
   const status = res.body.status
   if (status === 'claimed' && typeof res.body.token === 'string') {
-    // Fin de l'appairage : le secret d'appareil et le code disparaissent ici.
+    // End of the pairing: the device secret and the code disappear here.
     const next = {
       token: res.body.token,
       user: res.body.user !== undefined ? res.body.user : null,
@@ -411,9 +411,9 @@ const pollPairing = async () => {
       return { ok: true, connected: true, state: fresh.state, models: fresh.models, import_error: fresh.import_error }
     }
     if (fresh !== null && fresh.connected === false && fresh.status === 'revoked') return { ok: true, connected: false, status: 'revoked' }
-    // Connexion = import du catalogue (fonctionnalité cloud n°1). L'import ne
-    // throw jamais et ne remet jamais en cause le claim qui vient d'aboutir :
-    // un catalogue indisponible se voit, se resynchronise, ne bloque rien.
+    // Sign-in = catalogue import (cloud feature no. 1). The import never
+    // throws and never calls into question the claim that has just succeeded:
+    // an unavailable catalogue shows, gets resynchronised, blocks nothing.
     const imported = await importCatalog('claim')
     return {
       ok: true,
@@ -426,8 +426,8 @@ const pollPairing = async () => {
   if (status === 'pending') {
     return { ok: true, connected: false, status: 'pending', pairing: publicPairing(state) }
   }
-  // denied / expired : la demande est morte, on oublie tout (l'utilisateur en
-  // relancera une ; le serveur ne re-mint jamais une demande déjà traitée).
+  // denied / expired: the request is dead, we forget everything (the user will
+  // start another one; the server never re-mints a request that has already been handled).
   clearState()
   return { ok: true, connected: false, status }
 }
@@ -457,28 +457,28 @@ const isServerRefusal = (body) => body !== null && typeof body === 'object' && A
 const readProfile = async (cause) => {
   const state = readState()
   if (!isConnected(state)) return { ok: true, connected: false, status: 'none' }
-  // Deux lectures en parallèle : le profil (/v1/me, ajouté côté serveur pour
-  // ce plugin) et les workspaces. Le profil rend le NOM et la FORMULE vivants
-  // — sans lui, l'identité resterait figée à l'instant du claim : un nom
-  // renseigné ou une montée de formule plus tard ne remonterait jamais.
+  // Two reads in parallel: the profile (/v1/me, added server-side for
+  // this plugin) and the workspaces. The profile makes the NAME and the PLAN live
+  // — without it, the identity would stay frozen at the moment of the claim: a name
+  // filled in or a plan upgrade later would never come up.
   const [me, ws] = await Promise.all([
     apiCall('/v1/me', { token: state.token }),
     apiCall('/v1/workspaces', { token: state.token }),
   ])
-  // La révocation se décide sur /v1/workspaces, la route historique : elle
-  // répond 401/403 dès que le jeton est mort. /v1/me est un ENRICHISSEMENT —
-  // un 401 dessus ne déconnecte jamais. Ce n'est pas théorique : au premier
-  // déploiement de /v1/me, la route répondait 401 à un jeton valide (elle
-  // tombait dans le régime « master key » du middleware) ; s'y fier pour
-  // déconnecter aurait éjecté tous les utilisateurs sur un bug serveur.
+  // Revocation is decided on /v1/workspaces, the historical route: it
+  // answers 401/403 as soon as the token is dead. /v1/me is an ENRICHMENT —
+  // a 401 on it never signs out. This is not theoretical: at the first
+  // deployment of /v1/me, the route answered 401 to a valid token (it
+  // fell into the middleware's « master key » regime); relying on it to
+  // sign out would have ejected every user over a server bug.
   // Only the server's own refusal is a revocation: a firewall's or a proxy's page that says 401 / 403 is not the server speaking about
   // this token, and signing the person out on it also throws away the models imported for them. JSON alone does not make it the server
   // (a gateway answers `{}`, `[]` or `{ message: 'Forbidden' }` too): the server's error envelope names its error as a string.
   // `computer_route_not_allowed` is a cloud computer's restricted token meeting a route outside its list: the token is alive, nothing was revoked.
   if ((ws.status === 401 || ws.status === 403) && isServerRefusal(ws.body) && ws.body.error !== 'computer_route_not_allowed') {
-    // Jeton révoqué depuis l'app Kybernos → « Reconnexion requise ». Les
-    // modèles importés ne serviraient plus à rien (le proxy refuserait les
-    // appels) : ils partent avec la session.
+    // Token revoked from the Kybernos app → « Reconnection required ». The
+    // imported models would no longer be of any use (the proxy would refuse the
+    // calls): they leave with the session.
     await removeImportedCatalog(state)
     clearState()
     return { ok: true, connected: false, status: 'revoked' }
@@ -487,10 +487,10 @@ const readProfile = async (cause) => {
   // `{ workspaces: [] }` empties it.
   if (ws.status !== 200 || ws.body === null || typeof ws.body !== 'object' || Array.isArray(ws.body.workspaces) !== true) return { ok: false, error: 'profil_indisponible', status: ws.status }
   const workspaces = ws.body.workspaces
-  // /v1/me absent (serveur plus ancien : 404), cassé (401/403) ou en panne :
-  // on garde le user en cache et on ne casse PAS le rafraîchissement. L'email
-  // n'est jamais écrasé — il ne vient que du claim (l'identité /v1/* ne le
-  // porte pas).
+  // /v1/me absent (older server: 404), broken (401/403) or down:
+  // we keep the cached user and do NOT break the refresh. The email
+  // is never overwritten — it only comes from the claim (the /v1/* identity does not
+  // carry it).
   const profile = me.status === 200 && me.body !== null && typeof me.body === 'object' ? me.body : null
   const user = mergeUser(state.user, profile)
   const next = Object.assign({}, state, { user, workspaces, refreshed_at: new Date().toISOString() })
@@ -499,11 +499,11 @@ const readProfile = async (cause) => {
   const spacePlan = await readSpacePlan(state, activeId)
   next.space_plan = spacePlan !== null ? spacePlan : (state.space_plan !== undefined && state.space_plan !== null && state.space_plan.workspace_id === activeId ? state.space_plan : null)
   writeState(next)
-  // Fonctionnalité cloud n°1 : si rien n'a encore été importé (vieux fichier
-  // d'état, DSH mis à jour), le refresh importe à son tour. Sinon, la formule
-  // remontée par /v1/me est reflétée dans le résumé — le catalogue lui-même
-  // n'est re-téléchargé qu'au sync manuel (il n'est pas filtré par formule :
-  // l'abonnement est appliqué par le proxy, requête par requête).
+  // Cloud feature no. 1: if nothing has been imported yet (old state
+  // file, DSH updated), the refresh imports in its turn. Otherwise, the plan
+  // reported by /v1/me is reflected in the summary — the catalogue itself
+  // is only re-downloaded on the manual sync (it is not filtered by plan:
+  // the subscription is applied by the proxy, request by request).
   let models = null
   let import_error
   const known = state.models !== undefined && state.models !== null ? state.models : null
@@ -549,41 +549,41 @@ const profileRefreshTick = async () => {
 const disconnect = async () => {
   const state = readState()
   const token = isConnected(state) ? state.token : null
-  // L'import de catalogue vit dans settings.yaml + le store de credentials :
-  // il part avec la session, AVANT que le fichier d'état ne disparaisse
-  // (removeImportedCatalog a besoin de l'état pour savoir ce qu'il a posé).
+  // The catalogue import lives in settings.yaml + the credentials store:
+  // it leaves with the session, BEFORE the state file disappears
+  // (removeImportedCatalog needs the state to know what it put there).
   await removeImportedCatalog(state)
   clearState()
-  // Le cache du compte précédent ne doit jamais survivre à la déconnexion : après
-  // une re-connexion à un AUTRE compte, il aurait été servi dans le prompt.
+  // The previous account's cache must never survive the sign-out: after
+  // a re-connection to ANOTHER account, it would have been served in the prompt.
   emptyMemoryCache()
   if (token === null) return { ok: true, revoked: false, status: 0 }
   const res = await apiCall('/v1/session', { method: 'DELETE', token })
   return { ok: true, revoked: res.status === 204 || res.status === 200, status: res.status }
 }
 
-// ── Catalogue de modèles Kybernos LiteLLM ───────────────────────────────────
+// ── Kybernos LiteLLM model catalogue ────────────────────────────────────────
 //
-// Quand l'utilisateur est connecté, DSH importe AUTOMATIQUEMENT les modèles
-// que le proxy Kybernos LiteLLM expose (`GET /v1/models`, liste standard
-// OpenAI-compatible) dans le harnais : une route provider `kybernos` de
-// `settings.yaml` (namespace `llm-pi-ai`) + le jeton `kys-…` posé comme
-// credential `KYBERNOS_API_KEY`. Le proxy fait lui-même l'échange
-// session→clé personnelle (session_token_swap) : le jeton de session EST
-// l'identifiant d'appel, et l'abonnement est appliqué côté proxy, à chaque
-// requête (gating par formule, fail-closed) — jamais dupliqué ici.
+// When the user is signed in, DSH AUTOMATICALLY imports the models
+// that the Kybernos LiteLLM proxy exposes (`GET /v1/models`, standard
+// OpenAI-compatible list) into the harness: a `kybernos` provider route in
+// `settings.yaml` (namespace `llm-pi-ai`) + the `kys-…` token set as
+// the `KYBERNOS_API_KEY` credential. The proxy itself does the exchange
+// session→personal key (session_token_swap): the session token IS
+// the call identifier, and the subscription is applied proxy-side, on every
+// request (plan gating, fail-closed) — never duplicated here.
 //
-// Déclencheurs : au claim (connexion), au démarrage de DSH si déjà connecté,
-// au refresh si rien n'a encore été importé, et à la demande (POST
-// /kybernos-cloud/models/sync, bouton « Réimporter »). La déconnexion et la
-// révocation retirent la route et le credential — mais UNIQUEMENT ce que
-// CETTE fonctionnalité a posé (traçé dans l'état : models.provider).
+// Triggers: at the claim (sign-in), at DSH start-up if already signed in,
+// at the refresh if nothing has been imported yet, and on demand (POST
+// /kybernos-cloud/models/sync, « Re-import » button). Sign-out and
+// revocation remove the route and the credential — but ONLY what
+// THIS feature put there (traced in the state: models.provider).
 //
-// Invariants : le jeton ne sort jamais d'ici (ni réponse, ni log) ; un
-// catalogue 401 ne déconnecte JAMAIS (leçon /v1/me : la révocation se décide
-// sur /v1/workspaces) ; l'écriture settings passe par le service `settings`
-// (le même chemin que la page Models native), les erreurs dégradent sans
-// jamais casser l'appairage.
+// Invariants: the token never leaves here (neither response nor log); a
+// catalogue 401 NEVER signs out (the /v1/me lesson: revocation is decided
+// on /v1/workspaces); the settings write goes through the `settings` service
+// (the same path as the native Models page), errors degrade without
+// ever breaking the pairing.
 
 const CRED_REF = 'KYBERNOS_API_KEY'
 const PROVIDER_ID = 'kybernos'
@@ -592,23 +592,23 @@ const KB_ROUTE_PREFIX = 'kybernos/'
 
 let hostCtx = null
 
-/** Un service du harnais, ou null quand le déploiement n'en monte pas :
- *  settings et credentials sont optionnels — leur absence dégrade l'import
- *  (catalogue mémorisé, écritures sautées) au lieu de le casser. */
+/** A harness service, or null when the deployment does not mount it:
+ *  settings and credentials are optional — their absence degrades the import
+ *  (catalogue remembered, writes skipped) instead of breaking it. */
 const service = (name) => {
   if (hostCtx === null || typeof hostCtx.get !== 'function') return null
   const svc = hostCtx.get(name)
   return svc === undefined ? null : svc
 }
 
-/** La formule courante (peut être absente du profil). */
+/** The current plan (may be absent from the profile). */
 const userPlan = (state) => {
   const user = state !== null && state.user !== undefined && state.user !== null ? state.user : {}
   return typeof user.plan === 'string' ? user.plan : null
 }
 
-/** Base OpenAI-compatible du proxy : l'API Kybernos + /v1 (chat completions,
- *  models). Le swap kys→sk du serveur couvre ces routes natives. */
+/** OpenAI-compatible base of the proxy: the Kybernos API + /v1 (chat completions,
+ *  models). The server's kys→sk swap covers these native routes. */
 const baseUrl = (state) => {
   const profile = server().profile
   // The profile names its LLM service when it has a separate one (DSH never deduces it from the account address); a server
@@ -626,11 +626,11 @@ const intOf = (...candidates) => {
   return null
 }
 
-/** Ne garde que les routes produit `kybernos/*` appelables en chat :
- *  pas les jumeaux de fallback (-fb1, -fb2…), pas les pools de routage infra
- *  (*_rg), pas la route embeddings. Les autres ids du catalogue LiteLLM
- *  (modèles bruts des backends, groupes de tiers) ne sont pas une surface
- *  produit — les appeler directement contournerait le gating Kybernos. */
+/** Keeps only the `kybernos/*` product routes callable in chat:
+ *  not the fallback twins (-fb1, -fb2…), not the infra routing pools
+ *  (*_rg), not the embeddings route. The other ids of the LiteLLM catalogue
+ *  (raw backend models, tier groups) are not a product
+ *  surface — calling them directly would bypass the Kybernos gating. */
 const keepChatModels = (ids) => {
   const kept = []
   const seen = new Set()
@@ -653,9 +653,9 @@ const humanizeModelName = (id) => {
   return 'Kybernos ' + words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
 
-/** Entrée settings d'un modèle : {id, name}, enrichie des capacités quand le
- *  catalogue en fournit (LiteLLM expose parfois max_tokens / context_length).
- *  Un modèle non dimensionné prend les replis de la route (262 144 / 32 768). */
+/** Settings entry of a model: {id, name}, enriched with the capabilities when the
+ *  catalogue provides them (LiteLLM sometimes exposes max_tokens / context_length).
+ *  A model without dimensions takes the route's fallbacks (262 144 / 32 768). */
 const modelEntry = (id, info) => {
   const shown = info !== null && typeof info === 'object' && typeof info.display_name === 'string' && info.display_name.trim() !== '' ? info.display_name.trim() : null
   const entry = { id, name: shown !== null ? shown : humanizeModelName(id) }
@@ -683,8 +683,8 @@ const serverCatalog = (entries) => {
   return { models: chat.map((e) => modelEntry(e.id, e)), embed }
 }
 
-/** Formes acceptées : `{data: [{id, …}]}` (LiteLLM natif, ou serveur Kybernos avec `kind`) ou `{models: {id: …}}`
- *  (variante enrichie). Rien d'autre = illisible. Rend `{models, embed}` : `embed` est l'id du modèle d'embeddings, ou null. */
+/** Accepted shapes: `{data: [{id, …}]}` (native LiteLLM, or Kybernos server with `kind`) or `{models: {id: …}}`
+ *  (enriched variant). Anything else = unreadable. Returns `{models, embed}`: `embed` is the id of the embeddings model, or null. */
 const parseCatalogIds = (body) => {
   if (body === null || typeof body !== 'object') return null
   if (Array.isArray(body.data) === true) {
@@ -727,8 +727,8 @@ const spaceHeaders = (state) => {
   return id !== null ? { [SPACE_HEADER]: id } : undefined
 }
 
-/** La route provider écrite dans `llm-pi-ai.providers.kybernos`. apiKeyEnv est
- *  une RÉFÉRENCE : le jeton vit dans le store de credentials, pas ici. */
+/** The provider route written in `llm-pi-ai.providers.kybernos`. apiKeyEnv is
+ *  a REFERENCE: the token lives in the credentials store, not here. */
 const providerValue = (state, entries) => {
   const headers = spaceHeaders(state)
   return {
@@ -741,7 +741,7 @@ const providerValue = (state, entries) => {
   }
 }
 
-/** Déjà importé à l'identique ? (comparaison ids triés + formule + base) */
+/** Already imported identically? (comparison of sorted ids + plan + base) */
 const catalogFingerprint = (state, entries, plan, embed, space) => JSON.stringify([
   baseUrl(state),
   plan,
@@ -750,8 +750,8 @@ const catalogFingerprint = (state, entries, plan, embed, space) => JSON.stringif
   typeof space === 'string' ? space : null,
 ])
 
-/** Import (ou rafraîchissement) : catalogue → settings → credential → état.
- *  Ne throw jamais : chaque échec est un motif explicite dans la réponse. */
+/** Import (or refresh): catalogue → settings → credential → state.
+ *  Never throws: each failure is an explicit reason in the response. */
 const importCatalog = async (cause, options = {}) => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: true, connected: false, status: 'none' }
@@ -762,14 +762,14 @@ const importCatalog = async (cause, options = {}) => {
   }
   const cat = await fetchCatalog(state)
   if (cat.ok !== true) {
-    // Un 401 du catalogue ne déconnecte PAS (même leçon que /v1/me) : la
-    // révocation reste décidée sur /v1/workspaces ; l'import précédent reste
-    // en place (stale) jusqu'à ce verdict.
+    // A 401 from the catalogue does NOT sign out (same lesson as /v1/me):
+    // revocation stays decided on /v1/workspaces; the previous import stays
+    // in place (stale) until that verdict.
     return { ok: false, error: cat.error, status: cat.status, summary: publicModels(state.models) }
   }
   const plan = userPlan(state)
-  // Déjà importé à l'identique → aucune écriture (pas de churn settings à
-  // chaque refresh) ; la resynchronisation manuelle réécrit toujours.
+  // Already imported identically → no write (no settings churn on
+  // every refresh); the manual resynchronisation always rewrites.
   const known = state.models !== undefined && state.models !== null ? state.models : null
   if (options.force !== true && known !== null && known.provider === PROVIDER_ID
     && known.settings === true && known.credential === true
@@ -830,9 +830,9 @@ const storeCredential = async (token) => {
   }
 }
 
-/** Retire CE QUE CETTE FONCTIONNALITÉ a posé : la route `providers.kybernos`
- *  et le credential — jamais une route kybernos écrite à la main avant
- *  l'appairage (models.provider absent → no-op). */
+/** Removes WHAT THIS FEATURE put there: the `providers.kybernos` route
+ *  and the credential — never a kybernos route written by hand before
+ *  the pairing (models.provider absent → no-op). */
 const removeImportedCatalog = async (state) => {
   const imported = state !== null && state.models !== undefined && state.models !== null
     && state.models.provider === PROVIDER_ID
@@ -845,19 +845,19 @@ const removeImportedCatalog = async (state) => {
     }
   }
   if (state.models.provider === PROVIDER_ID) {
-    // Le credential est toujours le nôtre après un import (le set l'écrase à
-    // chaque import réussi) : on le retire sans condition sur le DERNIER
-    // résumé — un sync dégradé peut avoir laissé un credential d'un import
-    // antérieur. Retirer une ref absente est un no-op.
+    // The credential is always ours after an import (the set overwrites it on
+    // every successful import): we remove it unconditionally, regardless of the LAST
+    // summary — a degraded sync may have left a credential from an earlier
+    // import. Removing an absent ref is a no-op.
     const cred = service('credentials')
     if (cred !== null && typeof cred.unset === 'function') {
-      try { await cred.unset(CRED_REF); out.credential = true } catch (e) { /* resté, sans consommateur */ }
+      try { await cred.unset(CRED_REF); out.credential = true } catch (e) { /* left behind, with no consumer */ }
     }
   }
   return out
 }
 
-/** Vue publique de l'import : aucun jeton, aucun secret — que le fait. */
+/** Public view of the import: no token, no secret — only the facts. */
 const publicModels = (models) => {
   if (models === undefined || models === null) return null
   return {
@@ -917,8 +917,8 @@ const cleanAfterForeignConnection = async (aside) => {
   } catch (e) { /* the route stays, without a token to use it */ }
 }
 
-/** Import au démarrage de DSH quand la session est déjà vivante : sans ça, un
- *  harnais relancé n'aurait les modèles qu'après une ouverture de carte. */
+/** Import at DSH start-up when the session is already alive: without it, a
+ *  restarted harness would only have the models after a card was opened. */
 const autoImportAtBoot = (ctx, aside) => {
   if (aside !== null && aside !== undefined) {
     const kickForeign = () => { void cleanAfterForeignConnection(aside) }
@@ -1008,7 +1008,7 @@ const marketplacePage = (state) => (before) => apiCall('/v1/marketplace' + (befo
  */
 const marketplaceRoute = async () => {
   const state = readState()
-  if (isConnected(state) !== true) return { ok: false, connected: false, items: [], motif: 'aucun compte lie a kybernos.app', raison: 'not-linked' }
+  if (isConnected(state) !== true) return { ok: false, connected: false, items: [], motif: 'no account linked to kybernos.app', raison: 'not-linked' }
   const cat = await lireCatalogue(marketplacePage(state))
   if (cat.echec === true) return { ok: false, connected: true, items: [], motif: cat.motif, raison: cat.raison }
   return Object.assign({ connected: true }, cat)
@@ -1016,28 +1016,28 @@ const marketplaceRoute = async () => {
 
 const modelsSyncRoute = async () => {
   const out = await importCatalog('manuel', { force: true })
-  // Même contrat que poll/refresh : le résumé se lit dans `models`.
+  // Same contract as poll/refresh: the summary is read in `models`.
   return Object.assign({}, out, { models: out.summary !== undefined ? out.summary : null, summary: undefined })
 }
 
 /**
- * Le code de parrainage du compte lié (carte d'invitation du pied de sidebar).
+ * The referral code of the linked account (sidebar footer invitation card).
  *
- * Pourquoi une route ici : le code vit dans `kybernos.profiles.referral_code`
- * (RLS « select own »), et le seul service qui le rendait — l'Edge Function
- * `kybernos-referral-info` — exige un JWT WEB. Le plugin n'a que le jeton
- * d'appareil `kys-…` : mesuré le 24/09/2026, la fonction répond 401
- * UNAUTHORIZED_INVALID_JWT_FORMAT. La route /v1/referral a été ajoutée au
- * proxy pour rendre la même vérité au compte DSH.
+ * Why a route here: the code lives in `kybernos.profiles.referral_code`
+ * (RLS « select own »), and the only service that returned it — the Edge Function
+ * `kybernos-referral-info` — requires a WEB JWT. The plugin only has the
+ * `kys-…` device token: measured on 24/09/2026, the function answers 401
+ * UNAUTHORIZED_INVALID_JWT_FORMAT. The /v1/referral route was added to the
+ * proxy to give the DSH account the same truth.
  *
- * Jamais de code inventé : `code` reste null tant que le serveur ne l'a pas
- * rendu — la carte retombe alors sur le collage manuel, elle ne ment pas.
- * Non lié → motif explicite ; plateau injoignable → motif + code HTTP.
+ * Never an invented code: `code` stays null as long as the server has not
+ * returned it — the card then falls back on manual pasting, it does not lie.
+ * Not linked → explicit reason; server unreachable → reason + HTTP code.
  */
 const referralRoute = async () => {
   const state = readState()
   if (isConnected(state) !== true) {
-    return { ok: false, connected: false, code: null, share_url: null, motif: 'aucun compte lie a kybernos.app' }
+    return { ok: false, connected: false, code: null, share_url: null, motif: 'no account linked to kybernos.app' }
   }
   let res = null
   try {
@@ -1052,13 +1052,13 @@ const referralRoute = async () => {
   const code = typeof brut === 'string' && brut.trim() !== '' ? brut.trim() : null
   const lien = res.body.share_url
   const brutLien = typeof lien === 'string' && lien.trim() !== '' ? lien.trim() : null
-  // Pas de code → pas de lien : un share_url sans code mene a /r/ vide. Le
-  // serveur ne le produit pas (il ne construit le lien qu'avec un code), mais
-  // le plugin ne relaie jamais un lien mort.
+  // No code → no link: a share_url without a code leads to an empty /r/. The
+  // server does not produce it (it only builds the link with a code), but
+  // the plugin never relays a dead link.
   const share = code === null ? null : brutLien
-  // `ok: true` même sans code : le compte répond, il n'a simplement pas encore
-  // de code — la carte doit pouvoir dire ça au lieu de demander un collage.
-  return { ok: true, connected: true, code: code, share_url: share, motif: code === null ? 'ce compte n a pas encore de code de parrainage' : null }
+  // `ok: true` even without a code: the account answers, it simply has no code
+  // yet — the card must be able to say that instead of asking for a paste.
+  return { ok: true, connected: true, code: code, share_url: share, motif: code === null ? 'this account has no referral code yet' : null }
 }
 
 // ── Routes ──────────────────────────────────────────────────────────────────
@@ -1069,11 +1069,11 @@ const sendJson = (res, status, payload) => {
     res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' })
     res.end(body)
   } catch (e) {
-    try { res.writeHead(500); res.end('{}') } catch (e2) { /* socket ferme */ }
+    try { res.writeHead(500); res.end('{}') } catch (e2) { /* socket closed */ }
   }
 }
 
-/** Corps JSON d'une requête locale (borné) : `{}` si absent ou illisible. */
+/** JSON body of a local request (bounded): `{}` if absent or unreadable. */
 const readJsonBody = async (req, cap) => {
   const max = typeof cap === 'number' ? cap : 65536
   try {
@@ -1110,7 +1110,7 @@ const hostAllowed = (req) => {
   } catch (e) { return false }
 }
 
-/** Même garde que les autres routes locales : jamais cross-origin.
+/** Same guard as the other local routes: never cross-origin.
  *  On a real connection the Origin is compared with what THIS listener really is, never with the Host header alone: « Origin.host === Host » let a page
  *  that rebinds its name send the same attacker-chosen authority as both (measured in the pre-production acceptance: memory/add and space/create
  *  answered 200 to Host = Origin = attacker.example). A request with no socket keeps the old comparison. */
@@ -1501,12 +1501,12 @@ const quotaFacts = async () => {
   }
 }
 
-// ── Artefacts (phase A) ─────────────────────────────────────────────────────
-// Le livrable du chat local part vers `kybernos.artifacts` par `/v1/artifacts`
-// (l'app calcule le sha256, résout l'objectif implicite, uploade dans le bucket
-// privé). Ici on ne fait que porter le jeton : le client n'y touche jamais.
-// Contenu borné côté plugin (le corps local est borné à 64 Kio par défaut) ;
-// l'app refuse au-delà de 8 Mio.
+// ── Artifacts (phase A) ─────────────────────────────────────────────────────
+// The artifact from the local chat goes to `kybernos.artifacts` through `/v1/artifacts`
+// (the app computes the sha256, resolves the implicit objective, uploads to the private
+// bucket). Here we only carry the token: the client never touches it.
+// Content bounded on the plugin side (the local body is bounded to 64 KiB by default);
+// the app refuses anything above 8 MiB.
 const ARTIFACT_CONTENT_MAX = 4 * 1024 * 1024
 
 const artifactError = (res, fallback) => {
@@ -1547,11 +1547,11 @@ const artifactPush = async (req, body) => {
 }
 
 
-// ── Partage (core.shares) ────────────────────────────────────────────
-// Trois chemins DISTINCTS : le routeur indexe par chemin, deux routes sur
-// `/shares` se masqueraient l'une l'autre (constaté sur `/memory`).
-// L'audience est dérivée côté serveur (only_me | link | password) ; le mot de
-// passe n'est rendu qu'UNE fois, par l'appel qui le pose ou le tourne.
+// ── Sharing (core.shares) ────────────────────────────────────────────
+// Three DISTINCT paths: the router indexes by path, two routes on
+// `/shares` would mask each other (observed on `/memory`).
+// The audience is derived server-side (only_me | link | password); the
+// password is returned only ONCE, by the call that sets or rotates it.
 const shareError = (res, fallback) => {
   const detail = res && res.body && typeof res.body.error === 'string' ? res.body.error : null
   return detail !== null ? detail : (res && res.error ? res.error : fallback)
@@ -1562,16 +1562,16 @@ const shareError = (res, fallback) => {
  *  « not on this server » instead of showing a raw `not_found`, and hide the control. A 404 about a resource has another message. */
 const routeAbsent = (res) => res !== null && res !== undefined && res.status === 404 && res.body !== null && typeof res.body === 'object' && res.body.error === 'not_found' && /no such route/i.test(String(res.body.message === undefined ? '' : res.body.message))
 
-// ── Chats DSH → webapp (annuaire de sessions) ────────────────────────────────
-// Pousse la LISTE des sessions locales (<DSH home>/sessions) vers
-// POST /v1/dsh/sessions — MÉTADONNÉES SEULEMENT (id de session, projet, date,
-// rien du contenu des conversations : les .jsonl.zstd ne sont jamais ouverts).
-// La webapp lit la même liste (GET /v1/dsh/sessions) pour afficher
-// « Conversations DSH ». Idempotent : le serveur upsert par (user, dsh_id).
+// ── DSH chats → webapp (session directory) ───────────────────────────────────
+// Pushes the LIST of local sessions (<DSH home>/sessions) to
+// POST /v1/dsh/sessions — METADATA ONLY (session id, project, date,
+// nothing of the conversations' content: the .jsonl.zstd files are never opened).
+// The webapp reads the same list (GET /v1/dsh/sessions) to display
+// « DSH Conversations ». Idempotent: the server upserts by (user, dsh_id).
 const CHATS_PUSH_MAX = 100
 
 const projetDuSlug = (slug) => {
-  // « --Users-me-dev-kybernos-- » → « kybernos » ; « ~0020 » = espace.
+  // « --Users-me-dev-kybernos-- » → « kybernos »; « ~0020 » = a space.
   const segments = String(slug || '').split('-').filter((s) => s !== '')
   const dernier = segments.length > 0 ? segments[segments.length - 1] : ''
   return dernier.split('~').join(' ').trim()
@@ -1586,12 +1586,12 @@ const chatsScan = () => {
   } catch (e) {
     return { items, error: 'sessions illisibles' }
   }
-  // Titres réels des sessions renommées (<DSH home>/kybernos/categories.json,
-  // tenu par le plugin kybernos-sessions) — repli : nom du projet du slug.
+  // Real titles of renamed sessions (<DSH home>/kybernos/categories.json,
+  // kept by the kybernos-sessions plugin) — fallback: the project name from the slug.
   let titres = {}
   try {
     titres = JSON.parse(readFileSync(categoriesFile(), 'utf8')) || {}
-  } catch (e) { /* pas de renommages : projet du slug pour tous */ }
+  } catch (e) { /* no renames: project from the slug for everyone */ }
   const titreDe = (sessionId, projet) => {
     const t = titres[sessionId] && typeof titres[sessionId].titre === 'string' ? titres[sessionId].titre.trim() : ''
     return t !== '' ? t : (projet !== '' ? projet : 'Session DSH')
@@ -1613,7 +1613,7 @@ const chatsScan = () => {
           const st = statSync(join(dossier, f))
           if (st.mtimeMs > dernierMtimeMs) dernierMtimeMs = st.mtimeMs
         }
-      } catch (e) { /* session illisible : on la saute */ }
+      } catch (e) { /* unreadable session: skipped */ }
       if (dernierMtimeMs === 0) continue
       const projet = projetDuSlug(slug)
       items.push({
@@ -1634,7 +1634,7 @@ const chatsPushRoute = async () => {
   if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
   const { items, error } = chatsScan()
   if (error !== undefined) return { ok: false, error }
-  if (items.length === 0) return { ok: false, error: 'aucune session locale trouvee' }
+  if (items.length === 0) return { ok: false, error: 'no local session found' }
   const res = await apiCall('/v1/dsh/sessions', {
     method: 'POST',
     token: state.token,
@@ -1654,7 +1654,7 @@ const chatsPushRoute = async () => {
       const fresh = readState()
       fresh.chats_last_push = { at: new Date().toISOString(), ok, scanned: out.scanned, pushed: out.pushed, error: out.error }
       writeState(fresh)
-    } catch (e) { /* l'état ne bloque jamais le résultat */ }
+    } catch (e) { /* the state never blocks the result */ }
   }
   return out
 }
@@ -1668,11 +1668,11 @@ const chatsStatusRoute = async () => {
   }
 }
 
-// Matérialise un chat local (DSH) en `kybernos.chat_sessions` : un chat de DSH
-// n'a aucun pendant hébergé, il faut le créer avant de pouvoir le partager. Le
-// transcript est REMPLACÉ, jamais concaténé (repousser le même fil ne duplique
-// pas les bulles), et `external_ref` rend l'appel idempotent : deux partages du
-// même fil retombent sur la même session.
+// Materialises a local (DSH) chat as `kybernos.chat_sessions`: a DSH chat
+// has no hosted counterpart, it must be created before it can be shared. The
+// transcript is REPLACED, never concatenated (pushing the same thread again does not duplicate
+// the bubbles), and `external_ref` makes the call idempotent: two shares of the
+// same thread land on the same session.
 const chatEnsure = async (req, body) => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: false, connected: false, status: 'none', error: 'non connecte' }
@@ -1756,17 +1756,17 @@ const shareRevoke = async (req, body) => {
   return { ok: true, count: typeof out.count === 'number' ? out.count : 0, status: 200 }
 }
 
-// ── Membres d'un espace (fiche « Partager ») ─────────────────────────────────
-// Lecture : GET /v1/workspaces/:id/members (clé membre acceptée). Écriture
-// (invitation, retrait) : le serveur ne l'ouvre aujourd'hui qu'à la master key
-// (l'EF kybernos-workspace-invite l'appelle avec requesting_user_id) — une clé
-// utilisateur reçoit 403/404/405/501. Ces cas rendent `{ok:false,
-// error:'indisponible'}` : la fiche l'affiche tel quel, sans faux succès.
+// ── Members of a space (« Share » card) ──────────────────────────────────────
+// Read: GET /v1/workspaces/:id/members (member key accepted). Write
+// (invitation, removal): today the server only opens it to the master key
+// (the kybernos-workspace-invite EF calls it with requesting_user_id) — a user
+// key gets 403/404/405/501. These cases return `{ok:false,
+// error:'indisponible'}`: the card shows it as it is, with no false success.
 const MEMBER_ROLES = ['owner', 'admin', 'member']
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-/** Espace visé : celui demandé s'il existe dans le compte, sinon l'actif. */
+/** Target space: the requested one if it exists in the account, else the active one. */
 const memberSpace = (state, wanted) => {
   const espaces = Array.isArray(state.workspaces) ? state.workspaces : []
   const w = typeof wanted === 'string' ? wanted.trim() : ''
@@ -1784,7 +1784,7 @@ const membersGet = async (req) => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: false, connected: false, status: 'none', error: 'non connecte' }
   let wanted = ''
-  try { wanted = new URL(req.url, 'http://localhost').searchParams.get('workspace_id') || '' } catch (e) { /* defaut */ }
+  try { wanted = new URL(req.url, 'http://localhost').searchParams.get('workspace_id') || '' } catch (e) { /* default */ }
   const wid = memberSpace(state, wanted)
   if (wid === null) return { ok: false, error: 'espace_absent' }
   const res = await apiCall('/v1/workspaces/' + encodeURIComponent(wid) + '/members', { token: state.token })
@@ -1817,7 +1817,7 @@ const membersInvite = async (req, body) => {
   if (email === '' && userId === '') return { ok: false, error: 'email requis' }
   if (email !== '' && EMAIL_RE.test(email) !== true) return { ok: false, error: 'email invalide' }
   if (userId !== '' && UUID_RE.test(userId) !== true) return { ok: false, error: 'user_id invalide' }
-  // Contrat de l'EF : admin | member — jamais owner depuis ici.
+  // The EF's contract: admin | member — never owner from here.
   const role = body.role === 'admin' ? 'admin' : (body.role === 'member' ? 'member' : '')
   if (role === '') return { ok: false, error: 'role invalide (admin|member)' }
   // The new server separates the two: an e-mail address is an INVITATION (`POST …/invitations`, a link valid 7 days; 501 when the
@@ -1852,7 +1852,7 @@ const artifactList = async (req) => {
   try {
     const raw = new URL(req.url, 'http://localhost').searchParams.get('limit')
     if (raw !== null) limit = Math.max(1, Math.min(200, parseInt(raw, 10) || 50))
-  } catch (e) { /* URL illisible → defaut */ }
+  } catch (e) { /* unreadable URL → default */ }
   const res = await apiCall('/v1/artifacts?limit=' + limit, { token: state.token })
   if (res.status !== 200) {
     return { ok: false, status: res.status, error: artifactError(res, 'lecture refusee') }
@@ -1868,38 +1868,38 @@ const artifactDetail = async (req, body) => {
   if (id === '') return { ok: false, error: 'id requis' }
   const res = await apiCall('/v1/artifacts/' + encodeURIComponent(id), { token: state.token })
   if (res.status !== 200) {
-    return { ok: false, status: res.status, error: artifactError(res, 'artefact introuvable') }
+    return { ok: false, status: res.status, error: artifactError(res, 'artifact not found') }
   }
   const out = res.body !== null && typeof res.body === 'object' ? res.body : {}
   return { ok: true, artifact: out.artifact, status: 200 }
 }
 
-// ── Fonctionnalité cloud n°2 : la mémoire du compte ─────────────────────────
+// ── Cloud feature no. 2: the account's memory ───────────────────────────────
 //
-// Le serveur Kybernos porte déjà tout le modèle (migration 003) : une table
-// `kybernos.memories` à deux portées (account | kyber), quatre genres
-// (fact|preference|event|policy), une source obligatoire, un épinglage et une
-// rétention (180 jours par défaut, jamais expiré si `pinned`). Contrat relevé
-// sur l'API le 22/09/2026 : POST → 201 + l'objet, GET → {memories:[…]},
-// DELETE → 200 ; tout en snake_case.
+// The Kybernos server already carries the whole model (migration 003): a table
+// `kybernos.memories` with two scopes (account | kyber), four kinds
+// (fact|preference|event|policy), a mandatory source, pinning and a
+// retention (180 days by default, never expired if `pinned`). Contract read
+// off the API on 22/09/2026: POST → 201 + the object, GET → {memories:[…]},
+// DELETE → 200; everything in snake_case.
 //
-// Ce half ne fait que trois choses :
-//   1. lire/écrire ces souvenirs avec le jeton du compte ;
-//   2. les réinjecter dans le prompt à chaque assemblage, dans l'ordre
-//      déterministe que la spec impose (pinned DESC, created_at ASC, id ASC) —
-//      un ordre instable casse le prompt caching du proxy ;
-//   3. laisser le modèle écrire (`memory_write`), chercher (`memory_search`) et
-//      retenir ce qui vient d'être enseigné, en fin de tour.
+// This half does only three things:
+//   1. read/write these memories with the account's token;
+//   2. re-inject them into the prompt at every assembly, in the
+//      deterministic order the spec imposes (pinned DESC, created_at ASC, id ASC) —
+//      an unstable order breaks the proxy's prompt caching;
+//   3. let the model write (`memory_write`), search (`memory_search`) and
+//      retain what has just been taught, at the end of the turn.
 //
-// Invariants :
-//   - hors connexion, rien n'existe : chunk vide, outils qui refusent, aucune
-//     requête réseau, et surtout pas un cache laissé par le compte précédent ;
-//   - le contenu est neutralisé avant d'entrer dans le prompt : un souvenir ne
-//     peut pas fabriquer une ligne de chunk (même règle que `_sanitize` côté
-//     serveur) ;
-//   - l'injection est SYNCHRONE : `systemPrompt.context` appelle son texte à
-//     chaque assemblage, donc il lit un cache — jamais le réseau ;
-//   - toute erreur est fail-open : pas de chunk, le tour continue.
+// Invariants:
+//   - offline, nothing exists: empty chunk, tools that refuse, no
+//     network request, and above all not a cache left by the previous account;
+//   - the content is neutralised before entering the prompt: a memory cannot
+//     forge a chunk line (same rule as `_sanitize` on the
+//     server side);
+//   - the injection is SYNCHRONOUS: `systemPrompt.context` calls its text at
+//     every assembly, so it reads a cache — never the network;
+//   - every error is fail-open: no chunk, the turn goes on.
 
 const MEMORY_KINDS = ['fact', 'preference', 'event', 'policy']
 const MEMORY_SOURCES = ['conversation', 'call', 'correction', 'taught', 'admin']
@@ -1910,26 +1910,26 @@ const MEMORY_INJECT_ORDER = 130
 const MEMORY_PUSH_MAX = 40
 const CAPTURE_MAX_TOKENS = 300
 const CAPTURE_MIN_CHARS = 60
-// Part du budget d'injection réservée aux souvenirs épinglés, et part laissée
-// à la mémoire des kybers reliés quand il y en a : sans ces plafonds, un seul
-// groupe peut affamer tous les autres (constaté : 47 épinglés = tout le budget,
-// donc aucun des 543 souvenirs captés n'arrivait jamais au modèle).
+// Share of the injection budget reserved for pinned memories, and share left
+// to the memory of the linked kybers when there are any: without these caps, a single
+// group can starve all the others (observed: 47 pinned = the whole budget,
+// so none of the 543 captured memories ever reached the model).
 const MEMORY_PINNED_SHARE = 0.6
 const MEMORY_KYBER_SHARE = 0.3
-// Le CADRE du chunk (en-tête, ligne « autres souvenirs », consigne finale) compte dans
-// le plafond : MEMORY_MAX_INJECT_CHARS borne le texte injecté en entier, pas seulement
-// les lignes de souvenirs (mesuré : l'ancien rendu dépassait 6 000 de plus de 130).
+// The FRAME of the chunk (header, « other memories » line, final instruction) counts in
+// the cap: MEMORY_MAX_INJECT_CHARS bounds the whole injected text, not only
+// the memory lines (measured: the old rendering exceeded 6 000 by more than 130).
 const MEMORY_FRAME_CHARS = 450
 const MEMORY_KYBER_FRAME_CHARS = 120
-// Réglages de rafraîchissement, exportés pour que la suite host puisse les
-// couper (un minuteur qui tire sur un faux serveur pendant un test le fausse).
+// Refresh settings, exported so that the host suite can
+// switch them off (a timer firing at a fake server during a test skews it).
 const MEMORY_TUNING = { writeRefreshMs: 400, tickMs: 30000 }
 
-// ── Fichiers voisins de l'état ──────────────────────────────────────────────
-// Réglages et origines vivent À CÔTÉ du fichier d'état (même dossier, mêmes
-// permissions) mais PAS dedans : le fichier d'état disparaît à la déconnexion
-// (clearState), alors qu'un interrupteur « Mémoire : non » doit survivre à une
-// reconnexion — et qu'on doit pouvoir le poser hors connexion.
+// ── Files next to the state ─────────────────────────────────────────────────
+// Settings and origins live NEXT TO the state file (same folder, same
+// permissions) but NOT in it: the state file disappears on sign-out
+// (clearState), whereas a « Memory: no » switch must survive a
+// reconnection — and it must be possible to set it while offline.
 const sideFile = (suffix) => stateFile().replace(/\.json$/, '') + '-' + suffix + '.json'
 
 const readSide = (suffix, fallback) => {
@@ -1943,16 +1943,16 @@ const readSide = (suffix, fallback) => {
 
 const writeSide = (suffix, value) => {
   const file = sideFile(suffix)
-  try { mkdirSync(dirname(file), { recursive: true, mode: 0o700 }) } catch (e) { /* deja la */ }
+  try { mkdirSync(dirname(file), { recursive: true, mode: 0o700 }) } catch (e) { /* already there */ }
   writeFileSync(file, JSON.stringify(value) + '\n', { mode: 0o600 })
-  try { chmodSync(file, 0o600) } catch (e) { /* FS exotique (Windows) */ }
+  try { chmodSync(file, 0o600) } catch (e) { /* exotic FS (Windows) */ }
 }
 
 /**
- * Interrupteurs de la page « Memory & Lessons learned ». Tous vrais par défaut :
- * c'est le comportement d'avant l'existence des réglages, donc rien ne change
- * pour qui ne les touche pas. Lus à chaque assemblage de prompt (fichier minuscule,
- * lecture synchrone) — pas de cache à invalider quand un autre processus écrit.
+ * Switches of the « Memory & Lessons learned » page. All true by default:
+ * this is the behaviour from before the settings existed, so nothing changes
+ * for anyone who does not touch them. Read at every prompt assembly (tiny file,
+ * synchronous read) — no cache to invalidate when another process writes.
  */
 const MEMORY_SETTING_KEYS = ['memories', 'context', 'capture', 'meaning', 'relevant', 'team_use', 'team_share']
 // `meaning` (search by meaning) is OFF until the user turns it on: it sends the text of a memory to the
@@ -1970,11 +1970,11 @@ const readMemorySettings = () => {
 }
 
 /**
- * Origine d'un souvenir : le serveur ne distingue que `source` (conversation,
- * taught…), et la capture automatique, l'outil d'un agent et la poussée de
- * leçons écrivent TOUS `conversation` — indiscernables côté compte. Le plugin
- * note donc localement qui a écrit quoi ; ce qui n'a pas été écrit d'ici est
- * déduit de `source` et marqué « non connu » (`originKnown: false`).
+ * Origin of a memory: the server only distinguishes `source` (conversation,
+ * taught…), and the automatic capture, an agent's tool and the push of
+ * lessons ALL write `conversation` — indistinguishable on the account side. The plugin
+ * therefore notes locally who wrote what; what was not written from here is
+ * deduced from `source` and marked « unknown » (`originKnown: false`).
  */
 const MEMORY_ORIGINS = ['capture', 'agent', 'taught', 'sync']
 const MEMORY_ORIGINS_MAX = 5000
@@ -1985,12 +1985,12 @@ const noteOrigins = (ids, origin) => {
     const map = readSide('memory-origins', {})
     for (const id of ids) map[String(id)] = origin
     const keys = Object.keys(map)
-    // Les ids sont croissants : au-delà du plafond on oublie les plus anciens.
+    // The ids are increasing: beyond the cap, the oldest are forgotten.
     if (keys.length > MEMORY_ORIGINS_MAX) {
       keys.sort((a, b) => Number(a) - Number(b)).slice(0, keys.length - MEMORY_ORIGINS_MAX).forEach((k) => { delete map[k] })
     }
     writeSide('memory-origins', map)
-  } catch (e) { /* le journal d'origine est un confort : jamais bloquant */ }
+  } catch (e) { /* the origin log is a convenience: never blocking */ }
 }
 
 const originOf = (m, ledger) => {
@@ -2000,7 +2000,7 @@ const originOf = (m, ledger) => {
   return { origin: derived, originKnown: false }
 }
 
-/** Cache d'injection : lu par le prompt (synchrone), rempli par le réseau. */
+/** Injection cache: read by the prompt (synchronous), filled from the network. */
 const memoryCache = { at: 0, account: [], kyber: {}, error: null }
 
 const emptyMemoryCache = () => {
@@ -2010,16 +2010,16 @@ const emptyMemoryCache = () => {
   memoryCache.error = null
 }
 
-/** Marque le cache périmé ; `scheduleMemoryRefresh` le recharge juste après. */
+/** Marks the cache stale; `scheduleMemoryRefresh` reloads it right after. */
 const bumpMemoryCache = () => {
   memoryCache.at = 0
 }
 
-// Un assemblage de prompt ne lit QUE le cache (jamais le réseau). Sans rechargement
-// programmé, un souvenir écrit — par l'outil, la capture ou la carte — restait
-// absent du prompt jusqu'au prochain redémarrage : le TTL ne servait à rien
-// parce que tous les appelants forçaient. Une écriture déclenche donc un
-// rechargement court (regroupé), et un minuteur rafraîchit le cache périmé.
+// A prompt assembly reads ONLY the cache (never the network). Without a scheduled
+// reload, a memory written — by the tool, the capture or the card — stayed
+// absent from the prompt until the next restart: the TTL was useless
+// because every caller forced. A write therefore triggers a short
+// (grouped) reload, and a timer refreshes the stale cache.
 let memoryRefreshTimer = null
 const scheduleMemoryRefresh = () => {
   if (memoryRefreshTimer !== null || MEMORY_TUNING.writeRefreshMs < 0) return
@@ -2066,8 +2066,8 @@ const listMemories = async (state, scope, kyberId) => {
 }
 
 /**
- * Valide un souvenir avant de l'envoyer. Fail-closed comme le serveur : un
- * genre hors énumération est refusé, jamais rabattu sur `fact`.
+ * Validates a memory before sending it. Fail-closed like the server: a
+ * kind outside the enumeration is refused, never folded back to `fact`.
  */
 const validateMemory = (body) => {
   const content = typeof body.content === 'string' ? body.content.trim() : ''
@@ -2151,20 +2151,20 @@ const searchMemories = async (state, q) => {
   return { ok: true, error: null, items: raw.map(asMemory) }
 }
 
-// ── Correspondance kybers locaux ↔ kybers cloud ─────────────────────────────
-// Les identifiants n'ont rien à voir : chez moi `default`, `dev-team`… ; côté
-// cloud `kg52d53f4ce522`, `kga9ad6e`. Aucune correspondance automatique n'est
-// fiable, donc elle est EXPLICITE et inspectable (`state.kyberMap`). Sans
-// entrée, une leçon n'est pas poussée — on n'écrit jamais dans le kyber d'un
-// autre au hasard.
+// ── Matching local kybers ↔ cloud kybers ────────────────────────────────────
+// The identifiers have nothing to do with each other: locally `default`, `dev-team`…; on the
+// cloud side `kg52d53f4ce522`, `kga9ad6e`. No automatic matching is
+// reliable, so it is EXPLICIT and inspectable (`state.kyberMap`). With no
+// entry, a lesson is not pushed — we never write into the kyber of
+// another at random.
 
 const stateKyberMap = (state) => (state !== null && typeof state.kyberMap === 'object' && state.kyberMap !== null ? state.kyberMap : {})
 
 const localKybers = () => {
   try {
     return readdirSync(kybersDir(), { withFileTypes: true })
-      // Les entrées cachées (`.git`, `.active`, `.kyber-avatars`) ne sont pas
-      // des kybers : les proposer dans la correspondance serait un faux choix.
+      // Hidden entries (`.git`, `.active`, `.kyber-avatars`) are not
+      // kybers: offering them in the matching would be a false choice.
       .filter((entry) => entry.isDirectory() === true && entry.name.startsWith('.') !== true)
       .map((entry) => entry.name)
       .sort()
@@ -2215,9 +2215,9 @@ const listCloudKybers = async (state) => {
 }
 
 /**
- * Pousse les leçons d'un kyber local vers son kyber cloud (scope=kyber).
- * Déduplication avant écriture (la spec serveur la liste en suite, on la fait
- * ici) : un souvenir de contenu identique n'est jamais réécrit.
+ * Pushes the lessons of a local kyber to its cloud kyber (scope=kyber).
+ * Deduplication before writing (the server spec lists it as a follow-up, we do it
+ * here): a memory with identical content is never rewritten.
  */
 const pushLessons = async (state, options = {}) => {
   const map = stateKyberMap(state)
@@ -2232,7 +2232,7 @@ const pushLessons = async (state, options = {}) => {
     const existing = await listMemories(state, 'kyber', cloud)
     if (existing.ok !== true) { row.error = existing.error; report.push(row); continue }
     const known = new Set(existing.items.map((m) => String(m.content).trim()))
-    // Les plus récentes d'abord : si le plafond coupe, il coupe le vieux.
+    // Most recent first: if the cap cuts, it cuts the old ones.
     const ordered = lessons.slice().reverse().slice(0, MEMORY_PUSH_MAX)
     for (const lesson of ordered) {
       const text = typeof lesson.text === 'string' ? lesson.text.trim() : ''
@@ -2248,13 +2248,13 @@ const pushLessons = async (state, options = {}) => {
   return { ok: true, dryRun: dry, report }
 }
 
-// ── Injection dans le prompt ────────────────────────────────────────────────
+// ── Injection into the prompt ───────────────────────────────────────────────
 
 /**
- * Neutralise le contenu d'un souvenir avant de le mettre dans le prompt : un
- * utilisateur ne doit pas pouvoir écrire une fausse ligne de chunk en
- * enregistrant « [KYBERNOS MEMORY] … ». On rogne le marqueur et on écrase les
- * retours à la ligne, exactement comme `_sanitize` côté serveur.
+ * Neutralises the content of a memory before putting it in the prompt: a
+ * user must not be able to write a fake chunk line by
+ * saving « [KYBERNOS MEMORY] … ». We trim the marker and flatten the
+ * line breaks, exactly like `_sanitize` on the server side.
  */
 const sanitizeMemory = (text) => String(text)
   .replace(/\r?\n+/g, ' · ')
@@ -2262,7 +2262,7 @@ const sanitizeMemory = (text) => String(text)
   .replace(/\[\s*MEMORY/gi, '[MEMORY-')
   .slice(0, MEMORY_MAX_CONTENT)
 
-/** Ordre de RENDU imposé par la spec : épinglés d'abord, puis du plus ancien au plus récent (stable pour le cache de prompt du proxy). */
+/** RENDER order imposed by the spec: pinned first, then oldest to newest (stable for the proxy's prompt cache). */
 const sortMemories = (items) => items.slice().sort((a, b) => {
   if (a.pinned !== b.pinned) return a.pinned === true ? -1 : 1
   const ka = String(a.createdAt === null || a.createdAt === undefined ? '' : a.createdAt)
@@ -2271,7 +2271,7 @@ const sortMemories = (items) => items.slice().sort((a, b) => {
   return Number(a.id) - Number(b.id)
 })
 
-const memoryLine = (m) => '- (' + String(m.kind) + (m.pinned === true ? ', épinglé' : '') + ') ' + sanitizeMemory(m.content)
+const memoryLine = (m) => '- (' + String(m.kind) + (m.pinned === true ? ', pinned' : '') + ') ' + sanitizeMemory(m.content)
 
 const newestFirst = (a, b) => {
   const ka = String(a.createdAt === null || a.createdAt === undefined ? '' : a.createdAt)
@@ -2362,13 +2362,13 @@ const pickRelevant = (sessionId, candidates, picks = sessionPick, tuning = RELEV
 }
 
 /**
- * CHOIX de ce qui part au modèle dans un budget de caractères. La sélection se
- * fait par fraîcheur (épinglés d'abord, plafonnés à `pinnedShare` du budget,
- * puis les plus récents), le RENDU reste dans l'ordre stable de `sortMemories`.
- * Le tri « du plus ancien au plus récent + coupe au premier dépassement » que
- * faisait ce code gardait toujours les plus vieux : sur un compte à 631 souvenirs
- * seuls 12 épinglés entraient, et rien de ce que le modèle venait d'apprendre.
- * Un souvenir trop long pour le reste du budget est sauté (on essaie plus petit).
+ * CHOICE of what goes to the model within a character budget. The selection is
+ * made by freshness (pinned first, capped at `pinnedShare` of the budget,
+ * then the most recent), the RENDER stays in the stable order of `sortMemories`.
+ * The « oldest to newest + cut at the first overflow » sort that this code used to do
+ * always kept the oldest: on a 631-memory account only 12 pinned ones got in,
+ * and nothing of what the model had just learned.
+ * A memory too long for the rest of the budget is skipped (we try a smaller one).
  */
 const selectForPrompt = (items, budget, pinnedShare, preferred = [], preferredShare = 0) => {
   const cost = (m) => memoryLine(m).length + 1
@@ -2394,15 +2394,15 @@ const selectForPrompt = (items, budget, pinnedShare, preferred = [], preferredSh
     relevantUsed += c
   }
   loose.forEach((m) => take(m, budget))
-  // Du budget resté libre (peu de souvenirs libres) : on y remet des épinglés.
+  // Of the budget left free (few free memories): pinned ones are put back into it.
   pinned.forEach((m) => take(m, budget))
   return { chosen: sortMemories(items.filter((m) => chosen.has(m))), used, omitted: items.length - chosen.size }
 }
 
 /**
- * Le plan d'injection — UNE seule source de vérité : le texte du prompt, le
- * compteur « 12 of 631 » de la page et le drapeau `sent` de chaque ligne en
- * sortent tous. Sinon l'écran peut annoncer autre chose que ce que le modèle lit.
+ * The injection plan — ONE single source of truth: the prompt text, the
+ * « 12 of 631 » counter of the page and the `sent` flag of each line all
+ * come out of it. Otherwise the screen can announce something other than what the model reads.
  */
 const planInjection = (state, info) => {
   const empty = { account: { chosen: [], used: 0, omitted: 0 }, kyber: {}, used: 0, budget: MEMORY_MAX_INJECT_CHARS }
@@ -2429,8 +2429,8 @@ const planInjection = (state, info) => {
 }
 
 /**
- * Le texte injecté. Rendu à chaque assemblage : il doit être synchrone et ne
- * jamais lever — d'où le `try` total et le retour de chaîne vide en cas de doute.
+ * The injected text. Rendered at every assembly: it must be synchronous and never
+ * throw — hence the total `try` and the empty-string return in case of doubt.
  */
 const renderMemoryChunk = (state, info) => {
   try {
@@ -2438,21 +2438,21 @@ const renderMemoryChunk = (state, info) => {
     const plan = planInjection(state, info)
     const parts = []
     if (plan.account.chosen.length > 0) {
-      parts.push(MEMORY_MARKER + ' Souvenirs du compte Kybernos de l\'utilisateur (partagés avec tous ses agents) :')
+      parts.push(MEMORY_MARKER + ' The user\'s Kybernos account memories (shared with all their agents):')
       plan.account.chosen.forEach((m) => parts.push(memoryLine(m)))
-      if (plan.account.omitted > 0) parts.push('- … (' + String(plan.account.omitted) + ' autres souvenirs non envoyés ce tour : memory_search pour les retrouver)')
+      if (plan.account.omitted > 0) parts.push('- … (' + String(plan.account.omitted) + ' more memories not sent this turn: use memory_search to find them)')
     }
     for (const local of Object.keys(plan.kyber)) {
       if (plan.kyber[local].chosen.length === 0) continue
-      parts.push('', 'Mémoire de l’Agent Team « ' + local + ' » :')
+      parts.push('', 'Memory of the Agent Team “' + local + '”:')
       plan.kyber[local].chosen.forEach((m) => parts.push(memoryLine(m)))
-      if (plan.kyber[local].omitted > 0) parts.push('- … (' + String(plan.kyber[local].omitted) + ' autres non envoyés)')
+      if (plan.kyber[local].omitted > 0) parts.push('- … (' + String(plan.kyber[local].omitted) + ' more not sent)')
     }
     if (parts.length === 0) return ''
     // The proxy looks for this exact token to avoid adding its own copy: it must lead every non-empty chunk,
     // including one that only carries kyber memories.
-    if (parts[0].indexOf(MEMORY_MARKER) !== 0) parts.unshift(MEMORY_MARKER + ' Mémoire du compte Kybernos de l\'utilisateur :')
-    parts.push('', 'Ces souvenirs viennent du compte de l\'utilisateur. N\'en invente jamais : appelle memory_write pour en ajouter (genre fact|preference|event|policy), memory_search pour en chercher.')
+    if (parts[0].indexOf(MEMORY_MARKER) !== 0) parts.unshift(MEMORY_MARKER + ' The user\'s Kybernos account memory:')
+    parts.push('', 'These memories come from the user\'s account. Never make any up: call memory_write to add one (kind fact|preference|event|policy), memory_search to look one up.')
     return parts.join('\n')
   } catch (e) {
     return ''
@@ -2483,14 +2483,14 @@ const renderMemoryPrompt = (state, info) => {
   }
 }
 
-/** Recharge le cache depuis l'API. Best-effort : une lecture qui échoue GARDE l'ancien contenu. */
+/** Reloads the cache from the API. Best-effort: a read that fails KEEPS the old content. */
 const refreshMemoryCache = async (state, force) => {
   try {
     if (isConnected(state) !== true) { emptyMemoryCache(); return }
     if (force !== true && Date.now() - memoryCache.at < MEMORY_CACHE_MS) return
     const account = await listMemories(state, 'account', null)
-    // Une lecture refusée (401, réseau coupé) ne vide JAMAIS le cache : le prompt
-    // continue de porter le dernier état connu, et l'erreur remonte par la route.
+    // A refused read (401, network down) NEVER empties the cache: the prompt
+    // keeps carrying the last known state, and the error comes up through the route.
     if (account.ok !== true) { memoryCache.error = account.error; return }
     const kyber = {}
     const map = stateKyberMap(state)
@@ -2512,14 +2512,14 @@ const refreshMemoryCache = async (state, force) => {
   }
 }
 
-// ── Routes locales ──────────────────────────────────────────────────────────
+// ── Local routes ────────────────────────────────────────────────────────────
 
 const memoryRoute = async (req) => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
   await refreshMemoryCache(state, true)
-  // Une lecture qui échoue ne doit JAMAIS se présenter comme « aucun
-  // souvenir » : une liste vide et un 401 ne se ressemblent pas.
+  // A read that fails must NEVER present itself as « no
+  // memories »: an empty list and a 401 do not look alike.
   if (memoryCache.error !== null) return { ok: false, connected: true, error: memoryCache.error }
   const map = stateKyberMap(state)
   return {
@@ -2551,9 +2551,9 @@ const marketplaceInstallRoute = async (req, body) => {
   if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
   const demande = body !== null && typeof body === 'object' ? body : {}
   const slug = typeof demande.slug === 'string' ? demande.slug.trim() : ''
-  if (slug === '') return { ok: false, error: 'slug manquant' }
+  if (slug === '') return { ok: false, error: 'slug missing' }
   // The slug goes into a URL and into a folder name: only a plain one is let through.
-  if (slugSur(slug) !== true) return { ok: false, error: 'slug invalide' }
+  if (slugSur(slug) !== true) return { ok: false, error: 'invalid slug' }
   const trouve = await resoudreItem(slug, {
     lireItem: (id) => apiCall('/v1/marketplace/' + encodeURIComponent(id), { token: state.token }),
     lirePage: marketplacePage(state),
@@ -2573,7 +2573,7 @@ const marketplaceInstallRoute = async (req, body) => {
     mkdirSync(dir, { recursive: true })
     writeFileSync(cible, construit.yml, 'utf8')
   } catch (e) {
-    return { ok: false, error: 'ecriture impossible : ' + String(e !== null && e.message !== undefined ? e.message : e) }
+    return { ok: false, error: 'cannot write: ' + String(e !== null && e.message !== undefined ? e.message : e) }
   }
   return {
     ok: true, slug, chemin: cible, origine: 'kybernos.app/' + slug,
@@ -2623,7 +2623,7 @@ const memoryMapRoute = async (req, body) => {
   return { ok: true, map: clean }
 }
 
-// ── Réglages + liste paginée (page « Memory & Lessons learned ») ─────────────
+// ── Settings + paginated list (« Memory & Lessons learned » page) ────────────
 
 // `capture` rides along: the page shows « last capture: … » in the options, and the full
 // `/kybernos-cloud/memory` route that also carries it re-reads the whole account from the API.
@@ -2634,8 +2634,8 @@ const memorySettingsSetRoute = async (req, body) => {
   if (incoming === null) return { ok: false, error: 'corps_invalide' }
   const next = readMemorySettings()
   for (const key of Object.keys(incoming)) {
-    // Fail-closed : une clé inconnue ou une valeur qui n'est pas un booléen est
-    // refusée en bloc — on n'applique jamais « à moitié » un réglage.
+    // Fail-closed: an unknown key or a value that is not a boolean is
+    // refused as a whole — a setting is never applied « by halves ».
     if (MEMORY_SETTING_KEYS.indexOf(key) < 0) return { ok: false, error: 'cle_inconnue', key }
     if (typeof incoming[key] !== 'boolean') return { ok: false, error: 'valeur_invalide', key }
     next[key] = incoming[key]
@@ -2644,7 +2644,7 @@ const memorySettingsSetRoute = async (req, body) => {
   return { ok: true, settings: next }
 }
 
-/** Date serveur (`2026-09-22 18:57:52.777496+00:00`) → ms ; NaN si illisible. */
+/** Server date (`2026-09-22 18:57:52.777496+00:00`) → ms; NaN if unreadable. */
 const parseWhen = (value) => {
   if (typeof value !== 'string' || value === '') return NaN
   const iso = value.replace(' ', 'T').replace(/(\.\d{3})\d+/, '$1')
@@ -2934,7 +2934,7 @@ const memoryMeaningMapRoute = async (req) => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
   let params = new URLSearchParams('')
-  try { params = new URL(req.url, 'http://localhost').searchParams } catch (e) { /* requete sans query */ }
+  try { params = new URL(req.url, 'http://localhost').searchParams } catch (e) { /* request without a query */ }
   const limit = intParam(params.get('limit'), MAP_TUNING.sample, 10, MAP_TUNING.sample)
   // two openings at once (the page remounts) share one computation, so the texts are embedded once
   if (mapInFlight === null) mapInFlight = buildMemoryMap(state, limit).finally(() => { mapInFlight = null })
@@ -3534,11 +3534,11 @@ const teamSkillsDeleteRoute = async (req, body) => {
 }
 
 /**
- * Liste paginée et filtrée des souvenirs du COMPTE. Tout est calculé ici, sur le
- * cache : le serveur ne pagine pas encore (`GET /v1/memories` renvoie tout), donc
- * la page ne doit pas recevoir 631 lignes pour en afficher 25. `sent` vient de
- * `planInjection` — la même sélection que le prompt. La recherche est textuelle
- * (`mode: exact`) : la pertinence demandera un index côté serveur.
+ * Paginated, filtered list of the ACCOUNT's memories. Everything is computed here, on the
+ * cache: the server does not paginate yet (`GET /v1/memories` returns everything), so
+ * the page must not receive 631 rows to display 25. `sent` comes from
+ * `planInjection` — the same selection as the prompt. The search is textual
+ * (`mode: exact`): relevance will need an index on the server side.
  */
 /** The account's memories as the page shows them (newest first, with what is sent to the model), and the injection plan they were measured against. */
 const accountRows = (state) => {
@@ -3562,7 +3562,7 @@ const memoryListRoute = async (req) => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
   let params = new URLSearchParams('')
-  try { params = new URL(req.url, 'http://localhost').searchParams } catch (e) { /* requete sans query */ }
+  try { params = new URL(req.url, 'http://localhost').searchParams } catch (e) { /* request without a query */ }
   // `fresh=1` is the page's own « look again » (it opens, or the person refreshes): a memory written on the web or by another
   // device is there at once. Without it the 60 s cache serves paging and filters, which must not call the server each time.
   await refreshMemoryCache(state, params.get('fresh') === '1')
@@ -3674,13 +3674,13 @@ const memoryLessonsRoute = async (req, body) => {
   return await pushLessons(state, { dryRun: dry })
 }
 
-// ── Outils exposés au modèle ────────────────────────────────────────────────
-// Construits à la main : `defineTool` vit dans `@deepseek-ai/dsh-tools`, que ce
-// plugin (sans dépendances) ne peut pas importer, mais `tools.register` exige
-// seulement { name, parameters, output:{schema,render}, execute }.
-// `kyber_id` n'est VOLONTAIREMENT pas exposé : un modèle ne doit pas pouvoir
-// viser le kyber d'un autre (spec serveur §7, checker F4). La portée kyber est
-// choisie par l'appelant côté DSH, jamais par le modèle.
+// ── Tools exposed to the model ──────────────────────────────────────────────
+// Built by hand: `defineTool` lives in `@deepseek-ai/dsh-tools`, which this
+// plugin (without dependencies) cannot import, but `tools.register` requires
+// only { name, parameters, output:{schema,render}, execute }.
+// `kyber_id` is DELIBERATELY not exposed: a model must not be able to
+// target another one's kyber (server spec §7, checker F4). The kyber scope is
+// chosen by the caller on the DSH side, never by the model.
 
 const TEXT_RESULT = (text) => [{
   type: 'text',
@@ -3689,15 +3689,15 @@ const TEXT_RESULT = (text) => [{
 
 const memoryWriteTool = () => ({
   name: 'memory_write',
-  description: 'Enregistre un souvenir durable dans le compte Kybernos (partagé avec les autres agents de l\'utilisateur). À n\'utiliser que pour un enseignement explicite ou une correction — jamais pour deviner.',
+  description: 'Saves a lasting memory in the Kybernos account (shared with the user\'s other agents). Use it only for an explicit teaching or a correction — never to guess.',
   parameters: {
     type: 'object',
     additionalProperties: false,
     properties: {
-      content: { type: 'string', description: 'Le souvenir, en une phrase.' },
+      content: { type: 'string', description: 'The memory, in one sentence.' },
       kind: { type: 'string', enum: MEMORY_KINDS, description: 'fact | preference | event | policy' },
-      source: { type: 'string', enum: MEMORY_SOURCES, description: 'D\'où vient le souvenir. Défaut : conversation.' },
-      pinned: { type: 'boolean', description: 'Épinglé : n\'expire jamais.' },
+      source: { type: 'string', enum: MEMORY_SOURCES, description: 'Where the memory comes from. Default: conversation.' },
+      pinned: { type: 'boolean', description: 'Pinned: never expires.' },
     },
     required: ['content', 'kind'],
   },
@@ -3712,7 +3712,7 @@ const memoryWriteTool = () => ({
       },
       required: ['ok'],
     },
-    render: (args, value) => TEXT_RESULT(value.ok === true ? 'Souvenir enregistré dans le compte Kybernos (' + String(args.kind) + ').' : 'Souvenir non enregistré : ' + String(value.error)),
+    render: (args, value) => TEXT_RESULT(value.ok === true ? 'Memory saved in the Kybernos account (' + String(args.kind) + ').' : 'Memory not saved: ' + String(value.error)),
   },
   async execute(args) {
     const state = readState()
@@ -3731,12 +3731,12 @@ const memoryWriteTool = () => ({
 
 const memorySearchTool = () => ({
   name: 'memory_search',
-  description: 'Cherche dans les souvenirs du compte Kybernos (faits, préférences, événements, politiques).',
+  description: 'Searches the memories of the Kybernos account (facts, preferences, events, policies).',
   parameters: {
     type: 'object',
     additionalProperties: false,
     properties: {
-      q: { type: 'string', description: 'Mots à chercher.' },
+      q: { type: 'string', description: 'Words to search for.' },
     },
     required: ['q'],
   },
@@ -3752,7 +3752,7 @@ const memorySearchTool = () => ({
       },
       required: ['ok'],
     },
-    render: (args, value) => TEXT_RESULT(value.ok === true ? (value.count === 0 ? 'Aucun souvenir pour « ' + String(args.q) + ' ».' : String(value.found)) : 'Recherche impossible : ' + String(value.error)),
+    render: (args, value) => TEXT_RESULT(value.ok === true ? (value.count === 0 ? 'No memory for “' + String(args.q) + '”.' : String(value.found)) : 'Search failed: ' + String(value.error)),
   },
   async execute(args) {
     const state = readState()
@@ -3765,20 +3765,20 @@ const memorySearchTool = () => ({
   },
 })
 
-// ── Capture en fin de tour ──────────────────────────────────────────────────
-// Équivalent DSH de l'« option C » de la plateforme : après un tour réussi, une
-// complétion en tâche de fond (maxTokens 300) extrait ce qui mérite d'être
-// retenu et l'écrit dans le compte. Ne bloque jamais, ne lève jamais, et ne
-// fait rien hors connexion.
+// ── End-of-turn capture ─────────────────────────────────────────────────────
+// DSH equivalent of the platform's « option C »: after a successful turn, a
+// background completion (maxTokens 300) extracts what deserves to be
+// retained and writes it to the account. Never blocks, never throws, and does
+// nothing offline.
 
-// Marqueurs du bloc que CE plugin injecte dans le prompt. La capture relit les
-// messages du tour en cours : quand le tour a recu l'injection, l'extraction
-// relisait donc le bloc memoire et REECRIVAIT le meme souvenir — boucle de
-// retroaction constatee en live le 22/09/2026 (souvenir #53, duplicata exact de
-// #51, apparu a la fin du tour d'un sous-agent qui portait l'injection). Le bloc
-// est retire AVANT de soumettre le texte.
+// Markers of the block THIS plugin injects into the prompt. The capture re-reads the
+// messages of the current turn: when the turn received the injection, the extraction
+// therefore re-read the memory block and REWROTE the same memory — a feedback
+// loop observed live on 22/09/2026 (memory #53, exact duplicate of
+// #51, which appeared at the end of the turn of a sub-agent that carried the injection). The block
+// is removed BEFORE the text is submitted.
 const MEMORY_BLOCK_HEAD = '[KYBERNOS MEMORY]'
-const MEMORY_BLOCK_TAIL = 'memory_search pour en chercher.'
+const MEMORY_BLOCK_TAIL = 'memory_search to look one up.'
 
 const stripMemoryBlock = (value) => {
   let text = String(value)
@@ -3791,7 +3791,7 @@ const stripMemoryBlock = (value) => {
   return text.trim()
 }
 
-// Forme comparable d'un souvenir, pour l'idempotence.
+// Comparable form of a memory, for idempotence.
 const normalizeMemory = (value) => String(value).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 
 const lastTurnText = (messages) => {
@@ -3806,20 +3806,20 @@ const lastTurnText = (messages) => {
   const assistant = messages.filter((m) => m.role === 'assistant').slice(-1)[0]
   const left = stripMemoryBlock(user === undefined ? '' : text(user))
   const right = stripMemoryBlock(assistant === undefined ? '' : text(assistant))
-  // Les roles sont NOMMES : sans etiquette, le modele d'extraction ne peut pas
-  // distinguer ce que l'utilisateur a enseigne de ce que l'agent a affirme —
-  // et la consigne « n'extrais que l'enseignement de l'utilisateur » devient
-  // inapplicable (risque observe : l'agent se cite lui-meme).
-  const both = (left === '' ? '' : 'UTILISATEUR :\n' + left + '\n\n') + (right === '' ? '' : 'AGENT :\n' + right)
+  // Roles are NAMED: without a label, the extraction model cannot
+  // tell what the user taught from what the agent asserted —
+  // and the instruction « extract only what the user taught » becomes
+  // inapplicable (observed risk: the agent quotes itself).
+  const both = (left === '' ? '' : 'USER:\n' + left + '\n\n') + (right === '' ? '' : 'AGENT:\n' + right)
   return both.trim() === '' ? null : both.trim().slice(0, 6000)
 }
 
-const CAPTURE_PROMPT = 'Tu lis la fin d\'un tour de conversation entre un utilisateur et son agent de code. '
-  + 'Extrais UNIQUEMENT ce que l\'utilisateur a enseigné sur lui-même, son environnement ou ses préférences durables '
-  + '(par exemple « j\'habite à Paris », « je préfère les réponses en français », « ce projet se déploie sur Fly.io »). '
-  + 'N\'extrais rien qui soit un détail de la tâche en cours, un chemin de fichier temporaire ou une supposition. '
-  + 'Réponds en JSON strict : {"memories":[{"content":"…","kind":"fact|preference|event|policy"},…]} '
-  + 'ou {"memories":[]} s\'il n\'y a rien. Aucun texte autour du JSON.'
+const CAPTURE_PROMPT = 'You read the end of a conversation turn between a user and their coding agent. '
+  + 'Extract ONLY what the user taught about themselves, their environment or their lasting preferences '
+  + '(for example “I live in Paris”, “I prefer answers in French”, “this project deploys on Fly.io”). '
+  + 'Extract nothing that is a detail of the current task, a temporary file path or a guess. '
+  + 'Answer in strict JSON: {"memories":[{"content":"…","kind":"fact|preference|event|policy"},…]} '
+  + 'or {"memories":[]} if there is nothing. No text around the JSON.'
 
 const extractFacts = async (ctx, agent, text, signal) => {
   const llm = ctx.get('llm')
@@ -3859,10 +3859,10 @@ const extractFacts = async (ctx, agent, text, signal) => {
 }
 
 /**
- * Dernier passage de la capture. Observabilité volontairement minimale (en
- * mémoire, pas persistée) : sans elle, un `llm` indisponible ou une extraction
- * qui échoue serait indiscernable de « rien à retenir » — le même angle mort
- * que « le panneau est sélectionné » sans « le panneau est visible ».
+ * Last run of the capture. Deliberately minimal observability (in
+ * memory, not persisted): without it, an unavailable `llm` or an extraction
+ * that fails would be indistinguishable from « nothing to retain » — the same blind spot
+ * as « the panel is selected » without « the panel is visible ».
  */
 const lastCapture = { at: 0, status: 'jamais', facts: 0 }
 
@@ -3876,8 +3876,8 @@ const captureTurn = async (ctx, agent, signal) => {
   try {
     const state = readState()
     if (isConnected(state) !== true) return noteCapture('hors_connexion', 0)
-    // Les interrupteurs passent AVANT tout appel réseau ou LLM : « Capture : non »
-    // ne doit pas coûter un seul jeton.
+    // The switches come BEFORE any network or LLM call: « Capture: no »
+    // must not cost a single token.
     const cfg = readMemorySettings()
     if (cfg.memories !== true || cfg.capture !== true) return noteCapture('desactivee', 0)
     if (agent === undefined || agent === null || agent.session === undefined) return noteCapture('sans_session', 0)
@@ -3887,11 +3887,11 @@ const captureTurn = async (ctx, agent, signal) => {
     if (ctx.get('llm') === undefined) return noteCapture('llm_indisponible', 0)
     const facts = await extractFacts(ctx, agent, text, signal)
     if (facts.length === 0) return noteCapture('rien_a_retenir', 0)
-    // Idempotence : un fait deja present dans le compte n'est pas reecrit. Sans
-    // cette garde, un meme fait s'ecrit a chaque tour qui le porte — le compte
-    // se remplit de doublons (constate en live : #53 = #51). La lecture est
-    // fail-open : si elle echoue, on ecrit quand meme (le retrait du bloc
-    // injecte reste le premier rempart).
+    // Idempotence: a fact already present in the account is not rewritten. Without
+    // this guard, the same fact is written on every turn that carries it — the account
+    // fills up with duplicates (observed live: #53 = #51). The read is
+    // fail-open: if it fails, we write anyway (removing the injected
+    // block remains the first rampart).
     const existing = await listMemories(state, 'account')
     const known = new Set(existing.ok === true ? existing.items.map((m) => normalizeMemory(m.content)) : [])
     let written = 0
@@ -3905,13 +3905,13 @@ const captureTurn = async (ctx, agent, signal) => {
       if (made.ok === true) written += 1
       else failed += 1
     }
-    // Rien d'écrit parce que TOUT a échoué n'est pas « écrit : 0 » : la carte
-    // doit pouvoir dire que la capture est en panne.
+    // Nothing written because EVERYTHING failed is not « written: 0 »: the card
+    // must be able to say that the capture is down.
     if (written === 0 && failed > 0) return noteCapture('erreur', 0)
     if (written === 0 && skipped > 0) return noteCapture('deja_connu', 0)
     noteCapture('ecrit', written)
   } catch (e) {
-    // Fire-and-forget : la capture ne casse jamais un tour.
+    // Fire-and-forget: the capture never breaks a turn.
     noteCapture('erreur', 0)
   }
 }
@@ -3921,8 +3921,8 @@ const sessionIdOfContext = (context) => {
 }
 
 const mountMemoryPrompt = (ctx) => {
-  // `inject` (et non `get`) : c'est la forme des plugins natifs, et elle
-  // donne un scope ou `scope.systemPrompt` est le service. Sans lui, rien.
+  // `inject` (and not `get`): this is the shape of native plugins, and it
+  // gives a scope where `scope.systemPrompt` is the service. Without it, nothing.
   ctx.inject(['systemPrompt'], (scope) => {
     scope.systemPrompt.context({
       name: 'kybernos:memory',
@@ -3953,9 +3953,9 @@ const mountMemoryTools = (ctx) => {
 }
 
 /**
- * Rafraîchit le cache dès qu'il est périmé. `force` reste faux : le TTL est
- * enfin respecté (avant, tous les appelants forçaient et il ne servait à rien).
- * Le minuteur est libéré avec le plugin et ne retient pas le processus.
+ * Refreshes the cache as soon as it is stale. `force` stays false: the TTL is
+ * finally respected (before, every caller forced and it was useless).
+ * The timer is released with the plugin and does not hold the process.
  */
 const mountMemoryRefresh = (ctx) => {
   ctx.effect(() => {
@@ -3971,23 +3971,23 @@ const mountMemoryCapture = (ctx) => {
   })
 }
 
-// ── Détail d'un chat DSH — LECTURE LOCALE EXCLUSIVE ─────────────────────────
-// Le contenu d'une conversation ne quitte JAMAIS la machine : la route lit le
-// journal de session sur disque (<DSH home>/sessions/<slug>/<id>/session.v4.jsonl.zstd)
-// et répond directement. Rien ne passe par Supabase, contrairement au push
-// métadonnées (titre + projet + date seulement). CORS restreint aux origines
-// de la webapp en dev (localhost:8081) — jamais « * » : une page web arbitraire
-// ne doit pas pouvoir lire les conversations locales par drive-by.
+// ── DSH chat detail — LOCAL READ ONLY ───────────────────────────────────────
+// The content of a conversation NEVER leaves the machine: the route reads the
+// session log on disk (<DSH home>/sessions/<slug>/<id>/session.v4.jsonl.zstd)
+// and answers directly. Nothing goes through Supabase, unlike the push of
+// metadata (title + project + date only). CORS restricted to the origins
+// of the dev webapp (localhost:8081) — never « * »: an arbitrary web page
+// must not be able to read the local conversations by drive-by.
 const DSH_CORS_ORIGINS = ['http://localhost:8081', 'http://127.0.0.1:8081']
 const DSH_DETAIL_MAX_MESSAGES = 300
 const DSH_DETAIL_MAX_CHARS = 4000
 
 const zstdFrames = (buf) => {
-  // Le journal est une suite de frames zstd CONCATÉNÉES (un frame par flush).
-  // zstdDecompressSync s'arrête au premier frame : on chase la magie
-  // 0x28B52FFD frame par frame, en validant chaque décompression (un candidat
-  // magie peut tomber DANS les données compressées du frame précédent —
-  // slice faussé = decompress error = candidat suivant).
+  // The log is a series of CONCATENATED zstd frames (one frame per flush).
+  // zstdDecompressSync stops at the first frame: we hunt for the magic
+  // 0x28B52FFD frame by frame, validating each decompression (a magic
+  // candidate can fall INSIDE the compressed data of the previous frame —
+  // wrong slice = decompress error = next candidate).
   const magic = Buffer.from([0x28, 0xb5, 0x2f, 0xfd])
   const parts = []
   let cursor = 0
@@ -4002,7 +4002,7 @@ const zstdFrames = (buf) => {
       try {
         const txt = zstdDecompressSync(buf.subarray(at, end)).toString('utf8')
         if (txt.startsWith('{')) { out = { txt, end: next < 0 ? buf.length : next }; break }
-      } catch { /* candidat faux ou frame tassée : on essaie le suivant */ }
+      } catch { /* false candidate or packed frame: we try the next one */ }
       start = at + 1
     }
     if (!out) break
@@ -4023,7 +4023,7 @@ const blocsTexte = (contenu) => {
 const chatsDetail = (req) => {
   const url = new URL(req.url, 'http://local')
   const dshId = String(url.searchParams.get('dsh_id') || '').trim()
-  if (!/^[\w-]{8,80}$/.test(dshId)) return { ok: false, error: 'dsh_id manquant' }
+  if (!/^[\w-]{8,80}$/.test(dshId)) return { ok: false, error: 'dsh_id missing' }
   let dossier = null
   const sessions = sessionsHome()
   try {
@@ -4031,17 +4031,17 @@ const chatsDetail = (req) => {
       const candidat = join(sessions, slug, dshId)
       try {
         if (statSync(candidat).isDirectory()) { dossier = candidat; break }
-      } catch { /* pas ce slug */ }
+      } catch { /* not this slug */ }
     }
-  } catch { /* home illisible */ }
-  if (!dossier) return { ok: false, error: 'session introuvable sur cette machine' }
+  } catch { /* unreadable home */ }
+  if (!dossier) return { ok: false, error: 'session not found on this machine' }
   let journal = ''
   try {
     const fichiers = readdirSync(dossier).filter((f) => f.endsWith('.jsonl.zstd')).sort()
-    if (fichiers.length === 0) return { ok: false, error: 'aucun journal de session' }
+    if (fichiers.length === 0) return { ok: false, error: 'no session log' }
     journal = zstdFrames(readFileSync(join(dossier, fichiers[0])))
   } catch (e) {
-    return { ok: false, error: 'journal illisible : ' + String((e && e.message) || e).slice(0, 80) }
+    return { ok: false, error: 'unreadable log: ' + String((e && e.message) || e).slice(0, 80) }
   }
   const messages = []
   for (const ligne of journal.split('\n')) {
@@ -4050,7 +4050,7 @@ const chatsDetail = (req) => {
     try { e = JSON.parse(ligne) } catch { continue }
     const d = e && e.data ? e.data : {}
     if (e.type === 'user/message') {
-      // source.kind distingue le vrai propos ('user') des injections
+      // source.kind tells the real user speech ('user') from the injections
       // (agent-instructions, runtime-context, skill-catalog…).
       const kind = d.source && typeof d.source === 'object' ? d.source.kind : null
       if (kind && kind !== 'user') continue
@@ -4067,7 +4067,7 @@ const chatsDetail = (req) => {
   try {
     const cats = JSON.parse(readFileSync(categoriesFile(), 'utf8'))
     if (cats[dshId] && typeof cats[dshId].titre === 'string') titre = cats[dshId].titre
-  } catch { /* pas de renommage */ }
+  } catch { /* no rename */ }
   return { ok: true, dsh_id: dshId, title: titre, messages, tronque: messages.length >= DSH_DETAIL_MAX_MESSAGES }
 }
 
@@ -4099,7 +4099,7 @@ const connectorsProvider = () => {
     return v !== null && typeof v === 'object' && (v.provider === 'composio' || v.provider === 'kybernos') ? v.provider : null
   } catch (e) { return null }
 }
-const connections = createConnections({ apiCall, readState, isConnected, server, providerChoice: connectorsProvider, log: (m) => console.error('[kybernos-cloud] connexions: ' + m) })
+const connections = createConnections({ apiCall, readState, isConnected, server, providerChoice: connectorsProvider, log: (m) => console.error('[kybernos-cloud] connections: ' + m) })
 
 // The Account page's "Custom instructions", kept as a marked section of `<DSH home>/AGENTS.md` (instructions.mjs): DSH's own loader hands
 // that file to every agent. The page asks for the file's path so it can say where the text went (a hosted DSH is not the person's device).
@@ -4270,7 +4270,7 @@ const turnAnswer = async (req, body) => {
     const read = await handle.read()
     events = read !== null && read !== undefined && Array.isArray(read.events) === true ? read.events : []
   } finally {
-    try { if (handle !== null && handle !== undefined && typeof handle.close === 'function') await handle.close() } catch (e) { /* deja ferme */ }
+    try { if (handle !== null && handle !== undefined && typeof handle.close === 'function') await handle.close() } catch (e) { /* already closed */ }
   }
   let text = ''
   let tools = 0
@@ -4483,13 +4483,13 @@ const ROUTES = [
   { path: '/kybernos-cloud/space/active', method: 'POST', guarded: true, body: true, run: setActiveSpace },
   { path: '/kybernos-cloud/space/create', method: 'POST', guarded: true, body: true, run: createSpace },
   { path: '/kybernos-cloud/refresh', method: 'POST', guarded: true, run: refreshProfile },
-  // `disconnect` révoque la session côté serveur : irréversible. Un POST nu
-  // (constat de campagne : `curl -X POST /kybernos-cloud/disconnect`) suffisait à
-  // la déclencher. Il faut désormais un corps EXPRÈS `{confirm:true}`.
+  // `disconnect` revokes the session on the server side: irreversible. A bare POST
+  // (campaign finding: `curl -X POST /kybernos-cloud/disconnect`) was enough to
+  // trigger it. It now needs an EXPLICIT body `{confirm:true}`.
   { path: '/kybernos-cloud/disconnect', method: 'POST', guarded: true, confirm: true, run: disconnect },
-  // Catalogue LiteLLM importé : état détaillé + resynchronisation manuelle.
-  // Catalogue de kybers publies sur kybernos.app (lecture seule, aucun jeton
-  // requis pour la route locale : la liaison est verifiee cote plugin).
+  // Imported LiteLLM catalogue: detailed state + manual resynchronisation.
+  // Catalogue of kybers published on kybernos.app (read only, no token
+  // required for the local route: the link is verified plugin-side).
   { path: '/kybernos-cloud/marketplace', method: 'GET', guarded: false, run: marketplaceRoute },
   { path: '/kybernos-cloud/marketplace/install', method: 'POST', guarded: true, body: true, cap: 32768, run: marketplaceInstallRoute },
   { path: '/kybernos-cloud/server', method: 'GET', guarded: false, run: serverRoute },
@@ -4502,35 +4502,35 @@ const ROUTES = [
   { path: '/kybernos-cloud/server/apply', method: 'POST', guarded: true, run: serverApply },
   { path: '/kybernos-cloud/models', method: 'GET', guarded: false, run: modelsRoute },
   { path: '/kybernos-cloud/models/sync', method: 'POST', guarded: true, run: modelsSyncRoute },
-  // Code de parrainage du compte lié (carte d'invitation du pied de sidebar) :
-  // la carte est servie par la même origine, donc `guarded` — un onglet tiers
-  // n'a pas à lire le code du compte.
+  // Referral code of the linked account (sidebar footer invitation card):
+  // the card is served by the same origin, hence `guarded` — a third-party tab
+  // has no business reading the account's code.
   { path: '/kybernos-cloud/referral', method: 'GET', guarded: true, run: referralRoute },
-  // Artefacts (phase A). `body: true` → le corps JSON est lu (borné par `cap`)
-  // et passé au handler ; le contenu peut être un livrable entier en base64.
+  // Artifacts (phase A). `body: true` → the JSON body is read (bounded by `cap`)
+  // and passed to the handler; the content can be a whole artifact in base64.
   { path: '/kybernos-cloud/artifacts', method: 'GET', guarded: true, run: artifactList },
   { path: '/kybernos-cloud/artifacts/push', method: 'POST', guarded: true, body: true, cap: ARTIFACT_CONTENT_MAX + 131072, run: artifactPush },
   { path: '/kybernos-cloud/artifacts/detail', method: 'POST', guarded: true, body: true, run: artifactDetail },
-  // Chats DSH → webapp : pousse l'ANNUAIRE des sessions locales (métadonnées
-  // seulement) vers /v1/dsh/sessions ; GET = état du dernier push.
-  // Détail d'un chat DSH : contenu complet lu SUR PLACE, servi uniquement aux
-  // origines webapp locales (CORS ciblé + guarded:false — le sameOrigin
-  // standard refuserait la webapp de dev sur :8081).
+  // DSH chats → webapp: pushes the DIRECTORY of local sessions (metadata
+  // only) to /v1/dsh/sessions; GET = state of the last push.
+  // DSH chat detail: full content read IN PLACE, served only to the local
+  // webapp origins (targeted CORS + guarded:false — the standard sameOrigin
+  // would refuse the dev webapp on :8081).
   { path: '/kybernos-cloud/chats/detail', method: 'GET', guarded: false, cors: true, run: chatsDetail },
   { path: '/kybernos-cloud/chats', method: 'GET', guarded: true, run: chatsStatusRoute },
   { path: '/kybernos-cloud/chats/push', method: 'POST', guarded: true, run: chatsPushRoute },
-  // Partage d'un artefact ou d'un chat (core.shares). Trois chemins distincts.
-  // Chat local → session hébergée (prérequis du partage d'un chat).
+  // Share of an artifact or a chat (core.shares). Three distinct paths.
+  // Local chat → hosted session (prerequisite of sharing a chat).
   { path: '/kybernos-cloud/chat/ensure', method: 'POST', guarded: true, body: true, cap: 4194304, run: chatEnsure },
   { path: '/kybernos-cloud/shares', method: 'GET', guarded: true, run: shareGet },
   { path: '/kybernos-cloud/shares/set', method: 'POST', guarded: true, body: true, run: shareSet },
   { path: '/kybernos-cloud/shares/revoke', method: 'POST', guarded: true, body: true, run: shareRevoke },
-  // Membres d'un espace : lecture réelle ; invitation et retrait renvoient
-  // {ok:false,error:'indisponible'} tant que le serveur les réserve à la master key.
+  // Members of a space: real read; invitation and removal return
+  // {ok:false,error:'indisponible'} as long as the server reserves them to the master key.
   { path: '/kybernos-cloud/members', method: 'GET', guarded: true, run: membersGet },
-  // Relais lecture seule pour la console Team (iframe d'une autre origine) : liste blanche, jeton ajouté ici, origine STRICTE.
+  // Read-only relay for the Team console (iframe of another origin): allowlist, token added here, STRICT origin.
   { path: '/kybernos-cloud/relay', method: 'GET', guarded: true, strict: true, run: relayRoute },
-  // La console Team dans le navigateur : un lien à usage unique (60 s) demandé au serveur avec le jeton d'appareil, jamais le jeton lui-même.
+  // The Team console in the browser: a single-use link (60 s) requested from the server with the device token, never the token itself.
   { path: '/kybernos-cloud/console/link', method: 'POST', guarded: true, strict: true, body: true, cap: 2048, run: consoleLink },
   // The upgrade popup: the plans and their quotes (public data of the server, no token sent), and the two payment calls (owner or admin of the workspace: the server decides).
   { path: '/kybernos-cloud/plans', method: 'GET', guarded: true, strict: true, run: plansRoute },
@@ -4545,21 +4545,21 @@ const ROUTES = [
   { path: '/kybernos-cloud/instructions/save', method: 'POST', guarded: true, strict: true, body: true, cap: 16384, run: instructionsSave },
   { path: '/kybernos-cloud/members/invite', method: 'POST', guarded: true, body: true, cap: 8192, run: membersInvite },
   { path: '/kybernos-cloud/members/remove', method: 'POST', guarded: true, session: true, body: true, cap: 8192, run: membersRemove },
-  // Mémoire du compte (fonctionnalité cloud n°2) : lecture, écriture, recherche,
-  // correspondance kybers locaux ↔ cloud, et poussée des leçons.
-  // Chaque chemin est DISTINCT (le routeur indexe par chemin : deux routes sur
-  // `/memory` se masqueraient l'une l'autre — constaté par le test host).
+  // Account memory (cloud feature no. 2): read, write, search,
+  // matching of local ↔ cloud kybers, and pushing of lessons.
+  // Each path is DISTINCT (the router indexes by path: two routes on
+  // `/memory` would mask each other — observed by the host test).
   { path: '/kybernos-cloud/memory', method: 'GET', guarded: true, run: memoryRoute },
   { path: '/kybernos-cloud/memory/add', method: 'POST', guarded: true, body: true, run: memoryCreateRoute },
   { path: '/kybernos-cloud/memory/update', method: 'POST', guarded: true, body: true, run: memoryUpdateRoute },
   { path: '/kybernos-cloud/memory/delete', method: 'POST', guarded: true, session: true, body: true, run: memoryDeleteRoute },
   { path: '/kybernos-cloud/memory/search', method: 'GET', guarded: true, run: memorySearchRoute },
   { path: '/kybernos-cloud/memory/map', method: 'POST', guarded: true, body: true, run: memoryMapRoute },
-  // `dryRun` par défaut : la poussée des leçons écrit dans le compte, elle ne
-  // part jamais sans un corps qui dit explicitement `{"dryRun":false}`.
+  // `dryRun` by default: pushing the lessons writes into the account, it
+  // never goes out without a body that explicitly says `{"dryRun":false}`.
   { path: '/kybernos-cloud/memory/lessons', method: 'POST', guarded: true, body: true, run: memoryLessonsRoute },
-  // Page « Memory & Lessons learned » : liste paginée/filtrée et réglages. Chemins
-  // distincts (GET et POST ne peuvent pas partager un chemin).
+  // « Memory & Lessons learned » page: paginated/filtered list and settings.
+  // Distinct paths (GET and POST cannot share a path).
   { path: '/kybernos-cloud/memory/list', method: 'GET', guarded: true, run: memoryListRoute },
   { path: '/kybernos-cloud/memory/settings', method: 'GET', guarded: true, run: memorySettingsRoute },
   { path: '/kybernos-cloud/memory/settings/set', method: 'POST', guarded: true, body: true, run: memorySettingsSetRoute },
@@ -4600,8 +4600,8 @@ const mountWebRoutes = (ctx, webServer) => {
   for (const route of ROUTES) {
     const handler = async (req, res) => {
       if (route.cors === true) {
-        // CORS ciblé : uniquement les origines webapp de dev connues — jamais
-        // « * » (le contenu des conversations est local et privé).
+        // Targeted CORS: only the known dev webapp origins — never
+        // « * » (the content of conversations is local and private).
         const origin = String((req.headers && req.headers.origin) || '')
         const autorise = DSH_CORS_ORIGINS.includes(origin)
         res.setHeader('Access-Control-Allow-Origin', autorise ? origin : 'null')
@@ -4622,13 +4622,13 @@ const mountWebRoutes = (ctx, webServer) => {
         if (body.confirm !== true) return sendJson(res, 400, { ok: false, error: 'confirmation requise : POST avec {"confirm":true}' })
       }
       try {
-        // `body: true` → corps JSON lu ici (borné par `cap`) et passé au
-        // handler avec la requête ; les autres handlers ignorent ces arguments.
+        // `body: true` → JSON body read here (bounded by `cap`) and passed to the
+        // handler with the request; the other handlers ignore these arguments.
         const body = route.body === true ? await readJsonBody(req, route.cap) : null
         sendJson(res, 200, await route.run(req, body))
       } catch (e) {
         console.error('[kybernos-cloud] ' + route.path + ': ' + String((e && e.message) || e))
-        sendJson(res, 500, { ok: false, error: 'erreur interne' })
+        sendJson(res, 500, { ok: false, error: 'internal error' })
       }
     }
     ctx.effect(() => webServer.register({ kind: 'exact', path: route.path, handler }), 'kybernos-cloud: route ' + route.path)
@@ -4670,30 +4670,30 @@ export function apply(ctx) {
   const aside = setAsideForeignConnection()
   if (ctx.get('webServer') !== undefined) mountWebRoutes(ctx, ctx.get('webServer'))
   else ctx.inject(['webServer'], (hostCtx) => mountWebRoutes(ctx, hostCtx.webServer))
-  // Mémoire : le chunk dans le prompt, les deux outils, la capture de fin de
-  // tour. Chaque montage est indépendant et tolère l'absence de son service.
-  try { mountTurnGate(ctx) } catch (e) { console.error('[kybernos-cloud] garde des tours: ' + String((e && e.message) || e)) }
-  try { mountMemoryPrompt(ctx) } catch (e) { console.error('[kybernos-cloud] prompt mémoire: ' + String((e && e.message) || e)) }
-  try { mountKybyNative(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby natif: ' + String((e && e.message) || e)) }
-  try { mountMemoryTools(ctx) } catch (e) { console.error('[kybernos-cloud] outils mémoire: ' + String((e && e.message) || e)) }
-  try { connections.mount(ctx) } catch (e) { console.error('[kybernos-cloud] connexions: ' + String((e && e.message) || e)) }
-  try { mountMemoryCapture(ctx) } catch (e) { console.error('[kybernos-cloud] capture mémoire: ' + String((e && e.message) || e)) }
-  try { mountMemoryRefresh(ctx) } catch (e) { console.error('[kybernos-cloud] rafraîchissement mémoire: ' + String((e && e.message) || e)) }
-  try { mountTidySchedule(ctx) } catch (e) { console.error('[kybernos-cloud] nettoyage planifié: ' + String((e && e.message) || e)) }
+  // Memory: the chunk in the prompt, the two tools, the end-of-turn
+  // capture. Each mount is independent and tolerates the absence of its service.
+  try { mountTurnGate(ctx) } catch (e) { console.error('[kybernos-cloud] turn gate: ' + String((e && e.message) || e)) }
+  try { mountMemoryPrompt(ctx) } catch (e) { console.error('[kybernos-cloud] memory prompt: ' + String((e && e.message) || e)) }
+  try { mountKybyNative(ctx) } catch (e) { console.error('[kybernos-cloud] native Kaby: ' + String((e && e.message) || e)) }
+  try { mountMemoryTools(ctx) } catch (e) { console.error('[kybernos-cloud] memory tools: ' + String((e && e.message) || e)) }
+  try { connections.mount(ctx) } catch (e) { console.error('[kybernos-cloud] connections: ' + String((e && e.message) || e)) }
+  try { mountMemoryCapture(ctx) } catch (e) { console.error('[kybernos-cloud] memory capture: ' + String((e && e.message) || e)) }
+  try { mountMemoryRefresh(ctx) } catch (e) { console.error('[kybernos-cloud] memory refresh: ' + String((e && e.message) || e)) }
+  try { mountTidySchedule(ctx) } catch (e) { console.error('[kybernos-cloud] scheduled tidy-up: ' + String((e && e.message) || e)) }
   try { mountProfileRefresh(ctx) } catch (e) { console.error('[kybernos-cloud] periodic profile read: ' + String((e && e.message) || e)) }
   autoImportAtBoot(ctx, aside)
 }
 
-// Exportés pour le test hors-DSH (scripts/test-cloud-host.mjs) : aucune autre
-// surface publique n'est promise.
+// Exported for the out-of-DSH test (scripts/test-cloud-host.mjs): no other
+// public surface is promised.
 export {
   cloudSeamCall, publishCloudSeam, SEAM_PREFIXES,
   dshHome, resolveApi, stateFile, server, serverApply, serverRoute, deviceLabel, publicState, ROUTES, importCatalog, CRED_REF, PROVIDER_ID, connections,
   // Keeping the picture of the account current (test: kybernos-cloud/test-profile-refresh.mjs).
   profileRefreshTick, PROFILE_REFRESH_TUNING, sameOrigin, hostAllowed,
-  // Relais de la console Team (exportés pour la suite dédiée).
+  // Team console relay (exported for the dedicated suite).
   relayCheck, sameOriginStrict, RELAY_RULES, relayRules,
-  // Mémoire — exportés pour la suite host (faux serveur, aucune vraie API).
+  // Memory — exported for the host suite (fake server, no real API).
   consoleLink, openExternal, plansRoute, planQuote, billingCheckout, billingPortal,
   asMemory, validateMemory, createMemory, patchMemory, deleteMemory, searchMemories,
   sanitizeMemory, sortMemories, renderMemoryChunk, renderMemoryPrompt, MEMORY_MARKER, MEMORY_OFF_MARKER, RELEVANCE_TUNING, noteUserTurn, userPromptText, pickRelevant, sessionQuery, sessionPick,

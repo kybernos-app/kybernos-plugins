@@ -7,6 +7,8 @@
 // What is answered here, only when the running host does not have it yet (host code loads when `dsh web` restarts): ONE route,
 // GET /kybernos-skills/picks, from this checkout's featured-picks.json. Install is opened and CANCELLED: nothing is written anywhere.
 //
+// On a sandbox (which serves THIS checkout, not the shared tree) say so, or the client swap finds nothing to replace:
+//   source scripts/sandbox/env.sh && KB_SHARED_TREE=$PWD node scripts/check-skills-featured-live.mjs
 // Exit 0 all good, 1 a check failed, 3 not run (no GUI).
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
@@ -33,7 +35,12 @@ const picksAnswer = {
 }
 
 const authority = process.env.KB_HOST || '127.0.0.1:3080'
-const hostHasPicks = await fetch('http://' + authority + '/kybernos-skills/picks').then((r) => r.json()).then((j) => j !== null && j.ok === true && Array.isArray(j.items) && j.items.length > 0, () => false)
+// What the page is shown: the host's own answer when it serves the picks route, else the one made here from the disk. A host that
+// serves the covers itself (a sandbox, or a machine whose host fetches them from the relay) lists a cover for picks that have no file in
+// THIS machine's home, so the covers to expect are the ones the answer lists, not the files on disk (A3-05: 24 drawn, 15 on disk).
+const hostPicks = await fetch('http://' + authority + '/kybernos-skills/picks').then((r) => r.json()).catch(() => null)
+const hostHasPicks = hostPicks !== null && hostPicks.ok === true && Array.isArray(hostPicks.items) && hostPicks.items.length > 0
+const shownPicks = hostHasPicks === true ? hostPicks : picksAnswer
 console.log(hostHasPicks ? '(the running host serves the picks route: nothing is faked)' : '(the running host has no picks route yet: it is answered here)')
 
 const live = await openLivePage({ width: 1500, height: 950 }).catch((e) => { console.error('○ not run: ' + e.message); process.exit(3) })
@@ -78,8 +85,8 @@ try {
   await js("(async () => { for (const c of document.querySelectorAll('[data-kb=pick-card]')) { c.scrollIntoView({ block: 'center' }); await new Promise((r) => setTimeout(r, 60)) } document.querySelector('.kbs-root').scrollIntoView(); return true })()")
   await sleep(1500)
   const covers = await js("Array.from(document.querySelectorAll('[data-kb=pick-card] img.kbsf-cut')).filter((i) => i.complete && i.naturalWidth > 0).length")
-  const withCover = picksAnswer.items.filter((i) => i.cover !== null).length
-  check('every cover that exists on disk is served by the real cover route and drawn (' + withCover + ')', covers === withCover, { drawn: covers, onDisk: withCover })
+  const withCover = shownPicks.items.filter((i) => i.cover !== null && i.cover !== undefined).length
+  check('every cover the picks answer lists is served by the real cover route and drawn (' + withCover + ')', covers === withCover, { drawn: covers, listed: withCover, answer: hostHasPicks === true ? 'the host\'s' : 'made here from the disk' })
 
   const text = await js("document.querySelector('[data-kb=picks-grid]').innerText")
   check('no « /name » link on a card', /\n\/[a-z0-9-]+\n/.test('\n' + text + '\n') === false && text.includes('/pdf') === false, text.slice(0, 200))

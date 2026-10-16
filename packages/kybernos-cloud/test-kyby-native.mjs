@@ -29,7 +29,7 @@ writePointer(file, SID)
   const msgs = [
     { role: 'user', content: [{ type: 'text', text: 'Bonjour' }] },
     { role: 'assistant', content: [{ type: 'text', text: 'Salut !' }] },
-    { role: 'user', content: [{ type: 'text', text: '[KYBERNOS MEMORY]\n- vit à Paris\nmemory_search pour en chercher.\nFais-moi un plan' }, { type: 'image', url: 'x' }] },
+    { role: 'user', content: [{ type: 'text', text: '[KYBERNOS MEMORY]\n- vit à Paris\nmemory_search to look one up.\nFais-moi un plan' }, { type: 'image', url: 'x' }] },
     { role: 'assistant', content: [{ type: 'thinking', text: 'hmm' }, { type: 'text', text: 'Voici un plan.' }, { type: 'text', text: 'Bonne semaine.' }] },
   ]
   const t = lastTurn(msgs)

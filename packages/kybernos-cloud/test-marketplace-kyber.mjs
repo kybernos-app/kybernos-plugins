@@ -196,13 +196,13 @@ const OLD_PLAIN_YML = 'id: support-concierge\nspecVersion: 2\nname: Support Conc
   assert.equal(made.yml, OLD_PLAIN_YML.replace('couleur: #2E86AB', 'couleur: "#2E86AB"'))
   assert.deepEqual(made.roles.map((r) => r.id), ['manager', 'doer', 'checker'])
   assert.deepEqual(made.aCompleter, [
-    'role « checker » : aucun prompt publie (does absent)',
-    'sans route de modele : doer, checker',
-    'la route de modele de la plateforme n\'est pas un couple provider/modele : manager→kybernos/doer — choisir provider/model localement',
-    'les etapes (stages) ne sont pas publiees par le catalogue : les declarer localement',
+    'role “checker”: no prompt published (does missing)',
+    'no model route: doer, checker',
+    'the platform\'s model route is not a provider/model pair: manager→kybernos/doer — pick provider/model locally',
+    'the stages are not published by the catalogue: declare them locally',
   ])
   for (const [name, r] of Object.entries(readers)) assert.deepEqual(r.parseKyber(made.yml), r.parseKyber(OLD_PLAIN_YML), name + ': the same kyber for the plugin, old file or new')
-  assert.deepEqual(ymlDuKyber(null), { yml: null, roles: [], aCompleter: ['entree de catalogue sans slug'] })
+  assert.deepEqual(ymlDuKyber(null), { yml: null, roles: [], aCompleter: ['catalogue entry without a slug'] })
   assert.equal(ymlDuKyber({ slug: '' }).yml, null)
   ok('ordinary text: the file is the old one but for `couleur: "#2E86AB"`, same roles, same list of what is left to write, same kyber for the plugin')
 }
@@ -302,13 +302,13 @@ else console.log('  - skipped: no js-yaml of the DSH engine on this machine (the
 // ── 4. what a catalogue answer is made of (the page of the catalogue: the same before and after) ──
 console.log('the catalogue answer')
 {
-  const unreadable = { ok: false, items: [], motif: 'reponse illisible', raison: 'unreadable' }
+  const unreadable = { ok: false, items: [], motif: 'unreadable answer', raison: 'unreadable' }
   assert.deepEqual(normaliserCatalogue(null), unreadable)
   assert.deepEqual(normaliserCatalogue(3), unreadable)
-  assert.deepEqual(normaliserCatalogue({}), { ok: false, items: [], motif: 'aucun champ « items »', raison: 'unreadable' })
-  assert.deepEqual(normaliserCatalogue({ items: 5 }), { ok: false, items: [], motif: 'aucun champ « items »', raison: 'unreadable' })
-  assert.deepEqual(normaliserCatalogue({ items: [] }), { ok: false, items: [], motif: 'catalogue vide', raison: 'empty' })
-  assert.deepEqual(normaliserCatalogue({ items: [null, 1, {}, { slug: 'a' }, { name: 'n' }] }), { ok: false, items: [], motif: 'aucune entree exploitable (5 ecartee(s))', raison: 'empty' })
+  assert.deepEqual(normaliserCatalogue({}), { ok: false, items: [], motif: 'no “items” field', raison: 'unreadable' })
+  assert.deepEqual(normaliserCatalogue({ items: 5 }), { ok: false, items: [], motif: 'no “items” field', raison: 'unreadable' })
+  assert.deepEqual(normaliserCatalogue({ items: [] }), { ok: false, items: [], motif: 'empty catalogue', raison: 'empty' })
+  assert.deepEqual(normaliserCatalogue({ items: [null, 1, {}, { slug: 'a' }, { name: 'n' }] }), { ok: false, items: [], motif: 'no usable entry (5 set aside)', raison: 'empty' })
   assert.deepEqual(normaliserCatalogue({ items: [{ slug: 'a', name: 'A', manifest: { price: 3, data_schemas: {}, source_kyber_id: 'x', agents: [null, { role_key: 'r' }] }, version: '4', published_at: 'd' }] }), {
     ok: true, motif: null,
     items: [{ id: 'a', slug: 'a', name: 'A', cat: '', pitch: '', glyph: '', color: '', version: 4, publishedAt: 'd', agents: [{ role_key: 'r' }], manifest: { agents: [null, { role_key: 'r' }] }, origine: 'kybernos.app' }],
@@ -374,36 +374,36 @@ const slugsOf = (r) => r.items.map((i) => i.slug)
   assert.equal(r.items.length, 25 * 200)
   assert.equal(r.ok, true)
   assert.equal(r.partiel, true)
-  assert.match(r.motif, /^catalogue incomplet : lecture limitee a 25 page\(s\), limite du plugin \(5000 Agent Team\(s\) lue\(s\)\)$/)
+  assert.match(r.motif, /^incomplete catalogue: reading limited to 25 page\(s\), plugin limit \(5000 Agent Team\(s\) read\)$/)
   const few = pager(makeItems(40), { size: 5 })
   const f = await lireCatalogue(few.read, { pages: 3 })
   assert.deepEqual([f.items.length, few.calls.length, f.partiel], [15, 3, true])
   const cap = pager(makeItems(40), { size: 5 })
   const c = await lireCatalogue(cap.read, { items: 7 })
   assert.deepEqual([c.items.length, c.partiel], [7, true], 'the item cap holds even inside a page')
-  assert.match(c.motif, /limite du plugin/)
+  assert.match(c.motif, /plugin limit/)
   assert.equal(slugsOf(c)[0], 'kyber-40')
   ok('a server that always says `has_more` stops at 25 pages / 5000 items, keeps what it read and says it hit the plugin\'s limit')
 }
 {
   const all = makeItems(450)
   for (const [label, failure, motif] of [
-    ['an HTTP error', { status: 502, body: { error: 'bad gateway' } }, /la page 2 est indisponible \(code 502\)/],
-    ['a network error', { status: 0, body: null, error: 'fetch failed' }, /la page 2 est indisponible \(code 0\)/],
-    ['an unreadable body', { status: 200, body: null }, /la page 2 est indisponible \(code 200\)/],
+    ['an HTTP error', { status: 502, body: { error: 'bad gateway' } }, /page 2 is unavailable \(code 502\)/],
+    ['a network error', { status: 0, body: null, error: 'fetch failed' }, /page 2 is unavailable \(code 0\)/],
+    ['an unreadable body', { status: 200, body: null }, /page 2 is unavailable \(code 200\)/],
     ['a rate limit', { status: 429, body: { error: 'rate_limited' } }, /code 429/],
-    ['a throw', 'throw', /la page 2 est injoignable : boom/],
-    ['a body with no items', { status: 200, body: { oops: true } }, /la page 2 est illisible/],
+    ['a throw', 'throw', /page 2 is unreachable: boom/],
+    ['a body with no items', { status: 200, body: { oops: true } }, /page 2 is unreadable/],
   ]) {
     const srv = pager(all, { fail: { 2: failure } })
     const r = await lireCatalogue(srv.read)
     assert.equal(r.ok, true, label)
     assert.equal(r.partiel, true, label)
     assert.equal(r.items.length, 200, label + ': the first page is kept, never an empty catalogue')
-    assert.match(r.motif, /^catalogue incomplet : /, label)
+    assert.match(r.motif, /^incomplete catalogue: /, label)
     assert.equal(r.raison, 'partial', label + ': the page says it in its own words, from the code')
     assert.match(r.motif, motif, label)
-    assert.match(r.motif, /200 Agent Team\(s\) lue\(s\)$/, label)
+    assert.match(r.motif, /200 Agent Team\(s\) read$/, label)
     assert.equal(srv.calls.length, 2, label + ': nothing is asked after a failure')
   }
   const third = await lireCatalogue(pager(all, { fail: { 3: { status: 500, body: null } } }).read)
@@ -414,20 +414,20 @@ const slugsOf = (r) => r.items.map((i) => i.slug)
   // the first page failing is the old « catalogue indisponible »: nothing to show
   // `raison` is the same reason as a code the page translates; « code 0 » is no HTTP answer at all, so it is a connection that is missing
   for (const [failure, motif, raison] of [
-    [{ status: 500, body: { error: 'x' } }, 'catalogue indisponible (code 500)', 'unavailable'],
-    [{ status: 401, body: { error: 'invalid session' } }, 'catalogue indisponible (code 401)', 'unavailable'],
-    [{ status: 0, body: null, error: 'fetch failed' }, 'catalogue indisponible (code 0)', 'no-connection'],
-    [{ status: 200, body: null }, 'catalogue indisponible (code 200)', 'unavailable'],
-    [null, 'catalogue indisponible (code inconnu)', 'no-connection'],
-    ['throw', 'catalogue injoignable : boom', 'no-connection'],
+    [{ status: 500, body: { error: 'x' } }, 'catalogue unavailable (code 500)', 'unavailable'],
+    [{ status: 401, body: { error: 'invalid session' } }, 'catalogue unavailable (code 401)', 'unavailable'],
+    [{ status: 0, body: null, error: 'fetch failed' }, 'catalogue unavailable (code 0)', 'no-connection'],
+    [{ status: 200, body: null }, 'catalogue unavailable (code 200)', 'unavailable'],
+    [null, 'catalogue unavailable (code unknown)', 'no-connection'],
+    ['throw', 'catalogue unreachable: boom', 'no-connection'],
   ]) {
     const r = await lireCatalogue(pager(makeItems(3), { fail: { 1: failure } }).read)
     assert.deepEqual(r, { ok: false, items: [], motif, echec: true, raison }, JSON.stringify(failure))
   }
-  assert.deepEqual(await lireCatalogue(async () => ({ status: 200, body: {} })), { ok: false, items: [], motif: 'aucun champ « items »', raison: 'unreadable' })
-  assert.deepEqual(await lireCatalogue(async () => ({ status: 200, body: [] })), { ok: false, items: [], motif: 'aucun champ « items »', raison: 'unreadable' })
-  assert.deepEqual(await lireCatalogue(async () => ({ status: 200, body: { items: [] } })), { ok: false, items: [], motif: 'catalogue vide', raison: 'empty' })
-  assert.deepEqual(await lireCatalogue(async () => ({ status: 200, body: { items: [null, {}] } })), { ok: false, items: [], motif: 'aucune entree exploitable (2 ecartee(s))', raison: 'empty' })
+  assert.deepEqual(await lireCatalogue(async () => ({ status: 200, body: {} })), { ok: false, items: [], motif: 'no “items” field', raison: 'unreadable' })
+  assert.deepEqual(await lireCatalogue(async () => ({ status: 200, body: [] })), { ok: false, items: [], motif: 'no “items” field', raison: 'unreadable' })
+  assert.deepEqual(await lireCatalogue(async () => ({ status: 200, body: { items: [] } })), { ok: false, items: [], motif: 'empty catalogue', raison: 'empty' })
+  assert.deepEqual(await lireCatalogue(async () => ({ status: 200, body: { items: [null, {}] } })), { ok: false, items: [], motif: 'no usable entry (2 set aside)', raison: 'empty' })
   ok('the first page failing, or not being a catalogue, says what it always said (same words as before the paging)')
 }
 {
@@ -435,16 +435,16 @@ const slugsOf = (r) => r.items.map((i) => i.slug)
   const all = makeItems(30)
   const loop = await lireCatalogue(async () => ({ status: 200, body: { items: all.slice(0, 10), has_more: true } }))
   assert.equal(loop.partiel, true)
-  assert.match(loop.motif, /le serveur repete la page 2, 10 Agent Team\(s\) lue\(s\)/)
+  assert.match(loop.motif, /the server repeats page 2, 10 Agent Team\(s\) read/)
   assert.equal(loop.items.length, 10, 'no item twice')
   const noId = await lireCatalogue(async () => ({ status: 200, body: { items: [{ slug: 'a', name: 'A' }], has_more: true } }))
-  assert.match(noId.motif, /annonce une suite sans dire ou la reprendre, 1 Agent Team\(s\) lue\(s\)/)
+  assert.match(noId.motif, /announces a next page without saying where to resume, 1 Agent Team\(s\) read/)
   const empty = await lireCatalogue(async () => ({ status: 200, body: { items: [], has_more: true } }))
   assert.deepEqual([empty.ok, empty.items.length, empty.partiel], [false, 0, true])
-  assert.match(empty.motif, /^catalogue vide ; catalogue incomplet : /)
+  assert.match(empty.motif, /^empty catalogue; incomplete catalogue: /)
   const slow = await lireCatalogue(pager(makeItems(40), { size: 5 }).read, { budgetMs: -1 })
   assert.deepEqual([slow.items.length, slow.partiel], [5, true])
-  assert.match(slow.motif, /delai depasse apres 1 page\(s\), 5 Agent Team\(s\) lue\(s\)/)
+  assert.match(slow.motif, /time exceeded after 1 page\(s\), 5 Agent Team\(s\) read/)
   // an unusable entry never stops the paging: the cursor is the raw id of the last item
   const all2 = makeItems(6)
   const rows = all2.map((x, i) => (i === 2 ? { id: x.id } : x))
@@ -498,24 +498,24 @@ console.log('the item of an install')
 {
   const all = makeItems(450)
   const gone = await resoudreItem('pas-au-catalogue', { lireItem: async () => ({ status: 404, body: { error: 'Marketplace item not found' } }), lirePage: pager(all).read })
-  assert.deepEqual(gone, { erreur: 'cette Agent Team n\'est plus publiee sous l\'id « pas-au-catalogue »' }, 'the old words')
+  assert.deepEqual(gone, { erreur: 'this Agent Team is no longer published under the id “pas-au-catalogue”' }, 'the old words')
   const partial = await resoudreItem('pas-au-catalogue', { lireItem: async () => ({ status: 404, body: null }), lirePage: pager(all, { fail: { 2: { status: 502, body: null } } }).read })
-  assert.match(partial.erreur, /^cette Agent Team n'a pas ete trouvee sous l'id « pas-au-catalogue » \(catalogue incomplet : la page 2 est indisponible \(code 502\)/)
+  assert.match(partial.erreur, /^this Agent Team was not found under the id “pas-au-catalogue” \(incomplete catalogue: page 2 is unavailable \(code 502\)/)
   assert.equal(/plus publie/.test(partial.erreur), false, 'never claims it is unpublished when only part of the catalogue was read')
   const down = await resoudreItem('x', { lireItem: async () => ({ status: 404, body: null }), lirePage: async () => ({ status: 502, body: null }) })
-  assert.deepEqual(down, { erreur: 'catalogue indisponible (code 502)' })
+  assert.deepEqual(down, { erreur: 'catalogue unavailable (code 502)' })
   for (const [rep, erreur] of [
-    [{ status: 401, body: { error: 'invalid session' } }, 'catalogue indisponible (code 401)'],
-    [{ status: 429, body: null }, 'catalogue indisponible (code 429)'],
-    [{ status: 500, body: null }, 'catalogue indisponible (code 500)'],
-    [{ status: 0, body: null, error: 'fetch failed' }, 'catalogue indisponible (code 0)'],
-    [null, 'catalogue indisponible (code inconnu)'],
+    [{ status: 401, body: { error: 'invalid session' } }, 'catalogue unavailable (code 401)'],
+    [{ status: 429, body: null }, 'catalogue unavailable (code 429)'],
+    [{ status: 500, body: null }, 'catalogue unavailable (code 500)'],
+    [{ status: 0, body: null, error: 'fetch failed' }, 'catalogue unavailable (code 0)'],
+    [null, 'catalogue unavailable (code unknown)'],
   ]) {
     let listRead = 0
     assert.deepEqual(await resoudreItem('x', { lireItem: async () => rep, lirePage: async () => { listRead += 1; return { status: 200, body: { items: [] } } } }), { erreur }, JSON.stringify(rep))
     assert.equal(listRead, 0, 'a failure that is not a 404 does not start reading the list: ' + JSON.stringify(rep))
   }
-  assert.deepEqual(await resoudreItem('x', { lireItem: async () => { throw new Error('boom') }, lirePage: async () => ({ status: 200, body: { items: [] } }) }), { erreur: 'catalogue injoignable : boom' })
+  assert.deepEqual(await resoudreItem('x', { lireItem: async () => { throw new Error('boom') }, lirePage: async () => ({ status: 200, body: { items: [] } }) }), { erreur: 'catalogue unreachable: boom' })
   ok('not published: the old words; read in part: it does not say so; a failure that is not a 404 is « catalogue indisponible » and reads nothing more')
 }
 {

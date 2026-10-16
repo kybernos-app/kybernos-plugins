@@ -87,7 +87,7 @@ export const normaliserItem = (it) => {
 }
 
 /** What an empty result says (the same words whether it is one page or all of them). */
-const motifVide = (ecartes) => (ecartes > 0 ? 'aucune entree exploitable (' + ecartes + ' ecartee(s))' : 'catalogue vide')
+const motifVide = (ecartes) => (ecartes > 0 ? 'no usable entry (' + ecartes + ' set aside)' : 'empty catalogue')
 
 /**
  * Normalises the answer of `GET /v1/marketplace` (one page).
@@ -96,9 +96,9 @@ const motifVide = (ecartes) => (ecartes > 0 ? 'aucune entree exploitable (' + ec
  * which the page turns into a sentence in the person's language.
  */
 export const normaliserCatalogue = (reponse) => {
-  if (reponse === null || typeof reponse !== 'object') return { ok: false, items: [], motif: 'reponse illisible', raison: 'unreadable' }
+  if (reponse === null || typeof reponse !== 'object') return { ok: false, items: [], motif: 'unreadable answer', raison: 'unreadable' }
   const brut = Array.isArray(reponse.items) ? reponse.items : null
-  if (brut === null) return { ok: false, items: [], motif: 'aucun champ « items »', raison: 'unreadable' }
+  if (brut === null) return { ok: false, items: [], motif: 'no “items” field', raison: 'unreadable' }
   const items = []
   let ecartes = 0
   for (const it of brut) {
@@ -150,22 +150,22 @@ export const lireCatalogue = async (lirePage, limites = {}) => {
     let rep = null
     let panne = null
     let codePanne = null
-    try { rep = await lirePage(avant) } catch (e) { panne = 'injoignable : ' + messageDe(e); codePanne = 'no-connection' }
+    try { rep = await lirePage(avant) } catch (e) { panne = 'unreachable: ' + messageDe(e); codePanne = 'no-connection' }
     if (panne === null && (rep === null || rep === undefined || rep.status !== 200 || rep.body === null || rep.body === undefined)) {
-      panne = 'indisponible (code ' + String(rep === null || rep === undefined ? 'inconnu' : rep.status) + ')'
+      panne = 'unavailable (code ' + String(rep === null || rep === undefined ? 'unknown' : rep.status) + ')'
       // Status 0 (or none) is « no HTTP answer at all »: the network, not the catalogue.
       codePanne = rep === null || rep === undefined || !(Number(rep.status) > 0) ? 'no-connection' : 'unavailable'
     }
     if (panne !== null) {
       if (page === 1) return { ok: false, items: [], motif: 'catalogue ' + panne, echec: true, raison: codePanne }
-      note = 'catalogue incomplet : la page ' + page + ' est ' + panne + ', ' + items.length + ' Agent Team(s) lue(s)'
+      note = 'incomplete catalogue: page ' + page + ' is ' + panne + ', ' + items.length + ' Agent Team(s) read'
       break
     }
     const brut = rep.body !== null && typeof rep.body === 'object' && Array.isArray(rep.body.items) ? rep.body.items : null
     if (brut === null) {
       // Not a page of the catalogue. On the first page that is the answer's own reason; later it is a broken server.
       if (page === 1) return Object.assign(normaliserCatalogue(rep.body), { ok: false })
-      note = 'catalogue incomplet : la page ' + page + ' est illisible, ' + items.length + ' Agent Team(s) lue(s)'
+      note = 'incomplete catalogue: page ' + page + ' is unreadable, ' + items.length + ' Agent Team(s) read'
       break
     }
     for (const it of brut) {
@@ -175,26 +175,26 @@ export const lireCatalogue = async (lirePage, limites = {}) => {
       slugs.add(item.slug)
       items.push(item)
     }
-    const limite = 'catalogue incomplet : lecture limitee a ' + page + ' page(s), limite du plugin'
+    const limite = 'incomplete catalogue: reading limited to ' + page + ' page(s), plugin limit'
     if (items.length > lim.items) {
       items.length = lim.items
-      note = limite + ' (' + items.length + ' Agent Team(s) gardee(s))'
+      note = limite + ' (' + items.length + ' Agent Team(s) kept)'
       break
     }
     // An old server has no `has_more`: this was the only page.
     if (rep.body.has_more !== true) break
     const dernier = brut.length > 0 ? brut[brut.length - 1] : null
     const curseur = dernier !== null && typeof dernier === 'object' && typeof dernier.id === 'string' && dernier.id !== '' ? dernier.id : null
-    if (curseur === null) note = 'catalogue incomplet : la page ' + page + ' annonce une suite sans dire ou la reprendre, ' + items.length + ' Agent Team(s) lue(s)'
-    else if (curseurs.has(curseur)) note = 'catalogue incomplet : le serveur repete la page ' + page + ', ' + items.length + ' Agent Team(s) lue(s)'
-    else if (page >= lim.pages || items.length >= lim.items) note = limite + ' (' + items.length + ' Agent Team(s) lue(s))'
-    else if (Date.now() - debut > lim.budgetMs) note = 'catalogue incomplet : delai depasse apres ' + page + ' page(s), ' + items.length + ' Agent Team(s) lue(s)'
+    if (curseur === null) note = 'incomplete catalogue: page ' + page + ' announces a next page without saying where to resume, ' + items.length + ' Agent Team(s) read'
+    else if (curseurs.has(curseur)) note = 'incomplete catalogue: the server repeats page ' + page + ', ' + items.length + ' Agent Team(s) read'
+    else if (page >= lim.pages || items.length >= lim.items) note = limite + ' (' + items.length + ' Agent Team(s) read)'
+    else if (Date.now() - debut > lim.budgetMs) note = 'incomplete catalogue: time exceeded after ' + page + ' page(s), ' + items.length + ' Agent Team(s) read'
     curseurs.add(curseur)
     avant = curseur
   }
   if (items.length === 0) vide = motifVide(ecartes)
   if (note === null) return vide === null ? { ok: items.length > 0, items, motif: vide } : { ok: items.length > 0, items, motif: vide, raison: 'empty' }
-  return { ok: items.length > 0, items, motif: vide === null ? note : vide + ' ; ' + note, raison: 'partial', partiel: true }
+  return { ok: items.length > 0, items, motif: vide === null ? note : vide + '; ' + note, raison: 'partial', partiel: true }
 }
 
 /**
@@ -212,9 +212,9 @@ export const lireCatalogue = async (lirePage, limites = {}) => {
  */
 export const resoudreItem = async (slug, { lireItem, lirePage, limites }) => {
   let rep = null
-  try { rep = await lireItem(slug) } catch (e) { return { erreur: 'catalogue injoignable : ' + messageDe(e) } }
+  try { rep = await lireItem(slug) } catch (e) { return { erreur: 'catalogue unreachable: ' + messageDe(e) } }
   if (rep === null || rep === undefined || (rep.status !== 200 && rep.status !== 404)) {
-    return { erreur: 'catalogue indisponible (code ' + String(rep === null || rep === undefined ? 'inconnu' : rep.status) + ')' }
+    return { erreur: 'catalogue unavailable (code ' + String(rep === null || rep === undefined ? 'unknown' : rep.status) + ')' }
   }
   if (rep.status === 200) {
     const item = normaliserItem(rep.body)
@@ -224,8 +224,8 @@ export const resoudreItem = async (slug, { lireItem, lirePage, limites }) => {
   if (cat.echec === true) return { erreur: cat.motif }
   const trouve = cat.items.filter((i) => i.slug === slug)[0]
   if (trouve !== undefined) return { item: trouve }
-  if (cat.partiel === true) return { erreur: 'cette Agent Team n\'a pas ete trouvee sous l\'id « ' + slug + ' » (' + cat.motif + ')' }
-  return { erreur: 'cette Agent Team n\'est plus publiee sous l\'id « ' + slug + ' »' }
+  if (cat.partiel === true) return { erreur: 'this Agent Team was not found under the id “' + slug + '” (' + cat.motif + ')' }
+  return { erreur: 'this Agent Team is no longer published under the id “' + slug + '”' }
 }
 
 // ── YAML scalars ────────────────────────────────────────────────────────────
@@ -312,7 +312,7 @@ export const lignesDeTexte = (cle, texte, indent) => {
  */
 export const ymlDuKyber = (item) => {
   if (item === null || typeof item !== 'object' || typeof item.slug !== 'string' || item.slug === '') {
-    return { yml: null, roles: [], aCompleter: ['entree de catalogue sans slug'] }
+    return { yml: null, roles: [], aCompleter: ['catalogue entry without a slug'] }
   }
   const aCompleter = []
   const roles = []
@@ -320,11 +320,11 @@ export const ymlDuKyber = (item) => {
   const vus = {}
   for (const a of agents) {
     const id = idDeRole(a.role_key) || slugifier(a.name)
-    if (id === '') { aCompleter.push('un agent sans role_key ni nom, ignore'); continue }
-    if (vus[id] === true) { aCompleter.push('deux agents partagent l\'id « ' + id + ' » : un seul garde'); continue }
+    if (id === '') { aCompleter.push('an agent with no role_key and no name, ignored'); continue }
+    if (vus[id] === true) { aCompleter.push('two agents share the id “' + id + '”: only one is kept'); continue }
     vus[id] = true
     const prompt = typeof a.does === 'string' && a.does.trim() !== '' ? a.does : null
-    if (prompt === null) aCompleter.push('role « ' + id + ' » : aucun prompt publie (does absent)')
+    if (prompt === null) aCompleter.push('role “' + id + '”: no prompt published (does missing)')
     roles.push({
       id,
       prompt,
@@ -333,17 +333,17 @@ export const ymlDuKyber = (item) => {
       tools: Array.isArray(a.tools) ? a.tools.filter((t) => typeof t === 'string') : [],
     })
   }
-  if (roles.length === 0) aCompleter.push('aucun role publie dans le manifeste')
+  if (roles.length === 0) aCompleter.push('no role published in the manifest')
   const mission = typeof item.pitch === 'string' && item.pitch.trim() !== '' ? item.pitch : null
-  if (mission === null) aCompleter.push('aucune mission publiee par le catalogue')
+  if (mission === null) aCompleter.push('no mission published by the catalogue')
   const sansRoute = roles.filter((r) => r.route === null).map((r) => r.id)
-  if (sansRoute.length > 0) aCompleter.push('sans route de modele : ' + sansRoute.join(', '))
+  if (sansRoute.length > 0) aCompleter.push('no model route: ' + sansRoute.join(', '))
   const routes = roles.filter((r) => r.route !== null)
   if (routes.length > 0) {
-    aCompleter.push('la route de modele de la plateforme n\'est pas un couple provider/modele : '
-      + routes.map((r) => r.id + '→' + r.route).join(', ') + ' — choisir provider/model localement')
+    aCompleter.push('the platform\'s model route is not a provider/model pair: '
+      + routes.map((r) => r.id + '→' + r.route).join(', ') + ' — pick provider/model locally')
   }
-  aCompleter.push('les etapes (stages) ne sont pas publiees par le catalogue : les declarer localement')
+  aCompleter.push('the stages are not published by the catalogue: declare them locally')
 
   const l = []
   l.push('id: ' + scalaire(item.slug))
@@ -373,6 +373,6 @@ export const ymlDuKyber = (item) => {
 export const verdictInstallation = (existants, slug, { ecraser = false } = {}) => {
   const noms = Array.isArray(existants) ? existants.filter((n) => typeof n === 'string') : []
   const pris = noms.indexOf(slug) >= 0
-  if (pris === true && ecraser !== true) return { action: 'refus', motif: 'une Agent Team « ' + slug + ' » existe deja', cible: slug }
-  return { action: 'ecrire', motif: pris === true ? 'ecrasement demande explicitement' : 'nouvelle Agent Team', cible: slug }
+  if (pris === true && ecraser !== true) return { action: 'refus', motif: 'an Agent Team “' + slug + '” already exists', cible: slug }
+  return { action: 'ecrire', motif: pris === true ? 'overwrite explicitly requested' : 'new Agent Team', cible: slug }
 }

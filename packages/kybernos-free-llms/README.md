@@ -1,83 +1,83 @@
 # @local/kybernos-free-llms — « Free LLMs »
 
-Branche des modèles de langage **gratuits** sur DSH, sans compte ni clé API, via la
-couche gratuite d'**OpenCode Zen**. Deux moitiés :
+Wires **free** language models into DSH, with no account and no API key, through the
+free tier of **OpenCode Zen**. Two halves:
 
-- **hôte (`index.js`)** — une passerelle locale (`/free-llms/v1/*`) qui reçoit une
-  requête OpenAI ordinaire, la **réécrit** pour satisfaire le contrat de la couche
-  gratuite, la transmet à `opencode.ai`, et renvoie la réponse en SSE compatible
-  OpenAI. C'est cette passerelle que le fournisseur `opencode-free` vise.
-- **client (`client.js`)** — le panneau « Free LLMs » (section Réglages dédiée) :
-  liste les modèles gratuits, les branche sur DSH, et sonde la santé du verrou.
+- **host (`index.js`)** — a local gateway (`/free-llms/v1/*`) that receives an ordinary
+  OpenAI request, **rewrites** it to satisfy the contract of the free tier, forwards it
+  to `opencode.ai`, and returns the answer as OpenAI-compatible SSE. The `opencode-free`
+  provider points at this gateway.
+- **client (`client.js`)** — the « Free LLMs » panel (a dedicated Settings section):
+  lists the free models, wires them into DSH, and probes the health of the lock.
 
-## Pourquoi une passerelle (et pas juste un fournisseur)
+## Why a gateway (and not just a provider)
 
-La couche gratuite d'OpenCode est verrouillée par un **contrat de requête strict** :
-sans lui, elle répond `403 FreeTierError`. Mesuré barrière par barrière (2026-10-12,
-bissection en live) — les quatre doivent être vraies **en même temps** :
+The free tier of OpenCode is locked behind a **strict request contract**: without it, it
+answers `403 FreeTierError`. Measured barrier by barrier (2026-10-12, live bisection) —
+all four must hold **at the same time**:
 
-| Barrière | Mesure |
+| Barrier | Measurement |
 |---|---|
-| `User-Agent: opencode/<version>` (≥ 1.17) | obligatoire (426 en dessous) |
-| `x-opencode-session` = `ses_` + 12 hex + 14 base62 | la forme est validée, pas la valeur |
-| `stream: true` dans le corps | `stream:false` → 403 |
-| tableau `tools` non vide, **vrais noms** `{bash, glob, grep, read}` | `[]` → 403, faux noms → 403, le quartet → 200 |
+| `User-Agent: opencode/<version>` (≥ 1.17) | required (426 below) |
+| `x-opencode-session` = `ses_` + 12 hex + 14 base62 | the shape is validated, not the value |
+| `stream: true` in the body | `stream:false` → 403 |
+| non-empty `tools` array, **real names** `{bash, glob, grep, read}` | `[]` → 403, made-up names → 403, the quartet → 200 |
 
-L'adaptateur `openai-completions` de DSH n'injecte ni `tools` ni de session par
-requête — d'où la passerelle, qui fait exactement cette réécriture
-(`gateway-contract.mjs`) puis transmet le reste **tel quel**. Aucun patch moteur.
+DSH's `openai-completions` adapter injects neither `tools` nor a per-request session —
+hence the gateway, which does exactly that rewrite (`gateway-contract.mjs`) and forwards
+the rest **as is**. No engine patch.
 
-## Ce que le bundle n'écrit JAMAIS
+## What the bundle NEVER writes
 
-Aucun fichier de configuration côté hôte : `cordis.patch.yml` n'insère que le plugin
-dans la pile. La route `opencode-free` du namespace `llm-pi-ai` est écrite **par la
-GUI** (`remote.settings.mutate`), comme la page Models native. La seule trace disque
-est le marqueur d'activation `~/.dsh/kybernos/free-llms.json`.
+No configuration file on the host: `cordis.patch.yml` only inserts the plugin in the
+stack. The `opencode-free` route of the `llm-pi-ai` namespace is written **by the GUI**
+(`remote.settings.mutate`), like the native Models page. The only trace on disk is the
+activation marker `~/.dsh/kybernos/free-llms.json`.
 
-## Les deux garde-fous (design validé)
+## The two safeguards (validated design)
 
-1. **Confidentialité** : les conditions de Zen indiquent que les prompts envoyés aux
-   modèles gratuits **peuvent être conservés pour entraînement**. Le branchement
-   n'est **jamais silencieux** : il faut cocher « J'ai compris… » avant « Brancher ».
-2. **Pas de point de défaillance unique** : c'est un fournisseur **parmi d'autres**.
-   L'activation automatique au premier lancement (`/free-llms/auto-enable`) ne se
-   déclenche que si la personne **n'a aucun modèle qui marche déjà** (ni cloud, ni
-   clé, ni local) **et** a accusé réception du point 1.
+1. **Privacy**: Zen's terms say that prompts sent to the free models **may be retained
+   for training**. Wiring is **never silent**: the person must tick « I understand… »
+   before « Wire ».
+2. **No single point of failure**: this is **one provider among others**. Automatic
+   activation on first run (`/free-llms/auto-enable`) only fires if the person **has no
+   model that already works** (no cloud, no key, no local) **and** has acknowledged
+   point 1.
 
-## Fragilité assumée
+## Accepted fragility
 
-OpenCode durcit cette couche régulièrement (bascule du 17/09). Le panneau ne simule
-rien : si le verrou refuse, la sonde affiche « Verrou refusé : `free_tier_locked` ».
-Un modèle dont le protocole fil n'est pas servi rapporte `model_protocol_unsupported`
-(ex. `jev-1.13-free`, `muse-spark-*` au 12/10) — c'est une propriété du modèle, pas
-un verrou qu'on peut franchir.
+OpenCode hardens this tier regularly (the switch of 17/09). The panel simulates nothing:
+if the lock refuses, the probe says so in plain words and shows the code (`free_tier_locked`). A model whose
+wire protocol is not served reports `model_protocol_unsupported` (e.g. `jev-1.13-free`,
+`muse-spark-*` on 12/10) — that is a property of the model, not a lock that can be
+crossed.
 
-## Vérification
+## Checks
 
 ```bash
-node packages/kybernos-free-llms/test-contract.mjs    # 18 tests — contrat, profil, activation
-node packages/kybernos-free-llms/test-gateway.mjs     # 5 tests  — réécriture + pliage SSE
-node packages/kybernos-free-llms/poc/poc-pont.mjs     # PoC live : le vrai fil pi-ai vers opencode.ai
+node packages/kybernos-free-llms/test-contract.mjs    # 18 tests — contract, profile, activation
+node packages/kybernos-free-llms/test-gateway.mjs     # 5 tests  — rewrite + SSE folding
+node packages/kybernos-free-llms/poc/poc-pont.mjs     # live PoC: the real pi-ai wire to opencode.ai
 ```
 
-Le PoC (`poc/poc-pont.mjs`) est la preuve de bout en bout : il passe la **vraie**
-sérialisation `openai-completions` de pi-ai (celle de DSH) vers la couche gratuite et
-obtient de vraies réponses. Il tourne sur `127.0.0.1:8848` :
+The PoC (`poc/poc-pont.mjs`) is the end-to-end proof: it sends the **real**
+`openai-completions` serialisation of pi-ai (the one DSH uses) to the free tier and gets
+real answers. It runs on `127.0.0.1:8848`:
 
 ```bash
 curl -s localhost:8848/v1/models
 curl -s localhost:8848/v1/chat/completions -H 'content-type: application/json' \
-  -d '{"model":"mimo-v2.6-flash-free","messages":[{"role":"user","content":"Dis bonjour."}],"max_tokens":50}'
+  -d '{"model":"mimo-v2.6-flash-free","messages":[{"role":"user","content":"Say hello."}],"max_tokens":50}'
 ```
 
-## Routes hôte
+## Host routes
 
-| Route | Rôle |
+| Route | Role |
 |---|---|
-| `POST /free-llms/v1/chat/completions` | passerelle → opencode.ai (réécrit + SSE) |
-| `GET /free-llms/v1/models` | liste gratuite live (OpenAI `list`) |
-| `GET /free-llms/status` | liste + état d'activation (panneau) |
-| `GET /free-llms/health?model=` | sonde le contrat complet sur un modèle |
-| `POST /free-llms/enable` | branche la route (`acknowledged: true` requis) |
-| `POST /free-llms/disable` | retire la route (garde l'accusé) |
-| `POST /free-llms/auto-enable` | premier lancement, si aucun modèle perso + accusé |
+| `POST /free-llms/v1/chat/completions` | gateway → opencode.ai (rewritten + SSE) |
+| `GET /free-llms/v1/models` | live free list (OpenAI `list`) |
+| `GET /free-llms/status` | list + activation state (the panel) |
+| `GET /free-llms/health?model=` | probes the full contract on one model |
+| `POST /free-llms/enable` | wires the route (`acknowledged: true` required) |
+| `POST /free-llms/disable` | removes the route (keeps the acknowledgement) |
+| `POST /free-llms/auto-enable` | first run, if no custom model + acknowledgement |

@@ -8,11 +8,14 @@
 // What it cannot do: link words that share no letters ("voiture" / "bagnole", "lundi" / "monday") — that is
 // the job of search by meaning, which needs the embedding model.
 
-const STOP = new Set((
+// The French words are DATA (a stop list), not text shown to anyone: they sit in `frStopWords`, the one place a French literal belongs.
+const frStopWords = [
   // French: articles, pronouns, possessives, prepositions, conjunctions, and the verbs people use to ASK ("peux", "fais")
-  'le la les un une des de du d l et ou a au aux en dans sur sous pour par que qui quoi dont ne pas est sont etre ete avoir ai as ont se sa son ses ce cet cette ces il elle on nous vous ils elles je tu toi moi y' +
-  ' mon ma mes ton ta tes notre nos votre vos leur leurs lui eux ca cela ceci celui celle si tout tous toute toutes plus moins tres bien alors donc mais comme avec sans vers chez entre quand comment pourquoi ou est-ce' +
-  ' peux peut peuvent veux veut faire fais fait donne dis dit voir vois va vas vont aller etc svp stp' +
+  'le la les un une des de du d l et ou a au aux en dans sur sous pour par que qui quoi dont ne pas est sont etre ete avoir ai as ont se sa son ses ce cet cette ces il elle on nous vous ils elles je tu toi moi y',
+  ' mon ma mes ton ta tes notre nos votre vos leur leurs lui eux ca cela ceci celui celle si tout tous toute toutes plus moins tres bien alors donc mais comme avec sans vers chez entre quand comment pourquoi ou est-ce',
+  ' peux peut peuvent veux veut faire fais fait donne dis dit voir vois va vas vont aller etc svp stp'
+]
+const STOP = new Set((frStopWords.join('') +
   // English: articles, pronouns, auxiliaries, question words, politeness
   ' the a an of and or to in on for with is are was were be been it its this that these those by as at from i me my you your we our they them his her' +
   ' do does did done can could would should will shall may might have has had having not no yes please what how why when where which who whom there here also just very'

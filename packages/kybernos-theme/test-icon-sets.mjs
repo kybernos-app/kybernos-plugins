@@ -122,7 +122,7 @@ section('the registry the menu reads')
 section('the theme plumbing')
 {
   ok('iconSet is a stored setting with a valid list', /iconSet: 'classic'/.test(SRC) && /iconSet: ICON_SET_IDS/.test(SRC))
-  ok('a theme can retain it: its own group, with a label', /icons: \['iconSet'\]/.test(SRC) && /icons: 'Icônes du menu'/.test(SRC))
+  ok('a theme can retain it: its own group, with a label', /icons: \['iconSet'\]/.test(SRC) && /icons: \['Icônes du menu', 'Menu icons'\]/.test(SRC))
   ok('a shipped theme may carry one', /if \(sk\.iconSet !== undefined\) patch\.iconSet = sk\.iconSet/.test(SRC))
   const body = (name) => { const i = SRC.indexOf('const ' + name + ' = (themeSvc, S) => {'); return i < 0 ? '' : SRC.slice(i, SRC.indexOf('\n      }\n', i)) }
   ok('both appliers put it in force (activation and live)', /appliquerIcones\(S\)/.test(body('appliquerTout')) && /appliquerIcones\(S\)/.test(body('appliquerBoot')))

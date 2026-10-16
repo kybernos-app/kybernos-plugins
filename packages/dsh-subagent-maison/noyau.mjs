@@ -1,37 +1,37 @@
 // ═══════════════════════════════════════════════════════
-// noyau.mjs — kit commun des providers maison de sous-agents DSH.
+// noyau.mjs — the common kit of the DSH sub-agent in-house providers.
 //
-// Un provider maison pilote une CLI agentique externe (opencode, gemini, qwen,
-// hermes…) en one-shot : spawn le binaire avec le prompt en argument/entrée,
-// capture la sortie texte, la renvoie comme résultat de run, et expose un
-// health-check pour le routeur Auto.
+// An in-house provider drives an external agentic CLI (opencode, gemini, qwen,
+// hermes…) one-shot: it spawns the binary with the prompt as argument/input,
+// captures the text output, returns it as the run result, and exposes a
+// health check for the Auto router.
 //
-// Ce module ne dépend pas de @deepseek-ai/* : il est testable sans DSH. C'est
-// le provider (dsh-subagent-<cli>/index.js) qui le branche sur le seam
-// `ctx.subagents` + `ctx.subprocess` de DSH.
+// This module does not depend on @deepseek-ai/*: it can be tested without DSH. It is
+// the provider (dsh-subagent-<cli>/index.js) that plugs it into the
+// `ctx.subagents` + `ctx.subprocess` seam of DSH.
 //
-// Contrat d'un provider maison (calqué sur @deepseek-ai/dsh-subagent-codex) :
+// Contract of an in-house provider (modelled on @deepseek-ai/dsh-subagent-codex):
 //   name, capabilities (NO_START_CAPABILITIES), start(request) ->
 //     subprocessRunHandle({ id, result, signal, onAbort, requestCancel, teardown })
 //   avec result = settleRunResult({ attempt, collectOutput, collectDiagnostic,
-//     cancelled, onError, signal, onAbort }) et attempt() résolvant
+//     cancelled, onError, signal, onAbort }) and attempt() resolving
 //     { output: [{type:'text',text}], stopReason:'completed' }.
 // ═══════════════════════════════════════════════════════
 
 import { execFile } from 'node:child_process'
 import { statSync, accessSync, constants } from 'node:fs'
 
-/** Un seul nom de produit dans les diagnostics — jamais un modèle/provider en dur. */
+/** A single product name in the diagnostics — never a hard-coded model/provider. */
 export const diagnostique = (produit, fait) => {
-  const champs = [`produit: ${produit}`]
-  if (fait.stage) champs.push(`étape: ${fait.stage}`)
-  if (fait.categorie) champs.push(`catégorie: ${fait.categorie}`)
-  if (fait.code != null) champs.push(`code de sortie: ${fait.code}`)
+  const champs = [`product: ${produit}`]
+  if (fait.stage) champs.push(`stage: ${fait.stage}`)
+  if (fait.categorie) champs.push(`category: ${fait.categorie}`)
+  if (fait.code != null) champs.push(`exit code: ${fait.code}`)
   if (fait.signal != null) champs.push(`signal: ${fait.signal}`)
-  return `Échec sous-agent produit (${champs.join(' ; ')})`
+  return `Subagent product failure (${champs.join('; ')})`
 }
 
-/** Erreur typée d'un run de provider maison (message sans détail sensible). */
+/** Typed error of an in-house provider run (message without sensitive detail). */
 export class RunFailure extends Error {
   constructor (produit, fait, cause) {
     super(diagnostique(produit, fait), cause === undefined ? undefined : { cause })
@@ -40,21 +40,21 @@ export class RunFailure extends Error {
   }
 }
 
-/** Valide qu'une tâche one-shot ne contient que du texte non vide. */
+/** Checks that a one-shot task holds nothing but non-empty text. */
 export function texteTache (prompt) {
-  if (!Array.isArray(prompt) || prompt.length === 0) throw new Error('la tâche one-shot doit contenir des blocs de texte')
+  if (!Array.isArray(prompt) || prompt.length === 0) throw new Error('the one-shot task must contain text blocks')
   const textes = []
   for (const bloc of prompt) {
-    if (bloc == null || bloc.type !== 'text' || typeof bloc.text !== 'string') throw new Error('la tâche one-shot doit contenir uniquement des blocs texte')
+    if (bloc == null || bloc.type !== 'text' || typeof bloc.text !== 'string') throw new Error('the one-shot task must contain text blocks only')
     textes.push(bloc.text)
   }
-  if (textes.every((t) => t.trim() === '')) throw new Error('la tâche one-shot ne doit pas être vide')
+  if (textes.every((t) => t.trim() === '')) throw new Error('the one-shot task must not be empty')
   return textes
 }
 
 /**
- * Trouve un exécutable dans le PATH (et nulle part ailleurs).
- * Retourne le chemin absolu ou null.
+ * Finds an executable in the PATH (and nowhere else).
+ * Returns the absolute path or null.
  */
 export function trouverBinaire (binaire, env = process.env, plateforme = process.platform) {
   const exts = plateforme === 'win32' ? String(env.PATHEXT || '.EXE;.CMD;.BAT').split(';') : ['']
@@ -72,9 +72,9 @@ export function trouverBinaire (binaire, env = process.env, plateforme = process
 }
 
 /**
- * Exécute une commande one-shot et renvoie la sortie complète.
- * Utilisé par le health-check (sonde du routeur) et les petits appels de
- * diagnostic — le run de délégation, lui, passe par `ctx.subprocess` de DSH.
+ * Runs a one-shot command and returns the whole output.
+ * Used by the health check (the router's probe) and the small diagnostic
+ * calls — the delegation run itself goes through DSH's `ctx.subprocess`.
  */
 export function executer (binaire, args, { delaiMs = 30000, cwd, env } = {}) {
   return new Promise((resolve) => {
@@ -93,10 +93,10 @@ export function executer (binaire, args, { delaiMs = 30000, cwd, env } = {}) {
 }
 
 /**
- * Découvre un modèle gratuit (`…:free`) sur un catalogue OpenAI-compatible
- * (/v1/models), à l'exécution — jamais un nom écrit en dur (politique). Utilisé
- * par Hermes dont le défaut du portail est cassé/payant. `choisir` départage si
- * plusieurs candidats. Renvoie un id ou null.
+ * Discovers a free model (`…:free`) on an OpenAI-compatible catalogue
+ * (/v1/models), at run time — never a hard-coded name (policy). Used by
+ * Hermes, whose portal default is broken/paid. `choisir` breaks the tie when
+ * there are several candidates. Returns an id or null.
  */
 export async function trouverModeleFree (baseUrl, { choisir, env = process.env } = {}) {
   try {
@@ -111,15 +111,15 @@ export async function trouverModeleFree (baseUrl, { choisir, env = process.env }
 }
 
 /**
- * Health-check d'une CLI agentique : binaire présent + authentifié, sans
- * consommer l'abonnement (aucun appel de modèle). Renvoie un verdict stable
- * que la page Workers et le routeur Auto consomment.
+ * Health check of an agentic CLI: binary present + authenticated, without
+ * spending the subscription (no model call). Returns a stable verdict that
+ * the Workers page and the Auto router consume.
  *
- * spec : { produit, binaire, versionArgs, authArgs, authOk(code, sortie) }
+ * spec: { produit, binaire, versionArgs, authArgs, authOk(code, output) }
  */
 export async function sonder (spec, env = process.env) {
   const chemin = await Promise.resolve(trouverBinaire(spec.binaire, env))
-  if (chemin == null) return { pret: false, raison: 'binaire-absent', message: `${spec.binaire} introuvable dans le PATH` }
+  if (chemin == null) return { pret: false, raison: 'binaire-absent', message: `${spec.binaire} not found in the PATH` }
   const v = await executer(spec.binaire, spec.versionArgs ?? ['--version'], { env })
   const version = (v.sortie || '').trim().split('\n')[0]
   const a = await executer(spec.binaire, spec.authArgs ?? ['--version'], { env })
@@ -129,21 +129,21 @@ export async function sonder (spec, env = process.env) {
     raison: connecte ? 'pret' : 'non-connecte',
     chemin,
     version,
-    message: connecte ? `${spec.produit} prêt` : `${spec.produit} : lancez l'authentification de la CLI dans un terminal`
+    message: connecte ? `${spec.produit} ready` : `${spec.produit}: run the CLI's sign-in in a terminal`
   }
 }
 
 /**
- * Fabrique un run one-shot complet autour d'une CLI qui écrit le résultat sur
- * stdout puis sort (gemini -p, qwen -p, opencode run…). Passe par le
- * `spawn` de `ctx.subprocess` de DSH (managed-range) — jamais d'execFile local
- * pour le run de délégation.
+ * Builds a complete one-shot run around a CLI that writes the result to
+ * stdout and then exits (gemini -p, qwen -p, opencode run…). It goes through
+ * DSH's `ctx.subprocess` `spawn` (managed-range) — never a local execFile
+ * for the delegation run.
  *
- * produit  : nom affiché dans les diagnostics (jamais un modèle en dur)
- * argv     : (tache) -> [binaire, ...args] — chaque CLI fournit ses arguments
- * spawn    : spec.spawn de DSH ({ argv, cwd, stdio, env, graceMs })
+ * produit  : name shown in the diagnostics (never a hard-coded model)
+ * argv     : (task) -> [binary, ...args] — each CLI supplies its own arguments
+ * spawn    : DSH's spec.spawn ({ argv, cwd, stdio, env, graceMs })
  *
- * Renvoie { result, requestCancel, onAbort, teardown } prêts pour
+ * Returns { result, requestCancel, onAbort, teardown } ready for
  * subprocessRunHandle.
  */
 export function runOneShot (produit, argv, { spawn, cwd, env, signal, graceMs = 3000 } = {}) {
@@ -162,8 +162,8 @@ export function runOneShot (produit, argv, { spawn, cwd, env, signal, graceMs = 
   const onAbort = () => requestCancel()
   if (signal != null) signal.addEventListener('abort', onAbort, { once: true })
 
-  // `ctx.subprocess.spawn` renvoie un SubprocessHandle : .done résout les exit
-  // facts ({exitCode, signal}), .terminate() démarre l'arrêt du managed-range.
+  // `ctx.subprocess.spawn` returns a SubprocessHandle: .done resolves the exit
+  // facts ({exitCode, signal}), .terminate() starts the managed-range shutdown.
   const issue = Promise.resolve(enfant.done)
 
   const attempt = async () => {
@@ -175,12 +175,12 @@ export function runOneShot (produit, argv, { spawn, cwd, env, signal, graceMs = 
     if (annule) throw new RunFailure(produit, { stage: 'exec', categorie: 'limit' })
     if (sig != null || code !== 0) throw new RunFailure(produit, { stage: 'exec', categorie: sig != null ? 'process' : 'product-error', code: code ?? undefined, signal: sig })
     const rendu = (texte !== '' ? texte : erreurTxt)
-    return { output: [{ type: 'text', text: rendu === '' ? '(sortie vide)' : rendu }], stopReason: 'completed' }
+    return { output: [{ type: 'text', text: rendu === '' ? '(empty output)' : rendu }], stopReason: 'completed' }
   }
   const teardown = async () => {
     enfant.terminate()
     try { await enfant.waitForExit() } catch { /* best effort */ }
-    try { await issue } catch { /* l'issue en échec est déjà reflétée dans attempt */ }
+    try { await issue } catch { /* the failed outcome is already reflected in attempt */ }
   }
   return { attempt, requestCancel, onAbort, teardown, enfant }
 }

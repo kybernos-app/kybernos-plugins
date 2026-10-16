@@ -38,13 +38,16 @@ window.__ModuleLoader__.load({
         // or a fr base); every other language — translated (es…) or not — gets
         // English, never French.
         return (s === 'kybernos' || s.split(/[-_]/)[0] === 'fr') ? 'fr' : 'en'
-      } catch (e) { return 'fr' }
+      } catch (e) { return 'en' }
     }
-    const PACK_STRINGS = {} // fr → {fr, en} — collected at run time for the i18n pack
+    // The pair helper is self-contained (a test runs it on its own): the pack of pairs it meets, fr → { fr, en }, collected at
+    // run time for the i18n pack, lives on the helper itself.
     const kt = (fr, en) => {
-      if (PACK_STRINGS[fr] === undefined) PACK_STRINGS[fr] = { fr, en }
+      const pack = kt.pack || (kt.pack = {})
+      if (pack[fr] === undefined) pack[fr] = { fr, en }
       return (lang() === 'fr' ? fr : en)
     }
+    const PACK_STRINGS = (() => { kt.pack = kt.pack || {}; return kt.pack })()
 
     // ── logos ───────────────────────────────────────────────────────────────
     // Inline SVG symbols (no image file, no network request). The marks belong to their
@@ -53,18 +56,18 @@ window.__ModuleLoader__.load({
     const LOGO_OF = { 'claude-code': 'claude', codex: 'codex', gemini: 'gemini', opencode: 'opencode', qwen: 'qwen', hermes: 'hermes' }
 
     // ── pure data (tested without a browser) ────────────────────────────────
-    // One word per row: [dot class, French, English].
+    // One word per row: the dot class, the French word and the English one.
     const STATUS = {
-      inactive: ['', 'Pas activé', 'Not turned on'],
-      unknown: ['', 'À vérifier', 'To check'],
-      checking: ['warn busy', 'Vérification…', 'Checking…'],
-      'binaire-absent': ['warn', 'À installer', 'To install'],
-      'non-connecte': ['warn', 'À connecter', 'To connect'],
-      'ecriture-impossible': ['bad', 'Pas d’écriture', 'Cannot write'],
-      incomplet: ['warn', 'À confirmer', 'To confirm'],
-      'a-relancer': ['warn', 'Redémarrez DSH', 'Restart DSH'],
-      'serveur-absent': ['bad', 'Serveur introuvable', 'Server not found'],
-      pret: ['ok', 'Prêt', 'Ready']
+      inactive: { dot: '', fr: 'Pas activé', en: 'Not turned on' },
+      unknown: { dot: '', fr: 'À vérifier', en: 'To check' },
+      checking: { dot: 'warn busy', fr: 'Vérification…', en: 'Checking…' },
+      'binaire-absent': { dot: 'warn', fr: 'À installer', en: 'To install' },
+      'non-connecte': { dot: 'warn', fr: 'À connecter', en: 'To connect' },
+      'ecriture-impossible': { dot: 'bad', fr: 'Pas d’écriture', en: 'Cannot write' },
+      incomplet: { dot: 'warn', fr: 'À confirmer', en: 'To confirm' },
+      'a-relancer': { dot: 'warn', fr: 'Redémarre DSH', en: 'Restart DSH' },
+      'serveur-absent': { dot: 'bad', fr: 'Serveur introuvable', en: 'Server not found' },
+      pret: { dot: 'ok', fr: 'Prêt', en: 'Ready' }
     }
 
     const control = (w, id) => (w.dernier != null && Array.isArray(w.dernier.controles) ? w.dernier.controles.find((c) => c.id === id) : undefined)
@@ -126,7 +129,7 @@ window.__ModuleLoader__.load({
       'claude-code': [['Anthropic', 'Anthropic'], ['abonnement Claude', 'Claude subscription']],
       codex: [['OpenAI', 'OpenAI'], ['compte ChatGPT', 'ChatGPT account']],
       gemini: [['Google', 'Google'], ['clé API Google', 'Google API key']],
-      opencode: [['Open source', 'Open source'], ['vos propres clés', 'your own keys']],
+      opencode: [['Open source', 'Open source'], ['tes propres clés', 'your own keys']],
       qwen: [['Alibaba', 'Alibaba'], ['clé Token Plan', 'Token Plan key']],
       hermes: [['Nous Research', 'Nous Research'], ['compte Nous Portal', 'Nous Portal account']],
       zcode: [['Application ZCode', 'ZCode app'], ['connexion gérée par ZCode', 'sign-in handled by ZCode']]
@@ -144,8 +147,8 @@ window.__ModuleLoader__.load({
       if (status === 'binaire-absent') return kt('Le programme n’est pas encore sur cet ordinateur.', 'The program is not on this computer yet.')
       if (status === 'non-connecte') {
         return w.connect != null && w.connect.mode === 'key'
-          ? kt('Installé. Il manque votre clé API.', 'Installed. Your API key is missing.')
-          : kt('Installé. Il reste à vous connecter à votre compte.', 'Installed. You still have to sign in to your account.')
+          ? kt('Installé. Il manque ta clé API.', 'Installed. Your API key is missing.')
+          : kt('Installé. Il te reste à te connecter à ton compte.', 'Installed. You still have to sign in to your account.')
       }
       if (status === 'incomplet' && w.genre === 'mcp') return kt('Connexion gérée par ZCode : seule une vraie tâche le prouve.', 'Sign-in handled by ZCode: only a real task proves it.')
       return identityLine(w)
@@ -156,31 +159,31 @@ window.__ModuleLoader__.load({
       if (job == null) return ''
       const log = (job.journal || []).join('\n')
       if (job.raison === 'timeout') return kt('L’installation a pris trop de temps et a été arrêtée.', 'The install took too long and was stopped.')
-      if (/EACCES|permission denied/i.test(log)) return kt('Votre ordinateur a refusé l’écriture (droits). Utilisez la ligne Homebrew ou installez-le vous-même.', 'Your computer refused the write (permissions). Use the Homebrew line or install it yourself.')
+      if (/EACCES|permission denied/i.test(log)) return kt('Ton ordinateur a refusé l’écriture (droits). Utilise la ligne Homebrew ou installe-le toi-même.', 'Your computer refused the write (permissions). Use the Homebrew line or install it yourself.')
       return kt('L’installateur s’est arrêté avec une erreur (code ' + String(job.code) + ').', 'The installer stopped with an error (code ' + String(job.code) + ').')
     }
 
     /** Pure. The answer of a refused route, in words. */
     const REFUSALS = {
-      'package-missing': ['Le module « Agent connectors » n’est pas installé : activez-le dans Kybernos Suite, ou mettez la Suite à jour.', 'The "Agent connectors" module is not installed: turn it on in Kybernos Suite, or update the Suite.'],
-      'command-changed': ['La commande a changé depuis l’affichage : rechargez la page et recommencez.', 'The command changed since it was shown: reload the page and try again.'],
-      busy: ['Une autre opération est en cours : réessayez dans un instant.', 'Another operation is running: try again in a moment.'],
+      'package-missing': ['Le module « Agent connectors » n’est pas installé : active-le dans Kybernos Suite, ou mets la Suite à jour.', 'The "Agent connectors" module is not installed: turn it on in Kybernos Suite, or update the Suite.'],
+      'command-changed': ['La commande a changé depuis l’affichage : recharge la page et recommence.', 'The command changed since it was shown: reload the page and try again.'],
+      busy: ['Une autre opération est en cours : réessaie dans un instant.', 'Another operation is running: try again in a moment.'],
       'already-installed': ['Déjà installé : DSH le revérifie.', 'Already installed: DSH is checking it again.'],
       'unsupported-platform': ['L’installation automatique n’existe que sur Mac et Linux pour l’instant.', 'Automatic install only exists on Mac and Linux for now.'],
-      'install-unavailable': ['L’installation automatique n’est pas disponible : redémarrez DSH.', 'Automatic install is not available: restart DSH.'],
-      'ligne-existante': ['Une ligne d’outil existe déjà dans votre profil et n’a pas été écrite ici : modifiez-la à la main.', 'A tool line already exists in your profile and was not written here: edit it by hand.'],
+      'install-unavailable': ['L’installation automatique n’est pas disponible : redémarre DSH.', 'Automatic install is not available: restart DSH.'],
+      'ligne-existante': ['Une ligne d’outil existe déjà dans ton profil et n’a pas été écrite ici : modifie-la à la main.', 'A tool line already exists in your profile and was not written here: edit it by hand.'],
       'ligne-modifiee-a-la-main': ['La ligne a été modifiée à la main : je ne la réécris pas.', 'The line was edited by hand: I will not rewrite it.'],
-      'connexion-absente': ['Activez d’abord l’agent.', 'Turn the agent on first.']
+      'connexion-absente': ['Active d’abord l’agent.', 'Turn the agent on first.']
     }
-    const refusalText = (r, prefixFr, prefixEn) => {
+    const refusalText = (r, fr, en) => {
       const known = r != null && REFUSALS[r.error]
       if (known) return kt(known[0], known[1])
       if (r != null && r.error === 'missing-tool') {
         return r.tool === 'npm'
-          ? kt('npm (fourni avec Node.js) n’est pas installé sur cet ordinateur. Installez Node.js depuis nodejs.org, ou utilisez Homebrew, puis réessayez.', 'npm (it comes with Node.js) is not installed on this computer. Install Node.js from nodejs.org, or use Homebrew, then try again.')
+          ? kt('npm (fourni avec Node.js) n’est pas installé sur cet ordinateur. Installe Node.js depuis nodejs.org, ou utilise Homebrew, puis réessaie.', 'npm (it comes with Node.js) is not installed on this computer. Install Node.js from nodejs.org, or use Homebrew, then try again.')
           : kt('Il manque « ' + String(r.tool) + ' » sur cet ordinateur.', '"' + String(r.tool) + '" is missing on this computer.')
       }
-      return kt(prefixFr, prefixEn) + String(r != null && r.error ? r.error : '')
+      return kt(fr, en) + String(r != null && r.error ? r.error : '')
     }
 
     // ── the guide: what a worker is, and the demo path ──────────────────────
@@ -206,6 +209,8 @@ window.__ModuleLoader__.load({
 
     const CSS = [
       '.kbwk{display:flex;flex-direction:column;gap:14px;max-width:980px;font-size:13.5px;color:var(--dsw-alias-label-primary);overflow-wrap:anywhere}',
+      '/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */',
+      'body:not([data-ds-dark-theme]) .kbwk{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}',
       '.kbwk button,.kbwk input{font:inherit}',
       '.kbwk button{cursor:pointer}',
       '.kbwk button:disabled{opacity:.5;cursor:default}',
@@ -300,10 +305,13 @@ window.__ModuleLoader__.load({
       '.kbwk-empty{padding:24px;text-align:center;color:var(--dsw-alias-label-tertiary);border:1px dashed var(--dsw-alias-border-l2);border-radius:12px}',
       // narrow window: measured on the page itself, not the screen
       '@container kbwk (max-width:640px){',
-      '.kbwk-row{grid-template-columns:minmax(0,1fr) auto 28px}',
-      '.kbwk-main{grid-column:1 / span 2;grid-row:1}.kbwk-chev{grid-column:3;grid-row:1}',
-      '.kbwk-stc{grid-column:1;grid-row:2}.kbwk-steps{grid-column:2;grid-row:2;justify-self:end}',
-      '.kbwk-ctl{grid-column:1 / span 3;grid-row:3;justify-content:space-between}',
+      // The chevron's column follows the chevron (28 px on a desktop, 36-40 px on a phone, where the page's minimum target
+      // size applies): a fixed 28 px column pushed it 12 px past the page and made Settings scroll sideways (A3-19). It sits
+      // on the action's line, at the end, instead of far from it on the title's line.
+      '.kbwk-row{grid-template-columns:minmax(0,1fr) auto auto}',
+      '.kbwk-main{grid-column:1 / -1;grid-row:1}.kbwk-chev{grid-column:3;grid-row:3}',
+      '.kbwk-stc{grid-column:1;grid-row:2}.kbwk-steps{grid-column:2 / span 2;grid-row:2;justify-self:end}',
+      '.kbwk-ctl{grid-column:1 / span 2;grid-row:3;justify-content:flex-start;flex-wrap:wrap}',
       '.kbwk-head h4{font-size:22px}',
       '}',
       // ── the guide ─────────────────────────────────────────────────────────
@@ -380,7 +388,7 @@ window.__ModuleLoader__.load({
       const rowView = (o) => h('div', { className: 'kbwk-row' },
         h(o.toggle ? 'button' : 'div', Object.assign({ className: 'kbwk-main' }, o.toggle ? { type: 'button', 'aria-expanded': o.open ? 'true' : 'false', 'data-kb': 'wk-toggle-' + o.id, onClick: o.toggle } : {}),
           logo(o.logoId), h('span', { className: 'kbwk-mt' }, h('span', { className: 'kbwk-nom' }, o.name), h('span', { className: 'kbwk-l2', title: o.sub }, o.sub))),
-        h('span', { className: 'kbwk-stc' }, h('span', { className: 'kbwk-chip', role: 'status', 'data-kb': o.id ? 'wk-status-' + o.id : undefined }, h('i', { className: 'kbwk-dot ' + o.status[0] }), kt(o.status[1], o.status[2]))),
+        h('span', { className: 'kbwk-stc' }, h('span', { className: 'kbwk-chip', role: 'status', 'data-kb': o.id ? 'wk-status-' + o.id : undefined }, h('i', { className: 'kbwk-dot ' + o.status.dot }), kt(o.status.fr, o.status.en))),
         h('span', { className: 'kbwk-steps', title: kt('Activé · Installé · Connecté · Vérifié', 'Turned on · Installed · Signed in · Checked'), 'aria-label': kt('Étapes : activé, installé, connecté, vérifié', 'Steps: turned on, installed, signed in, checked') },
           o.steps.reduce((acc, s, i) => { if (i > 0) acc.push(h('s', { key: 's' + i })); acc.push(h('i', { key: 'i' + i, className: s })); return acc }, [])),
         h('span', { className: 'kbwk-ctl' }, o.ctl),
@@ -406,13 +414,13 @@ window.__ModuleLoader__.load({
         }, [])
 
         const STEPS = [
-          [kt('Activer', 'Turn on'), kt('DSH doit d’abord connaître l’agent. Un clic sur « Activer » l’ajoute à votre configuration, avec une sauvegarde. Essayez sur la ligne ci-dessous.', 'DSH has to know the agent first. One click on "Turn on" adds it to your configuration, with a backup. Try it on the row below.')],
+          [kt('Activer', 'Turn on'), kt('DSH doit d’abord connaître l’agent. Un clic sur « Activer » l’ajoute à ta configuration, avec une sauvegarde. Essaie sur la ligne ci-dessous.', 'DSH has to know the agent first. One click on "Turn on" adds it to your configuration, with a backup. Try it on the row below.')],
           [kt('Vérifier', 'Check'), kt('« Vérifier » contrôle l’agent sans l’utiliser, donc sans rien dépenser. Il dit ce qui manque, et la ligne indique l’étape suivante.', '"Check" tests the agent without using it, so it spends nothing. It says what is missing, and the row shows the next step.')],
-          [kt('Installer', 'Install'), kt('Si le programme manque, DSH peut l’installer pour vous : il montre la commande exacte et sa source, vous confirmez, il la lance puis revérifie tout seul.', 'If the program is missing, DSH can install it for you: it shows the exact command and its source, you confirm, it runs it and checks again by itself.')],
-          [kt('Se connecter', 'Sign in'), kt('La connexion se fait avec votre compte, dans votre navigateur : DSH ne peut pas la faire à votre place. Tapez le nom de l’agent dans l’app Terminal (Cmd + Espace, « Terminal »). Certains agents (Gemini, Qwen) demandent plutôt une clé API, que l’on colle dans la page.', 'Signing in uses your account, in your browser: DSH cannot do it for you. Type the agent’s name in the Terminal app (Cmd + Space, "Terminal"). Some agents (Gemini, Qwen) ask for an API key instead, which you paste in the page.')],
-          [kt('Revérifier', 'Check again'), kt('Une fois connecté, vérifiez de nouveau. Quand les cinq contrôles passent, la ligne passe à « Prêt ».', 'Once signed in, check again. When the five checks pass, the row turns "Ready".')],
-          [kt('Autoriser', 'Allow'), kt('Vous choisissez si l’agent principal peut appeler cet agent. Pensez à enregistrer : DSH l’applique en quelques secondes.', 'You choose whether the main agent may call this agent. Remember to save: DSH applies it in a few seconds.')],
-          [kt('Déléguer', 'Delegate'), kt('Dans une conversation, demandez simplement. L’agent principal choisit de passer la tâche au worker autorisé et vous rend le résultat.', 'In a conversation, just ask. The main agent hands the task to the allowed worker and brings you the result.')]
+          [kt('Installer', 'Install'), kt('Si le programme manque, DSH peut l’installer pour toi : il montre la commande exacte et sa source, tu confirmes, il la lance puis revérifie tout seul.', 'If the program is missing, DSH can install it for you: it shows the exact command and its source, you confirm, it runs it and checks again by itself.')],
+          [kt('Se connecter', 'Sign in'), kt('La connexion se fait avec ton compte, dans ton navigateur : DSH ne peut pas la faire à ton place. Tape le nom de l’agent dans l’app Terminal (Cmd + Espace, « Terminal »). Certains agents (Gemini, Qwen) demandent plutôt une clé API, que l’on colle dans la page.', 'Signing in uses your account, in your browser: DSH cannot do it for you. Type the agent’s name in the Terminal app (Cmd + Space, "Terminal"). Some agents (Gemini, Qwen) ask for an API key instead, which you paste in the page.')],
+          [kt('Revérifier', 'Check again'), kt('Une fois connecté, vérifie de nouveau. Quand les cinq contrôles passent, la ligne passe à « Prêt ».', 'Once signed in, check again. When the five checks pass, the row turns "Ready".')],
+          [kt('Autoriser', 'Allow'), kt('Tu choisis si l’agent principal peut appeler cet agent. Pense à enregistrer : DSH l’applique en quelques secondes.', 'You choose whether the main agent may call this agent. Remember to save: DSH applies it in a few seconds.')],
+          [kt('Déléguer', 'Delegate'), kt('Dans une conversation, demande simplement. L’agent principal choisit de passer la tâche au worker autorisé et te rend le résultat.', 'In a conversation, just ask. The main agent hands the task to the allowed worker and brings you the result.')]
         ]
 
         const status = !d.mounted ? 'inactive' : (d.busy === 'check' ? 'checking' : (d.verdict === null ? 'unknown' : d.verdict))
@@ -434,7 +442,7 @@ window.__ModuleLoader__.load({
           },
           signin: async () => {
             patch({ busy: true, term: [{ t: '$ claude', c: '' }] })
-            await wait(700); push('term', { t: kt('Ouverture de votre navigateur… connexion à votre compte Claude', 'Opening your browser… signing in to your Claude account'), c: 'd' })
+            await wait(700); push('term', { t: kt('Ouverture de ton navigateur… connexion à ton compte Claude', 'Opening your browser… signing in to your Claude account'), c: 'd' })
             await wait(900); push('term', { t: kt('Connexion confirmée dans le navigateur.', 'Sign-in confirmed in the browser.'), c: 'd' })
             await wait(600); push('term', { t: '✓ ' + kt('connecté', 'signed in'), c: 'g' }); patch({ connected: true, busy: false })
           },
@@ -459,20 +467,20 @@ window.__ModuleLoader__.load({
         else if (step === 1) stage = h(React.Fragment, null, mini, d.verdict === 'binaire-absent' ? hint('Résultat : un point manque, le programme Claude Code n’est pas installé. On s’en occupe à l’étape suivante.', 'Result: one point is missing, the Claude Code program is not installed. We take care of it in the next step.') : null, !d.mounted ? hint('Faites d’abord l’étape 1.', 'Do step 1 first.') : null)
         else if (step === 2) {
           let box = null
-          if (d.ask) box = h('div', { className: 'kbwk-box' }, h('p', null, h('b', null, kt('DSH va lancer cette commande sur votre ordinateur :', 'DSH will run this command on your computer:'))), h('div', { className: 'kbwk-cmd' }, h('code', null, DEMO_COMMAND)),
-            h('p', { className: 'kbwk-alt' }, kt('Source : claude.ai (installation officielle de Claude Code). Vous pouvez interrompre à tout moment.', 'Source: claude.ai (the official Claude Code install). You can stop it at any time.')),
+          if (d.ask) box = h('div', { className: 'kbwk-box' }, h('p', null, h('b', null, kt('DSH va lancer cette commande sur ton ordinateur :', 'DSH will run this command on your computer:'))), h('div', { className: 'kbwk-cmd' }, h('code', null, DEMO_COMMAND)),
+            h('p', { className: 'kbwk-alt' }, kt('Source : claude.ai (installation officielle de Claude Code). Tu peux interrompre à tout moment.', 'Source: claude.ai (the official Claude Code install). You can stop it at any time.')),
             h('div', { className: 'kbwk-acts' }, h('button', { type: 'button', className: 'kbwk-btn accent', 'data-kb': 'guide-run', onClick: act.run }, ic('download'), kt('Lancer l’installation', 'Run the install')), h('button', { type: 'button', className: 'kbwk-btn ghost', onClick: () => patch({ ask: false }) }, kt('Annuler', 'Cancel'))))
           else if (d.inst === 'running' || d.inst === 'done') box = h('div', { className: 'kbwk-box' }, h('p', null, h('b', null, d.inst === 'done' ? '✓ ' + kt('Installé. DSH a revérifié tout seul.', 'Installed. DSH checked again by itself.') : kt('Installation en cours…', 'Installing…'))), h('pre', { className: 'kbwk-log' }, d.log.join('\n')))
           stage = h(React.Fragment, null, mini, box, d.verdict !== 'binaire-absent' && !d.installed ? hint('Faites d’abord l’étape 2 : la vérification dit si l’installation est nécessaire.', 'Do step 2 first: the check says whether an install is needed.') : null)
         } else if (step === 3) {
           stage = h(React.Fragment, null, mini,
-            h('div', { className: 'kbwk-term' }, h('div', { className: 'tb' }, h('i'), h('i'), h('i'), h('span', null, 'Terminal')), h('pre', null, d.term.length === 0 ? h('span', { className: 'd' }, kt('Cliquez sur le bouton ci-dessous pour taper la commande dans cette fenêtre.', 'Click the button below to type the command in this window.')) : d.term.map((l, i) => h('span', { key: i, className: l.c }, l.t + '\n')))),
+            h('div', { className: 'kbwk-term' }, h('div', { className: 'tb' }, h('i'), h('i'), h('i'), h('span', null, 'Terminal')), h('pre', null, d.term.length === 0 ? h('span', { className: 'd' }, kt('Clique sur le bouton ci-dessous pour taper la commande dans cette fenêtre.', 'Click the button below to type the command in this window.')) : d.term.map((l, i) => h('span', { key: i, className: l.c }, l.t + '\n')))),
             h('div', { className: 'kbwk-acts' }, h('button', { type: 'button', className: 'kbwk-btn', 'data-kb': 'guide-signin', disabled: !d.installed || d.connected || d.busy === true, onClick: act.signin }, d.connected ? '✓ ' + kt('Connecté', 'Signed in') : kt('Taper « claude » et se connecter', 'Type "claude" and sign in'))),
             !d.installed ? hint('Faites d’abord l’étape 3 : il faut que le programme soit installé.', 'Do step 3 first: the program has to be installed.') : hint('Dans la vraie page, le bouton « Copier » met la commande dans le presse-papiers : il suffit de la coller (Cmd + V) dans le Terminal, puis Entrée.', 'On the real page, the "Copy" button puts the command in the clipboard: just paste it (Cmd + V) in the Terminal, then Enter.'))
         } else if (step === 4) {
-          const marks = [kt('Connexion montée dans le profil', 'Connection mounted in the profile'), kt('Paquet de connexion installé', 'Connection package installed'), kt('Programme trouvé sur l’ordinateur', 'Program found on the computer'), kt('Connexion à votre compte confirmée', 'Sign-in to your account confirmed'), kt('Écriture possible dans un dossier de test', 'Writing possible in a test folder')]
+          const marks = [kt('Connexion montée dans le profil', 'Connection mounted in the profile'), kt('Paquet de connexion installé', 'Connection package installed'), kt('Programme trouvé sur l’ordinateur', 'Program found on the computer'), kt('Connexion à ton compte confirmée', 'Sign-in to your account confirmed'), kt('Écriture possible dans un dossier de test', 'Writing possible in a test folder')]
           stage = h(React.Fragment, null, mini, h('ul', { className: 'kbwk-checks' }, marks.map((m, i) => h('li', { key: i, className: i < d.checkN ? 'on' : '' }, h('span', { className: 'm' }, i < d.checkN ? '✓' : ''), m))),
-            d.verdict === 'pret' ? hint('Aucun modèle n’a été appelé : 0 € dépensé sur votre abonnement Claude.', 'No model was called: nothing spent on your Claude subscription.') : null)
+            d.verdict === 'pret' ? hint('Aucun modèle n’a été appelé : 0 € dépensé sur ton abonnement Claude.', 'No model was called: nothing spent on your Claude subscription.') : null)
         } else if (step === 5) {
           stage = h(React.Fragment, null, mini, d.verdict !== 'pret' ? hint('Faites d’abord l’étape 5 : l’interrupteur apparaît quand l’agent est prêt.', 'Do step 5 first: the switch shows up once the agent is ready.') : null,
             d.saved ? h('p', { className: 'kbwk-msg ok', role: 'status' }, kt('Enregistré. DSH l’applique dans quelques secondes.', 'Saved. DSH applies it in a few seconds.')) : null,
@@ -481,9 +489,9 @@ window.__ModuleLoader__.load({
           stage = h(React.Fragment, null, d.saved && d.expose ? null : hint('Dans la vraie utilisation, il faut avoir autorisé l’agent (étape 6). Ici, la démo continue.', 'In real use, the agent has to be allowed (step 6). Here the demo goes on.'),
             h('div', { className: 'kbwk-chat' },
               d.chat >= 1 ? h('div', { className: 'kbwk-bub me' }, kt('Demande à Claude Code de relire mon README pendant que je prépare la sortie.', 'Ask Claude Code to proofread my README while I prepare the release.')) : null,
-              d.chat >= 2 ? h('div', { className: 'kbwk-bub ai' }, kt('Je confie la relecture à Claude Code. Je vous préviens quand c’est fini.', 'I am handing the proofreading to Claude Code. I will tell you when it is done.')) : null,
+              d.chat >= 2 ? h('div', { className: 'kbwk-bub ai' }, kt('Je confie la relecture à Claude Code. Je te préviens quand c’est fini.', 'I am handing the proofreading to Claude Code. I will tell you when it is done.')) : null,
               d.chat >= 2 ? h('div', { className: 'kbwk-job' }, h('span', { className: 't' }, logo('claude-code', 'xs'), h('i', { className: 'kbwk-dot ' + (d.chat >= 3 ? 'ok' : 'warn busy') }), 'Claude Code · ' + (d.chat >= 3 ? kt('terminé', 'done') : kt('en arrière-plan', 'in the background'))), h('span', { className: 'kbwk-note' }, kt('Dossier du projet · ', 'Project folder · ') + (d.chat >= 3 ? '0:07' : kt('en cours', 'running'))), h('div', { className: 'kbwk-prog' }, h('i', { style: { width: d.chat >= 3 ? '100%' : '8%' } }))) : null,
-              d.chat >= 3 ? h('div', { className: 'kbwk-bub ai' }, kt('Claude Code a relu le README : 3 corrections proposées (une faute, un lien cassé, une commande périmée). Voulez-vous que je les applique ?', 'Claude Code proofread the README: 3 fixes suggested (a typo, a broken link, an outdated command). Shall I apply them?')) : null),
+              d.chat >= 3 ? h('div', { className: 'kbwk-bub ai' }, kt('Claude Code a relu le README : 3 corrections proposées (une faute, un lien cassé, une commande périmée). Veux-tu que je les applique ?', 'Claude Code proofread the README: 3 fixes suggested (a typo, a broken link, an outdated command). Shall I apply them?')) : null),
             h('div', { className: 'kbwk-acts' }, d.chat === 0 ? h('button', { type: 'button', className: 'kbwk-btn', 'data-kb': 'guide-send', onClick: act.send }, kt('Envoyer le message', 'Send the message')) : null, d.chat >= 3 ? h('button', { type: 'button', className: 'kbwk-btn ghost', onClick: act.reset }, kt('Recommencer la démo', 'Start the demo again')) : null))
         }
 
@@ -491,27 +499,27 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'kbwk-scrim', 'data-kb': 'workers-guide', onMouseDown: (e) => { if (e.target === e.currentTarget) onClose() } },
           h('section', { className: 'kbwk-dlg', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Workers — ' + kt('Comment ça marche', 'How it works'), tabIndex: -1, ref: root },
             h('button', { type: 'button', className: 'kbwk-x', 'aria-label': kt('Fermer', 'Close'), 'data-kb': 'guide-close', onClick: onClose }, ic('close')),
-            h('div', null, h('h3', null, kt('Comment ça marche', 'How it works')), h('p', { style: { marginTop: 6 } }, kt('Un worker est un deuxième assistant de code installé sur votre ordinateur. Comme un chef de projet qui confie une tâche à un spécialiste, votre agent principal peut lui passer un travail pendant que vous continuez à discuter avec lui.', 'A worker is a second coding assistant installed on your computer. Like a project lead handing a task to a specialist, your main agent can pass it a job while you keep talking to it.'))),
+            h('div', null, h('h3', null, kt('Comment ça marche', 'How it works')), h('p', { style: { marginTop: 6 } }, kt('Un worker est un deuxième assistant de code installé sur ton ordinateur. Comme un chef de projet qui confie une tâche à un spécialiste, ton agent principal peut lui passer un travail pendant que tu continues à discuter avec lui.', 'A worker is a second coding assistant installed on your computer. Like a project lead handing a task to a specialist, your main agent can pass it a job while you keep talking to it.'))),
             h('div', null, h('h6', null, kt('Le principe', 'The idea')), h('div', { className: 'kbwk-flow' },
-              h('div', { className: 'kbwk-node' }, h('b', null, kt('Vous', 'You')), h('span', null, kt('Vous parlez à un seul agent, comme d’habitude.', 'You talk to a single agent, as usual.'))),
+              h('div', { className: 'kbwk-node' }, h('b', null, kt('Tu', 'You')), h('span', null, kt('Tu parles à un seul agent, comme d’habitude.', 'You talk to a single agent, as usual.'))),
               h('span', { className: 'kbwk-arrow', 'aria-hidden': 'true' }, '→'),
-              h('div', { className: 'kbwk-node' }, h('b', null, kt('Agent principal', 'Main agent')), h('span', null, kt('Il décide de déléguer une tâche si vous l’y autorisez.', 'It decides to hand a task over if you allowed it.'))),
+              h('div', { className: 'kbwk-node' }, h('b', null, kt('Agent principal', 'Main agent')), h('span', null, kt('Il décide de déléguer une tâche si tu l’y autorise.', 'It decides to hand a task over if you allowed it.'))),
               h('span', { className: 'kbwk-arrow', 'aria-hidden': 'true' }, '→'),
-              h('div', { className: 'kbwk-node' }, h('b', null, 'Workers'), h('span', null, kt('Ils travaillent dans votre dossier de projet.', 'They work in your project folder.')),
+              h('div', { className: 'kbwk-node' }, h('b', null, 'Workers'), h('span', null, kt('Ils travaillent dans ton dossier de projet.', 'They work in your project folder.')),
                 h('span', { className: 'kbwk-chips' }, ['claude-code', 'codex', 'gemini', 'opencode', 'qwen', 'hermes'].map((id) => h('em', { key: id }, logo(id, 'xs'), ({ 'claude-code': 'Claude Code', codex: 'Codex', gemini: 'Gemini', opencode: 'OpenCode', qwen: 'Qwen', hermes: 'Hermes' })[id]))))
             )),
             h('div', { className: 'kbwk-demo' },
-              h('header', null, h('b', null, kt('Essayez : mettre un worker en route', 'Try it: get a worker running')), h('span', null, kt('Simulation, rien n’est installé', 'Simulation, nothing gets installed'))),
+              h('header', null, h('b', null, kt('Essaie : mettre un worker en route', 'Try it: get a worker running')), h('span', null, kt('Simulation, rien n’est installé', 'Simulation, nothing gets installed'))),
               h('div', { className: 'kbwk-tabs', role: 'tablist' }, STEPS.map((s, i) => h('button', Object.assign({ key: i, type: 'button', role: 'tab', 'data-kb': 'guide-step-' + i, className: i < step ? 'done' : '', onClick: () => setStep(i) }, i === step ? { 'aria-current': 'step' } : {}), h('span', { className: 'kbwk-n' }, i < step ? '✓' : i + 1), s[0]))),
               h('div', { className: 'kbwk-say' }, h('h4', null, (step + 1) + '. ' + STEPS[step][0]), h('p', null, STEPS[step][1])),
               h('div', { className: 'kbwk-stage' }, stage),
               h('div', { className: 'kbwk-nav' }, h('button', { type: 'button', className: 'kbwk-btn ghost', 'data-kb': 'guide-prev', disabled: step === 0, onClick: () => setStep(Math.max(0, step - 1)) }, kt('Précédent', 'Previous')), h('span', { className: 'kbwk-note' }, kt('Étape ', 'Step ') + (step + 1) + kt(' sur ', ' of ') + STEPS.length), h('button', { type: 'button', className: 'kbwk-btn', 'data-kb': 'guide-next', disabled: step === STEPS.length - 1, onClick: () => setStep(Math.min(STEPS.length - 1, step + 1)) }, kt('Suivant', 'Next')))),
             h('div', { className: 'kbwk-faq' }, h('h6', null, kt('Questions fréquentes', 'Common questions')),
               faq(kt('Est-ce que ça coûte quelque chose ?', 'Does it cost anything?'), kt('DSH ne facture rien en plus. Chaque agent utilise son propre abonnement ou sa propre clé (Claude, ChatGPT, Google, Alibaba…). « Vérifier » n’appelle aucun modèle.', 'DSH charges nothing more. Each agent uses its own subscription or key (Claude, ChatGPT, Google, Alibaba…). "Check" calls no model.')),
-              faq(kt('DSH installe-t-il vraiment les agents ?', 'Does DSH really install the agents?'), kt('Oui, si vous le demandez : le bouton « Installer » lance l’installation officielle de l’agent, après avoir montré la commande et sa source et attendu votre confirmation. La connexion à votre compte reste à faire par vous, dans le navigateur.', 'Yes, when you ask: the "Install" button runs the agent’s official install, after showing the command and its source and waiting for your confirmation. Signing in to your account is still up to you, in the browser.')),
-              faq(kt('Un worker peut-il modifier mes fichiers ?', 'Can a worker change my files?'), kt('Oui, dans le dossier de la conversation, comme il le ferait dans son propre outil, parfois sans demander confirmation à chaque fichier. N’autorisez que les agents que vous voulez voir travailler.', 'Yes, in the conversation’s folder, as it would in its own tool, sometimes without asking for each file. Only allow the agents you want to see work.')),
-              faq(kt('Ça ne passe pas au vert, que faire ?', 'It will not turn green, what now?'), kt('Cliquez sur le bouton de la ligne (« Installer », « Se connecter » ou « Que faire ? ») : la page indique l’étape qui bloque et ce qu’il faut faire. Ensuite, « Revérifier ».', 'Click the button on the row ("Install", "Sign in" or "What to do?"): the page shows the step that blocks and what to do. Then "Check again".')),
-              faq(kt('Où est l’app Terminal ?', 'Where is the Terminal app?'), kt('Sur Mac : Cmd + Espace, tapez « Terminal », Entrée. Collez la ligne avec Cmd + V puis appuyez sur Entrée. Sous Windows, ouvrez PowerShell et suivez le guide officiel de l’agent.', 'On a Mac: Cmd + Space, type "Terminal", Enter. Paste the line with Cmd + V then press Enter. On Windows, open PowerShell and follow the agent’s official guide.'))
+              faq(kt('DSH installe-t-il vraiment les agents ?', 'Does DSH really install the agents?'), kt('Oui, si tu le demandes : le bouton « Installer » lance l’installation officielle de l’agent, après avoir montré la commande et sa source et attendu ta confirmation. La connexion à ton compte reste à faire par toi, dans le navigateur.', 'Yes, when you ask: the "Install" button runs the agent’s official install, after showing the command and its source and waiting for your confirmation. Signing in to your account is still up to you, in the browser.')),
+              faq(kt('Un worker peut-il modifier mes fichiers ?', 'Can a worker change my files?'), kt('Oui, dans le dossier de la conversation, comme il le ferait dans son propre outil, parfois sans demander confirmation à chaque fichier. N’autorise que les agents que tu veux voir travailler.', 'Yes, in the conversation’s folder, as it would in its own tool, sometimes without asking for each file. Only allow the agents you want to see work.')),
+              faq(kt('Ça ne passe pas au vert, que faire ?', 'It will not turn green, what now?'), kt('Clique sur le bouton de la ligne (« Installer », « Se connecter » ou « Que faire ? ») : la page indique l’étape qui bloque et ce qu’il faut faire. Ensuite, « Revérifier ».', 'Click the button on the row ("Install", "Sign in" or "What to do?"): the page shows the step that blocks and what to do. Then "Check again".')),
+              faq(kt('Où est l’app Terminal ?', 'Where is the Terminal app?'), kt('Sur Mac : Cmd + Espace, tape « Terminal », Entrée. Colle la ligne avec Cmd + V puis appuie sur Entrée. Sous Windows, ouvre PowerShell et suis le guide officiel de l’agent.', 'On a Mac: Cmd + Space, type "Terminal", Enter. Paste the line with Cmd + V then press Enter. On Windows, open PowerShell and follow the agent’s official guide.'))
             )))
       }
 
@@ -619,7 +627,7 @@ window.__ModuleLoader__.load({
               if (r.job.phase !== 'running' && handled.current[id] !== r.job.fini) {
                 handled.current[id] = r.job.fini
                 if (r.job.phase === 'done') {
-                  if (r.job.surLePath === false) { setPending((n) => n + 1); say(id, 'ok', kt('Installé, mais DSH ne le voit pas encore dans son PATH : redémarrez DSH, puis « Revérifier ».', 'Installed, but DSH does not see it in its PATH yet: restart DSH, then "Check again".')) }
+                  if (r.job.surLePath === false) { setPending((n) => n + 1); say(id, 'ok', kt('Installé, mais DSH ne le voit pas encore dans son PATH : redémarre DSH, puis « Revérifier ».', 'Installed, but DSH does not see it in its PATH yet: restart DSH, then "Check again".')) }
                   else say(id, 'ok', kt('Installé. DSH revérifie…', 'Installed. DSH is checking again…'))
                   await checkOne(id)
                 } else await reload()
@@ -633,7 +641,7 @@ window.__ModuleLoader__.load({
         // ── API key (Gemini, Qwen) ──
         const saveKey = async (w) => {
           const value = String(typed[w.id] || '').trim()
-          if (value === '') { say(w.id, 'bad', kt('Collez d’abord votre clé.', 'Paste your key first.')); return }
+          if (value === '') { say(w.id, 'bad', kt('Colle d’abord ta clé.', 'Paste your key first.')); return }
           let ok = false
           try { const r = creds.get() !== null ? await creds.get().set(w.connect.env, value) : null; ok = r != null && r.ok !== false } catch (e) { ok = false }
           if (!ok) { say(w.id, 'bad', kt('La clé n’a pas pu être enregistrée.', 'The key could not be saved.')); return }
@@ -641,7 +649,7 @@ window.__ModuleLoader__.load({
           setReplacing((r) => { const n = Object.assign({}, r); delete n[w.id]; return n })
           setStored((s) => Object.assign({}, s, { [w.id]: true }))
           setPending((n) => n + 1)
-          say(w.id, 'ok', kt('Clé enregistrée. Redémarrez DSH pour qu’elle soit prise en compte.', 'Key saved. Restart DSH so it is taken into account.'))
+          say(w.id, 'ok', kt('Clé enregistrée. Redémarre DSH pour qu’elle soit prise en compte.', 'Key saved. Restart DSH so it is taken into account.'))
         }
 
         React.useEffect(() => {
@@ -670,7 +678,7 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kbwk-page' },
               h('div', { className: 'kbwk-head' },
                 h('div', null, h('h4', null, 'Workers'),
-                  h('p', null, kt('Des assistants de code installés sur votre ordinateur. Votre agent principal peut leur confier des tâches pendant que vous faites autre chose. Réglages › Tools est l’autre porte : elle monte des outils dans un profil ; ici vous vérifiez chaque assistant et autorisez votre agent à l’appeler.', 'Coding assistants installed on your computer. Your main agent can hand them tasks while you do something else. Settings › Tools is the other door: it mounts tools in a profile; here you check each assistant and allow your agent to call it.'))),
+                  h('p', null, kt('Les workers sont les assistants de code installés sur ton ordinateur. Ton agent principal peut leur confier des tâches pendant que tu fais autre chose. Réglages › Outils est l’autre porte : elle monte des outils dans un profil ; ici tu vérifies chaque worker et autorise ton agent à l’appeler.', 'Workers are the coding assistants installed on your computer. Your main agent can hand them tasks while you do something else. Settings › Tools is the other door: it mounts tools in a profile; here you check each worker and allow your agent to call it.'))),
                 h('span', { className: 'kbwk-hbtn' }, k.bone(120, 36, null, 18), k.bone(104, 36, null, 18))),
               h('div', { className: 'kbwk-count' }, k.bone(64, 14), k.bone(78, 14)),
               k.wrap(kt('Chargement des workers…', 'Loading workers…'), 'kbwk-list', [0, 1, 2, 3, 4].map((i) => h('div', { key: 'sk' + i, className: 'kbwk-item' },
@@ -683,7 +691,7 @@ window.__ModuleLoader__.load({
           return h('div', { className: 'kbwk' },
             h('div', { className: 'kbwk-head' }, h('div', null, h('h4', null, 'Workers'))),
             h('div', { className: 'kbwk-banner', role: 'alert' }, h('strong', null, ic('alert'), kt('Les workers sont injoignables.', 'Workers cannot be reached.')),
-              h('span', null, kt('Le serveur DSH ne répond pas sur /kybernos-workers/state. Les routes de l’hôte ne se montent qu’au démarrage : relancez DSH après l’installation.', 'The DSH server does not answer on /kybernos-workers/state. Host routes only mount at startup: restart DSH after installing.'))),
+              h('span', null, kt('Le serveur DSH ne répond pas sur /kybernos-workers/state. Les routes de l’hôte ne se montent qu’au démarrage : relance DSH après l’installation.', 'The DSH server does not answer on /kybernos-workers/state. Host routes only mount at startup: restart DSH after installing.'))),
             h('div', null, h('button', { type: 'button', className: 'kbwk-btn ghost', onClick: () => { setLoaded({ state: 'loading', data: null }); reload() } }, ic('refresh'), kt('Réessayer', 'Retry'))))
         }
 
@@ -710,7 +718,7 @@ window.__ModuleLoader__.load({
           const ask = asks[w.id]
           items.push({
             done: w.connexion === true, t: kt('Activer dans DSH', 'Turn on in DSH'),
-            d: w.connexion === true ? kt('L’agent est dans votre configuration.', 'The agent is in your configuration.') : kt('DSH doit d’abord connaître cet agent. Une copie de sauvegarde de votre configuration est faite.', 'DSH has to know this agent first. A backup copy of your configuration is made.'),
+            d: w.connexion === true ? kt('L’agent est dans ta configuration.', 'The agent is in your configuration.') : kt('DSH doit d’abord connaître cet agent. Une copie de sauvegarde de ta configuration est faite.', 'DSH has to know this agent first. A backup copy of your configuration is made.'),
             btn: w.connexion !== true ? h('button', { type: 'button', className: 'kbwk-btn', 'data-kb': 'wk-activate-' + w.id, disabled: busy[w.id] !== undefined, onClick: () => activate(w) }, ic('plug'), busy[w.id] === 'activate' ? kt('Activation…', 'Turning on…') : kt('Activer', 'Turn on')) : null
           })
           if (mcp) {
@@ -729,12 +737,12 @@ window.__ModuleLoader__.load({
               const possible = inst != null && inst.possible === true
               let box = null
               if (pathMiss) {
-                box = h('div', { className: 'kbwk-box', 'data-kb': 'wk-path-' + w.id }, h('p', null, h('b', null, '✓ ' + kt('Installé.', 'Installed.'))), h('p', null, kt('DSH ne le voit pas encore dans son PATH (il le lit au démarrage) : redémarrez DSH, puis « Revérifier ».', 'DSH does not see it in its PATH yet (it reads it at startup): restart DSH, then "Check again".')))
+                box = h('div', { className: 'kbwk-box', 'data-kb': 'wk-path-' + w.id }, h('p', null, h('b', null, '✓ ' + kt('Installé.', 'Installed.'))), h('p', null, kt('DSH ne le voit pas encore dans son PATH (il le lit au démarrage) : redémarre DSH, puis « Revérifier ».', 'DSH does not see it in its PATH yet (it reads it at startup): restart DSH, then "Check again".')))
               } else if (running) {
-                box = h('div', { className: 'kbwk-box' }, h('p', null, h('b', null, ic('refresh', 'spin'), ' ' + kt('Installation de ' + w.nom + ' en cours…', 'Installing ' + w.nom + '…'))), h('pre', { className: 'kbwk-log', 'data-kb': 'wk-log-' + w.id }, (job.journal || []).join('\n')), h('p', { className: 'kbwk-alt' }, kt('Vous pouvez laisser cette page : DSH revérifie dès que c’est fini.', 'You can leave this page: DSH checks again as soon as it is done.')))
+                box = h('div', { className: 'kbwk-box' }, h('p', null, h('b', null, ic('refresh', 'spin'), ' ' + kt('Installation de ' + w.nom + ' en cours…', 'Installing ' + w.nom + '…'))), h('pre', { className: 'kbwk-log', 'data-kb': 'wk-log-' + w.id }, (job.journal || []).join('\n')), h('p', { className: 'kbwk-alt' }, kt('Tu peux laisser cette page : DSH revérifie dès que c’est fini.', 'You can leave this page: DSH checks again as soon as it is done.')))
               } else if (ask === 'confirm' && possible) {
-                box = h('div', { className: 'kbwk-box', 'data-kb': 'wk-confirm-' + w.id }, h('p', null, h('b', null, kt('DSH va lancer cette commande sur votre ordinateur :', 'DSH will run this command on your computer:'))), cmdBox(inst.cmd),
-                  h('p', { className: 'kbwk-alt' }, kt('Source : ', 'Source: ') + inst.src + kt(' (installation officielle de ' + w.nom + '). Vous pourrez revérifier ensuite.', ' (the official ' + w.nom + ' install). You can check again afterwards.') + (inst.src === 'npm' ? kt(' Utilise npm, fourni avec Node.js.', ' Uses npm, which comes with Node.js.') : '') + (w.id === 'hermes' ? kt(' Installe aussi Python, Node.js et d’autres outils : comptez plusieurs minutes.', ' Also installs Python, Node.js and other tools: allow several minutes.') : '')),
+                box = h('div', { className: 'kbwk-box', 'data-kb': 'wk-confirm-' + w.id }, h('p', null, h('b', null, kt('DSH va lancer cette commande sur ton ordinateur :', 'DSH will run this command on your computer:'))), cmdBox(inst.cmd),
+                  h('p', { className: 'kbwk-alt' }, kt('Source : ', 'Source: ') + inst.src + kt(' (installation officielle de ' + w.nom + '). Tu pourras revérifier ensuite.', ' (the official ' + w.nom + ' install). You can check again afterwards.') + (inst.src === 'npm' ? kt(' Utilise npm, fourni avec Node.js.', ' Uses npm, which comes with Node.js.') : '') + (w.id === 'hermes' ? kt(' Installe aussi Python, Node.js et d’autres outils : compte plusieurs minutes.', ' Also installs Python, Node.js and other tools: allow several minutes.') : '')),
                   h('div', { className: 'kbwk-acts' }, h('button', { type: 'button', className: 'kbwk-btn accent', 'data-kb': 'wk-run-' + w.id, onClick: () => runInstall(w) }, ic('download'), kt('Lancer l’installation', 'Run the install')), h('button', { type: 'button', className: 'kbwk-btn ghost', onClick: () => cancelAsk(w.id) }, kt('Annuler', 'Cancel'))))
               } else {
                 if (pathMiss) { /* the box above says it all */ } else if (failed) box = h('div', { className: 'kbwk-box err', role: 'alert', 'data-kb': 'wk-failed-' + w.id }, h('p', null, h('b', null, kt('L’installation n’a pas abouti.', 'The install did not complete.'))), h('pre', { className: 'kbwk-log' }, (job.journal || []).slice(-8).join('\n')), h('p', null, failureText(job)))
@@ -744,9 +752,9 @@ window.__ModuleLoader__.load({
                       possible ? h('button', { type: 'button', className: 'kbwk-btn', 'data-kb': 'wk-install-' + w.id, onClick: () => askInstall(w.id) }, ic('download'), failed ? kt('Réessayer', 'Try again') : kt('Installer ' + w.nom, 'Install ' + w.nom)) : null,
                       h('button', { type: 'button', className: 'kbwk-btn ghost', 'data-kb': 'wk-diy-' + w.id, onClick: () => diy(w.id) }, possible ? kt('Je préfère le faire moi-même', 'I would rather do it myself') : kt('Voir comment l’installer', 'See how to install it'))),
                     ask === 'diy' || !possible ? h(React.Fragment, null,
-                      h('p', { style: { marginTop: 10 } }, kt('Ouvrez l’app Terminal (Cmd + Espace, tapez « Terminal »), collez cette ligne, puis appuyez sur Entrée.', 'Open the Terminal app (Cmd + Space, type "Terminal"), paste this line, then press Enter.')), cmdBox(inst.cmd),
+                      h('p', { style: { marginTop: 10 } }, kt('Ouvre l’app Terminal (Cmd + Espace, tape « Terminal »), colle cette ligne, puis appuie sur Entrée.', 'Open the Terminal app (Cmd + Space, type "Terminal"), paste this line, then press Enter.')), cmdBox(inst.cmd),
                       inst.alt ? h('p', { className: 'kbwk-alt' }, kt('Avec Homebrew : ', 'With Homebrew: '), h('code', null, inst.alt)) : null,
-                      h('p', { className: 'kbwk-alt' }, kt('Pour Mac et Linux. Sous Windows, suivez le guide officiel : ', 'For Mac and Linux. On Windows, follow the official guide: '), h('a', { href: inst.doc, target: '_blank', rel: 'noreferrer noopener' }, inst.doc))) : null)
+                      h('p', { className: 'kbwk-alt' }, kt('Pour Mac et Linux. Sous Windows, suis le guide officiel : ', 'For Mac and Linux. On Windows, follow the official guide: '), h('a', { href: inst.doc, target: '_blank', rel: 'noreferrer noopener' }, inst.doc))) : null)
                 } else extra = box
               }
               if (box !== null && extra === null) extra = box
@@ -762,38 +770,38 @@ window.__ModuleLoader__.load({
             if (authKo && w.connect != null) {
               if (w.connect.mode === 'key') {
                 const have = stored[w.id] === true
-                const info = { gemini: ['DSH utilise Gemini avec une clé API Google : ce connecteur ne passe pas par la connexion à un compte Google.', 'DSH uses Gemini with a Google API key: this connector does not go through a Google account sign-in.'], qwen: ['Qwen s’utilise avec la clé de votre forfait Token Plan d’Alibaba.', 'Qwen is used with the key of your Alibaba Token Plan.'] }[w.id]
+                const info = { gemini: ['DSH utilise Gemini avec une clé API Google : ce connecteur ne passe pas par la connexion à un compte Google.', 'DSH uses Gemini with a Google API key: this connector does not go through a Google account sign-in.'], qwen: ['Qwen s’utilise avec la clé de ton forfait Token Plan d’Alibaba.', 'Qwen is used with the key of your Alibaba Token Plan.'] }[w.id]
                 authExtra = h(React.Fragment, null,
-                  info !== undefined ? h('p', null, kt(info[0], info[1]) + (w.id === 'gemini' ? kt(' Créez-la sur aistudio.google.com/apikey.', ' Create it at aistudio.google.com/apikey.') : '')) : null,
+                  info !== undefined ? h('p', null, kt(info[0], info[1]) + (w.id === 'gemini' ? kt(' Crée-la sur aistudio.google.com/apikey.', ' Create it at aistudio.google.com/apikey.') : '')) : null,
                   have && replacing[w.id] !== true
-                    ? h(React.Fragment, null, h('p', { 'data-kb': 'wk-key-stored-' + w.id }, kt('Une clé est enregistrée : redémarrez DSH pour qu’elle soit prise en compte.', 'A key is saved: restart DSH so it is taken into account.')), h('div', { className: 'kbwk-acts', style: { marginTop: 6 } }, h('button', { type: 'button', className: 'kbwk-btn ghost', onClick: () => setReplacing((r) => Object.assign({}, r, { [w.id]: true })) }, kt('Remplacer la clé', 'Replace the key'))))
+                    ? h(React.Fragment, null, h('p', { 'data-kb': 'wk-key-stored-' + w.id }, kt('Une clé est enregistrée : redémarre DSH pour qu’elle soit prise en compte.', 'A key is saved: restart DSH so it is taken into account.')), h('div', { className: 'kbwk-acts', style: { marginTop: 6 } }, h('button', { type: 'button', className: 'kbwk-btn ghost', onClick: () => setReplacing((r) => Object.assign({}, r, { [w.id]: true })) }, kt('Remplacer la clé', 'Replace the key'))))
                     : (creds.get() !== null
-                      ? h(React.Fragment, null, h('p', null, kt('Collez-la ici : DSH la range avec les identifiants de vos autres fournisseurs, sous le nom ', 'Paste it here: DSH keeps it with the credentials of your other providers, under the name '), h('code', null, w.connect.env), '.'),
-                        h('div', { className: 'kbwk-cmd' }, h('input', { type: 'password', autoComplete: 'off', id: 'kbwk-key-' + w.id, 'data-kb': 'wk-key-' + w.id, placeholder: kt('Votre clé API', 'Your API key'), 'aria-label': kt('Votre clé API', 'Your API key'), value: typed[w.id] || '', onChange: (e) => { const v = e.target.value; setTyped((t) => Object.assign({}, t, { [w.id]: v })) }, onKeyDown: (e) => { if (e.key === 'Enter') saveKey(w) } }),
+                      ? h(React.Fragment, null, h('p', null, kt('Colle-la ici : DSH la range avec les identifiants de tes autres fournisseurs, sous le nom ', 'Paste it here: DSH keeps it with the credentials of your other providers, under the name '), h('code', null, w.connect.env), '.'),
+                        h('div', { className: 'kbwk-cmd' }, h('input', { type: 'password', autoComplete: 'off', id: 'kbwk-key-' + w.id, 'data-kb': 'wk-key-' + w.id, placeholder: kt('Ta clé API', 'Your API key'), 'aria-label': kt('Ta clé API', 'Your API key'), value: typed[w.id] || '', onChange: (e) => { const v = e.target.value; setTyped((t) => Object.assign({}, t, { [w.id]: v })) }, onKeyDown: (e) => { if (e.key === 'Enter') saveKey(w) } }),
                           h('button', { type: 'button', className: 'kbwk-btn', 'data-kb': 'wk-savekey-' + w.id, onClick: () => saveKey(w) }, kt('Enregistrer la clé', 'Save the key'))))
-                      : h('p', null, kt('Ajoutez la clé dans les identifiants de DSH, sous le nom ', 'Add the key to DSH’s credentials, under the name '), h('code', null, w.connect.env), '.')))
+                      : h('p', null, kt('Ajoute la clé dans les identifiants de DSH, sous le nom ', 'Add the key to DSH’s credentials, under the name '), h('code', null, w.connect.env), '.')))
               } else {
                 authExtra = h(React.Fragment, null,
-                  h('p', null, kt('La connexion se fait avec votre compte : DSH ne peut pas la faire à votre place. Dans le Terminal, tapez ceci puis Entrée. ', 'Signing in uses your account: DSH cannot do it for you. In the Terminal, type this then press Enter. ') + ({
-                    'claude-code': kt('Une page s’ouvre dans votre navigateur : connectez-vous avec votre compte Claude.', 'A page opens in your browser: sign in with your Claude account.'),
-                    codex: kt('Choisissez « Sign in with ChatGPT » : votre navigateur s’ouvre.', 'Choose "Sign in with ChatGPT": your browser opens.'),
-                    opencode: kt('Choisissez un fournisseur dans la liste, puis collez votre clé.', 'Pick a provider from the list, then paste your key.'),
-                    hermes: kt('Choisissez un fournisseur ; « Nous Portal » ouvre une page de connexion.', 'Pick a provider; "Nous Portal" opens a sign-in page.')
+                  h('p', null, kt('La connexion se fait avec ton compte : DSH ne peut pas la faire à ton place. Dans le Terminal, tape ceci puis Entrée. ', 'Signing in uses your account: DSH cannot do it for you. In the Terminal, type this then press Enter. ') + ({
+                    'claude-code': kt('Une page s’ouvre dans ton navigateur : connecte-toi avec ton compte Claude.', 'A page opens in your browser: sign in with your Claude account.'),
+                    codex: kt('Choisis « Sign in with ChatGPT » : ton navigateur s’ouvre.', 'Choose "Sign in with ChatGPT": your browser opens.'),
+                    opencode: kt('Choisis un fournisseur dans la liste, puis colle ta clé.', 'Pick a provider from the list, then paste your key.'),
+                    hermes: kt('Choisis un fournisseur ; « Nous Portal » ouvre une page de connexion.', 'Pick a provider; "Nous Portal" opens a sign-in page.')
                   }[w.id] || '')), cmdBox(w.connect.cmd))
               }
             }
             items.push({
               done: authOk, t: authLabel(w),
-              d: authOk ? (w.connect != null && w.connect.mode === 'key' ? kt('Clé API trouvée.', 'API key found.') : kt('Connecté.', 'Signed in.')) : (authKo ? '' : kt('Votre compte ou votre clé, jamais ceux de DSH.', 'Your account or your key, never DSH’s.')), extra: authExtra
+              d: authOk ? (w.connect != null && w.connect.mode === 'key' ? kt('Clé API trouvée.', 'API key found.') : kt('Connecté.', 'Signed in.')) : (authKo ? '' : kt('Ton compte ou ta clé, jamais ceux de DSH.', 'Your account or your key, never DSH’s.')), extra: authExtra
             })
           }
           items.push({
             done: status === 'pret', t: kt('Vérifier', 'Check'),
-            d: status === 'pret' ? kt('5 contrôles sur 5. Rien n’a été dépensé : aucun modèle n’est appelé.', '5 checks out of 5. Nothing was spent: no model is called.') : kt('Cinq contrôles, sans appeler d’IA : rien n’est dépensé sur votre abonnement.', 'Five checks, without calling an AI: nothing is spent on your subscription.'),
+            d: status === 'pret' ? kt('5 contrôles sur 5. Rien n’a été dépensé : aucun modèle n’est appelé.', '5 checks out of 5. Nothing was spent: no model is called.') : kt('Cinq contrôles, sans appeler d’IA : rien n’est dépensé sur ton abonnement.', 'Five checks, without calling an AI: nothing is spent on your subscription.'),
             btn: w.connexion === true ? h('button', { type: 'button', className: 'kbwk-btn ghost', 'data-kb': 'wk-check-' + w.id, disabled: busy[w.id] !== undefined, onClick: () => checkOne(w.id) }, ic('refresh', busy[w.id] === 'check' ? 'spin' : ''), busy[w.id] === 'check' ? kt('Vérification…', 'Checking…') : (w.dernier != null ? kt('Revérifier', 'Check again') : kt('Vérifier', 'Check'))) : null
           })
           const cur = w.connexion !== true ? 0 : (w.dernier == null ? items.length - 1 : items.findIndex((x) => !x.done && !x.warn))
-          const restartNote = status === 'a-relancer' ? h('p', { className: 'kbwk-note', 'data-kb': 'wk-restart-' + w.id }, kt('La connexion est dans le profil mais son paquet n’est pas chargé : relancez DSH (panneau Kybernos Suite › Relancer DSH), puis « Revérifier ».', 'The connection is in the profile but its package is not loaded: restart DSH (Kybernos Suite panel › Restart DSH), then "Check again".')) : null
+          const restartNote = status === 'a-relancer' ? h('p', { className: 'kbwk-note', 'data-kb': 'wk-restart-' + w.id }, kt('La connexion est dans le profil mais son paquet n’est pas chargé : relance DSH (panneau Kybernos Suite › Relancer DSH), puis « Revérifier ».', 'The connection is in the profile but its package is not loaded: restart DSH (Kybernos Suite panel › Restart DSH), then "Check again".')) : null
           return h(React.Fragment, null, restartNote, h('ol', { className: 'kbwk-todo', 'data-kb': 'wk-todo-' + w.id }, items.map((x, i) => h('li', { key: i, className: x.done ? 'done' : (i === cur || x.warn ? 'cur' : 'wait') },
             h('span', { className: 'kbwk-n' }, x.done ? '✓' : (x.warn ? '?' : i + 1)),
             h('div', null, h('b', null, x.t), x.d ? h('p', null, x.d) : null, x.extra || null, x.btn ? h('div', { className: 'kbwk-acts', style: { marginTop: 7 } }, x.btn) : null)))))
@@ -803,7 +811,7 @@ window.__ModuleLoader__.load({
           if (w.genre !== 'connexion' || w.connexion !== true) return null
           if (w.ligne != null && w.ligne.nous !== true) {
             return h('div', { className: 'kbwk-pol' }, h('h5', null, kt('Autorisations', 'Permissions')),
-              h('p', { className: 'kbwk-note' }, kt('Une ligne d’outil définie ailleurs dans votre profil gère déjà cet agent (' + w.ligne.id + ') : exposé ' + (w.ligne.expose ? 'oui' : 'non') + ', arrière-plan ' + (w.ligne.arrierePlan ? 'oui' : 'non') + '. Elle reste à modifier à la main.',
+              h('p', { className: 'kbwk-note' }, kt('Une ligne d’outil définie ailleurs dans ton profil gère déjà cet agent (' + w.ligne.id + ') : exposé ' + (w.ligne.expose ? 'oui' : 'non') + ', arrière-plan ' + (w.ligne.arrierePlan ? 'oui' : 'non') + '. Elle reste à modifier à la main.',
                 'A tool line defined elsewhere in your profile already handles this worker (' + w.ligne.id + '): exposed ' + (w.ligne.expose ? 'yes' : 'no') + ', background ' + (w.ligne.arrierePlan ? 'yes' : 'no') + '. Edit it by hand.')))
           }
           const occ = busy[w.id]
@@ -811,7 +819,7 @@ window.__ModuleLoader__.load({
           return h('div', { className: 'kbwk-pol' }, h('h5', null, kt('Autorisations', 'Permissions')),
             h('div', { className: 'kbwk-prow' }, h('div', null, h('b', null, kt('L’agent principal peut lui confier des tâches', 'The main agent can hand it tasks')), h('p', null, kt('Sans cet interrupteur, ' + w.nom + ' reste installé mais personne ne l’appelle.', 'Without this switch, ' + w.nom + ' stays installed but nobody calls it.'))),
               swtch({ on: draft.expose, label: kt('Exposé à l’agent principal', 'Exposed to the main agent'), title: kt('Exposé à l’agent principal — il peut lui déléguer des tâches.', 'Exposed to the main agent — it can delegate tasks to it.'), disabled: occ !== undefined, kb: 'wk-' + w.id + '-expose', onClick: () => setDraft('expose') })),
-            h('div', { className: 'kbwk-prow' }, h('div', null, h('b', null, kt('Il peut travailler en arrière-plan', 'It can work in the background')), h('p', null, kt('Vous continuez la conversation pendant qu’il avance, le résultat revient tout seul.', 'You keep the conversation going while it works, and the result comes back by itself.'))),
+            h('div', { className: 'kbwk-prow' }, h('div', null, h('b', null, kt('Il peut travailler en arrière-plan', 'It can work in the background')), h('p', null, kt('Tu continues la conversation pendant qu’il avance, le résultat revient tout seul.', 'You keep the conversation going while it works, and the result comes back by itself.'))),
               swtch({ on: draft.background, label: kt('Arrière-plan autorisé', 'Background allowed'), title: kt('Arrière-plan autorisé — il peut lancer une délégation sans attendre son résultat.', 'Background allowed — it can start a delegation without waiting for its result.'), disabled: !draft.expose || occ !== undefined, kb: 'wk-' + w.id + '-background', onClick: () => setDraft('background') })),
             h('div', { className: 'kbwk-acts' }, h('button', { type: 'button', className: 'kbwk-btn accent', 'data-kb': 'wk-apply-' + w.id, disabled: !changed || occ !== undefined, onClick: () => apply(w, draft) }, occ === 'apply' ? ic('refresh', 'spin') : null, kt('Enregistrer', 'Save')), h('span', { className: 'kbwk-note' }, kt('DSH applique le changement en quelques secondes.', 'DSH applies the change in a few seconds.'))))
         }
@@ -865,13 +873,13 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kbwk-page' },
             h('div', { className: 'kbwk-head' },
               h('div', null, h('h4', null, 'Workers'),
-                h('p', null, kt('Des assistants de code installés sur votre ordinateur. Votre agent principal peut leur confier des tâches pendant que vous faites autre chose. Réglages › Tools est l’autre porte : elle monte des outils dans un profil ; ici vous vérifiez chaque assistant et autorisez votre agent à l’appeler.', 'Coding assistants installed on your computer. Your main agent can hand them tasks while you do something else. Settings › Tools is the other door: it mounts tools in a profile; here you check each assistant and allow your agent to call it.'))),
+                h('p', null, kt('Les workers sont les assistants de code installés sur ton ordinateur. Ton agent principal peut leur confier des tâches pendant que tu fais autre chose. Réglages › Outils est l’autre porte : elle monte des outils dans un profil ; ici tu vérifies chaque worker et autorise ton agent à l’appeler.', 'Workers are the coding assistants installed on your computer. Your main agent can hand them tasks while you do something else. Settings › Tools is the other door: it mounts tools in a profile; here you check each worker and allow your agent to call it.'))),
               h('span', { className: 'kbwk-hbtn' },
                 typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-workers', action: { label: kt('Essayer la démo', 'Try the demo'), onClick: () => setGuide(true) } }) : null,
                 !helpHasAction ? h('button', { type: 'button', className: 'kbwk-btn ghost big', 'data-kb': 'wk-guide', onClick: () => setGuide(true) }, kt('Guide et démo', 'Guide and demo')) : null,
                 h('button', { type: 'button', className: 'kbwk-btn ghost big', 'data-kb': 'wk-all', disabled: anyBusy, onClick: checkAll }, ic('refresh', anyBusy ? 'spin' : ''), kt('Tout vérifier', 'Check all')))),
             h('div', { className: 'kbwk-count' }, h('span', null, h('b', null, ready), ' ' + kt(ready > 1 ? 'prêts' : 'prêt', 'ready')), h('span', null, h('b', null, toCheck), ' ' + kt('à vérifier', 'to check'))),
-            pending > 0 ? h('div', { className: 'kbwk-relance', role: 'status' }, h('b', null, kt('Changement en attente. ', 'Change pending. ')), kt('Relancez DSH pour l’appliquer (panneau Kybernos Suite › Relancer DSH).', 'Restart DSH to apply it (Kybernos Suite panel › Restart DSH).')) : null,
+            pending > 0 ? h('div', { className: 'kbwk-relance', role: 'status' }, h('b', null, kt('Changement en attente. ', 'Change pending. ')), kt('Relance DSH pour l’appliquer (panneau Kybernos Suite › Relancer DSH).', 'Restart DSH to apply it (Kybernos Suite panel › Restart DSH).')) : null,
             h('ul', { className: 'kbwk-list', role: 'list' }, workers.map(item)),
             h('p', { className: 'kbwk-note' }, kt('Vérifier n’appelle aucun modèle : cela ne dépense rien sur l’abonnement de l’agent. « Prêt » veut dire que tout ce qui se vérifie gratuitement est bon ; la première vraie tâche reste le test final.', 'Checking calls no model, so it spends nothing on the worker’s subscription. "Ready" means everything checkable without spending is fine; the first real delegation remains the final test.')),
             h('p', { className: 'kbwk-note' }, kt('Le modèle, le niveau de permissions et la durée des runs se règlent dans l’outil de chaque agent : les connexions de DSH n’exposent pas ces réglages. Profil : ' + d.profil + ' · ', 'Model, permission level and run duration are set in each agent’s own tool: DSH’s connections do not expose them. Profile: ' + d.profil + ' · '), h('code', null, d.patch))),

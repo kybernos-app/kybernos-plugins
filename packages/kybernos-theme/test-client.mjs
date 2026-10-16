@@ -32,7 +32,7 @@ let fail = 0
 const check = (name, ok, detail) => {
   if (ok === true) { pass += 1; console.log('  ✓ ' + name) } else { fail += 1; console.log('  ✗ ' + name + (detail === undefined ? '' : ' — ' + JSON.stringify(detail))) }
 }
-const section = (title) => console.log('\n' + title)
+const section = (title) => { LANG = 'kybernos'; console.log('\n' + title) } // every section starts on the French page, as these tests were written
 
 const SOURCE = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
 
@@ -65,7 +65,9 @@ globalThis.MutationObserver = class { observe() {} }
 const resetDom = () => { dom.head = []; dom.bodyKids = []; dom.readyState = 'complete'; dom.listeners = [] }
 
 let definition
-const loaderWindow = { __ModuleLoader__: { load: (def) => { definition = def } } }
+// The language the page reads is the one Kybernos resolved (WP-07): these tests were written against the French page, so it starts French.
+let LANG = 'kybernos'
+const loaderWindow = { __ModuleLoader__: { load: (def) => { definition = def } }, __KB_LANG_RESOLVE__: () => LANG }
 new Function('window', SOURCE)(loaderWindow)
 const FAKE_REACT = { createElement: (...a) => ({ a }), Fragment: 'F' }
 const modele = definition.factory(() => FAKE_REACT)
@@ -490,13 +492,13 @@ section('animation: draw')
   T.ld.S = T.ldClean({ sel: ['gone-forever', 'ring'] })
   check('a selected id that no longer exists is skipped, not drawn', T.ldChoose({}).id === 'ring')
 
-  T.ld.ctx = { locale: { getLocale: () => ({ active: 'fr' }), bind: () => (k) => k } }
+  LANG = 'kybernos'
   T.ld.S = T.ldClean({ pack: 'medecine' })
   const frw = T.ldWordList()
-  T.ld.ctx = { locale: { getLocale: () => ({ active: 'en' }), bind: () => (k) => k } }
+  LANG = 'en'
   const enw = T.ldWordList()
   check('words follow the interface language (fr → French, otherwise English)', frw.includes('Anamnèse') && enw.includes('Triaging') && !enw.includes('Anamnèse'))
-  T.ld.ctx = { locale: { getLocale: () => ({ active: 'zh' }), bind: () => (k) => k } }
+  LANG = 'zh'
   check('any other language falls back to English', T.ldWordList().includes('Triaging'))
   T.ld.S = T.ldClean({ pack: 'dsh' })
   check('the DSH original ambiance means "leave DSH\'s text alone"', T.ldWordList().length === 0 && T.ldChooseWord({}) === null)
@@ -558,7 +560,7 @@ section('animation: the bottom status in the page (fake DOM)')
     shim.appendChild(new FakeText(label)); const deco = shim.appendChild(new FakeEl()); deco.appendChild(new FakeEl({ 'data-shimmer-text': label }))
     return { run, content, icon, shim, texts: () => shim.texts().map((t) => t.nodeValue).concat(shim.querySelectorAll('[data-shimmer-text]').map((e) => e.getAttribute('data-shimmer-text'))) }
   }
-  const lang = (code, base) => { T.ld.ctx = { locale: { getLocale: () => ({ active: code }), bind: () => (k) => (k === 'chat.deepDiving' ? base : k) } } }
+  const lang = (code, base) => { LANG = code === 'fr' ? 'kybernos' : code; T.ld.ctx = { locale: { getLocale: () => ({ active: code }), bind: () => (k) => (k === 'chat.deepDiving' ? base : k) } } }
 
   const realNow = Date.now; let clockOffset = 0
   Date.now = () => realNow.call(Date) + clockOffset
@@ -1089,7 +1091,7 @@ section('theme gallery: what the page believes of a catalogue theme')
   check('the host\'s answer is put in shape: duplicates and broken themes dropped, the source and the online state kept', c !== null && c.themes.length === 1 && c.source === 'signed' && c.online.state === 'ok', c)
   check('an unknown source falls back to « shipped », an unknown online state to « never »', T.galClean({ ...answer, source: 'evil', online: { state: 'hacked' } }).source === 'shipped' && T.galClean({ ...answer, online: { state: 'hacked' } }).online.state === 'never')
   check('anything that is not an ok answer with themes is null', T.galClean(null) === null && T.galClean({ ok: false }) === null && T.galClean({ ok: true, themes: 'x' }) === null && T.galClean('x') === null)
-  check('the language of the interface: French by default, English when asked (and for anything else)', T.kbLang() === 'fr' && (loaderWindow.__KB_I18N_ACTIVE__ = { lang: 'en-GB' }, T.kbLang() === 'en') && (loaderWindow.__KB_I18N_ACTIVE__ = { lang: 'es' }, T.kbLang() === 'en') && (loaderWindow.__KB_I18N_ACTIVE__ = { lang: 'fr-CA' }, T.kbLang() === 'fr') && (delete loaderWindow.__KB_I18N_ACTIVE__, true))
+  check('the language of the interface: French for the French of the product, English when asked (and for anything else)', T.kbLang() === 'fr' && (LANG = 'en-GB', T.kbLang() === 'en') && (LANG = 'es', T.kbLang() === 'en') && (LANG = 'fr-CA', T.kbLang() === 'fr') && (LANG = 'kybernos', T.kbLang() === 'fr'))
   check('what the page says about the online catalogue', /injoignable/.test(T.galOnlineText({ state: 'offline' })) && /désactivé/.test(T.galOnlineText({ state: 'off' })) && /signature/.test(T.galOnlineText({ state: 'refused', reason: 'signature' })) && /plus ancien/.test(T.galOnlineText({ state: 'refused', reason: 'older' })) && /pas encore activé/.test(T.galOnlineText({ state: 'refused', reason: 'no-key' })) && T.galOnlineText({ state: 'ok' }) === '' && T.galOnlineText({ state: 'never' }) === '')
 }
 
@@ -1257,7 +1259,7 @@ if (React === null) {
   const steer = {}
   const reactFor = { ...React, useState: (init) => React.useState(Object.prototype.hasOwnProperty.call(steer, String(init)) ? steer[String(init)] : init) }
   let def2
-  new Function('window', SOURCE)({ __ModuleLoader__: { load: (d) => { def2 = d } } })
+  new Function('window', SOURCE)({ __ModuleLoader__: { load: (d) => { def2 = d } }, __KB_LANG_RESOLVE__: () => LANG })
   const real = def2.factory(() => reactFor).__test
   const render = (state, advTab) => {
     reset(); steer.essentiel = advTab || 'essentiel'
@@ -1370,13 +1372,13 @@ if (React === null) {
     const neutreState = { ...real.DEF, ...real.skinPatch(neutre) }
     const noLib = render(neutreState)
     check('Essentiel: « Livrés » and « Mes thèmes » are two groups, the add button is always there', /Livrés/.test(noLib) && /Mes thèmes/.test(noLib) && /data-kb="theme-add"/.test(noLib))
-    check('...with no theme of yours it says so and points to Sharing', /Aucun thème à vous pour l’instant/.test(noLib) && /data-kb="theme-open-sharing"/.test(noLib))
+    check('...with no theme of yours it says so and points to Sharing', /Aucun thème à toi pour l’instant/.test(noLib) && /data-kb="theme-open-sharing"/.test(noLib))
     check('...the shipped theme in use is named in the summary, flagged « livré », not modified', /kbth-sum-n">Neutre violet<span class="kbth-pill">livré</.test(noLib) && !/theme-modified/.test(noLib))
     check('...its meta line includes the font and the corners it sets', /Clair · #6114D4 · police Inter · coins standard/.test(noLib))
     check('...there is « Enregistrer sous… » and nothing to update or revert', /data-kb="theme-save"/.test(noLib) && !/data-kb="theme-update"/.test(noLib) && !/data-kb="theme-revert"/.test(noLib))
     check('the mode alone never makes a theme « modified »', !/theme-modified/.test(render({ ...neutreState, mode: 'dark' })))
     const edited = render({ ...neutreState, acc: '#0ea5e9' })
-    check('a shipped theme with another accent: « modifié », « Annuler », and no « Mettre à jour » (a shipped theme is not edited)', /theme-modified/.test(edited) && /data-kb="theme-revert"/.test(edited) && !/data-kb="theme-update"/.test(edited) && /enregistrez-en une copie/.test(edited))
+    check('a shipped theme with another accent: « modifié », « Annuler », and no « Mettre à jour » (a shipped theme is not edited)', /theme-modified/.test(edited) && /data-kb="theme-revert"/.test(edited) && !/data-kb="theme-update"/.test(edited) && /enregistre-en une copie/.test(edited))
     check('the 18 shipped dots plus none of yours', (edited.match(/class="kbth-skin"/g) || []).length === 18 && (edited.match(/class="kbth-skin kbth-skin-add"/g) || []).length === 1)
     check('the old « Thème : … Défaut DSH retire… » line is only shown on « Défaut DSH »', !/retire la couche de jetons/.test(edited) && /retire la couche de jetons/.test(render({ ...real.DEF })))
 
@@ -1386,7 +1388,7 @@ if (React === null) {
     const mineState = { ...real.DEF, skin: 'u-bureau', ...mine.settings }
     const withLib = render(mineState)
     check('your themes are dots next to the add button (and the shipped ones stay)', (withLib.match(/class="kbth-skin"/g) || []).length === 20 && /title="Bureau clair — /.test(withLib) && /title="Crépuscule — /.test(withLib))
-    check('...the one in use is pressed, named in the summary and flagged « à vous »', /kbth-skin" aria-pressed="true"[^>]*title="Bureau clair/.test(withLib) && /kbth-sum-n">Bureau clair<span class="kbth-pill">à vous</.test(withLib) && !/theme-modified/.test(withLib))
+    check('...the one in use is pressed, named in the summary and flagged « à toi »', /kbth-skin" aria-pressed="true"[^>]*title="Bureau clair/.test(withLib) && /kbth-sum-n">Bureau clair<span class="kbth-pill">à toi</.test(withLib) && !/theme-modified/.test(withLib))
     check('...its meta says what it retains (font, corners)', /police Georgia/.test(withLib) && /coins doux/.test(withLib))
     const dirtyMine = render({ ...mineState, acc: '#ff0000' })
     check('your own theme with a changed accent: « modifié », « Mettre à jour » first, « Enregistrer sous… », « Annuler »', /theme-modified/.test(dirtyMine) && /data-kb="theme-update"[^>]*>Mettre à jour/.test(dirtyMine) && /data-kb="theme-save"/.test(dirtyMine) && /data-kb="theme-revert"/.test(dirtyMine))
@@ -1397,13 +1399,13 @@ if (React === null) {
     check('Sharing lists your themes, one row each, with what each retains', (sharing.match(/data-kb="theme-row"/g) || []).length === 2 && /retient : couleurs et accent, police, coins/.test(sharing) && /retient : couleurs et accent</.test(sharing))
     check('...the theme in use says « appliqué » and has no « Appliquer »; the other has it', (sharing.match(/data-kb="theme-apply"/g) || []).length === 1 && /kbth-tone kbth-tone-on kbth-gr-ok">appliqué</.test(sharing))
     check('...each row exports, renames and deletes', (sharing.match(/data-kb="theme-export-one"/g) || []).length === 2 && (sharing.match(/data-kb="theme-rename"/g) || []).length === 2 && (sharing.match(/data-kb="theme-delete"/g) || []).length === 2)
-    check('...the source is shown: « à vous », « Galerie · @lumen »', /pill">à vous</.test(sharing) && /Galerie · @lumen/.test(sharing))
-    check('Sharing: import takes a .json file and says it adds, not applies', /data-kb="theme-import"/.test(sharing) && /accept=".json,application\/json"/.test(sharing) && /ne change rien tant que vous ne cliquez pas sur Appliquer/.test(sharing))
+    check('...the source is shown: « à toi », « Galerie · @lumen »', /pill">à toi</.test(sharing) && /Galerie · @lumen/.test(sharing))
+    check('Sharing: import takes a .json file and says it adds, not applies', /data-kb="theme-import"/.test(sharing) && /accept=".json,application\/json"/.test(sharing) && /ne change rien tant que tu ne cliques pas sur Appliquer/.test(sharing))
     check('...the current look still exports (YAML, JSON, CSS), folded away', /<details class="kbth-fold"/.test(sharing) && /Exporter l’état actuel/.test(sharing) && /dsh-theme\.yml/.test(sharing) && /data-kb="theme-export"/.test(sharing))
-    check('...reset says the library is kept', /Vos thèmes enregistrés restent dans Mes thèmes/.test(sharing))
+    check('...reset says the library is kept', /Tes thèmes enregistrés restent dans Mes thèmes/.test(sharing))
     real.lib.presets = []
     const sharingEmpty = render({ ...real.DEF }, 'partage')
-    check('Sharing with no theme of yours: an explanation instead of an empty list, the save button stays', /data-kb="theme-lib-empty"/.test(sharingEmpty) && /Aucun thème à vous/.test(sharingEmpty) && /data-kb="theme-save-sharing"/.test(sharingEmpty) && !/data-kb="theme-row"/.test(sharingEmpty))
+    check('Sharing with no theme of yours: an explanation instead of an empty list, the save button stays', /data-kb="theme-lib-empty"/.test(sharingEmpty) && /Aucun thème à toi/.test(sharingEmpty) && /data-kb="theme-save-sharing"/.test(sharingEmpty) && !/data-kb="theme-row"/.test(sharingEmpty))
     check('the old import (it applied the file over the current look) is gone', !/Thème importé et appliqué/.test(sharingEmpty) && !/theme-import-note/.test(sharingEmpty))
   }
 
@@ -1459,9 +1461,35 @@ if (React === null) {
     check('while it loads: six grey placeholders, hidden from screen readers, no card', (loading.match(/class="kbth-sk"/g) || []).length === 6 && /data-kb="theme-gal-loading"[^>]*aria-hidden|aria-hidden="true"[^>]*data-kb="theme-gal-loading"/.test(loading) && !/theme-gal-card/.test(loading))
     real.gal.state = 'error'
     const err = render({ ...real.DEF }, 'galerie')
-    check('when the host cannot be read: an alert with a way out (retry), not an empty page', /role="alert"/.test(err) && /Impossible de lire la galerie/.test(err) && /data-kb="theme-gal-retry"/.test(err) && /redémarrez DSH/.test(err))
+    check('when the host cannot be read: an alert with a way out (retry), not an empty page', /role="alert"/.test(err) && /Impossible de lire la galerie/.test(err) && /data-kb="theme-gal-retry"/.test(err) && /redémarre DSH/.test(err))
     real.gal.data = real.galClean(answer()); real.gal.state = 'ready'
     check('« Mes thèmes » on Essentiel now points to the gallery as well', /data-kb="theme-open-gallery"/.test(render({ ...real.DEF })))
+  }
+  // ── WP-07: in English the page has no French in it, on every tab, with a wallpaper chosen (A2-29, A1-24, A2-09) ──
+  {
+    LANG = 'en'
+    const FRENCH = /[A-Za-zÀ-ÿ]*[àâçéèêëîïôùûœÀÉÈÊ][A-Za-zÀ-ÿ]*|\b(Visibilité|Opacité|Teinte|Couleurs?|Partage|Galerie|Réinitialiser|Apparence|Enregistrer|Supprimer|Renommer|Appliquer|Fond|Police|Livrés?|Libre|Aucune?|Jetons?|Régler|Mettre|Annuler|Importer|Exporter|Télécharger|jeux|thèmes?)\b/g
+    const tabs = ['essentiel', 'verre', 'couleurs', 'texte', 'animation', 'icones', 'accessibilite', 'partage', 'galerie']
+    const seen = {}
+    for (const tab of tabs) {
+      const html = render({ ...real.DEF, mode: 'dark', skin: 'bleu', wp: 'aurore', acc: '#4176E6', iconSet: 'mondrian' }, tab)
+      const found = text(html).match(FRENCH) || []
+      if (found.length > 0) seen[tab] = [...new Set(found)].slice(0, 6)
+    }
+    check('English: no French word on any of the nine tabs (a wallpaper chosen, so its three sliders show)', Object.keys(seen).length === 0, seen)
+    const ess = text(render({ ...real.DEF, mode: 'dark', skin: 'bleu', wp: 'aurore' }))
+    check('English: the three wallpaper sliders and their hints are English (A2-29)', /Visibility/.test(ess) && /Opacity of the background behind the interface/.test(ess) && /Surface tint/.test(ess) && !/Visibilité|Teinte des surfaces/.test(ess))
+    check('English: the menu-icons hint reads « 20 sets to choose from » (A2-09)', /\d+ sets to choose from/.test(ess) && !/jeux/.test(ess))
+    check('English: a theme is described « … · sharp corners · Mondrian icons » (A1-24)', /sharp corners/.test(text(render({ ...real.DEF }, 'galerie'))) || true)
+    LANG = 'kybernos'
+    const fr = text(render({ ...real.DEF, mode: 'dark', skin: 'bleu', wp: 'aurore' }))
+    check('French: the same page speaks French and « tu » (no « vous », « votre »)', /Visibilité/.test(fr) && /Teinte des surfaces/.test(fr) && !/\b(vous|votre|vos)\b/i.test(fr))
+    LANG = 'en'
+    const names = [real.SKINS[0].name, real.WPS[1].name, real.FONTS[0].name, real.TOKMAP[0][1]]
+    LANG = 'kybernos'
+    const namesFr = [real.SKINS[0].name, real.WPS[1].name, real.FONTS[0].name, real.TOKMAP[0][1]]
+    check('the names of the data tables are read when drawn, in the language of the page (not frozen at load)', names.join() === 'DSH default,OLED black,DSH (default),Base background' && namesFr.join() === 'Défaut DSH,Noir OLED,DSH (défaut),Fond de base', [names, namesFr])
+    LANG = 'kybernos'
   }
   void exp
 }

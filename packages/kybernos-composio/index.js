@@ -623,10 +623,11 @@ export function isBootstrapOnlyName(name) {
   return BOOTSTRAP_NAMES.has(upper) || BOOTSTRAP_PREFIXES.some((prefix) => upper.startsWith(prefix))
 }
 const bootstrapMessage = (nom) => 'secret ' + nom + ': DSH refuses this variable name in its .env file (only the launching environment may set it), so DSH would not start. Pick another name.'
-// The banner is written into the user's patch and looked for by its first words: it stays as
-// it was (French) so the files already on disk keep matching.
+// The banner is written into the user's patch and looked for by its first words. New files get the English one; a file
+// written before (with the French banner) is still recognised by LEGACY_BANNER, so the banner is never written twice.
 const DEFAULT_TOOL_TIMEOUT_MS = 180000
-const BANNER = '# ── CONNECTEURS PERSONNALISÉS (géré par le formulaire et la skill connecteur-personnalise) ────'
+const BANNER = '# ── CUSTOM CONNECTORS (managed by the form and the connecteur-personnalise skill) ────'
+const LEGACY_BANNER = 'CONNECTEURS PERSONNALISÉS'
 // Secret token in a form value: "Bearer $TAVILY_API_KEY" -> the server generates the
 // process.env reference; the value is never stored in the patch nor returned by GET.
 const TOKEN_RE = /\$([A-Z_][A-Z0-9_]*)/g
@@ -962,7 +963,7 @@ function patchWithBlock(text, c) {
   }
   // An empty list (`[]`) cannot be followed by a block sequence: it makes way for the block.
   const base = withoutEntries(text) ? String(text).split('\n').filter((l) => l.trim() !== '[]').join('\n') : String(text)
-  const hasBanner = base.indexOf('CONNECTEURS PERSONNALISÉS') >= 0
+  const hasBanner = base.indexOf('CUSTOM CONNECTORS') >= 0 || base.indexOf(LEGACY_BANNER) >= 0
   const add = (hasBanner ? '' : (base.endsWith('\n') || base.length === 0 ? '' : '\n') + '\n' + BANNER + '\n')
     + '\n' + rendered.join('\n') + '\n'
   return base + add

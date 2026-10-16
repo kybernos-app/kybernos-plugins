@@ -411,6 +411,8 @@ window.__ModuleLoader__.load({
 
     const CSS = [
       '.kbsu{position:relative;display:flex;flex-direction:column;gap:16px;max-width:980px;font-size:13.5px;color:var(--dsw-alias-label-primary)}',
+      '/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */',
+      'body:not([data-ds-dark-theme]) :is(.kbsu,.kbhp-pop){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}',
       '.kbsu button{font:inherit;cursor:pointer}',
       '.kbsu button:disabled{opacity:.5;cursor:default}',
       '.kbsu-head{display:flex;flex-wrap:wrap;gap:10px 24px;justify-content:space-between;align-items:flex-start}',
@@ -451,6 +453,9 @@ window.__ModuleLoader__.load({
       '.kbsu-chip.fam{border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary);font-weight:500}',
       '.kbsu-chip.ok{background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 16%,transparent);color:var(--dsw-alias-state-success-primary)}',
       '.kbsu-chip.warn{background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 16%,transparent);color:var(--dsw-alias-state-warn-primary)}',
+      // the state inks are the fills: 2 to 2.5:1 on their tint in the light schemes, where they are pulled toward the text colour (audit A1-11)
+      'body:not([data-ds-dark-theme]) .kbsu-chip.ok{color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 50%,var(--dsw-alias-label-primary))}',
+      'body:not([data-ds-dark-theme]) .kbsu-chip.warn{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 50%,var(--dsw-alias-label-primary))}',
       '.kbsu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}',
       '.kbsu-card{display:flex;flex-direction:column;gap:9px;padding:18px;border-radius:18px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);min-width:0}',
       '.kbsu-card.open{grid-column:1/-1}',
