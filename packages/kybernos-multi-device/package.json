@@ -4,7 +4,7 @@
   "description": "Workspaces with or without a folder: Create offers a private folder, and Details shows where a workspace works and what the next versions will let you choose.",
   "private": true,
   "type": "module",
-  "exports": { ".": "./index.js", "./client": "./client.js" },
+  "exports": { ".": "./index.js", "./client": "./client.js", "./package.json": "./package.json" },
   "dsh": {
     "bundle": { "patch": "./cordis.patch.yml" },
     "client": { "platform": "web", "immediately": true }

@@ -16,15 +16,24 @@ works on.
   panel that exists only while Telegram needs something. It is open while Telegram is not connected; once it is, or when the server has
   no Telegram bot, it is folded to its header (the name, and two chips: Telegram and the computer). The person's choice wins, and is
   remembered. Nothing above the tiles files the computer under « Channels ». In the dock it lines up with the composer's card (same left and right edge, same 28 px radius; the tiles and the panel have the radius that nests in it, 16 px).
+  - **What Kaby is** (open card only): one short paragraph above the tiles, the owner's picture (« like a phone with a remote control:
+    it works on your desktop »), and the Suite's **« ? How it works »** pill (`window.__KB_HELP__`, this bundle's `help.json`) beside the
+    fold button. Each tile has **one help line under its title**: the channels' says what « Soon » means, the computer's what « On
+    request » means. The pill's card opens on the side that has room (a sheet at the foot of the screen on a phone).
   - **Channels tile**: Telegram, WhatsApp and WeChat, one row each, with their marks. Telegram has a **switch**: turning it on asks for a
     code (never when the strip opens), turning it off cancels a code in flight or, for a connected chat, asks before disconnecting.
     WhatsApp and WeChat say « Soon » and offer nothing. The person may turn on several, as they come.
-  - **Computer tile**: the cloud computer linked to the assistant, drawn as a select (a real `<select>` when there are several, kept by
-    the server through `POST /kybernos-cloud/kyby/computer` and used by Telegram too), its state (awake, asleep, **setting up**) and, on a
-    plan that allows it, wake / sleep / open. Every person has one, made at the first request that needs one: until then it is
-    « on request »; once made, « Setting up a machine dedicated to you » turns into « Asleep » by itself (the page reads again every few
-    seconds while a computer is being made, woken or put to sleep). On the Free plan the server says `manual_control: false`: no wake
-    button, the short note and an upgrade button (the footer's Upgrade dialog through `window.__KB_UPGRADE__`, else the plan page).
+  - **Computer tile**: where Kaby works, always a real `<select>`. **This computer** (the machine that runs Kybernos) is the first entry:
+    it needs no account and no server, so it is offered signed out and when the server cannot be read, choosing it calls nobody, and the
+    choice is remembered by the browser (`kybernos-kyber.where`). Next to it, the cloud computers of the account (the chosen one is kept
+    by the server through `POST /kybernos-cloud/kyby/computer` and used by Telegram too). With no choice made, the cloud computer is shown
+    when one exists already, else this one. For the cloud one: its state (awake, asleep, **setting up**) and, on a plan that allows it,
+    wake / sleep / open. Every person has one, made at the first request that needs one: until then it is « on request »; once made,
+    « Setting up a machine dedicated to you » turns into « Asleep » by itself (the page reads again every few seconds while a computer is
+    being made, woken or put to sleep). On the Free plan the server says `manual_control: false`: no wake button, the short note and an
+    upgrade button (the footer's Upgrade dialog through `window.__KB_UPGRADE__`, else the plan page). The server has no way to name this
+    computer yet (`PUT /v1/me/kyby/computer` takes a cloud computer's id): the local choice is Kaby's chat here, which already works on this
+    machine; Telegram keeps using the cloud computer.
   - **The panel under the tiles**: the code (QR, three steps, « Open Telegram », the time left, « Cancel », and « no camera or no app? »: the same token as a
     command to write to the bot by hand, `/start pair_<token>`, with a copy button; it never leaves DSH for the console), then who Telegram says it is
     while the person confirms there; expired, refused, « already another account's », « made by the bot » and « too many tries » are

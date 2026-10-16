@@ -178,7 +178,7 @@ try {
   await shot('2-unsaved')
   const t = await cardText()
   check('unsaved — the files are listed, with their kind and the one that is another chat’s', /src\/a\.js \| modified/.test(t) && /logo\.png \| new · other chat/.test(t), t)
-  check('unsaved — the card says the folder is shared, and what will be saved', /shared with 1 other chat/.test(t), t)
+  check('unsaved — the card says the folder is shared, and what will be saved', /shared with another chat/.test(t), t)
   check('unsaved — the main button uses no git word in Simple', /Save my work/.test(JSON.stringify(u.b)) && !/commit|push/i.test(JSON.stringify(u.b.filter((x) => x.act === 'primary'))), u.b)
   await scenario('ahead of GitHub', F({ ahead: 3, actions: A('push') }), { state: 'toSend', tone: 'info', chip: 'Saved · not online', steps: [D, 'now', T, T], primary: 'push' })
   await scenario('ahead and behind', F({ ahead: 1, behind: 2, actions: A('sync') }), { state: 'sync', tone: 'warn', chip: 'Needs syncing', steps: [D, 'now', T, T], primary: 'sync' })
@@ -239,7 +239,7 @@ try {
   await click('[data-act="primary"]')
   await poll(() => val(`!!document.querySelector('[data-kb="changes-error"]')`), 6000)
   const er = await val(`(document.querySelector('[data-kb="changes-error"]') || { innerText: '' }).innerText`)
-  check('a refusal shows its reason and offers no confirm', /rien à committer/.test(er) && (await val(`!document.querySelector('[data-kb="changes-confirm"]')`)) === true && posts.length === 1, { er, posts })
+  check('a refusal shows its reason and offers no confirm', /nothing to save — the folder is clean/.test(er) && !/rien à/.test(er) && (await val(`!document.querySelector('[data-kb="changes-confirm"]')`)) === true && posts.length === 1, { er, posts })
   fake.refuse = null
   check('the mode choice is remembered', (await val(`localStorage.getItem('kybernos.changes.mode')`)) === 'dev')
   await click('[data-act="mode-simple"]')

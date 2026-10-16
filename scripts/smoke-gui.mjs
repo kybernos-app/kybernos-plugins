@@ -8,7 +8,7 @@
 // What it proves (and what it does not):
 //   · the GUI boots: no "Failed to load plugins" screen, no uncaught page error
 //   · every read-only host route of every bundle answers as expected
-//   · the right-sidebar panels (Slides, Briques, Modeleur) open without an error
+//   · the right-sidebar panels (Slides, Bricks, 3D modeller) open without an error
 // It does NOT drive a model: a chat turn needs a provider key.
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -101,7 +101,7 @@ try {
   await p.close()
 
   console.log('── right-sidebar panels ──')
-  for (const nom of ['Slides', 'Modeleur', 'Briques']) {
+  for (const nom of ['Slides', '3D modeller', 'Bricks']) {
     const { p: page, erreurs: err } = await nouvellePage()
     await page.getByText('work', { exact: true }).first().click().catch(() => {})
     await page.getByText('New Session', { exact: true }).first().click().catch(() => {})

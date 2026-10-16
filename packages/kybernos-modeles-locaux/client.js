@@ -74,7 +74,6 @@ window.__ModuleLoader__.load({
 
       // ── i18n minimal (fr d'abord, en en repli) ───────────────────────────
       const KB_M_T = {
-        'kml.titre': { fr: 'Modèles locaux', en: 'Local models' },
         'kml.soustitre': { fr: 'Un modèle qui tourne sur cette machine — détecté, recommandé, branché sur DSH.', en: 'A model running on this machine — detected, recommended, wired into DSH.' },
         'kml.machine': { fr: 'Machine :', en: 'Machine:' },
         'kml.mesure': { fr: 'mesuré — sysctl', en: 'measured — sysctl' },
@@ -135,6 +134,23 @@ window.__ModuleLoader__.load({
         'kml.etat.juste': { fr: 'Juste', en: 'Tight' },
         'kml.etat.lourd': { fr: 'Trop lourd', en: 'Too heavy' },
         'kml.etat.inconnu': { fr: 'taille non mesurée', en: 'size not measured' },
+        // The machine could not be measured: no verdict on any model (it used to read « Too heavy » on all of them).
+        'kml.etat.indetermine': { fr: 'Mémoire non mesurée', en: 'Memory not measured' },
+        'kml.machine.nonmesuree': { fr: 'non mesurée', en: 'not measured' },
+        'kml.machine.hote': { fr: 'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarrez DSH, puis appuyez sur Réessayer.', en: 'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.' },
+        'kml.machine.echec': { fr: 'Cette machine n’a pas pu être mesurée : {raison}. Les modèles ne sont pas jugés tant qu’elle ne l’est pas.', en: 'This machine could not be measured: {raison}. No model is judged until it is.' },
+        'kml.reessayer': { fr: 'Réessayer', en: 'Retry' },
+        'kml.detection': { fr: 'détection…', en: 'detecting…' },
+        'kml.machine.ram': { fr: 'la taille de la mémoire est illisible', en: 'the memory size could not be read' },
+        // An install that failed is told on the row that was pressed, in plain words (the CLI line is the tooltip).
+        'kml.echec.titre': { fr: 'Échec de l’installation :', en: 'Install failed:' },
+        'kml.echec.introuvable': { fr: 'Ollama n’a pas de modèle sous ce nom.', en: 'Ollama has no model under this name.' },
+        'kml.echec.serveur': { fr: 'Le serveur Ollama ne répond pas : ouvrez l’app Ollama, puis réessayez.', en: 'The Ollama server is not running: open the Ollama app, then try again.' },
+        'kml.echec.disque': { fr: 'Le disque est plein.', en: 'The disk is full.' },
+        'kml.echec.reseau': { fr: 'Le téléchargement a été interrompu (réseau). Vérifiez la connexion, puis réessayez.', en: 'The download was interrupted (network). Check your connection, then try again.' },
+        'kml.echec.occupe': { fr: 'Une autre installation est déjà en cours.', en: 'Another install is already running.' },
+        'kml.echec.ollama-absent': { fr: 'Ollama n’est pas installé : installez-le d’abord (bouton en haut de la page).', en: 'Ollama is not installed: install it first (the button at the top of the page).' },
+        'kml.echec.brew': { fr: 'Homebrew est introuvable : installez Ollama à la main depuis ollama.com.', en: 'Homebrew was not found: install Ollama by hand from ollama.com.' },
         'kml.en.charge': { fr: 'en charge ≈ {go} Go', en: 'loaded ≈ {go} GB' },
         'kml.installer': { fr: 'Installer', en: 'Install' },
         'kml.en.cours': { fr: 'téléchargement…', en: 'downloading…' },
@@ -422,6 +438,10 @@ window.__ModuleLoader__.load({
         ".kml-rangee-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: auto; }\n" +
         ".kml-rangee-meta .kbm-in-wrap { width: 132px; }\n" +
         ".kml-erreur { margin: 0 0 12px; font-size: 13px; color: var(--dsw-alias-state-error-primary); }\n" +
+        // A failed install, under the row's description (wraps: the cause is a sentence); the machine that could not be measured.
+        ".kml-mod-echec { font-size: 12px; line-height: 18px; color: var(--dsw-alias-state-error-primary); white-space: normal; }\n" +
+        ".kml-bandeau { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; padding: 10px 12px; border: 0.5px solid color-mix(in srgb, var(--dsw-alias-state-warn-primary) 35%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 8%, transparent); font-size: 13px; line-height: 1.5; color: var(--dsw-alias-label-primary); }\n" +
+        ".kml-bandeau > span { flex: 1; min-width: 220px; }\n" +
         ".kml-scan-source { margin: 0 0 10px; font-size: 12px; color: var(--dsw-alias-label-tertiary); }\n" +
         "@media (max-width: 900px) { .kml-tuiles { grid-template-columns: 1fr; } }\n" +
         "@media (max-width: 720px) { .kml-mod { flex-wrap: wrap; } .kml-mod-etat { align-items: flex-start; } .kml-mod-actions { justify-content: flex-start; } .kml-hf-saisie { min-width: 100%; } }\n"
@@ -460,7 +480,42 @@ window.__ModuleLoader__.load({
         return possibles.length > 0 ? possibles[0] : null
       }
 
-            // ── service access ───────────────────────────────────────────────────
+      // <fit:begin> (test-fit.mjs cuts this block out of the file as it is: no React, no DOM, no m() in it)
+      // Memory a model needs once loaded ≈ file size × 1.25 (KV cache + runtime): estimated, shown as such.
+      const kbEnCharge = (mod) => (mod.tailleGo === null ? null : Math.round(mod.tailleGo * 1.25 * 10) / 10)
+      // How a model sits on this machine: 'compatible' ≤ budget (RAM − 5 GB), 'juste' ≤ RAM, 'lourd' above; 'inconnu' when the
+      // model's size is not known. A machine that could not be measured (ramGo null: the probe failed, or sysctl said
+      // nothing) gives 'indetermine', NO verdict: it used to fall through to 'lourd', so a failed probe marked every model
+      // « Too heavy » and disabled Install, the one already wired included.
+      const kbEtat = (mod, ramGo) => {
+        const ec = kbEnCharge(mod)
+        if (ec === null) return 'inconnu'
+        if (ramGo === null || ramGo === undefined) return 'indetermine'
+        if (ec <= Math.max(1, ramGo - 5)) return 'compatible'
+        if (ec <= ramGo) return 'juste'
+        return 'lourd'
+      }
+      // Why a pull failed, from the last line `ollama pull` printed: { cle, brut }. `cle` is a kml.echec.* key when the cause
+      // is a known one (null otherwise), `brut` the line without its « Error: » (Ollama prints its own, and the panel used to
+      // add another: « Error: Error: pull model manifest… »).
+      const kbCauseEchec = (ligne) => {
+        const brut = String(ligne === null || ligne === undefined ? '' : ligne).replace(/^(?:\s*error:\s*)+/i, '').trim()
+        let cle = null
+        // Order matters: « pull model manifest: Get …: dial tcp … no such host » is the network, not a missing model.
+        if (/could not connect to ollama|connection refused|serveur ollama introuvable|ollama server/i.test(brut)) cle = 'kml.echec.serveur'
+        else if (/no space left|disk full|not enough space/i.test(brut)) cle = 'kml.echec.disque'
+        else if (/timeout|timed out|\beof\b|no such host|dial tcp|network is unreachable|connection reset/i.test(brut)) cle = 'kml.echec.reseau'
+        else if (/file does not exist|manifest.*(?:not found|unknown)/i.test(brut)) cle = 'kml.echec.introuvable'
+        return { cle, brut: brut.slice(0, 200) }
+      }
+      // What the host answers when it refuses to start an install (error code → key), for the row that was pressed.
+      const KB_REFUS = { occupe: 'kml.echec.occupe', 'ollama-absent': 'kml.echec.ollama-absent', 'brew-indisponible': 'kml.echec.brew' }
+      const kbRefusInstall = (code) => (Object.prototype.hasOwnProperty.call(KB_REFUS, code) ? KB_REFUS[code] : null)
+      // A model id that has a row in the list (the engine, and a Hugging Face reference, are told elsewhere).
+      const kbEstLigne = (cible) => cible !== 'ollama' && String(cible).indexOf('hf.co/') !== 0
+      // <fit:end>
+
+      // ── service access ───────────────────────────────────────────────────
       let kbCtx = null
       const kbMApi = () => {
         const c = kbCtx
@@ -498,9 +553,12 @@ window.__ModuleLoader__.load({
 
       const Panel = () => {
         const [machine, setMachine] = React.useState(null)
+        // null = no failure; 'hote' = the page's helper in DSH does not answer; any other string = the reason the host gave.
         const [machineErreur, setMachineErreur] = React.useState(null)
         const [job, setJob] = React.useState(null)
         const [erreur, setErreur] = React.useState(null)
+        // Why an install failed, per model id: told on the row that was pressed (the page header is out of sight on a long list).
+        const [echecs, setEchecs] = React.useState({})
         const [budget, setBudget] = React.useState('tous')
         const [ollamaLocal, setOllamaLocal] = React.useState(null)
         const [hfOuvre, setHfOuvre] = React.useState(false)
@@ -529,8 +587,9 @@ window.__ModuleLoader__.load({
           try {
             const r = await jsonGet('/modeles-locaux/machine' + (force === true ? '?force=1' : ''))
             if (r.ok === true) { setMachine(r.machine); setMachineErreur(null) }
-            else setMachineErreur(String(r.error || 'machine'))
-          } catch (e) { setMachineErreur(String(e && e.message ? e.message : e)) }
+            // A route that is not there answers with a page, not JSON ('reponse'): same as a refused connection.
+            else setMachineErreur(r.error === 'reponse' ? 'hote' : String(r.error || 'machine'))
+          } catch (e) { setMachineErreur('hote') }
         }, [])
         // Refresh = a REAL interrogation of the Ollama server (/api/tags via
         // /modeles-locaux/decouvrir), diffed against the ids seen last time.
@@ -595,7 +654,16 @@ window.__ModuleLoader__.load({
                 clearInterval(jobVivant.current)
                 jobVivant.current = null
                 chargerMachine(true)
-                setErreur(r.job.ok === true ? null : (r.job.annule === true ? null : (m('kml.erreur') + sep() + String(r.job.ligne || r.job.cmd))))
+                const cible = String(r.job.cible || '')
+                const cause = kbCauseEchec(r.job.ligne || r.job.cmd)
+                // A model's failure goes on its own row; the engine's and a Hugging Face reference's (no row) keep the banner.
+                if (r.job.ok !== true && r.job.annule !== true && kbEstLigne(cible) === true) {
+                  setEchecs((avant) => Object.assign({}, avant, { [cible]: cause }))
+                  setErreur(null)
+                } else {
+                  setErreur(r.job.ok === true || r.job.annule === true ? null : (m('kml.erreur') + sep() + (cause.cle !== null ? m(cause.cle) : cause.brut)))
+                  if (r.job.ok === true) setEchecs((avant) => { const suite = Object.assign({}, avant); delete suite[cible]; return suite })
+                }
               }
             }
           }, 600)
@@ -608,9 +676,17 @@ window.__ModuleLoader__.load({
         // ── actions ────────────────────────────────────────────────────────
         const installer = async (cible, avecMoteur) => {
           setErreur(null)
-          const r = await jsonPost('/modeles-locaux/installer', { cible, installeMoteur: avecMoteur === true })
+          setEchecs((avant) => { if (avant[cible] === undefined) return avant; const suite = Object.assign({}, avant); delete suite[cible]; return suite })
+          let r = null
+          try { r = await jsonPost('/modeles-locaux/installer', { cible, installeMoteur: avecMoteur === true }) } catch (e) { r = { ok: false, error: 'hote' } }
           if (r.ok !== true) {
-            setErreur(m('kml.erreur') + sep() + String(r.error || 'refus') + (r.astuce ? ' — ' + r.astuce : ''))
+            // The refusal is told where the person pressed: on the row of a catalogue model, in the banner otherwise.
+            const cle = r.error === 'hote' || r.error === 'reponse' ? 'kml.machine.hote' : kbRefusInstall(r.error)
+            if (kbEstLigne(cible) === true) {
+              setEchecs((avant) => Object.assign({}, avant, { [cible]: { cle, brut: String(r.error || 'refus') + (r.astuce ? ' — ' + r.astuce : '') } }))
+            } else {
+              setErreur(m('kml.erreur') + sep() + (cle !== null ? m(cle) : String(r.error || 'refus') + (r.astuce ? ' — ' + r.astuce : '')))
+            }
             return
           }
           setJob({ cible, cmd: r.cmd, running: true, pct: null, octets: null, ligne: '' })
@@ -662,17 +738,11 @@ window.__ModuleLoader__.load({
         const budgetGo = ramGo === null ? null : Math.max(1, ramGo - 5)
         const installees = machine !== null && Array.isArray(machine.ollama.models) ? machine.ollama.models : []
         const branchees = ollamaLocal !== null && Array.isArray(ollamaLocal.models) ? ollamaLocal.models : []
-                // Loaded ≈ file size × 1.25 (KV cache + runtime) — estimated,
-                // shown as such. State: Fits ≤ budget, Tight ≤ RAM, otherwise too heavy.
-        const enChargeDe = (mod) => (mod.tailleGo === null ? null : Math.round(mod.tailleGo * 1.25 * 10) / 10)
-        const etatDe = (mod) => {
-          const ec = enChargeDe(mod)
-          if (ec === null) return 'inconnu'
-          if (budgetGo !== null && ec <= budgetGo) return 'compatible'
-          if (ramGo !== null && ec <= ramGo) return 'juste'
-          return 'lourd'
-        }
-        const reco = kbRecommend(ramGo)
+        // Loaded size and fit: kbEnCharge / kbEtat above (an unmeasured machine gives no verdict).
+        const enChargeDe = kbEnCharge
+        const etatDe = (mod) => kbEtat(mod, ramGo)
+        // « Recommended » is a verdict on this machine: none while it is unmeasured.
+        const reco = ramGo === null ? null : kbRecommend(ramGo)
         // Ids found by the last Refresh scan: highlighted with a "New" tag.
         const idsNouveaux = new Set((scanNouveaux !== null ? scanNouveaux.map((x) => x.id) : []).concat(catBilan !== null && catBilan.ok === true ? catBilan.nouveaux : []))
         const parBudget = CATALOGUE.filter((mod) => {
@@ -698,6 +768,8 @@ window.__ModuleLoader__.load({
           const enCours = job !== null && job.cible === mod.id && job.running === true
           const etat = etatDe(mod)
           const ec = enChargeDe(mod)
+          // The last failed install of this model, if any: told here, under its description, with a Retry in place of Install.
+          const echec = enCours === true ? undefined : echecs[mod.id]
           let actions
           if (enCours === true) {
             actions = [
@@ -720,7 +792,8 @@ window.__ModuleLoader__.load({
             actions = [h('button', { className: 'kbm-btn kbm-btn-md kbm-btn-outline', key: 'd', disabled: true, title: m('kml.hors-champ') }, m('kml.installer'))]
           } else {
             actions = [
-              h('button', { className: 'kbm-btn kbm-btn-md ' + (mod === reco ? 'kbm-btn-primary' : 'kbm-btn-outline'), key: 'd', onClick: () => installer(mod.id, true) }, Ic('download', 14), m('kml.installer')),
+              h('button', { className: 'kbm-btn kbm-btn-md ' + (mod === reco ? 'kbm-btn-primary' : 'kbm-btn-outline'), key: 'd', onClick: () => installer(mod.id, true) },
+                Ic('download', 14), m(echec === undefined ? 'kml.installer' : 'kml.reessayer')),
             ]
           }
           return h('div', { className: 'kml-mod', key: mod.id, 'data-kml-carte': mod.id, 'data-etat': etat },
@@ -733,14 +806,17 @@ window.__ModuleLoader__.load({
                 idsNouveaux.has(mod.id) ? h('span', { className: 'kbm-tag', 'data-tone': 'warning' }, m('kml.scan.tag')) : null,
                 mod.tailleGo !== null && mod.tailleGo <= 4 ? h('span', { className: 'kbm-tag', 'data-tone': 'quiet' }, m('kml.leger.tag')) : null,
                 kbScoreDe(mod.score) !== null ? h('span', { className: 'kbm-tag kml-score', 'data-tone': 'neutral', 'data-kml': 'score', title: m('kml.score.badge', { n: kbScoreDe(mod.score) }) }, 'II ' + String(kbScoreDe(mod.score))) : null),
-              h('span', { className: 'kml-mod-desc', title: descDe(mod) + (mod.score ? ' · ' + mod.score : '') }, descDe(mod) + (mod.score ? ' · ' + mod.score : ''))),
+              h('span', { className: 'kml-mod-desc', title: descDe(mod) + (mod.score ? ' · ' + mod.score : '') }, descDe(mod) + (mod.score ? ' · ' + mod.score : '')),
+              echec === undefined ? null : h('span', { className: 'kml-mod-echec', role: 'alert', 'data-kml': 'echec', title: echec.brut },
+                m('kml.echec.titre') + ' ' + (echec.cle !== null ? m(echec.cle) : echec.brut))),
             h('span', { className: 'kml-mod-etat' },
               h('span', { className: 'kml-etat' },
-                h('span', { className: 'kbm-dot', 'data-state': etat === 'compatible' ? 'done' : (etat === 'juste' ? 'warning' : 'error') }),
-                m('kml.etat.' + (etat === 'lourd' ? 'lourd' : etat))),
+                // Green fits, amber is tight, red is too heavy; grey is « no verdict » (size or machine not measured).
+                h('span', { className: 'kbm-dot', 'data-state': etat === 'compatible' ? 'done' : (etat === 'juste' ? 'warning' : (etat === 'lourd' ? 'error' : 'idle')) }),
+                m('kml.etat.' + etat)),
               ec !== null ? h('span', { className: 'kml-etat-sous' }, m('kml.en.charge', { go: String(ec).replace('.', ',') })) : null,
               h('span', { className: 'kml-bar', 'aria-hidden': 'true' },
-                h('span', { className: 'kml-bar-fill', 'data-etat': etat, style: { width: ec === null ? '0%' : Math.min(100, Math.round(ec / (ramGo || 16) * 100)) + '%' } }))),
+                h('span', { className: 'kml-bar-fill', 'data-etat': etat, style: { width: ec === null || ramGo === null ? '0%' : Math.min(100, Math.round(ec / ramGo * 100)) + '%' } }))),
             h('span', { className: 'kml-mod-actions' }, actions),
             enCours === true && detailOuvert
               ? h('div', { className: 'kml-detail', 'data-kml': 'detail' },
@@ -764,14 +840,14 @@ window.__ModuleLoader__.load({
 
         return h('div', { className: 'kml-root', 'data-kml': 'panneau' },
           h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-modeles-locaux' }) : null)),
-          h('h2', { className: 'kml-titre' }, m('kml.titre')),
+          h('h2', { className: 'kml-titre' }, m('kml.page.titre')),
           h('p', { className: 'kml-soustitre' }, m('kml.soustitre')),
           h('div', { className: 'kml-tuiles' },
             machine === null
               ? tuile(m('kml.tuile.machine'),
                 h('span', { className: 'kml-tuile-ligne' },
-                  h('span', { className: 'kbm-dot', 'data-state': 'idle' }),
-                  machineErreur === null ? 'détection…' : (m('kml.erreur') + sep() + machineErreur)), 'm')
+                  h('span', { className: 'kbm-dot', 'data-state': machineErreur === null ? 'idle' : 'warning' }),
+                  machineErreur === null ? m('kml.detection') : m('kml.machine.nonmesuree')), 'm')
               : tuile(m('kml.tuile.machine'),
                 h('span', { className: 'kml-tuile-ligne' },
                   h('span', { className: 'kbm-dot', 'data-state': 'done' }),
@@ -787,7 +863,7 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'kml-tuile-note' }, m('kml.budget.note'))), 'b'),
             tuile(m('kml.tuile.moteur'),
               machine === null
-                ? h('span', { className: 'kml-tuile-ligne' }, h('span', { className: 'kbm-dot', 'data-state': 'idle' }), '…')
+                ? h('span', { className: 'kml-tuile-ligne' }, h('span', { className: 'kbm-dot', 'data-state': 'idle' }), machineErreur === null ? '…' : '—')
                 : h('span', { className: 'kml-tuile-ligne' },
                   h('span', { className: 'kbm-dot', 'data-state': (ollamaAbsent === true || ollamaArrete === true) ? 'warning' : 'done' }),
                   h('b', null, ollamaAbsent === true ? m('kml.ollama.absent') : 'Ollama ' + (machine.ollama.version || '')),
@@ -799,6 +875,13 @@ window.__ModuleLoader__.load({
                     : (ollamaAbsent === true
                       ? h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-outline', onClick: () => installer('ollama') }, Ic('download', 12), m('kml.installer.ollama'))
                       : null)), 'e')),
+          // The machine could not be measured (the helper does not answer, or the memory size is unreadable): say so, with a
+          // Retry. No model is judged « too heavy » on a guess (kbEtat).
+          machineErreur !== null || (machine !== null && ramGo === null)
+            ? h('div', { className: 'kml-bandeau', role: 'alert', 'data-kml': 'machine-erreur' },
+              h('span', null, machineErreur === 'hote' ? m('kml.machine.hote') : m('kml.machine.echec', { raison: machineErreur !== null ? machineErreur : m('kml.machine.ram') })),
+              h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kml': 'machine-reessayer', onClick: () => chargerMachine(true) }, m('kml.reessayer')))
+            : null,
           scan === 'encours' && scanEtape !== null
             ? h('p', { className: 'kml-scan-result', 'data-etape': scanEtape, role: 'status' }, m('kml.scan.etape.' + scanEtape))
             : null,

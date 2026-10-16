@@ -29,10 +29,10 @@ assert.ok(/'data-on': opt\.id === \(isE2b \? 'e2b' : 'desktop'\) \? 'true' : 'fa
 ok('only the chosen environment is marked on')
 
 // 4. its two sentences exist in both languages
-for (const lang of ['en', 'fr']) {
+for (const lang of ['en', 'kybernos']) {
   const block = src.slice(src.indexOf('      ' + lang + ': {'), src.indexOf('      ' + lang + ': {') + 3500)
   assert.ok(/envCloud: '[^']+'/.test(block) && /envCloudSub: '[^']+'/.test(block), lang + ' has envCloud and envCloudSub')
 }
-ok('the label and the reason exist in English and in French')
+ok('the label and the reason exist in English and in Kybernos\' French (the locale id « kybernos », not « fr »)')
 
 console.log('\n' + pass + ' checks passed')

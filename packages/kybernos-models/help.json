@@ -29,5 +29,6 @@
   "good": {
     "fr": "La page « Models » native de DSH est masquée du menu des Réglages par défaut, mais reste à un clic : « Plus d’actions » › « Ouvrir la page native de DSH ».",
     "en": "DSH’s native Models page is hidden from the Settings menu by default, but stays one click away: “More actions” › “Open DSH’s native Models page”."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/models-and-budget/choose-your-models/"
 }

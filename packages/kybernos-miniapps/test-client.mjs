@@ -186,5 +186,23 @@ ok('bundle client charge et expose __test', T !== null && typeof T.escTitre === 
   ok('a sweep skipped by the throttle is replayed once the quiet period is over, not dropped', /balayageDiffere = setTimeout\(\(\) => \{ balayageDiffere = null; balayer\(\) \}, attente\)/.test(src) && !/< 200\) return/.test(src))
 }
 
+// ── la langue (A2-31, A2-08) : français pour le français, anglais pour toute autre langue ──
+{
+  const noms = () => T.PANNEAUX.map((x) => x.defaut).join(' | ')
+  for (const [lg, attendu, interdit] of [
+    ['en', 'Bricks | 3D modeller | Slides', /Briques|Modeleur/],
+    ['kybernos', 'Briques | Modeleur | Slides', /Bricks|3D modeller/],
+    ['es', 'Bricks | 3D modeller | Slides', /Briques|Modeleur/],
+    ['ar', 'Bricks | 3D modeller | Slides', /Briques|Modeleur/],
+  ]) {
+    globalThis.window.__KB_LANG_RESOLVE__ = () => lg
+    ok(`langue « ${lg} » : les noms de panneaux (titre de l'app installée) suivent la langue`, noms() === attendu && !interdit.test(noms()), noms())
+    const mots = [T.kt('Lancer', 'Launch'), T.kt('Démarrage auto', 'Launch at login'), T.kt('Désinstaller', 'Uninstall')].join(' | ')
+    ok(`langue « ${lg} » : le menu de l'app parle la langue`, lg === 'kybernos' ? mots === 'Lancer | Démarrage auto | Désinstaller' : mots === 'Launch | Launch at login | Uninstall', mots)
+  }
+  globalThis.window.__KB_LANG_RESOLVE__ = () => { throw new Error('langue pas encore connue') }
+  ok('langue pas encore connue : anglais', T.kt('Lancer', 'Launch') === 'Launch')
+}
+
 console.log(echecs === 0 ? '\nClient : tout est vert.' : `\n✗ ${echecs} échec(s)`)
 process.exit(echecs === 0 ? 0 : 1)

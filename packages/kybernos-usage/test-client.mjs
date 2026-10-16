@@ -137,4 +137,35 @@ ok('stable test hooks exist', ['kybernos-usage-pill', 'kybernos-usage-card', 'ky
   await new Promise((r) => setTimeout(r, 5))
   ok('a change inside the throttle window is deferred, not lost', posts.length === 1)
 }
+
+// ── the page says what it is for (V-31) and carries the shared « ? How it works » button (A5-19) ─────────────────────────────
+{
+  const regs = []
+  plugin.apply({ effect: (fn) => fn(), slots: { inject: (name, fn) => fn(), register: (meta, comp) => { regs.push({ meta, comp }) } } })
+  const page = regs.find((r) => r.meta.name === 'settings.section')
+  const Help = function Help () { return null }
+  const draw = (lang, hub) => {
+    globalThis.window.__KB_LANG_RESOLVE__ = () => lang
+    if (hub === undefined) delete globalThis.window.__KB_HELP__; else globalThis.window.__KB_HELP__ = hub
+    const el = page.comp()
+    return typeof el.type === 'function' ? el.type(el.props) : el
+  }
+  const find = (node, test, out = []) => {
+    if (node === null || typeof node !== 'object') return out
+    if (test(node)) out.push(node)
+    const kids = node.kids || []
+    for (const c of Array.isArray(kids) ? kids.flat() : [kids]) find(c, test, out)
+    return out
+  }
+  const text = (n) => (n === null || n === undefined ? '' : typeof n !== 'object' ? String(n) : (n.kids || []).flat().map(text).join(' '))
+  const en = draw('en', { version: 1, Help })
+  const forEn = find(en, (n) => n.props && /\bkbus-for\b/.test(n.props.className)).map(text).join(' ')
+  ok('a line says what the page covers: every model used here, in two kinds', /every model/i.test(forEn) && /Kybernos plan/i.test(forEn) && /key of your own/i.test(forEn) && /local model/i.test(forEn), forEn)
+  ok('…and how it differs from the console: the per-member and per-day detail of the plan stays there', /console/i.test(forEn) && /per member|by member/i.test(forEn) && /per day|by day/i.test(forEn), forEn)
+  const fr = draw('kybernos', { version: 1, Help })
+  const forFr = find(fr, (n) => n.props && /\bkbus-for\b/.test(n.props.className)).map(text).join(' ')
+  ok('the French twin says the same, with « console »', /tous les modèles/i.test(forFr) && /console Kybernos/i.test(forFr), forFr)
+  ok('the page carries the Suite’s button, once, for this bundle', find(en, (n) => n.type === Help).length === 1 && find(en, (n) => n.type === Help)[0].props.id === 'kybernos-usage')
+  ok('without the Suite there is no button and the page still draws', (() => { const t = draw('en'); return t !== null && find(t, (n) => n.type === Help).length === 0 && find(t, (n) => n.props && /\bkbus-for\b/.test(n.props.className)).length === 1 })())
+}
 process.exit(fail ? 1 : 0)

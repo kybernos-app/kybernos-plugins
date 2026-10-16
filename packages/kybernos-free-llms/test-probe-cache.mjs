@@ -1,4 +1,4 @@
-// The memory of the free tier's health probe: a few minutes, shared by pages opened together, bypassed by « Probe a model ».
+// The memory of the free tier's health probe: a few minutes, shared by pages opened together, bypassed by « Re-check ».
 //
 //   node packages/kybernos-free-llms/test-probe-cache.mjs
 import assert from 'node:assert/strict'
@@ -41,7 +41,7 @@ const clock = (start = Date.parse('2026-10-16T08:00:00Z')) => { let t = start; r
   assert.equal(runs, 2)
   assert.deepEqual([first.ok, forced.ok], [false, true])
   assert.equal((await cache.get()).ok, true, 'the fresh answer replaces the remembered one')
-  ok('« Probe a model » asks again and what it learns is what the next page sees')
+  ok('« Re-check » asks again and what it learns is what the next page sees')
 }
 {
   const c = clock(); let runs = 0; let release = null

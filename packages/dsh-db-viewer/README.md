@@ -15,7 +15,9 @@ entry per agent team that has a database), a refresh button and four views:
 - **Données**: one table at a time as a list. If the database has a `pack` table whose first row holds a
   JSON manifest with an `entites` list, entities also get **Cartes** (logo and audio columns) and
   **Calendrier** (a date column) views.
-- **SQL**: one `SELECT` / `WITH` / `PRAGMA` / `EXPLAIN` statement and its result.
+- **SQL**: one `SELECT` / `WITH` / `PRAGMA` / `EXPLAIN` statement and its result. A result is shown 500 rows at
+  a time; when the query returns more, a line above and under the table says "Showing the first 500 of 200,000
+  rows" and **Show more rows** doubles the page, up to 5 000 rows (then the line asks to narrow the query).
 
 ## Host routes
 
@@ -27,7 +29,7 @@ All `GET`, JSON. Errors are `400 {erreur}`; a request whose `Origin` is not the 
 | `/dsh-db-viewer/bases` | `{bases: [{id, tables: [{nom, compte}]}]}` |
 | `/dsh-db-viewer/schema?base=` | `{tables: [{nom, compte, colonnes}], relations: [{parent, enfant, colonne}]}` |
 | `/dsh-db-viewer/rows?base=&table=&limit=` | `{colonnes, lignes, compte}`; limit defaults to 50, capped at 500 |
-| `/dsh-db-viewer/query?base=&sql=` | `{colonnes, lignes, compte}`; no row cap |
+| `/dsh-db-viewer/query?base=&sql=&limit=` | `{colonnes, lignes, compte, total, tronque, borne}`; `lignes` holds the first `limit` rows (default 500, at most 5 000), `total` is the size of the whole result (counted up to 1 000 000, then `borne` is true), `tronque` says the rows were cut |
 
 `base` must match `^[a-z0-9][a-z0-9-]*$` (the page never passes a path) and `table` `^[A-Za-z_][A-Za-z0-9_]*$`.
 
@@ -59,6 +61,7 @@ Never edit it by hand (a rebuild reproduces the committed file byte for byte).
 ```bash
 node test/test-client.mjs   # 19 checks: strict ctx (inject must declare slots), layout, charts, calendar, drag
 node test/test-host.mjs     # pure functions + the four routes against the real mini-CRM sample database
+node test-cap.mjs           # the row cap of the SQL route, on a 200 000-row table generated in a temp folder; CI runs it
 ```
 
 `test-host.mjs` needs `~/.dsh/kybers/mini-crm/donnees.sqlite` and exits 1 without it. Today its route part

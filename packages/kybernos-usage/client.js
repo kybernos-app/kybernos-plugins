@@ -124,6 +124,7 @@ window.__ModuleLoader__.load({
         saved: ['Enregistré', 'Saved'],
         why: ['Pourquoi deux blocs. Le serveur ne voit que les appels qui passent par lui, et il les compte en pourcentage. Vos clés et vos modèles locaux ne passent pas par lui : seul cet ordinateur peut les chiffrer.', 'Why two blocks. The server only sees calls that go through it, and counts them as a percentage. Your keys and local models do not go through it: only this computer can count them.'],
         pageName: ['Usage', 'Usage'],
+        pageFor: ['Il couvre tous les modèles utilisés ici : un modèle du plan Kybernos (compté par le serveur), une clé à vous ou un modèle local (compté sur cet ordinateur). La console Kybernos garde le détail du plan par membre et par jour.', 'It covers every model you use here: a Kybernos plan model (counted by the server), a key of your own or a local model (counted on this computer). The Kybernos console keeps the plan’s detail per member and per day.'],
       }
       const L = (key, p) => { const v = S[key]; return v === undefined ? key : fill(kt(v[0], v[1]), p) }
 
@@ -336,6 +337,7 @@ window.__ModuleLoader__.load({
 /* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
 body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kbus-page h2{margin:0;font-size:22px;line-height:1.25;font-weight:700}
+.kbus-titlerow{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
 .kbus-lead{margin:6px 0 0;color:var(--dsw-alias-label-tertiary,#8a9096);max-width:62ch}
 .kbus-sec{margin:26px 0 0}
 .kbus-sec>h3{margin:0 0 10px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font-size:14px;font-weight:600}
@@ -710,8 +712,12 @@ body:not([data-ds-dark-theme]) .kbus-page{--dsw-alias-label-tertiary:var(--dsw-a
           : (b !== null && b > 0 && budget.alert && used >= 0.8 ? h('div', { className: 'kbus-banner', role: 'status' }, h('span', null, L('budgetNear', { pct: fmtPct(used) }))) : null)
 
         return h('div', { className: 'kbus-page', 'data-kb': 'kybernos-usage-page' },
-          h('h2', null, L('pageName')),
+          h('div', { className: 'kbus-titlerow' },
+            h('h2', null, L('pageName')),
+            // The Suite's « ? How it works » button, the one form of the help button on every page (its card is help.json).
+            typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-usage' }) : null),
           h('p', { className: 'kbus-lead' }, L('pageLead')),
+          h('p', { className: 'kbus-lead kbus-for' }, L('pageFor')),
           overBanner,
           h('div', { className: 'kbus-sec' }, h('h3', null, L('planSec'), h('small', null, L('planSecSub'))), planCard()),
           h('div', { className: 'kbus-sec' },

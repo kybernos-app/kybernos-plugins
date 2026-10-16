@@ -125,6 +125,35 @@
               "fr": "Les moteurs « Local » ne font rien sortir de votre ordinateur ; edge-tts et « Vos modèles » envoient le texte à un service en ligne. Le micro est demandé à la première dictée.",
               "en": "“Local” engines send nothing off your computer; edge-tts and “Your models” send the text to an online service. The microphone is asked for the first time you dictate."
             }
+          },
+          "presets": {
+            "title": {
+              "fr": "Presets d’agent",
+              "en": "Agent presets"
+            },
+            "what": {
+              "fr": "Un preset est une façon de travailler de l’agent : ses outils et ses habitudes. Choisissez-en un pour une nouvelle tâche, ou créez le vôtre.",
+              "en": "A preset is a way for the agent to work: its tools and its habits. Pick one for a new task, or create your own."
+            },
+            "steps": [
+              {
+                "fr": "Lisez les modes livrés : Standard pour le quotidien ; PTC, Minimal et Creator pour d’autres besoins.",
+                "en": "Read the built-in modes: Standard for everyday tasks; PTC, Minimal and Creator for other needs."
+              },
+              {
+                "fr": "Pour créer le vôtre, demandez de l’aide à l’agent (bouton en bas de la page) : il vous interroge, puis écrit le preset.",
+                "en": "To create your own, ask the agent for help (the button at the bottom of the page): it asks you questions, then writes the preset."
+              },
+              {
+                "fr": "À chaque nouvelle tâche vous pouvez changer de preset. Celui marqué « New task default » sert quand vous ne choisissez pas.",
+                "en": "You can change the preset for each new task. The one marked “New task default” is used when you do not choose."
+              }
+            ],
+            "where": {
+              "fr": "Réglages › Agent presets",
+              "en": "Settings › Agent presets",
+              "page": true
+            }
           }
         }
       }
@@ -279,7 +308,7 @@
     {
       "id": "kybernos-models",
       "nom": "@local/kybernos-models",
-      "titre": "Models",
+      "titre": "AI Provider & Models",
       "glyphe": "cpu",
       "famille": "models",
       "palier": "core",
@@ -322,7 +351,8 @@
         "good": {
           "fr": "La page « Models » native de DSH est masquée du menu des Réglages par défaut, mais reste à un clic : « Plus d’actions » › « Ouvrir la page native de DSH ».",
           "en": "DSH’s native Models page is hidden from the Settings menu by default, but stays one click away: “More actions” › “Open DSH’s native Models page”."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/models-and-budget/choose-your-models/"
       },
       "vedette": 1,
       "accroche": {
@@ -402,13 +432,14 @@
         "good": {
           "fr": "Un skill vient d’un tiers ou d’un collègue : DSH ne le vérifie pas, lisez ses fichiers et ses audits avant de l’installer ou de l’approuver.",
           "en": "A skill comes from a third party or a colleague: DSH does not check it, so read its files and audits before you install or approve it."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/features/what-are-skills-and-memory/"
       }
     },
     {
       "id": "kybernos-slash",
       "nom": "@local/kybernos-slash",
-      "titre": "Slash commands",
+      "titre": "Commands",
       "glyphe": "slash",
       "famille": "base",
       "palier": "core",
@@ -484,8 +515,8 @@
             "en": "Under the chat box, the “Memory” pill counts the memories sent to the model and this chat’s lessons; click it for details."
           },
           {
-            "fr": "Dans « Kybernos Settings », réglez « Rename Chat session after each recap » (Yes/No) et « Study model » (Automatic, votre choix ou None).",
-            "en": "In “Kybernos Settings”, set “Rename Chat session after each recap” (Yes/No) and “Study model” (Automatic, your pick, or None)."
+            "fr": "Dans « Kybernos Settings », réglez « Name each chat when it ends » (Yes/No) et « Study model » (Automatic, votre choix ou None).",
+            "en": "In “Kybernos Settings”, set “Name each chat when it ends” (Yes/No) and “Study model” (Automatic, your pick, or None)."
           },
           {
             "fr": "Sans le module Changes, quatre pastilles de plus montrent où en est le travail de ce chat (enregistré, GitHub, relecture).",
@@ -549,7 +580,8 @@
         "good": {
           "fr": "Auto ne change jamais le modèle de votre session : il conseille un modèle pour les étapes déléguées, parmi ceux que vous autorisez. « Ma liste » vide : le modèle de la session est gardé.",
           "en": "Auto never changes your session’s model: it advises a model for the delegated steps, among the ones you allow. An empty “My list”: the session’s model is kept."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/models-and-budget/let-kybernos-pick-the-model/"
       },
       "vedette": 2,
       "accroche": {
@@ -707,8 +739,8 @@
             "en": "Tick “I understand my prompts may be retained”, then “Connect to DSH”: the provider and its models are created."
           },
           {
-            "fr": "« Tester un modèle » vérifie que la couche gratuite répond encore, et l’affiche en clair — y compris quand OpenCode la verrouille.",
-            "en": "“Probe a model” checks the free tier still answers, and says so plainly — including when OpenCode locks it."
+            "fr": "« Revérifier » vérifie que la couche gratuite répond encore, et l’affiche en clair — y compris quand OpenCode la verrouille.",
+            "en": "“Re-check” checks the free tier still answers, and says so plainly — including when OpenCode locks it."
           },
           {
             "fr": "« Retirer » enlève le fournisseur sans rien supprimer d’autre.",
@@ -723,7 +755,8 @@
         "good": {
           "fr": "Rien n’est envoyé sans votre action. Modèles gratuits : les prompts peuvent être conservés, n’y mettez rien de sensible.",
           "en": "Nothing is sent without your action. Free models: prompts may be retained, so do not put anything sensitive there."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/models-and-budget/use-free-models/"
       }
     },
     {
@@ -772,7 +805,8 @@
         "good": {
           "fr": "Un seul service à la fois côté agents : Kybernos Cloud ou votre clé. Votre clé reste sur votre machine ; une clé changée n'atteint les agents qu'après un redémarrage de DSH.",
           "en": "One service at a time for the agents: Kybernos Cloud or your key. Your key stays on your machine; a changed key reaches the agents only after DSH restarts."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/features/what-are-app-connections/"
       }
     },
     {
@@ -827,7 +861,7 @@
     {
       "id": "kybernos-maintenance",
       "nom": "@local/kybernos-maintenance",
-      "titre": "About & Maintenance",
+      "titre": "About",
       "glyphe": "info",
       "famille": "base",
       "palier": "core",
@@ -895,11 +929,11 @@
         },
         "steps": [
           {
-            "fr": "Demandez une maquette au chat, par exemple « construis un château en briques » : l’onglet « Briques » s’ouvre seul à droite.",
-            "en": "Ask the chat for a mockup, for example “build a brick castle”: the “Briques” tab opens by itself on the right."
+            "fr": "Demandez une maquette au chat, par exemple « construisez un château en briques » : l’onglet « Briques » s’ouvre seul à droite.",
+            "en": "Ask the chat for a mockup, for example “build a brick castle”: the “Bricks” tab opens by itself on the right."
           },
           {
-            "fr": "Faites glisser la scène pour la tourner, molette pour zoomer ; « 3/4 », « Front », « Top » et « Spin » changent la vue.",
+            "fr": "Faites glisser la scène pour la tourner, molette pour zoomer ; « 3/4 », « Face », « Dessus » et « Rotation » changent la vue.",
             "en": "Drag the scene to turn it and scroll to zoom; “3/4”, “Front”, “Top” and “Spin” change the view."
           },
           {
@@ -913,13 +947,14 @@
         ],
         "where": {
           "fr": "Barre latérale droite, onglet « Briques » (il s’ouvre seul)",
-          "en": "Right sidebar, “Briques” tab (opens by itself)",
+          "en": "Right sidebar, “Bricks” tab (opens by itself)",
           "page": false
         },
         "good": {
           "fr": "Une maquette n’est pas enregistrée : elle disparaît quand DSH redémarre, et chaque conversation a la sienne.",
           "en": "A mockup is not saved: it disappears when DSH restarts, and each chat has its own."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/create-with-kybernos/build-a-brick-mockup/"
       }
     },
     {
@@ -968,7 +1003,8 @@
         "good": {
           "fr": "Le deck n’est pas enregistré : il disparaît quand DSH redémarre, et chaque conversation a le sien.",
           "en": "The deck is not saved: it disappears when DSH restarts, and each chat has its own."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/create-with-kybernos/make-a-slide-deck/"
       },
       "vedette": 5,
       "accroche": {
@@ -1020,12 +1056,12 @@
         },
         "steps": [
           {
-            "fr": "Demandez un modèle au chat, par exemple « dessine un phare en 3D » : l’onglet « Modeleur » s’ouvre seul à droite.",
-            "en": "Ask the chat for a model, for example “draw a lighthouse in 3D”: the “Modeleur” tab opens by itself on the right."
+            "fr": "Demandez un modèle au chat, par exemple « dessinez un phare en 3D » : l’onglet « Modeleur » s’ouvre seul à droite.",
+            "en": "Ask the chat for a model, for example “draw a lighthouse in 3D”: the “3D modeller” tab opens by itself on the right."
           },
           {
-            "fr": "En 3D, faites glisser pour tourner, molette pour zoomer ; « 3/4 », « Front », « Top », « Spin » (en 2D : « Grille », « Ajuster »).",
-            "en": "In 3D, drag to turn and scroll to zoom; “3/4”, “Front”, “Top”, “Spin” change the view (in 2D: “Grille”, “Ajuster”)."
+            "fr": "En 3D, faites glisser pour tourner, molette pour zoomer ; « 3/4 », « Face », « Dessus », « Rotation » (en 2D : « Grille », « Ajuster »).",
+            "en": "In 3D, drag to turn and scroll to zoom; “3/4”, “Front”, “Top”, “Spin” change the view (in 2D: “Grid”, “Fit”)."
           },
           {
             "fr": "Sous la scène, ▶ rejoue la pose, le curseur avance à la main, 0.5× à 4× règlent la vitesse.",
@@ -1038,13 +1074,14 @@
         ],
         "where": {
           "fr": "Barre latérale droite, onglet « Modeleur » (il s’ouvre seul)",
-          "en": "Right sidebar, “Modeleur” tab (opens by itself)",
+          "en": "Right sidebar, “3D modeller” tab (opens by itself)",
           "page": false
         },
         "good": {
           "fr": "Un modèle n’est pas enregistré : il disparaît quand DSH redémarre. Passer de la 3D à la 2D (ou l’inverse) repart aussi d’un modèle neuf.",
           "en": "A model is not saved: it disappears when DSH restarts. Switching from 3D to 2D (or back) also starts from a new model."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/create-with-kybernos/draw-a-2d-or-3d-model/"
       },
       "vedette": 6,
       "accroche": {
@@ -1104,19 +1141,20 @@
             "en": "“Export” gives an MP4 video, a standalone page or a scene file, saved in the project’s artifacts/ folder."
           },
           {
-            "fr": "Retrouvez vos animations dans la page Livrables, ou avec « Animations » en haut du panneau.",
-            "en": "Find your animations on the Livrables page, or with “Animations” at the top of the panel."
+            "fr": "Retrouvez vos animations dans la page Créations, ou avec « Animations » en haut du panneau.",
+            "en": "Find your animations on the Creations page, or with “Animations” at the top of the panel."
           }
         ],
         "where": {
-          "fr": "Barre latérale droite, onglet « Motion » (s’ouvre seul quand une animation arrive), et page Livrables",
-          "en": "Right sidebar, “Motion” tab (opens by itself when an animation arrives), and the Livrables page",
+          "fr": "Barre latérale droite, onglet « Motion » (s’ouvre seul quand une animation arrive), et page Créations",
+          "en": "Right sidebar, “Motion” tab (opens by itself when an animation arrives), and the Creations page",
           "page": false
         },
         "good": {
           "fr": "Une animation est un simple fichier .miniapp.json du projet : copiez-le, versionnez-le, partagez-le. L’export vidéo se fait dans votre navigateur, rien n’est envoyé ailleurs.",
           "en": "An animation is a plain .miniapp.json file in the project: copy it, version it, share it. Video export happens in your browser, nothing is sent elsewhere."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/create-with-kybernos/make-an-animation/"
       }
     },
     {
@@ -1137,7 +1175,7 @@
       "aide": {
         "what": {
           "fr": "Ajoute un bouton « App » aux panneaux Briques, Modeleur et Slides : il en fait une petite app macOS flottante, qui reste ouverte même quand DSH est fermé.",
-          "en": "Adds an “App” button to the Briques, Modeleur and Slides panels: it turns the panel into a small floating macOS app that stays open even when DSH is closed."
+          "en": "Adds an “App” button to the Bricks, 3D modeller and Slides panels: it turns the panel into a small floating macOS app that stays open even when DSH is closed."
         },
         "steps": [
           {
@@ -1155,13 +1193,14 @@
         ],
         "where": {
           "fr": "Dans l’en-tête de chaque panneau Briques, Modeleur ou Slides",
-          "en": "In the header of each Briques, Modeleur or Slides panel",
+          "en": "In the header of each Bricks, 3D modeller or Slides panel",
           "page": false
         },
         "good": {
           "fr": "macOS seulement. Dans l’app, Briques garde sa lecture et sa rotation ; Modeleur et Slides sont figés comme une photo et ne suivent plus le chat.",
-          "en": "macOS only. In the app, Briques keeps its replay and rotation; Modeleur and Slides are frozen like a photo and no longer follow the chat."
-        }
+          "en": "macOS only. In the app, Bricks keeps its replay and rotation; the 3D modeller and Slides are frozen like a photo and no longer follow the chat."
+        },
+        "url": "https://help.kybernos.app/{lang}/create-with-kybernos/turn-a-panel-into-an-app/"
       }
     },
     {
@@ -1210,7 +1249,8 @@
         "good": {
           "fr": "Le code et les fichiers que l'agent y envoie partent chez E2B. Chaque ordinateur est jetable, s'arrête seul après 15 min (2 h au plus), 4 à la fois. Sans clé, l'agent reste sur votre poste.",
           "en": "The code and files the agent sends there go to E2B. Each computer is disposable, stops by itself after 15 min (2 h at most), 4 at a time. With no key, the agent stays on your machine."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/computers/run-code-in-a-cloud-sandbox/"
       }
     },
     {
@@ -1304,13 +1344,14 @@
         "good": {
           "fr": "Vérifier n'appelle aucun modèle : rien n'est dépensé. Chaque assistant utilise son propre abonnement ou sa propre clé. « Essayer la démo » montre le parcours pas à pas.",
           "en": "Checking calls no model, so nothing is spent. Each assistant uses its own subscription or key. “Try the demo” walks through the whole path step by step."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/agents-and-tools/call-other-coding-assistants/"
       }
     },
     {
       "id": "kybernos-modeles-locaux",
       "nom": "@local/kybernos-modeles-locaux",
-      "titre": "Local models",
+      "titre": "Ollama Local Models",
       "glyphe": "home",
       "famille": "models",
       "palier": "core",
@@ -1353,7 +1394,8 @@
         "good": {
           "fr": "Le modèle tourne sur votre machine et rien n’est téléchargé sans votre clic. S’il manque dans le sélecteur de modèles après « Brancher sur DSH », relancez DSH.",
           "en": "The model runs on your machine and nothing is downloaded without your click. If it is missing from the model picker after “Wire into DSH”, restart DSH."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/models-and-budget/use-local-models/"
       }
     },
     {
@@ -1443,13 +1485,14 @@
         "good": {
           "fr": "Gardez l’ordinateur allumé et connecté à internet : s’il s’éteint ou perd la connexion, le téléphone ne peut plus l’atteindre. Le relais Kybernos fait passer les messages sans pouvoir les lire.",
           "en": "Keep the computer switched on and connected to the internet: if it is switched off or loses the connection, the phone can no longer reach it. The Kybernos relay only passes messages along and cannot read them."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/features/what-is-remote-control/"
       }
     },
     {
       "id": "kybernos-websearch",
       "nom": "@local/kybernos-websearch",
-      "titre": "Web search",
+      "titre": "Web Search",
       "glyphe": "search",
       "famille": "connect",
       "palier": "core",
@@ -1488,7 +1531,8 @@
         "good": {
           "fr": "Les moteurs sans clé passent par des pages publiques : ils peuvent demander une vérification anti-robot. Un moteur à clé ou votre SearXNG est plus fiable.",
           "en": "Engines without a key use public pages: they may ask for an anti-bot check. A keyed engine or your own SearXNG is more reliable."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/agents-and-tools/search-the-web/"
       }
     },
     {
@@ -1503,8 +1547,8 @@
       "defaut": "actif",
       "poids_ko": 140,
       "promesse": {
-        "fr": "La page Memory & Lessons learned : mémoire du compte et leçons par Agent Team, filtres, interrupteurs.",
-        "en": "The Memory & Lessons learned page: account memory and lessons per agent team, filters, on/off switches."
+        "fr": "La page Memory & Lessons : mémoire du compte et leçons par Agent Team, filtres, interrupteurs.",
+        "en": "The Memory & Lessons page: account memory and lessons per agent team, filters, on/off switches."
       },
       "aide": {
         "what": {
@@ -1537,7 +1581,8 @@
         "good": {
           "fr": "Les souvenirs vivent dans votre compte Kybernos Cloud (même Free) ; les leçons restent sur cet ordinateur, par Agent Team, sans compte. Les doublons sont fusionnés seuls, annulables 30 jours.",
           "en": "Memories live in your Kybernos Cloud account (any plan, Free too); lessons stay on this computer, per agent team, no account needed. Near-duplicates merge by themselves, undoable for 30 days."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/features/what-are-skills-and-memory/"
       },
       "vedette": 3,
       "accroche": {
@@ -1545,8 +1590,8 @@
         "en": "What the agents remember"
       },
       "description": {
-        "fr": "La page Memory & Lessons learned : les souvenirs du compte et les leçons de chaque Agent Team, avec recherche, filtres et interrupteurs. La recherche classe par pertinence, en local.",
-        "en": "The Memory & Lessons learned page: the account memories and the lessons of every agent team, with search, filters and switches. Search ranks by relevance, locally."
+        "fr": "La page Memory & Lessons : les souvenirs du compte et les leçons de chaque Agent Team, avec recherche, filtres et interrupteurs. La recherche classe par pertinence, en local.",
+        "en": "The Memory & Lessons page: the account memories and the lessons of every agent team, with search, filters and switches. Search ranks by relevance, locally."
       },
       "points": [
         {
@@ -1593,15 +1638,15 @@
             "en": "Turn Atlas on in Settings › Kybernos Suite (off by default), then open Settings › Atlas."
           },
           {
-            "fr": "Cliquez « Update » : rien n’est lu avant, et l’en-tête dit depuis combien de temps la carte a été lue.",
-            "en": "Click “Update”: nothing is read before you do, and the header says how long ago the map was read."
+            "fr": "Cliquez « Mettre à jour » : rien n’est lu avant ; ensuite la page s’ouvre sur la dernière lecture, et l’en-tête dit depuis combien de temps.",
+            "en": "Click “Update”: nothing is read before you do. Next time the page opens on the last reading, and the header says how long ago it was read."
           },
           {
-            "fr": "Dans « Around », choisissez un projet ou une Agent Team dans « Start from » : quatre colonnes montrent qui y travaille et ce qu’il utilise.",
+            "fr": "Dans « Autour », choisissez un projet ou une Agent Team dans « Partir de » : quatre colonnes montrent qui y travaille et ce qu’il utilise.",
             "en": "In “Around”, pick a project or an agent team in “Start from”: four columns show who works there and what they use."
           },
           {
-            "fr": "Les autres onglets montrent la même carte autrement ; « To check » liste ce qui est cassé, « Help » explique les traits.",
+            "fr": "Les autres onglets montrent la même carte autrement ; « À vérifier » liste ce qui est cassé, « Aide » explique les traits.",
             "en": "The other tabs show the same map in other ways; “To check” lists what is broken, “Help” explains the lines."
           }
         ],
@@ -1611,8 +1656,8 @@
           "page": true
         },
         "good": {
-          "fr": "Atlas ne fait que lire : rien n’est modifié ni enregistré. La page est en anglais, d’où les noms d’onglets cités ici.",
-          "en": "Atlas only reads: nothing is changed or stored. The page is in English, hence the tab names quoted here."
+          "fr": "Atlas ne fait que lire : rien n’est modifié. Sa dernière lecture est gardée dans ce navigateur, la page s’ouvre donc dessus.",
+          "en": "Atlas only reads: nothing is changed. Its last reading is kept in this browser so the page opens on it."
         }
       }
     },
@@ -1707,7 +1752,8 @@
         "good": {
           "fr": "Tout se règle dans Réglages › Appels : préréglage, clés, puis « Tout vérifier ». Si un appel ne peut pas démarrer, le panneau vous y conduit. Une voix enregistrée n'est clonée que si vous l'autorisez.",
           "en": "Everything is set up in Settings › Calls: a preset, each provider's keys, then “Check everything”. If a call cannot start, the panel takes you there. A recorded voice is only cloned if you allow it."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/agents-and-tools/talk-to-your-assistant-out-loud/"
       }
     },
     {
@@ -1793,8 +1839,8 @@
             "en": "The “Code” button under the diagram shows the code; “Diagramme” brings the picture back."
           },
           {
-            "fr": "Si le code est faux, une carte indique « Diagramme mermaid invalide » et le code reste visible.",
-            "en": "If the code is wrong, a card says “Diagramme mermaid invalide” and the code stays visible."
+            "fr": "Si le code est faux, trop long ou vide, une carte en donne la raison (en anglais) et le code reste visible.",
+            "en": "If the code is wrong, too long or empty, a card gives the reason and the code stays visible."
           }
         ],
         "where": {
@@ -1803,8 +1849,8 @@
           "page": false
         },
         "good": {
-          "fr": "Le schéma est dessiné dans la page : le plugin n'envoie rien en ligne. Liens et HTML sont bloqués dans les schémas, volontairement. Les deux boutons et l'erreur sont en français.",
-          "en": "The diagram is drawn in the page itself: the plugin sends nothing online. Links and HTML are blocked inside diagrams on purpose. The two buttons and the error message are in French only."
+          "fr": "Le schéma est dessiné dans la page : le plugin n'envoie rien en ligne. Liens et HTML sont bloqués dans les schémas, volontairement. Les deux boutons sont en français.",
+          "en": "The diagram is drawn in the page itself: the plugin sends nothing online. Links and HTML are blocked inside diagrams on purpose. The two buttons are in French only."
         }
       }
     },
@@ -1910,7 +1956,7 @@
             "en": "Ask the agent for a command: its code block looks like a terminal window."
           },
           {
-            "fr": "Le bouton vert « Run » en haut du bloc exécute la commande sur votre ordinateur, sans demander confirmation.",
+            "fr": "Le bouton vert « Exécuter » en haut du bloc exécute la commande sur votre ordinateur, sans demander confirmation.",
             "en": "The green “Run” button at the top of the block runs the command on your computer, without asking first."
           },
           {
@@ -1971,7 +2017,8 @@
         "good": {
           "fr": "Le plan est compté par le serveur, en pourcentage ; le coût de vos clés est calculé sur cet ordinateur, rien n'est envoyé.",
           "en": "The plan is counted by the server, as a percentage; the cost of your keys is worked out on this computer, nothing is sent."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/models-and-budget/see-what-it-costs/"
       }
     },
     {
@@ -2016,7 +2063,8 @@
         "good": {
           "fr": "Le dossier est fixé à la création : pour travailler dans un autre dossier, créez un autre workspace. Le téléphone ouvre toute la page de l'ordinateur, pas un workspace.",
           "en": "The folder is fixed at creation: to work in another folder, create another workspace. The phone opens the whole page of the computer, not one workspace."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/computers/choose-a-working-folder/"
       }
     },
     {
@@ -2036,8 +2084,8 @@
       },
       "aide": {
         "what": {
-          "fr": "Une page Dashboards avant Agent Teams : le chat construit vos tableaux de bord (Agent Teams, automations, usage, livrables) avec des graphiques animés, un calendrier, un kanban et des notes.",
-          "en": "A Dashboards page before Agent Teams: the chat builds your dashboards (Agent Teams, automations, usage, deliverables) with animated charts, a calendar, a kanban and notes."
+          "fr": "Une page Dashboards avant Agent Teams : le chat construit vos tableaux de bord (Agent Teams, automations, usage, créations) avec des graphiques animés, un calendrier, un kanban et des notes.",
+          "en": "A Dashboards page before Agent Teams: the chat builds your dashboards (Agent Teams, automations, usage, creations) with animated charts, a calendar, a kanban and notes."
         },
         "steps": [
           {
@@ -2065,7 +2113,8 @@
         "good": {
           "fr": "Un dashboard est un simple fichier, sans code, qui ne lit que des sources de cet ordinateur. Les tokens sont comptés, pas l’argent.",
           "en": "A dashboard is a plain file with no code, reading only sources on this computer. Tokens are counted, not money."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/create-with-kybernos/build-a-dashboard/"
       }
     },
     {
@@ -2130,8 +2179,8 @@
       },
       "aide": {
         "what": {
-          "fr": "Kaby, votre assistant : une vraie conversation DSH, Telegram à connecter d'un geste, et l'ordinateur sur lequel il travaille.",
-          "en": "Kaby, your assistant: a real DSH chat, Telegram to connect in one move, and the computer it works on."
+          "fr": "Kaby, votre assistant : comme un téléphone avec télécommande, il travaille sur votre ordinateur. Une vraie conversation DSH, Telegram à connecter d'un geste, et l'ordinateur sur lequel il travaille.",
+          "en": "Kaby, your assistant: like a phone with a remote control, it works on your desktop. A real DSH chat, Telegram to connect in one move, and the computer it works on."
         },
         "steps": [
           {
@@ -2143,8 +2192,8 @@
             "en": "Turn Telegram on in the channels tile: scan the code (or tap “Open Telegram”), tap Start, then “Yes, it's me”."
           },
           {
-            "fr": "La tuile de l'ordinateur montre celui lié à Kaby, créé à votre première demande qui en a besoin ; liste s'il y en a plusieurs.",
-            "en": "The computer tile shows the one linked to Kaby, made at your first request that needs one; a list if there are several."
+            "fr": "La tuile Ordinateur dit où Kaby travaille : cet ordinateur, ou un ordinateur dans le cloud. Votre choix est retenu.",
+            "en": "The computer tile says where Kaby works: this computer, or a cloud computer. Your choice is remembered."
           }
         ],
         "where": {
@@ -2155,7 +2204,8 @@
         "good": {
           "fr": "Kaby garde la même mémoire ici et sur Telegram. Rien n'est connecté sans votre accord dans Telegram, et avant d'agir sur son ordinateur il vous demande : Autoriser, Refuser ou Autoriser pour cette tâche.",
           "en": "Kaby keeps the same memory here and on Telegram. Nothing is connected without your approval in Telegram, and before acting on its computer it asks you: Allow, Refuse, or Allow for this task."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/computers/see-where-kyby-answers/"
       }
     },
     {

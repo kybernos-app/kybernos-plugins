@@ -9,7 +9,7 @@
 // 403 free_tier_locked). It writes nothing: Connect is only checked to be OFF.
 //
 // What it proves: the page asks for the tier on open (the cached form), says in a sentence that the tier is unavailable,
-// draws no green dot, keeps « Connect to DSH » off even after the retention notice is acknowledged, and « Probe a model »
+// draws no green dot, keeps « Connect to DSH » off even after the retention notice is acknowledged, and « Re-check »
 // answers in words (not « Gate refused: free_tier_locked »). Exit code 0 / 1 / 3 (3 = inconclusive: no sandbox).
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -51,7 +51,7 @@ page.on('Fetch.requestPaused', async (p) => {
   const url = new URL(p.request.url)
   let body = null
   if (url.pathname === '/free-llms/status') body = { ok: true, models: MODELS, catalogOk: true, state: { wired: false, acknowledged: false, autoEnabled: false } }
-  else if (url.pathname === '/free-llms/health') { asked.push(url.search); body = { ok: false, model: MODELS[0], code: 'free_tier_locked', status: 403 } }
+  else if (url.pathname === '/free-llms/health') { asked.push(url.search); body = { ok: false, model: MODELS[0], code: 'free_tier_locked', status: 403, checkedAt: new Date().toISOString(), cached: url.search === '?cached=1' } }
   try {
     if (body === null) await page.send('Fetch.continueRequest', { requestId: p.requestId })
     else await page.send('Fetch.fulfillRequest', { requestId: p.requestId, responseCode: 200, responseHeaders: [{ name: 'content-type', value: 'application/json' }], body: Buffer.from(JSON.stringify(body)).toString('base64') })
@@ -72,10 +72,13 @@ try {
   await shot('free-llms-locked')
   check('the retention notice can still be ticked', (await click('[data-kfl="panneau"] .kfl-accuse input')) === true)
   check('Connect to DSH stays off, with the reason as its tooltip', await val(`(() => { const b = document.querySelector('[data-kfl="connecter"]'); return !!b && b.disabled === true && /locked it/.test(b.title) })()`) === true)
-  const probeClicked = await val(`(() => { const b = Array.from(document.querySelectorAll('[data-kfl="panneau"] button')).find((x) => /Probe a model/.test(x.innerText)); if (!b) return false; const r = b.getBoundingClientRect(); return JSON.stringify({ x: r.left + r.width / 2, y: r.top + r.height / 2 }) })()`)
-  check('« Probe a model » is there', typeof probeClicked === 'string')
-  if (typeof probeClicked === 'string') { const { x, y } = JSON.parse(probeClicked); await mouse(x, y); await sleep(900) }
-  check('the probe asks for a fresh answer (no cached form)', asked.includes(''), asked)
+  await val(`window.scrollTo(0, 0), document.querySelector('[data-kfl="panneau"]').scrollIntoView({ block: 'start' })`)
+  const rc = await val(`(() => { const b = document.querySelector('[data-kfl="recheck"]'); if (!b) return null; const r = b.getBoundingClientRect(); return JSON.stringify({ x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height, inView: r.top >= 0 && r.bottom <= innerHeight }) })()`)
+  check('« Re-check » is there, small, and in the first screen of the page', typeof rc === 'string' && JSON.parse(rc).inView === true && JSON.parse(rc).h <= 40, rc)
+  check('the page says when the free tier was last checked', /Last checked \d/.test(await val(`document.querySelector('[data-kfl="panneau"]').innerText`)))
+  asked.length = 0
+  if (typeof rc === 'string') { const { x, y } = JSON.parse(rc); await mouse(x, y); await sleep(900) }
+  check('the re-check asks for a fresh answer (no cached form)', asked.includes(''), asked)
   const after = await val(`document.querySelector('[data-kfl="panneau"]').innerText`)
   check('its result is a sentence, not « Gate refused: free_tier_locked »', !/Gate refused|free_tier_locked/.test(after) && /The free tier is unavailable right now/.test(after), after.slice(-300))
   await shot('free-llms-probed')

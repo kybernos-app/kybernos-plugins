@@ -61,6 +61,10 @@ await live.close()                         // kills Chrome, removes the profile
   when the secret is unreadable, or when the GUI never renders.
 - The GUI has no URL routes: pages are reached by clicking. `clickText` matches an
   element's own text, ignoring the `⟦ ⟧` pseudo-translation marks.
+- **Settings has a fold.** Most of our pages (Usage, Workers, Calls, Web Search…) sit under a shut « Advanced » header, and a hidden
+  cell cannot take a real mouse click. `openSettings(page)` opens the fold for you (in the throw-away browser's own storage: nothing of
+  your DSH changes); pass `{ fold: 'keep' }` to leave it as it is (the check of the fold itself does). A script that clicks the cell
+  with `cell.click()` reaches a page either way, and landing on a page inside the fold opens it, as it does for a person.
 - The built-in browser pane of the Claude desktop app cannot be used for this: it
   has no cookie access, so it stops at the 401 page.
 
@@ -269,6 +273,22 @@ widget). Four traps met: `fill()` of Playwright sets the text without any Enter,
 fold are still at their start frame; and a loaded machine (a test loop running beside it) slows the animations, so it waits for
 them to finish instead of sleeping.
 
+## The language of the creation surfaces: `scripts/check-language-creation-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-language-creation-live.mjs --shots /tmp/shots [--langs en,kybernos,es,ar]
+```
+
+Sandbox only (exit 3 against `:3080`). It never touches DSH's stored language: the language of Kybernos is set in the throw-away
+browser (`localStorage['kybernos.theme.lang']`, the key the Language page writes: `en` removes it, `kybernos` is the French of
+Kybernos, `es` and `ar` are translated languages that have no table of ours), the page is reloaded, and for each language it reads the
+right-sidebar start list, the panels Bricks, Slides, 3D modeller, Summary, Motion and Dashboard, the sidebar's « Search everywhere » row,
+the composer's « where it runs » menu, the phone layout's menu button, and the Atlas page with its help. English, Spanish and Arabic must
+read English; French must read French; no French word in another language, no English phrase of ours in French. The sandbox keeps its
+right pane (and its tabs) from one run to the next: the check asks for a fresh start list. In a right-to-left language the right pane is
+drawn on the left of the window. The offline twin is `scripts/test-no-french-literals.mjs`: French literals outside a dictionary, the
+pair helper (`kt(fr, en)`: French for French, English for everything else), READMEs and descriptions, the French twin that must stay.
+
 ## The first-run wizard: `scripts/check-onboarding-live.mjs`
 
 ```bash
@@ -311,6 +331,40 @@ the card and not the Settings dialog behind it, then French, a module's page in 
 anything that handles Escape inside it must listen in capture and stop the event only when it has something to close; and the core
 rewrites French phrases to English on Settings pages while the document language is English (a French test must set
 `document.documentElement.lang` too, or compare without quotation marks).
+
+### The article link, the animation of the first visit, one button: `scripts/check-help-intro-live.mjs`
+
+Three things ride on the same hub seam (`window.__KB_HELP__`):
+
+- **The article.** `help.json` may carry `"url"`: an address on `help.kybernos.app` (`build-catalog.mjs` refuses any other host).
+  `{lang}` as the first part of the path stands for the reader's language (en, fr, ar, zh-cn; any other gets English), the way the
+  site addresses its articles: `https://help.kybernos.app/{lang}/<category>/<article>/`. The card shows it as « Read the article »
+  at its foot, in a new tab with `noopener`; the Suite's module page too. A bundle with no article yet simply has no `url`: nothing is drawn.
+  The host shows the shipped card, link included, whatever the signed catalogue says, so a link needs no release to appear.
+- **The animation of the first visit** (`window.__KB_HELP__.Intro`, the mechanism of the Language page for any page). A page draws it
+  under its header with the words of its own screen: `h(Intro, { id, title, caption, steps: [{ t, b } × 3], mock: { bar, rows,
+  hot, states: [3], actions: [3], done } })`. The mock is CSS only (12 s loop; its base style is the end of the story, which is what
+  `prefers-reduced-motion` shows). It opens until the person closes it (✕, remembered as `closed`) or it has been on screen for 8 s
+  once (`seen`): the first visit, then never by itself. The card of the page's button offers « Watch the animation » to bring it back.
+  The key is the one of the page's button (`kybernos.help.intro.<id>`, in this browser's localStorage). Skills, Connectors and Remote
+  Control have one; adding a page is one call and its strings.
+- **One « ? How it works » button.** The Suite's pill is the only form. The pages that draw their own copy it declaration for
+  declaration (the core's Agent Teams / Automations button `kb6-helpbtn`, the Calls tabs `kbcl-hl`, Language `kbth-help-btn`, Atlas
+  `kbat-help`; each keeps the panel it opens): `scripts/test-help.mjs` compares them.
+
+```bash
+node packages/kybernos-hub/test-help-card.mjs   # no GUI: the link, the card's side, the animation's state and timer, the host's merge
+source scripts/sandbox/env.sh && node scripts/check-help-intro-live.mjs --shots /tmp/shots
+```
+
+The live check starts from a throw-away browser, so its empty localStorage **is** the first visit: it checks the animation opens
+on Skills, Connectors and Remote Control, runs (CSS animations counted; the three steps light in turn, sampled on the loop's own
+clock, not the test's), is marked `seen` after 8 s and does not come back, comes back from the card, and closes for good; the
+article links; one button of the same size and shape on sixteen pages (among them the ones whose own CSS restyles every button); reduced motion (no animation at all, the end of the story
+shown); the lines that say what Usage, Tools, Workers and Commands are for; and French on Remote Control.
+Two traps: the first click on a sidebar entry right after the shell loaded can open nothing (the check clicks again until the page's
+own text is there), and the page behind the Settings dialog stays in the document, so a button is counted only where it is the
+topmost element (`elementFromPoint`).
 
 ## The Agent presets button and the Ollama search: `check-creator-draft-live.mjs`, `check-ollama-search-live.mjs`
 
@@ -764,8 +818,9 @@ clicks:
   (no « Account » header any more) holding Servers (kept first), the section, then the Suite. Signed out the section is there, the two
   server actions say so and are disabled, the instructions field works. Connected: the instructions are saved through the host's file
   routes into the **sandbox's own `<DSH home>/AGENTS.md`** (read back after a reload, removed when emptied, a reserved marker refused;
-  the file is put back as it was at the end), « Import models » and « Send DSH chats » call their host routes (answered in the page) and a
-  refused re-import says so.
+  the file is put back as it was at the end). The models line says the list updates by itself; « Import models » and « Send DSH chats » are
+  under a folded « Advanced » (unfolded by the check): the first calls its host route (answered in the page) and a refused re-import says so,
+  the second asks « Send the list now? » first and calls its route only after « Yes, send » (Cancel sends nothing).
 - **The Upgrade dialog** (the catalogue, quote, checkout and portal are answered in the page; the host routes behind them are proven by
   `packages/kybernos-cloud/test-billing-proxy.mjs`): loading, the levels of a personal workspace, yearly/monthly and currency, Subscribe
   and what the dialog says after it, then every refusal — 501 (no payment provider), 403 (not an owner or admin), 409 (the billing portal is

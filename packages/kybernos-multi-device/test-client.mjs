@@ -76,6 +76,10 @@ ok('apply survives a context whose effect throws', (() => { try { plugin.apply({
   ok('English when the language is English', T.L('create') === 'Create workspace')
   window.__KB_LANG_RESOLVE__ = () => 'es'
   ok('any other language gets English, never French', T.L('create') === 'Create workspace')
+  window.__KB_LANG_RESOLVE__ = () => { throw new Error('not ready') }
+  ok('a language that is not known yet reads English, not French', T.L('create') === 'Create workspace')
+  window.__KB_LANG_RESOLVE__ = undefined
+  ok('no resolver at all: English', T.L('create') === 'Create workspace')
   window.__KB_LANG_RESOLVE__ = () => 'kybernos'
   ok('placeholders are filled', T.L('noneSub', { path: '~/x' }) === 'Un dossier privé est créé pour vous : ~/x')
 }

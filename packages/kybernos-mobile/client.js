@@ -35,8 +35,21 @@ window.__ModuleLoader__.load({
       // global panels (Automation tasks: the buttons of a nav in the sidebar).
       const PICKS = '[data-row-key^="session:"], .kb4-item, .kb4-newchat, [data-slot^="sidebar.panellist"] button, [data-slot="sidebar"] nav > button'
 
-      const lang = () => { try { return String(window.__KB_LANG_RESOLVE__ ? window.__KB_LANG_RESOLVE__() : '').split(/[-_]/)[0] } catch (e) { return 'fr' } }
-      const kt = (fr, en) => (lang() === 'en' ? en : fr)
+      // ── language: French is the source, English the pair; French only for a French UI, a translated language is looked up by its
+      // French text, and every other language (and a language not known yet) reads English ──
+      const lang = () => {
+        try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
+      }
+      const kt = (fr, en) => {
+        const l = lang()
+        if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
+        if (l === 'en') return en
+        try {
+          const a = window.__KB_I18N_ACTIVE__
+          if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
+        } catch (e) { /* no dictionary: English */ }
+        return en
+      }
 
       const narrow = () => { try { return window.matchMedia(MEDIA).matches === true } catch (e) { return false } }
       const frame = () => { try { return document.querySelector('[data-slot="root"] > div') } catch (e) { return null } }
@@ -282,7 +295,12 @@ window.__ModuleLoader__.load({
         button.type = 'button'
         button.className = MENU_CLASS
         button.setAttribute('data-kb', 'mobile-menu')
-        button.setAttribute('aria-label', kt('Ouvrir le menu', 'Open the menu'))
+        // The label follows the language: it is written now, again when the language changes, and again when the button is
+        // reached (the language is often not known yet at the first paint, and a label written once stayed in the wrong one).
+        const relabel = () => { try { button.setAttribute('aria-label', kt('Ouvrir le menu', 'Open the menu')) } catch (e) { /* the button went away */ } }
+        relabel()
+        for (const ev of ['focus', 'pointerenter', 'touchstart']) button.addEventListener(ev, relabel, { passive: true })
+        try { window.addEventListener('kybernos-lang-change', relabel); undo.push(() => window.removeEventListener('kybernos-lang-change', relabel)) } catch (e) { /* no window */ }
         button.appendChild(menuIcon())
         button.addEventListener('click', (e) => { e.stopPropagation(); opened = !drawerOpen(); flip() })
         document.body.appendChild(button)
@@ -679,7 +697,9 @@ window.__ModuleLoader__.load({
                 s.relay === 'up' ? h('span', { className: 'kbmr-sub kbmr-inline' }, h('span', { className: 'kbmr-dot on', 'aria-hidden': 'true' }), kt('Relais Kybernos joint', 'Kybernos relay reached')) : null),
               h(Devices, { devices, onRevoke: (id) => run('devices/revoke', { id }) }),
               devices.length > 1 ? h('button', { type: 'button', className: 'kbmr-link', 'data-kb': 'mobile-revoke-all', onClick: () => { void run('devices/revoke-all') } }, kt('Tout révoquer', 'Revoke all')) : null,
-              s.refused > 0 ? h('div', { className: 'kbmr-sub' }, kt(s.refused + ' demande(s) refusée(s) depuis un téléphone (réglages, identifiants, extensions).', s.refused + ' request(s) refused from a phone (settings, credentials, plugins).')) : null))
+              s.refused > 0 ? h('div', { className: 'kbmr-sub' }, (s.refused === 1
+                ? kt('1 demande refusée depuis un téléphone (réglages, identifiants, extensions).', '1 request refused from a phone (settings, credentials, plugins).')
+                : kt(s.refused + ' demandes refusées depuis un téléphone (réglages, identifiants, extensions).', s.refused + ' requests refused from a phone (settings, credentials, plugins).'))) : null))
         }
 
         // The « ? How it works » button of this bundle (the Suite publishes it; without the Suite there is none). The card it opens is
@@ -701,6 +721,22 @@ window.__ModuleLoader__.load({
           }
           return h('span', { ref: box, className: 'kbmr-helpbox', onClickCapture: anchor }, helpButton())
         }
+
+        // The animated help of the Settings page (the Suite publishes it): opens the first time the page is visited, and the card of the
+        // « ? How it works » button can bring it back. The words are the ones of the real screen.
+        const introNode = () => (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Intro
+          ? h(window.__KB_HELP__.Intro, {
+            id: 'kybernos-mobile',
+            title: kt('Relier un téléphone en trois étapes', 'Link a phone in three steps'),
+            caption: kt('Le code QR est affiché sur l’ordinateur, scanné avec le téléphone, puis autorisé sur l’ordinateur.', 'The QR code is shown on the computer, scanned with the phone, then allowed on the computer.'),
+            steps: [
+              { t: kt('Affichez le code', 'Show the code'), b: kt('Sur l’ordinateur, ouvrez le menu du compte › « Contrôle à distance » : un code QR s’affiche.', 'On the computer, open the account menu › “Remote control”: a QR code appears.') },
+              { t: kt('Scannez-le', 'Scan it'), b: kt('Sur le téléphone, scannez le code avec l’appareil photo et ouvrez le lien : un code à 4 chiffres s’affiche.', 'On the phone, scan the code with the camera and open the link: a 4-digit code appears.') },
+              { t: kt('Autorisez', 'Allow'), b: kt('Sur l’ordinateur, vérifiez que le code est le même et touchez Autoriser : votre téléphone pilote cet ordinateur.', 'On the computer, check the code is the same and click Allow: your phone now drives this computer.') }
+            ],
+            mock: { bar: 'Remote Control', rows: [kt('Cet ordinateur', 'This computer')], hot: kt('Votre téléphone', 'Your phone'), states: [kt('Pas lié', 'Not linked'), kt('Code : 4821', 'Code: 4821'), kt('Lié', 'Linked')], actions: [kt('Afficher le QR', 'Show the QR'), kt('Scan…', 'Scanning…'), kt('Autoriser', 'Allow')] }
+          })
+          : null)
 
         // The sidebar's phone button opens this (kybernos-cloud renders it inside its popover).
         const Panel = (props) => {
@@ -749,6 +785,7 @@ window.__ModuleLoader__.load({
                 h('p', { className: 'kbmr-sub' }, kt('Pilotez cet ordinateur depuis votre téléphone : scannez le code, c’est tout. Rien à installer, aucun compte à créer.', 'Drive this computer from your phone: scan the code, that is all. Nothing to install, no account to create.'))),
               planChip !== null ? h('span', { className: 'kbmr-chip' }, planChip) : null,
               helpButton()),
+            introNode(),
             h(Body, { r, compact: false, autoPair: false, web }))
         }
 

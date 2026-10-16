@@ -1,4 +1,4 @@
-// kybernos-memory — browser half: the « Memory & Lessons learned » settings page.
+// kybernos-memory — browser half: the « Memory & Lessons » settings page.
 //
 //   settings section « Memory & Lessons » ... settings.section (order 3; where it is DRAWN is decided by the
 //                                             Settings menu grouping in kybernos-plugin: « Kybernos » group,
@@ -378,7 +378,7 @@ window.__ModuleLoader__.load({
 
       // ── Team lessons: the pure pieces ───────────────────────────────────────────────────────────────────
       // ── « Memory looks after itself »: the line under the title, the one step it may need, the cap note ──────
-      const PAGE_TITLE = 'Memory looks after itself'
+      const PAGE_TITLE = 'Memory & Lessons'
       const LESSONS_CAP = 50    // LESSONS_MAX_COUNT of lessons-store.mjs: what an agent team holds
       const LESSONS_NEAR = 40   // LESSONS_NEAR_COUNT: from here the host tidies the agent team by itself (index.js, tidyTick)
       const TIDY_EVERY = { start: 'when DSH starts', daily: 'every day', weekly: 'every week', n50: 'every 50 new items' }

@@ -33,7 +33,7 @@
 import { createServer } from 'node:http'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { openLivePage, waitFor } from './live-page.mjs'
+import { openLivePage, waitFor, openAdvancedFold } from './live-page.mjs'
 
 const host = process.env.KB_HOST || '127.0.0.1:3080'
 if (host.endsWith(':3080')) { console.error('○ not run: this check must run against the sandbox (source scripts/sandbox/env.sh), never the real DSH on :3080'); process.exit(3) }
@@ -336,7 +336,8 @@ try {
     await val(`(() => { const c = Array.from(document.querySelectorAll('[class*="navCell"]')).find((e) => { const n = Object.keys(e).find((k) => k.indexOf('__reactFiber$') === 0); return n !== undefined && e[n].key === 'kybernos-local' }); if (c) c.click() })()`)
     await waitFor(page, `document.querySelector('[data-kb="ky-section"]') !== null`, 5000)
     await sleep(500)
-    check('signed out: the Kybernos section opens (instructions, models, chats)', (await exists('[data-kb="ky-instructions"]')) && (await exists('[data-kb="ky-models"]')) && (await exists('[data-kb="ky-chats"]')))
+    check('signed out: the Kybernos section opens (instructions, models, a folded Advanced: no Re-import and no Send DSH chats on the page)', (await exists('[data-kb="ky-instructions"]')) && (await exists('[data-kb="ky-models"]')) && (await exists('[data-kb="ky-advanced"]')) && !(await exists('[data-kb="ky-chats"]')) && !(await exists('[data-kb="ky-models-run"]')))
+    await jsClick('[data-kb="ky-adv-toggle"]'); await sleep(300)
     check('signed out: the two actions that need a server say so, and cannot be pressed', (await val(`document.querySelectorAll('[data-kb="ky-signed-out"]').length`)) === 2
       && (await val(`document.querySelector('[data-kb="ky-models-run"]').disabled === true && document.querySelector('[data-kb="ky-chats-run"]').disabled === true`)) === true)
     check('signed out: the instructions field is still usable (it is a file of this computer)', (await val(`document.querySelector('[data-kb="ky-instr-field"]').disabled`)) === false && /on this computer/i.test((await text('[data-kb="ky-instr-note"]')) || ''), await text('[data-kb="ky-instr-note"]'))
@@ -714,15 +715,17 @@ try {
     check('DSH\'s own entries and the other bundles\' are still listed (General, Appearance, Remote Control)',
       cells.some((c) => c.key === 'general') && cells.some((c) => c.key === 'kbac-appearance') && cells.some((c) => c.key === 'kybernos-mobile'), cells.map((c) => c.key))
     await shot('11-settings-without-account-entries')
-    // The group header that held « Account » is « Kybernos » now, and it is the only one: the servers entry stays first under it, then the section of what
-    // stays on this computer, then the Suite. Read from the layout (the organiser orders by CSS), headers and cells together.
-    // The organiser (a debounced observer) draws the group headers a moment after the cells: wait for them.
-    await waitFor(page, `document.querySelectorAll('[data-kb="settings-group"]').length >= 3`, 6000)
+    // The first section is the essentials (no header). « Advanced » is a fold, shut at first: opened here with a click, as a person does, its first
+    // entries are Servers (kept where it was), the section of what stays on this computer, then the Suite. Read from the layout (the organiser
+    // orders by CSS), headers and cells together. The organiser (a debounced observer) draws the headers a moment after the cells: wait for them.
+    await waitFor(page, `document.querySelector('[data-kb-fold-toggle]') !== null`, 6000)
     await sleep(400)
+    await openAdvancedFold(page) // only if it is shut: an earlier scene may have landed on a page inside it, which opens it
+    await sleep(500)
     const flow = (await val(`(() => { const list = Array.from(document.querySelectorAll('[class*="navList"]')).find((l) => l.querySelector('[class*="navCell"]')); return Array.from(list.children).map((c) => { const n = Object.keys(c).find((k) => k.indexOf('__reactFiber$') === 0); return { t: (c.textContent || '').trim(), key: n === undefined ? null : c[n].key, y: Math.round(c.getBoundingClientRect().top), head: c.getAttribute('data-kb') === 'settings-group' } }).filter((x) => x.y > 0 || x.head).sort((a, b) => a.y - b.y) })()`)) || []
     const heads = flow.filter((x) => x.head).map((x) => x.t)
-    check('the group headers are Kybernos, Settings, Desktop, Plugins: no « Account » header any more, and « Kybernos » only once', heads[0] === 'Kybernos' && heads.filter((h) => h === 'Kybernos').length === 1 && !heads.includes('Account'), heads)
-    const at = flow.findIndex((x) => x.head && x.t === 'Kybernos')
+    check('the group headers are Advanced and Other settings: no « Account » header any more, and none named like a page (« Kybernos »)', heads.join('|') === 'Advanced|Other settings' && !heads.includes('Account') && !heads.includes('Kybernos'), heads)
+    const at = flow.findIndex((x) => x.head && x.t === 'Advanced')
     check('under it: Servers (kept where it was), the Kybernos section, then the Suite', at >= 0 && flow[at + 1] && flow[at + 1].key === 'kybernos-servers' && flow[at + 2] && flow[at + 2].key === 'kybernos-local' && flow[at + 3] && flow[at + 3].key === 'kybernos-suite', flow.slice(at, at + 5))
     // Each of the remaining ones still opens: pick General and Remote Control by key and read the page that comes up.
     const openCell = async (cellKey) => {
@@ -742,7 +745,7 @@ try {
     await openCell('kybernos-local')
     await waitFor(page, `document.querySelector('[data-kb="ky-section"]') !== null`, 5000)
     await sleep(500)
-    check('the section opens: instructions, models and chats are there', (await exists('[data-kb="ky-instructions"]')) && (await exists('[data-kb="ky-models"]')) && (await exists('[data-kb="ky-chats"]')))
+    check('the section opens: instructions and models are there, and a folded Advanced', (await exists('[data-kb="ky-instructions"]')) && (await exists('[data-kb="ky-models"]')) && (await exists('[data-kb="ky-advanced"]')) && !(await exists('[data-kb="ky-chats"]')))
     const AGENTS = join(DSH_HOME, 'AGENTS.md')
     const note = (await text('[data-kb="ky-instr-note"]')) || ''
     check('it says the instructions are kept on this computer, and in which file (the sandbox\'s own AGENTS.md)', /on this computer/i.test(note) && note.includes(AGENTS), note)
@@ -777,11 +780,17 @@ try {
     fake.sync = { ok: true, models: { count: 3, plan: 'free', settings: true } }
     fake.push = { ok: true, scanned: 4, pushed: 4 }
     fake.calls.length = 0
+    await jsClick('[data-kb="ky-adv-toggle"]'); await sleep(300)
     check('connected: the two server actions can be pressed and no sign-in note is shown', (await exists('[data-kb="ky-signed-out"]')) === false && (await val(`document.querySelector('[data-kb="ky-models-run"]').disabled === false && document.querySelector('[data-kb="ky-chats-run"]').disabled === false`)) === true)
     await jsClick('[data-kb="ky-models-run"]'); await sleep(600)
     check('Import models asks the host to re-import the catalogue', fake.calls.includes('models-sync'), fake.calls)
-    await jsClick('[data-kb="ky-chats-run"]'); await sleep(600)
-    check('Send DSH chats asks the host to send the directory', fake.calls.includes('chats-push'), fake.calls)
+    await jsClick('[data-kb="ky-chats-run"]'); await sleep(400)
+    check('Send DSH chats asks first, with the sentence that says what is sent and why: nothing is sent yet', !fake.calls.includes('chats-push') && (await exists('[data-kb="ky-chats-confirm"]')) && /never what is said in them/.test((await text('[data-kb="ky-chats-note"]')) || ''), fake.calls)
+    await jsClick('[data-kb="ky-chats-no"]'); await sleep(300)
+    check('Cancel sends nothing and closes the question', !fake.calls.includes('chats-push') && !(await exists('[data-kb="ky-chats-confirm"]')) && (await exists('[data-kb="ky-chats-run"]')), fake.calls)
+    await jsClick('[data-kb="ky-chats-run"]'); await sleep(300)
+    await jsClick('[data-kb="ky-chats-yes"]'); await sleep(600)
+    check('Send DSH chats asks the host to send the directory only after the yes', fake.calls.includes('chats-push'), fake.calls)
     fake.sync = { ok: false, error: 'reseau' }
     await jsClick('[data-kb="ky-models-run"]'); await sleep(600)
     check('a refused re-import says so (and offers to try again)', (await exists('[data-kb="ky-models-error"]')) && (await val(`document.querySelector('[data-kb="ky-models-run"]').disabled`)) === false, await text('[data-kb="ky-models"]'))

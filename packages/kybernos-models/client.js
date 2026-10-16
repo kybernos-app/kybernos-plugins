@@ -418,6 +418,8 @@ window.__ModuleLoader__.load({
         'kb.models.loading': { kybernos: 'Lecture de settings.yaml…', en: 'Reading settings.yaml…' },
         'kb.models.reload': { kybernos: 'Réessayer', en: 'Retry' },
         'kb.models.loaderror': { kybernos: 'Lecture impossible', en: 'Load failed' },
+        // A route of this plugin's host half that does not answer (DSH not restarted after an update): the same sentence as the other settings pages.
+        'kb.models.hostdown': { kybernos: 'L’assistant de cette page ne répond pas. Si DSH vient d’être mis à jour, redémarrez DSH, puis appuyez sur Réessayer.', en: 'This page’s helper is not answering. If DSH was just updated, restart DSH, then press Retry.' },
         'kb.models.empty.live': { kybernos: 'aucun modèle configuré dans llm-pi-ai', en: 'no model configured in llm-pi-ai' },
         'kb.models.route': { kybernos: 'route', en: 'route' },
         // ── « AI Provider & Models » header block (settings.models.header) ──
@@ -2540,11 +2542,8 @@ window.__ModuleLoader__.load({
               h('span', { className: 'kbmh-hero-feat', title: m('kb.hero.f.fallback.tip') },
                 h('span', { className: 'kbmh-hero-feat-i' }, Ic('check', 14)), m('kb.hero.f.fallback')),
               h('span', { className: 'kbmh-hero-feat', title: m('kb.hero.f.guard.tip') },
-                h('span', { className: 'kbmh-hero-feat-i' }, Ic('check', 14)), m('kb.hero.f.guard'))),
-            KBM.live === true && KBM.loadError !== null
-              ? h('div', { className: 'kbm-warn', 'data-kbmh': 'loaderror' },
-                m('kb.models.loaderror') + sep() + String(KBM.loadError))
-              : null),
+                h('span', { className: 'kbmh-hero-feat-i' }, Ic('check', 14)), m('kb.hero.f.guard')))),
+          // (The load error is told once, by the panel's banner right under the hero, which also has the Retry.)
           h('div', { className: 'kbmh-hero-cta' },
             h('button', {
               type: 'button', className: 'kbmh-hero-btn', 'data-kbmh': 'connect',
@@ -2615,7 +2614,8 @@ window.__ModuleLoader__.load({
           UI.tab === 'providers' ? h(KybernosHero, null) : null,
           KBM.live === true && KBM.loading === true && skelOf() === null ? h('div', { className: 'kbmp-vide', 'data-kbm': 'loading' }, m('kb.models.loading')) : null,
           KBM.live === true && KBM.loadError !== null ? h('div', { className: 'kbm-warn', 'data-kbm': 'loaderror' },
-            m('kb.models.loaderror') + sep() + String(KBM.loadError),
+            // The helper-not-answering sentence stands on its own; any other reason follows « Load failed: ».
+            (KBM.loadError === m('kb.models.hostdown') ? '' : m('kb.models.loaderror') + sep()) + String(KBM.loadError),
             h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kbm': 'reload', onClick: () => { kbMLoad() } }, m('kb.models.reload'))) : null,
           // Two tabs, one visible content at a time:
           //  · « Providers » shows DSH's NATIVE UX (the rows with
@@ -3570,7 +3570,11 @@ window.__ModuleLoader__.load({
           return true
         } catch (e) {
           KBM.loading = false
-          KBM.loadError = String(e && e.message ? e.message : e)
+          // The browser's own text for a refused connection or an HTML answer (« Failed to fetch », « Load failed ») is not
+          // something to read: say what it means.
+          const brut = String(e && e.message ? e.message : e)
+          // (By the message, not the error class: a TypeError can also be a bug of ours, which must stay visible.)
+          KBM.loadError = /^(failed to fetch|load failed|networkerror)|unexpected token|is not valid json/i.test(brut) ? m('kb.models.hostdown') : brut
           kbmNotify()
           kbMRefreshDone()
           return false
