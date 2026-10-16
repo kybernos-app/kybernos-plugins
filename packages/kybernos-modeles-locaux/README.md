@@ -7,10 +7,15 @@ and wire it into DSH so it can be used in the model picker. Nothing is downloade
 
 1. **Detect** — `GET /modeles-locaux/machine` (host): chip and RAM (`sysctl`), Ollama (`ollama --version`), pulled models
    (`ollama list`). Cached 30 s, `?force=1` to force it.
+   If the probe fails (the helper does not answer, or the memory size is unreadable) the page says so in a banner with a
+   Retry and gives **no verdict**: every model reads « Memory not measured » (grey), Install stays available, nothing is
+   « Recommended ». It used to label every model « Too heavy » and disable Install.
 2. **Recommend** — the catalogue (below) filtered by the measured RAM; the recommendation is the largest model that fits.
 3. **Install** — `POST /modeles-locaux/installer`: one job at a time, `brew install ollama` (macOS, explicit) then
    `ollama pull <id>`; progress read from the process output; `POST /modeles-locaux/annuler` (SIGTERM). The id is held to
-   a safe charset and `..` is refused.
+   a safe charset and `..` is refused. A failed install is told **on the row that was pressed**, in plain words (« Install
+   failed: Ollama has no model under this name »; the CLI line is the tooltip) with a Retry in place of Install; only the
+   engine's own install and a Hugging Face reference, which have no row, use the banner at the top.
 4. **Wire** — `remote.settings.mutate('llm-pi-ai', …)` (the channel of DSH's own Models page): declares
    `providers['ollama-local']` (`api: openai-completions`, `baseURL: http://127.0.0.1:11434/v1`) and its models (context
    window 32768, editable; `input` from the catalogue). Removed per model; the route goes when the list is empty. If the
@@ -67,6 +72,7 @@ verified catalogue, under `<DSH home>/kybernos/modeles-locaux-catalogue/`.
 node packages/kybernos-modeles-locaux/test-modeles-catalogue.mjs   # rules of belief, refresh against a local server, the route
 node packages/kybernos-modeles-locaux/test-machine.mjs
 node packages/kybernos-modeles-locaux/test-seam.mjs
+node packages/kybernos-modeles-locaux/test-fit.mjs                 # no verdict on an unmeasured machine; why a pull failed, in words
 source scripts/sandbox/env.sh && node scripts/check-ollama-search-live.mjs   # the real page: the three steps, the answer, where the list comes from
 ```
 
