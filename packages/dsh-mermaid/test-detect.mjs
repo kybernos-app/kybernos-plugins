@@ -18,8 +18,12 @@ const check = (name, ok, detail) => {
 const begin = source.indexOf('// <detect:begin>')
 const end = source.indexOf('// <detect:end>')
 check('the detection block is delimited by its markers', begin >= 0 && end > begin)
-const { looksLikeMermaid, diagramProblem, explainError, MAX_TEXT_SIZE } =
-  new Function(source.slice(begin, end) + '\nreturn { looksLikeMermaid, diagramProblem, explainError, MAX_TEXT_SIZE }')()
+// The block speaks through the plugin's pair helper kt(fr, en), defined above it: the test hands it one that follows `say`,
+// English until a check asks for French (the helper's own rule - French for French, English for every other language - is
+// checked by scripts/test-no-french-literals.mjs, on the real source).
+let say = (fr, en) => en
+const { looksLikeMermaid, diagramProblem, explainError, toggleLabel, MAX_TEXT_SIZE } =
+  new Function('kt', source.slice(begin, end) + '\nreturn { looksLikeMermaid, diagramProblem, explainError, toggleLabel, MAX_TEXT_SIZE }')((fr, en) => say(fr, en))
 
 console.log('diagram headers are recognised')
 const yes = {
@@ -151,6 +155,26 @@ console.log('the error card says why')
   const long = explainError(new Error('Parse error on line 2:\n' + 'x'.repeat(2000)))
   check('a very long reason is cut', long.detail.length <= 601 && long.detail.endsWith('…'), long.detail.length)
   check('an error with no message still says something', explainError(new Error('')).detail !== '' && explainError(undefined).detail !== '' && explainError('plain text').detail === 'plain text')
+}
+
+// ── A2-01: the words the card shows come in English, and in French for a French UI ──────────────────────
+console.log('the card speaks English, and French for a French UI')
+{
+  check('the toggle reads « Code » while the diagram is shown, « Diagram » while the source is', toggleLabel(false) === 'Code' && toggleLabel(true) === 'Diagram', [toggleLabel(false), toggleLabel(true)])
+  const parse = new Error('Parse error on line 3:\n...t TD  A -->  B -->> C [[\n---------------------^\nExpecting \'AMP\', got \'TAGEND\'')
+  const chain = 'flowchart TD\n' + Array.from({ length: 5000 }, (_, i) => `  M${i}-->M${i + 1}`).join('\n')
+  const en = [toggleLabel(true), diagramProblem(chain), diagramProblem('sequenceDiagram'), explainError(parse), explainError(new Error('boom: x')), explainError(undefined)]
+  check('no French word in English', !/Diagramme|invalide|vide|trop grand|caract[eè]res|aucune|n.a pas/i.test(JSON.stringify(en)), JSON.stringify(en))
+  say = (fr) => fr
+  try {
+    check('French: the toggle says « Diagramme »', toggleLabel(true) === 'Diagramme' && toggleLabel(false) === 'Code', [toggleLabel(false), toggleLabel(true)])
+    const big = diagramProblem(chain)
+    check('French: the oversized card', big.title === 'Diagramme trop grand pour être dessiné' && /^Ce diagramme compte 7\d\u00A0\d{3} caractères ; Mermaid en dessine jusqu’à 50\u00A0000 au plus\./.test(big.detail), JSON.stringify(big))
+    check('French: the empty card', diagramProblem('sequenceDiagram').title === 'Diagramme vide')
+    check('French: a parse error is titled in French, its reason stays the parser\'s own words', explainError(parse).title === 'Diagramme Mermaid invalide' && /Expecting 'AMP'.*got 'TAGEND'/.test(explainError(parse).detail))
+    check('French: any other error gets a neutral French title', explainError(new Error('boom: x')).title === 'Mermaid n’a pas pu dessiner ce diagramme' && explainError(undefined).detail === 'Mermaid n’a donné aucune raison.')
+  } finally { say = (fr, en) => en }
+  check('...and English again afterwards', toggleLabel(true) === 'Diagram')
 }
 
 console.log('the shipped bundle carries the same code')

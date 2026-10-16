@@ -1,6 +1,8 @@
 {
   "_doc": "Language policy gate (scripts/test-no-french-literals.mjs, WP-07 decision D1). \"pending\" = not cleaned yet (the test only reports it); [] = strict: no French literal outside a dictionary, English README and description, a pair helper that falls back to English. A strict list may name exact literals allowed to stay. Clean a bundle, then change its line to [].",
   "unaccented": [
+    "dsh-db-viewer",
+    "dsh-mermaid",
     "kybernos-gate",
     "kybernos-hub",
     "kybernos-maintenance",
@@ -11,7 +13,9 @@
   "unaccented_doc": "Bundles in which a French word written without its accent (indisponible, Discuter, aucun…) also counts as French outside a dictionary (see UNACCENTED in lib-french-literals.mjs). Add a bundle here once it is clean.",
   "needFrench": {
     "_doc": "Strict bundles whose UI has a French twin that must not disappear: the minimum number of French dictionary literals their client keeps (a quarter below what they hold when the twin was written).",
+    "dsh-db-viewer": 18,
     "dsh-media-player": 6,
+    "dsh-mermaid": 7,
     "kybernos-atlas": 120,
     "kybernos-bricks": 10,
     "kybernos-computers": 18,
@@ -25,9 +29,9 @@
     "kybernos-plugin": 1104
   },
   "bundles": {
-    "dsh-db-viewer": "pending",
+    "dsh-db-viewer": [],
     "dsh-media-player": [],
-    "dsh-mermaid": "pending",
+    "dsh-mermaid": [],
     "dsh-subagent-maison": [],
     "kybernos-atlas": [],
     "kybernos-auto": [],

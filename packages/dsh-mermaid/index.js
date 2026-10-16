@@ -1,12 +1,12 @@
 /**
- * dsh-mermaid — moitié hôte.
+ * dsh-mermaid — host half.
  *
- * Le plugin est purement client : il n'ajoute que du rendu dans la page
- * (aucune route, aucun service, aucun outil). La moitié hôte existe parce que
- * le chargeur de profil compose ce paquet comme une entrée ordinaire ; `apply`
- * n'a donc rien à faire et ne doit surtout rien démarrer.
+ * The plugin is purely client-side: it only adds rendering to the page (no route,
+ * no service, no tool). The host half exists because the profile loader composes
+ * this package as an ordinary entry; `apply` therefore has nothing to do and must
+ * start nothing.
  */
 export const name = 'dsh-mermaid'
 
-/** No-op : tout le travail vit dans `client/client.js`. */
+/** No-op: all the work lives in `client/client.js`. */
 export function apply() {}

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Rend les fences ```mermaid du GUI DSH en diagrammes SVG, thémés par les jetons --dsw-*.",
+  "description": "Renders the ```mermaid fences of the DSH chat as SVG diagrams, themed with the --dsw-* tokens.",
   "license": "Apache-2.0",
   "main": "index.js",
   "exports": {

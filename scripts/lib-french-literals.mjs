@@ -280,7 +280,8 @@ const LEXICON = new Set(('début fin relire briques maquette maquettes aucun auc
   'démarrage rejouer couleur texte vide lancer arrêter réessayer chargement erreur échec terminé bientôt ajouter retirer renommer dupliquer copier coller effacer choisir choisissez ' +
   'demande demandez retour suivant précédent aujourd hui hier demain jamais toujours merci bonjour ordinateur serveur connexion compte langue réglages paramètres compétences créations ' +
   'livrables rechercher résultats épinglés modeleur maintenant ensuite rien plusieurs prochain dernier derniers première cliquez appuyez introuvable lancez créez ajoutez mettez relancez ' +
-  'patientez attendez pièces rendu élément éléments enregistré enregistrée envoyer envoyé afficher masquer actualiser rafraîchir').split(' '))
+  'patientez attendez pièces rendu élément éléments enregistré enregistrée envoyer envoyé afficher masquer actualiser rafraîchir ' +
+  'diagramme diagrammes graphiques').split(' '))
 // French words written WITHOUT their accent (a host log, an error message, a label typed on a keyboard that has no é): the accent rule cannot see them.
 // Only words that are not English words. Checked in the bundles listed under "unaccented" in the allow-list (the gate tightens bundle by bundle).
 const UNACCENTED = new Set(('indisponible indisponibles injoignable illisible illisibles inconnu inconnue invalide invalides manquant manquante requis requise attendu attendue refusee refusees ' +

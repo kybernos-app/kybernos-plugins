@@ -20,6 +20,24 @@
 // The DOM is left intact (the native "copy" button still reads the <pre>) and a card is appended
 // after it, with the source hidden by CSS.
 
+// ── language ──
+// English is the base of every string. French is given to a French UI only (Kybernos's own « kybernos », or an fr tag); a language the
+// Language page translated is looked up by its French text in the dictionary the page keeps; any other language (and a language not
+// known yet) reads English.
+const lang = () => {
+  try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
+}
+const kt = (fr, en) => {
+  const l = lang()
+  if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
+  if (l === 'en') return en
+  try {
+    const a = window.__KB_I18N_ACTIVE__
+    if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
+  } catch (e) { /* no dictionary: English */ }
+  return en
+}
+
 const NAME = 'dsh-mermaid'
 const ROOT_SELECTOR = 'div.md-code-block'
 const CARD_CLASS = 'dsh-mermaid'
@@ -214,15 +232,19 @@ function looksLikeMermaid(source) {
 // mermaid does not refuse: it draws a pink \u00AB Maximum text size in diagram exceeded \u00BB box in the diagram's place, with
 // white text at 1.9:1 and its own wording, so the size is checked here first.
 const MAX_TEXT_SIZE = 50000
-const grouped = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+const grouped = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, kt('\u00A0', ','))
+
+/** The label of the card's button: « Code » while the diagram is shown, « Diagram » while the source is. */
+const toggleLabel = (sourceShown) => (sourceShown ? kt('Diagramme', 'Diagram') : 'Code')
 
 /** Why a fence that opens like a diagram is not drawn, or null when it should be: { title, detail } for the error card. */
 function diagramProblem(source) {
   const text = String(source === null || source === undefined ? '' : source)
   if (text.length > MAX_TEXT_SIZE) {
     return {
-      title: 'Diagram too large to draw',
-      detail: 'This diagram has ' + grouped(text.length) + ' characters; mermaid draws up to ' + grouped(MAX_TEXT_SIZE) + '. Its source is shown instead.'
+      title: kt('Diagramme trop grand pour être dessiné', 'Diagram too large to draw'),
+      detail: kt('Ce diagramme compte ' + grouped(text.length) + ' caractères ; Mermaid en dessine jusqu’à ' + grouped(MAX_TEXT_SIZE) + ' au plus. Son code est affiché à la place.',
+        'This diagram has ' + grouped(text.length) + ' characters; mermaid draws up to ' + grouped(MAX_TEXT_SIZE) + '. Its source is shown instead.')
     }
   }
   // A header and nothing after it (\u00AB sequenceDiagram \u00BB alone): mermaid draws a blank rectangle, not an error.
@@ -230,7 +252,12 @@ function diagramProblem(source) {
   if (lines.length === 1) {
     const distinct = DISTINCT_HEADER.exec(lines[0])
     const headerOnly = distinct !== null ? lines[0].slice(distinct[0].length).replace(/^[\s;]+/, '') === '' : PLAIN_WORD_HEADER.test(lines[0])
-    if (headerOnly) return { title: 'Empty diagram', detail: 'Nothing follows the header line, so there is nothing to draw.' }
+    if (headerOnly) {
+      return {
+        title: kt('Diagramme vide', 'Empty diagram'),
+        detail: kt('Rien ne suit la ligne d’en-tête, il n’y a donc rien à dessiner.', 'Nothing follows the header line, so there is nothing to draw.')
+      }
+    }
   }
   return null
 }
@@ -249,9 +276,12 @@ function explainError(error) {
   const rows = detail.split('\n')
   const indent = Math.min(...rows.slice(1).filter((row) => row.trim() !== '').map((row) => row.length - row.trimStart().length))
   detail = rows.map((row, i) => (i > 0 && Number.isFinite(indent) ? row.slice(indent) : row).trimEnd()).join('\n')
-  if (detail === '') detail = 'Mermaid gave no reason.'
+  if (detail === '') detail = kt('Mermaid n’a donné aucune raison.', 'Mermaid gave no reason.')
   if (detail.length > 600) detail = detail.slice(0, 600).replace(/\s+\S*$/, '') + '\u2026'
-  return { title: parse ? 'Invalid mermaid diagram' : 'Mermaid could not draw this diagram', detail }
+  return {
+    title: parse ? kt('Diagramme Mermaid invalide', 'Invalid mermaid diagram') : kt('Mermaid n’a pas pu dessiner ce diagramme', 'Mermaid could not draw this diagram'),
+    detail
+  }
 }
 // <detect:end>
 
@@ -298,6 +328,13 @@ function apply(ctx) {
       if (!isMermaidBlock(block)) continue
       void draw(block)
     }
+    // The language may resolve after a card was made (or change on the Language page): the buttons follow it. Written only when
+    // it differs, because a write is a DOM change and would wake this very observer again.
+    for (const toggle of document.querySelectorAll('.' + CARD_CLASS + '-bar button')) {
+      const owner = toggle.closest(ROOT_SELECTOR)
+      const label = toggleLabel(owner !== null && owner.classList.contains(SOURCE_ATTR))
+      if (toggle.textContent !== label) toggle.textContent = label
+    }
   }
 
   function makeCard(block) {
@@ -310,10 +347,10 @@ function apply(ctx) {
     bar.className = CARD_CLASS + '-bar'
     const toggle = document.createElement('button')
     toggle.type = 'button'
-    toggle.textContent = 'Code'
+    toggle.textContent = toggleLabel(block.classList.contains(SOURCE_ATTR))
     toggle.addEventListener('click', () => {
       const shown = block.classList.toggle(SOURCE_ATTR)
-      toggle.textContent = shown ? 'Diagramme' : 'Code'
+      toggle.textContent = toggleLabel(shown)
     })
     bar.append(toggle)
     card.append(bar)
