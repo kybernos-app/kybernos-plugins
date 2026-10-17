@@ -108,6 +108,21 @@ try {
   await val(`(() => { const b = document.querySelector('[data-kb="dashboards-page"] .kbdb-crumb button'); if (b) b.click() })()`)
   check('the gallery lists the presets and my dashboards', (await poll(() => val(`document.querySelectorAll('[data-kb="dashboards-preset"]').length >= 4 && document.querySelectorAll('[data-kb="dashboards-card"]').length >= 1`))) === true)
   await shot('2-gallery')
+  // R3-01 (R-A4-02): the 12 px hints of the gallery (« Templates: using one gives you your own copy. », the counts) read at 4.5:1 or better
+  // against the page they sit on, in the theme this DSH is in (the Light theme gave 3.71:1).
+  const hint = JSON.parse(await val(`(() => {
+    const lum = (rgb) => { const c = rgb.map((v) => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4 }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2] }
+    const parse = (s) => (s.match(/[\\d.]+/g) || []).map(Number)
+    const spans = Array.from(document.querySelectorAll('.kbdb-sec-h span:not(.sp)'))
+    return JSON.stringify(spans.map((s) => {
+      let e = s; let bg = 'rgba(0, 0, 0, 0)'
+      while (e && /rgba\\(0, 0, 0, 0\\)|transparent/.test(bg)) { bg = getComputedStyle(e).backgroundColor; e = e.parentElement }
+      const fg = parse(getComputedStyle(s).color); const b = parse(bg)
+      const [hi, lo] = [lum(fg), lum(b)].sort((x, y) => y - x)
+      return { text: s.innerText.slice(0, 24), ratio: Math.round(((hi + 0.05) / (lo + 0.05)) * 100) / 100 }
+    }))
+  })()`))
+  check('the gallery hints (section notes and counts) read at 4.5:1 or better', hint.length >= 2 && hint.every((x) => x.ratio >= 4.5), hint)
   const dup = await val(`(() => { const b = document.querySelector('[data-kb="dashboards-preset"][data-id="automations-health"] [data-act="use-preset"]'); if (!b) return false; b.click(); return true })()`)
   check('a preset is used from the gallery', dup === true && (await poll(() => val(`!!document.querySelector('[data-kb="dashboards-grid"]')`), 10000)) === true)
   const widgets = await poll(() => val(`document.querySelectorAll('.kbdb-w').length >= 8 && document.querySelectorAll('.kbdb-bone').length === 0 ? document.querySelectorAll('.kbdb-w').length : 0`), 15000)
