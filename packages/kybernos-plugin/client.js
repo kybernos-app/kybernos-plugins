@@ -7513,6 +7513,8 @@ const kbPinsEnsureCss = () => {
 const kbPinsBoot = () => {
   if (typeof document === 'undefined') return
   kbPinsEnsureCss()
+    // R-A5-02: in the 44 px icon rail the hint wrapped one word per line under the page icons.
+    '[class*="collapsed"] .kbpin_empty{display:none}',
   kbPinsFetch()
   kbPinsScan()
   // Source of a drag coming from the native tree: the row carries `data-row-key="session:<id>"`.
