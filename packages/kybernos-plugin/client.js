@@ -3203,7 +3203,7 @@ const KB_FR_EN = {
   'jour': 'day',
   'Estimation du modèle': 'Model estimate',
   'Aucune réserve : toutes les sources attendues ont répondu.': 'No caveats: every expected source answered.',
-  'MiniApp score illisible : JSON invalide dans ': 'MiniApp score unreadable: invalid JSON in ',
+  'MiniApp score illisible : JSON invalide dans ': 'Mini-app score unreadable: invalid JSON in ',
   'Aucun thème — aucun score n’existe sans événement enregistré.': 'No themes — no score exists without recorded events.',
   ' thèmes': ' themes',
   ' thème': ' theme',
@@ -3726,7 +3726,7 @@ const KB_FR_EN = {
   'relance n°': 'retry #',
   'Corriger': 'Grade',
   'erreur': 'error',
-  'MiniApp JSON invalide : ': 'invalid MiniApp JSON: ',
+  'MiniApp JSON invalide : ': 'invalid Mini-app JSON: ',
   'provider inconnu de llm-pi-ai.providers': 'provider unknown to llm-pi-ai.providers',
   'Orchestrateur': 'Orchestrator',
   'Connecteur': 'Connector',
@@ -16832,7 +16832,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     // badges et pastilles de type sortaient donc sans couleur. Teintes
     // translucides, pour rester lisibles sur le fond sombre des cartes.
     const KB_ART_TYPES = [
-      { id: 'miniapp', label: 'MiniApp', exts: ['miniapp.json'], ico: 'zap', tint: 'rgba(85,99,214,0.16)', color: '#8f9cf0' },
+      { id: 'miniapp', label: 'Mini-app', exts: ['miniapp.json'], ico: 'zap', tint: 'rgba(85,99,214,0.16)', color: '#8f9cf0' },
       { id: 'html', label: 'HTML', exts: ['html', 'htm', 'css'], ico: 'file', tint: 'rgba(249,115,22,0.16)', color: '#fdba74' },
       { id: 'js', label: 'JS', exts: ['js', 'mjs', 'cjs', 'ts', 'jsx', 'tsx', 'sh'], ico: 'settings', tint: 'rgba(234,179,8,0.16)', color: '#fde047' },
       { id: 'quiz', label: 'Quiz', exts: ['quiz'], ico: 'target', tint: 'rgba(59,130,246,0.16)', color: '#93c5fd' },
@@ -17452,7 +17452,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         return [
           h('div', { className: 'kb6-prevkind', key: 'pk' }, kbTiSvg('miniapp', 30)),
           h('div', { className: 'kb6-prevtitle', key: 'tt' }, titre),
-          h('div', { className: 'kb6-line2', key: 'ln' }, 'MiniApp ' + rendu
+          h('div', { className: 'kb6-line2', key: 'ln' }, 'Mini-app ' + rendu
             + (lots !== null ? ' · ' + lots + (lots > 1 ? ' lots' : ' lot') : ' · ' + kbe('preview truncated'))
             + (comps !== null && comps > 0 ? ' · ' + comps + kbe(' components') : '')),
           (resume !== null && resume.length > 0 ? h('div', { className: 'kb6-line2', key: 'sm' }, resume.slice(0, 88)) : null),
@@ -17880,7 +17880,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           // alors sur un archétype : ouvrir le château affichait « Retro Rocket ».
           return h(KbMiniApp, { text: load.text, name: name, path: path, renderer: renderer, kind: innerKind, meta: parsed })
         } catch (e) {
-          return h('pre', { className: 'kb6-pre' }, load.text + '\n\n— ' + kbe('invalid MiniApp JSON: ') + String(e.message || e))
+          return h('pre', { className: 'kb6-pre' }, load.text + '\n\n— ' + kbe('invalid Mini-app JSON: ') + String(e.message || e))
         }
       }
       // ── Legacy types (.quiz, .cards, .deck, etc.) ─────────────────────
@@ -18003,7 +18003,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           return items.slice().sort((a, b) => ((typeof a.maitrise === 'number' ? a.maitrise : -1) - (typeof b.maitrise === 'number' ? b.maitrise : -1)))
         } catch (e) { return null }
       }, [text])
-      if (themes === null) return h('div', { className: 'kbg-empty' }, kbe('MiniApp score unreadable: invalid JSON in ') + name)
+      if (themes === null) return h('div', { className: 'kbg-empty' }, kbe('Mini-app score unreadable: invalid JSON in ') + name)
       if (themes.length === 0) return h('div', { className: 'kbg-empty' }, kbe('No themes — no score exists without recorded events.'))
       const chip = (label, extra) => h('span', Object.assign({
         style: { display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '6px', fontSize: '11.5px', background: 'var(--dsw-alias-interactive-bg-active, rgba(127,127,127,.14))', color: 'var(--dsw-alias-label-secondary, #6b7280)' },
@@ -27839,7 +27839,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
           h('div', { className: 'kbmac-info' },
             h('div', { className: 'kbmac-title' }, String(parsed.title || fileName.replace(/\.miniapp\.json$/, ''))),
             h('div', { className: 'kbmac-meta' }, (estQuestions ? items.length + ' questions' : (parts !== null ? items.length + ' components' : items.length + ' lots')) + ' · ' + kind.charAt(0).toUpperCase() + kind.slice(1))),
-          h('span', { className: 'kbmac-badge', style: { background: color + '22', color: color } }, 'MiniApp')),
+          h('span', { className: 'kbmac-badge', style: { background: color + '22', color: color } }, 'Mini-app')),
         // Aperçu : les 3 premières questions (quiz), ou le résumé + les
         // premiers composants nommés (assemblage technique).
         (items.length > 0
@@ -28060,7 +28060,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
               h('span', { className: 'kbma-popup-title' },
                 h('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: iconSvg })),
                 st.current.fileName.replace(/\.miniapp\.json$/, ''),
-                h('span', { className: 'kbmac-badge', style: { background: color + '22', color: color, marginLeft: 6 } }, 'MiniApp')),
+                h('span', { className: 'kbmac-badge', style: { background: color + '22', color: color, marginLeft: 6 } }, 'Mini-app')),
               h('div', { style: { display: 'flex', gap: 6 } },
                 h('button', { type: 'button', className: 'kbmai-btn', onClick: () => kbMiniAppSetMode('sidebar'), title: 'Sidebar', style: { fontSize: 11, padding: '4px 8px' } }, '◨ Sidebar'),
                 h('button', { type: 'button', className: 'kbmai-btn', onClick: () => kbMiniAppSetMode('fullpage'), title: 'Full page', style: { fontSize: 11, padding: '4px 8px' } }, '⛶ Full'),
@@ -28080,7 +28080,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
                 h('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 }, h('path', { d: 'M19 12H5M12 19l-7-7 7-7' }))),
               h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: iconSvg })),
               h('span', { style: { fontSize: 14, fontWeight: 500 } }, st.current.fileName.replace(/\.miniapp\.json$/, '')),
-              h('span', { className: 'kbmac-badge', style: { background: color + '22', color: color } }, 'MiniApp')),
+              h('span', { className: 'kbmac-badge', style: { background: color + '22', color: color } }, 'Mini-app')),
             h('div', { style: { display: 'flex', gap: 6 } },
               h('button', { type: 'button', className: 'kbmai-btn', onClick: () => kbMiniAppSetMode('popup'), style: { fontSize: 11 } }, '◧ Popup'),
               h('button', { type: 'button', className: 'kbmai-btn', onClick: () => kbMiniAppSetMode('sidebar'), style: { fontSize: 11 } }, '◨ Sidebar'),
