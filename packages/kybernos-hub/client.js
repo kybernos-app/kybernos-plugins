@@ -225,6 +225,9 @@ window.__ModuleLoader__.load({
     /** Pure. The title a module shows: its human name, the id when the catalogue has none. */
     const titreDe = (m) => (m !== null && m !== undefined && typeof m.titre === 'string' && m.titre !== '' ? m.titre : String(m.id))
 
+    /** Pure. What a screen reader says for a module's switch: the action and the module's title (« Turn off Slides »), never the package id. */
+    const libelleInterrupteur = (actif, m) => (actif ? kt('Désactiver ', 'Turn off ') : kt('Activer ', 'Turn on ')) + titreDe(m)
+
     /** Pure. Is the installed DSH inside the range the suite was tested on? `compat` = the maintenance payload's
      *  { min, max, horsZone } (null when unknown). 'ok' | 'hors' | 'inconnu'. */
     const verdictCompat = (compat) => {
@@ -1010,7 +1013,7 @@ window.__ModuleLoader__.load({
             const libelle = actif ? (compact && m.socle === true ? kt('Socle', 'Base') : kt('Actif', 'Active')) : etat === 'safe' ? kt('Désactivé par le mode sans échec', 'Off in safe mode') : kt('Désactivé', 'Off')
             parts.statut = h('span', { className: 'kbsu-st ' + (actif ? 'ok' : etat === 'safe' ? 'warn' : '') }, actif ? ic('check') : etat === 'safe' ? ic('alert') : null, libelle)
             if (comp !== null) parts.reglages = h('button', { type: 'button', className: 'kbsu-btn ghost sm', 'aria-expanded': estOuvert ? 'true' : 'false', onClick: () => setOuvert(estOuvert ? null : m.id) }, kt('Paramètres', 'Settings'))
-            parts.sw = h('button', { type: 'button', className: 'kbsu-sw' + (actif ? ' on' : ''), role: 'switch', 'aria-checked': actif ? 'true' : 'false', 'aria-label': (actif ? kt('Désactiver ', 'Turn off ') : kt('Activer ', 'Turn on ')) + m.id, title: verrou ? kt('Socle : toujours actif', 'Base: always on') : '', disabled: verrou || mgr === null, onClick: () => basculer(m, bundle) }, h('i'))
+            parts.sw = h('button', { type: 'button', className: 'kbsu-sw' + (actif ? ' on' : ''), role: 'switch', 'aria-checked': actif ? 'true' : 'false', 'aria-label': libelleInterrupteur(actif, m), title: verrou ? kt('Socle : toujours actif', 'Base: always on') : '', disabled: verrou || mgr === null, onClick: () => basculer(m, bundle) }, h('i'))
           }
           return parts
         }
@@ -1417,6 +1420,6 @@ window.__ModuleLoader__.load({
 
     const demarrer = (ctx) => { apply(ctx); try { appliquerSuite(ctx) } catch (e) { /* optional */ } }
 
-    return { name: NAME, inject: [], apply: demarrer, __test: { lang, kt, pair, messageCatalogue, raisonMiseAJour, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView, construireAide, construireNatifs, NATIVE_SEL, nativeKeyOf, findNativeHost, nativeContent, coteDeLaCarte, adresseAide, langueDuSite, introKey, introOuverte, INTRO_SEEN_MS } }
+    return { name: NAME, inject: [], apply: demarrer, __test: { lang, kt, pair, messageCatalogue, raisonMiseAJour, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, libelleInterrupteur, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView, construireAide, construireNatifs, NATIVE_SEL, nativeKeyOf, findNativeHost, nativeContent, coteDeLaCarte, adresseAide, langueDuSite, introKey, introOuverte, INTRO_SEEN_MS } }
   }
 })
