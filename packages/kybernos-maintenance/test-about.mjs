@@ -469,6 +469,15 @@ console.log('── the container: loading, failing, refreshing ──')
   const interrupteur = () => parKb(s.tree, 'maintenance-auto-switch')[0]
   check('the card of the automatic check is there, with a switch that reads ON (the host\'s default)', carte().length === 1 && interrupteur() !== undefined && interrupteur().props.role === 'switch' && interrupteur().props['aria-checked'] === 'true' && appelsReglage[0] === 'GET', appelsReglage)
   check('it says what is asked, of whom, and that nothing of the work goes', /GitHub/.test(texte(carte()[0])) && /npm registry/.test(texte(carte()[0])) && /Nothing about your work is sent/.test(texte(carte()[0])) && /every 6 hours/.test(texte(carte()[0])))
+  // R-A6-05: the switch stops THREE requests (docs/privacy.md lists them: VERSION, `npm view`, the signed catalogue); the sentence under it names all three.
+  // (docs/ is not in the bundle's archive: the list is compared with the page only where the repository is around.)
+  let privacy = null
+  try { privacy = readFileSync(new URL('../../docs/privacy.md', import.meta.url), 'utf8') } catch (e) { privacy = null }
+  if (privacy !== null) {
+    const asked = privacy.slice(privacy.indexOf('| Asked |')).split('\n').filter((l) => /^\| (The latest|The signed)/.test(l))
+    check('docs/privacy.md lists three requests behind the switch', asked.length === 3, asked.length)
+  }
+  check('the sentence under the switch names the same three: the suite version, the DSH version, the signed catalogue', /which suite version/.test(texte(carte()[0])) && /which DSH version/.test(texte(carte()[0])) && /signed catalogue/.test(texte(carte()[0])) && /none of the three/.test(texte(carte()[0])), texte(carte()[0]))
   interrupteur().props.onClick()
   await tick(); await tick()
   check('pressing it posts { autoCheck: false } and then reads OFF, from what the host answered', appelsReglage[appelsReglage.length - 1] === 'POST {"autoCheck":false}' && interrupteur().props['aria-checked'] === 'false', appelsReglage)
