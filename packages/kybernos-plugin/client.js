@@ -26128,6 +26128,16 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
    one): a 40 px target with an 18 px icon, anchored on the class suffix like the rules above. */
 [role="dialog"]:has(nav [class$="_navCell"]) [class$="_close"]{min-width:40px;min-height:40px}
 [role="dialog"]:has(nav [class$="_navCell"]) [class$="_close"] svg{width:18px;height:18px}
+/* C-06: the page you are on must not read like the row under the pointer (the open cell carries a second class, « _active », so the
+   class is matched by *=, not by $=). DSH fills both in nearly the same grey (open 235,238,242,
+   hovered 241,243,245): the open page gets a stronger fill and a bar on its leading edge; the hover keeps DSH's light fill and never
+   covers the bar. */
+[role="dialog"]:has(nav [class$="_navCell"]) nav [class*="_navCell"][aria-current="true"]{background:color-mix(in srgb,var(--dsw-alias-label-primary) 11%,transparent);box-shadow:inset 3px 0 0 var(--dsw-alias-label-primary);font-weight:500}
+html[dir="rtl"] [role="dialog"]:has(nav [class$="_navCell"]) nav [class*="_navCell"][aria-current="true"]{box-shadow:inset -3px 0 0 var(--dsw-alias-label-primary)}
+/* R-A5-04: DSH's icon buttons carry a hidden tooltip (data-tip, ::after, opacity 0) that sticks out 36 px past the last card of Agent
+   presets: the options pane scrolled sideways (380 in 369 at 390 px). Nothing in a page of Settings is meant to scroll sideways: the pane
+   that holds such cards clips it (the tooltip itself still shows, inside the pane). */
+[role="dialog"]:has(nav [class$="_navCell"]) [class$="_options"]:has([class$="_cards"] [data-tip]){overflow-x:hidden}
 .kbs-search input::placeholder{color:var(--dsw-alias-label-tertiary)}
 body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-alias-label-secondary)}
 .kbsb:hover{color:var(--dsw-alias-brand-primary)}
