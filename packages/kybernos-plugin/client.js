@@ -5552,7 +5552,13 @@ const kbBoardWeekTitle = (keys, locale) => {
   const a = /^(\d{4})-(\d{2})-(\d{2})$/.exec(keys[0])
   const b = /^(\d{4})-(\d{2})-(\d{2})$/.exec(keys[keys.length - 1])
   const nameA = kbBoardMonthName(Number(a[1]), Number(a[2]), locale)
+// The title of a week is the language's own range (« October 12 – 18, 2026 », « 12–18 octobre 2026 »): the same order as the day on a card
+// (« Sun, Oct 18 »), not a day-first sentence of ours (A5-10). A runtime without formatRange keeps the plain sentence below.
   const nameB = kbBoardMonthName(Number(b[1]), Number(b[2]), locale)
+  try {
+    const noon = 12 * 3600000
+    return new Intl.DateTimeFormat(locale, { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).formatRange(kbBoardKeyUtc(keys[0]) + noon, kbBoardKeyUtc(keys[keys.length - 1]) + noon)
+  } catch (e) { /* the sentence below */ }
   return String(Number(a[3])) + (a[2] !== b[2] ? ' ' + nameA : '') + (a[1] !== b[1] ? ' ' + a[1] : '') + ' – ' + String(Number(b[3])) + ' ' + nameB + ' ' + b[1]
 }
 const kbBoardMonthTitle = (grid, locale) => kbBoardMonthName(grid.year, grid.month, locale) + ' ' + String(grid.year)

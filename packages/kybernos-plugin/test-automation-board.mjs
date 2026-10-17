@@ -62,10 +62,11 @@ eq('from a day of the month grid back to its week', m.kbBoardWeekKeys('2026-10-1
   eq('midnight is 00:00, never 24:00', m.kbBoardHm(Z(2026, 10, 12, 0, 0), 'UTC'), '00:00')
   eq('an unknown zone does not throw: the browser zone is used', /^\d{2}:\d{2}$/.test(m.kbBoardHm(t, 'Mars/Phobos')), true)
 }
-eq('week title, one month', m.kbBoardWeekTitle(m.kbBoardWeekKeys('2026-10-12', 0), 'en'), '12 – 18 October 2026')
-eq('week title, two months', m.kbBoardWeekTitle(m.kbBoardWeekKeys('2026-10-01', 0), 'en'), '28 September – 4 October 2026')
-eq('week title, two years', m.kbBoardWeekTitle(m.kbBoardWeekKeys('2026-12-30', 0), 'en'), '28 December 2026 – 3 January 2027')
-eq('week title in French', m.kbBoardWeekTitle(m.kbBoardWeekKeys('2026-10-12', 0), 'fr'), '12 – 18 octobre 2026')
+// A5-10: the title is the language's own range, month first in English like the day of a card (« Sun, Oct 18 »); ICU may put thin spaces around the dash
+const plain = (x) => x.replace(/[\u2009\u202f\u00a0]/g, ' ')
+eq('week title, one month', plain(m.kbBoardWeekTitle(m.kbBoardWeekKeys('2026-10-12', 0), 'en')), 'October 12 – 18, 2026')
+eq('week title, two months', plain(m.kbBoardWeekTitle(m.kbBoardWeekKeys('2026-10-01', 0), 'en')), 'September 28 – October 4, 2026')
+eq('week title, two years', plain(m.kbBoardWeekTitle(m.kbBoardWeekKeys('2026-12-30', 0), 'en')), 'December 28, 2026 – January 3, 2027')
 eq('month title', m.kbBoardMonthTitle(m.kbBoardMonthGrid('2026-10-12', 0), 'en'), 'October 2026')
 eq('day names follow the language', [m.kbBoardDayName('2026-10-12', 'en'), m.kbBoardDayName('2026-10-12', 'fr')], ['Mon', 'lun.'])
 eq('when: today, tomorrow, later', [m.kbBoardWhen(Z(2026, 10, 12, 17), NOW, 'UTC', 'en'), m.kbBoardWhen(Z(2026, 10, 13, 8), NOW, 'UTC', 'en'), m.kbBoardWhen(Z(2026, 10, 16, 8), NOW, 'UTC', 'en')], ['Today · 17:00', 'Tomorrow · 08:00', 'Fri, Oct 16 · 08:00'])
