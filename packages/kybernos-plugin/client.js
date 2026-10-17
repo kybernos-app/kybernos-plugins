@@ -4317,6 +4317,7 @@ const kbArtRawUrl = (path) => {
 // Does this team carry an avatar? The host's listing says so (`ui.avatar`, a path of the avatar store): the pages only ask for the image of a team that has
 // one, instead of getting a 404 for each of the others (C-02). The route keeps its 404 for a direct call.
 const kbHasAvatar = (ui) => ui !== null && ui !== undefined && typeof ui === 'object' && typeof ui.avatar === 'string' && ui.avatar.indexOf('.kyber-avatars/') === 0
+// Visages d'équipe : `members` du sidecar `.kyber-ui.json` (un avatar par rôle)
 // et l'URL de lecture d'un visage de membre. Lecture prudente : on ne garde que
 // les chemins relatifs du magasin d'avatars, jamais un chemin fabriqué.
 const kbMembersOf = (v) => {
@@ -5551,17 +5552,17 @@ const kbBoardWeekOffset = (todayKey, dayKey) => Math.round((kbBoardKeyUtc(kbBoar
 const kbBoardDayName = (key, locale, style) => { try { return new Intl.DateTimeFormat(locale, { weekday: style === 'long' ? 'long' : 'short', timeZone: 'UTC' }).format(kbBoardKeyUtc(key) + 12 * 3600000) } catch (e) { return key } }
 const kbBoardMonthName = (year, month, locale) => { try { return new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' }).format(Date.UTC(year, month - 1, 15)) } catch (e) { return String(month) } }
 const kbBoardDayLong = (key, locale, withYear) => { try { return new Intl.DateTimeFormat(locale, Object.assign({ weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }, withYear === true ? { year: 'numeric' } : {})).format(kbBoardKeyUtc(key) + 12 * 3600000) } catch (e) { return key } }
-const kbBoardWeekTitle = (keys, locale) => {
-  const a = /^(\d{4})-(\d{2})-(\d{2})$/.exec(keys[0])
-  const b = /^(\d{4})-(\d{2})-(\d{2})$/.exec(keys[keys.length - 1])
-  const nameA = kbBoardMonthName(Number(a[1]), Number(a[2]), locale)
 // The title of a week is the language's own range (« October 12 – 18, 2026 », « 12–18 octobre 2026 »): the same order as the day on a card
 // (« Sun, Oct 18 »), not a day-first sentence of ours (A5-10). A runtime without formatRange keeps the plain sentence below.
-  const nameB = kbBoardMonthName(Number(b[1]), Number(b[2]), locale)
+const kbBoardWeekTitle = (keys, locale) => {
   try {
     const noon = 12 * 3600000
     return new Intl.DateTimeFormat(locale, { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).formatRange(kbBoardKeyUtc(keys[0]) + noon, kbBoardKeyUtc(keys[keys.length - 1]) + noon)
   } catch (e) { /* the sentence below */ }
+  const a = /^(\d{4})-(\d{2})-(\d{2})$/.exec(keys[0])
+  const b = /^(\d{4})-(\d{2})-(\d{2})$/.exec(keys[keys.length - 1])
+  const nameA = kbBoardMonthName(Number(a[1]), Number(a[2]), locale)
+  const nameB = kbBoardMonthName(Number(b[1]), Number(b[2]), locale)
   return String(Number(a[3])) + (a[2] !== b[2] ? ' ' + nameA : '') + (a[1] !== b[1] ? ' ' + a[1] : '') + ' – ' + String(Number(b[3])) + ' ' + nameB + ' ' + b[1]
 }
 const kbBoardMonthTitle = (grid, locale) => kbBoardMonthName(grid.year, grid.month, locale) + ' ' + String(grid.year)
@@ -7512,6 +7513,8 @@ const kbPinsEnsureCss = () => {
     '.kbpin_mi_ico{display:inline-flex;width:16px;height:16px;align-items:center;justify-content:center;color:var(--dsw-alias-label-secondary)}',
     '.kbpin_mi:hover,.kbpin_mi:focus-visible{background:var(--dsw-alias-interactive-bg-hover);outline:none}',
     '.kbpin_empty{padding:4px 12px;color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12)}',
+    // R-A5-02: in the 44 px icon rail the hint wrapped one word per line under the page icons.
+    '[class*="collapsed"] .kbpin_empty{display:none}',
     '.kbpin_menuitem{display:flex;align-items:center;gap:8px;width:100%;padding:6px 10px;border:none;background:0 0;color:inherit;font:inherit;text-align:start;cursor:pointer;border-radius:6px}',
     '.kbpin_menuitem:hover{background:var(--dsw-alias-interactive-bg-hover)}',
   ].join('')
@@ -7522,8 +7525,6 @@ const kbPinsEnsureCss = () => {
 const kbPinsBoot = () => {
   if (typeof document === 'undefined') return
   kbPinsEnsureCss()
-    // R-A5-02: in the 44 px icon rail the hint wrapped one word per line under the page icons.
-    '[class*="collapsed"] .kbpin_empty{display:none}',
   kbPinsFetch()
   kbPinsScan()
   // Source of a drag coming from the native tree: the row carries `data-row-key="session:<id>"`.
@@ -8437,12 +8438,12 @@ html[data-kbth-brand~="dark"] body[data-ds-dark-theme]{--kybernos-accent:color-m
     };
 
     // ── enregistrements ─────────────────────────────────────────────────────
-    if (sidebarTabs !== undefined && sidebarTabs !== null && typeof sidebarTabs.register === 'function') {
     // The icon of this tab in the « Start » picker of the right sidebar: the engine draws a grey cube for a type that gives none, and nine tabs of the suite looked the same (V-25).
     // A line icon in the ink of the picker, one per plugin; the engine calls it as a component with { size, className }.
     // KB-TABICON-BEGIN
     const KB_TAB_ICON = (props) => { const px = (props !== null && props !== undefined && typeof props.size === 'number') ? props.size : 22; return React.createElement('svg', { width: px, height: px, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: (props !== null && props !== undefined) ? props.className : undefined }, ['m10.586 5.414-5.172 5.172', 'm18.586 13.414-5.172 5.172', 'M6 12h12', 'M10 20a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z', 'M10 4a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z', 'M18 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z', 'M2 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z'].map((d, i) => React.createElement('path', { key: i, d }))) }
     // KB-TABICON-END
+    if (sidebarTabs !== undefined && sidebarTabs !== null && typeof sidebarTabs.register === 'function') {
       ctx.effect(() => sidebarTabs.register({
         id: TYPE_ID,
         kind: KIND,
@@ -8934,6 +8935,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         onClick: typeof p.onClick === 'function' ? p.onClick : (() => {}),
       }, h('span', { className: 'kb6-helpq', 'aria-hidden': 'true' }, '?'), kbt('kbui.howitworks'))
     }
+    // The same pill for a page card of this bundle (help.json `pages`): the Suite draws it; nothing when the Suite is not there or the card is not (A5-19).
+    const kbPagePill = (page) => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-plugin', page: page }) : null } catch (e) { return null } }
     // Menu « Nouveau Kyber » (le bouton et ses quatre entrées) : défini ici pour
     // que l'action primaire de la page Kybers vive en `trailing` de la barre,
     // comme « Create with AI » des Livrables.
@@ -8943,8 +8946,6 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         type: 'button', key: key, className: 'kb8-newmenu-item' + (soon === true ? ' soon' : ''),
         disabled: soon === true, title: soon === true ? kbt('kbui.comingsoon') : title,
         onClick: onClick === undefined || onClick === null ? (() => {}) : onClick,
-    // The same pill for a page card of this bundle (help.json `pages`): the Suite draws it; nothing when the Suite is not there or the card is not (A5-19).
-    const kbPagePill = (page) => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-plugin', page: page }) : null } catch (e) { return null } }
       },
         Icon(icon, 16),
         h('span', { style: { display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, textAlign: 'left' } },
@@ -24821,6 +24822,8 @@ function renderFit(canvas, model, cam, opts){
 .kb8-nc-vis:hover .kb8-nc-vl{color:var(--dsw-alias-label-primary)}
 @media (prefers-reduced-motion:reduce){.kb8-nc-art{transition:none}.kb8-nc-vis:hover .kb8-nc-art{transform:none}}
 @media (max-width:720px){.kb8-nc-row{grid-template-columns:1fr}.kb8-nc-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.kb8-nc-strip{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* What matters is the width the dock really has, not the window: a right pane open at 1400 px leaves ~450 px, and three columns then squeezed Build and Create to a 47 px text column (« Crea… »). Below 600 px the Cloud Computer card takes its own row. The phone keeps its single column (media rule above). */
+@media (min-width:721px){@container kbnc (max-width:600px){.kb8-nc-row{grid-template-columns:repeat(2,minmax(0,1fr))}.kb8-nc-row>.kb8-nc-cloud{grid-column:1/-1}}}
 `), 'kybers: styles of the new chat cards');
 
     // ── The headline of the new-chat page: a different line each time, and « Beta », small ────────────────────────
@@ -24840,8 +24843,6 @@ function renderFit(canvas, model, cam, opts){
       }
       const sweep = () => {
         try {
-/* What matters is the width the dock really has, not the window: a right pane open at 1400 px leaves ~450 px, and three columns then squeezed Build and Create to a 47 px text column (« Crea… »). Below 600 px the Cloud Computer card takes its own row. The phone keeps its single column (media rule above). */
-@media (min-width:721px){@container kbnc (max-width:600px){.kb8-nc-row{grid-template-columns:repeat(2,minmax(0,1fr))}.kb8-nc-row>.kb8-nc-cloud{grid-column:1/-1}}}
           for (const g of document.querySelectorAll('[class*="titleGroup"]')) {
             const head = g.children[0]
             const badge = g.children[1]
@@ -28554,6 +28555,7 @@ body:not([data-ds-dark-theme]) .kb8-cmp .kb8-desc.kb8-none{color:var(--dsw-alias
 .kb-typerow{display:flex;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none}
 .kb-typerow::-webkit-scrollbar{display:none}
 .kb-typerow>.kb-type{flex:0 0 108px;scroll-snap-align:start}
+.kb-type-line{flex-wrap:nowrap}
 }
 /* Jetons de texte de la maquette (--dsw-alias-fg / --dsw-alias-fg-muted) : ils
    N'EXISTENT PAS dans DSH. Le navigateur retombait donc sur la valeur de repli,
@@ -28561,7 +28563,6 @@ body:not([data-ds-dark-theme]) .kb8-cmp .kb8-desc.kb8-none{color:var(--dsw-alias
    tuiles, bandeau de type et cartes d'action devenaient quasi noirs sur fond
    noir. On passe aux jetons réels, qui basculent avec le thème.
    Les accents (--dsw-alias-brand-primary,#5563d6 / #5686fe / #b0578f) restent : ce
-.kb-type-line{flex-wrap:nowrap}
    sont des tons moyens, lisibles dans les deux thèmes. */
 /* Tuiles RESPONSIVE sur UNE ligne (demande 26/09) : flex:1 partage la largeur
    de la rangée — jamais de débord ni de retour à la ligne ; les libellés longs
@@ -30497,6 +30498,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
 [data-slot="settings.section"]:has(.kbac-page){width:100%;max-width:none}
 .kbac-page{display:flex;flex-direction:column;gap:20px;max-width:720px;min-width:0;margin-inline:0}
 .kbac-head{display:flex;flex-direction:column;min-width:0}
+.kbac-titlerow{justify-content:space-between}
 .kbac-list{display:flex;flex-direction:column}
 .kbac-row{display:flex;align-items:center;gap:16px;padding:16px 0;border-top:1px solid var(--dsw-alias-border-l1)}
 .kbac-row-txt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 auto}
@@ -30511,7 +30513,6 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
 .kbac-theme.on{border-color:var(--dsw-alias-brand-primary)}
 .kbac-pv{display:flex;height:64px;border-radius:10px;overflow:hidden;align-items:center;justify-content:center}
 .kbac-pv i{display:block;width:60%;height:10px;border-radius:5px}
-.kbac-titlerow{justify-content:space-between}
 .kbac-pv-light{background:var(--dsw-static-neutral-50)}
 .kbac-pv-light i{background:var(--dsw-static-neutral-900);opacity:.25}
 .kbac-pv-dark{background:var(--dsw-static-neutral-1000)}
@@ -34209,6 +34210,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kbnm-err{font-size:12.5px;color:var(--dsw-alias-state-error-primary)}',
       '.kbnm-x{position:absolute;top:8px;inset-inline-end:8px;width:24px;height:24px;border:0;border-radius:6px;background:transparent;color:var(--dsw-alias-label-secondary);font-size:18px;line-height:1;cursor:pointer}',
       '.kbnm-x:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-3)}',
+      // R-A5-03: a finger needs 44 px, and the 24 px cross measured 24 x 36 on a phone.
+      '@media (max-width:700px){.kbnm-x{top:0;inset-inline-end:0;width:44px;height:44px}.kbnm-t{padding-inline-end:44px}}',
     ].join(String.fromCharCode(10))), 'kybers: styles of the “a model is missing” card')
 
   },
@@ -34221,5 +34224,3 @@ html.wv2-actif [data-composer-seat]{display:none !important}
   }
   },
 });
-      // R-A5-03: a finger needs 44 px, and the 24 px cross measured 24 x 36 on a phone.
-      '@media (max-width:700px){.kbnm-x{top:0;inset-inline-end:0;width:44px;height:44px}.kbnm-t{padding-inline-end:44px}}',
