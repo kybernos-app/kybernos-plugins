@@ -19952,7 +19952,7 @@ function renderFit(canvas, model, cam, opts){
             return h('button', { type: 'button', key: d.id, 'aria-pressed': on === true ? 'true' : 'false', className: 'kb-type' + (on === true ? ' kb-type-sel' : ''), style: on === true ? { borderColor: d.color } : {}, title: d.desc, onClick: () => toggleSel(d.id) },
               h('span', { className: 'kb-type-view', style: { background: d.bg, color: d.color } }, d.glyph),
               h('span', { className: 'kb-type-check' + (on === true ? ' on' : ''), 'aria-hidden': 'true' }, on === true ? Icon('check', 10) : null),
-              h('span', { style: { display: 'flex', alignItems: 'baseline', gap: 6, width: '100%' } },
+              h('span', { className: 'kb-type-line' },
                 h('span', { className: 'kb-type-lab' }, d.label),
                 h('span', { className: 'kb-type-cnt' }, String(d.count))))
           }
@@ -19985,7 +19985,7 @@ function renderFit(canvas, model, cam, opts){
                 h('button', { type: 'button', className: 'kb-type' + (allOn === true ? ' kb-type-sel' : ''), 'aria-pressed': allOn === true ? 'true' : 'false', onClick: () => tbArts[1]({ types: [] }) },
                   h('span', { className: 'kb-type-view', style: { background: 'var(--dsw-alias-interactive-bg-hover)', color: 'var(--dsw-alias-label-tertiary)' } }, Icon('layers', 22)),
                   h('span', { className: 'kb-type-check' + (allOn === true ? ' on' : ''), 'aria-hidden': 'true' }, allOn === true ? Icon('check', 10) : null),
-                  h('span', { style: { display: 'flex', alignItems: 'baseline', gap: 6, width: '100%' } },
+                  h('span', { className: 'kb-type-line' },
                     h('span', { className: 'kb-type-lab' }, kbt('deliverables.all')),
                     h('span', { className: 'kb-type-cnt' }, String(typed.length)))),
                 // Familles d'abord (26/09), puis types fins — l'ordre du KB.
@@ -28539,7 +28539,11 @@ body:not([data-ds-dark-theme]) .kb8-cmp .kb8-desc.kb8-none{color:var(--dsw-alias
 /* A grid of equal tiles (A4-10): with ten kinds the last ones of a wrapped flex row stretched to half the width each. 96 px
    at least keeps ten tiles on one row at 1400 px (a page of 1064 px); fewer tiles share the row, as before. On a phone the row
    is one strip that slides sideways (A4-31): ten tiles in a wrapping grid took 460 px and pushed the first creation 976 px down. */
-.kb-typerow{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));align-items:stretch;gap:8px;padding:2px 2px 6px}
+/* C-04: 96 px cut « Spreadsheets » and « Audio & Video » at 1100-1280 px (the label needs 79-80 px + the tile's 22 px of padding and border). 108 px is the
+   phone strip's tile width: the label is whole in a tile of that width, and a tile that does not fit goes to a second row (the grid keeps the tiles equal). */
+.kb-typerow{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));align-items:stretch;gap:8px;padding:2px 2px 6px}
+/* the count goes under the label rather than squeezing it when a tile is narrow */
+.kb-type-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 6px;width:100%}
 @media (max-width:480px){
 .kb-typerow{display:flex;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none}
 .kb-typerow::-webkit-scrollbar{display:none}
@@ -28551,6 +28555,7 @@ body:not([data-ds-dark-theme]) .kb8-cmp .kb8-desc.kb8-none{color:var(--dsw-alias
    tuiles, bandeau de type et cartes d'action devenaient quasi noirs sur fond
    noir. On passe aux jetons réels, qui basculent avec le thème.
    Les accents (--dsw-alias-brand-primary,#5563d6 / #5686fe / #b0578f) restent : ce
+.kb-type-line{flex-wrap:nowrap}
    sont des tons moyens, lisibles dans les deux thèmes. */
 /* Tuiles RESPONSIVE sur UNE ligne (demande 26/09) : flex:1 partage la largeur
    de la rangée — jamais de débord ni de retour à la ligne ; les libellés longs
