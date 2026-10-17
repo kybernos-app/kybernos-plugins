@@ -5770,7 +5770,7 @@ const kbBoardReason = (pending, lang) => {
 //  - `hue` is the colour of the template's icon tile (the tile is that colour at 16 %, the glyph is the colour itself).
 const KB_NC_BUILD = [
   { id: 'website', icon: 'globe', needs: null, hue: '#4f6bff' },
-  { id: 'miniapp', icon: 'package', needs: '@local/kybernos-miniapps', hue: '#16b894' },
+  { id: 'miniapp', icon: 'shapes', needs: '@local/kybernos-miniapps', hue: '#16b894' },
   { id: 'dashboard', icon: 'layoutDashboard', needs: '@local/kybernos-dashboards', hue: '#ff8a3d' },
   { id: 'automation', icon: 'zap', needs: null, hue: '#f5a623' },
   { id: 'team', icon: 'waypoints', needs: null, hue: '#6c5ce7' },

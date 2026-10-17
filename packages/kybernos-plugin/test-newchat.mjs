@@ -35,6 +35,10 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_BUILD, KB_NC_CREAT
 {
   const all = api.KB_NC_BUILD.concat(api.KB_NC_CREATE)
   assert.equal(new Set(all.map((t) => t.id)).size, all.length, 'ids are unique')
+  // R-W3-02: the Build panel drew Mini-app (package) and 3D model (box) as the same cube; no two templates share a glyph
+  assert.equal(new Set(all.map((t) => t.icon)).size, all.length, 'every template has its own icon (' + all.map((t) => t.icon).join(' ') + ')')
+  // the lucide « box » and « package » both read as a cube at 16 px: they never sit in the same panel
+  assert.ok(!(all.some((t) => t.icon === 'box') && all.some((t) => t.icon === 'package')), 'box and package look alike, one panel never draws both')
   const lucide = src.slice(src.indexOf('const LUCIDE = {'), src.indexOf('const Icon = (name, size)'))
   for (const t of all) {
     assert.ok(new RegExp('\\n  ' + t.icon + ':').test(lucide), 'icon ' + t.icon + ' exists')
