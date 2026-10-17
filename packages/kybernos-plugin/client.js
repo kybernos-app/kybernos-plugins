@@ -10213,8 +10213,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('div', { style: { display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '8px', height: 36 } }, kbBone('92%', 10), kbBone('70%', 10)),
               h('div', { className: 'kb8-pills', style: { height: 26, alignItems: 'center' } }, kbBone(56, 22, 'pill')))))))
         : h('div', { style: { display: 'flex', flexDirection: 'column', gap: '10px' }, 'data-kb': 'market-cloud' },
-            h('div', { style: { display: 'flex', alignItems: 'baseline', gap: '10px' } },
-              h('span', { className: 'kb8-name' }, kbt('kbui.market.cloud.title')),
+            h('div', { style: { display: 'flex', alignItems: 'baseline', gap: '2px 10px', flexWrap: 'wrap' } },
+              h('span', { className: 'kb8-name', style: { flex: '0 0 auto', maxWidth: '100%' } }, kbt('kbui.market.cloud.title')),
               h('span', { className: 'kb8-parent' }, marketCloudItems.length > 0 ? String(marketCloudItems.length) + (marketCloud.partiel === true ? ' · ' + marketReason(marketCloud) : '') : marketReason(marketCloud))),
             (marketCloudItems.length === 0
               ? h('span', { className: 'kb8-parent' }, kbt('kbui.market.cloud.none'))
@@ -21342,13 +21342,16 @@ function renderFit(canvas, model, cam, opts){
     // Goals, Deliverables, Skills, Connectors et Budget ne montrent plus que des
     // donnees reelles, ou un etat vide explicite.)
     // ── Marketplace : 2 templates de test, manifest complet (kyber.yml + ui) ──
+    // A template declares only skills that ship with the plugin (the `skills/<name>` folders of the bundles): the ones it used to name, `kyber-routing` and
+    // `kyber-memory`, exist on no other machine, and Atlas flagged « Declares the skill … not among your installed skills » right after the first install (audit R-V-03).
+    // test-marketplace-templates.mjs keeps it so.
     const KB_MARKET_TEAMS = [
       {
         id: 'inbound-closer', name: 'Inbound Closer', color: '#c4712c', icon: 'line-chart', category: 'Sales',
         desc: 'Answers every inbound in under an hour, qualifies it and books the call.',
         mission: 'Takes an inbound lead end to end: qualifies it on fit, budget and timing, then books the call — and hands the rest to you.',
         topology: 'pipeline', tags: ['inbound', 'pipeline', 'crm'],
-        skills: ['kyber-routing', 'kyber-memory'],
+        skills: [],
         roles: [
           { id: 'qualifier', kind: 'scout', provider: 'ollama-cloud', model: 'glm-5.3', prompt: 'Score every inbound on fit, budget and timing within the hour. Ask at most two questions before deciding, and never let a qualified lead wait.' },
           { id: 'closer', kind: 'doer', provider: 'anthropic', model: 'claude-sonnet-4.6', prompt: 'Write the follow-ups and handle objections in the prospect\u2019s own words. Book the call as soon as intent is clear — never quote a price without Finance.' },
@@ -21365,7 +21368,7 @@ function renderFit(canvas, model, cam, opts){
         desc: 'Primary sources, cited, synthesised into five minutes of reading.',
         mission: 'Reads the sources, keeps the notes, and turns a week of reading into one briefing — every claim separated from every fact.',
         topology: 'mapreduce', tags: ['sources', 'synthesis', 'briefing'],
-        skills: ['kyber-memory'],
+        skills: [],
         roles: [
           { id: 'researcher', kind: 'scout', provider: 'ollama-cloud', model: 'deepseek-v4.1-flash', prompt: 'Gather primary sources, cite them, and separate what is established from what is claimed. Never paraphrase a number you have not read.' },
           { id: 'synthesist', kind: 'doer', provider: 'moonshot', model: 'kimi-k3', prompt: 'Turn the findings into something a busy person can read in five minutes: one page, no filler, every claim linked to its source.' },
@@ -21385,7 +21388,7 @@ function renderFit(canvas, model, cam, opts){
         desc: kbe('Drop your courses: the crew turns them into quizzes, flashcards and summaries you replay until you know them.'),
         mission: 'Takes a body of course material — uploaded documents or a Google Drive folder — sorts it by subject and chapter, then produces batches of replayable artifacts (quizzes, flashcards, summaries, sheets) and keeps the revision rhythm up to the exam.',
         topology: 'pipeline', tags: ['education', 'documents', 'artifacts', 'revision'],
-        skills: ['kyber-memory', 'kyber-routing'],
+        skills: [],
         roles: [
           { id: 'curator', kind: 'scout', provider: 'ollama-cloud', model: 'deepseek-v4.1-flash', prompt: 'Receive the course documents or connect the Drive, sort them by subject and chapter, then start the batch production. You organise and you check: you do not write the artifacts yourself. Say what you could not read instead of guessing it.' },
           { id: 'maker', kind: 'doer', provider: 'anthropic', model: 'claude-sonnet-4.6', prompt: 'Turn each chapter into a batch of replayable artifacts — quiz, flashcards, summary, sheet — following the shared artifact contract: a kind, a title, items, a payload per item. Name each file after its kind (`<subject>-quiz.json`, `<subject>-cards.json`, `<subject>-resume.json`, `<subject>-fiche.json`): Creations reads the kind from the name, not from the file, and a badly named artifact shows as raw JSON. Nothing that does not come from a document you really read: an invented quiz gets learned by heart.' },
