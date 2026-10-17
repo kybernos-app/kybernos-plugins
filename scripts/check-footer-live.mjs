@@ -608,7 +608,7 @@ try {
     const openDrawer = async () => {
       for (let attempt = 0; attempt < 3; attempt += 1) {
         await until(() => exists(CARD_SEL), 15000)
-        await press('button[aria-label="Open the menu"]')
+        await press('[data-kb="mobile-menu"]')
         if (await until(async () => { const r = await rect(CARD_SEL); return r !== null && r !== undefined && r.x >= 0 }, 4000)) return true
         await reload()
       }
