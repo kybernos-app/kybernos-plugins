@@ -652,7 +652,8 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
       const CallHeader = (props) => {
         const current = useCall()
         React.useEffect(() => { loadHeaderStatus() }, [])
-        const active = current !== null
+        // A call that never started or already ended (the panel says « error » or « call ended », with its own « Close ») is nothing to hang up: only a call being set up or live is (A5-22).
+        const active = current !== null && current.phase !== 'error' && current.phase !== 'ended'
         const sessionId = (props !== null && props !== undefined && typeof props.sessionId === 'string') ? props.sessionId : null
         const start = (mode) => open({ sessionId: sessionId, kyberId: null, roleId: null, name: kt('Assistant', 'Assistant'), mode: mode, voice: null })
         if (active) {
