@@ -33,7 +33,7 @@ const api = vm.runInNewContext(
   ok('fold: accents and case, one character for one', api.fold('Thème ÉTÉ') === 'theme ete' && api.fold('İstanbul').length === 'İstanbul'.length)
   ok('terms: distinct, folded, at most 6', JSON.stringify(api.queryTerms(' Thème thème Docker ')) === '["theme","docker"]' && api.queryTerms('a b c d e f g h').length === 6)
   const items = [
-    { id: 'm1', title: 'Préférence : réponses courtes', text: 'Miled préfère une réponse courte, le résultat d’abord.', pinned: true, meta: { where: 'Account memory' } },
+    { id: 'm1', title: 'Préférence : réponses courtes', text: 'Amina préfère une réponse courte, le résultat d’abord.', pinned: true, meta: { where: 'Account memory' } },
     { id: 'm2', title: 'Thème Kybernos', text: 'Le thème par défaut est « Neutre violet ».', meta: {} },
     { id: 'm3', title: 'Clé', text: 'voici la clé ' + 'ab12'.repeat(10) + ' ne pas partager thème', meta: {} }
   ]

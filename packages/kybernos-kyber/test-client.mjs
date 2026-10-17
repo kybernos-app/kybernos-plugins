@@ -46,7 +46,7 @@ const T = plugin.__test
   const holes = (t) => (t.match(/\{\w+\}/g) || []).sort().join()
   const bad = keys.filter((k) => !Array.isArray(T.S[k]) || T.S[k].length !== 2 || T.S[k][0].trim() === '' || T.S[k][1].trim() === '' || holes(T.S[k][0]) !== holes(T.S[k][1]))
   ok('every string has a French and an English side with the same holes', keys.length > 15 && bad.length === 0, bad.join())
-  ok('a hole is filled', T.L('linked', { name: 'Miled' }) === 'Connecté : Miled')
+  ok('a hole is filled', T.L('linked', { name: 'Amina' }) === 'Connecté : Amina')
 }
 
 // ── no hard-coded theme colour outside a var() fallback ──────────────────────
@@ -61,10 +61,10 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
   const linked = T.derive({
     ok: true,
     connected: true,
-    telegram: { configured: true, enabled: true, bot: 'kybernos_bot', linked: { display: 'Miled @alex', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } },
+    telegram: { configured: true, enabled: true, bot: 'kybernos_bot', linked: { display: 'Amina @alex', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } },
     home: { state: 'suspended', desired: 'suspended', mode: 'sleep', region: 'ams', last_active_at: '2026-10-14T22:50:00.000Z', version: 'p12', network: 'public' },
   }, server)
-  ok('connected: the name, the date, the bot and the account page', linked.kind === 'ok' && linked.telegram.state === 'linked' && linked.telegram.name === 'Miled @alex' && linked.telegram.botUrl === 'https://t.me/kybernos_bot' && linked.accountUrl === 'https://server-dev-7831.up.railway.app/account', JSON.stringify(linked))
+  ok('connected: the name, the date, the bot and the account page', linked.kind === 'ok' && linked.telegram.state === 'linked' && linked.telegram.name === 'Amina @alex' && linked.telegram.botUrl === 'https://t.me/kybernos_bot' && linked.accountUrl === 'https://server-dev-7831.up.railway.app/account', JSON.stringify(linked))
   ok('the home computer: state, image and network as the server said them', linked.home.state === 'suspended' && linked.home.version === 'p12' && linked.home.network === 'public')
 }
 {
@@ -98,7 +98,7 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
   const f = (p) => T.pairingFace(p, now)
   ok('no pairing yet', f(null).kind === 'none')
   ok('waiting: the seconds left, from the server\'s expiry', f({ id: 'x', state: 'waiting', expiresAt: exp }).kind === 'waiting' && f({ id: 'x', state: 'waiting', expiresAt: exp }).left === 240)
-  ok('scanned: the sender is carried', f({ id: 'x', state: 'scanned', expiresAt: exp, sender: 'Miled (@alex)' }).sender === 'Miled (@alex)')
+  ok('scanned: the sender is carried', f({ id: 'x', state: 'scanned', expiresAt: exp, sender: 'Amina (@alex)' }).sender === 'Amina (@alex)')
   ok('past its expiry it is expired, whatever the state said', f({ id: 'x', state: 'waiting', expiresAt: '2026-10-15T09:59:00Z' }).kind === 'expired' && f({ id: 'x', state: 'expired' }).kind === 'expired')
   ok('declined carries one of three reasons, anything else is « user »', f({ state: 'declined', reason: 'taken' }).reason === 'taken' && f({ state: 'declined', reason: 'botmade' }).reason === 'botmade' && f({ state: 'declined', reason: 'sql' }).reason === 'user')
   ok('done and an error are their own faces', f({ state: 'done' }).kind === 'done' && f({ error: 'rate_limited' }).code === 'rate_limited')
@@ -207,7 +207,7 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
   const setK = (telegram, extra) => {
     T.state.view = T.derive(Object.assign({ ok: true, connected: true, telegram, home: null, computers: [] }, extra || {}), server)
   }
-  const LINKED = { linked: { display: 'Miled (@alex)', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } }
+  const LINKED = { linked: { display: 'Amina (@alex)', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } }
   const soonFromNow = (s) => new Date(Date.now() + s * 1000).toISOString()
   const WAITING = () => ({ id: '0f3b1b72-1111-4222-8333-444455556666', link: 'https://t.me/kybernos_bot?start=pair_abc', bot: 'kybernos_bot', qr: { size: 21, modules: Array.from({ length: 21 }, (_, y) => '10101010101010101010' + String(y % 2)) }, expiresAt: soonFromNow(240), state: 'waiting', reason: null, sender: '', error: '' })
 
@@ -260,9 +260,9 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
   {
     // the person scanned: the panel names who and waits
     reset(); set({ home: null })
-    T.state.pairing = Object.assign(WAITING(), { state: 'scanned', sender: 'Miled (@alex)' })
+    T.state.pairing = Object.assign(WAITING(), { state: 'scanned', sender: 'Amina (@alex)' })
     const strip = ui(T.views.Strip)
-    ok('scanned: the sender is named, the person is asked to confirm in Telegram, and can say it is not them', one(strip, 'kybernos-kyber-telegram').props['data-state'] === 'scanned' && /Miled \(@alex\)/.test(said(strip)) && byKb(strip, 'kybernos-kyber-qr').length === 0 && one(strip, 'kybernos-kyber-cancel') !== undefined && textOf(one(strip, 'kybernos-kyber-tg-row')).includes('En attente de ton accord'))
+    ok('scanned: the sender is named, the person is asked to confirm in Telegram, and can say it is not them', one(strip, 'kybernos-kyber-telegram').props['data-state'] === 'scanned' && /Amina \(@alex\)/.test(said(strip)) && byKb(strip, 'kybernos-kyber-qr').length === 0 && one(strip, 'kybernos-kyber-cancel') !== undefined && textOf(one(strip, 'kybernos-kyber-tg-row')).includes('En attente de ton accord'))
   }
   for (const [name, pairing, state, retry, row] of [
     ['expired', { id: 'x', state: 'expired' }, 'expired', true, 'Code expiré'],
@@ -290,7 +290,7 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
   {
     const strip = ui(T.views.Strip)
     const sw = one(strip, 'kybernos-kyber-tg-switch')
-    ok('connected: the switch is on, the row names the chat, the bot has its link', sw.props['aria-checked'] === 'true' && textOf(one(strip, 'kybernos-kyber-tg-row')).includes('Miled (@alex)') && one(strip, 'kybernos-kyber-bot').props.href === 'https://t.me/kybernos_bot' && byKb(strip, 'kybernos-kyber-telegram').length === 0)
+    ok('connected: the switch is on, the row names the chat, the bot has its link', sw.props['aria-checked'] === 'true' && textOf(one(strip, 'kybernos-kyber-tg-row')).includes('Amina (@alex)') && one(strip, 'kybernos-kyber-bot').props.href === 'https://t.me/kybernos_bot' && byKb(strip, 'kybernos-kyber-telegram').length === 0)
     await press(strip, 'kybernos-kyber-tg-switch')
     const asking = ui(T.views.Strip)
     ok('turning it off does not disconnect: it asks first, and nothing is sent', calls.length === 0 && one(asking, 'kybernos-kyber-telegram').props['data-state'] === 'disconnect' && one(asking, 'kybernos-kyber-unlink-yes') !== undefined)
@@ -536,7 +536,7 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
     answer = (u) => (u.endsWith('/telegram/pairing/cancel') ? { ok: true } : { ok: true })
     await T.actions.pairCancel(); await flush()
     ok('a cancelled code closes the box with it', T.state.showCode === false && T.state.pairing === null)
-    T.state.pairing = Object.assign(WAITING(), { state: 'scanned', sender: 'Miled' })
+    T.state.pairing = Object.assign(WAITING(), { state: 'scanned', sender: 'Amina' })
     T.state.showCode = true
     ok('once scanned there is no code to write any more', byKb(ui(T.views.Strip), 'kybernos-kyber-code-box').length === 0 && byKb(ui(T.views.Strip), 'kybernos-kyber-code').length === 0)
     T.state.pairing = Object.assign(WAITING(), { link: 'https://t.me/kybernos_bot?start=nothing' })
