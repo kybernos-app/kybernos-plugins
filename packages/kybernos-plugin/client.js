@@ -3943,6 +3943,7 @@ const LUCIDE = {
   palette: ['M12 22a1 1 0 0 1 0-20 10 9 0 0 1 8 4.29V7a5 5 0 0 1-5 5', 'M8.5 8.5h.01', 'M10 16h.01', 'M14 15h.01'],
   wrench: ['M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z'],
   box: ['M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z', 'm3.3 7 8.7 5 8.7-5', 'M12 22V12'],
+  bot: ['M12 8V4H8', 'M6 8h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z', 'M2 14h2', 'M20 14h2', 'M15 13v2', 'M9 13v2'],
   presentation: ['M2 3h20', 'M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3', 'm7 21 5-5 5 5'],
   hardDrive: ['M22 12H2', 'M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z', 'M6 16h.01', 'M10 16h.01'],
   // The Automations board (Columns view, calendar controls, status signs, banner).
@@ -3977,7 +3978,7 @@ const KbDynIcon = (props) => {
 // Menu icon sets (kybernos-theme). The set the person chose draws the menu entries — grey at rest, in the entry's colour on the
 // open page; « classic », or no registry yet, keeps the line icons above. The theme plugin announces a change with `kb-icons-change`.
 const KB_MENU_ENTRY = { cloudcomputer: 'cloud', kyber: 'kyber', dashboards: 'dash', aiteams: 'teams', projects: 'ws', deliverables: 'creations', tasks: 'auto', skills: 'skills', connectors: 'plug' }
-const KB_MENU_CLASSIC = { cloud: 'monitor', kyber: 'waypoints', dash: 'layoutDashboard', teams: KB_DEFAULT_ICON, ws: 'folderOpen', creations: 'shapes', auto: 'zap', skills: 'sparkles', plug: 'plug' }
+const KB_MENU_CLASSIC = { cloud: 'monitor', kyber: 'bot', dash: 'layoutDashboard', teams: KB_DEFAULT_ICON, ws: 'folderOpen', creations: 'shapes', auto: 'zap', skills: 'sparkles', plug: 'plug' }
 const kbMenuIcon = (rowKey, fallback, on) => {
   try {
     const reg = (typeof window !== 'undefined') ? window.__KB_ICONSETS__ : null
@@ -8437,13 +8438,18 @@ html[data-kbth-brand~="dark"] body[data-ds-dark-theme]{--kybernos-accent:color-m
 
     // ── enregistrements ─────────────────────────────────────────────────────
     if (sidebarTabs !== undefined && sidebarTabs !== null && typeof sidebarTabs.register === 'function') {
+    // The icon of this tab in the « Start » picker of the right sidebar: the engine draws a grey cube for a type that gives none, and nine tabs of the suite looked the same (V-25).
+    // A line icon in the ink of the picker, one per plugin; the engine calls it as a component with { size, className }.
+    // KB-TABICON-BEGIN
+    const KB_TAB_ICON = (props) => { const px = (props !== null && props !== undefined && typeof props.size === 'number') ? props.size : 22; return React.createElement('svg', { width: px, height: px, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: (props !== null && props !== undefined) ? props.className : undefined }, ['m10.586 5.414-5.172 5.172', 'm18.586 13.414-5.172 5.172', 'M6 12h12', 'M10 20a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z', 'M10 4a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z', 'M18 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z', 'M2 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z'].map((d, i) => React.createElement('path', { key: i, d }))) }
+    // KB-TABICON-END
       ctx.effect(() => sidebarTabs.register({
         id: TYPE_ID,
         kind: KIND,
         title: () => kbt('ui.team.title2'),
         // L'hote du guide appelle entry.title() : une chaine fait crasher
         // l'entree de slot ('entry.title is not a function').
-        guide: [{ title: () => kbt('ui.team.guide'), description: () => kbt('ui.team.meta') }],
+        guide: [{ title: () => kbt('ui.team.guide'), description: () => kbt('ui.team.meta'), icon: KB_TAB_ICON }],
       }), 'kybers: right sidebar tab type');
     }
     ctx.effect(() => slots.register({ name: 'sidebar.right.pane.tab', key: TYPE_ID }, TabBody), 'kybers: right sidebar tab body');
@@ -24344,7 +24350,7 @@ function renderFit(canvas, model, cam, opts){
           (kbNcDot(ncCloud.kind) === '' ? null : h('span', { className: 'kb4-dot ' + kbNcDot(ncCloud.kind), 'aria-label': kbt('kbnc.cc.' + ncCloud.kind) }))) : null),
         // The Kaby row opens Kaby's own conversation: a native DSH chat (kybernos-kyber makes it the first time and remembers it). Without that
         // bundle's hook, or when the chat cannot open, it falls back to the page of the same bundle.
-        (KB_KY === true ? row('kyber', Icon('waypoints', 15), kbt('kbui.kyber'), null, shown === 'kyber', () => {
+        (KB_KY === true ? row('kyber', Icon('bot', 15), kbt('kbui.kyber'), null, shown === 'kyber', () => {
           let opened = null
           try { if (window.__KB_KYBER__ && typeof window.__KB_KYBER__.openChat === 'function') opened = window.__KB_KYBER__.openChat() } catch (e) { opened = null }
           if (opened === null || typeof opened.then !== 'function') { openPage({ view: 'kyber' }); return }

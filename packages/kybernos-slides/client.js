@@ -1106,6 +1106,11 @@ window.__ModuleLoader__.load({
                 if (typeof cle === 'string' && cle.length > 0) SESSION_ID = cle
               } catch { /* la route retombe sur la dernière commande déposée */ }
         
+              // The icon of this tab in the « Start » picker of the right sidebar: the engine draws a grey cube for a type that gives none, and nine tabs of the suite looked the same (V-25).
+              // A line icon in the ink of the picker, one per plugin; the engine calls it as a component with { size, className }.
+              // KB-TABICON-BEGIN
+              const KB_TAB_ICON = (props) => { const px = (props !== null && props !== undefined && typeof props.size === 'number') ? props.size : 22; return React.createElement('svg', { width: px, height: px, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: (props !== null && props !== undefined) ? props.className : undefined }, ['M2 3h20', 'M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3', 'm7 21 5-5 5 5'].map((d, i) => React.createElement('path', { key: i, d }))) }
+              // KB-TABICON-END
               let registre = null
               try { registre = ctx.get('sidebarRightTabs') } catch { registre = null }
               if (registre && typeof registre.register === 'function') {
@@ -1113,7 +1118,7 @@ window.__ModuleLoader__.load({
                   id: TYPE_ID,
                   kind: KIND,
                   title: () => 'Slides',
-                  guide: [{ title: () => 'Slides', description: () => kt('Decks écrits en temps réel par le chat : frappe live, retouche et pinceau pour l\'utilisateur, corrections soulignées.', 'Decks written in real time by the chat: live typing, text edits and a brush for the user, corrections underlined.') }],
+                  guide: [{ title: () => 'Slides', description: () => kt('Decks écrits en temps réel par le chat : frappe live, retouche et pinceau pour l\'utilisateur, corrections soulignées.', 'Decks written in real time by the chat: live typing, text edits and a brush for the user, corrections underlined.'), icon: KB_TAB_ICON }],
                 }), 'kybernos-slides: right sidebar tab type')
               }
         

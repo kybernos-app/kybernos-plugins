@@ -869,6 +869,11 @@ window.__ModuleLoader__.load({
           }, 'kybernos-kyber: styles')
 
           // the tab type: it shows in the sidebar's « + » guide, and opens like any other tab
+          // The icon of this tab in the « Start » picker of the right sidebar: the engine draws a grey cube for a type that gives none, and nine tabs of the suite looked the same (V-25).
+          // A line icon in the ink of the picker, one per plugin; the engine calls it as a component with { size, className }.
+          // KB-TABICON-BEGIN
+          const KB_TAB_ICON = (props) => { const px = (props !== null && props !== undefined && typeof props.size === 'number') ? props.size : 22; return React.createElement('svg', { width: px, height: px, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: (props !== null && props !== undefined) ? props.className : undefined }, ['M12 8V4H8', 'M6 8h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z', 'M2 14h2', 'M20 14h2', 'M15 13v2', 'M9 13v2'].map((d, i) => React.createElement('path', { key: i, d }))) }
+          // KB-TABICON-END
           let registre = null
           try { registre = ctx.get('sidebarRightTabs') } catch (e) { registre = null }
           if (registre && typeof registre.register === 'function') {
@@ -876,7 +881,7 @@ window.__ModuleLoader__.load({
               id: TYPE_ID,
               kind: KIND,
               title: () => L('title'),
-              guide: [{ title: () => L('title'), description: () => L('tabHint') }],
+              guide: [{ title: () => L('title'), description: () => L('tabHint'), icon: KB_TAB_ICON }],
             }), 'kybernos-kyber: sidebar tab type')
           }
           // the page: the child slot the core's menu row opens
