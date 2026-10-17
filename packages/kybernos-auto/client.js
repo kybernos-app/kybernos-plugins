@@ -357,7 +357,9 @@ window.__ModuleLoader__.load({
 
       // The page's head, the same on the page and on its failure state (the title stays: only the body is missing).
       const entete = () => [
-        h('h4', { key: 'h', className: 'kb6-title', style: { fontSize: '26px', fontWeight: 800, letterSpacing: '-.01em' } }, kt('Routage Auto', 'Auto Routing')),
+        h('div', { key: 'h', className: 'kaa-titrerow' },
+          h('h4', { className: 'kb6-title', style: { fontSize: '26px', fontWeight: 800, letterSpacing: '-.01em' } }, kt('Routage Auto', 'Auto Routing')),
+          typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-auto' }) : null),
         h('p', { key: 'i', className: 'kaa-intro' }, kt(
           'Auto envoie chaque tâche déléguée au modèle le plus adapté parmi ceux que tu autorises. Le modèle de ton chat n’est jamais changé.',
           'Auto sends each delegated task to the best-fit model among the ones you allow. Your chat’s own model is never changed.'))
@@ -583,6 +585,7 @@ window.__ModuleLoader__.load({
       '/* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */',
       'body:not([data-ds-dark-theme]) :is(.kaa-page,.kaa-pop){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}',
       '.kaa-page h4{margin:0 0 2px;font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1.25}',
+      '.kaa-titrerow{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}',
       '.kaa-intro{margin:0 0 10px;color:var(--dsw-alias-label-secondary);font-size:13px}',
       '.kaa-cache{display:flex;gap:8px;align-items:flex-start;background:var(--dsw-alias-bg-layer-2);border:0.5px solid var(--dsw-alias-border-l2);',
       'border-radius:10px;padding:9px 12px;margin-bottom:14px;font-size:12.5px;color:var(--dsw-alias-label-secondary)}',

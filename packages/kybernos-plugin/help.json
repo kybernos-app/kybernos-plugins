@@ -92,6 +92,130 @@
         "en": "Settings › Agent presets",
         "page": true
       }
+    },
+    "creations": {
+      "title": {
+        "fr": "Créations",
+        "en": "Creations"
+      },
+      "what": {
+        "fr": "Tout ce que tes Agent Teams ont produit — pages, documents, présentations, images — au même endroit, pour l’ouvrir, le chercher et le filtrer.",
+        "en": "Everything your Agent Teams made — pages, documents, decks, images — in one place, to open, search and filter."
+      },
+      "steps": [
+        {
+          "fr": "Choisis un ou plusieurs types au-dessus de la liste : ils se combinent, et « Tous » ramène tout.",
+          "en": "Pick one or more types above the list: they combine, and “All” brings everything back."
+        },
+        {
+          "fr": "Cherche une création par son nom, trie la liste, ou passe des cartes à la vue en liste.",
+          "en": "Search a creation by name, sort the list, or switch from cards to a list."
+        },
+        {
+          "fr": "Ouvre une création pour la voir. « Créer avec l’IA » demande la suivante dans un chat.",
+          "en": "Open a creation to see it. “Create with AI” asks for the next one in a chat."
+        }
+      ],
+      "where": {
+        "fr": "Barre latérale › Créations",
+        "en": "Sidebar › Creations",
+        "page": true
+      }
+    },
+    "workspaces": {
+      "title": {
+        "fr": "Workspaces",
+        "en": "Workspaces"
+      },
+      "what": {
+        "fr": "Un workspace est un dossier de projet avec ses propres chats, documents, objectifs et créations. Ouvre-en un pour voir ce que les Agent Teams y ont produit.",
+        "en": "A workspace is a project folder with its own chats, documents, goals and creations. Open one to see what the Agent Teams produced there."
+      },
+      "steps": [
+        {
+          "fr": "Crée un workspace à partir d’un dossier de ton ordinateur.",
+          "en": "Create a workspace from a folder of your computer."
+        },
+        {
+          "fr": "Ouvre-le pour voir ses chats, ses documents, ses objectifs et ses créations.",
+          "en": "Open it to see its chats, documents, goals and creations."
+        },
+        {
+          "fr": "Lance un chat dedans : les agents travaillent dans ce dossier.",
+          "en": "Start a chat inside it: the agents work in that folder."
+        }
+      ],
+      "where": {
+        "fr": "Barre latérale › Workspaces",
+        "en": "Sidebar › Workspaces",
+        "page": true
+      }
+    },
+    "tools": {
+      "title": {
+        "fr": "Outils",
+        "en": "Tools"
+      },
+      "what": {
+        "fr": "Les outils ajoutent des capacités à un profil DSH : des fonctions expérimentales et des liens vers des outils extérieurs, écrits dans le fichier de config du profil.",
+        "en": "Tools add abilities to a DSH profile: experimental features and links to outside tools, written to the profile’s config file."
+      },
+      "steps": [
+        {
+          "fr": "Lis l’état du profil : ce qui est monté, et ce qui est connu mais pas encore installé.",
+          "en": "Read the profile’s state: what is mounted, and what is known but not installed yet."
+        },
+        {
+          "fr": "Fais d’abord un essai à blanc : il montre ce qui serait écrit, sans rien écrire.",
+          "en": "Do a dry run first: it shows what would be written, without writing anything."
+        },
+        {
+          "fr": "Installe et configure : une sauvegarde datée est faite avant, et Retirer la restaure.",
+          "en": "Install and configure: a dated backup is made first, and Remove restores it."
+        },
+        {
+          "fr": "Relance DSH pour appliquer le changement : rien n’est rechargé à chaud.",
+          "en": "Restart DSH to apply the change: nothing is hot-reloaded."
+        }
+      ],
+      "where": {
+        "fr": "Réglages › Outils",
+        "en": "Settings › Tools",
+        "page": true
+      },
+      "good": {
+        "fr": "Les assistants de code (Codex, Claude Code…) ont leur propre page, Workers.",
+        "en": "The coding assistants (Codex, Claude Code…) have their own page, Workers."
+      }
+    },
+    "automation-settings": {
+      "title": {
+        "fr": "Réglages des automatisations",
+        "en": "Automation settings"
+      },
+      "what": {
+        "fr": "Où vivent tes automatisations, et deux réglages : tout mettre en pause, ou réafficher la liste de tâches de DSH.",
+        "en": "Where your automations live, and two switches: pause everything, or show DSH’s own task list again."
+      },
+      "steps": [
+        {
+          "fr": "Les automatisations tournent sur cet ordinateur, tant que DSH est ouvert.",
+          "en": "Automations run on this computer, while DSH is open."
+        },
+        {
+          "fr": "Active la pause pour que rien ne se déclenche ; ce qui est arrivé à échéance se déclenche une fois à la reprise.",
+          "en": "Turn the pause on so nothing fires; what came due fires once after you resume."
+        },
+        {
+          "fr": "Réaffiche la liste « Automation tasks » de DSH si tu la veux de nouveau dans le menu.",
+          "en": "Show DSH’s “Automation tasks” list if you want it back in the menu."
+        }
+      ],
+      "where": {
+        "fr": "Réglages › Automatisations",
+        "en": "Settings › Automations",
+        "page": true
+      }
     }
   }
 }

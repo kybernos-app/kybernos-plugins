@@ -8935,6 +8935,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         type: 'button', key: key, className: 'kb8-newmenu-item' + (soon === true ? ' soon' : ''),
         disabled: soon === true, title: soon === true ? kbt('kbui.comingsoon') : title,
         onClick: onClick === undefined || onClick === null ? (() => {}) : onClick,
+    // The same pill for a page card of this bundle (help.json `pages`): the Suite draws it; nothing when the Suite is not there or the card is not (A5-19).
+    const kbPagePill = (page) => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-plugin', page: page }) : null } catch (e) { return null } }
       },
         Icon(icon, 16),
         h('span', { style: { display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, textAlign: 'left' } },
@@ -15925,7 +15927,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       return h('div', { className: 'kb8-page' },
         h('div', { className: 'kb6-headrow' },
           h('div', { className: 'kb6-headcol' },
-            h('h1', { className: 'kb6-title' }, kbt('kbui.projects')),
+            h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, kbt('kbui.projects')), kbPagePill('workspaces')),
             h('p', { className: 'kb8-sub' }, kbt('kbui.project.holds'))),
           (items.length > 0
             ? h(KbToolbar, { state: tbProjectsView, onUpdate: onProjectsUpdate, searchPlaceholder: kbt('kbui.search.project'), sortOptions: [{ id: 'name', label: kbt('kbui.sort.az') }, { id: 'threads', label: kbt('kbui.sort.mostthreads') }, { id: 'deliverables', label: kbt('kbui.sort.mostdeliverables') }], total: items.length, shown: projectsVisible.length, trailing: projCreateBtn })
@@ -19905,7 +19907,7 @@ function renderFit(canvas, model, cam, opts){
       })()
       const headRow = h('div', { className: 'kb6-headrow' },
         h('div', { className: 'kb6-headcol' },
-          h('div', { className: 'kb6-title' }, kbt('deliverables.title')),
+          h('div', { className: 'kb6-titlerow' }, h('div', { className: 'kb6-title' }, kbt('deliverables.title')), kbPagePill('creations')),
           h('div', { className: 'kb6-desc' }, kbt('deliverables.desc'))),
         h(KbToolbar, { state: Object.assign({}, tbArts[0], { query: q }), onUpdate: tbArts[1], searchPlaceholder: kbt('deliverables.search'), sortOptions: [{ id: 'modified', label: kbt('deliverables.sort.date') }, { id: 'name', label: kbt('deliverables.sort.name') }, { id: 'size', label: kbt('deliverables.sort.size') }], facets: { type: { options: tilesShown.map((d) => ({ id: d.id, label: d.label, count: d.count })) }, period: true }, total: hasPayload === true ? typed.length : 0, shown: hasPayload === true ? sorted.length : 0, trailing: h('button', { type: 'button', className: 'kb-createai', onClick: () => { try { kbCreateWithAI() } catch (e) { /* rien */ } } }, Icon('sparkles', 14), ' ' + kbt('deliv.createAI')) }))
       // Nothing has been read yet. The page used to draw seven invented files (a mock-up) until the host answered; it now
@@ -26985,7 +26987,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
           h('p', { className: 'kbt2-sub' }, kbToolsTxt({ fr: 'Active des capacités expérimentales et branche des outils externes sur un profil DSH. Chaque changement s’écrit dans le fichier de config du profil.', en: 'Enable experimental capabilities and connect external tools to a DSH profile. Each change is written to the profile’s config file.' })),
           // What this page is for, next to the one it is mistaken for: Tools mounts abilities in a profile, Workers runs the coding assistants.
           h('p', { className: 'kbt2-sub' }, kbToolsTxt({ fr: 'Les outils ajoutent des capacités à un profil DSH : des capacités expérimentales et des connexions à des outils extérieurs. Les assistants de code (Codex, Claude Code…) ont aussi leur page, Workers, qui vérifie qu’ils sont prêts et permet à ton agent de les appeler.', en: 'Tools add abilities to a DSH profile: experimental capabilities and connections to outside tools. The coding assistants (Codex, Claude Code…) also have their own page, Workers, which checks they are ready and lets your agent call them.' })),
-          h('p', { className: 'kbt2-sub', style: { marginTop: 4, fontSize: 12, color: 'var(--dsw-alias-label-tertiary)' } }, kbe('Nothing is hot-reloaded: a restart applies it. A dry run first, then the write — a dated backup before, a rollback after.'))))
+          h('p', { className: 'kbt2-sub', style: { marginTop: 4, fontSize: 12, color: 'var(--dsw-alias-label-tertiary)' } }, kbe('Nothing is hot-reloaded: a restart applies it. A dry run first, then the write — a dated backup before, a rollback after.'))), kbPagePill('tools'))
       const colonne = { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }
       // First read: the page's own head, then bones in the boxes of the profile block and of the cards (the shared skeleton helper).
       if (st.state === 'loading' && st.data === null) {
@@ -27142,7 +27144,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
 /* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
 body:not([data-ds-dark-theme]) :is(.kbt2-sec,.kba-onboard,.kbv-pop,.kb4-pick){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kbt2-entete{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
-.kbt2-entete-txt{display:flex;flex-direction:column;gap:0;min-width:0}
+.kbt2-entete-txt{display:flex;flex-direction:column;gap:0;min-width:0;flex:1 1 280px}
 .kbt2-h1{margin:0;font-size:18px;font-weight:600;line-height:1.3;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
 .kbt2-sub{margin:6px 0 0;max-width:640px;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
 .kbt2-entete-outils{display:flex;align-items:center;gap:8px;min-width:0}
@@ -30378,7 +30380,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
       return false
     }
     const KbacHead = (props) => h('div', { className: 'kbac-head' },
-      h('h2', { className: 'kb6-title' }, props.title),
+      h('div', { className: 'kb6-titlerow kbac-titlerow' }, h('h2', { className: 'kb6-title' }, props.title), props.help === undefined ? null : kbPagePill(props.help)),
       h('p', { className: 'kb8-sub' }, props.sub))
     /** Ligne native : libellé + description à gauche, action à droite (lien ou bouton). */
     const KbacRow = (props) => h('div', { className: 'kbac-row' },
@@ -30466,7 +30468,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
           onKeyDown: (e) => { if ((e.key === ' ' || e.key === 'Enter') && st.unavailable !== true) { e.preventDefault(); change(key, st[key] !== true) } },
         }, h('span', { className: 'kba-toggle-knob' })))
       return h('div', { className: 'kbac-page' },
-        h(KbacHead, { title: kbt('kbui.automations.set'), sub: kbt('kbauto.set.sub') }),
+        h(KbacHead, { title: kbt('kbui.automations.set'), sub: kbt('kbauto.set.sub'), help: 'automation-settings' }),
         h('div', { className: 'kbac-list' },
           sw('paused', 'kbauto.set.paused', 'kbauto.set.paused.d'),
           sw('showNativeTasks', 'kbauto.set.native', 'kbauto.set.native.d'),
@@ -30496,6 +30498,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
 .kbac-theme.on{border-color:var(--dsw-alias-brand-primary)}
 .kbac-pv{display:flex;height:64px;border-radius:10px;overflow:hidden;align-items:center;justify-content:center}
 .kbac-pv i{display:block;width:60%;height:10px;border-radius:5px}
+.kbac-titlerow{justify-content:space-between}
 .kbac-pv-light{background:var(--dsw-static-neutral-50)}
 .kbac-pv-light i{background:var(--dsw-static-neutral-900);opacity:.25}
 .kbac-pv-dark{background:var(--dsw-static-neutral-1000)}

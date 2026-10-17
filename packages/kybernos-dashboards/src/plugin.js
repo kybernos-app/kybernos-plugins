@@ -1451,7 +1451,7 @@ function DashboardsPage () {
     // bar's trailing action does elsewhere.
     : h('header', { className: 'kbdb-gal-head kb6-headrow' },
       h('div', { className: 'kb6-headcol' },
-        h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, kt('Dashboards', 'Dashboards'))),
+        h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, kt('Dashboards', 'Dashboards')), typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-dashboards' }) : null),
         h('p', { className: 'kb8-sub' }, kt('Tes dashboards sont des fichiers. Pars d’un preset, ou demande à l’IA d’en construire un.', 'Your dashboards are files. Start from a preset, or ask the AI to build one.'))),
       h('div', { className: 'kb6-headacts' },
         hiddenCount > 0 ? h('button', { type: 'button', className: 'kbdb-btn', 'aria-pressed': showHidden, onClick: () => setShowHidden((v) => !v) }, Ic('eyeoff', 14), kt('Masqués', 'Hidden'), h('span', { style: { color: 'var(--kbdb-t3)' } }, hiddenCount)) : null,
