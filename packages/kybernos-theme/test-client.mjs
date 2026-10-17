@@ -1337,6 +1337,20 @@ if (React === null) {
   check('...the library, the import and the skill are NOT on the page (they live in a window)', !ptext.includes('Exemples (14)') && !ptext.includes('Importer un fichier') && !ptext.includes('Créer avec Claude'))
   check('...the ambiance selector shows the DSH original and today\'s sentence', /kbth-fsname">DSH d’origine</.test(pane) && ptext.includes('Deep diving for 12s ···'))
   check('...settings are folded, with a one-line summary', ptext.includes('Standard · 24 px · vitesse 1,00 × · un mot par réponse') && !ptext.includes('Ne jamais répéter') && /aria-expanded="false"[^>]*data-kb="ld-settings"|data-kb="ld-settings"/.test(pane))
+  // R-A1-02 / R-A2-01: the one-line summary is wholly in the language of the page, with its number format
+  LANG = 'en'
+  const paneEn = render({ mode: 'dark' }, 'animation')
+  check('English: the settings summary reads « Standard · 24 px · speed 1.00× · one word per reply », no French word, no decimal comma', text(paneEn).includes('Standard · 24 px · speed 1.00× · one word per reply') && !/vitesse|1,00/.test(text(paneEn)), text(paneEn).match(/Standard · [^|]*/))
+  check('...and the whole line is the tooltip of the cut row (it is clipped at 390 px)', /class="kbth-disc-s" title="Standard · 24 px · speed 1\.00× · one word per reply"/.test(paneEn))
+  LANG = 'es'
+  check('another language without a dictionary reads English, with a point', text(render({ mode: 'dark' }, 'animation')).includes('speed 1.00× · one word per reply'))
+  LANG = 'kybernos'
+  check('French keeps its word, its comma and its spaced multiplication sign', /class="kbth-disc-s" title="Standard · 24 px · vitesse 1,00 × · un mot par réponse"/.test(render({ mode: 'dark' }, 'animation')))
+  check('sizes and durations follow the page: « 3,1 Ko » / « 1,5 s » in French, « 3.1 KB » / « 1.5 s » elsewhere', real.ldKo(3200) === '3,1 Ko' && real.ldDurText('1.5 s') === '1,5 s' && real.ldDurText('1,2 s') === '1,2 s' && real.knum(0.9, 2) === '0,90')
+  LANG = 'en'
+  check('...English: 3.1 KB, 12 KB, 1.2 s, 1.5 s, 0.90', real.ldKo(3200) === '3.1 KB' && real.ldKo(20480) === '20 KB' && real.ldDurText('1,2 s') === '1.2 s' && real.ldDurText('1.5 s') === '1.5 s' && real.knum(0.9, 2) === '0.90')
+  check('...and no French decimal comma is built in the code any more', !/\.replace\('\.', ','\)/.test(SOURCE.replace(/const knum = [^\n]*/, '').replace(/const ldDurText = [^\n]*/, '')))
+  LANG = 'kybernos'
   check('...with nothing selected, four free slots and the whale tail are announced', (pane.match(/kbth-lds empty/g) || []).length === 4 && ptext.includes('Rien n’est choisi : DSH garde sa queue de baleine.'))
   real.ld.S = real.ldClean({ sel: ['ring', 'orbit'], pack: 'medecine', mode: 'order' })
   const pane2 = render({ mode: 'dark' }, 'animation')

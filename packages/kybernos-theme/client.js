@@ -41,6 +41,9 @@ window.__ModuleLoader__.load({
         } catch (e) { /* no dictionary: English */ }
         return en
       }
+      /** A decimal number in the number format of the page: a comma for French, a point for every other language. */
+      const frPage = () => { const l = lang(); return l === 'kybernos' || l.slice(0, 2) === 'fr' }
+      const knum = (x, digits) => { const s = Number(x).toFixed(digits); return frPage() ? s.replace('.', ',') : s }
       /** The names of the data tables below are read when they are DRAWN, in the language of the page (a constant is evaluated once, at
        *  load, before the language is known): `named(rows, { <id>: [French, English] })` gives each row a `name` looked up at every read. */
       const named = (rows, names) => {
@@ -2547,7 +2550,9 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           h('span', { className: 'kbth-toggle-knob' })))
 
       const ldSlug = (s) => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'anim'
-      const ldKo = (n) => (n / 1024).toFixed(n < 10240 ? 1 : 0).replace('.', ',') + ' Ko'
+      const ldKo = (n) => knum(n / 1024, n < 10240 ? 1 : 0) + kt(' Ko', ' KB')
+      /** A stored duration (« 1,2 s » in the catalogue, « 1.5 s » on an import) in the number format of the page. */
+      const ldDurText = (d) => (frPage() ? String(d).replace('.', ',') : String(d).replace(',', '.'))
       const ldDuration = (secs) => (secs < 60 ? secs + 's' : Math.floor(secs / 60) + 'm ' + (secs % 60) + 's')
 
       /** Cleans an imported SVG: whatever can execute or load something is removed. The host then REFUSES
@@ -2600,7 +2605,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             try { d = JSON.parse(String(reader.result)) } catch (e) { return done('err', kt('Ce fichier n’est pas du JSON valide.', 'This file is not valid JSON.')) }
             if (!(d !== null && typeof d === 'object' && Array.isArray(d.layers) && typeof d.fr === 'number' && typeof d.w === 'number')) return done('err', kt('Ce JSON n’est pas une animation Lottie (il manque layers, fr ou w).', 'This JSON is not a Lottie animation (layers, fr or w is missing).'))
             const name = (typeof d.nm === 'string' && d.nm.trim() !== '' ? d.nm : base).slice(0, 60)
-            const dur = typeof d.op === 'number' && d.fr > 0 ? (((d.op - (d.ip || 0)) / d.fr).toFixed(1).replace('.', ',') + ' s') : ''
+            const dur = typeof d.op === 'number' && d.fr > 0 ? (((d.op - (d.ip || 0)) / d.fr).toFixed(1) + ' s') : ''
             save({ id, name, type: 'lottie', kind: 'color', source: 'file', dur, data: d }, kt('« ' + name + ' » (Lottie) ajoutée à Mes animations.', '“' + name + '” (Lottie) added to My animations.'))
           }
           reader.readAsText(file)
@@ -2853,10 +2858,10 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
 
         // ── Settings (collapsed) ──────────────────────────────────────────────
         const sizeName = S.size === 'compact' ? kt('Compacte', 'Compact') : (S.size === 'large' ? kt('Grande', 'Large') : 'Standard')
-        const summary = [sizeName, ' · ' + LD_SIZES[S.size] + ' px · ', 'vitesse', ' ' + S.speed.toFixed(2).replace('.', ',') + ' × · ', S.rot === 'fixed' ? kt('un mot par réponse', 'one word per reply') : (S.rot === '8' ? kt('un mot toutes les 8 s', 'one word every 8 s') : kt('un mot toutes les 15 s', 'one word every 15 s'))]
+        const summary = [sizeName, ' · ' + LD_SIZES[S.size] + ' px · ', kt('vitesse', 'speed'), ' ' + knum(S.speed, 2) + kt(' × · ', '× · '), S.rot === 'fixed' ? kt('un mot par réponse', 'one word per reply') : (S.rot === '8' ? kt('un mot toutes les 8 s', 'one word every 8 s') : kt('un mot toutes les 15 s', 'one word every 15 s'))]
         const reglages = h('div', { className: 'kbth-sec', style: { gap: 8 } },
           h('button', { type: 'button', className: 'kbth-disc', 'aria-expanded': String(setOpen), 'data-kb': 'ld-settings', onClick: () => setSetOpen((o) => !o) },
-            h('span', { className: 'kbth-disc-t' }, kt('Réglages', 'Settings')), h('span', { className: 'kbth-disc-s' }, summary),
+            h('span', { className: 'kbth-disc-t' }, kt('Réglages', 'Settings')), h('span', { className: 'kbth-disc-s', title: summary.join('') }, summary),
             h('span', { className: 'kbth-fschev' }, h('svg', { width: 15, height: 15, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' }, h('path', { d: setOpen ? 'M3.5 10.5 8 6l4.5 4.5' : 'M3.5 5.5 8 10l4.5-4.5', stroke: 'currentColor', strokeWidth: '1.6', strokeLinecap: 'round', strokeLinejoin: 'round' })))),
           setOpen ? h('div', { className: 'kbth-setbody' },
             h('div', { className: 'kbth-grp' }, 'Animation'),
@@ -2866,7 +2871,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
                 { id: 'standard', label: 'Standard · 24 px', on: S.size === 'standard', tap: () => ldSet({ size: 'standard' }) },
                 { id: 'large', label: kt('Grande · 40 px', 'Large · 40 px'), on: S.size === 'large', tap: () => ldSet({ size: 'large' }) }] })),
             ldToggle(kt('Teinter avec l’accent du thème', 'Tint with the theme accent'), S.tint, () => ldSet({ tint: !S.tint }), kt('Les animations d’une couleur prennent l’accent. Les autres gardent leurs couleurs.', 'Single-colour animations take the accent. The others keep their colours.')),
-            slider({ label: kt('Vitesse', 'Speed'), min: 50, max: 200, value: Math.round(S.speed * 100), text: S.speed.toFixed(2).replace('.', ',') + ' ×', tap: (v) => ldSet({ speed: v / 100 }) }),
+            slider({ label: kt('Vitesse', 'Speed'), min: 50, max: 200, value: Math.round(S.speed * 100), text: knum(S.speed, 2) + kt(' ×', '×'), tap: (v) => ldSet({ speed: v / 100 }) }),
             ldToggle(kt('Ne jamais répéter la même d’affilée', 'Never repeat the same one twice in a row'), S.avoid, () => ldSet({ avoid: !S.avoid })),
             slider({ label: kt('Délai avant affichage', 'Delay before showing'), min: 0, max: 1000, value: S.delay, text: S.delay + ' ms', tap: (v) => ldSet({ delay: Math.round(v / 50) * 50 }), hint: kt('Évite un clignotement sur les réponses très rapides.', 'Avoids a flicker on very quick replies.') }),
             h('div', { className: 'kbth-grp', style: { marginTop: 4 } }, kt('Texte', 'Text')),
@@ -2893,7 +2898,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           return h('div', { key: l.id, className: 'kbth-lcard' + (on ? ' on' : ''), 'data-id': l.id },
             h('div', { className: 'kbth-lcard-pv' }, h(LdView, { l, px: 36, spd: 1, tint: S.tint && tAcc })),
             h('div', { className: 'kbth-lcard-nm', title: l.name }, l.name),
-            h('div', { className: 'kbth-lcard-meta' }, kindLabel, l.dur ? ' · ' + l.dur : null, mine ? ' · ' : null, mine ? (l.source === 'skill' ? 'Skill' : kt('Fichier', 'File')) : null, mine && typeof l.size === 'number' ? ' · ' + ldKo(l.size) : null),
+            h('div', { className: 'kbth-lcard-meta' }, kindLabel, l.dur ? ' · ' + ldDurText(l.dur) : null, mine ? ' · ' : null, mine ? (l.source === 'skill' ? 'Skill' : kt('Fichier', 'File')) : null, mine && typeof l.size === 'number' ? ' · ' + ldKo(l.size) : null),
             l.prompt ? h('div', { className: 'kbth-lcard-meta', style: { fontStyle: 'italic' } }, '« ' + l.prompt + ' »') : null,
             h('div', { className: 'kbth-lcard-acts' },
               h('button', { type: 'button', className: 'kbth-btn' + (on ? '' : ' kbth-ldpri'), 'data-kb': 'ld-toggle', 'data-id': l.id, disabled: full, title: full ? kt('Retire-en une pour en ajouter une autre', 'Remove one to add another') : undefined, onClick: () => toggleSel(l.id) }, on ? kt('Retirer', 'Remove') : (full ? kt('Rotation pleine', 'Rotation full') : kt('Ajouter', 'Add'))),
@@ -3964,7 +3969,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           makeTheme, ratio, HEX, toHex, mix, SKINS, WPS, WPCATS, FONTS, ACCS, TOKMAP, DEF, STORE_KEY,
           skinPatch, skinAccent, legacyAdopt, readState, writeState, estNaturel, accentsPropres, surprendre, sanitiserImport, schemeSombre, effetsCss, exportTexte, filtreFond, ajustementFond, avecAlpha, valeursValides, appliquerEffets, ENUMS, RANGES, BOOLS, RADIUS_DEF, jetonsRetouches, tailleNative, appliquerTaille,
           LD_PRESETS, LD_PACKS, LD_DEF, LD_SIZES, LD_KEY, ld, ldClean, ldRead, ldSet, ldHash, ldChoose, ldChooseWord, ldWordList, ldById, ldPackById, ldNode, ldDestroy, ldCleanSvg, ldImport,
-          ldDecorate, ldStart, ldStop, ldApplyText, ldPull, ldAddRecord, ldDelRecord, ldPutWords, ldCacheRead, AnimationPane, LdSummary, LdView,
+          knum, ldKo, ldDurText, ldDecorate, ldStart, ldStop, ldApplyText, ldPull, ldAddRecord, ldDelRecord, ldPutWords, ldCacheRead, AnimationPane, LdSummary, LdView,
           appliquerBoot, appliquerTout, appliquerJetons, appliquerFond, appliquerPolice, Page, bootSnapshot, posterBoot, retirerFeuilleBoot, jetonsDe, BOOT_ID,
           PRESET_FORMAT, PRESET_GROUPS, PRESET_KEYS, PRESET_LIMIT, PRESET_ID, LIB_KEY, lib, libClean, libRead, libWrite, libSet, libAdd, libPatch, libRemove, libPull, libFreeName, libNameTaken,
           gal, galTheme, galClean, galLoad, galRefresh, galInstalled, galInstall, galUpdate, galOnlineText, kbLang,
