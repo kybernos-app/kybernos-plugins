@@ -540,8 +540,8 @@ window.__ModuleLoader__.load({
       '.kbhi-step.s1{animation:kbhi-k-s1 12s infinite}.kbhi-step.s2{animation:kbhi-k-s2 12s infinite}.kbhi-step.s3{animation:kbhi-k-s3 12s infinite}',
       '.kbhi-mm{direction:ltr;position:relative;width:300px;max-width:100%;height:176px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);overflow:hidden;font-size:10px;color:var(--dsw-alias-label-primary);user-select:none;pointer-events:none}',
       '.kbhi-mm-bar{position:absolute;left:0;right:0;top:0;height:26px;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid var(--dsw-alias-border-l2);font-weight:600}',
-      // The drawing is an example: what it names is not an item of the page under it (a « PDF · Installing… » beside the real, installed PDF card).
-      '.kbhi-mm-tag{margin-inline-start:auto;flex:none;padding:1px 6px;border-radius:999px;border:.5px solid var(--dsw-alias-border-l2);font-size:9px;font-weight:500;color:var(--dsw-alias-label-secondary)}',
+      // The drawing is an example: what it names is not an item of the page under it (a « PDF · Installing… » beside the real, installed PDF card) It sits next to the title: the close cross of a one-column card covers the bar's right end.
+      '.kbhi-mm-tag{flex:none;padding:1px 6px;border-radius:999px;border:.5px solid var(--dsw-alias-border-l2);font-size:9px;font-weight:500;color:var(--dsw-alias-label-secondary)}',
       '.kbhi-mm-row{position:absolute;left:8px;right:8px;height:32px;display:flex;align-items:center;gap:7px;padding:0 8px;border-radius:8px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);box-sizing:border-box}',
       '.kbhi-mm-row.r0{top:34px}.kbhi-mm-row.r1{top:118px}',
       '.kbhi-mm-row.hot{top:72px;height:40px;animation:kbhi-k-hot 12s infinite}',
