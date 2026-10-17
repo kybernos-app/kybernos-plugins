@@ -633,6 +633,26 @@ ok('Skills: the field of the Index source dialog has a placeholder of its own (t
   atLeast('placeholder (dark)', contrast(colour('var(--dsw-alias-label-tertiary)', 'dark'), colour('var(--dsw-alias-bg-base)', 'dark')), 4.5)
   atLeast('placeholder (light)', contrast(colour('var(--dsw-alias-label-tertiary)', 'light', { '--dsw-alias-label-tertiary': 'var(--dsw-alias-label-secondary)' }), colour('var(--dsw-alias-bg-base)', 'light')), 4.5)
 })
+ok('Connectors: no literal indigo is left; the primary button, the Kybernos meter, the app picker and the type pills follow the brand token and keep 4.5:1 on it (A1-01)', () => {
+  const file = 'kybernos-composio/client.js'
+  assert.ok(!/#635bff|99\s*,\s*91\s*,\s*255|#8b85ff/i.test(srcOf(file)), 'a literal indigo (#635bff, rgba(99,91,255), #8b85ff) is still written in the bundle')
+  const btn = rule(file, '.kbcp-btn.primary')
+  assert.match(lastDecl(btn.body, 'background'), /^var\(--dsw-alias-brand-primary\)$/)
+  assert.match(lastDecl(btn.body, 'color'), /^var\(--dsw-alias-label-primary-foreground\)$/)
+  // the brand pairs the page can be in: the dark and light schemes, and Neutral violet
+  for (const [name, scheme, vars] of [['dark', 'dark', {}], ['light', 'light', {}], ['Neutral violet', 'light', { '--dsw-alias-brand-primary': '#6114d4' }]]) {
+    atLeast('Save / Sign in on the brand fill (' + name + ')', contrast(colour(lastDecl(btn.body, 'color'), scheme, vars), colour(lastDecl(btn.body, 'background'), scheme, vars)), 4.5)
+    const type = rule(file, '.kb7-cxtype')
+    for (const layer of LAYERS(scheme)) {
+      atLeast('type pill on ' + layer.slice(0, 30) + ' (' + name + ')', contrast(colour(lastDecl(type.body, 'color'), scheme, vars), colour(lastDecl(type.body, 'background'), scheme, vars), colour(layer, scheme)), 4.5)
+    }
+  }
+  assert.match(lastDecl(rule(file, '.kbcp-kcbar i.on').body, 'background'), /brand-primary/)
+  const app = rule(file, '.kbcp-kcapp.on')
+  assert.match(lastDecl(app.body, 'border-color'), /brand-primary/)
+  assert.match(lastDecl(app.body, 'background'), /brand-primary/)
+})
+
 
 console.log('\n' + count + ' tests passed')
 if (failed.length > 0) process.exit(1)
