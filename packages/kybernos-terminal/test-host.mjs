@@ -84,7 +84,7 @@ const handlerFor = (options) => {
   return handler
 }
 // A fake request: the body is emitted right after the handler is called (it registers its listeners synchronously).
-const call = async (handler, { method = 'POST', origin = 'http://127.0.0.1:3080', cookie, body = '{"commande":"echo hi"}' } = {}) => {
+const call = async (handler, { method = 'POST', origin = 'http://127.0.0.1:3080', cookie, body = '{"commande":"echo hi","session":"s1"}' } = {}) => {
   // origin: null sends no Origin header (undefined would fall back to the default)
   const req = Object.assign(new EventEmitter(), { method, headers: { ...(origin === null ? {} : { origin }), ...(cookie === undefined ? {} : { cookie }) }, socket: { localPort: 3080 } })
   const out = { status: null, body: null }
@@ -99,7 +99,8 @@ const call = async (handler, { method = 'POST', origin = 'http://127.0.0.1:3080'
   const ran = []
   const fakeRun = async (b) => { ran.push(b); return { ok: true, code: 0, stdout: 'hi\n', stderr: '', cwd: '/' } }
   const good = cookieFor(SECRET, AUTH)
-  const h = handlerFor({ lireSecret: () => SECRET, executer: fakeRun })
+  const dossierDeTest = async (id) => (id === 's1' ? '/work' : null)
+  const h = handlerFor({ lireSecret: () => SECRET, executer: fakeRun, dossierDeSession: dossierDeTest })
 
   let o = await call(h, { cookie: good })
   check('same origin + valid cookie → 200 and the command ran', o.status === 200 && ran.length === 1 && ran[0].commande === 'echo hi', JSON.stringify([o.status, ran.length]))
@@ -125,32 +126,39 @@ const call = async (handler, { method = 'POST', origin = 'http://127.0.0.1:3080'
   check('a body over 16 KiB → 413, nothing ran', o.status === 413 && ran.length === 0, String(o.status))
   ran.length = 0
   o = await call(h, { cookie: good, body: 'not json' })
-  check('an unreadable body → the runner is called with an empty command (it refuses it)', ran.length === 1 && Object.keys(ran[0]).length === 0)
+  check('an unreadable body names no session → 400, nothing ran', o.status === 400 && ran.length === 0, JSON.stringify([o.status, ran.length]))
 
   ran.length = 0
-  const failing = handlerFor({ lireSecret: () => SECRET, executer: async () => ({ ok: false, erreur: 'empty command' }) })
+  const failing = handlerFor({ lireSecret: () => SECRET, executer: async () => ({ ok: false, erreur: 'empty command' }), dossierDeSession: dossierDeTest })
   o = await call(failing, { cookie: good })
   check('a refused command → 400 with its reason', o.status === 400 && JSON.parse(o.body).erreur === 'empty command')
 
-  const closed = handlerFor({ lireSecret: () => null, executer: fakeRun })
+  const closed = handlerFor({ lireSecret: () => null, executer: fakeRun, dossierDeSession: dossierDeTest })
   o = await call(closed, { cookie: good })
   check('FAILS CLOSED: the secret cannot be read → 503, nothing ran, even with a cookie', o.status === 503 && ran.length === 0, JSON.stringify([o.status, ran.length]))
   o = await call(closed, {})
   check('…and without a cookie too', o.status === 503 && ran.length === 0)
 }
 
+// Where the runner runs in these tests: a folder of their own, never the home folder.
+const WORK = realpathSync(mkdtempSync(join(tmpdir(), 'kb-term-work-')))
+
 console.log('the runner')
 {
   if (existsSync('/bin/zsh')) {
-    const r = await executer({ commande: 'echo hi' })
+    const r = await executer({ commande: 'echo hi', cwd: WORK })
     check('runs a command and returns its output', r.ok === true && r.code === 0 && r.stdout === 'hi\n', JSON.stringify(r))
-    const e = await executer({ commande: 'exit 3' })
+    const e = await executer({ commande: 'exit 3', cwd: WORK })
     check('reports a non-zero exit code', e.ok === true && e.code === 3)
+    const nowhere = await executer({ commande: 'pwd' })
+    check('no folder given → nothing runs (there is no fallback to the home folder)', nowhere.ok === false && /no folder/.test(nowhere.erreur) && nowhere.stdout === undefined, JSON.stringify(nowhere))
+    const blank = await executer({ commande: 'pwd', cwd: '   ' })
+    check('...a blank folder neither', blank.ok === false && /no folder/.test(blank.erreur))
   } else {
-    console.log('SKIPPED: the two zsh runs of the terminal host — /bin/zsh is not installed here')
+    console.log('SKIPPED: the zsh runs of the terminal host — /bin/zsh is not installed here')
   }
-  check('an empty command is refused', (await executer({ commande: '   ' })).ok === false)
-  check('a command over 500 characters is refused', (await executer({ commande: 'x'.repeat(501) })).ok === false)
+  check('an empty command is refused', (await executer({ commande: '   ', cwd: WORK })).ok === false)
+  check('a command over 500 characters is refused', (await executer({ commande: 'x'.repeat(501), cwd: WORK })).ok === false)
 }
 
 console.log('where it runs (audit A4-17): the folder of the session, found by the host')
@@ -168,9 +176,13 @@ console.log('where it runs (audit A4-17): the folder of the session, found by th
     ran.length = 0
     o = await call(h, { cookie: good, body: JSON.stringify({ commande: 'rm -rf build', session: 's1', cwd: '/etc' }) })
     check('a folder sent by the page is never used', o.status === 200 && ran.length === 1 && ran[0].cwd === project, JSON.stringify(ran))
-    ran.length = 0
-    o = await call(h, { cookie: good, body: JSON.stringify({ commande: 'rm -rf build', cwd: '/etc' }) })
-    check('...nor when there is no session (the runner then falls back to its default)', o.status === 200 && ran.length === 1 && ran[0].cwd === undefined, JSON.stringify(ran))
+    // R3-01 (A4-17): a request that names no session used to run in the home folder
+    for (const [label, body] of [['no session field', { commande: 'rm -rf build' }], ['an empty session', { commande: 'rm -rf build', session: '' }], ['a blank session', { commande: 'rm -rf build', session: '   ' }],
+      ['a non-string session', { commande: 'rm -rf build', session: 7 }], ['a null session', { commande: 'rm -rf build', session: null }], ['a page-imposed folder and no session', { commande: 'rm -rf build', cwd: '/etc' }]]) {
+      ran.length = 0
+      o = await call(h, { cookie: good, body: JSON.stringify(body) })
+      check('runs nothing with ' + label + ' → 400 and a plain reason', o.status === 400 && ran.length === 0 && /no chat session/.test(JSON.parse(o.body).erreur), JSON.stringify([o.status, ran.length, o.body]))
+    }
 
     ran.length = 0
     o = await call(h, { cookie: good, body: JSON.stringify({ commande: 'npm install', session: 'unknown' }) })
@@ -201,21 +213,41 @@ console.log('where it runs (audit A4-17): the folder of the session, found by th
 
 console.log('the run card edge cases (audit A4-18)')
 if (existsSync('/bin/zsh')) {
-  const cut = await executer({ commande: 'yes hello | head -c 5000' }, { sortieMax: 100 })
+  const cut = await executer({ commande: 'yes hello | head -c 5000', cwd: WORK }, { sortieMax: 100 })
   check('output past the cap is cut AND says so', cut.ok === true && cut.stdout.length === 100 && cut.truncated === true, JSON.stringify({ n: cut.stdout.length, t: cut.truncated }))
-  const whole = await executer({ commande: 'echo short' })
+  const whole = await executer({ commande: 'echo short', cwd: WORK })
   check('output under the cap is not marked cut', whole.truncated === false && whole.stdout === 'short\n')
 
   const t0 = Date.now()
-  const reads = await executer({ commande: 'read x; echo got-$x' }, { timeoutMs: 8000 })
+  const reads = await executer({ commande: 'read x; echo got-$x', cwd: WORK }, { timeoutMs: 8000 })
   check('a command that reads its input does not wait for the timeout (stdin is closed)', Date.now() - t0 < 4000 && reads.ok === true && reads.timedOut === false, JSON.stringify({ ms: Date.now() - t0, reads }))
-  const cat = await executer({ commande: 'cat; echo end' }, { timeoutMs: 8000 })
+  const cat = await executer({ commande: 'cat; echo end', cwd: WORK }, { timeoutMs: 8000 })
   check('...cat sees an immediate end of input', cat.ok === true && cat.stdout === 'end\n', JSON.stringify(cat))
 
-  const late = await executer({ commande: 'sleep 5; echo late' }, { timeoutMs: 300 })
+  const late = await executer({ commande: 'sleep 5; echo late', cwd: WORK }, { timeoutMs: 300 })
   check('a timeout is reported as one, with no exit code', late.ok === true && late.timedOut === true && late.code === null && late.stdout === '', JSON.stringify(late))
 
-  const bin = await executer({ commande: "printf 'a\\x00b\\x1b[31mc'" })
+  // R-A4-01: the deadline kills what the shell started, and the answer comes at the deadline, not when the grandchild is done.
+  // The commands print the pid of the process they leave behind, then wait on it (foreground) or let it run (background).
+  const alive = (pid) => { try { process.kill(pid, 0); return true } catch (e) { return false } }
+  const settle = async (pid) => { for (let i = 0; i < 40 && alive(pid); i += 1) await new Promise((r) => setTimeout(r, 50)); return alive(pid) }
+  for (const [label, commande] of [
+    ['a foreground child (sleep 77; echo late)', "sh -c 'echo $$; exec sleep 8'; echo late"],
+    ['a background child that holds the pipes', "sh -c 'echo $$; exec sleep 8' & wait"],
+    ['a grandchild two levels down', "sh -c 'sh -c \"echo \\$\\$; exec sleep 8\" ; true'; echo late"],
+  ]) {
+    const t1 = Date.now()
+    const r = await executer({ commande, cwd: WORK }, { timeoutMs: 600 })
+    const ms = Date.now() - t1
+    const pid = parseInt(String(r.stdout).split('\n')[0], 10)
+    check(label + ': answered at the deadline, flagged as a timeout', r.ok === true && r.timedOut === true && r.code === null && ms < 3000, JSON.stringify({ ms, r }))
+    check('...and the process it started is gone', Number.isInteger(pid) && pid > 1 && (await settle(pid)) === false, String(pid))
+    if (Number.isInteger(pid) && pid > 1 && alive(pid)) { try { process.kill(pid, 'SIGKILL') } catch (e) { /* gone */ } }
+  }
+  const fast = await executer({ commande: 'echo quick', cwd: WORK }, { timeoutMs: 600 })
+  check('a command that finishes in time is not flagged', fast.ok === true && fast.timedOut === false && fast.code === 0 && fast.stdout === 'quick\n')
+
+  const bin = await executer({ commande: "printf 'a\\x00b\\x1b[31mc'", cwd: WORK })
   check('control characters come out as visible pictures, never a raw NUL', bin.ok === true && bin.stdout === 'a\u2400b\u241b[31mc' && !bin.stdout.includes('\u0000'), JSON.stringify(bin.stdout))
   check('...newline, tab and carriage return are kept', lisible('a\nb\tc\rd') === 'a\nb\tc\rd' && lisible('\u007f') === '\u2421')
 }
@@ -239,5 +271,6 @@ console.log('a hosted instance (--trusted-host)')
   } finally { delete globalThis[KEY] }
 }
 
+rmSync(WORK, { recursive: true, force: true })
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)
 process.exit(failed === 0 ? 0 : 1)

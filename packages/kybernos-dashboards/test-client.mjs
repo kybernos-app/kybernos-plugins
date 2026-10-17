@@ -183,6 +183,19 @@ const finite = (s) => !/NaN|Infinity|undefined/.test(s)
   const allowed = new Set(['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#4a3aa7', '#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#9085e9', '#0003', '#0002', '#0004'])
   ok('colours are DSH tokens, the six series hues and soft shadows, nothing else', hex.every((c) => allowed.has(c)), hex.filter((c) => !allowed.has(c)))
   ok('the dark theme has its own series hues', css.includes('body[data-ds-dark-theme] .kbdb'))
+  // R-A4-02: the 12 px hints of the gallery (« Templates: using one gives you your own copy. », the counts) were the tertiary label,
+  // 3.71:1 on the white Light page. Small text reads at 4.5:1 or better against the page it sits on (the fallback palette is the Light one).
+  const lum = (hex) => {
+    const n = parseInt(hex.slice(1), 16)
+    const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => { const c = v / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4 })
+    return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2]
+  }
+  const contrast = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05) }
+  const fallbackOf = (token) => { const m = new RegExp('--kbdb-' + token + ':var\\([^,)]+,(#[0-9a-fA-F]{3,6})\\)').exec(css); return m === null ? null : (m[1].length === 4 ? '#' + [...m[1].slice(1)].map((c) => c + c).join('') : m[1]) }
+  const hint = /\.kbdb-sec-h span\{color:var\(--kbdb-(t\d|bg)\)/.exec(css)
+  ok('the gallery section hints use a label token', hint !== null)
+  const hintHex = hint === null ? null : fallbackOf(hint[1])
+  ok('the gallery section hints read at 4.5:1 on the Light page', hintHex !== null && contrast(hintHex, fallbackOf('bg')) >= 4.5, { hint: hint && hint[1], hintHex, ratio: hintHex === null ? null : contrast(hintHex, fallbackOf('bg')) })
   // the prefix is shared by every bundle and collides silently: every selector must be scoped by a kbdb class
   const rules = [...css.matchAll(/(^|\})\s*([^@{}][^{}]*)\{/g)].map((m) => m[2].trim()).filter((x) => x !== '' && !/^(from|to|\d+%|[\d%,\s]+)$/.test(x))
   const loose = []

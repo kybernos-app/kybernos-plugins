@@ -1575,7 +1575,7 @@ window.__ModuleLoader__.load({
         /* gallery and states */
         .kbdb-sec-h{display:flex;align-items:baseline;gap:10px;margin:14px 0 8px}
         .kbdb-sec-h h2{margin:0;font-size:15px;font-weight:650}
-        .kbdb-sec-h span{color:var(--kbdb-t3);font-size:12px}
+        .kbdb-sec-h span{color:var(--kbdb-t2);font-size:12px}
         .kbdb-sec-h .sp{flex:1}
         .kbdb-gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
         .kbdb-gcard{position:relative;display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:14px;border:1px solid var(--kbdb-b2);background:var(--kbdb-l1);text-align:left;min-width:0;animation:kbdb-w-in .45s var(--kbdb-ease) both;animation-delay:calc(var(--i,0) * 50ms);transition:transform .2s var(--kbdb-spring),border-color .15s,box-shadow .2s}

@@ -16,13 +16,16 @@ const ok = (name, cond, detail) => {
 
 const base = realpathSync(mkdtempSync(join(tmpdir(), 'motion-idx-')))
 const project = join(base, 'project')
+const project2 = join(base, 'project-2') // another workspace
 const elsewhere = join(base, 'elsewhere')
 mkdirSync(project, { recursive: true })
+mkdirSync(project2, { recursive: true })
 mkdirSync(elsewhere, { recursive: true })
 process.env.DSH_HOME = join(base, 'dsh') // read once at import
+// Like the core: every registered workspace is readable by every session (s1 and s4 work in `project`, s3 in `project2`).
 globalThis[Symbol.for('kybernos.workspace')] = {
-  sessionCwd: async (id) => (id === 's1' ? project : null),
-  pathAllowed: async (real) => real === project || real.startsWith(project + '/'),
+  sessionCwd: async (id) => (id === 's1' || id === 's4' ? project : id === 's3' ? project2 : null),
+  pathAllowed: async (real) => [project, project2].some((p) => real === p || real.startsWith(p + '/')),
 }
 const M = await import('./index.js')
 
@@ -105,8 +108,32 @@ ok('tool: creates the scene in the session folder', made.ok && made.chemin === j
   ok('state: a new chat does not borrow the scene another chat is working on (it used to show it)', other.status === 200 && other.json.current === null, other.json)
   // The Creations page points the panel at a scene with no session: that one IS shown to a chat that may read it.
   const pointed = await call('POST', '/kybernos-motion/open', { body: { path: made.chemin } })
-  const seen = await call('GET', '/kybernos-motion/state?session=s-new-chat')
-  ok('state: a scene pointed at from Creations (no session) is shown to a chat that may read it', pointed.status === 200 && seen.json.current !== null && seen.json.current.path === made.chemin, seen.json)
+  const seen = await call('GET', '/kybernos-motion/state?session=s4')
+  ok('state: a scene pointed at from Creations (no session) is shown to a new chat of the same workspace', pointed.status === 200 && seen.json.current !== null && seen.json.current.path === made.chemin, seen.json)
+  // R3-01 (A4-11): the core lets every session read every registered workspace, but a new chat of ANOTHER workspace must not open its
+  // Motion tab on a scene that belongs to a project it has nothing to do with.
+  const foreign = await call('GET', '/kybernos-motion/state?session=s3')
+  ok('state: a new chat of another workspace does not show the scene Creations pointed at', foreign.status === 200 && foreign.json.current === null, foreign.json)
+  const nowhere = await call('GET', '/kybernos-motion/state?session=s-new-chat')
+  ok('state: a chat whose folder cannot be found does not show it either', nowhere.status === 200 && nowhere.json.current === null, nowhere.json)
+  const noSession = await call('GET', '/kybernos-motion/state')
+  ok('state: a request that names no session does not show it', noSession.status === 200 && noSession.json.current === null, noSession.json)
+  // ...but that other workspace's chat sees its OWN scene
+  const made2 = await tool.execute({ titre: 'Other', scene: SCENE }, { agent: { id: 's3' } })
+  ok('the other workspace writes its own scene', made2.ok === true && made2.chemin.startsWith(project2), made2)
+  ok('state: ...which that chat does see', (await call('GET', '/kybernos-motion/state?session=s3')).json.current.path === made2.chemin)
+  ok('state: ...and the first workspace\'s chats do not', (await call('GET', '/kybernos-motion/state?session=s4')).json.current.path === made.chemin)
+  // The file itself is gone but its folder is not (a deleted artifact): the chat gets the empty state, once and for all.
+  const doomed = await tool.execute({ titre: 'Doomed', scene: SCENE }, exec)
+  await call('POST', '/kybernos-motion/open', { body: { path: doomed.chemin } })
+  ok('state: the scene pointed at is shown while its file exists', (await call('GET', '/kybernos-motion/state?session=s4')).json.current.path === doomed.chemin)
+  await rm(doomed.chemin, { force: true })
+  const vanished = await call('GET', '/kybernos-motion/state?session=s4')
+  ok('state: a pointed scene whose file is gone gives the empty state (the panel used to show a red error and ask for it on every poll)', vanished.status === 200 && vanished.json.current === null, vanished.json)
+  ok('state: ...and a second poll too', (await call('GET', '/kybernos-motion/state?session=s4')).json.current === null)
+  const doomedOwn = await tool.execute({ titre: 'Doomed too', scene: SCENE }, exec)
+  await rm(doomedOwn.chemin, { force: true })
+  ok('state: a session\'s own scene whose file is gone gives the empty state as well', (await call('GET', '/kybernos-motion/state?session=s1')).json.current === null)
   // ...and when its folder is gone, or it is another workspace's, the chat gets the empty state, not a path to a refused read.
   const gone = await tool.execute({ titre: 'Gone', fichier: join(project, 'tmp-gone', 'gone'), scene: SCENE }, exec)
   ok('the scene to forget is written', gone.ok === true, gone)

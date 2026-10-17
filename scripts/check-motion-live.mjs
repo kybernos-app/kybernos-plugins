@@ -17,7 +17,9 @@
 //   5. the Livrables page lists the scene, draws its thumbnail and opens the player; "Edit" brings the panel back;
 //   6. the live page the Mac app is built from plays by itself (no DSH around it);
 //   7. a 3D scene (WebGL), a glTF model with its animation clip and a Lottie file are drawn, deterministic, exported
-//      to a decodable MP4 whose frames contain the 3D pixels, and carried by the standalone page.
+//      to a decodable MP4 whose frames contain the 3D pixels, and carried by the standalone page;
+//   8. R3-01: the transport is Start / Play / End + 0.5× 1× 2× 4× + a state pill (2× runs the clock twice as fast), and a remembered scene
+//      whose file is gone gives the empty state (no red error, no request for it on every poll).
 //
 // SAFETY: the scene lives in <worktree>/artifacts/ and is removed at the end; no Mac app is installed.
 // Exit code 0 / 1 / 3.
@@ -54,9 +56,10 @@ const mp4Path = join(dir, 'motion-live-check.mp4')
 const scene3dPath = join(dir, 'motion-live-3d.miniapp.json')
 const modelPath = join(dir, 'motion-live-model.miniapp.json')
 const mp4Path3d = join(dir, 'motion-live-3d.mp4')
+const vanishPath = join(dir, 'motion-live-vanish.miniapp.json')
 const mediaDir = join(dir, 'motion-live-media')
 const cleanup = () => {
-  for (const f of [scenePath, mp4Path, join(dir, 'motion-live-check-2.mp4'), scene3dPath, modelPath, mp4Path3d]) { try { rmSync(f, { force: true }) } catch (e) { /* gone */ } }
+  for (const f of [scenePath, mp4Path, join(dir, 'motion-live-check-2.mp4'), scene3dPath, modelPath, mp4Path3d, vanishPath]) { try { rmSync(f, { force: true }) } catch (e) { /* gone */ } }
   try { rmSync(mediaDir, { recursive: true, force: true }) } catch (e) { /* gone */ }
   try { if (existsSync(dir) && readdirSync(dir).length === 0) rmdirSync(dir) } catch (e) { /* not empty: not ours */ }
 }
@@ -148,6 +151,32 @@ try {
   const revRows = await poll(() => val(`document.querySelectorAll('.kbmt-pop .kbmt-rv').length`), 4000)
   check('the revisions list opens with the revisions', revs === true && revRows >= 2, revRows)
   await val(`document.querySelector('[data-act="revisions"]').click()`)
+
+  // R3-01 (A4-26): the transport is the one of the Slides, Modeleur and Bricks panels: Start / Play / End, 0.5× 1× 2× 4×, a state pill.
+  const tr = JSON.parse((await val(`(() => { const t = document.querySelector('[data-kb="motion-panel"] .kbmt-transport'); if (!t) return 'null'; return JSON.stringify({ acts: Array.from(t.querySelectorAll('button[data-act]')).map((b) => b.getAttribute('data-act')), speeds: Array.from(t.querySelectorAll('[data-act="speed"]')).map((b) => b.innerText.trim()), on: Array.from(t.querySelectorAll('[data-act="speed"][aria-pressed="true"]')).map((b) => b.innerText.trim()) }) })()`)) || 'null')
+  check('the transport row is Start, Play, End, then 0.5× 1× 2× 4×, with 1× on', tr !== null && JSON.stringify(tr.acts.slice(0, 3)) === JSON.stringify(['start', 'play', 'end']) && JSON.stringify(tr.speeds) === JSON.stringify(['0.5×', '1×', '2×', '4×']) && JSON.stringify(tr.on) === JSON.stringify(['1×']), tr)
+  const seconds = async () => { const m = /^(\d+):(\d+\.\d)/.exec(String(await timeText())); return m === null ? NaN : Number(m[1]) * 60 + Number(m[2]) }
+  const pill = () => val(`(document.querySelector('[data-kb="motion-panel"] .kbmt-state') || { innerText: '' }).innerText`)
+  await click('[data-act="end"]')
+  await sleep(300)
+  check('End stops at the end of the scene and the pill says Done / Fini', /^(Done|Fini)$/.test(String(await pill())) && Math.abs((await seconds()) - SCENE.format.duration) < 0.2, [await pill(), await seconds()])
+  await click('[data-act="start"]')
+  await sleep(300)
+  check('Start goes back to 0:00.0 and holds there', (await seconds()) === 0 && !/^(Done|Fini)$/.test(String(await pill())), [await pill(), await seconds()])
+  const clockSpeed = async (label) => {
+    await click('[data-act="start"]')
+    await val(`(() => { const b = Array.from(document.querySelectorAll('[data-kb="motion-panel"] [data-act="speed"]')).find((x) => x.innerText.trim() === ${JSON.stringify(label)}); if (b) b.click() })()`)
+    await click('[data-act="play"]')
+    await sleep(1000)
+    const t = await seconds()
+    await click('[data-act="play"]')
+    return t
+  }
+  const at1 = await clockSpeed('1×')
+  const at2 = await clockSpeed('2×')
+  check('2× runs the clock about twice as fast as 1× (the sound follows through playbackRate)', at1 > 0.3 && at2 / at1 > 1.5 && at2 / at1 < 2.6, { at1, at2 })
+  await val(`(() => { const b = Array.from(document.querySelectorAll('[data-kb="motion-panel"] [data-act="speed"]')).find((x) => x.innerText.trim() === '1×'); if (b) b.click() })()`)
+  await shot('2-transport')
 
   // ═══ 3. the agent asks for a frame ═══════════════════════════════════════════════════
   console.log('\n── 3. a frame for the agent ──')
@@ -344,6 +373,35 @@ try {
   const sa = (() => { try { return JSON.parse(root3) } catch (e) { return null } })()
   check('the standalone page carries lottie-web and plays the Lottie by itself', sa !== null && sa.lottie !== 'undefined' && sa.orange > 20, root3)
   if (webgl === true) check('and three.js, drawing the 3D scene by itself (no DSH, no network)', sa !== null && sa.three === 'object' && sa.red > 20, root3)
+
+  // ═══ 7. a scene that vanished (R3-01, A4-11) ═══════════════════════════════════════════
+  console.log('\n── 7. a remembered scene whose file is gone ──')
+  const savedVanish = await val(`fetch('/kybernos-motion/save', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ path: ${JSON.stringify(vanishPath)}, scene: ${JSON.stringify(SCENE)}, what: 'live check', title: 'Vanish' }) }).then((r) => r.text())`)
+  check('a scene to forget is saved', (() => { try { return JSON.parse(savedVanish).ok === true } catch (e) { return false } })(), savedVanish)
+  const keyNow = await val(`(() => { const e = performance.getEntriesByType('resource').filter((x) => x.name.includes('kybernos-motion/state?session=')).pop(); return e ? decodeURIComponent(e.name.split('session=')[1]) : '' })()`)
+  const stateOf = async () => JSON.parse(await val(`fetch('/kybernos-motion/state' + ${JSON.stringify(keyNow ? '?session=' + keyNow : '')}).then((r) => r.text())`))
+  const before = await stateOf()
+  check('the chat is shown that scene while its file exists', before.current !== null && before.current.path === vanishPath, { keyNow, before })
+  rmSync(vanishPath, { force: true })
+  const after = await stateOf()
+  check('once the file is gone the host drops it: the chat gets the empty state, not a path to a missing file', after.current === null, after)
+  // The panel of a chat opened afterwards: no red error, and no request for a scene the host no longer names.
+  await live.page.send('Page.reload')
+  await sleep(4000)
+  await val(`(() => { const b = document.querySelector('button[aria-label="Open right sidebar"]'); if (b) b.click() })()`)
+  await sleep(1000)
+  if ((await val(`!!document.querySelector('[data-kb="motion-panel"]')`)) !== true) {
+    await val(`(() => { const all = Array.from(document.querySelectorAll('button')); const i = all.findIndex((b) => b.getAttribute('aria-label') === 'Collapse right sidebar'); const b = all.slice(i).find((x) => x.innerText.trim() === 'Motion'); if (b) b.click() })()`)
+  }
+  const mounted = await poll(() => val(`!!document.querySelector('[data-kb="motion-panel"]')`), 8000)
+  if (mounted === true) {
+    const reqBefore = await val(`performance.getEntriesByType('resource').filter((x) => x.name.includes('kybernos-motion/scene')).length`)
+    await sleep(8000)
+    const reqAfter = await val(`performance.getEntriesByType('resource').filter((x) => x.name.includes('kybernos-motion/scene')).length`)
+    check('the panel shows its empty state, with no red error', (await val(`!!document.querySelector('[data-kb="motion-empty"]') && !document.querySelector('.kbmt-err')`)) === true)
+    check('...and asks for no scene in 8 s (it asked on every poll)', reqAfter - reqBefore === 0, { reqBefore, reqAfter })
+    await shot('7-empty')
+  } else console.log('SKIPPED: the Motion panel could not be mounted by hand after the reload — the empty-state half of step 7 is not checked here')
 } catch (e) {
   fail += 1
   console.log('  ✗ the check crashed — ' + (e && e.stack ? e.stack.split('\n').slice(0, 4).join(' | ') : String(e)))

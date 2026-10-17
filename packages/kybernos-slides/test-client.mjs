@@ -298,6 +298,94 @@ const legende = (lg) => { langue = lg; return T.DEMOS[0].prompt }
 ok('DEMO: its caption names the tools of the bar (French), not shortcuts that do not exist', /outil Texte/.test(legende('kybernos')) && /outil Pinceau/.test(legende('kybernos')) && !/\([A-Z]\)/.test(legende('kybernos')) && source.includes("['texte', kt('✎ Texte', '✎ Text')]") && source.includes("['pinceau', kt('✎ Pinceau', '✎ Brush')]"), legende('kybernos'))
 ok('DEMO: …and in English, the tools of the English bar', /Text tool/.test(legende('en')) && /Brush tool/.test(legende('en')) && !/\([A-Z]\)/.test(legende('en')), legende('en'))
 
+// A4-02: the floating text editor (format bar + box) used to sit at a fixed corner, over the Text / Brush / Eraser / Clear all buttons.
+// It is now placed next to the field, never on the tool bar. Pane of 480 x 270, the tool bar at its top-left.
+{
+  const scene = { w: 480, h: 270 }
+  const outils = { x: 10, y: 10, w: 300, h: 30 }
+  const boite = { w: 280, h: 70 }
+  const touche = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
+  const rect = (lieu) => ({ x: lieu.x, y: lieu.y, w: boite.w, h: boite.h })
+  const titre = T.placerEditeur({ champ: { x: 33, y: 30, w: 200, h: 28 }, outils, scene, boite })
+  ok('editor: a field at the top gets its editor right below it, clear of the tool bar', titre.y === 64 && !touche(rect(titre), outils), titre)
+  const pied = T.placerEditeur({ champ: { x: 33, y: 232, w: 200, h: 16 }, outils, scene, boite })
+  ok('editor: a field at the bottom gets its editor above it (no room below)', pied.y === 232 - 70 - 6 && !touche(rect(pied), outils), pied)
+  ok('editor: it is anchored on the field\'s left edge', titre.x === 33 && pied.x === 33)
+  const droite = T.placerEditeur({ champ: { x: 450, y: 100, w: 20, h: 20 }, outils, scene, boite })
+  ok('editor: a field near the right edge keeps the editor inside the pane', droite.x + boite.w <= scene.w - 8 && droite.x >= 8, droite)
+  let pire = null
+  for (let y = 0; y <= 260; y += 6) {
+    for (let x = 0; x <= 470; x += 30) {
+      for (const [w, hh] of [[20, 14], [200, 28], [440, 120]]) {
+        const lieu = T.placerEditeur({ champ: { x, y, w, h: hh }, outils, scene, boite })
+        const dedans = lieu.x >= 8 && lieu.y >= 8 && lieu.x + boite.w <= scene.w - 8 && lieu.y + boite.h <= scene.h - 8
+        if (touche(rect(lieu), outils) || !dedans) { pire = { champ: { x, y, w, h: hh }, lieu }; break }
+      }
+      if (pire !== null) break
+    }
+    if (pire !== null) break
+  }
+  ok('editor: wherever the field is, the editor never covers the tool bar and stays inside the pane', pire === null, pire)
+  const sansOutils = T.placerEditeur({ champ: { x: 33, y: 30, w: 200, h: 28 }, outils: null, scene, boite })
+  ok('editor: without a tool bar it still goes below the field', sansOutils.y === 64, sansOutils)
+}
+
+// A4-26: the transport bar speaks like the Modeleur and Bricks panels: Start / Play-Pause / End, 0.5× 1× 2× 4×, the state at the right
+// end of the row (NN% while it writes, Done when it has), and « n / total » above the position slider.
+{
+  const clic = (noeud) => { noeud.props.onClick() }
+  const ligne = (arbre) => trouver(arbre, (n) => n.props && n.props.className === 'kbsd-line')
+  const rendre = (lg, dureeMs) => {
+    langue = lg
+    deckPourTest = { version: 1, t0: Date.now() - 999_999, dureeMs, titre: 'demo', theme: 'sombre', mode: 'nouveau', slides: T.normaliserDeck(T.DEMOS[0].slides) }
+    const arbre = panneau()
+    deckPourTest = null
+    return arbre
+  }
+  const boutonsDe = (arbre) => ligne(arbre).enfants.filter((e) => e && e.type === 'button')
+  const pilule = (arbre) => ligne(arbre).enfants.find((e) => e && e.props && String(e.props.className).startsWith('kbsd-badge'))
+  const texte = (n) => (n.enfants || []).map((e) => (typeof e === 'string' ? e : texte(e))).join('')
+  let arbre = rendre('en', 600_000)
+  ok('transport: the row holds Start, Play, End and the four speeds, in the order of the other panels',
+    JSON.stringify(boutonsDe(arbre).map((b) => b.props.title || b.enfants[0])) === JSON.stringify(['Start', 'Replay the writing', 'End', '0.5×', '1×', '2×', '4×']),
+    JSON.stringify(boutonsDe(arbre).map((b) => b.props.title || b.enfants[0])))
+  ok('transport: the glyphs are the shared ones (◀◀ ▶ ▶▶)', boutonsDe(arbre).slice(0, 3).map((b) => b.enfants[0]).join(' ') === '\u25C0\u25C0 \u25B6 \u25B6\u25B6')
+  ok('transport: a deck that has finished says Done in the pill, not "live"', texte(pilule(arbre)) === 'Done' && !JSON.stringify(arbre).includes('"live"'), texte(pilule(arbre)))
+  ok('transport: the counter above the slider reads « n / total slides »', /^\d+ \/ 5 slides$/.test(texte(trouver(arbre, (n) => n.props && n.props.className === 'kbsd-lab'))), texte(trouver(arbre, (n) => n.props && n.props.className === 'kbsd-lab')))
+  ok('transport: the French panel says Début / Fin / Fini', (() => { const fr = rendre('kybernos', 600_000); return JSON.stringify(boutonsDe(fr).slice(0, 3).map((b) => b.props.title)) === JSON.stringify(['Début', 'Rejouer l\'écriture', 'Fin']) && texte(pilule(fr)) === 'Fini' })())
+  // Replay, then Pause, Start and End move the clock and the state.
+  arbre = rendre('en', 600_000)
+  clic(boutonsDe(arbre)[1]) // finished: Play replays from 0
+  arbre = rendre('en', 600_000)
+  ok('transport: Play on a finished deck replays it: the glyph becomes Pause and the pill shows a percentage in the running style', boutonsDe(arbre)[1].enfants[0] === '\u23F8' && /^\d+%$/.test(texte(pilule(arbre))) && pilule(arbre).props.className.includes('run'), texte(pilule(arbre)))
+  clic(boutonsDe(arbre)[1]) // Pause
+  arbre = rendre('en', 600_000)
+  const figeA = texte(pilule(arbre))
+  ok('transport: Pause stops the clock: the glyph is Play again and the pill is no longer in the running style', boutonsDe(arbre)[1].enfants[0] === '\u25B6' && !pilule(arbre).props.className.includes('run') && /^\d+%$/.test(figeA), figeA)
+  clic(boutonsDe(arbre)[0]) // Start
+  arbre = rendre('en', 600_000)
+  ok('transport: Start puts the clock at 0 and holds it there', texte(pilule(arbre)) === '0%' && boutonsDe(arbre)[1].enfants[0] === '\u25B6', texte(pilule(arbre)))
+  clic(boutonsDe(arbre)[2]) // End
+  arbre = rendre('en', 600_000)
+  ok('transport: End shows the finished deck: Done', texte(pilule(arbre)) === 'Done', texte(pilule(arbre)))
+  clic(boutonsDe(arbre)[4]) // 1x while finished and frozen stays frozen
+  arbre = rendre('en', 600_000)
+  ok('transport: a speed change on a frozen clock does not restart it', texte(pilule(arbre)) === 'Done')
+  // A speed change keeps the position (it used to jump when the previous speed was not 1×).
+  clic(boutonsDe(arbre)[0])
+  arbre = rendre('en', 600_000)
+  clic(boutonsDe(arbre)[1]) // play from 0 at 1×
+  arbre = rendre('en', 600_000)
+  clic(boutonsDe(arbre)[5]) // 2×
+  arbre = rendre('en', 600_000)
+  const avant = T.progression({ deck: { t0: 0, dureeMs: 600_000 } })
+  clic(boutonsDe(arbre)[4]) // back to 1×
+  const apres = T.progression({ deck: { t0: 0, dureeMs: 600_000 } })
+  ok('transport: going from 2× back to 1× does not move the position', Math.abs(apres - avant) < 0.001, { avant, apres })
+  clic(boutonsDe(arbre)[0]) // leave the clock held at 0 for whatever follows
+  langue = 'kybernos'
+}
+
 // ── the language (A2-31, A2-08): French for the French UI, English for every other language ──
 {
   const textes = () => JSON.stringify(panneau()) + ' ' + JSON.stringify(T.DEMOS[0])

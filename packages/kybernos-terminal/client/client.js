@@ -51,7 +51,9 @@ window.__ModuleLoader__.load({
         ['le secret de session de DSH est illisible, le terminal reste donc fermé', 'the DSH session secret cannot be read, so the terminal stays closed'],
         ['connexion requise', 'sign-in required'],
         ['corps de requête trop grand', 'request body too large'],
-        ['le dossier de cette session est introuvable : rien n’a été exécuté', 'the folder of this session cannot be found: nothing was run']
+        ['le dossier de cette session est introuvable : rien n’a été exécuté', 'the folder of this session cannot be found: nothing was run'],
+        ['aucune conversation où exécuter : rien n’a été exécuté', 'no chat session to run in: nothing was run'],
+        ['aucun dossier où exécuter : rien n’a été exécuté', 'no folder to run in: nothing was run']
       ]
       const hostSays = (text) => {
         const raw = String(text === undefined || text === null ? '' : text)

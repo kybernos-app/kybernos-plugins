@@ -154,10 +154,9 @@ export function mountRoutes (webServer, host) {
 
   route('state', ['GET'], async (req, res) => {
     const session = q(req).get('session')
-    let cur = host.getCurrent(session)
-    // A remembered scene this session may not read (another workspace's, or a folder that is gone) is not this session's: the panel
-    // shows its empty state, not a red error and a refused request every poll.
-    if (cur !== null && cur !== undefined && !(await host.confineExisting(cur.path, str(session))).ok) cur = null
+    // The scene of THIS session, or the one Creations lent it (its own folder only); a remembered scene this session may not read, or whose
+    // file is gone, is not shown: the panel shows its empty state, not a red error and a refused request every poll.
+    const cur = await host.panelScene(str(session))
     send(res, 200, { ok: true, current: cur ? { path: cur.path, title: cur.title, at: cur.at } : null, frame: host.pendingFrame(session), now: Date.now() })
   })
 
