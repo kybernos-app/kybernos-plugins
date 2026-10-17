@@ -3,20 +3,20 @@
 Settings › **Theme**: ready-made themes, **your own themes**, a **gallery** of themes to install, accent, wallpaper, font, colour tokens,
 contrast, and the **thinking animation** (the loader and the words DSH shows while the agent works).
 
-One page, eight vertical tabs, « Essentiel » open by default (there is no Simple/Advanced switch).
+One page, nine vertical tabs, « Essentials » open by default (there is no Simple/Advanced switch).
 Every control stores a value (`DEF`) and something reads it: `test-client.mjs` refuses a control whose
 key is not in `DEF`, which is how 41 dead ones went unnoticed before.
 
 | Tab | What it really does, and how |
 |---|---|
-| Essentiel | theme (shipped and yours), accent, wallpaper, font, text size → `overrideTokens` layer, a fixed wallpaper `<div>`, `--dsw-font-family`, `setFontSize` |
-| Verre et fond | with a wallpaper: DSH's main surface (`--dsw-alias-bg-base`) becomes transparent so the wallpaper shows; sidebar, fields and menus get a chosen transparency (`--dsw-specific-sidebar-fill`, `-input-major`, `-menu`); frosted/liquid blur by `backdrop-filter` on DSH's stable hooks; wallpaper filters, fit and mirror |
-| Couleurs | the 17 pilotable tokens per scheme, accent ramp |
-| Texte et forme | text size, ligatures, radii (`--dsw-radius-*` ×0.25 / ×1 / ×1.5), logo and name |
+| Essentials | theme (shipped and yours), accent, wallpaper, font, text size → `overrideTokens` layer, a fixed wallpaper `<div>`, `--dsw-font-family`, `setFontSize` |
+| Glass and background | with a wallpaper: DSH's main surface (`--dsw-alias-bg-base`) becomes transparent so the wallpaper shows; sidebar, fields and menus get a chosen transparency (`--dsw-specific-sidebar-fill`, `-input-major`, `-menu`); frosted/liquid blur by `backdrop-filter` on DSH's stable hooks; wallpaper filters, fit and mirror |
+| Colors | the 17 pilotable tokens per scheme, accent ramp |
+| Text and shape | text size, ligatures, radii (`--dsw-radius-*` ×0.25 / ×1 / ×1.5), logo and name |
 | Animation | the thinking animation (below) |
-| Accessibilité | contrast level, reduce animations, focus ring, 44 px targets, underlined links, colour-blind palette (success/error → blue/vermillion) |
-| Partage | **My themes** (save, apply, rename, export, delete), import a theme file, export of the current look (YAML / JSON / CSS), reset |
-| Galerie | themes to **try** and **install** (shipped with Kybernos, plus a signed online catalogue), search, light/dark filter, updates |
+| Accessibility | contrast level, reduce animations, focus ring, 44 px targets, underlined links, colour-blind palette (success/error → blue/vermillion) |
+| Sharing | **My themes** (save, apply, rename, export, delete), import a theme file, export of the current look (YAML / JSON / CSS), reset |
+| Gallery | themes to **try** and **install** (shipped with Kybernos, plus a signed online catalogue), search, light/dark filter, updates |
 
 The CSS-only effects (glass, ligatures, brand, reduced motion, focus, targets, links) come from one
 pure function, `effetsCss(S)`, inserted as a single `<style>`; it only uses DSH's stable hooks
@@ -80,11 +80,11 @@ with it: colours and accent (always), font, corners, menu icons, glass and wallp
 is off by default when saving: contrast, the colour-blind palette and big targets are a need of the
 person, not a style, so a theme never changes them unless it was saved with them.
 
-- **Essentiel** shows the shipped themes, then *My themes* and a `+` button. The summary line under
+- **Essentials** shows the shipped themes, then *My themes* and a `+` button. The summary line under
   them says which theme is in use and whether it is *modified*: a setting the theme retains has moved
   (the mode is left out on purpose, DSH's own light/dark button changes it from elsewhere). A shipped
   theme is never edited: *Save as…* makes a copy. Your own theme can be *updated* in place.
-- **Partage** is the library: apply, export (the JSON file is shown, with *Copy* and *Download*),
+- **Sharing** is the library: apply, export (the JSON file is shown, with *Copy* and *Download*),
   rename, delete (confirmed in place), and *Import*. Importing **adds** a theme and applies nothing; an
   old export of the whole look (no frame) still imports, as a theme.
 - A theme is **data**, never code. The only values it can carry are the ones `sanitiserImport`
@@ -101,8 +101,8 @@ person, not a style, so a theme never changes them unless it was saved with them
 ## Menu icons
 
 The sidebar menu can be drawn by a **set** of icons: grey at rest, in the entry's own colour on the open
-page, flat fills only (no outline). Twenty-one sets ship, chosen in Settings › Theme › **Icônes** (a tab
-next to Animation; Essentiel only names the set in use): *Classic* (the application's line icons, the
+page, flat fills only (no outline). Twenty-one sets ship, chosen in Settings › Theme › **Icons** (a tab
+next to Animation; Essentials only names the set in use): *Classic* (the application's line icons, the
 default), five sober ones (*Flat*, *Duotone*, *Bauhaus*, *Soft gradient*, *Tile*) and fifteen with their own
 technique: *Matrix* (dots), *Mondrian* (blocks), *Rings*, *Isometric*, *Kawaii* (two eyes), *Blinds*
 (vertical slats), *Facets*, *Long shadow*, *Halftone*, *Bubbles*, *Honeycomb*, *Constellation*, *Two-tone*,
@@ -131,7 +131,7 @@ technique: *Matrix* (dots), *Mondrian* (blocks), *Rings*, *Isometric*, *Kawaii* 
 
 ## The gallery
 
-**Galerie** lists themes to install. There are two catalogues and one answer: the **shipped** one
+**Gallery** lists themes to install. There are two catalogues and one answer: the **shipped** one
 (`gallery.json`, it travels inside the signed Suite archive and works offline) and the **online** one
 (`themes.catalog.json` + a detached Ed25519 signature, verified by the HOST before the page ever sees it,
 cached on disk and verified again on every read). The signed one shows when it is at least as recent as the
@@ -139,10 +139,10 @@ shipped one; an older one is refused as a rollback; a refused or unreachable ref
 page says why. Opening the tab asks the online catalogue once (`themesCatalogueUrl` in
 `<dsh home>/kybernos/settings.json`, `""` turns it off); nothing else in this plugin uses the network.
 
-*Essayer* draws a theme without storing it (closing Settings or reloading gives the stored look back, any change
+*Try* draws a theme without storing it (closing Settings or reloading gives the stored look back, any change
 made during a trial ends it; a theme of the other mode switches DSH's mode for the trial, and reload or closing Settings
-switches it back; only killing the tab in the middle can leave the new mode behind); *Installer* copies it into My themes (source « gallery », with its catalogue id
-and version); an installed copy gets *Mettre à jour* when the catalogue's version moves. A catalogue theme never
+switches it back; only killing the tab in the middle can leave the new mode behind); *Install* copies it into My themes (source « gallery », with its catalogue id
+and version); an installed copy gets *Update* when the catalogue's version moves. A catalogue theme never
 carries accessibility settings. How it is published, signed and tested: `docs/dev/theme-gallery.md`.
 
 ## The thinking animation
@@ -172,7 +172,7 @@ A draw happens once per answer: a block that comes back within 1.5 s is the same
   files (SVG, Lottie `.json`, GIF/WebP/PNG, 200 KB max), and files written by the `loader` skill. The
   picker's cards are small (about 105 px wide).
 - **Ambiances** (`LD_PACKS`): the DSH original and 11 trades, words in French and English, plus
-  « Mon pack » (the user's own words, or those written by the `loading-text` skill).
+  « My pack » (the user's own words, or those written by the `loading-text` skill).
 - **Settings** (folded): size 14/24/40 px, accent tint, speed, delay before showing, keep the
   words, change the word every 8/15 s, show the duration.
 
@@ -199,7 +199,7 @@ contains any (see `loader-store.mjs`).
 | the *selected* user animations (first paint) | `localStorage` `kybernos.theme.loader.cache.v1` |
 | imported animations | `<dsh home>/kybernos/loaders/<id>.json` |
 | animations written by the `loader` skill | `<dsh home>/kybernos/loaders/<slug>.svg` |
-| « Mon pack » words | `<dsh home>/kybernos/loading-text.json` |
+| « My pack » words | `<dsh home>/kybernos/loading-text.json` |
 
 `<dsh home>` is `DSH_HOME`, else `~/.dsh`. The browser copy is what paints first; the disk copy is
 what survives clearing site data, another browser, or DSH Desktop picking another port. A newer
@@ -219,7 +219,7 @@ The host routes are **not hot-reloaded**: restart `dsh web` after changing `inde
   one element used it as a *text* colour (the workspace tile in `kybernos-cloud`, fixed); a future DSH
   element doing the same would show up as invisible text. Probe with the colour set to magenta.
 - **The wallpaper is not visible inside Settings** (the settings screens use other surfaces); it shows
-  behind the chat and the other pages. The « Verre » tab has a small preview for that reason.
+  behind the chat and the other pages. The « Glass and background » tab has a small preview for that reason.
 - **Line height and density** have no lever in DSH (only the font-size delta is exposed), so there are
   no such controls.
 - **Words and ambiance names** are French and English; other languages fall back to English.

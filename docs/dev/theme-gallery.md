@@ -1,7 +1,7 @@
 # The theme gallery
 
-Settings › Theme › **Galerie** lists themes to install. A theme is a small file of settings (colours, accent, font,
-corners, wallpaper and glass): **data, never code**. Installing puts a copy in *Partage › Mes thèmes*; from then on it
+Settings › Theme › **Gallery** lists themes to install. A theme is a small file of settings (colours, accent, font,
+corners, wallpaper and glass): **data, never code**. Installing puts a copy in *Sharing › My themes*; from then on it
 is yours (rename it, edit it, export it), and the gallery only offers an update when the catalogue's version of that
 theme moves. The format and what a theme may carry are in `packages/kybernos-theme/README.md` (« My themes »).
 
@@ -14,7 +14,7 @@ theme moves. The format and what a theme may carry are in `packages/kybernos-the
 
 `GET /kybernos-theme/gallery` answers from the disk only: the cached online catalogue when it is **at least as recent
 as the shipped one** (`seq`), else the shipped one. `POST { "op": "refresh" }` asks the network, verifies, caches and
-answers the same way. The page asks once when the tab opens, and again on *Actualiser*. The answer always says what
+answers the same way. The page asks once when the tab opens, and again on *Refresh*. The answer always says what
 the last refresh did (`online.state`: `never | ok | offline | refused | off`) so the page can explain why it shows
 the shipped themes.
 
@@ -39,7 +39,7 @@ The address is `themesCatalogueUrl` in `<dsh home>/kybernos/settings.json` (`""`
 - A catalogue theme **never carries accessibility settings** (contrast, colour-blind palette, reduced motion, focus
   ring, big targets, underlined links): the host refuses a document that does, and the page strips them anyway.
 - The page checks again what the host gives it, exactly as it checks a file.
-- Nothing is applied until you ask. *Essayer* draws the theme without storing it; closing Settings or reloading gives
+- Nothing is applied until you ask. *Try* draws the theme without storing it; closing Settings or reloading gives
   your look back, and any change you make during a trial ends it.
 
 ## Publishing (the maintainer)
@@ -55,7 +55,7 @@ Sources are `catalog/themes/<id>.json`, one theme per file (the file name is the
 }
 ```
 
-Both languages of the description are required. Raise `v` when a theme changes (that is what offers *Mettre à jour*).
+Both languages of the description are required. Raise `v` when a theme changes (that is what offers *Update*).
 
 ```bash
 node scripts/themes-catalogue.mjs build --bump     # raises seq, rewrites packages/kybernos-theme/gallery.json (the SHIPPED catalogue)
@@ -76,7 +76,7 @@ catalogue in `catalog/` is not accepted by the embedded key.
 
 A pull request that adds `catalog/themes/<id>.json`. The checks above run on it (`build` refuses anything the host would
 refuse); a maintainer reads the theme, bumps `seq`, signs and merges. Someone who wants a theme that is **not** reviewed
-imports its `.json` in *Partage*: the same check applies, and it never reaches the gallery.
+imports its `.json` in *Sharing*: the same check applies, and it never reaches the gallery.
 
 ## Testing
 
@@ -92,11 +92,11 @@ On the real GUI (a sandbox instance, never the real :3080; see `docs/dev/live-te
 source scripts/sandbox/env.sh && node scripts/check-theme-live.mjs --only library,gallery   # My themes, then the gallery on the shipped catalogue
 ```
 
-That covers the shipped catalogue: cards, search, filter, *Essayer* (nothing stored, put back on *Revenir*, on closing Settings),
-*Installer*, *Mettre à jour*. The **signed** path needs a key the sandbox trusts, so it is played by hand once per change to
+That covers the shipped catalogue: cards, search, filter, *Try* (nothing stored, put back on *Back to my theme*, on closing Settings),
+*Install*, *Update*. The **signed** path needs a key the sandbox trusts, so it is played by hand once per change to
 `themes-gallery.mjs`: make a throw-away key (`keygen --out /tmp/…/themes.key --embed`, which rewrites `themes-pubkey.json`: put
 it back afterwards), sign a catalogue built from a copy of the sources, serve it with any static server on a loopback port,
-set `themesCatalogueUrl` to it in the **sandbox's** `<DSH_HOME>/kybernos/settings.json`, restart the sandbox, open *Galerie*
-and use *Actualiser* with the good file, a file changed by one byte, a file signed by another key and an older one (`seq`):
-the first must show « Catalogue signé », the others must say why they were refused and keep what was shown. The unit tests
+set `themesCatalogueUrl` to it in the **sandbox's** `<DSH_HOME>/kybernos/settings.json`, restart the sandbox, open *Gallery*
+and use *Refresh* with the good file, a file changed by one byte, a file signed by another key and an older one (`seq`):
+the first must show « Signed catalog », the others must say why they were refused and keep what was shown. The unit tests
 (`test-themes-gallery.mjs`) play the same cases with real keys against a local server on every run.

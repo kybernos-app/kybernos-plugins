@@ -2013,7 +2013,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
 
       if (kc.connected === false) {
         return h('div', { className: 'kb7-emptybox', 'data-kb': 'kc-signin' },
-          h('div', { className: 'kb7-empty' }, h('b', null, kbt('kb.cp.kc.signin.title')), h('br'), kbt('kb.cp.kc.signin.body')),
+          h('div', { className: 'kb7-empty' }, h('b', null, kbt('kb.cp.kc.signin.title')), h('br'), h('span', null, kbt('kb.cp.kc.signin.body'))),
           pair === null || pair.failed === true ? h('button', { type: 'button', className: 'kbcp-btn primary', onClick: signIn }, kbt('kb.cp.kc.signin.go')) : h('div', { className: 'kbcp-note', role: 'status' },
             h('div', null, kbt('kb.cp.kc.signin.wait')),
             pair.code ? h('div', null, kbt('kb.cp.kc.signin.code').replace('{code}', String(pair.code))) : null,

@@ -395,6 +395,32 @@ export const frenchOutsideDictionary = (src, opts) => {
 /** Every French literal of a source, dictionary or not: used to report what a table holds. */
 export const frenchEverywhere = (src) => literals(src).literals.filter((l) => !l.isKey && isFrench(l.text)).map((l) => ({ line: l.line, text: l.text }))
 
+// ── the register: the French of the product speaks « tu » (decision D1) ─────────────────────────
+
+// words that end in -ez without being a « vous » imperative
+const NOT_VOUS = new Set(['chez', 'assez', 'nez', 'rez'])
+
+/** The « vous » forms of a French text: the pronouns (vous, votre, vos) and the imperatives and present forms in -ez (rechargez, avez…).
+ *  « rendez-vous » is a noun. Returns the words found, [] when the text speaks « tu » (or is not addressed to anyone). */
+export const vousForms = (text) => {
+  const clean = String(text).replace(/rendez-vous/gi, ' ')
+  const out = []
+  for (const m of clean.matchAll(/(?<![\p{L}\p{N}_])(vous|votre|vos|[\p{L}]{2,}ez)(?![\p{L}\p{N}_])/giu)) {
+    if (!NOT_VOUS.has(m[1].toLowerCase())) out.push(m[1])
+  }
+  return out
+}
+
+// a stop list (« le la les … vous … vos ») is data read by a search, not text shown to anyone: fifteen or more bare lowercase words
+const isStopList = (text) => text.trim().split(/\s+/).length >= 15 && /^[a-zà-ÿ' -]+$/.test(text.trim())
+
+/** Every French literal of a source (dictionary keys included: a phrase table is keyed by the French text) that addresses the user as « vous »:
+ *  [{ line, text, words }]. */
+export const vousFormsOfSource = (src) => literals(src).literals
+  .filter((l) => isFrench(l.text) && !isStopList(l.text))
+  .map((l) => ({ line: l.line, text: l.text, words: vousForms(l.text) }))
+  .filter((o) => o.words.length > 0)
+
 // ── READMEs and descriptions: prose ─────────────────────────────────────────
 
 /** The French lines of a Markdown file (prose lines only: fenced code and inline code are left alone). */

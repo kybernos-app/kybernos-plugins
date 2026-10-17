@@ -15,7 +15,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
-import { frenchEverywhere, frenchLinesOfMarkdown, frenchOutsideDictionary, isFrench, isFrenchProse } from './lib-french-literals.mjs'
+import { frenchEverywhere, frenchLinesOfMarkdown, frenchOutsideDictionary, isFrench, isFrenchProse, vousForms, vousFormsOfSource } from './lib-french-literals.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const PACKAGES = join(REPO, 'packages')
@@ -159,6 +159,8 @@ console.log('the scanner')
   check('an accent-less word inside a pair helper or a [fr, en] row is a dictionary', frenchOutsideDictionary("const kt = (fr, en) => en\nkt('Discuter', 'Chat'); const R = ['aucun', 'none']", { unaccented: true }).length === 0)
   check('English that looks like a French word is not French', frenchOutsideDictionary("log('Export the table'); const a = 'Lecture notes'; const p = 'preset'", { unaccented: true }).length === 0)
   check('a language picker name is not French text', f("const l = 'Français'").length === 0)
+  check('« vous », « votre », « vos » and the imperatives in -ez are the register to avoid; « chez », « assez » and « rendez-vous » are not', vousForms('Rechargez la page').join() === 'Rechargez' && vousForms('Posez votre question').join() === 'Posez,votre' && vousForms('Vous avez un nouveau rendez-vous chez nous, assez vite').join() === 'Vous,avez' && vousForms('Recharge la page, pose ta question').length === 0 && vousForms('Open the menu').length === 0)
+  check('a French literal is read for its register, a dictionary key too, an English one is not', vousFormsOfSource("const kt = (fr, en) => en\nkt('Session expirée : rechargez la page.', 'Reload the page.'); const T = { 'Accès refusé — autorisez le micro pour cette page': 'Microphone access denied' }; log('Please reload the page, Mr Gomez')").map((o) => o.words.join()).join('|') === 'rechargez|autorisez')
   check('a README line of French prose is found, English with a quoted label is not', frenchLinesOfMarkdown('Le panneau affiche les briques de la maquette.\nThe « Briques » panel shows the bricks.\n').length === 1)
 }
 
@@ -189,6 +191,8 @@ for (const b of bundles) {
   const left = found.filter((o) => !allowed.has(o.text))
   check('no French literal outside a dictionary (client.js, index.js, host modules)', left.length === 0, left.slice(0, 6).map((o) => o.file + ':' + o.line + ' ' + JSON.stringify(o.text.slice(0, 60))))
   check('every allowed exception still exists (no stale entry)', entry.every((s) => found.some((o) => o.text === s)), entry.filter((s) => !found.some((o) => o.text === s)))
+  const vous = codeFiles(join(PACKAGES, b)).flatMap((f) => vousFormsOfSource(readFileSync(f, 'utf8')).map((o) => ({ file: relative(join(PACKAGES, b), f), ...o })))
+  check('the French speaks « tu »: no vous, votre, vos and no imperative in -ez (rechargez → recharge)', vous.length === 0, vous.slice(0, 6).map((o) => o.file + ':' + o.line + ' ' + o.words.join(',') + ' ' + JSON.stringify(o.text.slice(0, 50))))
   check('README.md is English', readme.length === 0, readme.slice(0, 3).map((o) => o.line + ' ' + JSON.stringify(o.text.slice(0, 50))))
   check('the package description is English and present', typeof pkg.description === 'string' && pkg.description.length > 10 && !descFrench, pkg.description)
   // The Built-in plugins page reads a bundle's description through `require.resolve('<id>/package.json')`: a package that does not

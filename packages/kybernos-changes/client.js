@@ -65,7 +65,7 @@ window.__ModuleLoader__.load({
         xToSend1: ['Ton projet a 1 mise à jour que GitHub n’a pas. L’envoyer garde une copie en lieu sûr.', 'Your project has 1 update GitHub does not have. Sending it keeps a safe copy.'],
         xToSendCopy: ['Le projet principal a {n} mises à jour que GitHub n’a pas. Ta copie séparée reste sur ton ordinateur (c’est normal).', 'The main project has {n} updates GitHub does not have. Your separate copy stays on your computer (that is normal).'],
         xToSendCopy1: ['Le projet principal a 1 mise à jour que GitHub n’a pas. Ta copie séparée reste sur ton ordinateur (c’est normal).', 'The main project has 1 update GitHub does not have. Your separate copy stays on your computer (that is normal).'],
-        tSync: ['Toi et GitHub avez chacun du nouveau', 'You and GitHub both have news'],
+        tSync: ['Du nouveau chez toi et chez GitHub', 'You and GitHub both have news'],
         xSync: ['{n} à envoyer, {m} à récupérer. On récupère d’abord, puis on envoie.', '{n} to send, {m} to fetch. We fetch first, then send.'],
         tNotInProject: ['Sauvegardé, mais pas encore dans le projet', 'Saved, but not in the project yet'],
         xNotInProject: ['Ta copie séparée est en sécurité, mais les autres conversations ne la voient pas encore.', 'Your separate copy is safe, but other chats cannot see it yet.'],

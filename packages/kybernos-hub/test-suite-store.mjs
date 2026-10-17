@@ -108,6 +108,8 @@ console.log('the names of the catalogue (A1-28 / A2-27)')
   const connexions = catalogue.familles.find((f) => f.id === 'connect')
   ok('the module the Workers page turns on is titled « Workers connectors » and its description says Workers', maison.titre === 'Workers connectors' && /Workers/.test(maison.promesse.en) && /workers|Workers/.test(maison.promesse.fr) && /Workers connectors/.test(maison.aide.what.en))
   ok('nothing in the catalogue still calls it « Agent connectors »', !/Agent connectors/.test(JSON.stringify(catalogue)))
+  const maisonPkg = JSON.parse(readFileSync(new URL('../dsh-subagent-maison/package.json', import.meta.url), 'utf8'))
+  ok('...and neither does the bundle\'s own package.json (R3-05: the signed remote catalogue still does until the next release)', /Workers connectors/.test(maisonPkg.description) && !/agent connectors/i.test(maisonPkg.description), maisonPkg.description)
   ok('the family is « Connections » (fr « Connexions »), no longer confused with the Connectors page', connexions.en === 'Connections' && connexions.fr === 'Connexions' && !/Connectors and machines|Connecteurs et machines/.test(JSON.stringify(catalogue)), connexions)
 }
 

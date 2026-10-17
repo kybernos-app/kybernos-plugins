@@ -67,7 +67,7 @@ lifecycle robot reads too (atomic write; no file = everything on).
 "Install" writes the module into the activation file, then runs `scripts/dsh-lifecycle.mjs install`
 from the repo (10 min timeout; refused if the robot is missing). The robot takes a safety snapshot,
 links the bundles, installs the profile, re-applies the engine patches, checks the boot and restores
-the snapshot on failure. The hub never passes `--relancer`: the card reads "Active after restart"
+the snapshot on failure. The hub never passes `--restart`: the card reads "Active after restart"
 and a banner offers a confirmed "Restart DSH".
 
 ## Tests

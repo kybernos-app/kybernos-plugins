@@ -217,7 +217,7 @@ export function basculer ({ catalogue, brut, id, actif }) {
 
 /**
  * Install = activate + run the robot. `executer(argv)` resolves { code, sortie }.
- * The robot never restarts DSH here (no --relancer): the panel shows "relaunch to apply".
+ * The robot never restarts DSH here (no --restart): the panel shows "relaunch to apply".
  */
 export async function installer ({ catalogue, brut, id, ecrire, executer }) {
   const m = idConnu(catalogue, id)
