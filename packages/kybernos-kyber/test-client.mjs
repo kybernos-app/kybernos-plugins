@@ -109,6 +109,7 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
   ok('WhatsApp and WeChat have a mark', typeof T.BRAND.whatsapp === 'function' && typeof T.BRAND.wechat === 'function' && typeof T.BRAND.telegram === 'function')
   ok('the assistant has one name, said through a token, in both languages, and no « Kyber » or « Kyby » is spelt out', T.NAME === 'Kaby' && T.L('title') === 'Kaby' && T.kt('{NAME}', '{NAME}') === '{NAME}' && !Object.values(T.S).some((p) => /\b(Kyber|Kyby|Kaby)\b/.test(p[0] + ' ' + p[1])) && /\{NAME\}/.test(JSON.stringify(T.S)))
   ok('the channels that are not there yet say « soon » in both languages', T.L('soon') === 'Bientôt' && T.kt('Bientôt', 'Soon') === 'Bientôt')
+  ok('a channel that is not there yet says « Soon » once: the chip says it, the line under the name says what it means (C-09)', /sub: L\('notYet'\), right: h\('span', \{ className: 'kbky-chip' \}, L\('soon'\)\)/.test(src) && !/sub: L\('soon'\)/.test(src) && T.L('notYet') === 'Pas encore disponible' && T.L('notYet') !== T.L('soon'))
 }
 
 {

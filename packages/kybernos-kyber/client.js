@@ -51,7 +51,7 @@ window.__ModuleLoader__.load({
         b3h: ['Tu gardes la main', 'You stay in control'], b3p: ['Avant d’agir, il demande : Autoriser, Refuser ou Autoriser pour cette tâche.', 'Before it acts, it asks: Allow, Refuse, or Allow for this task.'],
         stOn: ['Telegram connecté', 'Telegram connected'], stOff: ['Telegram non connecté', 'Telegram not connected'], stWait: ['Telegram en attente', 'Telegram waiting'], stNone: ['Telegram indisponible', 'Telegram unavailable'],
         // the strip
-        channels: ['Canaux', 'Channels'], soon: ['Bientôt', 'Soon'],
+        channels: ['Canaux', 'Channels'], soon: ['Bientôt', 'Soon'], notYet: ['Pas encore disponible', 'Not available yet'],
         // telegram
         telegram: ['Telegram', 'Telegram'],
         cH: ['Connecter Telegram', 'Connect Telegram'],
@@ -449,7 +449,7 @@ window.__ModuleLoader__.load({
         const on = tg.state === 'linked' || state.starting || pairLive()
         const bot = tg.state === 'linked' && typeof tg.botUrl === 'string' && tg.botUrl !== ''
           ? h('a', { className: 'kbky-iconlink', href: tg.botUrl, target: '_blank', rel: 'noopener noreferrer', 'data-kb': 'kybernos-kyber-bot', 'aria-label': L('openBot') }, Ic('ext', 15)) : null
-        const soon = (id, name) => h(ChanRow, { key: id, kb: 'kybernos-kyber-chan-' + id, stateKey: 'soon', mark: BRAND[id](20), name, sub: L('soon'), right: h('span', { className: 'kbky-chip' }, L('soon')) })
+        const soon = (id, name) => h(ChanRow, { key: id, kb: 'kybernos-kyber-chan-' + id, stateKey: 'soon', mark: BRAND[id](20), name, sub: L('notYet'), right: h('span', { className: 'kbky-chip' }, L('soon')) })
         return h('div', { className: 'kbky-tile', 'data-kb': 'kybernos-kyber-tile-channels' },
           h('div', { className: 'kbky-th' }, h(Mark, null, Ic('link', 18)), h('b', null, L('channels'))),
           h('p', { className: 'kbky-help', 'data-kb': 'kybernos-kyber-channels-help' }, L('channelsHelp')),
