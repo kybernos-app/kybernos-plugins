@@ -4313,7 +4313,6 @@ const kbArtRawUrl = (path) => {
     const kbAvatarUrl = (rootId, file) => {
   try { return kbApiBase() + '/avatar?rootId=' + encodeURIComponent(rootId) + '&kyberId=' + encodeURIComponent(file) } catch (e) { return '' }
 }
-// Visages d'équipe : `members` du sidecar `.kyber-ui.json` (un avatar par rôle)
 // Does this team carry an avatar? The host's listing says so (`ui.avatar`, a path of the avatar store): the pages only ask for the image of a team that has
 // one, instead of getting a 404 for each of the others (C-02). The route keeps its 404 for a direct call.
 const kbHasAvatar = (ui) => ui !== null && ui !== undefined && typeof ui === 'object' && typeof ui.avatar === 'string' && ui.avatar.indexOf('.kyber-avatars/') === 0
