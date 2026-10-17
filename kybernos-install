@@ -5,6 +5,7 @@
 #
 #   ./kybernos-install              # everything: checks, puts DSH in place if it is missing, grafts the plugin
 #   ./kybernos-install --dry        # shows what would be done, touches NOTHING
+#   ./kybernos-install --restart --force   # also restarts the DSH that is running, so the plugin's host code loads
 #
 # What the robot does, in this order: it checks the fingerprints of the archive, looks whether DSH is
 # there (scenario A) or not (scenario B), takes a safety photo of your profile, writes, checks that DSH

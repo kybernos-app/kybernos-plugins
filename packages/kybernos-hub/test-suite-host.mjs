@@ -92,7 +92,7 @@ console.log('── install ──')
   let argv = null
   const r = await installer({ catalogue, brut: { actives: [] }, id: 'dsh-mermaid', ecrire: (o) => { ecrit = o }, executer: async (a) => { argv = a; return { code: 0, sortie: 'ok' } } })
   ok('install activates the module, then runs the robot', r.ok === true && r.relanceRequise === true && ecrit.actives.includes(nomDe('dsh-mermaid')) && argv[0] === 'install')
-  ok('install never asks the robot to restart DSH', !argv.includes('--relancer'))
+  ok('install never asks the robot to restart DSH', !argv.includes('--restart') && !argv.includes('--relancer'))
   const refus = await installer({ catalogue, brut: null, id: 'dsh-mermaid', ecrire: () => {}, executer: async () => ({ code: 1, sortie: 'a\nb\nboot check failed' }) })
   ok('a refusing robot is reported with its last lines', refus.ok === false && refus.error === 'robot-refused' && refus.detail.includes('boot check failed'))
   const casse = await installer({ catalogue, brut: null, id: 'dsh-mermaid', ecrire: () => {}, executer: async () => { throw new Error('robot introuvable') } })

@@ -452,7 +452,8 @@ const opts = {
   url: (args[args.indexOf('--url') + 1] !== undefined && args.indexOf('--url') >= 0) ? args[args.indexOf('--url') + 1] : null,
   // `--source <path>`: the folder (or archive) the plugin comes from.
   source: args.indexOf('--source') >= 0 ? args[args.indexOf('--source') + 1] : null,
-  relancer: args.includes('--relancer'),
+  // `--restart` (English, the spelling of the hints and the docs); `--relancer`, its former French name, is still accepted.
+  relancer: args.includes('--restart') || args.includes('--relancer'),
   // The target version is the first FREE argument. The values of the options
   // are not: without this skip, `--source dist/x.tar.gz` made
   // npm look for a package named after a file path.
@@ -573,7 +574,7 @@ const direEchecBoot = (boot) => {
 // ── RESTART DSH: the only gesture that loads a plugin's HOST code ─────────
 // A page reload is not enough (the client yes; the host, no). The
 // robot runs in a console, OUTSIDE DSH: it can therefore stop and
-// restart it — but only when asked to (`--relancer --force`),
+// restart it — but only when asked to (`--restart --force`),
 // because it is the tester's DSH that gets shut down.
 const attendre = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -1165,7 +1166,7 @@ async function faireInstall () {
   }
   await journalOp({ date, quoi: 'plugin', de: '—', vers: versions.plugin, resultat: 'reussi', raison: 'installation', photo: photo.dossier })
   if (opts.relancer) {
-    if (!opts.force) quitter(1, '\n  --relancer shuts down the DSH that is running. Add --force if that is what you want.')
+    if (!opts.force) quitter(1, '\n  --restart shuts down the DSH that is running. Add --force if that is what you want.')
     const suite = await relancerDsh(portGui)
     if (!suite.ok) {
       await journalOp({ date, quoi: 'plugin', de: '—', vers: versions.plugin, resultat: 'reussi', raison: 'installation, restart failed: ' + suite.raison, photo: photo.dossier })
@@ -1306,4 +1307,4 @@ if (ordre === 'verify') {
   quitter(boot.ok ? 0 : 1, boot.ok ? '\n🟢 the boot is healthy.' : '\n🔴 the boot fails.\n' + boot.sortie.slice(0, 600))
 }
 
-quitter(64, 'Usage: dsh-lifecycle.mjs doctor|install|upgrade|rollback|uninstall|verify [--force] [--dry] [--json] [--url <url>] [version]')
+quitter(64, 'Usage: dsh-lifecycle.mjs doctor|install|upgrade|rollback|uninstall|verify [--force] [--dry] [--restart] [--json] [--url <url>] [version]')

@@ -173,7 +173,9 @@ verifie('instructions : la commande exacte est donnée, sans --no-open : le navi
 verifie('instructions : elles disent d\'ouvrir l\'adresse que dsh web affiche (jeton), et que l\'adresse nue répond 401 (A6-17)', /address that dsh web prints/.test(ditMac) && /\?token=/.test(ditMac) && /answers 401/.test(ditMac))
 verifie('instructions : elles sont en anglais (A6-18)', !/[éèàçùô]|Pour voir|là où/.test(ditMac) && /To see Kybernos/.test(ditMac))
 verifie('instructions : elle dit Ctrl-C, pas « recharge la page »', ditMac.includes('Ctrl-C'))
-verifie('instructions : elle propose --relancer --force (le robot refuse sans --force)', ditMac.includes('--relancer --force'))
+verifie('instructions : elle propose --restart --force (le robot refuse sans --force)', ditMac.includes('--restart --force') && !ditMac.includes('--relancer'))
+verifie('instructions : ni guillemets français ni mot français dans la ligne d\'aide (R-A6-01), la commande entre guillemets droits', !/[«»]/.test(ditMac) && ditMac.includes('(or run "./kybernos-install --restart --force": the robot restarts DSH for you)'))
+verifie('le robot accepte --restart (et l\'ancien nom --relancer)', /relancer: args\.includes\('--restart'\) \|\| args\.includes\('--relancer'\)/.test(readFichier(new URL('./dsh-lifecycle.mjs', import.meta.url), 'utf8')))
 verifie('instructions : Windows dit la même commande', instructionsRedemarrage('windows', 3080).includes('dsh web --port 3080'))
 verifie('instructions : le port vient de l\'appelant', instructionsRedemarrage('linux', 4444).includes('--port 4444'))
 
