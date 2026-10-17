@@ -51,8 +51,8 @@ const standIn = (options = {}) => {
 test('the prompt is the person\'s last message, with the conversation before it as background', () => {
   const p = buildPrompt(CONTEXT)
   assert.match(p, /personal assistant of a person, working on their own cloud computer/)
-  const named = buildPrompt({ ...CONTEXT, source: 'telegram', person: { name: 'Miled' } })
-  assert.match(named, /personal assistant of Miled, working on their own cloud computer\. They wrote to you from a Telegram chat on their phone/)
+  const named = buildPrompt({ ...CONTEXT, source: 'telegram', person: { name: 'Amina' } })
+  assert.match(named, /personal assistant of Amina, working on their own cloud computer\. They wrote to you from a Telegram chat on their phone/)
   assert.match(p, /\[person\]\nhello/)
   assert.match(p, /\[assistant\]\nHi, what can I do\?/)
   assert.match(p, /Their message:\n\nPOST \{"a":1\} to https:\/\/hooks\.example\.test\/x$/)

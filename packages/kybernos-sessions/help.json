@@ -29,5 +29,6 @@
   "good": {
     "fr": "L’icône d’une conversation se choisit d’abord sur les mots de son titre, sur ton ordinateur. S’ils ne disent rien, le titre seul part vers le modèle d’étude (nulle part s’il est local) ; jamais s’il est sur « Aucun ».",
     "en": "The icon of a chat is picked from its title’s words on your machine. If they say nothing, the title alone goes to the Study model (nowhere if it is local); never if it is “None”."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
 }

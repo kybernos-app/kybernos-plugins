@@ -25,5 +25,6 @@
   "good": {
     "fr": "La reprise automatique n’a pas de réglage à l’écran et s’arrête après 3 « continue » de suite. La poignée n’apparaît que sur une session en cours avec au moins 2 messages en attente.",
     "en": "Automatic resume has no setting on screen and stops after 3 “continue” in a row. The handle only appears on a running session with at least 2 queued messages."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
 }

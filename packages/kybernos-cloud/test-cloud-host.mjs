@@ -40,7 +40,7 @@ let kyberTelegramStatus = 200
 // What the server answers to POST …/computers/{id}/resume | suspend | ticket (the computers module, ADR 0052): a status and a body.
 let computerActionAnswer = null
 const computerActionSeen = []
-let kyberTelegram = { configured: true, enabled: true, bot_username: 'kybernos_bot', linked: { display: 'Miled @alex', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } }
+let kyberTelegram = { configured: true, enabled: true, bot_username: 'kybernos_bot', linked: { display: 'Amina @alex', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } }
 let kyberHome = { id: 'cmp-home', origin_host: 'cmp-home.computers.test', paused_reason: null, name: 'Home', state: 'suspended', desired: 'suspended', mode: 'sleep', region: 'ams', last_active_at: '2026-10-14T22:50:00.000Z', reported_version: 'p12', network: { mode: 'public', allow: [] } }
 // Profil servi par GET /v1/me : null → 404 (serveur plus ancien que la route),
 // sinon la valeur renvoyée. Il ÉVOLUE en cours de test : c'est l'objet même
@@ -846,7 +846,7 @@ try {
   ok('credential KYBERNOS_API_KEY pose, jeton absent de toutes les reponses')
 
   // 4. Profil : /v1/me (nom + formule VIVANTS) puis workspaces.
-  meProfile = { id: 'u-1', name: 'Miled', plan: 'pro' }
+  meProfile = { id: 'u-1', name: 'Amina', plan: 'pro' }
   const refreshed = await hit('/kybernos-cloud/refresh', 'POST')
   assert.equal(refreshed.body.connected, true)
   assert.equal(refreshed.body.state.workspaces.length, 1)
@@ -859,7 +859,7 @@ try {
   //     formule après l'appairage remontent au refresh ; l'email du claim, lui,
   //     n'est jamais écrasé (/v1/me ne l'expose pas). La formule remontée est
   //     aussi reflétée dans le résumé du catalogue.
-  assert.equal(refreshed.body.state.user.name, 'Miled')
+  assert.equal(refreshed.body.state.user.name, 'Amina')
   assert.equal(refreshed.body.state.user.plan, 'pro')
   assert.equal(refreshed.body.state.user.email, 'dev@example.test')
   assert.equal(refreshed.body.models.plan, 'pro')
@@ -870,13 +870,13 @@ try {
   const claimless = JSON.parse(readFileSync(statePath, 'utf8'))
   delete claimless.user.email
   writeFileSync(statePath, JSON.stringify(claimless))
-  meProfile = { id: 'u-1', name: 'Miled', plan: 'pro', email: 'owner@example.test' }
+  meProfile = { id: 'u-1', name: 'Amina', plan: 'pro', email: 'owner@example.test' }
   const filled = await hit('/kybernos-cloud/refresh', 'POST')
   assert.equal(filled.body.state.user.email, 'owner@example.test')
-  meProfile = { id: 'u-1', name: 'Miled', plan: 'pro', email: 'other@example.test' }
+  meProfile = { id: 'u-1', name: 'Amina', plan: 'pro', email: 'other@example.test' }
   const kept = await hit('/kybernos-cloud/refresh', 'POST')
   assert.equal(kept.body.state.user.email, 'owner@example.test')
-  meProfile = { id: 'u-1', name: 'Miled', plan: 'pro' }
+  meProfile = { id: 'u-1', name: 'Amina', plan: 'pro' }
   ok('computer sans claim : l\'email du serveur complete le compte, sans jamais ecraser')
 
 
@@ -1048,7 +1048,7 @@ try {
   meProfile = null
   const legacy = await hit('/kybernos-cloud/refresh', 'POST')
   assert.equal(legacy.body.connected, true)
-  assert.equal(legacy.body.state.user.name, 'Miled')
+  assert.equal(legacy.body.state.user.name, 'Amina')
   assert.equal(legacy.body.state.user.plan, 'pro')
   ok('refresh sans /v1/me (404) : profil en cache conserve, refresh non casse')
 
@@ -1056,7 +1056,7 @@ try {
   //     déjà connu avec du vide.
   meProfile = { id: 'u-1', name: null, plan: 'pro' }
   const nulled = await hit('/kybernos-cloud/refresh', 'POST')
-  assert.equal(nulled.body.state.user.name, 'Miled')
+  assert.equal(nulled.body.state.user.name, 'Amina')
   ok('refresh : /v1/me name=null n ecrase pas le nom en cache')
 
   // 4e. /v1/me cassée (401 alors que le jeton est valide) : on ne deconnecte
@@ -1068,7 +1068,7 @@ try {
   meForcedStatus = 401
   const brokenMe = await hit('/kybernos-cloud/refresh', 'POST')
   assert.equal(brokenMe.body.connected, true)
-  assert.equal(brokenMe.body.state.user.name, 'Miled')
+  assert.equal(brokenMe.body.state.user.name, 'Amina')
   assert.equal(existsSync(statePath), true)
   meForcedStatus = null
   assert.equal(readState().token, TOKEN)
@@ -1212,7 +1212,7 @@ try {
     const r = await hit('/kybernos-cloud/kyber', 'GET', 'http://127.0.0.1:3080')
     assert.equal(r.status, 200)
     assert.equal(r.body.connected, true)
-    assert.deepEqual(r.body.telegram, { configured: true, enabled: true, bot: 'kybernos_bot', linked: { display: 'Miled @alex', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } })
+    assert.deepEqual(r.body.telegram, { configured: true, enabled: true, bot: 'kybernos_bot', linked: { display: 'Amina @alex', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } })
     // `manual_control` is true when the server does not say (an older server): the buttons stay; false (the Free plan) hides them.
     assert.deepEqual(r.body.home, { id: 'cmp-home', name: 'Home', state: 'suspended', desired: 'suspended', mode: 'sleep', region: 'ams', last_active_at: '2026-10-14T22:50:00.000Z', version: 'p12', network: 'public', paused_reason: null, manual_control: true })
     assert.deepEqual(r.body.computers, [{ id: 'cmp-home', name: 'Home', state: 'suspended' }], 'the person\'s cloud computers, to choose among')
@@ -3286,7 +3286,12 @@ try {
   assert.equal(down.body.ok, false)
   assert.equal(down.body.error, 'reseau', 'a server that cannot be reached is « reseau » (the card says so), not « the server refused »')
   assert.equal(existsSync(statePath), false)
-  ok('API injoignable : echec explicite (reseau), aucun etat ecrit')
+  // R-V-06: the sign-in card names the server that does not answer (label and host, never the full address) and says whether another one can be chosen.
+  assert.ok(down.body.server !== null && typeof down.body.server === 'object' && typeof down.body.server.name === 'string' && down.body.server.name !== '', 'the unreachable server has a name')
+  assert.equal(down.body.server.host, '127.0.0.1:1', 'and its host, without the scheme or a path')
+  assert.equal(typeof down.body.server.can_switch, 'boolean', 'and the card is told whether another server is registered')
+  assert.equal(Object.keys(down.body.server).sort().join(), 'can_switch,host,name', 'and nothing else of the server (no address, no token)')
+  ok('API injoignable : echec explicite (reseau), aucun etat ecrit, le serveur est nomme (R-V-06)')
 
   // 13. Kaby as a native DSH conversation (kyby-native.mjs): which session is Kaby's, who Kaby is there, and nothing of it anywhere else.
   {

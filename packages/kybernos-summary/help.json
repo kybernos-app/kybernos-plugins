@@ -25,5 +25,6 @@
   "good": {
     "fr": "Tout est lu dans ton navigateur, à partir de ce que le chat contient déjà : rien n'est stocké ni envoyé.",
     "en": "Everything is read in your browser from what the chat already holds: nothing is stored or sent."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
 }

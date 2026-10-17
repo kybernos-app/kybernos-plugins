@@ -82,6 +82,17 @@ console.log('V-41 — a server that does not answer')
     assert.equal(serverDownNote(odd, t), null, 'no server named, or not an unreachable server: the caller keeps its own sentence ' + JSON.stringify(odd))
   ok('serverDownNote: names the server (label, host) and says whether another can be chosen; null when the answer names none')
 
+  // R-V-06: the sign-in card says the same when the pairing cannot start (the host's word for it is 'reseau', with the server named).
+  const signIn = { srvDownSignIn: 'The server “{name}” ({host}) does not answer. Check the connection, or choose another server, then try again.' }
+  const downSignIn = { ok: false, status: 0, error: 'reseau', server: { name: 'Kybernos (local)', host: '127.0.0.1:9', can_switch: true } }
+  assert.deepEqual(serverDownNote(downSignIn, (k) => signIn[k], 'srvDownSignIn'), { text: 'The server “Kybernos (local)” (127.0.0.1:9) does not answer. Check the connection, or choose another server, then try again.', canSwitch: true })
+  assert.equal(serverDownNote({ ok: false, error: 'reseau' }, (k) => signIn[k], 'srvDownSignIn'), null, 'a network error that names no server keeps the card\'s own sentence')
+  assert.equal(serverDownNote({ ok: false, error: 'trop_de_demandes', server: downSignIn.server }, (k) => signIn[k], 'srvDownSignIn'), null, 'only an unreachable server is named: a rate limit is not')
+  assert.ok(frKeys.has('srvDownSignIn') && enKeys.has('srvDownSignIn'), 'srvDownSignIn exists in French and in English')
+  assert.ok(/serverDownNote\(view, t, 'srvDownSignIn'\)/.test(source) && /'data-kb': 'card-switch-server'/.test(source), 'the sign-in card names the server and carries « Switch server »')
+  assert.equal((source.match(/server: res\.server/g) || []).length, 3, 'the three ways the card reaches its error phase (start, poll after expiry, poll) carry the server the host named')
+  ok('R-V-06: the sign-in card names the server that does not answer, in both languages, with « Switch server » when another exists')
+
   assert.ok(/const down = serverDownNote\(r, t\)/.test(source), 'the account page notice uses it')
   assert.ok(/'data-kb': 'foot-switch-server'/.test(source) && /openServersPage\(\)/.test(source), 'the notice carries « Switch server »')
   const helper = source.indexOf('const ouvrirReglagesCompte')

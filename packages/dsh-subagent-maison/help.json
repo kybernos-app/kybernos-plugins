@@ -25,5 +25,6 @@
   "good": {
     "fr": "Désactiver ce module retire les quatre connecteurs : la page Workers le dira au lieu d'allumer quelque chose qui ne se charge pas.",
     "en": "Turning this module off removes the four connectors: the Workers page will say so instead of turning on something that cannot load."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/agents-and-tools/call-other-coding-assistants/"
 }

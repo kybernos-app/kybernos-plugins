@@ -16,7 +16,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { openLivePage } from './live-page.mjs'
+import { openLivePage, openSettings, goToSettingsPage, waitFor } from './live-page.mjs'
 import { dshHome } from './dsh-home.mjs'
 import { helpSource, describeHelpSource } from './lib-help-source.mjs'
 
@@ -53,26 +53,23 @@ const PAGES = [
 // Pages that already had a help of their own: the shared button must not double it.
 const OWN_HELP = [['Atlas', 'kybernos-atlas'], ['Language', 'kybernos-language'], ['Auto Routing', 'kybernos-auto']]
 
-const openSettings = async () => {
-  await val(`document.querySelector('[class*="settingsArea"] button[class*="trigger"]').click()`)
-  return poll(() => val(`/Back to workspace/.test(document.body.innerText)`), 8000)
-}
-const goTo = async (label) => {
-  const ok = await val(`(() => { const b = Array.from(document.querySelectorAll('button[class*="navCell"]')).find((x) => x.innerText.trim().split('\\n')[0] === ${JSON.stringify(label)}); if (!b) return false; b.click(); return true })()`)
-  await sleep(1800)
-  return ok
-}
+// A page of the Settings menu: the cell is awaited and pressed, and pressed again when the page's own marker does not come (a press lost to a redraw).
+const goTo = (label, marker) => goToSettingsPage(page, label, marker === undefined ? { settleMs: 1800 } : { marker, markerMs: 8000 })
 const helpButton = (id) => val(`!!document.querySelector('[data-kb="help-button"][data-id="${id}"]')`)
 const panelText = () => val(`(document.querySelector('[data-kb="help-panel"]') || { innerText: '' }).innerText.replace(/\\n+/g, ' | ')`)
+// The card is drawn a moment after the press; wait for the text the check will look for (the last text read is what the check then reports).
+const panelWith = async (needle) => { await poll(async () => (typeof needle === 'function' ? needle(String(await panelText())) : String(await panelText()).includes(needle)), 8000); return panelText() }
+const panelClosed = () => poll(() => val(`!document.querySelector('[data-kb="help-panel"]')`), 4000)
+const helpSel = (id, page) => `!!document.querySelector('[data-kb="help-button"][data-id="${id}"]${page === undefined ? '' : `[data-page="${page}"]`}')`
 
 let source = null
 try {
-  await sleep(3000)
+  await waitFor(page, 'document.readyState === "complete" && document.body && document.body.innerText.length > 40', 30000)
   if ((await val(`/Add an API key to get started/.test(document.body.innerText)`)) === true) {
     const pos = await val(`(() => { const e = Array.from(document.querySelectorAll('*')).filter((e) => e.children.length === 0 && (e.innerText || '').trim() === 'Configure later')[0]; if (!e) return null; const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.x + r.width / 2, y: r.y + r.height / 2 }) })()`)
     if (typeof pos === 'string') { const { x, y } = JSON.parse(pos); await mouse(x, y); await sleep(700) }
   }
-  check('Settings open', (await openSettings()) === true)
+  check('Settings open', (await openSettings(page, { tries: 3 })) === true)
   source = helpSource({ repo: REPO, home: dshHome() })
   console.log('  ○ ' + describeHelpSource(source))
   const suiteDoc = await val(`fetch('/kybernos-hub/suite').then((r) => r.json()).catch(() => null)`)
@@ -87,20 +84,18 @@ try {
   console.log('\n── the button on each page ──')
   for (const [label, dir] of PAGES) {
     const h = helpOf(dir)
-    const went = await goTo(label)
+    const went = await goTo(label, helpSel(dir))
     const there = went ? await poll(() => helpButton(dir), 8000) : false
     check(label + ' — the page opens and carries the « ? How it works » button', went === true && there === true, { went, there })
     if (there !== true) continue
     await val(`document.querySelector('[data-kb="help-button"][data-id="${dir}"]').click()`)
-    await sleep(500)
-    const t = await panelText()
+    const t = await panelWith(h.what.en)
     check(label + ' — it opens a card with what the plugin does, every step, where to find it', typeof t === 'string' && t.includes(h.what.en) && h.steps.every((s) => t.includes(s.en)) && t.includes(h.where.en), t)
     if (h.good) check(label + ' — … and the thing worth knowing', t.includes(h.good.en), t)
     if (dir === 'kybernos-theme') await shot('help-theme')
     if (dir === 'kybernos-maintenance') await shot('help-about')
     await key('Escape', 'Escape', 27)
-    await sleep(300)
-    check(label + ' — Escape closes the card', (await val(`!document.querySelector('[data-kb="help-panel"]')`)) === true)
+    check(label + ' — Escape closes the card', (await panelClosed()) === true)
   }
 
   console.log('\n── a page of a bundle that owns several pages (Voice) ──')
@@ -108,19 +103,17 @@ try {
     const core = helpOf('kybernos-plugin')
     const v = core.pages.voice
     const sel = '[data-kb="help-button"][data-id="kybernos-plugin"][data-page="voice"]'
-    const went = await goTo('Voice')
+    const went = await goTo('Voice', `!!document.querySelector('${sel}')`)
     const there = went ? await poll(() => val(`!!document.querySelector('${sel}')`), 8000) : false
     check('Voice — the page opens and carries its own « ? How it works » button', went === true && there === true, { went, there })
     if (there === true) {
       await val(`document.querySelector('${sel}').click()`)
-      await sleep(500)
-      const t = await panelText()
+      const t = await panelWith(v.what.en)
       check('Voice — the card is the page’s own: what it does, every step, where, the thing worth knowing', t.includes(v.what.en) && v.steps.every((x) => t.includes(x.en)) && t.includes(v.where.en) && t.includes(v.good.en), t)
       check('Voice — …and not the core bundle’s general help (Agent Teams)', !t.includes(core.what.en), t)
       await shot('help-voice')
       await key('Escape', 'Escape', 27)
-      await sleep(300)
-      check('Voice — Escape closes the card', (await val(`!document.querySelector('[data-kb="help-panel"]')`)) === true)
+      check('Voice — Escape closes the card', (await panelClosed()) === true)
     }
   }
 
@@ -131,39 +124,52 @@ try {
   }
 
   console.log('\n── French ──')
-  await goTo('Theme')
+  await goTo('Theme', helpSel('kybernos-theme'))
+  await poll(() => helpButton('kybernos-theme'), 8000)
   // Both the resolver and the document language: the core rewrites French phrases to English on Settings pages while the document is English.
   await val(`window.__kbOrig = window.__KB_LANG_RESOLVE__; window.__kbLang = document.documentElement.lang; window.__KB_LANG_RESOLVE__ = () => 'kybernos'; document.documentElement.lang = 'fr'`)
   await val(`document.querySelector('[data-kb="help-button"][data-id="kybernos-theme"]').click()`)
-  await sleep(500)
-  const fr = await panelText()
   const th = helpOf('kybernos-theme')
   // The core rewrites « » to “ ” on Settings pages while the document language is still English (it is only the resolver
   // that this check forces to French): compare without quotation marks or spaces.
   const flat = (t) => String(t).replace(/[«»“”"\s]/g, '')
+  const fr = await panelWith((t) => flat(t).includes(flat(th.what.fr)))
   check('the card is in French: the French text, not the English one', flat(fr).includes(flat(th.what.fr)) && th.steps.every((s) => flat(fr).includes(flat(s.fr))) && fr.toLowerCase().includes('comment l’utiliser') && !fr.includes(th.what.en), { what: flat(fr).includes(flat(th.what.fr)), steps: th.steps.map((s) => flat(fr).includes(flat(s.fr))) })
   await shot('help-theme-fr')
   await val(`window.__KB_LANG_RESOLVE__ = window.__kbOrig; document.documentElement.lang = window.__kbLang`)
   await key('Escape', 'Escape', 27)
 
   console.log('\n── the module’s page in the Suite ──')
-  await goTo('Kybernos Suite')
-  await sleep(1500)
-  const opened = await val(`(() => { const c = document.querySelector('[data-kb="suite-card"][data-id="kybernos-models"]'); if (!c) return false; c.click(); return true })()`)
-  await sleep(1500)
-  const sa = await val(`(document.querySelector('[data-kb="suite-aide"]') || { innerText: '' }).innerText.replace(/\\n+/g, ' | ')`)
+  // The Suite draws a skeleton until the host has answered (a few ms by hand, seconds on a busy machine): the card is awaited, pressed, and the module's page awaited.
+  const cardSel = `document.querySelector('[data-kb="suite-card"][data-id="kybernos-models"]') !== null`
+  await goTo('Kybernos Suite', cardSel)
+  await poll(() => val(cardSel), 20000)
   const sl = helpOf('kybernos-models')
+  const aideText = () => val(`(document.querySelector('[data-kb="suite-aide"]') || { innerText: '' }).innerText.replace(/\\n+/g, ' | ')`)
+  let opened = false
+  // A press on the card that landed while the page was being redrawn opens nothing: press again until the module's page is there.
+  for (let i = 0; i < 3 && !opened; i += 1) {
+    await val(`(() => { const c = document.querySelector('[data-kb="suite-card"][data-id="kybernos-models"]'); if (!c) return false; c.click(); return true })()`)
+    opened = (await poll(async () => String(await aideText()).includes(sl.where.en), 6000)) === true
+  }
+  const sa = await aideText()
   check('a module’s page shows how to use it, where to find it, and the thing worth knowing', opened === true && sl.steps.every((s) => sa.includes(s.en)) && sa.includes(sl.where.en) && (!sl.good || sa.includes(sl.good.en)), sa)
   await shot('help-suite-fiche')
 
   console.log('\n── the Skills page (not in Settings) ──')
-  await val(`(() => { const b = Array.from(document.querySelectorAll('button')).find((x) => /Back to workspace/.test(x.innerText)); if (b) b.click() })()`)
-  await sleep(1200)
+  await poll(() => val(`(() => { const b = Array.from(document.querySelectorAll('button')).find((x) => /Back to workspace/.test(x.innerText)); if (!b) return false; b.click(); return true })()`), 8000)
+  await poll(() => val(`!/Back to workspace/.test(document.body.innerText)`), 6000)
   // The sidebar row is a button: take the visible « Skills » leaf that sits inside a button in the left part of the window, not the first leaf
   // of that name anywhere in the DOM (a heading, a hidden page).
-  const pos = await val(`(() => { const hits = Array.from(document.querySelectorAll('*')).filter((e) => e.children.length === 0 && (e.innerText || '').trim() === 'Skills' && e.getBoundingClientRect().width > 3 && e.closest('button, [role=button]') !== null).map((e) => e.closest('button, [role=button]')).filter((b) => b.getBoundingClientRect().x < 400 && b.getBoundingClientRect().height > 3); if (hits.length === 0) return null; const r = hits[0].getBoundingClientRect(); return JSON.stringify({ x: r.x + r.width / 2, y: r.y + r.height / 2 }) })()`)
-  if (typeof pos === 'string') { const { x, y } = JSON.parse(pos); await mouse(x, y); await sleep(2500) }
-  check('the Skills page carries the button and its card is the skills help', (await poll(() => helpButton('kybernos-skills'), 8000)) === true)
+  const skillsRow = () => val(`(() => { const hits = Array.from(document.querySelectorAll('*')).filter((e) => e.children.length === 0 && (e.innerText || '').trim() === 'Skills' && e.getBoundingClientRect().width > 3 && e.closest('button, [role=button]') !== null).map((e) => e.closest('button, [role=button]')).filter((b) => b.getBoundingClientRect().x < 400 && b.getBoundingClientRect().height > 3); if (hits.length === 0) return null; const r = hits[0].getBoundingClientRect(); return JSON.stringify({ x: r.x + r.width / 2, y: r.y + r.height / 2 }) })()`)
+  // The row is awaited (the sidebar is redrawn when the dialog closes), pressed with a real click, and pressed again when the page did not come.
+  let skillsPage = false
+  for (let i = 0; i < 3 && !skillsPage; i += 1) {
+    const pos = await poll(skillsRow, 10000)
+    if (typeof pos === 'string') { const { x, y } = JSON.parse(pos); await mouse(x, y) }
+    skillsPage = (await poll(() => helpButton('kybernos-skills'), 8000)) === true
+  }
+  check('the Skills page carries the button and its card is the skills help', skillsPage === true)
 } catch (e) {
   fail += 1
   console.log('  ✗ the check stopped: ' + e.message)

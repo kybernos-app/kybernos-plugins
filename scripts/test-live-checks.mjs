@@ -107,7 +107,8 @@ console.log('the live checks do not go stale on the things the audit found movin
   check('check-usage-live reads the price in the format of the interface language (« 0,04 $ » in French, « $0.04 » otherwise)', /frenchAmounts/.test(usage) && /\\\$\\d\\\.\\d\\d/.test(usage))
   const helpLive = read('scripts/check-help-live.mjs')
   check('check-help-live compares each card with the text its own host serves and says which source that is', /\/kybernos-hub\/suite/.test(helpLive) && /text compared with: /.test(helpLive) && /closest\('button, \[role=button\]'\)/.test(helpLive))
-  check('check-icons-live waits for the Suite cards, not for a fixed delay', /waitFor\(page, `document\.querySelectorAll\('\[data-kb="suite-card"\], \[data-kb="suite-row"\]'\)\.length > 0`/.test(read('scripts/check-icons-live.mjs')))
+  const icons = read('scripts/check-icons-live.mjs')
+  check('check-icons-live waits for the Suite cards (and presses the Suite entry again when they do not come), not for a fixed delay', /const cardsSel = `document\.querySelectorAll\('\[data-kb="suite-card"\], \[data-kb="suite-row"\]'\)\.length > 0`/.test(icons) && /goToSettingsPage\(page, \/suite\/i, \{ marker: cardsSel/.test(icons) && !/\bsleep\(/.test(icons))
   const footer = read('scripts/check-footer-live.mjs')
   check('check-footer-live waits by event: press waits for its target, the reload waits for the NEW page, a recorded click is waited for', /const until = async/.test(footer) && /window\.__kbStale === undefined/.test(footer) && /\(await openedCount\(\)\) > n/.test(footer))
   check('check-automations-board-live holds the board request until it has looked at the skeleton (no timed hold)', /held\.push\(p\.requestId\)/.test(read('scripts/check-automations-board-live.mjs')) && !/holdMs/.test(read('scripts/check-automations-board-live.mjs')))
@@ -147,6 +148,47 @@ console.log('the Featured cover check expects what the host serves, not what is 
   const m = /const withCover = ([^\n]*)\n/.exec(src)
   check('the number of covers to expect is read from the picks answer the page is shown', m !== null && /shownPicks\.items\.filter/.test(m[1]), m === null ? null : m[1])
   check('...and the answer is the host\'s own when the host serves the route', /const shownPicks = hostHasPicks === true \? hostPicks : picksAnswer/.test(src))
+}
+
+console.log('the live checks of R3-06 keep the habits that make them re-runnable')
+{
+  const onboarding = read('scripts/check-onboarding-live.mjs')
+  check('check-onboarding-live puts the sandbox back to a FINISHED first run, even when it started from an open wizard (R-A6-03)', /const FINISHED_FIRST_RUN = /.test(onboarding) && /JSON\.parse\(had\)\.completed === true \? had : FINISHED_FIRST_RUN/.test(onboarding) && /writeFileSync\(join\(dshHome, 'kybernos\/onboarding\.json'\), onboardingBackup\)/.test(onboarding))
+  check('... always ends with its verdict (finally, a signal, an exception nobody caught)', /verdict\(\) \/\/ in the finally/.test(onboarding) && /process\.on\('uncaughtException'/.test(onboarding) && /for \(const sig of \['SIGINT', 'SIGTERM'\]\)/.test(onboarding))
+  check('... reads the starter kit\'s rows only once the kit has read what is installed (R-A6-04)', /const kitLoaded = await waitFor\(page, `\[\.\.\.document\.querySelectorAll\('\.kb-ob-kit'\)\]\.some\(\(r\) => r\.querySelector\('b'\)\.textContent === 'pdf' && r\.classList\.contains\('done'\)\)`, 30000\)/.test(onboarding) && onboarding.indexOf('const kitLoaded') < onboarding.indexOf('const kitRows ='))
+  const connections = read('scripts/check-connections-live.mjs')
+  check('check-connections-live waits for the rows (pressing the mode again while the list is empty) and stops on one readable line when they never come (R-A3-01)', /for \(let i = 0; i < 3 && listed === null; i \+= 1\)/.test(connections) && /const stop = \(why\) =>/.test(connections) && /e\.readable === true/.test(connections) && !/\)\.find\(\(r\) => \/(Linear|Notion)\/\.test\(r\.name\)\)\.id/.test(connections))
+  const display = read('scripts/check-display-live.mjs')
+  check('check-display-live opens the drawer with the profile card on screen and names the panels as the English UI does (A1-17)', /async drawer\(ready\)/.test(display) && /c\.drawer\(CARD\)/.test(display) && /\['Bricks', '\.kbb-root'\], \['3D modeller', '\.kbmo'\]/.test(display) && !/'Briques'/.test(display.replace(/\/\/[^\n]*/g, '')))
+  const footer = read('scripts/check-footer-live.mjs')
+  check('check-footer-live reads a menu once it has stopped changing, records every link click with a retry, and waits for the settings seam and the cells (R-V-05, A1-26)', /const entries = async \(menuSel\)/.test(footer) && /attempt < 3 && \(await openedCount\(\)\) <= n/.test(footer) && /const openDshSettings = async/.test(footer) && /await until\(\(\) => val\(`\(\(\) => \{ const c = Array\.from\(document\.querySelectorAll\('\[class\*="navCell"\]'\)\)/.test(footer))
+  const help = read('scripts/check-help-live.mjs')
+  check('check-help-live presses a Settings page again until its button is there, waits for the card and for the Suite cards, and finds the Skills row by waiting (A1-26)', /goToSettingsPage\(page, label/.test(help) && /const panelWith = async/.test(help) && /const cardSel = `document\.querySelector\('\[data-kb="suite-card"\]\[data-id="kybernos-models"\]'\) !== null`/.test(help) && /const skillsRow = /.test(help))
+  const usage = read('scripts/check-usage-live.mjs')
+  check('check-usage-live awaits the ledger, the controls and the budget instead of sleeping before each read (A1-26)', /goToSettingsPage\(page, 'Usage'/.test(usage) && /const pressAct = /.test(usage) && !/await sleep\((300|200|600|700)\)/.test(usage.replace(/await mouse\(x, y\); await sleep\(700\)/, '')))
+}
+
+console.log('goToSettingsPage waits for the cell and for the page, and presses again when the press was lost (R3-06)')
+{
+  const { goToSettingsPage } = await import('./live-page.mjs')
+  // A stub page: the pressing expression (it contains « .click() ») answers from `cell`, the marker expression from `marker`; each answer is consumed in turn.
+  const stub = (cell, marker) => {
+    const log = { presses: 0, markers: 0 }
+    return { log, evalJs: async (expr) => {
+      if (/\.click\(\)/.test(expr)) { const v = cell.length > 0 ? cell.shift() : false; if (v) log.presses += 1; return { val: v } }
+      log.markers += 1
+      return { val: marker.length > 0 ? marker.shift() : false }
+    } }
+  }
+  const a = stub([false, false, true], [true])
+  check('the cell is awaited: not drawn at first, then pressed once, then the marker', (await goToSettingsPage(a, 'Usage', { marker: 'ready()', cellMs: 3000, markerMs: 3000 })) === true && a.log.presses === 1, a.log)
+  const b = stub([true, true], [false, false, true])
+  check('a press that did not bring the page is repeated, and the second one does', (await goToSettingsPage(b, 'Usage', { marker: 'ready()', cellMs: 1000, markerMs: 500 })) === true && b.log.presses === 2, b.log)
+  const c = stub([], [])
+  check('a cell that never comes is a false, not a hang and not a throw', (await goToSettingsPage(c, 'Usage', { tries: 2, cellMs: 400 })) === false && c.log.presses === 0, c.log)
+  const d = stub([true], [])
+  check('without a marker it resolves once the cell was pressed', (await goToSettingsPage(d, 'Usage', { settleMs: 0 })) === true && d.log.presses === 1, d.log)
+  check('a RegExp label is carried to the page as a pattern, not as text', await (async () => { let seen = ''; await goToSettingsPage({ evalJs: async (e) => { seen = e; return { val: true } } }, /suite/i, { settleMs: 0 }); return /new RegExp\("suite", "i"\)/.test(seen) })())
 }
 
 console.log('\n' + (failed === 0 ? 'ALL GREEN' : String(failed) + ' FAILED'))

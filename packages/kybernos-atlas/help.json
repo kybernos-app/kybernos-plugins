@@ -29,5 +29,6 @@
   "good": {
     "fr": "Atlas ne fait que lire : rien n’est modifié. Sa dernière lecture est gardée dans ce navigateur, la page s’ouvre donc dessus.",
     "en": "Atlas only reads: nothing is changed. Its last reading is kept in this browser so the page opens on it."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
 }

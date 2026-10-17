@@ -390,7 +390,17 @@ function makeCtx(page, size, scheme) {
       })()`
       let r = await page.evalJs(lookup, 8000)
       while (!r.val && Date.now() < deadline) { await sleep(250); r = await page.evalJs(lookup, 8000) }
-      if (!r.val) { if (opts.quiet !== true) missing.push({ size, scheme, scenario: current, why: 'not found: ' + JSON.stringify(spec) }); return false }
+      if (!r.val) {
+        if (opts.quiet !== true) {
+          // A step that cannot be done keeps a picture of the page it met, so the reason is read from the page and not guessed.
+          const at = join('shots', ('missing-' + size + '-' + scheme + '-' + current + '-' + (missing.length + 1)).replace(/[^a-zA-Z0-9._-]+/g, '_') + '.png')
+          try { await page.shot(join(OUT, at)) } catch (e) { /* no picture */ }
+          // and the names of the controls in the top bar of the page, which is where a pane that covers the sidebar shows its way out
+          const bar = (await page.evalJs(`Array.from(document.querySelectorAll('button, [role=button]')).filter((b) => { const r = b.getBoundingClientRect(); return r.width > 4 && r.top >= 0 && r.top < 60 }).map((b) => b.getAttribute('aria-label') || (b.innerText || '').trim().slice(0, 20)).filter(Boolean).slice(0, 12).join(' | ')`, 4000)).val
+          missing.push({ size, scheme, scenario: current, why: 'not found: ' + JSON.stringify(spec) + (typeof bar === 'string' && bar !== '' ? ' (top bar: ' + bar + ')' : ''), shot: at })
+        }
+        return false
+      }
       await mouse(page, r.val.x, r.val.y)
       await sleep(opts.wait === undefined ? 700 : opts.wait)
       return true
@@ -416,14 +426,29 @@ function makeCtx(page, size, scheme) {
       await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: name, code: name, windowsVirtualKeyCode: code })
       await sleep(350)
     },
-    async drawer() { // at 390 px the sidebar is a drawer
-      if (size !== 'narrow') return
-      const isOpen = async () => (await page.evalJs(`document.querySelector('[data-sidebar-collapsed]') === null && document.querySelector('[data-shell-overlay]') !== null`)).val === true
-      // Right after a load the menu button may not be drawn yet and the shell has no state to read: wait for the button before deciding.
-      await waitFor(page, `document.querySelector('[data-kb="mobile-menu"]') !== null`, 8000)
-      if (await isOpen()) return
-      await ctx.click({ css: '[data-kb="mobile-menu"]' }, { wait: 300 })
-      await waitFor(page, `document.querySelector('[data-sidebar-collapsed]') === null && document.querySelector('[data-shell-overlay]') !== null`, 4000)
+    /** At 390 px the sidebar is a drawer. `ready` (a CSS selector inside it, e.g. the profile card) must be ON SCREEN once the drawer is open: the shell
+     *  redraws its footer a moment after a load (the account answer arrives), which can close a drawer that was opened too early. When it is not there the
+     *  page is reloaded and the drawer opened again (three tries), so the views that live in the drawer are measured or reported, never skipped for a timing. */
+    async drawer(ready) {
+      if (size !== 'narrow') return true
+      const openNow = `document.querySelector('[data-sidebar-collapsed]') === null && document.querySelector('[data-shell-overlay]') !== null`
+      const isOpen = async () => (await page.evalJs(openNow)).val === true
+      const onScreen = ready === undefined ? null : `(() => { const e = document.querySelector(${JSON.stringify(ready)}); if (!e) return false; const r = e.getBoundingClientRect(); return r.width > 4 && r.left >= 0 && r.right <= innerWidth + 1 && getComputedStyle(e).visibility === 'visible' })()`
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        // A right pane that a reload brought back covers the page at 390 px (a full-screen sheet over the menu button): it is put away first.
+        await putPaneAway(ctx)
+        // Right after a load the menu button may not be drawn yet and the shell has no state to read: wait for the button before deciding.
+        await waitFor(page, `document.querySelector('[data-kb="mobile-menu"]') !== null`, 8000)
+        // What the drawer will hold is drawn before it is opened (an account card that arrives later would be drawn into a drawer that closed).
+        if (ready !== undefined) await waitFor(page, `document.querySelector(${JSON.stringify(ready)}) !== null`, 15000)
+        if (!(await isOpen())) {
+          await ctx.click({ css: '[data-kb="mobile-menu"]' }, { wait: 300, quiet: attempt < 2 })
+          await waitFor(page, openNow, 4000)
+        }
+        if (onScreen === null || (await waitFor(page, onScreen, 3000)) !== null) return true
+        if (attempt < 2) await reload(page)
+      }
+      return false
     },
     /** Measure the page as it is now, outline the offenders on a screenshot. */
     async audit(label, opts = {}) {
@@ -477,6 +502,8 @@ async function setScheme(ctx, scheme) {
 
 // ── what is walked ──────────────────────────────────────────────────────────────────────────────────────────────
 // (DSH's own « Automation tasks » list is hidden by the Kybernos Automations page: the sidebar has no such row any more, so it is not walked.)
+// The profile card of the sidebar footer (signed in): at 390 px it lives in the drawer.
+const CARD = '[data-kb="workspace-card"] .kbfp-cardmain'
 const SIDEBAR_PAGES = ['Agent Teams', 'Workspaces', 'Creations', 'Automations', 'Skills', 'Connectors']
 const COMPOSER = [
   { label: 'Add files or run commands' }, { label: 'Commands: browse' }, { label: 'Access mode' }, { label: 'Execution environment' },
@@ -485,6 +512,23 @@ const COMPOSER = [
 const slug = (t, n = 22) => String(t).replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, n)
 const hasNav = (c) => c.page.evalJs(`!!Array.from(document.querySelectorAll('button[class*="navCell"]')).find((b) => b.getBoundingClientRect().width > 4)`).then((r) => r.val === true)
 async function ensureSettings(c) { if (!(await hasNav(c))) { await reload(c.page); await openSettings(c.page, { tries: 3 }) } }
+
+// The right pane stays open across reloads, and at 390 px it is a full-screen sheet over the whole page, drawer button included. A person leaves it with « Exit
+// fullscreen », then « Collapse right sidebar », or by closing its tabs: the same is done here until the page's own menu button can be reached again (narrow), or once (desktop).
+const menuButtonReachable = (c) => c.page.evalJs(`(() => { const b = document.querySelector('[data-kb="mobile-menu"]'); if (!b) return false; const r = b.getBoundingClientRect(); if (r.width < 4) return false; const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return t === b || b.contains(t) })()`).then((r) => r.val === true)
+async function putPaneAway(c) {
+  // Nothing to do (and no « Close » to press: it could be the one of a dialog) when no pane is on the page.
+  const paneShown = () => c.page.evalJs(`(() => { const e = document.querySelector('[data-sidebar-right-panel]'); return !!e && e.getBoundingClientRect().width > 4 })()`).then((r) => r.val === true)
+  if (!(await paneShown())) return true
+  for (let i = 0; i < 6; i += 1) {
+    if (c.size === 'narrow' && await menuButtonReachable(c)) return true
+    for (const label of ['Exit fullscreen', 'Collapse right sidebar']) await c.click({ css: 'button', label }, { quiet: true, wait: 700 })
+    if (c.size !== 'narrow') return true
+    if (await menuButtonReachable(c)) return true
+    await c.click({ css: 'button', label: 'Close' }, { quiet: true, wait: 700 }) // a tab of the pane, one at a time
+  }
+  return c.size !== 'narrow' || await menuButtonReachable(c)
+}
 
 const SCENARIOS = [
   {
@@ -565,8 +609,10 @@ const SCENARIOS = [
       // The host keeps the pane and its tabs from one page to the next: a panel may already be open, or be a tab behind the active one.
       const openPanel = async (name, probe) => {
         if (await present(probe)) return true
-        if (await c.click({ css: '[role="tab"], button', text: name, minLeft: 700 }, { wait: 1800, quiet: true })) return true
-        return (await c.click({ css: 'button[aria-label="New tab"]' }, { wait: 900, quiet: true })) && (await c.click({ css: '[role="tab"], button', text: name, minLeft: 700 }, { wait: 1800 }))
+        // The panel's tabs are in the right pane, right of 700 px on a desktop window; at 390 px the pane takes the whole page.
+        const minLeft = c.size === 'narrow' ? 0 : 700
+        if (await c.click({ css: '[role="tab"], button', text: name, minLeft }, { wait: 1800, quiet: true })) return true
+        return (await c.click({ css: 'button[aria-label="New tab"]' }, { wait: 900, quiet: true })) && (await c.click({ css: '[role="tab"], button', text: name, minLeft }, { wait: 1800 }))
       }
       await c.click({ css: 'button[aria-label="Open right sidebar"]' }, { wait: 1500, quiet: true })
       if (await openPanel('Slides', '.kbsd-root')) {
@@ -577,9 +623,13 @@ const SCENARIOS = [
         if (title) { await dbl(title.x, title.y); await sleep(700); await c.audit('slides-editor', { shot: true }); await c.key('Escape') }
         else missing.push({ size: c.size, scheme: c.scheme, scenario: 'panels', why: 'no field to edit on the demo deck' })
       }
-      for (const [name, probe] of [['Briques', '.kbb-root'], ['Modeleur', '.kbmo']]) {
+      // The panels' tab names as the English UI draws them (« Bricks » was « Briques », « 3D modeller » was « Modeleur »): a name that is not found is listed as SKIPPED.
+      for (const [name, probe] of [['Bricks', '.kbb-root'], ['3D modeller', '.kbmo']]) {
         if (await openPanel(name, probe)) await c.audit(slug(name) + '-empty', { shot: true, wait: 1200 })
       }
+      // The pane stays open across reloads, and at 390 px it is a full-screen sheet that covers the whole page (the drawer and its card with it): it is put away, as a
+      // person would, so the next scenario starts from the page a person sees.
+      await putPaneAway(c)
       c.dirty = true
     },
   },
@@ -589,7 +639,10 @@ const SCENARIOS = [
       fake.cloud = CLOUD
       fake.remote = REMOTE.idle
       await reload(c.page)
-      await c.drawer()
+      // Whatever an earlier scenario left open in the right pane is put away first (at 390 px it covers the drawer).
+      await putPaneAway(c)
+      // The card sits in the closed drawer at 390 px: the drawer is opened with the card on screen, or the view is reported as not reached.
+      if (!(await c.drawer(CARD))) missing.push({ size: c.size, scheme: c.scheme, scenario: 'account', why: 'the profile card did not come on screen in the drawer (' + CARD + ')' })
       await c.audit('card', { shot: true, wait: 1200 })
       // The reminder that an update is waiting (kybernos-maintenance announces it; here it is announced by hand).
       await c.page.evalJs(`window.__kbUpdate = { cible: '1.0.0-beta.9', kind: 'suite', version: '1.0.0-beta.9' }; window.dispatchEvent(new Event('kybernos:update'))`)
@@ -599,26 +652,43 @@ const SCENARIOS = [
         if (await c.click({ css: 'button', label: lab }, { quiet: true })) { await c.audit('footer-' + slug(lab)); await c.key('Escape') }
       }
       await reload(c.page)
-      await c.drawer()
-      if (await c.click({ css: '.kbfp-cardmain' }, { patience: 8000 })) {
+      await c.drawer(CARD)
+      if (await c.click({ css: CARD }, { patience: 8000 })) {
         await c.audit('menu', { shot: true })
-        if (await c.click({ css: '[data-kb="menu-switch"]' }, { quiet: true })) await c.audit('switcher', { shot: true })
+        // The account has two workspaces: the switcher entry is there, and its absence is a finding (not a silent skip).
+        if (await c.click({ css: '[data-kb="menu-switch"]' }, { patience: 3000 })) await c.audit('switcher', { shot: true })
       }
       await reload(c.page)
       // The phone panel, in each state the host can answer.
       for (const [name, remote] of [['idle', REMOTE.idle], ['qr', REMOTE.qr], ['verify', REMOTE.verify], ['devices', REMOTE.devices], ['paywall', REMOTE.paywall]]) {
         fake.remote = remote
         await reload(c.page)
-        await c.drawer()
-        // The phone link is the « Remote control » entry of the profile menu (the footer's own phone button is gone).
-        if (await c.click({ css: '[data-kb="workspace-card"] .kbfp-cardmain' }, { quiet: true }) && await c.click({ css: '[data-kb="menu-remote"]' }, { quiet: true })) await c.audit('phone-' + name, { shot: true, wait: 1500 })
+        await c.drawer(CARD)
+        // The phone link is the « Remote control » entry of the profile menu (the footer's own phone button is gone). The entry is there only for a plan that
+        // includes the link (kybernos-cloud): for the plan that does not, its absence is what is expected and the paywall is measured in Settings instead.
+        const opened = await c.click({ css: CARD }, { patience: 8000 })
+        if (name === 'paywall') {
+          const entry = opened && (await c.page.evalJs(`document.querySelector('[data-kb="menu-remote"]') !== null`)).val === true
+          if (entry) missing.push({ size: c.size, scheme: c.scheme, scenario: 'account:phone-paywall', why: 'the profile menu offers Remote control to a plan that does not include it' })
+          continue
+        }
+        if (opened && await c.click({ css: '[data-kb="menu-remote"]' }, { patience: 3000 })) await c.audit('phone-' + name, { shot: true, wait: 1500 })
       }
+      // The paywall of the phone link is where a plan without it meets it: Settings › Remote Control.
+      fake.remote = REMOTE.paywall
+      await reload(c.page)
+      await c.drawer() // at 390 px the Settings trigger is in the drawer
+      if (await openSettings(c.page, { tries: 3 })) {
+        await c.drawer()
+        if (await c.click({ css: 'button[class*="navCell"]', text: 'Remote Control' })) await c.audit('settings-mobile-paywall', { shot: true, wait: 1500 })
+      } else missing.push({ size: c.size, scheme: c.scheme, scenario: 'account:settings-mobile-paywall', why: 'settings did not open' })
       fake.remote = REMOTE.devices
       await reload(c.page)
+      await c.drawer()
       if (await openSettings(c.page, { tries: 3 })) {
         await c.drawer()
         if (await c.click({ css: 'button[class*="navCell"]', text: 'Remote Control' })) await c.audit('settings-mobile', { shot: true, wait: 1500 })
-      }
+      } else missing.push({ size: c.size, scheme: c.scheme, scenario: 'account:settings-mobile', why: 'settings did not open' })
       fake.cloud = null
       fake.remote = null
       c.dirty = true
