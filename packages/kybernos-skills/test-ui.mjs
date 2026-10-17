@@ -165,7 +165,7 @@ const world = () => {
     const answer = (j) => ({ ok: true, status: 200, json: async () => j })
     if (w.answers[method + ' ' + path] !== undefined) return answer(typeof w.answers[method + ' ' + path] === 'function' ? w.answers[method + ' ' + path](body, u) : w.answers[method + ' ' + path])
     if (path === '/kybernos-skills/skills') return answer({ ok: true, skills: w.skills, roots: w.roots, complete: true })
-    if (path === '/kybernos-skills/index') return answer({ ok: true, view: 'all-time', page: 0, perPage: 50, total: w.ranking.length, hasMore: false, skills: w.ranking })
+    if (path === '/kybernos-skills/index') return answer({ ok: true, view: 'all-time', page: 0, perPage: 50, total: w.rankingTotal !== undefined ? w.rankingTotal : w.ranking.length, hasMore: false, skills: w.ranking })
     if (path === '/kybernos-skills/curated') return answer({ ok: true, owners: w.owners, totalOwners: w.owners.length, totalSkills: 5 })
     if (path === '/kybernos-skills/status') return answer({ ok: true, roots: [{ path: HOME, source: 'user-dsh', exists: true }, { path: '/home/u/.agents/skills', source: 'user-agents', exists: false }] })
     if (path === '/kybernos-skills/featured') return answer({ ok: true, items: [] })
@@ -396,6 +396,22 @@ console.log('The tab counts: a dash is not a count (C-08)')
   check('Discover has no dash before the index is read (the index is read when the tab opens)', seg('Discover') !== undefined && !textOf(seg('Discover')).includes('—') && textOf(seg('Discover')).trim() === 'Discover', textOf(seg('Discover')))
   await tab(root, 'Discover')
   check('and shows its count once it is known', /^Discover\s*3$/.test(textOf(seg('Discover')).trim()), textOf(seg('Discover')))
+}
+
+console.log('The Discover count is the size of the index, not the size of the page (R-W2-03)')
+{
+  const w = world(); w.rankingTotal = 93030
+  const root = await open(w)
+  await tab(root, 'Discover')
+  const seg = all(root, (n) => n.tag === 'button' && hasClass(n, 'kb-seg') && textOf(n).trim().startsWith('Discover'))[0]
+  check('the tab says the 93030 skills of the index, as the pager does', /^Discover\s*93030$/.test(textOf(seg).trim()), textOf(seg))
+}
+
+console.log('The Skills switches follow the accent token, not a literal blue (R-W2-01)')
+{
+  const css = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
+  check('.kb-sw.on and the focus borders read --kybernos-accent', /\.kb-sw\.on\{background:var\(--kybernos-accent,/.test(css) && /\.kbs-select:focus\{outline:none;border-color:var\(--kybernos-accent,/.test(css))
+  check('no --kb-switch-on variable (nothing ever set it, so every switch fell back to #4d7cfe)', !css.includes('--kb-switch-on'))
 }
 
 console.log('Discover: names that are cut can be read (R-A1-03)')
