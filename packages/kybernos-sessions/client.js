@@ -2684,8 +2684,11 @@ window.__ModuleLoader__.load({
         /* (29/09) « Composer microphone » now lives in the Voice page of the
            plugin bundle (same setting, same route /kybernos-sessions/settings)
            — next to the speech engine, where people go to look for it. */
-        h('div', { className: natif ? natif.row : 'kbr-row', 'data-kbr': 'brain' },
-          h('div', { className: natif ? natif.rowText : 'kbr-txt' },
+        // The select shows « Automatic — <provider/model> »: that sentence must read in full (audit R-V-01, a 240px cap cut it at
+        // « no model is conn… »). It takes the width of its longest option, up to the row; when the text beside it would be
+        // squeezed (a narrow dialog, a long model id) the row wraps and the select drops under the description.
+        h('div', { className: natif ? natif.row : 'kbr-row', 'data-kbr': 'brain', style: { flexWrap: 'wrap' } },
+          h('div', { className: natif ? natif.rowText : 'kbr-txt', style: { flex: '1 1 260px' } },
             h('div', { className: natif ? natif.title : undefined }, kt('Modèle d’étude', 'Study model')),
             h('div', { className: natif ? natif.desc : undefined }, vue.description)),
           h('select', {
@@ -2693,7 +2696,7 @@ window.__ModuleLoader__.load({
             // Recette 2026-10 (C-13/B6): 160px truncated the model names
             // (worse in RTL), and the title lived INSIDE style — never applied.
             // title as an attribute (tooltip = full name), width raised.
-            style: natif ? { minWidth: '150px', maxWidth: '240px' } : undefined, 'data-kbr': 'brain-select', 'aria-label': kt('Modèle d’étude', 'Study model'),
+            style: { minWidth: '150px', maxWidth: '100%' }, 'data-kbr': 'brain-select', 'aria-label': kt('Modèle d’étude', 'Study model'),
             title: brain === '' ? vue.libelleAuto : brain,
             value: brain,
             disabled: modeles === undefined,
