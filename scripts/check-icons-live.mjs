@@ -15,7 +15,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { openLivePage, waitFor } from './live-page.mjs'
+import { openLivePage, openSettings, goToSettingsPage, waitFor } from './live-page.mjs'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
@@ -54,30 +54,22 @@ check('every catalogue glyph name exists in the client palette', unknown.length 
 check('the client palette is non-trivial', paletteNames.length > 10, paletteNames.length)
 
 // ── live half ──────────────────────────────────────────────────────────────
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const live = await openLivePage({ width: 1500, height: 1000 }).catch((e) => { console.error('○ inconclusive: ' + e.message); process.exit(3) })
 const { page } = live
 try {
   await waitFor(page, 'document.readyState === "complete"', 15000)
-  await sleep(2500)
 
-  // Open Settings → Suite (the module grid).
-  await page.evalJs(`(() => { const b = document.querySelector('[class*="settingsArea"] button[class*="trigger"]'); if (b) b.click() })()`)
-  await sleep(1500)
-  const opened = await waitFor(page, `/back to workspace|retour au workspace/i.test(document.body.innerText)`, 8000)
-  check('Settings opened', opened !== null)
-
-  // Click the Suite entry (label varies: "Suite", "Kybernos Suite").
-  const clickedSuite = await page.evalJs(`(() => {
-    const cells = [...document.querySelectorAll('[class*="navCell"]')].filter(e => /suite/i.test((e.innerText||'').trim()))
-    if (!cells.length) return false
-    cells[0].scrollIntoView({block:'center'}); cells[0].click(); return true
-  })()`)
-  check('the Suite entry is in the Settings menu', clickedSuite.val === true, clickedSuite)
-  // The panel draws a skeleton until the host has answered (a few ms by hand, longer on a busy machine): wait for the cards themselves,
-  // not for a fixed delay, then for the skeleton to be gone.
-  const cardsUp = await waitFor(page, `document.querySelectorAll('[data-kb="suite-card"], [data-kb="suite-row"]').length > 0`, 20000)
-  check('the Suite panel draws its cards', cardsUp !== null)
+  // Open Settings → Suite (the module grid). Every step is awaited, never slept: the trigger and the menu's cells are drawn a moment after the page (longer on a
+  // busy machine), and the panel draws a skeleton until the host has answered. The Suite entry is pressed again when the cards do not come.
+  const opened = await openSettings(page, { tries: 3 })
+  check('Settings opened', opened === true)
+  const cardsSel = `document.querySelectorAll('[data-kb="suite-card"], [data-kb="suite-row"]').length > 0`
+  // (label varies: "Suite", "Kybernos Suite")
+  const wentSuite = await goToSettingsPage(page, /suite/i, { marker: cardsSel, markerMs: 20000 })
+  const entry = await page.evalJs(`[...document.querySelectorAll('[class*="navCell"]')].some((e) => /suite/i.test((e.innerText || '').trim()))`)
+  check('the Suite entry is in the Settings menu', entry.val === true, entry)
+  const cardsUp = wentSuite === true ? true : await waitFor(page, cardsSel, 5000)
+  check('the Suite panel draws its cards', cardsUp !== null && cardsUp !== false)
   await waitFor(page, `!document.querySelector('.kbsu [aria-busy="true"]')`, 5000)
 
   // evalJs returns { val } or { err } — read `.val`, never the envelope.
@@ -113,6 +105,8 @@ try {
   check('every tile is a gradient with a 64-grid drawing and its own colours', tl.length > 0 && tl.every((t) => t.grad && t.vb === '0 0 64 64' && t.from), tl.filter((t) => !(t.grad && t.vb === '0 0 64 64' && t.from)).slice(0, 3))
   const room = await page.evalJs(`(() => { const r = document.querySelector('.kbsu'); return r ? Math.round(r.getBoundingClientRect().width) : 0 })()`)
   check('the panel is wider than the 720px every other Settings page keeps to', room.val > 900, room.val)
+  // The link to a module's own Settings page exists once that page has registered its cell: awaited, not read once.
+  await waitFor(page, `document.querySelector('[data-kb="suite-card"][data-id="kybernos-models"] [data-kb="suite-reglages"]') !== null`, 10000)
   const jumped = await page.evalJs(`(() => { const b = document.querySelector('[data-kb="suite-card"][data-id="kybernos-models"] [data-kb="suite-reglages"]'); if (!b) return 'no link'; b.click(); return 'clicked' })()`)
   await waitFor(page, `!document.querySelector('.kbsu')`, 8000)
   const gone = await page.evalJs(`!document.querySelector('.kbsu')`)

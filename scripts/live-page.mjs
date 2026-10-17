@@ -214,6 +214,24 @@ export async function openSettings(page, opts = {}) {
 }
 
 /**
+ * Press a cell of DSH's Settings navigation and wait for the page it opens. Plugins retitle and add cells a moment after the dialog opens, and a busy
+ * machine only makes that moment longer, so a check never reads the menu once after a fixed delay: the cell is awaited (`cellMs`), pressed, and the page is
+ * awaited by `opts.marker` (a JS expression that turns truthy when the page is drawn); when the marker never comes (the press landed on a cell that was
+ * about to be redrawn) the cell is pressed again, `opts.tries` times in all. Without a marker it resolves once the cell was pressed and `settleMs` passed.
+ * `label` is the first line of the cell's text, or a RegExp tested against it. Resolves `true` when the page is there.
+ */
+export async function goToSettingsPage(page, label, opts = {}) {
+  const test = label instanceof RegExp ? `new RegExp(${JSON.stringify(label.source)}, ${JSON.stringify(label.flags)}).test(first)` : `first === ${JSON.stringify(String(label))}`
+  const press = `(() => { const b = Array.from(document.querySelectorAll('button[class*="navCell"]')).find((x) => { const first = (x.innerText || '').trim().split('\\n')[0]; return ${test} }); if (!b) return false; b.scrollIntoView({ block: 'center' }); b.click(); return true })()`
+  for (let attempt = 0; attempt < (opts.tries || 3); attempt += 1) {
+    if ((await waitFor(page, press, opts.cellMs || 10000)) === null) continue
+    if (opts.marker === undefined) { await sleep(opts.settleMs === undefined ? 600 : opts.settleMs); return true }
+    if ((await waitFor(page, opts.marker, opts.markerMs || 8000)) !== null) return true
+  }
+  return false
+}
+
+/**
  * Serve the working tree's `file` in place of the browser half of plugin `id` in the page's combined /plugins/??…
  * bundle (the response is rewritten in this throw-away browser; nothing on disk or on the server changes). The page
  * must be reloaded for it to apply. Returns `{ swapped }`, a live counter: 0 after a reload means the bundle did not

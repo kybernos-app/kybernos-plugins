@@ -20,7 +20,7 @@
 // SAFETY: the sandbox has its own DSH_HOME; the only thing written is its own usage ledger. Exit code 0 / 1 / 3.
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { openLivePage } from './live-page.mjs'
+import { openLivePage, openSettings, goToSettingsPage, waitFor } from './live-page.mjs'
 
 const args = process.argv.slice(2)
 const shotDir = args.includes('--shots') ? args[args.indexOf('--shots') + 1] : null
@@ -45,7 +45,8 @@ const api = (path, body) => val(`fetch(${JSON.stringify(path)}, ${body === undef
 const U = (u, o, cr) => ({ uncachedInputTokens: u, outputTokens: o, cacheReadTokens: cr, cacheWriteTokens: 0 })
 
 try {
-  await sleep(3000)
+  // The shell is up once it has drawn something (a busy machine only makes that longer); every read below waits for what it needs.
+  await waitFor(page, 'document.readyState === "complete" && document.body && document.body.innerText.length > 40', 30000)
   if ((await val(`/Add an API key to get started/.test(document.body.innerText)`)) === true) {
     const pos = await val(`(() => { const e = Array.from(document.querySelectorAll('*')).filter((e) => e.children.length === 0 && (e.innerText || '').trim() === 'Configure later')[0]; if (!e) return null; const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.x + r.width / 2, y: r.y + r.height / 2 }) })()`)
     if (typeof pos === 'string') { const { x, y } = JSON.parse(pos); await mouse(x, y); await sleep(700) }
@@ -79,18 +80,23 @@ try {
   console.log('  ○ models.dev price for deepseek/deepseek-chat: ' + (priced ? 'found' : 'not available here (offline or absent): the priced path is not exercised'))
 
   console.log('\n── 2. Settings › Usage ──')
-  await val(`document.querySelector('[class*="settingsArea"] button[class*="trigger"]').click()`)
-  check('Settings open', (await poll(() => val(`/Back to workspace/.test(document.body.innerText)`), 8000)) === true)
-  const went = await val(`(() => { const b = Array.from(document.querySelectorAll('button[class*="navCell"]')).find((x) => x.innerText.trim().split('\\n')[0] === 'Usage'); if (!b) return false; b.click(); return true })()`)
+  check('Settings open', (await openSettings(page, { tries: 3 })) === true)
+  const pageSel = `document.querySelector('[data-kb="kybernos-usage-page"]') !== null`
+  // The entry is awaited and pressed again when the press was lost (the menu is redrawn a moment after it opens).
+  const went = await goToSettingsPage(page, 'Usage', { marker: pageSel, markerMs: 10000 })
   check('the Usage entry is in the Settings menu and opens', went === true)
-  const pageUp = await poll(() => val(`document.querySelector('[data-kb="kybernos-usage-page"]') !== null`), 10000)
+  const pageUp = await poll(() => val(pageSel), 10000)
   check('the page mounts', pageUp === true)
-  await sleep(1500)
-  const text = await val(`document.querySelector('[data-kb="kybernos-usage-page"]').innerText`)
+  // The ledger is read from the host once the page is up: wait for the three seeded rows, then for the plan block to have its sentence.
+  const rowsSel = `document.querySelectorAll('[data-kb="kybernos-usage-list"] .kbus-row').length`
+  await poll(async () => (await val(rowsSel)) >= 3, 15000)
+  await poll(() => val(`/Connectez un compte|Sign in to a Kybernos account/.test((document.querySelector('[data-kb="kybernos-usage-page"]') || { innerText: '' }).innerText)`), 10000)
+  const text = await val(`(document.querySelector('[data-kb="kybernos-usage-page"]') || { innerText: '' }).innerText`)
   check('the plan block says so when no account is signed in (and does not break)', /Connectez un compte|Sign in to a Kybernos account/.test(text), text.slice(0, 300))
-  const rows = await val(`document.querySelectorAll('[data-kb="kybernos-usage-list"] .kbus-row').length`)
+  const rows = await val(rowsSel)
   check('the by-model list has the three seeded models', rows >= 3, rows)
-  const listText = await val(`document.querySelector('[data-kb="kybernos-usage-list"]').innerText`)
+  const listOf = () => val(`(document.querySelector('[data-kb="kybernos-usage-list"]') || { innerText: '' }).innerText`)
+  let listText = await listOf()
   check('the plan model is shown as being on the plan, never priced', /via le plan|on the plan/.test(listText), listText)
   check('the local model is shown as free', /gratuit|free/i.test(listText), listText)
   // The amount follows the interface language the way the client does (kybernos-usage fmtMoney): « 0,04 $ » in French (and in the
@@ -98,42 +104,47 @@ try {
   const uiLang = String((await val(`(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en'))`)) || 'en')
   const frenchAmounts = uiLang.slice(0, 2) === 'fr' || uiLang === 'kybernos'
   const amountPattern = frenchAmounts ? /\d,\d\d\s*\$/ : /\$\d\.\d\d/
+  // The price comes from a second request after the list is drawn: wait for it rather than read the list at the moment of the first draw.
+  if (priced) { await poll(async () => amountPattern.test(await listOf()), 10000); listText = await listOf() }
   check(priced ? 'the priced model shows an amount (' + (frenchAmounts ? '1,23 $' : '$1.23') + ' for the interface language ' + uiLang + ')' : 'the model without a price says so', priced ? amountPattern.test(listText) : /prix inconnu|price unknown/.test(listText), listText)
   await shot('usage-page')
 
-  await clickAct('period-30')
-  await sleep(300)
-  check('switching to 30 days redraws without a request error', (await val(`document.querySelector('[data-kb="kybernos-usage-page"]') !== null && document.querySelectorAll('[data-kb="kybernos-usage-list"] .kbus-row').length >= 3`)) === true)
-  await clickAct('period-today')
-  await sleep(300)
-  check('today still shows the seeded day', (await val(`document.querySelectorAll('[data-kb="kybernos-usage-list"] .kbus-row').length >= 3`)) === true)
-  await clickAct('tab-sessions')
-  await sleep(300)
-  const sessText = await val(`document.querySelector('[data-kb="kybernos-usage-list"]').innerText`)
+  // A control is pressed once it is there, and what it draws is awaited (the list is redrawn after a request to the host).
+  const pressAct = async (act) => { await poll(() => clickAct(act), 8000) }
+  await pressAct('period-30')
+  check('switching to 30 days redraws without a request error', (await poll(() => val(`document.querySelector('[data-kb="kybernos-usage-page"]') !== null && document.querySelectorAll('[data-kb="kybernos-usage-list"] .kbus-row').length >= 3`), 10000)) === true)
+  await pressAct('period-today')
+  check('today still shows the seeded day', (await poll(() => val(`document.querySelectorAll('[data-kb="kybernos-usage-list"] .kbus-row').length >= 3`), 10000)) === true)
+  await pressAct('tab-sessions')
+  await poll(async () => /Check A/.test(await listOf()) && /Check B/.test(await listOf()), 10000)
+  const sessText = await listOf()
   check('the by-session list names the sessions it saw', /Check A/.test(sessText) && /Check B/.test(sessText), sessText)
 
   console.log('\n── budget ──')
-  await val(`(() => { const d = document.querySelector('[data-kb="kybernos-usage-budget"]'); if (d) d.open = true; return true })()`)
-  await sleep(300)
+  await poll(() => val(`(() => { const d = document.querySelector('[data-kb="kybernos-usage-budget"]'); if (!d) return false; d.open = true; return document.getElementById('kbus-budget') !== null })()`), 8000)
   await val(`(() => { const i = document.getElementById('kbus-budget'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(i, '12'); i.dispatchEvent(new Event('input', { bubbles: true })); return true })()`)
-  await sleep(200)
-  await clickAct('save-budget')
-  await sleep(600)
-  const sum = await api('/kybernos-usage/summary?days=7')
+  await pressAct('save-budget')
+  // The route answers a moment after the press: read the budget back until it is the one typed.
+  let sum = await api('/kybernos-usage/summary?days=7')
+  for (let i = 0; i < 24 && !(sum.body && sum.body.budget && sum.body.budget.usd === 12); i += 1) { await sleep(250); sum = await api('/kybernos-usage/summary?days=7') }
   check('the budget is saved through the real route', sum.body.budget.usd === 12, sum.body.budget)
   const bad = await api('/kybernos-usage/budget', { usd: -5 })
   check('a negative budget is refused', bad.status === 400, bad)
 
   console.log('\n── 3. a narrow window ──')
   await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 800, deviceScaleFactor: 1, mobile: true })
-  await sleep(700)
-  const overflow = await val(`(() => { const p = document.querySelector('[data-kb="kybernos-usage-page"]'); if (!p) return 'no page'; return p.scrollWidth - p.clientWidth })()`)
+  // The layout settles after the resize: the width is read until it fits (or for five seconds, then the check says what it measured).
+  const widthOver = () => val(`(() => { const p = document.querySelector('[data-kb="kybernos-usage-page"]'); if (!p) return 'no page'; return p.scrollWidth - p.clientWidth })()`)
+  await poll(async () => { const o = await widthOver(); return typeof o === 'number' && o <= 1 }, 5000)
+  const overflow = await widthOver()
   check('the page does not overflow at 390 px', typeof overflow === 'number' && overflow <= 1, overflow)
   await shot('usage-page-narrow')
   await page.send('Emulation.clearDeviceMetricsOverride')
 
   console.log('\n── 4. the chip ──')
-  await val(`(() => { const b = Array.from(document.querySelectorAll('button')).find((x) => /Back to workspace/.test(x.innerText)); if (b) b.click(); return true })()`)
+  await poll(() => val(`(() => { const b = Array.from(document.querySelectorAll('button')).find((x) => /Back to workspace/.test(x.innerText)); if (!b) return false; b.click(); return true })()`), 8000)
+  // An absence cannot be awaited: the page is back on the home first, then given a beat for a chip that would be drawn late.
+  await poll(() => val(`!document.querySelector('[data-kb="kybernos-usage-page"]')`), 8000)
   await sleep(1500)
   const chip = await val(`document.querySelectorAll('[data-kb="kybernos-usage-pill"]').length`)
   check('with no counters yet the chip stays absent instead of showing an empty pill', chip === 0, chip)
