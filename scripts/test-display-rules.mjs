@@ -633,6 +633,17 @@ ok('Skills: the field of the Index source dialog has a placeholder of its own (t
   atLeast('placeholder (dark)', contrast(colour('var(--dsw-alias-label-tertiary)', 'dark'), colour('var(--dsw-alias-bg-base)', 'dark')), 4.5)
   atLeast('placeholder (light)', contrast(colour('var(--dsw-alias-label-tertiary)', 'light', { '--dsw-alias-label-tertiary': 'var(--dsw-alias-label-secondary)' }), colour('var(--dsw-alias-bg-base)', 'light')), 4.5)
 })
+ok('what A1-05 still measured: the help card cross, the Language hint and the empty Pinned line are 4.5:1 in the light schemes and in the dark one', () => {
+  for (const [file, sel, layers] of [
+    ['kybernos-hub/client.js', '.kbhi-x', { light: ['var(--dsw-alias-bg-layer-2)', '#f5f5f5'], dark: ['var(--dsw-alias-bg-layer-2)'] }],
+    ['kybernos-language/client.js', '.kbln-hint', { light: ['var(--dsw-alias-bg-layer-1)', '#f5f5f5', '#fafafa'], dark: ['var(--dsw-alias-bg-layer-1)', 'var(--dsw-alias-bg-layer-2)'] }],
+    ['kybernos-plugin/client.js', '.kbpin_empty', { light: ['#f9fafb', '#fafafa'], dark: ['var(--dsw-alias-bg-base)', 'var(--dsw-alias-bg-layer-1)'] }],
+  ]) {
+    const ink = lastDecl(rule(file, sel).body, 'color')
+    assert.doesNotMatch(ink, /label-tertiary|label-caption/, sel + ' is a sentence or a control a person has to read: label-secondary')
+    for (const scheme of ['light', 'dark']) for (const layer of layers[scheme]) atLeast(sel + ' on ' + layer.slice(0, 32) + ' (' + scheme + ')', contrast(colour(ink, scheme), colour(layer, scheme)), 4.5)
+  }
+})
 ok('Connectors: no literal indigo is left; the primary button, the Kybernos meter, the app picker and the type pills follow the brand token and keep 4.5:1 on it (A1-01)', () => {
   const file = 'kybernos-composio/client.js'
   assert.ok(!/#635bff|99\s*,\s*91\s*,\s*255|#8b85ff/i.test(srcOf(file)), 'a literal indigo (#635bff, rgba(99,91,255), #8b85ff) is still written in the bundle')
@@ -652,7 +663,6 @@ ok('Connectors: no literal indigo is left; the primary button, the Kybernos mete
   assert.match(lastDecl(app.body, 'border-color'), /brand-primary/)
   assert.match(lastDecl(app.body, 'background'), /brand-primary/)
 })
-
 
 console.log('\n' + count + ' tests passed')
 if (failed.length > 0) process.exit(1)

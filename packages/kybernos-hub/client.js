@@ -529,7 +529,7 @@ window.__ModuleLoader__.load({
       '@media (max-width:700px){.kbhi{grid-template-columns:minmax(0,1fr)}}',
       '.kbhi-text{display:flex;flex-direction:column;gap:12px;min-width:0}',
       '.kbhi-h{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary);padding-inline-end:28px}',
-      '.kbhi-x{position:absolute;inset-inline-end:8px;top:8px;width:26px;height:26px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-tertiary);cursor:pointer;font-size:14px}',
+      '.kbhi-x{position:absolute;inset-inline-end:8px;top:8px;width:26px;height:26px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;font-size:14px}',
       '.kbhi-x:hover{background:var(--dsw-alias-interactive-bg-hover)}',
       '.kbhi-x:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}',
       '.kbhi-steps{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}',
@@ -539,10 +539,14 @@ window.__ModuleLoader__.load({
       '.kbhi-step-b{font-size:12px;line-height:1.5;color:var(--dsw-alias-label-secondary)}',
       '.kbhi-step.s1{animation:kbhi-k-s1 12s infinite}.kbhi-step.s2{animation:kbhi-k-s2 12s infinite}.kbhi-step.s3{animation:kbhi-k-s3 12s infinite}',
       '.kbhi-mm{direction:ltr;position:relative;width:300px;max-width:100%;height:176px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);overflow:hidden;font-size:10px;color:var(--dsw-alias-label-primary);user-select:none;pointer-events:none}',
-      '.kbhi-mm-bar{position:absolute;left:0;right:0;top:0;height:26px;display:flex;align-items:center;padding:0 10px;border-bottom:1px solid var(--dsw-alias-border-l2);font-weight:600}',
+      '.kbhi-mm-bar{position:absolute;left:0;right:0;top:0;height:26px;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid var(--dsw-alias-border-l2);font-weight:600}',
+      // The drawing is an example: what it names is not an item of the page under it (a « PDF · Installing… » beside the real, installed PDF card).
+      '.kbhi-mm-tag{margin-inline-start:auto;flex:none;padding:1px 6px;border-radius:999px;border:.5px solid var(--dsw-alias-border-l2);font-size:9px;font-weight:500;color:var(--dsw-alias-label-secondary)}',
       '.kbhi-mm-row{position:absolute;left:8px;right:8px;height:32px;display:flex;align-items:center;gap:7px;padding:0 8px;border-radius:8px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);box-sizing:border-box}',
       '.kbhi-mm-row.r0{top:34px}.kbhi-mm-row.r1{top:118px}',
       '.kbhi-mm-row.hot{top:72px;height:40px;animation:kbhi-k-hot 12s infinite}',
+      // The progress bar sits 4 px above the row's bottom edge: the text block rises so the bar clears the state line instead of touching it.
+      '.kbhi-mm-row.hot .kbhi-mm-i{margin-bottom:7px}',
       '.kbhi-mm-b{width:18px;height:18px;flex:none;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-secondary)}',
       '.kbhi-mm-i{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;position:relative}',
       '.kbhi-mm-n{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
@@ -1338,7 +1342,7 @@ window.__ModuleLoader__.load({
         const row = (name, i) => h('div', { key: 'r' + i, className: 'kbhi-mm-row r' + i }, h('span', { className: 'kbhi-mm-b' }, String(name).charAt(0).toUpperCase()), h('div', { className: 'kbhi-mm-i' }, h('span', { className: 'kbhi-mm-n' }, name)))
         return h('section', { className: 'kbhi', 'data-kb': 'help-intro', 'data-id': id, 'aria-label': title },
           h('div', { className: 'kbhi-mm', role: 'img', 'aria-label': caption },
-            h('div', { className: 'kbhi-mm-bar' }, h('span', null, m.bar)),
+            h('div', { className: 'kbhi-mm-bar' }, h('span', null, m.bar), h('span', { className: 'kbhi-mm-tag', 'data-kb': 'help-intro-example' }, kt('Exemple', 'Example'))),
             others[0] !== undefined ? row(others[0], 0) : null,
             h('div', { className: 'kbhi-mm-row hot' }, h('span', { className: 'kbhi-mm-b' }, String(m.hot).charAt(0).toUpperCase()),
               h('div', { className: 'kbhi-mm-i' }, h('span', { className: 'kbhi-mm-n' }, m.hot),

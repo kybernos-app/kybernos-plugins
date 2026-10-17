@@ -7502,7 +7502,7 @@ const kbPinsEnsureCss = () => {
     '.kbpin_mi{display:flex;align-items:center;gap:6px;width:100%;height:34px;padding:6px 8px;border:none;border-radius:12px;background:0 0;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13);text-align:start;cursor:pointer}',
     '.kbpin_mi_ico{display:inline-flex;width:16px;height:16px;align-items:center;justify-content:center;color:var(--dsw-alias-label-secondary)}',
     '.kbpin_mi:hover,.kbpin_mi:focus-visible{background:var(--dsw-alias-interactive-bg-hover);outline:none}',
-    '.kbpin_empty{padding:4px 12px;color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12)}',
+    '.kbpin_empty{padding:4px 12px;color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xxs-12)}',
     '.kbpin_menuitem{display:flex;align-items:center;gap:8px;width:100%;padding:6px 10px;border:none;background:0 0;color:inherit;font:inherit;text-align:start;cursor:pointer;border-radius:6px}',
     '.kbpin_menuitem:hover{background:var(--dsw-alias-interactive-bg-hover)}',
   ].join('')

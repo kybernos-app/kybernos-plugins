@@ -130,6 +130,16 @@ console.log('the animated help of a page (Intro)')
   check('one list of steps, numbered, in the page’s own words', (() => { const li = find(open.tree, (n) => n.type === 'li'); return li.length === 3 && /Pick/.test(text(li[0])) && /Ask for it/.test(text(li[2])) })())
   check('the mock is a picture with a caption for the screen reader, and is not read twice', (() => { const m = find(open.tree, attr('role', 'img')); return m.length === 1 && m[0].props['aria-label'] === props.caption })())
   check('the mock carries the words of the page: the bar, the other rows, the hot row, its states, the buttons, the end state', (() => { const t = text(find(open.tree, attr('role', 'img'))[0]); return ['Skills', 'Word documents', 'PDF', 'Featured', 'Checking…', 'Installed', 'Install', 'Checking', 'Use', 'In use'].every((w) => t.includes(w)) })())
+  check('the mock says it is an example, so a name in it is never read as a real item of the page (C-05)', (() => {
+    const tag = find(open.tree, attr('data-kb', 'help-intro-example'))
+    const bar = find(open.tree, (n) => typeof n.props.className === 'string' && n.props.className === 'kbhi-mm-bar')[0]
+    return tag.length === 1 && /^(Example|Exemple)$/.test(text(tag[0])) && bar !== undefined && find(bar, attr('data-kb', 'help-intro-example')).length === 1
+  })())
+  check('the progress bar of the hot row clears the label above it (it was glued to « Installing… »)', (() => {
+    const row = /\.kbhi-mm-row\.hot\{([^}]*)\}/.exec(SOURCE)
+    const i = /\.kbhi-mm-row\.hot \.kbhi-mm-i\{([^}]*)\}/.exec(SOURCE)
+    return row !== null && i !== null && /margin-bottom:\d+px/.test(i[1])
+  })())
   check('every step has its own light, in turn (s1, s2, s3)', (() => { const li = find(open.tree, (n) => n.type === 'li'); return li.map((n) => n.props.className).join('|') === 'kbhi-step s1|kbhi-step s2|kbhi-step s3' })())
   check('it can be closed, and says so', (() => { const x = find(open.tree, attr('data-kb', 'help-intro-close')); return x.length === 1 && x[0].type === 'button' && /Close/.test(x[0].props['aria-label']) })())
   check('closing it writes « closed » and hides it', (() => { const store = memory(); const r = draw([], store); withStorage(store, () => find(r.tree, attr('data-kb', 'help-intro-close'))[0].props.onClick()); return store.dump()[KEY] === 'closed' && r.state.sets.some((s) => s[1] === false) })())
