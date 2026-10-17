@@ -58,6 +58,27 @@ try {
   check('the first choice names the model Automatic uses, or says none is connected', auto !== '' ? label === 'Automatic — ' + auto : /no model is connected yet/.test(label), { label, auto })
   const desc0 = await val(`${row}.innerText`)
   check('the row says what it does, and that a title leaves the machine only when the word rules cannot place it', /word rules/i.test(desc0) && /Automatic/.test(desc0) && !/probabilit/i.test(desc0), desc0)
+  // R-V-01: the closed select reads its whole sentence (it was cut at « Automatic — no model is conn… » by a 240 px cap), also with a
+  // real model id, and never leaves the row. `need` = the width the same select would take with only that label inside.
+  const fit = (labelText) => val(`(() => {
+    const sel = document.querySelector('[data-kbr="brain-select"]')
+    const first = sel.options[0]
+    const was = first.textContent
+    if (${JSON.stringify(labelText)} !== null) first.textContent = ${JSON.stringify(labelText)}
+    const clone = sel.cloneNode(false)
+    clone.removeAttribute('data-kbr'); clone.style.cssText = 'position:absolute;visibility:hidden;width:auto;max-width:none;min-width:0'
+    const o = document.createElement('option'); o.textContent = first.textContent; clone.appendChild(o)
+    sel.parentElement.appendChild(clone)
+    const need = clone.getBoundingClientRect().width
+    clone.remove()
+    const s = sel.getBoundingClientRect(); const r = sel.closest('[data-kbr="brain"]').getBoundingClientRect()
+    first.textContent = was
+    return JSON.stringify({ need, width: s.width, inside: s.left >= r.left - 1 && s.right <= r.right + 1 })
+  })()`).then((t) => JSON.parse(t))
+  const f1 = await fit(null)
+  check('the closed select is wide enough for its selected sentence', f1.width >= f1.need - 1 && f1.inside === true, f1)
+  const f2 = await fit('Automatic — openrouter/anthropic/claude-sonnet-4.5')
+  check('...and for « Automatic — openrouter/anthropic/claude-sonnet-4.5 », inside the row', f2.width >= f2.need - 1 && f2.inside === true, f2)
   if (shotDir !== null) { try { await page.shot(join(shotDir, 'study-model-automatic.png')) } catch (e) { /* no screenshot */ } }
 
   console.log('None')

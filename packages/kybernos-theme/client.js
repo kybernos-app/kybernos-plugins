@@ -3303,7 +3303,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const apparence = h('div', { className: 'kbth-sec' },
           h('div', { className: 'kbth-sec-h' },
             h('div', { className: 'kbth-sec-t' }, kt('Apparence', 'Appearance')),
-            h('div', { className: 'kbth-sec-d' }, kt('Choisis un mode, puis un thème prêt à l’emploi. Ce réglage remplace le bloc « Appearance » de la page Général — un seul endroit.', 'Pick a mode, then a ready-made theme. This setting replaces the “Appearance” block of the General page — one place only.'))),
+            h('div', { className: 'kbth-sec-d' }, kt('Choisis un mode, puis un thème prêt à l’emploi. Le mode est le même réglage que sur la page Apparence : change-le à l’un ou l’autre endroit.', 'Pick a mode, then a ready-made theme. The mode is the same setting as on the Appearance page: change it in either place.'))),
           h('button', { className: 'kbth-btn', type: 'button', style: { width: 'max-content' },
             onClick: () => commit(surprendre()) }, kt('Me surprendre', 'Surprise me')),
           h('div', { className: 'kbth-row' },

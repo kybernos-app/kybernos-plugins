@@ -272,6 +272,7 @@ window.__ModuleLoader__.load({
 [role="dialog"] [class$="_section"]{max-width:720px}
 .kbr-page h4{margin:0 0 2px}
 .kbr-intro{margin:0 0 8px;color:var(--dsw-alias-label-secondary,#cfd3d6);font-size:13px}
+.kbr-sub{margin:22px 0 4px;font-size:16px;font-weight:600;line-height:1.3;color:var(--dsw-alias-label-primary,#e8eaec)}
 .kbr-row{display:flex;gap:16px;align-items:center;padding:16px 0;
   border-top:0;border-bottom:.5px solid var(--dsw-alias-border-l2)}
 .kbr-row:last-of-type{border-bottom:0}
@@ -2669,6 +2670,9 @@ window.__ModuleLoader__.load({
             type: 'button', className: 'kbr-choix on', 'data-kbr': 'starter-kit-btn',
             onClick: () => { try { window.dispatchEvent(new CustomEvent('kybernos:onboarding', { detail: { action: 'kit' } })) } catch (e) { /* context without a window */ } }
           }, kt('Ouvrir', 'Open'))),
+        // The block of switches has its own heading (audit C-06): the sentence below used to introduce Name each chat… / Study model /
+        // Permission / Language / Font size with nothing above it to say what the block is.
+        h('h5', { className: 'kbr-sub', 'data-kbr': 'behaviour-title' }, kt('Comportement', 'Behaviour')),
         h('p', { className: natif ? natif.desc : 'kbr-intro' }, kt('De petits interrupteurs qui changent la façon dont les plugins Kybernos travaillent avec tes conversations. Enregistrés sur cet ordinateur, tout de suite.',
           'Small switches that change how the Kybernos plugins work with your chats. Saved on this machine, right away.')),
         h('div', { className: natif ? natif.row : 'kbr-row', 'data-kbr': 'rename-after-recap' },
@@ -2684,8 +2688,11 @@ window.__ModuleLoader__.load({
         /* (29/09) « Composer microphone » now lives in the Voice page of the
            plugin bundle (same setting, same route /kybernos-sessions/settings)
            — next to the speech engine, where people go to look for it. */
-        h('div', { className: natif ? natif.row : 'kbr-row', 'data-kbr': 'brain' },
-          h('div', { className: natif ? natif.rowText : 'kbr-txt' },
+        // The select shows « Automatic — <provider/model> »: that sentence must read in full (audit R-V-01, a 240px cap cut it at
+        // « no model is conn… »). It takes the width of its longest option, up to the row; when the text beside it would be
+        // squeezed (a narrow dialog, a long model id) the row wraps and the select drops under the description.
+        h('div', { className: natif ? natif.row : 'kbr-row', 'data-kbr': 'brain', style: { flexWrap: 'wrap' } },
+          h('div', { className: natif ? natif.rowText : 'kbr-txt', style: { flex: '1 1 260px' } },
             h('div', { className: natif ? natif.title : undefined }, kt('Modèle d’étude', 'Study model')),
             h('div', { className: natif ? natif.desc : undefined }, vue.description)),
           h('select', {
@@ -2693,7 +2700,7 @@ window.__ModuleLoader__.load({
             // Recette 2026-10 (C-13/B6): 160px truncated the model names
             // (worse in RTL), and the title lived INSIDE style — never applied.
             // title as an attribute (tooltip = full name), width raised.
-            style: natif ? { minWidth: '150px', maxWidth: '240px' } : undefined, 'data-kbr': 'brain-select', 'aria-label': kt('Modèle d’étude', 'Study model'),
+            style: { minWidth: '150px', maxWidth: '100%' }, 'data-kbr': 'brain-select', 'aria-label': kt('Modèle d’étude', 'Study model'),
             title: brain === '' ? vue.libelleAuto : brain,
             value: brain,
             disabled: modeles === undefined,

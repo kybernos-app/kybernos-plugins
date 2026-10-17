@@ -85,5 +85,13 @@ seen += 1
 if (card['kybernos-models'] !== NAV['kybernos-models']) odd.push('kybernos-models: the card says « ' + card['kybernos-models'] + ' », the nav « ' + NAV['kybernos-models'] + ' »')
 check('every module that is one Settings page carries the name of that page on its card', seen >= 14 && odd.length === 0, odd)
 
+console.log('the two places that set the mode say so')
+// Appearance (Light / Dark / System) and Theme › Mode both set the mode. Theme used to say it « replaces the Appearance block of the General
+// page — one place only » while an Appearance page exists beside it (audit A1-09): it now says the two are the same setting.
+const theme = read('packages', 'kybernos-theme', 'client.js')
+check('Theme no longer claims to be the only place of the mode', !/replaces the “Appearance” block of the General page/.test(theme) && !/one place only/.test(theme))
+check('Theme says the mode is the same setting as the Appearance page, in English and in French', /The mode is the same setting as on the Appearance page/.test(theme) && /Le mode est le même réglage que sur la page Apparence/.test(theme))
+check('and the Appearance page it points to exists and points back to Theme', /'kbac-appearance': 'Appearance'|'kbac-appearance': 'appearance'/.test(CORE) && /'kbac.appearance.openTheme'/.test(CORE))
+
 console.log(`\n${pass} ✓  ${fail} ✗`)
 process.exit(fail === 0 ? 0 : 1)
