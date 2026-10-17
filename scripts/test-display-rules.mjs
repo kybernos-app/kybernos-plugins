@@ -118,12 +118,12 @@ ok('kybernos-plugin does not define .kbf-hint: kybernos-cloud owns that class na
 // The token values DSH ships in its two schemes (dsh-client-ui-theme, the same ones scripts/check-display-live.mjs measures) and a
 // resolver for the colour syntax the plugins write: #hex, rgb()/rgba(), var(--dsw-alias-x[, fallback]) and color-mix(in srgb, A p%, B|transparent).
 const TOKENS = {
-  light: { 'label-primary': '#0f1115', 'label-secondary': '#61666b', 'label-tertiary': '#81858c', 'label-primary-foreground': '#ffffff',
+  light: { 'label-primary': '#0f1115', 'label-secondary': '#61666b', 'label-tertiary': '#81858c', 'label-caption': '#adb2b8', 'label-primary-foreground': '#ffffff',
     'bg-base': '#ffffff', 'bg-layer-1': '#ffffff', 'bg-layer-2': '#ffffff', 'bg-layer-3': '#ffffff', 'bg-module-platform': '#f5f6f7',
     'border-l1': '#0000000a', 'border-l2': '#0000001a', 'border-l3': '#0000001f', 'border-l4': '#00000029', 'interactive-bg-hover': '#2631480f',
     'state-success-primary': '#22c55e', 'state-success-tertiary': '#e6faed', 'state-warn-primary': '#f59e0b', 'state-warn-tertiary': '#fef5e7',
     'state-error-primary': '#ec1313', 'state-business-primary': '#4176e6', 'state-business-tertiary': '#e4edfd', 'brand-primary': '#0f1115', link: '#4176e6' },
-  dark: { 'label-primary': '#f9fafb', 'label-secondary': '#cfd3d6', 'label-tertiary': '#adb2b8', 'label-primary-foreground': '#0f1115',
+  dark: { 'label-primary': '#f9fafb', 'label-secondary': '#cfd3d6', 'label-tertiary': '#adb2b8', 'label-caption': '#81858c', 'label-primary-foreground': '#0f1115',
     'bg-base': '#161617', 'bg-layer-1': '#232324', 'bg-layer-2': '#2c2c2e', 'bg-layer-3': '#353638', 'bg-module-platform': '#353638',
     'border-l1': '#ffffff0f', 'border-l2': '#ffffff1f', 'border-l3': '#ffffff29', 'border-l4': '#ffffff33', 'interactive-bg-hover': '#ffffff14',
     'state-success-primary': '#22c55e', 'state-success-tertiary': '#233c2c', 'state-warn-primary': '#f59e0b', 'state-warn-tertiary': '#27241f',
@@ -589,6 +589,49 @@ ok('the empty description of a compact card and the Skills source icon are reada
     const r = rule('kybernos-skills/client.js', sel)
     atLeast(sel + ' (icon, 3:1)', contrast(colour(lastDecl(r.body, 'color'), 'light'), colour('var(--dsw-alias-bg-layer-1)', 'light')), 3)
   }
+})
+
+
+// ── R3-02 (audit A1-01, A1-04, A1-05): what the second verification still measured ─────────────────────────────────────────────
+// The Skills tabs Yours and Discover read label-caption for their table heads, ranks, counts, pager, /command buttons and card footers: #adb2b8 is 2.1:1
+// on white in the light schemes and #81858c is 3.5 to 3.8:1 on the dark layers. Inside the page the token reads as label-tertiary, which the rule of
+// A1-05 above already lifts to label-secondary in the light schemes.
+const LAYERS = (scheme) => (scheme === 'light'
+  ? ['var(--dsw-alias-bg-layer-1)', 'var(--dsw-alias-bg-module-platform)', '#f5f5f5', '#fafafa']   // #f5f5f5 / #fafafa: the Neutral violet layer-2 and base
+  : ['var(--dsw-alias-bg-layer-1)', 'var(--dsw-alias-bg-layer-2)', 'var(--dsw-alias-bg-layer-3)'])
+ok('Skills: inside the page label-caption reads as label-tertiary, so the heads, ranks, counts, pager and /command buttons are 4.5:1 in every scheme (A1-04, R-A1-04, R-A1-03)', () => {
+  const file = 'kybernos-skills/client.js'
+  assert.equal(lastDecl(rule(file, '.kbs-root').body, '--dsw-alias-label-caption'), 'var(--dsw-alias-label-tertiary)', 'the page root maps caption onto tertiary')
+  const lift = { '--dsw-alias-label-tertiary': 'var(--dsw-alias-label-secondary)' }   // the light schemes, by the A1-05 rule
+  for (const [scheme, vars] of [['light', lift], ['dark', {}]]) {
+    const ink = colour('var(--dsw-alias-label-tertiary)', scheme, vars)
+    for (const layer of LAYERS(scheme)) atLeast('caption on ' + layer.slice(0, 32) + ' (' + scheme + ')', contrast(ink, colour(layer, scheme)), 4.5)
+  }
+  // and the rules that carry the text of the two tabs really read the token (a literal would escape the mapping)
+  for (const sel of ['.kbs-root .kbs-head', '.kbs-root .kbs-row .rank', '.kbs-root .kbs-pager .t', '.kbs-root .kbs-copy', '.kbs-root .kb8-card .foot']) {
+    assert.match(lastDecl(rule(file, sel).body, 'color'), /label-caption/, sel)
+  }
+})
+ok('Skills: the state pills (active, disabled, installed, curated) are 4.5:1 on their tint in the light schemes (A1-04, R-A1-04)', () => {
+  for (const [state, token] of [['ok', 'success'], ['warn', 'warn']]) {
+    const r = rule('kybernos-skills/client.js', 'body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.' + state)
+    const tint = 'color-mix(in srgb, var(--dsw-alias-state-' + token + '-primary) 14%, transparent)'
+    for (const layer of LAYERS('light')) atLeast('pill ' + state + ' on ' + layer.slice(0, 32), contrast(colour(lastDecl(r.body, 'color'), 'light'), colour(tint, 'light'), colour(layer, 'light')), 4.5)
+  }
+})
+ok('Skills: the current page of the Discover pager is the brand pair (white on #4d7cfe was 3.7:1), 4.5:1 in the dark, light and Neutral violet schemes (A1-04)', () => {
+  const r = rule('kybernos-skills/client.js', '.kbs-root .kbs-pager .pg.on')
+  assert.match(lastDecl(r.body, 'background'), /brand-primary/)
+  assert.match(lastDecl(r.body, 'color'), /label-primary-foreground/)
+  for (const [scheme, vars] of [['light', {}], ['dark', {}], ['light', { '--dsw-alias-brand-primary': '#6114d4' }]]) {
+    atLeast('pager on (' + scheme + (vars['--dsw-alias-brand-primary'] ? ', Neutral violet' : '') + ')', contrast(colour(lastDecl(r.body, 'color'), scheme, vars), colour(lastDecl(r.body, 'background'), scheme, vars)), 4.5)
+  }
+})
+ok('Skills: the field of the Index source dialog has a placeholder of its own (the browser default is 2.4:1 on the dark input) (V-23)', () => {
+  const r = rule('kybernos-skills/client.js', '.kbs-root .kbs-input::placeholder,.kbs-root .kbs-area::placeholder')
+  assert.match(lastDecl(r.body, 'color'), /label-tertiary/)
+  atLeast('placeholder (dark)', contrast(colour('var(--dsw-alias-label-tertiary)', 'dark'), colour('var(--dsw-alias-bg-base)', 'dark')), 4.5)
+  atLeast('placeholder (light)', contrast(colour('var(--dsw-alias-label-tertiary)', 'light', { '--dsw-alias-label-tertiary': 'var(--dsw-alias-label-secondary)' }), colour('var(--dsw-alias-bg-base)', 'light')), 4.5)
 })
 
 console.log('\n' + count + ' tests passed')

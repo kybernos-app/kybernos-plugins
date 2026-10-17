@@ -33,6 +33,8 @@ window.__ModuleLoader__.load({
     try {
       const React = require('react')
       const h = React.createElement
+      // createPortal lives in react-dom (a window drawn ahead of the Settings dialog); without it the window is drawn where it is asked for.
+      const ReactDOM = (() => { try { return require('react-dom') } catch (e) { return null } })()
 
       // ── icons: Lucide paths verbatim from maquette.html:223-248 ─────────────
       const PATHS = {
@@ -274,6 +276,7 @@ window.__ModuleLoader__.load({
         'y.nofilter': { fr: 'Change de filtre ou de terme.', en: 'Change the filter or search term.' },
         'd.query': { fr: 'Interrogation de l\'index…', en: 'Querying the index…' },
         'd.down': { fr: 'Index indisponible', en: 'Index unavailable' },
+        'd.cannot': { fr: 'Impossible de joindre l’index des skills.', en: 'Cannot reach the skills index.' },
         'd.direct': { fr: 'L\'installation directe reste possible par « Importer depuis GitHub ».', en: 'Direct install is still possible via “Import from GitHub”.' },
         'd.hint': { fr: 'C’est souvent passager : réessaie dans un instant. Tes skills installés et l’onglet Team ne sont pas touchés.', en: 'This is often temporary: try again in a moment. Your installed skills and the Team tab are not affected.' },
         'd.retry': { fr: 'Réessayer', en: 'Try again' },
@@ -567,7 +570,8 @@ window.__ModuleLoader__.load({
         'intro.s2b': { fr: 'Un clic, puis confirme. Le skill est copié sur cet ordinateur.', en: 'One click, then confirm. The skill is copied to this computer.' },
         'intro.s3t': { fr: 'Laisse tes agents s’en servir', en: 'Let your agents use it' },
         'intro.s3b': { fr: 'Il apparaît dans Yours. Tes agents le chargent quand ta demande lui correspond.', en: 'It is listed under Yours. Your agents load it when your request fits it.' },
-        'intro.m.row': { fr: 'Documents Word', en: 'Word documents' },
+        'intro.m.row': { fr: 'Notes de réunion', en: 'Meeting notes' },
+        'intro.m.hot': { fr: 'Rapport hebdo', en: 'Weekly report' },
         'intro.m.st1': { fr: 'Featured', en: 'Featured' },
         'intro.m.st2': { fr: 'Installation…', en: 'Installing…' },
         'intro.m.st3': { fr: 'Installé', en: 'Installed' },
@@ -766,7 +770,7 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-pager{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 0 2px;flex-wrap:wrap}
 .kbs-root .kbs-pager .pg{min-width:38px;height:38px;padding:0 9px;border-radius:11px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font-family:ui-monospace,monospace;font-size:12.5px;cursor:pointer}
 .kbs-root .kbs-pager .pg:hover{background:var(--dsw-alias-interactive-bg-hover)}
-.kbs-root .kbs-pager .pg.on{background:var(--kb-switch-on,#4d7cfe);border-color:transparent;color:#fff;font-weight:600}
+.kbs-root .kbs-pager .pg.on{background:var(--dsw-alias-brand-primary);border-color:transparent;color:var(--dsw-alias-label-primary-foreground);font-weight:600}
 .kbs-root .kbs-pager .t{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--dsw-alias-label-caption)}
 /* Audit banner: the data that replaces "community, not audited". */
 .kbs-root .kbs-audit{display:flex;flex-direction:column;gap:9px}
@@ -858,6 +862,8 @@ window.__ModuleLoader__.load({
 .kbs-root .kb-sort-note{display:flex;gap:8px;padding:9px 11px 6px;border-top:1px solid var(--dsw-alias-border-l1);margin-top:4px; font-size:11px;line-height:1.45;color:var(--dsw-alias-label-caption)}
 .kbs-root .kb-sort-note svg{flex:0 0 auto;margin-top:1px}
 .kbs-root .kb-overlay{position:fixed;inset:0;background:#00000080;display:flex;align-items:center;justify-content:center;z-index:100;padding:24px}
+/* The same window over the Settings dialog (it is drawn in the body, ahead of everything the dialog draws; the dialog's own layer takes the pointer from the body). */
+.kbs-root.kbs-top .kb-overlay{z-index:2147483000;pointer-events:auto}
 .kbs-root .kb-modal{width:580px;max-width:96vw;max-height:88vh;overflow:auto;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:16px;box-shadow:0 24px 60px rgba(0,0,0,.6)}
 .kbs-root .kb-drop{border:1.5px dashed var(--dsw-alias-border-l2);border-radius:14px;padding:36px 20px;display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--dsw-alias-label-secondary);cursor:pointer;text-align:center}
 .kbs-root .kb-drop:hover{border-color:var(--dsw-alias-label-caption);background:var(--dsw-alias-bg-layer-2)}
@@ -873,6 +879,8 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-input,.kbs-root .kbs-area,.kbs-root .kbs-select{width:100%;box-sizing:border-box;background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l2);border-radius:10px;color:var(--dsw-alias-label-primary);font:inherit;font-size:13.5px;padding:10px 12px}
 .kbs-root .kbs-area{min-height:104px;resize:vertical;font-family:ui-monospace,monospace;font-size:12.5px;line-height:1.6}
 .kbs-root .kbs-input:focus,.kbs-root .kbs-area:focus,.kbs-root .kbs-select:focus{outline:none;border-color:var(--kb-switch-on,#4d7cfe)}
+/* The browser's own placeholder grey is 2.4:1 on the dark input (the Index source dialog, audit V-23). */
+.kbs-root .kbs-input::placeholder,.kbs-root .kbs-area::placeholder{color:var(--dsw-alias-label-tertiary)}
 .kbs-root .kbs-check{display:flex;align-items:flex-start;gap:9px;font-size:13px;color:var(--dsw-alias-label-secondary);line-height:1.5}
 .kbs-root .kbs-err{font-size:13px;color:var(--dsw-alias-state-error-primary)}
 .kbs-root .kbs-actions{display:flex;align-items:center;gap:10px;justify-content:flex-end;flex-wrap:wrap}
@@ -979,6 +987,8 @@ window.__ModuleLoader__.load({
 .kbs-root .kb8-page{container-type:inline-size}
 @container (max-width:720px){
 .kbs-root .kbs-head,.kbs-root .kbs-row{grid-template-columns:36px minmax(0,1.6fr) minmax(0,1fr) 108px;gap:10px;padding:8px 12px}
+/* The name is what a person installs: in a narrow column it wraps (at the hyphens first) instead of ending with an ellipsis (audit R-A1-03). */
+.kbs-root .kbs-row .who .kb8-name{white-space:normal;overflow-wrap:anywhere}
 .kbs-root .kbs-head .badges,.kbs-root .kbs-row .badges{display:none}
 .kbs-root .kbt .kbt-head,.kbs-root .kbt .kbs-row{grid-template-columns:36px minmax(0,1fr) auto;gap:10px;padding:8px 12px}
 .kbs-root .kbt .kbt-head>:nth-child(3),.kbs-root .kbt .kbt-head>:nth-child(4),.kbs-root .kbt .kbs-row .kbt-by,.kbs-root .kbt .kbs-row .badges{display:none}
@@ -1037,10 +1047,17 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
 .kbs-root .kbsf-pill.need{color:var(--dsw-alias-state-business-primary,#5686fe)}
 /* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
 body:not([data-ds-dark-theme]) .kbs-root{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
+/* label-caption is #adb2b8 (2.1:1) in the light schemes and #81858c (3.5 to 3.8:1) in the dark one. The table heads, ranks, counts, pager, /command buttons,
+   card footers and field hints of this page are text a person reads (audit A1-04): inside it the token reads as label-tertiary, which is label-secondary
+   (5.8:1) in the light schemes by the rule above and #adb2b8 (6.5:1 and more) in the dark one. */
+.kbs-root{--dsw-alias-label-caption:var(--dsw-alias-label-tertiary)}
 /* The state inks are the fills (2.1 to 4.2:1 on white): in the light schemes they are pulled toward the text colour (audit A1-11). */
 body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.ok{color:color-mix(in srgb,var(--dsw-alias-state-success-primary,#22c55e) 50%,var(--dsw-alias-label-primary))}
 body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.warn{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#f59e0b) 50%,var(--dsw-alias-label-primary))}
 body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb,var(--dsw-alias-state-business-primary,#5686fe) 60%,var(--dsw-alias-label-primary))}
+/* The state pills of the lists and cards (active, disabled, installed, curated) are the same fills: 2.0:1 on their own tint (audit A1-04). */
+body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.ok{color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 50%,var(--dsw-alias-label-primary))}
+body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 50%,var(--dsw-alias-label-primary))}
 .kbs-root .kbsf-acts{display:flex;align-items:center;gap:8px;margin-top:auto;min-height:32px;transition:opacity .14s ease}
 @media (hover:hover){
 .kbs-root .kbsf-card .kbsf-acts{opacity:0}
@@ -1441,8 +1458,11 @@ body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb
           const transient = (j) => j !== null && typeof j === 'object' && (j.error === 'timeout' || j.error === 'network_unavailable' ||
             (j.error === 'index_unavailable' && [500, 502, 503, 504].indexOf(j.http) >= 0))
           const fail = (j, text) => {
+            const code = (j !== null && typeof j === 'object' && typeof j.error === 'string') ? j.error : 'noanswer'
+            // A code the page has no sentence for is never the sentence: the page says it cannot reach the index, and keeps the code in a tooltip (audit R-A3-03).
+            const worded = code === 'noanswer' || code === '' || STR['he.' + code] !== undefined
             setDiscPhase('error')
-            setDiscErr({ text, code: (j !== null && typeof j === 'object' && typeof j.error === 'string') ? j.error : 'noanswer', http: (j !== null && typeof j === 'object') ? j.http : undefined })
+            setDiscErr({ text: worded ? text : t('d.cannot'), raw: worded ? undefined : code, code, http: (j !== null && typeof j === 'object') ? j.http : undefined })
           }
           const go = (first) => {
             getJson(route).then((j) => {
@@ -1898,7 +1918,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb
             type: 'button', className: 'kbs-star-btn on', title: t('feat.remove'), 'aria-label': t('feat.remove') + ' — ' + it.name,
             onClick: (e) => { e.stopPropagation(); toggleFeatured(it.name) }
           }, icon('star', 14))),
-          h('span', { className: 'who' }, coverArt(it), h('span', { className: 'kb8-name' }, it.name),
+          h('span', { className: 'who' }, coverArt(it), h('span', { className: 'kb8-name', title: it.name }, it.name),
             h('span', { className: 'kbs-fdesc' }, it.description !== '' ? it.description : t('card.nodesc'))),
           h('span', { className: 'kb8-parent src kbs-nowrap' }, it.source || t('feat.localskill')),
           h('span', { className: 'badges' }, it.active === false ? h('span', { className: 'kb8-pill warn' }, t('card.disabled')) : h('span', { className: 'kb8-pill ok' }, t('card.active'))),
@@ -1914,7 +1934,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb
           h('span', { className: 'rank' }, String(discFrom + i)),
           // The TILE is what makes a row belong to the same universe as the cards of the
           // other tabs (kb8-tile, kb8-name, kb8-parent, kb8-pill: the pivot's tokens).
-          h('span', { className: 'who' }, tile(x.name, 'pkg', 'kbs-sm'), h('span', { className: 'kb8-name' }, x.name)),
+          h('span', { className: 'who' }, tile(x.name, 'pkg', 'kbs-sm'), h('span', { className: 'kb8-name', title: x.name }, x.name)),
           h('span', { className: 'kb8-parent src kbs-nowrap' }, x.source),
           h('span', { className: 'badges' },
             x.official === true ? h('span', { key: 'o', className: 'kb8-pill ok' }, 'curated') : null,
@@ -2240,7 +2260,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb
               h('div', { className: 'kb-empty', role: 'alert', 'data-kb': 'disc-error' },
                 icon('alert', 24),
                 h('span', { className: 'kb8-name' }, t('d.down')),
-                h('span', { className: 'kb8-parent' }, discErr !== null ? discErr.text : ''),
+                h('span', { className: 'kb8-parent', title: discErr !== null ? discErr.raw : undefined }, discErr !== null ? discErr.text : ''),
                 refused === true ? null : h('span', { className: 'kb8-parent' }, t('d.hint')),
                 h('div', { className: 'kb-row', style: { justifyContent: 'center', marginTop: '4px' } },
                   refused === true ? null : h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'disc-retry', onClick: retryDiscover }, icon('refresh', 15), h('span', null, t('d.retry'))),
@@ -2576,7 +2596,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb
             title: t('intro.title'),
             caption: t('intro.caption'),
             steps: [{ t: t('intro.s1t'), b: t('intro.s1b') }, { t: t('intro.s2t'), b: t('intro.s2b') }, { t: t('intro.s3t'), b: t('intro.s3b') }],
-            mock: { bar: 'Skills', rows: [t('intro.m.row')], hot: 'PDF', states: [t('intro.m.st1'), t('intro.m.st2'), t('intro.m.st3')], actions: [t('btn.install'), t('intro.m.st2'), t('intro.m.open')] }
+            mock: { bar: 'Skills', rows: [t('intro.m.row')], hot: t('intro.m.hot'), states: [t('intro.m.st1'), t('intro.m.st2'), t('intro.m.st3')], actions: [t('btn.install'), t('intro.m.st2'), t('intro.m.open')] }
           })
           : null)
         return h('div', { className: 'kbs-root' },
@@ -2617,7 +2637,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb
                 h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'yours' ? 'true' : 'false', className: 'kb-seg' + (mode === 'yours' ? ' on' : ''), onClick: () => { setMode('yours'); setDetail(null); setLocal(null) } },
                   'Yours ', h('span', { className: 'count' }, count)),
                 h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'discover' ? 'true' : 'false', className: 'kb-seg' + (mode === 'discover' ? ' on' : ''), onClick: () => { setMode('discover'); setDetail(null); setLocal(null) } },
-                  'Discover ', h('span', { className: 'count' }, disc !== null && Array.isArray(disc.skills) ? String(disc.skills.length) : '—')),
+                  'Discover ', disc !== null && Array.isArray(disc.skills) ? h('span', { className: 'count' }, String(disc.skills.length)) : null),
                 tsum.phase !== 'absent' ? h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'team' ? 'true' : 'false', className: 'kb-seg' + (mode === 'team' ? ' on' : ''), onClick: () => { setMode('team'); setDetail(null); setLocal(null); setTeamOpen(null) } },
                   'Team ', tsum.phase === 'ready' ? h('span', { className: 'count' }, String((tsum.counts && tsum.counts.approved) || 0)) : (tsum.phase === 'locked' ? icon('lock', 13) : h('span', { className: 'count' }, '—')),
                   tsum.phase === 'ready' && teamRoleAdmin(tsum.role) && tsum.counts && tsum.counts.pending > 0 ? h('span', { className: 'kbt-dot', title: t('tm.v.review') }) : null) : null)),
@@ -3427,8 +3447,17 @@ body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb
           })
         }
 
+        // The window is the panel's own (SourceModal), reused as is, and its rules are scoped to `.kbs-root`, which the Settings page is not:
+        // drawn inside the card it was bare text with the browser's grey buttons (audit R-V-04, V-23). It gets a `.kbs-root` of its own
+        // (a box-less wrapper), and goes through a portal to the body so it sits above the Settings dialog, as the sidebar page's does.
+        const sourceWindow = () => {
+          const modal = h('div', { className: 'kbs-root kbs-top', 'data-kb': 'index-source-root', style: { display: 'contents' } },
+            h(SourceModal, { source: src, busy: srcBusy, error: srcErr, onClose: () => setSrcOpen(false), onSubmit: saveSource }))
+          return ReactDOM !== null && typeof ReactDOM.createPortal === 'function' && typeof document !== 'undefined' && document.body ? ReactDOM.createPortal(modal, document.body) : modal
+        }
+
         // The relay card: the host as a code line (never a credential), where it comes from, and the
-        // button that names another one. The modal is the panel's own window (SourceModal), reused as is.
+        // button that names another one.
         const sourceCard = () => {
           const where = src === null ? '' : (src.origin === 'env' ? t('src.env') : (src.origin === 'setting' ? t('src.custom') : t('src.default')))
           return h('div', { className: 'kbss-card', 'data-kb': 'skills-settings-source' },
@@ -3448,9 +3477,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb
                     disabled: srcBusy === true, onClick: () => { setSrcErr(''); setSrcOpen(true) }
                   }, t('src.change'))),
             srcErr === '' ? null : h('div', { className: 'kbss-err', role: 'alert' }, srcErr),
-            srcOpen === true
-              ? h(SourceModal, { source: src, busy: srcBusy, error: srcErr, onClose: () => setSrcOpen(false), onSubmit: saveSource })
-              : null)
+            srcOpen === true ? sourceWindow() : null)
         }
 
         // The write policy: the only folders the host writes to (GET /status answers them with
