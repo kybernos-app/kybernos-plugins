@@ -34199,3 +34199,5 @@ html.wv2-actif [data-composer-seat]{display:none !important}
   }
   },
 });
+      // R-A5-03: a finger needs 44 px, and the 24 px cross measured 24 x 36 on a phone.
+      '@media (max-width:700px){.kbnm-x{top:0;inset-inline-end:0;width:44px;height:44px}.kbnm-t{padding-inline-end:44px}}',
