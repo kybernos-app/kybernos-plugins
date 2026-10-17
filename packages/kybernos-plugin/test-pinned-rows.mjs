@@ -52,6 +52,12 @@ const rule = (sel) => {
   ok('the rows of the Pinned section are 2px apart like the session list')
 }
 
+// 2b. R-A5-02: in the 44 px icon rail the « No pins yet » hint wrapped one word per line under the page icons: it is not drawn there.
+{
+  assert.ok(plugin.includes("'[class*=\"collapsed\"] .kbpin_empty{display:none}'"), 'the empty hint is hidden when the sidebar is the icon rail')
+  ok('the empty-state hint of the Pinned section is hidden in the icon rail')
+}
+
 // 3. the contract between the two bundles: what one writes, the other reads.
 {
   assert.ok(/row\.className = 'kbpin_row'/.test(plugin) && /setAttribute\('data-kbpin-kind', kind\)/.test(plugin) && /setAttribute\('data-kbpin-id', id\)/.test(plugin), 'the Pinned section marks its rows with kind and id')

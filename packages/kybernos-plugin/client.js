@@ -3204,7 +3204,7 @@ const KB_FR_EN = {
   'jour': 'day',
   'Estimation du modèle': 'Model estimate',
   'Aucune réserve : toutes les sources attendues ont répondu.': 'No caveats: every expected source answered.',
-  'MiniApp score illisible : JSON invalide dans ': 'MiniApp score unreadable: invalid JSON in ',
+  'MiniApp score illisible : JSON invalide dans ': 'Mini-app score unreadable: invalid JSON in ',
   'Aucun thème — aucun score n’existe sans événement enregistré.': 'No themes — no score exists without recorded events.',
   ' thèmes': ' themes',
   ' thème': ' theme',
@@ -3727,7 +3727,7 @@ const KB_FR_EN = {
   'relance n°': 'retry #',
   'Corriger': 'Grade',
   'erreur': 'error',
-  'MiniApp JSON invalide : ': 'invalid MiniApp JSON: ',
+  'MiniApp JSON invalide : ': 'invalid Mini-app JSON: ',
   'provider inconnu de llm-pi-ai.providers': 'provider unknown to llm-pi-ai.providers',
   'Orchestrateur': 'Orchestrator',
   'Connecteur': 'Connector',
@@ -3944,6 +3944,7 @@ const LUCIDE = {
   palette: ['M12 22a1 1 0 0 1 0-20 10 9 0 0 1 8 4.29V7a5 5 0 0 1-5 5', 'M8.5 8.5h.01', 'M10 16h.01', 'M14 15h.01'],
   wrench: ['M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z'],
   box: ['M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z', 'm3.3 7 8.7 5 8.7-5', 'M12 22V12'],
+  bot: ['M12 8V4H8', 'M6 8h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z', 'M2 14h2', 'M20 14h2', 'M15 13v2', 'M9 13v2'],
   presentation: ['M2 3h20', 'M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3', 'm7 21 5-5 5 5'],
   hardDrive: ['M22 12H2', 'M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z', 'M6 16h.01', 'M10 16h.01'],
   // The Automations board (Columns view, calendar controls, status signs, banner).
@@ -3978,7 +3979,7 @@ const KbDynIcon = (props) => {
 // Menu icon sets (kybernos-theme). The set the person chose draws the menu entries — grey at rest, in the entry's colour on the
 // open page; « classic », or no registry yet, keeps the line icons above. The theme plugin announces a change with `kb-icons-change`.
 const KB_MENU_ENTRY = { cloudcomputer: 'cloud', kyber: 'kyber', dashboards: 'dash', aiteams: 'teams', projects: 'ws', deliverables: 'creations', tasks: 'auto', skills: 'skills', connectors: 'plug' }
-const KB_MENU_CLASSIC = { cloud: 'monitor', kyber: 'waypoints', dash: 'layoutDashboard', teams: KB_DEFAULT_ICON, ws: 'folderOpen', creations: 'shapes', auto: 'zap', skills: 'sparkles', plug: 'plug' }
+const KB_MENU_CLASSIC = { cloud: 'monitor', kyber: 'bot', dash: 'layoutDashboard', teams: KB_DEFAULT_ICON, ws: 'folderOpen', creations: 'shapes', auto: 'zap', skills: 'sparkles', plug: 'plug' }
 const kbMenuIcon = (rowKey, fallback, on) => {
   try {
     const reg = (typeof window !== 'undefined') ? window.__KB_ICONSETS__ : null
@@ -4314,6 +4315,9 @@ const kbArtRawUrl = (path) => {
     const kbAvatarUrl = (rootId, file) => {
   try { return kbApiBase() + '/avatar?rootId=' + encodeURIComponent(rootId) + '&kyberId=' + encodeURIComponent(file) } catch (e) { return '' }
 }
+// Does this team carry an avatar? The host's listing says so (`ui.avatar`, a path of the avatar store): the pages only ask for the image of a team that has
+// one, instead of getting a 404 for each of the others (C-02). The route keeps its 404 for a direct call.
+const kbHasAvatar = (ui) => ui !== null && ui !== undefined && typeof ui === 'object' && typeof ui.avatar === 'string' && ui.avatar.indexOf('.kyber-avatars/') === 0
 // Visages d'équipe : `members` du sidecar `.kyber-ui.json` (un avatar par rôle)
 // et l'URL de lecture d'un visage de membre. Lecture prudente : on ne garde que
 // les chemins relatifs du magasin d'avatars, jamais un chemin fabriqué.
@@ -5549,7 +5553,13 @@ const kbBoardWeekOffset = (todayKey, dayKey) => Math.round((kbBoardKeyUtc(kbBoar
 const kbBoardDayName = (key, locale, style) => { try { return new Intl.DateTimeFormat(locale, { weekday: style === 'long' ? 'long' : 'short', timeZone: 'UTC' }).format(kbBoardKeyUtc(key) + 12 * 3600000) } catch (e) { return key } }
 const kbBoardMonthName = (year, month, locale) => { try { return new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' }).format(Date.UTC(year, month - 1, 15)) } catch (e) { return String(month) } }
 const kbBoardDayLong = (key, locale, withYear) => { try { return new Intl.DateTimeFormat(locale, Object.assign({ weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }, withYear === true ? { year: 'numeric' } : {})).format(kbBoardKeyUtc(key) + 12 * 3600000) } catch (e) { return key } }
+// The title of a week is the language's own range (« October 12 – 18, 2026 », « 12–18 octobre 2026 »): the same order as the day on a card
+// (« Sun, Oct 18 »), not a day-first sentence of ours (A5-10). A runtime without formatRange keeps the plain sentence below.
 const kbBoardWeekTitle = (keys, locale) => {
+  try {
+    const noon = 12 * 3600000
+    return new Intl.DateTimeFormat(locale, { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).formatRange(kbBoardKeyUtc(keys[0]) + noon, kbBoardKeyUtc(keys[keys.length - 1]) + noon)
+  } catch (e) { /* the sentence below */ }
   const a = /^(\d{4})-(\d{2})-(\d{2})$/.exec(keys[0])
   const b = /^(\d{4})-(\d{2})-(\d{2})$/.exec(keys[keys.length - 1])
   const nameA = kbBoardMonthName(Number(a[1]), Number(a[2]), locale)
@@ -7504,6 +7514,8 @@ const kbPinsEnsureCss = () => {
     '.kbpin_mi_ico{display:inline-flex;width:16px;height:16px;align-items:center;justify-content:center;color:var(--dsw-alias-label-secondary)}',
     '.kbpin_mi:hover,.kbpin_mi:focus-visible{background:var(--dsw-alias-interactive-bg-hover);outline:none}',
     '.kbpin_empty{padding:4px 12px;color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xxs-12)}',
+    // R-A5-02: in the 44 px icon rail the hint wrapped one word per line under the page icons.
+    '[class*="collapsed"] .kbpin_empty{display:none}',
     '.kbpin_menuitem{display:flex;align-items:center;gap:8px;width:100%;padding:6px 10px;border:none;background:0 0;color:inherit;font:inherit;text-align:start;cursor:pointer;border-radius:6px}',
     '.kbpin_menuitem:hover{background:var(--dsw-alias-interactive-bg-hover)}',
   ].join('')
@@ -8427,6 +8439,11 @@ html[data-kbth-brand~="dark"] body[data-ds-dark-theme]{--kybernos-accent:color-m
     };
 
     // ── enregistrements ─────────────────────────────────────────────────────
+    // The icon of this tab in the « Start » picker of the right sidebar: the engine draws a grey cube for a type that gives none, and nine tabs of the suite looked the same (V-25).
+    // A line icon in the ink of the picker, one per plugin; the engine calls it as a component with { size, className }.
+    // KB-TABICON-BEGIN
+    const KB_TAB_ICON = (props) => { const px = (props !== null && props !== undefined && typeof props.size === 'number') ? props.size : 22; return React.createElement('svg', { width: px, height: px, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: (props !== null && props !== undefined) ? props.className : undefined }, ['m10.586 5.414-5.172 5.172', 'm18.586 13.414-5.172 5.172', 'M6 12h12', 'M10 20a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z', 'M10 4a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z', 'M18 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z', 'M2 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z'].map((d, i) => React.createElement('path', { key: i, d }))) }
+    // KB-TABICON-END
     if (sidebarTabs !== undefined && sidebarTabs !== null && typeof sidebarTabs.register === 'function') {
       ctx.effect(() => sidebarTabs.register({
         id: TYPE_ID,
@@ -8434,7 +8451,7 @@ html[data-kbth-brand~="dark"] body[data-ds-dark-theme]{--kybernos-accent:color-m
         title: () => kbt('ui.team.title2'),
         // L'hote du guide appelle entry.title() : une chaine fait crasher
         // l'entree de slot ('entry.title is not a function').
-        guide: [{ title: () => kbt('ui.team.guide'), description: () => kbt('ui.team.meta') }],
+        guide: [{ title: () => kbt('ui.team.guide'), description: () => kbt('ui.team.meta'), icon: KB_TAB_ICON }],
       }), 'kybers: right sidebar tab type');
     }
     ctx.effect(() => slots.register({ name: 'sidebar.right.pane.tab', key: TYPE_ID }, TabBody), 'kybers: right sidebar tab body');
@@ -8919,6 +8936,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         onClick: typeof p.onClick === 'function' ? p.onClick : (() => {}),
       }, h('span', { className: 'kb6-helpq', 'aria-hidden': 'true' }, '?'), kbt('kbui.howitworks'))
     }
+    // The same pill for a page card of this bundle (help.json `pages`): the Suite draws it; nothing when the Suite is not there or the card is not (A5-19).
+    const kbPagePill = (page) => { try { return typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-plugin', page: page }) : null } catch (e) { return null } }
     // Menu « Nouveau Kyber » (le bouton et ses quatre entrées) : défini ici pour
     // que l'action primaire de la page Kybers vive en `trailing` de la barre,
     // comme « Create with AI » des Livrables.
@@ -10094,7 +10113,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         return h('div', { className: 'kb8-card kb8-cmp kb8-kyber' + kbIn(ci), key: rootPath + '/' + k.id, 'data-kb': 'kyber-card', 'data-root': rootPath, onClick: () => open({ rootId, k, rootLabel }) },
           h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } },
             h('span', { className: 'kb8-tile', style: Object.assign({ width: '38px', height: '38px', borderRadius: '13px', position: 'relative', overflow: 'hidden' }, color !== null ? { background: color, color: kbOnColor(color) } : null) },
-              h('img', { src: kbAvatarUrl(rootId, k.id) + (ui.avatarAt ? '&v=' + encodeURIComponent(ui.avatarAt) : ''), alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e) { /* img */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }),
+              (kbHasAvatar(ui) === true ? h('img', { src: kbAvatarUrl(rootId, k.id) + (ui.avatarAt ? '&v=' + encodeURIComponent(ui.avatarAt) : ''), alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e) { /* img */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }) : null),
               h(KbDynIcon, { name: ui.icon ? ui.icon : KB_DEFAULT_ICON, size: 22 })),
             h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, gap: '2px', flex: 1 } },
               h('span', { className: 'kb8-name' }, name),
@@ -10140,7 +10159,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         const isActive = activeIds.indexOf(k.id) >= 0
         return h('div', { className: 'kb8-row' + kbIn(ri), key: rootPath + '/' + k.id, 'data-kb': 'kyber-row', 'data-root': rootPath, onClick: () => open({ rootId, k, rootPath }) },
           h('span', { className: 'kb8-tile', style: Object.assign({ width: '36px', height: '36px', borderRadius: '12px', position: 'relative', overflow: 'hidden', flex: 'none' }, color !== null ? { background: color } : null) },
-            h('img', { src: kbAvatarUrl(rootId, k.id) + (ui.avatarAt ? '&v=' + encodeURIComponent(ui.avatarAt) : ''), alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e2) { /* rien */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }),
+            (kbHasAvatar(ui) === true ? h('img', { src: kbAvatarUrl(rootId, k.id) + (ui.avatarAt ? '&v=' + encodeURIComponent(ui.avatarAt) : ''), alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e2) { /* rien */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }) : null),
             h(KbDynIcon, { name: ui.icon ? ui.icon : KB_DEFAULT_ICON, size: 18 })),
           h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '2px' } },
             h('span', { className: 'kb8-name' }, name),
@@ -12724,7 +12743,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           h('span', { className: 'kb8-parent' }, 'AVATAR'),
           h('div', { style: { display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' } },
             h('span', { style: { position: 'relative', width: '64px', height: '64px', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: draft.color !== '' ? draft.color : 'var(--dsw-alias-bg-layer-2)', color: draft.color !== '' ? kbOnColor(draft.color) : 'var(--dsw-alias-label-primary)', overflow: 'hidden', flex: '0 0 auto' } },
-              h('img', { src: kbAvatarUrl(rootId, kyber.id) + '&v=' + avRev, alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e) { /* img */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }),
+              ((kbHasAvatar(kyber.ui) === true || avRev > 0) ? h('img', { src: kbAvatarUrl(rootId, kyber.id) + '&v=' + avRev, alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e) { /* img */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }) : null),
               h(KbDynIcon, { name: draft.icon || KB_DEFAULT_ICON, size: 30 })),
             h('span', { style: { display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '180px' } },
               kbLookImage({ hint: 'PNG, JPG, WebP, GIF or SVG · max 3 MB. Clicking an icon below replaces the image.', onFile: onAvatarFile, hasImage: hasAvatar === true, onClear: () => update({ clearAvatar: true }) }))),
@@ -13013,7 +13032,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         h('button', { type: 'button', className: 'kb8-primary', style: { alignSelf: 'flex-start', background: 'transparent', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-primary)' }, onClick: () => { if (saving === 'pending') { try { saveNow() } catch (e) { /* sauvegarde */ } } set({ view: 'gallery' }) } }, '‹ Back to Agent Teams'),
         h('div', { style: { display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' } },
           h('span', { className: 'kb8-tile', style: { width: '44px', height: '44px', borderRadius: '14px', background: draft.color !== '' ? draft.color : 'var(--dsw-alias-bg-layer-2)', color: draft.color !== '' ? kbOnColor(draft.color) : 'var(--dsw-alias-label-primary)', overflow: 'hidden', position: 'relative' } },
-            h('img', { src: kbAvatarUrl(rootId, kyber.id) + '&v=' + avRev, alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e) { /* img */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }),
+            ((kbHasAvatar(kyber.ui) === true || avRev > 0) ? h('img', { src: kbAvatarUrl(rootId, kyber.id) + '&v=' + avRev, alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e) { /* img */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }) : null),
             h(KbDynIcon, { name: draft.icon || KB_DEFAULT_ICON, size: 22 })),
           h('h1', { className: 'kb8-h1' }, draft.name || kyber.id),
           h('span', { style: { marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px' } },
@@ -15918,7 +15937,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       return h('div', { className: 'kb8-page' },
         h('div', { className: 'kb6-headrow' },
           h('div', { className: 'kb6-headcol' },
-            h('h1', { className: 'kb6-title' }, kbt('kbui.projects')),
+            h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, kbt('kbui.projects')), kbPagePill('workspaces')),
             h('p', { className: 'kb8-sub' }, kbt('kbui.project.holds'))),
           (items.length > 0
             ? h(KbToolbar, { state: tbProjectsView, onUpdate: onProjectsUpdate, searchPlaceholder: kbt('kbui.search.project'), sortOptions: [{ id: 'name', label: kbt('kbui.sort.az') }, { id: 'threads', label: kbt('kbui.sort.mostthreads') }, { id: 'deliverables', label: kbt('kbui.sort.mostdeliverables') }], total: items.length, shown: projectsVisible.length, trailing: projCreateBtn })
@@ -16821,7 +16840,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
     // badges et pastilles de type sortaient donc sans couleur. Teintes
     // translucides, pour rester lisibles sur le fond sombre des cartes.
     const KB_ART_TYPES = [
-      { id: 'miniapp', label: 'MiniApp', exts: ['miniapp.json'], ico: 'zap', tint: 'rgba(85,99,214,0.16)', color: '#8f9cf0' },
+      { id: 'miniapp', label: 'Mini-app', exts: ['miniapp.json'], ico: 'zap', tint: 'rgba(85,99,214,0.16)', color: '#8f9cf0' },
       { id: 'html', label: 'HTML', exts: ['html', 'htm', 'css'], ico: 'file', tint: 'rgba(249,115,22,0.16)', color: '#fdba74' },
       { id: 'js', label: 'JS', exts: ['js', 'mjs', 'cjs', 'ts', 'jsx', 'tsx', 'sh'], ico: 'settings', tint: 'rgba(234,179,8,0.16)', color: '#fde047' },
       { id: 'quiz', label: 'Quiz', exts: ['quiz'], ico: 'target', tint: 'rgba(59,130,246,0.16)', color: '#93c5fd' },
@@ -17441,7 +17460,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         return [
           h('div', { className: 'kb6-prevkind', key: 'pk' }, kbTiSvg('miniapp', 30)),
           h('div', { className: 'kb6-prevtitle', key: 'tt' }, titre),
-          h('div', { className: 'kb6-line2', key: 'ln' }, 'MiniApp ' + rendu
+          h('div', { className: 'kb6-line2', key: 'ln' }, 'Mini-app ' + rendu
             + (lots !== null ? ' · ' + lots + (lots > 1 ? ' lots' : ' lot') : ' · ' + kbe('preview truncated'))
             + (comps !== null && comps > 0 ? ' · ' + comps + kbe(' components') : '')),
           (resume !== null && resume.length > 0 ? h('div', { className: 'kb6-line2', key: 'sm' }, resume.slice(0, 88)) : null),
@@ -17869,7 +17888,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           // alors sur un archétype : ouvrir le château affichait « Retro Rocket ».
           return h(KbMiniApp, { text: load.text, name: name, path: path, renderer: renderer, kind: innerKind, meta: parsed })
         } catch (e) {
-          return h('pre', { className: 'kb6-pre' }, load.text + '\n\n— ' + kbe('invalid MiniApp JSON: ') + String(e.message || e))
+          return h('pre', { className: 'kb6-pre' }, load.text + '\n\n— ' + kbe('invalid Mini-app JSON: ') + String(e.message || e))
         }
       }
       // ── Legacy types (.quiz, .cards, .deck, etc.) ─────────────────────
@@ -17992,7 +18011,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           return items.slice().sort((a, b) => ((typeof a.maitrise === 'number' ? a.maitrise : -1) - (typeof b.maitrise === 'number' ? b.maitrise : -1)))
         } catch (e) { return null }
       }, [text])
-      if (themes === null) return h('div', { className: 'kbg-empty' }, kbe('MiniApp score unreadable: invalid JSON in ') + name)
+      if (themes === null) return h('div', { className: 'kbg-empty' }, kbe('Mini-app score unreadable: invalid JSON in ') + name)
       if (themes.length === 0) return h('div', { className: 'kbg-empty' }, kbe('No themes — no score exists without recorded events.'))
       const chip = (label, extra) => h('span', Object.assign({
         style: { display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '6px', fontSize: '11.5px', background: 'var(--dsw-alias-interactive-bg-active, rgba(127,127,127,.14))', color: 'var(--dsw-alias-label-secondary, #6b7280)' },
@@ -19898,7 +19917,7 @@ function renderFit(canvas, model, cam, opts){
       })()
       const headRow = h('div', { className: 'kb6-headrow' },
         h('div', { className: 'kb6-headcol' },
-          h('div', { className: 'kb6-title' }, kbt('deliverables.title')),
+          h('div', { className: 'kb6-titlerow' }, h('div', { className: 'kb6-title' }, kbt('deliverables.title')), kbPagePill('creations')),
           h('div', { className: 'kb6-desc' }, kbt('deliverables.desc'))),
         h(KbToolbar, { state: Object.assign({}, tbArts[0], { query: q }), onUpdate: tbArts[1], searchPlaceholder: kbt('deliverables.search'), sortOptions: [{ id: 'modified', label: kbt('deliverables.sort.date') }, { id: 'name', label: kbt('deliverables.sort.name') }, { id: 'size', label: kbt('deliverables.sort.size') }], facets: { type: { options: tilesShown.map((d) => ({ id: d.id, label: d.label, count: d.count })) }, period: true }, total: hasPayload === true ? typed.length : 0, shown: hasPayload === true ? sorted.length : 0, trailing: h('button', { type: 'button', className: 'kb-createai', onClick: () => { try { kbCreateWithAI() } catch (e) { /* rien */ } } }, Icon('sparkles', 14), ' ' + kbt('deliv.createAI')) }))
       // Nothing has been read yet. The page used to draw seven invented files (a mock-up) until the host answered; it now
@@ -19941,7 +19960,7 @@ function renderFit(canvas, model, cam, opts){
             return h('button', { type: 'button', key: d.id, 'aria-pressed': on === true ? 'true' : 'false', className: 'kb-type' + (on === true ? ' kb-type-sel' : ''), style: on === true ? { borderColor: d.color } : {}, title: d.desc, onClick: () => toggleSel(d.id) },
               h('span', { className: 'kb-type-view', style: { background: d.bg, color: d.color } }, d.glyph),
               h('span', { className: 'kb-type-check' + (on === true ? ' on' : ''), 'aria-hidden': 'true' }, on === true ? Icon('check', 10) : null),
-              h('span', { style: { display: 'flex', alignItems: 'baseline', gap: 6, width: '100%' } },
+              h('span', { className: 'kb-type-line' },
                 h('span', { className: 'kb-type-lab' }, d.label),
                 h('span', { className: 'kb-type-cnt' }, String(d.count))))
           }
@@ -19974,7 +19993,7 @@ function renderFit(canvas, model, cam, opts){
                 h('button', { type: 'button', className: 'kb-type' + (allOn === true ? ' kb-type-sel' : ''), 'aria-pressed': allOn === true ? 'true' : 'false', onClick: () => tbArts[1]({ types: [] }) },
                   h('span', { className: 'kb-type-view', style: { background: 'var(--dsw-alias-interactive-bg-hover)', color: 'var(--dsw-alias-label-tertiary)' } }, Icon('layers', 22)),
                   h('span', { className: 'kb-type-check' + (allOn === true ? ' on' : ''), 'aria-hidden': 'true' }, allOn === true ? Icon('check', 10) : null),
-                  h('span', { style: { display: 'flex', alignItems: 'baseline', gap: 6, width: '100%' } },
+                  h('span', { className: 'kb-type-line' },
                     h('span', { className: 'kb-type-lab' }, kbt('deliverables.all')),
                     h('span', { className: 'kb-type-cnt' }, String(typed.length)))),
                 // Familles d'abord (26/09), puis types fins — l'ordre du KB.
@@ -24336,7 +24355,7 @@ function renderFit(canvas, model, cam, opts){
           (kbNcDot(ncCloud.kind) === '' ? null : h('span', { className: 'kb4-dot ' + kbNcDot(ncCloud.kind), 'aria-label': kbt('kbnc.cc.' + ncCloud.kind) }))) : null),
         // The Kaby row opens Kaby's own conversation: a native DSH chat (kybernos-kyber makes it the first time and remembers it). Without that
         // bundle's hook, or when the chat cannot open, it falls back to the page of the same bundle.
-        (KB_KY === true ? row('kyber', Icon('waypoints', 15), kbt('kbui.kyber'), null, shown === 'kyber', () => {
+        (KB_KY === true ? row('kyber', Icon('bot', 15), kbt('kbui.kyber'), null, shown === 'kyber', () => {
           let opened = null
           try { if (window.__KB_KYBER__ && typeof window.__KB_KYBER__.openChat === 'function') opened = window.__KB_KYBER__.openChat() } catch (e) { opened = null }
           if (opened === null || typeof opened.then !== 'function') { openPage({ view: 'kyber' }); return }
@@ -24767,7 +24786,7 @@ function renderFit(canvas, model, cam, opts){
       { name: 'conversation.input.dock', id: 'kybernos-newchat', order: 25 }, KbNewChatCards)), 'kybers: new chat cards');
     ctx.effect(() => styles.insert(`
 /* Cards of the new chat: same inset as the starters' rows, tokens only. The starters below are not restyled. */
-.kb8-nc{display:flex;flex-direction:column;gap:10px;padding:0 16px 10px}
+.kb8-nc{display:flex;flex-direction:column;gap:10px;padding:0 16px 10px;container-type:inline-size;container-name:kbnc}
 .kb8-nc-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.6fr);gap:10px}
 .kb8-nc-card{display:flex;align-items:center;gap:11px;min-width:0;padding:10px 12px;border-radius:14px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);font:inherit;color:inherit;text-align:left;cursor:pointer;transition:background .12s}
 .kb8-nc-card:hover{background:var(--dsw-alias-bg-layer-3);border-color:var(--dsw-alias-border-l2)}
@@ -24807,6 +24826,8 @@ function renderFit(canvas, model, cam, opts){
 .kb8-nc-vis:hover .kb8-nc-vl{color:var(--dsw-alias-label-primary)}
 @media (prefers-reduced-motion:reduce){.kb8-nc-art{transition:none}.kb8-nc-vis:hover .kb8-nc-art{transform:none}}
 @media (max-width:720px){.kb8-nc-row{grid-template-columns:1fr}.kb8-nc-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.kb8-nc-strip{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* What matters is the width the dock really has, not the window: a right pane open at 1400 px leaves ~450 px, and three columns then squeezed Build and Create to a 47 px text column (« Crea… »). Below 600 px the Cloud Computer card takes its own row. The phone keeps its single column (media rule above). */
+@media (min-width:721px){@container kbnc (max-width:600px){.kb8-nc-row{grid-template-columns:repeat(2,minmax(0,1fr))}.kb8-nc-row>.kb8-nc-cloud{grid-column:1/-1}}}
 `), 'kybers: styles of the new chat cards');
 
     // ── The headline of the new-chat page: a different line each time, and « Beta », small ────────────────────────
@@ -26989,7 +27010,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
           h('p', { className: 'kbt2-sub' }, kbToolsTxt({ fr: 'Active des capacités expérimentales et branche des outils externes sur un profil DSH. Chaque changement s’écrit dans le fichier de config du profil.', en: 'Enable experimental capabilities and connect external tools to a DSH profile. Each change is written to the profile’s config file.' })),
           // What this page is for, next to the one it is mistaken for: Tools mounts abilities in a profile, Workers runs the coding assistants.
           h('p', { className: 'kbt2-sub' }, kbToolsTxt({ fr: 'Les outils ajoutent des capacités à un profil DSH : des capacités expérimentales et des connexions à des outils extérieurs. Les assistants de code (Codex, Claude Code…) ont aussi leur page, Workers, qui vérifie qu’ils sont prêts et permet à ton agent de les appeler.', en: 'Tools add abilities to a DSH profile: experimental capabilities and connections to outside tools. The coding assistants (Codex, Claude Code…) also have their own page, Workers, which checks they are ready and lets your agent call them.' })),
-          h('p', { className: 'kbt2-sub', style: { marginTop: 4, fontSize: 12, color: 'var(--dsw-alias-label-tertiary)' } }, kbe('Nothing is hot-reloaded: a restart applies it. A dry run first, then the write — a dated backup before, a rollback after.'))))
+          h('p', { className: 'kbt2-sub', style: { marginTop: 4, fontSize: 12, color: 'var(--dsw-alias-label-tertiary)' } }, kbe('Nothing is hot-reloaded: a restart applies it. A dry run first, then the write — a dated backup before, a rollback after.'))), kbPagePill('tools'))
       const colonne = { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }
       // First read: the page's own head, then bones in the boxes of the profile block and of the cards (the shared skeleton helper).
       if (st.state === 'loading' && st.data === null) {
@@ -27146,7 +27167,7 @@ html [class$="_options"] :is(.kbth-head>.kbth-sub,.kbln-head>.kbln-sub)+*{margin
 /* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
 body:not([data-ds-dark-theme]) :is(.kbt2-sec,.kba-onboard,.kbv-pop,.kb4-pick){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
 .kbt2-entete{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
-.kbt2-entete-txt{display:flex;flex-direction:column;gap:0;min-width:0}
+.kbt2-entete-txt{display:flex;flex-direction:column;gap:0;min-width:0;flex:1 1 280px}
 .kbt2-h1{margin:0;font-size:18px;font-weight:600;line-height:1.3;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
 .kbt2-sub{margin:6px 0 0;max-width:640px;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
 .kbt2-entete-outils{display:flex;align-items:center;gap:8px;min-width:0}
@@ -27839,7 +27860,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
           h('div', { className: 'kbmac-info' },
             h('div', { className: 'kbmac-title' }, String(parsed.title || fileName.replace(/\.miniapp\.json$/, ''))),
             h('div', { className: 'kbmac-meta' }, (estQuestions ? items.length + ' questions' : (parts !== null ? items.length + ' components' : items.length + ' lots')) + ' · ' + kind.charAt(0).toUpperCase() + kind.slice(1))),
-          h('span', { className: 'kbmac-badge', style: { background: color + '22', color: color } }, 'MiniApp')),
+          h('span', { className: 'kbmac-badge', style: { background: color + '22', color: color } }, 'Mini-app')),
         // Aperçu : les 3 premières questions (quiz), ou le résumé + les
         // premiers composants nommés (assemblage technique).
         (items.length > 0
@@ -28060,7 +28081,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
               h('span', { className: 'kbma-popup-title' },
                 h('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: iconSvg })),
                 st.current.fileName.replace(/\.miniapp\.json$/, ''),
-                h('span', { className: 'kbmac-badge', style: { background: color + '22', color: color, marginLeft: 6 } }, 'MiniApp')),
+                h('span', { className: 'kbmac-badge', style: { background: color + '22', color: color, marginLeft: 6 } }, 'Mini-app')),
               h('div', { style: { display: 'flex', gap: 6 } },
                 h('button', { type: 'button', className: 'kbmai-btn', onClick: () => kbMiniAppSetMode('sidebar'), title: 'Sidebar', style: { fontSize: 11, padding: '4px 8px' } }, '◨ Sidebar'),
                 h('button', { type: 'button', className: 'kbmai-btn', onClick: () => kbMiniAppSetMode('fullpage'), title: 'Full page', style: { fontSize: 11, padding: '4px 8px' } }, '⛶ Full'),
@@ -28080,7 +28101,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
                 h('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 }, h('path', { d: 'M19 12H5M12 19l-7-7 7-7' }))),
               h('svg', { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: iconSvg })),
               h('span', { style: { fontSize: 14, fontWeight: 500 } }, st.current.fileName.replace(/\.miniapp\.json$/, '')),
-              h('span', { className: 'kbmac-badge', style: { background: color + '22', color: color } }, 'MiniApp')),
+              h('span', { className: 'kbmac-badge', style: { background: color + '22', color: color } }, 'Mini-app')),
             h('div', { style: { display: 'flex', gap: 6 } },
               h('button', { type: 'button', className: 'kbmai-btn', onClick: () => kbMiniAppSetMode('popup'), style: { fontSize: 11 } }, '◧ Popup'),
               h('button', { type: 'button', className: 'kbmai-btn', onClick: () => kbMiniAppSetMode('sidebar'), style: { fontSize: 11 } }, '◨ Sidebar'),
@@ -28539,11 +28560,16 @@ body:not([data-ds-dark-theme]) .kb8-cmp .kb8-desc.kb8-none{color:var(--dsw-alias
 /* A grid of equal tiles (A4-10): with ten kinds the last ones of a wrapped flex row stretched to half the width each. 96 px
    at least keeps ten tiles on one row at 1400 px (a page of 1064 px); fewer tiles share the row, as before. On a phone the row
    is one strip that slides sideways (A4-31): ten tiles in a wrapping grid took 460 px and pushed the first creation 976 px down. */
-.kb-typerow{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));align-items:stretch;gap:8px;padding:2px 2px 6px}
+/* C-04: 96 px cut « Spreadsheets » and « Audio & Video » at 1100-1280 px (the label needs 79-80 px + the tile's 22 px of padding and border). 108 px is the
+   phone strip's tile width: the label is whole in a tile of that width, and a tile that does not fit goes to a second row (the grid keeps the tiles equal). */
+.kb-typerow{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));align-items:stretch;gap:8px;padding:2px 2px 6px}
+/* the count goes under the label rather than squeezing it when a tile is narrow */
+.kb-type-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 6px;width:100%}
 @media (max-width:480px){
 .kb-typerow{display:flex;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none}
 .kb-typerow::-webkit-scrollbar{display:none}
 .kb-typerow>.kb-type{flex:0 0 108px;scroll-snap-align:start}
+.kb-type-line{flex-wrap:nowrap}
 }
 /* Jetons de texte de la maquette (--dsw-alias-fg / --dsw-alias-fg-muted) : ils
    N'EXISTENT PAS dans DSH. Le navigateur retombait donc sur la valeur de repli,
@@ -30382,7 +30408,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
       return false
     }
     const KbacHead = (props) => h('div', { className: 'kbac-head' },
-      h('h2', { className: 'kb6-title' }, props.title),
+      h('div', { className: 'kb6-titlerow kbac-titlerow' }, h('h2', { className: 'kb6-title' }, props.title), props.help === undefined ? null : kbPagePill(props.help)),
       h('p', { className: 'kb8-sub' }, props.sub))
     /** Ligne native : libellé + description à gauche, action à droite (lien ou bouton). */
     const KbacRow = (props) => h('div', { className: 'kbac-row' },
@@ -30470,7 +30496,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
           onKeyDown: (e) => { if ((e.key === ' ' || e.key === 'Enter') && st.unavailable !== true) { e.preventDefault(); change(key, st[key] !== true) } },
         }, h('span', { className: 'kba-toggle-knob' })))
       return h('div', { className: 'kbac-page' },
-        h(KbacHead, { title: kbt('kbui.automations.set'), sub: kbt('kbauto.set.sub') }),
+        h(KbacHead, { title: kbt('kbui.automations.set'), sub: kbt('kbauto.set.sub'), help: 'automation-settings' }),
         h('div', { className: 'kbac-list' },
           sw('paused', 'kbauto.set.paused', 'kbauto.set.paused.d'),
           sw('showNativeTasks', 'kbauto.set.native', 'kbauto.set.native.d'),
@@ -30486,6 +30512,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
 [data-slot="settings.section"]:has(.kbac-page){width:100%;max-width:none}
 .kbac-page{display:flex;flex-direction:column;gap:20px;max-width:720px;min-width:0;margin-inline:0}
 .kbac-head{display:flex;flex-direction:column;min-width:0}
+.kbac-titlerow{justify-content:space-between}
 .kbac-list{display:flex;flex-direction:column}
 .kbac-row{display:flex;align-items:center;gap:16px;padding:16px 0;border-top:1px solid var(--dsw-alias-border-l1)}
 .kbac-row-txt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 auto}
@@ -34197,6 +34224,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kbnm-err{font-size:12.5px;color:var(--dsw-alias-state-error-primary)}',
       '.kbnm-x{position:absolute;top:8px;inset-inline-end:8px;width:24px;height:24px;border:0;border-radius:6px;background:transparent;color:var(--dsw-alias-label-secondary);font-size:18px;line-height:1;cursor:pointer}',
       '.kbnm-x:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-3)}',
+      // R-A5-03: a finger needs 44 px, and the 24 px cross measured 24 x 36 on a phone.
+      '@media (max-width:700px){.kbnm-x{top:0;inset-inline-end:0;width:44px;height:44px}.kbnm-t{padding-inline-end:44px}}',
     ].join(String.fromCharCode(10))), 'kybers: styles of the “a model is missing” card')
 
   },

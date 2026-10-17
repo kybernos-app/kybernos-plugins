@@ -440,6 +440,12 @@ console.log('kybernos-call: the call buttons at the top right of a chat')
   assert.equal(t.getState().fix, true)
   assert.match(t.getState().note, /not ready yet/)
   ok('with no keys, a click on the phone does not open a pop-up: the panel says calls are not ready, with a way to the settings')
+  // A5-22: a call that never started (the panel says « error ») is not a call to hang up: the header shows the call buttons again, the panel keeps its « Close »
+  assert.equal(t.getState().phase, 'error')
+  const afterError = t.CallHeader({})
+  assert.ok(Array.isArray(afterError.children) && afterError.children[0].props['data-act'] === 'call-voice', 'the header is back to the voice / video / settings buttons')
+  assert.ok(!JSON.stringify(afterError).includes('hangup-header') && !JSON.stringify(afterError).includes('Hang up the call in progress'), 'no red Hang up on a call that never started')
+  ok('a call that never started (error panel) does not leave a red « Hang up » in the chat header')
   const find = (node, act) => {
     if (node === null || node === undefined || typeof node !== 'object') return null
     if (node.props && node.props['data-act'] === act) return node

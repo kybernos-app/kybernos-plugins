@@ -72,13 +72,15 @@ export function charge ({ catalogue, brut, etatHub, effectif, distant }) {
   // The help of a module ships with the suite and describes the code that RUNS: the signed online catalogue carries the versions and the
   // promises, and its help only fills a module this copy does not hold (A6-26: the release described an older Ollama page than the checkout).
   const aides = new Map(catalogue.modules.filter((m) => m.aide !== undefined).map((m) => [m.id, m.aide]))
+  // So does its name (R-A5-01): the release published before a rename kept calling Kaby « Kyber », in the module list and in the card of the « ? How it works » pill.
+  const noms = new Map(catalogue.modules.filter((m) => typeof m.titre === 'string' && m.titre !== '').map((m) => [m.id, m.titre]))
   return {
     ok: true,
     catalogue: { schema: vu.schema, familles: vu.familles, source: vu.source, suite: vu.suite ?? null },
     modules: vu.modules.map((m) => {
       const livree = aides.get(m.id)
       const aide = livree !== undefined ? livree : m.aide
-      return { ...m, ...(aide === undefined ? {} : { aide }), voulu: m.socle ? true : actifs.has(m.nom) }
+      return { ...m, ...(aide === undefined ? {} : { aide }), ...(noms.has(m.id) ? { titre: noms.get(m.id) } : {}), voulu: m.socle ? true : actifs.has(m.nom) }
     }),
     activationFichier: act.file,
     hub: etatHub ?? null,

@@ -2844,6 +2844,11 @@ window.__ModuleLoader__.load({
             return () => { el.remove() }
           }, 'kybernos-motion: styles')
 
+          // The icon of this tab in the « Start » picker of the right sidebar: the engine draws a grey cube for a type that gives none, and nine tabs of the suite looked the same (V-25).
+          // A line icon in the ink of the picker, one per plugin; the engine calls it as a component with { size, className }.
+          // KB-TABICON-BEGIN
+          const KB_TAB_ICON = (props) => { const px = (props !== null && props !== undefined && typeof props.size === 'number') ? props.size : 22; return React.createElement('svg', { width: px, height: px, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: (props !== null && props !== undefined) ? props.className : undefined }, ['M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3Z', 'm6.2 5.3 3.1 3.9', 'm12.4 3.4 3.1 4', 'M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z'].map((d, i) => React.createElement('path', { key: i, d }))) }
+          // KB-TABICON-END
           let registre = null
           try { registre = ctx.get('sidebarRightTabs') } catch (e) { registre = null }
           if (registre && typeof registre.register === 'function') {
@@ -2851,7 +2856,7 @@ window.__ModuleLoader__.load({
               id: TYPE_ID,
               kind: KIND,
               title: () => 'Motion',
-              guide: [{ title: () => 'Motion', description: () => kt('Animations (titres, graphiques, compteurs, particules, son) créées par le chat : lecture, réglages et export MP4.', 'Animations (titles, charts, counters, particles, sound) made by the chat: playback, settings and MP4 export.') }],
+              guide: [{ title: () => 'Motion', description: () => kt('Animations (titres, graphiques, compteurs, particules, son) créées par le chat : lecture, réglages et export MP4.', 'Animations (titles, charts, counters, particles, sound) made by the chat: playback, settings and MP4 export.'), icon: KB_TAB_ICON }],
             }), 'kybernos-motion: sidebar tab type')
           }
           ctx.effect(() => ctx.slots.inject(SLOT, () => ctx.slots.register({ name: SLOT, key: TYPE_ID }, MotionPanel)), 'kybernos-motion: panel body')

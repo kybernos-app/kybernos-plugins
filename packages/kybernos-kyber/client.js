@@ -51,7 +51,7 @@ window.__ModuleLoader__.load({
         b3h: ['Tu gardes la main', 'You stay in control'], b3p: ['Avant d’agir, il demande : Autoriser, Refuser ou Autoriser pour cette tâche.', 'Before it acts, it asks: Allow, Refuse, or Allow for this task.'],
         stOn: ['Telegram connecté', 'Telegram connected'], stOff: ['Telegram non connecté', 'Telegram not connected'], stWait: ['Telegram en attente', 'Telegram waiting'], stNone: ['Telegram indisponible', 'Telegram unavailable'],
         // the strip
-        channels: ['Canaux', 'Channels'], soon: ['Bientôt', 'Soon'],
+        channels: ['Canaux', 'Channels'], soon: ['Bientôt', 'Soon'], notYet: ['Pas encore disponible', 'Not available yet'],
         // telegram
         telegram: ['Telegram', 'Telegram'],
         cH: ['Connecter Telegram', 'Connect Telegram'],
@@ -449,7 +449,7 @@ window.__ModuleLoader__.load({
         const on = tg.state === 'linked' || state.starting || pairLive()
         const bot = tg.state === 'linked' && typeof tg.botUrl === 'string' && tg.botUrl !== ''
           ? h('a', { className: 'kbky-iconlink', href: tg.botUrl, target: '_blank', rel: 'noopener noreferrer', 'data-kb': 'kybernos-kyber-bot', 'aria-label': L('openBot') }, Ic('ext', 15)) : null
-        const soon = (id, name) => h(ChanRow, { key: id, kb: 'kybernos-kyber-chan-' + id, stateKey: 'soon', mark: BRAND[id](20), name, sub: L('soon'), right: h('span', { className: 'kbky-chip' }, L('soon')) })
+        const soon = (id, name) => h(ChanRow, { key: id, kb: 'kybernos-kyber-chan-' + id, stateKey: 'soon', mark: BRAND[id](20), name, sub: L('notYet'), right: h('span', { className: 'kbky-chip' }, L('soon')) })
         return h('div', { className: 'kbky-tile', 'data-kb': 'kybernos-kyber-tile-channels' },
           h('div', { className: 'kbky-th' }, h(Mark, null, Ic('link', 18)), h('b', null, L('channels'))),
           h('p', { className: 'kbky-help', 'data-kb': 'kybernos-kyber-channels-help' }, L('channelsHelp')),
@@ -869,6 +869,11 @@ window.__ModuleLoader__.load({
           }, 'kybernos-kyber: styles')
 
           // the tab type: it shows in the sidebar's « + » guide, and opens like any other tab
+          // The icon of this tab in the « Start » picker of the right sidebar: the engine draws a grey cube for a type that gives none, and nine tabs of the suite looked the same (V-25).
+          // A line icon in the ink of the picker, one per plugin; the engine calls it as a component with { size, className }.
+          // KB-TABICON-BEGIN
+          const KB_TAB_ICON = (props) => { const px = (props !== null && props !== undefined && typeof props.size === 'number') ? props.size : 22; return React.createElement('svg', { width: px, height: px, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: (props !== null && props !== undefined) ? props.className : undefined }, ['M12 8V4H8', 'M6 8h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z', 'M2 14h2', 'M20 14h2', 'M15 13v2', 'M9 13v2'].map((d, i) => React.createElement('path', { key: i, d }))) }
+          // KB-TABICON-END
           let registre = null
           try { registre = ctx.get('sidebarRightTabs') } catch (e) { registre = null }
           if (registre && typeof registre.register === 'function') {
@@ -876,7 +881,7 @@ window.__ModuleLoader__.load({
               id: TYPE_ID,
               kind: KIND,
               title: () => L('title'),
-              guide: [{ title: () => L('title'), description: () => L('tabHint') }],
+              guide: [{ title: () => L('title'), description: () => L('tabHint'), icon: KB_TAB_ICON }],
             }), 'kybernos-kyber: sidebar tab type')
           }
           // the page: the child slot the core's menu row opens

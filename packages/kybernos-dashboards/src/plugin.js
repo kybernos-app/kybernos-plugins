@@ -1451,7 +1451,7 @@ function DashboardsPage () {
     // bar's trailing action does elsewhere.
     : h('header', { className: 'kbdb-gal-head kb6-headrow' },
       h('div', { className: 'kb6-headcol' },
-        h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, kt('Dashboards', 'Dashboards'))),
+        h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, kt('Dashboards', 'Dashboards')), typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-dashboards' }) : null),
         h('p', { className: 'kb8-sub' }, kt('Tes dashboards sont des fichiers. Pars d’un preset, ou demande à l’IA d’en construire un.', 'Your dashboards are files. Start from a preset, or ask the AI to build one.'))),
       h('div', { className: 'kb6-headacts' },
         hiddenCount > 0 ? h('button', { type: 'button', className: 'kbdb-btn', 'aria-pressed': showHidden, onClick: () => setShowHidden((v) => !v) }, Ic('eyeoff', 14), kt('Masqués', 'Hidden'), h('span', { style: { color: 'var(--kbdb-t3)' } }, hiddenCount)) : null,
@@ -1609,6 +1609,11 @@ function apply (ctx) {
   ctx.effect(() => ctx.slots.inject(SLOT_PAGE, () => ctx.slots.register({ name: SLOT_PAGE }, DashboardsPage)), 'kybernos-dashboards: page')
 
   // the right-pane tab
+  // The icon of this tab in the « Start » picker of the right sidebar: the engine draws a grey cube for a type that gives none, and nine tabs of the suite looked the same (V-25).
+  // A line icon in the ink of the picker, one per plugin; the engine calls it as a component with { size, className }.
+  // KB-TABICON-BEGIN
+  const KB_TAB_ICON = (props) => { const px = (props !== null && props !== undefined && typeof props.size === 'number') ? props.size : 22; return React.createElement('svg', { width: px, height: px, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: (props !== null && props !== undefined) ? props.className : undefined }, ['M4 3h5a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z', 'M15 3h5a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z', 'M15 12h5a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1z', 'M4 16h5a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1z'].map((d, i) => React.createElement('path', { key: i, d }))) }
+  // KB-TABICON-END
   let registre = null
   try { registre = ctx.get('sidebarRightTabs') } catch (e) { registre = null }
   if (registre && typeof registre.register === 'function') {
@@ -1616,7 +1621,7 @@ function apply (ctx) {
       id: TYPE_ID,
       kind: KIND,
       title: () => 'Dashboard',
-      guide: [{ title: () => 'Dashboard', description: () => kt('Le dashboard sur lequel le chat travaille, mis à jour en direct.', 'The dashboard the chat is working on, updated live.') }],
+      guide: [{ title: () => 'Dashboard', description: () => kt('Le dashboard sur lequel le chat travaille, mis à jour en direct.', 'The dashboard the chat is working on, updated live.'), icon: KB_TAB_ICON }],
     }), 'kybernos-dashboards: sidebar tab type')
   }
   ctx.effect(() => ctx.slots.inject(SLOT_PANE, () => ctx.slots.register({ name: SLOT_PANE, key: TYPE_ID }, DashboardsPane)), 'kybernos-dashboards: pane body')

@@ -1296,6 +1296,11 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
         if (typeof cle === 'string' && cle.length > 0) SESSION_ID = cle
       } catch { /* la route retombe sur la dernière commande déposée */ }
 
+      // The icon of this tab in the « Start » picker of the right sidebar: the engine draws a grey cube for a type that gives none, and nine tabs of the suite looked the same (V-25).
+      // A line icon in the ink of the picker, one per plugin; the engine calls it as a component with { size, className }.
+      // KB-TABICON-BEGIN
+      const KB_TAB_ICON = (props) => { const px = (props !== null && props !== undefined && typeof props.size === 'number') ? props.size : 22; return React.createElement('svg', { width: px, height: px, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: (props !== null && props !== undefined) ? props.className : undefined }, ['M16.466 7.5C15.643 4.237 13.952 2 12 2 9.239 2 7 6.477 7 12s2.239 10 5 10c.342 0 .677-.069 1-.2', 'm15.194 13.707 3.814 1.86-1.86 3.814', 'M19 15.57c-1.804.885-4.274 1.43-7 1.43-5.523 0-10-2.239-10-5s4.477-5 10-5c4.838 0 8.873 1.718 9.8 4'].map((d, i) => React.createElement('path', { key: i, d }))) }
+      // KB-TABICON-END
       let registre = null
       try { registre = ctx.get('sidebarRightTabs') } catch { registre = null }
       if (registre && typeof registre.register === 'function') {
@@ -1303,7 +1308,7 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
           id: TYPE_ID,
           kind: KIND,
           title: () => kt('Modeleur', '3D modeller'),
-          guide: [{ title: () => kt('Modeleur', '3D modeller'), description: () => kt('Modèles 2D et 3D pilotés par le chat : dessin à l\'échelle, solides orbitables, pose en direct puis relecture.', '2D and 3D models driven by the chat: scale drawings, orbitable solids, laid live, then replayed.') }],
+          guide: [{ title: () => kt('Modeleur', '3D modeller'), description: () => kt('Modèles 2D et 3D pilotés par le chat : dessin à l\'échelle, solides orbitables, pose en direct puis relecture.', '2D and 3D models driven by the chat: scale drawings, orbitable solids, laid live, then replayed.'), icon: KB_TAB_ICON }],
         }), 'kybernos-modeleur: right sidebar tab type')
       }
 

@@ -28,7 +28,7 @@ const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 /** The body of the stylesheet rule `sel{...}` (a whole line starts with it), or null. */
 const rule = (sel) => { const m = new RegExp('(?:^|\\n)' + esc(sel) + '\\{([^}]*)\\}').exec(src); return m === null ? null : m[1] }
 
-// Creations (A4-10, A4-31): the type tiles are equal tiles in a grid, ten of them on one row at 1400 px (a page of 1064 px), and on a
+// Creations (A4-10, A4-31, C-04): the type tiles are equal tiles in a grid, and on a
 // phone ONE strip that slides sideways: ten wrapping tiles took 460 px and put the first creation 976 px down; wrapped in flex rows
 // the last ones stretched to half the width each.
 {
@@ -38,7 +38,12 @@ const rule = (sel) => { const m = new RegExp('(?:^|\\n)' + esc(sel) + '\\{([^}]*
   const min = Number(/minmax\((\d+)px,1fr\)/.exec(g)[1])
   assert.match(g, /repeat\(auto-fit,/, 'auto-fit: fewer tiles share the row')
   const gap = Number(/gap:(\d+)px/.exec(g)[1])
-  assert.ok(10 * min + 9 * gap <= 1064, 'ten tiles of ' + min + ' px at least (+ gaps of ' + gap + ') fit one row of 1064 px')
+  // C-04: the label comes first. « Spreadsheets » (79 px at 11.5 px bold) and « Audio & Video » (80 px) were cut at 1100-1280 px in a 96 px tile
+  // (22 px of padding and border): a tile is at least 108 px (the phone strip's width), and what does not fit goes to a second row (the grid keeps the
+  // tiles equal, so the one that wraps alone is not stretched). This replaces A4-10's « ten tiles on one row at 1400 px ».
+  assert.ok(min >= 80 + 22, 'a tile of ' + min + ' px holds the longest label (80 px) and its padding (22 px)')
+  assert.ok(/\.kb-type-line\{display:flex;flex-wrap:wrap;/.test(src), 'the count goes under the label when the tile is narrow')
+  assert.ok(!/style: \{ display: 'flex', alignItems: 'baseline', gap: 6, width: '100%' \}/.test(src), 'the label row of a tile is the wrapping one, not an inline nowrap flex')
   assert.doesNotMatch(rule('.kb-type'), /flex:1 1 112px|min-width:112px/, 'a tile has no flex-basis of its own any more (it stretched when it wrapped alone)')
   const at = src.indexOf('@media (max-width:480px){\n.kb-typerow{')
   assert.ok(at > 0, 'a phone block for the type row')

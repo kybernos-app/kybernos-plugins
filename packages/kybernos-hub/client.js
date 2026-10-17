@@ -526,7 +526,9 @@ window.__ModuleLoader__.load({
       // The animated help of a page (window.__KB_HELP__.Intro): a CSS mock of three steps on a 12 s loop, beside the steps, which light
       // up in turn. The BASE style of every animated part is the end of the story, which is also what reduced motion shows.
       '.kbhi{position:relative;display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;padding:16px;border-radius:12px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);align-items:center;margin:0 0 14px}',
-      '@media (max-width:700px){.kbhi{grid-template-columns:minmax(0,1fr)}}',
+      // On a phone (R-A5-03): one column, the dismiss cross is a 44 px target (it was 26 x 36), and the drawn mini-mock (decorative, text of 9 px)
+      // is left out so the steps are what the first screen shows instead of the page starting below the fold.
+      '@media (max-width:700px){.kbhi{grid-template-columns:minmax(0,1fr)}.kbhi-mm{display:none}.kbhi-x{top:0;inset-inline-end:0;width:44px;height:44px}.kbhi-h{padding-inline-end:44px}}',
       '.kbhi-text{display:flex;flex-direction:column;gap:12px;min-width:0}',
       '.kbhi-h{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary);padding-inline-end:28px}',
       '.kbhi-x{position:absolute;inset-inline-end:8px;top:8px;width:26px;height:26px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;font-size:14px}',

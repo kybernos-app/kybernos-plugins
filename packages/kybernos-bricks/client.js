@@ -1108,6 +1108,11 @@ function renderFit(canvas, model, cam, opts){
         if (typeof cle === 'string' && cle.length > 0) SESSION_ID = cle
       } catch { /* la route retombe sur la dernière maquette déposée */ }
 
+      // The icon of this tab in the « Start » picker of the right sidebar: the engine draws a grey cube for a type that gives none, and nine tabs of the suite looked the same (V-25).
+      // A line icon in the ink of the picker, one per plugin; the engine calls it as a component with { size, className }.
+      // KB-TABICON-BEGIN
+      const KB_TAB_ICON = (props) => { const px = (props !== null && props !== undefined && typeof props.size === 'number') ? props.size : 22; return React.createElement('svg', { width: px, height: px, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: (props !== null && props !== undefined) ? props.className : undefined }, ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', 'M12 9v6', 'M16 15v6', 'M16 3v6', 'M3 15h18', 'M3 9h18', 'M8 15v6', 'M8 3v6'].map((d, i) => React.createElement('path', { key: i, d }))) }
+      // KB-TABICON-END
       let registre = null
       try { registre = ctx.get('sidebarRightTabs') } catch { registre = null }
       if (registre && typeof registre.register === 'function') {
@@ -1115,7 +1120,7 @@ function renderFit(canvas, model, cam, opts){
           id: TYPE_ID,
           kind: KIND,
           title: () => kt('Briques', 'Bricks'),
-          guide: [{ title: () => kt('Briques', 'Bricks'), description: () => kt('Maquettes en briques pilotées par le chat : pose en direct brique par brique, puis relecture.', 'Brick models driven by the chat: laid live, brick by brick, then replayed.') }],
+          guide: [{ title: () => kt('Briques', 'Bricks'), description: () => kt('Maquettes en briques pilotées par le chat : pose en direct brique par brique, puis relecture.', 'Brick models driven by the chat: laid live, brick by brick, then replayed.'), icon: KB_TAB_ICON }],
         }), 'kybernos-bricks: right sidebar tab type')
       }
 

@@ -49,7 +49,7 @@ const PLACES = {
   skills: ['compétences'],
   commands: ['commandes'],
   'ollama local models': ['modèles locaux ollama'],
-  automations: [],
+  automations: ['automatisations'],
   'free llms': [],
   'kybernos suite': [],
   tools: ['outils', 'herramientas'],

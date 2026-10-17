@@ -292,6 +292,8 @@ console.log('the styles')
   check('the animation stops under « prefers-reduced-motion » and the end of the story stays on screen', SOURCE.includes("@media (prefers-reduced-motion:reduce){.kbhi-mm *,.kbhi-step{animation:none !important}.kbhi-step{opacity:1}}"))
   check('the mock keeps its left-to-right layout in a right-to-left page (it is a drawing)', /\.kbhi-mm\{[^}]*direction:ltr/.test(SOURCE))
   check('the base style is the end of the story: the last state and the end label show, the others wait for their turn', /\.kbhi-mm-st>\.t3\{opacity:1/.test(SOURCE) && /\.kbhi-mm-done\{[^}]*opacity:1/.test(SOURCE) && /\.kbhi-mm-go,\.kbhi-mm-us\{[^}]*opacity:0/.test(SOURCE))
+  // R-A5-03: on a phone the dismiss cross is a 44 px target (it was 26 x 36) and the 9 px decorative mock is left out
+  check('on a phone the intro\'s cross is a 44 px target and the drawn mock (9 px text) is not drawn', /@media \(max-width:700px\)\{[^}]*\}\.kbhi-mm\{display:none\}\.kbhi-x\{[^}]*width:44px;height:44px\}/.test(SOURCE))
   check('the loop is 12 s, like the Language page’s', /kbhi-k-hot 12s infinite/.test(SOURCE) && /kbhi-k-s3 12s infinite/.test(SOURCE))
   check('the link of the card is drawn as a link (not a second button)', /\.kbhp-link\{/.test(SOURCE) && /\.kbhp-foot\{/.test(SOURCE))
   // A page that styles every button of its own (« .kbwk button », « .kbsl-scope :where(button) », « .kbsu button » set font:inherit) must not

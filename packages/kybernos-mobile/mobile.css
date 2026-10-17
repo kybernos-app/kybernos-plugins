@@ -476,6 +476,21 @@
     cursor: pointer;
   }
 
+  /* 7b. The engine's « This turn failed » row keeps its desktop grid (dot, text, error code in a column of its own): at 390 px the text
+   *     wrapped in a ~150 px column with half the screen empty (R-A5-05). Dot and text share the row, the code goes under the text.
+   *     The row is the `role="status"` box of the turn-error flow item (its class names are hashed). */
+  [data-chat-flow-kind="turn-error"] [role="status"] {
+    grid-template-columns: 10px minmax(0, 1fr) !important;
+  }
+  [data-chat-flow-kind="turn-error"] [role="status"] > :nth-child(n + 3) {
+    grid-column: 2;
+    justify-self: start;
+    overflow-wrap: anywhere;
+  }
+  [data-chat-flow-kind="turn-error"] [role="status"] > :nth-child(2) {
+    overflow-wrap: anywhere;
+  }
+
   /* 8. Nothing leaves the screen. */
   [role="dialog"] {
     max-width: calc(100vw - 16px) !important;
