@@ -8166,7 +8166,7 @@ html[data-kbth-brand~="dark"] body[data-ds-dark-theme]{--kybernos-accent:color-m
         const dl = deadlineBits(budget.daysLeft);
         if (dl !== null) sub.push(dl);
         if (sub.length > 0) bits.push(h('div', { className: 'kb2-sub', key: 'sub' }, sub.join(' · ')));
-        if (budget.kyberId !== null && budget.kyberId !== undefined) bits.push(h('div', { className: 'kb2-note', key: 'src', title: budget.deadline === null || budget.deadline === undefined ? '' : String(budget.deadline) }, kbt('ui.budget.declared') + budget.kyberId + kbt('ui.budget.rates') + (function () { const fx = typeof budget.usdEur === 'number' ? budget.usdEur : usage.fx; return typeof fx === 'number' ? fx.toFixed(2).replace('.', ',') : String(fx) })()));
+        if (budget.kyberId !== null && budget.kyberId !== undefined) bits.push(h('div', { className: 'kb2-note', key: 'src', title: budget.deadline === null || budget.deadline === undefined ? '' : String(budget.deadline) }, kbt('ui.budget.declared') + budget.kyberId + kbt('ui.budget.rates') + (function () { const fx = typeof budget.usdEur === 'number' ? budget.usdEur : usage.fx; return typeof fx === 'number' ? kbFmtNum(fx, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : String(fx) })()));
       } else if (hasUsage) {
         bits.push(h('div', { className: 'kb2-amount', key: 'amt2' },
           h('span', { className: 'kb2-big' }, typeof usage.totalTokens === 'number' ? fmtTok(usage.totalTokens) : '—'),
@@ -11768,7 +11768,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const bgAppels = (llm !== null && typeof llm.calls === 'number') ? llm.calls : 0
       const bgConsomme = bgAppels === 0 ? kbiMoney(0, f.currency) : '—'
       const bgConsommeSub = kbiNum(bgAppels) + (bgAppels > 1 ? kbe(' LLM calls over the period') : kbe(' LLM call over the period'))
-      const bgFx = (llm !== null && typeof llm.usdEur === 'number') ? String(llm.usdEur).replace('.', ',') : '—'
+      const bgFx = (llm !== null && typeof llm.usdEur === 'number') ? kbFmtNum(llm.usdEur, { maximumFractionDigits: 4 }) : '—'
       const bgEcheance = (bgAbsent === false && typeof kbgt.echeance === 'string') ? kbgt.echeance : ((bgAbsent === false && typeof kbgt.deadline === 'string') ? kbgt.deadline : '—')
       const bgEcheanceSub = bgEcheance === '—' ? kbe('no deadline declared') : kbe('declared in the kyber.yml')
       // Lectures (skill insight-principe) : une par vue, ancrée aux chiffres
@@ -19124,7 +19124,7 @@ function renderFit(canvas, model, cam, opts){
                 key: v, type: 'button',
                 className: 'kbbm-sp' + (vitesse === v ? ' on' : ''),
                 onClick: function () { changerVitesse(v) },
-              }, String(v).replace('.', ',') + '\u00D7')
+              }, kbFmtNum(v) + '\u00D7')
             }),
             h('span', { className: 'kbbm-badge' + (etat.enCours ? ' run' : '') },
               total > 0 ? (etat.enCours ? pct + ' %' : kbe('Built', 'Monté')) : '\u2014')),
