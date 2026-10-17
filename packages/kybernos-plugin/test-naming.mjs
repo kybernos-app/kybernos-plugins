@@ -176,4 +176,11 @@ for (const f of clientFiles) {
 assert.deepEqual(labelBad, [], 'a « Kyber » label is back in a browser half')
 ok('no browser half of the other ' + clientFiles.length + ' bundles carries a « Kyber(s) » label')
 
+// R3-05 (A2-27): the French UI names the pages the way its sidebar does (« Automations », « Workspaces »), in Settings and in the empty states too
+assert.equal(dict.get('menu.tasks').kybernos, dict.get('kbui.automations.set').kybernos, 'the Settings entry is named like the sidebar entry')
+assert.equal(dict.get('kbui.automations.set').kybernos, 'Automations')
+assert.ok(dict.get('kbui.workspaces.unavailable').kybernos.startsWith(dict.get('menu.projects').kybernos), 'the Workspaces empty state uses the sidebar word')
+assert.ok(!/Automatisations de Kybernos|Espaces? de travail indisponibles/.test(src), 'no second name for the Automations page or the Workspaces page')
+ok('the French names of Automations and Workspaces are the same in the sidebar, in Settings and in the empty states')
+
 console.log('\n' + pass + ' verifications OK')

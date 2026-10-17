@@ -1329,7 +1329,7 @@ let kbLocaleRead = () => 'en'
       // The name of the person's own assistant, as the sidebar row and its page show it (the packages/kybernos-kyber bundle has its one NAME to match).
       'kbui.kyber': { kybernos: 'Kaby', en: 'Kaby' },
       'kbui.cloudcomputer': { kybernos: 'Cloud Computer', en: 'Cloud Computer' },
-      'kbui.automations.set': { kybernos: 'Automatisations', en: 'Automations' },
+      'kbui.automations.set': { kybernos: 'Automations', en: 'Automations' },
       // New chat: Build / Create / Cloud Computer cards
       'kbnc.build': { kybernos: 'Construire', en: 'Build' },
       'kbnc.build.sub': { kybernos: 'Sites, apps, automatisations', en: 'Sites, apps, automations' },
@@ -1425,7 +1425,7 @@ let kbLocaleRead = () => 'en'
       'kbauto.set.paused': { kybernos: 'Mettre toutes les automatisations en pause', en: 'Pause all automations' },
       'kbauto.set.paused.d': { kybernos: 'Rien ne se déclenche tant que c’est activé. Ce qui est arrivé à échéance pendant la pause se déclenche une fois au premier passage après la reprise.', en: 'Nothing fires while this is on. What came due during the pause fires once at the first check after you resume.' },
       'kbauto.set.native': { kybernos: 'Afficher la liste « Automation tasks » de DSH', en: 'Show DSH’s own “Automation tasks” list' },
-      'kbauto.set.native.d': { kybernos: 'La page Automatisations de Kybernos est le lieu de tes automatisations : la liste native de DSH, qui la double, est masquée du menu. Active pour la retrouver.', en: 'The Kybernos Automations page is where your automations live: DSH’s own list, which overlaps it, is hidden from the menu. Turn on to get it back.' },
+      'kbauto.set.native.d': { kybernos: 'La page Automations de Kybernos est le lieu de tes automatisations : la liste native de DSH, qui la double, est masquée du menu. Active pour la retrouver.', en: 'The Kybernos Automations page is where your automations live: DSH’s own list, which overlaps it, is hidden from the menu. Turn on to get it back.' },
       'kbauto.set.where': { kybernos: 'Les automatisations tournent sur cet ordinateur, tant que DSH est ouvert.', en: 'Automations run on this computer, while DSH is open.' },
       'kbauto.set.error': { kybernos: 'Réglage non enregistré. Réessaie.', en: 'Setting not saved. Try again.' },
       'kbauto.set.unavailable': { kybernos: 'Ces réglages ne sont pas encore disponibles : DSH doit être redémarré pour les charger.', en: 'These settings are not available yet: DSH needs a restart to load them.' },
@@ -1536,7 +1536,7 @@ let kbLocaleRead = () => 'en'
       'kbui.website.widget': { kybernos: 'Widget de site web', en: 'Website widget' },
       'kbui.hosted.only': { kybernos: 'Ce que tu n’obtiens qu’en hosted', en: 'What you get only when it is hosted' },
       'kbui.widget.colour': { kybernos: 'Couleur du widget', en: 'Widget colour' },
-      'kbui.workspaces.unavailable': { kybernos: 'Espaces de travail indisponibles', en: 'Workspaces unavailable' },
+      'kbui.workspaces.unavailable': { kybernos: 'Workspaces indisponibles', en: 'Workspaces unavailable' },
       'kbui.yaml.raw': { kybernos: 'YAML brut', en: 'Raw YAML' },
       'kbui.hosted.keepworking': { kybernos: 'Tes Agent Teams continuent de travailler après avoir fermé le capot.', en: 'Your Agent Teams keep working after you close the lid.' },
       'kbui.workspace.export': { kybernos: 'Ton espace de travail de plugin s’exporte en fichier. Hosted l’importe intégralement — équipes, documents, objectifs et fils gardent leur historique.', en: 'Your plugin workspace exports as a file. Hosted imports it whole — teams, documents, goals and threads keep their history.' },
