@@ -7,6 +7,8 @@
 // It plays the panel's own demo deck ("Voir la démo"); nothing else is read or written beyond the sandbox's own slides state.
 //
 // What it proves:
+//   - R3-01: while the editor is open the tool bar stays reachable (the five tools are the element under their own centre), on the title
+//     and on the bottom-most field, and the editor stays inside the stage; the transport bar is Start / Play / End + 0.5× 1× 2× 4× + a Done pill;
 //   - the thumbnail of a « statement » slide shows its title, as the stage does (it showed only the kicker);
 //   - double-clicking a field twice leaves ONE editor, and Escape closes it, and the tool bar is not covered;
 //   - clicking away from the editor commits what was typed (it used to leave the text silently lost, the editor open).
@@ -74,12 +76,49 @@ try {
   check('one editor is open', (await q('.kbsd-ebox')) === 1, await q('.kbsd-ebox'))
   check('...a second double-click on the same field leaves exactly one editor', (await dblclick(field('Rain is a given.'))) === true && (await q('.kbsd-ebox')) === 1, await q('.kbsd-ebox'))
   await shot('slides-one-editor')
+  // R3-01 (A4-02): while the editor is open, every tool of the bar is still the element under its own centre, and the editor sits
+  // inside the stage without touching the bar (the format palette used to cover Text / Brush / Eraser / Clear all until Escape).
+  const geometry = `(() => {
+    const tools = Array.from(document.querySelectorAll('.kbsd-outil'))
+    const hit = tools.map((b) => { const r = b.getBoundingClientRect(); const e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return { label: b.innerText.trim(), ok: !!e && e.closest('.kbsd-outil') === b } })
+    const bar = document.querySelector('.kbsd-outils').getBoundingClientRect()
+    const wrap = document.querySelector('.kbsd-wrap').getBoundingClientRect()
+    const box = document.querySelector('.kbsd-ebox').closest('div[style*="position: absolute"]').getBoundingClientRect()
+    const overlap = box.left < bar.right && box.right > bar.left && box.top < bar.bottom && box.bottom > bar.top
+    const inside = box.left >= wrap.left - 1 && box.right <= wrap.right + 1 && box.top >= wrap.top - 1 && box.bottom <= wrap.bottom + 1
+    return JSON.stringify({ hit, overlap, inside, box: [box.left, box.top, box.right, box.bottom].map(Math.round), bar: [bar.left, bar.top, bar.right, bar.bottom].map(Math.round) })
+  })()`
+  const g1 = JSON.parse(await val(geometry))
+  check('while editing the title, the five tools are reachable (Text, Brush, Eraser, Clear all and View)', g1.hit.length === 5 && g1.hit.every((x) => x.ok), g1.hit)
+  check('...and the editor does not touch the tool bar, and stays inside the stage', g1.overlap === false && g1.inside === true, g1)
   await key('Escape', 'Escape', 27)
   await sleep(500)
   check('Escape closes it: no editor is left behind', (await q('.kbsd-ebox')) === 0, await q('.kbsd-ebox'))
+  // the bottom-most field of the slide (a note or the footer line), so the editor goes ABOVE it
+  const bottomField = `Array.from(document.querySelectorAll('.kbsd-slide .kbsd-champ')).sort((a, b) => b.getBoundingClientRect().top - a.getBoundingClientRect().top)[0]`
+  check('a double-click on the bottom-most field opens the editor too', (await dblclick(bottomField)) === true && (await poll(() => q('.kbsd-ebox'))) !== null)
+  const g2 = JSON.parse(await val(geometry))
+  check('...with the five tools still reachable, the editor clear of the bar and inside the stage', g2.hit.length === 5 && g2.hit.every((x) => x.ok) && g2.overlap === false && g2.inside === true, g2)
+  await shot('slides-editor-bottom')
+  await key('Escape', 'Escape', 27)
+  await sleep(500)
   const tool = await centre(`Array.from(document.querySelectorAll('.kbsd-outil')).find((b) => /Text/.test(b.innerText))`)
   const covered = tool === null ? null : await val(`(() => { const e = document.elementFromPoint(${tool ? tool.x : 0}, ${tool ? tool.y : 0}); return !!e && !!e.closest('.kbsd-outil') })()`)
   check('the tool bar is reachable again (the Text tool is the element under its own centre)', covered === true, { tool, covered })
+
+  console.log('\n── A4-26 · the transport bar ──')
+  const bar = JSON.parse(await val(`(() => {
+    const line = document.querySelector('.kbsd-bar .kbsd-line')
+    if (!line) return 'null'
+    const buttons = Array.from(line.querySelectorAll('button')).map((b) => b.title || b.innerText.trim())
+    const pill = line.querySelector('.kbsd-badge')
+    const lab = document.querySelector('.kbsd-bar .kbsd-lab')
+    return JSON.stringify({ buttons, pill: pill ? pill.innerText.trim() : null, lab: lab ? lab.innerText.trim() : null, head: Array.from(document.querySelectorAll('.kbsd-head .kbsd-badge')).map((x) => x.innerText.trim()) })
+  })()`))
+  check('the bar is Start, Play, End, 0.5× 1× 2× 4×', bar !== null && JSON.stringify(bar.buttons) === JSON.stringify(['Start', 'Replay the writing', 'End', '0.5×', '1×', '2×', '4×']), bar)
+  check('the deck has finished writing: the pill says Done and the head says nothing like « live »', bar !== null && bar.pill === 'Done' && !bar.head.some((x) => /live/i.test(x)), bar)
+  check('the counter reads « n / 5 slides »', bar !== null && /^\d+ \/ 5 slides$/.test(bar.lab), bar)
+  await shot('slides-transport')
 
   console.log('\n── A4-04 · clicking away commits ──')
   check('a double-click opens the editor on the title', (await dblclick(field('Rain is a given.'))) === true && (await q('.kbsd-ebox')) === 1)
