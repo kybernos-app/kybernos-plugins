@@ -24763,7 +24763,7 @@ function renderFit(canvas, model, cam, opts){
       { name: 'conversation.input.dock', id: 'kybernos-newchat', order: 25 }, KbNewChatCards)), 'kybers: new chat cards');
     ctx.effect(() => styles.insert(`
 /* Cards of the new chat: same inset as the starters' rows, tokens only. The starters below are not restyled. */
-.kb8-nc{display:flex;flex-direction:column;gap:10px;padding:0 16px 10px}
+.kb8-nc{display:flex;flex-direction:column;gap:10px;padding:0 16px 10px;container-type:inline-size;container-name:kbnc}
 .kb8-nc-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.6fr);gap:10px}
 .kb8-nc-card{display:flex;align-items:center;gap:11px;min-width:0;padding:10px 12px;border-radius:14px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);font:inherit;color:inherit;text-align:left;cursor:pointer;transition:background .12s}
 .kb8-nc-card:hover{background:var(--dsw-alias-bg-layer-3);border-color:var(--dsw-alias-border-l2)}
@@ -24822,6 +24822,8 @@ function renderFit(canvas, model, cam, opts){
       }
       const sweep = () => {
         try {
+/* What matters is the width the dock really has, not the window: a right pane open at 1400 px leaves ~450 px, and three columns then squeezed Build and Create to a 47 px text column (« Crea… »). Below 600 px the Cloud Computer card takes its own row. The phone keeps its single column (media rule above). */
+@media (min-width:721px){@container kbnc (max-width:600px){.kb8-nc-row{grid-template-columns:repeat(2,minmax(0,1fr))}.kb8-nc-row>.kb8-nc-cloud{grid-column:1/-1}}}
           for (const g of document.querySelectorAll('[class*="titleGroup"]')) {
             const head = g.children[0]
             const badge = g.children[1]
