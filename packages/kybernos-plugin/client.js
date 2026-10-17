@@ -4314,6 +4314,9 @@ const kbArtRawUrl = (path) => {
   try { return kbApiBase() + '/avatar?rootId=' + encodeURIComponent(rootId) + '&kyberId=' + encodeURIComponent(file) } catch (e) { return '' }
 }
 // Visages d'équipe : `members` du sidecar `.kyber-ui.json` (un avatar par rôle)
+// Does this team carry an avatar? The host's listing says so (`ui.avatar`, a path of the avatar store): the pages only ask for the image of a team that has
+// one, instead of getting a 404 for each of the others (C-02). The route keeps its 404 for a direct call.
+const kbHasAvatar = (ui) => ui !== null && ui !== undefined && typeof ui === 'object' && typeof ui.avatar === 'string' && ui.avatar.indexOf('.kyber-avatars/') === 0
 // et l'URL de lecture d'un visage de membre. Lecture prudente : on ne garde que
 // les chemins relatifs du magasin d'avatars, jamais un chemin fabriqué.
 const kbMembersOf = (v) => {
@@ -10103,7 +10106,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         return h('div', { className: 'kb8-card kb8-cmp kb8-kyber' + kbIn(ci), key: rootPath + '/' + k.id, 'data-kb': 'kyber-card', 'data-root': rootPath, onClick: () => open({ rootId, k, rootLabel }) },
           h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } },
             h('span', { className: 'kb8-tile', style: Object.assign({ width: '38px', height: '38px', borderRadius: '13px', position: 'relative', overflow: 'hidden' }, color !== null ? { background: color, color: kbOnColor(color) } : null) },
-              h('img', { src: kbAvatarUrl(rootId, k.id) + (ui.avatarAt ? '&v=' + encodeURIComponent(ui.avatarAt) : ''), alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e) { /* img */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }),
+              (kbHasAvatar(ui) === true ? h('img', { src: kbAvatarUrl(rootId, k.id) + (ui.avatarAt ? '&v=' + encodeURIComponent(ui.avatarAt) : ''), alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e) { /* img */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }) : null),
               h(KbDynIcon, { name: ui.icon ? ui.icon : KB_DEFAULT_ICON, size: 22 })),
             h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, gap: '2px', flex: 1 } },
               h('span', { className: 'kb8-name' }, name),
@@ -10149,7 +10152,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         const isActive = activeIds.indexOf(k.id) >= 0
         return h('div', { className: 'kb8-row' + kbIn(ri), key: rootPath + '/' + k.id, 'data-kb': 'kyber-row', 'data-root': rootPath, onClick: () => open({ rootId, k, rootPath }) },
           h('span', { className: 'kb8-tile', style: Object.assign({ width: '36px', height: '36px', borderRadius: '12px', position: 'relative', overflow: 'hidden', flex: 'none' }, color !== null ? { background: color } : null) },
-            h('img', { src: kbAvatarUrl(rootId, k.id) + (ui.avatarAt ? '&v=' + encodeURIComponent(ui.avatarAt) : ''), alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e2) { /* rien */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }),
+            (kbHasAvatar(ui) === true ? h('img', { src: kbAvatarUrl(rootId, k.id) + (ui.avatarAt ? '&v=' + encodeURIComponent(ui.avatarAt) : ''), alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e2) { /* rien */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }) : null),
             h(KbDynIcon, { name: ui.icon ? ui.icon : KB_DEFAULT_ICON, size: 18 })),
           h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '2px' } },
             h('span', { className: 'kb8-name' }, name),
@@ -12733,7 +12736,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           h('span', { className: 'kb8-parent' }, 'AVATAR'),
           h('div', { style: { display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' } },
             h('span', { style: { position: 'relative', width: '64px', height: '64px', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: draft.color !== '' ? draft.color : 'var(--dsw-alias-bg-layer-2)', color: draft.color !== '' ? kbOnColor(draft.color) : 'var(--dsw-alias-label-primary)', overflow: 'hidden', flex: '0 0 auto' } },
-              h('img', { src: kbAvatarUrl(rootId, kyber.id) + '&v=' + avRev, alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e) { /* img */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }),
+              ((kbHasAvatar(kyber.ui) === true || avRev > 0) ? h('img', { src: kbAvatarUrl(rootId, kyber.id) + '&v=' + avRev, alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e) { /* img */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }) : null),
               h(KbDynIcon, { name: draft.icon || KB_DEFAULT_ICON, size: 30 })),
             h('span', { style: { display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '180px' } },
               kbLookImage({ hint: 'PNG, JPG, WebP, GIF or SVG · max 3 MB. Clicking an icon below replaces the image.', onFile: onAvatarFile, hasImage: hasAvatar === true, onClear: () => update({ clearAvatar: true }) }))),
@@ -13022,7 +13025,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         h('button', { type: 'button', className: 'kb8-primary', style: { alignSelf: 'flex-start', background: 'transparent', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-primary)' }, onClick: () => { if (saving === 'pending') { try { saveNow() } catch (e) { /* sauvegarde */ } } set({ view: 'gallery' }) } }, '‹ Back to Agent Teams'),
         h('div', { style: { display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' } },
           h('span', { className: 'kb8-tile', style: { width: '44px', height: '44px', borderRadius: '14px', background: draft.color !== '' ? draft.color : 'var(--dsw-alias-bg-layer-2)', color: draft.color !== '' ? kbOnColor(draft.color) : 'var(--dsw-alias-label-primary)', overflow: 'hidden', position: 'relative' } },
-            h('img', { src: kbAvatarUrl(rootId, kyber.id) + '&v=' + avRev, alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e) { /* img */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }),
+            ((kbHasAvatar(kyber.ui) === true || avRev > 0) ? h('img', { src: kbAvatarUrl(rootId, kyber.id) + '&v=' + avRev, alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e) { /* img */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }) : null),
             h(KbDynIcon, { name: draft.icon || KB_DEFAULT_ICON, size: 22 })),
           h('h1', { className: 'kb8-h1' }, draft.name || kyber.id),
           h('span', { style: { marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px' } },
