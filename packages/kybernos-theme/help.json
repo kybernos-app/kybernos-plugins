@@ -29,5 +29,6 @@
   "good": {
     "fr": "Un fond d’écran ne se voit pas dans les Réglages eux-mêmes, seulement derrière le chat et les autres pages. Le thème ne change que l’interface web, pas le terminal.",
     "en": "A wallpaper is not visible inside Settings itself, only behind the chat and the other pages. The theme only changes the web interface, not the terminal."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
 }

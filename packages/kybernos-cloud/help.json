@@ -29,5 +29,6 @@
   "good": {
     "fr": "Les modèles Kybernos passent par les serveurs de Kybernos. Tes souvenirs y sont gardés et, par défaut, ajoutés à ce que lit le modèle à chaque tour, quel qu'il soit. Rien de tout cela sans connexion.",
     "en": "Kybernos models go through Kybernos servers. Your memories are kept there and, by default, added to what the model reads each turn, whichever model it is. None of this happens without signing in."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/get-started/connect-your-computer/"
 }

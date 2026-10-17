@@ -25,5 +25,6 @@
   "good": {
     "fr": "La carte montre le texte du lien, pas le vrai titre de la page : rien n’est téléchargé pour la remplir, et aucune icône de site n’est demandée au réseau (l’initiale colorée la remplace).",
     "en": "The card shows the link’s text, not the page’s real title: nothing is downloaded to fill it, and no site icon is requested from the network (the coloured initial stands in for it)."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
 }

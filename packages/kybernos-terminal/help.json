@@ -25,5 +25,6 @@
   "good": {
     "fr": "La commande s'exécute vraiment, avec tes droits, comme si tu la tapais dans un terminal : relis-la avant de cliquer. Le bouton ne marche que depuis ta session DSH ouverte.",
     "en": "The command really runs, with your own rights, as if you typed it in a terminal: read it before you click. The button only works from your own signed-in DSH session."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
 }

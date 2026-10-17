@@ -29,5 +29,6 @@
   "good": {
     "fr": "Le schéma est dessiné dans la page : le plugin n'envoie rien en ligne. Liens et HTML sont bloqués dans les schémas, volontairement.",
     "en": "The diagram is drawn in the page itself: the plugin sends nothing online. Links and HTML are blocked inside diagrams on purpose."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/create-with-kybernos/diagrams-databases-and-media/"
 }

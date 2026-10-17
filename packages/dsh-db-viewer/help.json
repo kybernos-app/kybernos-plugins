@@ -29,5 +29,6 @@
   "good": {
     "fr": "Lecture seule : rien ne peut être modifié ici, la zone SQL n'accepte que SELECT, WITH, PRAGMA et EXPLAIN. Sans base d'Agent Team, l'onglet le dit.",
     "en": "Read-only: nothing can be changed here, and the SQL box only accepts SELECT, WITH, PRAGMA and EXPLAIN. With no agent team database, the tab says so."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/create-with-kybernos/diagrams-databases-and-media/"
 }

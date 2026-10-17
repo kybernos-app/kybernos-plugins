@@ -29,5 +29,6 @@
   "good": {
     "fr": "Tes commandes restent sur cet ordinateur. « Créer avec l’IA » ouvre un nouveau chat qui s’appuie sur une skill dédiée : si elle n’est pas installée, crée la commande à la main.",
     "en": "Your commands stay on this computer. “Create with AI” opens a new chat that relies on a dedicated skill: if it is not installed, create the command by hand."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
 }
