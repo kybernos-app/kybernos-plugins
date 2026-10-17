@@ -49,9 +49,17 @@ const errors = []
 try {
   await page.send('Runtime.enable', {})
   page.on('Runtime.exceptionThrown', (p) => errors.push(String((p.exceptionDetails && p.exceptionDetails.exception && p.exceptionDetails.exception.description) || 'exception').slice(0, 200)))
+  // Fail closed (incident of 2026-10-16): this check presses Install and Cancel. Nothing but a GET may reach the skills routes of the host, so a click that
+  // went through would install nothing: every other request to /kybernos-skills/ is answered here, recorded, and the check fails on it.
+  const blocked = []
   page.on('Fetch.requestPaused', (p) => {
     if (p.responseStatusCode !== undefined) return   // the bundle swap's business
     const path = p.request.url.split('?')[0]
+    if (p.request.method !== 'GET' && path.includes('/kybernos-skills/')) {
+      blocked.push(p.request.method + ' ' + path)
+      page.send('Fetch.fulfillRequest', { requestId: p.requestId, responseCode: 403, responseHeaders: [{ name: 'content-type', value: 'application/json' }], body: Buffer.from(JSON.stringify({ ok: false, error: 'refused_by_the_check' }), 'utf8').toString('base64') }).catch(() => {})
+      return
+    }
     if (hostHasPicks === true || !path.endsWith('/kybernos-skills/picks')) { page.send('Fetch.continueRequest', { requestId: p.requestId }).catch(() => {}); return }
     page.send('Fetch.fulfillRequest', {
       requestId: p.requestId, responseCode: 200,
@@ -59,7 +67,7 @@ try {
       body: Buffer.from(JSON.stringify(picksAnswer), 'utf8').toString('base64')
     }).catch(() => {})
   })
-  const swap = await swapBundles(page, [{ name: 'kybernos-skills' }], { extraPatterns: [{ urlPattern: '*kybernos-skills/picks*', requestStage: 'Request' }] })
+  const swap = await swapBundles(page, [{ name: 'kybernos-skills' }], { extraPatterns: [{ urlPattern: '*kybernos-skills/*', requestStage: 'Request' }] })
 
   const js = async (expr) => (await page.evalJs(expr)).val
   const shot = async (name) => { if (shotsDir !== null) await page.shot(join(shotsDir, name + '.png')) }
@@ -210,6 +218,7 @@ try {
   check('Yours still opens, with its own cards', await js("document.querySelectorAll('[data-kb^=skill-card-], [data-kb^=skill-row-]').length >= 0 && !document.querySelector('[data-kb=picks-grid]')"))
 
   check('no script error was thrown during the run', errors.length === 0, errors)
+  check('nothing but a GET reached the skills routes (a write was refused inside the check)', blocked.length === 0, blocked)
 } finally {
   await live.close()
 }

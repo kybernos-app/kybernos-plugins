@@ -193,7 +193,8 @@ globalThis.window = { __ModuleLoader__: { load: (def) => { definition = def } } 
 new Function('window', SOURCE)(globalThis.window)
 const plugin = definition.factory((spec) => { if (spec === 'react') return React; throw new Error('unexpected require ' + spec) })
 let Screen = null
-plugin.apply({ get: (n) => (n === 'slots' ? { inject: (name, make) => { if (name === 'main.kybernos-skills') make() }, register: (def, comp) => { if (def.name === 'main.kybernos-skills') Screen = comp; return () => {} } } : undefined) })
+let SettingsScreen = null
+plugin.apply({ get: (n) => (n === 'slots' ? { inject: (name, make) => { if (name === 'main.kybernos-skills' || name === 'settings.section') make() }, register: (def, comp) => { if (def.name === 'main.kybernos-skills') Screen = comp; if (def.name === 'settings.section') SettingsScreen = comp; return () => {} } } : undefined) })
 if (Screen === null) { console.log('  ✗ the screen was not registered'); process.exit(1) }
 
 const open = async (w, lang) => {
@@ -355,7 +356,7 @@ console.log('The first-visit animation and the help button (V-05, V-33)')
     check('it sits under the header and before the tabs', all(root, (n) => n.props['data-kb'] === 'stub-intro' || hasClass(n, 'kbs-ctlrow')).map((n) => (n.props['data-kb'] === 'stub-intro' ? 'intro' : 'tabs')).join() === 'intro,tabs')
     check('three steps, each with a title and a sentence', p !== undefined && p.steps.length === 3 && p.steps.every((x) => x.t.length > 3 && x.b.length > 20), p && p.steps)
     check('the steps say pick, install, use', p !== undefined && /pick/i.test(p.steps[0].t) && /install/i.test(p.steps[1].t) && /agents/i.test(p.steps[2].t), p && p.steps.map((x) => x.t))
-    check('the mock carries the page’s own words: its name, a skill, the real Install button, three states, three labels', p !== undefined && p.mock.bar === 'Skills' && p.mock.hot === 'PDF' && p.mock.actions[0] === 'Install' && p.mock.states.length === 3 && p.mock.actions.length === 3 && p.mock.rows.length >= 1, p && p.mock)
+    check('the mock carries the page’s own words: its name, a skill, the real Install button, three states, three labels', p !== undefined && p.mock.bar === 'Skills' && p.mock.hot === 'Weekly report' && p.mock.actions[0] === 'Install' && p.mock.states.length === 3 && p.mock.actions.length === 3 && p.mock.rows.length >= 1, p && p.mock)
     check('a title and a caption for the screen reader', p !== undefined && p.title.length > 5 && p.caption.length > 20)
     seen.length = 0
     const fr = await open(world(), 'fr')
@@ -370,6 +371,84 @@ console.log('The first-visit animation and the help button (V-05, V-33)')
     check('no Suite at all: no help, no animation, the page still renders', kb(none, 'stub-intro').length === 0 && kb(none, 'stub-help').length === 0 && all(none, (n) => hasClass(n, 'kbs-ctlrow')).length === 1)
     void fr
   } finally { delete globalThis.window.__KB_HELP__ }
+}
+
+
+console.log('The help mock is an example, not a real skill (C-05)')
+{
+  const seen = []
+  globalThis.window.__KB_HELP__ = { version: 1, Help: () => null, Intro: (props) => { seen.push(props); return null } }
+  try {
+    for (const lang of ['en', 'fr']) {
+      seen.length = 0
+      await open(world(), lang)
+      const m = seen[seen.length - 1].mock
+      const real = new Set(['pdf', 'docx', 'xlsx', 'pptx', 'frontend-design', 'skill-creator'])
+      check('(' + lang + ') the animated rows carry made-up names, not the skills the page lists (PDF said « Installing… » beside a real « Installed » PDF card)', [m.hot, ...m.rows].every((n) => !real.has(String(n).toLowerCase())) && m.hot !== '' && m.rows[0] !== m.hot, m)
+    }
+  } finally { delete globalThis.window.__KB_HELP__ }
+}
+
+console.log('The tab counts: a dash is not a count (C-08)')
+{
+  const root = await open(world())
+  const seg = (label) => all(root, (n) => n.tag === 'button' && hasClass(n, 'kb-seg') && textOf(n).trim().startsWith(label))[0]
+  check('Discover has no dash before the index is read (the index is read when the tab opens)', seg('Discover') !== undefined && !textOf(seg('Discover')).includes('—') && textOf(seg('Discover')).trim() === 'Discover', textOf(seg('Discover')))
+  await tab(root, 'Discover')
+  check('and shows its count once it is known', /^Discover\s*3$/.test(textOf(seg('Discover')).trim()), textOf(seg('Discover')))
+}
+
+console.log('Discover: names that are cut can be read (R-A1-03)')
+{
+  const root = await open(world())
+  await tab(root, 'Discover')
+  const row = rowOf(root, 'grill-me')
+  const name = all(row, (n) => hasClass(n, 'kb8-name'))[0]
+  check('a row\'s name carries its full text as a tooltip', name !== undefined && name.props.title === 'grill-me', name && name.props)
+  const css = SOURCE.replace(/\s+/g, ' ')
+  check('and in a narrow column the name wraps instead of ending with an ellipsis (the row stacks on the next line)', /@container \(max-width:720px\)\{[^@]*\.kbs-root \.kbs-row \.who \.kb8-name\{white-space:normal;overflow-wrap:anywhere\}/.test(css))
+}
+
+console.log('Discover with the index unreachable: a sentence, the code stays in a tooltip (R-A3-03)')
+{
+  const w = world()
+  w.answers['GET /kybernos-skills/index'] = { ok: false, error: 'network' }
+  const root = await open(w)
+  await tab(root, 'Discover')
+  const err = part(root, 'disc-error')
+  check('the failure is drawn', err.includes('Index unavailable'), err)
+  check('the bare code is not on the screen', !/\bnetwork\b/i.test(err) && err.includes('Cannot reach the skills index.'), err)
+  check('the code is in a tooltip, for whoever reports it', all(root, (n) => n.props.title === 'network').length === 1)
+  const w2 = world()
+  w2.answers['GET /kybernos-skills/index'] = { ok: false, error: 'not_found' }
+  const root2 = await open(w2)
+  await tab(root2, 'Discover')
+  check('a code the page has a sentence for keeps that sentence (and no tooltip)', part(root2, 'disc-error').includes('That skill is no longer in the catalogue') && all(root2, (n) => n.props.title === 'not_found').length === 0, part(root2, 'disc-error'))
+  const fr = await open(w, 'fr')
+  await tab(fr, 'Discover')
+  check('in French: the same sentence', part(fr, 'disc-error').includes('Impossible de joindre l’index des skills.') && !/\bnetwork\b/i.test(part(fr, 'disc-error')), part(fr, 'disc-error'))
+}
+
+console.log('Settings › Skills: the Index source window is the tidy modal, not bare text in the card (R-V-04, V-23)')
+{
+  check('the Settings page is registered', SettingsScreen !== null)
+  const w = world()
+  globalThis.window.__KB_LANG_RESOLVE__ = () => 'en'
+  globalThis.fetch = async (url, init) => { INFLIGHT.n += 1; try { return await w.fetch(url, init) } finally { INFLIGHT.n -= 1 } }
+  const root = mount(React.createElement(SettingsScreen, {}))
+  await root.settle()
+  const page = all(root, (n) => hasClass(n, 'kbss-page'))[0]
+  check('the page and its relay card are drawn', page !== undefined && kb(root, 'skills-settings-source').length === 1)
+  check('no window before Change', kb(root, 'index-source-modal').length === 0)
+  await click(root, kb(root, 'index-source-change')[0])
+  const modal = kb(root, 'index-source-modal')[0]
+  check('Change opens the window', modal !== undefined)
+  // The modal's rules are scoped to `.kbs-root`: it must sit under one (the Settings page is `.kbss-page`, which those rules do not reach).
+  const under = (node, cls) => all(root, (n) => hasClass(n, cls)).some((anc) => all(anc, (n) => n === node).length > 0)
+  check('the window sits under a `.kbs-root`, where its rules are', under(modal, 'kbs-root'))
+  check('the wrapper takes no room in the card (no box of its own)', all(root, (n) => hasClass(n, 'kbs-root') && n.props['data-kb'] === 'index-source-root')[0].props.style.display === 'contents')
+  check('it has the overlay, the two buttons and the field', all(root, (n) => hasClass(n, 'kb-overlay')).length === 1 && kb(root, 'index-source-save').length === 1 && kb(root, 'index-source-input').length === 1)
+  check('and the sentence that says what a source is', part(root, 'index-source-modal').includes('A source is where the Discover tab reads its list of public skills from'))
 }
 
 console.log('\n' + pass + ' passed' + (fail > 0 ? ', ' + fail + ' FAILED' : ''))

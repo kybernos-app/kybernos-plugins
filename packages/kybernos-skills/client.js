@@ -33,6 +33,8 @@ window.__ModuleLoader__.load({
     try {
       const React = require('react')
       const h = React.createElement
+      // createPortal lives in react-dom (a window drawn ahead of the Settings dialog); without it the window is drawn where it is asked for.
+      const ReactDOM = (() => { try { return require('react-dom') } catch (e) { return null } })()
 
       // ── icons: Lucide paths verbatim from maquette.html:223-248 ─────────────
       const PATHS = {
@@ -274,6 +276,7 @@ window.__ModuleLoader__.load({
         'y.nofilter': { fr: 'Change de filtre ou de terme.', en: 'Change the filter or search term.' },
         'd.query': { fr: 'Interrogation de l\'index…', en: 'Querying the index…' },
         'd.down': { fr: 'Index indisponible', en: 'Index unavailable' },
+        'd.cannot': { fr: 'Impossible de joindre l’index des skills.', en: 'Cannot reach the skills index.' },
         'd.direct': { fr: 'L\'installation directe reste possible par « Importer depuis GitHub ».', en: 'Direct install is still possible via “Import from GitHub”.' },
         'd.hint': { fr: 'C’est souvent passager : réessaie dans un instant. Tes skills installés et l’onglet Team ne sont pas touchés.', en: 'This is often temporary: try again in a moment. Your installed skills and the Team tab are not affected.' },
         'd.retry': { fr: 'Réessayer', en: 'Try again' },
@@ -567,7 +570,8 @@ window.__ModuleLoader__.load({
         'intro.s2b': { fr: 'Un clic, puis confirme. Le skill est copié sur cet ordinateur.', en: 'One click, then confirm. The skill is copied to this computer.' },
         'intro.s3t': { fr: 'Laisse tes agents s’en servir', en: 'Let your agents use it' },
         'intro.s3b': { fr: 'Il apparaît dans Yours. Tes agents le chargent quand ta demande lui correspond.', en: 'It is listed under Yours. Your agents load it when your request fits it.' },
-        'intro.m.row': { fr: 'Documents Word', en: 'Word documents' },
+        'intro.m.row': { fr: 'Notes de réunion', en: 'Meeting notes' },
+        'intro.m.hot': { fr: 'Rapport hebdo', en: 'Weekly report' },
         'intro.m.st1': { fr: 'Featured', en: 'Featured' },
         'intro.m.st2': { fr: 'Installation…', en: 'Installing…' },
         'intro.m.st3': { fr: 'Installé', en: 'Installed' },
@@ -766,12 +770,11 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-pager{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 0 2px;flex-wrap:wrap}
 .kbs-root .kbs-pager .pg{min-width:38px;height:38px;padding:0 9px;border-radius:11px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font-family:ui-monospace,monospace;font-size:12.5px;cursor:pointer}
 .kbs-root .kbs-pager .pg:hover{background:var(--dsw-alias-interactive-bg-hover)}
-.kbs-root .kbs-pager .pg.on{background:var(--kb-switch-on,#4d7cfe);border-color:transparent;color:#fff;font-weight:600}
+.kbs-root .kbs-pager .pg.on{background:var(--dsw-alias-brand-primary);border-color:transparent;color:var(--dsw-alias-label-primary-foreground);font-weight:600}
 .kbs-root .kbs-pager .t{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--dsw-alias-label-caption)}
 /* Audit banner: the data that replaces "community, not audited". */
 .kbs-root .kbs-audit{display:flex;flex-direction:column;gap:9px}
 .kbs-root .kbs-audit .ligne{display:flex;align-items:flex-start;gap:9px;font-size:12.5px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
-.kbs-root .kb-star-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;letter-spacing:.03em; padding:3px 9px;border-radius:999px;background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 18%,transparent);color:#f7c46c}
 .kbs-root .kb8-card.static{cursor:default}
 .kbs-root .kb8-card.static:hover{transform:none;border-color:var(--dsw-alias-border-l1)}
 .kbs-root .kb8-card .desc{font-size:13.5px;line-height:1.5;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:60px}
@@ -789,8 +792,6 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-yrow .desc{flex:1 1 0;min-width:0;font-size:12.5px;color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kbs-root .kbs-yrow .when{flex:none;font-size:12px;color:var(--dsw-alias-label-tertiary);white-space:nowrap}
 .kbs-root .kbs-yrow .acts{flex:none;display:flex;align-items:center;gap:8px}
-.kbs-root .kb-pager{display:flex;align-items:center;justify-content:center;gap:16px;padding:6px 0 2px}
-.kbs-root .kb-pager .t{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--dsw-alias-label-caption)}
 .kbs-root .kb-sw{width:36px;height:20px;border-radius:999px;background:var(--dsw-alias-bg-layer-3);position:relative;cursor:pointer;border:none;flex:0 0 auto;transition:background .15s}
 .kbs-root .kb-sw i{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--dsw-alias-label-secondary);transition:transform .15s;display:block}
 .kbs-root .kb-sw.on{background:var(--kb-switch-on,#4d7cfe)}
@@ -799,7 +800,6 @@ window.__ModuleLoader__.load({
 .kbs-root .kb-back:hover{color:var(--dsw-alias-label-primary)}
 .kbs-root .kb-detail-head{display:flex;align-items:center;gap:16px}
 .kbs-root .kb-detail-head .meta{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
-.kbs-root .kb-badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:color-mix(in srgb,var(--kb-switch-on,#4d7cfe) 22%,transparent);color:#9dbaff;border:1px solid color-mix(in srgb,var(--kb-switch-on,#4d7cfe) 40%,transparent)}
 .kbs-root .kb-cols{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:26px;align-items:start}
 .kbs-root .kb-panel{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
 .kbs-root .kb-panel .row{display:flex;align-items:center;gap:12px;font-size:13.5px;color:var(--dsw-alias-label-secondary)}
@@ -807,28 +807,7 @@ window.__ModuleLoader__.load({
 .kbs-root .kb-section-label{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dsw-alias-label-caption)}
 .kbs-root .kb8-tab:hover{color:var(--dsw-alias-label-primary)}
 .kbs-root .kb8-tab .n{font-family:ui-monospace,monospace;font-size:11px;color:var(--dsw-alias-label-caption)}
-.kbs-root .kb-contents{display:grid;grid-template-columns:290px minmax(0,1fr);border:1px solid var(--dsw-alias-border-l1);border-radius:16px;overflow:hidden;background:var(--dsw-alias-bg-layer-1);min-height:420px}
-.kbs-root .kb-tree{border-right:1px solid var(--dsw-alias-border-l1);padding:12px 8px;overflow:auto}
-.kbs-root .kb-node{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;font-size:13px;color:var(--dsw-alias-label-secondary);cursor:pointer;white-space:nowrap}
-.kbs-root .kb-node:hover{background:var(--dsw-alias-interactive-bg-hover)}
-.kbs-root .kb-node.on{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
-.kbs-root .kb-node.dir{color:var(--dsw-alias-label-tertiary)}
-.kbs-root .kb-node .nm{overflow:hidden;text-overflow:ellipsis}
-.kbs-root .kb-node .caret{width:12px;color:var(--dsw-alias-label-caption)}
-.kbs-root .kb-preview{display:flex;flex-direction:column;min-width:0}
-.kbs-root .kb-preview-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--dsw-alias-border-l1)}
-.kbs-root .kb-preview-head .path{font-family:ui-monospace,monospace;font-size:12px;color:var(--dsw-alias-label-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kbs-root .kb-preview-body{padding:22px 26px;overflow:auto;font-size:14px;line-height:1.65;color:var(--dsw-alias-label-secondary)}
-.kbs-root .kb-preview-body h1{font-size:23px;margin:0 0 14px;color:var(--dsw-alias-label-primary)}
-.kbs-root .kb-preview-body h2{font-size:16px;margin:24px 0 10px;color:var(--dsw-alias-label-primary)}
-.kbs-root .kb-preview-body p{margin:0 0 12px}
-.kbs-root .kb-preview-body code{font-family:ui-monospace,monospace;font-size:12.5px;background:var(--dsw-alias-bg-layer-2);padding:2px 6px;border-radius:6px;color:var(--dsw-alias-label-primary)}
-.kbs-root .kb-preview-body pre{background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l1);border-radius:10px;padding:12px 14px;overflow:auto;font-size:12.5px}
-.kbs-root .kb-preview-body ul{margin:0 0 12px;padding-left:20px}
-.kbs-root .kb-preview-body li{margin:5px 0}
 /* Local skill sheet (a Yours card opens it): its own head and rows, reusing the pivot's tokens. */
-.kbs-root .kb-local{display:flex;flex-direction:column;gap:16px;max-width:980px}
-.kbs-root .kb-local-tabs{display:flex;gap:8px}
 .kbs-root .kb-local-rows{display:flex;flex-direction:column;gap:10px}
 .kbs-root .kb-local-rows .row{display:flex;gap:14px;align-items:baseline;font-size:13.5px;line-height:1.5;color:var(--dsw-alias-label-secondary);border-top:1px solid var(--dsw-alias-border-l1);padding-top:10px}
 .kbs-root .kb-local-rows .row>span:first-child{min-width:120px;color:var(--dsw-alias-label-caption);flex:none}
@@ -858,12 +837,11 @@ window.__ModuleLoader__.load({
 .kbs-root .kb-sort-note{display:flex;gap:8px;padding:9px 11px 6px;border-top:1px solid var(--dsw-alias-border-l1);margin-top:4px; font-size:11px;line-height:1.45;color:var(--dsw-alias-label-caption)}
 .kbs-root .kb-sort-note svg{flex:0 0 auto;margin-top:1px}
 .kbs-root .kb-overlay{position:fixed;inset:0;background:#00000080;display:flex;align-items:center;justify-content:center;z-index:100;padding:24px}
+/* The same window over the Settings dialog (it is drawn in the body, ahead of everything the dialog draws; the dialog's own layer takes the pointer from the body). */
+.kbs-root.kbs-top .kb-overlay{z-index:2147483000;pointer-events:auto}
 .kbs-root .kb-modal{width:580px;max-width:96vw;max-height:88vh;overflow:auto;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:16px;box-shadow:0 24px 60px rgba(0,0,0,.6)}
 .kbs-root .kb-drop{border:1.5px dashed var(--dsw-alias-border-l2);border-radius:14px;padding:36px 20px;display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--dsw-alias-label-secondary);cursor:pointer;text-align:center}
 .kbs-root .kb-drop:hover{border-color:var(--dsw-alias-label-caption);background:var(--dsw-alias-bg-layer-2)}
-.kbs-root .kb-req{font-size:13.5px;color:var(--dsw-alias-label-secondary);line-height:1.6}
-.kbs-root .kb-req ul{margin:8px 0 0;padding-left:18px}
-.kbs-root .kb-req li{margin:6px 0}
 .kbs-root .kb-note{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dsw-alias-label-caption)}
 .kbs-root .kb-empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:56px 24px;background:var(--dsw-alias-bg-layer-1);border:1px dashed var(--dsw-alias-border-l1);border-radius:18px;text-align:center;color:var(--dsw-alias-label-secondary)}
 .kbs-root .kb-callout{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1px solid var(--dsw-alias-border-l1);border-left:3px solid var(--kb-switch-on,#4d7cfe);border-radius:12px;background:var(--dsw-alias-bg-layer-1)}
@@ -873,6 +851,8 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-input,.kbs-root .kbs-area,.kbs-root .kbs-select{width:100%;box-sizing:border-box;background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l2);border-radius:10px;color:var(--dsw-alias-label-primary);font:inherit;font-size:13.5px;padding:10px 12px}
 .kbs-root .kbs-area{min-height:104px;resize:vertical;font-family:ui-monospace,monospace;font-size:12.5px;line-height:1.6}
 .kbs-root .kbs-input:focus,.kbs-root .kbs-area:focus,.kbs-root .kbs-select:focus{outline:none;border-color:var(--kb-switch-on,#4d7cfe)}
+/* The browser's own placeholder grey is 2.4:1 on the dark input (the Index source dialog, audit V-23). */
+.kbs-root .kbs-input::placeholder,.kbs-root .kbs-area::placeholder{color:var(--dsw-alias-label-tertiary)}
 .kbs-root .kbs-check{display:flex;align-items:flex-start;gap:9px;font-size:13px;color:var(--dsw-alias-label-secondary);line-height:1.5}
 .kbs-root .kbs-err{font-size:13px;color:var(--dsw-alias-state-error-primary)}
 .kbs-root .kbs-actions{display:flex;align-items:center;gap:10px;justify-content:flex-end;flex-wrap:wrap}
@@ -910,9 +890,6 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-nowrap{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* — Featured: the same rows as the ranking below it (same grid, same height); the cover, when there is one, is the row's tile. */
 .kbs-root .kbs-feat{display:flex;flex-direction:column;gap:12px;margin-bottom:20px}
-.kbs-root .kbs-feat-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-.kbs-root .kbs-feat-head .t{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-caption)}
-.kbs-root .kbs-feat-head .s{font-size:12px;color:var(--dsw-alias-label-caption)}
 .kbs-root .kbs-row .who .kb8-name{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kbs-root .kbs-row.feat .kbs-fdesc{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
 .kbs-root .kbs-row.feat .rank{display:flex;justify-content:flex-end}
@@ -979,6 +956,8 @@ window.__ModuleLoader__.load({
 .kbs-root .kb8-page{container-type:inline-size}
 @container (max-width:720px){
 .kbs-root .kbs-head,.kbs-root .kbs-row{grid-template-columns:36px minmax(0,1.6fr) minmax(0,1fr) 108px;gap:10px;padding:8px 12px}
+/* The name is what a person installs: in a narrow column it wraps (at the hyphens first) instead of ending with an ellipsis (audit R-A1-03). */
+.kbs-root .kbs-row .who .kb8-name{white-space:normal;overflow-wrap:anywhere}
 .kbs-root .kbs-head .badges,.kbs-root .kbs-row .badges{display:none}
 .kbs-root .kbt .kbt-head,.kbs-root .kbt .kbs-row{grid-template-columns:36px minmax(0,1fr) auto;gap:10px;padding:8px 12px}
 .kbs-root .kbt .kbt-head>:nth-child(3),.kbs-root .kbt .kbt-head>:nth-child(4),.kbs-root .kbt .kbs-row .kbt-by,.kbs-root .kbt .kbs-row .badges{display:none}
@@ -1037,10 +1016,17 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
 .kbs-root .kbsf-pill.need{color:var(--dsw-alias-state-business-primary,#5686fe)}
 /* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
 body:not([data-ds-dark-theme]) .kbs-root{--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
+/* label-caption is #adb2b8 (2.1:1) in the light schemes and #81858c (3.5 to 3.8:1) in the dark one. The table heads, ranks, counts, pager, /command buttons,
+   card footers and field hints of this page are text a person reads (audit A1-04): inside it the token reads as label-tertiary, which is label-secondary
+   (5.8:1) in the light schemes by the rule above and #adb2b8 (6.5:1 and more) in the dark one. */
+.kbs-root{--dsw-alias-label-caption:var(--dsw-alias-label-tertiary)}
 /* The state inks are the fills (2.1 to 4.2:1 on white): in the light schemes they are pulled toward the text colour (audit A1-11). */
 body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.ok{color:color-mix(in srgb,var(--dsw-alias-state-success-primary,#22c55e) 50%,var(--dsw-alias-label-primary))}
 body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.warn{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#f59e0b) 50%,var(--dsw-alias-label-primary))}
 body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb,var(--dsw-alias-state-business-primary,#5686fe) 60%,var(--dsw-alias-label-primary))}
+/* The state pills of the lists and cards (active, disabled, installed, curated) are the same fills: 2.0:1 on their own tint (audit A1-04). */
+body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.ok{color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 50%,var(--dsw-alias-label-primary))}
+body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 50%,var(--dsw-alias-label-primary))}
 .kbs-root .kbsf-acts{display:flex;align-items:center;gap:8px;margin-top:auto;min-height:32px;transition:opacity .14s ease}
 @media (hover:hover){
 .kbs-root .kbsf-card .kbsf-acts{opacity:0}
@@ -1130,18 +1116,11 @@ body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb
 @media (max-width:520px){.kbss-page .kbss-srcline .w::before{display:none}}
 .kbss-page .kbss-link{background:none;border:none;padding:3px 6px;border-radius:7px;color:var(--dsw-alias-brand-primary);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
 .kbss-page .kbss-link:hover{background:var(--dsw-alias-bg-layer-2)}
-.kbss-page .kbss-fields{display:flex;flex-direction:column;gap:8px}
-.kbss-page .kbss-label{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-caption)}
-.kbss-page .kbss-input{width:100%;box-sizing:border-box;background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l2);border-radius:10px;color:var(--dsw-alias-label-primary);font:inherit;font-size:13.5px;padding:10px 12px}
-.kbss-page .kbss-input:focus{outline:none;border-color:var(--kb-switch-on,#4d7cfe)}
-.kbss-page .kbss-actions{display:flex;align-items:center;gap:10px;justify-content:flex-end}
 .kbss-page .kbss-err{font-size:13px;color:var(--dsw-alias-state-error-primary)}
-.kbss-page .kbss-note{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--dsw-alias-label-caption)}
 .kbss-page .kbss-root-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-2);font-size:12.5px;color:var(--dsw-alias-label-secondary)}
 .kbss-page .kbss-root-row .p{font-family:ui-monospace,monospace;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1 1 220px}
 .kbss-page .kbss-kpis{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
 .kbss-page .kbss-kpis .n{font-size:17px;font-weight:600;color:var(--dsw-alias-label-primary)}
-.kbss-page .kbss-hint{margin:0;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-caption)}
 `
 
       // ── route access ────────────────────────────────────────────────────
@@ -1441,8 +1420,11 @@ body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb
           const transient = (j) => j !== null && typeof j === 'object' && (j.error === 'timeout' || j.error === 'network_unavailable' ||
             (j.error === 'index_unavailable' && [500, 502, 503, 504].indexOf(j.http) >= 0))
           const fail = (j, text) => {
+            const code = (j !== null && typeof j === 'object' && typeof j.error === 'string') ? j.error : 'noanswer'
+            // A code the page has no sentence for is never the sentence: the page says it cannot reach the index, and keeps the code in a tooltip (audit R-A3-03).
+            const worded = code === 'noanswer' || code === '' || STR['he.' + code] !== undefined
             setDiscPhase('error')
-            setDiscErr({ text, code: (j !== null && typeof j === 'object' && typeof j.error === 'string') ? j.error : 'noanswer', http: (j !== null && typeof j === 'object') ? j.http : undefined })
+            setDiscErr({ text: worded ? text : t('d.cannot'), raw: worded ? undefined : code, code, http: (j !== null && typeof j === 'object') ? j.http : undefined })
           }
           const go = (first) => {
             getJson(route).then((j) => {
@@ -1898,7 +1880,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb
             type: 'button', className: 'kbs-star-btn on', title: t('feat.remove'), 'aria-label': t('feat.remove') + ' — ' + it.name,
             onClick: (e) => { e.stopPropagation(); toggleFeatured(it.name) }
           }, icon('star', 14))),
-          h('span', { className: 'who' }, coverArt(it), h('span', { className: 'kb8-name' }, it.name),
+          h('span', { className: 'who' }, coverArt(it), h('span', { className: 'kb8-name', title: it.name }, it.name),
             h('span', { className: 'kbs-fdesc' }, it.description !== '' ? it.description : t('card.nodesc'))),
           h('span', { className: 'kb8-parent src kbs-nowrap' }, it.source || t('feat.localskill')),
           h('span', { className: 'badges' }, it.active === false ? h('span', { className: 'kb8-pill warn' }, t('card.disabled')) : h('span', { className: 'kb8-pill ok' }, t('card.active'))),
@@ -1914,7 +1896,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb
           h('span', { className: 'rank' }, String(discFrom + i)),
           // The TILE is what makes a row belong to the same universe as the cards of the
           // other tabs (kb8-tile, kb8-name, kb8-parent, kb8-pill: the pivot's tokens).
-          h('span', { className: 'who' }, tile(x.name, 'pkg', 'kbs-sm'), h('span', { className: 'kb8-name' }, x.name)),
+          h('span', { className: 'who' }, tile(x.name, 'pkg', 'kbs-sm'), h('span', { className: 'kb8-name', title: x.name }, x.name)),
           h('span', { className: 'kb8-parent src kbs-nowrap' }, x.source),
           h('span', { className: 'badges' },
             x.official === true ? h('span', { key: 'o', className: 'kb8-pill ok' }, 'curated') : null,
@@ -2240,7 +2222,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb
               h('div', { className: 'kb-empty', role: 'alert', 'data-kb': 'disc-error' },
                 icon('alert', 24),
                 h('span', { className: 'kb8-name' }, t('d.down')),
-                h('span', { className: 'kb8-parent' }, discErr !== null ? discErr.text : ''),
+                h('span', { className: 'kb8-parent', title: discErr !== null ? discErr.raw : undefined }, discErr !== null ? discErr.text : ''),
                 refused === true ? null : h('span', { className: 'kb8-parent' }, t('d.hint')),
                 h('div', { className: 'kb-row', style: { justifyContent: 'center', marginTop: '4px' } },
                   refused === true ? null : h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'disc-retry', onClick: retryDiscover }, icon('refresh', 15), h('span', null, t('d.retry'))),
@@ -2576,7 +2558,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb
             title: t('intro.title'),
             caption: t('intro.caption'),
             steps: [{ t: t('intro.s1t'), b: t('intro.s1b') }, { t: t('intro.s2t'), b: t('intro.s2b') }, { t: t('intro.s3t'), b: t('intro.s3b') }],
-            mock: { bar: 'Skills', rows: [t('intro.m.row')], hot: 'PDF', states: [t('intro.m.st1'), t('intro.m.st2'), t('intro.m.st3')], actions: [t('btn.install'), t('intro.m.st2'), t('intro.m.open')] }
+            mock: { bar: 'Skills', rows: [t('intro.m.row')], hot: t('intro.m.hot'), states: [t('intro.m.st1'), t('intro.m.st2'), t('intro.m.st3')], actions: [t('btn.install'), t('intro.m.st2'), t('intro.m.open')] }
           })
           : null)
         return h('div', { className: 'kbs-root' },
@@ -2617,7 +2599,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb
                 h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'yours' ? 'true' : 'false', className: 'kb-seg' + (mode === 'yours' ? ' on' : ''), onClick: () => { setMode('yours'); setDetail(null); setLocal(null) } },
                   'Yours ', h('span', { className: 'count' }, count)),
                 h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'discover' ? 'true' : 'false', className: 'kb-seg' + (mode === 'discover' ? ' on' : ''), onClick: () => { setMode('discover'); setDetail(null); setLocal(null) } },
-                  'Discover ', h('span', { className: 'count' }, disc !== null && Array.isArray(disc.skills) ? String(disc.skills.length) : '—')),
+                  'Discover ', disc !== null && Array.isArray(disc.skills) ? h('span', { className: 'count' }, String(disc.skills.length)) : null),
                 tsum.phase !== 'absent' ? h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'team' ? 'true' : 'false', className: 'kb-seg' + (mode === 'team' ? ' on' : ''), onClick: () => { setMode('team'); setDetail(null); setLocal(null); setTeamOpen(null) } },
                   'Team ', tsum.phase === 'ready' ? h('span', { className: 'count' }, String((tsum.counts && tsum.counts.approved) || 0)) : (tsum.phase === 'locked' ? icon('lock', 13) : h('span', { className: 'count' }, '—')),
                   tsum.phase === 'ready' && teamRoleAdmin(tsum.role) && tsum.counts && tsum.counts.pending > 0 ? h('span', { className: 'kbt-dot', title: t('tm.v.review') }) : null) : null)),
@@ -3427,8 +3409,17 @@ body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb
           })
         }
 
+        // The window is the panel's own (SourceModal), reused as is, and its rules are scoped to `.kbs-root`, which the Settings page is not:
+        // drawn inside the card it was bare text with the browser's grey buttons (audit R-V-04, V-23). It gets a `.kbs-root` of its own
+        // (a box-less wrapper), and goes through a portal to the body so it sits above the Settings dialog, as the sidebar page's does.
+        const sourceWindow = () => {
+          const modal = h('div', { className: 'kbs-root kbs-top', 'data-kb': 'index-source-root', style: { display: 'contents' } },
+            h(SourceModal, { source: src, busy: srcBusy, error: srcErr, onClose: () => setSrcOpen(false), onSubmit: saveSource }))
+          return ReactDOM !== null && typeof ReactDOM.createPortal === 'function' && typeof document !== 'undefined' && document.body ? ReactDOM.createPortal(modal, document.body) : modal
+        }
+
         // The relay card: the host as a code line (never a credential), where it comes from, and the
-        // button that names another one. The modal is the panel's own window (SourceModal), reused as is.
+        // button that names another one.
         const sourceCard = () => {
           const where = src === null ? '' : (src.origin === 'env' ? t('src.env') : (src.origin === 'setting' ? t('src.custom') : t('src.default')))
           return h('div', { className: 'kbss-card', 'data-kb': 'skills-settings-source' },
@@ -3448,9 +3439,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kbsf-pill.need{color:color-mix(in srgb
                     disabled: srcBusy === true, onClick: () => { setSrcErr(''); setSrcOpen(true) }
                   }, t('src.change'))),
             srcErr === '' ? null : h('div', { className: 'kbss-err', role: 'alert' }, srcErr),
-            srcOpen === true
-              ? h(SourceModal, { source: src, busy: srcBusy, error: srcErr, onClose: () => setSrcOpen(false), onSubmit: saveSource })
-              : null)
+            srcOpen === true ? sourceWindow() : null)
         }
 
         // The write policy: the only folders the host writes to (GET /status answers them with

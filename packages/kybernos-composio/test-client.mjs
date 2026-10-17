@@ -393,7 +393,8 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   // fixed white label on it is invisible; and a banner built from kb7-err is painted by the kybernos
   // bundle's sheet of the same name with the same red for fill and text.
   const css = src.slice(src.indexOf('const CSS = `'), src.indexOf('// ── Key config'))
-  const onRules = css.split('\n').filter((l) => /\.on\{/.test(l) && /background:var\(--dsw-alias-brand-primary\)/.test(l))
+  // (the meter's segments of « Kybernos connections » are bars with no label: they take the brand fill and need no ink)
+  const onRules = css.split('\n').filter((l) => /\.on\{/.test(l) && /background:var\(--dsw-alias-brand-primary\)/.test(l) && !/^\.kbcp-kcbar i\.on\{/.test(l))
   ok('the "on" states that use the brand colour take the theme\'s foreground token, not a fixed white', onRules.length >= 2 && onRules.every((l) => /color:var\(--dsw-alias-label-primary-foreground/.test(l)), onRules.join(' | '))
   ok('the page does not use a class that the kybernos bundle also styles for its error banner', src.indexOf("className: 'kb7-err'") < 0 && src.indexOf("className: 'kbcp-err'") >= 0)
 }

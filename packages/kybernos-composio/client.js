@@ -193,6 +193,8 @@ window.__ModuleLoader__.load({
       'kb.cp.intro.s2b': { fr: 'Un onglet de l’app s’ouvre : connecte-toi et autorise l’accès.', en: 'A tab of the app opens: sign in and allow access.' },
       'kb.cp.intro.s3t': { fr: 'Tes agents s’en servent', en: 'Your agents use it' },
       'kb.cp.intro.s3b': { fr: 'Elle apparaît dans « Tes connexions » : tes agents peuvent agir dans cette app.', en: 'It appears under Yours: your agents can now act in that app.' },
+      'kb.cp.intro.m.row': { fr: 'CRM Acme', en: 'Acme CRM' },
+      'kb.cp.intro.m.hot': { fr: 'Agenda Acme', en: 'Acme Calendar' },
       'kb.cp.intro.m.st1': { fr: 'Non connecté', en: 'Not connected' },
       'kb.cp.intro.m.wait': { fr: 'Autorisation…', en: 'Authorising…' },
       'kb.cp.intro.m.allow': { fr: 'Autoriser', en: 'Allow' },
@@ -731,6 +733,7 @@ window.__ModuleLoader__.load({
       x: ['M18 6 6 18', 'M6 6l12 12'],
       pencil: ['M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z'],
       info: ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'M12 16v-5', 'M12 8h.01'],
+      chev: ['m6 9 6 6 6-6'],
     }
     // ── Kybernos connections: the second mode of "Yours" (ADR 0008 of the Kybernos server) ──────────────────────
     // The person's apps, linked once to their Kybernos account through the server's own Composio project: every agent
@@ -883,7 +886,8 @@ window.__ModuleLoader__.load({
 body:not([data-ds-dark-theme]) .kbcp-input::placeholder{color:var(--dsw-alias-label-secondary)}
 .kbcp-btn{height:32px;padding:0 13px;border-radius:8px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .kbcp-btn:hover{background:rgba(128,128,128,.12)}
-.kbcp-btn.primary{background:#635bff;border-color:#635bff;color:#fff}
+/* The primary button, the meter and the app picker take the theme's brand token with its label pair, like the page's other primary buttons (.kb8-primary): a preset recolours them (audit A1-01). */
+.kbcp-btn.primary{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground)}
 .kbcp-btn.primary:hover{filter:brightness(.92)}
 .kbcp-btn:disabled{opacity:.5;cursor:default}
 /* (Kybernos filter POC) Pill in the header bar of the engine's Plugins page
@@ -958,7 +962,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
 @supports (color:color-mix(in srgb,red 10%,transparent)){.kbcp-err{background:color-mix(in srgb,var(--dsw-alias-state-error-primary,#f25a5a) 12%,transparent);border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary,#f25a5a) 35%,transparent)}}
 .kb7-empty{font-size:13px;opacity:.5}
 .kb7-more{align-self:flex-start}
-.kb7-auth{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border:1px solid rgba(99,91,255,.5);border-radius:12px;max-width:620px;font-size:12.5px}
+.kb7-auth{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border:1px solid color-mix(in srgb,var(--dsw-alias-brand-primary) 35%,transparent);border-radius:12px;max-width:620px;font-size:12.5px}
 .kb7-authrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .kb7-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px}
 .kb7-modal{background:var(--dsw-alias-bg-base,#16161a);border:1px solid rgba(128,128,128,.3);border-radius:16px;max-width:520px;width:100%;max-height:82vh;overflow:auto;padding:18px}
@@ -985,7 +989,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
 .kb7-cxrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(128,128,128,.25);border-radius:12px}
 .kb7-cxname{font-size:13px;font-weight:600}
 .kb7-cxpath{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;opacity:.55;word-break:break-all}
-.kb7-cxtype{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:rgba(99,91,255,.16);color:#8b85ff;white-space:nowrap}
+.kb7-cxtype{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:color-mix(in srgb,var(--dsw-alias-brand-primary) 16%,transparent);color:color-mix(in srgb,var(--dsw-alias-brand-primary) 55%,var(--dsw-alias-label-primary));white-space:nowrap}
 .kb7-cxtype.http{background:rgba(34,197,94,.14);color:#22c55e}
 /* (29/09) Sub-tabs Yours / Discover + help (i): same language as
    kb4-tab (page tab bar), set here so the page can be mounted without the plugin. */
@@ -1141,18 +1145,18 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
 .kbcp-kcmeter{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;font-size:13px}
 .kbcp-kcbar{display:inline-flex;gap:4px}
 .kbcp-kcbar i{width:26px;height:6px;border-radius:99px;background:rgba(128,128,128,.28)}
-.kbcp-kcbar i.on{background:#635bff}
+.kbcp-kcbar i.on{background:var(--dsw-alias-brand-primary)}
 .kbcp-kcbar i.pend{background:var(--dsw-alias-state-warn-primary,#f59e0b)}
 .kbcp-kcpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;max-height:250px;overflow:auto;padding:2px}
 .kbcp-kcapp{display:flex;align-items:center;gap:9px;text-align:left;padding:8px 10px;border-radius:10px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;cursor:pointer;font:inherit;min-width:0}
 .kbcp-kcapp:hover{background:rgba(128,128,128,.12)}
-.kbcp-kcapp.on{border-color:#635bff;background:rgba(99,91,255,.16)}
+.kbcp-kcapp.on{border-color:var(--dsw-alias-brand-primary);background:color-mix(in srgb,var(--dsw-alias-brand-primary) 16%,transparent)}
 .kbcp-kcapp span{display:flex;flex-direction:column;min-width:0}
 .kbcp-kcapp b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kbcp-kcapp small{font-size:11px;opacity:.6}
 .kbcp-kcrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px}
 /* ── Discover popular pin + Yours empty-state illustration ── */
-.kb7-pill.pop{color:var(--dsw-alias-brand-primary,#635bff);border-color:var(--dsw-alias-brand-primary,#635bff)}
+.kb7-pill.pop{color:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}
 .kb7-emptyart{display:flex;align-items:center;justify-content:center;color:var(--dsw-alias-label-tertiary,#8a8f98);padding-bottom:2px}
 /* ── Settings page (Settings ▸ Connectors): same card language as the skills page ── */
 .kbcp-set-page{display:flex;flex-direction:column;gap:14px;max-width:760px}
@@ -2508,7 +2512,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
 
       // The add menu is the page's primary action: a value, so the header can put it where the template wants it.
       const addWrap = h('div', { className: 'kbcp-addwrap' },
-              h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'connector-create', 'aria-haspopup': 'menu', 'aria-expanded': menuOpen ? 'true' : 'false', style: { flex: 'none', height: 38, padding: '0 14px', fontSize: 13, borderRadius: 10 }, disabled: hostOld, onClick: () => setMenuOpen(!menuOpen) }, Icon('plus', 16), kbt('kb.cp.add') + ' ▾'),
+              h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'connector-create', 'aria-haspopup': 'menu', 'aria-expanded': menuOpen ? 'true' : 'false', style: { flex: 'none', height: 38, padding: '0 14px', fontSize: 13, borderRadius: 10 }, disabled: hostOld, onClick: () => setMenuOpen(!menuOpen) }, Icon('plus', 16), kbt('kb.cp.add'), Icon('chev', 14)),
               menuOpen ? h('div', { className: 'kbcp-menu', role: 'menu' },
                 h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-form', onClick: () => { setMenuOpen(false); setCxForm({ initial: null }) } }, kbt('kb.cp.add.form'), h('small', null, kbt('kb.cp.add.formhint'))),
                 h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-json', onClick: () => { setMenuOpen(false); setImportOpen(true) } }, kbt('kb.cp.add.json'), h('small', null, kbt('kb.cp.add.jsonhint'))),
@@ -2527,7 +2531,7 @@ body:not([data-ds-dark-theme]) .kb7-pill.pend{color:color-mix(in srgb,var(--dsw-
           title: kbt('kb.cp.intro.title'),
           caption: kbt('kb.cp.intro.caption'),
           steps: [{ t: kbt('kb.cp.intro.s1t'), b: kbt('kb.cp.intro.s1b') }, { t: kbt('kb.cp.intro.s2t'), b: kbt('kb.cp.intro.s2b') }, { t: kbt('kb.cp.intro.s3t'), b: kbt('kb.cp.intro.s3b') }],
-          mock: { bar: kbt('kb.cp.title'), rows: ['Slack'], hot: 'GitHub', states: [kbt('kb.cp.intro.m.st1'), kbt('kb.cp.pend'), kbt('kb.cp.connected')], actions: [kbt('kb.cp.addconn'), kbt('kb.cp.intro.m.wait'), kbt('kb.cp.intro.m.allow')] }
+          mock: { bar: kbt('kb.cp.title'), rows: [kbt('kb.cp.intro.m.row')], hot: kbt('kb.cp.intro.m.hot'), states: [kbt('kb.cp.intro.m.st1'), kbt('kb.cp.pend'), kbt('kb.cp.connected')], actions: [kbt('kb.cp.addconn'), kbt('kb.cp.intro.m.wait'), kbt('kb.cp.intro.m.allow')] }
         })
         : null)
       return h('div', { className: 'kb7-root' },
