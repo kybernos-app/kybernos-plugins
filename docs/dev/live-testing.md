@@ -65,6 +65,10 @@ await live.close()                         // kills Chrome, removes the profile
   cell cannot take a real mouse click. `openSettings(page)` opens the fold for you (in the throw-away browser's own storage: nothing of
   your DSH changes); pass `{ fold: 'keep' }` to leave it as it is (the check of the fold itself does). A script that clicks the cell
   with `cell.click()` reaches a page either way, and landing on a page inside the fold opens it, as it does for a person.
+- **Never read the menu once after a fixed delay.** Plugins add and retitle Settings cells a moment after the dialog opens, and a busy machine only
+  makes that moment longer. `goToSettingsPage(page, label|RegExp, { marker })` waits for the cell, presses it and waits for the page's own marker (a
+  JS expression), pressing again when the press was lost to a redraw; `openSettings(page, { tries })` does the same for the dialog itself. A check
+  that sleeps 1.5 s and reads once is a check that is red under load for no product reason (R3-06).
 - The built-in browser pane of the Claude desktop app cannot be used for this: it
   has no cookie access, so it stops at the 401 page.
 
@@ -317,6 +321,11 @@ It also plays the free-account offer: the offer comes after the display mode, «
 screen, Cancel of the pairing returns to the offer, and an account of a plan with no model (the stand-in poll answers
 `models.count: 0`) leads to the free models' acknowledgement; nothing is wired before the box is ticked, then the host is asked
 (`/free-llms/auto-enable`, answered by the check: the real route would call a third party) and a free model is made the default.
+The sandbox is left as it was found, with one exception that is the point: `kybernos/onboarding.json` is put back as a **finished** first run
+(`completed:true`) even when the file the run started from said otherwise (a run killed hard leaves the wizard open; the next run must not
+take that for the sandbox's own state, because every other live check then meets the wizard over the page). The agent teams the starter kit
+installs are removed before and after, the verdict line is printed in a `finally` (and for a signal or an uncaught exception), and the kit's
+rows are read only once the one this check installed (`pdf`) is marked as done, i.e. after the kit has read what is installed.
 Two things the sandbox imposes: the profile it was cloned from may already default to a model that works without a key (the free
 models), so the check first replaces such a default by a route of the profile whose key the sandbox lacks; and a profile write
 can be refused (`write_refused`) while the engine reloads, which is why the wizard asks again a few seconds later.
@@ -329,6 +338,7 @@ English). `scripts/build-catalog.mjs` validates it and ships it in the catalogue
 
 ```bash
 node scripts/test-help.mjs                   # no GUI: the shape, every bundle has one, the buttons are guarded and ask for their own bundle
+KB_HELP_SITE=<kybernos-help>/dist-site node scripts/test-help.mjs   # ...and each card's article link is an article the help site really has
 source scripts/sandbox/env.sh && node scripts/check-help-live.mjs --shots /tmp/shots
 ```
 
@@ -951,7 +961,10 @@ Every test that cannot run where it is (`test-*.mjs`, `check-*`) prints a line t
 covered and why (no playwright, no jsdom, no python livekit, no DSH engine, a platform, root…), and a whole suite that skips ends with
 a summary line (`… 0 assertions run, SKIPPED`). The CI keeps the output of its two test loops and ends with `SKIPPED SUMMARY: N` and the
 list, so a green run states what it did not cover. `scripts/test-live-checks.mjs` fails on a test that prints « skipped » without it.
-`check-display-live.mjs` lists every view it could not measure the same way, and `--strict` fails on them.
+`check-display-live.mjs` lists every view it could not measure the same way, and `--strict` fails on them. At 390 px the profile card lives in
+the closed drawer: the check opens the drawer with the card on screen (`drawer(CARD)`, reloading and retrying when a late redraw closed it) and
+reports a view it still cannot reach; the phone panel's paywall is measured in Settings › Remote Control, because the profile menu offers
+Remote control only to a plan that includes it.
 
 `scripts/check-opencode-probe-live.mjs` asks the REAL OpenCode CLI of the machine whether it is signed in. It reports a fact about the
 machine and is not a gate: the logic of that probe is tested hermetically (a stand-in CLI in both states) by

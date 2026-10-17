@@ -223,6 +223,9 @@ window.__ModuleLoader__.load({
       // ── header ───────────────────────────────────────────────────────────
       '.kbwk-head{display:flex;flex-wrap:wrap;gap:10px 24px;justify-content:space-between;align-items:flex-start;min-width:0}',
       '.kbwk-head h4{margin:0 0 2px;font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1.25}',
+      // the help pill sits at the top right of the page, on the title's row, like on every other page (A5-19)
+      '.kbwk-hd{flex:1 1 100%;min-width:0}',
+      '.kbwk-titlerow{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}',
       '.kbwk-head p{margin:0;color:var(--dsw-alias-label-secondary);max-width:60ch}',
       '.kbwk-hbtn{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap}',
       '.kbwk-count{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--dsw-alias-label-secondary)}',
@@ -872,10 +875,9 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'kbwk' },
           h('div', { className: 'kbwk-page' },
             h('div', { className: 'kbwk-head' },
-              h('div', null, h('h4', null, 'Workers'),
+              h('div', { className: 'kbwk-hd' }, h('div', { className: 'kbwk-titlerow' }, h('h4', null, 'Workers'), typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-workers', action: { label: kt('Essayer la démo', 'Try the demo'), onClick: () => setGuide(true) } }) : null),
                 h('p', null, kt('Les workers sont les assistants de code installés sur ton ordinateur. Ton agent principal peut leur confier des tâches pendant que tu fais autre chose. Réglages › Outils est l’autre porte : elle monte des outils dans un profil ; ici tu vérifies chaque worker et autorise ton agent à l’appeler.', 'Workers are the coding assistants installed on your computer. Your main agent can hand them tasks while you do something else. Settings › Tools is the other door: it mounts tools in a profile; here you check each worker and allow your agent to call it.'))),
               h('span', { className: 'kbwk-hbtn' },
-                typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-workers', action: { label: kt('Essayer la démo', 'Try the demo'), onClick: () => setGuide(true) } }) : null,
                 !helpHasAction ? h('button', { type: 'button', className: 'kbwk-btn ghost big', 'data-kb': 'wk-guide', onClick: () => setGuide(true) }, kt('Guide et démo', 'Guide and demo')) : null,
                 h('button', { type: 'button', className: 'kbwk-btn ghost big', 'data-kb': 'wk-all', disabled: anyBusy, onClick: checkAll }, ic('refresh', anyBusy ? 'spin' : ''), kt('Tout vérifier', 'Check all')))),
             h('div', { className: 'kbwk-count' }, h('span', null, h('b', null, ready), ' ' + kt(ready > 1 ? 'prêts' : 'prêt', 'ready')), h('span', null, h('b', null, toCheck), ' ' + kt('à vérifier', 'to check'))),

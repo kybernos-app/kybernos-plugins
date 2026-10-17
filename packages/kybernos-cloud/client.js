@@ -161,6 +161,7 @@ window.__ModuleLoader__.load({
         menuSeePlans: 'Voir les offres',
         accountOpenFail: 'La page de ton compte n\'a pas pu s\'ouvrir. Réessaie dans un instant.',
         srvDownOpen: 'La page de ton compte n\'a pas pu s\'ouvrir : le serveur « {name} » ({host}) ne répond pas.',
+        srvDownSignIn: 'Le serveur « {name} » ({host}) ne répond pas. Vérifie la connexion, ou choisis un autre serveur, puis réessaie.',
         srvSwitch: 'Changer de serveur',
         accountNeedsVerify: 'Confirme d\'abord ton adresse e-mail, puis réessaie.',
         upTitle: 'Mettre à niveau',
@@ -372,6 +373,7 @@ window.__ModuleLoader__.load({
         menuSeePlans: 'See plans',
         accountOpenFail: 'Your account page could not be opened. Try again in a moment.',
         srvDownOpen: 'Your account page could not be opened: the server “{name}” ({host}) does not answer.',
+        srvDownSignIn: 'The server “{name}” ({host}) does not answer. Check the connection, or choose another server, then try again.',
         srvSwitch: 'Switch server',
         accountNeedsVerify: 'Confirm your e-mail address first, then try again.',
         upTitle: 'Upgrade',
@@ -947,11 +949,12 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
     }
     // <server-down:begin> a server that does not answer is NAMED (the host says which one: its label and host), and the way to another one is offered when there is one
     /** The notice for a host route that failed because the server did not answer: `{ text, canSwitch }`, or null when the answer names no server (the caller keeps its own sentence). */
-    const serverDownNote = (r, t) => {
-      if (r === null || r === undefined || typeof r !== 'object' || r.error !== 'injoignable') return null
+    const serverDownNote = (r, t, key) => {
+      // 'injoignable' is the console link's word, 'reseau' the sign-in's (R-V-06): both mean the server did not answer.
+      if (r === null || r === undefined || typeof r !== 'object' || (r.error !== 'injoignable' && r.error !== 'reseau')) return null
       const sv = r.server
       if (sv === null || sv === undefined || typeof sv !== 'object' || typeof sv.name !== 'string' || sv.name.trim() === '' || typeof sv.host !== 'string' || sv.host.trim() === '') return null
-      return { text: String(t('srvDownOpen')).replace(/\{(name|host)\}/g, (m, k) => sv[k].trim()), canSwitch: sv.can_switch === true }
+      return { text: String(t(typeof key === 'string' ? key : 'srvDownOpen')).replace(/\{(name|host)\}/g, (m, k) => sv[k].trim()), canSwitch: sv.can_switch === true }
     }
     // <server-down:end>
 
@@ -1266,12 +1269,12 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               // on the next tick instead of showing an error that the next tick would have cleared.
               if (res.ok === false && (res.error === 'reseau' || res.error === 'trop_de_demandes' || res.error === 'reponse_illisible' || res.error === 'reponse illisible')) {
                 const until = view.pairing !== undefined && view.pairing !== null ? Date.parse(view.pairing.expires_at) : NaN
-                if (Number.isFinite(until) && until < Date.now()) return settle({ phase: 'error', error: res.error })
+                if (Number.isFinite(until) && until < Date.now()) return settle({ phase: 'error', error: res.error, server: res.server })
                 return
               }
               if (res.status === 'denied') return settle({ phase: 'disconnected', note: 'denied' })
               if (res.status === 'expired') return settle({ phase: 'disconnected', note: 'expired' })
-              settle({ phase: 'error', error: res.error || 'reseau' })
+              settle({ phase: 'error', error: res.error || 'reseau', server: res.server })
             }, 2000)
             return () => window.clearInterval(id)
           }, [view.phase])
@@ -1279,7 +1282,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           const connect = async () => {
             setView({ phase: 'loading' })
             const res = await callLocal('/start', 'POST')
-            if (res.ok === false) return settle({ phase: 'error', error: res.error || 'demarrage_impossible' })
+            if (res.ok === false) return settle({ phase: 'error', error: res.error || 'demarrage_impossible', server: res.server })
             if (res.connected === true) return settle({ phase: 'connected', state: res.state })
             settle({ phase: 'pairing', pairing: res.pairing })
           }
@@ -1372,10 +1375,13 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             body.push(h('div', { className: 'kbc-actions', key: 'a' },
               h('button', { type: 'button', className: 'kbc-btn-primary', onClick: connect }, t('reconnect'))))
           } else {
+            // A server that does not answer is NAMED, with the way to another one when the registry has one (R-V-06); any other failure keeps its sentence.
+            const down = serverDownNote(view, t, 'srvDownSignIn')
             body.push(h('div', { className: 'kbc-body kbc-err', key: 'b' }, t('errorTitle')))
-            body.push(h('div', { className: 'kbc-note', key: 'n' }, errorWords(view.error)))
+            body.push(h('div', { className: 'kbc-note', key: 'n', 'data-kb': down !== null ? 'card-server-down' : undefined }, down !== null ? down.text : errorWords(view.error)))
             body.push(h('div', { className: 'kbc-actions', key: 'a' },
-              h('button', { type: 'button', className: 'kbc-btn-primary', onClick: load }, t('retry'))))
+              h('button', { type: 'button', className: 'kbc-btn-primary', onClick: load }, t('retry')),
+              down !== null && down.canSwitch === true ? h('button', { type: 'button', className: 'kbc-btn-ghost', 'data-kb': 'card-switch-server', onClick: () => { props.onClose(); openServersPage() } }, t('srvSwitch')) : null))
           }
 
           return h('div', { className: 'kbc-scrim', onClick: (e) => { if (e.target === e.currentTarget) props.onClose() } },

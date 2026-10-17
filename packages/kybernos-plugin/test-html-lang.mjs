@@ -75,6 +75,10 @@ console.log('text blocks in a right-to-left page (A2-26)')
   check('one style is added, with the isolation of each text block', added.length === 1 && /unicode-bidi:\s*plaintext/.test(css), css.slice(0, 80))
   check('…only under a right-to-left page', /^html\[dir="rtl"\]/.test(css))
   check('…never on code, inputs or buttons, and only on a block with nothing inside it', /:not\(pre, code, input, textarea, select, button, svg, svg \*\)/.test(css) && /:not\(:has\(\*\)\)/.test(css))
+  // R3-05: on the Connectors and Dashboards pages the title and the sentence of an empty state are a bare <b> and a bare <span> (no class to name)
+  check('a bare <b>, <strong>, <em> or <span> with no class is a text block too (« .Connect your Kybernos account »)', css.includes(' div, b, strong, em, span:not([class]), span[class*="desc"]'), css.slice(0, 300))
+  const comp = readFileSync(new URL('../kybernos-composio/client.js', import.meta.url), 'utf8')
+  check('…and the Connectors sign-in sentence is an element of its own, not a loose text node beside <br>', /h\('b', null, kbt\('kb\.cp\.kc\.signin\.title'\)\), h\('br'\), h\('span', null, kbt\('kb\.cp\.kc\.signin\.body'\)\)/.test(comp))
 }
 
 console.log('\n' + String(pass) + ' verifications, ' + String(fail) + ' failure(s)')

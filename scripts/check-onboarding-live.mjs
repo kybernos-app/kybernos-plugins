@@ -82,7 +82,14 @@ forgetKitTeams()
 
 // A fresh install: the sandbox's setup writes the file as done; the wizard opens only when it says otherwise. What the sandbox had is put back at the end.
 mkdirSync(join(dshHome, 'kybernos'), { recursive: true })
-const onboardingBackup = read('kybernos/onboarding.json') || null
+// What the sandbox is put back to is a FINISHED first run: its own file when that one says so, else the state the sandbox's setup writes. A run that was killed hard
+// leaves the wizard open (completed:false) behind it; the next run must not take THAT for « what the sandbox had » and leave it open again, because every other live
+// check (the footer's first among them) then meets the wizard over the page and fails (R-A6-03).
+const FINISHED_FIRST_RUN = JSON.stringify({ version: 1, completed: true, installedAt: '2026-01-01T00:00:00.000Z', completedAt: '2026-01-01T00:00:00.000Z', profil: 'produit', uiMode: null }) + '\n'
+const onboardingBackup = (() => {
+  const had = read('kybernos/onboarding.json')
+  try { return JSON.parse(had).completed === true ? had : FINISHED_FIRST_RUN } catch (e) { return FINISHED_FIRST_RUN }
+})()
 writeFileSync(join(dshHome, 'kybernos/onboarding.json'), JSON.stringify({ version: 1, completed: false, installedAt: '2026-01-01T00:00:00.000Z', completedAt: null, profil: null, uiMode: null }) + '\n')
 
 // keepKeyDialog: this check must SEE DSH's own « Get started » dialog if it ever comes back over the wizard (A5-34, A6-01); the helper would press it away.
@@ -92,13 +99,14 @@ const page = live.page
 const restoreSandbox = () => {
   try { if (credsBackup !== null) writeFileSync(credsFile, credsBackup) } catch (e) { /* the sandbox is nobody's */ }
   try { if (patchBackup !== null) writeFileSync(patchFile, patchBackup) } catch (e) { /* the sandbox is nobody's */ }
-  try { if (onboardingBackup !== null) writeFileSync(join(dshHome, 'kybernos/onboarding.json'), onboardingBackup) } catch (e) { /* the sandbox is nobody's */ }
+  try { writeFileSync(join(dshHome, 'kybernos/onboarding.json'), onboardingBackup) } catch (e) { /* the sandbox is nobody's */ }
   forgetKitTeams()
 }
 const verdict = () => console.log(fails === 0 ? '\nall checks passed' : '\n' + fails + ' check(s) FAILED')
 // A run that is cut (Ctrl-C, a kill, an error nobody caught) still puts the sandbox back and still says how it ended: a gate without a verdict is not a gate.
 for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, async () => { fails += 1; console.log('FAIL the run was interrupted (' + sig + ')'); try { await live.close() } catch (e) { /* gone */ } restoreSandbox(); verdict(); process.exit(130) })
 process.on('unhandledRejection', (e) => { fails += 1; console.log('FAIL an error nobody caught: ' + String(e && e.message ? e.message : e).slice(0, 200)) })
+process.on('uncaughtException', (e) => { fails += 1; console.log('FAIL an exception nobody caught: ' + String(e && e.message ? e.message : e).slice(0, 200)); try { restoreSandbox() } catch (e2) { /* gone */ } verdict(); process.exit(1) })
 try {
   const fake = { keyVerdict: 'ok', installPolls: 0, calls: [], accountConnected: false, freeBody: null, statusConnected: false, skillsInstalled: [], skillInstalls: [], memoryBodies: [] }
   const json = (body) => Buffer.from(JSON.stringify(body), 'utf8').toString('base64')
@@ -259,9 +267,9 @@ try {
 
   /* ── 2. the account: the code is shown, the page is opened, a pending pairing is polled, Cancel cleans up ── */
   await press('Continue')
-  await sleep(500)
+  await waitFor(page, `((document.querySelector('.kb-ob-code b') || {}).textContent) === 'KB4-7QX2'`, 10000)
   check('the pairing code is shown to be typed on the page', (await q(`(document.querySelector('.kb-ob-code b') || {}).textContent`)) === 'KB4-7QX2')
-  await sleep(2600)
+  for (let i = 0; i < 80 && fake.calls.filter((c) => c === 'cloud-poll').length < 1; i += 1) await sleep(250)
   check('the pairing is polled while it is pending', fake.calls.filter((c) => c === 'cloud-poll').length >= 1, JSON.stringify(fake.calls))
   await press('Cancel')
   check('Cancel clears the pending pairing and returns to the question', fake.calls.includes('cloud-disconnect') && (await h1()) === 'Which models should Kybernos use?', String(await h1()))
@@ -273,12 +281,13 @@ try {
   await press('Other provider')
   check('another provider has no paste field', (await q(`!!document.querySelector('#kb-ob-key')`)) === false)
   await press('Open Settings → AI Provider & Models')
-  await sleep(1500)
+  await waitFor(page, `document.querySelector('.kb-ob') === null`, 8000)
   check('the wizard is gone', (await q(`document.querySelector('.kb-ob') === null`)) === true)
   const settingsOpen = await waitFor(page, `[...document.querySelectorAll('nav button')].some((b) => /models/i.test(b.textContent))`, 8000)
   check('the Settings dialog opened', settingsOpen !== null)
-  await sleep(1200)
-  const landed = await q(`(() => { const sel = document.querySelector('nav button[aria-current], nav button[aria-selected="true"], nav button[class*="active"], nav button[class*="selected"]'); return sel ? sel.textContent.trim() : null })()`)
+  const selectedCell = `(() => { const sel = document.querySelector('nav button[aria-current], nav button[aria-selected="true"], nav button[class*="active"], nav button[class*="selected"]'); return sel ? sel.textContent.trim() : null })()`
+  await waitFor(page, `${selectedCell} === 'AI Provider & Models'`, 10000)
+  const landed = await q(selectedCell)
   check('it landed on AI Provider & Models', landed === 'AI Provider & Models', JSON.stringify(landed))
   let state = null
   try { state = JSON.parse(read('kybernos/onboarding.json')) } catch (e) { state = null }
@@ -303,7 +312,7 @@ try {
   const credsBefore = read('.credentials.yaml')
   const patchBefore = read('profiles/web/cordis.patch.yml')
   await press('Check and save')
-  await sleep(500)
+  await waitFor(page, `!!document.querySelector('.kb-ob-state.err')`, 8000)
   check('an invalid key is refused, and the field keeps what was typed', (await q(`(document.querySelector('.kb-ob-state.err') || {}).textContent`)) !== undefined && (await q(`document.querySelector('#kb-ob-key').value`)) === 'sk-test-0123456789abcdefXYZ')
   check('nothing was stored for it: credentials and settings are byte for byte as they were', read('.credentials.yaml') === credsBefore && read('profiles/web/cordis.patch.yml') === patchBefore)
   fake.keyVerdict = 'ok'
@@ -335,8 +344,7 @@ try {
   // what the connection answered, for the failure detail below
   await q(`(() => { const seam = window.__KB_LOCAL__; if (!seam || seam.__spied) return false; const c = seam.connect; seam.connect = async (id) => { const r = await c(id); window.__kbLastConnect = r; return r }; seam.__spied = true; return true })()`)
   await press('Install qwen3.5:9b')
-  await sleep(700)
-  check('the progress screen is shown while it downloads', (await h1()) === 'Installing qwen3.5:9b' || (await seen('Model ready', 30000)) !== null)
+  check('the progress screen is shown while it downloads', (await seen('Installing qwen3.5:9b', 8000)) !== null || (await seen('Model ready', 30000)) !== null)
   await page.shot(join(shotDir, 'installing.png'))
   const ready5 = await seen('Model ready', 30000)
   check('when it is done the model is connected', ready5 !== null, JSON.stringify({ connect: await q(`window.__kbLastConnect || null`), h1: await h1(), calls: fake.calls, polls: fake.installPolls, text: String(await q(`(document.querySelector('.kb-ob') || {}).innerText`)).slice(0, 300) }))
@@ -367,12 +375,12 @@ try {
   check('there is no way back to the account that was just made', (await q(`!document.querySelector('.kb-ob-back')`)) === true)
   check('nothing is wired before the acknowledgement', !fake.calls.includes('free-enable') && (await q(`document.querySelector('.kb-ob-primary').disabled`)) === true)
   await q(`document.querySelector('.kb-ob-freeack input').click()`)
-  await sleep(200)
+  await waitFor(page, `!document.querySelector('.kb-ob-primary').disabled`, 5000)
   await press('Use free models')
   await skipKit()
   await press('Open Kybernos')
   check('the wizard closes', (await waitFor(page, `document.querySelector('.kb-ob') === null`, 8000)) === true)
-  await sleep(2400)
+  for (let i = 0; i < 40 && !(fake.calls.includes('free-enable') && fake.calls.includes('model-auto')); i += 1) await sleep(250)
   check('the host was asked to wire them, with the acknowledgement and no model of the person\'s own', fake.calls.includes('free-enable') && fake.freeBody !== null && fake.freeBody.acknowledged === true && fake.freeBody.hasOwnModel === false, JSON.stringify([fake.calls, fake.freeBody]))
   check('and to make a free model the default', fake.calls.includes('model-auto'), JSON.stringify(fake.calls))
   let st5 = null
@@ -400,6 +408,10 @@ try {
   await page.shot(join(shotDir, 'replay-model-question.png'))
   await press('Keep as is')
   check('the starter kit follows, named after the profession', (await seen('A starter kit for Students / Teaching / Research')) !== null, String(await h1()))
+  // The screen is drawn with the default ticks at once and the installed marks follow when the two reads of what is installed (the skills list, the agent teams) have
+  // come back, which takes longer on a busy machine: the rows are read once the one this check installed (pdf) is marked as done, never at the moment the heading shows.
+  const kitLoaded = await waitFor(page, `[...document.querySelectorAll('.kb-ob-kit')].some((r) => r.querySelector('b').textContent === 'pdf' && r.classList.contains('done'))`, 30000)
+  check('the kit has read what is installed before it is looked at', kitLoaded !== null)
   const kitRows = await q(`[...document.querySelectorAll('.kb-ob-kit')].map((r) => r.querySelector('b').textContent + (r.classList.contains('done') ? ':done' : r.classList.contains('on') ? ':on' : r.classList.contains('soon') ? ':soon' : ':off'))`)
   console.log('     kit rows: ' + JSON.stringify(kitRows))
   check('what is installed is marked and not ticked again', Array.isArray(kitRows) && kitRows.includes('pdf:done') && kitRows.includes('study-plan:on') && kitRows.includes('flashcards:on') && kitRows.includes('docx:on'), JSON.stringify(kitRows))
@@ -451,17 +463,18 @@ try {
   await seen('A starter kit for Students / Teaching / Research', 8000)
   await press('Not now')
   await waitFor(page, `!!document.querySelector('.kb-ob-recap')`, 8000)
-  await sleep(600)
+  for (let i = 0; i < 40 && fake.memoryBodies.length < 1; i += 1) await sleep(250)
   check('and updates that memory', fake.memoryBodies.length === 1 && fake.memoryBodies[0].path === '/kybernos-cloud/memory/update' && fake.memoryBodies[0].body.id === 'mem_test_1', JSON.stringify(fake.memoryBodies))
   // A Change link ends the wizard and opens that area's page of Settings (here Web Search), whatever the language.
   await waitFor(page, `document.querySelectorAll('.kb-ob-setup .kb-ob-srow').length === 5`, 8000)
   const changed = await q(`(() => { const b = document.querySelector('.kb-ob-srow[data-kb-ob-row="ws"] button'); if (!b) return false; b.click(); return true })()`)
   check('Change on the web search row is pressed', changed === true)
-  await sleep(1500)
+  await waitFor(page, `document.querySelector('.kb-ob') === null`, 8000)
   check('the wizard is gone', (await q(`document.querySelector('.kb-ob') === null`)) === true)
   await waitFor(page, `[...document.querySelectorAll('nav button')].some((b) => /web search/i.test(b.textContent))`, 8000)
-  await sleep(1200)
-  const landedWs = await q(`(() => { const sel = document.querySelector('nav button[aria-current], nav button[aria-selected="true"], nav button[class*="active"], nav button[class*="selected"]'); return sel ? sel.textContent.trim() : null })()`)
+  const selectedWs = `(() => { const sel = document.querySelector('nav button[aria-current], nav button[aria-selected="true"], nav button[class*="active"], nav button[class*="selected"]'); return sel ? sel.textContent.trim() : null })()`
+  await waitFor(page, `${selectedWs} === 'Web Search'`, 10000)
+  const landedWs = await q(selectedWs)
   check('it landed on Web Search', landedWs === 'Web Search', JSON.stringify(landedWs))
   fake.statusConnected = false
   await backToTheStartingPoint()
@@ -593,6 +606,8 @@ try {
   try { await live.close() } catch (e) { /* gone */ }
   restoreSandbox()
   await sleep(6000)
+  // The host may write the file once more after the page is gone (a request on its way when the browser closed): what is on disk must be the finished first run.
+  if (read('kybernos/onboarding.json') !== onboardingBackup) restoreSandbox()
   verdict() // in the finally: whatever happened above, the run ends with its verdict
 }
 process.exit(fails === 0 ? 0 : 1)

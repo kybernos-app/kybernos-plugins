@@ -869,6 +869,11 @@ function apply (ctx) {
     }
   })
 
+  // The icon of this tab in the « Start » picker of the right sidebar: the engine draws a grey cube for a type that gives none, and nine tabs of the suite looked the same (V-25).
+  // A line icon in the ink of the picker, one per plugin; the engine calls it as a component with { size, className }.
+  // KB-TABICON-BEGIN
+  const KB_TAB_ICON = (props) => { const px = (props !== null && props !== undefined && typeof props.size === 'number') ? props.size : 22; return React.createElement('svg', { width: px, height: px, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: (props !== null && props !== undefined) ? props.className : undefined }, ['M3 5a9 3 0 1 0 18 0a9 3 0 1 0-18 0', 'M3 5v14a9 3 0 0 0 18 0V5', 'M3 12a9 3 0 0 0 18 0'].map((d, i) => React.createElement('path', { key: i, d }))) }
+  // KB-TABICON-END
   if (sidebarTabs !== undefined && sidebarTabs !== null && typeof sidebarTabs.register === 'function') {
     tenter('sidebarTabs.register', () => ctx.effect(() => sidebarTabs.register({
       id: TYPE_ID,
@@ -877,6 +882,7 @@ function apply (ctx) {
       // The guide host calls title()/description(): bare strings crash the slot
       // entry (see the kybers lesson: « entry.title is not a function »).
       guide: [{
+        icon: KB_TAB_ICON,
         title: () => kt('Base de données', 'Databases'),
         description: () => kt('Diagramme, graphiques, données et SQL des petites bases SQLite des Agent Teams', 'Diagram, charts, data and SQL of the small SQLite databases of Agent Teams'),
       }],

@@ -59,6 +59,17 @@ try { catalogue = catalogueDuDepot() } catch (e) { cause = String(e.message) }
 check('the catalogue builds: every bundle of the lifecycle list has a valid help.json', catalogue !== null, cause)
 if (catalogue !== null) {
   check('the catalogue carries the help of every module', catalogue.modules.length === lifecycle.length && catalogue.modules.every((m) => m.aide !== undefined && m.aide.steps.length >= 2))
+  // V-06: every card links to its article. These four have none because the help site has no article that is theirs yet (the Suite panel, the core's several
+  // pages, the restart helper, the search): writing one on the site is the way to remove a name from this list, never an address that does not exist.
+  const NO_ARTICLE_YET = ['kybernos-hub', 'kybernos-plugin', 'kybernos-relance', 'kybernos-search']
+  const without = catalogue.modules.filter((m) => m.aide.url === undefined).map((m) => m.id).sort()
+  check('every module links to an article of the help site, but the four that have none yet', JSON.stringify(without) === JSON.stringify(NO_ARTICLE_YET), without)
+  // Where the site's own build is at hand (KB_HELP_SITE=<kybernos-help>/dist-site), each link is an article that exists there, in English.
+  const site = process.env.KB_HELP_SITE
+  if (typeof site === 'string' && site !== '') {
+    const dead = catalogue.modules.filter((m) => m.aide.url !== undefined && /^https:\/\/help\.kybernos\.app\/\{lang\}\//.test(m.aide.url) && !existsSync(join(site, 'en', m.aide.url.replace(/^https:\/\/help\.kybernos\.app\/\{lang\}\//, ''), 'index.html'))).map((m) => m.id + ' → ' + m.aide.url)
+    check('each link is an article the help site really has (KB_HELP_SITE)', dead.length === 0, dead)
+  } else console.log('  ○ the links are not compared with the site (set KB_HELP_SITE=<kybernos-help>/dist-site to do it)')
   const same = []
   for (const m of catalogue.modules) {
     const a = m.aide

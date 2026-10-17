@@ -165,6 +165,9 @@ eq('the card sits above the composer, in the input dock', /name: 'conversation\.
 eq('the card reads the failure from the chat, not from the DOM', /useChat\(\(c\) => \{ try \{ return c\.nodes\.valuesCache/.test(src), true)
 eq('the card puts the message back, it does not send it', /kbPrefillDraft\(need\.prompt/.test(src) && !/inputActions\.submit|\.submit\(\)/.test(src.slice(src.indexOf('const KbNeedModel'), src.indexOf('const KbNeedModel') + 6000)), true)
 
+// R-A5-03: on a phone the card's cross is a 44 px target (it measured 24 x 36)
+eq('on a phone the card\'s dismiss cross is 44 x 44', /@media \(max-width:700px\)\{\.kbnm-x\{top:0;inset-inline-end:0;width:44px;height:44px\}\.kbnm-t\{padding-inline-end:44px\}\}/.test(src), true)
+
 /* ── 7b. « What we set up for you »: the closing list says what the host says, never a promise ─────────── */
 {
   const R = mod.kbObSetupRows

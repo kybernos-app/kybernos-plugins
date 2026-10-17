@@ -33,6 +33,8 @@ if (HOST === '127.0.0.1:3080') { console.error('✗ this check writes a server e
 if (!DSH_HOME.includes('.kybernos-sandbox')) { console.error('✗ DSH_HOME is not an isolated instance (' + (DSH_HOME || 'unset') + '). Run: source scripts/sandbox/env.sh'); process.exit(2) }
 if (shotsDir !== null) mkdirSync(shotsDir, { recursive: true })
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+// A step that cannot go on (the list never loaded, so there is no row to act on) ends the run with ONE readable line, not with a stack trace that hides the cause.
+const stop = (why) => { const e = new Error(why); e.readable = true; throw e }
 let pass = 0
 let fail = 0
 const check = (name, ok, detail) => {
@@ -156,14 +158,21 @@ try {
   await sleep(1500)
 
   console.log('the mode')
-  const offered = await waitFor(page, `!!document.querySelector('[data-kb="mode-kybernos"]')`, 10000)
+  const offered = await waitFor(page, `!!document.querySelector('[data-kb="mode-kybernos"]')`, 20000)
   check('the server offers connections: the switch is there, next to the person\'s own key', offered !== null && (await exists('[data-kb="mode-personal"]')))
   await shot('01-mode')
-  check('Kybernos connections are the mode until the person chooses (no personal key saved: V-34)', (await ev(`document.querySelector('[data-kb="mode-kybernos"]').getAttribute('aria-pressed')`)) === 'true')
-  await clickJs('[data-kb="mode-kybernos"]')
-  const listed = await waitFor(page, `document.querySelectorAll('[data-kb-conn]').length >= 3`, 10000)
+  // The page works out its mode once it has asked about the person's own key: the state is awaited, not read at the moment the button appears.
+  const modePressed = await waitFor(page, `(document.querySelector('[data-kb="mode-kybernos"]') || { getAttribute: () => '' }).getAttribute('aria-pressed') === 'true'`, 10000)
+  check('Kybernos connections are the mode until the person chooses (no personal key saved: V-34)', modePressed !== null)
+  // The rows come from the stand-in a moment after the press; a press made before the page had read its state is lost, so it is repeated while the list is empty.
+  let listed = null
+  for (let i = 0; i < 3 && listed === null; i += 1) {
+    await clickJs('[data-kb="mode-kybernos"]')
+    listed = await waitFor(page, `document.querySelectorAll('[data-kb-conn]').length >= 3`, 12000)
+  }
   check('Kybernos connections: the account\'s three connections are listed', listed !== null, await rows())
   const first = await rows()
+  if (first.length < 3 || !first.some((r) => r.status === 'active') || !first.some((r) => r.status === 'pending')) stop('the list did not load: ' + JSON.stringify(first) + ' (the stand-in was asked ' + calls.filter((c) => c.path.startsWith('/v1/connections')).length + ' time(s) about connections)')
   check('each row has its state: two active, one pending', first.filter((r) => r.status === 'active').length === 2 && first.filter((r) => r.status === 'pending').length === 1, first)
   check('the quota is shown: 3 of 4', /3\D+4/.test(String(await text('.kbcp-kcmeter'))), await text('.kbcp-kcmeter'))
   check('the stand-in saw the account\'s own token and nothing else of the person', calls.filter((c) => c.path.startsWith('/v1/connections')).every((c) => c.auth === 'Bearer ' + TOKEN))
@@ -192,13 +201,13 @@ try {
   const apps1 = await ev(`document.querySelectorAll('[data-kb-app]').length`)
   check('the window shows 48 apps of the 105, and offers the rest', apps1 === 48 && /57/.test(String(await text('[data-kb="kc-more"]'))), { apps1, more: await text('[data-kb="kc-more"]') })
   await clickJs('[data-kb="kc-more"]')
-  await sleep(300)
+  await waitFor(page, `document.querySelectorAll('[data-kb-app]').length === 96`, 5000)
   check('"show more" adds the next 48', (await ev(`document.querySelectorAll('[data-kb-app]').length`)) === 96 && /9/.test(String(await text('[data-kb="kc-more"]'))))
   await clickJs('[data-kb="kc-more"]')
-  await sleep(300)
+  await waitFor(page, `document.querySelectorAll('[data-kb-app]').length === 105`, 5000)
   check('...and the button goes when nothing is left', (await ev(`document.querySelectorAll('[data-kb-app]').length`)) === 105 && !(await exists('[data-kb="kc-more"]')))
   await typeInto('#kbcp-kc-q', 'notion')
-  await sleep(300)
+  await waitFor(page, `document.querySelectorAll('[data-kb-app]').length === 1`, 5000)
   check('a search narrows the list (and starts from the first page again)', (await ev(`document.querySelectorAll('[data-kb-app]').length`)) === 1 && !(await exists('[data-kb="kc-more"]')))
   await typeInto('#kbcp-kc-q', '')
   await sleep(300)
@@ -221,10 +230,11 @@ try {
   await shot('04-full')
 
   console.log('remove')
-  const linearId = (await rows()).find((r) => /Linear/.test(r.name)).id
+  const rowId = async (re) => { const found = (await rows()).find((r) => re.test(r.name)); if (found === undefined) stop('no row named ' + re + ' in ' + JSON.stringify(await rows())); return found.id }
+  const linearId = await rowId(/Linear/)
   await hover(`[data-kb-conn="${linearId}"] .kbcp-mname`)
   await ev(`document.querySelector('[data-kb-conn="${linearId}"] .kbcp-macts button[aria-label^="Remove"], [data-kb-conn="${linearId}"] .kbcp-macts button[aria-label^="Retirer"]').click()`)
-  await sleep(300)
+  await waitFor(page, `!!document.querySelector('[data-kb-conn="${linearId}"] .kbcp-confirm')`, 5000)
   check('removing asks first, and says what it means', /Composio/.test(String(await text(`[data-kb-conn="${linearId}"] .kbcp-confirm`))), await text(`[data-kb-conn="${linearId}"] .kbcp-confirm`))
   await shot('05-confirm')
   const delBefore = calls.length
@@ -256,7 +266,7 @@ try {
   await shot('06-notion')
 
   console.log('a refused add that may have gone through')
-  const notionId = (await rows()).find((r) => /Notion/.test(r.name)).id
+  const notionId = await rowId(/Notion/)
   await hover(`[data-kb-conn="${notionId}"] .kbcp-mname`)
   await ev(`document.querySelector('[data-kb-conn="${notionId}"] .kbcp-macts button[aria-label^="Remove"], [data-kb-conn="${notionId}"] .kbcp-macts button[aria-label^="Retirer"]').click()`)
   await sleep(200)
@@ -275,7 +285,7 @@ try {
   check('...without showing what the server said in its own words', (await ev(`document.documentElement.innerText.indexOf('SECRET') < 0`)) === true)
   await shot('07-uncertain')
   await clickJs('.kb7-modal .kbcp-kcrow button')
-  await sleep(1200)
+  for (let i = 0; i < 40 && !calls.slice(beforeFail).some((c) => c.method === 'GET' && c.path === '/v1/connections?refresh=1'); i += 1) await sleep(250)
   check('"check the list" asks the server for the list again', calls.slice(beforeFail).some((c) => c.method === 'GET' && c.path === '/v1/connections?refresh=1'))
 
   console.log('a connection that is already waiting')
@@ -336,7 +346,8 @@ try {
   check('and the stand-in is no longer asked about connections', connCalls() === asked, calls.slice(-3))
   await shot('10-not-offered')
 } catch (e) {
-  console.error('✗ the check crashed: ' + (e && e.stack ? e.stack : e))
+  if (e && e.readable === true) console.error('✗ the check stopped: ' + e.message)
+  else console.error('✗ the check crashed: ' + (e && e.stack ? e.stack : e))
   fail += 1
 } finally {
   if (live !== null) await live.close()

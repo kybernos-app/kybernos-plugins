@@ -1,37 +1,37 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// lifecycle-engine — le cœur PUR du robot garagiste.
+// lifecycle-engine — the PURE core of the garage robot.
 //
-// Aucun accès disque/réseau direct : `fs` (lire/ecrire/existe/creerRep/copier),
-// `exec` (async (cmd) => {code, sortie}) et l'horloge sont INJECTÉS. Le harnais
-// unitaire (test-lifecycle-engine.mjs) teste ces fonctions sur des fixtures ;
-// le CLI (dsh-lifecycle.mjs) leur passe le vrai disque.
+// No direct disk/network access: `fs` (lire/ecrire/existe/creerRep/copier),
+// `exec` (async (cmd) => {code, sortie}) and the clock are INJECTED. The unit
+// harness (test-lifecycle-engine.mjs) tests these functions on fixtures;
+// the CLI (dsh-lifecycle.mjs) hands them the real disk.
 //
-// Invariants (DESIGN.md) : compat = geste n°1 ; photo avant toute écriture ;
-// journal après toute opération ; la fiche suit toujours le global ; échec de
-// boot → rollback automatique.
+// Invariants (DESIGN.md): compatibility = first gesture; photo before any write;
+// journal after every operation; the profile file always follows the global; boot
+// failure → automatic rollback.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { join } from 'node:path'
 import { dossierBundle } from './bundles.mjs'
 
-export const DEPUIS_VERS = { obligatoire: true } // chaque journal dit « de X vers Y »
+export const DEPUIS_VERS = { obligatoire: true } // every journal line says « from X to Y »
 
-// ── horodatage canonique (injectable pour les tests) ──────────────────────
+// ── canonical timestamp (injectable for tests) ──────────────────────────
 export const maintenant = (horloge) => new Date(horloge ? horloge() : Date.now())
 
-// ── 1. compatibilité (le geste n°1 de TOUTE opération) ────────────────────
+// ── 1. compatibility (the first gesture of EVERY operation) ───────────────
 
 export function lireCompat ({ fs, chemin }) {
   try { return JSON.parse(fs.lire(chemin)) } catch (e) { return { dsh: {} } }
 }
 
-// Comparaison de versions SEGMENT PAR SEGMENT, jamais alphabétique : « 0.1.10 »
-// est postérieur à « 0.1.7 », alors que la comparaison de chaînes dit le
-// contraire — une porte qui refuse la bonne version (ou pire, laisse passer une
-// version jamais testée) est un piège à retardement. Règles : segments
-// numériques comparés comme des nombres, une version sans préfixe (`rc`) passe
-// après la même avec préfixe (`alpha`), et à défaut on compare les préfixes
-// alphabétiquement (alpha < beta < rc, ce qui est l'ordre semver habituel).
+// Version comparison SEGMENT BY SEGMENT, never alphabetical: « 0.1.10 »
+// is later than « 0.1.7 », whereas string comparison says the opposite — a gate
+// that refuses the right version (or worse, lets a never-tested version through)
+// is a time bomb. Rules: numeric segments are compared as numbers, a version
+// without a prefix (`rc`) comes after the same one with a prefix (`alpha`), and
+// otherwise the prefixes are compared alphabetically (alpha < beta < rc, the
+// usual semver order).
 export function comparerVersions (a, b) {
   const decouper = (v) => {
     const [noyau, ...reste] = String(v).split('-')
@@ -60,24 +60,24 @@ export function comparerVersions (a, b) {
     const nx = /^\d+$/.test(sx)
     const ny = /^\d+$/.test(sy)
     if (nx && ny) { if (Number(sx) !== Number(sy)) return Number(sx) < Number(sy) ? -1 : 1; continue }
-    if (nx !== ny) return nx ? -1 : 1 // un numéro de préfixe passe avant un mot
+    if (nx !== ny) return nx ? -1 : 1 // a numeric prefix comes before a word
     if (sx !== sy) return sx < sy ? -1 : 1
   }
   return 0
 }
 
-// ── 1bis. le serveur est-il plus VIEUX que l'installation ? ────────────────
-// L'angle mort mesuré le 2026-09-22 : après une montée de version, le serveur
-// déjà en cours continue de servir l'ANCIEN moteur depuis sa mémoire, alors que
-// les fichiers sont neufs. Le mélange donne « Failed to load plugins — 1 entry
-// did not activate · …-jobs: waiting for service: jobs », et rien dans le robot
-// ne le disait : ni le doctor (il ne regardait que le disque), ni la page
-// Réglages (elle lisait `dsh --version`, c'est-à-dire le disque aussi).
+// ── 1bis. is the server OLDER than the installation? ───────────────────────
+// The blind spot measured on 2026-09-22: after a version upgrade, the server that
+// is already running keeps serving the OLD engine from its memory while the
+// files are new. The mix gives « Failed to load plugins — 1 entry did not activate
+// · …-jobs: waiting for service: jobs », and nothing in the robot said so: neither
+// the doctor (it only looked at the disk) nor the Settings page (it read
+// `dsh --version`, that is, the disk too).
 //
-// La règle est pure ici — comparer deux instants — et l'appelant fournit les
-// mesures (démarrage du processus qui tient le port, dernière écriture de
-// l'installation). Une tolérance absorbe les quelques secondes qui séparent
-// l'écriture des fichiers du démarrage légitime du serveur.
+// The rule is pure here — compare two instants — and the caller supplies the
+// measurements (start of the process that holds the port, last write of the
+// installation). A tolerance absorbs the few seconds between the files being
+// written and the legitimate start of the server.
 export function inspecterFraicheur ({ demarrageServeur, installation, toleranceMs = 10000 }) {
   if (!Number.isFinite(demarrageServeur)) return { verdict: 'inconnu', perime: false, raison: 'server unreadable (no process on the port?)' }
   if (!Number.isFinite(installation)) return { verdict: 'inconnu', perime: false, raison: 'installation date unreadable' }
@@ -108,13 +108,13 @@ export function testerCompatibilite ({ cible, compat, force = false }) {
 }
 
 /**
- * Pure. Pourquoi une retouche n'est PLUS posée sur ce moteur, ou null si elle l'est.
- * Deux formes dans `patches.json` :
- *   · `retire: "motif"` — retirée partout (le robot la défait où elle traîne) ;
- *   · `retire_depuis_moteur: "0.2.0-rc.2"` (+ `retire_motif`) — retirée seulement à
- *     partir de cette version du moteur : les moteurs plus anciens de la zone de
- *     compatibilité la gardent, car la migration vers le plugin n'y a pas été mesurée.
- * Version moteur inconnue (null) : on ne retire rien, on ne devine pas.
+ * Pure. Why a patch is NO LONGER applied on this engine, or null when it is.
+ * Two forms in `patches.json`:
+ *   · `retire: "reason"` — removed everywhere (the robot undoes it wherever it lingers);
+ *   · `retire_depuis_moteur: "0.2.0-rc.2"` (+ `retire_motif`) — removed only from
+ *     that engine version on: older engines of the compatibility range keep it,
+ *     because the migration to the plugin was not measured there.
+ * Unknown engine version (null): nothing is removed, no guessing.
  */
 export function motifDeRetrait (entree, versionMoteur) {
   if (entree === null || typeof entree !== 'object') return null
@@ -131,10 +131,10 @@ export function motifDeRetrait (entree, versionMoteur) {
 export async function versionDuGlobal ({ exec }) {
   const r = await exec(['dsh', '--version'])
   const v = String(r.sortie || '').trim().split('\n').pop() || ''
-  // `dsh` absent => la commande echoue : on rend NULL, jamais une chaine vide.
-  // Mesure du 23/09/2026 : une chaine vide est un faux « installe » pour tout
-  // test `=== null`, donc `bootstrap` croyait DSH present sur une machine nue et
-  // ne posait JAMAIS le moteur — le scenario B etait indetectable.
+  // `dsh` absent => the command fails: return NULL, never an empty string.
+  // Measured on 23/09/2026: an empty string is a false « installed » for any
+  // `=== null` test, so `bootstrap` believed DSH was present on a bare machine and
+  // NEVER put the engine in place — scenario B was undetectable.
   if (r.code !== 0 || v === '') return null
   return v
 }
@@ -144,47 +144,47 @@ export async function versionDuPlugin ({ exec, repoDir }) {
   return String(r.sortie || '').trim() || 'inconnu'
 }
 
-// ── 3. doctor — lire sans écrire ──────────────────────────────────────────
+// ── 3. doctor — read without writing ──────────────────────────────────────
 
 export async function etatDoctor ({ fs, exec, profilDir, repoDir, packages = [], patches = [], compatChemin }) {
   const global = await versionDuGlobal({ exec })
   const plugin = await versionDuPlugin({ exec, repoDir })
   const compat = lireCompat({ fs, chemin: compatChemin })
-  // Un profil qui n'existe pas encore n'est PAS une erreur : c'est l'etat exact
-  // d'une machine nue, ou DSH vient d'etre pose mais n'a jamais tourne. Le lire
-  // sans garde faisait planter le doctor sur `node:fs:539` (ENOENT package.json)
-  // — mesure du 23/09/2026 sur un profil jetable.
+  // A profile that does not exist yet is NOT an error: it is the exact state
+  // of a bare machine, or one where DSH has just been put in place but has never
+  // run. Reading it without a guard made the doctor crash on `node:fs:539`
+  // (ENOENT package.json) — measured on 23/09/2026 on a throwaway profile.
   const profilAbsent = typeof fs.existe === 'function' && !fs.existe(join(profilDir, 'package.json'))
-  // `global === null` = pas de moteur joignable. Declare tot : les pins, la
-  // compatibilite ET les problemes s'en servent.
+  // `global === null` = no reachable engine. Declared early: the pins, the
+  // compatibility AND the problems all use it.
   const moteurAbsent = global === null
   const pkgProfil = profilAbsent ? { dependencies: {}, dsh: {} } : JSON.parse(fs.lire(join(profilDir, 'package.json')))
   const deps = pkgProfil.dependencies || {}
   const bundles = pkgProfil.dsh?.profile?.bundles || []
 
-  // pins @deepseek-ai : tous à la même version que le global ?
+  // @deepseek-ai pins: all at the same version as the global?
   const pins = Object.entries(deps).filter(([k]) => k.startsWith('@deepseek-ai/'))
   const pinsDivergents = pins.filter(([, v]) => v !== global).map(([k, v]) => `${k} ${v} ≠ ${global}`)
   const alignePins = pinsDivergents.length === 0
 
-  // liens @local/* : présents et déclarés en bundle ?
+  // @local/* links: present and declared as a bundle?
   const attends = packages.map((p) => p.nom)
   const liensManquants = attends.filter((n) => !(deps[n] || '').startsWith('link:'))
   const bundlesManquants = attends.filter((n) => !bundles.includes(n))
 
-  // Sans moteur lisible, la compatibilite n'a pas de cible : on ne fait pas
-  // dire a un comparateur ce qu'il ne peut pas savoir.
+  // Without a readable engine, compatibility has no target: we do not make a
+  // comparator say what it cannot know.
   const compatVerdict = moteurAbsent ? { verdict: 'inconnu', bloquant: false, raison: 'engine absent' } : testerCompatibilite({ cible: global, compat })
 
   const problemes = []
   if (moteurAbsent) {
     problemes.push('the DSH engine is not reachable (`dsh` is not on the PATH): run `./kybernos-install`, it puts it in place and checks it')
   } else if (profilAbsent) {
-    // Une seule phrase, celle du geste a faire — pas onze « paquet non lie ».
+    // A single sentence, the one for the gesture to make — not eleven « package not linked ».
     problemes.push('no DSH profile: run `dsh web` once (it creates it), then run doctor again')
   }
-  // Sans profil, ces trois constats sont TOUS vrais et aucun n'est utile : ils
-  // noieraient la seule phrase qui dit quoi faire (dix lignes pour un geste).
+  // Without a profile, these three findings are ALL true and none is useful: they
+  // would drown the only sentence that says what to do (ten lines for one gesture).
   if (!profilAbsent && !moteurAbsent) {
     if (!alignePins) problemes.push(`the profile pins the DSH packages to another version than the engine (${pinsDivergents[0] || 'divergence'})`)
     for (const l of liensManquants) problemes.push(`the package ${l} is not linked to the profile`)
@@ -196,7 +196,7 @@ export async function etatDoctor ({ fs, exec, profilDir, repoDir, packages = [],
   return { global, plugin, moteur: moteurAbsent ? 'absent' : 'present', profil: profilAbsent ? 'absent' : 'present', alignePins, pinsDivergents, liensManquants, bundlesManquants, compatVerdict, problemes, couleur, patches }
 }
 
-// ── 4. le plan (l'ordre des gestes, écrit noir sur blanc) ─────────────────
+// ── 4. the plan (the order of the gestures, written in black and white) ───
 
 export function planUpgrade ({ cible, depuis, compatVerdict, aDesBundles }) {
   if (compatVerdict === 'refuse') return ['compatibilite']
@@ -210,14 +210,14 @@ export function planUpgrade ({ cible, depuis, compatVerdict, aDesBundles }) {
   return plan
 }
 
-// ── 5. photo / restauration ──────────────────────────────────────────────
+// ── 5. photo / restore ───────────────────────────────────────────────────
 
 export async function photographier ({ fs, profilDir, photosDir, horodatage, versions, exec, horloge }) {
   const dossier = join(photosDir, horodatage)
   fs.creerRep(dossier)
   const fichiers = ['package.json', 'pnpm-lock.yaml', 'cordis.patch.yml']
   for (const f of fichiers) {
-    try { fs.copier(join(profilDir, f), join(dossier, f)) } catch (e) { /* absent : la photo n'invente rien */ }
+    try { fs.copier(join(profilDir, f), join(dossier, f)) } catch (e) { /* absent: the photo invents nothing */ }
   }
   fs.ecrire(join(dossier, 'versions.txt'), `engine ${versions.global}\nplugin ${versions.plugin}\ndate ${maintenant(horloge).toISOString()}\n`)
   fs.ecrire(join(dossier, 'README.txt'), ecrireLisezMoi({ photo: dossier, versions, date: maintenant(horloge).toISOString() }))
@@ -248,7 +248,7 @@ export async function restaurerPhoto ({ fs, photosDir, photoDossier, profilDir }
       const contenu = fs.lire(join(dossier, f))
       fs.ecrire(join(profilDir, f), contenu)
       recopies.push(f)
-    } catch (e) { /* absent de la photo : ne pas écraser ce qui existe */ }
+    } catch (e) { /* absent from the photo: do not overwrite what exists */ }
   }
   return { dossier, recopies }
 }
@@ -260,7 +260,7 @@ export function photoLaPlusRecente ({ fs, photosDir }) {
   } catch (e) { return null }
 }
 
-// ── 6. journal — chaque opération dit DE → VERS et le résultat ────────────
+// ── 6. journal — each operation says FROM → TO and the result ─────────────
 
 export async function journaliser ({ fs, journal, op }) {
   const ligne = JSON.stringify({
@@ -278,21 +278,21 @@ export function lireJournal ({ fs, journal, limite = 20 }) {
   } catch (e) { return [] }
 }
 
-// ── 7. alignement de la fiche (LE geste qui a manqué le 2026-09-22) ───────
+// ── 7. aligning the profile file (THE gesture that was missed on 2026-09-22) ──
 
-// `disponibles` : { '@deepseek-ai/<paquet>': ['0.1.6-alpha.2', …] } — les
-// versions RÉELLEMENT publiées, mesurées par l'appelant (npm view). Sans cette
-// mesure, l'alignement épinglait la cible sur des paquets qui n'existent pas :
-// le 2026-09-22, `dsh-experimental-agent-team-web-profile` (dernière version
-// 0.1.6-alpha.2, fusionnée en amont dans `dsh-experimental-agent-team-profile`)
-// a fait échouer le pnpm du profil en ERR_PNPM_NO_MATCHING_VERSION — l'upgrade
-// entier est parti en rollback pour un paquet qui n'aurait pas dû être épinglé.
+// `disponibles`: { '@deepseek-ai/<package>': ['0.1.6-alpha.2', …] } — the versions
+// ACTUALLY published, measured by the caller (npm view). Without this
+// measurement, the alignment pinned the target on packages that do not exist:
+// on 2026-09-22, `dsh-experimental-agent-team-web-profile` (last version
+// 0.1.6-alpha.2, merged upstream into `dsh-experimental-agent-team-profile`)
+// made the profile's pnpm fail with ERR_PNPM_NO_MATCHING_VERSION — the whole
+// upgrade went to rollback for a package that should not have been pinned.
 //
-// Règle : publie la cible → on épingle la cible ; ne la publie pas → on RETIRE
-// la dépendance ET son bundle (la garder dans une version antérieure remet
-// exactement le graphe client incohérent qui a cassé le boot du matin). Un
-// paquet sans mesure (`disponibles[nom]` absent) garde le comportement
-// historique : épinglé à la cible.
+// Rule: it publishes the target → pin the target; it does not → REMOVE the
+// dependency AND its bundle (keeping it at an earlier version brings back exactly
+// the inconsistent client graph that broke the morning's boot). A package with no
+// measurement (`disponibles[nom]` absent) keeps the historical behaviour: pinned
+// to the target.
 export function alignerPins ({ fs, profilDir, cible, disponibles = {} }) {
   const pkg = JSON.parse(fs.lire(join(profilDir, 'package.json')))
   const deps = pkg.dependencies || {}
@@ -348,10 +348,10 @@ export function alignerLiens ({ fs, profilDir, repoDir, packages, actives = null
   pkg.dsh = pkg.dsh || {}
   pkg.dsh.profile = pkg.dsh.profile || {}
   pkg.dsh.profile.bundles = pkg.dsh.profile.bundles || []
-  // `actives` (Modèle 3) : si fourni, on ne lie QUE les paquets dont le nom est
-  // dans cette liste. `null` = comportement historique (tout lier), pour ne pas
-  // casser les appels existants. Un satellite désactivé n'est ni lié ni poussé
-  // dans dsh.profile.bundles — il ne sera pas chargé au boot.
+  // `actives` (Model 3): if given, ONLY the packages whose name is in this list
+  // are linked. `null` = historical behaviour (link everything), so as not to
+  // break existing calls. A disabled satellite is neither linked nor pushed
+  // into dsh.profile.bundles — it will not be loaded at boot.
   // An entry without a `nom` cannot be linked: skip it. It used to push `undefined`,
   // which JSON turned into a `null` in dsh.profile.bundles — DSH logged
   // "skipping profile bundle null" at every boot.
@@ -367,9 +367,9 @@ export function alignerLiens ({ fs, profilDir, repoDir, packages, actives = null
     // a profile installed before the move would break on update. Any other link
     // (a developer's own checkout, say) is left alone unless its repo is listed
     // in `anciensDepots`.
-    // `anciensDepots` : checkouts d'où l'on MIGRE sur demande explicite (--migrer-depuis).
-    // Un lien vers l'un d'eux (à plat ou dans packages/) est re-pointé vers ce dépôt-ci ;
-    // sans cette demande, il reste intact — jamais de migration silencieuse.
+    // `anciensDepots`: checkouts we MIGRATE from on explicit request (--migrer-depuis).
+    // A link to one of them (flat or in packages/) is re-pointed to this repository;
+    // without that request it stays intact — never a silent migration.
     const ancienLien = actuel === 'link:' + join(repoDir, p.dir) ||
       anciensDepots.some((d) => actuel === 'link:' + join(d, p.dir) || actuel === 'link:' + join(d, 'packages', p.dir))
     // `reprendre` : install/upgrade only (the act of moving to this folder). `satellites` and `safe-mode` only toggle bundles.
@@ -378,9 +378,9 @@ export function alignerLiens ({ fs, profilDir, repoDir, packages, actives = null
     if (!actuel || !actuel.startsWith('link:') || ancienLien || perime) pkg.dependencies[p.nom] = attendu
     if (!pkg.dsh.profile.bundles.includes(p.nom)) pkg.dsh.profile.bundles.push(p.nom)
   }
-  // Un satellite RETIRÉ de l'activation : on le sort aussi de dsh.profile.bundles
-  // et de dependencies, sinon il reste chargé au boot alors qu'on veut le
-  // débrancher. On ne touche qu'aux noms qu'on connaît (dans `packages`).
+  // A satellite REMOVED from the activation is also taken out of dsh.profile.bundles
+  // and of dependencies, otherwise it stays loaded at boot when we want it
+  // unplugged. We only touch the names we know (in `packages`).
   if (actives !== null) {
     const connus = new Set(packages.map((p) => p.nom))
     const actifsSet = new Set(aLier.map((p) => p.nom))
@@ -399,15 +399,15 @@ export function verifierBundles ({ fs, profilDir, packages }) {
   const bundles = pkg.dsh?.profile?.bundles || []
   return packages.filter((p) => !bundles.includes(p.nom) || !(deps[p.nom] || '').startsWith('link:'))
 }
-// ── Activation des satellites : les nouveaux arrivent ALLUMÉS ───────────────
-// Le fichier `satellites-actives.json` ne liste que les satellites ACTIFS. Un
-// satellite ajouté au manifeste APRÈS l'écriture du fichier n'y figure donc pas,
-// et serait lu comme « désactivé » : c'est ce qui a débranché kybernos-flow (et
-// huit autres) chez le premier utilisateur qui avait déjà un fichier.
-// Règle : un satellite marqué `"defaut": "actif"` dans le manifeste est actif
-// SAUF s'il a été désactivé explicitement (liste `desactives` du fichier).
-// Rend null si le fichier est illisible ou absent (l'appelant garde alors son
-// comportement « tout actif »).
+// ── Satellite activation: new ones arrive ON ────────────────────────────────
+// The file `satellites-actives.json` only lists the ACTIVE satellites. A
+// satellite added to the manifest AFTER the file was written is therefore not in it,
+// and would be read as « disabled »: that is what unplugged kybernos-flow (and
+// eight others) for the first user who already had a file.
+// Rule: a satellite marked `"defaut": "actif"` in the manifest is active
+// UNLESS it was explicitly disabled (the file's `desactives` list).
+// Returns null if the file is unreadable or absent (the caller then keeps its
+// « everything active » behaviour).
 export function activesResolues ({ brut, satellites, socle }) {
   const liste = Array.isArray(brut) ? brut : Array.isArray(brut?.actives) ? brut.actives : null
   if (liste === null) return null
@@ -416,8 +416,8 @@ export function activesResolues ({ brut, satellites, socle }) {
   return [...new Set([...socle, ...liste, ...parDefaut])]
 }
 
-// Ce qu'il faut écrire dans `desactives` : les satellites « actif par défaut »
-// que l'on vient d'éteindre (sans ça, la lecture suivante les rallumerait).
+// What has to be written in `desactives`: the « active by default » satellites
+// that were just switched off (without it, the next read would turn them back on).
 export function desactivesAEcrire ({ liste, satellites }) {
   const actifs = new Set(liste)
   return satellites.filter((s) => s.defaut === 'actif' && !actifs.has(s.nom)).map((s) => s.nom)

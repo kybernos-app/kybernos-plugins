@@ -154,6 +154,130 @@
               "en": "Settings › Agent presets",
               "page": true
             }
+          },
+          "creations": {
+            "title": {
+              "fr": "Créations",
+              "en": "Creations"
+            },
+            "what": {
+              "fr": "Tout ce que tes Agent Teams ont produit — pages, documents, présentations, images — au même endroit, pour l’ouvrir, le chercher et le filtrer.",
+              "en": "Everything your Agent Teams made — pages, documents, decks, images — in one place, to open, search and filter."
+            },
+            "steps": [
+              {
+                "fr": "Choisis un ou plusieurs types au-dessus de la liste : ils se combinent, et « Tous » ramène tout.",
+                "en": "Pick one or more types above the list: they combine, and “All” brings everything back."
+              },
+              {
+                "fr": "Cherche une création par son nom, trie la liste, ou passe des cartes à la vue en liste.",
+                "en": "Search a creation by name, sort the list, or switch from cards to a list."
+              },
+              {
+                "fr": "Ouvre une création pour la voir. « Créer avec l’IA » demande la suivante dans un chat.",
+                "en": "Open a creation to see it. “Create with AI” asks for the next one in a chat."
+              }
+            ],
+            "where": {
+              "fr": "Barre latérale › Créations",
+              "en": "Sidebar › Creations",
+              "page": true
+            }
+          },
+          "workspaces": {
+            "title": {
+              "fr": "Workspaces",
+              "en": "Workspaces"
+            },
+            "what": {
+              "fr": "Un workspace est un dossier de projet avec ses propres chats, documents, objectifs et créations. Ouvre-en un pour voir ce que les Agent Teams y ont produit.",
+              "en": "A workspace is a project folder with its own chats, documents, goals and creations. Open one to see what the Agent Teams produced there."
+            },
+            "steps": [
+              {
+                "fr": "Crée un workspace à partir d’un dossier de ton ordinateur.",
+                "en": "Create a workspace from a folder of your computer."
+              },
+              {
+                "fr": "Ouvre-le pour voir ses chats, ses documents, ses objectifs et ses créations.",
+                "en": "Open it to see its chats, documents, goals and creations."
+              },
+              {
+                "fr": "Lance un chat dedans : les agents travaillent dans ce dossier.",
+                "en": "Start a chat inside it: the agents work in that folder."
+              }
+            ],
+            "where": {
+              "fr": "Barre latérale › Workspaces",
+              "en": "Sidebar › Workspaces",
+              "page": true
+            }
+          },
+          "tools": {
+            "title": {
+              "fr": "Outils",
+              "en": "Tools"
+            },
+            "what": {
+              "fr": "Les outils ajoutent des capacités à un profil DSH : des fonctions expérimentales et des liens vers des outils extérieurs, écrits dans le fichier de config du profil.",
+              "en": "Tools add abilities to a DSH profile: experimental features and links to outside tools, written to the profile’s config file."
+            },
+            "steps": [
+              {
+                "fr": "Lis l’état du profil : ce qui est monté, et ce qui est connu mais pas encore installé.",
+                "en": "Read the profile’s state: what is mounted, and what is known but not installed yet."
+              },
+              {
+                "fr": "Fais d’abord un essai à blanc : il montre ce qui serait écrit, sans rien écrire.",
+                "en": "Do a dry run first: it shows what would be written, without writing anything."
+              },
+              {
+                "fr": "Installe et configure : une sauvegarde datée est faite avant, et Retirer la restaure.",
+                "en": "Install and configure: a dated backup is made first, and Remove restores it."
+              },
+              {
+                "fr": "Relance DSH pour appliquer le changement : rien n’est rechargé à chaud.",
+                "en": "Restart DSH to apply the change: nothing is hot-reloaded."
+              }
+            ],
+            "where": {
+              "fr": "Réglages › Outils",
+              "en": "Settings › Tools",
+              "page": true
+            },
+            "good": {
+              "fr": "Les assistants de code (Codex, Claude Code…) ont leur propre page, Workers.",
+              "en": "The coding assistants (Codex, Claude Code…) have their own page, Workers."
+            }
+          },
+          "automation-settings": {
+            "title": {
+              "fr": "Réglages des automatisations",
+              "en": "Automation settings"
+            },
+            "what": {
+              "fr": "Où vivent tes automatisations, et deux réglages : tout mettre en pause, ou réafficher la liste de tâches de DSH.",
+              "en": "Where your automations live, and two switches: pause everything, or show DSH’s own task list again."
+            },
+            "steps": [
+              {
+                "fr": "Les automatisations tournent sur cet ordinateur, tant que DSH est ouvert.",
+                "en": "Automations run on this computer, while DSH is open."
+              },
+              {
+                "fr": "Active la pause pour que rien ne se déclenche ; ce qui est arrivé à échéance se déclenche une fois à la reprise.",
+                "en": "Turn the pause on so nothing fires; what came due fires once after you resume."
+              },
+              {
+                "fr": "Réaffiche la liste « Automation tasks » de DSH si tu la veux de nouveau dans le menu.",
+                "en": "Show DSH’s “Automation tasks” list if you want it back in the menu."
+              }
+            ],
+            "where": {
+              "fr": "Réglages › Automatisations",
+              "en": "Settings › Automations",
+              "page": true
+            }
           }
         }
       }
@@ -253,7 +377,8 @@
         "good": {
           "fr": "Un fond d’écran ne se voit pas dans les Réglages eux-mêmes, seulement derrière le chat et les autres pages. Le thème ne change que l’interface web, pas le terminal.",
           "en": "A wallpaper is not visible inside Settings itself, only behind the chat and the other pages. The theme only changes the web interface, not the terminal."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
       }
     },
     {
@@ -302,7 +427,8 @@
         "good": {
           "fr": "Seuls des textes d’interface partent chez le fournisseur du modèle choisi dans « Avancé », pas le contenu de tes conversations. Ce qui n’est pas encore traduit s’affiche en anglais.",
           "en": "Only interface texts go to the provider of the model chosen in “Advanced”, not the content of your chats. Anything not translated yet shows in English."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
       }
     },
     {
@@ -482,7 +608,8 @@
         "good": {
           "fr": "Tes commandes restent sur cet ordinateur. « Créer avec l’IA » ouvre un nouveau chat qui s’appuie sur une skill dédiée : si elle n’est pas installée, crée la commande à la main.",
           "en": "Your commands stay on this computer. “Create with AI” opens a new chat that relies on a dedicated skill: if it is not installed, create the command by hand."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
       }
     },
     {
@@ -531,7 +658,8 @@
         "good": {
           "fr": "L’icône d’une conversation se choisit d’abord sur les mots de son titre, sur ton ordinateur. S’ils ne disent rien, le titre seul part vers le modèle d’étude (nulle part s’il est local) ; jamais s’il est sur « Aucun ».",
           "en": "The icon of a chat is picked from its title’s words on your machine. If they say nothing, the title alone goes to the Study model (nowhere if it is local); never if it is “None”."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
       }
     },
     {
@@ -706,7 +834,8 @@
         "good": {
           "fr": "La reprise automatique n’a pas de réglage à l’écran et s’arrête après 3 « continue » de suite. La poignée n’apparaît que sur une session en cours avec au moins 2 messages en attente.",
           "en": "Automatic resume has no setting on screen and stops after 3 “continue” in a row. The handle only appears on a running session with at least 2 queued messages."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
       }
     },
     {
@@ -855,7 +984,8 @@
         "good": {
           "fr": "Les modèles Kybernos passent par les serveurs de Kybernos. Tes souvenirs y sont gardés et, par défaut, ajoutés à ce que lit le modèle à chaque tour, quel qu'il soit. Rien de tout cela sans connexion.",
           "en": "Kybernos models go through Kybernos servers. Your memories are kept there and, by default, added to what the model reads each turn, whichever model it is. None of this happens without signing in."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/get-started/connect-your-computer/"
       }
     },
     {
@@ -904,7 +1034,8 @@
         "good": {
           "fr": "Rien ne s’installe tout seul ; une mise à jour prend d’abord une photo de ton installation. Kybernos cherche les mises à jour sur GitHub et npm (rien de ton travail) : l’interrupteur de la page l’arrête.",
           "en": "Nothing installs by itself; an update first snapshots your installation. Kybernos looks for updates on GitHub and npm (nothing about your work): the switch on this page turns that off."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/install/update-kybernos/"
       }
     },
     {
@@ -1295,7 +1426,8 @@
         "good": {
           "fr": "Désactiver ce module retire les quatre connecteurs : la page Workers le dira au lieu d'allumer quelque chose qui ne se charge pas.",
           "en": "Turning this module off removes the four connectors: the Workers page will say so instead of turning on something that cannot load."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/agents-and-tools/call-other-coding-assistants/"
       }
     },
     {
@@ -1440,7 +1572,8 @@
         "good": {
           "fr": "La carte montre le texte du lien, pas le vrai titre de la page : rien n’est téléchargé pour la remplir, et aucune icône de site n’est demandée au réseau (l’initiale colorée la remplace).",
           "en": "The card shows the link’s text, not the page’s real title: nothing is downloaded to fill it, and no site icon is requested from the network (the coloured initial stands in for it)."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
       }
     },
     {
@@ -1658,7 +1791,8 @@
         "good": {
           "fr": "Atlas ne fait que lire : rien n’est modifié. Sa dernière lecture est gardée dans ce navigateur, la page s’ouvre donc dessus.",
           "en": "Atlas only reads: nothing is changed. Its last reading is kept in this browser so the page opens on it."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
       }
     },
     {
@@ -1707,7 +1841,8 @@
         "good": {
           "fr": "Elle ne s’affiche que dans un dossier de projet suivi par git, et remplace les quatre pastilles de suivi de Sessions ; désactivée, elles reviennent.",
           "en": "It only shows in a project folder tracked by git, and replaces the four tracking pills of Sessions; switch it off and they come back."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
       }
     },
     {
@@ -1802,7 +1937,8 @@
         "good": {
           "fr": "Le fichier est lu en entier avant de démarrer. Si le navigateur ne sait pas décoder le format (souvent mkv, avi ou wmv), un message s'affiche à la place du lecteur.",
           "en": "The whole file is read before playing. If the browser cannot decode the format (often mkv, avi or wmv), a message replaces the player."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/create-with-kybernos/diagrams-databases-and-media/"
       }
     },
     {
@@ -1851,7 +1987,8 @@
         "good": {
           "fr": "Le schéma est dessiné dans la page : le plugin n'envoie rien en ligne. Liens et HTML sont bloqués dans les schémas, volontairement.",
           "en": "The diagram is drawn in the page itself: the plugin sends nothing online. Links and HTML are blocked inside diagrams on purpose."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/create-with-kybernos/diagrams-databases-and-media/"
       }
     },
     {
@@ -1900,7 +2037,8 @@
         "good": {
           "fr": "Lecture seule : rien ne peut être modifié ici, la zone SQL n'accepte que SELECT, WITH, PRAGMA et EXPLAIN. Sans base d'Agent Team, l'onglet le dit.",
           "en": "Read-only: nothing can be changed here, and the SQL box only accepts SELECT, WITH, PRAGMA and EXPLAIN. With no agent team database, the tab says so."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/create-with-kybernos/diagrams-databases-and-media/"
       },
       "vedette": 4,
       "accroche": {
@@ -1972,7 +2110,8 @@
         "good": {
           "fr": "La commande s'exécute vraiment, avec tes droits, comme si tu la tapais dans un terminal : relis-la avant de cliquer. Le bouton ne marche que depuis ta session DSH ouverte.",
           "en": "The command really runs, with your own rights, as if you typed it in a terminal: read it before you click. The button only works from your own signed-in DSH session."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
       }
     },
     {
@@ -2159,7 +2298,8 @@
         "good": {
           "fr": "Tout est lu dans ton navigateur, à partir de ce que le chat contient déjà : rien n'est stocké ni envoyé.",
           "en": "Everything is read in your browser from what the chat already holds: nothing is stored or sent."
-        }
+        },
+        "url": "https://help.kybernos.app/{lang}/agents-and-tools/small-tools-of-the-chat/"
       }
     },
     {

@@ -356,7 +356,8 @@ const startPairing = async () => {
   })
   if (res.status !== 200 || res.body === null || typeof res.body.device_id !== 'string') {
     // Status 0 is the network (down, refused, timed out, a body that was not JSON): « cannot reach », not « the server said no ».
-    return { ok: false, error: res.status === 429 ? 'trop_de_demandes' : (res.status === 0 ? 'reseau' : 'demarrage_impossible'), status: res.status }
+    // The server that did not answer is NAMED (label and host), so the sign-in card can say which one and offer another (R-V-06).
+    return { ok: false, error: res.status === 429 ? 'trop_de_demandes' : (res.status === 0 ? 'reseau' : 'demarrage_impossible'), status: res.status, ...(res.status === 0 ? { server: serverIdentity() } : {}) }
   }
   const ttl = typeof res.body.expires_in === 'number' ? res.body.expires_in : 600
   const state = {
@@ -383,7 +384,7 @@ const pollPairing = async () => {
     method: 'POST',
     body: { device_id: state.device_id, device_secret: state.device_secret },
   })
-  if (res.status === 0) return { ok: false, error: 'reseau', status: 0 }
+  if (res.status === 0) return { ok: false, error: 'reseau', status: 0, server: serverIdentity() }
   // Only the server's own verdict ends a pairing. A rate limit, a 5xx, a proxy page or a reply without a status says nothing about
   // the request: the pairing stays (it expires by itself), and the page tries again. Forgetting it here also lost a claim whose
   // answer had not come through.

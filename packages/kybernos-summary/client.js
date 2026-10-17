@@ -374,6 +374,11 @@ window.__ModuleLoader__.load({
           }, 'kybernos-summary: styles')
 
           // the tab type: it shows in the sidebar's « + » guide, and opens like any other tab
+          // The icon of this tab in the « Start » picker of the right sidebar: the engine draws a grey cube for a type that gives none, and nine tabs of the suite looked the same (V-25).
+          // A line icon in the ink of the picker, one per plugin; the engine calls it as a component with { size, className }.
+          // KB-TABICON-BEGIN
+          const KB_TAB_ICON = (props) => { const px = (props !== null && props !== undefined && typeof props.size === 'number') ? props.size : 22; return React.createElement('svg', { width: px, height: px, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: (props !== null && props !== undefined) ? props.className : undefined }, ['m3 17 2 2 4-4', 'm3 7 2 2 4-4', 'M13 6h8', 'M13 12h8', 'M13 18h8'].map((d, i) => React.createElement('path', { key: i, d }))) }
+          // KB-TABICON-END
           let registre = null
           try { registre = ctx.get('sidebarRightTabs') } catch (e) { registre = null }
           if (registre && typeof registre.register === 'function') {
@@ -381,7 +386,7 @@ window.__ModuleLoader__.load({
               id: TYPE_ID,
               kind: KIND,
               title: () => L('title'),
-              guide: [{ title: () => L('title'), description: () => L('tabHint') }],
+              guide: [{ title: () => L('title'), description: () => L('tabHint'), icon: KB_TAB_ICON }],
             }), 'kybernos-summary: sidebar tab type')
           }
           ctx.effect(() => ctx.slots.inject(SLOT_PANE, () => ctx.slots.register(

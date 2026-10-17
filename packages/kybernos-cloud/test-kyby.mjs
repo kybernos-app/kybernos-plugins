@@ -62,9 +62,9 @@ ok('a pairing state outside the five is dropped, a reason outside the three is n
   ok('start: signed out is not_connected and no call is made', (await out.r.pairingStart()).error === 'not_connected' && out.calls.length === 0)
 }
 {
-  const { r, calls } = make({ 'GET /v1/me/telegram/pairing': { status: 200, body: { state: 'scanned', sender: 'Miled (@alex)', expires_at: 'x' } } })
+  const { r, calls } = make({ 'GET /v1/me/telegram/pairing': { status: 200, body: { state: 'scanned', sender: 'Amina (@alex)', expires_at: 'x' } } })
   const s = await r.pairingState(req('/kybernos-cloud/telegram/pairing/state?id=' + PAIR))
-  ok('state: scanned with the sender named', s.ok === true && s.state === 'scanned' && s.sender === 'Miled (@alex)', s)
+  ok('state: scanned with the sender named', s.ok === true && s.state === 'scanned' && s.sender === 'Amina (@alex)', s)
   ok('state: the id is validated before any call', (await r.pairingState(req('/x?id=../../etc'))).error === 'invalid_request' && calls.length === 1)
   const done = make({ 'GET /v1/me/telegram/pairing': { status: 200, body: { state: 'declined', reason: 'botmade' } } })
   ok('state: declined with its reason', (await done.r.pairingState(req('/x?id=' + PAIR))).reason === 'botmade')

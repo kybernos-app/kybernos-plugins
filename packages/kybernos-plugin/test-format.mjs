@@ -44,5 +44,12 @@ check('1,249 in English, 1 249 in French', en.kbFmtNum(1249) === '1,249' && /^1\
 check('the tag follows the language: en → en-US, kybernos → fr-FR, es → es', en.kbLocaleTag() === 'en-US' && fr.kbLocaleTag() === 'fr-FR' && es.kbLocaleTag() === 'es')
 check('an odd language id falls back to en-US', build('x-klingon-nonsense').kbLocaleTag() === 'en-US' || build('x-klingon-nonsense').kbLocaleTag() === 'x', build('x-klingon-nonsense').kbLocaleTag())
 
+console.log('a decimal is never built with a French comma (R-A2-04: « USD → EUR rate 0,92 » in an English page)')
+check('the helper gives 0.92 / 0,92 / 0,5×', en.kbFmtNum(0.92, { maximumFractionDigits: 4 }) === '0.92' && fr.kbFmtNum(0.92, { maximumFractionDigits: 4 }) === '0,92' && en.kbFmtNum(0.5) === '0.5' && fr.kbFmtNum(0.5) === '0,5')
+const commas = SRC.split('\n').map((l, i) => ({ l, i: i + 1 })).filter((o) => /\.replace\('\.', ','\)/.test(o.l) && !/\bfr \? /.test(o.l))
+check('no decimal comma is written by hand in client.js, except behind a French test (the file sizes)', commas.length === 0, commas.map((o) => o.i + ' ' + o.l.trim().slice(0, 80)))
+check('the USD → EUR rate (Insight, Budget) and the declared-budget note go through kbFmtNum', /const bgFx = \(llm !== null && typeof llm\.usdEur === 'number'\) \? kbFmtNum\(llm\.usdEur, /.test(SRC) && /return typeof fx === 'number' \? kbFmtNum\(fx, \{ minimumFractionDigits: 2, maximumFractionDigits: 2 \}\)/.test(SRC))
+check('...and so do the speed buttons of the model viewer', /\}, kbFmtNum\(v\) \+ '\\u00D7'\)/.test(SRC))
+
 console.log('\n' + String(pass) + ' verifications, ' + String(fail) + ' failure(s)')
 process.exit(fail === 0 ? 0 : 1)

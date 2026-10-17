@@ -394,6 +394,11 @@ window.__ModuleLoader__.load({
         ".kml-tuile-legend { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); }\n" +
         ".kml-tuile-valeur { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-height: 24px; font-size: 14px; line-height: 20px; color: var(--dsw-alias-label-primary); }\n" +
         ".kml-tuile-ligne { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }\n" +
+        // The status dot and the first words are ONE unit: when the name is long for the tile (« Apple M3 Pro · 36 GB RAM »), it wraps
+        // inside the unit and the dot stays beside its first line, instead of standing alone above it (audit R-A3-02).
+        ".kml-tuile-nom { display: inline-flex; align-items: flex-start; gap: 8px; min-width: 0; max-width: 100%; }\n" +
+        ".kml-tuile-nom .kbm-dot { margin-top: 5px; }\n" +
+        ".kml-tuile-nom > b, .kml-tuile-nom > span:not(.kbm-dot) { min-width: 0; overflow-wrap: anywhere; }\n" +
         ".kml-tuile-note { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); }\n" +
         ".kml-hf-tete { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; }\n" +
         ".kml-hf { display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 10px; background: var(--dsw-alias-bg-layer-1); padding: 12px; margin: 0 0 12px; }\n" +
@@ -862,12 +867,14 @@ window.__ModuleLoader__.load({
             machine === null
               ? tuile(m('kml.tuile.machine'),
                 h('span', { className: 'kml-tuile-ligne' },
-                  h('span', { className: 'kbm-dot', 'data-state': machineErreur === null ? 'idle' : 'warning' }),
-                  machineErreur === null ? m('kml.detection') : m('kml.machine.nonmesuree')), 'm')
+                  h('span', { className: 'kml-tuile-nom' },
+                    h('span', { className: 'kbm-dot', 'data-state': machineErreur === null ? 'idle' : 'warning' }),
+                    h('span', null, machineErreur === null ? m('kml.detection') : m('kml.machine.nonmesuree')))), 'm')
               : tuile(m('kml.tuile.machine'),
                 h('span', { className: 'kml-tuile-ligne' },
-                  h('span', { className: 'kbm-dot', 'data-state': 'done' }),
-                  h('b', null, (machine.chip || machine.arch) + (ramGo !== null ? ' · ' + ramGo + ' ' + m('kml.unit.go') + ' RAM' : '')),
+                  h('span', { className: 'kml-tuile-nom' },
+                    h('span', { className: 'kbm-dot', 'data-state': 'done' }),
+                    h('b', null, (machine.chip || machine.arch) + (ramGo !== null ? ' · ' + ramGo + ' ' + m('kml.unit.go') + ' RAM' : ''))),
                   h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-ghost', onClick: lancerScan, disabled: scan === 'encours',
                     title: m('kml.scan.bouton'), 'aria-label': scan === 'encours' ? m('kml.scan.encours') : m('kml.reverifier') },
                   scan === 'encours'
@@ -879,10 +886,11 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'kml-tuile-note' }, m('kml.budget.note'))), 'b'),
             tuile(m('kml.tuile.moteur'),
               machine === null
-                ? h('span', { className: 'kml-tuile-ligne' }, h('span', { className: 'kbm-dot', 'data-state': 'idle' }), machineErreur === null ? '…' : '—')
+                ? h('span', { className: 'kml-tuile-ligne' }, h('span', { className: 'kml-tuile-nom' }, h('span', { className: 'kbm-dot', 'data-state': 'idle' }), h('span', null, machineErreur === null ? '…' : '—')))
                 : h('span', { className: 'kml-tuile-ligne' },
-                  h('span', { className: 'kbm-dot', 'data-state': (ollamaAbsent === true || ollamaArrete === true) ? 'warning' : 'done' }),
-                  h('b', null, ollamaAbsent === true ? m('kml.ollama.absent') : 'Ollama ' + (machine.ollama.version || '')),
+                  h('span', { className: 'kml-tuile-nom' },
+                    h('span', { className: 'kbm-dot', 'data-state': (ollamaAbsent === true || ollamaArrete === true) ? 'warning' : 'done' }),
+                    h('b', null, ollamaAbsent === true ? m('kml.ollama.absent') : 'Ollama ' + (machine.ollama.version || ''))),
                   ollamaAbsent === true
                     ? h('span', { className: 'kml-tuile-note' }, m('kml.ollama.note'))
                     : h('span', { className: 'kml-tuile-note' }, ollamaArrete === true ? m('kml.ollama.arrete') : m('kml.moteur.port')),

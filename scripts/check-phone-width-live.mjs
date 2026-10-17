@@ -19,7 +19,7 @@
 //   - A4-32          the transport row of Briques stays on screen (when the panel can be opened).
 // At 1400 x 900:
 //   - A4-23          Atlas › Around: the four columns are inside their card;
-//   - A4-10          ten type tiles of Creations share one row, equal in width.
+//   - A4-10 / C-04   ten type tiles of Creations are equal in width on at most two rows, and no label is cut (1100, 1280 and 1400 px).
 // At 800 px (the engine's 44 px icon rail):
 //   - A5-30          each page icon of the sidebar has its own name (aria-label and title), all different;
 //   - A5-29          the goal-progress card is not drawn in the rail.
@@ -208,9 +208,20 @@ try {
   await reload()
   await clickText(page, 'Creations')
   await sleep(3500)
-  const ten = await ev(`(() => { const row = document.querySelector('[data-kb=type-tiles]'); if (!row) return null; const last = row.lastElementChild; while (row.children.length < 10) row.appendChild(last.cloneNode(true)); const t = Array.from(row.children); return { rows: new Set(t.map((x) => Math.round(x.getBoundingClientRect().top))).size, widths: Array.from(new Set(t.map((x) => Math.round(x.getBoundingClientRect().width)))) } })()`)
+  // C-04: a tile is wide enough for its whole label (« Spreadsheets », « Audio & Video » were cut at 1100-1280 px); ten tiles may take two rows, and they stay equal in width
+  // (the one that wraps alone is not stretched).
+  const ten = await ev(`(() => { const row = document.querySelector('[data-kb=type-tiles]'); if (!row) return null; const last = row.lastElementChild; while (row.children.length < 10) row.appendChild(last.cloneNode(true)); const t = Array.from(row.children); const cut = Array.from(row.querySelectorAll('.kb-type-lab')).filter((l) => l.scrollWidth > l.clientWidth + 1).map((l) => l.textContent); return { rows: new Set(t.map((x) => Math.round(x.getBoundingClientRect().top))).size, widths: Array.from(new Set(t.map((x) => Math.round(x.getBoundingClientRect().width)))), cut } })()`)
   if (ten === null) console.log('  ○ the type tiles are not there')
-  else check('ten type tiles share one row at 1400 px and are equal in width (the last two stretched to half the page)', ten.rows === 1 && ten.widths.length === 1, ten)
+  else check('ten type tiles are equal in width, take at most two rows at 1400 px, and no label is cut', ten.rows <= 2 && ten.widths.length === 1 && ten.cut.length === 0, ten)
+  for (const w of [1100, 1280]) {
+    await phone(w, 800)
+    await reload()
+    await clickText(page, 'Creations')
+    await sleep(3000)
+    const cutAt = await ev(`(() => { const row = document.querySelector('[data-kb=type-tiles]'); if (!row) return null; return Array.from(row.querySelectorAll('.kb-type-lab')).filter((l) => l.scrollWidth > l.clientWidth + 1).map((l) => l.textContent) })()`)
+    if (cutAt !== null) check('Creations at ' + w + ' px: every type tile shows its whole label (« Spreadsheets », « Audio & Video » were cut)', cutAt.length === 0, cutAt)
+  }
+  await phone(1400, 900)
 
   console.log('The 44 px icon rail (800 px)')
   await phone(800, 900)

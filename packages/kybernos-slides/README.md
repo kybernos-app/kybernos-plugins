@@ -32,8 +32,11 @@ halo for 5 s, and an `AI · n corrections` badge appears in the header.
 1. **The agent writes**: `creer_slides { titre, theme, slides }`; the panel
    types the text character by character, slide after slide.
 2. **The user edits live**: **double-click a text** (Google Slides style, or the
-   `✎ Text` tool), a **colour** palette under the edit box, `✎ Brush` (coloured
-   strokes), `Eraser`. Every edit (text, colour or stroke) is pushed to the host at once.
+   `✎ Text` tool), a **colour** palette above the edit box (the two float next to
+   the field, never over the tool bar), `✎ Brush` (coloured strokes), `Eraser`. Every
+   edit (text, colour or stroke) is pushed to the host at once. The bar under the
+   thumbnails is the transport of the other playback panels (Start / Play-Pause /
+   End, 0.5× 1× 2× 4×, `NN%` then `Done`, `n / total slides` above the slider).
 3. **The agent reads back**: `creer_slides` **without** `slides` returns the
    current deck plus `annotations.edits` (who changed what, field by field) and the strokes.
 4. **The agent corrects**: `creer_slides { mode: "corriger", slides }` with the

@@ -342,6 +342,39 @@ export function createHost ({ fs, home, workspace, now = () => Date.now(), log =
     return current.get('panel') || null
   }
 
+  /** Is `path` inside this session's own folder (or the shared fallback store)? The core accepts every registered workspace, a chat's own scenes are narrower. */
+  async function inOwnFolder (path, sessionId) {
+    let real
+    try { real = await fs.realpath(path) } catch { return false }
+    try {
+      const fb = await fs.realpath(join(root, 'files'))
+      if (real.startsWith(fb + sep)) return true
+    } catch { /* no fallback store yet */ }
+    const base = await sessionDir(sessionId)
+    if (base === null) return false
+    try {
+      const own = await fs.realpath(base)
+      return real === own || real.startsWith(own + sep)
+    } catch { return false }
+  }
+
+  /**
+   * The scene the panel of `sessionId` shows, or null for its empty state. What the session worked on or opened is its own. The scene the
+   * Creations page pointed the panel at (kept under 'panel') is lent only to a chat whose folder holds it: another workspace's chat does not
+   * get a scene it has nothing to do with, even though the core would let it read it. A remembered scene whose file is gone is forgotten
+   * (the panel used to show a red error over its empty state and ask for the file on every poll).
+   */
+  async function panelScene (sessionId) {
+    const own = typeof sessionId === 'string' && current.has(sessionId)
+    const key = own ? sessionId : 'panel'
+    const cur = current.get(key)
+    if (cur === undefined) return null
+    if (!(await exists(cur.path))) { current.delete(key); return null }
+    if (!(await confineExisting(cur.path, typeof sessionId === 'string' ? sessionId : null)).ok) return null
+    if (!own && !(await inOwnFolder(cur.path, sessionId))) return null
+    return cur
+  }
+
   /** The agent asks the open panel to render frame t and hand the PNG back. Resolves { ok, path } or { ok:false }. */
   function wantFrame (sessionId, t, timeoutMs = 10000) {
     return new Promise((done) => {
@@ -372,7 +405,7 @@ export function createHost ({ fs, home, workspace, now = () => Date.now(), log =
     return { ok: true }
   }
 
-  return { root, frameTimeoutMs, listScenes, inspectAssets, resolveTarget, confineExisting, readDoc, saveScene, revisions, restore, resolveAsset, userEditsSince, setCurrent, getCurrent, wantFrame, pendingFrame, deliverFrame, sessionDir, allowedDir }
+  return { root, frameTimeoutMs, listScenes, inspectAssets, resolveTarget, confineExisting, readDoc, saveScene, revisions, restore, resolveAsset, userEditsSince, setCurrent, getCurrent, panelScene, wantFrame, pendingFrame, deliverFrame, sessionDir, allowedDir }
 }
 
 // ── the agent's tool ──────────────────────────────────────────────────────────

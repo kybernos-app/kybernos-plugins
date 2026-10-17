@@ -206,13 +206,19 @@ window.__ModuleLoader__.load({
         .kbsd-vign i{position:absolute;left:5px;bottom:5px;z-index:2;font-style:normal;font-weight:700;font-size:9px;
           width:15px;height:15px;border-radius:4px;display:grid;place-items:center;background:rgba(0,0,0,.72);color:#fff}
         .kbsd-mini{position:absolute;top:0;left:0;width:1600px;height:900px;transform-origin:top left;pointer-events:none;overflow:hidden}
-        .kbsd-bar{flex:none;display:flex;align-items:center;gap:7px;padding:7px 12px 10px;border-top:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.07))}
+        .kbsd-bar{flex:none;padding:7px 12px 10px;border-top:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.07))}
+        .kbsd-line{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
         .kbsd-play{flex:none;width:26px;height:26px;border:0;border-radius:50%;background:#c94522;color:#fff;cursor:pointer;
           display:grid;place-items:center;font-size:10px;line-height:1}
         .kbsd-play:hover{background:#b43f1e}
+        .kbsd-step{flex:none;width:22px;height:22px;border:0;background:transparent;color:var(--dsw-alias-label-secondary,#6b6b68);cursor:pointer;border-radius:6px;font-size:11px}
+        .kbsd-step:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(0,0,0,.05))}
         .kbsd-sp{border:0;background:transparent;font:inherit;font-size:10.5px;color:var(--dsw-alias-label-secondary,#6b6b68);padding:3px 5px;border-radius:5px;cursor:pointer}
         .kbsd-sp.on{background:color-mix(in srgb,var(--dsw-alias-label-primary,#1a1a1a) 12%,transparent);color:var(--dsw-alias-label-primary,#1a1a1a);font-weight:650}
-        .kbsd-range{-webkit-appearance:none;appearance:none;flex:1;min-width:40px;height:4px;border-radius:2px;background:color-mix(in srgb,var(--dsw-alias-label-primary,#1a1a1a) 22%,transparent);outline:0}
+        .kbsd-track{display:flex;flex-direction:column;gap:2px;margin-top:7px}
+        .kbsd-lab{font-size:10.5px;color:var(--dsw-alias-label-secondary,#6b6b68);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .kbsd-lab b{color:var(--dsw-alias-label-primary,#1a1a1a);font-weight:600}
+        .kbsd-range{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;background:color-mix(in srgb,var(--dsw-alias-label-primary,#1a1a1a) 22%,transparent);outline:0}
         .kbsd-range::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#e1502a;border:2px solid #fff;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.25)}
         .kbsd-outils{position:absolute;top:10px;left:10px;z-index:25;display:flex;gap:2px;background:rgba(255,255,255,.94);
           border-radius:9px;padding:3px;box-shadow:0 3px 12px rgba(28,42,28,.16)}
@@ -384,6 +390,27 @@ window.__ModuleLoader__.load({
         
             /* ═══════════════ 4. OUTILS UTILISATEUR ═══════════════ */
         
+            /**
+             * Where the floating text editor (format bar + edit box) goes, in the pixels of the stage wrapper: next to the field being edited,
+             * below it if there is room, else above it, and NEVER on top of the tool bar (it used to be docked at a fixed corner, over the
+             * Text / Brush / Eraser / Clear all buttons, which stayed unreachable until Escape). All the rects are {x, y, w, h}; `outils` is
+             * the tool bar's rect or null.
+             */
+            function placerEditeur ({ champ, outils, scene, boite }) {
+              const marge = 8
+              const ecart = 6
+              const coupe = (a, b) => a.x < b.x + b.w + ecart && a.x + a.w + ecart > b.x && a.y < b.y + b.h + ecart && a.y + a.h + ecart > b.y
+              const x = clamp(champ.x, marge, Math.max(marge, scene.w - boite.w - marge))
+              const libre = (y) => y >= marge && y + boite.h <= scene.h - marge && (outils === null || !coupe({ x, y, w: boite.w, h: boite.h }, outils))
+              const dessous = champ.y + champ.h + ecart
+              if (libre(dessous)) return { x, y: dessous }
+              const dessus = champ.y - boite.h - ecart
+              if (libre(dessus)) return { x, y: dessus }
+              // Neither side is free (a tall field, a narrow pane): just under the tool bar, at the left edge.
+              const bas = outils !== null ? outils.y + outils.h + ecart : marge
+              return { x: marge, y: clamp(bas, marge, Math.max(marge, scene.h - boite.h - marge)) }
+            }
+        
             /** Distance point→polyligne ; sert à la gomme. */
             function hitStroke (strokes, x, y, rayon) {
               const d2 = (px, py, ax, ay, bx, by) => {
@@ -445,7 +472,7 @@ window.__ModuleLoader__.load({
             let CTX = null
             let SERVICE_SIDEBAR = null
             let SESSION_ID = ''
-            let TICK = null // horloge locale de relecture ({t0, vitesse} ou null)
+            let TICK = null // local replay clock: { t0, vitesse, fige } or null; `fige` is the position (0..1) it is held at, null while it runs
         
             /** Ouvre l'onglet « Slides » quand un deck arrive (motif kybernos-modeleur :
              * `sidebarRight` lu À L'APPEL — un service manquant ne bloque rien). */
@@ -551,7 +578,7 @@ window.__ModuleLoader__.load({
               React.useEffect(() => {
                 let raf = 0
                 const boucle = () => {
-                  if (S.deck !== null && progression(S) < 1) reveiller()
+                  if (S.deck !== null && progression(S) < 1 && !(TICK !== null && TICK.fige !== null && TICK.fige !== undefined)) reveiller()
                   else if (S.corrections.length > 0 && Date.now() - S.corInstant < 9000) reveiller()
                   raf = requestAnimationFrame(boucle)
                 }
@@ -687,13 +714,10 @@ window.__ModuleLoader__.load({
               const monterEditeurRiche = (ed, noeud) => {
                 const wrap = wrapRef.current
                 if (wrap === null || document === undefined) return null
-                const rn = noeud.getBoundingClientRect()
-                const wr = wrap.getBoundingClientRect()
-                const k = S.echelle
                 const host = document.createElement('div')
-                // Barre de format DOCKÉE en haut de la scène (façon Google Slides),
-                // l'édition reste en place sur le texte.
-                host.style.cssText = 'position:absolute;z-index:30;display:flex;flex-direction:column;gap:5px;align-items:flex-start;left:50px;top:16px'
+                // The format bar and the edit box float next to the field (see placerEditeur), clear of the tool bar; the first position is only
+                // a place to measure from.
+                host.style.cssText = 'position:absolute;z-index:30;display:flex;flex-direction:column;gap:5px;align-items:flex-start;left:8px;top:8px'
                 const barre = document.createElement('div')
                 barre.style.cssText = 'display:flex;gap:4px;align-items:center;background:rgba(255,255,255,.96);border:1px solid rgba(0,0,0,.18);border-radius:6px;padding:4px 8px;box-shadow:0 2px 8px rgba(0,0,0,.18)'
                 const zone = document.createElement('div')
@@ -746,6 +770,22 @@ window.__ModuleLoader__.load({
                 // A double-click leaves the focus on the slide: without this the first keystrokes go nowhere until the
                 // user clicks into the small box. TipTap defers the focus itself, past the click that opened the box.
                 try { editeur.commands.focus('end') } catch { /* the editor is already gone */ }
+                // Placed once the editor is mounted, so the box has its real size.
+                try {
+                  const wr = wrap.getBoundingClientRect()
+                  const rel = (r) => ({ x: r.left - wr.left, y: r.top - wr.top, w: r.width, h: r.height })
+                  const barreOutils = wrap.querySelector('.kbsd-outils')
+                  const hr = host.getBoundingClientRect()
+                  host.style.maxWidth = Math.max(160, wr.width - 16) + 'px'
+                  const lieu = placerEditeur({
+                    champ: rel(noeud.getBoundingClientRect()),
+                    outils: barreOutils !== null ? rel(barreOutils.getBoundingClientRect()) : null,
+                    scene: { w: wr.width, h: wr.height },
+                    boite: { w: hr.width, h: hr.height },
+                  })
+                  host.style.left = lieu.x + 'px'
+                  host.style.top = lieu.y + 'px'
+                } catch { /* a layout that cannot be measured keeps the first position */ }
                 return { host, editeur }
               }
         
@@ -789,18 +829,25 @@ window.__ModuleLoader__.load({
               }
         
               // ── lecture ────────────────────────────────────────────────────────
-              const rejouer = () => {
-                if (S.deck === null) return
-                TICK = { t0: Date.now(), vitesse: TICK !== null ? TICK.vitesse : 1 }
+              // The same transport as the Modeleur and Bricks panels (audit A4-26): Start / Play-Pause / End, the same four speeds written the same
+              // way (0.5×), the state at the right end of the row (NN% while it writes, Done when it has), the position under it.
+              const vitesseCourante = TICK !== null ? TICK.vitesse : 1
+              const figee = TICK !== null && TICK.fige !== null && TICK.fige !== undefined
+              const enCours = S.deck !== null && enEcriture && !figee
+              const caler = (pos, vitesse, fige) => {
+                TICK = { t0: Date.now() - (pos * S.deck.dureeMs) / vitesse, vitesse, fige }
                 S.suivre = true
                 reveiller()
               }
-              const vitesses = [0.5, 1, 2, 4] // the same four speeds, written the same way (0.5×), as the Modeleur and Bricks panels (audit A4-26)
-              const changerVitesse = (v) => {
-                const vitesse = TICK !== null ? TICK.vitesse : 1
-                TICK = { t0: Date.now() - (p * S.deck.dureeMs) / v * vitesse, vitesse: v }
-                reveiller()
+              const rejouer = () => { if (S.deck !== null) caler(0, vitesseCourante, null) }
+              const lire = () => {
+                if (S.deck === null) return
+                if (enCours) caler(p, vitesseCourante, p) // pause
+                else if (p < 1) caler(p, vitesseCourante, null) // resume
+                else rejouer()
               }
+              const vitesses = [0.5, 1, 2, 4]
+              const changerVitesse = (v) => { if (S.deck !== null) caler(p, v, figee ? p : null) }
         
               // ── construction de la slide ───────────────────────────────────────
               // M-01 (sécurité) : le HTML riche n'est plus rendu tel quel. Un champ
@@ -915,7 +962,7 @@ window.__ModuleLoader__.load({
                 h('div', { className: 'kbsd-head' },
                   h('div', { className: 'kbsd-title' }, S.deck !== null ? S.deck.titre : 'Slides'),
                   correctionsRecentes ? h('div', { className: 'kbsd-badge ia' }, kt(`IA · ${S.corrections.length} correction${S.corrections.length > 1 ? 's' : ''}`, `AI · ${S.corrections.length} correction${S.corrections.length === 1 ? '' : 's'}`)) : null,
-                  h('div', { className: 'kbsd-badge' + (enEcriture ? ' run' : '') }, enEcriture ? kt(`écrit… ${Math.round(p * 100)} %`, `writing… ${Math.round(p * 100)}%`) : (S.deck !== null ? 'live' : kt('vide', 'empty'))),
+                  S.deck === null ? h('div', { className: 'kbsd-badge' }, kt('vide', 'empty')) : null,
                 ),
                 h('div', { className: 'kbsd-scene', ref: sceneRef },
                   S.deck === null
@@ -1006,21 +1053,25 @@ window.__ModuleLoader__.load({
                     : null,
                 ),
                 h('div', { className: 'kbsd-bar' },
-                  h('button', { className: 'kbsd-play', title: kt('Rejouer l\'écriture', 'Replay the writing'), onClick: rejouer }, '▶'),
-                  vitesses.map((v) => h('button', {
-                    key: v, className: 'kbsd-sp' + ((TICK !== null ? TICK.vitesse : 1) === v ? ' on' : ''),
-                    onClick: () => changerVitesse(v),
-                  }, `${v}×`)),
-                  h('input', {
-                    type: 'range', className: 'kbsd-range', min: 0, max: 1000, value: Math.round(p * 1000),
-                    onChange: (e) => {
-                      if (S.deck === null) return
-                      TICK = { t0: Date.now() - (Number(e.currentTarget.value) / 1000) * S.deck.dureeMs, vitesse: TICK !== null ? TICK.vitesse : 1 }
-                      S.suivre = true
-                      reveiller()
-                    },
-                  }),
-                ),
+                  h('div', { className: 'kbsd-line' },
+                    h('button', { className: 'kbsd-step', title: kt('Début', 'Start'), onClick: () => { if (S.deck !== null) caler(0, vitesseCourante, 0) } }, '\u25C0\u25C0'),
+                    h('button', { className: 'kbsd-play', title: enCours ? 'Pause' : kt('Rejouer l\'écriture', 'Replay the writing'), onClick: lire }, enCours ? '\u23F8' : '\u25B6'),
+                    h('button', { className: 'kbsd-step', title: kt('Fin', 'End'), onClick: () => { if (S.deck !== null) caler(1, vitesseCourante, 1) } }, '\u25B6\u25B6'),
+                    vitesses.map((v) => h('button', {
+                      key: v, className: 'kbsd-sp' + (vitesseCourante === v ? ' on' : ''),
+                      onClick: () => changerVitesse(v),
+                    }, `${v}×`)),
+                    h('span', { className: 'kbsd-badge' + (enCours ? ' run' : '') }, S.deck === null ? '\u2014' : (enEcriture ? kt(`${Math.round(p * 100)} %`, `${Math.round(p * 100)}%`) : kt('Fini', 'Done')))),
+                  h('div', { className: 'kbsd-track' },
+                    h('div', { className: 'kbsd-lab' }, h('b', null, String(S.deck !== null ? kVue + 1 : 0)), ' / ' + (S.deck !== null ? S.deck.slides.length : 0) + ' slides'),
+                    h('input', {
+                      type: 'range', className: 'kbsd-range', min: 0, max: 1000, value: Math.round(p * 1000),
+                      onChange: (e) => {
+                        if (S.deck === null) return
+                        const pos = Number(e.currentTarget.value) / 1000
+                        caler(pos, vitesseCourante, figee ? pos : null)
+                      },
+                    }))),
                 h('div', { className: 'kbsd-note-bas' },
                   S.deck === null
                     ? h('b', null, kt('Panneau « Slides » — le chat écrit, tu modifies, il corrige.', 'Slides panel — the chat writes, you edit, it corrects.'))
@@ -1037,6 +1088,7 @@ window.__ModuleLoader__.load({
         
             function progression (S) {
               if (S.deck === null) return 1
+              if (TICK !== null && TICK.fige !== null && TICK.fige !== undefined) return TICK.fige
               const t0 = TICK !== null ? TICK.t0 : S.deck.t0
               const vitesse = TICK !== null ? TICK.vitesse : 1
               return clamp(((Date.now() - t0) * vitesse) / (S.deck.dureeMs || 1), 0, 1)
@@ -1106,6 +1158,11 @@ window.__ModuleLoader__.load({
                 if (typeof cle === 'string' && cle.length > 0) SESSION_ID = cle
               } catch { /* la route retombe sur la dernière commande déposée */ }
         
+              // The icon of this tab in the « Start » picker of the right sidebar: the engine draws a grey cube for a type that gives none, and nine tabs of the suite looked the same (V-25).
+              // A line icon in the ink of the picker, one per plugin; the engine calls it as a component with { size, className }.
+              // KB-TABICON-BEGIN
+              const KB_TAB_ICON = (props) => { const px = (props !== null && props !== undefined && typeof props.size === 'number') ? props.size : 22; return React.createElement('svg', { width: px, height: px, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: (props !== null && props !== undefined) ? props.className : undefined }, ['M2 3h20', 'M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3', 'm7 21 5-5 5 5'].map((d, i) => React.createElement('path', { key: i, d }))) }
+              // KB-TABICON-END
               let registre = null
               try { registre = ctx.get('sidebarRightTabs') } catch { registre = null }
               if (registre && typeof registre.register === 'function') {
@@ -1113,7 +1170,7 @@ window.__ModuleLoader__.load({
                   id: TYPE_ID,
                   kind: KIND,
                   title: () => 'Slides',
-                  guide: [{ title: () => 'Slides', description: () => kt('Decks écrits en temps réel par le chat : frappe live, retouche et pinceau pour l\'utilisateur, corrections soulignées.', 'Decks written in real time by the chat: live typing, text edits and a brush for the user, corrections underlined.') }],
+                  guide: [{ title: () => 'Slides', description: () => kt('Decks écrits en temps réel par le chat : frappe live, retouche et pinceau pour l\'utilisateur, corrections soulignées.', 'Decks written in real time by the chat: live typing, text edits and a brush for the user, corrections underlined.'), icon: KB_TAB_ICON }],
                 }), 'kybernos-slides: right sidebar tab type')
               }
         
@@ -1160,7 +1217,7 @@ window.__ModuleLoader__.load({
               __test: {
                 normaliserDeck, normaliserSlide, budget, segments, texteVisible,
                 slideActive, diffSlides, hitStroke, dessinerTraits, cleChamp,
-                progression, appliquerAnnotations, THEMES, DEMOS, poidsSlide, pasSonde, miniature,
+                progression, appliquerAnnotations, THEMES, DEMOS, poidsSlide, pasSonde, miniature, placerEditeur,
               },
             }
       })(typeof __DSH_TIPTAP_NS !== 'undefined' ? __DSH_TIPTAP_NS : null)

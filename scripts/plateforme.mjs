@@ -199,12 +199,12 @@ export const planRelance = (fam, { port, pid = null }) => ({
 // plain-text 401, which is what the page said to everybody who followed the old instructions and typed http://127.0.0.1:3080/ (A6-17).
 export const instructionsRedemarrage = (fam, port) => {
   const ou = fam === 'windows' ? 'in the DSH console' : 'where DSH runs'
-  const robot = (fam === 'windows' ? '' : './') + 'kybernos-install --relancer --force'
+  const robot = (fam === 'windows' ? '' : './') + 'kybernos-install --restart --force'
   return '  To see Kybernos: press Ctrl-C ' + ou + ', then:\n' +
     '    dsh web --port ' + port + '\n' +
     '  DSH opens your browser already signed in. If no browser opens (or you added --no-open), open the address that dsh web prints:\n' +
     '  it looks like http://127.0.0.1:' + port + '/?token=… and carries your sign-in; the bare http://127.0.0.1:' + port + '/ answers 401.\n' +
-    '  (or run « ' + robot + ' »: the robot restarts DSH for you)'
+    '  (or run "' + robot + '": the robot restarts DSH for you)'
 }
 
 // The command line of a process: it is used to CHECK that a pid really is a

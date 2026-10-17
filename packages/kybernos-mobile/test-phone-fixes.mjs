@@ -50,4 +50,16 @@ const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
   ok('the chat title carries its full text as a tooltip on a phone')
 }
 
+// R-A5-05 — the failed-turn row of the engine keeps its desktop grid on a phone: text in a ~150 px column, code in a column of its own
+{
+  const at = css.indexOf('[data-chat-flow-kind="turn-error"] [role="status"] {')
+  assert.ok(at > 0, 'the failed-turn row has a rule')
+  const body = css.slice(at, css.indexOf('}', at))
+  assert.ok(/grid-template-columns:\s*10px minmax\(0, 1fr\) !important/.test(body), 'two columns: the dot and the whole width for the text')
+  const code = css.slice(css.indexOf('> :nth-child(n + 3) {', at))
+  assert.ok(/grid-column:\s*2/.test(code.slice(0, code.indexOf('}'))), 'the error code goes under the text, in the text column')
+  assert.ok(css.lastIndexOf('@media', at) < at && css.slice(css.lastIndexOf('@media', at), at).includes('(max-width: 700px)'), 'it sits in the phone block')
+  ok('the failed-turn row uses the whole width of the screen on a phone (R-A5-05)')
+}
+
 console.log('\n' + pass + ' checks passed')

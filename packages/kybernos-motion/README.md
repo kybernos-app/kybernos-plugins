@@ -6,7 +6,7 @@ user change its settings, and exports it as an MP4 video, a standalone page or a
 ## What the user sees
 
 - Ask the chat for an animation. The **Motion** tab opens by itself in the right sidebar.
-- Play it, drag the cursor on the timeline, change the scene's settings (text, colours, numbers). Every change is saved
+- Play it (Start / Play-Pause / End and 0.5× 1× 2× 4×, like the other playback panels; the sound follows the speed), drag the cursor on the timeline, change the scene's settings (text, colours, numbers). Every change is saved
   as a new revision and the agent sees it the next time it reads the scene.
 - **Export**: MP4 (H.264 + AAC, WebM when the browser cannot write H.264), a standalone `.html` page, the scene file, or a
   Mac app (macOS only, through `kybernos-miniapps`). Video is encoded in the browser; nothing leaves the machine.
@@ -94,6 +94,9 @@ file-reading tool.
   picture; `window.__KB_MINIAPPS__.install` is used by the Export dialog.
 - Routes (all origin-guarded, same rule as the other bundles): `state`, `scene`, `save`, `open`, `list`, `revisions`,
   `restore`, `asset`, `frame`, `export`, and the two fixed library files `vendor/three.js`, `vendor/lottie.js`.
+- Which scene a chat's panel shows: its own (the one the agent wrote or the user opened in it). The one the Creations page pointed the
+  panel at (no session) is lent only to a chat whose own folder holds it, even though the core would let any session read any
+  registered workspace; a remembered scene whose file is gone is forgotten (the panel shows « No animation open », no red error).
 
 ## Vendored libraries
 

@@ -136,6 +136,13 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_BUILD, KB_NC_CREAT
   ok('the Cloud Computer card has the wider column, so its title and its buttons both fit')
 }
 
+// 6c-bis. R-A1-01: the cards follow the width the dock really has (a right pane at 1400 px left 47 px of text: « Crea… »)
+{
+  assert.ok(/\.kb8-nc\{[^}]*container-type:inline-size;container-name:kbnc\}/.test(src), 'the card block is a size container')
+  assert.ok(/@media \(min-width:721px\)\{@container kbnc \(max-width:600px\)\{\.kb8-nc-row\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}\.kb8-nc-row>\.kb8-nc-cloud\{grid-column:1\/-1\}\}\}/.test(src), 'under 600 px of dock the Cloud Computer card takes its own row')
+  ok('a narrowed dock puts Build and Create side by side and the Cloud Computer card on a second row (R-A1-01)')
+}
+
 // 6d. colour and visuals (owner, 2026-10-15: « pas de couleurs, images… ce n'est pas agréable »)
 {
   const hex = /^#[0-9a-f]{6}$/i

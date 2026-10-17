@@ -70,7 +70,7 @@ const PLANS = { ok: true, credits_per_usd: 3680, tax_basis: 'exclusive', plans: 
 // The phone link's own status route (kybernos-mobile): offered, with two phones already linked, unless a scene says otherwise.
 const REMOTE_OFFERED = { ok: true, available: true, running: true, connected: true, configured: true, entitled: true, relay: 'idle', pairing: null, max_devices: 5,
   devices: [{ id: 'd1', label: 'Pixel 9', online: true, state: 'serving' }, { id: 'd2', label: 'iPhone', online: false, state: 'offline' }] }
-const fake = { status: null, calls: [], bodies: [], pair: null, plans: null, plansDelay: 0, checkout: null, portal: null, quote: null, link: null, pairingPending: false, remote: REMOTE_OFFERED, sync: null, push: null }
+const fake = { status: null, calls: [], bodies: [], pair: null, plans: null, plansDelay: 0, checkout: null, portal: null, quote: null, link: null, pairingPending: false, start: null, remote: REMOTE_OFFERED, sync: null, push: null }
 const body64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64')
 
 const agentsBefore = existsSync(join(DSH_HOME, 'AGENTS.md')) ? readFileSync(join(DSH_HOME, 'AGENTS.md'), 'utf8') : null
@@ -135,7 +135,7 @@ const answerFor = (path, req) => {
     if (fake.pairingPending === true) return { body: { ok: true, connected: false, status: 'pending' } }
     return fake.status !== null ? { body: fake.status } : null
   }
-  if (path === '/kybernos-cloud/start') { fake.calls.push('start'); return { body: PAIRING } }
+  if (path === '/kybernos-cloud/start') { fake.calls.push('start'); return { body: fake.start !== null ? fake.start : PAIRING } }
   if (path === '/kybernos-cloud/poll') { fake.calls.push('poll'); return { body: { ok: true, connected: false, status: 'pending' } } }
   if (path === '/kybernos-cloud/console/link') { fake.bodies.push({ path, body: sent() }); return { body: fake.link || { ok: true, opened: true, expires_in: 60 } } }
   // The catalogue is always answered here (the account menu reads it to know whether a plan is the top one): « cannot be read » unless a scene sets it. The routes that
@@ -179,11 +179,33 @@ const reload = async () => {
 }
 // The section draws its three blocks at once and fills them when the host has answered (the note says « Loading… » until then).
 const kySectionLoaded = () => waitFor(page, `['ky-section', 'ky-instructions', 'ky-models', 'ky-advanced', 'ky-instr-field'].every((k) => document.querySelector('[data-kb="' + k + '"]') !== null) && !/Loading/.test((document.querySelector('[data-kb="ky-instr-note"]') || { innerText: 'Loading' }).innerText)`, 8000)
+// The core's seam is installed a moment after the page (longer on a busy machine): wait for it, call it, and call it again if the dialog did not come.
+const openDshSettings = async () => {
+  for (let i = 0; i < 3; i += 1) {
+    await until(() => val(`typeof window.__kbOpenDshSettings === 'function'`), 10000)
+    await val(`window.__kbOpenDshSettings()`)
+    if (await settingsOpen()) return true
+  }
+  return false
+}
 const settingsOpen = async () => (await waitFor(page, `document.querySelectorAll('[class*="navCell"]').length > 3`, 6000)) !== null
 // The cells of DSH's Settings navigation: the title drawn and the React key each cell is rendered with (the id of its section, the same in every language).
 const navCells = async () => (await val(`Array.from(document.querySelectorAll('[class*="navCell"]')).map((e) => { const n = Object.keys(e).find((k) => k.indexOf('__reactFiber$') === 0); const key = n === undefined ? null : e[n].key; return { t: (e.textContent || '').trim(), key: typeof key === 'string' ? key : null } })`)) || []
 const clean = async () => { await key('Escape', 'Escape'); await reload() }
-const entries = async (menuSel) => (await val(`Array.from(document.querySelectorAll(${JSON.stringify(menuSel)} + ' [data-kb^="menu-"]')).map((e) => e.getAttribute('data-kb').replace('menu-', '')).filter((k) => k.indexOf('block-') !== 0)`)) || []
+const entriesNow = async (menuSel) => (await val(`Array.from(document.querySelectorAll(${JSON.stringify(menuSel)} + ' [data-kb^="menu-"]')).map((e) => e.getAttribute('data-kb').replace('menu-', '')).filter((k) => k.indexOf('block-') !== 0)`)) || []
+// The entries of a menu, once the menu has stopped changing: an entry that depends on an answer (the plans, the remote link) is drawn a moment after the menu opens, and a busy machine
+// makes that moment longer. Two reads 150 ms apart that agree (and are not empty) are the menu; after 4 s the last read is what the check reports.
+const entries = async (menuSel) => {
+  let last = await entriesNow(menuSel)
+  const end = Date.now() + 4000
+  while (Date.now() < end) {
+    await sleep(150)
+    const again = await entriesNow(menuSel)
+    if (again.length > 0 && JSON.stringify(again) === JSON.stringify(last)) return again
+    last = again
+  }
+  return last
+}
 const openProfileMenu = async () => { await press('[data-kb="workspace-card"] .kbfp-cardmain'); await until(() => exists('.kbfp-menu'), 4000) }
 const closeProfileMenu = async () => { await press('[data-kb="workspace-card"] .kbfp-cardmain'); await until(gone('.kbfp-menu'), 4000) }
 // A real key press: the keys of a menu are named keys, not text (Enter alone carries its character, the one a button is activated by).
@@ -270,9 +292,15 @@ try {
     // Links: Website, Help (in DSH's language), Create an account (the server's own account page).
     for (const entry of ['website', 'help', 'signup', 'plans']) {
       const n = await openedCount()
-      await press('[data-kb="foot-signin"]')
-      await press('[data-kb="menu-' + entry + '"]')
-      await until(async () => (await openedCount()) > n, 5000) // window.open is recorded in the page: wait for THIS click's record
+      // The menu is shut before it is opened (a press on the button while the previous menu is still going away would close it again and lose the entry's click),
+      // and the entry is pressed again if the page recorded no window.open for it (three tries): the record is what the checks below read.
+      for (let attempt = 0; attempt < 3 && (await openedCount()) <= n; attempt += 1) {
+        await until(gone('[data-kb="off-menu"]'), 3000)
+        await press('[data-kb="foot-signin"]')
+        await until(() => exists('[data-kb="menu-' + entry + '"]'), 4000)
+        await press('[data-kb="menu-' + entry + '"]')
+        await until(async () => (await openedCount()) > n, 5000) // window.open is recorded in the page: wait for THIS click's record
+      }
     }
     const server = await val(`fetch('/kybernos-cloud/server').then((r) => r.json()).then((j) => (j.server && (j.server.web || j.server.api)) || null)`)
     const o = await opened()
@@ -344,6 +372,33 @@ try {
     await press('[data-kb="foot-signin"]'); await until(() => exists('[data-kb="menu-connect"]'), 4000)
     check('and its first entry brings the code back', /Show code/.test((await text('[data-kb="menu-connect"]')) || ''), await text('[data-kb="menu-connect"]'))
     fake.pairingPending = false
+    await clean()
+
+    // ── 5b. Connect, the server does not answer (R-V-06): the card names it and offers another one ──────────────────────────────────────────────
+    console.log('Connect — the server does not answer: named, with « Switch server »')
+    fake.start = { ok: false, status: 0, error: 'reseau', server: { name: 'Kybernos (local)', host: 'localhost:8791', can_switch: true } }
+    await press('[data-kb="foot-signin"]')
+    await press('[data-kb="menu-connect"]')
+    await until(() => exists('[data-kb="card-server-down"]'), 8000)
+    const downSaid = (await text('[data-kb="card-server-down"]')) || ''
+    check('the sign-in card names the server that does not answer: its label and its host', /“Kybernos \(local\)”/.test(downSaid) && /localhost:8791/.test(downSaid) && /does not answer/.test(downSaid), downSaid)
+    check('...with « Switch server » and the way to try again', (await exists('[data-kb="card-switch-server"]')) && /Retry|Try again/i.test((await val(`(document.querySelector('.kbc-card') || { innerText: '' }).innerText`)) || ''), downSaid)
+    await shot('r-v-06-signin-server-down')
+    await press('[data-kb="card-switch-server"]')
+    check('« Switch server » closes the card and opens Settings', (await settingsOpen()) && !(await exists('.kbc-card')))
+    await clean()
+    fake.start = { ok: false, status: 0, error: 'reseau', server: { name: 'Kybernos Cloud', host: 'api.kybernos.app', can_switch: false } }
+    await press('[data-kb="foot-signin"]')
+    await press('[data-kb="menu-connect"]')
+    await until(() => exists('[data-kb="card-server-down"]'), 8000)
+    check('the only server: it is named, and there is nothing to switch to (no action)', /“Kybernos Cloud”/.test((await text('[data-kb="card-server-down"]')) || '') && !(await exists('[data-kb="card-switch-server"]')))
+    await clean()
+    fake.start = { ok: false, status: 0, error: 'reseau' }
+    await press('[data-kb="foot-signin"]')
+    await press('[data-kb="menu-connect"]')
+    await until(() => exists('.kbc-err'), 8000)
+    check('an answer that names no server keeps the card\'s own sentence', /cannot reach the Kybernos server/.test((await val(`(document.querySelector('.kbc-card') || { innerText: '' }).innerText`)) || '') && !(await exists('[data-kb="card-server-down"]')))
+    fake.start = null
     await clean()
 
     // ── 6. Appearance, both schemes, and back ───────────────────────────────────────────────────────────────
@@ -511,7 +566,7 @@ try {
     await press('[data-kb="foot-switch-server"]')
     check('« Switch server » opens Settings and takes the notice away', (await settingsOpen()) && !(await exists('[data-kb="foot-flash"]')))
     if (await serversCell()) {
-      await until(async () => /where your account/i.test(await settingsText()), 5000)
+      await until(async () => /where your account/i.test(await settingsText()), 15000)
       check('on the Servers page (Settings › Servers)', /where your account/i.test(await settingsText()), (await settingsText()).slice(0, 120))
       await shot('v41-switch-server-settings')
     } else console.log('  ○ skipped: this sandbox has no Servers module (cell kybernos-servers): the click was checked up to Settings opening')
@@ -538,7 +593,7 @@ try {
     await press('[data-kb="mobile-switch-server"]')
     check('« Switch server » closes the panel and opens Settings', (await settingsOpen()) && !(await exists('[data-kb="mobile-panel"]')))
     if (await serversCell()) {
-      await until(async () => /where your account/i.test(await settingsText()), 5000)
+      await until(async () => /where your account/i.test(await settingsText()), 15000)
       check('on the Servers page', /where your account/i.test(await settingsText()), (await settingsText()).slice(0, 120))
     }
     fake.pair = null
@@ -547,7 +602,18 @@ try {
     // ── At 390 px (a phone): the menu with its new entry, the notice, the signed-out menu ───────────────────────────────────────────────────────────────
     console.log('At 390 px')
     await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true })
-    const openDrawer = async () => { await press('button[aria-label="Open the menu"]'); await until(async () => { const r = await rect('[data-kb="workspace-card"] .kbfp-cardmain, [data-kb="signin-card"] .kbfp-cardmain'); return r !== null && r.x >= 0 }, 4000) }
+    // The drawer holds the footer's card, which is drawn when the account answer arrives: a drawer opened before that is redrawn shut (seen on a busy machine, where the
+    // three 390 px checks below found no menu). So the card is awaited BEFORE the drawer is opened, and the drawer is opened again (after a reload) when the card is not on screen.
+    const CARD_SEL = '[data-kb="workspace-card"] .kbfp-cardmain, [data-kb="signin-card"] .kbfp-cardmain'
+    const openDrawer = async () => {
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        await until(() => exists(CARD_SEL), 15000)
+        await press('[data-kb="mobile-menu"]')
+        if (await until(async () => { const r = await rect(CARD_SEL); return r !== null && r !== undefined && r.x >= 0 }, 4000)) return true
+        await reload()
+      }
+      return false
+    }
     const within = (r) => r !== null && r.x >= 0 && r.y >= 0 && r.x + r.w <= 390 && r.y + r.h <= 844
     fake.status = CLOUD(W_PERSONAL, 'solo', 'Plus')
     fake.link = { ok: false, status: 0, error: 'injoignable', server: { name: 'Kybernos (local)', host: 'localhost:8791', can_switch: true } }
@@ -651,8 +717,9 @@ try {
     const pageText = async () => (await val(`(document.querySelector('[data-slot="settings.section"]') || document.querySelector('[class*="settingsContent"]') || { innerText: '' }).innerText`)) || ''
     const openCell = async (cellKey) => {
       const was = await pageText()
-      await val(`(() => { const c = Array.from(document.querySelectorAll('[class*="navCell"]')).find((e) => { const n = Object.keys(e).find((k) => k.indexOf('__reactFiber$') === 0); return n !== undefined && e[n].key === ${JSON.stringify(cellKey)} }); if (c) c.click() })()`)
-      await until(async () => { const t = await pageText(); return t.length > 20 && t !== was }, 3000) // the page that comes up is not the one that was there
+      // The cell is drawn a moment after the dialog opens: it is waited for and pressed once it is there (the press itself answers true).
+      await until(() => val(`(() => { const c = Array.from(document.querySelectorAll('[class*="navCell"]')).find((e) => { const n = Object.keys(e).find((k) => k.indexOf('__reactFiber$') === 0); return n !== undefined && e[n].key === ${JSON.stringify(cellKey)} }); if (!c) return false; c.click(); return true })()`), 15000)
+      await until(async () => { const t = await pageText(); return t.length > 20 && t !== was }, 5000) // the page that comes up is not the one that was there
       return pageText()
     }
     const general = await openCell('general')
@@ -682,10 +749,11 @@ try {
     const written = existsSync(AGENTS) ? readFileSync(AGENTS, 'utf8') : ''
     check('and the host wrote the marked section of AGENTS.md (what every agent reads)', written.includes('<!-- kybernos:custom-instructions v1 -->') && written.includes(INSTR), written.slice(0, 200))
     await reload()
-    await val(`window.__kbOpenDshSettings()`)
-    await settingsOpen()
+    await openDshSettings()
     await openCell('kybernos-local')
-    await waitFor(page, `document.querySelector('[data-kb="ky-instr-field"]') !== null && document.querySelector('[data-kb="ky-instr-field"]').value !== ''`, 5000)
+    await kySectionLoaded()
+    // The field is filled from the file once the host has answered: awaited until it holds the text (20 s), not read at the moment the section is drawn.
+    await waitFor(page, `document.querySelector('[data-kb="ky-instr-field"]') !== null && document.querySelector('[data-kb="ky-instr-field"]').value === ${JSON.stringify(INSTR)}`, 20000)
     check('after a reload the field reads it back from the file', (await field()) === INSTR, await field())
     // Emptying the field and saving removes the section (the rest of the file is the person\'s).
     await setField('')

@@ -15,7 +15,9 @@
 //   POST     /kybernos-theme/boot   what the browser half applies (token layer, font), kept under
 //        <dsh home>/kybernos and put into every index render through DSH's `webserver/index-inject`
 //        seam as a `<style id="kbth-boot">`, so a themed page paints its own colours on the first
-//        frame instead of flashing DSH's default (see boot-store.mjs)
+//        frame instead of flashing DSH's default (see boot-store.mjs); a few lines of script go through the same
+//        seam and keep the stored light/dark mode through the first 2.5 s of the load, so the engine's brief
+//        « system » resolution never paints a frame (see theme-hold.mjs)
 //   GET      /kybernos-theme/vendor/lottie.js   the vendored Lottie runtime
 //        (vendor/lottie_light.min.js, MIT, see vendor/NOTICES.md), served locally so
 //        nothing is fetched from a CDN
@@ -37,6 +39,7 @@ import { servePresetStore } from './preset-store.mjs'
 import { loadKeys, loadShipped, serveGallery } from './themes-gallery.mjs'
 import { seedSkills } from './seed-skills.mjs'
 import { BOOT_ID, readBoot, renderBootCss, serveBoot } from './boot-store.mjs'
+import { holdRows } from './theme-hold.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -197,6 +200,8 @@ function mountBootSheet(ctx) {
   ctx.effect(() => ctx.on('webserver/index-inject', (table) => {
     // The page must still be served when the sheet cannot be read or built.
     try { table.push(...bootSheetRows()) } catch (e) { logError('boot sheet not injected', e) }
+    // The stored colour mode, held through the first 2.5 s of the load (theme-hold.mjs): the engine briefly resolves « system » at about 350 ms.
+    try { table.push(...holdRows()) } catch (e) { logError('theme hold not injected', e) }
   }), 'kybernos-theme: boot sheet')
 }
 

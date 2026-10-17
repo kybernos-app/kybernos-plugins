@@ -164,6 +164,9 @@ window.__ModuleLoader__.load({
         'kb.models.scores.reload': { kybernos: 'Relire', en: 'Re-read' },
         'kb.models.scores.reload.all': { kybernos: 'Relever les catalogues', en: 'Refresh catalogues' },
         'kb.models.scores.refreshing': { kybernos: 'Relevé en cours…', en: 'Refreshing…' },
+        // The Score column, the filter and the sort need a snapshot: a fresh install has none until the person asks for it (V-37).
+        'kb.models.scores.load': { kybernos: 'Charger les notes des modèles', en: 'Load model scores' },
+        'kb.models.scores.loadHint': { kybernos: 'Lit deux pages publiques (Artificial Analysis et BenchLM), au plus une fois par jour. Rien n’est lu avant ton clic.', en: 'Reads two public pages (Artificial Analysis and BenchLM), at most once a day. Nothing is read before you click.' },
         'kb.models.scores.stale': { kybernos: 'relevé du {d}', en: 'read on {d}' },
         'kb.models.cat.agentic': { kybernos: 'Agentique', en: 'Agentic' },
         'kb.models.cat.coding': { kybernos: 'Code', en: 'Coding' },
@@ -2389,6 +2392,11 @@ window.__ModuleLoader__.load({
               ? h('button', { type: 'button', className: 'kbmp-link', 'data-kbm': 'toggle-down', 'aria-pressed': UI.showDown === true ? 'true' : 'false', onClick: () => uiSet('showDown', UI.showDown !== true) },
                 UI.showDown === true ? m('kb.health.hidedown') : m('kb.health.showdown', { n: downN }))
               : null,
+            // No score is known yet (a fresh install): a visible way to get them, never an automatic read of two outside sites.
+            KBM.live === true && Object.keys(KBM.scoreOf).length === 0
+              ? h('button', { type: 'button', className: 'kbmp-link', 'data-kbm': 'scores-load', disabled: KBM.scoresRunning === true, title: m('kb.models.scores.loadHint'), onClick: () => { kbMScoresStart() } },
+                KBM.scoresRunning === true ? m('kb.models.scores.refreshing') : m('kb.models.scores.load'))
+              : null,
             h('span', { className: 'kbmp-grow' }),
             h('button', {
               type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kbm': 'sync-list',
@@ -4497,6 +4505,24 @@ window.__ModuleLoader__.load({
           kbmNotify()
           return true
         } catch (e) { return false }
+      }
+      /** « Load model scores »: the person asks the host to read the two catalogues, we wait for the read to end, then the Score column is
+       *  read once more. Without a snapshot the Models tab shows no score at all, so this is the way in (nothing is read before the click). */
+      const kbMScoresStart = async () => {
+        if (KBM.live !== true || KBM.scoresRunning === true) return false
+        const started = await kbMScoresRefresh(true)
+        if (started === null) return false
+        // The host answers right away and goes on in the background: look at its status until the job is over (two minutes at most).
+        for (let i = 0; i < 80; i += 1) {
+          await new Promise((r) => setTimeout(r, 1500))
+          let st = null
+          try { st = await (await fetch('/kybernos-models/scores/status')).json() } catch (e) { st = null }
+          if (st !== null && typeof st === 'object' && (st.job === null || st.job === undefined || st.job.running !== true)) break
+        }
+        KBM.scoresRunning = false
+        KBM.scoreLoaded = false
+        kbmNotify()
+        return kbMScoreListLoad(true)
       }
       const kbMScoresRefresh = async (force) => {
         if (force !== true) {

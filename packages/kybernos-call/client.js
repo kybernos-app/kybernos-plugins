@@ -588,7 +588,8 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
 .kbcl-hbtn:disabled{opacity:.4;cursor:default}
 .kbcl-hbtn.kbcl-hlive{background:#DC2626;color:#FFFFFF;padding:0 10px}
 @keyframes kbcl-spin{to{transform:rotate(360deg)}}
-.kbcl-hh{display:flex;align-items:center;gap:8px}
+.kbcl-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.kbcl-tt{min-width:0}
 .kbcl-prov a{color:${T.brand}}
 /* The page help: the « ? How it works » pill of every other page (the Suite's pill, in kybernos-hub). */
 .kbcl-hl{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
@@ -651,7 +652,8 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
       const CallHeader = (props) => {
         const current = useCall()
         React.useEffect(() => { loadHeaderStatus() }, [])
-        const active = current !== null
+        // A call that never started or already ended (the panel says « error » or « call ended », with its own « Close ») is nothing to hang up: only a call being set up or live is (A5-22).
+        const active = current !== null && current.phase !== 'error' && current.phase !== 'ended'
         const sessionId = (props !== null && props !== undefined && typeof props.sessionId === 'string') ? props.sessionId : null
         const start = (mode) => open({ sessionId: sessionId, kyberId: null, roleId: null, name: kt('Assistant', 'Assistant'), mode: mode, voice: null })
         if (active) {
@@ -716,15 +718,10 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
           [kt('Quand.', 'When.'), kt('Après avoir changé de fournisseur, ou quand un appel reste muet. Chaque ligne en échec dit quoi faire.', 'After changing a provider, or when a call is silent. Each failing row says what to do.')]
         ]
       })
-      const Help = (props) => {
-        const lines = props.lines
-        return [
-          h('div', { key: 'hd', className: 'kbcl-hh' }, [
-            h('button', { key: 'b', type: 'button', className: 'kbcl-hl', 'data-act': 'help-' + props.id, 'aria-expanded': props.open === true ? 'true' : 'false', onClick: props.onToggle }, [h('span', { key: 'q', className: 'kbcl-hq', 'aria-hidden': 'true' }, '?'), h('span', { key: 't' }, kt('Comment ça marche', 'How it works'))])
-          ]),
-          props.open === true ? h('div', { key: 'tx', className: 'kbcl-helpbox', 'data-help': props.id }, lines.map((l, i) => h('div', { key: i }, [h('b', { key: 'a' }, l[0] + ' '), l[1]]))) : null
-        ]
-      }
+      // The « ? How it works » pill sits at the top right of the page, on the title's row, like on every other page (A5-19); the text it opens
+      // sits under the tabs.
+      const HelpPill = (props) => h('button', { type: 'button', className: 'kbcl-hl', 'data-act': 'help-' + props.id, 'aria-expanded': props.open === true ? 'true' : 'false', onClick: props.onToggle }, [h('span', { key: 'q', className: 'kbcl-hq', 'aria-hidden': 'true' }, '?'), h('span', { key: 't' }, kt('Comment ça marche', 'How it works'))])
+      const HelpBox = (props) => (props.open === true ? h('div', { className: 'kbcl-helpbox', 'data-help': props.id }, props.lines.map((l, i) => h('div', { key: i }, [h('b', { key: 'a' }, l[0] + ' '), l[1]]))) : null)
 
       // The settings, loaded once and changed through the host: all-or-nothing, the host's reasons shown as they are.
       const useCalls = () => {
@@ -1157,9 +1154,9 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
           : tab === 'providers' ? h(Providers, { calls: c, slot: slot, prov: prov, onSlot: (s) => { setSlot(s); setProv(null) }, onProv: setProv })
             : h(Health, { onFix: (id) => goProvider(id === 'line' ? 'line' : id, null) })
         return h('div', { className: 'kbcl-page', 'data-kb': 'kybernos-call-settings' }, [
-          h('div', { key: 'top' }, [h('h2', { key: 'h' }, kt('Appels', 'Calls')), h('div', { key: 's', className: 'kbcl-sub' }, kt('Parler en direct à ton assistant ou à un membre de ton équipe, à voix haute, depuis n’importe quelle session. Pour faire lire une réponse ou dicter un message, voir Voix.', 'Talk live to your assistant, or to a team member, out loud, from any session. To have a reply read aloud or to dictate a message, see Voice.'))]),
+          h('div', { key: 'top', className: 'kbcl-top' }, [h('div', { key: 'tt', className: 'kbcl-tt' }, [h('h2', { key: 'h' }, kt('Appels', 'Calls')), h('div', { key: 's', className: 'kbcl-sub' }, kt('Parler en direct à ton assistant ou à un membre de ton équipe, à voix haute, depuis n’importe quelle session. Pour faire lire une réponse ou dicter un message, voir Voix.', 'Talk live to your assistant, or to a team member, out loud, from any session. To have a reply read aloud or to dictate a message, see Voice.'))]), h(HelpPill, { key: 'help', id: tab, open: open[tab] === true, onToggle: toggle(tab) })]),
           h('div', { key: 'tabs', className: 'kbcl-tabs', role: 'tablist' }, tabs.map((t) => h('button', { key: t[0], type: 'button', role: 'tab', className: 'kbcl-tab', 'data-act': 'tab-' + t[0], 'aria-selected': tab === t[0] ? 'true' : 'false', onClick: () => setTab(t[0]) }, t[1]))),
-          h('div', { key: 'help' }, h(Help, { id: tab, title: tabs.find((t) => t[0] === tab)[1], lines: helps[tab], open: open[tab] === true, onToggle: toggle(tab) })),
+          open[tab] === true ? h(HelpBox, { key: 'helpbox', id: tab, lines: helps[tab], open: true }) : null,
           c.notice !== null ? h('div', { key: 'n', className: 'kbcl-notice' + (c.notice.bad ? ' kbcl-bad' : ''), role: 'status', 'data-kb': 'kybernos-call-notice' }, c.notice.text) : null,
           body
         ])

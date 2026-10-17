@@ -158,4 +158,18 @@ const catalog = readFileSync(new URL('./catalog.js', import.meta.url), 'utf8')
   ok('animation: every string it asks for exists in French and in English (' + asked.size + ')', asked.size >= 10 && lacking.length === 0, lacking.join(','))
 }
 
+
+// ── R3-02 (audit C-07, C-05) ─────────────────────────────────────────────────────────────────────────────
+{
+  const at = src.indexOf("'data-kb': 'connector-create'")
+  const cta = at < 0 ? '' : src.slice(at, at + 700)
+  ok('the add button ends with the chevron icon of the other header actions, not a « ▾ » character that reads as a bullet (C-07)', at > 0 && !src.includes('▾') && /Icon\('chev', \d+\)/.test(cta) && /chev: \['m6 9 6 6 6-6'\]/.test(src), cta.slice(0, 300))
+  const mockAt = src.indexOf('mock: { bar: kbt(')
+  const mock = mockAt < 0 ? '' : src.slice(mockAt, mockAt + 420)
+  ok('the help mock names no real product (Slack, GitHub): made-up apps, so it cannot contradict the list under it (C-05)', mockAt > 0 && !/Slack|GitHub/.test(mock) && /kb\.cp\.intro\.m\.row/.test(mock) && /kb\.cp\.intro\.m\.hot/.test(mock), mock)
+  const row = /'kb\.cp\.intro\.m\.row': \{ fr: '((?:[^'\\]|\\.)+)', en: '((?:[^'\\]|\\.)+)' \}/.exec(src)
+  const hot = /'kb\.cp\.intro\.m\.hot': \{ fr: '((?:[^'\\]|\\.)+)', en: '((?:[^'\\]|\\.)+)' \}/.exec(src)
+  ok('...in both languages, and neither is a product of the catalogue', row !== null && hot !== null && !/slack|github|gmail|notion|google|linear|jira|stripe|hubspot|salesforce/i.test(row[0] + hot[0]), row && hot && [row[2], hot[2]])
+}
+
 done('Connectors settings, discover and add')

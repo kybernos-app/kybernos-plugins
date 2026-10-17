@@ -225,6 +225,9 @@ window.__ModuleLoader__.load({
     /** Pure. The title a module shows: its human name, the id when the catalogue has none. */
     const titreDe = (m) => (m !== null && m !== undefined && typeof m.titre === 'string' && m.titre !== '' ? m.titre : String(m.id))
 
+    /** Pure. What a screen reader says for a module's switch: the action and the module's title (« Turn off Slides »), never the package id. */
+    const libelleInterrupteur = (actif, m) => (actif ? kt('Désactiver ', 'Turn off ') : kt('Activer ', 'Turn on ')) + titreDe(m)
+
     /** Pure. Is the installed DSH inside the range the suite was tested on? `compat` = the maintenance payload's
      *  { min, max, horsZone } (null when unknown). 'ok' | 'hors' | 'inconnu'. */
     const verdictCompat = (compat) => {
@@ -526,10 +529,12 @@ window.__ModuleLoader__.load({
       // The animated help of a page (window.__KB_HELP__.Intro): a CSS mock of three steps on a 12 s loop, beside the steps, which light
       // up in turn. The BASE style of every animated part is the end of the story, which is also what reduced motion shows.
       '.kbhi{position:relative;display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;padding:16px;border-radius:12px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);align-items:center;margin:0 0 14px}',
-      '@media (max-width:700px){.kbhi{grid-template-columns:minmax(0,1fr)}}',
+      // On a phone (R-A5-03): one column, the dismiss cross is a 44 px target (it was 26 x 36), and the drawn mini-mock (decorative, text of 9 px)
+      // is left out so the steps are what the first screen shows instead of the page starting below the fold.
+      '@media (max-width:700px){.kbhi{grid-template-columns:minmax(0,1fr)}.kbhi-mm{display:none}.kbhi-x{top:0;inset-inline-end:0;width:44px;height:44px}.kbhi-h{padding-inline-end:44px}}',
       '.kbhi-text{display:flex;flex-direction:column;gap:12px;min-width:0}',
       '.kbhi-h{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary);padding-inline-end:28px}',
-      '.kbhi-x{position:absolute;inset-inline-end:8px;top:8px;width:26px;height:26px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-tertiary);cursor:pointer;font-size:14px}',
+      '.kbhi-x{position:absolute;inset-inline-end:8px;top:8px;width:26px;height:26px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;font-size:14px}',
       '.kbhi-x:hover{background:var(--dsw-alias-interactive-bg-hover)}',
       '.kbhi-x:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}',
       '.kbhi-steps{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}',
@@ -539,23 +544,29 @@ window.__ModuleLoader__.load({
       '.kbhi-step-b{font-size:12px;line-height:1.5;color:var(--dsw-alias-label-secondary)}',
       '.kbhi-step.s1{animation:kbhi-k-s1 12s infinite}.kbhi-step.s2{animation:kbhi-k-s2 12s infinite}.kbhi-step.s3{animation:kbhi-k-s3 12s infinite}',
       '.kbhi-mm{direction:ltr;position:relative;width:300px;max-width:100%;height:176px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);overflow:hidden;font-size:10px;color:var(--dsw-alias-label-primary);user-select:none;pointer-events:none}',
-      '.kbhi-mm-bar{position:absolute;left:0;right:0;top:0;height:26px;display:flex;align-items:center;padding:0 10px;border-bottom:1px solid var(--dsw-alias-border-l2);font-weight:600}',
+      '.kbhi-mm-bar{position:absolute;left:0;right:0;top:0;height:26px;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid var(--dsw-alias-border-l2);font-weight:600}',
+      // The drawing is an example: what it names is not an item of the page under it (a « PDF · Installing… » beside the real, installed PDF card) It sits next to the title: the close cross of a one-column card covers the bar's right end.
+      '.kbhi-mm-tag{flex:none;padding:1px 6px;border-radius:999px;border:.5px solid var(--dsw-alias-border-l2);font-size:9px;font-weight:500;color:var(--dsw-alias-label-secondary)}',
       '.kbhi-mm-row{position:absolute;left:8px;right:8px;height:32px;display:flex;align-items:center;gap:7px;padding:0 8px;border-radius:8px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);box-sizing:border-box}',
       '.kbhi-mm-row.r0{top:34px}.kbhi-mm-row.r1{top:118px}',
       '.kbhi-mm-row.hot{top:72px;height:40px;animation:kbhi-k-hot 12s infinite}',
+      // The progress bar sits 4 px above the row's bottom edge: the text block rises so the bar clears the state line instead of touching it.
+      '.kbhi-mm-row.hot .kbhi-mm-i{margin-bottom:7px}',
       '.kbhi-mm-b{width:18px;height:18px;flex:none;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-secondary)}',
       '.kbhi-mm-i{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;position:relative}',
       '.kbhi-mm-n{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
       '.kbhi-mm-st{position:relative;height:11px;color:var(--dsw-alias-label-secondary);font-size:9px}',
       '.kbhi-mm-st>span{position:absolute;left:0;top:0;white-space:nowrap;opacity:0}',
       '.kbhi-mm-st>.t3{opacity:1;animation:kbhi-k-st3 12s infinite}.kbhi-mm-st>.t1{animation:kbhi-k-st1 12s infinite}.kbhi-mm-st>.t2{animation:kbhi-k-st2 12s infinite}',
-      '.kbhi-mm-acts{position:relative;width:92px;height:20px;flex:none}',
-      '.kbhi-mm-acts>*{position:absolute;right:0;top:0;height:20px;box-sizing:border-box;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;padding:0 7px;font-size:9px;font-weight:600;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}',
+      // The four labels share one cell of a grid, right-aligned: the slot is as wide as the longest of them (« Create with the agent » was
+      // cut to « eate with the age » in a fixed 92px slot), and never more than 62% of the row.
+      '.kbhi-mm-acts{position:relative;display:grid;justify-items:end;min-width:92px;max-width:62%;height:20px;flex:none}',
+      '.kbhi-mm-acts>*{grid-area:1/1;height:20px;box-sizing:border-box;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;padding:0 7px;font-size:9px;font-weight:600;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}',
       '.kbhi-mm-go,.kbhi-mm-us{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff);opacity:0}',
       '.kbhi-mm-go{animation:kbhi-k-go 12s infinite}.kbhi-mm-us{animation:kbhi-k-us 12s infinite}',
       '.kbhi-mm-pa{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-3);opacity:0;animation:kbhi-k-pa 12s infinite}',
       '.kbhi-mm-done{border-radius:999px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff);opacity:1;animation:kbhi-k-done 12s infinite}',
-      '.kbhi-mm-track{position:absolute;left:34px;right:104px;bottom:4px;height:3px;border-radius:99px;background:var(--dsw-alias-bg-layer-3);opacity:0;animation:kbhi-k-track 12s infinite}',
+      '.kbhi-mm-track{position:absolute;left:0;right:0;bottom:-4px;height:3px;border-radius:99px;background:var(--dsw-alias-bg-layer-3);opacity:0;animation:kbhi-k-track 12s infinite}',
       '.kbhi-mm-fill{display:block;height:100%;width:100%;border-radius:99px;background:var(--dsw-alias-brand-primary);animation:kbhi-k-fill 12s linear infinite}',
       '.kbhi-mm-cur{position:absolute;left:150px;top:130px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:11px solid var(--dsw-alias-label-primary);transform-origin:50% 100%;opacity:0;animation:kbhi-k-cur 12s infinite;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}',
       '@keyframes kbhi-k-hot{0%,14%{opacity:0;transform:translateY(8px)}20%,93%{opacity:1;transform:none}98%,100%{opacity:0;transform:translateY(8px)}}',
@@ -1010,7 +1021,7 @@ window.__ModuleLoader__.load({
             const libelle = actif ? (compact && m.socle === true ? kt('Socle', 'Base') : kt('Actif', 'Active')) : etat === 'safe' ? kt('Désactivé par le mode sans échec', 'Off in safe mode') : kt('Désactivé', 'Off')
             parts.statut = h('span', { className: 'kbsu-st ' + (actif ? 'ok' : etat === 'safe' ? 'warn' : '') }, actif ? ic('check') : etat === 'safe' ? ic('alert') : null, libelle)
             if (comp !== null) parts.reglages = h('button', { type: 'button', className: 'kbsu-btn ghost sm', 'aria-expanded': estOuvert ? 'true' : 'false', onClick: () => setOuvert(estOuvert ? null : m.id) }, kt('Paramètres', 'Settings'))
-            parts.sw = h('button', { type: 'button', className: 'kbsu-sw' + (actif ? ' on' : ''), role: 'switch', 'aria-checked': actif ? 'true' : 'false', 'aria-label': (actif ? kt('Désactiver ', 'Turn off ') : kt('Activer ', 'Turn on ')) + m.id, title: verrou ? kt('Socle : toujours actif', 'Base: always on') : '', disabled: verrou || mgr === null, onClick: () => basculer(m, bundle) }, h('i'))
+            parts.sw = h('button', { type: 'button', className: 'kbsu-sw' + (actif ? ' on' : ''), role: 'switch', 'aria-checked': actif ? 'true' : 'false', 'aria-label': libelleInterrupteur(actif, m), title: verrou ? kt('Socle : toujours actif', 'Base: always on') : '', disabled: verrou || mgr === null, onClick: () => basculer(m, bundle) }, h('i'))
           }
           return parts
         }
@@ -1338,13 +1349,14 @@ window.__ModuleLoader__.load({
         const row = (name, i) => h('div', { key: 'r' + i, className: 'kbhi-mm-row r' + i }, h('span', { className: 'kbhi-mm-b' }, String(name).charAt(0).toUpperCase()), h('div', { className: 'kbhi-mm-i' }, h('span', { className: 'kbhi-mm-n' }, name)))
         return h('section', { className: 'kbhi', 'data-kb': 'help-intro', 'data-id': id, 'aria-label': title },
           h('div', { className: 'kbhi-mm', role: 'img', 'aria-label': caption },
-            h('div', { className: 'kbhi-mm-bar' }, h('span', null, m.bar)),
+            h('div', { className: 'kbhi-mm-bar' }, h('span', null, m.bar), h('span', { className: 'kbhi-mm-tag', 'data-kb': 'help-intro-example' }, kt('Exemple', 'Example'))),
             others[0] !== undefined ? row(others[0], 0) : null,
             h('div', { className: 'kbhi-mm-row hot' }, h('span', { className: 'kbhi-mm-b' }, String(m.hot).charAt(0).toUpperCase()),
               h('div', { className: 'kbhi-mm-i' }, h('span', { className: 'kbhi-mm-n' }, m.hot),
-                h('div', { className: 'kbhi-mm-st' }, h('span', { className: 't1' }, m.states[0]), h('span', { className: 't2' }, m.states[1]), h('span', { className: 't3' }, m.states[2]))),
-              h('div', { className: 'kbhi-mm-acts' }, h('span', { className: 'kbhi-mm-go' }, m.actions[0]), h('span', { className: 'kbhi-mm-pa' }, m.actions[1]), h('span', { className: 'kbhi-mm-us' }, m.actions[2]), h('span', { className: 'kbhi-mm-done' }, m.done != null ? m.done : m.states[2])),
-              h('div', { className: 'kbhi-mm-track' }, h('i', { className: 'kbhi-mm-fill' }))),
+                h('div', { className: 'kbhi-mm-st' }, h('span', { className: 't1' }, m.states[0]), h('span', { className: 't2' }, m.states[1]), h('span', { className: 't3' }, m.states[2])),
+                // The progress bar sits under the text column, so it follows the width the buttons leave it.
+                h('div', { className: 'kbhi-mm-track' }, h('i', { className: 'kbhi-mm-fill' }))),
+              h('div', { className: 'kbhi-mm-acts' }, h('span', { className: 'kbhi-mm-go' }, m.actions[0]), h('span', { className: 'kbhi-mm-pa' }, m.actions[1]), h('span', { className: 'kbhi-mm-us' }, m.actions[2]), h('span', { className: 'kbhi-mm-done' }, m.done != null ? m.done : m.states[2]))),
             others[1] !== undefined ? row(others[1], 1) : null,
             h('div', { className: 'kbhi-mm-cur' })),
           h('div', { className: 'kbhi-text' },
@@ -1417,6 +1429,6 @@ window.__ModuleLoader__.load({
 
     const demarrer = (ctx) => { apply(ctx); try { appliquerSuite(ctx) } catch (e) { /* optional */ } }
 
-    return { name: NAME, inject: [], apply: demarrer, __test: { lang, kt, pair, messageCatalogue, raisonMiseAJour, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView, construireAide, construireNatifs, NATIVE_SEL, nativeKeyOf, findNativeHost, nativeContent, coteDeLaCarte, adresseAide, langueDuSite, introKey, introOuverte, INTRO_SEEN_MS } }
+    return { name: NAME, inject: [], apply: demarrer, __test: { lang, kt, pair, messageCatalogue, raisonMiseAJour, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, libelleInterrupteur, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView, construireAide, construireNatifs, NATIVE_SEL, nativeKeyOf, findNativeHost, nativeContent, coteDeLaCarte, adresseAide, langueDuSite, introKey, introOuverte, INTRO_SEEN_MS } }
   }
 })

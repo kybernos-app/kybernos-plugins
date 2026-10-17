@@ -176,4 +176,27 @@ for (const f of clientFiles) {
 assert.deepEqual(labelBad, [], 'a « Kyber » label is back in a browser half')
 ok('no browser half of the other ' + clientFiles.length + ' bundles carries a « Kyber(s) » label')
 
+// R3-05 (A2-27): the French UI names the pages the way its sidebar does (« Automations », « Workspaces »), in Settings and in the empty states too
+assert.equal(dict.get('menu.tasks').kybernos, dict.get('kbui.automations.set').kybernos, 'the Settings entry is named like the sidebar entry')
+assert.equal(dict.get('kbui.automations.set').kybernos, 'Automations')
+assert.ok(dict.get('kbui.workspaces.unavailable').kybernos.startsWith(dict.get('menu.projects').kybernos), 'the Workspaces empty state uses the sidebar word')
+assert.ok(!/Automatisations de Kybernos|Espaces? de travail indisponibles/.test(src), 'no second name for the Automations page or the Workspaces page')
+ok('the French names of Automations and Workspaces are the same in the sidebar, in Settings and in the empty states')
+
+// 12. C-10: « Mini-app » is the one spelling of the object (the home tile, the Suite, the Creations filter, the badges): « MiniApp » is the
+//     name of the code (KbMiniApp, *.miniapp.json), never a label.
+{
+  const visible = []
+  src.split('\n').forEach((line, i) => {
+    const code = line.trim()
+    if (code.startsWith('//') || code.startsWith('*') || code.startsWith('/*')) return
+    // a string literal that says « MiniApp » as a word: 'MiniApp', 'MiniApp ' + x, 'MiniApp score…'
+    if (/'[^'\n]*\bMiniApp\b(?![.\w])[^'\n]*'/.test(code.replace(/\/\/.*$/, '')) && !/^'[^']*': '/.test(code)) visible.push(i + 1)
+  })
+  assert.deepEqual(visible, [], 'a label says « MiniApp » (line ' + visible.join(', ') + ')')
+  assert.equal(dict.get('kbnc.t.miniapp').en, 'Mini-app')
+  assert.ok(/\{ id: 'miniapp', label: 'Mini-app'/.test(src), 'the Creations filter says « Mini-app »')
+  ok('the object is spelt « Mini-app » on every label (the Creations filter, the card line, the badges, the messages)')
+}
+
 console.log('\n' + pass + ' verifications OK')

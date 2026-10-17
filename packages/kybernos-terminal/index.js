@@ -38,6 +38,9 @@ export function lisible (texte) {
 /**
  * Run one shell command, bounded. Never throws — answers `ok:false`. `limites` (timeoutMs, sortieMax) is for tests: the route never passes it.
  * The command has no standard input (it is closed at once): a program that waits for a keypress fails immediately instead of hanging until the timeout.
+ * It always runs in the folder it is given: there is no default (a silent run in the home folder is where `rm -rf build` does harm).
+ * The shell leads its own process group, and the timeout kills the whole group: killing the shell alone (node's `timeout` option) leaves what it started
+ * running, holding the output pipes open, so the answer used to wait for them (« sleep 77 » answered after 77 s, a server started from a block never).
  */
 export function executer ({ commande, cwd } = {}, limites = {}) {
   return new Promise((resolve) => {
@@ -48,7 +51,11 @@ export function executer ({ commande, cwd } = {}, limites = {}) {
       resolve({ ok: false, erreur: 'empty command, or longer than ' + COMMANDE_MAX + ' characters' })
       return
     }
-    const dir = String(cwd ?? '').trim() || homedir()
+    const dir = String(cwd ?? '').trim()
+    if (dir === '') {
+      resolve({ ok: false, erreur: 'no folder to run in: nothing was run' })
+      return
+    }
     try {
       if (statSync(dir).isDirectory() !== true) throw new Error('not a folder')
     } catch (error) {
@@ -58,7 +65,7 @@ export function executer ({ commande, cwd } = {}, limites = {}) {
     let fini = false
     let enfant
     try {
-      enfant = spawn('/bin/zsh', ['-c', cmd], { cwd: dir, timeout: timeoutMs, env: process.env, stdio: ['ignore', 'pipe', 'pipe'] })
+      enfant = spawn('/bin/zsh', ['-c', cmd], { cwd: dir, detached: true, env: process.env, stdio: ['ignore', 'pipe', 'pipe'] })
     } catch (error) {
       resolve({ ok: false, erreur: String(error && error.message ? error.message : error) })
       return
@@ -81,21 +88,27 @@ export function executer ({ commande, cwd } = {}, limites = {}) {
     enfant.stderr.setEncoding('utf8')
     enfant.stdout.on('data', cap)
     enfant.stderr.on('data', capErr)
+    let minuteur = null
     const rendu = (code, timedOut) => {
       if (fini) return
       fini = true
+      if (minuteur !== null) clearTimeout(minuteur)
       resolve({ ok: true, code, signal: enfant.signalCode ?? null, timedOut: timedOut === true, truncated: tronque, stdout: lisible(out), stderr: lisible(err), cwd: dir })
     }
     enfant.on('error', (error) => {
       if (fini) return
       fini = true
+      if (minuteur !== null) clearTimeout(minuteur)
       resolve({ ok: false, erreur: String(error && error.message ? error.message : error) })
     })
-    enfant.on('close', (code) => {
-      /* node's `timeout` option kills with SIGTERM — that is the timeout path
-         (this route never signals the child itself). */
-      rendu(code, code === null && enfant.signalCode === 'SIGTERM')
-    })
+    enfant.on('close', (code) => rendu(code, false))
+    // The deadline: the whole group goes down, and the answer does not wait for the pipes (a process that left the group could still hold them).
+    minuteur = setTimeout(() => {
+      if (fini) return
+      try { process.kill(-enfant.pid, 'SIGKILL') } catch (error) { try { enfant.kill('SIGKILL') } catch (e) { /* already gone */ } }
+      try { enfant.stdout.destroy(); enfant.stderr.destroy() } catch (error) { /* closed */ }
+      rendu(null, true)
+    }, timeoutMs)
   })
 }
 
@@ -238,20 +251,23 @@ export function monterRoutes (webServerSvc, options = {}) {
       }
       const corps = await lireCorps(req)
       if (corps === null) { repondre(res, 413, { ok: false, erreur: 'request body too large' }); return }
-      // Where it runs: the folder of the session the click was made in, found by the host. A path sent by the page is never used,
-      // and a session whose folder cannot be found runs nothing (a silent run in the home folder is where `rm -rf build` does harm).
+      // Where it runs: the folder of the session the click was made in, found by the host. A path sent by the page is never used.
+      // A request that names no session, or a session whose folder cannot be found, runs nothing (a silent run in the home folder
+      // is where `rm -rf build` does harm).
       const args = corps !== null && typeof corps === 'object' ? { ...corps } : {}
       const session = typeof args.session === 'string' ? args.session.trim() : ''
       delete args.cwd
       delete args.session
-      if (session !== '') {
-        const dir = await dossier(session)
-        if (dir === null || dir === undefined) {
-          repondre(res, 400, { ok: false, erreur: 'the folder of this session cannot be found: nothing was run' })
-          return
-        }
-        args.cwd = dir
+      if (session === '') {
+        repondre(res, 400, { ok: false, erreur: 'no chat session to run in: nothing was run' })
+        return
       }
+      const dir = await dossier(session)
+      if (dir === null || dir === undefined) {
+        repondre(res, 400, { ok: false, erreur: 'the folder of this session cannot be found: nothing was run' })
+        return
+      }
+      args.cwd = dir
       const r = await lancer(args)
       repondre(res, r.ok ? 200 : 400, r)
     }

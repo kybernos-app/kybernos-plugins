@@ -29,5 +29,6 @@
   "good": {
     "fr": "Le fichier est lu en entier avant de démarrer. Si le navigateur ne sait pas décoder le format (souvent mkv, avi ou wmv), un message s'affiche à la place du lecteur.",
     "en": "The whole file is read before playing. If the browser cannot decode the format (often mkv, avi or wmv), a message replaces the player."
-  }
+  },
+  "url": "https://help.kybernos.app/{lang}/create-with-kybernos/diagrams-databases-and-media/"
 }

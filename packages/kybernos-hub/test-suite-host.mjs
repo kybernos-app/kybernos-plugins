@@ -65,6 +65,9 @@ console.log('── a signed release older in content than this copy ──')
   const ancienneAide = { ...catalogue.modules.find((m) => m.id === 'kybernos-models').aide, steps: [{ en: 'an older sentence of the release', fr: 'une ancienne phrase de la release' }] }
   const ecrit = charge({ catalogue, brut: null, effectif: { ...signe, modules: signe.modules.map((m) => (m.id === 'kybernos-models' ? { ...m, aide: ancienneAide } : m)) } })
   ok('the help of a module this copy holds is the one that shipped, not the release\'s', JSON.stringify(ecrit.modules.find((m) => m.id === 'kybernos-models').aide) === JSON.stringify(catalogue.modules.find((m) => m.id === 'kybernos-models').aide))
+  // R-A5-01: the name is part of what runs too. The release published before the rename called Kaby « Kyber », and the help card (and the module list) read it.
+  const ancienNom = charge({ catalogue, brut: null, effectif: { ...signe, modules: signe.modules.map((m) => (m.id === 'kybernos-kyber' ? { ...m, titre: 'Kyber' } : m)) } })
+  ok('the name of a module this copy holds is the one that shipped, not the release\'s (a release that still says « Kyber » shows « Kaby »)', ancienNom.modules.find((m) => m.id === 'kybernos-kyber').titre === 'Kaby' && catalogue.modules.find((m) => m.id === 'kybernos-kyber').titre === 'Kaby')
   const inconnu = { id: 'kybernos-from-the-future', nom: '@local/kybernos-from-the-future', famille: catalogue.familles[0].id, promesse: { fr: 'x', en: 'x' }, aide: { steps: [{ en: 'its own help', fr: 'son aide' }] } }
   ok('a module the release adds (this copy does not hold it) keeps its own help', charge({ catalogue, brut: null, effectif: { ...signe, modules: signe.modules.concat([inconnu]) } }).modules.find((m) => m.id === 'kybernos-from-the-future').aide.steps[0].en === 'its own help')
   // A strictly newer release is what an update would bring: a module it dropped does not come back from the old copy.
@@ -92,7 +95,7 @@ console.log('── install ──')
   let argv = null
   const r = await installer({ catalogue, brut: { actives: [] }, id: 'dsh-mermaid', ecrire: (o) => { ecrit = o }, executer: async (a) => { argv = a; return { code: 0, sortie: 'ok' } } })
   ok('install activates the module, then runs the robot', r.ok === true && r.relanceRequise === true && ecrit.actives.includes(nomDe('dsh-mermaid')) && argv[0] === 'install')
-  ok('install never asks the robot to restart DSH', !argv.includes('--relancer'))
+  ok('install never asks the robot to restart DSH', !argv.includes('--restart') && !argv.includes('--relancer'))
   const refus = await installer({ catalogue, brut: null, id: 'dsh-mermaid', ecrire: () => {}, executer: async () => ({ code: 1, sortie: 'a\nb\nboot check failed' }) })
   ok('a refusing robot is reported with its last lines', refus.ok === false && refus.error === 'robot-refused' && refus.detail.includes('boot check failed'))
   const casse = await installer({ catalogue, brut: null, id: 'dsh-mermaid', ecrire: () => {}, executer: async () => { throw new Error('robot introuvable') } })

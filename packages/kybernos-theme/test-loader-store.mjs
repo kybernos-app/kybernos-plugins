@@ -720,17 +720,19 @@ console.log('host plugin (index.js) with a fake ctx')
       resetBootSheet()
       let table = []
       inject(table)
-      check('nothing posted yet: the page is served as it is', table.length === 0)
+      // the colour-mode hold (theme-hold.mjs) is a second row of every render: the boot sheet's rows are the style ones
+      const sheetRows = (t) => t.filter((r) => typeof r.html === 'string' && r.html.startsWith('<style id="kbth-boot">'))
+      check('nothing posted yet: the page gets no sheet (only the colour-mode hold)', sheetRows(table).length === 0 && table.length === 1 && table[0].html.startsWith('<script id="kbth-hold">'))
       writeBoot(bootHome, snap)
       resetBootSheet()
       table = []
       inject(table)
-      check('a stored snapshot becomes one head row with the id the browser half removes', table.length === 1 && table[0].kind === 'html' && table[0].placement === 'head' && table[0].html.startsWith('<style id="kbth-boot">html body:not([data-ds-dark-theme]){--dsw-alias-bg-base:#f6f1e7}') && table[0].html.endsWith('</style>'), table)
+      check('a stored snapshot becomes one head row with the id the browser half removes', sheetRows(table).length === 1 && table[0].kind === 'html' && table[0].placement === 'head' && table[0].html.startsWith('<style id="kbth-boot">html body:not([data-ds-dark-theme]){--dsw-alias-bg-base:#f6f1e7}') && table[0].html.endsWith('</style>'), table)
       const bootRoute = fresh.registered.find((r) => r.path === ROUTES.boot).handler
       const posted = await send(bootRoute, { method: 'POST', headers: sameOrigin, body: { tokens: { '--dsw-alias-bg-base': { light: '#ffffff', dark: '#000000' } }, font: null } })
       table = []
       inject(table)
-      check('a POST to the route updates the sheet without a restart', posted.status === 200 && table.length === 1 && table[0].html.includes('--dsw-alias-bg-base:#ffffff'), table)
+      check('a POST to the route updates the sheet without a restart', posted.status === 200 && sheetRows(table).length === 1 && table[0].html.includes('--dsw-alias-bg-base:#ffffff'), table)
       const refused = await send(bootRoute, { method: 'POST', headers: {}, body: snap })
       check('a write that names no origin of this server is refused', refused.status === 403)
       writeBoot(bootHome, { v: 1, tokens: {}, font: null })
