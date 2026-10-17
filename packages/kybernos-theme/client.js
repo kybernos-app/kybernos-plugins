@@ -3866,7 +3866,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
               gal.data.source === 'signed' ? h('span', { className: 'kbth-tone kbth-tone-on kbth-gr-ok' }, kt('Catalogue signé', 'Signed catalog')) : h('span', { className: 'kbth-pill' }, kt('Livré avec Kybernos', 'Shipped with Kybernos')),
               h('span', null, gal.data.themes.length + (gal.data.themes.length > 1 ? kt(' thèmes', ' themes') : kt(' thème', ' theme'))),
               o.state !== 'off' && !(o.state === 'refused' && o.reason === 'no-key')
-                ? h('button', { type: 'button', className: 'kbth-link', 'data-kb': 'theme-gal-refresh', disabled: gal.refreshing, onClick: () => { galRefresh() } }, gal.refreshing ? 'Actualisation…' : kt('Actualiser', 'Refresh')) : null),
+                ? h('button', { type: 'button', className: 'kbth-link', 'data-kb': 'theme-gal-refresh', disabled: gal.refreshing, onClick: () => { galRefresh() } }, gal.refreshing ? kt('Actualisation…', 'Refreshing…') : kt('Actualiser', 'Refresh')) : null),
             onlineText !== '' ? h('div', { className: 'kbth-hint', 'data-kb': 'theme-gal-online' }, onlineText) : null,
             h('div', { className: 'kbth-gbar' },
               h('input', { className: 'kbth-search', type: 'search', value: galQ, placeholder: kt('Rechercher un thème, un auteur', 'Search for a theme or an author'), 'aria-label': kt('Rechercher un thème', 'Search for a theme'), 'data-kb': 'theme-gal-q', onInput: (e) => setGalQ(e.target.value) }),

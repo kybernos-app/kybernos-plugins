@@ -1553,5 +1553,15 @@ section('every control has a stored key that something reads')
   check('...and each of the 20 newly wired keys is read by an applier', unread.length === 0, unread)
 }
 
+section('the docs name the screen in English (A2-14)')
+{
+  // the Theme README and the gallery guide are English: where they quote a label of the page, they quote the English one
+  const French = /\b(Mes thèmes|Mettre à jour|Essentiel|Icônes|Partage|Galerie|Verre|Mon pack|Catalogue signé|Essayer|Installer|Actualiser|Revenir|Accessibilité|Couleurs|Texte et forme)\b/
+  const docs = { 'README.md': readFileSync(new URL('./README.md', import.meta.url), 'utf8'), 'docs/dev/theme-gallery.md': readFileSync(new URL('../../docs/dev/theme-gallery.md', import.meta.url), 'utf8') }
+  const found = Object.entries(docs).flatMap(([f, t]) => t.split('\n').map((l, i) => ({ f, i: i + 1, l })).filter((o) => French.test(o.l.replace(/`[^`]*`/g, ''))).map((o) => o.f + ':' + o.i + ' ' + o.l.trim().slice(0, 60)))
+  check('neither document quotes a French label of the Theme page', found.length === 0, found)
+  check('the gallery\'s refresh link has an English word while it works', /gal\.refreshing \? kt\('Actualisation…', 'Refreshing…'\)/.test(SOURCE))
+}
+
 console.log('\n' + (fail === 0 ? '✓ ' : '✗ ') + pass + ' passed, ' + fail + ' failed' + (skipped > 0 ? ', ' + skipped + ' part SKIPPED (not covered)' : ''))
 process.exit(fail === 0 ? 0 : 1)
