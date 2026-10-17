@@ -224,7 +224,7 @@ function createAudioPreview () {
   let token = 0 // a start that was waiting (the browser holds audio until a click) must not play after a later stop or start
   let cache = { key: '', buffer: null }
   return {
-    async play (scene, assets, t, muted) {
+    async play (scene, assets, t, muted, rate) {
       this.stop()
       const mine = token
       if (muted || !scene.audio || scene.audio.length === 0) return
@@ -245,6 +245,7 @@ function createAudioPreview () {
         if (mine !== token) return
         node = ac.createBufferSource()
         node.buffer = cache.buffer
+        node.playbackRate.value = rate > 0 ? rate : 1
         node.connect(ac.destination)
         node.start(0, clamp(t, 0, scene.format.duration))
       } catch (e) { /* no sound: the picture still plays */ }
@@ -258,7 +259,7 @@ function createAudioPreview () {
 function usePlayer (scene, path, opts) {
   const o = opts || {}
   const canvasRef = React.useRef(null)
-  const st = React.useRef({ t: o.startAt || 0, playing: false, last: 0, raf: 0, loop: true })
+  const st = React.useRef({ t: o.startAt || 0, playing: false, last: 0, raf: 0, loop: true, rate: 1 })
   const [, force] = React.useReducer((x) => x + 1, 0)
   const assets = React.useMemo(() => createAssets(path, { skip3d: o.compact === true }), [path, o.compact])
   const sound = React.useMemo(() => createAudioPreview(), [])
@@ -305,10 +306,10 @@ function usePlayer (scene, path, opts) {
     const s = st.current
     if (!s.playing) return
     const dur = sceneRef.current.format.duration
-    s.t += (now - s.last) / 1000
+    s.t += ((now - s.last) / 1000) * s.rate
     s.last = now
     if (s.t >= dur) {
-      if (s.loop) { s.t = 0; sound.play(sceneRef.current, assets, 0, mutedRef.current) } else { s.t = dur; s.playing = false; sound.stop() }
+      if (s.loop) { s.t = 0; sound.play(sceneRef.current, assets, 0, mutedRef.current, s.rate) } else { s.t = dur; s.playing = false; sound.stop() }
     }
     paintNow()
     force()
@@ -320,15 +321,17 @@ function usePlayer (scene, path, opts) {
     get t () { return st.current.t },
     get playing () { return st.current.playing },
     get loop () { return st.current.loop },
+    get rate () { return st.current.rate },
+    setRate (v) { const s = st.current; s.rate = v; if (s.playing) sound.play(sceneRef.current, assets, s.t, mutedRef.current, v); force() },
     setLoop (v) { st.current.loop = v; force() },
-    setMuted (v) { setMuted(v); if (st.current.playing) { if (v) sound.stop(); else sound.play(sceneRef.current, assets, st.current.t, false) } },
+    setMuted (v) { setMuted(v); if (st.current.playing) { if (v) sound.stop(); else sound.play(sceneRef.current, assets, st.current.t, false, st.current.rate) } },
     play () {
       const s = st.current
       if (s.playing) { s.playing = false; cancelAnimationFrame(s.raf); sound.stop(); force(); return }
       if (s.t >= sceneRef.current.format.duration - 0.05) s.t = 0
       s.playing = true
       s.last = performance.now()
-      sound.play(sceneRef.current, assets, s.t, mutedRef.current)
+      sound.play(sceneRef.current, assets, s.t, mutedRef.current, s.rate)
       s.raf = requestAnimationFrame(tick)
       force()
     },
@@ -336,7 +339,7 @@ function usePlayer (scene, path, opts) {
     seek (t) {
       const s = st.current
       s.t = clamp(t, 0, sceneRef.current.format.duration)
-      if (s.playing) sound.play(sceneRef.current, assets, s.t, mutedRef.current)
+      if (s.playing) sound.play(sceneRef.current, assets, s.t, mutedRef.current, s.rate)
       paintNow()
       force()
     },
@@ -391,11 +394,20 @@ function Timeline ({ scene, player }) {
     h('div', { className: 'kbmt-ph', style: { left: (player.t / d) * 100 + '%' } })))
 }
 
+// The same transport as the Slides, Modeleur and Bricks panels (audit A4-26): Start / Play-Pause / End, the four speeds written 0.5× … 4×,
+// and the state at the end of the row (NN% while it plays, Done when it has reached the end and stopped).
+const SPEEDS = [0.5, 1, 2, 4]
 function Transport ({ scene, player, extra }) {
   const hasSound = scene.audio && scene.audio.length > 0
+  const d = scene.format.duration
+  const finished = !player.playing && player.t >= d - 0.05
   return h('div', { className: 'kbmt-transport' },
+    h('button', { type: 'button', className: 'kbmt-step', 'data-act': 'start', title: kt('Début', 'Start'), 'aria-label': kt('Début', 'Start'), onClick: () => { player.pause(); player.seek(0) } }, '\u25C0\u25C0'),
     h('button', { type: 'button', className: 'kbmt-play', 'data-act': 'play', 'aria-label': player.playing ? kt('Pause', 'Pause') : kt('Lecture', 'Play'), onClick: () => player.play() }, Ic(player.playing ? 'pause' : 'play', 14)),
-    h('span', { className: 'kbmt-time' }, fmtT(player.t) + ' / ' + fmtT(scene.format.duration)),
+    h('button', { type: 'button', className: 'kbmt-step', 'data-act': 'end', title: kt('Fin', 'End'), 'aria-label': kt('Fin', 'End'), onClick: () => { player.pause(); player.seek(d) } }, '\u25B6\u25B6'),
+    SPEEDS.map((v) => h('button', { key: v, type: 'button', className: 'kbmt-spd' + (player.rate === v ? ' on' : ''), 'data-act': 'speed', 'aria-pressed': player.rate === v, onClick: () => player.setRate(v) }, `${v}\u00D7`)),
+    h('span', { className: 'kbmt-state' + (player.playing ? ' run' : '') }, finished ? kt('Fini', 'Done') : Math.round((player.t / d) * 100) + kt(' %', '%')),
+    h('span', { className: 'kbmt-time' }, fmtT(player.t) + ' / ' + fmtT(d)),
     h('span', { className: 'kbmt-sp' }),
     hasSound ? h('button', { type: 'button', className: 'kbmt-tgl', 'aria-pressed': !player.muted, title: kt('Son', 'Sound'), 'aria-label': kt('Son', 'Sound'), onClick: () => player.setMuted(!player.muted) }, Ic(player.muted ? 'mute' : 'sound', 14)) : null,
     h('button', { type: 'button', className: 'kbmt-tgl', 'aria-pressed': player.loop, onClick: () => player.setLoop(!player.loop) }, Ic('loop', 14), kt('Boucle', 'Loop')),
@@ -852,9 +864,15 @@ const CSS = `
 .kbmt-stage{flex:none;margin:12px 12px 0;border-radius:8px;overflow:hidden;background:#000;box-shadow:0 0 0 1px var(--k-line2)}
 .kbmt-solo .kbmt-stage{margin:0}
 .kbmt-stage canvas{display:block;width:100%;height:auto;cursor:pointer}
-.kbmt-transport{flex:none;display:flex;align-items:center;gap:10px;padding:9px 12px 8px}
+.kbmt-transport{flex:none;display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;padding:9px 12px 8px}
 .kbmt-solo .kbmt-transport{padding:0}
 .kbmt-play{width:30px;height:30px;border-radius:50%;border:0;background:var(--k-pri);color:var(--k-pri-ink);display:inline-flex;align-items:center;justify-content:center}
+.kbmt-step{flex:none;width:22px;height:22px;border:0;background:transparent;color:var(--k-t2);cursor:pointer;border-radius:6px;font-size:11px}
+.kbmt-step:hover{background:var(--k-l3)}
+.kbmt-spd{border:0;background:transparent;font:inherit;font-size:10.5px;color:var(--k-t2);padding:3px 5px;border-radius:5px;cursor:pointer}
+.kbmt-spd.on{background:color-mix(in srgb,var(--k-t1) 12%,transparent);color:var(--k-t1);font-weight:650}
+.kbmt-state{flex:none;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--k-l3);color:var(--k-t2)}
+.kbmt-state.run{background:var(--k-pri);color:var(--k-pri-ink)}
 .kbmt-time{font:12px var(--dsw-font-family-code,"SF Mono",Menlo,monospace);font-variant-numeric:tabular-nums;color:var(--k-t2)}
 .kbmt-sp{flex:1}
 .kbmt-tgl{display:inline-flex;align-items:center;gap:5px;border:0;background:transparent;color:var(--k-t3);padding:4px 6px;border-radius:6px}
