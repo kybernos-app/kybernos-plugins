@@ -783,7 +783,7 @@ window.__ModuleLoader__.load({
 .kbs-root .kb8-tile.lg{width:54px;height:54px;border-radius:17px}
 .kbs-root .kb8-pill.ok{color:var(--dsw-alias-state-success-primary);background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 14%,transparent)}
 .kbs-root .kb8-pill.warn{color:var(--dsw-alias-state-warn-primary);background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 14%,transparent)}
-.kbs-root .kb8-pill.info{color:#9dbaff;background:color-mix(in srgb,var(--kb-switch-on,#4d7cfe) 20%,transparent)}
+.kbs-root .kb8-pill.info{color:#9dbaff;background:color-mix(in srgb,#4d7cfe 20%,transparent)}
 .kbs-root .kbs-ylist{display:flex;flex-direction:column;gap:8px}
 .kbs-root .kbs-yrow{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-1);cursor:pointer;min-width:0}
 .kbs-root .kbs-yrow:hover{border-color:var(--dsw-alias-border-l2)}
@@ -794,7 +794,7 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-yrow .acts{flex:none;display:flex;align-items:center;gap:8px}
 .kbs-root .kb-sw{width:36px;height:20px;border-radius:999px;background:var(--dsw-alias-bg-layer-3);position:relative;cursor:pointer;border:none;flex:0 0 auto;transition:background .15s}
 .kbs-root .kb-sw i{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--dsw-alias-label-secondary);transition:transform .15s;display:block}
-.kbs-root .kb-sw.on{background:var(--kb-switch-on,#4d7cfe)}
+.kbs-root .kb-sw.on{background:var(--kybernos-accent,var(--dsw-alias-brand-primary,#4d7cfe))}
 .kbs-root .kb-sw.on i{transform:translateX(16px);background:#fff}
 .kbs-root .kb-back{display:inline-flex;align-items:center;gap:8px;background:none;border:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13.5px;cursor:pointer;padding:0;width:fit-content}
 .kbs-root .kb-back:hover{color:var(--dsw-alias-label-primary)}
@@ -814,7 +814,7 @@ window.__ModuleLoader__.load({
 .kbs-root .kb-local-body{margin:0;background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l1);border-radius:10px;padding:12px 14px;font-family:ui-monospace,monospace;font-size:12.5px;line-height:1.6;color:var(--dsw-alias-label-secondary);white-space:pre-wrap;overflow:auto;max-height:60vh}
 /* A card that opens a sheet says so: pointer and hover, instead of the skeleton's static class (cursor:default). */
 .kbs-root .kb8-card{cursor:pointer}
-.kbs-root .kb8-card:focus-visible{outline:2px solid var(--dsw-alias-border-focus,#4d7cfe);outline-offset:2px}
+.kbs-root .kb8-card:focus-visible{outline:2px solid var(--kybernos-accent,var(--dsw-alias-border-focus,#4d7cfe));outline-offset:2px}
 .kbs-root .kb-menu-wrap{position:relative;display:inline-flex}
 /* The three popovers of the panel (Create, Sort, Filters) take the exact tokens of the core plugin's
    .kb6-tb-pop: l1 border, radius 13, shadow 0 14px 34px .3. They used to float higher
@@ -844,13 +844,13 @@ window.__ModuleLoader__.load({
 .kbs-root .kb-drop:hover{border-color:var(--dsw-alias-label-caption);background:var(--dsw-alias-bg-layer-2)}
 .kbs-root .kb-note{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dsw-alias-label-caption)}
 .kbs-root .kb-empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:56px 24px;background:var(--dsw-alias-bg-layer-1);border:1px dashed var(--dsw-alias-border-l1);border-radius:18px;text-align:center;color:var(--dsw-alias-label-secondary)}
-.kbs-root .kb-callout{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1px solid var(--dsw-alias-border-l1);border-left:3px solid var(--kb-switch-on,#4d7cfe);border-radius:12px;background:var(--dsw-alias-bg-layer-1)}
+.kbs-root .kb-callout{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1px solid var(--dsw-alias-border-l1);border-left:3px solid var(--kybernos-accent,var(--dsw-alias-brand-primary,#4d7cfe));border-radius:12px;background:var(--dsw-alias-bg-layer-1)}
 /* — additions outside the mockup: only what the real flow requires (forms, notices) — */
 .kbs-root .kbs-fields{display:flex;flex-direction:column;gap:13px}
 .kbs-root .kbs-label{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-caption)}
 .kbs-root .kbs-input,.kbs-root .kbs-area,.kbs-root .kbs-select{width:100%;box-sizing:border-box;background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l2);border-radius:10px;color:var(--dsw-alias-label-primary);font:inherit;font-size:13.5px;padding:10px 12px}
 .kbs-root .kbs-area{min-height:104px;resize:vertical;font-family:ui-monospace,monospace;font-size:12.5px;line-height:1.6}
-.kbs-root .kbs-input:focus,.kbs-root .kbs-area:focus,.kbs-root .kbs-select:focus{outline:none;border-color:var(--kb-switch-on,#4d7cfe)}
+.kbs-root .kbs-input:focus,.kbs-root .kbs-area:focus,.kbs-root .kbs-select:focus{outline:none;border-color:var(--kybernos-accent,var(--dsw-alias-brand-primary,#4d7cfe))}
 /* The browser's own placeholder grey is 2.4:1 on the dark input (the Index source dialog, audit V-23). */
 .kbs-root .kbs-input::placeholder,.kbs-root .kbs-area::placeholder{color:var(--dsw-alias-label-tertiary)}
 .kbs-root .kbs-check{display:flex;align-items:flex-start;gap:9px;font-size:13px;color:var(--dsw-alias-label-secondary);line-height:1.5}
@@ -2599,7 +2599,7 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
                 h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'yours' ? 'true' : 'false', className: 'kb-seg' + (mode === 'yours' ? ' on' : ''), onClick: () => { setMode('yours'); setDetail(null); setLocal(null) } },
                   'Yours ', h('span', { className: 'count' }, count)),
                 h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'discover' ? 'true' : 'false', className: 'kb-seg' + (mode === 'discover' ? ' on' : ''), onClick: () => { setMode('discover'); setDetail(null); setLocal(null) } },
-                  'Discover ', disc !== null && Array.isArray(disc.skills) ? h('span', { className: 'count' }, String(disc.skills.length)) : null),
+                  'Discover ', disc !== null && Array.isArray(disc.skills) ? h('span', { className: 'count' }, String(discTotal)) : null),
                 tsum.phase !== 'absent' ? h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'team' ? 'true' : 'false', className: 'kb-seg' + (mode === 'team' ? ' on' : ''), onClick: () => { setMode('team'); setDetail(null); setLocal(null); setTeamOpen(null) } },
                   'Team ', tsum.phase === 'ready' ? h('span', { className: 'count' }, String((tsum.counts && tsum.counts.approved) || 0)) : (tsum.phase === 'locked' ? icon('lock', 13) : h('span', { className: 'count' }, '—')),
                   tsum.phase === 'ready' && teamRoleAdmin(tsum.role) && tsum.counts && tsum.counts.pending > 0 ? h('span', { className: 'kbt-dot', title: t('tm.v.review') }) : null) : null)),
@@ -2828,7 +2828,21 @@ body:not([data-ds-dark-theme]) .kbs-root .kb8-pill.warn{color:color-mix(in srgb,
         const editable = s0 === null || s0.editable !== false
         const [value, setValue] = React.useState(s0 !== null && s0.origin === 'setting' && typeof s0.url === 'string' ? s0.url : '')
         React.useEffect(() => {
-          const onKey = (e) => { if (e !== null && e.key === 'Escape') { e.stopPropagation(); props.onClose() } }
+          // R-W2-02: this window sits on the page, outside the Settings dialog; the dialog's own focus handling then never lets Tab reach it
+          // (0 of 44 presses reached Close, Cancel or Save). Tab is walked here, inside the window, and wraps like a dialog's does.
+          const walkTab = (e) => {
+            const box = document.querySelector('[data-kb="index-source-modal"]')
+            if (box === null) return
+            const list = Array.from(box.querySelectorAll('button,input,select,textarea,[tabindex]')).filter((x) => x.disabled !== true && x.tabIndex >= 0)
+            if (list.length === 0) return
+            const at = list.indexOf(document.activeElement)
+            const to = at < 0 ? (e.shiftKey === true ? list.length - 1 : 0) : (at + (e.shiftKey === true ? -1 : 1) + list.length) % list.length
+            e.preventDefault(); e.stopPropagation(); list[to].focus()
+          }
+          const onKey = (e) => {
+            if (e === null) return
+            if (e.key === 'Escape') { e.stopPropagation(); props.onClose() } else if (e.key === 'Tab') walkTab(e)
+          }
           document.addEventListener('keydown', onKey, true)
           return () => document.removeEventListener('keydown', onKey, true)
         }, [])

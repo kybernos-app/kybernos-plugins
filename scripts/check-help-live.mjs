@@ -51,7 +51,7 @@ const PAGES = [
   ['General', 'kybernos-sessions'], ['Kybernos Suite', 'kybernos-hub']
 ]
 // Pages that already had a help of their own: the shared button must not double it.
-const OWN_HELP = [['Atlas', 'kybernos-atlas'], ['Language', 'kybernos-language'], ['Auto Routing', 'kybernos-auto']]
+const OWN_HELP = [['Atlas', 'kybernos-atlas'], ['Language', 'kybernos-language']]
 
 // A page of the Settings menu: the cell is awaited and pressed, and pressed again when the page's own marker does not come (a press lost to a redraw).
 const goTo = (label, marker) => goToSettingsPage(page, label, marker === undefined ? { settleMs: 1800 } : { marker, markerMs: 8000 })
@@ -121,6 +121,12 @@ try {
   for (const [label, dir] of OWN_HELP) {
     const went = await goTo(label)
     check(label + ' — keeps its own help, no second button', went === true && (await helpButton(dir)) === false, { went })
+  }
+  // Auto Routing draws the shared « ? How it works » pill itself, in its own header (A5-19): exactly one, never a second one from the hub.
+  {
+    const went = await goTo('Auto Routing')
+    const n = await poll(async () => { const c = await val(`document.querySelectorAll('[data-kb="help-button"][data-id="kybernos-auto"]').length`); return c > 0 ? c : 0 }, 8000)
+    check('Auto Routing — one shared help button, in its own header, not doubled', went === true && n === 1, { went, n })
   }
 
   console.log('\n── French ──')
