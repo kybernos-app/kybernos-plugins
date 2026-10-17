@@ -677,6 +677,7 @@ function MotionPanel () {
   const draft = React.useRef(null)
   const timer = React.useRef(null)
   const seenAt = React.useRef(0)
+  const failedLoad = React.useRef({ at: -1, when: 0 }) // the scene the host named that could not be read: asked again only after a pause, not every poll
   const lastFrameId = React.useRef('')
   const docRef = React.useRef(null)
   docRef.current = doc
@@ -697,13 +698,14 @@ function MotionPanel () {
 
   const load = React.useCallback(async (path) => {
     const r = await api('GET', 'scene?' + q({ path }))
-    if (!r.ok) { setLoadErr(r.json.message || kt('Impossible de lire cette animation.', 'Cannot read this animation.')); return }
+    if (!r.ok) { setLoadErr(r.json.message || kt('Impossible de lire cette animation.', 'Cannot read this animation.')); return false }
     setLoadErr('')
     const v = engine.validate(r.json.scene)
     setDoc({ path: r.json.path, title: r.json.title, rev: r.json.rev, scene: v.scene, errors: r.json.errors || [], userEdits: r.json.userEdits || [] })
     draft.current = null
     setStatus('')
     setArrival((n) => n + 1)
+    return true
   }, [])
 
   // follow what the host says is current (the agent wrote, Creations pointed here); answer frame requests
@@ -714,10 +716,11 @@ function MotionPanel () {
       try { s = await api('GET', 'state') } catch (e) { return }
       if (dead || !s.ok) return
       const cur = s.json.current
-      if (cur && (cur.at !== seenAt.current || !docRef.current)) {
+      const failed = failedLoad.current
+      if (cur && (cur.at !== seenAt.current || (!docRef.current && (failed.at !== cur.at || Date.now() - failed.when > 15000)))) {
         seenAt.current = cur.at
         const d = docRef.current
-        if (!d || d.path !== cur.path || (draft.current === null)) await load(cur.path)
+        if (!d || d.path !== cur.path || (draft.current === null)) failedLoad.current = (await load(cur.path)) ? { at: -1, when: 0 } : { at: cur.at, when: Date.now() }
       }
       const f = s.json.frame
       if (f && f.id !== lastFrameId.current && docRef.current) {
