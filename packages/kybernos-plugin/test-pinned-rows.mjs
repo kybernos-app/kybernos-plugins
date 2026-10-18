@@ -33,16 +33,17 @@ const rule = (sel) => {
   return plugin.slice(at + 1, plugin.indexOf("'", at + 1))
 }
 
-// 1. geometry: the native session row (measured) — 32px high, 14px text, icon 28px in from the row edge, radius 12.
+// 1. geometry: the native session row — the same height and text size as it (both follow the chat text size since 2026-10-18: 2.2 text heights, the
+//    chat text size; 32px and 14px before), icon 28px in from the row edge, radius 12.
 {
   const open = rule('.kbpin_open')
-  assert.match(open, /height:32px/, 'a pinned row is 32px high like a session row')
-  assert.match(open, /line-height:32px/)
-  assert.match(open, /font-size:14px/, 'its text is 14px like a session row')
+  assert.match(open, /height:calc\(var\(--dsh-content-font-size,13px\)\*2\.2\)/, 'a pinned row is 2.2 text heights high like a session row')
+  assert.match(open, /line-height:calc\(var\(--dsh-content-font-size,13px\)\*2\.2\)/, 'its text is centred in it')
+  assert.match(open, /font-size:var\(--dsh-content-font-size,13px\)/, 'its text is the chat text size like a session row')
   assert.match(open, /padding:0 8px 0 28px/, 'its icon starts where a session row\'s icon starts (28px in from the row edge)')
   assert.match(open, /border-radius:12px/)
   assert.match(rule('.kbpin_row'), /border-radius:12px/, 'the row hover has the native radius')
-  ok('a pinned row has the geometry of a session row (32px, 14px text, icon 28px in, radius 12)')
+  ok('a pinned row has the geometry of a session row (2.2 text heights, chat text size, icon 28px in, radius 12)')
 }
 
 // 2. rhythm: two rows of one group are 2px apart (they were flush), like the native list.

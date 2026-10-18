@@ -79,6 +79,10 @@ check('the group\'s pages are hidden unless it is open, except when a live check
 check('the search sets data-kb-shown on the cells of the groups with a match, and counts', /data-kb-shown', '1'/.test(SRC) && /\[data-kb-hits\]::after\{content:attr\(data-kb-hits\)/.test(SRC))
 check('the observer also hears the page change (aria-current), so a click on a hidden row opens its group', /attributeFilter: \['aria-current'\]/.test(block))
 check('the pages of a group are drawn one step in under its header', /data-kb-sub/.test(block) && /\[data-kb-sub\]\{padding-inline-start:/.test(SRC))
+const c06 = /\[class\*="_navCell"\]\[aria-current="true"\]\{([^}]*)\}/.exec(SRC)
+check('the open page is a soft pill: 18% of the text colour (the hover is 8%), heavier text, and no bar on the edge', c06 !== null && /color-mix\(in srgb,var\(--dsw-alias-label-primary\) 18%,transparent\)/.test(c06[1]) && /font-weight:600/.test(c06[1]) && !/box-shadow/.test(c06[1]), c06 && c06[1])
+const open = /\[data-kb="settings-group"\]\[aria-expanded="true"\]\{([^}]*)\}/.exec(SRC)
+check('an open group has no fill (one active element on the screen): heavier name, chevron turned down, also right to left', open !== null && !/background/.test(open[1]) && /font-weight:600/.test(open[1]) && /\[aria-expanded="true"\] \.kb-cz-chev\{transform:rotate\(90deg\)/.test(SRC) && /scaleX\(-1\) rotate\(90deg\)/.test(SRC), open && open[1])
 check('the group of the open page is drawn stronger even when shut (the person still sees where they are)', /data-kb-here/.test(block) && /\[data-kb-here\]\{[^}]*font-weight:600/.test(SRC))
 
 console.log('room at the end, smaller names')
