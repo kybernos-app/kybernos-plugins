@@ -1353,8 +1353,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
     // ONE switch decides whether the memory pill says the personal memory is off. It becomes true only when the memory session lands (branch feat/teams-memory-cut: a team space then
     // injects nothing personal and captures nothing into it); until then the pill must not promise it.
     const PERSONAL_MEMORY_CUT = true
-    // SEAM (step 6, one working folder per team): `folder` is the team's folder when the host knows one (`state.space_folder`, written by the folder step). Nothing writes it yet,
-    // so no folder pill is drawn: none is invented.
+    // `folder` is the team's working folder when the host has made one (`state.space_folder`: team-folder.mjs); a team without one has no folder pill, none is invented.
     const spaceCueOf = (space, folder, t, personalOff = PERSONAL_MEMORY_CUT) => {
       if (space === null || space === undefined || typeof space !== 'object' || spaceIsPersonal(space)) return null
       const view = espaceVue(space, t)
@@ -1448,6 +1447,98 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
     }
     // <join-link:end>
 
+    // <team-folder:begin> one working folder per team (plan « Équipes », step 6; test-team-folder-nav.mjs plays this block with fake DSH services)
+    // A chat's working folder is fixed when the chat starts, so a team switch cannot move a chat that is open: it opens a NEW chat in the team's folder. DSH's own services do the work:
+    // `workspaces.create({ path })` registers a folder as a workspace (idempotent: a registered one is resolved) and answers its id, `uiWorkspace.startSession(id)` opens a new chat in
+    // it. A switch back to Personal opens one in the workspace the person was in before (remembered by its folder), because `startSession()` with no id would INHERIT the workspace on
+    // screen, which is the team's. Nothing here throws: a service that is missing, or that refuses, leaves the person where they are.
+    // `services` is `{ workspaces, uiWorkspace }` (DSH's, read with `ctx.get`); `teamFolders` the folders of every team of the person (the host's `team_folders`).
+    const FOLDER_LISTED_WAIT_MS = 3000
+    const folderKey = (p) => (typeof p === 'string' ? p.replace(/[\\/]+$/u, '') : '')
+    const isTeamFolder = (path, teamFolders) => Array.isArray(teamFolders) && teamFolders.some((f) => folderKey(f) !== '' && folderKey(f) === folderKey(path))
+    const workspaceRows = (services) => {
+      try {
+        const snap = services.workspaces.list.getSnapshot()
+        return snap !== null && snap !== undefined && Array.isArray(snap.items) ? snap.items.filter((w) => w !== null && typeof w === 'object' && typeof w.workspaceId === 'string' && typeof w.path === 'string') : []
+      } catch (e) { return [] }
+    }
+    /** The workspace of the chat on screen (DSH's main reference names the chat, the workspaces list says which workspace holds it), or null. */
+    const workspaceOnScreen = (services) => {
+      try {
+        const main = services.uiWorkspace.mainReference
+        const sid = main !== null && main !== undefined ? main.sessionId : undefined
+        if (typeof sid !== 'string' || sid === '') return null
+        return workspaceRows(services).filter((w) => Array.isArray(w.sessionIds) && w.sessionIds.includes(sid))[0] || null
+      } catch (e) { return null }
+    }
+    /** Before a switch: when the chat on screen is in a folder that is no team's, that folder is where Personal goes back to. `store` is `{ get(), set(path) }` (never throws). */
+    const rememberPersonalFolder = (services, teamFolders, store) => {
+      const here = workspaceOnScreen(services)
+      if (here === null || isTeamFolder(here.path, teamFolders)) return null
+      try { store.set(here.path) } catch (e) { /* kept for this page only */ }
+      return here.path
+    }
+    /** Resolves true once the workspace is in the list the Client holds (`create` merges it at once; a slower list gets a short wait), false after `ms`. */
+    const workspaceListed = (services, id, ms, timers) => new Promise((resolve) => {
+      const there = () => workspaceRows(services).some((w) => w.workspaceId === id)
+      if (there() === true) { resolve(true); return }
+      let off = null
+      let timer = null
+      const done = (value) => { if (timer !== null) timers.clear(timer); if (typeof off === 'function') { try { off() } catch (e) { /* gone */ } } resolve(value) }
+      timer = timers.set(() => done(there()), ms)
+      try { off = services.workspaces.list.subscribe(() => { if (there() === true) done(true) }) } catch (e) { off = null }
+    })
+    /** Opens a NEW chat in a team's folder: registers the folder as a DSH workspace, then starts a session in it. `{ ok: true, workspaceId }` or `{ ok: false, why }`. */
+    const openTeamChat = async (services, folder, timers) => {
+      if (typeof folder !== 'string' || folder === '') return { ok: false, why: 'no_folder' }
+      let view = null
+      try {
+        if (typeof services.workspaces.create !== 'function' || typeof services.uiWorkspace.startSession !== 'function') return { ok: false, why: 'no_service' }
+        view = await services.workspaces.create({ path: folder })
+      } catch (e) { return { ok: false, why: 'register_failed' } }
+      const id = view !== null && view !== undefined && typeof view.workspaceId === 'string' ? view.workspaceId : null
+      if (id === null) return { ok: false, why: 'no_id' }
+      if (await workspaceListed(services, id, FOLDER_LISTED_WAIT_MS, timers) !== true) return { ok: false, why: 'not_listed' }
+      try { services.uiWorkspace.startSession(id) } catch (e) { return { ok: false, why: 'start_failed' } }
+      return { ok: true, workspaceId: id }
+    }
+    /** Opens a NEW chat in the workspace the person had before the team: the remembered folder when DSH still lists it, else the first workspace that is no team's. Never in a team's folder:
+     *  with none to go to, nothing is opened (an inherited chat would land in the team's folder). */
+    const openPersonalChat = (services, teamFolders, store) => {
+      const rows = workspaceRows(services).filter((w) => !isTeamFolder(w.path, teamFolders))
+      let wanted = null
+      try { wanted = store.get() } catch (e) { wanted = null }
+      const target = rows.filter((w) => folderKey(w.path) === folderKey(wanted))[0] || rows[0]
+      if (target === undefined) return { ok: false, why: 'no_personal_workspace' }
+      try { services.uiWorkspace.startSession(target.workspaceId) } catch (e) { return { ok: false, why: 'start_failed' } }
+      return { ok: true, workspaceId: target.workspaceId }
+    }
+    /** What a switch to a space does to where the next chat opens: a team opens one in its folder, Personal one in the workspace it had. A team with no folder (the disk refused) opens
+     *  nothing: the person is told nothing is broken, the folder pill is just absent. `to`: `{ personal, folder }`. */
+    const enterSpaceChat = async (services, to, teamFolders, store, timers) => {
+      if (to.personal === true) return openPersonalChat(services, teamFolders, store)
+      if (typeof to.folder !== 'string' || to.folder === '') return { ok: false, why: 'no_folder' }
+      return openTeamChat(services, to.folder, timers)
+    }
+    // <team-folder:end>
+    // DSH's own services, read when a switch happens (`apply` hands the context over); the folder Personal goes back to is kept in this browser (a convenience per viewer: the page
+    // works without it, and a reload only forgets it).
+    let ctxRef = null
+    const dshServices = () => {
+      try {
+        if (ctxRef === null || typeof ctxRef.get !== 'function') return null
+        const workspaces = ctxRef.get('workspaces')
+        const uiWorkspace = ctxRef.get('uiWorkspace')
+        return workspaces !== undefined && workspaces !== null && uiWorkspace !== undefined && uiWorkspace !== null ? { workspaces, uiWorkspace } : null
+      } catch (e) { return null }
+    }
+    const PERSONAL_FOLDER_KEY = 'kybernos-cloud.personal-folder'
+    const personalFolderStore = {
+      get: () => { try { return window.localStorage.getItem(PERSONAL_FOLDER_KEY) } catch (e) { return null } },
+      set: (path) => { try { window.localStorage.setItem(PERSONAL_FOLDER_KEY, path) } catch (e) { /* kept for this page only */ } },
+    }
+    const folderTimers = { set: (fn, ms) => window.setTimeout(fn, ms), clear: (id) => window.clearTimeout(id) }
+
     // How often the card's meter reads the allowance again while it is on screen (it also reads on focus and after a refusal).
     const QUOTA_METER_REFRESH_MS = 120000
 
@@ -1473,6 +1564,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       // kybernos-plugin, so that a missing locale does not block the mount.
       inject: ['slots'],
       apply(ctx) {
+        ctxRef = ctx
         const slots = ctx.get('slots')
         if (slots === undefined || slots === null) {
           console.error('[kybernos-cloud] slots service unavailable: no interface')
@@ -2978,6 +3070,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             if (id === state.active_workspace_id) return
             switchingRef.current = { id: id, name: name }
             setSwitching({ id: id, name: name })
+            // Where Personal goes back to: the folder of the chat on screen, read before the switch moves anything (never a team's folder).
+            rememberPersonalNow()
             const end = () => { switchingRef.current = null; if (liveRef.current === true) setSwitching(null) }
             let res = null
             try { res = await callLocal('/space/active', 'POST', { workspace_id: id }) } catch (e) { res = null }
@@ -2990,23 +3084,48 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             }
             void load()
             const plan = switchPlan(res.route)
-            if (plan === 'stale') { end(); setFlashSwitch(false); setFlash(quotaFill(t('spaceRouteStale'), { name: name })); return }
+            if (plan === 'stale') { end(); setFlashSwitch(false); setFlash(quotaFill(t('spaceRouteStale'), { name: name })); enterChat(res.state, id); return }
             if (plan === 'wait') {
-              const t0 = Date.now()
-              let verdict = 'wait'
-              while (verdict === 'wait' && liveRef.current === true) {
-                let applied = null
-                try {
-                  const r = await callLocal('/space/applied', 'POST', { workspace_id: id })
-                  if (r !== null && r !== undefined && r.superseded === true) break
-                  applied = r !== null && r !== undefined && r.ok === true && typeof r.applied === 'boolean' ? r.applied : null
-                } catch (e) { applied = null }
-                verdict = switchState(applied, Date.now() - t0)
-                if (verdict === 'wait') await new Promise((resolve) => { window.setTimeout(resolve, SWITCH_POLL_MS) })
-              }
+              const verdict = await awaitRoute(id)
               if (verdict === 'slow') { setFlashSwitch(false); setFlash(quotaFill(t('spaceSwitchSlow'), { name: name })) }
             }
             end()
+            // The new chat opens only now: a message typed in it can no longer carry the previous team's header.
+            enterChat(res.state, id)
+          }
+          // Waits until DSH runs the model route of the team just chosen (`space/applied`), for a fixed minimum when the host cannot tell and at most SWITCH_WAIT_MAX_MS: 'done', 'slow', or
+          // 'wait' when a later switch took over.
+          const awaitRoute = async (id) => {
+            const t0 = Date.now()
+            let verdict = 'wait'
+            while (verdict === 'wait' && liveRef.current === true) {
+              let applied = null
+              try {
+                const r = await callLocal('/space/applied', 'POST', { workspace_id: id })
+                if (r !== null && r !== undefined && r.superseded === true) break
+                applied = r !== null && r !== undefined && r.ok === true && typeof r.applied === 'boolean' ? r.applied : null
+              } catch (e) { applied = null }
+              verdict = switchState(applied, Date.now() - t0)
+              if (verdict === 'wait') await new Promise((resolve) => { window.setTimeout(resolve, SWITCH_POLL_MS) })
+            }
+            return verdict
+          }
+          // A switch opens a NEW chat in the place that belongs to the space: a team's folder (registered as a DSH workspace), or, back in Personal, the workspace the person had before.
+          // `st` is the host's answer state (it names the folder of the space that just became active). A service that is missing or refuses leaves the person where they are.
+          const rememberPersonalNow = () => {
+            try {
+              const services = dshServices()
+              if (services !== null) rememberPersonalFolder(services, Array.isArray(state.team_folders) ? state.team_folders : [], personalFolderStore)
+            } catch (e) { /* the switch goes on */ }
+          }
+          const enterChat = (st, id) => {
+            try {
+              const s = st !== null && st !== undefined && typeof st === 'object' ? st : {}
+              const space = (Array.isArray(s.workspaces) ? s.workspaces : []).filter((w) => w !== null && typeof w === 'object' && w.id === id)[0]
+              const services = dshServices()
+              if (space === undefined || services === null) return
+              void enterSpaceChat(services, { personal: spaceIsPersonal(space), folder: typeof s.space_folder === 'string' ? s.space_folder : null }, Array.isArray(s.team_folders) ? s.team_folders : [], personalFolderStore, folderTimers).catch(() => null)
+            } catch (e) { /* the switch goes on */ }
           }
 
           // The host reads the account again by itself (a token revoked from the account page, a removal from a team: index.js `profileRefreshTick`), and the
@@ -3122,12 +3241,22 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           }, [phase])
 
           // What the composer's cues need: the space the card names (the chosen one while a switch waits), its working folder when the host names one, and whether a switch waits.
-          // SEAM (step 6, one folder per team): `state.space_folder` is that folder. Nothing writes it yet, so the folder pill stays away.
           React.useEffect(() => {
             if (phase !== 'connected') { cueSet(null, null, false); return }
             const chosen = switching !== null ? (Array.isArray(state.workspaces) ? state.workspaces : []).filter((w) => w !== null && w.id === switching.id)[0] : undefined
             cueSet(chosen !== undefined ? chosen : espaceActifEntry(state), state.space_folder, switching !== null)
           }, [phase, state, switching])
+
+          // The active team has no folder yet (it was joined before folders existed): the host makes it, once per team and page. It opens no chat: only a switch does.
+          const folderAsked = React.useRef(new Set())
+          React.useEffect(() => {
+            if (phase !== 'connected') return
+            const id = typeof state.active_workspace_id === 'string' ? state.active_workspace_id : null
+            const entry = espaceActifEntry(state)
+            if (id === null || entry === undefined || entry === null || spaceIsPersonal(entry) || typeof state.space_folder === 'string' || folderAsked.current.has(id)) return
+            folderAsked.current.add(id)
+            callLocal('/space/folder', 'POST', { workspace_id: id }).then((r) => { if (r !== null && r !== undefined && r.ok === true) void load() }).catch(() => null)
+          }, [phase, state])
 
           const openAndConnect = () => { setPairNote(null); setAutoStart(true); setOpen(true) }
           const openCard = () => { setAutoStart(false); setOpen(true) }
@@ -3151,6 +3280,16 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             window.addEventListener('kybernos-cloud:account', account)
             return () => window.removeEventListener('kybernos-cloud:account', account)
           }, [phase, activeSpace])
+          // A team that was created and took over (it has a plan): the same wait on DSH's model route as a switch, then a NEW chat in its folder. One without a plan did not take over.
+          const enterCreated = async (res) => {
+            try {
+              const made = res !== null && res !== undefined && res.created !== null && typeof res.created === 'object' ? res.created : null
+              if (made === null || made.activated !== true || typeof made.id !== 'string') return
+              rememberPersonalNow()
+              await awaitRoute(made.id)
+              enterChat(res.state, made.id)
+            } catch (e) { /* the team is made and active: the chat is the person's to open */ }
+          }
           // A team that was created WITHOUT a plan did not take over (the host left the person where they were): say so, and offer its plan page.
           const announceCreated = (res) => {
             const made = res !== null && res !== undefined && res.created !== null && typeof res.created === 'object' ? res.created : null
@@ -3345,7 +3484,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             newOpen === true
               ? h(NewSpacePanel, {
                 onClose: () => setNewOpen(false),
-                onCreated: (res) => { void load(); announceCreated(res) },
+                onCreated: (res) => { void load(); announceCreated(res); void enterCreated(res) },
               })
               : null,
             joinOpen === true

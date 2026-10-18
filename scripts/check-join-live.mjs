@@ -18,6 +18,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { cookieDeSession } from './cdp-lib.mjs'
 import { openLivePage, waitFor } from './live-page.mjs'
+import { ACME, DEVICE_TOKEN, ME, PERSONAL as P, STUDIO, startFakeKybernos } from './fake-kybernos.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const host = process.env.KB_HOST || '127.0.0.1:3080'
@@ -34,69 +35,23 @@ const check = (label, cond, detail) => {
   if (cond) { pass += 1; console.log('  ✓ ' + label) } else { failures.push(label); console.log('  ✗ ' + label + (detail === undefined ? '' : '  — ' + JSON.stringify(detail).slice(0, 400))) }
 }
 
-// ── The fake Kybernos ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-const DEVICE_TOKEN = 'kys_fake_join_token'
-const ME = { id: 'u-1', name: 'Dev Person', email: 'dev@example.test', plan: 'team' }
-const P = { id: '11111111-1111-4111-8111-111111111111', name: 'My workspace', personal: true, role: 'owner', created_at: '2026-01-01T00:00:00Z' }
-const ACME = { id: '22222222-2222-4222-8222-222222222222', name: 'Acme', personal: false, role: 'admin', created_at: '2026-01-02T00:00:00Z' }
-const STUDIO = { id: '33333333-3333-4333-8333-333333333333', name: 'Studio B', personal: false, role: 'member', created_at: '2026-01-03T00:00:00Z' }
+// ── The fake Kybernos (scripts/fake-kybernos.mjs) ──────────────────────────────────────────────────────────────────────────────────────────────
 const NOVA = { id: '44444444-4444-4444-8444-444444444444', name: 'Nova Labs', personal: false, role: 'member', created_at: '2026-01-04T00:00:00Z' }
 const tok = (c) => 'Tk' + c.repeat(40) + 'q' // 43 characters of base64url, as the server's 32 random bytes make
 const T = { ok: tok('a'), noplan: tok('b'), used: tok('c'), full: tok('d'), busy: tok('e'), boom: tok('f'), other: tok('g'), hang: tok('h') }
-const INVITES = {
-  [T.ok]: { workspace: STUDIO, inviter: 'Ada Lovelace', email: ME.email, role: 'member' },
-  [T.noplan]: { workspace: NOVA, inviter: 'Grace Hopper', email: ME.email, role: 'member', noPlan: true },
-  [T.full]: { workspace: { id: '55555555-5555-4555-8555-555555555555', name: 'Full Co', personal: false, role: 'member', created_at: '2026-01-05T00:00:00Z' }, inviter: 'Linus', email: ME.email, role: 'member', full: true },
-  [T.other]: { workspace: { id: '66666666-6666-4666-8666-666666666666', name: 'Elsewhere', personal: false, role: 'admin', created_at: '2026-01-06T00:00:00Z' }, inviter: null, email: 'someone.else@example.test', role: 'admin' },
-}
-const fake = { calls: [], spaces: [P, ACME], down: false, consumed: new Set() }
-const json = (res, status, body) => { res.writeHead(status, { 'content-type': 'application/json', date: new Date().toUTCString() }); res.end(JSON.stringify(body)) }
-const win = (kind, seconds, percent) => ({ kind, window_seconds: seconds, scope: 'plan', limit_usd: '10.00', spent_usd: '1.00', remaining_usd: '9.00', exhausted: false, used_percent: percent, resets_at: null })
-const apiServer = createServer((req, res) => {
-  let raw = ''
-  req.on('data', (d) => { raw += d })
-  req.on('end', () => {
-    const url = String(req.url).split('?')[0]
-    const call = { method: req.method, url: String(req.url), path: url, auth: req.headers.authorization || null, ws: typeof req.headers['x-kybernos-workspace'] === 'string' ? req.headers['x-kybernos-workspace'] : null, body: raw }
-    fake.calls.push(call)
-    if (fake.down === true && url.startsWith('/v1/invitations/')) { req.socket.destroy(); return }
-    let sent = {}
-    try { sent = JSON.parse(raw || '{}') } catch (e) { sent = {} }
-    if (req.method === 'POST' && (url === '/v1/invitations/preview' || url === '/v1/invitations/accept')) {
-      const token = typeof sent.token === 'string' ? sent.token : ''
-      const accept = url.endsWith('/accept')
-      if (token === T.busy) return json(res, 429, { error: 'rate_limited', message: 'Too many requests.' })
-      if (token === T.boom) return json(res, 500, { error: 'internal', message: 'boom' })
-      const inv = INVITES[token]
-      if (inv === undefined || (accept && fake.consumed.has(token))) return json(res, 404, { error: 'not_found', message: 'This invitation is invalid or has expired.' })
-      if (!accept) return json(res, 200, { workspace_name: inv.workspace.name, inviter_name: inv.inviter, email: inv.email, role: inv.role, expires_at: '2026-10-25T10:00:00.000Z' })
-      if (call.auth !== 'Bearer ' + DEVICE_TOKEN) return json(res, 401, { error: 'unauthorized', message: 'Sign in required.' })
-      if (inv.email !== ME.email) return json(res, 404, { error: 'not_found', message: 'This invitation is invalid or has expired.' })
-      if (inv.full === true) return json(res, 409, { error: 'seat_limit', message: 'No free seat.' })
-      fake.consumed.add(token)
-      if (!fake.spaces.some((s) => s.id === inv.workspace.id)) fake.spaces = fake.spaces.concat([inv.workspace])
-      return json(res, 200, inv.workspace)
-    }
-    if (url === '/v1/workspaces') return json(res, 200, { workspaces: fake.spaces })
-    if (url === '/v1/me') return json(res, 200, ME)
-    if (url === '/v1/models') return json(res, 200, { data: [{ id: 'kybernos/glm', object: 'model' }] })
-    const m = /^\/v1\/workspaces\/([^/]+)\/(plan|llm\/budget|members)$/.exec(url)
-    if (m !== null) {
-      const space = fake.spaces.find((s) => s.id === m[1])
-      if (space === undefined) return json(res, 404, { error: 'not_found' })
-      if (m[2] === 'plan') {
-        if (space.personal) return json(res, 200, { source: 'none', status: 'active', plan: { key: 'free', name: 'Free', kind: 'free' }, level: null, seats: 1, credit_balance_credits: 0 })
-        if (space.id === NOVA.id) return json(res, 200, { source: 'none', status: 'active', plan: null, level: null, seats: 1, credit_balance_credits: 0 })
-        return json(res, 200, { source: 'subscription', status: 'active', plan: { key: 'team', name: 'Team', kind: 'team' }, level: '1-5 seats', seats: 5, credit_balance_credits: 0 })
-      }
-      if (m[2] === 'llm/budget') return json(res, 200, { windows: space.personal ? [win('member', 2592000, 3)] : [win('member', 18000, 12), win('member', 604800, 30), win('pool', 2592000, 40)] })
-      return json(res, 200, { members: [] })
-    }
-    json(res, 404, { error: 'not_found', path: url })
-  })
+const fake = await startFakeKybernos({
+  spaces: [P, ACME],
+  invites: {
+    [T.ok]: { workspace: STUDIO, inviter: 'Ada Lovelace', email: ME.email, role: 'member' },
+    [T.noplan]: { workspace: NOVA, inviter: 'Grace Hopper', email: ME.email, role: 'member' },
+    [T.full]: { workspace: { id: '55555555-5555-4555-8555-555555555555', name: 'Full Co', personal: false, role: 'member', created_at: '2026-01-05T00:00:00Z' }, inviter: 'Linus', email: ME.email, role: 'member', full: true },
+    [T.other]: { workspace: { id: '66666666-6666-4666-8666-666666666666', name: 'Elsewhere', personal: false, role: 'admin', created_at: '2026-01-06T00:00:00Z' }, inviter: null, email: 'someone.else@example.test', role: 'admin' },
+  },
+  busy: [T.busy],
+  boom: [T.boom],
 })
-await new Promise((resolve) => apiServer.listen(0, '127.0.0.1', resolve))
-const apiUrl = 'http://127.0.0.1:' + apiServer.address().port
+fake.noPlan.add(NOVA.id)
+const apiUrl = fake.url
 
 // ── The sandbox, pointed at the fake and connected ───────────────────────────────────────────────────────────────────────────────────────────────
 const stateFile = join(DSH_HOME, 'kybernos-cloud-join-check.json')
@@ -384,7 +339,7 @@ try {
   check('none of the invitations\' tokens is in the sandbox\'s log', Object.values(T).every((t) => !log.includes(t)))
 } finally {
   if (live !== null) await live.close()
-  await new Promise((resolve) => apiServer.close(resolve))
+  await fake.close()
   // The sandbox goes back to signed out, as the other live checks expect it; the throw-away state file goes.
   try { upAgain = restart(null) } catch (e) { upAgain = false }
   try { rmSync(stateFile, { force: true }) } catch (e) { /* gone */ }

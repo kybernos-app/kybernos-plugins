@@ -154,6 +154,8 @@ const answerFor = (path, req) => {
   if (path === '/kybernos-cloud/space/active' && fake.active !== null) { fake.calls.push('active'); fake.bodies.push({ path, body: sent() }); return fake.active(sent().workspace_id) }
   if (path === '/kybernos-cloud/space/applied' && fake.appliedFn !== null) { fake.calls.push('applied'); return { body: fake.appliedFn(sent().workspace_id) } }
   if (path === '/kybernos-cloud/refresh') { fake.calls.push('refresh'); return { body: { ok: true } } }
+  // A team that is active with no folder asks the host to make one (scripts/check-team-folder-live.mjs plays that): here the host is never reached.
+  if (path === '/kybernos-cloud/space/folder') { fake.calls.push('folder'); return { body: { ok: false, error: 'non_connecte' } } }
   if (path === '/kybernos-cloud/models/sync' && fake.sync !== null) { fake.calls.push('models-sync'); return { body: fake.sync } }
   if (path === '/kybernos-cloud/chats/push' && fake.push !== null) { fake.calls.push('chats-push'); return { body: fake.push } }
   if (path === '/kybernos-mobile/remote/status' && fake.remote !== null) { fake.calls.push('remote-status'); return { body: fake.remote } }

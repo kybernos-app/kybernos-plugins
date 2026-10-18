@@ -902,6 +902,23 @@ row under « Create a team » (inline for 2 spaces, in the « Switch team » pan
 every refusal with its sentence, the server's own page offered for the unexpected one, the guard of the routes with the sandbox's own session cookie (no Origin 403, foreign Origin 403,
 no cookie 401), both colour schemes (contrast), a phone at 390 px, French. Exit 0 / 1 / 3.
 
+## One working folder per team: `scripts/check-team-folder-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-team-folder-live.mjs [--shots <dir>]
+```
+
+The real DSH (its workspaces, its sidebar, its « New chat »), the real host routes of `kybernos-cloud` and the same fake Kybernos as the join check (`scripts/fake-kybernos.mjs`); the
+folders are made in the SANDBOX's own `~/Documents/Kybernos` (it refuses a `HOME` that is not the sandbox's). It restarts the sandbox pointed at the fake and restarts it signed out when
+it ends. On real clicks it proves: switching to a team makes `<Documents>/Kybernos/<Team>`, DSH has a workspace for it (the sidebar's « Workspaces N » grows) and a NEW chat is open in it
+(the new chat's workspace pill says the team's name, and the composer's folder pill appears by itself); **the control**: DSH's own « New chat », pressed in the team's chat, stays in the
+team's folder, which is what a switch back to Personal must not do; the switch back opens a new chat in the workspace the person had; two teams, two folders, two workspaces; a folder
+the person removed is made again at the same path; a team called `../../etc/passwd` gets ONE folder under the root (`etc passwd`) and nothing is made outside it; two teams called « Acme »
+get two folders; a team created without a plan has its folder and opens nothing, one created with a plan takes over and its chat opens; a team joined with an invitation link; an active
+team with no recorded folder gets one at the next page load and no chat opens; a disk that refuses (the root made read-only) leaves the switch working with no folder, no pill, no error, and
+the next page load makes the folder once the disk allows it. Not proven here: a chat that was already started keeping its folder (no model answers in the sandbox, so no message is
+sent: a session's folder is DSH's own rule). Exit 0 / 1 / 3.
+
 ## The Automations board: `scripts/check-automations-board-live.mjs`
 
 ```bash

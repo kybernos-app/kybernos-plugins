@@ -88,7 +88,7 @@ full ids stay in the detail route.
   `none`, `not_written`, `failed`), and `POST /space/applied { workspace_id }` says whether the RUNNING model route (`settings.describe()`, not the file) names the space; the footer says
   « Switching… » until it does (at least 3.5 s when it cannot tell, at most 15 s), and a route that could not be rewritten is said at once (messages may still be billed to the previous
   team). **The composer's cues in a team space** (none in the personal one): a pill on memory in the team's colour, in the composer's dock and the new chat's options row (a pill on the
-  working folder only when `state.space_folder` names one: step 6 writes it, nothing does yet), « Message <Team>… » in the box (DSH's own placeholder node, put back when the person leaves
+  working folder only when `state.space_folder` names one: the host names the team's folder, see « One working folder per team » below), « Message <Team>… » in the box (DSH's own placeholder node, put back when the person leaves
   the team; a disabled box keeps DSH's words, but DSH's plan hint and queue hint are replaced too: nothing on the page tells the placeholder's states apart) and « What is <Team> working on? » over a new chat (the core plugin reads `window.__KB_SPACE_CUE__`). The memory pill says « personal off » only when
   `PERSONAL_MEMORY_CUT` is `true` in the client: it is `false` until the memory work (`feat/teams-memory-cut`) lands, so the pill does not promise what is not true yet.
 
@@ -105,6 +105,24 @@ full ids stay in the detail route.
   `refused` and the dialog offers « Open in the browser »: the server's own page for the same invitation, on the ACTIVE server's web address. After an accepted invitation the host reads
   the list of teams again and the new team's plan (`joined: { id, name, role, plan_key }`) and does NOT activate it: the footer switches through the ordinary path (`space/active`, with
   the wait on the model route), except for a team that has no plan (`plan_key: 'none'`, as for a team the person just created): they stay where they are and are told.
+
+- **One working folder per team** (plan « Équipes », step 6; the host half is `team-folder.mjs`, played by `test-team-folder.mjs` and `test-team-folder-host.mjs`; the client rules are the
+  `team-folder` block, played by `test-team-folder-nav.mjs`; the rendered footer by `test-cloud-client.mjs`; the real DSH, its workspaces and a fake Kybernos by
+  `scripts/check-team-folder-live.mjs`). A chat's working folder is fixed when the chat starts, so a team switch cannot move an open chat: it opens a NEW one in the team's folder.
+  **The folder:** `<Documents>/Kybernos/<Team>` (the root kybernos-multi-device's private folders share: `scripts/test-team-folder-rule.mjs` keeps the two « where is Documents » rules
+  equal; `KYBERNOS_DOCUMENTS_DIR` moves it for tests and the sandbox), made by the host when a team is switched to, created (with or without a plan: it is a place to work either way),
+  joined, or found active with none (`POST /space/folder { workspace_id }`, asked once per team and page: a team joined before this existed). **The name is hostile input** (a team lead
+  or a colleague wrote it): it is cut down to ONE segment (no separator, drive colon, wildcard, control or invisible character, `..`, leading or trailing dot; 60 characters; a name that
+  leaves nothing or that Windows reserves becomes « Team <id> »), the folder is made as a direct child of the root with a `mkdir` that is NOT recursive, and a name already on the disk
+  (another team's, the person's own, a file) is never taken over: the team gets « <Name> (<first 8 of its id>) ». **Where it is recorded:** `kybernos-cloud-folders.json` beside the
+  state file (`{ <workspace id>: <path> }`), not in it: a sign-out wipes the state, and the team's folder must still be the team's at the next sign-in. Only a direct child of the root
+  is followed or listed. The public state names the ACTIVE team's folder (`space_folder`: the composer's folder pill reads it) and every team's (`team_folders`), never the file. The page names a team,
+  never a path. A disk that refuses (`not_allowed`, `mkdir_failed`) leaves the team without a folder, never without a switch. **The page** (DSH's own services, read with `ctx.get`):
+  `workspaces.create({ path })` registers the folder as a DSH workspace (idempotent: a registered one is resolved) and answers its id, `uiWorkspace.startSession(id)` opens a new chat in
+  it, once DSH runs the team's model route (the same wait as a switch). A switch back to Personal opens a new chat in the workspace the person was in before the team (the folder of the chat on
+  screen at the moment of the switch, kept in this browser; else the first workspace that is no team's), never by inheritance: `startSession()` with no id would land in the workspace on
+  screen, which is the team's. A team created with a plan, or joined, does the same; one created without a plan opens nothing. A DSH that is missing, or refuses, changes nothing.
+  A chat already started keeps its folder (DSH's rule).
 - **The failure row of a turn** (`conversation.chat.node`, key `turn-error`): the engine documents that a later entry for a key shadows the shipped one, so the plugin wraps the
   SHIPPED row (found in the slot's entries, registered at the lowest priority with the shipped entry's own locale). `no adapter registered for provider "kybernos"` (the cloud models
   are gone: the connection ended or was never made) and `QUOTA` on a team with no plan are drawn by the shipped row with a sentence and an action beside it (« Sign in again »,

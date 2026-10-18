@@ -270,8 +270,10 @@ const slots = {
     return () => {}
   },
 }
+// DSH's own services the footer reaches on a team switch (step 6): a scene sets them, they are absent otherwise.
+const dshFake = { workspaces: undefined, uiWorkspace: undefined }
 const ctx = {
-  get: (name) => (name === 'slots' ? slots : undefined),
+  get: (name) => (name === 'slots' ? slots : (name === 'workspaces' ? dshFake.workspaces : (name === 'uiWorkspace' ? dshFake.uiWorkspace : undefined))),
   effect: (fn) => { void fn() },
 }
 plugin.apply(ctx)
@@ -1123,6 +1125,7 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
   const win = (kind, seconds, percent, extra = {}) => ({ kind, window_seconds: seconds, scope: 'plan', used_percent: percent, exhausted: false, resets_at: null, ...extra })
   const world = {
     status: null, quota: null, summary: null, calls: [], bodies: [], applied: [], route: 'written', activeOk: true, invitePreview: { ok: false }, inviteAccept: { ok: false },
+    activeState: null, folderAnswer: { ok: true }, createAnswer: { ok: false },
   }
   const stateOf = (count, role, active, extra = {}) => ({ ok: true, connected: true, state: {
     user: { email: 'dev@example.test', name: 'Local test', plan: active === 'p' ? 'free' : 'team' },
@@ -1140,9 +1143,11 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     else if (path === '/quota') json = world.quota !== null ? world.quota : { ok: false }
     else if (path === '/spaces/summary') json = world.summary !== null ? world.summary : { ok: false }
     else if (path === '/space/active') {
-      json = world.activeOk ? { ok: true, route: world.route, state: {} } : { ok: false, error: 'espace_inconnu' }
+      json = world.activeOk ? { ok: true, route: world.route, state: world.activeState !== null ? world.activeState(JSON.parse(init.body).workspace_id) : {} } : { ok: false, error: 'espace_inconnu' }
       if (world.activeOk) world.status = { ...world.status, state: { ...world.status.state, active_workspace_id: JSON.parse(init.body).workspace_id } }
     } else if (path === '/space/applied') json = { ok: true, applied: world.applied.length > 0 ? world.applied.shift() : true }
+    else if (path === '/space/folder') json = world.folderAnswer
+    else if (path === '/space/create') json = world.createAnswer
     else if (path === '/invitation/preview') json = world.invitePreview
     else if (path === '/invitation/accept') {
       json = world.inviteAccept
@@ -1494,6 +1499,145 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     assert.equal(htmlDe(find(card, byKb('join-accept'))).includes('disabled'), false, 'the server decides: the button stays')
     await act(async () => { foot.root.unmount() })
     ok('rejoindre avec un lien : la ligne sous « Create a team » (liste du menu et panneau), le dialogue (coller, verifier, apercu, rejoindre), le jeton seul part vers l\'hote, bascule par le chemin ordinaire avec attente de la route, rien si l\'equipe n\'a pas de formule, une phrase par refus (404 en une seule, equipe pleine, trop d\'essais, injoignable, deconnecte), la page du serveur pour l\'imprevu, lien d\'un autre serveur nomme, autre adresse signalee')
+  }
+
+  // 6. One working folder per team (plan « Équipes », step 6): a switch to a team opens a NEW chat in its folder (registered as a DSH workspace), a switch back to Personal one in the
+  // workspace the person had, a team that is created and takes over does the same after the route wait, a team that is active with no folder asks the host once, and a DSH that is not
+  // there changes nothing. The pure rules are test-team-folder-nav.mjs's; the real DSH is scripts/check-team-folder-live.mjs.
+  {
+    const FOLDERS = { t1: '/docs/Kybernos/Acme', t2: '/docs/Kybernos/Studio B' }
+    const dsh = (screen = 's-notes') => {
+      const rows = [{ workspaceId: 'w-work', path: '/work', sessionIds: ['s-work'] }, { workspaceId: 'w-notes', path: '/notes', sessionIds: ['s-notes'] }]
+      const log = { created: [], started: [] }
+      const state = { screen }
+      dshFake.workspaces = {
+        list: { getSnapshot: () => ({ items: rows }), subscribe: () => () => {} },
+        create: async ({ path }) => { log.created.push(path); let row = rows.find((r) => r.path === path); if (row === undefined) { row = { workspaceId: 'w-' + path.split('/').pop().toLowerCase().replace(/\W+/g, '-'), path, sessionIds: [] }; rows.push(row) } return row },
+      }
+      dshFake.uiWorkspace = { get mainReference() { return { sessionId: state.screen } }, startSession: (id) => { log.started.push(id) } }
+      return log
+    }
+    const memory = {}
+    globalThis.window.localStorage = { getItem: (k) => (k in memory ? memory[k] : null), setItem: (k, v) => { memory[k] = String(v) } }
+    const activation = (id) => {
+      const sp = id === 'p'
+      return { workspaces: workspaces(3, 'admin'), team_folders: [FOLDERS.t1, FOLDERS.t2], ...(sp ? {} : { space_folder: FOLDERS[id] }) }
+    }
+    const reset = (active = 'p') => {
+      world.status = { ...stateOf(3, 'admin', active), state: { ...stateOf(3, 'admin', active).state, team_folders: [FOLDERS.t1, FOLDERS.t2], ...(active === 'p' ? {} : { space_folder: FOLDERS[active] }) } }
+      world.quota = quotaOf({ id: 'p', name: 'My workspace', role: 'owner', personal: true }, [win('member', 2592000, 3)])
+      world.summary = SUMMARY(3)
+      world.route = 'written'; world.activeOk = true; world.applied = [true]
+      world.activeState = activation
+      world.folderAnswer = { ok: true }
+      world.calls.length = 0; world.bodies.length = 0
+    }
+    const pick = async (el, id) => { await open(el); await press(findAll(find(el, byClass('kbfp-menu')), byKb('space-row')).filter((r) => r.attributes['data-space'] === id)[0]); await settle(150) }
+
+    // To a team: its folder is registered and a new chat is started in it, only once the route is applied.
+    reset('p')
+    let log = dsh('s-notes')
+    let foot = await draw()
+    await pick(foot.el, 't1')
+    await settle(900)
+    assert.deepEqual(log.created, [FOLDERS.t1], 'the team\'s folder is registered as a DSH workspace')
+    assert.deepEqual(log.started, ['w-acme'], 'and a new chat is started in that workspace, named explicitly')
+    assert.ok(world.calls.indexOf('POST /space/active') < world.calls.indexOf('POST /space/applied'), 'the switch, then the wait on the route')
+    assert.equal(memory['kybernos-cloud.personal-folder'], '/notes', 'the folder of the chat that was on screen is kept as Personal\'s')
+    await act(async () => { foot.root.unmount() })
+
+    // Back to Personal: a new chat in the workspace the person had, not in the team's folder.
+    reset('t1')
+    log = dsh('s-acme')
+    foot = await draw()
+    await pick(foot.el, 'p')
+    await settle(900)
+    assert.deepEqual(log.created, [], 'nothing is registered for Personal')
+    assert.deepEqual(log.started, ['w-notes'], 'a new chat is started in the remembered workspace, never by inheritance')
+    assert.equal(memory['kybernos-cloud.personal-folder'], '/notes', 'a chat that is in a team\'s folder does not replace what was remembered')
+    await act(async () => { foot.root.unmount() })
+
+    // A switch that fails opens nothing; DSH's services absent change nothing.
+    reset('p')
+    world.activeOk = false
+    log = dsh()
+    foot = await draw()
+    await pick(foot.el, 't1')
+    await settle(300)
+    assert.deepEqual(log.started, [], 'a switch the host refused opens no chat')
+    await act(async () => { foot.root.unmount() })
+    reset('p')
+    dshFake.workspaces = undefined
+    dshFake.uiWorkspace = undefined
+    foot = await draw()
+    await pick(foot.el, 't1')
+    await settle(900)
+    assert.ok(htmlDe(foot.el).includes('kbfp-cardname">Acme<'), 'with no DSH services the switch itself still works')
+    await act(async () => { foot.root.unmount() })
+
+    // A route that could not be rewritten still opens the chat in the team's folder (the choice is kept), after the notice.
+    reset('p')
+    world.route = 'failed'
+    log = dsh()
+    foot = await draw()
+    await pick(foot.el, 't1')
+    await settle(150)
+    assert.deepEqual(log.started, ['w-acme'], 'the choice is kept: the chat opens in the team\'s folder')
+    assert.ok(htmlDe(foot.el).includes('may still be billed to the previous team'), 'and the notice is still said')
+    await act(async () => { foot.root.unmount() })
+
+    // A team that is created and takes over (it has a plan): the same wait, then its chat; one without a plan opens nothing.
+    reset('p')
+    log = dsh()
+    world.createAnswer = { ok: true, state: { ...stateOf(3, 'admin', 't1').state, space_folder: FOLDERS.t1, team_folders: [FOLDERS.t1] }, created: { id: 't1', name: 'Acme', plan_key: 'team', activated: true } }
+    foot = await draw()
+    await open(foot.el)
+    await press(find(find(foot.el, byClass('kbfp-menu')), byKb('space-create')))
+    await settle()
+    await act(async () => { propsOf(find(foot.el, byClass('kbc-input'))).onChange({ target: { value: 'Acme' } }); await new Promise((r) => setTimeout(r, 0)) })
+    await press(find(foot.el, byClass('kbc-btn-primary')))
+    await settle(900)
+    assert.deepEqual(log.started, ['w-acme'], 'a team created with a plan: its chat opens in its folder after the route wait')
+    assert.ok(world.calls.indexOf('POST /space/create') < world.calls.indexOf('POST /space/applied'))
+    await act(async () => { foot.root.unmount() })
+    reset('p')
+    log = dsh()
+    world.createAnswer = { ok: true, state: { ...stateOf(3, 'admin', 'p').state, team_folders: [FOLDERS.t1] }, created: { id: 't1', name: 'Acme', plan_key: 'none', activated: false } }
+    foot = await draw()
+    await open(foot.el)
+    await press(find(find(foot.el, byClass('kbfp-menu')), byKb('space-create')))
+    await settle()
+    await act(async () => { propsOf(find(foot.el, byClass('kbc-input'))).onChange({ target: { value: 'Acme' } }); await new Promise((r) => setTimeout(r, 0)) })
+    await press(find(foot.el, byClass('kbc-btn-primary')))
+    await settle(400)
+    assert.deepEqual(log.started, [], 'a team created without a plan did not take over: no chat opens')
+    await act(async () => { foot.root.unmount() })
+
+    // An active team with no folder yet asks the host once; a team with one, and Personal, never ask.
+    reset('t1')
+    world.status = { ...world.status, state: { ...world.status.state, space_folder: undefined } }
+    delete world.status.state.space_folder
+    log = dsh()
+    foot = await draw()
+    await settle(100)
+    assert.equal(world.calls.filter((c) => c === 'POST /space/folder').length, 1, 'an active team with no folder: the page asks the host once')
+    assert.deepEqual(world.bodies.filter((b) => b.path === '/space/folder').map((b) => b.body), [{ workspace_id: 't1' }], 'naming the team, never a path')
+    assert.deepEqual(log.started, [], 'and opens no chat')
+    await act(async () => { foot.root.unmount() })
+    reset('t1')
+    foot = await draw()
+    await settle(100)
+    assert.equal(world.calls.filter((c) => c === 'POST /space/folder').length, 0, 'a team that has its folder asks nothing')
+    await act(async () => { foot.root.unmount() })
+    reset('p')
+    foot = await draw()
+    await settle(100)
+    assert.equal(world.calls.filter((c) => c === 'POST /space/folder').length, 0, 'Personal has no folder and asks nothing')
+    await act(async () => { foot.root.unmount() })
+    dshFake.workspaces = undefined
+    dshFake.uiWorkspace = undefined
+    delete globalThis.window.localStorage
+    ok('un dossier par equipe : un changement vers une equipe enregistre son dossier comme espace de travail DSH et y ouvre un NOUVEAU chat (apres l\'attente de la route), le retour en Personal ouvre un chat dans l\'espace d\'avant (jamais par heritage), une route non reecrite ouvre quand meme le chat, une equipe creee avec formule fait de meme et sans formule rien, une equipe active sans dossier le demande une fois a l\'hote, DSH absent ne change rien')
   }
   doc.createElement = realCreate
   globalThis.window.addEventListener = realAdd
