@@ -13,6 +13,11 @@ export const run = async (ctx) => {
   const refreshB = () => { const ck = cookieDeSession(hostB); return fetch('http://' + hostB + '/kybernos-cloud/refresh', { method: 'POST', headers: { 'content-type': 'application/json', cookie: ck.nom + '=' + ck.valeur, origin: 'http://' + hostB }, body: '{}' }).then((r) => r.json()) }
   const isMember = async (ws) => { const r = await S.call('GET', `/v1/workspaces/${ws}/members`, { cookie: A.cookie }); return (Array.isArray(r.body) ? r.body : r.body.members || []).some((m) => (m.user_id || m.id) === B.id) }
   const setMembership = async (want) => { // want: the keys B must be a member of
+    // a pending invitation holds a seat when inviting and when adding a member: withdraw them all, so that the seats left are the real ones
+    for (const t of teams) {
+      const open = await S.call('GET', `/v1/workspaces/${t.id}/invitations`, { cookie: A.cookie })
+      for (const p of (open.body && open.body.invitations) || []) await S.call('DELETE', `/v1/workspaces/${t.id}/invitations/${p.id}`, { cookie: A.cookie })
+    }
     for (const t of teams) {
       const has = await isMember(t.id)
       const should = want.includes(t.name)
