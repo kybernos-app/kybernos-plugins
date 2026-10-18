@@ -37,6 +37,7 @@ const MEASURE = `(() => {
     logo: h('[class*="_logoRow"]'), newChat: h('.kb4-split'), item: h('.kb4-item'), project: h('[class*="_projectRow"]'), session: h('[class*="_sessionRow"]'), card: h('.kbfp-card'),
     titleFs: (() => { const t = document.querySelector('[class*="_projectRow"] [class*="_title"]'); return t === null ? null : parseFloat(getComputedStyle(t).fontSize) })(),
     seen: room === null ? null : rows.filter((e) => e.getBoundingClientRect().bottom <= room.getBoundingClientRect().top).length,
+    centred: (() => { const out = []; for (const [rowSel, txtSel] of [['.kbpin_row', '.kbpin_open'], ['[class*="_projectRow"]', '[class*="_title"]'], ['[class*="_sessionRow"]', '[class*="_title"]'], ['.kb4-item', '.kb4-lab']]) { const r = document.querySelector(rowSel); const t = r === null ? null : r.querySelector(txtSel); if (t === null) continue; const rr = r.getBoundingClientRect(); const range = document.createRange(); range.selectNodeContents(t); const x = range.getBoundingClientRect(); out.push(Math.abs(x.top + x.height / 2 - (rr.top + rr.height / 2))) } return out.length === 0 ? null : Math.max(...out) })(),
     bar: (() => { const m = document.querySelector('.kb4-menu'); return m === null ? null : m.scrollWidth <= m.clientWidth + 1 })()
   })
 })()`
@@ -58,6 +59,7 @@ try {
   check('a workspace row and a session row are tighter than the shell\'s 34 and 32px', m.project <= base * 2.5 && m.session <= base * 2.3, [m.project, m.session])
   check('more of the workspace list shows without scrolling (11 of 21 rows at 13px, 8 before)', m.seen >= 10 || base !== 13, m.seen)
   check('nothing scrolls sideways in the menu', m.bar === true)
+  check('the text of every kind of row is in the middle of its row (the hover pill is not off-centre): pinned, workspace, session, menu entry', m.centred !== null && m.centred <= 1.5, m.centred)
   if (shotsDir !== null) await page.shot(shotsDir + '/menu-' + String(base) + '.png')
 
   for (const px of [12, 17]) {
@@ -68,6 +70,7 @@ try {
     check('the menu text follows at once: ' + String(px) + 'px', m.itemFs === px && m.titleFs === px, { menu: m.itemFs, workspaces: m.titleFs })
     check('the rows follow in height (2.2 text heights)', Math.abs(m.item - px * 2.25) <= 2.5, m.item)
     check('the account card follows', m.card !== null && m.card <= px * 5.2 && m.card >= px * 3.6, m.card)
+    check('and the text stays in the middle of its rows', m.centred !== null && m.centred <= 1.5, m.centred)
     if (shotsDir !== null) await page.shot(shotsDir + '/menu-' + String(px) + '.png')
   }
 } finally { await live.close() }

@@ -38,6 +38,14 @@ for (const [what, sel, mult] of [['the Workspaces header', '[class*="_regionArea
 check('their text follows the size too', /\[class\*="_treeBody"\] \[class\*="_title"\]\{font-size:var\(--kb-u\)/.test(SRC))
 check('touch screens keep 44px rows in the workspace list', /@media \(pointer:coarse\)\{\[class\*="_regionArea"\][^}]*height:44px\}\}/.test(SRC))
 
+console.log('the pinned rows: the text sits in the middle of the pill')
+const pin = /'\.kbpin_open\{([^']*)\}'/.exec(SRC)
+check('a pinned row has the height of a session row (2.2 text heights) and the chat text size', pin !== null && /height:calc\(var\(--dsh-content-font-size,13px\)\*2\.2\)/.test(pin[1]) && /font-size:var\(--dsh-content-font-size,13px\)/.test(pin[1]), pin && pin[1])
+check('its line height is the row height AND comes after the font shorthand (which resets it: the text used to sit 6px above the middle of the hover pill)', pin !== null && pin[1].indexOf('font:var(--dsw-font-xs-13)') >= 0 && pin[1].lastIndexOf('line-height:calc(var(--dsh-content-font-size,13px)*2.2)') > pin[1].indexOf('font:var(--dsw-font-xs-13)'), pin && pin[1])
+check('the pinned header, folders and rename field follow the same size', /\.kbpin_header\{[^}]*height:calc\(var\(--dsh-content-font-size,13px\)\*1\.9\)/.test(SRC) && /\.kbpin_folder\{[^}]*height:calc\(var\(--dsh-content-font-size,13px\)\*1\.9\)/.test(SRC) && /\.kbpin_edit\{[^}]*height:calc\(var\(--dsh-content-font-size,13px\)\*2\.1\)/.test(SRC))
+check('touch screens keep a 44px pinned row', /@media \(pointer:coarse\)\{\.kbpin_open\{height:44px;line-height:44px\}\}/.test(SRC))
+check('no override of the pinned rows is left in the shell block (their CSS is ours, in place)', !/_listArea"\] \[class\*="_rows"\]/.test(SRC))
+
 console.log('the account card at the foot of the menu (kybernos-cloud)')
 const card = rule(CLOUD, '.kbfp-card') || ''
 check('the card takes the chat text size and its paddings are in em', /font-size:var\(--dsh-content-font-size,13px\)/.test(card) && !/padding:\d+px/.test(card), card)
