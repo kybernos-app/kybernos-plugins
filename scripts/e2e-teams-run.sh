@@ -24,7 +24,9 @@ ENVF="$KB_E2E_DIR/env.sh"
 SB_NAME="$(basename "$ROOT")"
 SB_A="$HOME/.kybernos-sandbox/$SB_NAME"
 SB_B="$HOME/.kybernos-sandbox/$SB_NAME-b"
-detach() { perl -MPOSIX -e 'POSIX::setsid(); exec @ARGV' -- "$@"; }
+# Starts a long-lived process in its own session with ALL its output in a log (the redirection is on the whole group: a group that only had the command redirected would keep the
+# caller's pipe open for as long as the process lives, and `up` would never return to a caller that reads its output).
+start_bg() { local pidf="$1" logf="$2" cwd="$3"; shift 3; ( cd "$cwd" && exec perl -MPOSIX -e 'POSIX::setsid(); exec @ARGV' -- "$@" ) >> "$logf" 2>&1 < /dev/null & echo $! > "$pidf"; }
 alive() { [ -f "$1" ] && kill -0 "$(cat "$1")" 2>/dev/null; }
 
 write_env() {
@@ -46,14 +48,14 @@ up() {
   ln -sfn "$KB_SERVER_DIR/node_modules" "$KB_E2E_DIR/node_modules"
   rm -f "$KB_E2E_DIR/replica-state.json" "$KB_E2E_DIR/accounts.json" "$KB_E2E_DIR/proxy.jsonl"
   if ! alive "$KB_E2E_DIR/replica.pid"; then
-    ( cd "$KB_SERVER_DIR" && REPLICA_PORT="$API_PORT" REPLICA_API_URL="http://localhost:$WEB_PORT" REPLICA_WEB_ORIGIN="http://localhost:$WEB_PORT" REPLICA_SEED=catalogue \
-        REPLICA_STATE="$KB_E2E_DIR/replica-state.json" detach node "$KB_E2E_DIR/replica-e2e.ts" >> "$KB_E2E_DIR/replica.log" 2>&1 < /dev/null & echo $! > "$KB_E2E_DIR/replica.pid" )
+    REPLICA_PORT="$API_PORT" REPLICA_API_URL="http://localhost:$WEB_PORT" REPLICA_WEB_ORIGIN="http://localhost:$WEB_PORT" REPLICA_SEED=catalogue REPLICA_STATE="$KB_E2E_DIR/replica-state.json" \
+      start_bg "$KB_E2E_DIR/replica.pid" "$KB_E2E_DIR/replica.log" "$KB_SERVER_DIR" node "$KB_E2E_DIR/replica-e2e.ts"
   fi
   for _ in $(seq 1 90); do curl -s -o /dev/null "http://localhost:$API_PORT/" && break; sleep 1; done
   curl -s -o /dev/null "http://localhost:$API_PORT/" || { echo "the replica does not answer (see $KB_E2E_DIR/replica.log)" >&2; exit 1; }
   # 2. the recording proxy
   if ! alive "$KB_E2E_DIR/proxy.pid"; then
-    ( detach node "$ROOT/scripts/recording-proxy.mjs" --listen "$WEB_PORT" --to "http://127.0.0.1:$API_PORT" --log "$KB_E2E_DIR/proxy.jsonl" >> "$KB_E2E_DIR/proxy.out" 2>&1 < /dev/null & echo $! > "$KB_E2E_DIR/proxy.pid" )
+    start_bg "$KB_E2E_DIR/proxy.pid" "$KB_E2E_DIR/proxy.out" "$ROOT" node "$ROOT/scripts/recording-proxy.mjs" --listen "$WEB_PORT" --to "http://127.0.0.1:$API_PORT" --log "$KB_E2E_DIR/proxy.jsonl"
     sleep 1
   fi
   write_env; set +u; source "$ENVF"; set -u
