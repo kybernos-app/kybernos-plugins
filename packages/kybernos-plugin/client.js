@@ -569,6 +569,9 @@ let kbLocaleRead = () => 'en'
       'kbci.copy': { kybernos: 'Copier', en: 'Copy' },
       'kbci.copied': { kybernos: 'Copié', en: 'Copied' },
       'kbci.toast': { kybernos: 'ID copié dans le presse-papiers', en: 'Chat ID copied to clipboard' },
+      // Full-page toggle in the conversation header (browser Fullscreen API).
+      'kbfs.on': { kybernos: 'Afficher en plein écran', en: 'Enter full screen' },
+      'kbfs.off': { kybernos: 'Quitter le plein écran', en: 'Exit full screen' },
       // Chat header: fold the extras (tags, call, tabs, status line), pin and rename from there.
       'kbfold.show': { kybernos: 'Afficher les outils du chat', en: 'Show chat tools' },
       'kbfold.hide': { kybernos: 'Masquer les outils du chat', en: 'Hide chat tools' },
@@ -27179,6 +27182,51 @@ body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-al
     ctx.effect(() => slots.inject('conversation.session.header.actions', () => slots.register(
       { name: 'conversation.session.header.actions', id: 'kybernos-chat-id', order: 30 }, KbChatId)),
     'kybers: copy chat id button')
+    // ── Plein écran : bouton dans l'en-tête de conversation ─────────────────
+    // Toggle the whole page through the browser Fullscreen API. The state
+    // follows `fullscreenchange` (not the click) so Esc and the browser's own
+    // controls keep the icon honest. No API (embedded webview) → no button.
+    const KbFullscreen = () => {
+      const pleinPair = React.useState(false)
+      const plein = pleinPair[0]
+      const setPlein = pleinPair[1]
+      const dispoPair = React.useState(false)
+      const dispo = dispoPair[0]
+      const setDispo = dispoPair[1]
+
+      React.useEffect(() => {
+        const doc = typeof document !== 'undefined' ? document : null
+        if (doc === null || doc.documentElement === null || typeof doc.documentElement.requestFullscreen !== 'function') return undefined
+        setDispo(true)
+        const lu = () => { try { setPlein(doc.fullscreenElement !== null && doc.fullscreenElement !== undefined) } catch (e) { /* lecture interdite */ } }
+        lu()
+        doc.addEventListener('fullscreenchange', lu)
+        return () => { doc.removeEventListener('fullscreenchange', lu) }
+      }, [])
+
+      if (dispo !== true) return null
+      const basculer = () => {
+        const doc = typeof document !== 'undefined' ? document : null
+        if (doc === null) return
+        try {
+          if (doc.fullscreenElement !== null && doc.fullscreenElement !== undefined) void doc.exitFullscreen()
+          else void doc.documentElement.requestFullscreen()
+        } catch (e) { /* refus navigateur */ }
+      }
+      const libelle = plein === true ? kbt('kbfs.off') : kbt('kbfs.on')
+      return h('button', {
+        type: 'button',
+        className: 'kbci-btn',
+        'data-kb': 'fullscreen-toggle',
+        'aria-label': libelle,
+        'aria-pressed': plein === true,
+        title: libelle,
+        onClick: basculer,
+      }, Icon(plein === true ? 'minimize2' : 'maximize2', 17))
+    }
+    ctx.effect(() => slots.inject('conversation.session.header.actions', () => slots.register(
+      { name: 'conversation.session.header.actions', id: 'kybernos-fullscreen', order: 35 }, KbFullscreen)),
+    'kybers: full-screen toggle in the conversation header')
     ctx.effect(() => styles.insert(`
 /* ── La pastille « ID » et son panneau ───────────────────────────────────────
    Le gabarit de la maquette, transpose sur les jetons du theme : meme
