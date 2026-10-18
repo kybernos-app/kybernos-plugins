@@ -25046,7 +25046,15 @@ function renderFit(canvas, model, cam, opts){
         const tr = trackRef.current
         if (tr === null || typeof sp.match !== 'string') return
         const card = tr.querySelector('[data-id="' + sp.match + '"]')
-        if (card !== null && typeof card.scrollIntoView === 'function') { try { card.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: kbNcCalm() ? 'auto' : 'smooth' }) } catch (e) { /* the card stays where it is */ } }
+        if (card === null) return
+        const cr = card.getBoundingClientRect()
+        const vr = tr.getBoundingClientRect()
+        if (cr.left >= vr.left && cr.right <= vr.right) return
+        // The track snaps to the start of a chapter (`proximity`): a scroll that ends between two of them is pulled back to the
+        // first (measured on the real page). So bring the card's CHAPTER to the start, which is a snap point, when it fits.
+        const grp = card.closest('.kb8-sl-group')
+        const target = (grp !== null && grp.getBoundingClientRect().width <= vr.width) ? grp : card
+        if (typeof target.scrollIntoView === 'function') { try { target.scrollIntoView({ inline: target === card ? 'nearest' : 'start', block: 'nearest', behavior: kbNcCalm() ? 'auto' : 'smooth' }) } catch (e) { /* the card stays where it is */ } }
       }, [sp.match])
       const page = (dir) => {
         const tr = trackRef.current
@@ -25173,7 +25181,7 @@ function renderFit(canvas, model, cam, opts){
 .kb8-sl-card:hover,.kb8-sl-card:focus-visible{color:var(--dsw-alias-label-primary);transform:translateY(-3px);box-shadow:0 0 0 1px var(--dsw-alias-border-l2),0 12px 28px -14px rgba(0,0,0,.35)}
 .kb8-sl-card:focus-visible{outline:2px solid var(--kb8-acc);outline-offset:2px}
 .kb8-sl-card.is-match{color:var(--dsw-alias-label-primary);box-shadow:0 0 0 1.5px color-mix(in srgb,var(--kb8-acc) 70%,var(--dsw-alias-border-l2)),0 0 0 6px color-mix(in srgb,var(--kb8-acc) 10%,transparent)}
-.kb8-sl-stage{position:relative;height:100px;display:grid;place-items:center;background:color-mix(in srgb,var(--kb8-acc) 5%,var(--dsw-alias-bg-layer-3))}
+.kb8-sl-stage{position:relative;height:100px;display:grid;place-items:center;background:color-mix(in srgb,var(--kb8-acc) 5%,var(--dsw-alias-bg-module-platform))}
 .kb8-sl-stage::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 88% -8%,color-mix(in srgb,var(--kb8-acc) 12%,transparent),transparent 62%)}
 .kb8-sl-stage svg{position:relative;width:92px;height:63px;overflow:visible;filter:drop-shadow(0 3px 4px color-mix(in srgb,var(--dsw-alias-label-primary) 14%,transparent));transition:transform .45s cubic-bezier(.16,1,.3,1)}
 .kb8-sl-stage svg *{transform-box:fill-box}
