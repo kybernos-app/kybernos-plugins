@@ -61,10 +61,12 @@ await live.close()                         // kills Chrome, removes the profile
   when the secret is unreadable, or when the GUI never renders.
 - The GUI has no URL routes: pages are reached by clicking. `clickText` matches an
   element's own text, ignoring the `⟦ ⟧` pseudo-translation marks.
-- **Settings has a fold.** Most of our pages (Usage, Workers, Calls, Web Search…) sit under a shut « Advanced » header, and a hidden
-  cell cannot take a real mouse click. `openSettings(page)` opens the fold for you (in the throw-away browser's own storage: nothing of
-  your DSH changes); pass `{ fold: 'keep' }` to leave it as it is (the check of the fold itself does). A script that clicks the cell
-  with `cell.click()` reaches a page either way, and landing on a page inside the fold opens it, as it does for a person.
+- **Settings is an accordion.** Our pages sit in eight groups, one open at a time, and a hidden cell cannot take a real mouse click.
+  `openSettings(page)` draws every page for you (`data-kb-all-pages` on `<html>`, in the throw-away browser only: nothing of your DSH changes);
+  pass `{ fold: 'keep' }` to leave the menu as it is (the check of the accordion itself does). A script that clicks the cell with `cell.click()`
+  reaches a page either way, and landing on a page inside a group opens that group, as it does for a person. To try a change of the core plugin's
+  client before it is merged, `check-settings-nav-live.mjs --worktree` and `check-settings-search-live.mjs --worktree` serve this checkout's client in
+  the throw-away browser (`scripts/lib-bundle-swap.mjs`).
 - **Never read the menu once after a fixed delay.** Plugins add and retitle Settings cells a moment after the dialog opens, and a busy machine only
   makes that moment longer. `goToSettingsPage(page, label|RegExp, { marker })` waits for the cell, presses it and waits for the page's own marker (a
   JS expression), pressing again when the press was lost to a redraw; `openSettings(page, { tries })` does the same for the dialog itself. A check

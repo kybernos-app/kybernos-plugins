@@ -522,9 +522,15 @@ let kbLocaleRead = () => 'en'
       'menu.referral.copycode': { kybernos: 'Copier le code', en: 'Copy code' },
       'menu.referral.copylink': { kybernos: 'Copier le lien', en: 'Copy link' },
       'menu.referral.copied': { kybernos: 'Copié', en: 'Copied' },
-      // ── Settings menu sections: the essentials have no header, then a fold « Advanced » and « Other settings » (audit N-01, V-24) ──
-      'settings.group.advanced': { kybernos: 'Avancé', en: 'Advanced' },
-      'settings.group.other': { kybernos: 'Autres réglages', en: 'Other settings' },
+      // ── Settings menu groups: General alone, then eight folds, one open at a time ──
+      'settings.group.models': { kybernos: 'Modèles & routage', en: 'Models & routing' },
+      'settings.group.agents': { kybernos: 'Agents', en: 'Agents' },
+      'settings.group.tools': { kybernos: 'Compétences & outils', en: 'Skills & tools' },
+      'settings.group.memory': { kybernos: 'Mémoire & contexte', en: 'Memory & context' },
+      'settings.group.voice': { kybernos: 'Voix & appels', en: 'Voice & calls' },
+      'settings.group.look': { kybernos: 'Interface', en: 'Interface' },
+      'settings.group.devices': { kybernos: 'Appareils & cloud', en: 'Devices & cloud' },
+      'settings.group.system': { kybernos: 'Système', en: 'System' },
       // « A short automatic state + a Customize fold »: the label of the fold every page shares (window.__KB_CUSTOMIZE__, audit N-08)
       'kbcz.customize': { kybernos: 'Personnaliser', en: 'Customize' },
       'kbac.appearance': { kybernos: 'Apparence', en: 'Appearance' },
@@ -545,6 +551,20 @@ let kbLocaleRead = () => 'en'
       'menu.referral.fromaccount': { kybernos: 'Lu sur ton compte Kybernos.', en: 'Read from your Kybernos account.' },
       'settings.back': { kybernos: 'Retour au workspace', en: 'Back to workspace' },
       'settings.search': { kybernos: 'Rechercher dans les réglages…', en: 'Search settings…' },
+      'settings.search.found1': { kybernos: '1 résultat pour « {q} »', en: '1 result for “{q}”' },
+      'settings.search.foundN': { kybernos: '{n} résultats pour « {q} »', en: '{n} results for “{q}”' },
+      'settings.search.scope': { kybernos: 'dans les titres, les réglages, les descriptions et les mots proches', en: 'in titles, settings, descriptions and related words' },
+      'settings.search.none': { kybernos: 'Rien pour « {q} »', en: 'Nothing for “{q}”' },
+      'settings.search.none.sub': { kybernos: 'Aucune page, aucun réglage, aucune description ni mot proche ne correspond. Essaie un mot plus court, ou l’une de ces recherches.', en: 'No page, setting, description or related word matches. Try a shorter word, or one of these.' },
+      'settings.search.try': { kybernos: 'taille du texte|clé API|mode sombre|mémoire|voix', en: 'font size|API key|dark mode|memory|voice' },
+      'settings.search.page': { kybernos: 'Page', en: 'Page' },
+      'settings.search.also': { kybernos: 'aussi dans', en: 'also in' },
+      'settings.search.why.related': { kybernos: 'mot proche : {w}', en: 'related word: {w}' },
+      'settings.search.why.relatedN': { kybernos: 'mots proches : {w}', en: 'related words: {w}' },
+      'settings.search.why.value': { kybernos: 'correspond à une valeur', en: 'matches a value' },
+      'settings.search.why.typo': { kybernos: 'faute corrigée : {w}', en: 'typo fixed: {w}' },
+      'settings.search.why.title': { kybernos: 'tu voulais dire « {w} »', en: 'did you mean “{w}”' },
+      'settings.search.hint': { kybernos: '↑ ↓ pour choisir · Entrée pour ouvrir · Échap pour effacer', en: '↑ ↓ to move · Enter to open · Esc to clear' },
       'kbci.open': { kybernos: 'Afficher l’ID du chat', en: 'Show chat ID' },
       'kbci.label': { kybernos: 'ID du chat', en: 'Chat ID' },
       'kbci.copy': { kybernos: 'Copier', en: 'Copy' },
@@ -2694,17 +2714,237 @@ const kbNavTitles = (texts, keys) => texts.map((t, i) => {
 })
 // </kb-nav-titles>
 
-// ── The « Advanced » fold of the Settings menu: when it is open (<kb-settings-fold>) ──
-// Shut until the person needs it. It opens by itself when they LAND on a page inside it (a deep link, a help pointer, a click on a row of the
-// Suite: the cell is clicked while hidden, and the page changes) and that is remembered, like any choice; staying on such a page does not
-// fight a person who shuts it on purpose. The search box opens it on its own, apart from this (a query shows every match, and lets go after).
-//   stored: what the person chose (true / false / null for never); inside: the page now open is one of the fold's;
-//   changed: it is not the page that was open at the last look.   Returns { open, remember }: remember = write « open » to the store.
-const kbFoldNext = (state) => {
-  const landed = state.inside === true && state.changed === true
-  return { open: landed || state.stored === true, remember: landed && state.stored !== true }
+// ── The groups of the Settings menu: which one is open (<kb-settings-fold>) ──
+// Every group but General is a fold, and ONE is open at a time (an accordion: nine rows and one group fit a window, thirty do not). It opens
+// by itself when the person LANDS on a page inside it (a deep link, a help pointer, a search result, a click on a row of the Suite: the cell is
+// clicked while hidden, and the page changes) and that is remembered, like any choice. Staying on such a page does not fight a person who shuts
+// the group on purpose. While a search runs the groups with a match open on their own, apart from this.
+//   stored: the group the person left open (its id, '' for none, null for never chose); active: the id of the group the open page is in (null
+//   for General or an unknown page); changed: it is not the page that was open at the last look.   Returns { open, remember }.
+const kbGroupNext = (state) => {
+  const landed = state.active !== null && state.changed === true && state.active !== state.stored
+  return { open: landed ? state.active : (state.stored === undefined ? null : state.stored), remember: landed }
 }
 // </kb-settings-fold>
+
+// ── Search in the Settings (<kb-settings-search>) ──
+// The old search read the titles of the pages and nothing else: « dark », « font », « api key » found nothing and said nothing. This one
+// reads what is on the pages too: the settings, their descriptions, the words of their switches, and the words people use for them (French,
+// English, Spanish), and it forgives a typo. Plain functions: no DOM, no React, so a test runs them alone.
+// INDEX rows: [page, tab or section, label, description, words of the control, related words, same-setting key, text to go to]. `page` is the key the
+// organiser knows the page by (KB_NAV_KEYS). The last field is the text to scroll to when the page does not draw the label itself (a label that
+// carries a number, the heading of a page that is one setting): it defaults to the label. Labels and descriptions are what the page SHOWS, word for word (a test of the real page, scripts/
+// check-settings-search-live.mjs, opens every page and looks for them); a description we are not sure of is left empty, never paraphrased.
+const KB_SS_MODE = 'light dark system'
+const KB_SS_INDEX = [
+  ['general', 'Behaviour', 'Onboarding', 'The welcome pages ran when the plugin was installed. Replay them to redo your profession, display mode, models and starter kit.', 'replay', 'bienvenue tutoriel premiers pas demarrage profession bienvenida'],
+  ['general', 'Behaviour', 'Starter kit', 'Skills and agent teams that fit your profession. Open it any time to add more, or after a change of work.', 'open', 'kit de demarrage metier profession competences equipes'],
+  ['general', 'Behaviour', 'Name each chat when it ends', 'On: when a work session ends, the chat gets a short title that says what was done, and an icon that fits.', 'yes no', 'titre automatique renommer nommer conversation chat icone rename titulo'],
+  ['general', 'Behaviour', 'Study model', 'Your pick. It checks that your models still answer, helps tidy your memory, and decides which agent team and which chat icon fit.', '', 'modele etude memoire titre ranger'],
+  ['general', '', 'Permission', 'Choose the default permission mode for new sessions', 'full access', 'autorisation droits acces complet securite confirmer sandbox permisos'],
+  ['general', '', 'Language', 'Manage languages and translations here', '', 'langue idioma traduction francais espanol interface'],
+  ['general', '', 'Appearance', '', KB_SS_MODE, 'mode sombre mode clair nuit jour systeme apparence modo oscuro', 'mode'],
+  ['general', '', 'Font size', 'Only affects conversation content', '', 'police taille du texte typographie zoom agrandir lisibilite caracteres letra tamano menu', 'fs'],
+  ['general', '', 'Work details', 'Choose how much detail to show for tool calls', 'detailed', 'appels outils details verbosite tool calls'],
+  ['general', '', 'When to Collapse Work Details', 'Choose when to automatically collapse work details', 'on completion', 'replier plier masquer reduire'],
+  ['general', '', 'Show coding view', 'Shows trajectory, code diffs, and all Agent presets', '', 'diff code vue developpeur trajectoire'],
+  ['general', '', 'Keyboard shortcuts', 'View and edit available shortcuts and input actions', 'edit shortcuts', 'raccourcis clavier touches hotkeys atajos'],
+  ['general', '', 'Send behavior while busy', 'What Enter and the Send button do while the agent is running; Cmd/Ctrl+Enter uses the other behavior', 'queue', 'entree envoyer file attente pendant execution enter'],
+  ['general', '', 'Performance & usage', 'Choose how much performance and usage information to show', 'compact', 'performance utilisation tokens compteur affichage rendimiento'],
+  ['general', '', 'Upload Session Log when using the official model API', 'Help improve DeepSeek models and products.', '', 'telemetrie donnees confidentialite journal logs privacy envoyer partager'],
+
+  ['appearance', '', 'Mode', 'Choose the interface theme.', KB_SS_MODE, 'mode sombre mode clair nuit jour systeme apparence modo oscuro', 'mode', 'Choose the interface theme.'],
+  ['appearance', '', 'Palette, accent, background and font', '', 'open theme', 'palette couleurs fond police accent'],
+
+  ['theme', 'Essentials', 'Mode', 'The mode is the same setting as on the Appearance page: change it in either place.', KB_SS_MODE, 'mode sombre mode clair nuit jour systeme apparence modo oscuro', 'mode'],
+  ['theme', 'Essentials', 'Theme', 'A theme sets the colors; it can also keep the font, the corners and the menu icons.', 'dsh default deep blue aurora nebula amber oled midnight paper clean light neutral violet rose ember', 'palette couleurs preset sombre noir oled nuit clair dark light papier tema'],
+  ['theme', 'Essentials', 'Font', 'Choose the interface font; search filters the families.', '', 'police typographie caracteres letra'],
+  ['theme', 'Glass and background', 'Glass blur', '', '', 'flou verre depoli transparence effet'],
+  ['theme', 'Glass and background', 'Background image', 'Fine adjustments for the chosen background.', '', 'fond ecran arriere plan image wallpaper fondo'],
+  ['theme', 'Glass and background', 'Sidebar transparency', '', '', 'barre laterale menu transparence'],
+  ['theme', 'Colors', 'Accent color', 'Text colors are recalculated to stay readable.', '', 'couleur accent principale teinte boutons'],
+  ['theme', 'Colors', 'Color tokens', 'Edit a token for the current mode: contrast is recalculated right away.', '', 'jetons variables css couleurs avance'],
+  ['theme', 'Text and shape', 'Text size', '', '', 'police taille du texte typographie zoom agrandir lisibilite caracteres letra tamano menu', 'fs'],
+  ['theme', 'Text and shape', 'Ligatures', '', '', 'police typographie lettres'],
+  ['theme', 'Text and shape', 'Radii', 'Rounding of buttons, cards and panels.', 'sharp standard soft', 'arrondis coins bords angles rayon radius'],
+  ['theme', 'Animation', 'Thinking animation', 'What animates at the bottom of the chat while the agent works.', '', 'animation chargement reflexion attente loader'],
+  ['theme', 'Icons', 'Menu icons', 'How the sidebar entries are drawn: grey at rest, in colour on the open page.', 'classic flat duotone', 'icones menu barre laterale style'],
+  ['theme', 'Accessibility', 'Contrast', 'Legibility of text and borders.', 'standard enhanced maximum', 'contraste lisibilite malvoyant vision'],
+  ['theme', 'Accessibility', 'Reduce animations', '', '', 'reduire animations mouvement motion vestibulaire'],
+  ['theme', 'Accessibility', 'Focus ring', 'Visible when you navigate by keyboard: try Tab.', 'accent double thick', 'focus clavier navigation tab anneau contour'],
+  ['theme', 'Accessibility', '44 px targets', '', '', 'cibles tactiles grandes zones tactile touch'],
+  ['theme', 'Accessibility', 'Link underlining', '', '', 'liens soulignes'],
+  ['theme', 'Accessibility', 'Color-blind palette', '', '', 'daltonisme daltonien couleurs'],
+
+  ['language', '', 'Interface language', 'Choose the language of the interface. Texts that aren’t translated yet stay in English.', '', 'langue idioma traduction francais espanol deutsch', '', 'Language'],
+  ['language', '', 'Add a language', 'Open “Add a language” and pick one from the ISO list.', '', 'ajouter langue traduire nouvelle'],
+
+  ['memory & lessons', '', 'Memories', '', '', 'memoire souvenirs faits personnels retenir apprentissage memoria contexte'],
+  ['memory & lessons', '', 'Lessons learned', '', '', 'lecons apprentissage corrections erreurs'],
+  ['kybernos', '', 'Custom instructions', 'Kept on this computer: every agent reads them, in new chats.', '', 'instructions personnalisees consignes regles prompt systeme agents md preferences style'],
+  ['kybernos', '', 'Models', 'The list updates by itself when your plan or your server changes.', '', 'modeles liste plan'],
+
+  ['ai provider & models', '', 'Add provider', '', '', 'cle api api key fournisseur openai anthropic deepseek jeton token ajouter proveedor erreur panne hors service sante health indisponible'],
+  ['ai provider & models', '', 'Kybernos Cloud', '', 'manage kybernos cloud', 'compte cloud abonnement forfait'],
+  ['auto routing', '', 'Automatic routing', 'On: Auto is used in every session. Off: you turn it on per session, from the model menu in the composer.', '', 'routage automatique choix modele bascule routeur'],
+  ['auto routing', '', 'Models Auto may use', 'Only the models you pick below. The list order is the fallback order.', 'all models free models my list', 'secours fallback liste modeles autorises'],
+  ['free llms', '', 'Available free models', 'Free models, no account or API key.', 're-check', 'gratuit sans cle opencode gratis'],
+  ['ollama local models', '', 'Machine', '', '', 'ram memoire gpu puce materiel processeur', '', 'Machine · measured (sysctl)'],
+  ['ollama local models', '', 'Model memory budget', '', '', 'memoire budget ram modele local hors ligne offline', '', 'Model memory budget · estimated'],
+  ['ollama local models', '', 'Local engine', '', '', 'moteur ollama local hors ligne offline'],
+  ['usage', '', 'Your Kybernos plan', '', '', 'quota limite consommation forfait abonnement jetons facture cuota'],
+  ['usage', '', 'Your keys and local models', '', '', 'cout depenses tokens cles consommation'],
+
+  ['agent presets', '', 'Standard mode', 'Work with code, files, and information.', 'ptc creator minimal', 'mode agent persona preajuste'],
+  ['workers', '', 'Check all', 'Workers are the coding assistants installed on your computer.', '', 'claude code codex gemini cli assistants code delegation'],
+  ['automations', '', 'Pause all automations', 'Nothing fires while this is on.', '', 'pause automatisations taches planifiees cron planificador'],
+  ['automations', '', 'Show DSH’s own “Automation tasks” list', '', '', 'liste taches automatisation'],
+  ['commands', '', 'Commands', 'One template: inserted text, or an inline form.', 'new', 'slash raccourci invite modele message prompt enregistre comando'],
+
+  ['skills', '', 'Index source', 'The default is the Kybernos relay: a read-only copy of the skills.sh index, refreshed about every hour.', 'change', 'source catalogue competences habilidades'],
+  ['skills', '', 'Writable folders', 'Skill creation and installs are written only to these folders.', '', 'dossiers installation competences chemin carpetas'],
+  ['tools', '', 'Profile', 'Enable experimental capabilities and connect external tools to a DSH profile.', '', 'mcp outils experimental profil connexions herramientas'],
+  ['connectors', '', 'Composio key', 'Your personal Composio key: it drives this tab and the chat agents.', 'save clear', 'cle api api key gmail slack notion applications integrations clave'],
+  ['connectors', '', 'Kybernos Cloud', 'Connections are handled by your Kybernos account: no key to manage, and your accounts follow you across your devices.', 'paid plans', 'compte applications integrations abonnement'],
+  ['web search', '', 'Default engine', 'Agents try it first.', 'brave search exa duckduckgo wikipedia', 'moteur de recherche navigateur web internet buscador cle api api key ordre moteurs', '', 'DEFAULT'],
+  ['web search', '', 'Sites', 'One per line or comma separated. “example.com” keeps only that site.', '', 'domaines sites autorises liste blanche filtre'],
+
+  ['voice', '', 'Composer microphone', 'This plugin’s dictation mic takes the place of the native one, just before Send.', 'kybernos native dsh', 'micro dictee saisie vocale microfono'],
+  ['voice', '', 'Read replies aloud as they arrive', '', '', 'lecture voix haute synthese vocale tts lire'],
+  ['voice', '', 'Voice engines', '', 'apple say piper supertonic edge tts', 'moteur voix synthese local hors ligne vitesse debit', '', 'Apple « say »'],
+  ['calls', '', 'Calls', 'Talk live to your assistant, or to a team member, out loud, from any session.', 'check everything', 'appel telephone vocal visio conversation orale llamada'],
+
+  ['servers', '', 'Add a server', '', '', 'serveur equipe team entreprise self hosted licence reseau'],
+  ['cloud computers', '', 'API key', 'Stored on this machine, never shown again. Code and files the agent sends to a cloud computer go to E2B.', 'save', 'cle api api key e2b bac a sable sandbox execution cloud clave'],
+  ['remote control', '', 'Link a phone', 'Drive this computer from your phone: scan the code, that is all.', 'show the qr allow', 'telephone mobile qr code telecommande smartphone movil', '', 'Link a phone in three steps'],
+
+  ['atlas', '', 'Update', 'The Atlas reads your files and plugins only when you ask.', '', 'carte graphe relations projets cartographie mapa'],
+  ['kybernos suite', '', 'Check for updates', '', '', 'plugins modules extensions installer catalogue'],
+  ['built-in plugins', '', 'Session plugins', 'Inspect the plugins this deployment ships.', '', 'plugins integres extensions moteur'],
+  ['about', '', 'Check for updates automatically', '', '', 'mise a jour version reseau github npm verification actualizacion'],
+  ['about', '', 'Version', '', '', 'licence apache marque numero build', '', 'DSH engine']
+]
+// What people call a page, by its key: found by « voix » when the page is called Voice.
+const KB_SS_PAGE_KW = {
+  'ai provider & models': 'modeles fournisseurs cle api openai', 'auto routing': 'routage routeur choix modele secours', 'free llms': 'gratuit gratis',
+  'ollama local models': 'local hors ligne offline gpu', usage: 'consommation quota forfait cout', 'agent presets': 'agent mode persona', workers: 'assistants code delegation cli',
+  automations: 'planification taches cron', commands: 'slash raccourcis prompts', skills: 'competences habilidades', tools: 'outils mcp',
+  connectors: 'integrations applications gmail slack', 'web search': 'recherche internet moteur navigateur', 'memory & lessons': 'memoire memoria souvenirs lecons',
+  kybernos: 'instructions consignes', atlas: 'carte graphe', voice: 'voix voz micro dictee audio', calls: 'appels telephone visio',
+  appearance: 'apparence aspecto mode sombre clair', theme: 'couleurs palette fond police', language: 'langue idioma traduction', servers: 'serveurs equipe reseau',
+  'cloud computers': 'sandbox bac a sable e2b', 'remote control': 'telephone mobile qr telecommande', 'kybernos suite': 'plugins modules extensions',
+  'built-in plugins': 'plugins integres', about: 'a propos version licence mise a jour'
+}
+const KB_SS_STOP = ['the', 'of', 'my', 'le', 'la', 'les', 'de', 'des', 'du', 'un', 'une', 'a', 'to', 'in', 'el', 'los']
+const kbSsNorm = (s) => {
+  try { return String(s === undefined || s === null ? '' : s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim() } catch (e) { return String(s || '').toLowerCase().trim() }
+}
+const kbSsToks = (s) => kbSsNorm(s).split(' ').filter((t) => t !== '')
+// Edit distance with swapped neighbours counted as one edit (« theem » for « theme »).
+const kbSsLev = (a, b, max) => {
+  const m = a.length
+  const n = b.length
+  if (Math.abs(m - n) > max) return max + 1
+  const d = []
+  for (let i = 0; i <= m; i += 1) d[i] = [i]
+  for (let j = 0; j <= n; j += 1) d[0][j] = j
+  for (let i = 1; i <= m; i += 1) {
+    for (let j = 1; j <= n; j += 1) {
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1))
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1)
+    }
+  }
+  return d[m][n]
+}
+// A typo is forgiven in words of five letters or more that start alike: one edit, two from eight letters. Short words never (« font » is not « fond »).
+const kbSsNear = (q, words) => {
+  if (q.length < 5) return null
+  const max = q.length >= 8 ? 2 : 1
+  for (const w of words) if (w.length >= 4 && w[0] === q[0] && kbSsLev(q, w, max) <= max) return w
+  return null
+}
+/** The index, ready to search: every row with its words cut once. */
+const kbSsBuild = (rows) => rows.map((r, i) => ({
+  i, page: r[0], sec: r[1], label: r[2], desc: r[3], opts: r[4], kw: r[5], dup: r[6] || null, at: r[7] || r[2],
+  lt: kbSsToks(r[2]), kt: kbSsToks(r[5]), dt: kbSsToks(r[3]), ot: kbSsToks(r[4]), st: kbSsToks(r[1])
+}))
+// One word of the query against one row: the best field it hits, its score, and the word that did.
+const kbSsWord = (q, e, pageToks) => {
+  let best = { s: 0, f: '', w: '' }
+  const put = (s, f, w) => { if (s > best.s) best = { s, f, w } }
+  for (const t of e.lt) { if (t === q) put(12, 'label', t); else if (q.length >= 2 && t.startsWith(q)) put(10, 'label', t); else if (q.length >= 3 && t.includes(q)) put(6, 'label', t) }
+  for (const t of e.kt) { if (t === q) put(8, 'kw', t); else if (q.length >= 3 && t.startsWith(q)) put(7, 'kw', t) }
+  for (const t of e.ot) { if (t === q) put(9, 'value', t); else if (q.length >= 3 && t.startsWith(q)) put(6, 'value', t) }
+  for (const t of e.dt) { if (t === q) put(3, 'desc', t); else if (q.length >= 3 && t.startsWith(q)) put(2, 'desc', t) }
+  for (const t of e.st.concat(pageToks)) { if (t === q || (q.length >= 3 && t.startsWith(q))) put(2, 'page', t) }
+  if (best.s < 6) {
+    const a = kbSsNear(q, e.lt)
+    if (a !== null) put(6, 'typo', a)
+    else { const b = kbSsNear(q, e.kt); if (b !== null) put(5, 'typo', b) }
+  }
+  return best
+}
+/**
+ * Search the Settings.   entries: kbSsBuild(KB_SS_INDEX)   titles: { pageKey: title as drawn in the menu now } (one per page that exists)
+ * Returns { list, total }: list is what to show, in order — { kind: 'page', key, rel, typo } for a page found by its title (or typo of it),
+ * { kind: 'item', e, also, why } for a setting (also: the same setting shown on other pages, why: what matched besides the label), and the pages
+ * found only by a related word last. A setting that two pages both show (the mode, the text size) is one result.
+ */
+const kbSsSearch = (query, entries, titles) => {
+  const qs = kbSsToks(query).filter((t) => KB_SS_STOP.indexOf(t) === -1)
+  if (qs.length === 0) return { list: [], total: 0 }
+  const full = kbSsNorm(query)
+  const pageToks = (key) => kbSsToks(titles[key] || '')
+  const hits = []
+  for (const e of entries) {
+    if (titles[e.page] === undefined) continue // the page is not in this menu (a module switched off): its rows are not either
+    let total = 0
+    const why = []
+    for (const q of qs) {
+      const w = kbSsWord(q, e, pageToks(e.page))
+      if (w.s === 0) { total = 0; break }
+      total += w.s
+      if (w.f === 'kw' || w.f === 'value' || w.f === 'typo') why.push({ q, f: w.f, w: w.w })
+    }
+    if (total === 0) continue
+    if (kbSsNorm(e.label).indexOf(full) !== -1) total += 8
+    hits.push({ e, s: total, why })
+  }
+  const canon = (e) => (e.dup === 'mode' ? e.page === 'appearance' : e.dup === 'fs' ? e.page === 'general' : true)
+  hits.sort((a, b) => b.s - a.s || (canon(b.e) ? 1 : 0) - (canon(a.e) ? 1 : 0) || a.e.i - b.e.i)
+  const seen = new Map()
+  const items = []
+  for (const h of hits) {
+    h.also = []
+    if (h.e.dup !== null) {
+      if (seen.has(h.e.dup)) { seen.get(h.e.dup).also.push(h.e); continue }
+      seen.set(h.e.dup, h)
+    }
+    items.push(h)
+  }
+  const pages = []
+  for (const key of Object.keys(titles)) {
+    const tt = pageToks(key)
+    const kk = kbSsToks(KB_SS_PAGE_KW[key] || '')
+    let ok = true
+    let typo = null
+    let rel = null
+    for (const q of qs) {
+      if (tt.some((t) => t === q || (q.length >= 2 && t.startsWith(q)))) continue
+      if (q.length >= 3 && kk.some((t) => t === q || t.startsWith(q))) { rel = q; continue }
+      const n = kbSsNear(q, tt)
+      if (n !== null) { typo = { q, w: n }; continue }
+      ok = false
+      break
+    }
+    if (ok) pages.push({ kind: 'page', key, typo, rel })
+  }
+  const list = pages.filter((p) => p.rel === null).slice(0, 3)
+    .concat(items.slice(0, 8).map((h) => ({ kind: 'item', e: h.e, also: h.also, why: h.why })))
+    .concat(pages.filter((p) => p.rel !== null).slice(0, 2))
+  return { list, total: list.length }
+}
+// </kb-settings-search>
 
 // ── DSH's Settings, opened from outside the sidebar (<kb-open-settings>) ─────────────────────────────────────
 // The sidebar's settings seat renders DSH's ACCOUNT launcher (slot `settings.launcher`) whenever the account plugin is mounted, and
@@ -8608,9 +8848,8 @@ html[data-kbth-brand~="dark"] body[data-ds-dark-theme]{--kybernos-accent:color-m
     try { if (typeof window !== 'undefined') window.__KB_SKEL__ = { bone: kbBone, line: kbBoneLine, wrap: kbSkelWrap, appear: kbIn, max: KB_APPEAR_MAX } } catch (e) { /* outside a browser */ }
     // ── « A short automatic state + a Customize fold »: ONE helper for every settings page (audit N-08) ────────────
     // Simple and automatic by default, customisable on demand. A page opens on what already runs by itself (one sentence and one status)
-    // and keeps its knobs under ONE fold that is shut until the person opens it, and that remembers the choice. The Settings nav builds its
-    // « Advanced » group with the same store, the same button and the same look (kbCzToggle); a page of another bundle reads the rest from
-    // window.__KB_CUSTOMIZE__ (like __KB_SKEL__ above) and falls back to its own markup when the core plugin is not there.
+    // and keeps its knobs under ONE fold that is shut until the person opens it, and that remembers the choice. A page of another bundle reads the rest
+    // from window.__KB_CUSTOMIZE__ (like __KB_SKEL__ above) and falls back to its own markup when the core plugin is not there.
     //   h(window.__KB_CUSTOMIZE__.Fold, { id: 'memory', state: 'Memory is on and tidies itself.', tone: 'on' }, …the knobs…)
     //   props: id (the store key), state (the sentence), tone ('on' green dot, 'off' grey, 'warn' amber), label (default « Customize »),
     //   defaultOpen (when the person never chose: shut by default).
@@ -8644,28 +8883,6 @@ html[data-kbth-brand~="dark"] body[data-ds-dark-theme]{--kybernos-accent:color-m
           typeof props.label === 'string' ? props.label : kbt('kbcz.customize')),
         open ? h('div', { className: 'kb-cz-body' }, props.children) : null)
     }
-    /** The same button for a fold that is not a React tree (the Settings nav): a plain element, `onToggle` is called on a click. `plain`: a div with
-     *  role="button" instead of a <button> — the Settings list is full of rules for its buttons (the phone layout takes a tap on one for « a page was
-     *  picked » and hides the list), and the fold's header is not a page. */
-    const kbCzToggle = (label, open, onToggle, plain) => {
-      const b = document.createElement(plain === true ? 'div' : 'button')
-      if (plain === true) {
-        b.setAttribute('role', 'button')
-        b.tabIndex = 0
-        b.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } })
-      } else b.type = 'button'
-      b.className = 'kb-cz-toggle'
-      b.setAttribute('aria-expanded', open ? 'true' : 'false')
-      const chev = document.createElement('span')
-      chev.className = 'kb-cz-chev'
-      chev.setAttribute('aria-hidden', 'true')
-      chev.innerHTML = KB_CZ_CHEV
-      const text = document.createElement('span')
-      text.textContent = label
-      b.append(chev, text)
-      b.addEventListener('click', onToggle)
-      return b
-    }
     ctx.effect(() => styles.insert(`
 .kb-cz{display:flex;flex-direction:column;gap:10px;min-width:0}
 .kb-cz-state{margin:0;display:flex;align-items:center;gap:8px;font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
@@ -8681,7 +8898,7 @@ html[dir="rtl"] .kb-cz-chev{transform:scaleX(-1)}
 html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX(-1) rotate(90deg)}
 @media (prefers-reduced-motion:reduce){.kb-cz-chev{transition:none}}
 `), 'kybers: styles customize')
-    try { if (typeof window !== 'undefined') window.__KB_CUSTOMIZE__ = { Fold: KbCustomize, read: kbCzRead, write: kbCzWrite, toggle: kbCzToggle } } catch (e) { /* outside a browser */ }
+    try { if (typeof window !== 'undefined') window.__KB_CUSTOMIZE__ = { Fold: KbCustomize, read: kbCzRead, write: kbCzWrite } } catch (e) { /* outside a browser */ }
     // Deux icones voisines ne suffisaient pas a lire le mode courant : le
     // selecteur est un groupe segmente, le mode actif porte son libelle et
     // chaque bouton expose son etat (`aria-pressed`) aux lecteurs d'ecran.
@@ -26127,46 +26344,238 @@ function renderFit(canvas, model, cam, opts){
         }, Icon('arrowLeft', 15), h('span', { className: 'kbsb-label' }, label)),
         h(KbSettingsSearchInline, null))
     }
-    // (29/09, request) SEARCH in Settings: a field in the header filters the dialog's navigation (section buttons) as you type. Empty = everything
-    // shows. The filtering is pure display (style.display) on the host nav's buttons — nothing is unmounted, and the cleanup on unmount puts the
-    // whole list back. While a query runs the Advanced fold is open (data-kb-searching on the list: a match inside it must show) and a section
-    // header with no entry left under it is hidden (the fold's header is no `button`, so the filter below leaves it alone).
+    // SEARCH in Settings (29/09, request; widened 18/10 from the titles to the content of the pages): a field in the header. While a query runs the
+    // menu shows where the matches are (the groups that have one open, a count on each, the others quiet) and a panel over the page lists them:
+    // the setting, the page and tab it is on, why it matched. A click opens the page, goes to the row and makes it blink. Empty = everything as
+    // it was. Everything is display and attributes on the host nav (nothing is unmounted, the cleanup puts it all back) and one portal into the
+    // dialog for the panel. The matching itself is kbSsSearch (pure, tested alone); the index is KB_SS_INDEX.
+    let KB_SS_ENTRIES = []
+    try { KB_SS_ENTRIES = kbSsBuild(KB_SS_INDEX) } catch (e) { console.warn('[kybernos] settings search index not built', e) } // never stops DSH from starting: the search then finds titles only
+    // Where the organiser asks to be run again: the search cannot reach its observer, and it must hand the menu back when the query is cleared.
+    let kbNavRefresh = null
+    const kbSsTitles = (dlg) => {
+      const out = {}
+      for (const c of dlg.querySelectorAll('[class*="navList"] [data-kb-t]')) out[String(c.dataset.kbT)] = String(c.textContent || '').trim()
+      return out
+    }
+    /** The query's words, marked in a text (React nodes: nothing is written as HTML). */
+    const kbSsMark = (text, query) => {
+      const words = kbSsToks(query).filter((t) => t.length >= 2 && KB_SS_STOP.indexOf(t) === -1)
+      if (words.length === 0 || typeof text !== 'string' || text === '') return text
+      // Same length as the text (an accent loses its mark, a symbol becomes a space), so an offset in one is an offset in the other.
+      const flat = text.toLowerCase().split('').map((ch) => { const b = ch.normalize('NFD').charAt(0); return /[a-z0-9]/.test(b) ? b : ' ' }).join('')
+      const spans = []
+      for (const w of words) {
+        let at = flat.indexOf(w)
+        while (at !== -1) { spans.push([at, at + w.length]); at = flat.indexOf(w, at + w.length) }
+      }
+      if (spans.length === 0) return text
+      spans.sort((a, b) => a[0] - b[0])
+      const out = []
+      let from = 0
+      for (const sp of spans) {
+        if (sp[0] < from) continue
+        if (sp[0] > from) out.push(text.slice(from, sp[0]))
+        out.push(h('mark', { key: 'm' + sp[0] }, text.slice(sp[0], sp[1])))
+        from = sp[1]
+      }
+      if (from < text.length) out.push(text.slice(from))
+      return out
+    }
+    const kbSsFill = (key, vars) => {
+      let t = kbt(key)
+      for (const k of Object.keys(vars)) t = t.split('{' + k + '}').join(String(vars[k]))
+      return t
+    }
+    /** Open the page of a result, then go to its row: the tab first when the page has tabs, then the row by its label, then a blink. */
+    const kbSsReveal = (dlg, e) => {
+      let tries = 0
+      let clickedTab = false
+      const walk = () => {
+        tries += 1
+        const pane = dlg.querySelector('[data-slot="settings.section"]')
+        if (pane !== null) {
+          if (e.page === 'theme' && e.sec !== '' && clickedTab === false) {
+            const tab = Array.from(pane.querySelectorAll('button')).find((b) => kbSsNorm(b.textContent) === kbSsNorm(e.sec))
+            if (tab !== undefined) { clickedTab = true; try { tab.click() } catch (er) { /* gone */ } setTimeout(walk, 150); return }
+          }
+          const want = kbSsNorm(e.at)
+          const walker = document.createTreeWalker(pane, NodeFilter.SHOW_TEXT)
+          let hit = null
+          for (let n = walker.nextNode(); n !== null; n = walker.nextNode()) {
+            if (kbSsNorm(n.nodeValue) === want && n.parentElement !== null && n.parentElement.getClientRects().length > 0) { hit = n.parentElement; break }
+          }
+          if (hit !== null) {
+            let row = hit
+            for (let i = 0; i < 4 && row.parentElement !== null && row.parentElement !== pane; i += 1) {
+              const r = row.getBoundingClientRect()
+              if (r.height >= 40 && r.width >= 240) break
+              row = row.parentElement
+            }
+            try { row.scrollIntoView({ block: 'center' }) } catch (er) { /* old engine */ }
+            row.classList.add('kbs-flash')
+            setTimeout(() => { try { row.classList.remove('kbs-flash') } catch (er) { /* gone */ } }, 2000)
+            return
+          }
+        }
+        if (tries < 20) setTimeout(walk, 120)
+      }
+      setTimeout(walk, 150)
+    }
     const KbSettingsSearchInline = () => {
       const pair = React.useState('')
       const q = pair[0]
       const setQ = pair[1]
+      const selPair = React.useState(0)
+      const sel = selPair[0]
+      const setSel = selPair[1]
+      const dlgPair = React.useState(null)
+      const geoPair = React.useState({ left: 248, top: 64 })
+      const root = React.useRef(null)
+      React.useEffect(() => { if (root.current !== null) dlgPair[1](root.current.closest('[role="dialog"]')) }, [])
+      const dlg = dlgPair[0]
+      const query = q.trim()
+      // What matched, read against the pages the menu has right now (a module switched off has no page, so no row).
+      const view = dlg === null || query === '' ? { list: [], total: 0 } : kbSsSearch(query, KB_SS_ENTRIES, kbSsTitles(dlg))
+      const hits = {}
+      for (const x of view.list) {
+        if (x.kind === 'page') hits[x.key] = (hits[x.key] || 0) + 1
+        else { hits[x.e.page] = (hits[x.e.page] || 0) + 1; for (const a of x.also) hits[a.page] = (hits[a.page] || 0) + 1 }
+      }
+      const hitsKey = JSON.stringify(hits)
       React.useEffect(() => {
-        const dlg = document.querySelector('[role="dialog"]')
         if (dlg === null) return undefined
-        const aiguille = q.trim().toLowerCase()
-        const btns = [...dlg.querySelectorAll('nav button')]
-        btns.forEach((b) => {
-          const t = (b.textContent || '').trim().toLowerCase()
-          b.style.display = (aiguille === '' || t.indexOf(aiguille) >= 0) ? '' : 'none'
-        })
         const liste = dlg.querySelector('[class*="navList"]')
-        const tetes = liste === null ? [] : [...liste.querySelectorAll('[data-kb="settings-group"]')]
-        if (liste !== null) {
-          if (aiguille === '') liste.removeAttribute('data-kb-searching')
-          else liste.setAttribute('data-kb-searching', '1')
+        if (liste === null) return undefined
+        const organised = liste.hasAttribute('data-kb-settings')
+        const cells = Array.from(liste.querySelectorAll('[class*="navCell"]'))
+        const heads = Array.from(liste.querySelectorAll('[data-kb-fold-toggle]'))
+        const clean = () => {
+          for (const c of cells) { c.removeAttribute('data-kb-hits'); c.removeAttribute('data-kb-dim'); c.removeAttribute('data-kb-shown'); c.style.display = '' }
+          for (const hd of heads) { hd.removeAttribute('data-kb-hits'); hd.removeAttribute('data-kb-dim'); const n = hd.querySelector('.kb-nav-cnt'); if (n !== null) n.textContent = '' }
+          liste.removeAttribute('data-kb-searching')
+          if (kbNavRefresh !== null) kbNavRefresh()
         }
-        tetes.forEach((hd) => {
-          const reste = [...liste.querySelectorAll('[data-kb-g="' + String(hd.dataset.kbG) + '"]')].some((c) => c.dataset.kb !== 'settings-group' && c.style.display !== 'none')
-          hd.style.display = (aiguille === '' || reste) ? '' : 'none'
-        })
-        return () => {
-          btns.forEach((b) => { b.style.display = '' })
-          tetes.forEach((hd) => { hd.style.display = '' })
-          if (liste !== null) liste.removeAttribute('data-kb-searching')
+        if (query === '') { clean(); return undefined }
+        liste.setAttribute('data-kb-searching', '1')
+        if (organised !== true) {
+          // A menu the organiser has not drawn (another DSH): the old behaviour, by title.
+          const needle = query.toLowerCase()
+          for (const c of cells) c.style.display = String(c.textContent || '').toLowerCase().indexOf(needle) >= 0 ? '' : 'none'
+          return clean
         }
-      }, [q])
+        const perGroup = {}
+        for (const c of cells) {
+          const n = hits[String(c.dataset.kbT)] || 0
+          const g = String(c.dataset.kbG)
+          perGroup[g] = (perGroup[g] || 0) + n
+        }
+        for (const c of cells) {
+          const n = hits[String(c.dataset.kbT)] || 0
+          const g = String(c.dataset.kbG)
+          if (n > 0) c.setAttribute('data-kb-hits', String(n)); else c.removeAttribute('data-kb-hits')
+          if (n === 0) c.setAttribute('data-kb-dim', '1'); else c.removeAttribute('data-kb-dim')
+          if ((perGroup[g] || 0) > 0) c.setAttribute('data-kb-shown', '1'); else c.removeAttribute('data-kb-shown')
+        }
+        for (const hd of heads) {
+          const n = perGroup[String(hd.dataset.kbG)] || 0
+          const num = hd.querySelector('.kb-nav-cnt')
+          if (num !== null) num.textContent = n > 0 ? String(n) : ''
+          if (n > 0) { hd.setAttribute('data-kb-hits', String(n)); hd.removeAttribute('data-kb-dim') } else { hd.removeAttribute('data-kb-hits'); hd.setAttribute('data-kb-dim', '1') }
+          hd.setAttribute('aria-expanded', n > 0 ? 'true' : 'false')
+        }
+        return clean
+      }, [dlg, query, hitsKey])
+      // The panel sits right of the menu (over the whole width when the menu is the whole screen, on a phone).
+      React.useEffect(() => {
+        if (dlg === null || query === '') return undefined
+        const place = () => {
+          const nav = dlg.querySelector('nav')
+          const box = nav === null ? null : nav.getBoundingClientRect()
+          const field = root.current === null ? null : root.current.getBoundingClientRect()
+          const wide = box === null || box.right < window.innerWidth * 0.6
+          geoPair[1]({ left: wide && box !== null ? Math.round(box.right) : 0, top: wide ? 64 : (field === null ? 64 : Math.round(field.bottom + 8)) })
+        }
+        place()
+        dlg.setAttribute('data-kb-search-open', '1')
+        window.addEventListener('resize', place)
+        // Escape clears the query first (the dialog closes on Escape at the document, in capture: window capture runs before it).
+        const onKey = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); ev.preventDefault(); setQ('') } }
+        window.addEventListener('keydown', onKey, true)
+        return () => { dlg.removeAttribute('data-kb-search-open'); window.removeEventListener('resize', place); window.removeEventListener('keydown', onKey, true) }
+      }, [dlg, query])
+      const openResult = (x) => {
+        if (dlg === null) return
+        const key = x.kind === 'page' ? x.key : x.e.page
+        const cell = Array.from(dlg.querySelectorAll('[class*="navList"] [data-kb-t]')).find((c) => String(c.dataset.kbT) === key)
+        setQ('')
+        setSel(0)
+        if (cell !== undefined) { try { cell.click() } catch (er) { /* gone */ } }
+        if (x.kind === 'item') kbSsReveal(dlg, x.e)
+      }
       const ph = kbt('settings.search')
-      return h('div', { className: 'kbs-search' },
-        Icon('search', 14),
-        h('input', {
-          type: 'search', value: q, placeholder: ph, 'aria-label': ph,
-          onChange: (e) => setQ(e.target.value),
-        }))
+      const list = view.list
+      const iconOf = (key) => {
+        if (dlg === null) return null
+        const cell = Array.from(dlg.querySelectorAll('[class*="navList"] [data-kb-t]')).find((c) => String(c.dataset.kbT) === key)
+        const svg = cell === undefined ? null : cell.querySelector('svg')
+        return svg === null ? null : h('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true', fill: 'none', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round', dangerouslySetInnerHTML: { __html: svg.innerHTML } })
+      }
+      const titles = dlg === null ? {} : kbSsTitles(dlg)
+      const crumb = (e) => (titles[e.page] === undefined ? e.page : titles[e.page]) + (e.sec !== '' ? ' › ' + e.sec : '')
+      const whyText = (x) => {
+        const by = {}
+        for (const w of x.why) (by[w.f] = by[w.f] || []).push(w)
+        return Object.keys(by).map((f) => (f === 'typo' ? kbSsFill('settings.search.why.typo', { w: by[f].map((w) => w.q + ' → ' + w.w).join(', ') })
+          : f === 'value' ? kbt('settings.search.why.value')
+            : kbSsFill(by[f].length > 1 ? 'settings.search.why.relatedN' : 'settings.search.why.related', { w: by[f].map((w) => w.q).join(', ') }))).join(' · ')
+      }
+      const rows = list.map((x, i) => {
+        const on = sel === i
+        const key = x.kind === 'page' ? x.key : x.e.page
+        const common = { key: i, role: 'option', 'aria-selected': on ? 'true' : 'false', className: 'kbs-rr' + (on ? ' on' : ''), onClick: () => openResult(x), onMouseEnter: () => setSel(i) }
+        if (x.kind === 'page') {
+          return h('li', common, h('span', { className: 'kbs-ri' }, iconOf(key)),
+            h('div', { className: 'kbs-rt' }, h('div', { className: 'kbs-rn' }, kbSsMark(titles[x.key] || x.key, query)), h('div', { className: 'kbs-rp' }, kbt('settings.search.page'))),
+            h('div', { className: 'kbs-rv' }, x.typo !== null ? h('span', { className: 'kbs-why' }, kbSsFill('settings.search.why.title', { w: titles[x.key] || x.typo.w })) : (x.rel !== null ? h('span', { className: 'kbs-why' }, kbSsFill('settings.search.why.related', { w: x.rel })) : null)))
+        }
+        const why = whyText(x)
+        return h('li', common, h('span', { className: 'kbs-ri' }, iconOf(key)),
+          h('div', { className: 'kbs-rt' },
+            h('div', { className: 'kbs-rn' }, kbSsMark(x.e.label, query)),
+            h('div', { className: 'kbs-rp' }, crumb(x.e), x.also.length > 0 ? h('span', { className: 'kbs-also' }, ' · ' + kbt('settings.search.also') + ' ' + x.also.map(crumb).join(', ')) : null),
+            x.e.desc !== '' ? h('div', { className: 'kbs-rd' }, kbSsMark(x.e.desc, query)) : null),
+          h('div', { className: 'kbs-rv' }, why !== '' ? h('span', { className: 'kbs-why' }, why) : null))
+      })
+      let panel = null
+      if (dlg !== null && query !== '' && kbPortal !== null) {
+        const geo = geoPair[0]
+        const body = list.length === 0
+          ? h('div', { className: 'kbs-none' },
+            h('h2', null, kbSsFill('settings.search.none', { q: query })),
+            h('p', null, kbt('settings.search.none.sub')),
+            h('div', { className: 'kbs-tries' }, kbt('settings.search.try').split('|').map((t) => h('button', { type: 'button', key: t, className: 'kbs-try', onClick: () => { setQ(t); setSel(0) } }, t))))
+          : h(React.Fragment, null,
+            h('p', { className: 'kbs-rh' }, kbSsFill(list.length === 1 ? 'settings.search.found1' : 'settings.search.foundN', { n: list.length, q: query }), ' · ', kbt('settings.search.scope')),
+            h('ul', { className: 'kbs-rl', role: 'listbox', 'aria-label': kbt('settings.search') }, rows),
+            h('div', { className: 'kbs-hint' }, kbt('settings.search.hint')))
+        panel = kbPortal(h('div', { className: 'kbs-res', style: { left: geo.left, top: geo.top } }, h('div', { className: 'kbs-res-in' }, body)), dlg)
+      }
+      const onKeyDown = (ev) => {
+        if (list.length === 0) return
+        if (ev.key === 'ArrowDown') { ev.preventDefault(); setSel(Math.min(list.length - 1, sel + 1)) }
+        else if (ev.key === 'ArrowUp') { ev.preventDefault(); setSel(Math.max(0, sel - 1)) }
+        else if (ev.key === 'Enter') { ev.preventDefault(); openResult(list[Math.min(sel, list.length - 1)]) }
+      }
+      return h(React.Fragment, null,
+        h('div', { className: 'kbs-search', ref: root },
+          Icon('search', 14),
+          h('input', {
+            type: 'search', value: q, placeholder: ph, 'aria-label': ph,
+            onChange: (e) => { setQ(e.target.value); setSel(0) },
+            onKeyDown,
+          })),
+        panel)
     }
     ctx.effect(() => slots.inject('settings.header', () => slots.register(
       { name: 'settings.header', priority: -1 }, KbSettingsBack)), 'kybers: back to workspace in the settings')
@@ -26207,6 +26616,36 @@ html[dir="rtl"] [role="dialog"]:has(nav [class$="_navCell"]) nav [class*="_navCe
    presets: the options pane scrolled sideways (380 in 369 at 390 px). Nothing in a page of Settings is meant to scroll sideways: the pane
    that holds such cards clips it (the tooltip itself still shows, inside the pane). */
 [role="dialog"]:has(nav [class$="_navCell"]) [class$="_options"]:has([class$="_cards"] [data-tip]){overflow-x:hidden}
+/* Search in the Settings: the count on a page with a match, the panel of results over the page, the blink of the row it leads to. */
+/* The page underneath is hidden while the panel is up: the panel starts below the corner buttons, which stay reachable, and nothing of the page peeks above it. */
+[role="dialog"][data-kb-search-open] [class$="_options"]{visibility:hidden}
+[class*="navList"] [class*="navCell"][data-kb-hits]::after{content:attr(data-kb-hits);flex:none;margin-inline-start:8px;min-width:20px;padding:1px 7px;border-radius:999px;background:color-mix(in srgb,var(--dsw-alias-brand-primary) 18%,transparent);color:var(--dsw-alias-label-primary);font-size:11.5px;font-weight:600;text-align:center;font-variant-numeric:tabular-nums}
+.kbs-res{position:fixed;z-index:6;right:0;bottom:0;overflow:auto;padding:8px 40px 60px 28px;text-align:start;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font-size:14px}
+.kbs-res-in{max-width:720px}
+.kbs-rh{margin:0 0 14px;font-size:12.5px;color:var(--dsw-alias-label-tertiary)}
+.kbs-rl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.kbs-rr{display:flex;gap:14px;align-items:flex-start;padding:12px;border-radius:12px;border:1px solid transparent;cursor:pointer}
+.kbs-rr.on{background:var(--dsw-alias-interactive-bg-hover);border-color:var(--dsw-alias-border-l2)}
+.kbs-ri{flex:none;width:30px;height:30px;border-radius:9px;background:var(--dsw-alias-bg-layer-3);display:grid;place-items:center;color:var(--dsw-alias-label-secondary)}
+.kbs-ri svg{width:16px;height:16px}
+.kbs-rt{flex:1;min-width:0}
+.kbs-rn{font-weight:500}
+.kbs-rp{margin-top:1px;font-size:12.5px;color:var(--dsw-alias-label-tertiary)}
+.kbs-rd{margin-top:4px;font-size:13px;color:var(--dsw-alias-label-secondary);max-width:62ch}
+.kbs-rv{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px;max-width:200px}
+.kbs-why{font-size:11.5px;color:var(--dsw-alias-brand-primary);opacity:.85;text-align:end}
+.kbs-res mark{background:color-mix(in srgb,var(--dsw-alias-brand-primary) 22%,transparent);color:inherit;border-radius:3px;padding:0 1px}
+.kbs-hint{margin-top:14px;font-size:11.5px;color:var(--dsw-alias-label-tertiary)}
+.kbs-none{padding:36px 8px;max-width:56ch}
+.kbs-none h2{margin:0 0 6px;font-size:16px;font-weight:600}
+.kbs-none p{margin:0 0 14px;font-size:13.5px;color:var(--dsw-alias-label-secondary)}
+.kbs-tries{display:flex;flex-wrap:wrap;gap:8px}
+.kbs-try{border:1px solid var(--dsw-alias-border-l2);background:none;border-radius:999px;padding:4px 11px;font:inherit;font-size:12.5px;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.kbs-try:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.kbs-flash{animation:kbs-flash 1.8s ease-out}
+@keyframes kbs-flash{0%,35%{background:color-mix(in srgb,var(--dsw-alias-brand-primary) 22%,transparent)}100%{background:transparent}}
+@media (prefers-reduced-motion:reduce){.kbs-flash{animation:none;background:color-mix(in srgb,var(--dsw-alias-brand-primary) 22%,transparent)}}
+@media (max-width:700px){.kbs-res{padding:8px 16px 40px}.kbs-rr{flex-wrap:wrap}.kbs-rv{flex-direction:row;align-items:center;max-width:none}}
 .kbs-search input::placeholder{color:var(--dsw-alias-label-tertiary)}
 body:not([data-ds-dark-theme]) .kbs-search input::placeholder{color:var(--dsw-alias-label-secondary)}
 .kbsb:hover{color:var(--dsw-alias-brand-primary)}
@@ -30693,49 +31132,39 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
             .replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim()
         } catch (e) { return String(s || '').toLowerCase().trim() }
       }
-      // Sections, in order (audit N-01, V-24: 28 entries at once, 23 of them under one heading, General at the bottom). The ESSENTIALS come
-      // first and have no header: General, then what a newcomer needs (the models, what the agents keep, the skills, the connectors, the look).
-      // « Advanced » is a fold, shut until the person needs it: the rest of our pages, in the order the owner gave. « Other settings » holds
-      // the shell's own two (Built-in plugins, Agent presets) and the pages a plugin adds later (they fall to its tail, 450+), and About closes
-      // the list. The order INSIDE a section is the position of the title in `mots`.
-      // `pliable`: the section is a fold (its header is a button, its cells are hidden while it is shut).
+      // Groups, in order. General is a row of its own; every other group is a fold with an icon, one open at a time (the accordion of the
+      // mockup « Settings grouped »): nine rows in a window instead of twenty-eight, and a page is never more than two clicks away. The order INSIDE
+      // a group is the position of the title in `mots`. `icone`: the key of the drawing in ICONES. A page no group knows (a plugin added later) falls
+      // to the tail, after the groups and before About.
       const GROUPES = [
-        { titre: null, mots: [
-          'general', 'mon espace', 'my workspace',
+        { id: 'general', titre: null, mots: ['general', 'mon espace', 'my workspace'] },
+        { id: 'models', titre: kbt('settings.group.models'), pliable: true, icone: 'ai provider & models', mots: [
           'fournisseur ia & modeles', 'ai provider & models', 'ai providers & models',
-          'memory & lessons',
-          'skills',
-          'connectors',
-          'apparence', 'appearance',
-          'theme',
-          'langue', 'language'
-        ] },
-        { titre: kbt('settings.group.advanced'), pliable: true, mots: [
-          'serveurs', 'servers',
-          'kybernos',
-          'kybernos suite',
           'auto routing',
-          'usage',
-          'workers',
-          'automations',
-          'outils', 'tools',
-          'web search',
-          'calls', 'appels',
-          'remote control',
-          'cloud computers',
-          'commandes', 'commands',
-          'atlas',
-          'ollama local models',
           'free llms',
-          'voix', 'voice'
+          'ollama local models',
+          'usage'
         ] },
-        { titre: kbt('settings.group.other'), mots: ['plugins', 'listing', 'built-in plugins', 'models', 'agent presets', 'plugins kybernos', 'kybernos plugins', 'about', 'a propos'] },
+        { id: 'agents', titre: kbt('settings.group.agents'), pliable: true, icone: 'agent presets', mots: ['agent presets', 'workers', 'automations', 'commandes', 'commands'] },
+        { id: 'tools', titre: kbt('settings.group.tools'), pliable: true, icone: 'tools', mots: ['skills', 'outils', 'tools', 'connectors', 'web search'] },
+        { id: 'memory', titre: kbt('settings.group.memory'), pliable: true, icone: 'memory & lessons', mots: ['memory & lessons', 'kybernos', 'atlas'] },
+        { id: 'voice', titre: kbt('settings.group.voice'), pliable: true, icone: 'voice', mots: ['voix', 'voice', 'calls', 'appels'] },
+        { id: 'look', titre: kbt('settings.group.look'), pliable: true, icone: 'appearance', mots: ['apparence', 'appearance', 'theme', 'langue', 'language'] },
+        { id: 'devices', titre: kbt('settings.group.devices'), pliable: true, icone: 'servers', mots: ['serveurs', 'servers', 'cloud computers', 'remote control'] },
+        { id: 'system', titre: kbt('settings.group.system'), pliable: true, icone: 'kybernos suite', mots: ['kybernos suite', 'plugins', 'listing', 'built-in plugins', 'models', 'plugins kybernos', 'kybernos plugins', 'about', 'a propos'] }
       ]
-      // Theme and Language belong to Appearance: they are drawn one step in under it (their pages stay what they were).
-      const SOUS_APPARENCE = ['theme', 'langue', 'language', 'tema', 'idioma']
-      // The fold's id in the shared store (kbCzRead / kbCzWrite: the person's choice survives a reload).
-      const PLI_ID = 'settings-advanced'
-      const PLI = GROUPES.findIndex((g) => g.pliable === true)
+      // The open group is remembered under one key of its own (the shared fold store keeps booleans, an accordion needs a name).
+      const OUVERT_CLE = 'kybernos.settings.open-group'
+      let ouvertMem
+      const lireOuvert = () => {
+        if (ouvertMem !== undefined) return ouvertMem
+        try { const v = window.localStorage.getItem(OUVERT_CLE); if (v !== null) return v } catch (e) { /* storage refused: no memory */ }
+        return null
+      }
+      const ecrireOuvert = (id) => {
+        ouvertMem = id
+        try { window.localStorage.setItem(OUVERT_CLE, id) } catch (e) { /* storage refused: the memory above is enough for now */ }
+      }
       // The ONE icon table of the Settings menu (audit V-25: no two pages share a drawing, test-settings-icons.mjs reads it): Lucide drawings
       // on a 24×24 grid, keyed by the page's normalised title and put into the cell's native svg (viewBox rewritten). stroke=currentColor: the
       // icon follows the shell's active / inactive state. There used to be a second table that painted a mask over this one once the icon
@@ -30825,27 +31254,64 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         }
       }
       let minuteur = null
-      // The Advanced fold. Shut or open is ONE attribute of the list (data-kb-fold): a stylesheet rule hides the fold's cells, the cells
-      // themselves are never touched (React owns them). It follows the person's saved choice, the page they land on (kbFoldNext) and, apart from
-      // this, the search box (data-kb-searching, set by KbSettingsSearchInline).
+      // The accordion. Which group is open is ONE attribute of each of its cells (data-kb-shown): a stylesheet rule hides the cells of a group
+      // that lack it, the cells themselves are never touched otherwise (React owns them). It follows the person's saved choice and the page they land
+      // on (kbGroupNext); while a search runs (data-kb-searching, set by KbSettingsSearchInline) the search decides instead.
+      const montrerGroupe = (liste, ouvert) => {
+        for (const cellule of liste.querySelectorAll('[data-kb-fold-cell]')) {
+          if (String(cellule.dataset.kbG) === ouvert) cellule.setAttribute('data-kb-shown', '1')
+          else cellule.removeAttribute('data-kb-shown')
+        }
+        for (const tete of liste.querySelectorAll('[data-kb-fold-toggle]')) tete.setAttribute('aria-expanded', String(tete.dataset.kbG) === ouvert ? 'true' : 'false')
+        liste.dataset.kbOpen = ouvert
+      }
       const suivrePli = (liste, cellules) => {
-        if (PLI < 0) return
+        if (liste.hasAttribute('data-kb-searching')) return // a search is running: its own matches show, whatever the accordion says
         const actif = cellules.find((c) => c.getAttribute('aria-current') === 'true')
         const page = actif === undefined ? '' : String(actif.dataset.kbT || '')
-        const plan = kbFoldNext({ stored: kbCzRead(PLI_ID), inside: actif !== undefined && actif.dataset.kbG === String(PLI), changed: page !== (liste.dataset.kbActive || '') })
+        const groupe = actif === undefined || actif.dataset.kbFoldCell === undefined ? null : String(actif.dataset.kbG)
+        const plan = kbGroupNext({ stored: lireOuvert(), active: groupe, changed: page !== (liste.dataset.kbActive || '') })
         liste.dataset.kbActive = page
-        if (plan.remember) kbCzWrite(PLI_ID, true)
-        liste.dataset.kbFold = plan.open ? 'open' : 'shut'
-        const bouton = liste.querySelector('[data-kb-fold-toggle]')
-        if (bouton !== null) bouton.setAttribute('aria-expanded', plan.open ? 'true' : 'false')
+        if (plan.remember) ecrireOuvert(plan.open)
+        montrerGroupe(liste, plan.open === null ? '' : plan.open)
+        // The header of the group the open page is in is drawn stronger, shut or open: the person still sees where they are.
+        for (const tete of liste.querySelectorAll('[data-kb-fold-toggle]')) {
+          if (groupe !== null && String(tete.dataset.kbG) === groupe) tete.setAttribute('data-kb-here', '1')
+          else tete.removeAttribute('data-kb-here')
+        }
       }
-      const basculer = (liste) => {
-        if (liste.hasAttribute('data-kb-searching')) return // a search is running: every match shows, whatever the fold says
-        const ouvre = liste.dataset.kbFold !== 'open'
-        kbCzWrite(PLI_ID, ouvre)
-        liste.dataset.kbFold = ouvre ? 'open' : 'shut'
-        const bouton = liste.querySelector('[data-kb-fold-toggle]')
-        if (bouton !== null) bouton.setAttribute('aria-expanded', ouvre ? 'true' : 'false')
+      const basculer = (liste, id) => {
+        if (liste.hasAttribute('data-kb-searching')) return // a search is running: every group with a match shows, whatever the accordion says
+        const suite = String(liste.dataset.kbOpen) === id ? '' : id
+        ecrireOuvert(suite)
+        montrerGroupe(liste, suite)
+      }
+      // The header of a group: a row like a page (its drawing, its name, a count while a search runs, a chevron). A <div role="button">, not a
+      // <button>: the Settings list is full of rules for its buttons (the phone layout takes a tap on one for « a page was picked » and hides the list).
+      const teteDeGroupe = (groupe, auClic) => {
+        const tete = document.createElement('div')
+        tete.setAttribute('role', 'button')
+        tete.tabIndex = 0
+        tete.setAttribute('aria-expanded', 'false')
+        const dessin = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+        dessin.setAttribute('viewBox', '0 0 24 24')
+        dessin.setAttribute('class', 'kb-nav-ic')
+        dessin.setAttribute('aria-hidden', 'true')
+        dessin.setAttribute('stroke-width', '1.75')
+        dessin.innerHTML = ICONES[groupe.icone] === undefined ? '' : ICONES[groupe.icone]
+        const nom = document.createElement('span')
+        nom.className = 'kb-nav-t'
+        nom.textContent = groupe.titre
+        const nombre = document.createElement('span')
+        nombre.className = 'kb-nav-cnt'
+        const chevron = document.createElement('span')
+        chevron.className = 'kb-cz-chev'
+        chevron.setAttribute('aria-hidden', 'true')
+        chevron.innerHTML = KB_CZ_CHEV
+        tete.append(dessin, nom, nombre, chevron)
+        tete.addEventListener('click', auClic)
+        tete.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); auClic() } })
+        return tete
       }
       const organiser = () => {
         const listes = Array.from(document.querySelectorAll('[class*="navList"]'))
@@ -30881,19 +31347,17 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
             cellule.removeAttribute('data-kb-g')
             cellule.removeAttribute('data-kb-fold-cell')
             cellule.removeAttribute('data-kb-sub')
+            cellule.removeAttribute('data-kb-shown')
             if (g === -1) { cellule.style.order = String(450 + idx); return }
-            cellule.dataset.kbG = String(g)
-            if (GROUPES[g].pliable === true) cellule.dataset.kbFoldCell = '1'
-            if (g === 0 && SOUS_APPARENCE.indexOf(n) !== -1) cellule.dataset.kbSub = '1'
+            cellule.dataset.kbG = GROUPES[g].id
+            if (GROUPES[g].pliable === true) { cellule.dataset.kbFoldCell = '1'; cellule.dataset.kbSub = '1' }
             if (vus[g] !== true) {
               vus[g] = true
               if (GROUPES[g].titre !== null) {
-                // The fold's header is the shared Customize button (kbCzToggle); the others are quiet sub-titles.
-                const tete = GROUPES[g].pliable === true ? kbCzToggle(GROUPES[g].titre, false, () => basculer(liste), true) : document.createElement('div')
-                if (GROUPES[g].pliable === true) tete.dataset.kbFoldToggle = '1'
-                else { tete.textContent = GROUPES[g].titre; tete.setAttribute('role', 'presentation') }
+                const tete = teteDeGroupe(GROUPES[g], () => basculer(liste, GROUPES[g].id))
                 tete.dataset.kb = 'settings-group'
-                tete.dataset.kbG = String(g)
+                tete.dataset.kbFoldToggle = '1'
+                tete.dataset.kbG = GROUPES[g].id
                 tete.style.order = String(g * 100)
                 liste.append(tete)
               }
@@ -30910,30 +31374,37 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         if (minuteur !== null) return
         minuteur = setTimeout(() => { minuteur = null; try { organiser() } catch (e) { /* nav absent */ } }, 250)
       }
+      // The search hands the menu back through this when its query is cleared: at once, not after the debounce.
+      kbNavRefresh = () => { try { organiser() } catch (e) { /* nav absent */ } }
       const observateur = new MutationObserver(programmer)
       // The page changing (aria-current moves to another cell) is heard too: a click on a cell the fold hides lands the person inside it.
       observateur.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-current'] })
       programmer()
-      return () => { observateur.disconnect(); if (minuteur !== null) clearTimeout(minuteur) }
+      return () => { kbNavRefresh = null; observateur.disconnect(); if (minuteur !== null) clearTimeout(minuteur) }
     }, 'kybers: settings menu groups')
     ctx.effect(() => styles.insert(`
-/* Section headers of the Settings menu: a quiet sub-title, shell tokens, no pointer events. */
-[class*="navList"] [data-kb="settings-group"]{padding:10px 12px 2px;font-size:12.5px;font-weight:500;color:var(--dsw-alias-label-tertiary);pointer-events:none;-webkit-text-size-adjust:100%;text-size-adjust:100%}
-body:not([data-ds-dark-theme]) [class*="navList"] [data-kb="settings-group"]{color:var(--dsw-alias-label-secondary)}
-/* The Advanced header is the button of its fold (the shared Customize button), drawn like a header. */
-[class*="navList"] [data-kb="settings-group"][data-kb-fold-toggle]{display:flex;align-items:center;align-self:stretch;gap:6px;margin:0;padding:10px 12px 2px;border:none;border-radius:8px;background:transparent;font:inherit;font-size:12.5px;font-weight:500;line-height:normal;text-align:start;pointer-events:auto;cursor:pointer}
-[class*="navList"] [data-kb="settings-group"][data-kb-fold-toggle]:hover{color:var(--dsw-alias-label-secondary)}
-@media (max-width:700px),(pointer:coarse){[class*="navList"] [data-kb="settings-group"][data-kb-fold-toggle]{min-height:44px}}
-/* While a search runs the fold is open whatever its button says: the arrow shows it, and the button does nothing. */
-[class*="navList"][data-kb-searching] [data-kb-fold-toggle]{cursor:default}
-[class*="navList"][data-kb-searching] [data-kb-fold-toggle] .kb-cz-chev{transform:rotate(90deg)}
-html[dir="rtl"] [class*="navList"][data-kb-searching] [data-kb-fold-toggle] .kb-cz-chev{transform:scaleX(-1) rotate(90deg)}
+/* Group headers of the Settings menu: a row like a page (drawing, name, chevron), a fold. Shell tokens only. */
+[class*="navList"] [data-kb="settings-group"]{display:flex;align-items:center;align-self:stretch;gap:12px;min-height:40px;margin:0;padding:0 12px;border-radius:12px;color:var(--dsw-alias-label-secondary);font-size:13px;font-weight:500;cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+[class*="navList"] [data-kb="settings-group"]:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
+[class*="navList"] [data-kb="settings-group"]:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:-2px}
+[class*="navList"] [data-kb="settings-group"][aria-expanded="true"]{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
+[class*="navList"] [data-kb="settings-group"][data-kb-here]{color:var(--dsw-alias-label-primary);font-weight:600}
+[class*="navList"] [data-kb="settings-group"] .kb-nav-ic{flex:none;width:16px;height:16px;stroke:currentColor;fill:none;stroke-linecap:round;stroke-linejoin:round}
+[class*="navList"] [data-kb="settings-group"] .kb-nav-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+[class*="navList"] [data-kb="settings-group"] .kb-cz-chev{color:var(--dsw-alias-label-tertiary)}
+/* The phone layout draws the shell's rows at 56px and 20px text (measured): the headers follow, or they would read as small print over the pages. */
+@media (max-width:700px),(pointer:coarse){[class*="navList"] [data-kb="settings-group"]{min-height:56px;padding:0 14px;gap:14px;font-size:20px}[class*="navList"] [data-kb="settings-group"] .kb-nav-ic{width:22px;height:22px}[class*="navList"] [data-kb="settings-group"] .kb-cz-chev svg{width:16px;height:16px}}
+/* While a search runs: a count on each group and page with a match, a quiet look on the others. */
+.kb-nav-cnt{display:none;flex:none;min-width:20px;padding:1px 7px;border-radius:999px;background:color-mix(in srgb,var(--dsw-alias-brand-primary) 18%,transparent);color:var(--dsw-alias-label-primary);font-size:11.5px;font-weight:600;text-align:center;font-variant-numeric:tabular-nums}
+[class*="navList"] [data-kb-hits] .kb-nav-cnt{display:inline-block}
+[class*="navList"] [data-kb-dim]{opacity:.45}
 /* Settings menu only (set by the organiser): room under the last tab, tab names a notch smaller. */
 [class*="navList"][data-kb-settings]{padding-bottom:32px}
 [class*="navList"][data-kb-settings] [class*="navCell"]{font-size:13px}
-/* A shut fold hides its entries, except the page the person is on; a running search shows every match. */
-[class*="navList"][data-kb-settings][data-kb-fold="shut"]:not([data-kb-searching]) [data-kb-fold-cell]:not([aria-current="true"]){display:none}
-/* Theme and Language belong to Appearance: drawn one step in under it. */
+/* A group that is not open hides its pages (the search opens the groups with a match by setting data-kb-shown on their cells). A live check
+   that must press a cell with a real mouse sets data-kb-all-pages on <html> to have every page drawn. */
+html:not([data-kb-all-pages]) [class*="navList"][data-kb-settings] [data-kb-fold-cell]:not([data-kb-shown]){display:none}
+/* The pages of a group are drawn one step in under it. */
 [class*="navList"][data-kb-settings] [data-kb-sub]{padding-inline-start:30px}
 `), 'kybers: settings menu group styles')
 
