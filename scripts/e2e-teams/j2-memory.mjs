@@ -114,6 +114,33 @@ export const run = async (ctx) => {
     check('team → personal: the canary reaches the model again', has(n2.mains, CANARY) >= 1)
     check('team → personal: the header is personal', n2.chats.length > 0 && n2.chats.every((c) => c.workspace === P))
     note('team → personal: the chat\'s folder is ' + (cwdOf(n2.mains[0]) || '?') + ' and the request was billed to the ' + (n2.chats[0] && n2.chats[0].workspace === P ? 'personal' : 'other') + ' workspace')
+    // 5. the one door left: a lesson the team approved reaches the team's chats (B's here) and never a personal chat
+    console.log('\n5. a team lesson, written by A in T1, in B\'s chats')
+    const B = await ctx.sessionOf('b')
+    const mem = (await S.call('GET', `/v1/workspaces/${t1}/members`, { cookie: A.cookie })).body
+    if (!(Array.isArray(mem) ? mem : mem.members || []).some((m) => (m.user_id || m.id) === B.id)) await S.call('POST', `/v1/workspaces/${t1}/members`, { cookie: A.cookie, json: { user_id: B.id, role: 'member' } })
+    const hostFor = (who) => { const h = ctx.as(who); const c = cookieDeSession(h); return (method, path, body) => fetch('http://' + h + path, { method, headers: { 'content-type': 'application/json', cookie: c.nom + '=' + c.valeur, origin: 'http://' + h }, body: body === undefined ? undefined : JSON.stringify(body) }).then((r) => r.json()) }
+    const hostB = hostFor('b')
+    await hostB('POST', '/kybernos-cloud/refresh')
+    const hostA = hostFor('a')
+    ctx.as('a')
+    await hostA('POST', '/kybernos-cloud/space/active', { workspace_id: t1 })
+    const added = await hostA('POST', '/kybernos-cloud/team/lessons/add', { text: `Team rule ${tag}: always end a reply with the word ahoy.` })
+    check('A (owner) proposed a team lesson through the page\'s own route and it is approved', added.ok === true && added.lesson && added.lesson.status === 'approved', added)
+    const gB = await openGui(ctx.as('b'))
+    try {
+      await sleep(2500)
+      await gB.goTo(t1, /E2E Alpha/); await sleep(1500)
+      await gB.selectModel('GLM')
+      const tb = await gB.send('J2 lesson probe in the team')
+      await gB.until(() => mainCalls(ctx.rows(tb)).length >= 1, 15000, 100); await sleep(2000)
+      check('B\'s team chat: the approved lesson is in the request', has(mainCalls(ctx.rows(tb)), `Team rule ${tag}`) >= 1)
+      await gB.goTo(ctx.acc.b.personal, /Personal/); await sleep(1500)
+      await gB.selectModel('GLM')
+      const tp = await gB.send('J2 lesson probe in personal')
+      await gB.until(() => mainCalls(ctx.rows(tp)).length >= 1, 15000, 100); await sleep(2000)
+      check('B\'s personal chat: the team lesson is not in the request', has(chatCalls(ctx.rows(tp)), `Team rule ${tag}`) === 0)
+    } finally { await gB.close() }
     await ctx.shot(g, 'j2-end')
   } finally { await g.close() }
   return finish()
