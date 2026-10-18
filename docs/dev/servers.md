@@ -135,7 +135,10 @@ members for a second factor: `grace` with the date, or `blocked`). DSH words eve
 invalid »): the quota notice (claimed through DSH's `shell.quota-notice` chain, `QUOTA` only) and the card carry the reason instead. The card also shows a small meter under the plan: the
 percent of the window that counts (the team's pool for an owner or admin of a team, the person's own window otherwise; a window that turns calls away always wins),
 read when the card appears, when the team changes, on focus, every two minutes and right after a refusal. The notice's
-button has the host open the console in the system browser (`POST /kybernos-cloud/console/link` with `open: true`).
+button has the host open the console in the system browser (`POST /kybernos-cloud/console/link` with `open: true`). A team with NO plan answers `no_plan: true` there (the plan route says
+`plan: null`): the notice, the card's plan slot (« No plan », « Choose a plan ») and the chat's failure row (`conversation.chat.node`, key `turn-error`, wrapped around the shipped row) say so
+instead of « Request quota exhausted ». A device the server no longer knows ends the connection (`kybernos-cloud.json.ended` beside the state file) and every one of these says « Sign in again »:
+see `packages/kybernos-cloud/README.md`.
 
 ## The discovery document a company server serves
 

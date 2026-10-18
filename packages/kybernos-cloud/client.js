@@ -51,7 +51,6 @@ window.__ModuleLoader__.load({
         waiting: 'En attente de ta confirmation dans le navigateur…',
         connected: 'Connecté',
         email: 'Email',
-        name: 'Nom',
         plan: 'Formule',
         // DSH already says « Teams » (AI Teams): the same word here, not two
         // vocabularies for the same thing.
@@ -67,6 +66,10 @@ window.__ModuleLoader__.load({
         wsNewCreate: 'Créer',
         wsNewHosted: 'Créer dans Kybernos',
         wsNewErr: 'Le serveur a refusé de créer l\'équipe.',
+        wsNewIntro: 'Une équipe est un lieu partagé pour tes agents, tes conversations et tes membres. Elle démarre sans formule : tu en choisis une après l\'avoir créée.',
+        wsNewNoPlan: '« {name} » est créée, sans formule pour l\'instant. Tu es toujours dans « {here} ».',
+        planNone: 'Aucune formule',
+        planChoose: 'Choisir une formule',
         profCompte: 'Compte',
         profParrain: 'Parrainage',
         profApparence: 'Apparence',
@@ -83,9 +86,6 @@ window.__ModuleLoader__.load({
         models: 'Modèles',
         // DSH chats → webapp (session directory, metadata only)
         // Account memory (cloud feature #2)
-        device: 'Appareil',
-        session: 'Session',
-        refresh: 'Rafraîchir',
         reconnect: 'Se reconnecter',
         disconnect: 'Se déconnecter',
         revokedTitle: 'Reconnexion requise',
@@ -107,6 +107,11 @@ window.__ModuleLoader__.load({
         footConnect: 'Se connecter',
         footPairing: 'Appairage en cours : confirme le code dans le navigateur.',
         footPairingAction: 'Voir le code',
+        footPairDenied: 'Connexion refusée',
+        footPairExpired: 'Code expiré',
+        footSignInAgain: 'Se reconnecter',
+        footEnded: 'Ta session est terminée',
+        sessionEnded: 'Ta session est terminée : le serveur ne reconnaît plus cet appareil. Reconnecte-toi pour continuer.',
         // ── Footer rework (30/09, « Open menu » mockup) ──
         notifTitle: 'Notifications',
         notifEmpty: 'Rien de neuf pour l’instant.',
@@ -133,6 +138,10 @@ window.__ModuleLoader__.load({
         quotaBackDays: 'dans environ {n}\u00a0jours',
         quotaBackUnknown: 'à mesure que l\'usage ancien sort de cette fenêtre, et il est entier {window} après ton dernier appel',
         quotaMoreSolo: ' Passe à une formule supérieure ou ajoute des crédits pour continuer maintenant.',
+        rowNoAdapter: 'Ce modèle vient de ton compte Kybernos, et ce DSH n\'y est plus connecté. Reconnecte-toi pour l\'utiliser.',
+        quotaNoPlan: '{name} n\'a pas encore de formule : personne ne peut y utiliser les modèles.',
+        quotaNoPlanAdmin: ' Choisis-en une pour les activer.',
+        quotaNoPlanMember: ' Demande à un propriétaire ou à un admin de {name} d\'en choisir une.',
         quotaMoreAdmin: ' Ajoute des crédits ou releve le plafond dans Formule et crédits.',
         quotaMoreMember: ' Demande plus de crédits à un propriétaire ou à un admin de {name}.',
         quotaOpenConsole: 'Ouvrir Formule et crédits',
@@ -269,7 +278,6 @@ window.__ModuleLoader__.load({
         waiting: 'Waiting for your confirmation in the browser…',
         connected: 'Connected',
         email: 'Email',
-        name: 'Name',
         plan: 'Plan',
         // DSH already says « Teams » (AI Teams): the same word here, not two
         // vocabularies for the same thing.
@@ -284,6 +292,10 @@ window.__ModuleLoader__.load({
         wsNewCreate: 'Create',
         wsNewHosted: 'Create in Kybernos',
         wsNewErr: 'The server refused to create the team.',
+        wsNewIntro: 'A team is a shared place for your agents, chats and members. It starts without a plan: you choose one after creating it.',
+        wsNewNoPlan: '“{name}” is created, without a plan yet. You are still in “{here}”.',
+        planNone: 'No plan',
+        planChoose: 'Choose a plan',
         profCompte: 'Account',
         profParrain: 'Referral',
         profApparence: 'Appearance',
@@ -300,9 +312,6 @@ window.__ModuleLoader__.load({
         models: 'Models',
         // DSH chats → webapp (session directory, metadata only)
         // Account memory (cloud feature #2)
-        device: 'Device',
-        session: 'Session',
-        refresh: 'Refresh',
         reconnect: 'Reconnect',
         disconnect: 'Sign out',
         revokedTitle: 'Reconnection required',
@@ -324,6 +333,11 @@ window.__ModuleLoader__.load({
         footConnect: 'Sign in',
         footPairing: 'Pairing in progress: confirm the code in your browser.',
         footPairingAction: 'Show code',
+        footPairDenied: 'Connection refused',
+        footPairExpired: 'Code expired',
+        footSignInAgain: 'Sign in again',
+        footEnded: 'Your session ended',
+        sessionEnded: 'Your session ended: the server no longer recognises this device. Sign in again to carry on.',
         notifTitle: 'Notifications',
         notifEmpty: 'Nothing new so far.',
         notifClear: 'Clear all',
@@ -349,6 +363,10 @@ window.__ModuleLoader__.load({
         quotaBackDays: 'in about {n}\u00a0days',
         quotaBackUnknown: 'as older use leaves that window, and is whole again {window} after your last call',
         quotaMoreSolo: ' Upgrade or add credits to go on now.',
+        rowNoAdapter: 'This model comes from your Kybernos account, and this DSH is not signed in to it any more. Sign in again to use it.',
+        quotaNoPlan: '{name} has no plan yet, so nobody in it can use the models.',
+        quotaNoPlanAdmin: ' Choose a plan to turn them on.',
+        quotaNoPlanMember: ' Ask an owner or admin of {name} to choose one.',
         quotaMoreAdmin: ' Add credits or raise the cap in Plan & Credits.',
         quotaMoreMember: ' Ask an owner or admin of {name} for more credits.',
         quotaOpenConsole: 'Open Plan & Credits',
@@ -522,9 +540,6 @@ body:not([data-ds-dark-theme]) :is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-
 .kbf-qrnote{margin:8px 2px 2px;font-size:11.5px;line-height:1.45;color:var(--dsw-alias-label-tertiary,#8a8a93)}
 .kbf-popcenter{padding:10px 10px 12px}
 .kbf-wsgear:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14));color:var(--dsw-alias-label-primary,#e9e9ee)}
-.kbws-head{display:flex;align-items:flex-start;gap:10px;justify-content:space-between}
-.kbws-who{display:flex;align-items:center;gap:9px;min-width:0}
-.kbws-who b{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kbws-list{display:flex;flex-direction:column;gap:2px;margin:10px 0 0}
 .kbws-item{display:flex;align-items:center;gap:9px;width:100%;padding:8px 9px;border:1px solid transparent;border-radius:8px;background:transparent;color:inherit;font:inherit;font-size:12.5px;text-align:left;cursor:pointer}
 .kbws-item:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14))}
@@ -695,6 +710,9 @@ body:not([data-ds-dark-theme]) :is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-
 .kbqn{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);z-index:90;max-width:min(620px,92vw);box-sizing:border-box;display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:var(--dsw-alias-bg-layer-2,#2a2a30);box-shadow:var(--dsw-elevation-panel,0 8px 28px rgba(0,0,0,.35));color:var(--dsw-alias-label-primary,#e9e9ee);font-size:13px;line-height:1.45}
 .kbqn-text{flex:1 1 auto;min-width:0}
 .kbqn-act{flex:0 0 auto;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:transparent;color:inherit;border-radius:10px;padding:5px 10px;font:inherit;cursor:pointer;white-space:nowrap}
+.kbtr{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.kbtr-act{border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:transparent;color:inherit;border-radius:10px;padding:5px 10px;font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.kbtr-act:hover{background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.14))}
 .kbqn-act:hover{background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.14))}
 .kbqn-x{flex:0 0 auto;border:0;background:transparent;color:var(--dsw-alias-label-secondary,#a0a0aa);font-size:18px;line-height:1;cursor:pointer;padding:0 2px}
 .kbfp-mhead{display:flex;align-items:center;gap:12px;width:100%;min-height:40px;box-sizing:border-box;padding:0 10px;border:none;border-radius:10px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
@@ -709,6 +727,7 @@ body:not([data-ds-dark-theme]) :is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-
 .kbfp-mplan{margin:4px 0;box-sizing:border-box;padding:2px 10px;border-radius:10px;background:var(--dsw-alias-interactive-bg-hover)}
 .kbfp-mplanline{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:40px}
 .kbfp-mplanname{font-size:16px;font-weight:600;letter-spacing:-.01em;text-transform:capitalize}
+.kbfp-mplanname[data-plan="none"]{text-transform:none}
 .kbfp-mcta{flex:none;height:28px;padding:0 12px;border:none;border-radius:10px;background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
 .kbfp-mcta:hover{background:var(--dsw-alias-button-primary-hover)}
 .kbfp-msep{height:1px;margin:8px 0;background:var(--dsw-alias-border-l2)}
@@ -902,20 +921,47 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
       h('path', { key: 'b', d: 'M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.5M12 17h.01', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' }),
     ], props)
 
+    // <space-face:begin> how a workspace and its plan look, in ONE place (test-cloud-client.mjs plays this block on its own)
     /** Initials for the avatar: two letters at most, never empty. */
-    /** The plan to show for the ACTIVE space. The host reads it from the server (`state.space_plan`); the account's own word
-     *  (`user.plan`, « team » as soon as the person is in any team) is only the fallback when that read is not there. `free` is
-     *  true for a space with no paid plan: the only case that is offered « Upgrade ». Never the raw lowercase key of an API. */
+    const initiales = (nom, email) => {
+      const nomPropre = typeof nom === 'string' ? nom.trim() : ''
+      const local = typeof email === 'string' && email.indexOf('@') > 0 ? email.slice(0, email.indexOf('@')) : ''
+      const brut = nomPropre !== '' ? nomPropre : local
+      const tokens = brut.split(/[\s._-]+/).filter((m) => m !== '')
+      if (tokens.length === 0) return '?'
+      if (tokens.length === 1) return tokens[0].slice(0, 2).toUpperCase()
+      return (tokens[0].charAt(0) + tokens[1].charAt(0)).toUpperCase()
+    }
     // The name a person sees for a workspace: the personal one is « Personal » (the server stores it as « My workspace »), a team keeps its own name. `t` is the
     // translator of the caller (this helper lives outside the component that owns it).
     const nomAffiche = (w, t) => (w !== null && typeof w === 'object' && (w.personal === true || w.name === 'My workspace') ? t('wsPersonal') : (w !== null && typeof w === 'object' && typeof w.name === 'string' ? w.name : ''))
+    // The ONE place that says how a workspace looks: the name a person sees and the initials of THAT name. The card, the menu's head, both team lists and the dialogs
+    // all come from here, so one workspace has one name and one tile (the list used to cut « My workspace » to MW next to a card that said « Personal » and PE).
+    const espaceVue = (w, t) => { const name = nomAffiche(w, t); return { name: name, initials: initiales(name, '') } }
+    /** The ACTIVE workspace of a status, as `espaceVue` shows it (the first one when none was chosen; « Team » when the list is empty). */
+    const espaceActifVue = (st, t) => {
+      const espaces = st !== null && st !== undefined && Array.isArray(st.workspaces) ? st.workspaces : []
+      const actif = st !== null && st !== undefined && typeof st.active_workspace_id === 'string' ? st.active_workspace_id : null
+      const courant = espaces.filter((w) => w !== null && w.id === actif)[0] || espaces[0] || null
+      return courant !== null && courant.name ? espaceVue(courant, t) : { name: t('spaceTitle'), initials: initiales(t('spaceTitle'), '') }
+    }
+    /** The plan to show for the ACTIVE space. The host reads it from the server (`state.space_plan`); the account's own word (`user.plan`, « team » as soon as the person
+     *  is in any team) is only the fallback when that read is not there. `free` is true for a space with no paid plan: the only case that is offered « Upgrade ». `none`: the
+     *  space has NO plan at all (a team nobody bought one for): the server refuses every model call there. It is not « Free » (that is a plan) and not an unknown (« — »).
+     *  Never the raw lowercase key of an API. */
     const planDeEspace = (state, user) => {
       const sp = state !== null && state !== undefined && state.space_plan !== undefined && state.space_plan !== null && typeof state.space_plan === 'object' ? state.space_plan : null
       const cap = (m) => (typeof m === 'string' && m.trim() !== '' ? m.trim().charAt(0).toUpperCase() + m.trim().slice(1) : null)
-      if (sp !== null) return { label: cap(sp.label), free: sp.key === 'free' || sp.key === 'none' }
+      if (sp !== null) return { label: cap(sp.label), free: sp.key === 'free' || sp.key === 'none', none: sp.key === 'none' }
       const brut = user !== null && user !== undefined && typeof user.plan === 'string' ? user.plan.trim() : ''
-      return { label: cap(brut), free: brut.toLowerCase() === 'free' }
+      return { label: cap(brut), free: brut.toLowerCase() === 'free', none: false }
     }
+    /** The plan as the person reads it, in the footer card, the menu and the account card: the name, « No plan » for a team without one, « — » when it is not known. */
+    const planNameOf = (state, user, t) => {
+      const info = planDeEspace(state, user)
+      return info.none === true ? t('planNone') : (info.label !== null ? info.label : t('none'))
+    }
+    // <space-face:end>
 
     // <plan-top:begin> « Upgrade » is for a plan that has something above it, and it only opens a page: it is only offered where that page can open
     /** True only when the catalogue PROVES nothing is above the active space's plan: a paid Team plan (its seats are bought on the plan page) or the highest level of the
@@ -961,16 +1007,6 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
       return { text: String(t(typeof key === 'string' ? key : 'srvDownOpen')).replace(/\{(name|host)\}/g, (m, k) => sv[k].trim()), canSwitch: sv.can_switch === true }
     }
     // <server-down:end>
-
-    const initiales = (nom, email) => {
-      const nomPropre = typeof nom === 'string' ? nom.trim() : ''
-      const local = typeof email === 'string' && email.indexOf('@') > 0 ? email.slice(0, email.indexOf('@')) : ''
-      const brut = nomPropre !== '' ? nomPropre : local
-      const tokens = brut.split(/[\s._-]+/).filter((m) => m !== '')
-      if (tokens.length === 0) return '?'
-      if (tokens.length === 1) return tokens[0].slice(0, 2).toUpperCase()
-      return (tokens[0].charAt(0) + tokens[1].charAt(0)).toUpperCase()
-    }
 
     /** Local base path of the host half's routes (same computation as kybernos-plugin). */
     const apiBase = () => {
@@ -1052,6 +1088,9 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
       const name = typeof ws.name === 'string' && ws.name !== '' ? ws.name : t('quotaWorkspace')
       const admin = ws.role === 'owner' || ws.role === 'admin'
       const shared = ws.personal !== true
+      // A team nobody has bought a plan for: every model call is refused and there is no window to read. Say that, and offer the plan page (`label` and `section` are
+      // what the notice's button says and opens; without them it is « Open Plan & Credits »).
+      if (info.no_plan === true) return { text: quotaFill(t('quotaNoPlan'), { name }) + (admin ? t('quotaNoPlanAdmin') : quotaFill(t('quotaNoPlanMember'), { name })), action: admin, label: 'planChoose', section: 'plan' }
       if (info.payment_blocked === true) return { text: quotaPaymentText(name, admin, t), action: admin }
       const windows = quotaWindows(info)
       const out = quotaBlocking(windows)
@@ -1248,6 +1287,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               return settle({ phase: 'error', error: fresh.error || 'profil_indisponible' })
             }
             if (status.status === 'pending') return settle({ phase: 'pairing', pairing: status.pairing })
+            // The server ended this connection: the card says « Reconnection required » and offers it, instead of the first-time words.
+            if (status.status === 'revoked') return settle({ phase: 'revoked' })
             return settle({ phase: 'disconnected' })
           }, [])
 
@@ -1362,7 +1403,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               h(Row, { label: t('email'), value: user.email || t('none') }),
               // The plan of the ACTIVE team, as the footer chip says it (the profile's `plan` is the account's word and reads « team » as soon as the person is in
               // any team, next to a chip that says « Solo Studio »): the card said « Plan team » for a personal Solo Studio space right after the pairing.
-              h(Row, { label: t('plan'), value: (st.space_plan !== undefined && st.space_plan !== null && typeof st.space_plan.label === 'string' && st.space_plan.label !== '' ? st.space_plan.label : null) || user.plan || t('none') })))
+              h(Row, { label: t('plan'), value: (st.space_plan !== undefined && st.space_plan !== null && st.space_plan.key === 'none' ? t('planNone') : null) || (st.space_plan !== undefined && st.space_plan !== null && typeof st.space_plan.label === 'string' && st.space_plan.label !== '' ? st.space_plan.label : null) || user.plan || t('none') })))
             body.push(h('div', { key: 'wl' },
               h('div', { className: 'kbc-note', style: { marginTop: '12px' } }, t('workspaces')),
               h('div', { className: 'kbc-ws' }, workspaces.length === 0
@@ -1450,12 +1491,12 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                     className: 'kbfp-wsitem' + (on === true ? ' on' : ''),
                     role: 'menuitem', 'aria-current': on ? 'true' : 'false', disabled: busy,
                     // The name is cut with an ellipsis in a narrow list: the title is the only way to read a long one in full.
-                    title: (w && nomAffiche(w, t)) || undefined,
+                    title: (w && espaceVue(w, t).name) || undefined,
                     onClick: () => { void choisir(w && w.id) },
                   },
-                  h('span', { className: 'kbfp-wstile', 'aria-hidden': 'true' }, initiales(w && w.name, '')),
+                  h('span', { className: 'kbfp-wstile', 'aria-hidden': 'true' }, espaceVue(w, t).initials),
                   h('span', { className: 'kbfp-wstxt' },
-                    h('span', { className: 'kbfp-wsname' }, (w && nomAffiche(w, t)) || t('none')),
+                    h('span', { className: 'kbfp-wsname' }, (w && espaceVue(w, t).name) || t('none')),
                     h('span', { className: 'kbfp-wssub' }, on === true
                       ? t('spaceMark')
                       : (w && w.kyber_count !== undefined ? String(w.kyber_count) + ' ' + t('kybers') : ''))),
@@ -1483,11 +1524,11 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                     type: 'button', key: String((w && w.id) || i), className: 'kbws-item',
                     role: 'menuitem', 'aria-current': on ? 'true' : 'false', disabled: busy,
                     // The name is cut with an ellipsis in a narrow list: the title is the only way to read a long one in full.
-                    title: (w && nomAffiche(w, t)) || undefined,
+                    title: (w && espaceVue(w, t).name) || undefined,
                     onClick: () => { void choisir(w && w.id) },
                   },
-                  h('span', { className: 'kbf-avatar', 'aria-hidden': 'true' }, initiales(w && w.name, '')),
-                  h('span', { className: 'kbws-name' }, w ? nomAffiche(w, t) || t('none') : t('none')),
+                  h('span', { className: 'kbf-avatar', 'aria-hidden': 'true' }, espaceVue(w, t).initials),
+                  h('span', { className: 'kbws-name' }, w ? espaceVue(w, t).name || t('none') : t('none')),
                   h('span', { className: 'kbws-mark' }, on
                     ? t('spaceMark')
                     : (w && w.kyber_count !== undefined ? String(w.kyber_count) + ' ' + t('kybers') : '')))
@@ -1525,18 +1566,21 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             let res = null
             try { res = await callLocal('/space/create', 'POST', { name: propre }) } catch (e) { res = null }
             setBusy(false)
-            if (res !== null && res.ok === true) { props.onCreated(); props.onClose(); return }
+            if (res !== null && res.ok === true) { props.onCreated(res); props.onClose(); return }
             // Never a dialog that silently does nothing: the sentence says it was refused (with the server's code when there is one), and the hosted page stays offered.
             if (res !== null && typeof res.web_url === 'string' && res.web_url !== '') setHosted(res.web_url)
             setErreur(t('wsNewErr') + (res !== null && typeof res.status === 'number' && res.status > 0 ? ' (' + String(res.status) + ')' : ''))
           }
 
           return h('div', { className: 'kbc-scrim', onClick: (e) => { if (e.target === e.currentTarget) props.onClose() } },
-            h('div', { className: 'kbc-card', role: 'dialog', 'aria-label': t('wsNewTitle'), style: { maxWidth: '340px' } },
-              h('div', { className: 'kbws-head' },
-                h('span', { className: 'kbws-who' }, h('b', null, t('wsNewTitle'))),
-                h('button', { type: 'button', className: 'kbc-close', onClick: props.onClose, 'aria-label': t('close') }, '✕')),
-              h('div', { className: 'kbc-body', style: { display: 'flex', flexDirection: 'column', gap: '10px' } },
+            h('div', { className: 'kbc-card', role: 'dialog', 'aria-label': t('wsNewTitle'), 'data-kb': 'new-team', style: { maxWidth: '340px' } },
+              // The card's own header (title, then the cross at the far end): the title used to run under a bare button.
+              h('div', { className: 'kbc-head' },
+                h('span', { className: 'kbc-title' }, t('wsNewTitle')),
+                h('button', { type: 'button', className: 'kbc-x', onClick: props.onClose, 'aria-label': t('close') }, '\u00d7')),
+              // What a team is, and that this one starts without a plan: said before the name is asked, not discovered at the first refused message.
+              h('div', { className: 'kbc-body', 'data-kb': 'new-team-intro' }, t('wsNewIntro')),
+              h('div', { style: { display: 'flex', flexDirection: 'column', gap: '10px' } },
                 h('input', {
                   type: 'text', className: 'kbc-input', value: nom, autoFocus: true,
                   placeholder: t('wsNewName'), 'aria-label': t('wsNewName'), disabled: busy,
@@ -1821,7 +1865,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             style: { left: pos.left + 'px', bottom: pos.bottom + 'px', width: pos.width + 'px' },
           },
           h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-connect' },
-            entree('connect', h(EnterIcon, { size: 18 }), props.pairing === true ? t('footPairingAction') : t('footConnect'), props.onConnect),
+            entree('connect', h(EnterIcon, { size: 18 }), props.pairing === true ? t('footPairingAction') : (props.ended === true ? t('footSignInAgain') : t('footConnect')), props.onConnect),
             // The server's own sign-up page (the account app), in the system browser.
             props.signupUrl !== undefined && props.signupUrl !== ''
               ? entree('signup', h(UserIcon, { size: 18 }), t('menuSignup'), () => openTab(props.signupUrl.replace(/\/+$/, '') + '/account'), { ext: true })
@@ -1884,7 +1928,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           const activeId = typeof st.active_workspace_id === 'string' ? st.active_workspace_id : null
           const ws = spaces.filter((w) => w !== null && w.id === activeId)[0] || spaces[0] || null
           const wsId = ws !== null && typeof ws.id === 'string' ? ws.id : null
-          const wsName = ws !== null && ws.name ? nomAffiche(ws, t) : ''
+          const wsName = ws !== null && ws.name ? espaceVue(ws, t).name : ''
           // A team workspace buys seats; a personal one, a level. The account says which; unknown is personal.
           const forTeam = ws !== null && ws.personal === false
           const sp = st.space_plan !== undefined && st.space_plan !== null && typeof st.space_plan === 'object' ? st.space_plan : {}
@@ -2134,12 +2178,9 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
 
           const st = props.state !== undefined && props.state !== null ? props.state : {}
           const user = st.user !== undefined && st.user !== null ? st.user : {}
-          const espaces = Array.isArray(st.workspaces) ? st.workspaces : []
-          const actif = typeof st.active_workspace_id === 'string' ? st.active_workspace_id : null
-          const courant = espaces.filter((w) => w !== null && w.id === actif)[0] || espaces[0] || null
-          const nomEspace = courant !== null && courant.name ? nomAffiche(courant, t) : t('spaceTitle')
+          const vueEspace = espaceActifVue(st, t)
           const planInfo = planDeEspace(st, user)
-          const plan = planInfo.label !== null ? planInfo.label : t('none')
+          const plan = planNameOf(st, user, t)
           // The catalogue says whether the plan is the top one; until it is read (or when the server does not answer) nothing proves it is, and the entry stays.
           const cataloguePair = React.useState(() => (plansMemo !== null ? plansMemo.plans : null))
           const catalogue = cataloguePair[0]
@@ -2204,16 +2245,19 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                 'aria-expanded': switchOpen === true ? 'true' : 'false',
                 onClick: () => setSwitchOpen(switchOpen !== true),
               },
-              h('span', { className: 'kbfp-tile', 'aria-hidden': 'true' }, initiales(nomEspace, '')),
+              h('span', { className: 'kbfp-tile', 'aria-hidden': 'true' }, vueEspace.initials),
               h('span', { className: 'kbfp-mheadtxt' },
-                h('span', { className: 'kbfp-mheadname' }, nomEspace),
+                h('span', { className: 'kbfp-mheadname' }, vueEspace.name),
                 h('span', { className: 'kbfp-mheadsub' }, t('wsSwitchTitle'))),
               h(SwapIcon, { size: 18 })),
               h('div', { className: 'kbfp-mplan' },
                 h('div', { className: 'kbfp-mplanline' },
-                  h('span', { className: 'kbfp-mplanname' }, plan),
-                  // « Upgrade » only where there is something to upgrade from: a paying person, or a Team, is not offered it.
-                  planInfo.free === true ? h('button', { type: 'button', className: 'kbfp-mcta', 'data-kb': 'menu-plan-cta', onClick: () => { try { props.onClose() } catch (e) { /* closed */ } props.onUpgrade() } }, t('menuPlanCta')) : null)),
+                  h('span', { className: 'kbfp-mplanname', 'data-plan': planInfo.none === true ? 'none' : undefined }, plan),
+                  // « Upgrade » only where there is something to upgrade from: a paying person, or a Team, is not offered it. A team with NO plan is not upgraded, it
+                  // chooses one: « Choose a plan » opens the app's plan page for it (the in-DSH table is the Free person's).
+                  planInfo.none === true
+                    ? h('button', { type: 'button', className: 'kbfp-mcta', 'data-kb': 'menu-plan-cta', 'data-plan': 'none', onClick: () => { try { props.onClose() } catch (e) { /* closed */ } props.onUpgradePage() } }, t('planChoose'))
+                    : (planInfo.free === true ? h('button', { type: 'button', className: 'kbfp-mcta', 'data-kb': 'menu-plan-cta', onClick: () => { try { props.onClose() } catch (e) { /* closed */ } props.onUpgrade() } }, t('menuPlanCta')) : null))),
               upgradeEntry ? entree('upgrade', h(UpgradeIcon, { size: 18 }), t('menuPlanCta'), props.onUpgradePage, { ext: true }) : null,
               // "Teams settings" = the former "Workspace settings" (same action).
               entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace)),
@@ -2344,9 +2388,12 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           const [flash, setFlash] = React.useState('')
           // The notice of a server that does not answer carries « Switch server » (and stays a little longer: there is something to press).
           const [flashSwitch, setFlashSwitch] = React.useState(false)
+          // A notice that carries ONE action of its own (« Choose a plan »): `{ for: <the text it belongs to>, label, run }`. It is shown only while the notice still says that
+          // text, so a newer notice never inherits a button that was meant for an older one.
+          const [flashAct, setFlashAct] = React.useState(null)
           React.useEffect(() => {
             if (flash === '') return undefined
-            const id = window.setTimeout(() => { setFlash(''); setFlashSwitch(false) }, flashSwitch === true ? 12000 : 7000)
+            const id = window.setTimeout(() => { setFlash(''); setFlashSwitch(false); setFlashAct(null) }, flashSwitch === true || flashAct !== null ? 12000 : 7000)
             return () => window.clearTimeout(id)
           }, [flash])
           // The account page of the SERVER, in the system browser: signed in through the single-use console link the host asks for.
@@ -2363,6 +2410,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                 setFlash(t(shown === true ? 'accountOpened' : 'accountPopupBlocked'))
                 return
               }
+              // The server turned this device away (revoked, or a server on a new database): « try again in a moment » would never help. Say what happened, and the footer reads it now.
+              if (r !== null && r !== undefined && r.status === 'revoked') { setFlashSwitch(false); setFlash(t('sessionEnded')); void load(); return }
               // The server does not answer: say WHICH one, and offer to go to another when there is one.
               const down = serverDownNote(r, t)
               setFlashSwitch(down !== null && down.canSwitch === true)
@@ -2379,6 +2428,11 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           const [autoStart, setAutoStart] = React.useState(false)
           const [phase, setPhase] = React.useState('loading')
           const [state, setState] = React.useState({})
+          // The server ended this connection (a device revoked from the account page, a new database): the signed-out row then says « Sign in again » and why, not the plain words.
+          const [ended, setEnded] = React.useState(false)
+          // How the last pairing ended when it was not a success (`denied`, `expired`): said in the row, which stays until the person tries again.
+          const [pairNote, setPairNote] = React.useState(null)
+          const wasConnectedRef = React.useRef(false)
           // What the phone link says about itself (kybernos-mobile's host route, the same one its panel reads): the menu offers « Remote control »
           // only when the feature is there for this person. Unknown (not read yet, route absent, a refusal) is « not offered », never a dead entry.
           const [remote, setRemote] = React.useState(null)
@@ -2404,11 +2458,19 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             try { status = await callLocal('/status', 'GET') } catch (e) { status = null }
             if (liveRef.current !== true) return
             if (status !== null && status.connected === true) {
+              wasConnectedRef.current = true
+              setEnded(false)
+              setPairNote(null)
               setState(status.state !== undefined && status.state !== null ? status.state : {})
               setPhase('connected')
               return
             }
-            if (status !== null && status.status === 'pending') { setPhase('pairing'); return }
+            if (status !== null && status.status === 'pending') { setPairNote(null); setPhase('pairing'); return }
+            const gone = status !== null && status.status === 'revoked'
+            setEnded(gone)
+            // The row flipped from the account to « Sign in again » while the person was looking elsewhere: tell them why, once.
+            if (gone === true && wasConnectedRef.current === true) { setFlashSwitch(false); setFlash(t('sessionEnded')) }
+            wasConnectedRef.current = false
             setPhase('disconnected')
           }, [])
 
@@ -2428,6 +2490,31 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', again); window.removeEventListener('focus', again) }
           }, [load])
 
+          // A pairing under way is asked about from here too: it used to end (refused in the browser, expired, or confirmed) and the row said nothing until the card was
+          // opened. The host makes one call of simultaneous askers (this and the open card), so the two never fight over the token. A refusal or an expiry is said where the
+          // person looks (a notice, and the row's own line, which stays until they try again); a confirmation reads the account.
+          React.useEffect(() => {
+            if (phase !== 'pairing') return undefined
+            let asking = false
+            const ask = async () => {
+              if (asking === true || document.visibilityState === 'hidden') return
+              asking = true
+              try {
+                const r = await callLocal('/poll', 'POST')
+                if (liveRef.current !== true || r === null || r === undefined) return
+                if (r.connected === true) { void load(); return }
+                if (r.status === 'denied' || r.status === 'expired') {
+                  setPairNote(r.status)
+                  setFlashSwitch(false)
+                  setFlash(t(r.status === 'denied' ? 'pairingDenied' : 'pairingExpired'))
+                  void load()
+                }
+              } catch (e) { /* the next tick asks again */ } finally { asking = false }
+            }
+            const id = window.setInterval(ask, 3000)
+            return () => window.clearInterval(id)
+          }, [phase])
+
           // The meter of the card: how much of the allowance is used in the ACTIVE team (a percentage, never tokens or money), read from the host (it asks the
           // server) when the card appears, when the active team changes, when the window comes back into view, every two minutes, and as soon as the quota notice
           // has read a refusal. A failed read keeps the last figure; changing team clears it, so one team's percent is never shown under another's name.
@@ -2438,7 +2525,12 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             if (quotaSpace === null) return undefined
             let on = true
             const read = () => {
-              callLocal('/quota', 'GET').then((r) => { if (on === true && r !== null && r !== undefined && r.ok === true) setQuota(quotaStamp(r)) }).catch(() => null)
+              callLocal('/quota', 'GET').then((r) => {
+                if (on !== true || r === null || r === undefined) return
+                if (r.ok === true) setQuota(quotaStamp(r))
+                // The host found the server no longer accepts this device (the read ended the connection): the row says so now, not at the next 30-second read.
+                else if (r.status === 'revoked') void load()
+              }).catch(() => null)
             }
             read()
             const seen = () => { if (document.visibilityState === 'visible') read() }
@@ -2499,8 +2591,23 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             } catch (e) { /* document unavailable */ }
           }, [phase])
 
-          const openAndConnect = () => { setAutoStart(true); setOpen(true) }
+          const openAndConnect = () => { setPairNote(null); setAutoStart(true); setOpen(true) }
           const openCard = () => { setAutoStart(false); setOpen(true) }
+          // The failure row of a turn (a team without a plan) asks for the plan page: the footer owns the console link, so it opens it.
+          React.useEffect(() => {
+            const plan = (ev) => { const id = ev !== null && ev !== undefined && ev.detail !== null && ev.detail !== undefined && typeof ev.detail.workspace_id === 'string' ? ev.detail.workspace_id : undefined; openAccountPage('plan', id) }
+            window.addEventListener('kybernos-cloud:plan', plan)
+            return () => window.removeEventListener('kybernos-cloud:plan', plan)
+          }, [])
+          // A team that was created WITHOUT a plan did not take over (the host left the person where they were): say so, and offer its plan page.
+          const announceCreated = (res) => {
+            const made = res !== null && res !== undefined && res.created !== null && typeof res.created === 'object' ? res.created : null
+            if (made === null || made.activated !== false) return
+            const text = quotaFill(t('wsNewNoPlan'), { name: typeof made.name === 'string' ? made.name : '', here: espaceActifVue(state, t).name })
+            setFlashSwitch(false)
+            setFlashAct({ for: text, label: t('planChoose'), run: () => openAccountPage('plan', made.id) })
+            setFlash(text)
+          }
 
           const user = state.user !== undefined && state.user !== null ? state.user : {}
           const device = typeof state.device_label === 'string' && state.device_label.trim() !== '' ? state.device_label.trim() : null
@@ -2511,12 +2618,11 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             // A single card: initials tile, workspace name, « who ·
             // plan », phone and bell. Clicking opens the unified MENU;
             // the former rows (workspace, identity) have been merged into it.
-            const espaces = Array.isArray(state.workspaces) ? state.workspaces : []
             const actif = typeof state.active_workspace_id === 'string' ? state.active_workspace_id : null
-            const courant = espaces.filter((w) => w !== null && w.id === actif)[0] || espaces[0] || null
-            const nomEspace = courant !== null && courant.name ? nomAffiche(courant, t) : t('spaceTitle')
+            const vueEspace = espaceActifVue(state, t)
+            const nomEspace = vueEspace.name
             const mfaNote = mfaNoteText(state.space_plan !== undefined && state.space_plan !== null ? state.space_plan.mfa : null, nomEspace, t, fmtDate)
-            const planEspace = planDeEspace(state, user).label !== null ? planDeEspace(state, user).label : t('none')
+            const planEspace = planNameOf(state, user, t)
             const meter = quota !== null ? quotaMeterOf(quota, t) : null
             // « Team settings », « Account » and « Referral » open the APP, in the person's browser, signed in (the single-use console link, section `plan`,
             // `overview` or `referral`, on the active workspace). They used to open a read-only copy of it in DSH's content zone, and every change in that copy sent the person
@@ -2544,7 +2650,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                 'aria-expanded': menuOpen === true ? 'true' : 'false',
                 onClick: () => { setNotifOpen(false); setMenuOpen(menuOpen !== true) },
               },
-              h('span', { className: 'kbfp-tile', 'aria-hidden': 'true', 'data-update': majDispo === true ? 'true' : undefined }, initiales(nomEspace, '')),
+              h('span', { className: 'kbfp-tile', 'aria-hidden': 'true', 'data-update': majDispo === true ? 'true' : undefined }, vueEspace.initials),
               h('span', { className: 'kbfp-cardtxt' },
                 h('span', { className: 'kbfp-cardname' }, nomEspace),
                 h('span', { className: 'kbfp-cardsub', title: mfaNote !== null ? mfaNote.long : undefined, 'data-kb': mfaNote !== null ? 'workspace-card-mfa' : undefined }, qui + ' · ' + planEspace + (mfaNote !== null ? ' · ⚠ ' + mfaNote.short : '')),
@@ -2622,18 +2728,20 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                 h('div', { className: 'kbfp-card' },
                   h('button', {
                     type: 'button', className: 'kbfp-cardmain', ref: gearRef, 'data-kb': 'foot-signin',
-                    title: pairing ? t('footPairing') : t('footHint'), 'aria-label': pairing ? t('pairingTitle') : t('footSignInUp'),
+                    title: pairing ? t('footPairing') : (pairNote !== null ? t(pairNote === 'denied' ? 'pairingDenied' : 'pairingExpired') : (ended === true ? t('sessionEnded') : t('footHint'))), 'aria-label': pairing ? t('pairingTitle') : (ended === true ? t('footSignInAgain') : t('footSignInUp')),
                     'aria-haspopup': 'menu', 'aria-expanded': menuOpen === true ? 'true' : 'false',
                     onClick: () => setMenuOpen(menuOpen !== true),
                   },
                   h('span', { className: 'kbfp-tile', 'aria-hidden': 'true' }, h(UserIcon, { size: 18 })),
                   h('span', { className: 'kbfp-cardtxt' },
-                    h('span', { className: 'kbfp-cardname' }, pairing ? t('pairingTitle') : t('footSignInUp')),
-                    h('span', { className: 'kbfp-cardsub' }, pairing ? t('footPairingAction') : (phase === 'loading' ? t('loading') : t('footSyncSub')))),
+                    h('span', { className: 'kbfp-cardname' }, pairing ? t('pairingTitle') : (ended === true ? t('footSignInAgain') : t('footSignInUp'))),
+                    h('span', { className: 'kbfp-cardsub', 'data-kb': pairNote !== null && pairing !== true ? 'foot-pair-note' : (ended === true && pairing !== true ? 'foot-ended' : undefined) },
+                      pairing ? t('footPairingAction') : (pairNote !== null ? t(pairNote === 'denied' ? 'footPairDenied' : 'footPairExpired') : (ended === true ? t('footEnded') : (phase === 'loading' ? t('loading') : t('footSyncSub')))))),
                   h('span', { className: 'kbfp-chev', 'aria-hidden': 'true' }, h(SwapIcon, { size: 18 }))))),
               menuOpen === true
                 ? h(OffMenu, {
                   pairing: pairing,
+                  ended: ended === true,
                   anchorRef: offRowRef,
                   toggleRef: gearRef,
                   signupUrl: (serverInfo !== null && typeof serverInfo.web === 'string' && serverInfo.web !== '' ? serverInfo.web : (serverInfo !== null && typeof serverInfo.api === 'string' ? serverInfo.api : '')),
@@ -2645,8 +2753,9 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
 
           return h('div', { className: 'kbf-root', ref: racineRef },
             flash !== ''
-              ? h('div', { className: 'kbfp-flash', role: 'status', 'data-kb': 'foot-flash' }, flash,
-                flashSwitch === true ? h('button', { type: 'button', className: 'kbfp-flashact', 'data-kb': 'foot-switch-server', onClick: () => { setFlash(''); setFlashSwitch(false); openServersPage() } }, t('srvSwitch')) : null)
+              ? h('div', { className: 'kbfp-flash', role: 'status', 'data-kb': 'foot-flash' }, h('span', { className: 'kbfp-flashtext' }, flash),
+                flashSwitch === true ? h('button', { type: 'button', className: 'kbfp-flashact', 'data-kb': 'foot-switch-server', onClick: () => { setFlash(''); setFlashSwitch(false); openServersPage() } }, t('srvSwitch')) : null,
+                flashAct !== null && flashAct.for === flash ? h('button', { type: 'button', className: 'kbfp-flashact', 'data-kb': 'foot-flash-action', onClick: () => { const run = flashAct.run; setFlash(''); setFlashAct(null); run() } }, flashAct.label) : null)
               : null,
             corps,
             upgradeOpen === true
@@ -2655,7 +2764,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             newOpen === true
               ? h(NewSpacePanel, {
                 onClose: () => setNewOpen(false),
-                onCreated: () => { void load() },
+                onCreated: (res) => { void load(); announceCreated(res) },
               })
               : null,
             open === true
@@ -2693,24 +2802,84 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             const id = window.setTimeout(() => { try { props.dismiss() } catch (e) { /* already gone */ } }, 15000)
             return () => window.clearTimeout(id)
           }, [])
-          const verdict = info !== null ? quotaNoticeText(info.r, t) : null
-          const text = verdict !== null ? verdict.text : String(props.message || '')
+          // A device the server no longer knows: DSH's « Request quota exhausted » is not the reason, the ended session is (the footer says the same and offers the sign-in).
+          const ended = info !== null && info.r !== null && info.r !== undefined && info.r.status === 'revoked'
+          const verdict = info !== null && ended !== true ? quotaNoticeText(info.r, t) : null
+          const text = ended ? t('sessionEnded') : (verdict !== null ? verdict.text : String(props.message || ''))
           const openConsole = () => {
             const wsId = info !== null && info.r !== null && info.r.workspace !== undefined ? info.r.workspace.id : undefined
             // The HOST opens the system browser with the single-use link (the server refuses one that a page-opened tab brings); a host that could not hands the address back.
-            callLocal('/console/link', 'POST', typeof wsId === 'string' ? { workspace_id: wsId, open: true } : { open: true }).then((r) => {
+            callLocal('/console/link', 'POST', Object.assign({ open: true }, typeof wsId === 'string' ? { workspace_id: wsId } : {}, verdict !== null && typeof verdict.section === 'string' ? { section: verdict.section } : {})).then((r) => {
               if (r !== null && r !== undefined && r.ok === true && r.opened !== true && typeof r.url === 'string') { try { window.open(r.url, '_blank', 'noopener,noreferrer') } catch (e) { /* cannot open */ } }
             }).catch(() => null)
             try { props.dismiss() } catch (e) { /* already gone */ }
           }
           return h('div', { className: 'kbqn', role: 'alert', 'data-kb': 'quota-notice' },
             h('span', { className: 'kbqn-text' }, text),
-            verdict !== null && verdict.action === true ? h('button', { type: 'button', className: 'kbqn-act', 'data-kb': 'quota-notice-open', onClick: openConsole }, t('quotaOpenConsole')) : null,
+            verdict !== null && verdict.action === true ? h('button', { type: 'button', className: 'kbqn-act', 'data-kb': 'quota-notice-open', onClick: openConsole }, t(typeof verdict.label === 'string' ? verdict.label : 'quotaOpenConsole')) : null,
             h('button', { type: 'button', className: 'kbqn-x', 'aria-label': t('quotaClose'), onClick: () => { try { props.dismiss() } catch (e) { /* already gone */ } } }, '×'))
         }
         ctx.effect(() => slots.inject('shell.quota-notice', () => slots.register(
           { name: 'shell.quota-notice', select: (owner) => (owner !== null && owner !== undefined && owner.code === 'QUOTA' ? owner : null), inject: () => ({}) }, KbQuotaNotice)),
         'kybernos-cloud: notice de quota')
+
+        // ── The failure row of a turn (`conversation.chat.node`, key `turn-error`) ─────────────────────────────────────────────────────────────
+        // DSH words a failed turn from the engine's own message: « no adapter registered for provider "kybernos" » when the cloud models are gone (the connection was
+        // ended or never made) and « Request quota exhausted. QUOTA » for a team that has no plan. Neither tells the person what to do. The slot is keyed and the engine
+        // documents that a later entry for a key shadows the shipped one (lowest priority renders), so this wraps the SHIPPED component: every other failure is drawn by it,
+        // untouched, and for these two it is drawn with a sentence (and no code badge) and an action beside it.
+        const KB_NO_ADAPTER = /no adapter registered for provider "kybernos"/
+        const turnErrorRow = (Shipped) => {
+          const KbTurnError = (props) => {
+            const data = props !== null && props !== undefined && props.node !== null && props.node !== undefined && props.node.data !== null && typeof props.node.data === 'object' ? props.node.data : {}
+            const noAdapter = typeof data.message === 'string' && KB_NO_ADAPTER.test(data.message)
+            const quotaRefused = data.code === 'QUOTA'
+            const factsPair = React.useState(null)
+            const facts = factsPair[0]
+            const setFacts = factsPair[1]
+            React.useEffect(() => {
+              if (quotaRefused !== true) return undefined
+              let on = true
+              callLocal('/quota', 'GET').then((r) => { if (on === true) setFacts(r) }).catch(() => null)
+              return () => { on = false }
+            }, [quotaRefused])
+            let say = null
+            if (noAdapter === true) {
+              say = { text: t('rowNoAdapter'), label: t('footSignInAgain'), run: () => { try { window.dispatchEvent(new Event('kybernos-cloud:open')) } catch (e) { /* Event absent */ } } }
+            } else if (quotaRefused === true && facts !== null && facts !== undefined && facts.ok === true && facts.no_plan === true) {
+              const verdict = quotaNoticeText(facts, t)
+              if (verdict !== null) say = { text: verdict.text, label: verdict.action === true ? t(verdict.label) : null, run: () => { try { window.dispatchEvent(new CustomEvent('kybernos-cloud:plan', { detail: { workspace_id: facts.workspace.id } })) } catch (e) { /* CustomEvent absent */ } } }
+            }
+            if (say === null) return h(Shipped, props)
+            // The shipped row, with the sentence in place of the engine's words (no code: it would show the engine's code next to ours).
+            const own = Object.assign({}, props, { node: Object.assign({}, props.node, { data: Object.assign({}, data, { code: undefined, message: say.text }) }) })
+            return h('div', { className: 'kbtr', 'data-kb': 'turn-error-kb' },
+              h(Shipped, own),
+              say.label !== null ? h('button', { type: 'button', className: 'kbtr-act', 'data-kb': 'turn-error-action', onClick: say.run }, say.label) : null)
+          }
+          return KbTurnError
+        }
+        ctx.effect(() => slots.inject('conversation.chat.node', () => {
+          let unregister = null
+          const attach = () => {
+            if (unregister !== null) return
+            try {
+              // The shipped entry has no priority (0); a wrapper of ours (a second mount of the slot) is at -1 and is never wrapped again.
+              const shipped = slots.entries('conversation.chat.node').filter((e) => e !== null && e !== undefined && e.options !== undefined && e.options.key === 'turn-error' && (e.options.priority === undefined || e.options.priority === 0))[0]
+              if (shipped === undefined || shipped.component === null || shipped.component === undefined) return
+              unregister = slots.register(Object.assign({ name: 'conversation.chat.node', key: 'turn-error', priority: -1 }, shipped.locale !== undefined ? { locale: shipped.locale } : {}), turnErrorRow(shipped.component))
+            } catch (e) { unregister = null /* the shipped row stays: nothing is lost */ }
+          }
+          attach()
+          let unsubscribe = null
+          // The shipped entry may register after this one: look again whenever the slot's entries change, until it is wrapped.
+          try { unsubscribe = slots.subscribe('conversation.chat.node', attach) } catch (e) { unsubscribe = null }
+          return () => {
+            try { if (unsubscribe !== null) unsubscribe() } catch (e) { /* gone */ }
+            try { if (unregister !== null) unregister() } catch (e) { /* gone */ }
+            unregister = null
+          }
+        }), 'kybernos-cloud: failure row of a turn')
 
         // ── The « Kybernos » section of DSH's Settings ────────────────────────────────────────────────────────────
         // What stays on THIS computer: the custom instructions (a marked section of <DSH home>/AGENTS.md, read by every agent), the re-import of the active
