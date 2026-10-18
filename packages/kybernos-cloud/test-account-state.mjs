@@ -13,6 +13,7 @@ import { createServer } from 'node:http'
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { asBrowser } from './lib-session-routes-test.mjs'
 
 const TOKEN = 'kys-' + 'a'.repeat(43)
 const DEVICE_SECRET = 'secret-' + 'd'.repeat(30)
@@ -108,11 +109,11 @@ const hit = async (path, method, body) => {
   assert.ok(handler !== undefined, 'missing route ' + path)
   const res = fakeRes()
   const host = '127.0.0.1:' + (listenPort === null ? 3080 : listenPort)
-  await handler({
+  await handler(asBrowser(path, {
     method, url: path, headers: { host, origin: 'http://' + host },
     socket: { localPort: listenPort === null ? 3080 : listenPort, remoteAddress: '127.0.0.1' },
     async *[Symbol.asyncIterator]() { if (body !== undefined) yield Buffer.from(JSON.stringify(body)) },
-  }, res)
+  }), res)
   return res
 }
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))

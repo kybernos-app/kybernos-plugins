@@ -3,6 +3,8 @@
 // DSH serves plugin routes BEFORE its own authentication and an Origin header is forgeable by any local program: before this rule
 // `curl -X POST http://127.0.0.1:<port>/kybernos-cloud/memory/delete -d '{"id":"..."}'` deleted a memory of the account, with no header at
 // all (the same for a team lesson, a team skill, a connection and a member). Those five routes are the ones the origin-rule audit names.
+// The same rule covers six more, because the model has a shell: writing or editing a memory, pushing the lessons, choosing the active space (which decides whether the
+// personal memory is cut), proposing to the team and making a session Kaby's. A bare curl against them reaches nothing.
 //
 // This test uses a REAL HTTP server and a fake API that keeps the DELETEs it receives: a refused request must never send one to the account's server. For each
 // delete, in this order: no Origin and no cookie · a foreign Origin (even with the real cookie) · the right Origin and no cookie (what a local
@@ -18,8 +20,8 @@ import { sessionSource } from './session-guard.mjs'
 import { OTHER_SECRET, SESSION_SECRET, sessionCookie } from './lib-session-test.mjs'
 
 // The account's server: keeps every DELETE it receives (what a delete route sends; the bundle's own background reads are not counted), answers 200.
-const api = { deletes: [] }
-const apiServer = http.createServer((req, res) => { if (req.method === 'DELETE') api.deletes.push(req.url); req.resume(); res.writeHead(200, { 'content-type': 'application/json' }); res.end('{}') })
+const api = { deletes: [], writes: [] }
+const apiServer = http.createServer((req, res) => { if (req.method === 'DELETE') api.deletes.push(req.url); if (req.method === 'POST' || req.method === 'PATCH') api.writes.push(req.method + ' ' + req.url); req.resume(); res.writeHead(200, { 'content-type': 'application/json' }); res.end('{}') })
 await new Promise((resolve) => apiServer.listen(0, '127.0.0.1', resolve))
 
 const TOKEN = 'kys-' + 'w'.repeat(43)
@@ -78,6 +80,16 @@ const DELETES = [
   ['/kybernos-cloud/connections/delete', { id: '55555555-5555-4555-8555-555555555555' }],
 ]
 
+// What a model with a shell could otherwise do with a bare request: none of these may send anything to the account's server, or change the state, without the pair.
+const WRITES = [
+  ['/kybernos-cloud/memory/add', { content: 'A memory a shell tried to add.', kind: 'fact' }],
+  ['/kybernos-cloud/memory/update', { id: '77', content: 'An edit a shell tried.' }],
+  ['/kybernos-cloud/memory/lessons', { dryRun: false }],
+  ['/kybernos-cloud/team/lessons/add', { text: 'A lesson a shell tried to propose to the team.' }],
+  ['/kybernos-cloud/space/active', { workspace_id: WS }],
+  ['/kybernos-cloud/kyby/native/set', { sessionId: null }],
+]
+
 try {
   console.log('Kybernos Cloud: the deletes need the signed session')
   for (const [path, body] of DELETES) {
@@ -99,6 +111,24 @@ try {
     ok(path + ': no header 403 · foreign Origin 403 · no cookie 401 · forged cookie 401 · no DELETE sent · the real pair 200')
   }
   assert.ok(api.deletes.length >= 2, 'the real pair does reach the account\'s server: ' + JSON.stringify(api.deletes))
+
+  for (const [path, body] of WRITES) {
+    const before = api.writes.length
+    const forged = cookie({ secret: OTHER_SECRET })
+    for (const [headers, want, label] of [
+      [{}, 403, 'no Origin and no cookie'],
+      [{ origin: 'http://evil.example', cookie: cookie() }, 403, 'a foreign Origin, even with the real cookie'],
+      [{ origin }, 401, 'the right Origin and no cookie'],
+      [{ origin, cookie: forged }, 401, 'the right Origin and a forged cookie'],
+    ]) {
+      const r = await send(path, headers, body)
+      assert.equal(r.status, want, path + ': ' + label + ' -> ' + r.status + ' ' + r.text.slice(0, 80))
+    }
+    assert.equal(api.writes.length, before, path + ': a refused request never sent a write to the account\'s server')
+    const real = await send(path, { origin, cookie: cookie() }, body)
+    assert.equal(real.status, 200, path + ': the right Origin and the real cookie -> the route answers: ' + real.status + ' ' + real.text.slice(0, 80))
+    ok(path + ': no header 403 · foreign Origin 403 · no cookie 401 · forged cookie 401 · nothing sent · the real pair 200')
+  }
 
   // The reads keep their rule.
   const get = (path, headers) => new Promise((resolve) => http.get({ host: '127.0.0.1', port, path, headers: { host: own, ...headers } }, (res) => { res.resume(); res.on('end', () => resolve(res.statusCode)) }).on('error', () => resolve(0)))

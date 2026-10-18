@@ -266,6 +266,45 @@ cap of 40 cuts.
 - the injection is fail-open (no chunk ⇒ the turn continues), the read is
   fail-loud (the error surfaces all the way to the card).
 
+### Team space: the personal memory is cut
+
+When the active space is a **team**, nothing personal reaches the model and nothing personal is written. This is not a setting; the one
+door from personal to team is the explicit « Propose to team » action (below, « Team lessons »).
+
+- **What a team space is** (`team-space.mjs`, `spaceKind`): the account is connected and the active space (`espaceActif`) is not a record that
+  says `personal: true` (a required boolean of the server's Workspace). Only that exact value is personal: a missing list, an active space
+  that is not in it, a record without the flag, a `personal` that is not a boolean, a model route (`state.models.workspace`) that still names
+  another space than the active one (a failed catalogue import, a stale write: the chat is billed where the ROUTE says), and a state file that
+  exists but cannot be read now (damaged, empty, caught half way by a write, bad rights) all count as a team. **Fail closed**: a wrong cut costs a memory that does not show
+  up, a wrong keep would put a personal memory in front of a team conversation. Not connected (no state file): no teams exist, nothing changes.
+- **What is cut**: the `kybernos:memory` block (it says `[KYBERNOS MEMORY OFF]` first, then the reason). The Kybernos proxy looks for its markers in the
+  system/developer messages only, and a `context` block reaches the model as a user message, so the same marker also leads a real system **section**
+  (`kybernos:memory-off`, empty outside a team space): that is what keeps the proxy from adding the person's account memory to a team request; `memory_write` and `memory_search` (one sentence that points to « Propose to team », nothing sent to the server); the end-of-turn
+  capture (before any model call, and also for a turn that began in a team and ends after a switch back to personal; the memory pill reads « off in a team space »); the lowest door `createMemory` for what the model writes (the
+  tool and the capture) while the person's own hand on the page is not stopped; the scheduled tidy-up (it may ask the Study model, which in a team
+  space is the team's route and bill, and the Study model is not asked by a scan started by hand either); the page's « sent » counts, which read the same plan as the prompt. The lessons block, its two tools and
+  its scheduled tidy-up are kybernos-memory's, which asks through the seam below.
+- **What a team keeps**: `kybernos:team-lessons`, `kybernos:workspace-instructions` (per folder, another bundle), « Propose to team » and the
+  account's own pages. The human's last message is still noted in memory (`noteUserTurn`): it writes nothing, and the team lessons block ranks
+  its lessons with it.
+- **The routes a shell could use** (the model has one, and plugin routes are served before DSH's login): `memory/add`, `memory/update`,
+  `memory/lessons`, `team/lessons/add`, `space/active` and `kyby/native/set` need DSH's signed browser-session cookie besides the Origin
+  (`session: true`, as the deletes do). A shell that reads the machine secret can still forge that cookie: this raises the bar from a bare `curl`,
+  it is not a sandbox (`docs/dev/route-origin-rule.md`).
+- **The seam**: `globalThis[Symbol.for('kybernos.space')]`, a frozen `{ version: 1, isTeam() }` published at `apply`. `isTeam()` reads the state
+  file each time it is called (a system-prompt callback is synchronous and runs at every assembly), so a switch in the middle of a session is
+  seen at the very next assembly, both ways, with no restart. A bundle that finds no seam knows no teams; a seam that throws, has no `isTeam`
+  or answers anything but `false` is read as a team (`kybernos-memory/team-space.mjs`).
+- **Limits, said plainly**: what a session already holds in its history from before a switch from personal to team (the memory block of earlier
+  turns) cannot be taken back by a plugin; the team note asks the model not to use it, and a new chat is the clean way. The state is written
+  before DSH applies the new model route (about 3 s), so right after a switch back to personal a request can still be billed to the team. An
+  agent with a shell can still read files under the DSH home: kybernos-memory refuses the plain ways in a team space (`memory.cjs`, the lessons files,
+  the account's state files, the pages' loopback routes) but nothing here is a sandbox. The Kybernos proxy's own memory injection is workspace-blind:
+  the section above stops it only where DSH sends the system prompt (a title, a compaction or a sub-agent call that carries no prompt can still get the
+  account memory from it until the proxy itself skips non-personal workspaces).
+- **Test**: `node scripts/test-team-memory-cut.mjs` (a canary word in a personal memory and a personal lesson, both bundles mounted, the
+  switch both ways, every fail-closed case).
+
 ## Team skills (server half)
 
 A Team's private catalogue of skills: any member proposes one, an owner or admin approves it, every member can install it. This

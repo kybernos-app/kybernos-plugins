@@ -34,8 +34,8 @@ let tokenValid = true
 let refuseOnly = null
 // A cloud computer's restricted token: the server answers a route outside the token's list with its own envelope, a 403 `computer_route_not_allowed`.
 let computerRestricted = false
-// The Kyber tab (ADR 0053 § 14): the personal workspace flag and what the server says of the Telegram door and of the person's Home computer.
-let kyberPersonal = false
+// The Kyber tab (ADR 0053 § 14): what the server says of the Telegram door and of the person's Home computer. The personal workspace says `personal: true` (the server's
+// Workspace requires it): without that flag a space is a team space, and the memory is cut there (team-space.mjs).
 // What the server says to GET /v1/me/kyby (the Kaby thread, PR #230): null = the route does not exist there (404).
 let kybyAnswer = null
 // The status of GET /v1/me/telegram (404 = a server older than the Telegram door).
@@ -297,7 +297,7 @@ const api = createServer((req, res) => {
       seen.authHeaders.push(auth)
       if (computerRestricted === true) return send(403, { error: 'computer_route_not_allowed', message: 'A cloud computer cannot call this route.' })
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
-      return send(200, { workspaces: [{ id: 'ws-1', name: 'My workspace', kyber_count: 2, created_at: '2026-09-04 15:31:21', ...(kyberPersonal === true ? { personal: true } : {}) }, ...(teamSpaceListed === true ? [{ id: 'ws-team', name: 'Acme Crew', kyber_count: 0, created_at: '2026-10-08 10:00:00' }] : [])] })
+      return send(200, { workspaces: [{ id: 'ws-1', name: 'My workspace', kyber_count: 2, created_at: '2026-09-04 15:31:21', personal: true }, ...(teamSpaceListed === true ? [{ id: 'ws-team', name: 'Acme Crew', kyber_count: 0, created_at: '2026-10-08 10:00:00' }] : [])] })
     }
     if (req.url === '/v1/workspaces/ws-1/llm/budget' || req.url === '/v1/workspaces/ws-team/llm/budget') {
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
@@ -619,7 +619,8 @@ const fakeReq = (method, origin, body, url) => ({
     if (body !== undefined) yield Buffer.from(JSON.stringify(body))
   },
 })
-const SESSION_ROUTES = new Set(['/kybernos-cloud/members/remove', '/kybernos-cloud/memory/delete', '/kybernos-cloud/team/lessons/delete', '/kybernos-cloud/team/skills/delete', '/kybernos-cloud/connections/delete'])
+const SESSION_ROUTES = new Set(['/kybernos-cloud/members/remove', '/kybernos-cloud/memory/delete', '/kybernos-cloud/team/lessons/delete', '/kybernos-cloud/team/skills/delete', '/kybernos-cloud/connections/delete',
+  '/kybernos-cloud/space/active', '/kybernos-cloud/memory/add', '/kybernos-cloud/memory/update', '/kybernos-cloud/memory/lessons', '/kybernos-cloud/team/lessons/add', '/kybernos-cloud/kyby/native/set'])
 const hit = async (path, method, origin, body) => {
   const handler = routes.get(path.split('?')[0])
   assert.ok(handler !== undefined, 'route manquante: ' + path)
@@ -1349,7 +1350,6 @@ try {
 
   // 6f. The Kyber tab's data (ADR 0053 § 14): the door's state and the person's Home computer, read-only, from the active server.
   {
-    kyberPersonal = true
     const r = await hit('/kybernos-cloud/kyber', 'GET', 'http://127.0.0.1:3080')
     assert.equal(r.status, 200)
     assert.equal(r.body.connected, true)
@@ -1375,7 +1375,6 @@ try {
     assert.equal(olderThanDoor.body.telegram, null, 'and says nothing of a door it does not have')
     kyberTelegramStatus = 200
     kybyAnswer = null
-    kyberPersonal = false
     ok('onglet Kyber : l\'etat de la porte Telegram et du Home de la personne, sans jeton')
   }
 
@@ -1389,7 +1388,6 @@ try {
       await routes.get(path)(req, res)
       return res
     }
-    kyberPersonal = true
     kyberHome = { id: 'cmp-home', origin_host: 'cmp-home.computers.test', paused_reason: null, name: 'Home', state: 'suspended', desired: 'suspended', mode: 'sleep', region: 'ams', last_active_at: '2026-10-14T22:50:00.000Z', reported_version: 'p12', network: { mode: 'public' } }
     computerActionAnswer = null
     computerActionSeen.length = 0
@@ -1432,7 +1430,6 @@ try {
     assert.equal((await act('resume', 'null')).status, 403)
     assert.deepEqual(computerActionSeen, [], 'no call reached the server')
     assert.equal(routes.get('/kybernos-cloud/computer/resume') !== undefined && routes.get('/kybernos-cloud/computer/unknown'), undefined)
-    kyberPersonal = false
     ok('actions du Home : pas de Home, origine etrangere : rien n\'est appele')
   }
 
@@ -3444,6 +3441,8 @@ try {
     const ky_post = async (path, origin, body) => {
       const req = fakeReq('POST', origin, body, path)
       req.socket = { localPort: 3080, remoteAddress: '127.0.0.1' }
+      // Kaby's session is chosen by the person's page (the signed session cookie), never by a bare request.
+      if (path === '/kybernos-cloud/kyby/native/set') req.headers = { ...req.headers, cookie: browserHeaders().cookie }
       const res = fakeRes()
       await routes.get(path)(req, res)
       return res
