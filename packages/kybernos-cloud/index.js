@@ -35,10 +35,10 @@
 // client only sees `publicState()` (profile, workspaces, state, summary of the
 // catalogue). The subscription (glm, deepseek… available depending on the plan) is
 // applied by the proxy on every request — this plugin filters nothing.
-import { spawn } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
 import { timingSafeEqual } from 'node:crypto'
 import { chmodSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
-import { homedir, hostname } from 'node:os'
+import { homedir, hostname, platform } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { lireCatalogue, resoudreItem, slugSur, ymlDuKyber, verdictInstallation } from './marketplace-kyber.mjs'
 import { rank as rankByRelevance } from './relevance.mjs'
@@ -55,6 +55,7 @@ import { createKybyRoutes, pairingSupport } from './kyby.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { createKybyNative, isSessionId, readPointer, writePointer } from './kyby-native.mjs'
 import { UNREADABLE, spaceKind, publishSpaceSeam } from './team-space.mjs'
+import { documentsDir, ensureTeamFolder, isChildOf, rootOf } from './team-folder.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -202,6 +203,9 @@ const publicState = (state) => ({
   // is not a choice, and writing it would suggest a decision.
   active_workspace_id: espaceActif(state),
   ...(spacePlanView(state) !== null ? { space_plan: spacePlanView(state) } : {}),
+  // The working folder of the ACTIVE team (the composer's pill reads it) and of every team (the page tells a team's folder from the person's own when it picks a workspace for Personal).
+  ...(spaceFolderOf(espaceActif(state)) !== null ? { space_folder: spaceFolderOf(espaceActif(state)) } : {}),
+  team_folders: teamFolders(state),
   web_url: resolveWeb(),
   server: { id: server().profile.id, name: server().profile.name },
   device_label: state.device_label !== undefined ? state.device_label : null,
@@ -220,6 +224,73 @@ const espaceActif = (state) => {
   const choisi = typeof state.active_workspace_id === 'string' ? state.active_workspace_id : null
   if (choisi !== null && ids.indexOf(choisi) !== -1) return choisi
   return ids.length > 0 ? ids[0] : null
+}
+
+// ── One working folder per team (plan « Équipes », step 6) ──────────────────────────────────────────────────────────────
+// The folder of a team is <Documents>/Kybernos/<Team>, made by team-folder.mjs from the name the SERVER holds for the team (other people wrote it: it is cut down to one safe segment
+// there). Made when a team is created, joined, or switched to, and for the active team when it has none (a team joined before this existed). The page opens a NEW chat in it on a
+// switch (a chat's folder is fixed when it starts: client.js, the `team-folder` block). A disk that refuses leaves the team without a folder, never without a switch.
+// Where each team's folder is lives in `kybernos-cloud-folders.json` beside the state file, NOT in the state file: signing out wipes the state, and the team's folder must still be
+// the team's when the person signs in again (a name found on the disk with no record is never taken over: it would be a second folder for the same team).
+// KYBERNOS_DOCUMENTS_DIR moves Documents (tests and the sandbox).
+const xdgDocuments = () => {
+  try { return String(execFileSync('xdg-user-dir', ['DOCUMENTS'], { timeout: 1500, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })).trim() } catch (e) { return null }
+}
+const folderDeps = {
+  documents: () => documentsDir({ platform: platform(), home: homedir(), env: process.env, xdgDocuments }),
+  io: {
+    mkdir: (path, options) => { mkdirSync(path, options) },
+    isDir: (path) => { try { return statSync(path).isDirectory() } catch (e) { return false } },
+  },
+}
+// `documents()` runs `xdg-user-dir` on Linux: asked once per (Documents override, home), not at every status read.
+let rootMemo = { key: null, root: null }
+const folderRoot = () => {
+  const key = String(process.env.KYBERNOS_DOCUMENTS_DIR) + '|' + homedir()
+  if (rootMemo.key !== key) rootMemo = { key, root: rootOf(folderDeps.documents()) }
+  return rootMemo.root
+}
+const foldersFile = () => join(dirname(stateFile()), 'kybernos-cloud-folders.json')
+/** The recorded folders, `{ <workspace id>: <path> }`: only entries that are a DIRECT child of the root (a record edited by hand to point elsewhere is not followed or listed). */
+const readFolders = () => {
+  let parsed = null
+  try { parsed = JSON.parse(readFileSync(foldersFile(), 'utf8')) } catch (e) { return {} }
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+  const root = folderRoot()
+  const out = {}
+  for (const id of Object.keys(parsed)) if (typeof parsed[id] === 'string' && isChildOf(root, parsed[id])) out[id] = parsed[id]
+  return out
+}
+const writeFolders = (map) => {
+  const file = foldersFile()
+  mkdirSync(dirname(file), { recursive: true, mode: 0o700 })
+  writeFileSync(file, JSON.stringify(map, null, 2) + '\n', { mode: 0o600 })
+  try { chmodSync(file, 0o600) } catch (e) { /* exotic FS (Windows) */ }
+}
+/** The folder recorded for one space, or null. */
+const spaceFolderOf = (id) => {
+  const map = readFolders()
+  return typeof id === 'string' && Object.prototype.hasOwnProperty.call(map, id) ? map[id] : null
+}
+/** The folders of the teams the person is in now (a team they left or that is gone is not listed). */
+const teamFolders = (state) => {
+  const map = readFolders()
+  const spaces = state !== null && state !== undefined && Array.isArray(state.workspaces) ? state.workspaces : []
+  return spaces.filter((w) => w !== null && typeof w === 'object' && w.personal !== true && typeof w.id === 'string' && Object.prototype.hasOwnProperty.call(map, w.id)).map((w) => map[w.id])
+}
+/** Makes (or finds) and records the folder of `id`, when `id` is a team of the state's list. A personal space, an unknown one, or a disk that refuses leaves everything as it is:
+ *  `outcome` (when given) says `{ path, created }` or `{ error }`. Synchronous from the read of the records to their write, so two calls never lose each other's. Never throws. */
+const ensureFolderFor = (state, id, outcome) => {
+  const spaces = Array.isArray(state.workspaces) ? state.workspaces : []
+  const space = spaces.filter((w) => w !== null && typeof w === 'object' && w.id === id)[0]
+  if (space === undefined || space.personal === true || space.name === 'My workspace') { if (outcome !== undefined) outcome.error = space === undefined ? 'unknown_space' : 'personal_space'; return }
+  let made = null
+  try {
+    const known = readFolders()
+    made = ensureTeamFolder({ id, name: space.name, recorded: Object.prototype.hasOwnProperty.call(known, id) ? known[id] : undefined, documents: folderDeps.documents(), io: folderDeps.io })
+    if (made.ok === true && known[id] !== made.path) writeFolders(Object.assign({}, known, { [id]: made.path }))
+  } catch (e) { made = { ok: false, error: 'mkdir_failed' } }
+  if (outcome !== undefined) { if (made.ok === true) { outcome.path = made.path; outcome.created = made.created } else outcome.error = made.error }
 }
 
 /** 'none' | 'personal' | 'team' (team-space.mjs): the kind of the ACTIVE space, read from the state each time it is asked. */
@@ -268,6 +339,7 @@ const setActiveSpace = async (req, body) => {
   const espaces = Array.isArray(state.workspaces) ? state.workspaces : []
   if (espaces.some((w) => w !== null && w.id === voulu) !== true) return { ok: false, error: 'espace_inconnu' }
   const next = Object.assign({}, state, { active_workspace_id: voulu, space_plan: await readSpacePlan(state, voulu) })
+  ensureFolderFor(next, voulu)
   writeState(next)
   // The model route names the active space and lists its catalogue: it follows the choice (nothing is written when it already matches).
   const route = routeOutcome(await importCatalog('space'))
@@ -315,6 +387,18 @@ const spaceApplied = async (req, body) => {
   return { ok: true, applied: live === (want !== undefined ? want[SPACE_HEADER] : null) }
 }
 
+/** Route: make (or find) the folder of one team. The page asks for the ACTIVE team when it has none recorded (a team joined before this existed): the folder is made on the first
+ *  activation, and this is how a team that is already active gets its own. `folder: { path, created }` or `folder: { error }`; a personal space has none. */
+const spaceFolder = async (req, body) => {
+  const state = readState()
+  if (!isConnected(state)) return { ok: false, error: 'non_connecte' }
+  const id = body !== null && typeof body === 'object' && typeof body.workspace_id === 'string' ? body.workspace_id : ''
+  if (id === '') return { ok: false, error: 'espace_absent' }
+  const outcome = {}
+  ensureFolderFor(state, id, outcome)
+  return { ok: outcome.error === undefined, state: publicState(readState()), folder: outcome.error === undefined ? { path: outcome.path, created: outcome.created } : { error: outcome.error } }
+}
+
 /** Route: create a space. The hosted server stays the master — we pass the
  *  name to POST /v1/workspaces; on a refusal (missing route, limited plan,
  *  missing permission) we fabricate NOTHING locally: we return the app's URL
@@ -343,9 +427,73 @@ const createSpace = async (req, body) => {
     next.active_workspace_id = id
     next.space_plan = mine !== null ? mine : await readSpacePlan(state, espaceActif(next))
   }
+  // Its folder is made now, active or not (a team that has no plan yet is still a team with a place to work).
+  ensureFolderFor(next, id)
   writeState(next)
   await importCatalog('space')
   return { ok: true, state: publicState(readState()), created: { id, name: typeof brut.name === 'string' ? brut.name : nom, plan_key: mine !== null ? mine.key : null, activated: planless !== true } }
+}
+
+// ── Joining a team with an invitation link (plan « Équipes », step 4) ──────────────────────────────────────────────────
+// The page parses what the person pasted and sends only the TOKEN. It is the credential of the invitation, so it goes to the ACTIVE server's own API (`apiCall` without a `base`) and
+// nowhere else: never to a host that came out of a pasted link, never in an address (the body of a POST), never in a log or an answer. Two steps, each its own click: `preview`
+// (the server's public « what is this link for », nothing is joined) then `accept` (with the device token: the account must own the invited address).
+// The server answers ONE 404 for an unknown, used, withdrawn, expired or someone else's invitation, so the answer here is one code for all of them (`invitation_unusable`); a team
+// without a free seat answers 409 `seat_limit` and the link stays valid; 429 is the server's rate limit.
+const INVITE_TOKEN = /^[A-Za-z0-9_-]{16,200}$/
+const inviteToken = (body) => {
+  const t = body !== null && typeof body === 'object' && typeof body.token === 'string' ? body.token : ''
+  return INVITE_TOKEN.test(t) ? t : null
+}
+/** A word of someone else's (a team's name, a person's) that goes back to the page: one line, no control character, bounded. */
+const inviteText = (value, max) => (typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f-\u009f]+/gu, ' ').split(String.fromCharCode(0x2028)).join(' ').split(String.fromCharCode(0x2029)).join(' ').trim().slice(0, max) : '')
+const inviteRefusal = (res) => {
+  if (res.status === 0) return { ok: false, error: 'unreachable', status: 0, server: serverIdentity() }
+  if (res.status === 404) return { ok: false, error: 'invitation_unusable', status: 404 }
+  if (res.status === 429) return { ok: false, error: 'rate_limited', status: 429 }
+  if (res.status === 409 && res.body !== null && typeof res.body === 'object' && res.body.error === 'seat_limit') return { ok: false, error: 'seat_limit', status: 409 }
+  return { ok: false, error: 'refused', status: res.status }
+}
+
+/** Route: what an invitation's link is for (the team, who invited, the role, the address it was sent to). Public on the server, so no device token goes with it; it joins nobody. */
+const invitationPreview = async (req, body) => {
+  const state = readState()
+  if (!isConnected(state)) return { ok: false, error: 'non_connecte' }
+  const token = inviteToken(body)
+  if (token === null) return { ok: false, error: 'token_shape' }
+  const res = await apiCall('/v1/invitations/preview', { method: 'POST', body: { token }, timeoutMs: 15000 })
+  if (res.status !== 200) return inviteRefusal(res)
+  const b = res.body !== null && typeof res.body === 'object' ? res.body : {}
+  const team = inviteText(b.workspace_name, 120)
+  if (team === '') return { ok: false, error: 'refused', status: 200 }
+  const inviter = inviteText(b.inviter_name, 120)
+  return { ok: true, preview: { team, inviter: inviter !== '' ? inviter : null, email: inviteText(b.email, 254), role: b.role === 'owner' || b.role === 'admin' ? b.role : 'member', expires_at: inviteText(b.expires_at, 40) } }
+}
+
+/** Route: accept the invitation with the device token. The list of the person's teams is read again and the new one is NOT made active here: the page switches through the ordinary
+ *  path (`space/active`, with the wait on the model route), except for a team that has no plan (`joined.plan_key` is `none`): it cannot answer a model call, so the person stays where they are. */
+const invitationAccept = async (req, body) => {
+  const state = readState()
+  if (!isConnected(state)) return { ok: false, error: 'non_connecte' }
+  const token = inviteToken(body)
+  if (token === null) return { ok: false, error: 'token_shape' }
+  const res = await apiCall('/v1/invitations/accept', { method: 'POST', token: state.token, body: { token }, timeoutMs: 20000 })
+  if (res.status !== 200) {
+    if (res.status === 401 && await sessionEndedBy(res, state.token)) return { ok: false, error: 'non_connecte', status: 401 }
+    return inviteRefusal(res)
+  }
+  const joined = res.body !== null && typeof res.body === 'object' && typeof res.body.id === 'string' ? res.body : null
+  if (joined === null) return { ok: false, error: 'refused', status: 200 }
+  const listed = await apiCall('/v1/workspaces', { token: state.token })
+  const fresh = readState()
+  if (isConnected(fresh) !== true || fresh.token !== state.token) return { ok: false, error: 'non_connecte' }
+  let spaces = listed.status === 200 && listed.body !== null && Array.isArray(listed.body.workspaces) ? listed.body.workspaces : (Array.isArray(fresh.workspaces) ? fresh.workspaces.slice() : [])
+  if (spaces.some((w) => w !== null && w.id === joined.id) !== true) spaces = spaces.concat([joined])
+  const listed2 = Object.assign({}, fresh, { workspaces: spaces })
+  ensureFolderFor(listed2, joined.id)
+  writeState(listed2)
+  const plan = await readSpacePlan(state, joined.id)
+  return { ok: true, state: publicState(readState()), joined: { id: joined.id, name: inviteText(joined.name, 120), role: joined.role === 'owner' || joined.role === 'admin' ? joined.role : 'member', plan_key: plan !== null ? plan.key : null } }
 }
 
 const publicPairing = (state) => ({
@@ -4680,8 +4828,13 @@ const ROUTES = [
   { path: '/kybernos-cloud/status', method: 'GET', guarded: false, run: statusRoute },
   { path: '/kybernos-cloud/space/active', method: 'POST', guarded: true, session: true, body: true, run: setActiveSpace },
   { path: '/kybernos-cloud/space/applied', method: 'POST', guarded: true, body: true, run: spaceApplied },
+  // The folder of a team: makes a directory on the person's disk, so strict same-origin and the signed session.
+  { path: '/kybernos-cloud/space/folder', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: spaceFolder },
   { path: '/kybernos-cloud/spaces/summary', method: 'GET', guarded: true, run: spacesSummary },
   { path: '/kybernos-cloud/space/create', method: 'POST', guarded: true, body: true, run: createSpace },
+  // Joining with an invitation link: the token is the credential. Both are strict same-origin; `accept` also needs the signed session (it makes the person a member of a team).
+  { path: '/kybernos-cloud/invitation/preview', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: invitationPreview },
+  { path: '/kybernos-cloud/invitation/accept', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: invitationAccept },
   { path: '/kybernos-cloud/refresh', method: 'POST', guarded: true, run: refreshProfile },
   // `disconnect` revokes the session on the server side: irreversible. A bare POST
   // (campaign finding: `curl -X POST /kybernos-cloud/disconnect`) was enough to

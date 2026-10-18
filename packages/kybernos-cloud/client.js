@@ -68,6 +68,32 @@ window.__ModuleLoader__.load({
         wsNewErr: 'Le serveur a refusé de créer l\'équipe.',
         wsNewIntro: 'Une équipe est un lieu partagé pour tes agents, tes conversations et tes membres. Elle démarre sans formule : tu en choisis une après l\'avoir créée.',
         wsNewNoPlan: '« {name} » est créée, sans formule pour l\'instant. Tu es toujours dans « {here} ».',
+        // Joining with an invitation link (the row under « Créer une équipe »).
+        joinRow: 'Rejoindre avec un lien d\'invitation',
+        joinIntro: 'Colle le lien reçu par e-mail, ou seulement le code qu\'il contient.',
+        joinField: 'Lien d\'invitation ou code',
+        joinCheck: 'Vérifier',
+        joinChecking: 'Vérification…',
+        joinCancel: 'Annuler',
+        joinAccept: 'Rejoindre l\'équipe',
+        joinAccepting: 'Ajout à l\'équipe…',
+        joinWho: '{inviter} t\'a invité à rejoindre « {team} » en tant que {role}.',
+        joinWhoAnon: 'Tu es invité à rejoindre « {team} » en tant que {role}.',
+        joinSentTo: 'Invitation envoyée à {email}.',
+        joinMismatch: 'Elle a été envoyée à {invited} et tu es connecté en tant que {email} : le serveur ne l\'accepte que pour le compte qui possède cette adresse.',
+        joinOtherHost: 'Ce lien vient de {link} ; ton serveur actif est {active}.',
+        joinEmpty: 'Colle le lien ou le code de l\'invitation.',
+        joinJunk: 'Ce n\'est ni un lien d\'invitation, ni son code.',
+        joinNotInvitation: 'Ce lien n\'est pas celui d\'une invitation : il doit finir par /invitations/accept?token=…',
+        joinNoToken: 'Ce lien d\'invitation est coupé : le code manque. Copie-le en entier depuis l\'e-mail.',
+        joinGone: 'Cette invitation ne peut pas être utilisée. Elle a peut-être expiré, déjà servi ou été retirée, ou elle est destinée à un autre compte que le tien. Demande-en une nouvelle à la personne qui t\'a invité, ou connecte-toi avec l\'adresse à laquelle elle a été envoyée.',
+        joinSeats: 'L\'équipe n\'a plus de place libre pour le moment. Le lien reste valable : demande à son propriétaire de faire de la place, puis réessaie.',
+        joinBusy: 'Trop d\'essais pour le moment. Attends un peu, puis réessaie.',
+        joinDown: 'Le serveur est injoignable. Vérifie ta connexion, puis réessaie.',
+        joinSignedOut: 'Tu n\'es plus connecté : reconnecte-toi, puis réessaie.',
+        joinFailed: 'Ça n\'a pas abouti. Tu peux finir dans ton navigateur.',
+        joinBrowser: 'Ouvrir dans le navigateur',
+        joinNoPlan: 'Tu as rejoint « {name} », qui n\'a pas encore de formule. Tu es toujours dans « {here} ».',
         planNone: 'Aucune formule',
         planChoose: 'Choisir une formule',
         profCompte: 'Compte',
@@ -320,6 +346,32 @@ window.__ModuleLoader__.load({
         wsNewErr: 'The server refused to create the team.',
         wsNewIntro: 'A team is a shared place for your agents, chats and members. It starts without a plan: you choose one after creating it.',
         wsNewNoPlan: '“{name}” is created, without a plan yet. You are still in “{here}”.',
+        // Joining with an invitation link (the row under « Create a team »).
+        joinRow: 'Join with an invitation link',
+        joinIntro: 'Paste the link from the invitation e-mail, or just the code in it.',
+        joinField: 'Invitation link or code',
+        joinCheck: 'Check',
+        joinChecking: 'Checking…',
+        joinCancel: 'Cancel',
+        joinAccept: 'Join the team',
+        joinAccepting: 'Joining the team…',
+        joinWho: '{inviter} invited you to join “{team}” as {role}.',
+        joinWhoAnon: 'You were invited to join “{team}” as {role}.',
+        joinSentTo: 'Sent to {email}.',
+        joinMismatch: 'It was sent to {invited} and you are signed in as {email}: the server accepts it only for the account that owns that address.',
+        joinOtherHost: 'This link comes from {link}; your active server is {active}.',
+        joinEmpty: 'Paste the invitation link or code.',
+        joinJunk: 'That is neither an invitation link nor its code.',
+        joinNotInvitation: 'That link is not an invitation: it should end with /invitations/accept?token=…',
+        joinNoToken: 'This invitation link is cut off: the code is missing. Copy the whole link from the e-mail.',
+        joinGone: 'This invitation cannot be used. It may have expired, been used or withdrawn, or it is meant for another account than yours. Ask the person who invited you for a new one, or sign in with the address it was sent to.',
+        joinSeats: 'The team has no free seat at the moment. The link stays valid: ask its owner to make room, then try again.',
+        joinBusy: 'Too many tries for now. Wait a moment, then try again.',
+        joinDown: 'The server could not be reached. Check your connection, then try again.',
+        joinSignedOut: 'You are signed out: sign in again, then try again.',
+        joinFailed: 'That did not work out. You can finish it in your browser.',
+        joinBrowser: 'Open in the browser',
+        joinNoPlan: 'You joined “{name}”, which has no plan yet. You are still in “{here}”.',
         planNone: 'No plan',
         planChoose: 'Choose a plan',
         profCompte: 'Account',
@@ -979,6 +1031,11 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       h('path', { key: 'a', d: 'M12 5v14M5 12h14', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round' }),
     ], props)
 
+    const LinkIcon = (props) => svgIcon(() => [
+      h('path', { key: 'a', d: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' }),
+      h('path', { key: 'b', d: 'M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' }),
+    ], props)
+
     const ContrastIcon = (props) => svgIcon(() => [
       h('circle', { key: 'a', cx: 12, cy: 12, r: 9, stroke: 'currentColor', strokeWidth: 1.75 }),
       h('path', { key: 'b', d: 'M12 3v18M12 3a9 9 0 0 1 0 18z', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round' }),
@@ -1204,7 +1261,6 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
     // The menu lists the person's spaces at its top while there are at most INLINE_SPACES_MAX of them (Personal + 2 teams); from one more, the top row stays « Switch team » and opens the full list.
     const INLINE_SPACES_MAX = 3
     const spacesMenuMode = (count) => (Number.isInteger(count) && count >= 1 && count <= INLINE_SPACES_MAX ? 'inline' : 'submenu')
-    // SEAM (step 4, « Join with an invitation link »): the row goes after « Create a team » in both lists. Not built yet: nothing to render.
     const spaceIsPersonal = (w) => w !== null && typeof w === 'object' && (w.personal === true || w.name === 'My workspace')
     const spaceRoleOf = (w) => (w !== null && typeof w === 'object' && (w.role === 'owner' || w.role === 'admin' || w.role === 'member') ? w.role : null)
     const spaceIsAdmin = (w) => spaceIsPersonal(w) !== true && (spaceRoleOf(w) === 'owner' || spaceRoleOf(w) === 'admin')
@@ -1297,8 +1353,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
     // ONE switch decides whether the memory pill says the personal memory is off. It becomes true only when the memory session lands (branch feat/teams-memory-cut: a team space then
     // injects nothing personal and captures nothing into it); until then the pill must not promise it.
     const PERSONAL_MEMORY_CUT = true
-    // SEAM (step 6, one working folder per team): `folder` is the team's folder when the host knows one (`state.space_folder`, written by the folder step). Nothing writes it yet,
-    // so no folder pill is drawn: none is invented.
+    // `folder` is the team's working folder when the host has made one (`state.space_folder`: team-folder.mjs); a team without one has no folder pill, none is invented.
     const spaceCueOf = (space, folder, t, personalOff = PERSONAL_MEMORY_CUT) => {
       if (space === null || space === undefined || typeof space !== 'object' || spaceIsPersonal(space)) return null
       const view = espaceVue(space, t)
@@ -1330,6 +1385,160 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
     }
     // <teams-menu:end>
 
+    // <join-link:begin> joining a team with an invitation link (plan « Équipes », step 4; test-join-link.mjs plays this block on its own)
+    // Pure. A pasted link is only a CARRIER for the token: its host is read to warn, never to call anything. The host route sends the token to the ACTIVE server's own API and to
+    // no other address, so a link that names another host cannot take the token anywhere.
+    const INVITE_TOKEN = /^[A-Za-z0-9_-]{16,200}$/
+    const INVITE_PATH = /\/invitations\/accept\/?$/
+    const INVITE_INPUT_MAX = 4000
+    /** What was pasted -> `{ ok: true, token, host }` (`host`: where the link points, null for a bare token) or `{ ok: false, reason }`: `empty`, `junk` (not a link and not a token),
+     *  `not_invitation` (a link, but not an invitation's) or `no_token` (an invitation's link without a usable token). Takes a whole link, the token alone, `token=<token>`, and a link
+     *  inside the e-mail's own sentence; the token may ride the query or the fragment. */
+    const parseInvitation = (text) => {
+      if (typeof text !== 'string') return { ok: false, reason: 'empty' }
+      const clip = text.slice(0, INVITE_INPUT_MAX)
+      const bare = clip.trim().replace(/^[<"'\u0060([]+/u, '').replace(/[>"'\u0060)\].,;:!?]+$/u, '')
+      if (bare === '') return { ok: false, reason: 'empty' }
+      if (INVITE_TOKEN.test(bare)) return { ok: true, token: bare, host: null }
+      const named = /^token=([A-Za-z0-9_-]{16,200})$/u.exec(bare)
+      if (named !== null) return { ok: true, token: named[1], host: null }
+      const links = clip.match(/https?:\/\/[^\s<>"'\u0060]+/giu)
+      if (links === null) return { ok: false, reason: 'junk' }
+      let reason = 'not_invitation'
+      for (const raw of links) {
+        let url = null
+        try { url = new URL(raw.replace(/[.,;:!?)\]]+$/u, '')) } catch (e) { url = null }
+        if (url === null || INVITE_PATH.test(url.pathname) !== true) continue
+        reason = 'no_token'
+        const asked = [url.searchParams.get('token')]
+        if (url.hash.length > 1) asked.push(new URLSearchParams(url.hash.slice(1)).get('token'))
+        const token = asked.filter((x) => typeof x === 'string' && INVITE_TOKEN.test(x))[0]
+        if (token !== undefined) return { ok: true, token, host: url.host }
+      }
+      return { ok: false, reason }
+    }
+    /** The host's answer (`invitation/preview` or `invitation/accept`) -> the sentence to say (a dictionary key) and whether the server's own page is worth offering as a way out.
+     *  The server answers ONE 404 for an unknown, used, withdrawn, expired or someone else's invitation, so one sentence names all of them; a full team keeps the link valid. */
+    const joinFailure = (res) => {
+      const code = res !== null && res !== undefined && typeof res === 'object' && typeof res.error === 'string' ? res.error : ''
+      if (code === 'invitation_unusable') return { key: 'joinGone', browser: false }
+      if (code === 'seat_limit') return { key: 'joinSeats', browser: false }
+      if (code === 'rate_limited') return { key: 'joinBusy', browser: false }
+      if (code === 'unreachable') return { key: 'joinDown', browser: false }
+      if (code === 'token_shape') return { key: 'joinJunk', browser: false }
+      if (code === 'non_connecte') return { key: 'joinSignedOut', browser: false }
+      return { key: 'joinFailed', browser: true }
+    }
+    /** The sentence under the pasted box when the text is no invitation. */
+    const joinParseKey = (reason) => (reason === 'empty' ? 'joinEmpty' : (reason === 'no_token' ? 'joinNoToken' : (reason === 'not_invitation' ? 'joinNotInvitation' : 'joinJunk')))
+    /** The server's own page for this invitation: the way out when the native flow fails in a way nobody planned for. Built on the ACTIVE server's web address only. */
+    const joinBrowserUrl = (webUrl, token) => {
+      if (typeof webUrl !== 'string' || INVITE_TOKEN.test(token) !== true) return null
+      try {
+        const base = new URL(webUrl)
+        if (base.protocol !== 'https:' && base.protocol !== 'http:') return null
+        return base.origin + '/invitations/accept?token=' + encodeURIComponent(token)
+      } catch (e) { return null }
+    }
+    /** A link whose host is not the active server's: said as a hint on a refusal (the token may belong to another server). Never blocks. */
+    const joinOtherHost = (linkHost, webUrl) => {
+      if (typeof linkHost !== 'string' || linkHost === '' || typeof webUrl !== 'string') return null
+      try { const mine = new URL(webUrl).host; return mine !== '' && mine.toLowerCase() !== linkHost.toLowerCase() ? { link: linkHost, active: mine } : null } catch (e) { return null }
+    }
+    // <join-link:end>
+
+    // <team-folder:begin> one working folder per team (plan « Équipes », step 6; test-team-folder-nav.mjs plays this block with fake DSH services)
+    // A chat's working folder is fixed when the chat starts, so a team switch cannot move a chat that is open: it opens a NEW chat in the team's folder. DSH's own services do the work:
+    // `workspaces.create({ path })` registers a folder as a workspace (idempotent: a registered one is resolved) and answers its id, `uiWorkspace.startSession(id)` opens a new chat in
+    // it. A switch back to Personal opens one in the workspace the person was in before (remembered by its folder), because `startSession()` with no id would INHERIT the workspace on
+    // screen, which is the team's. Nothing here throws: a service that is missing, or that refuses, leaves the person where they are.
+    // `services` is `{ workspaces, uiWorkspace }` (DSH's, read with `ctx.get`); `teamFolders` the folders of every team of the person (the host's `team_folders`).
+    const FOLDER_LISTED_WAIT_MS = 3000
+    const folderKey = (p) => (typeof p === 'string' ? p.replace(/[\\/]+$/u, '') : '')
+    const isTeamFolder = (path, teamFolders) => Array.isArray(teamFolders) && teamFolders.some((f) => folderKey(f) !== '' && folderKey(f) === folderKey(path))
+    const workspaceRows = (services) => {
+      try {
+        const snap = services.workspaces.list.getSnapshot()
+        return snap !== null && snap !== undefined && Array.isArray(snap.items) ? snap.items.filter((w) => w !== null && typeof w === 'object' && typeof w.workspaceId === 'string' && typeof w.path === 'string') : []
+      } catch (e) { return [] }
+    }
+    /** The workspace of the chat on screen (DSH's main reference names the chat, the workspaces list says which workspace holds it), or null. */
+    const workspaceOnScreen = (services) => {
+      try {
+        const main = services.uiWorkspace.mainReference
+        const sid = main !== null && main !== undefined ? main.sessionId : undefined
+        if (typeof sid !== 'string' || sid === '') return null
+        return workspaceRows(services).filter((w) => Array.isArray(w.sessionIds) && w.sessionIds.includes(sid))[0] || null
+      } catch (e) { return null }
+    }
+    /** Before a switch: when the chat on screen is in a folder that is no team's, that folder is where Personal goes back to. `store` is `{ get(), set(path) }` (never throws). */
+    const rememberPersonalFolder = (services, teamFolders, store) => {
+      const here = workspaceOnScreen(services)
+      if (here === null || isTeamFolder(here.path, teamFolders)) return null
+      try { store.set(here.path) } catch (e) { /* kept for this page only */ }
+      return here.path
+    }
+    /** Resolves true once the workspace is in the list the Client holds (`create` merges it at once; a slower list gets a short wait), false after `ms`. */
+    const workspaceListed = (services, id, ms, timers) => new Promise((resolve) => {
+      const there = () => workspaceRows(services).some((w) => w.workspaceId === id)
+      if (there() === true) { resolve(true); return }
+      let off = null
+      let timer = null
+      const done = (value) => { if (timer !== null) timers.clear(timer); if (typeof off === 'function') { try { off() } catch (e) { /* gone */ } } resolve(value) }
+      timer = timers.set(() => done(there()), ms)
+      try { off = services.workspaces.list.subscribe(() => { if (there() === true) done(true) }) } catch (e) { off = null }
+    })
+    /** Opens a NEW chat in a team's folder: registers the folder as a DSH workspace, then starts a session in it. `{ ok: true, workspaceId }` or `{ ok: false, why }`. */
+    const openTeamChat = async (services, folder, timers) => {
+      if (typeof folder !== 'string' || folder === '') return { ok: false, why: 'no_folder' }
+      let view = null
+      try {
+        if (typeof services.workspaces.create !== 'function' || typeof services.uiWorkspace.startSession !== 'function') return { ok: false, why: 'no_service' }
+        view = await services.workspaces.create({ path: folder })
+      } catch (e) { return { ok: false, why: 'register_failed' } }
+      const id = view !== null && view !== undefined && typeof view.workspaceId === 'string' ? view.workspaceId : null
+      if (id === null) return { ok: false, why: 'no_id' }
+      if (await workspaceListed(services, id, FOLDER_LISTED_WAIT_MS, timers) !== true) return { ok: false, why: 'not_listed' }
+      try { services.uiWorkspace.startSession(id) } catch (e) { return { ok: false, why: 'start_failed' } }
+      return { ok: true, workspaceId: id }
+    }
+    /** Opens a NEW chat in the workspace the person had before the team: the remembered folder when DSH still lists it, else the first workspace that is no team's. Never in a team's folder:
+     *  with none to go to, nothing is opened (an inherited chat would land in the team's folder). */
+    const openPersonalChat = (services, teamFolders, store) => {
+      const rows = workspaceRows(services).filter((w) => !isTeamFolder(w.path, teamFolders))
+      let wanted = null
+      try { wanted = store.get() } catch (e) { wanted = null }
+      const target = rows.filter((w) => folderKey(w.path) === folderKey(wanted))[0] || rows[0]
+      if (target === undefined) return { ok: false, why: 'no_personal_workspace' }
+      try { services.uiWorkspace.startSession(target.workspaceId) } catch (e) { return { ok: false, why: 'start_failed' } }
+      return { ok: true, workspaceId: target.workspaceId }
+    }
+    /** What a switch to a space does to where the next chat opens: a team opens one in its folder, Personal one in the workspace it had. A team with no folder (the disk refused) opens
+     *  nothing: the person is told nothing is broken, the folder pill is just absent. `to`: `{ personal, folder }`. */
+    const enterSpaceChat = async (services, to, teamFolders, store, timers) => {
+      if (to.personal === true) return openPersonalChat(services, teamFolders, store)
+      if (typeof to.folder !== 'string' || to.folder === '') return { ok: false, why: 'no_folder' }
+      return openTeamChat(services, to.folder, timers)
+    }
+    // <team-folder:end>
+    // DSH's own services, read when a switch happens (`apply` hands the context over); the folder Personal goes back to is kept in this browser (a convenience per viewer: the page
+    // works without it, and a reload only forgets it).
+    let ctxRef = null
+    const dshServices = () => {
+      try {
+        if (ctxRef === null || typeof ctxRef.get !== 'function') return null
+        const workspaces = ctxRef.get('workspaces')
+        const uiWorkspace = ctxRef.get('uiWorkspace')
+        return workspaces !== undefined && workspaces !== null && uiWorkspace !== undefined && uiWorkspace !== null ? { workspaces, uiWorkspace } : null
+      } catch (e) { return null }
+    }
+    const PERSONAL_FOLDER_KEY = 'kybernos-cloud.personal-folder'
+    const personalFolderStore = {
+      get: () => { try { return window.localStorage.getItem(PERSONAL_FOLDER_KEY) } catch (e) { return null } },
+      set: (path) => { try { window.localStorage.setItem(PERSONAL_FOLDER_KEY, path) } catch (e) { /* kept for this page only */ } },
+    }
+    const folderTimers = { set: (fn, ms) => window.setTimeout(fn, ms), clear: (id) => window.clearTimeout(id) }
+
     // How often the card's meter reads the allowance again while it is on screen (it also reads on focus and after a refusal).
     const QUOTA_METER_REFRESH_MS = 120000
 
@@ -1355,6 +1564,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       // kybernos-plugin, so that a missing locale does not block the mount.
       inject: ['slots'],
       apply(ctx) {
+        ctxRef = ctx
         const slots = ctx.get('slots')
         if (slots === undefined || slots === null) {
           console.error('[kybernos-cloud] slots service unavailable: no interface')
@@ -1688,8 +1898,13 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             props.sep === true ? h('div', { className: 'kbfp-msep' }) : null,
             h('button', { type: 'button', className: 'kbfp-wsitem', role: 'menuitem', 'data-kb': 'space-create', onClick: props.onCreate },
               h('span', { className: 'kbfp-wsplus', 'aria-hidden': 'true' }, h(PlusIcon, { size: 18 })),
-              h('span', { className: 'kbfp-wstxt' }, h('span', { className: 'kbfp-wsname' }, t('wsNewTitle')))))
-            // SEAM (step 4): the « Join with an invitation link » row goes here, after « Create a team ».
+              h('span', { className: 'kbfp-wstxt' }, h('span', { className: 'kbfp-wsname' }, t('wsNewTitle')))),
+            // Under « Create a team », in both places the list is drawn. Only a click opens the dialog: nothing here reads a link or calls the host by itself.
+            typeof props.onJoin === 'function'
+              ? h('button', { type: 'button', className: 'kbfp-wsitem', role: 'menuitem', 'data-kb': 'space-join', title: t('joinRow'), onClick: props.onJoin },
+                h('span', { className: 'kbfp-wsplus', 'aria-hidden': 'true' }, h(LinkIcon, { size: 18 })),
+                h('span', { className: 'kbfp-wstxt' }, h('span', { className: 'kbfp-wsname' }, t('joinRow'))))
+              : null)
         }
 
         // The panel next to the menu, for four spaces and more. `summary` and `quota` are what the menu read; the footer does the switching.
@@ -1710,7 +1925,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             return () => document.removeEventListener('mousedown', dehors)
           }, [props.onClose])
           return h('div', { className: 'kbfp-switchbody', ref: popRef },
-            h(SpaceList, { state: props.state, summary: props.summary, quota: props.quota, busy: props.busy, sep: true, onPick: (id) => { props.onClose(); props.onPick(id) }, onCreate: props.onCreate }))
+            h(SpaceList, { state: props.state, summary: props.summary, quota: props.quota, busy: props.busy, sep: true, onPick: (id) => { props.onClose(); props.onPick(id) }, onCreate: props.onCreate, onJoin: props.onJoin }))
         }
 
         // ── CREATING A WORKSPACE (the row's « + » button) ──────────────────
@@ -1762,6 +1977,97 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                   ? h('a', { className: 'kbws-link', href: hosted, target: '_blank', rel: 'noreferrer' }, t('wsNewHosted'))
                   : h('button', { type: 'button', className: 'kbc-btn-primary', disabled: busy || nom.trim() === '', onClick: () => { void creer() } }, t('wsNewCreate')),
                 erreur !== '' ? h('div', { className: 'kbc-note kbc-warn' }, erreur) : null)))
+        }
+
+        // ── JOINING A TEAM WITH AN INVITATION LINK (the row under « Create a team ») ─────────────────────────────────────────────────
+        // Two clicks, nothing before them: the person pastes the link (or just its code) and presses « Check »; the host asks the ACTIVE server what the invitation is for and the card
+        // shows it (the team, who invited, the role, the address it was sent to); only then « Join the team » accepts it with the device token. The pasted text is read here (a link is
+        // only a carrier for the token: its host is never called) and the token is held in this card's memory until it closes, never stored. Every refusal has its sentence; an
+        // unplanned one offers the server's own page for the same invitation.
+        const JoinPanel = (props) => {
+          React.useEffect(() => {
+            const onKey = (ev) => { if (ev.key === 'Escape') props.onClose() }
+            window.addEventListener('keydown', onKey)
+            return () => window.removeEventListener('keydown', onKey)
+          }, [props.onClose])
+          const [text, setText] = React.useState('')
+          const [step, setStep] = React.useState('paste')
+          const [busy, setBusy] = React.useState(false)
+          const [note, setNote] = React.useState('')
+          const [found, setFound] = React.useState(null)
+          const [preview, setPreview] = React.useState(null)
+          const [exit, setExit] = React.useState(null)
+          const live = React.useRef(true)
+          React.useEffect(() => () => { live.current = false }, [])
+
+          // The sentence for a refusal, with the hint about a link that comes from another server, and the way out when nothing planned for it happened.
+          const refuse = (res, link) => {
+            const f = joinFailure(res)
+            const other = f.key === 'joinGone' || f.key === 'joinFailed' ? joinOtherHost(link.host, props.web) : null
+            setNote(t(f.key) + (other !== null ? ' ' + quotaFill(t('joinOtherHost'), other) : ''))
+            setExit(f.browser === true ? joinBrowserUrl(props.web, link.token) : null)
+          }
+          const check = async () => {
+            if (busy === true) return
+            const parsed = parseInvitation(text)
+            setExit(null)
+            if (parsed.ok !== true) { setNote(t(joinParseKey(parsed.reason))); return }
+            setBusy(true)
+            setNote('')
+            let res = null
+            try { res = await callLocal('/invitation/preview', 'POST', { token: parsed.token }) } catch (e) { res = null }
+            if (live.current !== true) return
+            setBusy(false)
+            if (res !== null && res.ok === true && res.preview !== null && typeof res.preview === 'object') {
+              setFound(parsed)
+              setPreview(res.preview)
+              setText('')
+              setStep('preview')
+              return
+            }
+            refuse(res, parsed)
+          }
+          const accept = async () => {
+            if (busy === true || found === null) return
+            setBusy(true)
+            setNote('')
+            setExit(null)
+            let res = null
+            try { res = await callLocal('/invitation/accept', 'POST', { token: found.token }) } catch (e) { res = null }
+            if (live.current !== true) return
+            setBusy(false)
+            if (res !== null && res.ok === true && res.joined !== null && typeof res.joined === 'object') { props.onJoined(res); props.onClose(); return }
+            refuse(res, found)
+          }
+
+          const roleWord = preview !== null ? t(preview.role === 'owner' ? 'roleOwner' : (preview.role === 'admin' ? 'roleAdmin' : 'roleMember')).toLowerCase() : ''
+          const mismatch = preview !== null && typeof props.email === 'string' && props.email !== '' && typeof preview.email === 'string' && preview.email !== '' && preview.email.toLowerCase() !== props.email.toLowerCase()
+          return h('div', { className: 'kbc-scrim', onClick: (e) => { if (e.target === e.currentTarget) props.onClose() } },
+            h('div', { className: 'kbc-card', role: 'dialog', 'aria-label': t('joinRow'), 'data-kb': 'join-team', 'data-step': step, style: { maxWidth: '380px' } },
+              h('div', { className: 'kbc-head' },
+                h('span', { className: 'kbc-title' }, t('joinRow')),
+                h('button', { type: 'button', className: 'kbc-x', onClick: props.onClose, 'aria-label': t('close') }, '×')),
+              step === 'paste'
+                ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: '10px' } },
+                  h('div', { className: 'kbc-body', 'data-kb': 'join-intro' }, t('joinIntro')),
+                  h('input', {
+                    type: 'text', className: 'kbc-input', value: text, autoFocus: true, autoComplete: 'off', spellCheck: false, maxLength: INVITE_INPUT_MAX,
+                    placeholder: 'https://…/invitations/accept?token=…', 'aria-label': t('joinField'), 'data-kb': 'join-input', disabled: busy,
+                    onChange: (e) => { setText(e.target.value); setNote('') },
+                    onKeyDown: (e) => { if (e.key === 'Enter') { void check() } },
+                  }),
+                  h('button', { type: 'button', className: 'kbc-btn-primary', 'data-kb': 'join-check', disabled: busy || text.trim() === '', onClick: () => { void check() } }, busy === true ? t('joinChecking') : t('joinCheck')))
+                : h('div', { style: { display: 'flex', flexDirection: 'column', gap: '10px' } },
+                  h('div', { className: 'kbc-body', 'data-kb': 'join-who' }, quotaFill(t(preview.inviter !== null ? 'joinWho' : 'joinWhoAnon'), { inviter: preview.inviter, team: preview.team, role: roleWord })),
+                  preview.email !== '' ? h('div', { className: 'kbc-note', style: { marginTop: 0 }, 'data-kb': 'join-sent-to' }, quotaFill(t('joinSentTo'), { email: preview.email })) : null,
+                  mismatch === true ? h('div', { className: 'kbc-note kbc-warn', style: { marginTop: 0 }, 'data-kb': 'join-mismatch' }, quotaFill(t('joinMismatch'), { invited: preview.email, email: props.email })) : null,
+                  h('div', { className: 'kbc-actions' },
+                    h('button', { type: 'button', className: 'kbc-btn-primary', 'data-kb': 'join-accept', disabled: busy, onClick: () => { void accept() } }, busy === true ? t('joinAccepting') : t('joinAccept')),
+                    h('button', { type: 'button', className: 'kbc-btn-ghost', 'data-kb': 'join-cancel', onClick: props.onClose }, t('joinCancel')))),
+              note !== '' ? h('div', { className: 'kbc-note kbc-warn', role: 'alert', 'data-kb': 'join-note', style: { marginTop: '10px' } }, note) : null,
+              exit !== null
+                ? h('div', { style: { marginTop: '10px' } }, h('a', { className: 'kbws-link', 'data-kb': 'join-browser', href: exit, target: '_blank', rel: 'noopener noreferrer' }, t('joinBrowser')))
+                : null))
         }
 
         // ── THE MOBILE APP (footer phone button) ───────────────────────────
@@ -2446,7 +2752,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
               : null,
             h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-teams', 'data-mode': mode },
               mode === 'inline'
-                ? h(SpaceList, { state: st, summary: summary, quota: props.quota, busy: props.busy, onPick: (id) => { props.onClose(); props.onPick(id) }, onCreate: props.onCreateSpace })
+                ? h(SpaceList, { state: st, summary: summary, quota: props.quota, busy: props.busy, onPick: (id) => { props.onClose(); props.onPick(id) }, onCreate: props.onCreateSpace, onJoin: props.onJoinSpace })
                 : h('button', {
                   type: 'button', className: 'kbfp-mhead', 'data-kb': 'menu-switch',
                   'aria-expanded': switchOpen === true ? 'true' : 'false',
@@ -2499,6 +2805,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                     onClose: () => setSwitchOpen(false),
                     onPick: props.onPick,
                     onCreate: props.onCreateSpace,
+                    onJoin: props.onJoinSpace,
                   })), document.body)
               : null)
         }
@@ -2584,6 +2891,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             try { setNotes(window.__KB_NOTIFY__.list()); return window.__KB_NOTIFY__.subscribe((l) => setNotes(l)) } catch (e) { return undefined }
           }, [])
           const [newOpen, setNewOpen] = React.useState(false)
+          const [joinOpen, setJoinOpen] = React.useState(false)
           const [mobileOpen, setMobileOpen] = React.useState(false)
           // Update available: an amber dot on the card tile, the discreet
           // reminder that stays visible with the menu closed (kybernos-maintenance signal).
@@ -2754,13 +3062,16 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           // Choosing a team. The host writes the new model route and DSH applies it by itself a moment later; a message sent before then still carries the PREVIOUS team's header and is
           // billed to it. So the card says « switching » until the host reports the running route names the new team (`space/applied`), for a fixed minimum when it cannot tell, and
           // at most SWITCH_WAIT_MAX_MS (then the person is told to wait). A route the host could not rewrite is said at once: the choice is kept, the billing is not.
-          const pickSpace = async (id) => {
+          const pickSpace = async (id, nameHint) => {
             if (switchingRef.current !== null || typeof id !== 'string') return
             const known = (Array.isArray(state.workspaces) ? state.workspaces : []).filter((w) => w !== null && w.id === id)[0]
-            const name = known !== undefined ? espaceVue(known, t).name : ''
+            // `nameHint`: a team the person has just joined is not in this render's list yet (the list is read again in the same breath).
+            const name = known !== undefined ? espaceVue(known, t).name : (typeof nameHint === 'string' ? nameHint : '')
             if (id === state.active_workspace_id) return
             switchingRef.current = { id: id, name: name }
             setSwitching({ id: id, name: name })
+            // Where Personal goes back to: the folder of the chat on screen, read before the switch moves anything (never a team's folder).
+            rememberPersonalNow()
             const end = () => { switchingRef.current = null; if (liveRef.current === true) setSwitching(null) }
             let res = null
             try { res = await callLocal('/space/active', 'POST', { workspace_id: id }) } catch (e) { res = null }
@@ -2773,23 +3084,48 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             }
             void load()
             const plan = switchPlan(res.route)
-            if (plan === 'stale') { end(); setFlashSwitch(false); setFlash(quotaFill(t('spaceRouteStale'), { name: name })); return }
+            if (plan === 'stale') { end(); setFlashSwitch(false); setFlash(quotaFill(t('spaceRouteStale'), { name: name })); enterChat(res.state, id); return }
             if (plan === 'wait') {
-              const t0 = Date.now()
-              let verdict = 'wait'
-              while (verdict === 'wait' && liveRef.current === true) {
-                let applied = null
-                try {
-                  const r = await callLocal('/space/applied', 'POST', { workspace_id: id })
-                  if (r !== null && r !== undefined && r.superseded === true) break
-                  applied = r !== null && r !== undefined && r.ok === true && typeof r.applied === 'boolean' ? r.applied : null
-                } catch (e) { applied = null }
-                verdict = switchState(applied, Date.now() - t0)
-                if (verdict === 'wait') await new Promise((resolve) => { window.setTimeout(resolve, SWITCH_POLL_MS) })
-              }
+              const verdict = await awaitRoute(id)
               if (verdict === 'slow') { setFlashSwitch(false); setFlash(quotaFill(t('spaceSwitchSlow'), { name: name })) }
             }
             end()
+            // The new chat opens only now: a message typed in it can no longer carry the previous team's header.
+            enterChat(res.state, id)
+          }
+          // Waits until DSH runs the model route of the team just chosen (`space/applied`), for a fixed minimum when the host cannot tell and at most SWITCH_WAIT_MAX_MS: 'done', 'slow', or
+          // 'wait' when a later switch took over.
+          const awaitRoute = async (id) => {
+            const t0 = Date.now()
+            let verdict = 'wait'
+            while (verdict === 'wait' && liveRef.current === true) {
+              let applied = null
+              try {
+                const r = await callLocal('/space/applied', 'POST', { workspace_id: id })
+                if (r !== null && r !== undefined && r.superseded === true) break
+                applied = r !== null && r !== undefined && r.ok === true && typeof r.applied === 'boolean' ? r.applied : null
+              } catch (e) { applied = null }
+              verdict = switchState(applied, Date.now() - t0)
+              if (verdict === 'wait') await new Promise((resolve) => { window.setTimeout(resolve, SWITCH_POLL_MS) })
+            }
+            return verdict
+          }
+          // A switch opens a NEW chat in the place that belongs to the space: a team's folder (registered as a DSH workspace), or, back in Personal, the workspace the person had before.
+          // `st` is the host's answer state (it names the folder of the space that just became active). A service that is missing or refuses leaves the person where they are.
+          const rememberPersonalNow = () => {
+            try {
+              const services = dshServices()
+              if (services !== null) rememberPersonalFolder(services, Array.isArray(state.team_folders) ? state.team_folders : [], personalFolderStore)
+            } catch (e) { /* the switch goes on */ }
+          }
+          const enterChat = (st, id) => {
+            try {
+              const s = st !== null && st !== undefined && typeof st === 'object' ? st : {}
+              const space = (Array.isArray(s.workspaces) ? s.workspaces : []).filter((w) => w !== null && typeof w === 'object' && w.id === id)[0]
+              const services = dshServices()
+              if (space === undefined || services === null) return
+              void enterSpaceChat(services, { personal: spaceIsPersonal(space), folder: typeof s.space_folder === 'string' ? s.space_folder : null }, Array.isArray(s.team_folders) ? s.team_folders : [], personalFolderStore, folderTimers).catch(() => null)
+            } catch (e) { /* the switch goes on */ }
           }
 
           // The host reads the account again by itself (a token revoked from the account page, a removal from a team: index.js `profileRefreshTick`), and the
@@ -2905,12 +3241,22 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           }, [phase])
 
           // What the composer's cues need: the space the card names (the chosen one while a switch waits), its working folder when the host names one, and whether a switch waits.
-          // SEAM (step 6, one folder per team): `state.space_folder` is that folder. Nothing writes it yet, so the folder pill stays away.
           React.useEffect(() => {
             if (phase !== 'connected') { cueSet(null, null, false); return }
             const chosen = switching !== null ? (Array.isArray(state.workspaces) ? state.workspaces : []).filter((w) => w !== null && w.id === switching.id)[0] : undefined
             cueSet(chosen !== undefined ? chosen : espaceActifEntry(state), state.space_folder, switching !== null)
           }, [phase, state, switching])
+
+          // The active team has no folder yet (it was joined before folders existed): the host makes it, once per team and page. It opens no chat: only a switch does.
+          const folderAsked = React.useRef(new Set())
+          React.useEffect(() => {
+            if (phase !== 'connected') return
+            const id = typeof state.active_workspace_id === 'string' ? state.active_workspace_id : null
+            const entry = espaceActifEntry(state)
+            if (id === null || entry === undefined || entry === null || spaceIsPersonal(entry) || typeof state.space_folder === 'string' || folderAsked.current.has(id)) return
+            folderAsked.current.add(id)
+            callLocal('/space/folder', 'POST', { workspace_id: id }).then((r) => { if (r !== null && r !== undefined && r.ok === true) void load() }).catch(() => null)
+          }, [phase, state])
 
           const openAndConnect = () => { setPairNote(null); setAutoStart(true); setOpen(true) }
           const openCard = () => { setAutoStart(false); setOpen(true) }
@@ -2934,6 +3280,16 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             window.addEventListener('kybernos-cloud:account', account)
             return () => window.removeEventListener('kybernos-cloud:account', account)
           }, [phase, activeSpace])
+          // A team that was created and took over (it has a plan): the same wait on DSH's model route as a switch, then a NEW chat in its folder. One without a plan did not take over.
+          const enterCreated = async (res) => {
+            try {
+              const made = res !== null && res !== undefined && res.created !== null && typeof res.created === 'object' ? res.created : null
+              if (made === null || made.activated !== true || typeof made.id !== 'string') return
+              rememberPersonalNow()
+              await awaitRoute(made.id)
+              enterChat(res.state, made.id)
+            } catch (e) { /* the team is made and active: the chat is the person's to open */ }
+          }
           // A team that was created WITHOUT a plan did not take over (the host left the person where they were): say so, and offer its plan page.
           const announceCreated = (res) => {
             const made = res !== null && res !== undefined && res.created !== null && typeof res.created === 'object' ? res.created : null
@@ -2942,6 +3298,21 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             setFlashSwitch(false)
             setFlashAct({ for: text, label: t('planChoose'), run: () => openAccountPage('plan', made.id) })
             setFlash(text)
+          }
+
+          // After an invitation was accepted: the new team takes over through the ordinary switch (with its wait on DSH's model route), except a team that has no plan: it cannot answer a
+          // model call, so the person stays where they are and is told, as for a team they just created.
+          const announceJoined = (res) => {
+            const j = res !== null && res !== undefined && res.joined !== null && typeof res.joined === 'object' ? res.joined : null
+            if (j === null || typeof j.id !== 'string') return
+            if (j.plan_key === 'none') {
+              const text = quotaFill(t('joinNoPlan'), { name: typeof j.name === 'string' ? j.name : '', here: espaceActifVue(state, t).name })
+              setFlashSwitch(false)
+              setFlashAct(j.role === 'owner' || j.role === 'admin' ? { for: text, label: t('planChoose'), run: () => openAccountPage('plan', j.id) } : null)
+              setFlash(text)
+              return
+            }
+            void pickSpace(j.id, j.name)
           }
 
           const user = state.user !== undefined && state.user !== null ? state.user : {}
@@ -3044,6 +3415,10 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                     setMenuOpen(false)
                     setNewOpen(true)
                   },
+                  onJoinSpace: () => {
+                    setMenuOpen(false)
+                    setJoinOpen(true)
+                  },
                   onAccount: ouvrirAppli('overview'),
                   // The Referral page of the app (a server that does not know it yet lands the person on Overview, where its card used to be: the host asks again).
                   onReferral: ouvrirAppli('referral'),
@@ -3109,7 +3484,15 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             newOpen === true
               ? h(NewSpacePanel, {
                 onClose: () => setNewOpen(false),
-                onCreated: (res) => { void load(); announceCreated(res) },
+                onCreated: (res) => { void load(); announceCreated(res); void enterCreated(res) },
+              })
+              : null,
+            joinOpen === true
+              ? h(JoinPanel, {
+                onClose: () => setJoinOpen(false),
+                web: typeof state.web_url === 'string' ? state.web_url : '',
+                email: typeof user.email === 'string' ? user.email : '',
+                onJoined: (res) => { void load(); announceJoined(res) },
               })
               : null,
             open === true

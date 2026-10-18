@@ -457,6 +457,8 @@ await new Promise((resolve) => api.listen(0, '127.0.0.1', resolve))
 const port = api.address().port
 
 const stateDir = mkdtempSync(join(tmpdir(), 'kybernos-cloud-test-'))
+// A switch to a team makes the team's folder under Documents (team-folder.mjs): here it is a throw-away one, never the person's own.
+process.env.KYBERNOS_DOCUMENTS_DIR = join(stateDir, 'Documents')
 const statePath = join(stateDir, 'kybernos-cloud.json')
 process.env.KYBERNOS_CLOUD_API = 'http://127.0.0.1:' + port
 process.env.KYBERNOS_CLOUD_STATE = statePath
@@ -665,10 +667,12 @@ try {
     '/kybernos-cloud/referral',
     // Espace actif : la rangée du pied de sidebar est un sélecteur, il lui faut
     // une route qui enregistre le choix (et refuse un id inconnu).
-    '/kybernos-cloud/space/active', '/kybernos-cloud/space/applied', '/kybernos-cloud/spaces/summary',
+    '/kybernos-cloud/space/active', '/kybernos-cloud/space/applied', '/kybernos-cloud/space/folder', '/kybernos-cloud/spaces/summary',
     // Création d'espace (bouton « + » de la rangée) : transmet au serveur,
     // refuse proprement en renvoyant l'URL hébergée.
     '/kybernos-cloud/space/create',
+    // Joining a team with an invitation link: what the link is for, then the acceptance (test-join-host.mjs holds their rules).
+    '/kybernos-cloud/invitation/preview', '/kybernos-cloud/invitation/accept',
     // Partage d'artefacts et de chats (core.shares).
     '/kybernos-cloud/chat/ensure', '/kybernos-cloud/shares',
     '/kybernos-cloud/shares/set', '/kybernos-cloud/shares/revoke',
