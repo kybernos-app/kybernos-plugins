@@ -404,6 +404,15 @@
         "role": "search everywhere: the content of chats, skills, memories, lessons, creations, automations and teams",
         "poids_ko": 40,
         "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-servers",
+        "nom": "@local/kybernos-servers",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "the Servers page: add a Kybernos server from its address, switch between servers, rename and remove them",
+        "poids_ko": 60,
+        "lib_vendor": null
       }
     ]
   },
@@ -451,7 +460,8 @@
       "@local/kybernos-dashboards",
       "@local/kybernos-summary",
       "@local/kybernos-kyber",
-      "@local/kybernos-search"
+      "@local/kybernos-search",
+      "@local/kybernos-servers"
     ]
   }
 }

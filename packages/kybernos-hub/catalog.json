@@ -2392,6 +2392,55 @@
           "en": "Everything stays on this computer. The first click builds the chat index (about ten seconds), afterwards only the chats that changed are read."
         }
       }
+    },
+    {
+      "id": "kybernos-servers",
+      "nom": "@local/kybernos-servers",
+      "titre": "Servers",
+      "glyphe": "server",
+      "famille": "cloud",
+      "palier": "core",
+      "version": "1.0.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 60,
+      "promesse": {
+        "fr": "Ajoute le serveur de ton entreprise avec son adresse, et passe de l’un à l’autre.",
+        "en": "Add your company’s server with its address, and switch between servers."
+      },
+      "aide": {
+        "what": {
+          "fr": "Un serveur, c’est là où vivent ton compte, ton équipe et tes modèles. Ajoute celui de ton entreprise avec son adresse, et passe de l’un à l’autre.",
+          "en": "A server is where your account, team and models live. Add your company’s with its address, and switch between servers whenever you like."
+        },
+        "steps": [
+          {
+            "fr": "« Ajouter un serveur » : colle l’adresse donnée par ton administrateur (ex. kb.acme.corp). DSH la vérifie et affiche le nom du serveur.",
+            "en": "“Add a server”: paste the address your administrator gave you (e.g. kb.acme.corp). DSH checks it and shows the server’s name."
+          },
+          {
+            "fr": "Clique « Ajouter et se connecter », puis confirme le code dans le navigateur : tu te connectes avec ton compte sur ce serveur.",
+            "en": "Click “Add and sign in”, then confirm the code in your browser: you sign in with your account on that server."
+          },
+          {
+            "fr": "« Passer à ce serveur » change le compte, les modèles et l’équipe. Tes conversations, fichiers et mémoire restent.",
+            "en": "“Switch to this server” changes the account, models and team. Your chats, files and memory stay."
+          },
+          {
+            "fr": "« Retirer » oublie ta connexion sur cet ordinateur. Rien n’est supprimé sur le serveur.",
+            "en": "“Remove” forgets your sign-in on this computer. Nothing is deleted on the server."
+          }
+        ],
+        "where": {
+          "fr": "Réglages › Serveurs",
+          "en": "Settings › Servers",
+          "page": true
+        },
+        "good": {
+          "fr": "Ne donne jamais ton mot de passe à un serveur dont tu ne connais pas l’adresse. Sur un serveur d’entreprise, les apps connectées et le lien téléphone dépendent de sa configuration.",
+          "en": "Never give your password to a server whose address you do not know. On a company server, connected apps and the phone link depend on how it is set up."
+        }
+      }
     }
   ]
 }

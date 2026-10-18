@@ -54,6 +54,7 @@ const FICHE = {
   'kybernos-motion': ['create', 'Des animations (titres, graphiques, 3D, personnages, son) créées par le chat et exportées en vidéo.', 'Animations (titles, charts, 3D, characters, sound) made by the chat and exported as video.'],
   'kybernos-miniapps': ['create', '« Install as app » : un panneau devient une app native.', '"Install as app": a panel becomes a native app.'],
   'kybernos-refs': ['create', 'Les liens des messages deviennent des pastilles de référence.', 'Message links become reference chips.'],
+  'kybernos-servers': ['cloud', 'Ajoute le serveur de ton entreprise avec son adresse, et passe de l’un à l’autre.', 'Add your company’s server with its address, and switch between servers.'],
   'kybernos-search': ['base', 'Une recherche partout : le contenu des chats, les skills, les mémoires, les leçons, les créations.', 'Search everywhere: the content of your chats, skills, memories, lessons and creations.'],
   'kybernos-mobile': ['base', 'DSH sur ton téléphone : l’écran s’adapte, et un code QR relie le téléphone à cet ordinateur, chiffré de bout en bout.', 'DSH on your phone: the screen adapts, and a QR code links the phone to this computer, end-to-end encrypted.'],
   'kybernos-websearch': ['connect', 'La recherche web des agents, avec ou sans clé : des moteurs gratuits tout de suite, des moteurs à clé quand tu en ajoutes une, et le suivant prend le relais si l’un échoue.', 'Web search for the agents, with or without a key: free engines right away, keyed engines when you add one, and the next one takes over when one fails.'],
@@ -75,7 +76,7 @@ const TITRES = {
   'kybernos-sessions': 'Sessions', 'kybernos-maintenance': 'About', 'kybernos-skills': 'Skills', 'kybernos-slash': 'Commands',
   'kybernos-relance': 'Relaunch', 'kybernos-models': 'AI Provider & Models', 'kybernos-modeles-locaux': 'Ollama Local Models', 'kybernos-auto': 'Auto Routing',
   'kybernos-flow': 'Flow', 'kybernos-free-llms': 'Free LLMs', 'kybernos-slides': 'Slides', 'kybernos-bricks': 'Bricks', 'kybernos-modeleur': '3D modeller',
-  'kybernos-motion': 'Motion', 'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'kybernos-search': 'Search everywhere', 'kybernos-mobile': 'Remote Control', 'kybernos-websearch': 'Web Search', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
+  'kybernos-motion': 'Motion', 'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'kybernos-search': 'Search everywhere', 'kybernos-servers': 'Servers', 'kybernos-mobile': 'Remote Control', 'kybernos-websearch': 'Web Search', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
   'dsh-media-player': 'Media player', 'kybernos-composio': 'Connectors', 'kybernos-computers': 'Cloud computers', 'kybernos-workers': 'Workers', 'dsh-subagent-maison': 'Workers connectors',
   'kybernos-cloud': 'Kybernos Cloud', 'kybernos-memory': 'Memory & Lessons', 'kybernos-atlas': 'Atlas', 'kybernos-changes': 'Changes', 'kybernos-usage': 'Usage', 'kybernos-multi-device': 'Workspaces & devices', 'kybernos-call': 'Calls', 'kybernos-terminal': 'Terminal', 'kybernos-dashboards': 'Dashboards', 'kybernos-summary': 'Summary', 'kybernos-kyber': 'Kaby'
 }
@@ -83,7 +84,7 @@ const GLYPHES = {
   'kybernos-plugin': 'cube', 'kybernos-hub': 'suite', 'kybernos-theme': 'palette', 'kybernos-language': 'lang', 'kybernos-sessions': 'chat',
   'kybernos-maintenance': 'info', 'kybernos-skills': 'bolt', 'kybernos-slash': 'slash', 'kybernos-relance': 'refresh', 'kybernos-models': 'cpu',
   'kybernos-modeles-locaux': 'home', 'kybernos-auto': 'route', 'kybernos-flow': 'flow', 'kybernos-free-llms': 'doc', 'kybernos-slides': 'slides', 'kybernos-bricks': 'bricks',
-  'kybernos-modeleur': 'box3d', 'kybernos-motion': 'motion', 'kybernos-miniapps': 'app', 'kybernos-refs': 'link', 'kybernos-search': 'lens', 'kybernos-mobile': 'mobile', 'kybernos-websearch': 'search', 'dsh-mermaid': 'flowc', 'dsh-db-viewer': 'db',
+  'kybernos-modeleur': 'box3d', 'kybernos-motion': 'motion', 'kybernos-miniapps': 'app', 'kybernos-refs': 'link', 'kybernos-search': 'lens', 'kybernos-servers': 'server', 'kybernos-mobile': 'mobile', 'kybernos-websearch': 'search', 'dsh-mermaid': 'flowc', 'dsh-db-viewer': 'db',
   'dsh-media-player': 'play', 'kybernos-composio': 'plug', 'kybernos-computers': 'pc', 'kybernos-workers': 'wrench', 'dsh-subagent-maison': 'agent', 'kybernos-cloud': 'cloud',
   'kybernos-memory': 'brain', 'kybernos-atlas': 'map', 'kybernos-changes': 'branch', 'kybernos-usage': 'gauge', 'kybernos-multi-device': 'devices', 'kybernos-call': 'phone', 'kybernos-terminal': 'term', 'kybernos-dashboards': 'dash', 'kybernos-summary': 'summary', 'kybernos-kyber': 'kyber'
 }

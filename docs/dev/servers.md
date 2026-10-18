@@ -2,9 +2,9 @@
 
 DSH talks to one Kybernos server at a time. Today that is Kybernos Cloud, which is the **new Kybernos server**
 (`kybernos-server`); the old stack is unplugged (see « The built-in server » and « The old stack »). A company can run its
-own, and a paid module (« Select server », a separate plugin in the private repo) will let a user switch. This repo is the open half: it knows how to
-**read** which server is active and where its api, web, console and LLM are. It has no screen, no licence and no way to add a
-server.
+own, and the **Servers** page (`packages/kybernos-servers`) lets a person add it from its address, switch between servers, rename and
+remove them. This package (`kybernos-cloud`) is the half that **reads** which server is active and where its api, web, console and LLM
+are; the page writes the registry and asks it to apply the change. There is no licence: a server is an address and your account on it.
 
 ## The profile
 
@@ -97,8 +97,8 @@ Invalid, duplicate and reserved entries are dropped and listed in `rejected`; a 
 Precedence for the active server: `KYBERNOS_CLOUD_API` (tests, developers) → the registry's `active` → built-in Kybernos Cloud.
 An `active` that names no valid server falls back to the built-in one **and says so** (`error: "active_unknown"`).
 
-Anyone can edit the file by hand. What the paid module sells is the management of servers (discovery through
-`/.well-known/kybernos-server.json`, sign-in, a signed offline licence), not the ability to read a file.
+Anyone can edit the file by hand; the Servers page does it for you: discovery through `/.well-known/kybernos-server.json`, a check that this
+package accepts the profile (the write is undone if it does not), then one switch.
 
 ## What switching does
 
@@ -156,15 +156,17 @@ no Kybernos LLM; `services.connections` is the connected apps' endpoint on the s
 half refuses a profile with an insecure or malformed one. A server that cannot publish this file can still be used by writing its profile
 into the registry by hand.
 
-The Settings nav lists a page labelled « Servers » / « Serveurs » in the *Devices & cloud* group (a one-line entry in `GROUPES`, so the paid module's page
+The Settings nav lists a page labelled « Servers » / « Serveurs » in the *Devices & cloud* group (a one-line entry in `GROUPES`, so the Servers page
 lands where the mockup puts it instead of at the tail of the menu).
 
-## What the paid module does (private repo)
+## What the Servers page does (`packages/kybernos-servers`)
 
-1. Its screen lists the servers (`GET /kybernos-cloud/server`), checks the licence (signed, verified offline, like the
-   catalogue's Ed25519 chain), and writes `servers.json` from its host half.
-2. It calls `POST /kybernos-cloud/server/apply`, then reloads the page so every screen reads the new server.
-3. Connecting to a server is the usual device pairing, against that server's `api`.
+1. The person pastes an address; the page's host half reads `/.well-known/kybernos-server.json` (three steps: it answers, it publishes a
+   profile, it fits this DSH) and shows the name and where the sign-in will go.
+2. « Add and sign in » writes `servers.json`, asks `GET /kybernos-cloud/server` whether the profile is accepted (and puts the file back
+   exactly as it was if not), then calls `POST /kybernos-cloud/server/apply`, so every screen reads the new server.
+3. Connecting is the usual device pairing (`/kybernos-cloud/start`, `/poll`) against that server's `api`.
+4. No licence and no key: the server decides who may have an account. The specification is `docs/dev/servers-page-spec.md`.
 
 DSH also reconciles at boot: if the registry changed while DSH was down, the previous route is cleaned before anything is
 imported.
