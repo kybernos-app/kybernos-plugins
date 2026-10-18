@@ -845,4 +845,167 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
   ok('failure row of a turn: « no adapter registered » and a plan-less team get a sentence and an action in the shipped row; every other failure is the shipped row untouched; withdrawn with the plugin')
 }
 
+// ── The retry row of a turn: while the account server is down a chat showed only the engine's « Retrying model request (5/5) » ─────────────────────────────────
+// The engine's keyed slot `conversation.chat.node`, key `model-retry`, is reachable the same way as the failure row: the plugin wraps the SHIPPED row, and only when the model
+// route is Kybernos's, the attempt is waiting, and the host (its quota read, the footer's own) says the account server does not answer. The row keeps its look, its countdown and its
+// details; its label names the server and says that DSH keeps trying, and « Switch server » is beside it when the registry names another server.
+{
+  const list = []
+  const subscribers = []
+  const registrations = []
+  let disposeRetry = null
+  const slotsRetry = {
+    inject: (name, cb) => { const d = cb(); if (name === 'conversation.chat.node') disposeRetry = d; return () => {} },
+    register: (options, component) => { registrations.push({ options, component }); list.unshift({ options: { key: options.key, priority: options.priority }, component, locale: options.locale }); return () => { const i = list.findIndex((e) => e.component === component); if (i >= 0) list.splice(i, 1) } },
+    entries: (name) => (name === 'conversation.chat.node' ? list.slice() : []),
+    subscribe: (name, fn) => { subscribers.push(fn); return () => { const i = subscribers.indexOf(fn); if (i >= 0) subscribers.splice(i, 1) } },
+  }
+  const seen = []
+  const Shipped = (props) => { seen.push(props); return createElement('div', { className: 'shipped-retry' }, String(props.t('message.retry.active')) + '|' + String(props.t('message.retry.status', { retry: 5 }))) }
+  const pluginRetry = captured.def.factory(require)
+  pluginRetry.apply({ get: (name) => (name === 'slots' ? slotsRetry : undefined), effect: (fn, label) => { if (/model retry row/.test(String(label))) void fn() } })
+  const retryRegistrations = () => registrations.filter((r) => r.options.name === 'conversation.chat.node')
+  assert.equal(retryRegistrations().length, 0, 'the shipped retry row is not there yet: nothing is registered')
+  list.push({ options: { key: 'model-retry' }, component: Shipped, locale: 'chat-ns' })
+  for (const fn of subscribers.slice()) fn()
+  assert.equal(retryRegistrations().length, 1, 'once the shipped row is registered, it is wrapped')
+  assert.deepEqual(retryRegistrations()[0].options, { name: 'conversation.chat.node', key: 'model-retry', priority: -1, locale: 'chat-ns' }, 'same key, the lowest priority (it renders), the shipped entry\'s own locale')
+  for (const fn of subscribers.slice()) fn()
+  assert.equal(retryRegistrations().length, 1, 'wrapped once, however often the slot changes')
+  const Row = retryRegistrations()[0].component
+  const events = []
+  const realDispatch = globalThis.window.dispatchEvent
+  globalThis.window.dispatchEvent = (ev) => { events.push(ev.type); return true }
+  const asked = []
+  const T = (key, params) => 'engine:' + key + (params === undefined ? '' : JSON.stringify(params))
+  const attempt = (over) => Object.assign({ kind: 'model-retry', seq: 7, retryState: 'scheduled', provider: 'kybernos', mode: 'normal', retry: 5, maxRetries: 5, delayMs: 8000, failure: { code: 'TRANSPORT', message: 'Connection error.' } }, over)
+  const node = (over) => ({ key: 'r1', kind: 'model-retry', data: { attempts: [attempt(over)], current: attempt(over) } })
+  const draw = async (props, quota) => {
+    seen.length = 0
+    globalThis.fetch = async (url, init) => {
+      const path = new URL(String(url), 'http://localhost').pathname.replace(/^.*\/kybernos-cloud/, '')
+      asked.push((init && init.method ? init.method : 'GET') + ' ' + path)
+      return { ok: true, status: 200, json: async () => (path === '/quota' ? quota : { ok: false }) }
+    }
+    asked.length = 0
+    const el = element(doc)
+    const root = ReactClient.createRoot(el)
+    await act(async () => { root.render(createElement(Row, props)); await new Promise((r) => setTimeout(r, 20)) })
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)) })
+    return { el, root, html: htmlDe(el) }
+  }
+  const press = (n, name) => {
+    if (n.attributes !== undefined && n.attributes['data-kb'] === name) { const key = Object.keys(n).find((k) => k.indexOf('__reactProps$') === 0); n[key].onClick(); return true }
+    return (n.childNodes || []).some((c) => press(c, name))
+  }
+  const drop = (root) => act(async () => { root.unmount() })
+  const DOWN = { ok: false, error: 'injoignable', server: { name: 'Kybernos (local)', host: 'localhost:8851', can_switch: true } }
+
+  // 1. The Kybernos route, a waiting attempt, a server that does not answer: the label names the server and says DSH keeps trying; the rest of the row is the engine's.
+  {
+    const props = { node: node(), t: T }
+    const a = await draw(props, DOWN)
+    assert.deepEqual(asked, ['GET /quota'], 'one read of the host, no more')
+    const last = seen[seen.length - 1]
+    assert.equal(last.node, props.node, 'the same node')
+    assert.equal(last.t('message.retry.active'), 'The Kybernos server “Kybernos (local)” (localhost:8851) is not answering: DSH keeps retrying', 'the label of the active row')
+    assert.equal(last.t('message.retry.status', { retry: 5 }), 'engine:message.retry.status{"retry":5}', 'every other word is the engine\'s own (the count and the countdown are drawn by it)')
+    assert.equal(last.t('message.retry.cancelled'), 'engine:message.retry.cancelled')
+    assert.ok(a.html.includes('shipped-retry') && a.html.includes('data-kb="retry-kb"'), 'the shipped row, in our wrapper')
+    assert.ok(a.html.includes('data-kb="retry-switch"') && a.html.includes('>Switch server<'), 'with the footer\'s « Switch server » beside it')
+    events.length = 0
+    assert.ok(press(a.el, 'retry-switch'), 'the button is there to press')
+    assert.deepEqual(events, ['kybernos-cloud:servers'], 'it asks the footer for Settings › Servers, as the phone link does')
+    await drop(a.root)
+    // No other server in the registry: the sentence, no button.
+    const alone = await draw({ node: node(), t: T }, { ok: false, error: 'injoignable', server: { name: 'Kybernos (local)', host: 'localhost:8851', can_switch: false } })
+    assert.ok(seen[seen.length - 1].t('message.retry.active').includes('is not answering') && !alone.html.includes('retry-switch'), 'nobody to switch to: no button')
+    await drop(alone.root)
+  }
+  // 2. Every other case is the shipped row with the very props it was given: a server that answers, one that refuses, an answer that names no server, a read that fails.
+  {
+    const cases = [
+      [{ ok: true, no_plan: false, payment_blocked: false, usage: [], workspace: { id: 'w', name: 'Acme', role: 'owner', personal: false } }, 'a server that answers'],
+      [{ ok: false, error: 'indisponible' }, 'a server that refuses'],
+      [{ ok: false, error: 'injoignable' }, 'an answer that names no server'],
+      [{ ok: false, connected: false, status: 'revoked', error: 'session_ended' }, 'a session the server ended'],
+      [null, 'an unreadable answer'],
+    ]
+    for (const [quota, why] of cases) {
+      const props = { node: node(), t: T, extra: 7 }
+      const d = await draw(props, quota)
+      assert.equal(seen[seen.length - 1].node, props.node, why)
+      assert.equal(seen[seen.length - 1].t, T, why + ': the engine\'s own translator, not ours')
+      assert.equal(seen[seen.length - 1].extra, 7)
+      assert.ok(!d.html.includes('retry-switch') && !d.html.includes('retry-kb'), why + ': nothing of ours around it')
+      await drop(d.root)
+    }
+    const failing = async (url) => { throw new Error('host down') }
+    seen.length = 0
+    globalThis.fetch = failing
+    const el = element(doc)
+    const root = ReactClient.createRoot(el)
+    await act(async () => { root.render(createElement(Row, { node: node(), t: T })); await new Promise((r) => setTimeout(r, 20)) })
+    assert.equal(seen[seen.length - 1].t, T, 'the host does not answer either: the shipped row')
+    await drop(root)
+  }
+  // 3. Another provider's retry, an attempt that is not waiting, a node that is not the engine's shape: no read of the host at all, the shipped row.
+  {
+    const odd = [
+      [node({ provider: 'deepseek' }), 'another provider'],
+      [node({ provider: 'openai' }), 'another provider'],
+      [node({ retryState: 'started' }), 'an attempt that started'],
+      [node({ retryState: 'cancelled' }), 'an attempt that was cancelled'],
+      [{ key: 'r2', kind: 'model-retry', data: {} }, 'no current attempt'],
+      [{ key: 'r3', kind: 'model-retry' }, 'no data'],
+      [{ key: 'r4', kind: 'model-retry', data: { current: null } }, 'a null attempt'],
+    ]
+    for (const [nd, why] of odd) {
+      const props = { node: nd, t: T }
+      const d = await draw(props, DOWN)
+      assert.deepEqual(asked, [], why + ': the host is not asked')
+      assert.equal(seen[seen.length - 1].node, nd, why)
+      assert.equal(seen[seen.length - 1].t, T, why + ': the engine\'s own translator')
+      assert.ok(!d.html.includes('retry-kb'), why)
+      await drop(d.root)
+    }
+  }
+  // 4. A new attempt looks again (the server may have come back or gone), and an attempt re-drawn for another reason does not.
+  {
+    seen.length = 0
+    let quota = { ok: true }
+    globalThis.fetch = async (url, init) => {
+      const path = new URL(String(url), 'http://localhost').pathname.replace(/^.*\/kybernos-cloud/, '')
+      asked.push((init && init.method ? init.method : 'GET') + ' ' + path)
+      return { ok: true, status: 200, json: async () => quota }
+    }
+    asked.length = 0
+    const el = element(doc)
+    const root = ReactClient.createRoot(el)
+    const first = { node: node({ retry: 3 }), t: T }
+    await act(async () => { root.render(createElement(Row, first)); await new Promise((r) => setTimeout(r, 20)) })
+    assert.deepEqual(asked, ['GET /quota'])
+    assert.equal(seen[seen.length - 1].t, T, 'attempt 3: the server answers, the shipped row')
+    await act(async () => { root.render(createElement(Row, { node: node({ retry: 3 }), t: T })); await new Promise((r) => setTimeout(r, 20)) })
+    assert.deepEqual(asked, ['GET /quota'], 'the same attempt drawn again: no second read (the countdown ticks inside the shipped row, not here)')
+    quota = DOWN
+    await act(async () => { root.render(createElement(Row, { node: node({ retry: 4 }), t: T })); await new Promise((r) => setTimeout(r, 20)) })
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)) })
+    assert.deepEqual(asked, ['GET /quota', 'GET /quota'], 'attempt 4: one more look')
+    assert.ok(seen[seen.length - 1].t('message.retry.active').includes('is not answering'), 'and now it says so')
+    await act(async () => { root.render(createElement(Row, { node: node({ retry: 4, retryState: 'started' }), t: T })); await new Promise((r) => setTimeout(r, 20)) })
+    assert.deepEqual(asked, ['GET /quota', 'GET /quota'], 'the retry started: no read')
+    assert.equal(seen[seen.length - 1].t, T, 'and the row is the engine\'s again (the server is back, or at least the attempt left)')
+    await drop(root)
+  }
+  // 5. The slot's owner goes away (or the plugin is unloaded): the wrapper is withdrawn, the shipped row alone is left.
+  assert.ok(typeof disposeRetry === 'function', 'the registration is disposable')
+  disposeRetry()
+  assert.equal(list.some((e) => e.component === Row), false, 'withdrawn')
+  assert.equal(subscribers.length, 0, 'and it stops listening')
+  globalThis.window.dispatchEvent = realDispatch
+  assert.equal((source.match(/callLocal\('\/console\/link'/g) || []).length, 2, 'still two call sites of the console link')
+  ok('retry row of a turn: the Kybernos route + a waiting attempt + a server that does not answer names the server, says DSH keeps trying, offers « Switch server »; every other provider, attempt or answer is the shipped row untouched; one look per attempt')
+}
+
 console.log('\n' + pass + ' verifications OK')

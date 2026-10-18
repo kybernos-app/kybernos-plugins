@@ -1010,6 +1010,17 @@ try {
   assert.equal(quotaDead.body.ok, false, 'a server that refuses the read: no facts, the notice falls back to DSH\'s own words')
   assert.notEqual(quotaDead.body.status, 'revoked', 'a refusal of the plan and budget routes alone is not a revoked token (the check on /v1/workspaces finds it fine)')
   refuseOnly = null
+  // A server that does not answer at all is told apart from one that refuses: the failure row of a model retry (client) asks here whether the account server is down, and
+  // names it. It is the same word and the same server identity as the console link and the sign-in give (`injoignable` + label and host, never the address).
+  process.env.KYBERNOS_CLOUD_API = 'http://127.0.0.1:1'
+  const quotaUnreachable = await hit('/kybernos-cloud/quota', 'GET')
+  process.env.KYBERNOS_CLOUD_API = 'http://127.0.0.1:' + port
+  assert.equal(quotaUnreachable.body.ok, false)
+  assert.equal(quotaUnreachable.body.error, 'injoignable', 'a server that cannot be reached is « injoignable », not « indisponible »: ' + JSON.stringify(quotaUnreachable.body))
+  assert.ok(quotaUnreachable.body.server !== null && typeof quotaUnreachable.body.server === 'object', 'and the answer names it')
+  assert.equal(quotaUnreachable.body.server.host, '127.0.0.1:1')
+  assert.equal(Object.keys(quotaUnreachable.body.server).sort().join(), 'can_switch,host,name', 'label, host and whether another server exists: nothing else')
+  assert.equal(JSON.stringify(quotaUnreachable.body).includes(TOKEN), false)
   budgetBody = { windows: [] }
   spacePlanBody = { source: 'subscription', status: 'active', plan: { key: 'solo', name: 'Solo', kind: 'individual' }, level: 'Studio', seats: 1, credit_balance_credits: 20000 }
   ok('quota : toutes les fenetres de l espace ACTIF en pourcentage (jamais de montant), l etat du paiement, sans jeton')
