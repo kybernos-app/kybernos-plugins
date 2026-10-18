@@ -28,7 +28,7 @@ const teamsSrc = block('// <teams-menu:begin>', '// <teams-menu:end>')
 check('the three blocks are where the test expects them', faceSrc !== null && quotaSrc !== null && teamsSrc !== null)
 const lib = new Function(faceSrc + '\n' + quotaSrc + '\n' + teamsSrc + `
 return { INLINE_SPACES_MAX, spacesMenuMode, spaceIsPersonal, spaceIsAdmin, spaceHue, SPACE_HUES, SWITCH_WAIT_MIN_MS, SWITCH_WAIT_MAX_MS, switchPlan, switchState,
-  planCardModel, spaceRowOf, spaceCueOf, PERSONAL_MEMORY_CUT, placeholderNext, quotaMeterOf, planDeEspace }`)()
+  planCardModel, spaceRowOf, spaceCueOf, PERSONAL_MEMORY_CUT, placeholderNext, quotaMeterOf, planDeEspace, subPanelBox, SUB_PANEL_WIDTH }`)()
 
 // The dictionary of one language, read from the source (the strings the page uses): French is the first block of client.js, English the last.
 const frFrom = source.indexOf('      fr: {')
@@ -242,6 +242,21 @@ console.log('the words, in both languages')
   check('a French string says « tu », never « vous »', !keys.some((k) => /(?<![A-Za-zÀ-ÿ])(vous|votre|vos)(?![A-Za-zÀ-ÿ])/i.test(fr(k))))
   check('placeholders {name}, {pct}, {window}, {when}, {n} are the same in both languages', keys.every((k) => same((t(k).match(/\{\w+\}/g) || []).sort(), (fr(k).match(/\{\w+\}/g) || []).sort())), keys.filter((k) => !same((t(k).match(/\{\w+\}/g) || []).sort(), (fr(k).match(/\{\w+\}/g) || []).sort())))
   check('no raw line separator in the source (a dictionary writes escapes, never the character)', source.split(String.fromCharCode(0x2028)).length === 1 && source.split(String.fromCharCode(0x2029)).length === 1)
+}
+
+console.log('the box of the « Switch team » list')
+{
+  const menu = { top: 120, right: 330 }
+  const wide = lib.subPanelBox(menu, 1400)
+  check('desktop: a 248 px panel beside the menu, top at the menu\'s top', wide.left === 338 && wide.width === 248 && wide.top === 120, wide)
+  const edge = lib.subPanelBox({ top: 120, right: 1300 }, 1400)
+  check('desktop, menu near the right edge: the panel is pushed back inside the window', edge.left + edge.width + 8 <= 1400 && edge.left >= 8, edge)
+  const phone = lib.subPanelBox({ top: 47, right: 315 }, 390)
+  check('phone (390 px): the panel takes the window\'s width less an 8 px margin on each side, so no name is cut at 248 px', phone.left === 8 && phone.width === 374 && phone.top === 47, phone)
+  const small = lib.subPanelBox({ top: 2, right: 200 }, 320)
+  check('a 320 px phone: still inside the window, and never above it', small.left === 8 && small.width === 304 && small.top === 8, small)
+  check('a tablet\'s width (521 px) keeps the beside-the-menu panel', lib.subPanelBox(menu, 521).width === 248 && lib.subPanelBox(menu, 520).width === 504)
+  check('the footer places the list through this rule and sets its width', /setSubPos\(subPanelBox\(r, window\.innerWidth\)\)/.test(source) && /width: subPos\.width \+ 'px'/.test(source))
 }
 
 if (failed > 0) { console.error('\n' + failed + ' check(s) failed'); process.exit(1) }

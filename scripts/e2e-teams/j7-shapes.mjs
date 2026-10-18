@@ -86,6 +86,10 @@ export const run = async (ctx) => {
           const sw = await g.val('document.documentElement.scrollWidth')
           const cut = [...(await clipped('.kbfp-menu')), ...(sub ? await clipped('.kbfp-sub') : [])]
           const tag = `${count} spaces, 390 px, ${scheme}, ${lang}`
+          if (sub) {
+            const cutByEllipsis = await g.val(`Array.from(document.querySelectorAll('.kbfp-sub .kbfp-wsname, .kbfp-sub .kbfp-wssub')).filter((e) => e.scrollWidth > e.clientWidth + 1).map((e) => (e.innerText || '').trim())`)
+            check(`${tag}: no name or label of the « Switch team » list is cut with an ellipsis`, cutByEllipsis.length === 0, cutByEllipsis)
+          }
           check(`${tag}: the menu${sub ? ' and the list' : ''} sit inside the window, no sideways scroll, no cut text`, within(menu, VW, VH) && (sub === null || within(sub, VW, VH)) && sw === VW && cut.length === 0, { menu, sub, scrollWidth: sw, cut })
           if (lang === 'fr') check(`${tag}: the strings are French`, /(Équipe|équipe|Rejoindre|Créer|Compte|Déconnexion|Se déconnecter)/.test((await g.text('.kbfp-menu')) || '') || /Rejoindre|Créer une équipe/.test((await g.text('.kbfp-sub')) || ''), await g.text('.kbfp-menu'))
           await ctx.shot(g, `j7-${count}-390-${scheme}-${lang}`)
