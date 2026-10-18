@@ -19,8 +19,19 @@ assert.ok(frStart > 0 && enStart > frStart, 'the fr / en dictionaries are where 
 const keysOf = (text) => new Set([...text.matchAll(/^ {8}([A-Za-z][A-Za-z0-9_]*): '/gm)].map((m) => m[1]))
 const frKeys = keysOf(source.slice(frStart, enStart))
 const enKeys = keysOf(source.slice(enStart, source.indexOf('\n      },', enStart)))
-for (const key of ['menuPlanCta', 'menuSeePlans', 'srvSwitch', 'srvDownOpen']) assert.ok(frKeys.has(key) && enKeys.has(key), 'missing in fr or en: ' + key)
-ok('menuPlanCta, menuSeePlans, srvSwitch and srvDownOpen exist in French and in English')
+for (const key of ['menuPlanCta', 'menuSeePlans', 'srvSwitch', 'srvDownOpen', 'accountOpened', 'accountPopupBlocked']) assert.ok(frKeys.has(key) && enKeys.has(key), 'missing in fr or en: ' + key)
+ok('menuPlanCta, menuSeePlans, srvSwitch, srvDownOpen, accountOpened and accountPopupBlocked exist in French and in English')
+
+console.log('« Account » and « Team settings »: a success the person cannot see is reported')
+{
+  const m = source.match(/const openAccountPage = [\s\S]*?\n          \}\n/)
+  assert.ok(m !== null, 'openAccountPage is where the test expects it')
+  const fn = m[0]
+  assert.ok(/r\.opened === true\) \{ setFlash\(t\('accountOpened'\)\); return \}/.test(fn), 'the host opened the browser: the notice says so (the tab can open in another window)')
+  assert.ok(!/window\.open\([^)]*noopener/.test(fn), 'window.open is not called with noopener there: it would answer null for a tab that opened and a blocked popup could not be told')
+  assert.ok(/accountPopupBlocked/.test(fn) && /shown === true \? 'accountOpened' : 'accountPopupBlocked'/.test(fn), 'a blocked popup is named, not silent')
+  ok('the account page opening is announced, and a blocked popup is named')
+}
 
 console.log('V-40 — « Upgrade »')
 {

@@ -160,6 +160,8 @@ window.__ModuleLoader__.load({
         menuSignup: 'Créer un compte',
         menuSeePlans: 'Voir les offres',
         accountOpenFail: 'La page de ton compte n\'a pas pu s\'ouvrir. Réessaie dans un instant.',
+        accountOpened: 'La page de ton compte s\'ouvre dans ton navigateur.',
+        accountPopupBlocked: 'Ton navigateur a bloqué la page de ton compte. Autorise les fenêtres pop-up pour cette adresse, puis réessaie.',
         srvDownOpen: 'La page de ton compte n\'a pas pu s\'ouvrir : le serveur « {name} » ({host}) ne répond pas.',
         srvDownSignIn: 'Le serveur « {name} » ({host}) ne répond pas. Vérifie la connexion, ou choisis un autre serveur, puis réessaie.',
         srvSwitch: 'Changer de serveur',
@@ -372,6 +374,8 @@ window.__ModuleLoader__.load({
         menuSignup: 'Create an account',
         menuSeePlans: 'See plans',
         accountOpenFail: 'Your account page could not be opened. Try again in a moment.',
+        accountOpened: 'Your account page is opening in your browser.',
+        accountPopupBlocked: 'Your browser blocked your account page. Allow pop-ups for this address, then try again.',
         srvDownOpen: 'Your account page could not be opened: the server “{name}” ({host}) does not answer.',
         srvDownSignIn: 'The server “{name}” ({host}) does not answer. Check the connection, or choose another server, then try again.',
         srvSwitch: 'Switch server',
@@ -2349,8 +2353,14 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           const openAccountPage = (section, workspaceId) => {
             callLocal('/console/link', 'POST', Object.assign({ section: section, open: true }, typeof workspaceId === 'string' ? { workspace_id: workspaceId } : {})).then((r) => {
               if (r !== null && r !== undefined && r.ok === true) {
-                // A host that could not open a browser hands the address back.
-                if (r.opened !== true && typeof r.url === 'string') { try { window.open(r.url, '_blank', 'noopener,noreferrer') } catch (e) { /* popup refused */ } }
+                // A success nobody sees reads as « nothing happens » (the tab opens in another window, or behind): say that it is opening.
+                setFlashSwitch(false)
+                if (r.opened === true) { setFlash(t('accountOpened')); return }
+                // A host that could not open a browser hands the address back; a popup blocker may swallow it (the call is async), and then the person must know.
+                let shown = false
+                // `noopener` makes window.open answer null even when the tab opened, which would hide a blocked popup from us: open it plainly and cut the link to this page after.
+                if (typeof r.url === 'string') { try { const w = window.open(r.url, '_blank'); shown = w !== null && w !== undefined; if (shown) { try { w.opener = null } catch (e) { /* cross-origin already */ } } } catch (e) { shown = false } }
+                setFlash(t(shown === true ? 'accountOpened' : 'accountPopupBlocked'))
                 return
               }
               // The server does not answer: say WHICH one, and offer to go to another when there is one.
