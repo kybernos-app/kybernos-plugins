@@ -6437,13 +6437,11 @@ body{--kb-u:var(--dsh-content-font-size,13px)}
 [class*="_logoRow"]{box-sizing:border-box;height:calc(var(--kb-u)*3.2);min-height:0;padding-block:0;margin-bottom:0;align-items:center}
 [class*="_regionArea"] [class*="_sectionHeader"]{height:calc(var(--kb-u)*2.4);margin-top:calc(var(--kb-u)*.35);margin-bottom:0}
 [class*="_regionArea"] [class*="_sectionLabel"]{font-size:calc(var(--kb-u)*.95)}
-[class*="_regionArea"] [class*="_listArea"] > [class*="_section"] > [class*="_header"]{height:calc(var(--kb-u)*1.9);font-size:calc(var(--kb-u)*.92)}
-[class*="_regionArea"] [class*="_listArea"] [class*="_rows"] [class*="_row"]{height:calc(var(--kb-u)*2.3);font-size:var(--kb-u)}
 [class*="_regionArea"] [class*="_treeBody"] [class*="_projectRow"]{height:calc(var(--kb-u)*2.4);font-size:var(--kb-u)}
 [class*="_regionArea"] [class*="_treeBody"] [class*="_sessionRow"]{height:calc(var(--kb-u)*2.2);font-size:var(--kb-u)}
 [class*="_regionArea"] [class*="_treeBody"] [class*="_title"]{font-size:var(--kb-u);line-height:1.35}
 [class*="_regionArea"] [class*="_sessionOverflowButton"]{height:calc(var(--kb-u)*2);font-size:calc(var(--kb-u)*.92)}
-@media (pointer:coarse){[class*="_regionArea"] [class*="_treeBody"] [class*="_projectRow"],[class*="_regionArea"] [class*="_treeBody"] [class*="_sessionRow"],[class*="_regionArea"] [class*="_listArea"] [class*="_rows"] [class*="_row"]{height:44px}}
+@media (pointer:coarse){[class*="_regionArea"] [class*="_treeBody"] [class*="_projectRow"],[class*="_regionArea"] [class*="_treeBody"] [class*="_sessionRow"]{height:44px}}
 [class*="collapsed"] .kb4-menu .kb4-lab,[class*="collapsed"] .kb4-menu .kb4-badge,[class*="collapsed"] .kb4-menu .kb4-ncol,[class*="collapsed"] .kb4-menu .kb4-chev{display:none !important}
 [class*="collapsed"] .kb4-menu .kb4-split{width:36px;margin:8px auto;border-radius:12px}
 /* Rail replie : DSH donne a la ligne hote la taille d'un bouton (36px,
@@ -7817,7 +7815,7 @@ const kbPinsEnsureCss = () => {
   style.dataset.kybernos = 'kybernos-pins-css'
   style.textContent = [
     '.kbpin_section{display:flex;flex-direction:column;min-width:0;margin-bottom:6px;padding-bottom:6px;border-bottom:0.5px solid var(--dsw-alias-border-l2)}',
-    '.kbpin_header{box-sizing:border-box;display:flex;align-items:center;gap:4px;width:calc(100% - 18px);height:28px;padding:0 8px;color:var(--dsw-alias-label-tertiary);background:0 0;border:none;border-radius:6px;cursor:pointer;text-align:left;font-size:13px;line-height:20px;font-family:inherit}',
+    '.kbpin_header{box-sizing:border-box;display:flex;align-items:center;gap:4px;width:calc(100% - 18px);height:calc(var(--dsh-content-font-size,13px)*1.9);padding:0 8px;color:var(--dsw-alias-label-tertiary);background:0 0;border:none;border-radius:6px;cursor:pointer;text-align:left;font-size:calc(var(--dsh-content-font-size,13px)*.92);line-height:1.4;font-family:inherit}',
     '.kbpin_header:hover{color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-interactive-bg-hover)}',
     '.kbpin_chevron{display:flex;flex:0 0 auto;align-items:center;transition:transform .12s ease}',
     '.kbpin_chevron[data-kbpin-replie=true]{transform:rotate(-90deg)}',
@@ -7829,7 +7827,7 @@ const kbPinsEnsureCss = () => {
     '.kbpin_group>.kbpin_row+.kbpin_row{margin-top:2px}',
     '.kbpin_threads{display:flex;flex-direction:column}',
     '.kbpin_threads>*+*{margin-top:2px}',
-    '.kbpin_folder{display:flex;width:100%;height:26px;align-items:center;padding:0 8px;border:none;background:0 0;color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xs-13);text-align:start;border-radius:6px;cursor:default;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}',
+    '.kbpin_folder{display:flex;width:100%;height:calc(var(--dsh-content-font-size,13px)*1.9);align-items:center;padding:0 8px;border:none;background:0 0;color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xs-13);font-size:calc(var(--dsh-content-font-size,13px)*.95);text-align:start;border-radius:6px;cursor:default;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}',
     '.kbpin_row{position:relative;display:flex;align-items:center;min-width:0;border-radius:12px}',
     '.kbpin_row.kbpin_dragging{opacity:.4}',
     '.kbpin_row[data-kbpin-drop=before]::before,.kbpin_row[data-kbpin-drop=after]::after{content:"";position:absolute;left:8px;right:8px;height:2px;border-radius:1px;background:var(--dsw-alias-state-business-primary,#6b8cff);pointer-events:none;z-index:1}',
@@ -7837,10 +7835,11 @@ const kbPinsEnsureCss = () => {
     '.kbpin_row[data-kbpin-drop=after]::after{bottom:-2px}',
     '.kbpin_section[data-kbpin-drop=empty]{outline:1px dashed var(--dsw-alias-state-business-primary,#6b8cff);outline-offset:-2px;border-radius:8px}',
     '.kbpin_row:hover{background:var(--dsw-alias-interactive-bg-hover)}',
-    '.kbpin_open{flex:1 1 auto;min-width:0;display:block;box-sizing:border-box;height:32px;line-height:32px;padding:0 8px 0 28px;border:none;background:0 0;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13);font-size:14px;text-align:start;cursor:pointer;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;border-radius:12px}',
+    '.kbpin_open{flex:1 1 auto;min-width:0;display:block;box-sizing:border-box;height:calc(var(--dsh-content-font-size,13px)*2.2);padding:0 8px 0 28px;border:none;background:0 0;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13);font-size:var(--dsh-content-font-size,13px);line-height:calc(var(--dsh-content-font-size,13px)*2.2);text-align:start;cursor:pointer;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;border-radius:12px}',
+    '@media (pointer:coarse){.kbpin_open{height:44px;line-height:44px}}',
     '.kbpin_row:hover .kbpin_open,.kbpin_row:focus-within .kbpin_open,.kbpin_row[data-kbpin-menu=true] .kbpin_open{padding-inline-end:84px}',
     '.kbpin_open:focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary,#6b8cff));outline-offset:-2px}',
-    '.kbpin_edit{flex:1 1 auto;min-width:0;box-sizing:border-box;height:28px;margin:0 4px;padding:0 8px;border:.5px solid var(--dsw-alias-border-l4);border-radius:8px;background:0 0;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13);font-size:14px;outline:none}',
+    '.kbpin_edit{flex:1 1 auto;min-width:0;box-sizing:border-box;height:calc(var(--dsh-content-font-size,13px)*2.1);margin:0 4px;padding:0 8px;border:.5px solid var(--dsw-alias-border-l4);border-radius:8px;background:0 0;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13);font-size:var(--dsh-content-font-size,13px);outline:none}',
     '.kbpin_actions{position:absolute;inset-inline-end:6px;display:none;align-items:center;gap:2px}',
     '.kbpin_row:hover .kbpin_actions,.kbpin_row:focus-within .kbpin_actions,.kbpin_row[data-kbpin-menu=true] .kbpin_actions{display:flex}',
     '.kbpin_act{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border:none;border-radius:6px;background:0 0;color:var(--dsw-alias-label-tertiary);cursor:pointer}',
@@ -26761,11 +26760,11 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
 [role="dialog"]:has(nav [class$="_navCell"]) [class$="_close"]{min-width:40px;min-height:40px}
 [role="dialog"]:has(nav [class$="_navCell"]) [class$="_close"] svg{width:18px;height:18px}
 /* C-06: the page you are on must not read like the row under the pointer (the open cell carries a second class, « _active », so the
-   class is matched by *=, not by $=). DSH fills both in nearly the same grey (open 235,238,242,
-   hovered 241,243,245): the open page gets a stronger fill and a bar on its leading edge; the hover keeps DSH's light fill and never
-   covers the bar. */
-[role="dialog"]:has(nav [class$="_navCell"]) nav [class*="_navCell"][aria-current="true"]{background:color-mix(in srgb,var(--dsw-alias-label-primary) 11%,transparent);box-shadow:inset 3px 0 0 var(--dsw-alias-label-primary);font-weight:500}
-html[dir="rtl"] [role="dialog"]:has(nav [class$="_navCell"]) nav [class*="_navCell"][aria-current="true"]{box-shadow:inset -3px 0 0 var(--dsw-alias-label-primary)}
+   class is matched by *=, not by $=). DSH fills the open and the hovered row in nearly the same grey (open 235,238,242, hovered 241,243,245):
+   the open page gets a soft pill, a share of the text colour (18%, against DSH's 8% for the hover) and a heavier weight. A share of the text
+   colour follows the mode and every theme with no token of its own. No bar on the edge: it bent with the rounded corner and looked dated.
+   The open group keeps no fill (see its header below): one active element on the screen. */
+[role="dialog"]:has(nav [class$="_navCell"]) nav [class*="_navCell"][aria-current="true"]{background:color-mix(in srgb,var(--dsw-alias-label-primary) 18%,transparent);font-weight:600}
 /* R-A5-04: DSH's icon buttons carry a hidden tooltip (data-tip, ::after, opacity 0) that sticks out 36 px past the last card of Agent
    presets: the options pane scrolled sideways (380 in 369 at 390 px). Nothing in a page of Settings is meant to scroll sideways: the pane
    that holds such cards clips it (the tooltip itself still shows, inside the pane). */
@@ -31541,7 +31540,11 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
 [class*="navList"] [data-kb="settings-group"]{display:flex;align-items:center;align-self:stretch;gap:12px;min-height:40px;margin:0;padding:0 12px;border-radius:12px;color:var(--dsw-alias-label-secondary);font-size:13px;font-weight:500;cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 [class*="navList"] [data-kb="settings-group"]:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
 [class*="navList"] [data-kb="settings-group"]:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:-2px}
-[class*="navList"] [data-kb="settings-group"][aria-expanded="true"]{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
+/* An open group has no fill: its chevron turns down and its name is heavier. The soft pill is the open page's alone. */
+[class*="navList"] [data-kb="settings-group"][aria-expanded="true"]{color:var(--dsw-alias-label-primary);font-weight:600}
+[class*="navList"] [data-kb="settings-group"][aria-expanded="true"] .kb-cz-chev{transform:rotate(90deg);color:var(--dsw-alias-label-secondary)}
+html[dir="rtl"] [class*="navList"] [data-kb="settings-group"] .kb-cz-chev{transform:scaleX(-1)}
+html[dir="rtl"] [class*="navList"] [data-kb="settings-group"][aria-expanded="true"] .kb-cz-chev{transform:scaleX(-1) rotate(90deg)}
 [class*="navList"] [data-kb="settings-group"][data-kb-here]{color:var(--dsw-alias-label-primary);font-weight:600}
 [class*="navList"] [data-kb="settings-group"] .kb-nav-ic{flex:none;width:16px;height:16px;stroke:currentColor;fill:none;stroke-linecap:round;stroke-linejoin:round}
 [class*="navList"] [data-kb="settings-group"] .kb-nav-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
