@@ -331,7 +331,7 @@ node scripts/test-onboarding.mjs                       # KB-OB-CORE block: texts
 node packages/kybernos-plugin/test-onboarding-state.mjs  # the state file: version, answers, replay, older files
 node packages/kybernos-plugin/test-feedback-box.mjs    # 38: the feedback box: the file, masking, the technical context off by default, the routes and their strict write guard, and Send to the relay (fake relay)
 node packages/kybernos-plugin/test-feedback-form.mjs   # 32: what the form tells a person who sends, fails or is signed out; Save and Copy say nothing was sent
-node packages/kybernos-plugin/test-referral-card.mjs   # 23: the referral card says the server's offer, or nothing about money
+node packages/kybernos-plugin/test-referral-card.mjs   # 32: the referral card says the server's offer, or nothing about money; its page link goes through the footer's console link
 node packages/kybernos-plugin/test-touch-targets.mjs   # 5: the Settings close cross (40 px) and the main buttons of a page on a phone (44 px)
 node packages/kybernos-plugin/test-default-model.mjs   # which model is chosen after a connection, who is switched, who is left alone
 node packages/kybernos-models/test-key-check.mjs       # the key check: where a key may go, the one-word answer, the route's guards

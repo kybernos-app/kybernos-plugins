@@ -437,8 +437,8 @@ const main = async () => {
       ok('la carte dit que le code vient du compte Kybernos',
         typeof rel.sourceCompte === 'string' && rel.sourceCompte.length > 0, String(rel.sourceCompte))
     }
-    ok('la carte offre Partager et garde le lien vers la page du compte du serveur (<web>/account)',
-      typeof rel.partager === 'string' && rel.partager.length > 0 && /^https?:\/\/[^/]+\/account$/.test(String(rel.lienPage)),
+    ok('the card offers Share and keeps the link to the server\'s Referral page (<web>/account#referral: what a request nobody claims falls back to)',
+      typeof rel.partager === 'string' && rel.partager.length > 0 && /^https?:\/\/[^/]+\/account#referral$/.test(String(rel.lienPage)),
       'partager ' + String(rel.partager) + ' / lien ' + String(rel.lienPage))
     ok('Echap referme la carte', rel.ferme === true)
   }

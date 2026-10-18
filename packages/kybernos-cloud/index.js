@@ -1543,6 +1543,8 @@ const quotaFacts = async () => {
   ])
   // A device the server turned away: the footer must hear it with this very answer (it asks here every two minutes and at each focus).
   if (await sessionEndedBy(plan, state.token) || await sessionEndedBy(budget, state.token)) return { ok: false, connected: false, status: 'revoked', error: 'session_ended' }
+  // Neither read got an answer: the server is down, which is not « the server refused ». The failure row of a model retry asks here whether it is, and names it.
+  if (plan.status === 0 && budget.status === 0) return { ok: false, error: 'injoignable', server: serverIdentity() }
   if (plan.status !== 200 || plan.body === null || typeof plan.body !== 'object' || budget.status !== 200 || budget.body === null || typeof budget.body !== 'object') return { ok: false, error: 'indisponible' }
   const known = Array.isArray(state.workspaces) ? state.workspaces.filter((w) => w !== null && typeof w === 'object' && w.id === id)[0] : undefined
   const usage = (Array.isArray(budget.body.windows) ? budget.body.windows : []).map(budgetWindowView).filter((w) => w !== null)
