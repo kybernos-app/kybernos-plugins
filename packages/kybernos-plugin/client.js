@@ -25135,7 +25135,10 @@ function renderFit(canvas, model, cam, opts){
               try { window.localStorage.setItem(KEY, String(i)) } catch (e) { /* storage unavailable: no memory of the last one */ }
               g.setAttribute('data-kb-hero', String(i))
             }
-            setText(head, kbt('kbnc.hero.' + g.getAttribute('data-kb-hero')))
+            // In a team space the headline names the team: kybernos-cloud publishes the cue (null in the personal space and while a switch waits), the random line is the fallback.
+            let cue = null
+            try { cue = window.__KB_SPACE_CUE__ } catch (e) { cue = null }
+            setText(head, cue !== null && cue !== undefined && typeof cue.heading === 'string' && cue.heading !== '' ? cue.heading : kbt('kbnc.hero.' + g.getAttribute('data-kb-hero')))
             setText(badge, 'Beta')
             if (badge.getAttribute('data-kb-beta') === null) badge.setAttribute('data-kb-beta', '1')
           }
@@ -25144,8 +25147,9 @@ function renderFit(canvas, model, cam, opts){
       const later = () => { if (timer !== null) return; timer = setTimeout(() => { timer = null; if (stopped !== true) sweep() }, 80) }
       let obs = null
       try { obs = new MutationObserver(later); obs.observe(document.body, { childList: true, subtree: true }) } catch (e) { obs = null }
+      window.addEventListener('kybernos:space-cue', later)
       sweep()
-      return () => { stopped = true; if (obs !== null) obs.disconnect(); if (timer !== null) clearTimeout(timer) }
+      return () => { stopped = true; if (obs !== null) obs.disconnect(); window.removeEventListener('kybernos:space-cue', later); if (timer !== null) clearTimeout(timer) }
     }, 'kybers: new chat title and Beta badge')
     ctx.effect(() => styles.insert(`
 /* The badge DSH calls « Preview » says « Beta » and is small: its own look (colour, shape) is kept, its code font is not. */

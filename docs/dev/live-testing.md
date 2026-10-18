@@ -824,6 +824,18 @@ clicks:
   and what the dialog says after it, then every refusal — 501 (no payment provider), 403 (not an owner or admin), 409 (the billing portal is
   offered and works), 422 and 502 and an unreachable server (a retry) — a catalogue that cannot be read, a team workspace's seats priced
   by the server's quote, top-up packs.
+- **The Teams menu** (the account, the usage, the choice of a team and « is the route applied » are answered in the page; every click is real): with 1 and 3
+  spaces the menu lists them itself (tile in the team's colour, name, « Admin · 6 members » or « you · plan », usage percent with its bar, check on the active one,
+  « Create a team »), with 4 and 6 the top row stays « Switch team » and opens the full list next to the menu; the plan card by role and by state (member / admin ×
+  normal / 75 % / used up with its time of return / a cap set by an admin: the Team bar for 30 days and the person's own 5 hours and 7 days, « Manage » for an owner or
+  admin and « Add credits » only once the pool is used up, both through the console link, never a dollar, euro or credit amount, never a time of return for a window that
+  has room); the personal free card; a switch (real click on a row: the card says « Switching… » with the chosen team, busy and not pressable, no meter, until the host
+  has been asked and said the route is applied; a route the host could not rewrite is said at once); the cues of a team space (the memory pill in the team's colour, none
+  in the personal space, a folder pill only when `state.space_folder` names a folder, « Message Acme… », « What is Acme working on? », in a conversation's dock too);
+  the same in French (the page's language function is overridden for the check, DSH's stored language is never touched); the contrast of the small text and of the
+  pill in both schemes, measured on what is really drawn (`data-ds-dark-theme` on the body is the truth, not the attribute the core plugin keeps); a phone at 390 px.
+  Unit side: `packages/kybernos-cloud/test-teams-menu.mjs` (the pure rules), `test-cloud-client.mjs` (rendered), `test-cloud-host.mjs` (the host's routes).
+
 - **The guard** (below): a script's click on DSH's launcher, a real click on it forced visible, React's fiber fields unreadable.
 
 In every scene it records any popover of **DSH's own account launcher** (« Settings ⌥⌘, / Feedback / Sign in ») that becomes visible,
@@ -844,6 +856,21 @@ sandbox's `kybernos/servers.json`): press « Sign in », approve the code with `
 then Account, Upgrade and Subscribe return the replica's real answers (the stand-in payment page at `/pay/cs_N`). Strip `open` from the
 payment and console-link POSTs (CDP `Fetch.continueRequest`) so that the host does not open a browser on your machine; do not press the
 stand-in's « Pay »: it changes the shared demo account's plan. « Disconnect » when done (it revokes the device on the server).
+
+### The delay of a team switch (measured on a sandbox, 2026-10-18)
+
+`setActiveSpace` rewrites the model route (`settings.mutate('llm-pi-ai', …)`) and a message sent before DSH runs the new route still carries the PREVIOUS team's
+`x-kybernos-workspace`. The host's `POST /kybernos-cloud/space/applied { workspace_id }` answers whether the RUNNING route names the space (it reads `settings.describe()`,
+DSH's view of the running plugin, not the file that was written), and the footer says « Switching… » until it does (3.5 s at least when it cannot tell, 15 s at most).
+Measured with the sandbox host, a fake Kybernos API on a local port (`KYBERNOS_CLOUD_API` and `KYBERNOS_CLOUD_STATE` in the environment of `scripts/sandbox/start.sh`,
+a connected state file written in the sandbox's DSH home) and the route called from Node with the sandbox's own session cookie, 10 switches between three spaces:
+`space/active` answered in **1.77 s** (median; 7 of 10 between 1.73 and 1.84 s, 3 of 10 between 0.17 and 0.41 s) and the running route named the new space **when it
+answered**: polled about every 15 ms from the moment the call was sent, the first poll that saw `applied: true` came 14 to 17 ms after the answer in 9 of 10 (one poll) and 32 ms before it in 1 of 10; in a
+separate run of 8 switches the first poll after the answer already said `applied: true` every time.
+So `settings.mutate` returns once DSH has reloaded, and the window in which a message can carry the old header is the duration of the host call itself, which the card covers.
+**Not measured:** the header a real chat request carries in that window (a task run through `POST /kybernos/tasks { action: 'run-now' }` used DSH's default model: `selectModel`
+did not take in this sandbox, so no request reached the fake endpoint). The claim « running route names the new space ⇒ the next request carries it » is inferred from DSH's
+settings contract, not observed.
 
 ## The Automations board: `scripts/check-automations-board-live.mjs`
 

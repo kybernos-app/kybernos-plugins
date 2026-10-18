@@ -255,8 +255,49 @@ const setActiveSpace = async (req, body) => {
   const next = Object.assign({}, state, { active_workspace_id: voulu, space_plan: await readSpacePlan(state, voulu) })
   writeState(next)
   // The model route names the active space and lists its catalogue: it follows the choice (nothing is written when it already matches).
-  await importCatalog('space')
-  return { ok: true, state: publicState(readState()) }
+  const route = routeOutcome(await importCatalog('space'))
+  return { ok: true, state: publicState(readState()), route }
+}
+
+/** What became of the model route after a switch, for the footer that waits on it: `current` (it already named this space), `written` (rewritten: DSH reloads it, and `settings.mutate`
+ *  returned once it had, about 1.8 s on a sandbox: docs/dev/live-testing.md, « The delay of a team switch »),
+ *  `none` (this server has no model service) or `not_written` / `failed` (the route still names the PREVIOUS space, so a message sent now is billed to it). */
+const routeOutcome = (imported) => {
+  if (imported === null || typeof imported !== 'object') return 'failed'
+  if (imported.no_llm === true) return 'none'
+  if (imported.ok !== true) return 'failed'
+  if (imported.connected === false || imported.current === true) return 'current'
+  return imported.wrote === true ? 'written' : 'not_written'
+}
+
+/** The space the LIVE model route names, read from DSH's own view of the running plugin (`settings.describe()`: the config the plugin is running with, not the file
+ *  that was written): a string, `null` (the route names none), or `undefined` when DSH cannot say (no settings service, the entry or the provider not found). */
+const liveRouteSpace = () => {
+  const svc = service('settings')
+  if (svc === null || typeof svc.describe !== 'function') return undefined
+  try {
+    const forms = svc.describe()
+    const form = Array.isArray(forms) ? forms.filter((f) => f !== null && typeof f === 'object' && f.ns === 'llm-pi-ai')[0] : undefined
+    const providers = form !== undefined && form.value !== null && typeof form.value === 'object' ? form.value.providers : undefined
+    const provider = providers !== null && typeof providers === 'object' ? providers[PROVIDER_ID] : undefined
+    if (provider === null || typeof provider !== 'object') return undefined
+    const headers = provider.headers !== null && typeof provider.headers === 'object' ? provider.headers : {}
+    return typeof headers[SPACE_HEADER] === 'string' ? headers[SPACE_HEADER] : null
+  } catch (e) { return undefined }
+}
+
+/** Route: has DSH applied the model route of the space that was just chosen? `applied: true` once the running route names it, `false` while it still names another (or
+ *  after a later switch took over: `superseded`), `null` when DSH cannot say (the page then waits a fixed minimum instead). Read-only, answers at once. */
+const spaceApplied = async (req, body) => {
+  const state = readState()
+  if (!isConnected(state)) return { ok: false, error: 'non_connecte' }
+  const asked = body !== null && typeof body === 'object' && typeof body.workspace_id === 'string' ? body.workspace_id : ''
+  const active = espaceActif(state)
+  if (asked === '' || asked !== active) return { ok: true, applied: false, superseded: asked !== '' }
+  const live = liveRouteSpace()
+  if (live === undefined) return { ok: true, applied: null }
+  const want = spaceHeaders(state)
+  return { ok: true, applied: live === (want !== undefined ? want[SPACE_HEADER] : null) }
 }
 
 /** Route: create a space. The hosted server stays the master — we pass the
@@ -1561,6 +1602,43 @@ const quotaFacts = async () => {
     usage,
     server_time: Number.isFinite(stamped) ? new Date(stamped).toISOString() : null,
   }
+}
+
+// ── What the account menu shows of each space the person belongs to ────────────────────────────────────────────────────────────────────────
+// The list of spaces carries no usage and no head count, and the menu's rows show both (« Admin · 6 members », and how much of the allowance is used, as a percent). Read per space
+// from the server with the device token, only when the menu opens: the usage views are `quotaFacts`' (percent only, never money), a team's head count is its member list's length (any
+// member may read it) and a personal space's plan name is its own plan's (the account's word says « team » as soon as the person is in any). A read that fails leaves that
+// field null: the row then just says less. Kept for a few seconds so that opening the menu twice does not ask the server twice.
+const SPACES_SUMMARY_MAX = 12
+const SPACES_SUMMARY_TTL_MS = 15000
+let spacesMemo = { at: 0, key: '', value: null }
+const spacesSummary = async () => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, status: 'none' }
+  const list = (Array.isArray(state.workspaces) ? state.workspaces : []).filter((w) => w !== null && typeof w === 'object' && typeof w.id === 'string' && w.id !== '').slice(0, SPACES_SUMMARY_MAX)
+  const key = server().profile.id + '|' + list.map((w) => w.id).join(',')
+  if (spacesMemo.value !== null && spacesMemo.key === key && Date.now() - spacesMemo.at < SPACES_SUMMARY_TTL_MS) return spacesMemo.value
+  let stamp = null
+  const read = async (w) => {
+    const base = '/v1/workspaces/' + encodeURIComponent(w.id)
+    // The server marks the person's own space `personal`; an older one only names it « My workspace » (the page reads it the same way).
+    const personal = w.personal === true || w.name === 'My workspace'
+    const [budget, members, plan] = await Promise.all([
+      apiCall(base + '/llm/budget', { token: state.token }),
+      personal ? Promise.resolve(null) : apiCall(base + '/members', { token: state.token }),
+      personal ? readSpacePlan(state, w.id) : Promise.resolve(null),
+    ])
+    if (stamp === null && budget.date !== null && budget.date !== undefined) stamp = Date.parse(String(budget.date))
+    const windows = budget.status === 200 && budget.body !== null && typeof budget.body === 'object' && Array.isArray(budget.body.windows)
+      ? budget.body.windows.map(budgetWindowView).filter((x) => x !== null).sort((a, b) => a.window_seconds - b.window_seconds || (a.kind === b.kind ? 0 : a.kind === 'member' ? -1 : 1))
+      : null
+    const count = members !== null && members.status === 200 && members.body !== null && typeof members.body === 'object' && Array.isArray(members.body.members) ? members.body.members.length : null
+    return [w.id, { usage: windows, members: count, plan: plan !== null && plan !== undefined ? { key: plan.key, label: plan.label } : null }]
+  }
+  const rows = await Promise.all(list.map((w) => read(w).catch(() => [w.id, { usage: null, members: null, plan: null }])))
+  const value = { ok: true, spaces: Object.fromEntries(rows), server_time: Number.isFinite(stamp) ? new Date(stamp).toISOString() : null }
+  spacesMemo = { at: Date.now(), key, value }
+  return value
 }
 
 // ── Artifacts (phase A) ─────────────────────────────────────────────────────
@@ -4552,6 +4630,8 @@ const ROUTES = [
   { path: '/kybernos-cloud/poll', method: 'POST', guarded: true, run: pollPairing },
   { path: '/kybernos-cloud/status', method: 'GET', guarded: false, run: statusRoute },
   { path: '/kybernos-cloud/space/active', method: 'POST', guarded: true, body: true, run: setActiveSpace },
+  { path: '/kybernos-cloud/space/applied', method: 'POST', guarded: true, body: true, run: spaceApplied },
+  { path: '/kybernos-cloud/spaces/summary', method: 'GET', guarded: true, run: spacesSummary },
   { path: '/kybernos-cloud/space/create', method: 'POST', guarded: true, body: true, run: createSpace },
   { path: '/kybernos-cloud/refresh', method: 'POST', guarded: true, run: refreshProfile },
   // `disconnect` revokes the session on the server side: irreversible. A bare POST

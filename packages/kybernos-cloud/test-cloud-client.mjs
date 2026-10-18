@@ -191,7 +191,8 @@ sok('la carte parle en phrases : codes internes traduits (reseau, trop_de_demand
 assert.ok(/label: t\('plan'\), value: \(st\.space_plan !== undefined && st\.space_plan !== null && st\.space_plan\.key === 'none' \? t\('planNone'\) : null\) \|\| \(st\.space_plan !== undefined && st\.space_plan !== null && typeof st\.space_plan\.label === 'string'/.test(clientSource), 'la ligne Plan de la carte lit le libelle de l espace actif avant le mot du compte (et dit « No plan » pour une equipe sans formule)')
 sok('carte : la ligne Plan dit le plan de l espace actif (comme la pastille), le mot du compte seulement en repli')
 // The team switcher's list names the personal space the way the card and the chip do (« Personal »), not by the server's name for it (« My workspace »).
-assert.ok(clientSource.includes("h('span', { className: 'kbfp-wsname' }, (w && espaceVue(w, t).name) || t('none'))"), 'la liste du selecteur d equipe passe par espaceVue (nom et initiales de la meme source)')
+// The rows of the list are built by spaceRowOf (pure, test-teams-menu.mjs plays it): its name and initials come from espaceVue, and the list draws exactly those.
+assert.ok(/const spaceRowOf = [\s\S]{0,400}const view = espaceVue\(w, t\)/.test(clientSource) && clientSource.includes("h('span', { className: 'kbfp-wsname' }, r.name || t('none'))"), 'la liste du selecteur d equipe passe par espaceVue (nom et initiales de la meme source)')
 sok('selecteur d equipe : l espace personnel s y appelle Personal / Personnel, comme la pastille')
 // The footer chip re-reads the host's /status by itself: after the host signs the device out (a token revoked from the account page) it said
 // « Rita Rich · Solo Studio » until the card was opened.
@@ -355,7 +356,7 @@ ok('CSS des 3 etats (appairage, profil, actions) present')
 // (phrase + CTA), et le rail replié qui se réduit à l'avatar. La cloche des
 // notifications est masquée quand le compte est déconnecté : l'état est publié
 // sur <html data-kb-cloud> par CETTE rangée, pas deviné par l'autre plugin.
-for (const cls of ['.kbf-root', '.kbf-avatar', '.kbf-off', '.kbfp-card']) {
+for (const cls of ['.kbf-root', '.kbf-off', '.kbfp-card']) {
   assert.ok(css.includes(cls), 'CSS de la rangee manquant: ' + cls)
 }
 for (const needle of ["setAttribute('data-kb-cloud'", 'phase === \'connected\' ? \'on\' : \'off\'', 'autoStart']) {
@@ -644,7 +645,7 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
   assert.ok(panel.includes("t('wsNewIntro')") && panel.includes("'data-kb': 'new-team-intro'"), 'and one sentence on what a team is and that it starts without a plan')
   assert.ok(panel.includes('props.onCreated(res)'), 'the answer of the host reaches the footer, which tells the person what happened')
   assert.equal(/kbc-close|kbws-head|kbws-who/.test(source), false, 'the bare button and its two styles are gone')
-  assert.ok(/planInfo\.none === true\s*\? h\('button'[^\n]*'data-plan': 'none'[^\n]*props\.onUpgradePage\(\)[^\n]*t\('planChoose'\)/.test(source), 'the menu\'s plan slot offers « Choose a plan » for a team without a plan, on the plan page')
+  assert.ok(/if \(id === 'choose'\) return h\('button'[^\n]*'data-plan': 'none'[^\n]*closeThen\(props\.onUpgradePage\)[^\n]*t\('planChoose'\)/.test(source), 'the menu\'s plan card offers « Choose a plan » for a team without a plan, on the plan page')
   assert.ok(/flashAct !== null && flashAct\.for === flash/.test(source) && /const announceCreated = /.test(source), 'a team created without a plan is announced, with its plan page one press away')
   for (const k of ['wsNewIntro', 'wsNewNoPlan', 'planNone', 'planChoose', 'quotaNoPlan', 'quotaNoPlanAdmin', 'quotaNoPlanMember', 'sessionEnded', 'footSignInAgain', 'footEnded', 'footPairDenied', 'footPairExpired'])
     assert.ok(frKeys.has(k) && enKeys.has(k), 'missing in fr or en: ' + k)
@@ -1088,6 +1089,250 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
   assert.equal((source.match(/callLocal\('\/console\/link'/g) || []).length, 2, 'still two call sites of the console link: the gift card goes through the footer\'s')
   assert.ok(/addEventListener\('kybernos-cloud:account'/.test(source), 'the footer listens for the request')
   ok('footer: the gift card\'s request for an account page is claimed when connected (the Referral page of the active team, opened by the host, a down server named) and left alone when signed out')
+}
+
+// ── The account menu lists the spaces, the plan card follows the role, a switch waits on DSH, a team space has its cues (plan « Équipes », steps 1, 2, 3, 7) ──────────────────────
+// Rendered for real (React + the minimal DOM above); a click is the onClick React keeps on the node. The pure rules are test-teams-menu.mjs's; the real clicks, the screenshots and the
+// delay of a switch on a live DSH are scripts/check-footer-live.mjs.
+{
+  const listeners = {}
+  const realAdd = globalThis.window.addEventListener
+  const realRemove = globalThis.window.removeEventListener
+  globalThis.window.addEventListener = (type, fn) => { (listeners[type] = listeners[type] || []).push(fn) }
+  globalThis.window.removeEventListener = (type, fn) => { listeners[type] = (listeners[type] || []).filter((f) => f !== fn) }
+  globalThis.window.setTimeout = setTimeout
+  globalThis.window.clearTimeout = clearTimeout
+  // The menu measures itself to place its side panel, and takes focus: the minimal DOM gets the few methods that need.
+  const realCreate = doc.createElement
+  doc.createElement = () => Object.assign(realCreate(), { getBoundingClientRect: () => ({ left: 0, top: 0, right: 220, width: 220, height: 300 }), getClientRects: () => [], contains: () => false, focus () {}, querySelectorAll: () => [] })
+  globalThis.window.innerWidth = 1400
+  const settle = (ms = 30) => act(async () => { await new Promise((r) => setTimeout(r, ms)) })
+  const propsOf = (n) => n[Object.keys(n).find((k) => k.indexOf('__reactProps$') === 0)]
+  const find = (n, pred) => {
+    if (n.nodeType === 1 && pred(n)) return n
+    for (const c of (n.childNodes || [])) { const r = find(c, pred); if (r !== null) return r }
+    return null
+  }
+  const findAll = (n, pred, out = []) => { if (n.nodeType === 1 && pred(n)) out.push(n); for (const c of (n.childNodes || [])) findAll(c, pred, out); return out }
+  const byKb = (name) => (n) => n.attributes !== undefined && n.attributes['data-kb'] === name
+  const byClass = (name) => (n) => String(n.attributes !== undefined && n.attributes.class !== undefined ? n.attributes.class : n.className).split(' ').includes(name)
+  const press = async (n) => { await act(async () => { propsOf(n).onClick({ preventDefault () {}, stopPropagation () {}, target: n }); await new Promise((r) => setTimeout(r, 0)) }) }
+
+  const TEAMS = [['t1', 'Acme'], ['t2', 'Studio B'], ['t3', 'Nova Labs'], ['t4', 'Delta Co'], ['t5', 'Orbit']]
+  const workspaces = (count, role) => [{ id: 'p', name: 'My workspace', personal: true, role: 'owner' }, ...TEAMS.slice(0, count - 1).map(([id, name]) => ({ id, name, personal: false, role }))]
+  const win = (kind, seconds, percent, extra = {}) => ({ kind, window_seconds: seconds, scope: 'plan', used_percent: percent, exhausted: false, resets_at: null, ...extra })
+  const world = {
+    status: null, quota: null, summary: null, calls: [], bodies: [], applied: [], route: 'written', activeOk: true,
+  }
+  const stateOf = (count, role, active, extra = {}) => ({ ok: true, connected: true, state: {
+    user: { email: 'dev@example.test', name: 'Local test', plan: active === 'p' ? 'free' : 'team' },
+    workspaces: workspaces(count, role), active_workspace_id: active,
+    space_plan: active === 'p' ? { key: 'free', label: 'Free', workspace_id: 'p' } : { key: 'team', label: 'Team', workspace_id: active },
+    web_url: 'https://dev.kybernos.app', ...extra } })
+  const quotaOf = (workspace, usage, extra = {}) => ({ ok: true, workspace, payment_blocked: false, no_plan: false, usage, ...extra })
+  globalThis.fetch = async (url, init) => {
+    const path = new URL(String(url), 'http://localhost').pathname.replace(/^.*\/kybernos-cloud/, '')
+    const method = init && init.method ? init.method : 'GET'
+    world.calls.push(method + ' ' + path)
+    if (init && init.body) world.bodies.push({ path, body: JSON.parse(init.body) })
+    let json = { ok: false }
+    if (path === '/status') json = world.status
+    else if (path === '/quota') json = world.quota !== null ? world.quota : { ok: false }
+    else if (path === '/spaces/summary') json = world.summary !== null ? world.summary : { ok: false }
+    else if (path === '/space/active') {
+      json = world.activeOk ? { ok: true, route: world.route, state: {} } : { ok: false, error: 'espace_inconnu' }
+      if (world.activeOk) world.status = { ...world.status, state: { ...world.status.state, active_workspace_id: JSON.parse(init.body).workspace_id } }
+    } else if (path === '/space/applied') json = { ok: true, applied: world.applied.length > 0 ? world.applied.shift() : true }
+    return { ok: true, status: 200, json: async () => json }
+  }
+  const draw = async () => {
+    const el = element(doc)
+    const root = ReactClient.createRoot(el)
+    await act(async () => { root.render(createElement(registered.component, null)); await new Promise((r) => setTimeout(r, 30)) })
+    await settle()
+    return { el, root }
+  }
+  const open = async (el) => { await press(find(el, byClass('kbfp-cardmain'))); await settle() }
+  const SUMMARY = (count, members = 6, teamUsage = [win('member', 18000, 12), win('pool', 2592000, 84)]) => ({ ok: true, server_time: null, spaces: Object.fromEntries(workspaces(count, 'admin').map((w) => [w.id, w.personal ? { usage: [win('member', 2592000, 3)], members: null, plan: { key: 'free', label: 'Free' } } : { usage: teamUsage, members, plan: null }])) })
+
+  // 1. The menu lists the spaces itself for one to three of them; from four the top row stays « Switch team ».
+  for (const count of [1, 3, 4, 6]) {
+    const inline = count <= 3
+    world.status = stateOf(count, 'admin', 'p')
+    world.quota = quotaOf({ id: 'p', name: 'My workspace', role: 'owner', personal: true }, [win('member', 2592000, 3)])
+    world.summary = SUMMARY(count)
+    const { el, root } = await draw()
+    await open(el)
+    const menu = find(el, byClass('kbfp-menu'))
+    assert.ok(menu !== null, count + ' spaces: the menu is open')
+    const teamsBlock = find(menu, byKb('menu-block-teams'))
+    assert.equal(teamsBlock.attributes['data-mode'], inline ? 'inline' : 'submenu', count + ' spaces: ' + (inline ? 'listed in the menu' : 'the Switch team row'))
+    const rowsIn = findAll(menu, byKb('space-row'))
+    if (inline) {
+      assert.equal(rowsIn.length, count, count + ' spaces: one row each, in the menu itself')
+      assert.equal(find(menu, byKb('menu-switch')), null, 'no « Switch team » row while the list is in the menu')
+      assert.ok(find(menu, byKb('space-create')) !== null, 'and « Create a team » under the list')
+      assert.equal(rowsIn.filter((r) => r.attributes['aria-current'] === 'true').length, 1, 'one row is the active one')
+      assert.equal(rowsIn[0].attributes['aria-current'], 'true', 'the personal space, here')
+      const text = htmlDe(menu)
+      if (count > 1) {
+        assert.ok(text.includes('Admin · 6 members'), count + ' spaces: « Admin · 6 members »')
+        assert.ok(text.includes('class="kbfp-usepct">84%<'), 'the usage of each team as a percent: ' + text.slice(0, 200))
+      }
+      assert.ok(text.includes('Local test · Free'), 'the personal row: « you · plan »')
+      assert.equal(/[$€]|usd|credit/i.test(text.replace(/Add credits/g, '')), false, 'no money in the menu')
+    } else {
+      assert.equal(rowsIn.length, 0, count + ' spaces: the menu itself holds no list')
+      const head = find(menu, byKb('menu-switch'))
+      assert.ok(head !== null && htmlDe(head).includes('Switch team'), 'the top row stays « Switch team »')
+      await press(head)
+      await settle()
+      const sub = find(doc.body, byClass('kbfp-sub'))
+      assert.ok(sub !== null, 'it opens the full list next to the menu')
+      assert.equal(findAll(sub, byKb('space-row')).length, count, 'with every space')
+      assert.ok(find(sub, byKb('space-create')) !== null)
+      assert.ok(htmlDe(sub).includes('Admin · 6 members'), 'the same rows as the inline list')
+      doc.body.childNodes.length = 0
+    }
+    await act(async () => { root.unmount() })
+  }
+  ok('menu : jusqu\'a 3 espaces la liste est dans le menu (tuile, nom, « Admin · 6 membres », pourcentage, coche), des 4 la ligne « Switch team » ouvre la liste complete (1, 3, 4, 6)')
+
+  // 2. The plan card follows the role: a member sees the team's bar and their own, an admin also gets Manage and, once the pool is used up, Add credits.
+  {
+    const run = async (role, usage) => {
+      world.status = stateOf(3, role, 't1')
+      world.quota = quotaOf({ id: 't1', name: 'Acme', role, personal: false }, usage)
+      world.summary = SUMMARY(3)
+      const { el, root } = await draw()
+      await open(el)
+      const menu = find(el, byClass('kbfp-menu'))
+      const out = { rows: findAll(menu, byKb('menu-plan-window')).map((r) => [r.attributes['data-win'], r.attributes['data-percent'], r.attributes['data-level']]), manage: find(menu, byKb('menu-plan-manage')) !== null, credits: find(menu, byKb('menu-plan-credits')) !== null, html: htmlDe(find(menu, byKb('menu-plan-card'))) }
+      await act(async () => { root.unmount() })
+      return out
+    }
+    const usage = [win('pool', 2592000, 40), win('member', 18000, 12), win('member', 604800, 30)]
+    const member = await run('member', usage)
+    assert.deepEqual(member.rows, [['team', '40', 'ok'], ['you', '12', 'ok'], ['you', '30', 'ok']], 'a member: the Team bar and their own 5 hours and 7 days')
+    assert.equal(member.manage || member.credits, false, 'and neither Manage nor Add credits')
+    assert.ok(member.html.includes('Last 30 days') && member.html.includes('Last 5 hours') && member.html.includes('Last 7 days'), 'each bar says how long its window is')
+    assert.equal(/resets|back/i.test(member.html), false, 'nothing about a time of return while there is room')
+    const admin = await run('admin', usage)
+    assert.deepEqual([admin.manage, admin.credits], [true, false], 'an admin gets Manage, and not Add credits while the pool has room')
+    const near = await run('admin', [win('pool', 2592000, 76), win('member', 18000, 12)])
+    assert.equal(near.rows[0][2], 'near', 'the team bar turns amber from 75%')
+    const soon = new Date(Date.now() + 3 * 3600000).toISOString()
+    const poolFull = [win('pool', 2592000, 100, { exhausted: true, resets_at: soon }), win('member', 18000, 12), win('member', 604800, 30)]
+    const adminFull = await run('admin', poolFull)
+    assert.deepEqual([adminFull.manage, adminFull.credits], [true, true], 'an admin of a team whose pool is used up also gets Add credits')
+    assert.ok(adminFull.rows[0][2] === 'full' && adminFull.html.includes('Back in about 3'), 'and the bar says when it is back, only now: ' + adminFull.html.slice(0, 300))
+    const memberFull = await run('member', poolFull)
+    assert.deepEqual([memberFull.manage, memberFull.credits], [false, false], 'a member of that team gets neither')
+    // The personal free card: « Free », Upgrade and one allowance bar.
+    world.status = stateOf(3, 'admin', 'p')
+    world.quota = quotaOf({ id: 'p', name: 'My workspace', role: 'owner', personal: true }, [win('member', 2592000, 7)])
+    world.summary = SUMMARY(3)
+    const free = await draw()
+    await open(free.el)
+    const fm = find(free.el, byClass('kbfp-menu'))
+    assert.ok(find(fm, byKb('menu-plan-cta')) !== null && find(fm, byKb('menu-plan-manage')) === null, 'a free personal space: Upgrade, no Manage')
+    assert.deepEqual(findAll(fm, byKb('menu-plan-window')).map((r) => [r.attributes['data-win'], r.attributes['data-percent']]), [['allowance', '7']], 'and ONE allowance bar')
+    await act(async () => { await press(find(fm, byKb('menu-plan-cta'))) })
+    await act(async () => { free.root.unmount() })
+    ok('carte du plan par role : membre = barre Equipe + les siennes (5 h, 7 j), admin = + Manage, + Add credits quand le pot est plein ; perso gratuit = Upgrade + une barre ; ambre des 75 %, heure de retour seulement quand c\'est plein')
+  }
+
+  // 3. A switch waits for DSH: the card says « Switching… » until the host reports the new route live, and the other outcomes are said.
+  {
+    world.status = stateOf(3, 'admin', 'p')
+    world.quota = quotaOf({ id: 'p', name: 'My workspace', role: 'owner', personal: true }, [win('member', 2592000, 3)])
+    world.summary = SUMMARY(3)
+    world.route = 'written'
+    world.activeOk = true
+    world.applied = [false, false, true]
+    world.calls.length = 0
+    world.bodies.length = 0
+    const { el, root } = await draw()
+    await open(el)
+    const row = findAll(find(el, byClass('kbfp-menu')), byKb('space-row')).filter((r) => r.attributes['data-space'] === 't1')[0]
+    await press(row)
+    await act(async () => { await new Promise((r) => setTimeout(r, 120)) })
+    const during = htmlDe(el)
+    assert.ok(during.includes('data-kb="workspace-card-switching"') && during.includes('>Switching…<'), 'while DSH has not applied the route: « Switching… » on the card: ' + during.slice(0, 400))
+    assert.ok(during.includes('kbfp-cardname">Acme<'), 'with the team that was chosen')
+    assert.equal(during.includes('workspace-card-usage'), false, 'and no meter of another team\'s allowance')
+    assert.equal(find(el, byClass('kbfp-menu')), null, 'the menu is closed')
+    await act(async () => { await new Promise((r) => setTimeout(r, 900)) })
+    const after = htmlDe(el)
+    assert.equal(after.includes('workspace-card-switching'), false, 'once the route is applied the card is back to normal')
+    assert.ok(after.includes('kbfp-cardname">Acme<'))
+    const asked = world.calls.filter((c) => c.indexOf('/space/') >= 0)
+    assert.equal(asked[0], 'POST /space/active')
+    assert.equal(asked.filter((c) => c === 'POST /space/applied').length, 3, 'it asked the host whether the route is applied until it said yes: ' + JSON.stringify(asked))
+    assert.deepEqual(world.bodies.filter((b) => b.path === '/space/applied').map((b) => b.body), [{ workspace_id: 't1' }, { workspace_id: 't1' }, { workspace_id: 't1' }])
+    // The route the host could not rewrite: the choice is kept, and the person is told that messages may still be billed to the previous team (no waiting).
+    world.route = 'failed'
+    world.calls.length = 0
+    await open(el)
+    await press(findAll(find(el, byClass('kbfp-menu')), byKb('space-row')).filter((r) => r.attributes['data-space'] === 'p')[0])
+    await settle(80)
+    const stale = htmlDe(el)
+    assert.ok(stale.includes('data-kb="foot-flash"') && stale.includes('may still be billed to the previous team'), 'a route that could not be rewritten is said at once: ' + stale.slice(0, 300))
+    assert.equal(stale.includes('workspace-card-switching'), false, 'and nothing waits for a route that will not change')
+    assert.equal(world.calls.includes('POST /space/applied'), false, 'it did not ask for an application that will not come')
+    // A team the host does not know: refused, nothing changed, said.
+    world.activeOk = false
+    world.status = stateOf(3, 'admin', 'p')
+    await settle(80)
+    await open(el)
+    await press(findAll(find(el, byClass('kbfp-menu')), byKb('space-row')).filter((r) => r.attributes['data-space'] === 't2')[0])
+    await settle(80)
+    assert.ok(htmlDe(el).includes('Unknown team'), 'an id the host refuses: « Unknown team — nothing was changed. »')
+    world.activeOk = true
+    await act(async () => { root.unmount() })
+    ok('changement d\'equipe : la carte dit « Switching… » (equipe choisie, sans compteur) jusqu\'a ce que l\'hote dise que la route tourne ; une route non reecrite est dite tout de suite ; un refus est dit')
+  }
+
+  // 4. A team space has its cues: the pill in the dock and the options row, the heading's accessor; the personal space has none; a folder pill only when a folder exists.
+  {
+    const cueSlots = registrations.filter((r) => r.options.id === 'kybernos-cloud-cues')
+    assert.deepEqual(cueSlots.map((r) => r.options.name).sort(), ['conversation.composer.dock', 'conversation.hero.options'], 'the pills are registered in the composer dock and in the new chat\'s options row')
+    assert.ok(cueSlots.every((r) => r.options.order === 3), 'in front of the other pills')
+    const dock = () => { const el = element(doc); return { el, root: ReactClient.createRoot(el) } }
+    world.status = stateOf(3, 'admin', 't1')
+    world.quota = quotaOf({ id: 't1', name: 'Acme', role: 'admin', personal: false }, [win('pool', 2592000, 40)])
+    world.summary = SUMMARY(3)
+    const foot = await draw()
+    const d1 = dock()
+    await act(async () => { d1.root.render(createElement(cueSlots[0].component, null)); await new Promise((r) => setTimeout(r, 20)) })
+    const html1 = htmlDe(d1.el)
+    assert.ok(html1.includes('data-kb="space-cue"') && html1.includes('data-kb="cue-memory"') && html1.includes('>Team memory<'), 'a team: the memory pill (the flag is off: it does not say « personal off »): ' + html1)
+    assert.equal(/personal off/i.test(html1), false)
+    assert.ok(/data-kb-hue="(violet|teal|amber|rose|blue|green)"/.test(html1), 'in the team\'s colour')
+    assert.equal(html1.includes('cue-folder'), false, 'no team folder yet: no folder pill')
+    const cue = globalThis.window.__KB_SPACE_CUE__
+    assert.ok(cue !== null && cue.heading === 'What is Acme working on?' && cue.placeholder === 'Message Acme…', 'the core plugin reads the heading through the accessor: ' + JSON.stringify(cue))
+    // The host names a folder (step 6): its pill appears.
+    world.status = stateOf(3, 'admin', 't1', { space_folder: '/work/Acme' })
+    await act(async () => { await foot.root.unmount() })
+    const foot2 = await draw()
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)) })
+    const html2 = htmlDe(d1.el)
+    assert.ok(html2.includes('data-kb="cue-folder"') && html2.includes('Acme folder') && html2.includes('title="/work/Acme"'), 'a folder the host names shows its pill: ' + html2)
+    // The personal space: nothing.
+    world.status = stateOf(3, 'admin', 'p')
+    await act(async () => { await foot2.root.unmount() })
+    const foot3 = await draw()
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)) })
+    assert.equal(htmlDe(d1.el).includes('space-cue'), false, 'the personal space shows no cue')
+    assert.equal(globalThis.window.__KB_SPACE_CUE__, null, 'and publishes none')
+    await act(async () => { await foot3.root.unmount() })
+    await act(async () => { d1.root.unmount() })
+    ok('repères de la zone de saisie : pastille mémoire en couleur (sans « personal off » tant que le drapeau est coupé), pastille dossier seulement si un dossier existe, rien dans l\'espace perso, titre d\'accueil lu par le plugin de base')
+  }
+  doc.createElement = realCreate
+  globalThis.window.addEventListener = realAdd
+  globalThis.window.removeEventListener = realRemove
 }
 
 console.log('\n' + pass + ' verifications OK')

@@ -77,6 +77,20 @@ full ids stay in the detail route.
   (the server hands the token to the first asker), and a refusal or an expiry reaches both.
 - **A team with no plan** answers `/quota` with `no_plan: true` (the plan route says `plan: null`): the notice and the plan slot say « No plan » and offer the plan page. `POST
   /space/create` does not make such a team active: the answer carries `created: { id, name, plan_key, activated }` and the footer tells the person where they are.
+- **Several spaces: the menu, the plan card, the wait on a switch, the cues** (plan « Équipes », steps 1, 2, 3 and 7; the pure rules are the `teams-menu` block of the client, played by
+  `test-teams-menu.mjs`). Up to `INLINE_SPACES_MAX` (3: Personal + 2 teams) spaces the account menu lists them at its top (tile in the team's colour, name, « Admin · 6 members » or
+  « you · plan », the usage percent and its bar, a check on the active one, « Create a team »); from four the top row stays « Switch team » and opens the full list next to the menu.
+  The rows' usage and head counts come from `GET /spaces/summary` (read when the menu opens, kept 15 s: per space the budget windows as percents, a team's member count, the personal
+  space's plan name; never an amount of money). The plan card follows the role: a team shows « Team » (its pool, the 30-day window) and « You » (the person's 5 hours and 7 days, plus any
+  other window of theirs that is used up); an owner or admin also gets « Manage » (the web Team settings, through the console link) and, once the pool is used up, « Add credits »;
+  a member gets neither; a personal space shows one allowance bar and, on Free, « Upgrade ». A window that has room says how long it is (« Last 7 days »); only a window that is used up
+  says « Back in about 3 h » (the windows are rolling: the server gives `resets_at` only then). **A switch waits on DSH:** `POST /space/active` answers `route` (`written`, `current`,
+  `none`, `not_written`, `failed`), and `POST /space/applied { workspace_id }` says whether the RUNNING model route (`settings.describe()`, not the file) names the space; the footer says
+  « Switching… » until it does (at least 3.5 s when it cannot tell, at most 15 s), and a route that could not be rewritten is said at once (messages may still be billed to the previous
+  team). **The composer's cues in a team space** (none in the personal one): a pill on memory in the team's colour, in the composer's dock and the new chat's options row (a pill on the
+  working folder only when `state.space_folder` names one: step 6 writes it, nothing does yet), « Message <Team>… » in the box (DSH's own placeholder node, put back when the person leaves
+  the team; a disabled box keeps DSH's words, but DSH's plan hint and queue hint are replaced too: nothing on the page tells the placeholder's states apart) and « What is <Team> working on? » over a new chat (the core plugin reads `window.__KB_SPACE_CUE__`). The memory pill says « personal off » only when
+  `PERSONAL_MEMORY_CUT` is `true` in the client: it is `false` until the memory work (`feat/teams-memory-cut`) lands, so the pill does not promise what is not true yet.
 - **The failure row of a turn** (`conversation.chat.node`, key `turn-error`): the engine documents that a later entry for a key shadows the shipped one, so the plugin wraps the
   SHIPPED row (found in the slot's entries, registered at the lowest priority with the shipped entry's own locale). `no adapter registered for provider "kybernos"` (the cloud models
   are gone: the connection ended or was never made) and `QUOTA` on a team with no plan are drawn by the shipped row with a sentence and an action beside it (« Sign in again »,
