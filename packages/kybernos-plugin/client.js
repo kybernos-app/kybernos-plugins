@@ -25041,6 +25041,21 @@ function renderFit(canvas, model, cam, opts){
         window.addEventListener('pointerup', up)
         return () => { if (ro !== null) ro.disconnect(); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up) }
       }, [measure, groups.length])
+      // Bring an element into the track by scrolling THE TRACK ONLY. The browser's own « scroll into view » scrolls every scrollable
+      // ancestor too, and DSH's own frame (overflow hidden, but scrollable by script) was pushed 462 px sideways: the composer slid
+      // out of the window (measured on the real page). `scrollBy` on the track moves nothing else. `align`: 'start' puts the element
+      // at the start edge of the track (a snap point when it is a chapter), 'near' moves it just far enough to show.
+      const bring = (el, align) => {
+        const tr = trackRef.current
+        if (tr === null || el === null || typeof tr.scrollBy !== 'function') return
+        const er = el.getBoundingClientRect()
+        const vr = tr.getBoundingClientRect()
+        let delta = 0
+        if (align === 'start') delta = st.rtl ? er.right - vr.right + 4 : er.left - vr.left - 4
+        else if (er.left < vr.left) delta = er.left - vr.left - 4
+        else if (er.right > vr.right) delta = er.right - vr.right + 4
+        if (Math.abs(delta) > 1) tr.scrollBy({ left: delta, behavior: kbNcCalm() ? 'auto' : 'smooth' })
+      }
       // What the person types lights a card: bring it into view.
       React.useEffect(() => {
         const tr = trackRef.current
@@ -25053,8 +25068,8 @@ function renderFit(canvas, model, cam, opts){
         // The track snaps to the start of a chapter (`proximity`): a scroll that ends between two of them is pulled back to the
         // first (measured on the real page). So bring the card's CHAPTER to the start, which is a snap point, when it fits.
         const grp = card.closest('.kb8-sl-group')
-        const target = (grp !== null && grp.getBoundingClientRect().width <= vr.width) ? grp : card
-        if (typeof target.scrollIntoView === 'function') { try { target.scrollIntoView({ inline: target === card ? 'nearest' : 'start', block: 'nearest', behavior: kbNcCalm() ? 'auto' : 'smooth' }) } catch (e) { /* the card stays where it is */ } }
+        if (grp !== null && grp.getBoundingClientRect().width <= vr.width) bring(grp, 'start')
+        else bring(card, 'near')
       }, [sp.match])
       const page = (dir) => {
         const tr = trackRef.current
@@ -25063,8 +25078,7 @@ function renderFit(canvas, model, cam, opts){
       }
       const goTo = (id) => {
         const tr = trackRef.current
-        const g = tr === null ? null : tr.querySelector('[data-group="' + id + '"]')
-        if (g !== null && typeof g.scrollIntoView === 'function') { try { g.scrollIntoView({ inline: 'start', block: 'nearest', behavior: kbNcCalm() ? 'auto' : 'smooth' }) } catch (e) { /* stays */ } }
+        bring(tr === null ? null : tr.querySelector('[data-group="' + id + '"]'), 'start')
       }
       const fadeL = st.rtl ? st.next : st.prev
       const fadeR = st.rtl ? st.prev : st.next

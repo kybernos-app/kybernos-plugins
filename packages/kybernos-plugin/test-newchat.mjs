@@ -205,7 +205,9 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   const c = src.slice(src.indexOf('const KbNcSlider = (sp)'), src.indexOf('const KbNewChatCards = (props)'))
   assert.ok(c.length > 3000, 'the slider component exists')
   assert.ok(/dangerouslySetInnerHTML: \{ __html: '<svg viewBox="0 0 64 44" aria-hidden="true">' \+ KB_NC_ART\[t\.id\]/.test(c), 'a card draws its template\'s inline drawing')
-  assert.ok(/scrollBy\(/.test(c) && /scrollIntoView\(/.test(c), 'arrows page the track and a title or a lit card scrolls into view')
+  assert.ok(/scrollBy\(/.test(c) && /const bring = \(el, align\)/.test(c), 'arrows page the track, and a title or a lit card is brought in by scrolling the track')
+  // the browser's own scroll-into-view scrolls every scrollable ancestor: it pushed DSH's frame 462 px sideways and the composer out of the window
+  assert.ok(!/\.scrollIntoView\(/.test(c), 'the slider never calls scrollIntoView (it moves the engine\'s own containers, not only the track)')
   assert.ok(/pointerType === 'mouse'/.test(c) && /quietRef/.test(c), 'a mouse drags the track and a drag is never a click')
   assert.ok(/'aria-label': kbt\('kbnc\.sl\.prev'\)/.test(c) && /'aria-label': kbt\('kbnc\.sl\.next'\)/.test(c) && /role: 'group'/.test(c), 'the arrows and the track are named')
   assert.ok(/direction === 'rtl'/.test(c) && /st\.rtl/.test(c), 'right-to-left is read (the arrows and the edge fades follow it)')
