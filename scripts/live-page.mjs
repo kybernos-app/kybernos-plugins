@@ -180,14 +180,13 @@ export async function ensureConversation(page, opts = {}) {
 }
 
 /**
- * Open the Advanced fold of the Settings menu, when the menu has one. It is shut at first (the audit's « short for a newcomer »), and a check
- * that reaches a page by its cell with a real mouse needs the cell drawn. The choice lands in the throw-away browser's own storage: nothing of
- * the person's DSH changes. Resolves `true` when the fold is open (or the menu has none: an older core plugin).
+ * Have every page of the Settings menu drawn. The menu is an accordion (one group open at a time), and a check that reaches a page by its cell with a
+ * real mouse needs the cell drawn: `data-kb-all-pages` on <html> shows them all. The flag lives in the throw-away browser's page only: nothing of the
+ * person's DSH changes. Resolves `true` once the flag is set (a menu without groups, an older core plugin, ignores it).
  */
-export async function openAdvancedFold(page) {
-  if ((await waitFor(page, `document.querySelector('[data-kb-fold-toggle]') !== null`, 3000)) === null) return true
-  await page.evalJs(`(() => { const b = document.querySelector('[data-kb-fold-toggle]'); if (b && b.getAttribute('aria-expanded') !== 'true') b.click() })()`, 4000)
-  return (await waitFor(page, `(() => { const l = document.querySelector('[data-kb-fold]'); return l !== null && l.getAttribute('data-kb-fold') === 'open' })()`, 3000)) !== null
+export async function showAllSettingsPages(page) {
+  await page.evalJs(`document.documentElement.setAttribute('data-kb-all-pages', '1')`, 4000)
+  return true
 }
 
 /** Open DSH's Settings dialog; resolves `true` once its navigation cells are there.
@@ -204,7 +203,7 @@ export async function openSettings(page, opts = {}) {
     if (chip) { await click(chip.x, chip.y); await sleep(1000); await clickText(page, 'Settings') }
     else await page.evalJs(`(() => { const b = document.querySelector('[class*="settingsArea"] button[class*="trigger"]'); if (b) b.click() })()`, 4000)
     if ((await waitFor(page, `document.querySelectorAll('[class*="navCell"]').length > ${minCells}`, 6000)) !== null) {
-      if (opts.fold !== 'keep') await openAdvancedFold(page) // `fold: 'keep'`: the check is about the fold itself
+      if (opts.fold !== 'keep') await showAllSettingsPages(page) // `fold: 'keep'`: the check is about the accordion itself
       return true
     }
     await page.send('Page.reload', { ignoreCache: true })

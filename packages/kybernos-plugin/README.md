@@ -22,30 +22,28 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
 - Settings sections **Tools**, **Voice** and Appearance (shortcut to Theme); a first-run **onboarding** wizard (see
   « First-run onboarding » below). The account's own pages (Account, Referral, Security, Data, Support & legal) are not in
   Settings: they are reached from the sidebar footer menu (kybernos-cloud).
-- **The Settings menu is short for a newcomer and ordered for everyone** (`GROUPES` in `client.js`, by the section id each cell carries, so it
-  holds in every language). Three sections: the **essentials**, with no header (General, then AI Provider & Models, Memory & Lessons, Skills,
-  Connectors, and Appearance with Theme and Language one step in under it); **Advanced**, a fold shut at first (Servers, Kybernos, Kybernos Suite, Auto
-  Routing, Usage, Workers, Automations, Tools, Web Search, Calls, Remote Control, Cloud computers, Commands, Atlas, Ollama Local Models, Free LLMs,
-  Voice); **Other settings** (the shell's own Built-in plugins and Agent presets, and the pages a plugin adds later), with About closing the list.
-  The fold opens by itself when the person searches, or lands on a page inside it (a deep link, a help pointer, a click on a row of the Suite), and it
-  remembers what they chose (`kybernos.fold.settings-advanced` in the browser). To move a page, move its title inside `mots`; a page not listed falls
-  to the tail of *Other settings*. One icon table (`ICONES`, keyed by the page's title) draws every entry, and `test-settings-icons.mjs` checks that
-  no two share a drawing. An always-on **language runtime** (`<kb-lang-runtime>`) keeps translated languages registered in
-  DSH's locale service even when `kybernos-language` is off.
-- **Language policy (decision D1).** English is the base of every string; French lives only in French dictionaries and speaks « tu ». The core says a phrase
-  with `kbe('English text')`: the French is the key of `KB_FR_EN` (French → English) whose value it is, a translated language reads its pack by that French
-  key and shows English for a phrase its pack lacks, and any shell language the tables do not serve (zh…) resolves to English, never French
-  (`test-kbe-dictionary.mjs` checks that every call has exactly one French twin; two keys that share an English text are told apart by
-  `kbe(en, fr)`). Table rows (`KB_T`: `{ kybernos, en }`; the wizard's `KB_OB_T`: `[en, fr, es, ar]`, with a `<key>1` twin when a count can be 1) are
-  the other dictionaries. The host speaks English: it sends codes and English text, and the page words the code (dictation: `reasonCode`; git routes of
-  `kybernos-sessions`: `code`). Numbers, amounts and sorts follow the interface language (`kbLocaleTag`, `kbFmtNum`, `kbFmtMoney`). `<html lang>`
-  is kept a real tag (`<kb-html-lang>`) and, in a right-to-left page, a text block that has no translation keeps its own direction (`<kb-rtl-bidi>`).
-  The language gate is `scripts/test-no-french-literals.mjs`.
+- **The Settings menu is grouped, and ordered for everyone** (`GROUPES` in `client.js`, by the section id each cell carries, so it holds in every
+  language). **General** is a row of its own; eight **folds** follow, one open at a time (an accordion): **Models & routing** (AI Provider & Models,
+  Auto Routing, Free LLMs, Ollama Local Models, Usage), **Agents** (Agent presets, Workers, Automations, Commands), **Skills & tools** (Skills, Tools,
+  Connectors, Web Search), **Memory & context** (Memory & Lessons, Kybernos, Atlas), **Voice & calls**, **Interface** (Appearance, Theme, Language),
+  **Devices & cloud** (Servers, Cloud computers, Remote Control), **System** (Kybernos Suite, Built-in plugins, About, which closes the list). A group
+  opens by itself when the person lands on a page inside it (a deep link, a help pointer, a search result, a click on a row of the Suite) and the open
+  one is remembered (`kybernos.settings.open-group` in the browser). To move a page, move its title inside `mots`; a page not listed falls to the tail,
+  before About. One icon table (`ICONES`, keyed by the page's title) draws every entry and every group header, and `test-settings-icons.mjs` checks that
+  no two pages share a drawing. An always-on **language runtime** (`<kb-lang-runtime>`) keeps translated languages registered in DSH's locale
+  service even when `kybernos-language` is off.
+- **Search in the Settings** reads the content of the pages, not only their titles (`<kb-settings-search>` in `client.js`: `KB_SS_INDEX`, the
+  settings of every page, and `kbSsSearch`, plain functions that `test-settings-search.mjs` runs alone). It matches the label, the description, the
+  words of the control, the words people use (French, English, Spanish: « police » finds *Font size*), forgives a typo in words of five letters or
+  more, and shows one result for a setting that two pages both show (the mode, the text size). While a query runs the menu opens the groups with a
+  match and counts them, and a panel over the page lists the settings, the page and tab they are on, and why each matched; a result opens the page,
+  goes to the row and makes it blink. **Adding a page or a setting: add its rows to `KB_SS_INDEX`** with the label exactly as the page draws it (the
+  last field, optional, is the text to scroll to when the page does not draw the label itself). `scripts/check-settings-search-live.mjs` opens every
+  page and fails when a row's text is not there. Row labels are English for now; a page's title is the one drawn in the menu.
 - **« A short automatic state + a Customize fold »**, one helper for every settings page (`window.__KB_CUSTOMIZE__`, like `__KB_SKEL__`): a page opens on
   what already runs by itself (one sentence, one status dot) and keeps its knobs under one fold that is shut until the person opens it and that remembers the
   choice. `h(window.__KB_CUSTOMIZE__.Fold, { id: 'memory', state: 'Memory is on and tidies itself.', tone: 'on' }, …the knobs…)`;
-  `read(id)` / `write(id, open)` are its store, `toggle(label, open, onToggle, plain)` its button (the Settings menu's Advanced header is one). A page of
-  another bundle falls back to its own markup when the helper is not there.
+  `read(id)` / `write(id, open)` are its store. A page of another bundle falls back to its own markup when the helper is not there.
 
 ## Host routes
 

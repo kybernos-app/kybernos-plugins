@@ -26,10 +26,11 @@
 import { mkdirSync } from 'node:fs'
 import { openLivePage, waitFor, clickText, openSettings } from './live-page.mjs'
 
-// Where the page sits in the Settings nav: among the essentials, the first section (GROUPES in packages/kybernos-plugin/client.js),
-// after these and before those. scripts/test-live-checks.mjs keeps both lists in line with GROUPES.
-const NAV_ABOVE = ['General', 'AI Provider & Models']
-const NAV_BELOW = ['Skills', 'Connectors', 'Appearance']
+// Where the page sits in the Settings nav: first under the « Memory & context » group (GROUPES in packages/kybernos-plugin/client.js), before
+// these. scripts/test-live-checks.mjs keeps both in line with GROUPES.
+const NAV_GROUP = 'Memory & context'
+const NAV_ABOVE = []
+const NAV_BELOW = ['Kybernos', 'Atlas']
 // What the page is called, and what it says first (WP-10: it looks after itself, the options are folded under « Customize »).
 const PAGE_TITLE = 'Memory & Lessons'
 
@@ -87,7 +88,7 @@ try {
 
   check('title', (await text('.kbmem-h1')) === PAGE_TITLE)
   // Visual order, not DOM order: the shell lays the nav out with CSS `order` and the Kybernos plugin groups the cells under headers
-  // (GROUPES). Where the page sits is therefore read from what is drawn: its group header (none for the essentials), what is above it, what is below.
+  // (GROUPES). Where the page sits is therefore read from what is drawn: its group header, what is above it, what is below.
   const navAt = JSON.parse((await ev(`JSON.stringify((() => {
     const list = [...document.querySelectorAll('[class*="navList"]')].find(l => l.querySelector('[class*="navCell"]'))
     if (!list) return null
@@ -100,7 +101,7 @@ try {
     const below = ${JSON.stringify(NAV_BELOW)}.filter(t => idx(t) >= 0)
     return { group: head ? head.t : null, above, below, aboveOk: above.every(t => idx(t) < i), belowOk: below.every(t => idx(t) > i) }
   })())`)) || 'null')
-  check('the section sits among the essentials of the nav (the first section: no header above it), after ' + NAV_ABOVE.join(', ') + ' and before ' + NAV_BELOW.join(', ') + ' (as drawn, not in DOM order)', navAt !== null && navAt.group === null && navAt.aboveOk === true && navAt.belowOk === true, navAt)
+  check('the section is first under « ' + NAV_GROUP + ' » in the nav, before ' + NAV_BELOW.join(', ') + ' (as drawn, not in DOM order)', navAt !== null && navAt.group === NAV_GROUP && navAt.aboveOk === true && navAt.belowOk === true, navAt)
   // « Data first » is about what the page offers when it HAS data. An instance with nothing to list (not connected to Kybernos Cloud, no
   // memory yet) legitimately shows no row: the empty state, which says why, is then the first screen — and still no switches.
   const memRows = memList !== null && memList.ok === true && memList.total > 0

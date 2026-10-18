@@ -27,7 +27,7 @@ const world = (store) => {
   const h = (type, props, ...children) => ({ type, props: props || {}, children: children.flat() })
   const make = (tag) => { const el = { tag, attrs: {}, children: [], listeners: {}, className: '', style: {}, setAttribute(k, v) { this.attrs[k] = String(v) }, append(...c) { this.children.push(...c) }, addEventListener(t, f) { this.listeners[t] = f }, set innerHTML(v) { this.html = v }, set textContent(v) { this.text = v } }; return el }
   const document = { createElement: make }
-  const fn = new Function('window', 'React', 'h', 'kbt', 'document', CODE + '\nreturn { kbCzRead, kbCzWrite, KbCustomize, kbCzToggle }')
+  const fn = new Function('window', 'React', 'h', 'kbt', 'document', CODE + '\nreturn { kbCzRead, kbCzWrite, KbCustomize }')
   const api = fn(win, React, h, (k) => (k === 'kbcz.customize' ? 'Customize' : k), document)
   return { ...api, rewind: () => { at = 0 }, cells }
 }
@@ -70,23 +70,8 @@ console.log('the fold of a page: the state first, the knobs on demand')
   check('the status dot is green, grey or amber; a tone nobody knows falls back to green', find(warn, (n) => n.props && /kb-cz-dot warn/.test(n.props.className || '')).length === 1 && find(odd, (n) => n.props && /kb-cz-dot on/.test(n.props.className || '')).length === 1)
 }
 
-console.log('the same button for a fold that is not a React tree (the Settings menu)')
-{
-  const w = world(new Map())
-  let n = 0
-  const plain = w.kbCzToggle('Advanced', false, () => { n += 1 }, true)
-  check('the Settings menu asks for a plain element: a div with role=button that can be reached by keyboard (a nav <button> is taken for « a page was picked » by the phone layout)', plain.tag === 'div' && plain.attrs.role === 'button' && plain.tabIndex === 0 && plain.attrs['aria-expanded'] === 'false')
-  plain.listeners.click()
-  plain.listeners.keydown({ key: 'Enter', preventDefault() {} })
-  plain.listeners.keydown({ key: ' ', preventDefault() {} })
-  plain.listeners.keydown({ key: 'a', preventDefault() {} })
-  check('a click, Enter and Space toggle it; another key does not', n === 3, n)
-  const real = w.kbCzToggle('Customize', true, () => {})
-  check('a page gets a real <button type=button>, open as asked', real.tag === 'button' && real.type === 'button' && real.attrs['aria-expanded'] === 'true' && real.className === 'kb-cz-toggle')
-}
-
 console.log('it is published for the other bundles')
-check('window.__KB_CUSTOMIZE__ carries the fold, the store and the button (a bundle falls back to its own markup without it)', /window\.__KB_CUSTOMIZE__ = \{ Fold: KbCustomize, read: kbCzRead, write: kbCzWrite, toggle: kbCzToggle \}/.test(SRC))
+check('window.__KB_CUSTOMIZE__ carries the fold and the store (a bundle falls back to its own markup without it)', /window\.__KB_CUSTOMIZE__ = \{ Fold: KbCustomize, read: kbCzRead, write: kbCzWrite \}/.test(SRC))
 
 console.log(`\n${pass} ✓  ${fail} ✗`)
 process.exit(fail === 0 ? 0 : 1)

@@ -39,29 +39,32 @@ console.log('no live check reads its host routes from a fixed :3080')
 console.log('the Memory page check follows the Settings nav grouping')
 {
   const src = read('scripts/check-memory-live.mjs')
+  const group = /const NAV_GROUP = '([^']*)'/.exec(src)
   const above = /const NAV_ABOVE = \[([^\]]*)\]/.exec(src)
   const below = /const NAV_BELOW = \[([^\]]*)\]/.exec(src)
-  check('the check declares what sits above and below the page', above !== null && below !== null)
+  check('the check declares its group and what sits above and below the page', group !== null && above !== null && below !== null)
   const groupes = read('packages/kybernos-plugin/client.js')
-  const g = /const GROUPES = \[\s*\{ titre: null, mots: \[([^\]]*)\]/.exec(groupes)
-  const mots = g === null ? [] : words(g[1])
-  check('GROUPES opens with the essentials (no header) and the page is in them', mots.indexOf('memory & lessons') >= 0, mots)
-  if (above !== null && below !== null && mots.length > 0) {
-    const rank = (label) => mots.indexOf(label.toLowerCase())
+  const at = groupes.indexOf('const GROUPES = [')
+  const mine = [...groupes.slice(at, at + 4000).matchAll(/\{ id: '([a-z]+)', titre: (?:null|kbt\('([^']+)'\))[^\n]*?mots: \[([^\]]*)\]/g)].map((m) => ({ id: m[1], key: m[2], mots: words(m[3]) })).find((x) => x.mots.indexOf('memory & lessons') >= 0)
+  check('GROUPES has a group that holds the page', mine !== undefined)
+  const title = mine === undefined || mine.key === undefined ? null : /'settings\.group\.memory': \{ kybernos: '[^']*', en: '([^']*)' \}/.exec(groupes)
+  check('the check names that group by its English title', group !== null && title !== null && group[1] === title[1], [group && group[1], title && title[1]])
+  if (above !== null && below !== null && mine !== undefined) {
+    const rank = (label) => mine.mots.indexOf(label.toLowerCase())
     const me = rank('Memory & Lessons')
     const up = words(above[1])
     const down = words(below[1])
-    check('every label the check expects above the page is in the section, before it', up.length > 0 && up.every((l) => rank(l) >= 0 && rank(l) < me), up.map((l) => [l, rank(l)]))
-    check('every label the check expects below the page is in the section, after it', down.length > 0 && down.every((l) => rank(l) > me), down.map((l) => [l, rank(l)]))
+    check('every label the check expects above the page is in the group, before it', up.every((l) => rank(l) >= 0 && rank(l) < me), up.map((l) => [l, rank(l)]))
+    check('every label the check expects below the page is in the group, after it', down.length > 0 && down.every((l) => rank(l) > me), down.map((l) => [l, rank(l)]))
   }
 }
 
-console.log('the live-page helper opens the Settings menu\'s Advanced fold for the checks that click a page by its cell')
+console.log('the live-page helper draws every page of the Settings menu for the checks that click a page by its cell')
 {
   const lp = read('scripts/live-page.mjs')
-  check('openSettings opens the fold unless the check is about the fold (fold: \'keep\')', /if \(opts\.fold !== 'keep'\) await openAdvancedFold\(page\)/.test(lp) && /export async function openAdvancedFold\(page\)/.test(lp))
-  check('a menu without the fold (an older core plugin) is not an error', /document\.querySelector\('\[data-kb-fold-toggle\]'\) !== null`, 3000\)\) === null\) return true/.test(lp))
-  check('the check of the fold itself keeps it as it finds it', /openSettings\(page, \{ minCells: 3, fold: 'keep' \}\)/.test(read('scripts/check-settings-nav-live.mjs')))
+  check('openSettings shows every page unless the check is about the accordion (fold: \'keep\')', /if \(opts\.fold !== 'keep'\) await showAllSettingsPages\(page\)/.test(lp) && /export async function showAllSettingsPages\(page\)/.test(lp))
+  check('it sets the flag the core plugin\'s stylesheet reads, on <html>, in the throw-away browser only', /document\.documentElement\.setAttribute\('data-kb-all-pages', '1'\)/.test(lp) && /html:not\(\[data-kb-all-pages\]\)/.test(read('packages/kybernos-plugin/client.js')))
+  check('the check of the accordion itself keeps the menu as it finds it', /openSettings\(page, \{ minCells: 3, fold: 'keep' \}\)/.test(read('scripts/check-settings-nav-live.mjs')))
 }
 
 console.log('the live-page helper clears the engine\'s first-screen dialog (A3-03)')
