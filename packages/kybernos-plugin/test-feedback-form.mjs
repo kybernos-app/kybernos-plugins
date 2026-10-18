@@ -69,9 +69,12 @@ console.log('what Save and Export say they do, and where the text goes')
   check('the old « it is sent only when you export it » is gone (an export sends nothing)', !/sent only when/i.test(dict('kbui.fb.saved').en) && !/n.est envoy/.test(dict('kbui.fb.saved').fr))
   check('Export says it sent nothing, and that the person passes the text on', /nothing was sent/i.test(dict('kbui.fb.copied.one').en) && /nothing was sent/i.test(dict('kbui.fb.copied.many').en) && /\{n\}/.test(dict('kbui.fb.copied.many').en))
   const out = dict('kbui.fb.hint.signedout').en
-  check('signed out, the form says nothing can be sent from here, what Save and Export do, and where to go (the Help entry of the same menu, which exists)', /not signed in/i.test(out) && /nothing can be sent/i.test(out) && /Save/.test(out) && /Copy saved feedback/.test(out) && /clipboard/.test(out) && /Help/.test(out), out)
+  check('signed out, the form says nothing can be sent from here, what Save and Export do, and where to send it (the contact address the owner gave on 2026-10-18)', /not signed in/i.test(out) && /nothing can be sent/i.test(out) && /Save/.test(out) && /Copy saved feedback/.test(out) && /clipboard/.test(out) && /contact@kybernos\.app/.test(out), out)
   check('signed in, the form says what Send shares and what Save keeps', /Send/.test(dict('kbui.fb.hint.signedin').en) && /Kybernos team/.test(dict('kbui.fb.hint.signedin').en) && /Save/.test(dict('kbui.fb.hint.signedin').en), dict('kbui.fb.hint.signedin'))
-  check('no address of ours is invented in the form', !/@[a-z0-9-]+\.[a-z]{2,}/i.test(dict('kbui.fb.hint.signedout').en + dict('kbui.fb.hint.signedout').fr + dict('kbui.fb.hint.signedin').en))
+  // the only address in the form is the one the owner gave (contact@kybernos.app): none is invented, and the export messages name it too
+  const addresses = (text) => [...String(text).matchAll(/[a-z0-9._-]+@[a-z0-9-]+\.[a-z]{2,}/gi)].map((m) => m[0].toLowerCase())
+  const all = ['kbui.fb.hint.signedout', 'kbui.fb.hint.signedin', 'kbui.fb.copied.one', 'kbui.fb.copied.many'].flatMap((k) => [dict(k).en, dict(k).fr || dict(k).kybernos])
+  check('the only address in the form is contact@kybernos.app', all.flatMap(addresses).every((a) => a === 'contact@kybernos.app') && addresses(dict('kbui.fb.hint.signedout').en).length === 1 && addresses(dict('kbui.fb.copied.one').en).length === 1, all.flatMap(addresses))
 }
 
 console.log('the form')
