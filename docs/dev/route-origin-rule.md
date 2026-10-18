@@ -40,7 +40,7 @@ request left the files and the outside world as they were.
 | `kybernos-modeles-locaux` | `/installer` (`brew install ollama`, `ollama pull`), `/annuler` |
 | `kybernos-models` | the eight POST routes: the notes (`annotations/save`), the journal, the pasted-key check (`key/check`: it spends a call on the provider), park / take / forget a provider, `scores/list`, `scores/sync`; and `modelsdev?force=1` (a forced 4.7 MB download). The reads stay open behind the Host fence |
 | `kybernos-computers` | the nine POST routes: the E2B key, start, exec, write, stop, pause, resume, the environment switch (they run on the person's key and bill) |
-| `kybernos-cloud` | the five deletes: `memory/delete`, `members/remove`, `team/lessons/delete`, `team/skills/delete`, `connections/delete` |
+| `kybernos-cloud` | the five deletes: `memory/delete`, `members/remove`, `team/lessons/delete`, `team/skills/delete`, `connections/delete`; and six more because the model has a shell and the personal memory is cut in a team space: `memory/add`, `memory/update`, `memory/lessons`, `team/lessons/add`, `space/active` (it decides whether the memory is cut), `kyby/native/set` |
 | `kybernos-miniapps` | `/install` (writes a native app and launches it), `/uninstall` |
 
 Every one of them is called by a page, so the browser sends the Origin and the cookie itself (`scripts/check-write-guard-live.mjs` clicks the Auto
@@ -57,8 +57,8 @@ requests with `Origin` and the machine's cookie, so it passes too.
   `same-origin` / `none`. A page the person merely visits can no longer make their machine call opencode.ai. (A browser too old to send `Sec-Fetch-Site` looks like
   the engine for a no-cors GET: only `/health` and `/status` can be reached that way, and DNS rebinding is stopped by the Host fence.)
 - **Public by design:** `/kybernos/widget/api/*` and `/kybernos/hooks` (a website's widget and the webhook receiver; their own secret is their fence).
-- **Not named by the audit, so unchanged (D3):** the other writes of `kybernos-cloud` (memory add / update / index / settings / tidy-up, team lessons and skills
-  add / review / retire, shares, members invite, marketplace install, space, artifacts and chats push, `connections/link`, `disconnect`, `server/apply`, `start`,
+- **Not named by the audit, so unchanged (D3):** the other writes of `kybernos-cloud` (memory index / settings / tidy-up, team lessons and skills
+  review / retire, team skills add, shares, members invite, marketplace install, space, artifacts and chats push, `connections/link`, `disconnect`, `server/apply`, `start`,
   `poll`, `refresh`, `models/sync`), `kybernos-motion` (export, frame), `kybernos-modeleur` and
   `kybernos-bricks` and `kybernos-slides` (push), `kybernos-modeles-locaux` (`/decouvrir`, the catalogue refresh). All have a page as their caller (the table says
   which), so they are the next candidates; each keeps the same-origin rule of its bundle (a foreign page is refused, a local program with no header is not).

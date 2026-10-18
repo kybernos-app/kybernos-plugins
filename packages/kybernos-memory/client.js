@@ -559,7 +559,7 @@ window.__ModuleLoader__.load({
         const s = String(capture.status)
         if (s === 'jamais') return kt('ne s’est pas lancée depuis le démarrage de DSH', 'has not run since DSH started')
         const map = {
-          hors_connexion: kt('non connecté', 'not connected'), desactivee: kt('désactivée', 'switched off'), sans_session: kt('aucune session', 'no session'), tour_trop_court: kt('tour trop court', 'turn too short'),
+          hors_connexion: kt('non connecté', 'not connected'), desactivee: kt('désactivée', 'switched off'), espace_equipe: kt('désactivée dans un espace d’équipe', 'off in a team space'), sans_session: kt('aucune session', 'no session'), tour_trop_court: kt('tour trop court', 'turn too short'),
           llm_indisponible: kt('aucun modèle disponible', 'no model available'), rien_a_retenir: kt('rien à retenir', 'nothing worth keeping'), deja_connu: kt('déjà connu', 'already known'), erreur: kt('échec', 'failed'),
         }
         if (s === 'ecrit') return kt('a écrit ' + String(capture.facts) + ' souvenir' + sfx(capture.facts), 'wrote ' + String(capture.facts) + (capture.facts === 1 ? ' memory' : ' memories'))

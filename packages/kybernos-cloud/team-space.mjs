@@ -8,9 +8,11 @@
 // model of a team conversation.
 //
 //   'none'      not connected to the cloud: no space, no team, nothing changes for the caller;
-//   'personal'  connected, and the active space is the person's own;
+//   'personal'  connected, the active space is the person's own, and the model route names that same space;
 //   'team'      connected, and the active space is another one — or cannot be told (no active space in the list, a list that is
-//               missing, a state file that is there but unreadable): fail closed.
+//               missing, a state file that is there but unreadable) — or the model route still names another space than the
+//               active one (a catalogue import that failed, a read that wrote an old choice back): the chat is billed where the
+//               ROUTE says, so the route disagreeing is a doubt. Fail closed.
 //
 // The seam below is how the other bundles ask (kybernos-memory cannot import this file: bundles ship one by one). Same shape as
 // `kybernos.cloud` and `kybernos.trustedAuthority`: a frozen object on globalThis under a registered symbol, read at call time so
@@ -31,7 +33,10 @@ export const spaceKind = (state, activeId) => {
   if (typeof state.token !== 'string' || state.token === '') return 'none'
   const spaces = Array.isArray(state.workspaces) ? state.workspaces : []
   const space = typeof activeId === 'string' && activeId !== '' ? spaces.find((w) => w !== null && typeof w === 'object' && w.id === activeId) : undefined
-  return space !== undefined && space.personal === true ? 'personal' : 'team'
+  if (space === undefined || space.personal !== true) return 'team'
+  // The space the imported model route names (`models.workspace`, written with the route); none recorded is no doubt.
+  const routed = state.models !== null && typeof state.models === 'object' && typeof state.models.workspace === 'string' ? state.models.workspace : ''
+  return routed !== '' && routed !== activeId ? 'team' : 'personal'
 }
 
 /**

@@ -598,7 +598,8 @@ const fakeReq = (method, origin, body, url) => ({
     if (body !== undefined) yield Buffer.from(JSON.stringify(body))
   },
 })
-const SESSION_ROUTES = new Set(['/kybernos-cloud/members/remove', '/kybernos-cloud/memory/delete', '/kybernos-cloud/team/lessons/delete', '/kybernos-cloud/team/skills/delete', '/kybernos-cloud/connections/delete'])
+const SESSION_ROUTES = new Set(['/kybernos-cloud/members/remove', '/kybernos-cloud/memory/delete', '/kybernos-cloud/team/lessons/delete', '/kybernos-cloud/team/skills/delete', '/kybernos-cloud/connections/delete',
+  '/kybernos-cloud/space/active', '/kybernos-cloud/memory/add', '/kybernos-cloud/memory/update', '/kybernos-cloud/memory/lessons', '/kybernos-cloud/team/lessons/add', '/kybernos-cloud/kyby/native/set'])
 const hit = async (path, method, origin, body) => {
   const handler = routes.get(path.split('?')[0])
   assert.ok(handler !== undefined, 'route manquante: ' + path)
@@ -3339,6 +3340,8 @@ try {
     const ky_post = async (path, origin, body) => {
       const req = fakeReq('POST', origin, body, path)
       req.socket = { localPort: 3080, remoteAddress: '127.0.0.1' }
+      // Kaby's session is chosen by the person's page (the signed session cookie), never by a bare request.
+      if (path === '/kybernos-cloud/kyby/native/set') req.headers = { ...req.headers, cookie: browserHeaders().cookie }
       const res = fakeRes()
       await routes.get(path)(req, res)
       return res

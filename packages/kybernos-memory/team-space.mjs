@@ -23,3 +23,24 @@ export const inTeamSpace = (host = globalThis) => {
     return true
   }
 }
+
+// What a call names when it reaches the person's memory by the side door. Matched against the call's arguments as text, whatever the tool (a shell
+// command, a file path, a URL): the lessons CLI, the lessons files, the account's state and settings files, and the loopback routes of the pages.
+const SIDE_DOORS = [
+  /memory\.cjs/,
+  /lessons(?:\.archive)?\.jsonl/,
+  /kybers[\\/]+[^\\/\s"']+[\\/]+memory/,
+  /kybernos-(?:cloud|memory)[\w.-]*\.json/,
+  /(?:127\.0\.0\.1|localhost|\[::1\])(?::\d+)?\/kybernos-(?:cloud|memory|search)\//,
+]
+
+/** Does this tool call (`{ name, arguments }`) name one of them? Never throws. */
+export const touchesPersonalMemory = (exec) => {
+  try {
+    const args = exec !== null && typeof exec === 'object' ? exec.arguments : undefined
+    const text = typeof args === 'string' ? args : JSON.stringify(args === undefined ? null : args)
+    return SIDE_DOORS.some((door) => door.test(text))
+  } catch (e) {
+    return false
+  }
+}

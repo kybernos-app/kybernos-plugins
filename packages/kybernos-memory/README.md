@@ -134,7 +134,7 @@ no `..`), and a typo never creates an agent team.
 - The personal lessons are local to this machine. What a team shares is a separate list (see « Team lessons »); it needs the
   server half and a Team workspace, and an agent never reads a personal lesson of someone else.
 - It only governs this bundle's tools and chunk. An agent can still run `memory.cjs lesson` through
-  bash; `lessons = off` asks it not to, it cannot forbid it.
+  bash; `lessons = off` asks it not to (and so does the team-space line below), it cannot forbid it.
 - Concurrent writers (the CLI appends, this bundle rewrites atomically) can lose an append in a
   window of a few milliseconds.
 
@@ -234,11 +234,24 @@ Tests: `node packages/kybernos-cloud/test-team-lessons.mjs` (the pure half), `no
 (sections « team »: routes, cache, prompt block, switches, kyber, relevance), `node packages/kybernos-memory/test-client.mjs`
 (the page's pure pieces).
 
+## In a team space the personal lessons are cut
+
+When the active Kybernos space is a team (`team-space.mjs` asks `@local/kybernos-cloud` through `globalThis[Symbol.for('kybernos.space')]`; the
+rule and its fail-closed cases are in the cloud README, « Team space: the personal memory is cut »), nothing personal is read or written here:
+the `kybernos:lessons` chunk carries one line instead of the lessons (a team space, none can be recorded, « Propose to team » is the door),
+`lesson_write` and `lesson_search` refuse with one sentence, the human's message is not kept for the relevance pick, the scheduled tidy-up
+stays home (and a scan started by hand does not ask the Study model), and the page reports 0 lessons sent. A `tools/pre-execute` hook refuses a call
+that names a side door (`memory.cjs`, `lessons.jsonl`, `kybers/<team>/memory`, `kybernos-cloud*.json`, `kybernos-memory*.json`, the pages' loopback routes
+`/kybernos-cloud|memory|search/`): it stops the habit and the plain `curl`, not a shell that hides what it touches, and it leaves the `kybers/` folder
+alone (the Agent Team matching reads it). The seam is read at every call, so a switch in the middle of a session holds both ways. No
+seam (no cloud bundle) or not connected: nothing changes. The page itself (the person's own lessons) keeps working in a team space.
+
 ## Tests
 
 ```bash
 node packages/kybernos-memory/test-memory-host.mjs   # real files in a temp folder, real memory.cjs if present
 node packages/kybernos-memory/test-client.mjs        # the page's pure pieces, mounting contract, source guards
+node scripts/test-team-memory-cut.mjs                # the canary: no personal memory or lesson in a team space (both bundles)
 node packages/kybernos-cloud/test-dedupe.mjs         # near-duplicate detection (pure)
 node packages/kybernos-cloud/test-mapproj.mjs        # the map's positions, clusters and names (pure)
 node packages/kybernos-cloud/test-tidy.mjs           # settings, schedule, auto line, Study-model question/answer (fake llm)

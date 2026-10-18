@@ -9,7 +9,11 @@
 //     bundle reads or writes anything, the capture makes no model call and writes nothing, the scheduled tidy-ups stay home;
 //   · the switch works in the middle of a session, both ways, with no restart (the seam is read at every assembly);
 //   · it fails CLOSED: a list of spaces that cannot tell, a record that does not say `personal: true`, a state file that is damaged,
-//     empty or unreadable, a seam that throws or answers something odd;
+//     empty or unreadable, a model route that names another space than the active one, a seam that throws or answers something odd;
+//   · the Kybernos proxy reads its memory markers in the system role only: in a team space the off marker leads a real system SECTION too;
+//   · a turn that began in a team and ends after a switch to personal is not captured; the Study model stays out of a team's tidy scan;
+//   · a shell is refused the side doors in a team space (memory.cjs, the lessons files, the account's state files, the pages' loopback routes);
+//   · the routes a shell could use (add/edit a memory, push lessons, choose the space, propose to the team, make a session Kaby's) need the signed session;
 //   · not connected, and no seam at all: behaviour unchanged;
 //   · what a team keeps: its lessons block, the team-lessons chunk, and the sentence that points to « Propose to team ».
 import assert from 'node:assert/strict'
@@ -76,9 +80,11 @@ process.env.KYBERNOS_CLOUD_API = 'http://127.0.0.1:' + api.address().port
 const blocks = new Map()      // name -> { order, text }
 const tools = new Map()       // name -> definition
 const hooks = new Map()       // event -> [handler]
-const llm = { calls: 0, answer: JSON.stringify({ memories: [{ content: 'The person likes green tea (' + CANARY + ' capture test)', kind: 'fact' }] }) }
-llm.stream = async function* () { llm.calls += 1; yield { type: 'text-delta', text: llm.answer } }
-const systemPrompt = { context: (entry) => { blocks.set(entry.name, entry) } }
+const llm = { calls: 0 }
+// a different fact each time, so that the capture's idempotence (a fact already in the account is not written again) never hides a write
+llm.stream = async function* () { llm.calls += 1; yield { type: 'text-delta', text: JSON.stringify({ memories: [{ content: 'The person likes green tea number ' + String(llm.calls) + ' (' + CANARY + ' capture test)', kind: 'fact' }] }) } }
+const sections = new Map()    // name -> { order, text } : the SYSTEM prompt itself (the proxy reads the system role only)
+const systemPrompt = { context: (entry) => { blocks.set(entry.name, entry) }, section: (entry) => { sections.set(entry.name, entry) } }
 const toolService = { register: (def) => { tools.set(def.name, def); return () => tools.delete(def.name) } }
 const webServer = { register: () => () => {} }
 const ctx = {
@@ -119,6 +125,7 @@ writeFileSync(lessonsFile, JSON.stringify({ ts: new Date().toISOString(), text: 
 const lessonsBytes = () => readFileSync(lessonsFile, 'utf8')
 
 /** The system prompt as the engine assembles it: the text of every block both bundles mounted, in order. */
+const systemRole = () => [...sections.values()].sort((a, b) => a.order - b.order).map((b) => b.text(context)).filter((t) => t.length > 0).join('\n\n')
 const assemble = () => [...blocks.values()].sort((a, b) => a.order - b.order).map((b) => { try { return b.text(context) } catch (e) { return '<<' + b.name + ' threw>>' } }).join('\n---\n')
 const loadCache = async () => { await cloud.refreshMemoryCache(cloud.readStateForSpace(), true) }
 const turn = (sid = SESSION) => ({
@@ -135,7 +142,12 @@ const turn = (sid = SESSION) => ({
   signal: undefined,
 })
 const claimed = (text, sid = SESSION) => { for (const h of hooks.get('agent/inbox/claimed') || []) h({ agent: { session: { id: sid } }, message: { source: { kind: 'user' }, content: [{ type: 'text', text }] }, turn: 1 }) }
-const runCapture = async () => { for (const h of hooks.get('agent/turn-stopping') || []) h(turn()); await new Promise((resolve) => setTimeout(resolve, 60)) }
+// the capture is fire-and-forget: wait for it to note its outcome (it always does), or 600 ms
+const runCapture = async () => {
+  const before = cloud.lastCapture.at
+  for (const h of hooks.get('agent/turn-stopping') || []) h(turn())
+  for (let waited = 0; cloud.lastCapture.at === before && waited < 600; waited += 10) await new Promise((resolve) => setTimeout(resolve, 10))
+}
 const tool = (name) => tools.get(name)
 
 try {
@@ -153,6 +165,7 @@ try {
   inPersonal()
   await loadCache()
   check('personal: the seam says not a team', seam.isTeam() === false)
+  check('personal: the system role carries nothing of ours (nothing changes there)', sections.has('kybernos:memory-off') && systemRole() === '')
   let prompt = assemble()
   check('personal: the account memory is in the prompt', prompt.includes('[KYBERNOS MEMORY]') && prompt.includes(CANARY))
   check('personal: the local lesson is in the prompt', prompt.includes('[KYBERNOS LESSONS]') && prompt.includes('Lessons learned on this machine') && prompt.includes('always say it in capitals'))
@@ -179,6 +192,7 @@ try {
   check('team: the canary is in NO injector', prompt.includes(CANARY) === false, prompt.slice(0, 400))
   check('team: no memory line and no lesson line', prompt.includes('Lessons learned on this machine') === false && prompt.includes('Kybernos account memories') === false && prompt.includes('always say it in capitals') === false)
   check('team: the proxy is told not to add its own copy (off marker leads the memory block)', blocks.get('kybernos:memory').text(context).startsWith(cloud.MEMORY_OFF_MARKER) && blocks.get('kybernos:memory').text(context).includes('Propose to team'))
+  check('team: the SYSTEM role leads with the off marker (the proxy reads system/developer messages only, a context block is a user message)', systemRole().startsWith(cloud.MEMORY_OFF_MARKER))
   check('team: the lessons block says why, and points to « Propose to team »', blocks.get('kybernos:lessons').text(context).includes('team space') && blocks.get('kybernos:lessons').text(context).includes('Propose to team'))
   check('team: the page\'s plan sends nothing either', cloud.planInjection(cloud.readStateForSpace(), { sessionId: SESSION }).account.chosen.length === 0)
 
@@ -237,13 +251,14 @@ try {
     const refused = [await tool('lesson_search').execute({ q: 'codename' }), await tool('lesson_write').execute({ text: 'x lesson in doubt' }), await tool('memory_search').execute({ q: 'codename' }), await tool('memory_write').execute({ content: 'x memory in doubt', kind: 'fact' })]
     await runCapture()
     check('fail closed — ' + label, prompt2.includes(CANARY) === false && refused.every((r) => r.ok === false && JSON.stringify(r).includes(CANARY) === false)
-      && hits.writes.length === before.writes && lessonsBytes() === before.lessons && llm.calls === before.calls && seam.isTeam() === true, JSON.stringify({ prompt: prompt2.slice(0, 160), refused }))
+      && hits.writes.length === before.writes && lessonsBytes() === before.lessons && llm.calls === before.calls && seam.isTeam() === true && systemRole().startsWith(cloud.MEMORY_OFF_MARKER), JSON.stringify({ prompt: prompt2.slice(0, 160), refused }))
   }
   await closed('connected, the list of spaces is empty (the active space cannot be told)', () => setState({ workspaces: [], active_workspace_id: null }))
   await closed('connected, no list of spaces at all', () => { const s = baseState(); delete s.workspaces; writeFileSync(stateFile, JSON.stringify(s)) })
   await closed('connected, the active space is not in the list and the first one is a team', () => setState({ workspaces: [TEAM, PERSONAL], active_workspace_id: 'ws-gone' }))
   await closed('a space whose record does not say personal: true', () => setState({ workspaces: [{ id: PERSONAL.id, name: 'My workspace', role: 'owner' }], active_workspace_id: PERSONAL.id }))
   await closed('personal is not a boolean', () => setState({ workspaces: [{ ...PERSONAL, personal: 'true' }], active_workspace_id: PERSONAL.id }))
+  await closed('the model route still names the team while the state says personal (a failed import, a stale write)', () => setState({ active_workspace_id: PERSONAL.id, models: { workspace: TEAM.id, provider: 'kybernos' } }))
   await closed('the state file is damaged JSON', () => writeFileSync(stateFile, '{"token": "kyd_x", "workspaces": [{"id": "ws-me", "personal": tr'))
   await closed('the state file is empty (a write caught half way)', () => writeFileSync(stateFile, ''))
   await closed('the state file is valid JSON of the wrong kind', () => writeFileSync(stateFile, '["not", "an", "object"]'))
@@ -253,6 +268,67 @@ try {
   } else {
     console.log('SKIPPED: unreadable state file by rights — running as root, chmod 000 does not stop root')
   }
+
+  // a route that names the same space is no doubt
+  setState({ active_workspace_id: PERSONAL.id, models: { workspace: PERSONAL.id, provider: 'kybernos' } })
+  check('the model route names the active personal space: nothing is cut', seam.isTeam() === false && assemble().includes(CANARY))
+
+  // a turn that began in a team and ends after the switch to personal is a team's turn: not captured
+  inTeam()
+  claimed('a team message, taken in the team space')
+  inPersonal()
+  const callsStraddle = llm.calls
+  const writesStraddle = hits.writes.length
+  await runCapture()
+  check('a turn that began in a team space is not captured after a switch to personal', llm.calls === callsStraddle && hits.writes.length === writesStraddle && cloud.lastCapture.status === 'espace_equipe', cloud.lastCapture.status)
+  claimed('a personal message, taken in the personal space')
+  await runCapture()
+  check('and the next personal turn is captured again', llm.calls === callsStraddle + 1 && hits.writes.length === writesStraddle + 1 && cloud.lastCapture.status === 'ecrit', JSON.stringify({ calls: llm.calls - callsStraddle, writes: hits.writes.length - writesStraddle, status: cloud.lastCapture.status }))
+
+  // the tidy scan, started by the person: the Study model is not asked in a team space
+  writeFileSync(join(dshHome, 'kybernos-memory.json'), '{}')
+  mkdirSync(join(dshHome, 'kybernos'), { recursive: true })
+  writeFileSync(join(dshHome, 'kybernos', 'settings.json'), JSON.stringify({ brain: 'kybernos/study-model' }))
+  cloud.tidySettings({ brain: true })
+  memory.tidySettings({ brain: true })
+  inPersonal()
+  const scanPersonal = await cloud.tidyRun(cloud.readStateForSpace(), 'manual')
+  inTeam()
+  const scanTeam = await cloud.tidyRun(cloud.readStateForSpace(), 'manual')
+  const lessonsTeam = await memory.tidyRun('manual')
+  check('personal: the tidy scan names the Study model', scanPersonal.brain.model === 'kybernos/study-model', JSON.stringify(scanPersonal.brain))
+  check('team: the tidy scan of the memories and of the lessons leaves the Study model out', scanTeam.brain.model === '' && scanTeam.brain.asked === 0 && lessonsTeam.brain.model === '' && lessonsTeam.brain.asked === 0, JSON.stringify([scanTeam.brain, lessonsTeam.brain]))
+
+  // a shell: the side doors are refused in a team space (the same hook as kybernos-cloud's turn gate)
+  const chain = async (exec) => {
+    const handlers = hooks.get('tools/pre-execute') || []
+    const run = async (i) => (i >= handlers.length ? { kind: 'pass' } : handlers[i](exec, () => run(i + 1)))
+    return run(0)
+  }
+  const bash = (command) => ({ name: 'bash', arguments: { command }, agent: { id: SESSION } })
+  const doors = [
+    'node ~/.dsh/kybers/memory.cjs lesson --kyber default --text "x"',
+    'cat ~/.dsh/kybers/default/memory/lessons.jsonl',
+    'cat ' + lessonsFile,
+    'cat ~/.dsh/kybernos-cloud.json',
+    'curl -s http://127.0.0.1:3080/kybernos-cloud/memory/list',
+    'curl -s -X POST http://localhost:3080/kybernos-search/query -d \'{"q":"x"}\'',
+  ]
+  inTeam()
+  const denied = []
+  for (const d of doors) denied.push(await chain(bash(d)))
+  check('team: a shell that names a side door of the personal memory is refused, with the sentence', denied.every((r) => r.kind === 'deny' && String(r.reason).includes('Propose to team')), JSON.stringify(denied))
+  const readTool = await chain({ name: 'read', arguments: { file_path: lessonsFile } })
+  check('team: so is a file tool on the lessons file', readTool.kind === 'deny')
+  const fine = await Promise.all(['ls -la', 'git status', 'node build.mjs', 'ls ~/.dsh/kybers'].map((c) => chain(bash(c))))
+  check('team: an ordinary command goes through (the kybers folder as a whole too: the Agent Team matching reads it)', fine.every((r) => r.kind === 'pass'), JSON.stringify(fine))
+  inPersonal()
+  const personalShell = await chain(bash(doors[0]))
+  check('personal: the same command goes through (nothing changes there)', personalShell.kind === 'pass')
+
+  // the routes a shell could use need the signed session
+  const guarded = ['/kybernos-cloud/memory/add', '/kybernos-cloud/memory/update', '/kybernos-cloud/memory/lessons', '/kybernos-cloud/team/lessons/add', '/kybernos-cloud/space/active', '/kybernos-cloud/kyby/native/set']
+  check('the routes a shell could use to write the memory, choose the space or make a session Kaby\'s need the signed session', guarded.every((p) => cloud.ROUTES.find((r) => r.path === p)?.session === true), guarded.filter((p) => cloud.ROUTES.find((r) => r.path === p)?.session !== true).join(', '))
 
   // the seam itself in doubt (the reader half: the lessons bundle must cut when it cannot be told; the account memory has its own reader)
   inPersonal()

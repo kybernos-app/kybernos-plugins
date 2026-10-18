@@ -3116,7 +3116,8 @@ const tidyRun = async (state, trigger, now = Date.now()) => {
     let suggestions = []
     let unclear = 0
     const brain = { asked: 0, error: null, detail: null, model: '' }
-    if (t.settings.brain === true) {
+    // In a team space the Study model is on the team's route: the person's memories are looked at on this machine only.
+    if (t.settings.brain === true && spaceOf(readStateForSpace()) !== 'team') {
       brain.model = studyModel()
       const llm = tidyLlm()
       const judged = await brainGroups({ items, taken, judged: t.judged, dismissed: t.dismissed, llm: brain.model === '' ? null : llm, model: brain.model, maxMerged: MEMORY_MAX_CONTENT, noun: 'memories' })
@@ -3963,10 +3964,17 @@ const noteCapture = (status, facts) => {
   lastCapture.facts = facts
 }
 
+/** The sessions that took a message while the space was a team: the turn they are in is a team's, even if the person switches before it ends. */
+const teamTurns = new Set()
+
 const captureTurn = async (ctx, agent, signal) => {
   try {
-    // First of all, before the switches and before any model call: the words of a team conversation are not read for the person's own memory.
-    if (spaceOf(readStateForSpace()) === 'team') return noteCapture('espace_equipe', 0)
+    // First of all, before the switches and before any model call: the words of a team conversation are not read for the person's own memory — not when the
+    // space is a team now, and not when the turn began in one and the person went back to the personal space before it ended.
+    const sid = agent !== null && agent !== undefined && agent.session !== undefined ? agent.session.id : undefined
+    const straddled = typeof sid === 'string' && teamTurns.delete(sid)
+    if (teamTurns.size > 200) teamTurns.delete(teamTurns.values().next().value)
+    if (straddled || spaceOf(readStateForSpace()) === 'team') return noteCapture('espace_equipe', 0)
     const state = readState()
     if (isConnected(state) !== true) return noteCapture('hors_connexion', 0)
     // The switches come BEFORE any network or LLM call: « Capture: no »
@@ -4017,6 +4025,12 @@ const mountMemoryPrompt = (ctx) => {
   // `inject` (and not `get`): this is the shape of native plugins, and it
   // gives a scope where `scope.systemPrompt` is the service. Without it, nothing.
   ctx.inject(['systemPrompt'], (scope) => {
+    // The Kybernos proxy reads its memory markers in the system/developer messages only, and a `context` block reaches the model as a USER message
+    // (DSH's runtime-context snapshot): the off marker below would not stop the proxy from adding the person's account memory to a team request.
+    // A `section` is the system prompt itself, so in a team space (or in doubt) the marker also leads one. Empty elsewhere: nothing changes there.
+    try {
+      scope.systemPrompt.section({ name: 'kybernos:memory-off', order: 9500, interpolate: false, text: () => (spaceOf(readStateForSpace()) === 'team' ? MEMORY_OFF_MARKER : '') })
+    } catch (e) { console.error('[kybernos-cloud] memory-off section: ' + String((e && e.message) || e)) }
     scope.systemPrompt.context({
       name: 'kybernos:memory',
       order: MEMORY_INJECT_ORDER,
@@ -4033,6 +4047,7 @@ const mountMemoryPrompt = (ctx) => {
   // and the team lessons block ranks its lessons with the same word.
   ctx.on('agent/inbox/claimed', ({ agent, message, turn }) => {
     try { noteUserTurn(agent.session.id, message, turn) } catch (e) { /* never break a turn */ }
+    try { if (spaceOf(readStateForSpace()) === 'team') teamTurns.add(agent.session.id) } catch (e) { /* never break a turn */ }
   })
   const state = readState()
   // Fire-and-forget: a rejection here would be an unhandled one, which ends DSH. Each refresh also guards itself; this is the second wall.
@@ -4566,7 +4581,9 @@ const mountKybyNative = (ctx) => {
 // `session: true` is a route that DELETES the person's data (a memory, a team lesson or skill, a connection, a member): besides the same-origin rule it needs DSH's
 // signed browser-session cookie (session-guard.mjs, the terminal's rule). Plugin routes are served before DSH's own login and an Origin header is forgeable by any
 // local program, so before this a `curl -X POST .../memory/delete` with no header at all deleted a memory. Their callers are pages (Memory, Skills, Connectors,
-// the Share card). The other writes keep the rule of their row: they are not named by the origin-rule audit (docs/dev/route-origin-rule.md says what is next).
+// the Share card). The same rule now covers what a model with a shell could otherwise do by a bare curl against the personal memory and the space: write or edit a memory,
+// push the lessons, choose the active space, propose to the team, make a session Kaby's. The other writes keep the rule of their row: they are not named by the origin-rule audit
+// (docs/dev/route-origin-rule.md says what is next).
 const ROUTES = [
   { path: '/kybernos-cloud/kyber', method: 'GET', guarded: true, run: kyberRoute },
   // A pairing creates a link that, once opened in Telegram and confirmed there, connects the chat: same origin, strictly.
@@ -4576,14 +4593,14 @@ const ROUTES = [
   { path: '/kybernos-cloud/kyby/computer', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: async (req, body) => { kybyChosen.at = 0; return kyby.computer(req, body) } },
   { path: '/kybernos-cloud/telegram/unlink', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: () => kyby.unlink() },
   { path: '/kybernos-cloud/kyby/native', method: 'GET', guarded: true, run: kybySessionRoute },
-  { path: '/kybernos-cloud/kyby/native/set', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: kybySessionSet },
+  { path: '/kybernos-cloud/kyby/native/set', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: kybySessionSet },
   { path: '/kybernos-cloud/computer/resume', method: 'POST', guarded: true, strict: true, run: () => computerAction('resume') },
   { path: '/kybernos-cloud/computer/suspend', method: 'POST', guarded: true, strict: true, run: () => computerAction('suspend') },
   { path: '/kybernos-cloud/computer/open', method: 'POST', guarded: true, strict: true, run: () => computerAction('open') },
   { path: '/kybernos-cloud/start', method: 'POST', guarded: true, run: startPairing },
   { path: '/kybernos-cloud/poll', method: 'POST', guarded: true, run: pollPairing },
   { path: '/kybernos-cloud/status', method: 'GET', guarded: false, run: statusRoute },
-  { path: '/kybernos-cloud/space/active', method: 'POST', guarded: true, body: true, run: setActiveSpace },
+  { path: '/kybernos-cloud/space/active', method: 'POST', guarded: true, session: true, body: true, run: setActiveSpace },
   { path: '/kybernos-cloud/space/create', method: 'POST', guarded: true, body: true, run: createSpace },
   { path: '/kybernos-cloud/refresh', method: 'POST', guarded: true, run: refreshProfile },
   // `disconnect` revokes the session on the server side: irreversible. A bare POST
@@ -4651,14 +4668,14 @@ const ROUTES = [
   // Each path is DISTINCT (the router indexes by path: two routes on
   // `/memory` would mask each other — observed by the host test).
   { path: '/kybernos-cloud/memory', method: 'GET', guarded: true, run: memoryRoute },
-  { path: '/kybernos-cloud/memory/add', method: 'POST', guarded: true, body: true, run: memoryCreateRoute },
-  { path: '/kybernos-cloud/memory/update', method: 'POST', guarded: true, body: true, run: memoryUpdateRoute },
+  { path: '/kybernos-cloud/memory/add', method: 'POST', guarded: true, session: true, body: true, run: memoryCreateRoute },
+  { path: '/kybernos-cloud/memory/update', method: 'POST', guarded: true, session: true, body: true, run: memoryUpdateRoute },
   { path: '/kybernos-cloud/memory/delete', method: 'POST', guarded: true, session: true, body: true, run: memoryDeleteRoute },
   { path: '/kybernos-cloud/memory/search', method: 'GET', guarded: true, run: memorySearchRoute },
   { path: '/kybernos-cloud/memory/map', method: 'POST', guarded: true, body: true, run: memoryMapRoute },
   // `dryRun` by default: pushing the lessons writes into the account, it
   // never goes out without a body that explicitly says `{"dryRun":false}`.
-  { path: '/kybernos-cloud/memory/lessons', method: 'POST', guarded: true, body: true, run: memoryLessonsRoute },
+  { path: '/kybernos-cloud/memory/lessons', method: 'POST', guarded: true, session: true, body: true, run: memoryLessonsRoute },
   // « Memory & Lessons learned » page: paginated/filtered list and settings.
   // Distinct paths (GET and POST cannot share a path).
   { path: '/kybernos-cloud/memory/list', method: 'GET', guarded: true, run: memoryListRoute },
@@ -4671,7 +4688,7 @@ const ROUTES = [
   // Tidy up (near-duplicates): the last scan and the log, a scan (it only looks), what to apply / keep apart / undo.
   { path: '/kybernos-cloud/team/status', method: 'GET', guarded: true, run: teamStatusRoute },
   { path: '/kybernos-cloud/team/lessons', method: 'GET', guarded: true, run: teamListRoute },
-  { path: '/kybernos-cloud/team/lessons/add', method: 'POST', guarded: true, body: true, cap: 16384, run: teamAddRoute },
+  { path: '/kybernos-cloud/team/lessons/add', method: 'POST', guarded: true, session: true, body: true, cap: 16384, run: teamAddRoute },
   { path: '/kybernos-cloud/team/lessons/review', method: 'POST', guarded: true, body: true, cap: 16384, run: teamReviewRoute },
   { path: '/kybernos-cloud/team/lessons/retire', method: 'POST', guarded: true, body: true, cap: 4096, run: teamRetireRoute },
   { path: '/kybernos-cloud/team/lessons/delete', method: 'POST', guarded: true, session: true, body: true, cap: 4096, run: teamDeleteRoute },

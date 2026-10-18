@@ -27,7 +27,7 @@ import { findDuplicateGroups, unclearPairs } from './dedupe.mjs'
 import { rank } from './relevance.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { TIDY_SCHEDULES, normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyChoice, brainGroups } from './tidy.mjs'
-import { TEAM_SPACE_REFUSAL, inTeamSpace } from './team-space.mjs'
+import { TEAM_SPACE_REFUSAL, inTeamSpace, touchesPersonalMemory } from './team-space.mjs'
 
 export const name = 'kybernos-memory'
 
@@ -574,7 +574,8 @@ const tidyRun = async (trigger, now = Date.now()) => {
     let suggestions = []
     let unclear = 0
     const brain = { asked: 0, error: null, detail: null, model: '' }
-    if (t.settings.brain === true) {
+    // In a team space the Study model is on the team's route: the person's lessons are looked at on this machine only.
+    if (t.settings.brain === true && !inTeamSpace()) {
       brain.model = studyModel()
       const llm = tidyLlm()
       const judged = await brainGroups({ items, taken, judged: t.judged, dismissed: t.dismissed, llm: brain.model === '' ? null : llm, model: brain.model, maxMerged: LESSON_MAX_CHARS, noun: 'lessons' })
@@ -860,6 +861,18 @@ const mountTools = (ctx) => {
   })
 }
 
+// A shell reaches what the two tools do not: `memory.cjs lesson`, the lessons files, the account state, the loopback routes of the pages. In a team space a call that
+// names one of them is refused (same hook and answer as kybernos-cloud's turn gate). It stops the habit and the plain curl, not a shell that hides what it touches.
+const mountTeamGate = (ctx) => {
+  if (typeof ctx.on !== 'function') return
+  ctx.on('tools/pre-execute', async (exec, next) => {
+    try {
+      if (inTeamSpace() && touchesPersonalMemory(exec)) return { kind: 'deny', reason: TEAM_SPACE_REFUSAL }
+    } catch (e) { /* never break a call */ }
+    return next()
+  })
+}
+
 export function apply(ctx) {
   try {
     if (ctx.get('webServer') !== undefined) mountRoutes(ctx, ctx.get('webServer'))
@@ -867,6 +880,7 @@ export function apply(ctx) {
   } catch (e) { say('routes not mounted: ' + String((e && e.message) || e)) }
   try { mountPrompt(ctx) } catch (e) { say('prompt chunk not mounted: ' + String((e && e.message) || e)) }
   try { mountTools(ctx) } catch (e) { say('tools not mounted: ' + String((e && e.message) || e)) }
+  try { mountTeamGate(ctx) } catch (e) { say('team gate not mounted: ' + String((e && e.message) || e)) }
   // the human's message of each turn, to pick the lessons that match it (see « The lessons that matter to THIS question »)
   try {
     if (typeof ctx.on === 'function') ctx.on('agent/inbox/claimed', ({ agent, message, turn }) => { try { if (!inTeamSpace()) noteUserTurn(agent.session.id, message, turn) } catch (e) { /* never break a turn */ } })

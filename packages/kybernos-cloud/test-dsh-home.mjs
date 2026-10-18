@@ -11,6 +11,7 @@ import { createServer } from 'node:http'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { zstdCompressSync } from 'node:zlib'
+import { asBrowser } from './lib-session-routes-test.mjs'
 // DSH-HOME-HARNESS-BEGIN
 import * as kbAssert from 'node:assert/strict'
 import * as kbFs from 'node:fs'
@@ -162,10 +163,10 @@ const hit = async (path, method, body) => {
   const handler = routes.get(path.split('?')[0])
   assert.ok(handler !== undefined, 'missing route: ' + path)
   const res = { status: 0, body: null, setHeader() {}, writeHead(s) { this.status = s }, end(p) { this.body = p === undefined || p === '' ? null : JSON.parse(p) } }
-  await handler({
+  await handler(asBrowser(path, {
     method, url: path, headers: { host: '127.0.0.1:3080' },
     async *[Symbol.asyncIterator]() { if (body !== undefined) yield Buffer.from(JSON.stringify(body)) },
-  }, res)
+  }), res)
   return res
 }
 
