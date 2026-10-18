@@ -32,6 +32,12 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
   before About. One icon table (`ICONES`, keyed by the page's title) draws every entry and every group header, and `test-settings-icons.mjs` checks that
   no two pages share a drawing. An always-on **language runtime** (`<kb-lang-runtime>`) keeps translated languages registered in DSH's locale
   service even when `kybernos-language` is off.
+- **The main menu follows the chat's text size** (General › Font size, 12 to 17 px: the engine keeps it in `--dsh-content-font-size` on `<body>`).
+  The menu's rows (`.kb4-*`), the account card (`.kbfp-*`, in kybernos-cloud) and the shell's blocks around them (logo row, Workspaces header, workspace
+  and session rows, measured by `scripts/check-menu-density-live.mjs`) are drawn in em or in `calc(var(--kb-u) * n)`, so a smaller text gives a denser
+  menu, and it wastes no room: at 13px the first entry starts at 97px instead of 126px, a row is 29px instead of 34px, and 11 of 21 rows of the
+  workspace list show without scrolling instead of 8. *New chat* is one line (the agent it starts with follows, in a smaller size). Touch screens keep
+  their 44px targets, and the collapsed rail keeps its own 36px sizes. `test-menu-density.mjs` pins the CSS.
 - **Search in the Settings** reads the content of the pages, not only their titles (`<kb-settings-search>` in `client.js`: `KB_SS_INDEX`, the
   settings of every page, and `kbSsSearch`, plain functions that `test-settings-search.mjs` runs alone). It matches the label, the description, the
   words of the control, the words people use (French, English, Spanish: « police » finds *Font size*), forgives a typo in words of five letters or
