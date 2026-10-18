@@ -744,14 +744,14 @@ body:not([data-ds-dark-theme]) :is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-
 /* Largeur BORNÉE à la colonne du pied (30/09 soir) : un menu de 276 px posé
    dans une sidebar de 256 px était rogné de 20 px à droite — troncature des
    libellés. Il épouse donc la largeur de la carte (left/right 0). */
-.kbfp-menu{position:absolute;left:0;right:0;bottom:calc(100% + 10px);z-index:62;width:auto;max-height:calc(100vh - 130px);overflow-y:auto;box-sizing:border-box;padding:8px;border-radius:16px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);box-shadow:var(--dsw-elevation-panel);color:var(--dsw-alias-label-primary);font-size:13px;animation:kbfp-menu-in .14s ease-out}
+.kbfp-menu{position:absolute;left:0;right:0;bottom:calc(100% + 10px);z-index:62;width:auto;max-height:calc(100vh - 130px);overflow-y:auto;box-sizing:border-box;padding:6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);box-shadow:var(--dsw-elevation-panel);color:var(--dsw-alias-label-primary);font-size:13px;line-height:1.3;animation:kbfp-menu-in .14s ease-out}
 /* Le sous-panneau « Changer d'espace » : À CÔTÉ du menu, à droite (gabarit
    maquette) — le menu principal reste ouvert pendant le choix. Il vit en
    PORTAIL fixed sur <body> : la colonne de sidebar défile et ROGNE tout
    enfant absolu qui déborde (mesuré 30/09 soir : 25 px visibles sur 248).
    Les coordonnées sont posées à l'ouverture, depuis le rect du menu. Pas
    de barre de défilement : hauteur naturelle. */
-.kbfp-sub{position:fixed;width:248px;box-sizing:border-box;padding:8px;border-radius:16px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);box-shadow:var(--dsw-elevation-panel);color:var(--dsw-alias-label-primary);font-size:13px;animation:kbfp-menu-in .14s ease-out;z-index:63}
+.kbfp-sub{position:fixed;width:248px;box-sizing:border-box;padding:6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);box-shadow:var(--dsw-elevation-panel);color:var(--dsw-alias-label-primary);font-size:13px;line-height:1.3;animation:kbfp-menu-in .14s ease-out;z-index:63}
 .kbfp-menu-off{position:fixed;right:auto;bottom:auto;z-index:70}
 /* The row's chevron (the profile row and the signed-out button share it): it goes with the text in the collapsed rail. */
 .kbfp-chev{flex:none;display:flex;align-items:center;margin-inline-start:6px;color:var(--dsw-alias-label-tertiary)}
@@ -809,22 +809,22 @@ body:not([data-ds-dark-theme]) :is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-
 .kbtr-act:hover{background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.14))}
 .kbqn-act:hover{background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.14))}
 .kbqn-x{flex:0 0 auto;border:0;background:transparent;color:var(--dsw-alias-label-secondary,#a0a0aa);font-size:18px;line-height:1;cursor:pointer;padding:0 2px}
-.kbfp-mhead{display:flex;align-items:center;gap:12px;width:100%;min-height:40px;box-sizing:border-box;padding:0 10px;border:none;border-radius:10px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.kbfp-mhead{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;box-sizing:border-box;padding:0 10px;border:none;border-radius:10px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .kbfp-mhead:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .kbfp-mheadtxt{flex:1 1 auto;min-width:0}
-.kbfp-mheadname{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kbfp-mheadsub{display:block;font-size:12px;color:var(--dsw-alias-label-tertiary)}
+.kbfp-mheadname{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbfp-mheadsub{display:block;font-size:11.5px;color:var(--dsw-alias-label-tertiary)}
 .kbfp-mhead svg{flex:none;color:var(--dsw-alias-label-tertiary)}
 .kbfp-tile{position:relative}
 .kbfp-tile[data-update=true]::after{content:"";position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#f5a524;border:2px solid var(--dsw-alias-bg-layer-1)}
 .kbfp-mtail{flex:none;margin-inline-start:auto;white-space:nowrap;font-size:12px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
-.kbfp-mplan{margin:4px 0;box-sizing:border-box;padding:2px 10px;border-radius:10px;background:var(--dsw-alias-interactive-bg-hover)}
-.kbfp-mplanline{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:40px}
-.kbfp-mplanname{font-size:16px;font-weight:600;letter-spacing:-.01em;text-transform:capitalize}
+.kbfp-mplan{margin:3px 0;box-sizing:border-box;padding:0 10px;border-radius:10px;background:var(--dsw-alias-interactive-bg-hover)}
+.kbfp-mplanline{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:36px}
+.kbfp-mplanname{font-size:14px;font-weight:600;letter-spacing:-.01em;text-transform:capitalize}
 .kbfp-mplanname[data-plan="none"]{text-transform:none}
-.kbfp-mcta{flex:none;height:28px;padding:0 12px;border:none;border-radius:10px;background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.kbfp-mcta{flex:none;height:26px;padding:0 12px;border:none;border-radius:10px;background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
 .kbfp-mcta:hover{background:var(--dsw-alias-button-primary-hover)}
-.kbfp-msep{height:1px;margin:8px 0;background:var(--dsw-alias-border-l2)}
+.kbfp-msep{height:1px;margin:5px 0;background:var(--dsw-alias-border-l2)}
 /* Liste des sessions de la barre latérale : l'ascenseur natif restait affiché en permanence, collé juste au-dessus du menu du bas
    (un « trait » parasite). Il n'apparaît plus qu'au survol de la liste. */
 /* Filet dégradé natif au-dessus de la carte utilisateur : retiré (demande 01/10). */
@@ -832,9 +832,9 @@ body:not([data-ds-dark-theme]) :is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-
 [class*="_regionArea"] [class$="_list"]{scrollbar-width:thin;scrollbar-color:transparent transparent}
 [class*="_regionArea"] [class$="_list"]:hover{scrollbar-color:var(--dsw-alias-scrollbar-bg-l2) transparent}
 .kbfp-mitems{display:flex;flex-direction:column}
-.kbfp-mitem{display:flex;align-items:center;gap:12px;width:100%;min-height:40px;box-sizing:border-box;padding:0 10px;border:none;border-radius:10px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;text-align:left;cursor:pointer;text-decoration:none}
+.kbfp-mitem{display:flex;align-items:center;gap:10px;width:100%;min-height:34px;box-sizing:border-box;padding:0 10px;border:none;border-radius:10px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;font-weight:500;text-align:left;cursor:pointer;text-decoration:none}
 .kbfp-mitem:hover{background:var(--dsw-alias-interactive-bg-hover)}
-.kbfp-mitem > svg{flex:none;color:var(--dsw-alias-label-secondary)}
+.kbfp-mitem > svg{flex:none;margin:0 5px;color:var(--dsw-alias-label-secondary)}
 .kbfp-mlab{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kbfp-mext{flex:none;color:var(--dsw-alias-label-tertiary)}
 .kbfp-mamber > svg{color:var(--dsw-alias-state-warn-primary)}
@@ -851,15 +851,17 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
 /* La sélection d'espace, gabarit maquette : ACTIF = carte surélevée (fond
    interactif, coche à droite), les autres des rangées nues ; « Créer un
    espace » porte son + comme les autres icônes du menu. */
-.kbfp-wsitem{display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;padding:8px 10px;border:none;border-radius:12px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.kbfp-wsitem{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;padding:6px 10px;border:none;border-radius:10px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .kbfp-wsitem:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .kbfp-wsitem.on{background:var(--dsw-alias-interactive-bg-hover)}
-.kbfp-wstile{flex:none;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base);font-family:ui-monospace,monospace;font-weight:700;font-size:12px}
+.kbfp-wstile{flex:none;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base);font-family:ui-monospace,monospace;font-weight:700;font-size:11px}
 .kbfp-wstxt{flex:1 1 auto;min-width:0}
-.kbfp-wsname{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kbfp-wssub{display:block;font-size:12px;color:var(--dsw-alias-label-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbfp-wsname{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbfp-wssub{display:block;font-size:11.5px;color:var(--dsw-alias-label-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kbfp-wscheck{flex:none;display:flex;color:var(--dsw-alias-label-primary)}
-.kbfp-wsplus{flex:none;width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--dsw-alias-label-secondary)}
+.kbfp-wsact{min-height:34px;padding-top:0;padding-bottom:0}
+.kbfp-wsact .kbfp-wsname{font-weight:500}
+.kbfp-wsplus{flex:none;width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--dsw-alias-label-secondary)}
 /* A team's own colour: the same on its tile (the card, the menu, the list) and on the composer's pill. White letters on each of them (4.5:1 or more). */
 [data-kb-hue="violet"]{--kbh:#6d4cff}
 [data-kb-hue="teal"]{--kbh:#0f766e}
@@ -876,8 +878,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
 .kbfp-mplanacts{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}
 .kbfp-mghost{background:transparent;color:var(--dsw-alias-label-primary);box-shadow:inset 0 0 0 1px var(--dsw-alias-border-l3,var(--dsw-alias-border-l2))}
 .kbfp-mghost:hover{background:var(--dsw-alias-interactive-bg-hover)}
-.kbfp-mwin{padding:2px 0 10px}
-.kbfp-mwinhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:600}
+.kbfp-mwin{padding:2px 0 8px}
+.kbfp-mwinhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:12px;font-weight:500}
 .kbfp-mwin .kbfp-use{margin-top:5px}
 .kbfp-mwin .kbfp-usebar{height:5px}
 .kbfp-mwinnote{display:block;margin-top:4px;font-size:11.5px;line-height:1.3;color:var(--dsw-alias-label-tertiary)}
@@ -1896,12 +1898,12 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                 : null,
               r.current === true ? h('span', { className: 'kbfp-wscheck', 'aria-hidden': 'true' }, h(CheckIcon, { size: 18 })) : null)),
             props.sep === true ? h('div', { className: 'kbfp-msep' }) : null,
-            h('button', { type: 'button', className: 'kbfp-wsitem', role: 'menuitem', 'data-kb': 'space-create', onClick: props.onCreate },
+            h('button', { type: 'button', className: 'kbfp-wsitem kbfp-wsact', role: 'menuitem', 'data-kb': 'space-create', onClick: props.onCreate },
               h('span', { className: 'kbfp-wsplus', 'aria-hidden': 'true' }, h(PlusIcon, { size: 18 })),
               h('span', { className: 'kbfp-wstxt' }, h('span', { className: 'kbfp-wsname' }, t('wsNewTitle')))),
             // Under « Create a team », in both places the list is drawn. Only a click opens the dialog: nothing here reads a link or calls the host by itself.
             typeof props.onJoin === 'function'
-              ? h('button', { type: 'button', className: 'kbfp-wsitem', role: 'menuitem', 'data-kb': 'space-join', title: t('joinRow'), onClick: props.onJoin },
+              ? h('button', { type: 'button', className: 'kbfp-wsitem kbfp-wsact', role: 'menuitem', 'data-kb': 'space-join', title: t('joinRow'), onClick: props.onJoin },
                 h('span', { className: 'kbfp-wsplus', 'aria-hidden': 'true' }, h(LinkIcon, { size: 18 })),
                 h('span', { className: 'kbfp-wstxt' }, h('span', { className: 'kbfp-wsname' }, t('joinRow'))))
               : null)
