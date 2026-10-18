@@ -45,6 +45,9 @@ const clickCard = async (id) => {
   await sleep(400)
   return click('.kb8-sl-card[data-id="' + id + '"]')
 }
+// The block must scroll ITS track only. A scrollable ancestor that moved (DSH's own frame was pushed 462 px sideways by a script scroll)
+// slides the composer out of the window: measured by the composer's left edge and by every ancestor's scroll offset.
+const stillness = async () => ev(`(() => { const card = document.querySelector('[data-composer-card]'); const out = { cardLeft: Math.round(card.getBoundingClientRect().left), moved: [] }; for (let e = document.querySelector('[data-kb="newchat-slider"]'); e; e = e.parentElement) { if (e.classList && e.classList.contains('kb8-sl-track')) continue; if (e.scrollLeft !== 0 || e.scrollTop !== 0) out.moved.push(e.tagName + '.' + String(e.className).slice(0, 30) + ' L=' + e.scrollLeft + ' T=' + e.scrollTop) } return out })()`)
 const draft = async () => ev(`(() => { const e = document.querySelector('[contenteditable="true"], textarea'); return e ? (e.value !== undefined && e.value !== '' ? e.value : e.innerText) : null })()`)
 const clearDraft = async () => {
   await click('[contenteditable="true"], textarea')
@@ -71,6 +74,7 @@ try {
   console.log('New chat page — this checkout in the real GUI')
   await sleep(800)
   await shot('home')
+  const still0 = await stillness()
 
   // ── structure and place ──────────────────────────────────────────────────────────────────────────────────────
   const cards = await ev(`[...document.querySelectorAll('.kb8-sl-card')].map((c) => ({ id: c.dataset.id, label: c.innerText.trim(), svg: !!c.querySelector('svg'), w: Math.round(c.getBoundingClientRect().width) }))`)
@@ -126,8 +130,17 @@ try {
     await click('.kb8-sl-nav.prev')
     await sleep(900)
   } else console.log('  ○ the dock is wide enough to show every template: no scrolling to check here')
+  const stillArrows = await stillness()
+  check('the arrows scroll the track only', stillArrows.moved.length === 0 && stillArrows.cardLeft === still0.cardLeft, stillArrows)
   const heads = await ev(`[...document.querySelectorAll('.kb8-sl-gh')].map((b) => b.innerText.replace(/\\s+/g, ' ').trim())`)
   check('the chapters are named (with their count)', Array.isArray(heads) && heads.length >= 3 && heads.every((t) => /\d$/.test(t)), heads)
+
+  await click('.kb8-sl-group:nth-child(3) .kb8-sl-gh')
+  await sleep(1000)
+  const stillTitle = await stillness()
+  check('a click on a chapter title scrolls the track only', stillTitle.moved.length === 0 && stillTitle.cardLeft === still0.cardLeft, stillTitle)
+  await ev(`document.querySelector('.kb8-sl-track').scrollLeft = 0`)
+  await sleep(500)
 
   // ── it listens, and a click fills without sending ─────────────────────────────────────────────────────────
   await click('[contenteditable="true"], textarea')
@@ -137,6 +150,8 @@ try {
   const lit = await ev(`(() => { const m = document.querySelector('.kb8-sl-card.is-match'); if (!m) return null; const r = m.getBoundingClientRect(), t = document.querySelector('.kb8-sl-track').getBoundingClientRect(); return { id: m.dataset.id, inView: r.left >= t.left - 1 && r.right <= t.right + 1 } })()`)
   check('typing « a landing page… » lights the Website card and brings it into view', lit !== null && lit.id === 'website' && lit.inView === true, lit)
   await shot('home-listening')
+  const still1 = await stillness()
+  check('typing a word that scrolls the track moves nothing else (the composer stays where it was)', still1.moved.length === 0 && still1.cardLeft === still0.cardLeft, { before: still0, after: still1 })
   await clearDraft()
   check('with the text gone nothing is lit', (await ev(`document.querySelectorAll('.kb8-sl-card.is-match').length`)) === 0)
   await clickCard('doc')
