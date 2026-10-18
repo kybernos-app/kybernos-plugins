@@ -139,6 +139,7 @@ window.__ModuleLoader__.load({
         quotaBackUnknown: 'à mesure que l\'usage ancien sort de cette fenêtre, et il est entier {window} après ton dernier appel',
         quotaMoreSolo: ' Passe à une formule supérieure ou ajoute des crédits pour continuer maintenant.',
         rowNoAdapter: 'Ce modèle vient de ton compte Kybernos, et ce DSH n\'y est plus connecté. Reconnecte-toi pour l\'utiliser.',
+        rowRetryDown: 'Le serveur Kybernos « {name} » ({host}) ne répond pas : DSH continue d\'essayer',
         quotaNoPlan: '{name} n\'a pas encore de formule : personne ne peut y utiliser les modèles.',
         quotaNoPlanAdmin: ' Choisis-en une pour les activer.',
         quotaNoPlanMember: ' Demande à un propriétaire ou à un admin de {name} d\'en choisir une.',
@@ -364,6 +365,7 @@ window.__ModuleLoader__.load({
         quotaBackUnknown: 'as older use leaves that window, and is whole again {window} after your last call',
         quotaMoreSolo: ' Upgrade or add credits to go on now.',
         rowNoAdapter: 'This model comes from your Kybernos account, and this DSH is not signed in to it any more. Sign in again to use it.',
+        rowRetryDown: 'The Kybernos server “{name}” ({host}) is not answering: DSH keeps retrying',
         quotaNoPlan: '{name} has no plan yet, so nobody in it can use the models.',
         quotaNoPlanAdmin: ' Choose a plan to turn them on.',
         quotaNoPlanMember: ' Ask an owner or admin of {name} to choose one.',
@@ -2599,6 +2601,20 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             window.addEventListener('kybernos-cloud:plan', plan)
             return () => window.removeEventListener('kybernos-cloud:plan', plan)
           }, [])
+          // Another plugin asks for a page of the account (the gift card of the footer's icons: « Open the referral page »): a window event it may cancel. It is CLAIMED (cancelled) only
+          // when the account is connected, because only then can the host sign the person in and open the page; a request left alone is the sender's to serve with its own link, which
+          // opens the server's sign-in. The page is the one the menu's entry opens (`section`, a short page name: the host checks it again), for the active team.
+          const activeSpace = typeof state.active_workspace_id === 'string' ? state.active_workspace_id : undefined
+          React.useEffect(() => {
+            const account = (ev) => {
+              const section = ev !== null && ev !== undefined && ev.detail !== null && ev.detail !== undefined && typeof ev.detail.section === 'string' ? ev.detail.section : ''
+              if (phase !== 'connected' || /^[a-z][a-z0-9-]{0,31}$/.test(section) !== true) return
+              try { ev.preventDefault() } catch (e) { /* not cancelable: the sender serves it too */ }
+              openAccountPage(section, activeSpace)
+            }
+            window.addEventListener('kybernos-cloud:account', account)
+            return () => window.removeEventListener('kybernos-cloud:account', account)
+          }, [phase, activeSpace])
           // A team that was created WITHOUT a plan did not take over (the host left the person where they were): say so, and offer its plan page.
           const announceCreated = (res) => {
             const made = res !== null && res !== undefined && res.created !== null && typeof res.created === 'object' ? res.created : null
@@ -2859,15 +2875,45 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           }
           return KbTurnError
         }
-        ctx.effect(() => slots.inject('conversation.chat.node', () => {
+        // ── The retry row of a turn (`conversation.chat.node`, key `model-retry`) ──────────────────────────────────────────────────────────────
+        // While the account server is down a chat showed only the engine's « Retrying model request (5/5) · 12s »: nothing says that the cause is the server, nor which one. The
+        // row is a keyed entry like the failure row, so it is wrapped the same way. Only when the model route is Kybernos's, the attempt is waiting, and the host says the server
+        // does not answer (its quota read, the one the footer makes every two minutes: `injoignable` + the server's label and host), the engine's label is replaced by a sentence
+        // that names the server and says that DSH keeps trying; the count, the countdown and the details are still drawn by the shipped row. One look at the host per attempt.
+        const modelRetryRow = (Shipped) => {
+          const KbModelRetry = (props) => {
+            const data = props !== null && props !== undefined && props.node !== null && props.node !== undefined && props.node.data !== null && typeof props.node.data === 'object' ? props.node.data : {}
+            const current = data.current !== null && data.current !== undefined && typeof data.current === 'object' ? data.current : {}
+            const watch = current.provider === 'kybernos' && current.retryState === 'scheduled'
+            const downPair = React.useState(null)
+            const down = downPair[0]
+            const setDown = downPair[1]
+            React.useEffect(() => {
+              if (watch !== true) { setDown(null); return undefined }
+              let on = true
+              callLocal('/quota', 'GET').then((r) => { if (on === true) setDown(serverDownNote(r, t, 'rowRetryDown')) }).catch(() => { if (on === true) setDown(null) })
+              return () => { on = false }
+            }, [watch, current.retry])
+            if (watch !== true || down === null) return h(Shipped, props)
+            // The engine's translator, but for the label of a waiting attempt (the status line is « {label} ({retry}/{maximum}) · {seconds}s »).
+            const own = Object.assign({}, props, { t: (key, params) => (key === 'message.retry.active' ? down.text : props.t(key, params)) })
+            return h('div', { className: 'kbtr', 'data-kb': 'retry-kb' },
+              h(Shipped, own),
+              down.canSwitch === true ? h('button', { type: 'button', className: 'kbtr-act', 'data-kb': 'retry-switch', onClick: () => { try { window.dispatchEvent(new Event('kybernos-cloud:servers')) } catch (e) { /* Event absent */ } } }, t('srvSwitch')) : null)
+          }
+          return KbModelRetry
+        }
+        // A keyed row of the engine's chat is wrapped, never replaced: the slot documents that a later entry for a key shadows the shipped one (the lowest priority renders), so ours
+        // is registered for the same key with the shipped component inside. `wrap(Shipped)` gives the component; the shipped entry's own locale rides along so it keeps its translator.
+        const wrapKeyedRow = (key, wrap) => () => {
           let unregister = null
           const attach = () => {
             if (unregister !== null) return
             try {
               // The shipped entry has no priority (0); a wrapper of ours (a second mount of the slot) is at -1 and is never wrapped again.
-              const shipped = slots.entries('conversation.chat.node').filter((e) => e !== null && e !== undefined && e.options !== undefined && e.options.key === 'turn-error' && (e.options.priority === undefined || e.options.priority === 0))[0]
+              const shipped = slots.entries('conversation.chat.node').filter((e) => e !== null && e !== undefined && e.options !== undefined && e.options.key === key && (e.options.priority === undefined || e.options.priority === 0))[0]
               if (shipped === undefined || shipped.component === null || shipped.component === undefined) return
-              unregister = slots.register(Object.assign({ name: 'conversation.chat.node', key: 'turn-error', priority: -1 }, shipped.locale !== undefined ? { locale: shipped.locale } : {}), turnErrorRow(shipped.component))
+              unregister = slots.register(Object.assign({ name: 'conversation.chat.node', key: key, priority: -1 }, shipped.locale !== undefined ? { locale: shipped.locale } : {}), wrap(shipped.component))
             } catch (e) { unregister = null /* the shipped row stays: nothing is lost */ }
           }
           attach()
@@ -2879,7 +2925,9 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             try { if (unregister !== null) unregister() } catch (e) { /* gone */ }
             unregister = null
           }
-        }), 'kybernos-cloud: failure row of a turn')
+        }
+        ctx.effect(() => slots.inject('conversation.chat.node', wrapKeyedRow('turn-error', turnErrorRow)), 'kybernos-cloud: failure row of a turn')
+        ctx.effect(() => slots.inject('conversation.chat.node', wrapKeyedRow('model-retry', modelRetryRow)), 'kybernos-cloud: model retry row')
 
         // ── The « Kybernos » section of DSH's Settings ────────────────────────────────────────────────────────────
         // What stays on THIS computer: the custom instructions (a marked section of <DSH home>/AGENTS.md, read by every agent), the re-import of the active

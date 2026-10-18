@@ -781,7 +781,9 @@ clicks:
   focused by the page after the first focus. (The signed-out menu is a portal on `<body>`: without this it was out of the Tab order's reach.)
 - **Connected** (the status route is answered in the page): the profile row, the menu's skeleton, **Team settings, Account and Referral asking
   the host for a console link** (`section: plan`, `overview`, `overview`, on the active workspace, `open: true`; nothing is drawn in DSH's content
-  zone; what is said when it is refused).
+  zone; what is said when it is refused). **The gift card's « Open the referral page »** (opened by its window event `kybernos:menu:gift`, since the icon row is zero-size and hidden)
+  asks the footer the same way (`section: referral`, `open: true`, the active workspace: the card closes and the footer says what happened, also for a server that does not answer);
+  signed out, the link is followed (not cancelled) to `<web>/account#referral`.
 - **No frame** (the read-only copy of the account pages that DSH used to draw in its content zone is gone: `docs/dev/frame-removal.md`): the scenes that opened it
   through `window.__kbOpenWsConsole(<page>)`, against console stand-ins and the sandbox host's relay route, are gone with it. What stays is the proof that nothing is
   drawn: no `[data-kb="ws-console"]` after Team settings, Account or Referral. The menu's Account entry asks the host for the console link itself, a refusal is said above

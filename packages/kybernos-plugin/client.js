@@ -1285,8 +1285,8 @@ let kbLocaleRead = () => 'en'
       'kbui.fb.saved': { kybernos: 'Enregistré sur cet ordinateur. Rien n’a été envoyé.', en: 'Saved on this computer. Nothing was sent.' },
       'kbui.fb.export': { kybernos: 'Copier les retours enregistrés', en: 'Copy saved feedback' },
       'kbui.fb.exporting': { kybernos: 'Copie…', en: 'Copying…' },
-      'kbui.fb.copied.one': { kybernos: 'Copié : 1 retour. Rien n’a été envoyé : colle-le toi-même dans un message à l’équipe Kybernos.', en: 'Copied: 1 entry. Nothing was sent: paste it into a message to the Kybernos team yourself.' },
-      'kbui.fb.copied.many': { kybernos: 'Copié : {n} retours. Rien n’a été envoyé : colle-les toi-même dans un message à l’équipe Kybernos.', en: 'Copied: {n} entries. Nothing was sent: paste them into a message to the Kybernos team yourself.' },
+      'kbui.fb.copied.one': { kybernos: 'Copié : 1 retour. Rien n’a été envoyé : colle-le toi-même dans un message à contact@kybernos.app.', en: 'Copied: 1 entry. Nothing was sent: paste it into a message to contact@kybernos.app yourself.' },
+      'kbui.fb.copied.many': { kybernos: 'Copié : {n} retours. Rien n’a été envoyé : colle-les toi-même dans un message à contact@kybernos.app.', en: 'Copied: {n} entries. Nothing was sent: paste them into a message to contact@kybernos.app yourself.' },
       // « Send » (a signed-in person's way to the team): the sentences of what the relay answered. Each failure says that NOTHING was sent, or what is kept.
       'kbui.fb.send': { kybernos: 'Envoyer à l’équipe Kybernos', en: 'Send to the Kybernos team' },
       'kbui.fb.sending': { kybernos: 'Envoi…', en: 'Sending…' },
@@ -1304,7 +1304,7 @@ let kbLocaleRead = () => 'en'
       'kbui.fb.err.local': { kybernos: 'Rien n’a été envoyé : cette page n’a pas pu joindre le DSH de cet ordinateur.', en: 'Nothing was sent: this page could not reach the DSH on this computer.' },
       'kbui.fb.err.kept': { kybernos: 'Ton texte est gardé sur cet ordinateur et repartira avec ton prochain retour.', en: 'Your text is kept on this computer and goes out again with your next report.' },
       'kbui.fb.hint.signedin': { kybernos: 'Envoyer partage ce message avec l’équipe Kybernos (et les détails techniques, si tu les as cochés). Enregistrer le garde seulement sur cet ordinateur.', en: 'Send shares this message with the Kybernos team (and the technical details, if ticked). Save keeps it on this computer only.' },
-      'kbui.fb.hint.signedout': { kybernos: 'Tu n’es pas connecté à Kybernos : rien ne peut être envoyé d’ici. Enregistrer garde ton texte sur cet ordinateur seulement ; Copier les retours enregistrés les met dans le presse-papiers pour que tu les transmettes toi-même à l’équipe (l’entrée Aide de ce menu ouvre le site d’aide Kybernos). Connecte-toi pour les envoyer directement.', en: 'You are not signed in to Kybernos, so nothing can be sent from here. Save keeps your text on this computer only; Copy saved feedback puts it on your clipboard so you can pass it to the team yourself (Help, in this menu, opens the Kybernos help site). Sign in to send it directly.' },
+      'kbui.fb.hint.signedout': { kybernos: 'Tu n’es pas connecté à Kybernos : rien ne peut être envoyé d’ici. Enregistrer garde ton texte sur cet ordinateur seulement ; Copier les retours enregistrés les met dans le presse-papiers pour que tu les envoies toi-même à contact@kybernos.app. Connecte-toi pour les envoyer directement.', en: 'You are not signed in to Kybernos, so nothing can be sent from here. Save keeps your text on this computer only; Copy saved feedback puts it on your clipboard so you can send it yourself to contact@kybernos.app. Sign in to send it directly.' },
       'kbui.fb.empty': { kybernos: 'Aucun retour enregistré pour l’instant.', en: 'No feedback saved yet.' },
       'kbui.fb.copyfail': { kybernos: 'Copie impossible ici : sélectionne le texte ci-dessous.', en: 'Could not copy here: select the text below.' },
       'kbui.fb.fail': { kybernos: 'Enregistrement impossible. Rien n’a été écrit.', en: 'Could not save. Nothing was written.' },
@@ -29721,6 +29721,20 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
     //    en un clic, et le lien vers la page qui reste au pied de la carte. ──
     // The referral card lives on the server's account page (`<web>/account`); the server's own host, never a legacy web app's.
     const kbReferralPage = () => kbServer.web.replace(/\/+$/, '') + '/account'
+    // Where the card's « Open the referral page » link goes when nobody claims the request below: the Referral page of the app (the app follows the hash, and keeps it through its own
+    // sign-in). The plain address stays for what is handed out (the share fallbacks).
+    const kbReferralPageHref = () => kbReferralPage() + '#referral'
+    // <kb-referral-open>
+    /** The card's « Open the referral page »: the footer (kybernos-cloud) owns the single-use console link, which the HOST asks for and opens in the system browser, signed in, on the
+     *  page the profile menu's Referral entry opens. The card asks it with a window event it may cancel; it cancels when the account is connected. True: the footer took it (the card
+     *  must not follow its own link). False: nobody did (signed out, no footer, no events): the link is followed, and the server's own sign-in answers. */
+    const kbReferralOpenAsk = (section) => {
+      try {
+        const ask = new CustomEvent('kybernos-cloud:account', { cancelable: true, detail: { section: section } })
+        return window.dispatchEvent(ask) === false
+      } catch (e) { return false }
+    }
+    // </kb-referral-open>
     // Le code et le lien sont ceux de la page de parrainage, qui les tient d'une
     // session WEB Kybernos (fonction Supabase `kybernos-referral-info`, mesuree
     // le 24/09/2026 : 401 sans JWT web) que le plugin n'a pas — et l'API n'expose
@@ -29820,10 +29834,9 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
         setCopied('')
         setOpen(true)
       }
-      // Ouverture depuis le MENU UNIFIÉ du pied (refonte 30/09, maquette
-      // « Menu ouvert ») : l'entrée « Parrainage » de kybernos-cloud déclenche
-      // le même geste que le cadeau, mais en GRAND et CENTRÉ — même carte,
-      // autre pose (variante `kbu-rel-grand`).
+      // Opening from a window event, BIG and CENTRED (variant `kbu-rel-grand`): the way the unified footer menu's Referral entry used to open this card. That entry now opens the app's
+      // Referral page in the browser, so nothing in the repos sends `kybernos:menu:gift` any more, and the icon row (the gift button) is zero-size and hidden: the card cannot be
+      // reached by a person today.
       React.useEffect(() => {
         const ouvrir = () => {
           setGrand(true)
@@ -29956,7 +29969,10 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
           h('button', { type: 'button', className: 'kbu-rel-share', onClick: partager }, Icon('link', 15), kbt('menu.referral.share')),
           h('button', { type: 'button', className: 'kbu-rel-ghost', onClick: () => copier('link') }, copied === 'link' ? kbt('menu.referral.copied') : kbt('menu.referral.copylink'))),
         h('div', { className: 'kbu-rel-foot' },
-          h('a', { className: 'kbu-rel-open', href: kbReferralPage(), target: '_blank', rel: 'noreferrer noopener' },
+          h('a', {
+            className: 'kbu-rel-open', href: kbReferralPageHref(), target: '_blank', rel: 'noreferrer noopener',
+            onClick: (e) => { if (kbReferralOpenAsk('referral') === true) { e.preventDefault(); setOpen(false) } },
+          },
             kbt('menu.referral.openpage'), Icon('chevronRight', 13)),
           (aCode === true && editing === false)
             ? h('button', { type: 'button', className: 'kbu-rel-edit', onClick: () => { setEditing(true); setDraft(rel.link !== '' ? rel.link : rel.code) } }, kbt('menu.referral.change'))

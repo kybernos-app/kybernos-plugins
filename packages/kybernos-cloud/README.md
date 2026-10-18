@@ -80,7 +80,16 @@ full ids stay in the detail route.
 - **The failure row of a turn** (`conversation.chat.node`, key `turn-error`): the engine documents that a later entry for a key shadows the shipped one, so the plugin wraps the
   SHIPPED row (found in the slot's entries, registered at the lowest priority with the shipped entry's own locale). `no adapter registered for provider "kybernos"` (the cloud models
   are gone: the connection ended or was never made) and `QUOTA` on a team with no plan are drawn by the shipped row with a sentence and an action beside it (« Sign in again »,
-  « Choose a plan »); every other failure is the shipped row, untouched. The « Retrying model request (n/m) » row is another keyed entry (`model-retry`) and is not touched.
+  « Choose a plan »); every other failure is the shipped row, untouched.
+- **The retry row of a turn** (`conversation.chat.node`, key `model-retry`, wrapped the same way): while the account server is down a chat showed only the engine's « Retrying model
+  request (n/m) · 12s ». When the retry is of the `kybernos` route (the `provider` of the engine's `llm/retry` event), the attempt is waiting, and the host's `/quota` read answers
+  `{ ok: false, error: 'injoignable', server: { name, host, can_switch } }` (neither of its two server reads got an answer; the footer reads it every two minutes anyway, the row reads it
+  once per attempt), the engine's label is replaced by « The Kybernos server “X” (host) is not answering: DSH keeps retrying » (the count and the countdown are still the engine's), with
+  « Switch server » beside it when the registry names another server. Another provider's retry, an attempt that started or was cancelled, a server that answers or refuses, a session
+  the server ended, or a host that does not answer: the shipped row, untouched, and no read at all unless the first two hold.
+- **A page of the account asked for by another plugin** (`window` event `kybernos-cloud:account`, `detail: { section }`, cancelable): the footer claims it (cancels it) when the account
+  is connected and opens that page with the same console link as its menu entries (`section`, `open: true`, the active team); a request it does not claim (signed out, no footer) is left
+  to the sender. The core plugin's gift card uses it for « Open the referral page » (and falls back to `<web>/account#referral`, which the app keeps through its own sign-in).
 
 ## The Team console in DSH: gone
 

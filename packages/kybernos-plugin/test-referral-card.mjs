@@ -57,6 +57,40 @@ console.log('the card')
   check('the offer is read at every opening of the card, not once for good (the owner may start or end one while DSH runs)', /\}, \[open\]\)/.test(gift.slice(gift.indexOf("fetch('/kybernos-cloud/referral'"))))
 }
 
+console.log('the link to the referral page')
+{
+  // « Open the referral page » was a plain link to `<web>/account`: signed out in the browser, and the Overview instead of the Referral page. The footer (kybernos-cloud) owns the single-use
+  // console link, so the card asks it with a window event it may cancel; a request nobody claims (signed out, no footer) is served by the link itself, the server's own sign-in.
+  const c = SRC.indexOf('// <kb-referral-open>')
+  const d = SRC.indexOf('// </kb-referral-open>', c)
+  check('the helper can be cut out of client.js', c > 0 && d > c)
+  if (c > 0 && d > c) {
+    const { kbReferralOpenAsk } = new Function(SRC.slice(c, d) + '\nreturn { kbReferralOpenAsk }')()
+    const sent = []
+    const realCustomEvent = globalThis.CustomEvent
+    // A window that has a footer listening: it claims (cancels) the request.
+    globalThis.window = { dispatchEvent: (ev) => { sent.push({ type: ev.type, detail: ev.detail, cancelable: ev.cancelable }); ev.preventDefault(); return !ev.defaultPrevented } }
+    globalThis.CustomEvent = class { constructor (type, init) { this.type = type; this.detail = init && init.detail; this.cancelable = init && init.cancelable === true; this.defaultPrevented = false } preventDefault () { if (this.cancelable) this.defaultPrevented = true } }
+    check('a footer that claims the request: the card\'s link must not be followed', kbReferralOpenAsk('referral') === true)
+    check('it asks for the Referral page, with a request the footer can cancel', sent.length === 1 && sent[0].type === 'kybernos-cloud:account' && sent[0].detail.section === 'referral' && sent[0].cancelable === true, sent)
+    // Nobody listening (signed out, or no footer): the event is not cancelled, the link is followed.
+    globalThis.window = { dispatchEvent: () => true }
+    check('nobody claims it: the link is followed (the server\'s sign-in)', kbReferralOpenAsk('referral') === false)
+    // A window that cannot dispatch at all, or an environment without CustomEvent: the link is followed, nothing throws.
+    globalThis.window = { dispatchEvent: () => { throw new Error('no events') } }
+    check('a window that cannot dispatch: the link is followed', kbReferralOpenAsk('referral') === false)
+    delete globalThis.CustomEvent
+    globalThis.window = { dispatchEvent: () => false }
+    check('no CustomEvent: the link is followed', kbReferralOpenAsk('referral') === false)
+    delete globalThis.window
+    globalThis.CustomEvent = realCustomEvent
+  }
+  const gift = SRC.slice(SRC.indexOf('const KbReferralGift = () => {'), SRC.indexOf('// ── The feedback form (V-10)'))
+  check('the footer link of the card asks the footer first, and keeps its own address for what nobody claims', /className: 'kbu-rel-open', href: kbReferralPageHref\(\), target: '_blank', rel: 'noreferrer noopener',\s*onClick: \(e\) => \{ if \(kbReferralOpenAsk\('referral'\) === true\) \{ e\.preventDefault\(\); setOpen\(false\) \} \}/.test(gift))
+  check('the link keeps pointing at the Referral page of the app for what nobody claims', /const kbReferralPageHref = \(\) => kbReferralPage\(\) \+ '#referral'/.test(SRC))
+  check('the share fallbacks still use the plain address (an address to hand out, not a page to open)', /lienAffiche !== '' \? lienAffiche : kbReferralPage\(\)/.test(gift))
+}
+
 console.log('the sentences')
 {
   const key = (k) => new RegExp("'" + k.replace(/\./g, '\\.') + "': \\{ kybernos: '((?:[^'\\\\]|\\\\.)*)', en: '((?:[^'\\\\]|\\\\.)*)' \\}").exec(SRC)
