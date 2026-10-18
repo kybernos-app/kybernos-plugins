@@ -261,6 +261,17 @@ browser, and only that browser, is told by an in-page `fetch` stub that it holds
 that matter are also measured in a 400 px window. Exit 3 when no card is on screen or the shared tree has uncommitted edits of the plugin
 client. `check-cards-live.mjs` (sandbox only) still measures heights.
 
+## The account menu: `scripts/check-account-menu-live.mjs`
+
+```bash
+node scripts/check-account-menu-live.mjs --shots /tmp/shots
+```
+
+Real `:3080`, read-only: it swaps the `kybernos-cloud` client for this checkout's (`lib-bundle-swap.mjs`, throw-away Chrome), opens the account card at the
+foot of the sidebar and measures the menu: every label 13 px in one font (500, the name of a space 600), the small lines 11.5 px, the text of every row
+on the same x (one icon column of 28 px), rows of 36 px or less, no label cut by an ellipsis, separators of 10 px, the whole menu 600 px or less. No entry
+is pressed (the Appearance segment would change the theme). Exit 3 without a signed-in footer card or when the shared tree has uncommitted edits of the cloud client.
+
 ## The Changes chip: `scripts/check-changes-live.mjs`
 
 ```bash
