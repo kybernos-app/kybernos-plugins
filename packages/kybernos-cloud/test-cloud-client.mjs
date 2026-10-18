@@ -1008,4 +1008,86 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
   ok('retry row of a turn: the Kybernos route + a waiting attempt + a server that does not answer names the server, says DSH keeps trying, offers « Switch server »; every other provider, attempt or answer is the shipped row untouched; one look per attempt')
 }
 
+// ── The gift card's « Open the referral page » (kybernos-plugin) goes through the footer's own opener ─────────────────────────────────────────────────────────────
+// It was a plain link to `<web>/account`: signed out in the browser, and the Overview instead of the Referral page. The footer owns the console link (the single-use link the HOST
+// asks for and opens in the system browser), so the card asks IT, with a window event it may cancel: the footer claims the request when the account is connected, and does what its
+// own Referral entry does; a request it does not claim (signed out, no footer mounted) is left to the link, which opens the server's own sign-in.
+{
+  const listeners = {}
+  const realAdd = globalThis.window.addEventListener
+  const realRemove = globalThis.window.removeEventListener
+  globalThis.window.addEventListener = (type, fn) => { (listeners[type] = listeners[type] || []).push(fn) }
+  globalThis.window.removeEventListener = (type, fn) => { listeners[type] = (listeners[type] || []).filter((f) => f !== fn) }
+  globalThis.window.setTimeout = setTimeout
+  globalThis.window.clearTimeout = clearTimeout
+  const connected = { ok: true, connected: true, state: { user: { email: 'dev@example.test', plan: 'free' }, workspaces: [{ id: 'ws-1', name: 'My workspace', personal: true }], active_workspace_id: 'ws-1', space_plan: { key: 'free', label: 'Free', workspace_id: 'ws-1' } } }
+  let status = connected
+  let link = { ok: true, opened: true, expires_in: 60 }
+  const sent = []
+  globalThis.fetch = async (url, init) => {
+    const path = new URL(String(url), 'http://localhost').pathname.replace(/^.*\/kybernos-cloud/, '')
+    if (path === '/console/link') sent.push(JSON.parse(init.body))
+    const json = path === '/status' ? status : path === '/console/link' ? link : { ok: false }
+    return { ok: true, status: 200, json: async () => json }
+  }
+  const ask = (detail) => {
+    const ev = { type: 'kybernos-cloud:account', detail, defaultPrevented: false, preventDefault () { this.defaultPrevented = true } }
+    for (const fn of (listeners['kybernos-cloud:account'] || []).slice()) fn(ev)
+    return ev
+  }
+  const draw = async () => {
+    const el = element(doc)
+    const root = ReactClient.createRoot(el)
+    await act(async () => { root.render(createElement(registered.component, null)); await new Promise((r) => setTimeout(r, 30)) })
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)) })
+    return { el, root }
+  }
+  const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 30)) })
+
+  // 1. Connected: the request is claimed, and the host is asked for the Referral page of the ACTIVE team, to be opened by the host (what the profile menu's Referral entry does).
+  {
+    const { el, root } = await draw()
+    assert.equal((listeners['kybernos-cloud:account'] || []).length, 1, 'the footer listens for the request')
+    sent.length = 0
+    const ev = ask({ section: 'referral' })
+    await settle()
+    assert.equal(ev.defaultPrevented, true, 'claimed: the card must not follow its own link')
+    assert.deepEqual(sent, [{ section: 'referral', open: true, workspace_id: 'ws-1' }], 'one console link, the Referral page, opened by the host, for the active team')
+    assert.ok(htmlDe(el).includes('class="kbfp-flashtext">Your account page is opening in your browser.'), 'and the person is told that it is opening')
+    // The server does not answer: the same notice as for the menu's entries, naming the server (nothing is opened, and the card does not fall back to a link that would not help).
+    link = { ok: false, error: 'injoignable', server: { name: 'Kybernos (local)', host: 'localhost:8851', can_switch: true } }
+    const down = ask({ section: 'referral' })
+    await settle()
+    assert.equal(down.defaultPrevented, true)
+    assert.ok(htmlDe(el).includes('the server “Kybernos (local)” (localhost:8851) does not answer.') && htmlDe(el).includes('>Switch server<'), 'a server that does not answer is named, with the way to another one: ' + htmlDe(el).slice(0, 300))
+    link = { ok: true, opened: true, expires_in: 60 }
+    // A request that names no section, or one that is not a page name, is not ours to open.
+    for (const odd of [undefined, null, {}, { section: 7 }, { section: '' }, { section: '../x' }, { section: 'a b' }]) {
+      sent.length = 0
+      const e = ask(odd)
+      await settle()
+      assert.equal(e.defaultPrevented, false, 'not claimed: ' + JSON.stringify(odd))
+      assert.deepEqual(sent, [], 'and nothing asked of the host')
+    }
+    await act(async () => { root.unmount() })
+    assert.equal((listeners['kybernos-cloud:account'] || []).length, 0, 'the footer stops listening when it goes')
+  }
+  // 2. Signed out: not claimed (there is no device token to ask a link with): the card's own link opens the server\'s sign-in.
+  {
+    status = { ok: true, connected: false, status: 'none' }
+    const { root } = await draw()
+    sent.length = 0
+    const ev = ask({ section: 'referral' })
+    await settle()
+    assert.equal(ev.defaultPrevented, false, 'signed out: left to the link')
+    assert.deepEqual(sent, [], 'no console link asked')
+    await act(async () => { root.unmount() })
+  }
+  globalThis.window.addEventListener = realAdd
+  globalThis.window.removeEventListener = realRemove
+  assert.equal((source.match(/callLocal\('\/console\/link'/g) || []).length, 2, 'still two call sites of the console link: the gift card goes through the footer\'s')
+  assert.ok(/addEventListener\('kybernos-cloud:account'/.test(source), 'the footer listens for the request')
+  ok('footer: the gift card\'s request for an account page is claimed when connected (the Referral page of the active team, opened by the host, a down server named) and left alone when signed out')
+}
+
 console.log('\n' + pass + ' verifications OK')

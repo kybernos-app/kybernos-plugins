@@ -29721,6 +29721,20 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
     //    en un clic, et le lien vers la page qui reste au pied de la carte. ──
     // The referral card lives on the server's account page (`<web>/account`); the server's own host, never a legacy web app's.
     const kbReferralPage = () => kbServer.web.replace(/\/+$/, '') + '/account'
+    // Where the card's « Open the referral page » link goes when nobody claims the request below: the Referral page of the app (the app follows the hash, and keeps it through its own
+    // sign-in). The plain address stays for what is handed out (the share fallbacks).
+    const kbReferralPageHref = () => kbReferralPage() + '#referral'
+    // <kb-referral-open>
+    /** The card's « Open the referral page »: the footer (kybernos-cloud) owns the single-use console link, which the HOST asks for and opens in the system browser, signed in, on the
+     *  page the profile menu's Referral entry opens. The card asks it with a window event it may cancel; it cancels when the account is connected. True: the footer took it (the card
+     *  must not follow its own link). False: nobody did (signed out, no footer, no events): the link is followed, and the server's own sign-in answers. */
+    const kbReferralOpenAsk = (section) => {
+      try {
+        const ask = new CustomEvent('kybernos-cloud:account', { cancelable: true, detail: { section: section } })
+        return window.dispatchEvent(ask) === false
+      } catch (e) { return false }
+    }
+    // </kb-referral-open>
     // Le code et le lien sont ceux de la page de parrainage, qui les tient d'une
     // session WEB Kybernos (fonction Supabase `kybernos-referral-info`, mesuree
     // le 24/09/2026 : 401 sans JWT web) que le plugin n'a pas — et l'API n'expose
@@ -29820,10 +29834,9 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
         setCopied('')
         setOpen(true)
       }
-      // Ouverture depuis le MENU UNIFIÉ du pied (refonte 30/09, maquette
-      // « Menu ouvert ») : l'entrée « Parrainage » de kybernos-cloud déclenche
-      // le même geste que le cadeau, mais en GRAND et CENTRÉ — même carte,
-      // autre pose (variante `kbu-rel-grand`).
+      // Opening from a window event, BIG and CENTRED (variant `kbu-rel-grand`): the way the unified footer menu's Referral entry used to open this card. That entry now opens the app's
+      // Referral page in the browser, so nothing in the repos sends `kybernos:menu:gift` any more, and the icon row (the gift button) is zero-size and hidden: the card cannot be
+      // reached by a person today.
       React.useEffect(() => {
         const ouvrir = () => {
           setGrand(true)
@@ -29956,7 +29969,10 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
           h('button', { type: 'button', className: 'kbu-rel-share', onClick: partager }, Icon('link', 15), kbt('menu.referral.share')),
           h('button', { type: 'button', className: 'kbu-rel-ghost', onClick: () => copier('link') }, copied === 'link' ? kbt('menu.referral.copied') : kbt('menu.referral.copylink'))),
         h('div', { className: 'kbu-rel-foot' },
-          h('a', { className: 'kbu-rel-open', href: kbReferralPage(), target: '_blank', rel: 'noreferrer noopener' },
+          h('a', {
+            className: 'kbu-rel-open', href: kbReferralPageHref(), target: '_blank', rel: 'noreferrer noopener',
+            onClick: (e) => { if (kbReferralOpenAsk('referral') === true) { e.preventDefault(); setOpen(false) } },
+          },
             kbt('menu.referral.openpage'), Icon('chevronRight', 13)),
           (aCode === true && editing === false)
             ? h('button', { type: 'button', className: 'kbu-rel-edit', onClick: () => { setEditing(true); setDraft(rel.link !== '' ? rel.link : rel.code) } }, kbt('menu.referral.change'))

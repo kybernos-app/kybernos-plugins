@@ -87,6 +87,9 @@ full ids stay in the detail route.
   once per attempt), the engine's label is replaced by « The Kybernos server “X” (host) is not answering: DSH keeps retrying » (the count and the countdown are still the engine's), with
   « Switch server » beside it when the registry names another server. Another provider's retry, an attempt that started or was cancelled, a server that answers or refuses, a session
   the server ended, or a host that does not answer: the shipped row, untouched, and no read at all unless the first two hold.
+- **A page of the account asked for by another plugin** (`window` event `kybernos-cloud:account`, `detail: { section }`, cancelable): the footer claims it (cancels it) when the account
+  is connected and opens that page with the same console link as its menu entries (`section`, `open: true`, the active team); a request it does not claim (signed out, no footer) is left
+  to the sender. The core plugin's gift card uses it for « Open the referral page » (and falls back to `<web>/account#referral`, which the app keeps through its own sign-in).
 
 ## The Team console in DSH: gone
 

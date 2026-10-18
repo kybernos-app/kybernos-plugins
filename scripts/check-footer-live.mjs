@@ -499,6 +499,60 @@ try {
     await reload()
     await openProfileMenu()
 
+    // ── The gift card's « Open the referral page »: the same opener as the profile menu's Referral entry ─────────────────────────────────────────────────────
+    // It was a plain link to `<web>/account` (signed out in the browser, and the Overview). Connected, it now asks the footer, which asks the host for the single-use console link on the
+    // Referral page and has the host open the system browser; signed out, the link is followed (the server's own sign-in, on the Referral page once signed in). The click's default is
+    // read in the page (a listener on the document runs after React's) and then cancelled, so no tab ever opens here.
+    console.log('The gift card — « Open the referral page »')
+    const giftOpen = async () => {
+      await key('Escape', 'Escape')
+      await val(`(() => { window.__kbClick = null; document.addEventListener('click', (e) => { const a = e.target && e.target.closest ? e.target.closest('.kbu-rel-open') : null; if (a) { window.__kbClick = { prevented: e.defaultPrevented, href: a.getAttribute('href') }; e.preventDefault() } }, false) })()`)
+      // The icon row is zero-size and hidden (the menu took its gestures over), so the card opens the way it was made to open from the menu: by its window event.
+      await val(`window.dispatchEvent(new Event('kybernos:menu:gift'))`)
+      await until(() => exists('#kbu-referral-pop .kbu-rel-open'), 6000)
+      await settle()
+    }
+    const giftClicked = () => val('window.__kbClick')
+    for (const [label, link, wantFlash] of [
+      ['connected', null, /Your account page is opening/],
+      ['connected, the server does not answer', { ok: false, status: 0, error: 'injoignable', server: { name: 'Kybernos (local)', host: 'localhost:8851', can_switch: true } }, /“Kybernos \(local\)”.*localhost:8851.*does not answer/],
+    ]) {
+      fake.status = CLOUD(W_PERSONAL)
+      fake.link = link
+      fake.bodies.length = 0
+      await reload()
+      await giftOpen()
+      await shot('gift-card-' + (link === null ? 'ok' : 'down'))
+      await press('#kbu-referral-pop .kbu-rel-open')
+      await until(() => linkAsks().length >= 1, 5000)
+      await until(() => exists('[data-kb="foot-flash"]'), 5000)
+      await settle()
+      const asked = linkAsks()
+      check(label + ': the gift card asks the host for the Referral page, for the active workspace, opened by the host (what the menu\'s Referral entry sends)',
+        asked.length === 1 && asked[0].body.section === 'referral' && asked[0].body.open === true && asked[0].body.workspace_id === W_PERSONAL, asked)
+      const clicked = await giftClicked()
+      check(label + ': the card\'s own link is not followed (the footer took the request) and the card closes so the notice shows', clicked !== null && clicked !== undefined && clicked.prevented === true && !(await exists('#kbu-referral-pop')), clicked)
+      const said = (await text('[data-kb="foot-flash"]')) || ''
+      check(label + ': the footer says what happened', wantFlash.test(said), said)
+      check(label + ': no page was opened by the page itself', (await openedCount()) === 0, await opened())
+    }
+    fake.link = null
+    // Signed out: nothing to sign a link with, so the request is not claimed and the link is the card's own, on the Referral page of the server.
+    fake.status = { ok: true, connected: false, status: 'none' }
+    fake.bodies.length = 0
+    await reload()
+    await giftOpen()
+    await press('#kbu-referral-pop .kbu-rel-open')
+    await until(() => giftClicked(), 4000)
+    await settle()
+    const out = await giftClicked()
+    check('signed out: the link is followed (not cancelled), to the server\'s Referral page', out !== null && out !== undefined && out.prevented === false && /^https?:\/\/[^/]+\/account#referral$/.test(String(out.href)), out)
+    check('signed out: the host is not asked for a console link', linkAsks().length === 0, linkAsks())
+    fake.status = CLOUD(W_PERSONAL)
+    fake.bodies.length = 0
+    await reload()
+    await openProfileMenu()
+
     // ── Upgrade (V-40): the plan page of the app, in the browser ───────────────────────────────────────────────────────────────────────────────────────────
     // An entry for a plan that has something above it: Plus is offered it, Pro (the top level) and a paid Team plan are not, Free has its pill (and the dialog).
     // It asks the host for the console link on the PLAN page of the active workspace, like Team settings: nothing is bought, nothing is drawn in DSH.

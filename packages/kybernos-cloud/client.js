@@ -2601,6 +2601,20 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             window.addEventListener('kybernos-cloud:plan', plan)
             return () => window.removeEventListener('kybernos-cloud:plan', plan)
           }, [])
+          // Another plugin asks for a page of the account (the gift card of the footer's icons: « Open the referral page »): a window event it may cancel. It is CLAIMED (cancelled) only
+          // when the account is connected, because only then can the host sign the person in and open the page; a request left alone is the sender's to serve with its own link, which
+          // opens the server's sign-in. The page is the one the menu's entry opens (`section`, a short page name: the host checks it again), for the active team.
+          const activeSpace = typeof state.active_workspace_id === 'string' ? state.active_workspace_id : undefined
+          React.useEffect(() => {
+            const account = (ev) => {
+              const section = ev !== null && ev !== undefined && ev.detail !== null && ev.detail !== undefined && typeof ev.detail.section === 'string' ? ev.detail.section : ''
+              if (phase !== 'connected' || /^[a-z][a-z0-9-]{0,31}$/.test(section) !== true) return
+              try { ev.preventDefault() } catch (e) { /* not cancelable: the sender serves it too */ }
+              openAccountPage(section, activeSpace)
+            }
+            window.addEventListener('kybernos-cloud:account', account)
+            return () => window.removeEventListener('kybernos-cloud:account', account)
+          }, [phase, activeSpace])
           // A team that was created WITHOUT a plan did not take over (the host left the person where they were): say so, and offer its plan page.
           const announceCreated = (res) => {
             const made = res !== null && res !== undefined && res.created !== null && typeof res.created === 'object' ? res.created : null
