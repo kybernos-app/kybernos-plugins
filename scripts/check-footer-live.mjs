@@ -70,7 +70,7 @@ const PLANS = { ok: true, credits_per_usd: 3680, tax_basis: 'exclusive', plans: 
 // The phone link's own status route (kybernos-mobile): offered, with two phones already linked, unless a scene says otherwise.
 const REMOTE_OFFERED = { ok: true, available: true, running: true, connected: true, configured: true, entitled: true, relay: 'idle', pairing: null, max_devices: 5,
   devices: [{ id: 'd1', label: 'Pixel 9', online: true, state: 'serving' }, { id: 'd2', label: 'iPhone', online: false, state: 'offline' }] }
-const fake = { status: null, calls: [], bodies: [], pair: null, plans: null, plansDelay: 0, checkout: null, portal: null, quote: null, link: null, pairingPending: false, start: null, remote: REMOTE_OFFERED, sync: null, push: null }
+const fake = { quota: null, summary: null, active: null, appliedFn: null, status: null, calls: [], bodies: [], pair: null, plans: null, plansDelay: 0, checkout: null, portal: null, quote: null, link: null, pairingPending: false, start: null, remote: REMOTE_OFFERED, sync: null, push: null }
 const body64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64')
 
 const agentsBefore = existsSync(join(DSH_HOME, 'AGENTS.md')) ? readFileSync(join(DSH_HOME, 'AGENTS.md'), 'utf8') : null
@@ -148,6 +148,11 @@ const answerFor = (path, req) => {
     return { body: set === null ? { ok: false, status: 501, error: 'billing_disabled' } : (typeof set === 'function' ? set() : set) }
   }
   if (path === '/kybernos-cloud/plans/quote' && fake.quote !== null) { const u = new URL(req.url); fake.calls.push('quote:' + u.search); return { body: fake.quote(u.searchParams) } }
+  // The team menu's reads and the choice of a team (the Teams menu scenes): answered here when a scene gives them, by the sandbox's own host otherwise.
+  if (path === '/kybernos-cloud/quota' && fake.quota !== null) { fake.calls.push('quota'); return { body: fake.quota } }
+  if (path === '/kybernos-cloud/spaces/summary' && fake.summary !== null) { fake.calls.push('summary'); return { body: fake.summary } }
+  if (path === '/kybernos-cloud/space/active' && fake.active !== null) { fake.calls.push('active'); fake.bodies.push({ path, body: sent() }); return fake.active(sent().workspace_id) }
+  if (path === '/kybernos-cloud/space/applied' && fake.appliedFn !== null) { fake.calls.push('applied'); return { body: fake.appliedFn(sent().workspace_id) } }
   if (path === '/kybernos-cloud/refresh') { fake.calls.push('refresh'); return { body: { ok: true } } }
   if (path === '/kybernos-cloud/models/sync' && fake.sync !== null) { fake.calls.push('models-sync'); return { body: fake.sync } }
   if (path === '/kybernos-cloud/chats/push' && fake.push !== null) { fake.calls.push('chats-push'); return { body: fake.push } }
@@ -430,8 +435,9 @@ try {
     await shot('6-connected-row')
     await openProfileMenu()
     const list = await entries('.kbfp-menu')
-    check('the menu keeps its skeleton: header, plan, Team settings, Account, Referral, Remote control, Appearance, Settings, Website, Help, Feedback, Log out',
-      JSON.stringify(list.filter((k) => k !== 'update')) === JSON.stringify(['switch', 'plan-cta', 'space-settings', 'account', 'referral', 'remote', 'appearance', 'settings', 'website', 'help', 'feedback', 'logout']), list)
+    // Two spaces here, so the list is the top of the menu itself (its rows are `space-row`, not entries); from four spaces the top row is the `switch` entry (« Teams menu » below).
+    check('the menu keeps its skeleton: the spaces, plan, Team settings, Account, Referral, Remote control, Appearance, Settings, Website, Help, Feedback, Log out',
+      JSON.stringify(list.filter((k) => k !== 'update')) === JSON.stringify(['plan-card', 'plan-cta', 'space-settings', 'account', 'referral', 'remote', 'appearance', 'settings', 'website', 'help', 'feedback', 'logout']) && (await val(`document.querySelectorAll('.kbfp-menu [data-kb="space-row"]').length`)) === 2, list)
     check('the plan row shows « Free » and Upgrade', /Free/.test((await text('.kbfp-mplan')) || '') && (await exists('[data-kb="menu-plan-cta"]')))
     await sleep(300)
     await shot('7-connected-menu')
@@ -575,7 +581,7 @@ try {
       const list = (await entries('.kbfp-menu')).filter((k) => k !== 'update')
       const at = list.indexOf('upgrade')
       check(label + ': ' + (wantEntry ? 'the menu has « Upgrade », right after the plan and before Team settings' : 'no « Upgrade » entry'),
-        (at >= 0) === wantEntry && (!wantEntry || (at === list.indexOf('switch') + 1 && list.indexOf('space-settings') === at + 1)), list)
+        (at >= 0) === wantEntry && (!wantEntry || (at === list.indexOf('plan-card') + 1 && list.indexOf('space-settings') === at + 1)), list)
       check(label + ': the Free pill is ' + (wantPill ? 'there (it opens the dialog)' : 'not there'), (await exists('[data-kb="menu-plan-cta"]')) === wantPill, list)
       if (wantEntry) { await sleep(300); await shot('v40-upgrade-entry') }
     }
@@ -987,6 +993,294 @@ try {
     await val(`(() => { const b = document.querySelector('.kbfp-menu [data-kb="menu-appearance"] button[aria-label="${startScheme === 'dark' ? 'Dark' : 'Light'}"]'); if (b) b.click() })()`)
     await until(async () => (await schemeNow()) === startScheme, 4000)
     check('and the scheme is put back', (await schemeNow()) === startScheme, { startScheme, now: await schemeNow() })
+    // ── Teams menu (plan « Équipes », steps 1, 2, 3 and 7) ────────────────────────────────────────────────────────────────────────────────────────────
+    // The account menu lists the person's spaces while there are at most three of them (Personal + 2 teams), the plan card follows the role and shows percent and bars only, a switch
+    // waits on DSH (the card says « Switching… »), and a team space has its cues where the person writes. The host's answers are given in the page (the account, the usage, the
+    // choice of a team and the « is the route applied » question); every click is real. The real wait of a switch, with the real host, is measured by the sandbox run in
+    // docs/dev/live-testing.md (« The delay of a team switch »).
+    console.log('\nTeams menu — the list of spaces, the plan card by role, the wait on a switch, the cues of a team space')
+    const T_IDS = [W_PERSONAL, W_TEAM, '33333333-3333-4333-8333-333333333333', '44444444-4444-4444-8444-444444444444', '55555555-5555-4555-8555-555555555555', '66666666-6666-4666-8666-666666666666']
+    const T_NAMES = ['Personal', 'Acme', 'Studio B', 'Nova Labs', 'Delta Co', 'Orbit']
+    const T_MEMBERS = [0, 6, 3, 12, 8, 4]
+    const T_POOL = [0, 84, 12, 75, 40, 100]
+    const win = (kind, seconds, percent, extra = {}) => ({ kind, window_seconds: seconds, scope: 'plan', used_percent: percent, exhausted: false, resets_at: null, ...extra })
+    const spaceList = (count, role) => T_IDS.slice(0, count).map((id, i) => (i === 0 ? { id, name: 'My workspace', personal: true, role: 'owner' } : { id, name: T_NAMES[i], personal: false, role }))
+    const teamsStatus = (count, role, active, extra = {}) => ({ ok: true, connected: true, state: {
+      user: { email: 'dev@example.test', name: 'Dev Person', plan: active === W_PERSONAL ? 'free' : 'team' }, workspaces: spaceList(count, role), active_workspace_id: active,
+      space_plan: active === W_PERSONAL ? { key: 'free', label: 'Free', workspace_id: active } : { key: 'team', label: 'Team', workspace_id: active }, web_url: 'https://dev.kybernos.app', device_label: 'Sandbox', ...extra } })
+    const setWorld = (count, role, active, usage, extra = {}) => {
+      const list = spaceList(count, role)
+      const now = new Date().toISOString()
+      fake.status = teamsStatus(count, role, active, extra)
+      const sp = list.find((w) => w.id === active)
+      fake.quota = { ok: true, workspace: { id: active, name: sp.name, role: sp.role, personal: sp.personal === true }, payment_blocked: false, no_plan: false, usage, server_time: now }
+      fake.summary = { ok: true, server_time: now, spaces: Object.fromEntries(list.map((w, i) => [w.id, w.personal === true
+        ? { usage: [win('member', 2592000, 3)], members: null, plan: { key: 'free', label: 'Free' } }
+        : { usage: [win('member', 18000, 10 + i), win('member', 604800, 20 + i), win('pool', 2592000, T_POOL[i], T_POOL[i] === 100 ? { exhausted: true, resets_at: new Date(Date.now() + 3 * 3600000).toISOString() } : {})], members: T_MEMBERS[i], plan: null }])) }
+    }
+    const NORMAL = [win('pool', 2592000, 40), win('member', 18000, 12), win('member', 604800, 30)]
+    const NEAR = [win('pool', 2592000, 76), win('member', 18000, 12), win('member', 604800, 30)]
+    const resetIn3h = () => new Date(Date.now() + 3 * 3600000).toISOString()
+    const FULL = () => [win('pool', 2592000, 100, { exhausted: true, resets_at: resetIn3h() }), win('member', 18000, 12), win('member', 604800, 30)]
+    const CAPPED = [win('pool', 2592000, 40), win('member', 18000, 12), win('member', 604800, 45, { scope: 'team' })]
+    const rowsOf = (scope) => val(`Array.from(document.querySelectorAll(${JSON.stringify(scope + ' [data-kb="space-row"]')})).map((r) => ({ id: r.getAttribute('data-space'), name: (r.querySelector('.kbfp-wsname') || { innerText: '' }).innerText, sub: (r.querySelector('.kbfp-wssub') || { innerText: '' }).innerText, pct: r.getAttribute('data-percent'), current: r.getAttribute('aria-current') === 'true', hue: (r.querySelector('.kbfp-wstile') || { getAttribute: () => null }).getAttribute('data-kb-hue') }))`)
+    const cardOf = () => val(`(() => { const c = document.querySelector('.kbfp-menu [data-kb="menu-plan-card"]'); if (!c) return null; return { title: (c.querySelector('.kbfp-mplanname') || { innerText: '' }).innerText, team: c.getAttribute('data-team'), rows: Array.from(c.querySelectorAll('[data-kb="menu-plan-window"]')).map((r) => ({ win: r.getAttribute('data-win'), pct: r.getAttribute('data-percent'), level: r.getAttribute('data-level'), label: r.querySelector('.kbfp-mwinhead span').innerText, note: r.querySelector('.kbfp-mwinnote').innerText.replace(/\\s+/g, ' ') })), manage: !!c.querySelector('[data-kb="menu-plan-manage"]'), credits: !!c.querySelector('[data-kb="menu-plan-credits"]'), cta: !!c.querySelector('[data-kb="menu-plan-cta"]'), text: c.innerText.replace(/\\s+/g, ' ') } })()`)
+    // WCAG contrast of an element's text on what it is really drawn over: the backgrounds of it and of its ancestors, painted in order on a canvas (so color-mix() and alpha are resolved by the browser).
+    const contrastOf = (sel) => val(`(() => { const el = document.querySelector(${JSON.stringify(sel)}); if (!el) return null
+      const cv = document.createElement('canvas'); cv.width = 1; cv.height = 1; const g = cv.getContext('2d', { willReadFrequently: true })
+      const pixel = (layers) => { g.clearRect(0, 0, 1, 1); for (const c of layers) { g.fillStyle = c; g.fillRect(0, 0, 1, 1) } const d = g.getImageData(0, 0, 1, 1).data; return [d[0], d[1], d[2]] }
+      const chain = []; for (let n = el; n; n = n.parentElement) chain.unshift(getComputedStyle(n).backgroundColor)
+      const bg = pixel(['#808080'].concat(chain)); const fg = pixel([getComputedStyle(el).color])
+      const lum = (c) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]) }
+      const a = lum(bg); const b = lum(fg); return Math.round(((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)) * 100) / 100 })()`)
+    // The scheme the page is REALLY drawn in (DSH's own mark on the body), not the attribute the core plugin keeps: the pictures and the contrast must be of the page as it looks.
+    const schemeNow2 = async () => ((await val(`document.body.hasAttribute('data-ds-dark-theme')`)) === true ? 'dark' : 'light')
+    const clickScheme = async (to) => {
+      await openProfileMenu()
+      await val(`(() => { const b = document.querySelector('.kbfp-menu [data-kb="menu-appearance"] button[aria-label="${to === 'light' ? 'Light' : 'Dark'}"]'); if (b) b.click() })()`)
+      await until(async () => (await schemeNow2()) === to, 3000)
+      await closeProfileMenu()
+    }
+    const setScheme = async (want) => {
+      if ((await schemeNow2()) === want) return
+      await clickScheme(want)
+      // The core plugin keeps its own idea of the scheme: if it already believed in the wanted one the click changes nothing, so go through the other one.
+      if ((await schemeNow2()) !== want) { await clickScheme(want === 'dark' ? 'light' : 'dark'); await clickScheme(want) }
+    }
+    fake.link = { ok: true, opened: true, expires_in: 60 }
+    const startScheme2 = await schemeNow2()
+    await setScheme('dark')
+
+    // 1. One to three spaces: the list is the top of the menu. Four and more: the top row stays « Switch team » and opens the list next to the menu.
+    for (const count of [1, 3, 4, 6]) {
+      const inline = count <= 3
+      setWorld(count, 'admin', W_PERSONAL, [win('member', 2592000, 3)])
+      await reload()
+      await openProfileMenu()
+      await sleep(400)
+      const mode = await val(`(document.querySelector('.kbfp-menu [data-kb="menu-block-teams"]') || { getAttribute: () => null }).getAttribute('data-mode')`)
+      check(count + ' space' + (count === 1 ? '' : 's') + ': ' + (inline ? 'the menu lists them itself' : 'the top row stays « Switch team »'), mode === (inline ? 'inline' : 'submenu'), mode)
+      if (inline) {
+        const rows = await rowsOf('.kbfp-menu')
+        check(count + ': one row each, the personal one active (check mark), in the order of the account', rows.length === count && rows[0].current === true && rows.slice(1).every((r) => r.current === false) && JSON.stringify(rows.map((r) => r.name)) === JSON.stringify(T_NAMES.slice(0, count)), rows)
+        check(count + ': the personal row says « you · plan », a team its role and head count (« Admin · 6 members »)', rows[0].sub === 'Dev Person · Free' && (count === 1 || (rows[1].sub === 'Admin · 6 members' && rows[1].pct === '84')), rows)
+        check(count + ': no « Switch team » row while the list is in the menu, and « Create a team » is under it', !(await exists('.kbfp-menu [data-kb="menu-switch"]')) && (await exists('.kbfp-menu [data-kb="space-create"]')) && !(await exists('.kbfp-menu [data-kb="space-join"]')))
+        if (count === 3) {
+          check('3: each team row carries its own colour, two different ones, the personal tile none', rows[1].hue !== null && rows[2].hue !== null && rows[1].hue !== rows[2].hue && rows[0].hue === null, rows.map((r) => r.hue))
+          check('3: the percent is the team\'s pool for an admin (84% and 12%), shown with a bar', JSON.stringify(rows.map((r) => r.pct)) === JSON.stringify(['3', '84', '12']) && (await val(`document.querySelectorAll('.kbfp-menu [data-kb="space-usage"] .kbfp-usebar').length`)) === 3, rows.map((r) => r.pct))
+          const text3 = (await text('.kbfp-menu [data-kb="menu-block-teams"]')) || ''
+          check('3: no dollar, euro or credit in the list', !/[$€]|credit/i.test(text3.replace(/Add credits/g, '')), text3)
+        }
+      } else {
+        check(count + ': the menu itself holds no list, the row says « Switch team »', (await rowsOf('.kbfp-menu')).length === 0 && /Switch team/.test((await text('.kbfp-menu [data-kb="menu-switch"]')) || ''))
+        await press('.kbfp-menu [data-kb="menu-switch"]')
+        await until(() => exists('.kbfp-sub [data-kb="space-row"]'), 4000)
+        await sleep(300)
+        const rows = await rowsOf('.kbfp-sub')
+        check(count + ': it opens the full list next to the menu, with every space and « Create a team »', rows.length === count && (await exists('.kbfp-sub [data-kb="space-create"]')), rows.length)
+        check(count + ': the rows carry the same role and head count', rows[1].sub === 'Admin · 6 members', rows[1])
+        const sub = await rect('.kbfp-sub')
+        check(count + ': the list fits the window', sub !== null && sub.x >= 0 && sub.y >= 0 && sub.x + sub.w <= 1400 && sub.y + sub.h <= 860, sub)
+        await shot('t-list-' + count + '-' + (await schemeNow2()))
+        await key('Escape', 'Escape')
+      }
+      if (inline) await shot('t-menu-' + count + '-' + (await schemeNow2()))
+      check(count + ': no native popover showed', (await nativeSeen()).length === 0, await nativeSeen())
+      await clean()
+    }
+
+    // 2. The plan card by role and by state: percent and bars only, the time of return only for a window that is used up.
+    for (const [role, label, usage, expect] of [
+      ['member', 'normal', NORMAL, { team: ['40', 'ok'], card: ['30', 'ok'], manage: false, credits: false, back: false }],
+      ['admin', 'normal', NORMAL, { team: ['40', 'ok'], card: ['40', 'ok'], manage: true, credits: false, back: false }],
+      ['admin', '75 %', NEAR, { team: ['76', 'near'], card: ['76', 'near'], manage: true, credits: false, back: false }],
+      ['admin', 'full', FULL(), { team: ['100', 'full'], card: ['100', 'full'], manage: true, credits: true, back: true }],
+      ['member', 'full', FULL(), { team: ['100', 'full'], card: ['100', 'full'], manage: false, credits: false, back: true }],
+      ['member', 'cap set by an admin', CAPPED, { team: ['40', 'ok'], card: ['45', 'ok'], manage: false, credits: false, back: false, cap: true }],
+      ['admin', 'cap set by an admin', CAPPED, { team: ['40', 'ok'], card: ['40', 'ok'], manage: true, credits: false, back: false, cap: true }],
+    ]) {
+      setWorld(3, role, W_TEAM, usage)
+      await reload()
+      await openProfileMenu()
+      await until(async () => (await cardOf()) !== null && (await cardOf()).rows.length > 0, 4000)
+      const c = await cardOf()
+      const who = role + ' · ' + label + ': '
+      check(who + 'the Team bar (30 days), then their own 5 hours and 7 days', c !== null && JSON.stringify(c.rows.map((r) => [r.win, r.label])) === JSON.stringify([['team', 'Team'], ['you', 'You'], ['you', 'You']]) && c.rows[0].pct === expect.team[0] && c.rows[0].level === expect.team[1], c)
+      check(who + (expect.manage ? 'Manage is there' : 'no Manage') + ', ' + (expect.credits ? 'Add credits is there (the pool is used up)' : 'no Add credits'), c !== null && c.manage === expect.manage && c.credits === expect.credits, c)
+      check(who + (expect.back ? 'the full bar says when it is back (« Back in about 3 h »)' : 'no time of return anywhere, each bar says how long its window is'), c !== null && (expect.back ? /Back in about 3.h/.test(c.rows[0].note) && c.rows[0].pct === '100' : (!/back|reset/i.test(c.text) && /Last 30 days/.test(c.rows[0].note) && /Last 5 hours/.test(c.rows[1].note) && /Last 7 days/.test(c.rows[2].note))), c && c.rows)
+      if (expect.cap === true) check(who + 'the capped window says where the cap was set', c !== null && /a cap set in Acme/.test(c.rows[2].note), c && c.rows[2])
+      check(who + 'no dollar, euro or credit amount in the card', c !== null && !/[$€]|\d+\s*credits?/i.test(c.text), c && c.text)
+      const meter = await val(`(() => { const m = document.querySelector('[data-kb="workspace-card-usage"]'); return m ? { pct: m.getAttribute('data-percent'), level: m.getAttribute('data-level') } : null })()`)
+      // The card's own meter is the window that counts for the person (an admin: the pool, a member: their own most-used window, unless the pool turns everyone away): the existing rule.
+      check(who + 'the footer card\'s meter is the window that counts for this role (' + expect.card[0] + '%, ' + expect.card[1] + ')', meter !== null && meter.pct === expect.card[0] && meter.level === expect.card[1], meter)
+      if (label === 'full' && role === 'admin') {
+        fake.bodies.length = 0
+        await press('.kbfp-menu [data-kb="menu-plan-credits"]')
+        await until(() => fake.bodies.some((b) => b.path === '/kybernos-cloud/console/link'), 4000)
+        check('admin · full: Add credits opens the web plan page of this team through the console link', fake.bodies.some((b) => b.path === '/kybernos-cloud/console/link' && b.body.section === 'plan' && b.body.workspace_id === W_TEAM && b.body.open === true), fake.bodies)
+        await openProfileMenu()
+        fake.bodies.length = 0
+        await press('.kbfp-menu [data-kb="menu-plan-manage"]')
+        await until(() => fake.bodies.some((b) => b.path === '/kybernos-cloud/console/link'), 4000)
+        check('admin · full: Manage opens the web Team settings the same way', fake.bodies.some((b) => b.path === '/kybernos-cloud/console/link' && b.body.section === 'plan' && b.body.workspace_id === W_TEAM), fake.bodies)
+        await openProfileMenu()
+      }
+      // Both schemes: the card's small text (notes, percent, subtitles, plan name) reads on the menu's surface, measured on what is really drawn.
+      if (['member · normal', 'admin · full'].includes(role + ' · ' + label)) {
+        for (const scheme of ['dark', 'light']) {
+          await setScheme(scheme)
+          if (!(await exists('.kbfp-menu'))) await openProfileMenu()
+          await until(async () => (await cardOf()) !== null && (await cardOf()).rows.length > 0, 4000)
+          await sleep(400)
+          const ratios = {}
+          for (const [name, sel] of [['note', '.kbfp-menu .kbfp-mwin .kbfp-mwinnote'], ['full note', '.kbfp-menu .kbfp-mwin[data-level="full"] .kbfp-mwinnote'], ['percent', '.kbfp-menu .kbfp-mwinhead .kbfp-usepct'], ['row subtitle', '.kbfp-menu [data-kb="space-row"] .kbfp-wssub'], ['plan name', '.kbfp-menu .kbfp-mplanname']]) ratios[name] = await contrastOf(sel)
+          check(who + scheme + ': the small text of the menu reads on its surface (contrast of every one at least 4.5)', Object.values(ratios).filter((v) => v !== null).length >= 4 && Object.values(ratios).filter((v) => v !== null).every((v) => v >= 4.5), ratios)
+          await shot('t-plan-' + role + '-' + label.replace(/[^a-z0-9]+/g, '') + '-' + scheme + '-contrast')
+          await closeProfileMenu()
+        }
+        await setScheme('dark')
+        if (!(await exists('.kbfp-menu'))) await openProfileMenu()
+      }
+      if (['member · normal', 'admin · 75 %', 'admin · full', 'member · cap set by an admin'].includes(role + ' · ' + label)) await sleep(400)
+      if (['member · normal', 'admin · 75 %', 'admin · full', 'member · cap set by an admin'].includes(role + ' · ' + label)) await shot('t-plan-' + role + '-' + label.replace(/[^a-z0-9]+/g, '') + '-' + (await schemeNow2()))
+      await clean()
+    }
+    // The personal free card: « Free », Upgrade and ONE allowance bar.
+    setWorld(3, 'admin', W_PERSONAL, [win('member', 2592000, 7)])
+    await reload()
+    await openProfileMenu()
+    await until(async () => (await cardOf()) !== null && (await cardOf()).rows.length > 0, 4000)
+    const freeCard = await cardOf()
+    check('personal · free: « Free », an Upgrade button and ONE allowance bar (Last 30 days), no Manage', freeCard !== null && freeCard.title === 'Free' && freeCard.cta === true && freeCard.manage === false && freeCard.rows.length === 1 && freeCard.rows[0].win === 'allowance' && freeCard.rows[0].pct === '7' && /Last 30 days/.test(freeCard.rows[0].note), freeCard)
+    await shot('t-plan-personal-free-' + (await schemeNow2()))
+    await clean()
+
+    // 3. A switch waits on DSH: « Switching… » on the card, the menu shut, until the host says the running route names the new team. Real clicks, the host answered in the page.
+    const switchRun = { calls: [], appliedAfter: 2, applied: 0, asked: [], doneAt: null }
+    const wireSwitch = (route, delay) => {
+      switchRun.calls.length = 0; switchRun.applied = 0; switchRun.asked.length = 0
+      fake.active = (id) => { switchRun.calls.push(id); fake.status = teamsStatus(3, 'admin', id); return { body: { ok: true, route, state: {} }, delay } }
+      fake.appliedFn = (id) => { switchRun.applied += 1; switchRun.asked.push(id); return { ok: true, applied: switchRun.applied > switchRun.appliedAfter } }
+    }
+    setWorld(3, 'admin', W_PERSONAL, [win('member', 2592000, 3)])
+    wireSwitch('written', 600)
+    await reload()
+    await openProfileMenu()
+    const t0 = Date.now()
+    await press('.kbfp-menu [data-kb="space-row"][data-space="' + W_TEAM + '"]')
+    await until(() => exists('[data-kb="workspace-card-switching"]'), 3000)
+    const early = await val(`(() => { const c = document.querySelector('[data-kb="workspace-card"]'); const s = document.querySelector('[data-kb="workspace-card-switching"]'); return { text: s ? s.innerText : null, name: (c.querySelector('.kbfp-cardname') || { innerText: '' }).innerText, busy: c.querySelector('.kbfp-cardmain').getAttribute('aria-busy'), disabled: c.querySelector('.kbfp-cardmain').disabled, meter: !!c.querySelector('[data-kb="workspace-card-usage"]'), menu: !!document.querySelector('.kbfp-menu') } })()`)
+    check('after the click the card says « Switching… » with the team that was chosen, busy and not pressable, no meter, the menu shut', early.text === 'Switching…' && early.name === 'Acme' && early.busy === 'true' && early.disabled === true && early.meter === false && early.menu === false, early)
+    await shot('t-switching-' + (await schemeNow2()))
+    await until(async () => !(await exists('[data-kb="workspace-card-switching"]')), 12000)
+    const took = Date.now() - t0
+    check('it clears once the host reported the route applied: after the host\'s own wait (600 ms here) and the questions it asked (' + switchRun.asked.length + ')', took >= 600 + 2 * 200 && switchRun.asked.length === 3 && JSON.stringify(switchRun.calls) === JSON.stringify([W_TEAM]), { took, asked: switchRun.asked, calls: switchRun.calls })
+    check('and the card is back with the team, its meter and its role', (await val(`document.querySelector('[data-kb="workspace-card"] .kbfp-cardname').innerText`)) === 'Acme' && (await until(() => exists('[data-kb="workspace-card-usage"]'), 6000)) !== false)
+    // A route the host could not rewrite: the choice is kept, and the person is told that messages may still be billed to the previous team (no waiting for a route that will not change).
+    wireSwitch('failed', 100)
+    await reload()
+    await openProfileMenu()
+    await press('.kbfp-menu [data-kb="space-row"][data-space="' + W_PERSONAL + '"]')
+    await until(() => exists('[data-kb="foot-flash"]'), 5000)
+    const notice = await text('[data-kb="foot-flash"]')
+    check('a route that could not be rewritten is said in the footer\'s notice, at once', /may still be billed to the previous team/.test(notice || '') && switchRun.asked.length === 0, { notice, asked: switchRun.asked })
+    check('and nothing is left « switching »', !(await exists('[data-kb="workspace-card-switching"]')))
+    await shot('t-switch-failed-' + (await schemeNow2()))
+    fake.active = null
+    fake.appliedFn = null
+    await clean()
+
+    // 4. The cues of a team space, in a real chat: the pill beside the other pills, « Message Acme… », the heading; none in the personal space.
+    setWorld(3, 'admin', W_TEAM, NORMAL)
+    await reload()
+    const cuesNow = () => val(`({ pills: Array.from(document.querySelectorAll('.kbcue [data-kb^="cue-"]')).map((e) => ({ kind: e.getAttribute('data-kb'), text: e.innerText, hue: e.getAttribute('data-kb-hue'), title: e.getAttribute('title') })), placeholder: Array.from(document.querySelectorAll('[data-composer-placeholder]')).map((n) => n.textContent), heading: Array.from(document.querySelectorAll('[class*="titleGroup"]')).map((g) => (g.children[0] || { textContent: '' }).textContent), accessor: window.__KB_SPACE_CUE__ === null ? null : (window.__KB_SPACE_CUE__ && window.__KB_SPACE_CUE__.heading) })`)
+    await until(async () => (await cuesNow()).pills.length > 0, 8000)
+    const teamCues = await cuesNow()
+    check('team: the memory pill is there, in the team\'s colour, saying « Team memory · personal off » (the memory cut has landed)', teamCues.pills.length === 1 && teamCues.pills[0].kind === 'cue-memory' && teamCues.pills[0].text === 'Team memory · personal off' && teamCues.pills[0].hue !== null, teamCues)
+    check('team: no folder pill (the team has no folder yet), none invented', !teamCues.pills.some((p) => p.kind === 'cue-folder'), teamCues)
+    check('team: the box says « Message Acme… » and the new chat heading « What is Acme working on? »', teamCues.placeholder.length > 0 && teamCues.placeholder.every((p) => p === 'Message Acme…') && teamCues.heading.some((h) => h === 'What is Acme working on?') && teamCues.accessor === 'What is Acme working on?', teamCues)
+    for (const scheme of ['dark', 'light']) {
+      await setScheme(scheme)
+      await sleep(300)
+      check('team · ' + scheme + ': the page really is drawn in that scheme', (await schemeNow2()) === scheme, await schemeNow2())
+      const ratio = await contrastOf('.kbcue [data-kb="cue-memory"]')
+      const tile = await contrastOf('[data-kb="workspace-card"] .kbfp-tile')
+      check('team · ' + scheme + ': the pill\'s text reads on its fill (contrast ' + ratio + ', at least 4.5) and so do the tile\'s letters (' + tile + ')', ratio !== null && ratio >= 4.5 && tile !== null && tile >= 4.5, { ratio, tile })
+      await shot('t-cue-team-' + scheme)
+    }
+    // Inside a conversation the pill sits in the composer's dock with the others: open one of the sandbox's own chats.
+    const convOpened = await val(`(() => { const s = Array.from(document.querySelectorAll('*')).find((e) => e.children.length === 0 && /^Reply with the single/.test((e.textContent || '').trim())); if (!s) return false; s.click(); return true })()`)
+    if (convOpened === true) {
+      await until(() => exists('[data-slot="conversation.composer.dock"]'), 8000)
+      await until(() => exists('[data-slot="conversation.composer.dock"] .kbcue'), 5000)
+      if (!(await exists('[data-slot="conversation.composer.dock"]'))) console.log('  ○ that conversation shows no composer dock here: the dock position is not checked')
+      else {
+      const inDock = await val(`!!document.querySelector('[data-slot="conversation.composer.dock"] .kbcue [data-kb="cue-memory"]')`)
+      const shown = await val(`(() => { const d = document.querySelector('[data-slot="conversation.composer.dock"] .kbcue'); return d ? getComputedStyle(d).display + '/' + Math.round(d.getBoundingClientRect().width) : null })()`)
+      check('in a conversation the memory pill is in the composer\'s dock, drawn (the chat\'s simple view does not hide it)', inDock === true && /^inline-flex\/[1-9]/.test(shown || ''), shown)
+      await shot('t-cue-dock-' + (await schemeNow2()))
+      }
+    } else console.log('  ○ no conversation of the sandbox to open: the dock position is not checked here')
+    await setScheme(startScheme2)
+    // A folder the host names (step 6): its pill, the path as its title.
+    setWorld(3, 'admin', W_TEAM, NORMAL, { space_folder: '/work/Acme' })
+    await reload()
+    await until(async () => (await cuesNow()).pills.some((p) => p.kind === 'cue-folder'), 8000)
+    const folderCues = await cuesNow()
+    check('a team folder the host names: the folder pill appears (« Acme folder », the path as its title)', folderCues.pills.some((p) => p.kind === 'cue-folder' && p.text === 'Acme folder' && p.title === '/work/Acme'), folderCues)
+    // The personal space: nothing, and DSH's own words come back (not ours).
+    setWorld(3, 'admin', W_PERSONAL, [win('member', 2592000, 3)])
+    await reload()
+    await sleep(1200)
+    const personalCues = await cuesNow()
+    check('personal: no pill, no accessor, DSH\'s own placeholder and a heading that is not the team\'s', personalCues.pills.length === 0 && personalCues.accessor === null && personalCues.placeholder.every((p) => !/Message Acme/.test(p)) && personalCues.heading.every((h) => !/Acme/.test(h)), personalCues)
+
+    // 5. French: the same screens in the dictionary's other language (the page's own language function is overridden for the check, DSH's stored language is never touched).
+    setWorld(3, 'admin', W_TEAM, FULL())
+    await reload()
+    await val(`(() => { window.__kbLangBefore = window.__KB_LANG_RESOLVE__; window.__KB_LANG_RESOLVE__ = () => 'kybernos' })()`)
+    await openProfileMenu()
+    await until(async () => (await cardOf()) !== null && (await cardOf()).rows.length > 0, 4000)
+    await sleep(500) // the rows' head counts come from the summary the menu reads when it opens
+    const frCard = await cardOf()
+    const frRows = await rowsOf('.kbfp-menu')
+    check('French: the card says « Équipe », « Toi », « Sur 5 heures », « Revient dans environ 3 h » and has « Gérer » and « Ajouter des crédits »', frCard !== null && frCard.rows[0].label === 'Équipe' && frCard.rows[1].label === 'Toi' && /Sur 5 heures/.test(frCard.rows[1].note) && /Revient dans environ 3.h/.test(frCard.rows[0].note) && /Gérer/.test(frCard.text) && /Ajouter des crédits/.test(frCard.text), frCard)
+    check('French: the rows say « Admin · 6 membres »', frRows.some((r) => r.sub === 'Admin · 6 membres'), frRows)
+    await shot('t-fr-plan-full')
+    await val(`(() => { window.__KB_LANG_RESOLVE__ = window.__kbLangBefore; delete window.__kbLangBefore })()`)
+    await clean()
+
+    // 6. A phone: the drawer holds the card; the menu and the list fit the window.
+    for (const count of [3, 6]) {
+      setWorld(count, 'admin', W_TEAM, NEAR)
+      await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true })
+      await reload()
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        await until(() => exists('[data-kb="workspace-card"] .kbfp-cardmain'), 15000)
+        await press('[data-kb="mobile-menu"]')
+        if (await until(async () => { const r = await rect('[data-kb="workspace-card"] .kbfp-cardmain'); return r !== null && r !== undefined && r.x >= 0 }, 4000)) break
+        await reload()
+      }
+      await openProfileMenu()
+      await sleep(400)
+      const fitsPhone = (r) => r !== null && r.x >= 0 && r.y >= 0 && r.x + r.w <= 390 && r.y + r.h <= 844
+      check('390 px · ' + count + ' spaces: the menu fits the window and holds the plan card', fitsPhone(await rect('.kbfp-menu')) && (await exists('.kbfp-menu [data-kb="menu-plan-card"]')), await rect('.kbfp-menu'))
+      if (count === 3) check('390 px · 3 spaces: the three rows are in the menu', (await rowsOf('.kbfp-menu')).length === 3)
+      await shot('t-phone-' + count + '-' + (await schemeNow2()))
+      if (count === 6) {
+        await press('.kbfp-menu [data-kb="menu-switch"]')
+        await until(() => exists('.kbfp-sub [data-kb="space-row"]'), 4000)
+        await sleep(300)
+        check('390 px · 6 spaces: the list fits the window', fitsPhone(await rect('.kbfp-sub')), await rect('.kbfp-sub'))
+        await shot('t-phone-list-6-' + (await schemeNow2()))
+      }
+      await page.send('Emulation.clearDeviceMetricsOverride', {})
+      await clean()
+    }
+    fake.quota = null
+    fake.summary = null
+    fake.link = null
+
   }
 } finally {
   // The Kybernos section writes the sandbox's own AGENTS.md: put it back as it was.

@@ -16,6 +16,7 @@ import { createServer } from 'node:http'
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { asBrowser } from './lib-session-routes-test.mjs'
 
 const TOKEN = 'kys-' + 'r'.repeat(43)
 const DEVICE_SECRET = 'secret-' + 'd'.repeat(30)
@@ -126,10 +127,10 @@ const hit = async (path, method, body) => {
   const handler = routes.get(path.split('?')[0])
   assert.ok(handler !== undefined, 'missing route ' + path)
   const res = fakeRes()
-  await handler({
+  await handler(asBrowser(path, {
     method, url: path, headers: { host: '127.0.0.1:3080', origin: 'http://127.0.0.1:3080' },
     async *[Symbol.asyncIterator]() { if (body !== undefined) yield Buffer.from(JSON.stringify(body)) },
-  }, res)
+  }), res)
   return res
 }
 const readState = () => JSON.parse(readFileSync(statePath, 'utf8'))
