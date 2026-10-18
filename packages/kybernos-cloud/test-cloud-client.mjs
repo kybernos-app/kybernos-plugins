@@ -76,7 +76,7 @@ assert.equal((clientSource.match(/callLocal\('\/console\/link'/g) || []).length,
 assert.equal((clientSource.match(/callLocal\('\/console\/link', 'POST', [^\n]*open: true/g) || []).length, 2, 'le lien de la console est ouvert par l hote (open: true), jamais par un onglet de la page')
 assert.ok(/const ouvrirAppli = \(section\) => \(\) => \{\s*setMenuOpen\(false\)\s*openAccountPage\(section, actif\)/.test(clientSource) && /section: section, open: true/.test(clientSource), 'les entrees du menu demandent un lien de console, ouvert par l hote')
 assert.ok(clientSource.includes("onSpace: ouvrirAppli('plan')"), 'Team settings ouvre la page du plan de l equipe dans le navigateur')
-assert.ok(clientSource.includes("onAccount: ouvrirAppli('overview')") && clientSource.includes("onReferral: ouvrirAppli('overview')"), 'Account et Referral ouvrent la vue d ensemble dans le navigateur')
+assert.ok(clientSource.includes("onAccount: ouvrirAppli('overview')") && clientSource.includes("onReferral: ouvrirAppli('referral')"), 'Account ouvre la vue d ensemble et Referral sa propre page (2026-10-18), dans le navigateur')
 // « Remote control »: the phone link is ONE entry of the connected menu (right after Referral), offered only when the phone link's own status route says the
 // feature is there; the footer's separate phone button is gone. The panel is the same bridge and fallback as the old button's (MobilePanel).
 {

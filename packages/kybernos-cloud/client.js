@@ -2518,8 +2518,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             const mfaNote = mfaNoteText(state.space_plan !== undefined && state.space_plan !== null ? state.space_plan.mfa : null, nomEspace, t, fmtDate)
             const planEspace = planDeEspace(state, user).label !== null ? planDeEspace(state, user).label : t('none')
             const meter = quota !== null ? quotaMeterOf(quota, t) : null
-            // « Team settings », « Account » and « Referral » open the APP, in the person's browser, signed in (the single-use console link, section `plan` or
-            // `overview`, on the active workspace). They used to open a read-only copy of it in DSH's content zone, and every change in that copy sent the person
+            // « Team settings », « Account » and « Referral » open the APP, in the person's browser, signed in (the single-use console link, section `plan`,
+            // `overview` or `referral`, on the active workspace). They used to open a read-only copy of it in DSH's content zone, and every change in that copy sent the person
             // to the browser anyway (ADR 0054, decision of 2026-10-16): the way in now says where the work happens. The copy is gone from the core bundle too
             // (docs/dev/frame-removal.md).
             const ouvrirAppli = (section) => () => {
@@ -2594,8 +2594,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                     setNewOpen(true)
                   },
                   onAccount: ouvrirAppli('overview'),
-                  // The referral card is on the account's overview page.
-                  onReferral: ouvrirAppli('overview'),
+                  // The Referral page of the app (a server that does not know it yet lands the person on Overview, where its card used to be: the host asks again).
+                  onReferral: ouvrirAppli('referral'),
                   remote: remote,
                   onRemote: () => { setMenuOpen(false); setNotifOpen(false); setMobileOpen(true) },
                   onUpgrade: () => { setMenuOpen(false); setUpgradeOpen(true) },
