@@ -144,19 +144,32 @@ Settings › Automations has two switches, kept in `$DSH_HOME/kybernos/automatio
 `GET/POST /kybernos/automation-settings` has the guards of `tasks` (same origin, and a signed session to change). The route is host
 code: it needs a DSH restart; until then the page says so and the native entry stays hidden.
 
-## The new-chat cards
+## The new-chat page
 
-On a blank chat, a dock entry (`kybernos-newchat`, order 25) shows **Build ›**, **Create ›** and the **Cloud Computer**, before the team's
-conversation starters (`kybernos-starters`, order 30), which are not touched. A template prefills the composer and never sends (a
-starter still sends). A template is offered only if the bundle it needs is installed. The Cloud Computer card and the menu row read
-`GET /kybernos-cloud/kyber` (read only) and open the Kyber page. The pure part is the `KB-NEWCHAT` block of `client.js`.
+On a blank chat, a dock entry (`kybernos-newchat`, order 25) shows a **slider of what can be made** and a one-line **Cloud Computer**,
+before the team's conversation starters (`kybernos-starters`, order 30), which are not touched. The slider holds the 13 templates in four
+chapters (Documents, Media, Apps, Automate; `KB_NC_TEMPLATES`, `KB_NC_GROUPS`). A template prefills the composer and never sends (a
+starter still sends); the person's own words are kept (`kbNcFill`). A template is offered only if the bundle it needs is installed. The
+Cloud Computer line and the menu row read `GET /kybernos-cloud/kyber` (read only) and open the Kyber page; the line keeps the state dot
+and the actions its state allows. The pure part is the `KB-NEWCHAT` block of `client.js`, tested by `test-newchat.mjs`.
 
-Colour and visuals: each card and template has an icon tile in its own colour (`hue`, 16 % tint under the glyph), and a **strip of
-drawn previews** (slides, video, image, mini-app, website, dashboard) sits under the cards: inline SVG on a gradient (`KB_NC_ART`;
-nothing fetched, no media in git), shown only when the template's bundle is installed, a click prefills the composer. The page
-headline is changed in place by a sweep on DSH's own hero (`titleGroup` / `previewBadge`; the two strings are locale keys with no
+- **Placement.** On the hero the block is drawn under the composer by CSS `order` on our own element: the dock and the composer bar are
+  `display:contents` wrappers of one flex column. (`conversation.composer.dock`, "below the card", is not drawn on the hero: the engine
+  renders it for the `composer` variant only.) The DOM order stays dock first, so the keyboard reaches the slider before the editor.
+- **One colour.** The page uses ink, greys and ONE accent: the theme's (`--dsw-alias-brand-primary`, the token Settings > Theme drives),
+  and `--dsw-radius-*` for the corners, so a theme changes the whole page. No hue table, no image, no gradient.
+- **Drawings.** Each template has a small model of its result (`KB_NC_ART`, viewBox 64 x 44): inline `rect` / `circle` / `path` carrying
+  classes (`paper`, `ink`, `acc`...) that the page's CSS fills from tokens; nothing fetched, no media in git. The little motion
+  (bars growing, lines drawing) plays on hover, focus, and when the template is lit.
+- **It listens.** The dock entry receives the composer's draft (`p.input.draft`); `kbNcDetect` lights the template the text sounds like
+  (French and English words, accents ignored, offered templates only) and the slider scrolls it into view.
+- **Slider.** Arrows (hidden in a narrow dock), mouse drag, native touch / trackpad scroll, a click on a chapter title, left / right keys,
+  a position line, right-to-left aware, no smooth scrolling under reduced motion.
+- **Not done on purpose** (no seam in the engine): an animated placeholder, a type chip, or Tab-to-adopt inside the composer.
+
+The page headline is changed in place by a sweep on DSH's own hero (`titleGroup` / `previewBadge`; the two strings are locale keys with no
 slot, and `locale.register` throws on duplicates): a different line from a pool of 28 (`kbnc.hero.<n>`, FR/EN) each time a new chat
-page appears, never the previous one, and the « Preview » badge says « Beta », small.
+page appears, never the previous one, and the « Preview » badge says « Beta », small. The K stays inline, left of the title.
 
 ## Workspace instructions
 

@@ -19,35 +19,73 @@ const src = readFileSync(join(here, 'client.js'), 'utf8')
 const a = src.indexOf('// KB-NEWCHAT-BEGIN')
 const b = src.indexOf('// KB-NEWCHAT-END')
 assert.ok(a > 0 && b > a, 'the KB-NEWCHAT block exists')
-const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_BUILD, KB_NC_CREATE, kbNcTemplates, kbNcCloud, kbNcDot, kbNcActions, kbNcRefusalKey, kbNcIsNativeSchedules, kbNcHideNative, KB_NC_HUES, kbNcTint, KB_NC_VISUALS, KB_NC_ART, KB_NC_HERO_COUNT, kbNcPickLine })')
+const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMPLATES, KB_NC_ART, KB_NC_WORDS, kbNcTemplates, kbNcSlider, kbNcDetect, kbNcFill, kbNcCloud, kbNcDot, kbNcActions, kbNcRefusalKey, kbNcIsNativeSchedules, kbNcHideNative, KB_NC_HERO_COUNT, kbNcPickLine })')
 
-// 1. templates are offered only when the bundle they need is installed
+// 1. the 13 templates, in the four chapters of the slider; each is offered only when the bundle it needs is installed
 {
-  const ids = (list) => JSON.parse(JSON.stringify(list.map((t) => t.id)))   // the arrays come from another realm
-  assert.deepEqual(ids(api.kbNcTemplates(api.KB_NC_BUILD, [])), ['website', 'automation', 'team', 'skill', 'plugin'], 'with no satellite only the core templates')
-  assert.ok(api.kbNcTemplates(api.KB_NC_BUILD, ['@local/kybernos-dashboards']).some((t) => t.id === 'dashboard'))
-  assert.ok(!api.kbNcTemplates(api.KB_NC_CREATE, ['@local/kybernos-dashboards']).some((t) => t.id === 'slides'), 'a template of another bundle stays hidden')
-  assert.deepEqual(ids(api.kbNcTemplates(api.KB_NC_CREATE, null)), ['doc', 'sheet', 'image'], 'no boot list reads as none')
-  ok('templates follow the installed bundles (never offered dead)')
+  const J = (v) => JSON.parse(JSON.stringify(v))   // the arrays come from another realm
+  const all = api.KB_NC_TEMPLATES
+  assert.equal(all.length, 13, 'the 13 templates the product really has (not more: nothing is offered that does not exist)')
+  assert.deepEqual(J(api.KB_NC_GROUPS), ['docs', 'media', 'apps', 'auto'])
+  assert.equal(new Set(all.map((t) => t.id)).size, all.length, 'ids are unique')
+  for (const t of all) assert.ok(J(api.KB_NC_GROUPS).indexOf(t.group) >= 0, t.id + ' is in a known chapter')
+  const chapters = (boot) => J(api.kbNcSlider(boot).map((g) => g.id + ':' + g.templates.map((t) => t.id).join('/')))
+  const core = ['docs:doc/sheet', 'media:image', 'apps:website', 'auto:automation/team/skill/plugin']
+  assert.deepEqual(chapters([]), core, 'with no satellite only the core templates, the chapters in order')
+  assert.deepEqual(chapters(null), core, 'no boot list reads as none')
+  assert.deepEqual(chapters(['@local/kybernos-slides', '@local/kybernos-dashboards', '@local/kybernos-motion', '@local/kybernos-miniapps', '@local/kybernos-modeleur']),
+    ['docs:slides/doc/sheet/dashboard', 'media:image/video', 'apps:website/miniapp/model3d', 'auto:automation/team/skill/plugin'], 'every satellite: all 13')
+  assert.ok(!api.kbNcSlider(['@local/kybernos-dashboards']).some((g) => g.templates.some((t) => t.id === 'slides')), 'a template of another bundle stays hidden')
+  assert.ok(api.kbNcTemplates(api.KB_NC_TEMPLATES, ['@local/kybernos-modeleur']).some((t) => t.id === 'model3d'))
+  ok('the 13 templates follow the installed bundles, in four chapters (never offered dead)')
 }
 
-// 2. every template has an icon the product draws and its two strings, in both languages
+// 2. every template has its label and its prompt in French and English, a drawing, and the chapter has a name
 {
-  const all = api.KB_NC_BUILD.concat(api.KB_NC_CREATE)
-  assert.equal(new Set(all.map((t) => t.id)).size, all.length, 'ids are unique')
-  // R-W3-02: the Build panel drew Mini-app (package) and 3D model (box) as the same cube; no two templates share a glyph
-  assert.equal(new Set(all.map((t) => t.icon)).size, all.length, 'every template has its own icon (' + all.map((t) => t.icon).join(' ') + ')')
-  // the lucide « box » and « package » both read as a cube at 16 px: they never sit in the same panel
-  assert.ok(!(all.some((t) => t.icon === 'box') && all.some((t) => t.icon === 'package')), 'box and package look alike, one panel never draws both')
-  const lucide = src.slice(src.indexOf('const LUCIDE = {'), src.indexOf('const Icon = (name, size)'))
-  for (const t of all) {
-    assert.ok(new RegExp('\\n  ' + t.icon + ':').test(lucide), 'icon ' + t.icon + ' exists')
+  for (const t of api.KB_NC_TEMPLATES) {
     for (const key of ['kbnc.t.' + t.id, 'kbnc.p.' + t.id]) {
       const m = new RegExp("'" + key.replace(/\./g, '\\.') + "': \\{ kybernos: '([^']+)', en: '([^']+)' \\}").exec(src)
       assert.ok(m !== null, key + ' has both languages')
     }
+    assert.ok(typeof api.KB_NC_ART[t.id] === 'string' && api.KB_NC_ART[t.id].length > 150, t.id + ' has its drawing')
   }
-  ok('every template has an icon and its label and prompt in French and English')
+  for (const g of api.KB_NC_GROUPS) assert.ok(new RegExp("'kbnc\\.g\\." + g + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src), 'chapter ' + g + ' has a name in both languages')
+  for (const key of ['label', 'prev', 'next']) assert.ok(new RegExp("'kbnc\\.sl\\." + key + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src), 'slider sentence ' + key)
+  // the Build / Create cards are gone, and so are their sentences (dead code)
+  for (const key of ['kbnc.build', 'kbnc.create', 'kbnc.close']) assert.ok(!src.includes("'" + key + "'"), key + ' is not left behind')
+  ok('every template has its label and prompt in both languages and a drawing; the chapters and the slider are named; no dead sentence')
+}
+
+// 2b. the page listens: what is typed lights the template it sounds like (offered ones only), in both languages
+{
+  const ids = api.KB_NC_TEMPLATES.map((t) => t.id)
+  const want = {
+    'a landing page for my bakery': 'website', 'Prépare une présentation pour mon pitch': 'slides', 'every Monday summarise my inbox': 'automation',
+    'chaque matin, résume mes mails': 'automation', 'équipe d\u2019agents pour la veille': 'team', 'write a skill that cleans my notes': 'skill',
+    'a plugin that adds a button': 'plugin', 'crée un modèle 3D de vase': 'model3d', 'a dashboard of my monthly spend': 'dashboard',
+    'un tableur pour mon budget': 'sheet', 'a report about Q3': 'doc', 'une vidéo de 30 secondes': 'video', 'a poster for a jazz night': 'image',
+    'a mini-app that splits a bill': 'miniapp', 'Build me a website for ': 'website',
+  }
+  for (const [text, id] of Object.entries(want)) assert.equal(api.kbNcDetect(text, ids), id, text + ' → ' + id)
+  assert.equal(api.kbNcDetect('hello there', ids), null, 'nothing sounds like a template')
+  assert.equal(api.kbNcDetect('', ids), null); assert.equal(api.kbNcDetect('ab', ids), null, 'too short says nothing')
+  assert.equal(api.kbNcDetect(null, ids), null); assert.equal(api.kbNcDetect('a website', null), null, 'no offered list, no match')
+  assert.equal(api.kbNcDetect('a website for me', ['doc']), null, 'a template that is not offered is never lit')
+  assert.equal(api.kbNcDetect('a team of agents building an app', ids), 'team', 'the specific rule wins over « app »')
+  for (const rule of api.KB_NC_WORDS) assert.ok(ids.indexOf(rule[0]) >= 0, rule[0] + ' is a real template')
+  ok('what is typed lights the template it sounds like, in French and English, among the offered ones only')
+}
+
+// 2c. a template fills the composer without ever losing the person's words
+{
+  const known = ['Build me a website for ', 'Create a mini-app that ']
+  assert.equal(api.kbNcFill('', 'Create a mini-app that ', known), 'Create a mini-app that ', 'an empty box gets the sentence')
+  assert.equal(api.kbNcFill('   ', 'Create a mini-app that ', known), 'Create a mini-app that ')
+  assert.equal(api.kbNcFill('Build me a website for ', 'Create a mini-app that ', known), 'Create a mini-app that ', 'another template sentence is replaced (the person did not type it)')
+  assert.equal(api.kbNcFill('my bakery', 'Build me a website for ', known), 'Build me a website for my bakery', 'typed words are kept, after the sentence')
+  assert.equal(api.kbNcFill('Build me a website for my bakery', 'Build me a website for ', known), 'Build me a website for my bakery', 'the same sentence is not doubled')
+  assert.equal(api.kbNcFill(null, 'x ', null), 'x ', 'never throws')
+  ok('a template fills an empty composer and keeps whatever the person already typed')
 }
 
 // 3. the Cloud Computer state, from what /kybernos-cloud/kyber answers
@@ -120,7 +158,7 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_BUILD, KB_NC_CREAT
   const c = src.slice(src.indexOf('const KbNewChatCards = (props)'), src.indexOf('const KbNewChatCards = (props)') + 9000)
   assert.ok(c.length > 1000, 'the component exists')
   assert.ok(/blank !== '1'\) return null/.test(c), 'it effaces itself once the chat is not blank, like the starters')
-  assert.ok(/act\.setDraft\(/.test(c) && !/act\.submit\(/.test(c), 'a template prefills the composer and never submits')
+  assert.ok(/ia\.setDraft\(/.test(c) && !/\.submit\(/.test(c), 'a template prefills the composer and never submits')
   ok('the cards show on a blank chat only and a template never sends')
 }
 
@@ -134,46 +172,52 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_BUILD, KB_NC_CREAT
   ok('the actions call the host only; the page never names a computer; the opened tab has no opener')
 }
 
-// 6c. the card with its two buttons gets a wider column: with equal thirds the title was cut to « Cloud ... » (seen on the sandbox)
+// 6c. the block sits UNDER the composer on the hero, by CSS order on our own element (the dock and the composer bar are display:contents
+//     wrappers of one flex column: no engine patch), and follows the width the dock really has
 {
-  assert.ok(/\.kb8-nc-row\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(0,1fr\) minmax\(0,1\.6fr\)/.test(src), 'the third column (the Cloud Computer card) is wider than the first two')
-  ok('the Cloud Computer card has the wider column, so its title and its buttons both fit')
+  assert.ok(/\.kb8-nc\{[^}]*order:2;[^}]*container-type:inline-size;container-name:kbnc\}/.test(src), 'the block is ordered after the composer and is a size container')
+  assert.ok(/@container kbnc \(max-width:480px\)\{\.kb8-sl-nav\{display:none\}\}/.test(src), 'a narrow dock is swiped: no arrows')
+  assert.ok(/id: 'kybernos-newchat', order: 25 \}, KbNewChatCards\)/.test(src) && !/conversation\.composer\.dock[^\n]{0,80}kybernos-newchat/.test(src), 'still the input dock entry (composer.dock is not drawn on the hero)')
+  ok('the slider is drawn under the composer by CSS order, and drops its arrows in a narrow dock')
 }
 
-// 6c-bis. R-A1-01: the cards follow the width the dock really has (a right pane at 1400 px left 47 px of text: « Crea… »)
+// 6d. ONE colour: the theme's accent (owner, 2026-10-15 « pas de couleurs… » and 2026-10-18 « trop de couleurs »)
 {
-  assert.ok(/\.kb8-nc\{[^}]*container-type:inline-size;container-name:kbnc\}/.test(src), 'the card block is a size container')
-  assert.ok(/@media \(min-width:721px\)\{@container kbnc \(max-width:600px\)\{\.kb8-nc-row\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}\.kb8-nc-row>\.kb8-nc-cloud\{grid-column:1\/-1\}\}\}/.test(src), 'under 600 px of dock the Cloud Computer card takes its own row')
-  ok('a narrowed dock puts Build and Create side by side and the Cloud Computer card on a second row (R-A1-01)')
-}
-
-// 6d. colour and visuals (owner, 2026-10-15: « pas de couleurs, images… ce n'est pas agréable »)
-{
-  const hex = /^#[0-9a-f]{6}$/i
-  const all = api.KB_NC_BUILD.concat(api.KB_NC_CREATE)
-  for (const t of all) assert.ok(hex.test(t.hue), 'template ' + t.id + ' has a #rrggbb hue')
-  assert.equal(new Set(all.map((t) => t.hue)).size, all.length, 'every template has its own colour')
-  for (const k of ['build', 'create', 'cloud']) assert.ok(hex.test(api.KB_NC_HUES[k]), 'card ' + k + ' has a hue')
-  assert.equal(api.kbNcTint('#ff8000', 0.16), 'rgba(255,128,0,0.16)')
-  assert.equal(api.kbNcTint('nonsense', 0.16), 'rgba(140,140,140,0.16)', 'a bad colour is a neutral grey, never a throw')
-  ok('every template and every card has a colour, and the tint helper never throws')
-}
-{
-  const ids = JSON.parse(JSON.stringify(api.KB_NC_VISUALS))
-  const known = api.KB_NC_BUILD.concat(api.KB_NC_CREATE).map((t) => t.id)
-  assert.ok(ids.length >= 5, 'the strip has several visuals')
-  for (const id of ids) {
-    assert.ok(known.indexOf(id) >= 0, id + ' is a template (so a click can prefill it and it follows `needs`)')
-    const art = api.KB_NC_ART[id]
-    assert.ok(art !== undefined, id + ' has its drawing')
-    assert.match(art.from, /^#[0-9a-f]{6}$/i); assert.match(art.to, /^#[0-9a-f]{6}$/i)
-    assert.ok(art.svg.length > 200, id + ' is a real drawing, not a placeholder')
-    // inline shapes only: nothing fetched, nothing executable (no media in git, AGENTS rule 4)
-    assert.ok(!/(href|src)\s*=|https?:|url\(|<image|<script|<foreignObject|\son[a-z]+\s*=/i.test(art.svg), id + ' drawing has no external reference and no script')
-    assert.ok(/^(<(rect|circle|path)\b[^>]*\/>)+$/.test(art.svg), id + ' drawing is only rect / circle / path')
+  assert.ok(!/KB_NC_HUES|kbNcTint|KB_NC_VISUALS|KB_NC_BUILD|KB_NC_CREATE|kb8-nc-ico|kb8-nc-panel|kb8-nc-row/.test(src), 'no hue table, no tinted icon tile, no panel: nothing left of the multicolour cards')
+  assert.ok(/\.kb8-nc\{--kb8-acc:var\(--dsw-alias-brand-primary\)/.test(src), 'the accent is the theme\'s (the token Settings > Theme drives)')
+  const css = src.slice(src.indexOf('.kb8-nc{--kb8-acc'), src.indexOf("'kybers: styles of the new chat cards'"))
+  assert.ok(css.length > 4000, 'the slider CSS was found')
+  const hexes = css.match(/#[0-9a-f]{3,8}\b/gi) || []
+  assert.deepEqual(hexes.filter((x) => x.toLowerCase() !== '#000'), [], 'the slider CSS holds no colour of its own (only tokens, and black for shadows and masks)')
+  for (const t of api.KB_NC_TEMPLATES) {
+    const art = api.KB_NC_ART[t.id]
+    // inline shapes only: nothing fetched, nothing executable, no colour (no media in git, AGENTS rule 4)
+    assert.ok(/^(<(rect|circle|path)\b[^>]*\/>)+$/.test(art), t.id + ' drawing is only rect / circle / path')
+    assert.ok(!/(href|src)\s*=|https?:|url\(|<image|<script|<foreignObject|\son[a-z]+\s*=|#[0-9a-f]{3,8}\b|fill\s*=|stroke\s*=/i.test(art), t.id + ' drawing has no external reference, no script and no colour of its own (classes only)')
+    const classes = new Set([...art.matchAll(/class="([^"]+)"/g)].flatMap((m) => m[1].split(' ')))
+    for (const c of classes) assert.ok(new RegExp('\\.kb8-sl-stage \\.' + c + '[{,]|' + '\\.kb8-sl-stage \\.' + c + ' ').test(css) || new RegExp('(?:^|[ ,])\\$\\{kbNcHot\\} \\.' + c + '[{,]').test(css) || ['gr', 'blk', 'pop', 'dr', 'play', 'sun', 'node'].indexOf(c) >= 0 && css.includes('} .' + c + '{') || css.includes('.' + c + '{') || css.includes('.' + c + ','), t.id + ': class « ' + c + ' » is styled')
   }
-  ok('the visual strip: every visual is a template with its own inline, self-contained drawing')
+  ok('one colour on the page (the theme\'s accent); the 13 drawings are classes on inline shapes, styled from tokens')
 }
+
+// 6e-pre. the slider: wiring pinned at source level
+{
+  const c = src.slice(src.indexOf('const KbNcSlider = (sp)'), src.indexOf('const KbNewChatCards = (props)'))
+  assert.ok(c.length > 3000, 'the slider component exists')
+  assert.ok(/dangerouslySetInnerHTML: \{ __html: '<svg viewBox="0 0 64 44" aria-hidden="true">' \+ KB_NC_ART\[t\.id\]/.test(c), 'a card draws its template\'s inline drawing')
+  assert.ok(/scrollBy\(/.test(c) && /scrollIntoView\(/.test(c), 'arrows page the track and a title or a lit card scrolls into view')
+  assert.ok(/pointerType === 'mouse'/.test(c) && /quietRef/.test(c), 'a mouse drags the track and a drag is never a click')
+  assert.ok(/'aria-label': kbt\('kbnc\.sl\.prev'\)/.test(c) && /'aria-label': kbt\('kbnc\.sl\.next'\)/.test(c) && /role: 'group'/.test(c), 'the arrows and the track are named')
+  assert.ok(/direction === 'rtl'/.test(c) && /st\.rtl/.test(c), 'right-to-left is read (the arrows and the edge fades follow it)')
+  assert.ok(/kbNcCalm\(\) \? 'auto' : 'smooth'/.test(c), 'no smooth scrolling when the person asked for reduced motion')
+  const cards = src.slice(src.indexOf('const KbNewChatCards = (props)'), src.indexOf('const KbNewChatCards = (props)') + 14000)
+  assert.ok(/p\.input\.draft/.test(cards) && /kbNcDetect\(draft, offered\)/.test(cards) && /h\(KbNcSlider, \{ groups, match, onPick: prefill \}\)/.test(cards), 'the slider is lit by the draft the dock entry receives')
+  assert.ok(/kbNcFill\(draft, kbt\('kbnc\.p\.' \+ id\)/.test(cards), 'a click fills the composer through kbNcFill (the person\'s words are kept)')
+  assert.ok(/'data-kb': 'newchat-cloud'/.test(cards) && /'data-kb': 'newchat-cloud-open'/.test(cards) && /'data-kb': 'newchat-cloud-' \+ verb/.test(cards), 'the Cloud Computer line keeps its hooks and its actions')
+  assert.ok(/kbNcDot\(cloud\.kind\)/.test(cards) && /kbNcActions\(cloud\)/.test(cards), 'and its state dot and the actions its state allows')
+  ok('the slider: drawings, paging, drag, names, right-to-left, reduced motion; lit by the draft; the Cloud Computer line keeps its state and actions')
+}
+
 {
   // the headline: 28 invented lines, both languages, short enough for one line, none repeated, never the previous one
   assert.equal(api.KB_NC_HERO_COUNT, 28)
@@ -201,16 +245,12 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_BUILD, KB_NC_CREAT
   ok('the headline: 28 original lines in French and English, each short, never the previous one twice')
 }
 {
-  // the page: tinted tiles, the strip under the row, the hero swept in place with « Beta »
-  const c = src.slice(src.indexOf('const KbNewChatCards = (props)'), src.indexOf('const KbNewChatCards = (props)') + 16000)
-  assert.ok(/kbNcTint\(KB_NC_HUES\[id\], 0\.16\)/.test(c) && /kbNcTint\(KB_NC_HUES\.cloud, 0\.16\)/.test(c) && /kbNcTint\(t\.hue, 0\.16\)/.test(c), 'the three icon tiles are tinted')
-  assert.ok(/'data-kb': 'newchat-visuals'/.test(c) && /onClick: \(\) => prefill\(t\.id\)/.test(c), 'the strip prefills the composer, it never sends')
-  assert.ok(/: null\)\)\)\),\s*stripNode\)/.test(c), 'the strip sits in the same dock entry, after the row of cards')
+  // the hero swept in place with « Beta »
   assert.ok(/querySelectorAll\('\[class\*="titleGroup"\]'\)/.test(src) && /indexOf\('previewBadge'\)/.test(src), 'the hero is found by DSH\'s own class names, only when its badge is there')
   assert.ok(/setText\(badge, 'Beta'\)/.test(src), 'the badge says Beta')
   assert.ok(/\[class\*="previewBadge"\]\[data-kb-beta\]\{[^}]*font-size:10px/.test(src), 'and is small')
   assert.ok(!/locale\.register\([^)]*hero\./.test(src), 'no locale override: it would throw on a duplicate key')
-  ok('tinted tiles, the strip, and the headline / Beta badge are wired without an engine patch')
+  ok('the headline / Beta badge are wired without an engine patch')
 }
 
 // 6e. Search everywhere (kybernos-search) is no longer a menu row: the bundle draws its own icon at the top of the sidebar (and ⌘K)

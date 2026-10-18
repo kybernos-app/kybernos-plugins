@@ -231,6 +231,20 @@ page load. DSH's own « Get started » dialog (sign in to a DeepSeek account / a
 (`settings.onboarding` › `deepseek-official`), and `live-page.mjs` still presses its Close cross on an engine that shows it. A chat for a git folder only exists once a first message
 was sent (the turn then fails for lack of a key, which is fine): `check-changes-live.mjs` does both by itself.
 
+## The new-chat page: `scripts/check-newchat-live.mjs`
+
+```bash
+node scripts/check-newchat-live.mjs --shots /tmp/shots
+```
+
+It runs against the real `:3080` and swaps the `kybernos-plugin` client for this checkout's (`lib-bundle-swap.mjs`, throw-away Chrome: the
+shared tree is untouched, no restart). It reads the blank chat (slider under the composer, one colour, the drawings, the arrows, the
+Cloud Computer line) and types in the composer: **a draft is typed and cleared, nothing is sent**, and the draft lives in the throw-away
+browser (the last check reloads the page and reads an empty composer). Exit 3 when there is no blank chat on screen or the shared tree
+has uncommitted edits of the plugin client (the swap would not match). Two traps it met: `scrollIntoView` on a `scroll-snap`
+track ends on a snap point, not where asked (bring the chapter to the start instead); and the editor is cleared with the select-all
+key *command*, not `execCommand`.
+
 ## The Changes chip: `scripts/check-changes-live.mjs`
 
 ```bash
