@@ -29,6 +29,9 @@ const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
 // ── Faux Kybernos ───────────────────────────────────────────────────────────
 let pollCount = 0
 let tokenValid = true
+// One family of routes answers 401 (the server's own envelope) while the token is fine everywhere else, /v1/workspaces included: a route's own refusal. A token the
+// server really turned away is `tokenValid = false` (every route refuses, and the host ends the connection: test-account-state.mjs).
+let refuseOnly = null
 // A cloud computer's restricted token: the server answers a route outside the token's list with its own envelope, a 403 `computer_route_not_allowed`.
 let computerRestricted = false
 // The Kyber tab (ADR 0053 § 14): the personal workspace flag and what the server says of the Telegram door and of the person's Home computer.
@@ -214,6 +217,7 @@ const api = createServer((req, res) => {
         token_hash_prefix: 'deadbeef', user: { id: 'u-1', email: 'dev@example.test', name: null, plan: 'free' } })
     }
     const auth = req.headers.authorization || null
+    if (refuseOnly !== null && req.url.startsWith(refuseOnly) && auth !== null) return send(401, { error: 'invalid session' })
     if (req.url.startsWith('/v1/marketplace') && req.method === 'GET') {
       seen.marketAuth.push(auth)
       seen.marketUrls.push(req.url)
@@ -1001,10 +1005,11 @@ try {
   const quotaText = JSON.stringify(quotaOut.body)
   assert.equal(quotaText.includes(TOKEN), false, 'the token is not in the answer')
   assert.equal(/_usd|limit|spent|remaining/.test(quotaText), false, 'no amount of money leaves the host: the allowance is a percentage')
-  tokenValid = false
+  refuseOnly = '/v1/workspaces/ws-'
   const quotaDead = await hit('/kybernos-cloud/quota', 'GET')
-  assert.equal(quotaDead.body.ok, false, 'a server that refuses the token: no facts, the notice falls back to DSH\'s own words')
-  tokenValid = true
+  assert.equal(quotaDead.body.ok, false, 'a server that refuses the read: no facts, the notice falls back to DSH\'s own words')
+  assert.notEqual(quotaDead.body.status, 'revoked', 'a refusal of the plan and budget routes alone is not a revoked token (the check on /v1/workspaces finds it fine)')
+  refuseOnly = null
   budgetBody = { windows: [] }
   spacePlanBody = { source: 'subscription', status: 'active', plan: { key: 'solo', name: 'Solo', kind: 'individual' }, level: 'Studio', seats: 1, credit_balance_credits: 20000 }
   ok('quota : toutes les fenetres de l espace ACTIF en pourcentage (jamais de montant), l etat du paiement, sans jeton')
@@ -1133,13 +1138,13 @@ try {
 
   // 6a. Catalogue 401 : refus explicite, connexion INTACTE, import précédent
   //     conservé (la révocation se décide sur /v1/workspaces, jamais ici).
-  tokenValid = false
+  refuseOnly = '/v1/models'
   const refused = await hit('/kybernos-cloud/models/sync', 'POST')
   assert.equal(refused.body.ok, false)
   assert.equal(refused.body.error, 'catalogue_refuse')
   assert.equal(existsSync(statePath), true)
   assert.equal(readState().models.count, 4)
-  tokenValid = true
+  refuseOnly = null
   ok('catalogue 401 : pas de deconnexion, import precedent conserve')
 
   // 6b. Catalogue illisible (forme inconnue) : même dégradation.
@@ -1613,12 +1618,12 @@ try {
 
   // 10k. Un jeton mort ne laisse pas de cache derrière lui — et surtout, une
   //      lecture refusée ne doit pas se déguiser en « aucun souvenir ».
-  tokenValid = false
+  refuseOnly = '/v1/memor'
   const mRevoked = await hit('/kybernos-cloud/memory', 'GET')
   assert.equal(mRevoked.body.ok, false)
   assert.equal(mRevoked.body.connected, true)
   assert.equal(mRevoked.body.error, 'reconnexion_requise')
-  tokenValid = true
+  refuseOnly = null
   ok('memoire : une lecture refusee se dit refusee, jamais « aucun souvenir »')
 
   // 10l. Câblage DSH : le chunk est monté dans le prompt avec un `order` fini,
@@ -1849,12 +1854,12 @@ try {
   await mod.refreshMemoryCache(readState(), true)
   const known = mod.memoryCache.account.length
   assert.ok(known >= 1 && mod.memoryCache.error === null)
-  tokenValid = false
+  refuseOnly = '/v1/memor'
   await mod.refreshMemoryCache(readState(), true)
   assert.equal(mod.memoryCache.error, 'reconnexion_requise', 'l erreur est dite')
   assert.equal(mod.memoryCache.account.length, known, 'une lecture refusee ne vide pas le cache')
   assert.ok(mod.renderMemoryChunk(readState()).length > 0, 'le prompt garde le dernier etat connu')
-  tokenValid = true
+  refuseOnly = null
   await mod.refreshMemoryCache(readState(), true)
   assert.equal(mod.memoryCache.error, null)
   const hitsA = seen.memoryAuth.length

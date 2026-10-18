@@ -66,6 +66,22 @@ The summary (`count`, `plan`, `imported_at`, `settings`, `credential`) also
 travels in the `state` of the `/status`, `/poll` and `/refresh` responses. The
 full ids stay in the detail route.
 
+## When the server stops knowing this device (and other states of the account)
+
+- **A refused token ends the connection at once.** A device revoked from the account page, or a server on a new database, answers 401 (its own `{ error }` envelope) to every
+  call the host makes with the token. The first such answer, on any route, makes the host ask `/v1/workspaces` once more (one check at a time; a check that finds the token
+  fine is not repeated for 5 s: a route's own 401 signs nobody out). If that is refused too, the imported models leave and the state file goes, **and `kybernos-cloud.json.ended`
+  stays beside it** (the time, never the token). `/status` then answers `{ connected: false, status: 'revoked', ended: { at } }`, and `/console/link` and `/quota` answer
+  `{ status: 'revoked', error: 'session_ended' }`, so the footer says « Sign in again » and why within seconds (no 5-minute wait). A new pairing, a claim or a sign-out clears the marker.
+- **A pairing is asked about by whoever shows it.** The footer polls `/poll` while a pairing is under way and so does the open card; the host makes one call of simultaneous polls
+  (the server hands the token to the first asker), and a refusal or an expiry reaches both.
+- **A team with no plan** answers `/quota` with `no_plan: true` (the plan route says `plan: null`): the notice and the plan slot say « No plan » and offer the plan page. `POST
+  /space/create` does not make such a team active: the answer carries `created: { id, name, plan_key, activated }` and the footer tells the person where they are.
+- **The failure row of a turn** (`conversation.chat.node`, key `turn-error`): the engine documents that a later entry for a key shadows the shipped one, so the plugin wraps the
+  SHIPPED row (found in the slot's entries, registered at the lowest priority with the shipped entry's own locale). `no adapter registered for provider "kybernos"` (the cloud models
+  are gone: the connection ended or was never made) and `QUOTA` on a team with no plan are drawn by the shipped row with a sentence and an action beside it (« Sign in again »,
+  « Choose a plan »); every other failure is the shipped row, untouched. The « Retrying model request (n/m) » row is another keyed entry (`model-retry`) and is not touched.
+
 ## The Team console in DSH: gone
 
 `GET /kybernos-cloud/relay` is no more. It was how the server's console, framed read-only in DSH, read the account and the team (an allowlist of GET paths, the
@@ -315,7 +331,7 @@ The password is entered **in the browser**, on the page served by
 Kybernos. This plugin never sees a password, a Supabase key or a LiteLLM
 key: it stores only the opaque `kys-…` token, the same kind of token as
 a web session — revocable from the Kybernos app (**Security → Sessions**,
-the device appears as `DSH <machine name>`).
+the device appears as `DSH <machine name>`, and `DSH <machine name> (port N)` when this DSH does not listen on 3080, so two DSH of one computer read differently).
 
 ## Security invariants
 

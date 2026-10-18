@@ -215,5 +215,22 @@ console.log('what the card says when the workspace turns the person away')
   check('the card shows it beside the plan, with the long sentence as its title; fr and en are in the dictionary', /'data-kb': mfaNote !== null \? 'workspace-card-mfa'/.test(source) && (source.match(/mfaBlockedLong:/g) || []).length === 2 && (source.match(/mfaGraceLong:/g) || []).length === 2)
 }
 
+console.log('a team with no plan (AC-02: the 402 of a plan-less team read « Request quota exhausted » and nothing else)')
+{
+  const none = (workspace) => facts(workspace, [], { no_plan: true })
+  const a = notice(none(team('owner')))
+  check('an owner is told the team has no plan, and to choose one', a !== null && a.text === 'Acme Crew has no plan yet, so nobody in it can use the models. Choose a plan to turn them on.', a && a.text)
+  check('with the button that says « Choose a plan » and opens the plan page', a !== null && a.action === true && a.label === 'planChoose' && a.section === 'plan', a && JSON.stringify(a))
+  const m = notice(none(team('member')))
+  check('a plain member is sent to an owner or admin, with no action of their own', m !== null && m.text === 'Acme Crew has no plan yet, so nobody in it can use the models. Ask an owner or admin of Acme Crew to choose one.' && m.action === false, m && JSON.stringify(m))
+  const d = notice(facts(team('admin'), [out(18000, { resets_at: inH(3) })], { no_plan: false }))
+  check('a team that has a plan is explained by its windows, as before', d !== null && /^100% of your 5 hours allowance/.test(d.text) && d.label === undefined, d && JSON.stringify(d))
+  check('no plan: no meter on the card (there is no window to read)', quotaMeterOf(none(team('owner')), t, NOW) === null)
+  const fr2 = quotaNoticeText(none(team('owner')), fr, NOW)
+  check('in French, with « tu »', fr2 !== null && /n'a pas encore de formule/.test(fr2.text) && /Choisis-en une/.test(fr2.text) && !/\bvous\b|\bvotre\b/i.test(fr2.text), fr2 && fr2.text)
+  check('the notice\'s button reads its own label and opens its own page', /t\(typeof verdict\.label === 'string' \? verdict\.label : 'quotaOpenConsole'\)/.test(source) && /section: verdict\.section/.test(source))
+  check('a session the server ended is said by the notice, not DSH\'s « Request quota exhausted »', /info\.r\.status === 'revoked'/.test(source) && /ended \? t\('sessionEnded'\)/.test(source))
+}
+
 if (failed > 0) { console.log('\n' + failed + ' check(s) FAILED'); process.exit(1) }
 console.log('\nall checks OK')
