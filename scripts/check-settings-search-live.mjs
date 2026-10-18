@@ -3,10 +3,13 @@
 // result opens the page and goes to the row, Escape clears before it closes anything — and the index does not drift: every row of
 // KB_SS_INDEX is looked for on its page (the labels it promises are the labels the page shows).
 //
-//   node scripts/check-settings-search-live.mjs [--worktree] [--shots <dir>] [--no-drift]
+//   node scripts/check-settings-search-live.mjs [--worktree] [--shots <dir>] [--no-drift] [--lang fr]
 //
 // --worktree: serve this checkout's core plugin client in the throw-away browser (scripts/lib-bundle-swap.mjs), so a change is checked before it
 // is merged. Without it the check runs on what `dsh web` serves.
+// --lang fr: runs the check in French (the results read as the French pages do, and the index scan looks for the French labels). Switching the language
+// is DSH's own setting, kept in the profile, so this REFUSES to run against the real DSH (:3080): use the sandbox (scripts/sandbox/start.sh, then
+// `source scripts/sandbox/env.sh`).
 // READ-ONLY: it types in the search box, presses menu rows and results, and reads pages. Nothing that changes data is pressed.
 // Exit code: 0 all green, 1 a check failed, 3 inconclusive (GUI down / Settings did not open).
 import { mkdirSync, readFileSync } from 'node:fs'
@@ -29,7 +32,10 @@ const check = (name, ok, detail) => {
 const SRC = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'packages', 'kybernos-plugin', 'client.js'), 'utf8')
 const a = SRC.indexOf('const KB_SS_MODE')
 const b = SRC.indexOf('// </kb-settings-search>')
-const { KB_SS_INDEX, kbSsNorm } = new Function(SRC.slice(a, b) + '\nreturn { KB_SS_INDEX, kbSsNorm }')()
+const { KB_SS_INDEX, kbSsNorm, kbSsLocalise } = new Function(SRC.slice(a, b) + '\nreturn { KB_SS_INDEX, kbSsNorm, kbSsLocalise }')()
+const lang = args.indexOf('--lang') >= 0 ? args[args.indexOf('--lang') + 1] : 'en'
+if (lang !== 'en' && lang !== 'fr') { console.error('○ --lang takes en or fr'); process.exit(3) }
+if (lang !== 'en' && (process.env.KB_HOST || '127.0.0.1:3080') === '127.0.0.1:3080') { console.error('○ refusing: switching the language changes the real DSH\'s own setting. Run it on the sandbox (source scripts/sandbox/env.sh).'); process.exit(3) }
 
 const live = await openLivePage({ width: 1500, height: 950 }).catch((e) => { console.error('○ inconclusive: ' + e.message); process.exit(3) })
 const { page } = live
@@ -52,7 +58,21 @@ try {
   if (await openSettings(page, { minCells: 3, fold: 'keep' }) !== true) { console.error('○ inconclusive: the Settings dialog did not open (is the GUI loaded?)'); process.exit(3) }
   await waitFor(page, `document.querySelectorAll('[data-kb="settings-group"]').length >= 8 && document.querySelector('.kbs-search input') !== null`, 12000)
   await sleep(1200)
+  if (lang === 'fr') {
+    // Through the Language page, as a person does: the French row's « Use ». The cell is pressed from the script (a hidden cell is pressed too).
+    await ev(`(() => { const c = [...document.querySelectorAll('[class*="navList"] [data-kb-t]')].find((x) => x.dataset.kbT === 'language'); if (c) c.click() })()`)
+    await sleep(1800)
+    const at = JSON.parse((await ev(`(() => { const pane = document.querySelector('[data-slot="settings.section"]'); const name = [...pane.querySelectorAll('*')].find((e) => /^Français$/.test((e.textContent || '').trim()) && e.children.length === 0); let row = name; for (let i = 0; i < 6 && row; i += 1) { const b = [...row.querySelectorAll('button')].find((x) => /^(Use|Utiliser)$/.test((x.textContent || '').trim())); if (b) { const r = b.getBoundingClientRect(); return JSON.stringify({ x: r.x + r.width / 2, y: r.y + r.height / 2 }) } row = row.parentElement } return 'null' })()`)) || 'null')
+    if (at === null) { console.error('○ inconclusive: no « Use » button on the French row of the Language page'); process.exit(3) }
+    await mouse(at.x, at.y)
+    await sleep(4000)
+    if ((await ev(`document.documentElement.lang`)) !== 'fr') { console.error('○ inconclusive: the interface did not switch to French'); process.exit(3) }
+    if ((await ev(`document.querySelectorAll('[class*="navList"] [data-kb-t]').length`)) < 8) await openSettings(page, { minCells: 3 })
+    await waitFor(page, `document.querySelectorAll('[data-kb="settings-group"]').length >= 8 && document.querySelector('.kbs-search input') !== null`, 12000)
+    await sleep(1500)
+  }
 
+  if (lang === 'en') {
   console.log('what people type')
   await type('dark')
   let names = await resultNames()
@@ -100,10 +120,42 @@ try {
   await type('dark')
   await key('Escape', 'Escape', 27)
   check('Escape clears the query first and does not close the Settings', (await ev(`${INPUT}.value`)) === '' && (await ev(`document.querySelector('[role="dialog"]') !== null`)) === true && (await ev(`document.querySelector('.kbs-res') === null`)) === true)
+  } else {
+  console.log('what people type, in French')
+  await type('rayons')
+  let names = await resultNames()
+  check('« rayons » finds Rayons first, with the French tab of its page', names[0] === 'Rayons' && /Thème › Texte et forme/.test(await panelText()), names)
+  if (shotsDir !== null) await page.shot(shotsDir + '/search-fr-1-rayons.png')
+  await clearBox()
+  await type('taille du texte')
+  names = await resultNames()
+  check('« taille du texte » finds the row of the Theme page first, and says the same setting is on General', names[0] === 'Taille du texte' && /aussi dans General/.test(await panelText()), names)
+  await clearBox()
+  await type('nommer conversation')
+  names = await resultNames()
+  check('« nommer conversation » finds the French label of the General page', names[0] === 'Nommer chaque conversation à sa fin', names)
+  await clearBox()
+  await type('font size')
+  names = await resultNames()
+  check('a French reader who types the English words still finds the setting', names.indexOf('Font size') >= 0, names)
+  await clearBox()
+  await type('zzzzq')
+  check('a word nothing matches says so in French, and offers searches to try', /Rien pour « zzzzq »/.test(await panelText()) && /taille du texte/.test(await panelText()))
+  await clearBox()
+  await type('rayons')
+  await key('Enter', 'Enter', 13)
+  await sleep(1200)
+  check('Enter opens the Theme page on its « Texte et forme » tab and the row blinks', (await ev(`(document.querySelector('[class*="navCell"][aria-current="true"]') || { textContent: '' }).textContent`)) === 'Thème' && (await waitFor(page, `document.querySelector('.kbs-flash') !== null`, 2500)) !== null)
+  if (shotsDir !== null) await page.shot(shotsDir + '/search-fr-2-opened.png')
+  await type('mode')
+  await key('Escape', 'Escape', 27)
+  check('Escape clears the query first and does not close the Settings', (await ev(`${INPUT}.value`)) === '' && (await ev(`document.querySelector('[role="dialog"]') !== null`)) === true)
+  }
 
   if (args.indexOf('--no-drift') < 0) {
     console.log('the index against the pages (every label it promises is on its page)')
     // Every page, once: the cell is pressed (programmatically: a hidden cell is pressed too), the page awaited, its texts read. Theme is read tab by tab.
+    const LOC = (r) => kbSsLocalise(r, lang === 'fr' ? 'kybernos' : 'en', null)
     const KEYS = [...new Set(KB_SS_INDEX.map((r) => r[0]))]
     const missing = []
     const readPage = async () => JSON.parse((await ev(`JSON.stringify((() => { const pane = document.querySelector('[data-slot="settings.section"]'); if (!pane) return []; const out = []; const w = document.createTreeWalker(pane, NodeFilter.SHOW_TEXT); for (let n = w.nextNode(); n; n = w.nextNode()) { const t = n.nodeValue.trim(); if (t) out.push(t) } return out })())`)) || '[]').map(kbSsNorm)
@@ -115,17 +167,17 @@ try {
       let texts = await readPage()
       const tabs = [...new Set(rows.map((r) => r[1]).filter((s) => s !== ''))]
       for (const r of rows) {
-        const want = kbSsNorm(r[7] || r[2])
+        const want = kbSsNorm(LOC(r).at)
         if (k === 'theme' && r[1] !== '') {
-          await ev(`(() => { const pane = document.querySelector('[data-slot="settings.section"]'); const t = [...pane.querySelectorAll('button')].find((b) => ${JSON.stringify(kbSsNorm(r[1]))} === (b.textContent || '').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()); if (t) t.click() })()`)
+          await ev(`(() => { const pane = document.querySelector('[data-slot="settings.section"]'); const t = [...pane.querySelectorAll('button')].find((b) => ${JSON.stringify(kbSsNorm(LOC(r).sec))} === (b.textContent || '').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()); if (t) t.click() })()`)
           await sleep(500)
           texts = await readPage()
         }
-        if (texts.indexOf(want) < 0) missing.push(k + ' › ' + (r[1] === '' ? '' : r[1] + ' › ') + (r[7] || r[2]))
+        if (texts.indexOf(want) < 0) missing.push(k + ' › ' + (r[1] === '' ? '' : r[1] + ' › ') + LOC(r).at)
       }
       void tabs
     }
-    check('every row of the index is on its page, word for word (a label the page shows differently must be fixed in KB_SS_INDEX)', missing.length === 0, missing)
+    check('every row of the index is on its page, word for word, in ' + (lang === 'fr' ? 'French' : 'English') + ' (a label the page shows differently must be fixed in KB_SS_INDEX / KB_SS_FR)', missing.length === 0, missing)
   }
 } finally { await live.close() }
 

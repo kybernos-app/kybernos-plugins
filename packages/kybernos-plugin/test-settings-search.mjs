@@ -16,7 +16,7 @@ const SRC = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
 const a = SRC.indexOf('const KB_SS_MODE')
 const b = SRC.indexOf('// </kb-settings-search>')
 if (a < 0 || b < a) { console.log('  ✗ cannot cut the search out of client.js'); process.exit(1) }
-const { KB_SS_INDEX, KB_SS_PAGE_KW, kbSsBuild, kbSsSearch, kbSsNorm } = new Function(SRC.slice(a, b) + '\nreturn { KB_SS_INDEX, KB_SS_PAGE_KW, kbSsBuild, kbSsSearch, kbSsNorm }')()
+const { KB_SS_INDEX, KB_SS_PAGE_KW, KB_SS_FR, KB_SS_SEC_FR, kbSsBuild, kbSsSearch, kbSsNorm, kbSsLocalise, kbSsPackKeys, kbSsSlug } = new Function(SRC.slice(a, b) + '\nreturn { KB_SS_INDEX, KB_SS_PAGE_KW, KB_SS_FR, KB_SS_SEC_FR, kbSsBuild, kbSsSearch, kbSsNorm, kbSsLocalise, kbSsPackKeys, kbSsSlug }')()
 const ENTRIES = kbSsBuild(KB_SS_INDEX)
 
 // The pages of the menu, as the organiser names them (the values of KB_NAV_KEYS); the native Models page is not drawn.
@@ -84,6 +84,49 @@ console.log('the words people use are not lost to a page\'s own title')
 check('the normaliser drops accents, case and symbols', kbSsNorm('  Clé  API !') === 'cle api')
 check('every page\'s related words are plain: lower case, no accent', Object.values(KB_SS_PAGE_KW).every((w) => w === kbSsNorm(w)))
 check('every row\'s related words are plain: lower case, no accent', KB_SS_INDEX.every((r) => r[5] === kbSsNorm(r[5])), KB_SS_INDEX.filter((r) => r[5] !== kbSsNorm(r[5])).map((r) => r[2]))
+
+console.log('French: the results read as the French pages do')
+{
+  const key = (r) => r[0] + '|' + r[2]
+  // The rows the French pages draw in English (DSH's own rows): they keep their English text, which is what the page shows.
+  const NATIVE = ['general|Permission', 'general|Appearance', 'general|Font size', 'general|Work details', 'general|When to Collapse Work Details', 'general|Show coding view', 'general|Keyboard shortcuts', 'general|Send behavior while busy', 'general|Performance & usage', 'general|Upload Session Log when using the official model API', 'agent presets|Standard mode', 'built-in plugins|Session plugins']
+  check('every French twin is a row of the index (no orphan: a renamed label would drop its French silently)', Object.keys(KB_SS_FR).every((k) => KB_SS_INDEX.some((r) => key(r) === k)), Object.keys(KB_SS_FR).filter((k) => !KB_SS_INDEX.some((r) => key(r) === k)))
+  const bare = KB_SS_INDEX.filter((r) => KB_SS_FR[key(r)] === undefined && NATIVE.indexOf(key(r)) < 0).map(key)
+  check('every row has its French, except the ones the French pages draw in English: a new row needs its French line', bare.length === 0, bare)
+  check('a French twin is [label, description] or [label, description, text to go to], with a label', Object.values(KB_SS_FR).every((f) => Array.isArray(f) && f.length >= 2 && f.length <= 3 && f.every((x) => typeof x === 'string') && f[0] !== ''))
+  check('a French twin has a description only where the English row has one', KB_SS_INDEX.every((r) => { const f = KB_SS_FR[key(r)]; return f === undefined || r[3] !== '' || f[1] === '' }), KB_SS_INDEX.filter((r) => { const f = KB_SS_FR[key(r)]; return f !== undefined && r[3] === '' && f[1] !== '' }).map(key))
+  check('every section the index names has its French (a tab of the Theme page, a block of General)', [...new Set(KB_SS_INDEX.map((r) => r[1]).filter((x) => x !== ''))].every((x) => KB_SS_SEC_FR[x] !== undefined))
+  const FR = kbSsBuild(KB_SS_INDEX, 'kybernos', null)
+  const frRun = (q) => kbSsSearch(q, FR, TITLES).list
+  const frLabels = (list) => list.filter((x) => x.kind === 'item').map((x) => x.e.page + '/' + x.e.label)
+  check('the result is drawn with the French label and tab of the page', frLabels(frRun('rayons')).indexOf('theme/Rayons') === 0 && frRun('rayons')[0].e.sec === 'Texte et forme', frLabels(frRun('rayons')))
+  check('« taille du texte » finds the row that is called that on its French page first, and the same setting on General (English there) as « also in »', frRun('taille du texte')[0].e.label === 'Taille du texte' && frRun('taille du texte')[0].also.length === 1 && frRun('taille du texte')[0].also[0].label === 'Font size', frLabels(frRun('taille du texte')))
+  check('a French reader can still type the English words: « font size », « api key »', frLabels(frRun('font size'))[0] === 'general/Font size' && frLabels(frRun('api key')).indexOf('cloud computers/Clé API') >= 0, frLabels(frRun('api key')))
+  check('« nommer conversation » finds the French label', frLabels(frRun('nommer conversation'))[0] === 'general/Nommer chaque conversation à sa fin', frLabels(frRun('nommer conversation')))
+  check('a typo is forgiven in French too: « apparance »', frRun('apparance').some((x) => x.kind === 'page' && x.key === 'appearance') || frLabels(frRun('apparance')).length > 0)
+  const ap = FR.find((e) => e.key === 'appearance|Mode')
+  check('the row whose page does not draw its label goes to the description the French page draws', ap.at === 'Choisis le thème de l’interface.' && ap.label === 'Mode', ap.at)
+  check('a row with its own target keeps it in French (the plan of the phone link, the engine of the version)', FR.find((e) => e.key === 'remote control|Link a phone').at === 'Relier un téléphone en trois étapes' && FR.find((e) => e.key === 'about|Version').at === 'Moteur DSH')
+  check('English stays as it was: no French in the English index', kbSsBuild(KB_SS_INDEX).every((e) => e.label === KB_SS_INDEX.find((r) => key(r) === e.key)[2]))
+  check('« fr » and « fr-CA » take the French too (the shell may say either)', kbSsLocalise(KB_SS_INDEX[0], 'fr', null).label === 'Premiers pas' && kbSsLocalise(KB_SS_INDEX[0], 'fr-CA', null).label === 'Premiers pas')
+}
+
+console.log('other languages: served from the translation pack, English when it has nothing')
+{
+  const keys = kbSsPackKeys(KB_SS_INDEX)
+  check('the pack has a key per label, in the shape the Language page reads ({ fr, en }, both non-empty)', Object.keys(keys).length > KB_SS_INDEX.length && Object.values(keys).every((v) => typeof v.fr === 'string' && v.fr !== '' && typeof v.en === 'string' && v.en !== ''))
+  check('the keys are stable and unique: from the page and the label, not from the position', new Set(KB_SS_INDEX.map((r) => kbSsSlug(r[0], r[2]))).size === KB_SS_INDEX.length && kbSsSlug('general', 'Font size') === 'general-font-size')
+  check('the French half of the pack is the French twin, the English half the English row', keys['general-onboarding.l'].fr === 'Premiers pas' && keys['general-onboarding.l'].en === 'Onboarding' && keys['sec.behaviour'].fr === 'Comportement')
+  check('a row with a text to go to publishes it too', keys['remote-control-link-a-phone.a'].fr === 'Relier un téléphone en trois étapes' && keys['remote-control-link-a-phone.a'].en === 'Link a phone in three steps')
+  const es = { 'settingsidx.general-font-size.l': 'Tamaño de fuente', 'settingsidx.general-font-size.d': 'Solo afecta al contenido de la conversación', 'settingsidx.sec.behaviour': 'Comportamiento' }
+  const row = KB_SS_INDEX.find((r) => r[2] === 'Font size')
+  const L = kbSsLocalise(row, 'es', es)
+  check('a translated language reads its label and description back from its pack, under the namespace', L.label === 'Tamaño de fuente' && L.desc === 'Solo afecta al contenido de la conversación' && L.at === 'Tamaño de fuente', L)
+  check('and the section of a row', kbSsLocalise(KB_SS_INDEX[0], 'es', es).sec === 'Comportamiento')
+  check('a string the pack does not hold stays English (never a hole)', kbSsLocalise(KB_SS_INDEX[0], 'es', es).label === 'Onboarding' && kbSsLocalise(KB_SS_INDEX[0], 'es', null).label === 'Onboarding')
+  const ES = kbSsBuild(KB_SS_INDEX, 'es', es)
+  check('the search finds it by the Spanish label, and by the English words too', kbSsSearch('tamano de fuente', ES, TITLES).list[0].e.label === 'Tamaño de fuente' && kbSsSearch('font size', ES, TITLES).list[0].e.label === 'Tamaño de fuente')
+}
 
 console.log('\n' + String(pass) + ' verifications, ' + String(fail) + ' failure(s)')
 process.exit(fail === 0 ? 0 : 1)
