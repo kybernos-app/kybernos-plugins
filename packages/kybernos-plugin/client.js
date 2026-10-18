@@ -2837,11 +2837,115 @@ const KB_SS_PAGE_KW = {
   'cloud computers': 'sandbox bac a sable e2b', 'remote control': 'telephone mobile qr telecommande', 'kybernos suite': 'plugins modules extensions',
   'built-in plugins': 'plugins integres', about: 'a propos version licence mise a jour'
 }
+// What the page draws in French: page|label of a row -> [label, description, text to go to when it is not the label]. A row the French menu draws in
+// English (DSH's own rows of General, Agent presets, Built-in plugins) is not listed: it keeps its English text, which is what the page shows. A
+// description left empty is one we have not seen drawn in French: never paraphrased. The related words stay French/English/Spanish for every language.
+const KB_SS_FR = {
+  'general|Onboarding': ['Premiers pas', 'Les pages d’accueil sont passées à l’installation du plugin. Rejoue-les pour refaire ta profession, ton mode d’affichage, tes modèles et ton kit de départ.'],
+  'general|Starter kit': ['Kit de départ', 'Des skills et des équipes d’agents qui vont avec ton métier. Ouvre-le quand tu veux pour en ajouter, ou si tu changes de travail.'],
+  'general|Name each chat when it ends': ['Nommer chaque conversation à sa fin', 'Activé : quand une session de travail se termine, la conversation reçoit un titre court qui dit ce qui a été fait, et une icône qui lui va.'],
+  'general|Study model': ['Modèle d’étude', ''],
+  'general|Language': ['Language', 'Gérer les langues et les traductions ici'],
+  'appearance|Mode': ['Mode', 'Choisis le thème de l’interface.', 'Choisis le thème de l’interface.'],
+  'appearance|Palette, accent, background and font': ['Palette, accent, fond et police', ''],
+  'theme|Mode': ['Mode', 'Le mode est le même réglage que sur la page Apparence : change-le à l’un ou l’autre endroit.'],
+  'theme|Theme': ['Thème', 'Un thème règle les couleurs ; il peut aussi retenir la police, les coins et les icônes du menu.'],
+  'theme|Font': ['Police', 'Choisis la police de l’interface ; la recherche filtre les familles.'],
+  'theme|Glass blur': ['Flou du verre', ''],
+  'theme|Background image': ['Image de fond', 'Réglages fins du fond choisi.'],
+  'theme|Sidebar transparency': ['Transparence de la barre latérale', ''],
+  'theme|Accent color': ['Couleur d’accent', 'Les couleurs de texte sont recalculées pour rester lisibles.'],
+  'theme|Color tokens': ['Jetons de couleur', 'Modifie un jeton pour le mode courant : le contraste est recalculé aussitôt.'],
+  'theme|Text size': ['Taille du texte', ''],
+  'theme|Ligatures': ['Ligatures', ''],
+  'theme|Radii': ['Rayons', 'Arrondi des boutons, cartes et panneaux.'],
+  'theme|Thinking animation': ['Animation de réflexion', 'Ce qui s’anime en bas du chat pendant que l’agent travaille.'],
+  'theme|Menu icons': ['Icônes du menu', 'Le dessin des entrées de la barre latérale : gris au repos, en couleur sur la page ouverte.'],
+  'theme|Contrast': ['Contraste', 'Lisibilité des textes et des bordures.'],
+  'theme|Reduce animations': ['Réduire les animations', ''],
+  'theme|Focus ring': ['Anneau de focus', 'Visible quand tu navigues au clavier : essaie Tab.'],
+  'theme|44 px targets': ['Cibles de 44 px', ''],
+  'theme|Link underlining': ['Soulignement des liens', ''],
+  'theme|Color-blind palette': ['Palette daltonisme', ''],
+  'language|Interface language': ['Langue', 'Choisis la langue de l’interface. Les textes pas encore traduits restent en anglais.', 'Langue'],
+  'language|Add a language': ['Ajouter une langue', 'Ouvre « Ajouter une langue » et choisis-en une dans la liste ISO.'],
+  'memory & lessons|Memories': ['Souvenirs', ''],
+  'memory & lessons|Lessons learned': ['Leçons apprises', ''],
+  'kybernos|Custom instructions': ['Instructions personnalisées', 'Gardées sur cet ordinateur : tous les agents les lisent, dans les nouvelles conversations.'],
+  'kybernos|Models': ['Modèles', 'La liste se met à jour toute seule quand ta formule ou ton serveur change.'],
+  'ai provider & models|Add provider': ['Ajouter un fournisseur', ''],
+  'ai provider & models|Kybernos Cloud': ['Kybernos Cloud', ''],
+  'auto routing|Automatic routing': ['Routage automatique', 'Activé : Auto sert dans toutes les sessions. Désactivé : tu l’actives session par session, depuis le menu du modèle dans le composer.'],
+  'auto routing|Models Auto may use': ['Modèles qu’Auto peut utiliser', 'Seulement les modèles que tu choisis ci-dessous. L’ordre de la liste est l’ordre de repli.'],
+  'free llms|Available free models': ['Modèles gratuits disponibles', 'Des modèles gratuits, sans compte ni clé API.'],
+  'ollama local models|Machine': ['Machine', '', 'Machine · mesuré (sysctl)'],
+  'ollama local models|Model memory budget': ['Budget mémoire modèle', '', 'Budget mémoire modèle · estimé'],
+  'ollama local models|Local engine': ['Moteur local', ''],
+  'usage|Your Kybernos plan': ['Ton plan Kybernos', ''],
+  'usage|Your keys and local models': ['Tes clés et modèles locaux', ''],
+  'workers|Check all': ['Tout vérifier', 'Les workers sont les assistants de code installés sur ton ordinateur.'],
+  'automations|Pause all automations': ['Mettre toutes les automatisations en pause', 'Rien ne se déclenche tant que c’est activé.'],
+  'automations|Show DSH’s own “Automation tasks” list': ['Afficher la liste « Automation tasks » de DSH', ''],
+  'commands|Commands': ['Commandes', 'Un même modèle : du texte inséré, ou un formulaire en ligne.'],
+  'skills|Index source': ['Source de l’index', 'Par défaut, c’est le relais Kybernos : une copie en lecture seule de l’index skills.sh, rafraîchie environ toutes les heures.'],
+  'skills|Writable folders': ['Dossiers modifiables', 'La création et l’installation de skills s’écrivent uniquement dans ces dossiers.'],
+  'tools|Profile': ['Profil', 'Active des capacités expérimentales et branche des outils externes sur un profil DSH.'],
+  'connectors|Composio key': ['Clé Composio', 'Ta clé personnelle Composio : elle pilote cet onglet ET les agents du chat.'],
+  'connectors|Kybernos Cloud': ['Kybernos Cloud', 'Les connexions sont gérées par ton compte Kybernos : pas de clé à gérer, et tes comptes te suivent d’un appareil à l’autre.'],
+  'web search|Default engine': ['Moteur par défaut', 'Les agents l’essaient en premier.', 'PAR DÉFAUT'],
+  'web search|Sites': ['Sites', 'Un par ligne ou séparés par des virgules. « exemple.com » ne garde que ce site.'],
+  'voice|Composer microphone': ['Micro du composer', 'La dictée de ce plugin prend la place du micro natif, juste avant Envoyer.'],
+  'voice|Read replies aloud as they arrive': ['Lire les réponses à voix haute à leur arrivée', ''],
+  'voice|Voice engines': ['Moteurs de voix', '', 'Apple « say »'],
+  'calls|Calls': ['Appels', 'Parler en direct à ton assistant ou à un membre de ton équipe, à voix haute, depuis n’importe quelle session.'],
+  'servers|Add a server': ['Ajouter un serveur', ''],
+  'cloud computers|API key': ['Clé API', 'Stockée sur cette machine, jamais affichée de nouveau. Le code et les fichiers que l’agent envoie à un ordinateur cloud partent chez E2B.'],
+  'remote control|Link a phone': ['Relier un téléphone', 'Pilote cet ordinateur depuis ton téléphone : scanne le code, c’est tout.', 'Relier un téléphone en trois étapes'],
+  'atlas|Update': ['Mettre à jour', 'L’Atlas ne lit tes fichiers et tes plugins que lorsque tu le demandes.'],
+  'kybernos suite|Check for updates': ['Rechercher des mises à jour', ''],
+  'about|Check for updates automatically': ['Vérifier les mises à jour automatiquement', ''],
+  'about|Version': ['Version', '', 'Moteur DSH']
+}
+// The tabs and sections of the French pages.
+const KB_SS_SEC_FR = { Behaviour: 'Comportement', Essentials: 'Essentiel', 'Glass and background': 'Verre et fond', Colors: 'Couleurs', 'Text and shape': 'Texte et forme', Animation: 'Animation', Icons: 'Icônes', Accessibility: 'Accessibilité' }
 const KB_SS_STOP = ['the', 'of', 'my', 'le', 'la', 'les', 'de', 'des', 'du', 'un', 'une', 'a', 'to', 'in', 'el', 'los']
 const kbSsNorm = (s) => {
   try { return String(s === undefined || s === null ? '' : s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim() } catch (e) { return String(s || '').toLowerCase().trim() }
 }
 const kbSsToks = (s) => kbSsNorm(s).split(' ').filter((t) => t !== '')
+// The translation pack other languages are served from (the Language page translates the French of every pack bundles publish in
+// window.__KB_I18N_PACKS__; the result is read back under « settingsidx.<key> »): a stable key per row, from its page and its label.
+const KB_SS_PACK = 'settingsidx'
+const kbSsSlug = (page, label) => kbSsNorm(page + ' ' + label).replace(/ /g, '-')
+/** The strings of a row in a language: { sec, label, desc, at }. French from KB_SS_FR, any other translated language from its pack, else English. */
+const kbSsLocalise = (r, lang, pack) => {
+  const en = { sec: r[1], label: r[2], desc: r[3], at: r[7] || r[2] }
+  const base = String(lang === undefined || lang === null ? 'en' : lang).split(/[-_]/)[0]
+  if (base === 'kybernos' || base === 'fr') {
+    const f = KB_SS_FR[r[0] + '|' + r[2]]
+    return { sec: KB_SS_SEC_FR[r[1]] === undefined ? r[1] : KB_SS_SEC_FR[r[1]], label: f === undefined ? en.label : f[0], desc: f === undefined ? en.desc : f[1], at: f === undefined ? en.at : (f[2] || f[0]) }
+  }
+  if (base === 'en' || pack === undefined || pack === null) return en
+  const slug = kbSsSlug(r[0], r[2])
+  const get = (k, d) => { const v = pack[KB_SS_PACK + '.' + slug + '.' + k]; return typeof v === 'string' && v !== '' ? v : d }
+  const sv = pack[KB_SS_PACK + '.sec.' + kbSsSlug('', r[1])]
+  const label = get('l', en.label)
+  return { sec: r[1] === '' || typeof sv !== 'string' || sv === '' ? r[1] : sv, label, desc: get('d', en.desc), at: get('a', label === en.label ? en.at : label) }
+}
+/** What this index adds to the translation corpus: { key: { fr, en } } for every label, description, text to go to and section. */
+const kbSsPackKeys = (rows) => {
+  const keys = {}
+  for (const r of rows) {
+    const f = KB_SS_FR[r[0] + '|' + r[2]]
+    const slug = kbSsSlug(r[0], r[2])
+    keys[slug + '.l'] = { fr: f === undefined ? r[2] : f[0], en: r[2] }
+    const frDesc = f === undefined ? r[3] : f[1]
+    if (r[3] !== '' && frDesc !== '') keys[slug + '.d'] = { fr: frDesc, en: r[3] }
+    if (r[7]) keys[slug + '.a'] = { fr: f !== undefined && f[2] ? f[2] : r[7], en: r[7] }
+    if (r[1] !== '') keys['sec.' + kbSsSlug('', r[1])] = { fr: KB_SS_SEC_FR[r[1]] === undefined ? r[1] : KB_SS_SEC_FR[r[1]], en: r[1] }
+  }
+  return keys
+}
 // Edit distance with swapped neighbours counted as one edit (« theem » for « theme »).
 const kbSsLev = (a, b, max) => {
   const m = a.length
@@ -2865,11 +2969,16 @@ const kbSsNear = (q, words) => {
   for (const w of words) if (w.length >= 4 && w[0] === q[0] && kbSsLev(q, w, max) <= max) return w
   return null
 }
-/** The index, ready to search: every row with its words cut once. */
-const kbSsBuild = (rows) => rows.map((r, i) => ({
-  i, page: r[0], sec: r[1], label: r[2], desc: r[3], opts: r[4], kw: r[5], dup: r[6] || null, at: r[7] || r[2],
-  lt: kbSsToks(r[2]), kt: kbSsToks(r[5]), dt: kbSsToks(r[3]), ot: kbSsToks(r[4]), st: kbSsToks(r[1])
-}))
+/** The index, ready to search in a language: every row with its words cut once. What the page draws in that language is what is shown and what
+ *  the label words are cut from; the English label, description and section stay searchable too (a French reader may type « font size »). */
+const kbSsBuild = (rows, lang, pack) => rows.map((r, i) => {
+  const L = kbSsLocalise(r, lang, pack)
+  return {
+    i, page: r[0], sec: L.sec, label: L.label, desc: L.desc, opts: r[4], kw: r[5], dup: r[6] || null, at: L.at, key: r[0] + '|' + r[2],
+    lt: kbSsToks(L.label), kt: kbSsToks(r[5] + (L.label === r[2] ? '' : ' ' + r[2])), dt: kbSsToks(L.desc + (L.desc === r[3] ? '' : ' ' + r[3])), ot: kbSsToks(r[4]),
+    st: kbSsToks(L.sec + (L.sec === r[1] ? '' : ' ' + r[1]))
+  }
+})
 // One word of the query against one row: the best field it hits, its score, and the word that did.
 const kbSsWord = (q, e, pageToks) => {
   let best = { s: 0, f: '', w: '' }
@@ -26514,8 +26623,22 @@ ${kbNcHot} .play{transform-origin:50% 50%;animation:kb8-pulse .9s cubic-bezier(.
     // the setting, the page and tab it is on, why it matched. A click opens the page, goes to the row and makes it blink. Empty = everything as
     // it was. Everything is display and attributes on the host nav (nothing is unmounted, the cleanup puts it all back) and one portal into the
     // dialog for the panel. The matching itself is kbSsSearch (pure, tested alone); the index is KB_SS_INDEX.
-    let KB_SS_ENTRIES = []
-    try { KB_SS_ENTRIES = kbSsBuild(KB_SS_INDEX) } catch (e) { console.warn('[kybernos] settings search index not built', e) } // never stops DSH from starting: the search then finds titles only
+    // The index for the language of the day, built once per language (and per state of its translated pack). Never stops DSH from starting: an index
+    // that cannot be built leaves the search finding page titles only.
+    let kbSsCache = { stamp: null, entries: [] }
+    const kbSsEntriesFor = () => {
+      let lang = 'en'
+      try { lang = String(kbLangResolve()) } catch (e) { /* English */ }
+      const pack = kbI18nDict(lang)
+      const stamp = lang + '|' + (pack === null ? 0 : Object.keys(pack).length)
+      if (kbSsCache.stamp !== stamp) {
+        try { kbSsCache = { stamp, entries: kbSsBuild(KB_SS_INDEX, lang, pack) } } catch (e) { console.warn('[kybernos] settings search index not built', e); kbSsCache = { stamp, entries: [] } }
+      }
+      return kbSsCache.entries
+    }
+    // Publish the index to the Language page's translation corpus (see __KB_I18N_PACKS__ in kybernos-cloud): French is the source, the corpus translates
+    // it, and kbSsLocalise reads the result back. A refusal here must never break the factory.
+    try { if (typeof window !== 'undefined') (window.__KB_I18N_PACKS__ = window.__KB_I18N_PACKS__ || []).push({ id: 'kybernos-settingsidx', keys: kbSsPackKeys(KB_SS_INDEX) }) } catch (e) { /* publishing must never break the factory */ }
     // Where the organiser asks to be run again: the search cannot reach its observer, and it must hand the menu back when the query is cleared.
     let kbNavRefresh = null
     const kbSsTitles = (dlg) => {
@@ -26601,7 +26724,7 @@ ${kbNcHot} .play{transform-origin:50% 50%;animation:kb8-pulse .9s cubic-bezier(.
       const dlg = dlgPair[0]
       const query = q.trim()
       // What matched, read against the pages the menu has right now (a module switched off has no page, so no row).
-      const view = dlg === null || query === '' ? { list: [], total: 0 } : kbSsSearch(query, KB_SS_ENTRIES, kbSsTitles(dlg))
+      const view = dlg === null || query === '' ? { list: [], total: 0 } : kbSsSearch(query, kbSsEntriesFor(), kbSsTitles(dlg))
       const hits = {}
       for (const x of view.list) {
         if (x.kind === 'page') hits[x.key] = (hits[x.key] || 0) + 1

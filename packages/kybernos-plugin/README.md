@@ -45,7 +45,12 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
   match and counts them, and a panel over the page lists the settings, the page and tab they are on, and why each matched; a result opens the page,
   goes to the row and makes it blink. **Adding a page or a setting: add its rows to `KB_SS_INDEX`** with the label exactly as the page draws it (the
   last field, optional, is the text to scroll to when the page does not draw the label itself). `scripts/check-settings-search-live.mjs` opens every
-  page and fails when a row's text is not there. Row labels are English for now; a page's title is the one drawn in the menu.
+  page and fails when a row's text is not there (`--lang fr` does it in French, on the sandbox only: switching the language is DSH's own setting). **Results
+  read as the pages do in the language of the day**: French from `KB_SS_FR` (page|label → label, description, text to go to; the rows DSH draws in English
+  even in French, such as General's Permission or Font size, keep their English text, which is what the page shows; a new row without its French line
+  fails `test-settings-search.mjs`), any other translated language from a pack the index publishes to the Language page's corpus
+  (`kybernos-settingsidx`, French is the source, keys from the page and the label), and English when the pack has nothing. The English words stay
+  searchable in every language, a page's title is the one drawn in the menu.
 - **« A short automatic state + a Customize fold »**, one helper for every settings page (`window.__KB_CUSTOMIZE__`, like `__KB_SKEL__`): a page opens on
   what already runs by itself (one sentence, one status dot) and keeps its knobs under one fold that is shut until the person opens it and that remembers the
   choice. `h(window.__KB_CUSTOMIZE__.Fold, { id: 'memory', state: 'Memory is on and tidies itself.', tone: 'on' }, …the knobs…)`;
