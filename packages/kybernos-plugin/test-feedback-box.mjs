@@ -5,7 +5,7 @@
 //
 //   node packages/kybernos-plugin/test-feedback-box.mjs
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
@@ -115,6 +115,45 @@ const env = { id: () => 'fb-' + String(++seq), now: () => Date.parse('2026-10-16
   ok('a box of ' + (box.FILE_MAX / 1048576) + ' MB takes no more: « full », nothing written')
 }
 
+// ── 1b. the form's text as a report for the relay (AC-05) ──────────────────────────────────────────────────
+{
+  const mask = (t) => t.replace(/sk-[A-Za-z0-9]{6,}/g, 'sk-[REDACTED]')
+  const r = box.relayReportOf({ type: 'bug', message: '  The send button does nothing\nI press it and the page stays as it is.  ' }, { mask })
+  assert.equal(r.ok, true)
+  assert.deepEqual(r.input, { kind: 'bug', title: 'The send button does nothing', body: 'The send button does nothing\nI press it and the page stays as it is.' })
+  assert.equal(r.client, false)
+  ok('a bug becomes a relay report: kind bug, the first line as the title, the whole text as the body, no technical sheet')
+  assert.equal(box.relayReportOf({ type: 'idea', message: 'Dark mode please' }, { mask }).input.kind, 'feature')
+  const q = box.relayReportOf({ type: 'question', message: 'Where are my skills?' }, { mask })
+  assert.equal(q.input.kind, 'feature')
+  assert.equal(q.input.title, 'Question: Where are my skills?')
+  ok('an idea is a feature, a question is a feature whose title says it is a question (the relay knows two kinds)')
+  const long = box.relayReportOf({ type: 'bug', message: 'word '.repeat(60) + 'end' }, { mask })
+  assert.ok(long.input.title.length <= 80 && long.input.title.endsWith('…'), long.input.title)
+  assert.ok(!/\s…$/.test(long.input.title), 'no space before the ellipsis')
+  assert.equal(long.input.body.length, ('word '.repeat(60) + 'end').length)
+  const noSpace = box.relayReportOf({ type: 'bug', message: 'x'.repeat(300) }, { mask })
+  assert.ok(noSpace.input.title.length <= 80 && noSpace.input.title.endsWith('…'))
+  ok('a long first line is cut for the title at a word boundary (else hard), and the body keeps everything')
+  const blankFirst = box.relayReportOf({ type: 'bug', message: '\n\n   \nSecond line is the title\nthird' }, { mask })
+  assert.equal(blankFirst.input.title, 'Second line is the title')
+  ok('blank lines before the text are not a title')
+  const secret = box.relayReportOf({ type: 'bug', message: 'key sk-ABCDEF123456 fails' }, { mask })
+  assert.ok(!secret.input.title.includes('ABCDEF123456') && !secret.input.body.includes('ABCDEF123456'))
+  ok('a key pasted into the message is masked in the title and in the body, before anything leaves')
+  const withCtx = box.relayReportOf({ type: 'bug', message: 'It broke', context: true, page: { title: 'Settings', lang: 'en', width: 1280, height: 800 } }, { mask })
+  assert.equal(withCtx.client, true)
+  assert.ok(/Settings/.test(withCtx.input.body) && /en/.test(withCtx.input.body) && /1280/.test(withCtx.input.body) && /800/.test(withCtx.input.body), withCtx.input.body)
+  assert.ok(withCtx.input.body.startsWith('It broke'))
+  const noCtx = box.relayReportOf({ type: 'bug', message: 'It broke', context: false, page: { title: 'Secret project', lang: 'fr', width: 10, height: 10 } }, { mask })
+  assert.equal(noCtx.client, false)
+  assert.ok(!/Secret project|fr|10/.test(noCtx.input.body.replace('It broke', '')), noCtx.input.body)
+  ok('the page details ride in the body only when the form asked for them (and then the technical sheet goes too); never otherwise')
+  for (const bad of [null, [], { type: 'complaint', message: 'x' }, { type: 'bug' }, { type: 'bug', message: '  ' }, { type: 'bug', message: 42 }]) assert.equal(box.relayReportOf(bad, { mask }).ok, false)
+  assert.equal(box.relayReportOf({ type: 'bug', message: 'x'.repeat(box.MESSAGE_MAX + 500) }, { mask }).input.body.length, box.MESSAGE_MAX)
+  ok('a form that is not one, a bad type, an empty message: refused; a longer message is cut to the same limit as the box')
+}
+
 // ── 2. the two routes of the real plugin ────────────────────────────────────────────────────────────────────────────
 const realSetTimeout = globalThis.setTimeout
 globalThis.setTimeout = (fn, ms, ...a) => ((ms === 5000 || ms === 30000) ? { unref () {}, ref () {} } : realSetTimeout(fn, ms, ...a))
@@ -199,6 +238,122 @@ const linesOnDisk = () => (existsSync(file) ? readFileSync(file, 'utf8').split('
   assert.equal(r.json.text, readFileSync(file, 'utf8'))
   assert.equal(r.json.count, linesOnDisk())
   ok('GET /kybernos/feedback/export (signed in) returns the file\'s content and the number of entries')
+}
+
+// ── 3. POST /kybernos/feedback/send: the form really sends (AC-05) ────────────────────────────────────────
+{
+  // A fake relay: the Cloud plugin's state names it, every POST is recorded, nothing else is reached.
+  const posts = []
+  let answers = []
+  const realFetch = globalThis.fetch
+  globalThis.fetch = async (url, init) => {
+    posts.push({ url: String(url), auth: init.headers.authorization, body: JSON.parse(init.body) })
+    const next = answers.length > 0 ? answers.shift() : { status: 201, json: { ok: true, issue: { number: posts.length, url: 'https://example.invalid/issues/' + posts.length } } }
+    if (next.throws === true) throw new TypeError('fetch failed')
+    return { status: next.status, text: async () => JSON.stringify(next.json) }
+  }
+  const stateFile = join(home, 'kybernos-cloud.json')
+  const connect = () => writeFileSync(stateFile, JSON.stringify({ token: 'kys_test_token_0000000000000000', api: 'http://relay.invalid' }))
+  process.env.KYBERNOS_CLOUD_STATE = stateFile
+  connect()
+  const linesBefore = linesOnDisk()
+
+  const r = await call('POST', '/kybernos/feedback/send', { type: 'bug', message: 'Send does nothing\nI press it, nothing leaves.' })
+  assert.equal(r.status, 200)
+  assert.equal(r.json.ok, true, JSON.stringify(r.json))
+  assert.equal(posts.length, 1)
+  assert.equal(posts[0].url, 'http://relay.invalid/v1/feedback')
+  assert.equal(posts[0].auth, 'Bearer kys_test_token_0000000000000000')
+  assert.equal(posts[0].body.kind, 'bug')
+  assert.equal(posts[0].body.title, 'Send does nothing')
+  assert.equal(posts[0].body.consent, true)
+  assert.deepEqual(posts[0].body.client, {}, 'the technical sheet is not sent unless the form asked for it')
+  ok('Send posts the report to the relay with the device token, as a bug titled by its first line, and says it was sent')
+  assert.ok(!JSON.stringify(r.json).includes('kys_test_token') && !JSON.stringify(r.json).includes(home), 'the answer carries no token and no path')
+  assert.equal(linesOnDisk(), linesBefore, 'Send does not write the feedback box: that is what Save is for')
+  ok('...the answer holds no token and no local path, and the box of saved feedback is left alone')
+
+  const again = await call('POST', '/kybernos/feedback/send', { type: 'bug', message: 'Send does nothing\nI press it, nothing leaves.' })
+  assert.equal(again.json.ok, true)
+  assert.equal(again.json.deduped, true)
+  assert.equal(posts.length, 1, 'the same report again is not posted twice')
+  ok('a double click (the same report again) opens one issue and says it had already been sent')
+
+  const withCtx = await call('POST', '/kybernos/feedback/send', { type: 'idea', message: 'Dark mode', context: true, page: { title: 'Atlas', lang: 'en', width: 1400, height: 900 } })
+  assert.equal(withCtx.json.ok, true)
+  const sent = posts[posts.length - 1].body
+  assert.equal(sent.kind, 'feature')
+  assert.ok(typeof sent.client.os === 'string' && sent.client.os !== '', 'with the details ticked the system goes')
+  assert.ok(/Atlas/.test(sent.body) && /1400/.test(sent.body))
+  assert.ok(!/token|secret|password|cookie|\/Users\//i.test(JSON.stringify(sent)), 'no secret, no personal path in what leaves')
+  ok('with the technical details ticked, the system, the versions and the page facts go; nothing else')
+
+  const q = await call('POST', '/kybernos/feedback/send', { type: 'question', message: 'sk-ABCDEF123456 is my key, where do I put it?' })
+  assert.equal(q.json.ok, true)
+  assert.equal(posts[posts.length - 1].body.title.startsWith('Question: '), true)
+  assert.ok(!JSON.stringify(posts[posts.length - 1].body).includes('ABCDEF123456'))
+  ok('a question keeps its label and a key pasted into it is masked before it leaves')
+
+  // A relay that is down: an honest failure, the text kept, a retry later sends the same report.
+  answers = [{ status: 503, json: { error: 'github_indisponible', retry_after: 30 } }]
+  const n0 = posts.length
+  const down = await call('POST', '/kybernos/feedback/send', { type: 'bug', message: 'Relay down case' })
+  assert.equal(down.status, 200)
+  assert.equal(down.json.ok, false)
+  assert.equal(down.json.error, 'github_indisponible')
+  assert.equal(down.json.retryable, true)
+  assert.equal(down.json.retry_after, 30)
+  assert.equal(posts.length, n0 + 1)
+  ok('a relay that does not answer is an honest failure (ok false, its code, retryable, when to come back), never a success')
+  answers = [{ throws: true }]
+  const dead = await call('POST', '/kybernos/feedback/send', { type: 'bug', message: 'Network down case' })
+  assert.equal(dead.json.ok, false)
+  assert.equal(dead.json.error, 'envoi_indisponible')
+  ok('no network at all is a failure too, with a code the form can word')
+  answers = [{ status: 400, json: { error: 'invalid_title' } }]
+  const refused = await call('POST', '/kybernos/feedback/send', { type: 'bug', message: 'Refused case' })
+  assert.equal(refused.json.ok, false)
+  assert.equal(refused.json.error, 'invalid_title')
+  assert.equal(refused.json.retryable, false)
+  ok('a refusal of the content is not retryable')
+
+  // Signed out: no token, nothing is posted, the answer says so.
+  rmSync(stateFile, { force: true })
+  const n1 = posts.length
+  const out = await call('POST', '/kybernos/feedback/send', { type: 'bug', message: 'Signed out case' })
+  assert.equal(out.status, 200)
+  assert.equal(out.json.ok, false)
+  assert.equal(out.json.error, 'non_connecte')
+  assert.equal(posts.length, n1, 'nothing is posted without an account')
+  ok('signed out: nothing is posted and the answer says « not connected », it never claims a delivery')
+  connect()
+
+  // The same strict guard as the other write routes, and nothing leaves on a refusal.
+  const n2 = posts.length
+  for (const [label, headers, status] of [
+    ['no Origin and no cookie', { origin: '', cookie: '' }, 403],
+    ['a foreign Origin', { origin: 'http://evil.example' }, 403],
+    ['no cookie (what a local program sends)', { cookie: '' }, 401],
+    ['a cookie signed with another secret', { cookie: sessionCookie(AUTHORITY, { secret: OTHER_SECRET }) }, 401],
+    ['an expired cookie', { cookie: sessionCookie(AUTHORITY, { expiresAt: Date.now() - 1000 }) }, 401],
+  ]) {
+    const x = await call('POST', '/kybernos/feedback/send', { type: 'bug', message: 'must not leave' }, headers)
+    assert.equal(x.status, status, label + ' → ' + x.status)
+  }
+  assert.equal(posts.length, n2)
+  sessionSource.secret = () => null
+  assert.equal((await call('POST', '/kybernos/feedback/send', { type: 'bug', message: 'x' })).status, 503)
+  sessionSource.secret = () => SESSION_SECRET
+  assert.equal(posts.length, n2)
+  ok('the strict write guard: no Origin, a foreign Origin, no cookie, a forged or expired cookie, an unreadable machine secret — all refused, nothing posted')
+  assert.equal((await call('GET', '/kybernos/feedback/send')).status, 405)
+  assert.equal((await call('POST', '/kybernos/feedback/send', 'x'.repeat(200000))).status, 413)
+  assert.equal((await call('POST', '/kybernos/feedback/send', { type: 'complaint', message: 'x' })).status, 400)
+  assert.equal((await call('POST', '/kybernos/feedback/send', { type: 'bug', message: '  ' })).status, 400)
+  assert.equal(posts.length, n2)
+  ok('GET is 405, an oversized body 413, a bad type or an empty message 400, and nothing is posted')
+  globalThis.fetch = realFetch
+  delete process.env.KYBERNOS_CLOUD_STATE
 }
 
 console.log('\n' + n + ' checks passed')

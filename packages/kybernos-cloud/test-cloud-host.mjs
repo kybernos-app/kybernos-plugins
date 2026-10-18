@@ -1099,12 +1099,36 @@ try {
   assert.equal(partialReferral.body.share_url, null)
   ok('parrainage : lien sans code ignore (pas de lien mort)')
 
+  // AC-06 (account campaign 2026-10-18): the card states an amount only when the SERVER runs an offer (`offer` of GET /v1/referral); the DSH used to
+  // hard-code « 500 credits each » whatever the server paid, or whether it paid at all.
+  const OFFER = { amount_usd: '5.00', valid_days: 30, ends_at: null }
+  referralBody = { id: 'u-1', code: 'ABCD12', share_url: 'https://dev.kybernos.app/r/ABCD12', offer: OFFER }
+  const offered = await hit('/kybernos-cloud/referral', 'GET')
+  assert.deepEqual(offered.body.offer, OFFER)
+  referralBody = { id: 'u-1', code: 'ABCD12', share_url: 'https://dev.kybernos.app/r/ABCD12', offer: null }
+  assert.equal((await hit('/kybernos-cloud/referral', 'GET')).body.offer, null)
+  referralBody = { id: 'u-1', code: 'ABCD12', share_url: 'https://dev.kybernos.app/r/ABCD12' }
+  assert.equal((await hit('/kybernos-cloud/referral', 'GET')).body.offer, null)
+  for (const junk of [{ amount_usd: '0.00' }, { amount_usd: '-5' }, { amount_usd: '5 <b>' }, { amount_usd: 5 }, { amount_usd: '1e9' }, 'free money', [OFFER]]) {
+    referralBody = { id: 'u-1', code: 'ABCD12', share_url: 'https://dev.kybernos.app/r/ABCD12', offer: junk }
+    assert.equal((await hit('/kybernos-cloud/referral', 'GET')).body.offer, null, JSON.stringify(junk))
+  }
+  referralBody = { id: 'u-1', code: 'ABCD12', share_url: 'https://dev.kybernos.app/r/ABCD12', offer: { amount_usd: '2.50', valid_days: 'forever', ends_at: 'soon <script>' } }
+  assert.deepEqual((await hit('/kybernos-cloud/referral', 'GET')).body.offer, { amount_usd: '2.50', valid_days: null, ends_at: null })
+  referralBody = { id: 'u-1', code: '', share_url: null, offer: OFFER }
+  const offeredNoCode = await hit('/kybernos-cloud/referral', 'GET')
+  assert.equal(offeredNoCode.body.code, null)
+  assert.deepEqual(offeredNoCode.body.offer, OFFER)
+  ok('referral: the server\'s own offer is relayed (amount, length), else null; a value that is not an amount is dropped, never a figure of ours')
+
   referralForcedStatus = 503
   const downReferral = await hit('/kybernos-cloud/referral', 'GET')
   assert.equal(downReferral.status, 200)
   assert.equal(downReferral.body.ok, false)
   assert.equal(downReferral.body.code, null)
   assert.match(downReferral.body.motif, /503/)
+  assert.equal(downReferral.body.motif, 'referral unavailable (code 503)', 'the reason is shown under the card: in English, like the page')
+  assert.equal(downReferral.body.offer, null)
   ok('parrainage : plateau injoignable → motif explicite, aucun code')
   referralForcedStatus = null
   referralBody = { id: 'u-1', code: 'ABCD12', share_url: 'https://dev.kybernos.app/r/ABCD12' }

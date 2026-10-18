@@ -12,7 +12,7 @@ import { kyberTarget } from './kyber-root.mjs'
 import { createWorkspaceInstructions } from './workspace-instructions.mjs'
 import { selectAfterConnect } from './default-model.mjs'
 import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
-import { recordFeedback, exportFeedback } from './feedback-box.mjs'
+import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay } from './onboarding-state.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
@@ -10363,6 +10363,30 @@ function boot(ctx) {
         if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
         sendJson(res, 200, exportFeedback(dshHomeSync()))
       } }), 'kybernos: route feedback export')
+      // ── « Send » of the same form: the report goes to the Kybernos team, with the device token (AC-05, account campaign 2026-10-18) ──
+      // The relay (POST /v1/feedback of the linked server) is the one door the beta-feedback tool already uses: this is the form's way to it, with the same
+      // outbox (an identical report is one report, a failed one is kept and goes again), and the same strict write guard as the routes above — a local
+      // program must not post in the person's name. The answer is `{ ok, error, retryable, retry_after, deduped }`: never a token, never a path, and `ok`
+      // is true only when the relay took the report. Signed out is `non_connecte`: nothing is posted.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/feedback/send', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        const refused = writeGuard(req)
+        if (refused !== null) return sendJson(res, refused.status, { ok: false, error: refused.error })
+        let body = null
+        try { body = await readJsonBody(req, 20000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
+        const made = relayReportOf(body, kbFeedbackBoxEnv())
+        if (made.ok !== true) return sendJson(res, 400, made)
+        let out = null
+        try { out = await kbFeedbackExecute(made.input, { client: made.client }) } catch (e) { out = { ok: false, error: 'envoi_indisponible' } }
+        const code = out.ok === true ? null : String(out.error === undefined || out.error === null ? 'envoi_indisponible' : out.error)
+        sendJson(res, 200, {
+          ok: out.ok === true,
+          error: code,
+          retryable: code !== null && kbFeedbackRetryable(code),
+          retry_after: typeof out.retry_after === 'number' ? out.retry_after : null,
+          deduped: out.deduped === true,
+        })
+      } }), 'kybernos: route feedback send')
       // ── When the scheduled automations will run: GET /kybernos/tasks/occurrences?from=&to= ──────────────
       // Read-only, for the Automations calendar. It answers with the scheduler's OWN matcher (kbComputeNextRun
       // and kbNeverRuns of the tested core block), not a second cron engine, and with the same guard as the
@@ -11303,16 +11327,18 @@ const kbFeedbackBoxEnv = () => ({
   },
 })
 
-/** Exécution complète de l'outil : trace locale DANS TOUS LES CAS, puis envoi. */
-const kbFeedbackExecute = async (args) => {
+/** Exécution complète de l'outil : trace locale DANS TOUS LES CAS, puis envoi. `opts.client === false` (the « Send feedback » form with its toggle
+ *  off) leaves the technical sheet (system, DSH and Kybernos versions) out of the report: the tool of the interview always carries it. */
+const kbFeedbackExecute = async (args, opts) => {
   const dsh = dshHomeSync()
+  const sheet = opts === null || opts === undefined || opts.client !== false
   let osLabel = null
   try { osLabel = String(osPlatform()) + ' ' + String(osRelease()) } catch (e) { osLabel = null }
   const report = kbFeedbackReport(args, {
     uuid: typeof randomUUID === 'function' ? randomUUID() : null,
-    os: osLabel,
-    dsh: kbFeedbackDshVersion(),
-    revision: kbFeedbackSuiteVersion(nodePathJoin(dirname(fileURLToPath(import.meta.url)), '..', '..', 'VERSION'), readFileSync),
+    os: sheet ? osLabel : null,
+    dsh: sheet ? kbFeedbackDshVersion() : null,
+    revision: sheet ? kbFeedbackSuiteVersion(nodePathJoin(dirname(fileURLToPath(import.meta.url)), '..', '..', 'VERSION'), readFileSync) : null,
     session_id: null,
   })
   const asked = args !== null && args !== undefined && typeof args === 'object' ? args : {}
