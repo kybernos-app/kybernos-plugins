@@ -154,6 +154,8 @@ const answerFor = (path, req) => {
   if (path === '/kybernos-cloud/space/active' && fake.active !== null) { fake.calls.push('active'); fake.bodies.push({ path, body: sent() }); return fake.active(sent().workspace_id) }
   if (path === '/kybernos-cloud/space/applied' && fake.appliedFn !== null) { fake.calls.push('applied'); return { body: fake.appliedFn(sent().workspace_id) } }
   if (path === '/kybernos-cloud/refresh') { fake.calls.push('refresh'); return { body: { ok: true } } }
+  // A team that is active with no folder asks the host to make one (scripts/check-team-folder-live.mjs plays that): here the host is never reached.
+  if (path === '/kybernos-cloud/space/folder') { fake.calls.push('folder'); return { body: { ok: false, error: 'non_connecte' } } }
   if (path === '/kybernos-cloud/models/sync' && fake.sync !== null) { fake.calls.push('models-sync'); return { body: fake.sync } }
   if (path === '/kybernos-cloud/chats/push' && fake.push !== null) { fake.calls.push('chats-push'); return { body: fake.push } }
   if (path === '/kybernos-mobile/remote/status' && fake.remote !== null) { fake.calls.push('remote-status'); return { body: fake.remote } }
@@ -1064,7 +1066,7 @@ try {
         const rows = await rowsOf('.kbfp-menu')
         check(count + ': one row each, the personal one active (check mark), in the order of the account', rows.length === count && rows[0].current === true && rows.slice(1).every((r) => r.current === false) && JSON.stringify(rows.map((r) => r.name)) === JSON.stringify(T_NAMES.slice(0, count)), rows)
         check(count + ': the personal row says « you · plan », a team its role and head count (« Admin · 6 members »)', rows[0].sub === 'Dev Person · Free' && (count === 1 || (rows[1].sub === 'Admin · 6 members' && rows[1].pct === '84')), rows)
-        check(count + ': no « Switch team » row while the list is in the menu, and « Create a team » is under it', !(await exists('.kbfp-menu [data-kb="menu-switch"]')) && (await exists('.kbfp-menu [data-kb="space-create"]')) && !(await exists('.kbfp-menu [data-kb="space-join"]')))
+        check(count + ': no « Switch team » row while the list is in the menu, and « Create a team » then « Join with an invitation link » are under it (scripts/check-join-live.mjs plays the dialog)', !(await exists('.kbfp-menu [data-kb="menu-switch"]')) && (await exists('.kbfp-menu [data-kb="space-create"]')) && (await exists('.kbfp-menu [data-kb="space-join"]')))
         if (count === 3) {
           check('3: each team row carries its own colour, two different ones, the personal tile none', rows[1].hue !== null && rows[2].hue !== null && rows[1].hue !== rows[2].hue && rows[0].hue === null, rows.map((r) => r.hue))
           check('3: the percent is the team\'s pool for an admin (84% and 12%), shown with a bar', JSON.stringify(rows.map((r) => r.pct)) === JSON.stringify(['3', '84', '12']) && (await val(`document.querySelectorAll('.kbfp-menu [data-kb="space-usage"] .kbfp-usebar').length`)) === 3, rows.map((r) => r.pct))
@@ -1077,7 +1079,7 @@ try {
         await until(() => exists('.kbfp-sub [data-kb="space-row"]'), 4000)
         await sleep(300)
         const rows = await rowsOf('.kbfp-sub')
-        check(count + ': it opens the full list next to the menu, with every space and « Create a team »', rows.length === count && (await exists('.kbfp-sub [data-kb="space-create"]')), rows.length)
+        check(count + ': it opens the full list next to the menu, with every space, « Create a team » and « Join with an invitation link »', rows.length === count && (await exists('.kbfp-sub [data-kb="space-create"]')) && (await exists('.kbfp-sub [data-kb="space-join"]')), rows.length)
         check(count + ': the rows carry the same role and head count', rows[1].sub === 'Admin · 6 members', rows[1])
         const sub = await rect('.kbfp-sub')
         check(count + ': the list fits the window', sub !== null && sub.x >= 0 && sub.y >= 0 && sub.x + sub.w <= 1400 && sub.y + sub.h <= 860, sub)

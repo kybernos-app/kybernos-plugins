@@ -270,8 +270,10 @@ const slots = {
     return () => {}
   },
 }
+// DSH's own services the footer reaches on a team switch (step 6): a scene sets them, they are absent otherwise.
+const dshFake = { workspaces: undefined, uiWorkspace: undefined }
 const ctx = {
-  get: (name) => (name === 'slots' ? slots : undefined),
+  get: (name) => (name === 'slots' ? slots : (name === 'workspaces' ? dshFake.workspaces : (name === 'uiWorkspace' ? dshFake.uiWorkspace : undefined))),
   effect: (fn) => { void fn() },
 }
 plugin.apply(ctx)
@@ -1122,7 +1124,8 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
   const workspaces = (count, role) => [{ id: 'p', name: 'My workspace', personal: true, role: 'owner' }, ...TEAMS.slice(0, count - 1).map(([id, name]) => ({ id, name, personal: false, role }))]
   const win = (kind, seconds, percent, extra = {}) => ({ kind, window_seconds: seconds, scope: 'plan', used_percent: percent, exhausted: false, resets_at: null, ...extra })
   const world = {
-    status: null, quota: null, summary: null, calls: [], bodies: [], applied: [], route: 'written', activeOk: true,
+    status: null, quota: null, summary: null, calls: [], bodies: [], applied: [], route: 'written', activeOk: true, invitePreview: { ok: false }, inviteAccept: { ok: false },
+    activeState: null, folderAnswer: { ok: true }, createAnswer: { ok: false },
   }
   const stateOf = (count, role, active, extra = {}) => ({ ok: true, connected: true, state: {
     user: { email: 'dev@example.test', name: 'Local test', plan: active === 'p' ? 'free' : 'team' },
@@ -1140,9 +1143,17 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     else if (path === '/quota') json = world.quota !== null ? world.quota : { ok: false }
     else if (path === '/spaces/summary') json = world.summary !== null ? world.summary : { ok: false }
     else if (path === '/space/active') {
-      json = world.activeOk ? { ok: true, route: world.route, state: {} } : { ok: false, error: 'espace_inconnu' }
+      json = world.activeOk ? { ok: true, route: world.route, state: world.activeState !== null ? world.activeState(JSON.parse(init.body).workspace_id) : {} } : { ok: false, error: 'espace_inconnu' }
       if (world.activeOk) world.status = { ...world.status, state: { ...world.status.state, active_workspace_id: JSON.parse(init.body).workspace_id } }
     } else if (path === '/space/applied') json = { ok: true, applied: world.applied.length > 0 ? world.applied.shift() : true }
+    else if (path === '/space/folder') json = world.folderAnswer
+    else if (path === '/space/create') json = world.createAnswer
+    else if (path === '/invitation/preview') json = world.invitePreview
+    else if (path === '/invitation/accept') {
+      json = world.inviteAccept
+      // The host adds the accepted team to the list (it does not make it active): the next /status shows it.
+      if (json.ok === true) world.status = stateOf(3, 'member', 'p')
+    }
     return { ok: true, status: 200, json: async () => json }
   }
   const draw = async () => {
@@ -1306,8 +1317,7 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     const d1 = dock()
     await act(async () => { d1.root.render(createElement(cueSlots[0].component, null)); await new Promise((r) => setTimeout(r, 20)) })
     const html1 = htmlDe(d1.el)
-    assert.ok(html1.includes('data-kb="space-cue"') && html1.includes('data-kb="cue-memory"') && html1.includes('>Team memory<'), 'a team: the memory pill (the flag is off: it does not say « personal off »): ' + html1)
-    assert.equal(/personal off/i.test(html1), false)
+    assert.ok(html1.includes('data-kb="space-cue"') && html1.includes('data-kb="cue-memory"') && html1.includes('>Team memory · personal off<'), 'a team: the memory pill says the personal memory is off (the cut is on, PERSONAL_MEMORY_CUT): ' + html1)
     assert.ok(/data-kb-hue="(violet|teal|amber|rose|blue|green)"/.test(html1), 'in the team\'s colour')
     assert.equal(html1.includes('cue-folder'), false, 'no team folder yet: no folder pill')
     const cue = globalThis.window.__KB_SPACE_CUE__
@@ -1328,7 +1338,306 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     assert.equal(globalThis.window.__KB_SPACE_CUE__, null, 'and publishes none')
     await act(async () => { await foot3.root.unmount() })
     await act(async () => { d1.root.unmount() })
-    ok('repères de la zone de saisie : pastille mémoire en couleur (sans « personal off » tant que le drapeau est coupé), pastille dossier seulement si un dossier existe, rien dans l\'espace perso, titre d\'accueil lu par le plugin de base')
+    ok('repères de la zone de saisie : pastille mémoire en couleur (« personal off » : la mémoire personnelle est coupée dans une équipe), pastille dossier seulement si un dossier existe, rien dans l\'espace perso, titre d\'accueil lu par le plugin de base')
+  }
+
+  // 5. Joining with an invitation link (plan « Équipes », step 4): the row under « Create a team » in both lists, the dialog (paste, check, preview, join), each refusal in its own words, the
+  // switch through the ordinary path after an accepted invitation, and no switch for a team that has no plan. The host's rules are test-join-host.mjs's.
+  {
+    const INVITE = 'k3Zp9-Qw_7Lm2XvB0cR8sTnYh4JdUeA6oGfIiNaPqMc'
+    const LINK = 'https://dev.kybernos.app/invitations/accept?token=' + INVITE
+    const PREVIEW = { ok: true, preview: { team: 'Studio B', inviter: 'Ada Lovelace', email: 'dev@example.test', role: 'member', expires_at: '2026-10-25T10:00:00.000Z' } }
+    const JOINED = { ok: true, state: {}, joined: { id: 't2', name: 'Studio B', role: 'member', plan_key: 'team' } }
+    const reset = (count = 2) => {
+      world.status = stateOf(count, 'member', 'p')
+      world.quota = quotaOf({ id: 'p', name: 'My workspace', role: 'owner', personal: true }, [win('member', 2592000, 3)])
+      world.summary = SUMMARY(count)
+      world.route = 'written'; world.activeOk = true; world.applied = [true]
+      world.invitePreview = PREVIEW; world.inviteAccept = JOINED
+      world.calls.length = 0; world.bodies.length = 0
+    }
+    const typeIn = async (el, value) => { await act(async () => { propsOf(find(el, byKb('join-input'))).onChange({ target: { value } }); await new Promise((r) => setTimeout(r, 0)) }) }
+    const dialog = async (el, count = 2) => {
+      await open(el)
+      const menu = find(el, byClass('kbfp-menu'))
+      if (count > 3) { await press(find(menu, byKb('menu-switch'))); await settle() }
+      const where = count > 3 ? find(doc.body, byClass('kbfp-sub')) : menu
+      await press(find(where, byKb('space-join')))
+      await settle()
+      return find(el, byKb('join-team'))
+    }
+    const noteOf = (el) => { const n = find(el, byKb('join-note')); return n === null ? null : htmlDe(n) }
+
+    // The row: under « Create a team », in the inline list and in the « Switch team » panel.
+    reset(2)
+    let foot = await draw()
+    await open(foot.el)
+    let menu = find(foot.el, byClass('kbfp-menu'))
+    const rows = findAll(menu, (n) => n.attributes !== undefined && (n.attributes['data-kb'] === 'space-create' || n.attributes['data-kb'] === 'space-join'))
+    assert.deepEqual(rows.map((n) => n.attributes['data-kb']), ['space-create', 'space-join'], 'the join row is right under « Create a team »')
+    assert.ok(htmlDe(rows[1]).includes('Join with an invitation link'), 'and says what it is')
+    assert.equal(find(foot.el, byKb('join-team')), null, 'nothing is open, nothing was asked of the host by itself')
+    assert.equal(world.calls.filter((c) => c.indexOf('/invitation/') >= 0).length, 0)
+    await act(async () => { foot.root.unmount() })
+    reset(4)
+    foot = await draw()
+    await open(foot.el)
+    await press(find(find(foot.el, byClass('kbfp-menu')), byKb('menu-switch')))
+    await settle()
+    const sub = find(doc.body, byClass('kbfp-sub'))
+    assert.ok(find(sub, byKb('space-join')) !== null, 'the « Switch team » panel has the row too')
+    doc.body.childNodes.length = 0
+    await act(async () => { foot.root.unmount() })
+
+    // The dialog, a refused paste, the preview, and the switch after the acceptance.
+    reset(2)
+    foot = await draw()
+    let card = await dialog(foot.el)
+    assert.ok(card !== null && card.attributes['data-step'] === 'paste', 'the row opens the dialog')
+    assert.equal(find(foot.el, byClass('kbfp-menu')), null, 'the menu closes behind it')
+    assert.ok(htmlDe(find(card, byKb('join-check'))).includes('disabled'), 'nothing pasted: nothing to check')
+    await typeIn(foot.el, 'hello there')
+    await press(find(foot.el, byKb('join-check')))
+    await settle()
+    assert.ok(noteOf(foot.el).includes('neither an invitation link nor its code'), 'junk is said, in words: ' + noteOf(foot.el))
+    assert.equal(world.calls.filter((c) => c.indexOf('/invitation/') >= 0).length, 0, 'junk never reaches the host')
+    await typeIn(foot.el, LINK)
+    assert.equal(noteOf(foot.el), null, 'typing clears the note')
+    await press(find(foot.el, byKb('join-check')))
+    await settle()
+    assert.deepEqual(world.bodies.filter((b) => b.path === '/invitation/preview').map((b) => b.body), [{ token: INVITE }], 'the host gets the token and only the token, not the link')
+    card = find(foot.el, byKb('join-team'))
+    assert.equal(card.attributes['data-step'], 'preview')
+    assert.equal(find(card, byKb('join-who')) !== null && htmlDe(find(card, byKb('join-who'))).includes('Ada Lovelace invited you to join “Studio B” as member.'), true, 'the preview says who invited, the team and the role: ' + htmlDe(card).slice(0, 400))
+    assert.ok(htmlDe(find(card, byKb('join-sent-to'))).includes('Sent to dev@example.test.'))
+    assert.equal(find(card, byKb('join-mismatch')), null, 'the signed-in address is the invited one: no warning')
+    assert.equal(htmlDe(card).includes(INVITE), false, 'the token is not drawn anywhere')
+    assert.equal(world.calls.filter((c) => c === 'POST /invitation/accept').length, 0, 'nothing is accepted before the second click')
+    await press(find(card, byKb('join-accept')))
+    await settle(120)
+    assert.deepEqual(world.bodies.filter((b) => b.path === '/invitation/accept').map((b) => b.body), [{ token: INVITE }])
+    const order = world.calls.filter((c) => c.indexOf('/invitation/') >= 0 || c.indexOf('/space/') >= 0)
+    assert.deepEqual(order.slice(0, 3), ['POST /invitation/preview', 'POST /invitation/accept', 'POST /space/active'], 'accepted, then the ordinary switch: ' + JSON.stringify(order))
+    assert.deepEqual(world.bodies.filter((b) => b.path === '/space/active').map((b) => b.body), [{ workspace_id: 't2' }], 'to the team just joined')
+    assert.equal(find(foot.el, byKb('join-team')), null, 'the dialog is closed')
+    await settle(900)
+    assert.ok(order.indexOf('POST /space/applied') >= 0 || world.calls.indexOf('POST /space/applied') >= 0, 'with the same wait on the model route as any switch')
+    assert.ok(htmlDe(foot.el).includes('kbfp-cardname">Studio B<'), 'the card shows the new team')
+    await act(async () => { foot.root.unmount() })
+
+    // A team that has no plan: the person stays where they are and is told.
+    reset(2)
+    world.inviteAccept = { ok: true, state: {}, joined: { id: 't1', name: 'Acme', role: 'member', plan_key: 'none' } }
+    foot = await draw()
+    await dialog(foot.el)
+    await typeIn(foot.el, INVITE)
+    await press(find(foot.el, byKb('join-check')))
+    await settle()
+    await press(find(foot.el, byKb('join-accept')))
+    await settle(120)
+    assert.equal(world.calls.filter((c) => c === 'POST /space/active').length, 0, 'a team without a plan is not switched to')
+    const flash = htmlDe(foot.el)
+    assert.ok(flash.includes('data-kb="foot-flash"') && flash.includes('You joined “Acme”, which has no plan yet. You are still in “Personal”.'), 'and the person is told: ' + flash.slice(Math.max(0, flash.indexOf('foot-flash') - 40), flash.indexOf('foot-flash') + 300) + ' / ' + flash.length)
+    assert.equal(flash.includes('foot-flash-action'), false, 'a member has no plan to choose')
+    assert.ok(flash.includes('kbfp-cardname">Personal<'), 'they stay where they were')
+    await act(async () => { foot.root.unmount() })
+
+    // Each refusal has its own sentence; the dialog stays so the person can go on.
+    const refusals = [
+      ['preview', { ok: false, error: 'invitation_unusable', status: 404 }, ['expired', 'used', 'withdrawn', 'another account'], false],
+      ['preview', { ok: false, error: 'rate_limited', status: 429 }, ['Too many tries'], false],
+      ['preview', { ok: false, error: 'unreachable', status: 0 }, ['could not be reached'], false],
+      ['preview', { ok: false, error: 'refused', status: 500 }, ['did not work out'], true],
+      ['accept', { ok: false, error: 'invitation_unusable', status: 404 }, ['expired', 'used', 'withdrawn', 'another account'], false],
+      ['accept', { ok: false, error: 'seat_limit', status: 409 }, ['no free seat', 'stays valid'], false],
+      ['accept', { ok: false, error: 'rate_limited', status: 429 }, ['Too many tries'], false],
+      ['accept', { ok: false, error: 'unreachable', status: 0 }, ['could not be reached'], false],
+      ['accept', { ok: false, error: 'non_connecte' }, ['signed out'], false],
+      ['accept', { ok: false, error: 'refused', status: 500 }, ['did not work out'], true],
+    ]
+    for (const [step, answer, words, browser] of refusals) {
+      reset(2)
+      if (step === 'preview') world.invitePreview = answer; else world.inviteAccept = answer
+      foot = await draw()
+      await dialog(foot.el)
+      await typeIn(foot.el, LINK)
+      await press(find(foot.el, byKb('join-check')))
+      await settle()
+      if (step === 'accept') { await press(find(foot.el, byKb('join-accept'))); await settle(60) }
+      const note = noteOf(foot.el)
+      const label = step + ' ' + answer.error + ': '
+      assert.ok(note !== null && words.every((w) => note.includes(w)), label + 'the sentence names ' + words.join(', ') + ' -> ' + note)
+      assert.equal(find(foot.el, byKb('join-team')).attributes['data-step'], step === 'preview' ? 'paste' : 'preview', label + 'the dialog stays at the step it was at')
+      const exit = find(foot.el, byKb('join-browser'))
+      assert.equal(exit !== null, browser, label + (browser ? 'the server\'s own page is offered' : 'no browser exit for a planned refusal'))
+      if (browser) assert.equal(exit.attributes.href, 'https://dev.kybernos.app/invitations/accept?token=' + INVITE, label + 'on the ACTIVE server\'s web address, with the token')
+      assert.equal(world.calls.filter((c) => c === 'POST /space/active').length, 0, label + 'nothing was switched')
+      await act(async () => { foot.root.unmount() })
+    }
+
+    // A link of another host names it on a refusal; an invitation for another address is warned about; the button of a bare token works the same.
+    reset(2)
+    world.invitePreview = { ok: false, error: 'invitation_unusable', status: 404 }
+    foot = await draw()
+    await dialog(foot.el)
+    await typeIn(foot.el, 'https://other-server.example/invitations/accept?token=' + INVITE)
+    await press(find(foot.el, byKb('join-check')))
+    await settle()
+    assert.ok(noteOf(foot.el).includes('This link comes from other-server.example; your active server is dev.kybernos.app.'), 'a link from another server says so: ' + noteOf(foot.el))
+    assert.deepEqual(world.bodies.filter((b) => b.path === '/invitation/preview').map((b) => b.body), [{ token: INVITE }], 'still only the token goes to the host')
+    await act(async () => { foot.root.unmount() })
+    reset(2)
+    world.invitePreview = { ok: true, preview: { ...PREVIEW.preview, email: 'someone.else@example.test', inviter: null, role: 'admin' } }
+    foot = await draw()
+    await dialog(foot.el)
+    await typeIn(foot.el, INVITE)
+    await press(find(foot.el, byKb('join-check')))
+    await settle()
+    card = find(foot.el, byKb('join-team'))
+    assert.ok(htmlDe(find(card, byKb('join-who'))).includes('You were invited to join “Studio B” as admin.'), 'no inviter: the sentence without a name')
+    assert.ok(find(card, byKb('join-mismatch')) !== null && htmlDe(find(card, byKb('join-mismatch'))).includes('someone.else@example.test') && htmlDe(find(card, byKb('join-mismatch'))).includes('dev@example.test'), 'an invitation sent to another address says which one')
+    assert.equal(htmlDe(find(card, byKb('join-accept'))).includes('disabled'), false, 'the server decides: the button stays')
+    await act(async () => { foot.root.unmount() })
+    ok('rejoindre avec un lien : la ligne sous « Create a team » (liste du menu et panneau), le dialogue (coller, verifier, apercu, rejoindre), le jeton seul part vers l\'hote, bascule par le chemin ordinaire avec attente de la route, rien si l\'equipe n\'a pas de formule, une phrase par refus (404 en une seule, equipe pleine, trop d\'essais, injoignable, deconnecte), la page du serveur pour l\'imprevu, lien d\'un autre serveur nomme, autre adresse signalee')
+  }
+
+  // 6. One working folder per team (plan « Équipes », step 6): a switch to a team opens a NEW chat in its folder (registered as a DSH workspace), a switch back to Personal one in the
+  // workspace the person had, a team that is created and takes over does the same after the route wait, a team that is active with no folder asks the host once, and a DSH that is not
+  // there changes nothing. The pure rules are test-team-folder-nav.mjs's; the real DSH is scripts/check-team-folder-live.mjs.
+  {
+    const FOLDERS = { t1: '/docs/Kybernos/Acme', t2: '/docs/Kybernos/Studio B' }
+    const dsh = (screen = 's-notes') => {
+      const rows = [{ workspaceId: 'w-work', path: '/work', sessionIds: ['s-work'] }, { workspaceId: 'w-notes', path: '/notes', sessionIds: ['s-notes'] }]
+      const log = { created: [], started: [] }
+      const state = { screen }
+      dshFake.workspaces = {
+        list: { getSnapshot: () => ({ items: rows }), subscribe: () => () => {} },
+        create: async ({ path }) => { log.created.push(path); let row = rows.find((r) => r.path === path); if (row === undefined) { row = { workspaceId: 'w-' + path.split('/').pop().toLowerCase().replace(/\W+/g, '-'), path, sessionIds: [] }; rows.push(row) } return row },
+      }
+      dshFake.uiWorkspace = { get mainReference() { return { sessionId: state.screen } }, startSession: (id) => { log.started.push(id) } }
+      return log
+    }
+    const memory = {}
+    globalThis.window.localStorage = { getItem: (k) => (k in memory ? memory[k] : null), setItem: (k, v) => { memory[k] = String(v) } }
+    const activation = (id) => {
+      const sp = id === 'p'
+      return { workspaces: workspaces(3, 'admin'), team_folders: [FOLDERS.t1, FOLDERS.t2], ...(sp ? {} : { space_folder: FOLDERS[id] }) }
+    }
+    const reset = (active = 'p') => {
+      world.status = { ...stateOf(3, 'admin', active), state: { ...stateOf(3, 'admin', active).state, team_folders: [FOLDERS.t1, FOLDERS.t2], ...(active === 'p' ? {} : { space_folder: FOLDERS[active] }) } }
+      world.quota = quotaOf({ id: 'p', name: 'My workspace', role: 'owner', personal: true }, [win('member', 2592000, 3)])
+      world.summary = SUMMARY(3)
+      world.route = 'written'; world.activeOk = true; world.applied = [true]
+      world.activeState = activation
+      world.folderAnswer = { ok: true }
+      world.calls.length = 0; world.bodies.length = 0
+    }
+    const pick = async (el, id) => { await open(el); await press(findAll(find(el, byClass('kbfp-menu')), byKb('space-row')).filter((r) => r.attributes['data-space'] === id)[0]); await settle(150) }
+
+    // To a team: its folder is registered and a new chat is started in it, only once the route is applied.
+    reset('p')
+    let log = dsh('s-notes')
+    let foot = await draw()
+    await pick(foot.el, 't1')
+    await settle(900)
+    assert.deepEqual(log.created, [FOLDERS.t1], 'the team\'s folder is registered as a DSH workspace')
+    assert.deepEqual(log.started, ['w-acme'], 'and a new chat is started in that workspace, named explicitly')
+    assert.ok(world.calls.indexOf('POST /space/active') < world.calls.indexOf('POST /space/applied'), 'the switch, then the wait on the route')
+    assert.equal(memory['kybernos-cloud.personal-folder'], '/notes', 'the folder of the chat that was on screen is kept as Personal\'s')
+    await act(async () => { foot.root.unmount() })
+
+    // Back to Personal: a new chat in the workspace the person had, not in the team's folder.
+    reset('t1')
+    log = dsh('s-acme')
+    foot = await draw()
+    await pick(foot.el, 'p')
+    await settle(900)
+    assert.deepEqual(log.created, [], 'nothing is registered for Personal')
+    assert.deepEqual(log.started, ['w-notes'], 'a new chat is started in the remembered workspace, never by inheritance')
+    assert.equal(memory['kybernos-cloud.personal-folder'], '/notes', 'a chat that is in a team\'s folder does not replace what was remembered')
+    await act(async () => { foot.root.unmount() })
+
+    // A switch that fails opens nothing; DSH's services absent change nothing.
+    reset('p')
+    world.activeOk = false
+    log = dsh()
+    foot = await draw()
+    await pick(foot.el, 't1')
+    await settle(300)
+    assert.deepEqual(log.started, [], 'a switch the host refused opens no chat')
+    await act(async () => { foot.root.unmount() })
+    reset('p')
+    dshFake.workspaces = undefined
+    dshFake.uiWorkspace = undefined
+    foot = await draw()
+    await pick(foot.el, 't1')
+    await settle(900)
+    assert.ok(htmlDe(foot.el).includes('kbfp-cardname">Acme<'), 'with no DSH services the switch itself still works')
+    await act(async () => { foot.root.unmount() })
+
+    // A route that could not be rewritten still opens the chat in the team's folder (the choice is kept), after the notice.
+    reset('p')
+    world.route = 'failed'
+    log = dsh()
+    foot = await draw()
+    await pick(foot.el, 't1')
+    await settle(150)
+    assert.deepEqual(log.started, ['w-acme'], 'the choice is kept: the chat opens in the team\'s folder')
+    assert.ok(htmlDe(foot.el).includes('may still be billed to the previous team'), 'and the notice is still said')
+    await act(async () => { foot.root.unmount() })
+
+    // A team that is created and takes over (it has a plan): the same wait, then its chat; one without a plan opens nothing.
+    reset('p')
+    log = dsh()
+    world.createAnswer = { ok: true, state: { ...stateOf(3, 'admin', 't1').state, space_folder: FOLDERS.t1, team_folders: [FOLDERS.t1] }, created: { id: 't1', name: 'Acme', plan_key: 'team', activated: true } }
+    foot = await draw()
+    await open(foot.el)
+    await press(find(find(foot.el, byClass('kbfp-menu')), byKb('space-create')))
+    await settle()
+    await act(async () => { propsOf(find(foot.el, byClass('kbc-input'))).onChange({ target: { value: 'Acme' } }); await new Promise((r) => setTimeout(r, 0)) })
+    await press(find(foot.el, byClass('kbc-btn-primary')))
+    await settle(900)
+    assert.deepEqual(log.started, ['w-acme'], 'a team created with a plan: its chat opens in its folder after the route wait')
+    assert.ok(world.calls.indexOf('POST /space/create') < world.calls.indexOf('POST /space/applied'))
+    await act(async () => { foot.root.unmount() })
+    reset('p')
+    log = dsh()
+    world.createAnswer = { ok: true, state: { ...stateOf(3, 'admin', 'p').state, team_folders: [FOLDERS.t1] }, created: { id: 't1', name: 'Acme', plan_key: 'none', activated: false } }
+    foot = await draw()
+    await open(foot.el)
+    await press(find(find(foot.el, byClass('kbfp-menu')), byKb('space-create')))
+    await settle()
+    await act(async () => { propsOf(find(foot.el, byClass('kbc-input'))).onChange({ target: { value: 'Acme' } }); await new Promise((r) => setTimeout(r, 0)) })
+    await press(find(foot.el, byClass('kbc-btn-primary')))
+    await settle(400)
+    assert.deepEqual(log.started, [], 'a team created without a plan did not take over: no chat opens')
+    await act(async () => { foot.root.unmount() })
+
+    // An active team with no folder yet asks the host once; a team with one, and Personal, never ask.
+    reset('t1')
+    world.status = { ...world.status, state: { ...world.status.state, space_folder: undefined } }
+    delete world.status.state.space_folder
+    log = dsh()
+    foot = await draw()
+    await settle(100)
+    assert.equal(world.calls.filter((c) => c === 'POST /space/folder').length, 1, 'an active team with no folder: the page asks the host once')
+    assert.deepEqual(world.bodies.filter((b) => b.path === '/space/folder').map((b) => b.body), [{ workspace_id: 't1' }], 'naming the team, never a path')
+    assert.deepEqual(log.started, [], 'and opens no chat')
+    await act(async () => { foot.root.unmount() })
+    reset('t1')
+    foot = await draw()
+    await settle(100)
+    assert.equal(world.calls.filter((c) => c === 'POST /space/folder').length, 0, 'a team that has its folder asks nothing')
+    await act(async () => { foot.root.unmount() })
+    reset('p')
+    foot = await draw()
+    await settle(100)
+    assert.equal(world.calls.filter((c) => c === 'POST /space/folder').length, 0, 'Personal has no folder and asks nothing')
+    await act(async () => { foot.root.unmount() })
+    dshFake.workspaces = undefined
+    dshFake.uiWorkspace = undefined
+    delete globalThis.window.localStorage
+    ok('un dossier par equipe : un changement vers une equipe enregistre son dossier comme espace de travail DSH et y ouvre un NOUVEAU chat (apres l\'attente de la route), le retour en Personal ouvre un chat dans l\'espace d\'avant (jamais par heritage), une route non reecrite ouvre quand meme le chat, une equipe creee avec formule fait de meme et sans formule rien, une equipe active sans dossier le demande une fois a l\'hote, DSH absent ne change rien')
   }
   doc.createElement = realCreate
   globalThis.window.addEventListener = realAdd
