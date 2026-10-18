@@ -13,7 +13,7 @@ const brand = src.match(/\/\/ KB-BRAND-CORE-BEGIN([\s\S]*?)\/\/ KB-BRAND-CORE-EN
 const core = src.match(/\/\/ KB-OB-CORE-BEGIN([\s\S]*?)\/\/ KB-OB-CORE-END/)
 const ui = src.match(/\/\/ KB-OB-UI-BEGIN([\s\S]*?)\/\/ KB-OB-UI-END/)
 if (core === null || ui === null) { console.error('BLOCKS KB-OB-CORE / KB-OB-UI NOT FOUND in packages/kybernos-plugin/client.js'); process.exit(1) }
-const names = 'KB_OB_LANGS, KB_OB_PROFILES, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObBackOf, kbObEscape, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, KB_OB_KITS, kbObKitFor, kbObKitDefaults, kbObMemoryText, kbObSkillText, kbObSetupRows'
+const names = 'KB_OB_LANGS, KB_OB_PROFILES, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObBackOf, kbObEscape, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel, kbObNoModel, KB_OB_KITS, kbObKitFor, kbObKitDefaults, kbObMemoryText, kbObSkillText, kbObSetupRows'
 const mod = await import('data:text/javascript,' + encodeURIComponent(core[1] + '\nexport { ' + names + ' }'))
 
 let fails = 0
@@ -165,8 +165,36 @@ eq('the card sits above the composer, in the input dock', /name: 'conversation\.
 eq('the card reads the failure from the chat, not from the DOM', /useChat\(\(c\) => \{ try \{ return c\.nodes\.valuesCache/.test(src), true)
 eq('the card puts the message back, it does not send it', /kbPrefillDraft\(need\.prompt/.test(src) && !/inputActions\.submit|\.submit\(\)/.test(src.slice(src.indexOf('const KbNeedModel'), src.indexOf('const KbNeedModel') + 6000)), true)
 
+/* ── 7b'. The card before any failure: the engine's catalog holds no model at all (AC-03, account campaign 2026-10-18) ──────────── */
+// The picker says « No models available. » with nothing to do about it (the engine's own words): the dock says it in a person's words and offers the two ways forward.
+// The shape is the engine's shared catalog snapshot (`ctx.modelDirectories.catalog.store`): { value: { groups: [{ id, models: [...] }] } | null, status }.
+const noModel = mod.kbObNoModel
+eq('nothing read, junk: no verdict (the card stays away)', [noModel(null), noModel(undefined), noModel('x'), noModel(7), noModel([]), noModel({})].every((v) => v === false), true)
+eq('a catalog that has not loaded yet (no value): not « empty »', [noModel({ status: 'idle', value: null }), noModel({ status: 'loading', value: null }), noModel({ status: 'error', value: null, error: 'x' })].every((v) => v === false), true)
+eq('a value that is not a list of groups: not « empty »', [noModel({ status: 'ready', value: {} }), noModel({ status: 'ready', value: { groups: 'none' } }), noModel({ status: 'ready', value: { groups: null } })].every((v) => v === false), true)
+eq('loaded, no group at all: no model', noModel({ status: 'ready', value: { groups: [] } }), true)
+eq('loaded, groups with no model (or a group that is not one): no model', noModel({ status: 'ready', value: { groups: [{ id: 'a', models: [] }, { id: 'b' }, null, 'c'] } }), true)
+eq('one model in any group: there is a model', noModel({ status: 'ready', value: { groups: [{ id: 'a', models: [] }, { id: 'b', models: [{ id: 'm' }] }] } }), false)
+eq('the verdict follows the last value even while the catalog reloads (no flicker when a credential changes)', [noModel({ status: 'loading', value: { groups: [] } }), noModel({ status: 'idle', value: { groups: [{ models: [{ id: 'm' }] }] } })], [true, false])
+{
+  const card = src.slice(src.indexOf('const KbNeedModel'), src.indexOf("ctx.effect(() => slots.inject('conversation.input.dock', () => slots.register(\n      { name: 'conversation.input.dock', id: 'kybernos-need-model'"))
+  eq('the card reads the engine\'s own catalog and follows it (subscribe), through a guarded read', /ctx\.get\('modelDirectories'\)/.test(src) && /\.catalog\.store/.test(src) && /store\.subscribe\(/.test(card), true)
+  eq('a failed turn that wants a key keeps its own card: the empty one is only for when there is no such failure', /need === null/.test(card) && /kbObNoModel\(/.test(card), true)
+  eq('it says it is signed in or not from the account status, and offers the sign-in only to someone who is not', /fetch\('\/kybernos-cloud\/status'/.test(card) && /connected === true/.test(card), true)
+  eq('« Sign in to Kybernos » opens the account sheet (the window event the Models page uses)', /new CustomEvent\('kybernos-cloud:open'\)/.test(card), true)
+  eq('« Add a model » opens Settings on the AI Provider & Models page', /kbOpenSettingsPage\(\['kybernos-models'/.test(card), true)
+  eq('it can be dismissed for the rest of the page (no nag on every chat)', /kbNoModelAway/.test(card), true)
+  eq('and it carries a hook for the checks', /'data-kb': 'no-model'/.test(card), true)
+  eq('the wizard\'s « open Settings » and the card\'s are ONE helper (the wizard had its own copy)', (src.match(/const kbOpenSettingsPage = /g) || []).length === 1 && /openSettings: \(names\) => kbOpenSettingsPage\(names\)/.test(src), true)
+  for (const k of ['nm.none.t', 'nm.none.s', 'nm.none.s.in', 'nm.none.signin', 'nm.none.add']) eq('the text ' + k + ' exists in the four languages and says something in each', mod.KB_OB_T[k] !== undefined && mod.KB_OB_T[k].length === 4 && mod.KB_OB_T[k].every((t) => t.trim().length > 3), true)
+  eq('the empty card says what to do in English, in plain words (sign in or add a model)', /sign in/i.test(mod.KB_OB_T['nm.none.s'][0]) && /add a model/i.test(mod.KB_OB_T['nm.none.s'][0]), true)
+  eq('the buttons are named for what they do', [mod.KB_OB_T['nm.none.signin'][0], mod.KB_OB_T['nm.none.add'][0]], ['Sign in to Kybernos', 'Add a model'])
+}
+
 // R-A5-03: on a phone the card's cross is a 44 px target (it measured 24 x 36)
 eq('on a phone the card\'s dismiss cross is 44 x 44', /@media \(max-width:700px\)\{\.kbnm-x\{top:0;inset-inline-end:0;width:44px;height:44px\}\.kbnm-t\{padding-inline-end:44px\}\}/.test(src), true)
+
+eq('on a phone the card\'s buttons (sign in, add a model, save the key) are 44 px high', /@media \(max-width:700px\)\{\.kbnm-btn\{height:44px\}\}/.test(src), true)
 
 /* ── 7b. « What we set up for you »: the closing list says what the host says, never a promise ─────────── */
 {

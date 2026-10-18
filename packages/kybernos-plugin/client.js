@@ -2808,6 +2808,30 @@ const kbInstallLauncherGuard = () => {
 }
 // </kb-open-settings>
 
+/**
+ * Opens DSH's Settings on a page, by the id of its section (« kybernos-models »): the dialog first, then the cell of that page, read from the cell's React
+ * key (the same in every language), with the English title as the fallback when the shell's internals moved. `names` are tried in order. The wizard's
+ * « Change » links and the « no model » card of the chat share it.
+ */
+const kbOpenSettingsPage = (names) => {
+  try {
+    if (kbOpenDshSettings() !== true) return
+    const norm = (s) => String(s === undefined || s === null ? '' : s).toLowerCase().normalize('NFD').replace(new RegExp('[' + String.fromCharCode(0x300) + '-' + String.fromCharCode(0x36f) + ']', 'g'), '').replace(/\s+/g, ' ').trim()
+    let tries = 0
+    const tick = () => {
+      tries += 1
+      const cells = Array.prototype.slice.call(document.querySelectorAll('nav button'))
+      for (const name of names) {
+        let hit = cells.find((c) => { try { return kbNavKeyOf(c) === name } catch (e) { return false } })
+        if (hit === undefined && typeof KB_NAV_KEYS === 'object' && typeof KB_NAV_KEYS[name] === 'string') hit = cells.find((c) => norm(c.textContent) === KB_NAV_KEYS[name])
+        if (hit !== undefined) { hit.click(); return }
+      }
+      if (tries < 25) window.setTimeout(tick, 120)
+    }
+    window.setTimeout(tick, 150)
+  } catch (e) { /* the shell moved: the person opens Settings by hand */ }
+}
+
 // ── Phrase table (French source → English) ─────────────────────────────────
 // The inner views (Projects, the kyber editor, the quiz/cards/summary/sheet players, the Composio panel, dictation) say their sentences through
 // `kbe` instead of one `KB_T` key per sentence. This table is the French twin of those sentences: the KEY is the French
@@ -32453,6 +32477,12 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'auto.set': ['{model} is now the model of your chats.', '{model} est maintenant le modèle de tes conversations.', '{model} es ahora el modelo de tus conversaciones.', 'أصبح {model} نموذج محادثاتك.'],
       'nm.connected.set': ['Connected: {model} is now this chat’s model. Your message can go again.', 'C’est connecté : {model} est maintenant le modèle de ce chat. Ton message peut repartir.', 'Conectado: {model} es ahora el modelo de este chat. Tu mensaje puede volver a salir.', 'تم الربط: أصبح {model} نموذج هذه المحادثة. يمكن لرسالتك أن تنطلق من جديد.'],
       'nm.connected': ['Connected. Pick the new model in the selector below, then send your message again.', 'C’est connecté. Choisis le nouveau modèle dans le sélecteur ci-dessous, puis renvoie ton message.', 'Conectado. Elige el nuevo modelo en el selector de abajo y reenvía tu mensaje.', 'تم الربط. اختر النموذج الجديد من القائمة أدناه ثم أعد إرسال رسالتك.'],
+      // « This chat has no model at all »: the card shown before any failure, when the picker is empty (kbObNoModel).
+      'nm.none.t': ['No model to answer with yet', 'Pas encore de modèle pour répondre', 'Aún no hay un modelo para responder', 'لا يوجد نموذج للإجابة بعد'],
+      'nm.none.s': ['Nothing here can answer until you sign in to Kybernos or add a model.', 'Rien ici ne peut répondre tant que tu ne te connectes pas à Kybernos ou que tu n’ajoutes pas un modèle.', 'Aquí nada puede responder hasta que inicies sesión en Kybernos o añadas un modelo.', 'لا شيء هنا يمكنه الإجابة حتى تسجّل الدخول إلى Kybernos أو تضيف نموذجًا.'],
+      'nm.none.s.in': ['You are signed in, but no model is available to answer. Add one to start.', 'Tu es connecté, mais aucun modèle n’est disponible pour répondre. Ajoutes-en un pour commencer.', 'Has iniciado sesión, pero no hay ningún modelo disponible para responder. Añade uno para empezar.', 'لقد سجّلت الدخول، لكن لا يتوفر أي نموذج للإجابة. أضف نموذجًا للبدء.'],
+      'nm.none.signin': ['Sign in to Kybernos', 'Me connecter à Kybernos', 'Iniciar sesión en Kybernos', 'تسجيل الدخول إلى Kybernos'],
+      'nm.none.add': ['Add a model', 'Ajouter un modèle', 'Añadir un modelo', 'إضافة نموذج'],
       'fin0.t': ['You can start', 'Tu peux commencer', 'Ya puedes empezar', 'يمكنك البدء'],
       'fin0.s': ['Your agents will need a model to answer. Connect one whenever you like, in Settings → AI Provider & Models.', 'Pour que tes agents répondent, il faudra un modèle. Branches-en un quand tu veux, dans Réglages → Fournisseur IA & modèles.', 'Tus agentes necesitarán un modelo para responder. Conecta uno cuando quieras, en Ajustes → AI Provider & Models.', 'سيحتاج وكلاؤك إلى نموذج ليجيبوا. اربط واحدًا متى شئت من الإعدادات ← AI Provider & Models.'],
       // The model question (two answers, the other ways one quiet line below).
@@ -32748,6 +32778,18 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         ref: m === null ? null : m[2],
         prompt: last !== null && last !== undefined && typeof last.prompt === 'string' ? last.prompt : '',
       }
+    }
+    /**
+     * Whether the engine's shared model catalog (`ctx.modelDirectories.catalog.store.getSnapshot()`: `{ status, value: { groups: [{ id, models }] } | null }`)
+     * holds NO model at all: the picker then says « No models available. » (the engine's own words, with nothing to do about it). Only a loaded list
+     * can say so: a catalog that has not answered, or a value of another shape, is no verdict (false). It follows the LAST value, whatever the status, so a
+     * reload after a credential changed does not make the card blink.
+     */
+    const kbObNoModel = (snapshot) => {
+      if (snapshot === null || snapshot === undefined || typeof snapshot !== 'object') return false
+      const value = snapshot.value
+      if (value === null || value === undefined || typeof value !== 'object' || !Array.isArray(value.groups)) return false
+      return value.groups.every((g) => g === null || g === undefined || typeof g !== 'object' || !Array.isArray(g.models) || g.models.length === 0)
     }
     // KB-OB-CORE-END
 
@@ -33947,27 +33989,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             return win.fetch('/kybernos/onboarding', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).catch(() => null)
           } catch (e) { return null }
         },
-        // Settings is a dialog of the shell: press its button, then the cell of the page we want (by its title).
-        openSettings: (names) => {
-          try {
-            if (kbOpenDshSettings() !== true) return
-            const norm = (s) => String(s === undefined || s === null ? '' : s).toLowerCase().normalize('NFD').replace(new RegExp('[' + String.fromCharCode(0x300) + '-' + String.fromCharCode(0x36f) + ']', 'g'), '').replace(/\s+/g, ' ').trim()
-            let tries = 0
-            const tick = () => {
-              tries += 1
-              const cells = Array.prototype.slice.call(document.querySelectorAll('nav button'))
-              // `names` are the sections' own ids (« kybernos-models »), read from the cell's React key: that works in every
-              // language. The English title is the fallback for when the shell's internals moved.
-              for (const name of names) {
-                let hit = cells.find((c) => { try { return kbNavKeyOf(c) === name } catch (e) { return false } })
-                if (hit === undefined && typeof KB_NAV_KEYS === 'object' && typeof KB_NAV_KEYS[name] === 'string') hit = cells.find((c) => norm(c.textContent) === KB_NAV_KEYS[name])
-                if (hit !== undefined) { hit.click(); return }
-              }
-              if (tries < 25) win.setTimeout(tick, 120)
-            }
-            win.setTimeout(tick, 150)
-          } catch (e) { /* the shell moved: the person opens Settings by hand */ }
-        },
+        // Settings is a dialog of the shell: press its button, then the cell of the page we want (kbOpenSettingsPage).
+        openSettings: (names) => kbOpenSettingsPage(names),
       }
       const appLanguage = () => { try { return win.localStorage.getItem('kybernos.theme.lang') } catch (e) { return null } }
       const shellLanguage = () => { try { return String(kbLocaleRead()) } catch (e) { return null } }
@@ -34239,6 +34262,17 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       try { shell = String(kbLocaleRead()) } catch (e) { shell = null }
       return kbObPickLang(appChoice, shell)
     }
+    // The engine's shared model catalog (`ctx.modelDirectories.catalog.store`, the one the picker draws from), or null when this engine does not expose it:
+    // then the « no model » card below simply never shows, and the picker keeps its own words.
+    const kbCatalogStore = () => {
+      try {
+        const svc = ctx.get('modelDirectories')
+        const store = svc !== null && svc !== undefined && svc.catalog !== null && svc.catalog !== undefined ? svc.catalog.store : null
+        return store !== null && store !== undefined && typeof store.getSnapshot === 'function' && typeof store.subscribe === 'function' ? store : null
+      } catch (e) { return null }
+    }
+    // Dismissed « no model » card: gone for the rest of this page (a reload brings it back), so it does not nag on every chat.
+    let kbNoModelAway = false
     const KbNeedModel = (props) => {
       const p = props !== null && props !== undefined ? props : {}
       const sid = typeof p.sessionId === 'string' ? p.sessionId : ''
@@ -34254,6 +34288,30 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       const draft = draftPair[0]
       const phase = phasePair[0]
       React.useEffect(() => { draftPair[1](''); phasePair[1]('idle'); pickedPair[1]('') }, [stateKey])
+      // Before any failure: the engine's catalog holds no model at all (the picker says « No models available. » and offers nothing).
+      const store = React.useMemo(kbCatalogStore, [])
+      const catalogPair = React.useState(() => { try { return store === null ? null : store.getSnapshot() } catch (e) { return null } })
+      React.useEffect(() => {
+        if (store === null) return undefined
+        const read = () => { try { catalogPair[1](store.getSnapshot()) } catch (e) { /* keep the last read */ } }
+        read()
+        let off = null
+        try { off = store.subscribe(read) } catch (e) { off = null }
+        return () => { try { if (typeof off === 'function') off() } catch (e) { /* the store is gone */ } }
+      }, [store])
+      const empty = need === null && kbObNoModel(catalogPair[0]) === true
+      const hiddenPair = React.useState(kbNoModelAway)
+      const accountPair = React.useState(false)
+      React.useEffect(() => {
+        if (empty !== true) return undefined
+        let alive = true
+        fetch('/kybernos-cloud/status', { cache: 'no-store' })
+          .then((r) => r.json())
+          .then((j) => { if (alive === true && j !== null && typeof j === 'object' && j.connected === true) accountPair[1](true); else if (alive === true) accountPair[1](false) })
+          .catch(() => { /* no answer: treated as signed out, the sign-in stays offered */ })
+        return () => { alive = false }
+      }, [empty])
+      if (empty === true && hiddenPair[0] !== true) return kbNoModelCard(accountPair[0] === true, () => { kbNoModelAway = true; hiddenPair[1](true) })
       if (need === null || awayPair[0] === stateKey) return null
       const lang = kbNmLang()
       const L = KB_OB_LANGS.find((l) => l.id === lang) || KB_OB_LANGS[0]
@@ -34309,6 +34367,21 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         h('button', { type: 'button', className: 'kbnm-x', 'aria-label': T('close'), onClick: () => awayPair[1](stateKey) }, '\u00d7'),
         ...body)
     }
+    /** The card of a chat with no model at all: a sentence and two ways forward (sign in, or add a model). `signedIn`: the account is there, so only « add ». */
+    const kbNoModelCard = (signedIn, dismiss) => {
+      const lang = kbNmLang()
+      const L = KB_OB_LANGS.find((l) => l.id === lang) || KB_OB_LANGS[0]
+      const T = (key, vars) => kbObText(lang, key, vars)
+      const signIn = () => { try { window.dispatchEvent(new CustomEvent('kybernos-cloud:open')) } catch (e) { /* the account sheet is not mounted */ } }
+      const addModel = () => kbOpenSettingsPage(['kybernos-models', 'models'])
+      return h('div', { className: 'kbnm', dir: L.rtl ? 'rtl' : 'ltr', lang: L.id, 'data-kb': 'no-model', role: 'region', 'aria-label': T('nm.none.t') },
+        h('button', { type: 'button', className: 'kbnm-x', 'aria-label': T('close'), onClick: dismiss }, '\u00d7'),
+        h('div', { className: 'kbnm-t' }, T('nm.none.t')),
+        h('div', { className: 'kbnm-s' }, signedIn === true ? T('nm.none.s.in') : T('nm.none.s')),
+        h('div', { className: 'kbnm-row' },
+          signedIn === true ? null : h('button', { type: 'button', className: 'kbnm-btn kbnm-primary', 'data-kb': 'no-model-signin', onClick: signIn }, T('nm.none.signin')),
+          h('button', { type: 'button', className: 'kbnm-btn' + (signedIn === true ? ' kbnm-primary' : ''), 'data-kb': 'no-model-add', onClick: addModel }, T('nm.none.add'))))
+    }
     ctx.effect(() => slots.inject('conversation.input.dock', () => slots.register(
       { name: 'conversation.input.dock', id: 'kybernos-need-model', order: 20 }, KbNeedModel)), 'kybers: “a model is missing” card')
     ctx.effect(() => styles.insert([
@@ -34330,6 +34403,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kbnm-x:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-3)}',
       // R-A5-03: a finger needs 44 px, and the 24 px cross measured 24 x 36 on a phone.
       '@media (max-width:700px){.kbnm-x{top:0;inset-inline-end:0;width:44px;height:44px}.kbnm-t{padding-inline-end:44px}}',
+      // The card's buttons are the way forward (sign in, add a model, save the key): a finger needs 44 px.
+      '@media (max-width:700px){.kbnm-btn{height:44px}}',
     ].join(String.fromCharCode(10))), 'kybers: styles of the “a model is missing” card')
 
   },

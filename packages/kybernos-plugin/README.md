@@ -315,6 +315,15 @@ When the latest turn of a chat failed with `MISSING_CREDENTIAL` (the model's key
 It reads the chat through `useChat((c) => c.nodes.valuesCache)` and `c.navigation.current` (shapes measured on the real GUI), and is gone as
 soon as the person sends again; it comes back if that new turn fails the same way.
 
+**Before any failure — no model at all.** The same dock holds a second, shorter card (`data-kb="no-model"`) when the engine's shared model
+catalog (`ctx.get('modelDirectories').catalog.store`, the one the picker draws from) is loaded and holds no model (`kbObNoModel`): the picker
+then says « No models available. » with nothing to do about it, and that sentence is the engine's, with no seam for an action. The card says what
+is wrong and offers two actions: *Sign in to Kybernos* (the window event `kybernos-cloud:open`, as the Models page does) and *Add a model*
+(Settings › AI Provider & Models, `kbOpenSettingsPage`). A person who is already signed in gets only *Add a model*. It shows on the new-chat page
+and in a chat, never beside the key card above (that one wins when a turn failed), is dismissed for the rest of the page, and is simply absent when
+an engine does not expose the catalog. The engine's red « This turn failed » row, with its raw sentence, is the engine's and stays in the
+transcript: the card under it is the plain-language version.
+
 ## Tests
 
 ```bash
