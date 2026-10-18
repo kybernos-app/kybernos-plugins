@@ -89,7 +89,7 @@ full ids stay in the detail route.
   « Switching… » until it does (at least 3.5 s when it cannot tell, at most 15 s), and a route that could not be rewritten is said at once (messages may still be billed to the previous
   team). **The composer's cues in a team space** (none in the personal one): a pill on memory in the team's colour, in the composer's dock and the new chat's options row (a pill on the
   working folder only when `state.space_folder` names one: step 6 writes it, nothing does yet), « Message <Team>… » in the box (DSH's own placeholder node, put back when the person leaves
-  the team) and « What is <Team> working on? » over a new chat (the core plugin reads `window.__KB_SPACE_CUE__`). The memory pill says « personal off » only when
+  the team; a disabled box keeps DSH's words, but DSH's plan hint and queue hint are replaced too: nothing on the page tells the placeholder's states apart) and « What is <Team> working on? » over a new chat (the core plugin reads `window.__KB_SPACE_CUE__`). The memory pill says « personal off » only when
   `PERSONAL_MEMORY_CUT` is `true` in the client: it is `false` until the memory work (`feat/teams-memory-cut`) lands, so the pill does not promise what is not true yet.
 - **The failure row of a turn** (`conversation.chat.node`, key `turn-error`): the engine documents that a later entry for a key shadows the shipped one, so the plugin wraps the
   SHIPPED row (found in the slot's entries, registered at the lowest priority with the shipped entry's own locale). `no adapter registered for provider "kybernos"` (the cloud models

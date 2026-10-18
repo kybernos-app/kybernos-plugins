@@ -1316,7 +1316,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
     }
     /** What the placeholder text node of the composer should become. `node` is what the sweep read (`text`, and `ours` / `orig`: what we wrote and what stood before, null while we
      *  never touched it), `want` the team's words, or null outside a team space and for a disabled box. Returns the next `{ text, ours, orig, swap: { from, to } }` (the `swap` is for the input's
-     *  own copies of the words), or null when nothing changes. We only keep what we wrote: a text DSH drew after ours (a plan hint, a queue hint) is never put back over. */
+     *  own copies of the words), or null when nothing changes. Leaving the team puts DSH's text back only while ours is still what is shown: a text DSH drew since is never put back over.
+     *  KNOWN GAP: in a team space DSH's plan hint and queue hint (drawn in the same node) are replaced by ours too, because nothing on the page says which state a placeholder belongs to. */
     const placeholderNext = (node, want) => {
       if (want !== null) {
         if (node.text === want) return null
@@ -2533,8 +2534,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             cue.folder !== null ? h('span', { className: 'kbcue-pill kbcue-folder', 'data-kb': 'cue-folder', title: cue.folder.title }, cue.folder.label) : null)
         }
         // « Message <Team>… »: the placeholder is a text node DSH draws (`[data-composer-placeholder]`) and its input carries the same words as `data-placeholder` and `aria-label`. They are
-        // changed in place, in a team space only, and put back when the person leaves it. A disabled box keeps DSH's own words (« Session unavailable »…), and so does any text DSH
-        // draws after ours (a plan hint, a queue hint): we only keep what we wrote, and remember the text that was there before it.
+        // changed in place, in a team space only, and put back when the person leaves it. A disabled box keeps DSH's own words (« Session unavailable »…). KNOWN GAP: a plan hint
+        // or a queue hint is replaced by ours in a team space too (nothing on the page tells the states of the placeholder apart); the text that was there is remembered, and put back.
         const PH_ORIG = 'data-kb-ph-orig'
         const PH_OURS = 'data-kb-ph-ours'
         const writeText = (el, text) => {
