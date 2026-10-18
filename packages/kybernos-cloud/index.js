@@ -1071,10 +1071,10 @@ const referralRoute = async () => {
   try {
     res = await apiCall('/v1/referral', { token: state.token })
   } catch (e) {
-    return { ok: false, connected: true, code: null, share_url: null, offer: null, motif: 'parrainage injoignable : ' + String(e !== null && e.message !== undefined ? e.message : e) }
+    return { ok: false, connected: true, code: null, share_url: null, offer: null, motif: 'referral unreachable: ' + String(e !== null && e.message !== undefined ? e.message : e) }
   }
   if (res === null || res.status !== 200 || res.body === null) {
-    return { ok: false, connected: true, code: null, share_url: null, offer: null, motif: 'parrainage indisponible (code ' + String(res === null ? 'inconnu' : res.status) + ')' }
+    return { ok: false, connected: true, code: null, share_url: null, offer: null, motif: 'referral unavailable (code ' + String(res === null ? 'unknown' : res.status) + ')' }
   }
   const brut = res.body.code
   const code = typeof brut === 'string' && brut.trim() !== '' ? brut.trim() : null

@@ -1127,6 +1127,7 @@ try {
   assert.equal(downReferral.body.ok, false)
   assert.equal(downReferral.body.code, null)
   assert.match(downReferral.body.motif, /503/)
+  assert.equal(downReferral.body.motif, 'referral unavailable (code 503)', 'the reason is shown under the card: in English, like the page')
   assert.equal(downReferral.body.offer, null)
   ok('parrainage : plateau injoignable → motif explicite, aucun code')
   referralForcedStatus = null
