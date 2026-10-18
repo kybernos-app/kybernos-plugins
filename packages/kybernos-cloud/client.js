@@ -1296,7 +1296,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
     // The composer's cues in a team space: a coloured pill on memory, a pill on the working folder, « Message <Team>… » and the new chat's heading. The personal space has none.
     // ONE switch decides whether the memory pill says the personal memory is off. It becomes true only when the memory session lands (branch feat/teams-memory-cut: a team space then
     // injects nothing personal and captures nothing into it); until then the pill must not promise it.
-    const PERSONAL_MEMORY_CUT = false
+    const PERSONAL_MEMORY_CUT = true
     // SEAM (step 6, one working folder per team): `folder` is the team's folder when the host knows one (`state.space_folder`, written by the folder step). Nothing writes it yet,
     // so no folder pill is drawn: none is invented.
     const spaceCueOf = (space, folder, t, personalOff = PERSONAL_MEMORY_CUT) => {
