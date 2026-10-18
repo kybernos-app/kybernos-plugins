@@ -47,9 +47,17 @@ try {
     console.log('     menu entries:', JSON.stringify(menu.text).slice(0, 260))
     check('the menu has « Teams settings » (the one entry for the team console)', menu.settings === true, menu)
     check('the menu has no « Open the console in your browser » (it did nothing and repeated Teams settings)', menu.browser === false && !/Open the console|Ouvrir la console/i.test(menu.text), menu.text)
-    // The switcher opens from the head of the menu (the row that names the workspace); reading it changes nothing.
-    const head = (await page.evalJs(`(() => { const b = document.querySelector('[data-kb="menu-switch"]'); if (!b) return null; const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`)).val
-    check('the menu head that opens the workspace switcher is there', head !== null)
+    // Up to three spaces the list IS the top of the menu (rows and « Create a team », no head row); from four, the switcher opens from the head of the menu (the row that
+    // names the workspace). Reading either changes nothing.
+    const mode = (await page.evalJs(`(document.querySelector('[data-kb="menu-block-teams"]') || { getAttribute: () => null }).getAttribute('data-mode')`)).val
+    if (mode === 'inline') {
+      const listed = (await page.evalJs(`({ rows: document.querySelectorAll('.kbfp-menu [data-kb="space-row"]').length, create: (document.querySelector('.kbfp-menu [data-kb="space-create"]') || { innerText: '' }).innerText, all: Array.from(document.querySelectorAll('.kbfp-menu [data-kb="space-row"]')).map((e) => e.innerText).join(' | ') })`)).val
+      console.log('     spaces in the menu:', JSON.stringify(listed.all).slice(0, 300))
+      check('the menu lists the spaces itself and offers to create a team (no head row at three spaces or fewer)', listed.rows >= 1 && /Create a team|Créer une équipe/.test(listed.create), listed)
+      check('creating a shared space says « team » in the menu, not « workspace »', !/Create a workspace|Créer un espace/.test(listed.create), listed.create)
+    }
+    const head = mode === 'inline' ? null : (await page.evalJs(`(() => { const b = document.querySelector('[data-kb="menu-switch"]'); if (!b) return null; const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`)).val
+    if (mode !== 'inline') check('the menu head that opens the workspace switcher is there', head !== null)
     if (head !== null) {
       for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) await page.send('Input.dispatchMouseEvent', { type, x: head.x, y: head.y, button: 'left', clickCount: 1 })
       await sleep(900)

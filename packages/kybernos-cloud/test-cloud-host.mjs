@@ -56,6 +56,9 @@ let meForcedStatus = null
 // What `GET /v1/models` lists for a workspace named in `x-kybernos-workspace`: the team's own models (`byok/…`) are in ITS catalogue only.
 // `teamSpaceListed` adds that team to the account's workspaces.
 let teamSpaceListed = false
+// The head count of the team the fake server lists, and a forced answer for GET /v1/models (a catalogue that cannot be read).
+let teamMemberCount = 3
+let modelsForcedStatus = null
 // Headers added to every answer (the server tells a member inside the grace of the second-factor policy when it ends: X-Kybernos-Mfa-Grace-Ends) and a refusal of the
 // active space's plan read (a member without a factor, past the grace: 403 mfa_required_by_workspace).
 let extraHeaders = null
@@ -99,7 +102,7 @@ const SUPPORT_ITEM = {
 const market = { mode: 'legacy', items: [SUPPORT_ITEM], hidden: [], pageSize: 200, listCalls: 0, failPage: null, endless: false, byAddressStatus: null }
 const teamApi = { workspace: '11111111-1111-4111-8111-111111111111', role: 'member', rows: [], next: 1, fail: null }
 const invites = { calls: [], answer: null }
-const seen = { team: [], startBody: null, pollBodies: [], authHeaders: [], modelsAuth: [], modelsWorkspace: [], memoryAuth: [], marketAuth: [], marketUrls: [], referralAuth: [], embedCalls: [], puts: [], searches: [], writes: [] }
+const seen = { memberReads: 0, team: [], startBody: null, pollBodies: [], authHeaders: [], modelsAuth: [], modelsWorkspace: [], memoryAuth: [], marketAuth: [], marketUrls: [], referralAuth: [], embedCalls: [], puts: [], searches: [], writes: [] }
 
 // Parrainage : GET /v1/referral (route ajoutee au proxy le 24/09/2026, parce
 // que l'Edge Function kybernos-referral-info exige un JWT web que le jeton
@@ -255,6 +258,7 @@ const api = createServer((req, res) => {
       const named = typeof req.headers['x-kybernos-workspace'] === 'string' ? req.headers['x-kybernos-workspace'] : null
       seen.modelsWorkspace.push(named)
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+      if (modelsForcedStatus !== null) return send(modelsForcedStatus, { error: 'unavailable' })
       if (named !== null && catalogByWorkspace[named] !== undefined) return send(200, catalogByWorkspace[named])
       return send(200, catalog)
     }
@@ -298,6 +302,12 @@ const api = createServer((req, res) => {
     if (req.url === '/v1/workspaces/ws-1/llm/budget' || req.url === '/v1/workspaces/ws-team/llm/budget') {
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
       return send(200, budgetBody)
+    }
+    if (/^\/v1\/workspaces\/[^/]+\/members$/.test(req.url) && req.method === 'GET') {
+      if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+      seen.memberReads += 1
+      const count = req.url.indexOf('ws-team') >= 0 ? teamMemberCount : 1
+      return send(200, { members: Array.from({ length: count }, (_, i) => ({ user_id: 'u-' + String(i), role: i === 0 ? 'owner' : 'member', status: 'active', created_at: NOW, name: 'Member ' + String(i), email: 'm' + String(i) + '@example.test' })) })
     }
     if (req.url === '/v1/workspaces/ws-team/plan') {
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
@@ -486,7 +496,18 @@ const fakeSettings = {
     }
     return { ok: true }
   },
+  // DSH's own view of the RUNNING plugin: it follows the written route only when the test says DSH has reloaded (applyLive), and may be absent or fail.
+  get describe() {
+    if (describeMode === 'absent') return undefined
+    return () => {
+      if (describeMode === 'throws') throw new Error('describe failed')
+      return [{ ns: 'llm-pi-ai', value: { providers: liveProviders } }]
+    }
+  },
 }
+let describeMode = 'live'
+let liveProviders = {}
+const applyLive = () => { liveProviders = JSON.parse(JSON.stringify((settingsStore['llm-pi-ai'] || {}).providers || {})) }
 const credentialStore = new Map()
 const fakeCredentials = {
   async set(ref, value) { credentialStore.set(ref, value) },
@@ -643,7 +664,7 @@ try {
     '/kybernos-cloud/referral',
     // Espace actif : la rangée du pied de sidebar est un sélecteur, il lui faut
     // une route qui enregistre le choix (et refuse un id inconnu).
-    '/kybernos-cloud/space/active',
+    '/kybernos-cloud/space/active', '/kybernos-cloud/space/applied', '/kybernos-cloud/spaces/summary',
     // Création d'espace (bouton « + » de la rangée) : transmet au serveur,
     // refuse proprement en renvoyant l'URL hébergée.
     '/kybernos-cloud/space/create',
@@ -1024,6 +1045,86 @@ try {
   budgetBody = { windows: [] }
   spacePlanBody = { source: 'subscription', status: 'active', plan: { key: 'solo', name: 'Solo', kind: 'individual' }, level: 'Studio', seats: 1, credit_balance_credits: 20000 }
   ok('quota : toutes les fenetres de l espace ACTIF en pourcentage (jamais de montant), l etat du paiement, sans jeton')
+
+  // ── Choosing a team, and whether DSH runs its route yet ────────────────────────────────────────────────────────────────────────────
+  // The host rewrites the model route and DSH applies it by itself about 2-3 s later (hot reload): a message sent in that window still carries the PREVIOUS team's header, and the
+  // footer says « switching » until the host reports the running route names the new team. `space/active` says what became of the route; `space/applied` reads DSH's own view
+  // of the running plugin (settings.describe), never the file that was written.
+  teamSpaceListed = true
+  await hit('/kybernos-cloud/refresh', 'POST')
+  applyLive()
+  const toTeamAgain = await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-team' })
+  assert.equal(toTeamAgain.body.ok, true)
+  assert.equal(toTeamAgain.body.route, 'written', 'the route was rewritten for the team: DSH applies it a moment later')
+  const notYet = await hit('/kybernos-cloud/space/applied', 'POST', undefined, { workspace_id: 'ws-team' })
+  assert.equal(notYet.body.ok, true)
+  assert.equal(notYet.body.applied, false, 'DSH still runs the previous route: the file is written, the running plugin has not reloaded')
+  applyLive()
+  const nowLive = await hit('/kybernos-cloud/space/applied', 'POST', undefined, { workspace_id: 'ws-team' })
+  assert.equal(nowLive.body.applied, true, 'once the running route names the team, the footer may stop saying « switching »')
+  const overtaken = await hit('/kybernos-cloud/space/applied', 'POST', undefined, { workspace_id: 'ws-1' })
+  assert.equal(overtaken.body.applied, false, 'a switch to a space that is no longer the active one is never « applied »')
+  assert.equal(overtaken.body.superseded, true, 'and says it was overtaken')
+  assert.equal((await hit('/kybernos-cloud/space/applied', 'POST', undefined, {})).body.applied, false, 'no id asked: nothing is applied')
+  const sameAgain = await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-team' })
+  assert.equal(sameAgain.body.route, 'current', 'choosing the team again writes nothing: the route already names it')
+  // DSH cannot say (no `describe`, or it throws): `null`, and the page then waits a fixed minimum.
+  describeMode = 'absent'
+  assert.equal((await hit('/kybernos-cloud/space/applied', 'POST', undefined, { workspace_id: 'ws-team' })).body.applied, null, 'no describe: unknown, not « no »')
+  describeMode = 'throws'
+  assert.equal((await hit('/kybernos-cloud/space/applied', 'POST', undefined, { workspace_id: 'ws-team' })).body.applied, null, 'a describe that throws: unknown')
+  describeMode = 'live'
+  // A catalogue that cannot be read leaves the route on the PREVIOUS team: the answer says so, because a message sent now is billed to it.
+  modelsForcedStatus = 503
+  const toPersonalBroken = await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-1' })
+  modelsForcedStatus = null
+  assert.equal(toPersonalBroken.body.ok, true, 'the choice itself is kept')
+  assert.equal(toPersonalBroken.body.route, 'failed', 'but the route could not be rewritten: the footer must tell the person')
+  assert.equal(settingsStore['llm-pi-ai'].providers.kybernos.headers['x-kybernos-workspace'], 'ws-team', 'the route still names the previous team')
+  const stillOld = await hit('/kybernos-cloud/space/applied', 'POST', undefined, { workspace_id: 'ws-1' })
+  assert.equal(stillOld.body.applied, false, 'and the running route is not the new space\'s')
+  await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-team' })
+  const backOk = await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-1' })
+  assert.equal(backOk.body.route, 'written')
+  // No settings service at all: nothing is written, the answer says so (nothing to wait for either).
+  settingsEnabled = false
+  const noSettings = await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-team' })
+  settingsEnabled = true
+  assert.equal(noSettings.body.route, 'not_written')
+  await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-1' })
+  teamSpaceListed = false
+  await hit('/kybernos-cloud/refresh', 'POST')
+  ok('changement d equipe : la route dit ce qu\'il est advenu de la route modele (written / current / failed / not_written) ; space/applied lit la route qui TOURNE (describe), refuse un changement depasse, repond null quand DSH ne sait pas dire')
+
+  // ── What the account menu shows of each space: usage as a percent, a team's head count, the personal plan's name ─────────────────────
+  teamSpaceListed = true
+  await hit('/kybernos-cloud/refresh', 'POST')
+  budgetBody = { windows: [
+    { kind: 'member', window_seconds: 18000, scope: 'plan', limit_usd: '1.00', spent_usd: '0.12', remaining_usd: '0.88', exhausted: false, used_percent: 12, resets_at: null },
+    { kind: 'pool', window_seconds: 2592000, scope: 'plan', limit_usd: '40.00', spent_usd: '40.00', remaining_usd: '0.00', exhausted: true, used_percent: 100, resets_at: new Date(Date.now() + 3 * 3600000).toISOString() },
+  ] }
+  teamMemberCount = 6
+  const summary = await hit('/kybernos-cloud/spaces/summary', 'GET')
+  assert.equal(summary.body.ok, true)
+  assert.deepEqual(Object.keys(summary.body.spaces).sort(), ['ws-1', 'ws-team'], 'one entry per space the person belongs to')
+  assert.equal(summary.body.spaces['ws-team'].members, 6, 'a team\'s head count is its member list\'s length')
+  assert.equal(summary.body.spaces['ws-1'].members, null, 'the personal space has no head count (nothing is asked)')
+  assert.equal(summary.body.spaces['ws-1'].plan.label.length > 0, true, 'the personal space carries its own plan\'s name (the account\'s word says « team » once the person is in one)')
+  assert.equal(summary.body.spaces['ws-team'].plan, null, 'a team\'s plan is not read: no row shows it')
+  assert.deepEqual(summary.body.spaces['ws-team'].usage.map((w) => [w.kind, w.window_seconds, w.used_percent, w.exhausted]), [['member', 18000, 12, false], ['pool', 2592000, 100, true]], 'usage as the percent of each window, shortest first')
+  assert.ok(typeof summary.body.spaces['ws-team'].usage[1].resets_at === 'string', 'a window that is used up carries its time of return')
+  assert.equal(summary.body.spaces['ws-team'].usage[0].resets_at, null, 'a window that is not used up carries none (the windows are rolling)')
+  assert.ok(typeof summary.body.server_time === 'string', 'the server\'s own clock travels with it, for the time of return')
+  const summaryText = JSON.stringify(summary.body)
+  assert.equal(/_usd|limit|spent|remaining/.test(summaryText), false, 'no amount of money leaves the host')
+  assert.equal(summaryText.includes(TOKEN), false, 'no token')
+  teamMemberCount = 9
+  assert.equal((await hit('/kybernos-cloud/spaces/summary', 'GET')).body.spaces['ws-team'].members, 6, 'kept a few seconds: opening the menu twice does not ask the server twice')
+  assert.equal(seen.memberReads, 1, 'one read of the team\'s member list for the two summaries')
+  teamSpaceListed = false
+  budgetBody = { windows: [] }
+  await hit('/kybernos-cloud/refresh', 'POST')
+  ok('menu du compte : resume par espace (pourcentages sans montant, effectif d\'une equipe, formule de l\'espace personnel), garde quelques secondes')
 
   // ── The card says when the space turns the person away ─────────────────────────────────────────────────────────────────────────────────────
   // A workspace that asks its members for a second factor answers its routes 403 `mfa_required_by_workspace` to a member who has none once the grace is over, and DSH shows

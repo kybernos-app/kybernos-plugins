@@ -155,6 +155,31 @@ window.__ModuleLoader__.load({
         quotaDays1: '1 jour',
         quotaMinutes1: '1 minute',
         quotaBackDays1: 'dans environ 1\u00a0jour',
+        roleOwner: 'Propriétaire',
+        roleAdmin: 'Admin',
+        roleMember: 'Membre',
+        spaceMembers: '{n} membres',
+        spaceMembers1: '1 membre',
+        spaceSwitching: 'Changement en cours…',
+        spaceSwitchSlow: 'Le passage à {name} prend plus de temps que d\'habitude. Attends un instant avant d\'envoyer un message : il pourrait encore être facturé à l\'équipe précédente.',
+        spaceRouteStale: 'Tu es dans {name}, mais la route des modèles n\'a pas pu être mise à jour : tes messages pourraient encore être facturés à l\'équipe précédente. Réessaie.',
+        winTeam: 'Équipe',
+        winYou: 'Toi',
+        winAllowance: 'Quota',
+        winLast: 'Sur {window}',
+        winBack: 'Revient {when}',
+        winFull: 'Épuisé',
+        winPayment: 'Paiement échoué',
+        winUsed: '{pct}\u00a0% utilisé',
+        planManage: 'Gérer',
+        planAddCredits: 'Ajouter des crédits',
+        cueMemory: 'Mémoire d\'équipe',
+        cueMemoryOff: 'Mémoire d\'équipe · perso coupée',
+        cueMemoryTip: 'Cette équipe utilise ses leçons partagées.',
+        cueMemoryOffTip: 'Ta mémoire personnelle n\'est pas utilisée dans une équipe : tes notes privées n\'atteignent jamais tes collègues. Seules les leçons partagées avec l\'équipe servent ici.',
+        cueFolder: 'Dossier {name}',
+        cuePlaceholder: 'Écrire à {name}…',
+        cueHeading: 'Sur quoi travaille {name} ?',
         kyModelsCount1: '1 modèle · formule {plan}',
         mfaBlockedShort: 'Second facteur requis',
         mfaBlockedLong: '{name} demande un second facteur à ses membres et tu n\'en as pas : active-en un dans ton compte Kybernos (Sécurité), puis recharge.',
@@ -381,6 +406,31 @@ window.__ModuleLoader__.load({
         quotaDays1: '1 day',
         quotaMinutes1: '1 minute',
         quotaBackDays1: 'in about 1\u00a0day',
+        roleOwner: 'Owner',
+        roleAdmin: 'Admin',
+        roleMember: 'Member',
+        spaceMembers: '{n} members',
+        spaceMembers1: '1 member',
+        spaceSwitching: 'Switching…',
+        spaceSwitchSlow: 'The switch to {name} is taking longer than usual. Wait a moment before sending a message: it may still be billed to the previous team.',
+        spaceRouteStale: 'You are in {name}, but the model route could not be updated: your messages may still be billed to the previous team. Try again.',
+        winTeam: 'Team',
+        winYou: 'You',
+        winAllowance: 'Allowance',
+        winLast: 'Last {window}',
+        winBack: 'Back {when}',
+        winFull: 'Used up',
+        winPayment: 'Payment failed',
+        winUsed: '{pct}% used',
+        planManage: 'Manage',
+        planAddCredits: 'Add credits',
+        cueMemory: 'Team memory',
+        cueMemoryOff: 'Team memory · personal off',
+        cueMemoryTip: 'This team uses its shared lessons.',
+        cueMemoryOffTip: 'Your personal memory is not used in a team, so your private notes never reach colleagues. Only lessons shared with the team are used here.',
+        cueFolder: '{name} folder',
+        cuePlaceholder: 'Message {name}…',
+        cueHeading: 'What is {name} working on?',
         kyModelsCount1: '1 model · plan {plan}',
         mfaBlockedShort: 'Second factor required',
         mfaBlockedLong: '{name} asks its members for a second factor and you have none: set one up in your Kybernos account (Security), then reload.',
@@ -520,14 +570,12 @@ window.__ModuleLoader__.load({
 .kbf-root{display:flex;flex-direction:column;gap:6px;width:100%;min-width:0;max-width:100%;position:relative}
 /* Light schemes: label-tertiary is 3.7:1 on white. Inside this page it reads as label-secondary, 5.8:1 (audit A1-05); the dark scheme keeps its hierarchy. */
 body:not([data-ds-dark-theme]) :is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-poptitle,.kbl-page){--dsw-alias-label-tertiary:var(--dsw-alias-label-secondary)}
-.kbf-avatar{flex:none;width:23px;height:23px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,monospace;font-size:9.5px;font-weight:600;letter-spacing:.02em;background:var(--dsw-alias-brand-primary,#6a4fd8);color:var(--dsw-alias-label-primary-foreground,#fff)}
 /* Le sélecteur d'espace : la rangée du pied montre l'espace ACTIF ; sa page
    (classes kbws-*) porte la liste des espaces puis le réglage de synchronisation.
    ATTENTION : ce bloc vit DANS un template literal — jamais de backtick ici, il
    fermerait la chaîne et la révision ne parserait plus (incident du 24/09). */
 /* La rangée workspace (carte + engrenage), au-dessus du menu user conservé. */
 .kbf-wsrow{display:flex;align-items:center;gap:4px;width:100%;min-width:0}
-.kbf-wsgear{display:inline-flex;align-items:center;justify-content:center;width:23px;height:23px;flex:none;border:1px solid transparent;border-radius:8px;color:var(--dsw-alias-label-tertiary,#8a8a93);background:transparent;color:var(--dsw-alias-label-tertiary,#8a8a93);cursor:pointer}
 /* Les popovers du pied de sidebar (changement d'espace, app mobile) : ancrés
    AU-DESSUS de leur rangée — .kbf-wsrow et .kbf-idrow portent le
    position:relative, parce que .kbf-root est en display:contents dans la
@@ -541,14 +589,6 @@ body:not([data-ds-dark-theme]) :is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-
 .kbf-qr{display:block;width:150px;height:150px;margin:2px auto 0;background:#fff;border-radius:10px;padding:10px}
 .kbf-qrnote{margin:8px 2px 2px;font-size:11.5px;line-height:1.45;color:var(--dsw-alias-label-tertiary,#8a8a93)}
 .kbf-popcenter{padding:10px 10px 12px}
-.kbf-wsgear:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14));color:var(--dsw-alias-label-primary,#e9e9ee)}
-.kbws-list{display:flex;flex-direction:column;gap:2px;margin:10px 0 0}
-.kbws-item{display:flex;align-items:center;gap:9px;width:100%;padding:8px 9px;border:1px solid transparent;border-radius:8px;background:transparent;color:inherit;font:inherit;font-size:12.5px;text-align:left;cursor:pointer}
-.kbws-item:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14))}
-.kbws-item[aria-current="true"]{border-color:var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14))}
-.kbws-item .kbws-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kbws-mark{flex:none;font-size:10.5px;color:var(--dsw-alias-label-tertiary,#8a8a93)}
-.kbws-sep{height:1px;margin:12px 0;background:var(--dsw-alias-border-l2,rgba(127,127,127,.22))}
 .kbws-link{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:transparent;color:inherit;font:inherit;font-size:12px;cursor:pointer;text-decoration:none}
 .kbws-link:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14))}
 .kbf-off{display:flex;flex-direction:column;gap:8px;width:100%;min-width:0}
@@ -765,9 +805,40 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
 .kbfp-wstile{flex:none;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base);font-family:ui-monospace,monospace;font-weight:700;font-size:12px}
 .kbfp-wstxt{flex:1 1 auto;min-width:0}
 .kbfp-wsname{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kbfp-wssub{display:block;font-size:12.5px;color:var(--dsw-alias-label-tertiary)}
+.kbfp-wssub{display:block;font-size:12px;color:var(--dsw-alias-label-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kbfp-wscheck{flex:none;display:flex;color:var(--dsw-alias-label-primary)}
 .kbfp-wsplus{flex:none;width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--dsw-alias-label-secondary)}
+/* A team's own colour: the same on its tile (the card, the menu, the list) and on the composer's pill. White letters on each of them (4.5:1 or more). */
+[data-kb-hue="violet"]{--kbh:#6d4cff}
+[data-kb-hue="teal"]{--kbh:#0f766e}
+[data-kb-hue="amber"]{--kbh:#b45309}
+[data-kb-hue="rose"]{--kbh:#be123c}
+[data-kb-hue="blue"]{--kbh:#2563eb}
+[data-kb-hue="green"]{--kbh:#15803d}
+.kbfp-tile[data-kb-hue],.kbfp-wstile[data-kb-hue]{background:var(--kbh);color:#fff}
+/* The usage at the end of a space's row: the percent over a thin bar (the card's own meter, smaller). */
+.kbfp-wsuse{flex:none;flex-direction:column;align-items:flex-end;gap:3px;margin-top:0;width:32px}
+.kbfp-wsuse .kbfp-usebar{width:100%;min-width:0;height:3px}
+.kbfp-wsuse .kbfp-usepct{min-width:0}
+/* The plan card by role: the actions beside the plan's name, then a bar per window. */
+.kbfp-mplanacts{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}
+.kbfp-mghost{background:transparent;color:var(--dsw-alias-label-primary);box-shadow:inset 0 0 0 1px var(--dsw-alias-border-l3,var(--dsw-alias-border-l2))}
+.kbfp-mghost:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.kbfp-mwin{padding:2px 0 10px}
+.kbfp-mwinhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:600}
+.kbfp-mwin .kbfp-use{margin-top:5px}
+.kbfp-mwin .kbfp-usebar{height:5px}
+.kbfp-mwinnote{display:block;margin-top:4px;font-size:11.5px;line-height:1.3;color:var(--dsw-alias-label-tertiary)}
+.kbfp-mwinnote[data-full="true"]{color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 55%,var(--dsw-alias-label-primary))}
+.kbfp-cardmain:disabled{cursor:progress}
+/* The cues of a team space, in the composer's dock and the new chat's options row: a pill on memory (the team's colour), a pill on the working folder. Text in the colour mixed
+   toward the page's own text so it reads on both schemes; the tinted fill and ring only carry the colour. */
+.kbcue{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0;max-width:100%}
+.kbcue-pill{display:inline-flex;align-items:center;max-width:100%;box-sizing:border-box;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:500;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:color-mix(in srgb,var(--kbh,var(--dsw-alias-label-secondary)) 55%,var(--dsw-alias-label-primary));background:color-mix(in srgb,var(--kbh,var(--dsw-alias-label-secondary)) 16%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--kbh,var(--dsw-alias-label-secondary)) 40%,transparent)}
+.kbcue-folder{--kbh:var(--dsw-alias-label-secondary)}
+/* The chat's simple view hides every other thing in the composer's dock; these cues say whose space the message goes to, so they stay (the selector is made heavier than the fold's). */
+html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer.dock"] > .kbcue[data-kb="space-cue"]{display:inline-flex!important}
+@media (max-width:520px){.kbcue-pill{font-size:11.5px;padding:0 8px}}
 /* Rail replié : la carte se réduit à sa tuile, centrée. */
 .kbfp-tight2 .kbfp-card{justify-content:center;padding:4px;width:auto}
 .kbfp-tight2 .kbfp-cardtxt,.kbfp-tight2 .kbfp-ico{display:none}
@@ -940,11 +1011,15 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
     // The ONE place that says how a workspace looks: the name a person sees and the initials of THAT name. The card, the menu's head, both team lists and the dialogs
     // all come from here, so one workspace has one name and one tile (the list used to cut « My workspace » to MW next to a card that said « Personal » and PE).
     const espaceVue = (w, t) => { const name = nomAffiche(w, t); return { name: name, initials: initiales(name, '') } }
-    /** The ACTIVE workspace of a status, as `espaceVue` shows it (the first one when none was chosen; « Team » when the list is empty). */
-    const espaceActifVue = (st, t) => {
+    /** The ACTIVE workspace entry of a status (the first one when none was chosen), or null when the list is empty. */
+    const espaceActifEntry = (st) => {
       const espaces = st !== null && st !== undefined && Array.isArray(st.workspaces) ? st.workspaces : []
       const actif = st !== null && st !== undefined && typeof st.active_workspace_id === 'string' ? st.active_workspace_id : null
-      const courant = espaces.filter((w) => w !== null && w.id === actif)[0] || espaces[0] || null
+      return espaces.filter((w) => w !== null && w.id === actif)[0] || espaces[0] || null
+    }
+    /** The ACTIVE workspace of a status, as `espaceVue` shows it (« Team » when the list is empty). */
+    const espaceActifVue = (st, t) => {
+      const courant = espaceActifEntry(st)
       return courant !== null && courant.name ? espaceVue(courant, t) : { name: t('spaceTitle'), initials: initiales(t('spaceTitle'), '') }
     }
     /** The plan to show for the ACTIVE space. The host reads it from the server (`state.space_plan`); the account's own word (`user.plan`, « team » as soon as the person
@@ -1123,6 +1198,137 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
       return { percent: w.exhausted === true ? 100 : w.used_percent, level, title: quotaWindowSentence(w, name, t, now) }
     }
     // </quota-notice-text>
+
+    // <teams-menu:begin> the account menu's spaces, the plan card by role, the wait on a switch and the composer cues (test-teams-menu.mjs plays this block with the two above it)
+    // Pure: facts and a translator in, a model out. Percent and bars only, never money; a time of return only for a window that IS used up.
+    // The menu lists the person's spaces at its top while there are at most INLINE_SPACES_MAX of them (Personal + 2 teams); from one more, the top row stays « Switch team » and opens the full list.
+    const INLINE_SPACES_MAX = 3
+    const spacesMenuMode = (count) => (Number.isInteger(count) && count >= 1 && count <= INLINE_SPACES_MAX ? 'inline' : 'submenu')
+    // SEAM (step 4, « Join with an invitation link »): the row goes after « Create a team » in both lists. Not built yet: nothing to render.
+    const spaceIsPersonal = (w) => w !== null && typeof w === 'object' && (w.personal === true || w.name === 'My workspace')
+    const spaceRoleOf = (w) => (w !== null && typeof w === 'object' && (w.role === 'owner' || w.role === 'admin' || w.role === 'member') ? w.role : null)
+    const spaceIsAdmin = (w) => spaceIsPersonal(w) !== true && (spaceRoleOf(w) === 'owner' || spaceRoleOf(w) === 'admin')
+    // A team's colour, the same on its tile, in the menu and on the composer's pill: from its id, so it never changes. Personal spaces have none (they stay the neutral tile).
+    const SPACE_HUES = ['violet', 'teal', 'amber', 'rose', 'blue', 'green']
+    const spaceHue = (w) => {
+      if (w === null || typeof w !== 'object' || spaceIsPersonal(w)) return null
+      let n = 0
+      for (const ch of String(typeof w.id === 'string' ? w.id : (typeof w.name === 'string' ? w.name : ''))) n = (n * 31 + ch.charCodeAt(0)) >>> 0
+      return SPACE_HUES[n % SPACE_HUES.length]
+    }
+    // What a switch waits for. The host rewrites the model route and DSH applies it by itself about 2-3 s later (measured in October); a message sent before then still carries the
+    // PREVIOUS team's header, so the footer says « switching » until the host reports the new route live (`space/applied`). When the host cannot tell (`applied: null`) the wait is
+    // a fixed minimum; a route that never shows up ends the wait at the maximum, and the person is told. `route` is what `space/active` said became of the route.
+    const SWITCH_WAIT_MIN_MS = 3500
+    const SWITCH_WAIT_MAX_MS = 15000
+    const SWITCH_POLL_MS = 250
+    const switchPlan = (route) => (route === 'current' || route === 'none' ? 'done' : (route === 'failed' || route === 'not_written' ? 'stale' : 'wait'))
+    const switchState = (applied, elapsed) => {
+      if (applied === true) return 'done'
+      if (elapsed >= SWITCH_WAIT_MAX_MS) return 'slow'
+      return applied === null && elapsed >= SWITCH_WAIT_MIN_MS ? 'done' : 'wait'
+    }
+    const winLevel = (w) => (w.exhausted === true ? 'full' : w.used_percent >= QUOTA_NEAR_PERCENT ? 'near' : 'ok')
+    /** One window as a bar: its label, percent and level, and one note line: the window's length (« Last 7 days ») while there is room, « Back in about 3 h » only once it is used
+     *  up and the server gave the time (never a time for a window that is not used up: the windows are rolling, there is no reset moment). A cap an admin set says where. */
+    const winRowOf = (w, key, label, name, t, now) => {
+      const full = w.exhausted === true
+      const window = quotaWindowLabel(w.window_seconds, t)
+      const when = full ? quotaWhen(w.resets_at, now, t) : null
+      const cap = w.kind === 'member' && w.scope === 'team' ? quotaFill(t('quotaCap'), { name }) : ''
+      const note = (full ? (when !== null ? quotaFill(t('winBack'), { when }) : t('winFull')) : quotaFill(t('winLast'), { window })) + cap
+      const percent = full ? 100 : Math.max(0, Math.min(100, Math.round(w.used_percent)))
+      return { key, label, percent, level: winLevel(w), note, full, title: full && when === null ? quotaFill(t('quotaBackUnknown'), { window }) : note }
+    }
+    /** The plan card of the menu, by role: a team shows « Team » (its pool, about 30 days) and « You » (5 hours and 7 days, plus any other window of yours that is used up), an owner or
+     *  admin also gets « Manage » and, once the pool is used up, « Add credits »; a member gets neither. A personal space shows one allowance bar and, on Free, « Upgrade ». A team
+     *  nobody bought a plan for offers « Choose a plan ». `facts` is the host's quota answer for the ACTIVE space, null until read. */
+    const PLAN_POOL_SECONDS = 2592000
+    const PLAN_OWN_SECONDS = [18000, 604800]
+    const planCardModel = (o) => {
+      const t = o.t
+      const space = o.space
+      const team = space !== null && space !== undefined && spaceIsPersonal(space) !== true
+      const name = team && typeof space.name === 'string' && space.name !== '' ? space.name : t('quotaWorkspace')
+      const model = { title: o.title, team, rows: [], actions: [] }
+      if (o.planInfo.none === true) { model.actions.push('choose'); return model }
+      const facts = o.facts !== null && o.facts !== undefined && o.facts.ok === true ? o.facts : null
+      const now = o.now !== undefined ? o.now : Date.now() + quotaSkew(facts)
+      const windows = facts !== null ? quotaWindows(facts) : []
+      const pool = windows.filter((x) => x.kind === 'pool')
+      const own = windows.filter((x) => x.kind === 'member')
+      if (facts !== null && facts.payment_blocked === true) model.rows.push({ key: team ? 'team' : 'allowance', label: team ? t('winTeam') : t('winAllowance'), percent: 100, level: 'full', note: t('winPayment'), full: true, title: t('winPayment') })
+      else if (team) {
+        const poolW = quotaBlocking(pool) || pool.filter((x) => x.window_seconds === PLAN_POOL_SECONDS)[0] || pool.slice().sort((a, b) => b.window_seconds - a.window_seconds)[0] || null
+        if (poolW !== null) model.rows.push(winRowOf(poolW, 'team', t('winTeam'), name, t, now))
+        const mine = PLAN_OWN_SECONDS.map((s) => own.filter((x) => x.window_seconds === s)[0]).filter((x) => x !== undefined)
+        for (const x of own.filter((y) => y.exhausted === true)) if (mine.indexOf(x) < 0) mine.push(x)
+        if (mine.length === 0 && quotaMostUsed(own) !== null) mine.push(quotaMostUsed(own))
+        for (const x of mine.sort((a, b) => a.window_seconds - b.window_seconds)) model.rows.push(winRowOf(x, 'you', t('winYou'), name, t, now))
+      } else {
+        const w = quotaBlocking(own) || quotaMostUsed(own)
+        if (w !== null) model.rows.push(winRowOf(w, 'allowance', t('winAllowance'), name, t, now))
+      }
+      if (team && spaceIsAdmin(space)) {
+        model.actions.push('manage')
+        if (facts !== null && (facts.payment_blocked === true || pool.some((x) => x.exhausted === true))) model.actions.push('credits')
+      }
+      if (o.planInfo.free === true) model.actions.push('upgrade')
+      return model
+    }
+    /** One row of the menu's list of spaces: tile, name, a subtitle (« Admin · 6 members », and for the personal space « <you> · <plan> »), the usage percent of the window that counts
+     *  (`quotaMeterOf`'s choice) and whether it is the active one. `o.facts`: `{ usage, members, plan }` as the host's summary gives it, null when not read. */
+    const spaceRowOf = (w, o) => {
+      const t = o.t
+      const view = espaceVue(w, t)
+      const facts = o.facts !== null && o.facts !== undefined && typeof o.facts === 'object' ? o.facts : null
+      const personal = spaceIsPersonal(w)
+      const role = spaceRoleOf(w)
+      const roleWord = role === 'owner' ? t('roleOwner') : (role === 'admin' ? t('roleAdmin') : (role === 'member' ? t('roleMember') : ''))
+      const parts = personal
+        ? [typeof o.userName === 'string' ? o.userName : '', typeof o.planLabel === 'string' ? o.planLabel : '']
+        : [roleWord, facts !== null && Number.isInteger(facts.members) ? quotaCount(t, 'spaceMembers', facts.members) : '']
+      const meter = facts !== null && Array.isArray(facts.usage)
+        ? quotaMeterOf({ ok: true, workspace: { id: w.id, name: view.name, role: w.role, personal }, usage: facts.usage, payment_blocked: false, skew_ms: o.skew }, t, o.now)
+        : null
+      return { id: w.id, name: view.name, initials: view.initials, hue: spaceHue(w), sub: parts.filter((p) => p !== '').join(' · '), percent: meter !== null ? meter.percent : null, level: meter !== null ? meter.level : 'ok', title: meter !== null ? meter.title : undefined, current: w.id === o.activeId }
+    }
+    // The composer's cues in a team space: a coloured pill on memory, a pill on the working folder, « Message <Team>… » and the new chat's heading. The personal space has none.
+    // ONE switch decides whether the memory pill says the personal memory is off. It becomes true only when the memory session lands (branch feat/teams-memory-cut: a team space then
+    // injects nothing personal and captures nothing into it); until then the pill must not promise it.
+    const PERSONAL_MEMORY_CUT = false
+    // SEAM (step 6, one working folder per team): `folder` is the team's folder when the host knows one (`state.space_folder`, written by the folder step). Nothing writes it yet,
+    // so no folder pill is drawn: none is invented.
+    const spaceCueOf = (space, folder, t, personalOff = PERSONAL_MEMORY_CUT) => {
+      if (space === null || space === undefined || typeof space !== 'object' || spaceIsPersonal(space)) return null
+      const view = espaceVue(space, t)
+      const where = typeof folder === 'string' && folder.trim() !== '' ? folder.trim() : null
+      return {
+        team: true,
+        name: view.name,
+        hue: spaceHue(space),
+        memory: t(personalOff === true ? 'cueMemoryOff' : 'cueMemory'),
+        memoryTitle: t(personalOff === true ? 'cueMemoryOffTip' : 'cueMemoryTip'),
+        folder: where !== null ? { label: quotaFill(t('cueFolder'), { name: view.name }), title: where } : null,
+        placeholder: quotaFill(t('cuePlaceholder'), { name: view.name }),
+        heading: quotaFill(t('cueHeading'), { name: view.name }),
+      }
+    }
+    /** What the placeholder text node of the composer should become. `node` is what the sweep read (`text`, and `ours` / `orig`: what we wrote and what stood before, null while we
+     *  never touched it), `want` the team's words, or null outside a team space and for a disabled box. Returns the next `{ text, ours, orig, swap: { from, to } }` (the `swap` is for the input's
+     *  own copies of the words), or null when nothing changes. We only keep what we wrote: a text DSH drew after ours (a plan hint, a queue hint) is never put back over. */
+    const placeholderNext = (node, want) => {
+      if (want !== null) {
+        if (node.text === want) return null
+        const before = node.ours !== null && node.text === node.ours ? node.orig : node.text
+        return { text: want, ours: want, orig: before, swap: { from: [before, node.ours].filter((x) => x !== null), to: want } }
+      }
+      if (node.ours === null) return null
+      const mine = node.text === node.ours
+      return { text: mine ? node.orig : node.text, ours: null, orig: null, swap: mine ? { from: [node.ours], to: node.orig } : { from: [], to: node.text } }
+    }
+    // <teams-menu:end>
+
     // How often the card's meter reads the allowance again while it is on screen (it also reads on focus and after a refusal).
     const QUOTA_METER_REFRESH_MS = 120000
 
@@ -1437,10 +1643,55 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               h('div', null, body)))
         }
 
-        // ── THE WORKSPACE SELECTOR (footer row) ───────────────────────────
-        // The card opens the LIST (you switch workspace), the gear opens the
-        // workspace PAGE. That is the mockup: card + gear, above the user
-        // menu, which does not move.
+        // ── THE LIST OF SPACES (the account menu's top, or its « Switch team » panel) ────────────────────────────────────────────────
+        // One list, two places: while the person has at most INLINE_SPACES_MAX spaces it is the top of the account menu itself; from one more it opens in the panel next to the
+        // menu (the top row then stays « Switch team »). A row: the tile (a team has its own colour), the name, « Admin · 6 members » (the personal space: « you · plan »), the
+        // usage percent with its bar and a check on the active one. Choosing hands the id to the footer (`onPick`): it owns the switch, because it keeps saying « switching »
+        // until DSH has applied the new model route. The usage and head counts come from the host's summary (read when the menu opens); the active row follows the card's own read.
+        const SpaceList = (props) => {
+          const st = props.state !== undefined && props.state !== null ? props.state : {}
+          const user = st.user !== undefined && st.user !== null ? st.user : {}
+          const espaces = Array.isArray(st.workspaces) ? st.workspaces : []
+          const actif = typeof st.active_workspace_id === 'string' ? st.active_workspace_id : null
+          const summary = props.summary !== undefined && props.summary !== null && typeof props.summary === 'object' ? props.summary : null
+          const quota = props.quota !== undefined && props.quota !== null && props.quota.ok === true ? props.quota : null
+          const rows = espaces.filter((w) => w !== null && typeof w === 'object').map((w) => {
+            const mine = summary !== null && summary.spaces !== null && typeof summary.spaces === 'object' ? summary.spaces[w.id] : undefined
+            const live = w.id === actif && quota !== null
+            const facts = mine !== undefined || live ? Object.assign({}, mine, live ? { usage: quota.usage } : {}) : null
+            const planLabel = w.id === actif ? planNameOf(st, user, t) : (mine !== undefined && mine.plan !== null && mine.plan !== undefined && typeof mine.plan.label === 'string' ? mine.plan.label : '')
+            return spaceRowOf(w, { t: t, facts: facts, activeId: actif, userName: displayName(user).value, planLabel: planLabel, skew: live ? quotaSkew(quota) : quotaSkew(summary) })
+          })
+          const busy = props.busy === true
+          return h(React.Fragment, null,
+            rows.length === 0
+              ? h('div', { className: 'kbc-note' }, t('none'))
+              : rows.map((r, i) => h('button', {
+                type: 'button', key: r.id || String(i), 'data-kb': 'space-row', 'data-space': r.id, 'data-percent': r.percent !== null ? String(r.percent) : undefined,
+                className: 'kbfp-wsitem' + (r.current === true ? ' on' : ''),
+                role: 'menuitem', 'aria-current': r.current === true ? 'true' : 'false', disabled: busy,
+                // The name is cut with an ellipsis in a narrow list: the title is the only way to read a long one in full.
+                title: r.sub !== '' ? r.name + ' · ' + r.sub : (r.name || undefined),
+                onClick: () => { props.onPick(r.id) },
+              },
+              h('span', { className: 'kbfp-wstile', 'aria-hidden': 'true', 'data-kb-hue': r.hue !== null ? r.hue : undefined }, r.initials),
+              h('span', { className: 'kbfp-wstxt' },
+                h('span', { className: 'kbfp-wsname' }, r.name || t('none')),
+                h('span', { className: 'kbfp-wssub' }, r.sub !== '' ? r.sub : (r.current === true ? t('spaceMark') : ''))),
+              r.percent !== null
+                ? h('span', { className: 'kbfp-use kbfp-wsuse', 'data-level': r.level, 'data-kb': 'space-usage', 'data-percent': String(r.percent), title: r.title, role: 'img', 'aria-label': quotaFill(t('winUsed'), { pct: r.percent }) },
+                  h('span', { className: 'kbfp-usepct' }, r.percent + '%'),
+                  h('span', { className: 'kbfp-usebar', 'aria-hidden': 'true' }, h('span', { className: 'kbfp-usefill', style: { width: r.percent + '%' } })))
+                : null,
+              r.current === true ? h('span', { className: 'kbfp-wscheck', 'aria-hidden': 'true' }, h(CheckIcon, { size: 18 })) : null)),
+            props.sep === true ? h('div', { className: 'kbfp-msep' }) : null,
+            h('button', { type: 'button', className: 'kbfp-wsitem', role: 'menuitem', 'data-kb': 'space-create', onClick: props.onCreate },
+              h('span', { className: 'kbfp-wsplus', 'aria-hidden': 'true' }, h(PlusIcon, { size: 18 })),
+              h('span', { className: 'kbfp-wstxt' }, h('span', { className: 'kbfp-wsname' }, t('wsNewTitle')))))
+            // SEAM (step 4): the « Join with an invitation link » row goes here, after « Create a team ».
+        }
+
+        // The panel next to the menu, for four spaces and more. `summary` and `quota` are what the menu read; the footer does the switching.
         const SwitchPanel = (props) => {
           // Same rule as the account card: Escape closes the selector.
           React.useEffect(() => {
@@ -1448,8 +1699,6 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             window.addEventListener('keydown', onKey)
             return () => window.removeEventListener('keydown', onKey)
           }, [props.onClose])
-          // Click OUTSIDE: no backdrop (it would steal the popover's anchor),
-          // just a document listener that closes it.
           const popRef = React.useRef(null)
           React.useEffect(() => {
             const dehors = (ev) => {
@@ -1459,89 +1708,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             document.addEventListener('mousedown', dehors)
             return () => document.removeEventListener('mousedown', dehors)
           }, [props.onClose])
-          const st = props.state !== undefined && props.state !== null ? props.state : {}
-          const espaces = Array.isArray(st.workspaces) ? st.workspaces : []
-          const actif = typeof st.active_workspace_id === 'string' ? st.active_workspace_id : null
-          const [erreur, setErreur] = React.useState('')
-          const [busy, setBusy] = React.useState(false)
-
-          const choisir = async (id) => {
-            if (busy === true || id === actif) { props.onClose(); return }
-            setBusy(true)
-            setErreur('')
-            let res = null
-            try { res = await callLocal('/space/active', 'POST', { workspace_id: id }) } catch (e) { res = null }
-            setBusy(false)
-            if (res !== null && res.ok === true) { props.onChanged(); props.onClose(); return }
-            // A workspace that is not visible does not become active — and we SAY so.
-            setErreur(t('spaceUnknown'))
-          }
-
-          // `embedded` (unified menu, 30/09): the list lives INSIDE the card's
-          // menu — no second popover box, just the body. Mockup template:
-          // the ACTIVE workspace is a raised card with a CHECK mark,
-          // the others bare rows (name + kyber count), and « Create
-          // a team » closes the list.
-          if (props.embedded === true) {
-            return h('div', { className: 'kbfp-switchbody', ref: popRef },
-              espaces.length === 0
-                ? h('div', { className: 'kbc-note' }, t('none'))
-                : espaces.map((w, i) => {
-                  const on = w !== null && w.id === actif
-                  return h('button', {
-                    type: 'button', key: String((w && w.id) || i),
-                    className: 'kbfp-wsitem' + (on === true ? ' on' : ''),
-                    role: 'menuitem', 'aria-current': on ? 'true' : 'false', disabled: busy,
-                    // The name is cut with an ellipsis in a narrow list: the title is the only way to read a long one in full.
-                    title: (w && espaceVue(w, t).name) || undefined,
-                    onClick: () => { void choisir(w && w.id) },
-                  },
-                  h('span', { className: 'kbfp-wstile', 'aria-hidden': 'true' }, espaceVue(w, t).initials),
-                  h('span', { className: 'kbfp-wstxt' },
-                    h('span', { className: 'kbfp-wsname' }, (w && espaceVue(w, t).name) || t('none')),
-                    h('span', { className: 'kbfp-wssub' }, on === true
-                      ? t('spaceMark')
-                      : (w && w.kyber_count !== undefined ? String(w.kyber_count) + ' ' + t('kybers') : ''))),
-                  on === true
-                    ? h('span', { className: 'kbfp-wscheck', 'aria-hidden': 'true' }, h(CheckIcon, { size: 18 }))
-                    : null)
-                }),
-              h('div', { className: 'kbfp-msep' }),
-              h('button', {
-                type: 'button', className: 'kbfp-wsitem', role: 'menuitem', onClick: props.onCreate,
-              },
-              h('span', { className: 'kbfp-wsplus', 'aria-hidden': 'true' }, h(PlusIcon, { size: 18 })),
-              h('span', { className: 'kbfp-wstxt' },
-                h('span', { className: 'kbfp-wsname' }, t('wsNewTitle')))),
-              erreur !== '' ? h('div', { className: 'kbc-note kbc-warn', style: { marginTop: '8px' } }, erreur) : null)
-          }
-
-          return h('div', { className: 'kbf-pop', ref: popRef, role: 'menu', 'aria-label': t('wsSwitchTitle') },
-              h('div', { className: 'kbf-poptitle' }, t('wsSwitchTitle')),
-              h('div', { className: 'kbws-list' }, espaces.length === 0
-                ? h('div', { className: 'kbc-note' }, t('none'))
-                : espaces.map((w, i) => {
-                  const on = w !== null && w.id === actif
-                  return h('button', {
-                    type: 'button', key: String((w && w.id) || i), className: 'kbws-item',
-                    role: 'menuitem', 'aria-current': on ? 'true' : 'false', disabled: busy,
-                    // The name is cut with an ellipsis in a narrow list: the title is the only way to read a long one in full.
-                    title: (w && espaceVue(w, t).name) || undefined,
-                    onClick: () => { void choisir(w && w.id) },
-                  },
-                  h('span', { className: 'kbf-avatar', 'aria-hidden': 'true' }, espaceVue(w, t).initials),
-                  h('span', { className: 'kbws-name' }, w ? espaceVue(w, t).name || t('none') : t('none')),
-                  h('span', { className: 'kbws-mark' }, on
-                    ? t('spaceMark')
-                    : (w && w.kyber_count !== undefined ? String(w.kyber_count) + ' ' + t('kybers') : '')))
-                })),
-              h('div', { className: 'kbws-sep' }),
-              h('button', {
-                type: 'button', className: 'kbws-item', role: 'menuitem', onClick: props.onCreate,
-              },
-              h('span', { className: 'kbf-wsgear', 'aria-hidden': 'true' }, '+'),
-              h('span', { className: 'kbws-name' }, t('wsNewTitle'))),
-              erreur !== '' ? h('div', { className: 'kbc-note kbc-warn', style: { marginTop: '8px' } }, erreur) : null)
+          return h('div', { className: 'kbfp-switchbody', ref: popRef },
+            h(SpaceList, { state: props.state, summary: props.summary, quota: props.quota, busy: props.busy, sep: true, onPick: (id) => { props.onClose(); props.onPick(id) }, onCreate: props.onCreate }))
         }
 
         // ── CREATING A WORKSPACE (the row's « + » button) ──────────────────
@@ -2181,8 +2349,11 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           const st = props.state !== undefined && props.state !== null ? props.state : {}
           const user = st.user !== undefined && st.user !== null ? st.user : {}
           const vueEspace = espaceActifVue(st, t)
+          const entry = espaceActifEntry(st)
           const planInfo = planDeEspace(st, user)
           const plan = planNameOf(st, user, t)
+          // Up to INLINE_SPACES_MAX spaces the list is the top of this menu; from one more the top row stays « Switch team » and opens it in a panel.
+          const mode = spacesMenuMode(Array.isArray(st.workspaces) ? st.workspaces.length : 0)
           // The catalogue says whether the plan is the top one; until it is read (or when the server does not answer) nothing proves it is, and the entry stays.
           const cataloguePair = React.useState(() => (plansMemo !== null ? plansMemo.plans : null))
           const catalogue = cataloguePair[0]
@@ -2190,6 +2361,16 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           React.useEffect(() => {
             let on = true
             void readPlans().then((p) => { if (on === true && p !== null) setCatalogue(p) })
+            return () => { on = false }
+          }, [])
+          // What the rows add to the list of spaces (each one's usage, a team's head count, the personal plan's name): read from the host when the menu opens. A failed read leaves the
+          // rows with what they already have (name, role): they just say less.
+          const summaryPair = React.useState(null)
+          const summary = summaryPair[0]
+          const setSummary = summaryPair[1]
+          React.useEffect(() => {
+            let on = true
+            callLocal('/spaces/summary', 'GET').then((r) => { if (on === true && r !== null && r !== undefined && r.ok === true) setSummary(quotaStamp(r)) }).catch(() => null)
             return () => { on = false }
           }, [])
           // « Upgrade »: a plan that is not Free (Free has its pill, with the dialog), that has something above it, where the page can open (on a hosted DSH the host is not the
@@ -2231,7 +2412,28 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           // The Appearance segment is not an entry: it leaves the menu open.
           const entree = entreeMenu(props.onClose)
 
-          // Blocks separated by a rule: Teams (space, plan, team settings) ·
+          // The plan card, by role (planCardModel): a team shows its pool and the person's own windows as bars, an owner or admin also gets « Manage » (the web Team settings) and,
+          // once the pool is used up, « Add credits »; a member gets neither. A personal space shows one allowance bar and, on Free, « Upgrade ». Percent and bars only, never money.
+          const card = planCardModel({ space: entry, planInfo: planInfo, title: plan, facts: props.quota, t: t })
+          const closeThen = (fn) => () => { try { props.onClose() } catch (e) { /* closed */ } fn() }
+          const cardAction = (id) => {
+            if (id === 'manage') return h('button', { key: id, type: 'button', className: 'kbfp-mcta kbfp-mghost', 'data-kb': 'menu-plan-manage', onClick: closeThen(props.onSpace) }, t('planManage'))
+            if (id === 'credits') return h('button', { key: id, type: 'button', className: 'kbfp-mcta', 'data-kb': 'menu-plan-credits', onClick: closeThen(props.onUpgradePage) }, t('planAddCredits'))
+            // A team with NO plan is not upgraded, it chooses one: « Choose a plan » opens the app's plan page for it (the in-DSH table is the Free person's).
+            if (id === 'choose') return h('button', { key: id, type: 'button', className: 'kbfp-mcta', 'data-kb': 'menu-plan-cta', 'data-plan': 'none', onClick: closeThen(props.onUpgradePage) }, t('planChoose'))
+            return h('button', { key: id, type: 'button', className: 'kbfp-mcta', 'data-kb': 'menu-plan-cta', onClick: closeThen(props.onUpgrade) }, t('menuPlanCta'))
+          }
+          const planCard = h('div', { className: 'kbfp-mplan', 'data-kb': 'menu-plan-card', 'data-team': card.team === true ? 'true' : 'false' },
+            h('div', { className: 'kbfp-mplanline' },
+              h('span', { className: 'kbfp-mplanname', 'data-plan': planInfo.none === true ? 'none' : undefined }, card.title),
+              card.actions.length > 0 ? h('span', { className: 'kbfp-mplanacts' }, card.actions.map(cardAction)) : null),
+            card.rows.map((r, i) => h('div', { key: r.key + String(i), className: 'kbfp-mwin', 'data-kb': 'menu-plan-window', 'data-win': r.key, 'data-level': r.level, 'data-percent': String(r.percent), title: r.title },
+              h('div', { className: 'kbfp-mwinhead' }, h('span', null, r.label), h('span', { className: 'kbfp-usepct' }, r.percent + '%')),
+              h('span', { className: 'kbfp-use', 'data-level': r.level },
+                h('span', { className: 'kbfp-usebar', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': r.percent, 'aria-label': r.label + ' · ' + quotaFill(t('winUsed'), { pct: r.percent }) }, h('span', { className: 'kbfp-usefill', style: { width: r.percent + '%' } }))),
+              h('small', { className: 'kbfp-mwinnote', 'data-full': r.full === true ? 'true' : undefined }, r.note))))
+
+          // Blocks separated by a rule: Teams (spaces, plan, team settings) ·
           // Account · Links, then Log out. An available update goes first.
           // "Security" is no longer in the menu (04/10); the plan moves up under
           // the space selector, just before "Teams settings".
@@ -2241,25 +2443,21 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                   entree('update', h(UpdateIcon, { size: 18 }), t('menuUpdate'), () => envoyer('update'), { amber: true, tail: (maj.kind === 'moteur' ? 'DSH ' : '') + (typeof maj.version === 'string' ? maj.version : maj.cible) }),
                   h('div', { className: 'kbfp-msep' }))
               : null,
-            h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-teams' },
-              h('button', {
-                type: 'button', className: 'kbfp-mhead', 'data-kb': 'menu-switch',
-                'aria-expanded': switchOpen === true ? 'true' : 'false',
-                onClick: () => setSwitchOpen(switchOpen !== true),
-              },
-              h('span', { className: 'kbfp-tile', 'aria-hidden': 'true' }, vueEspace.initials),
-              h('span', { className: 'kbfp-mheadtxt' },
-                h('span', { className: 'kbfp-mheadname' }, vueEspace.name),
-                h('span', { className: 'kbfp-mheadsub' }, t('wsSwitchTitle'))),
-              h(SwapIcon, { size: 18 })),
-              h('div', { className: 'kbfp-mplan' },
-                h('div', { className: 'kbfp-mplanline' },
-                  h('span', { className: 'kbfp-mplanname', 'data-plan': planInfo.none === true ? 'none' : undefined }, plan),
-                  // « Upgrade » only where there is something to upgrade from: a paying person, or a Team, is not offered it. A team with NO plan is not upgraded, it
-                  // chooses one: « Choose a plan » opens the app's plan page for it (the in-DSH table is the Free person's).
-                  planInfo.none === true
-                    ? h('button', { type: 'button', className: 'kbfp-mcta', 'data-kb': 'menu-plan-cta', 'data-plan': 'none', onClick: () => { try { props.onClose() } catch (e) { /* closed */ } props.onUpgradePage() } }, t('planChoose'))
-                    : (planInfo.free === true ? h('button', { type: 'button', className: 'kbfp-mcta', 'data-kb': 'menu-plan-cta', onClick: () => { try { props.onClose() } catch (e) { /* closed */ } props.onUpgrade() } }, t('menuPlanCta')) : null))),
+            h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-teams', 'data-mode': mode },
+              mode === 'inline'
+                ? h(SpaceList, { state: st, summary: summary, quota: props.quota, busy: props.busy, onPick: (id) => { props.onClose(); props.onPick(id) }, onCreate: props.onCreateSpace })
+                : h('button', {
+                  type: 'button', className: 'kbfp-mhead', 'data-kb': 'menu-switch',
+                  'aria-expanded': switchOpen === true ? 'true' : 'false',
+                  onClick: () => setSwitchOpen(switchOpen !== true),
+                },
+                h('span', { className: 'kbfp-tile', 'aria-hidden': 'true', 'data-kb-hue': spaceHue(entry) !== null ? spaceHue(entry) : undefined }, vueEspace.initials),
+                h('span', { className: 'kbfp-mheadtxt' },
+                  h('span', { className: 'kbfp-mheadname' }, vueEspace.name),
+                  h('span', { className: 'kbfp-mheadsub' }, t('wsSwitchTitle'))),
+                h(SwapIcon, { size: 18 })),
+              mode === 'inline' ? h('div', { className: 'kbfp-msep' }) : null,
+              planCard,
               upgradeEntry ? entree('upgrade', h(UpgradeIcon, { size: 18 }), t('menuPlanCta'), props.onUpgradePage, { ext: true }) : null,
               // "Teams settings" = the former "Workspace settings" (same action).
               entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace)),
@@ -2286,21 +2484,89 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             // The workspace list opens NEXT TO the menu, on the right (as in the
             // mockup): the main menu STAYS OPEN — you choose, the menu's card
             // updates, the sub-panel closes by itself.
-            switchOpen === true && subPos !== null
+            mode === 'submenu' && switchOpen === true && subPos !== null
               ? ReactDOM.createPortal(h('div', {
                   className: 'kbfp-sub', role: 'menu', 'aria-label': t('wsSwitchTitle'),
                   style: { left: subPos.left + 'px', top: subPos.top + 'px' },
                 },
                   h('div', { className: 'kbfp-msub' }, t('wsSwitchTitle')),
                   h(SwitchPanel, {
-                    embedded: true,
                     state: st,
+                    summary: summary,
+                    quota: props.quota,
+                    busy: props.busy,
                     onClose: () => setSwitchOpen(false),
-                    onChanged: props.onChanged,
+                    onPick: props.onPick,
                     onCreate: props.onCreateSpace,
                   })), document.body)
               : null)
         }
+        // ── The composer's cues in a team space ─────────────────────────────────────────────────────────────────────────────────────
+        // A team space shows, where the person writes: a coloured pill on memory, a pill on the working folder (when the team has one), « Message <Team>… » in the box and
+        // « What is <Team> working on? » over a new chat. The personal space has none of it. The footer publishes what it knows (the active space, its folder when the host
+        // names one, whether a switch still waits on DSH); the pills live in the composer's dock and in the new chat's options row; the heading is drawn by the core plugin, which
+        // asks `window.__KB_SPACE_CUE__` (null outside a team space and while a switch waits) and listens to `kybernos:space-cue`; the placeholder is DSH's own text node, set here.
+        const cueStore = { space: null, folder: null, switching: false, hear: new Set() }
+        const cueNow = () => (cueStore.switching === true ? null : spaceCueOf(cueStore.space, cueStore.folder, t))
+        const cueSet = (space, folder, switching) => {
+          cueStore.space = space
+          cueStore.folder = typeof folder === 'string' ? folder : null
+          cueStore.switching = switching === true
+          cueStore.hear.forEach((fn) => { try { fn() } catch (e) { /* a listener that is gone */ } })
+          try { window.dispatchEvent(new Event('kybernos:space-cue')) } catch (e) { /* Event absent */ }
+        }
+        const CuePills = () => {
+          const bump = React.useState(0)[1]
+          React.useEffect(() => {
+            const fn = () => bump((n) => n + 1)
+            cueStore.hear.add(fn)
+            return () => { cueStore.hear.delete(fn) }
+          }, [])
+          const space = cueStore.space
+          if (space === null || spaceIsPersonal(space)) return null
+          // While a switch waits on DSH the pill says so: the team it names is not billed yet.
+          if (cueStore.switching === true) return h('div', { className: 'kbcue', 'data-kb': 'space-cue' }, h('span', { className: 'kbcue-pill', 'data-kb': 'cue-switching', 'data-kb-hue': spaceHue(space) !== null ? spaceHue(space) : undefined }, t('spaceSwitching')))
+          const cue = cueNow()
+          if (cue === null) return null
+          return h('div', { className: 'kbcue', 'data-kb': 'space-cue' },
+            h('span', { className: 'kbcue-pill', 'data-kb': 'cue-memory', 'data-kb-hue': cue.hue !== null ? cue.hue : undefined, title: cue.memoryTitle }, cue.memory),
+            cue.folder !== null ? h('span', { className: 'kbcue-pill kbcue-folder', 'data-kb': 'cue-folder', title: cue.folder.title }, cue.folder.label) : null)
+        }
+        // « Message <Team>… »: the placeholder is a text node DSH draws (`[data-composer-placeholder]`) and its input carries the same words as `data-placeholder` and `aria-label`. They are
+        // changed in place, in a team space only, and put back when the person leaves it. A disabled box keeps DSH's own words (« Session unavailable »…), and so does any text DSH
+        // draws after ours (a plan hint, a queue hint): we only keep what we wrote, and remember the text that was there before it.
+        const PH_ORIG = 'data-kb-ph-orig'
+        const PH_OURS = 'data-kb-ph-ours'
+        const writeText = (el, text) => {
+          const first = el.firstChild
+          if (first !== null && first !== undefined && first.nodeType === 3 && el.childNodes.length === 1) first.nodeValue = text
+          else el.textContent = text
+        }
+        const sweepPlaceholders = () => {
+          const cue = cueNow()
+          // The personal space (most people) with nothing of ours to put back: nothing to do, whatever the chat is doing to the page.
+          if (cue === null && document.querySelector('[' + PH_OURS + ']') === null) return
+          for (const node of document.querySelectorAll('[data-composer-placeholder]')) {
+            const input = node.parentElement !== null ? node.parentElement.querySelector('[data-composer-input]') : null
+            const off = input !== null && input.getAttribute('aria-disabled') === 'true'
+            const next = placeholderNext({ text: node.textContent, ours: node.getAttribute(PH_OURS), orig: node.getAttribute(PH_ORIG) }, cue !== null && off !== true ? cue.placeholder : null)
+            if (next === null) continue
+            if (next.ours === null) { node.removeAttribute(PH_ORIG); node.removeAttribute(PH_OURS) } else { node.setAttribute(PH_ORIG, next.orig); node.setAttribute(PH_OURS, next.ours) }
+            if (node.textContent !== next.text) writeText(node, next.text)
+            if (input !== null) for (const name of ['data-placeholder', 'aria-label']) if (next.swap.from.indexOf(input.getAttribute(name)) >= 0) input.setAttribute(name, next.swap.to)
+          }
+        }
+        const mountPlaceholderSweep = () => {
+          let stopped = false
+          let timer = null
+          const later = () => { if (timer !== null) return; timer = setTimeout(() => { timer = null; if (stopped !== true) { try { sweepPlaceholders() } catch (e) { /* the box moved: DSH's own words stay */ } } }, 80) }
+          let obs = null
+          try { obs = new MutationObserver(later); obs.observe(document.body, { childList: true, subtree: true, characterData: true }) } catch (e) { obs = null }
+          window.addEventListener('kybernos:space-cue', later)
+          later()
+          return () => { stopped = true; if (obs !== null) obs.disconnect(); window.removeEventListener('kybernos:space-cue', later); if (timer !== null) clearTimeout(timer) }
+        }
+
 
         // ── The bottom row of the menu ─────────────────────────────────────────        // ── The bottom row of the menu ─────────────────────────────────────────
         // A single component for the three states, because the row CHANGES
@@ -2430,6 +2696,9 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           const [autoStart, setAutoStart] = React.useState(false)
           const [phase, setPhase] = React.useState('loading')
           const [state, setState] = React.useState({})
+          // A switch of team in progress: `{ id, name }` from the moment the person chooses until DSH has applied the new model route (see pickSpace). Nothing else is chosen meanwhile.
+          const [switching, setSwitching] = React.useState(null)
+          const switchingRef = React.useRef(null)
           // The server ended this connection (a device revoked from the account page, a new database): the signed-out row then says « Sign in again » and why, not the plain words.
           const [ended, setEnded] = React.useState(false)
           // How the last pairing ended when it was not a success (`denied`, `expired`): said in the row, which stays until the person tries again.
@@ -2480,6 +2749,47 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           // re-read the local state, so a pairing that has just finished shows up
           // in the row without reloading the page.
           React.useEffect(() => { void load() }, [load, open])
+
+          // Choosing a team. The host writes the new model route and DSH applies it by itself a moment later; a message sent before then still carries the PREVIOUS team's header and is
+          // billed to it. So the card says « switching » until the host reports the running route names the new team (`space/applied`), for a fixed minimum when it cannot tell, and
+          // at most SWITCH_WAIT_MAX_MS (then the person is told to wait). A route the host could not rewrite is said at once: the choice is kept, the billing is not.
+          const pickSpace = async (id) => {
+            if (switchingRef.current !== null || typeof id !== 'string') return
+            const known = (Array.isArray(state.workspaces) ? state.workspaces : []).filter((w) => w !== null && w.id === id)[0]
+            const name = known !== undefined ? espaceVue(known, t).name : ''
+            if (id === state.active_workspace_id) return
+            switchingRef.current = { id: id, name: name }
+            setSwitching({ id: id, name: name })
+            const end = () => { switchingRef.current = null; if (liveRef.current === true) setSwitching(null) }
+            let res = null
+            try { res = await callLocal('/space/active', 'POST', { workspace_id: id }) } catch (e) { res = null }
+            if (res === null || res.ok !== true) {
+              end()
+              // A workspace that is not visible does not become active — and we SAY so.
+              setFlashSwitch(false)
+              setFlash(t('spaceUnknown'))
+              return
+            }
+            void load()
+            const plan = switchPlan(res.route)
+            if (plan === 'stale') { end(); setFlashSwitch(false); setFlash(quotaFill(t('spaceRouteStale'), { name: name })); return }
+            if (plan === 'wait') {
+              const t0 = Date.now()
+              let verdict = 'wait'
+              while (verdict === 'wait' && liveRef.current === true) {
+                let applied = null
+                try {
+                  const r = await callLocal('/space/applied', 'POST', { workspace_id: id })
+                  if (r !== null && r !== undefined && r.superseded === true) break
+                  applied = r !== null && r !== undefined && r.ok === true && typeof r.applied === 'boolean' ? r.applied : null
+                } catch (e) { applied = null }
+                verdict = switchState(applied, Date.now() - t0)
+                if (verdict === 'wait') await new Promise((resolve) => { window.setTimeout(resolve, SWITCH_POLL_MS) })
+              }
+              if (verdict === 'slow') { setFlashSwitch(false); setFlash(quotaFill(t('spaceSwitchSlow'), { name: name })) }
+            }
+            end()
+          }
 
           // The host reads the account again by itself (a token revoked from the account page, a removal from a team: index.js `profileRefreshTick`), and the
           // chip followed only when the card was opened or closed: measured, it said « Rita Rich · Solo Studio » for 45 s after the host had signed out. /status
@@ -2593,6 +2903,14 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             } catch (e) { /* document unavailable */ }
           }, [phase])
 
+          // What the composer's cues need: the space the card names (the chosen one while a switch waits), its working folder when the host names one, and whether a switch waits.
+          // SEAM (step 6, one folder per team): `state.space_folder` is that folder. Nothing writes it yet, so the folder pill stays away.
+          React.useEffect(() => {
+            if (phase !== 'connected') { cueSet(null, null, false); return }
+            const chosen = switching !== null ? (Array.isArray(state.workspaces) ? state.workspaces : []).filter((w) => w !== null && w.id === switching.id)[0] : undefined
+            cueSet(chosen !== undefined ? chosen : espaceActifEntry(state), state.space_folder, switching !== null)
+          }, [phase, state, switching])
+
           const openAndConnect = () => { setPairNote(null); setAutoStart(true); setOpen(true) }
           const openCard = () => { setAutoStart(false); setOpen(true) }
           // The failure row of a turn (a team without a plan) asks for the plan page: the footer owns the console link, so it opens it.
@@ -2636,10 +2954,14 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             // the former rows (workspace, identity) have been merged into it.
             const actif = typeof state.active_workspace_id === 'string' ? state.active_workspace_id : null
             const vueEspace = espaceActifVue(state, t)
-            const nomEspace = vueEspace.name
+            // While a switch waits on DSH the card already shows the team that was chosen (its tile and colour) with « Switching… » under its name.
+            const chosenEntry = switching !== null ? (Array.isArray(state.workspaces) ? state.workspaces : []).filter((w) => w !== null && w.id === switching.id)[0] : undefined
+            const shownEntry = chosenEntry !== undefined ? chosenEntry : espaceActifEntry(state)
+            const shownView = chosenEntry !== undefined ? espaceVue(chosenEntry, t) : vueEspace
+            const nomEspace = shownView.name
             const mfaNote = mfaNoteText(state.space_plan !== undefined && state.space_plan !== null ? state.space_plan.mfa : null, nomEspace, t, fmtDate)
             const planEspace = planNameOf(state, user, t)
-            const meter = quota !== null ? quotaMeterOf(quota, t) : null
+            const meter = quota !== null && switching === null ? quotaMeterOf(quota, t) : null
             // « Team settings », « Account » and « Referral » open the APP, in the person's browser, signed in (the single-use console link, section `plan`,
             // `overview` or `referral`, on the active workspace). They used to open a read-only copy of it in DSH's content zone, and every change in that copy sent the person
             // to the browser anyway (ADR 0054, decision of 2026-10-16): the way in now says where the work happens. The copy is gone from the core bundle too
@@ -2664,12 +2986,15 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                 type: 'button', className: 'kbfp-cardmain', ref: cardRef, title: t('wsPageTitle'),
                 'aria-label': meter !== null ? t('wsPageTitle') + ' — ' + meter.title : t('wsPageTitle'), 'aria-haspopup': 'menu',
                 'aria-expanded': menuOpen === true ? 'true' : 'false',
+                disabled: switching !== null, 'aria-busy': switching !== null ? 'true' : undefined,
                 onClick: () => { setNotifOpen(false); setMenuOpen(menuOpen !== true) },
               },
-              h('span', { className: 'kbfp-tile', 'aria-hidden': 'true', 'data-update': majDispo === true ? 'true' : undefined }, vueEspace.initials),
+              h('span', { className: 'kbfp-tile', 'aria-hidden': 'true', 'data-update': majDispo === true ? 'true' : undefined, 'data-kb-hue': spaceHue(shownEntry) !== null ? spaceHue(shownEntry) : undefined }, shownView.initials),
               h('span', { className: 'kbfp-cardtxt' },
                 h('span', { className: 'kbfp-cardname' }, nomEspace),
-                h('span', { className: 'kbfp-cardsub', title: mfaNote !== null ? mfaNote.long : undefined, 'data-kb': mfaNote !== null ? 'workspace-card-mfa' : undefined }, qui + ' · ' + planEspace + (mfaNote !== null ? ' · ⚠ ' + mfaNote.short : '')),
+                switching !== null
+                  ? h('span', { className: 'kbfp-cardsub', 'data-kb': 'workspace-card-switching' }, t('spaceSwitching'))
+                  : h('span', { className: 'kbfp-cardsub', title: mfaNote !== null ? mfaNote.long : undefined, 'data-kb': mfaNote !== null ? 'workspace-card-mfa' : undefined }, qui + ' · ' + planEspace + (mfaNote !== null ? ' · ⚠ ' + mfaNote.short : '')),
                 meter !== null
                   ? h('span', { className: 'kbfp-use', 'data-kb': 'workspace-card-usage', 'data-level': meter.level, 'data-percent': String(meter.percent), title: meter.title },
                     h('span', { className: 'kbfp-usebar', 'aria-hidden': 'true' }, h('span', { className: 'kbfp-usefill', style: { width: meter.percent + '%' } })),
@@ -2708,6 +3033,9 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               menuOpen === true
                 ? h(UserMenu, {
                   state: state,
+                  quota: quota,
+                  busy: switching !== null,
+                  onPick: (id) => { void pickSpace(id) },
                   toggleRef: cardRef,
                   onClose: () => setMenuOpen(false),
                   onChanged: () => { void load() },
@@ -2796,6 +3124,19 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
         ctx.effect(() => slots.inject('sidebar.footer.action', () => slots.register(
           { name: 'sidebar.footer.action', id: 'kybernos-cloud', order: 21 }, CloudFoot)),
         'kybernos-cloud: profile row in the sidebar footer')
+        // The cues of a team space: the pills (a list slot each in the composer's dock and the new chat's options row, beside the other pills), the placeholder, and the accessor the
+        // core plugin reads for the new chat's heading. A failure here leaves the composer as DSH draws it.
+        try {
+          for (const slotName of ['conversation.composer.dock', 'conversation.hero.options']) {
+            ctx.effect(() => slots.inject(slotName, () => slots.register(
+              { name: slotName, id: 'kybernos-cloud-cues', order: 3 }, () => { try { return h(CuePills, null) } catch (e) { return null } })), 'kybernos-cloud: cues of a team space in ' + slotName)
+          }
+          ctx.effect(() => mountPlaceholderSweep(), 'kybernos-cloud: placeholder of a team space')
+          ctx.effect(() => {
+            try { Object.defineProperty(window, '__KB_SPACE_CUE__', { configurable: true, get: cueNow }) } catch (e) { /* no window */ }
+            return () => { try { delete window.__KB_SPACE_CUE__ } catch (e) { /* gone */ } }
+          }, 'kybernos-cloud: space cue for the core plugin')
+        } catch (e) { /* the cues are optional */ }
 
         // ── The quota notice ──────────────────────────────────────────────────────
         // DSH's own notice says « Request quota exhausted » for every refusal; this one (claimed through the `shell.quota-notice` chain, QUOTA only) asks the host
