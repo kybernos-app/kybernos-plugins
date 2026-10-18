@@ -886,6 +886,22 @@ So `settings.mutate` returns once DSH has reloaded, and the window in which a me
 did not take in this sandbox, so no request reached the fake endpoint). The claim « running route names the new space ⇒ the next request carries it » is inferred from DSH's
 settings contract, not observed.
 
+## Joining a team with an invitation link: `scripts/check-join-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-join-live.mjs [--shots <dir>]
+```
+
+The real DSH page, the real host routes of `kybernos-cloud` and a **fake Kybernos server started by the check**: it restarts the sandbox with `KYBERNOS_CLOUD_API` and
+`KYBERNOS_CLOUD_STATE` pointing at the fake and at a throw-away connected state file, and restarts it signed out when it ends (what `check-footer-live.mjs` expects). It refuses
+:3080 and any `DSH_HOME` outside `.kybernos-sandbox`. The fake answers each invitation as the server's contract does: a good one, a team without a plan, ONE 404 for every unusable
+one, a full team (409 `seat_limit`: the link must stay valid), 429, an unexpected 500 and a server that hangs up; it records every request, so the checks say where the token went:
+only to the fake (the active server), in the body of a POST, never in an address, never in the sandbox's log, no device token on the public preview. Real clicks and keys: the
+row under « Create a team » (inline for 2 spaces, in the « Switch team » panel for 4), nothing sent before the click, junk and a non-invitation link refused in words, the preview card,
+« Join the team » then the ordinary switch (the card says « Switching… », the model route is rewritten in the new team's name), a team without a plan (the person stays, told),
+every refusal with its sentence, the server's own page offered for the unexpected one, the guard of the routes with the sandbox's own session cookie (no Origin 403, foreign Origin 403,
+no cookie 401), both colour schemes (contrast), a phone at 390 px, French. Exit 0 / 1 / 3.
+
 ## The Automations board: `scripts/check-automations-board-live.mjs`
 
 ```bash

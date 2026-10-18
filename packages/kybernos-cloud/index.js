@@ -348,6 +348,66 @@ const createSpace = async (req, body) => {
   return { ok: true, state: publicState(readState()), created: { id, name: typeof brut.name === 'string' ? brut.name : nom, plan_key: mine !== null ? mine.key : null, activated: planless !== true } }
 }
 
+// ── Joining a team with an invitation link (plan « Équipes », step 4) ──────────────────────────────────────────────────
+// The page parses what the person pasted and sends only the TOKEN. It is the credential of the invitation, so it goes to the ACTIVE server's own API (`apiCall` without a `base`) and
+// nowhere else: never to a host that came out of a pasted link, never in an address (the body of a POST), never in a log or an answer. Two steps, each its own click: `preview`
+// (the server's public « what is this link for », nothing is joined) then `accept` (with the device token: the account must own the invited address).
+// The server answers ONE 404 for an unknown, used, withdrawn, expired or someone else's invitation, so the answer here is one code for all of them (`invitation_unusable`); a team
+// without a free seat answers 409 `seat_limit` and the link stays valid; 429 is the server's rate limit.
+const INVITE_TOKEN = /^[A-Za-z0-9_-]{16,200}$/
+const inviteToken = (body) => {
+  const t = body !== null && typeof body === 'object' && typeof body.token === 'string' ? body.token : ''
+  return INVITE_TOKEN.test(t) ? t : null
+}
+/** A word of someone else's (a team's name, a person's) that goes back to the page: one line, no control character, bounded. */
+const inviteText = (value, max) => (typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f-\u009f]+/gu, ' ').split(String.fromCharCode(0x2028)).join(' ').split(String.fromCharCode(0x2029)).join(' ').trim().slice(0, max) : '')
+const inviteRefusal = (res) => {
+  if (res.status === 0) return { ok: false, error: 'unreachable', status: 0, server: serverIdentity() }
+  if (res.status === 404) return { ok: false, error: 'invitation_unusable', status: 404 }
+  if (res.status === 429) return { ok: false, error: 'rate_limited', status: 429 }
+  if (res.status === 409 && res.body !== null && typeof res.body === 'object' && res.body.error === 'seat_limit') return { ok: false, error: 'seat_limit', status: 409 }
+  return { ok: false, error: 'refused', status: res.status }
+}
+
+/** Route: what an invitation's link is for (the team, who invited, the role, the address it was sent to). Public on the server, so no device token goes with it; it joins nobody. */
+const invitationPreview = async (req, body) => {
+  const state = readState()
+  if (!isConnected(state)) return { ok: false, error: 'non_connecte' }
+  const token = inviteToken(body)
+  if (token === null) return { ok: false, error: 'token_shape' }
+  const res = await apiCall('/v1/invitations/preview', { method: 'POST', body: { token }, timeoutMs: 15000 })
+  if (res.status !== 200) return inviteRefusal(res)
+  const b = res.body !== null && typeof res.body === 'object' ? res.body : {}
+  const team = inviteText(b.workspace_name, 120)
+  if (team === '') return { ok: false, error: 'refused', status: 200 }
+  const inviter = inviteText(b.inviter_name, 120)
+  return { ok: true, preview: { team, inviter: inviter !== '' ? inviter : null, email: inviteText(b.email, 254), role: b.role === 'owner' || b.role === 'admin' ? b.role : 'member', expires_at: inviteText(b.expires_at, 40) } }
+}
+
+/** Route: accept the invitation with the device token. The list of the person's teams is read again and the new one is NOT made active here: the page switches through the ordinary
+ *  path (`space/active`, with the wait on the model route), except for a team that has no plan (`joined.plan_key` is `none`): it cannot answer a model call, so the person stays where they are. */
+const invitationAccept = async (req, body) => {
+  const state = readState()
+  if (!isConnected(state)) return { ok: false, error: 'non_connecte' }
+  const token = inviteToken(body)
+  if (token === null) return { ok: false, error: 'token_shape' }
+  const res = await apiCall('/v1/invitations/accept', { method: 'POST', token: state.token, body: { token }, timeoutMs: 20000 })
+  if (res.status !== 200) {
+    if (res.status === 401 && await sessionEndedBy(res, state.token)) return { ok: false, error: 'non_connecte', status: 401 }
+    return inviteRefusal(res)
+  }
+  const joined = res.body !== null && typeof res.body === 'object' && typeof res.body.id === 'string' ? res.body : null
+  if (joined === null) return { ok: false, error: 'refused', status: 200 }
+  const listed = await apiCall('/v1/workspaces', { token: state.token })
+  const fresh = readState()
+  if (isConnected(fresh) !== true || fresh.token !== state.token) return { ok: false, error: 'non_connecte' }
+  let spaces = listed.status === 200 && listed.body !== null && Array.isArray(listed.body.workspaces) ? listed.body.workspaces : (Array.isArray(fresh.workspaces) ? fresh.workspaces.slice() : [])
+  if (spaces.some((w) => w !== null && w.id === joined.id) !== true) spaces = spaces.concat([joined])
+  writeState(Object.assign({}, fresh, { workspaces: spaces }))
+  const plan = await readSpacePlan(state, joined.id)
+  return { ok: true, state: publicState(readState()), joined: { id: joined.id, name: inviteText(joined.name, 120), role: joined.role === 'owner' || joined.role === 'admin' ? joined.role : 'member', plan_key: plan !== null ? plan.key : null } }
+}
+
 const publicPairing = (state) => ({
   user_code: state.user_code !== undefined ? state.user_code : null,
   activation_url: state.activation_url !== undefined ? state.activation_url : null,
@@ -4682,6 +4742,9 @@ const ROUTES = [
   { path: '/kybernos-cloud/space/applied', method: 'POST', guarded: true, body: true, run: spaceApplied },
   { path: '/kybernos-cloud/spaces/summary', method: 'GET', guarded: true, run: spacesSummary },
   { path: '/kybernos-cloud/space/create', method: 'POST', guarded: true, body: true, run: createSpace },
+  // Joining with an invitation link: the token is the credential. Both are strict same-origin; `accept` also needs the signed session (it makes the person a member of a team).
+  { path: '/kybernos-cloud/invitation/preview', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: invitationPreview },
+  { path: '/kybernos-cloud/invitation/accept', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: invitationAccept },
   { path: '/kybernos-cloud/refresh', method: 'POST', guarded: true, run: refreshProfile },
   // `disconnect` revokes the session on the server side: irreversible. A bare POST
   // (campaign finding: `curl -X POST /kybernos-cloud/disconnect`) was enough to

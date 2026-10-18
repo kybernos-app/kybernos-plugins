@@ -4,7 +4,7 @@
 // `curl -X POST http://127.0.0.1:<port>/kybernos-cloud/memory/delete -d '{"id":"..."}'` deleted a memory of the account, with no header at
 // all (the same for a team lesson, a team skill, a connection and a member). Those five routes are the ones the origin-rule audit names.
 // The same rule covers six more, because the model has a shell: writing or editing a memory, pushing the lessons, choosing the active space (which decides whether the
-// personal memory is cut), proposing to the team and making a session Kaby's. A bare curl against them reaches nothing.
+// personal memory is cut), proposing to the team, making a session Kaby's and accepting an invitation to a team. A bare curl against them reaches nothing.
 //
 // This test uses a REAL HTTP server and a fake API that keeps the DELETEs it receives: a refused request must never send one to the account's server. For each
 // delete, in this order: no Origin and no cookie · a foreign Origin (even with the real cookie) · the right Origin and no cookie (what a local
@@ -88,6 +88,8 @@ const WRITES = [
   ['/kybernos-cloud/team/lessons/add', { text: 'A lesson a shell tried to propose to the team.' }],
   ['/kybernos-cloud/space/active', { workspace_id: WS }],
   ['/kybernos-cloud/kyby/native/set', { sessionId: null }],
+  // Joining a team: the invitation's token makes the person a member (test-join-host.mjs plays the answers of the server).
+  ['/kybernos-cloud/invitation/accept', { token: 'k3Zp9-Qw_7Lm2XvB0cR8sTnYh4JdUeA6oGfIiNaPqMc' }],
 ]
 
 try {

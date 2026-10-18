@@ -91,6 +91,20 @@ full ids stay in the detail route.
   working folder only when `state.space_folder` names one: step 6 writes it, nothing does yet), « Message <Team>… » in the box (DSH's own placeholder node, put back when the person leaves
   the team; a disabled box keeps DSH's words, but DSH's plan hint and queue hint are replaced too: nothing on the page tells the placeholder's states apart) and « What is <Team> working on? » over a new chat (the core plugin reads `window.__KB_SPACE_CUE__`). The memory pill says « personal off » only when
   `PERSONAL_MEMORY_CUT` is `true` in the client: it is `false` until the memory work (`feat/teams-memory-cut`) lands, so the pill does not promise what is not true yet.
+
+- **Joining a team with an invitation link** (plan « Équipes », step 4; the pure rules are the `join-link` block of the client, played by `test-join-link.mjs`; the host routes by
+  `test-join-host.mjs`; the rendered dialog by `test-cloud-client.mjs`; the real page, the real host and a fake server by `scripts/check-join-live.mjs`). The row « Join with an
+  invitation link » sits under « Create a team » in both lists of the account menu. It opens a dialog: the person pastes the link the server e-mails
+  (`<server>/invitations/accept?token=…`) or just the token; the page reads it (the token may ride the query or the fragment; anything else is refused with a sentence, nothing is sent)
+  and presses « Check »: `POST /invitation/preview` asks the ACTIVE server `POST /v1/invitations/preview` (public, no device token) and the card shows the team, who invited, the role and
+  the address it was sent to; « Join the team » then calls `POST /invitation/accept` (`POST /v1/invitations/accept` with the device token: the account must own the invited address).
+  **The token goes to the active server's own API and to no other address**: a pasted link is only a carrier (its host is read to say « this link comes from X; your active server
+  is Y » on a refusal, never called), it travels in the body of a POST, never in an address, a log or an answer. `preview` is strict same-origin; `accept` also needs DSH's signed
+  session (it makes the person a member). The server answers ONE 404 for an unknown, used, withdrawn, expired or someone else's invitation (`invitation_unusable`: one sentence names
+  all of them), 409 `seat_limit` for a full team (`seat_limit`: the link stays valid, nothing is written), 429 (`rate_limited`) and a network failure (`unreachable`); anything else is
+  `refused` and the dialog offers « Open in the browser »: the server's own page for the same invitation, on the ACTIVE server's web address. After an accepted invitation the host reads
+  the list of teams again and the new team's plan (`joined: { id, name, role, plan_key }`) and does NOT activate it: the footer switches through the ordinary path (`space/active`, with
+  the wait on the model route), except for a team that has no plan (`plan_key: 'none'`, as for a team the person just created): they stay where they are and are told.
 - **The failure row of a turn** (`conversation.chat.node`, key `turn-error`): the engine documents that a later entry for a key shadows the shipped one, so the plugin wraps the
   SHIPPED row (found in the slot's entries, registered at the lowest priority with the shipped entry's own locale). `no adapter registered for provider "kybernos"` (the cloud models
   are gone: the connection ended or was never made) and `QUOTA` on a team with no plan are drawn by the shipped row with a sentence and an action beside it (« Sign in again »,

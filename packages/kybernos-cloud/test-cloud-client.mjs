@@ -1122,7 +1122,7 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
   const workspaces = (count, role) => [{ id: 'p', name: 'My workspace', personal: true, role: 'owner' }, ...TEAMS.slice(0, count - 1).map(([id, name]) => ({ id, name, personal: false, role }))]
   const win = (kind, seconds, percent, extra = {}) => ({ kind, window_seconds: seconds, scope: 'plan', used_percent: percent, exhausted: false, resets_at: null, ...extra })
   const world = {
-    status: null, quota: null, summary: null, calls: [], bodies: [], applied: [], route: 'written', activeOk: true,
+    status: null, quota: null, summary: null, calls: [], bodies: [], applied: [], route: 'written', activeOk: true, invitePreview: { ok: false }, inviteAccept: { ok: false },
   }
   const stateOf = (count, role, active, extra = {}) => ({ ok: true, connected: true, state: {
     user: { email: 'dev@example.test', name: 'Local test', plan: active === 'p' ? 'free' : 'team' },
@@ -1143,6 +1143,12 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
       json = world.activeOk ? { ok: true, route: world.route, state: {} } : { ok: false, error: 'espace_inconnu' }
       if (world.activeOk) world.status = { ...world.status, state: { ...world.status.state, active_workspace_id: JSON.parse(init.body).workspace_id } }
     } else if (path === '/space/applied') json = { ok: true, applied: world.applied.length > 0 ? world.applied.shift() : true }
+    else if (path === '/invitation/preview') json = world.invitePreview
+    else if (path === '/invitation/accept') {
+      json = world.inviteAccept
+      // The host adds the accepted team to the list (it does not make it active): the next /status shows it.
+      if (json.ok === true) world.status = stateOf(3, 'member', 'p')
+    }
     return { ok: true, status: 200, json: async () => json }
   }
   const draw = async () => {
@@ -1306,8 +1312,7 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     const d1 = dock()
     await act(async () => { d1.root.render(createElement(cueSlots[0].component, null)); await new Promise((r) => setTimeout(r, 20)) })
     const html1 = htmlDe(d1.el)
-    assert.ok(html1.includes('data-kb="space-cue"') && html1.includes('data-kb="cue-memory"') && html1.includes('>Team memory<'), 'a team: the memory pill (the flag is off: it does not say « personal off »): ' + html1)
-    assert.equal(/personal off/i.test(html1), false)
+    assert.ok(html1.includes('data-kb="space-cue"') && html1.includes('data-kb="cue-memory"') && html1.includes('>Team memory · personal off<'), 'a team: the memory pill says the personal memory is off (the cut is on, PERSONAL_MEMORY_CUT): ' + html1)
     assert.ok(/data-kb-hue="(violet|teal|amber|rose|blue|green)"/.test(html1), 'in the team\'s colour')
     assert.equal(html1.includes('cue-folder'), false, 'no team folder yet: no folder pill')
     const cue = globalThis.window.__KB_SPACE_CUE__
@@ -1328,7 +1333,167 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     assert.equal(globalThis.window.__KB_SPACE_CUE__, null, 'and publishes none')
     await act(async () => { await foot3.root.unmount() })
     await act(async () => { d1.root.unmount() })
-    ok('repères de la zone de saisie : pastille mémoire en couleur (sans « personal off » tant que le drapeau est coupé), pastille dossier seulement si un dossier existe, rien dans l\'espace perso, titre d\'accueil lu par le plugin de base')
+    ok('repères de la zone de saisie : pastille mémoire en couleur (« personal off » : la mémoire personnelle est coupée dans une équipe), pastille dossier seulement si un dossier existe, rien dans l\'espace perso, titre d\'accueil lu par le plugin de base')
+  }
+
+  // 5. Joining with an invitation link (plan « Équipes », step 4): the row under « Create a team » in both lists, the dialog (paste, check, preview, join), each refusal in its own words, the
+  // switch through the ordinary path after an accepted invitation, and no switch for a team that has no plan. The host's rules are test-join-host.mjs's.
+  {
+    const INVITE = 'k3Zp9-Qw_7Lm2XvB0cR8sTnYh4JdUeA6oGfIiNaPqMc'
+    const LINK = 'https://dev.kybernos.app/invitations/accept?token=' + INVITE
+    const PREVIEW = { ok: true, preview: { team: 'Studio B', inviter: 'Ada Lovelace', email: 'dev@example.test', role: 'member', expires_at: '2026-10-25T10:00:00.000Z' } }
+    const JOINED = { ok: true, state: {}, joined: { id: 't2', name: 'Studio B', role: 'member', plan_key: 'team' } }
+    const reset = (count = 2) => {
+      world.status = stateOf(count, 'member', 'p')
+      world.quota = quotaOf({ id: 'p', name: 'My workspace', role: 'owner', personal: true }, [win('member', 2592000, 3)])
+      world.summary = SUMMARY(count)
+      world.route = 'written'; world.activeOk = true; world.applied = [true]
+      world.invitePreview = PREVIEW; world.inviteAccept = JOINED
+      world.calls.length = 0; world.bodies.length = 0
+    }
+    const typeIn = async (el, value) => { await act(async () => { propsOf(find(el, byKb('join-input'))).onChange({ target: { value } }); await new Promise((r) => setTimeout(r, 0)) }) }
+    const dialog = async (el, count = 2) => {
+      await open(el)
+      const menu = find(el, byClass('kbfp-menu'))
+      if (count > 3) { await press(find(menu, byKb('menu-switch'))); await settle() }
+      const where = count > 3 ? find(doc.body, byClass('kbfp-sub')) : menu
+      await press(find(where, byKb('space-join')))
+      await settle()
+      return find(el, byKb('join-team'))
+    }
+    const noteOf = (el) => { const n = find(el, byKb('join-note')); return n === null ? null : htmlDe(n) }
+
+    // The row: under « Create a team », in the inline list and in the « Switch team » panel.
+    reset(2)
+    let foot = await draw()
+    await open(foot.el)
+    let menu = find(foot.el, byClass('kbfp-menu'))
+    const rows = findAll(menu, (n) => n.attributes !== undefined && (n.attributes['data-kb'] === 'space-create' || n.attributes['data-kb'] === 'space-join'))
+    assert.deepEqual(rows.map((n) => n.attributes['data-kb']), ['space-create', 'space-join'], 'the join row is right under « Create a team »')
+    assert.ok(htmlDe(rows[1]).includes('Join with an invitation link'), 'and says what it is')
+    assert.equal(find(foot.el, byKb('join-team')), null, 'nothing is open, nothing was asked of the host by itself')
+    assert.equal(world.calls.filter((c) => c.indexOf('/invitation/') >= 0).length, 0)
+    await act(async () => { foot.root.unmount() })
+    reset(4)
+    foot = await draw()
+    await open(foot.el)
+    await press(find(find(foot.el, byClass('kbfp-menu')), byKb('menu-switch')))
+    await settle()
+    const sub = find(doc.body, byClass('kbfp-sub'))
+    assert.ok(find(sub, byKb('space-join')) !== null, 'the « Switch team » panel has the row too')
+    doc.body.childNodes.length = 0
+    await act(async () => { foot.root.unmount() })
+
+    // The dialog, a refused paste, the preview, and the switch after the acceptance.
+    reset(2)
+    foot = await draw()
+    let card = await dialog(foot.el)
+    assert.ok(card !== null && card.attributes['data-step'] === 'paste', 'the row opens the dialog')
+    assert.equal(find(foot.el, byClass('kbfp-menu')), null, 'the menu closes behind it')
+    assert.ok(htmlDe(find(card, byKb('join-check'))).includes('disabled'), 'nothing pasted: nothing to check')
+    await typeIn(foot.el, 'hello there')
+    await press(find(foot.el, byKb('join-check')))
+    await settle()
+    assert.ok(noteOf(foot.el).includes('neither an invitation link nor its code'), 'junk is said, in words: ' + noteOf(foot.el))
+    assert.equal(world.calls.filter((c) => c.indexOf('/invitation/') >= 0).length, 0, 'junk never reaches the host')
+    await typeIn(foot.el, LINK)
+    assert.equal(noteOf(foot.el), null, 'typing clears the note')
+    await press(find(foot.el, byKb('join-check')))
+    await settle()
+    assert.deepEqual(world.bodies.filter((b) => b.path === '/invitation/preview').map((b) => b.body), [{ token: INVITE }], 'the host gets the token and only the token, not the link')
+    card = find(foot.el, byKb('join-team'))
+    assert.equal(card.attributes['data-step'], 'preview')
+    assert.equal(find(card, byKb('join-who')) !== null && htmlDe(find(card, byKb('join-who'))).includes('Ada Lovelace invited you to join “Studio B” as member.'), true, 'the preview says who invited, the team and the role: ' + htmlDe(card).slice(0, 400))
+    assert.ok(htmlDe(find(card, byKb('join-sent-to'))).includes('Sent to dev@example.test.'))
+    assert.equal(find(card, byKb('join-mismatch')), null, 'the signed-in address is the invited one: no warning')
+    assert.equal(htmlDe(card).includes(INVITE), false, 'the token is not drawn anywhere')
+    assert.equal(world.calls.filter((c) => c === 'POST /invitation/accept').length, 0, 'nothing is accepted before the second click')
+    await press(find(card, byKb('join-accept')))
+    await settle(120)
+    assert.deepEqual(world.bodies.filter((b) => b.path === '/invitation/accept').map((b) => b.body), [{ token: INVITE }])
+    const order = world.calls.filter((c) => c.indexOf('/invitation/') >= 0 || c.indexOf('/space/') >= 0)
+    assert.deepEqual(order.slice(0, 3), ['POST /invitation/preview', 'POST /invitation/accept', 'POST /space/active'], 'accepted, then the ordinary switch: ' + JSON.stringify(order))
+    assert.deepEqual(world.bodies.filter((b) => b.path === '/space/active').map((b) => b.body), [{ workspace_id: 't2' }], 'to the team just joined')
+    assert.equal(find(foot.el, byKb('join-team')), null, 'the dialog is closed')
+    await settle(900)
+    assert.ok(order.indexOf('POST /space/applied') >= 0 || world.calls.indexOf('POST /space/applied') >= 0, 'with the same wait on the model route as any switch')
+    assert.ok(htmlDe(foot.el).includes('kbfp-cardname">Studio B<'), 'the card shows the new team')
+    await act(async () => { foot.root.unmount() })
+
+    // A team that has no plan: the person stays where they are and is told.
+    reset(2)
+    world.inviteAccept = { ok: true, state: {}, joined: { id: 't1', name: 'Acme', role: 'member', plan_key: 'none' } }
+    foot = await draw()
+    await dialog(foot.el)
+    await typeIn(foot.el, INVITE)
+    await press(find(foot.el, byKb('join-check')))
+    await settle()
+    await press(find(foot.el, byKb('join-accept')))
+    await settle(120)
+    assert.equal(world.calls.filter((c) => c === 'POST /space/active').length, 0, 'a team without a plan is not switched to')
+    const flash = htmlDe(foot.el)
+    assert.ok(flash.includes('data-kb="foot-flash"') && flash.includes('You joined “Acme”, which has no plan yet. You are still in “Personal”.'), 'and the person is told: ' + flash.slice(Math.max(0, flash.indexOf('foot-flash') - 40), flash.indexOf('foot-flash') + 300) + ' / ' + flash.length)
+    assert.equal(flash.includes('foot-flash-action'), false, 'a member has no plan to choose')
+    assert.ok(flash.includes('kbfp-cardname">Personal<'), 'they stay where they were')
+    await act(async () => { foot.root.unmount() })
+
+    // Each refusal has its own sentence; the dialog stays so the person can go on.
+    const refusals = [
+      ['preview', { ok: false, error: 'invitation_unusable', status: 404 }, ['expired', 'used', 'withdrawn', 'another account'], false],
+      ['preview', { ok: false, error: 'rate_limited', status: 429 }, ['Too many tries'], false],
+      ['preview', { ok: false, error: 'unreachable', status: 0 }, ['could not be reached'], false],
+      ['preview', { ok: false, error: 'refused', status: 500 }, ['did not work out'], true],
+      ['accept', { ok: false, error: 'invitation_unusable', status: 404 }, ['expired', 'used', 'withdrawn', 'another account'], false],
+      ['accept', { ok: false, error: 'seat_limit', status: 409 }, ['no free seat', 'stays valid'], false],
+      ['accept', { ok: false, error: 'rate_limited', status: 429 }, ['Too many tries'], false],
+      ['accept', { ok: false, error: 'unreachable', status: 0 }, ['could not be reached'], false],
+      ['accept', { ok: false, error: 'non_connecte' }, ['signed out'], false],
+      ['accept', { ok: false, error: 'refused', status: 500 }, ['did not work out'], true],
+    ]
+    for (const [step, answer, words, browser] of refusals) {
+      reset(2)
+      if (step === 'preview') world.invitePreview = answer; else world.inviteAccept = answer
+      foot = await draw()
+      await dialog(foot.el)
+      await typeIn(foot.el, LINK)
+      await press(find(foot.el, byKb('join-check')))
+      await settle()
+      if (step === 'accept') { await press(find(foot.el, byKb('join-accept'))); await settle(60) }
+      const note = noteOf(foot.el)
+      const label = step + ' ' + answer.error + ': '
+      assert.ok(note !== null && words.every((w) => note.includes(w)), label + 'the sentence names ' + words.join(', ') + ' -> ' + note)
+      assert.equal(find(foot.el, byKb('join-team')).attributes['data-step'], step === 'preview' ? 'paste' : 'preview', label + 'the dialog stays at the step it was at')
+      const exit = find(foot.el, byKb('join-browser'))
+      assert.equal(exit !== null, browser, label + (browser ? 'the server\'s own page is offered' : 'no browser exit for a planned refusal'))
+      if (browser) assert.equal(exit.attributes.href, 'https://dev.kybernos.app/invitations/accept?token=' + INVITE, label + 'on the ACTIVE server\'s web address, with the token')
+      assert.equal(world.calls.filter((c) => c === 'POST /space/active').length, 0, label + 'nothing was switched')
+      await act(async () => { foot.root.unmount() })
+    }
+
+    // A link of another host names it on a refusal; an invitation for another address is warned about; the button of a bare token works the same.
+    reset(2)
+    world.invitePreview = { ok: false, error: 'invitation_unusable', status: 404 }
+    foot = await draw()
+    await dialog(foot.el)
+    await typeIn(foot.el, 'https://other-server.example/invitations/accept?token=' + INVITE)
+    await press(find(foot.el, byKb('join-check')))
+    await settle()
+    assert.ok(noteOf(foot.el).includes('This link comes from other-server.example; your active server is dev.kybernos.app.'), 'a link from another server says so: ' + noteOf(foot.el))
+    assert.deepEqual(world.bodies.filter((b) => b.path === '/invitation/preview').map((b) => b.body), [{ token: INVITE }], 'still only the token goes to the host')
+    await act(async () => { foot.root.unmount() })
+    reset(2)
+    world.invitePreview = { ok: true, preview: { ...PREVIEW.preview, email: 'someone.else@example.test', inviter: null, role: 'admin' } }
+    foot = await draw()
+    await dialog(foot.el)
+    await typeIn(foot.el, INVITE)
+    await press(find(foot.el, byKb('join-check')))
+    await settle()
+    card = find(foot.el, byKb('join-team'))
+    assert.ok(htmlDe(find(card, byKb('join-who'))).includes('You were invited to join “Studio B” as admin.'), 'no inviter: the sentence without a name')
+    assert.ok(find(card, byKb('join-mismatch')) !== null && htmlDe(find(card, byKb('join-mismatch'))).includes('someone.else@example.test') && htmlDe(find(card, byKb('join-mismatch'))).includes('dev@example.test'), 'an invitation sent to another address says which one')
+    assert.equal(htmlDe(find(card, byKb('join-accept'))).includes('disabled'), false, 'the server decides: the button stays')
+    await act(async () => { foot.root.unmount() })
+    ok('rejoindre avec un lien : la ligne sous « Create a team » (liste du menu et panneau), le dialogue (coller, verifier, apercu, rejoindre), le jeton seul part vers l\'hote, bascule par le chemin ordinaire avec attente de la route, rien si l\'equipe n\'a pas de formule, une phrase par refus (404 en une seule, equipe pleine, trop d\'essais, injoignable, deconnecte), la page du serveur pour l\'imprevu, lien d\'un autre serveur nomme, autre adresse signalee')
   }
   doc.createElement = realCreate
   globalThis.window.addEventListener = realAdd

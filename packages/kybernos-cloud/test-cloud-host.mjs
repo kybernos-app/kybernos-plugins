@@ -669,6 +669,8 @@ try {
     // Création d'espace (bouton « + » de la rangée) : transmet au serveur,
     // refuse proprement en renvoyant l'URL hébergée.
     '/kybernos-cloud/space/create',
+    // Joining a team with an invitation link: what the link is for, then the acceptance (test-join-host.mjs holds their rules).
+    '/kybernos-cloud/invitation/preview', '/kybernos-cloud/invitation/accept',
     // Partage d'artefacts et de chats (core.shares).
     '/kybernos-cloud/chat/ensure', '/kybernos-cloud/shares',
     '/kybernos-cloud/shares/set', '/kybernos-cloud/shares/revoke',
