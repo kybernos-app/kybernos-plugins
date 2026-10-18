@@ -1190,10 +1190,15 @@ const consoleLink = async (req, body, deps = {}) => {
   const known = Array.isArray(state.workspaces) ? state.workspaces : []
   const mine = (id) => known.some((w) => w !== null && typeof w === 'object' && String(w.id).toLowerCase() === id)
   if (asked !== '' && (new RegExp('^' + UUID_SRC + '$', 'i').test(asked) !== true || mine(asked) !== true)) return { ok: false, error: 'espace_inconnu' }
-  const ask = (withSection) => apiCall('/v1/console/link', { method: 'POST', token: state.token, body: Object.assign(asked === '' ? {} : { workspace_id: asked }, withSection ? { section } : {}) })
-  let res = await ask(section !== '')
-  // A server that does not know `section` yet either ignores it (the link lands on its plan page) or refuses the body: ask again without it.
-  if (section !== '' && (res.status === 400 || res.status === 422)) res = await ask(false)
+  const ask = (page) => apiCall('/v1/console/link', { method: 'POST', token: state.token, body: Object.assign(asked === '' ? {} : { workspace_id: asked }, page !== '' ? { section: page } : {}) })
+  let res = await ask(section)
+  // A server that does not know `section` yet either ignores it (the link lands on its plan page) or refuses the body: ask again, with the nearest page it may know
+  // (the Referral page is newer than the others: an older server still has its card on the Overview page), then without a section.
+  const nearer = section === 'referral' ? ['overview', ''] : (section !== '' ? [''] : [])
+  for (const page of nearer) {
+    if (res.status !== 400 && res.status !== 422) break
+    res = await ask(page)
+  }
   if (res.status !== 200 || res.body === null || typeof res.body !== 'object') return { ok: false, status: res.status, error: res.status === 0 ? 'injoignable' : 'refuse', ...(res.status === 0 ? { server: serverIdentity() } : {}) }
   let url = null
   try {

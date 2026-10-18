@@ -132,6 +132,25 @@ console.log('opening the system browser (the server only accepts a link a person
   r = await mod.consoleLink(loopback, {}, { openExternal: opener(true) })
   check('without the wish to open, nothing is opened and the address comes back as before', r.ok === true && r.url !== undefined && r.opened === undefined && opened.length === 0, JSON.stringify(r))
 
+  // The section asked for: an older server refuses a page it does not know (422): the host asks again with the nearest page it may know, then without a section.
+  const refused = (known) => () => {
+    const asked = JSON.parse(seen[seen.length - 1].body || '{}').section
+    return asked === undefined || known.includes(asked) ? good() : { status: 422, body: { error: 'invalid_section' } }
+  }
+  for (const [label, section, known, expected] of [
+    ['a server that knows the referral page gets it', 'referral', ['referral', 'overview'], ['referral']],
+    ['a server that only knows Overview: Referral falls back to Overview', 'referral', ['overview'], ['referral', 'overview']],
+    ['a server that knows no section: Referral falls back to the plain link', 'referral', [], ['referral', 'overview', undefined]],
+    ['another page unknown to the server: one retry, without a section', 'plan', [], ['plan', undefined]],
+  ]) {
+    seen.length = 0
+    answer = refused(known)
+    r = await mod.consoleLink({ socket: { remoteAddress: '127.0.0.1' }, headers: {} }, { section }, {})
+    const sections = seen.map((q) => JSON.parse(q.body || '{}').section)
+    check(label, r.ok === true && typeof r.url === 'string' && JSON.stringify(sections) === JSON.stringify(expected), JSON.stringify({ sections, r }).slice(0, 200))
+  }
+  answer = good
+
   for (const [label, peer] of [['a peer that is not on this machine', '10.1.2.3'], ['an unknown peer', undefined]]) {
     opened.length = 0
     r = await mod.consoleLink({ socket: { remoteAddress: peer }, headers: {} }, { open: true }, { openExternal: opener(true) })

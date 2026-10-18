@@ -469,11 +469,11 @@ try {
     await openProfileMenu()
 
     // Team settings, Account and Referral open the app in the browser: the host is asked for a single-use console link on the active workspace (section plan,
-    // overview, overview) and opens the system browser itself; nothing is drawn in DSH's content zone.
+    // overview, referral) and opens the system browser itself; nothing is drawn in DSH's content zone.
     console.log('Team settings, Account and Referral — the app, in the browser')
     // The menu was left open by the scenes above and a press on the card toggles it: start from a closed one.
     if (await exists('.kbfp-menu')) await closeProfileMenu()
-    for (const [entry, section] of [['space-settings', 'plan'], ['account', 'overview'], ['referral', 'overview']]) {
+    for (const [entry, section] of [['space-settings', 'plan'], ['account', 'overview'], ['referral', 'referral']]) {
       fake.bodies.length = 0
       await openProfileMenu()
       await press('[data-kb="menu-' + entry + '"]')
