@@ -894,9 +894,10 @@ a connected state file written in the sandbox's DSH home) and the route called f
 answered**: polled about every 15 ms from the moment the call was sent, the first poll that saw `applied: true` came 14 to 17 ms after the answer in 9 of 10 (one poll) and 32 ms before it in 1 of 10; in a
 separate run of 8 switches the first poll after the answer already said `applied: true` every time.
 So `settings.mutate` returns once DSH has reloaded, and the window in which a message can carry the old header is the duration of the host call itself, which the card covers.
-**Not measured:** the header a real chat request carries in that window (a task run through `POST /kybernos/tasks { action: 'run-now' }` used DSH's default model: `selectModel`
-did not take in this sandbox, so no request reached the fake endpoint). The claim « running route names the new space ⇒ the next request carries it » is inferred from DSH's
-settings contract, not observed.
+**Measured since** (two real accounts on a replica, a recording proxy in front of it, see « Two real accounts, end to end » below): every model request sent after a switch carried
+the NEW team's header, including one sent 1 ms after the host call started (it left 244 ms later, after the call answered) and one typed 80 ms after a click on a row; the host's
+`space/active` answered in about 0.2 s there. No request ever carried the previous team. What a switch does not stop: a message typed in the OLD chat before the new chat opens
+(about 0.8 s after the click) is billed to the NEW team, and so is a turn already waiting for its model (its second request carries the new header).
 
 ## Joining a team with an invitation link: `scripts/check-join-live.mjs`
 
@@ -1135,3 +1136,36 @@ the same rules on an old tree.
   `[data-kb="language-page"]` or `[data-act="add-language"]` all the same: they do not depend on a class.
 - **A click on a position hits what is on top.** With Settings open, the sidebar footer is covered by the nav: clicking the
   ring's coordinates selected « Theme ». Close Settings with a real click on « Back to workspace » first, and check it closed.
+
+## Two real accounts, end to end (teams plan, step 10): `scripts/e2e-teams-run.sh`
+
+```bash
+export KB_E2E_DIR=<a private folder outside git> KB_SERVER_DIR=<the kybernos-server checkout>
+bash scripts/e2e-teams-run.sh up > "$KB_E2E_DIR/up.log" 2>&1     # replica + recording proxy + two sandboxes + accounts + device-flow connections
+bash scripts/e2e-teams-run.sh run [j1 … j8]                      # the journeys (default: all); screenshots go to $KB_E2E_SHOTS (outside git)
+bash scripts/e2e-teams-run.sh down                               # stops what `up` started and deletes the sandbox homes
+```
+
+What it plays, with made-up accounts A and B (credentials generated into `$KB_E2E_DIR/accounts.json`, mode 0600, never printed): a second **replica** of the server on its own ports
+(`REPLICA_SEED=catalogue`, its own state file, a database recreated at each launch; it never touches the owner's replica on :8791 or DSH on :3080: the script refuses those ports), a **recording proxy**
+(`scripts/recording-proxy.mjs`) in front of it that logs every request (headers, bodies, timing; it can also script a model turn, e.g. a tool call, to make the model call a tool) and two **sandbox DSH**
+instances (`scripts/sandbox/*`, one per account) that talk to the replica through the proxy. The replica is started from a copy of its own `scripts/replica.ts` that advertises the proxy's
+address as its own, because DSH only follows the console link, the invitation link and the activation page when they are on the address it was given.
+
+| Journey | What it proves |
+|---|---|
+| `j1` | each switch (Personal, T1, T2, Personal) bills the right workspace, by header and by the server's own usage read; how soon after a click a message carries the new header; a turn switched while it waits |
+| `j2` | a personal memory (a canary word) never reaches a team request and the memory and lesson tools refuse in a team space; a chat continued after a switch, both ways |
+| `j3` | creating a team makes `<Documents>/Kybernos/<Team>`; a switch opens a chat in it; Personal opens one in the previous workspace; a chat started in a team and continued after a switch; a draft typed before a switch |
+| `j4` | B joins T1 by pasting the real link from the mailbox; junk, a link for another address, a foreign host, the same link twice, a full team (the link stays valid); where the token went |
+| `j5` | the owner caps a member (and herself) at a few cents per 5 hours; normal, 75 % and full in the footer card, the menu rows, the plan card and the notice, compared with the server's percent |
+| `j6` | « Manage » and « Add credits » by role (member, owner, a member promoted to admin and back) with a team whose pool is used up |
+| `j7` | the account menu with 1, 3, 4 and 5 spaces on the real accounts, 390 px, light and dark, English and French; B removed from the team he is working in |
+| `j8` | the server page: the team pool card and « Add credits » for the owner, an admin and a member |
+
+Traps met while building it (each cost a run): the replica rate-limits invitations to one address (5 an hour: the journey that re-invites B can run about twice an hour on one replica) and sign-ins per client
+address (`x-test-ip`: every process picks a random one); the free plan's 5-hour allowance is two cents (the setup puts both personal workspaces on Plus); an invitation that is still pending holds a seat when inviting
+and not when accepting (so « a full team » is built by lowering the seats after the invitation); the sidebar keeps only the active team's folder open, so a press on an old chat needs its folder opened first
+(and a row at the bottom of the list sits under the account card unless it is scrolled into view); DSH re-reads the account's teams every five minutes, so a team added on the server is
+shown at once only after `POST /kybernos-cloud/refresh`; the footer meter re-reads the quota every two minutes (measured: 120 s after a turn), so a headless page, which never gets the
+« window comes back into view » signal, is nudged with the page's own `kybernos-cloud:quota-read` event; chat titles are the stand-in's reply, so each run sets a unique reply text to find its chat in the sidebar.
