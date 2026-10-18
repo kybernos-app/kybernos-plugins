@@ -24,7 +24,14 @@ export const run = async (ctx) => {
 
   // A clean start, so the journey can be played again: B leaves both teams, B's DSH signs out and in again (its list of teams is read at the pairing), and a fresh
   // invitation of B into T1 is sent (inviting again replaces the previous one).
-  for (const ws of [t1, t2]) { if ((await members(ws)).some((m) => (m.user_id || m.id) === B.id)) await S.call('DELETE', `/v1/workspaces/${ws}/members/${B.id}`, { cookie: A.cookie }) }
+  // Both teams start with their owner alone and no pending invitation (an earlier run's C and strangers hold seats), T2 on three seats.
+  const ownerSession = await S.ownerSession()
+  for (const ws of [t1, t2]) {
+    for (const m of await members(ws)) if ((m.user_id || m.id) !== A.id) await S.call('DELETE', `/v1/workspaces/${ws}/members/${m.user_id || m.id}`, { cookie: A.cookie })
+    const open = await S.call('GET', `/v1/workspaces/${ws}/invitations`, { cookie: A.cookie })
+    for (const p of (open.body && open.body.invitations) || []) await S.call('DELETE', `/v1/workspaces/${ws}/invitations/${p.id}`, { cookie: A.cookie })
+  }
+  await ownerSession.admin('PUT', `/v1/admin/billing/workspaces/${t2}/subscription`, { plan: 'team', component: 'seats', quantity: 3, replace: true })
   {
     const ck = cookieDeSession(ctx.hostB)
     const post = (path, body) => fetch('http://' + ctx.hostB + path, { method: 'POST', headers: { 'content-type': 'application/json', cookie: ck.nom + '=' + ck.valeur, origin: 'http://' + ctx.hostB }, body: JSON.stringify(body) }).then((r) => r.json())
