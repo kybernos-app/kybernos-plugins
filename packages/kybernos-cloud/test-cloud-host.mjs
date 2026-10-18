@@ -667,7 +667,7 @@ try {
     '/kybernos-cloud/referral',
     // Espace actif : la rangée du pied de sidebar est un sélecteur, il lui faut
     // une route qui enregistre le choix (et refuse un id inconnu).
-    '/kybernos-cloud/space/active', '/kybernos-cloud/space/applied', '/kybernos-cloud/space/folder', '/kybernos-cloud/spaces/summary',
+    '/kybernos-cloud/space/active', '/kybernos-cloud/space/applied', '/kybernos-cloud/space/for-folder', '/kybernos-cloud/space/folder', '/kybernos-cloud/spaces/summary',
     // Création d'espace (bouton « + » de la rangée) : transmet au serveur,
     // refuse proprement en renvoyant l'URL hébergée.
     '/kybernos-cloud/space/create',
