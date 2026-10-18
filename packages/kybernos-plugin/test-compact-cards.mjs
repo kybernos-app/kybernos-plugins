@@ -65,8 +65,8 @@ const media = (query, needle) => {
   const mustHave = [
     ["className: 'kb8-card kb8-cmp kb8-cmp-top kb8-project kb8-cf'", 'a Workspaces card'],
     ["className: 'kb8-card kb8-cmp kb8-kyber kb8-cf'", 'an Agent Teams card'],
-    ["className: 'kb8-card kb8-cmp', key: tpl.id", 'a Marketplace template card'],
-    ["className: 'kb8-card kb8-cmp', key: it.slug", 'a kybernos.app catalogue card'],
+    ["className: 'kb8-card kb8-cmp kb8-cf', key: tpl.id", 'a Marketplace template card'],
+    ["className: 'kb8-card kb8-cmp kb8-cf', key: it.slug", 'a kybernos.app catalogue card'],
     ["className: 'kb8-card kb8-cmp kb8-project kb-sk-row'", 'the Workspaces skeleton'],
     ["className: 'kb8-card kb8-cmp kb8-kyber kb-sk-row'", 'the Agent Teams skeleton'],
     ["className: 'kb8-card kb8-cmp kb-sk-row'", 'the catalogue skeleton'],
@@ -106,30 +106,32 @@ const media = (query, needle) => {
   ok('actions: hover and focus on a pointer device, always visible with no hover and below 480 px')
 }
 
-// 6. V-16: the Marketplace uses the same container as the Agent Teams cards, with Install as a compact primary action
+// 6. V-16: the Marketplace uses the same container as the Agent Teams cards, with Preview and Install as compact actions (Install is the last, the primary one)
 {
-  for (const [anchor, last, what] of [["key: tpl.id, 'data-kb': 'market-card'", "kbt('kbui.preview')", 'a template'], ["key: it.slug, 'data-kb': 'market-card'", "kbt('kbui.market.cloud.install')", 'a catalogue entry']]) {
+  for (const [anchor, last, what] of [["key: tpl.id, 'data-kb': 'market-card'", "kbt('kbui.install')))))", 'a template'], ["key: it.slug, 'data-kb': 'market-card'", "kbt('kbui.market.cloud.install')", 'a catalogue entry']]) {
     const at = src.indexOf(anchor)
     assert.ok(at > 0, what + ' card is where the test expects it')
     const card = src.slice(at, src.indexOf(last, at))
     const acts = card.indexOf("className: 'kb8-cardacts'")
     assert.ok(acts > 0, what + ' card has the .kb8-cardacts container')
     assert.ok(card.indexOf("className: 'kb8-primary'") > acts, 'Install is inside it')
-    if (last === "kbt('kbui.preview')") assert.ok(card.indexOf("className: 'kb8-chip'") > acts, 'Preview is inside it')
+    if (what === 'a template') assert.ok(card.indexOf("className: 'kb8-chip'") > acts && card.indexOf("className: 'kb8-chip'") < card.indexOf("className: 'kb8-primary'"), 'Preview is inside it, before Install')
     assert.ok(!card.includes("marginTop: 'auto'"), 'no plain flex row of big buttons left')
   }
   const cmpBtn = rule('.kb8-cmp .kb8-cardacts .kb8-primary')
   assert.ok(Number(/padding:(\d+)px/.exec(cmpBtn)[1]) <= 6, 'Install is compact (it was 13 px of padding: 43 px high)')
+  const rowBtn = rule('.kb8-rf-btns .kb8-primary')
+  assert.ok(Number(/padding:(\d+)px/.exec(rowBtn)[1]) <= 6, 'and compact in a list row too')
   ok('Install and Preview live in .kb8-cardacts, compact')
 }
 
 // 7. an installed template keeps a visible state at rest (not a greyed button hidden until hover)
 {
-  const at = src.indexOf("'data-kb': 'market-installed'")
-  assert.ok(at > 0, 'an « Installed » pill')
-  const foot = src.slice(src.lastIndexOf("className: 'kb8-cardfoot'", at), at)
+  const at = src.indexOf("'data-kb': 'market-installed'", src.indexOf("key: tpl.id, 'data-kb': 'market-card'"))
+  assert.ok(at > 0, 'an « Installed » figure')
+  const foot = src.slice(src.lastIndexOf("className: 'kb8-cf-foot'", at), at)
   assert.ok(!foot.includes("className: 'kb8-cardacts'"), 'in the foot, outside the hover-only actions')
-  ok('an installed template shows an « Installed » pill that does not wait for a hover')
+  ok('an installed template shows an « Installed » figure (its word always shown) that does not wait for a hover')
 }
 
 console.log('\n' + pass + ' checks passed')

@@ -26,10 +26,11 @@ if (typeof has === 'function') {
 
 // every <img> that reads /kybernos/avatar sits behind it
 const sites = [...SRC.matchAll(/h\('img', \{ src: kbAvatarUrl\(/g)].length
-ok('there are four places that draw a team avatar (card, row, detail identity, detail head)', sites === 4, sites)
+// (the detail page draws it once, in `avatarImg`, which its header and its Identity tab both call)
+ok('there are three places that draw a team avatar (card, row, the detail\'s avatarImg)', sites === 3, sites)
 const gated = [...SRC.matchAll(/kbHasAvatar\([^)]*\)[^?\n]*\? h\('img', \{ src: kbAvatarUrl\(/g)].length
-ok('all four are asked only when the team has an avatar', gated === 4, gated)
-ok('the detail also asks after a save in this session (avRev), so a fresh upload shows', (SRC.match(/kbHasAvatar\(kyber\.ui\) === true \|\| avRev > 0/g) || []).length === 2)
+ok('all three are asked only when the team has an avatar', gated === 3, gated)
+ok('the detail also asks after a save in this session (avRev), so a fresh upload shows', (SRC.match(/kbHasAvatar\(kyber\.ui\) === true \|\| avRev > 0/g) || []).length === 1 && (SRC.match(/avatarImg\(\)/g) || []).length === 2)
 ok('the route keeps its 404 for a direct call', /path: '\/kybernos\/avatar', handler/.test(HOST) && /res\.writeHead\(404\)/.test(HOST))
 
 console.log(fail === 0 ? '\nOK' : '\n' + fail + ' failure(s)')
