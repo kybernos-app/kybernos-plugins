@@ -1385,6 +1385,15 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       const mine = node.text === node.ours
       return { text: mine ? node.orig : node.text, ours: null, orig: null, swap: mine ? { from: [node.ours], to: node.orig } : { from: [], to: node.text } }
     }
+    /** Where the « Switch team » list sits. From a tablet's width up it is a 248 px panel beside the menu (clamped to the window). On a phone there is no room beside the menu: a 248 px
+     *  panel shifted over it cut the names (« Join with an invitat… »), so it takes the window's width less a margin. */
+    const SUB_PANEL_WIDTH = 248
+    const SUB_PANEL_PHONE_MAX = 520
+    const subPanelBox = (menuRect, viewportWidth) => {
+      const top = Math.max(8, menuRect.top)
+      if (viewportWidth <= SUB_PANEL_PHONE_MAX) return { left: 8, top, width: viewportWidth - 16 }
+      return { left: Math.max(8, Math.min(menuRect.right + 8, viewportWidth - (SUB_PANEL_WIDTH + 8))), top, width: SUB_PANEL_WIDTH }
+    }
     // <teams-menu:end>
 
     // <join-link:begin> joining a team with an invitation link (plan « Équipes », step 4; test-join-link.mjs plays this block on its own)
@@ -2700,10 +2709,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             const m = popRef.current
             if (m !== null && m !== undefined) {
               const r = m.getBoundingClientRect()
-              setSubPos({
-                left: Math.max(8, Math.min(r.right + 8, window.innerWidth - 256)),
-                top: Math.max(8, r.top),
-              })
+              setSubPos(subPanelBox(r, window.innerWidth))
             }
             return undefined
           }, [switchOpen === true])
@@ -2796,7 +2802,7 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
             mode === 'submenu' && switchOpen === true && subPos !== null
               ? ReactDOM.createPortal(h('div', {
                   className: 'kbfp-sub', role: 'menu', 'aria-label': t('wsSwitchTitle'),
-                  style: { left: subPos.left + 'px', top: subPos.top + 'px' },
+                  style: { left: subPos.left + 'px', top: subPos.top + 'px', width: subPos.width + 'px' },
                 },
                   h('div', { className: 'kbfp-msub' }, t('wsSwitchTitle')),
                   h(SwitchPanel, {
