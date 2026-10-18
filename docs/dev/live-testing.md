@@ -245,17 +245,21 @@ has uncommitted edits of the plugin client (the swap would not match). Two traps
 track ends on a snap point, not where asked (bring the chapter to the start instead); and the editor is cleared with the select-all
 key *command*, not `execCommand`.
 
-## The Workspaces and Agent Teams cards: `scripts/check-cardface-live.mjs`
+## The face of cards, rows, headers and the Marketplace: `scripts/check-cardface-live.mjs`
 
 ```bash
 node scripts/check-cardface-live.mjs --shots /tmp/shots
 ```
 
 Real `:3080`, read-only: it swaps the `kybernos-plugin` client for this checkout's (`lib-bundle-swap.mjs`, throw-away Chrome), opens
-Workspaces then Agent Teams, and measures the card face (tile without outline, glyph colour, watermark hidden at rest / shown on hover /
-not moving, the word of a figure on hover, the actions in the foot, no empty-description line, the toolbar still there). Exit 3 when no card is
-on screen or the shared tree has uncommitted edits of the plugin client. `check-cards-live.mjs` (sandbox only) still measures heights and the
-Marketplace.
+Workspaces then Agent Teams and measures the card face (tile without outline, glyph colour, watermark hidden at rest / shown on hover /
+not moving, the word of a figure on hover, the actions in the foot, no empty-description line, the toolbar still there). It then presses the
+list toggle (stored in the throw-away browser only) and measures the rows (tile 34, figure columns on the same x, actions on hover, no pill,
+no placeholder line), opens a team and a project (header tile 56, the figures under the team's name, the avatar preview 96, the chosen icon in
+colour), then the Marketplace: cards, the Preview dialog, rows, and the kybernos.app catalogue, which answers nothing on this machine: the
+browser, and only that browser, is told by an in-page `fetch` stub that it holds two entries (reading only; Install is never pressed). The pages
+that matter are also measured in a 400 px window. Exit 3 when no card is on screen or the shared tree has uncommitted edits of the plugin
+client. `check-cards-live.mjs` (sandbox only) still measures heights.
 
 ## The Changes chip: `scripts/check-changes-live.mjs`
 

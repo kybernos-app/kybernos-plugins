@@ -1172,7 +1172,6 @@ let kbLocaleRead = () => 'en'
       'kbui.kybernos.hosted': { kybernos: 'KYBERNOS HOSTED', en: 'KYBERNOS HOSTED' },
       'kbui.keep.opensource': { kybernos: 'Garder le plugin open source', en: 'Keep the open-source plugin' },
       'kbui.kyber.notfound': { kybernos: 'Agent Team introuvable.', en: 'Agent Team not found.' },
-      'kbui.kyber.dot': { kybernos: 'Agent Team · ', en: 'Agent Team · ' },
       'kbui.kybernos': { kybernos: 'Kybernos', en: 'Kybernos' },
       'kbui.hero.preview': { kybernos: 'avec tes Agent Teams', en: 'with your Agent Teams' },
       'kbui.traces.run': { kybernos: 'Kybernos trace le run et compare le déclaré à l’exécuté.', en: 'Kybernos traces the run and compares declared against executed.' },
@@ -1558,7 +1557,6 @@ let kbLocaleRead = () => 'en'
       'kbui.three.gestures': { kybernos: 'Trois gestes pour tout organiser', en: 'Three gestures to organise everything' },
       'kbui.title': { kybernos: 'Titre', en: 'Title' },
       'kbui.tokens': { kybernos: 'Jetons', en: 'Tokens' },
-      'kbui.project.toplevel': { kybernos: 'Projet de premier niveau', en: 'Top-level project' },
       'kbui.total': { kybernos: 'Total ', en: 'Total ' },
       'kbui.tags.hint': { kybernos: 'Jusqu’à 10 étiquettes, 1 à 30 caractères chacune. Les suggestions viennent de tes catégories et des étiquettes déjà utilisées dans cet espace de travail.', en: 'Up to 10 tags, 1–30 characters each. Suggestions come from your categories and the tags already used in this workspace.' },
       'kbui.upload.manifest': { kybernos: 'Importer un « Agent Team Manifest »', en: 'Upload an "Agent Team Manifest"' },
@@ -4437,15 +4435,24 @@ const kbCfVars = (hex) => {
   return { '--kb8-pc': kbCfHex(c), '--kb8-pgl': kbCfGlyph(hex, 'light'), '--kb8-pgd': kbCfGlyph(hex, 'dark') }
 }
 // KB-CARDFACE-END
-// The pieces both cards share (React; not part of the pure block).
-/** The tile: a neutral grey ground, or the project's colour as a pale ground (class `col`; the custom properties sit on the card). */
-const kbCfIcon = (colour, iconName, extra, here) => h('span', { className: 'kb8-cf-ic' + (kbCfVars(colour) !== null ? ' col' : '') },
-  h(KbDynIcon, { name: iconName, size: 21 }), extra === undefined ? null : extra,
-  here === true ? h('i', { className: 'kb8-cf-here', title: kbt('kbui.chat.bound'), 'aria-label': kbt('kbui.in.this.chat') }) : null)
+// The pieces every surface that shows a project or a team shares (React; not part of the pure block): cards, list rows, page headers, the
+// avatar preview, the Marketplace and its Preview dialog all draw the same tile and the same quiet figures.
+/** The tile, at any size (34 rows, 42 cards, 46 dialog, 56 headers, 96 avatar preview): a neutral grey ground, or the colour as a pale ground (class `col`).
+ *  The colour travels on the tile itself, so it works outside a card; `child` is an icon node, or a short text glyph (class `txt`). */
+const kbCfTile = (colour, child, size, extra, here) => {
+  const v = kbCfVars(colour)
+  return h('span', { className: 'kb8-cf-ic s' + size + (v !== null ? ' col' : '') + (typeof child === 'string' ? ' txt' : ''), style: v === null ? undefined : v },
+    child, extra === undefined ? null : extra,
+    here === true ? h('i', { className: 'kb8-cf-here', title: kbt('kbui.chat.bound'), 'aria-label': kbt('kbui.in.this.chat') }) : null)
+}
+/** The tile of an icon by name. `extra` is a team picture laid over it; `here` marks the team of the chat (a dot). */
+const kbCfIcon = (colour, iconName, extra, here, size) => kbCfTile(colour, h(KbDynIcon, { name: iconName, size: Math.round((size === undefined ? 42 : size) / 2) }), size === undefined ? 42 : size, extra, here)
 /** The watermark: the project's glyph, large and very light, still; it only shows while the card is hovered or focused. */
 const kbCfWatermark = (iconName) => h('span', { className: 'kb8-cf-wm', 'aria-hidden': 'true' }, h(KbDynIcon, { name: iconName, size: 104 }))
-/** One quiet figure of a card's foot: an icon and a number (or the icon alone); the word shows on hover and is the tooltip and the accessible name. */
-const kbCfFig = (iconNode, text, word, title, extra) => h('span', Object.assign({ className: 'kb8-cf-st' + (text === '0' ? ' zero' : ''), tabIndex: 0, title, 'aria-label': title }, extra === undefined ? null : extra),
+/** One quiet figure (the foot of a card, the end of a row): an icon and a number (or the icon alone); the word shows on hover and is the tooltip and
+ *  the accessible name. `extra.className` adds to the figure's classes; `state` is a figure that is a state (« Installed »): its word stays shown. */
+const kbCfFig = (iconNode, text, word, title, extra) => h('span', Object.assign({ tabIndex: 0, title, 'aria-label': title }, extra === undefined ? null : extra,
+  { className: 'kb8-cf-st' + (text === '0' ? ' zero' : '') + (extra !== undefined && typeof extra.className === 'string' ? ' ' + extra.className : '') }),
   iconNode, text === '' ? null : h('span', { className: 'kb8-cf-n' }, text), h('span', { className: 'kb8-cf-lbl' }, word))
 const KB_SWATCHES = ['#6b7280', '#635bff', '#2f6b54', '#b3402f', '#c4712c', '#3f6b8a', '#7a3f7a', '#0ea5e9', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444', '#14b8a6', '#f2372a', '#111827']
 // Une couleur n'entre dans un état que si c'est un #rrggbb ; sinon chaîne vide
@@ -4478,7 +4485,8 @@ const kbLookIcon = (opts) => {
     h('div', { className: 'kb8-search', style: { height: '40px' } }, Icon('search', 14),
       h('input', { value: q, onChange: (e) => o.onQuery(e.target.value), placeholder: kbt('kbui.search') + all.length + kbt('kbui.icons.suffix') })),
     h('div', { className: 'kb8-iconpick' }, shown.map((n) => h('button', {
-      type: 'button', key: n, title: n, className: 'kb8-iconbtn' + (o.icon === n ? ' on' : ''), onClick: () => o.onPick(n),
+      // The chosen icon takes the colour that was picked (the pale ground, the glyph in that colour), as on every other tile.
+      type: 'button', key: n, title: n, className: 'kb8-iconbtn' + (o.icon === n ? ' on' + (kbCfVars(o.color) !== null ? ' col' : '') : ''), style: (o.icon === n && kbCfVars(o.color) !== null) ? kbCfVars(o.color) : undefined, onClick: () => o.onPick(n),
     }, KbDynIcon({ name: n, size: 20 })))),
     (q2 !== '' && shown.length === 0 ? h('span', { className: 'kb8-sub' }, kbt('kbui.no.icon')) : null))
 }
@@ -10560,7 +10568,6 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // les projets (9 par page), et la pagination se masque s'il n'y a qu'une page.
       const vp = usePagedView(ordered.length, 9, tbTeams[0].viewMode, (m) => tbTeams[1]({ viewMode: m }))
       const pageShown = ordered.slice(vp.page * 9, vp.page * 9 + 9)
-      const livePill = (status) => (status === 'OFF' ? null : h('span', { style: { marginLeft: 'auto', flex: '0 0 auto', fontFamily: 'ui-monospace,monospace', fontSize: '10px', letterSpacing: '.06em', borderRadius: '999px', padding: '4px 10px', border: '1px solid ' + (status === 'LIVE' ? 'var(--dsw-alias-state-success-primary)' : 'var(--dsw-alias-border-l1)'), color: status === 'LIVE' ? 'var(--dsw-alias-state-success-primary)' : 'var(--dsw-alias-label-secondary)' } }, status === 'LIVE' ? 'LIVE' : 'IDLE'))
       // Carte d'un kyber. Extraite du `map` pour pouvoir grouper la grille par
       // racine (installe / depot) sans dupliquer le balisage.
       const cardOf = (entry, ci) => {
@@ -10601,11 +10608,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-clone', title: kbt('kbui.action.clone'), 'aria-label': kbt('kbui.action.clone'), onClick: (e2) => { e2.stopPropagation(); cloneKyber(entry) } }, Icon('copy', 13)),
               h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-export', title: kbt('kbui.action.export'), 'aria-label': kbt('kbui.action.export'), onClick: (e2) => { e2.stopPropagation(); exportKyber(entry) } }, Icon('download', 13)))))
       }
-      // Vue liste des Kybers : le bouton « Liste » de la barre n'avait JAMAIS
-      // eu de rendu (uniquement la grille groupée) — il persistait le viewMode
-      // sans rien changer à l'écran. Même contenu que la carte, disposition
-      // rangée (même gabarit que projectRow) : tuile, nom, mission courte,
-      // pastilles, mêmes actions (étoile / cloner / exporter).
+      // Agent Teams list row: the face of the card laid flat (same tile, same quiet figures, same actions, which show on hover). One grey line:
+      // the mission, or else the category and the tags; nothing when there is nothing to say. The figures sit in fixed columns so that the rows line up.
       const rowOf = (entry, ri) => {
         const rootId = entry.rootId
         const rootPath = entry.rootPath
@@ -10617,24 +10621,25 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         const lv = liveForKyber(k)
         const agentCount = lv.members.length > 0 ? lv.members.length : n
         const catOf = typeof ui.category === 'string' && ui.category.length > 0 ? ui.category : null
+        const tags = Array.isArray(ui.tags) ? ui.tags : []
         const hosted = ui.hosted === true
         const isActive = activeIds.indexOf(k.id) >= 0
-        return h('div', { className: 'kb8-row' + kbIn(ri), key: rootPath + '/' + k.id, 'data-kb': 'kyber-row', 'data-root': rootPath, onClick: () => open({ rootId, k, rootPath }) },
-          h('span', { className: 'kb8-tile', style: Object.assign({ width: '36px', height: '36px', borderRadius: '12px', position: 'relative', overflow: 'hidden', flex: 'none' }, color !== null ? { background: color } : null) },
-            (kbHasAvatar(ui) === true ? h('img', { src: kbAvatarUrl(rootId, k.id) + (ui.avatarAt ? '&v=' + encodeURIComponent(ui.avatarAt) : ''), alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e2) { /* rien */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }) : null),
-            h(KbDynIcon, { name: ui.icon ? ui.icon : KB_DEFAULT_ICON, size: 18 })),
-          h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '2px' } },
-            h('span', { className: 'kb8-name' }, name),
-            h('span', { className: 'kb8-parent' }, kbShortDesc(k.mission, catOf !== null ? catOf : kbt('kbui.no.mission')))),
-          h('span', { className: 'kb8-pills', style: { flex: '0 0 auto' } },
-            h('span', { className: 'kb8-pill' }, kbt('kbui.kyber.dot') + kbPlural(agentCount, 'agent')),
-            h('span', { className: 'kb8-pill kb8-pill-host' + (hosted === true ? ' on' : '') }, Icon(hosted === true ? 'cloud' : 'monitor', 12), hosted === true ? kbt('kbui.hosted') : kbt('kbui.local')),
-            isActive === true ? h('span', { className: 'kb8-pill kb8-pill-active', title: kbt('kbui.chat.bound') }, kbt('kbui.in.this.chat')) : null,
-            livePill(lv.status)),
-          h('button', { type: 'button', className: 'kb-favbtn' + (kyFavOf(entry) === true ? ' on' : ''), 'data-kb': 'favorite-star', 'data-scope': 'kybers', 'data-id': rootPath + '/' + k.id, title: kbt('kbui.fav'), 'aria-label': kbt('kbui.fav'), onClick: (e2) => { e2.stopPropagation(); kyFavToggle(entry) } }, Icon('star', 13)),
-          h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-share', title: kbt('kbui.share'), 'aria-label': kbt('kbui.share'), onClick: (e2) => { e2.stopPropagation(); partagerKyber(entry, kbAncreDe(e2.currentTarget)) } }, Icon('share', 13)),
-          h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-clone', title: kbt('kbui.action.clone'), 'aria-label': kbt('kbui.action.clone'), onClick: (e2) => { e2.stopPropagation(); cloneKyber(entry) } }, Icon('copy', 13)),
-          h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-export', title: kbt('kbui.action.export'), 'aria-label': kbt('kbui.action.export'), onClick: (e2) => { e2.stopPropagation(); exportKyber(entry) } }, Icon('download', 13)),
+        const icon = ui.icon ? ui.icon : KB_DEFAULT_ICON
+        const line = kbShortDesc(k.mission, [catOf].concat(tags.map((t) => '#' + t)).filter((x) => x !== null && x !== '').join(' · '))
+        const avatar = (kbHasAvatar(ui) === true ? h('img', { src: kbAvatarUrl(rootId, k.id) + (ui.avatarAt ? '&v=' + encodeURIComponent(ui.avatarAt) : ''), alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e2) { /* rien */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' } }) : null)
+        const fav = kyFavOf(entry) === true
+        return h('div', { className: 'kb8-row kb8-rf' + kbIn(ri), key: rootPath + '/' + k.id, 'data-kb': 'kyber-row', 'data-root': rootPath, style: kbCfVars(color) === null ? undefined : kbCfVars(color), onClick: () => open({ rootId, k, rootPath }) },
+          kbCfIcon(color, icon, avatar, isActive === true, 34),
+          h('span', { className: 'kb8-rf-txt' }, h('span', { className: 'kb8-name' }, name), line === '' ? null : h('span', { className: 'kb8-rf-sub' }, line)),
+          h('span', { className: 'kb8-rf-figs' },
+            kbCfFig(Icon('users', 13), String(agentCount), agentCount === 1 ? 'agent' : 'agents', kbPlural(agentCount, 'agent'), { className: 'kb8-rf-c1' }),
+            kbCfFig(Icon(hosted === true ? 'cloud' : 'monitor', 13), '', hosted === true ? kbt('kbui.hosted') : kbt('kbui.local'), hosted === true ? kbt('kbui.hosted.alsoexists') : kbt('kbui.runs.locally'), { className: 'kb8-rf-c2', 'data-kb': 'kyber-row-host', 'data-hosted': hosted === true ? 'yes' : 'no' }),
+            lv.status === 'OFF' ? h('span', { className: 'kb8-cf-st kb8-rf-c3 kb8-rf-ph', 'aria-hidden': 'true' }) : kbCfFig(h('i', { className: 'kb8-cf-dot' + (lv.status === 'LIVE' ? ' live' : '') }), '', lv.status === 'LIVE' ? 'live' : 'idle', lv.status === 'LIVE' ? 'live' : 'idle', { className: 'kb8-rf-c3', 'data-kb': 'kyber-row-live' })),
+          h('span', { className: 'kb8-rf-acts' },
+            h('button', { type: 'button', className: 'kb-favbtn' + (fav ? ' on' : ''), 'data-kb': 'favorite-star', 'data-scope': 'kybers', 'data-id': rootPath + '/' + k.id, title: kbt(fav ? 'kbui.unfav' : 'kbui.fav'), 'aria-label': kbt(fav ? 'kbui.unfav' : 'kbui.fav'), onClick: (e2) => { e2.stopPropagation(); kyFavToggle(rootPath + '/' + k.id) } }, Icon('star', 13)),
+            h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-share', title: kbt('kbui.share'), 'aria-label': kbt('kbui.share'), onClick: (e2) => { e2.stopPropagation(); partagerKyber(entry, kbAncreDe(e2.currentTarget)) } }, Icon('share', 13)),
+            h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-clone', title: kbt('kbui.action.clone'), 'aria-label': kbt('kbui.action.clone'), onClick: (e2) => { e2.stopPropagation(); cloneKyber(entry) } }, Icon('copy', 13)),
+            h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-export', title: kbt('kbui.action.export'), 'aria-label': kbt('kbui.action.export'), onClick: (e2) => { e2.stopPropagation(); exportKyber(entry) } }, Icon('download', 13))),
           Icon('chevronRight', 14))
       }
       React.useEffect(() => {
@@ -10681,7 +10686,6 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         return ['not-linked', 'no-connection', 'unavailable', 'unreadable', 'empty', 'partial'].indexOf(code) >= 0 ? kbt('kbui.market.cloud.r.' + code) : ''
       }
       const marketCloudItems = (marketCloud !== null && marketCloud.ok === true && Array.isArray(marketCloud.items)) ? marketCloud.items : []
-      const cloudTile = (it) => h('span', { className: 'kb8-tile', style: { width: '38px', height: '38px', borderRadius: '13px', flex: '0 0 auto', background: it.color === '' ? 'var(--dsw-alias-bg-layer-1)' : it.color, color: kbOnColor(it.color === '' ? '#888888' : it.color), display: 'flex', alignItems: 'center', justifyContent: 'center' } }, String(it.glyph === '' ? it.name.slice(0, 2) : it.glyph))
       // While the kybernos.app catalogue is being read the block draws bones the size of its cards (it used to be absent, and
       // then appear above the local templates and push them down).
       const marketCloudBloc = hubTab !== 'marketplace' ? null
@@ -10700,19 +10704,21 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               h('span', { className: 'kb8-parent' }, marketCloudItems.length > 0 ? String(marketCloudItems.length) + (marketCloud.partiel === true ? ' · ' + marketReason(marketCloud) : '') : marketReason(marketCloud))),
             (marketCloudItems.length === 0
               ? h('span', { className: 'kb8-parent' }, kbt('kbui.market.cloud.none'))
-              : h('div', { className: 'kb8-grid kb8-cmp' }, marketCloudItems.map((it) => h('div', { className: 'kb8-card kb8-cmp', key: it.slug, 'data-kb': 'market-card', style: { cursor: 'default' } },
-                  h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } },
-                    cloudTile(it),
-                    h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '2px' } },
-                      h('span', { className: 'kb8-name' }, it.name),
-                      h('span', { className: 'kb8-parent' }, String(it.cat === '' ? 'kybernos.app' : it.cat) + ' · v' + String(it.version)))),
+              // A catalogue entry wears the face of a card: the tile (its glyph is a short text, not an icon name, so there is no watermark),
+              // the category and version as the grey line, its agents as a quiet figure, Install on hover.
+              : h('div', { className: 'kb8-grid kb8-cmp' }, marketCloudItems.map((it) => {
+                const nAg = Array.isArray(it.agents) ? it.agents.length : 0
+                return h('div', { className: 'kb8-card kb8-cmp kb8-cf', key: it.slug, 'data-kb': 'market-card', style: Object.assign({ cursor: 'default' }, kbCfVars(it.color)) },
+                  h('div', { className: 'kb8-cf-top' },
+                    kbCfTile(it.color, String(it.glyph === '' ? it.name.slice(0, 2) : it.glyph), 42),
+                    h('span', { className: 'kb8-cf-txt' }, h('span', { className: 'kb8-name' }, it.name), h('span', { className: 'kb8-cf-sub' }, String(it.cat === '' ? 'kybernos.app' : it.cat) + ' · v' + String(it.version)))),
                   h('p', { className: 'kb8-desc' }, it.pitch),
-                  h('div', { className: 'kb8-cardfoot' },
-                    h('div', { className: 'kb8-pills' },
-                      h('span', { className: 'kb8-pill', title: kbt('kbui.agents.declares') }, String(Array.isArray(it.agents) ? it.agents.length : 0) + ' agents')),
+                  h('div', { className: 'kb8-cf-foot' },
+                    h('span', { className: 'kb8-cf-stats' }, kbCfFig(Icon('users', 13), String(nAg), nAg === 1 ? 'agent' : 'agents', kbt('kbui.agents.declares'))),
                     h('div', { className: 'kb8-cardacts', 'data-kb': 'market-card-actions' },
                       h('button', { type: 'button', className: 'kb8-primary', disabled: marketBusy === it.slug, onClick: () => installRemote(it) },
-                        marketBusy === it.slug ? kbt('kbui.installing') : kbt('kbui.market.cloud.install')))))))))
+                        marketBusy === it.slug ? kbt('kbui.installing') : kbt('kbui.market.cloud.install')))))
+              }))))
 
       const installTemplate = async (tpl) => {
         if (marketBusy !== null) return
@@ -10821,10 +10827,9 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         const installed = teams.some(({ k }) => k.id === tpl.id)
         return {
           tpl, installed,
-          tileStyle: { width: '44px', height: '44px', borderRadius: '14px', flex: '0 0 auto', background: tpl.color, color: kbOnColor(tpl.color), display: 'flex', alignItems: 'center', justifyContent: 'center' },
           // Les compteurs « 1.2k installs » et les prix etaient inventes : la
           // fixture est locale, aucun depot distant n'existe derriere.
-          meta: tpl.category.toUpperCase() + ' \u00b7 ' + kbt('kbat.builtin'),
+          meta: tpl.category + ' \u00b7 ' + kbt('kbat.builtin'),
         }
       })
       // Recherche + tri du Marketplace : la grille listait les modeles dans
@@ -10914,33 +10919,35 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
               // aussi (aucune branche de rendu). Rangées compactes, mêmes
               // actions (Installer / Aperçu).
               (tbMarketView.viewMode === 'list'
-                ? h('div', { className: 'kb8-rows', 'data-kb': 'market-rows' }, marketVisible.map(({ tpl, installed, tileStyle, meta }) => h('div', { className: 'kb8-row', key: tpl.id, 'data-kb': 'market-row', style: { cursor: 'default' } },
-                  h('span', { className: 'kb8-tile', style: Object.assign({}, tileStyle, { width: '36px', height: '36px', borderRadius: '12px', flex: 'none' }) }, KbDynIcon({ name: tpl.icon, size: 18 })),
-                  h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '2px' } },
-                    h('span', { className: 'kb8-name' }, tpl.name),
-                    h('span', { className: 'kb8-parent' }, kbShortDesc(tpl.desc, meta))),
-                  h('span', { className: 'kb8-pills', style: { flex: '0 0 auto' } },
-                    h('span', { className: 'kb8-pill', 'data-kb': 'market-agents', title: kbt('kbui.agents.declares') }, kbPlural(Array.isArray(tpl.roles) ? tpl.roles.length : 0, 'agent'))),
-                  h('button', { type: 'button', className: 'kb8-primary', disabled: installed || marketBusy === tpl.id, style: installed ? { opacity: .6 } : null, onClick: () => installTemplate(tpl) },
-                    installed ? kbt('kbui.installed') : (marketBusy === tpl.id ? kbt('kbui.installing') : kbt('kbui.install'))),
-                  h('button', { type: 'button', className: 'kb8-chip', onClick: () => setPreview(tpl) }, kbt('kbui.preview')))))
-                : h('div', { className: 'kb8-grid kb8-cmp' }, marketVisible.map(({ tpl, installed, tileStyle, meta }) => h('div', { className: 'kb8-card kb8-cmp', key: tpl.id, 'data-kb': 'market-card', style: { cursor: 'default' } },
-                h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } },
-                  h('span', { className: 'kb8-tile', style: Object.assign({}, tileStyle, { width: '38px', height: '38px', borderRadius: '13px' }) }, KbDynIcon({ name: tpl.icon, size: 20 })),
-                  h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '2px' } },
-                    h('span', { className: 'kb8-name' }, tpl.name),
-                    h('span', { className: 'kb8-parent' }, meta))),
-                h('p', { className: 'kb8-desc' }, tpl.desc),
-                // The foot says what the template is (its agents, and « Installed » once it is: a visible state, not a greyed
-                // button); Install and Preview show on hover or keyboard focus, and always without a hover device (V-16).
-                h('div', { className: 'kb8-cardfoot' },
-                  h('div', { className: 'kb8-pills' },
-                    h('span', { className: 'kb8-pill', 'data-kb': 'market-agents', title: kbt('kbui.agents.declares') }, kbPlural(Array.isArray(tpl.roles) ? tpl.roles.length : 0, 'agent')),
-                    installed ? h('span', { className: 'kb8-pill kb8-pill-cat', 'data-kb': 'market-installed' }, kbt('kbui.installed')) : null),
-                  h('div', { className: 'kb8-cardacts', 'data-kb': 'market-card-actions' },
-                    installed ? null : h('button', { type: 'button', className: 'kb8-primary', disabled: marketBusy === tpl.id, style: marketBusy === tpl.id ? { opacity: .7 } : null, onClick: () => installTemplate(tpl) },
-                      marketBusy === tpl.id ? kbt('kbui.installing') : kbt('kbui.install')),
-                    h('button', { type: 'button', className: 'kb8-chip', onClick: () => setPreview(tpl) }, kbt('kbui.preview')))))))))
+                ? h('div', { className: 'kb8-rows', 'data-kb': 'market-rows' }, marketVisible.map(({ tpl, installed, meta }) => {
+                  const nAg = Array.isArray(tpl.roles) ? tpl.roles.length : 0
+                  return h('div', { className: 'kb8-row kb8-rf', key: tpl.id, 'data-kb': 'market-row', style: Object.assign({ cursor: 'default' }, kbCfVars(tpl.color)) },
+                    kbCfIcon(tpl.color, tpl.icon, undefined, false, 34),
+                    h('span', { className: 'kb8-rf-txt' }, h('span', { className: 'kb8-name' }, tpl.name), h('span', { className: 'kb8-rf-sub' }, kbShortDesc(tpl.desc, meta))),
+                    h('span', { className: 'kb8-rf-figs' },
+                      kbCfFig(Icon('users', 13), String(nAg), nAg === 1 ? 'agent' : 'agents', kbt('kbui.agents.declares'), { className: 'kb8-rf-c1', 'data-kb': 'market-agents' }),
+                      installed ? kbCfFig(Icon('check', 13), '', kbt('kbui.installed'), kbt('kbui.installed'), { className: 'state kb8-rf-c4', 'data-kb': 'market-installed' }) : h('span', { className: 'kb8-cf-st kb8-rf-c4 kb8-rf-ph', 'aria-hidden': 'true' })),
+                    h('span', { className: 'kb8-rf-btns' },
+                      h('button', { type: 'button', className: 'kb8-chip', onClick: () => setPreview(tpl) }, kbt('kbui.preview')),
+                      installed ? null : h('button', { type: 'button', className: 'kb8-primary', disabled: marketBusy === tpl.id, onClick: () => installTemplate(tpl) }, marketBusy === tpl.id ? kbt('kbui.installing') : kbt('kbui.install'))))
+                }))
+                : h('div', { className: 'kb8-grid kb8-cmp' }, marketVisible.map(({ tpl, installed, meta }) => {
+                  const nAg = Array.isArray(tpl.roles) ? tpl.roles.length : 0
+                  return h('div', { className: 'kb8-card kb8-cmp kb8-cf', key: tpl.id, 'data-kb': 'market-card', style: Object.assign({ cursor: 'default' }, kbCfVars(tpl.color)) },
+                    kbCfWatermark(tpl.icon),
+                    h('div', { className: 'kb8-cf-top' }, kbCfIcon(tpl.color, tpl.icon), h('span', { className: 'kb8-cf-txt' }, h('span', { className: 'kb8-name' }, tpl.name), h('span', { className: 'kb8-cf-sub' }, meta))),
+                    h('p', { className: 'kb8-desc' }, tpl.desc),
+                    // The foot says what the template is (its agents, and « Installed » once it is: a visible state, not a greyed button);
+                    // Preview and Install show on hover or keyboard focus, and always without a hover device (V-16).
+                    h('div', { className: 'kb8-cf-foot' },
+                      h('span', { className: 'kb8-cf-stats' },
+                        kbCfFig(Icon('users', 13), String(nAg), nAg === 1 ? 'agent' : 'agents', kbt('kbui.agents.declares'), { 'data-kb': 'market-agents' }),
+                        installed ? kbCfFig(Icon('check', 13), '', kbt('kbui.installed'), kbt('kbui.installed'), { className: 'state', 'data-kb': 'market-installed' }) : null),
+                      h('div', { className: 'kb8-cardacts', 'data-kb': 'market-card-actions' },
+                        h('button', { type: 'button', className: 'kb8-chip', onClick: () => setPreview(tpl) }, kbt('kbui.preview')),
+                        installed ? null : h('button', { type: 'button', className: 'kb8-primary', disabled: marketBusy === tpl.id, style: marketBusy === tpl.id ? { opacity: .7 } : null, onClick: () => installTemplate(tpl) },
+                          marketBusy === tpl.id ? kbt('kbui.installing') : kbt('kbui.install')))))
+                }))))
           : (s.data === null || s.data === undefined)
             ? h(React.Fragment, null,
               h('p', { className: 'kb8-sub', 'data-kb': 'kybers-sub' }, kbt('kbui.teams.sub')),
@@ -10995,10 +11002,10 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         (preview !== null ? h('div', { style: { position: 'fixed', inset: 0, background: 'var(--dsw-alias-bg-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 80, padding: '24px' }, onClick: () => setPreview(null) },
           h('div', { className: 'kb-scroll', style: { width: '620px', maxWidth: '94vw', maxHeight: '86vh', overflowY: 'auto', background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '20px', padding: '22px', display: 'flex', flexDirection: 'column', gap: '14px' }, onClick: (e) => e.stopPropagation() },
             h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px' } },
-              h('span', { className: 'kb8-tile', style: { width: '42px', height: '42px', borderRadius: '14px', background: preview.color, color: kbOnColor(preview.color) } }, KbDynIcon({ name: preview.icon, size: 22 })),
+              kbCfIcon(preview.color, preview.icon, undefined, false, 46),
               h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '2px' } },
                 h('h2', { className: 'kb8-h1', style: { fontSize: '20px' } }, preview.name),
-                h('span', { className: 'kb8-parent' }, preview.category.toUpperCase() + ' \u00b7 ' + kbt('kbat.builtin'))),
+                h('span', { className: 'kb8-parent' }, preview.category + ' \u00b7 ' + kbt('kbat.builtin'))),
               h('button', { type: 'button', className: 'kb8-chip', onClick: () => setPreview(null) }, kbt('kbui.close'))),
             h(ManifestView, { team: Object.assign({ source: 'marketplace', specVersion: '1' }, preview, { skillsDeclared: preview.skills }) }),
             h('div', { style: { display: 'flex', justifyContent: 'flex-end' } },
@@ -12858,6 +12865,8 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const avPair = React.useState(0)
       const avRev = avPair[0]
       const setAvRev = avPair[1]
+      // The team's picture, laid over its tile (the tile keeps its corners); null when it has none. Called while rendering, once `kyber` is known.
+      const avatarImg = () => ((kbHasAvatar(kyber.ui) === true || avRev > 0) ? h('img', { src: kbAvatarUrl(rootId, kyber.id) + '&v=' + avRev, alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e) { /* img */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' } }) : null)
       // Onglet Team — édition du Crew : brouillon par rôle + statut de sauvegarde.
       // Hook en tête de composant : le rendu de l'onglet est conditionnel.
       const crewDraftPair = React.useState({})
@@ -13204,13 +13213,11 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           h('span', { className: 'kb8-sub' }, kbt('kbui.shown.kyber')),
           h('span', { className: 'kb8-parent' }, 'AVATAR'),
           h('div', { style: { display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' } },
-            h('span', { style: { position: 'relative', width: '64px', height: '64px', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: draft.color !== '' ? draft.color : 'var(--dsw-alias-bg-layer-2)', color: draft.color !== '' ? kbOnColor(draft.color) : 'var(--dsw-alias-label-primary)', overflow: 'hidden', flex: '0 0 auto' } },
-              ((kbHasAvatar(kyber.ui) === true || avRev > 0) ? h('img', { src: kbAvatarUrl(rootId, kyber.id) + '&v=' + avRev, alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e) { /* img */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }) : null),
-              h(KbDynIcon, { name: draft.icon || KB_DEFAULT_ICON, size: 30 })),
+            kbCfIcon(draft.color, draft.icon || KB_DEFAULT_ICON, avatarImg(), false, 96),
             h('span', { style: { display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '180px' } },
               kbLookImage({ hint: 'PNG, JPG, WebP, GIF or SVG · max 3 MB. Clicking an icon below replaces the image.', onFile: onAvatarFile, hasImage: hasAvatar === true, onClear: () => update({ clearAvatar: true }) }))),
           h('span', { className: 'kb8-parent' }, 'ICON'),
-          kbLookIcon({ icons: allIcons, query: iconQ, onQuery: setIconQ, icon: draft.icon, onPick: (n) => update({ icon: n, clearAvatar: true }) }),
+          kbLookIcon({ icons: allIcons, query: iconQ, onQuery: setIconQ, icon: draft.icon, color: draft.color, onPick: (n) => update({ icon: n, clearAvatar: true }) }),
           // `TYPE` n'a de sens que si le selecteur Local/Hosted est rendu : dans
           // un build `KB_SHOW_HOSTED === false`, l'etiquette restait seule entre
           // ICON et COLOUR, sans aucun controle (constat de la campagne visuelle).
@@ -13493,10 +13500,14 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       return h('div', { className: 'kb8-page' },
         h('button', { type: 'button', className: 'kb8-primary', style: { alignSelf: 'flex-start', background: 'transparent', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-primary)' }, onClick: () => { if (saving === 'pending') { try { saveNow() } catch (e) { /* sauvegarde */ } } set({ view: 'gallery' }) } }, '‹ Back to Agent Teams'),
         h('div', { style: { display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' } },
-          h('span', { className: 'kb8-tile', style: { width: '44px', height: '44px', borderRadius: '14px', background: draft.color !== '' ? draft.color : 'var(--dsw-alias-bg-layer-2)', color: draft.color !== '' ? kbOnColor(draft.color) : 'var(--dsw-alias-label-primary)', overflow: 'hidden', position: 'relative' } },
-            ((kbHasAvatar(kyber.ui) === true || avRev > 0) ? h('img', { src: kbAvatarUrl(rootId, kyber.id) + '&v=' + avRev, alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e) { /* img */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }) : null),
-            h(KbDynIcon, { name: draft.icon || KB_DEFAULT_ICON, size: 22 })),
-          h('h1', { className: 'kb8-h1' }, draft.name || kyber.id),
+          kbCfIcon(draft.color, draft.icon || KB_DEFAULT_ICON, avatarImg(), false, 56),
+          // The name, and under it the figures of the team's card: its agents, where it runs, its category.
+          h('span', { className: 'kb8-hd-txt' },
+            h('h1', { className: 'kb8-h1 kb8-hd-h1' }, draft.name || kyber.id),
+            h('span', { className: 'kb8-cf-stats' },
+              kbCfFig(Icon('users', 13), String(Array.isArray(kyber.roles) === true ? kyber.roles.length : 0), (Array.isArray(kyber.roles) === true && kyber.roles.length === 1) ? 'agent' : 'agents', kbPlural(Array.isArray(kyber.roles) === true ? kyber.roles.length : 0, 'agent')),
+              kbCfFig(Icon(draft.hosted === true ? 'cloud' : 'monitor', 13), '', draft.hosted === true ? kbt('kbui.hosted') : kbt('kbui.local'), draft.hosted === true ? kbt('kbui.hosted.alsoexists') : kbt('kbui.runs.locally')),
+              (kyber.ui !== null && kyber.ui !== undefined && typeof kyber.ui.category === 'string' && kyber.ui.category.length > 0) ? h('span', { className: 'kb8-cf-sub' }, kyber.ui.category) : null)),
           h('span', { style: { marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px' } },
             h('span', { style: { fontSize: '12.5px', color: saveColor } }, saveLabel),
             h('button', { type: 'button', className: 'kb8-chip', onClick: () => saveNow() }, kbt('kbui.save.now')))),
@@ -16245,17 +16256,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const vp = usePagedView(projectsVisible.length, 9, tbProjects[0].viewMode, (m) => tbProjects[1]({ viewMode: m }))
       const shown = (vp.mode === 'cards') ? projectsVisible.slice(vp.page * 9, vp.page * 9 + 9) : projectsVisible
       const wUiOf = (w) => (wsUi[w.workspaceId] !== null && wsUi[w.workspaceId] !== undefined && typeof wsUi[w.workspaceId] === 'object') ? wsUi[w.workspaceId] : {}
-      // Pastilles des cartes : le singulier manquait pour les livrables
-      // (« 1 DELIVERABLES ») et les deux libelles etaient en dur en anglais.
-      const pillThreads = (n) => n + ' ' + kbt(n === 1 ? 'kbui.pill.thread.one' : 'kbui.pill.thread.many')
-      const pillDelivs = (n) => n + ' ' + kbt(n === 1 ? 'kbui.pill.deliv.one' : 'kbui.pill.deliv.many')
       const openProject = (w) => set({ view: 'project', projectId: w.workspaceId })
-      const projectTile = (w, size) => {
-        const u = wUiOf(w)
-        const ic = (typeof u.icon === 'string' && u.icon.length > 0) ? u.icon : 'folder'
-        const co = (typeof u.color === 'string' && u.color.length > 0) ? u.color : null
-        return h('span', { className: 'kb8-tile', style: Object.assign({ width: size + 'px', height: size + 'px', borderRadius: '15px' }, co !== null ? { background: co, color: kbOnColor(co) } : null) }, h(KbDynIcon, { name: ic, size: Math.round(size / 2) }))
-      }
       // Exporter un workspace (28/09, gabarit) : métadonnées seulement (id,
       // titre, réglages ui). Aucune création de workspace côté client — donc
       // pas de bouton Cloner ici (l'écart est documenté).
@@ -16304,21 +16305,29 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-share', title: kbt('kbui.share'), 'aria-label': kbt('kbui.share'), onClick: (e2) => { e2.stopPropagation(); setWsShare({ kind: 'workspace', id: w.workspaceId, titre: label, anchor: kbAncreDe(e2.currentTarget) }) } }, Icon('share', 13)),
             h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-export', title: kbt('kbui.action.export'), 'aria-label': kbt('kbui.action.export'), onClick: (e2) => { e2.stopPropagation(); exportWorkspace(w) } }, Icon('download', 13)))))
       }
-      // Vue LISTE des projets : le bouton « Liste » de la barre ne faisait que
-      // lever la pagination — la page continuait de peindre la meme grille de
-      // cartes. Meme contenu, une ligne par projet.
+      // Workspaces list row: the face of the card laid flat. The two figures (threads, deliverables) are in fixed columns; the star, share and
+      // export actions are the card's, and show on hover. One grey line, the description, or nothing.
       const projectRow = (w, i) => {
         const u = wUiOf(w)
         const label = (typeof u.name === 'string' && u.name.length > 0) ? u.name : (w.title || w.workspaceId)
-        return h('div', { className: 'kb8-row' + kbIn(i), key: w.workspaceId, 'data-kb': 'project-row', onClick: () => openProject(w) },
-          projectTile(w, 36),
-          h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '2px' } },
-            h('span', { className: 'kb8-name' }, label),
-            h('span', { className: 'kb8-parent' }, kbt('kbui.project.toplevel'))),
-          h('span', { className: 'kb8-pills', style: { flex: '0 0 auto' } },
-            h('span', { className: 'kb8-pill' }, pillThreads(threadsOfProject(w))),
-            h('span', { className: 'kb8-pill' }, pillDelivs(artsOfProject(w)))),
-          h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-share', title: kbt('kbui.share'), 'aria-label': kbt('kbui.share'), onClick: (e2) => { e2.stopPropagation(); setWsShare({ kind: 'workspace', id: w.workspaceId, titre: label, anchor: kbAncreDe(e2.currentTarget) }) } }, Icon('share', 13)),
+        const nThreads = threadsOfProject(w)
+        const nArts = artsOfProject(w)
+        const ic = (typeof u.icon === 'string' && u.icon.length > 0) ? u.icon : 'folder'
+        const co = (typeof u.color === 'string' && u.color.length > 0) ? u.color : null
+        const d = kbShortDesc(u.desc, '')
+        const wordT = kbt(nThreads === 1 ? 'kbui.pill.thread.one' : 'kbui.pill.thread.many').toLowerCase()
+        const wordA = kbt(nArts === 1 ? 'kbui.pill.deliv.one' : 'kbui.pill.deliv.many').toLowerCase()
+        const fav = wsFavOf(w) === true
+        return h('div', { className: 'kb8-row kb8-rf' + kbIn(i), key: w.workspaceId, 'data-kb': 'project-row', style: kbCfVars(co) === null ? undefined : kbCfVars(co), onClick: () => openProject(w) },
+          kbCfIcon(co, ic, undefined, false, 34),
+          h('span', { className: 'kb8-rf-txt' }, h('span', { className: 'kb8-name' }, label), d === '' ? null : h('span', { className: 'kb8-rf-sub' }, d)),
+          h('span', { className: 'kb8-rf-figs', 'data-kb': 'project-row-counts' },
+            kbCfFig(Icon('messageSquare', 13), String(nThreads), wordT, nThreads + ' ' + wordT, { className: 'kb8-rf-c1' }),
+            kbCfFig(Icon('sparkles', 13), String(nArts), wordA, nArts + ' ' + wordA, { className: 'kb8-rf-c1' })),
+          h('span', { className: 'kb8-rf-acts' },
+            h('button', { type: 'button', className: 'kb-favbtn' + (fav ? ' on' : ''), 'data-kb': 'favorite-star', 'data-scope': 'workspaces', 'data-id': w.workspaceId, title: kbt(fav ? 'kbui.unfav' : 'kbui.fav'), 'aria-label': kbt(fav ? 'kbui.unfav' : 'kbui.fav'), onClick: (e2) => { e2.stopPropagation(); wsFavToggle(w.workspaceId) } }, Icon('star', 13)),
+            h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-share', title: kbt('kbui.share'), 'aria-label': kbt('kbui.share'), onClick: (e2) => { e2.stopPropagation(); setWsShare({ kind: 'workspace', id: w.workspaceId, titre: label, anchor: kbAncreDe(e2.currentTarget) }) } }, Icon('share', 13)),
+            h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-export', title: kbt('kbui.action.export'), 'aria-label': kbt('kbui.action.export'), onClick: (e2) => { e2.stopPropagation(); exportWorkspace(w) } }, Icon('download', 13))),
           Icon('chevronRight', 14))
       }
       // Fiche « Partager » d'un projet : rendue en portail à la fin de la page.
@@ -16918,7 +16927,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
           const saveColor = saveState === 'err' ? 'var(--dsw-alias-state-error-primary)' : (saveState === 'ok' ? 'var(--dsw-alias-state-success-primary)' : 'var(--dsw-alias-label-secondary)')
           return h('div', { style: { display: 'flex', flexDirection: 'column', gap: '14px' } },
             h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' } },
-              h('span', { className: 'kb8-tile', style: { width: '52px', height: '52px', borderRadius: '16px', background: colorDraft !== '' ? colorDraft : 'var(--dsw-alias-bg-layer-2)', color: colorDraft !== '' ? kbOnColor(colorDraft) : 'var(--dsw-alias-label-primary)' } }, h(KbDynIcon, { name: iconDraft || 'folder', size: 26 })),
+              kbCfIcon(colorDraft, iconDraft || 'folder', undefined, false, 56),
               // Le nom du projet etait repete ici a 40 px sous le titre de la
               // page : deux fois le meme mot, puis une troisieme dans le champ
               // NAME. Le panneau garde un espaceur (la geometrie ne bouge pas).
@@ -16945,7 +16954,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             kbMdExtras('folder', ws),
             h('div', { style: card },
               h('span', { className: 'kb8-parent' }, 'ICON'),
-              kbLookIcon({ icons: allIcons, query: iconQ, onQuery: setIconQ, icon: iconDraft, onPick: (n) => updateDetails({ icon: n }) })),
+              kbLookIcon({ icons: allIcons, query: iconQ, onQuery: setIconQ, icon: iconDraft, color: colorDraft, onPick: (n) => updateDetails({ icon: n }) })),
             h('div', { style: card },
               h('span', { className: 'kb8-parent' }, 'COLOUR'),
               kbLookColor(colorDraft, (c) => updateDetails({ color: c }))),
@@ -17275,9 +17284,9 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       return h('div', { className: 'kb8-page' },
         h('button', { type: 'button', className: 'kb8-primary', style: { alignSelf: 'flex-start', background: 'transparent', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-primary)' }, onClick: () => set({ view: 'projects' }) }, '‹ Back to projects'),
         h('div', { style: { display: 'flex', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' } },
-          h('span', { className: 'kb8-tile', style: { width: '52px', height: '52px', borderRadius: '16px', background: typeof wsUi.color === 'string' && wsUi.color.length > 0 ? wsUi.color : 'var(--dsw-alias-bg-layer-2)', color: typeof wsUi.color === 'string' && wsUi.color.length > 0 ? kbOnColor(wsUi.color) : 'var(--dsw-alias-label-primary)' } }, h(KbDynIcon, { name: typeof wsUi.icon === 'string' && wsUi.icon.length > 0 ? wsUi.icon : 'folder', size: 26 })),
+          kbCfIcon(typeof wsUi.color === 'string' ? wsUi.color : '', typeof wsUi.icon === 'string' && wsUi.icon.length > 0 ? wsUi.icon : 'folder', undefined, false, 56),
           h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: 220 } },
-            h('h1', { className: 'kb8-h1' }, nameDraft || ws.title || ws.workspaceId),
+            h('h1', { className: 'kb8-h1 kb8-hd-h1' }, nameDraft || ws.title || ws.workspaceId),
             // La description du projet s'affiche ici, sur tous les onglets —
             // meme role que la mission sur la fiche d'un Kyber.
             h('p', { className: 'kb8-sub', 'data-kb': 'project-description-line' },
@@ -29272,7 +29281,8 @@ body:not([data-ds-dark-theme]) .kb8-cmp .kb8-desc.kb8-none{color:var(--dsw-alias
 }
 /* Card face (Workspaces, Agent Teams): a pale tile whose glyph keeps the project's own colour (no solid block, no outline), a still watermark that
    only shows while the card is hovered or focused, and a quiet foot: icon + number (the word on hover) on the left, the actions on the right.
-   No description, no line. Only these two cards carry .kb8-cf: the Marketplace and the Skills cards keep their look. */
+   No description, no line. The same tile (.kb8-cf-ic, at 34 / 42 / 46 / 56 / 96 px) and the same figures (.kb8-cf-st) are used laid flat in the list rows
+   (.kb8-rf), in the page headers, in the avatar preview, and by the Marketplace cards, rows and Preview dialog. The Skills cards keep their look. */
 .kb8-card.kb8-cmp.kb8-cf{padding:14px 16px 8px;gap:10px;overflow:hidden;min-height:96px}
 .kb8-cf>*{position:relative;z-index:1}
 .kb8-cf>.kb8-cf-wm{position:absolute;z-index:0}
@@ -29281,6 +29291,12 @@ body:not([data-ds-dark-theme]) .kb8-cmp .kb8-desc.kb8-none{color:var(--dsw-alias
 .kb8-cf-sub{font-size:12px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kb8-cf-ic{position:relative;flex:0 0 auto;width:42px;height:42px;border-radius:calc(var(--dsw-radius-md,12px)*1.15);display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-secondary)}
 .kb8-cf-ic svg{stroke-width:1.65}
+.kb8-cf-ic.s34{width:34px;height:34px;border-radius:calc(var(--dsw-radius-md,12px)*.93)}
+.kb8-cf-ic.s46{width:46px;height:46px;border-radius:calc(var(--dsw-radius-md,12px)*1.26)}
+.kb8-cf-ic.s56{width:56px;height:56px;border-radius:calc(var(--dsw-radius-md,12px)*1.53)}
+.kb8-cf-ic.s96{width:96px;height:96px;border-radius:calc(var(--dsw-radius-md,12px)*2.63)}
+.kb8-cf-ic.s96 svg{stroke-width:1.4}
+.kb8-cf-ic.txt{font-size:16px;font-weight:650;letter-spacing:-.01em;line-height:1}
 .kb8-cf-ic.col{background:color-mix(in srgb,var(--kb8-pc) 13%,var(--dsw-alias-bg-layer-1));color:var(--kb8-pgl)}
 body[data-ds-dark-theme] .kb8-cf-ic.col{color:var(--kb8-pgd)}
 .kb8-cf-here{position:absolute;top:-3px;inset-inline-end:-3px;width:11px;height:11px;border-radius:50%;background:var(--dsw-alias-label-primary);box-shadow:0 0 0 2.5px var(--dsw-alias-bg-layer-1)}
@@ -29303,6 +29319,40 @@ body[data-ds-dark-theme] .kb8-cf-wm{color:color-mix(in srgb,var(--kb8-pc,var(--d
 .kb8-cf-dot.live{background:var(--dsw-alias-state-success-primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-state-success-primary) 22%,transparent)}
 .kb8-card.kb8-cmp.kb8-cf .kb8-cardacts{position:static;transform:none;inset:auto;margin:0;padding:0;min-height:0;flex:0 0 auto;gap:1px;background:none;box-shadow:none}
 @media (prefers-reduced-motion:reduce){.kb8-cf-wm,.kb8-cf-lbl,.kb8-cf-st svg{transition:none}}
+/* A figure that is a state (« Installed »): its word stays shown, no hover needed. */
+.kb8-cf-st.state{color:var(--dsw-alias-label-primary)}
+.kb8-cf-st.state .kb8-cf-lbl{max-width:96px;opacity:1;margin-inline-start:0}
+.kb8-cf-st.state svg{opacity:.95}
+/* The face laid flat: a list row (Agent Teams, Workspaces, Marketplace templates). The figures sit in fixed columns so the rows line up; the star, share,
+   clone and export actions show on hover or focus (the star of a favourite stays shown). */
+.kb8-row.kb8-rf{gap:14px;padding:12px 16px;transition:background .15s ease}
+.kb8-row.kb8-rf:hover{background:color-mix(in srgb,var(--kb8-pc,var(--dsw-alias-label-primary)) 4%,var(--dsw-alias-bg-layer-1))}
+.kb8-rf-txt{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.kb8-rf-sub{font-size:12.5px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kb8-rf-figs{display:flex;align-items:center;gap:6px;flex:0 0 auto;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
+.kb8-rf-figs .kb8-cf-st.kb8-rf-c1{min-width:46px}
+.kb8-rf-figs .kb8-cf-st.kb8-rf-c2{min-width:26px}
+.kb8-rf-figs .kb8-cf-st.kb8-rf-c3{min-width:18px}
+.kb8-rf-figs .kb8-cf-st.kb8-rf-c4{min-width:84px}
+.kb8-rf-ph{visibility:hidden}
+.kb8-rf-acts{display:flex;align-items:center;gap:1px;flex:0 0 auto}
+.kb8-rf-btns{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex:0 0 auto;min-width:176px}
+.kb8-rf-btns .kb8-primary{padding:5px 12px;border-radius:9px;font-size:12.5px;gap:6px}
+.kb8-rf-btns .kb8-chip{padding:5px 12px;font-size:12.5px}
+@media (hover:hover){
+.kb8-rf-acts .kb-favbtn{opacity:0;transition:opacity .15s ease,color .14s ease,background .14s ease}
+.kb8-row:hover .kb8-rf-acts .kb-favbtn,.kb8-row:focus-within .kb8-rf-acts .kb-favbtn,.kb8-rf-acts .kb-favbtn.on{opacity:1}
+}
+@media (max-width:640px){.kb8-rf-acts .kb-favbtn:not([data-kb="favorite-star"]){display:none}}
+@media (max-width:480px){.kb8-rf-figs .kb8-cf-st:not(.state){display:none}.kb8-rf-figs .kb8-cf-st.state{min-width:0}.kb8-row.kb8-rf{flex-wrap:wrap}.kb8-rf-btns{flex:1 0 100%;min-width:0;justify-content:flex-start;padding-inline-start:48px}}
+/* A page header: the tile, the name, and under it the figures of the card (agents, where it runs, the category). */
+.kb8-hd-txt{display:flex;flex-direction:column;gap:5px;min-width:0}
+.kb8-hd-h1{font-size:20px;line-height:26px;font-weight:600}
+/* The icon chosen in a picker takes the colour chosen next to it: the pale ground and the glyph in that colour, like a tile. */
+.kb8-iconbtn.on.col{background:color-mix(in srgb,var(--kb8-pc) 13%,var(--dsw-alias-bg-layer-1));border-color:var(--kb8-pgl);color:var(--kb8-pgl)}
+body[data-ds-dark-theme] .kb8-iconbtn.on.col{border-color:var(--kb8-pgd);color:var(--kb8-pgd)}
+.kb8-hd-txt .kb8-cf-stats{gap:13px}
+.kb8-hd-txt .kb8-cf-sub{margin-inline-start:2px}
 /* Étoile « favori » partagée par Projets, Kybers et Automations : bouton
    discret transparent, marque ambre quand active, gris sinon, survol léger.
    Bidi-sûr : aucune position left/right dure, tout reste dans le flux inline. */
@@ -29315,10 +29365,6 @@ body[data-ds-dark-theme] .kb8-cf-wm{color:color-mix(in srgb,var(--kb8-pc,var(--d
 .kb8-parent{font-size:12px;color:var(--dsw-alias-label-secondary)}
 .kb8-pills{display:flex;flex-wrap:wrap;gap:6px}
 .kb8-pill{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.04em;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-2);border-radius:999px;padding:5px 10px}
-/* La categorie et les tags se ressemblaient trait pour trait : un tag errone
-   (« sales » sur un kyber Finance) passait pour la categorie. Categorie = pleine,
-   tag = contour pointille avec #, kyber actif = marque. */
-.kb8-pill-cat{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-2)}.kb8-pill-tag{background:transparent;border:1px dashed var(--dsw-alias-border-l1)}.kb8-pill-active{color:var(--dsw-alias-label-primary-foreground);background:var(--dsw-alias-brand-primary);letter-spacing:.02em}
 .kb8-chips{display:flex;flex-wrap:wrap;gap:8px}
 .kb8-chip{font-size:13px;padding:10px 16px;border-radius:999px;cursor:pointer;white-space:nowrap;border:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-secondary)}
 .kb8-chip.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground)}
@@ -29832,13 +29878,6 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
   .kba-srow{grid-template-columns:14px minmax(0,1fr) 110px;row-gap:4px}
   .kba-srow .kba-moboff{display:none}
 }
-/* Le badge hosted/local est TOUJOURS visible (il vivait dans les actions, donc
-   au survol seulement) et colore quand le kyber existe aussi en Hosted. */
-.kb8-pill-host{display:inline-flex;align-items:center;gap:5px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1)}
-/* La marque (brand-primary) vaut #f9fafb dans le theme sombre : le badge
-   ressortait BLANC, donc pas « colore ». On prend l'accent bleu du systeme de
-   design, verifie a l'ecran : #679efe en sombre. */
-.kb8-pill-host.on{color:var(--dsw-alias-state-business-primary,#5686fe);background:color-mix(in srgb,var(--dsw-alias-state-business-primary,#5686fe) 18%,transparent);border-color:color-mix(in srgb,var(--dsw-alias-state-business-primary,#5686fe) 50%,transparent)}
 .kb8-search input{flex:1;min-width:0;border:0;background:none;font-size:14px;color:var(--dsw-alias-label-primary);outline:none}
 /* .kb8-primary : défini avec .kba-new-btn plus haut (bouton primaire unifié) */
 .kb8-newmenu-wrap{position:relative;display:inline-flex}

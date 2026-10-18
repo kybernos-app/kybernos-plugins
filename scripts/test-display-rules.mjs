@@ -586,7 +586,7 @@ ok('the Composio help text and its link keep 4.5:1 under the help block\'s opaci
 })
 
 
-ok('the face of the Workspaces and Agent Teams cards reads in both schemes: the figures and the sub line 4.5:1, the neutral tile\'s glyph 3:1', () => {
+ok('the face of the cards and of the list rows reads in both schemes: the figures and the sub line 4.5:1, the neutral tile\'s glyph 3:1', () => {
   const file = 'kybernos-plugin/client.js'
   const read = (selector) => lastDecl(rule(file, selector).body, 'color')
   for (const scheme of ['light', 'dark']) {
@@ -594,6 +594,10 @@ ok('the face of the Workspaces and Agent Teams cards reads in both schemes: the 
     atLeast('figures of the foot (' + scheme + ')', on(read('.kb8-cf-stats'), 'bg-layer-1'), 4.5)
     atLeast('category and tags line (' + scheme + ')', on(read('.kb8-cf-sub'), 'bg-layer-1'), 4.5)
     atLeast('neutral tile glyph on the platform grey (' + scheme + ')', on(read('.kb8-cf-ic'), 'bg-module-platform'), 3)
+    // the same face laid flat in the list rows, and the « Installed » state of a Marketplace card or row
+    atLeast('row figures (' + scheme + ')', on(read('.kb8-rf-figs'), 'bg-layer-1'), 4.5)
+    atLeast('row grey line (' + scheme + ')', on(read('.kb8-rf-sub'), 'bg-layer-1'), 4.5)
+    atLeast('Installed state (' + scheme + ')', on(read('.kb8-cf-st.state'), 'bg-layer-1'), 4.5)
   }
 })
 ok('the empty description of a compact card and the Skills source icon are readable in the light schemes (A1-05)', () => {

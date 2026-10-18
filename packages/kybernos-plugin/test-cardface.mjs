@@ -65,8 +65,8 @@ const swatches = [...(/const KB_SWATCHES = \[([^\]]+)\]/.exec(src)[1]).matchAll(
 
 // 4. the markup: both cards, hooks kept, no line for nothing
 {
-  const ws = src.slice(src.indexOf("const projectCard = (w, i) => {"), src.indexOf('// Vue LISTE des projets'))
-  const ky = src.slice(src.indexOf("const cardOf = (entry, ci) => {"), src.indexOf('// Vue liste des Kybers'))
+  const ws = src.slice(src.indexOf("const projectCard = (w, i) => {"), src.indexOf('// Workspaces list row:'))
+  const ky = src.slice(src.indexOf("const cardOf = (entry, ci) => {"), src.indexOf('// Agent Teams list row:'))
   assert.ok(ws.length > 1500 && ky.length > 2500, 'both cards were found')
   for (const [name, card] of [['Workspaces', ws], ['Agent Teams', ky]]) {
     assert.ok(/kbCfWatermark\(/.test(card) && /kbCfIcon\(/.test(card) && /className: 'kb8-cf-top'/.test(card) && /className: 'kb8-cf-foot'/.test(card), name + ': watermark, tile, top row and foot')
@@ -85,14 +85,40 @@ const swatches = [...(/const KB_SWATCHES = \[([^\]]+)\]/.exec(src)[1]).matchAll(
   ok('Workspaces and Agent Teams: the new face, no placeholder line, every hook kept')
 }
 
-// 5. only these two cards change: the Marketplace, the Skills cards and the list rows keep their look
+// 5. the same face everywhere a project or a team is shown: list rows, page headers, the avatar preview, the Marketplace and its Preview dialog
 {
-  const market = src.slice(src.indexOf("key: tpl.id, 'data-kb': 'market-card'") - 200, src.indexOf("key: tpl.id, 'data-kb': 'market-card'") + 200)
-  assert.ok(!market.includes('kb8-cf'), 'a Marketplace card does not carry the face')
-  const rows = src.slice(src.indexOf("const projectRow = (w, i) => {"), src.indexOf("const projectRow = (w, i) => {") + 1800)
-  assert.ok(rows.includes("projectTile(w, 36)") && !rows.includes('kb8-cf'), 'a Workspaces list row keeps its tile')
-  assert.ok(src.includes("const projectTile = (w, size) => {"), 'the list tile is still there')
-  ok('the Marketplace cards and the list rows are untouched')
+  const between = (from, to) => { const a = src.indexOf(from); assert.ok(a > 0, from + ' exists'); const b = src.indexOf(to, a); assert.ok(b > a, to + ' follows'); return src.slice(a, b) }
+  const wsRow = between('const projectRow = (w, i) => {', '// Fiche « Partager » d\'un projet')
+  const kyRow = between('const rowOf = (entry, ri) => {', 'React.useEffect(() => {\n        if (hubTab !== \'marketplace\'')
+  for (const [name, row, hook] of [['Workspaces row', wsRow, 'project-row'], ['Agent Teams row', kyRow, 'kyber-row']]) {
+    assert.ok(row.includes("'data-kb': '" + hook + "'") && /kb8-row kb8-rf/.test(row), name + ': the row keeps its hook and carries the flat face')
+    assert.ok(/kbCfIcon\([^)]*, 34\)/.test(row) && /kb8-rf-figs/.test(row) && /kb8-rf-acts/.test(row) && /style: kbCfVars\(/.test(row), name + ': tile 34, figures, actions, the colour on the row')
+    assert.ok(!/kb8-pill|kb8-tile|livePill|No description|kbui\.no\.mission/.test(row), name + ': no pill, no solid tile, no placeholder line')
+    assert.ok(/'data-kb': 'favorite-star'/.test(row) && /'data-kb': 'action-share'/.test(row) && /'data-kb': 'action-export'/.test(row), name + ': star, share and export carry their hooks')
+  }
+  assert.ok(/'data-kb': 'action-clone'/.test(kyRow) && /'data-kb': 'kyber-row-host'/.test(kyRow) && /kb8-rf-ph/.test(kyRow), 'Agent Teams row: clone, the hosting figure, and a hidden placeholder that keeps the live column')
+  assert.ok(/kyFavToggle\(rootPath \+ '\/' \+ k\.id\)/.test(kyRow), 'the star of an Agent Teams row toggles by id (it used to be handed the entry)')
+  assert.ok(!src.includes('const projectTile =') && !src.includes('const cloudTile =') && !src.includes('tileStyle'), 'the solid-tile helpers are gone (dead code)')
+  // headers, avatar preview
+  assert.ok(/kbCfIcon\(draft\.color, draft\.icon \|\| KB_DEFAULT_ICON, avatarImg\(\), false, 56\)/.test(src), 'Agent Team page header: tile 56 with the team picture')
+  assert.ok(/kbCfIcon\(draft\.color, draft\.icon \|\| KB_DEFAULT_ICON, avatarImg\(\), false, 96\)/.test(src), 'Identity: the avatar preview is the same tile at 96')
+  assert.ok(/kbCfIcon\(colorDraft, iconDraft \|\| 'folder', undefined, false, 56\)/.test(src) && /kbCfIcon\(typeof wsUi\.color/.test(src), 'the project page and its Details tab carry the tile at 56')
+  assert.ok(!/kbOnColor\((draft\.color|wsUi\.color|colorDraft|preview\.color|it\.color)/.test(src), 'no solid colour block (colour + readable text on it) is left on a team, project or Marketplace tile')
+  assert.ok(/icon: draft\.icon, color: draft\.color,/.test(src) && /icon: iconDraft, color: colorDraft,/.test(src) && /' on' \+ \(kbCfVars\(o\.color\) !== null \? ' col' : ''\)/.test(src), 'the icon pickers of a team and a project show the chosen icon in the chosen colour')
+  assert.match(src, /\.kb8-iconbtn\.on\.col\{background:color-mix\(in srgb,var\(--kb8-pc\) 13%,var\(--dsw-alias-bg-layer-1\)\);border-color:var\(--kb8-pgl\);color:var\(--kb8-pgl\)\}/, 'and the CSS gives it the pale ground and the glyph colour')
+  // Marketplace
+  const tplCard = between("key: tpl.id, 'data-kb': 'market-card'", "kbt('kbui.install')))))")
+  const cloudCard = between("key: it.slug, 'data-kb': 'market-card'", "kbt('kbui.market.cloud.install')")
+  for (const [name, card] of [['a template card', tplCard], ['a catalogue card', cloudCard]]) {
+    assert.ok(/kb8-card kb8-cmp kb8-cf/.test(src.slice(src.indexOf(card) - 120, src.indexOf(card) + 10)), name + ' carries the face')
+    assert.ok(/kb8-cf-top/.test(card) && /kb8-cf-foot/.test(card) && /kb8-cf-stats/.test(card) && !/kb8-pill/.test(card) && !/kb8-tile/.test(card), name + ': tile, foot and figures, no pill, no solid tile')
+  }
+  assert.ok(/kbCfWatermark\(tpl\.icon\)/.test(tplCard) && !/kbCfWatermark/.test(cloudCard), 'a template has the watermark; a catalogue entry has none (its glyph is a text, not an icon name)')
+  assert.ok(/kbCfTile\(it\.color, String\(it\.glyph/.test(cloudCard), 'the catalogue glyph is drawn in the same tile')
+  assert.ok(/'data-kb': 'market-agents'/.test(tplCard) && /className: 'state', 'data-kb': 'market-installed'/.test(tplCard), 'a template card keeps market-agents and market-installed (the state word stays shown)')
+  assert.ok(/kbCfIcon\(preview\.color, preview\.icon, undefined, false, 46\)/.test(src), 'the Preview dialog header carries the tile at 46')
+  assert.ok(!/toUpperCase\(\) \+ ' \\u00b7 ' \+ kbt\('kbat\.builtin'\)/.test(src), 'the category line is no longer shouted in capitals')
+  ok('rows, page headers, the avatar preview, the Marketplace and its Preview dialog wear the same face; the solid-tile helpers are gone')
 }
 
 // 6. the CSS: tokens only, a watermark that is still, a foot that holds the actions

@@ -111,7 +111,7 @@ try {
   await ev(`document.activeElement.blur(); true`)
   const installed = await ev(`(() => { const c = Array.from(document.querySelectorAll('[data-kb=market-card]')).find((x) => x.querySelector('[data-kb=market-installed]')); if (!c) return null; const a = c.querySelector('.kb8-cardacts'); const p = c.querySelector('[data-kb=market-installed]'); return { pillVisible: p.getBoundingClientRect().width > 0 && getComputedStyle(p).opacity === '1', installButton: !!a.querySelector('.kb8-primary') } })()`)
   if (installed === null) console.log('  ○ no template is installed in this instance: the « Installed » state is not measured')
-  else check('an installed template shows an « Installed » pill at rest and no Install button', installed.pillVisible === true && installed.installButton === false, installed)
+  else check('an installed template shows its « Installed » figure at rest and no Install button', installed.pillVisible === true && installed.installButton === false, installed)
 
   console.log('No hover device (touch emulation, 800 px) and 390 px')
   for (const [w, label] of [[800, 'touch, 800 px'], [390, '390 px']]) {
