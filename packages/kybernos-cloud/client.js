@@ -607,17 +607,17 @@ body:not([data-ds-dark-theme]) :is(.kbf-root,.kbfp-menu,.kbfp-sub,.kbf-pop,.kbf-
 /* (01/10, retour utilisateur) Plus de trait au-dessus du bouton profil : le
    contour de la carte devient transparent (géométrie conservée, ligne
    disparue). */
-.kbfp-card{position:relative;display:flex;align-items:center;gap:2px;width:100%;min-width:0;box-sizing:border-box;padding:8px 8px 8px 10px;border:1px solid transparent;border-radius:14px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit}
-.kbfp-cardmain{flex:1 1 auto;display:flex;align-items:center;gap:10px;min-width:0;padding:0;border:none;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;border-radius:8px}
-.kbfp-tile{flex:none;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-foreground,var(--dsw-alias-bg-base));font-family:ui-monospace,monospace;font-weight:700;font-size:13px}
+.kbfp-card{position:relative;display:flex;align-items:center;gap:2px;width:100%;min-width:0;box-sizing:border-box;padding:.55em .6em .55em .75em;border:1px solid transparent;border-radius:1.05em;font-size:var(--dsh-content-font-size,13px);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}
+.kbfp-cardmain{flex:1 1 auto;display:flex;align-items:center;gap:.75em;min-width:0;padding:0;border:none;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;border-radius:8px}
+.kbfp-tile{flex:none;width:2.5em;height:2.5em;border-radius:.75em;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-foreground,var(--dsw-alias-bg-base));font-family:ui-monospace,monospace;font-weight:700;font-size:.95em}
 .kbfp-cardtxt{flex:1 1 auto;min-width:0;margin-inline-start:2px}
-.kbfp-cardname{display:block;font-size:14px;font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kbfp-cardsub{display:block;font-size:12px;color:var(--dsw-alias-label-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbfp-cardname{display:block;font-size:1em;font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kbfp-cardsub{display:block;font-size:.9em;color:var(--dsw-alias-label-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* The allowance meter under the plan line: a thin bar and the percent used (never tokens or money); amber from 75 %, red when used up. */
-.kbfp-use{display:flex;align-items:center;gap:6px;margin-top:4px;min-width:0}
+.kbfp-use{display:flex;align-items:center;gap:.45em;margin-top:.25em;min-width:0}
 .kbfp-usebar{flex:1 1 auto;min-width:24px;height:4px;border-radius:2px;background:var(--dsw-alias-border-l2);overflow:hidden}
 .kbfp-usefill{display:block;height:100%;border-radius:2px;background:var(--dsw-alias-label-secondary)}
-.kbfp-usepct{flex:none;min-width:30px;text-align:right;font-size:11px;line-height:1;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-tertiary)}
+.kbfp-usepct{flex:none;min-width:2.3em;text-align:right;font-size:.85em;line-height:1;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-tertiary)}
 .kbfp-use[data-level="near"] .kbfp-usefill{background:var(--dsw-alias-state-warn-primary)}
 .kbfp-use[data-level="full"] .kbfp-usefill{background:var(--dsw-alias-state-error-primary)}
 .kbfp-use[data-level="full"] .kbfp-usepct{color:var(--dsw-alias-state-error-primary)}

@@ -6334,17 +6334,18 @@ const CSS = `
 .kb2-footbtn:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
 .kb2-footlabel{white-space:nowrap}.kbs-region{height:100%;overflow-y:auto;display:flex;flex-direction:column;background:var(--dsw-specific-sidebar-fill)}
 .kbg-search input,.kb3-convfilter input,.kbg-root input{box-sizing:border-box;max-width:100%}
-.kb4-menu{display:flex;flex-direction:column;padding-bottom:6px;width:100%;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;overscroll-behavior:contain}
-.kb4-newchat{display:flex;align-items:center;gap:10px;width:100%;margin:3px 0 7px;padding:8px 12px;border:none;border-radius:13px;background:var(--dsw-alias-brand-primary, var(--dsw-alias-button-primary-fill));color:var(--dsw-alias-label-primary-foreground, var(--dsw-alias-bg-base));cursor:pointer;text-align:left;font:inherit}
+.kb4-menu{display:flex;flex-direction:column;padding-bottom:.3em;font-size:var(--dsh-content-font-size,13px);width:100%;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;overscroll-behavior:contain}
+.kb4-newchat{display:flex;align-items:center;gap:.75em;width:100%;margin:.2em 0 .55em;padding:.5em .9em;border:none;border-radius:.95em;background:var(--dsw-alias-brand-primary, var(--dsw-alias-button-primary-fill));color:var(--dsw-alias-label-primary-foreground, var(--dsw-alias-bg-base));cursor:pointer;text-align:left;font:inherit}
 .kb4-newchat:hover{filter:brightness(1.06)}
 .kb4-newchat:disabled{cursor:progress;opacity:.85}
 /* The tile sits ON the brand fill, so it is a tint of that fill's label colour. bg-overlay is a pale grey in the light scheme: the white plus
    on it was 1.2:1, an empty square on every light page. */
-.kb4-plus{display:flex;align-items:center;justify-content:center;flex:none;width:28px;height:28px;border-radius:9px;background:color-mix(in srgb,var(--dsw-alias-label-primary-foreground,#fff) 22%,transparent);font-size:15px}
-.kb4-ncol{display:flex;flex-direction:column;min-width:0}
-.kb4-nct{font-weight:700;font-size:14px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kb4-ncs{font-size:11.5px;line-height:1.25;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kb4-chev{margin-left:auto;opacity:.7;font-size:13px}
+.kb4-plus{display:flex;align-items:center;justify-content:center;flex:none;width:1.8em;height:1.8em;border-radius:.65em;background:color-mix(in srgb,var(--dsw-alias-label-primary-foreground,#fff) 22%,transparent);font-size:1.15em}
+.kb4-ncol{display:flex;flex-direction:row;align-items:baseline;gap:.45em;min-width:0}
+.kb4-nct{flex:none;font-weight:700;font-size:1.05em;line-height:1.2;white-space:nowrap}
+.kb4-ncs{min-width:0;font-size:.9em;line-height:1.2;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kb4-ncs::before{content:"· "}
+.kb4-chev{margin-left:auto;opacity:.7;font-size:1em}
 /* Bouton partage : la zone principale demarre, le chevron choisit l'equipe.
    Couleurs prises au THEME (aucun rouge en dur) : brand-primary suit le theme
    natif ET les packs Kybernos (enregistres comme themes natifs), et
@@ -6355,11 +6356,11 @@ const CSS = `
    position:absolute se cale sur la racine de l'app et le selecteur s'affiche
    hors ecran (constate dans la GUI, cible de clic a 700,945). */
 .kb4-ncwrap{position:relative;width:100%;flex:none}
-.kb4-split{position:relative;display:flex;align-items:stretch;width:100%;margin:3px 0 7px;border-radius:13px;background:var(--dsw-alias-brand-primary, var(--dsw-alias-button-primary-fill));color:var(--dsw-alias-label-primary-foreground, var(--dsw-alias-bg-base));overflow:visible}
+.kb4-split{position:relative;display:flex;align-items:stretch;width:100%;margin:.2em 0 .55em;border-radius:.95em;background:var(--dsw-alias-brand-primary, var(--dsw-alias-button-primary-fill));color:var(--dsw-alias-label-primary-foreground, var(--dsw-alias-bg-base));overflow:visible}
 .kb4-split:hover{filter:brightness(1.06)}
-.kb4-split .kb4-newchat{flex:1 1 auto;min-width:0;margin:0;border-radius:13px 0 0 13px;background:transparent;overflow:hidden}
+.kb4-split .kb4-newchat{flex:1 1 auto;min-width:0;margin:0;border-radius:.95em 0 0 .95em;background:transparent;overflow:hidden}
 .kb4-split .kb4-newchat:hover{filter:none;background:transparent}
-.kb4-split .kb4-chevbtn{flex:none;width:38px;display:flex;align-items:center;justify-content:center;border:none;border-left:1px solid rgba(128,128,128,.35);border-left-color:color-mix(in srgb, currentColor 30%, transparent);border-radius:0 13px 13px 0;background:transparent;color:inherit;cursor:pointer;font:inherit}
+.kb4-split .kb4-chevbtn{flex:none;width:2.7em;display:flex;align-items:center;justify-content:center;border:none;border-left:1px solid rgba(128,128,128,.35);border-left-color:color-mix(in srgb, currentColor 30%, transparent);border-radius:0 .95em .95em 0;background:transparent;color:inherit;cursor:pointer;font:inherit}
 .kb4-split .kb4-chevbtn:hover{background:transparent}
 .kb4-split .kb4-chev{margin:0;transition:transform .16s ease}
 .kb4-split.open .kb4-chev{transform:rotate(180deg)}
@@ -6383,15 +6384,30 @@ const CSS = `
 .kb4-pick-b{display:flex;align-items:center;gap:6px;padding:4px 6px;border:none;border-radius:8px;background:transparent;color:inherit;cursor:pointer;font:inherit;font-size:12.5px}
 .kb4-pick-b:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
 .kb4-pick-b b{font-weight:600;color:var(--dsw-alias-label-primary)}
-.kb4-item{display:flex;align-items:center;gap:6px;width:100%;min-height:34px;margin:0;padding:6px 10px 6px 8px;border:none;border-radius:10px;background:none;font:inherit;font-size:15px;color:var(--dsw-alias-label-primary);cursor:pointer;text-align:left}
+.kb4-item{display:flex;align-items:center;gap:.5em;width:100%;min-height:2.25em;margin:0;padding:.3em .8em .3em .6em;border:none;border-radius:.75em;background:none;font:inherit;font-size:1em;line-height:1.3;color:var(--dsw-alias-label-primary);cursor:pointer;text-align:left}
 .kb4-item:hover{background:var(--dsw-alias-bg-layer-1)}
 .kb4-item.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-brand-primary)}
 .kb4-item.on .kb4-lab{font-weight:700}
-.kb4-ico{flex:none;width:16px;height:16px;display:flex;align-items:center;justify-content:center}
-.kb4-isvg{display:inline-flex;width:16px;height:16px;color:var(--dsw-alias-label-secondary)}
+.kb4-ico{flex:none;width:1.25em;height:1.25em;display:flex;align-items:center;justify-content:center}
+.kb4-isvg{display:inline-flex;width:1.25em;height:1.25em;color:var(--dsw-alias-label-secondary)}
 .kb4-isvg svg{display:block}
 .kb4-lab{flex:1;text-align:left}
-.kb4-badge{font-size:13px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}
+.kb4-badge{font-size:.95em;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}
+@media (pointer:coarse){.kb4-item,.kb4-newchat{min-height:44px}}
+/* The menu is drawn in em of the chat text size (the engine keeps it in --dsh-content-font-size on <body>, 12 to 17 px): one setting, General › Font size,
+   sets the chat and the menu, and a smaller size gives a denser menu. The blocks of the shell around it are measured the same way (calc on --kb-u):
+   the logo row was 60px for a 24px logo, the section header 36px, a workspace row 34px against 14px text. Touch screens keep their 44px targets. */
+body{--kb-u:var(--dsh-content-font-size,13px)}
+[class*="_logoRow"]{box-sizing:border-box;height:calc(var(--kb-u)*3.2);min-height:0;padding-block:0;margin-bottom:0;align-items:center}
+[class*="_regionArea"] [class*="_sectionHeader"]{height:calc(var(--kb-u)*2.4);margin-top:calc(var(--kb-u)*.35);margin-bottom:0}
+[class*="_regionArea"] [class*="_sectionLabel"]{font-size:calc(var(--kb-u)*.95)}
+[class*="_regionArea"] [class*="_listArea"] > [class*="_section"] > [class*="_header"]{height:calc(var(--kb-u)*1.9);font-size:calc(var(--kb-u)*.92)}
+[class*="_regionArea"] [class*="_listArea"] [class*="_rows"] [class*="_row"]{height:calc(var(--kb-u)*2.3);font-size:var(--kb-u)}
+[class*="_regionArea"] [class*="_treeBody"] [class*="_projectRow"]{height:calc(var(--kb-u)*2.4);font-size:var(--kb-u)}
+[class*="_regionArea"] [class*="_treeBody"] [class*="_sessionRow"]{height:calc(var(--kb-u)*2.2);font-size:var(--kb-u)}
+[class*="_regionArea"] [class*="_treeBody"] [class*="_title"]{font-size:var(--kb-u);line-height:1.35}
+[class*="_regionArea"] [class*="_sessionOverflowButton"]{height:calc(var(--kb-u)*2);font-size:calc(var(--kb-u)*.92)}
+@media (pointer:coarse){[class*="_regionArea"] [class*="_treeBody"] [class*="_projectRow"],[class*="_regionArea"] [class*="_treeBody"] [class*="_sessionRow"],[class*="_regionArea"] [class*="_listArea"] [class*="_rows"] [class*="_row"]{height:44px}}
 [class*="collapsed"] .kb4-menu .kb4-lab,[class*="collapsed"] .kb4-menu .kb4-badge,[class*="collapsed"] .kb4-menu .kb4-ncol,[class*="collapsed"] .kb4-menu .kb4-chev{display:none !important}
 [class*="collapsed"] .kb4-menu .kb4-split{width:36px;margin:8px auto;border-radius:12px}
 /* Rail replie : DSH donne a la ligne hote la taille d'un bouton (36px,
