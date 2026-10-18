@@ -143,7 +143,7 @@ for (const [lang, block] of [['en', enBlock], ['fr', frBlock]]) {
   assert.deepEqual(bad, [], 'mot « workspace » / « espace » dans une chaine visible (' + lang + ') : on dit Team / équipe')
 }
 assert.ok(/wsPersonal: 'Personal'/.test(enBlock) && /wsPersonal: 'Personnel'/.test(frBlock), 'l espace personnel s affiche Personal / Personnel')
-assert.ok(clientSource.includes('nomAffiche(courant, t)') && clientSource.includes('nomAffiche(w, t)') && clientSource.includes('const nomAffiche = (w, t) =>'), 'la carte et la liste affichent le nom via nomAffiche, avec le traducteur de l appelant (Personal pour l espace personnel)')
+assert.ok(clientSource.includes('espaceActifVue(state, t)') && clientSource.includes('espaceVue(w, t)') && clientSource.includes('const nomAffiche = (w, t) =>'), 'la carte et la liste affichent le nom via la meme source (espaceVue -> nomAffiche), avec le traducteur de l appelant (Personal pour l espace personnel)')
 sok('vocabulaire Team : aucune chaine visible ne dit workspace / espace, l espace personnel = Personal / Personnel')
 // A refused creation always says so (with the server's code), and keeps the hosted page as an extra: never a dialog that silently does nothing.
 assert.ok(clientSource.includes("setErreur(t('wsNewErr') + (res !== null && typeof res.status === 'number'"), 'la creation refusee dit pourquoi (code serveur)')
@@ -188,10 +188,10 @@ assert.ok(/view\.note === 'denied' \? t\('pairingDenied'\) : t\('pairingExpired'
 sok('la carte parle en phrases : codes internes traduits (reseau, trop_de_demandes, ...), heure de validité du code, refus / expiration distincts d une révocation')
 // The card's plan row is the ACTIVE team's plan label (what the footer chip says), not the account-level word of the profile: « Plan team » next to a chip that
 // said « Solo Studio » was measured right after a pairing.
-assert.ok(/label: t\('plan'\), value: \(st\.space_plan !== undefined && st\.space_plan !== null && typeof st\.space_plan\.label === 'string'/.test(clientSource), 'la ligne Plan de la carte lit le libelle de l espace actif avant le mot du compte')
+assert.ok(/label: t\('plan'\), value: \(st\.space_plan !== undefined && st\.space_plan !== null && st\.space_plan\.key === 'none' \? t\('planNone'\) : null\) \|\| \(st\.space_plan !== undefined && st\.space_plan !== null && typeof st\.space_plan\.label === 'string'/.test(clientSource), 'la ligne Plan de la carte lit le libelle de l espace actif avant le mot du compte (et dit « No plan » pour une equipe sans formule)')
 sok('carte : la ligne Plan dit le plan de l espace actif (comme la pastille), le mot du compte seulement en repli')
 // The team switcher's list names the personal space the way the card and the chip do (« Personal »), not by the server's name for it (« My workspace »).
-assert.ok(clientSource.includes("h('span', { className: 'kbfp-wsname' }, (w && nomAffiche(w, t)) || t('none'))"), 'la liste du selecteur d equipe passe par nomAffiche')
+assert.ok(clientSource.includes("h('span', { className: 'kbfp-wsname' }, (w && espaceVue(w, t).name) || t('none'))"), 'la liste du selecteur d equipe passe par espaceVue (nom et initiales de la meme source)')
 sok('selecteur d equipe : l espace personnel s y appelle Personal / Personnel, comme la pastille')
 // The footer chip re-reads the host's /status by itself: after the host signs the device out (a token revoked from the account page) it said
 // « Rita Rich · Solo Studio » until the card was opened.
@@ -605,5 +605,244 @@ for (const needle of [
   assert.ok(source.includes(needle), 'cablage du selecteur d equipe manquant: ' + needle)
 }
 ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe inconnue')
+
+// ── The account state, as the footer shows it (2026-10-18 account campaign: AC-01, AC-02, AC-09, AC-15, AC-17) ──────────────────────────────────────────────
+// AC-15: ONE source for how a workspace looks (the name a person sees and its initials), and for how its plan reads. The block is cut out of client.js and played alone.
+{
+  const m = source.match(/\/\/ <space-face:begin>[\s\S]*?\/\/ <space-face:end>/)
+  assert.ok(m !== null, 'the workspace face is a marked block')
+  const face = new Function(m[0] + '\nreturn { espaceVue, espaceActifVue, planDeEspace, planNameOf, initiales }')()
+  const dict = { wsPersonal: 'Personal', spaceTitle: 'Team', planNone: 'No plan', none: '—' }
+  const t = (k) => dict[k] !== undefined ? dict[k] : k
+  const personal = { id: 'p', name: 'My workspace', personal: true }
+  const team = { id: 'x', name: 'Acme Crew', personal: false }
+  assert.deepEqual(face.espaceVue(personal, t), { name: 'Personal', initials: 'PE' }, 'the personal workspace is « Personal » and PE wherever it is drawn')
+  assert.deepEqual(face.espaceVue({ id: 'p', name: 'My workspace' }, t), { name: 'Personal', initials: 'PE' }, 'the server\'s own name for it is enough (no `personal` flag): the same face')
+  assert.deepEqual(face.espaceVue(team, t), { name: 'Acme Crew', initials: 'AC' })
+  assert.deepEqual(face.espaceActifVue({ workspaces: [personal, team], active_workspace_id: 'x' }, t), { name: 'Acme Crew', initials: 'AC' }, 'the active workspace is read the same way')
+  assert.deepEqual(face.espaceActifVue({ workspaces: [personal, team] }, t), { name: 'Personal', initials: 'PE' }, 'none chosen: the first, the same face')
+  assert.deepEqual(face.espaceActifVue({ workspaces: [] }, t), { name: 'Team', initials: 'TE' }, 'no workspace known: « Team »')
+  // The old call sites that cut the initials from the server's raw name (the list said MW next to a card that said PE) must not come back.
+  assert.equal(/initiales\(w && w\.name/.test(source), false, 'no list cuts initials from the raw name')
+  assert.equal((source.match(/initiales\(/g) || []).length, 2, 'initiales() is called by the one source only (espaceVue, and the « Team » fallback of espaceActifVue)')
+  // The plan slot: a team with no plan says so (it is neither « Free » nor an unknown « — »).
+  assert.equal(face.planNameOf({ space_plan: { key: 'none', label: null } }, { plan: 'free' }, t), 'No plan', 'no plan at all: said, not « — » and not the account\'s « free »')
+  assert.equal(face.planDeEspace({ space_plan: { key: 'none', label: null } }, {}).none, true)
+  assert.equal(face.planDeEspace({ space_plan: { key: 'free', label: 'Free' } }, {}).none, false)
+  assert.equal(face.planNameOf({ space_plan: { key: 'free', label: 'Free' } }, {}, t), 'Free')
+  assert.equal(face.planNameOf({ space_plan: { key: 'solo', label: 'solo Studio' } }, {}, t), 'Solo Studio')
+  assert.equal(face.planNameOf({}, {}, t), '—', 'unknown stays « — »')
+  assert.equal(face.planNameOf({}, { plan: 'team' }, t), 'Team', 'no read of the space: the account\'s word, as before')
+  ok('one source for a workspace\'s name and initials (Personal/PE in the card, the menu and both lists) and for its plan (« No plan » for a team without one)')
+}
+
+// AC-09 / AC-02 wiring that needs a click to see: the dialog has its heading and what a team is, the plan slot offers « Choose a plan » on the plan page.
+{
+  const i = source.indexOf('const NewSpacePanel = ')
+  const panel = source.slice(i, source.indexOf('// ── THE MOBILE APP', i))
+  assert.ok(/className: 'kbc-head'[\s\S]*className: 'kbc-title'[\s\S]*className: 'kbc-x'/.test(panel), 'the dialog has the card\'s own header: the title, then the cross (the title used to run under a bare button)')
+  assert.ok(panel.includes("t('wsNewIntro')") && panel.includes("'data-kb': 'new-team-intro'"), 'and one sentence on what a team is and that it starts without a plan')
+  assert.ok(panel.includes('props.onCreated(res)'), 'the answer of the host reaches the footer, which tells the person what happened')
+  assert.equal(/kbc-close|kbws-head|kbws-who/.test(source), false, 'the bare button and its two styles are gone')
+  assert.ok(/planInfo\.none === true\s*\? h\('button'[^\n]*'data-plan': 'none'[^\n]*props\.onUpgradePage\(\)[^\n]*t\('planChoose'\)/.test(source), 'the menu\'s plan slot offers « Choose a plan » for a team without a plan, on the plan page')
+  assert.ok(/flashAct !== null && flashAct\.for === flash/.test(source) && /const announceCreated = /.test(source), 'a team created without a plan is announced, with its plan page one press away')
+  for (const k of ['wsNewIntro', 'wsNewNoPlan', 'planNone', 'planChoose', 'quotaNoPlan', 'quotaNoPlanAdmin', 'quotaNoPlanMember', 'sessionEnded', 'footSignInAgain', 'footEnded', 'footPairDenied', 'footPairExpired'])
+    assert.ok(frKeys.has(k) && enKeys.has(k), 'missing in fr or en: ' + k)
+  assert.equal((source.match(/callLocal\('\/console\/link'/g) || []).length, 2, 'still two call sites of the console link: « Choose a plan » goes through them')
+  ok('create dialog: heading, cross, what a team is; plan slot: « Choose a plan »; a plan-less team is announced; fr/en')
+}
+
+// AC-01: a connection the server ended. The host's /status says `revoked` and the row says « Sign in again » and why, instead of the first-time words.
+{
+  const intervals = []
+  const realSetInterval = globalThis.window.setInterval
+  globalThis.window.setInterval = (fn, ms) => { intervals.push({ fn, ms }); return intervals.length }
+  // The notices go by themselves after a few seconds: they need real timers here.
+  globalThis.window.setTimeout = setTimeout
+  globalThis.window.clearTimeout = clearTimeout
+  const calls = []
+  let status = { ok: true, connected: false, status: 'revoked', ended: { at: '2026-10-18T10:00:00.000Z' } }
+  let quota = { ok: false, error: 'indisponible' }
+  let poll = { ok: true, connected: false, status: 'pending' }
+  globalThis.fetch = async (url, init) => {
+    const path = new URL(String(url), 'http://localhost').pathname.replace(/^.*\/kybernos-cloud/, '')
+    calls.push((init && init.method ? init.method : 'GET') + ' ' + path)
+    const json = path === '/status' ? status : path === '/quota' ? quota : path === '/poll' ? poll : { ok: false }
+    return { ok: true, status: 200, json: async () => json }
+  }
+  const draw = async (wait = 20) => {
+    const el = element(doc)
+    const root = ReactClient.createRoot(el)
+    await act(async () => { root.render(createElement(registered.component, null)); await new Promise((r) => setTimeout(r, wait)) })
+    await act(async () => { await new Promise((r) => setTimeout(r, wait)) })
+    return { el, root }
+  }
+
+  // 1. Ended: « Sign in again », and the sentence that says why, in the row's own line.
+  {
+    const { el, root } = await draw()
+    const html = htmlDe(el)
+    assert.ok(html.includes('data-kb="foot-signin"') && html.includes('>Sign in again<'), 'an ended connection reads « Sign in again »: ' + html.slice(0, 400))
+    assert.ok(html.includes('data-kb="foot-ended"') && html.includes('>Your session ended<'), 'with the sentence that says the session was ended')
+    assert.equal(html.includes('Sign in / Sign up'), false, 'not the first-time words')
+    root.unmount()
+    status = { ok: true, connected: false, status: 'none' }
+    const plain = await draw()
+    assert.ok(htmlDe(plain.el).includes('Sign in / Sign up') && !htmlDe(plain.el).includes('Sign in again'), 'never connected: the first-time words, as before')
+    plain.root.unmount()
+    ok('footer: a connection the server ended says « Sign in again » and « Your session ended » (the first-time words only when nobody was ever connected)')
+  }
+
+  // 2. Connected, then the quota read (the footer's own, on mount) finds the session ended: the row flips at once, with a notice, without waiting for the 30-second read.
+  {
+    const connected = { ok: true, connected: true, state: { user: { email: 'dev@example.test', plan: 'free' }, workspaces: [{ id: 'ws-1', name: 'My workspace', personal: true }], active_workspace_id: 'ws-1', space_plan: { key: 'free', label: 'Free', workspace_id: 'ws-1' } } }
+    status = connected
+    const gone = { ok: true, connected: false, status: 'revoked', ended: { at: '2026-10-18T10:00:00.000Z' } }
+    globalThis.fetch = async (url, init) => {
+      const path = new URL(String(url), 'http://localhost').pathname.replace(/^.*\/kybernos-cloud/, '')
+      calls.push((init && init.method ? init.method : 'GET') + ' ' + path)
+      if (path === '/quota') { status = gone; return { ok: true, status: 200, json: async () => ({ ok: false, connected: false, status: 'revoked', error: 'session_ended' }) } }
+      return { ok: true, status: 200, json: async () => (path === '/status' ? status : { ok: false }) }
+    }
+    calls.length = 0
+    const { el, root } = await draw(40)
+    const html = htmlDe(el)
+    assert.ok(calls.includes('GET /quota'), 'the footer reads the quota when it appears')
+    assert.ok(html.includes('>Sign in again<'), 'the quota answer « revoked » flips the row at once: ' + html.slice(0, 300))
+    assert.ok(html.includes('data-kb="foot-flash"') && html.includes('class="kbfp-flashtext">Your session ended: the server no longer recognises this device.'), 'and a notice says why (the row changed while the person looked elsewhere)')
+    root.unmount()
+    ok('footer: a quota read that finds the session ended flips the row to « Sign in again » at once, with the reason in a notice')
+  }
+
+  // 3. A pairing under way is asked about by the footer itself: a refusal or an expiry is said where the person looks.
+  {
+    for (const [verdict, short, long] of [['denied', 'Connection refused', 'The connection was refused in the browser.'], ['expired', 'Code expired', 'The code expired before it was confirmed.']]) {
+      intervals.length = 0
+      status = { ok: true, connected: false, status: 'pending', pairing: { user_code: 'ABC234', activation_url: 'http://127.0.0.1/a', expires_at: '2026-10-18T10:10:00.000Z' } }
+      poll = { ok: true, connected: false, status: 'pending' }
+      globalThis.fetch = async (url, init) => {
+        const path = new URL(String(url), 'http://localhost').pathname.replace(/^.*\/kybernos-cloud/, '')
+        calls.push((init && init.method ? init.method : 'GET') + ' ' + path)
+        if (path === '/poll') { const out = poll; if (poll.status === verdict) status = { ok: true, connected: false, status: 'none' }; return { ok: true, status: 200, json: async () => out } }
+        return { ok: true, status: 200, json: async () => (path === '/status' ? status : { ok: false }) }
+      }
+      calls.length = 0
+      const { el, root } = await draw()
+      assert.ok(htmlDe(el).includes('>Pairing in progress<'), 'a pending pairing: the row says so')
+      const ask = intervals.filter((i) => i.ms === 3000)
+      assert.equal(ask.length, 1, 'the footer asks about the pairing every few seconds (one timer)')
+      await act(async () => { await ask[0].fn() })
+      assert.ok(calls.includes('POST /poll'), 'by the host\'s poll route')
+      poll = { ok: true, connected: false, status: verdict }
+      await act(async () => { await ask[0].fn(); await new Promise((r) => setTimeout(r, 20)) })
+      await act(async () => { await new Promise((r) => setTimeout(r, 20)) })
+      const html = htmlDe(el)
+      assert.ok(html.includes('data-kb="foot-flash"') && html.includes('class="kbfp-flashtext">' + long), verdict + ': a notice says it (' + long + ')')
+      assert.ok(html.includes('data-kb="foot-pair-note"') && html.includes(short), verdict + ': and the row keeps a short line until the person tries again')
+      assert.ok(html.includes('>Sign in / Sign up<'), 'the row is the signed-out one again (a refused pairing is not an ended session)')
+      root.unmount()
+    }
+    ok('footer: a pairing that ends refused or expired is said in a notice and in the row, without the card being open')
+  }
+  globalThis.window.setInterval = realSetInterval
+}
+
+// ── The failure row of a turn: AC-01 (« no adapter registered ») and AC-02 (« Request quota exhausted » of a team without a plan) ──────────────────────────
+// The engine's keyed slot `conversation.chat.node`, key `turn-error`: the plugin wraps the SHIPPED row (found in the slot's entries, registered at the lowest priority so that it
+// renders, with the shipped entry's own locale so the shipped row still gets its translator). Every other failure is drawn by the shipped component, untouched.
+{
+  const list = []
+  const subscribers = []
+  const registrations = []
+  let disposeInject = null
+  const slotsRow = {
+    inject: (name, cb) => { const d = cb(); if (name === 'conversation.chat.node') disposeInject = d; return () => {} },
+    register: (options, component) => { registrations.push({ options, component }); list.unshift({ options: { key: options.key, priority: options.priority }, component, locale: options.locale }); return () => { const i = list.findIndex((e) => e.component === component); if (i >= 0) list.splice(i, 1) } },
+    entries: (name) => (name === 'conversation.chat.node' ? list.slice() : []),
+    subscribe: (name, fn) => { subscribers.push(fn); return () => { const i = subscribers.indexOf(fn); if (i >= 0) subscribers.splice(i, 1) } },
+  }
+  const seen = []
+  const Shipped = (props) => { seen.push(props); return createElement('div', { className: 'shipped-row' }, String(props.node.data.code) + '|' + String(props.node.data.message)) }
+  const pluginRow = captured.def.factory(require)
+  // Only the failure row's own effect runs here (the other effects mount styles and footers that this fake DOM does not draw).
+  pluginRow.apply({ get: (name) => (name === 'slots' ? slotsRow : undefined), effect: (fn, label) => { if (/failure row of a turn/.test(String(label))) void fn() } })
+  const nodeRegistrations = () => registrations.filter((r) => r.options.name === 'conversation.chat.node')
+  assert.equal(nodeRegistrations().length, 0, 'the shipped row is not there yet: nothing is registered (and nothing broke)')
+  list.push({ options: { key: 'turn-error' }, component: Shipped, locale: 'chat-ns' })
+  for (const fn of subscribers.slice()) fn()
+  assert.equal(nodeRegistrations().length, 1, 'once the shipped row is registered, it is wrapped')
+  assert.deepEqual(nodeRegistrations()[0].options, { name: 'conversation.chat.node', key: 'turn-error', priority: -1, locale: 'chat-ns' }, 'same key, the lowest priority (it renders), the shipped entry\'s own locale')
+  for (const fn of subscribers.slice()) fn()
+  assert.equal(nodeRegistrations().length, 1, 'wrapped once, however often the slot changes')
+  const Row = nodeRegistrations()[0].component
+  const events = []
+  const realDispatch = globalThis.window.dispatchEvent
+  globalThis.window.dispatchEvent = (ev) => { events.push(ev.type + (ev.detail ? ':' + JSON.stringify(ev.detail) : '')); return true }
+  const draw = async (props, quota) => {
+    seen.length = 0
+    globalThis.fetch = async (url) => ({ ok: true, status: 200, json: async () => (String(url).includes('/quota') ? quota : { ok: false }) })
+    const el = element(doc)
+    const root = ReactClient.createRoot(el)
+    await act(async () => { root.render(createElement(Row, props)); await new Promise((r) => setTimeout(r, 20)) })
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)) })
+    return { el, root, html: htmlDe(el) }
+  }
+  const T = () => 'translated'
+  const node = (data) => ({ key: 'n1', kind: 'turn-error', data })
+
+  // 1. The cloud models are gone: a sentence and the way back, in the shipped row (its title and look), with no engine code beside it.
+  {
+    const a = await draw({ node: node({ code: 'UNKNOWN', message: 'no adapter registered for provider "kybernos"' }), t: T }, { ok: false })
+    assert.equal(seen.length, 1)
+    assert.equal(seen[0].node.data.message, 'This model comes from your Kybernos account, and this DSH is not signed in to it any more. Sign in again to use it.')
+    assert.equal(seen[0].node.data.code, undefined, 'no engine code next to our sentence')
+    assert.equal(seen[0].t, T, 'the shipped row gets its own translator, as it was handed it')
+    assert.ok(a.html.includes('data-kb="turn-error-action"') && a.html.includes('>Sign in again<'), 'the action is beside it')
+    a.root.unmount()
+  }
+  // 2. Any other failure: the shipped row, with the very props it was given, and no action of ours.
+  {
+    const props = { node: node({ code: 'AUTH', message: 'API key is invalid' }), t: T, extra: 7 }
+    const b = await draw(props, { ok: false })
+    assert.ok(seen[0].node === props.node && seen[0].t === T && seen[0].extra === 7, 'the same props, node included')
+    assert.ok(b.html.includes('shipped-row') && !b.html.includes('turn-error-action'), 'nothing of ours around it')
+    b.root.unmount()
+  }
+  // 3. QUOTA on a team with no plan: the sentence and « Choose a plan » (which asks the footer for the plan page, with the team's id).
+  {
+    const c = await draw({ node: node({ code: 'QUOTA', message: 'Request quota exhausted.' }), t: T }, { ok: true, no_plan: true, payment_blocked: false, usage: [], workspace: { id: 'ws-9', name: 'Alpha crew', role: 'owner', personal: false } })
+    assert.equal(seen[seen.length - 1].node.data.message, 'Alpha crew has no plan yet, so nobody in it can use the models. Choose a plan to turn them on.')
+    assert.equal(seen[seen.length - 1].node.data.code, undefined)
+    assert.ok(c.html.includes('>Choose a plan<'), 'with its action')
+    // the button asks the footer (no new call of the console link from here)
+    const idx = seen.length
+    c.root.unmount()
+    assert.ok(idx >= 1)
+    // A plain member is told who to ask, with no button of their own.
+    const m = await draw({ node: node({ code: 'QUOTA', message: 'Request quota exhausted.' }), t: T }, { ok: true, no_plan: true, payment_blocked: false, usage: [], workspace: { id: 'ws-9', name: 'Alpha crew', role: 'member', personal: false } })
+    assert.ok(seen[seen.length - 1].node.data.message.includes('Ask an owner or admin of Alpha crew to choose one.') && !m.html.includes('turn-error-action'), 'a member: who to ask, no button')
+    m.root.unmount()
+  }
+  // 4. QUOTA for any other reason (a window used up, a failed payment, facts that did not come): the engine's own words, untouched.
+  {
+    const props = { node: node({ code: 'QUOTA', message: 'Request quota exhausted.' }), t: T }
+    for (const facts of [{ ok: true, no_plan: false, payment_blocked: false, usage: [{ kind: 'member', window_seconds: 18000, scope: 'plan', used_percent: 100, exhausted: true, resets_at: null }], workspace: { id: 'w', name: 'Acme', role: 'owner', personal: false } }, { ok: false, error: 'indisponible' }, { ok: false, status: 'revoked' }]) {
+      const d = await draw(props, facts)
+      assert.ok(seen[seen.length - 1].node === props.node && seen[seen.length - 1].t === T, 'untouched for ' + JSON.stringify(facts).slice(0, 60))
+      assert.ok(!d.html.includes('turn-error-action'))
+      d.root.unmount()
+    }
+  }
+  // 5. The slot's owner goes away (or the plugin is unloaded): the wrapper is withdrawn, the shipped row alone is left.
+  assert.ok(typeof disposeInject === 'function', 'the registration is disposable')
+  disposeInject()
+  assert.equal(list.some((e) => e.component === Row), false, 'withdrawn')
+  assert.equal(subscribers.length, 0, 'and it stops listening')
+  globalThis.window.dispatchEvent = realDispatch
+  // The footer owns the console link: the row's « Choose a plan » reaches it through a window event, and there is still no third call site.
+  assert.ok(/addEventListener\('kybernos-cloud:plan'/.test(source) && /openAccountPage\('plan', id\)/.test(source), 'the footer opens the plan page on the row\'s request')
+  assert.equal((source.match(/callLocal\('\/console\/link'/g) || []).length, 2, 'still two call sites of the console link')
+  ok('failure row of a turn: « no adapter registered » and a plan-less team get a sentence and an action in the shipped row; every other failure is the shipped row untouched; withdrawn with the plugin')
+}
 
 console.log('\n' + pass + ' verifications OK')

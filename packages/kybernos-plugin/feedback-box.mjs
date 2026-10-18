@@ -1,7 +1,8 @@
 // The feedback box (V-10): what a person writes in the « Send feedback » form is appended, as ONE JSON line, to
-// <DSH home>/kybernos/feedback.jsonl. Nothing is sent anywhere: the file is what the owner reads, or what the person exports
-// (copies to the clipboard) and passes on himself. The relay path of the older interview (the skill report-feedback and its
-// tool kybernos_report_feedback, index.js) is another door and stays as it is.
+// <DSH home>/kybernos/feedback.jsonl by « Save ». Nothing is sent anywhere by that: the file is what the owner reads, or what the
+// person exports (copies to the clipboard) and passes on himself. « Send » (a signed-in person's way to the team) is the other door:
+// `relayReportOf` turns the same form into the report the server's relay takes, and index.js posts it with the device token, through
+// the beta-feedback sender that the skill report-feedback and its tool kybernos_report_feedback already use.
 //
 // Pure but for the file: the DSH home, the masking of secrets, the clock and the id are handed in (index.js gives the real ones).
 import { appendFileSync, chmodSync, mkdirSync, readFileSync, statSync } from 'node:fs'
@@ -44,15 +45,70 @@ export function entryOf (body, env) {
   const entry = { v: 1, id: env.id(), at: new Date(env.now()).toISOString(), type: b.type, message: mask(clip(text, MESSAGE_MAX)) }
   if (b.context === true) {
     const given = plain(typeof env.context === 'function' ? env.context() : null)
-    const page = plain(b.page)
     const context = {}
     for (const key of ['os', 'dsh', 'revision']) if (typeof given[key] === 'string' && given[key] !== '') context[key] = mask(clip(given[key], 120))
-    if (typeof page.title === 'string' && page.title !== '') context.title = mask(clip(page.title, 120))
-    if (typeof page.lang === 'string' && page.lang !== '') context.lang = mask(clip(page.lang, 16))
-    for (const key of ['width', 'height']) if (Number.isFinite(page[key])) context[key] = Math.max(0, Math.min(20000, Math.round(page[key])))
+    Object.assign(context, pageFacts(b.page, mask))
     entry.context = context
   }
   return { ok: true, entry }
+}
+
+/** The page facts a form may carry (title, language, window size), masked and bounded: the same for the box and for the relay. */
+function pageFacts (value, mask) {
+  const page = plain(value)
+  const facts = {}
+  if (typeof page.title === 'string' && page.title !== '') facts.title = mask(clip(page.title, 120))
+  if (typeof page.lang === 'string' && page.lang !== '') facts.lang = mask(clip(page.lang, 16))
+  for (const key of ['width', 'height']) if (Number.isFinite(page[key])) facts[key] = Math.max(0, Math.min(20000, Math.round(page[key])))
+  return facts
+}
+
+/** The longest title made of a message's first line (the server accepts 160; a title is a headline). */
+export const TITLE_MAX = 80
+
+/** A message's first non-blank line as a headline: whitespace collapsed, cut at a word boundary (else hard) with an ellipsis past TITLE_MAX. */
+const headline = (text) => {
+  const first = text.split(/\r\n|\n|\r/).map((l) => l.replace(/\s+/g, ' ').trim()).find((l) => l !== '')
+  const line = first === undefined ? '' : first
+  if (line.length <= TITLE_MAX) return line
+  const room = line.slice(0, TITLE_MAX - 1)
+  const space = room.lastIndexOf(' ')
+  return (space >= 20 ? room.slice(0, space) : room).trimEnd() + '…'
+}
+
+/**
+ * The report the server's relay takes (POST /v1/feedback, kinds bug | feature) from what the form sent, or the reason it is refused.
+ *   body  the form's own: { type: 'bug' | 'idea' | 'question', message, context?: true, page?: { title, lang, width, height } }
+ *   env   { mask(text): text }
+ * `input` is what the host's beta-feedback sender (kbFeedbackReport) takes: an idea is a `feature`, a question is a `feature` whose title says so
+ * (the relay knows two kinds), the title is the message's first line and the body the whole message — both masked. `client` says whether
+ * the technical sheet (system, DSH and Kybernos versions) may go: only when the form's toggle was on, which is also the only time the page
+ * facts are added to the body. Nothing about the machine, the page or the language leaves otherwise.
+ */
+export function relayReportOf (body, env) {
+  const b = body !== null && typeof body === 'object' && !Array.isArray(body) ? body : null
+  if (b === null) return { ok: false, error: 'a JSON object is expected' }
+  if (FEEDBACK_TYPES.indexOf(b.type) < 0) return { ok: false, error: 'the type must be bug, idea or question' }
+  const text = typeof b.message === 'string' ? b.message.trim() : ''
+  if (text === '') return { ok: false, error: 'the message is empty' }
+  const mask = env !== null && env !== undefined && typeof env.mask === 'function' ? env.mask : (t) => t
+  const message = mask(clip(text, MESSAGE_MAX)).trim()
+  const withDetails = b.context === true
+  const facts = withDetails ? pageFacts(b.page, mask) : {}
+  const lines = []
+  if (facts.title !== undefined) lines.push('Page: ' + facts.title)
+  if (facts.lang !== undefined) lines.push('Language: ' + facts.lang)
+  if (facts.width !== undefined && facts.height !== undefined) lines.push('Window: ' + String(facts.width) + ' x ' + String(facts.height))
+  const title = headline(message)
+  return {
+    ok: true,
+    input: {
+      kind: b.type === 'bug' ? 'bug' : 'feature',
+      title: b.type === 'question' ? headline('Question: ' + title) : title,
+      body: lines.length === 0 ? message : message + '\n\nTechnical details (added by the sender)\n' + lines.join('\n'),
+    },
+    client: withDetails,
+  }
 }
 
 const countLines = (text) => text.split('\n').filter((l) => l.trim() !== '').length

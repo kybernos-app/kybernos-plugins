@@ -509,7 +509,8 @@ let kbLocaleRead = () => 'en'
       'menu.newchat.agents': { kybernos: 'agents', en: 'agents' },
       'ui.team.guide': { kybernos: 'Agent Teams', en: 'Agent Teams' },
       'menu.referral.title': { kybernos: 'Partage Kybernos avec un ami', en: 'Share Kybernos with a friend' },
-      'menu.referral.sub': { kybernos: '500 crédits chacun', en: 'Get 500 credits each' },
+      // What the card says about money is the SERVER's running offer (see kbReferralOfferOf): no offer, no sentence about an amount.
+      'menu.referral.offer': { kybernos: 'Chacun reçoit {amount} de crédit', en: 'You each get {amount} in credit' },
       // ── la carte d'invitation (popover du cadeau, 24/09/2026) ──────────────
       // Le code et le lien de partage vivent sur la page de parrainage (session
       // web) : la carte les recueille UNE fois, les garde sur l'appareil, puis
@@ -536,7 +537,8 @@ let kbLocaleRead = () => 'en'
       'kbac.appearance.openTheme': { kybernos: 'Ouvrir Thème', en: 'Open Theme' },
       'kbac.theme.hint': { kybernos: 'S\'applique à toute l\'interface DSH. « Système » suit le réglage de ton appareil.', en: 'Applies to the whole DSH interface. “System” follows your device setting.' },
       'menu.referral.share': { kybernos: 'Partager', en: 'Share' },
-      'menu.referral.sharetext': { kybernos: 'Rejoins-moi sur Kybernos — 500 crédits chacun.', en: 'Join me on Kybernos — 500 credits each.' },
+      'menu.referral.sharetext': { kybernos: 'Rejoins-moi sur Kybernos.', en: 'Join me on Kybernos.' },
+      'menu.referral.sharetext.offer': { kybernos: 'Rejoins-moi sur Kybernos — chacun reçoit {amount} de crédit.', en: 'Join me on Kybernos — we each get {amount} in credit.' },
       'menu.referral.openpage': { kybernos: 'Ouvrir la page de parrainage', en: 'Open the referral page' },
       'menu.referral.close': { kybernos: 'Fermer', en: 'Close' },
       'menu.referral.local': { kybernos: 'Gardé sur cet appareil, jamais envoyé.', en: 'Kept on this device, never sent.' },
@@ -1278,13 +1280,31 @@ let kbLocaleRead = () => 'en'
       'kbui.fb.placeholder': { kybernos: 'Que s’est-il passé, ou que souhaiterais-tu ?', en: 'What happened, or what would you like?' },
       'kbui.fb.context': { kybernos: 'Ajouter les détails techniques', en: 'Add technical details' },
       'kbui.fb.context.hint': { kybernos: 'Désactivé par défaut. Versions, système, titre de la page, langue et taille de la fenêtre : aucune clé, aucun chemin, aucun nom de fichier.', en: 'Off by default. Versions, system, page title, language and window size: no key, no path, no file name.' },
-      'kbui.fb.save': { kybernos: 'Enregistrer', en: 'Save feedback' },
+      'kbui.fb.save': { kybernos: 'Enregistrer sur cet ordinateur', en: 'Save on this computer' },
       'kbui.fb.saving': { kybernos: 'Enregistrement…', en: 'Saving…' },
-      'kbui.fb.saved': { kybernos: 'Enregistré sur cet ordinateur — il n’est envoyé que lorsque tu l’exportes.', en: 'Saved on this computer — it is sent only when you export it.' },
-      'kbui.fb.export': { kybernos: 'Exporter les retours', en: 'Export feedback' },
-      'kbui.fb.exporting': { kybernos: 'Export…', en: 'Exporting…' },
-      'kbui.fb.copied.one': { kybernos: 'Copié : 1 retour. Colle-le dans un message à l’équipe Kybernos.', en: 'Copied: 1 entry. Paste it into a message to the Kybernos team.' },
-      'kbui.fb.copied.many': { kybernos: 'Copié : {n} retours. Colle-les dans un message à l’équipe Kybernos.', en: 'Copied: {n} entries. Paste them into a message to the Kybernos team.' },
+      'kbui.fb.saved': { kybernos: 'Enregistré sur cet ordinateur. Rien n’a été envoyé.', en: 'Saved on this computer. Nothing was sent.' },
+      'kbui.fb.export': { kybernos: 'Copier les retours enregistrés', en: 'Copy saved feedback' },
+      'kbui.fb.exporting': { kybernos: 'Copie…', en: 'Copying…' },
+      'kbui.fb.copied.one': { kybernos: 'Copié : 1 retour. Rien n’a été envoyé : colle-le toi-même dans un message à l’équipe Kybernos.', en: 'Copied: 1 entry. Nothing was sent: paste it into a message to the Kybernos team yourself.' },
+      'kbui.fb.copied.many': { kybernos: 'Copié : {n} retours. Rien n’a été envoyé : colle-les toi-même dans un message à l’équipe Kybernos.', en: 'Copied: {n} entries. Nothing was sent: paste them into a message to the Kybernos team yourself.' },
+      // « Send » (a signed-in person's way to the team): the sentences of what the relay answered. Each failure says that NOTHING was sent, or what is kept.
+      'kbui.fb.send': { kybernos: 'Envoyer à l’équipe Kybernos', en: 'Send to the Kybernos team' },
+      'kbui.fb.sending': { kybernos: 'Envoi…', en: 'Sending…' },
+      'kbui.fb.sent': { kybernos: 'Envoyé à l’équipe Kybernos. Merci !', en: 'Sent to the Kybernos team. Thank you.' },
+      'kbui.fb.sent.again': { kybernos: 'Ce retour avait déjà été envoyé : l’équipe l’a reçu.', en: 'This feedback had already been sent: the team has it.' },
+      'kbui.fb.err.signedout': { kybernos: 'Rien n’a été envoyé : tu n’es pas connecté à Kybernos.', en: 'Nothing was sent: you are not signed in to Kybernos.' },
+      'kbui.fb.err.reconnect': { kybernos: 'Rien n’a été envoyé : ta session Kybernos a pris fin. Reconnecte-toi, puis réessaie.', en: 'Nothing was sent: your Kybernos session ended. Sign in again, then try again.' },
+      'kbui.fb.err.net': { kybernos: 'Rien n’a été envoyé : cet ordinateur n’a pas pu joindre le serveur Kybernos.', en: 'Nothing was sent: this computer could not reach the Kybernos server.' },
+      'kbui.fb.err.team': { kybernos: 'Rien n’a été envoyé : le serveur Kybernos n’a pas pu prendre le retour pour l’instant.', en: 'Nothing was sent: the Kybernos server could not take the feedback just now.' },
+      'kbui.fb.err.busy': { kybernos: 'Ce retour est déjà en cours d’envoi.', en: 'This feedback is already being sent.' },
+      'kbui.fb.err.moment': { kybernos: 'Réessaie dans un moment.', en: 'Try again in a moment.' },
+      'kbui.fb.err.wait': { kybernos: 'Réessaie dans environ {t}.', en: 'Try again in about {t}.' },
+      'kbui.fb.err.rate': { kybernos: 'Rien n’a été envoyé : trop de retours dans la dernière heure. Réessaie plus tard.', en: 'Nothing was sent: too many reports in the last hour. Try again later.' },
+      'kbui.fb.err.refused': { kybernos: 'Rien n’a été envoyé : le serveur a refusé ce retour.', en: 'Nothing was sent: the server refused this feedback.' },
+      'kbui.fb.err.local': { kybernos: 'Rien n’a été envoyé : cette page n’a pas pu joindre le DSH de cet ordinateur.', en: 'Nothing was sent: this page could not reach the DSH on this computer.' },
+      'kbui.fb.err.kept': { kybernos: 'Ton texte est gardé sur cet ordinateur et repartira avec ton prochain retour.', en: 'Your text is kept on this computer and goes out again with your next report.' },
+      'kbui.fb.hint.signedin': { kybernos: 'Envoyer partage ce message avec l’équipe Kybernos (et les détails techniques, si tu les as cochés). Enregistrer le garde seulement sur cet ordinateur.', en: 'Send shares this message with the Kybernos team (and the technical details, if ticked). Save keeps it on this computer only.' },
+      'kbui.fb.hint.signedout': { kybernos: 'Tu n’es pas connecté à Kybernos : rien ne peut être envoyé d’ici. Enregistrer garde ton texte sur cet ordinateur seulement ; Copier les retours enregistrés les met dans le presse-papiers pour que tu les transmettes toi-même à l’équipe (l’entrée Aide de ce menu ouvre le site d’aide Kybernos). Connecte-toi pour les envoyer directement.', en: 'You are not signed in to Kybernos, so nothing can be sent from here. Save keeps your text on this computer only; Copy saved feedback puts it on your clipboard so you can pass it to the team yourself (Help, in this menu, opens the Kybernos help site). Sign in to send it directly.' },
       'kbui.fb.empty': { kybernos: 'Aucun retour enregistré pour l’instant.', en: 'No feedback saved yet.' },
       'kbui.fb.copyfail': { kybernos: 'Copie impossible ici : sélectionne le texte ci-dessous.', en: 'Could not copy here: select the text below.' },
       'kbui.fb.fail': { kybernos: 'Enregistrement impossible. Rien n’a été écrit.', en: 'Could not save. Nothing was written.' },
@@ -2787,6 +2807,30 @@ const kbInstallLauncherGuard = () => {
   }
 }
 // </kb-open-settings>
+
+/**
+ * Opens DSH's Settings on a page, by the id of its section (« kybernos-models »): the dialog first, then the cell of that page, read from the cell's React
+ * key (the same in every language), with the English title as the fallback when the shell's internals moved. `names` are tried in order. The wizard's
+ * « Change » links and the « no model » card of the chat share it.
+ */
+const kbOpenSettingsPage = (names) => {
+  try {
+    if (kbOpenDshSettings() !== true) return
+    const norm = (s) => String(s === undefined || s === null ? '' : s).toLowerCase().normalize('NFD').replace(new RegExp('[' + String.fromCharCode(0x300) + '-' + String.fromCharCode(0x36f) + ']', 'g'), '').replace(/\s+/g, ' ').trim()
+    let tries = 0
+    const tick = () => {
+      tries += 1
+      const cells = Array.prototype.slice.call(document.querySelectorAll('nav button'))
+      for (const name of names) {
+        let hit = cells.find((c) => { try { return kbNavKeyOf(c) === name } catch (e) { return false } })
+        if (hit === undefined && typeof KB_NAV_KEYS === 'object' && typeof KB_NAV_KEYS[name] === 'string') hit = cells.find((c) => norm(c.textContent) === KB_NAV_KEYS[name])
+        if (hit !== undefined) { hit.click(); return }
+      }
+      if (tries < 25) window.setTimeout(tick, 120)
+    }
+    window.setTimeout(tick, 150)
+  } catch (e) { /* the shell moved: the person opens Settings by hand */ }
+}
 
 // ── Phrase table (French source → English) ─────────────────────────────────
 // The inner views (Projects, the kyber editor, the quiz/cards/summary/sheet players, the Composio panel, dictation) say their sentences through
@@ -29714,6 +29758,26 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
       } catch (e) { code = '' }
       return { code: code, link: t }
     }
+    // <kb-referral-offer>
+    // What the card says about money is what the SERVER says it pays: the offer `GET /v1/referral` reports, relayed by the host as `offer`. It used to say
+    // a fixed number of credits whatever the server paid, or whether it paid at all. No offer (the server runs none, an older host does not relay it, the
+    // account is not linked): the card says nothing about an amount.
+    /** The offer the host relayed, as `{ amount }` (a positive number of dollars), or null. */
+    const kbReferralOfferOf = (j) => {
+      if (j === null || j === undefined || typeof j !== 'object' || j.offer === null || j.offer === undefined || typeof j.offer !== 'object') return null
+      const raw = typeof j.offer.amount_usd === 'string' ? j.offer.amount_usd.trim() : ''
+      if (/^\d{1,6}(?:\.\d{1,2})?$/.test(raw) !== true) return null
+      const amount = Number(raw)
+      return amount > 0 ? { amount: amount } : null
+    }
+    /** « $5 », « $2.50 »: in the order and with the sign of the page's language (the product's French is `fr` for the runtime). */
+    const kbReferralMoney = (amount, language) => {
+      const locale = language === 'kybernos' ? 'fr' : String(language === undefined || language === null || language === '' ? 'en' : language)
+      try {
+        return new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD', minimumFractionDigits: amount % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 }).format(amount)
+      } catch (e) { return '$' + String(amount) }
+    }
+    // </kb-referral-offer>
     const KbReferralGift = () => {
       const label = kbt('menu.referral.title')
       const [open, setOpen] = React.useState(false)
@@ -29735,6 +29799,8 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
       // inventee : `cloud` ne porte que ce que le serveur a rendu.
       const [cloud, setCloud] = React.useState(null)
       const [cloudMotif, setCloudMotif] = React.useState('')
+      // The offer the server runs now (null: none, or not known yet): the only thing the card says about money.
+      const [offer, setOffer] = React.useState(null)
       // Position FIXE, calculee au clic : le pied est une grille dans une colonne
       // qui defile — un popover en position absolue serait rogne. On l'ancre
       // au-dessus du cadeau et on le borne au viewport.
@@ -29788,16 +29854,16 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
           window.removeEventListener('resize', onMove)
         }
       }, [open, rel])
-      // Une seule lecture par ouverture : le code du compte ne change pas
-      // pendant que la carte est ouverte. `cloud` reste null tant que rien
-      // n'est revenu — l'effet ne se rejoue donc pas en boucle.
+      // One read per opening: the account's code does not change while the card is open, but the server's offer can start or end between two
+      // openings, so it is read again each time (the effect depends on `open` alone: `setCloud` does not replay it).
       React.useEffect(() => {
-        if (open !== true || cloud !== null) return undefined
+        if (open !== true) return undefined
         let vivant = true
         fetch('/kybernos-cloud/referral', { headers: { accept: 'application/json' } })
           .then((r) => r.json().catch(() => null))
           .then((j) => {
             if (vivant !== true || j === null || typeof j !== 'object') return
+            setOffer(j.ok === true ? kbReferralOfferOf(j) : null)
             const code = typeof j.code === 'string' && j.code !== '' ? j.code : ''
             if (j.ok === true && code !== '') {
               // `share_url` n'est rendu que si le serveur a une base d'app
@@ -29817,7 +29883,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
           })
           .catch(() => { /* route absente : la carte reste sur le collage manuel */ })
         return () => { vivant = false }
-      }, [open, cloud])
+      }, [open])
       const enregistrer = () => {
         const v = kbReferralParse(draft)
         if (v.code === '' && v.link === '') return
@@ -29836,12 +29902,16 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
         const url = lienAffiche !== '' ? lienAffiche : kbReferralPage()
         try {
           if (typeof navigator.share === 'function') {
-            await navigator.share({ title: label, text: kbt('menu.referral.sharetext'), url: url })
+            await navigator.share({ title: label, text: offerText !== '' ? kbt('menu.referral.sharetext.offer').replace('{amount}', money) : kbt('menu.referral.sharetext'), url: url })
             return
           }
         } catch (e) { /* partage refuse ou annule : on retombe sur la copie */ }
         await copier('link')
       }
+      // The sentence about money, from the server's offer: empty when there is none (then nothing is said, anywhere).
+      const money = offer === null ? '' : kbReferralMoney(offer.amount, (() => { try { return kbLocaleRead() } catch (e) { return 'en' } })())
+      const offerText = money === '' ? '' : kbt('menu.referral.offer').replace('{amount}', money)
+      const tip = offerText !== '' ? label + ' — ' + offerText : label
       const duCompte = cloud !== null && typeof cloud.code === 'string' && cloud.code !== ''
       const codeAffiche = duCompte === true ? cloud.code : rel.code
       const lienAffiche = (duCompte === true && typeof cloud.link === 'string' && cloud.link !== '') ? cloud.link : rel.link
@@ -29860,7 +29930,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
           h('span', { className: 'kbu-rel-badge' }, Icon('gift', 15)),
           h('div', { className: 'kbu-rel-hx' },
             h('b', null, label),
-            h('span', null, kbt('menu.referral.sub'))),
+            offerText !== '' ? h('span', null, offerText) : null),
           h('button', {
             type: 'button', className: 'kbu-rel-x', title: kbt('menu.referral.close'),
             'aria-label': kbt('menu.referral.close'), onClick: () => setOpen(false),
@@ -29895,7 +29965,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
         h('button', {
           type: 'button', ref: bouton,
           className: 'kbu-btn kbu-btn-gift' + (open === true ? ' on' : ''),
-          title: label + ' — ' + kbt('menu.referral.sub'), 'aria-label': label + ' — ' + kbt('menu.referral.sub'),
+          title: tip, 'aria-label': tip,
           'aria-haspopup': 'dialog', 'aria-expanded': open === true ? 'true' : 'false',
           onClick: basculer,
         }, Icon('gift', 16)),
@@ -29909,6 +29979,30 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
     // file to the clipboard. The interview with the assistant (the skill report-feedback, which can reach the Kybernos team) stays one
     // click away. A screenshot is not offered: the page cannot be captured without the screen-capture permission prompt.
     const KB_FB_TYPES = ['bug', 'idea', 'question']
+    // <kb-feedback-send>
+    // The words for what « Send » got back, as the keys of the sentences to show (never a claim of delivery that did not happen). The host answers 200 with
+    // `{ ok, error, retryable, deduped }` for everything the relay did or did not do, and 401 / 403 / 503 only when its own guard refused the page; 0 is « no answer ».
+    const KB_FB_SEND_WHY = {
+      non_connecte: 'kbui.fb.err.signedout', reconnexion_requise: 'kbui.fb.err.reconnect', reseau_indisponible: 'kbui.fb.err.net', envoi_indisponible: 'kbui.fb.err.net',
+      github_indisponible: 'kbui.fb.err.team', base_indisponible: 'kbui.fb.err.team', en_cours: 'kbui.fb.err.busy', trop_de_demandes: 'kbui.fb.err.rate',
+    }
+    const kbFbSendVerdict = (status, out) => {
+      const o = out !== null && out !== undefined && typeof out === 'object' && !Array.isArray(out) ? out : null
+      if (o !== null && o.ok === true) return { tone: 'ok', keys: [o.deduped === true ? 'kbui.fb.sent.again' : 'kbui.fb.sent'], wait: null }
+      if (status === 401 || status === 403 || status === 503) return { tone: 'err', keys: ['kbui.fb.signin'], wait: null }
+      if (status === 0) return { tone: 'err', keys: ['kbui.fb.err.local'], wait: null }
+      const code = o !== null && typeof o.error === 'string' ? o.error : ''
+      const why = Object.prototype.hasOwnProperty.call(KB_FB_SEND_WHY, code) ? KB_FB_SEND_WHY[code] : 'kbui.fb.err.refused'
+      const keys = [why]
+      // The relay holds a report's id for a while after a failed call: it says how long, and asking sooner only gets « already being sent ».
+      const wait = o !== null && typeof o.retry_after === 'number' && o.retry_after > 0 && o.retry_after <= 3600 ? Math.ceil(o.retry_after) : null
+      if (why === 'kbui.fb.err.team' || why === 'kbui.fb.err.busy') keys.push(wait !== null ? 'kbui.fb.err.wait' : 'kbui.fb.err.moment')
+      if (o !== null && o.retryable === true) keys.push('kbui.fb.err.kept')
+      return { tone: 'err', keys: keys, wait: wait }
+    }
+    /** « 45 s », « 2 min »: how long the relay asks to wait, in units that read the same in every language. */
+    const kbFbWaitText = (seconds) => (seconds < 90 ? String(Math.max(1, Math.round(seconds))) + ' s' : String(Math.ceil(seconds / 60)) + ' min')
+    // </kb-feedback-send>
     const KbFeedbackForm = () => {
       const [open, setOpen] = React.useState(false)
       const [type, setType] = React.useState('bug')
@@ -29917,6 +30011,18 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
       const [busy, setBusy] = React.useState('')
       const [note, setNote] = React.useState(null)
       const [manual, setManual] = React.useState('')
+      // Whether this DSH is signed in to a Kybernos account, read at every opening: only then is « Send » offered (the relay needs the account).
+      const [signedIn, setSignedIn] = React.useState(false)
+      React.useEffect(() => {
+        if (open !== true) return undefined
+        let alive = true
+        setSignedIn(false)
+        fetch('/kybernos-cloud/status', { cache: 'no-store' })
+          .then((r) => r.json())
+          .then((j) => { if (alive === true && j !== null && typeof j === 'object' && j.ok === true && j.connected === true) setSignedIn(true) })
+          .catch(() => { /* no answer: not offered, the text below says why */ })
+        return () => { alive = false }
+      }, [open])
       React.useEffect(() => {
         // The technical details are off at every opening: a person who ticked them once is not asked to remember to untick.
         const ouvrir = () => { setNote(null); setManual(''); setWithContext(false); setOpen(true) }
@@ -29951,6 +30057,25 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
         } catch (e) { out = null }
         setBusy('')
         if (out !== null && out.ok === true) { setMessage(''); setNote({ tone: 'ok', text: kbt('kbui.fb.saved') }) } else setNote({ tone: 'err', text: why(status, out) })
+      }
+      const send = async () => {
+        const text = message.trim()
+        if (text === '' || busy !== '') return
+        setBusy('send'); setNote(null); setManual('')
+        let out = null
+        let status = 0
+        try {
+          const page = withContext === true
+            ? { title: String(document.title || ''), lang: String(document.documentElement.lang || navigator.language || ''), width: window.innerWidth, height: window.innerHeight }
+            : undefined
+          const r = await fetch('/kybernos/feedback/send', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ type: type, message: text, context: withContext === true, page: page }) })
+          status = r.status
+          out = await r.json().catch(() => null)
+        } catch (e) { out = null; status = 0 }
+        setBusy('')
+        const verdict = kbFbSendVerdict(status, out)
+        if (verdict.tone === 'ok') setMessage('')
+        setNote({ tone: verdict.tone, text: verdict.keys.map((k) => kbt(k).replace('{t}', verdict.wait === null ? '' : kbFbWaitText(verdict.wait))).join(' ') })
       }
       const exporter = async () => {
         if (busy !== '') return
@@ -29990,8 +30115,10 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
             h('span', null, h('b', null, kbt('kbui.fb.context')), h('i', null, kbt('kbui.fb.context.hint')))),
           note === null ? null : h('div', { className: 'kbfb-note', 'data-tone': note.tone, role: 'status', 'data-kb': 'feedback-note' }, note.text),
           manual === '' ? null : h('textarea', { className: 'kbfb-manual', readOnly: true, rows: 6, value: manual, onFocus: (e) => { try { e.target.select() } catch (er) { /* no selection */ } } }),
+          h('div', { className: 'kbfb-hint', 'data-kb': 'feedback-hint' }, signedIn === true ? kbt('kbui.fb.hint.signedin') : kbt('kbui.fb.hint.signedout')),
           h('div', { className: 'kbfb-acts' },
-            h('button', { type: 'button', className: 'kbfb-btn kbfb-primary', 'data-kb': 'feedback-save', disabled: busy !== '' || message.trim() === '', onClick: save }, busy === 'save' ? kbt('kbui.fb.saving') : kbt('kbui.fb.save')),
+            signedIn === true ? h('button', { type: 'button', className: 'kbfb-btn kbfb-primary', 'data-kb': 'feedback-send', disabled: busy !== '' || message.trim() === '', onClick: send }, busy === 'send' ? kbt('kbui.fb.sending') : kbt('kbui.fb.send')) : null,
+            h('button', { type: 'button', className: 'kbfb-btn' + (signedIn === true ? '' : ' kbfb-primary'), 'data-kb': 'feedback-save', disabled: busy !== '' || message.trim() === '', onClick: save }, busy === 'save' ? kbt('kbui.fb.saving') : kbt('kbui.fb.save')),
             h('button', { type: 'button', className: 'kbfb-btn', 'data-kb': 'feedback-export', disabled: busy !== '', onClick: exporter }, busy === 'export' ? kbt('kbui.fb.exporting') : kbt('kbui.fb.export'))),
           h('button', { type: 'button', className: 'kbfb-link', 'data-kb': 'feedback-assistant', onClick: withAssistant }, kbt('kbui.fb.assistant')))))
     }
@@ -30015,6 +30142,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 .kbfb-ctx i{font-style:normal;font-size:12px;color:var(--dsw-alias-label-tertiary)}
 .kbfb-note{padding:8px 12px;border-radius:10px;font-size:13px;background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 12%,transparent);color:var(--dsw-alias-label-primary)}
 .kbfb-note[data-tone="err"]{background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 12%,transparent)}
+.kbfb-hint{font-size:12px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
 .kbfb-acts{display:flex;gap:8px;flex-wrap:wrap}
 .kbfb-btn{height:40px;padding:0 16px;border:1px solid var(--dsw-alias-border-l2);border-radius:20px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-weight:500;cursor:pointer}
 .kbfb-btn:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}
@@ -32349,6 +32477,12 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'auto.set': ['{model} is now the model of your chats.', '{model} est maintenant le modèle de tes conversations.', '{model} es ahora el modelo de tus conversaciones.', 'أصبح {model} نموذج محادثاتك.'],
       'nm.connected.set': ['Connected: {model} is now this chat’s model. Your message can go again.', 'C’est connecté : {model} est maintenant le modèle de ce chat. Ton message peut repartir.', 'Conectado: {model} es ahora el modelo de este chat. Tu mensaje puede volver a salir.', 'تم الربط: أصبح {model} نموذج هذه المحادثة. يمكن لرسالتك أن تنطلق من جديد.'],
       'nm.connected': ['Connected. Pick the new model in the selector below, then send your message again.', 'C’est connecté. Choisis le nouveau modèle dans le sélecteur ci-dessous, puis renvoie ton message.', 'Conectado. Elige el nuevo modelo en el selector de abajo y reenvía tu mensaje.', 'تم الربط. اختر النموذج الجديد من القائمة أدناه ثم أعد إرسال رسالتك.'],
+      // « This chat has no model at all »: the card shown before any failure, when the picker is empty (kbObNoModel).
+      'nm.none.t': ['No model to answer with yet', 'Pas encore de modèle pour répondre', 'Aún no hay un modelo para responder', 'لا يوجد نموذج للإجابة بعد'],
+      'nm.none.s': ['Nothing here can answer until you sign in to Kybernos or add a model.', 'Rien ici ne peut répondre tant que tu ne te connectes pas à Kybernos ou que tu n’ajoutes pas un modèle.', 'Aquí nada puede responder hasta que inicies sesión en Kybernos o añadas un modelo.', 'لا شيء هنا يمكنه الإجابة حتى تسجّل الدخول إلى Kybernos أو تضيف نموذجًا.'],
+      'nm.none.s.in': ['You are signed in, but no model is available to answer. Add one to start.', 'Tu es connecté, mais aucun modèle n’est disponible pour répondre. Ajoutes-en un pour commencer.', 'Has iniciado sesión, pero no hay ningún modelo disponible para responder. Añade uno para empezar.', 'لقد سجّلت الدخول، لكن لا يتوفر أي نموذج للإجابة. أضف نموذجًا للبدء.'],
+      'nm.none.signin': ['Sign in to Kybernos', 'Me connecter à Kybernos', 'Iniciar sesión en Kybernos', 'تسجيل الدخول إلى Kybernos'],
+      'nm.none.add': ['Add a model', 'Ajouter un modèle', 'Añadir un modelo', 'إضافة نموذج'],
       'fin0.t': ['You can start', 'Tu peux commencer', 'Ya puedes empezar', 'يمكنك البدء'],
       'fin0.s': ['Your agents will need a model to answer. Connect one whenever you like, in Settings → AI Provider & Models.', 'Pour que tes agents répondent, il faudra un modèle. Branches-en un quand tu veux, dans Réglages → Fournisseur IA & modèles.', 'Tus agentes necesitarán un modelo para responder. Conecta uno cuando quieras, en Ajustes → AI Provider & Models.', 'سيحتاج وكلاؤك إلى نموذج ليجيبوا. اربط واحدًا متى شئت من الإعدادات ← AI Provider & Models.'],
       // The model question (two answers, the other ways one quiet line below).
@@ -32644,6 +32778,18 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         ref: m === null ? null : m[2],
         prompt: last !== null && last !== undefined && typeof last.prompt === 'string' ? last.prompt : '',
       }
+    }
+    /**
+     * Whether the engine's shared model catalog (`ctx.modelDirectories.catalog.store.getSnapshot()`: `{ status, value: { groups: [{ id, models }] } | null }`)
+     * holds NO model at all: the picker then says « No models available. » (the engine's own words, with nothing to do about it). Only a loaded list
+     * can say so: a catalog that has not answered, or a value of another shape, is no verdict (false). It follows the LAST value, whatever the status, so a
+     * reload after a credential changed does not make the card blink.
+     */
+    const kbObNoModel = (snapshot) => {
+      if (snapshot === null || snapshot === undefined || typeof snapshot !== 'object') return false
+      const value = snapshot.value
+      if (value === null || value === undefined || typeof value !== 'object' || !Array.isArray(value.groups)) return false
+      return value.groups.every((g) => g === null || g === undefined || typeof g !== 'object' || !Array.isArray(g.models) || g.models.length === 0)
     }
     // KB-OB-CORE-END
 
@@ -33843,27 +33989,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             return win.fetch('/kybernos/onboarding', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).catch(() => null)
           } catch (e) { return null }
         },
-        // Settings is a dialog of the shell: press its button, then the cell of the page we want (by its title).
-        openSettings: (names) => {
-          try {
-            if (kbOpenDshSettings() !== true) return
-            const norm = (s) => String(s === undefined || s === null ? '' : s).toLowerCase().normalize('NFD').replace(new RegExp('[' + String.fromCharCode(0x300) + '-' + String.fromCharCode(0x36f) + ']', 'g'), '').replace(/\s+/g, ' ').trim()
-            let tries = 0
-            const tick = () => {
-              tries += 1
-              const cells = Array.prototype.slice.call(document.querySelectorAll('nav button'))
-              // `names` are the sections' own ids (« kybernos-models »), read from the cell's React key: that works in every
-              // language. The English title is the fallback for when the shell's internals moved.
-              for (const name of names) {
-                let hit = cells.find((c) => { try { return kbNavKeyOf(c) === name } catch (e) { return false } })
-                if (hit === undefined && typeof KB_NAV_KEYS === 'object' && typeof KB_NAV_KEYS[name] === 'string') hit = cells.find((c) => norm(c.textContent) === KB_NAV_KEYS[name])
-                if (hit !== undefined) { hit.click(); return }
-              }
-              if (tries < 25) win.setTimeout(tick, 120)
-            }
-            win.setTimeout(tick, 150)
-          } catch (e) { /* the shell moved: the person opens Settings by hand */ }
-        },
+        // Settings is a dialog of the shell: press its button, then the cell of the page we want (kbOpenSettingsPage).
+        openSettings: (names) => kbOpenSettingsPage(names),
       }
       const appLanguage = () => { try { return win.localStorage.getItem('kybernos.theme.lang') } catch (e) { return null } }
       const shellLanguage = () => { try { return String(kbLocaleRead()) } catch (e) { return null } }
@@ -34135,6 +34262,17 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       try { shell = String(kbLocaleRead()) } catch (e) { shell = null }
       return kbObPickLang(appChoice, shell)
     }
+    // The engine's shared model catalog (`ctx.modelDirectories.catalog.store`, the one the picker draws from), or null when this engine does not expose it:
+    // then the « no model » card below simply never shows, and the picker keeps its own words.
+    const kbCatalogStore = () => {
+      try {
+        const svc = ctx.get('modelDirectories')
+        const store = svc !== null && svc !== undefined && svc.catalog !== null && svc.catalog !== undefined ? svc.catalog.store : null
+        return store !== null && store !== undefined && typeof store.getSnapshot === 'function' && typeof store.subscribe === 'function' ? store : null
+      } catch (e) { return null }
+    }
+    // Dismissed « no model » card: gone for the rest of this page (a reload brings it back), so it does not nag on every chat.
+    let kbNoModelAway = false
     const KbNeedModel = (props) => {
       const p = props !== null && props !== undefined ? props : {}
       const sid = typeof p.sessionId === 'string' ? p.sessionId : ''
@@ -34150,6 +34288,30 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       const draft = draftPair[0]
       const phase = phasePair[0]
       React.useEffect(() => { draftPair[1](''); phasePair[1]('idle'); pickedPair[1]('') }, [stateKey])
+      // Before any failure: the engine's catalog holds no model at all (the picker says « No models available. » and offers nothing).
+      const store = React.useMemo(kbCatalogStore, [])
+      const catalogPair = React.useState(() => { try { return store === null ? null : store.getSnapshot() } catch (e) { return null } })
+      React.useEffect(() => {
+        if (store === null) return undefined
+        const read = () => { try { catalogPair[1](store.getSnapshot()) } catch (e) { /* keep the last read */ } }
+        read()
+        let off = null
+        try { off = store.subscribe(read) } catch (e) { off = null }
+        return () => { try { if (typeof off === 'function') off() } catch (e) { /* the store is gone */ } }
+      }, [store])
+      const empty = need === null && kbObNoModel(catalogPair[0]) === true
+      const hiddenPair = React.useState(kbNoModelAway)
+      const accountPair = React.useState(false)
+      React.useEffect(() => {
+        if (empty !== true) return undefined
+        let alive = true
+        fetch('/kybernos-cloud/status', { cache: 'no-store' })
+          .then((r) => r.json())
+          .then((j) => { if (alive === true && j !== null && typeof j === 'object' && j.connected === true) accountPair[1](true); else if (alive === true) accountPair[1](false) })
+          .catch(() => { /* no answer: treated as signed out, the sign-in stays offered */ })
+        return () => { alive = false }
+      }, [empty])
+      if (empty === true && hiddenPair[0] !== true) return kbNoModelCard(accountPair[0] === true, () => { kbNoModelAway = true; hiddenPair[1](true) })
       if (need === null || awayPair[0] === stateKey) return null
       const lang = kbNmLang()
       const L = KB_OB_LANGS.find((l) => l.id === lang) || KB_OB_LANGS[0]
@@ -34205,6 +34367,21 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         h('button', { type: 'button', className: 'kbnm-x', 'aria-label': T('close'), onClick: () => awayPair[1](stateKey) }, '\u00d7'),
         ...body)
     }
+    /** The card of a chat with no model at all: a sentence and two ways forward (sign in, or add a model). `signedIn`: the account is there, so only « add ». */
+    const kbNoModelCard = (signedIn, dismiss) => {
+      const lang = kbNmLang()
+      const L = KB_OB_LANGS.find((l) => l.id === lang) || KB_OB_LANGS[0]
+      const T = (key, vars) => kbObText(lang, key, vars)
+      const signIn = () => { try { window.dispatchEvent(new CustomEvent('kybernos-cloud:open')) } catch (e) { /* the account sheet is not mounted */ } }
+      const addModel = () => kbOpenSettingsPage(['kybernos-models', 'models'])
+      return h('div', { className: 'kbnm', dir: L.rtl ? 'rtl' : 'ltr', lang: L.id, 'data-kb': 'no-model', role: 'region', 'aria-label': T('nm.none.t') },
+        h('button', { type: 'button', className: 'kbnm-x', 'aria-label': T('close'), onClick: dismiss }, '\u00d7'),
+        h('div', { className: 'kbnm-t' }, T('nm.none.t')),
+        h('div', { className: 'kbnm-s' }, signedIn === true ? T('nm.none.s.in') : T('nm.none.s')),
+        h('div', { className: 'kbnm-row' },
+          signedIn === true ? null : h('button', { type: 'button', className: 'kbnm-btn kbnm-primary', 'data-kb': 'no-model-signin', onClick: signIn }, T('nm.none.signin')),
+          h('button', { type: 'button', className: 'kbnm-btn' + (signedIn === true ? ' kbnm-primary' : ''), 'data-kb': 'no-model-add', onClick: addModel }, T('nm.none.add'))))
+    }
     ctx.effect(() => slots.inject('conversation.input.dock', () => slots.register(
       { name: 'conversation.input.dock', id: 'kybernos-need-model', order: 20 }, KbNeedModel)), 'kybers: “a model is missing” card')
     ctx.effect(() => styles.insert([
@@ -34226,6 +34403,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kbnm-x:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-3)}',
       // R-A5-03: a finger needs 44 px, and the 24 px cross measured 24 x 36 on a phone.
       '@media (max-width:700px){.kbnm-x{top:0;inset-inline-end:0;width:44px;height:44px}.kbnm-t{padding-inline-end:44px}}',
+      // The card's buttons are the way forward (sign in, add a model, save the key): a finger needs 44 px.
+      '@media (max-width:700px){.kbnm-btn{height:44px}}',
     ].join(String.fromCharCode(10))), 'kybers: styles of the “a model is missing” card')
 
   },

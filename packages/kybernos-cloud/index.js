@@ -99,11 +99,27 @@ const stateFile = (profile) => {
   return value === '' ? defaultStateFile(profile) : value
 }
 
-/** Device label as it will appear in « Security → Sessions ». */
-const deviceLabel = () => {
+/** The port this DSH answers on, as the last request's socket said it (null until a page has asked). A second DSH on the same computer has another one. */
+let listenPort = null
+const noteListenPort = (req) => {
+  const sock = req !== null && req !== undefined && req.socket !== null && req.socket !== undefined ? req.socket : null
+  if (sock !== null && Number.isInteger(sock.localPort) && sock.localPort > 0) listenPort = sock.localPort
+}
+const DEFAULT_DSH_PORT = 3080
+
+/** Device label as it will appear in « Security → Sessions »: the machine, and the port when it is not DSH's own default, so that two DSH of one computer (another
+ *  profile, a test instance) do not read identically. The port is kept whole: it is the host name that is cut to fit. */
+const deviceLabel = (port = listenPort) => {
   let host = 'dsh'
   try { host = hostname() || 'dsh' } catch (e) { host = 'dsh' }
-  return ('DSH ' + host).slice(0, MAX_LABEL)
+  const suffix = Number.isInteger(port) && port > 0 && port !== DEFAULT_DSH_PORT ? ' (port ' + port + ')' : ''
+  // The server keeps 64 BYTES: the host name is cut by bytes (on a character boundary), so that what it cuts is never the port.
+  let name = ''
+  for (const ch of 'DSH ' + host) {
+    if (Buffer.byteLength(name + ch) > MAX_LABEL - Buffer.byteLength(suffix)) break
+    name += ch
+  }
+  return name + suffix
 }
 
 const readState = () => {
@@ -124,8 +140,39 @@ const writeState = (state) => {
   try { chmodSync(file, 0o600) } catch (e) { /* exotic FS (Windows) */ }
 }
 
+/** Beside the state file: « this connection was ended by the server » (a device revoked from the account page, a server on a new database). Only the time and the
+ *  reason, never the token: it is what lets the footer say « Sign in again » (and why) instead of the plain signed-out words, across a reload and a restart. */
+const endedFile = () => stateFile() + '.ended'
+const readEnded = () => {
+  try {
+    const parsed = JSON.parse(readFileSync(endedFile(), 'utf8'))
+    return parsed !== null && typeof parsed === 'object' && typeof parsed.at === 'string' ? { at: parsed.at } : null
+  } catch (e) {
+    return null
+  }
+}
+
+/** Forgets the connection, and the « ended » marker with it: a sign-out on purpose, a pairing that was refused or expired and a new pairing all start from « signed out ». */
 const clearState = () => {
   try { rmSync(stateFile(), { force: true }) } catch (e) { /* already absent */ }
+  try { rmSync(endedFile(), { force: true }) } catch (e) { /* already absent */ }
+}
+
+/** The server no longer accepts this device: what it imported leaves with the session (the proxy would refuse the calls), the state goes, and the marker stays so
+ *  that the footer can say the session ended. */
+let ending = null
+const endSession = (state) => {
+  // Two readers can find the same refusal at once (the profile read and the check below): the second joins the first, nothing is removed twice.
+  if (ending !== null) return ending
+  ending = (async () => {
+    await removeImportedCatalog(state)
+    clearState()
+    try {
+      mkdirSync(dirname(endedFile()), { recursive: true, mode: 0o700 })
+      writeFileSync(endedFile(), JSON.stringify({ at: new Date().toISOString(), reason: 'revoked' }) + '\n', { mode: 0o600 })
+    } catch (e) { /* the footer then says the plain signed-out words */ }
+  })().finally(() => { ending = null })
+  return ending
 }
 
 const isConnected = (state) => state !== null && typeof state.token === 'string' && state.token !== ''
@@ -231,11 +278,18 @@ const createSpace = async (req, body) => {
   if (id === null) return { ok: false, error: 'creation_refusee', status: res.status, web_url: resolveWeb() }
   const espaces = Array.isArray(state.workspaces) ? state.workspaces.slice() : []
   if (id !== null && espaces.some((w) => w !== null && w.id === id) !== true) espaces.push(brut)
-  const next = Object.assign({}, state, { workspaces: espaces, active_workspace_id: id !== null ? id : state.active_workspace_id })
-  next.space_plan = await readSpacePlan(state, espaceActif(next))
+  // A team that has no plan cannot answer a model call (the server refuses every one): it does not take over silently. It is created and listed, the person stays where
+  // they were, and the answer says so, so that the page can tell them and offer the plan page. A plan that could not be read counts as « not known to be plan-less ».
+  const mine = await readSpacePlan(state, id)
+  const planless = mine !== null && mine.key === 'none'
+  const next = Object.assign({}, state, { workspaces: espaces })
+  if (planless !== true) {
+    next.active_workspace_id = id
+    next.space_plan = mine !== null ? mine : await readSpacePlan(state, espaceActif(next))
+  }
   writeState(next)
   await importCatalog('space')
-  return { ok: true, state: publicState(readState()) }
+  return { ok: true, state: publicState(readState()), created: { id, name: typeof brut.name === 'string' ? brut.name : nom, plan_key: mine !== null ? mine.key : null, activated: planless !== true } }
 }
 
 const publicPairing = (state) => ({
@@ -304,7 +358,7 @@ const readBoundedText = async (res, max) => {
  *  The server is a JSON API, not a site: a redirect is never followed (it would carry the request body to another
  *  host and that host's answer would pass for the server's), a response that is too big or cut off is a network failure,
  *  and a success status with a body that is not JSON (a captive portal's page) is not a success. */
-const apiCall = async (path, options = {}) => {
+const apiFetch = async (path, options = {}) => {
   const method = typeof options.method === 'string' ? options.method : 'GET'
   const token = typeof options.token === 'string' ? options.token : null
   const body = options.body !== undefined && options.body !== null ? options.body : null
@@ -345,6 +399,49 @@ const apiCall = async (path, options = {}) => {
   }
 }
 
+// ── A token the server refuses ──────────────────────────────────────────────────────────────────────────────────────
+// A device revoked from the account page, or a server on a new database, answers 401 to everything the host asks with the token. Only the 5-minute read (below) used
+// to notice: the footer kept the account's name for minutes, « Team settings » said « try again in a moment » for a thing that never works again, and a chat failed
+// with an engine error. Now the FIRST refused call asks the server once more, on the route that decides it (/v1/workspaces, the historical one: any other route may
+// refuse a token that is fine, the /v1/me lesson), and ends the connection if that is refused too. One check at a time, and a check that finds the token fine is not
+// repeated for a few seconds.
+let refusalCheck = null
+let refusalCheckedAt = 0
+/** True when the server's own envelope says 401: the answer of a server that does not accept this token (not a firewall's page, not a cloud computer's route list). */
+const tokenRefused = (res) => res !== null && res !== undefined && res.status === 401 && isServerRefusal(res.body) && res.body.error !== 'computer_route_not_allowed'
+/** Asks /v1/workspaces with `token`; ends the connection when the server refuses it. Resolves true when that connection is over (now, or already), false when the token holds. */
+const confirmRefusal = (token) => {
+  if (refusalCheck !== null) return refusalCheck
+  const current = readState()
+  if (isConnected(current) !== true || current.token !== token) return Promise.resolve(readEnded() !== null)
+  if (Date.now() - refusalCheckedAt < PROFILE_REFRESH_TUNING.probeGapMs) return Promise.resolve(false)
+  refusalCheck = (async () => {
+    try {
+      const ws = await apiFetch('/v1/workspaces', { token })
+      refusalCheckedAt = Date.now()
+      if ((ws.status === 401 || ws.status === 403) && isServerRefusal(ws.body) && ws.body.error !== 'computer_route_not_allowed') {
+        const now = readState()
+        if (isConnected(now) === true && now.token === token) await endSession(now)
+        return true
+      }
+      return false
+    } catch (e) { return false } finally { refusalCheck = null }
+  })()
+  return refusalCheck
+}
+/** `apiFetch`, plus: a 401 of the server on a call that carried the device token starts the check above (in the background: this call's answer is not delayed). A caller that
+ *  wants to tell the person at once awaits `sessionEndedBy`. */
+const apiCall = async (path, options = {}) => {
+  const res = await apiFetch(path, options)
+  if (typeof options.token === 'string' && options.base === undefined && tokenRefused(res) === true) void confirmRefusal(options.token)
+  return res
+}
+/** After a call that came back refused: true when the check confirms the connection is over. Never throws. */
+const sessionEndedBy = async (res, token) => {
+  if (tokenRefused(res) !== true) return false
+  try { return await confirmRefusal(token) } catch (e) { return false }
+}
+
 // ── Operations ──────────────────────────────────────────────────────────────
 
 const startPairing = async () => {
@@ -371,10 +468,12 @@ const startPairing = async () => {
     device_label: deviceLabel(),
   }
   writeState(state)
+  // The person has acted on « session ended »: a pairing is under way, the marker has done its job.
+  try { rmSync(endedFile(), { force: true }) } catch (e) { /* already absent */ }
   return { ok: true, connected: false, status: 'pending', pairing: publicPairing(state) }
 }
 
-const pollPairing = async () => {
+const pollPairingOnce = async () => {
   const state = readState()
   if (isConnected(state)) return { ok: true, connected: true, state: publicState(state) }
   if (state === null || typeof state.device_secret !== 'string') {
@@ -403,6 +502,8 @@ const pollPairing = async () => {
       device_label: state.device_label !== undefined ? state.device_label : deviceLabel(),
     }
     writeState(next)
+    // Connected again: « session ended » is over (the pairing already cleared it; this is for a claim that came by another way).
+    try { rmSync(endedFile(), { force: true }) } catch (e) { /* already absent */ }
     // The claim carries the person, not their workspaces: read them (and the active space's plan) NOW, so the card, the model route's
     // workspace header and the Team features start from the right space instead of the account-level word, until a page asks. This
     // imports the catalogue too (cause `claim`); a server that cannot answer the lists leaves the claim standing, and the import
@@ -433,12 +534,24 @@ const pollPairing = async () => {
   return { ok: true, connected: false, status }
 }
 
+// The footer asks as soon as a pairing is under way (so a refusal or an expiry is told where the person looks) and so does the card, when it is open: two askers at once
+// make ONE call, because the server hands the token to the first one that asks after the claim, and both must hear the same verdict.
+let pollFlight = null
+const pollPairing = () => {
+  if (pollFlight !== null) return pollFlight
+  pollFlight = pollPairingOnce().finally(() => { pollFlight = null })
+  return pollFlight
+}
+
 const statusRoute = () => {
   const state = readState()
   if (isConnected(state)) return { ok: true, connected: true, state: publicState(state) }
   if (state !== null && typeof state.device_secret === 'string') {
     return { ok: true, connected: false, status: 'pending', pairing: publicPairing(state) }
   }
+  // A connection the server ended (a revoked device, a new database) is « revoked », with when: the footer says « Sign in again », not the plain signed-out words.
+  const ended = readEnded()
+  if (ended !== null) return { ok: true, connected: false, status: 'revoked', ended }
   return { ok: true, connected: false, status: 'none' }
 }
 
@@ -479,9 +592,8 @@ const readProfile = async (cause) => {
   if ((ws.status === 401 || ws.status === 403) && isServerRefusal(ws.body) && ws.body.error !== 'computer_route_not_allowed') {
     // Token revoked from the Kybernos app → « Reconnection required ». The
     // imported models would no longer be of any use (the proxy would refuse the
-    // calls): they leave with the session.
-    await removeImportedCatalog(state)
-    clearState()
+    // calls): they leave with the session, and the footer is told why (the ended marker).
+    await endSession(state)
     return { ok: true, connected: false, status: 'revoked' }
   }
   // Anything but the list itself (a portal's page, an empty body, another shape) keeps the list the person has: only the server's own
@@ -538,7 +650,8 @@ const refreshProfile = () => readProfile('refresh')
 // page left DSH naming a workspace the server no longer knew (every model call a 404 about a header the person never wrote, a card still showing
 // the old plan) until they happened to open the account page. A slow tick, no page needed, so a headless DSH heals too. Never throws, never
 // overlaps itself, and a read the server could not answer changes nothing (readProfile keeps the picture it has).
-const PROFILE_REFRESH_TUNING = { firstMs: 3000, tickMs: 5 * 60 * 1000 }
+// `probeGapMs`: after a refused call found the token fine (a route's own 401), the same question is not asked again for this long.
+const PROFILE_REFRESH_TUNING = { firstMs: 3000, tickMs: 5 * 60 * 1000, probeGapMs: 5000 }
 let profileRefreshing = false
 const profileRefreshTick = async () => {
   if (profileRefreshing === true) return null
@@ -1032,6 +1145,21 @@ const modelsSyncRoute = async () => {
 }
 
 /**
+ * The offer the server runs now, as `GET /v1/referral` reports it (`offer`), reduced to what the card may say: a positive amount of dollars as the server
+ * wrote it, the number of days the credit lasts and when the offer ends (each null when absent or not of that shape). `null` when the server runs none
+ * (`offer: null`), when an older server does not say, or when the value is not an amount: the card then says nothing about money, it never states a
+ * figure of its own.
+ */
+const referralOffer = (raw) => {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const amount = typeof raw.amount_usd === 'string' ? raw.amount_usd.trim() : ''
+  if (!/^\d{1,6}(?:\.\d{1,2})?$/.test(amount) || !(Number(amount) > 0)) return null
+  const days = typeof raw.valid_days === 'number' && Number.isInteger(raw.valid_days) && raw.valid_days > 0 && raw.valid_days <= 3650 ? raw.valid_days : null
+  const ends = typeof raw.ends_at === 'string' && raw.ends_at.length <= 40 && Number.isFinite(Date.parse(raw.ends_at)) ? raw.ends_at : null
+  return { amount_usd: amount, valid_days: days, ends_at: ends }
+}
+
+/**
  * The referral code of the linked account (sidebar footer invitation card).
  *
  * Why a route here: the code lives in `kybernos.profiles.referral_code`
@@ -1043,21 +1171,23 @@ const modelsSyncRoute = async () => {
  *
  * Never an invented code: `code` stays null as long as the server has not
  * returned it — the card then falls back on manual pasting, it does not lie.
+ * Never an invented amount either: `offer` is what the server says it pays now
+ * (`referralOffer`), else null, and the card says nothing about money then.
  * Not linked → explicit reason; server unreachable → reason + HTTP code.
  */
 const referralRoute = async () => {
   const state = readState()
   if (isConnected(state) !== true) {
-    return { ok: false, connected: false, code: null, share_url: null, motif: 'no account linked to kybernos.app' }
+    return { ok: false, connected: false, code: null, share_url: null, offer: null, motif: 'no account linked to kybernos.app' }
   }
   let res = null
   try {
     res = await apiCall('/v1/referral', { token: state.token })
   } catch (e) {
-    return { ok: false, connected: true, code: null, share_url: null, motif: 'parrainage injoignable : ' + String(e !== null && e.message !== undefined ? e.message : e) }
+    return { ok: false, connected: true, code: null, share_url: null, offer: null, motif: 'referral unreachable: ' + String(e !== null && e.message !== undefined ? e.message : e) }
   }
   if (res === null || res.status !== 200 || res.body === null) {
-    return { ok: false, connected: true, code: null, share_url: null, motif: 'parrainage indisponible (code ' + String(res === null ? 'inconnu' : res.status) + ')' }
+    return { ok: false, connected: true, code: null, share_url: null, offer: null, motif: 'referral unavailable (code ' + String(res === null ? 'unknown' : res.status) + ')' }
   }
   const brut = res.body.code
   const code = typeof brut === 'string' && brut.trim() !== '' ? brut.trim() : null
@@ -1069,7 +1199,7 @@ const referralRoute = async () => {
   const share = code === null ? null : brutLien
   // `ok: true` even without a code: the account answers, it simply has no code
   // yet — the card must be able to say that instead of asking for a paste.
-  return { ok: true, connected: true, code: code, share_url: share, motif: code === null ? 'this account has no referral code yet' : null }
+  return { ok: true, connected: true, code: code, share_url: share, offer: referralOffer(res.body.offer), motif: code === null ? 'this account has no referral code yet' : null }
 }
 
 // ── Routes ──────────────────────────────────────────────────────────────────
@@ -1199,6 +1329,8 @@ const consoleLink = async (req, body, deps = {}) => {
     if (res.status !== 400 && res.status !== 422) break
     res = await ask(page)
   }
+  // The server does not know this device any more: say so (and the footer with it), instead of « try again in a moment » for something that never works again.
+  if (await sessionEndedBy(res, state.token)) return { ok: false, connected: false, status: 'revoked', error: 'session_ended' }
   if (res.status !== 200 || res.body === null || typeof res.body !== 'object') return { ok: false, status: res.status, error: res.status === 0 ? 'injoignable' : 'refuse', ...(res.status === 0 ? { server: serverIdentity() } : {}) }
   let url = null
   try {
@@ -1409,6 +1541,8 @@ const quotaFacts = async () => {
     apiCall('/v1/workspaces/' + encodeURIComponent(id) + '/plan', { token: state.token }),
     apiCall('/v1/workspaces/' + encodeURIComponent(id) + '/llm/budget', { token: state.token }),
   ])
+  // A device the server turned away: the footer must hear it with this very answer (it asks here every two minutes and at each focus).
+  if (await sessionEndedBy(plan, state.token) || await sessionEndedBy(budget, state.token)) return { ok: false, connected: false, status: 'revoked', error: 'session_ended' }
   if (plan.status !== 200 || plan.body === null || typeof plan.body !== 'object' || budget.status !== 200 || budget.body === null || typeof budget.body !== 'object') return { ok: false, error: 'indisponible' }
   const known = Array.isArray(state.workspaces) ? state.workspaces.filter((w) => w !== null && typeof w === 'object' && w.id === id)[0] : undefined
   const usage = (Array.isArray(budget.body.windows) ? budget.body.windows : []).map(budgetWindowView).filter((w) => w !== null)
@@ -1420,6 +1554,8 @@ const quotaFacts = async () => {
     ok: true,
     workspace: { id, name: known !== undefined && typeof known.name === 'string' ? known.name : null, role: known !== undefined && typeof known.role === 'string' ? known.role : null, personal: known !== undefined && known.personal === true },
     payment_blocked: plan.body.payment_blocked === true,
+    // A team nobody has bought a plan for: every model call is refused (402), and there is no window to read. The notice names that, the card says it.
+    no_plan: plan.body.plan === null || plan.body.plan === undefined,
     usage,
     server_time: Number.isFinite(stamped) ? new Date(stamped).toISOString() : null,
   }
@@ -4541,6 +4677,7 @@ const mountWebRoutes = (ctx, webServer) => {
       }
       // A Host that is not this listener's is a rebound page: refused before anything is read, whatever the route (the open ones included).
       if (hostAllowed(req) !== true) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+      noteListenPort(req)
       if (req.method !== route.method) return sendJson(res, 405, { ok: false, error: route.method + ' attendu' })
       if (route.guarded === true && sameOrigin(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
       if (route.strict === true && sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
