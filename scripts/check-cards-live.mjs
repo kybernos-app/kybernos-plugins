@@ -73,7 +73,7 @@ try {
     check('a Workspaces card is 140 px or less (it was 231)', ws.h <= 140, ws)
     const cols = await ev(`getComputedStyle(document.querySelector('.kb8-grid')).gridTemplateColumns.split(' ').length`)
     check('four columns fit the page at 1400 px (they were three)', cols >= 4, cols)
-    check('the counters are on the subtitle line, not a pill row (the « Top-level project » line is gone)', (await ev(`(() => { const c = document.querySelector('[data-kb=project-card]'); return !!c.querySelector('[data-kb=project-counts]') && !/Top-level project/.test(c.innerText) && !c.querySelector('.kb8-pills') })()`)) === true)
+    check('the counters are two small figures in the card\'s foot, not a pill row (the « Top-level project » line is gone; the face itself is measured by check-cardface-live.mjs)', (await ev(`(() => { const c = document.querySelector('[data-kb=project-card]'); return !!c.querySelector('.kb8-cf-foot [data-kb=project-counts]') && !/Top-level project/.test(c.innerText) && !c.querySelector('.kb8-pills') })()`)) === true)
     await move(5, 5)
     check('its actions are hidden at rest and not clickable', ws.opacity === 0 && ws.pe === 'none', ws)
     const c = await centre('[data-kb=project-card]')

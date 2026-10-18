@@ -245,6 +245,18 @@ has uncommitted edits of the plugin client (the swap would not match). Two traps
 track ends on a snap point, not where asked (bring the chapter to the start instead); and the editor is cleared with the select-all
 key *command*, not `execCommand`.
 
+## The Workspaces and Agent Teams cards: `scripts/check-cardface-live.mjs`
+
+```bash
+node scripts/check-cardface-live.mjs --shots /tmp/shots
+```
+
+Real `:3080`, read-only: it swaps the `kybernos-plugin` client for this checkout's (`lib-bundle-swap.mjs`, throw-away Chrome), opens
+Workspaces then Agent Teams, and measures the card face (tile without outline, glyph colour, watermark hidden at rest / shown on hover /
+not moving, the word of a figure on hover, the actions in the foot, no empty-description line, the toolbar still there). Exit 3 when no card is
+on screen or the shared tree has uncommitted edits of the plugin client. `check-cards-live.mjs` (sandbox only) still measures heights and the
+Marketplace.
+
 ## The Changes chip: `scripts/check-changes-live.mjs`
 
 ```bash

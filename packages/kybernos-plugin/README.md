@@ -176,6 +176,24 @@ The page headline is changed in place by a sweep on DSH's own hero (`titleGroup`
 slot, and `locale.register` throws on duplicates): a different line from a pool of 28 (`kbnc.hero.<n>`, FR/EN) each time a new chat
 page appears, never the previous one, and the « Preview » badge says « Beta », small. The K stays inline, left of the title.
 
+## The Workspaces and Agent Teams cards
+
+Both pages draw their cards with the same face (class `kb8-cf`, pure block `KB-CARDFACE`; the toolbar, the list rows and the Marketplace cards
+are not part of it):
+
+- **Tile.** The colour a person picked for a project is a pale ground with the glyph in that same colour: no solid block, no outline. The
+  glyph is only deepened as far as 3:1 on its ground needs, once per scheme (`kbCfGlyph`; the card carries `--kb8-pgl` and `--kb8-pgd`, the CSS
+  picks one, so a theme switch never leaves a stale colour). A project without a colour has the platform grey and a grey glyph, never black
+  (in the light scheme the three layers of DSH are all white). An Agent Team with a picture keeps its picture; « in this chat » is a dot on the tile.
+- **Watermark.** The project's glyph, large and very light, in a top corner. It is hidden at rest and only becomes visible while the card is
+  hovered or focused; it never moves.
+- **Foot.** Quiet figures on the left (an icon and a number: threads and creations; agents, where the team runs, and a dot for its state),
+  the actions on the right (they wait for a hover, as before). The word of a figure shows when it is hovered; it is always shown without a hover
+  device, and is the tooltip and the accessible name.
+- **Nothing to say, no line.** An empty description or mission is not drawn.
+
+`node scripts/check-cardface-live.mjs` measures it on the real page (the plugin client swapped in a throw-away Chrome, nothing written).
+
 ## Workspace instructions
 
 An **Instructions** tab on the workspace page (Projects): a text sent with the prompt of that workspace's sessions, next to the account

@@ -468,7 +468,6 @@ let kbLocaleRead = () => 'en'
       'ui.view.list': { kybernos: 'Liste', en: 'List' },
       'ui.open': { kybernos: 'Ouvrir', en: 'Open' },
       'ui.description': { kybernos: 'Description', en: 'Description' },
-      'ui.nodescription': { kybernos: 'Aucune description pour l’instant.', en: 'No description yet.' },
       'ui.description.hint': { kybernos: 'Une phrase, affichée sur la carte du projet. Le détail complet vit dans les conversations.', en: 'One sentence, shown on the project card. The full detail lives in the threads.' },
       'deliverables.notfound': { kybernos: 'Aperçu indisponible', en: 'Preview unavailable' },
       'deliverables.folder': { kybernos: 'Dossier', en: 'Reveal' },
@@ -4400,6 +4399,54 @@ try {
 // LA palette du produit, en un seul endroit : la fiche d'une AI Team (COLOUR),
 // les Projects et les suggestions de conversation la lisent. Un ajout ici
 // apparaît partout — c'est ce qui évite trois palettes qui divergent.
+// KB-CARDFACE-BEGIN
+// The face of a Workspaces / Agent Teams card. The colour a person picked for a project is a PALE GROUND with the glyph drawn in that same
+// colour: no solid block, no outline. The glyph is pulled toward the ink only as far as 3:1 on its ground needs, once per scheme (the CSS picks
+// `--kb8-pgl` or `--kb8-pgd` by the scheme, so a theme switch never leaves a stale colour). Pure: no React, no DOM.
+//  - the ground is the colour at KB_CF_TINT over the card (layer 1 of DSH: white in the light scheme, #232324 in the dark one);
+//  - a colour that is not a hex (`#rgb` / `#rrggbb`) is not trusted: the card keeps its neutral grey tile.
+const KB_CF_TINT = 0.13
+const KB_CF_GROUND = { light: { surface: [255, 255, 255], ink: [15, 17, 21] }, dark: { surface: [35, 35, 36], ink: [249, 250, 251] } }
+const kbCfRgb = (hex) => {
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(hex === null || hex === undefined ? '' : hex).trim())
+  if (m === null) return null
+  const h = m[1].length === 3 ? m[1].split('').map((c) => c + c).join('') : m[1]
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]
+}
+const kbCfLin = (c) => { const x = c / 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4) }
+const kbCfLum = (c) => 0.2126 * kbCfLin(c[0]) + 0.7152 * kbCfLin(c[1]) + 0.0722 * kbCfLin(c[2])
+const kbCfContrast = (a, b) => { const x = kbCfLum(a); const y = kbCfLum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05) }
+const kbCfMix = (a, b, t) => a.map((v, i) => v * (1 - t) + b[i] * t)
+const kbCfHex = (c) => '#' + c.map((x) => Math.round(Math.max(0, Math.min(255, x))).toString(16).padStart(2, '0')).join('')
+/** The glyph colour for a project colour in a scheme ('light' | 'dark'): the colour itself, or the least ink that reaches 3:1 on its ground. */
+const kbCfGlyph = (hex, scheme) => {
+  const c = kbCfRgb(hex)
+  const g = KB_CF_GROUND[scheme]
+  if (c === null || g === undefined) return null
+  const ground = kbCfMix(g.surface, c, KB_CF_TINT)
+  for (const t of [0, 0.12, 0.25, 0.4, 0.55, 0.7, 0.85]) {
+    const x = kbCfMix(c, g.ink, t)
+    if (kbCfContrast(x, ground) >= 3) return kbCfHex(x)
+  }
+  return kbCfHex(g.ink)
+}
+/** The custom properties a card carries for its colour, or null (neutral card): the colour, and its glyph in each scheme. */
+const kbCfVars = (hex) => {
+  const c = kbCfRgb(hex)
+  if (c === null) return null
+  return { '--kb8-pc': kbCfHex(c), '--kb8-pgl': kbCfGlyph(hex, 'light'), '--kb8-pgd': kbCfGlyph(hex, 'dark') }
+}
+// KB-CARDFACE-END
+// The pieces both cards share (React; not part of the pure block).
+/** The tile: a neutral grey ground, or the project's colour as a pale ground (class `col`; the custom properties sit on the card). */
+const kbCfIcon = (colour, iconName, extra, here) => h('span', { className: 'kb8-cf-ic' + (kbCfVars(colour) !== null ? ' col' : '') },
+  h(KbDynIcon, { name: iconName, size: 21 }), extra === undefined ? null : extra,
+  here === true ? h('i', { className: 'kb8-cf-here', title: kbt('kbui.chat.bound'), 'aria-label': kbt('kbui.in.this.chat') }) : null)
+/** The watermark: the project's glyph, large and very light, still; it only shows while the card is hovered or focused. */
+const kbCfWatermark = (iconName) => h('span', { className: 'kb8-cf-wm', 'aria-hidden': 'true' }, h(KbDynIcon, { name: iconName, size: 104 }))
+/** One quiet figure of a card's foot: an icon and a number (or the icon alone); the word shows on hover and is the tooltip and the accessible name. */
+const kbCfFig = (iconNode, text, word, title, extra) => h('span', Object.assign({ className: 'kb8-cf-st' + (text === '0' ? ' zero' : ''), tabIndex: 0, title, 'aria-label': title }, extra === undefined ? null : extra),
+  iconNode, text === '' ? null : h('span', { className: 'kb8-cf-n' }, text), h('span', { className: 'kb8-cf-lbl' }, word))
 const KB_SWATCHES = ['#6b7280', '#635bff', '#2f6b54', '#b3402f', '#c4712c', '#3f6b8a', '#7a3f7a', '#0ea5e9', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444', '#14b8a6', '#f2372a', '#111827']
 // Une couleur n'entre dans un état que si c'est un #rrggbb ; sinon chaîne vide
 // (l'appelant décide du repli : couleur de l'équipe, puis teinte par rang).
@@ -10531,29 +10578,23 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         const tags = Array.isArray(ui.tags) ? ui.tags : []
         const hosted = ui.hosted === true
         const isActive = activeIds.indexOf(k.id) >= 0
-        return h('div', { className: 'kb8-card kb8-cmp kb8-kyber' + kbIn(ci), key: rootPath + '/' + k.id, 'data-kb': 'kyber-card', 'data-root': rootPath, onClick: () => open({ rootId, k, rootLabel }) },
-          h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } },
-            h('span', { className: 'kb8-tile', style: Object.assign({ width: '38px', height: '38px', borderRadius: '13px', position: 'relative', overflow: 'hidden' }, color !== null ? { background: color, color: kbOnColor(color) } : null) },
-              (kbHasAvatar(ui) === true ? h('img', { src: kbAvatarUrl(rootId, k.id) + (ui.avatarAt ? '&v=' + encodeURIComponent(ui.avatarAt) : ''), alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e) { /* img */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }) : null),
-              h(KbDynIcon, { name: ui.icon ? ui.icon : KB_DEFAULT_ICON, size: 22 })),
-            h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, gap: '2px', flex: 1 } },
-              h('span', { className: 'kb8-name' }, name),
-              h('span', { style: { display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flexWrap: 'wrap' } },
-                h('span', { className: 'kb8-parent' }, kbt('kbui.kyber.dot') + kbPlural(agentCount, 'agent')),
-                isActive === true ? h('span', { className: 'kb8-pill kb8-pill-active', title: kbt('kbui.chat.bound') }, kbt('kbui.in.this.chat')) : null)),
-            livePill(lv.status)),
-          // Short description: the start of the mission, two lines at most. The whole mission lives in the Kyber's sheet (a click
-          // on the card), not on the card; an absent one is one muted line.
-          h('p', { className: 'kb8-desc' + (kbShortDesc(k.mission, '') === '' ? ' kb8-none' : '') }, kbShortDesc(k.mission, kbt('kbui.no.mission'))),
-          // The foot: the hosted/local badge is always there (it used to live in the actions row and only showed on hover, so two
-          // cards could not be compared at a glance), coloured (brand) when the kyber also exists as Hosted; the actions are drawn
-          // over it on hover or keyboard focus (the « Edit » button is gone: a click on the card already opens the whole sheet).
-          h('div', { className: 'kb8-cardfoot' },
-            h('div', { className: 'kb8-pills' },
-              h('span', { className: 'kb8-pill kb8-pill-host' + (hosted === true ? ' on' : ''), 'data-kb': 'kyber-card-host', 'data-hosted': hosted === true ? 'yes' : 'no', title: hosted === true ? kbt('kbui.hosted.alsoexists') : kbt('kbui.runs.locally') },
-                Icon(hosted === true ? 'cloud' : 'monitor', 13), hosted === true ? kbt('kbui.hosted') : kbt('kbui.local')),
-              catOf !== null ? h('span', { className: 'kb8-pill kb8-pill-cat', title: kbt('kbui.category') }, catOf) : null,
-              tags.map((t) => h('span', { className: 'kb8-pill kb8-pill-tag', key: t, title: kbt('kbui.tag') }, '#' + t))),
+        const icon = ui.icon ? ui.icon : KB_DEFAULT_ICON
+        // The category and the tags are one quiet line under the name; no mission is no line (« (no mission declared) » said nothing).
+        const sub = [catOf].concat(tags.map((t) => '#' + t)).filter((x) => x !== null && x !== '').join(' · ')
+        const mission = kbShortDesc(k.mission, '')
+        const avatar = (kbHasAvatar(ui) === true ? h('img', { src: kbAvatarUrl(rootId, k.id) + (ui.avatarAt ? '&v=' + encodeURIComponent(ui.avatarAt) : ''), alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e) { /* img */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' } }) : null)
+        return h('div', { className: 'kb8-card kb8-cmp kb8-kyber kb8-cf' + kbIn(ci), key: rootPath + '/' + k.id, 'data-kb': 'kyber-card', 'data-root': rootPath, style: kbCfVars(color) === null ? undefined : kbCfVars(color), onClick: () => open({ rootId, k, rootLabel }) },
+          kbCfWatermark(icon),
+          h('div', { className: 'kb8-cf-top' }, kbCfIcon(color, icon, avatar, isActive === true), h('span', { className: 'kb8-cf-txt' }, h('span', { className: 'kb8-name' }, name), sub === '' ? null : h('span', { className: 'kb8-cf-sub' }, sub))),
+          mission === '' ? null : h('p', { className: 'kb8-desc' }, mission),
+          // The foot: the number of agents, where the team runs (the badge that used to wait for a hover in the actions row is always
+          // there, so two cards can be compared at a glance: a cloud when the team also exists as Hosted, a screen when it is local) and
+          // its state (a dot: green when live). Each figure says its word on hover. The actions are drawn over it on hover or focus.
+          h('div', { className: 'kb8-cf-foot' },
+            h('span', { className: 'kb8-cf-stats' },
+              kbCfFig(Icon('users', 13), String(agentCount), agentCount === 1 ? 'agent' : 'agents', kbPlural(agentCount, 'agent')),
+              kbCfFig(Icon(hosted === true ? 'cloud' : 'monitor', 13), '', hosted === true ? kbt('kbui.hosted') : kbt('kbui.local'), hosted === true ? kbt('kbui.hosted.alsoexists') : kbt('kbui.runs.locally'), { 'data-kb': 'kyber-card-host', 'data-hosted': hosted === true ? 'yes' : 'no' }),
+              lv.status === 'OFF' ? null : kbCfFig(h('i', { className: 'kb8-cf-dot' + (lv.status === 'LIVE' ? ' live' : '') }), '', lv.status === 'LIVE' ? 'live' : 'idle', lv.status === 'LIVE' ? 'live' : 'idle', { 'data-kb': 'kyber-card-live' })),
             h('div', { className: 'kb8-cardacts', 'data-kb': 'kyber-card-actions' },
               h('button', { type: 'button', className: 'kb-favbtn' + (kyFavOf(entry) === true ? ' on' : ''), 'data-kb': 'favorite-star', 'data-scope': 'kybers', 'data-id': rootPath + '/' + k.id, title: kbt(kyFavOf(entry) === true ? 'kbui.unfav' : 'kbui.fav'), 'aria-label': kbt(kyFavOf(entry) === true ? 'kbui.unfav' : 'kbui.fav'), onClick: (e2) => { e2.stopPropagation(); kyFavToggle(rootPath + '/' + k.id) } }, Icon('star', 13)),
               h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-share', title: kbt('kbui.share'), 'aria-label': kbt('kbui.share'), onClick: (e2) => { e2.stopPropagation(); partagerKyber(entry, kbAncreDe(e2.currentTarget)) } }, Icon('share', 13)),
@@ -16242,22 +16283,26 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         const label = (typeof u.name === 'string' && u.name.length > 0) ? u.name : (w.title || w.workspaceId)
         const nThreads = threadsOfProject(w)
         const nArts = artsOfProject(w)
-        return h('div', { className: 'kb8-card kb8-cmp kb8-cmp-top kb8-project' + kbIn(i), key: w.workspaceId, 'data-kb': 'project-card', onClick: () => openProject(w) },
-          h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } },
-            projectTile(w, 38),
-            h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '2px' } },
-              h('span', { className: 'kb8-name' }, label),
-              // Two counters only, both checkable from the payload: the project's threads and its deliverables (the « docs » and
-              // « goals » counters were invented: they live in their own tab, from the host's data). They sit on the subtitle
-              // line: « Top-level project » was the same on every card and said nothing.
-              h('span', { className: 'kb8-parent kb8-count', 'data-kb': 'project-counts' }, pillThreads(nThreads) + ' · ' + pillDelivs(nArts)))),
-          // An empty description is one muted line, not a block of three reserved ones.
-          (() => { const d = kbShortDesc(u.desc, ''); return h('p', { className: 'kb8-desc' + (d === '' ? ' kb8-none' : '') }, d === '' ? kbt('ui.nodescription') : d) })(),
-          // The actions (star, share, export) show on hover or keyboard focus, and always without a hover device.
-          h('div', { className: 'kb8-cardacts kb8-foot', 'data-kb': 'project-card-actions' },
+        const ic = (typeof u.icon === 'string' && u.icon.length > 0) ? u.icon : 'folder'
+        const co = (typeof u.color === 'string' && u.color.length > 0) ? u.color : null
+        // An empty description is no line at all (« No description yet. » said nothing and cost a line on most cards).
+        const d = kbShortDesc(u.desc, '')
+        const wordT = kbt(nThreads === 1 ? 'kbui.pill.thread.one' : 'kbui.pill.thread.many').toLowerCase()
+        const wordA = kbt(nArts === 1 ? 'kbui.pill.deliv.one' : 'kbui.pill.deliv.many').toLowerCase()
+        return h('div', { className: 'kb8-card kb8-cmp kb8-cmp-top kb8-project kb8-cf' + kbIn(i), key: w.workspaceId, 'data-kb': 'project-card', style: kbCfVars(co) === null ? undefined : kbCfVars(co), onClick: () => openProject(w) },
+          kbCfWatermark(ic),
+          h('div', { className: 'kb8-cf-top' }, kbCfIcon(co, ic), h('span', { className: 'kb8-cf-txt' }, h('span', { className: 'kb8-name' }, label), d === '' ? null : h('p', { className: 'kb8-desc' }, d))),
+          h('div', { className: 'kb8-cf-foot' },
+            // The foot: two quiet figures, both checkable from the payload (the project's threads and its deliverables; the « docs » and
+            // « goals » counters were invented: they live in their own tab, from the host's data). The word shows on hover.
+            h('span', { className: 'kb8-cf-stats', 'data-kb': 'project-counts' },
+              kbCfFig(Icon('messageSquare', 13), String(nThreads), wordT, nThreads + ' ' + wordT),
+              kbCfFig(Icon('sparkles', 13), String(nArts), wordA, nArts + ' ' + wordA)),
+            // The actions (star, share, export) show on hover or keyboard focus, and always without a hover device.
+            h('div', { className: 'kb8-cardacts', 'data-kb': 'project-card-actions' },
             h('button', { type: 'button', className: 'kb-favbtn' + (wsFavOf(w) === true ? ' on' : ''), 'data-kb': 'favorite-star', 'data-scope': 'workspaces', 'data-id': w.workspaceId, title: kbt(wsFavOf(w) === true ? 'kbui.unfav' : 'kbui.fav'), 'aria-label': kbt(wsFavOf(w) === true ? 'kbui.unfav' : 'kbui.fav'), onClick: (e2) => { e2.stopPropagation(); wsFavToggle(w.workspaceId) } }, Icon('star', 13)),
             h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-share', title: kbt('kbui.share'), 'aria-label': kbt('kbui.share'), onClick: (e2) => { e2.stopPropagation(); setWsShare({ kind: 'workspace', id: w.workspaceId, titre: label, anchor: kbAncreDe(e2.currentTarget) }) } }, Icon('share', 13)),
-            h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-export', title: kbt('kbui.action.export'), 'aria-label': kbt('kbui.action.export'), onClick: (e2) => { e2.stopPropagation(); exportWorkspace(w) } }, Icon('download', 13))))
+            h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-export', title: kbt('kbui.action.export'), 'aria-label': kbt('kbui.action.export'), onClick: (e2) => { e2.stopPropagation(); exportWorkspace(w) } }, Icon('download', 13)))))
       }
       // Vue LISTE des projets : le bouton « Liste » de la barre ne faisait que
       // lever la pagination — la page continuait de peindre la meme grille de
@@ -29225,6 +29270,39 @@ body:not([data-ds-dark-theme]) .kb8-cmp .kb8-desc.kb8-none{color:var(--dsw-alias
 @media (max-width:480px){
 .kb8-card.kb8-cmp .kb8-cardacts{position:static;transform:none;opacity:1;pointer-events:auto;box-shadow:none;padding:0;background:none}
 }
+/* Card face (Workspaces, Agent Teams): a pale tile whose glyph keeps the project's own colour (no solid block, no outline), a still watermark that
+   only shows while the card is hovered or focused, and a quiet foot: icon + number (the word on hover) on the left, the actions on the right.
+   No description, no line. Only these two cards carry .kb8-cf: the Marketplace and the Skills cards keep their look. */
+.kb8-card.kb8-cmp.kb8-cf{padding:14px 16px 8px;gap:10px;overflow:hidden;min-height:96px}
+.kb8-cf>*{position:relative;z-index:1}
+.kb8-cf>.kb8-cf-wm{position:absolute;z-index:0}
+.kb8-cf-top{display:flex;align-items:center;gap:13px;min-width:0}
+.kb8-cf-txt{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.kb8-cf-sub{font-size:12px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kb8-cf-ic{position:relative;flex:0 0 auto;width:42px;height:42px;border-radius:calc(var(--dsw-radius-md,12px)*1.15);display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-secondary)}
+.kb8-cf-ic svg{stroke-width:1.65}
+.kb8-cf-ic.col{background:color-mix(in srgb,var(--kb8-pc) 13%,var(--dsw-alias-bg-layer-1));color:var(--kb8-pgl)}
+body[data-ds-dark-theme] .kb8-cf-ic.col{color:var(--kb8-pgd)}
+.kb8-cf-here{position:absolute;top:-3px;inset-inline-end:-3px;width:11px;height:11px;border-radius:50%;background:var(--dsw-alias-label-primary);box-shadow:0 0 0 2.5px var(--dsw-alias-bg-layer-1)}
+.kb8-cf-wm{inset-inline-end:-14px;top:-16px;width:104px;height:104px;color:color-mix(in srgb,var(--kb8-pc,var(--dsw-alias-label-primary)) 8%,transparent);pointer-events:none;transform:rotate(-8deg);opacity:0;transition:opacity .28s ease}
+body[data-ds-dark-theme] .kb8-cf-wm{color:color-mix(in srgb,var(--kb8-pc,var(--dsw-alias-label-primary)) 10%,transparent)}
+.kb8-cf-wm svg{width:100%;height:100%;stroke-width:1.1}
+.kb8-cf:hover .kb8-cf-wm,.kb8-cf:focus-within .kb8-cf-wm{opacity:1}
+.kb8-cf-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:28px}
+.kb8-cf-stats{display:flex;align-items:center;gap:13px;min-width:0;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
+.kb8-cf-st{display:inline-flex;align-items:center;gap:4px;border-radius:6px;white-space:nowrap;cursor:default}
+.kb8-cf-st svg{width:13px;height:13px;opacity:.55;transition:opacity .15s ease}
+.kb8-cf-st:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
+.kb8-cf-n{font-variant-numeric:tabular-nums;font-weight:500}
+.kb8-cf-lbl{display:inline-block;max-width:0;opacity:0;overflow:hidden;margin-inline-start:-3px;transition:max-width .28s ease,opacity .2s ease,margin .28s ease}
+.kb8-cf-st:hover .kb8-cf-lbl,.kb8-cf-st:focus-visible .kb8-cf-lbl{max-width:90px;opacity:1;margin-inline-start:0}
+.kb8-cf-st:hover svg,.kb8-cf-st:focus-visible svg{opacity:.95}
+.kb8-cf-st.zero svg{opacity:.3}
+@media (hover:none){.kb8-cf-lbl{max-width:90px;opacity:1;margin-inline-start:0}}
+.kb8-cf-dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--dsw-alias-label-tertiary)}
+.kb8-cf-dot.live{background:var(--dsw-alias-state-success-primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-state-success-primary) 22%,transparent)}
+.kb8-card.kb8-cmp.kb8-cf .kb8-cardacts{position:static;transform:none;inset:auto;margin:0;padding:0;min-height:0;flex:0 0 auto;gap:1px;background:none;box-shadow:none}
+@media (prefers-reduced-motion:reduce){.kb8-cf-wm,.kb8-cf-lbl,.kb8-cf-st svg{transition:none}}
 /* Étoile « favori » partagée par Projets, Kybers et Automations : bouton
    discret transparent, marque ambre quand active, gris sinon, survol léger.
    Bidi-sûr : aucune position left/right dure, tout reste dans le flux inline. */

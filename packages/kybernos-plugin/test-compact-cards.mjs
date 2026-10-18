@@ -63,8 +63,8 @@ const media = (query, needle) => {
 // 3. the markup: the three families carry the modifier, grids and skeletons too
 {
   const mustHave = [
-    ["className: 'kb8-card kb8-cmp kb8-cmp-top kb8-project'", 'a Workspaces card'],
-    ["className: 'kb8-card kb8-cmp kb8-kyber'", 'an Agent Teams card'],
+    ["className: 'kb8-card kb8-cmp kb8-cmp-top kb8-project kb8-cf'", 'a Workspaces card'],
+    ["className: 'kb8-card kb8-cmp kb8-kyber kb8-cf'", 'an Agent Teams card'],
     ["className: 'kb8-card kb8-cmp', key: tpl.id", 'a Marketplace template card'],
     ["className: 'kb8-card kb8-cmp', key: it.slug", 'a kybernos.app catalogue card'],
     ["className: 'kb8-card kb8-cmp kb8-project kb-sk-row'", 'the Workspaces skeleton'],
@@ -74,19 +74,21 @@ const media = (query, needle) => {
   for (const [needle, what] of mustHave) assert.ok(src.includes(needle), what + ' carries kb8-cmp')
   const grids = src.split("className: 'kb8-grid kb8-cmp'").length - 1
   assert.ok(grids >= 8, 'every grid of these cards (6 lists + 3 skeletons, less the shared one) is a compact grid: ' + grids)
-  const wsAt = src.indexOf("className: 'kb8-card kb8-cmp kb8-cmp-top kb8-project'")
+  const wsAt = src.indexOf("className: 'kb8-card kb8-cmp kb8-cmp-top kb8-project kb8-cf'")
   assert.ok(!src.slice(wsAt, src.indexOf("'data-kb': 'project-card-actions'", wsAt)).includes('kbui.project.toplevel'), 'the same « Top-level project » subtitle is not repeated on every Workspaces card')
   ok('Workspaces, Agent Teams, Marketplace cards, grids and skeletons all use the compact modifier')
 }
 
-// 4. the counters sit on the subtitle line of a Workspaces card, not in a pill row pushed to the bottom
+// 4. the counters sit in the quiet foot of a Workspaces card (two small figures), not in a pill row and not in a caps sentence under the name
 {
-  const at = src.indexOf("className: 'kb8-card kb8-cmp kb8-cmp-top kb8-project'")
+  const at = src.indexOf("className: 'kb8-card kb8-cmp kb8-cmp-top kb8-project kb8-cf'")
   const card = src.slice(at, src.indexOf("'data-kb': 'project-card-actions'", at))
-  assert.ok(card.indexOf("'data-kb': 'project-counts'") > 0, 'a counters line')
-  assert.ok(card.indexOf("'data-kb': 'project-counts'") < card.indexOf("className: 'kb8-desc'"), 'it comes before the description, under the name')
+  assert.ok(card.indexOf("'data-kb': 'project-counts'") > 0, 'a counters element')
+  assert.ok(card.indexOf("className: 'kb8-cf-foot'") > 0 && card.indexOf("className: 'kb8-cf-foot'") < card.indexOf("'data-kb': 'project-counts'"), 'it is in the foot')
+  assert.ok(card.indexOf("className: 'kb8-name'") < card.indexOf("className: 'kb8-cf-foot'"), 'under the name')
   assert.ok(!card.includes("className: 'kb8-pills'"), 'no pill row of its own')
-  ok('the thread and creation counters are on the subtitle line')
+  assert.ok(/kbCfFig\(Icon\('messageSquare', 13\)/.test(card) && /kbCfFig\(Icon\('sparkles', 13\)/.test(card), 'the two figures: threads and creations')
+  ok('the thread and creation counters are two small figures in the foot')
 }
 
 // 5. V-16: the actions of a card show on hover and on focus, always without a hover device and at phone width

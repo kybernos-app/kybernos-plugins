@@ -586,6 +586,16 @@ ok('the Composio help text and its link keep 4.5:1 under the help block\'s opaci
 })
 
 
+ok('the face of the Workspaces and Agent Teams cards reads in both schemes: the figures and the sub line 4.5:1, the neutral tile\'s glyph 3:1', () => {
+  const file = 'kybernos-plugin/client.js'
+  const read = (selector) => lastDecl(rule(file, selector).body, 'color')
+  for (const scheme of ['light', 'dark']) {
+    const on = (expr, layer) => contrast(colour(expr, scheme), colour('var(--dsw-alias-' + layer + ')', scheme))
+    atLeast('figures of the foot (' + scheme + ')', on(read('.kb8-cf-stats'), 'bg-layer-1'), 4.5)
+    atLeast('category and tags line (' + scheme + ')', on(read('.kb8-cf-sub'), 'bg-layer-1'), 4.5)
+    atLeast('neutral tile glyph on the platform grey (' + scheme + ')', on(read('.kb8-cf-ic'), 'bg-module-platform'), 3)
+  }
+})
 ok('the empty description of a compact card and the Skills source icon are readable in the light schemes (A1-05)', () => {
   const none = rule('kybernos-plugin/client.js', 'body:not([data-ds-dark-theme]) .kb8-cmp .kb8-desc.kb8-none')
   atLeast('no-description line', contrast(colour(lastDecl(none.body, 'color'), 'light'), colour('var(--dsw-alias-bg-layer-1)', 'light')), 4.5)
