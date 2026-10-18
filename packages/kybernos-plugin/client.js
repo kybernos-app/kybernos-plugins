@@ -509,7 +509,8 @@ let kbLocaleRead = () => 'en'
       'menu.newchat.agents': { kybernos: 'agents', en: 'agents' },
       'ui.team.guide': { kybernos: 'Agent Teams', en: 'Agent Teams' },
       'menu.referral.title': { kybernos: 'Partage Kybernos avec un ami', en: 'Share Kybernos with a friend' },
-      'menu.referral.sub': { kybernos: '500 crédits chacun', en: 'Get 500 credits each' },
+      // What the card says about money is the SERVER's running offer (see kbReferralOfferOf): no offer, no sentence about an amount.
+      'menu.referral.offer': { kybernos: 'Chacun reçoit {amount} de crédit', en: 'You each get {amount} in credit' },
       // ── la carte d'invitation (popover du cadeau, 24/09/2026) ──────────────
       // Le code et le lien de partage vivent sur la page de parrainage (session
       // web) : la carte les recueille UNE fois, les garde sur l'appareil, puis
@@ -536,7 +537,8 @@ let kbLocaleRead = () => 'en'
       'kbac.appearance.openTheme': { kybernos: 'Ouvrir Thème', en: 'Open Theme' },
       'kbac.theme.hint': { kybernos: 'S\'applique à toute l\'interface DSH. « Système » suit le réglage de ton appareil.', en: 'Applies to the whole DSH interface. “System” follows your device setting.' },
       'menu.referral.share': { kybernos: 'Partager', en: 'Share' },
-      'menu.referral.sharetext': { kybernos: 'Rejoins-moi sur Kybernos — 500 crédits chacun.', en: 'Join me on Kybernos — 500 credits each.' },
+      'menu.referral.sharetext': { kybernos: 'Rejoins-moi sur Kybernos.', en: 'Join me on Kybernos.' },
+      'menu.referral.sharetext.offer': { kybernos: 'Rejoins-moi sur Kybernos — chacun reçoit {amount} de crédit.', en: 'Join me on Kybernos — we each get {amount} in credit.' },
       'menu.referral.openpage': { kybernos: 'Ouvrir la page de parrainage', en: 'Open the referral page' },
       'menu.referral.close': { kybernos: 'Fermer', en: 'Close' },
       'menu.referral.local': { kybernos: 'Gardé sur cet appareil, jamais envoyé.', en: 'Kept on this device, never sent.' },
@@ -29714,6 +29716,26 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
       } catch (e) { code = '' }
       return { code: code, link: t }
     }
+    // <kb-referral-offer>
+    // What the card says about money is what the SERVER says it pays: the offer `GET /v1/referral` reports, relayed by the host as `offer`. It used to say
+    // a fixed number of credits whatever the server paid, or whether it paid at all. No offer (the server runs none, an older host does not relay it, the
+    // account is not linked): the card says nothing about an amount.
+    /** The offer the host relayed, as `{ amount }` (a positive number of dollars), or null. */
+    const kbReferralOfferOf = (j) => {
+      if (j === null || j === undefined || typeof j !== 'object' || j.offer === null || j.offer === undefined || typeof j.offer !== 'object') return null
+      const raw = typeof j.offer.amount_usd === 'string' ? j.offer.amount_usd.trim() : ''
+      if (/^\d{1,6}(?:\.\d{1,2})?$/.test(raw) !== true) return null
+      const amount = Number(raw)
+      return amount > 0 ? { amount: amount } : null
+    }
+    /** « $5 », « $2.50 »: in the order and with the sign of the page's language (the product's French is `fr` for the runtime). */
+    const kbReferralMoney = (amount, language) => {
+      const locale = language === 'kybernos' ? 'fr' : String(language === undefined || language === null || language === '' ? 'en' : language)
+      try {
+        return new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD', minimumFractionDigits: amount % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 }).format(amount)
+      } catch (e) { return '$' + String(amount) }
+    }
+    // </kb-referral-offer>
     const KbReferralGift = () => {
       const label = kbt('menu.referral.title')
       const [open, setOpen] = React.useState(false)
@@ -29735,6 +29757,8 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
       // inventee : `cloud` ne porte que ce que le serveur a rendu.
       const [cloud, setCloud] = React.useState(null)
       const [cloudMotif, setCloudMotif] = React.useState('')
+      // The offer the server runs now (null: none, or not known yet): the only thing the card says about money.
+      const [offer, setOffer] = React.useState(null)
       // Position FIXE, calculee au clic : le pied est une grille dans une colonne
       // qui defile — un popover en position absolue serait rogne. On l'ancre
       // au-dessus du cadeau et on le borne au viewport.
@@ -29788,16 +29812,16 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
           window.removeEventListener('resize', onMove)
         }
       }, [open, rel])
-      // Une seule lecture par ouverture : le code du compte ne change pas
-      // pendant que la carte est ouverte. `cloud` reste null tant que rien
-      // n'est revenu — l'effet ne se rejoue donc pas en boucle.
+      // One read per opening: the account's code does not change while the card is open, but the server's offer can start or end between two
+      // openings, so it is read again each time (the effect depends on `open` alone: `setCloud` does not replay it).
       React.useEffect(() => {
-        if (open !== true || cloud !== null) return undefined
+        if (open !== true) return undefined
         let vivant = true
         fetch('/kybernos-cloud/referral', { headers: { accept: 'application/json' } })
           .then((r) => r.json().catch(() => null))
           .then((j) => {
             if (vivant !== true || j === null || typeof j !== 'object') return
+            setOffer(j.ok === true ? kbReferralOfferOf(j) : null)
             const code = typeof j.code === 'string' && j.code !== '' ? j.code : ''
             if (j.ok === true && code !== '') {
               // `share_url` n'est rendu que si le serveur a une base d'app
@@ -29817,7 +29841,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
           })
           .catch(() => { /* route absente : la carte reste sur le collage manuel */ })
         return () => { vivant = false }
-      }, [open, cloud])
+      }, [open])
       const enregistrer = () => {
         const v = kbReferralParse(draft)
         if (v.code === '' && v.link === '') return
@@ -29836,12 +29860,16 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
         const url = lienAffiche !== '' ? lienAffiche : kbReferralPage()
         try {
           if (typeof navigator.share === 'function') {
-            await navigator.share({ title: label, text: kbt('menu.referral.sharetext'), url: url })
+            await navigator.share({ title: label, text: offerText !== '' ? kbt('menu.referral.sharetext.offer').replace('{amount}', money) : kbt('menu.referral.sharetext'), url: url })
             return
           }
         } catch (e) { /* partage refuse ou annule : on retombe sur la copie */ }
         await copier('link')
       }
+      // The sentence about money, from the server's offer: empty when there is none (then nothing is said, anywhere).
+      const money = offer === null ? '' : kbReferralMoney(offer.amount, (() => { try { return kbLocaleRead() } catch (e) { return 'en' } })())
+      const offerText = money === '' ? '' : kbt('menu.referral.offer').replace('{amount}', money)
+      const tip = offerText !== '' ? label + ' — ' + offerText : label
       const duCompte = cloud !== null && typeof cloud.code === 'string' && cloud.code !== ''
       const codeAffiche = duCompte === true ? cloud.code : rel.code
       const lienAffiche = (duCompte === true && typeof cloud.link === 'string' && cloud.link !== '') ? cloud.link : rel.link
@@ -29860,7 +29888,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
           h('span', { className: 'kbu-rel-badge' }, Icon('gift', 15)),
           h('div', { className: 'kbu-rel-hx' },
             h('b', null, label),
-            h('span', null, kbt('menu.referral.sub'))),
+            offerText !== '' ? h('span', null, offerText) : null),
           h('button', {
             type: 'button', className: 'kbu-rel-x', title: kbt('menu.referral.close'),
             'aria-label': kbt('menu.referral.close'), onClick: () => setOpen(false),
@@ -29895,7 +29923,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
         h('button', {
           type: 'button', ref: bouton,
           className: 'kbu-btn kbu-btn-gift' + (open === true ? ' on' : ''),
-          title: label + ' — ' + kbt('menu.referral.sub'), 'aria-label': label + ' — ' + kbt('menu.referral.sub'),
+          title: tip, 'aria-label': tip,
           'aria-haspopup': 'dialog', 'aria-expanded': open === true ? 'true' : 'false',
           onClick: basculer,
         }, Icon('gift', 16)),

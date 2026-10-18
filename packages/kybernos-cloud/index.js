@@ -1032,6 +1032,21 @@ const modelsSyncRoute = async () => {
 }
 
 /**
+ * The offer the server runs now, as `GET /v1/referral` reports it (`offer`), reduced to what the card may say: a positive amount of dollars as the server
+ * wrote it, the number of days the credit lasts and when the offer ends (each null when absent or not of that shape). `null` when the server runs none
+ * (`offer: null`), when an older server does not say, or when the value is not an amount: the card then says nothing about money, it never states a
+ * figure of its own.
+ */
+const referralOffer = (raw) => {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const amount = typeof raw.amount_usd === 'string' ? raw.amount_usd.trim() : ''
+  if (!/^\d{1,6}(?:\.\d{1,2})?$/.test(amount) || !(Number(amount) > 0)) return null
+  const days = typeof raw.valid_days === 'number' && Number.isInteger(raw.valid_days) && raw.valid_days > 0 && raw.valid_days <= 3650 ? raw.valid_days : null
+  const ends = typeof raw.ends_at === 'string' && raw.ends_at.length <= 40 && Number.isFinite(Date.parse(raw.ends_at)) ? raw.ends_at : null
+  return { amount_usd: amount, valid_days: days, ends_at: ends }
+}
+
+/**
  * The referral code of the linked account (sidebar footer invitation card).
  *
  * Why a route here: the code lives in `kybernos.profiles.referral_code`
@@ -1043,21 +1058,23 @@ const modelsSyncRoute = async () => {
  *
  * Never an invented code: `code` stays null as long as the server has not
  * returned it — the card then falls back on manual pasting, it does not lie.
+ * Never an invented amount either: `offer` is what the server says it pays now
+ * (`referralOffer`), else null, and the card says nothing about money then.
  * Not linked → explicit reason; server unreachable → reason + HTTP code.
  */
 const referralRoute = async () => {
   const state = readState()
   if (isConnected(state) !== true) {
-    return { ok: false, connected: false, code: null, share_url: null, motif: 'no account linked to kybernos.app' }
+    return { ok: false, connected: false, code: null, share_url: null, offer: null, motif: 'no account linked to kybernos.app' }
   }
   let res = null
   try {
     res = await apiCall('/v1/referral', { token: state.token })
   } catch (e) {
-    return { ok: false, connected: true, code: null, share_url: null, motif: 'parrainage injoignable : ' + String(e !== null && e.message !== undefined ? e.message : e) }
+    return { ok: false, connected: true, code: null, share_url: null, offer: null, motif: 'parrainage injoignable : ' + String(e !== null && e.message !== undefined ? e.message : e) }
   }
   if (res === null || res.status !== 200 || res.body === null) {
-    return { ok: false, connected: true, code: null, share_url: null, motif: 'parrainage indisponible (code ' + String(res === null ? 'inconnu' : res.status) + ')' }
+    return { ok: false, connected: true, code: null, share_url: null, offer: null, motif: 'parrainage indisponible (code ' + String(res === null ? 'inconnu' : res.status) + ')' }
   }
   const brut = res.body.code
   const code = typeof brut === 'string' && brut.trim() !== '' ? brut.trim() : null
@@ -1069,7 +1086,7 @@ const referralRoute = async () => {
   const share = code === null ? null : brutLien
   // `ok: true` even without a code: the account answers, it simply has no code
   // yet — the card must be able to say that instead of asking for a paste.
-  return { ok: true, connected: true, code: code, share_url: share, motif: code === null ? 'this account has no referral code yet' : null }
+  return { ok: true, connected: true, code: code, share_url: share, offer: referralOffer(res.body.offer), motif: code === null ? 'this account has no referral code yet' : null }
 }
 
 // ── Routes ──────────────────────────────────────────────────────────────────
