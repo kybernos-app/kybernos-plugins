@@ -430,7 +430,7 @@ ok('the type badges of Creations read 4.5:1 in both schemes (A4-12)', () => {
     }
   }
 })
-ok('the icons of the artifact menu and of the new-chat tiles read 3:1 in both schemes (A1-11)', () => {
+ok('the icons of the artifact menu read 3:1 in both schemes (A1-11)', () => {
   const file = 'kybernos-plugin/client.js'
   const src = srcOf(file)
   const cat = [...src.matchAll(/\{ type: '([a-z]+)', label: [^\n]*?color: '(#[0-9a-f]{6})', tint: '(rgba\([^']+\))'(?:, ink: '(#[0-9a-f]{6})')?/g)]
@@ -442,13 +442,17 @@ ok('the icons of the artifact menu and of the new-chat tiles read 3:1 in both sc
       atLeast('menu icon ' + id + ' (' + scheme + ')', contrast(colour(lastDecl(css.body, 'color'), scheme, { '--kas-ink': ink || color }), colour(tint, scheme), colour('var(--dsw-alias-bg-layer-2)', scheme)), 3)
     }
   }
-  const hues = /const KB_NC_HUES = \{([^}]+)\}/.exec(src)[1].matchAll(/([a-z]+): '(#[0-9a-f]{6})'/g)
-  const nc = rule(file, '.kb8-nc-ico')
-  assert.match(lastDecl(nc.body, 'color'), /--kb8-ink/, 'the tile icon is drawn from the hue through a mix, not the raw hue')
-  for (const [, id, hue] of hues) {
-    for (const scheme of ['light', 'dark']) {
-      const tint = [parseInt(hue.slice(1, 3), 16), parseInt(hue.slice(3, 5), 16), parseInt(hue.slice(5, 7), 16), 0.16]
-      atLeast('new-chat icon ' + id + ' (' + scheme + ')', contrast(colour(lastDecl(nc.body, 'color'), scheme, { '--kb8-ink': hue }), tint, colour('var(--dsw-alias-bg-layer-1)', scheme)), 3)
+})
+ok('the new-chat slider and the Cloud Computer line read 4.5:1 in both schemes: the labels on their cards, the headings and the line on the page', () => {
+  const file = 'kybernos-plugin/client.js'
+  const read = (selector, prop) => lastDecl(rule(file, selector).body, prop)
+  for (const scheme of ['light', 'dark']) {
+    const on = (expr, layer) => contrast(colour(expr, scheme), colour('var(--dsw-alias-' + layer + ')', scheme))
+    atLeast('card label (' + scheme + ')', on(read('.kb8-sl-card', 'color'), 'bg-layer-1'), 4.5)
+    for (const layer of (scheme === 'dark' ? ['bg-base', 'bg-layer-1', 'bg-layer-2'] : ['bg-base', 'bg-layer-1', 'bg-module-platform'])) {
+      atLeast('chapter heading on ' + layer + ' (' + scheme + ')', on(read('.kb8-sl-gh', 'color'), layer), 4.5)
+      atLeast('Cloud Computer line on ' + layer + ' (' + scheme + ')', on(read('.kb8-nc-main', 'color'), layer), 4.5)
+      atLeast('Cloud Computer title on ' + layer + ' (' + scheme + ')', on(read('.kb8-nc-t', 'color'), layer), 4.5)
     }
   }
 })

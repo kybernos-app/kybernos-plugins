@@ -68,13 +68,13 @@ const rule = (sel) => { const m = new RegExp('(?:^|\\n)' + esc(sel) + '\\{([^}]*
   ok('Creations cards: the thumbnail keeps its 1200 px and its scale follows the card')
 }
 
-// Home (A1-06): « Sites, apps, automations » / « Slides, documents, images » were cut by an ellipsis at 1400 px, with no tooltip.
+// Home (A1-06): the text of the Cloud Computer line was cut by an ellipsis at 1400 px, with no tooltip.
 {
   const d = rule('.kb8-nc-d')
   assert.match(d, /-webkit-line-clamp:2/, 'two lines')
   assert.doesNotMatch(d, /white-space:nowrap/, 'it wraps')
-  assert.ok(src.includes("h('span', { className: 'kb8-nc-d', title: sub }, sub)"), 'and the full text is a tooltip when it is still cut')
-  ok('Home: the description of a card wraps to two lines and carries its full text as a tooltip')
+  assert.ok(src.includes("h('span', { className: 'kb8-nc-d', role: act.note !== null ? 'alert' : undefined, title: ccText }, ccText)"), 'and the full text is a tooltip when it is still cut')
+  ok('Home: the text of the Cloud Computer line wraps to two lines and carries its full text as a tooltip')
 }
 
 // The sidebar rail (A5-29, A5-30): the goal-progress card is hidden in the 44 px icon rail, and each page icon names itself.

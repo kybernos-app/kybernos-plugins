@@ -1371,11 +1371,13 @@ let kbLocaleRead = () => 'en'
       'kbui.cloudcomputer': { kybernos: 'Cloud Computer', en: 'Cloud Computer' },
       'kbui.automations.set': { kybernos: 'Automations', en: 'Automations' },
       // New chat: Build / Create / Cloud Computer cards
-      'kbnc.build': { kybernos: 'Construire', en: 'Build' },
-      'kbnc.build.sub': { kybernos: 'Sites, apps, automatisations', en: 'Sites, apps, automations' },
-      'kbnc.create': { kybernos: 'Créer', en: 'Create' },
-      'kbnc.create.sub': { kybernos: 'Présentations, documents, images', en: 'Slides, documents, images' },
-      'kbnc.close': { kybernos: 'Fermer', en: 'Close' },
+      'kbnc.g.docs': { kybernos: 'Documents', en: 'Documents' },
+      'kbnc.g.media': { kybernos: 'Médias', en: 'Media' },
+      'kbnc.g.apps': { kybernos: 'Apps', en: 'Apps' },
+      'kbnc.g.auto': { kybernos: 'Automatiser', en: 'Automate' },
+      'kbnc.sl.label': { kybernos: 'Ce que tu peux créer', en: 'What you can make' },
+      'kbnc.sl.prev': { kybernos: 'Types précédents', en: 'Previous types' },
+      'kbnc.sl.next': { kybernos: 'Autres types', en: 'More types' },
       'kbnc.hero.0': { kybernos: 'On fabrique quoi aujourd\'hui ?', en: 'What are we making today?' },
       'kbnc.hero.1': { kybernos: 'Partons d\'une idée brouillonne', en: 'Start with a rough idea' },
       'kbnc.hero.2': { kybernos: 'Apporte la version brute', en: 'Bring the messy version' },
@@ -6045,49 +6047,47 @@ const kbBoardReason = (pending, lang) => {
 }
 // KB-AUTOBOARD-END
 // KB-NEWCHAT-BEGIN
-// The cards of the new-chat page (Build / Create / Cloud Computer), the Cloud Computer's state, and the rule that hides
-// DSH's own « Automation tasks » menu entry. Pure: no React, no DOM, no host call, no translation. Tested by
-// test-newchat.mjs, which extracts this block.
+// The new-chat page: the slider of what the product makes, the Cloud Computer's state, and the rule that hides DSH's own
+// « Automation tasks » menu entry. Pure: no React, no DOM, no host call, no translation. Tested by test-newchat.mjs,
+// which extracts this block.
 //  - `needs` is the id of the bundle a template depends on (null = the core). A template whose bundle is not in the boot
 //    list is not offered: it is never shown dead.
-//  - A Build / Create template PREFILLS the composer (the person adds the details); the starters of the team keep SENDING.
-//  - `hue` is the colour of the template's icon tile (the tile is that colour at 16 %, the glyph is the colour itself).
-const KB_NC_BUILD = [
-  { id: 'website', icon: 'globe', needs: null, hue: '#4f6bff' },
-  { id: 'miniapp', icon: 'shapes', needs: '@local/kybernos-miniapps', hue: '#16b894' },
-  { id: 'dashboard', icon: 'layoutDashboard', needs: '@local/kybernos-dashboards', hue: '#ff8a3d' },
-  { id: 'automation', icon: 'zap', needs: null, hue: '#f5a623' },
-  { id: 'team', icon: 'waypoints', needs: null, hue: '#6c5ce7' },
-  { id: 'skill', icon: 'sparkles', needs: null, hue: '#e84393' },
-  { id: 'plugin', icon: 'puzzle', needs: null, hue: '#00a8cc' },
-  { id: 'model3d', icon: 'box', needs: '@local/kybernos-modeleur', hue: '#9b59f6' },
+//  - A template PREFILLS the composer (the person adds the details); the starters of the team keep SENDING.
+//  - `group` is the chapter of the slider (KB_NC_GROUPS gives their order). The page has ONE colour: the theme's accent.
+const KB_NC_GROUPS = ['docs', 'media', 'apps', 'auto']
+const KB_NC_TEMPLATES = [
+  { id: 'slides', group: 'docs', needs: '@local/kybernos-slides' },
+  { id: 'doc', group: 'docs', needs: null },
+  { id: 'sheet', group: 'docs', needs: null },
+  { id: 'dashboard', group: 'docs', needs: '@local/kybernos-dashboards' },
+  { id: 'image', group: 'media', needs: null },
+  { id: 'video', group: 'media', needs: '@local/kybernos-motion' },
+  { id: 'website', group: 'apps', needs: null },
+  { id: 'miniapp', group: 'apps', needs: '@local/kybernos-miniapps' },
+  { id: 'model3d', group: 'apps', needs: '@local/kybernos-modeleur' },
+  { id: 'automation', group: 'auto', needs: null },
+  { id: 'team', group: 'auto', needs: null },
+  { id: 'skill', group: 'auto', needs: null },
+  { id: 'plugin', group: 'auto', needs: null },
 ]
-const KB_NC_CREATE = [
-  { id: 'slides', icon: 'presentation', needs: '@local/kybernos-slides', hue: '#7c5cff' },
-  { id: 'doc', icon: 'fileText', needs: null, hue: '#3d7eff' },
-  { id: 'sheet', icon: 'grid', needs: null, hue: '#2eb872' },
-  { id: 'image', icon: 'image', needs: null, hue: '#1fa8e8' },
-  { id: 'video', icon: 'play', needs: '@local/kybernos-motion', hue: '#ff5d73' },
-]
-/** The three cards of the row: their icon colours (the Cloud Computer's is teal, whatever its state: the dot says the state). */
-const KB_NC_HUES = { build: '#7c5cff', create: '#ff7a45', cloud: '#12b886' }
-/** A `#rrggbb` colour at an alpha, as `rgba(...)`; anything else is a neutral grey (never throws). */
-const kbNcTint = (hex, a) => {
-  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(hex))
-  if (m === null) return 'rgba(140,140,140,' + String(a) + ')'
-  return 'rgba(' + parseInt(m[1], 16) + ',' + parseInt(m[2], 16) + ',' + parseInt(m[3], 16) + ',' + String(a) + ')'
-}
-// The visual strip under the cards: one drawn preview per kind of thing the product makes. Drawn here as inline SVG on a
-// gradient (no image, video or font in git: AGENTS rule 4); `from`/`to` are the gradient's ends. A tile shows only when
-// its template does (same `needs` as above), and a click prefills the composer exactly like a template does.
-const KB_NC_VISUALS = ['slides', 'video', 'image', 'miniapp', 'website', 'dashboard']
+// What each template looks like: a small model of the result, drawn as inline SVG (viewBox 0 0 64 44) from rect / circle /
+// path only: no image, video or font in git (AGENTS rule 4), nothing fetched. The classes (paper, ink, acc, ...) are styled
+// by the page's CSS from the theme's tokens, so the drawings follow the theme; the others (gr, blk, pop, dr ...) are the
+// little motion played when the card is hovered, focused or lit by what the person types.
 const KB_NC_ART = {
-  slides: { from: '#7c5cff', to: '#4f8cff', svg: '<rect x="38" y="26" width="92" height="52" rx="6" fill="#fff" opacity=".45"/><rect x="30" y="18" width="92" height="52" rx="6" fill="#fff"/><rect x="40" y="27" width="40" height="7" rx="3.5" fill="#7c5cff"/><rect x="40" y="40" width="54" height="4" rx="2" fill="#c9cdd6"/><rect x="40" y="48" width="44" height="4" rx="2" fill="#c9cdd6"/><rect x="92" y="46" width="7" height="16" rx="2" fill="#ffb020"/><rect x="102" y="38" width="7" height="24" rx="2" fill="#4f8cff"/><rect x="112" y="30" width="7" height="32" rx="2" fill="#7c5cff"/>' },
-  video: { from: '#ff5d73', to: '#ff9a3d', svg: '<rect x="26" y="16" width="108" height="62" rx="9" fill="#1b1d24"/><circle cx="80" cy="45" r="16" fill="#fff"/><path d="M75 37 91 45 75 53Z" fill="#ff5d73"/><rect x="36" y="68" width="88" height="4" rx="2" fill="#fff" opacity=".25"/><rect x="36" y="68" width="52" height="4" rx="2" fill="#ff9a3d"/>' },
-  image: { from: '#35b9f4', to: '#7be0a8', svg: '<rect x="26" y="14" width="108" height="72" rx="8" fill="#fff"/><rect x="31" y="19" width="98" height="62" rx="5" fill="#bfe9ff"/><circle cx="108" cy="36" r="9" fill="#ffd54a"/><path d="M31 81V62l24-18 20 16 14-9 40 24v6Z" fill="#46c37b"/><path d="M31 81V70l30-14 22 14 20-8 26 12v7Z" fill="#2e9e62"/>' },
-  miniapp: { from: '#16c79a', to: '#1fa2ff', svg: '<rect x="58" y="8" width="44" height="84" rx="9" fill="#fff"/><rect x="64" y="18" width="14" height="14" rx="4" fill="#16c79a"/><rect x="82" y="18" width="14" height="14" rx="4" fill="#ffb020"/><rect x="64" y="36" width="14" height="14" rx="4" fill="#4f8cff"/><rect x="82" y="36" width="14" height="14" rx="4" fill="#ff5d73"/><rect x="64" y="56" width="32" height="6" rx="3" fill="#c9cdd6"/><rect x="64" y="68" width="32" height="10" rx="5" fill="#16c79a"/>' },
-  website: { from: '#5b6cff', to: '#a46bff', svg: '<rect x="22" y="14" width="116" height="72" rx="8" fill="#fff"/><path d="M22 28v-6a8 8 0 0 1 8-8h100a8 8 0 0 1 8 8v6Z" fill="#e6e8ee"/><circle cx="31" cy="21" r="2.4" fill="#ff5d73"/><circle cx="39" cy="21" r="2.4" fill="#ffb020"/><circle cx="47" cy="21" r="2.4" fill="#46c37b"/><rect x="30" y="34" width="100" height="20" rx="5" fill="#a46bff" opacity=".85"/><rect x="30" y="60" width="30" height="18" rx="4" fill="#d7dbe6"/><rect x="65" y="60" width="30" height="18" rx="4" fill="#d7dbe6"/><rect x="100" y="60" width="30" height="18" rx="4" fill="#d7dbe6"/>' },
-  dashboard: { from: '#ffb020', to: '#ff5d73', svg: '<rect x="22" y="14" width="116" height="72" rx="8" fill="#fff"/><rect x="30" y="22" width="34" height="22" rx="4" fill="#ffe3c2"/><rect x="68" y="22" width="34" height="22" rx="4" fill="#ffd0d0"/><rect x="106" y="22" width="24" height="22" rx="4" fill="#d4ecff"/><rect x="30" y="50" width="12" height="28" rx="2" fill="#ff9a3d"/><rect x="46" y="58" width="12" height="20" rx="2" fill="#ffb020"/><rect x="62" y="46" width="12" height="32" rx="2" fill="#ff5d73"/><path d="M84 74 98 62l12 6 20-18" fill="none" stroke="#4f8cff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' },
+  slides: '<rect class="paper tint bk" style="--r:5deg" x="15" y="3" width="40" height="26" rx="3"/><rect class="paper" x="6" y="9" width="44" height="29" rx="3"/><rect class="ink" x="11" y="15" width="17" height="3.2" rx="1.6"/><rect class="ink2" x="11" y="21.5" width="12" height="2" rx="1"/><rect class="ink2" x="11" y="25.5" width="9" height="2" rx="1"/><rect class="acc2 gr" style="--d:0s" x="32" y="28" width="3.6" height="5" rx="1"/><rect class="acc2 gr" style="--d:.08s" x="37.4" y="25" width="3.6" height="8" rx="1"/><rect class="acc gr" style="--d:.16s" x="42.8" y="20.5" width="3.6" height="12.5" rx="1"/>',
+  doc: '<rect class="paper tint bk" style="--r:7deg" x="22" y="3" width="28" height="36" rx="3"/><rect class="paper" x="14" y="5" width="30" height="36" rx="3"/><rect class="ink" x="19" y="11" width="14" height="3.2" rx="1.6"/><rect class="ink2 blk" style="--d:.08s" x="19" y="18" width="20" height="1.9" rx=".95"/><rect class="acc2 blk" style="--d:.16s" x="19" y="22.5" width="12" height="2.4" rx="1"/><rect class="ink2 blk" style="--d:.24s" x="19" y="27.3" width="20" height="1.9" rx=".95"/><rect class="ink2 blk" style="--d:.32s" x="19" y="31.5" width="11" height="1.9" rx=".95"/>',
+  sheet: '<rect class="paper" x="6" y="5" width="52" height="34" rx="3"/><path class="tint" d="M6 8a3 3 0 0 1 3-3h46a3 3 0 0 1 3 3v5H6z"/><path class="grid" d="M6 13h52M6 21h52M6 29h52M23 5v34M40 5v34"/><rect class="sel pop" x="23.4" y="13.4" width="16.2" height="7.2" rx="1"/><rect class="ink2" x="9" y="8" width="9" height="2" rx="1"/><rect class="ink2" x="9" y="16" width="10" height="2" rx="1"/><rect class="ink2" x="9" y="24" width="8" height="2" rx="1"/><rect class="ink2" x="26" y="24" width="9" height="2" rx="1"/><rect class="ink2" x="43" y="16" width="9" height="2" rx="1"/><rect class="ink2" x="43" y="32" width="7" height="2" rx="1"/>',
+  dashboard: '<rect class="paper" x="6" y="4" width="52" height="36" rx="3"/><rect class="ink" x="11" y="9" width="14" height="2.6" rx="1.3"/><rect class="ink3 gr" style="--d:0s" x="11" y="26" width="4" height="8" rx="1"/><rect class="ink3 gr" style="--d:.08s" x="17" y="22" width="4" height="12" rx="1"/><rect class="ink3 gr" style="--d:.16s" x="23" y="25" width="4" height="9" rx="1"/><rect class="acc gr" style="--d:.24s" x="29" y="17" width="4" height="17" rx="1"/><circle class="trk" cx="47" cy="22" r="7"/><circle class="arc" pathLength="1" cx="47" cy="22" r="7"/>',
+  image: '<rect class="paper tint bk" style="--r:-7deg" x="6" y="7" width="34" height="26" rx="3"/><rect class="paper" x="20" y="11" width="38" height="28" rx="3"/><rect class="tint" x="22" y="13" width="34" height="24" rx="2"/><circle class="acc sun" cx="49" cy="20" r="3.2"/><path class="ink2" d="M22 37V31L30 23L36 29L41 24L56 33V37Z"/><path class="ink" d="M22 37V34L28 29L34 34L38 31L46 37Z"/>',
+  video: '<rect class="paper" x="6" y="6" width="52" height="33" rx="4"/><rect class="scr" x="9" y="9" width="46" height="22" rx="2.5"/><circle class="acc play" cx="32" cy="20" r="6.5"/><path class="oa play" d="M30.2 16.8 36 20l-5.8 3.2z"/><rect class="ink3" x="9" y="34" width="46" height="2" rx="1"/><rect class="acc prog" x="9" y="34" width="46" height="2" rx="1"/>',
+  website: '<rect class="paper" x="5" y="4" width="54" height="36" rx="3.5"/><path class="tint" d="M5 7.5A3.5 3.5 0 0 1 8.5 4h47A3.5 3.5 0 0 1 59 7.5V11H5z"/><circle class="ink2" cx="9.5" cy="7.5" r="1"/><circle class="ink2" cx="13" cy="7.5" r="1"/><circle class="ink2" cx="16.5" cy="7.5" r="1"/><rect class="ink blk" style="--d:0s" x="10" y="16" width="21" height="3.6" rx="1.8"/><rect class="ink2 blk" style="--d:.1s" x="10" y="22.5" width="16" height="2" rx="1"/><rect class="acc blk" style="--d:.2s" x="10" y="28" width="11" height="4.6" rx="2.3"/><rect class="tint blk" style="--d:.15s" x="36" y="15" width="18" height="19" rx="2.5"/><circle class="acc2" cx="45" cy="22" r="3"/><path class="ink2" d="M36 34V30L42 26L47 30L50 28L54 31V34z"/>',
+  miniapp: '<rect class="paper" x="21" y="2" width="22" height="40" rx="5"/><rect class="ink" x="25" y="7" width="9" height="2.4" rx="1.2"/><rect class="acc pop" style="--d:0s" x="25" y="13" width="6.4" height="6.4" rx="1.6"/><rect class="tint pop" style="--d:.1s" x="32.6" y="13" width="6.4" height="6.4" rx="1.6"/><rect class="tint pop" style="--d:.2s" x="25" y="20.8" width="6.4" height="6.4" rx="1.6"/><rect class="ink3 pop" style="--d:.3s" x="32.6" y="20.8" width="6.4" height="6.4" rx="1.6"/><rect class="ink3" x="25" y="30" width="14" height="4.4" rx="2.2"/><circle class="acc" cx="36.8" cy="32.2" r="1.7"/>',
+  model3d: '<path class="paper" d="M14 14L32 23V41L14 32Z"/><path class="ink3" d="M50 14L32 23V41L50 32Z"/><path class="tint node" d="M32 5L50 14L32 23L14 14Z"/><path class="ln" d="M14 14L32 23L50 14M32 23V41"/><circle class="acc pop" style="--d:.1s" cx="32" cy="14" r="2.2"/>',
+  automation: '<path class="ln dr" pathLength="1" d="M20 22.5H25"/><path class="ln dr" pathLength="1" d="M39 22.5C42.5 22.5 41.5 11 45 11"/><path class="ln dr" pathLength="1" d="M39 22.5C42.5 22.5 41.5 34 45 34"/><rect class="paper" x="5" y="16" width="15" height="13" rx="3.5"/><path class="ink" d="M13.5 18.8L9.8 23.6h3l-.9 4 4-5h-3z"/><rect class="acc node" x="25" y="14" width="14" height="17" rx="3.5"/><rect class="oa" style="opacity:.9" x="28" y="19" width="8" height="2" rx="1"/><rect class="oa" style="opacity:.6" x="28" y="23.5" width="5.5" height="2" rx="1"/><rect class="paper" x="45" y="6" width="14" height="10" rx="3"/><rect class="ink2" x="48" y="9" width="8" height="1.8" rx=".9"/><rect class="ink2" x="48" y="12.4" width="5" height="1.8" rx=".9"/><rect class="paper" x="45" y="29" width="14" height="10" rx="3"/><path class="ln" d="M48.5 34l2 2 4-4.4"/>',
+  team: '<path class="ln dr" pathLength="1" d="M32 15V21H15V26"/><path class="ln dr" pathLength="1" d="M32 21H49V26"/><rect class="paper" x="22" y="3" width="20" height="12" rx="4"/><circle class="acc" cx="28.5" cy="9" r="3"/><rect class="ink2" x="33.5" y="7.2" width="6" height="1.8" rx=".9"/><rect class="ink2" x="33.5" y="10.8" width="4" height="1.8" rx=".9"/><rect class="paper" x="4" y="26" width="22" height="13" rx="4"/><circle class="tint ring" cx="10.5" cy="32.5" r="3"/><rect class="ink2" x="15.5" y="30.7" width="6" height="1.8" rx=".9"/><rect class="ink2" x="15.5" y="34.3" width="4" height="1.8" rx=".9"/><rect class="paper" x="38" y="26" width="22" height="13" rx="4"/><circle class="tint ring" cx="44.5" cy="32.5" r="3"/><rect class="ink2" x="49.5" y="30.7" width="6" height="1.8" rx=".9"/><rect class="ink2" x="49.5" y="34.3" width="4" height="1.8" rx=".9"/>',
+  skill: '<rect class="paper" x="14" y="5" width="36" height="34" rx="3"/><path class="acc pop" style="--d:0s" d="M30 9L32.6 14.4L38 17L32.6 19.6L30 25L27.4 19.6L22 17L27.4 14.4Z"/><path class="acc2 pop" style="--d:.15s" d="M43 9L44.3 11.7L47 13L44.3 14.3L43 17L41.7 14.3L39 13L41.7 11.7Z"/><rect class="ink2 blk" style="--d:.1s" x="19" y="29" width="26" height="2" rx="1"/><rect class="ink2 blk" style="--d:.2s" x="19" y="33" width="16" height="2" rx="1"/>',
+  plugin: '<path class="ln dr" pathLength="1" d="M32 35V39C32 41.5 35 42 39 42"/><rect class="ink" x="24" y="6" width="4" height="10" rx="1.5"/><rect class="ink" x="36" y="6" width="4" height="10" rx="1.5"/><rect class="paper" x="18" y="15" width="28" height="20" rx="5"/><circle class="acc node" cx="32" cy="25" r="4.5"/><rect class="oa" style="opacity:.9" x="30.2" y="23.2" width="3.6" height="3.6" rx="1"/>',
 }
 // The headline of the new-chat page: a different line each time a new chat page appears (KB_NC_HERO_COUNT lines per
 // language, the dictionary keys `kbnc.hero.<n>`). `last` is the index shown the previous time: never the same twice in a row.
@@ -6101,6 +6101,42 @@ const kbNcPickLine = (count, last, rand) => {
 }
 /** The templates of a group this install can serve. `bootIds`: the ids of the bundles of the boot list. */
 const kbNcTemplates = (group, bootIds) => group.filter((t) => t.needs === null || (Array.isArray(bootIds) === true && bootIds.indexOf(t.needs) >= 0))
+/** The slider: the chapters that hold at least one template this install can serve, in order (`bootIds` as above). */
+const kbNcSlider = (bootIds) => KB_NC_GROUPS.map((g) => ({ id: g, templates: kbNcTemplates(KB_NC_TEMPLATES.filter((t) => t.group === g), bootIds) })).filter((g) => g.templates.length > 0)
+// What the person types → the template it sounds like. Words of the two shipped languages, matched on the text without its
+// accents; the specific rules first (a « team of agents » is not an « app »). Only a template that is offered can match.
+const KB_NC_WORDS = [
+  ['team', /\b(agent teams?|teams? of agents|equipes? d['’]agents?|multi-?agents?)\b/],
+  ['skill', /\b(skills?|competences?)\b/],
+  ['plugin', /\bplug-?ins?\b/],
+  ['model3d', /\b(3d|stl|mesh|maillage)\b/],
+  ['automation', /\b(automati[sz]\w*|workflows?|schedules?|every (?:day|week|month|monday|morning)|chaque (?:jour|semaine|mois|lundi|matin)|tous les (?:jours|lundis|matins))\b/],
+  ['dashboard', /\b(dashboards?|tableaux? de bord|kpis?|metrics|indicateurs)\b/],
+  ['slides', /\b(slides?|decks?|presentations?|pitch|keynote|diaporama|powerpoint)\b/],
+  ['sheet', /\b(spreadsheets?|tableurs?|excel|budget|feuilles? de calcul)\b/],
+  ['doc', /\b(documents?|reports?|rapports?|briefs?|letters?|lettres?|memos?|essays?|essais?)\b/],
+  ['video', /\b(videos?|clips?|reels?|animations?)\b/],
+  ['image', /\b(images?|logos?|posters?|affiches?|illustrations?|pictures?|photos?)\b/],
+  ['website', /\b(web ?sites?|sites? web|sites?|landing|portfolio|blog)\b/],
+  ['miniapp', /\b(mini-?apps?|apps?|applications?|calculat\w+|trackers?|widgets?|quiz|outils?|tools?)\b/],
+]
+/** The template a text sounds like, among `ids` (the ones offered), or null. Too short a text says nothing. */
+const kbNcDetect = (text, ids) => {
+  const raw = typeof text === 'string' ? text.slice(0, 400) : ''
+  if (raw.trim().length < 3 || Array.isArray(ids) !== true) return null
+  const s = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  for (const rule of KB_NC_WORDS) { if (ids.indexOf(rule[0]) >= 0 && rule[1].test(s)) return rule[0] }
+  return null
+}
+/** What the composer holds once a template is picked: the template's own sentence when the box is empty or still holds a
+ *  template sentence (`known`: all of them); otherwise the person's words are kept, after the sentence. Never loses text. */
+const kbNcFill = (draft, tpl, known) => {
+  const d = typeof draft === 'string' ? draft : ''
+  const t = typeof tpl === 'string' ? tpl : ''
+  if (d.trim() === '') return t
+  if (Array.isArray(known) === true && known.some((k) => String(k).trim() === d.trim())) return t
+  return d.indexOf(t) === 0 ? d : t + d
+}
 const kbNcObj = (v) => (v !== null && typeof v === 'object' && !Array.isArray(v) ? v : null)
 // What the server calls the states of a computer, and what the card says.
 const KB_NC_STATES = { running: 'awake', suspended: 'asleep', creating: 'starting', resuming: 'waking', suspending: 'suspending', stopped: 'stopped', failed: 'failed' }
@@ -24954,10 +24990,95 @@ function renderFit(canvas, model, cam, opts){
 @media (max-width:720px){.kb8-cs-row{grid-template-columns:1fr}}
 `), 'kybers: styles of the chat suggestions');
 
-    // ── New chat: Build / Create / Cloud Computer cards ──────────────────────────────────────────────────────
+    // ── New chat: the slider of what can be made, and the Cloud Computer line ────────────────────────────────────
     // Their own dock entry, BEFORE the team's starters (order 25 < 30): the starters are not touched. Shown on a blank chat
-    // only, like them, and gone with the first exchange. A template prefills the composer; it never sends.
+    // only, like them, and gone with the first exchange. A template prefills the composer; it never sends. On the hero the
+    // block is drawn UNDER the composer: the dock and the composer bar are `display:contents` wrappers of one flex column, so
+    // CSS `order` on our own element moves it (no engine patch). It listens: the dock entry receives the composer's draft
+    // (`p.input.draft`) and lights the template the text sounds like. One colour on the page: the theme's accent.
     const kbNcBootIds = () => { try { return (((window.__DSH_BOOT__ || {}).entries) || []).map((e) => (e !== null && e !== undefined ? e.id : '')) } catch (e) { return [] } }
+    const kbNcCalm = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches === true } catch (e) { return false } }
+    const KbNcSlider = (sp) => {
+      const groups = sp.groups
+      const trackRef = React.useRef(null)
+      const dragRef = React.useRef(null)
+      const quietRef = React.useRef(false)
+      const stPair = React.useState({ prev: false, next: false, w: 100, x: 0, rtl: false })
+      const st = stPair[0]
+      const setSt = stPair[1]
+      // Where the track is: which arrows make sense, how far the position line goes, which edges fade (read again on scroll and on resize).
+      const measure = React.useCallback(() => {
+        const tr = trackRef.current
+        if (tr === null) return
+        const max = tr.scrollWidth - tr.clientWidth
+        const at = Math.abs(tr.scrollLeft)
+        const frac = max > 0 ? Math.max(0.18, tr.clientWidth / tr.scrollWidth) : 1
+        let rtl = false
+        try { rtl = window.getComputedStyle(tr).direction === 'rtl' } catch (e) { rtl = false }
+        const n = { prev: at > 2, next: max > 2 && at < max - 2, w: Math.round(frac * 1000) / 10, x: max > 0 ? Math.round((at / max) * (1 - frac) * 1000) / 10 : 0, rtl }
+        setSt((o) => (o.prev === n.prev && o.next === n.next && o.w === n.w && o.x === n.x && o.rtl === n.rtl ? o : n))
+      }, [])
+      React.useEffect(() => {
+        const tr = trackRef.current
+        if (tr === null) return undefined
+        measure()
+        let ro = null
+        try { ro = new ResizeObserver(measure); ro.observe(tr) } catch (e) { ro = null }
+        // A mouse drags the track (touch and trackpads scroll it natively); a drag never counts as a click.
+        const move = (e) => {
+          const d = dragRef.current
+          if (d === null || trackRef.current === null) return
+          const dx = e.clientX - d.x
+          if (d.moved !== true && Math.abs(dx) > 6) { d.moved = true; trackRef.current.classList.add('dragging') }
+          if (d.moved === true) trackRef.current.scrollLeft = d.l - dx
+        }
+        const up = () => {
+          const d = dragRef.current
+          if (d !== null && d.moved === true) { quietRef.current = true; setTimeout(() => { quietRef.current = false }, 0) }
+          dragRef.current = null
+          if (trackRef.current !== null) trackRef.current.classList.remove('dragging')
+        }
+        window.addEventListener('pointermove', move)
+        window.addEventListener('pointerup', up)
+        return () => { if (ro !== null) ro.disconnect(); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up) }
+      }, [measure, groups.length])
+      // What the person types lights a card: bring it into view.
+      React.useEffect(() => {
+        const tr = trackRef.current
+        if (tr === null || typeof sp.match !== 'string') return
+        const card = tr.querySelector('[data-id="' + sp.match + '"]')
+        if (card !== null && typeof card.scrollIntoView === 'function') { try { card.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: kbNcCalm() ? 'auto' : 'smooth' }) } catch (e) { /* the card stays where it is */ } }
+      }, [sp.match])
+      const page = (dir) => {
+        const tr = trackRef.current
+        if (tr === null) return
+        tr.scrollBy({ left: dir * (st.rtl ? -1 : 1) * tr.clientWidth * 0.78, behavior: kbNcCalm() ? 'auto' : 'smooth' })
+      }
+      const goTo = (id) => {
+        const tr = trackRef.current
+        const g = tr === null ? null : tr.querySelector('[data-group="' + id + '"]')
+        if (g !== null && typeof g.scrollIntoView === 'function') { try { g.scrollIntoView({ inline: 'start', block: 'nearest', behavior: kbNcCalm() ? 'auto' : 'smooth' }) } catch (e) { /* stays */ } }
+      }
+      const fadeL = st.rtl ? st.next : st.prev
+      const fadeR = st.rtl ? st.prev : st.next
+      return h('div', { className: 'kb8-sl', 'data-kb': 'newchat-slider' },
+        h('button', { type: 'button', className: 'kb8-sl-nav prev' + (st.prev ? '' : ' off'), 'aria-label': kbt('kbnc.sl.prev'), tabIndex: st.prev ? 0 : -1, onClick: () => page(-1) }, Icon('chevronLeft', 16)),
+        h('div', {
+          className: 'kb8-sl-track', ref: trackRef, role: 'group', 'aria-label': kbt('kbnc.sl.label'), 'data-kb': 'newchat-visuals',
+          style: { '--kb8-ml': fadeL ? '36px' : '0px', '--kb8-mr': fadeR ? '36px' : '0px' },
+          onScroll: measure,
+          onPointerDown: (e) => { if (e.pointerType === 'mouse' && e.button === 0 && trackRef.current !== null) dragRef.current = { x: e.clientX, l: trackRef.current.scrollLeft, moved: false } },
+          onKeyDown: (e) => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); const vis = e.key === 'ArrowRight' ? 1 : -1; page(st.rtl ? -vis : vis) } },
+        },
+          groups.map((g) => h('div', { key: g.id, className: 'kb8-sl-group', 'data-group': g.id },
+            h('button', { type: 'button', className: 'kb8-sl-gh', onClick: () => goTo(g.id) }, kbt('kbnc.g.' + g.id), h('small', null, String(g.templates.length))),
+            h('div', { className: 'kb8-sl-cards' }, g.templates.map((t) =>
+              h('button', { type: 'button', key: t.id, className: 'kb8-sl-card' + (sp.match === t.id ? ' is-match' : ''), 'data-kb': 'newchat-visual', 'data-id': t.id, onClick: () => { if (quietRef.current !== true) sp.onPick(t.id) } },
+                h('span', { className: 'kb8-sl-stage', 'aria-hidden': 'true', dangerouslySetInnerHTML: { __html: '<svg viewBox="0 0 64 44" aria-hidden="true">' + KB_NC_ART[t.id] + '</svg>' } }),
+                h('span', { className: 'kb8-sl-label' }, kbt('kbnc.t.' + t.id)))))))),
+        h('button', { type: 'button', className: 'kb8-sl-nav next' + (st.next ? '' : ' off'), 'aria-label': kbt('kbnc.sl.next'), tabIndex: st.next ? 0 : -1, onClick: () => page(1) }, Icon('chevronRight', 16)),
+        st.w < 100 ? h('span', { className: 'kb8-sl-prog', 'aria-hidden': 'true' }, h('span', { className: 'kb8-sl-thumb', style: { width: st.w + '%', insetInlineStart: st.x + '%' } })) : null)
+    }
     const KbNewChatCards = (props) => {
       const p = (props !== null && props !== undefined) ? props : {}
       const sid = (typeof p.sessionId === 'string') ? p.sessionId : ''
@@ -24968,9 +25089,6 @@ function renderFit(canvas, model, cam, opts){
       }) : '0'
       const duSlot = (p.session !== null && p.session !== undefined && typeof p.session === 'object' && p.session.blank === true) ? '1' : null
       const blank = (duSlot !== null) ? duSlot : duStore
-      const openPair = React.useState(null)
-      const open = openPair[0]
-      const setOpen = openPair[1]
       const actPair = React.useState({ verb: null, note: null })
       const act = actPair[0]
       const setAct = actPair[1]
@@ -24985,29 +25103,19 @@ function renderFit(canvas, model, cam, opts){
       if (blank !== '1') return null
       // Kaby's own chat is not a place to start building: its strip is all that sits above the composer.
       try { if (window.__KB_KYBER__ && typeof window.__KB_KYBER__.isKybySession === 'function' && window.__KB_KYBER__.isKybySession(sid) === true) return null } catch (e) { /* the cards stay */ }
+      const groups = kbNcSlider(kbNcBootIds())
+      const offered = []
+      groups.forEach((g) => g.templates.forEach((t) => offered.push(t.id)))
+      // The text in the composer, as the dock entry receives it: the template it sounds like is lit (never sent, never changed).
+      const draft = (p.input !== null && p.input !== undefined && typeof p.input.draft === 'string') ? p.input.draft : ''
+      const match = kbNcDetect(draft, offered)
+      // A template fills the composer and never sends. The person's own words stay (see kbNcFill).
       const prefill = (id) => {
         try {
-          const act = (p.inputActions !== null && p.inputActions !== undefined) ? p.inputActions : null
-          if (act !== null && typeof act.setDraft === 'function') act.setDraft(kbt('kbnc.p.' + id))
+          const ia = (p.inputActions !== null && p.inputActions !== undefined) ? p.inputActions : null
+          if (ia !== null && typeof ia.setDraft === 'function') ia.setDraft(kbNcFill(draft, kbt('kbnc.p.' + id), KB_NC_TEMPLATES.map((t) => kbt('kbnc.p.' + t.id))))
         } catch (e) { /* the composer stays the person's */ }
-        setOpen(null)
       }
-      const boot = kbNcBootIds()
-      const group = open === 'build' ? kbNcTemplates(KB_NC_BUILD, boot) : open === 'create' ? kbNcTemplates(KB_NC_CREATE, boot) : null
-      if (group !== null) {
-        return h('div', { className: 'kb8-nc', 'data-kb': 'newchat' },
-          h('div', { className: 'kb8-nc-panel' },
-            h('div', { className: 'kb8-nc-ph' }, kbt(open === 'build' ? 'kbnc.build' : 'kbnc.create'),
-              h('button', { type: 'button', className: 'kb8-nc-x', 'aria-label': kbt('kbnc.close'), title: kbt('kbnc.close'), onClick: () => setOpen(null) }, Icon('x', 14))),
-            h('div', { className: 'kb8-nc-tiles' }, group.map((t) =>
-              h('button', { type: 'button', key: t.id, className: 'kb8-nc-tile', 'data-kb': 'newchat-template', onClick: () => prefill(t.id) },
-                h('span', { className: 'kb8-nc-ico', style: { background: kbNcTint(t.hue, 0.16), '--kb8-ink': t.hue } }, Icon(t.icon, 18)), h('span', { className: 'kb8-nc-t' }, kbt('kbnc.t.' + t.id)))))))
-      }
-      const card = (id, icon, title, sub, onClick, dot) => h('button', { type: 'button', key: id, className: 'kb8-nc-card', 'data-kb': 'newchat-' + id, onClick },
-        h('span', { className: 'kb8-nc-ico', style: { background: kbNcTint(KB_NC_HUES[id], 0.16), '--kb8-ink': KB_NC_HUES[id] } }, Icon(icon, 18)),
-        h('span', { className: 'kb8-nc-body' },
-          h('span', { className: 'kb8-nc-t' }, dot === undefined || dot === '' ? null : h('i', { className: 'kb8-nc-dot ' + dot }), title),
-          h('span', { className: 'kb8-nc-d', title: sub }, sub)))
       const openKyber = () => { try { if (typeof window.__KB_OPEN__ === 'function') window.__KB_OPEN__({ view: 'kyber' }) } catch (e) { /* no page to open */ } }
       // One action: the host acts on the person's own Home computer (it is never named here). « Open » gets its tab at the click
       // (a popup blocker lets only that through) and the address is put in it once the server has answered.
@@ -25029,82 +25137,112 @@ function renderFit(canvas, model, cam, opts){
             kbNcCloudBurst()
           })
       }
-      // The visual strip: a drawn preview per kind of thing the product makes; a click prefills the composer like a template.
-      const stripTemplates = kbNcTemplates(KB_NC_CREATE.concat(KB_NC_BUILD), boot)
-      const visuals = KB_NC_VISUALS.map((id) => stripTemplates.find((t) => t.id === id)).filter((t) => t !== undefined)
-      const stripNode = visuals.length === 0 ? null : h('div', { className: 'kb8-nc-strip', 'data-kb': 'newchat-visuals', role: 'list' },
-        visuals.map((t) => {
-          const art = KB_NC_ART[t.id]
-          return h('button', { type: 'button', key: t.id, role: 'listitem', className: 'kb8-nc-vis', 'data-kb': 'newchat-visual', 'data-id': t.id, onClick: () => prefill(t.id) },
-            h('span', { className: 'kb8-nc-art', style: { background: 'linear-gradient(135deg,' + art.from + ',' + art.to + ')' }, dangerouslySetInnerHTML: { __html: '<svg viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' + art.svg + '</svg>' } }),
-            h('span', { className: 'kb8-nc-vl' }, kbt('kbnc.t.' + t.id)))
-        }))
       const ccActions = kbNcActions(cloud)
       const ccSub = cloud.kind === 'awake' || cloud.kind === 'asleep' || cloud.kind === 'other'
         ? (cloud.kind === 'awake' ? kbt('kbnc.cc.sub.awake') : (cloud.lastActive !== '' ? kbt('kbnc.cc.last') + kbFmtWhen(cloud.lastActive) : kbt('kbnc.cc.' + cloud.kind)))
         : cloud.kind === 'none' ? kbt('kbnc.cc.sub.none') : kbt('kbnc.cc.' + cloud.kind)
+      const ccText = act.note !== null ? act.note : (act.verb !== null ? kbt('kbnc.cc.act.busy') : (cloud.pausedReason === 'hours' && ccActions.length === 0 ? kbt('kbnc.cc.hours') : ccSub))
       return h('div', { className: 'kb8-nc', 'data-kb': 'newchat' },
-        h('div', { className: 'kb8-nc-row' },
-          card('build', 'wrench', kbt('kbnc.build') + ' ›', kbt('kbnc.build.sub'), () => setOpen('build')),
-          card('create', 'shapes', kbt('kbnc.create') + ' ›', kbt('kbnc.create.sub'), () => setOpen('create')),
-          (cloud.kind === 'unknown' ? null
-            : h('div', { key: 'cloud', className: 'kb8-nc-card kb8-nc-cloud', 'data-kb': 'newchat-cloud' },
-              h('button', { type: 'button', className: 'kb8-nc-main', 'data-kb': 'newchat-cloud-open', onClick: openKyber },
-                h('span', { className: 'kb8-nc-ico', style: { background: kbNcTint(KB_NC_HUES.cloud, 0.16), '--kb8-ink': KB_NC_HUES.cloud } }, Icon('monitor', 18)),
-                h('span', { className: 'kb8-nc-body' },
-                  h('span', { className: 'kb8-nc-t' }, kbNcDot(cloud.kind) === '' ? null : h('i', { className: 'kb8-nc-dot ' + kbNcDot(cloud.kind) }), kbt('kbui.cloudcomputer')),
-                  h('span', { className: 'kb8-nc-d', role: act.note !== null ? 'alert' : undefined, title: act.note !== null ? act.note : undefined },
-                    act.note !== null ? act.note : (act.verb !== null ? kbt('kbnc.cc.act.busy') : (cloud.pausedReason === 'hours' && ccActions.length === 0 ? kbt('kbnc.cc.hours') : ccSub))))),
-              (ccActions.length > 0 ? h('span', { className: 'kb8-nc-acts' }, ccActions.map((verb) =>
-                h('button', { type: 'button', key: verb, className: 'kb8-nc-act' + (verb === 'suspend' ? ' ghost' : ''), 'data-kb': 'newchat-cloud-' + verb, disabled: act.verb !== null, onClick: () => runAction(verb) }, kbt('kbnc.cc.act.' + verb)))) : null)))),
-        stripNode)
+        groups.length === 0 ? null : h(KbNcSlider, { groups, match, onPick: prefill }),
+        (cloud.kind === 'unknown' ? null
+          : h('div', { className: 'kb8-nc-cloud', 'data-kb': 'newchat-cloud' },
+            h('button', { type: 'button', className: 'kb8-nc-main', 'data-kb': 'newchat-cloud-open', onClick: openKyber },
+              Icon('monitor', 16),
+              h('span', { className: 'kb8-nc-t' }, kbNcDot(cloud.kind) === '' ? null : h('i', { className: 'kb8-nc-dot ' + kbNcDot(cloud.kind) }), kbt('kbui.cloudcomputer')),
+              h('span', { className: 'kb8-nc-d', role: act.note !== null ? 'alert' : undefined, title: ccText }, ccText)),
+            (ccActions.length > 0 ? h('span', { className: 'kb8-nc-acts' }, ccActions.map((verb) =>
+              h('button', { type: 'button', key: verb, className: 'kb8-nc-act' + (verb === 'suspend' ? ' ghost' : ''), 'data-kb': 'newchat-cloud-' + verb, disabled: act.verb !== null, onClick: () => runAction(verb) }, kbt('kbnc.cc.act.' + verb)))) : null))))
     }
     ctx.effect(() => slots.inject('conversation.input.dock', () => slots.register(
       { name: 'conversation.input.dock', id: 'kybernos-newchat', order: 25 }, KbNewChatCards)), 'kybers: new chat cards');
+    // The little motion of a drawing plays when its card is hovered, focused, or lit by what the person types.
+    const kbNcHot = '.kb8-sl-card:is(:hover,:focus-visible,.is-match)'
     ctx.effect(() => styles.insert(`
-/* Cards of the new chat: same inset as the starters' rows, tokens only. The starters below are not restyled. */
-.kb8-nc{display:flex;flex-direction:column;gap:10px;padding:0 16px 10px;container-type:inline-size;container-name:kbnc}
-.kb8-nc-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.6fr);gap:10px}
-.kb8-nc-card{display:flex;align-items:center;gap:11px;min-width:0;padding:10px 12px;border-radius:14px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);font:inherit;color:inherit;text-align:left;cursor:pointer;transition:background .12s}
-.kb8-nc-card:hover{background:var(--dsw-alias-bg-layer-3);border-color:var(--dsw-alias-border-l2)}
-.kb8-nc-card:focus-visible,.kb8-nc-tile:focus-visible,.kb8-nc-main:focus-visible,.kb8-nc-act:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
-.kb8-nc-cloud{cursor:default;padding:0;gap:0;align-items:stretch;flex-wrap:nowrap}
-.kb8-nc-cloud:hover{background:var(--dsw-alias-bg-layer-2);border-color:var(--dsw-alias-border-l1)}
-.kb8-nc-main{display:flex;align-items:center;gap:11px;min-width:0;flex:1;padding:10px 6px 10px 12px;border:0;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer;border-radius:14px}
+/* The new chat: a slider of what can be made, under the composer, and the Cloud Computer line. Tokens only: the one accent is the theme's. */
+.kb8-nc{--kb8-acc:var(--dsw-alias-brand-primary);order:2;display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:18px 16px 10px;container-type:inline-size;container-name:kbnc}
+.kb8-sl{position:relative}
+.kb8-sl-track{position:relative;display:flex;align-items:flex-start;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;scroll-padding-inline:4px;scrollbar-width:none;padding:6px 4px 18px;margin:-6px -4px -18px;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 var(--kb8-ml,0px),#000 calc(100% - var(--kb8-mr,0px)),transparent 100%);mask-image:linear-gradient(to right,transparent 0,#000 var(--kb8-ml,0px),#000 calc(100% - var(--kb8-mr,0px)),transparent 100%)}
+.kb8-sl-track::-webkit-scrollbar{display:none}
+.kb8-sl-track.dragging{scroll-snap-type:none;cursor:grabbing}
+.kb8-sl-group{flex:none;scroll-snap-align:start}
+.kb8-sl-group+.kb8-sl-group{margin-inline-start:22px;padding-inline-start:22px;border-inline-start:1px solid var(--dsw-alias-border-l1)}
+.kb8-sl-gh{display:inline-flex;align-items:baseline;gap:6px;margin:0 0 10px 2px;padding:0;border:0;background:transparent;font:inherit;font-size:12.5px;font-weight:600;letter-spacing:.02em;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.kb8-sl-gh:hover{color:var(--dsw-alias-label-primary)}
+.kb8-sl-gh small{font-size:11px;font-weight:500}
+.kb8-sl-cards{display:flex;gap:10px}
+.kb8-sl-card{position:relative;flex:none;width:120px;height:140px;display:flex;flex-direction:column;padding:0;border:0;border-radius:var(--dsw-radius-lg,16px);background:var(--dsw-alias-bg-layer-1);box-shadow:0 0 0 1px var(--dsw-alias-border-l1);color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:550;text-align:center;overflow:hidden;cursor:pointer;transition:box-shadow .25s,transform .25s cubic-bezier(.16,1,.3,1),color .2s}
+.kb8-sl-card:hover,.kb8-sl-card:focus-visible{color:var(--dsw-alias-label-primary);transform:translateY(-3px);box-shadow:0 0 0 1px var(--dsw-alias-border-l2),0 12px 28px -14px rgba(0,0,0,.35)}
+.kb8-sl-card:focus-visible{outline:2px solid var(--kb8-acc);outline-offset:2px}
+.kb8-sl-card.is-match{color:var(--dsw-alias-label-primary);box-shadow:0 0 0 1.5px color-mix(in srgb,var(--kb8-acc) 70%,var(--dsw-alias-border-l2)),0 0 0 6px color-mix(in srgb,var(--kb8-acc) 10%,transparent)}
+.kb8-sl-stage{position:relative;height:100px;display:grid;place-items:center;background:color-mix(in srgb,var(--kb8-acc) 5%,var(--dsw-alias-bg-layer-3))}
+.kb8-sl-stage::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 88% -8%,color-mix(in srgb,var(--kb8-acc) 12%,transparent),transparent 62%)}
+.kb8-sl-stage svg{position:relative;width:92px;height:63px;overflow:visible;filter:drop-shadow(0 3px 4px color-mix(in srgb,var(--dsw-alias-label-primary) 14%,transparent));transition:transform .45s cubic-bezier(.16,1,.3,1)}
+.kb8-sl-stage svg *{transform-box:fill-box}
+.kb8-sl-card:hover .kb8-sl-stage svg,.kb8-sl-card:focus-visible .kb8-sl-stage svg,.kb8-sl-card.is-match .kb8-sl-stage svg{transform:translateY(-3px) scale(1.07)}
+.kb8-sl-label{flex:1;display:grid;place-items:center;padding:0 8px;line-height:1.15;overflow-wrap:anywhere}
+/* The drawings: the page's own tokens, so they follow the theme (ink, greys, ONE tint). */
+.kb8-sl-stage .paper{fill:var(--dsw-alias-bg-layer-1);stroke:var(--dsw-alias-border-l2);stroke-width:.7}
+.kb8-sl-stage .tint{fill:color-mix(in srgb,var(--kb8-acc) 16%,var(--dsw-alias-bg-layer-1))}
+.kb8-sl-stage .ink{fill:var(--dsw-alias-label-primary)}
+.kb8-sl-stage .ink2{fill:color-mix(in srgb,var(--dsw-alias-label-primary) 32%,transparent)}
+.kb8-sl-stage .ink3{fill:color-mix(in srgb,var(--dsw-alias-label-primary) 12%,transparent)}
+.kb8-sl-stage .acc{fill:var(--kb8-acc)}
+.kb8-sl-stage .acc2{fill:color-mix(in srgb,var(--kb8-acc) 42%,transparent)}
+.kb8-sl-stage .oa{fill:var(--dsw-alias-label-primary-foreground)}
+.kb8-sl-stage .scr{fill:color-mix(in srgb,var(--dsw-alias-label-primary) 88%,transparent)}
+.kb8-sl-stage .grid{fill:none;stroke:var(--dsw-alias-border-l2);stroke-width:.6}
+.kb8-sl-stage .ln{fill:none;stroke:color-mix(in srgb,var(--dsw-alias-label-primary) 40%,transparent);stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.kb8-sl-stage .trk{fill:none;stroke:color-mix(in srgb,var(--dsw-alias-label-primary) 12%,transparent);stroke-width:4}
+.kb8-sl-stage .arc{fill:none;stroke:var(--kb8-acc);stroke-width:4;stroke-linecap:round;stroke-dasharray:.62 1;transform:rotate(-90deg);transform-origin:50% 50%}
+.kb8-sl-stage .sel{fill:color-mix(in srgb,var(--kb8-acc) 24%,transparent);stroke:var(--kb8-acc);stroke-width:1.1}
+.kb8-sl-stage .ring{stroke:var(--kb8-acc);stroke-width:.8}
+.kb8-sl-stage .bk{transform:rotate(var(--r,0deg));transition:transform .55s cubic-bezier(.16,1,.3,1)}
+.kb8-sl-stage .prog{transform-origin:0 50%;transform:scaleX(.42);transition:transform 1.3s}
+${kbNcHot} .prog{transform:scaleX(.92)}
+${kbNcHot} .bk{transform:rotate(calc(var(--r,0deg)*1.7)) translate(2px,-2px)}
+${kbNcHot} .arc{animation:kb8-arc 1s cubic-bezier(.4,0,.2,1) both}
+${kbNcHot} .dr{animation:kb8-draw 1s cubic-bezier(.4,0,.2,1) both}
+${kbNcHot} .gr{transform-origin:50% 100%;animation:kb8-grow .6s cubic-bezier(.16,1,.3,1) both;animation-delay:var(--d,0s)}
+${kbNcHot} .sun{animation:kb8-rise .9s cubic-bezier(.16,1,.3,1) both}
+${kbNcHot} .pop,${kbNcHot} .node{transform-origin:50% 50%;animation:kb8-pop .5s cubic-bezier(.16,1,.3,1) both;animation-delay:var(--d,0s)}
+${kbNcHot} .blk{animation:kb8-slide .5s cubic-bezier(.16,1,.3,1) both;animation-delay:var(--d,0s)}
+${kbNcHot} .play{transform-origin:50% 50%;animation:kb8-pulse .9s cubic-bezier(.4,0,.2,1) both}
+@keyframes kb8-draw{from{stroke-dasharray:1;stroke-dashoffset:1}to{stroke-dasharray:1;stroke-dashoffset:0}}
+@keyframes kb8-arc{from{stroke-dasharray:0 1}to{stroke-dasharray:.62 1}}
+@keyframes kb8-grow{from{transform:scaleY(.12)}to{transform:scaleY(1)}}
+@keyframes kb8-rise{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+@keyframes kb8-pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes kb8-slide{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@keyframes kb8-pulse{0%{transform:scale(.8)}50%{transform:scale(1.14)}100%{transform:scale(1)}}
+.kb8-sl-nav{position:absolute;z-index:3;top:70px;width:34px;height:34px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 0 0 1px var(--dsw-alias-border-l2),0 8px 20px -10px rgba(0,0,0,.35);cursor:pointer;transition:opacity .25s,transform .25s}
+.kb8-sl-nav:hover{transform:scale(1.08)}
+.kb8-sl-nav:focus-visible{outline:2px solid var(--kb8-acc);outline-offset:2px}
+.kb8-sl-nav.prev{inset-inline-start:-14px}
+.kb8-sl-nav.next{inset-inline-end:-14px}
+.kb8-sl-nav.off{opacity:0;pointer-events:none}
+[dir="rtl"] .kb8-sl-nav svg{transform:scaleX(-1)}
+.kb8-sl-prog{position:relative;display:block;width:96px;height:3px;margin:14px auto 0;border-radius:3px;background:var(--dsw-alias-border-l1)}
+.kb8-sl-thumb{position:absolute;top:0;bottom:0;border-radius:3px;background:var(--dsw-alias-label-secondary);transition:width .2s}
+/* The Cloud Computer: one quiet line (its state, and what can be done with it). */
+.kb8-nc-cloud{align-self:center;display:inline-flex;align-items:center;max-width:100%;border-radius:var(--dsw-radius-lg,16px);border:1px solid var(--dsw-alias-border-l1)}
+.kb8-nc-main{display:flex;align-items:center;gap:9px;min-width:0;padding:6px 14px;border:0;border-radius:inherit;background:transparent;font:inherit;font-size:13px;color:var(--dsw-alias-label-secondary);text-align:start;cursor:pointer}
 .kb8-nc-main:hover{background:var(--dsw-alias-bg-layer-3)}
-.kb8-nc-acts{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:6px 10px 6px 4px;flex:none}
-.kb8-nc-act{height:26px;padding:0 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground);font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
-.kb8-nc-act.ghost{background:transparent;color:var(--dsw-alias-label-secondary);font-weight:500}
-.kb8-nc-act:disabled{opacity:.5;cursor:default}
-.kb8-nc-ico{width:36px;height:36px;flex:none;border-radius:11px;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-bg-layer-3);color:color-mix(in srgb,var(--kb8-ink,var(--dsw-alias-label-primary)) 60%,var(--dsw-alias-label-primary))}
-.kb8-nc-body{display:flex;flex-direction:column;gap:2px;min-width:0}
-.kb8-nc-t{font-size:13.5px;font-weight:600;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kb8-nc-d{font-size:12px;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.kb8-nc-main:focus-visible,.kb8-nc-act:focus-visible{outline:2px solid var(--kb8-acc);outline-offset:1px}
+.kb8-nc-main svg{flex:none}
+.kb8-nc-t{font-weight:600;color:var(--dsw-alias-label-primary);white-space:nowrap}
+.kb8-nc-d{min-width:0;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .kb8-nc-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-inline-end:6px;background:var(--dsw-alias-label-tertiary)}
 .kb8-nc-dot.on,.kb4-dot.on{background:var(--dsw-alias-state-success-primary)}
 .kb8-nc-dot.busy,.kb4-dot.busy{background:var(--dsw-alias-state-warn-primary)}
 .kb8-nc-dot.bad,.kb4-dot.bad{background:var(--dsw-alias-state-error-primary)}
 .kb4-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-inline-start:auto;background:var(--dsw-alias-label-tertiary);flex:none}
-.kb8-nc-panel{border-radius:16px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);padding:10px 12px 12px}
-.kb8-nc-ph{display:flex;align-items:center;margin-bottom:8px;font-size:13.5px;font-weight:600;color:var(--dsw-alias-label-primary)}
-.kb8-nc-x{margin-inline-start:auto;display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;border:0;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer}
-.kb8-nc-x:hover{background:var(--dsw-alias-bg-layer-3)}
-.kb8-nc-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
-.kb8-nc-tile{display:flex;align-items:center;gap:9px;min-width:0;padding:7px 8px;border-radius:12px;border:0;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer}
-.kb8-nc-tile:hover{background:var(--dsw-alias-bg-layer-3)}
-/* The visual strip: drawn previews on a gradient (inline SVG, nothing fetched). */
-.kb8-nc-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:10px}
-.kb8-nc-vis{display:flex;flex-direction:column;gap:6px;min-width:0;padding:0;border:0;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer}
-.kb8-nc-art{display:block;aspect-ratio:16/10;border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.14);transition:transform .14s,box-shadow .14s}
-.kb8-nc-art svg{display:block;width:100%;height:100%}
-.kb8-nc-vis:hover .kb8-nc-art{transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.24)}
-.kb8-nc-vis:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px;border-radius:12px}
-.kb8-nc-vl{padding:0 2px;font-size:12.5px;font-weight:500;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kb8-nc-vis:hover .kb8-nc-vl{color:var(--dsw-alias-label-primary)}
-@media (prefers-reduced-motion:reduce){.kb8-nc-art{transition:none}.kb8-nc-vis:hover .kb8-nc-art{transform:none}}
-@media (max-width:720px){.kb8-nc-row{grid-template-columns:1fr}.kb8-nc-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.kb8-nc-strip{grid-template-columns:repeat(3,minmax(0,1fr))}}
-/* What matters is the width the dock really has, not the window: a right pane open at 1400 px leaves ~450 px, and three columns then squeezed Build and Create to a 47 px text column (« Crea… »). Below 600 px the Cloud Computer card takes its own row. The phone keeps its single column (media rule above). */
-@media (min-width:721px){@container kbnc (max-width:600px){.kb8-nc-row{grid-template-columns:repeat(2,minmax(0,1fr))}.kb8-nc-row>.kb8-nc-cloud{grid-column:1/-1}}}
+.kb8-nc-acts{display:flex;gap:4px;padding:0 6px;flex:none}
+.kb8-nc-act{height:26px;padding:0 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground);font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.kb8-nc-act.ghost{background:transparent;color:var(--dsw-alias-label-secondary);font-weight:500}
+.kb8-nc-act:disabled{opacity:.5;cursor:default}
+@media (prefers-reduced-motion:reduce){.kb8-sl-card,.kb8-sl-stage svg,.kb8-sl-stage *,.kb8-sl-nav,.kb8-sl-thumb{transition:none!important;animation:none!important}}
+/* What matters is the width the dock really has, not the window: arrows need a pointer, and a narrow dock is swiped. */
+@container kbnc (max-width:480px){.kb8-sl-nav{display:none}}
 `), 'kybers: styles of the new chat cards');
 
     // ── The headline of the new-chat page: a different line each time, and « Beta », small ────────────────────────
