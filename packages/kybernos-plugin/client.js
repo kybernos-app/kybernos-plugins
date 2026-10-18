@@ -1280,13 +1280,31 @@ let kbLocaleRead = () => 'en'
       'kbui.fb.placeholder': { kybernos: 'Que s’est-il passé, ou que souhaiterais-tu ?', en: 'What happened, or what would you like?' },
       'kbui.fb.context': { kybernos: 'Ajouter les détails techniques', en: 'Add technical details' },
       'kbui.fb.context.hint': { kybernos: 'Désactivé par défaut. Versions, système, titre de la page, langue et taille de la fenêtre : aucune clé, aucun chemin, aucun nom de fichier.', en: 'Off by default. Versions, system, page title, language and window size: no key, no path, no file name.' },
-      'kbui.fb.save': { kybernos: 'Enregistrer', en: 'Save feedback' },
+      'kbui.fb.save': { kybernos: 'Enregistrer sur cet ordinateur', en: 'Save on this computer' },
       'kbui.fb.saving': { kybernos: 'Enregistrement…', en: 'Saving…' },
-      'kbui.fb.saved': { kybernos: 'Enregistré sur cet ordinateur — il n’est envoyé que lorsque tu l’exportes.', en: 'Saved on this computer — it is sent only when you export it.' },
-      'kbui.fb.export': { kybernos: 'Exporter les retours', en: 'Export feedback' },
-      'kbui.fb.exporting': { kybernos: 'Export…', en: 'Exporting…' },
-      'kbui.fb.copied.one': { kybernos: 'Copié : 1 retour. Colle-le dans un message à l’équipe Kybernos.', en: 'Copied: 1 entry. Paste it into a message to the Kybernos team.' },
-      'kbui.fb.copied.many': { kybernos: 'Copié : {n} retours. Colle-les dans un message à l’équipe Kybernos.', en: 'Copied: {n} entries. Paste them into a message to the Kybernos team.' },
+      'kbui.fb.saved': { kybernos: 'Enregistré sur cet ordinateur. Rien n’a été envoyé.', en: 'Saved on this computer. Nothing was sent.' },
+      'kbui.fb.export': { kybernos: 'Copier les retours enregistrés', en: 'Copy saved feedback' },
+      'kbui.fb.exporting': { kybernos: 'Copie…', en: 'Copying…' },
+      'kbui.fb.copied.one': { kybernos: 'Copié : 1 retour. Rien n’a été envoyé : colle-le toi-même dans un message à l’équipe Kybernos.', en: 'Copied: 1 entry. Nothing was sent: paste it into a message to the Kybernos team yourself.' },
+      'kbui.fb.copied.many': { kybernos: 'Copié : {n} retours. Rien n’a été envoyé : colle-les toi-même dans un message à l’équipe Kybernos.', en: 'Copied: {n} entries. Nothing was sent: paste them into a message to the Kybernos team yourself.' },
+      // « Send » (a signed-in person's way to the team): the sentences of what the relay answered. Each failure says that NOTHING was sent, or what is kept.
+      'kbui.fb.send': { kybernos: 'Envoyer à l’équipe Kybernos', en: 'Send to the Kybernos team' },
+      'kbui.fb.sending': { kybernos: 'Envoi…', en: 'Sending…' },
+      'kbui.fb.sent': { kybernos: 'Envoyé à l’équipe Kybernos. Merci !', en: 'Sent to the Kybernos team. Thank you.' },
+      'kbui.fb.sent.again': { kybernos: 'Ce retour avait déjà été envoyé : l’équipe l’a reçu.', en: 'This feedback had already been sent: the team has it.' },
+      'kbui.fb.err.signedout': { kybernos: 'Rien n’a été envoyé : tu n’es pas connecté à Kybernos.', en: 'Nothing was sent: you are not signed in to Kybernos.' },
+      'kbui.fb.err.reconnect': { kybernos: 'Rien n’a été envoyé : ta session Kybernos a pris fin. Reconnecte-toi, puis réessaie.', en: 'Nothing was sent: your Kybernos session ended. Sign in again, then try again.' },
+      'kbui.fb.err.net': { kybernos: 'Rien n’a été envoyé : cet ordinateur n’a pas pu joindre le serveur Kybernos.', en: 'Nothing was sent: this computer could not reach the Kybernos server.' },
+      'kbui.fb.err.team': { kybernos: 'Rien n’a été envoyé : le serveur Kybernos n’a pas pu prendre le retour pour l’instant.', en: 'Nothing was sent: the Kybernos server could not take the feedback just now.' },
+      'kbui.fb.err.busy': { kybernos: 'Ce retour est déjà en cours d’envoi.', en: 'This feedback is already being sent.' },
+      'kbui.fb.err.moment': { kybernos: 'Réessaie dans un moment.', en: 'Try again in a moment.' },
+      'kbui.fb.err.wait': { kybernos: 'Réessaie dans environ {t}.', en: 'Try again in about {t}.' },
+      'kbui.fb.err.rate': { kybernos: 'Rien n’a été envoyé : trop de retours dans la dernière heure. Réessaie plus tard.', en: 'Nothing was sent: too many reports in the last hour. Try again later.' },
+      'kbui.fb.err.refused': { kybernos: 'Rien n’a été envoyé : le serveur a refusé ce retour.', en: 'Nothing was sent: the server refused this feedback.' },
+      'kbui.fb.err.local': { kybernos: 'Rien n’a été envoyé : cette page n’a pas pu joindre le DSH de cet ordinateur.', en: 'Nothing was sent: this page could not reach the DSH on this computer.' },
+      'kbui.fb.err.kept': { kybernos: 'Ton texte est gardé sur cet ordinateur et repartira avec ton prochain retour.', en: 'Your text is kept on this computer and goes out again with your next report.' },
+      'kbui.fb.hint.signedin': { kybernos: 'Envoyer partage ce message avec l’équipe Kybernos (et les détails techniques, si tu les as cochés). Enregistrer le garde seulement sur cet ordinateur.', en: 'Send shares this message with the Kybernos team (and the technical details, if ticked). Save keeps it on this computer only.' },
+      'kbui.fb.hint.signedout': { kybernos: 'Tu n’es pas connecté à Kybernos : rien ne peut être envoyé d’ici. Enregistrer garde ton texte sur cet ordinateur seulement ; Copier les retours enregistrés les met dans le presse-papiers pour que tu les transmettes toi-même à l’équipe (l’entrée Aide de ce menu ouvre le site d’aide Kybernos). Connecte-toi pour les envoyer directement.', en: 'You are not signed in to Kybernos, so nothing can be sent from here. Save keeps your text on this computer only; Copy saved feedback puts it on your clipboard so you can pass it to the team yourself (Help, in this menu, opens the Kybernos help site). Sign in to send it directly.' },
       'kbui.fb.empty': { kybernos: 'Aucun retour enregistré pour l’instant.', en: 'No feedback saved yet.' },
       'kbui.fb.copyfail': { kybernos: 'Copie impossible ici : sélectionne le texte ci-dessous.', en: 'Could not copy here: select the text below.' },
       'kbui.fb.fail': { kybernos: 'Enregistrement impossible. Rien n’a été écrit.', en: 'Could not save. Nothing was written.' },
@@ -29937,6 +29955,30 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
     // file to the clipboard. The interview with the assistant (the skill report-feedback, which can reach the Kybernos team) stays one
     // click away. A screenshot is not offered: the page cannot be captured without the screen-capture permission prompt.
     const KB_FB_TYPES = ['bug', 'idea', 'question']
+    // <kb-feedback-send>
+    // The words for what « Send » got back, as the keys of the sentences to show (never a claim of delivery that did not happen). The host answers 200 with
+    // `{ ok, error, retryable, deduped }` for everything the relay did or did not do, and 401 / 403 / 503 only when its own guard refused the page; 0 is « no answer ».
+    const KB_FB_SEND_WHY = {
+      non_connecte: 'kbui.fb.err.signedout', reconnexion_requise: 'kbui.fb.err.reconnect', reseau_indisponible: 'kbui.fb.err.net', envoi_indisponible: 'kbui.fb.err.net',
+      github_indisponible: 'kbui.fb.err.team', base_indisponible: 'kbui.fb.err.team', en_cours: 'kbui.fb.err.busy', trop_de_demandes: 'kbui.fb.err.rate',
+    }
+    const kbFbSendVerdict = (status, out) => {
+      const o = out !== null && out !== undefined && typeof out === 'object' && !Array.isArray(out) ? out : null
+      if (o !== null && o.ok === true) return { tone: 'ok', keys: [o.deduped === true ? 'kbui.fb.sent.again' : 'kbui.fb.sent'], wait: null }
+      if (status === 401 || status === 403 || status === 503) return { tone: 'err', keys: ['kbui.fb.signin'], wait: null }
+      if (status === 0) return { tone: 'err', keys: ['kbui.fb.err.local'], wait: null }
+      const code = o !== null && typeof o.error === 'string' ? o.error : ''
+      const why = Object.prototype.hasOwnProperty.call(KB_FB_SEND_WHY, code) ? KB_FB_SEND_WHY[code] : 'kbui.fb.err.refused'
+      const keys = [why]
+      // The relay holds a report's id for a while after a failed call: it says how long, and asking sooner only gets « already being sent ».
+      const wait = o !== null && typeof o.retry_after === 'number' && o.retry_after > 0 && o.retry_after <= 3600 ? Math.ceil(o.retry_after) : null
+      if (why === 'kbui.fb.err.team' || why === 'kbui.fb.err.busy') keys.push(wait !== null ? 'kbui.fb.err.wait' : 'kbui.fb.err.moment')
+      if (o !== null && o.retryable === true) keys.push('kbui.fb.err.kept')
+      return { tone: 'err', keys: keys, wait: wait }
+    }
+    /** « 45 s », « 2 min »: how long the relay asks to wait, in units that read the same in every language. */
+    const kbFbWaitText = (seconds) => (seconds < 90 ? String(Math.max(1, Math.round(seconds))) + ' s' : String(Math.ceil(seconds / 60)) + ' min')
+    // </kb-feedback-send>
     const KbFeedbackForm = () => {
       const [open, setOpen] = React.useState(false)
       const [type, setType] = React.useState('bug')
@@ -29945,6 +29987,18 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
       const [busy, setBusy] = React.useState('')
       const [note, setNote] = React.useState(null)
       const [manual, setManual] = React.useState('')
+      // Whether this DSH is signed in to a Kybernos account, read at every opening: only then is « Send » offered (the relay needs the account).
+      const [signedIn, setSignedIn] = React.useState(false)
+      React.useEffect(() => {
+        if (open !== true) return undefined
+        let alive = true
+        setSignedIn(false)
+        fetch('/kybernos-cloud/status', { cache: 'no-store' })
+          .then((r) => r.json())
+          .then((j) => { if (alive === true && j !== null && typeof j === 'object' && j.ok === true && j.connected === true) setSignedIn(true) })
+          .catch(() => { /* no answer: not offered, the text below says why */ })
+        return () => { alive = false }
+      }, [open])
       React.useEffect(() => {
         // The technical details are off at every opening: a person who ticked them once is not asked to remember to untick.
         const ouvrir = () => { setNote(null); setManual(''); setWithContext(false); setOpen(true) }
@@ -29979,6 +30033,25 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
         } catch (e) { out = null }
         setBusy('')
         if (out !== null && out.ok === true) { setMessage(''); setNote({ tone: 'ok', text: kbt('kbui.fb.saved') }) } else setNote({ tone: 'err', text: why(status, out) })
+      }
+      const send = async () => {
+        const text = message.trim()
+        if (text === '' || busy !== '') return
+        setBusy('send'); setNote(null); setManual('')
+        let out = null
+        let status = 0
+        try {
+          const page = withContext === true
+            ? { title: String(document.title || ''), lang: String(document.documentElement.lang || navigator.language || ''), width: window.innerWidth, height: window.innerHeight }
+            : undefined
+          const r = await fetch('/kybernos/feedback/send', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ type: type, message: text, context: withContext === true, page: page }) })
+          status = r.status
+          out = await r.json().catch(() => null)
+        } catch (e) { out = null; status = 0 }
+        setBusy('')
+        const verdict = kbFbSendVerdict(status, out)
+        if (verdict.tone === 'ok') setMessage('')
+        setNote({ tone: verdict.tone, text: verdict.keys.map((k) => kbt(k).replace('{t}', verdict.wait === null ? '' : kbFbWaitText(verdict.wait))).join(' ') })
       }
       const exporter = async () => {
         if (busy !== '') return
@@ -30018,8 +30091,10 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
             h('span', null, h('b', null, kbt('kbui.fb.context')), h('i', null, kbt('kbui.fb.context.hint')))),
           note === null ? null : h('div', { className: 'kbfb-note', 'data-tone': note.tone, role: 'status', 'data-kb': 'feedback-note' }, note.text),
           manual === '' ? null : h('textarea', { className: 'kbfb-manual', readOnly: true, rows: 6, value: manual, onFocus: (e) => { try { e.target.select() } catch (er) { /* no selection */ } } }),
+          h('div', { className: 'kbfb-hint', 'data-kb': 'feedback-hint' }, signedIn === true ? kbt('kbui.fb.hint.signedin') : kbt('kbui.fb.hint.signedout')),
           h('div', { className: 'kbfb-acts' },
-            h('button', { type: 'button', className: 'kbfb-btn kbfb-primary', 'data-kb': 'feedback-save', disabled: busy !== '' || message.trim() === '', onClick: save }, busy === 'save' ? kbt('kbui.fb.saving') : kbt('kbui.fb.save')),
+            signedIn === true ? h('button', { type: 'button', className: 'kbfb-btn kbfb-primary', 'data-kb': 'feedback-send', disabled: busy !== '' || message.trim() === '', onClick: send }, busy === 'send' ? kbt('kbui.fb.sending') : kbt('kbui.fb.send')) : null,
+            h('button', { type: 'button', className: 'kbfb-btn' + (signedIn === true ? '' : ' kbfb-primary'), 'data-kb': 'feedback-save', disabled: busy !== '' || message.trim() === '', onClick: save }, busy === 'save' ? kbt('kbui.fb.saving') : kbt('kbui.fb.save')),
             h('button', { type: 'button', className: 'kbfb-btn', 'data-kb': 'feedback-export', disabled: busy !== '', onClick: exporter }, busy === 'export' ? kbt('kbui.fb.exporting') : kbt('kbui.fb.export'))),
           h('button', { type: 'button', className: 'kbfb-link', 'data-kb': 'feedback-assistant', onClick: withAssistant }, kbt('kbui.fb.assistant')))))
     }
@@ -30043,6 +30118,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 .kbfb-ctx i{font-style:normal;font-size:12px;color:var(--dsw-alias-label-tertiary)}
 .kbfb-note{padding:8px 12px;border-radius:10px;font-size:13px;background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 12%,transparent);color:var(--dsw-alias-label-primary)}
 .kbfb-note[data-tone="err"]{background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 12%,transparent)}
+.kbfb-hint{font-size:12px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
 .kbfb-acts{display:flex;gap:8px;flex-wrap:wrap}
 .kbfb-btn{height:40px;padding:0 16px;border:1px solid var(--dsw-alias-border-l2);border-radius:20px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-weight:500;cursor:pointer}
 .kbfb-btn:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}

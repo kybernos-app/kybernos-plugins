@@ -61,7 +61,7 @@ All under `/kybernos/` (plus `/kybernos-technique/{renderer,vendor/three}.js`). 
 | Tools catalog | `tools/state`, `tools/apply` (dry run, dated backup of the profile patch, restore) |
 | Voice, TTS | `voice/{config,transcribe,save}` `voice-sample*` `tts/{config,voices,speak,cache,cache-trim}` (engines: `say`, `piper`, `supertonic`, `edge`, and `models`, the speaking models of the user's own providers) `models/audio` `models/audio/{probe,speak,listen}` (the audio models of the providers set up in Models, how each is asked, and using it) `image-models` (live calls moved to `@local/kybernos-call`, which speaks through `tts/speak`) |
 | Widget, gateway | `widget.js` `widget/api/{config,conversations,message,account,history-delete,reply}` `gateway/{status,approvals,approvals/decision}` |
-| Feedback box | `feedback` (POST: one line appended to `kybernos/feedback.jsonl`), `feedback/export` (GET: the file's content). Strict write guard (same-origin AND DSH's signed session, `session-guard.mjs`); nothing is sent anywhere, see "The feedback box" below |
+| Feedback box | `feedback` (POST: one line appended to `kybernos/feedback.jsonl`), `feedback/export` (GET: the file's content), `feedback/send` (POST: the same form posted to the linked server's relay with the device token). Strict write guard on all three (same-origin AND DSH's signed session, `session-guard.mjs`); Save and Copy send nothing, see "The feedback box" below |
 | Language, static | `i18n-{translate,models,store,job,quality,packs}` `languages-pubkey.json` `icons` `icon` `onboarding` `vendor/{xyflow,leaflet}.*` `kb-places.js` |
 
 ## The Automations board
@@ -182,14 +182,26 @@ the sidebar button; unfolded is DSH's own header. The state is kept per browser 
 ## The feedback box
 
 « Send feedback » in the account menu opens a small form (`KbFeedbackForm` in `client.js`): a type (bug / idea / question), a message and a
-« Add technical details » toggle, **off at every opening** (versions, system, page title, language, window size; no key, no path). *Save*
-POSTs to `/kybernos/feedback`, which appends ONE JSON line (`{v, id, at, type, message, context?}`, secrets masked by the beta report's
-masking) to `<DSH home>/kybernos/feedback.jsonl` (0600, 4 MB at most) and says « Saved on this computer — it is sent only when you export it ».
-*Export feedback* GETs `/kybernos/feedback/export` and copies the file to the clipboard (the newest 1 MB; a text area to copy by hand when the
-clipboard is refused). Nothing leaves the machine: the file is what the owner reads, or what the person pastes into a message. The form
-keeps a link to the older interview (the seeded skill `report-feedback` (called `signaler-retour` before: the copy we seeded is retired at boot, one the person edited stays), which can reach the Kybernos team through the tool
+« Add technical details » toggle, **off at every opening** (versions, system, page title, language, window size; no key, no path). It reads
+`/kybernos-cloud/status` at every opening and offers what the person can do:
+
+- **Signed in:** *Send to the Kybernos team* POSTs to `/kybernos/feedback/send`. The host turns the form into the report the server's relay takes
+  (`relayReportOf` in `feedback-box.mjs`: a bug is a `bug`, an idea a `feature`, a question a `feature` titled « Question: … »; the title is the first
+  line, the body the whole message, secrets masked) and posts it with the device token through the same sender as the interview's tool
+  (`kbFeedbackExecute`: an identical report is one report, a failed one is kept in `<DSH home>/beta-reports/` and goes out again with the next one that
+  passes). The technical sheet (system, DSH and Kybernos versions) and the page facts go **only** when the toggle is on. The note says « Sent to the
+  Kybernos team » only when the relay took it; every failure says that nothing was sent, why, how long the relay asks to wait, and that the text is
+  kept (`kbFbSendVerdict`). The answer of the route carries no token and no path.
+- **Signed out:** no Send button, and a line says that nothing can be sent from here, what the two other buttons do, and that the *Help* entry of the
+  same menu opens the Kybernos help site. (There is no team address in this repository: none is shown.)
+- *Save on this computer* POSTs to `/kybernos/feedback`, which appends ONE JSON line (`{v, id, at, type, message, context?}`, secrets masked by the
+  beta report's masking) to `<DSH home>/kybernos/feedback.jsonl` (0600, 4 MB at most) and says « Saved on this computer. Nothing was sent. ».
+  *Copy saved feedback* GETs `/kybernos/feedback/export` and copies the file to the clipboard (the newest 1 MB; a text area to copy by hand when the
+  clipboard is refused), saying that nothing was sent. Neither leaves the machine.
+
+The form keeps a link to the older interview (the seeded skill `report-feedback` (called `signaler-retour` before: the copy we seeded is retired at boot, one the person edited stays), which can reach the Kybernos team through the tool
 `kybernos_report_feedback`). No screenshot: a page cannot be captured without the screen-capture permission prompt. Code: `feedback-box.mjs`
-(the file), the two routes in `index.js`, `test-feedback-box.mjs`.
+(the file, and the form-to-report mapping), the three routes in `index.js`, `test-feedback-box.mjs`, `test-feedback-form.mjs`.
 
 ## Files, settings, env
 
@@ -308,7 +320,9 @@ soon as the person sends again; it comes back if that new turn fails the same wa
 ```bash
 node scripts/test-onboarding.mjs                       # KB-OB-CORE block: texts in 4 languages, language choice, steps, theme probe, K artwork
 node packages/kybernos-plugin/test-onboarding-state.mjs  # the state file: version, answers, replay, older files
-node packages/kybernos-plugin/test-feedback-box.mjs    # 20: the feedback box: the file, masking, the technical context off by default, the two routes and their strict write guard
+node packages/kybernos-plugin/test-feedback-box.mjs    # 38: the feedback box: the file, masking, the technical context off by default, the routes and their strict write guard, and Send to the relay (fake relay)
+node packages/kybernos-plugin/test-feedback-form.mjs   # 32: what the form tells a person who sends, fails or is signed out; Save and Copy say nothing was sent
+node packages/kybernos-plugin/test-referral-card.mjs   # 23: the referral card says the server's offer, or nothing about money
 node packages/kybernos-plugin/test-touch-targets.mjs   # 5: the Settings close cross (40 px) and the main buttons of a page on a phone (44 px)
 node packages/kybernos-plugin/test-default-model.mjs   # which model is chosen after a connection, who is switched, who is left alone
 node packages/kybernos-models/test-key-check.mjs       # the key check: where a key may go, the one-word answer, the route's guards
