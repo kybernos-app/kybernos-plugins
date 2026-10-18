@@ -2149,7 +2149,7 @@ window.__ModuleLoader__.load({
       const notesTip = ['Memory', memDit, lesDit, delta > 0 ? delta + ' written by this chat' : 'Nothing written by this chat yet']
       const sectionNote = (titre, corps) => h('section', { className: 'kbs-note-sec', key: titre },
         h('h4', { className: 'kbs-note-t' }, titre), corps)
-      const MOTS_CAPTURE = { jamais: 'has not run since DSH started', hors_connexion: 'not connected', desactivee: 'switched off', sans_session: 'no session',
+      const MOTS_CAPTURE = { jamais: 'has not run since DSH started', hors_connexion: 'not connected', desactivee: 'switched off', espace_equipe: 'off in a team space', sans_session: 'no session',
         tour_trop_court: 'turn too short', llm_indisponible: 'no model available', rien_a_retenir: 'nothing worth keeping', deja_connu: 'already known', erreur: 'failed' }
       const ditCapture = (c) => c === null || c === undefined || c.status === undefined ? null
         : (c.status === 'ecrit' ? 'wrote ' + c.facts + (c.facts === 1 ? ' memory' : ' memories') : (MOTS_CAPTURE[c.status] || String(c.status)))

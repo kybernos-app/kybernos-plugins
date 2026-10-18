@@ -54,6 +54,7 @@ import { agentsFile, readInstructions, writeInstructions } from './instructions.
 import { createKybyRoutes, pairingSupport } from './kyby.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { createKybyNative, isSessionId, readPointer, writePointer } from './kyby-native.mjs'
+import { UNREADABLE, spaceKind, publishSpaceSeam } from './team-space.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -129,6 +130,17 @@ const readState = () => {
   } catch (e) {
     return null
   }
+}
+
+/** `readState` for a decision about the SPACE: no connection file is `null` (not connected), but a file that is there and cannot be read now (a write
+ *  caught half way, bad rights, damaged JSON) is UNREADABLE — connected, space unknown — which `spaceOf` reads as a team space. */
+const readStateForSpace = () => {
+  let raw
+  try { raw = readFileSync(stateFile(), 'utf8') } catch (e) { return e !== null && typeof e === 'object' && (e.code === 'ENOENT' || e.code === 'ENOTDIR') ? null : UNREADABLE }
+  try {
+    const parsed = JSON.parse(raw)
+    return parsed !== null && typeof parsed === 'object' && Array.isArray(parsed) !== true ? parsed : UNREADABLE
+  } catch (e) { return UNREADABLE }
 }
 
 const writeState = (state) => {
@@ -209,6 +221,9 @@ const espaceActif = (state) => {
   if (choisi !== null && ids.indexOf(choisi) !== -1) return choisi
   return ids.length > 0 ? ids[0] : null
 }
+
+/** 'none' | 'personal' | 'team' (team-space.mjs): the kind of the ACTIVE space, read from the state each time it is asked. */
+const spaceOf = (state) => spaceKind(state, state !== null && state !== undefined && state !== UNREADABLE ? espaceActif(state) : null)
 
 /** The plan of ONE space, as the server's `/plan` of that space answers it. The profile's `plan` (/v1/me) is the ACCOUNT's word and says « team »
  *  as soon as the person is in any team; the footer, the menu and the team features belong to the ACTIVE space, so they read this instead.
@@ -2155,6 +2170,8 @@ const validateMemory = (body) => {
 }
 
 const createMemory = async (state, body, origin) => {
+  // Whatever the model writes (its tool, the end-of-turn capture) lands in the PERSONAL account: never from a team space. The person's own hand (the page) is not stopped.
+  if ((origin === 'agent' || origin === 'capture') && spaceOf(readStateForSpace()) === 'team') return { ok: false, error: 'espace_equipe' }
   const checked = validateMemory(body)
   if (checked.error !== null) return { ok: false, error: checked.error }
   const res = await apiCall('/v1/memories', { method: 'POST', token: state.token, body: checked.payload })
@@ -2469,6 +2486,8 @@ const selectForPrompt = (items, budget, pinnedShare, preferred = [], preferredSh
 const planInjection = (state, info) => {
   const empty = { account: { chosen: [], used: 0, omitted: 0 }, kyber: {}, used: 0, budget: MEMORY_MAX_INJECT_CHARS }
   if (isConnected(state) !== true) return empty
+  // A team space sends nothing personal: the prompt, the page's « 12 of 631 » counter and the pill all read this plan.
+  if (spaceOf(state) === 'team') return empty
   const cfg = readMemorySettings()
   if (cfg.memories !== true || cfg.context !== true) return empty
   const kyberKeys = Object.keys(memoryCache.kyber).filter((k) => memoryCache.kyber[k].length > 0)
@@ -2528,6 +2547,11 @@ const renderMemoryChunk = (state, info) => {
  */
 const MEMORY_MARKER = '[KYBERNOS MEMORY]'
 const MEMORY_OFF_MARKER = '[KYBERNOS MEMORY OFF] Saved memories are not included in this request.'
+/** What a team space says instead of the memories: the off marker leads (the proxy must not add its own copy of the account memory), then the reason. The
+ *  second sentence is for a session that began in the personal space: what was injected before the switch stays in its history, which a plugin cannot unsend. */
+const MEMORY_TEAM_NOTE = MEMORY_OFF_MARKER + '\nThis is a team space: the person\'s own memories and lessons are not available here. Memory shown earlier in this conversation, before the switch to this team space, is personal: do not use it or repeat it. To share a lesson with the team, the person uses "Propose to team".'
+/** The one sentence a memory or lesson tool answers in a team space. */
+const TEAM_SPACE_REFUSAL = 'Personal memory is off in a team space; to share a lesson with the team, the person uses "Propose to team".'
 
 /**
  * What the prompt really gets: the memories (they carry MEMORY_MARKER), or the off marker when the user
@@ -2536,6 +2560,7 @@ const MEMORY_OFF_MARKER = '[KYBERNOS MEMORY OFF] Saved memories are not included
  */
 const renderMemoryPrompt = (state, info) => {
   try {
+    if (spaceOf(state) === 'team') return MEMORY_TEAM_NOTE
     if (isConnected(state) !== true) return ''
     const cfg = readMemorySettings()
     if (cfg.memories !== true || cfg.context !== true) return MEMORY_OFF_MARKER
@@ -3139,6 +3164,8 @@ const tidySettings = (body) => {
 /** One look at whether a scheduled run is due; a run that fails waits an hour. Never throws, never runs offline. */
 const tidyTick = async (now = Date.now()) => {
   try {
+    // The tidy-up of the account memory may ask the Study model: on the team's route, the person's memories would leave under the team's bill.
+    if (spaceOf(readStateForSpace()) === 'team') return { ran: false, why: 'espace_equipe' }
     const state = readState()
     if (isConnected(state) !== true || readMemorySettings().memories !== true) return { ran: false, why: 'hors_connexion' }
     const t = tidyState()
@@ -3777,6 +3804,7 @@ const memoryWriteTool = () => ({
     render: (args, value) => TEXT_RESULT(value.ok === true ? 'Memory saved in the Kybernos account (' + String(args.kind) + ').' : 'Memory not saved: ' + String(value.error)),
   },
   async execute(args) {
+    if (spaceOf(readStateForSpace()) === 'team') return { ok: false, error: TEAM_SPACE_REFUSAL }
     const state = readState()
     if (isConnected(state) !== true) return { ok: false, error: 'compte_kybernos_non_connecte' }
     if (readMemorySettings().memories !== true) return { ok: false, error: 'memoire_desactivee' }
@@ -3817,6 +3845,7 @@ const memorySearchTool = () => ({
     render: (args, value) => TEXT_RESULT(value.ok === true ? (value.count === 0 ? 'No memory for “' + String(args.q) + '”.' : String(value.found)) : 'Search failed: ' + String(value.error)),
   },
   async execute(args) {
+    if (spaceOf(readStateForSpace()) === 'team') return { ok: false, error: TEAM_SPACE_REFUSAL }
     const state = readState()
     if (isConnected(state) !== true) return { ok: false, error: 'compte_kybernos_non_connecte' }
     if (readMemorySettings().memories !== true) return { ok: false, error: 'memoire_desactivee' }
@@ -3936,6 +3965,8 @@ const noteCapture = (status, facts) => {
 
 const captureTurn = async (ctx, agent, signal) => {
   try {
+    // First of all, before the switches and before any model call: the words of a team conversation are not read for the person's own memory.
+    if (spaceOf(readStateForSpace()) === 'team') return noteCapture('espace_equipe', 0)
     const state = readState()
     if (isConnected(state) !== true) return noteCapture('hors_connexion', 0)
     // The switches come BEFORE any network or LLM call: « Capture: no »
@@ -3989,7 +4020,7 @@ const mountMemoryPrompt = (ctx) => {
     scope.systemPrompt.context({
       name: 'kybernos:memory',
       order: MEMORY_INJECT_ORDER,
-      text: (context) => renderMemoryPrompt(readState(), { sessionId: sessionIdOfContext(context) }),
+      text: (context) => renderMemoryPrompt(readStateForSpace(), { sessionId: sessionIdOfContext(context) }),
     })
     // The lessons the team approved: a block of its own, from the cache only (refreshed below and by the tick).
     scope.systemPrompt.context({
@@ -3998,7 +4029,8 @@ const mountMemoryPrompt = (ctx) => {
       text: (context) => renderTeamPrompt(readState(), sessionIdOfContext(context)),
     })
   })
-  // The human's message of each turn, to pick the memories that match it (see « The memories that matter »).
+  // The human's message of each turn, to pick the memories that match it (see « The memories that matter »). Kept in a team space too: it writes nothing,
+  // and the team lessons block ranks its lessons with the same word.
   ctx.on('agent/inbox/claimed', ({ agent, message, turn }) => {
     try { noteUserTurn(agent.session.id, message, turn) } catch (e) { /* never break a turn */ }
   })
@@ -4736,6 +4768,8 @@ const publishCloudSeam = (target = globalThis) => {
 export function apply(ctx) {
   hostCtx = ctx
   try { publishCloudSeam() } catch (e) { console.error('[kybernos-cloud] seam: ' + String((e && e.message) || e)) }
+  // The other bundles ask here whether the active space is a team (kybernos-memory cuts its lessons there).
+  try { publishSpaceSeam(() => spaceOf(readStateForSpace())) } catch (e) { console.error('[kybernos-cloud] space seam: ' + String((e && e.message) || e)) }
   // Before anything can use a token: a connection of another server (an install from before the new server became the default) is set aside.
   const aside = setAsideForeignConnection()
   if (ctx.get('webServer') !== undefined) mountWebRoutes(ctx, ctx.get('webServer'))
@@ -4765,7 +4799,7 @@ export {
   sameOriginStrict,
   // Memory — exported for the host suite (fake server, no real API).
   consoleLink, openExternal, plansRoute, planQuote, billingCheckout, billingPortal,
-  asMemory, validateMemory, createMemory, patchMemory, deleteMemory, searchMemories,
+  asMemory, validateMemory, createMemory, patchMemory, deleteMemory, searchMemories, spaceOf, readStateForSpace, MEMORY_TEAM_NOTE, TEAM_SPACE_REFUSAL,
   sanitizeMemory, sortMemories, renderMemoryChunk, renderMemoryPrompt, MEMORY_MARKER, MEMORY_OFF_MARKER, RELEVANCE_TUNING, noteUserTurn, userPromptText, pickRelevant, sessionQuery, sessionPick,
   embedTexts, putEmbedding, meaningStatus, indexMemories, findByMeaning, meaningCache, EMBED_DIM, EMBED_MODEL,
   teamCache, teamPickStore, refreshTeamCache, emptyTeamCache, teamSelection, renderTeamPrompt, activeKyberOf, lessonsSwitches, TEAM_RELEVANCE,
