@@ -10,7 +10,7 @@ process.env.DSH_HOME = home
 process.env.KYBERNOS_API = 'https://api.example.test'
 process.env.KYBERNOS_COMPUTER_TOKEN = 'kyd_test_token'
 process.env.KYBERNOS_RUNNER_LEASE_SECONDS = '3000'
-const { buildPrompt, runOne } = await import('./runner.mjs')
+const { buildPrompt, channelOf, runOne } = await import('./runner.mjs')
 
 const closed = (sid) => {
   const dir = join(home, 'storages', 'session_projcache', 'sessions')
@@ -65,6 +65,14 @@ test('the prompt is Kaby, from the shared text and never from the name a kyber c
   assert.ok(long.length < 8000)
 })
 
+test('the channel of a turn comes from what the platform says of the message, in one place', () => {
+  assert.equal(channelOf({ source: 'telegram' }), 'telegram')
+  assert.equal(channelOf({}), 'phone')
+  assert.equal(channelOf(null), 'phone')
+  assert.equal(channelOf({ source: 'something else' }), 'phone')
+  assert.match(buildPrompt({ source: 'telegram', messages: [{ role: 'user', content: 'hi' }] }), /Telegram, a chat on the person's phone/)
+})
+
 test('a turn: context, the session in DSH, its closed turn, the answer, and the acknowledgement with only the answer', async () => {
   closed('s-1')
   const s = standIn()
@@ -76,6 +84,7 @@ test('a turn: context, the session in DSH, its closed turn, the answer, and the 
     assert.equal(post.headers.origin, 'http://127.0.0.1:3081')
     assert.match(post.body.prompt, /POST \{"a":1\}/)
     assert.equal(post.body.jobId, 'job-1', 'the turn it belongs to, so that the gate can ask the person about it')
+    assert.equal(post.body.channel, 'phone', 'where the message came from, so that the journal says where Kaby was asked')
     const events = s.calls.filter((c) => c.path.endsWith('/events')).map((c) => c.body.events[0])
     assert.deepEqual(events.map((e) => [e.seq, e.type]), [[4, 'started'], [5, 'model-call'], [6, 'answered']])
     const ack = s.calls.find((c) => c.path.endsWith('/ack'))
