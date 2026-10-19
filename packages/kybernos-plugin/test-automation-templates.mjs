@@ -2,14 +2,14 @@
 // cannot do), how it is filtered, and the text that turns a template into a chat. It extracts the KB-AUTOTPL block of client.js (the
 // file is a browser bundle with no exports), then checks, on the source, what the page that draws it is allowed to do.
 // Usage: node packages/kybernos-plugin/test-automation-templates.mjs   (exit 0 = everything passes)
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 const src = readFileSync(fileURLToPath(new URL('./client.js', import.meta.url)), 'utf8')
 const parts = src.split('// KB-AUTOTPL-BEGIN')
 if (parts.length !== 2) { console.error('exactly one KB-AUTOTPL block expected in client.js'); process.exit(1) }
 const block = parts[1].split('// KB-AUTOTPL-END')[0]
-const m = await import('data:text/javascript,' + encodeURIComponent(block + '\nexport { KB_TPL_CATS, KB_TPLS, kbTplText, kbTplFilter, kbTplStepKind, kbTplChatText }'))
+const m = await import('data:text/javascript,' + encodeURIComponent(block + '\nexport { KB_TPL_CATS, KB_TPLS, kbTplText, kbTplFilter, kbTplStepKind, kbTplChatText, kbTplSlug, kbTplSvgOk, kbTplLogos, kbTplLangName }'))
 
 let fails = 0
 const eq = (label, got, want) => {
@@ -64,6 +64,30 @@ eq('a category and words together', m.kbTplFilter(m.KB_TPLS, 'support', 'whatsap
 eq('nothing matches, nothing breaks', [m.kbTplFilter(m.KB_TPLS, 'all', 'zzzz', en), m.kbTplFilter(null, 'all', '', en), m.kbTplFilter(m.KB_TPLS, 'all', undefined, en).length], [[], [], 10])
 eq('a step kind is ai or act, act when unknown', [m.kbTplStepKind(['ai', ['x', 'y']]), m.kbTplStepKind(['act', ['x', 'y']]), m.kbTplStepKind(null), m.kbTplStepKind(['?'])], ['ai', 'act', 'act', 'act'])
 
+/* ── Logos and the page's language ──────────────────────────────────────── */
+eq('an app name is the slug of the connectors catalogue', ['Google Drive', 'HubSpot', 'YouTube', 'Google Sheets', 'X', null, undefined].map(m.kbTplSlug), ['googledrive', 'hubspot', 'youtube', 'googlesheets', 'x', '', ''])
+{
+  const good = '<svg viewBox="0 0 24 24"><path d="M1 1h22v22H1z" fill="#fff"/></svg>'
+  eq('a plain SVG is accepted', m.kbTplSvgOk(good), true)
+  const bad = ['<svg><script>alert(1)</script></svg>', '<svg onload="x()"></svg>', '<svg><g onclick = "x()"/></svg>', '<svg><foreignObject/></svg>', '<svg><image href="https://evil.example/a.png"/></svg>', '<svg><a href="https://evil.example"/></svg>', '<svg><a xlink:href=\'http://evil.example\'/></svg>', '<svg><path style="fill:url(https://evil.example/x)"/></svg>', '<svg><style>@import url(x)</style></svg>', '<svg><iframe/></svg>', '<svg href="javascript:alert(1)"/>', '<div>not svg</div>', '', null, undefined, 7, '<svg>' + 'x'.repeat(20001) + '</svg>']
+  eq('script, handlers, foreign objects, images, external links and things that are not an SVG are refused', bad.map(m.kbTplSvgOk).filter((x) => x === true).length, 0)
+  eq('an internal reference is fine, an external one is not', [m.kbTplSvgOk('<svg><use href="#a"/><g id="a"/></svg>'), m.kbTplSvgOk('<svg><use href="https://x.example/a.svg#a"/></svg>')], [true, false])
+  const logos = m.kbTplLogos([{ s: 'slack', l: good }, { s: 'evil', l: bad[0] }, { s: 'none' }, null, 'x', { l: good }])
+  eq('only the safe logos of the catalogue are kept, by slug', Object.keys(logos), ['slack'])
+  eq('a catalogue that is not a list gives no logo', [m.kbTplLogos(null), m.kbTplLogos({}), m.kbTplLogos('x')], [{}, {}, {}])
+}
+eq('the page\'s language is named in English with its code, `kybernos` being French', [m.kbTplLangName('kybernos'), m.kbTplLangName('en'), m.kbTplLangName('fr'), m.kbTplLangName('es'), m.kbTplLangName('ar'), m.kbTplLangName('pt-BR')], ['French (fr)', 'English (en)', 'French (fr)', 'Spanish (es)', 'Arabic (ar)', 'Brazilian Portuguese (pt-BR)'])
+eq('an unknown or empty language never throws: its code, or nothing', [m.kbTplLangName('zz-invalid-xx-yy'), m.kbTplLangName(''), m.kbTplLangName(null), m.kbTplLangName(undefined), m.kbTplLangName('!!')], ['zz-invalid-xx-yy', '', '', '', '!!'])
+{
+  const catalog = JSON.parse(readFileSync(fileURLToPath(new URL('../kybernos-composio/catalog.js', import.meta.url)), 'utf8').match(/export const CATALOG = (\[[\s\S]*\]);/)[1])
+  const all = m.kbTplLogos(catalog)
+  const apps = [...new Set(m.KB_TPLS.flatMap((t) => t.apps))]
+  const withLogo = apps.filter((a) => all[m.kbTplSlug(a)] !== undefined)
+  eq('every app of a template that the connectors catalogue knows has a logo that passes the filter', apps.filter((a) => catalog.some((c) => c.s === m.kbTplSlug(a) && typeof c.l === 'string' && all[c.s] === undefined)), [])
+  eq('...which is all of them but Twilio (not in the catalogue: its initial in a round tile)', apps.filter((a) => withLogo.indexOf(a) < 0), ['Twilio'])
+  eq('the catalogue that is read is the one the host serves', existsSync(fileURLToPath(new URL('../kybernos-composio/catalog.js', import.meta.url))), true)
+}
+
 /* ── The chat text ───────────────────────────────────────────────────────── */
 for (const [name, tr, pick] of [['English', trEn, en], ['French', trFr, fr]]) {
   const texts = m.KB_TPLS.map((t) => m.kbTplChatText(t, tr, pick))
@@ -79,7 +103,13 @@ for (const [name, tr, pick] of [['English', trEn, en], ['French', trFr, fr]]) {
   eq('steps are numbered in order', text.indexOf('1. PREFLIGHT') > 0 && text.indexOf('2. Pick today') > text.indexOf('1. PREFLIGHT'), true)
   const hook = m.kbTplChatText(m.KB_TPLS.find((x) => x.id === 'cs-whatsapp'), trEn, en)
   eq('a webhook template does not invent a cron', hook.indexOf('cron') < 0, true)
-  eq('only the first line of the chat names the skill with a dash, the way Create and Edit do', text.split('\n')[0].startsWith('Skill automation-creator — '), true)
+  eq('without a language the chat starts with the skill, the way Create and Edit do', text.split('\n')[0].startsWith('Skill automation-creator — '), true)
+  const withLang = m.kbTplChatText(t, trEn, en, 'French (fr)')
+  eq('with a language, the first line asks to follow the conversation in it, then a blank line, then the skill', withLang.split('\n').slice(0, 3), ['Follow this conversation in my language: French (fr)', '', withLang.split('\n')[2]])
+  eq('...and the rest of the text is the same', withLang.split('\n').slice(2).join('\n'), text)
+  eq('an empty or blank language adds nothing', [m.kbTplChatText(t, trEn, en, ''), m.kbTplChatText(t, trEn, en, '   '), m.kbTplChatText(t, trEn, en, undefined)], [text, text, text])
+  eq('the language line is the same sentence in both languages of the page', [pairs['tasks.tpl.chat.lang'].en, pairs['tasks.tpl.chat.lang'].fr], ['Follow this conversation in my language: {lang}', 'Follow this conversation in my language: {lang}'])
+  eq('a language with a dollar sign in it stays as written', m.kbTplChatText(t, trEn, en, 'a $& b').split('\n')[0], 'Follow this conversation in my language: a $& b')
 }
 {
   const keys = ['head', 'rule', 'when', 'steps', 'ask', 'options', 'multi', 'needs', 'guard', 'save'].map((k) => 'tasks.tpl.chat.' + k)
@@ -90,10 +120,12 @@ for (const [name, tr, pick] of [['English', trEn, en], ['French', trFr, fr]]) {
 /* ── What the page that draws it is allowed to do ────────────────────────── */
 const disc = src.slice(src.indexOf('const kbTplPick = '), src.indexOf('const kbBoardBones = '))
 eq('the Discover part is found', disc.length > 2000, true)
-eq('read-only and offline: Discover never calls the host, never fetches, never writes a task', disc.indexOf('host.call') < 0 && disc.indexOf('fetch(') < 0 && disc.indexOf('act(') < 0 && disc.indexOf('localStorage') < 0, true)
+eq('read-only: Discover never calls the host, never writes a task or a setting; its one fetch is a GET of the logos the connectors page already serves', disc.indexOf('host.call') < 0 && disc.indexOf('act(') < 0 && disc.indexOf('localStorage') < 0 && (disc.match(/fetch\(/g) || []).length === 1 && disc.indexOf("fetch(kbApiBase() + '/composio/catalog', { method: 'GET' })") >= 0 && disc.indexOf("method: 'POST'") < 0, true)
+eq('a logo is an inline SVG that passed the filter, else an initial: no <img>, no file, no address of its own', disc.indexOf('kbTplSvgOk') < 0 && /dangerouslySetInnerHTML: \{ __html: svg \}/.test(disc) && disc.indexOf('<img') < 0 && disc.indexOf("h('img'") < 0, true)
+eq('the logos are filtered when the catalogue is read, never later', disc.indexOf('kbTplLogoCache = kbTplLogos(list)') >= 0, true)
 eq('no image is shipped or loaded: no data URI, no <image>, no external address', disc.indexOf('data:') < 0 && disc.indexOf("'image'") < 0 && /https?:\/\//.test(disc) === false, true)
 eq('the cover is drawn only on the page of one template, never on a card', (disc.match(/kbTplCover\(/g) || []).length === 1 && disc.indexOf("h('div', { className: 'kbtd-cover' }, kbTplCover(tpl)") >= 0, true)
-eq('Import and Use open a chat through the same call as Create and Edit in chat', src.indexOf('kbStartChatText(kbTplChatText(tpl, kbt, kbTplPick))') >= 0, true)
+eq('Import and Use open a chat through the same call as Create and Edit in chat, with the page\'s language read at the click', src.indexOf('kbStartChatText(kbTplChatText(tpl, kbt, kbTplPick, kbTplLangName(kbLangResolve())))') >= 0, true)
 eq('the page has Yours and Discover, and Discover replaces the board and the list, not the header', src.indexOf("['yours', 'discover'].map(") >= 0 && src.indexOf("section === 'discover' ? h(KbDiscover, { onUse: useTemplate })") >= 0, true)
 eq('the toolbar of the board belongs to Yours', src.indexOf("(list.length > 0 && section === 'yours'") >= 0, true)
 eq('a card opens the page of its template with Enter and Space as well as a click', /key === 'Enter' \|\| e\.key === ' '\) \{ e\.preventDefault\(\); selPair\[1\]\(t\.id\) \}/.test(disc), true)
