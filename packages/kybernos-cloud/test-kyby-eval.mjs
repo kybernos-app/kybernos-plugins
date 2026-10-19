@@ -34,7 +34,7 @@ export function score (answer, opts = {}) {
   const checks = opts.checks ?? []
   // The voice, on every answer.
   if (/second you|\bEcho\b|\bMira\b|\bAtlas\b/iu.test(text)) failures.push('old-name')
-  if (!opts.personUsesEmoji && countEmoji(text) > 1) failures.push('emoji')
+  if (countEmoji(text) > (opts.personUsesEmoji ? 1 : 0)) failures.push('emoji')
   if (/(great|good) question|bonne question|excellente question|as an ai|en tant qu['’]ia/iu.test(text)) failures.push('flattery-or-ai-line')
   const maxLines = opts.channel === 'telegram' ? 8 : 14
   if (checks.includes('short') && lineCount(text) > maxLines) failures.push('too-long')
