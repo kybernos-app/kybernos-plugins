@@ -41,8 +41,8 @@ import { chmodSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSy
 import { homedir, hostname, platform } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { lireCatalogue, resoudreItem, slugSur, ymlDuKyber, verdictInstallation } from './marketplace-kyber.mjs'
-import { rank as rankByRelevance } from './relevance.mjs'
-import { findDuplicateGroups, unclearPairs } from './dedupe.mjs'
+import { rank as rankByRelevance, tokens as relevanceTokens } from './relevance.mjs'
+import { findDuplicateGroups, unclearPairs, likeness, negates, numbersOf } from './dedupe.mjs'
 import { MAP_TUNING, textHash, packVector, unpackVector, buildMap } from './mapproj.mjs'
 import { TEAM_CHUNK_NAME, TEAM_CHUNK_ORDER, TEAM_TUNING, teamWorkspace, displayName, asTeamLesson, teamFailure, teamPlan, renderTeamChunk, applicable } from './team-lessons.mjs'
 import { teamSkillsBase, isSkillId, teamSkillsFailure, asTeamSkill } from './team-skills.mjs'
@@ -4316,6 +4316,31 @@ const lastTurnText = (messages) => {
   return both.trim() === '' ? null : both.trim().slice(0, 6000)
 }
 
+/**
+ * Is this fact, in other words, already in the account? The exact-text check does not see it, and an automation's turns wrote ten reworded copies of the same facts each
+ * (measured on dev: 31 memories of one subject in an evening; every pair at 0.55 to 1.0 word overlap was the same fact). A little looser than the tidy-up's own merge rule
+ * (0.8), which asks a person before it acts: here the cost of a wrong guess is one fact not written twice. A negation, or a number the other lacks, makes it a different fact.
+ */
+const CAPTURE_SAME = { jaccard: 0.6, containment: 0.9, containmentJaccard: 0.5, containmentMinWords: 5, minWords: 3 }
+const numberSet = (text) => new Set(numbersOf(text).split(',').filter((n) => n !== ''))
+const subsetOf = (a, b) => { for (const x of a) if (b.has(x) === false) return false; return true }
+const nearKnown = (content, known) => {
+  const mine = new Set(relevanceTokens(content))
+  if (mine.size < CAPTURE_SAME.minWords) return false
+  const myNumbers = numberSet(content)
+  for (const other of known) {
+    const theirs = new Set(relevanceTokens(other))
+    if (theirs.size < CAPTURE_SAME.minWords) continue
+    const l = likeness(mine, theirs)
+    const same = l.jaccard >= CAPTURE_SAME.jaccard || (l.contained >= CAPTURE_SAME.containment && l.jaccard >= CAPTURE_SAME.containmentJaccard && l.small >= CAPTURE_SAME.containmentMinWords)
+    if (same === false || negates(content) !== negates(other)) continue
+    const theirNumbers = numberSet(other)
+    if (myNumbers.size > 0 && theirNumbers.size > 0 && subsetOf(myNumbers, theirNumbers) === false && subsetOf(theirNumbers, myNumbers) === false) continue
+    return true
+  }
+  return false
+}
+
 /** The person's own words of the last turn, with the same filters as the turn text (what `isLasting` reads). */
 const lastUserWords = (messages) => {
   const user = messages.filter((m) => m.role === 'user' && !(m.source !== null && typeof m.source === 'object' && typeof m.source.kind === 'string' && m.source.kind !== 'user')).slice(-1)[0]
@@ -4424,13 +4449,16 @@ const captureTurn = async (ctx, agent, signal) => {
     // block remains the first rampart).
     const existing = await listMemories(state, 'account')
     const known = new Set(existing.ok === true ? existing.items.map((m) => normalizeMemory(m.content)) : [])
+    // The contents the account already holds (and what this batch writes), for the near-duplicate check.
+    const pool = existing.ok === true ? existing.items.map((m) => String(m.content)) : []
     let written = 0
     let skipped = 0
     let failed = 0
     for (const fact of facts) {
       const key = normalizeMemory(fact.content)
-      if (key === '' || known.has(key) === true) { skipped += 1; continue }
+      if (key === '' || known.has(key) === true || nearKnown(fact.content, pool) === true) { skipped += 1; continue }
       known.add(key)
+      pool.push(fact.content)
       const made = await createMemory(state, { scope: 'account', kind: fact.kind, content: fact.content, source: 'conversation' }, 'capture')
       if (made.ok === true) written += 1
       else failed += 1
@@ -5264,7 +5292,7 @@ export {
   tidyScan, tidyRun, tidyApply, tidyUndo, tidyDismiss, tidySettings, tidyTick, tidyView, tidyFlags, TIDY_TUNING, TIDY_MAX_REMOVALS, studyModel,
   refreshMemoryCache, memoryCache,
   emptyMemoryCache, bumpMemoryCache, pushLessons, localLessons, localKybers, stateKyberMap,
-  listMemories, lastTurnText, isLasting, keepCaptured, CAPTURE_PROMPT, memoryWriteTool, memorySearchTool, MEMORY_KINDS, MEMORY_SOURCES,
+  listMemories, lastTurnText, isLasting, keepCaptured, nearKnown, CAPTURE_PROMPT, memoryWriteTool, memorySearchTool, MEMORY_KINDS, MEMORY_SOURCES,
   captureTurn, lastCapture, extractFacts, stripMemoryBlock, normalizeMemory,
   MEMORY_MAX_CONTENT, MEMORY_MAX_INJECT_CHARS, MEMORY_TUNING,
   selectForPrompt, planInjection, readMemorySettings, noteOrigins, originOf, scheduleMemoryRefresh, parseWhen,
