@@ -5,23 +5,27 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { defaults, normalize, publicView, apply, isPaused, KEYS } from './automation-settings.mjs'
+import { defaults, normalize, publicView, apply, isPaused, KEYS, STABLE_CHOICES, DEFAULT_STABLE_AFTER } from './automation-settings.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
 const here = dirname(fileURLToPath(import.meta.url))
 
 // 1. defaults and normalisation
-assert.deepEqual(defaults(), { version: 1, showNativeTasks: false, paused: false })
+assert.deepEqual(defaults(), { version: 1, showNativeTasks: false, paused: false, autoSkill: false, stableAfter: 5 })
 for (const bad of [null, undefined, 'x', 7, [], [true]]) assert.deepEqual(normalize(bad), defaults(), 'a non-object reads as the defaults')
-assert.deepEqual(normalize({ showNativeTasks: 'yes', paused: 1 }), defaults(), 'a wrong type reads as the default')
+assert.deepEqual(normalize({ showNativeTasks: 'yes', paused: 1, autoSkill: 'on', stableAfter: '10' }), defaults(), 'a wrong type reads as the default')
+assert.equal(normalize({ stableAfter: 7 }).stableAfter, DEFAULT_STABLE_AFTER, 'a number that is not a choice reads as the default')
+assert.equal(normalize({ stableAfter: 20 }).stableAfter, 20)
+assert.deepEqual(STABLE_CHOICES, [3, 5, 10, 20])
+assert.equal(defaults().autoSkill, false, 'creating skills by itself is off until the person turns it on')
 assert.equal(normalize({ paused: true }).paused, true)
 assert.equal(normalize({ paused: true }).showNativeTasks, false, 'a missing key reads as its default')
 ok('defaults, and what a damaged file reads as')
 
-// 2. the public view carries the two switches and nothing else
-assert.deepEqual(Object.keys(publicView({ showNativeTasks: true, paused: false, secret: 'x', version: 9 })).sort(), KEYS.slice().sort())
-ok('the public view has only the two switches')
+// 2. the public view carries the switches and the choice, and nothing else
+assert.deepEqual(Object.keys(publicView({ showNativeTasks: true, paused: false, secret: 'x', version: 9 })).sort(), KEYS.concat(['stableAfter']).sort())
+ok('the public view has only the switches and the choice')
 
 // 3. apply: booleans, known keys, all or nothing
 {
@@ -29,7 +33,10 @@ ok('the public view has only the two switches')
   assert.equal(a.ok, true); assert.equal(a.state.paused, true); assert.equal(a.state.showNativeTasks, false)
   const b = apply(a.state, { showNativeTasks: true, paused: false })
   assert.equal(b.ok, true); assert.equal(b.state.showNativeTasks, true); assert.equal(b.state.paused, false)
-  for (const bad of [null, [], 'x', {}, { paused: 'true' }, { paused: true, other: 1 }, { version: 2 }]) assert.equal(apply(defaults(), bad).ok, false)
+  for (const bad of [null, [], 'x', {}, { paused: 'true' }, { paused: true, other: 1 }, { version: 2 }, { stableAfter: 7 }, { stableAfter: '5' }, { stableAfter: true }, { autoSkill: 1 }]) assert.equal(apply(defaults(), bad).ok, false)
+  const c = apply(defaults(), { autoSkill: true, stableAfter: 10 })
+  assert.equal(c.ok, true); assert.equal(c.state.autoSkill, true); assert.equal(c.state.stableAfter, 10)
+  assert.equal(apply(defaults(), { autoSkill: true, stableAfter: 7 }).ok, false, 'one bad value refuses the whole patch')
   assert.equal(apply(defaults(), { paused: true, other: 1 }).ok, false, 'a patch with one bad key changes nothing')
   ok('apply accepts known booleans and refuses the rest whole')
 }
@@ -46,6 +53,9 @@ ok('a damaged file never holds the scheduler')
   assert.ok(/const kbTasksTick = async \(\) => \{[\s\S]{0,400}autoSettingsPaused\(/.test(idx), 'the tick is held while paused')
   const route = /path: '\/kybernos\/automation-settings'[\s\S]{0,1800}/.exec(idx)
   assert.ok(route !== null, 'the route exists')
+  assert.ok(/kbAutoSkillsPass\(\)\.catch\(\(\) => null\)/.test(idx), 'the automatic skill pass runs after the tick and never delays or breaks it')
+  const skills = /path: '\/kybernos\/automation-skills'[\s\S]{0,2600}/.exec(idx)
+  assert.ok(skills !== null && /sameOriginStrict\(req\)/.test(skills[0]) && /req\.method === 'POST' && await kbTasksAuthorized\(req\)/.test(skills[0]), 'the skills route checks the origin and needs the signed session to write')
   assert.ok(/sameOriginStrict\(req\)/.test(route[0]), 'the route checks the origin')
   assert.ok(/kbTasksAuthorized\(req\)/.test(route[0]), 'a change needs the signed session, like /kybernos/tasks')
   ok('host wiring: tick held when paused, route guarded like the tasks route')
