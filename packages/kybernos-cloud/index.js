@@ -4658,7 +4658,9 @@ const rememberTurnSession = (id, jobId) => {
 // A session made for a turn is gated: the tools that can change something (a command, a file, a connector) wait for the person's tap in their chat, asked through the platform. The gate
 // is the plugin's own (`tools/pre-execute`, which DSH awaits as long as it takes): the profile stays `danger-full-access` for everything else on the machine, and DSH's own approval card
 // is never raised. Whatever goes wrong (no job, the platform unreachable, no answer in time) is a refusal, never a pass.
-const TURN_GATE_SAFE_TOOLS = new Set(['read', 'read_image', 'web_search', 'web_fetch'])
+// What reads and changes nothing passes without a question. `memory_search` is the person's own memory read back to them: asking before it made every « what do you know about me » a question
+// and, when it was refused, a turn with no answer (measured on dev, step 0 of the Kaby baseline). `memory_write` changes something and still asks.
+const TURN_GATE_SAFE_TOOLS = new Set(['read', 'read_image', 'web_search', 'web_fetch', 'memory_search'])
 const TURN_GATE_WAIT_MS = 10 * 60_000 + 15_000
 const turnRootOf = (ctx, id) => {
   // A sub-agent's call is its root session's.

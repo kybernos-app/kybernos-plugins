@@ -9,6 +9,7 @@ works on.
   Kaby's identity to the system prompt (`kyby-native.mjs` in kybernos-cloud). Each finished turn is also written on the person's thread on
   the server, and the last words said there (Telegram's) are told back in the prompt: one assistant, one memory, one conversation, two
   bodies (this machine here, its cloud computer on Telegram). A server with no Kaby thread is simply left alone.
+- **It asks before it acts.** The chat is made in DSH's own `workspace-write` mode (`/permission workspace-write`, applied once, right after it is made): DSH asks in its own approval card before a command that leaves its folder or a tool that changes something. The profile's default is full access, so without this the chat asked nothing. What the person picks later in the composer stays theirs, and a Kaby chat that already exists is not changed. Measured in a sandbox DSH: the new chat opens on « Workspace Write », the ordinary new chat on « Full access ».
 - **Nothing else sits above Kaby's composer.** The new-chat cards and the templates row (Build / Create / Cloud Computer, Slides… Dashboard) are
   not drawn in that chat: the Kaby bundle tells the window (`kb-kyby-session`) the moment the chat that is Kaby's becomes known, because on a page
   load the cards are drawn before it has read the pointer.
