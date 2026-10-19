@@ -10,6 +10,7 @@
 // is refused makes it quiet (one try every five minutes), and a turn that cannot finish is acknowledged `failed` with a code, never with a word of the person's.
 import { join } from 'node:path'
 import { sessionState } from './reporter.mjs'
+import { identityBlock } from './kyby-identity.mjs'
 
 const API = String(process.env.KYBERNOS_API || '').replace(/\/+$/u, '')
 const TOKEN = String(process.env.KYBERNOS_COMPUTER_TOKEN || '')
@@ -28,24 +29,31 @@ const EARLIER_MESSAGES = 10
 const clip = (s) => String(s ?? '').slice(0, MESSAGE_CHARS)
 
 /**
- * The prompt of a turn, from what the platform says of it (the crew and the thread's recent messages). The last message of the person is what to do; the ones before are background.
- * The answer is one message in a chat on a phone, so it is asked to be short and plain.
+ * The prompt of a turn, from what the platform says of it (the person and the thread's recent messages). The last message of the person is what to do; the ones before are background, given
+ * as data. Who Kaby is comes from kyby-identity.mjs, never from the platform: the name a kyber carries on the server is not the assistant's.
  */
 export function buildPrompt (context) {
-  const name = clip(context && context.kyber && context.kyber.name).trim() || 'Kyber'
   const messages = Array.isArray(context && context.messages) ? context.messages.filter((m) => m && typeof m.content === 'string') : []
   let at = -1
   messages.forEach((m, i) => { if (m.role === 'user') at = i })
   if (at < 0) return null
   const earlier = messages.slice(Math.max(0, at - EARLIER_MESSAGES), at)
-  const history = earlier.map((m) => `[${m.role === 'user' ? 'person' : 'assistant'}]\n${clip(m.content)}`).join('\n\n')
+  const history = earlier.map((m) => `${m.role === 'user' ? 'Person' : 'Kaby'}: ${clip(m.content)}`)
   const person = clip(context && context.person && context.person.name).trim().slice(0, 60)
-  const via = context && context.source === 'telegram' ? 'a Telegram chat on their phone' : 'a chat on their phone'
+  const telegram = context && context.source === 'telegram'
+  const now = new Date()
+  const head = identityBlock({
+    channel: telegram ? 'telegram' : 'phone',
+    body: 'cloud',
+    personName: person,
+    nowText: 'Time: ' + now.toISOString().slice(0, 16) + 'Z (UTC). The person\'s own timezone is not known here: if it matters, ask once and remember the answer.',
+    thread: history
+  })
   return [
-    `You are ${name}, the personal assistant of ${person === '' ? 'a person' : person}, working on their own cloud computer. They wrote to you from ${via}. Answer in the language they write in, briefly and in plain text: your answer is sent back to that chat as one message. When they ask you to do something, do it with your tools, then say what you did and what came back.`,
-    history === '' ? '' : `The conversation so far, oldest first:\n\n${history}`,
+    head,
+    'Your answer is sent back to that chat as one message. When they ask you to do something, do it with your tools, then say what you did and what came back.',
     `Their message:\n\n${clip(messages[at].content)}`
-  ].filter((part) => part !== '').join('\n\n')
+  ].join('\n\n')
 }
 
 // ── the platform ─────────────────────────────────────────────────────────────────────────────

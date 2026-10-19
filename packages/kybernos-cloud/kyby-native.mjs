@@ -9,6 +9,7 @@
 // into a turn, and nothing here returns the account's token.
 import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
+import { identityBlock } from './kyby-identity.mjs'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const SESSION_ID = /^[A-Za-z0-9_.-]{8,120}$/
@@ -84,22 +85,18 @@ export const contextLines = (rows, skip) => {
   return out.slice(-CONTEXT_LINES)
 }
 
-/** The block of the system prompt, for Kaby's own chat. `lines` is what was said lately on the person's shared thread (Telegram's). */
-export const kybyPrompt = (lines) => {
-  const body = [
-    KYBY_HEAD,
-    'You are ' + ASSISTANT_NAME + ', the person\'s own assistant in Kybernos. This chat is your home on the person\'s computer: you work here, with the tools of this chat, on this machine.',
-    'The same ' + ASSISTANT_NAME + ' also answers the person on Telegram and works on its own cloud computer there. It is one assistant with one memory and one conversation: what you learn here you may use there.',
-    'Speak the person\'s language, plainly and warmly, and keep answers short unless asked for more. Use the person\'s memory when it helps and never invent a memory.',
-    'Never claim work you did not do. If something is better done on your cloud computer (a long job, work that must go on while this machine is off), say so and suggest writing to you on Telegram.',
-  ]
-  if (Array.isArray(lines) && lines.length > 0) {
-    body.push('Lately on the shared conversation (Telegram and here), oldest first:')
-    for (const l of lines) body.push('- ' + l)
-  }
-  body.push(KYBY_TAIL)
-  return body.join('\n')
+/** The time as a sentence, in the machine's own zone (this chat runs on the person's computer, so its zone is theirs). Empty when the platform cannot say. */
+export const nowSentence = (d = new Date()) => {
+  try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'local'
+    const text = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(d).replace(',', '')
+    return 'Local time: ' + text + ' (' + zone + ').'
+  } catch (e) { return '' }
 }
+
+/** The block of the system prompt, for Kaby's own chat: the identity text shared with the cloud computer's turns (kyby-identity.mjs). `lines` is what was said lately on the person's shared thread (Telegram's), given as data. */
+export const kybyPrompt = (lines, now = new Date()) =>
+  [KYBY_HEAD, identityBlock({ channel: 'chat', body: 'computer', nowText: nowSentence(now), thread: lines }), KYBY_TAIL].join('\n')
 
 // ── the pointer file: which session is Kaby's ───────────────────────────────────────────────────────
 
