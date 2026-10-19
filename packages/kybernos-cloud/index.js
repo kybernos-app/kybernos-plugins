@@ -54,6 +54,7 @@ import { agentsFile, readInstructions, writeInstructions } from './instructions.
 import { createKybyRoutes, pairingSupport } from './kyby.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { createKybyNative, isSessionId, readPointer, writePointer } from './kyby-native.mjs'
+import { appendEntry as journalAppend, journalTool, toolsOfTurn, turnEntry as journalEntry } from './kyby-journal.mjs'
 import { UNREADABLE, spaceKind, publishSpaceSeam } from './team-space.mjs'
 import { documentsDir, ensureTeamFolder, isChildOf, rootOf } from './team-folder.mjs'
 import { createSightings, createTurnWatch, spaceOfFolder } from './chat-space.mjs'
@@ -4711,7 +4712,7 @@ const rememberTurnSession = (id, jobId) => {
 // is never raised. Whatever goes wrong (no job, the platform unreachable, no answer in time) is a refusal, never a pass.
 // What reads and changes nothing passes without a question. `memory_search` is the person's own memory read back to them: asking before it made every « what do you know about me » a question
 // and, when it was refused, a turn with no answer (measured on dev, step 0 of the Kaby baseline). `memory_write` changes something and still asks.
-const TURN_GATE_SAFE_TOOLS = new Set(['read', 'read_image', 'web_search', 'web_fetch', 'memory_search', 'job_list', 'schedule_list', 'connections_list'])
+const TURN_GATE_SAFE_TOOLS = new Set(['read', 'read_image', 'web_search', 'web_fetch', 'memory_search', 'job_list', 'schedule_list', 'connections_list', 'kaby_journal'])
 const TURN_GATE_WAIT_MS = 10 * 60_000 + 15_000
 const turnRootOf = (ctx, id) => {
   // A sub-agent's call is its root session's.
@@ -4725,6 +4726,47 @@ const turnRootOf = (ctx, id) => {
   }
   return null
 }
+/** Where each turn session's message came from (the runner says so when it starts the turn). */
+const turnChannels = new Map()
+/** The actions the person refused in a session since its last journal line (the gates count them). */
+const turnRefusals = new Map()
+const noteRefusal = (sessionId) => {
+  turnRefusals.set(sessionId, (turnRefusals.get(sessionId) || 0) + 1)
+  if (turnRefusals.size > 200) turnRefusals.delete(turnRefusals.keys().next().value)
+}
+
+// ── Kaby's journal: one line per turn of its own, written at the end of the turn ─────────────────────────────────
+// Kaby's turns are the ones of a cloud computer (a message that came by Telegram or the phone) and the ones of its own chat on the person's computer. Another session of the same DSH
+// (an automation, a coding chat) is not Kaby's doing and is not written. The tool kaby_journal reads the lines back (kyby-journal.mjs).
+const kabyJournalDir = () => join(dshHome(), 'kybernos', 'kaby-journal')
+const journalTurn = (agent) => {
+  const sid = agent !== null && agent !== undefined && agent.session !== undefined ? agent.session.id : undefined
+  if (typeof sid !== 'string') return
+  const onComputer = String(process.env.KYBERNOS_COMPUTER_ID || '') !== ''
+  const mine = onComputer ? turnSessions.has(sid) : readPointer(kybyPointerFile()) === sid
+  if (!mine) return
+  const messages = typeof agent.session.deriveMessages === 'function' ? agent.session.deriveMessages() : []
+  const entry = journalEntry({
+    asked: lastUserWords(messages),
+    tools: toolsOfTurn(messages),
+    channel: onComputer ? (turnChannels.get(sid) || 'phone') : 'chat',
+    body: onComputer ? 'cloud' : 'computer',
+    refused: turnRefusals.get(sid) || 0,
+    now: new Date(),
+  })
+  turnRefusals.delete(sid)
+  if (entry !== null) journalAppend(kabyJournalDir(), entry)
+}
+const localZone = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' } catch (e) { return 'UTC' } }
+const mountKabyJournal = (ctx) => {
+  ctx.inject(['tools'], (scope) => {
+    scope.tools.register(journalTool({ dir: kabyJournalDir, now: () => new Date(), zone: localZone }))
+  })
+  ctx.on('agent/turn-stopping', ({ agent }) => {
+    try { journalTurn(agent) } catch (e) { /* the journal never breaks a turn */ }
+  })
+}
+
 const turnApprovalSubject = (exec) => {
   const name = String((exec && exec.name) || '')
   const args = exec && exec.arguments !== null && typeof exec.arguments === 'object' ? exec.arguments : {}
@@ -4759,7 +4801,7 @@ const turnGate = (ctx) => async (exec, next) => {
   if (root === null) return next()
   const name = String((exec && exec.name) || '')
   if (TURN_GATE_SAFE_TOOLS.has(name) || turnAllowAll.has(root)) return next()
-  const refuse = (why) => ({ kind: 'deny', reason: 'The person did not allow this action (' + why + '). Do not try it again: say so in your answer.' })
+  const refuse = (why) => { noteRefusal(root); return { kind: 'deny', reason: 'The person did not allow this action (' + why + '). Do not try it again: say so in your answer.' } }
   const jobId = turnJobs.get(root)
   if (jobId === undefined) return refuse('it could not be asked')
   const subject = turnApprovalSubject(exec)
@@ -4779,7 +4821,44 @@ const turnGate = (ctx) => async (exec, next) => {
   }
   return refuse('they did not answer in time')
 }
-const mountTurnGate = (ctx) => { ctx.on('tools/pre-execute', turnGate(ctx)) }
+// ── Kaby's own chat on the person's computer (step 3 of the plan) ───────────────────────────────────────────────
+// The tools of our plugins that change something outside the chat (a memory or a lesson, a connected app, a cloud sandbox, DSH itself) ask the person through DSH's own approval card
+// (`approval.request`, the same one the engine uses for a command), in Kaby's chat only. The engine's tools (a command, a file) keep DSH's own policy, which the chat is set to
+// « ask » when it is made, so they are not asked twice here. What only reads is not asked. With no way to ask, or a failed ask, the answer is no.
+const NATIVE_ASK_TOOLS = new Set(['memory_write', 'lesson_write', 'connections_execute', 'computer_exec', 'computer_write', 'computer_start', 'computer_stop', 'computer_pause', 'computer_resume', 'computer_task', 'relancer_dsh'])
+const nativeRootOf = (ctx, id) => {
+  const pointer = readPointer(kybyPointerFile())
+  if (pointer === null) return null
+  let current = id
+  for (let depth = 0; depth < 6 && typeof current === 'string'; depth += 1) {
+    if (current === pointer) return current
+    const sessions = ctx.get('sessions')
+    const live = sessions !== undefined && sessions !== null && typeof sessions.get === 'function' ? sessions.get(current) : undefined
+    const parent = live && live.header ? live.header.parentSession : undefined
+    current = typeof parent === 'string' && parent !== '' ? parent : undefined
+  }
+  return null
+}
+const nativeGate = (ctx) => async (exec, next) => {
+  const name = String((exec && exec.name) || '')
+  if (!NATIVE_ASK_TOOLS.has(name)) return next()
+  const root = nativeRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
+  if (root === null) return next()
+  const refuse = (why) => { noteRefusal(root); return { kind: 'deny', reason: 'The person did not allow this action (' + why + '). Do not try it again: say so in your answer.' } }
+  const approval = ctx.get('approval')
+  if (approval === undefined || approval === null || typeof approval.request !== 'function') return refuse('it could not be asked')
+  let outcome = 'unavailable'
+  try {
+    outcome = await approval.request({ agent: exec.agent, toolName: name, reason: turnApprovalSubject(exec).summary.slice(0, 500), signal: exec.signal })
+  } catch (e) { outcome = 'unavailable' }
+  return outcome === 'allowed-once' ? next() : refuse(outcome === 'denied' ? 'they refused it' : 'it could not be asked')
+}
+const toolGate = (ctx) => {
+  const cloud = turnGate(ctx)
+  const native = nativeGate(ctx)
+  return (exec, next) => (String(process.env.KYBERNOS_COMPUTER_ID || '') === '' ? native(exec, next) : cloud(exec, next))
+}
+const mountTurnGate = (ctx) => { ctx.on('tools/pre-execute', toolGate(ctx)) }
 const turnStart = async (req, body) => {
   if (turnAuthorized(req) !== true) return { ok: false, error: 'unavailable' }
   const prompt = body !== null && typeof body === 'object' && typeof body.prompt === 'string' ? body.prompt.trim() : ''
@@ -4796,6 +4875,8 @@ const turnStart = async (req, body) => {
   if (sessionId === null) return { ok: false, error: 'no_session' }
   // Known to the gate BEFORE the prompt is queued: the first tool call must already find it gated.
   rememberTurnSession(sessionId, body.jobId)
+  // Where the message came from, as the runner knows it (a closed word, for the journal); anything else is a phone.
+  turnChannels.set(sessionId, typeof body.channel === 'string' && /^[a-z]{2,20}$/u.test(body.channel) ? body.channel : 'phone')
   // Lets the session settle before the turn is assembled, as an automation's fire does.
   await new Promise((resolve) => setTimeout(resolve, 750))
   const controller = new AbortController()
@@ -5265,6 +5346,7 @@ export function apply(ctx) {
   try { mountMemoryPrompt(ctx) } catch (e) { console.error('[kybernos-cloud] memory prompt: ' + String((e && e.message) || e)) }
   try { mountChatSpace(ctx) } catch (e) { console.error('[kybernos-cloud] active team follows the chat: ' + String((e && e.message) || e)) }
   try { mountKybyNative(ctx) } catch (e) { console.error('[kybernos-cloud] native Kaby: ' + String((e && e.message) || e)) }
+  try { mountKabyJournal(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby journal: ' + String((e && e.message) || e)) }
   try { mountMemoryTools(ctx) } catch (e) { console.error('[kybernos-cloud] memory tools: ' + String((e && e.message) || e)) }
   try { connections.mount(ctx) } catch (e) { console.error('[kybernos-cloud] connections: ' + String((e && e.message) || e)) }
   try { mountMemoryCapture(ctx) } catch (e) { console.error('[kybernos-cloud] memory capture: ' + String((e && e.message) || e)) }
