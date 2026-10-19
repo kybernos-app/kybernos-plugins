@@ -11,8 +11,10 @@
 // so the journals are « not read » (that state is part of what is checked); the graph of a real journal is proved by the unit tests.
 //
 // What it proves:
-//   - Discover: ten cards in three families, the filter, the page of a template (cover drawn in code, four sections), no image anywhere,
-//     and « Use this template » opening a NEW chat whose draft names the skill, carries the questions and asks for an automation left OFF;
+//   - Discover: ten cards in three families, the filter, the logos of the apps (the connectors catalogue's own), the page of a template (cover
+//     drawn in code, an Integrations list with the logos, four sections), no image file anywhere, and « Use this template » opening a NEW chat
+//     whose draft starts with « Follow this conversation in my language: <the page's language> », then names the skill, carries the questions
+//     and asks for an automation left OFF;
 //   - Cards: the fourth view, one card per automation, the failed one outlined and « To review », figures that claim nothing unread;
 //   - Flow: a node's title stays inside it, a click opens the panel with the whole instruction, the guard mark and Previous / Next;
 //   - Journal lessons: how far an automation is, and for a stable one the button that writes the skill (the file is on disk, readable by
@@ -113,14 +115,19 @@ try {
   await val(`(() => { const i = document.querySelector('.kbtd-search'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(i, ''); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
   await poll(async () => (await q('[data-kb="tpl-card"]')) === 10, 3000)
   check('a card is compact: no image, no cover, an « Import » button', (await q('[data-kb="tpl-card"] img, [data-kb="tpl-card"] svg.kbtd-cover-svg')) === 0 && (await q('[data-kb="tpl-card"] [data-kb="tpl-import"]')) === 10)
+  check('the apps of a card show the real logos of the connectors catalogue, and the initial of the one it does not know', (await poll(async () => (await q('[data-tpl="prosp-calls"] .kbtd-app.logo svg')) === 2, 8000)) === true && (await q('[data-tpl="prosp-calls"] .kbtd-app:not(.logo)')) === 1)
+  check('...on a white tile, whatever the theme', (await val(`getComputedStyle(document.querySelector('[data-tpl="prosp-calls"] .kbtd-app.logo')).backgroundColor`)) === 'rgb(255, 255, 255)')
   await shot('discover')
   await click('[data-tpl="social-daily"]')
-  check('a card opens the page of its template: a cover drawn in code, four sections, no image', (await poll(() => q('[data-kb="tpl-detail"]'), 4000)) === 1 && (await q('.kbtd-cover svg')) === 1 && (await q('.kbtd-sec')) === 4 && (await q('[data-kb="tpl-detail"] img')) === 0)
+  check('a card opens the page of its template: a cover drawn in code, an Integrations list and four sections, no image file', (await poll(() => q('[data-kb="tpl-detail"]'), 4000)) === 1 && (await q('.kbtd-cover svg')) === 1 && (await q('.kbtd-sec')) === 5 && (await q('[data-kb="tpl-detail"] img')) === 0)
+  check('...the Integrations list names each app with its logo (Instagram, TikTok, Google Drive)', /Instagram/.test(await text('[data-kb="tpl-apps"]')) && (await q('[data-kb="tpl-apps"] .kbtd-app.logo svg')) === 3)
   check('...whose steps are the model steps and the tool steps, the first being the memory check', /PREFLIGHT/.test(await text('.kbtd-step')) && (await val(`document.querySelectorAll('.kbtd-step .kba-cc.cc-ai').length`)) >= 2)
   await shot('discover-detail')
   await click('[data-kb="tpl-use"]')
   const draft = await poll(async () => { const t = await val(`(() => { const e = document.querySelector('[contenteditable="true"]'); return e ? e.innerText : '' })()`); return /automation-creator/.test(t) ? t.replace(/\n+/g, '\n') : '' }, 20000)
-  check('« Use this template » opens a NEW chat with a draft that names the skill and the template', typeof draft === 'string' && draft.startsWith('Skill automation-creator') && /Daily post pack/.test(draft), String(draft).slice(0, 120))
+  const draftLines = typeof draft === 'string' ? draft.split('\n') : []
+  check('« Use this template » opens a NEW chat whose draft starts with « Follow this conversation in my language: <the page\'s language> »', /^Follow this conversation in my language: [A-Za-z]+ \([a-z-]+\)$/.test(draftLines[0] || ''), draftLines[0])
+  check('...then the skill and the template', (draftLines[1] || '').startsWith('Skill automation-creator') && /Daily post pack/.test(draft), String(draft).slice(0, 160))
   check('...carrying the steps, the questions with their options, what to connect and the rules', /1\. PREFLIGHT/.test(draft) && /Where should the posts go\? Options: Instagram/.test(draft) && /What I will need to connect/.test(draft) && /Rules to keep in the steps/.test(draft))
   check('...and asking for an automation that stays OFF (nothing is created by the click)', /active: false/.test(draft) && (await val(`document.body.innerText.indexOf('Daily post pack') >= 0`)) === true)
   check('the Automations page comes back', await openAutomations())
@@ -238,7 +245,7 @@ try {
   await click('[data-kb="section-discover"]')
   check('Discover shows its ten templates at 390 px without scrolling sideways', (await poll(async () => (await q('[data-kb="tpl-card"]')) === 10, 5000)) === true && (await shown('[data-kb="tpl-card"]')) === true && (await overflow()) === false)
   await click('[data-tpl="cs-calls"]')
-  check('a template page does not scroll sideways', (await poll(() => q('[data-kb="tpl-detail"]'), 4000)) === 1 && (await q('.kbtd-sec')) === 4 && (await shown('[data-kb="tpl-use"]')) === true && (await overflow()) === false)
+  check('a template page does not scroll sideways', (await poll(() => q('[data-kb="tpl-detail"]'), 4000)) === 1 && (await q('.kbtd-sec')) === 5 && (await shown('[data-kb="tpl-use"]')) === true && (await overflow()) === false)
   await shot('phone-template')
   await click('[data-kb="tpl-back"]')
   await click('[data-kb="section-yours"]')
