@@ -4,7 +4,7 @@
 // The blocks `team-folder` and `follow-chat` are cut out of client.js and run on their own, against FAKE DSH services (the workspaces list, the sessions list, the selection of the
 // main view), a fake host (`space/for-folder`) and a manual clock, so what is proven is the shipped code: a chat opened (or the page loaded on one) is reported to the host with its
 // own folder and the switch the host asks for is made without a new chat; the same chat is not asked about again for every list update; a chat change while the host is still
-// answering drops the old answer; a switch that failed is tried again at the next report; the periodic report reaches the host but never switches by itself; a service that
+// answering drops the old answer; a switch that failed is tried again at the next report; a switch the host refuses because a reply is running is announced and made by itself when the reply ends (and dropped when the person opens another chat); the periodic report reaches the host but never switches by itself; a service that
 // is missing or throws changes nothing. The rendered footer that mounts this is pinned in test-cloud-client.mjs; the real DSH is scripts/check-follow-chat-live.mjs.
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -24,8 +24,8 @@ const cut = (name) => {
   check('the block ' + name + ' is where the test expects it', from > 0 && to > from)
   return source.slice(from, to)
 }
-const lib = new Function(cut('team-folder') + '\n' + cut('follow-chat') + '\nreturn { chatOnScreen, createFollower, switchIsMoot, FOLLOW_LOOK_DELAY_MS, FOLLOW_REPORT_MS }')()
-const { chatOnScreen, createFollower, switchIsMoot, FOLLOW_LOOK_DELAY_MS, FOLLOW_REPORT_MS } = lib
+const lib = new Function(cut('team-folder') + '\n' + cut('follow-chat') + '\nreturn { chatOnScreen, createFollower, switchIsMoot, FOLLOW_LOOK_DELAY_MS, FOLLOW_REPORT_MS, FOLLOW_WAIT_POLL_MS }')()
+const { chatOnScreen, createFollower, switchIsMoot, FOLLOW_LOOK_DELAY_MS, FOLLOW_REPORT_MS, FOLLOW_WAIT_POLL_MS } = lib
 
 const ACME = '/home/u/Documents/Kybernos/Acme'
 const WORK = '/home/u/work/app'
@@ -103,14 +103,25 @@ const rig = (opts = {}) => {
   const c = clock()
   const picks = []
   const heard = []
+  const notes = []
+  const wait = { busy: true, fails: false, asked: 0 }
+  const script = (opts.pickScript || []).slice()
   const follower = createFollower({
+    busy: opts.noBusy === true ? undefined : async () => { wait.asked += 1; if (wait.fails) throw new Error('offline'); return { ok: true, busy: wait.busy } },
+    defer: opts.deferThrows === true ? () => { throw new Error('notice gone') } : (note) => { notes.push(note) },
     seen: opts.seenThrows === true ? () => { throw new Error('footer gone') } : (answer) => { heard.push(answer.active_id) },
     services: () => (opts.noServices === true ? null : w.services),
     ask: opts.ask || h.ask,
-    pick: opts.pick || (async (id, name) => { picks.push({ id, name }); if (opts.pickFails === true) return { ok: false, error: 'busy_switching' }; h.active = id; return { ok: true } }),
+    pick: opts.pick || (async (id, name) => {
+      picks.push({ id, name })
+      if (script.length > 0) { const next = script.shift(); if (next.ok === true) h.active = id; return next }
+      if (opts.pickFails === true) return { ok: false, error: 'busy_switching' }
+      h.active = id
+      return { ok: true }
+    }),
     timers: c,
   })
-  return { w, h, c, picks, heard, follower, stop: follower.mount() }
+  return { w, h, c, picks, heard, notes, wait, follower, stop: follower.mount() }
 }
 
 // ── the chat on screen ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -222,6 +233,103 @@ check('no usable id is never moot', switchIsMoot(undefined, undefined, undefined
   await quiet.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
   check('a footer that throws does not stop the switch', quiet.picks.length === 1, quiet.picks)
   quiet.stop()
+}
+
+// ── a switch the host refuses because a reply is running: deferred, announced, made by itself ───────────────────────────────────────────────────
+const RUNNING = { count: 1, space_id: 'me', space_name: 'My workspace', since: 1 }
+const REFUSED = { ok: false, error: 'turn_running', running: RUNNING }
+{
+  const r = rig({ world: { sid: 's-acme' }, pickScript: [REFUSED, { ok: true }] })
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('refused: the chat stays, and the notice is handed to the page with the team the chat belongs to and what is running', r.picks.length === 1 && r.notes.length === 1 && r.notes[0].target.id === 'acme' && r.notes[0].target.name === 'Acme' && r.notes[0].running.space_id === 'me', { picks: r.picks.length, notes: r.notes })
+  await r.c.advance(FOLLOW_WAIT_POLL_MS * 3 + 10)
+  check('it asks the host every ~1.5 s whether a reply still runs, and does not try the switch meanwhile', r.wait.asked >= 3 && r.picks.length === 1, { asked: r.wait.asked, picks: r.picks.length })
+  await r.c.advance(FOLLOW_REPORT_MS)
+  check('the periodic report keeps reporting the chat but does not try the switch again while it waits', r.h.asked.length >= 2 && r.picks.length === 1, { asked: r.h.asked.length, picks: r.picks.length })
+  r.wait.busy = false
+  await r.c.advance(FOLLOW_WAIT_POLL_MS + 10)
+  check('the last reply ends: the switch is made by itself, once', r.picks.length === 2 && r.picks[1].id === 'acme', r.picks)
+  check('and the notice is withdrawn', r.notes[r.notes.length - 1] === null, r.notes)
+  const asked = r.wait.asked
+  await r.c.advance(FOLLOW_WAIT_POLL_MS * 4)
+  check('it stops asking once it is done', r.wait.asked === asked, { asked: r.wait.asked, before: asked })
+  r.stop()
+}
+{
+  // Another reply starts between « no reply runs » and the switch: it waits again.
+  const r = rig({ world: { sid: 's-acme' }, pickScript: [REFUSED, REFUSED, { ok: true }] })
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  r.wait.busy = false
+  await r.c.advance(FOLLOW_WAIT_POLL_MS + 10)
+  check('refused again by a reply that started in between: it waits again, with a notice again', r.picks.length === 2 && r.notes.filter((n) => n !== null).length === 2, { picks: r.picks.length, notes: r.notes })
+  r.wait.busy = false
+  await r.c.advance(FOLLOW_WAIT_POLL_MS + 10)
+  check('and goes through when the way is free', r.picks.length === 3 && r.h.active === 'acme', { picks: r.picks.length, active: r.h.active })
+  r.stop()
+}
+{
+  // The person moves to another chat while it waits: that chat decides.
+  const r = rig({ world: { sid: 's-acme' }, pickScript: [REFUSED] })
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('(waiting for the Acme chat)', r.notes.length === 1 && r.notes[0] !== null)
+  r.w.open('s-work')
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('they open a personal chat, Personal is active: the notice is withdrawn and nothing is switched', r.notes[r.notes.length - 1] === null && r.picks.length === 1, { notes: r.notes, picks: r.picks.length })
+  const asked = r.wait.asked
+  r.wait.busy = false
+  await r.c.advance(FOLLOW_WAIT_POLL_MS * 3)
+  check('and it no longer waits for the reply of the chat they left', r.wait.asked === asked && r.picks.length === 1, { asked: r.wait.asked, before: asked })
+  r.stop()
+}
+{
+  // The switch is no longer needed when the reply ends (the person went to that team by hand meanwhile).
+  const r = rig({ world: { sid: 's-acme' }, pickScript: [REFUSED] })
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  r.h.active = 'acme'
+  r.wait.busy = false
+  await r.c.advance(FOLLOW_WAIT_POLL_MS + 10)
+  check('when the reply ends and the team is already the chat\'s, nothing is switched and the notice goes', r.picks.length === 1 && r.notes[r.notes.length - 1] === null, { picks: r.picks.length, notes: r.notes })
+  r.stop()
+}
+{
+  // The host cannot be asked, or says nothing useful: it keeps waiting, it never gives up on its own.
+  const r = rig({ world: { sid: 's-acme' }, pickScript: [REFUSED, { ok: true }] })
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  r.wait.fails = true
+  r.wait.busy = false
+  await r.c.advance(FOLLOW_WAIT_POLL_MS * 3)
+  check('a busy read that fails is not an answer: it keeps waiting', r.picks.length === 1)
+  r.wait.fails = false
+  await r.c.advance(FOLLOW_WAIT_POLL_MS + 10)
+  check('and goes through at the first answer that says no reply runs', r.picks.length === 2)
+  r.stop()
+  const stopped = rig({ world: { sid: 's-acme' }, pickScript: [REFUSED] })
+  await stopped.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  stopped.stop()
+  check('stopped while waiting: the notice is withdrawn and every timer is gone', stopped.notes[stopped.notes.length - 1] === null && stopped.c.pending() === 0, { notes: stopped.notes, timers: stopped.c.pending() })
+  stopped.wait.busy = false
+  await stopped.c.advance(FOLLOW_WAIT_POLL_MS * 4)
+  check('and nothing is switched afterwards', stopped.picks.length === 1)
+}
+{
+  const throwing = rig({ world: { sid: 's-acme' }, pickScript: [REFUSED, { ok: true }], deferThrows: true })
+  await throwing.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  throwing.wait.busy = false
+  await throwing.c.advance(FOLLOW_WAIT_POLL_MS + 10)
+  check('a page that cannot show the notice still switches when the reply ends', throwing.picks.length === 2)
+  throwing.stop()
+  const noBusy = rig({ world: { sid: 's-acme' }, pickScript: [REFUSED], noBusy: true })
+  await noBusy.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  await noBusy.c.advance(FOLLOW_WAIT_POLL_MS * 3)
+  check('a wiring with no busy read waits without crashing (and never switches by itself)', noBusy.picks.length === 1)
+  noBusy.stop()
+}
+// A refusal that is not « a reply is running » is not waited for.
+{
+  const r = rig({ world: { sid: 's-acme' }, pickScript: [{ ok: false, error: 'espace_inconnu' }] })
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('another refusal is no reason to wait: no notice', r.notes.length === 0 && r.wait.asked === 0, { notes: r.notes })
+  r.stop()
 }
 
 // ── nothing breaks it ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────

@@ -56,7 +56,7 @@ import { writeGuard } from './session-guard.mjs'
 import { createKybyNative, isSessionId, readPointer, writePointer } from './kyby-native.mjs'
 import { UNREADABLE, spaceKind, publishSpaceSeam } from './team-space.mjs'
 import { documentsDir, ensureTeamFolder, isChildOf, rootOf } from './team-folder.mjs'
-import { createSightings, spaceOfFolder } from './chat-space.mjs'
+import { createSightings, createTurnWatch, spaceOfFolder } from './chat-space.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -339,19 +339,25 @@ const spacePlanView = (state) => {
 }
 
 /** Switches the active space. Fail-closed — an unknown id is REFUSED and never written: a space one cannot see does not become active. Switches run one at a time (the page's
- *  switch, the claim-time one below and a second window's all end in the same model route), so a later one reads the state the earlier one left. */
+ *  switch, the claim-time one below and a second window's all end in the same model route), so a later one reads the state the earlier one left.
+ *  REFUSED while a reply is running (`turn_running`, see « Never under a running reply » below): the model route is one per instance, so the reply's next request would carry the new
+ *  team's header and one answer would be billed to two teams. `turnOf` is the chat whose own first request is waiting on this very switch (the claim-time one): its turn does not count. */
 let switchChain = Promise.resolve()
-const switchSpace = (voulu) => {
-  const run = switchChain.then(() => switchSpaceNow(voulu), () => switchSpaceNow(voulu))
+const switchSpace = (voulu, turnOf) => {
+  const run = switchChain.then(() => switchSpaceNow(voulu, turnOf), () => switchSpaceNow(voulu, turnOf))
   switchChain = run.then(() => undefined, () => undefined)
   return run
 }
-const switchSpaceNow = async (voulu) => {
+const switchSpaceNow = async (voulu, turnOf) => {
   const state = readState()
   if (!isConnected(state)) return { ok: false, error: 'non_connecte' }
   if (typeof voulu !== 'string' || voulu === '') return { ok: false, error: 'espace_absent' }
   const espaces = Array.isArray(state.workspaces) ? state.workspaces : []
   if (espaces.some((w) => w !== null && w.id === voulu) !== true) return { ok: false, error: 'espace_inconnu' }
+  if (voulu !== espaceActif(state)) {
+    const busy = turnWatch.running({ except: turnOf })
+    if (busy.length > 0) return { ok: false, error: 'turn_running', running: busyView(busy, state) }
+  }
   const plan = await readSpacePlan(state, voulu)
   // On the state as it is NOW: a profile refresh may have written the list of teams while the plan was being read.
   const now = readState()
@@ -444,6 +450,34 @@ const spaceOwningFolder = (state, cwd) => spaceOfFolder({ cwd, teams: teamFolder
 // The chats the page reported as on screen (it repeats the report every 10 s while the page is open): only their turns are held to the rule at claim time.
 const sightings = createSightings()
 
+// ── Never under a running reply (option 2, part B) ──────────────────────────────────────────────────────────────────────────────────────────────
+// The model route is ONE per instance and a reply sends several requests (one per step), so a switch while a reply runs bills it to two teams: the first request names the old team, the next
+// the new one. The host therefore refuses to switch while any reply is running, whoever asks (a click, the page following a chat, a script): `turn_running`, with who is running. A reply
+// is counted from `agent/status` `running` (it comes BEFORE the claim and the first request) to `idle`, and the engine's own registry (`ctx.agents`, each agent's `status`) corrects the
+// events: a missed `idle` cannot leave a reply stuck, a missed start is picked up at the next look. Past TURN_MAX_AGE_MS a reply no longer blocks (chat-space.mjs says why it fails open).
+// EXPOSURE THAT REMAINS: the rule keeps a switch out of a running reply; it does not make the active team the chat's. While a switch is deferred, a message typed in the chat that is now on
+// screen is billed to the team that is still active, and so is every turn nobody looks at: Kaby's chat, a Telegram turn relayed to this computer, an automation, a subagent.
+const runningAgentIds = () => {
+  const registry = service('agents')
+  if (registry === null || typeof registry.list !== 'function') return null
+  return registry.list().filter((agent) => agent !== null && typeof agent === 'object' && agent.status === 'running').map((agent) => agent.id)
+}
+const turnWatch = createTurnWatch({ now: () => Date.now(), live: runningAgentIds })
+/** What the page is told of the replies that block a switch: how many, since when, and the team the oldest one is billed to. */
+const busyView = (running, state) => {
+  const first = running[0]
+  const spaces = state !== null && state !== undefined && Array.isArray(state.workspaces) ? state.workspaces : []
+  const space = first.space === null ? undefined : spaces.filter((w) => w !== null && typeof w === 'object' && w.id === first.space)[0]
+  return { count: running.length, since: first.since, space_id: first.space, space_name: space !== undefined && typeof space.name === 'string' ? space.name : null }
+}
+/** Route: is a reply running (so that a switch would be refused)? The page that deferred a switch asks this until the answer is no. */
+const spaceBusy = () => {
+  const state = readState()
+  if (!isConnected(state)) return { ok: false, error: 'non_connecte' }
+  const running = turnWatch.running()
+  return running.length === 0 ? { ok: true, busy: false } : { ok: true, busy: true, running: busyView(running, state) }
+}
+
 /** Route: which space owns the folder of the chat on screen, and whether that is the active one. The page reports the chat it shows (`session_id`) and, when `follow` is true, switches
  *  through `space/active`. Read-only apart from remembering the sighting: it opens no folder, writes no state. `kind: 'unknown'` (no usable path) names no space: nothing follows. */
 const spaceForFolder = async (req, body) => {
@@ -470,8 +504,10 @@ const spaceForFolder = async (req, body) => {
  *  applying; the page's footer says so). Shorter than the page's own wait (15 s): a request that waits that long looks hung. */
 const CLAIM_SWITCH_WAIT_MS = 10000
 const claimIntents = new Map()
-/** The first claim of a turn of a chat the person looks at: if its folder belongs to another space, say so NOW, synchronously. The system prompt of the step is assembled right after the claim and
- *  reads the active space (the personal-memory cut); writing the choice here is what makes that assembly see the right one. The model route is rewritten in `holdForClaimSwitch`. */
+/** The first claim of a turn of a chat the person looks at: if its folder belongs to another space, say so NOW, synchronously. The system prompt of the step is assembled right after the claim
+ *  (and its context blocks are evaluated again after the `agent/pre-step` hold, measured on the sandbox), so the early write is defence in depth for the personal-memory cut: a negative control
+ *  without it (scripts/e2e-teams/j9-follow.mjs, case 2b) kept the personal memory out of the team chat's first request too, so it is NOT proven necessary. The model route is rewritten in
+ *  `holdForClaimSwitch`, which is what is proven to matter: the first request waits for it. */
 const noteClaimSpace = (agent, turn) => {
   const id = agent.session.id
   const previous = claimIntents.get(id)
@@ -483,8 +519,12 @@ const noteClaimSpace = (agent, turn) => {
   const header = agent.session.header
   const owner = spaceOwningFolder(state, header !== null && typeof header === 'object' ? header.cwd : undefined)
   if (owner.id === null || owner.id === espaceActif(state)) { claimIntents.set(id, { turn, target: null }); return }
+  // Another reply is running: switching now would bill it to two teams. This turn goes ahead billed to the active team (the exposure above); the page, which follows the chat, defers its switch.
+  if (turnWatch.running({ except: id }).length > 0) { claimIntents.set(id, { turn, target: null }); return }
   claimIntents.set(id, { turn, target: owner.id })
   writeState(Object.assign({}, state, { active_workspace_id: owner.id, space_plan: null }))
+  // The reply was counted as started under the team that was active BEFORE this claim: it is billed to the chat's team.
+  turnWatch.setSpace(id, owner.id)
 }
 /** Before the first request of a turn: finish the switch `noteClaimSpace` began (plan, folder, model route) and wait for it, so the request carries the chat's team. Never throws. */
 const holdForClaimSwitch = async (payload) => {
@@ -493,10 +533,15 @@ const holdForClaimSwitch = async (payload) => {
   intent.done = true
   let timer = null
   try {
-    await Promise.race([switchSpace(intent.target), new Promise((resolve) => { timer = setTimeout(resolve, CLAIM_SWITCH_WAIT_MS) })])
+    await Promise.race([switchSpace(intent.target, payload.agent.session.id), new Promise((resolve) => { timer = setTimeout(resolve, CLAIM_SWITCH_WAIT_MS) })])
   } finally { if (timer !== null) clearTimeout(timer) }
 }
 const mountChatSpace = (ctx) => {
+  ctx.on('agent/status', ({ agent, status }) => {
+    try {
+      if (status === 'running') { const state = readState(); turnWatch.start(agent.session.id, state !== null ? espaceActif(state) : null) } else turnWatch.end(agent.session.id)
+    } catch (e) { /* never break a turn */ }
+  })
   ctx.on('agent/inbox/claimed', ({ agent, turn }) => {
     try { noteClaimSpace(agent, turn) } catch (e) { /* never break a turn */ }
   })
@@ -504,7 +549,7 @@ const mountChatSpace = (ctx) => {
     try { await holdForClaimSwitch(payload) } catch (e) { /* the turn goes ahead, billed to the active team */ }
     return next()
   }), 'kybernos-cloud: the active team follows the chat')
-  ctx.on('agent/disposed', ({ agent }) => { try { claimIntents.delete(agent.session.id) } catch (e) { /* gone */ } })
+  ctx.on('agent/disposed', ({ agent }) => { try { claimIntents.delete(agent.session.id); turnWatch.end(agent.session.id) } catch (e) { /* gone */ } })
 }
 
 /** Route: create a space. The hosted server stays the master — we pass the
@@ -530,8 +575,10 @@ const createSpace = async (req, body) => {
   // they were, and the answer says so, so that the page can tell them and offer the plan page. A plan that could not be read counts as « not known to be plan-less ».
   const mine = await readSpacePlan(state, id)
   const planless = mine !== null && mine.key === 'none'
+  // A reply is running: the team is created and listed but does not take over (a switch now would bill the reply to two teams); the person is told and switches when it ends.
+  const busy = planless !== true ? turnWatch.running() : []
   const next = Object.assign({}, state, { workspaces: espaces })
-  if (planless !== true) {
+  if (planless !== true && busy.length === 0) {
     next.active_workspace_id = id
     next.space_plan = mine !== null ? mine : await readSpacePlan(state, espaceActif(next))
   }
@@ -539,7 +586,7 @@ const createSpace = async (req, body) => {
   ensureFolderFor(next, id)
   writeState(next)
   await importCatalog('space')
-  return { ok: true, state: publicState(readState()), created: { id, name: typeof brut.name === 'string' ? brut.name : nom, plan_key: mine !== null ? mine.key : null, activated: planless !== true } }
+  return { ok: true, state: publicState(readState()), created: { id, name: typeof brut.name === 'string' ? brut.name : nom, plan_key: mine !== null ? mine.key : null, activated: planless !== true && busy.length === 0, ...(busy.length > 0 ? { busy: busyView(busy, state) } : {}) } }
 }
 
 // ── Joining a team with an invitation link (plan « Équipes », step 4) ──────────────────────────────────────────────────
@@ -4937,6 +4984,7 @@ const ROUTES = [
   { path: '/kybernos-cloud/space/active', method: 'POST', guarded: true, session: true, body: true, run: setActiveSpace },
   { path: '/kybernos-cloud/space/applied', method: 'POST', guarded: true, body: true, run: spaceApplied },
   { path: '/kybernos-cloud/space/for-folder', method: 'POST', guarded: true, body: true, cap: 8192, run: spaceForFolder },
+  { path: '/kybernos-cloud/space/busy', method: 'GET', guarded: true, run: spaceBusy },
   // The folder of a team: makes a directory on the person's disk, so strict same-origin and the signed session.
   { path: '/kybernos-cloud/space/folder', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: spaceFolder },
   { path: '/kybernos-cloud/spaces/summary', method: 'GET', guarded: true, run: spacesSummary },

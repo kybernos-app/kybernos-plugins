@@ -265,6 +265,76 @@ try {
 
   blind.on = false
   await g.page.send('Fetch.disable').catch(() => null)
+
+  // ── 4. a reply is running: no switch under it ───────────────────────────────────────────────────────────────────────────────────────────
+  console.log('\n4. a reply is running (the fake model holds the agent\'s request): the host refuses to switch under it')
+  await openChat(TAG.personal)
+  await until(async () => (await cardName()) === 'Personal' && !(await switching()), 15000, 100)
+  fake.model.delayMs = 9000
+  fake.model.reply = 'FOLLOW' + RUN + 'H1'
+  mark = fake.chats.length
+  await g.selectModel(MODEL)
+  await g.send('PERSONALTHREE a reply that stays running')
+  const held = await until(() => fake.chats.slice(mark).find((c) => c.tools), 15000, 50)
+  check('(the agent\'s request reached the model and is held: a reply is running, billed to Personal)', held !== undefined && held.ws === P.id && held.t1 === null)
+  const busy = await (await fetch('http://' + host + '/kybernos-cloud/space/busy')).json()
+  check('the host says so: space/busy', busy.busy === true && busy.running.space_id === P.id && busy.running.count === 1, busy)
+  await g.pickSpace(ACME.id)
+  const flashed = await until(() => g.text('[data-kb="foot-flash"]'), 4000, 50)
+  check('a click on Acme in the menu is refused with one plain sentence naming the team the reply runs in', typeof flashed === 'string' && flashed.includes('A reply is still running in Personal. Switching waits for it or stop it first.'), flashed)
+  await shot('a4-refused')
+  await sleep(600)
+  check('Personal is still active, the card did not move, nothing says « Switching… »', (await hostStatus()).active_workspace_id === P.id && (await cardName()) === 'Personal' && !(await switching()))
+  await g.closeMenu()
+  const directRefusal = await hostSwitch(ACME.id)
+  check('the same refusal for any caller of the route (a script with the page\'s cookie): turn_running, with who is running', directRefusal.ok === false && directRefusal.error === 'turn_running' && directRefusal.running.space_id === P.id, directRefusal)
+  await until(() => held.t1 !== null, 20000, 100)
+  await sleep(1500)
+  const turn1 = fake.chats.slice(mark)
+  check('nothing of that reply was billed to another team: every request of the turn carries Personal\'s header', turn1.length >= 1 && turn1.every((c) => c.ws === P.id), turn1.map((c) => (c.ws || '-').slice(0, 8)))
+  check('the reply ended: space/busy says nobody is busy any more', (await (await fetch('http://' + host + '/kybernos-cloud/space/busy')).json()).busy === false)
+  fake.model.delayMs = 0
+  await switchByHand(ACME)
+  check('and the same click now switches (a new chat opens in Acme\'s folder)', (await hostStatus()).active_workspace_id === ACME.id && (await cardName()) === 'Acme', await cardName())
+
+  // ── 5. a chat opened while a reply runs: announced, and the switch happens by itself ─────────────────────────────────────────────────────
+  console.log('\n5. a chat of another team opened while a reply runs: the notice, then the switch by itself')
+  await openChat(TAG.personal)
+  await until(async () => (await cardName()) === 'Personal' && !(await switching()), 15000, 100)
+  fake.model.delayMs = 9000
+  fake.model.reply = 'FOLLOW' + RUN + 'H2'
+  mark = fake.chats.length
+  await g.selectModel(MODEL)
+  await g.send('PERSONALFOUR another reply that stays running')
+  const held2 = await until(() => fake.chats.slice(mark).find((c) => c.tools), 15000, 50)
+  check('(a reply is running in the personal chat)', held2 !== undefined && held2.ws === P.id)
+  await openChat(TAG.acme)
+  const notice = await until(() => g.text('[data-kb="cue-mismatch"]'), 5000, 50)
+  check('the Acme chat is on screen and the page says what is going on, where the person types', typeof notice === 'string' && notice === 'This chat belongs to Acme; Personal stays active until the reply ends.', notice)
+  await shot('a5-notice')
+  check('Personal is still active (the switch waits)', (await hostStatus()).active_workspace_id === P.id && (await cardName()) === 'Personal')
+  check('the Acme chat stays on screen', (await g.body()).includes('ACMEONE first message in the Acme folder'))
+  // The exposure that remains, shown: a message typed in the Acme chat now is billed to the team still active.
+  fake.model.delayMs = 0
+  fake.model.reply = 'FOLLOW' + RUN + 'H3'
+  const mark2 = fake.chats.length
+  await g.selectModel(MODEL)
+  await g.send('ACMEFOUR typed while the switch waits')
+  const typed = await until(() => fake.chats.slice(mark2).find((c) => c.tools), 15000, 50)
+  note('EXPOSURE (measured): a message typed in the Acme chat during the deferral was billed to ' + (typed === undefined ? '?' : (typed.ws === P.id ? 'Personal, the team still active' : (typed.ws === ACME.id ? 'Acme' : typed.ws))))
+  check('(that message was billed to the team that is still active, as the report says)', typed !== undefined && typed.ws === P.id, typed && typed.ws)
+  await until(() => held2.t1 !== null, 20000, 100)
+  const tEnd = Date.now()
+  const switched = await until(async () => (await cardName()) === 'Acme' && (await hostStatus()).active_workspace_id === ACME.id, 15000, 50)
+  note('the last reply ended; the card showed Acme ' + (switched ? 'after ' + (Date.now() - tEnd) + ' ms' : 'NEVER (waited 15 s)'))
+  check('the switch happens by itself when the last reply ends (no click)', switched === true, { card: await cardName() })
+  check('and the notice is gone', (await g.text('[data-kb="cue-mismatch"]')) === null)
+  await until(async () => !(await switching()), 15000, 50)
+  const mark3 = fake.chats.length
+  await say('ACMEFIVE after the switch', 'FOLLOW' + RUN + 'H4')
+  const afterSwitch = fake.chats.slice(mark3)
+  check('a message typed in the Acme chat now is billed to Acme', afterSwitch.length >= 1 && afterSwitch.every((c) => c.ws === ACME.id), afterSwitch.map((c) => (c.ws || '-').slice(0, 8)))
+  await shot('a5-after')
 } finally {
   if (g !== null) await g.close()
   await fake.close()

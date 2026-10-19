@@ -3,7 +3,8 @@
 //
 // DSH has ONE model route per instance and its `x-kybernos-workspace` header names the ACTIVE team, so whoever is billed is whoever is active. The rule this file serves:
 //   · a chat in a team's folder bills that team; every other chat bills Personal (`spaceOfFolder`);
-//   · the active team therefore follows the chat the person is looking at (`createSightings` says which chats those are).
+//   · the active team therefore follows the chat the person is looking at (`createSightings` says which chats those are), and it is never changed while a reply is running
+//     (`createTurnWatch`), because the reply's second request would carry the new team's header (one answer billed to two teams).
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 
 /** Lower-cases on the platforms whose file systems ignore case (macOS and Windows by default): `Acme` and `acme` are one folder there. A case-sensitive volume on those systems
@@ -56,6 +57,55 @@ export function spaceOfFolder ({ cwd, teams, personalId, platform, realpath }) {
   }
   if (best !== null) return { kind: 'team', id: best.id }
   return { kind: 'personal', id: typeof personalId === 'string' && personalId !== '' ? personalId : null }
+}
+
+/** A reply that has been running longer than this no longer blocks a switch. Fail-open on purpose: the cost of a reply wrongly counted as running forever is a person who cannot
+ *  change team (they could always stop the reply, but may not know to); the cost of letting go after the bound is one very long reply billed to two teams, which is exactly what
+ *  happened before this guard existed. Thirty minutes is longer than an ordinary reply, including its tools, and shorter than anything worth waiting for. */
+export const TURN_MAX_AGE_MS = 30 * 60 * 1000
+
+/** The replies in flight. The engine's own registry is the truth (`live()` lists the agents whose status is `running`) and the events only add WHEN and in WHICH team a reply started,
+ *  so a missed `idle` event cannot leave a reply stuck as running (the registry says it is not) and a missed start is picked up at the next look. Without a registry (`live()` gives
+ *  null) the events and the age bound are all there is. A restart empties it, which is right: the engine starts idle. `now`: a clock (tests). */
+export function createTurnWatch ({ now = Date.now, maxAgeMs = TURN_MAX_AGE_MS, live = () => null } = {}) {
+  const turns = new Map()
+  const MAX_TRACKED = 256
+  return {
+    /** A reply started in the chat `id`, billed to the space `space` (the one active now). The first start wins: a repeated one does not restart the clock. */
+    start (id, space) {
+      if (typeof id !== 'string' || id === '' || turns.has(id)) return
+      if (turns.size >= MAX_TRACKED) turns.delete(turns.keys().next().value)
+      turns.set(id, { since: now(), space: typeof space === 'string' && space !== '' ? space : null })
+    },
+    /** The chat `id` was switched to `space` by its own claim, after its reply was counted as started: that is the team the reply is billed to. */
+    setSpace (id, space) {
+      const entry = turns.get(id)
+      if (entry !== undefined && typeof space === 'string' && space !== '') entry.space = space
+    },
+    /** The reply of the chat `id` ended (or the chat is gone). */
+    end (id) { turns.delete(id) },
+    /** The replies that block a switch now, oldest first: `[{ id, since, space }]`, leaving out the chat `except` (the one whose own first request is waiting on the switch). */
+    running ({ except } = {}) {
+      const t = now()
+      let alive = null
+      try { alive = live() } catch (e) { alive = null }
+      if (Array.isArray(alive)) {
+        const ids = new Set(alive)
+        for (const id of Array.from(turns.keys())) if (ids.has(id) !== true) turns.delete(id)
+        for (const id of ids) if (typeof id === 'string' && turns.has(id) !== true) turns.set(id, { since: t, space: null })
+      }
+      const out = []
+      for (const [id, entry] of Array.from(turns)) {
+        if (t - entry.since > maxAgeMs) {
+          // Past the bound it no longer blocks. With no registry to confirm it, it is forgotten; with one, it is kept (its age keeps counting from the first sighting).
+          if (Array.isArray(alive) !== true) turns.delete(id)
+          continue
+        }
+        if (id !== except) out.push({ id, since: entry.since, space: entry.space })
+      }
+      return out.sort((a, b) => a.since - b.since)
+    },
+  }
 }
 
 /** The chats the person has looked at lately, reported by the page. A chat the host never heard of from the page (an automation, Kaby's, a Telegram turn, a subagent) is not one

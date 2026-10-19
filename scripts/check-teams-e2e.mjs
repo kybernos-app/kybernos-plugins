@@ -9,7 +9,7 @@
 import { makeContext } from './e2e-teams/common.mjs'
 
 const wanted = process.argv.slice(2).map((s) => s.toLowerCase())
-const all = { j1: './e2e-teams/j1-billing.mjs', j2: './e2e-teams/j2-memory.mjs', j3: './e2e-teams/j3-folders.mjs', j4: './e2e-teams/j4-invitation.mjs', j5: './e2e-teams/j5-usage.mjs', j6: './e2e-teams/j6-roles.mjs', j7: './e2e-teams/j7-shapes.mjs', j8: './e2e-teams/j8-web.mjs' }
+const all = { j1: './e2e-teams/j1-billing.mjs', j2: './e2e-teams/j2-memory.mjs', j3: './e2e-teams/j3-folders.mjs', j4: './e2e-teams/j4-invitation.mjs', j5: './e2e-teams/j5-usage.mjs', j6: './e2e-teams/j6-roles.mjs', j7: './e2e-teams/j7-shapes.mjs', j8: './e2e-teams/j8-web.mjs', j9: './e2e-teams/j9-follow.mjs' }
 const run = wanted.length ? wanted : Object.keys(all)
 const ctx = await makeContext()
 const out = []

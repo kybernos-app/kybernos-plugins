@@ -134,6 +134,19 @@ full ids stay in the detail route.
   chat the page reported in the last two minutes, claimed while the active space is not the chat's, writes the right space at once (the system prompt of that step is assembled right
   after the claim and reads it: the personal-memory cut) and the `agent/pre-step` listener holds the first model request until the switch (plan, folder, model route) is through, at most
   10 s. A chat the page never reported (an automation, Kaby's chat, a Telegram turn, a subagent) changes nothing and is billed to whichever team is active.
+  **No switch under a running reply** (part B; `createTurnWatch` in `chat-space.mjs`, test `test-turn-guard-host.mjs`): a reply sends several requests and the model route is one per
+  instance, so a switch while a reply runs bills it to two teams. The host REFUSES a switch while any reply is running (`space/active` answers `{ ok: false, error: 'turn_running',
+  running: { count, since, space_id, space_name } }`, writes nothing and asks the server nothing), whoever asks: a click, the page following a chat, a script, a second window. A reply is
+  counted from `agent/status` `running` (it comes before the claim and the first request) to `idle` or the chat's disposal, and the engine's own registry (`ctx.agents`, each agent's
+  `status`) corrects the events: a missed `idle` cannot leave a reply stuck, a missed start is found at the next look. Past 30 minutes a reply no longer blocks (it FAILS OPEN on purpose:
+  a person held for good by a wrong counter is worse than one long reply billed to two teams, which is what happened before the guard); a restart empties the table and the registry brings
+  back what is really running. Choosing the space that is already active is not a switch; the claim-time switch does not count the claiming turn and does not happen at all while ANOTHER
+  reply runs; a team created while a reply runs is created and listed but does not take over (`created.activated: false`, `created.busy`). `GET /space/busy` says whether a reply runs.
+  **The page** tells the person, for a click, `A reply is still running in <Team>. Switching waits for it or stop it first.`; for a switch that follows a chat it shows, where the person
+  types (the composer's pills), `This chat belongs to <Team>; <Active> stays active until the reply ends.` and makes the switch by itself when `space/busy` says no reply runs (polled every
+  1.5 s; dropped when the person opens another chat). **The exposure that remains, said plainly:** while a switch is deferred a message typed in the chat now on screen is billed to the team
+  still active (measured by `check-follow-chat-live.mjs`), and every turn nobody looks at is billed to whichever team is active: Kaby's own chat (a native DSH conversation on the same model
+  route), a Telegram turn relayed to this computer (`/turn`), an automation, a subagent.
 - **The failure row of a turn** (`conversation.chat.node`, key `turn-error`): the engine documents that a later entry for a key shadows the shipped one, so the plugin wraps the
   SHIPPED row (found in the slot's entries, registered at the lowest priority with the shipped entry's own locale). `no adapter registered for provider "kybernos"` (the cloud models
   are gone: the connection ended or was never made) and `QUOTA` on a team with no plan are drawn by the shipped row with a sentence and an action beside it (« Sign in again »,

@@ -4,11 +4,12 @@
 // chat-space.mjs is pure (the disk and the clock are injected). What is proven: a chat in a team's folder, or anywhere below it, belongs to the team; a sibling with the same prefix
 // (`Acme-2`), the folder's parent and the root of all the team folders do not; a folder reached through a symbolic link (the chat's, or the team's) is the folder it points to; a
 // folder that is gone is still placed by its deepest existing ancestor; macOS and Windows ignore case and Linux does not; a path that is no absolute path names no space; the
-// longest team folder wins; the sightings of the chats the person looks at expire.
+// longest team folder wins; the in-flight counter is fed by events and corrected by the engine's registry (a missed end, a missed start), stops blocking after its age bound and
+// forgets everything on a restart; the sightings of the chats the person looks at expire.
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { canonicalPath, createSightings, isInside, spaceOfFolder } from './chat-space.mjs'
+import { TURN_MAX_AGE_MS, canonicalPath, createSightings, createTurnWatch, isInside, spaceOfFolder } from './chat-space.mjs'
 
 let failed = 0
 const check = (name, ok, detail) => {
@@ -109,6 +110,92 @@ check('isInside is by whole segments', isInside('/a/b', '/a/b') && isInside('/a/
 }
 
 const clock = (start = 1000) => { const c = { t: start, now: () => c.t, tick: (ms) => { c.t += ms } }; return c }
+
+// ── the in-flight counter ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+{
+  const c = clock()
+  const w = createTurnWatch({ now: c.now })
+  check('nothing runs at first', w.running().length === 0)
+  w.start('s1', 'acme')
+  check('a started turn is running, with its team and its time', JSON.stringify(w.running()) === JSON.stringify([{ id: 's1', since: 1000, space: 'acme' }]), w.running())
+  c.tick(500)
+  w.start('s1', 'studio')
+  check('a repeated start does not restart the clock or change the team', JSON.stringify(w.running()) === JSON.stringify([{ id: 's1', since: 1000, space: 'acme' }]), w.running())
+  w.start('s2', null)
+  check('two turns, oldest first', w.running().map((x) => x.id).join() === 's1,s2')
+  check('the turn that waits on the switch itself is left out', w.running({ except: 's1' }).map((x) => x.id).join() === 's2')
+  w.setSpace('s2', 'studio')
+  w.setSpace('nobody', 'studio'); w.setSpace('s2', ''); w.setSpace('s2', 7)
+  check('the team a reply is billed to can be corrected (its chat was switched at claim time)', w.running().find((x) => x.id === 's2').space === 'studio')
+  w.end('s1')
+  check('an end removes it', w.running().map((x) => x.id).join() === 's2')
+  w.end('nobody')
+  w.end(undefined)
+  check('an end for a turn nobody started is harmless', w.running().length === 1)
+  w.start('', 'x'); w.start(undefined, 'x'); w.start(7, 'x')
+  check('a start with no usable id is ignored', w.running().length === 1)
+}
+{
+  // The engine's registry is the truth: a MISSED end event cannot leave a turn stuck as running, a missed start is picked up.
+  const c = clock()
+  let alive = ['s1']
+  const w = createTurnWatch({ now: c.now, live: () => alive })
+  w.start('s1', 'acme')
+  check('the registry agrees: running', w.running().length === 1)
+  alive = []
+  check('the engine says idle but the end event never came: not running', w.running().length === 0)
+  alive = ['s9']
+  const found = w.running()
+  check('a turn whose start event was missed is found in the registry (team unknown)', found.length === 1 && found[0].id === 's9' && found[0].space === null, found)
+  alive = null
+  check('a registry that cannot answer leaves the events in charge', w.running().length === 1)
+  const broken = createTurnWatch({ now: c.now, live: () => { throw new Error('registry gone') } })
+  broken.start('s1', 'acme')
+  check('a registry that throws is treated as absent, never thrown', broken.running().length === 1)
+}
+{
+  // The bound: past it a turn stops blocking (fail open, on purpose).
+  const c = clock()
+  const noRegistry = createTurnWatch({ now: c.now })
+  noRegistry.start('s1', 'acme')
+  c.tick(TURN_MAX_AGE_MS - 1)
+  check('just inside the bound: still blocks', noRegistry.running().length === 1)
+  c.tick(2)
+  check('past the bound: stops blocking', noRegistry.running().length === 0)
+  check('without a registry, a turn past the bound is forgotten', noRegistry.running().length === 0)
+  noRegistry.start('s1', 'acme')
+  check('and a NEW turn of the same chat counts again', noRegistry.running().length === 1)
+
+  const c2 = clock()
+  const alive = ['s1']
+  const withRegistry = createTurnWatch({ now: c2.now, live: () => alive })
+  withRegistry.start('s1', 'acme')
+  c2.tick(TURN_MAX_AGE_MS + 1)
+  check('with a registry that still says running: past the bound it does not block', withRegistry.running().length === 0)
+  c2.tick(60 * 1000)
+  check('and it does not start blocking again at the next look (its age keeps counting from the first sighting)', withRegistry.running().length === 0)
+  alive.length = 0
+  withRegistry.running()
+  alive.push('s1')
+  check('once the registry says idle then running again it is a new turn: blocks', withRegistry.running().length === 1)
+  const custom = createTurnWatch({ now: c.now, maxAgeMs: 10 })
+  custom.start('a', null)
+  c.tick(11)
+  check('the bound is a parameter', custom.running().length === 0)
+}
+{
+  // A restart: a new watch knows nothing, and the registry brings back what is really running.
+  const c = clock()
+  const first = createTurnWatch({ now: c.now })
+  first.start('s1', 'acme')
+  const second = createTurnWatch({ now: c.now })
+  check('a restarted plugin has no stuck turn', second.running().length === 0)
+  const third = createTurnWatch({ now: c.now, live: () => ['s1'] })
+  check('a restarted plugin finds a turn that is really running', third.running().length === 1)
+  const many = createTurnWatch({ now: c.now })
+  for (let i = 0; i < 400; i += 1) many.start('s' + i, null)
+  check('the table is bounded', many.running().length <= 256, many.running().length)
+}
 
 // ── the sightings ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 {

@@ -196,6 +196,8 @@ assert.ok(/const spaceRowOf = [\s\S]{0,400}const view = espaceVue\(w, t\)/.test(
 sok('selecteur d equipe : l espace personnel s y appelle Personal / Personnel, comme la pastille')
 // The footer chip re-reads the host's /status by itself: after the host signs the device out (a token revoked from the account page) it said
 // « Rita Rich · Solo Studio » until the card was opened.
+for (const key of ['spaceBusy', 'spaceBusyAny', 'followMismatch', 'wsNewBusy']) assert.equal((clientSource.match(new RegExp('^\\s+' + key + ':', 'gm')) || []).length, 2, key + ' exists in both locale blocks (fr, en)')
+assert.ok(/callLocal\('\/space\/busy', 'GET'\)/.test(clientSource), 'la page demande a l\'hote si une reponse tourne (space/busy) pour ne changer d\'equipe qu\'a la fin')
 assert.ok(/window\.setInterval\(again, 30000\)[\s\S]{0,200}visibilitychange[\s\S]{0,200}'focus'/.test(clientSource), 'le pied relit /status tout seul (toutes les 30 s, au retour de la fenetre)')
 sok('pied de sidebar : la pastille relit /status toute seule (30 s, retour de fenetre), elle ne reste plus connectee apres une revocation')
 console.log('  ' + staticPass + ' verifications statiques OK')
@@ -1142,6 +1144,7 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     if (path === '/status') json = world.status
     else if (path === '/quota') json = world.quota !== null ? world.quota : { ok: false }
     else if (path === '/spaces/summary') json = world.summary !== null ? world.summary : { ok: false }
+    else if (path === '/space/active' && world.activeRefusal !== undefined && world.activeRefusal !== null) json = world.activeRefusal
     else if (path === '/space/active') {
       json = world.activeOk ? { ok: true, route: world.route, state: world.activeState !== null ? world.activeState(JSON.parse(init.body).workspace_id) : {} } : { ok: false, error: 'espace_inconnu' }
       if (world.activeOk) world.status = { ...world.status, state: { ...world.status.state, active_workspace_id: JSON.parse(init.body).workspace_id } }
@@ -1300,6 +1303,27 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     await settle(80)
     assert.ok(htmlDe(el).includes('Unknown team'), 'an id the host refuses: « Unknown team — nothing was changed. »')
     world.activeOk = true
+    // A reply is running: the host refuses the switch. The person is told WHICH reply (in which team), nothing is waiting, and the card stays where it was.
+    world.activeRefusal = { ok: false, error: 'turn_running', running: { count: 1, space_id: 'p', space_name: 'My workspace', since: 1 } }
+    world.status = stateOf(3, 'admin', 'p')
+    world.calls.length = 0
+    await settle(80)
+    await open(el)
+    await press(findAll(find(el, byClass('kbfp-menu')), byKb('space-row')).filter((r) => r.attributes['data-space'] === 't1')[0])
+    await settle(80)
+    const busy = htmlDe(el)
+    assert.ok(busy.includes('data-kb="foot-flash"') && busy.includes('A reply is still running in Personal. Switching waits for it or stop it first.'), 'a refused switch says which reply is running and where: ' + busy.slice(0, 400))
+    assert.equal(busy.includes('workspace-card-switching'), false, 'and nothing waits')
+    assert.equal(busy.includes('Unknown team'), false, 'it is not an unknown team')
+    assert.equal(world.calls.includes('POST /space/applied'), false, 'no wait for a route that did not change')
+    // A reply the host only found in the engine\'s registry has no team: the sentence names none.
+    world.activeRefusal = { ok: false, error: 'turn_running', running: { count: 1, space_id: null, space_name: null, since: 1 } }
+    await settle(80)
+    await open(el)
+    await press(findAll(find(el, byClass('kbfp-menu')), byKb('space-row')).filter((r) => r.attributes['data-space'] === 't2')[0])
+    await settle(80)
+    assert.ok(htmlDe(el).includes('A reply is still running. Switching waits for it or stop it first.'), 'a reply with no known team: the sentence has no team')
+    world.activeRefusal = null
     await act(async () => { root.unmount() })
     ok('changement d\'equipe : la carte dit « Switching… » (equipe choisie, sans compteur) jusqu\'a ce que l\'hote dise que la route tourne ; une route non reecrite est dite tout de suite ; un refus est dit')
   }
