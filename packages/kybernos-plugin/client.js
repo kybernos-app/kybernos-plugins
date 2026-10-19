@@ -9724,6 +9724,7 @@ html[data-kbth-brand~="dark"] body[data-ds-dark-theme]{--kybernos-accent:color-m
       for (const m of live.members) if (m.status === 'running') return 'LIVE'
       return 'IDLE'
     }
+    // <kb-paged-view>
     const usePagedView = (count, perPage, extMode, extSetMode) => {
       const pair = React.useState(0)
       const page = pair[0]
@@ -9733,11 +9734,28 @@ html[data-kbth-brand~="dark"] body[data-ds-dark-theme]{--kybernos-accent:color-m
       const internalSetMode = pair2[1]
       const mode = (typeof extMode === 'string') ? extMode : internalMode
       const setMode = (typeof extSetMode === 'function') ? extSetMode : internalSetMode
-      const pages = Math.max(1, Math.ceil(count / perPage))
+      // A grid of cards fills its width (auto-fill): 9 cards in 4 columns leave one card alone on the last row while another page
+      // still follows. The grid reports its column count (`gridRef`, put on the first grid of the page) and a page then holds whole
+      // rows, about `perPage` cards. Lists, and a grid that has not been measured yet, keep `perPage`.
+      const colsPair = React.useState(0)
+      const setCols = colsPair[1]
+      const watcher = React.useRef(null)
+      const gridRef = React.useCallback((el) => {
+        if (watcher.current !== null) { watcher.current.disconnect(); watcher.current = null }
+        if (el === null || el === undefined || typeof ResizeObserver === 'undefined') return
+        const read = () => { try { const n = String(getComputedStyle(el).gridTemplateColumns).split(' ').filter((t) => t.length > 0).length; setCols(n >= 1 ? n : 0) } catch (e) { /* keep the base size */ } }
+        read()
+        watcher.current = new ResizeObserver(read)
+        watcher.current.observe(el)
+      }, [])
+      const cols = colsPair[0]
+      const per = (mode === 'cards' && cols > 0) ? cols * Math.max(2, Math.round(perPage / cols)) : perPage
+      const pages = Math.max(1, Math.ceil(count / per))
       const p2 = Math.min(page, pages - 1)
       React.useEffect(() => { if (page !== p2) setPage(p2) }, [p2, page])
-      return { page: p2, setPage: setPage, pages: pages, mode: mode, setMode: setMode }
+      return { page: p2, setPage: setPage, pages: pages, mode: mode, setMode: setMode, per: per, gridRef: gridRef, slice: (rows) => rows.slice(p2 * per, p2 * per + per) }
     }
+    // </kb-paged-view>
     // ── Skeleton screens: ONE helper for every list ──────────────────────────
     // While a list is being read for the first time (no earlier data to show), the page draws bones in the SAME
     // boxes as its real rows (same classes, so the same heights and columns: nothing moves when the data lands),
@@ -10185,7 +10203,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const pins = (s.ppins !== null && s.ppins !== undefined && typeof s.ppins === 'object') ? s.ppins : {};
       shown.sort((a, b) => ((pins[a.rootId + '/' + a.kyber.id] === true ? 0 : 1) - (pins[b.rootId + '/' + b.kyber.id] === true ? 0 : 1)));
       const vp = usePagedView(shown.length, 9)
-      const pageShown = (vp.mode === 'cards') ? shown.slice(vp.page * 9, vp.page * 9 + 9) : shown
+      const pageShown = (vp.mode === 'cards') ? vp.slice(shown) : shown
       const kids = [];
       for (const it of pageShown) {
         const k = it.kyber;
@@ -11277,7 +11295,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       // Pagination : la grille rendait les 20+ kybers d'un coup. Meme reglage que
       // les projets (9 par page), et la pagination se masque s'il n'y a qu'une page.
       const vp = usePagedView(ordered.length, 9, tbTeams[0].viewMode, (m) => tbTeams[1]({ viewMode: m }))
-      const pageShown = ordered.slice(vp.page * 9, vp.page * 9 + 9)
+      const pageShown = vp.slice(ordered)
       // Carte d'un kyber. Extraite du `map` pour pouvoir grouper la grille par
       // racine (installe / depot) sans dupliquer le balisage.
       const cardOf = (entry, ci) => {
@@ -11694,7 +11712,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                 let ci = 0
                 for (const entry of pageShown) {
                   if (entry.rootPath !== curRoot) {
-                    if (kids !== null) out.push(h('div', { className: 'kb8-grid kb8-cmp', key: 'grid-' + curRoot }, kids))
+                    if (kids !== null) out.push(h('div', { className: 'kb8-grid kb8-cmp', key: 'grid-' + curRoot, ref: out.length === 0 ? vp.gridRef : undefined }, kids))
                     curRoot = entry.rootPath
                     kids = []
                     // L'en-tete de racine (« Installes · dossier DSH » suivi du chemin
@@ -11705,7 +11723,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
                   kids.push(cardOf(entry, ci))
                 ci += 1
                 }
-                if (kids !== null) out.push(h('div', { className: 'kb8-grid kb8-cmp', key: 'grid-' + curRoot }, kids))
+                if (kids !== null) out.push(h('div', { className: 'kb8-grid kb8-cmp', key: 'grid-' + curRoot, ref: out.length === 0 ? vp.gridRef : undefined }, kids))
                 return out
               })())),
               h(KbPager, { page: vp.page, setPage: vp.setPage, pages: vp.pages }))),
@@ -16964,7 +16982,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         return labelOfProject(x).localeCompare(labelOfProject(y), undefined, { sensitivity: 'base' }) * m
       })
       const vp = usePagedView(projectsVisible.length, 9, tbProjects[0].viewMode, (m) => tbProjects[1]({ viewMode: m }))
-      const shown = (vp.mode === 'cards') ? projectsVisible.slice(vp.page * 9, vp.page * 9 + 9) : projectsVisible
+      const shown = (vp.mode === 'cards') ? vp.slice(projectsVisible) : projectsVisible
       const wUiOf = (w) => (wsUi[w.workspaceId] !== null && wsUi[w.workspaceId] !== undefined && typeof wsUi[w.workspaceId] === 'object') ? wsUi[w.workspaceId] : {}
       const openProject = (w) => set({ view: 'project', projectId: w.workspaceId })
       // Exporter un workspace (28/09, gabarit) : métadonnées seulement (id,
@@ -17151,7 +17169,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
         (items.length > 0 && projectsVisible.length === 0 ? h('div', { className: 'kb9-empty' }, kbt('kbui.no.project.match') + pq + '\u201d.') : null),
         (vp.mode === 'list'
           ? h('div', { className: 'kb8-rows', 'data-kb': 'project-rows' }, shown.map((w, i) => projectRow(w, i)))
-          : h('div', { className: 'kb8-grid kb8-cmp' }, shown.map((w, i) => projectCard(w, i)))),
+          : h('div', { className: 'kb8-grid kb8-cmp', ref: vp.gridRef }, shown.map((w, i) => projectCard(w, i)))),
         // Section « trouvé dans les chats » : elle vit sous la grille de
         // projets, visible seulement quand une requête de ≥ 3 caractères est
         // en vol ou servie. Chaque ligne ouvre VRAIMENT le chat
@@ -17615,7 +17633,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
       const delivOpen = delivOpenPair[0]
       const setDelivOpen = delivOpenPair[1]
       const delivVp = usePagedView(delivMine.length, 9, delivViewPair[0], delivViewPair[1])
-      const pageOf = (rows, vp) => rows.slice(vp.page * 9, vp.page * 9 + 9)
+      const pageOf = (rows, vp) => vp.slice(rows)
       const pagerOf = (vp) => h(KbPager, { page: vp.page, setPage: vp.setPage, pages: vp.pages })
       // La liste peut depasser la fenetre : la pagination est rappelee EN HAUT
       // aussi, sinon elle reste sous la ligne de flottaison et l'onglet semble
@@ -17808,7 +17826,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             pagerTop(docsVp),
             (docsVp.mode === 'list'
               ? h('div', { className: 'kb8-rows', 'data-kb': 'project-docs-list' }, pageOf(docsRows, docsVp).map(docRow))
-              : h('div', { className: 'kb8-docgrid', 'data-kb': 'project-docs-grid' }, pageOf(docsRows, docsVp).map(docCard))),
+              : h('div', { className: 'kb8-docgrid', 'data-kb': 'project-docs-grid', ref: docsVp.gridRef }, pageOf(docsRows, docsVp).map(docCard))),
             pagerOf(docsVp))
         }
         if (tab === kbt('kbui.objectifs')) {
@@ -17880,7 +17898,7 @@ html[dir="rtl"] .kb-cz-toggle[aria-expanded="true"] .kb-cz-chev{transform:scaleX
             pagerTop(delivVp),
             (delivVp.mode === 'list'
               ? h('div', { className: 'kb8-rows', 'data-kb': 'project-deliv-list' }, pageOf(mine, delivVp).map(delivRow))
-              : h('div', { className: 'kb8-docgrid', 'data-kb': 'project-deliv-grid' }, pageOf(mine, delivVp).map(delivCard))),
+              : h('div', { className: 'kb8-docgrid', 'data-kb': 'project-deliv-grid', ref: delivVp.gridRef }, pageOf(mine, delivVp).map(delivCard))),
             pagerOf(delivVp))
         }
         if (tab === kbt('kbui.skills')) {
