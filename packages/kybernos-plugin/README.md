@@ -66,7 +66,7 @@ All under `/kybernos/` (plus `/kybernos-technique/{renderer,vendor/three}.js`). 
 | Teams, projects | `load` `yaml` `save` `create` `ui-save` `menu-save` `active-set` `project-data` `workspace-ui-save` `workspace-skills` `pins` `share` `avatar*` `member-*` `team-portraits` `team-cap` `yml-proposer` `yml-appliquer` |
 | Runs, insight | `runs` `runs-index` `calls` `calls-index` `search-content` `insight` `insight-save` `quality*` `aa` `starters-suggest` `salary-detect` (purpose not verified) |
 | Deliverables | `art-origin\|read\|previews\|reveal\|raw\|action\|progress\|load` `doc-raw` |
-| Automations | `tasks` (POST; scheduler ticks every 30 s), `tasks/occurrences` (GET `?from=&to=`, read-only: when the active scheduled automations will run, see "The Automations board"), `hooks` (public webhook: secret + 60/h default limit) |
+| Automations | `tasks` (POST; scheduler ticks every 30 s), `tasks/occurrences` (GET `?from=&to=`, read-only: when the active scheduled automations will run, see "The Automations board"), `tasks/runs` (GET `?ids=&detail=1`, read-only: what each run did, read from the engine's session journals, see "The runs of an automation"), `hooks` (public webhook: secret + 60/h default limit) |
 | Tools catalog | `tools/state`, `tools/apply` (dry run, dated backup of the profile patch, restore) |
 | Voice, TTS | `voice/{config,transcribe,save}` `voice-sample*` `tts/{config,voices,speak,cache,cache-trim}` (engines: `say`, `piper`, `supertonic`, `edge`, and `models`, the speaking models of the user's own providers) `models/audio` `models/audio/{probe,speak,listen}` (the audio models of the providers set up in Models, how each is asked, and using it) `image-models` (live calls moved to `@local/kybernos-call`, which speaks through `tts/speak`) |
 | Widget, gateway | `widget.js` `widget/api/{config,conversations,message,account,history-delete,reply}` `gateway/{status,approvals,approvals/decision}` |
@@ -109,6 +109,32 @@ The route is bounded: a window of at most 45 days, 200 runs per automation, 1000
 reported as truncated with the instant the list stops. It reads `tasks.json` and writes nothing; it has the guard of `tasks`
 (same origin, signed browser session) and the Host fence of every route of the bundle. Pure logic: `automation-occurrences.mjs`
 (host) and the `KB-AUTOBOARD` block of `client.js` (browser).
+
+## The runs of an automation (Sessions and Journal)
+
+The page of one automation has two read-only tabs on its runs. Nothing is written, nothing is guessed from what a model said.
+
+- **Sessions** is the list of executions, n8n style: date and time, duration, outcome and a green / red bar on the left; four figures
+  above it (runs, failed, median duration, slowest); on the right the **execution** of the chosen run, a graph of its tool calls
+  (title, duration split into thinking and running, status, and on each link the size of what the step handed on), and a **Logs**
+  panel with the Input and Output of one step. More than seven tool calls show the first six and a "+N more steps" node.
+- **Journal** tells the story of the chosen run: which model answered and why (the profile's default, or one chosen for this run),
+  what happened step by step, and the approvals asked during the run (or the automation's mode when there were none).
+- A **run** is one session. `tasks.json` also keeps, for a failed run, a line the run wrote about itself afterwards (it has no session
+  id): that line is a note on the run it follows (within 10 minutes, one note per run), not a run of its own. The tab counts runs.
+
+Where it comes from: `GET /kybernos/tasks/runs?ids=a,b` (at most 20 plain session ids) opens each session with the engine's own
+`sessionPersistence` (`open(id, 'read')`) and summarises its **first turn** with `automation-runs.mjs`: the turn's clock, the engine's
+`turn/end` reason (read as `session-outcome.mjs` does), the models the requests were routed to, whether a model was chosen on purpose,
+each tool call with its think time, run time and output size, and the approvals asked and decided. `detail=1` (one id only) adds the
+Input and Output of each step: control characters out, one line, 420 characters, long token-like strings and e-mail addresses masked.
+Later turns of the chat are a person's, not the automation's: they are counted, not summarised. The route has the guard of `tasks`
+(GET only, same origin, signed browser session) and the Host fence of every route of the bundle.
+
+What it does not know it says: a run whose journal cannot be read (route absent on an older host, journal deleted) is "Not read",
+never "Completed", and the list still shows its time and the status `tasks.json` recorded. The page asks with its own `fetch`, not
+`host.call`: a 404 from `host.call` would switch every other route of the page off until it is reloaded. Pure logic: `automation-runs.mjs`
+(host) and the `KB-AUTORUNS` block of `client.js` (browser).
 
 ## The List, readable schedules, and « Edit in chat »
 
@@ -404,6 +430,8 @@ node scripts/test-scheduled-tasks-host.mjs             # KB-TASKS-CORE block: cr
 node packages/kybernos-plugin/test-automation-creator.mjs  # 64: the shipped skill's script, run with sh on a temp DSH_HOME (lock, stale lock, ten writers at once)
 node packages/kybernos-plugin/test-automation-occurrences.mjs  # the future runs: the same instants as the scheduler's matcher, bounds, what cannot fire
 node packages/kybernos-plugin/test-automation-board.mjs  # the KB-AUTOBOARD block: columns, week and month grids, what the page refuses to claim, texts in both languages
+node packages/kybernos-plugin/test-automation-runs.mjs   # the run summary: clock, outcome, models, tool calls, approvals, scrubbing, the guards and bounds of tasks/runs
+node packages/kybernos-plugin/test-automation-runs-client.mjs  # the KB-AUTORUNS block: history lines → runs, figures, graph, layout; the pane stays read-only
 node packages/kybernos-plugin/test-automation-settings.mjs  # the two switches, the guard of the route, the held tick
 node packages/kybernos-plugin/test-newchat.mjs         # the cards, the Cloud Computer state, the hidden native entry, the starters pinned
 node scripts/test-tasks-route.mjs                      # the tasks route, the tick, webhooks, and tasks/occurrences (guards, bounds, corrupt store)
