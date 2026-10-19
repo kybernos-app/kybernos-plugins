@@ -33,6 +33,9 @@ const check = (name, ok, detail) => {
 const LINK = 'https://t.me/kybernos_bot?start=pair_0123456789abcdefghij0123'
 const PAIR = '33333333-3333-4333-8333-333333333333'
 const qr = encodeQr(LINK, { ecc: 'M' })
+const WA_LINK = 'https://wa.me/33600000012?text=pair_0123456789abcdefghij0123'
+const WA_PAIR = '44444444-4444-4444-8444-444444444444'
+const waQr = encodeQr(WA_LINK, { ecc: 'M' })
 const SERVER = { ok: true, server: { id: 'dev', api: 'https://server-dev-7831.up.railway.app', web: 'https://dev.kybernos.app' } }
 const KYBER = (over) => Object.assign({
   ok: true,
@@ -48,6 +51,7 @@ const KYBER = (over) => Object.assign({
 const MOCK = `(() => {
   const m = window.__kbMock = { kyber: ${JSON.stringify(KYBER())}, server: ${JSON.stringify(SERVER)}, pairingState: { ok: true, state: 'waiting', reason: null, sender: '', expires_at: '' },
     calls: [], qr: ${JSON.stringify({ size: qr.size, modules: qr.modules })},
+    waPairingState: { ok: true, state: 'waiting', reason: null, sender: '', expires_at: '' }, waQr: ${JSON.stringify({ size: waQr.size, modules: waQr.modules })},
   }
   const real = window.fetch.bind(window)
   const json = (v) => Promise.resolve(new Response(JSON.stringify(v), { status: 200, headers: { 'content-type': 'application/json' } }))
@@ -64,6 +68,10 @@ const MOCK = `(() => {
     if (p === '/kybernos-cloud/telegram/pairing' && method === 'POST') { rec(); return json({ ok: true, id: ${JSON.stringify(PAIR)}, link: ${JSON.stringify(LINK)}, bot: 'kybernos_bot', expires_at: new Date(Date.now() + 300000).toISOString(), qr: m.qr }) }
     if (p === '/kybernos-cloud/telegram/pairing/state') return json(Object.assign({}, m.pairingState, { expires_at: new Date(Date.now() + 200000).toISOString() }))
     if (p === '/kybernos-cloud/telegram/pairing/cancel') { rec(); return json({ ok: true }) }
+    if (p === '/kybernos-cloud/whatsapp/pairing' && method === 'POST') { rec(); return json({ ok: true, id: ${JSON.stringify(WA_PAIR)}, link: ${JSON.stringify(WA_LINK)}, number: '33600000012', expires_at: new Date(Date.now() + 300000).toISOString(), qr: m.waQr }) }
+    if (p === '/kybernos-cloud/whatsapp/pairing/state') return json(Object.assign({}, m.waPairingState, { expires_at: new Date(Date.now() + 200000).toISOString() }))
+    if (p === '/kybernos-cloud/whatsapp/pairing/cancel') { rec(); return json({ ok: true }) }
+    if (p === '/kybernos-cloud/whatsapp/unlink') { rec(); m.kyber.whatsapp.linked = null; return json({ ok: true }) }
     if (p === '/kybernos-cloud/kyby/computer') { rec(); const c = m.kyber.computers.find((x) => x.id === body.computer_id) || m.kyber.computers[0]; m.kyber.home.id = c.id; m.kyber.home.name = c.name; m.kyber.home.state = c.state; return json({ ok: true, computer_id: body.computer_id }) }
     if (p === '/kybernos-cloud/telegram/unlink') { rec(); m.kyber.telegram.linked = null; return json({ ok: true }) }
     if (p === '/kybernos-cloud/computer/resume') { rec(); m.kyber.home.state = 'running'; return json({ ok: true, state: 'running', desired: 'running' }) }
@@ -421,6 +429,44 @@ try {
   await poll(() => has('kybernos-kyber-dock'), 25000)
   check('after a reload this computer is still the one chosen', (await poll(() => val(`(() => { const s = document.querySelector('[data-kb="kybernos-kyber-pick"]'); return !!s && s.value === 'local' })()`), 8000)) === true)
   await val(`window.localStorage.removeItem('kybernos-kyber.where')`)
+
+  console.log('── 13. WhatsApp: a beta row that turns on like Telegram, on its own routes ──')
+  const wa = (expr) => val(`(() => { const e = document.querySelector('[data-kb="kybernos-kyber-whatsapp"]'); return ${expr} })()`)
+  const waRow = async () => (await text('kybernos-kyber-chan-whatsapp')) || ''
+  check('the window opens', (await openWin()) === true)
+  check('no server has the door: the row says it is not available, the switch is greyed, nothing is asked', /Pas encore disponible|Not available/.test(await waRow()) && (await val(`document.querySelector('[data-kb="kybernos-kyber-whatsapp-switch"]').disabled`)) === true && (await calls('/kybernos-cloud/whatsapp/pairing')).length === 0)
+  await setMock(`window.__kbMock.kyber.whatsapp = { configured: true, enabled: true, available: false, linked: null }`)
+  await val(`window.__KB_KYBER__.refresh()`)
+  check('a door whose bridge is not open: the number is said to be unreachable, the switch stays greyed', (await poll(async () => /joignable|reachable/.test(await waRow()), 6000)) === true && (await val(`document.querySelector('[data-kb="kybernos-kyber-whatsapp-switch"]').disabled`)) === true)
+  await setMock(`window.__kbMock.kyber.whatsapp = { configured: true, enabled: true, available: true, linked: null }`)
+  await val(`window.__KB_KYBER__.refresh()`)
+  check('with a bridge open the switch is on offer and nothing was asked yet', (await poll(() => val(`document.querySelector('[data-kb="kybernos-kyber-whatsapp-switch"]').disabled === false`), 6000)) === true && (await calls('/kybernos-cloud/whatsapp/pairing')).length === 0 && /Pas connecté|Not connected/.test(await waRow()))
+  await shot('7a-whatsapp-idle')
+  await click('kybernos-kyber-whatsapp-switch')
+  check('the switch asked for exactly one WhatsApp pairing, and none for Telegram', (await poll(async () => (await calls('/kybernos-cloud/whatsapp/pairing')).length === 1, 6000)) === true && (await calls('/kybernos-cloud/telegram/pairing')).length === 0)
+  check('a QR code is drawn, the switch is on and the row says there is a code to scan', (await poll(() => wa(`!!e && !!e.querySelector('[data-kb="kybernos-kyber-qr"] svg path')`), 6000)) === true && (await attr('kybernos-kyber-whatsapp-switch', 'aria-checked')) === 'true' && /Code à scanner|Code to scan/.test(await waRow()))
+  check('the panel sits under WhatsApp\'s row and above WeChat, and Telegram shows no panel', (await val(`(() => { const w = document.querySelector('[data-kb="phone-channels"]'); const p = w.querySelector('[data-kb="kybernos-kyber-whatsapp"]'); const a = w.querySelector('[data-kb="kybernos-kyber-chan-whatsapp"]'); const b = w.querySelector('[data-kb="kybernos-kyber-chan-wechat"]'); if (!p || !a || !b) return false; const rp = p.getBoundingClientRect(); return rp.top >= a.getBoundingClientRect().bottom - 1 && rp.bottom <= b.getBoundingClientRect().top + 1 && !w.querySelector('[data-kb="kybernos-kyber-telegram"]') })()`)) === true)
+  check('« Open WhatsApp » goes to the number\'s own link, in a new tab', (await val(`(() => { const a = document.querySelector('[data-kb="kybernos-kyber-wa-open"]'); return !!a && a.getAttribute('href') === ${JSON.stringify(WA_LINK)} && a.target === '_blank' && /noopener/.test(a.rel) && /WhatsApp/.test(a.innerText) })()`)) === true)
+  check('three steps in WhatsApp\'s words (send the typed message, answer 1), and the time left', (await wa(`e.querySelectorAll('ol li').length === 3 && /message déjà écrit|already typed/.test(e.innerText) && /Réponds 1|Answer 1/.test(e.innerText) && !/Telegram/.test(e.innerText)`)) === true && /\d:\d\d/.test((await text('kybernos-kyber-wa-left')) || ''))
+  await click('kybernos-kyber-wa-code')
+  check('« write a code instead » shows the number and the message of THIS pairing, in DSH', (await poll(() => wa(`!!e && /\\+33600000012/.test(e.innerText) && !!e.querySelector('[data-kb="kybernos-kyber-wa-code-text"]') && e.querySelector('[data-kb="kybernos-kyber-wa-code-text"]').innerText === 'pair_0123456789abcdefghij0123'`), 5000)) === true && (await calls('/kybernos-cloud/console/link')).length === 0)
+  await shot('7b-whatsapp-code')
+  await setMock(`window.__kbMock.waPairingState = { ok: true, state: 'scanned', reason: null, sender: 'Amina', expires_at: '' }`)
+  check('after the first message the panel names who WhatsApp says it is and asks for the answer', (await poll(() => wa(`!!e && /Amina/.test(e.innerText) && /Réponds 1|Answer 1/.test(e.innerText) && !e.querySelector('[data-kb="kybernos-kyber-qr"]')`), 8000)) === true)
+  await setMock(`window.__kbMock.kyber.whatsapp.linked = { display: 'Amina', linked_at: '2026-10-20T10:00:00.000Z', paused: false }; window.__kbMock.waPairingState = { ok: true, state: 'done', reason: null, sender: 'Amina', expires_at: '' }`)
+  check('on the answer the row becomes connected by itself: who, and the 24-hour rule; no panel is left', (await poll(async () => /Amina/.test(await waRow()) && /24 h/.test(await waRow()) && (await has('kybernos-kyber-whatsapp')) === false, 8000)) === true && (await attr('kybernos-kyber-whatsapp-switch', 'aria-checked')) === 'true')
+  await shot('7c-whatsapp-connected')
+  await click('kybernos-kyber-whatsapp-switch')
+  check('turning it off asks first, and nothing is sent', (await poll(() => wa(`!!e && /Déconnecter WhatsApp|Disconnect WhatsApp/.test(e.innerText)`), 4000)) === true && (await calls('/kybernos-cloud/whatsapp/unlink')).length === 0)
+  await click('kybernos-kyber-wa-unlink-yes')
+  check('confirming disconnects on WhatsApp\'s route, and the row is « not connected » again', (await poll(async () => (await calls('/kybernos-cloud/whatsapp/unlink')).length === 1 && /Pas connecté|Not connected/.test(await waRow()), 8000)) === true)
+  await click('kybernos-kyber-whatsapp-switch')
+  await poll(() => has('kybernos-kyber-wa-open'), 6000)
+  await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 900, deviceScaleFactor: 1, mobile: false })
+  await sleep(800)
+  check('390 px with the code shown: no sideways scroll, and the panel is inside the screen', (await val(`document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1`)) === true && (await wa(`!!e && e.getBoundingClientRect().right <= window.innerWidth + 1 && e.getBoundingClientRect().left >= -1`)) === true)
+  await shot('7d-whatsapp-phone')
+  await page.send('Emulation.clearDeviceMetricsOverride', {})
 } catch (e) {
   fail += 1
   console.log('  ✗ the check itself failed: ' + (e && e.message ? e.message : String(e)))
