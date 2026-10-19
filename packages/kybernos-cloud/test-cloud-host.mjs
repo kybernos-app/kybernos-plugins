@@ -1513,6 +1513,7 @@ try {
           await turnHit('/kybernos-cloud/turn', { prompt: 'do it', jobId: JOB }, 'Bearer kyd_computer')
           // What cannot change anything, and a session this route did not make, pass without a question.
           assert.deepEqual(await run('read', { file_path: '/x' }), { kind: 'allow' })
+          assert.deepEqual(await run('memory_search', { q: 'garage' }), { kind: 'allow' })
           assert.deepEqual(await run('bash', { command: 'ls' }, 'someone-elses-session'), { kind: 'allow' })
           assert.equal(seen.length, 0, 'aucune question pour une lecture ni pour une autre session')
           // A command waits for the answer, and goes when it is yes. The question carries the real command line, the turn and the computer's own token.
