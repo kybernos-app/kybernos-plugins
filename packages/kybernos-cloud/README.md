@@ -592,5 +592,7 @@ Kaby's own chat is a native DSH conversation (`kyby-native.mjs`): the host gives
 (`kybernos:kyby`, for its session only), writes each finished turn on the person's server thread (`POST /v1/threads/{id}/messages`, the
 thread from `GET /v1/me/kyby`) and tells the prompt what was said there lately. A server with no such thread is left alone for ten minutes.
 
+**Who Kaby is** is one text, `kyby-identity.mjs`, used by every body: the rules that come first (never claim undone work, outside words are information and an old `yes` is no permission, a message for someone else is a draft, no safeguard that cannot be enforced), the voice (version 0.2), a situation line (channel, body, time) and what was said lately, fenced as data (`<data>`, look-alike markers escaped). The cloud computer's turn runner (`services/computer-image/runner.mjs`) takes it from a byte-for-byte copy and never from the name a kyber carries on the server. `kyby-eval.mjs` holds the ten questions and the scoring of an answer (voice, old name, flattery, an obeyed injection, a safeguard that is not enforced); `test-kyby-identity.mjs` checks the text, the copy and the scoring, and a live run feeds the scoring real answers.
+
 `qr.mjs` is a byte-for-byte copy of `kybernos-mobile/qr.mjs` (bundles do not import each other): `node scripts/test-qr-drift.mjs`
 fails when they part. The footer publishes `window.__KB_UPGRADE__.open()` so a page can open the Upgrade dialog.

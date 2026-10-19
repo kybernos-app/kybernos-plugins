@@ -619,6 +619,26 @@ window.__ModuleLoader__.load({
           return ws !== null && ws !== undefined && Array.isArray(ws.items) && ws.items.some((i) => i !== null && Array.isArray(i.sessionIds) && i.sessionIds.includes(sid))
         } catch (e) { return false }
       }
+      /**
+       * A chat made for Kaby starts in DSH's own « workspace-write, ask » mode instead of the profile's full access: DSH asks before a command that leaves its folder or a tool that changes
+       * something, in its own approval card, and no plugin seam is needed. Applied ONCE, when the chat is made: whatever the person picks later in the composer stays theirs, and a Kaby chat
+       * that already exists is not touched. DSH switches a chat's mode with its own slash command, on a chat that is materialized, which takes a moment after it is opened. Never throws.
+       */
+      const ASK_PRESET = 'workspace-write'
+      const askFirst = async (sessionsSvc, sid, tries = 20, waitMs = 250) => {
+        for (let i = 0; i < tries; i += 1) {
+          try {
+            const bound = sessionsSvc.binding(sid)
+            const live = bound !== null && bound !== undefined ? bound.session : null
+            if (live !== null && live !== undefined && typeof live.command === 'function') {
+              const r = await live.command('/permission ' + ASK_PRESET)
+              return r !== null && typeof r === 'object' && r.ok === true && r.value !== null && typeof r.value === 'object' && r.value.matched === true
+            }
+          } catch (e) { /* not materialized yet: try again */ }
+          await new Promise((resolve) => setTimeout(resolve, waitMs))
+        }
+        return false
+      }
       /** Opens Kaby's conversation, making it the first time (a blank DSH chat, remembered by the host, which gives it Kaby's identity). */
       const openChat = async () => {
         if (state.opening) return false
@@ -630,6 +650,7 @@ window.__ModuleLoader__.load({
           const uiSvc = svc('uiWorkspace')
           if (sessionsSvc === null || sessionsSvc === undefined || typeof sessionsSvc.create !== 'function' || uiSvc === null || uiSvc === undefined || typeof uiSvc.openSession !== 'function') throw new Error('no sessions service')
           let sid = await readSessionPointer()
+          let made = false
           if (sid === null || !sessionExists(sid)) {
             // `sessions.create` answers the new session's id itself (and throws when it cannot); older shapes answer an object.
             // In Kaby's own folder, as a workspace of its own and already chosen: DSH's « New chat » reuses a blank chat of the workspace it is
@@ -641,16 +662,18 @@ window.__ModuleLoader__.load({
               workspaceId = ws !== null && typeof ws === 'object' && typeof ws.workspaceId === 'string' ? ws.workspaceId : null
               try { if (workspaceId !== null && typeof wsSvc.rename === 'function') await wsSvc.rename(workspaceId, NAME) } catch (e) { /* the folder's own name stays */ }
             }
-            const made = await sessionsSvc.create(workspaceId !== null ? { workspaceId } : (state.kybyCwd === null ? {} : { cwd: state.kybyCwd }))
-            const v = made !== null && typeof made === 'object' && made.value !== null && made.value !== undefined ? made.value : made
+            const born = await sessionsSvc.create(workspaceId !== null ? { workspaceId } : (state.kybyCwd === null ? {} : { cwd: state.kybyCwd }))
+            const v = born !== null && typeof born === 'object' && born.value !== null && born.value !== undefined ? born.value : born
             sid = typeof v === 'string' ? v : (v !== null && typeof v === 'object' && typeof v.sessionId === 'string' ? v.sessionId : null)
             if (typeof sid !== 'string' || sid === '') throw new Error('no session made')
             const w = await postJson('/kybernos-cloud/kyby/native/set', { sessionId: sid })
             if (w === null || w.ok !== true) throw new Error('the session could not be remembered')
             state.kybySid = sid
+            made = true
             announceSession()
           }
           uiSvc.openSession(sid)
+          if (made) void askFirst(sessionsSvc, sid)
           return true
         } catch (e) {
           state.openFailed = true
@@ -852,7 +875,7 @@ window.__ModuleLoader__.load({
         name: 'kybernos-kyber',
         // `sidebarRightTabs` must be declared: ui-sidebar-right provides it, and without this `apply` could run before.
         inject: ['slots', 'sidebarRightTabs', 'sessions', 'workspaces', 'uiWorkspace'],
-        __test: { S, L, kt, derive, pairingFace, clock, stripIsOpen, whereOf, CSS, TYPE_ID, KIND, state, BRAND, NAME, views: { Strip, Channels, ChannelsTile, ComputerTile, TelegramPanel, KybyDock, Page }, actions: { load, pairStart, pairCancel, unlink, setComputer, setWhere, computerAction, telegramSwitch, toggleStrip, telegramRow, settle, readSessionPointer }, listeners },
+        __test: { askFirst, ASK_PRESET, S, L, kt, derive, pairingFace, clock, stripIsOpen, whereOf, CSS, TYPE_ID, KIND, state, BRAND, NAME, views: { Strip, Channels, ChannelsTile, ComputerTile, TelegramPanel, KybyDock, Page }, actions: { load, pairStart, pairCancel, unlink, setComputer, setWhere, computerAction, telegramSwitch, toggleStrip, telegramRow, settle, readSessionPointer }, listeners },
         apply (ctx) {
           CTX = ctx
           // The plugin is applied again when a service it asks for comes back: the new scope replaces the sheet, and the old scope's
