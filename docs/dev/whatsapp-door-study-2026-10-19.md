@@ -5,7 +5,7 @@ Status: study only, nothing built. Owner decisions in § 7. The Render project w
 ## 1. Short answer
 
 - **Use the official WhatsApp Cloud API with one shared Kybernos number, as a second adapter of the channel door that Telegram already built** (kybernos-server `src/modules/channels/`, ADR 0053). It is a stateless webhook, so it runs on the server we already host (Railway) and needs no always-on socket.
-- **Do not host Baileys (the Platon approach) for users.** It breaks WhatsApp's consumer terms, it makes the server hold the full account credentials of each person, and the ban lands on the person's own number.
+- **Do not host Baileys linked to each user's own WhatsApp (the Platon approach).** It breaks WhatsApp's consumer terms, it makes the server hold the full account credentials of each person, and the ban lands on the person's own number. **Baileys on ONE Kybernos-owned number is a different option (§ 4b)**: it removes the per-person problems and keeps one risk, the loss of that number.
 - **The blocker is Meta's policy, not the code**: general-purpose assistants are refused on the Business Platform (§ 3). Ship it *bounded* first (what ADR 0053 decision 1 already says), behind a kill switch, and let the owner decide about open conversation (§ 7).
 - The Render project was meant for the Baileys option. With the Cloud API it is not needed.
 
@@ -45,6 +45,24 @@ Verified against a primary source unless marked.
 | Fit with Kaby | Same thread, same hosted turn, approvals as buttons | Same | Same, with the risks above | Talks to the local DSH, not to Kaby's server thread |
 | Verdict | **Recommended** | Only if Meta onboarding is too heavy | **No** | Optional later, « experimental », a self-chat only |
 
+## 4b. Option E: Baileys on ONE Kybernos number (owner's idea, 2026-10-19)
+
+The owner's variant: the server links **one WhatsApp number that Kybernos owns** through Baileys (a single socket, one process), and every person writes to it, as they write to the shared Telegram bot. It is not option C: no person's account is linked, no per-person process, no personal credential held.
+
+| | One Kybernos number through Baileys | Official Cloud API (A) |
+|---|---|---|
+| Process | One permanent socket in total | A stateless webhook |
+| Meta onboarding, templates, 24-hour window, per-message fees | None | Required |
+| Meta's AI-assistant clause (Business Platform) | Not applicable (not on the Platform) | Applies in full |
+| WhatsApp's own terms | **Broken**: automation, non-personal use, reverse engineering (consumer terms, read) | Respected |
+| Who can lose everything | **Every WhatsApp user at once**, if the number is banned; a new number means every person re-contacts a new one | Same blast radius if Meta sanctions the business, but through a process, not an automatic ban |
+| Single point of failure | The one session (logout, restore bugs: Platon met a Buffer crash on restore) | Meta's uptime |
+| Time to a first working door | Short: the Platon code is the starting point | Weeks (verified business, number, display name) |
+
+**What is known about how Instinct does it: nothing confirmed.** Searches found no source on Instinct's WhatsApp connection. What is public: its clone `open-instinct` uses a managed provider (Inkbox) for numbers and iMessage and a shared router where the person texts first; a case study on Linq's own site says Lindy moved from its own Mac-mini iMessage bridge to Linq's managed API when it scaled. That points to « a home-made bridge first, a managed or official channel at scale », which is the pattern proposed below. It is not evidence about WhatsApp.
+
+**Assessment.** Acceptable as a **beta bridge**, with the owner accepting that the number can disappear without notice; not as the foundation. If done: a **dedicated new number** (never the company's main line), **reply-only** (never start a conversation, no bulk, no groups), the existing per-person message limits, the beta labelled as such to users, and the adapter behind the same port as the Cloud API so the official adapter replaces it without touching the core. Identity differs between the two (a Baileys sender is a JID or an opaque `@lid`, the Cloud API gives a phone number and a BSUID: keep both on the identity row).
+
 ## 5. Recommended path (A)
 
 1. **Owner decisions first** (§ 7): what Kaby may do on WhatsApp, and the Meta onboarding.
@@ -81,7 +99,7 @@ Rough size: the port extraction is the larger part (the service is shared code);
 1. **Scope on WhatsApp**: bounded only (recommended), or open conversation for numbers where the EEA order applies, knowing it is interim and under appeal.
 2. **Go for Meta onboarding**: a verified business portfolio for DIGI TECHNOLOGIES, a dedicated number never used on WhatsApp, a WABA and a display name, a payment method, a system-user token and the app secret. Long lead time, so it should start before the code.
 3. **Sequence**: port extraction after #230 merges (recommended), or on its own branch now.
-4. **Baileys**: confirm that hosted Baileys is dropped, and whether option D (local, opt-in, experimental) is wanted at all.
+4. **Baileys**: hosted Baileys on each person's own number is dropped; decide on option E (one Kybernos number, beta bridge, § 4b: can the number be lost without notice?) and on option D (local, opt-in, experimental).
 
 ## 8. Not verified
 
