@@ -263,6 +263,10 @@ When the account is connected, this half does three things:
    memories it had just read back. The agent's question is kept as context only for a short reply (« yes, Paris »). (4) A
    `preference` or a `policy` is kept only when the person says it lasts (`always`, `from now on`, `by default`, `I prefer`,
    `toujours`, `désormais`, `je préfère`, `siempre`…, `isLasting`): « answer in Spanish » is about one answer. The extraction prompt says both too.
+   (5) A fact **close to** a memory the account already holds is not rewritten (`nearKnown`: word overlap of 0.6, or 0.9 of the shorter one with at least five
+   words, using the tidy-up's own comparison; a negation, or a number the other text does not have, makes it a different fact). The exact-text check of (2) did not see
+   a reworded copy, and an automation's turns wrote ten of them each: replaying the 86 memories of the dev account in order, 27 are repeats (15 of the 31 written since the capture
+   began). It is a guard, not a cleaner: what is already stored stays for the Memory tidy-up.
 
    The capture is *fail-open* by construction, hence **observable**: each
    exit writes a state (`hors_connexion`, `desactivee`, `sans_session`,
