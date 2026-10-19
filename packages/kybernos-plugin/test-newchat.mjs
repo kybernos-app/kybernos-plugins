@@ -189,7 +189,9 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   assert.ok(css.length > 4000, 'the slider CSS was found')
   const hexes = css.match(/#[0-9a-f]{3,8}\b/gi) || []
   assert.deepEqual(hexes.filter((x) => x.toLowerCase() !== '#000'), [], 'the slider CSS holds no colour of its own (only tokens, and black for shadows and masks)')
-  for (const t of api.KB_NC_TEMPLATES) {
+  // the 13 templates' drawings and the five the Creations page's tiles add (cards, quiz, code, diagram, all)
+  assert.deepEqual(Object.keys(api.KB_NC_ART).filter((id) => !api.KB_NC_TEMPLATES.some((t) => t.id === id)), ['cards', 'quiz', 'code', 'diagram', 'all'], 'the extra drawings are exactly the Creations tiles\'')
+  for (const t of Object.keys(api.KB_NC_ART).map((id) => ({ id }))) {
     const art = api.KB_NC_ART[t.id]
     // inline shapes only: nothing fetched, nothing executable, no colour (no media in git, AGENTS rule 4)
     assert.ok(/^(<(rect|circle|path)\b[^>]*\/>)+$/.test(art), t.id + ' drawing is only rect / circle / path')
@@ -197,7 +199,24 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
     const classes = new Set([...art.matchAll(/class="([^"]+)"/g)].flatMap((m) => m[1].split(' ')))
     for (const c of classes) assert.ok(new RegExp('\\.kb8-sl-stage \\.' + c + '[{,]|' + '\\.kb8-sl-stage \\.' + c + ' ').test(css) || new RegExp('(?:^|[ ,])\\$\\{kbNcHot\\} \\.' + c + '[{,]').test(css) || ['gr', 'blk', 'pop', 'dr', 'play', 'sun', 'node'].indexOf(c) >= 0 && css.includes('} .' + c + '{') || css.includes('.' + c + '{') || css.includes('.' + c + ','), t.id + ': class « ' + c + ' » is styled')
   }
-  ok('one colour on the page (the theme\'s accent); the 13 drawings are classes on inline shapes, styled from tokens')
+  ok('one colour on the page (the theme\'s accent); the 18 drawings are classes on inline shapes, styled from tokens')
+}
+
+// 6e. the Creations page's type tiles wear the same drawings as the new chat cards (they used to be blue and amber line icons)
+{
+  const m = /const KB_ART_DRAW = \{\n\s*fam: (\{[^}]*\}),\n\s*type: (\{[^}]*\}),\n\s*\}/.exec(src)
+  assert.ok(m !== null, 'the map from a family or a type to a drawing exists')
+  const fam = vm.runInNewContext('(' + m[1] + ')')
+  const type = vm.runInNewContext('(' + m[2] + ')')
+  for (const [k, id] of [...Object.entries(fam), ...Object.entries(type)]) assert.ok(typeof api.KB_NC_ART[id] === 'string', k + ' → ' + id + ' is a drawing that exists')
+  const famIds = [...src.slice(src.indexOf('const KB_ART_FAMILIES = ['), src.indexOf('const KB_FAM_EXTS')).matchAll(/\{ id: '([a-z]+)'/g)].map((x) => x[1])
+  assert.deepEqual(famIds.filter((id) => fam[id] === undefined), [], 'every family has a drawing')
+  const typeIds = [...src.slice(src.indexOf('const KB_ART_TYPES = ['), src.indexOf('const KB_ART_TYPE_MEDIA')).matchAll(/\{ id: '([a-z]+)'/g)].map((x) => x[1]).filter((id) => id !== 'doc' && id !== 'other')
+  assert.deepEqual(typeIds.filter((id) => type[id] === undefined), [], 'every type tile has a drawing')
+  assert.ok(/className: 'kb-type-view kb8-sl-stage' \}, d\.art\)/.test(src) && /kbArtDraw\('all'\)/.test(src), 'a tile, and its « All » sibling, hold the drawing in a band the new chat\'s CSS styles')
+  assert.ok(/className: 'kb-typepanel-thumb kb8-sl-stage' \}, d\.art\)/.test(src), 'the « Customize » panel rows show the same drawing')
+  assert.ok(!/kbTiSvg\(KB_TI\.(family|type)\[/.test(src) && !/kbTypeMini|kbFamMini|kbBandBg|\.kbm-(ln|box|mdot|ring|txt)\{/.test(src), 'the old tile icons and the old scenes (dead code) are gone')
+  ok('the Creations tiles draw what the new chat cards draw (every family and type has its drawing; the old icons and scenes are gone)')
 }
 
 // 6e-pre. the slider: wiring pinned at source level
