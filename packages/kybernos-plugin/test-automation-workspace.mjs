@@ -150,7 +150,7 @@ const src = readFileSync(join(here, 'client.js'), 'utf8')
 const parts = src.split('// KB-AUTOWS-BEGIN')
 assert.equal(parts.length, 2, 'exactly one KB-AUTOWS block')
 const block = parts[1].split('// KB-AUTOWS-END')[0]
-const m = await import('data:text/javascript,' + encodeURIComponent(block + '\nexport { kbWsName, kbWsChoice, kbWsOptions }'))
+const m = await import('data:text/javascript,' + encodeURIComponent(block + '\nexport { kbWsName, kbWsChoice, kbWsOptions, kbWsIsDedicated }'))
 const items = [{ workspaceId: 'w2', title: 'zeta' }, { workspaceId: 'w1', title: 'Alpha', displayTitle: 'My alpha' }, { workspaceId: 'w3', title: '  ' }, null, { title: 'no id' }]
 assert.deepEqual([m.kbWsName(items[1]), m.kbWsName(items[0]), m.kbWsName(items[2]), m.kbWsName(null)], ['My alpha', 'zeta', 'w3', ''])
 assert.deepEqual([m.kbWsChoice(null, items), m.kbWsChoice('', items), m.kbWsChoice(undefined, items)], [{ kind: 'dedicated' }, { kind: 'dedicated' }, { kind: 'dedicated' }])
@@ -162,6 +162,16 @@ assert.deepEqual(m.kbWsOptions(items, null).map((o) => [o.id, o.kind, o.name]), 
 assert.deepEqual(m.kbWsOptions(items, 'w9').map((o) => o.kind), ['dedicated', 'ws', 'ws', 'ws', 'gone'])
 assert.deepEqual(m.kbWsOptions(items, 'w1').map((o) => o.kind), ['dedicated', 'ws', 'ws', 'ws'])
 assert.deepEqual(m.kbWsOptions(null, null), [{ id: '', kind: 'dedicated' }])
+{
+  const ded = { workspaceId: 'wd', title: 'Automations', path: '/Users/x/.dsh/kybernos/automations' }
+  const withDedicated = items.concat([ded])
+  assert.deepEqual([ded, { path: 'C:\\Users\\x\\.dsh\\kybernos\\automations' }, { path: '/Users/x/.dsh/kybernos/automations/' }].map(m.kbWsIsDedicated), [true, true, true])
+  assert.deepEqual([{ path: '/Users/x/automations' }, { path: '/Users/x/.dsh/kybernos/automations-old' }, { path: '/Users/x/kybernos/automations/sub' }, { title: 'Automations' }, null, { path: 7 }].map(m.kbWsIsDedicated), [false, false, false, false, false, false])
+  assert.deepEqual(m.kbWsOptions(withDedicated, null).map((o) => o.id), ['', 'w1', 'w3', 'w2'], 'the dedicated workspace is the first option, not listed a second time')
+  assert.deepEqual(m.kbWsChoice('wd', withDedicated), { kind: 'dedicated' }, 'an automation that names the dedicated workspace itself has no choice')
+  assert.deepEqual(m.kbWsOptions(withDedicated, 'wd').map((o) => o.kind), ['dedicated', 'ws', 'ws', 'ws'], '...and it is not shown as a deleted workspace')
+  ok('the dedicated workspace is one option, never two: the workspace itself is not listed with the person\'s own')
+}
 ok('the form offers the dedicated workspace first, then the person\'s by name, and the deleted one only while the automation still names it')
 assert.ok(src.includes("'data-kb': 'task-workspace'") && src.includes('workspaceHint: wsHint === \'\' ? null : wsHint'), 'the form sends the choice, null for none')
 assert.ok(src.includes("kbWsOptions(kbPinsSnapshots().items, wsHint)"), 'the options come from the workspaces the page already watches')

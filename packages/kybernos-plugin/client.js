@@ -373,6 +373,8 @@ let kbLocaleRead = () => 'en'
       'tasks.tpl.kind.act': { kybernos: 'Action', en: 'Action' },
       'tasks.tpl.note': { kybernos: 'Un modèle est un point de départ : il dépend de tes comptes, de ta cible et de tes limites. « Utiliser ce modèle » ouvre un chat qui te pose ses questions, puis enregistre une vraie automatisation désactivée, le temps que tu connectes ce qu’il faut.', en: 'A template is a starting point: it depends on your accounts, your target and your limits. “Use this template” opens a chat that asks its questions, then saves a real automation that stays off until you have connected what it needs.' },
       'tasks.tpl.nochat': { kybernos: 'Impossible d’ouvrir un chat d’ici.', en: 'A chat cannot be opened from here.' },
+      'tasks.tpl.chat.lang': { kybernos: 'Follow this conversation in my language: {lang}', en: 'Follow this conversation in my language: {lang}' },
+      'tasks.tpl.sec.apps': { kybernos: 'INTÉGRATIONS', en: 'INTEGRATIONS' },
       'tasks.tpl.chat.head': { kybernos: 'Skill automation-creator — crée une automation à partir du modèle « {title} ».', en: 'Skill automation-creator — create an automation from the template “{title}”.' },
       'tasks.tpl.chat.rule': { kybernos: 'Pars de ce brouillon et adapte-le à moi : n’invente rien sur mes comptes, ma cible ni mes limites, demande-le-moi.', en: 'Start from this draft and adapt it to me: invent nothing about my accounts, my target or my limits, ask me.' },
       'tasks.tpl.chat.when': { kybernos: 'Ce qui la lance (proposé) :', en: 'What starts it (suggested):' },
@@ -6762,14 +6764,36 @@ const kbTplFilter = (list, cat, query, pick) => {
 }
 /** The kind of a step of a template, read the way the Flow reads a step: 'ai' (a model works) or 'act' (a tool acts). */
 const kbTplStepKind = (step) => (Array.isArray(step) === true && step[0] === 'ai' ? 'ai' : 'act')
+/** « Google Drive » → « googledrive »: the slug the connectors catalogue uses for an app. */
+const kbTplSlug = (name) => String(name === undefined || name === null ? '' : name).toLowerCase().replace(/[^a-z0-9]/g, '')
+/** An SVG that may be put in the page: a plain <svg>, bounded, with no script, no handler and nothing that loads from elsewhere. */
+const kbTplSvgOk = (svg) => typeof svg === 'string' && svg.length <= 20000 && /^\s*<svg[\s>]/.test(svg) === true
+  && /<script|<foreignObject|<iframe|<image|\son\w+\s*=|javascript:|(?:xlink:)?href\s*=\s*["']https?:|url\(\s*["']?https?:|@import/i.test(svg) === false
+/** The logos of the connectors catalogue ([{ s: slug, l: svg }]) as { slug: svg }, only those that are safe. */
+const kbTplLogos = (list) => {
+  const out = {}
+  for (const c of Array.isArray(list) === true ? list : []) { if (c !== null && typeof c === 'object' && typeof c.s === 'string' && kbTplSvgOk(c.l) === true) out[c.s] = c.l }
+  return out
+}
+/** The name of the page's language, in English and with its code, for the model: « French (fr) ». `kybernos` is the French of the page. */
+const kbTplLangName = (code) => {
+  const c = code === 'kybernos' ? 'fr' : String(code === undefined || code === null ? '' : code).trim()
+  if (c === '') return ''
+  try {
+    const n = new Intl.DisplayNames(['en'], { type: 'language' }).of(c)
+    return typeof n === 'string' && n !== '' && n !== c ? n + ' (' + c + ')' : c
+  } catch (e) { return c }
+}
 /**
  * What is put in the composer of a NEW chat when a template is chosen. It names the automation-creator skill the way « Create » and
  * « Edit in chat » do, carries the template (what starts it, the draft steps, the questions, what to connect, the rules), and asks for
- * a real task that stays OFF until the person has connected everything. `tr(key)` gives the fixed words, `pick(pair)` the template's.
+ * a real task that stays OFF until the person has connected everything. `tr(key)` gives the fixed words, `pick(pair)` the template's, and
+ * `language` (kbTplLangName of the page's language, read when the person clicks) puts « Follow this conversation in my language » first.
  */
-const kbTplChatText = (tpl, tr, pick) => {
+const kbTplChatText = (tpl, tr, pick, language) => {
   const T = (p) => kbTplText(p, pick)
-  const lines = [tr('tasks.tpl.chat.head').replace(/\{title\}/g, () => T(tpl.title)), T(tpl.desc), '', tr('tasks.tpl.chat.rule'), '']
+  const lang = typeof language === 'string' ? language.trim() : ''
+  const lines = (lang !== '' ? [tr('tasks.tpl.chat.lang').replace(/\{lang\}/g, () => lang), ''] : []).concat([tr('tasks.tpl.chat.head').replace(/\{title\}/g, () => T(tpl.title)), T(tpl.desc), '', tr('tasks.tpl.chat.rule'), ''])
   const when = tpl.cron === null || tpl.cron === undefined ? T(tpl.cadence) : T(tpl.cadence) + ' (cron ' + tpl.cron + ')'
   lines.push(tr('tasks.tpl.chat.when') + ' ' + when, '', tr('tasks.tpl.chat.steps'))
   tpl.steps.forEach((s, i) => { lines.push(String(i + 1) + '. ' + T(s[1])) })
@@ -6794,21 +6818,25 @@ const kbWsName = (ws) => {
   const t = typeof ws.displayTitle === 'string' && ws.displayTitle.trim() !== '' ? ws.displayTitle : (typeof ws.title === 'string' && ws.title.trim() !== '' ? ws.title : '')
   return t.trim() !== '' ? t.trim() : (typeof ws.workspaceId === 'string' ? ws.workspaceId : '')
 }
+/** Is this the dedicated workspace itself (the one that adopted <dsh home>/kybernos/automations)? It is « no choice », not one of the person's. */
+const kbWsIsDedicated = (ws) => ws !== null && typeof ws === 'object' && typeof ws.path === 'string' && /[\\/]kybernos[\\/]automations[\\/]?$/.test(ws.path) === true
 /**
- * What the choice shows: { kind: 'dedicated' } when none is named, { kind: 'ws', id, name } for one that exists, { kind: 'gone', id } for one
- * that was deleted (its runs go to the dedicated workspace, and the page says so).
+ * What the choice shows: { kind: 'dedicated' } when none is named (or when it names the dedicated workspace itself), { kind: 'ws', id, name } for one
+ * that exists, { kind: 'gone', id } for one that was deleted (its runs go to the dedicated workspace, and the page says so).
  */
 const kbWsChoice = (hint, items) => {
   if (typeof hint !== 'string' || hint === '') return { kind: 'dedicated' }
   const found = (Array.isArray(items) === true ? items : []).find((w) => w !== null && typeof w === 'object' && w.workspaceId === hint)
-  return found !== undefined ? { kind: 'ws', id: hint, name: kbWsName(found) } : { kind: 'gone', id: hint }
+  if (found === undefined) return { kind: 'gone', id: hint }
+  return kbWsIsDedicated(found) === true ? { kind: 'dedicated' } : { kind: 'ws', id: hint, name: kbWsName(found) }
 }
-/** The options of the choice: the dedicated workspace first (value ''), then the person's workspaces by name, then the deleted one when the automation still names it. */
+/** The options of the choice: the dedicated workspace first (value ''; the workspace itself is not listed a second time), then the person's workspaces by name, then the deleted one when the automation still names it. */
 const kbWsOptions = (items, hint) => {
-  const list = (Array.isArray(items) === true ? items : []).filter((w) => w !== null && typeof w === 'object' && typeof w.workspaceId === 'string' && w.workspaceId !== '')
+  const list = (Array.isArray(items) === true ? items : []).filter((w) => w !== null && typeof w === 'object' && typeof w.workspaceId === 'string' && w.workspaceId !== '' && kbWsIsDedicated(w) !== true)
     .map((w) => ({ id: w.workspaceId, name: kbWsName(w) })).sort((a, b) => a.name.localeCompare(b.name))
   const out = [{ id: '', kind: 'dedicated' }].concat(list.map((w) => ({ id: w.id, kind: 'ws', name: w.name })))
-  if (typeof hint === 'string' && hint !== '' && list.every((w) => w.id !== hint)) out.push({ id: hint, kind: 'gone' })
+  const dedicatedIds = (Array.isArray(items) === true ? items : []).filter((w) => kbWsIsDedicated(w) === true).map((w) => w.workspaceId)
+  if (typeof hint === 'string' && hint !== '' && list.every((w) => w.id !== hint) && dedicatedIds.indexOf(hint) < 0) out.push({ id: hint, kind: 'gone' })
   return out
 }
 // KB-AUTOWS-END
@@ -21110,7 +21138,7 @@ function renderFit(canvas, model, cam, opts){
       const approvals = approvalsPair[0]; const setApprovals = approvalsPair[1]
       const notifyPair = React.useState(Array.isArray(t0.notify) === true ? t0.notify : [])
       // Where the runs land: '' is the dedicated workspace (the host makes it), else the id of one of the person's workspaces.
-      const wsPair = React.useState(typeof t0.workspaceHint === 'string' ? t0.workspaceHint : '')
+      const wsPair = React.useState(() => { const c = kbWsChoice(t0.workspaceHint, kbPinsSnapshots().items); return c.kind === 'dedicated' ? '' : (typeof t0.workspaceHint === 'string' ? t0.workspaceHint : '') })
       const wsHint = wsPair[0]; const setWsHint = wsPair[1]
       const notify = notifyPair[0]; const setNotify = notifyPair[1]
       const errPair = React.useState(null)
@@ -21561,7 +21589,26 @@ function renderFit(canvas, model, cam, opts){
     const kbTplPick = (p) => kbe(p[0], p[1])
     const kbTplCat = (id) => KB_TPL_CATS.filter((c) => c.id === id)[0] || KB_TPL_CATS[0]
     const kbTplIconTile = (tpl) => h('span', { className: 'kbtd-ico', style: { '--kbtd-c': kbTplCat(tpl.cat).color } }, Icon(tpl.icon, 20))
-    const kbTplApp = (name) => h('span', { key: name, className: 'kbtd-app', title: name }, String(name).charAt(0))
+    // The logos are the connectors catalogue's own (the Connections page's): one GET of what the host already serves, kept for the session. Without it
+    // (the connectors plugin is off, the host answers nothing) every app keeps its initial in a round tile.
+    let kbTplLogoCache = null
+    let kbTplLogoPending = null
+    const kbTplLogosLoad = () => {
+      if (kbTplLogoCache !== null) return Promise.resolve(kbTplLogoCache)
+      if (kbTplLogoPending === null) {
+        kbTplLogoPending = fetch(kbApiBase() + '/composio/catalog', { method: 'GET' })
+          .then((r) => (r.ok === true ? r.json() : []))
+          .then((list) => { kbTplLogoCache = kbTplLogos(list); return kbTplLogoCache })
+          .catch(() => { kbTplLogoPending = null; return {} })
+      }
+      return kbTplLogoPending
+    }
+    const kbTplApp = (name, logos) => {
+      const svg = logos !== null && logos !== undefined && typeof logos === 'object' ? logos[kbTplSlug(name)] : undefined
+      return typeof svg === 'string'
+        ? h('span', { key: name, className: 'kbtd-app logo', title: name, dangerouslySetInnerHTML: { __html: svg } })
+        : h('span', { key: name, className: 'kbtd-app', title: name }, String(name).charAt(0))
+    }
     // The cover of a template, drawn in code (two inks on paper, halftone dots, a misregistered glyph): the repository holds no images.
     const kbTplCover = (tpl) => {
       const cat = kbTplCat(tpl.cat)
@@ -21588,6 +21635,13 @@ function renderFit(canvas, model, cam, opts){
       const sel = selPair[0]
       const q = qPair[0]
       const T = kbTplPick
+      const logoPair = React.useState(kbTplLogoCache)
+      const logos = logoPair[0]
+      React.useEffect(() => {
+        let alive = true
+        if (kbTplLogoCache === null) kbTplLogosLoad().then((m) => { if (alive === true) logoPair[1](m) })
+        return () => { alive = false }
+      }, [])
       const tpl = sel !== null ? KB_TPLS.filter((x) => x.id === sel)[0] || null : null
       if (tpl !== null) {
         const c = kbTplCat(tpl.cat)
@@ -21603,8 +21657,10 @@ function renderFit(canvas, model, cam, opts){
             h('button', { type: 'button', className: 'kb8-primary kba-new-btn', 'data-kb': 'tpl-use', onClick: () => props.onUse(tpl) }, kbt('tasks.tpl.use'))),
           h('div', { className: 'kbtd-meta' },
             h('span', { className: 'kbtd-cm' }, Icon('clock', 12), h('span', null, T(tpl.cadence))),
-            h('span', { className: 'kbtd-tgs' }, tpl.tags.map((x, i) => h('span', { key: i, className: 'kbtd-tg' }, T(x)))),
-            h('span', { className: 'kbtd-apps' }, tpl.apps.map(kbTplApp))),
+            h('span', { className: 'kbtd-tgs' }, tpl.tags.map((x, i) => h('span', { key: i, className: 'kbtd-tg' }, T(x))))),
+          h('section', { className: 'kba-card kbtd-sec kbtd-integ', 'data-kb': 'tpl-apps' },
+            h('span', { className: 'kba-tabver mono' }, kbt('tasks.tpl.sec.apps')),
+            h('div', { className: 'kbtd-appchips' }, tpl.apps.map((a) => h('span', { key: a, className: 'kbtd-appchip' }, kbTplApp(a, logos), h('span', null, a))))),
           h('div', { className: 'kbtd-grid' },
             h('section', { className: 'kba-card kbtd-sec' },
               h('span', { className: 'kba-tabver mono' }, kbt('tasks.tpl.sec.steps')),
@@ -21645,7 +21701,7 @@ function renderFit(canvas, model, cam, opts){
             h('div', { className: 'kbtd-cm' }, Icon('clock', 12), h('span', null, T(t.cadence))),
             h('div', { className: 'kbtd-cf' },
               h('span', { className: 'kbtd-tgs' }, h('span', { className: 'kbtd-tg' }, T(t.tags[0])), (t.tags.length > 1 ? h('span', { className: 'kbtd-tg' }, '+' + (t.tags.length - 1)) : null)),
-              h('span', { className: 'kbtd-apps' }, t.apps.map(kbTplApp))))))))
+              h('span', { className: 'kbtd-apps' }, t.apps.map((a) => kbTplApp(a, logos)))))))))
     }
     // ── Cards: one card per automation, with what its runs say (the pure part is in the KB-AUTORUNS block) ────────────────────────────────
     // Last run, success, runs, duration and tools are read from the history and from the journal of the NEWEST run of each automation (one
@@ -22179,7 +22235,7 @@ function renderFit(canvas, model, cam, opts){
 
       // Discover: a template opens a NEW chat where the automation-creator skill asks the questions of the template.
       const useTemplate = (tpl) => {
-        try { kbStartChatText(kbTplChatText(tpl, kbt, kbTplPick)) } catch (e) { toast(kbt('tasks.tpl.nochat')) }
+        try { kbStartChatText(kbTplChatText(tpl, kbt, kbTplPick, kbTplLangName(kbLangResolve()))) } catch (e) { toast(kbt('tasks.tpl.nochat')) }
       }
 
       const list = kbTasksList(tasks)
@@ -30919,6 +30975,12 @@ button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
 .kbtd-apps{display:inline-flex}
 .kbtd-app{width:26px;height:26px;margin-left:-6px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-1);border:2px solid var(--dsw-alias-bg-layer-2);box-shadow:0 0 0 1px var(--dsw-alias-border-l2)}
 .kbtd-apps .kbtd-app:first-child{margin-left:0}
+.kbtd-app.logo{background:#fff}
+.kbtd-app svg{width:66%;height:66%;display:block}
+.kbtd-integ{padding:12px 16px}
+.kbtd-appchips{display:flex;flex-wrap:wrap;gap:8px}
+.kbtd-appchip{display:inline-flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border:1px solid var(--dsw-alias-border-l2);border-radius:999px;font-size:13px}
+.kbtd-appchip .kbtd-app{margin-left:0;width:28px;height:28px;box-shadow:none;border:1px solid var(--dsw-alias-border-l1)}
 .kbtd-detail{max-width:980px}
 .kbtd-cover{position:relative;border-radius:18px;overflow:hidden;height:190px;background:#f3ecdd;border:1px solid var(--dsw-alias-border-l1)}
 .kbtd-cover-svg{display:block;width:100%;height:100%}
