@@ -572,4 +572,18 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
   globalThis.setTimeout = realTimeout
 }
 
+// ── a chat made for Kaby starts in DSH's ask mode, once (the person's own pick later is theirs) ──────────────
+{
+  ok('a chat is switched with DSH\'s own command, to the preset that asks', T.ASK_PRESET === 'workspace-write' && /\/permission '/.test(src))
+  ok('it is applied only when the chat is made, never to an existing one', /made = true/.test(src) && /if \(made\) void askFirst\(sessionsSvc, sid\)/.test(src))
+  const sent = []
+  const live = { command: async (c) => { sent.push(c); return { ok: true, value: { matched: true } } } }
+  ok('a materialized chat is switched and says so', (await T.askFirst({ binding: () => ({ session: live }) }, 'session-aaaaaaaa', 3, 1)) === true && sent.join() === '/permission workspace-write', sent)
+  let n = 0
+  ok('a chat that is not materialized yet is tried again, then switched', (await T.askFirst({ binding: () => (++n < 3 ? undefined : { session: live }) }, 'session-aaaaaaaa', 6, 1)) === true && n === 3, n)
+  ok('a chat that never materializes ends false and throws nothing', (await T.askFirst({ binding: () => undefined }, 'session-aaaaaaaa', 3, 1)) === false)
+  ok('a host with no such command (matched false) or a refusal ends false', (await T.askFirst({ binding: () => ({ session: { command: async () => ({ ok: true, value: { matched: false } }) } }) }, 's', 2, 1)) === false && (await T.askFirst({ binding: () => ({ session: { command: async () => ({ ok: false, error: { code: 'x' } }) } }) }, 's', 2, 1)) === false)
+  ok('a service that throws is survived', (await T.askFirst({ binding: () => { throw new Error('boom') } }, 's', 2, 1)) === false)
+}
+
 process.exit(fail > 0 ? 1 : 0)
