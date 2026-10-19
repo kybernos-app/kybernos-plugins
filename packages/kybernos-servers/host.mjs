@@ -127,12 +127,12 @@ const bodyOf = (body) => (body !== null && typeof body === 'object' ? body : {})
 export const status = async (req) => {
   const cloud = await cloudView(req)
   if (cloud === null) return { ok: true, cloud: null }
-  // The cloud plugin lists each server's api and llm; the page also shows web and console when the profile names them.
+  // The cloud plugin lists each server's api and llm; the page also shows the web address when the profile names one (the console address is not shown: there is one app, /account).
   const { registry } = loadRegistry()
   const stored = registry === null ? [] : registry.servers
   const servers = cloud.servers.map((s) => {
     const entry = stored.find((e) => e !== null && typeof e === 'object' && e.id === s.id)
-    return entry === undefined ? s : Object.assign({}, s, typeof entry.web === 'string' ? { web: entry.web } : {}, typeof entry.console === 'string' ? { console: entry.console } : {})
+    return entry === undefined ? s : Object.assign({}, s, typeof entry.web === 'string' ? { web: entry.web } : {})
   })
   return { ok: true, cloud: { server: cloud.server, servers, source: cloud.source, error: cloud.error, rejected: cloud.rejected } }
 }

@@ -175,12 +175,13 @@ window.__ModuleLoader__.load({
         const conn = p.services !== undefined && p.services.connections !== undefined ? p.services.connections : null
         const rows = [
           ['API', p.api],
-          ['Web', typeof p.web === 'string' ? p.web : base],
-          ['Console', typeof p.console === 'string' ? p.console : base + '/workspace-console'],
+          [kt('Application', 'Web app'), (typeof p.web === 'string' ? p.web : base) + '/account'],
           ['LLM', llm === false ? kt('aucun', 'none') : (typeof llm === 'string' ? llm : kt('même hôte que l’API', 'same host as the API'))],
           [kt('Apps connectées', 'Connected apps'), typeof conn === 'string' ? conn : kt('non proposées', 'not offered')],
         ]
-        const hosts = [p.api, p.web, p.console, llm, conn].filter((x) => typeof x === 'string').map(hostOf)
+        // Where the sign-in goes: the api, the app (its web address), the models and the connected apps. The old console address is not on this list:
+        // DSH no longer frames it and nothing is sent to it (the one app is /account).
+        const hosts = [p.api, p.web, llm, conn].filter((x) => typeof x === 'string').map(hostOf)
         return { rows, differs: hosts.some((x) => x !== found.host) }
       }
       const Adresses = ({ rows }) => h('dl', { className: 'kbsv-addresses kbsv-addr-box', 'data-kb': 'servers-addresses' }, rows.map((r, i) => h(React.Fragment, { key: i }, h('dt', null, r[0]), h('dd', null, r[1]))))
@@ -216,8 +217,7 @@ window.__ModuleLoader__.load({
           open ? h('div', { className: 'kbsv-det', 'data-kb': 'servers-det' },
             h('dl', { className: 'kbsv-addresses' },
               h('dt', null, 'API'), h('dd', null, base),
-              h('dt', null, 'Web'), h('dd', null, typeof s.web === 'string' ? s.web : base),
-              h('dt', null, 'Console'), h('dd', null, typeof s.console === 'string' ? s.console : base + '/workspace-console'),
+              h('dt', null, kt('Application', 'Web app')), h('dd', null, (typeof s.web === 'string' ? s.web : base) + '/account'),
               h('dt', null, 'LLM'), h('dd', null, s.llm === 'none' ? kt('aucun', 'none') : (typeof s.llm === 'string' && s.llm !== 'api' ? s.llm : kt('même hôte que l’API', 'same host as the API'))),
               h('dt', null, kt('Apps connectées', 'Connected apps')), h('dd', null, s.connections === true ? kt('proposées', 'offered') : kt('non proposées', 'not offered'))),
             h('div', { className: 'kbsv-note' }, kt('Ta connexion et son jeton ne vont qu’à ces adresses.', 'Your sign-in and its token only go to these addresses.')),

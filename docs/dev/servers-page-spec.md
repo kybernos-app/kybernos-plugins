@@ -22,7 +22,7 @@ the browser. Same for Kybernos staging, a local server and a customer's own serv
 `servers.json`. The page also carries a help card and the Enterprise text.
 
 **Non-goals.** Renaming `api.kybernos.app`; changes to the Kybernos server in phase 1; creating an account from DSH (the server's own activation
-page does it); managing a server (its console does); routing chat differently; any licence check in DSH.
+page does it); managing a server (the server's own pages do); routing chat differently; any licence check in DSH.
 
 ## 2. Vocabulary
 
@@ -43,7 +43,7 @@ Everything below **already exists** on the Kybernos server; the page asks nothin
    | `api` | required; the address the account token goes to |
    | `name` | what the user sees; set by the server's `SERVER_NAME` (default « Kybernos ») |
    | `version`, `dsh_min` | optional; a server needing a newer DSH is refused with a sentence |
-   | `web`, `console` | optional; default to the server's own host |
+   | `web`, `console` | optional; default to the server's own host. The page uses `web` (the app is `<web>/account`); `console` is accepted and kept for hand-written registries, never shown |
    | `services.llm` | a URL, absent (same host as `api`) or `false` (no Kybernos models) |
    | `services.connections` | a URL **on the same origin as `api`**, or `false`; absent = not offered |
 
@@ -71,14 +71,14 @@ Gaps found: DSH's `discover()` drops `services.connections` (a company server wi
 ### 4.2 The list
 One row per server: tile (initial), name, one line (« Managed by Kybernos » for the built-in server, the host for the others), tags **Active** and
 **Signed in** / **Not signed in**, actions **Switch to this server** (not on the active row), **Sign in** (active and not signed in), **Details**,
-**Remove** (never on the built-in server). **Details** shows API, Web, Console, LLM addresses and a **Rename** field. No kind, no « test » tag.
+**Remove** (never on the built-in server). **Details** shows the API, the app (`<web>/account`), the LLM and the connected apps' addresses, and a **Rename** field. There is **no console line**: the server has one app, `/account` (ADR 0054 of the server), and DSH no longer frames the old console page. No kind, no « test » tag.
 A neutral banner above the list while the active server is not the built-in one, with « Back to Kybernos Cloud » (always available).
 
 ### 4.3 Add: a state machine
 `empty` → (paste, Enter or leaving the field; **never while typing**) → `checking` → `found` | `error` → `adding` → `signing-in` → `done` | `later`.
 
 - **Input**: a bare host becomes https, except a bare loopback host (`localhost:8791`) which becomes http (a local server rarely has a certificate); `host:port` works; a full URL keeps its scheme and path; http only for loopback; at most 300 characters.
-- **found**: the server's name, its host, « Your sign-in and its token will only go to <host> »; **See the addresses** lists API, Web, Console, LLM
+- **found**: the server's name, its host, « Your sign-in and its token will only go to <host> »; **See the addresses** lists the API, the app (`<web>/account`), the LLM and the connected apps (the console address is neither shown nor counted: nothing is sent to it)
   (shown expanded whenever one of them is on another host than the typed one).
 - **error**: one sentence, from this table (French and English, never a raw code):
 
