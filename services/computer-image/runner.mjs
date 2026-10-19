@@ -34,7 +34,7 @@ const clip = (s) => String(s ?? '').slice(0, MESSAGE_CHARS)
  */
 /** Where a message came from, as a closed word: the channel line of the prompt and the journal both say it. Anything that is not a known channel is a phone. */
 export function channelOf (context) {
-  return context && context.source === 'telegram' ? 'telegram' : 'phone'
+  return context && (context.source === 'telegram' || context.source === 'whatsapp') ? context.source : 'phone'
 }
 
 export function buildPrompt (context) {
