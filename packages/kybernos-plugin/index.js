@@ -12,6 +12,8 @@ import { kyberTarget } from './kyber-root.mjs'
 import { createWorkspaceInstructions } from './workspace-instructions.mjs'
 import { selectAfterConnect } from './default-model.mjs'
 import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
+import { stableStreak as autoSkillStreak, skillSlug as autoSkillSlug, buildSkill as autoSkillBuild, normalizeRecords as autoSkillsNormalize, dueTasks as autoSkillsDue, lessonOf as autoSkillLesson } from './automation-skills.mjs'
+import { chooseWorkspace as autoWsChoose, idOf as autoWsIdOf, DEDICATED_TITLE as AUTO_WS_TITLE, DEDICATED_DIR as AUTO_WS_DIR } from './automation-workspace.mjs'
 import { recordFeedback, exportFeedback, relayReportOf } from './feedback-box.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay } from './onboarding-state.mjs'
@@ -387,6 +389,13 @@ const kbSanitizeTaskInput = (raw) => {
     approvals: r.approvals === 'auto' ? 'auto' : 'ask',
   }
   if (Array.isArray(r.notify) === true) out.notify = Array.from(new Set(r.notify.filter((x) => x === 'push' || x === 'email')))
+  // The workspace the runs land in (the id of one): sent only when the person chooses, `null` or '' goes back to « none » (the dedicated
+  // workspace). Left out, an edit keeps what the automation already has. The rule is the same as automation-workspace.mjs (this block takes no import).
+  if (r.workspaceHint !== undefined) {
+    if (r.workspaceHint === null || r.workspaceHint === '') out.workspaceHint = null
+    else if (typeof r.workspaceHint === 'string' && /^[A-Za-z0-9_.:@-]{1,160}$/.test(r.workspaceHint) === true) out.workspaceHint = r.workspaceHint
+    else return { ok: false, error: 'invalid workspace' }
+  }
   return { ok: true, task: out }
 }
 // ── Task store + trigger: pure, every side effect is injected, so the tests drive the code
@@ -2553,17 +2562,34 @@ function boot(ctx) {
     // Le tir : session neuve + prompt via le service sessionController quand il
     // est monté (create + prompt sideaux). Repli honnête : pendingFire consommé
     // par le client (startSession + prefill draft) à son prochain poll.
+    // Where a run lands (automation-workspace.mjs): the workspace the automation names, else ONE dedicated workspace, « Automations »,
+    // which adopts <dsh home>/kybernos/automations (created on first use; `create` returns the existing workspace for a folder it
+    // already owns, so asking every time is safe). Only when the engine cannot create one (an older registry, an unwritable folder)
+    // does it keep what it always did: the first workspace of the list.
+    const kbDedicatedWorkspaceId = async (w) => {
+      if (typeof w.create !== 'function') return null
+      try {
+        const home = await dshHome()
+        if (home === null || home.length === 0) return null
+        const dir = joinPath(home, 'kybernos/' + AUTO_WS_DIR)
+        mkdirSync(dir, { recursive: true })
+        return autoWsIdOf(await w.create(dir, AUTO_WS_TITLE))
+      } catch (e) {
+        try { console.error('[kybers] automations: the dedicated workspace could not be made (' + errText(e) + ')') } catch (e2) { /* console unavailable */ }
+        return null
+      }
+    }
     const kbTaskWorkspaceId = async (task) => {
       const w = workspacesAt()
       if (w === undefined || typeof w.list !== 'function') return null
       try {
         const list = w.list()
+        const pick = autoWsChoose(task.workspaceHint, list)
+        if (pick.id !== null) return pick.id
+        const dedicated = await kbDedicatedWorkspaceId(w)
+        if (dedicated !== null) return dedicated
         if (Array.isArray(list) === false || list.length === 0) return null
-        for (const ws of list) {
-          if (ws !== null && typeof ws === 'object' && str(task.workspaceHint) !== null && String((ws.id || ws.workspaceId || '')) === String(task.workspaceHint)) return str(ws.id) || str(ws.workspaceId)
-        }
-        const first = list[0]
-        return first !== null && typeof first === 'object' ? (str(first.id) || str(first.workspaceId)) : null
+        return autoWsIdOf(list[0])
       } catch (e) { return null }
     }
     // The sessions this plugin started for an automation set to `ask`: the MCP gate below applies to them
@@ -2706,10 +2732,67 @@ function boot(ctx) {
         throw e
       }
     }
+    // ── A stable automation becomes a skill (automation-skills.mjs) ────────────────────────────────────────────────────────────────
+    // The record of what was written lives in <dsh home>/kybernos/automation-skills.json, next to tasks.json. The skill itself goes to
+    // <dsh home>/skills/<name>/SKILL.md, where DSH looks for the person's skills.
+    const kbAutoSkillsFileOf = async () => {
+      const t = await kbTasksFileOf()
+      return t.slice(0, t.lastIndexOf('/')) + '/automation-skills.json'
+    }
+    const kbAutoSkillsRead = async () => {
+      try { return autoSkillsNormalize(JSON.parse(readFileSync(await kbAutoSkillsFileOf(), 'utf8'))) } catch (e) { return autoSkillsNormalize(null) }
+    }
+    const kbAutoSkillsWrite = async (state) => {
+      const p = await kbAutoSkillsFileOf()
+      try { mkdirSync(p.slice(0, p.lastIndexOf('/')), { recursive: true }) } catch (e) { /* already there */ }
+      const temp = p + '.tmp-' + String(process.pid) + '-' + Date.now().toString(36)
+      try {
+        writeFileSync(temp, JSON.stringify(state, null, 2) + String.fromCharCode(10), { encoding: 'utf8', mode: 0o600 })
+        renameSync(temp, p)
+      } catch (e) {
+        try { unlinkSync(temp) } catch (e2) { /* nothing to clean */ }
+        throw e
+      }
+    }
+    // Never over an existing skill: the file is opened with `wx`, and a name already taken gets the next free one. The record is written after
+    // the skill: a crash in between leaves a skill without a record (the next pass finds the name taken and picks another), never the reverse.
+    const kbAutoSkillWrite = async (task, how, streak) => {
+      const home = await dshHome()
+      if (home === null || home.length === 0) return { ok: false, error: 'DSH home unknown' }
+      const skillsDir = joinPath(home, 'skills')
+      const slug = autoSkillSlug(str(task.name), (n) => existsSync(joinPath(skillsDir, n)))
+      if (slug === null) return { ok: false, error: 'no free skill name' }
+      const dir = joinPath(skillsDir, slug)
+      mkdirSync(dir, { recursive: true })
+      writeFileSync(joinPath(dir, 'SKILL.md'), autoSkillBuild(task, slug, streak), { encoding: 'utf8', flag: 'wx', mode: 0o600 })
+      const recs = await kbAutoSkillsRead()
+      recs.skills[task.id] = { skill: slug, at: new Date().toISOString(), how, runs: streak }
+      await kbAutoSkillsWrite(recs)
+      return { ok: true, skill: slug }
+    }
+    // The automatic pass: only when the switch is on, at most every 5 minutes, at most three skills at a time, and never in the way of the tick.
+    let kbAutoSkillsLast = 0
+    let kbAutoSkillsBusy = false
+    const kbAutoSkillsPass = async () => {
+      if (kbAutoSkillsBusy === true || Date.now() - kbAutoSkillsLast < 300000) return
+      kbAutoSkillsBusy = true
+      kbAutoSkillsLast = Date.now()
+      try {
+        const settings = await kbAutoSettingsRead()
+        if (settings.autoSkill !== true) return
+        const tasks = await kbTasksRead()
+        const due = autoSkillsDue(Array.isArray(tasks) === true ? tasks : [], await kbAutoSkillsRead(), settings).slice(0, 3)
+        for (const t of due) await kbAutoSkillWrite(t, 'auto', autoSkillStreak(t.history))
+      } catch (e) {
+        try { console.error('[kybers] automation skills: ' + errText(e)) } catch (e2) { /* console unavailable */ }
+      } finally { kbAutoSkillsBusy = false }
+    }
     // « Pause all » holds the tick, not the store: nothing is lost, and what came due fires once at the first tick after it is off.
     const kbTasksTick = async () => {
       if (autoSettingsPaused(await kbAutoSettingsRead()) === true) return { fired: 0, paused: true }
-      return kbTasksTrigger.tick()
+      const fired = await kbTasksTrigger.tick()
+      kbAutoSkillsPass().catch(() => null)
+      return fired
     }
     // CRUD exposé au client (route unique /kybernos/tasks, action dans le corps).
     const kbTasksHandle = async (body) => {
@@ -10346,6 +10429,39 @@ function boot(ctx) {
         try { await kbAutoSettingsWrite(next.state) } catch (e) { return sendJson(res, 500, { ok: false, error: 'write failed' }) }
         sendJson(res, 200, Object.assign({ ok: true }, autoSettingsView(next.state)))
       } }), 'kybernos: route automation-settings')
+      // ── Stable automations as skills: GET ?id= (how far it is, the rule, the skill if there is one) / POST { id } (write it now) ──
+      // The rule is fixed (automation-skills.mjs): the button works only when the automation is stable. The skill is written from the stored
+      // automation, never from text sent by the page, and never over a skill that exists.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/automation-skills', handler: async (req, res) => {
+        if (req.method !== 'GET' && req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        if (req.method === 'POST' && await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
+        try {
+          let id = ''
+          if (req.method === 'GET') id = String(queryOf(req).get('id') || '')
+          else {
+            let body = null
+            try { body = await readJsonBody(req, 2000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
+            id = body !== null && typeof body === 'object' ? String(body.id || '') : ''
+          }
+          if (/^[A-Za-z0-9_.-]{1,80}$/.test(id) !== true) return sendJson(res, 400, { ok: false, error: 'id required' })
+          const tasks = await kbTasksRead()
+          const task = (Array.isArray(tasks) === true ? tasks : []).find((t) => t !== null && typeof t === 'object' && t.id === id)
+          if (task === undefined) return sendJson(res, 404, { ok: false, error: 'task not found' })
+          const settings = await kbAutoSettingsRead()
+          if (req.method === 'POST') {
+            const now = autoSkillLesson(task, await kbAutoSkillsRead(), settings)
+            if (now.skill !== null) return sendJson(res, 200, { ok: false, error: 'a skill was already written', lesson: now })
+            if (now.streak < now.stableAfter) return sendJson(res, 200, { ok: false, error: 'not stable yet', lesson: now })
+            const done = await kbAutoSkillWrite(task, 'manual', now.streak)
+            if (done.ok !== true) return sendJson(res, 200, { ok: false, error: done.error, lesson: now })
+          }
+          sendJson(res, 200, { ok: true, lesson: autoSkillLesson(task, await kbAutoSkillsRead(), settings) })
+        } catch (e) {
+          try { console.error('[kybers] automation-skills route: ' + errText(e)) } catch (e2) { /* console unavailable */ }
+          sendJson(res, 500, { ok: false, error: 'internal error' })
+        }
+      } }), 'kybernos: route automation-skills')
       // ── The feedback box (V-10): POST saves one line in <DSH home>/kybernos/feedback.jsonl, GET …/export returns the file ──
       // Nothing leaves the machine. Both need the strict write guard (same-origin AND DSH's signed browser session, session-guard.mjs):
       // the box holds what a person wrote, and a local program must neither fill it nor read it. One method per path.
