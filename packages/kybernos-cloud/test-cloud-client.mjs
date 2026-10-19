@@ -1150,6 +1150,7 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
       if (world.activeOk) world.status = { ...world.status, state: { ...world.status.state, active_workspace_id: JSON.parse(init.body).workspace_id } }
     } else if (path === '/space/applied') json = { ok: true, applied: world.applied.length > 0 ? world.applied.shift() : true }
     else if (path === '/space/folder') json = world.folderAnswer
+    else if (path === '/space/for-folder') json = typeof world.forFolder === 'function' ? world.forFolder(JSON.parse(init.body)) : { ok: false }
     else if (path === '/space/create') json = world.createAnswer
     else if (path === '/invitation/preview') json = world.invitePreview
     else if (path === '/invitation/accept') {
@@ -1658,6 +1659,40 @@ ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe
     await settle(100)
     assert.equal(world.calls.filter((c) => c === 'POST /space/folder').length, 0, 'Personal has no folder and asks nothing')
     await act(async () => { foot.root.unmount() })
+
+    // A team chosen by hand is not undone by the chat that was on screen (found by scripts/check-team-folder-live.mjs, which failed a different few checks on every run). The chat a
+    // switch back to Personal opens is listed by DSH about half a second later; a click on a team inside that half second was answered by the follower's first look at that chat, which
+    // found it in another space than the team just chosen and switched BACK. The follower looks at the chat while the switch waits for the route and again when DSH lists the new chat.
+    {
+      reset('p')
+      const listeners = new Set()
+      const rows = [{ workspaceId: 'w-work', path: '/work', sessionIds: ['s-work'] }]
+      const started = []
+      dshFake.workspaces = {
+        list: { getSnapshot: () => ({ items: rows }), subscribe: (f) => { listeners.add(f); return () => listeners.delete(f) } },
+        create: async ({ path }) => { let row = rows.find((r) => r.path === path); if (row === undefined) { row = { workspaceId: 'w-acme', path, sessionIds: [] }; rows.push(row) } return row },
+      }
+      dshFake.uiWorkspace = { get mainReference() { return { sessionId: 's-fresh' } }, startSession: (id) => { started.push(id) } }
+      world.applied = [false, false, true]
+      world.forFolder = () => {
+        const active = world.status.state.active_workspace_id
+        return { ok: true, kind: 'personal', space_id: 'p', space_name: 'My workspace', active_id: active, follow: active !== 'p' }
+      }
+      const foot = await draw()
+      await settle(200)
+      await pick(foot.el, 't1')
+      rows[0].sessionIds.push('s-fresh')
+      listeners.forEach((f) => f())
+      await settle(500)
+      listeners.forEach((f) => f())
+      await settle(400)
+      assert.ok(world.calls.includes('POST /space/for-folder'), 'the follower did look at the chat that DSH listed meanwhile, and told the host')
+      assert.deepEqual(world.bodies.filter((b) => b.path === '/space/active').map((b) => b.body.workspace_id), ['t1'], 'the team the person chose is not switched back by the chat they were looking at')
+      assert.equal(world.status.state.active_workspace_id, 't1', 'and it is still the active one')
+      assert.deepEqual(started, ['w-acme'], 'the new chat opened in the team\'s folder')
+      await act(async () => { foot.root.unmount() })
+      world.forFolder = undefined
+    }
     dshFake.workspaces = undefined
     dshFake.uiWorkspace = undefined
     delete globalThis.window.localStorage

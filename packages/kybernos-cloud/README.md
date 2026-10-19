@@ -130,7 +130,9 @@ full ids stay in the detail route.
   selection of `uiWorkspace`, the session's own `cwd` from `sessions`, else its workspace's path) with `POST /space/for-folder { path, session_id }` when it opens, when the page loads on
   it and every ten seconds; the host answers which space owns that folder (the team folder or anything under it, not a sibling such as `Acme-2`; symbolic links followed; a deleted folder
   placed by its deepest existing ancestor; case folded on macOS and Windows) and whether it is the active one, and the page switches through the ordinary path (`pickSpace`: « Switching… »,
-  the route-applied wait) WITHOUT opening a chat. It acts when the chat on screen changes, never against a switch the person just made by hand. **The host is the safety net**: a turn of a
+  the route-applied wait) WITHOUT opening a chat. It acts when the chat on screen changes, never against a switch the person just made by hand: a choice by hand (a click, a team just created or joined) is told to the follower
+  (`follower.chose()` from the first moment of the click to the end of the switch), and every chat on screen then, even one DSH has not listed yet (it lists the chat a switch opens about half
+  a second later), is the person's to leave; a chat they open afterwards is followed, and a choice that failed hands the chats back. **The host is the safety net**: a turn of a
   chat the page reported in the last two minutes, claimed while the active space is not the chat's, writes the right space at once (the system prompt of that step is assembled right
   after the claim and reads it: the personal-memory cut) and the `agent/pre-step` listener holds the first model request until the switch (plan, folder, model route) is through, at most
   10 s. A chat the page never reported (an automation, Kaby's chat, a Telegram turn, a subagent) changes nothing and is billed to whichever team is active.

@@ -332,6 +332,74 @@ const REFUSED = { ok: false, error: 'turn_running', running: RUNNING }
   r.stop()
 }
 
+// ── a team the person chose by hand is never undone by a chat they were already looking at ───────────────────────────────────────────────────
+// Found by scripts/check-team-folder-live.mjs (it failed 2 or 3 checks, a different few on every run): a switch back to Personal opens a new chat, and DSH lists it about half a second
+// later (until then the follower cannot tell where it works). A click on a team inside that half second was answered by the follower's first look at the new chat, which found it in
+// another space than the team just chosen and switched BACK: the person's choice undone, a few seconds after they made it. The page now tells the follower when the person chooses
+// (`chose`): every chat on screen while the choice is made, and until it is through, is the person's to leave, not the follower's to correct; a chat they open afterwards is followed as before.
+{
+  const r = rig({ world: { sid: 's-fresh' }, active: 'acme' })
+  const end = r.follower.chose()
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('(a chat is on screen that DSH has not listed yet: nothing to report)', r.h.asked.length === 0 && r.picks.length === 0)
+  r.w.state.cwd['s-fresh'] = WORK
+  r.w.state.rows[0].sessionIds.push('s-fresh')
+  r.w.touchLists()
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('the chat that shows up while the person is choosing is reported to the host, but the choice is not undone for it', r.h.asked.length === 1 && r.picks.length === 0, { asked: r.h.asked.length, picks: r.picks })
+  end(true)
+  await r.c.advance(FOLLOW_REPORT_MS * 2 + 1)
+  check('and the choice is still not undone once it is through, however often the chat is reported', r.h.asked.length >= 3 && r.picks.length === 0, { asked: r.h.asked.length, picks: r.picks })
+  r.w.open('s-acme')
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('the chat the choice opens (in the team\'s folder) matches: nothing to switch', r.picks.length === 0, r.picks)
+  r.w.open('s-fresh')
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('going back to the chat they left is a chat change: followed as before', r.picks.length === 1 && r.picks[0].id === 'me', r.picks)
+  r.stop()
+}
+{
+  // The chat was listed before the click: the click covers it as well (the first look had not happened yet, 120 ms is not nothing).
+  const r = rig({ world: { sid: 's-work' }, active: 'acme' })
+  const end = r.follower.chose()
+  end(true)
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('a chat on screen when the person chose is theirs to leave, even if the follower had not looked at it yet', r.h.asked.length === 1 && r.picks.length === 0, { asked: r.h.asked.length, picks: r.picks })
+  r.stop()
+}
+{
+  // A choice that failed (the host refused: a reply is running, an unknown team) changed nothing: the chat on screen is followed as if the person had not clicked.
+  const r = rig({ world: { sid: 's-work' }, active: 'acme' })
+  const end = r.follower.chose()
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('(in flight: the chat is not followed)', r.picks.length === 0)
+  end(false)
+  await r.c.advance(FOLLOW_REPORT_MS + 1)
+  check('a choice that failed hands the chat back to the follower at its next look', r.picks.length === 1 && r.picks[0].id === 'me', r.picks)
+  r.stop()
+}
+{
+  // A choice that went through withdraws a switch that was waiting for a reply to end: the person's word is the later one.
+  const r = rig({ world: { sid: 's-acme' }, pickScript: [REFUSED] })
+  await r.c.advance(FOLLOW_LOOK_DELAY_MS + 1)
+  check('(a switch waits for a reply to end)', r.notes.length === 1 && r.notes[0] !== null)
+  const end = r.follower.chose()
+  end(true)
+  check('the person chooses a team and it goes through: the waiting switch and its notice are gone', r.notes[r.notes.length - 1] === null)
+  r.wait.busy = false
+  const picks = r.picks.length
+  await r.c.advance(FOLLOW_WAIT_POLL_MS * 3)
+  check('and it does not come back when the reply ends', r.picks.length === picks, { picks: r.picks.length, before: picks })
+  r.stop()
+}
+{
+  const none = rig({ noServices: true })
+  let end = null
+  try { end = none.follower.chose(); end(true); end(false) } catch (e) { end = e }
+  check('with no DSH services the choice is registered without a throw, and ending it twice is harmless', typeof end === 'function')
+  none.stop()
+}
+
 // ── nothing breaks it ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 {
   const down = rig({ world: { sid: 's-acme' } })

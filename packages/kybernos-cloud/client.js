@@ -1552,9 +1552,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
     // How often the chat on screen is reported again while the page is open: it keeps the host's sighting fresh (a minute or two), and it is how the footer learns, within seconds, that the host
     // switched the team at claim time (a message sent before the page's own switch was through): the answer names the active team.
     const FOLLOW_REPORT_MS = 10000
-    /** The chat on screen as DSH's services say it: `{ sid, path }`, `path` being the folder the chat works in (its own, else its workspace's), or null when no chat is open or DSH
-     *  has not listed it yet. `services`: `{ workspaces, uiWorkspace, sessions? }`. Never throws. */
-    const chatOnScreen = (services) => {
+    /** The id of the chat on screen (DSH's main reference, else the selection of the main view), or null. It needs no folder: DSH names a chat it has just opened before it lists it. */
+    const sidOnScreen = (services) => {
       try {
         const ui = services.uiWorkspace
         const main = ui.mainReference
@@ -1563,7 +1562,15 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           const sel = ui.selection !== null && ui.selection !== undefined && typeof ui.selection.getSnapshot === 'function' ? ui.selection.getSnapshot() : undefined
           sid = sel !== null && sel !== undefined ? sel.sessionId : undefined
         }
-        if (typeof sid !== 'string' || sid === '') return null
+        return typeof sid === 'string' && sid !== '' ? sid : null
+      } catch (e) { return null }
+    }
+    /** The chat on screen as DSH's services say it: `{ sid, path }`, `path` being the folder the chat works in (its own, else its workspace's), or null when no chat is open or DSH
+     *  has not listed it yet. `services`: `{ workspaces, uiWorkspace, sessions? }`. Never throws. */
+    const chatOnScreen = (services) => {
+      try {
+        const sid = sidOnScreen(services)
+        if (sid === null) return null
         let path = null
         try {
           const snap = services.sessions.list.getSnapshot()
@@ -1592,6 +1599,19 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       // A switch the host refused because a reply is running: `{ key, timer }`. The chat stays as it is, the notice says what is going on, and the switch is made by itself when the host
       // says no reply runs any more. It is dropped when the person moves to another chat (that chat decides) and when the follower stops.
       let waiting = null
+      // The person chooses a team by hand (`chose`): the chats that were on screen when they chose, and until the choice was through, are theirs to leave, not the follower's to
+      // correct. DSH lists a chat it has just opened (a switch opens one) only about half a second later, so a click inside that half second used to be answered by the follower's FIRST
+      // look at that chat, which found it in another space than the team just chosen and switched back (found by scripts/check-team-folder-live.mjs, which failed a different few
+      // checks on every run). `chosenOver` holds the ids of those chats; `choosing` counts the choices in flight. A chat the person opens afterwards is a chat change and is followed.
+      const chosenOver = new Set()
+      let choosing = 0
+      const coverScreen = () => {
+        try {
+          const services = deps.services()
+          const sid = services === null ? null : sidOnScreen(services)
+          if (sid !== null) chosenOver.add(sid)
+        } catch (e) { /* nothing to cover */ }
+      }
       const keyOf = (chat) => chat.sid + '\n' + chat.path
       const note = (value) => { if (typeof deps.defer === 'function') { try { deps.defer(value) } catch (e) { /* the notice is optional */ } } }
       const stopWaiting = () => {
@@ -1619,6 +1639,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
         const services = deps.services()
         const chat = services === null ? null : chatOnScreen(services)
         if (chat === null) return
+        if (choosing > 0) chosenOver.add(chat.sid)
+        else if (chosenOver.size > 0 && chosenOver.has(chat.sid) !== true) chosenOver.clear()
         if (waiting !== null && waiting.key !== keyOf(chat)) stopWaiting()
         const fresh = acted !== keyOf(chat)
         if (fresh !== true && force !== true) return
@@ -1628,6 +1650,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
         if (stopped === true || mine !== seq || answer === null || answer === undefined || answer.ok !== true) return
         if (typeof deps.seen === 'function') { try { deps.seen(answer) } catch (e) { /* the footer will read the state at its own tick */ } }
         if (fresh !== true) return
+        // The host was told about the chat (its sighting is how a message typed in it is billed to the right team), but the team the person chose stays.
+        if (chosenOver.has(chat.sid) === true) { acted = keyOf(chat); return }
         if (answer.follow !== true || typeof answer.space_id !== 'string') { acted = keyOf(chat); stopWaiting(); return }
         // The report of every ten seconds does not try again a switch that is already waiting for its reply to end.
         if (waiting !== null && waiting.key === keyOf(chat)) return
@@ -1643,6 +1667,26 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
       }
       return {
         look,
+        /** The person chooses a team by hand (a click, a team just created or joined). Call it BEFORE the switch starts: it answers `end(ok)`, to call once the choice is through (`ok`: it went
+         *  through) or refused. A choice that went through also withdraws a switch that was waiting for a reply to end (the later word is the person's); one that failed hands the chats back to
+         *  the follower. Never throws. */
+        chose () {
+          choosing += 1
+          coverScreen()
+          let ended = false
+          return (ok) => {
+            if (ended === true) return
+            ended = true
+            choosing -= 1
+            if (ok === true) {
+              coverScreen()
+              stopWaiting()
+            } else {
+              chosenOver.clear()
+              acted = null
+            }
+          }
+        },
         mount () {
           const stops = []
           const services = deps.services()
@@ -3161,6 +3205,8 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           // A switch of team in progress: `{ id, name }` from the moment the person chooses until DSH has applied the new model route (see pickSpace). Nothing else is chosen meanwhile.
           const [switching, setSwitching] = React.useState(null)
           const switchingRef = React.useRef(null)
+          // The follower of the chat on screen (block `follow-chat`), while it runs: a choice by hand is told to it.
+          const followerRef = React.useRef(null)
           // The server ended this connection (a device revoked from the account page, a new database): the signed-out row then says « Sign in again » and why, not the plain words.
           const [ended, setEnded] = React.useState(false)
           // How the last pairing ended when it was not a success (`denied`, `expired`): said in the row, which stays until the person tries again.
@@ -3228,6 +3274,15 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           // `opts.keepChat`: the switch follows the chat on screen (the host says the chat's folder belongs to that team), so no new chat opens: the person already chose where to be.
           // Answers `{ ok: true }` once the person is in the team, else `{ ok: false, error }` (the follower keeps trying; every other caller ignores the answer).
           const pickSpace = async (id, nameHint, opts) => {
+            // A choice by hand is told to the follower from the first moment to the last (the chat on screen is then the person's to leave, see `chose`); a switch that FOLLOWS a chat is the follower's own.
+            const follower = opts !== undefined && opts !== null && opts.keepChat === true ? null : followerRef.current
+            let end = null
+            try { end = follower !== null && typeof follower.chose === 'function' ? follower.chose() : null } catch (e) { end = null }
+            let out = null
+            try { out = await pickSpaceNow(id, nameHint, opts) } finally { if (end !== null) end(out !== null && out !== undefined && out.ok === true) }
+            return out
+          }
+          const pickSpaceNow = async (id, nameHint, opts) => {
             const keepChat = opts !== undefined && opts !== null && opts.keepChat === true
             if (switchingRef.current !== null || typeof id !== 'string') return { ok: false, error: 'busy_switching' }
             const known = (Array.isArray(state.workspaces) ? state.workspaces : []).filter((w) => w !== null && w.id === id)[0]
@@ -3459,8 +3514,9 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
                 timers: followTimers,
               })
               stop = follower.mount()
+              followerRef.current = follower
             } catch (e) { stop = null }
-            return () => { if (typeof stop === 'function') stop() }
+            return () => { followerRef.current = null; if (typeof stop === 'function') stop() }
           }, [phase])
 
           const openAndConnect = () => { setPairNote(null); setAutoStart(true); setOpen(true) }
@@ -3487,13 +3543,18 @@ html[data-kb-chat-fold="1"][data-kb-chat-fold] [data-slot="conversation.composer
           }, [phase, activeSpace])
           // A team that was created and took over (it has a plan): the same wait on DSH's model route as a switch, then a NEW chat in its folder. One without a plan did not take over.
           const enterCreated = async (res) => {
+            let end = null
+            let done = false
             try {
               const made = res !== null && res !== undefined && res.created !== null && typeof res.created === 'object' ? res.created : null
               if (made === null || made.activated !== true || typeof made.id !== 'string') return
+              // The team took over on the host already: like a click, it is the person's choice and the chat on screen is theirs to leave.
+              try { end = followerRef.current !== null && typeof followerRef.current.chose === 'function' ? followerRef.current.chose() : null } catch (e) { end = null }
               rememberPersonalNow()
               await awaitRoute(made.id)
+              done = true
               enterChat(res.state, made.id)
-            } catch (e) { /* the team is made and active: the chat is the person's to open */ }
+            } catch (e) { /* the team is made and active: the chat is the person's to open */ } finally { if (end !== null) end(done) }
           }
           // A team that was created WITHOUT a plan did not take over (the host left the person where they were): say so, and offer its plan page.
           const announceCreated = (res) => {
