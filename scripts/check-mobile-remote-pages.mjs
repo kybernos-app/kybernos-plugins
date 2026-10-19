@@ -257,7 +257,8 @@ try {
   await sleep(1500)
   check('picking Skills closes the drawer by itself', (await drawerCollapsed()) === true)
   // 4e. the page loads (no skeleton left after a while)
-  const loaded = await until(P, `(() => { const d = ${FD}; const t = d.body ? d.body.innerText : ''; const m = /(\\d+) of (\\d+) active/.exec(t); return !!m && Number(m[2]) > 0 })()`, 30000)
+  // The page has two faces: « N of M active » on Yours, and, since the Skills page was redone, the Featured landing (« Picked by Kybernos… »): either one means it has loaded.
+  const loaded = await until(P, `(() => { const d = ${FD}; const t = d.body ? d.body.innerText : ''; const m = /(\\d+) of (\\d+) active/.exec(t); return (!!m && Number(m[2]) > 0) || /Picked by Kybernos/.test(t) })()`, 30000)
   const skillsText = await nodeJs(`d.body.innerText.replace(/\\s+/g, ' ').slice(0, 260)`)
   await shot(P, '6-skills-phone')
   check('the Skills page loads', loaded === true, skillsText)
@@ -288,7 +289,7 @@ try {
   await openDrawer()
   const row3 = await nodeJs(`(() => { const e = Array.from(d.querySelectorAll('[data-slot="sidebar"] button, [data-slot="sidebar"] a')).find((x) => /^Skills/i.test((x.innerText || '').trim()) && x.getBoundingClientRect().width > 0); if (!e) return null; const r = e.getBoundingClientRect(); return [Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2)] })()`)
   if (Array.isArray(row3)) await tapAt(row3[0], row3[1])
-  const loaded2 = await until(P, `(() => { const d = ${FD}; const t = d.body ? d.body.innerText : ''; const m = /(\\d+) of (\\d+) active/.exec(t); return !!m && Number(m[2]) > 0 })()`, 30000)
+  const loaded2 = await until(P, `(() => { const d = ${FD}; const t = d.body ? d.body.innerText : ''; const m = /(\\d+) of (\\d+) active/.exec(t); return (!!m && Number(m[2]) > 0) || /Picked by Kybernos/.test(t) })()`, 30000)
   await shot(P, '7-skills-after-restart')
   check('and the Skills page loads after it', loaded2 === true, await nodeJs(`d.body.innerText.replace(/\\s+/g, ' ').slice(0, 200)`))
   void beforeRestart
