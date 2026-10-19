@@ -50,7 +50,7 @@ check('Skills & tools holds the skills, the tools, the connectors and the web se
 check('Memory & context holds Memory & Lessons first, then what stays on this computer (Kybernos), then the Atlas', inOrder(inGroup('memory'), ['memory & lessons', 'kybernos', 'atlas']))
 check('Voice & calls holds Voice and Calls', inOrder(inGroup('voice'), ['voice', 'calls']))
 check('Interface holds Appearance, Theme and Language (the three pages that were drawn one step in under Appearance)', inOrder(inGroup('look'), ['appearance', 'theme', 'language']))
-check('Devices & cloud holds the servers, the cloud computers and the phone link', inOrder(inGroup('devices'), ['servers', 'cloud computers', 'remote control']))
+check('Devices & cloud holds the servers, the cloud computers and the phone link', inOrder(inGroup('devices'), ['servers', 'cloud computers', 'phone and channels']))
 check('System holds the Suite and the shell\'s Built-in plugins, and About closes it', inOrder(inGroup('system'), ['kybernos suite', 'built-in plugins', 'about']))
 check('every page of the menu has exactly one group (none is lost, none is twice)', [...PAGE_TITLES].every((t) => GROUPES.filter((g) => g.mots.indexOf(t) >= 0).length === 1), [...PAGE_TITLES].filter((t) => GROUPES.filter((g) => g.mots.indexOf(t) >= 0).length !== 1))
 check('About is the one page nobody groups with the others: it closes the list, after the folds', where('about') === 8)
@@ -120,7 +120,7 @@ check('every one of them has its own icon in ICONES (no gear)', noIcon.length ==
 const noGroup = [...ids].filter((id) => navKeys[id] !== undefined && !groupWords.has(navKeys[id]))
 check('every one of them sits in a section (none falls to the tail of the menu)', noGroup.length === 0, noGroup.map((id) => id + ' -> ' + navKeys[id]))
 const mobile = SRC.length > 0 ? readFileSync(join(pkgs, 'kybernos-mobile', 'client.js'), 'utf8') : ''
-check('the phone page is called « Remote Control » in the nav and as its title', /label: 'Remote Control'/.test(mobile) && /kbmr-title' \}, 'Remote Control'/.test(mobile))
+check('the phone page is called « Phone and channels » in the nav and as its title, in both languages', /label: kt\('Téléphone et canaux', 'Phone and channels'\)/.test(mobile) && /const TITLE = \(\) => kt\('Téléphone et canaux', 'Phone and channels'\)/.test(mobile) && /'kbpc-title'/.test(mobile))
 const free = readFileSync(join(pkgs, 'kybernos-free-llms', 'client.js'), 'utf8')
 check('the free models page does not put a provider name in its title', !/'kfl\.(page\.)?titre': \{[^}]*OpenCode/.test(free))
 

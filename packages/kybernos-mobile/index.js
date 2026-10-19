@@ -80,7 +80,7 @@ export function serveSheet (req, res, file = CSS_FILE) {
 }
 
 // ── The remote half: QR pairing and the relay link ───────────────────────────────────────────────────────────────────
-// Its routes are the person's gestures (Settings › Remote Control and the sidebar's phone panel). They are registered here,
+// Its routes are the person's gestures (the « Phone and channels » screen: the account menu's window and Settings › Phone and channels). They are registered here,
 // synchronously and behind the Host and Origin fences, but their answers come from `remote-mount.mjs`, loaded lazily
 // and inside its own try/catch: a failure there can never reach the phone layout above or stop DSH from starting.
 export const REMOTE_PREFIX = '/kybernos-mobile/remote/'

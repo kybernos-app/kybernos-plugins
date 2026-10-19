@@ -241,6 +241,54 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
     ok('Telegram has one switch, a real one: role, state and name', sw.props.role === 'switch' && sw.props['aria-checked'] === 'false' && sw.props['aria-label'] === 'Telegram' && sw.props.disabled === false && textOf(rows[0]).includes('Pas connecté'))
   }
 
+  // ── the column of the « Phone and channels » screen: the same doors, told honestly ──
+  reset(); set({ home: null })
+  {
+    const col = ui(T.views.ChannelsColumn)
+    const rowOf = (id) => one(col, 'kybernos-kyber-' + id)
+    ok('the column is headed with the assistant\'s name and says that only Kaby answers, computer off or not, and that a messaging app gives no control of the computer',
+      textOf(one(col, 'kybernos-kyber-column-title')) === 'Parler à Kaby sur une messagerie' && /Kaby seulement\./.test(textOf(one(col, 'kybernos-kyber-column-rights'))) && /même quand ton ordinateur est éteint/.test(said(col)) && /ne donne jamais le contrôle de l’ordinateur/.test(said(col)))
+    ok('four rows in this order: Telegram, WhatsApp, WeChat, iMessage',
+      (() => { const order = nodes(col).map((n) => n.props['data-kb']).filter((k) => ['kybernos-kyber-tg-row', 'kybernos-kyber-chan-whatsapp', 'kybernos-kyber-chan-wechat', 'kybernos-kyber-chan-imessage'].includes(k)); return order.join() === 'kybernos-kyber-tg-row,kybernos-kyber-chan-whatsapp,kybernos-kyber-chan-wechat,kybernos-kyber-chan-imessage' })())
+    ok('WhatsApp is a beta, and says it is not available on this server (no server announces it)', /WhatsApp/.test(textOf(rowOf('chan-whatsapp'))) && /Bêta/.test(textOf(rowOf('chan-whatsapp'))) && /Pas encore disponible sur ce serveur/.test(textOf(rowOf('chan-whatsapp'))) && rowOf('chan-whatsapp').props['data-state'] === 'soon')
+    ok('WeChat and iMessage say « Bientôt »; iMessage says it is for Macs', /Bientôt/.test(textOf(rowOf('chan-wechat'))) && /Bientôt/.test(textOf(rowOf('chan-imessage'))) && /Réservé aux Mac/.test(textOf(rowOf('chan-imessage'))))
+    ok('the three later rows have a switch that is off, greyed, named, and does nothing', ['whatsapp', 'wechat', 'imessage'].every((id) => { const sw = one(col, 'kybernos-kyber-' + id + '-switch'); return sw !== undefined && sw.props.role === 'switch' && sw.props['aria-checked'] === 'false' && sw.props.disabled === true && typeof sw.props.onClick !== 'function' }))
+    ok('and nothing to press or follow on those rows: no button, no link', ['chan-whatsapp', 'chan-wechat', 'chan-imessage'].every((k) => walk(rowOf(k)).every((n) => (n.tag !== 'a') && (n.tag !== 'button' || n.props.role === 'switch'))))
+    ok('the foot line says that several apps share one conversation and one memory', /plusieurs messageries/.test(textOf(one(col, 'kybernos-kyber-column-foot'))) && /même mémoire/.test(textOf(one(col, 'kybernos-kyber-column-foot'))))
+    ok('Telegram has the same row and the same working switch as in the strip', one(col, 'kybernos-kyber-tg-switch').props['aria-checked'] === 'false' && one(col, 'kybernos-kyber-tg-switch').props.disabled === false)
+    // a server that says it has WhatsApp changes the sentence, and still offers nothing (linking is not built here)
+    T.state.view = T.derive({ ok: true, connected: true, telegram: { configured: true, enabled: true, bot: 'kybernos_bot', linked: null }, whatsapp: { configured: true, enabled: true }, home: null }, server)
+    const ann = ui(T.views.ChannelsColumn)
+    ok('a server that announces WhatsApp: the line says so, the row is still inert', /Ce serveur le propose/.test(textOf(one(ann, 'kybernos-kyber-chan-whatsapp'))) && one(ann, 'kybernos-kyber-chan-whatsapp').props['data-state'] === 'announced' && one(ann, 'kybernos-kyber-whatsapp-switch').props.disabled === true)
+    T.state.view = T.derive({ ok: true, connected: true, telegram: { configured: true, enabled: true, bot: 'kybernos_bot', linked: null }, whatsapp: { configured: true, enabled: false }, home: null }, server)
+    ok('a WhatsApp that is configured but not enabled is not announced', T.state.view.whatsapp.state === 'off')
+  }
+  reset(); set({ tg: { configured: false, enabled: false, bot: null }, home: null, srv: server })
+  {
+    const col = ui(T.views.ChannelsColumn)
+    ok('on a server with no Telegram bot the column says why, on the row, and the switch is greyed', /n’a pas de bot Telegram/.test(textOf(one(col, 'kybernos-kyber-tg-row'))) && one(col, 'kybernos-kyber-tg-switch').props.disabled === true)
+    T.state.view = T.derive({ ok: true, connected: false }, server)
+    const out = ui(T.views.ChannelsColumn)
+    ok('signed out: the column keeps its heading, asks to sign in, and lists no channel', textOf(one(out, 'kybernos-kyber-column-title')) === 'Parler à Kaby sur une messagerie' && /Connecte-toi à Kybernos/.test(said(out)) && byKb(out, 'kybernos-kyber-tg-row').length === 0)
+    T.state.view = null
+    ok('before anything was read it says it is reading', /Lecture/.test(said(ui(T.views.ChannelsColumn))))
+  }
+  reset(); set({ home: null })
+  answer = (u) => (u.endsWith('/telegram/pairing') ? { ok: true, id: '0f3b1b72-1111-4222-8333-444455556666', link: 'https://t.me/kybernos_bot?start=pair_abc', bot: 'kybernos_bot', expires_at: soonFromNow(300), qr: { size: 21, modules: Array.from({ length: 21 }, () => '101010101010101010101') } } : { ok: true })
+  {
+    await press(ui(T.views.ChannelsColumn), 'kybernos-kyber-tg-switch')
+    ok('from the column the switch asks the host for a code, one POST, as in the strip', calls.length === 1 && calls[0].method === 'POST' && calls[0].url === '/kybernos-cloud/telegram/pairing', JSON.stringify(calls))
+    const col = ui(T.views.ChannelsColumn)
+    const order = nodes(col).map((n) => n.props['data-kb'])
+    ok('the code (QR, steps, the bot link) sits right under the Telegram row and above WhatsApp', byKb(col, 'kybernos-kyber-qr').length === 1 && one(col, 'kybernos-kyber-open').props.href === 'https://t.me/kybernos_bot?start=pair_abc' && order.indexOf('kybernos-kyber-telegram') > order.indexOf('kybernos-kyber-tg-row') && order.indexOf('kybernos-kyber-telegram') < order.indexOf('kybernos-kyber-chan-whatsapp'))
+    ok('the strip shows the very same pairing (one pairing, wherever it is looked at)', byKb(ui(T.views.Strip), 'kybernos-kyber-qr').length === 1)
+    calls.length = 0
+    await press(col, 'kybernos-kyber-tg-switch')
+    ok('and the same switch cancels it', calls.length === 1 && calls[0].url === '/kybernos-cloud/telegram/pairing/cancel' && byKb(ui(T.views.ChannelsColumn), 'kybernos-kyber-telegram').length === 0)
+  }
+  ok('the seam hands the column to the screen that draws it', /ChannelsColumn,\n/.test(src) && /window\.__KB_KYBER__ = \{/.test(src))
+  reset(); set({ home: null })
+
   // ── turning Telegram on: the code is asked for now, shown under the tiles, polled, and cancelled by the same switch ──
   reset(); set({ home: null })
   answer = (u) => (u.endsWith('/telegram/pairing') ? { ok: true, id: '0f3b1b72-1111-4222-8333-444455556666', link: 'https://t.me/kybernos_bot?start=pair_abc', bot: 'kybernos_bot', expires_at: soonFromNow(300), qr: { size: 21, modules: Array.from({ length: 21 }, () => '101010101010101010101') } } : { ok: true })
