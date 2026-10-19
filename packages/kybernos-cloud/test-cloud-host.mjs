@@ -2013,13 +2013,36 @@ try {
       assert.equal(lines.length, 1)
       assert.deepEqual([lines[0].channel, lines[0].body, lines[0].asked, lines[0].tools], ['chat', 'computer', 'Qu\'as-tu fait aujourd\'hui ?', { kaby_journal: 1 }])
       assert.equal(lines[0].refused, 7, 'the refusals of the turn are counted: 1 + 4 + 2')
+      // A refusal is a refusal: when the person said no to a write of memory in this turn, the end-of-turn capture does not write what that call would have written
+      // (measured on the real DSH: the card was refused and the same fact appeared in the account a second later, from the capture).
+      llmEnabled = true
+      captureFacts = [{ content: 'Le garage de l\'utilisateur s\'appelle Garage Test pour tous les rendez-vous de la voiture', kind: 'fact' }]
+      const wait = async (status) => { const fin = Date.now() + 5000; while (mod.lastCapture.status !== status && Date.now() < fin) await new Promise((r) => setTimeout(r, 25)) }
+      const longTurn = [{ role: 'user', content: [{ type: 'text', text: 'Retiens ceci : mon garage s\'appelle Garage Test. ' + 'x'.repeat(120) }] }, { role: 'assistant', content: [{ type: 'text', text: 'Fait.' }] }]
+      const before = memories.length
+      outcome = 'denied'
+      assert.equal((await run('memory_write', { content: 'Le garage s\'appelle Garage Test', kind: 'fact' })).kind, 'deny')
+      mod.lastCapture.status = 'avant'
+      stopping({ agent: { session: { id: KABY, deriveMessages: () => longTurn }, options: { provider: 'p', model: 'm' } }, signal: undefined })
+      await wait('refusee')
+      assert.equal(mod.lastCapture.status, 'refusee', 'the capture does not write what the person refused')
+      assert.equal(memories.length, before, 'nothing was written')
+      // The next turn, with no refusal, is captured as before.
+      mod.lastCapture.status = 'avant'
+      stopping({ agent: { session: { id: KABY, deriveMessages: () => longTurn }, options: { provider: 'p', model: 'm' } }, signal: undefined })
+      await wait('ecrit')
+      assert.equal(mod.lastCapture.status, 'ecrit', 'a turn with no refusal is captured')
+      assert.equal(memories.length, before + 1)
+      memories.length = before
+      llmEnabled = false
+      captureFacts = null
       // The tool is mounted and reads that journal.
       const tool = registeredTools.get('kaby_journal')
       assert.ok(tool !== undefined, 'kaby_journal is registered')
       const read = await tool.execute({ hours: 24 })
       assert.equal(read.ok, true)
-      assert.equal(read.count, 1)
-      assert.ok(/Qu'as-tu fait aujourd'hui/.test(read.text) && /refused 7/.test(read.text))
+      assert.equal(read.count, 3, 'the turn above and the two of the capture check')
+      assert.ok(/Qu'as-tu fait aujourd'hui/.test(read.text) && /refused 7/.test(read.text) && /refused 1/.test(read.text))
     } finally {
       fakeApproval = undefined
       if (homeSaved === undefined) delete process.env.DSH_HOME; else process.env.DSH_HOME = homeSaved

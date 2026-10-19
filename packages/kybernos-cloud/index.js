@@ -4429,6 +4429,10 @@ const captureTurn = async (ctx, agent, signal) => {
     const sid = agent !== null && agent !== undefined && agent.session !== undefined ? agent.session.id : undefined
     const straddled = typeof sid === 'string' && teamTurns.delete(sid)
     if (teamTurns.size > 200) teamTurns.delete(teamTurns.values().next().value)
+    // The person said no to a write of memory in this turn: the capture is no way round it (it would write the same fact a second later).
+    const said = typeof sid === 'string' ? refusedTools.get(sid) : undefined
+    if (typeof sid === 'string') refusedTools.delete(sid)
+    if (said !== undefined && (said.has('memory_write') || said.has('lesson_write'))) return noteCapture('refusee', 0)
     if (straddled || spaceOf(readStateForSpace()) === 'team') return noteCapture('espace_equipe', 0)
     const state = readState()
     if (isConnected(state) !== true) return noteCapture('hors_connexion', 0)
@@ -4730,9 +4734,17 @@ const turnRootOf = (ctx, id) => {
 const turnChannels = new Map()
 /** The actions the person refused in a session since its last journal line (the gates count them). */
 const turnRefusals = new Map()
-const noteRefusal = (sessionId) => {
+/** The tools whose call the person refused, per session, until the end of the turn: a refused write of memory is not done by the capture either. */
+const refusedTools = new Map()
+const noteRefusal = (sessionId, toolName) => {
   turnRefusals.set(sessionId, (turnRefusals.get(sessionId) || 0) + 1)
   if (turnRefusals.size > 200) turnRefusals.delete(turnRefusals.keys().next().value)
+  if (typeof toolName === 'string') {
+    const set = refusedTools.get(sessionId) || new Set()
+    set.add(toolName)
+    refusedTools.set(sessionId, set)
+    if (refusedTools.size > 200) refusedTools.delete(refusedTools.keys().next().value)
+  }
 }
 
 // ── Kaby's journal: one line per turn of its own, written at the end of the turn ─────────────────────────────────
@@ -4801,7 +4813,7 @@ const turnGate = (ctx) => async (exec, next) => {
   if (root === null) return next()
   const name = String((exec && exec.name) || '')
   if (TURN_GATE_SAFE_TOOLS.has(name) || turnAllowAll.has(root)) return next()
-  const refuse = (why) => { noteRefusal(root); return { kind: 'deny', reason: 'The person did not allow this action (' + why + '). Do not try it again: say so in your answer.' } }
+  const refuse = (why) => { noteRefusal(root, name); return { kind: 'deny', reason: 'The person did not allow this action (' + why + '). Do not try it again: say so in your answer.' } }
   const jobId = turnJobs.get(root)
   if (jobId === undefined) return refuse('it could not be asked')
   const subject = turnApprovalSubject(exec)
@@ -4844,7 +4856,7 @@ const nativeGate = (ctx) => async (exec, next) => {
   if (!NATIVE_ASK_TOOLS.has(name)) return next()
   const root = nativeRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
   if (root === null) return next()
-  const refuse = (why) => { noteRefusal(root); return { kind: 'deny', reason: 'The person did not allow this action (' + why + '). Do not try it again: say so in your answer.' } }
+  const refuse = (why) => { noteRefusal(root, name); return { kind: 'deny', reason: 'The person did not allow this action (' + why + '). Do not try it again: say so in your answer.' } }
   const approval = ctx.get('approval')
   if (approval === undefined || approval === null || typeof approval.request !== 'function') return refuse('it could not be asked')
   let outcome = 'unavailable'
