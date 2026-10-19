@@ -54,13 +54,16 @@ works on.
   `kybernos-cloud:servers` window event the footer answers by opening Settings › Servers), and the **code panel** drawn right under the row: the code (QR, three steps,
   « Open Telegram », the time left, « Cancel », and « no camera or no app? »: the same token as a command to write to the bot by hand, `/start pair_<token>`, with a copy
   button; it never leaves DSH for the console), then who Telegram says it is while the person confirms there; expired, refused, « already another account's », « made by the bot »
-  and « too many tries » are its own cards; and the question before disconnecting), **WhatsApp** (a *Beta* chip and « Not available on this server yet »: no server has the door; a host
-  that forwards a `whatsapp` object like `telegram` — `configured` and `enabled` — changes the line to « This server offers it », and the row stays inert because linking is not built
-  here), **WeChat** and **iMessage** (« Soon »; iMessage « Mac only »). The three later rows keep an off, greyed switch. The strip shows the same pairing as a state (one store: a code
+  and « too many tries » are its own cards; and the question before disconnecting), **WhatsApp** (a *Beta* chip, the beta bridge of ADR 0053 § 13.8: one number that Kybernos owns, linked to the server by a separate service. The row is
+  « Not available on this server yet » while the host's `whatsapp` object is missing or off, « not reachable » while the server has the door but no bridge is open (`available: false`),
+  and otherwise has the same switch and the same panel as Telegram's, on WhatsApp's own routes: the code is the number's `wa.me` link with the pairing message already typed (QR, three
+  steps — scan, send the typed message, answer **1** to Kaby's question — « Open WhatsApp », the time left, and « no camera or no app? »: the message `pair_<token>` to write by hand to the
+  number); connected, the row says who and that Kaby answers within 24 hours of the person's message — WhatsApp's own rule —, and the switch asks before it disconnects. One state per door:
+  `state.wa` holds WhatsApp's pairing, `state` Telegram's, and `slotOf(channel)` picks one), **WeChat** and **iMessage** (« Soon »; iMessage « Mac only »). The three later rows keep an off, greyed switch. The strip shows the same pairing as a state (one store: a code
   started in the window reads « Code to scan » on the strip's row).
 
 The bundle talks only to `kybernos-cloud`'s routes (`/kybernos-cloud/kyber`, `/telegram/pairing[...]`,
-`/telegram/unlink`, `/kyby/computer`, `/kyby/native[/set]`, `/computer/*`, `/console/link`), which add the account's token; the QR is computed there.
+`/telegram/unlink`, `/whatsapp/pairing[...]`, `/whatsapp/unlink`, `/kyby/computer`, `/kyby/native[/set]`, `/computer/*`, `/console/link`), which add the account's token; the QR is computed there.
 No engine patch. The assistant's name is one constant (`NAME`) here and the label `kbui.kyber` in kybernos-plugin.
 
 Tests, without DSH: `node packages/kybernos-kyber/test-client.mjs` (the model, and the real views rendered with a stub React, with `fetch` and timers recorded),

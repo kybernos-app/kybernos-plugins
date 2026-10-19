@@ -213,13 +213,14 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
   const press = async (tree, kb, arg) => { const n = one(tree, kb); if (n === undefined) throw new Error('no ' + kb); await n.props.onClick(arg); await flush() }
 
   const reset = () => {
-    Object.assign(T.state, { view: null, pairing: null, starting: false, confirmDisc: false, busy: '', computerError: '', stripPref: null, kybySid: null, where: null })
+    Object.assign(T.state, { view: null, pairing: null, starting: false, confirmDisc: false, showCode: false, copied: false, busy: '', computerError: '', stripPref: null, kybySid: null, where: null })
+    Object.assign(T.state.wa, { pairing: null, starting: false, confirmDisc: false, showCode: false, copied: false })
     calls.length = 0; timers.length = 0; stored.clear(); opened.length = 0; answer = () => ({ ok: true })
     T.listeners.clear()
   }
   const set = (o) => {
     T.state.view = T.derive({ ok: true, connected: true,
-      telegram: Object.assign({ configured: true, enabled: true, bot: 'kybernos_bot', linked: null }, o.tg || {}),
+      telegram: Object.assign({ configured: true, enabled: true, bot: 'kybernos_bot', linked: null }, o.tg || {}), whatsapp: o.wa,
       home: o.home === undefined ? null : o.home, computers: o.computers || [] }, o.srv || server)
   }
   const setK = (telegram, extra) => {
@@ -282,16 +283,22 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
       textOf(one(col, 'kybernos-kyber-column-title')) === 'Parler à Kaby sur une messagerie' && /Kaby seulement\./.test(textOf(one(col, 'kybernos-kyber-column-rights'))) && /même quand ton ordinateur est éteint/.test(said(col)) && /ne donne jamais le contrôle de l’ordinateur/.test(said(col)))
     ok('four rows in this order: Telegram, WhatsApp, WeChat, iMessage',
       (() => { const order = nodes(col).map((n) => n.props['data-kb']).filter((k) => ['kybernos-kyber-tg-row', 'kybernos-kyber-chan-whatsapp', 'kybernos-kyber-chan-wechat', 'kybernos-kyber-chan-imessage'].includes(k)); return order.join() === 'kybernos-kyber-tg-row,kybernos-kyber-chan-whatsapp,kybernos-kyber-chan-wechat,kybernos-kyber-chan-imessage' })())
-    ok('WhatsApp is a beta, and says it is not available on this server (no server announces it)', /WhatsApp/.test(textOf(rowOf('chan-whatsapp'))) && /Bêta/.test(textOf(rowOf('chan-whatsapp'))) && /Pas encore disponible sur ce serveur/.test(textOf(rowOf('chan-whatsapp'))) && rowOf('chan-whatsapp').props['data-state'] === 'soon')
+    ok('WhatsApp is a beta, and says it is not available on this server (no server announces it)', /WhatsApp/.test(textOf(rowOf('chan-whatsapp'))) && /Bêta/.test(textOf(rowOf('chan-whatsapp'))) && /Pas encore disponible sur ce serveur/.test(textOf(rowOf('chan-whatsapp'))) && rowOf('chan-whatsapp').props['data-state'] === 'off')
     ok('WeChat and iMessage say « Bientôt »; iMessage says it is for Macs', /Bientôt/.test(textOf(rowOf('chan-wechat'))) && /Bientôt/.test(textOf(rowOf('chan-imessage'))) && /Réservé aux Mac/.test(textOf(rowOf('chan-imessage'))))
-    ok('the three later rows have a switch that is off, greyed, named, and does nothing', ['whatsapp', 'wechat', 'imessage'].every((id) => { const sw = one(col, 'kybernos-kyber-' + id + '-switch'); return sw !== undefined && sw.props.role === 'switch' && sw.props['aria-checked'] === 'false' && sw.props.disabled === true && typeof sw.props.onClick !== 'function' }))
+    ok('the three rows have a switch that is off, greyed and named; WeChat and iMessage have nothing behind it', ['whatsapp', 'wechat', 'imessage'].every((id) => { const sw = one(col, 'kybernos-kyber-' + id + '-switch'); return sw !== undefined && sw.props.role === 'switch' && sw.props['aria-checked'] === 'false' && sw.props.disabled === true && (id === 'whatsapp' || typeof sw.props.onClick !== 'function') }))
+    calls.length = 0
+    await press(col, 'kybernos-kyber-whatsapp-switch')
+    ok('and WhatsApp\'s greyed switch asks for nothing even if it is pressed', calls.length === 0 && T.state.wa.pairing === null && T.state.wa.starting === false)
     ok('and nothing to press or follow on those rows: no button, no link', ['chan-whatsapp', 'chan-wechat', 'chan-imessage'].every((k) => walk(rowOf(k)).every((n) => (n.tag !== 'a') && (n.tag !== 'button' || n.props.role === 'switch'))))
     ok('the foot line says that several apps share one conversation and one memory', /plusieurs messageries/.test(textOf(one(col, 'kybernos-kyber-column-foot'))) && /même mémoire/.test(textOf(one(col, 'kybernos-kyber-column-foot'))))
     ok('Telegram has the same row and the same working switch as in the strip', one(col, 'kybernos-kyber-tg-switch').props['aria-checked'] === 'false' && one(col, 'kybernos-kyber-tg-switch').props.disabled === false)
-    // a server that says it has WhatsApp changes the sentence, and still offers nothing (linking is not built here)
-    T.state.view = T.derive({ ok: true, connected: true, telegram: { configured: true, enabled: true, bot: 'kybernos_bot', linked: null }, whatsapp: { configured: true, enabled: true }, home: null }, server)
+    // a server that has the door but whose bridge is not open: the row says so and stays greyed
+    T.state.view = T.derive({ ok: true, connected: true, telegram: { configured: true, enabled: true, bot: 'kybernos_bot', linked: null }, whatsapp: { configured: true, enabled: true, available: false, linked: null }, home: null }, server)
     const ann = ui(T.views.ChannelsColumn)
-    ok('a server that announces WhatsApp: the line says so, the row is still inert', /Ce serveur le propose/.test(textOf(one(ann, 'kybernos-kyber-chan-whatsapp'))) && one(ann, 'kybernos-kyber-chan-whatsapp').props['data-state'] === 'announced' && one(ann, 'kybernos-kyber-whatsapp-switch').props.disabled === true)
+    ok('a server whose WhatsApp bridge is not open: the row says the number is not reachable, and the switch stays greyed', /n’est pas joignable/.test(textOf(one(ann, 'kybernos-kyber-chan-whatsapp'))) && one(ann, 'kybernos-kyber-chan-whatsapp').props['data-state'] === 'closed' && one(ann, 'kybernos-kyber-whatsapp-switch').props.disabled === true)
+    T.state.view = T.derive({ ok: true, connected: true, telegram: { configured: true, enabled: true, bot: 'kybernos_bot', linked: null }, whatsapp: { configured: true, enabled: true, available: true, linked: null }, home: null }, server)
+    const idle = ui(T.views.ChannelsColumn)
+    ok('with a bridge open the row is « Pas connecté » and the switch can be turned on', /Pas connecté/.test(textOf(one(idle, 'kybernos-kyber-chan-whatsapp'))) && one(idle, 'kybernos-kyber-chan-whatsapp').props['data-state'] === 'idle' && one(idle, 'kybernos-kyber-whatsapp-switch').props.disabled === false)
     T.state.view = T.derive({ ok: true, connected: true, telegram: { configured: true, enabled: true, bot: 'kybernos_bot', linked: null }, whatsapp: { configured: true, enabled: false }, home: null }, server)
     ok('a WhatsApp that is configured but not enabled is not announced', T.state.view.whatsapp.state === 'off')
   }
@@ -364,6 +371,110 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
     answer = () => ({ ok: true, id: '0f3b1b72-1111-4222-8333-444455556666', link: 'https://t.me/kybernos_bot?start=pair_new', bot: 'kybernos_bot', expires_at: soonFromNow(300), qr: { size: 21, modules: Array.from({ length: 21 }, () => '101010101010101010101') } })
     await press(ui(T.views.ChannelsColumn), 'kybernos-kyber-tg-switch')
     ok('after an expiry the switch is off, and turning it on again makes a new code', calls.length === 1 && T.state.pairing !== null && T.state.pairing.state === 'waiting' && /pair_new/.test(T.state.pairing.link))
+  }
+
+  // ── WhatsApp: the same pairing as Telegram's, on its own routes and its own state; the code is the wa.me link with the message typed, and the last step is « answer 1 » ──
+  {
+    const WA_LINK = 'https://wa.me/33600000012?text=pair_abc'
+    const WA_ID = '1a2b3c4d-1111-4222-8333-444455556666'
+    const qr = { size: 21, modules: Array.from({ length: 21 }, () => '101010101010101010101') }
+    const w = (o) => T.derive({ ok: true, connected: true, telegram: null, whatsapp: o, home: null }, server).whatsapp
+    ok('WhatsApp in the model: no door, or a door off, is off', w(undefined).state === 'off' && w(null).state === 'off' && w({ configured: true, enabled: false, available: true, linked: null }).state === 'off' && w({ configured: false, enabled: true, available: true, linked: null }).state === 'off')
+    ok('a door with no bridge open is closed, with one open it is unlinked', w({ configured: true, enabled: true, available: false, linked: null }).state === 'closed' && w({ configured: true, enabled: true, available: true, linked: null }).state === 'unlinked')
+    ok('linked: the name and the pause are carried, and a link wins over a bridge that is down', (() => { const l = w({ configured: true, enabled: true, available: false, linked: { display: 'Amina', linked_at: '2026-10-20T10:00:00.000Z', paused: true } }); return l.state === 'linked' && l.name === 'Amina' && l.paused === true })())
+
+    reset(); set({ home: null, wa: { configured: true, enabled: true, available: true, linked: null } })
+    answer = (u) => (u.endsWith('/whatsapp/pairing') ? { ok: true, id: WA_ID, link: WA_LINK, number: '33600000012', expires_at: soonFromNow(300), qr } : { ok: true })
+    await press(ui(T.views.ChannelsColumn), 'kybernos-kyber-whatsapp-switch')
+    ok('turning WhatsApp on asks the host for a code on WhatsApp\'s route, one POST, and Telegram is left alone', calls.length === 1 && calls[0].method === 'POST' && calls[0].url === '/kybernos-cloud/whatsapp/pairing' && T.state.pairing === null && T.state.starting === false, JSON.stringify(calls))
+    ok('and that pairing is polled', T.state.wa.pairing !== null && T.state.wa.pairing.state === 'waiting' && timers.some((x) => x.ms === 2000))
+    {
+      const col = ui(T.views.ChannelsColumn)
+      const panel = one(col, 'kybernos-kyber-whatsapp')
+      ok('the code is shown under WhatsApp\'s row: QR, three steps, the wa.me link, the time left; none of it for Telegram', panel !== undefined && panel.props['data-state'] === 'waiting' && byKb(col, 'kybernos-kyber-qr').length === 1 && nodes(col).filter((n) => n.tag === 'li').length === 3 && one(col, 'kybernos-kyber-wa-open').props.href === WA_LINK && /Expire dans/.test(textOf(one(col, 'kybernos-kyber-wa-left'))) && byKb(col, 'kybernos-kyber-telegram').length === 0)
+      ok('the steps say to send the typed message and to answer 1', /message déjà écrit/.test(textOf(panel)) && /Réponds 1/.test(textOf(panel)) && !/Telegram/.test(textOf(panel)))
+      ok('the row says what is expected and the switch is on', textOf(one(col, 'kybernos-kyber-chan-whatsapp')).includes('Code à scanner') && one(col, 'kybernos-kyber-whatsapp-switch').props['aria-checked'] === 'true' && one(col, 'kybernos-kyber-tg-switch').props['aria-checked'] === 'false')
+      const order = nodes(col).map((n) => n.props['data-kb'])
+      ok('the panel sits between WhatsApp\'s row and WeChat\'s', order.indexOf('kybernos-kyber-whatsapp') > order.indexOf('kybernos-kyber-chan-whatsapp') && order.indexOf('kybernos-kyber-whatsapp') < order.indexOf('kybernos-kyber-chan-wechat'))
+      // the poll reads WhatsApp's own state route (a poll runs only while a view listens)
+      T.listeners.add(() => {})
+      calls.length = 0
+      answer = (u) => (u.includes('/whatsapp/pairing/state') ? { ok: true, state: 'scanned', reason: null, sender: 'Amina' } : { ok: true })
+      timers.find((x) => x.ms === 2000).fn(); await flush()
+      ok('the poll asks WhatsApp\'s state route with the pairing\'s id', calls.length === 1 && calls[0].method === 'GET' && calls[0].url === '/kybernos-cloud/whatsapp/pairing/state?id=' + WA_ID, JSON.stringify(calls))
+      const sc = ui(T.views.ChannelsColumn)
+      ok('scanned: the sender is named, the person is asked to answer in WhatsApp, the QR is gone', one(sc, 'kybernos-kyber-whatsapp').props['data-state'] === 'scanned' && /Amina/.test(textOf(one(sc, 'kybernos-kyber-whatsapp'))) && /Réponds 1/.test(textOf(one(sc, 'kybernos-kyber-whatsapp'))) && byKb(sc, 'kybernos-kyber-qr').length === 0 && /En attente de ta réponse/.test(textOf(one(sc, 'kybernos-kyber-chan-whatsapp'))))
+      // done: the pairing is dropped and the state is read again
+      calls.length = 0
+      answer = (u) => (u.includes('/whatsapp/pairing/state') ? { ok: true, state: 'done', reason: null, sender: 'Amina' } : { ok: true })
+      timers.filter((x) => x.ms === 2000 || x.ms === 6000).slice(-1)[0].fn(); await flush()
+      ok('done: the pairing is dropped and the page reads the state again', T.state.wa.pairing === null && calls.some((c) => c.url === '/kybernos-cloud/kyber'), JSON.stringify(calls.map((c) => c.url)))
+    }
+    // the code written by hand: the message to the number, with the token of THIS pairing
+    reset(); set({ home: null, wa: { configured: true, enabled: true, available: true, linked: null } })
+    T.state.wa.pairing = { id: WA_ID, link: WA_LINK, number: '33600000012', qr, expiresAt: soonFromNow(240), state: 'waiting', reason: null, sender: '', error: '' }
+    {
+      const clip = []
+      Object.defineProperty(globalThis, 'navigator', { value: { clipboard: { writeText: async (v) => { clip.push(v) } } }, configurable: true, writable: true })
+      const before = ui(T.views.ChannelsColumn)
+      ok('a waiting WhatsApp code offers « write a code instead », closed at first', one(before, 'kybernos-kyber-wa-code').props['aria-expanded'] === 'false' && byKb(before, 'kybernos-kyber-wa-code-box').length === 0)
+      await press(before, 'kybernos-kyber-wa-code')
+      const opened = ui(T.views.ChannelsColumn)
+      ok('opened: the number to write to and the message, with the token of THIS pairing', textOf(one(opened, 'kybernos-kyber-wa-code-box')).includes('+33600000012') && textOf(one(opened, 'kybernos-kyber-wa-code-text')) === 'pair_abc' && T.state.showCode === false && T.state.wa.showCode === true)
+      await press(opened, 'kybernos-kyber-wa-code-copy')
+      ok('copy puts the message on the clipboard and says so', clip.length === 1 && clip[0] === 'pair_abc' && textOf(one(ui(T.views.ChannelsColumn), 'kybernos-kyber-wa-code-copy')) === 'Copié')
+      T.state.wa.pairing = Object.assign({}, T.state.wa.pairing, { number: '' })
+      ok('a pairing with no number offers no code (nothing invented)', byKb(ui(T.views.ChannelsColumn), 'kybernos-kyber-wa-code').length === 0)
+      T.state.wa.pairing = Object.assign({}, T.state.wa.pairing, { number: '33600000012' })
+      calls.length = 0
+      await press(ui(T.views.ChannelsColumn), 'kybernos-kyber-wa-cancel')
+      ok('cancelling tells the host on WhatsApp\'s route and closes the box with it', calls.length === 1 && calls[0].url === '/kybernos-cloud/whatsapp/pairing/cancel' && calls[0].body.id === WA_ID && T.state.wa.pairing === null && T.state.wa.showCode === false)
+    }
+    // what ended a code
+    for (const [name, pairing, state, retry, row] of [
+      ['expired', { id: 'x', state: 'expired' }, 'expired', true, 'Code expiré'],
+      ['refused in WhatsApp', { id: 'x', state: 'declined', reason: 'user' }, 'declined', true, 'Refusé dans WhatsApp'],
+      ['taken by another account', { id: 'x', state: 'declined', reason: 'taken' }, 'taken', true, 'Déjà utilisé par un autre compte'],
+      ['too many tries', { error: 'rate_limited' }, 'error', true, 'Impossible de préparer le code'],
+      ['no bridge is open any more', { error: 'not_found' }, 'closed', true, 'n’est pas joignable'],
+    ]) {
+      reset(); set({ home: null, wa: { configured: true, enabled: true, available: true, linked: null } }); T.state.wa.pairing = pairing
+      const col = ui(T.views.ChannelsColumn)
+      const panel = one(col, 'kybernos-kyber-whatsapp')
+      ok('a WhatsApp code that ended: ' + name + ' → its own panel' + (retry ? ' with a new code' : '') + ', and its row says it', panel !== undefined && panel.props['data-state'] === state && (one(col, 'kybernos-kyber-wa-retry') !== undefined) === retry && textOf(one(col, 'kybernos-kyber-chan-whatsapp')).includes(row) && !/Telegram|bot/.test(textOf(panel)), textOf(panel))
+    }
+    {
+      // the bridge was closed between the page and the click: the host answers not_found, and the page reads the state again (the row becomes « not reachable »)
+      reset(); set({ home: null, wa: { configured: true, enabled: true, available: true, linked: null } })
+      answer = (u) => (u.endsWith('/whatsapp/pairing') ? { ok: false, error: 'not_found' } : { ok: true, connected: true, telegram: null, whatsapp: { configured: true, enabled: true, available: false, linked: null } })
+      await press(ui(T.views.ChannelsColumn), 'kybernos-kyber-whatsapp-switch')
+      ok('a refused start (no bridge) reads the state again and says why', calls.some((c) => c.url === '/kybernos-cloud/kyber') && T.state.wa.pairing !== null && T.state.wa.pairing.error === 'not_found')
+    }
+    // connected: the row says who and the 24-hour rule; the switch asks before it disconnects, on WhatsApp's route
+    reset(); set({ home: null, wa: { configured: true, enabled: true, available: true, linked: { display: 'Amina', linked_at: '2026-10-20T10:00:00.000Z', paused: false } } })
+    {
+      const col = ui(T.views.ChannelsColumn)
+      ok('connected: the row says who and that Kaby answers within 24 hours', /Connecté : Amina/.test(textOf(one(col, 'kybernos-kyber-chan-whatsapp'))) && /24 h/.test(textOf(one(col, 'kybernos-kyber-chan-whatsapp'))) && one(col, 'kybernos-kyber-whatsapp-switch').props['aria-checked'] === 'true' && byKb(col, 'kybernos-kyber-whatsapp').length === 0)
+      await press(col, 'kybernos-kyber-whatsapp-switch')
+      const ask = ui(T.views.ChannelsColumn)
+      ok('turning it off asks first: nothing is sent, and the question is about WhatsApp', calls.length === 0 && T.state.wa.confirmDisc === true && T.state.confirmDisc === false && /Déconnecter WhatsApp/.test(textOf(one(ask, 'kybernos-kyber-whatsapp'))))
+      await press(ask, 'kybernos-kyber-wa-unlink-no')
+      ok('« Annuler » leaves it connected and sends nothing', T.state.wa.confirmDisc === false && calls.length === 0 && byKb(ui(T.views.ChannelsColumn), 'kybernos-kyber-whatsapp').length === 0)
+      await press(ui(T.views.ChannelsColumn), 'kybernos-kyber-whatsapp-switch')
+      answer = (u) => (u.endsWith('/whatsapp/unlink') ? { ok: true } : { ok: true, connected: true, telegram: null, whatsapp: { configured: true, enabled: true, available: true, linked: null } })
+      await press(ui(T.views.ChannelsColumn), 'kybernos-kyber-wa-unlink-yes')
+      ok('« Confirmer » disconnects on WhatsApp\'s route (one POST) and the state is read again', calls.filter((c) => c.method === 'POST').length === 1 && calls.find((c) => c.method === 'POST').url === '/kybernos-cloud/whatsapp/unlink' && calls.some((c) => c.url === '/kybernos-cloud/kyber'))
+    }
+    reset(); set({ home: null, wa: { configured: true, enabled: true, available: true, linked: { display: 'Amina', linked_at: '2026-10-20T10:00:00.000Z', paused: true } } })
+    ok('paused: the row says how to resume, in WhatsApp\'s own words', /resume/.test(textOf(one(ui(T.views.ChannelsColumn), 'kybernos-kyber-chan-whatsapp'))) && !/\/resume/.test(textOf(one(ui(T.views.ChannelsColumn), 'kybernos-kyber-chan-whatsapp'))))
+    {
+      // the two doors do not share a pairing: a Telegram code in flight does not show on WhatsApp's row, nor the other way round
+      reset(); set({ home: null, wa: { configured: true, enabled: true, available: true, linked: null } })
+      T.state.pairing = WAITING()
+      const col = ui(T.views.ChannelsColumn)
+      ok('a Telegram code in flight leaves WhatsApp\'s row idle and draws no WhatsApp panel', /Pas connecté/.test(textOf(one(col, 'kybernos-kyber-chan-whatsapp'))) && byKb(col, 'kybernos-kyber-whatsapp').length === 0 && one(col, 'kybernos-kyber-telegram') !== undefined)
+    }
+    reset()
   }
 
   // ── a connected chat: the switch asks before it disconnects ──

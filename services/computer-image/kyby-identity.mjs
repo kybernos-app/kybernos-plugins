@@ -37,6 +37,7 @@ export const VOICE = [
 /** What each channel allows. The channel line of a turn comes from here, so that it is written once. */
 export const CHANNELS = {
   telegram: 'Telegram, a chat on the person\'s phone: plain text, one idea per message, three short lines is already a lot',
+  whatsapp: 'WhatsApp, a chat on the person\'s phone: plain text, WhatsApp\'s own *bold* only when it helps, one idea per message, three short lines is already a lot',
   phone: 'a chat on the person\'s phone: plain text, short',
   chat: 'Kaby\'s own chat in DSH on the person\'s computer: plain text, light formatting, short'
 }
