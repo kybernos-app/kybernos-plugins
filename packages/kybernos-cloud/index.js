@@ -4993,7 +4993,7 @@ const kyberRoute = async () => {
     kybyChosen.status = r.status
     return { id, status: r.status }
   }
-  const [tg, ws, kyby0] = await Promise.all([get('/v1/me/telegram'), get('/v1/workspaces'), chosen()])
+  const [tg, wa, ws, kyby0] = await Promise.all([get('/v1/me/telegram'), get('/v1/me/whatsapp'), get('/v1/workspaces'), chosen()])
   const pick = kyby0.id
   const list = ws.status === 200 && ws.body !== null && Array.isArray(ws.body.workspaces) ? ws.body.workspaces : []
   const personal = list.find((w) => w !== null && typeof w === 'object' && w.personal === true)
@@ -5025,6 +5025,8 @@ const kyberRoute = async () => {
     }
   }
   const t = tg.status === 200 && tg.body !== null && typeof tg.body === 'object' ? tg.body : null
+  // WhatsApp, the beta bridge (ADR 0053 § 13.8): the same shape as Telegram's, plus whether a bridge is open right now; a server with no such door says nothing of it.
+  const w = wa.status === 200 && wa.body !== null && typeof wa.body === 'object' ? wa.body : null
   return {
     ok: true,
     connected: true,
@@ -5034,6 +5036,14 @@ const kyberRoute = async () => {
       bot: typeof t.bot_username === 'string' ? t.bot_username : null,
       linked: t.linked !== null && typeof t.linked === 'object'
         ? { display: String(t.linked.display || ''), linked_at: String(t.linked.linked_at || ''), paused: t.linked.paused === true, blocked: t.linked.blocked === true }
+        : null,
+    },
+    whatsapp: w === null ? null : {
+      configured: w.configured === true,
+      enabled: w.enabled === true,
+      available: w.available === true,
+      linked: w.linked !== null && typeof w.linked === 'object'
+        ? { display: String(w.linked.display || ''), linked_at: String(w.linked.linked_at || ''), paused: w.linked.paused === true, blocked: w.linked.blocked === true }
         : null,
     },
     computers,
@@ -5144,6 +5154,11 @@ const ROUTES = [
   { path: '/kybernos-cloud/telegram/pairing/cancel', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: (req, body) => kyby.pairingCancel(req, body) },
   { path: '/kybernos-cloud/kyby/computer', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: async (req, body) => { kybyChosen.at = 0; return kyby.computer(req, body) } },
   { path: '/kybernos-cloud/telegram/unlink', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: () => kyby.unlink() },
+  // WhatsApp, the beta bridge (ADR 0053 § 13.8): the same four calls on the other channel.
+  { path: '/kybernos-cloud/whatsapp/pairing', method: 'POST', guarded: true, strict: true, run: () => kyby.pairingStart('whatsapp') },
+  { path: '/kybernos-cloud/whatsapp/pairing/state', method: 'GET', guarded: true, run: (req) => kyby.pairingState(req, 'whatsapp') },
+  { path: '/kybernos-cloud/whatsapp/pairing/cancel', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: (req, body) => kyby.pairingCancel(req, body, 'whatsapp') },
+  { path: '/kybernos-cloud/whatsapp/unlink', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: () => kyby.unlink('whatsapp') },
   { path: '/kybernos-cloud/kyby/native', method: 'GET', guarded: true, run: kybySessionRoute },
   { path: '/kybernos-cloud/kyby/native/set', method: 'POST', guarded: true, strict: true, session: true, body: true, cap: 1024, run: kybySessionSet },
   { path: '/kybernos-cloud/computer/resume', method: 'POST', guarded: true, strict: true, run: () => computerAction('resume') },

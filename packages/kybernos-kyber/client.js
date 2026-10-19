@@ -98,9 +98,28 @@ window.__ModuleLoader__.load({
         colRights: ['Il répond même quand ton ordinateur est éteint, et te demande ton accord avant d’agir. Une messagerie ne donne jamais le contrôle de l’ordinateur.', 'It answers even when your computer is off, and asks for your OK before it acts. A messaging app never gives control of your computer.'],
         colFoot: ['Tu peux relier plusieurs messageries. Elles partagent la même conversation avec {NAME}, la même mémoire.', 'You can link several messaging apps. They share the same conversation with {NAME}, the same memory.'],
         beta: ['Bêta', 'Beta'],
-        // WhatsApp stays « not available » until a server says it has the door (`whatsapp` in the host's answer, like `telegram`); then the line says the server offers it and nothing else, because linking is not built here yet.
+        // WhatsApp (ADR 0053 § 13.8, a beta bridge: one number that Kybernos owns). The row is « not available » until a server says it has the door (`whatsapp` in the host's answer,
+        // like `telegram`), « unreachable » while the server has the door but no bridge is open, then the same pairing as Telegram's: a code to scan, the message already typed, a « 1 » to answer.
         waOff: ['Pas encore disponible sur ce serveur', 'Not available on this server yet'],
-        waAnn: ['Ce serveur le propose ; la liaison arrive dans une prochaine mise à jour.', 'This server offers it; linking arrives in a later update.'],
+        waClosed: ['Le numéro WhatsApp de {NAME} n’est pas joignable pour l’instant.', '{NAME}’s WhatsApp number is not reachable right now.'],
+        waS1: ['Scanne ce code avec l’appareil photo de ton téléphone. Sur le téléphone, touche « Ouvrir WhatsApp ».', 'Scan this code with your phone’s camera. On a phone, tap “Open WhatsApp”.'],
+        waS2: ['Dans WhatsApp, envoie le message déjà écrit.', 'In WhatsApp, send the message that is already typed.'],
+        waS3: ['Réponds 1 à la question de {NAME}.', 'Answer 1 to {NAME}’s question.'],
+        openWa: ['Ouvrir WhatsApp', 'Open WhatsApp'],
+        waWait2: ['En attente de ta réponse', 'Waiting for your answer'], waDec: ['Refusé dans WhatsApp', 'Refused in WhatsApp'],
+        waScH: ['Presque fini : réponds dans WhatsApp', 'Almost done: answer in WhatsApp'],
+        waScP: ['WhatsApp indique : {who}. Réponds 1 dans la conversation avec {NAME}.', 'WhatsApp says: {who}. Answer 1 in the chat with {NAME}.'],
+        waScWait: ['En attente de ta réponse…', 'Waiting for your answer…'],
+        waLinked: ['Connecté : {name}. {NAME} répond dans les 24 h qui suivent ton message.', 'Connected: {name}. {NAME} answers within 24 hours of your message.'],
+        waPaused: ['En pause : écris resume à {NAME} dans WhatsApp pour reprendre.', 'Paused: write resume to {NAME} in WhatsApp to resume.'],
+        waCH: ['Connecter WhatsApp', 'Connect WhatsApp'],
+        waDiscQ: ['Déconnecter WhatsApp ?', 'Disconnect WhatsApp?'],
+        waDeP: ['Tu as répondu 2 dans WhatsApp.', 'You answered 2 in WhatsApp.'],
+        waTaH: ['Ce WhatsApp est déjà connecté à un autre compte', 'This WhatsApp is already connected to another account'],
+        waTaP: ['Déconnecte-le d’abord dans l’autre compte (écris unlink à {NAME} dans WhatsApp), puis reviens ici.', 'Disconnect it from the other account first (write unlink to {NAME} in WhatsApp), then come back here.'],
+        waOfH: ['WhatsApp n’est pas disponible ici', 'WhatsApp is not available here'],
+        waDown: ['Le numéro WhatsApp n’est pas joignable pour l’instant : réessaie dans quelques minutes.', 'The WhatsApp number is not reachable right now: try again in a few minutes.'],
+        waCodeIntro: ['Dans WhatsApp, écris au +{number} :', 'In WhatsApp, write to +{number}:'],
         imMac: ['Réservé aux Mac', 'Mac only'],
         // computer
         computer: ['Ordinateur', 'Computer'],
@@ -158,9 +177,16 @@ window.__ModuleLoader__.load({
             ? { state: 'unlinked', botUrl: bot === '' ? '' : 'https://t.me/' + bot }
             : { state: 'linked', name: String(linked.display || ''), since: String(linked.linked_at || ''), paused: linked.paused === true, blocked: linked.blocked === true, botUrl: bot === '' ? '' : 'https://t.me/' + bot }
         }
-        // WhatsApp: no server has the door today, so this is `off` unless the host forwards a `whatsapp` object the way it forwards `telegram`.
+        // WhatsApp: `off` unless the host forwards a `whatsapp` object the way it forwards `telegram` (a server without the door says nothing of it); with the door, `closed` while
+        // no bridge is open (nothing can be paired or answered), `unlinked` when a code can be asked for, `linked` once the person's number is connected.
         const wa = asObj(k.whatsapp)
-        const whatsapp = { state: wa !== null && wa.configured === true && wa.enabled === true ? 'announced' : 'off' }
+        let whatsapp = { state: 'off' }
+        if (wa !== null && wa.configured === true && wa.enabled === true) {
+          const wl = asObj(wa.linked)
+          whatsapp = wl !== null
+            ? { state: 'linked', name: String(wl.display || ''), since: String(wl.linked_at || ''), paused: wl.paused === true }
+            : { state: wa.available === true ? 'unlinked' : 'closed' }
+        }
         const hm = asObj(k.home)
         // The person's cloud computers (the one linked to {NAME} is `home`): a few names, to choose among when there are several.
         const computers = (Array.isArray(k.computers) ? k.computers : [])
@@ -205,6 +231,8 @@ window.__ModuleLoader__.load({
       const state = {
         loading: true, view: null, at: 0, stripPref: null,
         pairing: null, starting: false, confirmDisc: false, showCode: false, copied: false, busy: '',
+        // WhatsApp's own pairing, the same fields as Telegram's above (`slotOf` picks the one a call is about).
+        wa: { pairing: null, starting: false, confirmDisc: false, showCode: false, copied: false },
         kybySid: null, kybyCwd: null, opening: false, openFailed: false, openError: '', computerError: '', where: null,
       }
       try { const v = window.localStorage.getItem('kybernos-kyber.strip'); if (v === '0') state.stripPref = false; else if (v === '1') state.stripPref = true } catch (e) { /* no storage */ }
@@ -251,57 +279,63 @@ window.__ModuleLoader__.load({
       }
 
       // — pairing —
-      let pairTimer = null
-      const pairLive = () => state.pairing !== null && typeof state.pairing.id === 'string' && ['waiting', 'scanned'].indexOf(state.pairing.state) >= 0
-      const schedulePairPoll = (ms) => {
-        if (pairTimer !== null) clearTimeout(pairTimer)
-        pairTimer = setTimeout(pairPoll, ms)
+      // One machine for the two doors: `ch` is 'telegram' (the default) or 'whatsapp'. Telegram's fields are the store's own, WhatsApp's are `state.wa`; the routes differ by one word.
+      const slotOf = (ch) => (ch === 'whatsapp' ? state.wa : state)
+      const routeOf = (ch) => '/kybernos-cloud/' + (ch === 'whatsapp' ? 'whatsapp' : 'telegram')
+      const pairTimers = { telegram: null, whatsapp: null }
+      const pairLive = (ch = 'telegram') => { const p = slotOf(ch).pairing; return p !== null && typeof p.id === 'string' && ['waiting', 'scanned'].indexOf(p.state) >= 0 }
+      const schedulePairPoll = (ms, ch = 'telegram') => {
+        if (pairTimers[ch] !== null) clearTimeout(pairTimers[ch])
+        pairTimers[ch] = setTimeout(() => { void pairPoll(ch) }, ms)
       }
-      const pairPoll = async () => {
-        pairTimer = null
-        if (!pairLive() || !live()) return
-        const id = state.pairing.id
-        const r = await readJson('/kybernos-cloud/telegram/pairing/state?id=' + encodeURIComponent(id))
-        if (state.pairing === null || state.pairing.id !== id) return
+      const pairPoll = async (ch = 'telegram') => {
+        pairTimers[ch] = null
+        const s = slotOf(ch)
+        if (!pairLive(ch) || !live()) return
+        const id = s.pairing.id
+        const r = await readJson(routeOf(ch) + '/pairing/state?id=' + encodeURIComponent(id))
+        if (s.pairing === null || s.pairing.id !== id) return
         if (r !== null && r.ok === true) {
-          state.pairing = Object.assign({}, state.pairing, { state: r.state, reason: r.reason, sender: r.sender })
+          s.pairing = Object.assign({}, s.pairing, { state: r.state, reason: r.reason, sender: r.sender })
           if (r.state === 'done') {
-            state.pairing = null
+            s.pairing = null
             emit()
             await load()
             return
           }
         } else if (r !== null && r.ok === false && (r.error === 'not_found' || r.error === 'not_connected')) {
-          state.pairing = { error: r.error }
+          s.pairing = { error: r.error }
         }
         emit()
-        if (pairLive()) schedulePairPoll(document.visibilityState === 'hidden' ? 6000 : 2000)
+        if (pairLive(ch)) schedulePairPoll(document.visibilityState === 'hidden' ? 6000 : 2000, ch)
       }
-      const pairStart = async () => {
-        if (state.starting) return
-        state.starting = true
-        state.pairing = null
-        state.showCode = false
+      const pairStart = async (ch = 'telegram') => {
+        const s = slotOf(ch)
+        if (s.starting) return
+        s.starting = true
+        s.pairing = null
+        s.showCode = false
         emit()
-        const r = await postJson('/kybernos-cloud/telegram/pairing', {})
-        state.starting = false
+        const r = await postJson(routeOf(ch) + '/pairing', {})
+        s.starting = false
         if (r !== null && r.ok === true && typeof r.id === 'string') {
-          state.pairing = { id: r.id, link: r.link, bot: r.bot, qr: r.qr, expiresAt: r.expires_at, state: 'waiting', reason: null, sender: '', error: '' }
-          schedulePairPoll(2000)
+          s.pairing = { id: r.id, link: r.link, bot: r.bot, number: r.number, qr: r.qr, expiresAt: r.expires_at, state: 'waiting', reason: null, sender: '', error: '' }
+          schedulePairPoll(2000, ch)
         } else {
           const code = r !== null && typeof r.error === 'string' ? r.error : 'unreachable'
-          // The account already has a Telegram (another window did it): the state is read again, the card becomes the connected one.
-          state.pairing = code === 'already_linked' ? null : { error: code }
-          if (code === 'already_linked') void load()
+          // The account already has this door linked (another window did it): the state is read again, the card becomes the connected one.
+          s.pairing = code === 'already_linked' ? null : { error: code }
+          if (code === 'already_linked' || (ch === 'whatsapp' && code === 'not_found')) void load()
         }
         emit()
       }
-      const pairCancel = async () => {
-        const id = state.pairing !== null ? state.pairing.id : null
-        state.pairing = null
-        state.showCode = false
+      const pairCancel = async (ch = 'telegram') => {
+        const s = slotOf(ch)
+        const id = s.pairing !== null ? s.pairing.id : null
+        s.pairing = null
+        s.showCode = false
         emit()
-        if (typeof id === 'string') await postJson('/kybernos-cloud/telegram/pairing/cancel', { id })
+        if (typeof id === 'string') await postJson(routeOf(ch) + '/pairing/cancel', { id })
       }
 
       // — settings, disconnect, computer —
@@ -319,10 +353,11 @@ window.__ModuleLoader__.load({
         try { window.localStorage.setItem('kybernos-kyber.where', w) } catch (e) { /* no storage: the choice holds until the page is closed */ }
         emit()
       }
-      const unlink = async () => {
-        state.confirmDisc = false
-        const r = await postJson('/kybernos-cloud/telegram/unlink', { confirm: true })
-        state.pairing = null
+      const unlink = async (ch = 'telegram') => {
+        const s = slotOf(ch)
+        s.confirmDisc = false
+        const r = await postJson(routeOf(ch) + '/unlink', { confirm: true })
+        s.pairing = null
         if (r !== null && r.ok === true) await load()
         else emit()
       }
@@ -363,15 +398,19 @@ window.__ModuleLoader__.load({
         emit()
       }
 
-      /** Telegram's switch. On asks for a code, now and not when the strip opens; off cancels a code in flight or, for a connected chat, asks to disconnect. */
-      const telegramSwitch = () => {
-        const tg = telegramStateOf()
-        if (tg === 'linked') { state.confirmDisc = true; emit(); return }
-        if (tg !== 'unlinked') return
-        if (state.starting) return
-        if (pairLive()) { void pairCancel(); return }
-        void pairStart()
+      const whatsappStateOf = () => (state.view !== null && state.view.kind === 'ok' ? state.view.whatsapp.state : null)
+      /** A door's switch. On asks for a code, now and not when the strip opens; off cancels a code in flight or, for a connected chat, asks to disconnect. */
+      const channelSwitch = (ch) => {
+        const st = ch === 'whatsapp' ? whatsappStateOf() : telegramStateOf()
+        const s = slotOf(ch)
+        if (st === 'linked') { s.confirmDisc = true; emit(); return }
+        if (st !== 'unlinked') return
+        if (s.starting) return
+        if (pairLive(ch)) { void pairCancel(ch); return }
+        void pairStart(ch)
       }
+      const telegramSwitch = () => channelSwitch('telegram')
+      const whatsappSwitch = () => channelSwitch('whatsapp')
 
       // ═══ the views ═══════════════════════════════════════════════════════════════════════════════════════════════
       const PATHS = {
@@ -483,6 +522,30 @@ window.__ModuleLoader__.load({
           right: h(React.Fragment, null, bot, h(Switch, { on, disabled: tg.state === 'off' || tg.state === 'old', label: L('telegram'), kb: 'kybernos-kyber-tg-switch', onClick: telegramSwitch })) })
       }
 
+      /** What WhatsApp's row says of itself: not offered, no bridge open, the connection, or the pairing in flight (the same sentences as Telegram's where they are not about the app). */
+      const whatsappRow = (v) => {
+        const w = v.whatsapp
+        if (w.state === 'off') return { sub: L('waOff'), key: 'off' }
+        if (w.state === 'closed') return { sub: L('waClosed'), key: 'closed' }
+        if (w.state === 'linked') return { sub: w.paused ? L('waPaused') : L('waLinked', { name: w.name }), warn: w.paused, key: 'linked' }
+        if (state.wa.starting) return { sub: L('preparing'), key: 'starting' }
+        const face = pairingFace(state.wa.pairing, Date.now())
+        if (face.kind === 'waiting') return { sub: L('tgCode'), key: 'waiting' }
+        if (face.kind === 'scanned') return { sub: L('waWait2'), key: 'scanned' }
+        if (face.kind === 'expired') return { sub: L('tgExp'), key: 'expired' }
+        if (face.kind === 'declined') return { sub: L(face.reason === 'taken' ? 'tgTak' : 'waDec'), key: 'declined' }
+        if (face.kind === 'error') return face.code === 'not_found' ? { sub: L('waClosed'), key: 'closed' } : { sub: L('pe'), key: 'error' }
+        return { sub: L('tgNone'), key: 'idle' }
+      }
+      /** WhatsApp's row on the « Phone and channels » screen: the beta badge, the state, the one switch (greyed while it cannot be turned on). */
+      const whatsappChanRow = (v) => {
+        const w = v.whatsapp
+        const row = whatsappRow(v)
+        const on = w.state === 'linked' || state.wa.starting || pairLive('whatsapp')
+        return h(ChanRow, { key: 'whatsapp', kb: 'kybernos-kyber-chan-whatsapp', stateKey: row.key, mark: BRAND.whatsapp(20), name: 'WhatsApp', badge: L('beta'), badgeWarn: true, sub: row.sub, warn: row.warn === true,
+          right: h(Switch, { on, disabled: w.state === 'off' || w.state === 'closed', label: 'WhatsApp', kb: 'kybernos-kyber-whatsapp-switch', onClick: whatsappSwitch }) })
+      }
+
       /** The first tile: where {NAME} answers besides the chat, as a STATE. Telegram says where it stands (the same sentences as its row on the « Phone and channels » screen),
        *  and the one button opens that screen, where the person links, switches or disconnects (it is offered only while the bundle that draws it is there). */
       const ChannelsTile = (props) => {
@@ -550,69 +613,78 @@ window.__ModuleLoader__.load({
             : null)
       }
 
-      /** Under Telegram's row on the « Phone and channels » screen, only while there is something to do about it: the code to scan, what happened to it, or the question before disconnecting. */
-      const TelegramPanel = (props) => {
+      /** Under a door's row on the « Phone and channels » screen, only while there is something to do about it: the code to scan, what happened to it, or the question before disconnecting.
+       *  One panel for the two doors (`props.channel`, Telegram by default); WhatsApp's controls carry the same names with `wa-` after `kybernos-kyber-`, so the two can be told apart. */
+      const ChannelPanel = (props) => {
         useTick(1000)
         const v = props.view
-        const tg = v.telegram
-        const panel = (kind, ...kids) => h('section', { className: 'kbky-panel', 'data-kb': 'kybernos-kyber-telegram', 'data-state': kind }, ...kids)
+        const ch = props.channel === 'whatsapp' ? 'whatsapp' : 'telegram'
+        const wa = ch === 'whatsapp'
+        const tg = wa ? v.whatsapp : v.telegram
+        const s = slotOf(ch)
+        const kb = (name) => (wa ? name.replace('kybernos-kyber-', 'kybernos-kyber-wa-') : name)
+        const W = (tgKey, waKey) => L(wa ? waKey : tgKey)
+        const panel = (kind, ...kids) => h('section', { className: 'kbky-panel', 'data-kb': wa ? 'kybernos-kyber-whatsapp' : 'kybernos-kyber-telegram', 'data-state': kind }, ...kids)
+        const again = () => { void pairStart(ch) }
         const note = (kind, hKey, pText, retry) => panel(kind,
           h('div', { className: 'kbky-pcol' }, h('h3', null, L(hKey)), h('p', { className: 'kbky-sub left' }, pText),
-            retry ? h('div', { className: 'kbky-actions' }, h(Btn, { primary: true, kb: 'kybernos-kyber-retry', onClick: () => { void pairStart() } }, L('newCode'))) : null))
-        if (tg.state === 'off' || tg.state === 'old') return null
+            retry ? h('div', { className: 'kbky-actions' }, h(Btn, { primary: true, kb: kb('kybernos-kyber-retry'), onClick: again }, L('newCode'))) : null))
+        if (tg.state === 'off' || tg.state === 'old' || tg.state === 'closed') return null
         if (tg.state === 'linked') {
-          if (!state.confirmDisc) return null
-          return panel('disconnect', h('div', { className: 'kbky-pcol' }, h('h3', null, L('discQ')),
+          if (!s.confirmDisc) return null
+          return panel('disconnect', h('div', { className: 'kbky-pcol' }, h('h3', null, W('discQ', 'waDiscQ')),
             h('div', { className: 'kbky-actions' },
-              h(Btn, { danger: true, kb: 'kybernos-kyber-unlink-yes', onClick: () => { void unlink() } }, L('confirm')),
-              h(Btn, { kb: 'kybernos-kyber-unlink-no', onClick: () => { state.confirmDisc = false; emit() } }, L('cancel')))))
+              h(Btn, { danger: true, kb: kb('kybernos-kyber-unlink-yes'), onClick: () => { void unlink(ch) } }, L('confirm')),
+              h(Btn, { kb: kb('kybernos-kyber-unlink-no'), onClick: () => { s.confirmDisc = false; emit() } }, L('cancel')))))
         }
-        if (state.starting) return panel('starting', h('div', { className: 'kbky-row' }, h('span', { className: 'kbky-spin', 'aria-hidden': 'true' }), h('span', { className: 'kbky-sub left' }, L('preparing'))))
-        const face = pairingFace(state.pairing, Date.now())
+        if (s.starting) return panel('starting', h('div', { className: 'kbky-row' }, h('span', { className: 'kbky-spin', 'aria-hidden': 'true' }), h('span', { className: 'kbky-sub left' }, L('preparing'))))
+        const face = pairingFace(s.pairing, Date.now())
         if (face.kind === 'none' || face.kind === 'done') return null
         if (face.kind === 'expired') return note('expired', 'exH', L('exP'), true)
         if (face.kind === 'declined') {
-          if (face.reason === 'taken') return note('taken', 'taH', L('taP'), true)
-          if (face.reason === 'botmade') return note('botmade', 'bmH', L('bmP'), false)
-          return note('declined', 'deH', L('deP'), true)
+          if (face.reason === 'taken') return note('taken', W('taH', 'waTaH'), W('taP', 'waTaP'), true)
+          if (face.reason === 'botmade' && !wa) return note('botmade', 'bmH', L('bmP'), false)
+          return note('declined', 'deH', W('deP', 'waDeP'), true)
         }
         if (face.kind === 'error') {
-          if (face.code === 'not_found') return note('off', 'ofH', L('ofP'), false)
+          if (face.code === 'not_found') return wa ? note('closed', 'waOfH', L('waDown'), true) : note('off', 'ofH', L('ofP'), false)
           if (face.code === 'unsupported') return note('old', 'oldH', L('oldWhy'), false)
-          return panel('error', h('div', { className: 'kbky-pcol' }, h('h3', null, L('cH')), h('p', { className: 'kbky-sub left' }, L(face.code === 'rate_limited' ? 'peRate' : 'pe')),
-            h('div', { className: 'kbky-actions' }, h(Btn, { primary: true, kb: 'kybernos-kyber-retry', onClick: () => { void pairStart() } }, L('retry')))))
+          return panel('error', h('div', { className: 'kbky-pcol' }, h('h3', null, W('cH', 'waCH')), h('p', { className: 'kbky-sub left' }, L(face.code === 'rate_limited' ? 'peRate' : 'pe')),
+            h('div', { className: 'kbky-actions' }, h(Btn, { primary: true, kb: kb('kybernos-kyber-retry'), onClick: again }, L('retry')))))
         }
-        const p = state.pairing
+        const p = s.pairing
         const scanned = face.kind === 'scanned'
-        const cancel = () => { void pairCancel() }
-        const tokenOf = /pair_([A-Za-z0-9]+)$/u.exec(typeof p.link === 'string' ? p.link : '')
-        const typed = tokenOf === null || typeof p.bot !== 'string' || p.bot === '' ? '' : '/start pair_' + tokenOf[1]
+        const cancel = () => { void pairCancel(ch) }
+        const tokenOf = /pair_([A-Za-z0-9_-]+)$/u.exec(typeof p.link === 'string' ? p.link : '')
+        // The same single-use token, written by hand: the person opens the bot in Telegram (any device, any app) and writes « /start pair_… », or writes « pair_… » to the number in
+        // WhatsApp. Nothing leaves DSH.
+        const typed = tokenOf === null ? '' : wa ? (typeof p.number === 'string' && p.number !== '' ? 'pair_' + tokenOf[1] : '') : (typeof p.bot !== 'string' || p.bot === '' ? '' : '/start pair_' + tokenOf[1])
         const copyCode = () => {
-          try { void navigator.clipboard.writeText(typed).then(() => { state.copied = true; emit(); setTimeout(() => { state.copied = false; emit() }, 1800) }).catch(() => { /* refused: it is on the screen */ }) } catch (e) { /* no clipboard */ }
+          try { void navigator.clipboard.writeText(typed).then(() => { s.copied = true; emit(); setTimeout(() => { s.copied = false; emit() }, 1800) }).catch(() => { /* refused: it is on the screen */ }) } catch (e) { /* no clipboard */ }
         }
         return panel(scanned ? 'scanned' : 'waiting',
           h('div', { className: 'kbky-pbody' },
             scanned ? null : h('div', { className: 'kbky-pqr' }, h(Qr, { qr: p.qr })),
             h('div', { className: 'kbky-pcol' },
-              h('h3', null, L(scanned ? 'scH' : 'cH')),
+              h('h3', null, L(scanned ? W('scH', 'waScH') : W('cH', 'waCH'))),
               scanned
-                ? h(React.Fragment, null, h('p', { className: 'kbky-sub left' }, L('scP', { who: face.sender === '' ? '…' : face.sender })),
-                  h('div', { className: 'kbky-row' }, h('span', { className: 'kbky-spin', 'aria-hidden': 'true' }), h('span', { className: 'kbky-sub left' }, L('scWait'))))
-                : h('ol', { className: 'kbky-steps' }, h('li', null, L('s1')), h('li', null, L('s2')), h('li', null, L('s3'))),
+                ? h(React.Fragment, null, h('p', { className: 'kbky-sub left' }, L(wa ? 'waScP' : 'scP', { who: face.sender === '' ? '…' : face.sender })),
+                  h('div', { className: 'kbky-row' }, h('span', { className: 'kbky-spin', 'aria-hidden': 'true' }), h('span', { className: 'kbky-sub left' }, W('scWait', 'waScWait'))))
+                : h('ol', { className: 'kbky-steps' }, h('li', null, W('s1', 'waS1')), h('li', null, W('s2', 'waS2')), h('li', null, W('s3', 'waS3'))),
               h('div', { className: 'kbky-actions' },
-                h(Btn, { primary: !scanned, href: p.link, kb: 'kybernos-kyber-open' }, BRAND.telegram(18), L('openTg')),
-                h('span', { className: 'kbky-sub left', 'data-kb': 'kybernos-kyber-left' }, L('expiresIn', { t: clock(face.left) })),
-                h('button', { type: 'button', className: 'kbky-link', 'data-kb': 'kybernos-kyber-cancel', onClick: cancel }, L(scanned ? 'notMe' : 'cancel'))),
-              !scanned && typed !== '' ? h('button', { type: 'button', className: 'kbky-link', 'data-kb': 'kybernos-kyber-code', 'aria-expanded': String(state.showCode), onClick: () => { state.showCode = !state.showCode; emit() } }, L('noCam')) : null,
-              // The same single-use token, written by hand: the person opens the bot in Telegram (any device, any app) and writes it. Nothing leaves DSH.
-              !scanned && typed !== '' && state.showCode
-                ? h('div', { className: 'kbky-codebox', 'data-kb': 'kybernos-kyber-code-box' },
-                  h('span', { className: 'kbky-sub left' }, L('codeIntro', { bot: '@' + p.bot })),
+                h(Btn, { primary: !scanned, href: p.link, kb: kb('kybernos-kyber-open') }, wa ? BRAND.whatsapp(18) : BRAND.telegram(18), W('openTg', 'openWa')),
+                h('span', { className: 'kbky-sub left', 'data-kb': kb('kybernos-kyber-left') }, L('expiresIn', { t: clock(face.left) })),
+                h('button', { type: 'button', className: 'kbky-link', 'data-kb': kb('kybernos-kyber-cancel'), onClick: cancel }, L(scanned ? 'notMe' : 'cancel'))),
+              !scanned && typed !== '' ? h('button', { type: 'button', className: 'kbky-link', 'data-kb': kb('kybernos-kyber-code'), 'aria-expanded': String(s.showCode), onClick: () => { s.showCode = !s.showCode; emit() } }, L('noCam')) : null,
+              !scanned && typed !== '' && s.showCode
+                ? h('div', { className: 'kbky-codebox', 'data-kb': kb('kybernos-kyber-code-box') },
+                  h('span', { className: 'kbky-sub left' }, wa ? L('waCodeIntro', { number: p.number }) : L('codeIntro', { bot: '@' + p.bot })),
                   h('div', { className: 'kbky-row' },
-                    h('code', { className: 'kbky-cmd', 'data-kb': 'kybernos-kyber-code-text' }, typed),
-                    h(Btn, { kb: 'kybernos-kyber-code-copy', onClick: copyCode }, L(state.copied ? 'codeCopied' : 'codeCopy'))))
+                    h('code', { className: 'kbky-cmd', 'data-kb': kb('kybernos-kyber-code-text') }, typed),
+                    h(Btn, { kb: kb('kybernos-kyber-code-copy'), onClick: copyCode }, L(s.copied ? 'codeCopied' : 'codeCopy'))))
                 : null)))
       }
+      const TelegramPanel = ChannelPanel
 
       /** Two equal tiles, the channels (a state, and the one button to the « Phone and channels » screen) and the computer. With no account or no readable server only the
        *  computer is offered, and only « this computer »: that choice needs neither. */
@@ -850,9 +922,8 @@ window.__ModuleLoader__.load({
         const head = h('h2', { className: 'kbky-colh', 'data-kb': 'kybernos-kyber-column-title' }, L('colH'))
         if (v === null) return h('div', { className: 'kbky-col', 'data-kb': 'kybernos-kyber-column' }, head, h('p', { className: 'kbky-note' }, L('loading')))
         if (v.kind !== 'ok') return h('div', { className: 'kbky-col', 'data-kb': 'kybernos-kyber-column' }, head, h('p', { className: 'kbky-note', 'data-kb': 'kybernos-kyber-column-note' }, L(v.kind)))
-        const announced = v.whatsapp.state === 'announced'
         // A row with nothing to switch yet: its switch is there, off and greyed, so the column reads as the list it will be.
-        const later = (id, name, badge, sub, warn) => h(ChanRow, { key: id, kb: 'kybernos-kyber-chan-' + id, stateKey: id === 'whatsapp' && announced ? 'announced' : 'soon', mark: BRAND[id](20), name, badge, badgeWarn: warn === true, sub,
+        const later = (id, name, badge, sub, warn) => h(ChanRow, { key: id, kb: 'kybernos-kyber-chan-' + id, stateKey: 'soon', mark: BRAND[id](20), name, badge, badgeWarn: warn === true, sub,
           right: h(Switch, { on: false, disabled: true, label: name, kb: 'kybernos-kyber-' + id + '-switch' }) })
         return h('div', { className: 'kbky-col', 'data-kb': 'kybernos-kyber-column' },
           head,
@@ -860,7 +931,8 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kbky-chlist kbky-collist' },
             telegramChanRow(v),
             h(TelegramPanel, { view: v }),
-            later('whatsapp', 'WhatsApp', L('beta'), announced ? L('waAnn') : L('waOff'), true),
+            whatsappChanRow(v),
+            h(ChannelPanel, { view: v, channel: 'whatsapp' }),
             later('wechat', 'WeChat', L('soon'), L('notYet')),
             later('imessage', 'iMessage', L('soon'), L('imMac'))),
           h('p', { className: 'kbky-cap', 'data-kb': 'kybernos-kyber-column-foot' }, L('colFoot')))
@@ -983,7 +1055,7 @@ window.__ModuleLoader__.load({
         name: 'kybernos-kyber',
         // `sidebarRightTabs` must be declared: ui-sidebar-right provides it, and without this `apply` could run before.
         inject: ['slots', 'sidebarRightTabs', 'sessions', 'workspaces', 'uiWorkspace'],
-        __test: { inKabyApp, KABY_APP_PATH, askFirst, ASK_PRESET, S, L, kt, derive, pairingFace, clock, stripIsOpen, whereOf, CSS, TYPE_ID, KIND, state, BRAND, NAME, views: { Strip, Channels, ChannelsTile, ChannelsColumn, ComputerTile, TelegramPanel, KybyDock, Page }, actions: { load, pairStart, pairCancel, unlink, setComputer, setWhere, computerAction, telegramSwitch, toggleStrip, telegramRow, settle, readSessionPointer }, listeners },
+        __test: { inKabyApp, KABY_APP_PATH, askFirst, ASK_PRESET, S, L, kt, derive, pairingFace, clock, stripIsOpen, whereOf, CSS, TYPE_ID, KIND, state, BRAND, NAME, views: { Strip, Channels, ChannelsTile, ChannelsColumn, ComputerTile, TelegramPanel, ChannelPanel, KybyDock, Page }, actions: { load, pairStart, pairCancel, unlink, setComputer, setWhere, computerAction, telegramSwitch, whatsappSwitch, channelSwitch, toggleStrip, telegramRow, whatsappRow, settle, readSessionPointer }, listeners },
         apply (ctx) {
           CTX = ctx
           // The plugin is applied again when a service it asks for comes back: the new scope replaces the sheet, and the old scope's
