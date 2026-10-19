@@ -6,7 +6,9 @@
 //   · shows the 4-digit check, waits for the person to approve on the computer, keeps its identity in IndexedDB
 //     (a non-extractable key: it cannot be exported even from this page),
 //   · then runs the computer's own DSH page in an iframe: the service worker (sw.js) sends every request of that page
-//     here, this file encrypts it for the computer, and a WebSocket shim does the same for DSH's streaming socket.
+//     here, this file encrypts it for the computer, and a WebSocket shim does the same for DSH's streaming socket,
+//   · offers to put the page on the home screen as one of two apps (the remote at /__kb/, Kaby at /__kb/kaby/: two pages,
+//     two manifests, one service worker); on an iPhone an app keeps its own storage, so it is linked by pasting the link.
 import * as e2e from '/__kb/remote-e2e.mjs'
 
 const lang = String(navigator.language || 'en').toLowerCase().startsWith('fr') ? 'fr' : 'en'
@@ -21,6 +23,17 @@ const STR = {
     errorTitle: 'Connexion impossible', unsupported: 'Ce navigateur ne gère pas les fonctions nécessaires (service worker, WebCrypto).',
     retry: 'Réessayer', lock: 'Chiffré de bout en bout. Kybernos transporte tes messages sans pouvoir les lire.',
     peerDown: 'Ordinateur hors ligne, reconnexion…', relayDown: 'Connexion perdue, reconnexion…',
+    installTitle: 'Mets Kybernos sur ton écran d\'accueil', doneTitle: 'Ton téléphone est relié', installSub: 'Il s\'ouvre alors en un geste, sans barre d\'adresse.',
+    iosTitle: 'Installe l\'app, puis relie-la', iosSub: 'Sur iPhone, une app de l\'écran d\'accueil garde ses propres données : elle se relie à ton ordinateur une seule fois.',
+    remoteName: 'Kybernos à distance', remoteDesc: 'Tout ton ordinateur, comme à son écran.', kabyName: 'Kaby', kabyDesc: 'S\'ouvre directement sur ta conversation avec Kaby.',
+    install: 'Installer', howTo: 'Comment faire', installed: 'Installée', later: 'Plus tard', next: 'Continuer', pairHere: 'Relier ici, sans installer',
+    copyLink: 'Copier le lien de liaison', copied: 'Lien copié. Il vaut 5 minutes.',
+    step1: 'Touche Partager, en bas de Safari.', step2: 'Touche « Sur l\'écran d\'accueil », puis « Ajouter ».', step3: 'Ouvre l\'icône, puis touche « Coller le lien » : l\'app se relie à ton ordinateur.',
+    stepsPaired: 'Cette icône se relie à part : copie un nouveau lien sur ton ordinateur (Téléphone et canaux › Ajouter un téléphone).',
+    chromeSteps: 'Ouvre le menu ⋮ de Chrome, puis « Installer l\'application ».',
+    paste: 'Coller le lien', pasteSub: 'Sur ton ordinateur : menu du compte › Téléphone et canaux › Copier le lien. Colle-le ici.', pasteHere: 'Colle le lien ici', pasteBad: 'Ce n\'est pas un lien de liaison de Kybernos.',
+    revokedPasteSub: 'Il a été retiré depuis l\'ordinateur. Pour le relier à nouveau, copie le lien sur l\'ordinateur et colle-le ici.',
+    kabyOfflineTitle: 'Kaby est sur ton ordinateur', kabyOfflineSub: 'Il est éteint, ou Kybernos n\'est pas ouvert. Allume-le : la connexion reprend toute seule.',
   },
   en: {
     scanTitle: 'Scan the code on your computer', scanSub: 'Open the account menu › Phone and channels on your computer and aim the camera at the code.',
@@ -32,6 +45,17 @@ const STR = {
     errorTitle: 'Cannot connect', unsupported: 'This browser lacks what is needed (service worker, WebCrypto).',
     retry: 'Try again', lock: 'End-to-end encrypted. Kybernos carries your messages and cannot read them.',
     peerDown: 'Computer offline, reconnecting…', relayDown: 'Connection lost, reconnecting…',
+    installTitle: 'Put Kybernos on your home screen', doneTitle: 'Your phone is linked', installSub: 'It then opens in one tap, with no address bar.',
+    iosTitle: 'Install the app, then link it', iosSub: 'On an iPhone, a home-screen app keeps its own data: it links to your computer once.',
+    remoteName: 'Kybernos Remote', remoteDesc: 'Your whole computer, as on its own screen.', kabyName: 'Kaby', kabyDesc: 'Opens straight on your conversation with Kaby.',
+    install: 'Install', howTo: 'How to', installed: 'Installed', later: 'Later', next: 'Continue', pairHere: 'Link here, without installing',
+    copyLink: 'Copy the pairing link', copied: 'Link copied. It lasts 5 minutes.',
+    step1: 'Tap Share, at the bottom of Safari.', step2: 'Tap “Add to Home Screen”, then “Add”.', step3: 'Open the icon, then tap “Paste the link”: the app links to your computer.',
+    stepsPaired: 'This icon links on its own: copy a new link on your computer (Phone and channels › Add a phone).',
+    chromeSteps: 'Open Chrome\'s ⋮ menu, then “Install app”.',
+    paste: 'Paste the link', pasteSub: 'On your computer: account menu › Phone and channels › Copy the link. Paste it here.', pasteHere: 'Paste the link here', pasteBad: 'That is not a Kybernos pairing link.',
+    revokedPasteSub: 'It was removed from the computer. To link it again, copy the link on the computer and paste it here.',
+    kabyOfflineTitle: 'Kaby is on your computer', kabyOfflineSub: 'It is off, or Kybernos is not open. Turn it on: the connection resumes by itself.',
   },
 }[lang]
 
@@ -40,6 +64,14 @@ const kb = (window.__kb = { state: 'start', req: 0, bytes: 0, wsOpen: 0, wsMsgs:
 const log = (s) => { kb.log.push(String(s).slice(0, 160)); if (kb.log.length > 40) kb.log.shift() }
 const te = new TextEncoder()
 const td = new TextDecoder()
+
+// ── which app this page is, and where it runs ───────────────────────────────────────────────────────────────────────
+const app = document.body.dataset.app === 'kaby' ? 'kaby' : 'remote'
+if (app === 'kaby') { STR.offlineTitle = STR.kabyOfflineTitle; STR.offlineSub = STR.kabyOfflineSub }
+const ios = /iPhone|iPad|iPod/u.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+const standalone = (typeof matchMedia === 'function' && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true
+const touch = (navigator.maxTouchPoints || 0) > 0
+const APPS = { remote: { path: '/__kb/', icon: '/__kb/icon-192.png' }, kaby: { path: '/__kb/kaby/', icon: '/__kb/kaby-192.png' } }
 
 // ── screen ───────────────────────────────────────────────────────────────────────────────────────────────────────
 function show (state, { title, sub, sas, actions } = {}) {
@@ -51,6 +83,9 @@ function show (state, { title, sub, sas, actions } = {}) {
   $('title').textContent = title || ''
   $('sub').textContent = sub || ''
   $('sas').hidden = !sas
+  $('apps').hidden = true
+  $('steps').hidden = true
+  $('pasteBox').hidden = true
   if (sas) { $('saslabel').textContent = STR.saslabel; $('sasnum').textContent = sas }
   $('locktext').textContent = STR.lock
   const box = $('actions')
@@ -101,7 +136,8 @@ function deviceLabel () {
   const ua = navigator.userAgent || ''
   const os = /iPhone/u.test(ua) ? 'iPhone' : /iPad/u.test(ua) ? 'iPad' : /Android/u.test(ua) ? 'Android' : /Mac/u.test(ua) ? 'Mac' : /Windows/u.test(ua) ? 'Windows' : 'Phone'
   const br = /EdgA?\//u.test(ua) ? 'Edge' : /CriOS|Chrome\//u.test(ua) ? 'Chrome' : /FxiOS|Firefox\//u.test(ua) ? 'Firefox' : /Safari\//u.test(ua) ? 'Safari' : ''
-  return br === '' ? os : os + ' · ' + br
+  const where = standalone ? (app === 'kaby' ? 'Kaby' : 'app') : br
+  return where === '' ? os : os + ' · ' + where
 }
 
 // ── the tunnel: requests of the DSH page, through the service worker and the shim ───────────────────────────────
@@ -167,8 +203,128 @@ async function revoked () {
   session.channel = null
   try { session.ws && session.ws.close() } catch (e) { /* closed */ }
   veil('')
-  show('revoked', { title: STR.revokedTitle, sub: STR.revokedSub })
+  show('revoked', { title: STR.revokedTitle, sub: ios || standalone ? STR.revokedPasteSub : STR.revokedSub, actions: pasteActions() })
 }
+
+
+// ── installing the page as an app ────────────────────────────────────────────────────────────────────────────────
+let deferredInstall = null
+const installedNow = new Set()
+let installCtx = null
+let stepsShown = false
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredInstall = e })
+window.addEventListener('appinstalled', () => { deferredInstall = null; installedNow.add(app); if (kb.state === 'install') drawInstall() })
+const LATER_KEY = 'kb-install-later'
+const laterRecently = () => { try { const t = Number(localStorage.getItem(LATER_KEY)); return t > 0 && Date.now() - t < 7 * 24 * 3600 * 1000 } catch (e) { return false } }
+const setLater = () => { try { localStorage.setItem(LATER_KEY, String(Date.now())) } catch (e) { /* private mode */ } }
+
+/** After a pairing: offer the install once, on a phone that is not already running the app. Resolves when the person goes on. */
+function offerInstall () {
+  if (standalone || !touch || laterRecently()) return Promise.resolve()
+  return new Promise((resolve) => { renderInstall({ link: null, done: resolve, paired: true }) })
+}
+
+function renderInstall (ctx) { installCtx = ctx; stepsShown = false; drawInstall() }
+
+function appCard (name) {
+  const card = document.createElement('div')
+  card.className = 'app'
+  const img = document.createElement('img')
+  img.src = APPS[name].icon
+  img.alt = ''
+  const text = document.createElement('div')
+  const title = document.createElement('b')
+  title.textContent = STR[name + 'Name']
+  const desc = document.createElement('span')
+  desc.textContent = STR[name + 'Desc']
+  text.append(title, desc)
+  card.append(img, text)
+  if (installedNow.has(name)) {
+    const done = document.createElement('span')
+    done.className = 'done'
+    done.textContent = STR.installed
+    card.appendChild(done)
+    return card
+  }
+  const b = document.createElement('button')
+  b.type = 'button'
+  b.className = ios ? '' : 'primary'
+  b.textContent = ios ? STR.howTo : STR.install
+  // The other app is another page (its own manifest): go there, it offers its own install.
+  b.addEventListener('click', () => { if (name !== app) location.assign(APPS[name].path + '?install=1'); else if (ios) showSteps(); else void installHere() })
+  card.appendChild(b)
+  return card
+}
+
+function drawInstall () {
+  const ctx = installCtx
+  const first = ctx.link !== null || ios
+  const actions = []
+  if (ctx.link !== null) actions.push({ label: STR.copyLink, primary: true, run: () => { void copyLink(ctx.link) } }, { label: STR.pairHere, run: ctx.done })
+  else actions.push({ label: installedNow.size > 0 ? STR.next : STR.later, primary: installedNow.size > 0, run: () => { if (installedNow.size === 0) setLater(); ctx.done() } })
+  show('install', { title: first ? STR.iosTitle : (ctx.paired === true ? STR.doneTitle : STR.installTitle), sub: first ? STR.iosSub : STR.installSub, actions })
+  const apps = $('apps')
+  apps.textContent = ''
+  apps.append(appCard('remote'), appCard('kaby'))
+  apps.hidden = false
+  if (stepsShown) fillSteps()
+}
+
+function fillSteps () {
+  const steps = $('steps')
+  steps.textContent = ''
+  const lines = ios ? [STR.step1, STR.step2, STR.step3].concat(installCtx.link === null && installCtx.paired === true ? [STR.stepsPaired] : []) : [STR.chromeSteps]
+  for (const t of lines) { const li = document.createElement('li'); li.textContent = t; steps.appendChild(li) }
+  steps.hidden = false
+}
+function showSteps () { stepsShown = true; fillSteps() }
+
+async function installHere () {
+  if (deferredInstall === null) { showSteps(); return }
+  const ev = deferredInstall
+  deferredInstall = null
+  try {
+    await ev.prompt()
+    const choice = await ev.userChoice
+    if (choice && choice.outcome === 'accepted') installedNow.add(app)
+  } catch (e) { log('install: ' + String(e.message || e)) }
+  drawInstall()
+}
+
+async function copyLink (link) {
+  try { await navigator.clipboard.writeText(link); veil(STR.copied); setTimeout(() => veil(''), 3500) } catch (e) {
+    // The clipboard is refused: show the link, selected, so that it can be copied by hand.
+    const box = $('pasteBox'); box.hidden = false; box.value = link; box.readOnly = true; box.focus(); box.select()
+  }
+}
+
+// ── linking from inside an installed app: the camera opens the browser, not the app, so the link is pasted ────────
+const pasteActions = () => (ios || standalone ? [{ label: STR.paste, primary: true, run: () => { void pasteFlow() } }] : [])
+function tryLink (text) {
+  let frag = null
+  try { frag = e2e.parsePairingFragment(new URL(String(text).trim()).hash) } catch (e) { frag = null }
+  if (frag === null) return false
+  veil('')
+  void pair(frag, { offer: false })
+  return true
+}
+async function pasteFlow () {
+  let text = ''
+  try { text = (await navigator.clipboard.readText()).trim() } catch (e) { text = '' }
+  if (text !== '' && tryLink(text)) return
+  if (text !== '') veil(STR.pasteBad)
+  const box = $('pasteBox')
+  box.readOnly = false
+  box.value = ''
+  box.placeholder = STR.pasteHere
+  box.hidden = false
+  box.focus()
+}
+$('pasteBox').addEventListener('input', (ev) => {
+  const v = ev.target.value.trim()
+  if (ev.target.readOnly || v === '') { veil(''); return }
+  if (!tryLink(v)) veil(STR.pasteBad)
+})
 
 // ── handshake drivers ────────────────────────────────────────────────────────────────────────────────────────────
 /** A message box that keeps what arrived BEFORE somebody waited for it (the computer answers fast: its `ready` frame can
@@ -273,7 +429,7 @@ function dropTunnel () {
   session.headed.clear()
 }
 function onPeerDown () { dropTunnel(); if (kb.state === 'running') { veil(STR.peerDown); scheduleResume() } }
-function onRelayDown () { session.channel = null; dropTunnel(); if (kb.state === 'running') { veil(STR.relayDown); scheduleResume() } else if (kb.state === 'connecting') scheduleResume() }
+function onRelayDown () { session.channel = null; dropTunnel(); if (kb.state === 'running') { veil(STR.relayDown); scheduleResume() } else if (kb.state === 'connecting' || kb.state === 'install') scheduleResume() }
 function scheduleResume () {
   clearTimeout(retryTimer)
   retryTimer = setTimeout(() => { void resume(true) }, retryDelay)
@@ -290,7 +446,7 @@ async function startApp () {
 
 async function resume (quiet) {
   const saved = session.saved || (await idbGet('phone'))
-  if (!saved) { show('scan', { title: STR.scanTitle, sub: STR.scanSub }); return }
+  if (!saved) { show('scan', { title: STR.scanTitle, sub: ios || standalone ? STR.pasteSub : STR.scanSub, actions: pasteActions() }); return }
   session.saved = saved
   if (!quiet) show('connecting', { title: STR.connecting, sub: STR.reconnecting })
   try {
@@ -311,7 +467,7 @@ async function resume (quiet) {
   }
 }
 
-async function pair (frag) {
+async function pair (frag, opts = {}) {
   show('connecting', { title: STR.connecting, sub: '' })
   try {
     const phoneId = await e2e.newIdentity(false)
@@ -323,6 +479,7 @@ async function pair (frag) {
     }
     session.saved = { sid: frag.sid, hostIdPub: e2e.toB64u(frag.hostIdPub), phoneId, computer: r.computer, pairedAt: Date.now() }
     await idbSet('phone', session.saved)
+    if (opts.offer !== false) await offerInstall()
     await startApp()
   } catch (e) {
     log('pair: ' + String(e.message || e))
@@ -334,13 +491,24 @@ async function pair (frag) {
 async function main () {
   if (!('serviceWorker' in navigator) || !globalThis.crypto || !crypto.subtle || !window.indexedDB) { show('error', { title: STR.errorTitle, sub: STR.unsupported }); return }
   const frag = e2e.parsePairingFragment(location.hash)
+  const fullUrl = location.href // what an iPhone app is linked with: copied before the secrets leave the address bar
+  const wantInstall = new URLSearchParams(location.search).get('install') === '1'
   if (location.hash) history.replaceState(null, '', location.pathname) // the secrets never stay in the address bar
   navigator.serviceWorker.addEventListener('message', onServiceWorkerMessage)
   try {
     await navigator.serviceWorker.register('/sw.js', { scope: '/' })
     await navigator.serviceWorker.ready
   } catch (e) { fail('error', STR.errorTitle, String(e.message || e)); return }
-  if (frag !== null) await pair(frag)
-  else await resume(false)
+  if (frag !== null) {
+    // An iPhone app keeps its own storage: a link made in Safari would be lost on installing. Offer to install first.
+    if (ios && !standalone && touch && !laterRecently()) {
+      renderInstall({ link: fullUrl, done: () => { setLater(); void pair(frag, { offer: false }) } })
+      return
+    }
+    await pair(frag)
+  } else if (wantInstall && !standalone) {
+    history.replaceState(null, '', location.pathname)
+    renderInstall({ link: null, done: () => { void resume(false) } })
+  } else await resume(false)
 }
 main().catch((e) => fail('error', STR.errorTitle, String((e && e.message) || e)))
