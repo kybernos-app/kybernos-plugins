@@ -948,6 +948,12 @@ team with no recorded folder gets one at the next page load and no chat opens; a
 the next page load makes the folder once the disk allows it. Not proven here: a chat that was already started keeping its folder (no model answers in the sandbox, so no message is
 sent: a session's folder is DSH's own rule). Exit 0 / 1 / 3.
 
+Since the active team follows the chat on screen, this check reads **facts that do not depend on which team is active a moment later**: the page reloads on the chat DSH reopens, and the
+follower then moves the active team to that chat's team, so a step that reloads reads the folder on disk and the host's `team_folders`, never « the active folder ». Two earlier failures
+that looked like flakiness were product bugs it found, and their tests are in `test-follow-chat.mjs` / `test-cloud-client.mjs` (a click inside the ~0.5 s before DSH lists the chat a switch
+opened was undone by the follower's first look at that chat) and `test-chat-space-host.mjs` (a catalogue import that outlived a profile refresh wrote back the list of teams it had read before,
+so a team added meanwhile vanished from the menu). The hero waits (`heroIs`) answer `true` / `false`: compare them with `=== true`.
+
 ## The active team follows the chat: `scripts/check-follow-chat-live.mjs`
 
 ```bash
