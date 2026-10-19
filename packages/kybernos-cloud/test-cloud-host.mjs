@@ -40,6 +40,11 @@ let computerRestricted = false
 let kybyAnswer = null
 // The status of GET /v1/me/telegram (404 = a server older than the Telegram door).
 let kyberTelegramStatus = 200
+// What the server says to GET /v1/me/whatsapp (the beta bridge, ADR 0053 § 13.8): a status (404 = a server with no such door) and a body.
+let kyberWhatsappStatus = 200
+let kyberWhatsapp = { configured: true, enabled: true, available: true, linked: null }
+const WA_PAIR_ID = '44444444-4444-4444-8444-444444444444'
+const WA_LINK = 'https://wa.me/33600000000?text=pair_abcdefghij0123456789wxyz'
 // What the server answers to POST …/computers/{id}/resume | suspend | ticket (the computers module, ADR 0052): a status and a body.
 let computerActionAnswer = null
 const computerActionSeen = []
@@ -273,6 +278,15 @@ const api = createServer((req, res) => {
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
       if (kybyAnswer === null) return send(404, { error: 'not_found' })
       return send(200, kybyAnswer)
+    }
+    if (req.url === '/v1/me/whatsapp' && req.method === 'GET') {
+      if (kyberWhatsappStatus !== 200) return send(kyberWhatsappStatus, { error: 'not_found' })
+      if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+      return send(200, kyberWhatsapp)
+    }
+    if (req.url === '/v1/me/whatsapp/pairing' && req.method === 'POST') {
+      if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+      return send(201, { id: WA_PAIR_ID, link: WA_LINK, expires_at: '2026-10-20T20:05:00Z' })
     }
     if (req.url === '/v1/me/telegram' && req.method === 'GET') {
       if (kyberTelegramStatus !== 200) return send(kyberTelegramStatus, { error: 'not_found' })
@@ -704,6 +718,8 @@ try {
     // Kaby: the Telegram pairing by QR or link, where a message runs, and the person's conversation (test-kyby.mjs holds their rules).
     '/kybernos-cloud/telegram/pairing', '/kybernos-cloud/telegram/pairing/state', '/kybernos-cloud/telegram/pairing/cancel', '/kybernos-cloud/kyby/computer', '/kybernos-cloud/telegram/unlink',
     '/kybernos-cloud/kyby/native', '/kybernos-cloud/kyby/native/set',
+    // WhatsApp, the beta bridge (ADR 0053 § 13.8): the same four calls.
+    '/kybernos-cloud/whatsapp/pairing', '/kybernos-cloud/whatsapp/pairing/state', '/kybernos-cloud/whatsapp/pairing/cancel', '/kybernos-cloud/whatsapp/unlink',
     '/kybernos-cloud/computer/resume', '/kybernos-cloud/computer/suspend', '/kybernos-cloud/computer/open',
     // The Upgrade dialog: the plans and their quotes, the payment page and the billing portal (test-billing-proxy.mjs holds their rules).
     '/kybernos-cloud/plans', '/kybernos-cloud/plans/quote', '/kybernos-cloud/billing/checkout', '/kybernos-cloud/billing/portal',
@@ -1385,8 +1401,28 @@ try {
     assert.equal(olderThanDoor.body.pairing, 'unsupported', 'a server with no Telegram door at all is too old too (every combination is in test-kyby.mjs)')
     assert.equal(olderThanDoor.body.telegram, null, 'and says nothing of a door it does not have')
     kyberTelegramStatus = 200
+    // WhatsApp, the beta bridge (ADR 0053 § 13.8): what the server says is forwarded in the same shape as Telegram's; a server with no such door says nothing of it.
+    const wa = await hit('/kybernos-cloud/kyber', 'GET', 'http://127.0.0.1:3080')
+    assert.deepEqual(wa.body.whatsapp, { configured: true, enabled: true, available: true, linked: null })
+    kyberWhatsapp = { configured: true, enabled: true, available: false, linked: { display: 'Ada', linked_at: '2026-10-20T00:00:00.000Z', paused: false, blocked: true } }
+    assert.deepEqual((await hit('/kybernos-cloud/kyber', 'GET', 'http://127.0.0.1:3080')).body.whatsapp.linked, { display: 'Ada', linked_at: '2026-10-20T00:00:00.000Z', paused: false, blocked: true })
+    kyberWhatsappStatus = 404
+    assert.equal((await hit('/kybernos-cloud/kyber', 'GET', 'http://127.0.0.1:3080')).body.whatsapp, null, 'a server with no WhatsApp door says nothing of it')
+    kyberWhatsappStatus = 200
+    kyberWhatsapp = { configured: true, enabled: true, available: true, linked: null }
+    // The pairing, through the host: the link and a QR of it; the routes are the Telegram ones' twins and need the same same-origin rule.
+    for (const path of ['/kybernos-cloud/whatsapp/pairing', '/kybernos-cloud/whatsapp/pairing/state', '/kybernos-cloud/whatsapp/pairing/cancel', '/kybernos-cloud/whatsapp/unlink']) assert.equal(routes.has(path), true, path + ' est montee')
+    const waPath = '/kybernos-cloud/whatsapp/pairing'
+    const waReq = fakeReq('POST', 'http://127.0.0.1:3080', {}, waPath)
+    waReq.socket = { localPort: 3080, remoteAddress: '127.0.0.1' }
+    const started = fakeRes()
+    await routes.get(waPath)(waReq, started)
+    assert.equal(started.body.ok, true)
+    assert.deepEqual([started.body.id, started.body.link, started.body.number], [WA_PAIR_ID, WA_LINK, '33600000000'])
+    assert.ok(started.body.qr !== null && started.body.qr.size >= 21)
+    assert.equal(leaks(started.body), false)
     kybyAnswer = null
-    ok('onglet Kyber : l\'etat de la porte Telegram et du Home de la personne, sans jeton')
+    ok('onglet Kyber : l\'etat de la porte Telegram et du Home de la personne, sans jeton ; la porte WhatsApp, et son appairage')
   }
 
   // 6g. The Home computer's actions: wake, put to sleep, open. The page never names a computer; the server's refusals come back as codes.

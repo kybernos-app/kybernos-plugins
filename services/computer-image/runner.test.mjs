@@ -67,6 +67,7 @@ test('the prompt is Kaby, from the shared text and never from the name a kyber c
 
 test('the channel of a turn comes from what the platform says of the message, in one place', () => {
   assert.equal(channelOf({ source: 'telegram' }), 'telegram')
+  assert.equal(channelOf({ source: 'whatsapp' }), 'whatsapp')
   assert.equal(channelOf({}), 'phone')
   assert.equal(channelOf(null), 'phone')
   assert.equal(channelOf({ source: 'something else' }), 'phone')
