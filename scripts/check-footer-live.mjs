@@ -228,7 +228,7 @@ const keyboardMenu = async (label, trigger, menu) => {
   await val(`document.querySelector(${JSON.stringify(trigger)}).focus()`)
   await pressKey('Enter')
   await waitFor(page, `document.querySelector(${JSON.stringify(menu)}) !== null`, 4000)
-  await until(async () => (await spot()).at !== null, 3000) // the focus enters the menu a moment after it is drawn
+  await until(async () => { const at = (await spot()).at; return typeof at === 'number' && at >= 0 }, 8000) // the focus enters the menu a moment after it is drawn (a busy machine: several seconds); -1 is « on the page, not yet in the menu »
   let s = await spot()
   check(label + ': Enter on the focused button opens the menu and the focus enters it, on its first item', s.open === true && s.at === 0 && s.n >= 6, s)
   const n = s.n
@@ -245,7 +245,7 @@ const keyboardMenu = async (label, trigger, menu) => {
   await pressKey('Escape'); await until(gone(menu), 3000)
   s = await spot()
   check(label + ': Escape closes the menu and the focus is back on the button', s.open !== true && s.trigger === true && !(await exists(menu)), s)
-  await pressKey('Enter'); await waitFor(page, `document.querySelector(${JSON.stringify(menu)}) !== null`, 4000); await until(async () => (await spot()).at !== null, 3000)
+  await pressKey('Enter'); await waitFor(page, `document.querySelector(${JSON.stringify(menu)}) !== null`, 4000); await until(async () => { const at = (await spot()).at; return typeof at === 'number' && at >= 0 }, 8000)
   await pressKey('Tab'); await until(gone(menu), 3000)
   s = await spot()
   check(label + ': Tab closes the menu too and the focus is back on the button (not left on the page behind)', s.open !== true && s.trigger === true && !(await exists(menu)), s)
@@ -277,6 +277,9 @@ try {
     await shot('1-signed-out-row-light')
 
     check('a real click on the button opens our menu', await press('[data-kb="foot-signin"]') && (await waitFor(page, `document.querySelector('[data-kb="off-menu"]') !== null`, 4000)) !== null)
+    const WANTED_OFF = ['connect', 'signup', 'plans', 'appearance', 'settings', 'website', 'help', 'feedback']
+    // « Create an account » and « See plans » are drawn when the plans have been read: waited for as a fact (the full list), not guessed from two reads that agree.
+    await until(async () => JSON.stringify(await entriesNow('[data-kb="off-menu"]')) === JSON.stringify(WANTED_OFF), 10000)
     const list = await entries('[data-kb="off-menu"]')
     check('the menu: Sign in, Create an account, See plans, Appearance, Settings, Website, Help, Send feedback — in that order', JSON.stringify(list) === JSON.stringify(['connect', 'signup', 'plans', 'appearance', 'settings', 'website', 'help', 'feedback']), list)
     check('no plan row, team, account, referral, remote control or log out', (await val(`!document.querySelector('[data-kb="off-menu"] [data-kb="menu-plan-cta"], [data-kb="off-menu"] [data-kb="menu-switch"], [data-kb="off-menu"] [data-kb="menu-account"], [data-kb="off-menu"] [data-kb="menu-referral"], [data-kb="off-menu"] [data-kb="menu-logout"], [data-kb="off-menu"] [data-kb="menu-space-settings"], [data-kb="off-menu"] [data-kb="menu-remote"]')`)) === true)
@@ -1196,7 +1199,8 @@ try {
     setWorld(3, 'admin', W_TEAM, NORMAL)
     await reload()
     const cuesNow = () => val(`({ pills: Array.from(document.querySelectorAll('.kbcue [data-kb^="cue-"]')).map((e) => ({ kind: e.getAttribute('data-kb'), text: e.innerText, hue: e.getAttribute('data-kb-hue'), title: e.getAttribute('title') })), placeholder: Array.from(document.querySelectorAll('[data-composer-placeholder]')).map((n) => n.textContent), heading: Array.from(document.querySelectorAll('[class*="titleGroup"]')).map((g) => (g.children[0] || { textContent: '' }).textContent), accessor: window.__KB_SPACE_CUE__ === null ? null : (window.__KB_SPACE_CUE__ && window.__KB_SPACE_CUE__.heading) })`)
-    await until(async () => (await cuesNow()).pills.length > 0, 8000)
+    // The pill, then the box's words and the heading: the placeholder is swept 80 ms after the cue is published (more on a busy machine), so all three are waited for, not only the first.
+    await until(async () => { const c = await cuesNow(); return c.pills.length > 0 && c.placeholder.length > 0 && c.placeholder.every((p) => p === 'Message Acme…') && c.accessor === 'What is Acme working on?' }, 12000)
     const teamCues = await cuesNow()
     check('team: the memory pill is there, in the team\'s colour, saying « Team memory · personal off » (the memory cut has landed)', teamCues.pills.length === 1 && teamCues.pills[0].kind === 'cue-memory' && teamCues.pills[0].text === 'Team memory · personal off' && teamCues.pills[0].hue !== null, teamCues)
     check('team: no folder pill (the team has no folder yet), none invented', !teamCues.pills.some((p) => p.kind === 'cue-folder'), teamCues)
