@@ -85,6 +85,28 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   assert.equal(api.kbNcFill('my bakery', 'Build me a website for ', known), 'Build me a website for my bakery', 'typed words are kept, after the sentence')
   assert.equal(api.kbNcFill('Build me a website for my bakery', 'Build me a website for ', known), 'Build me a website for my bakery', 'the same sentence is not doubled')
   assert.equal(api.kbNcFill(null, 'x ', null), 'x ', 'never throws')
+  // the page's own text never stacks: what it wrote last (untouched) is replaced, the person's words after another sentence stay under the new one
+  assert.equal(api.kbNcFill('Build me a website for my bakery', 'Create a mini-app that ', known, ''), 'Create a mini-app that my bakery', 'the person\'s words after another template\'s sentence: the sentence is swapped, the words stay')
+  assert.equal(api.kbNcFill('Build me a website for a product launch', 'Create a mini-app that ', known, 'Build me a website for a product launch'), 'Create a mini-app that ', 'exactly what the page wrote last belonged to the type left behind: replaced, suggestion included')
+  assert.equal(api.kbNcFill('Build me a website for a product launch!', 'Create a mini-app that ', known, 'Build me a website for a product launch'), 'Create a mini-app that a product launch!', 'once the person touched it, their words stay')
+  // the reported replay: a document, two of its suggestions, then four other types in a row, each time the sentence alone
+  {
+    const P = { doc: 'Write a document about ', slides: 'Make a slide deck about ', image: 'Create an image of ', video: 'Make a short video about ' }
+    const all = Object.values(P).concat(['Build me a website for ', 'Create a mini-app that '])
+    const S = { doc: ['a project brief', 'a one-page proposal', 'meeting notes'], image: ['a fox in a snowy forest', 'a flat logo mark', 'a jazz night poster'] }
+    let draft = ''
+    let own = ''
+    const pick = (id) => { const next = api.kbNcFill(draft, P[id], all, own); own = next === P[id] ? next : ''; draft = next }
+    const sug = (id, i) => { const next = api.kbNcSuggest(draft, P[id], all, S[id][i], S[id]); own = next === P[id] + S[id][i] ? next : ''; draft = next }
+    pick('doc'); sug('doc', 0); assert.equal(draft, 'Write a document about a project brief')
+    sug('doc', 2); assert.equal(draft, 'Write a document about meeting notes', 'a second suggestion replaces the first, it does not pile up')
+    pick('slides'); assert.equal(draft, 'Make a slide deck about ')
+    pick('image'); sug('image', 0); assert.equal(draft, 'Create an image of a fox in a snowy forest')
+    pick('video'); assert.equal(draft, 'Make a short video about ', 'four picks later, one sentence')
+    draft = 'my bakery'; own = ''
+    pick('slides'); assert.equal(draft, 'Make a slide deck about my bakery', 'the person\'s words are kept')
+    pick('image'); assert.equal(draft, 'Create an image of my bakery', 'and follow the type, without the sentence of the one left')
+  }
   ok('a template fills an empty composer and keeps whatever the person already typed')
 }
 
@@ -240,7 +262,8 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   assert.equal(api.kbNcSuggest('', 'Write a document about ', known, 'a project brief'), 'Write a document about a project brief')
   assert.equal(api.kbNcSuggest('Write a document about', 'Write a document about ', known, 'meeting notes'), 'Write a document about meeting notes', 'a template sentence typed without its last space')
   assert.equal(api.kbNcSuggest('Make a slide deck about ', 'Write a document about ', known, 'x'), 'Write a document about x', 'another template\'s sentence is replaced')
-  assert.equal(api.kbNcSuggest('Write a document about a project brief', 'Write a document about ', known, 'meeting notes'), 'Write a document about a project brief meeting notes', 'the person\'s words are kept')
+  assert.equal(api.kbNcSuggest('Write a document about my own idea', 'Write a document about ', known, 'meeting notes'), 'Write a document about my own idea meeting notes', 'the person\'s words are kept')
+  assert.equal(api.kbNcSuggest('Write a document about a project brief', 'Write a document about ', known, 'meeting notes', ['a project brief', 'a one-page proposal', 'meeting notes']), 'Write a document about meeting notes', 'another suggestion of the type replaces the one there')
   assert.equal(api.kbNcSuggest(undefined, undefined, undefined, undefined), '', 'never throws')
   // every offered type has its three suggestions in both languages, and the labels of the row
   for (const t of api.KB_NC_TEMPLATES) for (let i = 0; i < 3; i++) assert.ok(new RegExp("'kbnc\\.s\\." + t.id + '\\.' + i + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src.replace(/\\'/g, '’')), t.id + ' suggestion ' + i + ' is in both languages')
@@ -249,7 +272,7 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   const cards = src.slice(src.indexOf('const KbNewChatCards = (props)'), src.indexOf("id: 'kybernos-newchat'"))
   assert.ok(cards.indexOf('React.useState(null)') > 0 && cards.indexOf('React.useState(null)') < cards.indexOf("if (blank !== '1') return null"), 'the chosen type is a hook, set before the early return')
   assert.ok(/setChosen\(id\)/.test(cards) && /choArmed/.test(cards) && /setChosen\(null\)/.test(cards), 'a pick sets it, an emptied box and the chip\'s cross clear it')
-  assert.ok(/'data-kb': 'newchat-chosen'/.test(cards) && /'data-kb': 'newchat-suggestion'/.test(cards) && /kbNcSuggest\(draft, kbt\('kbnc\.p\.' \+ id\)/.test(cards), 'the row is there, and a suggestion goes through kbNcSuggest')
+  assert.ok(/'data-kb': 'newchat-chosen'/.test(cards) && /'data-kb': 'newchat-suggestion'/.test(cards) && /kbNcSuggest\(draft, tpl, knownTpl, sug,/.test(cards), 'the row is there, and a suggestion goes through kbNcSuggest')
   assert.ok(/chosen: picked/.test(cards) && /sp\.chosen === t\.id \? ' is-on'/.test(src), 'the chosen card is marked')
   // the page behind, the title, the halo: CSS on stable hooks, only where the block is
   const css2 = src.slice(src.indexOf('[data-phase="hero"]:has([data-kb="newchat"]){background-image'), src.indexOf("'kybers: styles of the new chat cards'"))
@@ -278,7 +301,8 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_GROUPS, KB_NC_TEMP
   assert.ok(/kbNcCalm\(\) \? 'auto' : 'smooth'/.test(c), 'no smooth scrolling when the person asked for reduced motion')
   const cards = src.slice(src.indexOf('const KbNewChatCards = (props)'), src.indexOf('const KbNewChatCards = (props)') + 14000)
   assert.ok(/p\.input\.draft/.test(cards) && /kbNcDetect\(draft, offered\)/.test(cards) && /h\(KbNcSlider, \{ groups, match, chosen: picked, onPick: prefill \}\)/.test(cards), 'the slider is lit by the draft the dock entry receives')
-  assert.ok(/kbNcFill\(draft, kbt\('kbnc\.p\.' \+ id\)/.test(cards), 'a click fills the composer through kbNcFill (the person\'s words are kept)')
+  assert.ok(/kbNcFill\(draft, tpl, knownTpl, ownRef\.current\)/.test(cards) && /kbNcSuggest\(draft, tpl, knownTpl, sug,/.test(cards) && /ownRef\.current = next === tpl \? next : ''/.test(cards), 'a click fills the composer through kbNcFill and remembers only what holds none of the person\'s words')
+  assert.ok(/React\.useEffect\(\(\) => \{ setChosen\(null\); ownRef\.current = ''; choArmed\.current = false \}, \[sid\]\)/.test(cards), 'a new blank chat starts clean')
   assert.ok(/'data-kb': 'newchat-cloud'/.test(cards) && /'data-kb': 'newchat-cloud-open'/.test(cards) && /'data-kb': 'newchat-cloud-' \+ verb/.test(cards), 'the Cloud Computer line keeps its hooks and its actions')
   assert.ok(/kbNcDot\(cloud\.kind\)/.test(cards) && /kbNcActions\(cloud\)/.test(cards), 'and its state dot and the actions its state allows')
   ok('the slider: drawings, paging, drag, names, right-to-left, reduced motion; lit by the draft; the Cloud Computer line keeps its state and actions')
