@@ -327,6 +327,8 @@ cap of 40 cuts.
 
 ### Team space: the personal memory is cut
 
+The whole picture of the teams feature (the rules, the files, the seams, the known limits, the tests) is in `docs/dev/teams.md`.
+
 When the active space is a **team**, nothing personal reaches the model and nothing personal is written. This is not a setting; the one
 door from personal to team is the explicit « Propose to team » action (below, « Team lessons »).
 
