@@ -55,6 +55,7 @@ import { createKybyRoutes, pairingSupport } from './kyby.mjs'
 import { writeGuard } from './session-guard.mjs'
 import { createKybyNative, isSessionId, readPointer, writePointer } from './kyby-native.mjs'
 import { appendEntry as journalAppend, journalTool, toolsOfTurn, turnEntry as journalEntry } from './kyby-journal.mjs'
+import { knowledgeTool } from './kyby-knowledge.mjs'
 import { UNREADABLE, spaceKind, publishSpaceSeam } from './team-space.mjs'
 import { documentsDir, ensureTeamFolder, isChildOf, rootOf } from './team-folder.mjs'
 import { createSightings, createTurnWatch, spaceOfFolder } from './chat-space.mjs'
@@ -4716,7 +4717,7 @@ const rememberTurnSession = (id, jobId) => {
 // is never raised. Whatever goes wrong (no job, the platform unreachable, no answer in time) is a refusal, never a pass.
 // What reads and changes nothing passes without a question. `memory_search` is the person's own memory read back to them: asking before it made every « what do you know about me » a question
 // and, when it was refused, a turn with no answer (measured on dev, step 0 of the Kaby baseline). `memory_write` changes something and still asks.
-const TURN_GATE_SAFE_TOOLS = new Set(['read', 'read_image', 'web_search', 'web_fetch', 'memory_search', 'job_list', 'schedule_list', 'connections_list', 'kaby_journal'])
+const TURN_GATE_SAFE_TOOLS = new Set(['read', 'read_image', 'web_search', 'web_fetch', 'memory_search', 'job_list', 'schedule_list', 'connections_list', 'kaby_journal', 'kaby_knowledge'])
 const TURN_GATE_WAIT_MS = 10 * 60_000 + 15_000
 const turnRootOf = (ctx, id) => {
   // A sub-agent's call is its root session's.
@@ -4776,6 +4777,17 @@ const mountKabyJournal = (ctx) => {
   })
   ctx.on('agent/turn-stopping', ({ agent }) => {
     try { journalTurn(agent) } catch (e) { /* the journal never breaks a turn */ }
+  })
+}
+
+// ── Kaby's knowledge folder: the documents the person put in a folder of Kaby's own, read by the tool kaby_knowledge (kyby-knowledge.mjs) ────────────────
+// It is a folder of Kaby's chat workspace (`knowledge` in Kaby's folder), so that on the person's computer it shows in the chat's files; on a cloud computer it is the one of that computer's
+// volume. Read-only: the tool lists, searches and reads, nothing else, and never leaves the folder.
+const kabyKnowledgeDir = () => join(kybyFolder(), 'knowledge')
+const mountKabyKnowledge = (ctx) => {
+  try { mkdirSync(kabyKnowledgeDir(), { recursive: true, mode: 0o700 }) } catch (e) { /* the tool then says the folder is empty */ }
+  ctx.inject(['tools'], (scope) => {
+    scope.tools.register(knowledgeTool({ dir: kabyKnowledgeDir }))
   })
 }
 
@@ -5374,6 +5386,7 @@ export function apply(ctx) {
   try { mountChatSpace(ctx) } catch (e) { console.error('[kybernos-cloud] active team follows the chat: ' + String((e && e.message) || e)) }
   try { mountKybyNative(ctx) } catch (e) { console.error('[kybernos-cloud] native Kaby: ' + String((e && e.message) || e)) }
   try { mountKabyJournal(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby journal: ' + String((e && e.message) || e)) }
+  try { mountKabyKnowledge(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby knowledge: ' + String((e && e.message) || e)) }
   try { mountMemoryTools(ctx) } catch (e) { console.error('[kybernos-cloud] memory tools: ' + String((e && e.message) || e)) }
   try { connections.mount(ctx) } catch (e) { console.error('[kybernos-cloud] connections: ' + String((e && e.message) || e)) }
   try { mountMemoryCapture(ctx) } catch (e) { console.error('[kybernos-cloud] memory capture: ' + String((e && e.message) || e)) }
