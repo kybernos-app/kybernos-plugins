@@ -275,6 +275,30 @@ try {
   await val(`document.documentElement.setAttribute('dir', 'ltr')`)
   await closeWindow()
 
+  console.log('── 5g. a phone with its drawer closed: Kaby\'s strip can still open the window ──')
+  // The account footer lives in the drawer, which slides off the screen with a transform when it is closed (a window drawn inside it would slide away with it): the window does
+  // not depend on it, it draws itself in a root of its own on <body>.
+  await viewport(390, 844)
+  await sleep(1200)
+  let cardBox = await box('[data-kb="workspace-card"]')
+  for (let i = 0; i < 3 && cardBox !== null && cardBox.r > 1; i++) {
+    // the phone layout's menu button toggles the drawer: pressed for real, at its centre
+    const mb = await box('.kbmob-menu')
+    if (mb !== null) { for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) await page.send('Input.dispatchMouseEvent', { type, x: mb.x + mb.w / 2, y: mb.y + mb.h / 2, button: 'left', clickCount: 1 }) }
+    await sleep(900)
+    cardBox = await box('[data-kb="workspace-card"]')
+  }
+  check('the drawer is closed: the account card is off the screen', cardBox === null || cardBox.r <= 1, cardBox)
+  check('window.__KB_MOBILE__.open() (what the strip\'s button calls) opens it anyway', (await val(`window.__KB_MOBILE__.open()`)) === true && (await poll(() => has('[data-kb="phone-channels"]'), 6000)) === true)
+  const dw = await box('[data-kb="phone-channels"]')
+  check('it is on screen, whole', dw !== null && dw.x >= 0 && dw.r <= 390 && dw.y >= 0, dw)
+  await shot('5g-window-drawer-closed')
+  check('and a second call does not make a second window', (await val(`window.__KB_MOBILE__.open()`)) === true && (await val(`document.querySelectorAll('[data-kb="phone-channels"]').length`)) === 1)
+  await closeWindow()
+  check('closing takes its node out of the page', (await has('[data-kb="phone-channels-root"]')) === false)
+  await viewport(1400, 950)
+  await sleep(800)
+
   console.log('── 6. closing ──')
   await key('Escape', 'Escape', 27)
   check('Escape closes the window', (await poll(async () => !(await has('[data-kb="phone-channels"]')), 4000)) === true)

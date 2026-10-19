@@ -534,7 +534,7 @@ window.__ModuleLoader__.load({
 
 
       // ── the « Phone and channels » screen ────────────────────────────────────────────────────────────────────────────────
-      // ONE screen, drawn in two places: a window the account menu opens (kybernos-cloud mounts `window.__KB_MOBILE__.Dialog`) and
+      // ONE screen, drawn in two places: a window (`window.__KB_MOBILE__.open()`: the account menu's entry and Kaby's strip ask for it) and
       // Settings › Phone and channels. Two columns:
       //   · left, this bundle's: the phone link — a QR code, a 4-digit check, the phones linked. It gives a phone the CONTROL OF THIS
       //     computer, and the card says so in a sentence of its own;
@@ -543,7 +543,7 @@ window.__ModuleLoader__.load({
       // What the left column shows is decided by the host half (GET /kybernos-mobile/remote/status): this is only a view and a few
       // buttons. The QR code is drawn from the modules the host computed; it is black on white on purpose, whatever the theme (a
       // scanner needs the contrast), the only colours this file names.
-      const buildRemoteUi = (React, ReactDOM) => {
+      const buildRemoteUi = (React, roots) => {
         const h = React.createElement
         const BASE = (() => { try { return new URL('kybernos-mobile/remote/', document.baseURI).pathname } catch (e) { return '/kybernos-mobile/remote/' } })()
         const api = async (name, body) => {
@@ -858,21 +858,47 @@ window.__ModuleLoader__.load({
             // Captured, because DSH's own dialogs underneath also close on Escape.
             const onKey = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); close() } }
             window.addEventListener('keydown', onKey, true)
+            // Anything on this screen that asks for Settings › Servers (« Switch server », here or on Telegram's row) must not leave the window over the page it opens.
+            window.addEventListener('kybernos-cloud:servers', close)
             return () => {
               window.removeEventListener('keydown', onKey, true)
+              window.removeEventListener('kybernos-cloud:servers', close)
               const p = latest.current !== null && latest.current !== undefined ? latest.current.pairing : null
               if (p !== null && p !== undefined && p.state !== 'verify') void api('pair/cancel', {})
               try { if (before !== null && before !== undefined && typeof before.focus === 'function') before.focus() } catch (e) { /* gone */ }
             }
           }, [])
-          const tree = h('div', { className: 'kbpc-scrim', 'data-kb': 'phone-channels-scrim', onMouseDown: (ev) => { if (ev.target === ev.currentTarget) close() } },
+          return h('div', { className: 'kbpc-scrim', 'data-kb': 'phone-channels-scrim', onMouseDown: (ev) => { if (ev.target === ev.currentTarget) close() } },
             h('div', { className: 'kbpc-dialog', ref: card, role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kbpc-title', tabIndex: -1, 'data-kb': 'phone-channels' },
               head({ titleId: 'kbpc-title', onClose: close }),
               columns(r, web, () => { close(); switchServer() })))
-          // On <body>, not where the account menu mounted it: on a phone the sidebar is a drawer that slides with a transform, and a fixed box inside a transformed
-          // parent is placed in that parent, not in the window (measured: the window sat 354 px off to the left of the screen). Without react-dom it is drawn in place.
-          try { if (ReactDOM !== null && ReactDOM !== undefined && typeof ReactDOM.createPortal === 'function' && document.body) return ReactDOM.createPortal(tree, document.body) } catch (e) { /* drawn in place */ }
-          return tree
+        }
+
+        // The window opens itself, in a React root of its own on <body>: it does not depend on the account menu, on the sidebar's footer or on the drawer the footer lives in (a fixed
+        // box inside a parent that slides with a transform is placed in that parent: measured, the window sat 354 px off to the left of the screen, and it would slide away with the
+        // drawer). Anyone may ask for it (the account menu's entry, Kaby's strip); one window at a time; false when this DSH offers no React root to draw it in.
+        let shown = null
+        const openWindow = () => {
+          if (shown !== null) return true
+          try {
+            if (roots === null || roots === undefined || typeof roots.createRoot !== 'function' || !document.body) return false
+            const node = document.createElement('div')
+            node.setAttribute('data-kb', 'phone-channels-root')
+            document.body.appendChild(node)
+            const mine = { node, root: roots.createRoot(node) }
+            shown = mine
+            const onClose = () => {
+              if (shown === mine) shown = null
+              // Not from inside the render that asked for it: a root is taken down on the next turn.
+              setTimeout(() => { try { mine.root.unmount() } catch (e) { /* gone */ } try { mine.node.remove() } catch (e) { /* gone */ } }, 0)
+            }
+            mine.root.render(h(Dialog, { onClose }))
+            return true
+          } catch (e) {
+            shown = null
+            try { console.warn('[kybernos-mobile] the phone and channels window could not open:', e) } catch (e2) { /* no console */ }
+            return false
+          }
         }
 
         // The animated help of the Settings page (the Suite publishes it): opens the first time the page is visited, and the card of the
@@ -969,7 +995,7 @@ window.__ModuleLoader__.load({
 .kbmr-lockbox{color:var(--dsw-alias-label-secondary, rgb(161,161,171))}
 .kbmr-paywall .kbmr-sub{text-align:center;max-width:440px}
 `
-        return { Dialog, Page, CSS }
+        return { Dialog, Page, CSS, open: openWindow }
       }
 
       return {
@@ -987,15 +1013,18 @@ window.__ModuleLoader__.load({
           try {
             if (typeof ctx.inject === 'function' && typeof require === 'function') {
               const React = require('react')
-              let ReactDOM = null
-              try { ReactDOM = require('react-dom') } catch (e) { ReactDOM = null }
-              const ui = buildRemoteUi(React, ReactDOM)
+              // A React root to draw the window in: `react-dom/client` (React 19), else `react-dom` when it still offers createRoot (React 18).
+              let roots = null
+              for (const name of ['react-dom/client', 'react-dom']) {
+                try { const m = require(name); if (roots === null && m !== undefined && m !== null && typeof m.createRoot === 'function') roots = m } catch (e) { /* not offered */ }
+              }
+              const ui = buildRemoteUi(React, roots)
               ctx.inject(['slots'], (scope) => {
                 try {
                   const slots = scope !== undefined && scope !== null ? scope.slots : null
                   ctx.effect(() => {
-                    // The account menu (kybernos-cloud) offers « Phone and channels » when this is there, and mounts the window.
-                    const mine = { version: 2, Dialog: ui.Dialog }
+                    // `open()` draws the window (the account menu's entry in kybernos-cloud and Kaby's strip call it); the entry is offered only while this is there.
+                    const mine = { version: 3, Dialog: ui.Dialog, open: ui.open }
                     try { window.__KB_MOBILE__ = mine } catch (e) { /* frozen window */ }
                     return () => { try { if (window.__KB_MOBILE__ === mine) delete window.__KB_MOBILE__ } catch (e) { /* gone */ } }
                   }, 'kybernos-mobile: phone and channels window for the account menu')
