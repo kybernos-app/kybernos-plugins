@@ -845,8 +845,8 @@ window.__ModuleLoader__.load({
         '.kbky-three>div{padding:12px 14px;border-radius:12px;background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.08));display:flex;flex-direction:column;gap:6px}',
         '.kbky-three span{color:var(--dsw-alias-label-secondary,#666);font-size:13px}',
         '.kbky-chip{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:99px;font-size:12px;white-space:nowrap;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));color:var(--dsw-alias-label-secondary,#666)}',
-        '.kbky-chip.ok{border-color:transparent;background:var(--dsw-alias-state-success-bg,rgba(34,197,94,.16));color:var(--dsw-alias-state-success-primary,#15803d)}',
-        '.kbky-chip.warn{border-color:transparent;background:var(--dsw-alias-state-warn-bg,rgba(245,158,11,.18));color:var(--dsw-alias-state-warn-label,#a8530a)}',
+        '.kbky-chip.ok{border-color:transparent;background:var(--dsw-alias-state-success-bg,rgba(34,197,94,.16));color:color-mix(in srgb,var(--dsw-alias-state-success-primary,#15803d) 55%,var(--dsw-alias-label-primary,#222))}',
+        '.kbky-chip.warn{border-color:transparent;background:var(--dsw-alias-state-warn-bg,rgba(245,158,11,.18));color:color-mix(in srgb,var(--dsw-alias-state-warn-label,#a8530a) 55%,var(--dsw-alias-label-primary,#222))}',
         // the strip also sits in the chat's dock, which has no `.kbky` ancestor: it sets its own size and colour, like the page and the pane do
         '.kbky-strip{border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.25));border-radius:28px;background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.06));color:var(--dsw-alias-label-primary,#222);font-size:var(--dsh-content-font-size-secondary,13.5px);line-height:1.5}',
         '.kbky-striphr{display:flex;align-items:center;gap:8px;padding-block:3px;padding-inline-end:10px}',
@@ -887,7 +887,7 @@ window.__ModuleLoader__.load({
         // the tiles inside have the radius that nests in it (28 minus the 12 px of padding).
         '.kbky-dock{margin:0 0 8px;padding:0 16px}',
         '.kbky-calm{display:flex;flex-direction:column;gap:12px}',
-        '.kbky-chip.err{border-color:transparent;background:var(--dsw-alias-state-error-bg,rgba(236,19,19,.12));color:var(--dsw-alias-state-error-primary,#b91c1c)}',
+        '.kbky-chip.err{border-color:transparent;background:var(--dsw-alias-state-error-bg,rgba(236,19,19,.12));color:color-mix(in srgb,var(--dsw-alias-state-error-primary,#b91c1c) 55%,var(--dsw-alias-label-primary,#222))}',
         // the two tiles: one grid, one padding, one radius, one anatomy (mark and name on top, the body, one action at the bottom)
         '.kbky-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}',
         '.kbky-tile{display:flex;flex-direction:column;gap:10px;min-width:0;padding:14px;border-radius:16px;background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.1));border:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.2))}',

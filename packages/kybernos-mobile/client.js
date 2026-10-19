@@ -721,7 +721,7 @@ window.__ModuleLoader__.load({
           return h('div', { className: 'kbmr-devices', 'data-kb': 'mobile-devices' },
             list.map((d) => h('div', { key: d.id, className: 'kbmr-device', 'data-kb': 'mobile-device' },
               h('span', { className: 'kbmr-dot' + (d.online ? ' on' : ''), 'aria-hidden': 'true' }),
-              h('div', { className: 'kbmr-devtxt' }, h('div', { className: 'kbmr-devname' }, d.label), h('div', { className: 'kbmr-sub' }, stateText(d))),
+              h('div', { className: 'kbmr-devtxt' }, h('div', { className: 'kbmr-devname', title: d.label }, d.label), h('div', { className: 'kbmr-sub' }, stateText(d))),
               confirm === d.id
                 ? h('button', { type: 'button', className: 'kbmr-btn kbmr-danger', 'data-kb': 'mobile-revoke-confirm', onClick: () => { setConfirm(null); props.onRevoke(d.id) } }, kt('Confirmer', 'Confirm'))
                 : h('button', { type: 'button', className: 'kbmr-btn', 'data-kb': 'mobile-revoke', onClick: () => setConfirm(d.id) }, kt('Déconnecter', 'Disconnect')))))
@@ -950,9 +950,10 @@ window.__ModuleLoader__.load({
 .kbpc-rights b{color:var(--dsw-alias-label-primary, rgb(243,243,245));font-weight:600}
 .kbpc-state{display:flex;flex-direction:column;gap:12px;padding:12px;border-radius:12px;background:color-mix(in srgb,var(--dsw-alias-label-primary, rgb(243,243,245)) 5%,transparent)}
 .kbpc-chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12px;white-space:nowrap;border:1px solid var(--dsw-alias-border-l2, rgb(46,46,52));color:var(--dsw-alias-label-secondary, rgb(161,161,171))}
-.kbpc-chip.ok{border-color:transparent;background:var(--dsw-alias-state-success-bg, rgba(34,197,94,.16));color:var(--dsw-alias-state-success-primary, rgb(21,128,61))}
-.kbpc-chip.warn{border-color:transparent;background:var(--dsw-alias-state-warn-bg, rgba(245,158,11,.18));color:var(--dsw-alias-state-warn-label, rgb(168,83,10))}
-.kbpc-chip.err{border-color:transparent;background:var(--dsw-alias-state-error-bg, rgba(236,19,19,.12));color:var(--dsw-alias-state-error-primary, rgb(185,28,28))}
+/* The text of a status chip leans toward the theme's own ink, so it reads on its tinted fill in light and in dark (measured: the bare state colours gave 2.2:1 and 4.05:1). */
+.kbpc-chip.ok{border-color:transparent;background:var(--dsw-alias-state-success-bg, rgba(34,197,94,.16));color:color-mix(in srgb,var(--dsw-alias-state-success-primary, rgb(21,128,61)) 55%,var(--dsw-alias-label-primary, rgb(243,243,245)))}
+.kbpc-chip.warn{border-color:transparent;background:var(--dsw-alias-state-warn-bg, rgba(245,158,11,.18));color:color-mix(in srgb,var(--dsw-alias-state-warn-label, rgb(168,83,10)) 55%,var(--dsw-alias-label-primary, rgb(243,243,245)))}
+.kbpc-chip.err{border-color:transparent;background:var(--dsw-alias-state-error-bg, rgba(236,19,19,.12));color:color-mix(in srgb,var(--dsw-alias-state-error-primary, rgb(185,28,28)) 55%,var(--dsw-alias-label-primary, rgb(243,243,245)))}
 .kbpc-dot{flex:none;width:7px;height:7px;border-radius:999px;background:currentColor}
 .kbpc-scrim{position:fixed;inset:0;z-index:9998;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:max(16px,env(safe-area-inset-top)) 16px 16px;background:rgba(0,0,0,.45)}
 .kbpc-dialog{position:relative;width:100%;max-width:1040px;margin:auto;display:flex;flex-direction:column;gap:20px;padding:24px;border-radius:16px;border:1px solid var(--dsw-alias-border-l2, rgb(46,46,52));background:var(--dsw-alias-bg-base, rgb(21,21,23));color:var(--dsw-alias-label-primary, rgb(243,243,245));box-shadow:0 18px 50px rgba(0,0,0,.35);outline:none}
