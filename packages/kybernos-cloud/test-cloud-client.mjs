@@ -79,25 +79,27 @@ assert.ok(clientSource.includes("onSpace: ouvrirAppli('plan')"), 'Team settings 
 assert.ok(clientSource.includes("onAccount: ouvrirAppli('overview')") && clientSource.includes("onReferral: ouvrirAppli('referral')"), 'Account ouvre la vue d ensemble et Referral sa propre page (2026-10-18), dans le navigateur')
 // « Phone and channels » (decision of 2026-10-19): ONE entry of the connected menu, just before « Settings », that opens kybernos-mobile's window (the phone link on the left,
 // Kaby's messaging apps on the right). It replaced « Remote control », its popover (MobilePanel, with its fake QR code) and the 60-second poll of the phone link's status the
-// old entry needed to decide whether to show itself: the window says by itself what this server and this plan allow.
+// old entry needed to decide whether to show itself: the window says by itself what this server and this plan allow. The window draws itself in a root of its own
+// (`window.__KB_MOBILE__.open()`): this footer mounts nothing (a window drawn inside the footer slides away with a phone's drawer, which moves with a transform).
 {
   assert.ok(/entree\('referral'[^\n]*\n\s*h\(AppearanceRow, null\),\n\s*\/\/[^\n]*\n\s*\/\/[^\n]*\n\s*props\.phone === true \? entree\('phone', h\(PhoneIcon[^\n]*props\.onPhone\) : null,\n\s*\/\/[^\n]*\n\s*entree\('settings'/.test(clientSource), 'l entree « Phone and channels » vient apres Appearance et juste avant Settings')
   assert.ok(/menuPhone: 'Phone and channels'/.test(clientSource) && /menuPhone: 'Téléphone et canaux'/.test(clientSource), 'fr/en')
-  assert.ok(!/MobilePanel|menuRemote|menu-remote|remoteOffer|kbf-qr|kbf-popcenter|mobTitle|mobScan|mobSoon|mobHelp|setMobileOpen|mobileOpen/.test(clientSource), 'plus de panneau telephone, de faux QR code, ni de sondage du statut du lien')
+  assert.ok(!/MobilePanel|menuRemote|menu-remote|remoteOffer|kbf-qr|kbf-popcenter|mobTitle|mobScan|mobSoon|mobHelp|setMobileOpen|mobileOpen|\\bphoneOpen\\b|setPhoneOpen|phoneDialog/.test(clientSource), 'plus de panneau telephone, de faux QR code, de sondage du statut du lien, ni de fenetre montee dans le pied')
   assert.ok(!clientSource.includes("'kybernos-mobile/remote/status'"), 'le pied ne lit plus le statut du lien telephone : la fenetre le dit elle-meme')
-  assert.equal((clientSource.match(/h\(phoneDialog\(\), \{/g) || []).length, 1, 'une seule fenetre telephone')
-  assert.ok(/phone: phoneDialog\(\) !== null,\s*onPhone: \(\) => \{ setMenuOpen\(false\); setNotifOpen\(false\); setPhoneOpen\(true\) \}/.test(clientSource), 'le menu s ouvre sur la fenetre quand le paquet qui la dessine est la, et se ferme')
-  assert.ok(/phoneOpen === true && phoneDialog\(\) !== null/.test(clientSource), 'la fenetre n est montee que si le paquet qui la dessine est la')
-  assert.ok(/const ouvrirServeurs = \(\) => \{ setMenuOpen\(false\); setNotifOpen\(false\); setPhoneOpen\(false\); openServersPage\(\) \}/.test(clientSource), 'Switch server, demande depuis la fenetre, la ferme et ouvre Settings › Servers')
-  const m = clientSource.match(/const phoneDialog = \(\) => \{[\s\S]*?\n        \}\n/)
-  assert.ok(m !== null, 'phoneDialog est la ou le test l attend')
-  const phoneDialog = (win) => new Function('window', 'return ' + m[0].replace('const phoneDialog = ', '').trim())(win)()
-  const Dialog = () => null
-  assert.equal(phoneDialog({ __KB_MOBILE__: { version: 2, Dialog } }), Dialog, 'the window the bundle publishes is the one mounted')
-  for (const none of [{}, { __KB_MOBILE__: null }, { __KB_MOBILE__: { version: 1, Panel: Dialog } }, { __KB_MOBILE__: { Dialog: 'x' } }])
-    assert.equal(phoneDialog(none), null, 'no window to mount, no entry: ' + JSON.stringify(none))
-  assert.equal(phoneDialog({ get __KB_MOBILE__ () { throw new Error('frozen') } }), null, 'a seam that throws offers nothing')
-  sok('Phone and channels : une entree avant Settings, qui monte la fenetre de kybernos-mobile quand elle existe ; plus de panneau telephone ni de sondage')
+  assert.ok(/phone: phoneOpener\(\) !== null,\s*onPhone: \(\) => \{ setMenuOpen\(false\); setNotifOpen\(false\); const open = phoneOpener\(\); if \(open !== null\) open\(\) \}/.test(clientSource), 'le menu se ferme et demande la fenetre quand le paquet qui la dessine est la')
+  assert.ok(/const ouvrirServeurs = \(\) => \{ setMenuOpen\(false\); setNotifOpen\(false\); openServersPage\(\) \}/.test(clientSource), 'Switch server ouvre Settings › Servers')
+  const m = clientSource.match(/const phoneOpener = \(\) => \{[\s\S]*?\n        \}\n/)
+  assert.ok(m !== null, 'phoneOpener est la ou le test l attend')
+  const phoneOpener = (win) => new Function('window', 'return ' + m[0].replace('const phoneOpener = ', '').trim())(win)()
+  const asked = []
+  const open = phoneOpener({ __KB_MOBILE__: { version: 3, open () { asked.push('open'); return true } } })
+  assert.equal(typeof open, 'function', 'the bundle publishes open: the entry is offered')
+  open()
+  assert.deepEqual(asked, ['open'], 'and it asks that bundle for the window')
+  for (const none of [{}, { __KB_MOBILE__: null }, { __KB_MOBILE__: { version: 2, Dialog () {} } }, { __KB_MOBILE__: { open: 'x' } }])
+    assert.equal(phoneOpener(none), null, 'no window to open, no entry: ' + JSON.stringify(none))
+  assert.equal(phoneOpener({ get __KB_MOBILE__ () { throw new Error('frozen') } }), null, 'a seam that throws offers nothing')
+  sok('Phone and channels : une entree avant Settings, qui demande sa fenetre a kybernos-mobile (open) quand elle existe ; le pied ne monte plus rien, plus de panneau telephone ni de sondage')
 }
 // A1-29: both footer menus (signed out, and the profile's) work with the keyboard. The focus moves INTO the menu when it opens, ArrowUp/ArrowDown (round the ends), Home and
 // End move between its buttons, Tab and Escape close it and give the focus back to the button that opened it. The signed-out menu is a portal on <body> (the last thing the
